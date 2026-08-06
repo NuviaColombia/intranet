@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Nueva solicitud de permiso</h1>
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+<div class="tarjeta" style="max-width:560px">
+  <p style="color:var(--gris);font-size:13px">
+    Tu solicitud requiere <b>{{ user.num_aprobaciones }}</b> aprobación(es):
+    {{ user.aprobador1.nombre_completo if user.aprobador1 else '⚠ sin asignar' }}
+    {% if user.num_aprobaciones == 2 %} y {{ user.aprobador2.nombre_completo if user.aprobador2 else '⚠ sin asignar' }}{% endif %}
+  </p>
+  <form method="post" action="/solicitudes/nueva">
+    <label>Tipo de permiso</label>
+    <select name="tipo_id" required>
+      {% for t in tipos %}
+      <option value="{{ t.id }}">{{ t.nombre }}{% if saldos[t.id] is not none %} — disponibles: {{ saldos[t.id] }} días{% endif %}</option>
+      {% endfor %}
+    </select>
+    <label>Fecha inicio</label><input type="date" name="fecha_inicio" required>
+    <label>Fecha fin</label><input type="date" name="fecha_fin" required>
+    <label>Motivo</label><textarea name="motivo" rows="3" placeholder="Describe brevemente el motivo"></textarea>
+    <button class="btn">Enviar solicitud</button>
+    <a class="btn gris" href="/solicitudes">Volver</a>
+  </form>
+  <p style="color:var(--gris);font-size:12px">Los días se calculan sobre días hábiles
+    (lunes a {{ 'sábado' if sabado_habil else 'viernes' }}).</p>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="tarjeta login-caja">
+  <h1>{% if ok %}✔ Registrado{% else %}✘ Error{% endif %}</h1>
+  <p>{{ msg }}</p>
+  {% if solicitud %}
+  <p style="color:var(--gris);font-size:13px">Solicitud #{{ solicitud.id }} — {{ solicitud.empleado.nombre_completo }}<br>
+     {{ solicitud.tipo.nombre }}: {{ solicitud.fecha_inicio }} al {{ solicitud.fecha_fin }}</p>
+  {% endif %}
+  <a class="btn" href="/aprobaciones">Ir a la plataforma</a>
+</div>
+{% endblock %}

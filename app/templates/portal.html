@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Solicitudes Nuvia</h1>
+<p style="color:var(--gris)">Elige un módulo para continuar</p>
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+<div class="modulos">
+  {% if user.tiene_modulo('people') %}
+  <a class="modulo" href="/panel">
+    <span class="modulo-icono">🗓️</span>
+    <span class="modulo-nombre">People</span>
+    <span class="modulo-desc">Permisos, horas extra y certificaciones</span>
+  </a>
+  {% else %}
+  <div class="modulo disabled" title="Sin acceso">
+    <span class="modulo-icono">🗓️</span>
+    <span class="modulo-nombre">People</span>
+    <span class="modulo-desc">Sin acceso</span>
+  </div>
+  {% endif %}
+  <div class="modulo disabled" title="Próximamente">
+    <span class="modulo-icono">🛒</span>
+    <span class="modulo-nombre">Compras</span>
+    <span class="modulo-desc">Próximamente</span>
+  </div>
+  <div class="modulo disabled" title="Próximamente">
+    <span class="modulo-icono">🦺</span>
+    <span class="modulo-nombre">SST</span>
+    <span class="modulo-desc">Próximamente</span>
+  </div>
+</div>
+{% endblock %}

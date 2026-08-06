@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Editar empleado</h1>
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+
+<div class="tarjeta" style="max-width:640px">
+  <form method="post" action="/empleados/{{ emp.id }}">
+    <label>Nombres</label><input type="text" name="nombres" value="{{ emp.nombres }}" required>
+    <label>Apellidos</label><input type="text" name="apellidos" value="{{ emp.apellidos }}" required>
+    <label>Fecha nacimiento</label>
+    <input type="date" name="fecha_nacimiento" value="{{ emp.fecha_nacimiento or '' }}">
+    <label>Fecha inicio en la empresa</label>
+    <input type="date" name="fecha_inicio_empresa" value="{{ emp.fecha_inicio_empresa or '' }}">
+    <label>Empresa</label>
+    <select name="empresa" required>
+      <option value="">—</option>
+      {% for co in empresas %}
+      <option value="{{ co.nombre }}" {{ 'selected' if emp.empresa==co.nombre }}>{{ co.nombre }}</option>
+      {% endfor %}
+    </select>
+    <label>Cargo</label><input type="text" name="cargo" value="{{ emp.cargo }}" required>
+    <label>Área</label>
+    <select name="area" required>
+      <option value="">—</option>
+      {% for ar in areas %}
+      <option value="{{ ar.nombre }}" {{ 'selected' if emp.area==ar.nombre }}>{{ ar.nombre }}</option>
+      {% endfor %}
+    </select>
+    <label>Identificación</label><input type="text" name="identificacion" value="{{ emp.identificacion }}" required>
+    <label>Correo (Zoho)</label><input type="email" name="email" value="{{ emp.email }}" required>
+
+    <label>Días de vacaciones disponibles (saldo acumulado)</label>
+    <input type="number" step="0.5" name="dias_vacaciones" value="{{ emp.dias_vacaciones }}">
+
+    <label>Rol</label>
+    <select name="rol">
+      <option value="empleado" {{ 'selected' if emp.rol=='empleado' }}>Empleado</option>
+      <option value="aprobador" {{ 'selected' if emp.rol=='aprobador' }}>Aprobador</option>
+      <option value="admin" {{ 'selected' if emp.rol=='admin' }}>Administrador</option>
+    </select>
+    <label>Aprobaciones requeridas</label>
+    <select name="num_aprobaciones">
+      <option value="1" {{ 'selected' if emp.num_aprobaciones==1 }}>1</option>
+      <option value="2" {{ 'selected' if emp.num_aprobaciones==2 }}>2</option>
+    </select>
+    <label>Aprobador 1</label>
+    <select name="aprobador1_id">
+      <option value="">—</option>
+      {% for a in aprobadores %}
+      <option value="{{ a.id }}" {{ 'selected' if emp.aprobador1_id==a.id }}>{{ a.nombre_completo }}</option>
+      {% endfor %}
+    </select>
+    <label>Aprobador 2</label>
+    <select name="aprobador2_id">
+      <option value="">—</option>
+      {% for a in aprobadores %}
+      <option value="{{ a.id }}" {{ 'selected' if emp.aprobador2_id==a.id }}>{{ a.nombre_completo }}</option>
+      {% endfor %}
+    </select>
+    <label>Estado</label>
+    <select name="activo">
+      <option value="1" {{ 'selected' if emp.activo }}>Activo</option>
+      <option value="0" {{ 'selected' if not emp.activo }}>Inactivo</option>
+    </select>
+
+    <label>Módulos con acceso</label>
+    <div style="display:flex;gap:14px;margin:4px 0 12px">
+      {% for slug, nombre in modulos_disponibles %}
+      <label style="font-weight:400;display:flex;align-items:center;gap:4px">
+        <input type="checkbox" name="modulos" value="{{ slug }}" style="width:auto;margin:0" {{ 'checked' if slug in emp.modulos_lista }}>
+        {{ nombre }}
+      </label>
+      {% endfor %}
+    </div>
+    {% if emp.rol == 'admin' %}<p style="font-size:12px;color:var(--gris);margin-top:-8px">Los administradores tienen acceso a todos los módulos independientemente de esta selección.</p>{% endif %}
+
+    <br>
+    <button class="btn">Guardar cambios</button>
+    <a class="btn gris" href="/empleados">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

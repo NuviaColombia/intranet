@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Hola, {{ user.nombres }}</h1>
+
+{% if pendientes_aprobar %}
+<div class="aviso ok">Tienes <b>{{ pendientes_aprobar }}</b> solicitud(es) pendiente(s) por aprobar.
+  <a href="/aprobaciones">Ir a aprobaciones →</a></div>
+{% endif %}
+
+<div class="tarjeta">
+  <h2>Mis saldos {{ anio }}</h2>
+  <table>
+    <tr><th>Tipo de permiso</th><th>Días anuales</th><th>Disponibles</th></tr>
+    {% for tipo, saldo in saldos %}
+    <tr>
+      <td>{{ tipo.nombre }}</td>
+      <td>{{ tipo.dias_anuales|default('Sin límite', true) }}</td>
+      <td>{% if saldo is none %}Sin límite{% else %}<b>{{ saldo }}</b>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p><a class="btn" href="/solicitudes/nueva">+ Nueva solicitud</a></p>
+</div>
+
+{% if metricas %}
+<h2>Panel RRHH</h2>
+<div class="metricas">
+  <div class="metrica"><div class="num">{{ metricas.pendientes }}</div><div class="lbl">Pendientes</div></div>
+  <div class="metrica"><div class="num">{{ metricas.aprobadas }}</div><div class="lbl">Aprobadas</div></div>
+  <div class="metrica"><div class="num">{{ metricas.rechazadas }}</div><div class="lbl">Rechazadas</div></div>
+  <div class="metrica"><div class="num">{{ metricas.empleados }}</div><div class="lbl">Empleados activos</div></div>
+</div>
+{% if metricas.por_area %}
+<div class="tarjeta" style="margin-top:18px">
+  <h2>Permisos aprobados por área</h2>
+  <table>
+    <tr><th>Área</th><th>Cantidad</th></tr>
+    {% for area, cant in metricas.por_area %}<tr><td>{{ area }}</td><td>{{ cant }}</td></tr>{% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

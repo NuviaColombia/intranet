@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Certificaciones</h1>
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+<div class="tarjeta" style="max-width:560px">
+  <h2>Certificado laboral</h2>
+  <p style="color:var(--gris);font-size:13px">
+    Genera tu certificado laboral. Incluirá tu cargo, área, empresa y fecha de ingreso registrados
+    en el sistema, firmado por People.
+  </p>
+  <form method="post" action="/certificaciones/generar">
+    <label>Dirigido a</label>
+    <input type="text" name="dirigido_a" value="A quien interese">
+    <label>Motivo (opcional, se incluye en el certificado)</label>
+    <textarea name="motivo" rows="2" placeholder="Ej: para trámite bancario"></textarea>
+    <button class="btn">Generar certificado</button>
+  </form>
+</div>
+{% endblock %}

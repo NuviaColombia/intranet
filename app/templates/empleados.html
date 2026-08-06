@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Empleados</h1>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+
+{% if resultado %}
+<div class="aviso {{ 'error' if resultado.errores else 'ok' }}">
+  Import: <b>{{ resultado.creados }}</b> creados, <b>{{ resultado.actualizados }}</b> actualizados.
+  {% if resultado.errores %}<br><b>Errores:</b><br>{% for e in resultado.errores %}• {{ e }}<br>{% endfor %}{% endif %}
+</div>
+{% endif %}
+
+<div class="tarjeta">
+  <h2>Importar desde Excel</h2>
+  <p style="font-size:13px;color:var(--gris)">
+    Usa la <a href="/empleados/plantilla">plantilla oficial</a>. Se crean nuevos empleados y se
+    actualizan los existentes (por identificación). Los aprobadores se vinculan por correo.
+  </p>
+  <form method="post" action="/empleados/importar" enctype="multipart/form-data" class="filtros">
+    <div style="flex:1"><input type="file" name="archivo" accept=".xlsx" required></div>
+    <div><button class="btn">Importar</button></div>
+  </form>
+</div>
+
+<div class="tarjeta">
+  <h2>Agregar empleado manualmente</h2>
+  <form method="post" action="/empleados/nuevo" class="filtros" style="flex-wrap:wrap">
+    <div><label>Nombres</label><input type="text" name="nombres" required></div>
+    <div><label>Apellidos</label><input type="text" name="apellidos" required></div>
+    <div><label>Fecha nacimiento</label><input type="date" name="fecha_nacimiento"></div>
+    <div><label>Fecha inicio en la empresa</label><input type="date" name="fecha_inicio_empresa"></div>
+    <div><label>Empresa</label>
+      <select name="empresa" required>
+        <option value="">—</option>
+        {% for co in empresas %}
+        <option value="{{ co.nombre }}">{{ co.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div><label>Cargo</label><input type="text" name="cargo" required></div>
+    <div><label>Área</label>
+      <select name="area" required>
+        <option value="">—</option>
+        {% for ar in areas %}
+        <option value="{{ ar.nombre }}">{{ ar.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div><label>Identificación</label><input type="text" name="identificacion" required></div>
+    <div><label>Correo (Zoho)</label><input type="email" name="email" required></div>
+    <div><label>Rol</label>
+      <select name="rol">
+        <option value="empleado">Empleado</option>
+        <option value="aprobador">Aprobador</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div><label>Aprobaciones requeridas</label>
+      <select name="num_aprobaciones">
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+    </div>
+    <div><label>Aprobador 1</label>
+      <select name="aprobador1_id">
+        <option value="">—</option>
+        {% for a in aprobadores %}
+        <option value="{{ a.id }}">{{ a.nombre_completo }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div><label>Aprobador 2</label>
+      <select name="aprobador2_id">
+        <option value="">—</option>
+        {% for a in aprobadores %}
+        <option value="{{ a.id }}">{{ a.nombre_completo }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Módulos con acceso</label>
+      <div style="display:flex;gap:14px;margin:4px 0 12px">
+        {% for slug, nombre in modulos_disponibles %}
+        <label style="font-weight:400;display:flex;align-items:center;gap:4px">
+          <input type="checkbox" name="modulos" value="{{ slug }}" style="width:auto;margin:0" {{ 'checked' if slug=='people' }}>
+          {{ nombre }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div><button class="btn">Crear empleado</button></div>
+  </form>
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <table>
+    <tr><th>Nombre</th><th>Identificación</th><th>Correo</th><th>Empresa / Área / Cargo</th>
+        <th>Nacimiento</th><th>Vacaciones</th><th>Rol</th><th>Módulos</th><th></th></tr>
+    {% for e in empleados %}
+    <tr {% if not e.activo %}style="opacity:.45"{% endif %}>
+      <td><b>{{ e.nombre_completo }}</b></td>
+      <td>{{ e.identificacion }}</td>
+      <td>{{ e.email }}</td>
+      <td>{{ e.empresa }}<br><small style="color:var(--gris)">{{ e.area }} · {{ e.cargo }}</small></td>
+      <td>{{ e.fecha_nacimiento or '—' }}</td>
+      <td>{{ e.dias_vacaciones }} días</td>
+      <td>{{ {'admin':'Administrador','aprobador':'Aprobador'}.get(e.rol, 'Empleado') }}{% if not e.activo %}<br><small style="color:var(--gris)">Inactivo</small>{% endif %}</td>
+      <td>{% if e.rol == 'admin' %}<small style="color:var(--gris)">Todos (admin)</small>
+          {% else %}{% for slug, nombre in modulos_disponibles %}{% if slug in e.modulos_lista %}<span class="badge aprobada">{{ nombre }}</span> {% endif %}{% endfor %}{% if not e.modulos_lista %}<small style="color:var(--gris)">—</small>{% endif %}{% endif %}</td>
+      <td><a class="btn mini" href="/empleados/{{ e.id }}/editar">Editar</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

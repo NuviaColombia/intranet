@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Aprobaciones</h1>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+
+<div class="tarjeta">
+  <h2>Pendientes de mi decisión ({{ pendientes|length }})</h2>
+  <table>
+    <tr><th>#</th><th>Empleado</th><th>Tipo</th><th>Fechas</th><th>Días</th><th>Motivo</th><th>Nivel</th><th>Decisión</th></tr>
+    {% for a in pendientes %}
+    <tr>
+      <td>{{ a.solicitud.id }}</td>
+      <td>{{ a.solicitud.empleado.nombre_completo }}<br>
+          <small style="color:var(--gris)">{{ a.solicitud.empleado.cargo }} · {{ a.solicitud.empleado.area }}</small></td>
+      <td>{{ a.solicitud.tipo.nombre }}</td>
+      <td>{{ a.solicitud.fecha_inicio }} → {{ a.solicitud.fecha_fin }}</td>
+      <td>{{ a.solicitud.dias }}</td>
+      <td>{{ a.solicitud.motivo|truncate(80) }}</td>
+      <td>{{ a.nivel }} de {{ a.solicitud.aprobaciones|length }}</td>
+      <td style="min-width:220px">
+        <form method="post" action="/aprobaciones/{{ a.id }}">
+          <input name="comentario" placeholder="Comentario (opcional)">
+          <button class="btn verde mini" name="decision" value="aprobada">Aprobar</button>
+          <button class="btn rojo mini" name="decision" value="rechazada">Rechazar</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8">No tienes solicitudes pendientes por aprobar. 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>Historial reciente</h2>
+  <table>
+    <tr><th>#</th><th>Empleado</th><th>Tipo</th><th>Mi decisión</th><th>Fecha</th></tr>
+    {% for a in historial %}
+    <tr>
+      <td>{{ a.solicitud.id }}</td>
+      <td>{{ a.solicitud.empleado.nombre_completo }}</td>
+      <td>{{ a.solicitud.tipo.nombre }}</td>
+      <td><span class="badge {{ a.decision }}">{{ a.decision }}</span></td>
+      <td>{{ a.decidida_en.strftime('%Y-%m-%d %H:%M') if a.decidida_en }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">Sin decisiones registradas.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

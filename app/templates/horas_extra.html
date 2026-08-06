@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Horas extra</h1>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+
+{% if a_cargo %}
+<div class="tarjeta" style="max-width:560px">
+  <h2>{{ 'Registrar horas extra' if user.rol == 'admin' else 'Solicitar horas extra' }}</h2>
+  {% if user.rol == 'admin' %}
+  <p style="font-size:13px;color:var(--gris)">
+    Como administrador, las horas extra que registres para cualquier empleado quedan
+    aprobadas de inmediato, sin necesitar autorización de nadie más.
+  </p>
+  {% endif %}
+  <form method="post" action="/horas-extra/nueva">
+    <label>Empleado</label>
+    <select name="empleado_id" required>
+      {% for e in a_cargo %}
+      <option value="{{ e.id }}">{{ e.nombre_completo }} — {{ e.cargo }}</option>
+      {% endfor %}
+    </select>
+    <label>Fecha</label>
+    <input type="date" name="fecha" required>
+    <label>Horas</label>
+    <input type="number" name="horas" step="0.5" min="0.5" required>
+    <label>Motivo</label>
+    <textarea name="motivo" rows="2" placeholder="Ej: cierre de turno / cobertura adicional"></textarea>
+    <button class="btn">Enviar solicitud</button>
+  </form>
+</div>
+{% endif %}
+
+{% if user.rol == 'admin' %}
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>Pendientes por aprobar ({{ pendientes_aprobar|length }})</h2>
+  <table>
+    <tr><th>Empleado</th><th>Solicitada por</th><th>Fecha</th><th>Horas</th><th>Motivo</th><th>Decisión</th></tr>
+    {% for h in pendientes_aprobar %}
+    <tr>
+      <td>{{ h.empleado.nombre_completo }}</td>
+      <td>{{ h.solicitante.nombre_completo }}</td>
+      <td>{{ h.fecha }}</td>
+      <td>{{ h.horas }}</td>
+      <td>{{ h.motivo|truncate(80) }}</td>
+      <td style="min-width:220px">
+        <form method="post" action="/horas-extra/{{ h.id }}">
+          <input name="comentario" placeholder="Comentario (opcional)">
+          <button class="btn verde mini" name="decision" value="aprobada">Aprobar</button>
+          <button class="btn rojo mini" name="decision" value="rechazada">Rechazar</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">No hay solicitudes pendientes. 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>Historial</h2>
+  <table>
+    <tr><th>Empleado</th><th>Solicitada por</th><th>Fecha</th><th>Horas</th><th>Estado</th><th>Decidida</th></tr>
+    {% for h in historial_admin %}
+    <tr>
+      <td>{{ h.empleado.nombre_completo }}</td>
+      <td>{{ h.solicitante.nombre_completo }}</td>
+      <td>{{ h.fecha }}</td>
+      <td>{{ h.horas }}</td>
+      <td><span class="badge {{ h.estado }}">{{ h.estado_texto }}</span></td>
+      <td>{{ h.decidida_en.strftime('%Y-%m-%d %H:%M') if h.decidida_en }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">Sin decisiones registradas.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>Mis solicitudes creadas</h2>
+  <table>
+    <tr><th>Empleado</th><th>Fecha</th><th>Horas</th><th>Motivo</th><th>Estado</th></tr>
+    {% for h in mis_solicitudes %}
+    <tr>
+      <td>{{ h.empleado.nombre_completo }}</td>
+      <td>{{ h.fecha }}</td>
+      <td>{{ h.horas }}</td>
+      <td>{{ h.motivo|truncate(80) }}</td>
+      <td><span class="badge {{ h.estado }}">{{ h.estado_texto }}</span></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">Aún no has solicitado horas extra.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Mis solicitudes</h1>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+<p><a class="btn" href="/solicitudes/nueva">+ Nueva solicitud</a></p>
+<div class="tarjeta">
+  <table>
+    <tr><th>#</th><th>Tipo</th><th>Fechas</th><th>Días</th><th>Estado</th><th>Aprobaciones</th><th></th></tr>
+    {% for s in solicitudes %}
+    <tr>
+      <td>{{ s.id }}</td>
+      <td>{{ s.tipo.nombre }}<br><small style="color:var(--gris)">{{ s.motivo|truncate(60) }}</small></td>
+      <td>{{ s.fecha_inicio }} → {{ s.fecha_fin }}</td>
+      <td>{{ s.dias }}</td>
+      <td><span class="badge {{ s.estado }}">{{ s.estado_texto }}</span></td>
+      <td>
+        {% for a in s.aprobaciones %}
+          <small>N{{ a.nivel }}: {{ a.aprobador.nombre_completo }} — {{ a.decision }}
+          {% if a.comentario %}<em>({{ a.comentario|truncate(40) }})</em>{% endif %}</small><br>
+        {% endfor %}
+      </td>
+      <td>
+        {% if s.estado in ('pendiente_1', 'pendiente_2') %}
+        <form class="inline" method="post" action="/solicitudes/{{ s.id }}/cancelar"
+              onsubmit="return confirm('¿Cancelar esta solicitud?')">
+          <button class="btn gris mini">Cancelar</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">Aún no tienes solicitudes.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

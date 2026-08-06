@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="tarjeta login-caja">
+  {% set logos = logos_disponibles() %}
+  {% if logos %}
+  <div class="logos-login">
+    {% for l in logos %}<img src="{{ l }}" alt="Logo empresa">{% endfor %}
+  </div>
+  {% endif %}
+  <h1>Solicitudes Nuvia</h1>
+  <p style="color:var(--gris)">Solicita y aprueba permisos laborales</p>
+  {% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+  <a class="btn" href="/auth/zoho">Iniciar sesión con Zoho</a>
+</div>
+{% endblock %}

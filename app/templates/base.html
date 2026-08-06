@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitudes Nuvia</title>
+  <link rel="stylesheet" href="/static/style.css?v=5">
+</head>
+<body>
+{% if user %}
+<nav>
+  <span class="marca">
+    {% set logo = logo_empresa(user.empresa) %}
+    {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
+  </span>
+  {% if not es_portal %}
+  <a href="/panel">Panel</a>
+  <a href="/solicitudes">Mis solicitudes</a>
+  <a href="/aprobaciones">Aprobaciones</a>
+  <a href="/certificaciones">Certificaciones</a>
+  {% if user.rol in ('aprobador', 'admin') %}
+    <a href="/horas-extra">Horas extra</a>
+  {% endif %}
+  {% if user.rol == 'admin' %}
+    <a href="/empleados">Empleados</a>
+    <a href="/tipos">Parámetros</a>
+    <a href="/reportes">Reportes</a>
+  {% endif %}
+  {% endif %}
+  <a href="/">Módulos</a>
+  <span class="usuario">{{ user.nombre_completo }} · <a href="/logout">Salir</a></span>
+</nav>
+{% endif %}
+<main>{% block contenido %}{% endblock %}</main>
+</body>
+</html>
