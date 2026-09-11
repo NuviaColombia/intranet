@@ -43,7 +43,8 @@ def dias_usados(db: Session, empleado_id: int, tipo_id: int, anio: int) -> float
             Solicitud.empleado_id == empleado_id,
             Solicitud.tipo_id == tipo_id,
             Solicitud.estado.in_(["aprobada", "pendiente_1", "pendiente_2"]),
-            func.strftime("%Y", Solicitud.fecha_inicio) == str(anio),
+            Solicitud.fecha_inicio >= date(anio, 1, 1),
+            Solicitud.fecha_inicio <= date(anio, 12, 31),
         )
         .scalar()
     )
