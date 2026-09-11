@@ -8,7 +8,7 @@ from ..models import (Empleado, Solicitud, TipoPermiso, Auditoria, Empresa, Area
                       MODULOS_DISPONIBLES, MODULOS_VALIDOS)
 from ..auth import require_admin
 from ..excel_import import importar_empleados, generar_plantilla, exportar_reporte
-from ..services import auditar
+from ..services import auditar, notificar_empleado_creado
 from ..main_templates import templates
 
 router = APIRouter()
@@ -84,6 +84,7 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
     db.flush()
     auditar(db, user.email, f"Empleado creado manualmente: {emp.email}", empleado_id=emp.id)
     db.commit()
+    notificar_empleado_creado(emp)
     return RedirectResponse("/empleados?msg=Empleado creado.", status_code=303)
 
 

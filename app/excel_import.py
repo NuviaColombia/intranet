@@ -4,6 +4,7 @@ from io import BytesIO
 from openpyxl import load_workbook, Workbook
 from sqlalchemy.orm import Session
 from .models import Empleado, Solicitud, MODULOS_VALIDOS
+from .services import notificar_empleado_creado
 
 COLUMNAS = ["nombres", "apellidos", "fecha_nacimiento", "fecha_inicio_empresa", "empresa", "cargo", "area",
             "identificacion", "correo", "rol", "num_aprobaciones", "dias_vacaciones", "modulos", "activo",
@@ -43,6 +44,7 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
 
     creados, actualizados, errores = 0, 0, []
     pendientes_aprobadores = []  # (identificacion, correo_apr1, correo_apr2)
+    nuevos_empleados = []
 
     for n, fila in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         if not any(fila):
@@ -113,8 +115,11 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
             db.flush()
             pendientes_aprobadores.append(
                 (identificacion, val("aprobador1_correo").lower(), val("aprobador2_correo").lower()))
-            creados += 1 if nuevo else 0
-            actualizados += 0 if nuevo else 1
+            if nuevo:
+                creados += 1
+                nuevos_empleados.append(emp)
+            else:
+                actualizados += 1
         except Exception as e:
             errores.append(f"Fila {n}: {e}")
 
@@ -131,6 +136,8 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
                 errores.append(f"{emp.identificacion}: aprobador '{correo_apr}' no existe en el sistema")
 
     db.commit()
+    for emp in nuevos_empleados:
+        notificar_empleado_creado(emp)
     return {"creados": creados, "actualizados": actualizados, "errores": errores}
 
 

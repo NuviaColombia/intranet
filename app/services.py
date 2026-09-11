@@ -152,6 +152,19 @@ def resolver_aprobacion(db: Session, aprobacion: Aprobacion, decision: str,
 
 # ---------- Notificaciones ----------
 
+def notificar_empleado_creado(emp: Empleado):
+    """Correo de bienvenida cuando se crea un empleado nuevo (alta manual o import de Excel)."""
+    html = f"""
+    <h2 style="font-family:sans-serif">¡Bienvenido a Solicitudes Nuvia, {emp.nombres}!</h2>
+    <p style="font-family:sans-serif">Ya quedaste registrado en la plataforma de solicitudes de Nuvia.
+    Ingresa con tu correo corporativo ({emp.email}):</p>
+    <p style="font-family:sans-serif">{_btn(f'{config.BASE_URL}/login', 'Ingresar a la plataforma', '#2563eb')}</p>
+    <p style="font-family:sans-serif;color:#666;font-size:12px">
+      Si tienes dudas, contacta a Recursos Humanos.
+    </p>"""
+    enviar_correo(emp.email, "Bienvenido a Solicitudes Nuvia", html)
+
+
 def _btn(url: str, texto: str, color: str) -> str:
     return (f'<a href="{url}" style="display:inline-block;padding:10px 22px;margin:4px;'
             f'background:{color};color:#fff;text-decoration:none;border-radius:6px;'
