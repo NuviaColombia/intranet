@@ -1,5 +1,5 @@
-from datetime import datetime, date
-from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text, Float, UniqueConstraint
+from datetime import datetime, date, time
+from sqlalchemy import String, Integer, Date, DateTime, Time, ForeignKey, Text, Float, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
@@ -52,6 +52,7 @@ class TipoPermiso(Base):
     dias_anuales: Mapped[float | None] = mapped_column(Float, nullable=True)  # None = sin límite
     activo: Mapped[int] = mapped_column(Integer, default=1)
     es_vacaciones: Mapped[int] = mapped_column(Integer, default=0)  # usa el saldo acumulado del empleado
+    permite_horas: Mapped[int] = mapped_column(Integer, default=1)  # permite solicitar por horas si es el mismo día
 
 
 class Empresa(Base):
@@ -87,6 +88,8 @@ class Solicitud(Base):
     fecha_fin: Mapped[date] = mapped_column(Date)
     dias: Mapped[float] = mapped_column(Float)
     motivo: Mapped[str] = mapped_column(Text, default="")
+    hora_inicio: Mapped[time | None] = mapped_column(Time, nullable=True)
+    hora_fin: Mapped[time | None] = mapped_column(Time, nullable=True)
     # pendiente_1 | pendiente_2 | aprobada | rechazada | cancelada
     estado: Mapped[str] = mapped_column(String(20), default="pendiente_1", index=True)
     creada_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -13,7 +13,7 @@
       <td>{{ a.solicitud.empleado.nombre_completo }}<br>
           <small style="color:var(--gris)">{{ a.solicitud.empleado.cargo }} · {{ a.solicitud.empleado.area }}</small></td>
       <td>{{ a.solicitud.tipo.nombre }}</td>
-      <td>{{ a.solicitud.fecha_inicio }} → {{ a.solicitud.fecha_fin }}</td>
+      <td>{% if a.solicitud.hora_inicio %}{{ a.solicitud.fecha_inicio }} ({{ a.solicitud.hora_inicio.strftime('%H:%M') }}–{{ a.solicitud.hora_fin.strftime('%H:%M') }}){% else %}{{ a.solicitud.fecha_inicio }} → {{ a.solicitud.fecha_fin }}{% endif %}</td>
       <td>{{ a.solicitud.dias }}</td>
       <td>{{ a.solicitud.motivo|truncate(80) }}</td>
       <td>{{ a.nivel }} de {{ a.solicitud.aprobaciones|length }}</td>

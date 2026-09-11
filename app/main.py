@@ -28,9 +28,9 @@ async def redirect_handler(request: Request, exc):
     return RedirectResponse(exc.headers.get("Location", "/login"))
 
 
-TIPOS_INICIALES = [("Cita médica", None), ("Calamidad doméstica", None),
-                   ("Licencia de luto", 5), ("Permiso personal", 3),
-                   ("Diligencia personal (horas)", None)]
+TIPOS_INICIALES = [("Cita médica", None, 1), ("Calamidad doméstica", None, 1),
+                   ("Licencia de luto", 5, 0), ("Permiso personal", 3, 1),
+                   ("Diligencia personal (horas)", None, 1)]
 
 EMPRESAS_INICIALES = ["Nuvia Smiles Colombia SAS", "Nuvia Design Colombia SAS"]
 
@@ -49,13 +49,24 @@ def init_db():
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE empleados ADD COLUMN modulos VARCHAR(100) DEFAULT 'people'"))
             conn.execute(text("UPDATE empleados SET modulos = 'people' WHERE modulos IS NULL"))
+    columnas_solicitudes = {c["name"] for c in inspect(engine).get_columns("solicitudes")}
+    if "hora_inicio" not in columnas_solicitudes:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN hora_inicio TIME"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN hora_fin TIME"))
+    columnas_tipos = {c["name"] for c in inspect(engine).get_columns("tipos_permiso")}
+    if "permite_horas" not in columnas_tipos:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE tipos_permiso ADD COLUMN permite_horas INTEGER DEFAULT 1"))
+            conn.execute(text(
+                "UPDATE tipos_permiso SET permite_horas = 0 WHERE nombre = 'Licencia de luto' OR es_vacaciones = 1"))
     db = SessionLocal()
     try:
         if db.query(TipoPermiso).count() == 0:
-            for nombre, dias in TIPOS_INICIALES:
-                db.add(TipoPermiso(nombre=nombre, dias_anuales=dias))
+            for nombre, dias, permite_horas in TIPOS_INICIALES:
+                db.add(TipoPermiso(nombre=nombre, dias_anuales=dias, permite_horas=permite_horas))
         if not db.query(TipoPermiso).filter(TipoPermiso.es_vacaciones == 1).first():
-            db.add(TipoPermiso(nombre="Vacaciones", dias_anuales=None, es_vacaciones=1))
+            db.add(TipoPermiso(nombre="Vacaciones", dias_anuales=None, es_vacaciones=1, permite_horas=0))
         if db.query(Empresa).count() == 0:
             for nombre in EMPRESAS_INICIALES:
                 db.add(Empresa(nombre=nombre))

@@ -8,15 +8,21 @@
     {{ user.aprobador1.nombre_completo if user.aprobador1 else '⚠ sin asignar' }}
     {% if user.num_aprobaciones == 2 %} y {{ user.aprobador2.nombre_completo if user.aprobador2 else '⚠ sin asignar' }}{% endif %}
   </p>
-  <form method="post" action="/solicitudes/nueva">
+  <form method="post" action="/solicitudes/nueva" id="form-solicitud">
     <label>Tipo de permiso</label>
-    <select name="tipo_id" required>
+    <select name="tipo_id" id="tipo_id" required onchange="actualizarHoras()">
       {% for t in tipos %}
-      <option value="{{ t.id }}">{{ t.nombre }}{% if saldos[t.id] is not none %} — disponibles: {{ saldos[t.id] }} días{% endif %}</option>
+      <option value="{{ t.id }}" data-permite-horas="{{ 1 if t.permite_horas else 0 }}">{{ t.nombre }}{% if saldos[t.id] is not none %} — disponibles: {{ saldos[t.id] }} días{% endif %}</option>
       {% endfor %}
     </select>
-    <label>Fecha inicio</label><input type="date" name="fecha_inicio" required>
-    <label>Fecha fin</label><input type="date" name="fecha_fin" required>
+    <label>Fecha inicio</label><input type="date" name="fecha_inicio" id="fecha_inicio" required onchange="actualizarHoras()">
+    <label>Fecha fin</label><input type="date" name="fecha_fin" id="fecha_fin" required onchange="actualizarHoras()">
+    <div id="bloque-horas" style="display:none">
+      <label>Hora desde</label><input type="time" name="hora_inicio" id="hora_inicio">
+      <label>Hora hasta</label><input type="time" name="hora_fin" id="hora_fin">
+      <p style="color:var(--gris);font-size:12px">Si indicas horas, la solicitud se contará como una
+        fracción del día (jornada de {{ horas_semana }} horas semanales) en lugar de un día completo.</p>
+    </div>
     <label>Motivo</label><textarea name="motivo" rows="3" placeholder="Describe brevemente el motivo"></textarea>
     <button class="btn">Enviar solicitud</button>
     <a class="btn gris" href="/solicitudes">Volver</a>
@@ -24,4 +30,21 @@
   <p style="color:var(--gris);font-size:12px">Los días se calculan sobre días hábiles
     (lunes a {{ 'sábado' if sabado_habil else 'viernes' }}).</p>
 </div>
+<script>
+function actualizarHoras() {
+  var sel = document.getElementById('tipo_id');
+  var opt = sel.options[sel.selectedIndex];
+  var permite = opt && opt.dataset.permiteHoras === '1';
+  var fi = document.getElementById('fecha_inicio').value;
+  var ff = document.getElementById('fecha_fin').value;
+  var habilitar = permite && fi && ff && fi === ff;
+  var bloque = document.getElementById('bloque-horas');
+  var hi = document.getElementById('hora_inicio');
+  var hf = document.getElementById('hora_fin');
+  bloque.style.display = habilitar ? '' : 'none';
+  hi.disabled = hf.disabled = !habilitar;
+  if (!habilitar) { hi.value = ''; hf.value = ''; }
+}
+actualizarHoras();
+</script>
 {% endblock %}

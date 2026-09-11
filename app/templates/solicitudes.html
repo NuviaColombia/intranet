@@ -10,7 +10,7 @@
     <tr>
       <td>{{ s.id }}</td>
       <td>{{ s.tipo.nombre }}<br><small style="color:var(--gris)">{{ s.motivo|truncate(60) }}</small></td>
-      <td>{{ s.fecha_inicio }} → {{ s.fecha_fin }}</td>
+      <td>{% if s.hora_inicio %}{{ s.fecha_inicio }} ({{ s.hora_inicio.strftime('%H:%M') }}–{{ s.hora_fin.strftime('%H:%M') }}){% else %}{{ s.fecha_inicio }} → {{ s.fecha_fin }}{% endif %}</td>
       <td>{{ s.dias }}</td>
       <td><span class="badge {{ s.estado }}">{{ s.estado_texto }}</span></td>
       <td>

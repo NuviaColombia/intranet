@@ -172,21 +172,23 @@ async def tipos(request: Request, user: Empleado = Depends(require_admin),
 
 @router.post("/tipos")
 async def crear_tipo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                     nombre: str = Form(...), dias_anuales: str = Form("")):
+                     nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form("")):
     db.add(TipoPermiso(nombre=nombre.strip(),
-                       dias_anuales=float(dias_anuales) if dias_anuales.strip() else None))
+                       dias_anuales=float(dias_anuales) if dias_anuales.strip() else None,
+                       permite_horas=1 if permite_horas else 0))
     db.commit()
     return RedirectResponse("/tipos", status_code=303)
 
 
 @router.post("/tipos/{tipo_id}/editar")
 async def editar_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                      nombre: str = Form(...), dias_anuales: str = Form("")):
+                      nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form("")):
     t = db.get(TipoPermiso, tipo_id)
     if t:
         t.nombre = nombre.strip()
         if not t.es_vacaciones:
             t.dias_anuales = float(dias_anuales) if dias_anuales.strip() else None
+            t.permite_horas = 1 if permite_horas else 0
         auditar(db, user.email, f"Parámetro editado: {t.nombre}")
         db.commit()
     return RedirectResponse("/tipos?msg=Parámetro actualizado.", status_code=303)

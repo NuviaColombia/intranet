@@ -1,11 +1,13 @@
 """Lógica de negocio: flujo de aprobaciones, saldos, notificaciones y auditoría."""
-from datetime import datetime, date
+from datetime import datetime, date, time
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from . import config
 from .models import Empleado, Solicitud, Aprobacion, TipoPermiso, Auditoria, Configuracion, HoraExtra
 from .zoho_mail import enviar_correo
 from .tokens import generar_token
+
+HORAS_SEMANA = 42  # jornada laboral legal usada para prorratear solicitudes por horas
 
 
 def auditar(db: Session, actor: str, accion: str, detalle: str = "", solicitud_id: int | None = None,
@@ -21,6 +23,11 @@ def config_actual(db: Session) -> Configuracion:
         db.add(cfg)
         db.flush()
     return cfg
+
+
+def horas_por_dia(db: Session) -> float:
+    sabado_cuenta = bool(config_actual(db).sabado_habil)
+    return HORAS_SEMANA / (6 if sabado_cuenta else 5)
 
 
 def dias_habiles(db: Session, inicio: date, fin: date) -> float:
@@ -76,7 +83,9 @@ def saldo_disponible(db: Session, empleado: Empleado, tipo: TipoPermiso, anio: i
 # ---------- Flujo de solicitudes ----------
 
 def crear_solicitud(db: Session, empleado: Empleado, tipo: TipoPermiso,
-                    fecha_inicio: date, fecha_fin: date, motivo: str) -> tuple[Solicitud | None, str | None]:
+                    fecha_inicio: date, fecha_fin: date, motivo: str,
+                    hora_inicio: time | None = None,
+                    hora_fin: time | None = None) -> tuple[Solicitud | None, str | None]:
     """Crea la solicitud y sus aprobaciones. Devuelve (solicitud, error)."""
     if fecha_fin < fecha_inicio:
         return None, "La fecha fin no puede ser anterior a la fecha inicio."
@@ -89,12 +98,22 @@ def crear_solicitud(db: Session, empleado: Empleado, tipo: TipoPermiso,
     if dias <= 0:
         return None, "El rango seleccionado no contiene días hábiles."
 
+    usa_horas = bool(fecha_inicio == fecha_fin and tipo.permite_horas and hora_inicio and hora_fin)
+    if usa_horas:
+        if hora_fin <= hora_inicio:
+            return None, "La hora fin debe ser posterior a la hora inicio."
+        horas = (datetime.combine(date.min, hora_fin) - datetime.combine(date.min, hora_inicio)).total_seconds() / 3600
+        dias = round(horas / horas_por_dia(db), 2)
+    else:
+        hora_inicio = hora_fin = None  # no aplica: rango multi-día o el tipo no permite horas
+
     saldo = saldo_disponible(db, empleado, tipo, fecha_inicio.year)
     if saldo is not None and dias > saldo:
         return None, f"Saldo insuficiente para '{tipo.nombre}': disponibles {saldo:g} días, solicitas {dias:g}."
 
     sol = Solicitud(empleado_id=empleado.id, tipo_id=tipo.id, fecha_inicio=fecha_inicio,
-                    fecha_fin=fecha_fin, dias=dias, motivo=motivo.strip(), estado="pendiente_1")
+                    fecha_fin=fecha_fin, dias=dias, motivo=motivo.strip(), estado="pendiente_1",
+                    hora_inicio=hora_inicio, hora_fin=hora_fin)
     db.add(sol)
     db.flush()
     db.add(Aprobacion(solicitud_id=sol.id, aprobador_id=empleado.aprobador1_id, nivel=1))
@@ -173,12 +192,17 @@ def _btn(url: str, texto: str, color: str) -> str:
 
 def _resumen_html(sol: Solicitud) -> str:
     e = sol.empleado
+    if sol.hora_inicio and sol.hora_fin:
+        fechas = (f"{sol.fecha_inicio}, {sol.hora_inicio.strftime('%H:%M')} a "
+                 f"{sol.hora_fin.strftime('%H:%M')} ({sol.dias:g} días)")
+    else:
+        fechas = f"{sol.fecha_inicio} al {sol.fecha_fin} ({sol.dias:g} días hábiles)"
     return f"""
     <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
       <tr><td style="padding:4px 12px;color:#666">Empleado</td><td style="padding:4px 12px"><b>{e.nombre_completo}</b> ({e.cargo}, {e.area})</td></tr>
       <tr><td style="padding:4px 12px;color:#666">Empresa</td><td style="padding:4px 12px">{e.empresa}</td></tr>
       <tr><td style="padding:4px 12px;color:#666">Tipo</td><td style="padding:4px 12px">{sol.tipo.nombre}</td></tr>
-      <tr><td style="padding:4px 12px;color:#666">Fechas</td><td style="padding:4px 12px">{sol.fecha_inicio} al {sol.fecha_fin} ({sol.dias:g} días hábiles)</td></tr>
+      <tr><td style="padding:4px 12px;color:#666">Fechas</td><td style="padding:4px 12px">{fechas}</td></tr>
       <tr><td style="padding:4px 12px;color:#666">Motivo</td><td style="padding:4px 12px">{sol.motivo or '—'}</td></tr>
     </table>"""
 

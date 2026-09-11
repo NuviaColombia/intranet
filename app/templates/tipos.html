@@ -12,6 +12,8 @@
   <form method="post" action="/tipos" class="filtros">
     <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: Cita médica"></div>
     <div><label>Saldo anual (vacío = sin límite)</label><input name="dias_anuales" type="number" step="0.5" min="0"></div>
+    <div><label><input type="checkbox" name="permite_horas" value="1" checked style="width:auto">
+      Permite solicitar por horas (mismo día)</label></div>
     <div><button class="btn">Agregar</button></div>
   </form>
 </div>
@@ -33,6 +35,8 @@
           <div><input name="dias_anuales" type="number" step="0.5" min="0"
                       value="{{ t.dias_anuales if t.dias_anuales is not none else '' }}"
                       placeholder="Sin límite"></div>
+          <div><label style="font-size:12px"><input type="checkbox" name="permite_horas" value="1"
+                      {{ 'checked' if t.permite_horas }} style="width:auto"> Por horas</label></div>
           <div><button class="btn mini">Guardar</button></div>
         </form>
       </td>

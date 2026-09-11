@@ -1,11 +1,11 @@
-from datetime import date
+from datetime import date, time
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado, Solicitud, TipoPermiso
 from ..auth import get_current_user
-from ..services import crear_solicitud, saldo_disponible, auditar, config_actual
+from ..services import crear_solicitud, saldo_disponible, auditar, config_actual, HORAS_SEMANA
 from ..main_templates import templates
 
 router = APIRouter()
@@ -30,18 +30,21 @@ async def nueva_solicitud_form(request: Request, user: Empleado = Depends(get_cu
     sabado_habil = bool(config_actual(db).sabado_habil)
     return templates.TemplateResponse(request, "nueva_solicitud.html",
                                       {"user": user, "tipos": tipos, "saldos": saldos,
-                                       "sabado_habil": sabado_habil,
+                                       "sabado_habil": sabado_habil, "horas_semana": HORAS_SEMANA,
                                        "error": request.query_params.get("error")})
 
 
 @router.post("/solicitudes/nueva")
 async def nueva_solicitud(user: Empleado = Depends(get_current_user), db: Session = Depends(get_db),
                           tipo_id: int = Form(...), fecha_inicio: date = Form(...),
-                          fecha_fin: date = Form(...), motivo: str = Form("")):
+                          fecha_fin: date = Form(...), motivo: str = Form(""),
+                          hora_inicio: str = Form(""), hora_fin: str = Form("")):
     tipo = db.get(TipoPermiso, tipo_id)
     if not tipo:
         return RedirectResponse("/solicitudes/nueva?error=Tipo de permiso inválido", status_code=303)
-    sol, error = crear_solicitud(db, user, tipo, fecha_inicio, fecha_fin, motivo)
+    hi = time.fromisoformat(hora_inicio) if hora_inicio else None
+    hf = time.fromisoformat(hora_fin) if hora_fin else None
+    sol, error = crear_solicitud(db, user, tipo, fecha_inicio, fecha_fin, motivo, hi, hf)
     if error:
         return RedirectResponse(f"/solicitudes/nueva?error={error}", status_code=303)
     return RedirectResponse(f"/solicitudes?msg=Solicitud %23{sol.id} creada. Se notificó a tu aprobador.",
