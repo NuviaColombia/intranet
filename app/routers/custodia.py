@@ -150,17 +150,14 @@ async def api_consultar(tipo: str = "ultimos30", areaSalida: str = "TODAS", esta
     fi = date.fromisoformat(fechaInicio) if fechaInicio else None
     ff = date.fromisoformat(fechaFin) if fechaFin else None
     traslados = sc.consultar(db, tipo, areaSalida, estado, fi, ff)
-    data = []
-    for t in traslados:
-        data.append({
-            "id": t.id, "colaborador": t.colaborador, "idColaborador": t.id_colaborador,
-            "areaCreacion": t.area_creacion, "ordenes": ", ".join(o.numero_orden for o in t.ordenes),
-            "cantidad": sum(o.cantidad_discos for o in t.ordenes), "fecha": t.fecha.isoformat(),
-            "hora": t.hora.strftime("%H:%M") if t.hora else "", "usuario": t.usuario,
-            "areaSalida": t.area_salida, "areaEntrada": t.area_entrada, "motivo": t.motivo,
-            "estado": t.estado_texto, "anulado": t.anulado, "confirmadoEntrada": t.confirmado_entrada,
-        })
-    return {"data": data}
+    return {"data": [sc.serializar_traslado(t) for t in traslados]}
+
+
+@router.get("/custodia/api/pendientes-entrada")
+async def api_pendientes_entrada(user: Empleado = Depends(require_modulo("custodia")),
+                                 db: Session = Depends(get_db)):
+    traslados = sc.pendientes_entrada(db)
+    return {"data": [sc.serializar_traslado(t) for t in traslados]}
 
 
 @router.get("/custodia/api/estado-ordenes")

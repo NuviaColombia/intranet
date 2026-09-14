@@ -117,6 +117,23 @@ def consultar(db: Session, tipo: str, area_salida: str = "", estado: str = "acti
     return q.all()
 
 
+def serializar_traslado(t: CustodiaTraslado) -> dict:
+    return {
+        "id": t.id, "colaborador": t.colaborador, "idColaborador": t.id_colaborador,
+        "areaCreacion": t.area_creacion, "ordenes": ", ".join(o.numero_orden for o in t.ordenes),
+        "cantidad": sum(o.cantidad_discos for o in t.ordenes), "fecha": t.fecha.isoformat(),
+        "hora": t.hora.strftime("%H:%M") if t.hora else "", "usuario": t.usuario,
+        "areaSalida": t.area_salida, "areaEntrada": t.area_entrada, "motivo": t.motivo,
+        "estado": t.estado_texto, "anulado": t.anulado, "confirmadoEntrada": t.confirmado_entrada,
+    }
+
+
+def pendientes_entrada(db: Session) -> list[CustodiaTraslado]:
+    return (db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes))
+            .filter(CustodiaTraslado.anulado.is_(False), CustodiaTraslado.confirmado_entrada.is_(False))
+            .order_by(CustodiaTraslado.id.desc()).all())
+
+
 def _fecha_dt(f: date) -> datetime:
     return datetime.combine(f, datetime.min.time())
 

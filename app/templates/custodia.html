@@ -152,28 +152,9 @@
   <datalist id="listaColaboradoresOpciones">
     {% for c in colaboradores %}<option value="{{ c }}"></option>{% endfor %}
   </datalist>
+  {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 
   <div class="main-container">
-
-    <div class="nav-tabs">
-      <div class="top-branding">
-        {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
-        {% if logo %}<img src="{{ logo }}" alt="Logo Nuvia">{% else %}<div class="text-logo" style="font-size:20px; font-weight:900; color:var(--brand-main); letter-spacing:2px;">NUVIA</div>{% endif %}
-        <div class="brand-text-nav">
-           <strong>NUVIA SMILES COLOMBIA S.A.S</strong>
-           <span>NIT 901.463.930-1</span>
-        </div>
-      </div>
-
-      <button class="nav-tab active" id="tab-registro" onclick="switchTab('registro')">📝 NUEVO REGISTRO</button>
-      <button class="nav-tab" id="tab-consulta" onclick="switchTab('consulta')">🔍 HISTORIAL DE REGISTROS</button>
-      <button class="nav-tab" id="tab-activas" onclick="switchTab('activas')">📦 ESTADO ÓRDENES</button>
-      <button class="nav-tab" id="tab-existencias" onclick="switchTab('existencias')">📊 DASHBOARD</button>
-
-      <div style="margin-left: auto; display: flex;">
-          <button class="btn-top-action" onclick="refrescarPantallaGlobal()">🔄 REFRESCAR</button>
-      </div>
-    </div>
 
     <!-- SECCIÓN 1: NUEVO REGISTRO -->
     <div id="sec-registro" class="content-section active">
@@ -294,6 +275,25 @@
 
         <button type="submit" id="btnGuardar" class="btn btn-primary">REGISTRAR TRASLADO</button>
       </form>
+    </div>
+
+    <!-- SECCIÓN APROBACIONES: CONFIRMAR RECEPCIÓN -->
+    <div id="sec-aprobaciones" class="content-section">
+      <h1 style="margin-top:0;">Confirmar recepción de discos</h1>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">
+        Traslados registrados que aún no han sido confirmados por el área que los recibió.
+      </p>
+      <div class="consulta-tabla-wrapper">
+        <table class="consulta-tabla">
+          <thead>
+            <tr><th>Consecutivo</th><th>Colaborador</th><th>Órdenes</th><th>Área salida</th><th>Área entrada</th>
+                <th>Cantidad</th><th>Fecha</th><th>Motivo</th><th>Acción</th></tr>
+          </thead>
+          <tbody id="bodyAprobaciones">
+            <tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- SECCIÓN 2: HISTORIAL -->
@@ -588,15 +588,66 @@
 
 function switchTab(tab) {
   document.querySelectorAll("#custodia-app .content-section").forEach(el => el.classList.remove("active"));
-  document.querySelectorAll("#custodia-app .nav-tab").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".custodia-tab").forEach(el => el.classList.remove("activo"));
   document.getElementById("sec-" + tab).classList.add("active");
-  document.getElementById("tab-" + tab).classList.add("active");
+  var link = document.querySelector('.custodia-tab[data-tab="' + tab + '"]');
+  if (link) link.classList.add("activo");
+  if (tab === 'aprobaciones') cargarConfirmaciones();
   if (tab === 'consulta') cargarAreasSalidaDropdown();
   if (tab === 'existencias') { cargarAreasDashboardDropdown(); }
   if (tab === 'activas') { cargarEstadoOrdenes(); }
 }
 
-function refrescarPantallaGlobal() { location.reload(); }
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.custodia-tab').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      switchTab(this.dataset.tab);
+    });
+  });
+});
+
+function cargarConfirmaciones() {
+  var tbody = document.getElementById("bodyAprobaciones");
+  tbody.innerHTML = '<tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO...</td></tr>';
+  custodiaApi('/custodia/api/pendientes-entrada').then(function(res) {
+    var lista = res.data;
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-weight:600;">NO HAY TRASLADOS PENDIENTES DE CONFIRMAR. 🎉</td></tr>';
+      return;
+    }
+    tbody.innerHTML = "";
+    lista.forEach(function(t) {
+      var tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="font-weight:800; color:var(--brand-main);">${String(t.id).padStart(4,'0')}</td>
+        <td>${t.colaborador}</td>
+        <td style="font-weight:800; color:var(--brand-main);">${t.ordenes}</td>
+        <td>${t.areaSalida}</td>
+        <td>${t.areaEntrada}</td>
+        <td style="font-weight:800; color:var(--success);">${t.cantidad}</td>
+        <td>${t.fecha}</td>
+        <td>${t.motivo}</td>
+        <td></td>
+      `;
+      var tdAccion = tr.lastElementChild;
+      var btn = document.createElement("button");
+      btn.className = "btn"; btn.style.background = "var(--success)"; btn.style.padding = "8px 14px"; btn.style.fontSize = "11px";
+      btn.innerText = "✔ CONFIRMAR RECIBIDO";
+      btn.onclick = function() { confirmarDesdeAprobaciones(t.id); };
+      tdAccion.appendChild(btn);
+      tbody.appendChild(tr);
+    });
+  }).catch(function(e) {
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
+  });
+}
+
+function confirmarDesdeAprobaciones(id) {
+  custodiaPostJSON('/custodia/api/traslados/' + id + '/confirmar-entrada').then(function(resp) {
+    alert(resp.mensaje); cargarConfirmaciones();
+  }).catch(function(e) { alert('Error: ' + e.message); });
+}
 
 function toggleFechas() {
   var tipo = document.querySelector('input[name="tipoFiltro"]:checked').value;
