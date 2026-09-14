@@ -149,6 +149,9 @@
   <datalist id="listaAreasOpciones">
     {% for a in areas %}<option value="{{ a }}"></option>{% endfor %}
   </datalist>
+  <datalist id="listaColaboradoresOpciones">
+    {% for c in colaboradores %}<option value="{{ c }}"></option>{% endfor %}
+  </datalist>
 
   <div class="main-container">
 
@@ -202,9 +205,17 @@
           </tr>
           <tr>
             <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
-            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" required placeholder="NOMBRE..."></td>
-            <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">NÚMERO DE ORDEN</td>
-            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="numeroOrden" required placeholder="123-456..."></td>
+            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" required placeholder="NOMBRE..." list="listaColaboradoresOpciones"></td>
+            <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">ÁREA CREACIÓN</td>
+            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones"></td>
+            <td class="label-cell">NÚMERO DE ORDEN</td>
+            <td class="input-cell"><input type="text" id="numeroOrden" required placeholder="123-456..."></td>
+          </tr>
+          <tr>
+            <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">FECHA</td>
+            <td class="input-cell"><input type="date" id="fecha" required></td>
+            <td class="label-cell">HORA</td>
+            <td class="input-cell"><input type="time" id="hora" readonly required></td>
             <td class="label-cell">ÁREA SALIDA</td>
             <td class="input-cell">
               <select id="areaSalida" required>
@@ -214,30 +225,15 @@
             </td>
           </tr>
           <tr>
-            <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">ID COLABORADOR</td>
-            <td class="input-cell"><input type="text" id="idColaborador" required placeholder="DOCUMENTO..."></td>
-            <td class="label-cell">FECHA</td>
-            <td class="input-cell"><input type="date" id="fecha" required></td>
-            <td class="label-cell">ÁREA ENTRADA</td>
-            <td class="input-cell">
+            <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">ÁREA ENTRADA</td>
+            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;">
               <select id="areaEntrada" required>
                 <option value="">SELECCIONAR...</option>
                 {% for a in areas %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
               </select>
             </td>
-          </tr>
-          <tr>
-            <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important;">ÁREA CREACIÓN</td>
-            <td class="input-cell"><input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones"></td>
-            <td class="label-cell">HORA</td>
-            <td class="input-cell"><input type="time" id="hora" readonly required></td>
-            <td class="label-cell">CANTIDAD DISCOS</td>
-            <td class="input-cell"><input type="text" id="cantidadDiscos" oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')" required placeholder="0,00"></td>
-          </tr>
-          <tr>
-            <td colspan="2" class="empty-cell" style="width: 33%;"></td>
-            <td class="label-cell" style="border-bottom-left-radius: 12px; border-bottom: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">USUARIO</td>
-            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="text" id="usuario" placeholder="SERVICIO O BIENES..."></td>
+            <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">CANTIDAD DISCOS</td>
+            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="text" id="cantidadDiscos" oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')" required placeholder="0,00"></td>
             <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">MOTIVO</td>
             <td class="input-cell" style="border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;">
               <select id="motivo" required>
@@ -490,18 +486,14 @@
             </tr>
             <tr>
               <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">FECHA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewFecha"></td>
-              <td class="label-cell">ID COLABORADOR</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewIdColaborador"></td>
+              <td class="label-cell">AREA CREACION</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaCreacion"></td>
               <td class="label-cell">AREA ENTRADA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaEntrada"></td>
             </tr>
             <tr>
-              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important;">AREA CREACION</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaCreacion"></td>
-              <td class="label-cell">HORA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewHora"></td>
-              <td class="label-cell">CANTIDAD DISCOS</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; color:var(--success); font-size:15px;" id="viewCantidad"></td>
-            </tr>
-            <tr>
-              <td colspan="2" class="empty-cell"></td>
-              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">USUARIO</td>
-              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700; border-bottom: 1px solid var(--border-soft) !important;" id="viewUsuario"></td>
+              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">HORA</td>
+              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700; border-bottom: 1px solid var(--border-soft) !important;" id="viewHora"></td>
+              <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">CANTIDAD DISCOS</td>
+              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; color:var(--success); font-size:15px; border-bottom: 1px solid var(--border-soft) !important;" id="viewCantidad"></td>
               <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">ESTADO</td>
               <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;" id="viewMotivo"></td>
             </tr>
@@ -1009,12 +1001,10 @@ function imprimirTicketIndividual() {
   var orden = document.getElementById("viewOrden").innerText;
   var areaSalida = document.getElementById("viewAreaSalida").innerText;
   var fecha = document.getElementById("viewFecha").innerText;
-  var idColaborador = document.getElementById("viewIdColaborador").innerText;
   var areaEntrada = document.getElementById("viewAreaEntrada").innerText;
   var areaCreacion = document.getElementById("viewAreaCreacion").innerText;
   var hora = document.getElementById("viewHora").innerText;
   var cantidad = document.getElementById("viewCantidad").innerText;
-  var usuario = document.getElementById("viewUsuario").innerText;
   var motivo = document.getElementById("viewMotivo").innerText;
 
   var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
@@ -1065,9 +1055,8 @@ function imprimirTicketIndividual() {
           <table class="grid-table">
               <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">CONSECUTIVO</td><td class="grid-cons-value">${consecutivo}</td></tr>
               <tr><td class="grid-label">COLABORADOR</td><td class="grid-value">${colaborador}</td><td class="grid-label">NUMERO DE ORDEN</td><td class="grid-value">${orden}</td><td class="grid-label">AREA SALIDA</td><td class="grid-value">${areaSalida}</td></tr>
-              <tr><td class="grid-label">FECHA</td><td class="grid-value">${fecha}</td><td class="grid-label">ID COLABORADOR</td><td class="grid-value">${idColaborador}</td><td class="grid-label">AREA ENTRADA</td><td class="grid-value">${areaEntrada}</td></tr>
-              <tr><td class="grid-label">AREA CREACION</td><td class="grid-value">${areaCreacion}</td><td class="grid-label">HORA</td><td class="grid-value">${hora}</td><td class="grid-label">CANTIDAD DISCOS</td><td class="grid-cant-value">${cantidad}</td></tr>
-              <tr><td colspan="2" style="border: none;"></td><td class="grid-label">USUARIO</td><td class="grid-value">${usuario}</td><td class="grid-label">ESTADO</td><td class="grid-value" style="font-weight: 800;">${motivo}</td></tr>
+              <tr><td class="grid-label">FECHA</td><td class="grid-value">${fecha}</td><td class="grid-label">AREA CREACION</td><td class="grid-value">${areaCreacion}</td><td class="grid-label">AREA ENTRADA</td><td class="grid-value">${areaEntrada}</td></tr>
+              <tr><td class="grid-label">HORA</td><td class="grid-value">${hora}</td><td class="grid-label">CANTIDAD DISCOS</td><td class="grid-cant-value">${cantidad}</td><td class="grid-label">ESTADO</td><td class="grid-value" style="font-weight: 800;">${motivo}</td></tr>
           </table>
           ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">RESUMEN GENERAL</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
           ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE DE DISCOS</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
@@ -1183,12 +1172,10 @@ function abrirModalPreview(t) {
   document.getElementById("viewFecha").innerText = t.fecha || "";
   document.getElementById("viewFechaHeader").innerText = "FECHA: " + (t.fecha || "");
   document.getElementById("viewHora").innerText = t.hora || "";
-  document.getElementById("viewUsuario").innerText = t.usuario || "";
   document.getElementById("viewAreaSalida").innerText = t.areaSalida || "";
   document.getElementById("viewAreaEntrada").innerText = t.areaEntrada || "";
   document.getElementById("viewCantidad").innerText = t.cantidad || "";
   document.getElementById("viewMotivo").innerText = t.estado || t.motivo || "";
-  document.getElementById("viewIdColaborador").innerText = t.idColaborador || "";
   document.getElementById("viewConsecutivo").innerText = String(t.id).padStart(4, '0');
 
   document.getElementById("btnAnularModal").style.display = t.anulado ? "none" : "inline-block";
@@ -1223,9 +1210,9 @@ function ejecutarConfirmacionDesdeModal() {
 
 function exportarExcel() {
   if (datosConsultaActual.length === 0) return;
-  let csvContent = "﻿COLABORADOR;ID;ÁREA CREACIÓN;ÓRDENES;FECHA;HORA;ÁREA SALIDA;ÁREA ENTRADA;CANTIDAD;MOTIVO;ESTADO;CONSECUTIVO\n";
+  let csvContent = "﻿COLABORADOR;ÁREA CREACIÓN;ÓRDENES;FECHA;HORA;ÁREA SALIDA;ÁREA ENTRADA;CANTIDAD;MOTIVO;ESTADO;CONSECUTIVO\n";
   datosConsultaActual.forEach(t => {
-      var fila = [t.colaborador, t.idColaborador, t.areaCreacion, t.ordenes, t.fecha, t.hora, t.areaSalida, t.areaEntrada, t.cantidad, t.motivo, t.estado, String(t.id).padStart(4,'0')];
+      var fila = [t.colaborador, t.areaCreacion, t.ordenes, t.fecha, t.hora, t.areaSalida, t.areaEntrada, t.cantidad, t.motivo, t.estado, String(t.id).padStart(4,'0')];
       csvContent += fila.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(";") + "\n";
   });
   descargarCSV(csvContent, "Historial_Custodia");
@@ -1351,9 +1338,7 @@ function procesarPegado(event) {
 
   if (dict["colaborador"]) document.getElementById("colaborador").value = dict["colaborador"];
   if (dict["numero de orden"]) document.getElementById("numeroOrden").value = dict["numero de orden"];
-  if (dict["id colaborador"]) document.getElementById("idColaborador").value = dict["id colaborador"];
   if (dict["area creacion"]) document.getElementById("areaCreacion").value = dict["area creacion"];
-  if (dict["usuario"]) document.getElementById("usuario").value = dict["usuario"];
   if (dict["cantidad de discos"]) document.getElementById("cantidadDiscos").value = dict["cantidad de discos"].replace(/\./g, ',');
 
   if (dict["area salida"]) setSelectByText("areaSalida", dict["area salida"]);
@@ -1386,11 +1371,9 @@ function prepararEnvio(e) {
 
   datosBase = {
     colaborador: document.getElementById("colaborador").value.toUpperCase(),
-    idColaborador: document.getElementById("idColaborador").value.toUpperCase(),
     areaCreacion: document.getElementById("areaCreacion").value.toUpperCase(),
     fecha: document.getElementById("fecha").value,
     hora: document.getElementById("hora").value,
-    usuario: document.getElementById("usuario").value.toUpperCase(),
     areaSalida: document.getElementById("areaSalida").value.toUpperCase(),
     areaEntrada: document.getElementById("areaEntrada").value.toUpperCase(),
     motivo: document.getElementById("motivo").value.toUpperCase()

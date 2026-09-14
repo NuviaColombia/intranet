@@ -14,6 +14,15 @@ AREAS_EXCLUIDAS = {"INICIAL", "SALDO INICIAL", "EMPAQUE"}
 MOTIVOS = ["PRODUCCIÓN NORMAL", "MERMA/DAÑO", "DEVOLUCIÓN"]
 
 
+def colaboradores_disponibles(db: Session) -> list[str]:
+    nombres = set()
+    for (c,) in db.query(CustodiaTraslado.colaborador).distinct():
+        nombre = (c or "").strip().upper()
+        if nombre and nombre != "(SIN NOMBRE)":
+            nombres.add(nombre)
+    return sorted(nombres)
+
+
 def areas_disponibles(db: Session) -> list[str]:
     extra = set()
     for (a,) in db.query(CustodiaTraslado.area_salida).distinct():
