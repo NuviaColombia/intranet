@@ -5,8 +5,7 @@ from sqlalchemy import func
 from ..database import get_db
 from ..models import Empleado, Solicitud, TipoPermiso
 from ..auth import require_modulo
-from ..services import saldo_disponible
-from ..routers.aprobaciones import _pendientes_de
+from ..services import saldo_disponible, pendientes_de
 from ..main_templates import templates
 
 router = APIRouter()
@@ -18,7 +17,7 @@ async def home(request: Request, user: Empleado = Depends(require_modulo("people
     anio = date.today().year
     tipos = db.query(TipoPermiso).filter(TipoPermiso.activo == 1).all()
     saldos = [(t, saldo_disponible(db, user, t, anio)) for t in tipos]
-    pendientes_aprobar = len(_pendientes_de(db, user))
+    pendientes_aprobar = len(pendientes_de(db, user))
 
     metricas = None
     if user.rol == "admin":

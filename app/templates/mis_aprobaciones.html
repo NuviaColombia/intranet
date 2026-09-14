@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Mis aprobaciones pendientes</h1>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+
+<div class="tarjeta">
+  <table>
+    <tr><th>Módulo</th><th>Detalle</th><th>Fecha</th><th>Acción</th></tr>
+    {% for it in items %}
+    <tr>
+      <td><span class="badge" style="background:#e5e7eb">{{ it.modulo }}</span></td>
+      <td>{{ it.descripcion }}</td>
+      <td>{{ it.fecha }}</td>
+      <td style="min-width:220px">
+        {% if it.tipo == 'permiso' %}
+        <form method="post" action="/mis-aprobaciones/permiso/{{ it.id }}">
+          <input name="comentario" placeholder="Comentario (opcional)">
+          <button class="btn verde mini" name="decision" value="aprobada">Aprobar</button>
+          <button class="btn rojo mini" name="decision" value="rechazada">Rechazar</button>
+        </form>
+        {% elif it.tipo == 'horas_extra' %}
+        <form method="post" action="/mis-aprobaciones/horas-extra/{{ it.id }}">
+          <input name="comentario" placeholder="Comentario (opcional)">
+          <button class="btn verde mini" name="decision" value="aprobada">Aprobar</button>
+          <button class="btn rojo mini" name="decision" value="rechazada">Rechazar</button>
+        </form>
+        {% elif it.tipo == 'custodia' %}
+        <form method="post" action="/mis-aprobaciones/custodia/{{ it.id }}">
+          <button class="btn verde mini">✔ Confirmar recibido</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4">No tienes aprobaciones pendientes. 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

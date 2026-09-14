@@ -2,30 +2,19 @@ from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Empleado, Solicitud, Aprobacion
+from ..models import Empleado, Aprobacion
 from ..auth import get_current_user
-from ..services import resolver_aprobacion
+from ..services import resolver_aprobacion, pendientes_de
 from ..tokens import leer_token
 from ..main_templates import templates
 
 router = APIRouter()
 
 
-def _pendientes_de(db: Session, user: Empleado):
-    """Aprobaciones que están activas en el nivel que le corresponde al usuario."""
-    aps = (db.query(Aprobacion).join(Solicitud)
-           .filter(Aprobacion.aprobador_id == user.id, Aprobacion.decision == "pendiente",
-                   Solicitud.estado.in_(["pendiente_1", "pendiente_2"]))
-           .order_by(Solicitud.creada_en).all())
-    return [a for a in aps
-            if (a.solicitud.estado == "pendiente_1" and a.nivel == 1)
-            or (a.solicitud.estado == "pendiente_2" and a.nivel == 2)]
-
-
 @router.get("/aprobaciones")
 async def bandeja(request: Request, user: Empleado = Depends(get_current_user),
                   db: Session = Depends(get_db)):
-    pendientes = _pendientes_de(db, user)
+    pendientes = pendientes_de(db, user)
     historial = (db.query(Aprobacion).filter(Aprobacion.aprobador_id == user.id,
                                              Aprobacion.decision != "pendiente")
                  .order_by(Aprobacion.decidida_en.desc()).limit(30).all())

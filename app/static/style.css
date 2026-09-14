@@ -7,6 +7,7 @@ nav a:hover, nav a.activo { color:#fff; }
 nav .marca { font-weight:700; color:#fff; font-size:16px; margin-right:8px; display:flex; align-items:center; }
 nav .marca img { height:65px; display:block; background:#fff; border-radius:8px; padding:8px 16px; }
 nav .usuario { margin-left:auto; font-size:13px; color:#9ca3af; }
+.badge-alertas { background:var(--rojo); color:#fff; border-radius:999px; font-size:11px; font-weight:800; padding:1px 6px; min-width:16px; display:inline-block; text-align:center; }
 main { max-width:1100px; margin:24px auto; padding:0 16px; }
 h1 { font-size:22px; } h2 { font-size:17px; }
 .tarjeta { background:#fff; border-radius:10px; padding:18px 22px; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }

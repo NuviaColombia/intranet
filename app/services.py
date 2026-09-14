@@ -80,6 +80,17 @@ def saldo_disponible(db: Session, empleado: Empleado, tipo: TipoPermiso, anio: i
     return tipo.dias_anuales - dias_usados(db, empleado.id, tipo.id, anio)
 
 
+def pendientes_de(db: Session, empleado: Empleado) -> list[Aprobacion]:
+    """Aprobaciones de permisos que están activas en el nivel que le corresponde al empleado."""
+    aps = (db.query(Aprobacion).join(Solicitud)
+           .filter(Aprobacion.aprobador_id == empleado.id, Aprobacion.decision == "pendiente",
+                   Solicitud.estado.in_(["pendiente_1", "pendiente_2"]))
+           .order_by(Solicitud.creada_en).all())
+    return [a for a in aps
+            if (a.solicitud.estado == "pendiente_1" and a.nivel == 1)
+            or (a.solicitud.estado == "pendiente_2" and a.nivel == 2)]
+
+
 # ---------- Flujo de solicitudes ----------
 
 def crear_solicitud(db: Session, empleado: Empleado, tipo: TipoPermiso,
