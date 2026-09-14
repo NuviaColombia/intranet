@@ -7,7 +7,9 @@ from sqlalchemy import inspect, text
 from . import config
 from .database import engine, SessionLocal
 from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
-from .routers import auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra, portal
+from . import models_custodia  # noqa: F401 - registra las tablas de Custodia en Base.metadata
+from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
+                      portal, custodia)
 
 app = FastAPI(title="Solicitudes Nuvia")
 app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, max_age=60 * 60 * 10)
@@ -21,6 +23,7 @@ app.include_router(aprobaciones.router)
 app.include_router(admin.router)
 app.include_router(certificaciones.router)
 app.include_router(horas_extra.router)
+app.include_router(custodia.router)
 
 
 @app.exception_handler(307)

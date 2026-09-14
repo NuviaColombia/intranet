@@ -17,6 +17,19 @@
     <span class="modulo-desc">Sin acceso</span>
   </div>
   {% endif %}
+  {% if user.tiene_modulo('custodia') %}
+  <a class="modulo" href="/custodia">
+    <span class="modulo-icono">📦</span>
+    <span class="modulo-nombre">Custodia</span>
+    <span class="modulo-desc">Traslados de material entre áreas</span>
+  </a>
+  {% else %}
+  <div class="modulo disabled" title="Sin acceso">
+    <span class="modulo-icono">📦</span>
+    <span class="modulo-nombre">Custodia</span>
+    <span class="modulo-desc">Sin acceso</span>
+  </div>
+  {% endif %}
   <div class="modulo disabled" title="Próximamente">
     <span class="modulo-icono">🛒</span>
     <span class="modulo-nombre">Compras</span>

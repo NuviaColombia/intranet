@@ -13,7 +13,7 @@
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </span>
-  {% if not es_portal %}
+  {% if not es_portal and not es_custodia %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/aprobaciones">Aprobaciones</a>

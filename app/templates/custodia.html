@@ -1,0 +1,1450 @@
+{% extends "base.html" %}
+{% block contenido %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --brand-main: #1A365D;
+    --brand-hover: #112440;
+    --brand-light: #F0F4F8;
+    --accent: #1A365D;
+    --bg-body: #F4F7F9;
+    --bg-surface: #FFFFFF;
+    --text-dark: #0F172A;
+    --text-muted: #475569;
+    --border-soft: #E2E8F0;
+    --border-medium: #CBD5E1;
+    --success: #10B981;
+    --danger: #EF4444;
+    --warning: #F59E0B;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.01);
+  }
+
+  #custodia-app * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; box-sizing: border-box; }
+  #custodia-app { background-color: var(--bg-body); padding: 15px; color: var(--text-dark); line-height: 1.5; font-size: 14px; }
+
+  .main-container { width: 100%; max-width: 100%; background: var(--bg-surface); margin: 0; box-shadow: var(--shadow-md); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-soft); }
+
+  .nav-tabs { display: flex; background: #E8EEF5; padding: 16px 24px; gap: 12px; border-bottom: 2px solid var(--border-medium); align-items: center; flex-wrap: wrap; }
+
+  .top-branding { display: flex; align-items: center; gap: 12px; margin-right: 15px; padding-right: 20px; border-right: 2px solid var(--border-medium); }
+  .top-branding img { max-height: 38px; object-fit: contain; border-radius: 4px; }
+  .brand-text-nav { display: flex; flex-direction: column; color: var(--brand-main); line-height: 1.2; }
+  .brand-text-nav strong { font-weight: 800; font-size: 12px; letter-spacing: 0.5px; }
+  .brand-text-nav span { color: var(--text-muted); font-weight: 600; font-size: 11px; }
+
+  .nav-tab { padding: 10px 18px; text-align: center; color: var(--brand-main); background: #FFFFFF; border: 1px solid var(--border-medium); cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 8px; transition: all 0.2s ease; letter-spacing: 0.3px; flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .nav-tab:hover:not(.active) { box-shadow: var(--shadow-sm); border-color: var(--brand-main); }
+  .nav-tab.active { background: var(--brand-main); color: #FFFFFF; font-weight: 700; border-color: var(--brand-main); box-shadow: 0 4px 8px rgba(26, 54, 93, 0.2); }
+
+  .btn-top-action { background-color: #FFFFFF; color: var(--brand-main); border: 1px solid var(--border-medium); padding: 9px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; margin-left: 8px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; }
+  .btn-top-action:hover { border-color: var(--brand-main); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+
+  .content-section { padding: 30px 24px; display: none; animation: fadeInScale 0.3s ease-out; }
+  .content-section.active { display: block; }
+  @keyframes fadeInScale { from { opacity: 0; transform: scale(0.99) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+  #pasteBox { width: 100%; padding: 18px; margin: 0 0 25px 0; background: #FFFBEB; border: 2px dashed #F59E0B; border-radius: 12px; text-align: center; font-weight: 700; font-size: 13px; color: #B45309; transition: all 0.2s ease; cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase; }
+  #pasteBox:hover { background: #FEF3C7; border-color: #D97706; transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  #pasteBox:focus { outline: none; border-color: #D97706; background: #FEF3C7; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+
+  .paste-zone-sm { width: 100%; padding: 12px; margin-bottom: 15px; background: #F0F9FF; border: 2px dashed #3B82F6; border-radius: 8px; text-align: center; font-weight: 700; font-size: 12px; color: #1D4ED8; transition: all 0.2s ease; cursor: pointer; text-transform: uppercase; }
+  .paste-zone-sm:hover { background: #E0F2FE; border-color: #2563EB; }
+  .paste-zone-sm:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+
+  #custodia-app table.form-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  #custodia-app table.form-table td, #custodia-app table.form-table th { border: 1px solid var(--border-soft); border-top: none; border-left: none; padding: 0; height: 46px; vertical-align: middle; background: var(--bg-surface); }
+  #custodia-app table.form-table td:first-child:not(.empty-cell) { border-left: 1px solid var(--border-soft); }
+  #custodia-app table.form-table tr:first-child td:not(.empty-cell) { border-top: 1px solid var(--border-soft); }
+
+  .empty-cell { border: none !important; background: transparent !important; box-shadow: none !important; }
+
+  .logo-cell { text-align: center; background: var(--bg-surface); padding: 15px !important; }
+  .logo-nuvia { font-size: 26px; font-weight: 900; letter-spacing: 4px; margin-bottom: 2px; color: var(--brand-main);}
+  .logo-sub { font-size: 9px; letter-spacing: 2px; font-weight: 700; color: var(--text-muted); }
+  .title-cell { text-align: center; font-weight: 800; font-size: 16px; color: var(--brand-main); letter-spacing: 1px;}
+  .subtitle-cell { text-align: center; font-weight: 600; font-size: 13px; letter-spacing: 2px; color: var(--text-muted); }
+  .meta-cell { text-align: right; font-weight: 600; color: var(--text-muted); padding-right: 15px !important;}
+  .label-cell { background-color: var(--brand-light); font-weight: 600; color: var(--text-muted); padding-left: 15px !important; font-size: 12px; letter-spacing: 0.5px;}
+
+  .input-cell { position: relative; transition: background 0.2s; }
+  .input-cell:focus-within { background-color: #F0F9FF; }
+  .input-cell input, .input-cell select { width: 100%; height: 100%; border: none; padding: 10px 15px; font-size: 14px; text-align: right; font-weight: 700; color: var(--brand-main); background-color: transparent; text-transform: uppercase; outline: none; cursor: pointer;}
+  .input-cell input::placeholder { color: #94A3B8; font-weight: 500; }
+  .input-cell input[readonly] { color: var(--text-muted); cursor: not-allowed; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border: none; font-weight: 700; cursor: pointer; border-radius: 8px; font-size: 12px; color: white; transition: all 0.3s ease; letter-spacing: 0.5px; text-transform: uppercase; }
+  .btn:disabled { background-color: var(--border-medium) !important; cursor: not-allowed; color: white; transform: none; box-shadow: none; background-image: none;}
+
+  .btn-primary { background: linear-gradient(180deg, #3B82F6 0%, #2563EB 100%); width: 320px; margin: 35px auto 0 auto; padding: 15px 24px; font-size: 14px; box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.1), 0 6px 12px rgba(26, 54, 93, 0.25); border: 1px solid var(--brand-hover); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+  .btn-primary:hover:not(:disabled) { background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%); box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 0 8px 16px rgba(26, 54, 93, 0.35); transform: translateY(-2px); }
+  .btn-primary:active:not(:disabled) { transform: scale(0.98); box-shadow: none; }
+
+  .btn-excel { background: linear-gradient(180deg, #10B981 0%, #059669 100%); box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 4px 10px rgba(16,185,129,0.3); border: 1px solid #047857; margin-left: 10px; display: none; }
+  .btn-excel:hover:not(:disabled) { background: #34D399; box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 6px 14px rgba(16,185,129,0.4); transform: translateY(-2px); }
+
+  .btn-ver { background-color: var(--brand-main); padding: 8px 14px; font-size: 11px; border-radius: 6px; margin: 0; }
+  .btn-anular { background: var(--danger); box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 4px 10px rgba(239,68,68,0.3); border: 1px solid #B91C1C; padding: 12px 24px; }
+  .btn-anular:hover { background: #F87171; box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 6px 14px rgba(239,68,68,0.4); transform: translateY(-2px); }
+
+  .badge { padding: 5px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; display: inline-block; white-space: nowrap;}
+  .badge-success { background: #D1FAE5; color: #065F46; border: 1px solid #34D399; }
+  .badge-warning { background: #FEF3C7; color: #92400E; border: 1px solid #FBBF24; }
+  .badge-danger { background: #FEE2E2; color: #991B1B; border: 1px solid #F87171; }
+
+  .timeline-container { padding-left: 15px; margin-top: 15px; border-left: 3px solid var(--brand-light); position: relative; }
+  .timeline-item { position: relative; margin-bottom: 20px; padding-left: 20px; }
+  .timeline-item::before { content: ''; position: absolute; left: -25px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--brand-main); border: 3px solid white; box-shadow: 0 0 0 2px var(--brand-main); }
+  .timeline-date { font-size: 11px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px;}
+  .timeline-content { background: var(--bg-body); padding: 12px; border-radius: 8px; margin-top: 5px; font-size: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm);}
+
+  #custodia-app .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(6px); }
+  .modal-content { background: white; padding: 35px; border-radius: 16px; width: 90%; max-width: 450px; box-shadow: var(--shadow-float); max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+  .modal-preview { background: white; padding: 40px; border-radius: 16px; width: 95%; max-width: 1000px; max-height: 95vh; overflow-y: auto; box-shadow: var(--shadow-float); animation: slideUp 0.3s ease; }
+  .orden-item { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; border-bottom: 1px solid var(--border-soft); padding-bottom: 10px; color: var(--text-dark);}
+  .modal-input { width: 120px; padding: 10px; border: 1px solid var(--border-medium); border-radius: 8px; text-align: center; font-weight: 700; text-transform: uppercase; color: var(--brand-main); transition: all 0.2s; box-shadow: var(--shadow-sm);}
+  .modal-input:focus { outline: none; border-color: var(--brand-main); box-shadow: 0 0 0 3px rgba(26,54,93,0.1); }
+
+  .consulta-filtros { background: var(--bg-surface); padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm); }
+  .consulta-filtros label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+  .consulta-filtros select, .consulta-filtros input[type="date"], .consulta-filtros input[type="text"] { padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-soft); font-weight: 600; color: var(--brand-main); text-transform: uppercase; outline: none; transition: all 0.2s; background: var(--bg-body); cursor: pointer;}
+  .consulta-filtros select:focus, .consulta-filtros input[type="date"]:focus, .consulta-filtros input[type="text"]:focus { border-color: var(--brand-main); background: var(--bg-surface); box-shadow: 0 0 0 3px rgba(26,54,93,0.1); }
+
+  .consulta-tabla-wrapper { overflow-x: auto; max-height: 550px; border-radius: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm); margin-bottom: 15px;}
+  .consulta-tabla { width: 100%; border-collapse: collapse; min-width: 100%; }
+  .consulta-tabla th { background: var(--brand-main); color: #FFFFFF; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 10; border: 1px solid var(--border-medium); text-align: center; cursor: pointer;}
+  .consulta-tabla td { border: 1px solid var(--border-soft); padding: 10px 14px; font-size: 13px; text-align: center; text-transform: uppercase; font-weight: 500; color: var(--text-dark); transition: background 0.2s; }
+  .consulta-tabla tbody tr:hover td { background-color: var(--brand-light); }
+  .anulado-row td { background-color: #FEF2F2 !important; color: var(--danger) !important; text-decoration: line-through; opacity: 0.8; }
+  .fila-totales td { background-color: var(--brand-light) !important; font-weight: 800 !important; color: var(--brand-main) !important; border-top: 1px solid var(--border-medium) !important; border-bottom: none !important;}
+
+  .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media(max-width: 1100px) { .split-layout { grid-template-columns: 1fr; } }
+  .split-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); }
+  .split-panel h4 { margin-top: 0; margin-bottom: 15px; color: var(--brand-main); font-size: 14px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px;}
+  .split-panel .consulta-tabla th { font-size: 10px; padding: 12px 10px; background: var(--brand-light); color: var(--text-muted); border: none; border-bottom: 1px solid var(--border-soft);}
+  .split-panel .consulta-tabla th:hover { background: #E2E8F0; }
+  .split-panel .consulta-tabla td { font-size: 12px; padding: 10px; border: none; border-bottom: 1px solid var(--border-soft);}
+
+  .dash-kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 30px; }
+  @media(max-width: 900px) { .dash-kpi-container { grid-template-columns: repeat(2, 1fr); } }
+  .kpi-card { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px; text-align: left; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .kpi-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--brand-main); border-radius: 4px 0 0 4px; }
+  .kpi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .kpi-card h5 { margin: 0; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .kpi-card p { margin: 12px 0 0 0; font-size: 28px; font-weight: 900; color: var(--brand-main); letter-spacing: -0.5px; }
+
+  .dash-grid-full { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; margin-bottom: 30px; } @media(max-width: 950px) { .dash-grid-full { grid-template-columns: 1fr; } }
+  .dash-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-sm); }
+  .dash-panel h4 { margin-top: 0; margin-bottom: 24px; color: var(--brand-main); font-size: 14px; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;}
+
+  @media print {
+    #custodia-app .main-container, #custodia-app .nav-tabs, #custodia-app .modal { display: none !important; }
+  }
+</style>
+
+<div id="custodia-app">
+  <datalist id="listaAreasOpciones">
+    {% for a in areas %}<option value="{{ a }}"></option>{% endfor %}
+  </datalist>
+
+  <div class="main-container">
+
+    <div class="nav-tabs">
+      <div class="top-branding">
+        {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
+        {% if logo %}<img src="{{ logo }}" alt="Logo Nuvia">{% else %}<div class="text-logo" style="font-size:20px; font-weight:900; color:var(--brand-main); letter-spacing:2px;">NUVIA</div>{% endif %}
+        <div class="brand-text-nav">
+           <strong>NUVIA SMILES COLOMBIA S.A.S</strong>
+           <span>NIT 901.463.930-1</span>
+        </div>
+      </div>
+
+      <button class="nav-tab active" id="tab-registro" onclick="switchTab('registro')">📝 NUEVO REGISTRO</button>
+      <button class="nav-tab" id="tab-consulta" onclick="switchTab('consulta')">🔍 HISTORIAL DE REGISTROS</button>
+      <button class="nav-tab" id="tab-activas" onclick="switchTab('activas')">📦 ESTADO ÓRDENES</button>
+      <button class="nav-tab" id="tab-existencias" onclick="switchTab('existencias')">📊 DASHBOARD</button>
+
+      <div style="margin-left: auto; display: flex;">
+          <button class="btn-top-action" onclick="refrescarPantallaGlobal()">🔄 REFRESCAR</button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 1: NUEVO REGISTRO -->
+    <div id="sec-registro" class="content-section active">
+      <form id="formulario" onsubmit="prepararEnvio(event)">
+
+        <table class="form-table" style="margin-bottom: 25px;">
+          <tr>
+            <td rowspan="3" class="logo-cell" style="width: 16%; border-top-left-radius: 12px; border-bottom-left-radius: 12px;">
+              {% if logo %}<img src="{{ logo }}" alt="Logo" style="max-width: 100%; max-height: 70px; object-fit: cover; border-radius: 8px;">
+              {% else %}<div class="logo-nuvia">NUVIA</div><div class="logo-sub">SMILES COLOMBIA S.A.S</div>{% endif %}
+            </td>
+            <td colspan="4" rowspan="2" class="title-cell" style="border-top: 1px solid var(--border-soft);">CAMBIO DE CUSTODIA GENERAL</td>
+            <td class="meta-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft);">CÓDIGO: F-PRO-40</td>
+          </tr>
+          <tr><td class="meta-cell">VERSIÓN: 02</td></tr>
+          <tr>
+            <td colspan="4" class="subtitle-cell">PRODUCCION</td>
+            <td class="meta-cell" style="border-bottom-right-radius: 12px;">FECHA: <span id="fechaVersionHeader"></span></td>
+          </tr>
+        </table>
+
+        <input type="text" id="pasteBox" placeholder="📋 HAZ CLIC AQUÍ Y PRESIONA (Ctrl + V) PARA PEGAR LOS DATOS DESDE EXCEL" onpaste="procesarPegado(event)" autocomplete="off">
+
+        <table class="form-table">
+          <tr>
+            <td colspan="4" class="empty-cell" style="width: 66%;"></td>
+            <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">CONSECUTIVO</td>
+            <td class="input-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="consecutivo" readonly style="color: var(--text-dark); font-weight: 800; font-size: 15px;"></td>
+          </tr>
+          <tr>
+            <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
+            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" required placeholder="NOMBRE..."></td>
+            <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">NÚMERO DE ORDEN</td>
+            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="numeroOrden" required placeholder="123-456..."></td>
+            <td class="label-cell">ÁREA SALIDA</td>
+            <td class="input-cell">
+              <select id="areaSalida" required>
+                <option value="">SELECCIONAR...</option>
+                {% for a in areas %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">ID COLABORADOR</td>
+            <td class="input-cell"><input type="text" id="idColaborador" required placeholder="DOCUMENTO..."></td>
+            <td class="label-cell">FECHA</td>
+            <td class="input-cell"><input type="date" id="fecha" required></td>
+            <td class="label-cell">ÁREA ENTRADA</td>
+            <td class="input-cell">
+              <select id="areaEntrada" required>
+                <option value="">SELECCIONAR...</option>
+                {% for a in areas %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important;">ÁREA CREACIÓN</td>
+            <td class="input-cell"><input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones"></td>
+            <td class="label-cell">HORA</td>
+            <td class="input-cell"><input type="time" id="hora" readonly required></td>
+            <td class="label-cell">CANTIDAD DISCOS</td>
+            <td class="input-cell"><input type="text" id="cantidadDiscos" oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')" required placeholder="0,00"></td>
+          </tr>
+          <tr>
+            <td colspan="2" class="empty-cell" style="width: 33%;"></td>
+            <td class="label-cell" style="border-bottom-left-radius: 12px; border-bottom: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">USUARIO</td>
+            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="text" id="usuario" placeholder="SERVICIO O BIENES..."></td>
+            <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">MOTIVO</td>
+            <td class="input-cell" style="border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;">
+              <select id="motivo" required>
+                {% for m in motivos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 35px; border-top: 2px solid var(--border-soft); padding-top: 20px;">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+               <h4 style="color:var(--brand-main); margin:0; font-weight:800; font-size: 14px;">📋 DETALLES ADICIONALES (EXCEL)</h4>
+               <button type="button" class="btn" style="background:var(--danger); padding:6px 12px; font-size:10px;" onclick="limpiarTablasExcel()">🗑️ LIMPIAR DATOS EXCEL</button>
+           </div>
+
+           <input type="text" class="paste-zone-sm" id="pasteResumen" placeholder="Haz clic aquí y (Ctrl+V) para pegar RESUMEN GENERAL" onpaste="procesarPegadoResumen(event)" autocomplete="off">
+           <div class="consulta-tabla-wrapper" style="margin-bottom:20px;">
+              <table class="consulta-tabla" style="min-width:100%;">
+                 <thead>
+                    <tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th></tr>
+                 </thead>
+                 <tbody id="bodyResumen">
+                    <tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>
+                 </tbody>
+              </table>
+           </div>
+
+           <div style="display:flex; gap:20px;">
+               <div style="flex:1;">
+                 <input type="text" class="paste-zone-sm" id="pasteDiscos" placeholder="Haz clic aquí y pega DETALLE DE DISCOS" onpaste="procesarPegadoDiscos(event)" autocomplete="off">
+                 <div class="consulta-tabla-wrapper">
+                    <table class="consulta-tabla" style="min-width:100%;">
+                       <thead>
+                          <tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr>
+                       </thead>
+                       <tbody id="bodyDiscos">
+                          <tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>
+                       </tbody>
+                    </table>
+                 </div>
+               </div>
+
+               <div style="flex:1;">
+                 <input type="text" class="paste-zone-sm" id="pasteOP" placeholder="Haz clic aquí y pega DETALLE OP" onpaste="procesarPegadoOP(event)" autocomplete="off">
+                 <div class="consulta-tabla-wrapper">
+                    <table class="consulta-tabla" style="min-width:100%;">
+                       <thead>
+                          <tr><th>OP</th><th>DESCRIPCIÓN</th><th>ORDEN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th></tr>
+                       </thead>
+                       <tbody id="bodyOP">
+                          <tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>
+                       </tbody>
+                    </table>
+                 </div>
+               </div>
+           </div>
+        </div>
+
+        <button type="submit" id="btnGuardar" class="btn btn-primary">REGISTRAR TRASLADO</button>
+      </form>
+    </div>
+
+    <!-- SECCIÓN 2: HISTORIAL -->
+    <div id="sec-consulta" class="content-section">
+      <div class="consulta-filtros">
+        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="ultimos30" checked onchange="toggleFechas()"> ÚLTIMOS 30</label>
+        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="rango" onchange="toggleFechas()"> RANGO FECHAS</label>
+        <div id="contenedorFechas" style="display:none; margin-left:10px;"><input type="date" id="filtroFechaInicio"> <span style="margin: 0 5px; color:var(--text-muted); font-weight:700;">A</span> <input type="date" id="filtroFechaFin"></div>
+
+        <div style="margin-left: auto; display: flex; gap: 15px;">
+            <div style="display:flex; align-items:center; gap:8px;"><label>ÁREA SALIDA:</label>
+              <select id="filtroAreaSalida"><option value="TODAS">-- TODAS --</option></select>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;"><label>ESTADO:</label>
+              <select id="filtroEstado">
+                <option value="TODOS">TODOS</option>
+                <option value="ACTIVOS" selected>ACTIVOS</option>
+                <option value="ANULADOS">ANULADOS</option>
+              </select>
+            </div>
+        </div>
+
+        <button type="button" class="btn" style="background:var(--brand-main); margin-left: 10px;" onclick="ejecutarConsulta()" id="btnBuscar">🔍 BUSCAR</button>
+        <button type="button" class="btn btn-excel" id="btnExportar" style="display:inline-flex;" onclick="exportarExcel()">📥 EXPORTAR EXCEL</button>
+      </div>
+      <div class="consulta-tabla-wrapper">
+        <table class="consulta-tabla" id="tablaResultados">
+          <thead><tr id="tablaHead"><th>SIN DATOS</th></tr></thead>
+          <tbody id="tablaBody"><tr><td style="padding: 60px; font-size:14px; color:var(--text-muted);">REALIZA UNA BÚSQUEDA PARA VISUALIZAR LOS REGISTROS.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: ESTADO ÓRDENES -->
+    <div id="sec-activas" class="content-section">
+
+      <div class="consulta-filtros" style="justify-content: flex-end; gap: 15px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-right:auto;">
+          <label>FECHA CORTE:</label>
+          <input type="date" id="filtroFechaCorteActivas" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
+        </div>
+        <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔄 CARGAR CORTE</button>
+        <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ REPORTE CORTE</button>
+      </div>
+
+      <div class="split-layout">
+
+          <div class="split-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px; margin-bottom: 15px;">
+               <h4 style="margin:0; border:none; padding:0;">📍 UBICACIÓN ACTUAL</h4>
+               <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:10px;" onclick="exportarActivasExcel()">📥 EXCEL</button>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+              <input type="text" id="filtroBuscadorOrden1" onkeyup="filtrarTablaActivas()" placeholder="Buscar Número de Orden..." style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none; flex:1;">
+              <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none; flex:1; cursor:pointer;">
+                <option value="TODAS">-- TODAS LAS ÁREAS --</option>
+              </select>
+            </div>
+
+            <div class="consulta-tabla-wrapper" style="max-height: 480px;">
+              <table class="consulta-tabla" id="tablaActivasFull">
+                <thead>
+                  <tr>
+                    <th style="width: 25%;">ORDEN</th>
+                    <th style="width: 15%;">CANT.</th>
+                    <th onclick="alternarOrdenUbicacion()" style="cursor:pointer;" title="Hacer clic para ordenar">
+                      UBICACIÓN <span id="iconoOrdenUbicacion">▲</span>
+                    </th>
+                    <th style="width: 25%;">TIEMPO EN ÁREA</th>
+                  </tr>
+                </thead>
+                <tbody id="bodyTablaActivas">
+                  <tr><td colspan="4" style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="split-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px; margin-bottom: 15px;">
+               <h4 style="margin:0; border:none; padding:0;">📊 SEGUIMIENTO SALIDAS (MATRIZ)</h4>
+               <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:10px;" onclick="exportarMatrixExcel()">📥 EXCEL</button>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+              <input type="text" id="filtroBuscadorOrden2" onkeyup="filtrarTablaMatrix()" placeholder="Buscar Orden en Matriz..." style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none; width:50%;">
+            </div>
+
+            <div class="consulta-tabla-wrapper" style="max-height: 480px;">
+              <table class="consulta-tabla" id="tablaMatrixFull">
+                <thead id="headTablaMatrix"></thead>
+                <tbody id="bodyTablaMatrix">
+                  <tr><td style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO MATRIZ...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+      </div>
+    </div>
+
+    <!-- SECCIÓN 4: DASHBOARD -->
+    <div id="sec-existencias" class="content-section">
+      <div class="consulta-filtros">
+        <div style="display:flex; align-items:center; gap:8px;"><label>RANGO:</label>
+          <input type="date" id="dashFechaInicio">
+          <span style="font-weight:800; color:var(--text-muted);">A</span>
+          <input type="date" id="dashFechaFin">
+        </div>
+        <div style="margin-left: 20px; display:flex; align-items:center; gap:8px;"><label>ÁREA ESPECÍFICA:</label>
+          <select id="dashAreaSelect"><option value="TODAS">-- TODAS LAS ÁREAS --</option></select>
+        </div>
+        <button type="button" class="btn" style="background:var(--brand-main); margin-left: auto;" onclick="cargarDashboardExistencias()" id="btnCalcularDash">🔄 FILTRAR DASHBOARD</button>
+        <button type="button" class="btn" style="background:var(--success);" onclick="exportarResumenExistenciasExcel()">📥 EXPORTAR TABLA</button>
+      </div>
+
+      <div class="dash-kpi-container">
+        <div class="kpi-card"><h5>🔄 MOVIMIENTOS</h5><p id="kpiMovimientos">0</p></div>
+        <div class="kpi-card" style="border-left-color: var(--brand-accent);"><h5>📦 TOTAL TRASLADADOS</h5><p id="kpiTrasladados" style="color: var(--brand-accent);">0</p></div>
+        <div class="kpi-card" style="border-left-color: var(--success);"><h5>⚖️ BALANCE NETO ACTUAL</h5><p id="kpiInventario" style="color: var(--success);">0</p></div>
+
+        <div class="kpi-card" style="border-left-color: var(--warning);"><h5>🏆 ÁREA MAYOR MOVIMIENTO</h5><p id="kpiAreaMayorMov" style="color: var(--warning); font-size:20px;">N/A</p></div>
+        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>🚨 ÁREA MÁS CRÍTICA</h5><p id="kpiAreaCritica" style="color: var(--danger); font-size:20px;">N/A</p></div>
+        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>⚠️ TOTAL MERMAS</h5><p id="kpiMermas" style="color: var(--danger);">0</p></div>
+      </div>
+
+      <div class="dash-grid-full">
+        <div class="dash-panel"><h4>📈 EXISTENCIAS NETAS</h4><div style="position: relative; height:320px;"><canvas id="chartExistencias"></canvas></div></div>
+        <div class="dash-panel"><h4>🍩 PRODUCCIÓN VS. MERMAS</h4><div style="position: relative; height:320px;"><canvas id="chartMotivos"></canvas></div></div>
+      </div>
+
+      <div class="dash-panel">
+        <h4>📋 BALANCE GENERAL DE INVENTARIOS</h4>
+        <div style="overflow-x:auto; max-height:400px; border-radius: 12px; border: 1px solid var(--border-soft);">
+          <table class="consulta-tabla" id="tablaExistenciasFull" style="min-width: 100%;">
+            <thead><tr><th>ÁREA DE PRODUCCIÓN</th><th>ENTRADAS TOTALES</th><th>SALIDAS TOTALES</th><th>EXISTENCIA NETA</th></tr></thead>
+            <tbody id="bodyTablaExistencias"><tr><td colspan="4" style="padding: 40px; color:var(--text-muted);">SELECCIONA UN RANGO Y FILTRA.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ÁREA DE IMPRESIÓN OCULTA -->
+  <div id="areaImpresionReporte" class="no-print" style="display:none;"></div>
+
+  <!-- MODAL VISOR GENERAL -->
+  <div id="modalDocumentoPreview" class="modal">
+    <div class="modal-preview">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-soft); padding-bottom:15px; margin-bottom: 20px;">
+         <h3 style="color:var(--brand-main); margin:0; font-weight:800; display:flex; align-items:center; gap:10px;">
+           <span style="font-size:20px;">📄</span> DOCUMENTO DE CUSTODIA
+         </h3>
+         <button type="button" class="btn" style="background:var(--success); padding:8px 16px;" onclick="imprimirTicketIndividual()">🖨️ IMPRIMIR TICKET</button>
+      </div>
+
+      <div id="ticketImpresionIndividual">
+          <table class="form-table" style="margin-bottom: 25px; box-shadow:none;">
+            <tr>
+              <td rowspan="3" class="logo-cell" style="width: 16%; border-top-left-radius: 12px; border-bottom-left-radius: 12px; border-top: 1px solid var(--border-soft); border-left: 1px solid var(--border-soft);">
+                {% if logo %}<img src="{{ logo }}" alt="Logo" style="max-width: 100%; max-height: 70px; object-fit: cover; border-radius: 8px;">
+                {% else %}<div class="logo-nuvia">NUVIA</div><div class="logo-sub">SMILES COLOMBIA S.A.S</div>{% endif %}
+              </td>
+              <td colspan="4" rowspan="2" class="title-cell" style="border-top: 1px solid var(--border-soft);">CAMBIO DE CUSTODIA GENERAL</td>
+              <td class="meta-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft);">CÓDIGO: F-PRO-40</td>
+            </tr>
+            <tr><td class="meta-cell">VERSIÓN: 02</td></tr>
+            <tr>
+              <td colspan="4" class="subtitle-cell">PRODUCCION</td>
+              <td class="meta-cell" style="border-bottom-right-radius: 12px;" id="viewFechaHeader"></td>
+            </tr>
+          </table>
+
+          <table class="form-table" style="box-shadow:none;">
+            <tr>
+              <td colspan="4" class="empty-cell" style="width: 66%;"></td>
+              <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">CONSECUTIVO</td>
+              <td class="input-cell" style="width: 18%; padding:10px 15px; text-align:right; font-weight:800; color:var(--danger); font-size:15px; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft) !important;" id="viewConsecutivo"></td>
+            </tr>
+            <tr>
+              <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
+              <td class="input-cell" style="width: 17%; padding:10px 15px; text-align:right; font-weight:700; border-top: 1px solid var(--border-soft) !important;" id="viewColaborador"></td>
+              <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">NUMERO DE ORDEN</td>
+              <td class="input-cell" style="width: 17%; padding:10px 15px; text-align:right; font-weight:700; border-top: 1px solid var(--border-soft) !important;" id="viewOrden"></td>
+              <td class="label-cell" style="width: 16%;">AREA SALIDA</td>
+              <td class="input-cell" style="width: 18%; padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaSalida"></td>
+            </tr>
+            <tr>
+              <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">FECHA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewFecha"></td>
+              <td class="label-cell">ID COLABORADOR</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewIdColaborador"></td>
+              <td class="label-cell">AREA ENTRADA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaEntrada"></td>
+            </tr>
+            <tr>
+              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important;">AREA CREACION</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaCreacion"></td>
+              <td class="label-cell">HORA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewHora"></td>
+              <td class="label-cell">CANTIDAD DISCOS</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; color:var(--success); font-size:15px;" id="viewCantidad"></td>
+            </tr>
+            <tr>
+              <td colspan="2" class="empty-cell"></td>
+              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">USUARIO</td>
+              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700; border-bottom: 1px solid var(--border-soft) !important;" id="viewUsuario"></td>
+              <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">ESTADO</td>
+              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;" id="viewMotivo"></td>
+            </tr>
+          </table>
+
+          <div id="viewDetallesExcel" style="margin-top: 35px; display: none;">
+              <div class="consulta-tabla-wrapper" style="margin-bottom: 15px;">
+                 <table class="consulta-tabla" style="min-width: 100%;">
+                    <thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th></tr></thead>
+                    <tbody id="viewResumenGeneral"></tbody>
+                 </table>
+              </div>
+
+              <div style="display:flex; gap:15px;">
+                 <div class="consulta-tabla-wrapper" style="flex:1;">
+                    <table class="consulta-tabla" style="min-width: 100%;">
+                       <thead><tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr></thead>
+                       <tbody id="viewDetalleDiscos"></tbody>
+                    </table>
+                 </div>
+              </div>
+          </div>
+
+          <div id="viewOPContainer" style="display:none; margin-top: 20px;">
+              <div class="consulta-tabla-wrapper">
+                  <table class="consulta-tabla" style="min-width: 100%;">
+                      <thead><tr><th>OP</th><th>DESCRIPCIÓN</th><th>ORDEN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th></tr></thead>
+                      <tbody id="viewDetalleOP"></tbody>
+                  </table>
+              </div>
+          </div>
+
+      </div>
+
+      <div style="margin-top:35px; display:flex; justify-content:space-between; align-items:center;">
+         <div style="display:flex; gap:10px;">
+           <button type="button" class="btn btn-anular" id="btnAnularModal" onclick="ejecutarAnulacionDesdeModal()">🚫 ANULAR REGISTRO</button>
+           <button type="button" class="btn" style="background:var(--success);" id="btnConfirmarModal" onclick="ejecutarConfirmacionDesdeModal()">✔ CONFIRMAR RECIBIDO</button>
+         </div>
+         <button type="button" class="btn" style="background:var(--text-muted); padding:12px 24px;" onclick="cerrarModalPreview()">CERRAR CONSULTA</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LÍNEA DE TIEMPO -->
+  <div id="modalTimeline" class="modal">
+    <div class="modal-content" style="max-width: 600px; padding: 30px;">
+      <h3 style="color:var(--brand-main); margin-top:0; border-bottom:2px solid var(--brand-light); padding-bottom:15px; font-weight:800;">
+         🛤️ LÍNEA DE TIEMPO: ORDEN <span id="lblTimelineOrden" style="color:var(--accent);"></span>
+      </h3>
+      <div class="timeline-container" id="containerTimelineModal" style="max-height: 55vh; overflow-y: auto;">
+         <p style="font-size:12px; color:var(--text-muted);">Cargando historial completo...</p>
+      </div>
+      <div style="margin-top:25px; text-align:right;">
+         <button type="button" class="btn" style="background:var(--text-muted); padding: 10px 20px;" onclick="cerrarModalTimeline()">CERRAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ÓRDENES MÚLTIPLES -->
+  <div id="modalCantidades" class="modal">
+    <div class="modal-content">
+      <h3 style="color:var(--brand-main); margin-top:0; font-weight:800;">SEPARAR CANTIDADES</h3>
+      <p style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:25px;">ASIGNA LA CANTIDAD DE DISCOS POR ORDEN INDIVIDUAL:</p>
+      <div id="listaOrdenes"></div>
+      <div style="margin-top:30px; text-align:right; display:flex; justify-content:flex-end; gap:12px;">
+         <button type="button" class="btn" style="background:var(--bg-body); color:var(--text-main); border: 1px solid var(--border-medium); box-shadow:none;" onclick="cerrarModal()">CANCELAR</button>
+         <button type="button" class="btn btn-primary" style="margin:0; width:auto; padding: 12px 24px;" onclick="confirmarMultiples()">GUARDAR MÚLTIPLES</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ---------------- HELPER DE LLAMADAS A LA API ----------------
+  async function api(url, opciones) {
+    var resp = await fetch(url, opciones);
+    if (!resp.ok) {
+      var detalle = "Error";
+      try { var err = await resp.json(); detalle = err.detail || JSON.stringify(err); } catch (e) {}
+      throw new Error(detalle);
+    }
+    return resp.json();
+  }
+  function postJSON(url, data) {
+    return api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data || {})});
+  }
+  window.custodiaApi = api;
+  window.custodiaPostJSON = postJSON;
+})();
+
+function switchTab(tab) {
+  document.querySelectorAll("#custodia-app .content-section").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll("#custodia-app .nav-tab").forEach(el => el.classList.remove("active"));
+  document.getElementById("sec-" + tab).classList.add("active");
+  document.getElementById("tab-" + tab).classList.add("active");
+  if (tab === 'consulta') cargarAreasSalidaDropdown();
+  if (tab === 'existencias') { cargarAreasDashboardDropdown(); }
+  if (tab === 'activas') { cargarEstadoOrdenes(); }
+}
+
+function refrescarPantallaGlobal() { location.reload(); }
+
+function toggleFechas() {
+  var tipo = document.querySelector('input[name="tipoFiltro"]:checked').value;
+  document.getElementById("contenedorFechas").style.display = (tipo === 'rango') ? 'inline-block' : 'none';
+}
+
+function cargarAreasSalidaDropdown() {
+  custodiaApi('/custodia/api/areas').then(function(areas) {
+    var sel = document.getElementById("filtroAreaSalida"); sel.innerHTML = '<option value="TODAS">-- TODAS --</option>';
+    areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
+  });
+}
+
+function cargarAreasDashboardDropdown() {
+  custodiaApi('/custodia/api/areas').then(function(areas) {
+    var sel = document.getElementById("dashAreaSelect"); sel.innerHTML = '<option value="TODAS">-- TODAS --</option>';
+    areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
+  });
+}
+
+function actualizarHora() {
+  var ahora = new Date();
+  document.getElementById("hora").value = String(ahora.getHours()).padStart(2, '0') + ":" + String(ahora.getMinutes()).padStart(2, '0');
+}
+
+function cargarConsecutivo() {
+  custodiaApi('/custodia/api/consecutivo-siguiente').then(function(data) {
+    document.getElementById("consecutivo").value = String(data.consecutivo).padStart(4, '0') + " *";
+  });
+}
+
+window.onload = function() {
+  actualizarHora(); setInterval(actualizarHora, 60000);
+  var hoy = new Date();
+  document.getElementById("fecha").value = hoy.toISOString().split('T')[0];
+  document.getElementById("fechaVersionHeader").innerText = hoy.toLocaleDateString('es-CO');
+  document.getElementById("dashFechaInicio").value = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
+  document.getElementById("dashFechaFin").value = hoy.toISOString().split('T')[0];
+  document.getElementById("filtroFechaCorteActivas").value = hoy.toISOString().split('T')[0];
+  cargarConsecutivo();
+};
+
+// ---------------- PEGADO DE EXCEL EN NUEVO REGISTRO ----------------
+let datosResumenExcel = [];
+let datosDiscosExcel = [];
+let datosOPExcel = [];
+
+function limpiarTablasExcel() {
+    datosResumenExcel = []; renderTablaResumen();
+    datosDiscosExcel = []; renderTablaDiscos();
+    datosOPExcel = []; renderTablaOP();
+}
+
+function procesarPegadoResumen(e) {
+  e.preventDefault(); var data = (e.clipboardData || window.clipboardData).getData('text'); var rows = data.split(/\r?\n/);
+  datosResumenExcel = [];
+  rows.forEach(r => {
+    if(!r.trim()) return; var cols = r.split('\t');
+    if(cols[0].toLowerCase().includes('orden') || cols[0].toLowerCase().includes('resumen') || cols[0].toLowerCase().includes('total general')) return;
+    datosResumenExcel.push({ orden: cols[0], descripcion: cols[1], paciente: cols[2], total: parseFloat(cols[3]||0), verifSalida: false, verifEntrada: false });
+  });
+  renderTablaResumen(); e.target.value = "✅ ¡RESUMEN CARGADO!"; setTimeout(() => e.target.value = "", 2000);
+}
+
+function renderTablaResumen() {
+  var tbody = document.getElementById("bodyResumen"); tbody.innerHTML = "";
+  if(datosResumenExcel.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>'; return; }
+  var sum = 0;
+  datosResumenExcel.forEach((r, idx) => {
+    sum += r.total;
+    var tr = document.createElement("tr");
+    tr.innerHTML = `<td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td style="font-weight:800; color:var(--success);">${r.total}</td><td><input type="checkbox" onchange="datosResumenExcel[${idx}].verifSalida = this.checked" style="cursor:pointer; transform:scale(1.2);"></td><td><input type="checkbox" onchange="datosResumenExcel[${idx}].verifEntrada = this.checked" style="cursor:pointer; transform:scale(1.2);"></td>`;
+    tbody.appendChild(tr);
+  });
+  var trTotal = document.createElement("tr"); trTotal.className = "fila-totales";
+  trTotal.innerHTML = `<td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td style="color:var(--brand-main);">${sum}</td><td colspan="2"></td>`;
+  tbody.appendChild(trTotal);
+}
+
+function procesarPegadoDiscos(e) {
+  e.preventDefault(); var data = (e.clipboardData || window.clipboardData).getData('text'); var rows = data.split(/\r?\n/);
+  datosDiscosExcel = [];
+  rows.forEach(r => {
+    if(!r.trim()) return; var cols = r.split('\t');
+    if(cols[0].toLowerCase().includes('detalle') || cols[0].toLowerCase().includes('total')) return;
+    datosDiscosExcel.push({ detalle: cols[0], cantPaciente: parseFloat(cols[1]||0), cantDiscos: parseFloat((cols[2]||"0").replace(',','.')) });
+  });
+  renderTablaDiscos(); e.target.value = "✅ ¡DISCOS CARGADOS!"; setTimeout(() => e.target.value = "", 2000);
+}
+
+function renderTablaDiscos() {
+  var tbody = document.getElementById("bodyDiscos"); tbody.innerHTML = "";
+  if(datosDiscosExcel.length === 0) { tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>'; return; }
+  var sumPac = 0, sumDisc = 0;
+  datosDiscosExcel.forEach(r => {
+    sumPac += r.cantPaciente; sumDisc += r.cantDiscos;
+    var tr = document.createElement("tr");
+    tr.innerHTML = `<td style="font-weight:700;">${r.detalle}</td><td>${r.cantPaciente}</td><td style="color:var(--success); font-weight:700;">${r.cantDiscos.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+  var trTotal = document.createElement("tr"); trTotal.className = "fila-totales";
+  trTotal.innerHTML = `<td style="text-align:right;">TOTAL</td><td>${sumPac}</td><td style="color:var(--brand-main);">${sumDisc.toFixed(2)}</td>`;
+  tbody.appendChild(trTotal);
+}
+
+function procesarPegadoOP(e) {
+  e.preventDefault(); var data = (e.clipboardData || window.clipboardData).getData('text'); var rows = data.split(/\r?\n/);
+  datosOPExcel = [];
+  rows.forEach(r => {
+    if(!r.trim()) return; var cols = r.split('\t');
+    if(cols[0].toLowerCase().includes('op') || cols[0].toLowerCase().includes('detalle')) return;
+    datosOPExcel.push({ op: cols[0], descripcion: cols[1], orden: cols[2], tipo: cols[3], usuario: cols[4], observaciones: cols[5]||"" });
+  });
+  renderTablaOP(); e.target.value = "✅ ¡OP CARGADOS!"; setTimeout(() => e.target.value = "", 2000);
+}
+
+function renderTablaOP() {
+  var tbody = document.getElementById("bodyOP"); tbody.innerHTML = "";
+  if(datosOPExcel.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>'; return; }
+  datosOPExcel.forEach(r => {
+    var tr = document.createElement("tr");
+    tr.innerHTML = `<td style="font-weight:800; color:var(--brand-main);">${r.op}</td><td>${r.descripcion}</td><td style="font-weight:700;">${r.orden}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---------------- ESTADO ÓRDENES + CORTE FECHA ----------------
+let ordenesActivasGlobal = [];
+let matrixGlobal = [];
+let areasMatrixGlobal = [];
+let ordenAscendenteUbicacion = true;
+
+function cargarEstadoOrdenes() {
+  var btn = document.getElementById("btnRefrescarActivas");
+  btn.innerText = "CARGANDO...";
+
+  custodiaApi('/custodia/api/areas').then(function(areas) {
+    var sel = document.getElementById("filtroAreaActivas");
+    var currentVal = sel.value;
+    sel.innerHTML = '<option value="TODAS">-- TODAS LAS ÁREAS --</option>';
+    areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
+    sel.value = currentVal || "TODAS";
+  });
+
+  var fechaC = document.getElementById("filtroFechaCorteActivas").value;
+
+  custodiaApi('/custodia/api/estado-ordenes?fechaCorte=' + encodeURIComponent(fechaC)).then(function(res) {
+    btn.innerText = "🔄 CARGAR CORTE";
+    ordenesActivasGlobal = res.data;
+    matrixGlobal = res.matrix;
+    areasMatrixGlobal = res.areasMatrix;
+    filtrarTablaActivas();
+    filtrarTablaMatrix();
+  }).catch(function(e) {
+    btn.innerText = "🔄 CARGAR CORTE";
+    document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="4" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
+  });
+}
+
+function alternarOrdenUbicacion() {
+  ordenAscendenteUbicacion = !ordenAscendenteUbicacion;
+  document.getElementById("iconoOrdenUbicacion").innerText = ordenAscendenteUbicacion ? "▲" : "▼";
+  filtrarTablaActivas();
+}
+
+function calcularTiempoRetencion(fIso, hIso) {
+  if(!fIso) return `<span class="badge badge-success">N/A</span>`;
+  var dateStr = fIso + "T" + hIso + ":00";
+  var dateMov = new Date(dateStr);
+  if(isNaN(dateMov.getTime())) return `<span class="badge badge-success">N/A</span>`;
+
+  var diffMs = Date.now() - dateMov.getTime();
+  var diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+  var diffDays = Math.floor(diffHrs / 24);
+  var remHrs = diffHrs % 24;
+
+  var timeStr = diffDays > 0 ? `${diffDays}D ${remHrs}H` : `${remHrs}H`;
+
+  if(diffHrs > 48) return `<span class="badge badge-danger">${timeStr}</span>`;
+  if(diffHrs > 24) return `<span class="badge badge-warning">${timeStr}</span>`;
+  return `<span class="badge badge-success">${timeStr}</span>`;
+}
+
+function filtrarTablaActivas() {
+  var textoBuscado = document.getElementById("filtroBuscadorOrden1").value.toUpperCase();
+  var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
+  var tbody1 = document.getElementById("bodyTablaActivas");
+  tbody1.innerHTML = "";
+
+  var filtrados = ordenesActivasGlobal.filter(function(o) {
+    return o.orden.includes(textoBuscado) && (areaBuscada === "TODAS" || o.ubicacion === areaBuscada);
+  });
+
+  filtrados.sort(function(a, b) {
+    var comp = a.ubicacion.localeCompare(b.ubicacion);
+    if (comp === 0) {
+        comp = a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' });
+    }
+    return ordenAscendenteUbicacion ? comp : -comp;
+  });
+
+  if(filtrados.length === 0) {
+    tbody1.innerHTML = `<tr><td colspan="4" style="padding:50px; color:var(--text-muted); font-weight:600;">NO SE ENCONTRARON ÓRDENES EN ESTE CORTE.</td></tr>`;
+  } else {
+    filtrados.forEach(function(o) {
+      var tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="font-weight:800; color:var(--brand-main);">
+          ${o.orden}
+          <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 9px;" onclick="abrirModalTimeline('${o.orden}')">🛤️ VIAJE</button>
+        </td>
+        <td style="font-weight:800; color:var(--success);">${o.cantidad.toFixed(2)}</td>
+        <td style="font-weight:700;">${o.ubicacion}</td>
+        <td>${calcularTiempoRetencion(o.fIso, o.hIso)} <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
+      `;
+      tbody1.appendChild(tr);
+    });
+  }
+}
+
+function filtrarTablaMatrix() {
+  var textoBuscado = document.getElementById("filtroBuscadorOrden2").value.toUpperCase();
+
+  var thead2 = document.getElementById("headTablaMatrix");
+  var htmlHead2 = `<tr><th style="min-width: 90px; text-align: left;">ORDEN</th>`;
+  areasMatrixGlobal.forEach(function(area) { htmlHead2 += `<th>${area}</th>`; });
+  htmlHead2 += `<th style="color:var(--brand-main);">TOTAL</th></tr>`;
+  thead2.innerHTML = htmlHead2;
+
+  var tbody2 = document.getElementById("bodyTablaMatrix");
+  tbody2.innerHTML = "";
+
+  var filtradosMatrix = matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); });
+
+  if(filtradosMatrix.length === 0) {
+    tbody2.innerHTML = `<tr><td colspan="${areasMatrixGlobal.length + 2}" style="padding:50px; color:var(--text-muted); font-weight:600;">SIN DATOS DE SEGUIMIENTO EN ESTE CORTE.</td></tr>`;
+  } else {
+    filtradosMatrix.sort(function(a,b){ return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
+    filtradosMatrix.forEach(function(o) {
+      var tr = document.createElement("tr");
+      var tds = `<td style="font-weight:800; color:var(--brand-main); text-align: left;">${o.orden}</td>`;
+      areasMatrixGlobal.forEach(function(area) {
+         var val = o[area] > 0 ? o[area].toFixed(2) : "-";
+         tds += `<td>${val}</td>`;
+      });
+      tds += `<td style="font-weight:800; color:var(--accent);">${o.TOTAL.toFixed(2)}</td>`;
+      tr.innerHTML = tds;
+      tbody2.appendChild(tr);
+    });
+  }
+}
+
+function abrirModalTimeline(ordenBusqueda) {
+   document.getElementById("lblTimelineOrden").innerText = ordenBusqueda;
+   document.getElementById("containerTimelineModal").innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>Rastreando movimientos de la orden...</p>";
+   document.getElementById("modalTimeline").style.display = "flex";
+   var ordenPrincipal = String(ordenBusqueda).split("-")[0].trim();
+   custodiaApi('/custodia/api/viaje/' + encodeURIComponent(ordenPrincipal)).then(renderTimelineModal);
+}
+
+function cerrarModalTimeline() { document.getElementById("modalTimeline").style.display = "none"; }
+
+function renderTimelineModal(datosViaje) {
+   var container = document.getElementById("containerTimelineModal");
+   container.innerHTML = "";
+   if(!datosViaje || datosViaje.length === 0) {
+      container.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>No hay rastro de movimientos previos.</p>";
+      return;
+   }
+   datosViaje.forEach(function(v) {
+      var badge = v.motivo === "PRODUCCIÓN NORMAL" ? `<span style="color:var(--success); font-weight:800;">${v.motivo}</span>` : `<span style="color:var(--danger); font-weight:800;">${v.motivo}</span>`;
+      var html = `
+         <div class="timeline-item">
+            <div class="timeline-date">${v.fechaHoraStr}</div>
+            <div class="timeline-content">
+               <span style="color:var(--brand-main); font-weight:800;">Mueve ${v.cantidad} discos:</span> De <b>${v.areaSalida || 'N/A'}</b> a <b>${v.areaEntrada || 'N/A'}</b><br>
+               <span style="color:var(--text-muted); font-size:10px;">${badge} | Por: ${v.colaborador}</span>
+            </div>
+         </div>
+      `;
+      container.innerHTML += html;
+   });
+}
+
+function exportarActivasExcel() {
+  if(ordenesActivasGlobal.length === 0) return alert("No hay datos cargados.");
+  var csvContent = "﻿ORDEN;CANTIDAD;UBICACIÓN ACTUAL;FECHA MOVIMIENTO\n";
+  ordenesActivasGlobal.forEach(o => { csvContent += `"${o.orden}";"${o.cantidad}";"${o.ubicacion}";"${o.fechaStr}"\n`; });
+  descargarCSV(csvContent, "Ordenes_Activas");
+}
+
+function exportarMatrixExcel() {
+  if(matrixGlobal.length === 0) return alert("No hay datos de matriz cargados.");
+  var csvContent = "﻿ORDEN;" + areasMatrixGlobal.join(";") + ";TOTAL\n";
+  matrixGlobal.forEach(o => {
+      var fila = [o.orden];
+      areasMatrixGlobal.forEach(a => { fila.push(o[a] || 0); });
+      fila.push(o.TOTAL);
+      csvContent += `"${fila.join('";"')}"\n`;
+  });
+  descargarCSV(csvContent, "Matriz_Seguimiento");
+}
+
+function descargarCSV(contenido, prefijo) {
+  var blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement("a"); link.href = url;
+  link.download = `${prefijo}_Nuvia_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function imprimirReporteCorte() {
+  var fechaCorte = document.getElementById("filtroFechaCorteActivas").value;
+  var textoBuscado = document.getElementById("filtroBuscadorOrden1").value.toUpperCase();
+  var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
+
+  var filtrados = ordenesActivasGlobal.filter(function(o) {
+    return o.orden.includes(textoBuscado) && (areaBuscada === "TODAS" || o.ubicacion === areaBuscada);
+  });
+
+  if (filtrados.length === 0) return alert("No hay datos de órdenes activas para imprimir en este corte.");
+
+  var grupos = {}; var granTotal = 0;
+  filtrados.forEach(function(o) {
+    if (!grupos[o.ubicacion]) { grupos[o.ubicacion] = { ordenes: [], total: 0 }; }
+    grupos[o.ubicacion].ordenes.push(o);
+    grupos[o.ubicacion].total += o.cantidad;
+    granTotal += o.cantidad;
+  });
+
+  Object.keys(grupos).forEach(k => {
+     grupos[k].ordenes.sort((a,b) => a.orden.localeCompare(b.orden, undefined, { numeric: true }));
+  });
+
+  var hoyStr = new Date().toLocaleString();
+
+  var htmlPrint = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #0F172A;">
+      <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #1A365D; padding-bottom: 15px;">
+         <h2 style="margin:0; color:#1A365D; font-weight: 900;">NUVIA SMILES COLOMBIA S.A.S.</h2>
+         <h3 style="margin:8px 0 5px 0;">INVENTARIO EN PROCESO (CANTIDADES)</h3>
+         <p style="margin:0; font-size:12px; color:#475569;">CORTE A FECHA: <b>${fechaCorte}</b> | IMPRESO: ${hoyStr}</p>
+      </div>
+  `;
+
+  Object.keys(grupos).sort().forEach(function(area) {
+    var dataArea = grupos[area];
+    htmlPrint += `
+      <div style="margin-bottom: 20px; page-break-inside: avoid;">
+        <div style="background-color: #1A365D; color: white; padding: 6px 12px; font-weight: bold; font-size: 13px; border: 1px solid #1A365D;">
+          📍 ${area} | TOTAL: ${dataArea.total.toFixed(2)} DISCOS
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #CBD5E1;">
+          <thead>
+            <tr style="background-color: #F8FAFC; border-bottom: 2px solid #CBD5E1;">
+              <th style="padding: 6px; text-align: left; border-right: 1px solid #CBD5E1; width: 50%;">NÚMERO DE ORDEN</th>
+              <th style="padding: 6px; text-align: right; width: 50%;">CANTIDAD</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    dataArea.ordenes.forEach(function(item) {
+      htmlPrint += `
+        <tr style="border-bottom: 1px solid #E2E8F0;">
+          <td style="padding: 6px; border-right: 1px solid #E2E8F0; font-weight: bold;">${item.orden}</td>
+          <td style="padding: 6px; text-align: right; font-weight: bold; color: #10B981;">${item.cantidad.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+    htmlPrint += `</tbody></table></div>`;
+  });
+
+  htmlPrint += `
+      <div style="margin-top: 30px; text-align: right; padding: 12px; background-color: #F1F5F9; border-radius: 8px; border: 1px solid #CBD5E1;">
+         <h3 style="margin: 0; color: #1A365D;">GRAN TOTAL DISCOS: ${granTotal.toFixed(2)}</h3>
+         <p style="margin: 5px 0 0 0; font-size: 11px; font-weight: bold; color: #475569;">TOTAL ÓRDENES: ${filtrados.length}</p>
+      </div>
+    </div>
+  `;
+
+  imprimirHtmlEnIframe(htmlPrint);
+}
+
+function imprimirHtmlEnIframe(htmlPrint) {
+  var iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+  var doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write('<html><head><style>@media print { @page { margin: 15mm; } body { -webkit-print-color-adjust: exact; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } }</style></head><body>' + htmlPrint + '</body></html>');
+  doc.close();
+
+  setTimeout(function() {
+      iframe.contentWindow.focus(); iframe.contentWindow.print();
+      setTimeout(function() { document.body.removeChild(iframe); }, 1000);
+  }, 500);
+}
+
+function imprimirTicketIndividual() {
+  var consecutivo = document.getElementById("viewConsecutivo").innerText;
+  var colaborador = document.getElementById("viewColaborador").innerText;
+  var orden = document.getElementById("viewOrden").innerText;
+  var areaSalida = document.getElementById("viewAreaSalida").innerText;
+  var fecha = document.getElementById("viewFecha").innerText;
+  var idColaborador = document.getElementById("viewIdColaborador").innerText;
+  var areaEntrada = document.getElementById("viewAreaEntrada").innerText;
+  var areaCreacion = document.getElementById("viewAreaCreacion").innerText;
+  var hora = document.getElementById("viewHora").innerText;
+  var cantidad = document.getElementById("viewCantidad").innerText;
+  var usuario = document.getElementById("viewUsuario").innerText;
+  var motivo = document.getElementById("viewMotivo").innerText;
+
+  var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
+  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0; letter-spacing: 2px;">NUVIA</h2>`;
+
+  var fechaAImprimir = document.getElementById("viewFechaHeader").innerText || fecha;
+
+  var htmlResumen = document.getElementById("viewResumenGeneral").innerHTML || "";
+  var htmlDiscos = document.getElementById("viewDetalleDiscos").innerHTML || "";
+  var htmlOP = document.getElementById("viewDetalleOP").innerHTML || "";
+
+  var printHtml = `
+      <html>
+      <head>
+        <style>
+          @media print {
+            @page { margin: 15mm; }
+            body { font-family: 'Inter', Arial, sans-serif; color: #0F172A; }
+            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #CBD5E1; }
+            .header-table td { border: 1px solid #CBD5E1; padding: 10px; }
+            .header-logo { width: 25%; text-align: center; }
+            .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; letter-spacing: 1px; }
+            .header-sub { font-size: 13px; color: #475569; font-weight: 600; letter-spacing: 2px; }
+            .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
+            .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
+            .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
+            .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #475569; -webkit-print-color-adjust: exact; }
+            .grid-value { font-weight: 700; text-align: right; width: 17%; }
+            .grid-cons-label { background-color: #F8FAFC !important; font-weight: 700; -webkit-print-color-adjust: exact; }
+            .grid-cons-value { font-weight: 800; color: #EF4444 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
+            .grid-cant-value { font-weight: 800; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
+            .consulta-tabla { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+            .consulta-tabla th { background-color: #1A365D !important; color: white !important; font-weight: 700; text-align: center; padding: 8px; border: 1px solid #CBD5E1; -webkit-print-color-adjust: exact; }
+            .consulta-tabla td { padding: 6px 8px; text-align: center; border: 1px solid #CBD5E1; }
+            .fila-totales td { background-color: #F0F4F8 !important; font-weight: 800; color: #1A365D !important; border-top: 1px solid #CBD5E1 !important; -webkit-print-color-adjust: exact; }
+            .firmas-table { width: 100%; margin-top: 40px; margin-bottom: 40px; font-size: 12px; font-weight: 700; page-break-inside: avoid; }
+            .firmas-table td { width: 33.3%; text-align: center; padding-top: 40px; }
+            tr { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+          <table class="header-table">
+              <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">CAMBIO DE CUSTODIA GENERAL<br><span class="header-sub">PRODUCCION</span></td><td class="header-meta">CÓDIGO: F-PRO-40</td></tr>
+              <tr><td class="header-meta" style="border-top:none;">VERSIÓN: 02</td></tr>
+              <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">FECHA: ${fechaAImprimir}</td></tr>
+          </table>
+          <table class="grid-table">
+              <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">CONSECUTIVO</td><td class="grid-cons-value">${consecutivo}</td></tr>
+              <tr><td class="grid-label">COLABORADOR</td><td class="grid-value">${colaborador}</td><td class="grid-label">NUMERO DE ORDEN</td><td class="grid-value">${orden}</td><td class="grid-label">AREA SALIDA</td><td class="grid-value">${areaSalida}</td></tr>
+              <tr><td class="grid-label">FECHA</td><td class="grid-value">${fecha}</td><td class="grid-label">ID COLABORADOR</td><td class="grid-value">${idColaborador}</td><td class="grid-label">AREA ENTRADA</td><td class="grid-value">${areaEntrada}</td></tr>
+              <tr><td class="grid-label">AREA CREACION</td><td class="grid-value">${areaCreacion}</td><td class="grid-label">HORA</td><td class="grid-value">${hora}</td><td class="grid-label">CANTIDAD DISCOS</td><td class="grid-cant-value">${cantidad}</td></tr>
+              <tr><td colspan="2" style="border: none;"></td><td class="grid-label">USUARIO</td><td class="grid-value">${usuario}</td><td class="grid-label">ESTADO</td><td class="grid-value" style="font-weight: 800;">${motivo}</td></tr>
+          </table>
+          ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">RESUMEN GENERAL</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
+          ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE DE DISCOS</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
+
+          <table class="firmas-table"><tr><td>_________________________________<br>Firma entregado:</td><td>_________________________________<br>Firma recibido:</td></tr></table>
+
+          ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
+      </body>
+      </html>
+  `;
+
+  imprimirHtmlEnIframe(printHtml);
+}
+
+function renderDetallesExcelModal(data) {
+  var htmlHasData = false;
+
+  if (data.resumen && data.resumen.length > 0) {
+      htmlHasData = true;
+      var html = `<thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th></tr></thead><tbody>`;
+      var sum = 0;
+      data.resumen.forEach(r => {
+          sum += parseFloat(r.total || 0);
+          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td style="font-weight:800; color:var(--success);">${r.total}</td><td>${r.vSalida}</td><td>${r.vEntrada}</td></tr>`;
+      });
+      html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td style="color:var(--brand-main);">${sum}</td><td colspan="2"></td></tr></tbody>`;
+      document.getElementById("viewResumenGeneral").innerHTML = html;
+  }
+
+  if (data.discos && data.discos.length > 0) {
+      htmlHasData = true;
+      var html = `<thead><tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr></thead><tbody>`;
+      var sumP = 0, sumD = 0;
+      data.discos.forEach(r => {
+          sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0);
+          html += `<tr><td style="font-weight:700;">${r.detalle}</td><td>${r.cantPaciente}</td><td style="font-weight:700; color:var(--success);">${r.cantDiscos}</td></tr>`;
+      });
+      html += `<tr class="fila-totales"><td style="text-align:right;">TOTAL</td><td>${sumP}</td><td style="color:var(--brand-main);">${sumD.toFixed(2)}</td></tr></tbody>`;
+      document.getElementById("viewDetalleDiscos").innerHTML = html;
+  }
+
+  if (data.op && data.op.length > 0) {
+      document.getElementById("viewOPContainer").style.display = "block";
+      var html = `<thead><tr><th>OP</th><th>DESCRIPCIÓN</th><th>ORDEN</th><th>TIPO</th><th>USUARIO</th><th>OBS</th></tr></thead><tbody>`;
+      data.op.forEach(r => {
+          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.op}</td><td>${r.descripcion}</td><td style="font-weight:700;">${r.orden}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td></tr>`;
+      });
+      html += `</tbody>`;
+      document.getElementById("viewDetalleOP").innerHTML = html;
+  }
+
+  if (htmlHasData) { document.getElementById("viewDetallesExcel").style.display = "block"; }
+}
+
+var datosConsultaActual = []; var registroActivoModal = null;
+
+function ejecutarConsulta() {
+  var tipo = document.querySelector('input[name="tipoFiltro"]:checked').value;
+  var params = new URLSearchParams({ tipo: tipo, areaSalida: document.getElementById("filtroAreaSalida").value,
+                                     estado: document.getElementById("filtroEstado").value });
+  if (tipo === 'rango') {
+    params.set('fechaInicio', document.getElementById("filtroFechaInicio").value);
+    params.set('fechaFin', document.getElementById("filtroFechaFin").value);
+  }
+  document.getElementById("btnBuscar").innerText = "BUSCANDO...";
+  custodiaApi('/custodia/api/consultar?' + params.toString()).then(renderTabla).catch(function(e) {
+    document.getElementById("btnBuscar").innerText = "🔍 BUSCAR";
+    document.getElementById("tablaBody").innerHTML = `<tr><td colspan="11" style="padding:40px;">${e.message}</td></tr>`;
+  });
+}
+
+function renderTabla(respuesta) {
+  document.getElementById("btnBuscar").innerText = "🔍 BUSCAR";
+  datosConsultaActual = respuesta.data;
+
+  var thead = document.getElementById("tablaHead"); thead.innerHTML = "";
+  ["COLABORADOR", "ÁREA CREACIÓN", "ÓRDENES", "FECHA", "ÁREA SALIDA", "ÁREA ENTRADA", "CANTIDAD", "MOTIVO", "ESTADO", "CONSECUTIVO", "ACCIÓN"].forEach(function(col) {
+    let th = document.createElement("th"); th.innerText = col; thead.appendChild(th);
+  });
+
+  var tbody = document.getElementById("tablaBody"); tbody.innerHTML = "";
+  document.getElementById("btnExportar").style.display = "inline-flex";
+  if (datosConsultaActual.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11" style="padding:50px; font-size:14px; color:var(--text-muted); font-weight:600;">NO SE ENCONTRARON REGISTROS.</td></tr>`;
+    return;
+  }
+
+  datosConsultaActual.forEach(function(t) {
+    let tr = document.createElement("tr");
+    if (t.anulado) tr.className = "anulado-row";
+    var badgeClass = t.anulado ? "badge-danger" : (t.confirmadoEntrada ? "badge-success" : "badge-warning");
+    tr.innerHTML = `
+      <td>${t.colaborador}</td><td>${t.areaCreacion}</td><td style="font-weight:800; color:var(--brand-main);">${t.ordenes}</td>
+      <td>${t.fecha}</td><td>${t.areaSalida}</td><td>${t.areaEntrada}</td>
+      <td style="font-weight:800; color:var(--success);">${t.cantidad}</td><td>${t.motivo}</td>
+      <td><span class="badge ${badgeClass}">${t.estado}</span></td>
+      <td style="font-weight:800; color:var(--brand-main);">${String(t.id).padStart(4,'0')}</td>
+      <td></td>
+    `;
+    let tdAcciones = tr.lastElementChild; tdAcciones.style.whiteSpace = "nowrap";
+    let btnVer = document.createElement("button"); btnVer.className = "btn btn-ver"; btnVer.innerText = "👁️ VER DETALLE";
+    btnVer.onclick = function() { abrirModalPreview(t); };
+    tdAcciones.appendChild(btnVer);
+    tbody.appendChild(tr);
+  });
+}
+
+function abrirModalPreview(t) {
+  registroActivoModal = t;
+  document.getElementById("viewColaborador").innerText = t.colaborador || "";
+  document.getElementById("viewAreaCreacion").innerText = t.areaCreacion || "";
+  document.getElementById("viewOrden").innerText = t.ordenes || "";
+  document.getElementById("viewFecha").innerText = t.fecha || "";
+  document.getElementById("viewFechaHeader").innerText = "FECHA: " + (t.fecha || "");
+  document.getElementById("viewHora").innerText = t.hora || "";
+  document.getElementById("viewUsuario").innerText = t.usuario || "";
+  document.getElementById("viewAreaSalida").innerText = t.areaSalida || "";
+  document.getElementById("viewAreaEntrada").innerText = t.areaEntrada || "";
+  document.getElementById("viewCantidad").innerText = t.cantidad || "";
+  document.getElementById("viewMotivo").innerText = t.estado || t.motivo || "";
+  document.getElementById("viewIdColaborador").innerText = t.idColaborador || "";
+  document.getElementById("viewConsecutivo").innerText = String(t.id).padStart(4, '0');
+
+  document.getElementById("btnAnularModal").style.display = t.anulado ? "none" : "inline-block";
+  document.getElementById("btnConfirmarModal").style.display = (!t.anulado && !t.confirmadoEntrada) ? "inline-block" : "none";
+  document.getElementById("modalDocumentoPreview").style.display = "flex";
+
+  document.getElementById("viewDetallesExcel").style.display = "none";
+  document.getElementById("viewOPContainer").style.display = "none";
+  document.getElementById("viewResumenGeneral").innerHTML = ""; document.getElementById("viewDetalleDiscos").innerHTML = ""; document.getElementById("viewDetalleOP").innerHTML = "";
+
+  custodiaApi('/custodia/api/detalles/' + t.id).then(renderDetallesExcelModal);
+}
+
+function cerrarModalPreview() { document.getElementById("modalDocumentoPreview").style.display = "none"; registroActivoModal = null; }
+
+function ejecutarAnulacionDesdeModal() {
+  if (!registroActivoModal) return;
+  var conf = confirm("⚠️ ¿ESTÁS SEGURO DE QUE DESEAS ANULAR ESTE REGISTRO?\nESTA ACCIÓN ES IRREVERSIBLE.");
+  if (conf) {
+    custodiaPostJSON('/custodia/api/traslados/' + registroActivoModal.id + '/anular').then(function(resp) {
+       alert(resp.mensaje); cerrarModalPreview(); ejecutarConsulta();
+    }).catch(function(e) { alert('Error: ' + e.message); });
+  }
+}
+
+function ejecutarConfirmacionDesdeModal() {
+  if (!registroActivoModal) return;
+  custodiaPostJSON('/custodia/api/traslados/' + registroActivoModal.id + '/confirmar-entrada').then(function(resp) {
+     alert(resp.mensaje); cerrarModalPreview(); ejecutarConsulta();
+  }).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function exportarExcel() {
+  if (datosConsultaActual.length === 0) return;
+  let csvContent = "﻿COLABORADOR;ID;ÁREA CREACIÓN;ÓRDENES;FECHA;HORA;ÁREA SALIDA;ÁREA ENTRADA;CANTIDAD;MOTIVO;ESTADO;CONSECUTIVO\n";
+  datosConsultaActual.forEach(t => {
+      var fila = [t.colaborador, t.idColaborador, t.areaCreacion, t.ordenes, t.fecha, t.hora, t.areaSalida, t.areaEntrada, t.cantidad, t.motivo, t.estado, String(t.id).padStart(4,'0')];
+      csvContent += fila.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(";") + "\n";
+  });
+  descargarCSV(csvContent, "Historial_Custodia");
+}
+
+// ---------------- DASHBOARD ----------------
+var chartExistenciasInstance = null, chartMotivosInstance = null;
+
+function cargarDashboardExistencias() {
+  var fi = document.getElementById("dashFechaInicio").value;
+  var ff = document.getElementById("dashFechaFin").value;
+  var area = document.getElementById("dashAreaSelect").value;
+  var btn = document.getElementById("btnCalcularDash"); btn.innerText = "CARGANDO...";
+
+  custodiaApi('/custodia/api/dashboard?fechaInicio=' + encodeURIComponent(fi) + '&fechaFin=' + encodeURIComponent(ff) + '&area=' + encodeURIComponent(area))
+    .then(function(res) {
+      btn.innerText = "🔄 FILTRAR DASHBOARD";
+      renderDashboard(res.dataPorArea);
+    }).catch(function(e) { btn.innerText = "🔄 FILTRAR DASHBOARD"; alert('Error: ' + e.message); });
+}
+
+function renderDashboard(dataPorArea) {
+  var areas = Object.keys(dataPorArea);
+  var movimientos = 0, trasladados = 0, balanceNeto = 0, mermas = 0;
+  var areaMayorMov = "N/A", mayorMovVal = -1;
+  var areaCritica = "N/A", mayorMermaVal = -1;
+
+  areas.forEach(function(a) {
+    var d = dataPorArea[a];
+    trasladados += d.entrada;
+    balanceNeto += d.neto;
+    var movArea = d.entrada + d.salida;
+    movimientos += movArea;
+    if (movArea > mayorMovVal) { mayorMovVal = movArea; areaMayorMov = a; }
+    var merma = d.motivos["MERMA/DAÑO"] || 0;
+    mermas += merma;
+    if (merma > mayorMermaVal) { mayorMermaVal = merma; areaCritica = a; }
+  });
+
+  document.getElementById("kpiMovimientos").innerText = movimientos.toFixed(2);
+  document.getElementById("kpiTrasladados").innerText = trasladados.toFixed(2);
+  document.getElementById("kpiInventario").innerText = balanceNeto.toFixed(2);
+  document.getElementById("kpiAreaMayorMov").innerText = mayorMovVal > 0 ? areaMayorMov : "N/A";
+  document.getElementById("kpiAreaCritica").innerText = mayorMermaVal > 0 ? areaCritica : "N/A";
+  document.getElementById("kpiMermas").innerText = mermas.toFixed(2);
+
+  var tbody = document.getElementById("bodyTablaExistencias"); tbody.innerHTML = "";
+  if (areas.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="padding:40px; color:var(--text-muted);">SIN DATOS EN ESTE RANGO.</td></tr>'; }
+  areas.sort().forEach(function(a) {
+    var d = dataPorArea[a];
+    var tr = document.createElement("tr");
+    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger)' : ''}">${d.neto.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  renderChartExistencias(dataPorArea, areas);
+  renderChartMotivos(dataPorArea, areas);
+}
+
+function renderChartExistencias(dataPorArea, areas) {
+  var ctx = document.getElementById("chartExistencias").getContext("2d");
+  if (chartExistenciasInstance) chartExistenciasInstance.destroy();
+  chartExistenciasInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: areas, datasets: [{ label: 'Existencia neta', data: areas.map(a => dataPorArea[a].neto), backgroundColor: '#1A365D' }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
+function renderChartMotivos(dataPorArea, areas) {
+  var totales = { "PRODUCCIÓN NORMAL": 0, "MERMA/DAÑO": 0, "DEVOLUCIÓN": 0 };
+  areas.forEach(function(a) {
+    var m = dataPorArea[a].motivos;
+    Object.keys(totales).forEach(function(k) { totales[k] += m[k] || 0; });
+  });
+  var ctx = document.getElementById("chartMotivos").getContext("2d");
+  if (chartMotivosInstance) chartMotivosInstance.destroy();
+  chartMotivosInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: Object.keys(totales), datasets: [{ data: Object.values(totales), backgroundColor: ['#10B981', '#EF4444', '#F59E0B'] }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
+function exportarResumenExistenciasExcel() {
+  var filas = document.querySelectorAll("#bodyTablaExistencias tr");
+  if (filas.length === 0 || filas[0].children.length < 4) return alert("No hay datos para exportar.");
+  var csvContent = "﻿ÁREA;ENTRADAS;SALIDAS;EXISTENCIA NETA\n";
+  filas.forEach(function(tr) {
+    var celdas = tr.querySelectorAll("td");
+    if (celdas.length === 4) { csvContent += Array.from(celdas).map(td => `"${td.innerText}"`).join(";") + "\n"; }
+  });
+  descargarCSV(csvContent, "Balance_Inventarios");
+}
+
+// ---------------- REGISTRO DE TRASLADOS ----------------
+var datosBase = {}; var ordenesSeparadas = [];
+
+function setSelectByText(selectId, text) {
+  let sel = document.getElementById(selectId);
+  if(!sel) return;
+  let targetText = text.trim().toUpperCase();
+  let found = false;
+  for(let i=0; i<sel.options.length; i++) {
+      if(sel.options[i].text.toUpperCase() === targetText) { sel.selectedIndex = i; found = true; break; }
+  }
+  if(!found && targetText !== "") {
+      let opt = document.createElement("option"); opt.value = targetText; opt.text = targetText;
+      sel.appendChild(opt); sel.value = targetText;
+  }
+}
+
+function procesarPegado(event) {
+  event.preventDefault(); let dict = {};
+  let pastedData = (event.clipboardData || window.clipboardData).getData('text');
+  pastedData.split(/\r?\n/).forEach(row => {
+      let cols = row.split('\t');
+      for (let i = 0; i < cols.length - 1; i += 2) {
+          let label = cols[i] ? cols[i].trim().toLowerCase() : "";
+          if(label !== "") dict[label] = cols[i+1] ? cols[i+1].trim() : "";
+      }
+  });
+
+  if (dict["colaborador"]) document.getElementById("colaborador").value = dict["colaborador"];
+  if (dict["numero de orden"]) document.getElementById("numeroOrden").value = dict["numero de orden"];
+  if (dict["id colaborador"]) document.getElementById("idColaborador").value = dict["id colaborador"];
+  if (dict["area creacion"]) document.getElementById("areaCreacion").value = dict["area creacion"];
+  if (dict["usuario"]) document.getElementById("usuario").value = dict["usuario"];
+  if (dict["cantidad de discos"]) document.getElementById("cantidadDiscos").value = dict["cantidad de discos"].replace(/\./g, ',');
+
+  if (dict["area salida"]) setSelectByText("areaSalida", dict["area salida"]);
+  if (dict["area entrada"]) setSelectByText("areaEntrada", dict["area entrada"]);
+  if (dict["motivo"]) setSelectByText("motivo", dict["motivo"]);
+  if (dict["fecha"]) {
+      let partes = dict["fecha"].split("/");
+      if(partes.length === 3) document.getElementById("fecha").value = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+  }
+  event.target.value = "✅ ¡DATOS CARGADOS CON ÉXITO!"; setTimeout(() => event.target.value = "", 2000);
+}
+
+function desbloquearBotonGuardar() {
+   var btn = document.getElementById("btnGuardar");
+   btn.disabled = false; btn.innerText = "REGISTRAR TRASLADO";
+}
+
+function prepararEnvio(e) {
+  e.preventDefault();
+  var btn = document.getElementById("btnGuardar"); btn.disabled = true; btn.innerText = "VALIDANDO DATOS...";
+  actualizarHora();
+
+  var ordenRaw = document.getElementById("numeroOrden").value.trim().toUpperCase();
+  if (!/^[0-9\-\s]+$/.test(ordenRaw)) {
+    alert("⚠️ EN EL CAMPO NÚMERO DE ORDEN SOLO SE PERMITEN NÚMEROS, EL GUION (-) O ESPACIOS COMO SEPARADORES.");
+    document.getElementById("numeroOrden").focus(); desbloquearBotonGuardar(); return;
+  }
+  ordenRaw = ordenRaw.replace(/\s+/g, "-"); while(ordenRaw.includes("--")) { ordenRaw = ordenRaw.replace("--", "-"); }
+  if(ordenRaw.startsWith("-")) ordenRaw = ordenRaw.substring(1); if(ordenRaw.endsWith("-")) ordenRaw = ordenRaw.substring(0, ordenRaw.length - 1);
+
+  datosBase = {
+    colaborador: document.getElementById("colaborador").value.toUpperCase(),
+    idColaborador: document.getElementById("idColaborador").value.toUpperCase(),
+    areaCreacion: document.getElementById("areaCreacion").value.toUpperCase(),
+    fecha: document.getElementById("fecha").value,
+    hora: document.getElementById("hora").value,
+    usuario: document.getElementById("usuario").value.toUpperCase(),
+    areaSalida: document.getElementById("areaSalida").value.toUpperCase(),
+    areaEntrada: document.getElementById("areaEntrada").value.toUpperCase(),
+    motivo: document.getElementById("motivo").value.toUpperCase()
+  };
+
+  custodiaPostJSON('/custodia/api/verificar-orden', {numeroOrden: ordenRaw}).then(function(resultado) {
+    if (resultado.existe) {
+      if (!confirm("⚠️ ATENCIÓN: EL NÚMERO DE ORDEN (O UNA DE LAS SUB-ÓRDENES) YA FUE REGISTRADA.\n¿DESEAS REGISTRAR UN NUEVO MOVIMIENTO PARA ESTA MISMA ORDEN?")) { desbloquearBotonGuardar(); return; }
+    }
+    if (ordenRaw.includes("-")) {
+      ordenesSeparadas = ordenRaw.split("-"); mostrarModal();
+    } else {
+      var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
+      if(isNaN(cantNumerica) || cantNumerica <= 0) { alert("INGRESA UNA CANTIDAD DE DISCOS VÁLIDA."); desbloquearBotonGuardar(); return; }
+      datosBase.numeroOrden = ordenRaw; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase]);
+    }
+  }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
+}
+
+function mostrarModal() {
+  var lista = document.getElementById("listaOrdenes"); lista.innerHTML = "";
+  for(var i = 0; i < ordenesSeparadas.length; i++) {
+     var div = document.createElement("div"); div.className = "orden-item";
+     div.innerHTML = `<label>ORDEN #${ordenesSeparadas[i]}:</label> <input type='text' id='cant_${i}' required class='modal-input' placeholder='CANT.' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">`;
+     lista.appendChild(div);
+  }
+  document.getElementById("modalCantidades").style.display = "flex";
+}
+
+function cerrarModal() { document.getElementById("modalCantidades").style.display = "none"; desbloquearBotonGuardar(); }
+
+function confirmarMultiples() {
+  var arrDatos = [];
+  for(var i = 0; i < ordenesSeparadas.length; i++) {
+     var valNum = parseFloat(String(document.getElementById("cant_" + i).value).replace(',', '.'));
+     if(isNaN(valNum) || valNum <= 0) { alert("POR FAVOR, INGRESA UNA CANTIDAD VÁLIDA PARA LA ORDEN " + ordenesSeparadas[i]); return; }
+     var filaData = Object.assign({}, datosBase); filaData.numeroOrden = ordenesSeparadas[i]; filaData.cantidadDiscos = valNum;
+     arrDatos.push(filaData);
+  }
+  document.getElementById("modalCantidades").style.display = "none"; enviarAlServidor(arrDatos);
+}
+
+function enviarAlServidor(arregloDatos) {
+  var payload = { traslados: arregloDatos, resumen: datosResumenExcel, discos: datosDiscosExcel, op: datosOPExcel };
+  var btn = document.getElementById("btnGuardar"); btn.innerText = "GUARDANDO REGISTROS...";
+  custodiaPostJSON('/custodia/api/traslados', payload).then(function(respuesta) {
+      alert(respuesta.mensaje); document.getElementById("formulario").reset();
+      actualizarHora(); document.getElementById("fecha").value = new Date().toISOString().split('T')[0];
+      cargarConsecutivo(); desbloquearBotonGuardar();
+
+      datosResumenExcel = []; renderTablaResumen();
+      datosDiscosExcel = []; renderTablaDiscos();
+      datosOPExcel = []; renderTablaOP();
+    }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
+}
+</script>
+{% endblock %}
