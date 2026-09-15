@@ -111,7 +111,10 @@ async def api_registrar(payload: RegistrarPayload, user: Empleado = Depends(requ
         hora_obj = time.fromisoformat(primero.hora)
     except ValueError:
         raise HTTPException(400, "Hora inválida.")
-    area_creacion = user.area_custodia.strip().upper() if user.area_custodia else primero.areaCreacion.strip().upper()
+    if user.area_custodia and user.area_custodia.strip().upper() != "DIR PRODUCCIÓN":
+        area_creacion = user.area_custodia.strip().upper()
+    else:
+        area_creacion = primero.areaCreacion.strip().upper()
     cabecera = {
         "colaborador": user.nombre_completo.strip().upper(), "id_colaborador": "",
         "area_creacion": area_creacion, "fecha": primero.fecha, "hora": hora_obj,
