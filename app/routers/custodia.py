@@ -16,17 +16,15 @@ router = APIRouter()
 # ---------- Página ----------
 
 @router.get("/custodia")
-async def pagina(request: Request, user: Empleado = Depends(require_modulo("custodia")),
-                 db: Session = Depends(get_db)):
+async def pagina(request: Request, user: Empleado = Depends(require_modulo("custodia"))):
     return templates.TemplateResponse(request, "custodia.html",
                                       {"user": user, "areas": sc.AREAS_ESTANDAR, "motivos": sc.MOTIVOS,
-                                       "colaboradores": sc.colaboradores_disponibles(db), "es_custodia": True})
+                                       "es_custodia": True})
 
 
 # ---------- Esquemas ----------
 
 class TrasladoLineaIn(BaseModel):
-    colaborador: str
     areaCreacion: str
     fecha: date
     hora: str
@@ -102,7 +100,7 @@ async def api_registrar(payload: RegistrarPayload, user: Empleado = Depends(requ
     except ValueError:
         raise HTTPException(400, "Hora inválida.")
     cabecera = {
-        "colaborador": primero.colaborador.strip().upper(), "id_colaborador": "",
+        "colaborador": user.nombre_completo.strip().upper(), "id_colaborador": "",
         "area_creacion": primero.areaCreacion.strip().upper(), "fecha": primero.fecha, "hora": hora_obj,
         "usuario": "", "area_salida": primero.areaSalida.strip().upper(),
         "area_entrada": primero.areaEntrada.strip().upper(), "motivo": primero.motivo.strip().upper(),

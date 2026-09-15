@@ -158,9 +158,6 @@
   <datalist id="listaAreasOpciones">
     {% for a in areas %}<option value="{{ a }}"></option>{% endfor %}
   </datalist>
-  <datalist id="listaColaboradoresOpciones">
-    {% for c in colaboradores %}<option value="{{ c }}"></option>{% endfor %}
-  </datalist>
   {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 
   <div class="main-container">
@@ -195,7 +192,7 @@
           </tr>
           <tr>
             <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
-            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" required placeholder="NOMBRE..." list="listaColaboradoresOpciones"></td>
+            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo }}" style="color: var(--text-muted); cursor: not-allowed;"></td>
             <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">ÁREA CREACIÓN</td>
             <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones"></td>
             <td class="label-cell">NÚMERO DE ORDEN</td>

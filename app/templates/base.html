@@ -33,9 +33,11 @@
   <a href="#" class="custodia-tab" data-tab="activas">Estado órdenes</a>
   <a href="#" class="custodia-tab" data-tab="existencias">Dashboard</a>
   {% endif %}
+  {% if not es_custodia %}
   {% set resumen = resumen_aprobaciones(user) %}
   {% if resumen is not none %}
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>
+  {% endif %}
   {% endif %}
   <a href="/">Módulos</a>
   <span class="usuario">{{ user.nombre_completo }} · <a href="/logout">Salir</a></span>
