@@ -132,6 +132,7 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
     return {
         "id": t.id, "colaborador": t.colaborador, "idColaborador": t.id_colaborador,
         "areaCreacion": t.area_creacion, "ordenes": ", ".join(o.numero_orden for o in t.ordenes),
+        "lineas": [{"numeroOrden": o.numero_orden, "cantidad": o.cantidad_discos} for o in t.ordenes],
         "cantidad": sum(o.cantidad_discos for o in t.ordenes), "fecha": t.fecha.isoformat(),
         "hora": t.hora.strftime("%H:%M") if t.hora else "", "usuario": t.usuario,
         "areaSalida": t.area_salida, "areaEntrada": t.area_entrada, "motivo": t.motivo,
@@ -215,6 +216,30 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
         matrix_out.append(fila)
 
     return {"data": resultado, "matrix": matrix_out, "areasMatrix": areas_matrix}
+
+
+def consultar_orden(db: Session, numero_orden: str) -> dict:
+    """Para una orden puntual: su total esperado (según lo pegado en Resumen general al
+    registrar), cuánto está ya registrado/ubicado en Custodia y en qué áreas, y la
+    diferencia (lo que aún no ha empezado el proceso)."""
+    target = numero_orden.strip().upper()
+
+    total_resumen = (db.query(func.coalesce(func.sum(CustodiaResumen.total), 0.0))
+                     .join(CustodiaTraslado, CustodiaResumen.traslado_id == CustodiaTraslado.id)
+                     .filter(CustodiaResumen.orden == target, CustodiaTraslado.anulado.is_(False))
+                     .scalar()) or 0.0
+
+    ubicaciones = [u for u in estado_ordenes(db, None)["data"] if u["orden"] == target]
+    registrado = round(sum(u["cantidad"] for u in ubicaciones), 3)
+    tiene_total = total_resumen > 0
+
+    return {
+        "orden": target,
+        "total": round(total_resumen, 3) if tiene_total else None,
+        "registrado": registrado,
+        "faltanPorEmpezar": round(total_resumen - registrado, 3) if tiene_total else None,
+        "ubicaciones": [{"area": u["ubicacion"], "cantidad": u["cantidad"]} for u in ubicaciones],
+    }
 
 
 def viaje_orden(db: Session, numero_orden: str) -> list[dict]:

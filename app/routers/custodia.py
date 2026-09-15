@@ -178,6 +178,12 @@ async def api_estado_ordenes(fechaCorte: str = "", user: Empleado = Depends(requ
     return sc.estado_ordenes(db, fc)
 
 
+@router.get("/custodia/api/consultar-orden/{numero_orden}")
+async def api_consultar_orden(numero_orden: str, user: Empleado = Depends(require_modulo("custodia")),
+                              db: Session = Depends(get_db)):
+    return sc.consultar_orden(db, numero_orden)
+
+
 @router.get("/custodia/api/viaje/{numero_orden}")
 async def api_viaje(numero_orden: str, user: Empleado = Depends(require_modulo("custodia")),
                     db: Session = Depends(get_db)):

@@ -338,6 +338,7 @@
         </div>
 
         <button type="button" class="btn" style="background:var(--brand-main); margin-left: 10px;" onclick="ejecutarConsulta()" id="btnBuscar">🔍 BUSCAR</button>
+        <button type="button" class="btn" style="background:var(--warning);" onclick="toggleVistaHistorial()" id="btnVistaHistorial">🔀 VISTA: POR CONSECUTIVO</button>
         <button type="button" class="btn btn-excel" id="btnExportar" style="display:inline-flex;" onclick="exportarExcel()">📥 EXPORTAR EXCEL</button>
         <button type="button" class="btn" style="background:#0284C7; display:inline-flex;" onclick="abrirModalRangoTickets()">🖨️ IMPRIMIR POR RANGO</button>
       </div>
@@ -351,6 +352,29 @@
 
     <!-- SECCIÓN 3: ESTADO ÓRDENES -->
     <div id="sec-activas" class="content-section">
+
+      <div class="split-panel" style="margin-bottom:24px;">
+        <h4 style="margin:0 0 12px 0;">🔎 CONSULTAR UNA ORDEN</h4>
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <input type="text" id="inputConsultarOrden" placeholder="NÚMERO DE ORDEN..."
+                 onkeyup="if(event.key==='Enter') consultarOrdenIndividual()"
+                 style="flex:1; padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none;">
+          <button type="button" class="btn" style="background:var(--brand-main);" onclick="consultarOrdenIndividual()">BUSCAR</button>
+        </div>
+        <div id="resultadoConsultaOrden" style="display:none;">
+          <div class="dash-kpi-container" style="grid-template-columns: repeat(3, 1fr); margin-bottom:16px;">
+            <div class="kpi-card"><h5>TOTAL DE LA ORDEN</h5><p id="kpiOrdenTotal">-</p></div>
+            <div class="kpi-card"><h5>REGISTRADO EN CUSTODIA</h5><p id="kpiOrdenRegistrado">-</p></div>
+            <div class="kpi-card" style="border-left-color:var(--danger);"><h5>FALTAN POR EMPEZAR</h5><p id="kpiOrdenFaltan" style="color:var(--danger);">-</p></div>
+          </div>
+          <div class="consulta-tabla-wrapper">
+            <table class="consulta-tabla">
+              <thead><tr><th>ÁREA</th><th>CANTIDAD</th></tr></thead>
+              <tbody id="bodyConsultaOrdenAreas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       <div class="consulta-filtros" style="justify-content: flex-end; gap: 15px;">
         <div style="display:flex; align-items:center; gap:8px; margin-right:auto;">
@@ -873,6 +897,28 @@ let ordenesActivasGlobal = [];
 let matrixGlobal = [];
 let areasMatrixGlobal = [];
 let ordenAscendenteUbicacion = true;
+
+function consultarOrdenIndividual() {
+  var orden = document.getElementById("inputConsultarOrden").value.trim().toUpperCase();
+  if (!orden) return alert("INGRESA UN NÚMERO DE ORDEN.");
+  custodiaApi('/custodia/api/consultar-orden/' + encodeURIComponent(orden)).then(function(res) {
+    document.getElementById("resultadoConsultaOrden").style.display = "block";
+    document.getElementById("kpiOrdenTotal").innerText = res.total !== null ? res.total.toFixed(2) : "SIN TOTAL REGISTRADO";
+    document.getElementById("kpiOrdenRegistrado").innerText = res.registrado.toFixed(2);
+    document.getElementById("kpiOrdenFaltan").innerText = res.faltanPorEmpezar !== null ? res.faltanPorEmpezar.toFixed(2) : "N/A";
+    var tbody = document.getElementById("bodyConsultaOrdenAreas");
+    tbody.innerHTML = "";
+    if (res.ubicaciones.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="2" style="padding:20px; color:var(--text-muted);">NO HAY UBICACIONES ACTIVAS PARA ESTA ORDEN.</td></tr>';
+    } else {
+      res.ubicaciones.forEach(function(u) {
+        var tr = document.createElement("tr");
+        tr.innerHTML = `<td style="font-weight:700;">${u.area}</td><td style="font-weight:800; color:var(--success);">${u.cantidad.toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+  }).catch(function(e) { alert('Error: ' + e.message); });
+}
 
 function cargarEstadoOrdenes() {
   var btn = document.getElementById("btnRefrescarActivas");
@@ -1435,6 +1481,33 @@ function renderDetallesExcelModal(data) {
 }
 
 var datosConsultaActual = []; var registroActivoModal = null;
+var vistaHistorial = 'consecutivo'; // 'consecutivo' | 'orden'
+var sortHistorial = { campo: null, asc: true };
+
+var COLUMNAS_HISTORIAL = [
+  { titulo: 'COLABORADOR', campo: 'colaborador' },
+  { titulo: 'ÁREA CREACIÓN', campo: 'areaCreacion' },
+  { titulo: 'ORDEN', campo: '_orden' },
+  { titulo: 'FECHA', campo: 'fecha' },
+  { titulo: 'ÁREA SALIDA', campo: 'areaSalida' },
+  { titulo: 'ÁREA ENTRADA', campo: 'areaEntrada' },
+  { titulo: 'CANTIDAD', campo: '_cantidad' },
+  { titulo: 'MOTIVO', campo: 'motivo' },
+  { titulo: 'ESTADO', campo: 'estado' },
+  { titulo: 'CONSECUTIVO', campo: 'id' },
+];
+
+function toggleVistaHistorial() {
+  vistaHistorial = (vistaHistorial === 'consecutivo') ? 'orden' : 'consecutivo';
+  document.getElementById('btnVistaHistorial').innerText = vistaHistorial === 'consecutivo' ? '🔀 VISTA: POR CONSECUTIVO' : '🔀 VISTA: POR ORDEN';
+  renderTabla();
+}
+
+function ordenarHistorial(campo) {
+  if (sortHistorial.campo === campo) { sortHistorial.asc = !sortHistorial.asc; }
+  else { sortHistorial.campo = campo; sortHistorial.asc = true; }
+  renderTabla();
+}
 
 function ejecutarConsulta() {
   var tipo = document.querySelector('input[name="tipoFiltro"]:checked').value;
@@ -1445,36 +1518,75 @@ function ejecutarConsulta() {
     params.set('fechaFin', document.getElementById("filtroFechaFin").value);
   }
   document.getElementById("btnBuscar").innerText = "BUSCANDO...";
-  custodiaApi('/custodia/api/consultar?' + params.toString()).then(renderTabla).catch(function(e) {
+  custodiaApi('/custodia/api/consultar?' + params.toString()).then(function(res) {
+    document.getElementById("btnBuscar").innerText = "🔍 BUSCAR";
+    datosConsultaActual = res.data;
+    renderTabla();
+  }).catch(function(e) {
     document.getElementById("btnBuscar").innerText = "🔍 BUSCAR";
     document.getElementById("tablaBody").innerHTML = `<tr><td colspan="11" style="padding:40px;">${e.message}</td></tr>`;
   });
 }
 
-function renderTabla(respuesta) {
-  document.getElementById("btnBuscar").innerText = "🔍 BUSCAR";
-  datosConsultaActual = respuesta.data;
+function _filasParaVistaHistorial() {
+  if (vistaHistorial === 'orden') {
+    var filas = [];
+    datosConsultaActual.forEach(function(t) {
+      var lineas = (t.lineas && t.lineas.length) ? t.lineas : [{ numeroOrden: t.ordenes, cantidad: t.cantidad }];
+      lineas.forEach(function(linea) {
+        var copia = Object.assign({}, t);
+        copia._orden = linea.numeroOrden; copia._cantidad = linea.cantidad;
+        filas.push(copia);
+      });
+    });
+    return filas;
+  }
+  return datosConsultaActual.map(function(t) {
+    var copia = Object.assign({}, t);
+    copia._orden = t.ordenes; copia._cantidad = t.cantidad;
+    return copia;
+  });
+}
+
+function renderTabla() {
+  var filas = _filasParaVistaHistorial();
+
+  if (sortHistorial.campo) {
+    var campo = sortHistorial.campo;
+    filas.sort(function(a, b) {
+      var va = a[campo], vb = b[campo];
+      if (typeof va === 'number' && typeof vb === 'number') { return sortHistorial.asc ? va - vb : vb - va; }
+      va = String(va == null ? '' : va); vb = String(vb == null ? '' : vb);
+      var comp = va.localeCompare(vb, undefined, { numeric: true, sensitivity: 'base' });
+      return sortHistorial.asc ? comp : -comp;
+    });
+  }
 
   var thead = document.getElementById("tablaHead"); thead.innerHTML = "";
-  ["COLABORADOR", "ÁREA CREACIÓN", "ÓRDENES", "FECHA", "ÁREA SALIDA", "ÁREA ENTRADA", "CANTIDAD", "MOTIVO", "ESTADO", "CONSECUTIVO", "ACCIÓN"].forEach(function(col) {
-    let th = document.createElement("th"); th.innerText = col; thead.appendChild(th);
+  COLUMNAS_HISTORIAL.forEach(function(col) {
+    let th = document.createElement("th"); th.style.cursor = "pointer";
+    var icono = sortHistorial.campo === col.campo ? (sortHistorial.asc ? " ▲" : " ▼") : "";
+    th.innerText = col.titulo + icono;
+    th.onclick = function() { ordenarHistorial(col.campo); };
+    thead.appendChild(th);
   });
+  let thAccion = document.createElement("th"); thAccion.innerText = "ACCIÓN"; thead.appendChild(thAccion);
 
   var tbody = document.getElementById("tablaBody"); tbody.innerHTML = "";
   document.getElementById("btnExportar").style.display = "inline-flex";
-  if (datosConsultaActual.length === 0) {
+  if (filas.length === 0) {
     tbody.innerHTML = `<tr><td colspan="11" style="padding:50px; font-size:14px; color:var(--text-muted); font-weight:600;">NO SE ENCONTRARON REGISTROS.</td></tr>`;
     return;
   }
 
-  datosConsultaActual.forEach(function(t) {
+  filas.forEach(function(t) {
     let tr = document.createElement("tr");
     if (t.anulado) tr.className = "anulado-row";
     var badgeClass = t.anulado ? "badge-danger" : (t.confirmadoEntrada ? "badge-success" : "badge-warning");
     tr.innerHTML = `
-      <td>${t.colaborador}</td><td>${t.areaCreacion}</td><td style="font-weight:800; color:var(--brand-main);">${t.ordenes}</td>
+      <td>${t.colaborador}</td><td>${t.areaCreacion}</td><td style="font-weight:800; color:var(--brand-main);">${t._orden}</td>
       <td>${t.fecha}</td><td>${t.areaSalida}</td><td>${t.areaEntrada}</td>
-      <td style="font-weight:800; color:var(--success);">${t.cantidad}</td><td>${t.motivo}</td>
+      <td style="font-weight:800; color:var(--success);">${t._cantidad}</td><td>${t.motivo}</td>
       <td><span class="badge ${badgeClass}">${t.estado}</span></td>
       <td style="font-weight:800; color:var(--brand-main);">${String(t.id).padStart(4,'0')}</td>
       <td></td>
