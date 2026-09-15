@@ -193,7 +193,13 @@
             <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
             <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo }}" style="color: var(--text-muted); cursor: not-allowed;"></td>
             <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">ÁREA CREACIÓN</td>
-            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones"></td>
+            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;">
+              {% if user.area_custodia %}
+              <input type="text" id="areaCreacion" readonly value="{{ user.area_custodia }}" style="color: var(--text-muted); cursor: not-allowed;">
+              {% else %}
+              <input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones">
+              {% endif %}
+            </td>
             <td class="label-cell">
               NÚMERO DE ORDEN<br>
               <label style="display:flex; align-items:center; gap:4px; font-weight:600; text-transform:none; cursor:pointer; margin-top:2px;">

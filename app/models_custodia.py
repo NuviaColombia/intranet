@@ -94,6 +94,29 @@ class CustodiaFactorDisco(Base):
     detalle: Mapped[str] = mapped_column(String(200), unique=True)
     factor: Mapped[float] = mapped_column(Float)
     orden: Mapped[int] = mapped_column(Integer, default=0)
+    activo: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class CustodiaArea(Base):
+    """Áreas de producción disponibles para salida/entrada/creación (antes una lista fija en Python)."""
+    __tablename__ = "custodia_areas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(100), unique=True)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    activo: Mapped[int] = mapped_column(Integer, default=1)
+    # False para áreas que no cuentan como ubicación de inventario (ej. EMPAQUE)
+    es_inventario: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class CustodiaMotivo(Base):
+    """Motivos de traslado disponibles (antes una lista fija en Python)."""
+    __tablename__ = "custodia_motivos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(100), unique=True)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    activo: Mapped[int] = mapped_column(Integer, default=1)
 
 
 class CustodiaOP(Base):

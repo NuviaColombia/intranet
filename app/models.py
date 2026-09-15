@@ -25,6 +25,7 @@ class Empleado(Base):
     activo: Mapped[int] = mapped_column(Integer, default=1)
     dias_vacaciones: Mapped[float] = mapped_column(Float, default=0)  # saldo acumulado disponible
     modulos: Mapped[str] = mapped_column(String(100), default="people")  # slugs separados por coma
+    area_custodia: Mapped[str] = mapped_column(String(100), default="")  # área fija para el módulo Custodia
 
     aprobador1_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     aprobador2_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)

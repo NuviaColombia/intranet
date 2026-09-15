@@ -4,26 +4,39 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from .models import Empleado
 from .models_custodia import (CustodiaTraslado, CustodiaOrdenLinea, CustodiaResumen, CustodiaDiscos, CustodiaOP,
-                              CustodiaFactorDisco)
+                              CustodiaFactorDisco, CustodiaArea, CustodiaMotivo)
 
-AREAS_ESTANDAR = ["MILLING", "CORTE", "SINTERING/SANDBLAST", "GLAZE", "CRISTALES", "QC FINAL",
-                  "DIR PRODUCCIÓN", "DIR PRODUCCIÓN - DAÑADO", "EMPAQUE", "BODEGA"]
-
-# Áreas que no representan una ubicación real de inventario (se excluyen de "ubicación actual" y la matriz)
-AREAS_EXCLUIDAS = {"INICIAL", "SALDO INICIAL", "EMPAQUE"}
-
-MOTIVOS = ["PRODUCCIÓN NORMAL", "MERMA/DAÑO", "DEVOLUCIÓN"]
+# Legado: valores de prueba/migración que nunca fueron áreas de producción reales,
+# no administrables desde Parámetros (a diferencia de CustodiaArea.es_inventario).
+AREAS_EXCLUIDAS_LEGADO = {"INICIAL", "SALDO INICIAL"}
 
 
 def areas_disponibles(db: Session) -> list[str]:
+    """Áreas activas configuradas en Parámetros, más cualquier área "extra" que aparezca
+    en el histórico pero no esté registrada (compatibilidad hacia atrás)."""
+    activas = [a.nombre for a in db.query(CustodiaArea).filter(CustodiaArea.activo == 1)
+               .order_by(CustodiaArea.orden).all()]
+    conocidas = set(activas)
     extra = set()
     for (a,) in db.query(CustodiaTraslado.area_salida).distinct():
-        if a and a not in AREAS_ESTANDAR:
+        if a and a not in conocidas:
             extra.add(a)
     for (a,) in db.query(CustodiaTraslado.area_entrada).distinct():
-        if a and a not in AREAS_ESTANDAR:
+        if a and a not in conocidas:
             extra.add(a)
-    return AREAS_ESTANDAR + sorted(extra)
+    return activas + sorted(extra)
+
+
+def areas_excluidas(db: Session) -> set[str]:
+    """Áreas que no cuentan como ubicación de inventario (se excluyen de "ubicación
+    actual" y la matriz): legado de datos migrados + lo que Parámetros marque como tal."""
+    no_inventario = {a.nombre for a in db.query(CustodiaArea).filter(CustodiaArea.es_inventario == 0).all()}
+    return AREAS_EXCLUIDAS_LEGADO | no_inventario
+
+
+def motivos_disponibles(db: Session) -> list[str]:
+    return [m.nombre for m in db.query(CustodiaMotivo).filter(CustodiaMotivo.activo == 1)
+            .order_by(CustodiaMotivo.orden).all()]
 
 
 def ordenes_incompletas(db: Session) -> list[dict]:
@@ -137,6 +150,9 @@ def _fecha_dt(f: date) -> datetime:
 
 
 def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
+    areas_base = areas_disponibles(db)
+    areas_excl = areas_excluidas(db)
+
     q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id))
     if fecha_corte:
@@ -163,7 +179,7 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
         hora_str = traslado.hora.strftime("%H:%M") if traslado.hora else "00:00"
 
         for area, signo in ((traslado.area_entrada, 1), (traslado.area_salida, -1)):
-            if not area or area in AREAS_EXCLUIDAS:
+            if not area or area in areas_excl:
                 continue
             key = (linea.numero_orden, area)
             if key not in ubicacion_neta:
@@ -180,14 +196,14 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
             else:
                 celda["sal"] += cantidad
             celda["net"] += signo * cantidad
-            if area not in AREAS_ESTANDAR:
+            if area not in areas_base:
                 areas_extra.add(area)
 
     resultado = [o for o in ubicacion_neta.values() if round(o["cantidad"], 3) > 0]
     for o in resultado:
         o["cantidad"] = round(o["cantidad"], 3)
 
-    areas_matrix = AREAS_ESTANDAR + sorted(areas_extra)
+    areas_matrix = areas_base + sorted(areas_extra)
     matrix_out = []
     for orden, por_area in matrix.items():
         fila = {"orden": orden,
@@ -228,12 +244,13 @@ def dashboard(db: Session, fecha_corte: date | None) -> dict:
     if fecha_corte:
         q = q.filter(CustodiaTraslado.fecha <= fecha_corte)
 
+    motivos = motivos_disponibles(db)
     data_por_area: dict[str, dict] = {}
 
     def init_area(a: str):
         if a and a not in data_por_area:
             data_por_area[a] = {"entrada": 0.0, "salida": 0.0, "neto": 0.0,
-                               "motivos": {m: 0.0 for m in MOTIVOS}}
+                               "motivos": {m: 0.0 for m in motivos}}
 
     for linea, traslado in q.all():
         cantidad = linea.cantidad_discos or 0
@@ -258,7 +275,9 @@ def tickets_rango(db: Session, inicio: int, fin: int) -> list[CustodiaTraslado]:
 
 
 def catalogo_discos(db: Session) -> list[dict]:
-    filas = db.query(CustodiaFactorDisco).order_by(CustodiaFactorDisco.orden).all()
+    """Catálogo activo, para la calculadora de discos en el registro."""
+    filas = (db.query(CustodiaFactorDisco).filter(CustodiaFactorDisco.activo == 1)
+             .order_by(CustodiaFactorDisco.orden).all())
     return [{"detalle": f.detalle, "factor": f.factor} for f in filas]
 
 

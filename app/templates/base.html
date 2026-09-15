@@ -27,11 +27,14 @@
   {% endif %}
   {% endif %}
   {% if es_custodia %}
-  <a href="#" class="custodia-tab activo" data-tab="registro">Nuevo registro</a>
-  <a href="#" class="custodia-tab" data-tab="aprobaciones">Aprobaciones</a>
-  <a href="#" class="custodia-tab" data-tab="consulta">Historial</a>
-  <a href="#" class="custodia-tab" data-tab="activas">Estado órdenes</a>
-  <a href="#" class="custodia-tab" data-tab="existencias">Dashboard</a>
+  <a href="/custodia" class="custodia-tab activo" data-tab="registro">Nuevo registro</a>
+  <a href="/custodia" class="custodia-tab" data-tab="aprobaciones">Aprobaciones</a>
+  <a href="/custodia" class="custodia-tab" data-tab="consulta">Historial</a>
+  <a href="/custodia" class="custodia-tab" data-tab="activas">Estado órdenes</a>
+  <a href="/custodia" class="custodia-tab" data-tab="existencias">Dashboard</a>
+  {% if user.rol == 'admin' %}
+  <a href="/custodia/parametros">Parámetros</a>
+  {% endif %}
   {% endif %}
   {% if not es_custodia %}
   {% set resumen = resumen_aprobaciones(user) %}

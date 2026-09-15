@@ -16,10 +16,11 @@ router = APIRouter()
 # ---------- Página ----------
 
 @router.get("/custodia")
-async def pagina(request: Request, user: Empleado = Depends(require_modulo("custodia"))):
+async def pagina(request: Request, user: Empleado = Depends(require_modulo("custodia")),
+                 db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "custodia.html",
-                                      {"user": user, "areas": sc.AREAS_ESTANDAR, "motivos": sc.MOTIVOS,
-                                       "es_custodia": True})
+                                      {"user": user, "areas": sc.areas_disponibles(db),
+                                       "motivos": sc.motivos_disponibles(db), "es_custodia": True})
 
 
 # ---------- Esquemas ----------
@@ -77,6 +78,11 @@ async def api_areas(user: Empleado = Depends(require_modulo("custodia")), db: Se
     return sc.areas_disponibles(db)
 
 
+@router.get("/custodia/api/motivos")
+async def api_motivos(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+    return sc.motivos_disponibles(db)
+
+
 @router.get("/custodia/api/consecutivo-siguiente")
 async def api_consecutivo(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     siguiente = (db.query(func.max(CustodiaTraslado.id)).scalar() or 0) + 1
@@ -105,9 +111,10 @@ async def api_registrar(payload: RegistrarPayload, user: Empleado = Depends(requ
         hora_obj = time.fromisoformat(primero.hora)
     except ValueError:
         raise HTTPException(400, "Hora inválida.")
+    area_creacion = user.area_custodia.strip().upper() if user.area_custodia else primero.areaCreacion.strip().upper()
     cabecera = {
         "colaborador": user.nombre_completo.strip().upper(), "id_colaborador": "",
-        "area_creacion": primero.areaCreacion.strip().upper(), "fecha": primero.fecha, "hora": hora_obj,
+        "area_creacion": area_creacion, "fecha": primero.fecha, "hora": hora_obj,
         "usuario": "", "area_salida": primero.areaSalida.strip().upper(),
         "area_entrada": primero.areaEntrada.strip().upper(), "motivo": primero.motivo.strip().upper(),
     }
