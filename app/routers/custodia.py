@@ -83,6 +83,12 @@ async def api_consecutivo(user: Empleado = Depends(require_modulo("custodia")), 
     return {"consecutivo": siguiente}
 
 
+@router.get("/custodia/api/ordenes-incompletas")
+async def api_ordenes_incompletas(user: Empleado = Depends(require_modulo("custodia")),
+                                  db: Session = Depends(get_db)):
+    return sc.ordenes_incompletas(db)
+
+
 @router.post("/custodia/api/verificar-orden")
 async def api_verificar_orden(payload: VerificarOrdenIn, user: Empleado = Depends(require_modulo("custodia")),
                               db: Session = Depends(get_db)):

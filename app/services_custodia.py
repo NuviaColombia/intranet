@@ -26,6 +26,12 @@ def areas_disponibles(db: Session) -> list[str]:
     return AREAS_ESTANDAR + sorted(extra)
 
 
+def ordenes_incompletas(db: Session) -> list[dict]:
+    """Órdenes con saldo positivo en alguna área ahora mismo (aún no llegan a un
+    estado terminal) -- para el selector de "Número de Orden" al continuar un traslado."""
+    return estado_ordenes(db, None)["data"]
+
+
 def verificar_orden_existente(db: Session, numero_orden_raw: str) -> bool:
     ordenes_buscadas = [o.strip().upper() for o in numero_orden_raw.split("-") if o.strip()]
     if not ordenes_buscadas:

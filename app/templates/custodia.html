@@ -195,8 +195,18 @@
             <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo }}" style="color: var(--text-muted); cursor: not-allowed;"></td>
             <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">ÁREA CREACIÓN</td>
             <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones"></td>
-            <td class="label-cell">NÚMERO DE ORDEN</td>
-            <td class="input-cell"><input type="text" id="numeroOrden" required placeholder="123-456..."></td>
+            <td class="label-cell">
+              NÚMERO DE ORDEN<br>
+              <label style="display:flex; align-items:center; gap:4px; font-weight:600; text-transform:none; cursor:pointer; margin-top:2px;">
+                <input type="checkbox" id="chkOrdenNueva" onchange="toggleModoOrden()" style="width:auto;"> orden nueva
+              </label>
+            </td>
+            <td class="input-cell">
+              <select id="numeroOrdenSelect" required>
+                <option value="">CARGANDO...</option>
+              </select>
+              <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled>
+            </td>
           </tr>
           <tr>
             <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">FECHA</td>
@@ -698,6 +708,37 @@ function cargarConsecutivo() {
   });
 }
 
+function toggleModoOrden() {
+  var nueva = document.getElementById("chkOrdenNueva").checked;
+  var sel = document.getElementById("numeroOrdenSelect");
+  var txt = document.getElementById("numeroOrdenNuevo");
+  sel.style.display = nueva ? "none" : "";
+  txt.style.display = nueva ? "" : "none";
+  sel.disabled = nueva; sel.required = !nueva;
+  txt.disabled = !nueva;
+  if (nueva) { sel.value = ""; }
+  else { txt.value = ""; cargarOrdenesIncompletas(); }
+}
+
+function cargarOrdenesIncompletas() {
+  var sel = document.getElementById("numeroOrdenSelect");
+  sel.innerHTML = '<option value="">CARGANDO...</option>';
+  custodiaApi('/custodia/api/ordenes-incompletas').then(function(lista) {
+    sel.innerHTML = '<option value="">SELECCIONAR...</option>';
+    if (lista.length === 0) {
+      sel.innerHTML = '<option value="">SIN ÓRDENES EN PROCESO</option>';
+      return;
+    }
+    lista.sort(function(a, b) { return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
+    lista.forEach(function(o) {
+      var opt = document.createElement("option");
+      opt.value = o.orden;
+      opt.innerText = o.orden + " — " + o.ubicacion + " (" + o.cantidad.toFixed(2) + ")";
+      sel.appendChild(opt);
+    });
+  });
+}
+
 window.onload = function() {
   actualizarHora(); setInterval(actualizarHora, 60000);
   var hoy = new Date();
@@ -706,6 +747,7 @@ window.onload = function() {
   document.getElementById("dashFechaCorte").value = hoy.toISOString().split('T')[0];
   document.getElementById("filtroFechaCorteActivas").value = hoy.toISOString().split('T')[0];
   cargarConsecutivo();
+  toggleModoOrden();
   custodiaApi('/custodia/api/factores-discos').then(function(data) {
     catalogoDiscos = data;
     renderTablaDiscosDinamica();
@@ -1657,8 +1699,11 @@ function procesarPegado(event) {
       }
   });
 
-  if (dict["colaborador"]) document.getElementById("colaborador").value = dict["colaborador"];
-  if (dict["numero de orden"]) document.getElementById("numeroOrden").value = dict["numero de orden"];
+  if (dict["numero de orden"]) {
+    document.getElementById("chkOrdenNueva").checked = true;
+    toggleModoOrden();
+    document.getElementById("numeroOrdenNuevo").value = dict["numero de orden"];
+  }
   if (dict["area creacion"]) document.getElementById("areaCreacion").value = dict["area creacion"];
   if (dict["cantidad de discos"]) document.getElementById("cantidadDiscos").value = dict["cantidad de discos"].replace(/\./g, ',');
 
@@ -1682,14 +1727,6 @@ function prepararEnvio(e) {
   var btn = document.getElementById("btnGuardar"); btn.disabled = true; btn.innerText = "VALIDANDO DATOS...";
   actualizarHora();
 
-  var ordenRaw = document.getElementById("numeroOrden").value.trim().toUpperCase();
-  if (!/^[0-9\-\s]+$/.test(ordenRaw)) {
-    alert("⚠️ EN EL CAMPO NÚMERO DE ORDEN SOLO SE PERMITEN NÚMEROS, EL GUION (-) O ESPACIOS COMO SEPARADORES.");
-    document.getElementById("numeroOrden").focus(); desbloquearBotonGuardar(); return;
-  }
-  ordenRaw = ordenRaw.replace(/\s+/g, "-"); while(ordenRaw.includes("--")) { ordenRaw = ordenRaw.replace("--", "-"); }
-  if(ordenRaw.startsWith("-")) ordenRaw = ordenRaw.substring(1); if(ordenRaw.endsWith("-")) ordenRaw = ordenRaw.substring(0, ordenRaw.length - 1);
-
   datosBase = {
     colaborador: document.getElementById("colaborador").value.toUpperCase(),
     areaCreacion: document.getElementById("areaCreacion").value.toUpperCase(),
@@ -1699,6 +1736,26 @@ function prepararEnvio(e) {
     areaEntrada: document.getElementById("areaEntrada").value.toUpperCase(),
     motivo: document.getElementById("motivo").value.toUpperCase()
   };
+
+  var esOrdenNueva = document.getElementById("chkOrdenNueva").checked;
+
+  if (!esOrdenNueva) {
+    // Orden existente: se elige de la lista de órdenes incompletas, sin validación de duplicado ni división por guiones.
+    var ordenSel = document.getElementById("numeroOrdenSelect").value;
+    if (!ordenSel) { alert("SELECCIONA UNA ORDEN DE LA LISTA."); desbloquearBotonGuardar(); return; }
+    var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
+    if (isNaN(cantNumerica) || cantNumerica <= 0) { alert("INGRESA UNA CANTIDAD DE DISCOS VÁLIDA."); desbloquearBotonGuardar(); return; }
+    datosBase.numeroOrden = ordenSel; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase]);
+    return;
+  }
+
+  var ordenRaw = document.getElementById("numeroOrdenNuevo").value.trim().toUpperCase();
+  if (!/^[0-9\-\s]+$/.test(ordenRaw)) {
+    alert("⚠️ EN EL CAMPO NÚMERO DE ORDEN SOLO SE PERMITEN NÚMEROS, EL GUION (-) O ESPACIOS COMO SEPARADORES.");
+    document.getElementById("numeroOrdenNuevo").focus(); desbloquearBotonGuardar(); return;
+  }
+  ordenRaw = ordenRaw.replace(/\s+/g, "-"); while(ordenRaw.includes("--")) { ordenRaw = ordenRaw.replace("--", "-"); }
+  if(ordenRaw.startsWith("-")) ordenRaw = ordenRaw.substring(1); if(ordenRaw.endsWith("-")) ordenRaw = ordenRaw.substring(0, ordenRaw.length - 1);
 
   custodiaPostJSON('/custodia/api/verificar-orden', {numeroOrden: ordenRaw}).then(function(resultado) {
     if (resultado.existe) {
@@ -1743,7 +1800,7 @@ function enviarAlServidor(arregloDatos) {
   custodiaPostJSON('/custodia/api/traslados', payload).then(function(respuesta) {
       alert(respuesta.mensaje); document.getElementById("formulario").reset();
       actualizarHora(); document.getElementById("fecha").value = new Date().toISOString().split('T')[0];
-      cargarConsecutivo(); desbloquearBotonGuardar();
+      cargarConsecutivo(); toggleModoOrden(); desbloquearBotonGuardar();
 
       datosResumenExcel = []; renderTablaResumen();
       datosOPExcel = []; renderTablaOP();
