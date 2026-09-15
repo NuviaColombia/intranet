@@ -181,8 +181,22 @@ async def api_detalles(traslado_id: int, user: Empleado = Depends(require_modulo
 
 
 @router.get("/custodia/api/dashboard")
-async def api_dashboard(fechaInicio: str, fechaFin: str, area: str = "TODAS",
-                        user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
-    fi = date.fromisoformat(fechaInicio)
-    ff = date.fromisoformat(fechaFin)
-    return sc.dashboard(db, fi, ff, area)
+async def api_dashboard(fechaCorte: str = "", user: Empleado = Depends(require_modulo("custodia")),
+                        db: Session = Depends(get_db)):
+    fc = date.fromisoformat(fechaCorte) if fechaCorte else None
+    return sc.dashboard(db, fc)
+
+
+@router.get("/custodia/api/tickets-rango")
+async def api_tickets_rango(inicio: int, fin: int, user: Empleado = Depends(require_modulo("custodia")),
+                            db: Session = Depends(get_db)):
+    if inicio > fin:
+        raise HTTPException(400, "El consecutivo de inicio debe ser menor o igual al de fin.")
+    traslados = sc.tickets_rango(db, inicio, fin)
+    return {"tickets": [{"traslado": sc.serializar_traslado(t), "detalles": sc.detalles_por_traslado(t)}
+                        for t in traslados]}
+
+
+@router.get("/custodia/api/factores-discos")
+async def api_factores_discos(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+    return sc.catalogo_discos(db)

@@ -140,6 +140,15 @@
   .dash-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-sm); }
   .dash-panel h4 { margin-top: 0; margin-bottom: 24px; color: var(--brand-main); font-size: 14px; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;}
 
+  .dropdown-check-list { display: inline-block; position: relative; }
+  .dropdown-check-list .anchor { position: relative; cursor: pointer; display: inline-block; padding: 10px 30px 10px 14px; border: 1px solid var(--border-soft); border-radius: 8px; font-weight: 700; font-size: 12px; color: var(--brand-main); background: #FFFFFF; min-width: 220px; transition: all 0.2s;}
+  .dropdown-check-list .anchor:after { position: absolute; content: ""; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid var(--text-muted); padding: 0; right: 12px; top: 42%; }
+  .dropdown-check-list ul.items { padding: 8px; display: none; margin: 4px 0 0 0; border: 1px solid var(--border-soft); border-radius: 8px; position: absolute; z-index: 100; background: #FFFFFF; min-width: 220px; box-shadow: var(--shadow-md); max-height: 250px; overflow-y: auto;}
+  .dropdown-check-list ul.items li { list-style: none; padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--text-dark); border-radius: 4px;}
+  .dropdown-check-list ul.items li:hover { background: var(--brand-light); }
+  .dropdown-check-list.visible .anchor { border-color: var(--brand-main); box-shadow: 0 0 0 3px rgba(26,54,93,0.1);}
+  .dropdown-check-list.visible .items { display: block; }
+
   @media print {
     #custodia-app .main-container, #custodia-app .nav-tabs, #custodia-app .modal { display: none !important; }
   }
@@ -244,14 +253,14 @@
 
            <div style="display:flex; gap:20px;">
                <div style="flex:1;">
-                 <input type="text" class="paste-zone-sm" id="pasteDiscos" placeholder="Haz clic aquí y pega DETALLE DE DISCOS" onpaste="procesarPegadoDiscos(event)" autocomplete="off">
-                 <div class="consulta-tabla-wrapper">
+                 <div style="padding: 10px; background: #F8FAFC; border: 1px solid var(--border-medium); border-bottom: none; border-radius: 8px 8px 0 0; text-align: center; font-weight: 800; font-size: 11px; color: var(--brand-main); letter-spacing: 0.5px;">CALCULADORA DETALLE DE DISCOS</div>
+                 <div class="consulta-tabla-wrapper" style="border-radius: 0 0 12px 12px; margin-top:0;">
                     <table class="consulta-tabla" style="min-width:100%;">
                        <thead>
-                          <tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr>
+                          <tr><th style="text-align:left;">DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr>
                        </thead>
                        <tbody id="bodyDiscos">
-                          <tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>
+                          <tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">CARGANDO CATÁLOGO...</td></tr>
                        </tbody>
                     </table>
                  </div>
@@ -318,6 +327,7 @@
 
         <button type="button" class="btn" style="background:var(--brand-main); margin-left: 10px;" onclick="ejecutarConsulta()" id="btnBuscar">🔍 BUSCAR</button>
         <button type="button" class="btn btn-excel" id="btnExportar" style="display:inline-flex;" onclick="exportarExcel()">📥 EXPORTAR EXCEL</button>
+        <button type="button" class="btn" style="background:#0284C7; display:inline-flex;" onclick="abrirModalRangoTickets()">🖨️ IMPRIMIR POR RANGO</button>
       </div>
       <div class="consulta-tabla-wrapper">
         <table class="consulta-tabla" id="tablaResultados">
@@ -376,7 +386,10 @@
           <div class="split-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px; margin-bottom: 15px;">
                <h4 style="margin:0; border:none; padding:0;">📊 SEGUIMIENTO SALIDAS (MATRIZ)</h4>
-               <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:10px;" onclick="exportarMatrixExcel()">📥 EXCEL</button>
+               <div style="display:flex; gap:8px;">
+                 <button type="button" class="btn" style="background:var(--success); padding: 6px 12px; font-size:10px;" onclick="imprimirReporteMatriz()">🖨️ IMPRIMIR</button>
+                 <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:10px;" onclick="exportarMatrixExcel()">📥 EXCEL</button>
+               </div>
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom: 20px;">
@@ -399,16 +412,15 @@
     <!-- SECCIÓN 4: DASHBOARD -->
     <div id="sec-existencias" class="content-section">
       <div class="consulta-filtros">
-        <div style="display:flex; align-items:center; gap:8px;"><label>RANGO:</label>
-          <input type="date" id="dashFechaInicio">
-          <span style="font-weight:800; color:var(--text-muted);">A</span>
-          <input type="date" id="dashFechaFin">
+        <div style="display:flex; align-items:center; gap:8px;"><label>FECHA CORTE:</label>
+          <input type="date" id="dashFechaCorte" onchange="cargarDashboardExistencias()">
         </div>
-        <div style="margin-left: 20px; display:flex; align-items:center; gap:8px;"><label>ÁREA ESPECÍFICA:</label>
-          <select id="dashAreaSelect"><option value="TODAS">-- TODAS LAS ÁREAS --</option></select>
+        <div id="dropdownBodegas" class="dropdown-check-list" tabindex="100">
+          <span class="anchor" onclick="toggleDropdownBodegas()">🎛️ SELECCIONAR ÁREAS</span>
+          <ul class="items" id="listaCheckboxesBodegas"><li><i>Cargando áreas...</i></li></ul>
         </div>
-        <button type="button" class="btn" style="background:var(--brand-main); margin-left: auto;" onclick="cargarDashboardExistencias()" id="btnCalcularDash">🔄 FILTRAR DASHBOARD</button>
-        <button type="button" class="btn" style="background:var(--success);" onclick="exportarResumenExistenciasExcel()">📥 EXPORTAR TABLA</button>
+        <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarDashboardExistencias()" id="btnCalcularDash">🔄 REFRESCAR</button>
+        <button type="button" class="btn" style="background:var(--success); margin-left: auto;" onclick="exportarResumenExistenciasExcel()">📥 EXPORTAR TABLA</button>
       </div>
 
       <div class="dash-kpi-container">
@@ -565,6 +577,23 @@
       </div>
     </div>
   </div>
+
+  <!-- MODAL IMPRIMIR POR RANGO DE CONSECUTIVOS -->
+  <div id="modalRangoTickets" class="modal">
+    <div class="modal-content">
+      <h3 style="color:var(--brand-main); margin-top:0; font-weight:800;">IMPRIMIR POR RANGO</h3>
+      <p style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:20px;">INGRESA EL RANGO DE CONSECUTIVOS A IMPRIMIR:</p>
+      <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
+        <input type="number" id="rangoInicioTickets" class="modal-input" placeholder="DESDE" min="1">
+        <span style="font-weight:800; color:var(--text-muted);">A</span>
+        <input type="number" id="rangoFinTickets" class="modal-input" placeholder="HASTA" min="1">
+      </div>
+      <div style="margin-top:30px; text-align:right; display:flex; justify-content:flex-end; gap:12px;">
+         <button type="button" class="btn" style="background:var(--bg-body); color:var(--text-main); border: 1px solid var(--border-medium); box-shadow:none;" onclick="cerrarModalRangoTickets()">CANCELAR</button>
+         <button type="button" class="btn btn-primary" style="margin:0; width:auto; padding: 12px 24px;" id="btnConfirmarRangoTickets" onclick="ejecutarImpresionRango()">IMPRIMIR</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -594,7 +623,7 @@ function switchTab(tab) {
   if (link) link.classList.add("activo");
   if (tab === 'aprobaciones') cargarConfirmaciones();
   if (tab === 'consulta') cargarAreasSalidaDropdown();
-  if (tab === 'existencias') { cargarAreasDashboardDropdown(); }
+  if (tab === 'existencias') { cargarDashboardExistencias(); }
   if (tab === 'activas') { cargarEstadoOrdenes(); }
 }
 
@@ -661,13 +690,6 @@ function cargarAreasSalidaDropdown() {
   });
 }
 
-function cargarAreasDashboardDropdown() {
-  custodiaApi('/custodia/api/areas').then(function(areas) {
-    var sel = document.getElementById("dashAreaSelect"); sel.innerHTML = '<option value="TODAS">-- TODAS --</option>';
-    areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
-  });
-}
-
 function actualizarHora() {
   var ahora = new Date();
   document.getElementById("hora").value = String(ahora.getHours()).padStart(2, '0') + ":" + String(ahora.getMinutes()).padStart(2, '0');
@@ -684,21 +706,28 @@ window.onload = function() {
   var hoy = new Date();
   document.getElementById("fecha").value = hoy.toISOString().split('T')[0];
   document.getElementById("fechaVersionHeader").innerText = hoy.toLocaleDateString('es-CO');
-  document.getElementById("dashFechaInicio").value = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
-  document.getElementById("dashFechaFin").value = hoy.toISOString().split('T')[0];
+  document.getElementById("dashFechaCorte").value = hoy.toISOString().split('T')[0];
   document.getElementById("filtroFechaCorteActivas").value = hoy.toISOString().split('T')[0];
   cargarConsecutivo();
+  custodiaApi('/custodia/api/factores-discos').then(function(data) {
+    catalogoDiscos = data;
+    renderTablaDiscosDinamica();
+  });
 };
 
 // ---------------- PEGADO DE EXCEL EN NUEVO REGISTRO ----------------
 let datosResumenExcel = [];
-let datosDiscosExcel = [];
 let datosOPExcel = [];
+let catalogoDiscos = [];
 
 function limpiarTablasExcel() {
     datosResumenExcel = []; renderTablaResumen();
-    datosDiscosExcel = []; renderTablaDiscos();
     datosOPExcel = []; renderTablaOP();
+    catalogoDiscos.forEach((_, idx) => {
+      var input = document.getElementById(`cantPac_${idx}`);
+      if (input) input.value = 0;
+    });
+    calcularTablaDiscos();
 }
 
 function procesarPegadoResumen(e) {
@@ -727,30 +756,51 @@ function renderTablaResumen() {
   tbody.appendChild(trTotal);
 }
 
-function procesarPegadoDiscos(e) {
-  e.preventDefault(); var data = (e.clipboardData || window.clipboardData).getData('text'); var rows = data.split(/\r?\n/);
-  datosDiscosExcel = [];
-  rows.forEach(r => {
-    if(!r.trim()) return; var cols = r.split('\t');
-    if(cols[0].toLowerCase().includes('detalle') || cols[0].toLowerCase().includes('total')) return;
-    datosDiscosExcel.push({ detalle: cols[0], cantPaciente: parseFloat(cols[1]||0), cantDiscos: parseFloat((cols[2]||"0").replace(',','.')) });
-  });
-  renderTablaDiscos(); e.target.value = "✅ ¡DISCOS CARGADOS!"; setTimeout(() => e.target.value = "", 2000);
-}
-
-function renderTablaDiscos() {
+function renderTablaDiscosDinamica() {
   var tbody = document.getElementById("bodyDiscos"); tbody.innerHTML = "";
-  if(datosDiscosExcel.length === 0) { tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>'; return; }
-  var sumPac = 0, sumDisc = 0;
-  datosDiscosExcel.forEach(r => {
-    sumPac += r.cantPaciente; sumDisc += r.cantDiscos;
+  if (catalogoDiscos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">SIN CATÁLOGO CONFIGURADO.</td></tr>';
+    return;
+  }
+  catalogoDiscos.forEach((item, idx) => {
     var tr = document.createElement("tr");
-    tr.innerHTML = `<td style="font-weight:700;">${r.detalle}</td><td>${r.cantPaciente}</td><td style="color:var(--success); font-weight:700;">${r.cantDiscos.toFixed(2)}</td>`;
+    tr.innerHTML = `
+      <td style="font-weight:700; text-align:left;">${item.detalle}</td>
+      <td style="padding:4px;"><input type="number" id="cantPac_${idx}" min="0" value="0" style="width:70px; text-align:center; padding:6px; border:1px solid var(--border-medium); border-radius:6px; font-weight:800; color:var(--brand-main); outline:none;" oninput="calcularTablaDiscos()"></td>
+      <td style="font-weight:800; color:var(--success);" id="cantDisc_${idx}">0.00</td>
+    `;
     tbody.appendChild(tr);
   });
   var trTotal = document.createElement("tr"); trTotal.className = "fila-totales";
-  trTotal.innerHTML = `<td style="text-align:right;">TOTAL</td><td>${sumPac}</td><td style="color:var(--brand-main);">${sumDisc.toFixed(2)}</td>`;
+  trTotal.innerHTML = `<td style="text-align:right;">TOTAL</td><td id="totPacDinamico">0</td><td style="color:var(--brand-main);" id="totDiscDinamico">0.00</td>`;
   tbody.appendChild(trTotal);
+}
+
+function calcularTablaDiscos() {
+  var sumPac = 0, sumDisc = 0;
+  catalogoDiscos.forEach((item, idx) => {
+    var inputPac = document.getElementById(`cantPac_${idx}`);
+    if (!inputPac) return;
+    var valPac = parseInt(inputPac.value) || 0;
+    if (valPac < 0) { valPac = 0; inputPac.value = 0; }
+    var valDisc = valPac * item.factor;
+    document.getElementById(`cantDisc_${idx}`).innerText = valDisc.toFixed(2);
+    sumPac += valPac; sumDisc += valDisc;
+  });
+  document.getElementById("totPacDinamico").innerText = sumPac;
+  document.getElementById("totDiscDinamico").innerText = sumDisc.toFixed(2);
+}
+
+function obtenerDatosDiscosCalculados() {
+  var resultado = [];
+  catalogoDiscos.forEach((item, idx) => {
+    var inputPac = document.getElementById(`cantPac_${idx}`);
+    var valPac = inputPac ? (parseInt(inputPac.value) || 0) : 0;
+    if (valPac > 0) {
+      resultado.push({ detalle: item.detalle, cantPaciente: valPac, cantDiscos: valPac * item.factor });
+    }
+  });
+  return resultado;
 }
 
 function procesarPegadoOP(e) {
@@ -890,7 +940,8 @@ function filtrarTablaMatrix() {
       var tr = document.createElement("tr");
       var tds = `<td style="font-weight:800; color:var(--brand-main); text-align: left;">${o.orden}</td>`;
       areasMatrixGlobal.forEach(function(area) {
-         var val = o[area] > 0 ? o[area].toFixed(2) : "-";
+         var net = o[area] ? o[area].net : 0;
+         var val = net > 0 ? net.toFixed(2) : "-";
          tds += `<td>${val}</td>`;
       });
       tds += `<td style="font-weight:800; color:var(--accent);">${o.TOTAL.toFixed(2)}</td>`;
@@ -944,7 +995,7 @@ function exportarMatrixExcel() {
   var csvContent = "﻿ORDEN;" + areasMatrixGlobal.join(";") + ";TOTAL\n";
   matrixGlobal.forEach(o => {
       var fila = [o.orden];
-      areasMatrixGlobal.forEach(a => { fila.push(o[a] || 0); });
+      areasMatrixGlobal.forEach(a => { fila.push(o[a] ? o[a].net : 0); });
       fila.push(o.TOTAL);
       csvContent += `"${fila.join('";"')}"\n`;
   });
@@ -1031,13 +1082,65 @@ function imprimirReporteCorte() {
   imprimirHtmlEnIframe(htmlPrint);
 }
 
-function imprimirHtmlEnIframe(htmlPrint) {
+function imprimirReporteMatriz() {
+  var fechaCorte = document.getElementById("filtroFechaCorteActivas").value;
+  var textoBuscado = document.getElementById("filtroBuscadorOrden2").value.toUpperCase();
+  var filtradosMatrix = matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); });
+  if (filtradosMatrix.length === 0) return alert("No hay datos de matriz para imprimir.");
+
+  filtradosMatrix.sort(function(a, b) { return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
+
+  var hoyStr = new Date().toLocaleString();
+  var htmlPrint = `
+    <div style="font-family: Arial, sans-serif; padding: 10px; color: #0F172A;">
+      <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #1A365D; padding-bottom: 10px;">
+         <h2 style="margin:0; color:#1A365D; font-weight: 900;">NUVIA SMILES COLOMBIA S.A.S.</h2>
+         <h3 style="margin:5px 0;">SEGUIMIENTO DE SALIDAS (MATRIZ CONTABLE)</h3>
+         <p style="margin:0; font-size:10px; color:#475569;">CORTE A FECHA: <b>${fechaCorte}</b> | IMPRESO: ${hoyStr}</p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 8px; border: 1px solid #CBD5E1; text-align: center;">
+        <thead>
+          <tr><th rowspan="2" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px; vertical-align: middle;">ORDEN</th>
+  `;
+  areasMatrixGlobal.forEach(function(area) { htmlPrint += `<th colspan="3" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px;">${area}</th>`; });
+  htmlPrint += `</tr><tr>`;
+  areasMatrixGlobal.forEach(function() {
+      htmlPrint += `<th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">ENT</th>
+                    <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">SAL</th>
+                    <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">NETO</th>`;
+  });
+  htmlPrint += `</tr></thead><tbody>`;
+
+  filtradosMatrix.forEach(function(o) {
+      htmlPrint += `<tr><td style="border: 1px solid #CBD5E1; padding: 4px; font-weight: bold; text-align:left;">${o.orden}</td>`;
+      areasMatrixGlobal.forEach(function(area) {
+          var c = o[area];
+          if (c && (c.ent || c.sal || c.net)) {
+              var ent = c.ent > 0 ? c.ent.toFixed(2) : "-";
+              var sal = c.sal > 0 ? c.sal.toFixed(2) : "-";
+              var net = c.net !== 0 ? c.net.toFixed(2) : "-";
+              htmlPrint += `<td style="border: 1px dashed #CBD5E1; border-left: 1px solid #CBD5E1; padding: 4px; color:#10B981;">${ent}</td>
+                            <td style="border: 1px dashed #CBD5E1; padding: 4px; color:#EF4444;">${sal}</td>
+                            <td style="border: 1px solid #CBD5E1; padding: 4px; font-weight:bold; background-color:#F8FAFC; color:#1A365D;">${net}</td>`;
+          } else {
+              htmlPrint += `<td style="border: 1px dashed #CBD5E1; border-left: 1px solid #CBD5E1; padding: 4px;">-</td><td style="border: 1px dashed #CBD5E1; padding: 4px;">-</td><td style="border: 1px solid #CBD5E1; padding: 4px; background-color:#F8FAFC;">-</td>`;
+          }
+      });
+      htmlPrint += `</tr>`;
+  });
+  htmlPrint += `</tbody></table></div>`;
+
+  imprimirHtmlEnIframe(htmlPrint, true);
+}
+
+function imprimirHtmlEnIframe(htmlPrint, apaisado) {
   var iframe = document.createElement('iframe');
   iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
   document.body.appendChild(iframe);
   var doc = iframe.contentWindow.document;
   doc.open();
-  doc.write('<html><head><style>@media print { @page { margin: 15mm; } body { -webkit-print-color-adjust: exact; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } }</style></head><body>' + htmlPrint + '</body></html>');
+  var pageRule = apaisado ? '@page { size: landscape; margin: 5mm; }' : '@page { margin: 15mm; }';
+  doc.write('<html><head><style>@media print { ' + pageRule + ' body { -webkit-print-color-adjust: exact; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } }</style></head><body>' + htmlPrint + '</body></html>');
   doc.close();
 
   setTimeout(function() {
@@ -1120,6 +1223,131 @@ function imprimirTicketIndividual() {
   `;
 
   imprimirHtmlEnIframe(printHtml);
+}
+
+// ---------------- IMPRESIÓN POR RANGO DE CONSECUTIVOS ----------------
+function abrirModalRangoTickets() {
+  document.getElementById("rangoInicioTickets").value = "";
+  document.getElementById("rangoFinTickets").value = "";
+  document.getElementById("modalRangoTickets").style.display = "flex";
+}
+
+function cerrarModalRangoTickets() {
+  document.getElementById("modalRangoTickets").style.display = "none";
+}
+
+function ejecutarImpresionRango() {
+  var inicio = document.getElementById("rangoInicioTickets").value;
+  var fin = document.getElementById("rangoFinTickets").value;
+  if (!inicio || !fin || parseInt(inicio) > parseInt(fin)) {
+    return alert("Por favor ingresa un rango numérico válido.");
+  }
+  var btn = document.getElementById("btnConfirmarRangoTickets");
+  btn.innerText = "PREPARANDO..."; btn.disabled = true;
+  custodiaApi('/custodia/api/tickets-rango?inicio=' + inicio + '&fin=' + fin).then(function(res) {
+    btn.innerText = "IMPRIMIR"; btn.disabled = false;
+    if (!res.tickets || res.tickets.length === 0) { alert("No se encontraron traslados en ese rango."); return; }
+    cerrarModalRangoTickets();
+    generarHtmlDocumentoRango(res.tickets);
+  }).catch(function(e) { btn.innerText = "IMPRIMIR"; btn.disabled = false; alert('Error: ' + e.message); });
+}
+
+function _tablaResumenHtml(resumen) {
+  if (!resumen || resumen.length === 0) return "";
+  var sum = 0;
+  var html = `<thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th></tr></thead><tbody>`;
+  resumen.forEach(r => { sum += parseFloat(r.total || 0); html += `<tr><td>${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td>${r.total}</td></tr>`; });
+  html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td>${sum}</td></tr></tbody>`;
+  return html;
+}
+
+function _tablaDiscosHtml(discos) {
+  if (!discos || discos.length === 0) return "";
+  var sumP = 0, sumD = 0;
+  var html = `<thead><tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr></thead><tbody>`;
+  discos.forEach(r => { sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0); html += `<tr><td>${r.detalle}</td><td>${r.cantPaciente}</td><td>${r.cantDiscos}</td></tr>`; });
+  html += `<tr class="fila-totales"><td style="text-align:right;">TOTAL</td><td>${sumP}</td><td>${sumD.toFixed(2)}</td></tr></tbody>`;
+  return html;
+}
+
+function _tablaOPHtml(op) {
+  if (!op || op.length === 0) return "";
+  var html = `<thead><tr><th>ORDEN</th><th>OP</th><th>DESCRIPCIÓN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th></tr></thead><tbody>`;
+  op.forEach(r => { html += `<tr><td>${r.orden}</td><td>${r.op}</td><td>${r.descripcion}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td></tr>`; });
+  html += `</tbody>`;
+  return html;
+}
+
+function generarHtmlDocumentoRango(tickets) {
+  var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
+  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0; letter-spacing: 2px;">NUVIA</h2>`;
+
+  var paginas = tickets.map(function(item) {
+    var t = item.traslado, det = item.detalles || {};
+    var htmlResumen = _tablaResumenHtml(det.resumen);
+    var htmlDiscos = _tablaDiscosHtml(det.discos);
+    var htmlOP = _tablaOPHtml(det.op);
+    return `
+      <div class="ticket-page">
+        <table class="header-table">
+            <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">CAMBIO DE CUSTODIA GENERAL<br><span class="header-sub">PRODUCCION</span></td><td class="header-meta">CÓDIGO: F-PRO-40</td></tr>
+            <tr><td class="header-meta" style="border-top:none;">VERSIÓN: 02</td></tr>
+            <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">FECHA: ${t.fecha}</td></tr>
+        </table>
+        <table class="grid-table">
+            <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">CONSECUTIVO</td><td class="grid-cons-value">${String(t.id).padStart(4,'0')}</td></tr>
+            <tr><td class="grid-label">COLABORADOR</td><td class="grid-value">${t.colaborador}</td><td class="grid-label">NUMERO DE ORDEN</td><td class="grid-value">${t.ordenes}</td><td class="grid-label">AREA SALIDA</td><td class="grid-value">${t.areaSalida}</td></tr>
+            <tr><td class="grid-label">FECHA</td><td class="grid-value">${t.fecha}</td><td class="grid-label">AREA CREACION</td><td class="grid-value">${t.areaCreacion}</td><td class="grid-label">AREA ENTRADA</td><td class="grid-value">${t.areaEntrada}</td></tr>
+            <tr><td class="grid-label">HORA</td><td class="grid-value">${t.hora}</td><td class="grid-label">CANTIDAD DISCOS</td><td class="grid-cant-value">${t.cantidad}</td><td class="grid-label">ESTADO</td><td class="grid-value" style="font-weight: 800;">${t.estado}</td></tr>
+        </table>
+        ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">RESUMEN GENERAL</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
+        ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE DE DISCOS</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
+        <table class="firmas-table"><tr><td>_________________________________<br>Firma entregado:</td><td>_________________________________<br>Firma recibido:</td></tr></table>
+        ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
+      </div>
+    `;
+  }).join("");
+
+  var printHtml = `
+    <html><head><style>
+      @media print {
+        @page { margin: 15mm; }
+        body { font-family: 'Inter', Arial, sans-serif; color: #0F172A; }
+        .ticket-page { page-break-after: always; }
+        .ticket-page:last-child { page-break-after: auto; }
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #CBD5E1; }
+        .header-table td { border: 1px solid #CBD5E1; padding: 10px; }
+        .header-logo { width: 25%; text-align: center; }
+        .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; letter-spacing: 1px; }
+        .header-sub { font-size: 13px; color: #475569; font-weight: 600; letter-spacing: 2px; }
+        .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
+        .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
+        .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
+        .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #475569; -webkit-print-color-adjust: exact; }
+        .grid-value { font-weight: 700; text-align: right; width: 17%; }
+        .grid-cons-label { background-color: #F8FAFC !important; font-weight: 700; -webkit-print-color-adjust: exact; }
+        .grid-cons-value { font-weight: 800; color: #EF4444 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
+        .grid-cant-value { font-weight: 800; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
+        .consulta-tabla { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+        .consulta-tabla th { background-color: #1A365D !important; color: white !important; font-weight: 700; text-align: center; padding: 8px; border: 1px solid #CBD5E1; -webkit-print-color-adjust: exact; }
+        .consulta-tabla td { padding: 6px 8px; text-align: center; border: 1px solid #CBD5E1; }
+        .fila-totales td { background-color: #F0F4F8 !important; font-weight: 800; color: #1A365D !important; border-top: 1px solid #CBD5E1 !important; -webkit-print-color-adjust: exact; }
+        .firmas-table { width: 100%; margin-top: 40px; margin-bottom: 20px; font-size: 12px; font-weight: 700; page-break-inside: avoid; }
+        .firmas-table td { width: 33.3%; text-align: center; padding-top: 40px; }
+        tr { page-break-inside: avoid; }
+      }
+    </style></head><body>${paginas}</body></html>
+  `;
+
+  var iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+  var doc = iframe.contentWindow.document;
+  doc.open(); doc.write(printHtml); doc.close();
+  setTimeout(function() {
+      iframe.contentWindow.focus(); iframe.contentWindow.print();
+      setTimeout(function() { document.body.removeChild(iframe); }, 1000);
+  }, 500);
 }
 
 function renderDetallesExcelModal(data) {
@@ -1271,36 +1499,95 @@ function exportarExcel() {
 
 // ---------------- DASHBOARD ----------------
 var chartExistenciasInstance = null, chartMotivosInstance = null;
+var datosDashboardGlobal = {};
+var bodegasMemorizadas = [];
+var primeraCargaDashboard = true;
+var ORDEN_AREAS_DASHBOARD = ["MILLING", "CORTE", "SINTERING/SANDBLAST", "GLAZE", "CRISTALES", "QC FINAL",
+                            "DIR PRODUCCIÓN", "DIR PRODUCCIÓN - DAÑADO", "EMPAQUE", "BODEGA", "INICIAL", "SALDO INICIAL"];
+
+function toggleDropdownBodegas() {
+  document.getElementById("dropdownBodegas").classList.toggle("visible");
+}
+document.addEventListener('click', function(e) {
+  var dd = document.getElementById("dropdownBodegas");
+  if (dd && !dd.contains(e.target)) dd.classList.remove("visible");
+});
 
 function cargarDashboardExistencias() {
-  var fi = document.getElementById("dashFechaInicio").value;
-  var ff = document.getElementById("dashFechaFin").value;
-  var area = document.getElementById("dashAreaSelect").value;
+  var fechaCorte = document.getElementById("dashFechaCorte").value;
   var btn = document.getElementById("btnCalcularDash"); btn.innerText = "CARGANDO...";
+  var lista = document.getElementById("listaCheckboxesBodegas");
+  lista.innerHTML = "<li><i>Cargando áreas...</i></li>";
 
-  custodiaApi('/custodia/api/dashboard?fechaInicio=' + encodeURIComponent(fi) + '&fechaFin=' + encodeURIComponent(ff) + '&area=' + encodeURIComponent(area))
-    .then(function(res) {
-      btn.innerText = "🔄 FILTRAR DASHBOARD";
-      renderDashboard(res.dataPorArea);
-    }).catch(function(e) { btn.innerText = "🔄 FILTRAR DASHBOARD"; alert('Error: ' + e.message); });
+  custodiaApi('/custodia/api/dashboard?fechaCorte=' + encodeURIComponent(fechaCorte)).then(function(res) {
+    btn.innerText = "🔄 REFRESCAR";
+    datosDashboardGlobal = res.dataPorArea || {};
+    var areas = Object.keys(datosDashboardGlobal).sort(function(a, b) {
+      var ia = ORDEN_AREAS_DASHBOARD.indexOf(a), ib = ORDEN_AREAS_DASHBOARD.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    lista.innerHTML = "";
+    if (areas.length === 0) { lista.innerHTML = "<li><span style='color:var(--danger);'>Sin datos.</span></li>"; renderizarDashboardLocal(); return; }
+
+    areas.forEach(function(a) {
+      var li = document.createElement("li");
+      var lbl = document.createElement("label");
+      lbl.style.display = "flex"; lbl.style.alignItems = "center"; lbl.style.gap = "6px"; lbl.style.cursor = "pointer";
+      var chk = document.createElement("input");
+      chk.type = "checkbox"; chk.value = a; chk.className = "chk-bodega";
+      var excluida = (a === "INICIAL" || a === "SALDO INICIAL" || a === "EMPAQUE");
+      if (primeraCargaDashboard) { chk.checked = !excluida; if (!excluida) bodegasMemorizadas.push(a); }
+      else { chk.checked = bodegasMemorizadas.indexOf(a) !== -1; }
+      chk.onchange = function() {
+        if (this.checked) { if (bodegasMemorizadas.indexOf(this.value) === -1) bodegasMemorizadas.push(this.value); }
+        else { var i = bodegasMemorizadas.indexOf(this.value); if (i !== -1) bodegasMemorizadas.splice(i, 1); }
+        renderizarDashboardLocal();
+      };
+      lbl.appendChild(chk); lbl.appendChild(document.createTextNode(a)); li.appendChild(lbl); lista.appendChild(li);
+    });
+    primeraCargaDashboard = false;
+    renderizarDashboardLocal();
+  }).catch(function(e) { btn.innerText = "🔄 REFRESCAR"; alert('Error: ' + e.message); });
 }
 
-function renderDashboard(dataPorArea) {
-  var areas = Object.keys(dataPorArea);
-  var movimientos = 0, trasladados = 0, balanceNeto = 0, mermas = 0;
-  var areaMayorMov = "N/A", mayorMovVal = -1;
-  var areaCritica = "N/A", mayorMermaVal = -1;
+function renderizarDashboardLocal() {
+  var seleccionadas = [];
+  document.querySelectorAll('.chk-bodega:checked').forEach(function(chk) { seleccionadas.push(chk.value); });
 
-  areas.forEach(function(a) {
-    var d = dataPorArea[a];
-    trasladados += d.entrada;
-    balanceNeto += d.neto;
-    var movArea = d.entrada + d.salida;
-    movimientos += movArea;
+  var tbody = document.getElementById("bodyTablaExistencias"); tbody.innerHTML = "";
+  if (seleccionadas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:40px; color:var(--text-muted);">SELECCIONA AL MENOS UN ÁREA.</td></tr>';
+    ["kpiMovimientos","kpiTrasladados","kpiInventario","kpiMermas"].forEach(id => document.getElementById(id).innerText = "0");
+    ["kpiAreaMayorMov","kpiAreaCritica"].forEach(id => document.getElementById(id).innerText = "N/A");
+    renderChartExistencias([], [], []);
+    renderChartMotivos({"PRODUCCIÓN NORMAL": 0, "MERMA/DAÑO": 0, "DEVOLUCIÓN": 0});
+    return;
+  }
+
+  var movimientos = 0, trasladados = 0, balanceNeto = 0, mermas = 0;
+  var areaMayorMov = "N/A", mayorMovVal = -1, areaCritica = "N/A", mayorMermaVal = -1;
+  var labels = [], data = [], colores = [];
+  var totalesMotivos = {"PRODUCCIÓN NORMAL": 0, "MERMA/DAÑO": 0, "DEVOLUCIÓN": 0};
+
+  seleccionadas.forEach(function(a) {
+    var d = datosDashboardGlobal[a];
+    if (!d) return;
+    trasladados += d.entrada; balanceNeto += d.neto;
+    var movArea = d.entrada + d.salida; movimientos += movArea;
     if (movArea > mayorMovVal) { mayorMovVal = movArea; areaMayorMov = a; }
-    var merma = d.motivos["MERMA/DAÑO"] || 0;
-    mermas += merma;
+    var merma = d.motivos["MERMA/DAÑO"] || 0; mermas += merma;
     if (merma > mayorMermaVal) { mayorMermaVal = merma; areaCritica = a; }
+    Object.keys(totalesMotivos).forEach(function(m) { totalesMotivos[m] += d.motivos[m] || 0; });
+
+    labels.push(a); data.push(d.neto); colores.push(d.neto < 0 ? '#EF4444' : '#1A365D');
+
+    var tr = document.createElement("tr");
+    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger)' : ''}">${d.neto.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
   });
 
   document.getElementById("kpiMovimientos").innerText = movimientos.toFixed(2);
@@ -1310,35 +1597,21 @@ function renderDashboard(dataPorArea) {
   document.getElementById("kpiAreaCritica").innerText = mayorMermaVal > 0 ? areaCritica : "N/A";
   document.getElementById("kpiMermas").innerText = mermas.toFixed(2);
 
-  var tbody = document.getElementById("bodyTablaExistencias"); tbody.innerHTML = "";
-  if (areas.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="padding:40px; color:var(--text-muted);">SIN DATOS EN ESTE RANGO.</td></tr>'; }
-  areas.sort().forEach(function(a) {
-    var d = dataPorArea[a];
-    var tr = document.createElement("tr");
-    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger)' : ''}">${d.neto.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  });
-
-  renderChartExistencias(dataPorArea, areas);
-  renderChartMotivos(dataPorArea, areas);
+  renderChartExistencias(labels, data, colores);
+  renderChartMotivos(totalesMotivos);
 }
 
-function renderChartExistencias(dataPorArea, areas) {
+function renderChartExistencias(labels, data, colores) {
   var ctx = document.getElementById("chartExistencias").getContext("2d");
   if (chartExistenciasInstance) chartExistenciasInstance.destroy();
   chartExistenciasInstance = new Chart(ctx, {
     type: 'bar',
-    data: { labels: areas, datasets: [{ label: 'Existencia neta', data: areas.map(a => dataPorArea[a].neto), backgroundColor: '#1A365D' }] },
-    options: { responsive: true, maintainAspectRatio: false }
+    data: { labels: labels, datasets: [{ label: 'Existencia neta', data: data, backgroundColor: colores }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 }
 
-function renderChartMotivos(dataPorArea, areas) {
-  var totales = { "PRODUCCIÓN NORMAL": 0, "MERMA/DAÑO": 0, "DEVOLUCIÓN": 0 };
-  areas.forEach(function(a) {
-    var m = dataPorArea[a].motivos;
-    Object.keys(totales).forEach(function(k) { totales[k] += m[k] || 0; });
-  });
+function renderChartMotivos(totales) {
   var ctx = document.getElementById("chartMotivos").getContext("2d");
   if (chartMotivosInstance) chartMotivosInstance.destroy();
   chartMotivosInstance = new Chart(ctx, {
@@ -1468,7 +1741,7 @@ function confirmarMultiples() {
 }
 
 function enviarAlServidor(arregloDatos) {
-  var payload = { traslados: arregloDatos, resumen: datosResumenExcel, discos: datosDiscosExcel, op: datosOPExcel };
+  var payload = { traslados: arregloDatos, resumen: datosResumenExcel, discos: obtenerDatosDiscosCalculados(), op: datosOPExcel };
   var btn = document.getElementById("btnGuardar"); btn.innerText = "GUARDANDO REGISTROS...";
   custodiaPostJSON('/custodia/api/traslados', payload).then(function(respuesta) {
       alert(respuesta.mensaje); document.getElementById("formulario").reset();
@@ -1476,8 +1749,12 @@ function enviarAlServidor(arregloDatos) {
       cargarConsecutivo(); desbloquearBotonGuardar();
 
       datosResumenExcel = []; renderTablaResumen();
-      datosDiscosExcel = []; renderTablaDiscos();
       datosOPExcel = []; renderTablaOP();
+      catalogoDiscos.forEach((_, idx) => {
+        var input = document.getElementById(`cantPac_${idx}`);
+        if (input) input.value = 0;
+      });
+      calcularTablaDiscos();
     }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
 }
 </script>

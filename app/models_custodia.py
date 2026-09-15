@@ -86,6 +86,16 @@ class CustodiaDiscos(Base):
     traslado = relationship("CustodiaTraslado", back_populates="discos")
 
 
+class CustodiaFactorDisco(Base):
+    """Catálogo de tipos de prótesis y su factor de conversión a cantidad de discos."""
+    __tablename__ = "custodia_factores_discos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    detalle: Mapped[str] = mapped_column(String(200), unique=True)
+    factor: Mapped[float] = mapped_column(Float)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class CustodiaOP(Base):
     __tablename__ = "custodia_op"
 

@@ -3,7 +3,8 @@ from datetime import datetime, date
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from .models import Empleado
-from .models_custodia import CustodiaTraslado, CustodiaOrdenLinea, CustodiaResumen, CustodiaDiscos, CustodiaOP
+from .models_custodia import (CustodiaTraslado, CustodiaOrdenLinea, CustodiaResumen, CustodiaDiscos, CustodiaOP,
+                              CustodiaFactorDisco)
 
 AREAS_ESTANDAR = ["MILLING", "CORTE", "SINTERING/SANDBLAST", "GLAZE", "CRISTALES", "QC FINAL",
                   "DIR PRODUCCIÓN", "DIR PRODUCCIÓN - DAÑADO", "EMPAQUE", "BODEGA"]
@@ -145,8 +146,13 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
         q = q.filter(CustodiaTraslado.fecha <= fecha_corte)
 
     ubicacion_neta: dict[tuple[str, str], dict] = {}
-    matrix: dict[str, dict[str, float]] = {}
+    matrix: dict[str, dict[str, dict]] = {}
     areas_extra: set[str] = set()
+
+    def _celda(orden: str, area: str) -> dict:
+        matrix.setdefault(orden, {})
+        matrix[orden].setdefault(area, {"ent": 0.0, "sal": 0.0, "net": 0.0})
+        return matrix[orden][area]
 
     for linea, traslado in q.all():
         if traslado.anulado:
@@ -171,8 +177,12 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
             ubicacion_neta[key]["fIso"] = fecha_str
             ubicacion_neta[key]["hIso"] = hora_str
 
-            matrix.setdefault(linea.numero_orden, {})
-            matrix[linea.numero_orden][area] = matrix[linea.numero_orden].get(area, 0.0) + signo * cantidad
+            celda = _celda(linea.numero_orden, area)
+            if signo > 0:
+                celda["ent"] += cantidad
+            else:
+                celda["sal"] += cantidad
+            celda["net"] += signo * cantidad
             if area not in AREAS_ESTANDAR:
                 areas_extra.add(area)
 
@@ -183,9 +193,12 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
     areas_matrix = AREAS_ESTANDAR + sorted(areas_extra)
     matrix_out = []
     for orden, por_area in matrix.items():
-        fila = {"orden": orden, "TOTAL": round(sum(por_area.values()), 3)}
+        fila = {"orden": orden,
+               "TOTAL": round(sum(c["net"] for c in por_area.values()), 3)}
         for area in areas_matrix:
-            fila[area] = round(por_area.get(area, 0.0), 3)
+            c = por_area.get(area)
+            fila[area] = ({"ent": round(c["ent"], 3), "sal": round(c["sal"], 3), "net": round(c["net"], 3)}
+                          if c else {"ent": 0.0, "sal": 0.0, "net": 0.0})
         matrix_out.append(fila)
 
     return {"data": resultado, "matrix": matrix_out, "areasMatrix": areas_matrix}
@@ -209,11 +222,14 @@ def viaje_orden(db: Session, numero_orden: str) -> list[dict]:
     return viaje
 
 
-def dashboard(db: Session, fecha_inicio: date, fecha_fin: date, area: str = "TODAS") -> dict:
+def dashboard(db: Session, fecha_corte: date | None) -> dict:
+    """Totales de entrada/salida/neto y motivos por área, hasta (e incluyendo) la fecha de
+    corte. Devuelve TODAS las áreas observadas; el front filtra localmente qué mostrar."""
     q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
-         .filter(CustodiaTraslado.anulado.is_(False))
-         .filter(CustodiaTraslado.fecha >= fecha_inicio, CustodiaTraslado.fecha <= fecha_fin))
+         .filter(CustodiaTraslado.anulado.is_(False)))
+    if fecha_corte:
+        q = q.filter(CustodiaTraslado.fecha <= fecha_corte)
 
     data_por_area: dict[str, dict] = {}
 
@@ -235,10 +251,18 @@ def dashboard(db: Session, fecha_inicio: date, fecha_fin: date, area: str = "TOD
             motivos = data_por_area[traslado.area_salida]["motivos"]
             motivos[traslado.motivo] = motivos.get(traslado.motivo, 0.0) + cantidad
 
-    if area and area != "TODAS":
-        data_por_area = {area: data_por_area[area]} if area in data_por_area else {}
-
     return {"dataPorArea": data_por_area}
+
+
+def tickets_rango(db: Session, inicio: int, fin: int) -> list[CustodiaTraslado]:
+    return (db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes))
+            .filter(CustodiaTraslado.id >= inicio, CustodiaTraslado.id <= fin)
+            .order_by(CustodiaTraslado.id).all())
+
+
+def catalogo_discos(db: Session) -> list[dict]:
+    filas = db.query(CustodiaFactorDisco).order_by(CustodiaFactorDisco.orden).all()
+    return [{"detalle": f.detalle, "factor": f.factor} for f in filas]
 
 
 def detalles_por_traslado(traslado: CustodiaTraslado) -> dict:
