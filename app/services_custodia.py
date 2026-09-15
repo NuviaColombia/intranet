@@ -150,14 +150,16 @@ def _fecha_dt(f: date) -> datetime:
     return datetime.combine(f, datetime.min.time())
 
 
-def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
+def estado_ordenes(db: Session, fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
     areas_base = areas_disponibles(db)
     areas_excl = areas_excluidas(db)
 
     q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id))
-    if fecha_corte:
-        q = q.filter(CustodiaTraslado.fecha <= fecha_corte)
+    if fecha_desde:
+        q = q.filter(CustodiaTraslado.fecha >= fecha_desde)
+    if fecha_hasta:
+        q = q.filter(CustodiaTraslado.fecha <= fecha_hasta)
 
     ubicacion_neta: dict[tuple[str, str], dict] = {}
     matrix: dict[str, dict[str, dict]] = {}
@@ -170,8 +172,8 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
 
     for linea, traslado in q.all():
         if traslado.anulado:
-            valido_por_corte = (fecha_corte and traslado.anulado_en
-                               and traslado.anulado_en.date() > fecha_corte)
+            valido_por_corte = (fecha_hasta and traslado.anulado_en
+                               and traslado.anulado_en.date() > fecha_hasta)
             if not valido_por_corte:
                 continue
 
@@ -218,10 +220,12 @@ def estado_ordenes(db: Session, fecha_corte: date | None) -> dict:
     return {"data": resultado, "matrix": matrix_out, "areasMatrix": areas_matrix}
 
 
-def consultar_orden(db: Session, numero_orden: str) -> dict:
+def consultar_orden(db: Session, numero_orden: str, fecha_desde: date | None = None,
+                    fecha_hasta: date | None = None) -> dict:
     """Para una orden puntual: su total esperado (según lo pegado en Resumen general al
-    registrar), cuánto está ya registrado/ubicado en Custodia y en qué áreas, y la
-    diferencia (lo que aún no ha empezado el proceso)."""
+    registrar -- no depende del rango de fechas), cuánto está ya registrado/ubicado en
+    Custodia dentro del rango y en qué áreas, y la diferencia (lo que aún no ha empezado
+    el proceso)."""
     target = numero_orden.strip().upper()
 
     total_resumen = (db.query(func.coalesce(func.sum(CustodiaResumen.total), 0.0))
@@ -229,7 +233,7 @@ def consultar_orden(db: Session, numero_orden: str) -> dict:
                      .filter(CustodiaResumen.orden == target, CustodiaTraslado.anulado.is_(False))
                      .scalar()) or 0.0
 
-    ubicaciones = [u for u in estado_ordenes(db, None)["data"] if u["orden"] == target]
+    ubicaciones = [u for u in estado_ordenes(db, fecha_desde, fecha_hasta)["data"] if u["orden"] == target]
     registrado = round(sum(u["cantidad"] for u in ubicaciones), 3)
     tiene_total = total_resumen > 0
 

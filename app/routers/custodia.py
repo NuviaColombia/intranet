@@ -172,16 +172,21 @@ async def api_pendientes_entrada(user: Empleado = Depends(require_modulo("custod
 
 
 @router.get("/custodia/api/estado-ordenes")
-async def api_estado_ordenes(fechaCorte: str = "", user: Empleado = Depends(require_modulo("custodia")),
+async def api_estado_ordenes(fechaDesde: str = "", fechaHasta: str = "",
+                             user: Empleado = Depends(require_modulo("custodia")),
                              db: Session = Depends(get_db)):
-    fc = date.fromisoformat(fechaCorte) if fechaCorte else None
-    return sc.estado_ordenes(db, fc)
+    fd = date.fromisoformat(fechaDesde) if fechaDesde else None
+    fh = date.fromisoformat(fechaHasta) if fechaHasta else None
+    return sc.estado_ordenes(db, fd, fh)
 
 
 @router.get("/custodia/api/consultar-orden/{numero_orden}")
-async def api_consultar_orden(numero_orden: str, user: Empleado = Depends(require_modulo("custodia")),
+async def api_consultar_orden(numero_orden: str, fechaDesde: str = "", fechaHasta: str = "",
+                              user: Empleado = Depends(require_modulo("custodia")),
                               db: Session = Depends(get_db)):
-    return sc.consultar_orden(db, numero_orden)
+    fd = date.fromisoformat(fechaDesde) if fechaDesde else None
+    fh = date.fromisoformat(fechaHasta) if fechaHasta else None
+    return sc.consultar_orden(db, numero_orden, fd, fh)
 
 
 @router.get("/custodia/api/viaje/{numero_orden}")

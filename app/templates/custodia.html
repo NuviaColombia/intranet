@@ -354,14 +354,31 @@
     <div id="sec-activas" class="content-section">
 
       <div class="split-panel" style="margin-bottom:24px;">
-        <h4 style="margin:0 0 12px 0;">🔎 CONSULTAR UNA ORDEN</h4>
-        <div style="display:flex; gap:10px; margin-bottom:16px;">
-          <input type="text" id="inputConsultarOrden" placeholder="NÚMERO DE ORDEN..."
-                 onkeyup="if(event.key==='Enter') consultarOrdenIndividual()"
-                 style="flex:1; padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none;">
-          <button type="button" class="btn" style="background:var(--brand-main);" onclick="consultarOrdenIndividual()">BUSCAR</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:16px;">
+          <div style="flex:2; min-width:220px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">Buscar número de orden</label>
+            <input type="text" id="inputOrdenActivas" placeholder="NÚMERO DE ORDEN..." oninput="filtrarTablaActivas(); filtrarTablaMatrix();"
+                   onkeyup="if(event.key==='Enter') cargarEstadoOrdenes()"
+                   style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none;">
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">Desde</label>
+            <input type="date" id="filtroFechaDesdeActivas" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">Hasta</label>
+            <input type="date" id="filtroFechaHastaActivas" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
+          </div>
+          <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔍 BUSCAR</button>
+          <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ REPORTE CORTE</button>
         </div>
-        <div id="resultadoConsultaOrden" style="display:none;">
+
+        <div id="togglePendientesCompletadas" style="display:flex; gap:8px; margin-bottom:8px;">
+          <button type="button" class="btn mini" id="btnEstadoPendientes" onclick="setFiltroEstadoOrden('pendientes')" style="background:var(--brand-main);">PENDIENTES</button>
+          <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">COMPLETADAS</button>
+        </div>
+
+        <div id="resultadoConsultaOrden" style="display:none; margin-top:16px; border-top:1px solid var(--border-soft); padding-top:16px;">
           <div class="dash-kpi-container" style="grid-template-columns: repeat(3, 1fr); margin-bottom:16px;">
             <div class="kpi-card"><h5>TOTAL DE LA ORDEN</h5><p id="kpiOrdenTotal">-</p></div>
             <div class="kpi-card"><h5>REGISTRADO EN CUSTODIA</h5><p id="kpiOrdenRegistrado">-</p></div>
@@ -376,15 +393,6 @@
         </div>
       </div>
 
-      <div class="consulta-filtros" style="justify-content: flex-end; gap: 15px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-right:auto;">
-          <label>FECHA CORTE:</label>
-          <input type="date" id="filtroFechaCorteActivas" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
-        </div>
-        <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔄 CARGAR CORTE</button>
-        <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ REPORTE CORTE</button>
-      </div>
-
       <div class="split-layout">
 
           <div class="split-panel">
@@ -394,7 +402,6 @@
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom: 20px;">
-              <input type="text" id="filtroBuscadorOrden1" onkeyup="filtrarTablaActivas()" placeholder="Buscar Número de Orden..." style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none; flex:1;">
               <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none; flex:1; cursor:pointer;">
                 <option value="TODAS">-- TODAS LAS ÁREAS --</option>
               </select>
@@ -426,10 +433,6 @@
                  <button type="button" class="btn" style="background:var(--success); padding: 6px 12px; font-size:10px;" onclick="imprimirReporteMatriz()">🖨️ IMPRIMIR</button>
                  <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:10px;" onclick="exportarMatrixExcel()">📥 EXCEL</button>
                </div>
-            </div>
-
-            <div style="display:flex; gap:10px; margin-bottom: 20px;">
-              <input type="text" id="filtroBuscadorOrden2" onkeyup="filtrarTablaMatrix()" placeholder="Buscar Orden en Matriz..." style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none; width:50%;">
             </div>
 
             <div class="consulta-tabla-wrapper" style="max-height: 480px;">
@@ -774,7 +777,6 @@ window.onload = function() {
   document.getElementById("fecha").value = hoy.toISOString().split('T')[0];
   document.getElementById("fechaVersionHeader").innerText = hoy.toLocaleDateString('es-CO');
   document.getElementById("dashFechaCorte").value = hoy.toISOString().split('T')[0];
-  document.getElementById("filtroFechaCorteActivas").value = hoy.toISOString().split('T')[0];
   cargarConsecutivo();
   toggleModoOrden();
   custodiaApi('/custodia/api/factores-discos').then(function(data) {
@@ -898,10 +900,32 @@ let matrixGlobal = [];
 let areasMatrixGlobal = [];
 let ordenAscendenteUbicacion = true;
 
-function consultarOrdenIndividual() {
-  var orden = document.getElementById("inputConsultarOrden").value.trim().toUpperCase();
-  if (!orden) return alert("INGRESA UN NÚMERO DE ORDEN.");
-  custodiaApi('/custodia/api/consultar-orden/' + encodeURIComponent(orden)).then(function(res) {
+var filtroEstadoOrdenActivas = 'pendientes'; // 'pendientes' | 'completadas'
+
+function setFiltroEstadoOrden(valor) {
+  filtroEstadoOrdenActivas = valor;
+  var activo = { background: 'var(--brand-main)', color: '#fff' };
+  var inactivo = { background: 'var(--border-medium)', color: 'var(--brand-main)' };
+  var pend = document.getElementById('btnEstadoPendientes'), comp = document.getElementById('btnEstadoCompletadas');
+  Object.assign(pend.style, valor === 'pendientes' ? activo : inactivo);
+  Object.assign(comp.style, valor === 'completadas' ? activo : inactivo);
+  filtrarTablaActivas();
+}
+
+function _rangoFechasActivas() {
+  var params = new URLSearchParams();
+  var desde = document.getElementById("filtroFechaDesdeActivas").value;
+  var hasta = document.getElementById("filtroFechaHastaActivas").value;
+  if (desde) params.set('fechaDesde', desde);
+  if (hasta) params.set('fechaHasta', hasta);
+  return params;
+}
+
+function actualizarResumenOrdenActivas() {
+  var orden = document.getElementById("inputOrdenActivas").value.trim().toUpperCase();
+  if (!orden) { document.getElementById("resultadoConsultaOrden").style.display = "none"; return; }
+  var params = _rangoFechasActivas();
+  custodiaApi('/custodia/api/consultar-orden/' + encodeURIComponent(orden) + '?' + params.toString()).then(function(res) {
     document.getElementById("resultadoConsultaOrden").style.display = "block";
     document.getElementById("kpiOrdenTotal").innerText = res.total !== null ? res.total.toFixed(2) : "SIN TOTAL REGISTRADO";
     document.getElementById("kpiOrdenRegistrado").innerText = res.registrado.toFixed(2);
@@ -932,17 +956,16 @@ function cargarEstadoOrdenes() {
     sel.value = currentVal || "TODAS";
   });
 
-  var fechaC = document.getElementById("filtroFechaCorteActivas").value;
-
-  custodiaApi('/custodia/api/estado-ordenes?fechaCorte=' + encodeURIComponent(fechaC)).then(function(res) {
-    btn.innerText = "🔄 CARGAR CORTE";
+  custodiaApi('/custodia/api/estado-ordenes?' + _rangoFechasActivas().toString()).then(function(res) {
+    btn.innerText = "🔍 BUSCAR";
     ordenesActivasGlobal = res.data;
     matrixGlobal = res.matrix;
     areasMatrixGlobal = res.areasMatrix;
     filtrarTablaActivas();
     filtrarTablaMatrix();
+    actualizarResumenOrdenActivas();
   }).catch(function(e) {
-    btn.innerText = "🔄 CARGAR CORTE";
+    btn.innerText = "🔍 BUSCAR";
     document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="4" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
   });
 }
@@ -972,13 +995,20 @@ function calcularTiempoRetencion(fIso, hIso) {
 }
 
 function filtrarTablaActivas() {
-  var textoBuscado = document.getElementById("filtroBuscadorOrden1").value.toUpperCase();
+  var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
   var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
   var tbody1 = document.getElementById("bodyTablaActivas");
   tbody1.innerHTML = "";
 
   var filtrados = ordenesActivasGlobal.filter(function(o) {
-    return o.orden.includes(textoBuscado) && (areaBuscada === "TODAS" || o.ubicacion === areaBuscada);
+    if (!o.orden.includes(textoBuscado)) return false;
+    if (areaBuscada !== "TODAS" && o.ubicacion !== areaBuscada) return false;
+    if (!textoBuscado) {
+      var completada = o.ubicacion === 'BODEGA';
+      if (filtroEstadoOrdenActivas === 'completadas' && !completada) return false;
+      if (filtroEstadoOrdenActivas === 'pendientes' && completada) return false;
+    }
+    return true;
   });
 
   filtrados.sort(function(a, b) {
@@ -1009,7 +1039,7 @@ function filtrarTablaActivas() {
 }
 
 function filtrarTablaMatrix() {
-  var textoBuscado = document.getElementById("filtroBuscadorOrden2").value.toUpperCase();
+  var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
 
   var thead2 = document.getElementById("headTablaMatrix");
   var htmlHead2 = `<tr><th style="min-width: 90px; text-align: left;">ORDEN</th>`;
@@ -1101,12 +1131,21 @@ function descargarCSV(contenido, prefijo) {
 }
 
 function imprimirReporteCorte() {
-  var fechaCorte = document.getElementById("filtroFechaCorteActivas").value;
-  var textoBuscado = document.getElementById("filtroBuscadorOrden1").value.toUpperCase();
+  var fDesde = document.getElementById("filtroFechaDesdeActivas").value;
+  var fHasta = document.getElementById("filtroFechaHastaActivas").value;
+  var fechaCorte = (fDesde || fHasta) ? `${fDesde || '...'} A ${fHasta || '...'}` : "SIN FILTRO DE FECHA";
+  var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
   var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
 
   var filtrados = ordenesActivasGlobal.filter(function(o) {
-    return o.orden.includes(textoBuscado) && (areaBuscada === "TODAS" || o.ubicacion === areaBuscada);
+    if (!o.orden.includes(textoBuscado)) return false;
+    if (areaBuscada !== "TODAS" && o.ubicacion !== areaBuscada) return false;
+    if (!textoBuscado) {
+      var completada = o.ubicacion === 'BODEGA';
+      if (filtroEstadoOrdenActivas === 'completadas' && !completada) return false;
+      if (filtroEstadoOrdenActivas === 'pendientes' && completada) return false;
+    }
+    return true;
   });
 
   if (filtrados.length === 0) return alert("No hay datos de órdenes activas para imprimir en este corte.");
@@ -1173,8 +1212,10 @@ function imprimirReporteCorte() {
 }
 
 function imprimirReporteMatriz() {
-  var fechaCorte = document.getElementById("filtroFechaCorteActivas").value;
-  var textoBuscado = document.getElementById("filtroBuscadorOrden2").value.toUpperCase();
+  var fDesdeM = document.getElementById("filtroFechaDesdeActivas").value;
+  var fHastaM = document.getElementById("filtroFechaHastaActivas").value;
+  var fechaCorte = (fDesdeM || fHastaM) ? `${fDesdeM || '...'} A ${fHastaM || '...'}` : "SIN FILTRO DE FECHA";
+  var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
   var filtradosMatrix = matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); });
   if (filtradosMatrix.length === 0) return alert("No hay datos de matriz para imprimir.");
 
