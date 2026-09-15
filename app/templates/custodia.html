@@ -120,8 +120,7 @@
   .anulado-row td { background-color: #FEF2F2 !important; color: var(--danger) !important; text-decoration: line-through; opacity: 0.8; }
   .fila-totales td { background-color: var(--brand-light) !important; font-weight: 800 !important; color: var(--brand-main) !important; border-top: 1px solid var(--border-medium) !important; border-bottom: none !important;}
 
-  .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  @media(max-width: 1100px) { .split-layout { grid-template-columns: 1fr; } }
+  .split-layout { display: flex; flex-direction: column; gap: 24px; }
   .split-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); }
   .split-panel h4 { margin-top: 0; margin-bottom: 15px; color: var(--brand-main); font-size: 14px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px;}
   .split-panel .consulta-tabla th { font-size: 10px; padding: 12px 10px; background: var(--brand-light); color: var(--text-muted); border: none; border-bottom: 1px solid var(--border-soft);}
