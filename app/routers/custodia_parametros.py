@@ -13,21 +13,43 @@ from .. import services_custodia as sc
 router = APIRouter()
 
 
+NUVIA_SMILES = "Nuvia Smiles Colombia SAS"
+
+
 @router.get("/custodia/parametros")
 async def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     managers = (db.query(Empleado).filter(Empleado.modulos.contains("custodia"))
                .order_by(Empleado.apellidos).all())
+    candidatos = (db.query(Empleado)
+                 .filter(Empleado.empresa == NUVIA_SMILES, Empleado.activo == 1,
+                         ~Empleado.modulos.contains("custodia"))
+                 .order_by(Empleado.apellidos).all())
     areas = db.query(CustodiaArea).order_by(CustodiaArea.orden).all()
     motivos = db.query(CustodiaMotivo).order_by(CustodiaMotivo.orden).all()
     discos = db.query(CustodiaFactorDisco).order_by(CustodiaFactorDisco.orden).all()
     return templates.TemplateResponse(request, "custodia_parametros.html",
-                                      {"user": user, "managers": managers, "areas": areas,
-                                       "motivos": motivos, "discos": discos,
+                                      {"user": user, "managers": managers, "candidatos": candidatos,
+                                       "areas": areas, "motivos": motivos, "discos": discos,
                                        "areas_activas": sc.areas_disponibles(db),
                                        "es_custodia": True, "msg": request.query_params.get("msg")})
 
 
 # ---------- Managers ----------
+
+@router.post("/custodia/parametros/managers")
+async def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                          empleado_id: int = Form(...), area_custodia: str = Form("")):
+    emp = db.get(Empleado, empleado_id)
+    if emp and emp.empresa == NUVIA_SMILES:
+        modulos = set(emp.modulos_lista)
+        modulos.add("custodia")
+        emp.modulos = ",".join(sorted(modulos))
+        if emp.rol == "empleado":
+            emp.rol = "aprobador"
+        emp.area_custodia = area_custodia.strip().upper()
+        db.commit()
+    return RedirectResponse("/custodia/parametros?msg=Manager agregado.", status_code=303)
+
 
 @router.post("/custodia/parametros/managers/{empleado_id}")
 async def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
@@ -37,6 +59,17 @@ async def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_
         emp.area_custodia = area_custodia.strip().upper()
         db.commit()
     return RedirectResponse("/custodia/parametros?msg=Manager actualizado.", status_code=303)
+
+
+@router.post("/custodia/parametros/managers/{empleado_id}/quitar")
+async def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
+                         db: Session = Depends(get_db)):
+    emp = db.get(Empleado, empleado_id)
+    if emp:
+        emp.modulos = ",".join(m for m in emp.modulos_lista if m != "custodia")
+        emp.area_custodia = ""
+        db.commit()
+    return RedirectResponse("/custodia/parametros?msg=Manager retirado.", status_code=303)
 
 
 # ---------- Áreas de producción ----------
@@ -54,11 +87,10 @@ async def crear_area(user: Empleado = Depends(require_admin), db: Session = Depe
 
 @router.post("/custodia/parametros/areas/{area_id}/editar")
 async def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                      nombre: str = Form(...), orden: int = Form(0), es_inventario: str = Form("")):
+                      nombre: str = Form(...), es_inventario: str = Form("")):
     a = db.get(CustodiaArea, area_id)
     if a:
         a.nombre = nombre.strip().upper()
-        a.orden = orden
         a.es_inventario = 1 if es_inventario else 0
         db.commit()
     return RedirectResponse("/custodia/parametros?msg=Área actualizada.", status_code=303)
@@ -88,12 +120,11 @@ async def crear_disco(user: Empleado = Depends(require_admin), db: Session = Dep
 
 @router.post("/custodia/parametros/discos/{disco_id}/editar")
 async def editar_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                       detalle: str = Form(...), factor: float = Form(...), orden: int = Form(0)):
+                       detalle: str = Form(...), factor: float = Form(...)):
     d = db.get(CustodiaFactorDisco, disco_id)
     if d:
         d.detalle = detalle.strip()
         d.factor = factor
-        d.orden = orden
         db.commit()
     return RedirectResponse("/custodia/parametros?msg=Catálogo actualizado.", status_code=303)
 
