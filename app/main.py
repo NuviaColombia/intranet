@@ -80,6 +80,15 @@ def init_db():
     if "activo" not in columnas_factores:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE custodia_factores_discos ADD COLUMN activo INTEGER DEFAULT 1"))
+    columnas_custodia_areas = {c["name"] for c in inspect(engine).get_columns("custodia_areas")}
+    if "alerta_horas_advertencia" not in columnas_custodia_areas:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE custodia_areas ADD COLUMN alerta_horas_advertencia INTEGER DEFAULT 24"))
+            conn.execute(text("ALTER TABLE custodia_areas ADD COLUMN alerta_horas_critica INTEGER DEFAULT 48"))
+            conn.execute(text(
+                "UPDATE custodia_areas SET alerta_horas_advertencia = 24 WHERE alerta_horas_advertencia IS NULL"))
+            conn.execute(text(
+                "UPDATE custodia_areas SET alerta_horas_critica = 48 WHERE alerta_horas_critica IS NULL"))
     db = SessionLocal()
     try:
         if db.query(TipoPermiso).count() == 0:

@@ -76,22 +76,28 @@ async def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admi
 
 @router.post("/custodia/parametros/areas")
 async def crear_area(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                     nombre: str = Form(...), es_inventario: str = Form("")):
+                     nombre: str = Form(...), es_inventario: str = Form(""),
+                     alerta_horas_advertencia: int = Form(24), alerta_horas_critica: int = Form(48)):
     nombre = nombre.strip().upper()
     if nombre and not db.query(CustodiaArea).filter(CustodiaArea.nombre == nombre).first():
         orden = (db.query(CustodiaArea).count() or 0) + 1
-        db.add(CustodiaArea(nombre=nombre, orden=orden, es_inventario=1 if es_inventario else 0))
+        db.add(CustodiaArea(nombre=nombre, orden=orden, es_inventario=1 if es_inventario else 0,
+                            alerta_horas_advertencia=alerta_horas_advertencia,
+                            alerta_horas_critica=alerta_horas_critica))
         db.commit()
     return RedirectResponse("/custodia/parametros?msg=Área agregada.", status_code=303)
 
 
 @router.post("/custodia/parametros/areas/{area_id}/editar")
 async def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                      nombre: str = Form(...), es_inventario: str = Form("")):
+                      nombre: str = Form(...), es_inventario: str = Form(""),
+                      alerta_horas_advertencia: int = Form(24), alerta_horas_critica: int = Form(48)):
     a = db.get(CustodiaArea, area_id)
     if a:
         a.nombre = nombre.strip().upper()
         a.es_inventario = 1 if es_inventario else 0
+        a.alerta_horas_advertencia = alerta_horas_advertencia
+        a.alerta_horas_critica = alerta_horas_critica
         db.commit()
     return RedirectResponse("/custodia/parametros?msg=Área actualizada.", status_code=303)
 

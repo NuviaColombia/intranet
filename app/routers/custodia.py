@@ -83,6 +83,11 @@ async def api_motivos(user: Empleado = Depends(require_modulo("custodia")), db: 
     return sc.motivos_disponibles(db)
 
 
+@router.get("/custodia/api/areas-alertas")
+async def api_areas_alertas(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+    return sc.alertas_por_area(db)
+
+
 @router.get("/custodia/api/consecutivo-siguiente")
 async def api_consecutivo(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     siguiente = (db.query(func.max(CustodiaTraslado.id)).scalar() or 0) + 1
@@ -123,8 +128,11 @@ async def api_registrar(payload: RegistrarPayload, user: Empleado = Depends(requ
     }
     lineas = [{"numero_orden": t.numeroOrden.strip().upper(), "cantidad_discos": t.cantidadDiscos}
              for t in payload.traslados]
-    traslado = sc.crear_traslado(db, user, cabecera, lineas,
-                                 [r.model_dump() for r in payload.resumen],
+    resumen = [r.model_dump() for r in payload.resumen]
+    error = sc.validar_lineas_traslado(db, lineas, resumen, cabecera["area_salida"])
+    if error:
+        raise HTTPException(400, error)
+    traslado = sc.crear_traslado(db, user, cabecera, lineas, resumen,
                                  [d.model_dump() for d in payload.discos],
                                  [o.model_dump() for o in payload.op])
     return {"mensaje": f"✅ Guardado exitoso. Consecutivo #{traslado.id}", "id": traslado.id}

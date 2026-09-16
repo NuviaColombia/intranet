@@ -211,6 +211,8 @@
                 <option value="">CARGANDO...</option>
               </select>
               <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled>
+              <input type="text" id="totalOrdenNuevo" placeholder="TOTAL DISCOS DE LA ORDEN" style="display:none; margin-top:4px;" disabled
+                     oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')">
             </td>
           </tr>
           <tr>
@@ -744,12 +746,15 @@ function toggleModoOrden() {
   var nueva = document.getElementById("chkOrdenNueva").checked;
   var sel = document.getElementById("numeroOrdenSelect");
   var txt = document.getElementById("numeroOrdenNuevo");
+  var totalTxt = document.getElementById("totalOrdenNuevo");
   sel.style.display = nueva ? "none" : "";
   txt.style.display = nueva ? "" : "none";
+  totalTxt.style.display = nueva ? "" : "none";
   sel.disabled = nueva; sel.required = !nueva;
   txt.disabled = !nueva;
+  totalTxt.disabled = !nueva;
   if (nueva) { sel.value = ""; }
-  else { txt.value = ""; cargarOrdenesIncompletas(); }
+  else { txt.value = ""; totalTxt.value = ""; cargarOrdenesIncompletas(); }
 }
 
 function cargarOrdenesIncompletas() {
@@ -783,6 +788,7 @@ window.onload = function() {
     catalogoDiscos = data;
     renderTablaDiscosDinamica();
   });
+  custodiaApi('/custodia/api/areas-alertas').then(function(data) { areasAlertaGlobal = data; });
 };
 
 // ---------------- PEGADO DE EXCEL EN NUEVO REGISTRO ----------------
@@ -976,7 +982,9 @@ function alternarOrdenUbicacion() {
   filtrarTablaActivas();
 }
 
-function calcularTiempoRetencion(fIso, hIso) {
+var areasAlertaGlobal = {};
+
+function calcularTiempoRetencion(fIso, hIso, area) {
   if(!fIso) return `<span class="badge badge-success">N/A</span>`;
   var dateStr = fIso + "T" + hIso + ":00";
   var dateMov = new Date(dateStr);
@@ -988,9 +996,10 @@ function calcularTiempoRetencion(fIso, hIso) {
   var remHrs = diffHrs % 24;
 
   var timeStr = diffDays > 0 ? `${diffDays}D ${remHrs}H` : `${remHrs}H`;
+  var umbral = areasAlertaGlobal[area] || { advertencia: 24, critica: 48 };
 
-  if(diffHrs > 48) return `<span class="badge badge-danger">${timeStr}</span>`;
-  if(diffHrs > 24) return `<span class="badge badge-warning">${timeStr}</span>`;
+  if(diffHrs > umbral.critica) return `<span class="badge badge-danger">${timeStr}</span>`;
+  if(diffHrs > umbral.advertencia) return `<span class="badge badge-warning">${timeStr}</span>`;
   return `<span class="badge badge-success">${timeStr}</span>`;
 }
 
@@ -1031,7 +1040,7 @@ function filtrarTablaActivas() {
         </td>
         <td style="font-weight:800; color:var(--success);">${o.cantidad.toFixed(2)}</td>
         <td style="font-weight:700;">${o.ubicacion}</td>
-        <td>${calcularTiempoRetencion(o.fIso, o.hIso)} <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
+        <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
       `;
       tbody1.appendChild(tr);
     });
@@ -1924,7 +1933,16 @@ function prepararEnvio(e) {
     } else {
       var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
       if(isNaN(cantNumerica) || cantNumerica <= 0) { alert("INGRESA UNA CANTIDAD DE DISCOS VÁLIDA."); desbloquearBotonGuardar(); return; }
-      datosBase.numeroOrden = ordenRaw; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase]);
+      var totalNum = parseFloat(document.getElementById("totalOrdenNuevo").value.replace(',', '.'));
+      var resumenExtra = [];
+      if (!resultado.existe) {
+        if (isNaN(totalNum) || totalNum <= 0) { alert("INGRESA EL TOTAL DE DISCOS DE LA ORDEN (es una orden nueva)."); desbloquearBotonGuardar(); return; }
+        if (totalNum < cantNumerica) { alert("EL TOTAL DE LA ORDEN NO PUEDE SER MENOR A LA CANTIDAD QUE ESTÁS MOVIENDO."); desbloquearBotonGuardar(); return; }
+        resumenExtra.push({orden: ordenRaw, total: totalNum});
+      } else if (!isNaN(totalNum) && totalNum > 0) {
+        resumenExtra.push({orden: ordenRaw, total: totalNum});
+      }
+      datosBase.numeroOrden = ordenRaw; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase], resumenExtra);
     }
   }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
 }
@@ -1933,7 +1951,8 @@ function mostrarModal() {
   var lista = document.getElementById("listaOrdenes"); lista.innerHTML = "";
   for(var i = 0; i < ordenesSeparadas.length; i++) {
      var div = document.createElement("div"); div.className = "orden-item";
-     div.innerHTML = `<label>ORDEN #${ordenesSeparadas[i]}:</label> <input type='text' id='cant_${i}' required class='modal-input' placeholder='CANT.' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">`;
+     div.innerHTML = `<label>ORDEN #${ordenesSeparadas[i]}:</label> <input type='text' id='cant_${i}' required class='modal-input' placeholder='CANT. A MOVER' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">
+       <input type='text' id='total_${i}' class='modal-input' placeholder='TOTAL ORDEN (si es nueva)' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">`;
      lista.appendChild(div);
   }
   document.getElementById("modalCantidades").style.display = "flex";
@@ -1942,18 +1961,24 @@ function mostrarModal() {
 function cerrarModal() { document.getElementById("modalCantidades").style.display = "none"; desbloquearBotonGuardar(); }
 
 function confirmarMultiples() {
-  var arrDatos = [];
+  var arrDatos = []; var resumenExtra = [];
   for(var i = 0; i < ordenesSeparadas.length; i++) {
      var valNum = parseFloat(String(document.getElementById("cant_" + i).value).replace(',', '.'));
      if(isNaN(valNum) || valNum <= 0) { alert("POR FAVOR, INGRESA UNA CANTIDAD VÁLIDA PARA LA ORDEN " + ordenesSeparadas[i]); return; }
+     var totalVal = parseFloat(String(document.getElementById("total_" + i).value).replace(',', '.'));
+     if (!isNaN(totalVal) && totalVal > 0) {
+       if (totalVal < valNum) { alert("EL TOTAL DE LA ORDEN " + ordenesSeparadas[i] + " NO PUEDE SER MENOR A LA CANTIDAD QUE ESTÁS MOVIENDO."); return; }
+       resumenExtra.push({orden: ordenesSeparadas[i], total: totalVal});
+     }
      var filaData = Object.assign({}, datosBase); filaData.numeroOrden = ordenesSeparadas[i]; filaData.cantidadDiscos = valNum;
      arrDatos.push(filaData);
   }
-  document.getElementById("modalCantidades").style.display = "none"; enviarAlServidor(arrDatos);
+  document.getElementById("modalCantidades").style.display = "none"; enviarAlServidor(arrDatos, resumenExtra);
 }
 
-function enviarAlServidor(arregloDatos) {
-  var payload = { traslados: arregloDatos, resumen: datosResumenExcel, discos: obtenerDatosDiscosCalculados(), op: datosOPExcel };
+function enviarAlServidor(arregloDatos, resumenExtra) {
+  var resumenFinal = datosResumenExcel.concat(resumenExtra || []);
+  var payload = { traslados: arregloDatos, resumen: resumenFinal, discos: obtenerDatosDiscosCalculados(), op: datosOPExcel };
   var btn = document.getElementById("btnGuardar"); btn.innerText = "GUARDANDO REGISTROS...";
   custodiaPostJSON('/custodia/api/traslados', payload).then(function(respuesta) {
       alert(respuesta.mensaje); document.getElementById("formulario").reset();

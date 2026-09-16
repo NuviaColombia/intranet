@@ -107,6 +107,9 @@ class CustodiaArea(Base):
     activo: Mapped[int] = mapped_column(Integer, default=1)
     # False para áreas que no cuentan como ubicación de inventario (ej. EMPAQUE)
     es_inventario: Mapped[int] = mapped_column(Integer, default=1)
+    # Horas en el área antes de marcar una orden como advertencia/crítica en "Ubicación actual"
+    alerta_horas_advertencia: Mapped[int] = mapped_column(Integer, default=24)
+    alerta_horas_critica: Mapped[int] = mapped_column(Integer, default=48)
 
 
 class CustodiaMotivo(Base):

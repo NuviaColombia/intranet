@@ -64,20 +64,26 @@
   <h2>Áreas de producción</h2>
   <p style="font-size:13px;color:var(--gris)">
     Disponibles para Área salida/entrada/creación. "Cuenta como inventario" controla si la
-    orden puede quedar "ubicada" ahí (desmárcalo para áreas como EMPAQUE).
+    orden puede quedar "ubicada" ahí (desmárcalo para áreas como EMPAQUE). Las alertas de horas
+    controlan cuándo una orden se pinta en amarillo/rojo en "Ubicación actual" por llevar
+    mucho tiempo en esa área.
   </p>
   <form method="post" action="/custodia/parametros/areas" class="filtros">
     <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: PULIDO"></div>
+    <div><label>Alerta amarilla (horas)</label><input name="alerta_horas_advertencia" type="number" min="0" value="24"></div>
+    <div><label>Alerta roja (horas)</label><input name="alerta_horas_critica" type="number" min="0" value="48"></div>
     <div><label><input type="checkbox" name="es_inventario" value="1" checked style="width:auto"> Cuenta como inventario</label></div>
     <div><button class="btn">Agregar</button></div>
   </form>
   <table style="margin-top:12px">
-    <tr><th>Nombre</th><th>Inventario</th><th>Estado</th><th></th></tr>
+    <tr><th>Nombre</th><th colspan="2">Alertas (h)</th><th>Inventario</th><th>Estado</th><th></th></tr>
     {% for a in areas %}
     <tr>
-      <td colspan="2">
+      <td colspan="4">
         <form class="inline filtros" method="post" action="/custodia/parametros/areas/{{ a.id }}/editar">
           <div style="flex:2"><input name="nombre" value="{{ a.nombre }}" required></div>
+          <div style="width:70px"><input name="alerta_horas_advertencia" type="number" min="0" value="{{ a.alerta_horas_advertencia }}" title="Alerta amarilla (horas)"></div>
+          <div style="width:70px"><input name="alerta_horas_critica" type="number" min="0" value="{{ a.alerta_horas_critica }}" title="Alerta roja (horas)"></div>
           <div><label style="font-size:12px"><input type="checkbox" name="es_inventario" value="1"
                       {{ 'checked' if a.es_inventario }} style="width:auto"> Inventario</label></div>
           <div><button class="btn mini">Guardar</button></div>

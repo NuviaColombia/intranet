@@ -39,6 +39,13 @@ def motivos_disponibles(db: Session) -> list[str]:
             .order_by(CustodiaMotivo.orden).all()]
 
 
+def alertas_por_area(db: Session) -> dict[str, dict]:
+    """Umbrales de horas (advertencia/crítica) por área, para colorear "tiempo en área"
+    en Ubicación actual -- configurables en Parámetros en vez de fijos (24h/48h)."""
+    return {a.nombre: {"advertencia": a.alerta_horas_advertencia, "critica": a.alerta_horas_critica}
+            for a in db.query(CustodiaArea).filter(CustodiaArea.activo == 1).all()}
+
+
 def ordenes_incompletas(db: Session) -> list[dict]:
     """Órdenes con saldo positivo en alguna área ahora mismo (aún no llegan a un
     estado terminal) -- para el selector de "Número de Orden" al continuar un traslado."""
@@ -54,6 +61,53 @@ def verificar_orden_existente(db: Session, numero_orden_raw: str) -> bool:
               .filter(CustodiaOrdenLinea.numero_orden.in_(ordenes_buscadas), CustodiaTraslado.anulado.is_(False))
               .first())
     return existe is not None
+
+
+def _saldo_confirmado(db: Session, orden: str, area: str) -> float:
+    """Cuánta cantidad de esta orden está actualmente CONFIRMADA (entrada ya confirmada)
+    en el área dada -- a diferencia de estado_ordenes(), que cuenta lo registrado aunque
+    la entrada no se haya confirmado todavía."""
+    q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
+         .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
+         .filter(CustodiaOrdenLinea.numero_orden == orden, CustodiaTraslado.anulado.is_(False)))
+    saldo = 0.0
+    for linea, traslado in q.all():
+        if traslado.area_entrada == area and traslado.confirmado_entrada:
+            saldo += linea.cantidad_discos
+        if traslado.area_salida == area:
+            saldo -= linea.cantidad_discos
+    return saldo
+
+
+def validar_lineas_traslado(db: Session, lineas: list[dict], resumen: list[dict], area_salida: str) -> str | None:
+    """Reglas de negocio antes de crear un traslado:
+    - la cantidad movida por línea no puede superar el TOTAL conocido de la orden.
+    - no se puede sacar una orden de un área si no se confirmó antes su entrada ahí,
+      salvo que sea el primer movimiento de esa orden (recién creada, nada que recibir antes)."""
+    for linea in lineas:
+        orden = linea["numero_orden"]
+        cantidad = linea["cantidad_discos"]
+
+        total_existente = (db.query(func.coalesce(func.sum(CustodiaResumen.total), 0.0))
+                           .join(CustodiaTraslado, CustodiaResumen.traslado_id == CustodiaTraslado.id)
+                           .filter(CustodiaResumen.orden == orden, CustodiaTraslado.anulado.is_(False))
+                           .scalar()) or 0.0
+        total_en_este_envio = sum(r.get("total") or 0 for r in resumen if r.get("orden") == orden)
+        total_efectivo = total_existente + total_en_este_envio
+        if total_efectivo > 0 and cantidad > total_efectivo + 1e-6:
+            return (f"La cantidad de discos ({cantidad}) para la orden {orden} supera el TOTAL "
+                    f"registrado de esa orden ({round(total_efectivo, 3)}).")
+
+        existe_previo = (db.query(CustodiaOrdenLinea)
+                         .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
+                         .filter(CustodiaOrdenLinea.numero_orden == orden, CustodiaTraslado.anulado.is_(False))
+                         .first())
+        if existe_previo:
+            saldo = _saldo_confirmado(db, orden, area_salida)
+            if saldo + 1e-6 < cantidad:
+                return (f"No puedes entregar la orden {orden} desde {area_salida}: aún no se ha "
+                        f"confirmado la entrada de esa orden en esa área.")
+    return None
 
 
 def crear_traslado(db: Session, user: Empleado, cabecera: dict, lineas: list[dict],
