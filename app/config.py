@@ -20,3 +20,6 @@ ZOHO_MAIL_REFRESH_TOKEN = os.getenv("ZOHO_MAIL_REFRESH_TOKEN", "")
 MAIL_FROM = os.getenv("MAIL_FROM", "")
 
 ADMIN_EMAILS = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
+
+# URL del "Incoming Webhook" del Bot de Zoho Cliq (incluye ?zapikey=...), para DMs directos.
+CLIQ_BOT_WEBHOOK_URL = os.getenv("CLIQ_BOT_WEBHOOK_URL", "")

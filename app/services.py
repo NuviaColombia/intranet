@@ -5,6 +5,7 @@ from sqlalchemy import func, or_
 from . import config
 from .models import Empleado, Solicitud, Aprobacion, TipoPermiso, Auditoria, Configuracion, HoraExtra
 from .zoho_mail import enviar_correo
+from .zoho_cliq import enviar_cliq
 from .tokens import generar_token
 
 HORAS_SEMANA = 42  # jornada laboral legal usada para prorratear solicitudes por horas
@@ -193,6 +194,9 @@ def notificar_empleado_creado(emp: Empleado):
       Si tienes dudas, contacta a Recursos Humanos.
     </p>"""
     enviar_correo(emp.email, "Bienvenido a Solicitudes Nuvia", html)
+    enviar_cliq(emp.email,
+               f"👋 ¡Bienvenido a Solicitudes Nuvia, {emp.nombres}! Ya quedaste registrado en la "
+               f"plataforma. Ingresa con tu correo corporativo: {config.BASE_URL}/login")
 
 
 def _btn(url: str, texto: str, color: str) -> str:
@@ -236,6 +240,10 @@ def _notificar_aprobador(db: Session, sol: Solicitud, nivel: int):
     enviar_correo(apr.aprobador.email,
                   f"[Permisos] Solicitud #{sol.id} de {sol.empleado.nombre_completo} pendiente de tu aprobación",
                   html)
+    enviar_cliq(apr.aprobador.email,
+               f"🔔 Tienes una solicitud de permiso pendiente por aprobar: #{sol.id} de "
+               f"{sol.empleado.nombre_completo} ({sol.tipo.nombre}, {sol.fecha_inicio} al {sol.fecha_fin}). "
+               f"Revísala en {config.BASE_URL}/aprobaciones")
 
 
 def _notificar_empleado(sol: Solicitud, aprobado: bool, comentario: str = ""):
@@ -319,6 +327,9 @@ def _notificar_admins_horas_extra(db: Session, he: HoraExtra):
     for admin in admins:
         enviar_correo(admin.email,
                       f"[Permisos] Horas extra pendientes: {he.empleado.nombre_completo}", html)
+        enviar_cliq(admin.email,
+                   f"🔔 Solicitud de horas extra pendiente: {he.empleado.nombre_completo}, {he.fecha}, "
+                   f"{he.horas:g}h. Gestiónala en {config.BASE_URL}/horas-extra")
 
 
 def _notificar_resultado_horas_extra(he: HoraExtra):

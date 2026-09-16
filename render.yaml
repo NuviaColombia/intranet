@@ -28,3 +28,5 @@ services:
         sync: false
       - key: ADMIN_EMAILS
         sync: false
+      - key: CLIQ_BOT_WEBHOOK_URL
+        sync: false
