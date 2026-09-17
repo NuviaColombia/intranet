@@ -846,7 +846,7 @@ function procesarPegadoResumen(e) {
   rows.forEach(r => {
     if(!r.trim()) return; var cols = r.split('\t');
     if(cols[0].toLowerCase().includes('orden') || cols[0].toLowerCase().includes('resumen') || cols[0].toLowerCase().includes('total general')) return;
-    datosResumenExcel.push({ orden: cols[0], descripcion: cols[1], paciente: cols[2], total: parseFloat(cols[3]||0) });
+    datosResumenExcel.push({ orden: cols[0], descripcion: cols[1], paciente: cols[2], total: parseFloat(String(cols[3]||"0").trim().replace(',', '.')) || 0 });
   });
   renderTablaResumen(); e.target.value = "✅ ¡RESUMEN CARGADO!"; setTimeout(() => e.target.value = "", 2000);
 }
