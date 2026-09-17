@@ -26,7 +26,6 @@ async def pagina(request: Request, user: Empleado = Depends(require_modulo("cust
 # ---------- Esquemas ----------
 
 class TrasladoLineaIn(BaseModel):
-    areaCreacion: str
     fecha: date
     hora: str
     areaSalida: str
@@ -116,15 +115,12 @@ async def api_registrar(payload: RegistrarPayload, user: Empleado = Depends(requ
         hora_obj = time.fromisoformat(primero.hora)
     except ValueError:
         raise HTTPException(400, "Hora inválida.")
-    if user.area_custodia and user.area_custodia.strip().upper() != "DIR PRODUCCIÓN":
-        area_creacion = user.area_custodia.strip().upper()
-    else:
-        area_creacion = primero.areaCreacion.strip().upper()
+    area_entrada = primero.areaEntrada.strip().upper()
     cabecera = {
         "colaborador": user.nombre_completo.strip().upper(), "id_colaborador": "",
-        "area_creacion": area_creacion, "fecha": primero.fecha, "hora": hora_obj,
+        "area_creacion": area_entrada, "fecha": primero.fecha, "hora": hora_obj,
         "usuario": "", "area_salida": primero.areaSalida.strip().upper(),
-        "area_entrada": primero.areaEntrada.strip().upper(), "motivo": primero.motivo.strip().upper(),
+        "area_entrada": area_entrada, "motivo": primero.motivo.strip().upper(),
     }
     lineas = [{"numero_orden": t.numeroOrden.strip().upper(), "cantidad_discos": t.cantidadDiscos}
              for t in payload.traslados]

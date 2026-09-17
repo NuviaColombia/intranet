@@ -192,16 +192,8 @@
           <tr>
             <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
             <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo }}" style="color: var(--text-muted); cursor: not-allowed;"></td>
-            <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">ÁREA CREACIÓN</td>
-            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;">
-              {% if user.area_custodia and user.area_custodia.upper() != 'DIR PRODUCCIÓN' %}
-              <input type="text" id="areaCreacion" readonly value="{{ user.area_custodia }}" style="color: var(--text-muted); cursor: not-allowed;">
-              {% else %}
-              <input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones">
-              {% endif %}
-            </td>
-            <td class="label-cell">NÚMERO DE ORDEN</td>
-            <td class="input-cell">
+            <td class="label-cell" style="border-top: 1px solid var(--border-soft) !important;">NÚMERO DE ORDEN</td>
+            <td class="input-cell" colspan="3" style="border-top: 1px solid var(--border-soft) !important;">
               <select id="numeroOrdenSelect" required>
                 <option value="">CARGANDO...</option>
               </select>
@@ -756,8 +748,17 @@ function aplicarModoOrden(nueva) {
   sel.disabled = nueva; sel.required = !nueva;
   txt.disabled = !nueva;
   document.getElementById("btnGuardar").innerText = nueva ? "REGISTRAR ORDEN NUEVA" : "REGISTRAR TRASLADO";
-  if (nueva) { sel.value = ""; }
-  else { txt.value = ""; cargarOrdenesIncompletas(); }
+  var selSalida = document.getElementById("areaSalida"), selEntrada = document.getElementById("areaEntrada");
+  if (nueva) {
+    sel.value = "";
+    selSalida.value = "MILLING";
+    selEntrada.value = "DIR PRODUCCIÓN";
+  } else {
+    txt.value = "";
+    selSalida.value = "";
+    selEntrada.value = "";
+    cargarOrdenesIncompletas();
+  }
 }
 
 function cargarOrdenesIncompletas() {
@@ -1883,7 +1884,6 @@ function procesarPegado(event) {
     switchTab('nueva-orden');
     document.getElementById("numeroOrdenNuevo").value = dict["numero de orden"];
   }
-  if (dict["area creacion"]) document.getElementById("areaCreacion").value = dict["area creacion"];
   if (dict["cantidad de discos"]) document.getElementById("cantidadDiscos").value = dict["cantidad de discos"].replace(/\./g, ',');
 
   if (dict["area salida"]) setSelectByText("areaSalida", dict["area salida"]);
@@ -1898,7 +1898,7 @@ function procesarPegado(event) {
 
 function desbloquearBotonGuardar() {
    var btn = document.getElementById("btnGuardar");
-   btn.disabled = false; btn.innerText = "REGISTRAR TRASLADO";
+   btn.disabled = false; btn.innerText = modoOrdenNuevaActivo ? "REGISTRAR ORDEN NUEVA" : "REGISTRAR TRASLADO";
 }
 
 function prepararEnvio(e) {
@@ -1908,7 +1908,6 @@ function prepararEnvio(e) {
 
   datosBase = {
     colaborador: document.getElementById("colaborador").value.toUpperCase(),
-    areaCreacion: document.getElementById("areaCreacion").value.toUpperCase(),
     fecha: document.getElementById("fecha").value,
     hora: document.getElementById("hora").value,
     areaSalida: document.getElementById("areaSalida").value.toUpperCase(),

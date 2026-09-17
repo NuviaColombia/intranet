@@ -4,12 +4,10 @@
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
 <div class="tarjeta">
-  <h2>Managers → Área de creación</h2>
+  <h2>Managers</h2>
   <p style="font-size:13px;color:var(--gris)">
     Elige managers de entre los empleados de Nuvia Smiles. Al agregarlos se les da acceso al
-    módulo Custodia y, si eran "empleado", pasan a rol "aprobador". El "Área creación" que
-    asignes queda fija (no la podrán escribir libremente al registrar) — deja "Sin asignar"
-    para que sigan escribiéndola a mano.
+    módulo Custodia y, si eran "empleado", pasan a rol "aprobador".
   </p>
   <form method="post" action="/custodia/parametros/managers" class="filtros">
     <div style="flex:2">
@@ -21,41 +19,19 @@
         {% endfor %}
       </select>
     </div>
-    <div>
-      <label>Área creación</label>
-      <select name="area_custodia">
-        <option value="">-- SIN ASIGNAR --</option>
-        {% for a in areas_activas %}
-        <option value="{{ a }}">{{ a }}</option>
-        {% endfor %}
-      </select>
-    </div>
     <div><button class="btn">Agregar</button></div>
   </form>
   <table style="margin-top:12px">
-    <tr><th>Manager</th><th>Área creación</th><th></th></tr>
+    <tr><th>Manager</th><th></th></tr>
     {% for m in managers %}
     <tr>
       <td>{{ m.nombre_completo }}</td>
-      <td>
-        <form class="inline filtros" method="post" action="/custodia/parametros/managers/{{ m.id }}">
-          <div style="flex:2">
-            <select name="area_custodia">
-              <option value="">-- SIN ASIGNAR --</option>
-              {% for a in areas_activas %}
-              <option value="{{ a }}" {{ 'selected' if m.area_custodia == a }}>{{ a }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div><button class="btn mini">Guardar</button></div>
-        </form>
-      </td>
       <td><form class="inline" method="post" action="/custodia/parametros/managers/{{ m.id }}/quitar"
                 onsubmit="return confirm('¿Quitar a {{ m.nombre_completo }} como manager de Custodia?')">
         <button class="btn rojo mini">Quitar</button></form></td>
     </tr>
     {% else %}
-    <tr><td colspan="3">Ningún empleado tiene el módulo Custodia asignado todavía.</td></tr>
+    <tr><td colspan="2">Ningún empleado tiene el módulo Custodia asignado todavía.</td></tr>
     {% endfor %}
   </table>
 </div>
