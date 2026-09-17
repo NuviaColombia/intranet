@@ -43,8 +43,8 @@ AREAS_INICIALES = ["Admin", "Operativa"]
 
 CUSTODIA_AREAS_INICIALES = [
     ("MILLING", 1), ("CORTE", 1), ("SINTERING/SANDBLAST", 1), ("GLAZE", 1), ("CRISTALES", 1),
-    ("QC FINAL", 1), ("DIR PRODUCCIÓN", 1), ("DIR PRODUCCIÓN - DAÑADO", 1), ("EMPAQUE", 0), ("BODEGA", 1),
-]  # (nombre, es_inventario)
+    ("QC FINAL", 1), ("DIR PRODUCCIÓN", 1), ("DIR PRODUCCIÓN - DAÑADO", 1), ("EMPAQUE", 1), ("BODEGA", 1),
+]  # (nombre, es_inventario) -- EMPAQUE cuenta como inventario: toda orden que llega ahí se considera completada
 
 CUSTODIA_MOTIVOS_INICIALES = ["PRODUCCIÓN NORMAL", "MERMA/DAÑO", "DEVOLUCIÓN"]
 
@@ -92,6 +92,10 @@ def init_db():
                 "UPDATE custodia_areas SET alerta_horas_advertencia = 24 WHERE alerta_horas_advertencia IS NULL"))
             conn.execute(text(
                 "UPDATE custodia_areas SET alerta_horas_critica = 48 WHERE alerta_horas_critica IS NULL"))
+    # Corrección de negocio: EMPAQUE sí cuenta como ubicación de inventario -- toda orden que
+    # llega ahí se considera completada, y debe seguir apareciendo en Ubicación actual/Historial.
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE custodia_areas SET es_inventario = 1 WHERE nombre = 'EMPAQUE'"))
     db = SessionLocal()
     try:
         if db.query(TipoPermiso).count() == 0:

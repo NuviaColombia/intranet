@@ -1144,7 +1144,7 @@ function filtrarTablaActivas() {
     if (!o.orden.includes(textoBuscado)) return false;
     if (areaBuscada !== "TODAS" && o.ubicacion !== areaBuscada) return false;
     if (!textoBuscado) {
-      var completada = o.ubicacion === 'BODEGA';
+      var completada = o.ubicacion === 'EMPAQUE';
       if (filtroEstadoOrdenActivas === 'completadas' && !completada) return false;
       if (filtroEstadoOrdenActivas === 'pendientes' && completada) return false;
     }
@@ -1290,7 +1290,7 @@ function imprimirReporteCorte() {
     if (!o.orden.includes(textoBuscado)) return false;
     if (areaBuscada !== "TODAS" && o.ubicacion !== areaBuscada) return false;
     if (!textoBuscado) {
-      var completada = o.ubicacion === 'BODEGA';
+      var completada = o.ubicacion === 'EMPAQUE';
       if (filtroEstadoOrdenActivas === 'completadas' && !completada) return false;
       if (filtroEstadoOrdenActivas === 'pendientes' && completada) return false;
     }

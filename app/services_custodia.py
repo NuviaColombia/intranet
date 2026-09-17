@@ -281,14 +281,14 @@ def estado_ordenes(db: Session, fecha_desde: date | None = None, fecha_hasta: da
     return {"data": resultado, "matrix": matrix_out, "areasMatrix": areas_matrix}
 
 
-AREA_FINAL = "BODEGA"  # ubicación que se considera "orden terminada"
+AREA_FINAL = "EMPAQUE"  # ubicación que se considera "orden terminada"
 
 
 def consultar_orden(db: Session, numero_orden: str, fecha_desde: date | None = None,
                     fecha_hasta: date | None = None) -> dict:
     """Para una orden puntual: su total esperado (según lo pegado en Resumen general al
     registrar, o la cantidad indicada al crearla -- no depende del rango de fechas), cuánto
-    ya llegó a BODEGA (terminado) dentro del rango, y el resto (en proceso: lo que sigue
+    ya llegó a EMPAQUE (terminado) dentro del rango, y el resto (en proceso: lo que sigue
     circulando por producción o aún no se ha registrado)."""
     target = numero_orden.strip().upper()
 
