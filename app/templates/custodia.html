@@ -449,8 +449,11 @@
     <!-- SECCIÓN 4: DASHBOARD -->
     <div id="sec-existencias" class="content-section">
       <div class="consulta-filtros">
-        <div style="display:flex; align-items:center; gap:8px;"><label>FECHA CORTE:</label>
-          <input type="date" id="dashFechaCorte" onchange="cargarDashboardExistencias()">
+        <div style="display:flex; align-items:center; gap:8px;"><label>DESDE:</label>
+          <input type="date" id="dashFechaDesde" onchange="cargarDashboardExistencias()">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;"><label>HASTA:</label>
+          <input type="date" id="dashFechaHasta" onchange="cargarDashboardExistencias()">
         </div>
         <div id="dropdownBodegas" class="dropdown-check-list" tabindex="100">
           <span class="anchor" onclick="toggleDropdownBodegas()">🎛️ SELECCIONAR ÁREAS</span>
@@ -776,12 +779,17 @@ function cargarOrdenesIncompletas() {
   });
 }
 
+function formatoFechaLocal(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 window.onload = function() {
   actualizarHora(); setInterval(actualizarHora, 60000);
   var hoy = new Date();
   document.getElementById("fecha").value = hoy.toISOString().split('T')[0];
   document.getElementById("fechaVersionHeader").innerText = hoy.toLocaleDateString('es-CO');
-  document.getElementById("dashFechaCorte").value = hoy.toISOString().split('T')[0];
+  document.getElementById("dashFechaDesde").value = formatoFechaLocal(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  document.getElementById("dashFechaHasta").value = formatoFechaLocal(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
   cargarConsecutivo();
   aplicarModoOrden(false);
   custodiaApi('/custodia/api/factores-discos').then(function(data) {
@@ -1720,12 +1728,17 @@ document.addEventListener('click', function(e) {
 });
 
 function cargarDashboardExistencias() {
-  var fechaCorte = document.getElementById("dashFechaCorte").value;
+  var fechaDesde = document.getElementById("dashFechaDesde").value;
+  var fechaHasta = document.getElementById("dashFechaHasta").value;
   var btn = document.getElementById("btnCalcularDash"); btn.innerText = "CARGANDO...";
   var lista = document.getElementById("listaCheckboxesBodegas");
   lista.innerHTML = "<li><i>Cargando áreas...</i></li>";
 
-  custodiaApi('/custodia/api/dashboard?fechaCorte=' + encodeURIComponent(fechaCorte)).then(function(res) {
+  var params = new URLSearchParams();
+  if (fechaDesde) params.set('fechaDesde', fechaDesde);
+  if (fechaHasta) params.set('fechaHasta', fechaHasta);
+
+  custodiaApi('/custodia/api/dashboard?' + params.toString()).then(function(res) {
     btn.innerText = "🔄 REFRESCAR";
     datosDashboardGlobal = res.dataPorArea || {};
     var areas = Object.keys(datosDashboardGlobal).sort(function(a, b) {

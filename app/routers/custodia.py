@@ -214,10 +214,12 @@ async def api_detalles(traslado_id: int, user: Empleado = Depends(require_modulo
 
 
 @router.get("/custodia/api/dashboard")
-async def api_dashboard(fechaCorte: str = "", user: Empleado = Depends(require_modulo("custodia")),
+async def api_dashboard(fechaDesde: str = "", fechaHasta: str = "",
+                        user: Empleado = Depends(require_modulo("custodia")),
                         db: Session = Depends(get_db)):
-    fc = date.fromisoformat(fechaCorte) if fechaCorte else None
-    return sc.dashboard(db, fc)
+    fd = date.fromisoformat(fechaDesde) if fechaDesde else None
+    fh = date.fromisoformat(fechaHasta) if fechaHasta else None
+    return sc.dashboard(db, fd, fh)
 
 
 @router.get("/custodia/api/tickets-rango")

@@ -321,14 +321,17 @@ def viaje_orden(db: Session, numero_orden: str) -> list[dict]:
     return viaje
 
 
-def dashboard(db: Session, fecha_corte: date | None) -> dict:
-    """Totales de entrada/salida/neto y motivos por área, hasta (e incluyendo) la fecha de
-    corte. Devuelve TODAS las áreas observadas; el front filtra localmente qué mostrar."""
+def dashboard(db: Session, fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
+    """Totales de entrada/salida/neto y motivos por área, dentro del rango de fechas dado
+    (movimientos de ese periodo, no un balance acumulado). Devuelve TODAS las áreas
+    observadas; el front filtra localmente qué mostrar."""
     q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
          .filter(CustodiaTraslado.anulado.is_(False)))
-    if fecha_corte:
-        q = q.filter(CustodiaTraslado.fecha <= fecha_corte)
+    if fecha_desde:
+        q = q.filter(CustodiaTraslado.fecha >= fecha_desde)
+    if fecha_hasta:
+        q = q.filter(CustodiaTraslado.fecha <= fecha_hasta)
 
     motivos = motivos_disponibles(db)
     data_por_area: dict[str, dict] = {}
