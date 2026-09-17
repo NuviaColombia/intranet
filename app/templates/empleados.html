@@ -38,6 +38,7 @@
       </select>
     </div>
     <div><label>Cargo</label><input type="text" name="cargo" required></div>
+    <div><label>Salario</label><input type="number" step="0.01" min="0" name="salario" placeholder="Opcional"></div>
     <div><label>Área</label>
       <select name="area" required>
         <option value="">—</option>
@@ -95,7 +96,7 @@
 <div class="tarjeta" style="overflow-x:auto">
   <table>
     <tr><th>Nombre</th><th>Identificación</th><th>Correo</th><th>Empresa / Área / Cargo</th>
-        <th>Nacimiento</th><th>Vacaciones</th><th>Rol</th><th>Módulos</th><th></th></tr>
+        <th>Nacimiento</th><th>Vacaciones</th><th>Salario</th><th>Rol</th><th>Módulos</th><th></th></tr>
     {% for e in empleados %}
     <tr {% if not e.activo %}style="opacity:.45"{% endif %}>
       <td><b>{{ e.nombre_completo }}</b></td>
@@ -104,6 +105,7 @@
       <td>{{ e.empresa }}<br><small style="color:var(--gris)">{{ e.area }} · {{ e.cargo }}</small></td>
       <td>{{ e.fecha_nacimiento or '—' }}</td>
       <td>{{ e.dias_vacaciones }} días</td>
+      <td>{{ "${:,.0f}".format(e.salario) if e.salario else '—' }}</td>
       <td>{{ {'admin':'Administrador','aprobador':'Aprobador'}.get(e.rol, 'Empleado') }}{% if not e.activo %}<br><small style="color:var(--gris)">Inactivo</small>{% endif %}</td>
       <td>{% if e.rol == 'admin' %}<small style="color:var(--gris)">Todos (admin)</small>
           {% else %}{% for slug, nombre in modulos_disponibles %}{% if slug in e.modulos_lista %}<span class="badge aprobada">{{ nombre }}</span> {% endif %}{% endfor %}{% if not e.modulos_lista %}<small style="color:var(--gris)">—</small>{% endif %}{% endif %}</td>

@@ -61,6 +61,7 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
                          identificacion: str = Form(...), email: str = Form(...),
                          num_aprobaciones: int = Form(1), rol: str = Form("empleado"),
                          aprobador1_id: str = Form(""), aprobador2_id: str = Form(""),
+                         salario: str = Form(""),
                          modulos: list[str] = Form([])):
     identificacion = identificacion.strip()
     email = email.strip().lower()
@@ -78,6 +79,7 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
         rol=rol if rol in ("empleado", "admin", "aprobador") else "empleado",
         aprobador1_id=int(aprobador1_id) if aprobador1_id else None,
         aprobador2_id=int(aprobador2_id) if aprobador2_id else None,
+        salario=float(salario) if salario.strip() else None,
         modulos=",".join(m for m in modulos if m in MODULOS_VALIDOS),
     )
     db.add(emp)
@@ -118,7 +120,7 @@ async def editar_empleado(emp_id: int, user: Empleado = Depends(require_admin),
                           empresa: str = Form(...),
                           cargo: str = Form(...), area: str = Form(...),
                           identificacion: str = Form(...), email: str = Form(...),
-                          dias_vacaciones: float = Form(0),
+                          dias_vacaciones: float = Form(0), salario: str = Form(""),
                           rol: str = Form("empleado"), num_aprobaciones: int = Form(1),
                           aprobador1_id: str = Form(""), aprobador2_id: str = Form(""),
                           activo: int = Form(1), modulos: list[str] = Form([])):
@@ -145,6 +147,7 @@ async def editar_empleado(emp_id: int, user: Empleado = Depends(require_admin),
     emp.identificacion = identificacion
     emp.email = email
     emp.dias_vacaciones = dias_vacaciones
+    emp.salario = float(salario) if salario.strip() else None
     emp.rol = rol if rol in ("empleado", "admin", "aprobador") else "empleado"
     emp.num_aprobaciones = num_aprobaciones if num_aprobaciones in (1, 2) else 1
     emp.aprobador1_id = int(aprobador1_id) if aprobador1_id else None

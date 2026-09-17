@@ -32,6 +32,9 @@
     <label>Días de vacaciones disponibles (saldo acumulado)</label>
     <input type="number" step="0.5" name="dias_vacaciones" value="{{ emp.dias_vacaciones }}">
 
+    <label>Salario</label>
+    <input type="number" step="0.01" min="0" name="salario" value="{{ emp.salario if emp.salario is not none else '' }}">
+
     <label>Rol</label>
     <select name="rol">
       <option value="empleado" {{ 'selected' if emp.rol=='empleado' }}>Empleado</option>

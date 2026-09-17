@@ -34,18 +34,21 @@ async def certificaciones_form(request: Request, user: Empleado = Depends(get_cu
 @router.post("/certificaciones/generar")
 async def generar_certificado(request: Request, user: Empleado = Depends(get_current_user),
                               db: Session = Depends(get_db),
-                              dirigido_a: str = Form("A quien interese"), motivo: str = Form("")):
+                              dirigido_a: str = Form("A quien interese"), motivo: str = Form(""),
+                              incluir_salario: bool = Form(False)):
     if not user.fecha_inicio_empresa:
         return RedirectResponse(
             "/certificaciones?error=Tu fecha de inicio en la empresa no está registrada. "
             "Pídele a RRHH que la complete antes de generar el certificado.", status_code=303)
 
-    auditar(db, user.email, "Certificado laboral generado", motivo.strip() or "-", empleado_id=user.id)
+    auditar(db, user.email, "Certificado laboral generado",
+           (motivo.strip() or "-") + (" (con salario)" if incluir_salario else ""), empleado_id=user.id)
     db.commit()
     return templates.TemplateResponse(request, "certificado.html",
                                       {"user": user,
                                        "dirigido_a": dirigido_a.strip() or "A quien interese",
                                        "motivo": motivo.strip(),
+                                       "incluir_salario": incluir_salario,
                                        "hoy_fmt": fecha_larga_es(date.today()),
                                        "fecha_inicio_fmt": fecha_larga_es(user.fecha_inicio_empresa),
                                        "logo": logo_para(user.empresa),

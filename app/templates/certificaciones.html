@@ -13,6 +13,12 @@
     <input type="text" name="dirigido_a" value="A quien interese">
     <label>Motivo (opcional, se incluye en el certificado)</label>
     <textarea name="motivo" rows="2" placeholder="Ej: para trámite bancario"></textarea>
+    {% if user.salario %}
+    <label style="font-weight:400;display:flex;align-items:center;gap:6px;margin:10px 0">
+      <input type="checkbox" name="incluir_salario" value="1" style="width:auto">
+      Incluir salario en el certificado
+    </label>
+    {% endif %}
     <button class="btn">Generar certificado</button>
   </form>
 </div>

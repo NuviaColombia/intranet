@@ -84,6 +84,9 @@
           <b>{{ user.nombre_completo }}</b>, identificado(a) con cédula de ciudadanía
           No. {{ user.identificacion }}, labora actualmente en la compañía desde el
           <b>{{ fecha_inicio_fmt }}</b>, desempeñando el cargo de <b>{{ user.cargo }}</b>.
+          {% if incluir_salario and user.salario %}
+          Su salario mensual actual es de <b>${{ "{:,.0f}".format(user.salario) }}</b>.
+          {% endif %}
         </p>
 
         {% if motivo %}

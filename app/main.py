@@ -76,6 +76,9 @@ def init_db():
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE empleados ADD COLUMN area_custodia VARCHAR(100) DEFAULT ''"))
             conn.execute(text("UPDATE empleados SET area_custodia = '' WHERE area_custodia IS NULL"))
+    if "salario" not in columnas_empleados:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE empleados ADD COLUMN salario FLOAT"))
     columnas_factores = {c["name"] for c in inspect(engine).get_columns("custodia_factores_discos")}
     if "activo" not in columnas_factores:
         with engine.begin() as conn:
