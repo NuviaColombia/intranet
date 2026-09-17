@@ -7,9 +7,9 @@
   <h2>Managers</h2>
   <p style="font-size:13px;color:var(--gris)">
     Elige managers de entre los empleados de Nuvia Smiles. Al agregarlos se les da acceso al
-    módulo Custodia y, si eran "empleado", pasan a rol "aprobador". El "Área de entrada" que
+    módulo Custodia y, si eran "empleado", pasan a rol "aprobador". El "Área de salida" que
     asignes queda como valor por defecto para ese manager en la pestaña "Nueva orden" — deja
-    "Sin asignar" para que use el valor por defecto general (DIR PRODUCCIÓN).
+    "Sin asignar" para que use el valor por defecto general (MILLING).
   </p>
   <form method="post" action="/custodia/parametros/managers" class="filtros">
     <div style="flex:2">
@@ -22,7 +22,7 @@
       </select>
     </div>
     <div>
-      <label>Área de entrada</label>
+      <label>Área de salida</label>
       <select name="area_custodia">
         <option value="">-- SIN ASIGNAR --</option>
         {% for a in areas_activas %}
@@ -33,7 +33,7 @@
     <div><button class="btn">Agregar</button></div>
   </form>
   <table style="margin-top:12px">
-    <tr><th>Manager</th><th>Cargo</th><th>Área de entrada</th><th></th></tr>
+    <tr><th>Manager</th><th>Cargo</th><th>Área de salida</th><th></th></tr>
     {% for m in managers %}
     <tr>
       <td>{{ m.nombre_completo }}</td>

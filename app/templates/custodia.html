@@ -194,7 +194,7 @@
             <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo }}" style="color: var(--text-muted); cursor: not-allowed;"></td>
             <td class="label-cell" style="border-top: 1px solid var(--border-soft) !important;">NÚMERO DE ORDEN</td>
             <td class="input-cell" colspan="3" style="border-top: 1px solid var(--border-soft) !important;">
-              <select id="numeroOrdenSelect" required>
+              <select id="numeroOrdenSelect" required onchange="validarCantidadInline()">
                 <option value="">CARGANDO...</option>
               </select>
               <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled>
@@ -222,7 +222,7 @@
               </select>
             </td>
             <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">CANTIDAD DISCOS</td>
-            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="text" id="cantidadDiscos" oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')" required placeholder="0,00"></td>
+            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="text" id="cantidadDiscos" oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')" onblur="validarCantidadInline()" required placeholder="0,00"></td>
             <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">MOTIVO</td>
             <td class="input-cell" style="border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;">
               <select id="motivo" required>
@@ -235,6 +235,7 @@
         <div id="ayudaOrdenNueva" style="display:none; font-size:11px; color:var(--text-muted); margin-top:8px; line-height:1.3;">
           ℹ️ LA CANTIDAD DE DISCOS QUE INGRESES ABAJO SERÁ EL TOTAL DE ESTA ORDEN.
         </div>
+        <div id="errorCantidadDiscos" style="display:none; font-size:11px; font-weight:700; color:var(--danger); margin-top:8px; line-height:1.3;"></div>
 
         <div style="margin-top: 35px; border-top: 2px solid var(--border-soft); padding-top: 20px;">
            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -246,11 +247,9 @@
            <div class="consulta-tabla-wrapper" style="margin-bottom:20px;">
               <table class="consulta-tabla" style="min-width:100%;">
                  <thead>
-                    <tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th></tr>
+                    <tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th><th>#</th></tr>
                  </thead>
-                 <tbody id="bodyResumen">
-                    <tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>
-                 </tbody>
+                 <tbody id="bodyResumen"></tbody>
               </table>
            </div>
 
@@ -274,11 +273,9 @@
                  <div class="consulta-tabla-wrapper">
                     <table class="consulta-tabla" style="min-width:100%;">
                        <thead>
-                          <tr><th>OP</th><th>DESCRIPCIÓN</th><th>ORDEN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th></tr>
+                          <tr><th>OP</th><th>ORDEN</th><th>DESCRIPCIÓN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th><th>#</th></tr>
                        </thead>
-                       <tbody id="bodyOP">
-                          <tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>
-                       </tbody>
+                       <tbody id="bodyOP"></tbody>
                     </table>
                  </div>
                </div>
@@ -737,7 +734,7 @@ function cargarConsecutivo() {
 }
 
 var modoOrdenNuevaActivo = false;
-var areaEntradaManager = {{ (user.area_custodia or '') | tojson }};
+var areaSalidaManager = {{ (user.area_custodia or '') | tojson }};
 
 function aplicarModoOrden(nueva) {
   modoOrdenNuevaActivo = nueva;
@@ -753,14 +750,43 @@ function aplicarModoOrden(nueva) {
   var selSalida = document.getElementById("areaSalida"), selEntrada = document.getElementById("areaEntrada");
   if (nueva) {
     sel.value = "";
-    selSalida.value = "MILLING";
-    selEntrada.value = areaEntradaManager || "DIR PRODUCCIÓN";
+    selSalida.value = areaSalidaManager || "MILLING";
+    selEntrada.value = "DIR PRODUCCIÓN";
   } else {
     txt.value = "";
     selSalida.value = "";
     selEntrada.value = "";
     cargarOrdenesIncompletas();
   }
+  ocultarErrorCantidad();
+}
+
+function verificarCantidadOrden(ordenSel, cant, mostrarError) {
+  if (!ordenSel || isNaN(cant) || cant <= 0) { if (mostrarError) ocultarErrorCantidad(); return Promise.resolve(true); }
+  return custodiaApi('/custodia/api/consultar-orden/' + encodeURIComponent(ordenSel)).then(function(res) {
+    var excede = res.total !== null && cant > res.total + 1e-6;
+    if (mostrarError) {
+      if (excede) mostrarErrorCantidad("⚠️ La cantidad (" + cant.toFixed(2) + ") supera el TOTAL de la orden " + ordenSel + " (" + res.total.toFixed(2) + ").");
+      else ocultarErrorCantidad();
+    }
+    return !excede;
+  }).catch(function() { return true; });
+}
+
+function validarCantidadInline() {
+  if (modoOrdenNuevaActivo) { ocultarErrorCantidad(); return; }
+  var ordenSel = document.getElementById("numeroOrdenSelect").value;
+  var cant = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
+  verificarCantidadOrden(ordenSel, cant, true);
+}
+
+function mostrarErrorCantidad(msg) {
+  var div = document.getElementById("errorCantidadDiscos");
+  div.innerText = msg; div.style.display = "block";
+}
+
+function ocultarErrorCantidad() {
+  document.getElementById("errorCantidadDiscos").style.display = "none";
 }
 
 function cargarOrdenesIncompletas() {
@@ -795,6 +821,8 @@ window.onload = function() {
   document.getElementById("dashFechaHasta").value = formatoFechaLocal(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
   cargarConsecutivo();
   aplicarModoOrden(false);
+  renderTablaResumen();
+  renderTablaOP();
   custodiaApi('/custodia/api/factores-discos').then(function(data) {
     catalogoDiscos = data;
     renderTablaDiscosDinamica();
@@ -828,19 +856,92 @@ function procesarPegadoResumen(e) {
   renderTablaResumen(); e.target.value = "✅ ¡RESUMEN CARGADO!"; setTimeout(() => e.target.value = "", 2000);
 }
 
+function crearFilaResumen(datos) {
+  datos = datos || {};
+  var tr = document.createElement("tr");
+  var tdOrden = document.createElement("td");
+  var inOrden = document.createElement("input");
+  inOrden.type = "text"; inOrden.dataset.campo = "orden"; inOrden.value = datos.orden || "";
+  inOrden.style.cssText = "width:100%; border:none; background:transparent; font-weight:800; color:var(--brand-main); font-size:12px; padding:6px;";
+  tdOrden.appendChild(inOrden); tr.appendChild(tdOrden);
+
+  var tdDesc = document.createElement("td");
+  var inDesc = document.createElement("input");
+  inDesc.type = "text"; inDesc.dataset.campo = "descripcion"; inDesc.value = datos.descripcion || "";
+  inDesc.style.cssText = "width:100%; border:none; background:transparent; font-size:12px; padding:6px;";
+  tdDesc.appendChild(inDesc); tr.appendChild(tdDesc);
+
+  var tdPac = document.createElement("td");
+  var inPac = document.createElement("input");
+  inPac.type = "text"; inPac.dataset.campo = "paciente"; inPac.value = datos.paciente || "";
+  inPac.style.cssText = "width:100%; border:none; background:transparent; font-size:12px; padding:6px;";
+  tdPac.appendChild(inPac); tr.appendChild(tdPac);
+
+  var tdTotal = document.createElement("td");
+  var inTotal = document.createElement("input");
+  inTotal.type = "text"; inTotal.dataset.campo = "total";
+  inTotal.value = (datos.total || datos.total === 0) ? String(datos.total).replace('.', ',') : "";
+  inTotal.style.cssText = "width:100%; border:none; background:transparent; font-weight:800; color:var(--success); font-size:12px; padding:6px;";
+  inTotal.oninput = function() { this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, ''); recalcularTotalResumen(); };
+  tdTotal.appendChild(inTotal); tr.appendChild(tdTotal);
+
+  var tdSalida = document.createElement("td");
+  var chkSalida = document.createElement("input");
+  chkSalida.type = "checkbox"; chkSalida.dataset.campo = "verifSalida"; chkSalida.checked = !!datos.verifSalida;
+  chkSalida.style.cssText = "cursor:pointer; transform:scale(1.2);";
+  tdSalida.appendChild(chkSalida); tr.appendChild(tdSalida);
+
+  var tdEntrada = document.createElement("td");
+  var chkEntrada = document.createElement("input");
+  chkEntrada.type = "checkbox"; chkEntrada.dataset.campo = "verifEntrada"; chkEntrada.checked = !!datos.verifEntrada;
+  chkEntrada.style.cssText = "cursor:pointer; transform:scale(1.2);";
+  tdEntrada.appendChild(chkEntrada); tr.appendChild(tdEntrada);
+
+  var tdAccion = document.createElement("td"); tdAccion.style.whiteSpace = "nowrap";
+  var btnX = document.createElement("button");
+  btnX.type = "button"; btnX.className = "btn mini"; btnX.style.background = "var(--danger)"; btnX.innerText = "✕";
+  btnX.onclick = function() { tr.remove(); recalcularTotalResumen(); };
+  var btnMas = document.createElement("button");
+  btnMas.type = "button"; btnMas.className = "btn mini"; btnMas.style.background = "var(--success)"; btnMas.style.marginLeft = "4px"; btnMas.innerText = "+";
+  btnMas.onclick = function() { tr.after(crearFilaResumen()); recalcularTotalResumen(); };
+  tdAccion.appendChild(btnX); tdAccion.appendChild(btnMas);
+  tr.appendChild(tdAccion);
+  return tr;
+}
+
+function recalcularTotalResumen() {
+  var suma = 0;
+  document.querySelectorAll('#bodyResumen input[data-campo="total"]').forEach(function(inp) {
+    suma += parseFloat(inp.value.replace(',', '.')) || 0;
+  });
+  var celda = document.getElementById("totalGeneralResumen");
+  if (celda) celda.innerText = suma.toFixed(2).replace('.', ',');
+}
+
 function renderTablaResumen() {
   var tbody = document.getElementById("bodyResumen"); tbody.innerHTML = "";
-  if(datosResumenExcel.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>'; return; }
-  var sum = 0;
-  datosResumenExcel.forEach((r, idx) => {
-    sum += r.total;
-    var tr = document.createElement("tr");
-    tr.innerHTML = `<td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td style="font-weight:800; color:var(--success);">${r.total}</td><td><input type="checkbox" onchange="datosResumenExcel[${idx}].verifSalida = this.checked" style="cursor:pointer; transform:scale(1.2);"></td><td><input type="checkbox" onchange="datosResumenExcel[${idx}].verifEntrada = this.checked" style="cursor:pointer; transform:scale(1.2);"></td>`;
-    tbody.appendChild(tr);
-  });
+  if (datosResumenExcel.length === 0) { tbody.appendChild(crearFilaResumen()); }
+  else { datosResumenExcel.forEach(r => tbody.appendChild(crearFilaResumen(r))); }
   var trTotal = document.createElement("tr"); trTotal.className = "fila-totales";
-  trTotal.innerHTML = `<td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td style="color:var(--brand-main);">${sum}</td><td colspan="2"></td>`;
+  trTotal.innerHTML = '<td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td id="totalGeneralResumen">0,00</td><td colspan="3"></td>';
   tbody.appendChild(trTotal);
+  recalcularTotalResumen();
+}
+
+function obtenerDatosResumenTabla() {
+  var resultado = [];
+  document.querySelectorAll("#bodyResumen tr").forEach(function(tr) {
+    var fila = {};
+    tr.querySelectorAll("input[data-campo]").forEach(function(inp) {
+      if (inp.type === "checkbox") { fila[inp.dataset.campo] = inp.checked; }
+      else { fila[inp.dataset.campo] = inp.value.trim(); }
+    });
+    if (fila.orden || fila.descripcion || fila.paciente || fila.total) {
+      fila.total = parseFloat(String(fila.total || "0").replace(',', '.')) || 0;
+      resultado.push(fila);
+    }
+  });
+  return resultado;
 }
 
 function renderTablaDiscosDinamica() {
@@ -901,14 +1002,43 @@ function procesarPegadoOP(e) {
   renderTablaOP(); e.target.value = "✅ ¡OP CARGADOS!"; setTimeout(() => e.target.value = "", 2000);
 }
 
+function crearFilaOP(datos) {
+  datos = datos || {};
+  var tr = document.createElement("tr");
+  ["op", "orden", "descripcion", "tipo", "usuario", "observaciones"].forEach(function(campo) {
+    var td = document.createElement("td");
+    var input = document.createElement("input");
+    input.type = "text"; input.dataset.campo = campo; input.value = datos[campo] || "";
+    input.style.cssText = "width:100%; border:none; background:transparent; font-size:12px; padding:6px;"
+      + (campo === "op" ? " font-weight:800; color:var(--brand-main);" : campo === "orden" ? " font-weight:700;" : "");
+    td.appendChild(input); tr.appendChild(td);
+  });
+  var tdAccion = document.createElement("td"); tdAccion.style.whiteSpace = "nowrap";
+  var btnX = document.createElement("button");
+  btnX.type = "button"; btnX.className = "btn mini"; btnX.style.background = "var(--danger)"; btnX.innerText = "✕";
+  btnX.onclick = function() { tr.remove(); };
+  var btnMas = document.createElement("button");
+  btnMas.type = "button"; btnMas.className = "btn mini"; btnMas.style.background = "var(--success)"; btnMas.style.marginLeft = "4px"; btnMas.innerText = "+";
+  btnMas.onclick = function() { tr.after(crearFilaOP()); };
+  tdAccion.appendChild(btnX); tdAccion.appendChild(btnMas);
+  tr.appendChild(tdAccion);
+  return tr;
+}
+
 function renderTablaOP() {
   var tbody = document.getElementById("bodyOP"); tbody.innerHTML = "";
-  if(datosOPExcel.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="padding: 30px; color:var(--text-muted); font-size:12px;">ESPERANDO DATOS DE EXCEL...</td></tr>'; return; }
-  datosOPExcel.forEach(r => {
-    var tr = document.createElement("tr");
-    tr.innerHTML = `<td style="font-weight:800; color:var(--brand-main);">${r.op}</td><td>${r.descripcion}</td><td style="font-weight:700;">${r.orden}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td>`;
-    tbody.appendChild(tr);
+  if (datosOPExcel.length === 0) { tbody.appendChild(crearFilaOP()); return; }
+  datosOPExcel.forEach(r => tbody.appendChild(crearFilaOP(r)));
+}
+
+function obtenerDatosOPTabla() {
+  var resultado = [];
+  document.querySelectorAll("#bodyOP tr").forEach(function(tr) {
+    var fila = {};
+    tr.querySelectorAll("input[data-campo]").forEach(function(inp) { fila[inp.dataset.campo] = inp.value.trim(); });
+    if (Object.values(fila).some(function(v) { return v; })) resultado.push(fila);
   });
+  return resultado;
 }
 
 // ---------------- ESTADO ÓRDENES + CORTE FECHA ----------------
@@ -1925,7 +2055,10 @@ function prepararEnvio(e) {
     if (!ordenSel) { alert("SELECCIONA UNA ORDEN DE LA LISTA."); desbloquearBotonGuardar(); return; }
     var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
     if (isNaN(cantNumerica) || cantNumerica <= 0) { alert("INGRESA UNA CANTIDAD DE DISCOS VÁLIDA."); desbloquearBotonGuardar(); return; }
-    datosBase.numeroOrden = ordenSel; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase]);
+    verificarCantidadOrden(ordenSel, cantNumerica, true).then(function(ok) {
+      if (!ok) { desbloquearBotonGuardar(); return; }
+      datosBase.numeroOrden = ordenSel; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase]);
+    });
     return;
   }
 
@@ -1977,8 +2110,8 @@ function confirmarMultiples() {
 }
 
 function enviarAlServidor(arregloDatos, resumenExtra) {
-  var resumenFinal = datosResumenExcel.concat(resumenExtra || []);
-  var payload = { traslados: arregloDatos, resumen: resumenFinal, discos: obtenerDatosDiscosCalculados(), op: datosOPExcel };
+  var resumenFinal = obtenerDatosResumenTabla().concat(resumenExtra || []);
+  var payload = { traslados: arregloDatos, resumen: resumenFinal, discos: obtenerDatosDiscosCalculados(), op: obtenerDatosOPTabla() };
   var btn = document.getElementById("btnGuardar"); btn.innerText = "GUARDANDO REGISTROS...";
   custodiaPostJSON('/custodia/api/traslados', payload).then(function(respuesta) {
       alert(respuesta.mensaje); document.getElementById("formulario").reset();

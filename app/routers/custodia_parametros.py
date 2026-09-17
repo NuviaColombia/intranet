@@ -1,4 +1,4 @@
-"""Parámetros del módulo Custodia: managers -> área de entrada por defecto, áreas de
+"""Parámetros del módulo Custodia: managers -> área de salida por defecto, áreas de
 producción, catálogo de discos y motivos. Solo administradores."""
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import RedirectResponse
