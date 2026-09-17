@@ -21,5 +21,6 @@ MAIL_FROM = os.getenv("MAIL_FROM", "")
 
 ADMIN_EMAILS = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
 
-# URL del "Incoming Webhook" del Bot de Zoho Cliq (incluye ?zapikey=...), para DMs directos.
-CLIQ_BOT_WEBHOOK_URL = os.getenv("CLIQ_BOT_WEBHOOK_URL", "")
+ZOHO_CLIQ_CLIENT_ID = os.getenv("ZOHO_CLIQ_CLIENT_ID", "")
+ZOHO_CLIQ_CLIENT_SECRET = os.getenv("ZOHO_CLIQ_CLIENT_SECRET", "")
+ZOHO_CLIQ_REFRESH_TOKEN = os.getenv("ZOHO_CLIQ_REFRESH_TOKEN", "")

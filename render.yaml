@@ -28,5 +28,9 @@ services:
         sync: false
       - key: ADMIN_EMAILS
         sync: false
-      - key: CLIQ_BOT_WEBHOOK_URL
+      - key: ZOHO_CLIQ_CLIENT_ID
+        sync: false
+      - key: ZOHO_CLIQ_CLIENT_SECRET
+        sync: false
+      - key: ZOHO_CLIQ_REFRESH_TOKEN
         sync: false
