@@ -10,6 +10,10 @@ from .models_custodia import (CustodiaTraslado, CustodiaOrdenLinea, CustodiaResu
 # no administrables desde Parámetros (a diferencia de CustodiaArea.es_inventario).
 AREAS_EXCLUIDAS_LEGADO = {"INICIAL", "SALDO INICIAL"}
 
+# Punto de origen del proceso: aquí entra material nuevo a producción (no se "recibe" de
+# otra área), así que nunca requiere confirmación previa para poder entregar desde ahí.
+AREA_ORIGEN = "DIR PRODUCCIÓN"
+
 
 def areas_disponibles(db: Session) -> list[str]:
     """Áreas activas configuradas en Parámetros, más cualquier área "extra" que aparezca
@@ -83,7 +87,10 @@ def validar_lineas_traslado(db: Session, lineas: list[dict], resumen: list[dict]
     """Reglas de negocio antes de crear un traslado:
     - la cantidad movida por línea no puede superar el TOTAL conocido de la orden.
     - no se puede sacar una orden de un área si no se confirmó antes su entrada ahí,
-      salvo que sea el primer movimiento de esa orden (recién creada, nada que recibir antes)."""
+      salvo que sea el primer movimiento de esa orden (recién creada, nada que recibir antes)
+      o que el área de salida sea AREA_ORIGEN (ahí entra material nuevo, no se recibe de
+      otra área, así que siempre se puede "entregar" -- incluso en lotes posteriores de
+      una orden que ya existe)."""
     for linea in lineas:
         orden = linea["numero_orden"]
         cantidad = linea["cantidad_discos"]
@@ -102,7 +109,7 @@ def validar_lineas_traslado(db: Session, lineas: list[dict], resumen: list[dict]
                          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
                          .filter(CustodiaOrdenLinea.numero_orden == orden, CustodiaTraslado.anulado.is_(False))
                          .first())
-        if existe_previo:
+        if existe_previo and area_salida != AREA_ORIGEN:
             saldo = _saldo_confirmado(db, orden, area_salida)
             if saldo + 1e-6 < cantidad:
                 return (f"No puedes entregar la orden {orden} desde {area_salida}: aún no se ha "
