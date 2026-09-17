@@ -1,5 +1,5 @@
-"""Parámetros del módulo Custodia: managers -> área fija, áreas de producción,
-catálogo de discos y motivos. Solo administradores."""
+"""Parámetros del módulo Custodia: managers -> área de entrada por defecto, áreas de
+producción, catálogo de discos y motivos. Solo administradores."""
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -8,6 +8,7 @@ from ..models import Empleado
 from ..models_custodia import CustodiaArea, CustodiaMotivo, CustodiaFactorDisco
 from ..auth import require_admin
 from ..main_templates import templates
+from .. import services_custodia as sc
 
 router = APIRouter()
 
@@ -29,6 +30,7 @@ async def parametros(request: Request, user: Empleado = Depends(require_admin), 
     return templates.TemplateResponse(request, "custodia_parametros.html",
                                       {"user": user, "managers": managers, "candidatos": candidatos,
                                        "areas": areas, "motivos": motivos, "discos": discos,
+                                       "areas_activas": sc.areas_disponibles(db),
                                        "es_custodia": True, "msg": request.query_params.get("msg")})
 
 
@@ -36,7 +38,7 @@ async def parametros(request: Request, user: Empleado = Depends(require_admin), 
 
 @router.post("/custodia/parametros/managers")
 async def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                          empleado_id: int = Form(...)):
+                          empleado_id: int = Form(...), area_custodia: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp and emp.empresa == NUVIA_SMILES:
         modulos = set(emp.modulos_lista)
@@ -44,8 +46,19 @@ async def agregar_manager(user: Empleado = Depends(require_admin), db: Session =
         emp.modulos = ",".join(sorted(modulos))
         if emp.rol == "empleado":
             emp.rol = "aprobador"
+        emp.area_custodia = area_custodia.strip().upper()
         db.commit()
     return RedirectResponse("/custodia/parametros?msg=Manager agregado.", status_code=303)
+
+
+@router.post("/custodia/parametros/managers/{empleado_id}")
+async def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
+                             db: Session = Depends(get_db), area_custodia: str = Form("")):
+    emp = db.get(Empleado, empleado_id)
+    if emp:
+        emp.area_custodia = area_custodia.strip().upper()
+        db.commit()
+    return RedirectResponse("/custodia/parametros?msg=Manager actualizado.", status_code=303)
 
 
 @router.post("/custodia/parametros/managers/{empleado_id}/quitar")
@@ -54,6 +67,7 @@ async def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admi
     emp = db.get(Empleado, empleado_id)
     if emp:
         emp.modulos = ",".join(m for m in emp.modulos_lista if m != "custodia")
+        emp.area_custodia = ""
         db.commit()
     return RedirectResponse("/custodia/parametros?msg=Manager retirado.", status_code=303)
 

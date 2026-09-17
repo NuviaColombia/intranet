@@ -737,6 +737,7 @@ function cargarConsecutivo() {
 }
 
 var modoOrdenNuevaActivo = false;
+var areaEntradaManager = {{ (user.area_custodia or '') | tojson }};
 
 function aplicarModoOrden(nueva) {
   modoOrdenNuevaActivo = nueva;
@@ -753,7 +754,7 @@ function aplicarModoOrden(nueva) {
   if (nueva) {
     sel.value = "";
     selSalida.value = "MILLING";
-    selEntrada.value = "DIR PRODUCCIÓN";
+    selEntrada.value = areaEntradaManager || "DIR PRODUCCIÓN";
   } else {
     txt.value = "";
     selSalida.value = "";
