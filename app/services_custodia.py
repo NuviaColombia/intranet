@@ -322,9 +322,30 @@ def viaje_orden(db: Session, numero_orden: str) -> list[dict]:
 
 
 def dashboard(db: Session, fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
-    """Totales de entrada/salida/neto y motivos por área, dentro del rango de fechas dado
-    (movimientos de ese periodo, no un balance acumulado). Devuelve TODAS las áreas
-    observadas; el front filtra localmente qué mostrar."""
+    """Por área: existencias iniciales (balance acumulado antes de fecha_desde), entradas/salidas
+    dentro del rango [fecha_desde, fecha_hasta], y existencia neta a fecha_hasta (iniciales +
+    entradas - salidas). Devuelve TODAS las áreas observadas; el front filtra localmente qué mostrar."""
+    motivos = motivos_disponibles(db)
+    data_por_area: dict[str, dict] = {}
+
+    def init_area(a: str):
+        if a and a not in data_por_area:
+            data_por_area[a] = {"existenciasIniciales": 0.0, "entrada": 0.0, "salida": 0.0, "neto": 0.0,
+                               "motivos": {m: 0.0 for m in motivos}}
+
+    if fecha_desde:
+        q_previo = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
+                   .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
+                   .filter(CustodiaTraslado.anulado.is_(False), CustodiaTraslado.fecha < fecha_desde))
+        for linea, traslado in q_previo.all():
+            cantidad = linea.cantidad_discos or 0
+            if traslado.area_entrada:
+                init_area(traslado.area_entrada)
+                data_por_area[traslado.area_entrada]["existenciasIniciales"] += cantidad
+            if traslado.area_salida:
+                init_area(traslado.area_salida)
+                data_por_area[traslado.area_salida]["existenciasIniciales"] -= cantidad
+
     q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
          .filter(CustodiaTraslado.anulado.is_(False)))
@@ -333,26 +354,19 @@ def dashboard(db: Session, fecha_desde: date | None = None, fecha_hasta: date | 
     if fecha_hasta:
         q = q.filter(CustodiaTraslado.fecha <= fecha_hasta)
 
-    motivos = motivos_disponibles(db)
-    data_por_area: dict[str, dict] = {}
-
-    def init_area(a: str):
-        if a and a not in data_por_area:
-            data_por_area[a] = {"entrada": 0.0, "salida": 0.0, "neto": 0.0,
-                               "motivos": {m: 0.0 for m in motivos}}
-
     for linea, traslado in q.all():
         cantidad = linea.cantidad_discos or 0
         if traslado.area_entrada:
             init_area(traslado.area_entrada)
             data_por_area[traslado.area_entrada]["entrada"] += cantidad
-            data_por_area[traslado.area_entrada]["neto"] += cantidad
         if traslado.area_salida:
             init_area(traslado.area_salida)
             data_por_area[traslado.area_salida]["salida"] += cantidad
-            data_por_area[traslado.area_salida]["neto"] -= cantidad
-            motivos = data_por_area[traslado.area_salida]["motivos"]
-            motivos[traslado.motivo] = motivos.get(traslado.motivo, 0.0) + cantidad
+            motivos_area = data_por_area[traslado.area_salida]["motivos"]
+            motivos_area[traslado.motivo] = motivos_area.get(traslado.motivo, 0.0) + cantidad
+
+    for d in data_por_area.values():
+        d["neto"] = d["existenciasIniciales"] + d["entrada"] - d["salida"]
 
     return {"dataPorArea": data_por_area}
 

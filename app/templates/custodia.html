@@ -474,8 +474,8 @@
         <h4>📋 BALANCE GENERAL DE INVENTARIOS</h4>
         <div style="overflow-x:auto; max-height:400px; border-radius: 12px; border: 1px solid var(--border-soft);">
           <table class="consulta-tabla" id="tablaExistenciasFull" style="min-width: 100%;">
-            <thead><tr><th>ÁREA DE PRODUCCIÓN</th><th>ENTRADAS TOTALES</th><th>SALIDAS TOTALES</th><th>EXISTENCIA NETA</th></tr></thead>
-            <tbody id="bodyTablaExistencias"><tr><td colspan="4" style="padding: 40px; color:var(--text-muted);">SELECCIONA UN RANGO Y FILTRA.</td></tr></tbody>
+            <thead><tr><th>ÁREA DE PRODUCCIÓN</th><th>EXISTENCIAS INICIALES</th><th>ENTRADAS</th><th>SALIDAS</th><th>EXISTENCIA NETA</th></tr></thead>
+            <tbody id="bodyTablaExistencias"><tr><td colspan="5" style="padding: 40px; color:var(--text-muted);">SELECCIONA UN RANGO Y FILTRA.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1780,7 +1780,7 @@ function renderizarDashboardLocal() {
 
   var tbody = document.getElementById("bodyTablaExistencias"); tbody.innerHTML = "";
   if (seleccionadas.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:40px; color:var(--text-muted);">SELECCIONA AL MENOS UN ÁREA.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:40px; color:var(--text-muted);">SELECCIONA AL MENOS UN ÁREA.</td></tr>';
     ["kpiMovimientos","kpiTrasladados","kpiInventario","kpiMermas"].forEach(id => document.getElementById(id).innerText = "0");
     ["kpiAreaMayorMov","kpiAreaCritica"].forEach(id => document.getElementById(id).innerText = "N/A");
     renderChartExistencias([], [], []);
@@ -1806,7 +1806,7 @@ function renderizarDashboardLocal() {
     labels.push(a); data.push(d.neto); colores.push(d.neto < 0 ? '#EF4444' : '#1A365D');
 
     var tr = document.createElement("tr");
-    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger)' : ''}">${d.neto.toFixed(2)}</td>`;
+    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.existenciasIniciales.toFixed(2)}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger)' : ''}">${d.neto.toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
 
@@ -1843,11 +1843,11 @@ function renderChartMotivos(totales) {
 
 function exportarResumenExistenciasExcel() {
   var filas = document.querySelectorAll("#bodyTablaExistencias tr");
-  if (filas.length === 0 || filas[0].children.length < 4) return alert("No hay datos para exportar.");
-  var csvContent = "﻿ÁREA;ENTRADAS;SALIDAS;EXISTENCIA NETA\n";
+  if (filas.length === 0 || filas[0].children.length < 5) return alert("No hay datos para exportar.");
+  var csvContent = "﻿ÁREA;EXISTENCIAS INICIALES;ENTRADAS;SALIDAS;EXISTENCIA NETA\n";
   filas.forEach(function(tr) {
     var celdas = tr.querySelectorAll("td");
-    if (celdas.length === 4) { csvContent += Array.from(celdas).map(td => `"${td.innerText}"`).join(";") + "\n"; }
+    if (celdas.length === 5) { csvContent += Array.from(celdas).map(td => `"${td.innerText}"`).join(";") + "\n"; }
   });
   descargarCSV(csvContent, "Balance_Inventarios");
 }
