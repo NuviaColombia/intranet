@@ -274,12 +274,15 @@ def estado_ordenes(db: Session, fecha_desde: date | None = None, fecha_hasta: da
     return {"data": resultado, "matrix": matrix_out, "areasMatrix": areas_matrix}
 
 
+AREA_FINAL = "BODEGA"  # ubicación que se considera "orden terminada"
+
+
 def consultar_orden(db: Session, numero_orden: str, fecha_desde: date | None = None,
                     fecha_hasta: date | None = None) -> dict:
     """Para una orden puntual: su total esperado (según lo pegado en Resumen general al
-    registrar -- no depende del rango de fechas), cuánto está ya registrado/ubicado en
-    Custodia dentro del rango y en qué áreas, y la diferencia (lo que aún no ha empezado
-    el proceso)."""
+    registrar, o la cantidad indicada al crearla -- no depende del rango de fechas), cuánto
+    ya llegó a BODEGA (terminado) dentro del rango, y el resto (en proceso: lo que sigue
+    circulando por producción o aún no se ha registrado)."""
     target = numero_orden.strip().upper()
 
     total_resumen = (db.query(func.coalesce(func.sum(CustodiaResumen.total), 0.0))
@@ -288,14 +291,14 @@ def consultar_orden(db: Session, numero_orden: str, fecha_desde: date | None = N
                      .scalar()) or 0.0
 
     ubicaciones = [u for u in estado_ordenes(db, fecha_desde, fecha_hasta)["data"] if u["orden"] == target]
-    registrado = round(sum(u["cantidad"] for u in ubicaciones), 3)
+    terminado = round(sum(u["cantidad"] for u in ubicaciones if u["ubicacion"] == AREA_FINAL), 3)
     tiene_total = total_resumen > 0
 
     return {
         "orden": target,
         "total": round(total_resumen, 3) if tiene_total else None,
-        "registrado": registrado,
-        "faltanPorEmpezar": round(total_resumen - registrado, 3) if tiene_total else None,
+        "terminado": terminado,
+        "enProceso": round(total_resumen - terminado, 3) if tiene_total else None,
         "ubicaciones": [{"area": u["ubicacion"], "cantidad": u["cantidad"]} for u in ubicaciones],
     }
 

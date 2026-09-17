@@ -200,19 +200,15 @@
               <input type="text" id="areaCreacion" required placeholder="ORIGEN..." list="listaAreasOpciones">
               {% endif %}
             </td>
-            <td class="label-cell">
-              NÚMERO DE ORDEN<br>
-              <label style="display:flex; align-items:center; gap:4px; font-weight:600; text-transform:none; cursor:pointer; margin-top:2px;">
-                <input type="checkbox" id="chkOrdenNueva" onchange="toggleModoOrden()" style="width:auto;"> orden nueva
-              </label>
-            </td>
+            <td class="label-cell">NÚMERO DE ORDEN</td>
             <td class="input-cell">
               <select id="numeroOrdenSelect" required>
                 <option value="">CARGANDO...</option>
               </select>
               <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled>
-              <input type="text" id="totalOrdenNuevo" placeholder="TOTAL DISCOS DE LA ORDEN" style="display:none; margin-top:4px;" disabled
-                     oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')">
+              <div id="ayudaOrdenNueva" style="display:none; font-size:10px; color:var(--text-muted); margin-top:4px; line-height:1.3;">
+                LA CANTIDAD DE DISCOS QUE INGRESES ABAJO SERÁ EL TOTAL DE ESTA ORDEN.
+              </div>
             </td>
           </tr>
           <tr>
@@ -383,8 +379,8 @@
         <div id="resultadoConsultaOrden" style="display:none; margin-top:16px; border-top:1px solid var(--border-soft); padding-top:16px;">
           <div class="dash-kpi-container" style="grid-template-columns: repeat(3, 1fr); margin-bottom:16px;">
             <div class="kpi-card"><h5>TOTAL DE LA ORDEN</h5><p id="kpiOrdenTotal">-</p></div>
-            <div class="kpi-card"><h5>REGISTRADO EN CUSTODIA</h5><p id="kpiOrdenRegistrado">-</p></div>
-            <div class="kpi-card" style="border-left-color:var(--danger);"><h5>FALTAN POR EMPEZAR</h5><p id="kpiOrdenFaltan" style="color:var(--danger);">-</p></div>
+            <div class="kpi-card" style="border-left-color:var(--success);"><h5>TERMINADO</h5><p id="kpiOrdenTerminado" style="color:var(--success);">-</p></div>
+            <div class="kpi-card" style="border-left-color:var(--warning);"><h5>EN PROCESO</h5><p id="kpiOrdenEnProceso" style="color:var(--warning);">-</p></div>
           </div>
           <div class="consulta-tabla-wrapper">
             <table class="consulta-tabla">
@@ -659,9 +655,11 @@
 function switchTab(tab) {
   document.querySelectorAll("#custodia-app .content-section").forEach(el => el.classList.remove("active"));
   document.querySelectorAll(".custodia-tab").forEach(el => el.classList.remove("activo"));
-  document.getElementById("sec-" + tab).classList.add("active");
+  var seccionId = (tab === 'nueva-orden') ? 'sec-registro' : ('sec-' + tab);
+  document.getElementById(seccionId).classList.add("active");
   var link = document.querySelector('.custodia-tab[data-tab="' + tab + '"]');
   if (link) link.classList.add("activo");
+  if (tab === 'registro' || tab === 'nueva-orden') aplicarModoOrden(tab === 'nueva-orden');
   if (tab === 'aprobaciones') cargarConfirmaciones();
   if (tab === 'consulta') cargarAreasSalidaDropdown();
   if (tab === 'existencias') { cargarDashboardExistencias(); }
@@ -742,19 +740,21 @@ function cargarConsecutivo() {
   });
 }
 
-function toggleModoOrden() {
-  var nueva = document.getElementById("chkOrdenNueva").checked;
+var modoOrdenNuevaActivo = false;
+
+function aplicarModoOrden(nueva) {
+  modoOrdenNuevaActivo = nueva;
   var sel = document.getElementById("numeroOrdenSelect");
   var txt = document.getElementById("numeroOrdenNuevo");
-  var totalTxt = document.getElementById("totalOrdenNuevo");
+  var ayuda = document.getElementById("ayudaOrdenNueva");
   sel.style.display = nueva ? "none" : "";
   txt.style.display = nueva ? "" : "none";
-  totalTxt.style.display = nueva ? "" : "none";
+  ayuda.style.display = nueva ? "" : "none";
   sel.disabled = nueva; sel.required = !nueva;
   txt.disabled = !nueva;
-  totalTxt.disabled = !nueva;
+  document.getElementById("btnGuardar").innerText = nueva ? "REGISTRAR ORDEN NUEVA" : "REGISTRAR TRASLADO";
   if (nueva) { sel.value = ""; }
-  else { txt.value = ""; totalTxt.value = ""; cargarOrdenesIncompletas(); }
+  else { txt.value = ""; cargarOrdenesIncompletas(); }
 }
 
 function cargarOrdenesIncompletas() {
@@ -783,7 +783,7 @@ window.onload = function() {
   document.getElementById("fechaVersionHeader").innerText = hoy.toLocaleDateString('es-CO');
   document.getElementById("dashFechaCorte").value = hoy.toISOString().split('T')[0];
   cargarConsecutivo();
-  toggleModoOrden();
+  aplicarModoOrden(false);
   custodiaApi('/custodia/api/factores-discos').then(function(data) {
     catalogoDiscos = data;
     renderTablaDiscosDinamica();
@@ -934,8 +934,8 @@ function actualizarResumenOrdenActivas() {
   custodiaApi('/custodia/api/consultar-orden/' + encodeURIComponent(orden) + '?' + params.toString()).then(function(res) {
     document.getElementById("resultadoConsultaOrden").style.display = "block";
     document.getElementById("kpiOrdenTotal").innerText = res.total !== null ? res.total.toFixed(2) : "SIN TOTAL REGISTRADO";
-    document.getElementById("kpiOrdenRegistrado").innerText = res.registrado.toFixed(2);
-    document.getElementById("kpiOrdenFaltan").innerText = res.faltanPorEmpezar !== null ? res.faltanPorEmpezar.toFixed(2) : "N/A";
+    document.getElementById("kpiOrdenTerminado").innerText = res.terminado.toFixed(2);
+    document.getElementById("kpiOrdenEnProceso").innerText = res.enProceso !== null ? res.enProceso.toFixed(2) : "N/A";
     var tbody = document.getElementById("bodyConsultaOrdenAreas");
     tbody.innerHTML = "";
     if (res.ubicaciones.length === 0) {
@@ -1867,8 +1867,7 @@ function procesarPegado(event) {
   });
 
   if (dict["numero de orden"]) {
-    document.getElementById("chkOrdenNueva").checked = true;
-    toggleModoOrden();
+    switchTab('nueva-orden');
     document.getElementById("numeroOrdenNuevo").value = dict["numero de orden"];
   }
   if (dict["area creacion"]) document.getElementById("areaCreacion").value = dict["area creacion"];
@@ -1904,7 +1903,7 @@ function prepararEnvio(e) {
     motivo: document.getElementById("motivo").value.toUpperCase()
   };
 
-  var esOrdenNueva = document.getElementById("chkOrdenNueva").checked;
+  var esOrdenNueva = modoOrdenNuevaActivo;
 
   if (!esOrdenNueva) {
     // Orden existente: se elige de la lista de órdenes incompletas, sin validación de duplicado ni división por guiones.
@@ -1933,16 +1932,8 @@ function prepararEnvio(e) {
     } else {
       var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
       if(isNaN(cantNumerica) || cantNumerica <= 0) { alert("INGRESA UNA CANTIDAD DE DISCOS VÁLIDA."); desbloquearBotonGuardar(); return; }
-      var totalNum = parseFloat(document.getElementById("totalOrdenNuevo").value.replace(',', '.'));
-      var resumenExtra = [];
-      if (!resultado.existe) {
-        if (isNaN(totalNum) || totalNum <= 0) { alert("INGRESA EL TOTAL DE DISCOS DE LA ORDEN (es una orden nueva)."); desbloquearBotonGuardar(); return; }
-        if (totalNum < cantNumerica) { alert("EL TOTAL DE LA ORDEN NO PUEDE SER MENOR A LA CANTIDAD QUE ESTÁS MOVIENDO."); desbloquearBotonGuardar(); return; }
-        resumenExtra.push({orden: ordenRaw, total: totalNum});
-      } else if (!isNaN(totalNum) && totalNum > 0) {
-        resumenExtra.push({orden: ordenRaw, total: totalNum});
-      }
-      datosBase.numeroOrden = ordenRaw; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase], resumenExtra);
+      datosBase.numeroOrden = ordenRaw; datosBase.cantidadDiscos = cantNumerica;
+      enviarAlServidor([datosBase], [{orden: ordenRaw, total: cantNumerica}]);
     }
   }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
 }
@@ -1951,8 +1942,7 @@ function mostrarModal() {
   var lista = document.getElementById("listaOrdenes"); lista.innerHTML = "";
   for(var i = 0; i < ordenesSeparadas.length; i++) {
      var div = document.createElement("div"); div.className = "orden-item";
-     div.innerHTML = `<label>ORDEN #${ordenesSeparadas[i]}:</label> <input type='text' id='cant_${i}' required class='modal-input' placeholder='CANT. A MOVER' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">
-       <input type='text' id='total_${i}' class='modal-input' placeholder='TOTAL ORDEN (si es nueva)' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">`;
+     div.innerHTML = `<label>ORDEN #${ordenesSeparadas[i]}:</label> <input type='text' id='cant_${i}' required class='modal-input' placeholder='CANT. (= TOTAL DE LA ORDEN)' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">`;
      lista.appendChild(div);
   }
   document.getElementById("modalCantidades").style.display = "flex";
@@ -1965,11 +1955,7 @@ function confirmarMultiples() {
   for(var i = 0; i < ordenesSeparadas.length; i++) {
      var valNum = parseFloat(String(document.getElementById("cant_" + i).value).replace(',', '.'));
      if(isNaN(valNum) || valNum <= 0) { alert("POR FAVOR, INGRESA UNA CANTIDAD VÁLIDA PARA LA ORDEN " + ordenesSeparadas[i]); return; }
-     var totalVal = parseFloat(String(document.getElementById("total_" + i).value).replace(',', '.'));
-     if (!isNaN(totalVal) && totalVal > 0) {
-       if (totalVal < valNum) { alert("EL TOTAL DE LA ORDEN " + ordenesSeparadas[i] + " NO PUEDE SER MENOR A LA CANTIDAD QUE ESTÁS MOVIENDO."); return; }
-       resumenExtra.push({orden: ordenesSeparadas[i], total: totalVal});
-     }
+     resumenExtra.push({orden: ordenesSeparadas[i], total: valNum});
      var filaData = Object.assign({}, datosBase); filaData.numeroOrden = ordenesSeparadas[i]; filaData.cantidadDiscos = valNum;
      arrDatos.push(filaData);
   }
@@ -1983,7 +1969,7 @@ function enviarAlServidor(arregloDatos, resumenExtra) {
   custodiaPostJSON('/custodia/api/traslados', payload).then(function(respuesta) {
       alert(respuesta.mensaje); document.getElementById("formulario").reset();
       actualizarHora(); document.getElementById("fecha").value = new Date().toISOString().split('T')[0];
-      cargarConsecutivo(); toggleModoOrden(); desbloquearBotonGuardar();
+      cargarConsecutivo(); aplicarModoOrden(modoOrdenNuevaActivo); desbloquearBotonGuardar();
 
       datosResumenExcel = []; renderTablaResumen();
       datosOPExcel = []; renderTablaOP();
