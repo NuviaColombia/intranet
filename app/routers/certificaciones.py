@@ -22,6 +22,7 @@ router = APIRouter()
 
 FIRMANTE_NOMBRE = "Pamela Manzur"
 FIRMANTE_CARGO = "Directora de People"
+FIRMANTE_FIRMA = "/static/firmas/pamela-manzur.png"
 CORREO_VERIFICACION = "pamela.manzurroca@nuviasmiles.com"
 
 
@@ -54,4 +55,5 @@ async def generar_certificado(request: Request, user: Empleado = Depends(get_cur
                                        "logo": logo_para(user.empresa),
                                        "firmante_nombre": FIRMANTE_NOMBRE,
                                        "firmante_cargo": FIRMANTE_CARGO,
+                                       "firmante_firma": FIRMANTE_FIRMA,
                                        "correo_verificacion": CORREO_VERIFICACION})
