@@ -202,7 +202,7 @@
             <td class="input-cell"><input type="time" id="hora" readonly required></td>
             <td class="label-cell">ÁREA SALIDA</td>
             <td class="input-cell">
-              <select id="areaSalida" required>
+              <select id="areaSalida" required onchange="actualizarAreaEntradaDefault(); validarCantidadInline();">
                 <option value="">SELECCIONAR...</option>
                 {% for a in areas %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
               </select>
@@ -731,6 +731,23 @@ function cargarConsecutivo() {
 var modoOrdenNuevaActivo = false;
 var areaSalidaManager = {{ (user.area_custodia or '') | tojson }};
 
+// Orden real del proceso de producción: de cada área, hacia dónde sigue normalmente el traslado.
+var SIGUIENTE_AREA = {
+  "DIR PRODUCCIÓN": "MILLING",
+  "MILLING": "CORTE",
+  "CORTE": "SINTERING/SANDBLAST",
+  "SINTERING/SANDBLAST": "GLAZE",
+  "GLAZE": "QC FINAL",
+  "CRISTALES": "QC FINAL",
+  "QC FINAL": "EMPAQUE"
+};
+
+function actualizarAreaEntradaDefault() {
+  var salida = document.getElementById("areaSalida").value;
+  var siguiente = SIGUIENTE_AREA[salida];
+  if (siguiente) document.getElementById("areaEntrada").value = siguiente;
+}
+
 function aplicarModoOrden(nueva) {
   modoOrdenNuevaActivo = nueva;
   var sel = document.getElementById("numeroOrdenSelect");
@@ -742,17 +759,10 @@ function aplicarModoOrden(nueva) {
   sel.disabled = nueva; sel.required = !nueva;
   txt.disabled = !nueva;
   document.getElementById("btnGuardar").innerText = nueva ? "REGISTRAR ORDEN NUEVA" : "REGISTRAR TRASLADO";
-  var selSalida = document.getElementById("areaSalida"), selEntrada = document.getElementById("areaEntrada");
-  if (nueva) {
-    sel.value = "";
-    selSalida.value = areaSalidaManager || "DIR PRODUCCIÓN";
-    selEntrada.value = "MILLING";
-  } else {
-    txt.value = "";
-    selSalida.value = "";
-    selEntrada.value = "";
-    cargarOrdenesIncompletas();
-  }
+  var selSalida = document.getElementById("areaSalida");
+  if (nueva) { sel.value = ""; } else { txt.value = ""; cargarOrdenesIncompletas(); }
+  selSalida.value = areaSalidaManager || "DIR PRODUCCIÓN";
+  actualizarAreaEntradaDefault();
   ocultarErrorCantidad();
 }
 
