@@ -81,7 +81,11 @@ Descarga la plantilla desde **Empleados → plantilla oficial**. Columnas:
 | rol | opcional; empleado (default), aprobador o admin. Si se deja vacío en una actualización, no cambia el rol actual |
 | num_aprobaciones | 1 o 2 (default 1) |
 | dias_vacaciones | opcional; saldo inicial de vacaciones. Si se deja vacío en una actualización, no cambia el saldo actual |
+| salario | opcional. Si se deja vacío en una actualización, no cambia el salario actual |
 | aprobador1_correo, aprobador2_correo | correo de los aprobadores (pueden venir en el mismo archivo) |
+
+Si una misma identificación o un mismo correo aparece más de una vez dentro del archivo,
+esas filas no se importan y el error lista exactamente cuáles quedaron fuera.
 
 ## Recordatorios diarios
 

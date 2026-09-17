@@ -1,4 +1,5 @@
 """Importación y exportación de empleados/reportes en Excel."""
+from collections import Counter
 from datetime import datetime, date
 from io import BytesIO
 from openpyxl import load_workbook, Workbook
@@ -7,8 +8,8 @@ from .models import Empleado, Solicitud, MODULOS_VALIDOS
 from .services import notificar_empleado_creado
 
 COLUMNAS = ["nombres", "apellidos", "fecha_nacimiento", "fecha_inicio_empresa", "empresa", "cargo", "area",
-            "identificacion", "correo", "rol", "num_aprobaciones", "dias_vacaciones", "modulos", "activo",
-            "aprobador1_correo", "aprobador2_correo"]
+            "identificacion", "correo", "rol", "num_aprobaciones", "dias_vacaciones", "salario", "modulos",
+            "activo", "aprobador1_correo", "aprobador2_correo"]
 
 REQUERIDAS = ["nombres", "apellidos", "empresa", "cargo", "area", "identificacion", "correo"]
 ROLES_VALIDOS = ("empleado", "aprobador", "admin")
@@ -46,13 +47,32 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
     pendientes_aprobadores = []  # (identificacion, correo_apr1, correo_apr2)
     nuevos_empleados = []
 
+    filas = [fila for fila in ws.iter_rows(min_row=2, values_only=True) if any(fila)]
+
+    def _valor(fila, col):
+        i = idx.get(col)
+        v = fila[i] if i is not None and i < len(fila) else None
+        return str(v).strip() if v not in (None, "") else ""
+
+    conteo_ident = Counter(_valor(f, "identificacion") for f in filas if _valor(f, "identificacion"))
+    conteo_correo = Counter(_valor(f, "correo").lower() for f in filas if _valor(f, "correo"))
+    ident_duplicadas = sorted(i for i, c in conteo_ident.items() if c > 1)
+    correos_duplicados = sorted(c for c, n in conteo_correo.items() if n > 1)
+    if ident_duplicadas:
+        errores.append(f"Identificaciones repetidas dentro del archivo (no se importaron): "
+                       f"{', '.join(ident_duplicadas)}")
+    if correos_duplicados:
+        errores.append(f"Correos repetidos dentro del archivo (no se importaron): "
+                       f"{', '.join(correos_duplicados)}")
+    duplicadas = set(ident_duplicadas) | set(correos_duplicados)
+
     for n, fila in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         if not any(fila):
             continue
-        def val(col):
-            i = idx.get(col)
-            v = fila[i] if i is not None and i < len(fila) else None
-            return str(v).strip() if v not in (None, "") else ""
+        def val(col, fila=fila):
+            return _valor(fila, col)
+        if val("identificacion") in duplicadas or val("correo").lower() in duplicadas:
+            continue
         try:
             identificacion = val("identificacion")
             correo = val("correo").lower()
@@ -93,6 +113,12 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
                 emp.dias_vacaciones = float(dias_vac_txt)
             elif nuevo:
                 emp.dias_vacaciones = 0
+
+            salario_txt = val("salario")
+            if salario_txt:
+                emp.salario = float(salario_txt)
+            elif nuevo:
+                emp.salario = None
 
             modulos_txt = val("modulos")
             if modulos_txt:
@@ -147,10 +173,10 @@ def generar_plantilla() -> bytes:
     ws.title = "Empleados"
     ws.append(COLUMNAS)
     ws.append(["Ana María", "Pérez Gómez", "1990-05-14", "2022-03-01", "Nuvia Smiles Colombia SAS", "Coordinadora",
-               "Admin", "1032456789", "ana.perez@empresa.com", "empleado", 1, 0, "people", "si",
+               "Admin", "1032456789", "ana.perez@empresa.com", "empleado", 1, 0, 2500000, "people", "si",
                "jefe@empresa.com", ""])
     ws.append(["Carlos", "Ruiz López", "1985-11-02", "2020-07-15", "Nuvia Design Colombia SAS", "Gerente",
-               "Operativa", "79845123", "carlos.ruiz@empresa.com", "aprobador", 2, 15, "people", "si",
+               "Operativa", "79845123", "carlos.ruiz@empresa.com", "aprobador", 2, 15, 4500000, "people", "si",
                "jefe@empresa.com", "direccion@empresa.com"])
     for col in ws.columns:
         ws.column_dimensions[col[0].column_letter].width = 20
