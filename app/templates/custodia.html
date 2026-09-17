@@ -46,9 +46,6 @@
   .content-section.active { display: block; }
   @keyframes fadeInScale { from { opacity: 0; transform: scale(0.99) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
-  #pasteBox { width: 100%; padding: 18px; margin: 0 0 25px 0; background: #FFFBEB; border: 2px dashed #F59E0B; border-radius: 12px; text-align: center; font-weight: 700; font-size: 13px; color: #B45309; transition: all 0.2s ease; cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase; }
-  #pasteBox:hover { background: #FEF3C7; border-color: #D97706; transform: translateY(-1px); box-shadow: var(--shadow-sm); }
-  #pasteBox:focus { outline: none; border-color: #D97706; background: #FEF3C7; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
 
   .paste-zone-sm { width: 100%; padding: 12px; margin-bottom: 15px; background: #F0F9FF; border: 2px dashed #3B82F6; border-radius: 8px; text-align: center; font-weight: 700; font-size: 12px; color: #1D4ED8; transition: all 0.2s ease; cursor: pointer; text-transform: uppercase; }
   .paste-zone-sm:hover { background: #E0F2FE; border-color: #2563EB; }
@@ -181,8 +178,6 @@
           </tr>
         </table>
 
-        <input type="text" id="pasteBox" placeholder="📋 HAZ CLIC AQUÍ Y PRESIONA (Ctrl + V) PARA PEGAR LOS DATOS DESDE EXCEL" onpaste="procesarPegado(event)" autocomplete="off">
-
         <table class="form-table">
           <tr>
             <td colspan="4" class="empty-cell" style="width: 66%;"></td>
@@ -247,7 +242,7 @@
            <div class="consulta-tabla-wrapper" style="margin-bottom:20px;">
               <table class="consulta-tabla" style="min-width:100%;">
                  <thead>
-                    <tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th><th>#</th></tr>
+                    <tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>#</th></tr>
                  </thead>
                  <tbody id="bodyResumen"></tbody>
               </table>
@@ -544,7 +539,7 @@
           <div id="viewDetallesExcel" style="margin-top: 35px; display: none;">
               <div class="consulta-tabla-wrapper" style="margin-bottom: 15px;">
                  <table class="consulta-tabla" style="min-width: 100%;">
-                    <thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th></tr></thead>
+                    <thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th></tr></thead>
                     <tbody id="viewResumenGeneral"></tbody>
                  </table>
               </div>
@@ -851,7 +846,7 @@ function procesarPegadoResumen(e) {
   rows.forEach(r => {
     if(!r.trim()) return; var cols = r.split('\t');
     if(cols[0].toLowerCase().includes('orden') || cols[0].toLowerCase().includes('resumen') || cols[0].toLowerCase().includes('total general')) return;
-    datosResumenExcel.push({ orden: cols[0], descripcion: cols[1], paciente: cols[2], total: parseFloat(cols[3]||0), verifSalida: false, verifEntrada: false });
+    datosResumenExcel.push({ orden: cols[0], descripcion: cols[1], paciente: cols[2], total: parseFloat(cols[3]||0) });
   });
   renderTablaResumen(); e.target.value = "✅ ¡RESUMEN CARGADO!"; setTimeout(() => e.target.value = "", 2000);
 }
@@ -885,18 +880,6 @@ function crearFilaResumen(datos) {
   inTotal.oninput = function() { this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, ''); recalcularTotalResumen(); };
   tdTotal.appendChild(inTotal); tr.appendChild(tdTotal);
 
-  var tdSalida = document.createElement("td");
-  var chkSalida = document.createElement("input");
-  chkSalida.type = "checkbox"; chkSalida.dataset.campo = "verifSalida"; chkSalida.checked = !!datos.verifSalida;
-  chkSalida.style.cssText = "cursor:pointer; transform:scale(1.2);";
-  tdSalida.appendChild(chkSalida); tr.appendChild(tdSalida);
-
-  var tdEntrada = document.createElement("td");
-  var chkEntrada = document.createElement("input");
-  chkEntrada.type = "checkbox"; chkEntrada.dataset.campo = "verifEntrada"; chkEntrada.checked = !!datos.verifEntrada;
-  chkEntrada.style.cssText = "cursor:pointer; transform:scale(1.2);";
-  tdEntrada.appendChild(chkEntrada); tr.appendChild(tdEntrada);
-
   var tdAccion = document.createElement("td"); tdAccion.style.whiteSpace = "nowrap";
   var btnX = document.createElement("button");
   btnX.type = "button"; btnX.className = "btn mini"; btnX.style.background = "var(--danger)"; btnX.innerText = "✕";
@@ -923,7 +906,7 @@ function renderTablaResumen() {
   if (datosResumenExcel.length === 0) { tbody.appendChild(crearFilaResumen()); }
   else { datosResumenExcel.forEach(r => tbody.appendChild(crearFilaResumen(r))); }
   var trTotal = document.createElement("tr"); trTotal.className = "fila-totales";
-  trTotal.innerHTML = '<td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td id="totalGeneralResumen">0,00</td><td colspan="3"></td>';
+  trTotal.innerHTML = '<td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td id="totalGeneralResumen">0,00</td><td></td>';
   tbody.appendChild(trTotal);
   recalcularTotalResumen();
 }
@@ -932,10 +915,7 @@ function obtenerDatosResumenTabla() {
   var resultado = [];
   document.querySelectorAll("#bodyResumen tr").forEach(function(tr) {
     var fila = {};
-    tr.querySelectorAll("input[data-campo]").forEach(function(inp) {
-      if (inp.type === "checkbox") { fila[inp.dataset.campo] = inp.checked; }
-      else { fila[inp.dataset.campo] = inp.value.trim(); }
-    });
+    tr.querySelectorAll("input[data-campo]").forEach(function(inp) { fila[inp.dataset.campo] = inp.value.trim(); });
     if (fila.orden || fila.descripcion || fila.paciente || fila.total) {
       fila.total = parseFloat(String(fila.total || "0").replace(',', '.')) || 0;
       resultado.push(fila);
@@ -1636,13 +1616,13 @@ function renderDetallesExcelModal(data) {
 
   if (data.resumen && data.resumen.length > 0) {
       htmlHasData = true;
-      var html = `<thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>VERIF. SALIDA</th><th>VERIF. ENTRADA</th></tr></thead><tbody>`;
+      var html = `<thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th></tr></thead><tbody>`;
       var sum = 0;
       data.resumen.forEach(r => {
           sum += parseFloat(r.total || 0);
-          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td style="font-weight:800; color:var(--success);">${r.total}</td><td>${r.vSalida}</td><td>${r.vEntrada}</td></tr>`;
+          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td style="font-weight:800; color:var(--success);">${r.total}</td></tr>`;
       });
-      html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td style="color:var(--brand-main);">${sum}</td><td colspan="2"></td></tr></tbody>`;
+      html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td style="color:var(--brand-main);">${sum}</td></tr></tbody>`;
       document.getElementById("viewResumenGeneral").innerHTML = html;
   }
 
@@ -1986,47 +1966,6 @@ function exportarResumenExistenciasExcel() {
 
 // ---------------- REGISTRO DE TRASLADOS ----------------
 var datosBase = {}; var ordenesSeparadas = [];
-
-function setSelectByText(selectId, text) {
-  let sel = document.getElementById(selectId);
-  if(!sel) return;
-  let targetText = text.trim().toUpperCase();
-  let found = false;
-  for(let i=0; i<sel.options.length; i++) {
-      if(sel.options[i].text.toUpperCase() === targetText) { sel.selectedIndex = i; found = true; break; }
-  }
-  if(!found && targetText !== "") {
-      let opt = document.createElement("option"); opt.value = targetText; opt.text = targetText;
-      sel.appendChild(opt); sel.value = targetText;
-  }
-}
-
-function procesarPegado(event) {
-  event.preventDefault(); let dict = {};
-  let pastedData = (event.clipboardData || window.clipboardData).getData('text');
-  pastedData.split(/\r?\n/).forEach(row => {
-      let cols = row.split('\t');
-      for (let i = 0; i < cols.length - 1; i += 2) {
-          let label = cols[i] ? cols[i].trim().toLowerCase() : "";
-          if(label !== "") dict[label] = cols[i+1] ? cols[i+1].trim() : "";
-      }
-  });
-
-  if (dict["numero de orden"]) {
-    switchTab('nueva-orden');
-    document.getElementById("numeroOrdenNuevo").value = dict["numero de orden"];
-  }
-  if (dict["cantidad de discos"]) document.getElementById("cantidadDiscos").value = dict["cantidad de discos"].replace(/\./g, ',');
-
-  if (dict["area salida"]) setSelectByText("areaSalida", dict["area salida"]);
-  if (dict["area entrada"]) setSelectByText("areaEntrada", dict["area entrada"]);
-  if (dict["motivo"]) setSelectByText("motivo", dict["motivo"]);
-  if (dict["fecha"]) {
-      let partes = dict["fecha"].split("/");
-      if(partes.length === 3) document.getElementById("fecha").value = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
-  }
-  event.target.value = "✅ ¡DATOS CARGADOS CON ÉXITO!"; setTimeout(() => event.target.value = "", 2000);
-}
 
 function desbloquearBotonGuardar() {
    var btn = document.getElementById("btnGuardar");

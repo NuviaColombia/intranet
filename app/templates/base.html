@@ -47,6 +47,6 @@
   <span class="usuario">{{ user.nombre_completo }} · <a href="/logout">Salir</a></span>
 </nav>
 {% endif %}
-<main>{% block contenido %}{% endblock %}</main>
+<main{% if es_custodia %} style="max-width:100%"{% endif %}>{% block contenido %}{% endblock %}</main>
 </body>
 </html>

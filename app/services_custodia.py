@@ -387,8 +387,7 @@ def catalogo_discos(db: Session) -> list[dict]:
 def detalles_por_traslado(traslado: CustodiaTraslado) -> dict:
     return {
         "resumen": [{"orden": r.orden, "descripcion": r.descripcion, "paciente": r.paciente,
-                    "total": r.total, "vSalida": "SI" if r.verificado_salida else "NO",
-                    "vEntrada": "SI" if r.verificado_entrada else "NO"} for r in traslado.resumen],
+                    "total": r.total} for r in traslado.resumen],
         "discos": [{"detalle": d.detalle_protesis, "cantPaciente": d.cant_paciente,
                    "cantDiscos": d.cant_discos} for d in traslado.discos],
         "op": [{"op": o.op, "descripcion": o.descripcion, "orden": o.orden, "tipo": o.tipo,
