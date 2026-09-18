@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block contenido %}
+<style>
+  #ds-app { font-size: 14px; }
+  .ds-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .ds-tab { padding:8px 16px; border-radius:8px; border:1px solid var(--borde,#d8dde3); background:#fff;
+            cursor:pointer; font-weight:600; font-size:13px; }
+  .ds-tab.activo { background:#1c3a63; color:#fff; border-color:#1c3a63; }
+  .ds-semana { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .ds-dia { padding:6px 14px; border-radius:8px; border:1px solid var(--borde,#d8dde3); background:#fff;
+            cursor:pointer; font-size:13px; }
+  .ds-dia.activo { background:#eef1f5; border-color:#1c3a63; font-weight:700; }
+  .ds-kpis { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
+  .ds-kpi b { display:block; font-size:20px; }
+  .ds-panel { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
+  .ds-panel h3 { margin:0 0 10px; font-size:14px; color:#1c3a63; }
+  table.ds-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.ds-tabla th, table.ds-tabla td { border:1px solid #e2e6ea; padding:5px 6px; text-align:center; }
+  table.ds-tabla th { background:#f4f6f8; font-size:11px; }
+  table.ds-tabla input, table.ds-tabla select { width:100%; border:none; background:transparent; font-size:12px; text-align:center; }
+  table.ds-tabla input[type=text] { text-align:left; }
+  .ds-btn-x { background:#dc2626; color:#fff; border:none; border-radius:4px; padding:2px 7px; cursor:pointer; }
+  .ds-btn-add { margin-top:8px; }
+  .ds-break-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid #eee; }
+  .ds-break-row label { font-size:11px; color:#6b7280; display:block; }
+  .ds-break-row input, .ds-break-row select { font-size:12px; padding:4px 6px; border:1px solid #d8dde3; border-radius:6px; }
+</style>
+
+<div id="ds-app">
+  <h1 style="margin-bottom:6px">Design Schedule</h1>
+  <div id="dsAreaTabs" class="ds-tabs"></div>
+  <div id="dsTeamTabs" class="ds-tabs"></div>
+
+  <div class="ds-semana">
+    <button type="button" class="btn gris mini" onclick="dsCambiarSemana(-7)">&larr; Semana anterior</button>
+    <span id="dsRangoSemana" style="font-weight:700"></span>
+    <button type="button" class="btn gris mini" onclick="dsCambiarSemana(7)">Semana siguiente &rarr;</button>
+  </div>
+  <div id="dsDiaTabs" class="ds-tabs"></div>
+
+  <div id="dsKpis" class="ds-kpis"></div>
+
+  <div class="ds-panel">
+    <h3 id="dsTituloPrincipal">Órdenes</h3>
+    <div id="dsTablaPrincipal"></div>
+    <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal')">+ Agregar orden</button>
+  </div>
+
+  <div class="ds-panel" id="dsPanelNightguard" style="display:none">
+    <h3>Nightguards / TC</h3>
+    <div id="dsTablaNightguard"></div>
+    <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard')">+ Agregar orden</button>
+  </div>
+
+  <div class="ds-panel">
+    <h3>Tiempos libres</h3>
+    <div id="dsBreaks"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  function api(url, opts) {
+    opts = opts || {};
+    return fetch(url, opts).then(function(r) {
+      if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || r.statusText); });
+      return r.json();
+    });
+  }
+  function postJSON(url, body) {
+    return api(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  }
+
+  var DS = {
+    areas: [], areaId: null, areaFormato: null,
+    teams: [], teamId: null,
+    lunes: dsLunesDe(new Date()),
+    diaSel: 0, // 0=lunes ... 4=viernes
+    diaData: null,
+  };
+  window.dsCambiarSemana = function(delta) {
+    DS.lunes.setDate(DS.lunes.getDate() + delta);
+    dsRenderDias(); dsCargarDia();
+  };
+
+  function dsLunesDe(d) {
+    var dia = d.getDay(); var diff = (dia === 0 ? -6 : 1) - dia;
+    var l = new Date(d); l.setDate(d.getDate() + diff); l.setHours(0,0,0,0);
+    return l;
+  }
+  function dsFechaISO(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function dsFechaCorta(d) { return d.toLocaleDateString('es-CO', {day:'2-digit', month:'short'}); }
+
+  var NOMBRES_DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
+
+  function dsRenderDias() {
+    var fin = new Date(DS.lunes); fin.setDate(fin.getDate() + 4);
+    document.getElementById('dsRangoSemana').innerText = dsFechaCorta(DS.lunes) + ' — ' + dsFechaCorta(fin);
+    var cont = document.getElementById('dsDiaTabs'); cont.innerHTML = '';
+    for (var i = 0; i < 5; i++) {
+      var d = new Date(DS.lunes); d.setDate(d.getDate() + i);
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'ds-dia' + (i === DS.diaSel ? ' activo' : '');
+      btn.innerText = NOMBRES_DIAS[i] + ' ' + dsFechaCorta(d);
+      btn.onclick = (function(idx) { return function() { DS.diaSel = idx; dsRenderDias(); dsCargarDia(); }; })(i);
+      cont.appendChild(btn);
+    }
+  }
+
+  function dsFechaSeleccionada() {
+    var d = new Date(DS.lunes); d.setDate(d.getDate() + DS.diaSel); return d;
+  }
+
+  // ---------- Áreas / Equipos ----------
+  function dsCargarAreas() {
+    api('/design/api/areas').then(function(areas) {
+      DS.areas = areas;
+      var cont = document.getElementById('dsAreaTabs'); cont.innerHTML = '';
+      areas.forEach(function(a) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'ds-tab' + (a.id === DS.areaId ? ' activo' : '');
+        btn.innerText = a.nombre;
+        btn.onclick = function() { dsSeleccionarArea(a.id, a.formato); };
+        cont.appendChild(btn);
+      });
+      if (areas.length) dsSeleccionarArea(areas[0].id, areas[0].formato);
+    });
+  }
+
+  function dsSeleccionarArea(areaId, formato) {
+    DS.areaId = areaId; DS.areaFormato = formato;
+    document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
+      b.classList.toggle('activo', DS.areas[i].id === areaId);
+    });
+    document.getElementById('dsPanelNightguard').style.display = (formato === 'dual') ? '' : 'none';
+    document.getElementById('dsTituloPrincipal').innerText = (formato === 'dual') ? 'Cirugías' : 'Órdenes';
+    api('/design/api/teams?area_id=' + areaId).then(function(teams) {
+      DS.teams = teams;
+      var cont = document.getElementById('dsTeamTabs'); cont.innerHTML = '';
+      teams.forEach(function(t) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'ds-tab';
+        btn.innerText = t.nombre;
+        btn.onclick = function() { dsSeleccionarEquipo(t.id); };
+        cont.appendChild(btn);
+      });
+      if (teams.length) dsSeleccionarEquipo(teams[0].id);
+      else { DS.teamId = null; document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; }
+    });
+  }
+
+  function dsSeleccionarEquipo(teamId) {
+    DS.teamId = teamId;
+    document.querySelectorAll('#dsTeamTabs .ds-tab').forEach(function(b, i) { b.classList.toggle('activo', DS.teams[i].id === teamId); });
+    dsRenderDias();
+    dsCargarDia();
+  }
+
+  // ---------- Especificación de columnas por formato ----------
+  var COLSPEC = {
+    dual: {
+      principal: [
+        {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+        {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+        {k:'designerId', l:'Diseñador', t:'designer'},
+        {k:'horaInicio', l:'Inicio', t:'time'}, {k:'horaInicioDiseno', l:'Inicio diseño', t:'time'},
+        {k:'holdMinutos', l:'Hold (min)', t:'number'}, {k:'horaFin', l:'Fin', t:'time'},
+        {k:'esferas', l:'Esferas', t:'select', opciones:['','Yes','No','N/A']},
+        {k:'critico', l:'Crítico', t:'text'},
+        {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
+        {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+      ],
+      nightguard: [
+        {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+        {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+        {k:'designerId', l:'Diseñador', t:'designer'}, {k:'notas', l:'Notas', t:'text'},
+        {k:'horaInicio', l:'Inicio', t:'time'}, {k:'horaFin', l:'Fin', t:'time'},
+        {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'qc', l:'QC', t:'checkbox'},
+      ],
+    },
+    single: { principal: [
+      {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+      {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+      {k:'designerId', l:'Diseñador', t:'designer'},
+      {k:'horaInicio', l:'Inicio', t:'time'}, {k:'horaInicioDiseno', l:'Inicio diseño', t:'time'},
+      {k:'holdMinutos', l:'Hold (min)', t:'number'}, {k:'horaFin', l:'Fin', t:'time'},
+      {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
+      {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+    ]},
+    n2: { principal: [
+      {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+      {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+      {k:'designerId', l:'Diseñador', t:'designer'},
+      {k:'horaInicio', l:'Inicio', t:'time'}, {k:'sHold', l:'S.Hold', t:'time'}, {k:'fHold', l:'F.Hold', t:'time'},
+      {k:'horaFin', l:'Fin', t:'time'},
+      {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
+      {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+    ]},
+    support: { principal: [
+      {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+      {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+      {k:'etapa', l:'Etapa', t:'text'}, {k:'designerId', l:'Diseñador', t:'designer'},
+      {k:'solicitadoPor', l:'Solicitado por', t:'text'}, {k:'situacion', l:'Situación', t:'text'},
+      {k:'solucion', l:'Solución', t:'text'}, {k:'clasificacion', l:'Clasificación', t:'text'},
+      {k:'soporte', l:'Soporte', t:'text'},
+    ]},
+  };
+
+  var catalogoCache = {};
+  function dsCatalogo(tipo) {
+    var key = DS.areaId + ':' + tipo;
+    if (catalogoCache[key]) return Promise.resolve(catalogoCache[key]);
+    return api('/design/api/catalogo?area_id=' + DS.areaId + '&tipo=' + tipo).then(function(vals) {
+      catalogoCache[key] = vals; return vals;
+    });
+  }
+
+  function dsDuracion(inicio, fin) {
+    if (!inicio || !fin) return '';
+    var a = inicio.split(':'), b = fin.split(':');
+    var mins = (parseInt(b[0])*60+parseInt(b[1])) - (parseInt(a[0])*60+parseInt(a[1]));
+    if (isNaN(mins) || mins < 0) return '';
+    return Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+  }
+
+  function dsRenderTabla(tabla, filas) {
+    var spec = COLSPEC[DS.areaFormato][tabla];
+    var contId = tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard';
+    var cont = document.getElementById(contId);
+    var html = '<table class="ds-tabla"><thead><tr>';
+    spec.forEach(function(c) { html += '<th>' + c.l + '</th>'; });
+    html += '<th>Total</th><th></th></tr></thead><tbody>';
+    filas.forEach(function(f) {
+      html += '<tr data-id="' + f.id + '">';
+      spec.forEach(function(c) {
+        html += '<td>' + dsCeldaInput(c, f) + '</td>';
+      });
+      html += '<td>' + dsDuracion(f.horaInicio, f.horaFin) + '</td>';
+      html += '<td><button type="button" class="ds-btn-x" onclick="dsEliminarFila(' + f.id + ')">✕</button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+    // listeners
+    cont.querySelectorAll('[data-campo]').forEach(function(input) {
+      var ev = (input.tagName === 'SELECT' || input.type === 'checkbox') ? 'change' : 'blur';
+      input.addEventListener(ev, function() { dsGuardarFila(this.closest('tr')); });
+    });
+    // catalogos asincronos (centro/producto/estado)
+    spec.forEach(function(c) {
+      if (c.t === 'catalogo') {
+        dsCatalogo(c.cat).then(function(valores) {
+          cont.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
+            var actual = sel.dataset.valorActual || '';
+            valores.forEach(function(v) {
+              if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
+                var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
+              }
+            });
+            if (actual) sel.value = actual;
+          });
+        });
+      }
+    });
+  }
+
+  function dsCeldaInput(c, f) {
+    var val = f[c.k];
+    if (c.t === 'text') return '<input type="text" data-campo="' + c.k + '" value="' + dsEsc(val || '') + '">';
+    if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '" value="' + dsEsc(val || 0) + '">';
+    if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '" value="' + dsEsc(val || '') + '">';
+    if (c.t === 'checkbox') return '<input type="checkbox" data-campo="' + c.k + '" ' + (val ? 'checked' : '') + '>';
+    if (c.t === 'select') {
+      var html = '<select data-campo="' + c.k + '">';
+      c.opciones.forEach(function(o) { html += '<option value="' + o + '"' + (o === val ? ' selected' : '') + '>' + (o || '—') + '</option>'; });
+      return html + '</select>';
+    }
+    if (c.t === 'catalogo') {
+      return '<select data-campo="' + c.k + '" data-valor-actual="' + dsEsc(val || '') + '"><option value="">—</option>' +
+             (val ? '<option value="' + dsEsc(val) + '" selected>' + dsEsc(val) + '</option>' : '') + '</select>';
+    }
+    if (c.t === 'designer') {
+      var html = '<select data-campo="designerId"><option value="">—</option>';
+      (DS.diaData ? DS.diaData.designers : []).forEach(function(d) {
+        html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + '</option>';
+      });
+      return html + '</select>';
+    }
+    return '';
+  }
+
+  function dsEsc(v) { return String(v).replace(/"/g, '&quot;'); }
+
+  function dsFilaDesdeForm(tr) {
+    var datos = {teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada())};
+    tr.querySelectorAll('[data-campo]').forEach(function(input) {
+      var campo = input.dataset.campo;
+      var valor;
+      if (input.type === 'checkbox') valor = input.checked;
+      else if (campo === 'designerId') valor = input.value ? parseInt(input.value) : null;
+      else if (campo === 'holdMinutos') valor = parseFloat(input.value) || 0;
+      else valor = input.value;
+      datos[campo] = valor;
+    });
+    return datos;
+  }
+
+  function dsGuardarFila(tr) {
+    var id = tr.dataset.id;
+    var datos = dsFilaDesdeForm(tr);
+    postJSON('/design/api/ordenes/' + id, datos).catch(function(e) { alert('Error guardando: ' + e.message); });
+  }
+
+  window.dsAgregarFila = function(tabla) {
+    if (!DS.teamId) { alert('Selecciona un equipo primero.'); return; }
+    postJSON('/design/api/ordenes', {
+      teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada()), tabla: tabla,
+    }).then(function() { dsCargarDia(); }).catch(function(e) { alert('Error: ' + e.message); });
+  };
+
+  window.dsEliminarFila = function(id) {
+    if (!confirm('¿Eliminar esta orden?')) return;
+    postJSON('/design/api/ordenes/' + id + '/eliminar', {}).then(function() { dsCargarDia(); })
+      .catch(function(e) { alert('Error: ' + e.message); });
+  };
+
+  function dsRenderKpis(dia) {
+    var todas = dia.principal.concat(dia.nightguard || []);
+    var conteo = {};
+    todas.forEach(function(f) { conteo[f.estado || 'Sin estado'] = (conteo[f.estado || 'Sin estado'] || 0) + 1; });
+    var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
+    var total = document.createElement('div'); total.className = 'ds-kpi';
+    total.innerHTML = '<b>' + todas.length + '</b>Órdenes';
+    cont.appendChild(total);
+    Object.keys(conteo).forEach(function(estado) {
+      var k = document.createElement('div'); k.className = 'ds-kpi';
+      k.innerHTML = '<b>' + conteo[estado] + '</b>' + estado;
+      cont.appendChild(k);
+    });
+  }
+
+  function dsRenderBreaks(dia) {
+    var cont = document.getElementById('dsBreaks'); cont.innerHTML = '';
+    if (!dia.designers.length) { cont.innerHTML = '<p style="color:#6b7280">Este equipo no tiene diseñadores asignados.</p>'; return; }
+    api('/design/api/ausencias').then(function(tipos) {
+      dia.designers.forEach(function(d) {
+        var b = dia.breaks.find(function(x) { return x.empleadoId === d.id; }) || {};
+        var row = document.createElement('div'); row.className = 'ds-break-row'; row.dataset.empleadoId = d.id;
+        row.innerHTML =
+          '<b style="min-width:140px">' + dsEsc(d.nombre) + '</b>' +
+          '<div><label>Ausencia</label><select data-campo="tipoAusencia"><option value="">—</option>' +
+            tipos.map(function(t) { return '<option value="' + t + '"' + (t === b.tipoAusencia ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
+          '</select></div>' +
+          '<div><label>Almuerzo</label><input type="time" data-campo="almuerzoInicio" value="' + dsEsc(b.almuerzoInicio || '') + '"></div>' +
+          '<div><label>&nbsp;</label><input type="time" data-campo="almuerzoFin" value="' + dsEsc(b.almuerzoFin || '') + '"></div>' +
+          '<div><label>Break 1</label><input type="time" data-campo="break1Inicio" value="' + dsEsc(b.break1Inicio || '') + '"></div>' +
+          '<div><label>&nbsp;</label><input type="time" data-campo="break1Fin" value="' + dsEsc(b.break1Fin || '') + '"></div>' +
+          '<div><label>Break 2</label><input type="time" data-campo="break2Inicio" value="' + dsEsc(b.break2Inicio || '') + '"></div>' +
+          '<div><label>&nbsp;</label><input type="time" data-campo="break2Fin" value="' + dsEsc(b.break2Fin || '') + '"></div>';
+        row.querySelectorAll('[data-campo]').forEach(function(input) {
+          var ev = input.tagName === 'SELECT' ? 'change' : 'blur';
+          input.addEventListener(ev, function() { dsGuardarBreak(row); });
+        });
+        cont.appendChild(row);
+      });
+    });
+  }
+
+  function dsGuardarBreak(row) {
+    var datos = {teamId: DS.teamId, empleadoId: parseInt(row.dataset.empleadoId), fecha: dsFechaISO(dsFechaSeleccionada())};
+    row.querySelectorAll('[data-campo]').forEach(function(input) { datos[input.dataset.campo] = input.value; });
+    postJSON('/design/api/breaks', datos).catch(function(e) { alert('Error guardando: ' + e.message); });
+  }
+
+  function dsCargarDia() {
+    if (!DS.teamId) return;
+    api('/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada())).then(function(dia) {
+      DS.diaData = dia;
+      dsRenderTabla('principal', dia.principal);
+      if (DS.areaFormato === 'dual') dsRenderTabla('nightguard', dia.nightguard);
+      dsRenderKpis(dia);
+      dsRenderBreaks(dia);
+    });
+  }
+
+  dsRenderDias();
+  dsCargarAreas();
+})();
+</script>
+{% endblock %}

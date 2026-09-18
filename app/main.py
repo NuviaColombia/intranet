@@ -8,8 +8,10 @@ from . import config
 from .database import engine, SessionLocal
 from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
 from .models_custodia import CustodiaArea, CustodiaMotivo
+from .models_design import DesignArea, DesignCatalogo, DesignAusenciaTipo, FORMATO_DUAL, FORMATO_SINGLE, \
+    FORMATO_N2, FORMATO_SUPPORT
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
-                      portal, custodia, mis_aprobaciones, custodia_parametros)
+                      portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule)
 
 app = FastAPI(title="Solicitudes Nuvia")
 app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, max_age=60 * 60 * 10)
@@ -26,6 +28,7 @@ app.include_router(horas_extra.router)
 app.include_router(custodia.router)
 app.include_router(custodia_parametros.router)
 app.include_router(mis_aprobaciones.router)
+app.include_router(design_schedule.router)
 
 
 @app.exception_handler(307)
@@ -47,6 +50,16 @@ CUSTODIA_AREAS_INICIALES = [
 ]  # (nombre, es_inventario) -- EMPAQUE cuenta como inventario: toda orden que llega ahí se considera completada
 
 CUSTODIA_MOTIVOS_INICIALES = ["PRODUCCIÓN NORMAL", "MERMA/DAÑO", "DEVOLUCIÓN"]
+
+DESIGN_AREAS_INICIALES = [
+    ("N3 Prosthetic", FORMATO_DUAL), ("N6 Material Changes", FORMATO_DUAL),
+    ("Face Design", FORMATO_SINGLE), ("N2 Demodenture", FORMATO_N2), ("Support", FORMATO_SUPPORT),
+]  # (nombre, formato)
+
+DESIGN_ESTADOS_N3_N6 = ["Pickup received", "Initiated", "Ready to design", "Bite ready",
+                        "Hold", "Approved", "Canceled"]
+
+DESIGN_AUSENCIAS_INICIALES = ["Vacaciones", "Incapacidad", "Permiso", "Ausencia"]
 
 
 @app.on_event("startup")
@@ -117,6 +130,17 @@ def init_db():
         if db.query(CustodiaMotivo).count() == 0:
             for i, nombre in enumerate(CUSTODIA_MOTIVOS_INICIALES, start=1):
                 db.add(CustodiaMotivo(nombre=nombre, orden=i))
+        if db.query(DesignArea).count() == 0:
+            for i, (nombre, formato) in enumerate(DESIGN_AREAS_INICIALES, start=1):
+                area = DesignArea(nombre=nombre, formato=formato, orden=i)
+                db.add(area)
+            db.flush()
+            for area in db.query(DesignArea).filter(DesignArea.formato == FORMATO_DUAL).all():
+                for j, estado in enumerate(DESIGN_ESTADOS_N3_N6, start=1):
+                    db.add(DesignCatalogo(area_id=area.id, tipo="estado", valor=estado, orden=j))
+        if db.query(DesignAusenciaTipo).count() == 0:
+            for i, nombre in enumerate(DESIGN_AUSENCIAS_INICIALES, start=1):
+                db.add(DesignAusenciaTipo(nombre=nombre, orden=i))
         # Garantizar que los correos de ADMIN_EMAILS existan y tengan rol admin
         for email in config.ADMIN_EMAILS:
             emp = db.query(Empleado).filter(Empleado.email == email).first()

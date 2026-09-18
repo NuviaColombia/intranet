@@ -125,7 +125,8 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
                 slugs = [s.strip().lower() for s in modulos_txt.replace(";", ",").split(",") if s.strip()]
                 invalidos = [s for s in slugs if s not in MODULOS_VALIDOS]
                 if invalidos:
-                    raise ValueError(f"módulo inválido: {', '.join(invalidos)} (usa people, compras o sst)")
+                    raise ValueError(f"módulo inválido: {', '.join(invalidos)} "
+                                    f"(usa people, compras, sst, custodia o design_schedule)")
                 emp.modulos = ",".join(slugs)
             elif nuevo:
                 emp.modulos = "people"

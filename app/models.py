@@ -3,7 +3,8 @@ from sqlalchemy import String, Integer, Date, DateTime, Time, ForeignKey, Text, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
-MODULOS_DISPONIBLES = [("people", "People"), ("compras", "Compras"), ("sst", "SST"), ("custodia", "Custodia")]
+MODULOS_DISPONIBLES = [("people", "People"), ("compras", "Compras"), ("sst", "SST"), ("custodia", "Custodia"),
+                       ("design_schedule", "Design Schedule")]
 MODULOS_VALIDOS = {m for m, _ in MODULOS_DISPONIBLES}
 
 

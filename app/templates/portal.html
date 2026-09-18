@@ -30,6 +30,19 @@
     <span class="modulo-desc">Sin acceso</span>
   </div>
   {% endif %}
+  {% if user.tiene_modulo('design_schedule') %}
+  <a class="modulo" href="/design">
+    <span class="modulo-icono">🦷</span>
+    <span class="modulo-nombre">Design Schedule</span>
+    <span class="modulo-desc">Horario de producción del equipo de diseño</span>
+  </a>
+  {% else %}
+  <div class="modulo disabled" title="Sin acceso">
+    <span class="modulo-icono">🦷</span>
+    <span class="modulo-nombre">Design Schedule</span>
+    <span class="modulo-desc">Sin acceso</span>
+  </div>
+  {% endif %}
   <div class="modulo disabled" title="Próximamente">
     <span class="modulo-icono">🛒</span>
     <span class="modulo-nombre">Compras</span>

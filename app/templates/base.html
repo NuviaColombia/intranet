@@ -37,6 +37,12 @@
   <a href="/custodia/parametros">Parámetros</a>
   {% endif %}
   {% endif %}
+  {% if es_design %}
+  <a href="/design">Horario</a>
+  {% if user.rol == 'admin' %}
+  <a href="/design/parametros">Parámetros</a>
+  {% endif %}
+  {% endif %}
   {% if not es_custodia %}
   {% set resumen = resumen_aprobaciones(user) %}
   {% if resumen is not none %}
@@ -47,6 +53,6 @@
   <span class="usuario">{{ user.nombre_completo }} · <a href="/logout">Salir</a></span>
 </nav>
 {% endif %}
-<main{% if es_custodia %} style="max-width:100%"{% endif %}>{% block contenido %}{% endblock %}</main>
+<main{% if es_custodia or es_design %} style="max-width:100%"{% endif %}>{% block contenido %}{% endblock %}</main>
 </body>
 </html>

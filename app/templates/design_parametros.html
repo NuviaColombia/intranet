@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Parámetros de Design Schedule</h1>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+
+<div class="tarjeta">
+  <h2>Equipos</h2>
+  <p style="font-size:13px;color:var(--gris)">
+    Cada equipo pertenece a un área y tiene un manager y una lista de diseñadores
+    (empleados de Nuvia Design Colombia SAS).
+  </p>
+  <form method="post" action="/design/parametros/equipos" class="filtros">
+    <div>
+      <label>Área</label>
+      <select name="area_id" required>
+        {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div style="flex:2"><label>Nombre del equipo</label><input name="nombre" required placeholder="Ej: Equipo David"></div>
+    <div>
+      <label>Manager</label>
+      <select name="manager_id">
+        <option value="">-- SIN ASIGNAR --</option>
+        {% for c in candidatos %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
+      </select>
+    </div>
+    <div><button class="btn">Crear equipo</button></div>
+  </form>
+  <table style="margin-top:12px">
+    <tr><th>Equipo</th><th>Área</th><th>Manager</th><th>Diseñadores</th><th>Estado</th><th></th></tr>
+    {% for t in teams %}
+    <tr>
+      <td>{{ t.nombre }}</td>
+      <td>{{ t.area.nombre }}</td>
+      <td>{{ t.manager.nombre_completo if t.manager else '—' }}</td>
+      <td>
+        {% for d in t.designers %}
+        <span class="badge aprobada" style="margin:2px;">
+          {{ d.empleado.nombre_completo }}
+          <form class="inline" method="post" action="/design/parametros/designers/{{ d.id }}/quitar"
+                style="display:inline">
+            <button class="btn rojo mini" style="padding:1px 6px;font-size:10px;">×</button>
+          </form>
+        </span>
+        {% endfor %}
+        <form class="inline filtros" method="post" action="/design/parametros/equipos/{{ t.id }}/designers" style="margin-top:6px">
+          <div style="flex:2">
+            <select name="empleado_id" required>
+              <option value="">+ AGREGAR DISEÑADOR...</option>
+              {% for c in candidatos %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
+            </select>
+          </div>
+          <div><button class="btn mini">Agregar</button></div>
+        </form>
+      </td>
+      <td>{{ 'Activo' if t.activo else 'Inactivo' }}</td>
+      <td><form class="inline" method="post" action="/design/parametros/equipos/{{ t.id }}/toggle">
+        <button class="btn gris mini">{{ 'Desactivar' if t.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">Ningún equipo creado todavía.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>Catálogos por área (centros, productos, estados)</h2>
+  <p style="font-size:13px;color:var(--gris)">
+    Valores disponibles en los desplegables del horario. Se pueden agregar en cualquier momento.
+  </p>
+  <form method="post" action="/design/parametros/catalogos" class="filtros">
+    <div>
+      <label>Área</label>
+      <select name="area_id" required>
+        {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Tipo</label>
+      <select name="tipo" required>
+        <option value="centro">Centro</option>
+        <option value="producto">Producto</option>
+        <option value="estado">Estado</option>
+      </select>
+    </div>
+    <div style="flex:2"><label>Valor</label><input name="valor" required placeholder="Ej: St Louis - Oswaldo Hernandez"></div>
+    <div><button class="btn">Agregar</button></div>
+  </form>
+  <table style="margin-top:12px">
+    <tr><th>Área</th><th>Tipo</th><th>Valor</th><th>Estado</th><th></th></tr>
+    {% for c in catalogos %}
+    <tr>
+      <td>{{ c.area.nombre }}</td>
+      <td>{{ c.tipo }}</td>
+      <td>{{ c.valor }}</td>
+      <td>{{ 'Activo' if c.activo else 'Inactivo' }}</td>
+      <td><form class="inline" method="post" action="/design/parametros/catalogos/{{ c.id }}/toggle">
+        <button class="btn gris mini">{{ 'Desactivar' if c.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">Ningún valor de catálogo creado todavía.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>Tipos de ausencia (Tiempos libres)</h2>
+  <form method="post" action="/design/parametros/ausencias" class="filtros">
+    <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: Vacaciones"></div>
+    <div><button class="btn">Agregar</button></div>
+  </form>
+  <table style="margin-top:12px">
+    <tr><th>Nombre</th><th>Estado</th><th></th></tr>
+    {% for a in ausencias %}
+    <tr>
+      <td>{{ a.nombre }}</td>
+      <td>{{ 'Activo' if a.activo else 'Inactivo' }}</td>
+      <td><form class="inline" method="post" action="/design/parametros/ausencias/{{ a.id }}/toggle">
+        <button class="btn gris mini">{{ 'Desactivar' if a.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="3">Ningún tipo de ausencia creado todavía.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
