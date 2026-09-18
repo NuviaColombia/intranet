@@ -25,6 +25,22 @@ async def pagina(request: Request, user: Empleado = Depends(require_modulo("desi
                                       {"user": user, "es_design": True})
 
 
+@router.get("/design/dashboard")
+async def pagina_dashboard(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    areas = sd.areas_disponibles(db)
+    return templates.TemplateResponse(request, "design_dashboard.html",
+                                      {"user": user, "areas": areas, "es_design": True})
+
+
+@router.get("/design/comments")
+async def pagina_comments(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+                          db: Session = Depends(get_db)):
+    areas = sd.areas_disponibles(db)
+    return templates.TemplateResponse(request, "design_comments.html",
+                                      {"user": user, "areas": areas, "es_design": True})
+
+
 @router.get("/design/parametros")
 async def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     areas = db.query(DesignArea).order_by(DesignArea.orden).all()
@@ -253,3 +269,98 @@ async def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_m
         "break2_inicio": payload.break2Inicio, "break2_fin": payload.break2Fin,
     })
     return sd.serializar_break(b)
+
+
+# ---------- API: Dashboard ----------
+
+@router.get("/design/api/dashboard")
+async def api_dashboard(area_id: int | None = None, team_id: int | None = None, designer_id: int | None = None,
+                        producto: str = "", estado: str = "", qc: str = "",
+                        fecha_desde: str = "", fecha_hasta: str = "",
+                        user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    fd = date.fromisoformat(fecha_desde) if fecha_desde else None
+    fh = date.fromisoformat(fecha_hasta) if fecha_hasta else None
+    return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh)
+
+
+@router.get("/design/api/buscar")
+async def api_buscar(q: str, user: Empleado = Depends(require_modulo("design_schedule")),
+                     db: Session = Depends(get_db)):
+    return sd.buscar_ordenes(db, q)
+
+
+# ---------- API: Comments N3 (historial) ----------
+
+@router.get("/design/api/comentarios/historial")
+async def api_historial_comentarios(user: Empleado = Depends(require_modulo("design_schedule")),
+                                    db: Session = Depends(get_db)):
+    return sd.historial_comentarios(db)
+
+
+class HistorialComentarioIn(BaseModel):
+    paciente: str = ""
+    orden: str = ""
+    campos: dict
+
+
+@router.post("/design/api/comentarios/historial")
+async def api_guardar_historial(payload: HistorialComentarioIn,
+                                user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    sd.guardar_historial_comentario(db, user, payload.paciente, payload.orden, payload.campos)
+    return {"mensaje": "Guardado en historial."}
+
+
+@router.post("/design/api/comentarios/historial/{historial_id}/eliminar")
+async def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                 db: Session = Depends(get_db)):
+    if not sd.eliminar_historial_comentario(db, historial_id):
+        raise HTTPException(404, "No encontrado.")
+    return {"mensaje": "Eliminado."}
+
+
+# ---------- API: FAQ (Comments N2 / Face) ----------
+
+@router.get("/design/api/faq")
+async def api_faq(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                  db: Session = Depends(get_db)):
+    filas = sd.faq_de_area(db, area_id)
+    return [{"id": f.id, "seccion": f.seccion, "situacion": f.situacion, "producto": f.producto,
+            "comoProceder": f.como_proceder, "plantilla": f.plantilla, "ejemplos": f.ejemplos} for f in filas]
+
+
+@router.post("/design/api/faq")
+async def api_crear_faq(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                        db: Session = Depends(get_db)):
+    f = sd.crear_faq(db, area_id)
+    return {"id": f.id}
+
+
+class FaqIn(BaseModel):
+    seccion: str = ""
+    situacion: str = ""
+    producto: str = ""
+    comoProceder: str = ""
+    plantilla: str = ""
+    ejemplos: str = ""
+
+
+@router.post("/design/api/faq/{faq_id}")
+async def api_actualizar_faq(faq_id: int, payload: FaqIn,
+                             user: Empleado = Depends(require_modulo("design_schedule")),
+                             db: Session = Depends(get_db)):
+    f = sd.actualizar_faq(db, faq_id, {
+        "seccion": payload.seccion, "situacion": payload.situacion, "producto": payload.producto,
+        "como_proceder": payload.comoProceder, "plantilla": payload.plantilla, "ejemplos": payload.ejemplos,
+    })
+    if not f:
+        raise HTTPException(404, "No encontrado.")
+    return {"mensaje": "Actualizado."}
+
+
+@router.post("/design/api/faq/{faq_id}/eliminar")
+async def api_eliminar_faq(faq_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    if not sd.eliminar_faq(db, faq_id):
+        raise HTTPException(404, "No encontrado.")
+    return {"mensaje": "Eliminado."}

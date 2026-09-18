@@ -150,3 +150,34 @@ class DesignBreak(Base):
 
     team = relationship("DesignTeam")
     empleado = relationship("Empleado")
+
+
+class DesignComentarioHistorial(Base):
+    """Historial del generador de comentarios N3 (se guarda al 'Limpiar'; se purga a los 2 días)."""
+    __tablename__ = "design_comentarios_historial"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    paciente: Mapped[str] = mapped_column(String(150), default="")
+    orden: Mapped[str] = mapped_column(String(50), default="")
+    campos: Mapped[str] = mapped_column(Text, default="{}")  # JSON de los CMT_FIELDS
+    creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    creado_por = relationship("Empleado")
+
+
+class DesignFaq(Base):
+    """Hoja de preguntas frecuentes / cómo proceder (Comments N2 / Face Design)."""
+    __tablename__ = "design_faq"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
+    seccion: Mapped[str] = mapped_column(String(150), default="")
+    situacion: Mapped[str] = mapped_column(String(200), default="")
+    producto: Mapped[str] = mapped_column(String(150), default="")
+    como_proceder: Mapped[str] = mapped_column(Text, default="")
+    plantilla: Mapped[str] = mapped_column(Text, default="")
+    ejemplos: Mapped[str] = mapped_column(Text, default="")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    area = relationship("DesignArea")

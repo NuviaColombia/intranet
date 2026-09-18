@@ -13,7 +13,7 @@
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </span>
-  {% if not es_portal and not es_custodia %}
+  {% if not es_portal and not es_custodia and not es_design %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
@@ -39,11 +39,13 @@
   {% endif %}
   {% if es_design %}
   <a href="/design">Horario</a>
+  <a href="/design/dashboard">Dashboard</a>
+  <a href="/design/comments">Comments</a>
   {% if user.rol == 'admin' %}
   <a href="/design/parametros">Parámetros</a>
   {% endif %}
   {% endif %}
-  {% if not es_custodia %}
+  {% if not es_custodia and not es_design %}
   {% set resumen = resumen_aprobaciones(user) %}
   {% if resumen is not none %}
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>

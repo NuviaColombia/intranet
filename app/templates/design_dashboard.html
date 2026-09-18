@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block contenido %}
+<style>
+  .dd-filtros { display:flex; gap:10px; flex-wrap:wrap; align-items:end; background:#fff; border:1px solid #d8dde3;
+                border-radius:12px; padding:14px; margin-bottom:16px; }
+  .dd-filtros div { display:flex; flex-direction:column; gap:4px; }
+  .dd-filtros label { font-size:11px; color:#6b7280; }
+  .dd-filtros input, .dd-filtros select { padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; }
+  .dd-kpis { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .dd-kpi { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:10px 16px; min-width:110px; }
+  .dd-kpi b { display:block; font-size:20px; }
+  .dd-panel { background:#fff; border:1px solid #d8dde3; border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
+  .dd-panel h3 { margin:0 0 10px; font-size:14px; color:#1c3a63; }
+  table.dd-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.dd-tabla th, table.dd-tabla td { border:1px solid #e2e6ea; padding:6px 8px; text-align:left; }
+  table.dd-tabla th { background:#f4f6f8; }
+  .dd-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:12.5px; }
+  .dd-bar-label { width:220px; }
+  .dd-bar-track { flex:1; background:#eef1f5; border-radius:4px; height:14px; overflow:hidden; }
+  .dd-bar-fill { background:#1c3a63; height:100%; }
+  .dd-search { display:flex; gap:8px; margin-bottom:16px; }
+  .dd-search input { flex:1; padding:8px 10px; border:1px solid #d8dde3; border-radius:8px; }
+</style>
+
+<h1>Dashboard — Design Schedule</h1>
+
+<div class="dd-search">
+  <input type="text" id="ddBuscar" placeholder="Buscar por número de orden o paciente en todos los equipos...">
+  <button type="button" class="btn" onclick="ddBuscar()">Buscar</button>
+</div>
+<div id="ddResultadosBusqueda"></div>
+
+<div class="dd-filtros">
+  <div><label>Área</label>
+    <select id="ddArea" onchange="ddCambioArea()">
+      <option value="">-- Todas --</option>
+      {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div><label>Equipo</label><select id="ddTeam"><option value="">-- Todos --</option></select></div>
+  <div><label>Producto</label><input type="text" id="ddProducto" placeholder="Ej: N3 - Screw Retained"></div>
+  <div><label>Estado</label><input type="text" id="ddEstado" placeholder="Ej: Approved"></div>
+  <div><label>QC</label>
+    <select id="ddQc"><option value="">-- Todos --</option><option value="si">Con QC</option><option value="no">Sin QC</option></select>
+  </div>
+  <div><label>Desde</label><input type="date" id="ddDesde"></div>
+  <div><label>Hasta</label><input type="date" id="ddHasta"></div>
+  <div><button type="button" class="btn" onclick="ddCargar()">Filtrar</button></div>
+</div>
+
+<div class="dd-kpis" id="ddKpis"></div>
+
+<div class="dd-panel">
+  <h3>Producción por diseñador</h3>
+  <table class="dd-tabla"><thead><tr><th>Diseñador</th><th>Casos</th><th>Duración total</th></tr></thead>
+    <tbody id="ddProduccion"></tbody></table>
+</div>
+
+<div class="dd-panel">
+  <h3>Mezcla de productos (cuellos de botella)</h3>
+  <div id="ddProductoMix"></div>
+</div>
+
+<div class="dd-panel">
+  <h3>Reportes de QC</h3>
+  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Diseñador</th><th>Reporte</th></tr></thead>
+    <tbody id="ddQcReportes"></tbody></table>
+</div>
+
+<div class="dd-panel">
+  <h3>Aprobadas sin QC</h3>
+  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Estado</th><th>Diseñador</th></tr></thead>
+    <tbody id="ddSinQc"></tbody></table>
+</div>
+
+<script>
+function ddApi(url) { return fetch(url).then(function(r) { return r.json(); }); }
+function ddEsc(v) { return String(v == null ? '' : v).replace(/</g, '&lt;'); }
+function ddMin(m) { return Math.floor(m/60) + 'h ' + Math.round(m%60) + 'm'; }
+
+function ddCambioArea() {
+  var areaId = document.getElementById('ddArea').value;
+  var sel = document.getElementById('ddTeam'); sel.innerHTML = '<option value="">-- Todos --</option>';
+  if (!areaId) return;
+  ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
+    teams.forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
+  });
+}
+
+function ddCargar() {
+  var params = new URLSearchParams();
+  var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
+  if (team) params.set('team_id', team); else if (area) params.set('area_id', area);
+  var producto = document.getElementById('ddProducto').value; if (producto) params.set('producto', producto);
+  var estado = document.getElementById('ddEstado').value; if (estado) params.set('estado', estado);
+  var qc = document.getElementById('ddQc').value; if (qc) params.set('qc', qc);
+  var desde = document.getElementById('ddDesde').value; if (desde) params.set('fecha_desde', desde);
+  var hasta = document.getElementById('ddHasta').value; if (hasta) params.set('fecha_hasta', hasta);
+
+  ddApi('/design/api/dashboard?' + params.toString()).then(function(data) {
+    document.getElementById('ddKpis').innerHTML =
+      '<div class="dd-kpi"><b>' + data.totalCasos + '</b>Casos totales</div>' +
+      '<div class="dd-kpi"><b>' + data.qcReportes.length + '</b>Con reporte QC</div>' +
+      '<div class="dd-kpi"><b>' + data.sinQc.length + '</b>Aprobadas sin QC</div>';
+
+    document.getElementById('ddProduccion').innerHTML = data.porDesigner.map(function(d) {
+      return '<tr><td>' + ddEsc(d.nombre) + '</td><td>' + d.casos + '</td><td>' + ddMin(d.duracionMin) + '</td></tr>';
+    }).join('') || '<tr><td colspan="3" style="color:#6b7280">Sin datos.</td></tr>';
+
+    var maxCasos = Math.max.apply(null, data.porProducto.map(function(p) { return p.casos; }).concat([1]));
+    document.getElementById('ddProductoMix').innerHTML = data.porProducto.map(function(p) {
+      var pct = Math.round((p.casos / maxCasos) * 100);
+      return '<div class="dd-bar-row"><span class="dd-bar-label">' + ddEsc(p.producto) + '</span>' +
+             '<div class="dd-bar-track"><div class="dd-bar-fill" style="width:' + pct + '%"></div></div>' +
+             '<span>' + p.casos + '</span></div>';
+    }).join('') || '<p style="color:#6b7280">Sin datos.</p>';
+
+    document.getElementById('ddQcReportes').innerHTML = data.qcReportes.map(function(r) {
+      return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td>' +
+             '<td>' + ddEsc(r.designerNombre) + '</td><td>' + ddEsc(r.qcReporte) + '</td></tr>';
+    }).join('') || '<tr><td colspan="5" style="color:#6b7280">Sin datos.</td></tr>';
+
+    document.getElementById('ddSinQc').innerHTML = data.sinQc.map(function(r) {
+      return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td>' +
+             '<td>' + ddEsc(r.estado) + '</td><td>' + ddEsc(r.designerNombre) + '</td></tr>';
+    }).join('') || '<tr><td colspan="5" style="color:#6b7280">Sin datos.</td></tr>';
+  });
+}
+
+function ddBuscar() {
+  var q = document.getElementById('ddBuscar').value.trim();
+  if (!q) { document.getElementById('ddResultadosBusqueda').innerHTML = ''; return; }
+  ddApi('/design/api/buscar?q=' + encodeURIComponent(q)).then(function(res) {
+    var cont = document.getElementById('ddResultadosBusqueda');
+    if (!res.length) { cont.innerHTML = '<p style="color:#6b7280">Sin resultados.</p>'; return; }
+    cont.innerHTML = '<div class="dd-panel"><table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Área</th><th>Equipo</th><th>Fecha</th></tr></thead><tbody>' +
+      res.map(function(r) {
+        return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + ddEsc(r.area) + '</td>' +
+               '<td>' + ddEsc(r.equipo) + '</td><td>' + r.fecha + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  });
+}
+
+ddCargar();
+</script>
+{% endblock %}

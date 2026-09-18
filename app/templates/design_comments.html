@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+{% block contenido %}
+<style>
+  .cmt-tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .cmt-tab { padding:8px 16px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:13px; }
+  .cmt-tab.activo { background:#1c3a63; color:#fff; border-color:#1c3a63; }
+  .cmt-wrap { display:flex; gap:16px; flex-wrap:wrap; }
+  .cmt-col { flex:1; min-width:280px; }
+  .cmt-section { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:12px; margin-bottom:12px; }
+  .cmt-section h4 { margin:0 0 8px; font-size:12px; color:#1c3a63; text-transform:uppercase; }
+  .cmt-grid { display:grid; gap:8px; }
+  .cmt-grid.c2 { grid-template-columns:1fr 1fr; }
+  .cmt-grid.c3 { grid-template-columns:1fr 1fr 1fr; }
+  .cmt-field label { display:block; font-size:11px; color:#6b7280; margin-bottom:2px; }
+  .cmt-field input, .cmt-field select, .cmt-field textarea { width:100%; padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; box-sizing:border-box; }
+  .cmt-field input.ro { background:#f4f6f8; }
+  .cmt-toggle-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #eee; }
+  .cmt-toggle-row .lbl { font-size:12px; flex:1; }
+  .cmt-toggle-row input, .cmt-toggle-row select { width:150px; padding:5px 6px; border:1px solid #d8dde3; border-radius:6px; }
+  .cmt-outbox { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:10px; margin-bottom:12px; }
+  .cmt-outbox-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .cmt-outbox-head .t { font-weight:700; font-size:12.5px; }
+  .cmt-outbox textarea { width:100%; height:220px; border:1px solid #d8dde3; border-radius:6px; padding:8px; font-size:12.5px; box-sizing:border-box; }
+  .cmt-tpl-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
+  .cmt-hist-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
+  table.faq-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.faq-tabla th, table.faq-tabla td { border:1px solid #e2e6ea; padding:5px 6px; text-align:left; vertical-align:top; }
+  table.faq-tabla th { background:#f4f6f8; }
+  table.faq-tabla textarea, table.faq-tabla input { width:100%; border:none; font-size:12px; resize:vertical; }
+</style>
+
+<h1>Comments — Design Schedule</h1>
+<div class="cmt-tabs">
+  <button type="button" class="cmt-tab activo" id="cmtTabN3" onclick="cmtMostrarTab('n3')">N3</button>
+  <button type="button" class="cmt-tab" id="cmtTabFaq" onclick="cmtMostrarTab('faq')">N2 / Face Design</button>
+</div>
+
+<div id="cmtPanelN3">
+  <div class="cmt-wrap">
+    <div class="cmt-col">
+      <div class="cmt-section"><h4>General information</h4>
+        <div class="cmt-grid c2">
+          <div class="cmt-field"><label>Patient</label><input id="cmt_b4" placeholder="Nombre del paciente"></div>
+          <div class="cmt-field"><label>Order #</label><input id="cmt_j4" placeholder="155273"></div>
+        </div>
+      </div>
+      <div class="cmt-section"><h4>Product</h4>
+        <div class="cmt-field"><label>Product</label>
+          <input id="cmt_b7" list="cmtProdList" placeholder="Escribe o elige un producto…">
+          <datalist id="cmtProdList"></datalist>
+        </div>
+      </div>
+      <div class="cmt-section"><h4>Design details</h4>
+        <div class="cmt-grid c3">
+          <div class="cmt-field"><label>Bar adapt</label><input id="cmt_b11" placeholder="0,1mm"></div>
+          <div class="cmt-field"><label>Arch size</label><select id="cmt_d11"></select></div>
+          <div class="cmt-field"><label>TC Custom</label><select id="cmt_f11"></select></div>
+          <div class="cmt-field"><label>VDO lab</label><input id="cmt_h11" placeholder="-1"></div>
+          <div class="cmt-field"><label>VDO Digital</label><input id="cmt_j11" placeholder="-0.8"></div>
+          <div class="cmt-field"><label>PC</label><input id="cmt_l11" placeholder="PC / DDI / InTech #"></div>
+        </div>
+      </div>
+      <div class="cmt-section"><h4>Implants Upper</h4>
+        <div class="cmt-grid c2">
+          <div class="cmt-field"><label>Skipped implants</label><input id="cmt_b15" placeholder="#11, #13"></div>
+          <div class="cmt-field"><label>Still moved</label><input id="cmt_f15" placeholder="#16"></div>
+          <div class="cmt-field"><label>Total</label><select id="cmt_j15"></select></div>
+          <div class="cmt-field"><label>Total moved (auto)</label><input class="ro" id="cmt_L15" readonly></div>
+        </div>
+      </div>
+      <div class="cmt-section"><h4>Implants Lower</h4>
+        <div class="cmt-grid c2">
+          <div class="cmt-field"><label>Skipped implants</label><input id="cmt_b19" placeholder="#36"></div>
+          <div class="cmt-field"><label>Still moved</label><input id="cmt_f19" placeholder="#33"></div>
+          <div class="cmt-field"><label>Total</label><select id="cmt_j19"></select></div>
+          <div class="cmt-field"><label>Total moved (auto)</label><input class="ro" id="cmt_L19" readonly></div>
+        </div>
+      </div>
+      <div class="cmt-section"><h4>Additional comments</h4>
+        <div class="cmt-toggle-row"><span class="lbl">Número de Attachment del archivo To mill</span><input id="cmt_l22" placeholder="#"></div>
+        <div class="cmt-toggle-row"><span class="lbl">Número de Attachment del HTML aprobado por el doctor</span><input id="cmt_l23" placeholder="#"></div>
+        <div class="cmt-toggle-row"><span class="lbl">Se hicieron cambios de midline o cant sin rearticular el caso</span><select id="cmt_l24"></select></div>
+        <div class="cmt-toggle-row"><span class="lbl">Se extendió el tissue para tener información suficiente</span><select id="cmt_l25"></select></div>
+        <div class="cmt-toggle-row"><span class="lbl">Single 24z: El doctor aprobó continuar con la oclusión del N2</span><select id="cmt_l26"></select></div>
+        <div class="cmt-toggle-row"><span class="lbl">Single 24Z: El waxup se está pasando con el antagonista</span><select id="cmt_l27"></select></div>
+      </div>
+      <div class="cmt-section"><h4>Notes</h4>
+        <div class="cmt-field"><textarea id="cmt_b30" rows="3" placeholder="Notas libres…"></textarea></div>
+      </div>
+      <button type="button" class="btn gris" onclick="cmtLimpiar()">🧹 Limpiar (guarda en historial)</button>
+    </div>
+
+    <div class="cmt-col">
+      <div class="cmt-outbox">
+        <div class="cmt-outbox-head"><span class="t">Ready to mill comment</span>
+          <button type="button" class="btn mini" onclick="cmtCopiar('cmtOut1')">Copiar</button></div>
+        <textarea id="cmtOut1" readonly></textarea>
+      </div>
+      <div class="cmt-outbox">
+        <div class="cmt-outbox-head"><span class="t">Everything is Ok comment</span>
+          <button type="button" class="btn mini" onclick="cmtCopiar('cmtOut2')">Copiar</button></div>
+        <textarea id="cmtOut2" readonly></textarea>
+      </div>
+    </div>
+
+    <div class="cmt-col">
+      <div class="cmt-section"><h4>Plantillas de notas</h4><div id="cmtTplList"></div></div>
+      <div class="cmt-section"><h4>Historial (se borra a los 2 días)</h4><div id="cmtHistList"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="cmtPanelFaq" style="display:none">
+  <div class="ds-tabs" style="display:flex;gap:8px;margin-bottom:14px" id="faqAreaTabs"></div>
+  <div class="ds-panel" style="background:#fff;border:1px solid #d8dde3;border-radius:12px;padding:16px;overflow-x:auto">
+    <table class="faq-tabla">
+      <thead><tr><th>Sección</th><th>Situación</th><th>Producto</th><th>Cómo proceder</th><th>Template</th><th>Ejemplos</th><th>#</th></tr></thead>
+      <tbody id="faqBody"></tbody>
+    </table>
+    <button type="button" class="btn" style="margin-top:8px" onclick="faqAgregarFila()">+ Agregar fila</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  function api(url) { return fetch(url).then(function(r) { return r.json(); }); }
+  function postJSON(url, body) {
+    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})})
+      .then(function(r) { return r.json(); });
+  }
+
+  window.cmtMostrarTab = function(tab) {
+    document.getElementById('cmtPanelN3').style.display = tab === 'n3' ? '' : 'none';
+    document.getElementById('cmtPanelFaq').style.display = tab === 'faq' ? '' : 'none';
+    document.getElementById('cmtTabN3').classList.toggle('activo', tab === 'n3');
+    document.getElementById('cmtTabFaq').classList.toggle('activo', tab === 'faq');
+    if (tab === 'faq') faqInit();
+  };
+
+  // ================= N3 Comments: réplica exacta de la fórmula del Excel =================
+  var CMT_FIELDS = ["b4","j4","b7","b11","d11","f11","h11","j11","l11","b15","f15","j15","b19","f19","j19","l22","l23","l24","l25","l26","l27","b30"];
+  var CMT_PRODUCTS_DEFAULTS = ["N3 - Screw Retained","N6 - Dummy Set","N3 - Removable Denture",
+    "N3 - Redo Removable Denture","N6 - Remake Removable Denture","N6 - Removable Denture","N6 - Single 24Z Remake"];
+  var CMT_ARCH = ["A5","A10","AW5","AW10","B5","B10","BW5","BW10","C5","C10","CW5","CW10"];
+  var CMT_TOTALS = ["3","4","5","6","7","8"];
+  var CMT_NL = "\n";
+  var CMT_UP_SAME=["#11, #13, #16","#11, #16, #13","#13, #11, #16","#13, #16, #11","#16, #13, #11","#16, #11, #13","#21, #23, #26","#21, #26, #23","#23, #21, #26","#23, #26, #21","#26, #23, #21","#26, #21, #23"];
+  var CMT_LOW_SAME=["#31, #33, #36","#31, #36, #33","#33, #31, #36","#33, #36, #31","#36, #33, #31","#36, #31, #33","#41, #43, #46","#41, #46, #43","#43, #41, #46","#43, #46, #41","#46, #43, #41","#46, #41, #43"];
+
+  function cmtNe(v){ return String(v==null?"":v).trim() !== ""; }
+  function cmtNum(v){ var n=parseFloat(String(v==null?"":v).replace(",",".")); return isNaN(n)?0:n; }
+  function cmtNz(v){ return cmtNe(v) && cmtNum(v)!==0; }
+  function cmtIsNum(v){ var s=String(v==null?"":v).trim(); return s!=="" && /^[+-]?\d+([.,]\d+)?$/.test(s); }
+  function cmtLen(v){ return String(v==null?"":v).trim().length; }
+  function cmtDisp(v){ return String(v==null?"":v).trim(); }
+  function cmtEqi(a,b){ return String(a==null?"":a).trim().toLowerCase() === String(b).toLowerCase(); }
+  function cmtSi(v){ return cmtEqi(v,"Si"); }
+  function cmtFmt(n){ if(n===""||n==null) return ""; return String(Number(n)); }
+  function cmtProdEq(p,name){ return cmtEqi(p,name); }
+  function cmtRemovableLike(p){
+    return cmtProdEq(p,"N3 - Screw Retained")||cmtProdEq(p,"N6 - Dummy Set")||
+           cmtProdEq(p,"N3 - Removable Denture")||cmtProdEq(p,"N3 - Redo Removable Denture")||
+           cmtProdEq(p,"N6 - Remake Removable Denture")||cmtProdEq(p,"N6 - Removable Denture");
+  }
+  function cmtA12Excluded(f){
+    var p=f.b7;
+    return cmtProdEq(p,"N3 - Removable Denture")||cmtProdEq(p,"N3 - Redo Removable Denture")||
+           cmtProdEq(p,"N6 - Remake Removable Denture")||cmtProdEq(p,"N6 - Removable Denture")||
+           (!cmtNe(f.b15)&&!cmtNe(f.b19)&&cmtProdEq(p,"N6 - Dummy Set"));
+  }
+  function cmtBracketWord(p){
+    if(cmtProdEq(p,"N3 - Screw Retained")) return "screw retained";
+    if(cmtProdEq(p,"N6 - Dummy Set")) return "dummy";
+    return "bar";
+  }
+  function cmtImplCount(v){ return cmtNe(v) ? (cmtLen(v)+2)/5 : 0; }
+  function cmtCalcMoved(skip, still, total){
+    var t = cmtNum(total);
+    var c = cmtImplCount(skip) + cmtImplCount(still);
+    if((cmtNe(skip)||cmtNe(still)) && c < t+1) return c;
+    return "";
+  }
+  function cmtArchBlock(which, f, moved){
+    var skip = which==="up"?f.b15:f.b19;
+    var still= which==="up"?f.f15:f.f19;
+    var total= which==="up"?f.j15:f.j19;
+    var same = (which==="up"?CMT_UP_SAME:CMT_LOW_SAME).map(function(s){return s.toLowerCase();});
+    var label= which==="up"?"Upper arch":"Lower arch";
+    var bw   = cmtBracketWord(f.b7);
+    var L    = moved;
+    if(!(L!=="" && L!==0)) return "";
+    var Jn = cmtNum(total);
+    var out = CMT_NL+CMT_NL;
+    if(cmtNe(skip)){
+      out += label+": We try to skip each implant to choose the best possible alignment. The best option was skipping";
+      out += (cmtLen(skip)>3 ? " implants " : " implant ");
+      out += skip + " so that the rest would be in a better position";
+      out += (!cmtNe(still) ? "" : " but we still have the "+still+" implant moved");
+      out += ". This arch has " + cmtFmt(L) + (L===1 ? " implant moved." : " implants moved.");
+      if(same.indexOf(String(skip).trim().toLowerCase()) !== -1){
+        out += " The doctor approved to continue with " + (L>3
+          ? cmtFmt(L)+" implants moved out of "+cmtFmt(Jn)+" and the 3 skipped implants are on the same side."
+          : "3 skipped implants on the same side.");
+      } else if(L!==1){
+        if(L>=4 || (L===3 && (Jn===4||Jn===5))){
+          out += " The Doctor approved to continue with " + cmtFmt(L) + " implants moved out of " + cmtFmt(Jn) + ".";
+        }
+      }
+      if(cmtNe(still) && (L===2 || (L===3 && Jn>=6))){
+        out += " If removing the skipped implant from the master model the "+bw+" and the guide are not sitting well, you can remove the implant that looks moved.";
+      }
+    } else if(!cmtNe(skip) && cmtNe(still)){
+      out += label+": We try to skip each implant to choose the best possible alignment, however when we skip";
+      out += (cmtLen(still)>3 ? " implants " : " implant ");
+      out += still + " it negatively affected the other implants. If the "+bw+" and guide are not positioned correctly, you can remove the implant that appears to be moved. This arch has "+cmtFmt(L)+(L===1?" implant moved.":" implants moved.");
+    }
+    return out;
+  }
+  function cmtGenReadyToMill(f){
+    var L15 = cmtCalcMoved(f.b15,f.f15,f.j15);
+    var L19 = cmtCalcMoved(f.b19,f.f19,f.j19);
+    var l15n = (L15===""?0:L15), l19n = (L19===""?0:L19);
+    var j15 = cmtNum(f.j15), j19 = cmtNum(f.j19);
+    var s = "";
+    if(cmtNe(f.j4)&&cmtNe(f.b4)) s += "Ready to mill: "+f.b4+" "+f.j4+CMT_NL;
+    if(cmtNe(f.b7)) s += "Product: "+f.b7+CMT_NL;
+    if(cmtNe(f.b11) && !cmtRemovableLike(f.b7)) s += "Bar adapt: "+f.b11+CMT_NL;
+    if(cmtNe(f.d11)) s += (cmtSi(f.f11)?"Size: Custom ":"Size: ")+f.d11+CMT_NL;
+    if(cmtNz(f.h11)) s += "VDO: "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.h11)+CMT_NL;
+    if(cmtNe(f.b15)||cmtNe(f.b19)){
+      s += "Skipped implants: "+(cmtNe(f.b15)?"Upper: "+f.b15+" ":"")+(cmtNe(f.b19)?"Lower: "+f.b19:"")+CMT_NL;
+    }
+    if(cmtNe(f.b7)) s += CMT_NL;
+    if(cmtNe(f.d11)) s += "This arch is "+(cmtSi(f.f11)?"Custom ":"")+f.d11+" ";
+    if(cmtNe(f.l11)){
+      if(cmtIsNum(f.l11)){
+        var n=cmtNum(f.l11);
+        var pre = n>999?"(InTech #":(n>99?"(DDI-0":(n>9?"(DDI-00":"(DDI-000"));
+        s += pre+cmtDisp(f.l11)+"). ";
+      } else { s += "(PC "+f.l11+"). "; }
+    }
+    if(cmtNe(f.b7)){
+      s += "We used VDO at "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.h11)+
+           (cmtNz(f.h11)?" (Digitally "+(cmtNum(f.j11)>0?"+":"")+cmtDisp(f.j11)+")":"")+". ";
+    }
+    if(cmtNe(f.b11) && !cmtRemovableLike(f.b7)) s += "This bar was adapted to "+f.b11+". ";
+    if(cmtNe(f.b7) && !cmtA12Excluded(f)){
+      var w = cmtProdEq(f.b7,"N3 - Screw Retained")?"The screw retained":(cmtProdEq(f.b7,"N6 - Dummy Set")?"The dummy":"The bar");
+      s += w+" implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.";
+    }
+    if((L15!==""&&L15!==0)||(L19!==""&&L19!==0)) s += " The case took longer than estimated due to different alignment attempts.";
+    if(l19n>=4 || (l19n===3&&(j19===4||j19===5)) || l15n>=4 || (l15n===3&&(j15===4||j15===5))){
+      s += " The Master articulation will probably not be usable due to the number of moved implants and the case may be delivered in the digital articulation.";
+    }
+    if(cmtNum(f.l22)>0) s += CMT_NL+CMT_NL+"FILES TO MILL ATTACHMENT #"+cmtDisp(f.l22);
+    if(cmtNe(f.b30)||cmtNe(f.l23)||cmtNe(f.l24)||cmtNe(f.l25)||cmtSi(f.l26)||cmtSi(f.l27)){
+      s += CMT_NL+CMT_NL;
+      if(cmtNe(f.l23)) s += "We showed the occlusion to the Dr and it was approved, the HTML is under the attachment #"+cmtDisp(f.l23)+". ";
+      if(cmtNe(f.l24)) s += "As requested by the doctor, we made "+(cmtEqi(f.l24,"Midline")?"a midline change ":(cmtEqi(f.l24,"CANT")?"an occlusal cant change ":(cmtEqi(f.l24,"AMBOS")?"occlusal cant and midline changes ":"")))+"digitally. Since the case was not rearticulated, the master articulation will be disabled. ";
+      if(cmtNe(f.l25)) s += (cmtEqi(f.l25,"Upper")?"The Upper tissue was":(cmtEqi(f.l25,"Lower")?"The Lower tissue was":(cmtEqi(f.l25,"Ambos")?"The Upper and Lower tissue were":"")))+" digitally extended because we did not have enough information to complete the design. ";
+      if(cmtSi(f.l26)) s += "This case has the same occlusion approved by the doctor in N2 and will be processed in 24Z. ";
+      if(cmtSi(f.l27)) s += "We notified the manager that the waxup overlapped the antagonist in some areas and approved to continue. ";
+      s += (f.b30||"");
+    }
+    s += cmtArchBlock("up", f, L15);
+    s += cmtArchBlock("low", f, L19);
+    return s;
+  }
+  function cmtGenEverythingOk(f){
+    if(cmtNe(f.j4)&&cmtNe(f.b4)){
+      return f.b4+" "+f.j4+" Everything is ok "+CMT_NL+CMT_NL+
+        "Scans ✅ "+CMT_NL+"Medidas ✅ "+CMT_NL+"Cantilever ✅ "+CMT_NL+"Access Hole ✅ "+CMT_NL+"Icam / Micron ✅";
+    }
+    return "";
+  }
+  var CMT_TEMPLATES = [
+    {n:"Downloading scan files", t:"{PO}\nWe started downloading the scan files, when we have the files downloaded, we will officially start the surgery. The download time may vary."},
+    {n:"N3 Design — Initiated", t:"{PO}\nN3 Design. Initiated"},
+    {n:"Hold", t:"{PO}\nHOLD"},
+    {n:"Re-initiated", t:"{PO}\nRE-INITIATED"},
+    {n:"Midline hacia la derecha", t:"{PO}\ntenemos una medida de mm digitalmente en la midline hacia la derecha, el doctor pidio mm right. Continuamos con la marca de la demo?"},
+    {n:"Midline hacia la izquierda", t:"{PO}\ntenemos una medida de mm digitalmente en la midline hacia la izquierda, el doctor pidio mm left. Continuamos con la marca de la demo?"},
+    {n:"Hold — implants moved (upper)", t:"{PO} Hold\nIn the upper, we have X of Y implants moved with respect to the pick-up. According to the protocol, we need a new pick-up if possible, or if we continue with the alignment omitting two implants and leaving the comment about the third moved implant, we await the doctor's authorization to continue. @manager"},
+    {n:"NG Design Ready to print", t:"NG Design Ready to print"},
+    {n:"Master articulation warning", t:"The master articulation will probably not be usable due to the number of moved implants, and the case may be delivered in the digital articulation."},
+    {n:"Manager aprobó angulación", t:"The laboratory manager approved continuing with the angulation of the implants."},
+    {n:"Delay — alignment attempts", t:"We will have a delay because we must make different alignment attempts, as these attempts will increase the time in the design of the product."}
+  ];
+  function cmtTplText(tpl, f){
+    var po = (cmtNe(f.b4)||cmtNe(f.j4)) ? ((f.b4||"")+" "+(f.j4||"")).trim() : "";
+    return tpl.t.replace("{PO}", po);
+  }
+
+  function cmtLeer() {
+    var f = {};
+    CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); f[k] = el ? el.value : ""; });
+    return f;
+  }
+  function cmtRecalcular() {
+    var f = cmtLeer();
+    var L15 = cmtCalcMoved(f.b15, f.f15, f.j15);
+    var L19 = cmtCalcMoved(f.b19, f.f19, f.j19);
+    document.getElementById("cmt_L15").value = cmtFmt(L15);
+    document.getElementById("cmt_L19").value = cmtFmt(L19);
+    document.getElementById("cmtOut1").value = cmtGenReadyToMill(f);
+    document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
+  }
+  window.cmtCopiar = function(id) {
+    var el = document.getElementById(id);
+    navigator.clipboard.writeText(el.value).then(function() {}, function() { el.select(); document.execCommand('copy'); });
+  };
+  window.cmtLimpiar = function() {
+    var f = cmtLeer();
+    if (f.b4 || f.j4) {
+      postJSON('/design/api/comentarios/historial', {paciente: f.b4, orden: f.j4, campos: f}).then(cmtCargarHistorial);
+    }
+    CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = ""; });
+    cmtRecalcular();
+  };
+  function cmtCargarDesdeHistorial(campos) {
+    CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = campos[k] || ""; });
+    cmtRecalcular();
+  }
+  function cmtCargarHistorial() {
+    api('/design/api/comentarios/historial').then(function(hist) {
+      var cont = document.getElementById('cmtHistList');
+      cont.innerHTML = hist.map(function(h) {
+        return '<div class="cmt-hist-item"><span>' + (h.paciente || '') + ' ' + (h.orden || '') + '</span>' +
+               '<span><button type="button" class="btn mini" onclick="cmtVerHistorial(' + h.id + ')">Cargar</button> ' +
+               '<button type="button" class="btn rojo mini" onclick="cmtBorrarHistorial(' + h.id + ')">×</button></span></div>';
+      }).join('') || '<p style="color:#6b7280;font-size:12px">Sin historial reciente.</p>';
+      window._cmtHist = hist;
+    });
+  }
+  window.cmtVerHistorial = function(id) {
+    var h = (window._cmtHist || []).find(function(x) { return x.id === id; });
+    if (h) cmtCargarDesdeHistorial(h.campos);
+  };
+  window.cmtBorrarHistorial = function(id) {
+    postJSON('/design/api/comentarios/historial/' + id + '/eliminar').then(cmtCargarHistorial);
+  };
+
+  function cmtInit() {
+    document.getElementById('cmt_d11').innerHTML = '<option value="">—</option>' + CMT_ARCH.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
+    document.getElementById('cmt_j15').innerHTML = '<option value="">—</option>' + CMT_TOTALS.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
+    document.getElementById('cmt_j19').innerHTML = '<option value="">—</option>' + CMT_TOTALS.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
+    ['cmt_f11'].forEach(function(id) { document.getElementById(id).innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>'; });
+    document.getElementById('cmt_l24').innerHTML = '<option value="">—</option>' + ['Midline','CANT','AMBOS'].map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
+    document.getElementById('cmt_l25').innerHTML = '<option value="">—</option>' + ['Upper','Lower','Ambos'].map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
+    document.getElementById('cmt_l26').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
+    document.getElementById('cmt_l27').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
+    document.getElementById('cmtProdList').innerHTML = CMT_PRODUCTS_DEFAULTS.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
+    document.getElementById('cmtTplList').innerHTML = CMT_TEMPLATES.map(function(tpl, i) {
+      return '<div class="cmt-tpl-item"><span>' + tpl.n + '</span><button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + i + ')">Copiar</button></div>';
+    }).join('');
+    CMT_FIELDS.concat(['fake']).forEach(function(k) {
+      var el = document.getElementById('cmt_' + k);
+      if (el) el.addEventListener('input', cmtRecalcular);
+      if (el && el.tagName === 'SELECT') el.addEventListener('change', cmtRecalcular);
+    });
+    cmtRecalcular();
+    cmtCargarHistorial();
+  }
+  window.cmtCopiarPlantilla = function(i) {
+    var f = cmtLeer();
+    navigator.clipboard.writeText(cmtTplText(CMT_TEMPLATES[i], f)).catch(function() {});
+  };
+
+  // ================= N2 / Face Design: FAQ editable =================
+  var faqAreaId = null, faqAreasReady = false;
+  function faqInit() {
+    if (faqAreasReady) return;
+    faqAreasReady = true;
+    api('/design/api/areas').then(function(areas) {
+      var candidatas = areas.filter(function(a) { return a.formato === 'n2' || a.formato === 'single'; });
+      var cont = document.getElementById('faqAreaTabs');
+      cont.innerHTML = '';
+      candidatas.forEach(function(a, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'ds-tab' + (i === 0 ? ' activo' : '');
+        btn.style.cssText = 'padding:8px 16px;border-radius:8px;border:1px solid #d8dde3;background:#fff;cursor:pointer;font-weight:600;font-size:13px;';
+        btn.innerText = a.nombre;
+        btn.onclick = function() {
+          document.querySelectorAll('#faqAreaTabs button').forEach(function(b) { b.style.background = '#fff'; b.style.color = '#000'; });
+          btn.style.background = '#1c3a63'; btn.style.color = '#fff';
+          faqAreaId = a.id; faqCargar();
+        };
+        if (i === 0) { faqAreaId = a.id; btn.style.background = '#1c3a63'; btn.style.color = '#fff'; }
+        cont.appendChild(btn);
+      });
+      if (faqAreaId) faqCargar();
+    });
+  }
+  function faqCargar() {
+    api('/design/api/faq?area_id=' + faqAreaId).then(function(filas) {
+      var tbody = document.getElementById('faqBody'); tbody.innerHTML = '';
+      filas.forEach(function(f) { tbody.appendChild(faqFila(f)); });
+    });
+  }
+  function faqFila(f) {
+    var tr = document.createElement('tr'); tr.dataset.id = f.id;
+    var campos = ['seccion','situacion','producto','comoProceder','plantilla','ejemplos'];
+    campos.forEach(function(c) {
+      var td = document.createElement('td');
+      var ta = document.createElement('textarea'); ta.rows = 2; ta.value = f[c] || ''; ta.dataset.campo = c;
+      ta.addEventListener('blur', function() { faqGuardar(tr); });
+      td.appendChild(ta); tr.appendChild(td);
+    });
+    var tdAccion = document.createElement('td');
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ds-btn-x';
+    btn.style.cssText = 'background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;';
+    btn.innerText = '✕'; btn.onclick = function() { faqEliminar(f.id, tr); };
+    tdAccion.appendChild(btn); tr.appendChild(tdAccion);
+    return tr;
+  }
+  function faqGuardar(tr) {
+    var datos = {};
+    tr.querySelectorAll('[data-campo]').forEach(function(ta) { datos[ta.dataset.campo] = ta.value; });
+    postJSON('/design/api/faq/' + tr.dataset.id, datos);
+  }
+  window.faqAgregarFila = function() {
+    if (!faqAreaId) return;
+    fetch('/design/api/faq?area_id=' + faqAreaId, {method:'POST'}).then(function(r) { return r.json(); }).then(faqCargar);
+  };
+  function faqEliminar(id, tr) {
+    if (!confirm('¿Eliminar esta fila?')) return;
+    postJSON('/design/api/faq/' + id + '/eliminar').then(function() { tr.remove(); });
+  }
+
+  cmtInit();
+})();
+</script>
+{% endblock %}
