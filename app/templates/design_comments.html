@@ -350,6 +350,14 @@
     document.getElementById('cmt_l26').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
     document.getElementById('cmt_l27').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
     document.getElementById('cmtProdList').innerHTML = CMT_PRODUCTS_DEFAULTS.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
+    api('/design/api/areas').then(function(areas) {
+      var n3 = areas.find(function(a) { return a.nombre === 'N3 Prosthetic'; });
+      if (!n3) return;
+      api('/design/api/catalogo?area_id=' + n3.id + '&tipo=producto').then(function(productos) {
+        var todos = Array.from(new Set(CMT_PRODUCTS_DEFAULTS.concat(productos))).sort();
+        document.getElementById('cmtProdList').innerHTML = todos.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
+      });
+    });
     document.getElementById('cmtTplList').innerHTML = CMT_TEMPLATES.map(function(tpl, i) {
       return '<div class="cmt-tpl-item"><span>' + tpl.n + '</span><button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + i + ')">Copiar</button></div>';
     }).join('');

@@ -167,7 +167,7 @@
         {k:'horaInicio', l:'Inicio', t:'time'}, {k:'horaInicioDiseno', l:'Inicio diseño', t:'time'},
         {k:'holdMinutos', l:'Hold (min)', t:'number'}, {k:'horaFin', l:'Fin', t:'time'},
         {k:'esferas', l:'Esferas', t:'select', opciones:['','Yes','No','N/A']},
-        {k:'critico', l:'Crítico', t:'text'},
+        {k:'critico', l:'Crítico', t:'select', opciones:['','N/A','Inaccurate tissue','Min Thickness','Implant moved','Implant angled','Implant close','Tissue smooth >15']},
         {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
         {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
       ],
@@ -200,10 +200,10 @@
     support: { principal: [
       {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
       {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
-      {k:'etapa', l:'Etapa', t:'text'}, {k:'designerId', l:'Diseñador', t:'designer'},
+      {k:'etapa', l:'Etapa', t:'catalogo', cat:'etapa'}, {k:'designerId', l:'Diseñador', t:'designer'},
       {k:'solicitadoPor', l:'Solicitado por', t:'text'}, {k:'situacion', l:'Situación', t:'text'},
-      {k:'solucion', l:'Solución', t:'text'}, {k:'clasificacion', l:'Clasificación', t:'text'},
-      {k:'soporte', l:'Soporte', t:'text'},
+      {k:'solucion', l:'Solución', t:'text'}, {k:'clasificacion', l:'Clasificación', t:'catalogo', cat:'clasificacion'},
+      {k:'soporte', l:'Soporte', t:'catalogo', cat:'soporte'},
     ]},
   };
 

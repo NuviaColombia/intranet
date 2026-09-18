@@ -56,10 +56,62 @@ DESIGN_AREAS_INICIALES = [
     ("Face Design", FORMATO_SINGLE), ("N2 Demodenture", FORMATO_N2), ("Support", FORMATO_SUPPORT),
 ]  # (nombre, formato)
 
-DESIGN_ESTADOS_N3_N6 = ["Pickup received", "Initiated", "Ready to design", "Bite ready",
-                        "Hold", "Approved", "Canceled"]
+# Catálogos reales tomados del HTML original (N3_Schedule_Demo), no inventados.
+DESIGN_CENTROS = [
+    "Indianapolis", "Cleveland", "Wellesley", "Westbury", "Nashville", "Orlando", "Dublin",
+    "San Antonio", "St Louis", "Moorestown", "Harrison", "Reading", "Vegas", "Austin",
+    "Minneapolis", "Houston", "Training", "Pittsburgh", "Detroit", "Chicago", "Parsippany",
+    "Fort Worth", "Colaboracion", "Milwaukee", "Alpharetta", "Dallas", "Marietta",
+]
 
-DESIGN_AUSENCIAS_INICIALES = ["Vacaciones", "Incapacidad", "Permiso", "Ausencia"]
+_DESIGN_PRODUCTOS_N3_N6 = [
+    "N3 - Full Mouth 24Z", "N3 - Full Mouth G-CAM",
+    "N3 - Removable Denture With Fixed Arch", "N3 - Removable Denture With Fixed Arch 24Z",
+    "N3 - Removable Denture/G-Cam Ti Bar", "N3 - Removable Denture/Zirconia", "N3 - Redo Removable Denture",
+    "N3 - Single 24Z", "N3 - Single G-Cam/tibar", "N3 - Single Removable Denture",
+    "N3 - Redo Full Mouth 24Z", "N3 - Redo Single 24Z", "N3 - Redo Single GCam",
+    "N3 - ShortBridge24Z", "N3 - ShortBridge G-Cam", "N3 - Screw Retain",
+    "N2 - TC Design", "N3 - Printed Nightguard", "N3 - NightGuard", "N3 - Demo Pickup",
+    "N6 - Full Mouth 24Z Remake", "N6 - Single 24Z Remake",
+]
+
+DESIGN_PRODUCTOS_POR_AREA = {
+    "N3 Prosthetic": _DESIGN_PRODUCTOS_N3_N6,
+    "N6 Material Changes": _DESIGN_PRODUCTOS_N3_N6,
+    "Face Design": ["Traveling", "Full Mouth", "Single 24z"],
+    "N2 Demodenture": ["Full Mouth", "Full Mouth Travel", "Full Mouth Regular", "Full Mouth Changes",
+                       "Single 24z", "Single G-cam", "Single Travel", "Single Regular"],
+    "Support": [],
+}
+
+_DESIGN_ESTADOS_N3_N6 = ["Pickup received", "Initiated", "Ready to design", "Bite ready",
+                        "Hold", "Approved", "Canceled"]
+_DESIGN_ESTADOS_FACE = ["Ready to design", "Pending approval", "Initiated", "Hold", "Approved",
+                        "Skipped", "Training", "Finish", "Change Ready"]
+_DESIGN_ESTADOS_N2 = _DESIGN_ESTADOS_FACE + ["Meeting", "Html", "Practice", "Canceled"]
+
+DESIGN_ESTADOS_POR_AREA = {
+    "N3 Prosthetic": _DESIGN_ESTADOS_N3_N6,
+    "N6 Material Changes": _DESIGN_ESTADOS_N3_N6,
+    "Face Design": _DESIGN_ESTADOS_FACE,
+    "N2 Demodenture": _DESIGN_ESTADOS_N2,
+    "Support": _DESIGN_ESTADOS_N3_N6,  # placeholder hasta que se capture el flujo real de Support
+}
+
+DESIGN_ETAPAS_SUPPORT = [
+    "Bite Design", "Zn Design", "Doctor Authorization", "Bar and wax zn milling", "Lab check out",
+    "Design tc zn over bar", "Manager Verification", "Quality contro surgery", "Processing", "Milling",
+    "Final Qc Zn", "Printer", "Scan Bar Zn", "Zn Milling", "Zn Cut/ Sintering", "Zn Porcelain",
+    "Delivery From Col", "Qc Initial Zn",
+]
+DESIGN_SOPORTES_SUPPORT = ["Xamir Mercado", "Diego Sampayo"]
+DESIGN_CLASIFICACIONES_SUPPORT = ["Soporte"]
+
+DESIGN_AUSENCIAS_INICIALES = [
+    "Vacaciones", "Calamidad doméstica", "Licencia por luto", "Licencia por paternidad",
+    "Descanso compensatorio", "Festivo compensatorio", "Incapacidad", "Suspensión",
+    "Remunerada", "No remunerada", "Cumpleaños", "Grado",
+]
 
 
 @app.on_event("startup")
@@ -132,15 +184,27 @@ def init_db():
                 db.add(CustodiaMotivo(nombre=nombre, orden=i))
         if db.query(DesignArea).count() == 0:
             for i, (nombre, formato) in enumerate(DESIGN_AREAS_INICIALES, start=1):
-                area = DesignArea(nombre=nombre, formato=formato, orden=i)
-                db.add(area)
+                db.add(DesignArea(nombre=nombre, formato=formato, orden=i))
             db.flush()
-            for area in db.query(DesignArea).filter(DesignArea.formato == FORMATO_DUAL).all():
-                for j, estado in enumerate(DESIGN_ESTADOS_N3_N6, start=1):
-                    db.add(DesignCatalogo(area_id=area.id, tipo="estado", valor=estado, orden=j))
-        if db.query(DesignAusenciaTipo).count() == 0:
-            for i, nombre in enumerate(DESIGN_AUSENCIAS_INICIALES, start=1):
-                db.add(DesignAusenciaTipo(nombre=nombre, orden=i))
+        # Backfill idempotente de catálogos por (área, tipo) -- corre siempre, así que también
+        # completa instalaciones que ya tenían las áreas creadas pero catálogos parciales/vacíos.
+        for area in db.query(DesignArea).all():
+            catalogos_area = [("centro", DESIGN_CENTROS), ("producto", DESIGN_PRODUCTOS_POR_AREA.get(area.nombre, [])),
+                              ("estado", DESIGN_ESTADOS_POR_AREA.get(area.nombre, []))]
+            if area.nombre == "Support":
+                catalogos_area += [("etapa", DESIGN_ETAPAS_SUPPORT), ("soporte", DESIGN_SOPORTES_SUPPORT),
+                                   ("clasificacion", DESIGN_CLASIFICACIONES_SUPPORT)]
+            for tipo, valores in catalogos_area:
+                if not valores:
+                    continue
+                if db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id,
+                                                   DesignCatalogo.tipo == tipo).count() == 0:
+                    for j, valor in enumerate(valores, start=1):
+                        db.add(DesignCatalogo(area_id=area.id, tipo=tipo, valor=valor, orden=j))
+        for nombre in DESIGN_AUSENCIAS_INICIALES:
+            if not db.query(DesignAusenciaTipo).filter(DesignAusenciaTipo.nombre == nombre).first():
+                orden = db.query(DesignAusenciaTipo).count() + 1
+                db.add(DesignAusenciaTipo(nombre=nombre, orden=orden))
         # Garantizar que los correos de ADMIN_EMAILS existan y tengan rol admin
         for email in config.ADMIN_EMAILS:
             emp = db.query(Empleado).filter(Empleado.email == email).first()
