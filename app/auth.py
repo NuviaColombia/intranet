@@ -73,3 +73,13 @@ def require_modulo(modulo: str):
             raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
         return user
     return checker
+
+
+def require_design_manager(user: Empleado = Depends(get_current_user)) -> Empleado:
+    """Dashboard y Papelera de Design Schedule: equivalente a 'Tools Managers' en la
+    herramienta original (protegido por la clave maestra) -- aquí, aprobadores y admins."""
+    if not user.tiene_modulo("design_schedule"):
+        raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
+    if user.rol not in ("aprobador", "admin"):
+        raise HTTPException(403, "Requiere rol de aprobador o administrador.")
+    return user

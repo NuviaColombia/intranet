@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
 from ..models_design import DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo
-from ..auth import require_modulo, require_admin
+from ..auth import require_modulo, require_admin, require_design_manager
 from ..main_templates import templates
 from .. import services_design as sd
 
@@ -26,7 +26,7 @@ async def pagina(request: Request, user: Empleado = Depends(require_modulo("desi
 
 
 @router.get("/design/dashboard")
-async def pagina_dashboard(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+async def pagina_dashboard(request: Request, user: Empleado = Depends(require_design_manager),
                            db: Session = Depends(get_db)):
     areas = sd.areas_disponibles(db)
     return templates.TemplateResponse(request, "design_dashboard.html",
@@ -277,7 +277,7 @@ async def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_m
 async def api_dashboard(area_id: int | None = None, team_id: int | None = None, designer_id: int | None = None,
                         producto: str = "", estado: str = "", qc: str = "",
                         fecha_desde: str = "", fecha_hasta: str = "",
-                        user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+                        user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     fd = date.fromisoformat(fecha_desde) if fecha_desde else None
     fh = date.fromisoformat(fecha_hasta) if fecha_hasta else None
     return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh)
@@ -604,18 +604,18 @@ async def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSelec
 # ---------- Papelera ----------
 
 @router.get("/design/papelera")
-async def pagina_papelera(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+async def pagina_papelera(request: Request, user: Empleado = Depends(require_design_manager)):
     return templates.TemplateResponse(request, "design_papelera.html", {"user": user, "es_design": True})
 
 
 @router.get("/design/api/papelera")
-async def api_papelera_listar(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+async def api_papelera_listar(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     return [{"id": t.id, "modulo": t.modulo, "etiqueta": t.etiqueta, "eliminado_por": t.eliminado_por,
             "eliminado_en": t.eliminado_en.strftime("%d/%m/%Y %H:%M")} for t in sd.trash_listar(db)]
 
 
 @router.post("/design/api/papelera/{trash_id}/restaurar")
-async def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+async def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_design_manager),
                                  db: Session = Depends(get_db)):
     if not sd.trash_restaurar(db, trash_id):
         raise HTTPException(400, "No se pudo restaurar (el destino cambió demasiado o ya no existe).")
@@ -623,7 +623,7 @@ async def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require
 
 
 @router.post("/design/api/papelera/{trash_id}/eliminar")
-async def api_papelera_eliminar(trash_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+async def api_papelera_eliminar(trash_id: int, user: Empleado = Depends(require_design_manager),
                                 db: Session = Depends(get_db)):
     if not sd.trash_eliminar_permanente(db, trash_id):
         raise HTTPException(404, "No encontrado.")
@@ -631,7 +631,7 @@ async def api_papelera_eliminar(trash_id: int, user: Empleado = Depends(require_
 
 
 @router.post("/design/api/papelera/vaciar")
-async def api_papelera_vaciar(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+async def api_papelera_vaciar(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     sd.trash_vaciar(db)
     return {"mensaje": "Historial vaciado."}
 
