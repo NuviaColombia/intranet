@@ -21,7 +21,10 @@
   .cmt-outbox-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
   .cmt-outbox-head .t { font-weight:700; font-size:12.5px; }
   .cmt-outbox textarea { width:100%; height:220px; border:1px solid #d8dde3; border-radius:6px; padding:8px; font-size:12.5px; box-sizing:border-box; }
-  .cmt-tpl-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
+  .cmt-tpl-item { padding:10px 12px; border:1px solid #eee; background:#f4f6fa; border-radius:8px; margin-bottom:8px; font-size:12px; }
+  .cmt-tpl-item .cmt-tpl-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .cmt-tpl-item .cmt-tpl-name { font-weight:700; font-size:13px; }
+  .cmt-tpl-item .cmt-tpl-text { color:#374151; white-space:pre-wrap; }
   .cmt-hist-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
   table.faq-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
   table.faq-tabla th, table.faq-tabla td { border:1px solid #e2e6ea; padding:5px 6px; text-align:left; vertical-align:top; }
@@ -304,6 +307,16 @@
     document.getElementById("cmt_L19").value = cmtFmt(L19);
     document.getElementById("cmtOut1").value = cmtGenReadyToMill(f);
     document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
+    cmtRenderPlantillas();
+  }
+  function cmtEscHtml(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function cmtRenderPlantillas() {
+    var f = cmtLeer();
+    document.getElementById('cmtTplList').innerHTML = CMT_TEMPLATES.map(function(tpl, i) {
+      return '<div class="cmt-tpl-item"><div class="cmt-tpl-head"><span class="cmt-tpl-name">' + cmtEscHtml(tpl.n) + '</span>' +
+             '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + i + ')">Copiar</button></div>' +
+             '<div class="cmt-tpl-text">' + cmtEscHtml(cmtTplText(tpl, f)) + '</div></div>';
+    }).join('');
   }
   window.cmtCopiar = function(id) {
     var el = document.getElementById(id);
@@ -358,9 +371,6 @@
         document.getElementById('cmtProdList').innerHTML = todos.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
       });
     });
-    document.getElementById('cmtTplList').innerHTML = CMT_TEMPLATES.map(function(tpl, i) {
-      return '<div class="cmt-tpl-item"><span>' + tpl.n + '</span><button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + i + ')">Copiar</button></div>';
-    }).join('');
     CMT_FIELDS.concat(['fake']).forEach(function(k) {
       var el = document.getElementById('cmt_' + k);
       if (el) el.addEventListener('input', cmtRecalcular);
