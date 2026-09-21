@@ -108,7 +108,7 @@
         <th>Nacimiento</th><th>Vacaciones</th><th>Salario</th><th>Rol</th><th>Módulos</th><th></th></tr>
     {% for e in empleados %}
     <tr data-nombre="{{ e.nombre_completo|lower }}" data-empresa="{{ e.empresa }}" {% if not e.activo %}style="opacity:.45"{% endif %}>
-      <td><b>{{ e.nombre_completo }}</b></td>
+      <td style="display:flex;align-items:center;gap:8px"><b>{{ e.nombre_completo }}</b><a class="btn mini" href="/empleados/{{ e.id }}/editar">Editar</a></td>
       <td>{{ e.identificacion }}</td>
       <td>{{ e.email }}</td>
       <td>{{ e.empresa }}<br><small style="color:var(--gris)">{{ e.area }} · {{ e.cargo }}</small></td>
@@ -118,7 +118,6 @@
       <td>{{ {'admin':'Administrador','aprobador':'Aprobador'}.get(e.rol, 'Empleado') }}{% if not e.activo %}<br><small style="color:var(--gris)">Inactivo</small>{% endif %}</td>
       <td>{% if e.rol == 'admin' %}<small style="color:var(--gris)">Todos (admin)</small>
           {% else %}{% for slug, nombre in modulos_disponibles %}{% if slug in e.modulos_lista %}<span class="badge aprobada">{{ nombre }}</span> {% endif %}{% endfor %}{% if not e.modulos_lista %}<small style="color:var(--gris)">—</small>{% endif %}{% endif %}</td>
-      <td><a class="btn mini" href="/empleados/{{ e.id }}/editar">Editar</a></td>
     </tr>
     {% endfor %}
   </table>
