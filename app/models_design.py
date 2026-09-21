@@ -312,6 +312,36 @@ class DesignProtocolo(Base):
 
 
 # ---------------------------------------------------------------------------
+# Canvas: hojas de trabajo con marcos de foto (plantillas de arcos dentales,
+# angulación de implantes) + capa de anotaciones (formas, flechas, texto,
+# lápiz, resaltador). Cada hoja es de un área (compartida por el equipo que
+# la usa), no personal — igual que Pre-Approved. Las imágenes se guardan como
+# data-URL embebidas en el JSON de "frames" (igual que hacía la herramienta
+# original en localStorage; aquí no hay límite de 5-10MB del navegador).
+# ---------------------------------------------------------------------------
+
+class DesignCanvasDoc(Base):
+    __tablename__ = "design_canvas_docs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
+    nombre: Mapped[str] = mapped_column(String(150), default="Hoja")
+    template_id: Mapped[str] = mapped_column(String(30), default="")
+    titulo: Mapped[str] = mapped_column(String(150), default="")
+    titulo_color: Mapped[str] = mapped_column(String(20), default="#d10a11")
+    w: Mapped[int] = mapped_column(Integer, default=1080)
+    h: Mapped[int] = mapped_column(Integer, default=1080)
+    frames: Mapped[str] = mapped_column(Text, default="[]")     # JSON: [{id,x,y,w,h,img,free?}]
+    elements: Mapped[str] = mapped_column(Text, default="[]")   # JSON: anotaciones (formas/texto/etc.)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    area = relationship("DesignArea")
+
+
+# ---------------------------------------------------------------------------
 # Desempeño (Performance): evaluaciones mensuales por equipo + "empleado del
 # mes". Visible solo para administradores (datos sensibles de RR.HH.).
 # ---------------------------------------------------------------------------

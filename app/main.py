@@ -13,7 +13,7 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
                             DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
                             DesignPreApprovedCelda, DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado,
                             DesignPerfCelda, DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
-                            FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
+                            DesignCanvasDoc, FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule)
 
@@ -115,6 +115,34 @@ DESIGN_AUSENCIAS_INICIALES = [
     "Vacaciones", "Calamidad doméstica", "Licencia por luto", "Licencia por paternidad",
     "Descanso compensatorio", "Festivo compensatorio", "Incapacidad", "Suspensión",
     "Remunerada", "No remunerada", "Cumpleaños", "Grado",
+]
+
+# Canvas: 8 plantillas base (marcos ya ubicados sobre una hoja de 1080x1080), portadas
+# 1:1 desde cvFitGrid()/cvFiveGrid() de la herramienta original. Se siembran como hojas
+# reales (no "elegibles") en cada área, igual que hacía cvSeedLibrary() al abrir el panel.
+CANVAS_TEMPLATES = [
+    {"id": "upper-1", "nombre": "Upper", "titulo": "Upper",
+     "frames": [{"x": 90, "y": 301, "w": 900, "h": 675}]},
+    {"id": "upper-2", "nombre": "Upper", "titulo": "Upper",
+     "frames": [{"x": 90, "y": 475, "w": 436, "h": 327}, {"x": 554, "y": 475, "w": 436, "h": 327}]},
+    {"id": "upper-4", "nombre": "Upper", "titulo": "Upper",
+     "frames": [{"x": 90, "y": 297, "w": 436, "h": 327}, {"x": 554, "y": 297, "w": 436, "h": 327},
+                {"x": 90, "y": 652, "w": 436, "h": 327}, {"x": 554, "y": 652, "w": 436, "h": 327}]},
+    {"id": "lower-1", "nombre": "Lower", "titulo": "Lower",
+     "frames": [{"x": 90, "y": 301, "w": 900, "h": 675}]},
+    {"id": "lower-2", "nombre": "Lower", "titulo": "Lower",
+     "frames": [{"x": 90, "y": 475, "w": 436, "h": 327}, {"x": 554, "y": 475, "w": 436, "h": 327}]},
+    {"id": "lower-4", "nombre": "Lower", "titulo": "Lower",
+     "frames": [{"x": 90, "y": 297, "w": 436, "h": 327}, {"x": 554, "y": 297, "w": 436, "h": 327},
+                {"x": 90, "y": 652, "w": 436, "h": 327}, {"x": 554, "y": 652, "w": 436, "h": 327}]},
+    {"id": "upper-implant", "nombre": "Upper Implant Angulation", "titulo": "UPPER IMPLANT ANGULATION",
+     "frames": [{"x": 190, "y": 232, "w": 336, "h": 252}, {"x": 554, "y": 232, "w": 336, "h": 252},
+                {"x": 190, "y": 512, "w": 336, "h": 252}, {"x": 554, "y": 512, "w": 336, "h": 252},
+                {"x": 372, "y": 792, "w": 336, "h": 252}]},
+    {"id": "lower-implant", "nombre": "Lower Implant Angulation", "titulo": "LOWER IMPLANT ANGULATION",
+     "frames": [{"x": 190, "y": 232, "w": 336, "h": 252}, {"x": 554, "y": 232, "w": 336, "h": 252},
+                {"x": 190, "y": 512, "w": 336, "h": 252}, {"x": 554, "y": 512, "w": 336, "h": 252},
+                {"x": 372, "y": 792, "w": 336, "h": 252}]},
 ]
 
 
@@ -304,6 +332,17 @@ def init_db():
                             continue
                         db.add(DesignPerfSeleccionCelda(fila_id=fila.id, mes_indice=mes_idx, persona=str(persona),
                                                         puntaje=str(puntaje), nota=nota))
+        # Canvas: siembra las 8 plantillas base por área (idempotente por área, no globalmente,
+        # para que un área agregada después de este deploy también reciba sus plantillas).
+        for area in db.query(DesignArea).all():
+            if db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area.id).count() == 0:
+                for i, tpl in enumerate(CANVAS_TEMPLATES, start=1):
+                    db.add(DesignCanvasDoc(area_id=area.id, nombre=tpl["nombre"], template_id=tpl["id"],
+                                           titulo=tpl["titulo"],
+                                           frames=json.dumps([{"id": f"f{j}", **f, "img": None}
+                                                              for j, f in enumerate(tpl["frames"])],
+                                                             ensure_ascii=False),
+                                           orden=i))
         # Garantizar que los correos de ADMIN_EMAILS existan y tengan rol admin
         for email in config.ADMIN_EMAILS:
             emp = db.query(Empleado).filter(Empleado.email == email).first()

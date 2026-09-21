@@ -20,14 +20,14 @@
   <h1 style="margin:0">Papelera — Design Schedule</h1>
   <button type="button" class="btn gris" id="trVaciarBtn">Vaciar historial</button>
 </div>
-<p style="color:#6b7280;font-size:13px;margin-top:-8px">Registro de borrados en Pre-Approved (hojas, centros, doctores, criterios) y Protocols. Se puede restaurar mientras el destino siga existiendo.</p>
+<p style="color:#6b7280;font-size:13px;margin-top:-8px">Registro de borrados en Pre-Approved (hojas, centros, doctores, criterios), Protocols y Canvas. Se puede restaurar mientras el destino siga existiendo.</p>
 <div class="tr-list" id="trList"></div>
 
 <script>
 (function() {
   var MODULOS = {"pa-sheet":"Pre-Approved · hoja", "pa-centro":"Pre-Approved · centro",
                 "pa-doctor":"Pre-Approved · doctor", "pa-fila":"Pre-Approved · criterio",
-                "protocol":"Protocolo"};
+                "protocol":"Protocolo", "cv-doc":"Canvas · hoja"};
 
   function postJSON(url) {
     return fetch(url, {method:'POST'}).then(function(r) {

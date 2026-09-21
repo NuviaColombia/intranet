@@ -726,3 +726,101 @@ async def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(req
     if not sd.protocolo_eliminar(db, protocolo_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
+
+
+# ---------- Canvas ----------
+
+@router.get("/design/canvas")
+async def pagina_canvas(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+                        db: Session = Depends(get_db)):
+    areas = sd.areas_disponibles(db)
+    return templates.TemplateResponse(request, "design_canvas.html",
+                                      {"user": user, "areas": areas, "es_design": True})
+
+
+@router.get("/design/api/canvas/docs")
+async def api_canvas_docs(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                          db: Session = Depends(get_db)):
+    return sd.canvas_docs(db, area_id)
+
+
+@router.get("/design/api/canvas/docs/{doc_id}")
+async def api_canvas_doc(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                         db: Session = Depends(get_db)):
+    d = sd.canvas_doc(db, doc_id)
+    if not d:
+        raise HTTPException(404, "No encontrada.")
+    return d
+
+
+class CanvasCrearIn(BaseModel):
+    areaId: int
+    nombre: str = "Hoja"
+    templateId: str = ""
+    titulo: str = ""
+    frames: list = []
+
+
+@router.post("/design/api/canvas/docs")
+async def api_canvas_crear(payload: CanvasCrearIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    d = sd.canvas_crear_doc(db, payload.areaId, payload.nombre, payload.templateId, payload.titulo,
+                            payload.frames, user.nombre_completo)
+    return sd.canvas_serializar(d)
+
+
+class CanvasGuardarIn(BaseModel):
+    nombre: str | None = None
+    titulo: str | None = None
+    tituloColor: str | None = None
+    w: int | None = None
+    h: int | None = None
+    frames: list | None = None
+    elements: list | None = None
+
+
+@router.post("/design/api/canvas/docs/{doc_id}")
+async def api_canvas_guardar(doc_id: int, payload: CanvasGuardarIn,
+                             user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    datos = {k: v for k, v in payload.model_dump().items() if v is not None}
+    d = sd.canvas_guardar_doc(db, doc_id, datos)
+    if not d:
+        raise HTTPException(404, "No encontrada.")
+    return {"mensaje": "Guardado."}
+
+
+@router.post("/design/api/canvas/docs/{doc_id}/renombrar")
+async def api_canvas_renombrar(doc_id: int, payload: NombreIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                               db: Session = Depends(get_db)):
+    if not sd.canvas_renombrar_doc(db, doc_id, payload.nombre):
+        raise HTTPException(404, "No encontrada.")
+    return {"mensaje": "Renombrada."}
+
+
+@router.post("/design/api/canvas/docs/{doc_id}/duplicar")
+async def api_canvas_duplicar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                              db: Session = Depends(get_db)):
+    d = sd.canvas_duplicar_doc(db, doc_id)
+    if not d:
+        raise HTTPException(404, "No encontrada.")
+    return sd.canvas_serializar(d)
+
+
+class CanvasMoverIn(BaseModel):
+    targetId: int
+
+
+@router.post("/design/api/canvas/docs/{doc_id}/mover")
+async def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    if not sd.canvas_mover_doc(db, doc_id, payload.targetId):
+        raise HTTPException(400, "No se pudo mover.")
+    return {"mensaje": "Movida."}
+
+
+@router.post("/design/api/canvas/docs/{doc_id}/eliminar")
+async def api_canvas_eliminar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                              db: Session = Depends(get_db)):
+    if not sd.canvas_eliminar_doc(db, doc_id, user.nombre_completo):
+        raise HTTPException(404, "No encontrada.")
+    return {"mensaje": "Eliminada."}

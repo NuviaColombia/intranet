@@ -10,7 +10,7 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
                             DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
-                            DesignTrash, DesignFavorito, DesignProtocolo, FORMATO_DUAL)
+                            DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -670,12 +670,28 @@ def _trash_restaurar_protocolo(db: Session, payload: dict) -> bool:
     return True
 
 
+def _trash_restaurar_cv_doc(db: Session, payload: dict) -> bool:
+    area_id = payload.get("area_id")
+    doc = payload.get("doc") or {}
+    if not area_id or not db.get(DesignArea, area_id) or not doc:
+        return False
+    orden = payload.get("orden") or (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id).count() + 1)
+    db.add(DesignCanvasDoc(area_id=area_id, nombre=doc.get("nombre", "Hoja"), template_id=doc.get("templateId", ""),
+                           titulo=doc.get("titulo", ""), titulo_color=doc.get("tituloColor") or "#d10a11",
+                           w=doc.get("w") or 1080, h=doc.get("h") or 1080,
+                           frames=json.dumps(doc.get("frames", []), ensure_ascii=False),
+                           elements=json.dumps(doc.get("elements", []), ensure_ascii=False),
+                           orden=orden, creado_por=doc.get("creadoPor", "")))
+    return True
+
+
 _TRASH_RESTAURADORES = {
     "pa-sheet": _trash_restaurar_pa_sheet,
     "pa-centro": _trash_restaurar_pa_centro,
     "pa-doctor": _trash_restaurar_pa_doctor,
     "pa-fila": _trash_restaurar_pa_fila,
     "protocol": _trash_restaurar_protocolo,
+    "cv-doc": _trash_restaurar_cv_doc,
 }
 
 
@@ -824,5 +840,113 @@ def protocolo_eliminar(db: Session, protocolo_id: int, eliminado_por: str = "") 
     _trash_registrar(db, "protocol", f'Protocolo: "{p.titulo}"', payload, eliminado_por)
     db.query(DesignFavorito).filter(DesignFavorito.tipo == "protocolo", DesignFavorito.protocolo_id == protocolo_id).delete()
     db.delete(p)
+    db.commit()
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Canvas
+# ---------------------------------------------------------------------------
+
+def canvas_serializar(d: DesignCanvasDoc) -> dict:
+    return {
+        "id": d.id, "areaId": d.area_id, "nombre": d.nombre, "templateId": d.template_id,
+        "titulo": d.titulo, "tituloColor": d.titulo_color, "w": d.w, "h": d.h,
+        "frames": json.loads(d.frames or "[]"), "elements": json.loads(d.elements or "[]"),
+        "orden": d.orden, "creadoPor": d.creado_por,
+    }
+
+
+def canvas_docs(db: Session, area_id: int) -> list[dict]:
+    docs = (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id)
+           .order_by(DesignCanvasDoc.orden).all())
+    return [canvas_serializar(d) for d in docs]
+
+
+def canvas_doc(db: Session, doc_id: int) -> dict | None:
+    d = db.get(DesignCanvasDoc, doc_id)
+    return canvas_serializar(d) if d else None
+
+
+def canvas_crear_doc(db: Session, area_id: int, nombre: str, template_id: str, titulo: str,
+                     frames: list, creado_por: str = "") -> DesignCanvasDoc:
+    orden = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id).count() + 1
+    d = DesignCanvasDoc(area_id=area_id, nombre=nombre or "Hoja", template_id=template_id or "",
+                       titulo=titulo or "", frames=json.dumps(frames or [], ensure_ascii=False),
+                       orden=orden, creado_por=creado_por)
+    db.add(d)
+    db.commit()
+    db.refresh(d)
+    return d
+
+
+def canvas_guardar_doc(db: Session, doc_id: int, datos: dict) -> DesignCanvasDoc | None:
+    d = db.get(DesignCanvasDoc, doc_id)
+    if not d:
+        return None
+    if "nombre" in datos:
+        d.nombre = datos["nombre"] or d.nombre
+    if "titulo" in datos:
+        d.titulo = datos["titulo"]
+    if "tituloColor" in datos:
+        d.titulo_color = datos["tituloColor"] or d.titulo_color
+    if "w" in datos and datos["w"]:
+        d.w = int(datos["w"])
+    if "h" in datos and datos["h"]:
+        d.h = int(datos["h"])
+    if "frames" in datos:
+        d.frames = json.dumps(datos["frames"], ensure_ascii=False)
+    if "elements" in datos:
+        d.elements = json.dumps(datos["elements"], ensure_ascii=False)
+    db.commit()
+    return d
+
+
+def canvas_renombrar_doc(db: Session, doc_id: int, nombre: str) -> bool:
+    d = db.get(DesignCanvasDoc, doc_id)
+    if not d:
+        return False
+    d.nombre = nombre.strip() or d.nombre
+    db.commit()
+    return True
+
+
+def canvas_duplicar_doc(db: Session, doc_id: int) -> DesignCanvasDoc | None:
+    d = db.get(DesignCanvasDoc, doc_id)
+    if not d:
+        return None
+    orden = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id).count() + 1
+    copia = DesignCanvasDoc(area_id=d.area_id, nombre=d.nombre + " (copia)", template_id=d.template_id,
+                            titulo=d.titulo, titulo_color=d.titulo_color, w=d.w, h=d.h,
+                            frames=d.frames, elements=d.elements, orden=orden, creado_por=d.creado_por)
+    db.add(copia)
+    db.commit()
+    db.refresh(copia)
+    return copia
+
+
+def canvas_mover_doc(db: Session, doc_id: int, target_id: int) -> bool:
+    d = db.get(DesignCanvasDoc, doc_id)
+    t = db.get(DesignCanvasDoc, target_id)
+    if not d or not t or d.area_id != t.area_id:
+        return False
+    docs = (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id)
+           .order_by(DesignCanvasDoc.orden).all())
+    docs = [x for x in docs if x.id != d.id]
+    idx = next((i for i, x in enumerate(docs) if x.id == t.id), len(docs))
+    docs.insert(idx, d)
+    for i, x in enumerate(docs, start=1):
+        x.orden = i
+    db.commit()
+    return True
+
+
+def canvas_eliminar_doc(db: Session, doc_id: int, eliminado_por: str = "") -> bool:
+    d = db.get(DesignCanvasDoc, doc_id)
+    if not d:
+        return False
+    payload = {"area_id": d.area_id, "orden": d.orden, "doc": canvas_serializar(d)}
+    _trash_registrar(db, "cv-doc", f'Hoja de Canvas "{d.nombre}"', payload, eliminado_por)
+    db.delete(d)
     db.commit()
     return True
