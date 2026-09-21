@@ -11,7 +11,9 @@ from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
 from .models_custodia import CustodiaArea, CustodiaMotivo
 from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, DesignPreApprovedSheet,
                             DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
-                            DesignPreApprovedCelda, FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
+                            DesignPreApprovedCelda, DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado,
+                            DesignPerfCelda, DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
+                            FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule)
 
@@ -236,6 +238,68 @@ def init_db():
                     for k, valor in enumerate(fila_data.get("v", [])):
                         if k < len(doctor_ids) and valor:
                             db.add(DesignPreApprovedCelda(fila_id=fila.id, doctor_id=doctor_ids[k], valor=valor))
+        # Desempeño: evaluaciones mensuales reales + selección de empleado del mes,
+        # extraídas del HTML original. Solo administradores ven este módulo.
+        seed_perf_path = Path(__file__).resolve().parent / "seed_data" / "design_perf.json"
+        if seed_perf_path.exists():
+            with open(seed_perf_path, encoding="utf-8") as f:
+                perf_data = json.load(f)
+            if db.query(DesignPerfCriterio).count() == 0:
+                for i, nombre in enumerate(perf_data.get("criteria", []), start=1):
+                    db.add(DesignPerfCriterio(nombre=nombre, orden=i))
+                db.flush()
+            criterio_ids = [c.id for c in db.query(DesignPerfCriterio).order_by(DesignPerfCriterio.orden).all()]
+            for i, sheet_data in enumerate(perf_data.get("sheets", []), start=1):
+                nombre_sheet = sheet_data.get("name", "")
+                if db.query(DesignPerfSheet).filter(DesignPerfSheet.nombre == nombre_sheet,
+                                                    DesignPerfSheet.tipo == "eval").first():
+                    continue
+                sheet = DesignPerfSheet(nombre=nombre_sheet, tipo="eval",
+                                        meses=json.dumps(sheet_data.get("months", []), ensure_ascii=False), orden=i)
+                db.add(sheet)
+                db.flush()
+                for j, emp_data in enumerate(sheet_data.get("employees", []), start=1):
+                    emp = DesignPerfEmpleado(sheet_id=sheet.id, nombre=emp_data.get("n", ""),
+                                             nota=emp_data.get("nt", ""), total=emp_data.get("t", 0) or 0,
+                                             totales_mes=json.dumps(emp_data.get("tr", []), ensure_ascii=False),
+                                             orden=j)
+                    db.add(emp)
+                    db.flush()
+                    for crit_idx, meses_vals in enumerate(emp_data.get("v", [])):
+                        if crit_idx >= len(criterio_ids):
+                            continue
+                        for mes_idx, celda in enumerate(meses_vals):
+                            if celda and celda != 0:
+                                nivel, puntaje = celda[0], celda[1]
+                                db.add(DesignPerfCelda(empleado_id=emp.id, criterio_id=criterio_ids[crit_idx],
+                                                       mes_indice=mes_idx, nivel=nivel, puntaje=puntaje))
+            for sel_data in perf_data.get("seleccion", []):
+                nombre_sheet = sel_data.get("name", "")
+                if db.query(DesignPerfSheet).filter(DesignPerfSheet.nombre == nombre_sheet,
+                                                    DesignPerfSheet.tipo == "seleccion").first():
+                    continue
+                sheet = DesignPerfSheet(nombre=nombre_sheet, tipo="seleccion",
+                                        meses=json.dumps(sel_data.get("months", []), ensure_ascii=False),
+                                        orden=len(perf_data.get("sheets", [])) + 1)
+                db.add(sheet)
+                db.flush()
+                for j, gan_data in enumerate(sel_data.get("winners", []), start=1):
+                    db.add(DesignPerfGanador(sheet_id=sheet.id, categoria=gan_data.get("cat", ""), orden=j,
+                                             ganadores_mes=json.dumps(gan_data.get("byMonth", []), ensure_ascii=False)))
+                for j, fila_data in enumerate(sel_data.get("rows", []), start=1):
+                    fila = DesignPerfSeleccionFila(sheet_id=sheet.id, evaluador=fila_data.get("ev", ""), orden=j)
+                    db.add(fila)
+                    db.flush()
+                    for mes_idx, cell in enumerate(fila_data.get("cells", [])):
+                        if not cell:
+                            continue
+                        persona = cell[0] if len(cell) > 0 else ""
+                        puntaje = cell[1] if len(cell) > 1 else ""
+                        nota = cell[2] if len(cell) > 2 else ""
+                        if str(persona).strip().lower() == "n/a" and not nota:
+                            continue
+                        db.add(DesignPerfSeleccionCelda(fila_id=fila.id, mes_indice=mes_idx, persona=str(persona),
+                                                        puntaje=str(puntaje), nota=nota))
         # Garantizar que los correos de ADMIN_EMAILS existan y tengan rol admin
         for email in config.ADMIN_EMAILS:
             emp = db.query(Empleado).filter(Empleado.email == email).first()

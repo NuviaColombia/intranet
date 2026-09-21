@@ -7,7 +7,9 @@ from .models import Empleado
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
-                            DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda, FORMATO_DUAL)
+                            DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
+                            DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
+                            DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -437,4 +439,110 @@ def preapproved_guardar_celda(db: Session, fila_id: int, doctor_id: int, valor: 
         db.add(c)
     else:
         c.valor = valor
+    db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Desempeño (Performance) — acceso restringido a administradores (RR.HH.).
+# ---------------------------------------------------------------------------
+
+def perf_criterios(db: Session) -> list[DesignPerfCriterio]:
+    return db.query(DesignPerfCriterio).order_by(DesignPerfCriterio.orden).all()
+
+
+def perf_sheets(db: Session) -> list[DesignPerfSheet]:
+    return db.query(DesignPerfSheet).order_by(DesignPerfSheet.orden).all()
+
+
+def perf_detalle_eval(db: Session, sheet_id: int) -> dict | None:
+    sheet = db.get(DesignPerfSheet, sheet_id)
+    if not sheet or sheet.tipo != "eval":
+        return None
+    criterios = perf_criterios(db)
+    empleados = (db.query(DesignPerfEmpleado)
+        .filter(DesignPerfEmpleado.sheet_id == sheet_id)
+        .order_by(DesignPerfEmpleado.orden).all())
+    celdas_por_emp: dict[int, dict] = {}
+    if empleados:
+        emp_ids = [e.id for e in empleados]
+        for c in db.query(DesignPerfCelda).filter(DesignPerfCelda.empleado_id.in_(emp_ids)).all():
+            celdas_por_emp.setdefault(c.empleado_id, {})[f"{c.criterio_id}_{c.mes_indice}"] = {
+                "nivel": c.nivel, "puntaje": c.puntaje}
+    return {
+        "id": sheet.id, "nombre": sheet.nombre, "tipo": sheet.tipo,
+        "meses": json.loads(sheet.meses or "[]"),
+        "criterios": [{"id": c.id, "nombre": c.nombre} for c in criterios],
+        "empleados": [{
+            "id": e.id, "nombre": e.nombre, "nota": e.nota, "total": e.total,
+            "totalesMes": json.loads(e.totales_mes or "[]"),
+            "celdas": celdas_por_emp.get(e.id, {}),
+        } for e in empleados],
+    }
+
+
+def perf_guardar_celda(db: Session, empleado_id: int, criterio_id: int, mes_indice: int,
+                       nivel: str, puntaje: float) -> None:
+    c = (db.query(DesignPerfCelda)
+        .filter(DesignPerfCelda.empleado_id == empleado_id, DesignPerfCelda.criterio_id == criterio_id,
+                DesignPerfCelda.mes_indice == mes_indice).first())
+    if not c:
+        c = DesignPerfCelda(empleado_id=empleado_id, criterio_id=criterio_id, mes_indice=mes_indice)
+        db.add(c)
+    c.nivel = nivel
+    c.puntaje = puntaje or 0
+    db.commit()
+
+
+def perf_guardar_nota(db: Session, empleado_id: int, nota: str) -> None:
+    e = db.get(DesignPerfEmpleado, empleado_id)
+    if e:
+        e.nota = nota
+        db.commit()
+
+
+def perf_detalle_seleccion(db: Session, sheet_id: int) -> dict | None:
+    sheet = db.get(DesignPerfSheet, sheet_id)
+    if not sheet or sheet.tipo != "seleccion":
+        return None
+    ganadores = (db.query(DesignPerfGanador).filter(DesignPerfGanador.sheet_id == sheet_id)
+        .order_by(DesignPerfGanador.orden).all())
+    filas = (db.query(DesignPerfSeleccionFila).filter(DesignPerfSeleccionFila.sheet_id == sheet_id)
+        .order_by(DesignPerfSeleccionFila.orden).all())
+    filas_out = []
+    for f in filas:
+        celdas = {c.mes_indice: {"persona": c.persona, "puntaje": c.puntaje, "nota": c.nota}
+                  for c in db.query(DesignPerfSeleccionCelda).filter(DesignPerfSeleccionCelda.fila_id == f.id).all()}
+        filas_out.append({"id": f.id, "evaluador": f.evaluador, "celdas": celdas})
+    return {
+        "id": sheet.id, "nombre": sheet.nombre, "tipo": sheet.tipo,
+        "meses": json.loads(sheet.meses or "[]"),
+        "ganadores": [{"id": g.id, "categoria": g.categoria,
+                       "ganadoresMes": json.loads(g.ganadores_mes or "[]")} for g in ganadores],
+        "filas": filas_out,
+    }
+
+
+def perf_guardar_ganador_mes(db: Session, ganador_id: int, mes_indice: int, nombre: str) -> None:
+    g = db.get(DesignPerfGanador, ganador_id)
+    if not g:
+        return
+    valores = json.loads(g.ganadores_mes or "[]")
+    while len(valores) <= mes_indice:
+        valores.append("")
+    valores[mes_indice] = nombre
+    g.ganadores_mes = json.dumps(valores, ensure_ascii=False)
+    db.commit()
+
+
+def perf_guardar_celda_seleccion(db: Session, fila_id: int, mes_indice: int,
+                                 persona: str, puntaje: str, nota: str) -> None:
+    c = (db.query(DesignPerfSeleccionCelda)
+        .filter(DesignPerfSeleccionCelda.fila_id == fila_id,
+                DesignPerfSeleccionCelda.mes_indice == mes_indice).first())
+    if not c:
+        c = DesignPerfSeleccionCelda(fila_id=fila_id, mes_indice=mes_indice)
+        db.add(c)
+    c.persona = persona
+    c.puntaje = puntaje
+    c.nota = nota
     db.commit()

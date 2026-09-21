@@ -251,3 +251,98 @@ class DesignPreApprovedCelda(Base):
 
     fila = relationship("DesignPreApprovedFila", back_populates="celdas")
     doctor = relationship("DesignPreApprovedDoctor")
+
+
+# ---------------------------------------------------------------------------
+# Desempeño (Performance): evaluaciones mensuales por equipo + "empleado del
+# mes". Visible solo para administradores (datos sensibles de RR.HH.).
+# ---------------------------------------------------------------------------
+
+class DesignPerfCriterio(Base):
+    __tablename__ = "design_perf_criterios"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(200), unique=True)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class DesignPerfSheet(Base):
+    __tablename__ = "design_perf_sheets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(150))
+    tipo: Mapped[str] = mapped_column(String(20))  # "eval" | "seleccion"
+    meses: Mapped[str] = mapped_column(Text, default="[]")  # JSON: 12 etiquetas (ej. "Ene 2025")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    empleados = relationship("DesignPerfEmpleado", back_populates="sheet", cascade="all, delete-orphan")
+    ganadores = relationship("DesignPerfGanador", back_populates="sheet", cascade="all, delete-orphan")
+    filas_seleccion = relationship("DesignPerfSeleccionFila", back_populates="sheet", cascade="all, delete-orphan")
+
+
+class DesignPerfEmpleado(Base):
+    __tablename__ = "design_perf_empleados"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(ForeignKey("design_perf_sheets.id"))
+    nombre: Mapped[str] = mapped_column(String(150))
+    nota: Mapped[str] = mapped_column(Text, default="")
+    total: Mapped[float] = mapped_column(Float, default=0)
+    totales_mes: Mapped[str] = mapped_column(Text, default="[]")  # JSON: 12 floats (total por mes)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    sheet = relationship("DesignPerfSheet", back_populates="empleados")
+    celdas = relationship("DesignPerfCelda", back_populates="empleado", cascade="all, delete-orphan")
+
+
+class DesignPerfCelda(Base):
+    __tablename__ = "design_perf_celdas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("design_perf_empleados.id"))
+    criterio_id: Mapped[int] = mapped_column(ForeignKey("design_perf_criterios.id"))
+    mes_indice: Mapped[int] = mapped_column(Integer)  # 0-11
+    nivel: Mapped[str] = mapped_column(String(20), default="")  # ALTO | MEDIO | BAJO | ""
+    puntaje: Mapped[float] = mapped_column(Float, default=0)
+
+    empleado = relationship("DesignPerfEmpleado", back_populates="celdas")
+    criterio = relationship("DesignPerfCriterio")
+
+
+class DesignPerfGanador(Base):
+    """Ganador de 'empleado del mes' por categoría (hoja tipo 'seleccion')."""
+    __tablename__ = "design_perf_ganadores"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(ForeignKey("design_perf_sheets.id"))
+    categoria: Mapped[str] = mapped_column(String(150))
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    ganadores_mes: Mapped[str] = mapped_column(Text, default="[]")  # JSON: 12 nombres (uno por mes)
+
+    sheet = relationship("DesignPerfSheet", back_populates="ganadores")
+
+
+class DesignPerfSeleccionFila(Base):
+    """Fila de un evaluador dentro de la hoja de selección (uno por mánager/líder)."""
+    __tablename__ = "design_perf_seleccion_filas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(ForeignKey("design_perf_sheets.id"))
+    evaluador: Mapped[str] = mapped_column(String(150), default="")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    sheet = relationship("DesignPerfSheet", back_populates="filas_seleccion")
+    celdas = relationship("DesignPerfSeleccionCelda", back_populates="fila", cascade="all, delete-orphan")
+
+
+class DesignPerfSeleccionCelda(Base):
+    __tablename__ = "design_perf_seleccion_celdas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fila_id: Mapped[int] = mapped_column(ForeignKey("design_perf_seleccion_filas.id"))
+    mes_indice: Mapped[int] = mapped_column(Integer)
+    persona: Mapped[str] = mapped_column(String(150), default="")
+    puntaje: Mapped[str] = mapped_column(String(20), default="")  # texto: puede ser "N/a" o número
+    nota: Mapped[str] = mapped_column(Text, default="")
+
+    fila = relationship("DesignPerfSeleccionFila", back_populates="celdas")
