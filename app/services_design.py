@@ -9,7 +9,8 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
                             DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
                             DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
-                            DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda, FORMATO_DUAL)
+                            DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
+                            DesignTrash, DesignFavorito, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -345,10 +346,12 @@ def actualizar_preapproved_sheet(db: Session, sheet_id: int, datos: dict) -> Des
     return s
 
 
-def eliminar_preapproved_sheet(db: Session, sheet_id: int) -> bool:
+def eliminar_preapproved_sheet(db: Session, sheet_id: int, eliminado_por: str = "") -> bool:
     s = db.get(DesignPreApprovedSheet, sheet_id)
     if not s:
         return False
+    payload = {"area_id": s.area_id, "orden": s.orden, "detalle": preapproved_detalle(db, sheet_id)}
+    _trash_registrar(db, "pa-sheet", f"Hoja Pre-Approved: {s.nombre}", payload, eliminado_por)
     db.delete(s)
     db.commit()
     return True
@@ -371,10 +374,12 @@ def preapproved_actualizar_centro(db: Session, centro_id: int, nombre: str, span
         db.commit()
 
 
-def preapproved_eliminar_centro(db: Session, centro_id: int) -> bool:
+def preapproved_eliminar_centro(db: Session, centro_id: int, eliminado_por: str = "") -> bool:
     c = db.get(DesignPreApprovedCentro, centro_id)
     if not c:
         return False
+    payload = {"sheet_id": c.sheet_id, "nombre": c.nombre, "span": c.span}
+    _trash_registrar(db, "pa-centro", f"Centro Pre-Approved: {c.nombre}", payload, eliminado_por)
     db.delete(c)
     db.commit()
     return True
@@ -396,10 +401,14 @@ def preapproved_renombrar_doctor(db: Session, doctor_id: int, nombre: str) -> No
         db.commit()
 
 
-def preapproved_eliminar_doctor(db: Session, doctor_id: int) -> bool:
+def preapproved_eliminar_doctor(db: Session, doctor_id: int, eliminado_por: str = "") -> bool:
     d = db.get(DesignPreApprovedDoctor, doctor_id)
     if not d:
         return False
+    celdas = db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == doctor_id).all()
+    payload = {"sheet_id": d.sheet_id, "nombre": d.nombre,
+              "celdas": [{"fila_id": c.fila_id, "valor": c.valor} for c in celdas]}
+    _trash_registrar(db, "pa-doctor", f"Doctor Pre-Approved: {d.nombre}", payload, eliminado_por)
     db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == doctor_id).delete()
     db.delete(d)
     db.commit()
@@ -422,10 +431,14 @@ def preapproved_renombrar_fila(db: Session, fila_id: int, criterio: str) -> None
         db.commit()
 
 
-def preapproved_eliminar_fila(db: Session, fila_id: int) -> bool:
+def preapproved_eliminar_fila(db: Session, fila_id: int, eliminado_por: str = "") -> bool:
     f = db.get(DesignPreApprovedFila, fila_id)
     if not f:
         return False
+    celdas = db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.fila_id == fila_id).all()
+    payload = {"sheet_id": f.sheet_id, "criterio": f.criterio,
+              "celdas": [{"doctor_id": c.doctor_id, "valor": c.valor} for c in celdas]}
+    _trash_registrar(db, "pa-fila", f"Criterio Pre-Approved: {f.criterio}", payload, eliminado_por)
     db.delete(f)
     db.commit()
     return True
@@ -546,3 +559,192 @@ def perf_guardar_celda_seleccion(db: Session, fila_id: int, mes_indice: int,
     c.puntaje = puntaje
     c.nota = nota
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Papelera (Trash)
+# ---------------------------------------------------------------------------
+
+def _trash_registrar(db: Session, modulo: str, etiqueta: str, payload: dict, eliminado_por: str) -> None:
+    db.add(DesignTrash(modulo=modulo, etiqueta=etiqueta, payload=json.dumps(payload, ensure_ascii=False),
+                       eliminado_por=eliminado_por or "Sistema"))
+
+
+def trash_listar(db: Session) -> list[DesignTrash]:
+    return db.query(DesignTrash).order_by(DesignTrash.eliminado_en.desc()).all()
+
+
+def trash_eliminar_permanente(db: Session, trash_id: int) -> bool:
+    t = db.get(DesignTrash, trash_id)
+    if not t:
+        return False
+    db.delete(t)
+    db.commit()
+    return True
+
+
+def trash_vaciar(db: Session) -> None:
+    db.query(DesignTrash).delete()
+    db.commit()
+
+
+def _trash_restaurar_pa_sheet(db: Session, payload: dict) -> bool:
+    area_id = payload.get("area_id")
+    det = payload.get("detalle") or {}
+    if not area_id or not db.get(DesignArea, area_id) or not det:
+        return False
+    orden = db.query(DesignPreApprovedSheet).filter(DesignPreApprovedSheet.area_id == area_id).count() + 1
+    s = DesignPreApprovedSheet(area_id=area_id, nombre=det.get("nombre", ""), titulo=det.get("titulo", ""),
+                               changes_label=det.get("changesLabel", ""), orden=payload.get("orden") or orden)
+    db.add(s)
+    db.flush()
+    for j, c in enumerate(det.get("centros", []), start=1):
+        db.add(DesignPreApprovedCentro(sheet_id=s.id, nombre=c.get("nombre", ""), span=c.get("span") or 1, orden=j))
+    doctor_map = {}
+    for j, doc in enumerate(det.get("doctores", []), start=1):
+        d = DesignPreApprovedDoctor(sheet_id=s.id, nombre=doc.get("nombre", ""), orden=j)
+        db.add(d)
+        db.flush()
+        doctor_map[doc["id"]] = d.id
+    for j, fila in enumerate(det.get("filas", []), start=1):
+        f = DesignPreApprovedFila(sheet_id=s.id, criterio=fila.get("criterio", ""), orden=j)
+        db.add(f)
+        db.flush()
+        for old_doc_id_str, valor in (fila.get("valores") or {}).items():
+            if not valor:
+                continue
+            new_doc_id = doctor_map.get(int(old_doc_id_str))
+            if new_doc_id:
+                db.add(DesignPreApprovedCelda(fila_id=f.id, doctor_id=new_doc_id, valor=valor))
+    return True
+
+
+def _trash_restaurar_pa_centro(db: Session, payload: dict) -> bool:
+    sheet_id = payload.get("sheet_id")
+    if not db.get(DesignPreApprovedSheet, sheet_id):
+        return False
+    orden = db.query(DesignPreApprovedCentro).filter(DesignPreApprovedCentro.sheet_id == sheet_id).count() + 1
+    db.add(DesignPreApprovedCentro(sheet_id=sheet_id, nombre=payload.get("nombre", ""),
+                                   span=payload.get("span") or 1, orden=orden))
+    return True
+
+
+def _trash_restaurar_pa_doctor(db: Session, payload: dict) -> bool:
+    sheet_id = payload.get("sheet_id")
+    if not db.get(DesignPreApprovedSheet, sheet_id):
+        return False
+    orden = db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id == sheet_id).count() + 1
+    d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=payload.get("nombre", ""), orden=orden)
+    db.add(d)
+    db.flush()
+    for c in payload.get("celdas", []):
+        if db.get(DesignPreApprovedFila, c.get("fila_id")):
+            db.add(DesignPreApprovedCelda(fila_id=c["fila_id"], doctor_id=d.id, valor=c.get("valor", "")))
+    return True
+
+
+def _trash_restaurar_pa_fila(db: Session, payload: dict) -> bool:
+    sheet_id = payload.get("sheet_id")
+    if not db.get(DesignPreApprovedSheet, sheet_id):
+        return False
+    orden = db.query(DesignPreApprovedFila).filter(DesignPreApprovedFila.sheet_id == sheet_id).count() + 1
+    f = DesignPreApprovedFila(sheet_id=sheet_id, criterio=payload.get("criterio", ""), orden=orden)
+    db.add(f)
+    db.flush()
+    for c in payload.get("celdas", []):
+        if db.get(DesignPreApprovedDoctor, c.get("doctor_id")):
+            db.add(DesignPreApprovedCelda(fila_id=f.id, doctor_id=c["doctor_id"], valor=c.get("valor", "")))
+    return True
+
+
+_TRASH_RESTAURADORES = {
+    "pa-sheet": _trash_restaurar_pa_sheet,
+    "pa-centro": _trash_restaurar_pa_centro,
+    "pa-doctor": _trash_restaurar_pa_doctor,
+    "pa-fila": _trash_restaurar_pa_fila,
+}
+
+
+def trash_restaurar(db: Session, trash_id: int) -> bool:
+    t = db.get(DesignTrash, trash_id)
+    if not t:
+        return False
+    restaurador = _TRASH_RESTAURADORES.get(t.modulo)
+    if not restaurador:
+        return False
+    payload = json.loads(t.payload)
+    try:
+        ok = restaurador(db, payload)
+    except Exception:
+        db.rollback()
+        return False
+    if ok:
+        db.delete(t)
+        db.commit()
+    else:
+        db.rollback()
+    return ok
+
+
+# ---------------------------------------------------------------------------
+# Favoritos
+# ---------------------------------------------------------------------------
+
+def favoritos_de(db: Session, empleado_id: int) -> list[dict]:
+    favs = (db.query(DesignFavorito).filter(DesignFavorito.empleado_id == empleado_id)
+           .order_by(DesignFavorito.creado_en.desc()).all())
+    out = []
+    huerfanos = []
+    for f in favs:
+        if f.tipo == "team":
+            t = db.get(DesignTeam, f.team_id)
+            if not t:
+                huerfanos.append(f.id)
+                continue
+            out.append({"id": f.id, "tipo": "team", "etiqueta": t.area.nombre + " — " + t.nombre,
+                       "areaId": t.area_id, "teamId": t.id})
+        elif f.tipo == "preapproved":
+            s = db.get(DesignPreApprovedSheet, f.preapproved_sheet_id)
+            if not s:
+                huerfanos.append(f.id)
+                continue
+            out.append({"id": f.id, "tipo": "preapproved", "etiqueta": "Pre-Approved — " + s.nombre,
+                       "areaId": s.area_id, "sheetId": s.id})
+    if huerfanos:
+        db.query(DesignFavorito).filter(DesignFavorito.id.in_(huerfanos)).delete(synchronize_session=False)
+        db.commit()
+    return out
+
+
+def favorito_toggle_team(db: Session, empleado_id: int, team_id: int) -> bool:
+    existente = (db.query(DesignFavorito)
+        .filter(DesignFavorito.empleado_id == empleado_id, DesignFavorito.tipo == "team",
+                DesignFavorito.team_id == team_id).first())
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return False
+    db.add(DesignFavorito(empleado_id=empleado_id, tipo="team", team_id=team_id))
+    db.commit()
+    return True
+
+
+def favorito_toggle_preapproved(db: Session, empleado_id: int, sheet_id: int) -> bool:
+    existente = (db.query(DesignFavorito)
+        .filter(DesignFavorito.empleado_id == empleado_id, DesignFavorito.tipo == "preapproved",
+                DesignFavorito.preapproved_sheet_id == sheet_id).first())
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return False
+    db.add(DesignFavorito(empleado_id=empleado_id, tipo="preapproved", preapproved_sheet_id=sheet_id))
+    db.commit()
+    return True
+
+
+def favoritos_activos(db: Session, empleado_id: int) -> dict:
+    favs = db.query(DesignFavorito).filter(DesignFavorito.empleado_id == empleado_id).all()
+    return {
+        "teams": {f.team_id for f in favs if f.tipo == "team"},
+        "preapproved": {f.preapproved_sheet_id for f in favs if f.tipo == "preapproved"},
+    }

@@ -254,6 +254,41 @@ class DesignPreApprovedCelda(Base):
 
 
 # ---------------------------------------------------------------------------
+# Papelera: registro de borrados en paneles estructurales (Pre-Approved, y lo
+# que se sume después: Protocols, Canvas), con snapshot suficiente para
+# restaurar. No cubre acciones del día a día (crear/borrar órdenes).
+# ---------------------------------------------------------------------------
+
+class DesignTrash(Base):
+    __tablename__ = "design_trash"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    modulo: Mapped[str] = mapped_column(String(30))  # pa-sheet | pa-centro | pa-doctor | pa-fila
+    etiqueta: Mapped[str] = mapped_column(String(255))
+    payload: Mapped[str] = mapped_column(Text)  # JSON: snapshot para restaurar
+    eliminado_por: Mapped[str] = mapped_column(String(150), default="")
+    eliminado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Favoritos: accesos rápidos por empleado a equipos y hojas de Pre-Approved.
+# A diferencia de la herramienta original (favoritos en localStorage del
+# navegador, sin cuentas reales), aquí quedan por empleado en la base de
+# datos: siguen disponibles desde cualquier dispositivo con su sesión Zoho.
+# ---------------------------------------------------------------------------
+
+class DesignFavorito(Base):
+    __tablename__ = "design_favoritos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    tipo: Mapped[str] = mapped_column(String(20))  # "team" | "preapproved"
+    team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id"), nullable=True)
+    preapproved_sheet_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_sheets.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
 # Desempeño (Performance): evaluaciones mensuales por equipo + "empleado del
 # mes". Visible solo para administradores (datos sensibles de RR.HH.).
 # ---------------------------------------------------------------------------

@@ -72,12 +72,16 @@
     return api(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   }
 
+  var URL_PARAMS = new URLSearchParams(location.search);
   var DS = {
     areas: [], areaId: null, areaFormato: null,
     teams: [], teamId: null,
     lunes: dsLunesDe(new Date()),
     diaSel: 0, // 0=lunes ... 4=viernes
     diaData: null,
+    favTeams: [],
+    deepLinkAreaId: URL_PARAMS.get('area_id') ? parseInt(URL_PARAMS.get('area_id')) : null,
+    deepLinkTeamId: URL_PARAMS.get('team_id') ? parseInt(URL_PARAMS.get('team_id')) : null,
   };
   window.dsCambiarSemana = function(delta) {
     DS.lunes.setDate(DS.lunes.getDate() + delta);
@@ -114,7 +118,9 @@
 
   // ---------- Áreas / Equipos ----------
   function dsCargarAreas() {
-    api('/design/api/areas').then(function(areas) {
+    Promise.all([api('/design/api/areas'), api('/design/api/favoritos/activos')]).then(function(r) {
+      var areas = r[0];
+      DS.favTeams = r[1].teams || [];
       DS.areas = areas;
       var cont = document.getElementById('dsAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
@@ -124,7 +130,13 @@
         btn.onclick = function() { dsSeleccionarArea(a.id, a.formato); };
         cont.appendChild(btn);
       });
-      if (areas.length) dsSeleccionarArea(areas[0].id, areas[0].formato);
+      if (!areas.length) return;
+      var inicial = areas[0];
+      if (DS.deepLinkAreaId) {
+        var match = areas.find(function(a) { return a.id === DS.deepLinkAreaId; });
+        if (match) inicial = match;
+      }
+      dsSeleccionarArea(inicial.id, inicial.formato);
     });
   }
 
@@ -139,14 +151,35 @@
       DS.teams = teams;
       var cont = document.getElementById('dsTeamTabs'); cont.innerHTML = '';
       teams.forEach(function(t) {
+        var wrap = document.createElement('span'); wrap.style.display = 'inline-flex'; wrap.style.alignItems = 'center'; wrap.style.gap = '2px';
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'ds-tab';
         btn.innerText = t.nombre;
         btn.onclick = function() { dsSeleccionarEquipo(t.id); };
-        cont.appendChild(btn);
+        var fav = document.createElement('button');
+        fav.type = 'button'; fav.title = 'Marcar/quitar favorito';
+        fav.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;color:#f2b100';
+        fav.innerText = DS.favTeams.indexOf(t.id) >= 0 ? '★' : '☆';
+        fav.onclick = function(ev) {
+          ev.stopPropagation();
+          fetch('/design/api/favoritos/team/' + t.id + '/toggle', {method:'POST'}).then(function(r) { return r.json(); })
+            .then(function(res) {
+              fav.innerText = res.favorito ? '★' : '☆';
+              if (res.favorito) { if (DS.favTeams.indexOf(t.id) < 0) DS.favTeams.push(t.id); }
+              else { DS.favTeams = DS.favTeams.filter(function(x) { return x !== t.id; }); }
+            });
+        };
+        wrap.appendChild(btn); wrap.appendChild(fav);
+        cont.appendChild(wrap);
       });
-      if (teams.length) dsSeleccionarEquipo(teams[0].id);
-      else { DS.teamId = null; document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; }
+      if (!teams.length) { DS.teamId = null; document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; return; }
+      var teamInicial = teams[0];
+      if (DS.deepLinkTeamId) {
+        var match = teams.find(function(t) { return t.id === DS.deepLinkTeamId; });
+        if (match) teamInicial = match;
+        DS.deepLinkTeamId = null;
+      }
+      dsSeleccionarEquipo(teamInicial.id);
     });
   }
 

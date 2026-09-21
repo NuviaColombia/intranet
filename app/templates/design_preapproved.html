@@ -49,10 +49,15 @@
   }
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  var PA = { areaId: null, sheetId: null, areas: [], sheets: [], detalle: null };
+  var URL_PARAMS = new URLSearchParams(location.search);
+  var PA = { areaId: null, sheetId: null, areas: [], sheets: [], detalle: null, favSheets: [],
+            deepLinkAreaId: URL_PARAMS.get('area_id') ? parseInt(URL_PARAMS.get('area_id')) : null,
+            deepLinkSheetId: URL_PARAMS.get('sheet_id') ? parseInt(URL_PARAMS.get('sheet_id')) : null };
 
   function cargarAreas() {
-    api('/design/api/areas').then(function(areas) {
+    Promise.all([api('/design/api/areas'), api('/design/api/favoritos/activos')]).then(function(r) {
+      var areas = r[0];
+      PA.favSheets = r[1].preapproved || [];
       PA.areas = areas;
       var cont = document.getElementById('paAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
@@ -62,7 +67,13 @@
         btn.onclick = function() { seleccionarArea(a.id); };
         cont.appendChild(btn);
       });
-      if (areas.length) seleccionarArea(areas[0].id);
+      if (!areas.length) return;
+      var inicial = areas[0];
+      if (PA.deepLinkAreaId) {
+        var match = areas.find(function(a) { return a.id === PA.deepLinkAreaId; });
+        if (match) inicial = match;
+      }
+      seleccionarArea(inicial.id);
     });
   }
 
@@ -77,19 +88,41 @@
       PA.sheets = sheets;
       var cont = document.getElementById('paSheetTabs'); cont.innerHTML = '';
       sheets.forEach(function(s) {
+        var wrap = document.createElement('span'); wrap.style.display = 'inline-flex'; wrap.style.alignItems = 'center'; wrap.style.gap = '2px';
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'pa-tab' + (s.id === PA.sheetId ? ' activo' : '');
         btn.innerText = s.nombre;
         btn.onclick = function() { seleccionarHoja(s.id); };
-        cont.appendChild(btn);
+        var fav = document.createElement('button');
+        fav.type = 'button'; fav.title = 'Marcar/quitar favorito';
+        fav.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;color:#f2b100';
+        fav.innerText = PA.favSheets.indexOf(s.id) >= 0 ? '★' : '☆';
+        fav.onclick = function(ev) {
+          ev.stopPropagation();
+          fetch('/design/api/favoritos/preapproved/' + s.id + '/toggle', {method:'POST'}).then(function(r) { return r.json(); })
+            .then(function(res) {
+              fav.innerText = res.favorito ? '★' : '☆';
+              if (res.favorito) { if (PA.favSheets.indexOf(s.id) < 0) PA.favSheets.push(s.id); }
+              else { PA.favSheets = PA.favSheets.filter(function(x) { return x !== s.id; }); }
+            });
+        };
+        wrap.appendChild(btn); wrap.appendChild(fav);
+        cont.appendChild(wrap);
       });
-      if (sheets.length) seleccionarHoja(sheets[0].id);
-      else {
+      if (!sheets.length) {
         PA.sheetId = null;
         document.getElementById('paSheetMeta').style.display = 'none';
         document.getElementById('paGridPanel').style.display = 'none';
         document.getElementById('paBorrarHojaBtn').style.display = 'none';
+        return;
       }
+      var sheetInicial = sheets[0];
+      if (PA.deepLinkSheetId) {
+        var match = sheets.find(function(s) { return s.id === PA.deepLinkSheetId; });
+        if (match) sheetInicial = match;
+        PA.deepLinkSheetId = null;
+      }
+      seleccionarHoja(sheetInicial.id);
     });
   }
 

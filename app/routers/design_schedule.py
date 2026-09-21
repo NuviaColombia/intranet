@@ -421,7 +421,7 @@ async def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSh
 @router.post("/design/api/preapproved/sheets/{sheet_id}/eliminar")
 async def api_eliminar_preapproved_sheet(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                          db: Session = Depends(get_db)):
-    if not sd.eliminar_preapproved_sheet(db, sheet_id):
+    if not sd.eliminar_preapproved_sheet(db, sheet_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
 
@@ -449,7 +449,7 @@ async def api_actualizar_centro(centro_id: int, payload: CentroIn,
 @router.post("/design/api/preapproved/centros/{centro_id}/eliminar")
 async def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
-    if not sd.preapproved_eliminar_centro(db, centro_id):
+    if not sd.preapproved_eliminar_centro(db, centro_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
 
@@ -476,7 +476,7 @@ async def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
 @router.post("/design/api/preapproved/doctores/{doctor_id}/eliminar")
 async def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
-    if not sd.preapproved_eliminar_doctor(db, doctor_id):
+    if not sd.preapproved_eliminar_doctor(db, doctor_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
 
@@ -499,7 +499,7 @@ async def api_renombrar_fila(fila_id: int, payload: NombreIn,
 @router.post("/design/api/preapproved/filas/{fila_id}/eliminar")
 async def api_eliminar_fila(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
-    if not sd.preapproved_eliminar_fila(db, fila_id):
+    if not sd.preapproved_eliminar_fila(db, fila_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
 
@@ -599,3 +599,69 @@ async def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSelec
                                            user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     sd.perf_guardar_celda_seleccion(db, fila_id, payload.mesIndice, payload.persona, payload.puntaje, payload.nota)
     return {"mensaje": "Guardado."}
+
+
+# ---------- Papelera ----------
+
+@router.get("/design/papelera")
+async def pagina_papelera(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+    return templates.TemplateResponse(request, "design_papelera.html", {"user": user, "es_design": True})
+
+
+@router.get("/design/api/papelera")
+async def api_papelera_listar(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    return [{"id": t.id, "modulo": t.modulo, "etiqueta": t.etiqueta, "eliminado_por": t.eliminado_por,
+            "eliminado_en": t.eliminado_en.strftime("%d/%m/%Y %H:%M")} for t in sd.trash_listar(db)]
+
+
+@router.post("/design/api/papelera/{trash_id}/restaurar")
+async def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                 db: Session = Depends(get_db)):
+    if not sd.trash_restaurar(db, trash_id):
+        raise HTTPException(400, "No se pudo restaurar (el destino cambió demasiado o ya no existe).")
+    return {"mensaje": "Restaurado."}
+
+
+@router.post("/design/api/papelera/{trash_id}/eliminar")
+async def api_papelera_eliminar(trash_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    if not sd.trash_eliminar_permanente(db, trash_id):
+        raise HTTPException(404, "No encontrado.")
+    return {"mensaje": "Eliminado del historial."}
+
+
+@router.post("/design/api/papelera/vaciar")
+async def api_papelera_vaciar(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    sd.trash_vaciar(db)
+    return {"mensaje": "Historial vaciado."}
+
+
+# ---------- Favoritos ----------
+
+@router.get("/design/favoritos")
+async def pagina_favoritos(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+    return templates.TemplateResponse(request, "design_favoritos.html", {"user": user, "es_design": True})
+
+
+@router.get("/design/api/favoritos")
+async def api_favoritos(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    return sd.favoritos_de(db, user.id)
+
+
+@router.get("/design/api/favoritos/activos")
+async def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    activos = sd.favoritos_activos(db, user.id)
+    return {"teams": list(activos["teams"]), "preapproved": list(activos["preapproved"])}
+
+
+@router.post("/design/api/favoritos/team/{team_id}/toggle")
+async def api_favorito_toggle_team(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                   db: Session = Depends(get_db)):
+    return {"favorito": sd.favorito_toggle_team(db, user.id, team_id)}
+
+
+@router.post("/design/api/favoritos/preapproved/{sheet_id}/toggle")
+async def api_favorito_toggle_preapproved(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                          db: Session = Depends(get_db)):
+    return {"favorito": sd.favorito_toggle_preapproved(db, user.id, sheet_id)}
