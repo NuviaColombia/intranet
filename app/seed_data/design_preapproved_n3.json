@@ -1,0 +1,2891 @@
+{
+ "David": {
+  "title": "Pre-approved changes",
+  "centers": [
+   {
+    "name": "St Louis - Oswaldo Hernandez",
+    "span": 2
+   },
+   {
+    "name": "San Antonio - Ximena Pacheco",
+    "span": 2
+   },
+   {
+    "name": "FortWorth",
+    "span": 2
+   },
+   {
+    "name": "Austin - Andrea Oganes",
+    "span": 1
+   },
+   {
+    "name": "Houston - Enrique Lopez",
+    "span": 2
+   },
+   {
+    "name": "Dallas - Braulio Cala",
+    "span": 2
+   },
+   {
+    "name": "",
+    "span": 1
+   },
+   {
+    "name": "",
+    "span": 1
+   },
+   {
+    "name": "",
+    "span": 1
+   },
+   {
+    "name": "",
+    "span": 1
+   },
+   {
+    "name": "",
+    "span": 1
+   },
+   {
+    "name": "",
+    "span": 1
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr. Dave King",
+   "Dr Gregory Guerra",
+   "Dr. Walter Dee Thames",
+   "Dr. Noora AlMasoodi",
+   "Dr. Mohan Venkata Mutnuri",
+   "Dr. William Jeong",
+   "Dr. Angela Velasquez",
+   "Dr. Isaias Abrego",
+   "Dr. Kerin Jaminson",
+   "Dr. Adam Lakhani",
+   "Dr. Wendy Fu",
+   "",
+   "Dr. Danubio Blen",
+   "Dr. Eberechukwu Njoku",
+   "Dr. Jackeline Chow",
+   "Dr. Takacs",
+   "Dr. Amireh Awad"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "Ok up to 16mm",
+     "Always ask",
+     "Short bridge greater than 20mm",
+     "Show AP Spread",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Short bridge greater than 20mm",
+     "",
+     "do not suggest shorten arch NEVER",
+     "Always ask",
+     "Short bridge greater than 20mm",
+     "Short bridge greater than 17 mm",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask",
+     "Always ask with pictures",
+     "Always ask",
+     "Always ask",
+     "Always ask with HTML",
+     "",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask with HTML",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "1mm",
+     "Always ask",
+     "Always ask.",
+     "1 mm",
+     "Always ask",
+     "Always ask",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "2 mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "1mm",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "0,5mm",
+     "Always ask",
+     "1,5mm",
+     "Always Ask",
+     "0,5mm",
+     "Always ask",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "2 mm is approved without asking",
+     "Always ask",
+     "0,5mm",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "1mm",
+     "Always ask",
+     "1,5mm",
+     "0,5mm",
+     "1mm",
+     "1mm",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "2 mm is approved without asking",
+     "1mm to 2mm is approved without asking",
+     "0,5mm",
+     "2mm",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "1mm",
+     "Always ask",
+     "1mm",
+     "1mm",
+     "1mm",
+     "1mm",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "2 mm is approved without asking",
+     "1mm or less don't need to ask",
+     "0,5mm",
+     "1,5mm",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Arch Roation",
+    "v": [
+     "1mm",
+     "Always ask",
+     "1,5mm",
+     "Always Ask",
+     "0,5mm",
+     "Always ask",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "2 mm is approved without asking",
+     "1mm to 1.5 mm is approved without asking",
+     "0,5mm",
+     "2mm",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "1mm",
+     "Always Ask",
+     "Always ask",
+     "1mm",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "2 mm is approved without asking",
+     "1mm to left or right approved based on pictures and digital design",
+     "Always ask",
+     "3mm",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "1mm",
+     "Always Ask",
+     "1mm",
+     "Always ask",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "2 mm is approved without asking",
+     "1mm or less depending on lab",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "1,5mm",
+     "Always ask",
+     "1mm",
+     "0,5mm",
+     "1mm",
+     "1mm",
+     "1mm",
+     "2mm",
+     "2mm",
+     "Always ask",
+     "1,5mm",
+     "",
+     "1mm is approved without asking",
+     "1mm to 1.5 mm is approved without asking",
+     "1,5mm",
+     "Always ask",
+     "1mm"
+    ]
+   },
+   {
+    "c": "Single 24z",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "Always ask",
+     "Always ask",
+     "Follow N2 design",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Icam/Micron",
+    "v": [
+     "Continue with slight movement, warn if it is very exaggerated",
+     "Always ask",
+     "Continue with slight movement, warn if it is very exaggerated",
+     "Continue with slight movement, warn if it is very exaggerated",
+     "Continue without asking, however Dr would like to be notified when 2 or more implants are skipped or moved more than it is regular",
+     "Continue without asking, however Dr would like to be notified when 2 or more implants are skipped or moved more than it is regular",
+     "Continue without asking",
+     "Continue without asking",
+     "Continue without asking",
+     "Skip implants when ICAM values are over 0.099",
+     "Skip implants when ICAM values are over 0.099 \n\nContinue without asking",
+     "",
+     "Continue without asking",
+     "Continuar con levedad de movimiento, avisar si es muy exagerado . Leer mensaje anclado en el cliq",
+     "Skip implants when ICAM values are over 0.099 \n\nContinue without asking",
+     "Continue with slight movement, warn if it is very exaggerated",
+     "Continue without asking"
+    ]
+   },
+   {
+    "c": "Removable Denture",
+    "v": [
+     "-",
+     "-",
+     "-",
+     "-",
+     "-",
+     "El límite retromolar de la dentadura no debe tener una \"curva\" sino que en su lugar se vea con una forma más \"cuadrada\" y dejar los frenillos bien despejados",
+     "-",
+     "Las dentaduras deben llegar completamente hasta el fondo del vestibulo tanto para upper como para lower, no es necesario dejar despejados los frenillos",
+     "-",
+     "-",
+     "-",
+     "",
+     "-",
+     "-",
+     "-",
+     "-",
+     "No llevar la dentadura hasta el fondo del vestibulo sino aproximadamente 0,5mm separado (la marca debe hacerse aun más abajo), los frenillos bien despejados"
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "If too thin first proceed with up to 1.5mm tissue smoothing. If still too thin, please next proceed with adding occlusal plane down/up 0.5mm. If still too thin, please proceed with adding incisal edge down/up 0.5mm. If still too thin, please ask\n\nSingle arch case - okay to settle and adjust to fit N2 design (PLEASE confirm midline and lip support prior to proceeding).  If too far out of sync with N2 design, please feel free to proceed wtih GCAM",
+     "-",
+     "Always send a complete message with all the issues (measurements, cantilever, access holes, implants moved)\n\nIf there is no response after 30 min we can continue with the suggestion for 24z.",
+     "Always send a complete message with all the issues (measurements, cantilever, access holes, implants moved)",
+     "-",
+     "-",
+     "The bars should be designed with flange, but there should be no material around the access holes that exceeds the articulation guide",
+     "Approved all changes if the Doctor request them, even for single 24Z cases",
+     "The doctor usually requests that the upper bar be adapted to 0.1 mm and the lower bar to 1 mm if measurements allow it\n\nApproved all changes if the Doctor request them, even for single 24Z cases",
+     "Perform the tissue reduction indicated on the RX along the entire arch\n\nFor lower NGs do not Add extra material facially (on the anterior teeth) even if it does not come into contact with opposing teeth",
+     "If there are no measurements to design or access holes issues, upload HTML\n\nPerform the tissue reduction indicated on the RX along the entire arch\n\nFor lower NGs do not Add extra material facially (on the anterior teeth) even if it does not come into contact with opposing teeth",
+     "",
+     "The bars should be designed with flange, but there should be no material around the access holes that exceeds the articulation guide.",
+     "Las NG son menos altas en anteriores, aprox 1 mm mas bajas que las normales",
+     "If there are no measurements to design or access holes issues, upload HTML\n\nFor lower NGs do not Add extra material facially (on the anterior teeth) even if it does not come into contact with opposing teeth",
+     "Lab allows to reduce a little more flench to the bars when they are with crystals",
+     "-"
+    ]
+   }
+  ]
+ },
+ "Leonardo": {
+  "title": "Pre-approved changes",
+  "centers": [
+   {
+    "name": "TORRANCE",
+    "span": 2
+   },
+   {
+    "name": "Fullerton",
+    "span": 2
+   },
+   {
+    "name": "Bellevue",
+    "span": 2
+   },
+   {
+    "name": "Encino",
+    "span": 2
+   },
+   {
+    "name": "FREMONT",
+    "span": 2
+   },
+   {
+    "name": "PORTLAND",
+    "span": 3
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr. Courtney Nguyen",
+   "Dr Bahareh Moradi",
+   "Dr Jeffrey Oyama",
+   "Dr. Julia Leong",
+   "Dr. Michael Cho",
+   "Dr. Neha Rajput",
+   "Dr Mary Lou Murtha",
+   "Dr Richard Che",
+   "Dr Namrata Nayyar",
+   "Dr. Shrikar Mehta",
+   "Dr. Eugene Lee",
+   "",
+   "Dr Fransiskus Andrianto"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "Ask if over 15mm",
+     "Ask if over 15mm",
+     "Ask if over 15mm",
+     "Ask if over 15mm",
+     "Up to 16mm",
+     "Up to 16mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "ASK if over 15mm",
+     "",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1 mm or less is approved without asking",
+     "1 mm or less is approved without asking",
+     "up to 0.5mm approved",
+     "",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "INCISAL EDGE",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "1 mm is approved without asking",
+     "0.5mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Up to 1mm",
+     "Up to 1mm",
+     "up to 0.5mm approved",
+     "",
+     "Upt to 1mm"
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "From 1 to 1.5mm don't need to ask.",
+     "0.5mm - 1 mm don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "up to 1mm approved",
+     "",
+     "Upt to 1mm"
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "up to 1mm approved",
+     "",
+     "Upt to 1mm"
+    ]
+   },
+   {
+    "c": "Arch Roation",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "0.5 to 1mm don't need to ask",
+     "0.5mm -1mm don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "up to 0.5mm approved",
+     "",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "0.5mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "1mm or less without to ask if the lab thinks it is off base on pictures"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "1.5mm or less don't ask",
+     "1.5mm or less don't ask",
+     "1mm or less don't ask",
+     "1mm or less don't ask",
+     "",
+     "0.5mm",
+     "1mm is approved without asking",
+     "1mm is approved without asking",
+     "1.0mm approved without asking",
+     "",
+     "1mm or less don't ask"
+    ]
+   },
+   {
+    "c": "Single 24z",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "1.5mm or less don't ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "Always ask",
+     "",
+     "- Siempre reduccion de tissue 1.5 mm como primera opcion de pre-aprobado. - No cuentan con pre-aprobado de Micron.",
+     "- Siempre reduccion de tissue 1.5 mm como primera opcion de pre-aprobado. - No cuentan con pre-aprobado de Micron.",
+     "Siempre reduccion de tissue.  No cuentan con pre-aprobado de Micron.",
+     "Siempre reduccion de tissue.  No cuentan con pre-aprobado de Micron.",
+     "La reducción de tissue es opcional dependiendo lo que se necesite. Generalmente ella deja un comentario en el RX o plataforma indicando cuanto reducir máximo.  No cuentan con pre-aprobado de Micron. Se debe enviar los HOLD de esta manera Imagen + Informacion, Cuantos mm tiene y cuantos mm le falta y si el HOLD es por acces se debe enviar la imagen por donde salen",
+     "Siempre reduccion de tissue 0,5 mm .... Siempre enviar HTML en las single con las diferencias entre N2 y N3  No cuentan con pre-aprobado de Micron. Se debe enviar los HOLD de esta manera Imagen + Informacion, Cuantos mm tiene y cuantos mm le falta y si el HOLD es por acces se debe enviar la imagen por donde salen",
+     "Continue without asking.\nAlways follow the Icam/Micron whenever 3 or more implants do not match the pickup.",
+     "Continue without asking.\nAlways follow the Icam/Micron whenever 3 or more implants do not match the pickup.",
+     "si la diferencia es inferior a 0,2 mm, le gustaría contar con al menos 3 implantes para la alineación",
+     "",
+     "prioriza reduccion de tissue 0.5 antes que cualquier cambio- no shotbidge- casi siempre autorizan implantes cercanos por vestibular en zona molar, de igual forma siempre es mejor confirmarlo  No cuentan con pre-aprobado de Micron.  si la diferencia es inferior a 0,2 mm, le gustaría contar con al menos 3 implantes para la alineación"
+    ]
+   }
+  ]
+ },
+ "Paula Parra": {
+  "title": "G",
+  "centers": [
+   {
+    "name": "Jacksonville",
+    "span": 2
+   },
+   {
+    "name": "Parsippany",
+    "span": 2
+   },
+   {
+    "name": "Pittsburgh",
+    "span": 2
+   },
+   {
+    "name": "Detroit",
+    "span": 2
+   },
+   {
+    "name": "Fort Myers",
+    "span": 2
+   },
+   {
+    "name": "Milwaukee",
+    "span": 2
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr John Addison",
+   "Dr Livia  Barros",
+   "Dr David Kim",
+   "Dr. Barry Teich",
+   "Dr. Maryam Chiani",
+   "Dr. joseph cornatzer",
+   "Dr. Yousif Brikho",
+   "Dr. Reema Brikho",
+   "Dr. Christina Rizk",
+   "Dr Troup Dravis",
+   "Dra. Chen",
+   "Dr. Jasdeep Cheema"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "17 mm or less",
+     "17 mm or less",
+     "Always ask.",
+     "Always ask.",
+     "Short bridge greater than 17mm",
+     "Short bridge greater than 17.5 mm",
+     "Always ask",
+     "Always ask",
+     "Show Gloria de  Ap Spread",
+     "Show Gloria de  Ap Spread",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "no info",
+     "no info",
+     "Always ask.",
+     "no info",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     ""
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "-2mm or +2mm  is ok",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "Always ask.",
+     "Always ask",
+     "1 mm or less is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Up to 1mm",
+     "Up to 1mm",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "1mm is approved without asking",
+     "1mm is approved without asking",
+     "1mm or less (specially if it's to gain measurements to 24z. Always ask.",
+     "1mm or less don't need to ask. (specially if it's to gain measurements to 24z.",
+     "1mm is approved without asking",
+     "0.5 MM or less is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Up to 1mm",
+     "Up to 1mm",
+     "0.5mm is approved without asking",
+     "0.5mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "1 to 1.5mm don't need to ask.",
+     "1 to 1.5mm don't need to ask.",
+     "From 1mm or less Always ask.",
+     "From 1mm or less don't need to ask.",
+     "Out up to  1.5 mm is approved without asking",
+     "2.5 mm or less is approved without asking (Vestibular issue)",
+     "Always ask",
+     "Always ask",
+     "Up to 1mm",
+     "Up to 1mm",
+     "0.5mm is approved without asking",
+     "1mm to 1.5 mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "1mm or less Always ask.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "1.5 mm or less is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Up to 1mm",
+     "Up to 1mm",
+     "0.5mm is approved without asking",
+     "0.5mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Arch Roation",
+    "v": [
+     "From 1 to 1.5 mm is approved without asking",
+     "From 1 to 1.5 mm is approved without asking",
+     "1mm Always ask.",
+     "1mm don't need to ask.",
+     "1.5 mm is approved without asking",
+     "2 mm or less is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1mm",
+     "0.5mm is approved without asking",
+     "1mm or less without asking"
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask if need changes",
+     "Always ask if need changes",
+     "Always ask",
+     "Continue if Midline shift 3mm or less",
+     "Always ask",
+     "Always ask",
+     "1mm or less without to ask if the lab thinks it is off base on pictures",
+     "1mm or less without to ask if the lab thinks it is off base on pictures",
+     "0.5mm is approved without asking",
+     "1mm or less without asking"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "1mm or less don't need to ask. if the lab thinks its off base on pictures.",
+     "1mm or less don't need to ask. if the lab thinks its off base on pictures.",
+     "1mm or less Always ask.",
+     "1mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "0.5mm is approved without asking",
+     "1mm or less without asking, Check acant for her)"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "1mm or less don't need to ask.. if space is needed please take up to 2 mm from U/L",
+     "1mm or less don't need to ask.. if space is needed please take up to 2 mm from U/L",
+     "1mm Always ask.",
+     "1mm don't ask",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't ask",
+     "1mm or less don't ask",
+     "1mm or less without ask",
+     "1mm or less without ask",
+     "0.5mm is approved without asking",
+     ""
+    ]
+   },
+   {
+    "c": "Single 24z",
+    "v": [
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Midline or incisal edge proceed with n2 design",
+     "within 0.5mm or requested position",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     ""
+    ]
+   },
+   {
+    "c": "ICAM/MICRON",
+    "v": [
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Continue without asking if the icam is moved; warn if it is very exaggerated with images.",
+     "Continue without asking if the icam is moved; warn if it is very exaggerated with images.",
+     "Continue without asking if the icam is moved; warn if it is very exaggerated with images.",
+     "Continue without asking if the icam is moved; warn if it is very exaggerated with images.",
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Always ask with images",
+     "Always ask with images"
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "",
+     "",
+     "Ng por debajo del tercio medio del diente",
+     "Ng por debajo del tercio medio del diente",
+     "Prefers to design in zirconia.",
+     "Prefers to design in zirconia.",
+     "Prefers to design in zirconia.",
+     "Prefers to design in zirconia.",
+     "",
+     "",
+     "Prefers to design in zirconia. Bar adapt 0,1mm always, Don't smooth the tissue too much, The bars on the implants should be rounded.",
+     "Prefers to design in zirconia. Bar adapt 0,1mm always, Don't smooth the tissue too much, The bars on the implants should be rounded."
+    ]
+   }
+  ]
+ },
+ "Vanesa": {
+  "title": "Pre-approved changes",
+  "centers": [
+   {
+    "name": "Phoenix",
+    "span": 2
+   },
+   {
+    "name": "Vegas",
+    "span": 2
+   },
+   {
+    "name": "Denver",
+    "span": 2
+   },
+   {
+    "name": "Fullerton",
+    "span": 2
+   },
+   {
+    "name": "Bellevue",
+    "span": 2
+   },
+   {
+    "name": "Encino",
+    "span": 2
+   },
+   {
+    "name": "Lemont",
+    "span": 2
+   },
+   {
+    "name": "ALEXANDRIA",
+    "span": 2
+   },
+   {
+    "name": "CHICAGO",
+    "span": 3
+   },
+   {
+    "name": "SALT LAKE",
+    "span": 3
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr. Jared Slovan",
+   "Dr. Joseph Levingston",
+   "Dr Christopher E Goodman",
+   "Dr Nathan Dustin",
+   "Dr Laura Brown",
+   "Dr Dustin Ford",
+   "Dr Jeffrey Oyama",
+   "Dr. Julia Leong",
+   "Dr. Michael Cho",
+   "Dr. Neha Rajput",
+   "Dr Adam Lakhani",
+   "Dr Richard Che",
+   "Dr bruce murphy",
+   "Dr Hiba Shareef",
+   "Dr. Brendan Bernhart",
+   "Dr Chin Kim",
+   "Dr. Ashraf Naser",
+   "Dr. Shrikah Mehta",
+   "Dr Noor AlSammarraie",
+   "Dr. Dennis Deloach",
+   "Dr. Jonathan M Richey",
+   "Dr Hall"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Up to 17.5 mm",
+     "",
+     "ask if over 1.65 AP spread",
+     "Up to 16mm",
+     "Up to 16mm",
+     "Up to 16mm",
+     "Up to 16mm",
+     "Always ask",
+     "Always ask",
+     "Ask after 19 mm with Ap Spread",
+     "Shortbridge grater than 16.5",
+     "Ask after 16mm with Ap Spread",
+     "Ask after 16mm with Ap Spread",
+     "Always ask",
+     "Ask after 15.5mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "0.5 mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "From to 2mm is approved without asking",
+     "1 mm don't need to ask, especially if it's to get 24Z measurements",
+     "",
+     "From to 1.5mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "From -2 mm to 1.5 mm is approved without asking",
+     "1 mm or less is approved without asking",
+     "2 mm is approved without asking",
+     "2 mm is approved without asking",
+     "1 mm is approved without asking",
+     "2 mm is approved without asking",
+     "Up to  +/- 1.5mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "0.5 mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1.5 mm or less don't need to ask, especially if it's to get 24Z measurements",
+     "",
+     "From  to 0.5mm is approved without asking",
+     "1 to 1.5mm don't need to ask. (specially if it's to gain measurements to 24z.",
+     "0.5mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "From 1 mm to 2 mm is approved without asking",
+     "0.5mm is approved without asking",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "Up to +/- 1mm is approved without asking",
+     "From 1mm to 1.5 mm is approved without asking",
+     "From 1mm to 1.5 mm is approved without asking",
+     "0.5 mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "From to 1mm is approved without asking",
+     "1.5 mm or less don't need to ask",
+     "",
+     "From to 1mm is approved without asking",
+     "From 1 to 1.5mm don't need to ask.",
+     "0.5mm - 1 mm don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "From 1 mm to 2 mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "0.5 mm is approved without asking",
+     "1 mm is approved without asking",
+     "Always ask",
+     "From 1mm to 1.5 mm is approved without asking",
+     "From 1mm to 1.5 mm is approved without asking",
+     "1 mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "From to 1mm is approved without asking",
+     "2mm or less don't need to ask",
+     "",
+     "From  to 1mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "3  mm or less is approved without asking",
+     "1.5 mm is approved without asking",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "Always ask",
+     "1.5 mm is approved without asking",
+     "Always ask",
+     "From 1mm is approved without asking",
+     "From 1mm is approved without asking",
+     "1 mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Arch Rotation",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "From to 1mm is approved without asking",
+     "0.5 to 1mm don't  need to ask",
+     "",
+     "From  to 1mm is approved without asking",
+     "1 to 1.5mm don't need to ask.",
+     "0.5mm -1mm don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "From 1 mm to 2.5 mm is approved without asking",
+     "2 mm is approved without asking",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     ".",
+     "Always ask",
+     "From 1 to 1.5 mm is approved without asking",
+     "From 1 to 1.5 mm is approved without asking",
+     ""
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "3.5 mm or less don't need to ask",
+     "",
+     "Follow change in platform",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "0.5mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1.5  mm or less is approved without asking",
+     "Continue if midline shift 3 mm or less",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "From to 1mm is approved without asking",
+     "3mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "",
+     "Always ask",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "0.5mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1  mm or less is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1 mm is approved without asking",
+     "Always ask is approved without asking",
+     "From 1mm or less dont need to ask if the lab thinks it is off base on pictures",
+     "From 1mm or less dont need to ask if the lab thinks it is off base on pictures",
+     "From to 1mm is approved without asking"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "1.5mm",
+     "1.5mm",
+     "From to 1mm is approved without asking",
+     "1mm or less don't ask",
+     "",
+     "From 1.5mm is approved without asking",
+     "1mm or less don't ask",
+     "1mm or less don't ask",
+     "1mm or less don't ask",
+     "1mm or less don't ask",
+     "0.5mm",
+     "0.5mm",
+     "1 mm is approved without asking",
+     "1mm is approved without asking",
+     "From to 1mm is approved without asking",
+     "From to 1mm is approved without asking",
+     "From to 1.5mm is approved without asking",
+     "From to 1.5mm is approved without asking",
+     "From to 1.5mm is approved without asking",
+     "From 1mm is approved without asking",
+     "From 1mm is approved without asking",
+     "From to 1.5mm or less  is approved without asking"
+    ]
+   },
+   {
+    "c": "Single 24z",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "Always ask",
+     "1.5mm or less don't ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "ICAM/MICRON",
+    "v": [
+     "Continue without asking",
+     "Continue without asking",
+     "Continue without asking",
+     "Continue without asking",
+     "The bars should be designed with flange, but there should be no material around the access holes that exceeds the articulation guide.",
+     "\"All pre-approved changes are from ZERO 0... if i have already asked for changes in rx, then i need to review the case if additional changes are needed.\"",
+     "\"All pre-approved changes are from ZERO 0... if i have already asked for changes in rx, then i need to review the case if additional changes are needed.\"",
+     "VDO changes greater than 5 mm approved",
+     "VDO changes greater than 5 mm approved",
+     "",
+     "",
+     "",
+     "Continuar con levedad de movimiento, avisar si es muy exagerado con imágenes",
+     "Continuar con levedad de movimiento, avisar si es muy exagerado con imágenes",
+     "",
+     "Continue without asking",
+     "Continue without asking",
+     "Continue without asking",
+     "Always follow the Icam/Micron whenever 3 or more implants do not match the pickup.",
+     "Continue without asking",
+     "Continue without asking",
+     "Continue without asking"
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "* Reducción de tissue como primera opción para medidas 24z",
+     "* Reducción de tissue como primera opción para medidas 24z",
+     "-Barras lo mas convexas y lisas posibles, que tengan una forma redondeada en el intlaglio en la medida de lo posible",
+     "* Reducción de tissue como primera opción para medidas 24z, prefiere mover el incisal antes que la reduccion de tissue siempre que este cambio sea estetico par ael paciente- no shortbridge",
+     "The bars should be designed with flange, but there should be no material around the access holes that exceeds the articulation guide.",
+     "\"All pre-approved changes are from ZERO 0... if i have already asked for changes in rx, then i need to review the case if additional changes are needed.\"",
+     "\"All pre-approved changes are from ZERO 0... if i have already asked for changes in rx, then i need to review the case if additional changes are needed.\"",
+     "VDO changes greater than 5 mm approved",
+     "VDO changes greater than 5 mm approved",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "- Reducción de tissue como primera opción para medidas 24z\n-",
+     "- Reducción de tissue como primera opción para medidas 24z\n-",
+     "- Reducción de tissue como primera opción para medidas 24z",
+     "- Reducción de tissue como primera opción para medidas 24z",
+     "- Reducción de tissue como primera opción para medidas 24z  \n- Realizar smooth de tissue y nivelar las pequeñas protuberancias para que la barra quede sin superficies de atrapamiento de comida., la barra debe quedar lo mas lisa posible.",
+     "- Reducción de tissue como primera opción para medidas 24z\n-NG de UL siempre disenarse en el arco Upper",
+     "- Reducción de tissue como primera opción para medidas 24z\n-NG de UL siempre disenarse en el arco Upper",
+     "- Reducción de tissue como primera opción para medidas 24z\n-NG de UL siempre disenarse en el arco Upper"
+    ]
+   },
+   {
+    "c": "REMOVIBLES PREFERENCES",
+    "v": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "Espesor de la dentadura debe ser de 1.5mm en todos los casos.",
+     "",
+     "",
+     ""
+    ]
+   }
+  ]
+ },
+ "Luisa": {
+  "title": "Pre-approved changes",
+  "centers": [
+   {
+    "name": "Dublin - Daymar",
+    "span": 2
+   },
+   {
+    "name": "Wellesley - Barbara Vielma",
+    "span": 2
+   },
+   {
+    "name": "Wetsbury - Jonathan Camacho",
+    "span": 3
+   },
+   {
+    "name": "Orlando - Lyann Marquez",
+    "span": 2
+   },
+   {
+    "name": "Nashville - Angel Danoel",
+    "span": 2
+   },
+   {
+    "name": "Indianapolis  - Laura",
+    "span": 2
+   },
+   {
+    "name": "CLEVELAND - Diana Villamizar",
+    "span": 2
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr. Brandon Yeager",
+   "Dr. Paul Kessling",
+   "Dr. Dennis Pezzolesi",
+   "Dr scott stewart",
+   "Dr  Ahmed Ezzeldin",
+   "",
+   "Dr.  Daniel Gelbart",
+   "Dr Beatho",
+   "Dr Leonardo Saraiva",
+   "Dr Gregory Smith",
+   "Dr. Gregory Tao",
+   "Dr. Nicholas Keefer -",
+   "Dr Santoro",
+   "Dr. Laura",
+   "Dr. Moshe Berger"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "Up to 16mm",
+     "Up to 16mm",
+     "Always ask",
+     "Up to 16 mm",
+     "Always ask",
+     "",
+     "Up to 16 mm",
+     "Always ask",
+     "Always ask",
+     "Show Angel  Ap Spread  and Ask Dr",
+     "Show Angel  Ap Spread  and Ask Dr",
+     "16,5  mm",
+     "16,5 mm",
+     "ask if over 15mm",
+     "ask if over 15mm"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "1mm is approved without asking",
+     "1mm is approved without asking",
+     "Up to 0.5mm",
+     "Up to 0.5mm"
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "1mm wihtout ask (specially if it's to gain measurements to 24z.",
+     "1mm wihtout ask (specially if it's to gain measurements to 24z.",
+     "1 to 1.5  mm don't need to ask, especially if it's to get 24Z measurements",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "",
+     "1 mm  +/-  don't need to ask. (specially if it's to gain measurements to 24z.",
+     "1mm or less don't need to ask. (specially if it's to gain measurements to 24z.",
+     "1 mm or less don't need to ask. (specially if it's to gain measurements to 24z.",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "1mm is approved without asking",
+     "1mm is approved without asking",
+     "Up to 0.5mm",
+     "Up to 0.5mm"
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "From 1 to 1.5  mm don't need to ask.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "",
+     "From 1 to 1.5mm don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "From 1 to 1.5 mm is approved without asking",
+     "1.5 mm or less is approved without asking",
+     "Up to 1mm",
+     "Up to 1mm"
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "2mm or less don't need to ask.",
+     "2mm or less don't need to ask.",
+     "@",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "",
+     "2mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask",
+     "1mm or less don't need to ask",
+     "1mm or less approved without asking",
+     "1mm or less approved without asking",
+     "Up to 0.5mm",
+     "Up to 0.5mm"
+    ]
+   },
+   {
+    "c": "Arch Rotation",
+    "v": [
+     "2mm or less don't need to ask.",
+     "2mm or less don't need to ask.",
+     "1 to 1.5 mm don't need to ask",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "",
+     "1mm don't need to ask.",
+     "1 mm don't need to ask.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "0,5 don’t ask 1 or more ask please",
+     "From 1 to 1.5 mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "Up to 0.5mm",
+     "Up to 0.5mm"
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "2mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "2mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "1 mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask.",
+     "Always ask.",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "2mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "2mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "1 mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask. if the lab thinks its off base on pictures.",
+     "1mm or less don't need to ask. if the lab thinks its off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "1mm or less don't ask",
+     "1mm or less don't ask",
+     "Always ask",
+     "1mm or less don't ask",
+     "Always ask",
+     "",
+     "1mm or less don't ask",
+     "1 mm is approved without asking",
+     "1 mm is approved without asking",
+     "1mm or less don't need to ask",
+     "1mm or less don't need to ask",
+     "0,5 mm",
+     "0,5 mm",
+     "1.5mm or less dont ask",
+     "1.5mm or less dont ask"
+    ]
+   },
+   {
+    "c": "GCAM SINGLE",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Upload HTML to platform and wait for confirmation",
+     "",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Icam/Micron",
+    "v": [
+     "Always ask with images",
+     "Always ask with images",
+     "Continuar y solo reportar si es muy notorio el movimiento",
+     "Continuar y solo reportar si es muy notorio el movimiento",
+     "Send photos with initial alignment and omission options for the doctor to choose from.",
+     "",
+     "Send photos with initial alignment and omission options for the doctor to choose from.",
+     "Always ask.",
+     "Continue with ICAM if you have three or more loose implants and notify you only if the difference between the pickup and ICAM is very noticeable.",
+     "Continue with ICAM if you have three or more loose implants and notify you only if the difference between the pickup and ICAM is very noticeable.\n\nPara el proceso de ICAM Nashville: \nVamos a guiarnos de los valores que nos da el programa\n \n1. Si el implante tiene un valor de menos de 0,1 continuamos sin omitir \n2. Si el implante tiene un valor entre 0,1 y 0,5 continuamos omitiendo y dejando una foto de los valores en cliq \n3. Si el implante tiene un valor de 0,5 o mas ponemos el caso en hold y le avisamos al Dr \n \nPara las evidencias en plataforma siempre, en todos los casos, vamos a subir una foto de los valores iniciales que nos da el programa y si tenemos implantes omitidos tambien vamos a mostar los valores finales de la opcion que elegimos como final",
+     "Continue with ICAM if you have three or more loose implants and notify you only if the difference between the pickup and ICAM is very noticeable.\n\nPara el proceso de ICAM Nashville: \nVamos a guiarnos de los valores que nos da el programa\n \n1. Si el implante tiene un valor de menos de 0,1 continuamos sin omitir \n2. Si el implante tiene un valor entre 0,1 y 0,5 continuamos omitiendo y dejando una foto de los valores en cliq \n3. Si el implante tiene un valor de 0,5 o mas ponemos el caso en hold y le avisamos al Dr \n \nPara las evidencias en plataforma siempre, en todos los casos, vamos a subir una foto de los valores iniciales que nos da el programa y si tenemos implantes omitidos tambien vamos a mostar los valores finales de la opcion que elegimos como final",
+     "Always ask with images",
+     "Always ask with images",
+     "Continue without asking if the micron is slightly moved; warn if it is very exaggerated with images.",
+     "Continue without asking if the micron is slightly moved; warn if it is very exaggerated with images."
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "Prefers to design in zirconia. Ask if we should smooth it with 0.5mm or 1mm tissue paper so that the bar is smooth. \n\nBarras siempre adaptadas a 0,1 mm\nTenemos pre-aprobado de 1,5 mm de reduccion de tissue para garantizar las barras planas. Esto lo debemos ir informando, ya que factores como la posicion de implantes o formas ifluyen en ello.",
+     "Prefers to design in zirconia. Ask if we should smooth it with 0.5mm or 1mm tissue paper so that the bar is smooth. \n\n\nBarras siempre adaptadas a 0,1 mm\nTenemos pre-aprobado de 1,5 mm de reduccion de tissue para garantizar las barras planas. Esto lo debemos ir informando, ya que factores como la posicion de implantes o formas ifluyen en ello.",
+     "NG offset 0,01",
+     "NG offset 0,01",
+     "NG offset 0,01",
+     "",
+     "NG offset 0,01",
+     "",
+     "",
+     "DR TAO\nLos doctores solicitan en las barras upper dejar pasar la informacion del tissue aproximadamente 0,5 mm, dejando en forma de gota y muy soft la barra. Para la lower, quiere que entre implantes tenga un adapt de 0,5 mm, y en la zona de posteriores si un soporte que de con el contacto del tissue del paciente. No puede quedar con marcas, debe quedar lo mas soft posible.\n\nPara el DR SMITH\nEn la barra lower no debe quedar espacio, dejarla redonda y plana, al nivel del tissue, como si se adaptara a 0,1 mm",
+     "",
+     "He likes them to try out the changes first and then give him feedback. In other words, if a vdo is needed to solve the problem, they should wait for the new vdo, try out the measures, and then send photos. He doesn't like back-and-forth communication. \n\nNO SE HACEN DISEÑOS DE NG",
+     "He likes them to try out the changes first and then give him feedback. In other words, if a vdo is needed to solve the problem, they should wait for the new vdo, try out the measures, and then send photos. He doesn't like back-and-forth communication. \n\nNO SE HACEN DISEÑOS DE NG",
+     "",
+     ""
+    ]
+   },
+   {
+    "c": "REMOVIBLESL PREFERENCES",
+    "v": [
+     "Prefers to design in zirconia. Ask if we should smooth it with 0.5mm or 1mm tissue paper so that the bar is smooth. \n\nBarras siempre adaptadas a 0,1 mm\nTenemos pre-aprobado de 1,5 mm de reduccion de tissue para garantizar las barras planas. Esto lo debemos ir informando, ya que factores como la posicion de implantes o formas ifluyen en ello.",
+     "Prefers to design in zirconia. Ask if we should smooth it with 0.5mm or 1mm tissue paper so that the bar is smooth. \n\n\nBarras siempre adaptadas a 0,1 mm\nTenemos pre-aprobado de 1,5 mm de reduccion de tissue para garantizar las barras planas. Esto lo debemos ir informando, ya que factores como la posicion de implantes o formas ifluyen en ello.",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "Dr. Leonardo Saraiva: \nNo le gustan las removibles tan exrendidas hacia atras, le gustan asi",
+     "DR TAO:\nEl doctor pide que se suavicen los pligues y texturas que queden en la zona del paladar de la removible.",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ]
+   }
+  ]
+ },
+ "Mauricio": {
+  "title": "w",
+  "centers": [
+   {
+    "name": "BALTIMORE- OSCAR",
+    "span": 2
+   },
+   {
+    "name": "PHILADELPHIA - RUT",
+    "span": 2
+   },
+   {
+    "name": "SAN DIEGO - JORGE",
+    "span": 2
+   },
+   {
+    "name": "MINNEAPOLIS - SANTIAGO",
+    "span": 2
+   },
+   {
+    "name": "CHEVY CHASE - ANYELICA",
+    "span": 2
+   },
+   {
+    "name": "LOUISVILLE - JULIETH",
+    "span": 1
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr Andrew Pak",
+   "Dr. Rafik Boulos",
+   "Dr Nessim Temset",
+   "Dr. Joseph Costas",
+   "Dr Otabor Okundaye",
+   "Dr Ailar Bagherdaei",
+   "Dr Abhina Gautam",
+   "Dr. Vrinda Gupta",
+   "Dr Jennifer Wells",
+   "Dr kehinde osunsan",
+   "Dr Lakisha Davis - Dr. david brock"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "CALCULATE MAXIMUN WITH AP SPREAD",
+     "CALCULATE MAXIMUN WITH AP SPREAD",
+     "Ask after 16 mm with Ap Spread",
+     "Shortbridge grater than 16.5",
+     "Shortbridge grater than 16.5",
+     "Shortbridge grater than 16.5",
+     "Short bridge greater than 20mm",
+     "Short bridge greater than 20mm",
+     "Up to 16 mm",
+     "Always ask",
+     "Short bridge greater than 16.5 mm"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     ""
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1 mm or less is approved without asking",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "2mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "1 mm or less is approved without asking"
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "0.5mm is approved without asking",
+     "0.5mm is approved without asking",
+     "0.5mm or less no need to ask",
+     "0.5mm or less no need to ask",
+     "1 mm is approved without asking",
+     "0.5mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "1 mm or less is approved withut asking"
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "0.5mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "1.0 mm or less is approved without asking",
+     "1.0 mm or less is approved without asking",
+     "2 mm is approved without asking",
+     "1 mm for male patients without asking. Always ask for female patients",
+     "Always ask",
+     "Always ask",
+     "1.5 mm or less is approved with asking (to fix cantilever or vestibular implant)"
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "0.5mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "1.0 mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "1 mm is approved without asking",
+     "1mm is approved without asking",
+     "1mm or less don't need to ask",
+     "Always ask",
+     "1.5 mm or less is approved with asking"
+    ]
+   },
+   {
+    "c": "Arch Roation",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "0.75mm is approved without asking",
+     "2 mm is approved without asking",
+     "1.0 mm is approved without asking",
+     "1.5 mm is approved without asking",
+     "1 mm is approved without asking",
+     "Always ask",
+     "1 to 1.5 mm don't need to ask",
+     "Always ask",
+     "2 mm or less is approved without ask"
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Continue if midline shift 3 mm or less",
+     "Continue if midline shift 2mm or less",
+     "Continue if midline shift 2mm or less",
+     "1 mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always Ask"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "0.25 or less is approved without asking",
+     "0.25 or less is approved without asking",
+     "1 mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always Ask"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "0.5mm is approved without asking",
+     "1mm is approved without asking",
+     "1.0mm is approved without asking",
+     "1.5mm is approved without asking",
+     "1 mm is approved without asking",
+     "1mm is approved without asking",
+     "1mm or less don't ask",
+     "Always ask",
+     "Always Ask"
+    ]
+   },
+   {
+    "c": "Single 24z",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always Ask"
+    ]
+   },
+   {
+    "c": "Icam / Micron",
+    "v": [
+     "Continuar y solo reportar si es muy notorio el movimiento",
+     "Continuar y solo reportar si es muy notorio el movimiento",
+     "Continuar con levedad de movimiendo, pero avisar si es leve o  exagerado por igual",
+     "Continuar con levedad de movimiendo, pero avisar si es leve o  exagerado por igual",
+     "Continuar y solo reportar si es muy notorio el movimiento (mayor a 0,3mm)",
+     "Continuar y solo reportar si es muy notorio el movimiento (mayor a 0,3mm)",
+     "Continue without asking",
+     "Continue without asking",
+     "Hold y confirmar alineación",
+     "Continuar y solo reportar si es muy notorio el movimiento",
+     "Continuar con levedad de movimiento, avisar si es muy exagerado con imágenes"
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "Subir siempre HTML para aprobación del dr antes de continuar con el diseño, para las removable denture siempre los diseños siempre serán en G-CAM si el manager no especifica lo contrario",
+     "Subir siempre HTML para aprobación del dr antes de continuar con el diseño, para las removable denture siempre los diseños siempre serán en G-CAM si el manager no especifica lo contrario",
+     "- Reducción de tissue como primera opción para medidas 24z\n-NG altas y lo mas planas posibles\n- En cirugias siempre usar o partir de la talla del N2 asi la demo sea diferente (En el mensaje de RTD dejan la talla del N2)",
+     "- Reducción de tissue como primera opción para medidas 24z\n-NG altas y lo mas planas posibles\n- En cirugias siempre usar o partir de la talla del N2 asi la demo sea diferente (En el mensaje de RTD dejan la talla del N2)",
+     "-Continuar con implantes por vestibular en posteriores, priorizar reduccion de tissue hasta 1.0mm, evitar shortbridge",
+     "-Continuar con implantes por vestibular en posteriores, priorizar reduccion de tissue hasta 1.5mm, evitar shortbridge",
+     "\"All pre-approved changes are from ZERO 0... if i have already asked for changes in rx, then i need to review the case if additional changes are needed.\"",
+     "\"All pre-approved changes are from ZERO 0... if i have already asked for changes in rx, then i need to review the case if additional changes are needed.\"",
+     "",
+     "",
+     ""
+    ]
+   }
+  ]
+ },
+ "Paola": {
+  "title": "manager: Alejandro Piña",
+  "centers": [
+   {
+    "name": "Miami",
+    "span": 2
+   },
+   {
+    "name": "Fort Lauderdale",
+    "span": 2
+   },
+   {
+    "name": "Moorestown",
+    "span": 2
+   },
+   {
+    "name": "Harrison",
+    "span": 2
+   },
+   {
+    "name": "Denver",
+    "span": 2
+   },
+   {
+    "name": "Tampa",
+    "span": 2
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr Andrew Pak",
+   "",
+   "Dr  Sara Rosenberg",
+   "Dr Raishka Ramirez",
+   "Dra Ayala ouanounou",
+   "Dr. Divyang Patel",
+   "Dr. Vijeta Singh",
+   "Dr. Eleni Eracleaous",
+   "Dr Terry Dingbaum",
+   "",
+   "Dr. Paola Annoni patel",
+   "Dr. Mitch Persenaire"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "CALCULATE MAXIMUN WITH AP SPREAD",
+     "",
+     "Show Babian de  Ap Spread",
+     "Show Babian de  Ap Spread",
+     "Up to 15 mm",
+     "Up to 15 mm",
+     "Always ask",
+     "Always ask",
+     "hortbridge greater than 16.5mm",
+     "",
+     "Please Follow the AP Spread Formula, if it's higher than the result Ask",
+     ""
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask",
+     "",
+     "Always ask",
+     "Always ask",
+     "no info",
+     "no info",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "no info",
+     "no info"
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "Always ask.",
+     "",
+     "Upt to 1mm",
+     "Upt to 1mm",
+     "Always ask",
+     "Always ask",
+     "Up to 1mm",
+     "Up to 1mm",
+     "1 mm or less is approved without asking",
+     "",
+     "Up to 1 mm if need more Ask",
+     ""
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "Always ask",
+     "",
+     "Upt to 1mm",
+     "Upt to 1mm",
+     "Always ask",
+     "0.5 mm dont need to ask -specially if its to gain measurements to 24Z-",
+     "Up to 1mm",
+     "Up to 1mm",
+     "From  to 0.5mm is approved without asking",
+     "",
+     "Up to 1 mm if need more Ask",
+     ""
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "Always ask",
+     "",
+     "Upt to 1mm",
+     "Upt to 1mm",
+     "Up to 0.5 mm",
+     "0.5 mm don't need to ask",
+     "Up to 0.5mm",
+     "Up to 0.5mm",
+     "1.5 mm is approved without asking",
+     "",
+     "Up to 0.5 mm if need more Ask",
+     ""
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "Always ask",
+     "",
+     "Upt to 1mm",
+     "Upt to 1mm",
+     "Up to 0.5 mm",
+     "1mm or less don't need to ask",
+     "Always ask",
+     "Always ask",
+     "From  to 2mm is approved without asking",
+     "",
+     "Up to 0.5 mm if need more Ask",
+     ""
+    ]
+   },
+   {
+    "c": "Arch Roation",
+    "v": [
+     "Always ask",
+     "",
+     "Always ask",
+     "Always ask",
+     "Up to 0.5 mm",
+     "1mm don't need to ask",
+     "Up to 1mm",
+     "Up to 1mm",
+     "1.5 mm is approved without asking",
+     "",
+     "Up to 0.5 mm if need more Ask",
+     ""
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "Always ask",
+     "",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask",
+     "1mm or less don't need to ask if the lab thinks it is off base on pictures",
+     "Always ask",
+     "Always ask",
+     "Continue if midline shift 3 mm or less",
+     "",
+     "digital midline adjustment without consultation",
+     ""
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "Always ask",
+     "",
+     "Always ask.",
+     "Always ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     "Digital change of 0.25 or more",
+     "Digital change of 0.25 or more"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "Always ask",
+     "",
+     "1mm or less don't need to ask",
+     "1mm or less don't need to ask",
+     "Always ask",
+     "1mm or less don't ask",
+     "1mm up to 1.5mm is approved",
+     "1mm up to 1.5mm is approved",
+     "1mm is approved without asking",
+     "",
+     "1 mm over the entire arch + additional 0.5 mm in specific areas where measurements are not available.",
+     ""
+    ]
+   },
+   {
+    "c": "SHORTENED ARCH:",
+    "v": [
+     "Always ask.",
+     "",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask",
+     "",
+     "Always ask.",
+     ""
+    ]
+   },
+   {
+    "c": "ARCH SIZE",
+    "v": [
+     "Always ask.",
+     "",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask",
+     "",
+     "If we need to go from AW to B or BW to C Ask",
+     ""
+    ]
+   },
+   {
+    "c": "ARCH DEGREE",
+    "v": [
+     "Always ask.",
+     "",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "do not ask",
+     "",
+     "Can adjust 5 or 10",
+     ""
+    ]
+   },
+   {
+    "c": "gain measures with pre-approvals",
+    "v": [
+     "Always ask.",
+     "",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "Always ask.",
+     "",
+     "",
+     "Make sure to distribute the measurements and not to just focus in one area.",
+     ""
+    ]
+   },
+   {
+    "c": "FOTOS OCLUSION SINGLE G- CAM",
+    "v": [
+     "Upload HTML to platform and wait for confirmation",
+     "",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "Upload HTML to platform and wait for confirmation",
+     "",
+     "#VALUE!",
+     "For two doctors, send photos and upload HTML to the platform and wait for confirmation."
+    ]
+   },
+   {
+    "c": "Icam / Micron",
+    "v": [
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "",
+     "Continue with ICAM if you have three or more loose implants and notify you only if the difference between the pickup and ICAM is very noticeable.",
+     "Continue with ICAM if you have three or more loose implants and notify you only if the difference between the pickup and ICAM is very noticeable.",
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Continue and report only if the difference between micron and pickup is very noticeable.",
+     "Continue without asking.\nAlways follow the Icam/Micron whenever 3 or more implants do not match the pickup.",
+     "Continue without asking.\nAlways follow the Icam/Micron whenever 3 or more implants do not match the pickup.",
+     "Always proceed with ICAM positions. Skip as many implants as needed",
+     "",
+     "",
+     ""
+    ]
+   },
+   {
+    "c": "Singles 24z vs Pickup",
+    "v": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "Always ask",
+     "",
+     "Las removibles en posterior dejarlas planas, que no sigan tanto el modelo",
+     ""
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "",
+     "",
+     "",
+     "",
+     "Dr aprueba en las removibles suavizar las irregularidades del tissue siempre cuando sean minimas",
+     "Dr aprueba en las removibles suavizar las irregularidades del tissue siempre cuando sean minimas",
+     "",
+     "",
+     "",
+     "",
+     "*Realizar smooth de tissue y niivelar las pequeñas protuberancias para que la barra quede sin superficies de atrapamiento de comida.                 * Enviar sugerencias y anotaciones al manager siempre en Ingles                            *Las removibles en posterior dejarlas planas, que no sigan tanto el modelo",
+     "*Realizar smooth de tissue y niivelar las pequeñas protuberancias para que la barra quede sin superficies de atrapamiento de comida.                 * Enviar sugerencias y anotaciones al manager siempre en Ingles                            *Las removibles en posterior dejarlas planas, que no sigan tanto el modelo"
+    ]
+   }
+  ]
+ },
+ "Paula De la Torre": {
+  "title": "Pre-approved changes",
+  "centers": [
+   {
+    "name": "ALPHARETTA - TOMAS",
+    "span": 2
+   },
+   {
+    "name": "DUBLIN - LUZ",
+    "span": 2
+   },
+   {
+    "name": "MARIETTA - LIDI",
+    "span": 2
+   },
+   {
+    "name": "READING - SMAYKEL",
+    "span": 2
+   },
+   {
+    "name": "RICHMOND - JAVIER",
+    "span": 2
+   },
+   {
+    "name": "FORTMILL - EDWARD",
+    "span": 2
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr. Ziad Kutob",
+   "Dr Karanjit Purewal",
+   "Dr. Brandon Yeager",
+   "Dr. Paul Kessling",
+   "Dr. Lorron Tokpa",
+   "Dr. Ty James",
+   "Dr James Sorrento",
+   "Dr. Cherry Harika",
+   "Dr Mahmoud Amine",
+   "Dr Amir Bahador",
+   "Dr. Gorden Hucal",
+   "Dr. Devin Patel"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "Ask if over 18mm",
+     "Ask if over 18mm",
+     "Up to 16mm",
+     "Up to 16mm",
+     "Always ask and give AP spread",
+     "Always ask and give AP spread",
+     "Up to 16 mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask with pictures",
+     "Always ask",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask with pictures and HTML",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "Always ask",
+     "Always ask with pictures and HTML",
+     "1mm or less don't need to ask",
+     "1mm or less don't need to ask",
+     "1mm is approved without asking",
+     "1mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask."
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "1,5mm only Up",
+     "Always ask",
+     "1mm wihtout ask (specially if it's to gain measurements to 24z.",
+     "1mm wihtout ask (specially if it's to gain measurements to 24z.",
+     "1mm is approved without asking",
+     "1.5mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "From 1 to 1.5  mm don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask."
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "Up to 0,5mm",
+     "Always ask",
+     "1mm or less don't need to ask",
+     "1mm or less don't need to ask",
+     "1mm is approved without asking",
+     "1.5mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "From 1 to 1.5  mm don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask."
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "1mm is approved without asking",
+     "Always ask",
+     "2mm or less don't need to ask",
+     "2mm or less don't need to ask",
+     "1mm is approved without asking",
+     "2mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask."
+    ]
+   },
+   {
+    "c": "Arch Roation",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "2mm or less don't need to ask",
+     "2mm or less don't need to ask",
+     "1mm is approved without asking",
+     "0.5mm to 1mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "1 to 1.5 mm don't need to ask",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask."
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "2mm or less don't need to ask if the lab thinks it's off base on pictures",
+     "2mm or less don't need to ask if the lab thinks it's off base on pictures",
+     "1mm is approved without asking but let the Dr know",
+     "3.5mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "2mm or less don't need to ask if the lab thinks it's off base on pictures",
+     "2mm or less don't need to ask if the lab thinks it's off base on pictures",
+     "0.5mm is approved without asking",
+     "3mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask if the lab thinks it is off base on pictures.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "1mm on the upper arch only for 24z",
+     "1mm on the upper arch only for 24z",
+     "1mm or less don't need to ask",
+     "1mm or less don't need to ask",
+     "1mm is approved without asking",
+     "1mm is approved without asking",
+     "1mm or less don't need to ask.",
+     "1mm or less don't need to ask",
+     "Always ask",
+     "Always ask",
+     "1mm don't need to ask even if we have measurments",
+     "1mm don't need to ask even if we have measurments"
+    ]
+   },
+   {
+    "c": "Single 24z/g cam",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1mm or less don't need to ask.",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "",
+     ""
+    ]
+   },
+   {
+    "c": "ICAM/MICRON",
+    "v": [
+     "Place on HOLD and ask",
+     "Place on HOLD and ask",
+     "se debe informar y procedecer AL MENOS de que la diferencia sea algo muy grave y necesitemos su aprobación.",
+     "se debe informar y procedecer AL MENOS de que la diferencia sea algo muy grave y necesitemos su aprobación.",
+     "Always ask",
+     "Always ask",
+     "Hold y confirmar alineación",
+     "Continuar y solo reportar si es muy notorio el movimiento",
+     "Always ask",
+     "",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "Consultar siempre todos los cambios preaprobados antes de mandar HTML para revision del Dr en caso de que lo pidan.",
+     "Consultar siempre todos los cambios preaprobados antes de mandar HTML para revision del Dr en caso de que lo pidan.",
+     "Prefers to design in zirconia. Ask if we should smooth it with 0.5mm or 1mm tissue paper so that the bar is smooth. \n\nBarras siempre adaptadas a 0,1 mmTenemos pre-aprobado de 1,5 mm de reduccion de tissue para garantizar las barras planas. Esto lo debemos ir informando, ya que factores como la posicion de implantes o formas ifluyen en ello.",
+     "Prefers to design in zirconia. Ask if we should smooth it with 0.5mm or 1mm tissue paper so that the bar is smooth. \n\n\nBarras siempre adaptadas a 0,1 mmTenemos pre-aprobado de 1,5 mm de reduccion de tissue para garantizar las barras planas. Esto lo debemos ir informando, ya que factores como la posicion de implantes o formas ifluyen en ello.",
+     "",
+     "",
+     "Reducir tissue cuando esta irregular para que la barra quede lo mas convexa posible (maximo 1mm)",
+     "Reducir tissue cuando esta irregular para que la barra quede lo mas convexa posible (maximo 1mm)",
+     "Send a picture with meassurements of both arches\n\nIn cases where the midline marked on the demodenture doesn't mach the midline requested in the Rx We must follow the Rx. (The difference has to be minimal)\n\nSend pictures of the access on both arches and wait for a response.",
+     "In cases where the midline marked on the demodenture doesn't mach the midline requested in the Rx We must follow the Rx. (The difference has to be minimal)",
+     "",
+     ""
+    ]
+   }
+  ]
+ },
+ "Julio": {
+  "title": "Pre-approved changes",
+  "centers": [
+   {
+    "name": "Fresno - Joshua Pinon",
+    "span": 2
+   },
+   {
+    "name": "Oklahoma - Ricardo Jaimes",
+    "span": 2
+   },
+   {
+    "name": "Sacramento - Sebastian Mosquera",
+    "span": 2
+   },
+   {
+    "name": "Woodlands  - Hector Hamilton",
+    "span": 2
+   },
+   {
+    "name": "Providence   - Manager",
+    "span": 2
+   },
+   {
+    "name": "Hartford - Manager",
+    "span": 2
+   },
+   {
+    "name": "",
+    "span": 1
+   },
+   {
+    "name": "",
+    "span": 1
+   },
+   {
+    "name": "",
+    "span": 1
+   }
+  ],
+  "changesLabel": "Changes",
+  "doctors": [
+   "Dr. Jacobson",
+   "Dr. Aldaya",
+   "Dr. Heidari",
+   "Dr. Ramin Heidari",
+   "Dr. Go Eun Kim",
+   "Dr. Lani Lim",
+   "Dr. Justin Cortina",
+   "Dr.",
+   "Dr.",
+   "Dr.",
+   "Dr.",
+   "Dr.",
+   "Dr. Danubio Blen",
+   "Dr. Eberechukwu Njoku",
+   "Dr. Jackeline Chow"
+  ],
+  "rows": [
+   {
+    "c": "Cantilever",
+    "v": [
+     "Cantilever   15mm  (Si es mas, por ejemplo 15,5mm, pueden utilizar los pre aprobados de lip support)",
+     "Cantilever   15mm  (Si es mas, por ejemplo 15,5mm, pueden utilizar los pre aprobados de lip support)",
+     "Always ask",
+     "Shortbridge greater than 16.5",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "do not suggest shorten arch NEVER",
+     "Always ask",
+     "Short bridge greater than 20mm"
+    ]
+   },
+   {
+    "c": "Measurements",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask with HTML",
+     "Always ask with pictures",
+     "Always ask with pictures",
+     "Always ask with HTML"
+    ]
+   },
+   {
+    "c": "VDO",
+    "v": [
+     "Always ask",
+     "0,5mm - 1mm or less don't ask",
+     "Always ask",
+     "1 mm or less is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "Always ask",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Incisal Edge",
+    "v": [
+     "1 mm don't need to ask",
+     "0,5mm - 1mm or less don't ask",
+     "Always ask",
+     "Up to 1mm",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "Always ask",
+     "0,5mm"
+    ]
+   },
+   {
+    "c": "Lip Support",
+    "v": [
+     "1.5 mm or less don't need to ask",
+     "0,5mm - 1mm or less don't ask",
+     "Always ask",
+     "1.5 mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "1mm to 2mm is approved without asking",
+     "0,5mm"
+    ]
+   },
+   {
+    "c": "Oclusal Plane",
+    "v": [
+     "1 mm don't need to ask",
+     "0,5mm - 1mm or less don't ask",
+     "Always ask",
+     "1.5 mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "1mm or less don't need to ask",
+     "0,5mm"
+    ]
+   },
+   {
+    "c": "Arch Rotation",
+    "v": [
+     "1 mm don't need to ask",
+     "0,5mm - 1mm or less don't ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "1mm to 1.5 mm is approved without asking",
+     "0,5mm"
+    ]
+   },
+   {
+    "c": "Midline",
+    "v": [
+     "Always ask",
+     "2mm or less don't need to ask if the lab thinks it's off base on pictures.",
+     "Always ask",
+     "Continue if midline shift 3 mm or less",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "1mm to left or right approved based on pictures and digital design",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Cant",
+    "v": [
+     "1 mm don't need to ask",
+     "0,5mm - 1mm or less don't ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "2 mm is approved without asking",
+     "1mm or less depending on lab",
+     "Always ask"
+    ]
+   },
+   {
+    "c": "Tissue Reduction",
+    "v": [
+     "1mm",
+     "0,5mm - 1mm or less don't ask",
+     "Always ask",
+     "1mm is approved without asking",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "1mm is approved without asking",
+     "1mm to 1.5 mm is approved without asking",
+     "1,5mm"
+    ]
+   },
+   {
+    "c": "Single 24z",
+    "v": [
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Follow N2 design"
+    ]
+   },
+   {
+    "c": "Icam/Micron",
+    "v": [
+     "Preguntar si hay mas de 2 movidos y sobre todo si están del mismo lado",
+     "Preguntar si hay mas de 2 movidos y sobre todo si están del mismo lado",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Always ask",
+     "Continue without asking",
+     "Continuar con levedad de movimiento, avisar si es muy exagerado . Leer mensaje anclado en el cliq",
+     "Skip implants when ICAM values are over 0.099 \n\nContinue without asking"
+    ]
+   },
+   {
+    "c": "ADDITIONAL PREFERENCES",
+    "v": [
+     "Siempre preguntar si para obtener medidas debemos hacer 3 o mas cambios",
+     "- Para todos los cambios tambien tendriamos un pre aprobado de 1,5mm, pero solo en casos extremos, donde sea necesario. Antes de llegar a esta opcion, probrar con los anteriores mencionados. \n\n-Siempre preguntar si para obtener medidas debemos hacer 3 o mas cambios",
+     "N/A",
+     "N/A",
+     "1) Todas las barras  se deben adaptar siempre a 0.1mm, así hayan medidas para 1.\n\n2) Las removibles no van demarcadas exactamente en la parte mas profunda del tissue, sino un poco más alla, aprox entre 1 y 1.5mm.",
+     "1. Todas las barras  se deben adaptar siempre a 0.1mm, así hayan medidas para 1.",
+     "N/A",
+     "N/A",
+     "N/A",
+     "N/A",
+     "N/A",
+     "N/A",
+     "The bars should be designed with flange, but there should be no material around the access holes that exceeds the articulation guide.",
+     "Las NG son menos altas en anteriores, aprox 1 mm mas bajas que las normales",
+     "If there are no measurements to design or access holes issues, upload HTML\n\nFor lower NGs do not Add extra material facially (on the anterior teeth) even if it does not come into contact with opposing teeth"
+    ]
+   }
+  ]
+ }
+}

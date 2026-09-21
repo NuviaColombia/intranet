@@ -181,3 +181,73 @@ class DesignFaq(Base):
     orden: Mapped[int] = mapped_column(Integer, default=0)
 
     area = relationship("DesignArea")
+
+
+class DesignPreApprovedSheet(Base):
+    """Una hoja de 'cambios pre-aprobados' por doctor, dueña de un diseñador/manager."""
+    __tablename__ = "design_preapproved_sheets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
+    nombre: Mapped[str] = mapped_column(String(150), default="")
+    titulo: Mapped[str] = mapped_column(String(150), default="Pre-approved changes")
+    changes_label: Mapped[str] = mapped_column(String(100), default="Changes")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    area = relationship("DesignArea")
+    centros = relationship("DesignPreApprovedCentro", back_populates="sheet",
+                           order_by="DesignPreApprovedCentro.orden", cascade="all, delete-orphan")
+    doctores = relationship("DesignPreApprovedDoctor", back_populates="sheet",
+                            order_by="DesignPreApprovedDoctor.orden", cascade="all, delete-orphan")
+    filas = relationship("DesignPreApprovedFila", back_populates="sheet",
+                         order_by="DesignPreApprovedFila.orden", cascade="all, delete-orphan")
+
+
+class DesignPreApprovedCentro(Base):
+    """Encabezado agrupador de columnas de doctores (con colspan) sobre una hoja."""
+    __tablename__ = "design_preapproved_centros"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_sheets.id"))
+    nombre: Mapped[str] = mapped_column(String(150), default="")
+    span: Mapped[int] = mapped_column(Integer, default=1)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    sheet = relationship("DesignPreApprovedSheet", back_populates="centros")
+
+
+class DesignPreApprovedDoctor(Base):
+    __tablename__ = "design_preapproved_doctores"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_sheets.id"))
+    nombre: Mapped[str] = mapped_column(String(150), default="")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    sheet = relationship("DesignPreApprovedSheet", back_populates="doctores")
+
+
+class DesignPreApprovedFila(Base):
+    """Una fila de criterio (Cantilever, VDO, etc.) dentro de una hoja."""
+    __tablename__ = "design_preapproved_filas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_sheets.id"))
+    criterio: Mapped[str] = mapped_column(String(150), default="")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+    sheet = relationship("DesignPreApprovedSheet", back_populates="filas")
+    celdas = relationship("DesignPreApprovedCelda", back_populates="fila", cascade="all, delete-orphan")
+
+
+class DesignPreApprovedCelda(Base):
+    """Valor de una fila×doctor específico."""
+    __tablename__ = "design_preapproved_celdas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fila_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_filas.id"))
+    doctor_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_doctores.id"))
+    valor: Mapped[str] = mapped_column(Text, default="")
+
+    fila = relationship("DesignPreApprovedFila", back_populates="celdas")
+    doctor = relationship("DesignPreApprovedDoctor")

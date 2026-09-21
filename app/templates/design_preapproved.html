@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block contenido %}
+<style>
+  .pa-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .pa-tab { padding:8px 16px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:13px; }
+  .pa-tab.activo { background:#1c3a63; color:#fff; border-color:#1c3a63; }
+  .pa-panel { background:#fff; border:1px solid #d8dde3; border-radius:12px; padding:16px; overflow-x:auto; }
+  table.pa-tabla { border-collapse:collapse; font-size:12px; white-space:nowrap; }
+  table.pa-tabla th, table.pa-tabla td { border:1px solid #e2e6ea; padding:4px 6px; }
+  table.pa-tabla th { background:#f4f6f8; }
+  table.pa-tabla input, table.pa-tabla textarea { border:none; background:transparent; font-size:12px; width:100%; box-sizing:border-box; }
+  table.pa-tabla textarea { min-width:150px; min-height:32px; resize:both; white-space:pre-wrap; }
+  .pa-crit-cell { min-width:140px; font-weight:600; }
+  .pa-toolbar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+</style>
+
+<h1>Pre-Approved — Design Schedule</h1>
+<div class="pa-tabs" id="paAreaTabs"></div>
+<div class="pa-tabs" id="paSheetTabs"></div>
+<div class="pa-toolbar">
+  <button type="button" class="btn" onclick="paNuevaHoja()">+ Nueva hoja</button>
+  <button type="button" class="btn rojo" id="paBorrarHojaBtn" onclick="paBorrarHoja()" style="display:none">Eliminar hoja actual</button>
+</div>
+
+<div id="paSheetMeta" class="pa-panel" style="margin-bottom:14px; display:none">
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
+    <div><label style="font-size:11px;color:#6b7280;display:block">Nombre de la hoja</label><input id="paMetaNombre" style="padding:6px 8px;border:1px solid #d8dde3;border-radius:6px"></div>
+    <div><label style="font-size:11px;color:#6b7280;display:block">Título</label><input id="paMetaTitulo" style="padding:6px 8px;border:1px solid #d8dde3;border-radius:6px"></div>
+    <div><label style="font-size:11px;color:#6b7280;display:block">Etiqueta de cambios</label><input id="paMetaChanges" style="padding:6px 8px;border:1px solid #d8dde3;border-radius:6px"></div>
+    <div style="align-self:end"><button type="button" class="btn mini" onclick="paGuardarMeta()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="pa-panel" id="paGridPanel" style="display:none">
+  <div class="pa-toolbar">
+    <button type="button" class="btn mini" onclick="paAgregarCentro()">+ Centro</button>
+    <button type="button" class="btn mini" onclick="paAgregarDoctor()">+ Doctor</button>
+    <button type="button" class="btn mini" onclick="paAgregarFila()">+ Criterio</button>
+  </div>
+  <table class="pa-tabla" id="paTabla"></table>
+</div>
+
+<script>
+(function() {
+  function api(url) { return fetch(url).then(function(r) { return r.json(); }); }
+  function postJSON(url, body) {
+    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})})
+      .then(function(r) { return r.json(); });
+  }
+  function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  var PA = { areaId: null, sheetId: null, areas: [], sheets: [], detalle: null };
+
+  function cargarAreas() {
+    api('/design/api/areas').then(function(areas) {
+      PA.areas = areas;
+      var cont = document.getElementById('paAreaTabs'); cont.innerHTML = '';
+      areas.forEach(function(a) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'pa-tab' + (a.id === PA.areaId ? ' activo' : '');
+        btn.innerText = a.nombre;
+        btn.onclick = function() { seleccionarArea(a.id); };
+        cont.appendChild(btn);
+      });
+      if (areas.length) seleccionarArea(areas[0].id);
+    });
+  }
+
+  function seleccionarArea(areaId) {
+    PA.areaId = areaId;
+    document.querySelectorAll('#paAreaTabs .pa-tab').forEach(function(b, i) { b.classList.toggle('activo', PA.areas[i].id === areaId); });
+    cargarHojas();
+  }
+
+  function cargarHojas() {
+    api('/design/api/preapproved/sheets?area_id=' + PA.areaId).then(function(sheets) {
+      PA.sheets = sheets;
+      var cont = document.getElementById('paSheetTabs'); cont.innerHTML = '';
+      sheets.forEach(function(s) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'pa-tab' + (s.id === PA.sheetId ? ' activo' : '');
+        btn.innerText = s.nombre;
+        btn.onclick = function() { seleccionarHoja(s.id); };
+        cont.appendChild(btn);
+      });
+      if (sheets.length) seleccionarHoja(sheets[0].id);
+      else {
+        PA.sheetId = null;
+        document.getElementById('paSheetMeta').style.display = 'none';
+        document.getElementById('paGridPanel').style.display = 'none';
+        document.getElementById('paBorrarHojaBtn').style.display = 'none';
+      }
+    });
+  }
+
+  window.paNuevaHoja = function() {
+    if (!PA.areaId) return;
+    var nombre = prompt('Nombre de la nueva hoja (ej. nombre del diseñador/manager):');
+    if (nombre === null) return;
+    postJSON('/design/api/preapproved/sheets?area_id=' + PA.areaId + '&nombre=' + encodeURIComponent(nombre))
+      .then(function(r) { PA.sheetId = r.id; cargarHojas(); });
+  };
+  window.paBorrarHoja = function() {
+    if (!PA.sheetId || !confirm('¿Eliminar esta hoja completa? Esta acción no se puede deshacer.')) return;
+    postJSON('/design/api/preapproved/sheets/' + PA.sheetId + '/eliminar').then(function() { PA.sheetId = null; cargarHojas(); });
+  };
+
+  function seleccionarHoja(sheetId) {
+    PA.sheetId = sheetId;
+    document.querySelectorAll('#paSheetTabs .pa-tab').forEach(function(b, i) { b.classList.toggle('activo', PA.sheets[i].id === sheetId); });
+    document.getElementById('paSheetMeta').style.display = '';
+    document.getElementById('paGridPanel').style.display = '';
+    document.getElementById('paBorrarHojaBtn').style.display = '';
+    cargarDetalle();
+  }
+
+  function cargarDetalle() {
+    api('/design/api/preapproved/sheets/' + PA.sheetId).then(function(d) {
+      PA.detalle = d;
+      document.getElementById('paMetaNombre').value = d.nombre;
+      document.getElementById('paMetaTitulo').value = d.titulo;
+      document.getElementById('paMetaChanges').value = d.changesLabel;
+      renderTabla(d);
+    });
+  }
+
+  window.paGuardarMeta = function() {
+    postJSON('/design/api/preapproved/sheets/' + PA.sheetId, {
+      nombre: document.getElementById('paMetaNombre').value,
+      titulo: document.getElementById('paMetaTitulo').value,
+      changesLabel: document.getElementById('paMetaChanges').value,
+    }).then(cargarHojas);
+  };
+
+  function renderTabla(d) {
+    var tabla = document.getElementById('paTabla');
+    var html = '<thead><tr><th rowspan="2" style="min-width:160px">' + esc(d.titulo || 'Criterio') + '</th>';
+    // Fila 1: centros (agrupan doctores por span, en orden)
+    var idx = 0;
+    d.centros.forEach(function(c) {
+      html += '<th colspan="' + Math.max(1, c.span) + '">' +
+        '<input value="' + esc(c.nombre) + '" data-centro="' + c.id + '" data-campo="nombre" style="font-weight:700;text-align:center"> ' +
+        '<input type="number" min="1" value="' + c.span + '" data-centro="' + c.id + '" data-campo="span" style="width:36px;text-align:center"> ' +
+        '<button type="button" class="ds-btn-x" onclick="paEliminarCentro(' + c.id + ')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:1px 5px;cursor:pointer;">✕</button></th>';
+      idx += Math.max(1, c.span);
+    });
+    var restantes = d.doctores.length - idx;
+    if (restantes > 0) html += '<th colspan="' + restantes + '"></th>';
+    html += '<th rowspan="2">#</th></tr><tr>';
+    d.doctores.forEach(function(doc) {
+      html += '<th><input value="' + esc(doc.nombre) + '" data-doctor="' + doc.id + '" style="font-weight:600;text-align:center;min-width:110px"> ' +
+        '<button type="button" onclick="paEliminarDoctor(' + doc.id + ')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:1px 5px;cursor:pointer;">✕</button></th>';
+    });
+    html += '</tr></thead><tbody>';
+    d.filas.forEach(function(fila) {
+      html += '<tr><td class="pa-crit-cell"><input value="' + esc(fila.criterio) + '" data-fila="' + fila.id + '"> ' +
+        '<button type="button" onclick="paEliminarFila(' + fila.id + ')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:1px 5px;cursor:pointer;">✕</button></td>';
+      d.doctores.forEach(function(doc) {
+        var val = fila.valores[String(doc.id)] || '';
+        html += '<td><textarea data-celda-fila="' + fila.id + '" data-celda-doctor="' + doc.id + '">' + esc(val) + '</textarea></td>';
+      });
+      html += '<td></td></tr>';
+    });
+    html += '</tbody>';
+    tabla.innerHTML = html;
+
+    tabla.querySelectorAll('[data-centro]').forEach(function(inp) {
+      inp.addEventListener('blur', function() {
+        var id = this.dataset.centro;
+        var fila = tabla.querySelector('input[data-centro="' + id + '"][data-campo="nombre"]');
+        var span = tabla.querySelector('input[data-centro="' + id + '"][data-campo="span"]');
+        postJSON('/design/api/preapproved/centros/' + id, {nombre: fila.value, span: parseInt(span.value) || 1}).then(cargarDetalle);
+      });
+    });
+    tabla.querySelectorAll('[data-doctor]').forEach(function(inp) {
+      inp.addEventListener('blur', function() {
+        postJSON('/design/api/preapproved/doctores/' + this.dataset.doctor, {nombre: this.value});
+      });
+    });
+    tabla.querySelectorAll('[data-fila]').forEach(function(inp) {
+      inp.addEventListener('blur', function() {
+        postJSON('/design/api/preapproved/filas/' + this.dataset.fila, {nombre: this.value});
+      });
+    });
+    tabla.querySelectorAll('[data-celda-fila]').forEach(function(ta) {
+      ta.addEventListener('blur', function() {
+        postJSON('/design/api/preapproved/celdas', {filaId: parseInt(this.dataset.celdaFila), doctorId: parseInt(this.dataset.celdaDoctor), valor: this.value});
+      });
+    });
+  }
+
+  window.paAgregarCentro = function() { postJSON('/design/api/preapproved/sheets/' + PA.sheetId + '/centros').then(cargarDetalle); };
+  window.paAgregarDoctor = function() { postJSON('/design/api/preapproved/sheets/' + PA.sheetId + '/doctores').then(cargarDetalle); };
+  window.paAgregarFila = function() { postJSON('/design/api/preapproved/sheets/' + PA.sheetId + '/filas').then(cargarDetalle); };
+  window.paEliminarCentro = function(id) { if (confirm('¿Eliminar este centro?')) postJSON('/design/api/preapproved/centros/' + id + '/eliminar').then(cargarDetalle); };
+  window.paEliminarDoctor = function(id) { if (confirm('¿Eliminar este doctor y sus valores?')) postJSON('/design/api/preapproved/doctores/' + id + '/eliminar').then(cargarDetalle); };
+  window.paEliminarFila = function(id) { if (confirm('¿Eliminar este criterio?')) postJSON('/design/api/preapproved/filas/' + id + '/eliminar').then(cargarDetalle); };
+
+  cargarAreas();
+})();
+</script>
+{% endblock %}

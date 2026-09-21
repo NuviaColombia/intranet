@@ -6,7 +6,8 @@ from sqlalchemy import func
 from .models import Empleado
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
-                            DesignFaq, FORMATO_DUAL)
+                            DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
+                            DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -294,3 +295,146 @@ def eliminar_faq(db: Session, faq_id: int) -> bool:
     db.delete(f)
     db.commit()
     return True
+
+
+# ---------- Pre-Approved ----------
+
+def preapproved_sheets(db: Session, area_id: int) -> list[DesignPreApprovedSheet]:
+    return (db.query(DesignPreApprovedSheet).filter(DesignPreApprovedSheet.area_id == area_id)
+            .order_by(DesignPreApprovedSheet.orden).all())
+
+
+def preapproved_detalle(db: Session, sheet_id: int) -> dict | None:
+    s = db.get(DesignPreApprovedSheet, sheet_id)
+    if not s:
+        return None
+    doctores = s.doctores
+    celdas_por_fila = {}
+    for fila in s.filas:
+        celdas_por_fila[fila.id] = {c.doctor_id: c.valor for c in fila.celdas}
+    return {
+        "id": s.id, "nombre": s.nombre, "titulo": s.titulo, "changesLabel": s.changes_label,
+        "centros": [{"id": c.id, "nombre": c.nombre, "span": c.span} for c in s.centros],
+        "doctores": [{"id": d.id, "nombre": d.nombre} for d in doctores],
+        "filas": [{"id": f.id, "criterio": f.criterio,
+                  "valores": {str(did): celdas_por_fila.get(f.id, {}).get(did, "") for did in [d.id for d in doctores]}}
+                 for f in s.filas],
+    }
+
+
+def crear_preapproved_sheet(db: Session, area_id: int, nombre: str) -> DesignPreApprovedSheet:
+    orden = db.query(DesignPreApprovedSheet).filter(DesignPreApprovedSheet.area_id == area_id).count() + 1
+    s = DesignPreApprovedSheet(area_id=area_id, nombre=nombre.strip() or f"Hoja {orden}", orden=orden)
+    db.add(s)
+    db.commit()
+    db.refresh(s)
+    return s
+
+
+def actualizar_preapproved_sheet(db: Session, sheet_id: int, datos: dict) -> DesignPreApprovedSheet | None:
+    s = db.get(DesignPreApprovedSheet, sheet_id)
+    if not s:
+        return None
+    for campo in ("nombre", "titulo", "changes_label"):
+        if campo in datos:
+            setattr(s, campo, datos[campo])
+    db.commit()
+    db.refresh(s)
+    return s
+
+
+def eliminar_preapproved_sheet(db: Session, sheet_id: int) -> bool:
+    s = db.get(DesignPreApprovedSheet, sheet_id)
+    if not s:
+        return False
+    db.delete(s)
+    db.commit()
+    return True
+
+
+def preapproved_agregar_centro(db: Session, sheet_id: int, nombre: str = "", span: int = 1) -> DesignPreApprovedCentro:
+    orden = db.query(DesignPreApprovedCentro).filter(DesignPreApprovedCentro.sheet_id == sheet_id).count() + 1
+    c = DesignPreApprovedCentro(sheet_id=sheet_id, nombre=nombre, span=span, orden=orden)
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return c
+
+
+def preapproved_actualizar_centro(db: Session, centro_id: int, nombre: str, span: int) -> None:
+    c = db.get(DesignPreApprovedCentro, centro_id)
+    if c:
+        c.nombre = nombre
+        c.span = max(1, span)
+        db.commit()
+
+
+def preapproved_eliminar_centro(db: Session, centro_id: int) -> bool:
+    c = db.get(DesignPreApprovedCentro, centro_id)
+    if not c:
+        return False
+    db.delete(c)
+    db.commit()
+    return True
+
+
+def preapproved_agregar_doctor(db: Session, sheet_id: int, nombre: str = "") -> DesignPreApprovedDoctor:
+    orden = db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id == sheet_id).count() + 1
+    d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=nombre, orden=orden)
+    db.add(d)
+    db.commit()
+    db.refresh(d)
+    return d
+
+
+def preapproved_renombrar_doctor(db: Session, doctor_id: int, nombre: str) -> None:
+    d = db.get(DesignPreApprovedDoctor, doctor_id)
+    if d:
+        d.nombre = nombre
+        db.commit()
+
+
+def preapproved_eliminar_doctor(db: Session, doctor_id: int) -> bool:
+    d = db.get(DesignPreApprovedDoctor, doctor_id)
+    if not d:
+        return False
+    db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == doctor_id).delete()
+    db.delete(d)
+    db.commit()
+    return True
+
+
+def preapproved_agregar_fila(db: Session, sheet_id: int, criterio: str = "") -> DesignPreApprovedFila:
+    orden = db.query(DesignPreApprovedFila).filter(DesignPreApprovedFila.sheet_id == sheet_id).count() + 1
+    f = DesignPreApprovedFila(sheet_id=sheet_id, criterio=criterio, orden=orden)
+    db.add(f)
+    db.commit()
+    db.refresh(f)
+    return f
+
+
+def preapproved_renombrar_fila(db: Session, fila_id: int, criterio: str) -> None:
+    f = db.get(DesignPreApprovedFila, fila_id)
+    if f:
+        f.criterio = criterio
+        db.commit()
+
+
+def preapproved_eliminar_fila(db: Session, fila_id: int) -> bool:
+    f = db.get(DesignPreApprovedFila, fila_id)
+    if not f:
+        return False
+    db.delete(f)
+    db.commit()
+    return True
+
+
+def preapproved_guardar_celda(db: Session, fila_id: int, doctor_id: int, valor: str) -> None:
+    c = (db.query(DesignPreApprovedCelda)
+        .filter(DesignPreApprovedCelda.fila_id == fila_id, DesignPreApprovedCelda.doctor_id == doctor_id).first())
+    if not c:
+        c = DesignPreApprovedCelda(fila_id=fila_id, doctor_id=doctor_id, valor=valor)
+        db.add(c)
+    else:
+        c.valor = valor
+    db.commit()

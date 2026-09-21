@@ -1,3 +1,4 @@
+import json
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,8 +9,9 @@ from . import config
 from .database import engine, SessionLocal
 from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
 from .models_custodia import CustodiaArea, CustodiaMotivo
-from .models_design import DesignArea, DesignCatalogo, DesignAusenciaTipo, FORMATO_DUAL, FORMATO_SINGLE, \
-    FORMATO_N2, FORMATO_SUPPORT
+from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, DesignPreApprovedSheet,
+                            DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
+                            DesignPreApprovedCelda, FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule)
 
@@ -205,6 +207,35 @@ def init_db():
             if not db.query(DesignAusenciaTipo).filter(DesignAusenciaTipo.nombre == nombre).first():
                 orden = db.query(DesignAusenciaTipo).count() + 1
                 db.add(DesignAusenciaTipo(nombre=nombre, orden=orden))
+        # Pre-Approved N3: datos reales (9 diseñadores/managers) extraídos del HTML original.
+        seed_pa_path = Path(__file__).resolve().parent / "seed_data" / "design_preapproved_n3.json"
+        area_n3 = db.query(DesignArea).filter(DesignArea.nombre == "N3 Prosthetic").first()
+        if area_n3 and seed_pa_path.exists() and db.query(DesignPreApprovedSheet).filter(
+                DesignPreApprovedSheet.area_id == area_n3.id).count() == 0:
+            with open(seed_pa_path, encoding="utf-8") as f:
+                pa_data = json.load(f)
+            for i, (nombre_designer, sheet_data) in enumerate(pa_data.items(), start=1):
+                sheet = DesignPreApprovedSheet(area_id=area_n3.id, nombre=nombre_designer,
+                                               titulo=sheet_data.get("title", "Pre-approved changes"),
+                                               changes_label=sheet_data.get("changesLabel", "Changes"), orden=i)
+                db.add(sheet)
+                db.flush()
+                for j, centro in enumerate(sheet_data.get("centers", []), start=1):
+                    db.add(DesignPreApprovedCentro(sheet_id=sheet.id, nombre=centro.get("name", ""),
+                                                   span=centro.get("span") or 1, orden=j))
+                doctor_ids = []
+                for j, doc_nombre in enumerate(sheet_data.get("doctors", []), start=1):
+                    d = DesignPreApprovedDoctor(sheet_id=sheet.id, nombre=doc_nombre, orden=j)
+                    db.add(d)
+                    db.flush()
+                    doctor_ids.append(d.id)
+                for j, fila_data in enumerate(sheet_data.get("rows", []), start=1):
+                    fila = DesignPreApprovedFila(sheet_id=sheet.id, criterio=fila_data.get("c", ""), orden=j)
+                    db.add(fila)
+                    db.flush()
+                    for k, valor in enumerate(fila_data.get("v", [])):
+                        if k < len(doctor_ids) and valor:
+                            db.add(DesignPreApprovedCelda(fila_id=fila.id, doctor_id=doctor_ids[k], valor=valor))
         # Garantizar que los correos de ADMIN_EMAILS existan y tengan rol admin
         for email in config.ADMIN_EMAILS:
             emp = db.query(Empleado).filter(Empleado.email == email).first()
