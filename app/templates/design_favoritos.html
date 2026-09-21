@@ -11,7 +11,7 @@
 </style>
 
 <h1>⭐ Favoritos — Design Schedule</h1>
-<p style="color:#6b7280;font-size:13px;margin-top:-8px">Accesos rápidos a equipos y hojas de Pre-Approved. Marca la estrella junto a un equipo o una hoja para que aparezca aquí.</p>
+<p style="color:#6b7280;font-size:13px;margin-top:-8px">Accesos rápidos a equipos, hojas de Pre-Approved y protocolos. Marca la estrella junto a un ítem para que aparezca aquí.</p>
 <div class="fv-list" id="fvList"></div>
 
 <script>
@@ -28,24 +28,31 @@
       list.innerHTML = '<div class="fv-empty">Aún no tienes favoritos.<br>Marca un equipo con la estrella en Horario, o una hoja en Pre-Approved.</div>';
       return;
     }
+    function hrefDe(f) {
+      if (f.tipo === 'team') return '/design?area_id=' + f.areaId + '&team_id=' + f.teamId;
+      if (f.tipo === 'preapproved') return '/design/preapproved?area_id=' + f.areaId + '&sheet_id=' + f.sheetId;
+      return '/design/protocols';
+    }
+    function toggleUrlDe(f) {
+      if (f.tipo === 'team') return '/design/api/favoritos/team/' + f.teamId + '/toggle';
+      if (f.tipo === 'preapproved') return '/design/api/favoritos/preapproved/' + f.sheetId + '/toggle';
+      return '/design/api/favoritos/protocolo/' + f.protocoloId + '/toggle';
+    }
+
     list.innerHTML = favs.map(function(f) {
-      var href = f.tipo === 'team' ? ('/design?area_id=' + f.areaId + '&team_id=' + f.teamId)
-                                    : ('/design/preapproved?area_id=' + f.areaId + '&sheet_id=' + f.sheetId);
       return '<div class="fv-item">' +
         '<div class="fv-label">⭐ ' + esc(f.etiqueta) + '</div>' +
         '<div style="display:flex;gap:10px;align-items:center">' +
-          '<a class="fv-link" href="' + href + '">Ir →</a>' +
-          '<button type="button" class="fv-quitar" data-id="' + f.id + '" data-tipo="' + f.tipo + '">Quitar</button>' +
+          '<a class="fv-link" href="' + hrefDe(f) + '">Ir →</a>' +
+          '<button type="button" class="fv-quitar" data-id="' + f.id + '">Quitar</button>' +
         '</div>' +
       '</div>';
     }).join('');
 
-    list.querySelectorAll('[data-quitar], .fv-quitar').forEach(function(btn) {
+    list.querySelectorAll('.fv-quitar').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        var url = this.dataset.tipo === 'team'
-          ? '/design/api/favoritos/team/' + favs.find(function(f){ return f.id == btn.dataset.id; }).teamId + '/toggle'
-          : '/design/api/favoritos/preapproved/' + favs.find(function(f){ return f.id == btn.dataset.id; }).sheetId + '/toggle';
-        fetch(url, {method:'POST'}).then(cargar);
+        var f = favs.find(function(x) { return x.id == btn.dataset.id; });
+        fetch(toggleUrlDe(f), {method:'POST'}).then(cargar);
       });
     });
   }

@@ -161,6 +161,10 @@ def init_db():
                 "UPDATE custodia_areas SET alerta_horas_advertencia = 24 WHERE alerta_horas_advertencia IS NULL"))
             conn.execute(text(
                 "UPDATE custodia_areas SET alerta_horas_critica = 48 WHERE alerta_horas_critica IS NULL"))
+    columnas_design_favoritos = {c["name"] for c in inspect(engine).get_columns("design_favoritos")}
+    if "protocolo_id" not in columnas_design_favoritos:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_favoritos ADD COLUMN protocolo_id INTEGER REFERENCES design_protocolos(id)"))
     # Corrección de negocio: EMPAQUE sí cuenta como ubicación de inventario -- toda orden que
     # llega ahí se considera completada, y debe seguir apareciendo en Ubicación actual/Historial.
     with engine.begin() as conn:

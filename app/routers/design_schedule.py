@@ -652,7 +652,8 @@ async def api_favoritos(user: Empleado = Depends(require_modulo("design_schedule
 async def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     activos = sd.favoritos_activos(db, user.id)
-    return {"teams": list(activos["teams"]), "preapproved": list(activos["preapproved"])}
+    return {"teams": list(activos["teams"]), "preapproved": list(activos["preapproved"]),
+           "protocolos": list(activos["protocolos"])}
 
 
 @router.post("/design/api/favoritos/team/{team_id}/toggle")
@@ -665,3 +666,63 @@ async def api_favorito_toggle_team(team_id: int, user: Empleado = Depends(requir
 async def api_favorito_toggle_preapproved(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                           db: Session = Depends(get_db)):
     return {"favorito": sd.favorito_toggle_preapproved(db, user.id, sheet_id)}
+
+
+@router.post("/design/api/favoritos/protocolo/{protocolo_id}/toggle")
+async def api_favorito_toggle_protocolo(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                        db: Session = Depends(get_db)):
+    return {"favorito": sd.favorito_toggle_protocolo(db, user.id, protocolo_id)}
+
+
+# ---------- Protocols ----------
+
+@router.get("/design/protocols")
+async def pagina_protocols(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    areas = sd.areas_disponibles(db)
+    return templates.TemplateResponse(request, "design_protocols.html",
+                                      {"user": user, "areas": areas, "es_design": True})
+
+
+@router.get("/design/api/protocolos")
+async def api_protocolos_listar(area_id: int = 0, q: str = "",
+                                user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    protocolos = sd.protocolos_listar(db, area_id or None, q)
+    return [{"id": p.id, "areaId": p.area_id, "areaNombre": p.area.nombre if p.area else "",
+            "titulo": p.titulo, "descripcion": p.descripcion, "version": p.version,
+            "creadoPor": p.creado_por} for p in protocolos]
+
+
+@router.get("/design/api/protocolos/{protocolo_id}")
+async def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    p = sd.protocolo_detalle(db, protocolo_id)
+    if not p:
+        raise HTTPException(404, "No encontrado.")
+    return {"id": p.id, "areaId": p.area_id, "areaNombre": p.area.nombre if p.area else "",
+           "titulo": p.titulo, "descripcion": p.descripcion, "contenido": p.contenido,
+           "version": p.version, "creadoPor": p.creado_por}
+
+
+class ProtocoloIn(BaseModel):
+    areaId: int | None = None
+    titulo: str
+    descripcion: str = ""
+    contenido: str = ""
+    version: str = "v1.0"
+
+
+@router.post("/design/api/protocolos")
+async def api_protocolo_crear(payload: ProtocoloIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                              db: Session = Depends(get_db)):
+    p = sd.protocolo_crear(db, payload.areaId, payload.titulo, payload.descripcion, payload.contenido,
+                           payload.version, user.nombre_completo)
+    return {"id": p.id}
+
+
+@router.post("/design/api/protocolos/{protocolo_id}/eliminar")
+async def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                 db: Session = Depends(get_db)):
+    if not sd.protocolo_eliminar(db, protocolo_id, user.nombre_completo):
+        raise HTTPException(404, "No encontrado.")
+    return {"mensaje": "Eliminado."}

@@ -282,10 +282,33 @@ class DesignFavorito(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
-    tipo: Mapped[str] = mapped_column(String(20))  # "team" | "preapproved"
+    tipo: Mapped[str] = mapped_column(String(20))  # "team" | "preapproved" | "protocolo"
     team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id"), nullable=True)
     preapproved_sheet_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_sheets.id"), nullable=True)
+    protocolo_id: Mapped[int] = mapped_column(ForeignKey("design_protocolos.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Protocols: biblioteca de SOPs en tarjetas, buscable por texto/área. Se
+# cargan a mano o extrayendo el texto de un PDF (pdf.js, en el navegador —
+# el archivo no se sube al servidor, igual que en la herramienta original).
+# ---------------------------------------------------------------------------
+
+class DesignProtocolo(Base):
+    __tablename__ = "design_protocolos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"), nullable=True)
+    titulo: Mapped[str] = mapped_column(String(255))
+    descripcion: Mapped[str] = mapped_column(String(500), default="")
+    contenido: Mapped[str] = mapped_column(Text, default="")
+    version: Mapped[str] = mapped_column(String(20), default="v1.0")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    area = relationship("DesignArea")
 
 
 # ---------------------------------------------------------------------------

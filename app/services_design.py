@@ -10,7 +10,7 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
                             DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
-                            DesignTrash, DesignFavorito, FORMATO_DUAL)
+                            DesignTrash, DesignFavorito, DesignProtocolo, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -657,11 +657,25 @@ def _trash_restaurar_pa_fila(db: Session, payload: dict) -> bool:
     return True
 
 
+def _trash_restaurar_protocolo(db: Session, payload: dict) -> bool:
+    p = payload.get("protocolo") or {}
+    if not p:
+        return False
+    area_id = p.get("area_id")
+    if area_id and not db.get(DesignArea, area_id):
+        area_id = None
+    db.add(DesignProtocolo(area_id=area_id, titulo=p.get("titulo", ""), descripcion=p.get("descripcion", ""),
+                           contenido=p.get("contenido", ""), version=p.get("version") or "v1.0",
+                           creado_por=p.get("creado_por", "")))
+    return True
+
+
 _TRASH_RESTAURADORES = {
     "pa-sheet": _trash_restaurar_pa_sheet,
     "pa-centro": _trash_restaurar_pa_centro,
     "pa-doctor": _trash_restaurar_pa_doctor,
     "pa-fila": _trash_restaurar_pa_fila,
+    "protocol": _trash_restaurar_protocolo,
 }
 
 
@@ -710,6 +724,13 @@ def favoritos_de(db: Session, empleado_id: int) -> list[dict]:
                 continue
             out.append({"id": f.id, "tipo": "preapproved", "etiqueta": "Pre-Approved — " + s.nombre,
                        "areaId": s.area_id, "sheetId": s.id})
+        elif f.tipo == "protocolo":
+            p = db.get(DesignProtocolo, f.protocolo_id)
+            if not p:
+                huerfanos.append(f.id)
+                continue
+            out.append({"id": f.id, "tipo": "protocolo", "etiqueta": "Protocolo — " + p.titulo,
+                       "protocoloId": p.id})
     if huerfanos:
         db.query(DesignFavorito).filter(DesignFavorito.id.in_(huerfanos)).delete(synchronize_session=False)
         db.commit()
@@ -742,9 +763,66 @@ def favorito_toggle_preapproved(db: Session, empleado_id: int, sheet_id: int) ->
     return True
 
 
+def favorito_toggle_protocolo(db: Session, empleado_id: int, protocolo_id: int) -> bool:
+    existente = (db.query(DesignFavorito)
+        .filter(DesignFavorito.empleado_id == empleado_id, DesignFavorito.tipo == "protocolo",
+                DesignFavorito.protocolo_id == protocolo_id).first())
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return False
+    db.add(DesignFavorito(empleado_id=empleado_id, tipo="protocolo", protocolo_id=protocolo_id))
+    db.commit()
+    return True
+
+
 def favoritos_activos(db: Session, empleado_id: int) -> dict:
     favs = db.query(DesignFavorito).filter(DesignFavorito.empleado_id == empleado_id).all()
     return {
         "teams": {f.team_id for f in favs if f.tipo == "team"},
         "preapproved": {f.preapproved_sheet_id for f in favs if f.tipo == "preapproved"},
+        "protocolos": {f.protocolo_id for f in favs if f.tipo == "protocolo"},
     }
+
+
+# ---------------------------------------------------------------------------
+# Protocols: biblioteca de SOPs
+# ---------------------------------------------------------------------------
+
+def protocolos_listar(db: Session, area_id: int | None = None, q: str = "") -> list[DesignProtocolo]:
+    query = db.query(DesignProtocolo)
+    if area_id:
+        query = query.filter(DesignProtocolo.area_id == area_id)
+    if q:
+        like = f"%{q.lower()}%"
+        query = query.filter(func.lower(DesignProtocolo.titulo + " " + DesignProtocolo.descripcion + " " +
+                                        DesignProtocolo.contenido).like(like))
+    return query.order_by(DesignProtocolo.creado_en.desc()).all()
+
+
+def protocolo_detalle(db: Session, protocolo_id: int) -> DesignProtocolo | None:
+    return db.get(DesignProtocolo, protocolo_id)
+
+
+def protocolo_crear(db: Session, area_id: int | None, titulo: str, descripcion: str, contenido: str,
+                    version: str = "v1.0", creado_por: str = "") -> DesignProtocolo:
+    p = DesignProtocolo(area_id=area_id, titulo=titulo.strip() or "Protocolo sin título",
+                        descripcion=descripcion, contenido=contenido, version=version or "v1.0",
+                        creado_por=creado_por)
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+def protocolo_eliminar(db: Session, protocolo_id: int, eliminado_por: str = "") -> bool:
+    p = db.get(DesignProtocolo, protocolo_id)
+    if not p:
+        return False
+    payload = {"protocolo": {"area_id": p.area_id, "titulo": p.titulo, "descripcion": p.descripcion,
+                             "contenido": p.contenido, "version": p.version, "creado_por": p.creado_por}}
+    _trash_registrar(db, "protocol", f'Protocolo: "{p.titulo}"', payload, eliminado_por)
+    db.query(DesignFavorito).filter(DesignFavorito.tipo == "protocolo", DesignFavorito.protocolo_id == protocolo_id).delete()
+    db.delete(p)
+    db.commit()
+    return True
