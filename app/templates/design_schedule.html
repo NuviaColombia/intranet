@@ -621,6 +621,8 @@
 <div class="tr-list" id="trList"></div></div></div>
 {% endif %}
 
+<script>window.DS_PANELS = {};</script>
+
 <script>
 
 (function() {
@@ -3097,7 +3099,7 @@ window.DS_PANELS.dashboard = ddCargar;
 (function() {
   var MODULOS = {"pa-sheet":"Pre-Approved · hoja", "pa-centro":"Pre-Approved · centro",
                 "pa-doctor":"Pre-Approved · doctor", "pa-fila":"Pre-Approved · criterio",
-                "protocol":"Protocolo", "cv-doc":"Canvas · hoja"};
+                "protocol":"Protocolo", "cv-doc":"Canvas · hoja", "cmt-template":"Comments · plantilla"};
 
   function postJSON(url) {
     return fetch(url, {method:'POST'}).then(function(r) {
