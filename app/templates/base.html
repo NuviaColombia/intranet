@@ -17,10 +17,10 @@
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
-  {% if user.rol in ('aprobador', 'admin') %}
+  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
     <a href="/horas-extra">Horas extra</a>
   {% endif %}
-  {% if user.rol == 'admin' %}
+  {% if user.rol in ('admin', 'superadmin') %}
     <a href="/empleados">Empleados</a>
     <a href="/tipos">Parámetros</a>
     <a href="/reportes">Reportes</a>
@@ -33,7 +33,7 @@
   <a href="/custodia" class="custodia-tab" data-tab="aprobaciones">Aprobaciones</a>
   <a href="/custodia" class="custodia-tab" data-tab="consulta">Historial</a>
   <a href="/custodia" class="custodia-tab" data-tab="activas">Estado órdenes</a>
-  {% if user.rol == 'admin' %}
+  {% if user.rol in ('admin', 'superadmin') %}
   <a href="/custodia/parametros">Parámetros</a>
   {% endif %}
   {% endif %}
@@ -44,12 +44,12 @@
   <a href="/design/canvas">Canvas</a>
   <a href="/design/protocols">Protocols</a>
   <a href="/design/favoritos">⭐ Favoritos</a>
-  {% if user.rol in ('aprobador', 'admin') %}
+  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
   <a href="/design/dashboard">Dashboard</a>
   <a href="/design/perf">Desempeño</a>
   <a href="/design/papelera">🗑️ Papelera</a>
   {% endif %}
-  {% if user.rol == 'admin' %}
+  {% if user.rol in ('admin', 'superadmin') %}
   <a href="/design/parametros">Parámetros</a>
   {% endif %}
   {% endif %}

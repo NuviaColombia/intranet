@@ -4,6 +4,7 @@ propia lista sin que los demás módulos necesiten conocerse entre sí."""
 from sqlalchemy.orm import Session
 from .models import Empleado, HoraExtra
 from .services import pendientes_de
+from .auth import empresa_filtro
 from . import services_custodia as sc
 
 
@@ -17,8 +18,14 @@ def resumen_pendientes(db: Session, user: Empleado) -> dict:
             "fecha": a.solicitud.fecha_inicio,
         })
 
-    if user.rol == "admin":
-        for he in db.query(HoraExtra).filter(HoraExtra.estado == "pendiente").order_by(HoraExtra.creada_en).all():
+    if user.rol in ("admin", "superadmin"):
+        q_he = db.query(HoraExtra).filter(HoraExtra.estado == "pendiente")
+        empresa_propia = empresa_filtro(user)
+        if empresa_propia is not None:
+            ids_propios = [e.id for e in db.query(Empleado.id)
+                          .filter(Empleado.empresa == empresa_propia).all()]
+            q_he = q_he.filter(HoraExtra.empleado_id.in_(ids_propios))
+        for he in q_he.order_by(HoraExtra.creada_en).all():
             items.append({
                 "modulo": "Horas extra", "tipo": "horas_extra", "id": he.id,
                 "descripcion": f"{he.empleado.nombre_completo}: {he.horas:g}h ({he.motivo or 'sin motivo'})",

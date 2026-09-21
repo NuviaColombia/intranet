@@ -22,7 +22,7 @@ class Empleado(Base):
     identificacion: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(150), unique=True, index=True)
     num_aprobaciones: Mapped[int] = mapped_column(Integer, default=1)  # 1 o 2
-    rol: Mapped[str] = mapped_column(String(20), default="empleado")  # empleado | admin
+    rol: Mapped[str] = mapped_column(String(20), default="empleado")  # empleado | aprobador | admin | superadmin
     activo: Mapped[int] = mapped_column(Integer, default=1)
     dias_vacaciones: Mapped[float] = mapped_column(Float, default=0)  # saldo acumulado disponible
     modulos: Mapped[str] = mapped_column(String(100), default="people")  # slugs separados por coma
@@ -44,7 +44,11 @@ class Empleado(Base):
         return [m for m in (self.modulos or "").split(",") if m]
 
     def tiene_modulo(self, modulo: str) -> bool:
-        return self.rol == "admin" or modulo in self.modulos_lista
+        return self.rol in ("admin", "superadmin") or modulo in self.modulos_lista
+
+    @property
+    def es_superadmin(self) -> bool:
+        return self.rol == "superadmin"
 
 
 class TipoPermiso(Base):

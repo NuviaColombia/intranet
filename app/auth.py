@@ -62,8 +62,14 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Emplead
 
 
 def require_admin(user: Empleado = Depends(get_current_user)) -> Empleado:
-    if user.rol != "admin":
+    if user.rol not in ("admin", "superadmin"):
         raise HTTPException(403, "Requiere rol de administrador.")
+    return user
+
+
+def require_superadmin(user: Empleado = Depends(get_current_user)) -> Empleado:
+    if user.rol != "superadmin":
+        raise HTTPException(403, "Requiere rol de superadmin.")
     return user
 
 
@@ -80,6 +86,16 @@ def require_design_manager(user: Empleado = Depends(get_current_user)) -> Emplea
     herramienta original (protegido por la clave maestra) -- aquí, aprobadores y admins."""
     if not user.tiene_modulo("design_schedule"):
         raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
-    if user.rol not in ("aprobador", "admin"):
+    if user.rol not in ("aprobador", "admin", "superadmin"):
         raise HTTPException(403, "Requiere rol de aprobador o administrador.")
     return user
+
+
+def puede_administrar_empresa(user: Empleado, empresa: str) -> bool:
+    """Un superadmin administra ambas empresas; un admin/aprobador solo la suya."""
+    return user.rol == "superadmin" or user.empresa == empresa
+
+
+def empresa_filtro(user: Empleado) -> str | None:
+    """Empresa por la que se debe filtrar una consulta: None = sin filtro (superadmin ve todo)."""
+    return None if user.rol == "superadmin" else user.empresa

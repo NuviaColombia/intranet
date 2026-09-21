@@ -88,8 +88,9 @@ def pendientes_de(db: Session, empleado: Empleado) -> list[Aprobacion]:
                    Solicitud.estado.in_(["pendiente_1", "pendiente_2"]))
            .order_by(Solicitud.creada_en).all())
     return [a for a in aps
-            if (a.solicitud.estado == "pendiente_1" and a.nivel == 1)
-            or (a.solicitud.estado == "pendiente_2" and a.nivel == 2)]
+            if ((a.solicitud.estado == "pendiente_1" and a.nivel == 1)
+                or (a.solicitud.estado == "pendiente_2" and a.nivel == 2))
+            and (empleado.rol == "superadmin" or a.solicitud.empleado.empresa == empleado.empresa)]
 
 
 # ---------- Flujo de solicitudes ----------
@@ -148,6 +149,9 @@ def resolver_aprobacion(db: Session, aprobacion: Aprobacion, decision: str,
     nivel_activo = 1 if sol.estado == "pendiente_1" else 2 if sol.estado == "pendiente_2" else None
     if nivel_activo != aprobacion.nivel:
         return "Esta solicitud no está pendiente de tu aprobación en este momento."
+    aprobador = aprobacion.aprobador
+    if aprobador and aprobador.rol != "superadmin" and sol.empleado.empresa != aprobador.empresa:
+        return "No tienes permiso para decidir sobre solicitudes de otra empresa."
 
     aprobacion.decision = decision
     aprobacion.comentario = comentario.strip()
@@ -271,7 +275,8 @@ def empleados_a_cargo(db: Session, aprobador: Empleado) -> list[Empleado]:
 
 def crear_horas_extra(db: Session, solicitante: Empleado, empleado: Empleado,
                       fecha: date, horas: float, motivo: str) -> tuple[HoraExtra | None, str | None]:
-    es_admin = solicitante.rol == "admin"
+    mismo_empresa = solicitante.rol == "superadmin" or empleado.empresa == solicitante.empresa
+    es_admin = solicitante.rol in ("admin", "superadmin") and mismo_empresa
     if not es_admin and empleado.id not in [e.id for e in empleados_a_cargo(db, solicitante)]:
         return None, "No tienes a ese empleado asignado como aprobador."
     if horas <= 0:
@@ -300,6 +305,8 @@ def crear_horas_extra(db: Session, solicitante: Empleado, empleado: Empleado,
 def resolver_horas_extra(db: Session, he: HoraExtra, decision: str, comentario: str, admin: Empleado) -> str:
     if he.estado != "pendiente":
         return "Esta solicitud ya fue resuelta anteriormente."
+    if admin.rol != "superadmin" and he.empleado.empresa != admin.empresa:
+        return "No tienes permiso para decidir sobre horas extra de otra empresa."
     he.estado = decision
     he.comentario = comentario.strip()
     he.decidida_en = datetime.utcnow()
@@ -311,7 +318,8 @@ def resolver_horas_extra(db: Session, he: HoraExtra, decision: str, comentario: 
 
 
 def _notificar_admins_horas_extra(db: Session, he: HoraExtra):
-    admins = db.query(Empleado).filter(Empleado.rol == "admin", Empleado.activo == 1).all()
+    admins = (db.query(Empleado).filter(Empleado.rol.in_(("admin", "superadmin")), Empleado.activo == 1)
+             .filter(or_(Empleado.rol == "superadmin", Empleado.empresa == he.empleado.empresa)).all())
     html = f"""
     <h2 style="font-family:sans-serif">Solicitud de horas extra pendiente</h2>
     <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">

@@ -6,8 +6,8 @@
 
 {% if a_cargo %}
 <div class="tarjeta" style="max-width:560px">
-  <h2>{{ 'Registrar horas extra' if user.rol == 'admin' else 'Solicitar horas extra' }}</h2>
-  {% if user.rol == 'admin' %}
+  <h2>{{ 'Registrar horas extra' if user.rol in ('admin', 'superadmin') else 'Solicitar horas extra' }}</h2>
+  {% if user.rol in ('admin', 'superadmin') %}
   <p style="font-size:13px;color:var(--gris)">
     Como administrador, las horas extra que registres para cualquier empleado quedan
     aprobadas de inmediato, sin necesitar autorización de nadie más.
@@ -31,7 +31,7 @@
 </div>
 {% endif %}
 
-{% if user.rol == 'admin' %}
+{% if user.rol in ('admin', 'superadmin') %}
 <div class="tarjeta" style="overflow-x:auto">
   <h2>Pendientes por aprobar ({{ pendientes_aprobar|length }})</h2>
   <table>

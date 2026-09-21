@@ -40,6 +40,7 @@
       <option value="empleado" {{ 'selected' if emp.rol=='empleado' }}>Empleado</option>
       <option value="aprobador" {{ 'selected' if emp.rol=='aprobador' }}>Aprobador</option>
       <option value="admin" {{ 'selected' if emp.rol=='admin' }}>Administrador</option>
+      {% if user.rol == 'superadmin' %}<option value="superadmin" {{ 'selected' if emp.rol=='superadmin' }}>Superadmin</option>{% endif %}
     </select>
     <label>Aprobaciones requeridas</label>
     <select name="num_aprobaciones">
@@ -75,7 +76,8 @@
       </label>
       {% endfor %}
     </div>
-    {% if emp.rol == 'admin' %}<p style="font-size:12px;color:var(--gris);margin-top:-8px">Los administradores tienen acceso a todos los módulos independientemente de esta selección.</p>{% endif %}
+    {% if emp.rol in ('admin', 'superadmin') %}<p style="font-size:12px;color:var(--gris);margin-top:-8px">Los administradores tienen acceso a todos los módulos independientemente de esta selección.</p>{% endif %}
+    {% if user.rol != 'superadmin' %}<p style="font-size:12px;color:var(--gris);margin-top:-8px">Solo puedes ver y editar empleados de tu propia empresa.</p>{% endif %}
 
     <br>
     <button class="btn">Guardar cambios</button>

@@ -17,7 +17,7 @@ router = APIRouter()
 
 @router.get("/mis-aprobaciones")
 async def bandeja(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
-    if user.rol not in ("aprobador", "admin"):
+    if user.rol not in ("aprobador", "admin", "superadmin"):
         return RedirectResponse("/", status_code=303)
     resumen = resumen_pendientes(db, user)
     return templates.TemplateResponse(request, "mis_aprobaciones.html",
@@ -38,7 +38,7 @@ async def decidir_permiso(apr_id: int, user: Empleado = Depends(get_current_user
 @router.post("/mis-aprobaciones/horas-extra/{he_id}")
 async def decidir_horas(he_id: int, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db),
                         decision: str = Form(...), comentario: str = Form("")):
-    if user.rol != "admin":
+    if user.rol not in ("admin", "superadmin"):
         return RedirectResponse("/mis-aprobaciones?msg=Requiere rol de administrador.", status_code=303)
     he = db.get(HoraExtra, he_id)
     if not he or decision not in ("aprobada", "rechazada"):

@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado, HoraExtra
-from ..auth import get_current_user, require_admin
+from ..auth import get_current_user, require_admin, empresa_filtro
 from ..services import empleados_a_cargo, crear_horas_extra, resolver_horas_extra
 from ..main_templates import templates
 
@@ -16,19 +16,31 @@ router = APIRouter()
 @router.get("/horas-extra")
 async def horas_extra_home(request: Request, user: Empleado = Depends(get_current_user),
                            db: Session = Depends(get_db)):
-    if user.rol == "admin":
-        a_cargo = db.query(Empleado).filter(Empleado.activo == 1).order_by(Empleado.apellidos).all()
+    if user.rol in ("admin", "superadmin"):
+        q_activos = db.query(Empleado).filter(Empleado.activo == 1)
+        empresa_propia = empresa_filtro(user)
+        if empresa_propia is not None:
+            q_activos = q_activos.filter(Empleado.empresa == empresa_propia)
+        a_cargo = q_activos.order_by(Empleado.apellidos).all()
     else:
         a_cargo = empleados_a_cargo(db, user)
     mis_solicitudes = (db.query(HoraExtra).filter(HoraExtra.solicitante_id == user.id)
                        .order_by(HoraExtra.creada_en.desc()).all())
 
     pendientes_aprobar, historial_admin = [], []
-    if user.rol == "admin":
-        pendientes_aprobar = (db.query(HoraExtra).filter(HoraExtra.estado == "pendiente")
-                              .order_by(HoraExtra.creada_en).all())
-        historial_admin = (db.query(HoraExtra).filter(HoraExtra.estado != "pendiente")
-                           .order_by(HoraExtra.decidida_en.desc()).limit(100).all())
+    if user.rol in ("admin", "superadmin"):
+        empresa_propia = empresa_filtro(user)
+        ids_propios = None
+        if empresa_propia is not None:
+            ids_propios = [e.id for e in db.query(Empleado.id)
+                          .filter(Empleado.empresa == empresa_propia).all()]
+        q_pend = db.query(HoraExtra).filter(HoraExtra.estado == "pendiente")
+        q_hist = db.query(HoraExtra).filter(HoraExtra.estado != "pendiente")
+        if ids_propios is not None:
+            q_pend = q_pend.filter(HoraExtra.empleado_id.in_(ids_propios))
+            q_hist = q_hist.filter(HoraExtra.empleado_id.in_(ids_propios))
+        pendientes_aprobar = q_pend.order_by(HoraExtra.creada_en).all()
+        historial_admin = q_hist.order_by(HoraExtra.decidida_en.desc()).limit(100).all()
 
     return templates.TemplateResponse(request, "horas_extra.html",
                                       {"user": user, "a_cargo": a_cargo,
@@ -49,7 +61,7 @@ async def nueva_horas_extra(user: Empleado = Depends(get_current_user), db: Sess
     he, error = crear_horas_extra(db, user, empleado, fecha, horas, motivo)
     if error:
         return RedirectResponse(f"/horas-extra?error={error}", status_code=303)
-    if user.rol == "admin":
+    if user.rol in ("admin", "superadmin"):
         msg = f"Horas extra registradas y aprobadas para {empleado.nombre_completo}."
     else:
         msg = f"Solicitud de horas extra para {empleado.nombre_completo} enviada a los administradores."

@@ -54,6 +54,7 @@
         <option value="empleado">Empleado</option>
         <option value="aprobador">Aprobador</option>
         <option value="admin">Administrador</option>
+        {% if user.rol == 'superadmin' %}<option value="superadmin">Superadmin</option>{% endif %}
       </select>
     </div>
     <div><label>Aprobaciones requeridas</label>
@@ -115,8 +116,8 @@
       <td>{{ e.fecha_nacimiento or '—' }}</td>
       <td>{{ e.dias_vacaciones }} días</td>
       <td>{{ "${:,.0f}".format(e.salario) if e.salario else '—' }}</td>
-      <td>{{ {'admin':'Administrador','aprobador':'Aprobador'}.get(e.rol, 'Empleado') }}{% if not e.activo %}<br><small style="color:var(--gris)">Inactivo</small>{% endif %}</td>
-      <td>{% if e.rol == 'admin' %}<small style="color:var(--gris)">Todos (admin)</small>
+      <td>{{ {'admin':'Administrador','aprobador':'Aprobador','superadmin':'Superadmin'}.get(e.rol, 'Empleado') }}{% if not e.activo %}<br><small style="color:var(--gris)">Inactivo</small>{% endif %}</td>
+      <td>{% if e.rol in ('admin', 'superadmin') %}<small style="color:var(--gris)">Todos (admin)</small>
           {% else %}{% for slug, nombre in modulos_disponibles %}{% if slug in e.modulos_lista %}<span class="badge aprobada">{{ nombre }}</span> {% endif %}{% endfor %}{% if not e.modulos_lista %}<small style="color:var(--gris)">—</small>{% endif %}{% endif %}</td>
     </tr>
     {% endfor %}

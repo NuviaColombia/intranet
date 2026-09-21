@@ -45,6 +45,7 @@ TIPOS_INICIALES = [("Cita médica", None, 1), ("Calamidad doméstica", None, 1),
                    ("Diligencia personal (horas)", None, 1)]
 
 EMPRESAS_INICIALES = ["Nuvia Smiles Colombia SAS", "Nuvia Design Colombia SAS"]
+SUPERADMIN_EMAILS = ["oscaralmanza@nuvia.app"]  # Oscar David Almanza Herazo
 
 AREAS_INICIALES = ["Admin", "Operativa"]
 
@@ -354,6 +355,12 @@ def init_db():
                 db.add(emp)
             elif emp.rol != "admin":
                 emp.rol = "admin"
+        # Superadmin: administra ambas empresas sin restricción (a diferencia de "admin",
+        # que solo administra/aprueba la suya).
+        for email in SUPERADMIN_EMAILS:
+            emp = db.query(Empleado).filter(Empleado.email == email).first()
+            if emp and emp.rol != "superadmin":
+                emp.rol = "superadmin"
         db.commit()
     finally:
         db.close()

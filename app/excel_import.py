@@ -31,8 +31,11 @@ def _fecha(valor) -> date | None:
     raise ValueError(f"Fecha inválida: {valor!r} (usa AAAA-MM-DD o DD/MM/AAAA)")
 
 
-def importar_empleados(db: Session, contenido: bytes) -> dict:
-    """Importa/actualiza empleados desde un xlsx. Upsert por identificación."""
+def importar_empleados(db: Session, contenido: bytes, empresa_forzada: str | None = None) -> dict:
+    """Importa/actualiza empleados desde un xlsx. Upsert por identificación.
+
+    empresa_forzada: si se indica (admin no-superadmin), cualquier fila que cree o
+    actualice un empleado de OTRA empresa se rechaza con un error en vez de importarse."""
     wb = load_workbook(BytesIO(contenido), data_only=True)
     ws = wb.active
     encabezados = [str(c.value).strip().lower() if c.value else "" for c in ws[1]]
@@ -84,6 +87,14 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
 
             emp = db.query(Empleado).filter(Empleado.identificacion == identificacion).first()
             nuevo = emp is None
+            if empresa_forzada is not None:
+                if not nuevo and emp.empresa != empresa_forzada:
+                    raise ValueError(f"el empleado ya existe en otra empresa ('{emp.empresa}'); "
+                                     f"no tienes permiso para modificarlo")
+                empresa_fila = val("empresa")
+                if empresa_fila and empresa_fila != empresa_forzada:
+                    raise ValueError(f"empresa '{empresa_fila}' no coincide con tu empresa "
+                                     f"('{empresa_forzada}'); fila omitida")
             if nuevo:
                 emp = Empleado(identificacion=identificacion)
                 db.add(emp)
@@ -94,7 +105,7 @@ def importar_empleados(db: Session, contenido: bytes) -> dict:
             i_fecha_ini = idx.get("fecha_inicio_empresa")
             emp.fecha_inicio_empresa = _fecha(
                 fila[i_fecha_ini] if i_fecha_ini is not None and i_fecha_ini < len(fila) else None)
-            emp.empresa = val("empresa")
+            emp.empresa = empresa_forzada if empresa_forzada is not None else val("empresa")
             emp.cargo = val("cargo")
             emp.area = val("area")
             emp.email = correo
