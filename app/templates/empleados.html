@@ -94,11 +94,20 @@
 </div>
 
 <div class="tarjeta" style="overflow-x:auto">
-  <table>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <input type="text" id="empBuscar" placeholder="Buscar por nombre..." style="flex:1 1 220px;max-width:320px">
+    <select id="empFiltroEmpresa" style="max-width:260px">
+      <option value="">Todas las empresas</option>
+      {% for co in empresas %}
+      <option value="{{ co.nombre }}">{{ co.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <table id="tablaEmpleados">
     <tr><th>Nombre</th><th>Identificación</th><th>Correo</th><th>Empresa / Área / Cargo</th>
         <th>Nacimiento</th><th>Vacaciones</th><th>Salario</th><th>Rol</th><th>Módulos</th><th></th></tr>
     {% for e in empleados %}
-    <tr {% if not e.activo %}style="opacity:.45"{% endif %}>
+    <tr data-nombre="{{ e.nombre_completo|lower }}" data-empresa="{{ e.empresa }}" {% if not e.activo %}style="opacity:.45"{% endif %}>
       <td><b>{{ e.nombre_completo }}</b></td>
       <td>{{ e.identificacion }}</td>
       <td>{{ e.email }}</td>
@@ -113,5 +122,30 @@
     </tr>
     {% endfor %}
   </table>
+  <p id="empSinResultados" style="display:none;color:var(--gris);padding:16px;text-align:center">Ningún empleado coincide con el filtro.</p>
 </div>
+
+<script>
+(function() {
+  var buscar = document.getElementById('empBuscar');
+  var filtroEmpresa = document.getElementById('empFiltroEmpresa');
+  var filas = document.querySelectorAll('#tablaEmpleados tr[data-nombre]');
+  var sinResultados = document.getElementById('empSinResultados');
+
+  function aplicarFiltro() {
+    var q = buscar.value.trim().toLowerCase();
+    var empresa = filtroEmpresa.value;
+    var visibles = 0;
+    filas.forEach(function(tr) {
+      var coincide = (!q || tr.dataset.nombre.indexOf(q) >= 0) && (!empresa || tr.dataset.empresa === empresa);
+      tr.style.display = coincide ? '' : 'none';
+      if (coincide) visibles++;
+    });
+    sinResultados.style.display = visibles === 0 ? '' : 'none';
+  }
+
+  buscar.addEventListener('input', aplicarFiltro);
+  filtroEmpresa.addEventListener('change', aplicarFiltro);
+})();
+</script>
 {% endblock %}
