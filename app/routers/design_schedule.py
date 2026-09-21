@@ -517,22 +517,22 @@ async def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_m
     return {"mensaje": "Guardado."}
 
 
-# ---------- Desempeño (solo administradores: datos sensibles de RR.HH.) ----------
+# ---------- Desempeño (aprobadores y admins: equivalente a "Tools Managers") ----------
 
 @router.get("/design/perf")
-async def pagina_perf(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+async def pagina_perf(request: Request, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     sheets = sd.perf_sheets(db)
     return templates.TemplateResponse(request, "design_perf.html",
                                       {"user": user, "sheets": sheets, "es_design": True})
 
 
 @router.get("/design/api/perf/sheets")
-async def api_perf_sheets(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+async def api_perf_sheets(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     return [{"id": s.id, "nombre": s.nombre, "tipo": s.tipo} for s in sd.perf_sheets(db)]
 
 
 @router.get("/design/api/perf/sheets/{sheet_id}/eval")
-async def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+async def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     detalle = sd.perf_detalle_eval(db, sheet_id)
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada")
@@ -548,7 +548,7 @@ class PerfCeldaIn(BaseModel):
 
 
 @router.post("/design/api/perf/celdas")
-async def api_perf_guardar_celda(payload: PerfCeldaIn, user: Empleado = Depends(require_admin),
+async def api_perf_guardar_celda(payload: PerfCeldaIn, user: Empleado = Depends(require_design_manager),
                                  db: Session = Depends(get_db)):
     sd.perf_guardar_celda(db, payload.empleadoId, payload.criterioId, payload.mesIndice,
                           payload.nivel, payload.puntaje)
@@ -560,14 +560,14 @@ class PerfNotaIn(BaseModel):
 
 
 @router.post("/design/api/perf/empleados/{empleado_id}/nota")
-async def api_perf_guardar_nota(empleado_id: int, payload: PerfNotaIn, user: Empleado = Depends(require_admin),
+async def api_perf_guardar_nota(empleado_id: int, payload: PerfNotaIn, user: Empleado = Depends(require_design_manager),
                                 db: Session = Depends(get_db)):
     sd.perf_guardar_nota(db, empleado_id, payload.nota)
     return {"mensaje": "Guardado."}
 
 
 @router.get("/design/api/perf/sheets/{sheet_id}/seleccion")
-async def api_perf_detalle_seleccion(sheet_id: int, user: Empleado = Depends(require_admin),
+async def api_perf_detalle_seleccion(sheet_id: int, user: Empleado = Depends(require_design_manager),
                                      db: Session = Depends(get_db)):
     detalle = sd.perf_detalle_seleccion(db, sheet_id)
     if not detalle:
@@ -581,7 +581,7 @@ class PerfGanadorMesIn(BaseModel):
 
 
 @router.post("/design/api/perf/ganadores/{ganador_id}")
-async def api_perf_guardar_ganador(ganador_id: int, payload: PerfGanadorMesIn, user: Empleado = Depends(require_admin),
+async def api_perf_guardar_ganador(ganador_id: int, payload: PerfGanadorMesIn, user: Empleado = Depends(require_design_manager),
                                    db: Session = Depends(get_db)):
     sd.perf_guardar_ganador_mes(db, ganador_id, payload.mesIndice, payload.nombre)
     return {"mensaje": "Guardado."}
@@ -596,7 +596,7 @@ class PerfCeldaSeleccionIn(BaseModel):
 
 @router.post("/design/api/perf/filas/{fila_id}/celdas")
 async def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSeleccionIn,
-                                           user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+                                           user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     sd.perf_guardar_celda_seleccion(db, fila_id, payload.mesIndice, payload.persona, payload.puntaje, payload.nota)
     return {"mensaje": "Guardado."}
 

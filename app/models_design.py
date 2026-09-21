@@ -343,7 +343,7 @@ class DesignCanvasDoc(Base):
 
 # ---------------------------------------------------------------------------
 # Desempeño (Performance): evaluaciones mensuales por equipo + "empleado del
-# mes". Visible solo para administradores (datos sensibles de RR.HH.).
+# mes". Visible para aprobadores y administradores (datos sensibles de RR.HH.).
 # ---------------------------------------------------------------------------
 
 class DesignPerfCriterio(Base):

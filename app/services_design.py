@@ -456,7 +456,7 @@ def preapproved_guardar_celda(db: Session, fila_id: int, doctor_id: int, valor: 
 
 
 # ---------------------------------------------------------------------------
-# Desempeño (Performance) — acceso restringido a administradores (RR.HH.).
+# Desempeño (Performance) — acceso restringido a aprobadores y administradores (RR.HH.).
 # ---------------------------------------------------------------------------
 
 def perf_criterios(db: Session) -> list[DesignPerfCriterio]:
