@@ -25,20 +25,23 @@ async def pagina(request: Request, user: Empleado = Depends(require_modulo("desi
                                       {"user": user, "es_design": True})
 
 
+def _redirigir_a_panel(request: Request, panel: str) -> RedirectResponse:
+    """Las antiguas páginas independientes (Dashboard, Comments, etc.) ahora son paneles
+    superpuestos dentro de /design, igual que en la herramienta original. Se conservan estas
+    rutas como redirects (por si hay enlaces guardados) que abren el panel correspondiente."""
+    qs = request.url.query
+    destino = f"/design?panel={panel}" + (f"&{qs}" if qs else "")
+    return RedirectResponse(destino, status_code=303)
+
+
 @router.get("/design/dashboard")
-async def pagina_dashboard(request: Request, user: Empleado = Depends(require_design_manager),
-                           db: Session = Depends(get_db)):
-    areas = sd.areas_disponibles(db)
-    return templates.TemplateResponse(request, "design_dashboard.html",
-                                      {"user": user, "areas": areas, "es_design": True})
+async def pagina_dashboard(request: Request, user: Empleado = Depends(require_design_manager)):
+    return _redirigir_a_panel(request, "dashboard")
 
 
 @router.get("/design/comments")
-async def pagina_comments(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
-                          db: Session = Depends(get_db)):
-    areas = sd.areas_disponibles(db)
-    return templates.TemplateResponse(request, "design_comments.html",
-                                      {"user": user, "areas": areas, "es_design": True})
+async def pagina_comments(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+    return _redirigir_a_panel(request, "comments")
 
 
 @router.get("/design/parametros")
@@ -369,11 +372,8 @@ async def api_eliminar_faq(faq_id: int, user: Empleado = Depends(require_modulo(
 # ---------- Página: Pre-Approved ----------
 
 @router.get("/design/preapproved")
-async def pagina_preapproved(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
-                             db: Session = Depends(get_db)):
-    areas = sd.areas_disponibles(db)
-    return templates.TemplateResponse(request, "design_preapproved.html",
-                                      {"user": user, "areas": areas, "es_design": True})
+async def pagina_preapproved(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+    return _redirigir_a_panel(request, "preapproved")
 
 
 # ---------- API: Pre-Approved ----------
@@ -520,10 +520,8 @@ async def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_m
 # ---------- Desempeño (aprobadores y admins: equivalente a "Tools Managers") ----------
 
 @router.get("/design/perf")
-async def pagina_perf(request: Request, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    sheets = sd.perf_sheets(db)
-    return templates.TemplateResponse(request, "design_perf.html",
-                                      {"user": user, "sheets": sheets, "es_design": True})
+async def pagina_perf(request: Request, user: Empleado = Depends(require_design_manager)):
+    return _redirigir_a_panel(request, "perf")
 
 
 @router.get("/design/api/perf/sheets")
@@ -605,7 +603,7 @@ async def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSelec
 
 @router.get("/design/papelera")
 async def pagina_papelera(request: Request, user: Empleado = Depends(require_design_manager)):
-    return templates.TemplateResponse(request, "design_papelera.html", {"user": user, "es_design": True})
+    return _redirigir_a_panel(request, "papelera")
 
 
 @router.get("/design/api/papelera")
@@ -640,7 +638,7 @@ async def api_papelera_vaciar(user: Empleado = Depends(require_design_manager), 
 
 @router.get("/design/favoritos")
 async def pagina_favoritos(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
-    return templates.TemplateResponse(request, "design_favoritos.html", {"user": user, "es_design": True})
+    return _redirigir_a_panel(request, "favoritos")
 
 
 @router.get("/design/api/favoritos")
@@ -677,11 +675,8 @@ async def api_favorito_toggle_protocolo(protocolo_id: int, user: Empleado = Depe
 # ---------- Protocols ----------
 
 @router.get("/design/protocols")
-async def pagina_protocols(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
-                           db: Session = Depends(get_db)):
-    areas = sd.areas_disponibles(db)
-    return templates.TemplateResponse(request, "design_protocols.html",
-                                      {"user": user, "areas": areas, "es_design": True})
+async def pagina_protocols(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+    return _redirigir_a_panel(request, "protocols")
 
 
 @router.get("/design/api/protocolos")
@@ -731,11 +726,8 @@ async def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(req
 # ---------- Canvas ----------
 
 @router.get("/design/canvas")
-async def pagina_canvas(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
-                        db: Session = Depends(get_db)):
-    areas = sd.areas_disponibles(db)
-    return templates.TemplateResponse(request, "design_canvas.html",
-                                      {"user": user, "areas": areas, "es_design": True})
+async def pagina_canvas(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+    return _redirigir_a_panel(request, "canvas")
 
 
 @router.get("/design/api/canvas/docs")
