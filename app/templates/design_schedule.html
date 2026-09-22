@@ -1247,12 +1247,12 @@ document.addEventListener('keydown', function(e) {
     if (!DS.teamId) { alert('Selecciona un equipo primero.'); return; }
     postJSON('/design/api/ordenes', {
       teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada()), tabla: tabla,
-    }).then(function() { dsCargarDia(); }).catch(function(e) { alert('Error: ' + e.message); });
+    }).then(function() { dsCargarDia(true); }).catch(function(e) { alert('Error: ' + e.message); });
   };
 
   window.dsEliminarFila = function(id) {
     if (!confirm('¿Eliminar esta orden?')) return;
-    postJSON('/design/api/ordenes/' + id + '/eliminar', {}).then(function() { dsCargarDia(); })
+    postJSON('/design/api/ordenes/' + id + '/eliminar', {}).then(function() { dsCargarDia(true); })
       .catch(function(e) { alert('Error: ' + e.message); });
   };
 
@@ -1302,10 +1302,13 @@ document.addEventListener('keydown', function(e) {
     var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
+  var dsAusenciasPromesa = null; // la lista de tipos de ausencia se pide una sola vez
   function dsRenderBreaks(dia) {
-    var cont = document.getElementById('dsBreaks'); cont.innerHTML = '';
+    var cont = document.getElementById('dsBreaks');
     if (!dia.designers.length) { cont.innerHTML = '<p style="color:#6b7280">Este equipo no tiene diseñadores asignados.</p>'; return; }
-    api('/design/api/ausencias').then(function(tipos) {
+    if (!dsAusenciasPromesa) dsAusenciasPromesa = api('/design/api/ausencias').catch(function(e) { dsAusenciasPromesa = null; throw e; });
+    dsAusenciasPromesa.then(function(tipos) {
+      if (DS.diaData !== dia) return; // cambió de día/equipo mientras cargaba
       var grid = document.createElement('div'); grid.className = 'ds-tl-grid';
       dia.designers.forEach(function(d) {
         var b = dia.breaks.find(function(x) { return x.empleadoId === d.id; }) || {};
@@ -1331,7 +1334,7 @@ document.addEventListener('keydown', function(e) {
         dsConectarTarjeta(card);
         grid.appendChild(card);
       });
-      cont.appendChild(grid);
+      cont.replaceChildren(grid); // se cambia de una sola vez: el panel nunca queda vacío
     });
   }
 
@@ -1382,7 +1385,8 @@ document.addEventListener('keydown', function(e) {
     postJSON('/design/api/breaks', datos).catch(function(e) { alert('Error guardando: ' + e.message); });
   }
 
-  function dsCargarDia() {
+  // soloOrdenes: al agregar/eliminar una orden no se redibuja "Tiempos libres" (no cambió y parpadeaba).
+  function dsCargarDia(soloOrdenes) {
     if (!DS.teamId) return;
     api('/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada())).then(function(dia) {
       DS.diaData = dia;
@@ -1390,7 +1394,7 @@ document.addEventListener('keydown', function(e) {
       if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
       dsAplicarCierre();
       dsRenderKpis(dia);
-      dsRenderBreaks(dia);
+      if (!soloOrdenes) dsRenderBreaks(dia);
     });
   }
 
