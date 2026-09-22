@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
-from ..models_design import DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo
+from ..models_design import DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignOrden
 from ..auth import require_modulo, require_admin, require_design_manager
 from ..main_templates import templates
 from .. import services_design as sd
@@ -154,6 +154,15 @@ async def toggle_ausencia(aus_id: int, user: Empleado = Depends(require_admin), 
 
 # ---------- API: lectura ----------
 
+def _verificar_equipo(db: Session, user: Empleado, team_id: int) -> DesignTeam:
+    team = db.get(DesignTeam, team_id)
+    if not team:
+        raise HTTPException(404, "Equipo no encontrado.")
+    if not sd.puede_ver_equipo(user, team):
+        raise HTTPException(403, "No tienes acceso a este equipo.")
+    return team
+
+
 @router.get("/design/api/areas")
 async def api_areas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     return [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in sd.areas_disponibles(db)]
@@ -162,7 +171,7 @@ async def api_areas(user: Empleado = Depends(require_modulo("design_schedule")),
 @router.get("/design/api/teams")
 async def api_teams(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                     db: Session = Depends(get_db)):
-    equipos = sd.equipos_de_area(db, area_id)
+    equipos = [t for t in sd.equipos_de_area(db, area_id) if sd.puede_ver_equipo(user, t)]
     return [{"id": t.id, "nombre": t.nombre, "manager": t.manager.nombre_completo if t.manager else "",
             "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in t.designers]}
             for t in equipos]
@@ -182,9 +191,7 @@ async def api_ausencias(user: Empleado = Depends(require_modulo("design_schedule
 @router.get("/design/api/dia")
 async def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                   db: Session = Depends(get_db)):
-    team = db.get(DesignTeam, team_id)
-    if not team:
-        raise HTTPException(404, "Equipo no encontrado.")
+    team = _verificar_equipo(db, user, team_id)
     return sd.datos_dia(db, team, date.fromisoformat(fecha))
 
 
@@ -238,6 +245,7 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
 @router.post("/design/api/ordenes")
 async def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
+    _verificar_equipo(db, user, payload.teamId)
     o = sd.crear_orden(db, user, payload.teamId, date.fromisoformat(payload.fecha), payload.tabla,
                        _datos_desde_in(payload))
     return sd.serializar_orden(o)
@@ -247,17 +255,22 @@ async def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_mod
 async def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
                                db: Session = Depends(get_db)):
-    o = sd.actualizar_orden(db, orden_id, _datos_desde_in(payload))
-    if not o:
+    orden_existente = db.get(DesignOrden, orden_id)
+    if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
+    _verificar_equipo(db, user, orden_existente.team_id)
+    o = sd.actualizar_orden(db, orden_id, _datos_desde_in(payload))
     return sd.serializar_orden(o)
 
 
 @router.post("/design/api/ordenes/{orden_id}/eliminar")
 async def api_eliminar_orden(orden_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
-    if not sd.eliminar_orden(db, orden_id):
+    orden_existente = db.get(DesignOrden, orden_id)
+    if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
+    _verificar_equipo(db, user, orden_existente.team_id)
+    sd.eliminar_orden(db, orden_id)
     return {"mensaje": "Eliminada."}
 
 
@@ -277,6 +290,7 @@ class BreakIn(BaseModel):
 @router.post("/design/api/breaks")
 async def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
+    _verificar_equipo(db, user, payload.teamId)
     b = sd.guardar_break(db, payload.teamId, payload.empleadoId, date.fromisoformat(payload.fecha), {
         "tipo_ausencia": payload.tipoAusencia,
         "almuerzo_inicio": payload.almuerzoInicio, "almuerzo_fin": payload.almuerzoFin,

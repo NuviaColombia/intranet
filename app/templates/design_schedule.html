@@ -360,7 +360,7 @@
 <div id="ds-app">
   <h1 style="margin-bottom:6px">Design Schedule</h1>
   <div id="dsAreaTabs" class="ds-tabs"></div>
-  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+  {% if user.rol in ('admin', 'superadmin') %}
   <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;width:fit-content;margin-bottom:14px">
     <input type="checkbox" id="dsTodasAreasChk" style="width:auto">
     Ver el horario de todas las áreas
@@ -810,16 +810,16 @@
         cont.appendChild(btn);
       });
       if (!areas.length) return;
-      var inicial = areas[0];
+      var inicial = areas[0], inicialIdx = 0, autoBuscar = true;
       if (DS.deepLinkAreaId) {
-        var match = areas.find(function(a) { return a.id === DS.deepLinkAreaId; });
-        if (match) inicial = match;
+        var idx = areas.findIndex(function(a) { return a.id === DS.deepLinkAreaId; });
+        if (idx >= 0) { inicial = areas[idx]; inicialIdx = idx; autoBuscar = false; }
       }
-      dsSeleccionarArea(inicial.id, inicial.formato);
+      dsSeleccionarArea(inicial.id, inicial.formato, autoBuscar, inicialIdx);
     });
   }
 
-  function dsSeleccionarArea(areaId, formato) {
+  function dsSeleccionarArea(areaId, formato, autoBuscar, idxActual) {
     DS.areaId = areaId; DS.areaFormato = formato;
     document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
       b.classList.toggle('activo', DS.areas[i].id === areaId);
@@ -851,7 +851,14 @@
         wrap.appendChild(btn); wrap.appendChild(fav);
         cont.appendChild(wrap);
       });
-      if (!teams.length) { DS.teamId = null; document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; return; }
+      if (!teams.length) {
+        if (autoBuscar && typeof idxActual === 'number' && idxActual + 1 < DS.areas.length) {
+          var siguiente = DS.areas[idxActual + 1];
+          dsSeleccionarArea(siguiente.id, siguiente.formato, true, idxActual + 1);
+          return;
+        }
+        DS.teamId = null; document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; return;
+      }
       var teamInicial = teams[0];
       if (DS.deepLinkTeamId) {
         var match = teams.find(function(t) { return t.id === DS.deepLinkTeamId; });

@@ -40,6 +40,13 @@ def equipos_de_area(db: Session, area_id: int) -> list[DesignTeam]:
             .order_by(DesignTeam.orden).all())
 
 
+def puede_ver_equipo(user: Empleado, team: DesignTeam) -> bool:
+    """Admins/superadmins ven todos los equipos; un aprobador (manager) solo el/los suyos."""
+    if user.rol in ("admin", "superadmin"):
+        return True
+    return team.manager_id == user.id
+
+
 def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     return [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
