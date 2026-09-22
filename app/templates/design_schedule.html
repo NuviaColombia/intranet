@@ -60,12 +60,25 @@
   .ds-panel { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
   .ds-panel h3 { margin:0 0 10px; font-size:14px; color:#1d4ed8; }
   table.ds-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
-  table.ds-tabla th, table.ds-tabla td { border:1px solid #e2e6ea; padding:5px 6px; text-align:center; }
+  table.ds-tabla th, table.ds-tabla td { border:1px solid #e2e6ea; padding:3px 6px; text-align:center; vertical-align:middle; height:32px; }
   table.ds-tabla th { background:#f4f6f8; font-size:11px; }
-  table.ds-tabla input, table.ds-tabla select { width:100%; border:none; background:transparent; font-size:12px; text-align:center; }
+  /* Anula el estilo global de inputs (padding 8px, margin inferior 12px) que descuadraba las celdas */
+  table.ds-tabla input, table.ds-tabla select { width:100%; height:26px; margin:0; padding:0 4px; box-sizing:border-box;
+                                                border:none; background:transparent; font-size:12px; text-align:center; vertical-align:middle; }
   table.ds-tabla input[type=text] { text-align:left; }
-  .ds-btn-x { background:#dc2626; color:#fff; border:none; border-radius:4px; padding:2px 7px; cursor:pointer; }
-  .ds-btn-add { margin-top:8px; }
+  table.ds-tabla input[type=checkbox] { width:15px; height:15px; padding:0; display:block; margin:0 auto; cursor:pointer; }
+  table.ds-tabla tr.ds-fila-nueva td { background:#fafbfc; }
+  /* Encabezados ordenables (Centro, Producto, Diseñador) */
+  table.ds-tabla th.ds-th-sort { cursor:pointer; user-select:none; white-space:nowrap; }
+  table.ds-tabla th.ds-th-sort:hover { background:#e8ecf1; }
+  table.ds-tabla th.ds-th-sort .ds-sort-ind { color:#9ca3af; margin-left:3px; }
+  table.ds-tabla th.ds-th-sort.on .ds-sort-ind { color:#1d4ed8; }
+  .ds-btn-x { background:#9ca3af; color:#fff; border:none; border-radius:4px; width:18px; height:18px; padding:0;
+              font-size:10px; line-height:18px; cursor:pointer; display:block; margin:0 auto; }
+  .ds-btn-x:hover { background:#6b7280; }
+  .ds-panel-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .ds-panel-h h3 { margin:0; }
+  .ds-btn-add { padding:3px 10px; font-size:12px; line-height:1.4; border-radius:6px; }
   .ds-break-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid #eee; }
   .ds-break-row label { font-size:11px; color:#6b7280; display:block; }
   .ds-break-row input, .ds-break-row select { font-size:12px; padding:4px 6px; border:1px solid #d8dde3; border-radius:6px; }
@@ -412,15 +425,19 @@
     <div id="dsKpis" class="ds-kpis"></div>
 
     <div class="ds-panel">
-      <h3 id="dsTituloPrincipal">Órdenes</h3>
+      <div class="ds-panel-h">
+        <h3 id="dsTituloPrincipal">Órdenes</h3>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal')">+ Agregar orden</button>
+      </div>
       <div id="dsTablaPrincipal"></div>
-      <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal')">+ Agregar orden</button>
     </div>
 
     <div class="ds-panel" id="dsPanelNightguard" style="display:none">
-      <h3>Nightguards / TC</h3>
+      <div class="ds-panel-h">
+        <h3>Nightguards / TC</h3>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard')">+ Agregar orden</button>
+      </div>
       <div id="dsTablaNightguard"></div>
-      <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard')">+ Agregar orden</button>
     </div>
 
     <div class="ds-panel">
@@ -1000,45 +1017,100 @@ document.addEventListener('keydown', function(e) {
     return Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
   }
 
-  function dsRenderTabla(tabla, filas) {
-    var spec = COLSPEC[DS.areaFormato][tabla];
-    var contId = tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard';
-    var cont = document.getElementById(contId);
-    var html = '<table class="ds-tabla"><thead><tr>';
-    spec.forEach(function(c) { html += '<th>' + c.l + '</th>'; });
-    html += '<th>Total</th><th></th></tr></thead><tbody>';
-    filas.forEach(function(f) {
-      html += '<tr data-id="' + f.id + '">';
-      spec.forEach(function(c) {
-        html += '<td>' + dsCeldaInput(c, f) + '</td>';
+  // ---------- Tabla de órdenes ----------
+  // Siempre hay una fila vacía lista para llenar ("fila nueva"): existe solo en pantalla y se guarda en la BD
+  // al escribir el primer dato. Cuando ya no quedan filas incompletas se agrega otra fila nueva.
+  // Una orden "completa" (centro + producto + diseñador) es la única que cuentan los contadores;
+  // mismo criterio que filtro_orden_completa() en services_design.py.
+  function dsOrdenCompleta(f) { return !!(f.centro && f.producto && (f.designerId || f.designerPrestado)); }
+
+  var DS_SORTABLES = {centro: true, producto: true, designerId: true};
+  DS.sort = {principal: null, nightguard: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
+
+  function dsTextoOrden(f, k) {
+    if (k !== 'designerId') return f[k] || '';
+    var d = (DS.diaData ? DS.diaData.designers : []).find(function(x) { return x.id === f.designerId; });
+    return d ? d.nombre : (f.designerNombre || f.designerPrestado || '');
+  }
+
+  function dsFilasOrdenadas(tabla) {
+    var filas = (DS.diaData[tabla] || []).slice();
+    var s = DS.sort[tabla];
+    if (s) {
+      filas.sort(function(a, b) {
+        var va = dsTextoOrden(a, s.k), vb = dsTextoOrden(b, s.k);
+        if (!va !== !vb) return va ? -1 : 1; // vacías siempre al final
+        return va.localeCompare(vb, 'es', {sensitivity: 'base'}) * s.dir;
       });
-      html += '<td>' + dsDuracion(f.horaInicio, f.horaFin) + '</td>';
-      html += '<td><button type="button" class="ds-btn-x" onclick="dsEliminarFila(' + f.id + ')">✕</button></td>';
-      html += '</tr>';
+    }
+    return filas;
+  }
+
+  function dsFilaHtml(spec, f) {
+    var nueva = !f.id;
+    var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
+    spec.forEach(function(c) { html += '<td>' + dsCeldaInput(c, f) + '</td>'; });
+    html += '<td class="ds-total">' + dsDuracion(f.horaInicio, f.horaFin) + '</td>';
+    html += '<td class="ds-acc">' + (nueva ? '' : dsBtnEliminar(f.id)) + '</td>';
+    return html + '</tr>';
+  }
+  function dsBtnEliminar(id) {
+    return '<button type="button" class="ds-btn-x" title="Eliminar orden" onclick="dsEliminarFila(' + id + ')">✕</button>';
+  }
+
+  function dsConectarFila(tr, tabla) {
+    tr.querySelectorAll('[data-campo]').forEach(function(input) {
+      var ev = (input.tagName === 'SELECT' || input.type === 'checkbox') ? 'change' : 'blur';
+      input.addEventListener(ev, function() { dsGuardarFila(tr, tabla); });
     });
+  }
+
+  // Catálogos asíncronos (centro/producto/estado...) de las filas dentro de `root`.
+  function dsPoblarCatalogos(root, spec) {
+    spec.forEach(function(c) {
+      if (c.t !== 'catalogo') return;
+      dsCatalogo(c.cat).then(function(valores) {
+        root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
+          var actual = sel.dataset.valorActual || '';
+          valores.forEach(function(v) {
+            if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
+              var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
+            }
+          });
+          if (actual) sel.value = actual;
+        });
+      });
+    });
+  }
+
+  function dsRenderTabla(tabla) {
+    var spec = COLSPEC[DS.areaFormato][tabla];
+    var cont = document.getElementById(tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard');
+    var filas = dsFilasOrdenadas(tabla);
+    var s = DS.sort[tabla];
+    var html = '<table class="ds-tabla"><thead><tr>';
+    spec.forEach(function(c) {
+      if (DS_SORTABLES[c.k]) {
+        var on = s && s.k === c.k;
+        html += '<th class="ds-th-sort' + (on ? ' on' : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
+                '<span class="ds-sort-ind">' + (on ? (s.dir === 1 ? '▲' : '▼') : '↕') + '</span></th>';
+      } else html += '<th>' + c.l + '</th>';
+    });
+    html += '<th>Total</th><th></th></tr></thead><tbody>';
+    filas.forEach(function(f) { html += dsFilaHtml(spec, f); });
+    if (!filas.some(function(f) { return !dsOrdenCompleta(f); })) html += dsFilaHtml(spec, {});
     html += '</tbody></table>';
     cont.innerHTML = html;
-    // listeners
-    cont.querySelectorAll('[data-campo]').forEach(function(input) {
-      var ev = (input.tagName === 'SELECT' || input.type === 'checkbox') ? 'change' : 'blur';
-      input.addEventListener(ev, function() { dsGuardarFila(this.closest('tr')); });
+    cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, tabla); });
+    cont.querySelectorAll('th[data-sort]').forEach(function(th) {
+      th.addEventListener('click', function() {
+        // Ciclo: A→Z, Z→A, orden original
+        var k = th.dataset.sort, act = DS.sort[tabla];
+        DS.sort[tabla] = (!act || act.k !== k) ? {k: k, dir: 1} : (act.dir === 1 ? {k: k, dir: -1} : null);
+        dsRenderTabla(tabla);
+      });
     });
-    // catalogos asincronos (centro/producto/estado)
-    spec.forEach(function(c) {
-      if (c.t === 'catalogo') {
-        dsCatalogo(c.cat).then(function(valores) {
-          cont.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
-            var actual = sel.dataset.valorActual || '';
-            valores.forEach(function(v) {
-              if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
-                var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
-              }
-            });
-            if (actual) sel.value = actual;
-          });
-        });
-      }
-    });
+    dsPoblarCatalogos(cont, spec);
   }
 
   function dsCeldaInput(c, f) {
@@ -1082,10 +1154,56 @@ document.addEventListener('keydown', function(e) {
     return datos;
   }
 
-  function dsGuardarFila(tr) {
-    var id = tr.dataset.id;
-    var datos = dsFilaDesdeForm(tr);
-    postJSON('/design/api/ordenes/' + id, datos).catch(function(e) { alert('Error guardando: ' + e.message); });
+  // ¿La fila nueva ya tiene algo escrito? (los valores por defecto no cuentan)
+  function dsTieneDatos(datos) {
+    return Object.keys(datos).some(function(k) {
+      if (k === 'teamId' || k === 'fecha' || k === 'tabla') return false;
+      var v = datos[k];
+      return v !== '' && v !== null && v !== false && v !== 0;
+    });
+  }
+
+  function dsGuardarFila(tr, tabla) {
+    var datos = dsFilaDesdeForm(tr); datos.tabla = tabla;
+    var filas = DS.diaData[tabla];
+    if (tr.dataset.id === 'nuevo') {
+      if (!dsTieneDatos(datos)) return;
+      if (tr._creando) { tr._pendiente = true; return; } // se vuelve a guardar cuando termine de crearse
+      tr._creando = true;
+      postJSON('/design/api/ordenes', datos).then(function(o) {
+        tr._creando = false;
+        tr.dataset.id = o.id; tr.classList.remove('ds-fila-nueva');
+        tr.querySelector('.ds-acc').innerHTML = dsBtnEliminar(o.id);
+        filas.push(o);
+        if (tr._pendiente) { tr._pendiente = false; dsGuardarFila(tr, tabla); return; }
+        dsTrasGuardar(tabla, tr, o);
+      }).catch(function(e) { tr._creando = false; alert('Error guardando: ' + e.message); });
+      return;
+    }
+    var id = parseInt(tr.dataset.id);
+    var local = filas.find(function(x) { return x.id === id; });
+    if (local) Object.assign(local, datos); // refleja el cambio de inmediato (orden A→Z, contadores)
+    postJSON('/design/api/ordenes/' + id, datos).then(function(o) {
+      var i = filas.findIndex(function(x) { return x.id === id; });
+      if (i >= 0) filas[i] = o;
+      dsTrasGuardar(tabla, tr, o);
+    }).catch(function(e) { alert('Error guardando: ' + e.message); });
+  }
+
+  function dsTrasGuardar(tabla, tr, o) {
+    if (!tr.isConnected) { dsRenderTabla(tabla); dsRenderKpis(DS.diaData); return; } // la tabla se redibujó mientras guardaba
+    tr.querySelector('.ds-total').innerText = dsDuracion(o.horaInicio, o.horaFin);
+    dsRenderKpis(DS.diaData);
+    // Si ya no queda ninguna fila incompleta, se agrega una fila nueva vacía al final (sin redibujar: no se pierde el foco).
+    var tbody = tr.parentNode;
+    if (!DS.diaData[tabla].some(function(f) { return !dsOrdenCompleta(f); }) && !tbody.querySelector('tr[data-id="nuevo"]')) {
+      var spec = COLSPEC[DS.areaFormato][tabla];
+      var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaHtml(spec, {});
+      var nueva = tmp.firstChild;
+      tbody.appendChild(nueva);
+      dsConectarFila(nueva, tabla);
+      dsPoblarCatalogos(nueva, spec);
+    }
   }
 
   window.dsAgregarFila = function(tabla) {
@@ -1101,8 +1219,9 @@ document.addEventListener('keydown', function(e) {
       .catch(function(e) { alert('Error: ' + e.message); });
   };
 
+  // Solo cuentan las órdenes completas (centro + producto + diseñador).
   function dsRenderKpis(dia) {
-    var todas = dia.principal.concat(dia.nightguard || []);
+    var todas = dia.principal.concat(dia.nightguard || []).filter(dsOrdenCompleta);
     var conteo = {};
     todas.forEach(function(f) { conteo[f.estado || 'Sin estado'] = (conteo[f.estado || 'Sin estado'] || 0) + 1; });
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
@@ -1154,8 +1273,8 @@ document.addEventListener('keydown', function(e) {
     if (!DS.teamId) return;
     api('/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada())).then(function(dia) {
       DS.diaData = dia;
-      dsRenderTabla('principal', dia.principal);
-      if (DS.areaFormato === 'dual') dsRenderTabla('nightguard', dia.nightguard);
+      dsRenderTabla('principal');
+      if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
       dsRenderKpis(dia);
       dsRenderBreaks(dia);
     });

@@ -5,7 +5,7 @@ import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, and_, or_
 from .models import Empleado, Solicitud, TipoPermiso
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
@@ -116,6 +116,14 @@ def _permisos_aprobados_del_dia(db: Session, empleado_ids: list[int], fecha: dat
     return resultado
 
 
+def filtro_orden_completa():
+    """Una orden solo cuenta (contadores, Dashboard, vista de todas las áreas) si tiene centro, producto y
+    diseñador. Las filas a medio llenar siguen guardadas y visibles en el horario del equipo.
+    El frontend usa el mismo criterio en dsOrdenCompleta()."""
+    return and_(func.coalesce(DesignOrden.centro, "") != "", func.coalesce(DesignOrden.producto, "") != "",
+                or_(DesignOrden.designer_id.isnot(None), func.coalesce(DesignOrden.designer_prestado, "") != ""))
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
@@ -190,7 +198,7 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
     if teams:
         ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
                    .filter(DesignOrden.team_id.in_([t.id for t in teams]), DesignOrden.fecha == fecha,
-                           DesignOrden.tabla.in_(["principal", "nightguard"]))
+                           DesignOrden.tabla.in_(["principal", "nightguard"]), filtro_orden_completa())
                    .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
     por_team: dict[int, list[DesignOrden]] = {}
     for o in ordenes:
@@ -264,7 +272,8 @@ def guardar_break(db: Session, team_id: int, empleado_id: int, fecha: date, dato
 def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None = None,
                     designer_id: int | None = None, producto: str = "", estado: str = "",
                     qc: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
-    q = db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team))
+    q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team))
+         .filter(filtro_orden_completa()))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:
