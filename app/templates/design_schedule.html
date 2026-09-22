@@ -328,32 +328,55 @@
 <div id="ds-app">
   <h1 style="margin-bottom:6px">Design Schedule</h1>
   <div id="dsAreaTabs" class="ds-tabs"></div>
-  <div id="dsTeamTabs" class="ds-tabs"></div>
+  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;width:fit-content;margin-bottom:14px">
+    <input type="checkbox" id="dsTodasAreasChk" style="width:auto">
+    Ver el horario de todas las áreas
+  </label>
+  {% endif %}
 
-  <div class="ds-semana">
-    <button type="button" class="btn gris mini" onclick="dsCambiarSemana(-7)">&larr; Semana anterior</button>
-    <span id="dsRangoSemana" style="font-weight:700"></span>
-    <button type="button" class="btn gris mini" onclick="dsCambiarSemana(7)">Semana siguiente &rarr;</button>
+  <div id="dsVistaNormal">
+    <div id="dsTeamTabs" class="ds-tabs"></div>
+
+    <div class="ds-semana">
+      <button type="button" class="btn gris mini" onclick="dsCambiarSemana(-7)">&larr; Semana anterior</button>
+      <span id="dsRangoSemana" style="font-weight:700"></span>
+      <button type="button" class="btn gris mini" onclick="dsCambiarSemana(7)">Semana siguiente &rarr;</button>
+      <span style="margin-left:10px"><label style="font-size:11px;color:#6b7280;display:block">Mes</label>
+        <select id="dsMesFiltro"></select></span>
+      <span><label style="font-size:11px;color:#6b7280;display:block">Semana</label>
+        <select id="dsSemanaFiltro"></select></span>
+    </div>
+    <div id="dsDiaTabs" class="ds-tabs"></div>
+
+    <div id="dsKpis" class="ds-kpis"></div>
+
+    <div class="ds-panel">
+      <h3 id="dsTituloPrincipal">Órdenes</h3>
+      <div id="dsTablaPrincipal"></div>
+      <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal')">+ Agregar orden</button>
+    </div>
+
+    <div class="ds-panel" id="dsPanelNightguard" style="display:none">
+      <h3>Nightguards / TC</h3>
+      <div id="dsTablaNightguard"></div>
+      <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard')">+ Agregar orden</button>
+    </div>
+
+    <div class="ds-panel">
+      <h3>Tiempos libres</h3>
+      <div id="dsBreaks"></div>
+    </div>
   </div>
-  <div id="dsDiaTabs" class="ds-tabs"></div>
 
-  <div id="dsKpis" class="ds-kpis"></div>
-
-  <div class="ds-panel">
-    <h3 id="dsTituloPrincipal">Órdenes</h3>
-    <div id="dsTablaPrincipal"></div>
-    <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal')">+ Agregar orden</button>
-  </div>
-
-  <div class="ds-panel" id="dsPanelNightguard" style="display:none">
-    <h3>Nightguards / TC</h3>
-    <div id="dsTablaNightguard"></div>
-    <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard')">+ Agregar orden</button>
-  </div>
-
-  <div class="ds-panel">
-    <h3>Tiempos libres</h3>
-    <div id="dsBreaks"></div>
+  <div id="dsVistaTodasAreas" style="display:none">
+    <div class="ds-semana">
+      <button type="button" class="btn gris mini" onclick="dsCambiarSemanaTodas(-7)">&larr; Semana anterior</button>
+      <span id="dsRangoSemanaTodas" style="font-weight:700"></span>
+      <button type="button" class="btn gris mini" onclick="dsCambiarSemanaTodas(7)">Semana siguiente &rarr;</button>
+    </div>
+    <div id="dsDiaTabsTodas" class="ds-tabs"></div>
+    <div id="dsTodasAreasCont"></div>
   </div>
 </div>
 
@@ -641,10 +664,67 @@
       btn.onclick = (function(idx) { return function() { DS.diaSel = idx; dsRenderDias(); dsCargarDia(); }; })(i);
       cont.appendChild(btn);
     }
+    dsSincronizarFiltrosFecha();
   }
 
   function dsFechaSeleccionada() {
     var d = new Date(DS.lunes); d.setDate(d.getDate() + DS.diaSel); return d;
+  }
+
+  // ---------- Filtros de Mes / Semana ----------
+  function dsMesLabel(anio, mes) {
+    var d = new Date(anio, mes, 1);
+    var l = d.toLocaleDateString('es-CO', {month:'long', year:'numeric'});
+    return l.charAt(0).toUpperCase() + l.slice(1);
+  }
+  function dsSemanasDelMes(anio, mes) {
+    var primerDia = new Date(anio, mes, 1);
+    var ultimoDia = new Date(anio, mes + 1, 0);
+    var lunes = dsLunesDe(primerDia);
+    var out = [];
+    while (lunes <= ultimoDia) {
+      out.push(new Date(lunes));
+      lunes = new Date(lunes); lunes.setDate(lunes.getDate() + 7);
+    }
+    return out;
+  }
+  function dsPoblarFiltroMes() {
+    var sel = document.getElementById('dsMesFiltro');
+    var hoy = new Date(); var opciones = [];
+    for (var offset = -6; offset <= 6; offset++) opciones.push(new Date(hoy.getFullYear(), hoy.getMonth() + offset, 1));
+    sel.innerHTML = opciones.map(function(d) {
+      var val = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      return '<option value="' + val + '">' + dsMesLabel(d.getFullYear(), d.getMonth()) + '</option>';
+    }).join('');
+  }
+  function dsPoblarFiltroSemana() {
+    var sel = document.getElementById('dsSemanaFiltro');
+    var mesVal = document.getElementById('dsMesFiltro').value; if (!mesVal) return;
+    var partes = mesVal.split('-'); var anio = parseInt(partes[0]), mes = parseInt(partes[1]) - 1;
+    var semanas = dsSemanasDelMes(anio, mes);
+    sel.innerHTML = semanas.map(function(lunes, i) {
+      var fin = new Date(lunes); fin.setDate(fin.getDate() + 4);
+      return '<option value="' + dsFechaISO(lunes) + '">Semana ' + (i + 1) + ': ' + dsFechaCorta(lunes) + ' — ' + dsFechaCorta(fin) + '</option>';
+    }).join('');
+  }
+  function dsSincronizarFiltrosFecha() {
+    var mesSel = document.getElementById('dsMesFiltro'); if (!mesSel) return;
+    var mesVal = DS.lunes.getFullYear() + '-' + String(DS.lunes.getMonth() + 1).padStart(2, '0');
+    if (!mesSel.querySelector('option[value="' + mesVal + '"]')) {
+      var opt = document.createElement('option'); opt.value = mesVal;
+      opt.text = dsMesLabel(DS.lunes.getFullYear(), DS.lunes.getMonth());
+      mesSel.appendChild(opt);
+    }
+    mesSel.value = mesVal;
+    dsPoblarFiltroSemana();
+    var semSel = document.getElementById('dsSemanaFiltro');
+    var semVal = dsFechaISO(DS.lunes);
+    if (semSel.querySelector('option[value="' + semVal + '"]')) semSel.value = semVal;
+  }
+  function dsAplicarSemanaFiltro() {
+    var val = document.getElementById('dsSemanaFiltro').value; if (!val) return;
+    DS.lunes = new Date(val + 'T00:00:00'); DS.diaSel = 0;
+    dsRenderDias(); dsCargarDia();
   }
 
   // ---------- Áreas / Equipos ----------
@@ -947,6 +1027,107 @@
       dsRenderBreaks(dia);
     });
   }
+
+  // ---------- Vista "Todas las áreas" (solo aprobadores/admins) ----------
+  var DST = { lunes: dsLunesDe(new Date()), diaSel: 0 };
+  window.dsCambiarSemanaTodas = function(delta) {
+    DST.lunes.setDate(DST.lunes.getDate() + delta);
+    dsRenderDiasTodas(); dsCargarTodasAreas();
+  };
+  function dsRenderDiasTodas() {
+    var fin = new Date(DST.lunes); fin.setDate(fin.getDate() + 4);
+    document.getElementById('dsRangoSemanaTodas').innerText = dsFechaCorta(DST.lunes) + ' — ' + dsFechaCorta(fin);
+    var cont = document.getElementById('dsDiaTabsTodas'); cont.innerHTML = '';
+    for (var i = 0; i < 5; i++) {
+      var d = new Date(DST.lunes); d.setDate(d.getDate() + i);
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'ds-dia' + (i === DST.diaSel ? ' activo' : '');
+      btn.innerText = NOMBRES_DIAS[i] + ' ' + dsFechaCorta(d);
+      btn.onclick = (function(idx) { return function() { DST.diaSel = idx; dsRenderDiasTodas(); dsCargarTodasAreas(); }; })(i);
+      cont.appendChild(btn);
+    }
+  }
+  var COLS_RESUMEN = [
+    {k:'orden', l:'Orden'}, {k:'paciente', l:'Paciente'}, {k:'centro', l:'Centro'},
+    {k:'producto', l:'Producto'}, {k:'designerNombre', l:'Diseñador'}, {k:'estado', l:'Estado'},
+  ];
+  function dsRenderResumenTabla(filas) {
+    if (!filas.length) return '<p style="color:#6b7280;font-size:12px;margin:4px 0 14px">Sin órdenes este día.</p>';
+    var html = '<table class="ds-tabla" style="margin-bottom:14px"><thead><tr>';
+    COLS_RESUMEN.forEach(function(c) { html += '<th>' + c.l + '</th>'; });
+    html += '</tr></thead><tbody>';
+    filas.forEach(function(f) {
+      html += '<tr>' + COLS_RESUMEN.map(function(c) { return '<td>' + dsEsc(f[c.k] || '—') + '</td>'; }).join('') + '</tr>';
+    });
+    return html + '</tbody></table>';
+  }
+  function dsCargarTodasAreas() {
+    var fecha = dsFechaISO(new Date(DST.lunes.getFullYear(), DST.lunes.getMonth(), DST.lunes.getDate() + DST.diaSel));
+    var cont = document.getElementById('dsTodasAreasCont');
+    cont.innerHTML = '<p style="color:#6b7280">Cargando…</p>';
+    api('/design/api/areas').then(function(areas) {
+      Promise.all(areas.map(function(a) {
+        return api('/design/api/teams?area_id=' + a.id).then(function(teams) { return {area: a, teams: teams}; });
+      })).then(function(resultados) {
+        var bloques = [];
+        var pendientes = 0;
+        resultados.forEach(function(r) { pendientes += r.teams.length; });
+        if (!pendientes) { cont.innerHTML = '<p style="color:#6b7280">No hay equipos configurados en ninguna área todavía.</p>'; return; }
+        var html = '';
+        resultados.forEach(function(r) {
+          if (!r.teams.length) return;
+          html += '<div class="ds-panel"><h3 style="font-size:16px;color:#111827">' + dsEsc(r.area.nombre) + '</h3>';
+          r.teams.forEach(function(t) {
+            html += '<div style="margin-bottom:10px">' +
+              '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+                '<b style="color:#1d4ed8;font-size:13px">' + dsEsc(t.nombre) + '</b>' +
+                '<button type="button" class="btn gris mini" data-ir-equipo="' + r.area.id + ':' + r.area.formato + ':' + t.id + '">Ver equipo →</button>' +
+              '</div>' +
+              '<div id="dsAllTabla_' + t.id + '"><p style="color:#6b7280;font-size:12px">Cargando…</p></div>' +
+            '</div>';
+          });
+          html += '</div>';
+        });
+        cont.innerHTML = html;
+        cont.querySelectorAll('[data-ir-equipo]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var partes = btn.dataset.irEquipo.split(':');
+            document.getElementById('dsTodasAreasChk').checked = false;
+            dsMostrarVista(false);
+            dsSeleccionarArea(parseInt(partes[0]), partes[1]);
+            DS.deepLinkTeamId = parseInt(partes[2]);
+          });
+        });
+        resultados.forEach(function(r) {
+          r.teams.forEach(function(t) {
+            api('/design/api/dia?team_id=' + t.id + '&fecha=' + fecha).then(function(dia) {
+              var todas = dia.principal.concat(dia.nightguard || []);
+              var el = document.getElementById('dsAllTabla_' + t.id);
+              if (el) el.innerHTML = dsRenderResumenTabla(todas);
+            });
+          });
+        });
+      });
+    });
+  }
+  function dsMostrarVista(todasAreas) {
+    document.getElementById('dsVistaNormal').style.display = todasAreas ? 'none' : '';
+    document.getElementById('dsVistaTodasAreas').style.display = todasAreas ? '' : 'none';
+    if (todasAreas) { dsRenderDiasTodas(); dsCargarTodasAreas(); }
+  }
+  var todasAreasChk = document.getElementById('dsTodasAreasChk');
+  if (todasAreasChk) {
+    todasAreasChk.addEventListener('change', function() { dsMostrarVista(this.checked); });
+  }
+
+  // ---------- Wiring filtros de fecha ----------
+  document.getElementById('dsMesFiltro').addEventListener('change', function() {
+    dsPoblarFiltroSemana();
+    document.getElementById('dsSemanaFiltro').selectedIndex = 0;
+    dsAplicarSemanaFiltro();
+  });
+  document.getElementById('dsSemanaFiltro').addEventListener('change', dsAplicarSemanaFiltro);
+  dsPoblarFiltroMes();
 
   dsRenderDias();
   dsCargarAreas();
