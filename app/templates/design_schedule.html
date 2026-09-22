@@ -39,6 +39,9 @@
                   cursor:pointer; font-size:13px; color:#111827; white-space:nowrap; }
   .ds-drop-item:hover { background:#eff6ff; }
   .ds-drop-item.activo { background:#1d4ed8; color:#fff; font-weight:600; }
+  /* Mensaje "Selecciona un área..." centrado en el espacio visible bajo la fila de áreas */
+  .ds-sin-equipo { display:flex; align-items:center; justify-content:center; text-align:center; margin:0;
+                   min-height:max(200px, calc(100vh - 300px)); color:#6b7280; font-size:15px; }
   .ds-drop-vacio { padding:8px 12px; color:#6b7280; font-size:12px; white-space:nowrap; }
   .ds-semana { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .ds-dia { padding:6px 14px; border-radius:8px; border:1px solid var(--borde,#d8dde3); background:#fff;
@@ -383,7 +386,7 @@
   </div>
 
   <div id="dsVistaNormal">
-    <p id="dsSinEquipo" style="color:#6b7280;padding:40px 0;text-align:center">Selecciona un área y un equipo para ver su horario.</p>
+    <p id="dsSinEquipo" class="ds-sin-equipo">Selecciona un área y un equipo para ver su horario.</p>
     <div id="dsVistaEquipo" style="display:none">
 
     <div class="ds-semana">
