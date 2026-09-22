@@ -147,7 +147,7 @@ DESIGN_CLASIFICACIONES_SUPPORT = ["Soporte"]
 DESIGN_AUSENCIAS_INICIALES = [
     "Vacaciones", "Calamidad doméstica", "Licencia por luto", "Licencia por paternidad",
     "Descanso compensatorio", "Festivo compensatorio", "Incapacidad", "Suspensión",
-    "Remunerada", "No remunerada", "Cumpleaños", "Grado",
+    "Remunerada", "No remunerada", "Cumpleaños", "Grado", "Permiso personal",
 ]
 
 # Canvas: 8 plantillas base (marcos ya ubicados sobre una hoja de 1080x1080), portadas

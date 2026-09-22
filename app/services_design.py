@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
-from .models import Empleado
+from .models import Empleado, Solicitud, TipoPermiso
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
@@ -69,6 +69,34 @@ def ausencias_disponibles(db: Session) -> list[str]:
             .order_by(DesignAusenciaTipo.orden).all()]
 
 
+# Solo se auto-rellenan los tipos de permiso de People que corresponden a un día completo
+# fuera de la oficina (no citas/diligencias por horas). Mapea el nombre del tipo en People
+# al nombre equivalente del catálogo de ausencias de Design Schedule.
+MAPEO_PERMISO_A_AUSENCIA_DESIGN = {
+    "Vacaciones": "Vacaciones",
+    "Calamidad doméstica": "Calamidad doméstica",
+    "Licencia de luto": "Licencia por luto",
+    "Permiso personal": "Permiso personal",
+}
+
+
+def _permisos_aprobados_del_dia(db: Session, empleado_ids: list[int], fecha: date) -> dict[int, str]:
+    """{empleado_id: nombre_ausencia_design} para permisos de día completo aprobados en People que cubren `fecha`."""
+    if not empleado_ids:
+        return {}
+    filas = (db.query(Solicitud.empleado_id, TipoPermiso.nombre)
+            .join(TipoPermiso, Solicitud.tipo_id == TipoPermiso.id)
+            .filter(Solicitud.empleado_id.in_(empleado_ids), Solicitud.estado == "aprobada",
+                    Solicitud.fecha_inicio <= fecha, Solicitud.fecha_fin >= fecha,
+                    Solicitud.hora_inicio.is_(None), Solicitud.hora_fin.is_(None)).all())
+    resultado = {}
+    for empleado_id, nombre_tipo in filas:
+        ausencia = MAPEO_PERMISO_A_AUSENCIA_DESIGN.get(nombre_tipo)
+        if ausencia:
+            resultado[empleado_id] = ausencia
+    return resultado
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
@@ -101,9 +129,29 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date) -> dict:
     breaks = db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha).all()
     principal = [serializar_orden(o) for o in ordenes if o.tabla == "principal"]
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]
+
+    permisos = _permisos_aprobados_del_dia(db, [d.empleado_id for d in team.designers], fecha)
+    breaks_out = []
+    vistos = set()
+    for b in breaks:
+        data = serializar_break(b)
+        if not data["tipoAusencia"] and permisos.get(b.empleado_id):
+            data["tipoAusencia"] = permisos[b.empleado_id]
+            data["ausenciaAutomatica"] = True
+        breaks_out.append(data)
+        vistos.add(b.empleado_id)
+    for empleado_id, ausencia in permisos.items():
+        if empleado_id in vistos:
+            continue
+        breaks_out.append({
+            "id": None, "empleadoId": empleado_id, "tipoAusencia": ausencia,
+            "almuerzoInicio": "", "almuerzoFin": "", "break1Inicio": "", "break1Fin": "",
+            "break2Inicio": "", "break2Fin": "", "ausenciaAutomatica": True,
+        })
+
     return {
         "principal": principal, "nightguard": nightguard,
-        "breaks": [serializar_break(b) for b in breaks],
+        "breaks": breaks_out,
         "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in team.designers],
     }
 

@@ -993,7 +993,8 @@
         var row = document.createElement('div'); row.className = 'ds-break-row'; row.dataset.empleadoId = d.id;
         row.innerHTML =
           '<b style="min-width:140px">' + dsEsc(d.nombre) + '</b>' +
-          '<div><label>Ausencia</label><select data-campo="tipoAusencia"><option value="">—</option>' +
+          '<div><label>Ausencia' + (b.ausenciaAutomatica ? ' <span title="Tomado automáticamente de un permiso aprobado en People" style="color:#16a34a">🔒 People</span>' : '') + '</label>' +
+          '<select data-campo="tipoAusencia"><option value="">—</option>' +
             tipos.map(function(t) { return '<option value="' + t + '"' + (t === b.tipoAusencia ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
           '</select></div>' +
           '<div><label>Almuerzo</label><input type="time" data-campo="almuerzoInicio" value="' + dsEsc(b.almuerzoInicio || '') + '"></div>' +
