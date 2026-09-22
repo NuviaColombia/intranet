@@ -45,8 +45,10 @@
   .ds-drop-item:hover { background:#eff6ff; }
   .ds-drop-item.activo { background:#1d4ed8; color:#fff; font-weight:600; }
   /* Mensaje "Selecciona un área..." centrado en el espacio visible bajo la fila de áreas */
-  .ds-sin-equipo { display:flex; align-items:center; justify-content:center; text-align:center; margin:0;
-                   min-height:max(200px, calc(100vh - 300px)); color:#6b7280; font-size:15px; }
+  .ds-sin-equipo { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center;
+                   margin:0; min-height:max(200px, calc(100vh - 300px)); color:#6b7280; font-size:15px; }
+  /* Mismo ícono que el módulo People en el portal (🗓️), ~3x la altura del texto */
+  .ds-sin-equipo-icono { font-size:44px; line-height:1; }
   .ds-drop-vacio { padding:8px 12px; color:#6b7280; font-size:12px; white-space:nowrap; }
   .ds-semana { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .ds-dia { padding:6px 14px; border-radius:8px; border:1px solid var(--borde,#d8dde3); background:#fff;
@@ -399,7 +401,10 @@
   </div>
 
   <div id="dsVistaNormal">
-    <p id="dsSinEquipo" class="ds-sin-equipo">Selecciona un área y un equipo para ver su horario.</p>
+    <div id="dsSinEquipo" class="ds-sin-equipo">
+      <span class="ds-sin-equipo-icono" aria-hidden="true">🗓️</span>
+      <span>Selecciona un área y un equipo para ver su horario.</span>
+    </div>
     <div id="dsVistaEquipo" style="display:none">
 
     <div id="dsDiaTabs" class="ds-tabs"></div>
