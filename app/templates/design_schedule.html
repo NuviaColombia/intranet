@@ -311,13 +311,6 @@
   .pr-form textarea { min-height:80px; }
 
 
-  .fv-list { display:flex; flex-direction:column; gap:10px; max-width:520px; }
-  .fv-item { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:12px 14px; }
-  .fv-label { font-size:13px; font-weight:600; color:#111827; }
-  .fv-link { color:#1d4ed8; text-decoration:none; font-size:12px; font-weight:700; }
-  .fv-quitar { background:none; border:1px solid #d8dde3; color:#6b7280; border-radius:6px; padding:5px 10px; font-size:11px; cursor:pointer; }
-  .fv-quitar:hover { color:#dc2626; border-color:#dc2626; }
-  .fv-empty { color:#6b7280; padding:40px; text-align:center; max-width:480px; }
 
 
   .tr-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -608,9 +601,6 @@
     <pre id="prModalContenido"></pre>
   </div>
 </div></div></div>
-<div class="ds-overlay" id="ov-favoritos"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>⭐ Favoritos — Design Schedule</h1>
-<p style="color:#6b7280;font-size:13px;margin-top:-8px">Accesos rápidos a equipos, hojas de Pre-Approved y protocolos. Marca la estrella junto a un ítem para que aparezca aquí.</p>
-<div class="fv-list" id="fvList"></div></div></div>
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Dashboard — Design Schedule</h1>
 
@@ -701,7 +691,6 @@
     lunes: dsLunesDe(new Date()),
     diaSel: 0, // 0=lunes ... 4=viernes
     diaData: null,
-    favTeams: [],
     deepLinkAreaId: URL_PARAMS.get('area_id') ? parseInt(URL_PARAMS.get('area_id')) : null,
     deepLinkTeamId: URL_PARAMS.get('team_id') ? parseInt(URL_PARAMS.get('team_id')) : null,
   };
@@ -797,9 +786,7 @@
 
   // ---------- Áreas / Equipos ----------
   function dsCargarAreas() {
-    Promise.all([api('/design/api/areas'), api('/design/api/favoritos/activos')]).then(function(r) {
-      var areas = r[0];
-      DS.favTeams = r[1].teams || [];
+    api('/design/api/areas').then(function(areas) {
       DS.areas = areas;
       var cont = document.getElementById('dsAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
@@ -830,26 +817,11 @@
       DS.teams = teams;
       var cont = document.getElementById('dsTeamTabs'); cont.innerHTML = '';
       teams.forEach(function(t) {
-        var wrap = document.createElement('span'); wrap.style.display = 'inline-flex'; wrap.style.alignItems = 'center'; wrap.style.gap = '2px';
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'ds-tab';
         btn.innerText = t.nombre;
         btn.onclick = function() { dsSeleccionarEquipo(t.id); };
-        var fav = document.createElement('button');
-        fav.type = 'button'; fav.title = 'Marcar/quitar favorito';
-        fav.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;color:#f2b100';
-        fav.innerText = DS.favTeams.indexOf(t.id) >= 0 ? '★' : '☆';
-        fav.onclick = function(ev) {
-          ev.stopPropagation();
-          fetch('/design/api/favoritos/team/' + t.id + '/toggle', {method:'POST'}).then(function(r) { return r.json(); })
-            .then(function(res) {
-              fav.innerText = res.favorito ? '★' : '☆';
-              if (res.favorito) { if (DS.favTeams.indexOf(t.id) < 0) DS.favTeams.push(t.id); }
-              else { DS.favTeams = DS.favTeams.filter(function(x) { return x !== t.id; }); }
-            });
-        };
-        wrap.appendChild(btn); wrap.appendChild(fav);
-        cont.appendChild(wrap);
+        cont.appendChild(btn);
       });
       if (!teams.length) {
         if (autoBuscar && typeof idxActual === 'number' && idxActual + 1 < DS.areas.length) {
@@ -1623,14 +1595,12 @@ window.DS_PANELS.dashboard = ddCargar;
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   var URL_PARAMS = new URLSearchParams(location.search);
-  var PA = { areaId: null, sheetId: null, areas: [], sheets: [], detalle: null, favSheets: [],
+  var PA = { areaId: null, sheetId: null, areas: [], sheets: [], detalle: null,
             deepLinkAreaId: URL_PARAMS.get('area_id') ? parseInt(URL_PARAMS.get('area_id')) : null,
             deepLinkSheetId: URL_PARAMS.get('sheet_id') ? parseInt(URL_PARAMS.get('sheet_id')) : null };
 
   function cargarAreas() {
-    Promise.all([api('/design/api/areas'), api('/design/api/favoritos/activos')]).then(function(r) {
-      var areas = r[0];
-      PA.favSheets = r[1].preapproved || [];
+    api('/design/api/areas').then(function(areas) {
       PA.areas = areas;
       var cont = document.getElementById('paAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
@@ -1661,26 +1631,11 @@ window.DS_PANELS.dashboard = ddCargar;
       PA.sheets = sheets;
       var cont = document.getElementById('paSheetTabs'); cont.innerHTML = '';
       sheets.forEach(function(s) {
-        var wrap = document.createElement('span'); wrap.style.display = 'inline-flex'; wrap.style.alignItems = 'center'; wrap.style.gap = '2px';
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'pa-tab' + (s.id === PA.sheetId ? ' activo' : '');
         btn.innerText = s.nombre;
         btn.onclick = function() { seleccionarHoja(s.id); };
-        var fav = document.createElement('button');
-        fav.type = 'button'; fav.title = 'Marcar/quitar favorito';
-        fav.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;color:#f2b100';
-        fav.innerText = PA.favSheets.indexOf(s.id) >= 0 ? '★' : '☆';
-        fav.onclick = function(ev) {
-          ev.stopPropagation();
-          fetch('/design/api/favoritos/preapproved/' + s.id + '/toggle', {method:'POST'}).then(function(r) { return r.json(); })
-            .then(function(res) {
-              fav.innerText = res.favorito ? '★' : '☆';
-              if (res.favorito) { if (PA.favSheets.indexOf(s.id) < 0) PA.favSheets.push(s.id); }
-              else { PA.favSheets = PA.favSheets.filter(function(x) { return x !== s.id; }); }
-            });
-        };
-        wrap.appendChild(btn); wrap.appendChild(fav);
-        cont.appendChild(wrap);
+        cont.appendChild(btn);
       });
       if (!sheets.length) {
         PA.sheetId = null;
@@ -3433,56 +3388,6 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   window.DS_PANELS.protocols = cargarAreas;
-
-})();
-
-</script>
-
-<script>
-
-(function() {
-  function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-  function cargar() {
-    fetch('/design/api/favoritos').then(function(r) { return r.json(); }).then(render);
-  }
-
-  function render(favs) {
-    var list = document.getElementById('fvList');
-    if (!favs.length) {
-      list.innerHTML = '<div class="fv-empty">Aún no tienes favoritos.<br>Marca un equipo con la estrella en Horario, o una hoja en Pre-Approved.</div>';
-      return;
-    }
-    function hrefDe(f) {
-      if (f.tipo === 'team') return '/design?area_id=' + f.areaId + '&team_id=' + f.teamId;
-      if (f.tipo === 'preapproved') return '/design/preapproved?area_id=' + f.areaId + '&sheet_id=' + f.sheetId;
-      return '/design/protocols';
-    }
-    function toggleUrlDe(f) {
-      if (f.tipo === 'team') return '/design/api/favoritos/team/' + f.teamId + '/toggle';
-      if (f.tipo === 'preapproved') return '/design/api/favoritos/preapproved/' + f.sheetId + '/toggle';
-      return '/design/api/favoritos/protocolo/' + f.protocoloId + '/toggle';
-    }
-
-    list.innerHTML = favs.map(function(f) {
-      return '<div class="fv-item">' +
-        '<div class="fv-label">⭐ ' + esc(f.etiqueta) + '</div>' +
-        '<div style="display:flex;gap:10px;align-items:center">' +
-          '<a class="fv-link" href="' + hrefDe(f) + '">Ir →</a>' +
-          '<button type="button" class="fv-quitar" data-id="' + f.id + '">Quitar</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-
-    list.querySelectorAll('.fv-quitar').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var f = favs.find(function(x) { return x.id == btn.dataset.id; });
-        fetch(toggleUrlDe(f), {method:'POST'}).then(cargar);
-      });
-    });
-  }
-
-  window.DS_PANELS.favoritos = cargar;
 
 })();
 
