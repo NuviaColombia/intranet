@@ -575,6 +575,62 @@ async def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_m
     return {"mensaje": "Guardado."}
 
 
+# ---------- Pre-Approved "Cambios": mover/intercambiar doctores y centros entre managers ----------
+
+class PACMoverDoctorIn(BaseModel):
+    doctorId: int
+    sheetDestinoId: int
+    centroDestinoId: int | None = None
+
+
+class PACMoverCentroIn(BaseModel):
+    centroId: int
+    sheetDestinoId: int
+    centroDestinoId: int | None = None
+
+
+class PACIntercambiarDoctorIn(BaseModel):
+    doctorAId: int
+    doctorBId: int
+
+
+class PACIntercambiarCentroIn(BaseModel):
+    centroAId: int
+    centroBId: int
+
+
+def _pac_respuesta(resultado: dict) -> dict:
+    if "error" in resultado:
+        raise HTTPException(400, resultado["error"])
+    return resultado
+
+
+@router.post("/design/api/preapproved/cambios/mover-doctor")
+async def api_pac_mover_doctor(payload: PACMoverDoctorIn, user: Empleado = Depends(require_design_manager),
+                               db: Session = Depends(get_db)):
+    return _pac_respuesta(sd.pac_mover_doctor(db, payload.doctorId, payload.sheetDestinoId, payload.centroDestinoId))
+
+
+@router.post("/design/api/preapproved/cambios/mover-centro")
+async def api_pac_mover_centro(payload: PACMoverCentroIn, user: Empleado = Depends(require_design_manager),
+                               db: Session = Depends(get_db)):
+    return _pac_respuesta(sd.pac_mover_centro(db, payload.centroId, payload.sheetDestinoId, payload.centroDestinoId))
+
+
+@router.post("/design/api/preapproved/cambios/intercambiar-doctor")
+async def api_pac_intercambiar_doctor(payload: PACIntercambiarDoctorIn,
+                                      user: Empleado = Depends(require_design_manager),
+                                      db: Session = Depends(get_db)):
+    return _pac_respuesta(sd.pac_intercambiar_doctor(db, payload.doctorAId, payload.doctorBId))
+
+
+@router.post("/design/api/preapproved/cambios/intercambiar-centro")
+async def api_pac_intercambiar_centro(payload: PACIntercambiarCentroIn,
+                                      user: Empleado = Depends(require_design_manager),
+                                      db: Session = Depends(get_db)):
+    return _pac_respuesta(sd.pac_intercambiar_centro(db, payload.centroAId, payload.centroBId))
+
+
 # ---------- Desempeño (aprobadores y admins: equivalente a "Tools Managers") ----------
 
 @router.get("/design/perf")

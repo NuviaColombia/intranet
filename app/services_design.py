@@ -547,6 +547,271 @@ def preapproved_guardar_celda(db: Session, fila_id: int, doctor_id: int, valor: 
 
 
 # ---------------------------------------------------------------------------
+# Pre-Approved "Cambios": mover o intercambiar doctores/centros entre hojas
+# (managers) de una misma área. Los valores viajan emparejados por NOMBRE de
+# criterio (no por posición), para no corromper datos cuando dos managers
+# tienen criterios distintos; lo que no tiene coincidencia en el destino se
+# descarta y se informa como "unmatched", igual que en la herramienta original.
+# ---------------------------------------------------------------------------
+
+def _pac_normalizar(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip().lower())
+
+
+def _pac_valores_doctor(db: Session, doctor_id: int) -> dict[str, str]:
+    filas = (db.query(DesignPreApprovedCelda, DesignPreApprovedFila.criterio)
+            .join(DesignPreApprovedFila, DesignPreApprovedCelda.fila_id == DesignPreApprovedFila.id)
+            .filter(DesignPreApprovedCelda.doctor_id == doctor_id).all())
+    return {_pac_normalizar(criterio): celda.valor for celda, criterio in filas if (celda.valor or "").strip()}
+
+
+def _pac_aplicar_valores(db: Session, doctor_id: int, sheet_id: int, valores: dict[str, str]) -> int:
+    """Escribe `valores` (clave = criterio normalizado) en las celdas de doctor_id dentro de
+    sheet_id, alineando por nombre de criterio. Devuelve cuántos valores no encontraron fila."""
+    filas = db.query(DesignPreApprovedFila).filter(DesignPreApprovedFila.sheet_id == sheet_id).all()
+    mapa = {_pac_normalizar(f.criterio): f for f in filas}
+    sin_match = 0
+    for criterio_norm, valor in valores.items():
+        fila = mapa.get(criterio_norm)
+        if fila:
+            preapproved_guardar_celda(db, fila.id, doctor_id, valor)
+        else:
+            sin_match += 1
+    return sin_match
+
+
+def _pac_doctores_ordenados(db: Session, sheet_id: int) -> list[DesignPreApprovedDoctor]:
+    return (db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id == sheet_id)
+            .order_by(DesignPreApprovedDoctor.orden, DesignPreApprovedDoctor.id).all())
+
+
+def _pac_centros_ordenados(db: Session, sheet_id: int) -> list[DesignPreApprovedCentro]:
+    return (db.query(DesignPreApprovedCentro).filter(DesignPreApprovedCentro.sheet_id == sheet_id)
+            .order_by(DesignPreApprovedCentro.orden, DesignPreApprovedCentro.id).all())
+
+
+def _pac_centro_de_doctor(db: Session, sheet_id: int, doctor_id: int) -> DesignPreApprovedCentro | None:
+    doctores = _pac_doctores_ordenados(db, sheet_id)
+    centros = _pac_centros_ordenados(db, sheet_id)
+    idx = next((i for i, d in enumerate(doctores) if d.id == doctor_id), None)
+    if idx is None:
+        return None
+    acumulado = 0
+    for c in centros:
+        if idx < acumulado + c.span:
+            return c
+        acumulado += c.span
+    return centros[-1] if centros else None
+
+
+def _pac_posicion_centro(db: Session, centro: DesignPreApprovedCentro) -> int:
+    acumulado = 0
+    for c in _pac_centros_ordenados(db, centro.sheet_id):
+        if c.id == centro.id:
+            return acumulado
+        acumulado += c.span
+    return acumulado
+
+
+def _pac_doctores_del_centro(db: Session, centro: DesignPreApprovedCentro) -> list[DesignPreApprovedDoctor]:
+    inicio = _pac_posicion_centro(db, centro)
+    return _pac_doctores_ordenados(db, centro.sheet_id)[inicio:inicio + centro.span]
+
+
+def _pac_insertar_doctor(db: Session, doctor: DesignPreApprovedDoctor, sheet_dst_id: int,
+                         centro_dst_id: int | None, nombre_centro_si_nuevo: str) -> None:
+    """Ubica `doctor` (ya con sheet_id = sheet_dst_id) en la posición del centro destino
+    (o crea un centro nuevo al final) y renumera doctores/centros de la hoja destino."""
+    if centro_dst_id is None:
+        centros = _pac_centros_ordenados(db, sheet_dst_id)
+        nuevo = DesignPreApprovedCentro(sheet_id=sheet_dst_id, nombre=nombre_centro_si_nuevo, span=1,
+                                        orden=len(centros) + 1)
+        db.add(nuevo)
+        db.flush()
+        insert_at = len(_pac_doctores_ordenados(db, sheet_dst_id)) - 1  # doctor ya está en la hoja, sin insertar aún
+    else:
+        centro = db.get(DesignPreApprovedCentro, centro_dst_id)
+        span_original = centro.span
+        centro.span = span_original + 1
+        acumulado = 0
+        insert_at = 0
+        for c in _pac_centros_ordenados(db, sheet_dst_id):
+            if c.id == centro_dst_id:
+                acumulado += span_original
+                insert_at = acumulado
+                break
+            acumulado += c.span
+
+    doctores = [d for d in _pac_doctores_ordenados(db, sheet_dst_id) if d.id != doctor.id]
+    doctores.insert(insert_at, doctor)
+    for i, d in enumerate(doctores, start=1):
+        d.orden = i
+
+
+def pac_mover_doctor(db: Session, doctor_id: int, sheet_dst_id: int, centro_dst_id: int | None) -> dict:
+    doctor = db.get(DesignPreApprovedDoctor, doctor_id)
+    if not doctor:
+        return {"error": "Doctor no encontrado."}
+    sheet_src_id = doctor.sheet_id
+    if sheet_src_id == sheet_dst_id:
+        return {"error": "Elige un manager de destino distinto."}
+    if db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id == sheet_src_id).count() <= 1:
+        return {"error": "El manager origen no puede quedar sin doctores."}
+
+    valores = _pac_valores_doctor(db, doctor_id)
+    centro_origen = _pac_centro_de_doctor(db, sheet_src_id, doctor_id)
+    nombre_centro_origen = centro_origen.nombre if centro_origen else ""
+
+    db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == doctor_id).delete()
+    if centro_origen:
+        centro_origen.span -= 1
+        if centro_origen.span <= 0:
+            db.delete(centro_origen)
+
+    doctor.sheet_id = sheet_dst_id
+    db.flush()
+    _pac_insertar_doctor(db, doctor, sheet_dst_id, centro_dst_id, nombre_centro_origen)
+    sin_match = _pac_aplicar_valores(db, doctor_id, sheet_dst_id, valores)
+    db.commit()
+    return {"unmatched": sin_match}
+
+
+def pac_mover_centro(db: Session, centro_id: int, sheet_dst_id: int, centro_dst_id: int | None) -> dict:
+    centro = db.get(DesignPreApprovedCentro, centro_id)
+    if not centro:
+        return {"error": "Centro no encontrado."}
+    sheet_src_id = centro.sheet_id
+    if sheet_src_id == sheet_dst_id:
+        return {"error": "Elige un manager de destino distinto."}
+    if db.query(DesignPreApprovedCentro).filter(DesignPreApprovedCentro.sheet_id == sheet_src_id).count() <= 1:
+        return {"error": "El manager origen no puede quedar sin centros."}
+
+    doctores_bloque = _pac_doctores_del_centro(db, centro)
+    valores_por_doctor = {d.id: _pac_valores_doctor(db, d.id) for d in doctores_bloque}
+    nombre_centro = centro.nombre
+
+    ids = [d.id for d in doctores_bloque]
+    if ids:
+        db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id.in_(ids)).delete(synchronize_session=False)
+    db.delete(centro)
+    db.flush()
+
+    if centro_dst_id is None:
+        centros_dst = _pac_centros_ordenados(db, sheet_dst_id)
+        nuevo = DesignPreApprovedCentro(sheet_id=sheet_dst_id, nombre=nombre_centro, span=len(doctores_bloque),
+                                        orden=len(centros_dst) + 1)
+        db.add(nuevo)
+        db.flush()
+        insert_at = len(_pac_doctores_ordenados(db, sheet_dst_id))
+    else:
+        centro_dst = db.get(DesignPreApprovedCentro, centro_dst_id)
+        span_original = centro_dst.span
+        centro_dst.span = span_original + len(doctores_bloque)
+        acumulado = 0
+        insert_at = 0
+        for c in _pac_centros_ordenados(db, sheet_dst_id):
+            if c.id == centro_dst_id:
+                acumulado += span_original
+                insert_at = acumulado
+                break
+            acumulado += c.span
+
+    for d in doctores_bloque:
+        d.sheet_id = sheet_dst_id
+    doctores = [d for d in _pac_doctores_ordenados(db, sheet_dst_id) if d.id not in ids]
+    doctores[insert_at:insert_at] = doctores_bloque
+    for i, d in enumerate(doctores, start=1):
+        d.orden = i
+    db.flush()
+
+    unmatched = 0
+    for d in doctores_bloque:
+        unmatched += _pac_aplicar_valores(db, d.id, sheet_dst_id, valores_por_doctor[d.id])
+    db.commit()
+    return {"unmatched": unmatched}
+
+
+def pac_intercambiar_doctor(db: Session, doctor_a_id: int, doctor_b_id: int) -> dict:
+    a = db.get(DesignPreApprovedDoctor, doctor_a_id)
+    b = db.get(DesignPreApprovedDoctor, doctor_b_id)
+    if not a or not b:
+        return {"error": "Doctor no encontrado."}
+    if a.sheet_id == b.sheet_id:
+        return {"error": "Para intercambiar elige dos managers distintos."}
+
+    valores_a = _pac_valores_doctor(db, doctor_a_id)
+    valores_b = _pac_valores_doctor(db, doctor_b_id)
+    sheet_a_id, sheet_b_id = a.sheet_id, b.sheet_id
+    a.nombre, b.nombre = b.nombre, a.nombre
+
+    db.query(DesignPreApprovedCelda).filter(
+        DesignPreApprovedCelda.doctor_id.in_([doctor_a_id, doctor_b_id])).delete(synchronize_session=False)
+    db.flush()
+
+    unmatched = _pac_aplicar_valores(db, doctor_a_id, sheet_a_id, valores_b)
+    unmatched += _pac_aplicar_valores(db, doctor_b_id, sheet_b_id, valores_a)
+    db.commit()
+    return {"unmatched": unmatched}
+
+
+def pac_intercambiar_centro(db: Session, centro_a_id: int, centro_b_id: int) -> dict:
+    a = db.get(DesignPreApprovedCentro, centro_a_id)
+    b = db.get(DesignPreApprovedCentro, centro_b_id)
+    if not a or not b:
+        return {"error": "Centro no encontrado."}
+    if a.sheet_id == b.sheet_id:
+        return {"error": "Para intercambiar elige dos managers distintos."}
+
+    sheet_a_id, sheet_b_id = a.sheet_id, b.sheet_id
+    doctores_a = _pac_doctores_del_centro(db, a)
+    doctores_b = _pac_doctores_del_centro(db, b)
+    valores_a = [_pac_valores_doctor(db, d.id) for d in doctores_a]
+    valores_b = [_pac_valores_doctor(db, d.id) for d in doctores_b]
+    nombres_a = [d.nombre for d in doctores_a]
+    nombres_b = [d.nombre for d in doctores_b]
+    nombre_centro_a, nombre_centro_b = a.nombre, b.nombre
+
+    ids_borrar = [d.id for d in doctores_a] + [d.id for d in doctores_b]
+    if ids_borrar:
+        db.query(DesignPreApprovedCelda).filter(
+            DesignPreApprovedCelda.doctor_id.in_(ids_borrar)).delete(synchronize_session=False)
+
+    pos_a = _pac_posicion_centro(db, a)
+    pos_b = _pac_posicion_centro(db, b)
+    for d in doctores_a + doctores_b:
+        db.delete(d)
+    db.flush()
+
+    nuevos_en_a = [DesignPreApprovedDoctor(sheet_id=sheet_a_id, nombre=n, orden=0) for n in nombres_b]
+    nuevos_en_b = [DesignPreApprovedDoctor(sheet_id=sheet_b_id, nombre=n, orden=0) for n in nombres_a]
+    for d in nuevos_en_a + nuevos_en_b:
+        db.add(d)
+    db.flush()
+
+    resto_a = _pac_doctores_ordenados(db, sheet_a_id)
+    resto_a[pos_a:pos_a] = nuevos_en_a
+    for i, d in enumerate(resto_a, start=1):
+        d.orden = i
+
+    resto_b = _pac_doctores_ordenados(db, sheet_b_id)
+    resto_b[pos_b:pos_b] = nuevos_en_b
+    for i, d in enumerate(resto_b, start=1):
+        d.orden = i
+
+    a.nombre, a.span = nombre_centro_b, len(nuevos_en_a)
+    b.nombre, b.span = nombre_centro_a, len(nuevos_en_b)
+    db.flush()
+
+    unmatched = 0
+    for d, valores in zip(nuevos_en_a, valores_b):
+        unmatched += _pac_aplicar_valores(db, d.id, sheet_a_id, valores)
+    for d, valores in zip(nuevos_en_b, valores_a):
+        unmatched += _pac_aplicar_valores(db, d.id, sheet_b_id, valores)
+    db.commit()
+    return {"unmatched": unmatched}
+
+
+# ---------------------------------------------------------------------------
 # Desempeño (Performance) — acceso restringido a aprobadores y administradores (RR.HH.).
 # ---------------------------------------------------------------------------
 

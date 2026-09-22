@@ -104,6 +104,38 @@
   .pa-crit-cell { min-width:140px; font-weight:600; }
   .pa-toolbar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
 
+  .pac-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:60; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .pac-modal-bg.open { display:flex; }
+  .pac-modal { background:#fff; border-radius:12px; padding:22px; max-width:880px; width:100%; }
+  .pac-modal h2 { margin:0 0 14px; font-size:17px; }
+  .pac-mode { display:inline-flex; gap:4px; background:#f4f6f8; border:1px solid #d8dde3; border-radius:9px; padding:4px; margin-bottom:14px; }
+  .pac-mode-btn { border:none; background:transparent; color:#6b7280; font-family:inherit; font-size:12.5px; font-weight:700; padding:6px 16px; border-radius:6px; cursor:pointer; }
+  .pac-mode-btn.activo { background:#1d4ed8; color:#fff; }
+  .pac-cols { display:grid; grid-template-columns:1fr 190px 1fr; gap:12px; align-items:start; }
+  .pac-side { border:1px solid #d8dde3; border-radius:10px; padding:10px; background:#f9fafb; min-width:0; }
+  .pac-side-head { font-size:10px; text-transform:uppercase; letter-spacing:.05em; font-weight:800; color:#9ca3af; margin-bottom:8px; }
+  .pac-mgr { width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; background:#fff; color:#111827; font-family:inherit; font-size:12.5px; margin-bottom:10px; box-sizing:border-box; }
+  .pac-tree { max-height:44vh; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+  .pac-centro { border:1px solid #d8dde3; border-radius:9px; overflow:hidden; flex:0 0 auto; background:#fff; }
+  .pac-centro-head { display:flex; align-items:center; gap:6px; padding:7px 10px; background:#fff; cursor:pointer; font-size:12px; font-weight:700; color:#1d4ed8; }
+  .pac-centro-head:hover { background:#eff6ff; }
+  .pac-centro.sel > .pac-centro-head { background:#1d4ed8; color:#fff; }
+  .pac-badge { margin-left:auto; font-size:9.5px; font-weight:700; background:#eff6ff; color:#1d4ed8; border-radius:20px; padding:1px 7px; }
+  .pac-centro.sel > .pac-centro-head .pac-badge { background:rgba(255,255,255,.25); color:#fff; }
+  .pac-docs { display:flex; flex-direction:column; }
+  .pac-doc { text-align:left; background:#fff; border:none; border-top:1px solid #f0f0f0; color:#111827; padding:7px 10px 7px 22px; font-size:12px; font-family:inherit; cursor:pointer; }
+  .pac-doc:hover { background:#eff6ff; }
+  .pac-doc.sel { background:#1d4ed8; color:#fff; font-weight:700; }
+  .pac-mid { display:flex; flex-direction:column; align-items:stretch; gap:10px; padding-top:26px; }
+  .pac-dest-centro label { font-size:10.5px; font-weight:700; color:#6b7280; display:block; margin-bottom:4px; }
+  .pac-target-centro { width:100%; padding:7px 9px; border:1px solid #d1d5db; border-radius:8px; background:#fff; color:#111827; font-family:inherit; font-size:12px; box-sizing:border-box; }
+  .pac-apply { padding:10px 12px; border:none; border-radius:9px; background:#1d4ed8; color:#fff; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+  .pac-apply:disabled { opacity:.45; cursor:not-allowed; }
+  .pac-summary { font-size:11px; line-height:1.45; color:#6b7280; text-align:center; }
+  .pac-summary.warn { color:#dc2626; font-weight:600; }
+  .pac-summary.ok { color:#16a34a; font-weight:600; }
+  @media (max-width:720px) { .pac-cols { grid-template-columns:1fr; } .pac-mid { padding-top:0; } }
+
 
   #canvasHome{ max-width:1100px; margin:0 auto; }
   .cv-area-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
@@ -477,6 +509,42 @@
 <div class="pa-toolbar">
   <button type="button" class="btn" onclick="paNuevaHoja()">+ Nueva hoja</button>
   <button type="button" class="btn rojo" id="paBorrarHojaBtn" onclick="paBorrarHoja()" style="display:none">Eliminar hoja actual</button>
+  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+  <button type="button" class="btn gris" onclick="pacAbrir()" style="margin-left:auto">🔀 Cambios</button>
+  {% endif %}
+</div>
+
+<div class="pac-modal-bg" id="pacModal">
+  <div class="pac-modal">
+    <h2>🔀 Cambios — Mover / Intercambiar entre managers</h2>
+    <div class="pac-mode">
+      <button type="button" class="pac-mode-btn activo" data-mode="move">Mover</button>
+      <button type="button" class="pac-mode-btn" data-mode="swap">Intercambiar</button>
+    </div>
+    <div class="pac-cols">
+      <div class="pac-side">
+        <div class="pac-side-head">Origen</div>
+        <select class="pac-mgr" id="pacMgrsrc"></select>
+        <div class="pac-tree" id="pacsrcTree"></div>
+      </div>
+      <div class="pac-mid">
+        <div class="pac-dest-centro" id="pacTargetCentroBlock" style="display:none">
+          <label>Cae en el centro:</label>
+          <select class="pac-target-centro" id="pacTargetCentro"></select>
+        </div>
+        <button type="button" class="pac-apply" id="pacApplyBtn" disabled>Mover →</button>
+        <div class="pac-summary" id="pacSummary"></div>
+      </div>
+      <div class="pac-side">
+        <div class="pac-side-head">Destino</div>
+        <select class="pac-mgr" id="pacMgrdst"></select>
+        <div class="pac-tree" id="pacdstTree"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button type="button" class="btn gris" id="pacCloseBtn">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <div id="paSheetMeta" class="pa-panel" style="margin-bottom:14px; display:none">
@@ -1726,6 +1794,170 @@ window.DS_PANELS.dashboard = ddCargar;
   window.paEliminarCentro = function(id) { if (confirm('¿Eliminar este centro?')) postJSON('/design/api/preapproved/centros/' + id + '/eliminar').then(cargarDetalle); };
   window.paEliminarDoctor = function(id) { if (confirm('¿Eliminar este doctor y sus valores?')) postJSON('/design/api/preapproved/doctores/' + id + '/eliminar').then(cargarDetalle); };
   window.paEliminarFila = function(id) { if (confirm('¿Eliminar este criterio?')) postJSON('/design/api/preapproved/filas/' + id + '/eliminar').then(cargarDetalle); };
+
+  // ---------- Cambios: mover/intercambiar doctores y centros entre managers ----------
+  var PAC = { mode: 'move', srcSheetId: null, dstSheetId: null, srcSel: null, dstSel: null,
+             targetCentro: '__new__', srcDetalle: null, dstDetalle: null };
+
+  window.pacAbrir = function() {
+    if (!PA.sheets.length) { alert('Esta área no tiene hojas todavía.'); return; }
+    PAC.mode = 'move';
+    PAC.srcSheetId = PA.sheetId || PA.sheets[0].id;
+    var otra = PA.sheets.find(function(s) { return s.id !== PAC.srcSheetId; });
+    PAC.dstSheetId = otra ? otra.id : PAC.srcSheetId;
+    PAC.srcSel = null; PAC.dstSel = null; PAC.targetCentro = '__new__';
+    document.querySelectorAll('#pacModal .pac-mode-btn').forEach(function(b) { b.classList.toggle('activo', b.dataset.mode === 'move'); });
+    pacRenderTodo();
+    document.getElementById('pacModal').classList.add('open');
+  };
+  window.pacCerrar = function() { document.getElementById('pacModal').classList.remove('open'); };
+
+  function pacRenderTodo() {
+    pacRenderManagers();
+    Promise.all([api('/design/api/preapproved/sheets/' + PAC.srcSheetId), api('/design/api/preapproved/sheets/' + PAC.dstSheetId)])
+      .then(function(r) {
+        PAC.srcDetalle = r[0]; PAC.dstDetalle = r[1];
+        pacRenderArbol('src'); pacRenderArbol('dst'); pacRenderMid();
+      });
+  }
+
+  function pacRenderManagers() {
+    ['src', 'dst'].forEach(function(side) {
+      var sel = document.getElementById('pacMgr' + side);
+      var cur = side === 'src' ? PAC.srcSheetId : PAC.dstSheetId;
+      sel.innerHTML = PA.sheets.map(function(s) {
+        return '<option value="' + s.id + '"' + (s.id === cur ? ' selected' : '') + '>' + esc(s.nombre) + '</option>';
+      }).join('');
+    });
+  }
+
+  function pacRenderArbol(side) {
+    var host = document.getElementById('pac' + side + 'Tree');
+    var d = side === 'src' ? PAC.srcDetalle : PAC.dstDetalle;
+    if (!host || !d) return;
+    var sel = side === 'src' ? PAC.srcSel : PAC.dstSel;
+    var idx = 0;
+    var html = d.centros.map(function(c) {
+      var start = idx; idx += c.span;
+      var centroSel = sel && sel.tipo === 'centro' && sel.id === c.id;
+      var docsHtml = '';
+      d.doctores.slice(start, start + c.span).forEach(function(doc) {
+        var docSel = sel && sel.tipo === 'doctor' && sel.id === doc.id;
+        docsHtml += '<button type="button" class="pac-doc' + (docSel ? ' sel' : '') + '" data-side="' + side + '" data-tipo="doctor" data-id="' + doc.id + '">' + esc(doc.nombre || 'Sin nombre') + '</button>';
+      });
+      return '<div class="pac-centro' + (centroSel ? ' sel' : '') + '">' +
+        '<div class="pac-centro-head" data-side="' + side + '" data-tipo="centro" data-id="' + c.id + '">🏢 ' + esc(c.nombre || 'Sin centro') + '<span class="pac-badge">' + c.span + '</span></div>' +
+        '<div class="pac-docs">' + docsHtml + '</div></div>';
+    }).join('') || '<div style="color:#6b7280;font-size:12px;padding:8px">Este manager no tiene centros.</div>';
+    host.innerHTML = html;
+    var seleccionable = PAC.mode === 'swap' || side === 'src';
+    host.style.opacity = seleccionable ? '1' : '.6';
+  }
+
+  function pacRenderMid() {
+    var btn = document.getElementById('pacApplyBtn');
+    var tcBlock = document.getElementById('pacTargetCentroBlock');
+    var tcSel = document.getElementById('pacTargetCentro');
+    var summary = document.getElementById('pacSummary');
+    if (!PAC.srcDetalle || !PAC.dstDetalle) return;
+    btn.innerText = PAC.mode === 'move' ? 'Mover →' : 'Intercambiar ⇄';
+
+    var showTC = PAC.mode === 'move' && PAC.srcSel;
+    tcBlock.style.display = showTC ? '' : 'none';
+    if (showTC) {
+      var opts = '<option value="__new__">+ Nuevo centro</option>';
+      PAC.dstDetalle.centros.forEach(function(c) {
+        opts += '<option value="' + c.id + '"' + (String(c.id) === String(PAC.targetCentro) ? ' selected' : '') + '>Fusionar en «' + esc(c.nombre || 'Sin centro') + '»</option>';
+      });
+      tcSel.innerHTML = opts;
+      if (PAC.targetCentro !== '__new__' && !PAC.dstDetalle.centros.some(function(c) { return String(c.id) === String(PAC.targetCentro); })) PAC.targetCentro = '__new__';
+      tcSel.value = PAC.targetCentro;
+    }
+
+    var ok = false, msg = '';
+    if (PAC.mode === 'move') {
+      if (!PAC.srcSel) msg = 'Elige un doctor o centro en Origen.';
+      else if (PAC.srcSheetId === PAC.dstSheetId) msg = 'Elige un manager de destino distinto.';
+      else { ok = true; msg = 'Mover ' + (PAC.srcSel.tipo === 'doctor' ? 'el doctor' : 'el centro') + ' seleccionado a este manager.'; }
+    } else {
+      if (!PAC.srcSel) msg = 'Elige un ítem en Origen.';
+      else if (!PAC.dstSel) msg = 'Elige un ítem en Destino.';
+      else if (PAC.srcSheetId === PAC.dstSheetId) msg = 'Elige dos managers distintos.';
+      else if (PAC.srcSel.tipo !== PAC.dstSel.tipo) msg = 'Deben ser del mismo tipo (doctor↔doctor o centro↔centro).';
+      else { ok = true; msg = 'Intercambiar ambos elementos seleccionados.'; }
+    }
+    btn.disabled = !ok;
+    summary.textContent = msg;
+    summary.className = 'pac-summary';
+  }
+
+  window.pacAplicar = function() {
+    var url, body;
+    if (PAC.mode === 'move') {
+      var centroDestinoId = PAC.targetCentro === '__new__' ? null : parseInt(PAC.targetCentro);
+      if (PAC.srcSel.tipo === 'doctor') {
+        url = '/design/api/preapproved/cambios/mover-doctor';
+        body = {doctorId: PAC.srcSel.id, sheetDestinoId: PAC.dstSheetId, centroDestinoId: centroDestinoId};
+      } else {
+        url = '/design/api/preapproved/cambios/mover-centro';
+        body = {centroId: PAC.srcSel.id, sheetDestinoId: PAC.dstSheetId, centroDestinoId: centroDestinoId};
+      }
+    } else if (PAC.srcSel.tipo === 'doctor') {
+      url = '/design/api/preapproved/cambios/intercambiar-doctor';
+      body = {doctorAId: PAC.srcSel.id, doctorBId: PAC.dstSel.id};
+    } else {
+      url = '/design/api/preapproved/cambios/intercambiar-centro';
+      body = {centroAId: PAC.srcSel.id, centroBId: PAC.dstSel.id};
+    }
+    var btn = document.getElementById('pacApplyBtn'); btn.disabled = true;
+    fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
+      .then(function(r) { return r.json().then(function(data) { return {ok: r.ok, data: data}; }); })
+      .then(function(res) {
+        var summary = document.getElementById('pacSummary');
+        if (!res.ok) {
+          summary.textContent = res.data.detail || 'No se pudo aplicar.';
+          summary.className = 'pac-summary warn';
+          btn.disabled = false;
+          return;
+        }
+        summary.textContent = 'Listo.' + (res.data.unmatched ? ' ⚠️ ' + res.data.unmatched + ' valor(es) en criterios que no existen en el destino se descartaron.' : '');
+        summary.className = 'pac-summary ok';
+        PAC.srcSel = null; PAC.dstSel = null; PAC.targetCentro = '__new__';
+        pacRenderTodo();
+        cargarHojas();
+      });
+  };
+
+  (function initPac() {
+    var modal = document.getElementById('pacModal'); if (!modal) return;
+    document.getElementById('pacCloseBtn').addEventListener('click', window.pacCerrar);
+    modal.addEventListener('click', function(e) { if (e.target === modal) window.pacCerrar(); });
+    modal.querySelectorAll('.pac-mode-btn').forEach(function(b) {
+      b.addEventListener('click', function() {
+        PAC.mode = b.dataset.mode; PAC.srcSel = null; PAC.dstSel = null; PAC.targetCentro = '__new__';
+        modal.querySelectorAll('.pac-mode-btn').forEach(function(x) { x.classList.toggle('activo', x === b); });
+        pacRenderTodo();
+      });
+    });
+    document.getElementById('pacMgrsrc').addEventListener('change', function() {
+      PAC.srcSheetId = parseInt(this.value); PAC.srcSel = null; PAC.targetCentro = '__new__'; pacRenderTodo();
+    });
+    document.getElementById('pacMgrdst').addEventListener('change', function() {
+      PAC.dstSheetId = parseInt(this.value); PAC.dstSel = null; PAC.targetCentro = '__new__'; pacRenderTodo();
+    });
+    document.getElementById('pacTargetCentro').addEventListener('change', function() { PAC.targetCentro = this.value; pacRenderMid(); });
+    document.getElementById('pacApplyBtn').addEventListener('click', window.pacAplicar);
+    modal.querySelectorAll('.pac-tree').forEach(function(tree) {
+      tree.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-tipo]'); if (!el) return;
+        var side = el.dataset.side;
+        if (PAC.mode === 'move' && side === 'dst') return;
+        var sel = {tipo: el.dataset.tipo, id: parseInt(el.dataset.id)};
+        if (side === 'src') { PAC.srcSel = sel; PAC.targetCentro = '__new__'; } else { PAC.dstSel = sel; }
+        pacRenderArbol('src'); pacRenderArbol('dst'); pacRenderMid();
+      });
+    });
+  })();
 
   window.DS_PANELS.preapproved = cargarAreas;
 
