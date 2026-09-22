@@ -4,6 +4,20 @@
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
 <div class="tarjeta">
+  <h2>Importar equipos desde Desempeño</h2>
+  <p style="font-size:13px;color:var(--gris)">
+    Cruza los 16 equipos de las hojas de Desempeño (manager + diseñadores) contra los empleados ya
+    registrados en People (empresa Nuvia Design Colombia SAS) por nombre. No crea empleados nuevos —
+    si un nombre no tiene una coincidencia clara, queda marcado para revisar/agregar a mano.
+  </p>
+  <div style="display:flex;gap:10px;margin-bottom:12px">
+    <button type="button" class="btn gris" id="impVistaPreviaBtn">Vista previa</button>
+    <button type="button" class="btn" id="impAplicarBtn" style="display:none">Aplicar coincidencias</button>
+  </div>
+  <div id="impResultado"></div>
+</div>
+
+<div class="tarjeta">
   <h2>Equipos</h2>
   <p style="font-size:13px;color:var(--gris)">
     Cada equipo pertenece a un área y tiene un manager y una lista de diseñadores
@@ -126,4 +140,64 @@
     {% endfor %}
   </table>
 </div>
+
+<script>
+(function() {
+  function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function renderReporte(data) {
+    var cont = document.getElementById('impResultado');
+    var totalMiembros = 0, matchMiembros = 0, matchManagers = 0;
+    var html = '<table><tr><th>Hoja</th><th>Área</th><th>Manager buscado</th><th>Manager encontrado</th>' +
+      '<th>Diseñadores (buscado → encontrado)</th><th>Equipo</th></tr>';
+    data.equipos.forEach(function(eq) {
+      if (eq.managerEncontrado) matchManagers++;
+      var miembrosHtml = eq.miembros.map(function(m) {
+        totalMiembros++;
+        if (m.empleadoId) { matchMiembros++; return '<div style="color:#16a34a">✓ ' + esc(m.nombreOriginal) + ' → ' + esc(m.empleadoNombre) + '</div>'; }
+        return '<div style="color:#dc2626">✕ ' + esc(m.nombreOriginal) + ' (sin coincidencia)</div>';
+      }).join('');
+      var estadoEquipo = eq.equipoYaExistia ? 'Ya existía' : (eq.equipoCreado ? 'Creado' : (eq.managerEncontrado ? 'Pendiente de aplicar' : 'No se puede crear (falta el manager)'));
+      html += '<tr>' +
+        '<td>' + esc(eq.hoja) + '</td>' +
+        '<td>' + esc(eq.area) + (eq.areaEncontrada ? '' : ' <b style="color:#dc2626">(no existe)</b>') + '</td>' +
+        '<td>' + esc(eq.managerBuscado) + '</td>' +
+        '<td>' + (eq.managerEncontrado ? '<span style="color:#16a34a">' + esc(eq.managerEncontrado) + '</span>' : '<span style="color:#dc2626">sin coincidencia</span>') + '</td>' +
+        '<td style="font-size:12px">' + miembrosHtml + '</td>' +
+        '<td>' + estadoEquipo + (eq.miembrosAgregados ? ' · +' + eq.miembrosAgregados + ' diseñador(es)' : '') + '</td>' +
+      '</tr>';
+    });
+    html += '</table>';
+    if (data.sinMapeo && data.sinMapeo.length) {
+      html = '<p style="font-size:12px;color:var(--gris)">Hojas de Desempeño sin equipo propio (managers evaluados sin lista de diseñadores): ' +
+        data.sinMapeo.map(esc).join(', ') + '</p>' + html;
+    }
+    html = '<p style="font-size:13px;margin-bottom:8px"><b>' + matchManagers + '/' + data.equipos.length + '</b> managers encontrados · ' +
+      '<b>' + matchMiembros + '/' + totalMiembros + '</b> diseñadores encontrados</p>' + html;
+    cont.innerHTML = html;
+  }
+
+  document.getElementById('impVistaPreviaBtn').addEventListener('click', function() {
+    var btn = this; btn.disabled = true; btn.innerText = 'Cargando...';
+    fetch('/design/api/parametros/importar-equipos-preview').then(function(r) { return r.json(); }).then(function(data) {
+      renderReporte(data);
+      document.getElementById('impAplicarBtn').style.display = '';
+      btn.disabled = false; btn.innerText = 'Vista previa';
+    });
+  });
+
+  document.getElementById('impAplicarBtn').addEventListener('click', function() {
+    if (!confirm('¿Crear/actualizar los equipos y asignar los diseñadores encontrados? Los nombres sin coincidencia quedarán pendientes de agregar a mano.')) return;
+    var btn = this; btn.disabled = true; btn.innerText = 'Aplicando...';
+    fetch('/design/api/parametros/importar-equipos', {method: 'POST'}).then(function(r) { return r.json(); }).then(function(data) {
+      renderReporte(data);
+      btn.disabled = false; btn.innerText = 'Aplicar coincidencias';
+      var aviso = document.createElement('p');
+      aviso.style.cssText = 'font-size:12px;color:var(--gris);margin-top:8px';
+      aviso.innerText = 'Aplicado. Refresca la página para ver los equipos creados en la tabla de abajo.';
+      document.getElementById('impResultado').prepend(aviso);
+    });
+  });
+})();
+</script>
 {% endblock %}

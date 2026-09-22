@@ -183,6 +183,21 @@ class DesignFaq(Base):
     area = relationship("DesignArea")
 
 
+class DesignComentarioTemplate(Base):
+    """Plantilla de nota del generador de comentarios N3: las 11 fijas del formato
+    original (es_fija=1, no editables/borrables) más las que agregue el equipo.
+    Compartida por todo el equipo (como Protocols); favorito es por empleado."""
+    __tablename__ = "design_comentario_templates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(150))
+    texto: Mapped[str] = mapped_column(Text)
+    es_fija: Mapped[int] = mapped_column(Integer, default=0)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignPreApprovedSheet(Base):
     """Una hoja de 'cambios pre-aprobados' por doctor, dueña de un diseñador/manager."""
     __tablename__ = "design_preapproved_sheets"
@@ -282,10 +297,11 @@ class DesignFavorito(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
-    tipo: Mapped[str] = mapped_column(String(20))  # "team" | "preapproved" | "protocolo"
+    tipo: Mapped[str] = mapped_column(String(20))  # "team" | "preapproved" | "protocolo" | "cmt_template"
     team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id"), nullable=True)
     preapproved_sheet_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_sheets.id"), nullable=True)
     protocolo_id: Mapped[int] = mapped_column(ForeignKey("design_protocolos.id"), nullable=True)
+    cmt_template_id: Mapped[int] = mapped_column(ForeignKey("design_comentario_templates.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

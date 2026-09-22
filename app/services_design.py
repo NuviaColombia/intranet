@@ -1,6 +1,9 @@
 """Lógica de negocio del módulo Design Schedule."""
 import json
+import re
+import unicodedata
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from .models import Empleado
@@ -10,7 +13,8 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
                             DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
-                            DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc, FORMATO_DUAL)
+                            DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc,
+                            DesignComentarioTemplate, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -260,6 +264,45 @@ def eliminar_historial_comentario(db: Session, historial_id: int) -> bool:
     if not h:
         return False
     db.delete(h)
+    db.commit()
+    return True
+
+
+# ---------- Comments N3: plantillas de notas personalizadas ----------
+
+def cmt_templates_listar(db: Session) -> list[DesignComentarioTemplate]:
+    return db.query(DesignComentarioTemplate).order_by(DesignComentarioTemplate.orden).all()
+
+
+def cmt_template_crear(db: Session, nombre: str, texto: str, creado_por: str = "") -> DesignComentarioTemplate:
+    orden = db.query(DesignComentarioTemplate).count() + 1
+    t = DesignComentarioTemplate(nombre=nombre.strip() or "Sin título", texto=texto, orden=orden,
+                                 creado_por=creado_por)
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return t
+
+
+def cmt_template_editar(db: Session, template_id: int, nombre: str, texto: str) -> DesignComentarioTemplate | None:
+    t = db.get(DesignComentarioTemplate, template_id)
+    if not t or t.es_fija:
+        return None
+    t.nombre = nombre.strip() or t.nombre
+    t.texto = texto
+    db.commit()
+    return t
+
+
+def cmt_template_eliminar(db: Session, template_id: int, eliminado_por: str = "") -> bool:
+    t = db.get(DesignComentarioTemplate, template_id)
+    if not t or t.es_fija:
+        return False
+    payload = {"template": {"nombre": t.nombre, "texto": t.texto, "creado_por": t.creado_por}}
+    _trash_registrar(db, "cmt-template", f'Plantilla de nota: "{t.nombre}"', payload, eliminado_por)
+    db.query(DesignFavorito).filter(DesignFavorito.tipo == "cmt_template",
+                                    DesignFavorito.cmt_template_id == template_id).delete()
+    db.delete(t)
     db.commit()
     return True
 
@@ -685,6 +728,16 @@ def _trash_restaurar_cv_doc(db: Session, payload: dict) -> bool:
     return True
 
 
+def _trash_restaurar_cmt_template(db: Session, payload: dict) -> bool:
+    t = payload.get("template") or {}
+    if not t.get("nombre") or not t.get("texto"):
+        return False
+    orden = db.query(DesignComentarioTemplate).count() + 1
+    db.add(DesignComentarioTemplate(nombre=t["nombre"], texto=t["texto"], orden=orden,
+                                    creado_por=t.get("creado_por", "")))
+    return True
+
+
 _TRASH_RESTAURADORES = {
     "pa-sheet": _trash_restaurar_pa_sheet,
     "pa-centro": _trash_restaurar_pa_centro,
@@ -692,6 +745,7 @@ _TRASH_RESTAURADORES = {
     "pa-fila": _trash_restaurar_pa_fila,
     "protocol": _trash_restaurar_protocolo,
     "cv-doc": _trash_restaurar_cv_doc,
+    "cmt-template": _trash_restaurar_cmt_template,
 }
 
 
@@ -792,12 +846,26 @@ def favorito_toggle_protocolo(db: Session, empleado_id: int, protocolo_id: int) 
     return True
 
 
+def favorito_toggle_cmt_template(db: Session, empleado_id: int, template_id: int) -> bool:
+    existente = (db.query(DesignFavorito)
+        .filter(DesignFavorito.empleado_id == empleado_id, DesignFavorito.tipo == "cmt_template",
+                DesignFavorito.cmt_template_id == template_id).first())
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return False
+    db.add(DesignFavorito(empleado_id=empleado_id, tipo="cmt_template", cmt_template_id=template_id))
+    db.commit()
+    return True
+
+
 def favoritos_activos(db: Session, empleado_id: int) -> dict:
     favs = db.query(DesignFavorito).filter(DesignFavorito.empleado_id == empleado_id).all()
     return {
         "teams": {f.team_id for f in favs if f.tipo == "team"},
         "preapproved": {f.preapproved_sheet_id for f in favs if f.tipo == "preapproved"},
         "protocolos": {f.protocolo_id for f in favs if f.tipo == "protocolo"},
+        "cmtTemplates": {f.cmt_template_id for f in favs if f.tipo == "cmt_template"},
     }
 
 
@@ -950,3 +1018,139 @@ def canvas_eliminar_doc(db: Session, doc_id: int, eliminado_por: str = "") -> bo
     db.delete(d)
     db.commit()
     return True
+
+
+# ---------------------------------------------------------------------------
+# Importar equipos desde Desempeño: los 16 "equipos" de las hojas de evaluación
+# (más "DESIGN MANAGERS", que no tiene equipo propio) ya reflejan la estructura
+# real área→manager→diseñadores. Esto cruza esos nombres contra los Empleado ya
+# registrados en People (no crea empleados nuevos: nunca se inventan datos de
+# identificación de personas reales) y arma/confirma los DesignTeam.
+# ---------------------------------------------------------------------------
+
+# Mapeo hoja de Desempeño -> (área de Design Schedule, nombre completo del manager).
+# Verificado a mano contra la hoja "DESIGN MANAGERS" (que lista los managers de
+# cada equipo) para resolver casos ambiguos como los dos "Paula" (Parra vs. De la
+# Torre, esta última identificada por el sufijo "Dlt" = "De la Torre").
+SHEET_MANAGER_MAP = {
+    "N6 Marlene": ("N6 Material Changes", "Marlene Aguirre"),
+    "N2 Daniel": ("N2 Demodenture", "Daniel Valencia"),
+    "N2 Heiner": ("N2 Demodenture", "Heiner Cañon"),
+    "N2 Samuel": ("N2 Demodenture", "Samuel Ortega"),
+    "N2 Gleider": ("N2 Demodenture", "Gleider Garcia"),
+    "N2 Dariana": ("N2 Demodenture", "Dariana Ortega"),
+    "Face Nicole": ("Face Design", "Nicole de la Hoz"),
+    "Face Juliana": ("Face Design", "Juliana Molinares"),
+    "N3 Paula": ("N3 Prosthetic", "Paula Parra"),
+    "N3 Vanesa": ("N3 Prosthetic", "Vanesa Gutierrez"),
+    "N3 David": ("N3 Prosthetic", "David Paredes"),
+    "N3 Luisa": ("N3 Prosthetic", "Luisa Ortiz"),
+    "N3 Paula Dlt": ("N3 Prosthetic", "Paula de la Torre"),
+    "N3 Paola T": ("N3 Prosthetic", "Paola Tuiran"),
+    "N3 Mauricio": ("N3 Prosthetic", "Mauricio Folliaco"),
+    "N3 Julio": ("N3 Prosthetic", "Julio Hernandez Florez"),
+}
+
+
+def _normalizar_texto(s: str) -> str:
+    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+def _palabras(s: str) -> set:
+    return set(_normalizar_texto(s).split())
+
+
+def _buscar_empleado_por_nombre(nombre_buscado: str, empleados: list[Empleado]) -> Empleado | None:
+    """Empareja por CONJUNTO de palabras (tolera 'Apellido Nombre' vs 'Nombre Apellido').
+    Solo devuelve un match si hay suficiente superposición; nunca inventa un empleado."""
+    palabras_buscadas = _palabras(nombre_buscado)
+    if not palabras_buscadas:
+        return None
+    mejor, mejor_score = None, 0.0
+    for e in empleados:
+        palabras_emp = _palabras(e.nombre_completo)
+        if not palabras_emp:
+            continue
+        if palabras_buscadas == palabras_emp:
+            return e  # coincidencia exacta de palabras -- corta inmediatamente
+        interseccion = palabras_buscadas & palabras_emp
+        union = palabras_buscadas | palabras_emp
+        score = len(interseccion) / len(union) if union else 0
+        if palabras_buscadas <= palabras_emp or palabras_emp <= palabras_buscadas:
+            score = max(score, 0.75)
+        if score > mejor_score:
+            mejor_score, mejor = score, e
+    return mejor if mejor_score >= 0.6 else None
+
+
+def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict:
+    seed_path = Path(__file__).resolve().parent / "seed_data" / "design_perf.json"
+    with open(seed_path, encoding="utf-8") as f:
+        perf_data = json.load(f)
+
+    empleados_design = (db.query(Empleado)
+                        .filter(Empleado.empresa == "Nuvia Design Colombia SAS", Empleado.activo == 1).all())
+
+    resultado = {"equipos": [], "sinMapeo": []}
+    for sheet in perf_data.get("sheets", []):
+        nombre_sheet = sheet.get("name", "")
+        mapeo = SHEET_MANAGER_MAP.get(nombre_sheet)
+        if not mapeo:
+            resultado["sinMapeo"].append(nombre_sheet)
+            continue
+        area_nombre, manager_nombre = mapeo
+        area = db.query(DesignArea).filter(DesignArea.nombre == area_nombre).first()
+        manager_emp = _buscar_empleado_por_nombre(manager_nombre, empleados_design)
+
+        miembros_info = []
+        vistos = set()
+        for emp_data in sheet.get("employees", []):
+            nombre_raw = emp_data.get("n", "")
+            clave = _normalizar_texto(nombre_raw)
+            if not clave or clave in vistos:
+                continue  # evita duplicados dentro de la misma hoja (p.ej. un nombre repetido)
+            vistos.add(clave)
+            match = _buscar_empleado_por_nombre(nombre_raw, empleados_design)
+            miembros_info.append({"nombreOriginal": nombre_raw, "empleadoId": match.id if match else None,
+                                  "empleadoNombre": match.nombre_completo if match else None})
+
+        equipo_existente = None
+        if area and manager_emp:
+            equipo_existente = (db.query(DesignTeam)
+                                .filter(DesignTeam.area_id == area.id, DesignTeam.manager_id == manager_emp.id)
+                                .first())
+
+        creado = False
+        agregados = 0
+        if aplicar and area and manager_emp:
+            team = equipo_existente
+            if not team:
+                orden = db.query(DesignTeam).filter(DesignTeam.area_id == area.id).count() + 1
+                team = DesignTeam(area_id=area.id, nombre=manager_emp.nombre_completo, orden=orden,
+                                  manager_id=manager_emp.id)
+                db.add(team)
+                db.flush()
+                creado = True
+            ids_actuales = {d.empleado_id for d in db.query(DesignTeamDesigner)
+                            .filter(DesignTeamDesigner.team_id == team.id).all()}
+            orden_d = len(ids_actuales) + 1
+            for m in miembros_info:
+                if m["empleadoId"] and m["empleadoId"] not in ids_actuales:
+                    db.add(DesignTeamDesigner(team_id=team.id, empleado_id=m["empleadoId"], orden=orden_d))
+                    ids_actuales.add(m["empleadoId"])
+                    agregados += 1
+                    orden_d += 1
+            db.commit()
+
+        resultado["equipos"].append({
+            "hoja": nombre_sheet, "area": area_nombre, "areaEncontrada": bool(area),
+            "managerBuscado": manager_nombre,
+            "managerEncontrado": manager_emp.nombre_completo if manager_emp else None,
+            "managerId": manager_emp.id if manager_emp else None,
+            "equipoYaExistia": bool(equipo_existente),
+            "equipoCreado": creado,
+            "miembros": miembros_info,
+            "miembrosAgregados": agregados,
+        })
+    return resultado

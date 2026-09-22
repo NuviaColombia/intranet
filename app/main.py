@@ -13,7 +13,8 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
                             DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
                             DesignPreApprovedCelda, DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado,
                             DesignPerfCelda, DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
-                            DesignCanvasDoc, FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
+                            DesignCanvasDoc, DesignComentarioTemplate,
+                            FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule)
 
@@ -46,6 +47,37 @@ TIPOS_INICIALES = [("Cita médica", None, 1), ("Calamidad doméstica", None, 1),
 
 EMPRESAS_INICIALES = ["Nuvia Smiles Colombia SAS", "Nuvia Design Colombia SAS"]
 SUPERADMIN_EMAILS = ["oscaralmanza@nuvia.app"]  # Oscar David Almanza Herazo
+
+# Comments (N3): las 11 plantillas de notas fijas del formato original (no editables/borrables;
+# el equipo puede agregar las suyas propias desde el panel).
+CMT_TEMPLATES_FIJAS = [
+    ("Downloading scan files",
+     "{PO}\nWe started downloading the scan files, when we have the files downloaded, we will officially "
+     "start the surgery. The download time may vary."),
+    ("N3 Design — Initiated", "{PO}\nN3 Design. Initiated"),
+    ("Hold", "{PO}\nHOLD"),
+    ("Re-initiated", "{PO}\nRE-INITIATED"),
+    ("Midline hacia la derecha",
+     "{PO}\ntenemos una medida de mm digitalmente en la midline hacia la derecha, el doctor pidio mm right. "
+     "Continuamos con la marca de la demo?"),
+    ("Midline hacia la izquierda",
+     "{PO}\ntenemos una medida de mm digitalmente en la midline hacia la izquierda, el doctor pidio mm left. "
+     "Continuamos con la marca de la demo?"),
+    ("Hold — implants moved (upper)",
+     "{PO} Hold\nIn the upper, we have X of Y implants moved with respect to the pick-up. According to the "
+     "protocol, we need a new pick-up if possible, or if we continue with the alignment omitting two implants "
+     "and leaving the comment about the third moved implant, we await the doctor's authorization to continue. "
+     "@manager"),
+    ("NG Design Ready to print", "NG Design Ready to print"),
+    ("Master articulation warning",
+     "The master articulation will probably not be usable due to the number of moved implants, and the case "
+     "may be delivered in the digital articulation."),
+    ("Manager aprobó angulación",
+     "The laboratory manager approved continuing with the angulation of the implants."),
+    ("Delay — alignment attempts",
+     "We will have a delay because we must make different alignment attempts, as these attempts will increase "
+     "the time in the design of the product."),
+]
 
 AREAS_INICIALES = ["Admin", "Operativa"]
 
@@ -194,6 +226,10 @@ def init_db():
     if "protocolo_id" not in columnas_design_favoritos:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE design_favoritos ADD COLUMN protocolo_id INTEGER REFERENCES design_protocolos(id)"))
+    if "cmt_template_id" not in columnas_design_favoritos:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE design_favoritos ADD COLUMN cmt_template_id INTEGER REFERENCES design_comentario_templates(id)"))
     # Corrección de negocio: EMPAQUE sí cuenta como ubicación de inventario -- toda orden que
     # llega ahí se considera completada, y debe seguir apareciendo en Ubicación actual/Historial.
     with engine.begin() as conn:
@@ -344,6 +380,10 @@ def init_db():
                                                               for j, f in enumerate(tpl["frames"])],
                                                              ensure_ascii=False),
                                            orden=i))
+        # Comments (N3): siembra las 11 plantillas de notas fijas del formato original.
+        for i, (nombre, texto) in enumerate(CMT_TEMPLATES_FIJAS, start=1):
+            if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre).first():
+                db.add(DesignComentarioTemplate(nombre=nombre, texto=texto, es_fija=1, orden=i))
         # Garantizar que los correos de ADMIN_EMAILS existan y tengan rol admin
         for email in config.ADMIN_EMAILS:
             emp = db.query(Empleado).filter(Empleado.email == email).first()

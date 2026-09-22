@@ -59,6 +59,18 @@ async def parametros(request: Request, user: Empleado = Depends(require_admin), 
                                        "msg": request.query_params.get("msg")})
 
 
+# ---------- Parámetros: importar equipos desde Desempeño ----------
+
+@router.get("/design/api/parametros/importar-equipos-preview")
+async def api_importar_equipos_preview(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return sd.importar_equipos_desde_desempeno(db, aplicar=False)
+
+
+@router.post("/design/api/parametros/importar-equipos")
+async def api_importar_equipos_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return sd.importar_equipos_desde_desempeno(db, aplicar=True)
+
+
 # ---------- Parámetros: equipos ----------
 
 @router.post("/design/parametros/equipos")
@@ -320,6 +332,52 @@ async def api_eliminar_historial(historial_id: int, user: Empleado = Depends(req
     if not sd.eliminar_historial_comentario(db, historial_id):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
+
+
+# ---------- API: Comments N3 (plantillas de notas personalizadas) ----------
+
+@router.get("/design/api/comentarios/templates")
+async def api_cmt_templates_listar(user: Empleado = Depends(require_modulo("design_schedule")),
+                                   db: Session = Depends(get_db)):
+    return [{"id": t.id, "nombre": t.nombre, "texto": t.texto, "esFija": bool(t.es_fija)}
+           for t in sd.cmt_templates_listar(db)]
+
+
+class CmtTemplateIn(BaseModel):
+    nombre: str
+    texto: str
+
+
+@router.post("/design/api/comentarios/templates")
+async def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                                 db: Session = Depends(get_db)):
+    t = sd.cmt_template_crear(db, payload.nombre, payload.texto, user.nombre_completo)
+    return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
+
+
+@router.post("/design/api/comentarios/templates/{template_id}")
+async def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
+                                  user: Empleado = Depends(require_modulo("design_schedule")),
+                                  db: Session = Depends(get_db)):
+    t = sd.cmt_template_editar(db, template_id, payload.nombre, payload.texto)
+    if not t:
+        raise HTTPException(404, "No encontrada.")
+    return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
+
+
+@router.post("/design/api/comentarios/templates/{template_id}/eliminar")
+async def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                    db: Session = Depends(get_db)):
+    if not sd.cmt_template_eliminar(db, template_id, user.nombre_completo):
+        raise HTTPException(404, "No encontrada.")
+    return {"mensaje": "Eliminada."}
+
+
+@router.post("/design/api/favoritos/cmt-template/{template_id}/toggle")
+async def api_favorito_toggle_cmt_template(template_id: int,
+                                           user: Empleado = Depends(require_modulo("design_schedule")),
+                                           db: Session = Depends(get_db)):
+    return {"favorito": sd.favorito_toggle_cmt_template(db, user.id, template_id)}
 
 
 # ---------- API: FAQ (Comments N2 / Face) ----------
@@ -651,7 +709,7 @@ async def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_
                                 db: Session = Depends(get_db)):
     activos = sd.favoritos_activos(db, user.id)
     return {"teams": list(activos["teams"]), "preapproved": list(activos["preapproved"]),
-           "protocolos": list(activos["protocolos"])}
+           "protocolos": list(activos["protocolos"]), "cmtTemplates": list(activos["cmtTemplates"])}
 
 
 @router.post("/design/api/favoritos/team/{team_id}/toggle")
