@@ -278,15 +278,19 @@ def init_db():
             if not db.query(DesignAusenciaTipo).filter(DesignAusenciaTipo.nombre == nombre).first():
                 orden = db.query(DesignAusenciaTipo).count() + 1
                 db.add(DesignAusenciaTipo(nombre=nombre, orden=orden))
-        # Pre-Approved N3: datos reales (9 diseñadores/managers) extraídos del HTML original.
-        seed_pa_path = Path(__file__).resolve().parent / "seed_data" / "design_preapproved_n3.json"
-        area_n3 = db.query(DesignArea).filter(DesignArea.nombre == "N3 Prosthetic").first()
-        if area_n3 and seed_pa_path.exists() and db.query(DesignPreApprovedSheet).filter(
-                DesignPreApprovedSheet.area_id == area_n3.id).count() == 0:
+        # Pre-Approved: datos reales de managers/diseñadores extraídos del HTML original,
+        # uno por área (N3 y N2 Demodenture; N2 incluye también sus filas de Face Design,
+        # que en la herramienta original vivían en la misma hoja combinada "N2/Face").
+        def _seed_preapproved_area(nombre_area: str, archivo_seed: str) -> None:
+            seed_pa_path = Path(__file__).resolve().parent / "seed_data" / archivo_seed
+            area = db.query(DesignArea).filter(DesignArea.nombre == nombre_area).first()
+            if not (area and seed_pa_path.exists() and db.query(DesignPreApprovedSheet).filter(
+                    DesignPreApprovedSheet.area_id == area.id).count() == 0):
+                return
             with open(seed_pa_path, encoding="utf-8") as f:
                 pa_data = json.load(f)
             for i, (nombre_designer, sheet_data) in enumerate(pa_data.items(), start=1):
-                sheet = DesignPreApprovedSheet(area_id=area_n3.id, nombre=nombre_designer,
+                sheet = DesignPreApprovedSheet(area_id=area.id, nombre=nombre_designer,
                                                titulo=sheet_data.get("title", "Pre-approved changes"),
                                                changes_label=sheet_data.get("changesLabel", "Changes"), orden=i)
                 db.add(sheet)
@@ -307,6 +311,9 @@ def init_db():
                     for k, valor in enumerate(fila_data.get("v", [])):
                         if k < len(doctor_ids) and valor:
                             db.add(DesignPreApprovedCelda(fila_id=fila.id, doctor_id=doctor_ids[k], valor=valor))
+
+        _seed_preapproved_area("N3 Prosthetic", "design_preapproved_n3.json")
+        _seed_preapproved_area("N2 Demodenture", "design_preapproved_n2.json")
         # Desempeño: evaluaciones mensuales reales + selección de empleado del mes,
         # extraídas del HTML original. Solo administradores ven este módulo.
         seed_perf_path = Path(__file__).resolve().parent / "seed_data" / "design_perf.json"
