@@ -69,9 +69,10 @@
   table.ds-tabla input[type=checkbox] { width:15px; height:15px; padding:0; display:block; margin:0 auto; cursor:pointer; }
   table.ds-tabla tr.ds-fila-nueva td { background:#fafbfc; }
   /* Encabezados ordenables (Centro, Producto, Diseñador) */
-  table.ds-tabla th.ds-th-sort { cursor:pointer; user-select:none; white-space:nowrap; }
+  /* El texto queda centrado como en las demás columnas y la flecha va al extremo derecho de la celda */
+  table.ds-tabla th.ds-th-sort { cursor:pointer; user-select:none; white-space:nowrap; position:relative; padding-left:20px; padding-right:20px; }
   table.ds-tabla th.ds-th-sort:hover { background:#e8ecf1; }
-  table.ds-tabla th.ds-th-sort .ds-sort-ind { color:#9ca3af; margin-left:3px; }
+  table.ds-tabla th.ds-th-sort .ds-sort-ind { color:#9ca3af; position:absolute; right:7px; top:50%; transform:translateY(-50%); }
   table.ds-tabla th.ds-th-sort.on .ds-sort-ind { color:#1d4ed8; }
   .ds-btn-x { background:#9ca3af; color:#fff; border:none; border-radius:4px; width:18px; height:18px; padding:0;
               font-size:10px; line-height:18px; cursor:pointer; display:block; margin:0 auto; }
