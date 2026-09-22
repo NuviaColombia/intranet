@@ -248,10 +248,15 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
     }
 
 
+DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
+
+
 @router.post("/design/api/ordenes")
 async def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
     _verificar_equipo(db, user, payload.teamId)
+    if sd.dia_cerrado(date.fromisoformat(payload.fecha)):
+        raise HTTPException(403, DIA_CERRADO)
     o = sd.crear_orden(db, user, payload.teamId, date.fromisoformat(payload.fecha), payload.tabla,
                        _datos_desde_in(payload))
     return sd.serializar_orden(o)
@@ -265,6 +270,12 @@ async def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
     _verificar_equipo(db, user, orden_existente.team_id)
+    if sd.dia_cerrado(orden_existente.fecha):
+        # Día cerrado: solo el checkbox de QC, y solo hasta las 5:00 am de D+2. El resto de campos se ignora.
+        if not sd.qc_editable(orden_existente.fecha):
+            raise HTTPException(403, DIA_CERRADO)
+        o = sd.actualizar_orden(db, orden_id, {"qc": payload.qc})
+        return sd.serializar_orden(o)
     o = sd.actualizar_orden(db, orden_id, _datos_desde_in(payload))
     return sd.serializar_orden(o)
 
@@ -276,6 +287,8 @@ async def api_eliminar_orden(orden_id: int, user: Empleado = Depends(require_mod
     if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
     _verificar_equipo(db, user, orden_existente.team_id)
+    if sd.dia_cerrado(orden_existente.fecha):
+        raise HTTPException(403, DIA_CERRADO)
     sd.eliminar_orden(db, orden_id)
     return {"mensaje": "Eliminada."}
 
@@ -297,6 +310,8 @@ class BreakIn(BaseModel):
 async def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
     _verificar_equipo(db, user, payload.teamId)
+    if sd.dia_cerrado(date.fromisoformat(payload.fecha)):
+        raise HTTPException(403, DIA_CERRADO)
     b = sd.guardar_break(db, payload.teamId, payload.empleadoId, date.fromisoformat(payload.fecha), {
         "tipo_ausencia": payload.tipoAusencia,
         "almuerzo_inicio": payload.almuerzoInicio, "almuerzo_fin": payload.almuerzoFin,

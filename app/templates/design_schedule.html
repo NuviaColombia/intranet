@@ -57,6 +57,10 @@
   .ds-kpis { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
   .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
   .ds-kpi b { display:block; font-size:20px; }
+  .ds-aviso-cerrado { background:#fff8e1; border:1px solid #f5d77a; color:#7a5a00; border-radius:8px; padding:8px 14px;
+                      font-size:13px; margin-bottom:14px; }
+  table.ds-tabla input:disabled, table.ds-tabla select:disabled { color:#374151; opacity:1; cursor:default; -webkit-text-fill-color:#374151; }
+  .ds-break-row input:disabled, .ds-break-row select:disabled { background:#f4f6f8; cursor:default; }
   .ds-panel { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
   .ds-panel h3 { margin:0 0 10px; font-size:14px; color:#1d4ed8; }
   table.ds-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -423,6 +427,7 @@
 
     <div id="dsDiaTabs" class="ds-tabs"></div>
 
+    <div id="dsAvisoCerrado" class="ds-aviso-cerrado" style="display:none"></div>
     <div id="dsKpis" class="ds-kpis"></div>
 
     <div class="ds-panel">
@@ -1052,7 +1057,7 @@ document.addEventListener('keydown', function(e) {
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
     spec.forEach(function(c) { html += '<td>' + dsCeldaInput(c, f) + '</td>'; });
     html += '<td class="ds-total">' + dsDuracion(f.horaInicio, f.horaFin) + '</td>';
-    html += '<td class="ds-acc">' + (nueva ? '' : dsBtnEliminar(f.id)) + '</td>';
+    html += '<td class="ds-acc">' + (nueva || dsDiaCerrado() ? '' : dsBtnEliminar(f.id)) + '</td>';
     return html + '</tr>';
   }
   function dsBtnEliminar(id) {
@@ -1099,10 +1104,16 @@ document.addEventListener('keydown', function(e) {
     });
     html += '<th>Total</th><th></th></tr></thead><tbody>';
     filas.forEach(function(f) { html += dsFilaHtml(spec, f); });
-    if (!filas.some(function(f) { return !dsOrdenCompleta(f); })) html += dsFilaHtml(spec, {});
+    if (!dsDiaCerrado() && !filas.some(function(f) { return !dsOrdenCompleta(f); })) html += dsFilaHtml(spec, {});
     html += '</tbody></table>';
     cont.innerHTML = html;
     cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, tabla); });
+    if (dsDiaCerrado()) {
+      // Día cerrado: todo en solo lectura; el QC sigue editable hasta las 5:00 am de D+2.
+      cont.querySelectorAll('[data-campo]').forEach(function(el) {
+        el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable);
+      });
+    }
     cont.querySelectorAll('th[data-sort]').forEach(function(th) {
       th.addEventListener('click', function() {
         // Ciclo: A→Z, Z→A, orden original
@@ -1197,7 +1208,7 @@ document.addEventListener('keydown', function(e) {
     dsRenderKpis(DS.diaData);
     // Si ya no queda ninguna fila incompleta, se agrega una fila nueva vacía al final (sin redibujar: no se pierde el foco).
     var tbody = tr.parentNode;
-    if (!DS.diaData[tabla].some(function(f) { return !dsOrdenCompleta(f); }) && !tbody.querySelector('tr[data-id="nuevo"]')) {
+    if (!dsDiaCerrado() && !DS.diaData[tabla].some(function(f) { return !dsOrdenCompleta(f); }) && !tbody.querySelector('tr[data-id="nuevo"]')) {
       var spec = COLSPEC[DS.areaFormato][tabla];
       var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaHtml(spec, {});
       var nueva = tmp.firstChild;
@@ -1220,19 +1231,39 @@ document.addEventListener('keydown', function(e) {
       .catch(function(e) { alert('Error: ' + e.message); });
   };
 
-  // Solo cuentan las órdenes completas (centro + producto + diseñador).
+  function dsDiaCerrado() { return !!(DS.diaData && DS.diaData.cerrado); }
+
+  // Aviso + botones "Agregar orden" según si el día ya se cerró (5:00 am del día siguiente, hora Colombia).
+  function dsAplicarCierre() {
+    var aviso = document.getElementById('dsAvisoCerrado');
+    var cerrado = dsDiaCerrado();
+    document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = cerrado ? 'none' : ''; });
+    if (!cerrado) { aviso.style.display = 'none'; return; }
+    var txt = '🔒 Este día ya se cerró y no se puede editar.';
+    if (DS.diaData.qcEditable) {
+      var h = new Date(DS.diaData.qcEditableHasta);
+      txt += ' El checkbox de QC se puede marcar hasta el ' +
+             h.toLocaleDateString('es-CO', {day: 'numeric', month: 'long', timeZone: 'America/Bogota'}) + ' a las 5:00 am.';
+    }
+    aviso.innerText = txt; aviso.style.display = '';
+  }
+
+  // Contadores fijos; solo cuentan órdenes completas (centro + producto + diseñador).
+  var DS_KPIS = [
+    {uno: 'Orden', varios: 'Órdenes', cuenta: function(f) { return true; }},
+    {uno: 'En proceso', varios: 'En proceso', cuenta: function(f) { return f.estado === 'Initiated'; }},
+    {uno: 'En espera', varios: 'En espera', cuenta: function(f) { return f.estado === 'Hold'; }},
+    {uno: 'Aprobada', varios: 'Aprobadas', cuenta: function(f) { return f.estado === 'Approved' && f.qc; }},
+    {uno: 'Cancelada', varios: 'Canceladas', cuenta: function(f) { return f.estado === 'Canceled'; }},
+  ];
   function dsRenderKpis(dia) {
     var todas = dia.principal.concat(dia.nightguard || []).filter(dsOrdenCompleta);
-    var conteo = {};
-    todas.forEach(function(f) { conteo[f.estado || 'Sin estado'] = (conteo[f.estado || 'Sin estado'] || 0) + 1; });
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
-    var total = document.createElement('div'); total.className = 'ds-kpi';
-    total.innerHTML = '<b>' + todas.length + '</b>Órdenes';
-    cont.appendChild(total);
-    Object.keys(conteo).forEach(function(estado) {
-      var k = document.createElement('div'); k.className = 'ds-kpi';
-      k.innerHTML = '<b>' + conteo[estado] + '</b>' + estado;
-      cont.appendChild(k);
+    DS_KPIS.forEach(function(k) {
+      var n = todas.filter(k.cuenta).length;
+      var el = document.createElement('div'); el.className = 'ds-kpi';
+      el.innerHTML = '<b>' + n + '</b>' + (n === 1 ? k.uno : k.varios);
+      cont.appendChild(el);
     });
   }
 
@@ -1256,6 +1287,7 @@ document.addEventListener('keydown', function(e) {
           '<div><label>Break 2</label><input type="time" data-campo="break2Inicio" value="' + dsEsc(b.break2Inicio || '') + '"></div>' +
           '<div><label>&nbsp;</label><input type="time" data-campo="break2Fin" value="' + dsEsc(b.break2Fin || '') + '"></div>';
         row.querySelectorAll('[data-campo]').forEach(function(input) {
+          if (dsDiaCerrado()) { input.disabled = true; return; }
           var ev = input.tagName === 'SELECT' ? 'change' : 'blur';
           input.addEventListener(ev, function() { dsGuardarBreak(row); });
         });
@@ -1276,6 +1308,7 @@ document.addEventListener('keydown', function(e) {
       DS.diaData = dia;
       dsRenderTabla('principal');
       if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
+      dsAplicarCierre();
       dsRenderKpis(dia);
       dsRenderBreaks(dia);
     });

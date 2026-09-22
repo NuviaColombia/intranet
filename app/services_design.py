@@ -2,7 +2,7 @@
 import json
 import re
 import unicodedata
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
@@ -124,6 +124,79 @@ def filtro_orden_completa():
                 or_(DesignOrden.designer_id.isnot(None), func.coalesce(DesignOrden.designer_prestado, "") != ""))
 
 
+# ---------- Cierre diario del horario (hora Colombia) ----------
+# El día D se cierra a las 5:00 am (Colombia) del día siguiente: desde ese momento nadie puede editar sus
+# órdenes ni sus tiempos libres; solo el checkbox de QC sigue editable hasta las 5:00 am de D+2.
+# Al cierre, las órdenes en "Hold" pasan al siguiente día hábil (lunes a viernes) del mismo equipo.
+ZONA_COLOMBIA = timezone(timedelta(hours=-5))  # Colombia no usa horario de verano
+HORA_CIERRE = 5
+ESTADO_HOLD = "Hold"
+# Solo se trasladan las órdenes en Hold a partir de esta fecha (las anteriores se quedan en su día).
+TRASLADO_HOLD_DESDE = date(2026, 9, 22)
+
+
+def ahora_colombia() -> datetime:
+    return datetime.now(ZONA_COLOMBIA)
+
+
+def _limite(fecha: date, dias_despues: int) -> datetime:
+    return datetime.combine(fecha + timedelta(days=dias_despues), time(HORA_CIERRE), ZONA_COLOMBIA)
+
+
+def dia_cerrado(fecha: date, ahora: datetime | None = None) -> bool:
+    return (ahora or ahora_colombia()) >= _limite(fecha, 1)
+
+
+def qc_editable(fecha: date, ahora: datetime | None = None) -> bool:
+    return (ahora or ahora_colombia()) < _limite(fecha, 2)
+
+
+def qc_editable_hasta(fecha: date) -> datetime:
+    return _limite(fecha, 2)
+
+
+def siguiente_dia_habil(fecha: date) -> date:
+    d = fecha + timedelta(days=1)
+    while d.weekday() >= 5:  # sábado / domingo -> lunes
+        d += timedelta(days=1)
+    return d
+
+
+def ultimo_dia_cerrado(ahora: datetime | None = None) -> date:
+    """El día más reciente ya cerrado: D está cerrado si ahora >= D+1 05:00."""
+    return ((ahora or ahora_colombia()) - timedelta(hours=HORA_CIERRE)).date() - timedelta(days=1)
+
+
+_traslado_hecho_hasta: date | None = None  # evita repetir la consulta en cada petición del mismo proceso
+
+
+def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
+    """Mueve al siguiente día hábil abierto las órdenes en Hold de días ya cerrados. Se ejecuta al leer el
+    horario (no hay tarea programada en el servidor), así que ocurre en la primera consulta después de las
+    5:00 am. Es idempotente: si dos peticiones lo corren a la vez, el resultado es el mismo."""
+    global _traslado_hecho_hasta
+    cerrado_hasta = ultimo_dia_cerrado(ahora)
+    if _traslado_hecho_hasta == cerrado_hasta:
+        return 0
+    ordenes = (db.query(DesignOrden)
+               .filter(DesignOrden.estado == ESTADO_HOLD, DesignOrden.fecha >= TRASLADO_HOLD_DESDE,
+                       DesignOrden.fecha <= cerrado_hasta)
+               .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    for o in ordenes:
+        destino = siguiente_dia_habil(o.fecha)
+        while destino <= cerrado_hasta:  # si nadie abrió el horario varios días, llega al primer día abierto
+            destino = siguiente_dia_habil(destino)
+        max_visual = (db.query(func.max(DesignOrden.orden_visual))
+                      .filter(DesignOrden.team_id == o.team_id, DesignOrden.fecha == destino,
+                              DesignOrden.tabla == o.tabla).scalar())
+        o.fecha = destino
+        o.orden_visual = (max_visual or 0) + 1  # queda al final de las órdenes de ese día
+        db.flush()
+    db.commit()
+    _traslado_hecho_hasta = cerrado_hasta
+    return len(ordenes)
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
@@ -150,6 +223,7 @@ def serializar_break(b: DesignBreak) -> dict:
 
 
 def datos_dia(db: Session, team: DesignTeam, fecha: date) -> dict:
+    trasladar_holds(db)
     ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
               .filter(DesignOrden.team_id == team.id, DesignOrden.fecha == fecha)
               .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
@@ -183,12 +257,15 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date) -> dict:
         "principal": principal, "nightguard": nightguard,
         "breaks": breaks_out,
         "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers],
+        "cerrado": dia_cerrado(fecha), "qcEditable": qc_editable(fecha),
+        "qcEditableHasta": qc_editable_hasta(fecha).isoformat(),
     }
 
 
 def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
     """Vista "todas las áreas": áreas, equipos visibles para `user` y sus órdenes del día, en 3 consultas
-    (antes: 1 petición por área + 1 por equipo desde el navegador). Solo lectura."""
+    (antes: 1 petición por área + 1 por equipo desde el navegador)."""
+    trasladar_holds(db)
     areas = areas_disponibles(db)
     teams = (db.query(DesignTeam)
              .filter(DesignTeam.area_id.in_([a.id for a in areas]), DesignTeam.activo == 1)
@@ -272,6 +349,7 @@ def guardar_break(db: Session, team_id: int, empleado_id: int, fecha: date, dato
 def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None = None,
                     designer_id: int | None = None, producto: str = "", estado: str = "",
                     qc: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
+    trasladar_holds(db)
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team))
          .filter(filtro_orden_completa()))
     if team_id:
