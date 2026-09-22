@@ -23,7 +23,14 @@
   .ds-area-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:14px; }
   .ds-area-row > .ds-tabs, .ds-area-row > .pa-tabs { margin-bottom:0; }
   .ds-area-row .ds-todas-chk { margin-left:auto; align-self:center; display:flex; align-items:center; cursor:pointer; }
-  .ds-area-row .ds-todas-chk input { width:auto; margin:0; cursor:pointer; }
+  /* Checkbox con apariencia de interruptor (switch) */
+  .ds-area-row .ds-todas-chk input { appearance:none; -webkit-appearance:none; position:relative; width:38px; height:22px; margin:0; padding:0; border:none; box-sizing:border-box;
+                                     border-radius:11px; background:#cbd2da; cursor:pointer; transition:background .2s; flex:none; }
+  .ds-area-row .ds-todas-chk input::before { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
+                                             background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .2s; }
+  .ds-area-row .ds-todas-chk input:checked { background:#1d4ed8; }
+  .ds-area-row .ds-todas-chk input:checked::before { transform:translateX(16px); }
+  .ds-area-row .ds-todas-chk input:focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
   .ds-drop { position:relative; display:inline-block; }
   .ds-drop-menu { display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:40; min-width:220px; max-height:340px;
                   overflow:auto; background:#fff; border:1px solid #d8dde3; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.12); padding:4px; }
@@ -370,7 +377,7 @@
     <div id="dsAreaTabs" class="ds-tabs"></div>
     {% if user.rol in ('admin', 'superadmin') %}
     <label class="ds-todas-chk" title="Ver el horario de todas las áreas">
-      <input type="checkbox" id="dsTodasAreasChk">
+      <input type="checkbox" id="dsTodasAreasChk" role="switch" aria-label="Ver el horario de todas las áreas">
     </label>
     {% endif %}
   </div>
