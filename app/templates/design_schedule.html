@@ -829,7 +829,7 @@ document.addEventListener('keydown', function(e) {
       var d = new Date(DS.lunes); d.setDate(d.getDate() + i);
       var btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'ds-dia' + (i === DS.diaSel ? ' activo' : '');
-      btn.innerText = NOMBRES_DIAS[i] + ' ' + dsFechaCorta(d);
+      btn.innerText = NOMBRES_DIAS[i] + ' ' + d.getDate(); // el mes ya se ve en el rango de la semana
       btn.onclick = (function(idx) { return function() { DS.diaSel = idx; dsRenderDias(); dsCargarDia(); }; })(i);
       cont.appendChild(btn);
     }
@@ -1330,7 +1330,7 @@ document.addEventListener('keydown', function(e) {
       var d = new Date(DS.lunes); d.setDate(d.getDate() + i);
       var btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'ds-dia' + (i === DS.diaSel ? ' activo' : '');
-      btn.innerText = NOMBRES_DIAS[i] + ' ' + dsFechaCorta(d);
+      btn.innerText = NOMBRES_DIAS[i] + ' ' + d.getDate(); // el mes ya se ve en el rango de la semana
       btn.onclick = (function(idx) { return function() { DS.diaSel = idx; dsRenderDiasTodas(); dsCargarTodasAreas(); }; })(i);
       cont.appendChild(btn);
     }
