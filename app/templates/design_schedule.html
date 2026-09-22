@@ -383,6 +383,8 @@
   </div>
 
   <div id="dsVistaNormal">
+    <p id="dsSinEquipo" style="color:#6b7280;padding:40px 0;text-align:center">Selecciona un área y un equipo para ver su horario.</p>
+    <div id="dsVistaEquipo" style="display:none">
 
     <div class="ds-semana">
       <button type="button" class="btn gris mini" onclick="dsCambiarSemana(-7)">&larr; Semana anterior</button>
@@ -412,6 +414,7 @@
     <div class="ds-panel">
       <h3>Tiempos libres</h3>
       <div id="dsBreaks"></div>
+    </div>
     </div>
   </div>
 
@@ -520,12 +523,13 @@
 <div class="ds-overlay" id="ov-preapproved"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Pre-Approved — Design Schedule<span id="paTituloHoja"></span></h1>
 <div class="ds-area-row"><div class="pa-tabs" id="paAreaTabs"></div></div>
 <div class="pa-toolbar">
-  <button type="button" class="btn" onclick="paNuevaHoja()">+ Nueva hoja</button>
+  <button type="button" class="btn" id="paNuevaHojaBtn" onclick="paNuevaHoja()" style="display:none">+ Nueva hoja</button>
   <button type="button" class="btn rojo" id="paBorrarHojaBtn" onclick="paBorrarHoja()" style="display:none">Eliminar hoja actual</button>
   {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
   <button type="button" class="btn gris" onclick="pacAbrir()" style="margin-left:auto">🔀 Cambios</button>
   {% endif %}
 </div>
+<p id="paSinHoja" style="color:#6b7280;padding:40px 0;text-align:center">Selecciona un área y una hoja para verla.</p>
 
 <div class="pac-modal-bg" id="pacModal">
   <div class="pac-modal">
@@ -848,29 +852,55 @@ document.addEventListener('keydown', function(e) {
   }
 
   // ---------- Áreas / Equipos ----------
+  // Presionar un área solo abre su lista de equipos; el horario cambia únicamente al elegir un equipo.
   function dsCargarAreas() {
     api('/design/api/areas').then(function(areas) {
       DS.areas = areas;
       var cont = document.getElementById('dsAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
-        cont.appendChild(dsDropArea(a, 'ds-tab' + (a.id === DS.areaId ? ' activo' : ''), function() {
-          // Primer clic en otra área: la selecciona (y su primer equipo) y abre la lista; en la misma área, abre/cierra.
-          if (a.id !== DS.areaId) { dsSeleccionarArea(a.id, a.formato, false, undefined, true); return; }
-          var drop = dsDropDeArea(a.id);
-          if (drop.classList.contains('open')) dsDropCerrar(); else dsDropAbrir(drop);
-        }));
+        cont.appendChild(dsDropArea(a, 'ds-tab' + (a.id === DS.areaId ? ' activo' : ''), function() { dsAbrirListaArea(a); }));
       });
-      if (!areas.length) return;
-      var inicial = areas[0], inicialIdx = 0, autoBuscar = true;
-      if (DS.deepLinkAreaId) {
-        var idx = areas.findIndex(function(a) { return a.id === DS.deepLinkAreaId; });
-        if (idx >= 0) { inicial = areas[idx]; inicialIdx = idx; autoBuscar = false; }
-      }
-      dsSeleccionarArea(inicial.id, inicial.formato, autoBuscar, inicialIdx);
+      // Deep link (?area_id=&team_id=): abre directamente ese equipo.
+      var area = areas.find(function(a) { return a.id === DS.deepLinkAreaId; });
+      var teamId = DS.deepLinkTeamId;
+      DS.deepLinkAreaId = DS.deepLinkTeamId = null;
+      if (area && teamId) dsIrAEquipo(area, teamId);
     });
   }
 
   function dsDropDeArea(areaId) { return document.querySelector('#dsAreaTabs .ds-drop[data-area="' + areaId + '"]'); }
+
+  function dsAbrirListaArea(area) {
+    var drop = dsDropDeArea(area.id);
+    if (drop.classList.contains('open')) { dsDropCerrar(); return; }
+    api('/design/api/teams?area_id=' + area.id).then(function(teams) {
+      dsDropRenderItems(drop, teams, area.id === DS.areaId ? DS.teamId : null, 'Sin equipos', function(teamId) {
+        dsElegirEquipo(area, teams, teamId);
+      });
+      dsDropAbrir(drop);
+    });
+  }
+
+  // Abre un equipo conociendo solo su área (deep link, "Ver equipo →" de la vista de todas las áreas).
+  function dsIrAEquipo(area, teamId) {
+    api('/design/api/teams?area_id=' + area.id).then(function(teams) {
+      if (teams.some(function(t) { return t.id === teamId; })) dsElegirEquipo(area, teams, teamId);
+    });
+  }
+
+  function dsElegirEquipo(area, teams, teamId) {
+    var chk = document.getElementById('dsTodasAreasChk');
+    if (chk && chk.checked) { chk.checked = false; dsMostrarVista(false); }
+    DS.areaId = area.id; DS.areaFormato = area.formato; DS.teams = teams;
+    document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
+      b.classList.toggle('activo', DS.areas[i].id === area.id);
+    });
+    document.getElementById('dsPanelNightguard').style.display = (area.formato === 'dual') ? '' : 'none';
+    document.getElementById('dsTituloPrincipal').innerText = (area.formato === 'dual') ? 'Cirugías' : 'Órdenes';
+    document.getElementById('dsSinEquipo').style.display = 'none';
+    document.getElementById('dsVistaEquipo').style.display = '';
+    dsSeleccionarEquipo(teamId);
+  }
 
   function dsActualizarTitulo() {
     var t = DS.teams.find(function(x) { return x.id === DS.teamId; });
@@ -878,45 +908,8 @@ document.addEventListener('keydown', function(e) {
     document.getElementById('dsTituloEquipo').innerText = (t && !(chk && chk.checked)) ? ' (' + t.nombre + ')' : '';
   }
 
-  function dsSeleccionarArea(areaId, formato, autoBuscar, idxActual, abrirLista) {
-    DS.areaId = areaId; DS.areaFormato = formato;
-    document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
-      b.classList.toggle('activo', DS.areas[i].id === areaId);
-    });
-    document.getElementById('dsPanelNightguard').style.display = (formato === 'dual') ? '' : 'none';
-    document.getElementById('dsTituloPrincipal').innerText = (formato === 'dual') ? 'Cirugías' : 'Órdenes';
-    api('/design/api/teams?area_id=' + areaId).then(function(teams) {
-      if (DS.areaId !== areaId) return; // el usuario ya cambió de área mientras cargaba
-      DS.teams = teams;
-      var drop = dsDropDeArea(areaId);
-      dsDropRenderItems(drop, teams, null, 'Sin equipos', function(teamId) {
-        var chk = document.getElementById('dsTodasAreasChk');
-        if (chk && chk.checked) { chk.checked = false; dsMostrarVista(false); }
-        dsSeleccionarEquipo(teamId);
-      });
-      if (abrirLista) dsDropAbrir(drop);
-      if (!teams.length) {
-        if (autoBuscar && typeof idxActual === 'number' && idxActual + 1 < DS.areas.length) {
-          var siguiente = DS.areas[idxActual + 1];
-          dsSeleccionarArea(siguiente.id, siguiente.formato, true, idxActual + 1);
-          return;
-        }
-        DS.teamId = null; dsActualizarTitulo();
-        document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; return;
-      }
-      var teamInicial = teams[0];
-      if (DS.deepLinkTeamId) {
-        var match = teams.find(function(t) { return t.id === DS.deepLinkTeamId; });
-        if (match) teamInicial = match;
-        DS.deepLinkTeamId = null;
-      }
-      dsSeleccionarEquipo(teamInicial.id);
-    });
-  }
-
   function dsSeleccionarEquipo(teamId) {
     DS.teamId = teamId;
-    dsDropMarcar(dsDropDeArea(DS.areaId), teamId);
     dsActualizarTitulo();
     dsRenderDias();
     dsCargarDia();
@@ -1214,10 +1207,7 @@ document.addEventListener('keydown', function(e) {
         cont.querySelectorAll('[data-ir-equipo]').forEach(function(btn) {
           btn.addEventListener('click', function() {
             var partes = btn.dataset.irEquipo.split(':');
-            document.getElementById('dsTodasAreasChk').checked = false;
-            dsMostrarVista(false);
-            dsSeleccionarArea(parseInt(partes[0]), partes[1]);
-            DS.deepLinkTeamId = parseInt(partes[2]);
+            dsIrAEquipo({id: parseInt(partes[0]), formato: partes[1]}, parseInt(partes[2]));
           });
         });
         resultados.forEach(function(r) {
@@ -1674,63 +1664,75 @@ window.DS_PANELS.dashboard = ddCargar;
             deepLinkAreaId: URL_PARAMS.get('area_id') ? parseInt(URL_PARAMS.get('area_id')) : null,
             deepLinkSheetId: URL_PARAMS.get('sheet_id') ? parseInt(URL_PARAMS.get('sheet_id')) : null };
 
+  // Presionar un área solo abre su lista de hojas; la hoja se carga únicamente al elegirla.
   function cargarAreas() {
     api('/design/api/areas').then(function(areas) {
       PA.areas = areas;
       var cont = document.getElementById('paAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
-        cont.appendChild(dsDropArea(a, 'pa-tab' + (a.id === PA.areaId ? ' activo' : ''), function() {
-          // Primer clic en otra área: la selecciona (y su primera hoja) y abre la lista; en la misma área, abre/cierra.
-          if (a.id !== PA.areaId) { seleccionarArea(a.id, true); return; }
-          var drop = dropDeArea(a.id);
-          if (drop.classList.contains('open')) dsDropCerrar(); else dsDropAbrir(drop);
-        }));
+        cont.appendChild(dsDropArea(a, 'pa-tab' + (a.id === PA.areaId ? ' activo' : ''), function() { abrirListaArea(a); }));
       });
-      if (!areas.length) return;
-      var inicial = areas[0];
-      if (PA.deepLinkAreaId) {
-        var match = areas.find(function(a) { return a.id === PA.deepLinkAreaId; });
-        if (match) inicial = match;
+      // Deep link (?area_id=&sheet_id=): abre directamente esa hoja.
+      var areaId = PA.deepLinkAreaId, sheetId = PA.deepLinkSheetId;
+      PA.deepLinkAreaId = PA.deepLinkSheetId = null;
+      if (areaId && sheetId) {
+        api('/design/api/preapproved/sheets?area_id=' + areaId).then(function(sheets) {
+          if (sheets.some(function(s) { return s.id === sheetId; })) elegirHoja(areaId, sheets, sheetId);
+        });
       }
-      seleccionarArea(inicial.id);
     });
   }
 
   function dropDeArea(areaId) { return document.querySelector('#paAreaTabs .ds-drop[data-area="' + areaId + '"]'); }
+
+  function abrirListaArea(area) {
+    var drop = dropDeArea(area.id);
+    if (drop.classList.contains('open')) { dsDropCerrar(); return; }
+    api('/design/api/preapproved/sheets?area_id=' + area.id).then(function(sheets) {
+      dsDropRenderItems(drop, sheets, area.id === PA.areaId ? PA.sheetId : null, 'Sin hojas', function(sheetId) {
+        elegirHoja(area.id, sheets, sheetId);
+      });
+      dsDropAbrir(drop);
+    });
+  }
+
+  function elegirHoja(areaId, sheets, sheetId) {
+    PA.areaId = areaId; PA.sheets = sheets;
+    marcarArea();
+    seleccionarHoja(sheetId);
+  }
+
+  function marcarArea() {
+    document.querySelectorAll('#paAreaTabs .pa-tab').forEach(function(b, i) { b.classList.toggle('activo', PA.areas[i].id === PA.areaId); });
+  }
 
   function actualizarTitulo() {
     var s = PA.sheets.find(function(x) { return x.id === PA.sheetId; });
     document.getElementById('paTituloHoja').innerText = s ? ' (' + s.nombre + ')' : '';
   }
 
-  function seleccionarArea(areaId, abrirLista) {
-    PA.areaId = areaId;
-    document.querySelectorAll('#paAreaTabs .pa-tab').forEach(function(b, i) { b.classList.toggle('activo', PA.areas[i].id === areaId); });
-    cargarHojas(abrirLista);
+  // Muestra/oculta todo lo que depende de tener una hoja abierta (incluido "+ Nueva hoja", que crea en su área).
+  function mostrarHoja(visible) {
+    ['paSheetMeta', 'paGridPanel', 'paBorrarHojaBtn', 'paNuevaHojaBtn'].forEach(function(id) {
+      document.getElementById(id).style.display = visible ? '' : 'none';
+    });
+    document.getElementById('paSinHoja').style.display = visible ? 'none' : '';
   }
 
-  function cargarHojas(abrirLista) {
+  function sinHoja() {
+    PA.areaId = null; PA.sheetId = null; PA.sheets = [];
+    marcarArea(); actualizarTitulo(); mostrarHoja(false);
+  }
+
+  // Recarga las hojas del área abierta (tras crear, renombrar, eliminar o "Cambios"); si la hoja ya no existe, queda sin selección.
+  function cargarHojas() {
     var areaId = PA.areaId;
+    if (!areaId) return;
     api('/design/api/preapproved/sheets?area_id=' + areaId).then(function(sheets) {
       if (PA.areaId !== areaId) return; // el usuario ya cambió de área mientras cargaba
       PA.sheets = sheets;
-      var drop = dropDeArea(areaId);
-      dsDropRenderItems(drop, sheets, PA.sheetId, 'Sin hojas', seleccionarHoja);
-      if (abrirLista) dsDropAbrir(drop);
-      if (!sheets.length) {
-        PA.sheetId = null; actualizarTitulo();
-        document.getElementById('paSheetMeta').style.display = 'none';
-        document.getElementById('paGridPanel').style.display = 'none';
-        document.getElementById('paBorrarHojaBtn').style.display = 'none';
-        return;
-      }
-      var sheetInicial = sheets[0];
-      if (PA.deepLinkSheetId) {
-        var match = sheets.find(function(s) { return s.id === PA.deepLinkSheetId; });
-        if (match) sheetInicial = match;
-        PA.deepLinkSheetId = null;
-      }
-      seleccionarHoja(sheetInicial.id);
+      if (sheets.some(function(s) { return s.id === PA.sheetId; })) seleccionarHoja(PA.sheetId);
+      else sinHoja();
     });
   }
 
@@ -1748,11 +1750,8 @@ window.DS_PANELS.dashboard = ddCargar;
 
   function seleccionarHoja(sheetId) {
     PA.sheetId = sheetId;
-    dsDropMarcar(dropDeArea(PA.areaId), sheetId);
     actualizarTitulo();
-    document.getElementById('paSheetMeta').style.display = '';
-    document.getElementById('paGridPanel').style.display = '';
-    document.getElementById('paBorrarHojaBtn').style.display = '';
+    mostrarHoja(true);
     cargarDetalle();
   }
 
