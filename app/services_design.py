@@ -148,8 +148,11 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date) -> dict:
     breaks = db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha).all()
     principal = [serializar_orden(o) for o in ordenes if o.tabla == "principal"]
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]
+    # Diseñadores con su empleado en una sola consulta (team.designers haría una consulta por diseñador).
+    designers = (db.query(DesignTeamDesigner).options(joinedload(DesignTeamDesigner.empleado))
+                 .filter(DesignTeamDesigner.team_id == team.id).order_by(DesignTeamDesigner.orden).all())
 
-    permisos = _permisos_aprobados_del_dia(db, [d.empleado_id for d in team.designers], fecha)
+    permisos = _permisos_aprobados_del_dia(db, [d.empleado_id for d in designers], fecha)
     breaks_out = []
     vistos = set()
     for b in breaks:
@@ -171,8 +174,37 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date) -> dict:
     return {
         "principal": principal, "nightguard": nightguard,
         "breaks": breaks_out,
-        "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in team.designers],
+        "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers],
     }
+
+
+def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
+    """Vista "todas las áreas": áreas, equipos visibles para `user` y sus órdenes del día, en 3 consultas
+    (antes: 1 petición por área + 1 por equipo desde el navegador). Solo lectura."""
+    areas = areas_disponibles(db)
+    teams = (db.query(DesignTeam)
+             .filter(DesignTeam.area_id.in_([a.id for a in areas]), DesignTeam.activo == 1)
+             .order_by(DesignTeam.orden).all())
+    teams = [t for t in teams if puede_ver_equipo(user, t)]
+    ordenes = []
+    if teams:
+        ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
+                   .filter(DesignOrden.team_id.in_([t.id for t in teams]), DesignOrden.fecha == fecha,
+                           DesignOrden.tabla.in_(["principal", "nightguard"]))
+                   .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
+    por_team: dict[int, list[DesignOrden]] = {}
+    for o in ordenes:
+        por_team.setdefault(o.team_id, []).append(o)
+
+    def ordenes_de(team_id: int) -> list[dict]:
+        # Mismo orden que la vista de equipo: primero "principal", luego "nightguard".
+        lista = por_team.get(team_id, [])
+        return [serializar_orden(o) for o in lista if o.tabla == "principal"] +                [serializar_orden(o) for o in lista if o.tabla == "nightguard"]
+
+    return [{"id": a.id, "nombre": a.nombre, "formato": a.formato,
+             "teams": [{"id": t.id, "nombre": t.nombre, "ordenes": ordenes_de(t.id)}
+                       for t in teams if t.area_id == a.id]}
+            for a in areas]
 
 
 def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: str, datos: dict) -> DesignOrden:

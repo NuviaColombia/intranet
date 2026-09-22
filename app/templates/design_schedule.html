@@ -1186,48 +1186,35 @@ document.addEventListener('keydown', function(e) {
     });
     return html + '</tbody></table>';
   }
+  // Una sola petición trae áreas, equipos y órdenes del día (antes: 1 por área + 1 por equipo).
   function dsCargarTodasAreas() {
     var fecha = dsFechaISO(new Date(DS.lunes.getFullYear(), DS.lunes.getMonth(), DS.lunes.getDate() + DS.diaSel));
     var cont = document.getElementById('dsTodasAreasCont');
     cont.innerHTML = '<p style="color:#6b7280">Cargando…</p>';
-    api('/design/api/areas').then(function(areas) {
-      Promise.all(areas.map(function(a) {
-        return api('/design/api/teams?area_id=' + a.id).then(function(teams) { return {area: a, teams: teams}; });
-      })).then(function(resultados) {
-        var bloques = [];
-        var pendientes = 0;
-        resultados.forEach(function(r) { pendientes += r.teams.length; });
-        if (!pendientes) { cont.innerHTML = '<p style="color:#6b7280">No hay equipos configurados en ninguna área todavía.</p>'; return; }
-        var html = '';
-        resultados.forEach(function(r) {
-          if (!r.teams.length) return;
-          html += '<div class="ds-panel"><h3 style="font-size:16px;color:#111827">' + dsEsc(r.area.nombre) + '</h3>';
-          r.teams.forEach(function(t) {
-            html += '<div style="margin-bottom:10px">' +
-              '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-                '<b style="color:#1d4ed8;font-size:13px">' + dsEsc(t.nombre) + '</b>' +
-                '<button type="button" class="btn gris mini" data-ir-equipo="' + r.area.id + ':' + r.area.formato + ':' + t.id + '">Ver equipo →</button>' +
-              '</div>' +
-              '<div id="dsAllTabla_' + t.id + '"><p style="color:#6b7280;font-size:12px">Cargando…</p></div>' +
-            '</div>';
-          });
-          html += '</div>';
+    DS.todasFecha = fecha;
+    api('/design/api/todas-areas?fecha=' + fecha).then(function(areas) {
+      if (DS.todasFecha !== fecha) return; // cambió el día/semana mientras cargaba
+      var conEquipos = areas.filter(function(a) { return a.teams.length; });
+      if (!conEquipos.length) { cont.innerHTML = '<p style="color:#6b7280">No hay equipos configurados en ninguna área todavía.</p>'; return; }
+      var html = '';
+      conEquipos.forEach(function(a) {
+        html += '<div class="ds-panel"><h3 style="font-size:16px;color:#111827">' + dsEsc(a.nombre) + '</h3>';
+        a.teams.forEach(function(t) {
+          html += '<div style="margin-bottom:10px">' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+              '<b style="color:#1d4ed8;font-size:13px">' + dsEsc(t.nombre) + '</b>' +
+              '<button type="button" class="btn gris mini" data-ir-equipo="' + a.id + ':' + a.formato + ':' + t.id + '">Ver equipo →</button>' +
+            '</div>' +
+            '<div>' + dsRenderResumenTabla(t.ordenes) + '</div>' +
+          '</div>';
         });
-        cont.innerHTML = html;
-        cont.querySelectorAll('[data-ir-equipo]').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            var partes = btn.dataset.irEquipo.split(':');
-            dsIrAEquipo({id: parseInt(partes[0]), formato: partes[1]}, parseInt(partes[2]));
-          });
-        });
-        resultados.forEach(function(r) {
-          r.teams.forEach(function(t) {
-            api('/design/api/dia?team_id=' + t.id + '&fecha=' + fecha).then(function(dia) {
-              var todas = dia.principal.concat(dia.nightguard || []);
-              var el = document.getElementById('dsAllTabla_' + t.id);
-              if (el) el.innerHTML = dsRenderResumenTabla(todas);
-            });
-          });
+        html += '</div>';
+      });
+      cont.innerHTML = html;
+      cont.querySelectorAll('[data-ir-equipo]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var partes = btn.dataset.irEquipo.split(':');
+          dsIrAEquipo({id: parseInt(partes[0]), formato: partes[1]}, parseInt(partes[2]));
         });
       });
     });

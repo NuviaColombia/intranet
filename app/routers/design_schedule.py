@@ -195,6 +195,12 @@ async def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_mod
     return sd.datos_dia(db, team, date.fromisoformat(fecha))
 
 
+@router.get("/design/api/todas-areas")
+async def api_todas_areas(fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
+                          db: Session = Depends(get_db)):
+    return sd.resumen_todas_areas(db, user, date.fromisoformat(fecha))
+
+
 # ---------- API: escritura ----------
 
 class OrdenIn(BaseModel):
