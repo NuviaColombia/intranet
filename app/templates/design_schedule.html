@@ -100,7 +100,7 @@
   table.pa-tabla th, table.pa-tabla td { border:1px solid #e2e6ea; padding:4px 6px; }
   table.pa-tabla th { background:#f4f6f8; }
   table.pa-tabla input, table.pa-tabla textarea { border:none; background:transparent; font-size:12px; width:100%; box-sizing:border-box; }
-  table.pa-tabla textarea { min-width:150px; min-height:32px; resize:both; white-space:pre-wrap; }
+  table.pa-tabla textarea { min-width:150px; min-height:32px; resize:none; white-space:pre-wrap; overflow:hidden; }
   .pa-crit-cell { min-width:140px; font-weight:600; }
   .pa-toolbar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
 
@@ -1789,10 +1789,17 @@ window.DS_PANELS.dashboard = ddCargar;
       });
     });
     tabla.querySelectorAll('[data-celda-fila]').forEach(function(ta) {
+      paAutoGrow(ta);
+      ta.addEventListener('input', function() { paAutoGrow(this); });
       ta.addEventListener('blur', function() {
         postJSON('/design/api/preapproved/celdas', {filaId: parseInt(this.dataset.celdaFila), doctorId: parseInt(this.dataset.celdaDoctor), valor: this.value});
       });
     });
+  }
+
+  function paAutoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight) + 'px';
   }
 
   window.paAgregarCentro = function() { postJSON('/design/api/preapproved/sheets/' + PA.sheetId + '/centros').then(cargarDetalle); };
