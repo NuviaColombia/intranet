@@ -808,11 +808,20 @@ document.addEventListener('keydown', function(e) {
     areas: [], areaId: null, areaFormato: null,
     teams: [], teamId: null,
     lunes: dsLunesDe(new Date()),
-    diaSel: 0, // 0=lunes ... 4=viernes
+    diaSel: 0, // 0=lunes ... 4=viernes (se ajusta a hoy con dsIrAHoy)
     diaData: null,
     deepLinkAreaId: URL_PARAMS.get('area_id') ? parseInt(URL_PARAMS.get('area_id')) : null,
     deepLinkTeamId: URL_PARAMS.get('team_id') ? parseInt(URL_PARAMS.get('team_id')) : null,
   };
+  // Semana y día de hoy; sábado y domingo muestran el lunes siguiente (el horario es de lunes a viernes).
+  function dsIrAHoy() {
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var dow = hoy.getDay(); // 0=domingo ... 6=sábado
+    if (dow === 6) hoy.setDate(hoy.getDate() + 2);
+    else if (dow === 0) hoy.setDate(hoy.getDate() + 1);
+    DS.lunes = dsLunesDe(hoy);
+    DS.diaSel = (hoy.getDay() + 6) % 7;
+  }
   window.dsCambiarSemana = function(delta) {
     DS.lunes.setDate(DS.lunes.getDate() + delta);
     dsRefrescarSemana();
@@ -957,6 +966,7 @@ document.addEventListener('keydown', function(e) {
 
   function dsElegirEquipo(area, teams, teamId) {
     DS.areaId = area.id; DS.areaFormato = area.formato; DS.teams = teams; DS.teamId = teamId;
+    dsIrAHoy(); // al elegir un equipo siempre se abre en el día actual
     var chk = document.getElementById('dsTodasAreasChk');
     if (chk && chk.checked) { chk.checked = false; dsMostrarVista(false); }
     document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
@@ -1390,7 +1400,10 @@ document.addEventListener('keydown', function(e) {
   // soloOrdenes: al agregar/eliminar una orden no se redibuja "Tiempos libres" (no cambió y parpadeaba).
   function dsCargarDia(soloOrdenes) {
     if (!DS.teamId) return;
-    api('/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada())).then(function(dia) {
+    var url = '/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada());
+    DS.diaUrl = url;
+    api(url).then(function(dia) {
+      if (DS.diaUrl !== url) return; // llegó tarde: ya se pidió otro día/equipo
       DS.diaData = dia;
       dsRenderTabla('principal');
       if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
