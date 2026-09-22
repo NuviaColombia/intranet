@@ -60,8 +60,8 @@
   .ds-fila-kpis > .ds-tabs { flex:none; justify-content:flex-end; }
   .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
   .ds-kpi b { display:block; font-size:20px; }
-  .ds-aviso-cerrado { background:#fff8e1; border:1px solid #f5d77a; color:#7a5a00; border-radius:8px; padding:8px 14px;
-                      font-size:13px; margin-bottom:14px; }
+  .ds-panel-titulo { display:flex; align-items:center; gap:6px; }
+  .ds-candado { font-size:13px; line-height:1; cursor:help; }
   table.ds-tabla input:disabled, table.ds-tabla select:disabled { color:#374151; opacity:1; cursor:default; -webkit-text-fill-color:#374151; }
   .ds-tl-card input:disabled, .ds-tl-card select:disabled { background:#f4f6f8; cursor:default; }
   .ds-panel { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
@@ -446,11 +446,13 @@
       <div id="dsKpis" class="ds-kpis"></div>
       <div id="dsDiaTabs" class="ds-tabs"></div>
     </div>
-    <div id="dsAvisoCerrado" class="ds-aviso-cerrado" style="display:none"></div>
 
     <div class="ds-panel">
       <div class="ds-panel-h">
-        <h3 id="dsTituloPrincipal">Órdenes</h3>
+        <div class="ds-panel-titulo">
+          <h3 id="dsTituloPrincipal">Órdenes</h3>
+          <span id="dsCandado" class="ds-candado" style="display:none" tabindex="0">🔒</span>
+        </div>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal')">+ Agregar orden</button>
       </div>
       <div id="dsTablaPrincipal"></div>
@@ -1258,19 +1260,19 @@ document.addEventListener('keydown', function(e) {
 
   function dsDiaCerrado() { return !!(DS.diaData && DS.diaData.cerrado); }
 
-  // Aviso + botones "Agregar orden" según si el día ya se cerró (5:00 am del día siguiente, hora Colombia).
+  // Candado junto al título + botones "Agregar orden" según si el día ya se cerró (5:00 am del día siguiente, hora Colombia).
   function dsAplicarCierre() {
-    var aviso = document.getElementById('dsAvisoCerrado');
+    var candado = document.getElementById('dsCandado');
     var cerrado = dsDiaCerrado();
     document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = cerrado ? 'none' : ''; });
-    if (!cerrado) { aviso.style.display = 'none'; return; }
+    if (!cerrado) { candado.style.display = 'none'; return; }
     var txt = '🔒 Este día ya se cerró y no se puede editar.';
     if (DS.diaData.qcEditable) {
       var h = new Date(DS.diaData.qcEditableHasta);
       txt += ' El checkbox de QC se puede marcar hasta el ' +
              h.toLocaleDateString('es-CO', {day: 'numeric', month: 'long', timeZone: 'America/Bogota'}) + ' a las 5:00 am.';
     }
-    aviso.innerText = txt; aviso.style.display = '';
+    candado.title = txt.replace('🔒 ', ''); candado.setAttribute('aria-label', candado.title); candado.style.display = '';
   }
 
   // Contadores fijos; solo cuentan órdenes completas (centro + producto + diseñador).
