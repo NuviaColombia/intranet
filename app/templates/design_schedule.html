@@ -60,7 +60,7 @@
   .ds-aviso-cerrado { background:#fff8e1; border:1px solid #f5d77a; color:#7a5a00; border-radius:8px; padding:8px 14px;
                       font-size:13px; margin-bottom:14px; }
   table.ds-tabla input:disabled, table.ds-tabla select:disabled { color:#374151; opacity:1; cursor:default; -webkit-text-fill-color:#374151; }
-  .ds-break-row input:disabled, .ds-break-row select:disabled { background:#f4f6f8; cursor:default; }
+  .ds-tl-card input:disabled, .ds-tl-card select:disabled { background:#f4f6f8; cursor:default; }
   .ds-panel { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
   .ds-panel h3 { margin:0 0 10px; font-size:14px; color:#1d4ed8; }
   table.ds-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -84,9 +84,22 @@
   .ds-panel-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   .ds-panel-h h3 { margin:0; }
   .ds-btn-add { padding:3px 10px; font-size:12px; line-height:1.4; border-radius:6px; }
-  .ds-break-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid #eee; }
-  .ds-break-row label { font-size:11px; color:#6b7280; display:block; }
-  .ds-break-row input, .ds-break-row select { font-size:12px; padding:4px 6px; border:1px solid #d8dde3; border-radius:6px; }
+  /* Tiempos libres: una tarjeta por diseñador, en cuadrícula que llena el ancho */
+  .ds-tl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }
+  .ds-tl-card { background:#f5f7fb; border:1px solid #e2e6ef; border-radius:10px; padding:12px 14px; }
+  .ds-tl-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; min-height:30px; }
+  .ds-tl-nombre { font-size:13px; font-weight:700; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ds-tl-aus { display:flex; align-items:center; gap:6px; flex:none; font-size:11px; }
+  .ds-tl-fila { display:grid; grid-template-columns:74px 16px minmax(0,1fr) 8px minmax(0,1fr); align-items:center; gap:6px; margin-top:6px; }
+  .ds-tl-fila > span.ds-tl-lbl { font-size:12px; font-weight:600; color:#4b5563; }
+  .ds-tl-fila > span.ds-tl-guion { text-align:center; color:#9ca3af; }
+  .ds-tl-card input, .ds-tl-card select { margin:0; font-size:12px; height:30px; padding:0 6px; box-sizing:border-box;
+                                          border:1px solid #d8dde3; border-radius:6px; background:#fff; }
+  .ds-tl-card input[type=time] { width:100%; min-width:0; text-align:center; padding:0 4px; }
+  .ds-tl-card input[type=time]::-webkit-calendar-picker-indicator { margin-left:2px; padding:0; }
+  .ds-tl-card select { width:auto; max-width:160px; }
+  .ds-tl-card input[type=checkbox] { width:15px; height:15px; padding:0; cursor:pointer; }
+  .ds-tl-card input[type=checkbox]:disabled { cursor:not-allowed; }
 
 
   .dd-filtros { display:flex; gap:10px; flex-wrap:wrap; align-items:end; background:#fff; border:1px solid #d8dde3;
@@ -782,6 +795,8 @@ document.addEventListener('keydown', function(e) {
   }
 
   var URL_PARAMS = new URLSearchParams(location.search);
+  // Desmarcar un descanso ya registrado: solo roles por encima del diseñador (empleado).
+  var DS_PUEDE_DESMARCAR = {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }};
   var DS = {
     areas: [], areaId: null, areaFormato: null,
     teams: [], teamId: null,
@@ -1272,31 +1287,86 @@ document.addEventListener('keydown', function(e) {
     });
   }
 
+  var DS_DESCANSO_MIN = 15; // duración de cada descanso registrado con el checkbox
+
+  function dsHoraMas(hhmm, minutos) {
+    var p = hhmm.split(':'); var t = (parseInt(p[0]) * 60 + parseInt(p[1]) + minutos) % (24 * 60);
+    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+  }
+  function dsHoraActual() {
+    var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
   function dsRenderBreaks(dia) {
     var cont = document.getElementById('dsBreaks'); cont.innerHTML = '';
     if (!dia.designers.length) { cont.innerHTML = '<p style="color:#6b7280">Este equipo no tiene diseñadores asignados.</p>'; return; }
     api('/design/api/ausencias').then(function(tipos) {
+      var grid = document.createElement('div'); grid.className = 'ds-tl-grid';
       dia.designers.forEach(function(d) {
         var b = dia.breaks.find(function(x) { return x.empleadoId === d.id; }) || {};
-        var row = document.createElement('div'); row.className = 'ds-break-row'; row.dataset.empleadoId = d.id;
-        row.innerHTML =
-          '<b style="min-width:140px">' + dsEsc(d.nombre) + '</b>' +
-          '<div><label>Ausencia' + (b.ausenciaAutomatica ? ' <span title="Tomado automáticamente de un permiso aprobado en People" style="color:#16a34a">🔒 People</span>' : '') + '</label>' +
-          '<select data-campo="tipoAusencia"><option value="">—</option>' +
-            tipos.map(function(t) { return '<option value="' + t + '"' + (t === b.tipoAusencia ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
-          '</select></div>' +
-          '<div><label>Almuerzo</label><input type="time" data-campo="almuerzoInicio" value="' + dsEsc(b.almuerzoInicio || '') + '"></div>' +
-          '<div><label>&nbsp;</label><input type="time" data-campo="almuerzoFin" value="' + dsEsc(b.almuerzoFin || '') + '"></div>' +
-          '<div><label>Break 1</label><input type="time" data-campo="break1Inicio" value="' + dsEsc(b.break1Inicio || '') + '"></div>' +
-          '<div><label>&nbsp;</label><input type="time" data-campo="break1Fin" value="' + dsEsc(b.break1Fin || '') + '"></div>' +
-          '<div><label>Break 2</label><input type="time" data-campo="break2Inicio" value="' + dsEsc(b.break2Inicio || '') + '"></div>' +
-          '<div><label>&nbsp;</label><input type="time" data-campo="break2Fin" value="' + dsEsc(b.break2Fin || '') + '"></div>';
-        row.querySelectorAll('[data-campo]').forEach(function(input) {
-          if (dsDiaCerrado()) { input.disabled = true; return; }
-          var ev = input.tagName === 'SELECT' ? 'change' : 'blur';
-          input.addEventListener(ev, function() { dsGuardarBreak(row); });
-        });
-        cont.appendChild(row);
+        var card = document.createElement('div'); card.className = 'ds-tl-card'; card.dataset.empleadoId = d.id;
+        var fila = function(lbl, ini, fin, conCheck) {
+          return '<div class="ds-tl-fila"><span class="ds-tl-lbl">' + lbl + '</span>' +
+            (conCheck ? '<input type="checkbox" data-descanso="' + conCheck + '" title="Registrar descanso de ' + DS_DESCANSO_MIN + ' min desde ahora">' : '<span></span>') +
+            '<input type="time" data-campo="' + ini + '" value="' + dsEsc(b[ini] || '') + '">' +
+            '<span class="ds-tl-guion">-</span>' +
+            '<input type="time" data-campo="' + fin + '" value="' + dsEsc(b[fin] || '') + '"></div>';
+        };
+        // La ausencia funciona igual que antes (mismo selector y valores); solo cambió de lugar.
+        card.innerHTML =
+          '<div class="ds-tl-head"><span class="ds-tl-nombre" title="' + dsEsc(d.nombre) + '">' + dsEsc(d.nombre) + '</span>' +
+            '<span class="ds-tl-aus">' +
+              (b.ausenciaAutomatica ? '<span title="Tomado automáticamente de un permiso aprobado en People" style="color:#16a34a">🔒 People</span>' : '') +
+              '<select data-campo="tipoAusencia" title="Ausencia" aria-label="Ausencia"><option value="">—</option>' +
+                tipos.map(function(t) { return '<option value="' + t + '"' + (t === b.tipoAusencia ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
+              '</select></span></div>' +
+          fila('Almuerzo', 'almuerzoInicio', 'almuerzoFin', null) +
+          fila('Descanso 1', 'break1Inicio', 'break1Fin', 'break1') +
+          fila('Descanso 2', 'break2Inicio', 'break2Fin', 'break2');
+        dsConectarTarjeta(card);
+        grid.appendChild(card);
+      });
+      cont.appendChild(grid);
+    });
+  }
+
+  // Checkbox del descanso: marcado = hay hora de inicio. Al marcarlo registra ahora + 15 min.
+  // Solo managers/admins pueden desmarcarlo (borra las horas); las horas se pueden corregir a mano.
+  function dsSincronizarDescanso(card, clave) {
+    var chk = card.querySelector('[data-descanso="' + clave + '"]');
+    var ini = card.querySelector('[data-campo="' + clave + 'Inicio"]');
+    chk.checked = !!ini.value;
+    chk.disabled = dsDiaCerrado() || (chk.checked && !DS_PUEDE_DESMARCAR);
+    chk.title = chk.checked
+      ? (DS_PUEDE_DESMARCAR ? 'Desmarcar borra las horas de este descanso' : 'Descanso registrado. Solo un manager o administrador puede desmarcarlo')
+      : 'Registrar descanso de ' + DS_DESCANSO_MIN + ' min desde ahora';
+  }
+
+  function dsConectarTarjeta(card) {
+    var cerrado = dsDiaCerrado();
+    card.querySelectorAll('[data-campo]').forEach(function(input) {
+      if (cerrado) { input.disabled = true; return; }
+      var ev = input.tagName === 'SELECT' ? 'change' : 'blur';
+      input.addEventListener(ev, function() {
+        ['break1', 'break2'].forEach(function(k) { dsSincronizarDescanso(card, k); });
+        dsGuardarBreak(card);
+      });
+    });
+    ['break1', 'break2'].forEach(function(clave) {
+      var chk = card.querySelector('[data-descanso="' + clave + '"]');
+      var ini = card.querySelector('[data-campo="' + clave + 'Inicio"]');
+      var fin = card.querySelector('[data-campo="' + clave + 'Fin"]');
+      dsSincronizarDescanso(card, clave);
+      chk.addEventListener('change', function() {
+        if (chk.checked) {
+          var ahora = dsHoraActual();
+          ini.value = ahora; fin.value = dsHoraMas(ahora, DS_DESCANSO_MIN);
+        } else {
+          if (!DS_PUEDE_DESMARCAR || !confirm('¿Borrar el registro de este descanso?')) { chk.checked = true; return; }
+          ini.value = ''; fin.value = '';
+        }
+        dsSincronizarDescanso(card, clave);
+        dsGuardarBreak(card);
       });
     });
   }
@@ -3692,7 +3762,9 @@ window.DS_PANELS.dashboard = ddCargar;
     });
   }
 
-  document.getElementById('trVaciarBtn').addEventListener('click', function() {
+  // El botón solo existe para managers/admins (el panel Papelera no se dibuja para otros roles).
+  var trVaciarBtn = document.getElementById('trVaciarBtn');
+  if (trVaciarBtn) trVaciarBtn.addEventListener('click', function() {
     if (!confirm('¿Vaciar todo el historial de la papelera? Esta acción no se puede deshacer.')) return;
     postJSON('/design/api/papelera/vaciar').then(function() { cargar(); });
   });
