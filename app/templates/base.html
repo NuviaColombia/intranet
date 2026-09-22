@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Solicitudes Nuvia</title>
-  <link rel="stylesheet" href="/static/style.css?v=6">
+  <link rel="stylesheet" href="/static/style.css?v=7">
 </head>
 <body>
 {% if user %}
@@ -39,8 +39,28 @@
   {% endif %}
   {% if es_design %}
   <a href="/design">Design Schedule</a>
+  <div class="nav-drop">
+    <button type="button" class="nav-drop-btn">Herramientas ▾</button>
+    <div class="nav-drop-menu">
+      <a href="/design?panel=comments">💬 Comments</a>
+      <a href="/design?panel=preapproved">✅ Pre-Approved</a>
+      <a href="/design?panel=canvas">🎨 Canvas</a>
+      <a href="/design?panel=protocols">📋 Protocols</a>
+      <a href="/design?panel=favoritos">⭐ Favoritos</a>
+    </div>
+  </div>
+  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+  <div class="nav-drop">
+    <button type="button" class="nav-drop-btn">Gestión ▾</button>
+    <div class="nav-drop-menu">
+      <a href="/design?panel=dashboard">📊 Dashboard</a>
+      <a href="/design?panel=perf">📈 Desempeño</a>
+      <a href="/design?panel=papelera">🗑️ Papelera</a>
+    </div>
+  </div>
+  {% endif %}
   {% if user.rol in ('admin', 'superadmin') %}
-  <a href="/design/parametros">Parámetros</a>
+  <a href="/design/parametros">⚙️ Parámetros</a>
   {% endif %}
   {% endif %}
   {% if not es_custodia and not es_design %}
@@ -54,5 +74,21 @@
 </nav>
 {% endif %}
 <main{% if not es_portal %} style="max-width:100%"{% endif %}>{% block contenido %}{% endblock %}</main>
+<script>
+(function() {
+  document.querySelectorAll('.nav-drop-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      var menu = btn.nextElementSibling;
+      var wasOpen = menu.classList.contains('open');
+      document.querySelectorAll('.nav-drop-menu.open').forEach(function(m) { m.classList.remove('open'); });
+      if (!wasOpen) menu.classList.add('open');
+    });
+  });
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.nav-drop-menu.open').forEach(function(m) { m.classList.remove('open'); });
+  });
+})();
+</script>
 </body>
 </html>

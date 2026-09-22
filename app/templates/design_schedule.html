@@ -4,15 +4,7 @@
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 
-  /* ---------- Shell: barra de herramientas y paneles superpuestos ---------- */
-  .ds-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
-  .ds-menu-wrap { position:relative; display:inline-block; }
-  .ds-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; background:#fff; border:1px solid #d1d5db;
-             border-radius:8px; box-shadow:0 10px 28px rgba(0,0,0,.16); min-width:210px; z-index:60; padding:6px; }
-  .ds-menu.open { display:block; }
-  .ds-menu button { display:flex; align-items:center; gap:9px; width:100%; text-align:left; background:none; border:none;
-                    padding:9px 11px; border-radius:6px; cursor:pointer; font-size:13px; font-family:inherit; color:#111827; }
-  .ds-menu button:hover { background:#f3f4f6; }
+  /* ---------- Shell: paneles superpuestos ---------- */
   .ds-overlay { display:none; position:fixed; inset:0; background:#fff; z-index:300; overflow-y:auto; }
   .ds-overlay.open { display:block; }
   .ds-overlay-inner { max-width:1300px; margin:0 auto; padding:24px 24px 70px; }
@@ -332,32 +324,6 @@
   input.pf-mini { padding:3px 5px; border:1px solid #d8dde3; border-radius:5px; font-size:12px; }
 
 </style>
-
-<div class="ds-toolbar">
-  <div class="ds-menu-wrap">
-    <button type="button" class="btn gris mini ds-menu-btn">Herramientas &#9662;</button>
-    <div class="ds-menu">
-      <button type="button" data-panel-open="comments">&#128172; Comments</button>
-      <button type="button" data-panel-open="preapproved">&#9989; Pre-Approved</button>
-      <button type="button" data-panel-open="canvas">&#127912; Canvas</button>
-      <button type="button" data-panel-open="protocols">&#128203; Protocols</button>
-      <button type="button" data-panel-open="favoritos">&#11088; Favoritos</button>
-    </div>
-  </div>
-  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
-  <div class="ds-menu-wrap">
-    <button type="button" class="btn gris mini ds-menu-btn">Gesti&oacute;n &#9662;</button>
-    <div class="ds-menu">
-      <button type="button" data-panel-open="dashboard">&#128202; Dashboard</button>
-      <button type="button" data-panel-open="perf">&#128200; Desempe&ntilde;o</button>
-      <button type="button" data-panel-open="papelera">&#128465;&#65039; Papelera</button>
-    </div>
-  </div>
-  {% endif %}
-  {% if user.rol in ('admin', 'superadmin') %}
-  <a class="btn gris mini" href="/design/parametros">&#9881;&#65039; Par&aacute;metros</a>
-  {% endif %}
-</div>
 
 <div id="ds-app">
   <h1 style="margin-bottom:6px">Design Schedule</h1>
@@ -3401,29 +3367,11 @@ window.DS_PANELS.dashboard = ddCargar;
   window.dsAbrirPanel = dsAbrirPanel;
   window.dsCerrarPaneles = dsCerrarPaneles;
 
-  document.querySelectorAll('[data-panel-open]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      dsAbrirPanel(btn.dataset.panelOpen);
-      document.querySelectorAll('.ds-menu.open').forEach(function(m) { m.classList.remove('open'); });
-    });
-  });
   document.querySelectorAll('.ds-overlay-close').forEach(function(btn) {
     btn.addEventListener('click', dsCerrarPaneles);
   });
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && document.querySelector('.ds-overlay.open')) dsCerrarPaneles();
-  });
-  document.querySelectorAll('.ds-menu-btn').forEach(function(btn) {
-    btn.addEventListener('click', function(ev) {
-      ev.stopPropagation();
-      var menu = btn.nextElementSibling;
-      var wasOpen = menu.classList.contains('open');
-      document.querySelectorAll('.ds-menu.open').forEach(function(m) { m.classList.remove('open'); });
-      if (!wasOpen) menu.classList.add('open');
-    });
-  });
-  document.addEventListener('click', function() {
-    document.querySelectorAll('.ds-menu.open').forEach(function(m) { m.classList.remove('open'); });
   });
 
   var initialPanel = new URLSearchParams(location.search).get('panel');
