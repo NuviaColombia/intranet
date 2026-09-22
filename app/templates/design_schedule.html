@@ -19,6 +19,20 @@
   .ds-tab { padding:8px 16px; border-radius:8px; border:1px solid var(--borde,#d8dde3); background:#fff;
             cursor:pointer; font-weight:600; font-size:13px; }
   .ds-tab.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+  /* Botón de área con lista desplegable de equipos/hojas (Horario y Pre-Approved) */
+  .ds-area-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:14px; }
+  .ds-area-row > .ds-tabs, .ds-area-row > .pa-tabs { margin-bottom:0; }
+  .ds-area-row .ds-todas-chk { margin-left:auto; align-self:center; display:flex; align-items:center; cursor:pointer; }
+  .ds-area-row .ds-todas-chk input { width:auto; margin:0; cursor:pointer; }
+  .ds-drop { position:relative; display:inline-block; }
+  .ds-drop-menu { display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:40; min-width:220px; max-height:340px;
+                  overflow:auto; background:#fff; border:1px solid #d8dde3; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.12); padding:4px; }
+  .ds-drop.open .ds-drop-menu { display:block; }
+  .ds-drop-item { display:block; width:100%; text-align:left; padding:7px 12px; border:none; background:none; border-radius:6px;
+                  cursor:pointer; font-size:13px; color:#111827; white-space:nowrap; }
+  .ds-drop-item:hover { background:#eff6ff; }
+  .ds-drop-item.activo { background:#1d4ed8; color:#fff; font-weight:600; }
+  .ds-drop-vacio { padding:8px 12px; color:#6b7280; font-size:12px; white-space:nowrap; }
   .ds-semana { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .ds-dia { padding:6px 14px; border-radius:8px; border:1px solid var(--borde,#d8dde3); background:#fff;
             cursor:pointer; font-size:13px; }
@@ -351,17 +365,17 @@
 </style>
 
 <div id="ds-app">
-  <h1 style="margin-bottom:6px">Design Schedule</h1>
-  <div id="dsAreaTabs" class="ds-tabs"></div>
-  {% if user.rol in ('admin', 'superadmin') %}
-  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;width:fit-content;margin-bottom:14px">
-    <input type="checkbox" id="dsTodasAreasChk" style="width:auto">
-    Ver el horario de todas las áreas
-  </label>
-  {% endif %}
+  <h1 style="margin-bottom:6px">Design Schedule<span id="dsTituloEquipo"></span></h1>
+  <div class="ds-area-row">
+    <div id="dsAreaTabs" class="ds-tabs"></div>
+    {% if user.rol in ('admin', 'superadmin') %}
+    <label class="ds-todas-chk" title="Ver el horario de todas las áreas">
+      <input type="checkbox" id="dsTodasAreasChk">
+    </label>
+    {% endif %}
+  </div>
 
   <div id="dsVistaNormal">
-    <div id="dsTeamTabs" class="ds-tabs"></div>
 
     <div class="ds-semana">
       <button type="button" class="btn gris mini" onclick="dsCambiarSemana(-7)">&larr; Semana anterior</button>
@@ -496,9 +510,8 @@
     <button type="button" class="btn" style="margin-top:8px" onclick="faqAgregarFila()">+ Agregar fila</button>
   </div>
 </div></div></div>
-<div class="ds-overlay" id="ov-preapproved"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Pre-Approved — Design Schedule</h1>
-<div class="pa-tabs" id="paAreaTabs"></div>
-<div class="pa-tabs" id="paSheetTabs"></div>
+<div class="ds-overlay" id="ov-preapproved"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Pre-Approved — Design Schedule<span id="paTituloHoja"></span></h1>
+<div class="ds-area-row"><div class="pa-tabs" id="paAreaTabs"></div></div>
 <div class="pa-toolbar">
   <button type="button" class="btn" onclick="paNuevaHoja()">+ Nueva hoja</button>
   <button type="button" class="btn rojo" id="paBorrarHojaBtn" onclick="paBorrarHoja()" style="display:none">Eliminar hoja actual</button>
@@ -668,7 +681,50 @@
 <div class="tr-list" id="trList"></div></div></div>
 {% endif %}
 
-<script>window.DS_PANELS = {};</script>
+<script>window.DS_PANELS = {};
+
+// Botón de área con lista desplegable (Horario: equipos; Pre-Approved: hojas).
+// Cada área se pinta como <div class="ds-drop" data-area="id"><button class="{tabClass}"> + <div class="ds-drop-menu">.
+window.dsDropArea = function(area, tabClass, onClick) {
+  var drop = document.createElement('div');
+  drop.className = 'ds-drop'; drop.dataset.area = area.id;
+  var btn = document.createElement('button');
+  btn.type = 'button'; btn.className = tabClass;
+  btn.innerText = area.nombre + ' ▾';
+  btn.onclick = function(ev) { ev.stopPropagation(); onClick(); };
+  var menu = document.createElement('div'); menu.className = 'ds-drop-menu';
+  drop.appendChild(btn); drop.appendChild(menu);
+  return drop;
+};
+window.dsDropRenderItems = function(drop, items, activoId, textoVacio, onPick) {
+  if (!drop) return;
+  var menu = drop.querySelector('.ds-drop-menu'); menu.innerHTML = '';
+  if (!items.length) { menu.innerHTML = '<div class="ds-drop-vacio">' + textoVacio + '</div>'; return; }
+  items.forEach(function(it) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'ds-drop-item' + (it.id === activoId ? ' activo' : '');
+    b.dataset.id = it.id; b.innerText = it.nombre;
+    b.onclick = function(ev) { ev.stopPropagation(); dsDropCerrar(); onPick(it.id); };
+    menu.appendChild(b);
+  });
+};
+window.dsDropMarcar = function(drop, activoId) {
+  if (!drop) return;
+  drop.querySelectorAll('.ds-drop-item').forEach(function(b) { b.classList.toggle('activo', parseInt(b.dataset.id) === activoId); });
+};
+window.dsDropAbrir = function(drop) {
+  dsDropCerrar();
+  if (drop) drop.classList.add('open');
+};
+window.dsDropCerrar = function() {
+  document.querySelectorAll('.ds-drop.open').forEach(function(d) { d.classList.remove('open'); });
+};
+document.addEventListener('click', function(e) { if (!e.target.closest('.ds-drop')) dsDropCerrar(); });
+// Escape con una lista abierta solo cierra la lista (no el panel overlay).
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.querySelector('.ds-drop.open')) { dsDropCerrar(); e.stopPropagation(); }
+}, true);
+</script>
 
 <script>
 
@@ -790,11 +846,12 @@
       DS.areas = areas;
       var cont = document.getElementById('dsAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
-        var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'ds-tab' + (a.id === DS.areaId ? ' activo' : '');
-        btn.innerText = a.nombre;
-        btn.onclick = function() { dsSeleccionarArea(a.id, a.formato); };
-        cont.appendChild(btn);
+        cont.appendChild(dsDropArea(a, 'ds-tab' + (a.id === DS.areaId ? ' activo' : ''), function() {
+          // Primer clic en otra área: la selecciona (y su primer equipo) y abre la lista; en la misma área, abre/cierra.
+          if (a.id !== DS.areaId) { dsSeleccionarArea(a.id, a.formato, false, undefined, true); return; }
+          var drop = dsDropDeArea(a.id);
+          if (drop.classList.contains('open')) dsDropCerrar(); else dsDropAbrir(drop);
+        }));
       });
       if (!areas.length) return;
       var inicial = areas[0], inicialIdx = 0, autoBuscar = true;
@@ -806,7 +863,15 @@
     });
   }
 
-  function dsSeleccionarArea(areaId, formato, autoBuscar, idxActual) {
+  function dsDropDeArea(areaId) { return document.querySelector('#dsAreaTabs .ds-drop[data-area="' + areaId + '"]'); }
+
+  function dsActualizarTitulo() {
+    var t = DS.teams.find(function(x) { return x.id === DS.teamId; });
+    var chk = document.getElementById('dsTodasAreasChk');
+    document.getElementById('dsTituloEquipo').innerText = (t && !(chk && chk.checked)) ? ' (' + t.nombre + ')' : '';
+  }
+
+  function dsSeleccionarArea(areaId, formato, autoBuscar, idxActual, abrirLista) {
     DS.areaId = areaId; DS.areaFormato = formato;
     document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
       b.classList.toggle('activo', DS.areas[i].id === areaId);
@@ -814,22 +879,23 @@
     document.getElementById('dsPanelNightguard').style.display = (formato === 'dual') ? '' : 'none';
     document.getElementById('dsTituloPrincipal').innerText = (formato === 'dual') ? 'Cirugías' : 'Órdenes';
     api('/design/api/teams?area_id=' + areaId).then(function(teams) {
+      if (DS.areaId !== areaId) return; // el usuario ya cambió de área mientras cargaba
       DS.teams = teams;
-      var cont = document.getElementById('dsTeamTabs'); cont.innerHTML = '';
-      teams.forEach(function(t) {
-        var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'ds-tab';
-        btn.innerText = t.nombre;
-        btn.onclick = function() { dsSeleccionarEquipo(t.id); };
-        cont.appendChild(btn);
+      var drop = dsDropDeArea(areaId);
+      dsDropRenderItems(drop, teams, null, 'Sin equipos', function(teamId) {
+        var chk = document.getElementById('dsTodasAreasChk');
+        if (chk && chk.checked) { chk.checked = false; dsMostrarVista(false); }
+        dsSeleccionarEquipo(teamId);
       });
+      if (abrirLista) dsDropAbrir(drop);
       if (!teams.length) {
         if (autoBuscar && typeof idxActual === 'number' && idxActual + 1 < DS.areas.length) {
           var siguiente = DS.areas[idxActual + 1];
           dsSeleccionarArea(siguiente.id, siguiente.formato, true, idxActual + 1);
           return;
         }
-        DS.teamId = null; document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; return;
+        DS.teamId = null; dsActualizarTitulo();
+        document.getElementById('dsTablaPrincipal').innerHTML = '<p style="color:#6b7280">No hay equipos en esta área todavía. Créalos en Parámetros.</p>'; return;
       }
       var teamInicial = teams[0];
       if (DS.deepLinkTeamId) {
@@ -843,7 +909,8 @@
 
   function dsSeleccionarEquipo(teamId) {
     DS.teamId = teamId;
-    document.querySelectorAll('#dsTeamTabs .ds-tab').forEach(function(b, i) { b.classList.toggle('activo', DS.teams[i].id === teamId); });
+    dsDropMarcar(dsDropDeArea(DS.areaId), teamId);
+    dsActualizarTitulo();
     dsRenderDias();
     dsCargarDia();
   }
@@ -1161,6 +1228,7 @@
   function dsMostrarVista(todasAreas) {
     document.getElementById('dsVistaNormal').style.display = todasAreas ? 'none' : '';
     document.getElementById('dsVistaTodasAreas').style.display = todasAreas ? '' : 'none';
+    dsActualizarTitulo();
     if (todasAreas) { dsRenderDiasTodas(); dsCargarTodasAreas(); }
   }
   var todasAreasChk = document.getElementById('dsTodasAreasChk');
@@ -1604,11 +1672,12 @@ window.DS_PANELS.dashboard = ddCargar;
       PA.areas = areas;
       var cont = document.getElementById('paAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
-        var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'pa-tab' + (a.id === PA.areaId ? ' activo' : '');
-        btn.innerText = a.nombre;
-        btn.onclick = function() { seleccionarArea(a.id); };
-        cont.appendChild(btn);
+        cont.appendChild(dsDropArea(a, 'pa-tab' + (a.id === PA.areaId ? ' activo' : ''), function() {
+          // Primer clic en otra área: la selecciona (y su primera hoja) y abre la lista; en la misma área, abre/cierra.
+          if (a.id !== PA.areaId) { seleccionarArea(a.id, true); return; }
+          var drop = dropDeArea(a.id);
+          if (drop.classList.contains('open')) dsDropCerrar(); else dsDropAbrir(drop);
+        }));
       });
       if (!areas.length) return;
       var inicial = areas[0];
@@ -1620,25 +1689,29 @@ window.DS_PANELS.dashboard = ddCargar;
     });
   }
 
-  function seleccionarArea(areaId) {
-    PA.areaId = areaId;
-    document.querySelectorAll('#paAreaTabs .pa-tab').forEach(function(b, i) { b.classList.toggle('activo', PA.areas[i].id === areaId); });
-    cargarHojas();
+  function dropDeArea(areaId) { return document.querySelector('#paAreaTabs .ds-drop[data-area="' + areaId + '"]'); }
+
+  function actualizarTitulo() {
+    var s = PA.sheets.find(function(x) { return x.id === PA.sheetId; });
+    document.getElementById('paTituloHoja').innerText = s ? ' (' + s.nombre + ')' : '';
   }
 
-  function cargarHojas() {
-    api('/design/api/preapproved/sheets?area_id=' + PA.areaId).then(function(sheets) {
+  function seleccionarArea(areaId, abrirLista) {
+    PA.areaId = areaId;
+    document.querySelectorAll('#paAreaTabs .pa-tab').forEach(function(b, i) { b.classList.toggle('activo', PA.areas[i].id === areaId); });
+    cargarHojas(abrirLista);
+  }
+
+  function cargarHojas(abrirLista) {
+    var areaId = PA.areaId;
+    api('/design/api/preapproved/sheets?area_id=' + areaId).then(function(sheets) {
+      if (PA.areaId !== areaId) return; // el usuario ya cambió de área mientras cargaba
       PA.sheets = sheets;
-      var cont = document.getElementById('paSheetTabs'); cont.innerHTML = '';
-      sheets.forEach(function(s) {
-        var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'pa-tab' + (s.id === PA.sheetId ? ' activo' : '');
-        btn.innerText = s.nombre;
-        btn.onclick = function() { seleccionarHoja(s.id); };
-        cont.appendChild(btn);
-      });
+      var drop = dropDeArea(areaId);
+      dsDropRenderItems(drop, sheets, PA.sheetId, 'Sin hojas', seleccionarHoja);
+      if (abrirLista) dsDropAbrir(drop);
       if (!sheets.length) {
-        PA.sheetId = null;
+        PA.sheetId = null; actualizarTitulo();
         document.getElementById('paSheetMeta').style.display = 'none';
         document.getElementById('paGridPanel').style.display = 'none';
         document.getElementById('paBorrarHojaBtn').style.display = 'none';
@@ -1668,7 +1741,8 @@ window.DS_PANELS.dashboard = ddCargar;
 
   function seleccionarHoja(sheetId) {
     PA.sheetId = sheetId;
-    document.querySelectorAll('#paSheetTabs .pa-tab').forEach(function(b, i) { b.classList.toggle('activo', PA.sheets[i].id === sheetId); });
+    dsDropMarcar(dropDeArea(PA.areaId), sheetId);
+    actualizarTitulo();
     document.getElementById('paSheetMeta').style.display = '';
     document.getElementById('paGridPanel').style.display = '';
     document.getElementById('paBorrarHojaBtn').style.display = '';

@@ -29,8 +29,20 @@ def lunes_de(fecha: date) -> date:
     return fecha - timedelta(days=fecha.weekday())
 
 
+# Orden de presentación de las áreas en toda la UI de Design Schedule. Se aplica en código
+# (no en la columna `orden` de la BD); áreas que no estén aquí van al final por su `orden`.
+ORDEN_AREAS_UI = ["Face Design", "N2 Demodenture", "N3 Prosthetic", "N6 Material Changes", "Support"]
+
+
+def ordenar_areas(areas: list[DesignArea]) -> list[DesignArea]:
+    def clave(a: DesignArea):
+        pos = ORDEN_AREAS_UI.index(a.nombre) if a.nombre in ORDEN_AREAS_UI else len(ORDEN_AREAS_UI)
+        return (pos, a.orden or 0)
+    return sorted(areas, key=clave)
+
+
 def areas_disponibles(db: Session) -> list[DesignArea]:
-    return db.query(DesignArea).filter(DesignArea.activo == 1).order_by(DesignArea.orden).all()
+    return ordenar_areas(db.query(DesignArea).filter(DesignArea.activo == 1).all())
 
 
 def equipos_de_area(db: Session, area_id: int) -> list[DesignTeam]:

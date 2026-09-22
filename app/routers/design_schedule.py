@@ -46,7 +46,7 @@ async def pagina_comments(request: Request, user: Empleado = Depends(require_mod
 
 @router.get("/design/parametros")
 async def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    areas = db.query(DesignArea).order_by(DesignArea.orden).all()
+    areas = sd.ordenar_areas(db.query(DesignArea).all())
     teams = (db.query(DesignTeam).order_by(DesignTeam.orden).all())
     candidatos = (db.query(Empleado).filter(Empleado.empresa == NUVIA_DESIGN, Empleado.activo == 1)
                  .order_by(Empleado.apellidos).all())
