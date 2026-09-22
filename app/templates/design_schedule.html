@@ -20,9 +20,11 @@
             cursor:pointer; font-weight:600; font-size:13px; }
   .ds-tab.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   /* Botón de área con lista desplegable de equipos/hojas (Horario y Pre-Approved) */
-  .ds-area-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:14px; }
-  .ds-area-row > .ds-tabs, .ds-area-row > .pa-tabs { margin-bottom:0; }
-  .ds-area-row .ds-todas-chk { margin-left:auto; align-self:center; display:flex; align-items:center; cursor:pointer; }
+  .ds-area-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; margin-bottom:14px; }
+  .ds-area-row > .ds-tabs, .ds-area-row > .pa-tabs { margin-bottom:0; flex:1 1 auto; }
+  .ds-area-row > .ds-semana { margin-bottom:0; }
+  .ds-area-row .ds-semana select { margin:0; width:auto; }
+  .ds-area-row .ds-todas-chk { display:flex; align-items:center; cursor:pointer; }
   /* Checkbox con apariencia de interruptor (switch) */
   .ds-area-row .ds-todas-chk input { appearance:none; -webkit-appearance:none; position:relative; width:38px; height:22px; margin:0; padding:0; border:none; box-sizing:border-box;
                                      border-radius:11px; background:#cbd2da; cursor:pointer; transition:background .2s; flex:none; }
@@ -378,6 +380,16 @@
   <h1 style="margin:-9px 0 15px">Design Schedule<span id="dsTituloEquipo"></span></h1>
   <div class="ds-area-row">
     <div id="dsAreaTabs" class="ds-tabs"></div>
+    <!-- Semana: aplica al equipo elegido y a la vista de todas las áreas; oculta mientras no haya ninguno de los dos -->
+    <div class="ds-semana" id="dsSemanaCtrl" style="display:none">
+      <button type="button" class="btn gris mini" onclick="dsCambiarSemana(-7)">&larr; Semana anterior</button>
+      <span id="dsRangoSemana" style="font-weight:700"></span>
+      <button type="button" class="btn gris mini" onclick="dsCambiarSemana(7)">Semana siguiente &rarr;</button>
+      <span style="margin-left:10px"><label style="font-size:11px;color:#6b7280;display:block">Mes</label>
+        <select id="dsMesFiltro"></select></span>
+      <span><label style="font-size:11px;color:#6b7280;display:block">Semana</label>
+        <select id="dsSemanaFiltro"></select></span>
+    </div>
     {% if user.rol in ('admin', 'superadmin') %}
     <label class="ds-todas-chk" title="Ver el horario de todas las áreas">
       <input type="checkbox" id="dsTodasAreasChk" role="switch" aria-label="Ver el horario de todas las áreas">
@@ -389,15 +401,6 @@
     <p id="dsSinEquipo" class="ds-sin-equipo">Selecciona un área y un equipo para ver su horario.</p>
     <div id="dsVistaEquipo" style="display:none">
 
-    <div class="ds-semana">
-      <button type="button" class="btn gris mini" onclick="dsCambiarSemana(-7)">&larr; Semana anterior</button>
-      <span id="dsRangoSemana" style="font-weight:700"></span>
-      <button type="button" class="btn gris mini" onclick="dsCambiarSemana(7)">Semana siguiente &rarr;</button>
-      <span style="margin-left:10px"><label style="font-size:11px;color:#6b7280;display:block">Mes</label>
-        <select id="dsMesFiltro"></select></span>
-      <span><label style="font-size:11px;color:#6b7280;display:block">Semana</label>
-        <select id="dsSemanaFiltro"></select></span>
-    </div>
     <div id="dsDiaTabs" class="ds-tabs"></div>
 
     <div id="dsKpis" class="ds-kpis"></div>
@@ -422,11 +425,6 @@
   </div>
 
   <div id="dsVistaTodasAreas" style="display:none">
-    <div class="ds-semana">
-      <button type="button" class="btn gris mini" onclick="dsCambiarSemanaTodas(-7)">&larr; Semana anterior</button>
-      <span id="dsRangoSemanaTodas" style="font-weight:700"></span>
-      <button type="button" class="btn gris mini" onclick="dsCambiarSemanaTodas(7)">Semana siguiente &rarr;</button>
-    </div>
     <div id="dsDiaTabsTodas" class="ds-tabs"></div>
     <div id="dsTodasAreasCont"></div>
   </div>
@@ -766,8 +764,18 @@ document.addEventListener('keydown', function(e) {
   };
   window.dsCambiarSemana = function(delta) {
     DS.lunes.setDate(DS.lunes.getDate() + delta);
-    dsRenderDias(); dsCargarDia();
+    dsRefrescarSemana();
   };
+  // Refresca la vista activa (equipo o todas las áreas) tras cambiar de semana.
+  function dsRefrescarSemana() {
+    var chk = document.getElementById('dsTodasAreasChk');
+    if (chk && chk.checked) { dsRenderDiasTodas(); dsCargarTodasAreas(); }
+    else { dsRenderDias(); dsCargarDia(); }
+  }
+  function dsActualizarSemanaCtrl() {
+    var chk = document.getElementById('dsTodasAreasChk');
+    document.getElementById('dsSemanaCtrl').style.display = (DS.teamId || (chk && chk.checked)) ? '' : 'none';
+  }
 
   function dsLunesDe(d) {
     var dia = d.getDay(); var diff = (dia === 0 ? -6 : 1) - dia;
@@ -851,7 +859,7 @@ document.addEventListener('keydown', function(e) {
   function dsAplicarSemanaFiltro() {
     var val = document.getElementById('dsSemanaFiltro').value; if (!val) return;
     DS.lunes = new Date(val + 'T00:00:00'); DS.diaSel = 0;
-    dsRenderDias(); dsCargarDia();
+    dsRefrescarSemana();
   }
 
   // ---------- Áreas / Equipos ----------
@@ -892,9 +900,9 @@ document.addEventListener('keydown', function(e) {
   }
 
   function dsElegirEquipo(area, teams, teamId) {
+    DS.areaId = area.id; DS.areaFormato = area.formato; DS.teams = teams; DS.teamId = teamId;
     var chk = document.getElementById('dsTodasAreasChk');
     if (chk && chk.checked) { chk.checked = false; dsMostrarVista(false); }
-    DS.areaId = area.id; DS.areaFormato = area.formato; DS.teams = teams;
     document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
       b.classList.toggle('activo', DS.areas[i].id === area.id);
     });
@@ -914,6 +922,7 @@ document.addEventListener('keydown', function(e) {
   function dsSeleccionarEquipo(teamId) {
     DS.teamId = teamId;
     dsActualizarTitulo();
+    dsActualizarSemanaCtrl();
     dsRenderDias();
     dsCargarDia();
   }
@@ -1147,21 +1156,18 @@ document.addEventListener('keydown', function(e) {
   }
 
   // ---------- Vista "Todas las áreas" (solo aprobadores/admins) ----------
-  var DST = { lunes: dsLunesDe(new Date()), diaSel: 0 };
-  window.dsCambiarSemanaTodas = function(delta) {
-    DST.lunes.setDate(DST.lunes.getDate() + delta);
-    dsRenderDiasTodas(); dsCargarTodasAreas();
-  };
+  // Usa la misma semana/día que la vista de equipo (DS.lunes / DS.diaSel), manejada desde la fila de áreas.
   function dsRenderDiasTodas() {
-    var fin = new Date(DST.lunes); fin.setDate(fin.getDate() + 4);
-    document.getElementById('dsRangoSemanaTodas').innerText = dsFechaCorta(DST.lunes) + ' — ' + dsFechaCorta(fin);
+    var fin = new Date(DS.lunes); fin.setDate(fin.getDate() + 4);
+    document.getElementById('dsRangoSemana').innerText = dsFechaCorta(DS.lunes) + ' — ' + dsFechaCorta(fin);
+    dsSincronizarFiltrosFecha();
     var cont = document.getElementById('dsDiaTabsTodas'); cont.innerHTML = '';
     for (var i = 0; i < 5; i++) {
-      var d = new Date(DST.lunes); d.setDate(d.getDate() + i);
+      var d = new Date(DS.lunes); d.setDate(d.getDate() + i);
       var btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'ds-dia' + (i === DST.diaSel ? ' activo' : '');
+      btn.type = 'button'; btn.className = 'ds-dia' + (i === DS.diaSel ? ' activo' : '');
       btn.innerText = NOMBRES_DIAS[i] + ' ' + dsFechaCorta(d);
-      btn.onclick = (function(idx) { return function() { DST.diaSel = idx; dsRenderDiasTodas(); dsCargarTodasAreas(); }; })(i);
+      btn.onclick = (function(idx) { return function() { DS.diaSel = idx; dsRenderDiasTodas(); dsCargarTodasAreas(); }; })(i);
       cont.appendChild(btn);
     }
   }
@@ -1180,7 +1186,7 @@ document.addEventListener('keydown', function(e) {
     return html + '</tbody></table>';
   }
   function dsCargarTodasAreas() {
-    var fecha = dsFechaISO(new Date(DST.lunes.getFullYear(), DST.lunes.getMonth(), DST.lunes.getDate() + DST.diaSel));
+    var fecha = dsFechaISO(new Date(DS.lunes.getFullYear(), DS.lunes.getMonth(), DS.lunes.getDate() + DS.diaSel));
     var cont = document.getElementById('dsTodasAreasCont');
     cont.innerHTML = '<p style="color:#6b7280">Cargando…</p>';
     api('/design/api/areas').then(function(areas) {
@@ -1229,7 +1235,10 @@ document.addEventListener('keydown', function(e) {
     document.getElementById('dsVistaNormal').style.display = todasAreas ? 'none' : '';
     document.getElementById('dsVistaTodasAreas').style.display = todasAreas ? '' : 'none';
     dsActualizarTitulo();
+    dsActualizarSemanaCtrl();
+    // La semana es compartida: al volver a la vista de equipo se recarga por si cambió en la de todas las áreas.
     if (todasAreas) { dsRenderDiasTodas(); dsCargarTodasAreas(); }
+    else { dsRenderDias(); dsCargarDia(); }
   }
   var todasAreasChk = document.getElementById('dsTodasAreasChk');
   if (todasAreasChk) {
