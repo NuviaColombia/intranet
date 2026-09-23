@@ -757,10 +757,11 @@
 </div></div></div>
 {% endif %}
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
-<div class="ds-overlay" id="ov-perf"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Desempeño — Design Schedule</h1>
+<div class="ds-overlay" id="ov-perf"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Desempeño — Design Schedule<span id="pfTituloHoja"></span></h1>
 <p style="color:#6b7280;font-size:13px;margin-top:-8px">Solo aprobadores y administradores. Evaluaciones mensuales por equipo y selección de empleado del mes.</p>
-<div class="pf-tabs" id="pfSheetTabs"></div>
-<div class="pf-panel" id="pfPanel"></div></div></div>
+<div class="ds-area-row"><div class="pf-tabs" id="pfSheetTabs"></div></div>
+<p id="pfSinHoja" class="ds-sin-equipo" style="min-height:260px">Selecciona un área y un equipo para ver su evaluación.</p>
+<div class="pf-panel" id="pfPanel" style="display:none"></div></div></div>
 {% endif %}
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
 <div class="ds-overlay" id="ov-papelera"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><div class="tr-toolbar">
@@ -4297,25 +4298,67 @@ window.DS_PANELS.dashboard = ddCargar;
 
   var PF = { sheets: [], sheetId: null, mesIdx: 0, detalle: null };
 
+  // Hojas agrupadas por área según el inicio del nombre ("N3 Paula" -> N3 Prosthetic, lista "Paula"), igual que
+  // en Horario. Las que no empiezan con un prefijo de área (DESIGN MANAGERS, SELECCION...) quedan como botones sueltos.
+  // No hay área guardada en la BD: una hoja nueva "N3 Carlos" cae sola en N3.
+  var PF_GRUPOS = [
+    {id: 'Face', nombre: 'Face Design'}, {id: 'N2', nombre: 'N2 Demodenture'},
+    {id: 'N3', nombre: 'N3 Prosthetic'}, {id: 'N6', nombre: 'N6 Material Changes'},
+  ];
+  function grupoDe(nombre) {
+    var m = /^\s*(Face|N2|N3|N6)\s+(.+)$/i.exec(nombre || '');
+    if (!m) return null;
+    var g = PF_GRUPOS.find(function(x) { return x.id.toLowerCase() === m[1].toLowerCase(); });
+    return g ? {grupo: g, corto: m[2].trim()} : null;
+  }
+
   function cargarSheets() {
     api('/design/api/perf/sheets').then(function(sheets) {
       PF.sheets = sheets;
       var cont = document.getElementById('pfSheetTabs'); cont.innerHTML = '';
-      sheets.forEach(function(s) {
+      PF_GRUPOS.forEach(function(g) {
+        var items = sheets.filter(function(s) { var x = grupoDe(s.nombre); return x && x.grupo === g; })
+                          .map(function(s) { return {id: s.id, nombre: grupoDe(s.nombre).corto}; });
+        if (!items.length) return; // áreas sin hojas (Support) no se muestran
+        var drop = dsDropArea(g, 'pf-tab', function() {
+          if (drop.classList.contains('open')) { dsDropCerrar(); return; }
+          dsDropRenderItems(drop, items, PF.sheetId, 'Sin equipos', seleccionarSheet);
+          dsDropAbrir(drop);
+        });
+        drop.dataset.grupo = g.id;
+        cont.appendChild(drop);
+      });
+      sheets.filter(function(s) { return !grupoDe(s.nombre); }).forEach(function(s) {
         var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'pf-tab' + (s.id === PF.sheetId ? ' activo' : '');
+        btn.type = 'button'; btn.className = 'pf-tab'; btn.dataset.sheet = s.id;
         btn.innerText = s.nombre;
-        btn.onclick = function() { seleccionarSheet(s.id); };
+        btn.onclick = function() { dsDropCerrar(); seleccionarSheet(s.id); };
         cont.appendChild(btn);
       });
-      if (sheets.length) seleccionarSheet(sheets[0].id);
+      // Al reabrir el panel se conserva la hoja elegida; si no hay, se espera a que el usuario elija.
+      if (PF.sheetId && sheets.some(function(s) { return s.id === PF.sheetId; })) seleccionarSheet(PF.sheetId);
+      else { PF.sheetId = null; marcarSheet(); }
     });
+  }
+
+  function marcarSheet() {
+    var s = PF.sheets.find(function(x) { return x.id === PF.sheetId; });
+    var g = s && grupoDe(s.nombre);
+    document.querySelectorAll('#pfSheetTabs > .ds-drop').forEach(function(d) {
+      d.querySelector('.pf-tab').classList.toggle('activo', !!(g && d.dataset.grupo === g.grupo.id));
+    });
+    document.querySelectorAll('#pfSheetTabs > button[data-sheet]').forEach(function(b) {
+      b.classList.toggle('activo', !!s && parseInt(b.dataset.sheet) === s.id);
+    });
+    document.getElementById('pfTituloHoja').innerText = s ? ' (' + s.nombre + ')' : '';
+    document.getElementById('pfSinHoja').style.display = s ? 'none' : '';
+    document.getElementById('pfPanel').style.display = s ? '' : 'none';
   }
 
   function seleccionarSheet(sheetId) {
     PF.sheetId = sheetId;
     PF.mesIdx = 0;
-    document.querySelectorAll('#pfSheetTabs .pf-tab').forEach(function(b, i) { b.classList.toggle('activo', PF.sheets[i].id === sheetId); });
+    marcarSheet();
     var s = PF.sheets.find(function(x) { return x.id === sheetId; });
     if (!s) return;
     if (s.tipo === 'eval') cargarEval();
