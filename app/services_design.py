@@ -962,6 +962,24 @@ def perf_sheets(db: Session) -> list[DesignPerfSheet]:
     return db.query(DesignPerfSheet).order_by(DesignPerfSheet.orden).all()
 
 
+# Porcentaje de cada nivel de calificación. Todos los criterios pesan igual y un criterio sin calificar
+# cuenta como 0 %. El frontend usa la misma tabla (PF_PCT) para recalcular al instante.
+PERF_PORCENTAJE_NIVEL = {"ALTO": 100, "SOBRESALIENTE": 95, "MEDIO": 50, "BAJO": 0, "": 0}
+
+
+def perf_totales(celdas: dict, criterio_ids: list[int], n_meses: int) -> tuple[list[float], float]:
+    """(total de cada mes, total general) como fracción 0-1. Total general = promedio de los meses que tienen
+    al menos un criterio calificado (los meses sin calificar no cuentan)."""
+    totales, calificados = [], []
+    for m in range(n_meses):
+        niveles = [(celdas.get(f"{cid}_{m}") or {}).get("nivel", "") for cid in criterio_ids]
+        total = (sum(PERF_PORCENTAJE_NIVEL.get(n, 0) for n in niveles) / len(criterio_ids) / 100) if criterio_ids else 0
+        totales.append(total)
+        if any(niveles):
+            calificados.append(total)
+    return totales, (sum(calificados) / len(calificados) if calificados else 0)
+
+
 def perf_detalle_eval(db: Session, sheet_id: int) -> dict | None:
     sheet = db.get(DesignPerfSheet, sheet_id)
     if not sheet or sheet.tipo != "eval":
@@ -975,16 +993,20 @@ def perf_detalle_eval(db: Session, sheet_id: int) -> dict | None:
         emp_ids = [e.id for e in empleados]
         for c in db.query(DesignPerfCelda).filter(DesignPerfCelda.empleado_id.in_(emp_ids)).all():
             celdas_por_emp.setdefault(c.empleado_id, {})[f"{c.criterio_id}_{c.mes_indice}"] = {
-                "nivel": c.nivel, "puntaje": c.puntaje}
+                "nivel": c.nivel, "puntaje": PERF_PORCENTAJE_NIVEL.get(c.nivel, 0)}
+    meses = json.loads(sheet.meses or "[]")
+    criterio_ids = [c.id for c in criterios]
+    salida = []
+    for e in empleados:
+        # Los totales se calculan siempre; los importados de Excel (e.totales_mes / e.total) ya no se usan.
+        celdas = celdas_por_emp.get(e.id, {})
+        totales, total = perf_totales(celdas, criterio_ids, len(meses))
+        salida.append({"id": e.id, "nombre": e.nombre, "nota": e.nota, "total": total,
+                       "totalesMes": totales, "celdas": celdas})
     return {
-        "id": sheet.id, "nombre": sheet.nombre, "tipo": sheet.tipo,
-        "meses": json.loads(sheet.meses or "[]"),
+        "id": sheet.id, "nombre": sheet.nombre, "tipo": sheet.tipo, "meses": meses,
         "criterios": [{"id": c.id, "nombre": c.nombre} for c in criterios],
-        "empleados": [{
-            "id": e.id, "nombre": e.nombre, "nota": e.nota, "total": e.total,
-            "totalesMes": json.loads(e.totales_mes or "[]"),
-            "celdas": celdas_por_emp.get(e.id, {}),
-        } for e in empleados],
+        "empleados": salida,
     }
 
 
@@ -996,8 +1018,8 @@ def perf_guardar_celda(db: Session, empleado_id: int, criterio_id: int, mes_indi
     if not c:
         c = DesignPerfCelda(empleado_id=empleado_id, criterio_id=criterio_id, mes_indice=mes_indice)
         db.add(c)
-    c.nivel = nivel
-    c.puntaje = puntaje or 0
+    c.nivel = nivel if nivel in PERF_PORCENTAJE_NIVEL else ""
+    c.puntaje = PERF_PORCENTAJE_NIVEL[c.nivel]  # el porcentaje sale del nivel; no se edita a mano
     db.commit()
 
 

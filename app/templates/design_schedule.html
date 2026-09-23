@@ -442,8 +442,11 @@
   table.pf-tabla th:first-child { z-index:3; }
   table.pf-tabla select, table.pf-tabla input, table.pf-tabla textarea { margin:0; box-sizing:border-box; font-size:12px; }
   .pf-celda { display:flex; flex-direction:column; align-items:center; gap:4px; }
-  .pf-celda select, .pf-celda input[type=number] { width:88px; height:26px; padding:0 4px; text-align:center; text-align-last:center; }
-  .pf-nota { width:100%; min-width:220px; min-height:56px; padding:6px 8px; font-size:12px; display:block; }
+  .pf-celda select { width:136px; height:26px; padding:0 4px; text-align:center; text-align-last:center; }
+  .pf-pct { display:block; width:136px; height:24px; line-height:24px; box-sizing:border-box; border:1px solid #e2e6ea; border-radius:5px;
+            background:rgba(255,255,255,.7); font-weight:600; color:#374151; font-size:12px; }
+  .pf-nota { width:100%; min-width:220px; min-height:56px; padding:6px 8px; font-size:12px; display:block; font-family:inherit; }
+  textarea.pf-nota-sel { font-family:inherit; }
   .pf-total { font-weight:700; text-align:center; white-space:nowrap; }
   /* SELECCION: empleado del mes y evaluaciones por líder */
   #pfPanel > h3 { margin:0 0 12px; font-size:15px; }
@@ -456,6 +459,7 @@
   table.pf-tabla-lideres input.pf-mini { width:100% !important; }
   table.pf-tabla-lideres textarea.pf-nota-sel { width:100%; min-height:44px; padding:6px 8px; display:block; }
   .pf-nivel-ALTO { background:#e6f6ea; }
+  .pf-nivel-SOBRESALIENTE { background:#e3f0fb; }
   .pf-nivel-MEDIO { background:#fff8e1; }
   .pf-nivel-BAJO { background:#fdecea; }
   textarea.pf-nota-sel { width:260px; min-height:60px; font-size:11px; box-sizing:border-box; }
@@ -4413,6 +4417,23 @@ window.DS_PANELS.dashboard = ddCargar;
     });
   }
 
+  // Porcentaje por nivel (mismo criterio que PERF_PORCENTAJE_NIVEL en services_design.py).
+  // Todos los criterios pesan igual; sin calificar = 0 %. Total general = promedio de los meses calificados.
+  var PF_PCT = {ALTO: 100, SOBRESALIENTE: 95, MEDIO: 50, BAJO: 0, '': 0};
+  function pfTotales(emp, d) {
+    var n = d.criterios.length, totales = [], calificados = [];
+    d.meses.forEach(function(m, i) {
+      var suma = 0, alguno = false;
+      d.criterios.forEach(function(c) { var v = emp.celdas[c.id + '_' + i]; var nv = v ? v.nivel : ''; if (nv) alguno = true; suma += PF_PCT[nv] || 0; });
+      var t = n ? suma / n / 100 : 0;
+      totales.push(t); if (alguno) calificados.push(t);
+    });
+    emp.totalesMes = totales;
+    emp.total = calificados.length ? calificados.reduce(function(a, b) { return a + b; }, 0) / calificados.length : 0;
+  }
+
+  function pfPct(f) { return ((f || 0) * 100).toFixed(1).replace(/\.0$/, '') + '%'; }
+
   function renderEval(d) {
     var panel = document.getElementById('pfPanel');
     panel.innerHTML = '';
@@ -4432,6 +4453,8 @@ window.DS_PANELS.dashboard = ddCargar;
       var tr = document.createElement('tr');
       var tdNombre = document.createElement('td'); tdNombre.className = 'pf-nombre'; tdNombre.innerText = emp.nombre;
       tr.appendChild(tdNombre);
+      var tdMes = document.createElement('td'); tdMes.className = 'pf-total';
+      var tdTotal = document.createElement('td'); tdTotal.className = 'pf-total';
 
       d.criterios.forEach(function(crit) {
         var key = crit.id + '_' + PF.mesIdx;
@@ -4439,31 +4462,35 @@ window.DS_PANELS.dashboard = ddCargar;
         var td = document.createElement('td');
         var wrap = document.createElement('div'); wrap.className = 'pf-celda';
         var sel = document.createElement('select');
-        ['', 'BAJO', 'MEDIO', 'ALTO'].forEach(function(op) {
+        ['', 'BAJO', 'MEDIO', 'SOBRESALIENTE', 'ALTO'].forEach(function(op) {
           var o = document.createElement('option'); o.value = op; o.innerText = op || '—';
           if (op === val.nivel) o.selected = true;
           sel.appendChild(o);
         });
-        var num = document.createElement('input'); num.type = 'number'; num.step = '0.01'; num.value = val.puntaje || 0;
+        // Porcentaje del nivel: se llena solo y no se edita.
+        var num = document.createElement('span'); num.className = 'pf-pct';
+        num.innerText = (PF_PCT[val.nivel] || 0) + '%';
         function guardar() {
+          var nivel = sel.value, pct = PF_PCT[nivel] || 0;
           postJSON('/design/api/perf/celdas', {
-            empleadoId: emp.id, criterioId: crit.id, mesIndice: PF.mesIdx,
-            nivel: sel.value, puntaje: parseFloat(num.value) || 0,
+            empleadoId: emp.id, criterioId: crit.id, mesIndice: PF.mesIdx, nivel: nivel, puntaje: pct,
           });
-          td.className = sel.value ? 'pf-nivel-' + sel.value : '';
+          emp.celdas[key] = {nivel: nivel, puntaje: pct};
+          num.innerText = pct + '%';
+          td.className = nivel ? 'pf-nivel-' + nivel : '';
+          pfTotales(emp, d);
+          tdMes.innerText = pfPct(emp.totalesMes[PF.mesIdx]);
+          tdTotal.innerText = pfPct(emp.total);
         }
-        sel.onchange = guardar; num.onchange = guardar;
+        sel.onchange = guardar;
         td.className = val.nivel ? 'pf-nivel-' + val.nivel : '';
         wrap.appendChild(sel); wrap.appendChild(num); td.appendChild(wrap);
         tr.appendChild(td);
       });
 
-      var tdMes = document.createElement('td'); tdMes.className = 'pf-total';
-      tdMes.innerText = ((emp.totalesMes[PF.mesIdx] || 0) * 100).toFixed(1) + '%';
+      tdMes.innerText = pfPct(emp.totalesMes[PF.mesIdx]);
       tr.appendChild(tdMes);
-
-      var tdTotal = document.createElement('td'); tdTotal.className = 'pf-total';
-      tdTotal.innerText = ((emp.total || 0) * 100).toFixed(1) + '%';
+      tdTotal.innerText = pfPct(emp.total);
       tr.appendChild(tdTotal);
 
       var tdNota = document.createElement('td');
