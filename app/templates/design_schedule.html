@@ -450,6 +450,9 @@
   .pf-total { font-weight:700; text-align:center; white-space:nowrap; }
   /* SELECCION: empleado del mes y evaluaciones por líder */
   #pfPanel > h3 { margin:0 0 12px; font-size:15px; }
+  .pf-seccion-h { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:28px 0 12px; }
+  .pf-seccion-h h3 { margin:0; font-size:15px; }
+  .pf-seccion-h .pf-toolbar { margin:0; }
   table.pf-tabla input.pf-mini { height:28px; padding:0 6px; }
   table.pf-tabla-lideres { width:100%; }
   table.pf-tabla-lideres th { max-width:none; }
@@ -4544,13 +4547,14 @@ window.DS_PANELS.dashboard = ddCargar;
     tablaGan.appendChild(bodyGan);
     panel.appendChild(tablaGan);
 
-    var toolbar = document.createElement('div'); toolbar.className = 'pf-toolbar'; toolbar.style.marginTop = '20px';
-    var h3 = document.createElement('h3'); h3.style.margin = '0'; h3.innerText = 'Evaluaciones por líder';
-    panel.appendChild(h3);
+    // Título y selector de mes en la misma fila (el mes al final), con el mismo espacio que "Empleado del mes".
+    var cab = document.createElement('div'); cab.className = 'pf-seccion-h';
+    var h3 = document.createElement('h3'); h3.innerText = 'Evaluaciones por líder'; cab.appendChild(h3);
     var toolbar2 = document.createElement('div'); toolbar2.className = 'pf-toolbar';
     var label = document.createElement('span'); label.innerText = 'Mes:'; toolbar2.appendChild(label);
     toolbar2.appendChild(selectMeses(d.meses, function() { renderSeleccion(d); }));
-    panel.appendChild(toolbar2);
+    cab.appendChild(toolbar2);
+    panel.appendChild(cab);
 
     var tabla = document.createElement('table'); tabla.className = 'pf-tabla pf-tabla-lideres';
     tabla.innerHTML = '<thead><tr><th>Evaluador/a</th><th>Persona nominada</th><th>Puntaje</th><th>Nota</th></tr></thead>';
