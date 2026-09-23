@@ -386,7 +386,8 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
         if f.producto:
             por_producto[f.producto] = por_producto.get(f.producto, 0) + 1
 
-        if f.qc_reporte.strip():
+        # Reporte de QC = hallazgos anotados al marcar QC; solo cuenta si el QC sigue marcado.
+        if f.qc and (f.qc_reporte or "").strip():
             qc_reportes.append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente,
                                "fecha": f.fecha.isoformat(), "qcReporte": f.qc_reporte, "designerNombre": nombre_d})
         if not f.qc and "approv" in (f.estado or "").lower():

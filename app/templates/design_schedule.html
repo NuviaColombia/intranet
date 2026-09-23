@@ -72,6 +72,19 @@
   .ds-pop input { width:100%; margin:0 0 10px; height:32px; padding:0 8px; box-sizing:border-box; }
   .ds-pop-btns { display:flex; justify-content:flex-end; gap:8px; }
   .ds-pop-btns .btn { padding:4px 12px; font-size:12px; }
+  .ds-qc-bg { position:fixed; inset:0; z-index:325; background:rgba(17,24,39,.35); display:flex; align-items:center; justify-content:center; }
+  .ds-qc { background:#fff; border-radius:12px; padding:18px 20px; width:420px; max-width:calc(100vw - 32px); box-shadow:0 12px 32px rgba(0,0,0,.25); font-size:13px; }
+  .ds-qc h4 { margin:0 0 4px; font-size:15px; color:#111827; }
+  .ds-qc .ds-qc-sub { color:#6b7280; font-size:12px; margin-bottom:14px; }
+  .ds-qc-opciones { display:flex; gap:10px; margin-bottom:12px; }
+  .ds-qc-opciones label { flex:1; display:flex; align-items:center; gap:8px; border:1px solid #d8dde3; border-radius:8px; padding:9px 12px; cursor:pointer; font-weight:600; }
+  .ds-qc-opciones label:has(input:checked) { border-color:#1d4ed8; background:#eff6ff; }
+  .ds-qc-opciones input { width:auto; margin:0; }
+  .ds-qc textarea { width:100%; min-height:80px; margin:0 0 4px; box-sizing:border-box; font-size:13px; resize:vertical; }
+  .ds-qc textarea:disabled { background:#f4f6f8; }
+  .ds-qc-err { color:#dc2626; font-size:12px; min-height:16px; margin-bottom:8px; }
+  .ds-qc-btns { display:flex; justify-content:flex-end; gap:8px; }
+  .ds-qc-btns .btn { padding:6px 14px; font-size:13px; }
   .ds-toast { position:fixed; right:20px; bottom:20px; z-index:330; background:#111827; color:#fff; padding:10px 14px;
               border-radius:8px; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.25); max-width:420px; }
   .ds-candado { font-size:13px; line-height:1; cursor:help; }
@@ -1116,9 +1129,64 @@ document.addEventListener('keydown', function(e) {
 
   function dsConectarFila(tr, tabla) {
     tr.querySelectorAll('[data-campo]').forEach(function(input) {
+      if (input.dataset.campo === 'qc') {
+        // Marcar QC exige llenar el recuadro de hallazgos; desmarcar guarda de inmediato (el reporte se conserva).
+        input.addEventListener('change', function() {
+          if (!input.checked) { dsGuardarFila(tr, tabla); return; }
+          input.checked = false;
+          dsAbrirQc(tr, tabla, input);
+        });
+        return;
+      }
       var ev = (input.tagName === 'SELECT' || input.type === 'checkbox') ? 'change' : 'blur';
       input.addEventListener(ev, function() { dsGuardarFila(tr, tabla); });
     });
+  }
+
+  // Recuadro de QC: "¿Hallazgos?" Sí/No + comentario (obligatorio si hubo hallazgos).
+  // Se guarda en el reporte de QC de la orden: vacío = sin hallazgos. Cancelar deja el QC sin marcar.
+  function dsAbrirQc(tr, tabla, chk) {
+    var id = parseInt(tr.dataset.id);
+    var local = (DS.diaData[tabla] || []).find(function(x) { return x.id === id; }) || {};
+    var previo = local.qcReporte || '';
+    var ordenTxt = (tr.querySelector('[data-campo="orden"]') || {}).value || '';
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'dsQc';
+    bg.innerHTML = '<div class="ds-qc" role="dialog" aria-modal="true" aria-labelledby="dsQcTit">' +
+      '<h4 id="dsQcTit"></h4>' +
+      '<div class="ds-qc-sub">¿Encontraste algo al revisar esta orden?</div>' +
+      '<div class="ds-qc-opciones">' +
+        '<label><input type="radio" name="dsQcHallazgo" value="no"' + (previo ? '' : ' checked') + '> Sin hallazgos</label>' +
+        '<label><input type="radio" name="dsQcHallazgo" value="si"' + (previo ? ' checked' : '') + '> Con hallazgos</label>' +
+      '</div>' +
+      '<textarea id="dsQcTexto" placeholder="Describe lo que encontraste..."></textarea>' +
+      '<div class="ds-qc-err" id="dsQcErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-qc="no">Cancelar</button>' +
+      '<button type="button" class="btn" data-qc="si">Guardar QC</button></div></div>';
+    document.body.appendChild(bg);
+    bg.querySelector('#dsQcTit').textContent = 'Control de calidad' + (ordenTxt ? ' — ' + ordenTxt : '');
+    var txt = bg.querySelector('#dsQcTexto'); txt.value = previo;
+    var conHallazgos = function() { return bg.querySelector('input[name="dsQcHallazgo"]:checked').value === 'si'; };
+    var sync = function() { txt.disabled = !conHallazgos(); if (!txt.disabled) txt.focus(); bg.querySelector('#dsQcErr').innerText = ''; };
+    bg.querySelectorAll('input[name="dsQcHallazgo"]').forEach(function(r) { r.addEventListener('change', sync); });
+    sync();
+    if (txt.disabled) bg.querySelector('[data-qc="si"]').focus();
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); chk.focus(); };
+    var guardar = function() {
+      var reporte = conHallazgos() ? txt.value.trim() : '';
+      if (conHallazgos() && !reporte) { bg.querySelector('#dsQcErr').innerText = 'Describe el hallazgo o elige "Sin hallazgos".'; txt.focus(); return; }
+      tr._qcReporte = reporte;
+      chk.checked = true;
+      cerrar();
+      dsGuardarFila(tr, tabla);
+    };
+    var teclas = function(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || e.target.tagName !== 'TEXTAREA')) { e.preventDefault(); e.stopPropagation(); guardar(); }
+    };
+    document.addEventListener('keydown', teclas, true);
+    bg.querySelector('[data-qc="si"]').onclick = guardar;
+    bg.querySelector('[data-qc="no"]').onclick = cerrar;
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
   }
 
   // Catálogos asíncronos (centro/producto/estado...) de las filas dentro de `root`.
@@ -1232,6 +1300,7 @@ document.addEventListener('keydown', function(e) {
     var datos = dsFilaDesdeForm(tr); datos.tabla = tabla;
     var filas = DS.diaData[tabla];
     if (tr.dataset.id === 'nuevo') {
+      if (tr._qcReporte !== undefined) datos.qcReporte = tr._qcReporte;
       if (!dsTieneDatos(datos)) return;
       if (tr._creando) { tr._pendiente = true; return; } // se vuelve a guardar cuando termine de crearse
       tr._creando = true;
@@ -1249,6 +1318,12 @@ document.addEventListener('keydown', function(e) {
     var id = parseInt(tr.dataset.id);
     var local = filas.find(function(x) { return x.id === id; });
     var antes = local ? dsClon(local) : null;
+    // Campos que no están en la tabla: se envían los que ya tenía la orden (antes se borraban al guardar).
+    if (local) {
+      datos.designerPrestado = local.designerPrestado || '';
+      datos.qcReporte = tr._qcReporte !== undefined ? tr._qcReporte : (local.qcReporte || '');
+    }
+    delete tr._qcReporte;
     if (local) Object.assign(local, datos); // refleja el cambio de inmediato (orden A→Z, contadores)
     dsSeguir(postJSON('/design/api/ordenes/' + id, datos)).then(function(o) {
       var i = filas.findIndex(function(x) { return x.id === id; });
@@ -1716,7 +1791,7 @@ document.addEventListener('keydown', function(e) {
 
   // ¿El foco está en el Horario (sin paneles superpuestos abiertos)?
   function dsEnHorario() {
-    if (!DS.teamId || document.querySelector('.ds-overlay.open') || document.getElementById('dsPop')) return false;
+    if (!DS.teamId || document.querySelector('.ds-overlay.open') || document.getElementById('dsPop') || document.getElementById('dsQc')) return false;
     var chk = document.getElementById('dsTodasAreasChk');
     return !(chk && chk.checked);
   }
@@ -1752,7 +1827,7 @@ document.addEventListener('keydown', function(e) {
     e.preventDefault();
     var s = DS.sel, tabla = s.tabla, spec = COLSPEC[DS.areaFormato][tabla];
     var trs = dsFilasDom(tabla), r0 = Math.min(s.r1, s.r2), c0 = Math.min(s.c1, s.c2);
-    var cambios = [], extras = [], omitidos = 0, bloqueados = 0;
+    var cambios = [], extras = [], omitidos = 0, bloqueados = 0, qcOmitidos = 0;
     var poner = function(tr, c, texto) {
       var cs = spec[c]; if (!cs) return;
       var celda = tr ? tr.querySelector('td[data-col="' + c + '"] [data-campo]') : null;
@@ -1760,6 +1835,7 @@ document.addEventListener('keydown', function(e) {
       var ref = celda || document.querySelector('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' td[data-col="' + c + '"] [data-campo]');
       var v = dsValorPegado(ref, cs, texto);
       if (v === undefined) { omitidos++; return; }
+      if (cs.k === 'qc' && v === true) { qcOmitidos++; return; } // el QC se marca con su recuadro de hallazgos
       return {spec: cs, valor: v};
     };
     if (unValor && celdasSel.length > 1) {
@@ -1780,6 +1856,7 @@ document.addEventListener('keydown', function(e) {
     var avisos = [];
     if (omitidos) avisos.push(omitidos + ' valor(es) no coinciden con las opciones de la lista y no se pegaron');
     if (bloqueados) avisos.push(bloqueados + ' celda(s) bloqueadas por el cierre del día');
+    if (qcOmitidos) avisos.push('el QC no se marca pegando: márcalo en su checkbox para registrar los hallazgos');
     if (avisos.length) dsToast(avisos.join('. ') + '.');
     dsAplicarLote(tabla, cambios, extras).then(function() { dsPintarSel(); });
   });

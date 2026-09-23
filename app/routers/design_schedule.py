@@ -301,10 +301,11 @@ async def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         raise HTTPException(404, "Orden no encontrada.")
     _verificar_equipo(db, user, orden_existente.team_id)
     if sd.dia_cerrado(orden_existente.fecha):
-        # Día cerrado: solo el checkbox de QC, y solo hasta las 5:00 am de D+2. El resto de campos se ignora.
+        # Día cerrado: solo el QC (checkbox + reporte de hallazgos), y solo hasta las 5:00 am de D+2.
+        # El resto de campos se ignora.
         if not sd.qc_editable(orden_existente.fecha):
             raise HTTPException(403, DIA_CERRADO)
-        o = sd.actualizar_orden(db, orden_id, {"qc": payload.qc})
+        o = sd.actualizar_orden(db, orden_id, {"qc": payload.qc, "qc_reporte": payload.qcReporte})
         return sd.serializar_orden(o)
     o = sd.actualizar_orden(db, orden_id, _datos_desde_in(payload))
     return sd.serializar_orden(o)
