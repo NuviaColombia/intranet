@@ -423,6 +423,9 @@
   .pf-tab { padding:8px 16px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:13px; }
   .pf-tab.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   .pf-panel { background:#fff; border:1px solid #d8dde3; border-radius:12px; padding:16px; overflow-x:auto; }
+  /* Desempeño usa todo el ancho de la pantalla (las tablas de evaluación son muy anchas) */
+  #ov-perf .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
+  #ov-perf .ds-overlay-inner > h1 { padding-right:56px; }
   .pf-toolbar { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
   .pf-toolbar select { padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; }
   table.pf-tabla { border-collapse:collapse; font-size:12px; white-space:nowrap; }
