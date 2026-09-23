@@ -61,6 +61,19 @@
   .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
   .ds-kpi b { display:block; font-size:20px; }
   .ds-panel-titulo { display:flex; align-items:center; gap:6px; }
+  /* Selección de celdas tipo Excel (copiar/pegar/Supr en bloque) */
+  table.ds-tabla td.ds-sel { background:#dbeafe !important; }
+  table.ds-tabla td.ds-sel-activa { box-shadow:inset 0 0 0 2px #1d4ed8; }
+  table.ds-tabla.ds-arrastrando, table.ds-tabla.ds-arrastrando * { user-select:none; }
+  /* Ventanita "¿Cuántas órdenes?" */
+  .ds-pop { position:fixed; z-index:320; background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:12px 14px;
+            box-shadow:0 8px 24px rgba(0,0,0,.15); width:220px; font-size:13px; }
+  .ds-pop label { display:block; font-weight:600; margin-bottom:8px; color:#111827; }
+  .ds-pop input { width:100%; margin:0 0 10px; height:32px; padding:0 8px; box-sizing:border-box; }
+  .ds-pop-btns { display:flex; justify-content:flex-end; gap:8px; }
+  .ds-pop-btns .btn { padding:4px 12px; font-size:12px; }
+  .ds-toast { position:fixed; right:20px; bottom:20px; z-index:330; background:#111827; color:#fff; padding:10px 14px;
+              border-radius:8px; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.25); max-width:420px; }
   .ds-candado { font-size:13px; line-height:1; cursor:help; }
   table.ds-tabla input:disabled, table.ds-tabla select:disabled { color:#374151; opacity:1; cursor:default; -webkit-text-fill-color:#374151; }
   .ds-tl-card input:disabled, .ds-tl-card select:disabled { background:#f4f6f8; cursor:default; }
@@ -453,7 +466,7 @@
           <h3 id="dsTituloPrincipal">Órdenes</h3>
           <span id="dsCandado" class="ds-candado" style="display:none" tabindex="0">🔒</span>
         </div>
-        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal')">+ Agregar orden</button>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal', event)">+ Agregar orden</button>
       </div>
       <div id="dsTablaPrincipal"></div>
     </div>
@@ -461,7 +474,7 @@
     <div class="ds-panel" id="dsPanelNightguard" style="display:none">
       <div class="ds-panel-h">
         <h3>Nightguards / TC</h3>
-        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard')">+ Agregar orden</button>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard', event)">+ Agregar orden</button>
       </div>
       <div id="dsTablaNightguard"></div>
     </div>
@@ -1092,7 +1105,7 @@ document.addEventListener('keydown', function(e) {
   function dsFilaHtml(spec, f) {
     var nueva = !f.id;
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
-    spec.forEach(function(c) { html += '<td>' + dsCeldaInput(c, f) + '</td>'; });
+    spec.forEach(function(c, i) { html += '<td data-col="' + i + '">' + dsCeldaInput(c, f) + '</td>'; });
     html += '<td class="ds-total">' + dsDuracion(f.horaInicio, f.horaFin) + '</td>';
     html += '<td class="ds-acc">' + (nueva || dsDiaCerrado() ? '' : dsBtnEliminar(f.id)) + '</td>';
     return html + '</tr>';
@@ -1143,7 +1156,8 @@ document.addEventListener('keydown', function(e) {
     filas.forEach(function(f) { html += dsFilaHtml(spec, f); });
     if (!dsDiaCerrado() && !filas.some(function(f) { return !dsOrdenCompleta(f); })) html += dsFilaHtml(spec, {});
     html += '</tbody></table>';
-    cont.innerHTML = html;
+    DS.renderizando = true; // si la celda con foco desaparece, su "blur" no debe guardar
+    try { cont.innerHTML = html; } finally { DS.renderizando = false; }
     cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, tabla); });
     if (dsDiaCerrado()) {
       // Día cerrado: todo en solo lectura; el QC sigue editable hasta las 5:00 am de D+2.
@@ -1213,17 +1227,20 @@ document.addEventListener('keydown', function(e) {
   }
 
   function dsGuardarFila(tr, tabla) {
+    // Una fila que se está reemplazando (la tabla se redibujó) no se guarda: tendría valores viejos.
+    if (!tr.isConnected || DS.renderizando) return;
     var datos = dsFilaDesdeForm(tr); datos.tabla = tabla;
     var filas = DS.diaData[tabla];
     if (tr.dataset.id === 'nuevo') {
       if (!dsTieneDatos(datos)) return;
       if (tr._creando) { tr._pendiente = true; return; } // se vuelve a guardar cuando termine de crearse
       tr._creando = true;
-      postJSON('/design/api/ordenes', datos).then(function(o) {
+      dsSeguir(postJSON('/design/api/ordenes', datos)).then(function(o) {
         tr._creando = false;
         tr.dataset.id = o.id; tr.classList.remove('ds-fila-nueva');
         tr.querySelector('.ds-acc').innerHTML = dsBtnEliminar(o.id);
         filas.push(o);
+        dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [], creadas: [{id: o.id, datos: dsClon(o)}], eliminadas: []});
         if (tr._pendiente) { tr._pendiente = false; dsGuardarFila(tr, tabla); return; }
         dsTrasGuardar(tabla, tr, o);
       }).catch(function(e) { tr._creando = false; alert('Error guardando: ' + e.message); });
@@ -1231,10 +1248,14 @@ document.addEventListener('keydown', function(e) {
     }
     var id = parseInt(tr.dataset.id);
     var local = filas.find(function(x) { return x.id === id; });
+    var antes = local ? dsClon(local) : null;
     if (local) Object.assign(local, datos); // refleja el cambio de inmediato (orden A→Z, contadores)
-    postJSON('/design/api/ordenes/' + id, datos).then(function(o) {
+    dsSeguir(postJSON('/design/api/ordenes/' + id, datos)).then(function(o) {
       var i = filas.findIndex(function(x) { return x.id === id; });
       if (i >= 0) filas[i] = o;
+      if (antes && !dsMismaOrden(antes, o)) {
+        dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [{id: id, antes: antes, despues: dsClon(o)}], creadas: [], eliminadas: []});
+      }
       dsTrasGuardar(tabla, tr, o);
     }).catch(function(e) { alert('Error guardando: ' + e.message); });
   }
@@ -1255,16 +1276,53 @@ document.addEventListener('keydown', function(e) {
     }
   }
 
-  window.dsAgregarFila = function(tabla) {
+  // "+ Agregar orden": ventanita que pregunta cuántas (1 a 50) y las crea en una sola petición.
+  window.dsAgregarFila = function(tabla, ev) {
     if (!DS.teamId) { alert('Selecciona un equipo primero.'); return; }
-    postJSON('/design/api/ordenes', {
-      teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada()), tabla: tabla,
-    }).then(function() { dsCargarDia(true); }).catch(function(e) { alert('Error: ' + e.message); });
+    var btn = ev && ev.currentTarget;
+    dsCerrarPop();
+    var pop = document.createElement('div'); pop.className = 'ds-pop'; pop.id = 'dsPop';
+    pop.innerHTML = '<label for="dsPopN">¿Cuántas órdenes agregar?</label>' +
+      '<input type="number" id="dsPopN" min="1" max="50" value="1">' +
+      '<div class="ds-pop-btns"><button type="button" class="btn gris" data-pop="no">Cancelar</button>' +
+      '<button type="button" class="btn" data-pop="si">Agregar</button></div>';
+    document.body.appendChild(pop);
+    var r = btn ? btn.getBoundingClientRect() : {right: innerWidth - 20, bottom: 120};
+    pop.style.top = (r.bottom + 6) + 'px';
+    pop.style.left = Math.max(10, r.right - pop.offsetWidth) + 'px';
+    var inp = pop.querySelector('#dsPopN'); inp.focus(); inp.select();
+    var ok = function() {
+      var n = Math.floor(Number(inp.value));
+      if (!(n >= 1 && n <= 50)) { inp.focus(); inp.select(); dsToast('Escribe un número entre 1 y 50.'); return; }
+      dsCerrarPop();
+      dsCrearOrdenes(tabla, Array.apply(null, Array(n)).map(function() { return {}; }), true)
+        .then(function() { dsCargarDia(true); }).catch(function(e) { alert('Error: ' + e.message); });
+    };
+    pop.querySelector('[data-pop="si"]').onclick = ok;
+    pop.querySelector('[data-pop="no"]').onclick = dsCerrarPop;
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); ok(); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dsCerrarPop(); }
+    });
+    setTimeout(function() { document.addEventListener('mousedown', dsPopFuera, true); }, 0);
   };
+  function dsPopFuera(e) { var pop = document.getElementById('dsPop'); if (pop && !pop.contains(e.target)) dsCerrarPop(); }
+  function dsCerrarPop() {
+    var pop = document.getElementById('dsPop'); if (pop) pop.remove();
+    document.removeEventListener('mousedown', dsPopFuera, true);
+  }
 
   window.dsEliminarFila = function(id) {
     if (!confirm('¿Eliminar esta orden?')) return;
-    postJSON('/design/api/ordenes/' + id + '/eliminar', {}).then(function() { dsCargarDia(true); })
+    var tabla = null, datos = null;
+    ['principal', 'nightguard'].forEach(function(t) {
+      var f = (DS.diaData[t] || []).find(function(x) { return x.id === id; });
+      if (f) { tabla = t; datos = dsClon(f); }
+    });
+    postJSON('/design/api/ordenes/' + id + '/eliminar', {}).then(function() {
+      if (datos) dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [], creadas: [], eliminadas: [{id: id, datos: datos}]});
+      dsCargarDia(true);
+    })
       .catch(function(e) { alert('Error: ' + e.message); });
   };
 
@@ -1344,6 +1402,7 @@ document.addEventListener('keydown', function(e) {
           fila('Descanso 1', 'break1Inicio', 'break1Fin', 'break1') +
           fila('Descanso 2', 'break2Inicio', 'break2Fin', 'break2');
         dsConectarTarjeta(card);
+        card._guardado = dsDatosBreak(card); // estado inicial, para deshacer
         grid.appendChild(card);
       });
       cont.replaceChildren(grid); // se cambia de una sola vez: el panel nunca queda vacío
@@ -1391,10 +1450,21 @@ document.addEventListener('keydown', function(e) {
     });
   }
 
-  function dsGuardarBreak(row) {
+  function dsDatosBreak(row) {
     var datos = {teamId: DS.teamId, empleadoId: parseInt(row.dataset.empleadoId), fecha: dsFechaISO(dsFechaSeleccionada())};
     row.querySelectorAll('[data-campo]').forEach(function(input) { datos[input.dataset.campo] = input.value; });
-    postJSON('/design/api/breaks', datos).catch(function(e) { alert('Error guardando: ' + e.message); });
+    return datos;
+  }
+  function dsGuardarBreak(row) {
+    if (!row.isConnected) return;
+    var datos = dsDatosBreak(row);
+    var antes = row._guardado;
+    dsSeguir(postJSON('/design/api/breaks', datos)).then(function() {
+      if (antes && JSON.stringify(antes) !== JSON.stringify(datos)) {
+        dsHistPush({tipo: 'break', antes: antes, despues: dsClon(datos)});
+      }
+      row._guardado = dsClon(datos);
+    }).catch(function(e) { alert('Error guardando: ' + e.message); });
   }
 
   // soloOrdenes: al agregar/eliminar una orden no se redibuja "Tiempos libres" (no cambió y parpadeaba).
@@ -1412,6 +1482,339 @@ document.addEventListener('keydown', function(e) {
       if (!soloOrdenes) dsRenderBreaks(dia);
     });
   }
+
+  // =====================================================================================
+  // Teclado del Horario: selección de celdas, Ctrl+C / Ctrl+V (celda o bloque, también desde Excel),
+  // Supr (vacía la celda), Ctrl+Z / Ctrl+Y (deshacer / rehacer). Todo pasa por la API normal, así que
+  // el cierre diario se respeta igual (en un día cerrado solo cambia el QC mientras esté habilitado).
+  // =====================================================================================
+  var DS_CAMPOS = ['orden', 'paciente', 'centro', 'producto', 'designerId', 'designerPrestado', 'horaInicio',
+                   'horaInicioDiseno', 'horaFin', 'holdMinutos', 'esferas', 'critico', 'sHold', 'fHold', 'etapa',
+                   'solicitadoPor', 'situacion', 'solucion', 'clasificacion', 'soporte', 'estado', 'qc', 'qcReporte', 'notas'];
+  function dsClon(o) { return JSON.parse(JSON.stringify(o)); }
+  function dsMismaOrden(a, b) { return DS_CAMPOS.every(function(k) { return (a[k] == null ? '' : a[k]) === (b[k] == null ? '' : b[k]); }); }
+  function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
+
+  function dsToast(msg) {
+    var t = document.getElementById('dsToast');
+    if (!t) { t = document.createElement('div'); t.id = 'dsToast'; t.className = 'ds-toast'; document.body.appendChild(t); }
+    t.innerText = msg; t.style.display = '';
+    clearTimeout(t._timer); t._timer = setTimeout(function() { t.style.display = 'none'; }, 3500);
+  }
+
+  // ---------- Historial (uno por equipo + día, mientras la página esté abierta) ----------
+  DS.hist = {}; DS.remap = {}; DS.histOcupado = false;
+  function dsHistClave() { return DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada()); }
+  function dsHist() { var k = dsHistClave(); return DS.hist[k] || (DS.hist[k] = {u: [], r: []}); }
+  function dsHistPush(op) {
+    if (DS.histOcupado) return; // lo que hacen deshacer/rehacer no se vuelve a registrar
+    var h = dsHist(); h.u.push(op); if (h.u.length > 100) h.u.shift(); h.r = [];
+  }
+  // Sigue la cadena de ids de órdenes recreadas (deshacer una eliminación crea la orden con otro id).
+  function dsIdReal(id) {
+    var vistos = {};
+    while (DS.remap[id] && DS.remap[id] !== id && !vistos[id]) { vistos[id] = true; id = DS.remap[id]; }
+    return id;
+  }
+  // Guardados en curso: deshacer/rehacer espera a que terminen para no saltarse el último cambio.
+  DS.enCurso = new Set();
+  function dsSeguir(promesa) {
+    DS.enCurso.add(promesa);
+    var fin = function() { DS.enCurso.delete(promesa); };
+    promesa.then(fin, fin);
+    return promesa;
+  }
+
+  // Crea órdenes en lote; `registrar` agrega la operación al historial.
+  function dsCrearOrdenes(tabla, filas, registrar) {
+    return postJSON('/design/api/ordenes/lote', {teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada()), tabla: tabla, filas: filas})
+      .then(function(creadas) {
+        if (registrar) dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [],
+                                   creadas: creadas.map(function(o) { return {id: o.id, datos: dsClon(o)}; }), eliminadas: []});
+        return creadas;
+      });
+  }
+  function dsActualizarOrden(id, tabla, datos) {
+    return postJSON('/design/api/ordenes/' + dsIdReal(id), Object.assign(dsSoloCampos(datos),
+      {teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada()), tabla: tabla}));
+  }
+  function dsBorrarOrden(id) { return postJSON('/design/api/ordenes/' + dsIdReal(id) + '/eliminar', {}); }
+
+  // Ejecuta una operación hacia atrás (deshacer) o hacia adelante (rehacer).
+  function dsAplicarOp(op, atras) {
+    if (op.tipo === 'break') return postJSON('/design/api/breaks', atras ? op.antes : op.despues);
+    var aCrear = atras ? op.eliminadas : op.creadas, aBorrar = atras ? op.creadas : op.eliminadas;
+    var pasos = [];
+    aBorrar.forEach(function(x) { pasos.push(dsBorrarOrden(x.id)); });
+    op.ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, op.tabla, atras ? e.antes : e.despues)); });
+    return Promise.all(pasos).then(function() {
+      if (!aCrear.length) return;
+      return dsCrearOrdenes(op.tabla, aCrear.map(function(x) { return dsSoloCampos(x.datos); }), false).then(function(nuevas) {
+        aCrear.forEach(function(x, i) { // la orden recreada puede tener otro id
+          var viejo = dsIdReal(x.id), nuevo = nuevas[i].id;
+          if (viejo === nuevo) return;
+          delete DS.remap[nuevo]; // si la base reutilizó el id, que no quede apuntando a una orden anterior
+          DS.remap[viejo] = nuevo;
+        });
+      });
+    });
+  }
+  function dsDeshacerRehacer(atras) {
+    if (DS.histOcupado || !DS.teamId) return;
+    if (DS.enCurso.size) {
+      var esperar = Array.from(DS.enCurso).map(function(p) { return p.catch(function() {}); });
+      Promise.all(esperar).then(function() { dsDeshacerRehacer(atras); });
+      return;
+    }
+    var h = dsHist(), pila = atras ? h.u : h.r, otra = atras ? h.r : h.u;
+    if (!pila.length) { dsToast(atras ? 'No hay nada para deshacer.' : 'No hay nada para rehacer.'); return; }
+    var op = pila.pop(); DS.histOcupado = true;
+    dsAplicarOp(op, atras).then(function() {
+      otra.push(op); DS.histOcupado = false;
+      dsCargarDia(op.tipo === 'ordenes');
+    }).catch(function(e) {
+      DS.histOcupado = false; pila.push(op);
+      alert('No se pudo ' + (atras ? 'deshacer' : 'rehacer') + ': ' + e.message); dsCargarDia();
+    });
+  }
+
+  // ---------- Selección de celdas ----------
+  DS.sel = null; // {tabla, r1, c1, r2, c2} (filas/columnas visibles de la tabla)
+  function dsTablaDe(el) { var cont = el.closest('#dsTablaPrincipal, #dsTablaNightguard'); return cont ? (cont.id === 'dsTablaPrincipal' ? 'principal' : 'nightguard') : null; }
+  function dsFilasDom(tabla) { return Array.prototype.slice.call(document.querySelectorAll('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' tbody tr')); }
+  function dsCoord(td) { var tr = td.parentNode; return {r: Array.prototype.indexOf.call(tr.parentNode.children, tr), c: parseInt(td.dataset.col)}; }
+  function dsPintarSel() {
+    document.querySelectorAll('.ds-tabla td.ds-sel, .ds-tabla td.ds-sel-activa').forEach(function(td) { td.classList.remove('ds-sel', 'ds-sel-activa'); });
+    var s = DS.sel; if (!s) return;
+    var multi = s.r1 !== s.r2 || s.c1 !== s.c2;
+    dsFilasDom(s.tabla).forEach(function(tr, r) {
+      if (r < Math.min(s.r1, s.r2) || r > Math.max(s.r1, s.r2)) return;
+      tr.querySelectorAll('td[data-col]').forEach(function(td) {
+        var c = parseInt(td.dataset.col);
+        if (c >= Math.min(s.c1, s.c2) && c <= Math.max(s.c1, s.c2) && multi) td.classList.add('ds-sel');
+      });
+    });
+    var trA = dsFilasDom(s.tabla)[s.r2]; var tdA = trA && trA.querySelector('td[data-col="' + s.c2 + '"]');
+    if (tdA && multi) tdA.classList.add('ds-sel-activa');
+  }
+  // Celdas seleccionadas como [{tr, td, el, c, fila, col}] en orden de filas/columnas.
+  function dsCeldasSel() {
+    var s = DS.sel; if (!s) return [];
+    var spec = COLSPEC[DS.areaFormato][s.tabla], out = [];
+    dsFilasDom(s.tabla).forEach(function(tr, r) {
+      if (r < Math.min(s.r1, s.r2) || r > Math.max(s.r1, s.r2)) return;
+      for (var c = Math.min(s.c1, s.c2); c <= Math.max(s.c1, s.c2); c++) {
+        var td = tr.querySelector('td[data-col="' + c + '"]');
+        if (td) out.push({tr: tr, td: td, el: td.querySelector('[data-campo]'), c: c, spec: spec[c], fila: r - Math.min(s.r1, s.r2), col: c - Math.min(s.c1, s.c2)});
+      }
+    });
+    return out;
+  }
+
+  var dsArrastre = null;
+  document.addEventListener('mousedown', function(e) {
+    var td = e.target.closest && e.target.closest('.ds-tabla td[data-col]');
+    if (!td) { if (!e.target.closest('.ds-tabla')) { DS.sel = null; dsPintarSel(); } return; }
+    var tabla = dsTablaDe(td), k = dsCoord(td);
+    // Listas: el primer clic solo selecciona la celda (como Excel) para poder copiar/pegar/Supr;
+    // el segundo clic sobre la celda ya seleccionada abre la lista.
+    var lista = e.target.tagName === 'SELECT' ? e.target : null;
+    if (e.shiftKey && DS.sel && DS.sel.tabla === tabla) { DS.sel.r2 = k.r; DS.sel.c2 = k.c; e.preventDefault(); }
+    else DS.sel = {tabla: tabla, r1: k.r, c1: k.c, r2: k.r, c2: k.c};
+    dsArrastre = {tabla: tabla, td: td}; // antes de dar el foco, para que "focusin" no reinicie la selección
+    if (lista && !lista.disabled && document.activeElement !== lista) { e.preventDefault(); lista.focus(); }
+    dsPintarSel();
+  });
+  document.addEventListener('mouseover', function(e) {
+    if (!dsArrastre || !(e.buttons & 1)) return;
+    var td = e.target.closest && e.target.closest('.ds-tabla td[data-col]');
+    if (!td || td === dsArrastre.td || dsTablaDe(td) !== dsArrastre.tabla) return;
+    var k = dsCoord(td); DS.sel.r2 = k.r; DS.sel.c2 = k.c;
+    td.closest('.ds-tabla').classList.add('ds-arrastrando');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    dsPintarSel();
+  });
+  document.addEventListener('mouseup', function() {
+    if (dsArrastre) document.querySelectorAll('.ds-tabla.ds-arrastrando').forEach(function(t) { t.classList.remove('ds-arrastrando'); });
+    dsArrastre = null;
+  });
+  // Al entrar a una celda con Tab se selecciona esa celda.
+  document.addEventListener('focusin', function(e) {
+    var el = e.target;
+    if (el.matches && el.matches('.ds-tabla [data-campo], .ds-tl-card [data-campo]')) el._alEnfocar = el.value;
+    var td = el.closest && el.closest('.ds-tabla td[data-col]');
+    if (td && !dsArrastre) {
+      var k = dsCoord(td), tabla = dsTablaDe(td);
+      var s = DS.sel;
+      if (!(s && s.tabla === tabla && (s.r1 !== s.r2 || s.c1 !== s.c2) && k.r >= Math.min(s.r1, s.r2) && k.r <= Math.max(s.r1, s.r2) && k.c >= Math.min(s.c1, s.c2) && k.c <= Math.max(s.c1, s.c2))) {
+        DS.sel = {tabla: tabla, r1: k.r, c1: k.c, r2: k.r, c2: k.c}; dsPintarSel();
+      }
+    }
+  });
+
+  // ---------- Valores de celda: texto para copiar y conversión al pegar ----------
+  function dsTextoCelda(el, c) {
+    if (!el) return '';
+    if (c.t === 'checkbox') return el.checked ? 'TRUE' : 'FALSE';
+    if (el.tagName === 'SELECT') return el.value ? (c.t === 'designer' ? el.options[el.selectedIndex].text : el.value) : '';
+    return el.value;
+  }
+  function dsNormHora(v) {
+    var m = String(v).trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([ap])?\.?\s*m?\.?$/i);
+    if (!m) return null;
+    var h = parseInt(m[1]), mi = parseInt(m[2]);
+    if (m[3]) { var pm = m[3].toLowerCase() === 'p'; if (h === 12) h = pm ? 12 : 0; else if (pm) h += 12; }
+    if (h > 23 || mi > 59) return null;
+    return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+  }
+  var DS_SI = ['true', 'verdadero', '1', 'x', 'si', 'sí', 'yes', '✓', '✔'];
+  // Devuelve el valor para el elemento, o undefined si no corresponde a ninguna opción válida.
+  function dsValorPegado(el, c, txt) {
+    var v = String(txt == null ? '' : txt).trim();
+    if (c.t === 'checkbox') return DS_SI.indexOf(v.toLowerCase()) >= 0;
+    if (v === '') return c.t === 'number' ? 0 : '';
+    if (c.t === 'number') { var n = parseFloat(v.replace(',', '.')); return isNaN(n) ? undefined : n; }
+    if (c.t === 'time') { var h = dsNormHora(v); return h === null ? undefined : h; }
+    if (el.tagName === 'SELECT') {
+      var low = v.toLowerCase();
+      var opt = Array.prototype.find.call(el.options, function(o) { return o.value && (o.value.toLowerCase() === low || o.text.toLowerCase() === low); });
+      if (!opt) return undefined;
+      return c.t === 'designer' ? parseInt(opt.value) : opt.value;
+    }
+    return v;
+  }
+  function dsValorBase(c) { return c.t === 'checkbox' ? false : (c.t === 'number' ? 0 : (c.t === 'designer' ? null : '')); }
+
+  // Aplica valores a varias celdas: [{tr, spec, valor}] + filas nuevas (arreglo de {campo: valor}).
+  // Todo en una sola operación de historial; al final se redibujan las tablas.
+  function dsAplicarLote(tabla, cambios, extras) {
+    var filas = DS.diaData[tabla] || [], porFila = new Map();
+    cambios.forEach(function(x) {
+      if (!porFila.has(x.tr)) porFila.set(x.tr, {});
+      porFila.get(x.tr)[x.spec.k] = x.valor;
+    });
+    var ediciones = [], nuevas = [], pasos = [];
+    porFila.forEach(function(valores, tr) {
+      if (tr.dataset.id === 'nuevo') { if (Object.keys(valores).some(function(k) { return valores[k] !== dsValorBase({t: ''}) && valores[k] !== null && valores[k] !== false && valores[k] !== 0; })) nuevas.push(valores); return; }
+      var id = parseInt(tr.dataset.id), local = filas.find(function(f) { return f.id === id; });
+      if (!local) return;
+      var antes = dsClon(local), despues = Object.assign(dsClon(local), valores);
+      if (dsMismaOrden(antes, despues)) return;
+      ediciones.push({id: id, antes: antes, despues: despues});
+    });
+    nuevas = nuevas.concat(extras || []);
+    if (!ediciones.length && !nuevas.length) return Promise.resolve();
+    ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, tabla, e.despues).then(function(o) { e.despues = dsClon(o); })); });
+    return Promise.all(pasos).then(function() {
+      return nuevas.length && !dsDiaCerrado() ? dsCrearOrdenes(tabla, nuevas, false) : [];
+    }).then(function(creadas) {
+      dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: ediciones,
+                  creadas: (creadas || []).map(function(o) { return {id: o.id, datos: dsClon(o)}; }), eliminadas: []});
+      dsCargarDia(true);
+    }).catch(function(e) { alert('Error guardando: ' + e.message); dsCargarDia(true); });
+  }
+
+  // ¿El foco está en el Horario (sin paneles superpuestos abiertos)?
+  function dsEnHorario() {
+    if (!DS.teamId || document.querySelector('.ds-overlay.open') || document.getElementById('dsPop')) return false;
+    var chk = document.getElementById('dsTodasAreasChk');
+    return !(chk && chk.checked);
+  }
+  function dsEsTexto(el) { return el && el.tagName === 'INPUT' && el.type === 'text'; }
+
+  // ---------- Ctrl+C ----------
+  document.addEventListener('copy', function(e) {
+    if (!dsEnHorario() || !DS.sel) return;
+    var el = document.activeElement, celdas = dsCeldasSel();
+    if (!celdas.length) return;
+    var multi = celdas.length > 1;
+    // Texto parcialmente seleccionado dentro de una celda: copia normal del navegador.
+    if (!multi && dsEsTexto(el) && el.selectionStart !== el.selectionEnd && !(el.selectionStart === 0 && el.selectionEnd === el.value.length)) return;
+    if (!multi && !(el && el.closest && el.closest('.ds-tabla'))) return;
+    var filas = [];
+    celdas.forEach(function(x) { (filas[x.fila] = filas[x.fila] || [])[x.col] = dsTextoCelda(x.el, x.spec); });
+    e.clipboardData.setData('text/plain', filas.map(function(f) { return f.join('\t'); }).join('\n'));
+    e.preventDefault();
+    if (multi) dsToast(celdas.length + ' celdas copiadas.');
+  });
+
+  // ---------- Ctrl+V ----------
+  document.addEventListener('paste', function(e) {
+    if (!dsEnHorario() || !DS.sel) return;
+    var el = document.activeElement;
+    var txt = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+    var bloque = txt.replace(/\r/g, '').replace(/\n+$/, '').split('\n').map(function(l) { return l.split('\t'); });
+    var unValor = bloque.length === 1 && bloque[0].length === 1;
+    var celdasSel = dsCeldasSel();
+    // Un solo valor escrito dentro de una celda de texto: pegado normal (se guarda al salir de la celda).
+    if (unValor && celdasSel.length <= 1 && dsEsTexto(el) && el.closest('.ds-tabla')) return;
+    if (!(el && el.closest && el.closest('.ds-tabla')) && celdasSel.length <= 1) return;
+    e.preventDefault();
+    var s = DS.sel, tabla = s.tabla, spec = COLSPEC[DS.areaFormato][tabla];
+    var trs = dsFilasDom(tabla), r0 = Math.min(s.r1, s.r2), c0 = Math.min(s.c1, s.c2);
+    var cambios = [], extras = [], omitidos = 0, bloqueados = 0;
+    var poner = function(tr, c, texto) {
+      var cs = spec[c]; if (!cs) return;
+      var celda = tr ? tr.querySelector('td[data-col="' + c + '"] [data-campo]') : null;
+      if (celda && celda.disabled) { bloqueados++; return; }
+      var ref = celda || document.querySelector('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' td[data-col="' + c + '"] [data-campo]');
+      var v = dsValorPegado(ref, cs, texto);
+      if (v === undefined) { omitidos++; return; }
+      return {spec: cs, valor: v};
+    };
+    if (unValor && celdasSel.length > 1) {
+      // Un valor sobre un rango: se repite en todas las celdas seleccionadas (como Excel).
+      celdasSel.forEach(function(x) { var r = poner(x.tr, x.c, bloque[0][0]); if (r) cambios.push({tr: x.tr, spec: r.spec, valor: r.valor}); });
+    } else {
+      bloque.forEach(function(fila, i) {
+        var tr = trs[r0 + i], nueva = {};
+        fila.forEach(function(texto, j) {
+          var r = poner(tr, c0 + j, texto); if (!r) return;
+          if (tr) cambios.push({tr: tr, spec: r.spec, valor: r.valor}); else nueva[r.spec.k] = r.valor;
+        });
+        if (!tr && Object.keys(nueva).length) extras.push(nueva);
+      });
+      if (extras.length && dsDiaCerrado()) { bloqueados += extras.length; extras = []; }
+      DS.sel = {tabla: tabla, r1: r0, c1: c0, r2: r0 + bloque.length - 1, c2: c0 + Math.max.apply(null, bloque.map(function(f) { return f.length; })) - 1};
+    }
+    var avisos = [];
+    if (omitidos) avisos.push(omitidos + ' valor(es) no coinciden con las opciones de la lista y no se pegaron');
+    if (bloqueados) avisos.push(bloqueados + ' celda(s) bloqueadas por el cierre del día');
+    if (avisos.length) dsToast(avisos.join('. ') + '.');
+    dsAplicarLote(tabla, cambios, extras).then(function() { dsPintarSel(); });
+  });
+
+  // ---------- Supr / Ctrl+Z / Ctrl+Y ----------
+  document.addEventListener('keydown', function(e) {
+    if (!dsEnHorario()) return;
+    var el = document.activeElement;
+    var enTabla = el && el.closest && el.closest('.ds-tabla');
+    var enTarjeta = el && el.closest && el.closest('.ds-tl-card');
+    var ctrl = e.ctrlKey || e.metaKey, k = (e.key || '').toLowerCase();
+
+    if (e.key === 'Delete' && !ctrl) {
+      if (enTabla || (DS.sel && dsCeldasSel().length > 1)) {
+        e.preventDefault();
+        var celdas = dsCeldasSel().filter(function(x) { return x.el && !x.el.disabled; });
+        if (celdas.length) dsAplicarLote(DS.sel.tabla, celdas.map(function(x) { return {tr: x.tr, spec: x.spec, valor: dsValorBase(x.spec)}; }), []);
+        return;
+      }
+      // Tiempos libres: Supr vacía la hora (la ausencia y el checkbox de descanso no se tocan).
+      if (enTarjeta && el.type === 'time' && !el.disabled) {
+        e.preventDefault(); el.value = ''; el._alEnfocar = '';
+        el.dispatchEvent(new Event('blur'));
+      }
+      return;
+    }
+    if (!ctrl) return;
+    var deshacer = k === 'z' && !e.shiftKey, rehacer = k === 'y' || (k === 'z' && e.shiftKey);
+    if (!deshacer && !rehacer) return;
+    // Mientras se escribe en una celda de texto, Ctrl+Z deshace lo escrito (comportamiento normal del navegador).
+    if (deshacer && dsEsTexto(el) && (enTabla || enTarjeta) && el.value !== el._alEnfocar) return;
+    e.preventDefault();
+    if (el && el.blur && (enTabla || enTarjeta)) el.blur();
+    setTimeout(function() { dsDeshacerRehacer(deshacer); }, 0); // deja terminar el guardado del blur
+  });
 
   // ---------- Vista "Todas las áreas" (solo aprobadores/admins) ----------
   // Usa la misma semana/día que la vista de equipo (DS.lunes / DS.diaSel), manejada desde la fila de áreas.
@@ -3196,6 +3599,9 @@ window.DS_PANELS.dashboard = ddCargar;
     CANVAS.selEl = null; CANVAS.editText = null; doc.updated = Date_nowSafe(); cvSave(); cvRenderAnno();
   }
   function cvOnKey(e) {
+    // Los atajos de Canvas solo aplican con el panel Canvas abierto (antes capturaban Ctrl+Z en toda la página).
+    var ovCanvas = document.getElementById("ov-canvas");
+    if (!ovCanvas || !ovCanvas.classList.contains("open")) return;
     var typing0 = document.activeElement && (document.activeElement.isContentEditable || document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA");
     if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey) { e.preventDefault(); cvUndo(); return; }
     if ((e.ctrlKey || e.metaKey) && ((e.key === "y" || e.key === "Y") || (e.shiftKey && (e.key === "z" || e.key === "Z")))) { e.preventDefault(); cvRedo(); return; }

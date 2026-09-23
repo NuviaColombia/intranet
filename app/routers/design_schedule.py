@@ -262,6 +262,36 @@ async def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_mod
     return sd.serializar_orden(o)
 
 
+class LoteIn(BaseModel):
+    teamId: int
+    fecha: str
+    tabla: str = "principal"
+    filas: list[dict] = []  # cada fila con los mismos campos de OrdenIn (vacía = orden en blanco)
+
+
+MAX_LOTE = 100
+
+
+# Va antes de /design/api/ordenes/{orden_id} para que "lote" no se tome como un id.
+@router.post("/design/api/ordenes/lote")
+async def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                                 db: Session = Depends(get_db)):
+    """Crea varias órdenes de una vez: "+ Agregar orden" con cantidad, pegar un bloque con filas nuevas y
+    deshacer una eliminación. Devuelve las órdenes creadas en el mismo orden."""
+    _verificar_equipo(db, user, payload.teamId)
+    fecha = date.fromisoformat(payload.fecha)
+    if sd.dia_cerrado(fecha):
+        raise HTTPException(403, DIA_CERRADO)
+    if not 1 <= len(payload.filas) <= MAX_LOTE:
+        raise HTTPException(400, f"Se pueden crear entre 1 y {MAX_LOTE} órdenes por vez.")
+    creadas = []
+    for fila in payload.filas:
+        datos = OrdenIn.model_validate({**fila, "teamId": payload.teamId, "fecha": payload.fecha, "tabla": payload.tabla})
+        creadas.append(sd.serializar_orden(sd.crear_orden(db, user, payload.teamId, fecha, payload.tabla,
+                                                         _datos_desde_in(datos))))
+    return creadas
+
+
 @router.post("/design/api/ordenes/{orden_id}")
 async def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
