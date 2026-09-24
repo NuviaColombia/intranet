@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block contenido %}
-<h1>Parámetros de Custodia</h1>
+<h1>Parámetros de Cambio de custodia</h1>
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
 <div class="tarjeta">
   <h2>Managers</h2>
   <p style="font-size:13px;color:var(--gris)">
     Elige managers de entre los empleados de Nuvia Smiles. Al agregarlos se les da acceso al
-    módulo Custodia y, si eran "empleado", pasan a rol "aprobador". El "Área de salida" que
+    módulo Inventario (Cambio de custodia) y, si eran "empleado", pasan a rol "aprobador". El "Área de salida" que
     asignes queda como valor por defecto para ese manager en la pestaña "Nueva orden" — deja
     "Sin asignar" para que use el valor por defecto general (DIR PRODUCCIÓN).
   </p>
@@ -52,11 +52,11 @@
         </form>
       </td>
       <td><form class="inline" method="post" action="/custodia/parametros/managers/{{ m.id }}/quitar"
-                onsubmit="return confirm('¿Quitar a {{ m.nombre_completo }} como manager de Custodia?')">
+                onsubmit="return confirm('¿Quitar a {{ m.nombre_completo }} como manager de Cambio de custodia?')">
         <button class="btn rojo mini">Quitar</button></form></td>
     </tr>
     {% else %}
-    <tr><td colspan="4">Ningún empleado tiene el módulo Custodia asignado todavía.</td></tr>
+    <tr><td colspan="4">Ningún empleado tiene el módulo Inventario (Cambio de custodia) asignado todavía.</td></tr>
     {% endfor %}
   </table>
 </div>

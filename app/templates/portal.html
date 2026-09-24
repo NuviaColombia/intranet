@@ -18,15 +18,15 @@
   </div>
   {% endif %}
   {% if user.tiene_modulo('custodia') %}
-  <a class="modulo" href="/custodia">
+  <a class="modulo" href="/inventario">
     <span class="modulo-icono">📦</span>
-    <span class="modulo-nombre">Custodia</span>
-    <span class="modulo-desc">Traslados de material entre áreas</span>
+    <span class="modulo-nombre">Inventario</span>
+    <span class="modulo-desc">Cambio de custodia</span>
   </a>
   {% else %}
   <div class="modulo disabled" title="Sin acceso">
     <span class="modulo-icono">📦</span>
-    <span class="modulo-nombre">Custodia</span>
+    <span class="modulo-nombre">Inventario</span>
     <span class="modulo-desc">Sin acceso</span>
   </div>
   {% endif %}
