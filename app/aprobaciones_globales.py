@@ -35,7 +35,7 @@ def resumen_pendientes(db: Session, user: Empleado) -> dict:
     if user.tiene_modulo("custodia"):
         for t in sc.pendientes_entrada(db):
             items.append({
-                "modulo": "Custodia", "tipo": "custodia", "id": t.id,
+                "modulo": "Cambio de custodia", "tipo": "custodia", "id": t.id,
                 "descripcion": f"Traslado #{t.id}: {t.colaborador} ({t.area_salida} → {t.area_entrada})",
                 "fecha": t.fecha,
             })
