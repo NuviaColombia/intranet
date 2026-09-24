@@ -173,6 +173,12 @@
   .cmt-outbox-head .t { font-weight:700; font-size:12.5px; }
   .cmt-outbox textarea { width:100%; height:220px; border:1px solid #d8dde3; border-radius:6px; padding:8px; font-size:12.5px; box-sizing:border-box; }
   .cmt-tpl-item { padding:10px 12px; border:1px solid #eee; background:#f4f6fa; border-radius:8px; margin-bottom:8px; font-size:12px; }
+  /* Plantillas de notas: colores invertidos (panel gris, plantillas blancas) — en prueba antes de replicarlo */
+  .cmt-section-tpl { background:#f4f6fa; }
+  .cmt-section-tpl .cmt-tpl-item { background:#fff; border-color:#e2e6ef; }
+  /* Comments usa todo el ancho de la pantalla */
+  #ov-comments .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
+  #ov-comments .ds-overlay-inner > h1 { padding-right:56px; }
   .cmt-tpl-item .cmt-tpl-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
   .cmt-tpl-item .cmt-tpl-name { font-weight:700; font-size:13px; }
   .cmt-tpl-item .cmt-tpl-text { color:#374151; white-space:pre-wrap; }
@@ -534,7 +540,7 @@
   </div>
 </div>
 
-<div class="ds-overlay" id="ov-comments"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Comments — Design Schedule</h1>
+<div class="ds-overlay" id="ov-comments"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Comments</h1>
 <div class="cmt-tabs">
   <button type="button" class="cmt-tab activo" id="cmtTabN3" onclick="cmtMostrarTab('n3')">N3</button>
   <button type="button" class="cmt-tab" id="cmtTabFaq" onclick="cmtMostrarTab('faq')">N2 / Face Design</button>
@@ -609,7 +615,7 @@
     </div>
 
     <div class="cmt-col">
-      <div class="cmt-section"><h4>Plantillas de notas</h4><div id="cmtTplList"></div></div>
+      <div class="cmt-section cmt-section-tpl"><h4>Plantillas de notas</h4><div id="cmtTplList"></div></div>
       <div class="cmt-section"><h4>Historial (se borra a los 2 días)</h4><div id="cmtHistList"></div></div>
     </div>
   </div>
