@@ -2438,8 +2438,14 @@ window.DS_PANELS.dashboard = ddCargar;
             deepLinkSheetId: URL_PARAMS.get('sheet_id') ? parseInt(URL_PARAMS.get('sheet_id')) : null };
 
   // Presionar un área solo abre su lista de hojas; la hoja se carga únicamente al elegirla.
+  // Solo se muestran las áreas que tienen hojas (Face Design, N6 y Support hoy no tienen ninguna);
+  // si un área recibe hojas más adelante, vuelve a aparecer sola.
   function cargarAreas() {
-    api('/design/api/areas').then(function(areas) {
+    api('/design/api/areas').then(function(todas) {
+      return Promise.all(todas.map(function(a) {
+        return api('/design/api/preapproved/sheets?area_id=' + a.id).then(function(h) { return h.length ? a : null; });
+      })).then(function(r) { return r.filter(Boolean); });
+    }).then(function(areas) {
       PA.areas = areas;
       var cont = document.getElementById('paAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
