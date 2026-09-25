@@ -34,3 +34,5 @@ services:
         sync: false
       - key: ZOHO_CLIQ_REFRESH_TOKEN
         sync: false
+      - key: ZOHO_CLIQ_BOT
+        sync: false
