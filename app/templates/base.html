@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Solicitudes Nuvia</title>
-  <link rel="stylesheet" href="/static/style.css?v=13">
+  <link rel="stylesheet" href="/static/style.css?v=15">
 </head>
 <body>
 {% if user %}
@@ -77,7 +77,27 @@
   {% endif %}
   {% endif %}
   <a href="/">Módulos</a>
+  {% if es_custodia %}
+  {# En Inventario el usuario se muestra como un círculo con sus iniciales; al pasar el mouse se despliega su perfil #}
+  {% set primeros = (user.nombres or '').split()[:1] + (user.apellidos or '').split()[:1] %}
+  {% set nombres_rol = {'empleado': 'Empleado', 'aprobador': 'Aprobador', 'admin': 'Administrador', 'superadmin': 'Superadministrador'} %}
+  <div class="perfil" tabindex="0">
+    <span class="perfil-avatar" title="{{ user.nombre_completo|nombre_propio }}">{{ primeros|map('first')|join('')|upper }}</span>
+    <div class="perfil-menu">
+      <div class="perfil-cabecera">
+        <div class="perfil-nombre">{{ user.nombre_completo|nombre_propio }}</div>
+        <div class="perfil-correo" title="{{ user.email }}">{{ user.email }}</div>
+        <span class="perfil-rol">{{ nombres_rol.get(user.rol, user.rol|capitalize) }}</span>
+      </div>
+      <div class="perfil-empresa">🏢 {{ user.empresa }}</div>
+      <div class="perfil-opciones">
+        <a href="/logout" class="perfil-salir">↪ Cerrar sesión</a>
+      </div>
+    </div>
+  </div>
+  {% else %}
   <span class="usuario">{{ user.nombre_completo }} · <a href="/logout">Salir</a></span>
+  {% endif %}
 </nav>
 {% endif %}
 <main{% if not es_portal %} style="max-width:100%"{% endif %}>{% block contenido %}{% endblock %}</main>
