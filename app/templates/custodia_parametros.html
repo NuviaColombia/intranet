@@ -52,7 +52,7 @@
 <div class="cp-panel" id="panel-managers">
   <div class="cp-barra">
     <div class="cp-ayuda">Empleados de Nuvia Smiles con acceso a Cambio de custodia. Al agregarlos pasan a rol "aprobador" si eran "empleado".
-      El área de salida es la que aparece por defecto en "Nueva orden" (sin asignar = DIR Producción).</div>
+      El <b>área asignada</b> es el área de cada manager: aparece por defecto como área de salida en "Nueva orden" (sin asignar = DIR Producción), permite firmar los recibidos que llegan a esa área y define quién recibe el aviso por Zoho Cliq.</div>
   </div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar manager</span></summary>
@@ -67,7 +67,7 @@
         </select>
       </div>
       <div style="min-width:180px">
-        <label>Área de salida</label>
+        <label>Área asignada</label>
         <select name="area_custodia">
           <option value="">-- Sin asignar --</option>
           {% for a in areas_activas %}
@@ -79,11 +79,12 @@
     </form>
   </details>
   <table class="cp-tabla">
-    <tr><th>Manager</th><th>Cargo</th><th>Área de salida</th><th></th></tr>
+    <tr><th>Manager</th><th>Cargo en Producción</th><th>Área asignada</th><th></th></tr>
     {% for m in managers %}
     <tr>
       <td>{{ m.nombre_completo|nombre_propio }}</td>
-      <td>{{ m.cargo }}</td>
+      <td>{% if m.area_custodia %}<b>Manager {{ m.area_custodia|nombre_propio }}</b>{% elif m.rol in ('admin', 'superadmin') %}<b>Administrador</b>{% else %}<span style="color:var(--ambar)">Sin área asignada</span>{% endif %}
+        <div style="font-size:11px; color:var(--gris);">En People: {{ m.cargo }}</div></td>
       <td>
         <form id="f-man-{{ m.id }}" method="post" action="/custodia/parametros/managers/{{ m.id }}"></form>
         <select name="area_custodia" form="f-man-{{ m.id }}">

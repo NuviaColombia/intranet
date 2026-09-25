@@ -1540,8 +1540,8 @@ function firmasHtml(t) {
   var entrega = (t && t.entregaEmail) || "";
   var recibe = (t && t.recibeEmail) || "Pendiente de confirmación";
   return `<table class="firmas-table"><tr>
-    <td><div class="firma-nombre">${(t && t.entregaNombre) || ""}</div>_________________________________<br>Firma entregado:<div class="firma-correo">${entrega}</div></td>
-    <td><div class="firma-nombre">${(t && t.recibeNombre) || ""}</div>_________________________________<br>Firma recibido:<div class="firma-correo">${recibe}</div></td>
+    <td><div class="firma-nombre">${(t && t.entregaNombre) || ""}${(t && t.entregaNombre && t.entregaCargo) ? " · " + t.entregaCargo : ""}</div>_________________________________<br>Firma entregado:<div class="firma-correo">${entrega}</div></td>
+    <td><div class="firma-nombre">${(t && t.recibeNombre) || ""}${(t && t.recibeNombre && t.recibeCargo) ? " · " + t.recibeCargo : ""}</div>_________________________________<br>Firma recibido:<div class="firma-correo">${recibe}</div></td>
   </tr></table>`;
 }
 

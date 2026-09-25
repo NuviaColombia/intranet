@@ -210,6 +210,16 @@ LIMITE_CONSULTA_RANGO = 2000
 LIMITE_TICKETS_RANGO = 300
 
 
+def cargo_produccion(emp) -> str:
+    """Cargo con el que el empleado actúa en Cambio de custodia: "Manager <área asignada>".
+    Sin área asignada: "Administrador" si lo es; si no, vacío. No usa el cargo de People."""
+    if not emp:
+        return ""
+    if emp.area_custodia:
+        return f"Manager {nombre_propio(emp.area_custodia)}"
+    return "Administrador" if emp.rol in ("admin", "superadmin") else ""
+
+
 def _nombre_firma(emp) -> str:
     """Primer nombre y primer apellido del empleado que firma (ej. 'Carlos Barreto')."""
     if not emp:
@@ -230,8 +240,10 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
         # Firmas del documento: entrega = quien registró (área salida); recibe = quien confirmó (área entrada).
         "entregaEmail": t.creado_por.email if t.creado_por else "",
         "entregaNombre": _nombre_firma(t.creado_por),
+        "entregaCargo": cargo_produccion(t.creado_por),
         "recibeEmail": t.confirmado_por.email if (t.confirmado_entrada and t.confirmado_por) else "",
         "recibeNombre": _nombre_firma(t.confirmado_por) if t.confirmado_entrada else "",
+        "recibeCargo": cargo_produccion(t.confirmado_por) if t.confirmado_entrada else "",
         # Anulación: quién, cuándo y por qué
         "anuladoPor": nombre_propio(t.anulado_por.nombre_completo) if (t.anulado and t.anulado_por) else "",
         # anulado_en se guarda en UTC; Colombia es UTC-5 (sin horario de verano)
@@ -441,8 +453,9 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
         t = db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes)).get(traslado_id)
         if not t or t.anulado or t.confirmado_entrada:
             return
+        # Todos los que tienen asignada el área de entrada (incluidos administradores con esa área).
         destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
-                         if e.tiene_modulo("custodia") and e.rol not in ("admin", "superadmin")
+                         if e.tiene_modulo("custodia")
                          and (e.area_custodia or "").strip().upper() == (t.area_entrada or "").strip().upper()]
         if not destinatarios:
             print(f"[Custodia] Traslado #{t.id}: ningún manager tiene asignada el área {t.area_entrada}; sin aviso.")
