@@ -210,14 +210,25 @@ LIMITE_CONSULTA_RANGO = 2000
 LIMITE_TICKETS_RANGO = 300
 
 
-def cargo_produccion(emp) -> str:
-    """Cargo con el que el empleado actúa en Cambio de custodia: "Manager <área asignada>".
-    Sin área asignada: "Administrador" si lo es; si no, vacío. No usa el cargo de People."""
-    if not emp:
-        return ""
-    if emp.area_custodia:
-        return f"Manager {nombre_propio(emp.area_custodia)}"
-    return "Administrador" if emp.rol in ("admin", "superadmin") else ""
+def cargo_people(emp) -> str:
+    """Cargo del empleado tal como está en People (no se modifica)."""
+    return (emp.cargo or "").strip() if emp else ""
+
+
+def _sin_tildes(texto: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", texto or "") if unicodedata.category(c) != "Mn").upper()
+
+
+def cargo_coincide_con_area(cargo: str, area: str) -> bool:
+    """True si el cargo de People menciona el área asignada (ej. "MANAGER GLAZE" y "GLAZE",
+    "DIRECTOR DE PRODUCCION" y "DIR PRODUCCIÓN"). Sin área asignada no hay nada que comparar."""
+    if not area:
+        return True
+    import re
+    cargo_n = _sin_tildes(cargo)
+    palabras = [p for p in re.split(r"[^A-Z0-9]+", _sin_tildes(area)) if len(p) >= 2 and p not in ("DE", "DEL", "LA")]
+    return any(p in cargo_n for p in palabras)
 
 
 def _nombre_firma(emp) -> str:
@@ -240,10 +251,10 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
         # Firmas del documento: entrega = quien registró (área salida); recibe = quien confirmó (área entrada).
         "entregaEmail": t.creado_por.email if t.creado_por else "",
         "entregaNombre": _nombre_firma(t.creado_por),
-        "entregaCargo": cargo_produccion(t.creado_por),
+        "entregaCargo": cargo_people(t.creado_por),
         "recibeEmail": t.confirmado_por.email if (t.confirmado_entrada and t.confirmado_por) else "",
         "recibeNombre": _nombre_firma(t.confirmado_por) if t.confirmado_entrada else "",
-        "recibeCargo": cargo_produccion(t.confirmado_por) if t.confirmado_entrada else "",
+        "recibeCargo": cargo_people(t.confirmado_por) if t.confirmado_entrada else "",
         # Anulación: quién, cuándo y por qué
         "anuladoPor": nombre_propio(t.anulado_por.nombre_completo) if (t.anulado and t.anulado_por) else "",
         # anulado_en se guarda en UTC; Colombia es UTC-5 (sin horario de verano)

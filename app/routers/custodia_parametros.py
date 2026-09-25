@@ -32,6 +32,8 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "areas": areas, "motivos": motivos, "discos": discos,
                                        "areas_activas": sc.areas_disponibles(db),
                                        "es_custodia": True, "msg": request.query_params.get("msg"),
+                                       "cargo_coincide": {m.id: sc.cargo_coincide_con_area(m.cargo, m.area_custodia)
+                                                          for m in managers},
                                        "custodia_pendientes": len(sc.pendientes_entrada(db))})
 
 
