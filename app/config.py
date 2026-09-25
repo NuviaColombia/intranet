@@ -24,3 +24,5 @@ ADMIN_EMAILS = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split("
 ZOHO_CLIQ_CLIENT_ID = os.getenv("ZOHO_CLIQ_CLIENT_ID", "")
 ZOHO_CLIQ_CLIENT_SECRET = os.getenv("ZOHO_CLIQ_CLIENT_SECRET", "")
 ZOHO_CLIQ_REFRESH_TOKEN = os.getenv("ZOHO_CLIQ_REFRESH_TOKEN", "")
+# Nombre único del bot de Cliq que envía TODOS los mensajes de la intranet (ej. "Nuvia Colombia Bot")
+ZOHO_CLIQ_BOT = os.getenv("ZOHO_CLIQ_BOT", "").strip()

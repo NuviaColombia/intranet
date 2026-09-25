@@ -458,7 +458,6 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
     por firmar. Se ejecuta en segundo plano después de guardar (abre su propia sesión)."""
     from . import config
     from .database import SessionLocal
-    from .zoho_cliq import enviar_cliq
     db = SessionLocal()
     try:
         t = db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes)).get(traslado_id)
@@ -478,8 +477,9 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
                  f"Órdenes: {ordenes}\n"
                  f"Registrado por: {nombre_propio(t.colaborador)}\n"
                  f"Firma el recibido en: {config.BASE_URL}/custodia (Aprobaciones/Firmas)")
-        for e in destinatarios:
-            enviar_cliq(e.email, texto)
+        # Desde el bot de Cliq (única vía de envío de la intranet), a todos en una sola llamada.
+        from .zoho_cliq import enviar_cliq_varios
+        enviar_cliq_varios([e.email for e in destinatarios], texto)
     except Exception as ex:  # un aviso fallido nunca debe afectar el registro
         print(f"[Custodia] Error enviando aviso del traslado #{traslado_id}: {ex}")
     finally:
