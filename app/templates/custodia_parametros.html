@@ -1,154 +1,232 @@
 {% extends "base.html" %}
 {% block contenido %}
-<h1>Parámetros de Cambio de custodia</h1>
+<style>
+  .cp-titulo { display:flex; align-items:baseline; gap:10px; margin-bottom:14px; }
+  .cp-titulo h1 { margin:0; }
+  .cp-titulo span { color:var(--gris); font-size:13px; }
+  .cp-tabs { display:flex; gap:4px; border-bottom:2px solid #e5e7eb; margin-bottom:0; flex-wrap:wrap; }
+  .cp-tab { background:none; border:none; padding:10px 16px; font-size:14px; font-family:inherit; color:var(--gris);
+            cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; font-weight:600; }
+  .cp-tab:hover { color:#111827; }
+  .cp-tab.activo { color:var(--azul); border-bottom-color:var(--azul); }
+  .cp-tab .cp-num { background:#e5e7eb; color:#374151; border-radius:999px; font-size:11px; padding:1px 7px; margin-left:4px; }
+  .cp-tab.activo .cp-num { background:#dbeafe; color:var(--azul); }
+  .cp-panel { display:none; background:#fff; border-radius:0 0 10px 10px; padding:14px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .cp-panel.activo { display:block; }
+  .cp-barra { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+  .cp-ayuda { font-size:12px; color:var(--gris); max-width:780px; }
+  .cp-agregar { margin-bottom:12px; }
+  .cp-agregar summary { list-style:none; cursor:pointer; display:inline-block; }
+  .cp-agregar summary::-webkit-details-marker { display:none; }
+  .cp-agregar[open] summary .btn { background:#e5e7eb; color:#111827; }
+  .cp-form-nuevo { display:flex; gap:10px; flex-wrap:wrap; align-items:end; background:#f9fafb; border:1px solid #e5e7eb;
+                   border-radius:8px; padding:10px 12px; margin-top:8px; }
+  .cp-form-nuevo label { display:block; font-size:12px; }
+  .cp-panel input, .cp-panel select { margin:0; padding:5px 8px; font-size:13px; }
+  .cp-tabla { font-size:13px; }
+  .cp-tabla th { font-size:12px; padding:6px 8px; white-space:nowrap; }
+  .cp-tabla td { padding:5px 8px; vertical-align:middle; }
+  .cp-tabla tr.cp-inactivo td { color:#9ca3af; background:#fafafa; }
+  .cp-tabla .cp-num-col { width:80px; }
+  .cp-tabla .cp-acciones { white-space:nowrap; text-align:right; width:1%; }
+  .cp-estado { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .cp-estado.si { background:#dcfce7; color:var(--verde); }
+  .cp-estado.no { background:#e5e7eb; color:var(--gris); }
+  .cp-vacio { text-align:center; color:var(--gris); padding:18px !important; }
+</style>
+
+<div class="cp-titulo">
+  <h1>⚙️ Parámetros</h1>
+  <span>Inventario › Cambio de custodia</span>
+</div>
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
-<div class="tarjeta">
-  <h2>Managers</h2>
-  <p style="font-size:13px;color:var(--gris)">
-    Elige managers de entre los empleados de Nuvia Smiles. Al agregarlos se les da acceso al
-    módulo Inventario (Cambio de custodia) y, si eran "empleado", pasan a rol "aprobador". El "Área de salida" que
-    asignes queda como valor por defecto para ese manager en la pestaña "Nueva orden" — deja
-    "Sin asignar" para que use el valor por defecto general (DIR PRODUCCIÓN).
-  </p>
-  <form method="post" action="/custodia/parametros/managers" class="filtros">
-    <div style="flex:2">
-      <label>Empleado (Nuvia Smiles)</label>
-      <select name="empleado_id" required>
-        <option value="">SELECCIONAR...</option>
-        {% for c in candidatos %}
-        <option value="{{ c.id }}">{{ c.nombre_completo }} — {{ c.cargo }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label>Área de salida</label>
-      <select name="area_custodia">
-        <option value="">-- SIN ASIGNAR --</option>
-        {% for a in areas_activas %}
-        <option value="{{ a }}">{{ a }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div><button class="btn">Agregar</button></div>
-  </form>
-  <table style="margin-top:12px">
+<div class="cp-tabs">
+  <button type="button" class="cp-tab" data-panel="managers">👤 Managers <span class="cp-num">{{ managers|length }}</span></button>
+  <button type="button" class="cp-tab" data-panel="areas">🏭 Áreas <span class="cp-num">{{ areas|length }}</span></button>
+  <button type="button" class="cp-tab" data-panel="discos">💿 Catálogo de discos <span class="cp-num">{{ discos|length }}</span></button>
+  <button type="button" class="cp-tab" data-panel="motivos">📋 Motivos <span class="cp-num">{{ motivos|length }}</span></button>
+</div>
+
+{# ---------- Managers ---------- #}
+<div class="cp-panel" id="panel-managers">
+  <div class="cp-barra">
+    <div class="cp-ayuda">Empleados de Nuvia Smiles con acceso a Cambio de custodia. Al agregarlos pasan a rol "aprobador" si eran "empleado".
+      El área de salida es la que aparece por defecto en "Nueva orden" (sin asignar = DIR PRODUCCIÓN).</div>
+  </div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar manager</span></summary>
+    <form method="post" action="/custodia/parametros/managers" class="cp-form-nuevo">
+      <div style="flex:2;min-width:240px">
+        <label>Empleado (Nuvia Smiles)</label>
+        <select name="empleado_id" required>
+          <option value="">SELECCIONAR...</option>
+          {% for c in candidatos %}
+          <option value="{{ c.id }}">{{ c.nombre_completo }} — {{ c.cargo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="min-width:180px">
+        <label>Área de salida</label>
+        <select name="area_custodia">
+          <option value="">-- SIN ASIGNAR --</option>
+          {% for a in areas_activas %}
+          <option value="{{ a }}">{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
     <tr><th>Manager</th><th>Cargo</th><th>Área de salida</th><th></th></tr>
     {% for m in managers %}
     <tr>
       <td>{{ m.nombre_completo }}</td>
       <td>{{ m.cargo }}</td>
       <td>
-        <form class="inline filtros" method="post" action="/custodia/parametros/managers/{{ m.id }}">
-          <div style="flex:2">
-            <select name="area_custodia">
-              <option value="">-- SIN ASIGNAR --</option>
-              {% for a in areas_activas %}
-              <option value="{{ a }}" {{ 'selected' if m.area_custodia == a }}>{{ a }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div><button class="btn mini">Guardar</button></div>
-        </form>
+        <form id="f-man-{{ m.id }}" method="post" action="/custodia/parametros/managers/{{ m.id }}"></form>
+        <select name="area_custodia" form="f-man-{{ m.id }}">
+          <option value="">-- SIN ASIGNAR --</option>
+          {% for a in areas_activas %}
+          <option value="{{ a }}" {{ 'selected' if m.area_custodia == a }}>{{ a }}</option>
+          {% endfor %}
+        </select>
       </td>
-      <td><form class="inline" method="post" action="/custodia/parametros/managers/{{ m.id }}/quitar"
-                onsubmit="return confirm('¿Quitar a {{ m.nombre_completo }} como manager de Cambio de custodia?')">
-        <button class="btn rojo mini">Quitar</button></form></td>
+      <td class="cp-acciones">
+        <button class="btn mini" form="f-man-{{ m.id }}">Guardar</button>
+        <form class="inline" method="post" action="/custodia/parametros/managers/{{ m.id }}/quitar"
+              onsubmit="return confirm('¿Quitar a {{ m.nombre_completo }} como manager de Cambio de custodia?')">
+          <button class="btn rojo mini">Quitar</button></form>
+      </td>
     </tr>
     {% else %}
-    <tr><td colspan="4">Ningún empleado tiene el módulo Inventario (Cambio de custodia) asignado todavía.</td></tr>
+    <tr><td colspan="4" class="cp-vacio">Ningún empleado tiene el módulo Inventario (Cambio de custodia) asignado todavía.</td></tr>
     {% endfor %}
   </table>
 </div>
 
-<div class="tarjeta" style="overflow-x:auto">
-  <h2>Áreas de producción</h2>
-  <p style="font-size:13px;color:var(--gris)">
-    Disponibles para Área salida/entrada/creación. "Cuenta como inventario" controla si la
-    orden puede quedar "ubicada" ahí (desmárcalo para áreas como EMPAQUE). Las alertas de horas
-    controlan cuándo una orden se pinta en amarillo/rojo en "Ubicación actual" por llevar
-    mucho tiempo en esa área.
-  </p>
-  <form method="post" action="/custodia/parametros/areas" class="filtros">
-    <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: PULIDO"></div>
-    <div><label>Alerta amarilla (horas)</label><input name="alerta_horas_advertencia" type="number" min="0" value="24"></div>
-    <div><label>Alerta roja (horas)</label><input name="alerta_horas_critica" type="number" min="0" value="48"></div>
-    <div><label><input type="checkbox" name="es_inventario" value="1" checked style="width:auto"> Cuenta como inventario</label></div>
-    <div><button class="btn">Agregar</button></div>
-  </form>
-  <table style="margin-top:12px">
-    <tr><th>Nombre</th><th colspan="2">Alertas (h)</th><th>Inventario</th><th>Estado</th><th></th></tr>
+{# ---------- Áreas de producción ---------- #}
+<div class="cp-panel" id="panel-areas">
+  <div class="cp-barra">
+    <div class="cp-ayuda">Áreas disponibles para salida, entrada y creación. Las alertas pintan la orden en amarillo/rojo en
+      "Ubicación actual" cuando lleva esas horas en el área. "Inventario" indica si la orden puede quedar ubicada ahí.</div>
+  </div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar área</span></summary>
+    <form method="post" action="/custodia/parametros/areas" class="cp-form-nuevo">
+      <div style="flex:2;min-width:200px"><label>Nombre</label><input name="nombre" required placeholder="Ej: PULIDO"></div>
+      <div style="width:130px"><label>🟡 Alerta (h)</label><input name="alerta_horas_advertencia" type="number" min="0" value="24"></div>
+      <div style="width:130px"><label>🔴 Alerta (h)</label><input name="alerta_horas_critica" type="number" min="0" value="48"></div>
+      <div><label><input type="checkbox" name="es_inventario" value="1" checked style="width:auto"> Inventario</label></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Nombre</th><th class="cp-num-col">🟡 Alerta (h)</th><th class="cp-num-col">🔴 Alerta (h)</th><th>Inventario</th><th>Estado</th><th></th></tr>
     {% for a in areas %}
-    <tr>
-      <td colspan="4">
-        <form class="inline filtros" method="post" action="/custodia/parametros/areas/{{ a.id }}/editar">
-          <div style="flex:2"><input name="nombre" value="{{ a.nombre }}" required></div>
-          <div style="width:70px"><input name="alerta_horas_advertencia" type="number" min="0" value="{{ a.alerta_horas_advertencia }}" title="Alerta amarilla (horas)"></div>
-          <div style="width:70px"><input name="alerta_horas_critica" type="number" min="0" value="{{ a.alerta_horas_critica }}" title="Alerta roja (horas)"></div>
-          <div><label style="font-size:12px"><input type="checkbox" name="es_inventario" value="1"
-                      {{ 'checked' if a.es_inventario }} style="width:auto"> Inventario</label></div>
-          <div><button class="btn mini">Guardar</button></div>
-        </form>
+    <tr class="{{ '' if a.activo else 'cp-inactivo' }}">
+      <td>
+        <form id="f-area-{{ a.id }}" method="post" action="/custodia/parametros/areas/{{ a.id }}/editar"></form>
+        <input name="nombre" value="{{ a.nombre }}" required form="f-area-{{ a.id }}">
       </td>
-      <td>{{ 'Activa' if a.activo else 'Inactiva' }}</td>
-      <td><form class="inline" method="post" action="/custodia/parametros/areas/{{ a.id }}/toggle">
-        <button class="btn gris mini">{{ 'Desactivar' if a.activo else 'Activar' }}</button></form></td>
+      <td><input name="alerta_horas_advertencia" type="number" min="0" value="{{ a.alerta_horas_advertencia }}" form="f-area-{{ a.id }}"></td>
+      <td><input name="alerta_horas_critica" type="number" min="0" value="{{ a.alerta_horas_critica }}" form="f-area-{{ a.id }}"></td>
+      <td><input type="checkbox" name="es_inventario" value="1" {{ 'checked' if a.es_inventario }} style="width:auto" form="f-area-{{ a.id }}"></td>
+      <td><span class="cp-estado {{ 'si' if a.activo else 'no' }}">{{ 'Activa' if a.activo else 'Inactiva' }}</span></td>
+      <td class="cp-acciones">
+        <button class="btn mini" form="f-area-{{ a.id }}">Guardar</button>
+        <form class="inline" method="post" action="/custodia/parametros/areas/{{ a.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if a.activo else 'Activar' }}</button></form>
+      </td>
     </tr>
     {% endfor %}
   </table>
 </div>
 
-<div class="tarjeta" style="overflow-x:auto">
-  <h2>Catálogo de discos (factor de conversión)</h2>
-  <p style="font-size:13px;color:var(--gris)">
-    Usado por la calculadora del registro: cantidad de discos = cantidad de pacientes × factor.
-  </p>
-  <form method="post" action="/custodia/parametros/discos" class="filtros">
-    <div style="flex:2"><label>Detalle</label><input name="detalle" required placeholder="Ej: Protesis Zirconia Tipo 4 B"></div>
-    <div><label>Factor</label><input name="factor" type="number" step="0.1" min="0" required></div>
-    <div><button class="btn">Agregar</button></div>
-  </form>
-  <table style="margin-top:12px">
-    <tr><th>Detalle</th><th>Factor</th><th>Estado</th><th></th></tr>
+{# ---------- Catálogo de discos ---------- #}
+<div class="cp-panel" id="panel-discos">
+  <div class="cp-barra">
+    <div class="cp-ayuda">Factor de conversión usado por la calculadora del registro: cantidad de discos = cantidad de pacientes × factor.</div>
+  </div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar tipo de prótesis</span></summary>
+    <form method="post" action="/custodia/parametros/discos" class="cp-form-nuevo">
+      <div style="flex:2;min-width:240px"><label>Detalle</label><input name="detalle" required placeholder="Ej: Protesis Zirconia Tipo 4 B"></div>
+      <div style="width:110px"><label>Factor</label><input name="factor" type="number" step="0.1" min="0" required></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Detalle</th><th class="cp-num-col">Factor</th><th>Estado</th><th></th></tr>
     {% for d in discos %}
-    <tr>
-      <td colspan="2">
-        <form class="inline filtros" method="post" action="/custodia/parametros/discos/{{ d.id }}/editar">
-          <div style="flex:2"><input name="detalle" value="{{ d.detalle }}" required></div>
-          <div style="width:80px"><input name="factor" type="number" step="0.1" min="0" value="{{ d.factor }}" required></div>
-          <div><button class="btn mini">Guardar</button></div>
-        </form>
+    <tr class="{{ '' if d.activo else 'cp-inactivo' }}">
+      <td>
+        <form id="f-disco-{{ d.id }}" method="post" action="/custodia/parametros/discos/{{ d.id }}/editar"></form>
+        <input name="detalle" value="{{ d.detalle }}" required form="f-disco-{{ d.id }}">
       </td>
-      <td>{{ 'Activo' if d.activo else 'Inactivo' }}</td>
-      <td><form class="inline" method="post" action="/custodia/parametros/discos/{{ d.id }}/toggle">
-        <button class="btn gris mini">{{ 'Desactivar' if d.activo else 'Activar' }}</button></form></td>
+      <td><input name="factor" type="number" step="0.1" min="0" value="{{ d.factor }}" required form="f-disco-{{ d.id }}"></td>
+      <td><span class="cp-estado {{ 'si' if d.activo else 'no' }}">{{ 'Activo' if d.activo else 'Inactivo' }}</span></td>
+      <td class="cp-acciones">
+        <button class="btn mini" form="f-disco-{{ d.id }}">Guardar</button>
+        <form class="inline" method="post" action="/custodia/parametros/discos/{{ d.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if d.activo else 'Activar' }}</button></form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="cp-vacio">No hay tipos de prótesis registrados.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Motivos ---------- #}
+<div class="cp-panel" id="panel-motivos">
+  <div class="cp-barra">
+    <div class="cp-ayuda">Motivos disponibles al registrar un traslado. "Orden" define en qué posición aparecen en la lista.</div>
+  </div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar motivo</span></summary>
+    <form method="post" action="/custodia/parametros/motivos" class="cp-form-nuevo">
+      <div style="flex:2;min-width:240px"><label>Nombre</label><input name="nombre" required placeholder="Ej: PRODUCCIÓN NORMAL"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Nombre</th><th class="cp-num-col">Orden</th><th>Estado</th><th></th></tr>
+    {% for m in motivos %}
+    <tr class="{{ '' if m.activo else 'cp-inactivo' }}">
+      <td>
+        <form id="f-motivo-{{ m.id }}" method="post" action="/custodia/parametros/motivos/{{ m.id }}/editar"></form>
+        <input name="nombre" value="{{ m.nombre }}" required form="f-motivo-{{ m.id }}">
+      </td>
+      <td><input name="orden" type="number" value="{{ m.orden }}" form="f-motivo-{{ m.id }}"></td>
+      <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activo' if m.activo else 'Inactivo' }}</span></td>
+      <td class="cp-acciones">
+        <button class="btn mini" form="f-motivo-{{ m.id }}">Guardar</button>
+        <form class="inline" method="post" action="/custodia/parametros/motivos/{{ m.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if m.activo else 'Activar' }}</button></form>
+      </td>
     </tr>
     {% endfor %}
   </table>
 </div>
 
-<div class="tarjeta" style="overflow-x:auto">
-  <h2>Motivos</h2>
-  <form method="post" action="/custodia/parametros/motivos" class="filtros">
-    <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: PRODUCCIÓN NORMAL"></div>
-    <div><button class="btn">Agregar</button></div>
-  </form>
-  <table style="margin-top:12px">
-    <tr><th>Nombre</th><th>Orden</th><th>Estado</th><th></th></tr>
-    {% for m in motivos %}
-    <tr>
-      <td colspan="2">
-        <form class="inline filtros" method="post" action="/custodia/parametros/motivos/{{ m.id }}/editar">
-          <div style="flex:2"><input name="nombre" value="{{ m.nombre }}" required></div>
-          <div style="width:80px"><input name="orden" type="number" value="{{ m.orden }}"></div>
-          <div><button class="btn mini">Guardar</button></div>
-        </form>
-      </td>
-      <td>{{ 'Activo' if m.activo else 'Inactivo' }}</td>
-      <td><form class="inline" method="post" action="/custodia/parametros/motivos/{{ m.id }}/toggle">
-        <button class="btn gris mini">{{ 'Desactivar' if m.activo else 'Activar' }}</button></form></td>
-    </tr>
-    {% endfor %}
-  </table>
-</div>
+<script>
+(function() {
+  // Recuerda la pestaña abierta: después de guardar, la página se recarga y vuelve a la misma.
+  var CLAVE = 'custodiaParametrosTab';
+  function abrir(panel) {
+    if (!document.getElementById('panel-' + panel)) panel = 'managers';
+    document.querySelectorAll('.cp-tab').forEach(function(t) { t.classList.toggle('activo', t.dataset.panel === panel); });
+    document.querySelectorAll('.cp-panel').forEach(function(p) { p.classList.toggle('activo', p.id === 'panel-' + panel); });
+    try { sessionStorage.setItem(CLAVE, panel); } catch (e) {}
+  }
+  document.querySelectorAll('.cp-tab').forEach(function(t) {
+    t.addEventListener('click', function() { abrir(t.dataset.panel); });
+  });
+  var inicial = 'managers';
+  try { inicial = sessionStorage.getItem(CLAVE) || 'managers'; } catch (e) {}
+  abrir(inicial);
+})();
+</script>
 {% endblock %}
