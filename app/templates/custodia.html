@@ -124,6 +124,11 @@
   .consulta-tabla td { border: 1px solid var(--border-soft); padding: 10px 14px; font-size: 13px; text-align: center; font-weight: 500; color: var(--text-dark); transition: background 0.2s; }
   .consulta-tabla tbody tr:hover td { background-color: var(--brand-light); }
   .anulado-row td { background-color: #FEF2F2 !important; color: var(--danger) !important; text-decoration: line-through; opacity: 0.8; }
+  /* Ubicación actual: encabezado de cada grupo (área) */
+  .consulta-tabla tr.grupo-ubicacion td { background: var(--brand-light); color: var(--brand-main); font-weight: 800;
+    text-align: left; padding: 9px 14px; border-top: 2px solid var(--border-medium); }
+  .consulta-tabla tr.grupo-ubicacion:hover td { background: var(--brand-light); }
+  .grupo-ubicacion .grupo-detalle { font-weight: 600; color: var(--text-muted); margin-left: 10px; font-size: 13px; }
   .fila-totales td { background-color: var(--brand-light) !important; font-weight: 800 !important; color: var(--brand-main) !important; border-top: 1px solid var(--border-medium) !important; border-bottom: none !important;}
 
   .split-layout { display: flex; flex-direction: column; gap: 24px; }
@@ -403,16 +408,13 @@
               <table class="consulta-tabla" id="tablaActivasFull">
                 <thead>
                   <tr>
-                    <th style="width: 25%;">Orden</th>
-                    <th style="width: 15%;">Cant.</th>
-                    <th onclick="alternarOrdenUbicacion()" style="cursor:pointer;" title="Hacer clic para ordenar">
-                      Ubicación <span id="iconoOrdenUbicacion">▲</span>
-                    </th>
-                    <th style="width: 25%;">Tiempo en área</th>
+                    <th style="width: 40%;">Orden</th>
+                    <th style="width: 25%;">Cant.</th>
+                    <th style="width: 35%;">Tiempo en área</th>
                   </tr>
                 </thead>
                 <tbody id="bodyTablaActivas">
-                  <tr><td colspan="4" style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando...</td></tr>
+                  <tr><td colspan="3" style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1174,14 +1176,8 @@ function cargarEstadoOrdenes() {
     actualizarResumenOrdenActivas();
   }).catch(function(e) {
     btn.innerText = "🔍 Buscar";
-    document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="4" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
+    document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="3" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
   });
-}
-
-function alternarOrdenUbicacion() {
-  ordenAscendenteUbicacion = !ordenAscendenteUbicacion;
-  document.getElementById("iconoOrdenUbicacion").innerText = ordenAscendenteUbicacion ? "▲" : "▼";
-  filtrarTablaActivas();
 }
 
 var areasAlertaGlobal = {};
@@ -1231,9 +1227,25 @@ function filtrarTablaActivas() {
   });
 
   if(filtrados.length === 0) {
-    tbody1.innerHTML = `<tr><td colspan="4" style="padding:50px; color:var(--text-muted); font-weight:600;">No se encontraron órdenes en este corte.</td></tr>`;
+    tbody1.innerHTML = `<tr><td colspan="3" style="padding:50px; color:var(--text-muted); font-weight:600;">No se encontraron órdenes en este corte.</td></tr>`;
   } else {
+    // Agrupado por ubicación: una fila de encabezado por área (órdenes y total de discos) y debajo sus órdenes.
+    var resumenPorArea = {};
     filtrados.forEach(function(o) {
+      var r = resumenPorArea[o.ubicacion] || (resumenPorArea[o.ubicacion] = {ordenes: 0, cantidad: 0});
+      r.ordenes += 1; r.cantidad += o.cantidad;
+    });
+    var areaActual = null;
+    filtrados.forEach(function(o) {
+      if (o.ubicacion !== areaActual) {
+        areaActual = o.ubicacion;
+        var r = resumenPorArea[areaActual];
+        var trGrupo = document.createElement("tr");
+        trGrupo.className = "grupo-ubicacion";
+        trGrupo.innerHTML = `<td colspan="3">📍 ${nombrePropio(areaActual)}
+          <span class="grupo-detalle">${r.ordenes} ${r.ordenes === 1 ? "orden" : "órdenes"} · ${r.cantidad.toFixed(2)} discos</span></td>`;
+        tbody1.appendChild(trGrupo);
+      }
       var tr = document.createElement("tr");
       tr.innerHTML = `
         <td style="font-weight:800; color:var(--brand-main);">
@@ -1241,7 +1253,6 @@ function filtrarTablaActivas() {
           <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 11px;" onclick="abrirModalTimeline('${o.orden}')">🛤️ Viaje</button>
         </td>
         <td style="font-weight:800; color:var(--success);">${o.cantidad.toFixed(2)}</td>
-        <td style="font-weight:700;">${o.ubicacion}</td>
         <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
       `;
       tbody1.appendChild(tr);

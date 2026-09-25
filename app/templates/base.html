@@ -8,7 +8,8 @@
 </head>
 <body>
 {% if user %}
-<nav{% if es_custodia %} class="nav-inventario"{% endif %}>
+{% set en_inventario = es_custodia or es_inventario %}
+<nav{% if en_inventario %} class="nav-inventario"{% endif %}>
   <span class="marca">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
@@ -26,8 +27,11 @@
     <a href="/reportes">Reportes</a>
   {% endif %}
   {% endif %}
+  {% if es_inventario %}
+  <span class="nav-ruta"><a href="/inventario">🏭 Producción</a></span>
+  {% endif %}
   {% if es_custodia %}
-  <span class="nav-ruta"><a href="/inventario">📦 Inventario</a> › <a href="/custodia">Cambio de custodia</a></span>
+  <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/custodia">Cambio de custodia</a></span>
   {# Opciones del submódulo (ver .nav-inventario en style.css) #}
   {% set en_parametros = request.url.path == '/custodia/parametros' %}
   <div class="nav-sub">
@@ -77,8 +81,8 @@
   {% endif %}
   {% endif %}
   <a href="/">Módulos</a>
-  {% if es_custodia %}
-  {# En Inventario el usuario se muestra como un círculo con sus iniciales; al pasar el mouse se despliega su perfil #}
+  {% if en_inventario %}
+  {# En Producción el usuario se muestra como un círculo con sus iniciales; al pasar el mouse se despliega su perfil #}
   {% set primeros = (user.nombres or '').split()[:1] + (user.apellidos or '').split()[:1] %}
   {% set nombres_rol = {'empleado': 'Empleado', 'aprobador': 'Aprobador', 'admin': 'Administrador', 'superadmin': 'Superadministrador'} %}
   <div class="perfil" tabindex="0">

@@ -8,4 +8,4 @@ router = APIRouter()
 
 @router.get("/inventario")
 async def inventario(request: Request, user: Empleado = Depends(require_modulo("custodia"))):
-    return templates.TemplateResponse(request, "inventario.html", {"user": user, "es_portal": True})
+    return templates.TemplateResponse(request, "inventario.html", {"user": user, "es_portal": True, "es_inventario": True})
