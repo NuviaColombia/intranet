@@ -22,8 +22,8 @@
     --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.01);
   }
 
-  #custodia-app * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; box-sizing: border-box; }
-  #custodia-app { background-color: var(--bg-body); padding: 15px; color: var(--text-dark); line-height: 1.5; font-size: 14px; }
+  #custodia-app * { font-family: 'Segoe UI', system-ui, sans-serif !important; box-sizing: border-box; }
+  #custodia-app { background-color: transparent; padding: 0; color: var(--text-dark); line-height: 1.5; font-size: 14px; }
 
   .main-container { width: 100%; max-width: 100%; background: var(--bg-surface); margin: 0; box-shadow: var(--shadow-md); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-soft); }
 
@@ -32,14 +32,14 @@
   .top-branding { display: flex; align-items: center; gap: 12px; margin-right: 15px; padding-right: 20px; border-right: 2px solid var(--border-medium); }
   .top-branding img { max-height: 38px; object-fit: contain; border-radius: 4px; }
   .brand-text-nav { display: flex; flex-direction: column; color: var(--brand-main); line-height: 1.2; }
-  .brand-text-nav strong { font-weight: 800; font-size: 12px; letter-spacing: 0.5px; }
+  .brand-text-nav strong { font-weight: 800; font-size: 13px; }
   .brand-text-nav span { color: var(--text-muted); font-weight: 600; font-size: 11px; }
 
-  .nav-tab { padding: 10px 18px; text-align: center; color: var(--brand-main); background: #FFFFFF; border: 1px solid var(--border-medium); cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 8px; transition: all 0.2s ease; letter-spacing: 0.3px; flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .nav-tab { padding: 10px 18px; text-align: center; color: var(--brand-main); background: #FFFFFF; border: 1px solid var(--border-medium); cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 8px; transition: all 0.2s ease; flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .nav-tab:hover:not(.active) { box-shadow: var(--shadow-sm); border-color: var(--brand-main); }
   .nav-tab.active { background: var(--brand-main); color: #FFFFFF; font-weight: 700; border-color: var(--brand-main); box-shadow: 0 4px 8px rgba(26, 54, 93, 0.2); }
 
-  .btn-top-action { background-color: #FFFFFF; color: var(--brand-main); border: 1px solid var(--border-medium); padding: 9px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; margin-left: 8px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; }
+  .btn-top-action { background-color: #FFFFFF; color: var(--brand-main); border: 1px solid var(--border-medium); padding: 9px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; margin-left: 8px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; }
   .btn-top-action:hover { border-color: var(--brand-main); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 
   .content-section { padding: 30px 24px; display: none; animation: fadeInScale 0.3s ease-out; }
@@ -47,7 +47,7 @@
   @keyframes fadeInScale { from { opacity: 0; transform: scale(0.99) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
 
-  .paste-zone-sm { width: 100%; padding: 12px; margin-bottom: 15px; background: #F0F9FF; border: 2px dashed #3B82F6; border-radius: 8px; text-align: center; font-weight: 700; font-size: 12px; color: #1D4ED8; transition: all 0.2s ease; cursor: pointer; text-transform: uppercase; }
+  .paste-zone-sm { width: 100%; padding: 12px; margin-bottom: 15px; background: #F0F9FF; border: 2px dashed #3B82F6; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13px; color: #1D4ED8; transition: all 0.2s ease; cursor: pointer; }
   .paste-zone-sm:hover { background: #E0F2FE; border-color: #2563EB; }
   .paste-zone-sm:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
 
@@ -60,19 +60,20 @@
 
   .logo-cell { text-align: center; background: var(--bg-surface); padding: 15px !important; }
   .logo-nuvia { font-size: 26px; font-weight: 900; letter-spacing: 4px; margin-bottom: 2px; color: var(--brand-main);}
-  .logo-sub { font-size: 9px; letter-spacing: 2px; font-weight: 700; color: var(--text-muted); }
-  .title-cell { text-align: center; font-weight: 800; font-size: 16px; color: var(--brand-main); letter-spacing: 1px;}
-  .subtitle-cell { text-align: center; font-weight: 600; font-size: 13px; letter-spacing: 2px; color: var(--text-muted); }
+  .logo-sub { font-size: 11px; letter-spacing: 2px; font-weight: 700; color: var(--text-muted); }
+  .title-cell { text-align: center; font-weight: 800; font-size: 16px; color: var(--brand-main);}
+  .subtitle-cell { text-align: center; font-weight: 600; font-size: 13px; color: var(--text-muted); }
   .meta-cell { text-align: right; font-weight: 600; color: var(--text-muted); padding-right: 15px !important;}
-  .label-cell { background-color: var(--brand-light); font-weight: 600; color: var(--text-muted); padding-left: 15px !important; font-size: 12px; letter-spacing: 0.5px;}
+  .label-cell { background-color: var(--brand-light); font-weight: 600; color: var(--text-muted); padding-left: 15px !important; font-size: 13px;}
 
   .input-cell { position: relative; transition: background 0.2s; }
   .input-cell:focus-within { background-color: #F0F9FF; }
   .input-cell input, .input-cell select { width: 100%; height: 100%; border: none; padding: 10px 15px; font-size: 14px; text-align: right; font-weight: 700; color: var(--brand-main); background-color: transparent; text-transform: uppercase; outline: none; cursor: pointer;}
+  .input-cell select { text-transform: none; }
   .input-cell input::placeholder { color: #94A3B8; font-weight: 500; }
   .input-cell input[readonly] { color: var(--text-muted); cursor: not-allowed; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border: none; font-weight: 700; cursor: pointer; border-radius: 8px; font-size: 12px; color: white; transition: all 0.3s ease; letter-spacing: 0.5px; text-transform: uppercase; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 18px; border: none; font-weight: 600; cursor: pointer; border-radius: 8px; font-size: 13px; color: white; white-space: nowrap; gap: 6px; transition: all 0.3s ease; }
   .btn:disabled { background-color: var(--border-medium) !important; cursor: not-allowed; color: white; transform: none; box-shadow: none; background-image: none;}
 
   .btn-primary { background: linear-gradient(180deg, #3B82F6 0%, #2563EB 100%); width: 320px; margin: 35px auto 0 auto; padding: 15px 24px; font-size: 14px; box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.1), 0 6px 12px rgba(26, 54, 93, 0.25); border: 1px solid var(--brand-hover); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
@@ -94,8 +95,8 @@
   .timeline-container { padding-left: 15px; margin-top: 15px; border-left: 3px solid var(--brand-light); position: relative; }
   .timeline-item { position: relative; margin-bottom: 20px; padding-left: 20px; }
   .timeline-item::before { content: ''; position: absolute; left: -25px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--brand-main); border: 3px solid white; box-shadow: 0 0 0 2px var(--brand-main); }
-  .timeline-date { font-size: 11px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px;}
-  .timeline-content { background: var(--bg-body); padding: 12px; border-radius: 8px; margin-top: 5px; font-size: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm);}
+  .timeline-date { font-size: 11px; color: var(--text-muted); font-weight: 800;}
+  .timeline-content { background: var(--bg-body); padding: 12px; border-radius: 8px; margin-top: 5px; font-size: 13px; border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm);}
 
   #custodia-app .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(6px); }
   .modal-content { background: white; padding: 35px; border-radius: 16px; width: 90%; max-width: 450px; box-shadow: var(--shadow-float); max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
@@ -105,42 +106,50 @@
   .modal-input:focus { outline: none; border-color: var(--brand-main); box-shadow: 0 0 0 3px rgba(26,54,93,0.1); }
 
   .consulta-filtros { background: var(--bg-surface); padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm); }
-  .consulta-filtros label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+  .consulta-filtros label { font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap;}
   .consulta-filtros select, .consulta-filtros input[type="date"], .consulta-filtros input[type="text"] { padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-soft); font-weight: 600; color: var(--brand-main); text-transform: uppercase; outline: none; transition: all 0.2s; background: var(--bg-body); cursor: pointer;}
+  .consulta-filtros select { text-transform: none; }
+  /* Nombres propios formateados (personas, áreas, motivos): no heredan las MAYÚSCULAS forzadas. */
+  #custodia-app .nf { text-transform: none; }
+  /* Pantallas medianas (portátiles pequeños): campos más compactos para que no se corten los textos. */
+  @media (max-width: 1200px) {
+    .input-cell input, .input-cell select { font-size: 13px; padding: 8px 10px; }
+    .label-cell { padding-left: 10px !important; }
+  }
   .consulta-filtros select:focus, .consulta-filtros input[type="date"]:focus, .consulta-filtros input[type="text"]:focus { border-color: var(--brand-main); background: var(--bg-surface); box-shadow: 0 0 0 3px rgba(26,54,93,0.1); }
 
   .consulta-tabla-wrapper { overflow-x: auto; max-height: 550px; border-radius: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm); margin-bottom: 15px;}
   .consulta-tabla { width: 100%; border-collapse: collapse; min-width: 100%; }
-  .consulta-tabla th { background: var(--brand-main); color: #FFFFFF; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 10; border: 1px solid var(--border-medium); text-align: center; cursor: pointer;}
-  .consulta-tabla td { border: 1px solid var(--border-soft); padding: 10px 14px; font-size: 13px; text-align: center; text-transform: uppercase; font-weight: 500; color: var(--text-dark); transition: background 0.2s; }
+  .consulta-tabla th { background: var(--brand-main); color: #FFFFFF; padding: 10px 14px; font-size: 11px; font-weight: 700; position: sticky; top: 0; z-index: 10; border: 1px solid var(--border-medium); text-align: center; cursor: pointer;}
+  .consulta-tabla td { border: 1px solid var(--border-soft); padding: 10px 14px; font-size: 13px; text-align: center; font-weight: 500; color: var(--text-dark); transition: background 0.2s; }
   .consulta-tabla tbody tr:hover td { background-color: var(--brand-light); }
   .anulado-row td { background-color: #FEF2F2 !important; color: var(--danger) !important; text-decoration: line-through; opacity: 0.8; }
   .fila-totales td { background-color: var(--brand-light) !important; font-weight: 800 !important; color: var(--brand-main) !important; border-top: 1px solid var(--border-medium) !important; border-bottom: none !important;}
 
   .split-layout { display: flex; flex-direction: column; gap: 24px; }
   .split-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); }
-  .split-panel h4 { margin-top: 0; margin-bottom: 15px; color: var(--brand-main); font-size: 14px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px;}
-  .split-panel .consulta-tabla th { font-size: 10px; padding: 12px 10px; background: var(--brand-light); color: var(--text-muted); border: none; border-bottom: 1px solid var(--border-soft);}
+  .split-panel h4 { margin-top: 0; margin-bottom: 15px; color: var(--brand-main); font-size: 14px; font-weight: 800; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px;}
+  .split-panel .consulta-tabla th { font-size: 11px; padding: 12px 10px; background: var(--brand-light); color: var(--text-muted); border: none; border-bottom: 1px solid var(--border-soft);}
   .split-panel .consulta-tabla th:hover { background: #E2E8F0; }
-  .split-panel .consulta-tabla td { font-size: 12px; padding: 10px; border: none; border-bottom: 1px solid var(--border-soft);}
+  .split-panel .consulta-tabla td { font-size: 13px; padding: 10px; border: none; border-bottom: 1px solid var(--border-soft);}
 
   .dash-kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 30px; }
   @media(max-width: 900px) { .dash-kpi-container { grid-template-columns: repeat(2, 1fr); } }
   .kpi-card { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px; text-align: left; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; }
   .kpi-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--brand-main); border-radius: 4px 0 0 4px; }
   .kpi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-  .kpi-card h5 { margin: 0; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .kpi-card h5 { margin: 0; color: var(--text-muted); font-size: 13px; font-weight: 700; }
   .kpi-card p { margin: 12px 0 0 0; font-size: 28px; font-weight: 900; color: var(--brand-main); letter-spacing: -0.5px; }
 
   .dash-grid-full { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; margin-bottom: 30px; } @media(max-width: 950px) { .dash-grid-full { grid-template-columns: 1fr; } }
   .dash-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-sm); }
-  .dash-panel h4 { margin-top: 0; margin-bottom: 24px; color: var(--brand-main); font-size: 14px; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;}
+  .dash-panel h4 { margin-top: 0; margin-bottom: 24px; color: var(--brand-main); font-size: 14px; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center; font-weight: 800;}
 
   .dropdown-check-list { display: inline-block; position: relative; }
-  .dropdown-check-list .anchor { position: relative; cursor: pointer; display: inline-block; padding: 10px 30px 10px 14px; border: 1px solid var(--border-soft); border-radius: 8px; font-weight: 700; font-size: 12px; color: var(--brand-main); background: #FFFFFF; min-width: 220px; transition: all 0.2s;}
+  .dropdown-check-list .anchor { position: relative; cursor: pointer; display: inline-block; padding: 10px 30px 10px 14px; border: 1px solid var(--border-soft); border-radius: 8px; font-weight: 700; font-size: 13px; color: var(--brand-main); background: #FFFFFF; min-width: 220px; transition: all 0.2s;}
   .dropdown-check-list .anchor:after { position: absolute; content: ""; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid var(--text-muted); padding: 0; right: 12px; top: 42%; }
   .dropdown-check-list ul.items { padding: 8px; display: none; margin: 4px 0 0 0; border: 1px solid var(--border-soft); border-radius: 8px; position: absolute; z-index: 100; background: #FFFFFF; min-width: 220px; box-shadow: var(--shadow-md); max-height: 250px; overflow-y: auto;}
-  .dropdown-check-list ul.items li { list-style: none; padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--text-dark); border-radius: 4px;}
+  .dropdown-check-list ul.items li { list-style: none; padding: 6px 8px; font-size: 13px; font-weight: 600; color: var(--text-dark); border-radius: 4px;}
   .dropdown-check-list ul.items li:hover { background: var(--brand-light); }
   .dropdown-check-list.visible .anchor { border-color: var(--brand-main); box-shadow: 0 0 0 3px rgba(26,54,93,0.1);}
   .dropdown-check-list.visible .items { display: block; }
@@ -166,83 +175,83 @@
           <tr>
             <td rowspan="3" class="logo-cell" style="width: 16%; border-top-left-radius: 12px; border-bottom-left-radius: 12px;">
               {% if logo %}<img src="{{ logo }}" alt="Logo" style="max-width: 100%; max-height: 70px; object-fit: cover; border-radius: 8px;">
-              {% else %}<div class="logo-nuvia">NUVIA</div><div class="logo-sub">SMILES COLOMBIA S.A.S</div>{% endif %}
+              {% else %}<div class="logo-nuvia">Nuvia</div><div class="logo-sub">Smiles Colombia S.A.S</div>{% endif %}
             </td>
-            <td colspan="4" rowspan="2" class="title-cell" style="border-top: 1px solid var(--border-soft);">CAMBIO DE CUSTODIA GENERAL</td>
-            <td class="meta-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft);">CÓDIGO: F-PRO-40</td>
+            <td colspan="4" rowspan="2" class="title-cell" style="border-top: 1px solid var(--border-soft);">Cambio de custodia general</td>
+            <td class="meta-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft);">Código: F-PRO-40</td>
           </tr>
-          <tr><td class="meta-cell">VERSIÓN: 02</td></tr>
+          <tr><td class="meta-cell">Versión: 02</td></tr>
           <tr>
-            <td colspan="4" class="subtitle-cell">PRODUCCION</td>
-            <td class="meta-cell" style="border-bottom-right-radius: 12px;">FECHA: <span id="fechaVersionHeader"></span></td>
+            <td colspan="4" class="subtitle-cell">Producción</td>
+            <td class="meta-cell" style="border-bottom-right-radius: 12px;">Fecha: <span id="fechaVersionHeader"></span></td>
           </tr>
         </table>
 
         <table class="form-table">
           <tr>
             <td colspan="4" class="empty-cell" style="width: 66%;"></td>
-            <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">CONSECUTIVO</td>
-            <td class="input-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="consecutivo" readonly style="color: var(--text-dark); font-weight: 800; font-size: 15px;"></td>
+            <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">Consecutivo</td>
+            <td class="input-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="consecutivo" readonly style="color: var(--text-dark); font-weight: 800; font-size: 14px;"></td>
           </tr>
           <tr>
-            <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
-            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo }}" style="color: var(--text-muted); cursor: not-allowed;"></td>
-            <td class="label-cell" style="border-top: 1px solid var(--border-soft) !important;">NÚMERO DE ORDEN</td>
+            <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">Colaborador</td>
+            <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo|nombre_propio }}" style="color: var(--text-muted); cursor: not-allowed; text-transform: none;"></td>
+            <td class="label-cell" style="border-top: 1px solid var(--border-soft) !important;">Número de orden</td>
             <td class="input-cell" colspan="3" style="border-top: 1px solid var(--border-soft) !important;">
               <select id="numeroOrdenSelect" required onchange="validarCantidadInline()">
-                <option value="">CARGANDO...</option>
+                <option value="">Cargando...</option>
               </select>
               <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled>
             </td>
           </tr>
           <tr>
-            <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">FECHA</td>
+            <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">Fecha</td>
             <td class="input-cell"><input type="date" id="fecha" required></td>
-            <td class="label-cell">HORA</td>
+            <td class="label-cell">Hora</td>
             <td class="input-cell"><input type="time" id="hora" readonly required></td>
-            <td class="label-cell">ÁREA SALIDA</td>
+            <td class="label-cell">Área salida</td>
             <td class="input-cell">
               <select id="areaSalida" required onchange="actualizarAreaEntradaDefault(); validarCantidadInline();">
-                <option value="">SELECCIONAR...</option>
-                {% for a in areas %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                <option value="">Seleccionar...</option>
+                {% for a in areas %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}
               </select>
             </td>
           </tr>
           <tr>
-            <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">ÁREA ENTRADA</td>
+            <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">Área entrada</td>
             <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;">
               <select id="areaEntrada" required>
-                <option value="">SELECCIONAR...</option>
-                {% for a in areas %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                <option value="">Seleccionar...</option>
+                {% for a in areas %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}
               </select>
             </td>
-            <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">CANTIDAD DISCOS</td>
+            <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Cantidad discos</td>
             <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="text" id="cantidadDiscos" oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')" onblur="validarCantidadInline()" required placeholder="0,00"></td>
-            <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">MOTIVO</td>
+            <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Motivo</td>
             <td class="input-cell" style="border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;">
               <select id="motivo" required>
-                {% for m in motivos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+                {% for m in motivos %}<option value="{{ m }}">{{ m|nombre_propio(true) }}</option>{% endfor %}
               </select>
             </td>
           </tr>
         </table>
 
         <div id="ayudaOrdenNueva" style="display:none; font-size:11px; color:var(--text-muted); margin-top:8px; line-height:1.3;">
-          ℹ️ LA CANTIDAD DE DISCOS QUE INGRESES ABAJO SERÁ EL TOTAL DE ESTA ORDEN.
+          ℹ️ La cantidad de discos que ingreses abajo será el total de esta orden.
         </div>
         <div id="errorCantidadDiscos" style="display:none; font-size:11px; font-weight:700; color:var(--danger); margin-top:8px; line-height:1.3;"></div>
 
         <div style="margin-top: 35px; border-top: 2px solid var(--border-soft); padding-top: 20px;">
            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-               <h4 style="color:var(--brand-main); margin:0; font-weight:800; font-size: 14px;">📋 DETALLES ADICIONALES (EXCEL)</h4>
-               <button type="button" class="btn" style="background:var(--danger); padding:6px 12px; font-size:10px;" onclick="limpiarTablasExcel()">🗑️ LIMPIAR DATOS EXCEL</button>
+               <h4 style="color:var(--brand-main); margin:0; font-weight:800; font-size: 14px;">📋 Detalles adicionales (Excel)</h4>
+               <button type="button" class="btn" style="background:var(--danger); padding:6px 12px; font-size:11px;" onclick="limpiarTablasExcel()">🗑️ Limpiar datos Excel</button>
            </div>
 
-           <input type="text" class="paste-zone-sm" id="pasteResumen" placeholder="Haz clic aquí y (Ctrl+V) para pegar RESUMEN GENERAL" onpaste="procesarPegadoResumen(event)" autocomplete="off">
+           <input type="text" class="paste-zone-sm" id="pasteResumen" placeholder="Haz clic aquí y (Ctrl+V) para pegar el resumen general" onpaste="procesarPegadoResumen(event)" autocomplete="off">
            <div class="consulta-tabla-wrapper" style="margin-bottom:20px;">
               <table class="consulta-tabla" style="min-width:100%;">
                  <thead>
-                    <tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th><th>#</th></tr>
+                    <tr><th>Orden</th><th>Descripción</th><th>Paciente</th><th>Total</th><th>#</th></tr>
                  </thead>
                  <tbody id="bodyResumen"></tbody>
               </table>
@@ -250,25 +259,25 @@
 
            <div style="display:flex; gap:20px;">
                <div style="flex:1;">
-                 <div style="padding: 10px; background: #F8FAFC; border: 1px solid var(--border-medium); border-bottom: none; border-radius: 8px 8px 0 0; text-align: center; font-weight: 800; font-size: 11px; color: var(--brand-main); letter-spacing: 0.5px;">CALCULADORA DETALLE DE DISCOS</div>
+                 <div style="padding: 10px; background: #F8FAFC; border: 1px solid var(--border-medium); border-bottom: none; border-radius: 8px 8px 0 0; text-align: center; font-weight: 800; font-size: 11px; color: var(--brand-main);">Calculadora detalle de discos</div>
                  <div class="consulta-tabla-wrapper" style="border-radius: 0 0 12px 12px; margin-top:0;">
                     <table class="consulta-tabla" style="min-width:100%;">
                        <thead>
-                          <tr><th style="text-align:left;">DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr>
+                          <tr><th style="text-align:left;">Detalle</th><th>Cant. paciente</th><th>Cant. discos</th></tr>
                        </thead>
                        <tbody id="bodyDiscos">
-                          <tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">CARGANDO CATÁLOGO...</td></tr>
+                          <tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:13px;">Cargando catálogo...</td></tr>
                        </tbody>
                     </table>
                  </div>
                </div>
 
                <div style="flex:1;">
-                 <input type="text" class="paste-zone-sm" id="pasteOP" placeholder="Haz clic aquí y pega DETALLE OP" onpaste="procesarPegadoOP(event)" autocomplete="off">
+                 <input type="text" class="paste-zone-sm" id="pasteOP" placeholder="Haz clic aquí y pega el detalle OP" onpaste="procesarPegadoOP(event)" autocomplete="off">
                  <div class="consulta-tabla-wrapper">
                     <table class="consulta-tabla" style="min-width:100%;">
                        <thead>
-                          <tr><th>OP</th><th>ORDEN</th><th>DESCRIPCIÓN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th><th>#</th></tr>
+                          <tr><th>OP</th><th>Orden</th><th>Descripción</th><th>Tipo</th><th>Usuario</th><th>Observaciones</th><th>#</th></tr>
                        </thead>
                        <tbody id="bodyOP"></tbody>
                     </table>
@@ -277,7 +286,7 @@
            </div>
         </div>
 
-        <button type="submit" id="btnGuardar" class="btn btn-primary">REGISTRAR TRASLADO</button>
+        <button type="submit" id="btnGuardar" class="btn btn-primary">Registrar traslado</button>
       </form>
     </div>
 
@@ -294,7 +303,7 @@
                 <th>Cantidad</th><th>Fecha</th><th>Motivo</th><th>Acción</th></tr>
           </thead>
           <tbody id="bodyAprobaciones">
-            <tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO...</td></tr>
+            <tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -303,32 +312,32 @@
     <!-- SECCIÓN 2: HISTORIAL -->
     <div id="sec-consulta" class="content-section">
       <div class="consulta-filtros">
-        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="ultimos30" checked onchange="toggleFechas()"> ÚLTIMOS 30</label>
-        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="rango" onchange="toggleFechas()"> RANGO FECHAS</label>
+        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="ultimos30" checked onchange="toggleFechas()"> Últimos 30</label>
+        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="rango" onchange="toggleFechas()"> Rango fechas</label>
         <div id="contenedorFechas" style="display:none; margin-left:10px;"><input type="date" id="filtroFechaInicio"> <span style="margin: 0 5px; color:var(--text-muted); font-weight:700;">A</span> <input type="date" id="filtroFechaFin"></div>
 
         <div style="margin-left: auto; display: flex; gap: 15px;">
-            <div style="display:flex; align-items:center; gap:8px;"><label>ÁREA SALIDA:</label>
-              <select id="filtroAreaSalida"><option value="TODAS">-- TODAS --</option></select>
+            <div style="display:flex; align-items:center; gap:8px;"><label>Área salida:</label>
+              <select id="filtroAreaSalida"><option value="TODAS">-- Todas --</option></select>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;"><label>ESTADO:</label>
+            <div style="display:flex; align-items:center; gap:8px;"><label>Estado:</label>
               <select id="filtroEstado">
-                <option value="TODOS">TODOS</option>
-                <option value="ACTIVOS" selected>ACTIVOS</option>
-                <option value="ANULADOS">ANULADOS</option>
+                <option value="TODOS">Todos</option>
+                <option value="ACTIVOS" selected>Activos</option>
+                <option value="ANULADOS">Anulados</option>
               </select>
             </div>
         </div>
 
-        <button type="button" class="btn" style="background:var(--brand-main); margin-left: 10px;" onclick="ejecutarConsulta()" id="btnBuscar">🔍 BUSCAR</button>
-        <button type="button" class="btn" style="background:var(--warning);" onclick="toggleVistaHistorial()" id="btnVistaHistorial">🔀 VISTA: POR CONSECUTIVO</button>
-        <button type="button" class="btn btn-excel" id="btnExportar" style="display:inline-flex;" onclick="exportarExcel()">📥 EXPORTAR EXCEL</button>
-        <button type="button" class="btn" style="background:#0284C7; display:inline-flex;" onclick="abrirModalRangoTickets()">🖨️ IMPRIMIR POR RANGO</button>
+        <button type="button" class="btn" style="background:var(--brand-main); margin-left: 10px;" onclick="ejecutarConsulta()" id="btnBuscar">🔍 Buscar</button>
+        <button type="button" class="btn" style="background:var(--warning);" onclick="toggleVistaHistorial()" id="btnVistaHistorial">🔀 Vista: por consecutivo</button>
+        <button type="button" class="btn btn-excel" id="btnExportar" style="display:inline-flex;" onclick="exportarExcel()">📥 Exportar Excel</button>
+        <button type="button" class="btn" style="background:#0284C7; display:inline-flex;" onclick="abrirModalRangoTickets()">🖨️ Imprimir por rango</button>
       </div>
       <div class="consulta-tabla-wrapper">
         <table class="consulta-tabla" id="tablaResultados">
-          <thead><tr id="tablaHead"><th>SIN DATOS</th></tr></thead>
-          <tbody id="tablaBody"><tr><td style="padding: 60px; font-size:14px; color:var(--text-muted);">REALIZA UNA BÚSQUEDA PARA VISUALIZAR LOS REGISTROS.</td></tr></tbody>
+          <thead><tr id="tablaHead"><th>Sin datos</th></tr></thead>
+          <tbody id="tablaBody"><tr><td style="padding: 60px; font-size:14px; color:var(--text-muted);">Realiza una búsqueda para visualizar los registros.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -339,37 +348,37 @@
       <div class="split-panel" style="margin-bottom:24px;">
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:16px;">
           <div style="flex:2; min-width:220px;">
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">Buscar número de orden</label>
-            <input type="text" id="inputOrdenActivas" placeholder="NÚMERO DE ORDEN..." oninput="filtrarTablaActivas(); filtrarTablaMatrix();"
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Buscar número de orden</label>
+            <input type="text" id="inputOrdenActivas" placeholder="Número de orden..." oninput="filtrarTablaActivas(); filtrarTablaMatrix();"
                    onkeyup="if(event.key==='Enter') cargarEstadoOrdenes()"
-                   style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); text-transform:uppercase; outline:none;">
+                   style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">Desde</label>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Desde</label>
             <input type="date" id="filtroFechaDesdeActivas" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">Hasta</label>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Hasta</label>
             <input type="date" id="filtroFechaHastaActivas" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
           </div>
-          <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔍 BUSCAR</button>
-          <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ REPORTE CORTE</button>
+          <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔍 Buscar</button>
+          <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ Reporte corte</button>
         </div>
 
         <div id="togglePendientesCompletadas" style="display:flex; gap:8px; margin-bottom:8px;">
-          <button type="button" class="btn mini" id="btnEstadoPendientes" onclick="setFiltroEstadoOrden('pendientes')" style="background:var(--brand-main);">PENDIENTES</button>
-          <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">COMPLETADAS</button>
+          <button type="button" class="btn mini" id="btnEstadoPendientes" onclick="setFiltroEstadoOrden('pendientes')" style="background:var(--brand-main);">Pendientes</button>
+          <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">Completadas</button>
         </div>
 
         <div id="resultadoConsultaOrden" style="display:none; margin-top:16px; border-top:1px solid var(--border-soft); padding-top:16px;">
           <div class="dash-kpi-container" style="grid-template-columns: repeat(3, 1fr); margin-bottom:16px;">
-            <div class="kpi-card"><h5>TOTAL DE LA ORDEN</h5><p id="kpiOrdenTotal">-</p></div>
-            <div class="kpi-card" style="border-left-color:var(--success);"><h5>TERMINADO</h5><p id="kpiOrdenTerminado" style="color:var(--success);">-</p></div>
-            <div class="kpi-card" style="border-left-color:var(--warning);"><h5>EN PROCESO</h5><p id="kpiOrdenEnProceso" style="color:var(--warning);">-</p></div>
+            <div class="kpi-card"><h5>Total de la orden</h5><p id="kpiOrdenTotal">-</p></div>
+            <div class="kpi-card" style="border-left-color:var(--success);"><h5>Terminado</h5><p id="kpiOrdenTerminado" style="color:var(--success);">-</p></div>
+            <div class="kpi-card" style="border-left-color:var(--warning);"><h5>En proceso</h5><p id="kpiOrdenEnProceso" style="color:var(--warning);">-</p></div>
           </div>
           <div class="consulta-tabla-wrapper">
             <table class="consulta-tabla">
-              <thead><tr><th>ÁREA</th><th>CANTIDAD</th></tr></thead>
+              <thead><tr><th>Área</th><th>Cantidad</th></tr></thead>
               <tbody id="bodyConsultaOrdenAreas"></tbody>
             </table>
           </div>
@@ -380,13 +389,13 @@
 
           <div class="split-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px; margin-bottom: 15px;">
-               <h4 style="margin:0; border:none; padding:0;">📍 UBICACIÓN ACTUAL</h4>
-               <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:10px;" onclick="exportarActivasExcel()">📥 EXCEL</button>
+               <h4 style="margin:0; border:none; padding:0;">📍 Ubicación actual</h4>
+               <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:11px;" onclick="exportarActivasExcel()">📥 Excel</button>
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom: 20px;">
               <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none; flex:1; cursor:pointer;">
-                <option value="TODAS">-- TODAS LAS ÁREAS --</option>
+                <option value="TODAS">-- Todas las áreas --</option>
               </select>
             </div>
 
@@ -394,16 +403,16 @@
               <table class="consulta-tabla" id="tablaActivasFull">
                 <thead>
                   <tr>
-                    <th style="width: 25%;">ORDEN</th>
-                    <th style="width: 15%;">CANT.</th>
+                    <th style="width: 25%;">Orden</th>
+                    <th style="width: 15%;">Cant.</th>
                     <th onclick="alternarOrdenUbicacion()" style="cursor:pointer;" title="Hacer clic para ordenar">
-                      UBICACIÓN <span id="iconoOrdenUbicacion">▲</span>
+                      Ubicación <span id="iconoOrdenUbicacion">▲</span>
                     </th>
-                    <th style="width: 25%;">TIEMPO EN ÁREA</th>
+                    <th style="width: 25%;">Tiempo en área</th>
                   </tr>
                 </thead>
                 <tbody id="bodyTablaActivas">
-                  <tr><td colspan="4" style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO...</td></tr>
+                  <tr><td colspan="4" style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -411,10 +420,10 @@
 
           <div class="split-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px; margin-bottom: 15px;">
-               <h4 style="margin:0; border:none; padding:0;">📊 SEGUIMIENTO SALIDAS (MATRIZ)</h4>
+               <h4 style="margin:0; border:none; padding:0;">📊 Seguimiento salidas (matriz)</h4>
                <div style="display:flex; gap:8px;">
-                 <button type="button" class="btn" style="background:var(--success); padding: 6px 12px; font-size:10px;" onclick="imprimirReporteMatriz()">🖨️ IMPRIMIR</button>
-                 <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:10px;" onclick="exportarMatrixExcel()">📥 EXCEL</button>
+                 <button type="button" class="btn" style="background:var(--success); padding: 6px 12px; font-size:11px;" onclick="imprimirReporteMatriz()">🖨️ Imprimir</button>
+                 <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:11px;" onclick="exportarMatrixExcel()">📥 Excel</button>
                </div>
             </div>
 
@@ -422,7 +431,7 @@
               <table class="consulta-tabla" id="tablaMatrixFull">
                 <thead id="headTablaMatrix"></thead>
                 <tbody id="bodyTablaMatrix">
-                  <tr><td style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO MATRIZ...</td></tr>
+                  <tr><td style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando matriz...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -434,41 +443,41 @@
     <!-- SECCIÓN 4: DASHBOARD -->
     <div id="sec-existencias" class="content-section">
       <div class="consulta-filtros">
-        <div style="display:flex; align-items:center; gap:8px;"><label>DESDE:</label>
+        <div style="display:flex; align-items:center; gap:8px;"><label>Desde:</label>
           <input type="date" id="dashFechaDesde" onchange="cargarDashboardExistencias()">
         </div>
-        <div style="display:flex; align-items:center; gap:8px;"><label>HASTA:</label>
+        <div style="display:flex; align-items:center; gap:8px;"><label>Hasta:</label>
           <input type="date" id="dashFechaHasta" onchange="cargarDashboardExistencias()">
         </div>
         <div id="dropdownBodegas" class="dropdown-check-list" tabindex="100">
-          <span class="anchor" onclick="toggleDropdownBodegas()">🎛️ SELECCIONAR ÁREAS</span>
+          <span class="anchor" onclick="toggleDropdownBodegas()">🎛️ Seleccionar áreas</span>
           <ul class="items" id="listaCheckboxesBodegas"><li><i>Cargando áreas...</i></li></ul>
         </div>
-        <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarDashboardExistencias()" id="btnCalcularDash">🔄 REFRESCAR</button>
-        <button type="button" class="btn" style="background:var(--success); margin-left: auto;" onclick="exportarResumenExistenciasExcel()">📥 EXPORTAR TABLA</button>
+        <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarDashboardExistencias()" id="btnCalcularDash">🔄 Refrescar</button>
+        <button type="button" class="btn" style="background:var(--success); margin-left: auto;" onclick="exportarResumenExistenciasExcel()">📥 Exportar tabla</button>
       </div>
 
       <div class="dash-kpi-container">
-        <div class="kpi-card"><h5>🔄 MOVIMIENTOS</h5><p id="kpiMovimientos">0</p></div>
-        <div class="kpi-card" style="border-left-color: var(--brand-accent);"><h5>📦 TOTAL TRASLADADOS</h5><p id="kpiTrasladados" style="color: var(--brand-accent);">0</p></div>
-        <div class="kpi-card" style="border-left-color: var(--success);"><h5>⚖️ BALANCE NETO ACTUAL</h5><p id="kpiInventario" style="color: var(--success);">0</p></div>
+        <div class="kpi-card"><h5>🔄 Movimientos</h5><p id="kpiMovimientos">0</p></div>
+        <div class="kpi-card" style="border-left-color: var(--brand-accent);"><h5>📦 Total trasladados</h5><p id="kpiTrasladados" style="color: var(--brand-accent);">0</p></div>
+        <div class="kpi-card" style="border-left-color: var(--success);"><h5>⚖️ Balance neto actual</h5><p id="kpiInventario" style="color: var(--success);">0</p></div>
 
-        <div class="kpi-card" style="border-left-color: var(--warning);"><h5>🏆 ÁREA MAYOR MOVIMIENTO</h5><p id="kpiAreaMayorMov" style="color: var(--warning); font-size:20px;">N/A</p></div>
-        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>🚨 ÁREA MÁS CRÍTICA</h5><p id="kpiAreaCritica" style="color: var(--danger); font-size:20px;">N/A</p></div>
-        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>⚠️ TOTAL MERMAS</h5><p id="kpiMermas" style="color: var(--danger);">0</p></div>
+        <div class="kpi-card" style="border-left-color: var(--warning);"><h5>🏆 Área mayor movimiento</h5><p id="kpiAreaMayorMov" style="color: var(--warning); font-size:20px;">N/A</p></div>
+        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>🚨 Área más crítica</h5><p id="kpiAreaCritica" style="color: var(--danger); font-size:20px;">N/A</p></div>
+        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>⚠️ Total mermas</h5><p id="kpiMermas" style="color: var(--danger);">0</p></div>
       </div>
 
       <div class="dash-grid-full">
-        <div class="dash-panel"><h4>📈 EXISTENCIAS NETAS</h4><div style="position: relative; height:320px;"><canvas id="chartExistencias"></canvas></div></div>
-        <div class="dash-panel"><h4>🍩 PRODUCCIÓN VS. MERMAS</h4><div style="position: relative; height:320px;"><canvas id="chartMotivos"></canvas></div></div>
+        <div class="dash-panel"><h4>📈 Existencias netas</h4><div style="position: relative; height:320px;"><canvas id="chartExistencias"></canvas></div></div>
+        <div class="dash-panel"><h4>🍩 Producción vs. mermas</h4><div style="position: relative; height:320px;"><canvas id="chartMotivos"></canvas></div></div>
       </div>
 
       <div class="dash-panel">
-        <h4>📋 BALANCE GENERAL DE INVENTARIOS</h4>
+        <h4>📋 Balance general de inventarios</h4>
         <div style="overflow-x:auto; max-height:400px; border-radius: 12px; border: 1px solid var(--border-soft);">
           <table class="consulta-tabla" id="tablaExistenciasFull" style="min-width: 100%;">
-            <thead><tr><th>ÁREA DE PRODUCCIÓN</th><th>EXISTENCIAS INICIALES</th><th>ENTRADAS</th><th>SALIDAS</th><th>EXISTENCIA NETA</th></tr></thead>
-            <tbody id="bodyTablaExistencias"><tr><td colspan="5" style="padding: 40px; color:var(--text-muted);">SELECCIONA UN RANGO Y FILTRA.</td></tr></tbody>
+            <thead><tr><th>Área de producción</th><th>Existencias iniciales</th><th>Entradas</th><th>Salidas</th><th>Existencia neta</th></tr></thead>
+            <tbody id="bodyTablaExistencias"><tr><td colspan="5" style="padding: 40px; color:var(--text-muted);">Selecciona un rango y filtra.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -485,9 +494,9 @@
 
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-soft); padding-bottom:15px; margin-bottom: 20px;">
          <h3 style="color:var(--brand-main); margin:0; font-weight:800; display:flex; align-items:center; gap:10px;">
-           <span style="font-size:20px;">📄</span> DOCUMENTO DE CUSTODIA
+           <span style="font-size:20px;">📄</span> Documento de custodia
          </h3>
-         <button type="button" class="btn" style="background:var(--success); padding:8px 16px;" onclick="imprimirTicketIndividual()">🖨️ IMPRIMIR TICKET</button>
+         <button type="button" class="btn" style="background:var(--success); padding:8px 16px;" onclick="imprimirTicketIndividual()">🖨️ Imprimir ticket</button>
       </div>
 
       <div id="ticketImpresionIndividual">
@@ -495,14 +504,14 @@
             <tr>
               <td rowspan="3" class="logo-cell" style="width: 16%; border-top-left-radius: 12px; border-bottom-left-radius: 12px; border-top: 1px solid var(--border-soft); border-left: 1px solid var(--border-soft);">
                 {% if logo %}<img src="{{ logo }}" alt="Logo" style="max-width: 100%; max-height: 70px; object-fit: cover; border-radius: 8px;">
-                {% else %}<div class="logo-nuvia">NUVIA</div><div class="logo-sub">SMILES COLOMBIA S.A.S</div>{% endif %}
+                {% else %}<div class="logo-nuvia">Nuvia</div><div class="logo-sub">Smiles Colombia S.A.S</div>{% endif %}
               </td>
-              <td colspan="4" rowspan="2" class="title-cell" style="border-top: 1px solid var(--border-soft);">CAMBIO DE CUSTODIA GENERAL</td>
-              <td class="meta-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft);">CÓDIGO: F-PRO-40</td>
+              <td colspan="4" rowspan="2" class="title-cell" style="border-top: 1px solid var(--border-soft);">Cambio de custodia general</td>
+              <td class="meta-cell" style="width: 18%; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft);">Código: F-PRO-40</td>
             </tr>
-            <tr><td class="meta-cell">VERSIÓN: 02</td></tr>
+            <tr><td class="meta-cell">Versión: 02</td></tr>
             <tr>
-              <td colspan="4" class="subtitle-cell">PRODUCCION</td>
+              <td colspan="4" class="subtitle-cell">Producción</td>
               <td class="meta-cell" style="border-bottom-right-radius: 12px;" id="viewFechaHeader"></td>
             </tr>
           </table>
@@ -510,28 +519,28 @@
           <table class="form-table" style="box-shadow:none;">
             <tr>
               <td colspan="4" class="empty-cell" style="width: 66%;"></td>
-              <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">CONSECUTIVO</td>
-              <td class="input-cell" style="width: 18%; padding:10px 15px; text-align:right; font-weight:800; color:var(--danger); font-size:15px; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft) !important;" id="viewConsecutivo"></td>
+              <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">Consecutivo</td>
+              <td class="input-cell" style="width: 18%; padding:10px 15px; text-align:right; font-weight:800; color:var(--danger); font-size:14px; border-top-right-radius: 12px; border-top: 1px solid var(--border-soft) !important;" id="viewConsecutivo"></td>
             </tr>
             <tr>
-              <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">COLABORADOR</td>
+              <td class="label-cell" style="width: 16%; border-top-left-radius: 12px; border-top: 1px solid var(--border-soft) !important; border-left: 1px solid var(--border-soft) !important;">Colaborador</td>
               <td class="input-cell" style="width: 17%; padding:10px 15px; text-align:right; font-weight:700; border-top: 1px solid var(--border-soft) !important;" id="viewColaborador"></td>
-              <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">NUMERO DE ORDEN</td>
+              <td class="label-cell" style="width: 16%; border-top: 1px solid var(--border-soft) !important;">Número de orden</td>
               <td class="input-cell" style="width: 17%; padding:10px 15px; text-align:right; font-weight:700; border-top: 1px solid var(--border-soft) !important;" id="viewOrden"></td>
-              <td class="label-cell" style="width: 16%;">AREA SALIDA</td>
+              <td class="label-cell" style="width: 16%;">Área salida</td>
               <td class="input-cell" style="width: 18%; padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaSalida"></td>
             </tr>
             <tr>
-              <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">FECHA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewFecha"></td>
-              <td class="label-cell">AREA CREACION</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaCreacion"></td>
-              <td class="label-cell">AREA ENTRADA</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaEntrada"></td>
+              <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">Fecha</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewFecha"></td>
+              <td class="label-cell">Área creación</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaCreacion"></td>
+              <td class="label-cell">Área entrada</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaEntrada"></td>
             </tr>
             <tr>
-              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">HORA</td>
+              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">Hora</td>
               <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700; border-bottom: 1px solid var(--border-soft) !important;" id="viewHora"></td>
-              <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">CANTIDAD DISCOS</td>
-              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; color:var(--success); font-size:15px; border-bottom: 1px solid var(--border-soft) !important;" id="viewCantidad"></td>
-              <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">ESTADO</td>
+              <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Cantidad discos</td>
+              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; color:var(--success); font-size:14px; border-bottom: 1px solid var(--border-soft) !important;" id="viewCantidad"></td>
+              <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Estado</td>
               <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;" id="viewMotivo"></td>
             </tr>
           </table>
@@ -539,7 +548,7 @@
           <div id="viewDetallesExcel" style="margin-top: 35px; display: none;">
               <div class="consulta-tabla-wrapper" style="margin-bottom: 15px;">
                  <table class="consulta-tabla" style="min-width: 100%;">
-                    <thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th></tr></thead>
+                    <thead><tr><th>Orden</th><th>Descripción</th><th>Paciente</th><th>Total</th></tr></thead>
                     <tbody id="viewResumenGeneral"></tbody>
                  </table>
               </div>
@@ -547,7 +556,7 @@
               <div style="display:flex; gap:15px;">
                  <div class="consulta-tabla-wrapper" style="flex:1;">
                     <table class="consulta-tabla" style="min-width: 100%;">
-                       <thead><tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr></thead>
+                       <thead><tr><th>Detalle</th><th>Cant. paciente</th><th>Cant. discos</th></tr></thead>
                        <tbody id="viewDetalleDiscos"></tbody>
                     </table>
                  </div>
@@ -557,7 +566,7 @@
           <div id="viewOPContainer" style="display:none; margin-top: 20px;">
               <div class="consulta-tabla-wrapper">
                   <table class="consulta-tabla" style="min-width: 100%;">
-                      <thead><tr><th>OP</th><th>DESCRIPCIÓN</th><th>ORDEN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th></tr></thead>
+                      <thead><tr><th>OP</th><th>Descripción</th><th>Orden</th><th>Tipo</th><th>Usuario</th><th>Observaciones</th></tr></thead>
                       <tbody id="viewDetalleOP"></tbody>
                   </table>
               </div>
@@ -567,10 +576,10 @@
 
       <div style="margin-top:35px; display:flex; justify-content:space-between; align-items:center;">
          <div style="display:flex; gap:10px;">
-           <button type="button" class="btn btn-anular" id="btnAnularModal" onclick="ejecutarAnulacionDesdeModal()">🚫 ANULAR REGISTRO</button>
-           <button type="button" class="btn" style="background:var(--success);" id="btnConfirmarModal" onclick="ejecutarConfirmacionDesdeModal()">✔ CONFIRMAR RECIBIDO</button>
+           <button type="button" class="btn btn-anular" id="btnAnularModal" onclick="ejecutarAnulacionDesdeModal()">🚫 Anular registro</button>
+           <button type="button" class="btn" style="background:var(--success);" id="btnConfirmarModal" onclick="ejecutarConfirmacionDesdeModal()">✔ Confirmar recibido</button>
          </div>
-         <button type="button" class="btn" style="background:var(--text-muted); padding:12px 24px;" onclick="cerrarModalPreview()">CERRAR CONSULTA</button>
+         <button type="button" class="btn" style="background:var(--text-muted); padding:12px 24px;" onclick="cerrarModalPreview()">Cerrar consulta</button>
       </div>
     </div>
   </div>
@@ -579,13 +588,13 @@
   <div id="modalTimeline" class="modal">
     <div class="modal-content" style="max-width: 600px; padding: 30px;">
       <h3 style="color:var(--brand-main); margin-top:0; border-bottom:2px solid var(--brand-light); padding-bottom:15px; font-weight:800;">
-         🛤️ LÍNEA DE TIEMPO: ORDEN <span id="lblTimelineOrden" style="color:var(--accent);"></span>
+         🛤️ Línea de tiempo: orden <span id="lblTimelineOrden" style="color:var(--accent);"></span>
       </h3>
       <div class="timeline-container" id="containerTimelineModal" style="max-height: 55vh; overflow-y: auto;">
-         <p style="font-size:12px; color:var(--text-muted);">Cargando historial completo...</p>
+         <p style="font-size:13px; color:var(--text-muted);">Cargando historial completo...</p>
       </div>
       <div style="margin-top:25px; text-align:right;">
-         <button type="button" class="btn" style="background:var(--text-muted); padding: 10px 20px;" onclick="cerrarModalTimeline()">CERRAR</button>
+         <button type="button" class="btn" style="background:var(--text-muted); padding: 10px 20px;" onclick="cerrarModalTimeline()">Cerrar</button>
       </div>
     </div>
   </div>
@@ -593,12 +602,12 @@
   <!-- MODAL ÓRDENES MÚLTIPLES -->
   <div id="modalCantidades" class="modal">
     <div class="modal-content">
-      <h3 style="color:var(--brand-main); margin-top:0; font-weight:800;">SEPARAR CANTIDADES</h3>
-      <p style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:25px;">ASIGNA LA CANTIDAD DE DISCOS POR ORDEN INDIVIDUAL:</p>
+      <h3 style="color:var(--brand-main); margin-top:0; font-weight:800;">Separar cantidades</h3>
+      <p style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:25px;">Asigna la cantidad de discos por orden individual:</p>
       <div id="listaOrdenes"></div>
       <div style="margin-top:30px; text-align:right; display:flex; justify-content:flex-end; gap:12px;">
-         <button type="button" class="btn" style="background:var(--bg-body); color:var(--text-main); border: 1px solid var(--border-medium); box-shadow:none;" onclick="cerrarModal()">CANCELAR</button>
-         <button type="button" class="btn btn-primary" style="margin:0; width:auto; padding: 12px 24px;" onclick="confirmarMultiples()">GUARDAR MÚLTIPLES</button>
+         <button type="button" class="btn" style="background:var(--bg-body); color:var(--text-main); border: 1px solid var(--border-medium); box-shadow:none;" onclick="cerrarModal()">Cancelar</button>
+         <button type="button" class="btn btn-primary" style="margin:0; width:auto; padding: 12px 24px;" onclick="confirmarMultiples()">Guardar múltiples</button>
       </div>
     </div>
   </div>
@@ -606,22 +615,97 @@
   <!-- MODAL IMPRIMIR POR RANGO DE CONSECUTIVOS -->
   <div id="modalRangoTickets" class="modal">
     <div class="modal-content">
-      <h3 style="color:var(--brand-main); margin-top:0; font-weight:800;">IMPRIMIR POR RANGO</h3>
-      <p style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:20px;">INGRESA EL RANGO DE CONSECUTIVOS A IMPRIMIR:</p>
+      <h3 style="color:var(--brand-main); margin-top:0; font-weight:800;">Imprimir por rango</h3>
+      <p style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:20px;">Ingresa el rango de consecutivos a imprimir:</p>
       <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
-        <input type="number" id="rangoInicioTickets" class="modal-input" placeholder="DESDE" min="1">
+        <input type="number" id="rangoInicioTickets" class="modal-input" placeholder="Desde" min="1">
         <span style="font-weight:800; color:var(--text-muted);">A</span>
-        <input type="number" id="rangoFinTickets" class="modal-input" placeholder="HASTA" min="1">
+        <input type="number" id="rangoFinTickets" class="modal-input" placeholder="Hasta" min="1">
       </div>
       <div style="margin-top:30px; text-align:right; display:flex; justify-content:flex-end; gap:12px;">
-         <button type="button" class="btn" style="background:var(--bg-body); color:var(--text-main); border: 1px solid var(--border-medium); box-shadow:none;" onclick="cerrarModalRangoTickets()">CANCELAR</button>
-         <button type="button" class="btn btn-primary" style="margin:0; width:auto; padding: 12px 24px;" id="btnConfirmarRangoTickets" onclick="ejecutarImpresionRango()">IMPRIMIR</button>
+         <button type="button" class="btn" style="background:var(--bg-body); color:var(--text-main); border: 1px solid var(--border-medium); box-shadow:none;" onclick="cerrarModalRangoTickets()">Cancelar</button>
+         <button type="button" class="btn btn-primary" style="margin:0; width:auto; padding: 12px 24px;" id="btnConfirmarRangoTickets" onclick="ejecutarImpresionRango()">Imprimir</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+// ---------------- FORMATO DE NOMBRES PROPIOS (solo visualización) ----------------
+// Misma regla que app/formato.py: "LEIDER DAVID MONTENEGRO" -> "Leider David Montenegro",
+// "QC FINAL" -> "QC Final", motivos en modo frase: "PRODUCCIÓN NORMAL" -> "Producción normal".
+// Lo guardado sigue en mayúsculas; los <option> conservan su value original.
+var FMT_SIGLAS = new Set({{ formato_siglas|tojson }});
+var FMT_MINUSCULAS = new Set({{ formato_minusculas|tojson }});
+var FMT_AREAS = new Set({{ (formato_areas or [])|tojson }}.map(function(s) { return String(s).trim().toUpperCase(); }));
+var FMT_MOTIVOS = new Set({{ (formato_motivos or [])|tojson }}.map(function(s) { return String(s).trim().toUpperCase(); }));
+
+function nombrePropio(texto, frase) {
+  if (texto === null || texto === undefined) return "";
+  return String(texto).split(/(\/|\s-\s)/).map(function(parte) {
+    if (parte === "/" || /^\s-\s$/.test(parte)) return parte;
+    var primera = true;
+    return parte.split(" ").map(function(p) {
+      if (!p) return p;
+      var mayus = p.toLocaleUpperCase('es');
+      var res;
+      if (FMT_SIGLAS.has(mayus)) res = mayus;
+      else if (/\d/.test(p)) res = p;
+      else {
+        var minus = p.toLocaleLowerCase('es');
+        res = (!primera && (frase || FMT_MINUSCULAS.has(minus))) ? minus : minus.charAt(0).toLocaleUpperCase('es') + minus.slice(1);
+      }
+      primera = false;
+      return res;
+    }).join(" ");
+  }).join("");
+}
+
+// Para insertar en plantillas HTML: nombre de persona sin heredar las MAYÚSCULAS de la tabla.
+function nf(texto) {
+  var s = nombrePropio(texto, false).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return '<span class="nf">' + s + '</span>';
+}
+
+// Áreas y motivos se reconocen por su nombre exacto donde sea que la pantalla los pinte.
+(function() {
+  var SALTAR = 'button,.badge,label,h4,h5,script,style,textarea,datalist,.label-cell,.title-cell,.subtitle-cell,.grid-label,.nf';
+  function procesar(nodo) {
+    var original = nodo.nodeValue, clave = original.trim().toUpperCase();
+    if (!clave) return;
+    var frase;
+    if (FMT_AREAS.has(clave)) frase = false;
+    else if (FMT_MOTIVOS.has(clave)) frase = true;
+    else return;
+    var el = nodo.parentElement;
+    if (!el || el.closest(SALTAR)) return;
+    var nuevo = original.replace(original.trim(), nombrePropio(original.trim(), frase));
+    if (el.tagName === 'OPTION') {
+      if (el.hasAttribute('value') && el.textContent !== nuevo) el.textContent = nuevo;
+      return;
+    }
+    var span = document.createElement('span');
+    span.className = 'nf';
+    span.textContent = nuevo;
+    nodo.replaceWith(span);
+  }
+  function recorrer(raiz) {
+    if (raiz.nodeType === 3) { procesar(raiz); return; }
+    if (raiz.nodeType !== 1) return;
+    var w = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT), lista = [];
+    while (w.nextNode()) lista.push(w.currentNode);
+    lista.forEach(procesar);
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    var app = document.getElementById('custodia-app');
+    if (!app) return;
+    recorrer(app);
+    new MutationObserver(function(cambios) {
+      cambios.forEach(function(c) { c.addedNodes.forEach(recorrer); });
+    }).observe(app, {childList: true, subtree: true});
+  });
+})();
+
 (function() {
   // ---------------- HELPER DE LLAMADAS A LA API ----------------
   async function api(url, opciones) {
@@ -665,11 +749,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function cargarConfirmaciones() {
   var tbody = document.getElementById("bodyAprobaciones");
-  tbody.innerHTML = '<tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-size:13px; font-weight:600;">CARGANDO...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando...</td></tr>';
   custodiaApi('/custodia/api/pendientes-entrada').then(function(res) {
     var lista = res.data;
     if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-weight:600;">NO HAY TRASLADOS PENDIENTES DE CONFIRMAR. 🎉</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="padding:50px; color:var(--text-muted); font-weight:600;">No hay traslados pendientes de confirmar. 🎉</td></tr>';
       return;
     }
     tbody.innerHTML = "";
@@ -677,7 +761,7 @@ function cargarConfirmaciones() {
       var tr = document.createElement("tr");
       tr.innerHTML = `
         <td style="font-weight:800; color:var(--brand-main);">${String(t.id).padStart(4,'0')}</td>
-        <td>${t.colaborador}</td>
+        <td>${nf(t.colaborador)}</td>
         <td style="font-weight:800; color:var(--brand-main);">${t.ordenes}</td>
         <td>${t.areaSalida}</td>
         <td>${t.areaEntrada}</td>
@@ -689,7 +773,7 @@ function cargarConfirmaciones() {
       var tdAccion = tr.lastElementChild;
       var btn = document.createElement("button");
       btn.className = "btn"; btn.style.background = "var(--success)"; btn.style.padding = "8px 14px"; btn.style.fontSize = "11px";
-      btn.innerText = "✔ CONFIRMAR RECIBIDO";
+      btn.innerText = "✔ Confirmar recibido";
       btn.onclick = function() { confirmarDesdeAprobaciones(t.id); };
       tdAccion.appendChild(btn);
       tbody.appendChild(tr);
@@ -712,7 +796,7 @@ function toggleFechas() {
 
 function cargarAreasSalidaDropdown() {
   custodiaApi('/custodia/api/areas').then(function(areas) {
-    var sel = document.getElementById("filtroAreaSalida"); sel.innerHTML = '<option value="TODAS">-- TODAS --</option>';
+    var sel = document.getElementById("filtroAreaSalida"); sel.innerHTML = '<option value="TODAS">-- Todas --</option>';
     areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
   });
 }
@@ -758,7 +842,7 @@ function aplicarModoOrden(nueva) {
   ayuda.style.display = nueva ? "" : "none";
   sel.disabled = nueva; sel.required = !nueva;
   txt.disabled = !nueva;
-  document.getElementById("btnGuardar").innerText = nueva ? "REGISTRAR ORDEN NUEVA" : "REGISTRAR TRASLADO";
+  document.getElementById("btnGuardar").innerText = nueva ? "Registrar orden nueva" : "Registrar traslado";
   var selSalida = document.getElementById("areaSalida");
   if (nueva) { sel.value = ""; } else { txt.value = ""; cargarOrdenesIncompletas(); }
   selSalida.value = areaSalidaManager || "DIR PRODUCCIÓN";
@@ -796,11 +880,11 @@ function ocultarErrorCantidad() {
 
 function cargarOrdenesIncompletas() {
   var sel = document.getElementById("numeroOrdenSelect");
-  sel.innerHTML = '<option value="">CARGANDO...</option>';
+  sel.innerHTML = '<option value="">Cargando...</option>';
   custodiaApi('/custodia/api/ordenes-incompletas').then(function(lista) {
-    sel.innerHTML = '<option value="">SELECCIONAR...</option>';
+    sel.innerHTML = '<option value="">Seleccionar...</option>';
     if (lista.length === 0) {
-      sel.innerHTML = '<option value="">SIN ÓRDENES EN PROCESO</option>';
+      sel.innerHTML = '<option value="">Sin órdenes en proceso</option>';
       return;
     }
     lista.sort(function(a, b) { return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
@@ -858,7 +942,7 @@ function procesarPegadoResumen(e) {
     if(cols[0].toLowerCase().includes('orden') || cols[0].toLowerCase().includes('resumen') || cols[0].toLowerCase().includes('total general')) return;
     datosResumenExcel.push({ orden: cols[0], descripcion: cols[1], paciente: cols[2], total: parseFloat(String(cols[3]||"0").trim().replace(',', '.')) || 0 });
   });
-  renderTablaResumen(); e.target.value = "✅ ¡RESUMEN CARGADO!"; setTimeout(() => e.target.value = "", 2000);
+  renderTablaResumen(); e.target.value = "✅ ¡Resumen cargado!"; setTimeout(() => e.target.value = "", 2000);
 }
 
 function crearFilaResumen(datos) {
@@ -867,26 +951,26 @@ function crearFilaResumen(datos) {
   var tdOrden = document.createElement("td");
   var inOrden = document.createElement("input");
   inOrden.type = "text"; inOrden.dataset.campo = "orden"; inOrden.value = datos.orden || "";
-  inOrden.style.cssText = "width:100%; border:none; background:transparent; font-weight:800; color:var(--brand-main); font-size:12px; padding:6px;";
+  inOrden.style.cssText = "width:100%; border:none; background:transparent; font-weight:800; color:var(--brand-main); font-size:13px; padding:6px;";
   tdOrden.appendChild(inOrden); tr.appendChild(tdOrden);
 
   var tdDesc = document.createElement("td");
   var inDesc = document.createElement("input");
   inDesc.type = "text"; inDesc.dataset.campo = "descripcion"; inDesc.value = datos.descripcion || "";
-  inDesc.style.cssText = "width:100%; border:none; background:transparent; font-size:12px; padding:6px;";
+  inDesc.style.cssText = "width:100%; border:none; background:transparent; font-size:13px; padding:6px;";
   tdDesc.appendChild(inDesc); tr.appendChild(tdDesc);
 
   var tdPac = document.createElement("td");
   var inPac = document.createElement("input");
   inPac.type = "text"; inPac.dataset.campo = "paciente"; inPac.value = datos.paciente || "";
-  inPac.style.cssText = "width:100%; border:none; background:transparent; font-size:12px; padding:6px;";
+  inPac.style.cssText = "width:100%; border:none; background:transparent; font-size:13px; padding:6px;";
   tdPac.appendChild(inPac); tr.appendChild(tdPac);
 
   var tdTotal = document.createElement("td");
   var inTotal = document.createElement("input");
   inTotal.type = "text"; inTotal.dataset.campo = "total";
   inTotal.value = (datos.total || datos.total === 0) ? String(datos.total).replace('.', ',') : "";
-  inTotal.style.cssText = "width:100%; border:none; background:transparent; font-weight:800; color:var(--success); font-size:12px; padding:6px;";
+  inTotal.style.cssText = "width:100%; border:none; background:transparent; font-weight:800; color:var(--success); font-size:13px; padding:6px;";
   inTotal.oninput = function() { this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, ''); recalcularTotalResumen(); };
   tdTotal.appendChild(inTotal); tr.appendChild(tdTotal);
 
@@ -916,7 +1000,7 @@ function renderTablaResumen() {
   if (datosResumenExcel.length === 0) { tbody.appendChild(crearFilaResumen()); }
   else { datosResumenExcel.forEach(r => tbody.appendChild(crearFilaResumen(r))); }
   var trTotal = document.createElement("tr"); trTotal.className = "fila-totales";
-  trTotal.innerHTML = '<td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td id="totalGeneralResumen">0,00</td><td></td>';
+  trTotal.innerHTML = '<td colspan="3" style="text-align:right;">Total general</td><td id="totalGeneralResumen">0,00</td><td></td>';
   tbody.appendChild(trTotal);
   recalcularTotalResumen();
 }
@@ -937,7 +1021,7 @@ function obtenerDatosResumenTabla() {
 function renderTablaDiscosDinamica() {
   var tbody = document.getElementById("bodyDiscos"); tbody.innerHTML = "";
   if (catalogoDiscos.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:12px;">SIN CATÁLOGO CONFIGURADO.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px; color:var(--text-muted); font-size:13px;">Sin catálogo configurado.</td></tr>';
     return;
   }
   catalogoDiscos.forEach((item, idx) => {
@@ -950,7 +1034,7 @@ function renderTablaDiscosDinamica() {
     tbody.appendChild(tr);
   });
   var trTotal = document.createElement("tr"); trTotal.className = "fila-totales";
-  trTotal.innerHTML = `<td style="text-align:right;">TOTAL</td><td id="totPacDinamico">0</td><td style="color:var(--brand-main);" id="totDiscDinamico">0.00</td>`;
+  trTotal.innerHTML = `<td style="text-align:right;">Total</td><td id="totPacDinamico">0</td><td style="color:var(--brand-main);" id="totDiscDinamico">0.00</td>`;
   tbody.appendChild(trTotal);
 }
 
@@ -989,7 +1073,7 @@ function procesarPegadoOP(e) {
     if(cols[0].toLowerCase().includes('op') || cols[0].toLowerCase().includes('detalle')) return;
     datosOPExcel.push({ op: cols[0], descripcion: cols[1], orden: cols[2], tipo: cols[3], usuario: cols[4], observaciones: cols[5]||"" });
   });
-  renderTablaOP(); e.target.value = "✅ ¡OP CARGADOS!"; setTimeout(() => e.target.value = "", 2000);
+  renderTablaOP(); e.target.value = "✅ ¡OP cargados!"; setTimeout(() => e.target.value = "", 2000);
 }
 
 function crearFilaOP(datos) {
@@ -999,7 +1083,7 @@ function crearFilaOP(datos) {
     var td = document.createElement("td");
     var input = document.createElement("input");
     input.type = "text"; input.dataset.campo = campo; input.value = datos[campo] || "";
-    input.style.cssText = "width:100%; border:none; background:transparent; font-size:12px; padding:6px;"
+    input.style.cssText = "width:100%; border:none; background:transparent; font-size:13px; padding:6px;"
       + (campo === "op" ? " font-weight:800; color:var(--brand-main);" : campo === "orden" ? " font-weight:700;" : "");
     td.appendChild(input); tr.appendChild(td);
   });
@@ -1064,13 +1148,13 @@ function actualizarResumenOrdenActivas() {
   var params = _rangoFechasActivas();
   custodiaApi('/custodia/api/consultar-orden/' + encodeURIComponent(orden) + '?' + params.toString()).then(function(res) {
     document.getElementById("resultadoConsultaOrden").style.display = "block";
-    document.getElementById("kpiOrdenTotal").innerText = res.total !== null ? res.total.toFixed(2) : "SIN TOTAL REGISTRADO";
+    document.getElementById("kpiOrdenTotal").innerText = res.total !== null ? res.total.toFixed(2) : "Sin total registrado";
     document.getElementById("kpiOrdenTerminado").innerText = res.terminado.toFixed(2);
     document.getElementById("kpiOrdenEnProceso").innerText = res.enProceso !== null ? res.enProceso.toFixed(2) : "N/A";
     var tbody = document.getElementById("bodyConsultaOrdenAreas");
     tbody.innerHTML = "";
     if (res.ubicaciones.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="2" style="padding:20px; color:var(--text-muted);">NO HAY UBICACIONES ACTIVAS PARA ESTA ORDEN.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="2" style="padding:20px; color:var(--text-muted);">No hay ubicaciones activas para esta orden.</td></tr>';
     } else {
       res.ubicaciones.forEach(function(u) {
         var tr = document.createElement("tr");
@@ -1083,18 +1167,18 @@ function actualizarResumenOrdenActivas() {
 
 function cargarEstadoOrdenes() {
   var btn = document.getElementById("btnRefrescarActivas");
-  btn.innerText = "CARGANDO...";
+  btn.innerText = "Cargando...";
 
   custodiaApi('/custodia/api/areas').then(function(areas) {
     var sel = document.getElementById("filtroAreaActivas");
     var currentVal = sel.value;
-    sel.innerHTML = '<option value="TODAS">-- TODAS LAS ÁREAS --</option>';
+    sel.innerHTML = '<option value="TODAS">-- Todas las áreas --</option>';
     areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
     sel.value = currentVal || "TODAS";
   });
 
   custodiaApi('/custodia/api/estado-ordenes?' + _rangoFechasActivas().toString()).then(function(res) {
-    btn.innerText = "🔍 BUSCAR";
+    btn.innerText = "🔍 Buscar";
     ordenesActivasGlobal = res.data;
     matrixGlobal = res.matrix;
     areasMatrixGlobal = res.areasMatrix;
@@ -1102,7 +1186,7 @@ function cargarEstadoOrdenes() {
     filtrarTablaMatrix();
     actualizarResumenOrdenActivas();
   }).catch(function(e) {
-    btn.innerText = "🔍 BUSCAR";
+    btn.innerText = "🔍 Buscar";
     document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="4" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
   });
 }
@@ -1160,18 +1244,18 @@ function filtrarTablaActivas() {
   });
 
   if(filtrados.length === 0) {
-    tbody1.innerHTML = `<tr><td colspan="4" style="padding:50px; color:var(--text-muted); font-weight:600;">NO SE ENCONTRARON ÓRDENES EN ESTE CORTE.</td></tr>`;
+    tbody1.innerHTML = `<tr><td colspan="4" style="padding:50px; color:var(--text-muted); font-weight:600;">No se encontraron órdenes en este corte.</td></tr>`;
   } else {
     filtrados.forEach(function(o) {
       var tr = document.createElement("tr");
       tr.innerHTML = `
         <td style="font-weight:800; color:var(--brand-main);">
           ${o.orden}
-          <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 9px;" onclick="abrirModalTimeline('${o.orden}')">🛤️ VIAJE</button>
+          <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 11px;" onclick="abrirModalTimeline('${o.orden}')">🛤️ Viaje</button>
         </td>
         <td style="font-weight:800; color:var(--success);">${o.cantidad.toFixed(2)}</td>
         <td style="font-weight:700;">${o.ubicacion}</td>
-        <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
+        <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
       `;
       tbody1.appendChild(tr);
     });
@@ -1182,13 +1266,13 @@ function filtrarTablaMatrix() {
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
 
   var thead2 = document.getElementById("headTablaMatrix");
-  var filaAreas = `<tr><th rowspan="2" style="min-width: 90px; text-align: left; vertical-align:middle;">ORDEN</th>`;
+  var filaAreas = `<tr><th rowspan="2" style="min-width: 90px; text-align: left; vertical-align:middle;">Orden</th>`;
   var filaSub = `<tr>`;
   areasMatrixGlobal.forEach(function(area) {
     filaAreas += `<th colspan="3">${area}</th>`;
-    filaSub += `<th style="font-size:9px;">ENT</th><th style="font-size:9px;">SAL</th><th style="font-size:9px;">NETO</th>`;
+    filaSub += `<th style="font-size:11px;">Ent</th><th style="font-size:11px;">Sal</th><th style="font-size:11px;">Neto</th>`;
   });
-  filaAreas += `<th rowspan="2" style="color:var(--brand-main); vertical-align:middle;">TOTAL</th></tr>`;
+  filaAreas += `<th rowspan="2" style="color:var(--brand-main); vertical-align:middle;">Total</th></tr>`;
   filaSub += `</tr>`;
   thead2.innerHTML = filaAreas + filaSub;
 
@@ -1198,7 +1282,7 @@ function filtrarTablaMatrix() {
   var filtradosMatrix = matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); });
 
   if(filtradosMatrix.length === 0) {
-    tbody2.innerHTML = `<tr><td colspan="${areasMatrixGlobal.length * 3 + 2}" style="padding:50px; color:var(--text-muted); font-weight:600;">SIN DATOS DE SEGUIMIENTO EN ESTE CORTE.</td></tr>`;
+    tbody2.innerHTML = `<tr><td colspan="${areasMatrixGlobal.length * 3 + 2}" style="padding:50px; color:var(--text-muted); font-weight:600;">Sin datos de seguimiento en este corte.</td></tr>`;
   } else {
     filtradosMatrix.sort(function(a,b){ return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
     filtradosMatrix.forEach(function(o) {
@@ -1222,7 +1306,7 @@ function filtrarTablaMatrix() {
 
 function abrirModalTimeline(ordenBusqueda) {
    document.getElementById("lblTimelineOrden").innerText = ordenBusqueda;
-   document.getElementById("containerTimelineModal").innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>Rastreando movimientos de la orden...</p>";
+   document.getElementById("containerTimelineModal").innerHTML = "<p style='font-size:13px; color:var(--text-muted);'>Rastreando movimientos de la orden...</p>";
    document.getElementById("modalTimeline").style.display = "flex";
    var ordenPrincipal = String(ordenBusqueda).split("-")[0].trim();
    custodiaApi('/custodia/api/viaje/' + encodeURIComponent(ordenPrincipal)).then(renderTimelineModal);
@@ -1234,7 +1318,7 @@ function renderTimelineModal(datosViaje) {
    var container = document.getElementById("containerTimelineModal");
    container.innerHTML = "";
    if(!datosViaje || datosViaje.length === 0) {
-      container.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>No hay rastro de movimientos previos.</p>";
+      container.innerHTML = "<p style='font-size:13px; color:var(--text-muted);'>No hay rastro de movimientos previos.</p>";
       return;
    }
    datosViaje.forEach(function(v) {
@@ -1244,7 +1328,7 @@ function renderTimelineModal(datosViaje) {
             <div class="timeline-date">${v.fechaHoraStr}</div>
             <div class="timeline-content">
                <span style="color:var(--brand-main); font-weight:800;">Mueve ${v.cantidad} discos:</span> De <b>${v.areaSalida || 'N/A'}</b> a <b>${v.areaEntrada || 'N/A'}</b><br>
-               <span style="color:var(--text-muted); font-size:10px;">${badge} | Por: ${v.colaborador}</span>
+               <span style="color:var(--text-muted); font-size:11px;">${badge} | Por: ${nf(v.colaborador)}</span>
             </div>
          </div>
       `;
@@ -1282,7 +1366,7 @@ function descargarCSV(contenido, prefijo) {
 function imprimirReporteCorte() {
   var fDesde = document.getElementById("filtroFechaDesdeActivas").value;
   var fHasta = document.getElementById("filtroFechaHastaActivas").value;
-  var fechaCorte = (fDesde || fHasta) ? `${fDesde || '...'} A ${fHasta || '...'}` : "SIN FILTRO DE FECHA";
+  var fechaCorte = (fDesde || fHasta) ? `${fDesde || '...'} a ${fHasta || '...'}` : "Sin filtro de fecha";
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
   var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
 
@@ -1314,11 +1398,11 @@ function imprimirReporteCorte() {
   var hoyStr = new Date().toLocaleString();
 
   var htmlPrint = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; color: #0F172A;">
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #0F172A;">
       <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #1A365D; padding-bottom: 15px;">
-         <h2 style="margin:0; color:#1A365D; font-weight: 900;">NUVIA SMILES COLOMBIA S.A.S.</h2>
-         <h3 style="margin:8px 0 5px 0;">INVENTARIO EN PROCESO (CANTIDADES)</h3>
-         <p style="margin:0; font-size:12px; color:#475569;">CORTE A FECHA: <b>${fechaCorte}</b> | IMPRESO: ${hoyStr}</p>
+         <h2 style="margin:0; color:#1A365D; font-weight: 900;">Nuvia Smiles Colombia S.A.S.</h2>
+         <h3 style="margin:8px 0 5px 0;">Inventario en proceso (cantidades)</h3>
+         <p style="margin:0; font-size:12px; color:#475569;">Corte a fecha: <b>${fechaCorte}</b> | Impreso: ${hoyStr}</p>
       </div>
   `;
 
@@ -1327,13 +1411,13 @@ function imprimirReporteCorte() {
     htmlPrint += `
       <div style="margin-bottom: 20px; page-break-inside: avoid;">
         <div style="background-color: #1A365D; color: white; padding: 6px 12px; font-weight: bold; font-size: 13px; border: 1px solid #1A365D;">
-          📍 ${area} | TOTAL: ${dataArea.total.toFixed(2)} DISCOS
+          📍 ${area} | Total: ${dataArea.total.toFixed(2)} Discos
         </div>
         <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #CBD5E1;">
           <thead>
             <tr style="background-color: #F8FAFC; border-bottom: 2px solid #CBD5E1;">
-              <th style="padding: 6px; text-align: left; border-right: 1px solid #CBD5E1; width: 50%;">NÚMERO DE ORDEN</th>
-              <th style="padding: 6px; text-align: right; width: 50%;">CANTIDAD</th>
+              <th style="padding: 6px; text-align: left; border-right: 1px solid #CBD5E1; width: 50%;">Número de orden</th>
+              <th style="padding: 6px; text-align: right; width: 50%;">Cantidad</th>
             </tr>
           </thead>
           <tbody>
@@ -1351,8 +1435,8 @@ function imprimirReporteCorte() {
 
   htmlPrint += `
       <div style="margin-top: 30px; text-align: right; padding: 12px; background-color: #F1F5F9; border-radius: 8px; border: 1px solid #CBD5E1;">
-         <h3 style="margin: 0; color: #1A365D;">GRAN TOTAL DISCOS: ${granTotal.toFixed(2)}</h3>
-         <p style="margin: 5px 0 0 0; font-size: 11px; font-weight: bold; color: #475569;">TOTAL ÓRDENES: ${filtrados.length}</p>
+         <h3 style="margin: 0; color: #1A365D;">Gran total discos: ${granTotal.toFixed(2)}</h3>
+         <p style="margin: 5px 0 0 0; font-size: 11px; font-weight: bold; color: #475569;">Total órdenes: ${filtrados.length}</p>
       </div>
     </div>
   `;
@@ -1363,7 +1447,7 @@ function imprimirReporteCorte() {
 function imprimirReporteMatriz() {
   var fDesdeM = document.getElementById("filtroFechaDesdeActivas").value;
   var fHastaM = document.getElementById("filtroFechaHastaActivas").value;
-  var fechaCorte = (fDesdeM || fHastaM) ? `${fDesdeM || '...'} A ${fHastaM || '...'}` : "SIN FILTRO DE FECHA";
+  var fechaCorte = (fDesdeM || fHastaM) ? `${fDesdeM || '...'} a ${fHastaM || '...'}` : "Sin filtro de fecha";
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
   var filtradosMatrix = matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); });
   if (filtradosMatrix.length === 0) return alert("No hay datos de matriz para imprimir.");
@@ -1372,22 +1456,22 @@ function imprimirReporteMatriz() {
 
   var hoyStr = new Date().toLocaleString();
   var htmlPrint = `
-    <div style="font-family: Arial, sans-serif; padding: 10px; color: #0F172A;">
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 10px; color: #0F172A;">
       <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #1A365D; padding-bottom: 10px;">
-         <h2 style="margin:0; color:#1A365D; font-weight: 900;">NUVIA SMILES COLOMBIA S.A.S.</h2>
-         <h3 style="margin:5px 0;">SEGUIMIENTO DE SALIDAS (MATRIZ CONTABLE)</h3>
-         <p style="margin:0; font-size:10px; color:#475569;">CORTE A FECHA: <b>${fechaCorte}</b> | IMPRESO: ${hoyStr}</p>
+         <h2 style="margin:0; color:#1A365D; font-weight: 900;">Nuvia Smiles Colombia S.A.S.</h2>
+         <h3 style="margin:5px 0;">Seguimiento de salidas (matriz contable)</h3>
+         <p style="margin:0; font-size:10px; color:#475569;">Corte a fecha: <b>${fechaCorte}</b> | Impreso: ${hoyStr}</p>
       </div>
       <table style="width: 100%; border-collapse: collapse; font-size: 8px; border: 1px solid #CBD5E1; text-align: center;">
         <thead>
-          <tr><th rowspan="2" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px; vertical-align: middle;">ORDEN</th>
+          <tr><th rowspan="2" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px; vertical-align: middle;">Orden</th>
   `;
   areasMatrixGlobal.forEach(function(area) { htmlPrint += `<th colspan="3" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px;">${area}</th>`; });
   htmlPrint += `</tr><tr>`;
   areasMatrixGlobal.forEach(function() {
-      htmlPrint += `<th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">ENT</th>
-                    <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">SAL</th>
-                    <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">NETO</th>`;
+      htmlPrint += `<th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">Ent</th>
+                    <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">Sal</th>
+                    <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">Neto</th>`;
   });
   htmlPrint += `</tr></thead><tbody>`;
 
@@ -1442,7 +1526,7 @@ function imprimirTicketIndividual() {
   var motivo = document.getElementById("viewMotivo").innerText;
 
   var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
-  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0; letter-spacing: 2px;">NUVIA</h2>`;
+  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0;">Nuvia</h2>`;
 
   var fechaAImprimir = document.getElementById("viewFechaHeader").innerText || fecha;
 
@@ -1456,12 +1540,12 @@ function imprimirTicketIndividual() {
         <style>
           @media print {
             @page { margin: 15mm; }
-            body { font-family: 'Inter', Arial, sans-serif; color: #0F172A; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F172A; }
             .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #CBD5E1; }
             .header-table td { border: 1px solid #CBD5E1; padding: 10px; }
             .header-logo { width: 25%; text-align: center; }
-            .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; letter-spacing: 1px; }
-            .header-sub { font-size: 13px; color: #475569; font-weight: 600; letter-spacing: 2px; }
+            .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; }
+            .header-sub { font-size: 13px; color: #475569; font-weight: 600; }
             .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
             .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
             .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
@@ -1482,22 +1566,22 @@ function imprimirTicketIndividual() {
       </head>
       <body>
           <table class="header-table">
-              <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">CAMBIO DE CUSTODIA GENERAL<br><span class="header-sub">PRODUCCION</span></td><td class="header-meta">CÓDIGO: F-PRO-40</td></tr>
-              <tr><td class="header-meta" style="border-top:none;">VERSIÓN: 02</td></tr>
-              <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">FECHA: ${fechaAImprimir}</td></tr>
+              <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">Cambio de custodia general<br><span class="header-sub">Producción</span></td><td class="header-meta">Código: F-PRO-40</td></tr>
+              <tr><td class="header-meta" style="border-top:none;">Versión: 02</td></tr>
+              <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">Fecha: ${fechaAImprimir}</td></tr>
           </table>
           <table class="grid-table">
-              <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">CONSECUTIVO</td><td class="grid-cons-value">${consecutivo}</td></tr>
-              <tr><td class="grid-label">COLABORADOR</td><td class="grid-value">${colaborador}</td><td class="grid-label">NUMERO DE ORDEN</td><td class="grid-value">${orden}</td><td class="grid-label">AREA SALIDA</td><td class="grid-value">${areaSalida}</td></tr>
-              <tr><td class="grid-label">FECHA</td><td class="grid-value">${fecha}</td><td class="grid-label">AREA CREACION</td><td class="grid-value">${areaCreacion}</td><td class="grid-label">AREA ENTRADA</td><td class="grid-value">${areaEntrada}</td></tr>
-              <tr><td class="grid-label">HORA</td><td class="grid-value">${hora}</td><td class="grid-label">CANTIDAD DISCOS</td><td class="grid-cant-value">${cantidad}</td><td class="grid-label">ESTADO</td><td class="grid-value" style="font-weight: 800;">${motivo}</td></tr>
+              <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">Consecutivo</td><td class="grid-cons-value">${consecutivo}</td></tr>
+              <tr><td class="grid-label">Colaborador</td><td class="grid-value">${colaborador}</td><td class="grid-label">Número de orden</td><td class="grid-value">${orden}</td><td class="grid-label">Área salida</td><td class="grid-value">${areaSalida}</td></tr>
+              <tr><td class="grid-label">Fecha</td><td class="grid-value">${fecha}</td><td class="grid-label">Área creación</td><td class="grid-value">${areaCreacion}</td><td class="grid-label">Área entrada</td><td class="grid-value">${areaEntrada}</td></tr>
+              <tr><td class="grid-label">Hora</td><td class="grid-value">${hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 800;">${motivo}</td></tr>
           </table>
-          ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">RESUMEN GENERAL</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
-          ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE DE DISCOS</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
+          ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
+          ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
 
           <table class="firmas-table"><tr><td>_________________________________<br>Firma entregado:</td><td>_________________________________<br>Firma recibido:</td></tr></table>
 
-          ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
+          ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
       </body>
       </html>
   `;
@@ -1523,36 +1607,36 @@ function ejecutarImpresionRango() {
     return alert("Por favor ingresa un rango numérico válido.");
   }
   var btn = document.getElementById("btnConfirmarRangoTickets");
-  btn.innerText = "PREPARANDO..."; btn.disabled = true;
+  btn.innerText = "Preparando..."; btn.disabled = true;
   custodiaApi('/custodia/api/tickets-rango?inicio=' + inicio + '&fin=' + fin).then(function(res) {
-    btn.innerText = "IMPRIMIR"; btn.disabled = false;
+    btn.innerText = "Imprimir"; btn.disabled = false;
     if (!res.tickets || res.tickets.length === 0) { alert("No se encontraron traslados en ese rango."); return; }
     cerrarModalRangoTickets();
     generarHtmlDocumentoRango(res.tickets);
-  }).catch(function(e) { btn.innerText = "IMPRIMIR"; btn.disabled = false; alert('Error: ' + e.message); });
+  }).catch(function(e) { btn.innerText = "Imprimir"; btn.disabled = false; alert('Error: ' + e.message); });
 }
 
 function _tablaResumenHtml(resumen) {
   if (!resumen || resumen.length === 0) return "";
   var sum = 0;
-  var html = `<thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th></tr></thead><tbody>`;
+  var html = `<thead><tr><th>Orden</th><th>Descripción</th><th>Paciente</th><th>Total</th></tr></thead><tbody>`;
   resumen.forEach(r => { sum += parseFloat(r.total || 0); html += `<tr><td>${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td>${r.total}</td></tr>`; });
-  html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td>${sum}</td></tr></tbody>`;
+  html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">Total general</td><td>${sum}</td></tr></tbody>`;
   return html;
 }
 
 function _tablaDiscosHtml(discos) {
   if (!discos || discos.length === 0) return "";
   var sumP = 0, sumD = 0;
-  var html = `<thead><tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr></thead><tbody>`;
+  var html = `<thead><tr><th>Detalle</th><th>Cant. paciente</th><th>Cant. discos</th></tr></thead><tbody>`;
   discos.forEach(r => { sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0); html += `<tr><td>${r.detalle}</td><td>${r.cantPaciente}</td><td>${r.cantDiscos}</td></tr>`; });
-  html += `<tr class="fila-totales"><td style="text-align:right;">TOTAL</td><td>${sumP}</td><td>${sumD.toFixed(2)}</td></tr></tbody>`;
+  html += `<tr class="fila-totales"><td style="text-align:right;">Total</td><td>${sumP}</td><td>${sumD.toFixed(2)}</td></tr></tbody>`;
   return html;
 }
 
 function _tablaOPHtml(op) {
   if (!op || op.length === 0) return "";
-  var html = `<thead><tr><th>ORDEN</th><th>OP</th><th>DESCRIPCIÓN</th><th>TIPO</th><th>USUARIO</th><th>OBSERVACIONES</th></tr></thead><tbody>`;
+  var html = `<thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Usuario</th><th>Observaciones</th></tr></thead><tbody>`;
   op.forEach(r => { html += `<tr><td>${r.orden}</td><td>${r.op}</td><td>${r.descripcion}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td></tr>`; });
   html += `</tbody>`;
   return html;
@@ -1560,7 +1644,7 @@ function _tablaOPHtml(op) {
 
 function generarHtmlDocumentoRango(tickets) {
   var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
-  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0; letter-spacing: 2px;">NUVIA</h2>`;
+  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0;">Nuvia</h2>`;
 
   var paginas = tickets.map(function(item) {
     var t = item.traslado, det = item.detalles || {};
@@ -1570,20 +1654,20 @@ function generarHtmlDocumentoRango(tickets) {
     return `
       <div class="ticket-page">
         <table class="header-table">
-            <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">CAMBIO DE CUSTODIA GENERAL<br><span class="header-sub">PRODUCCION</span></td><td class="header-meta">CÓDIGO: F-PRO-40</td></tr>
-            <tr><td class="header-meta" style="border-top:none;">VERSIÓN: 02</td></tr>
-            <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">FECHA: ${t.fecha}</td></tr>
+            <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">Cambio de custodia general<br><span class="header-sub">Producción</span></td><td class="header-meta">Código: F-PRO-40</td></tr>
+            <tr><td class="header-meta" style="border-top:none;">Versión: 02</td></tr>
+            <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">Fecha: ${t.fecha}</td></tr>
         </table>
         <table class="grid-table">
-            <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">CONSECUTIVO</td><td class="grid-cons-value">${String(t.id).padStart(4,'0')}</td></tr>
-            <tr><td class="grid-label">COLABORADOR</td><td class="grid-value">${t.colaborador}</td><td class="grid-label">NUMERO DE ORDEN</td><td class="grid-value">${t.ordenes}</td><td class="grid-label">AREA SALIDA</td><td class="grid-value">${t.areaSalida}</td></tr>
-            <tr><td class="grid-label">FECHA</td><td class="grid-value">${t.fecha}</td><td class="grid-label">AREA CREACION</td><td class="grid-value">${t.areaCreacion}</td><td class="grid-label">AREA ENTRADA</td><td class="grid-value">${t.areaEntrada}</td></tr>
-            <tr><td class="grid-label">HORA</td><td class="grid-value">${t.hora}</td><td class="grid-label">CANTIDAD DISCOS</td><td class="grid-cant-value">${t.cantidad}</td><td class="grid-label">ESTADO</td><td class="grid-value" style="font-weight: 800;">${t.estado}</td></tr>
+            <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">Consecutivo</td><td class="grid-cons-value">${String(t.id).padStart(4,'0')}</td></tr>
+            <tr><td class="grid-label">Colaborador</td><td class="grid-value">${nombrePropio(t.colaborador)}</td><td class="grid-label">Número de orden</td><td class="grid-value">${t.ordenes}</td><td class="grid-label">Área salida</td><td class="grid-value">${t.areaSalida}</td></tr>
+            <tr><td class="grid-label">Fecha</td><td class="grid-value">${t.fecha}</td><td class="grid-label">Área creación</td><td class="grid-value">${t.areaCreacion}</td><td class="grid-label">Área entrada</td><td class="grid-value">${t.areaEntrada}</td></tr>
+            <tr><td class="grid-label">Hora</td><td class="grid-value">${t.hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${t.cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 800;">${t.estado}</td></tr>
         </table>
-        ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">RESUMEN GENERAL</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
-        ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE DE DISCOS</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
+        ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
+        ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
         <table class="firmas-table"><tr><td>_________________________________<br>Firma entregado:</td><td>_________________________________<br>Firma recibido:</td></tr></table>
-        ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">DETALLE OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
+        ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
       </div>
     `;
   }).join("");
@@ -1592,14 +1676,14 @@ function generarHtmlDocumentoRango(tickets) {
     <html><head><style>
       @media print {
         @page { margin: 15mm; }
-        body { font-family: 'Inter', Arial, sans-serif; color: #0F172A; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F172A; }
         .ticket-page { page-break-after: always; }
         .ticket-page:last-child { page-break-after: auto; }
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #CBD5E1; }
         .header-table td { border: 1px solid #CBD5E1; padding: 10px; }
         .header-logo { width: 25%; text-align: center; }
-        .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; letter-spacing: 1px; }
-        .header-sub { font-size: 13px; color: #475569; font-weight: 600; letter-spacing: 2px; }
+        .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; }
+        .header-sub { font-size: 13px; color: #475569; font-weight: 600; }
         .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
         .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
         .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
@@ -1635,31 +1719,31 @@ function renderDetallesExcelModal(data) {
 
   if (data.resumen && data.resumen.length > 0) {
       htmlHasData = true;
-      var html = `<thead><tr><th>ORDEN</th><th>DESCRIPCIÓN</th><th>PACIENTE</th><th>TOTAL</th></tr></thead><tbody>`;
+      var html = `<thead><tr><th>Orden</th><th>Descripción</th><th>Paciente</th><th>Total</th></tr></thead><tbody>`;
       var sum = 0;
       data.resumen.forEach(r => {
           sum += parseFloat(r.total || 0);
           html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td style="font-weight:800; color:var(--success);">${r.total}</td></tr>`;
       });
-      html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">TOTAL GENERAL</td><td style="color:var(--brand-main);">${sum}</td></tr></tbody>`;
+      html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">Total general</td><td style="color:var(--brand-main);">${sum}</td></tr></tbody>`;
       document.getElementById("viewResumenGeneral").innerHTML = html;
   }
 
   if (data.discos && data.discos.length > 0) {
       htmlHasData = true;
-      var html = `<thead><tr><th>DETALLE</th><th>CANT. PACIENTE</th><th>CANT. DISCOS</th></tr></thead><tbody>`;
+      var html = `<thead><tr><th>Detalle</th><th>Cant. paciente</th><th>Cant. discos</th></tr></thead><tbody>`;
       var sumP = 0, sumD = 0;
       data.discos.forEach(r => {
           sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0);
           html += `<tr><td style="font-weight:700;">${r.detalle}</td><td>${r.cantPaciente}</td><td style="font-weight:700; color:var(--success);">${r.cantDiscos}</td></tr>`;
       });
-      html += `<tr class="fila-totales"><td style="text-align:right;">TOTAL</td><td>${sumP}</td><td style="color:var(--brand-main);">${sumD.toFixed(2)}</td></tr></tbody>`;
+      html += `<tr class="fila-totales"><td style="text-align:right;">Total</td><td>${sumP}</td><td style="color:var(--brand-main);">${sumD.toFixed(2)}</td></tr></tbody>`;
       document.getElementById("viewDetalleDiscos").innerHTML = html;
   }
 
   if (data.op && data.op.length > 0) {
       document.getElementById("viewOPContainer").style.display = "block";
-      var html = `<thead><tr><th>OP</th><th>DESCRIPCIÓN</th><th>ORDEN</th><th>TIPO</th><th>USUARIO</th><th>OBS</th></tr></thead><tbody>`;
+      var html = `<thead><tr><th>OP</th><th>Descripción</th><th>Orden</th><th>Tipo</th><th>Usuario</th><th>Obs</th></tr></thead><tbody>`;
       data.op.forEach(r => {
           html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.op}</td><td>${r.descripcion}</td><td style="font-weight:700;">${r.orden}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td></tr>`;
       });
@@ -1675,21 +1759,21 @@ var vistaHistorial = 'consecutivo'; // 'consecutivo' | 'orden'
 var sortHistorial = { campo: null, asc: true };
 
 var COLUMNAS_HISTORIAL = [
-  { titulo: 'COLABORADOR', campo: 'colaborador' },
-  { titulo: 'ÁREA CREACIÓN', campo: 'areaCreacion' },
-  { titulo: 'ORDEN', campo: '_orden' },
-  { titulo: 'FECHA', campo: 'fecha' },
-  { titulo: 'ÁREA SALIDA', campo: 'areaSalida' },
-  { titulo: 'ÁREA ENTRADA', campo: 'areaEntrada' },
-  { titulo: 'CANTIDAD', campo: '_cantidad' },
-  { titulo: 'MOTIVO', campo: 'motivo' },
-  { titulo: 'ESTADO', campo: 'estado' },
-  { titulo: 'CONSECUTIVO', campo: 'id' },
+  { titulo: 'Colaborador', campo: 'colaborador' },
+  { titulo: 'Área creación', campo: 'areaCreacion' },
+  { titulo: 'Orden', campo: '_orden' },
+  { titulo: 'Fecha', campo: 'fecha' },
+  { titulo: 'Área salida', campo: 'areaSalida' },
+  { titulo: 'Área entrada', campo: 'areaEntrada' },
+  { titulo: 'Cantidad', campo: '_cantidad' },
+  { titulo: 'Motivo', campo: 'motivo' },
+  { titulo: 'Estado', campo: 'estado' },
+  { titulo: 'Consecutivo', campo: 'id' },
 ];
 
 function toggleVistaHistorial() {
   vistaHistorial = (vistaHistorial === 'consecutivo') ? 'orden' : 'consecutivo';
-  document.getElementById('btnVistaHistorial').innerText = vistaHistorial === 'consecutivo' ? '🔀 VISTA: POR CONSECUTIVO' : '🔀 VISTA: POR ORDEN';
+  document.getElementById('btnVistaHistorial').innerText = vistaHistorial === 'consecutivo' ? '🔀 Vista: por consecutivo' : '🔀 Vista: por orden';
   renderTabla();
 }
 
@@ -1707,13 +1791,13 @@ function ejecutarConsulta() {
     params.set('fechaInicio', document.getElementById("filtroFechaInicio").value);
     params.set('fechaFin', document.getElementById("filtroFechaFin").value);
   }
-  document.getElementById("btnBuscar").innerText = "BUSCANDO...";
+  document.getElementById("btnBuscar").innerText = "Buscando...";
   custodiaApi('/custodia/api/consultar?' + params.toString()).then(function(res) {
-    document.getElementById("btnBuscar").innerText = "🔍 BUSCAR";
+    document.getElementById("btnBuscar").innerText = "🔍 Buscar";
     datosConsultaActual = res.data;
     renderTabla();
   }).catch(function(e) {
-    document.getElementById("btnBuscar").innerText = "🔍 BUSCAR";
+    document.getElementById("btnBuscar").innerText = "🔍 Buscar";
     document.getElementById("tablaBody").innerHTML = `<tr><td colspan="11" style="padding:40px;">${e.message}</td></tr>`;
   });
 }
@@ -1760,12 +1844,12 @@ function renderTabla() {
     th.onclick = function() { ordenarHistorial(col.campo); };
     thead.appendChild(th);
   });
-  let thAccion = document.createElement("th"); thAccion.innerText = "ACCIÓN"; thead.appendChild(thAccion);
+  let thAccion = document.createElement("th"); thAccion.innerText = "Acción"; thead.appendChild(thAccion);
 
   var tbody = document.getElementById("tablaBody"); tbody.innerHTML = "";
   document.getElementById("btnExportar").style.display = "inline-flex";
   if (filas.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" style="padding:50px; font-size:14px; color:var(--text-muted); font-weight:600;">NO SE ENCONTRARON REGISTROS.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="padding:50px; font-size:14px; color:var(--text-muted); font-weight:600;">No se encontraron registros.</td></tr>`;
     return;
   }
 
@@ -1774,7 +1858,7 @@ function renderTabla() {
     if (t.anulado) tr.className = "anulado-row";
     var badgeClass = t.anulado ? "badge-danger" : (t.confirmadoEntrada ? "badge-success" : "badge-warning");
     tr.innerHTML = `
-      <td>${t.colaborador}</td><td>${t.areaCreacion}</td><td style="font-weight:800; color:var(--brand-main);">${t._orden}</td>
+      <td>${nf(t.colaborador)}</td><td>${t.areaCreacion}</td><td style="font-weight:800; color:var(--brand-main);">${t._orden}</td>
       <td>${t.fecha}</td><td>${t.areaSalida}</td><td>${t.areaEntrada}</td>
       <td style="font-weight:800; color:var(--success);">${t._cantidad}</td><td>${t.motivo}</td>
       <td><span class="badge ${badgeClass}">${t.estado}</span></td>
@@ -1782,7 +1866,7 @@ function renderTabla() {
       <td></td>
     `;
     let tdAcciones = tr.lastElementChild; tdAcciones.style.whiteSpace = "nowrap";
-    let btnVer = document.createElement("button"); btnVer.className = "btn btn-ver"; btnVer.innerText = "👁️ VER DETALLE";
+    let btnVer = document.createElement("button"); btnVer.className = "btn btn-ver"; btnVer.innerText = "👁️ Ver detalle";
     btnVer.onclick = function() { abrirModalPreview(t); };
     tdAcciones.appendChild(btnVer);
     tbody.appendChild(tr);
@@ -1791,11 +1875,11 @@ function renderTabla() {
 
 function abrirModalPreview(t) {
   registroActivoModal = t;
-  document.getElementById("viewColaborador").innerText = t.colaborador || "";
+  document.getElementById("viewColaborador").innerText = nombrePropio(t.colaborador || "");
   document.getElementById("viewAreaCreacion").innerText = t.areaCreacion || "";
   document.getElementById("viewOrden").innerText = t.ordenes || "";
   document.getElementById("viewFecha").innerText = t.fecha || "";
-  document.getElementById("viewFechaHeader").innerText = "FECHA: " + (t.fecha || "");
+  document.getElementById("viewFechaHeader").innerText = "Fecha: " + (t.fecha || "");
   document.getElementById("viewHora").innerText = t.hora || "";
   document.getElementById("viewAreaSalida").innerText = t.areaSalida || "";
   document.getElementById("viewAreaEntrada").innerText = t.areaEntrada || "";
@@ -1818,7 +1902,7 @@ function cerrarModalPreview() { document.getElementById("modalDocumentoPreview")
 
 function ejecutarAnulacionDesdeModal() {
   if (!registroActivoModal) return;
-  var conf = confirm("⚠️ ¿ESTÁS SEGURO DE QUE DESEAS ANULAR ESTE REGISTRO?\nESTA ACCIÓN ES IRREVERSIBLE.");
+  var conf = confirm("⚠️ ¿Estás seguro de que deseas anular este registro?\nEsta acción es irreversible.");
   if (conf) {
     custodiaPostJSON('/custodia/api/traslados/' + registroActivoModal.id + '/anular').then(function(resp) {
        alert(resp.mensaje); cerrarModalPreview(); ejecutarConsulta();
@@ -1862,7 +1946,7 @@ document.addEventListener('click', function(e) {
 function cargarDashboardExistencias() {
   var fechaDesde = document.getElementById("dashFechaDesde").value;
   var fechaHasta = document.getElementById("dashFechaHasta").value;
-  var btn = document.getElementById("btnCalcularDash"); btn.innerText = "CARGANDO...";
+  var btn = document.getElementById("btnCalcularDash"); btn.innerText = "Cargando...";
   var lista = document.getElementById("listaCheckboxesBodegas");
   lista.innerHTML = "<li><i>Cargando áreas...</i></li>";
 
@@ -1871,7 +1955,7 @@ function cargarDashboardExistencias() {
   if (fechaHasta) params.set('fechaHasta', fechaHasta);
 
   custodiaApi('/custodia/api/dashboard?' + params.toString()).then(function(res) {
-    btn.innerText = "🔄 REFRESCAR";
+    btn.innerText = "🔄 Refrescar";
     datosDashboardGlobal = res.dataPorArea || {};
     var areas = Object.keys(datosDashboardGlobal).sort(function(a, b) {
       var ia = ORDEN_AREAS_DASHBOARD.indexOf(a), ib = ORDEN_AREAS_DASHBOARD.indexOf(b);
@@ -1902,7 +1986,7 @@ function cargarDashboardExistencias() {
     });
     primeraCargaDashboard = false;
     renderizarDashboardLocal();
-  }).catch(function(e) { btn.innerText = "🔄 REFRESCAR"; alert('Error: ' + e.message); });
+  }).catch(function(e) { btn.innerText = "🔄 Refrescar"; alert('Error: ' + e.message); });
 }
 
 function renderizarDashboardLocal() {
@@ -1911,7 +1995,7 @@ function renderizarDashboardLocal() {
 
   var tbody = document.getElementById("bodyTablaExistencias"); tbody.innerHTML = "";
   if (seleccionadas.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:40px; color:var(--text-muted);">SELECCIONA AL MENOS UN ÁREA.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:40px; color:var(--text-muted);">Selecciona al menos un área.</td></tr>';
     ["kpiMovimientos","kpiTrasladados","kpiInventario","kpiMermas"].forEach(id => document.getElementById(id).innerText = "0");
     ["kpiAreaMayorMov","kpiAreaCritica"].forEach(id => document.getElementById(id).innerText = "N/A");
     renderChartExistencias([], [], []);
@@ -1957,7 +2041,7 @@ function renderChartExistencias(labels, data, colores) {
   if (chartExistenciasInstance) chartExistenciasInstance.destroy();
   chartExistenciasInstance = new Chart(ctx, {
     type: 'bar',
-    data: { labels: labels, datasets: [{ label: 'Existencia neta', data: data, backgroundColor: colores }] },
+    data: { labels: labels.map(function(a) { return nombrePropio(a); }), datasets: [{ label: 'Existencia neta', data: data, backgroundColor: colores }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 }
@@ -1967,7 +2051,7 @@ function renderChartMotivos(totales) {
   if (chartMotivosInstance) chartMotivosInstance.destroy();
   chartMotivosInstance = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels: Object.keys(totales), datasets: [{ data: Object.values(totales), backgroundColor: ['#10B981', '#EF4444', '#F59E0B'] }] },
+    data: { labels: Object.keys(totales).map(function(m) { return nombrePropio(m, true); }), datasets: [{ data: Object.values(totales), backgroundColor: ['#10B981', '#EF4444', '#F59E0B'] }] },
     options: { responsive: true, maintainAspectRatio: false }
   });
 }
@@ -1988,12 +2072,12 @@ var datosBase = {}; var ordenesSeparadas = [];
 
 function desbloquearBotonGuardar() {
    var btn = document.getElementById("btnGuardar");
-   btn.disabled = false; btn.innerText = modoOrdenNuevaActivo ? "REGISTRAR ORDEN NUEVA" : "REGISTRAR TRASLADO";
+   btn.disabled = false; btn.innerText = modoOrdenNuevaActivo ? "Registrar orden nueva" : "Registrar traslado";
 }
 
 function prepararEnvio(e) {
   e.preventDefault();
-  var btn = document.getElementById("btnGuardar"); btn.disabled = true; btn.innerText = "VALIDANDO DATOS...";
+  var btn = document.getElementById("btnGuardar"); btn.disabled = true; btn.innerText = "Validando datos...";
   actualizarHora();
 
   datosBase = {
@@ -2010,9 +2094,9 @@ function prepararEnvio(e) {
   if (!esOrdenNueva) {
     // Orden existente: se elige de la lista de órdenes incompletas, sin validación de duplicado ni división por guiones.
     var ordenSel = document.getElementById("numeroOrdenSelect").value;
-    if (!ordenSel) { alert("SELECCIONA UNA ORDEN DE LA LISTA."); desbloquearBotonGuardar(); return; }
+    if (!ordenSel) { alert("Selecciona una orden de la lista."); desbloquearBotonGuardar(); return; }
     var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
-    if (isNaN(cantNumerica) || cantNumerica <= 0) { alert("INGRESA UNA CANTIDAD DE DISCOS VÁLIDA."); desbloquearBotonGuardar(); return; }
+    if (isNaN(cantNumerica) || cantNumerica <= 0) { alert("Ingresa una cantidad de discos válida."); desbloquearBotonGuardar(); return; }
     verificarCantidadOrden(ordenSel, cantNumerica, true).then(function(ok) {
       if (!ok) { desbloquearBotonGuardar(); return; }
       datosBase.numeroOrden = ordenSel; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase]);
@@ -2022,7 +2106,7 @@ function prepararEnvio(e) {
 
   var ordenRaw = document.getElementById("numeroOrdenNuevo").value.trim().toUpperCase();
   if (!/^[0-9\-\s]+$/.test(ordenRaw)) {
-    alert("⚠️ EN EL CAMPO NÚMERO DE ORDEN SOLO SE PERMITEN NÚMEROS, EL GUION (-) O ESPACIOS COMO SEPARADORES.");
+    alert("⚠️ En el campo número de orden solo se permiten números, el guion (-) o espacios como separadores.");
     document.getElementById("numeroOrdenNuevo").focus(); desbloquearBotonGuardar(); return;
   }
   ordenRaw = ordenRaw.replace(/\s+/g, "-"); while(ordenRaw.includes("--")) { ordenRaw = ordenRaw.replace("--", "-"); }
@@ -2030,13 +2114,13 @@ function prepararEnvio(e) {
 
   custodiaPostJSON('/custodia/api/verificar-orden', {numeroOrden: ordenRaw}).then(function(resultado) {
     if (resultado.existe) {
-      if (!confirm("⚠️ ATENCIÓN: EL NÚMERO DE ORDEN (O UNA DE LAS SUB-ÓRDENES) YA FUE REGISTRADA.\n¿DESEAS REGISTRAR UN NUEVO MOVIMIENTO PARA ESTA MISMA ORDEN?")) { desbloquearBotonGuardar(); return; }
+      if (!confirm("⚠️ Atención: el número de orden (o una de las sub-órdenes) ya fue registrado.\n¿Deseas registrar un nuevo movimiento para esta misma orden?")) { desbloquearBotonGuardar(); return; }
     }
     if (ordenRaw.includes("-")) {
       ordenesSeparadas = ordenRaw.split("-"); mostrarModal();
     } else {
       var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
-      if(isNaN(cantNumerica) || cantNumerica <= 0) { alert("INGRESA UNA CANTIDAD DE DISCOS VÁLIDA."); desbloquearBotonGuardar(); return; }
+      if(isNaN(cantNumerica) || cantNumerica <= 0) { alert("Ingresa una cantidad de discos válida."); desbloquearBotonGuardar(); return; }
       datosBase.numeroOrden = ordenRaw; datosBase.cantidadDiscos = cantNumerica;
       enviarAlServidor([datosBase], [{orden: ordenRaw, total: cantNumerica}]);
     }
@@ -2047,7 +2131,7 @@ function mostrarModal() {
   var lista = document.getElementById("listaOrdenes"); lista.innerHTML = "";
   for(var i = 0; i < ordenesSeparadas.length; i++) {
      var div = document.createElement("div"); div.className = "orden-item";
-     div.innerHTML = `<label>ORDEN #${ordenesSeparadas[i]}:</label> <input type='text' id='cant_${i}' required class='modal-input' placeholder='CANT. (= TOTAL DE LA ORDEN)' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">`;
+     div.innerHTML = `<label>Orden #${ordenesSeparadas[i]}:</label> <input type='text' id='cant_${i}' required class='modal-input' placeholder='CANT. (= TOTAL DE LA ORDEN)' oninput=\"this.value = this.value.replace(/\\./g, ',').replace(/[^0-9,]/g, '')\">`;
      lista.appendChild(div);
   }
   document.getElementById("modalCantidades").style.display = "flex";
@@ -2059,7 +2143,7 @@ function confirmarMultiples() {
   var arrDatos = []; var resumenExtra = [];
   for(var i = 0; i < ordenesSeparadas.length; i++) {
      var valNum = parseFloat(String(document.getElementById("cant_" + i).value).replace(',', '.'));
-     if(isNaN(valNum) || valNum <= 0) { alert("POR FAVOR, INGRESA UNA CANTIDAD VÁLIDA PARA LA ORDEN " + ordenesSeparadas[i]); return; }
+     if(isNaN(valNum) || valNum <= 0) { alert("Por favor, ingresa una cantidad válida para la orden " + ordenesSeparadas[i]); return; }
      resumenExtra.push({orden: ordenesSeparadas[i], total: valNum});
      var filaData = Object.assign({}, datosBase); filaData.numeroOrden = ordenesSeparadas[i]; filaData.cantidadDiscos = valNum;
      arrDatos.push(filaData);
@@ -2070,7 +2154,7 @@ function confirmarMultiples() {
 function enviarAlServidor(arregloDatos, resumenExtra) {
   var resumenFinal = obtenerDatosResumenTabla().concat(resumenExtra || []);
   var payload = { traslados: arregloDatos, resumen: resumenFinal, discos: obtenerDatosDiscosCalculados(), op: obtenerDatosOPTabla() };
-  var btn = document.getElementById("btnGuardar"); btn.innerText = "GUARDANDO REGISTROS...";
+  var btn = document.getElementById("btnGuardar"); btn.innerText = "Guardando registros...";
   custodiaPostJSON('/custodia/api/traslados', payload).then(function(respuesta) {
       alert(respuesta.mensaje); document.getElementById("formulario").reset();
       actualizarHora(); document.getElementById("fecha").value = new Date().toISOString().split('T')[0];

@@ -14,17 +14,17 @@
   .cp-panel { display:none; background:#fff; border-radius:0 0 10px 10px; padding:14px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .cp-panel.activo { display:block; }
   .cp-barra { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
-  .cp-ayuda { font-size:12px; color:var(--gris); max-width:780px; }
+  .cp-ayuda { font-size:13px; color:var(--gris); max-width:780px; }
   .cp-agregar { margin-bottom:12px; }
   .cp-agregar summary { list-style:none; cursor:pointer; display:inline-block; }
   .cp-agregar summary::-webkit-details-marker { display:none; }
   .cp-agregar[open] summary .btn { background:#e5e7eb; color:#111827; }
   .cp-form-nuevo { display:flex; gap:10px; flex-wrap:wrap; align-items:end; background:#f9fafb; border:1px solid #e5e7eb;
                    border-radius:8px; padding:10px 12px; margin-top:8px; }
-  .cp-form-nuevo label { display:block; font-size:12px; }
+  .cp-form-nuevo label { display:block; font-size:11px; }
   .cp-panel input, .cp-panel select { margin:0; padding:5px 8px; font-size:13px; }
   .cp-tabla { font-size:13px; }
-  .cp-tabla th { font-size:12px; padding:6px 8px; white-space:nowrap; }
+  .cp-tabla th { font-size:11px; padding:6px 8px; white-space:nowrap; }
   .cp-tabla td { padding:5px 8px; vertical-align:middle; }
   .cp-tabla tr.cp-inactivo td { color:#9ca3af; background:#fafafa; }
   .cp-tabla .cp-num-col { width:80px; }
@@ -52,7 +52,7 @@
 <div class="cp-panel" id="panel-managers">
   <div class="cp-barra">
     <div class="cp-ayuda">Empleados de Nuvia Smiles con acceso a Cambio de custodia. Al agregarlos pasan a rol "aprobador" si eran "empleado".
-      El área de salida es la que aparece por defecto en "Nueva orden" (sin asignar = DIR PRODUCCIÓN).</div>
+      El área de salida es la que aparece por defecto en "Nueva orden" (sin asignar = DIR Producción).</div>
   </div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar manager</span></summary>
@@ -60,18 +60,18 @@
       <div style="flex:2;min-width:240px">
         <label>Empleado (Nuvia Smiles)</label>
         <select name="empleado_id" required>
-          <option value="">SELECCIONAR...</option>
+          <option value="">Seleccionar...</option>
           {% for c in candidatos %}
-          <option value="{{ c.id }}">{{ c.nombre_completo }} — {{ c.cargo }}</option>
+          <option value="{{ c.id }}">{{ c.nombre_completo|nombre_propio }} — {{ c.cargo }}</option>
           {% endfor %}
         </select>
       </div>
       <div style="min-width:180px">
         <label>Área de salida</label>
         <select name="area_custodia">
-          <option value="">-- SIN ASIGNAR --</option>
+          <option value="">-- Sin asignar --</option>
           {% for a in areas_activas %}
-          <option value="{{ a }}">{{ a }}</option>
+          <option value="{{ a }}">{{ a|nombre_propio }}</option>
           {% endfor %}
         </select>
       </div>
@@ -82,21 +82,21 @@
     <tr><th>Manager</th><th>Cargo</th><th>Área de salida</th><th></th></tr>
     {% for m in managers %}
     <tr>
-      <td>{{ m.nombre_completo }}</td>
+      <td>{{ m.nombre_completo|nombre_propio }}</td>
       <td>{{ m.cargo }}</td>
       <td>
         <form id="f-man-{{ m.id }}" method="post" action="/custodia/parametros/managers/{{ m.id }}"></form>
         <select name="area_custodia" form="f-man-{{ m.id }}">
-          <option value="">-- SIN ASIGNAR --</option>
+          <option value="">-- Sin asignar --</option>
           {% for a in areas_activas %}
-          <option value="{{ a }}" {{ 'selected' if m.area_custodia == a }}>{{ a }}</option>
+          <option value="{{ a }}" {{ 'selected' if m.area_custodia == a }}>{{ a|nombre_propio }}</option>
           {% endfor %}
         </select>
       </td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-man-{{ m.id }}">Guardar</button>
         <form class="inline" method="post" action="/custodia/parametros/managers/{{ m.id }}/quitar"
-              onsubmit="return confirm('¿Quitar a {{ m.nombre_completo }} como manager de Cambio de custodia?')">
+              onsubmit="return confirm('¿Quitar a {{ m.nombre_completo|nombre_propio }} como manager de Cambio de custodia?')">
           <button class="btn rojo mini">Quitar</button></form>
       </td>
     </tr>
@@ -115,7 +115,7 @@
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar área</span></summary>
     <form method="post" action="/custodia/parametros/areas" class="cp-form-nuevo">
-      <div style="flex:2;min-width:200px"><label>Nombre</label><input name="nombre" required placeholder="Ej: PULIDO"></div>
+      <div style="flex:2;min-width:200px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Pulido"></div>
       <div style="width:130px"><label>🟡 Alerta (h)</label><input name="alerta_horas_advertencia" type="number" min="0" value="24"></div>
       <div style="width:130px"><label>🔴 Alerta (h)</label><input name="alerta_horas_critica" type="number" min="0" value="48"></div>
       <div><label><input type="checkbox" name="es_inventario" value="1" checked style="width:auto"> Inventario</label></div>
@@ -128,7 +128,7 @@
     <tr class="{{ '' if a.activo else 'cp-inactivo' }}">
       <td>
         <form id="f-area-{{ a.id }}" method="post" action="/custodia/parametros/areas/{{ a.id }}/editar"></form>
-        <input name="nombre" value="{{ a.nombre }}" required form="f-area-{{ a.id }}">
+        <input name="nombre" value="{{ a.nombre|nombre_propio }}" required form="f-area-{{ a.id }}">
       </td>
       <td><input name="alerta_horas_advertencia" type="number" min="0" value="{{ a.alerta_horas_advertencia }}" form="f-area-{{ a.id }}"></td>
       <td><input name="alerta_horas_critica" type="number" min="0" value="{{ a.alerta_horas_critica }}" form="f-area-{{ a.id }}"></td>
@@ -187,7 +187,7 @@
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar motivo</span></summary>
     <form method="post" action="/custodia/parametros/motivos" class="cp-form-nuevo">
-      <div style="flex:2;min-width:240px"><label>Nombre</label><input name="nombre" required placeholder="Ej: PRODUCCIÓN NORMAL"></div>
+      <div style="flex:2;min-width:240px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Producción normal"></div>
       <div><button class="btn mini">Agregar</button></div>
     </form>
   </details>
@@ -197,7 +197,7 @@
     <tr class="{{ '' if m.activo else 'cp-inactivo' }}">
       <td>
         <form id="f-motivo-{{ m.id }}" method="post" action="/custodia/parametros/motivos/{{ m.id }}/editar"></form>
-        <input name="nombre" value="{{ m.nombre }}" required form="f-motivo-{{ m.id }}">
+        <input name="nombre" value="{{ m.nombre|nombre_propio(true) }}" required form="f-motivo-{{ m.id }}">
       </td>
       <td><input name="orden" type="number" value="{{ m.orden }}" form="f-motivo-{{ m.id }}"></td>
       <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activo' if m.activo else 'Inactivo' }}</span></td>

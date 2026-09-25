@@ -19,6 +19,16 @@ nav .usuario { margin-left:auto; font-size:13px; color:#9ca3af; }
 .nav-sep { color:#4b5563; }
 .nav-ruta { color:#6b7280; font-size:14px; }
 .nav-ruta a:last-child { color:#fff; font-weight:600; }
+/* Barra de Inventario: fila 1 = logo, ruta, Módulos y usuario; fila 2 = opciones del submódulo. */
+nav.nav-inventario { padding:8px 24px 0; row-gap:0; }
+nav.nav-inventario .marca img { height:44px; padding:6px 12px; }
+nav.nav-inventario .nav-ruta { font-size:15px; white-space:nowrap; }
+nav.nav-inventario > a[href="/"] { margin-left:auto; }
+nav.nav-inventario .usuario { margin-left:0; white-space:nowrap; }
+nav.nav-inventario .nav-sub { order:10; flex-basis:100%; display:flex; align-items:center; flex-wrap:wrap; gap:4px 20px;
+                              margin-top:8px; padding:6px 0; border-top:1px solid #1f2937; }
+nav.nav-inventario .nav-sub a { padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+nav.nav-inventario .nav-sub a.activo { color:#fff; border-bottom-color:#60a5fa; }
 .badge-alertas { background:var(--rojo); color:#fff; border-radius:999px; font-size:11px; font-weight:800; padding:1px 6px; min-width:16px; display:inline-block; text-align:center; }
 main { max-width:1100px; margin:24px auto; padding:0 16px; }
 h1 { font-size:22px; } h2 { font-size:17px; }
