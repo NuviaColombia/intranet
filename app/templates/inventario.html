@@ -1,17 +1,23 @@
 {% extends "base.html" %}
 {% block contenido %}
-<h1>Inventario</h1>
+<h1>Producción</h1>
 <p style="color:var(--gris)">Elige un submódulo para continuar</p>
 <div class="modulos">
-  <a class="modulo" href="/custodia">
-    <span class="modulo-icono">🔄</span>
-    <span class="modulo-nombre">Cambio de custodia</span>
-    <span class="modulo-desc">Traslados de material entre áreas</span>
+  {# Tarjetas generadas desde app/produccion.py (SUBMODULOS_PRODUCCION) #}
+  {% for s in submodulos_produccion %}
+  {% if s.activo %}
+  <a class="modulo" href="{{ s.url }}">
+    <span class="modulo-icono">{{ s.icono }}</span>
+    <span class="modulo-nombre">{{ s.nombre }}</span>
+    <span class="modulo-desc">{{ s.descripcion }}</span>
   </a>
+  {% else %}
   <div class="modulo disabled" title="Próximamente">
-    <span class="modulo-icono">📊</span>
-    <span class="modulo-nombre">Seguimiento de consumo</span>
+    <span class="modulo-icono">{{ s.icono }}</span>
+    <span class="modulo-nombre">{{ s.nombre }}</span>
     <span class="modulo-desc">Próximamente</span>
   </div>
+  {% endif %}
+  {% endfor %}
 </div>
 {% endblock %}
