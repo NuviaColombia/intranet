@@ -52,13 +52,13 @@
   .paste-zone-sm:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
 
   #custodia-app table.form-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
-  #custodia-app table.form-table td, #custodia-app table.form-table th { border: 1px solid var(--border-soft); border-top: none; border-left: none; padding: 0; height: 46px; vertical-align: middle; background: var(--bg-surface); }
+  #custodia-app table.form-table td, #custodia-app table.form-table th { border: 1px solid var(--border-soft); border-top: none; border-left: none; padding: 0; height: 36px; vertical-align: middle; background: var(--bg-surface); }
   #custodia-app table.form-table td:first-child:not(.empty-cell) { border-left: 1px solid var(--border-soft); }
   #custodia-app table.form-table tr:first-child td:not(.empty-cell) { border-top: 1px solid var(--border-soft); }
 
   .empty-cell { border: none !important; background: transparent !important; box-shadow: none !important; }
 
-  .logo-cell { text-align: center; background: var(--bg-surface); padding: 15px !important; }
+  .logo-cell { text-align: center; background: var(--bg-surface); padding: 6px 10px !important; }
   .logo-nuvia { font-size: 26px; font-weight: 900; letter-spacing: 4px; margin-bottom: 2px; color: var(--brand-main);}
   .logo-sub { font-size: 11px; letter-spacing: 2px; font-weight: 700; color: var(--text-muted); }
   .title-cell { text-align: center; font-weight: 800; font-size: 16px; color: var(--brand-main);}
@@ -68,7 +68,7 @@
 
   .input-cell { position: relative; transition: background 0.2s; }
   .input-cell:focus-within { background-color: #F0F9FF; }
-  .input-cell input, .input-cell select { width: 100%; height: 100%; border: none; padding: 10px 15px; font-size: 14px; text-align: right; font-weight: 700; color: var(--brand-main); background-color: transparent; text-transform: uppercase; outline: none; cursor: pointer;}
+  .input-cell input, .input-cell select { width: 100%; height: 100%; border: none; padding: 6px 12px; font-size: 14px; text-align: right; font-weight: 700; color: var(--brand-main); background-color: transparent; text-transform: uppercase; outline: none; cursor: pointer;}
   .input-cell select { text-transform: none; }
   .input-cell input::placeholder { color: #94A3B8; font-weight: 500; }
   .input-cell input[readonly] { color: var(--text-muted); cursor: not-allowed; }
@@ -174,7 +174,7 @@
         <table class="form-table" style="margin-bottom: 25px;">
           <tr>
             <td rowspan="3" class="logo-cell" style="width: 16%; border-top-left-radius: 12px; border-bottom-left-radius: 12px;">
-              {% if logo %}<img src="{{ logo }}" alt="Logo" style="max-width: 100%; max-height: 70px; object-fit: cover; border-radius: 8px;">
+              {% if logo %}<img src="{{ logo }}" alt="Logo" style="max-width: 100%; max-height: 52px; object-fit: contain; border-radius: 8px;">
               {% else %}<div class="logo-nuvia">Nuvia</div><div class="logo-sub">Smiles Colombia S.A.S</div>{% endif %}
             </td>
             <td colspan="4" rowspan="2" class="title-cell" style="border-top: 1px solid var(--border-soft);">Cambio de custodia general</td>
@@ -207,8 +207,6 @@
           <tr>
             <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">Fecha</td>
             <td class="input-cell"><input type="date" id="fecha" required></td>
-            <td class="label-cell">Hora</td>
-            <td class="input-cell"><input type="time" id="hora" readonly required></td>
             <td class="label-cell">Área salida</td>
             <td class="input-cell">
               <select id="areaSalida" required onchange="actualizarAreaEntradaDefault(); validarCantidadInline();">
@@ -216,15 +214,17 @@
                 {% for a in areas %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}
               </select>
             </td>
-          </tr>
-          <tr>
-            <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">Área entrada</td>
-            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;">
+            <td class="label-cell">Área entrada</td>
+            <td class="input-cell">
               <select id="areaEntrada" required>
                 <option value="">Seleccionar...</option>
                 {% for a in areas %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}
               </select>
             </td>
+          </tr>
+          <tr>
+            <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">Hora</td>
+            <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="time" id="hora" readonly required></td>
             <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Cantidad discos</td>
             <td class="input-cell" style="border-bottom: 1px solid var(--border-soft) !important;"><input type="text" id="cantidadDiscos" oninput="this.value = this.value.replace(/\./g, ',').replace(/[^0-9,]/g, '')" onblur="validarCantidadInline()" required placeholder="0,00"></td>
             <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Motivo</td>
@@ -1513,6 +1513,16 @@ function imprimirHtmlEnIframe(htmlPrint, apaisado) {
   }, 500);
 }
 
+// Firmas del documento impreso: correo Zoho de quien entrega (área salida) y de quien recibe (área entrada).
+function firmasHtml(t) {
+  var entrega = (t && t.entregaEmail) || "";
+  var recibe = (t && t.recibeEmail) || "Pendiente de confirmación";
+  return `<table class="firmas-table"><tr>
+    <td><div class="firma-nombre">${(t && t.entregaNombre) || ""}</div>_________________________________<br>Firma entregado:<div class="firma-correo">${entrega}</div></td>
+    <td><div class="firma-nombre">${(t && t.recibeNombre) || ""}</div>_________________________________<br>Firma recibido:<div class="firma-correo">${recibe}</div></td>
+  </tr></table>`;
+}
+
 function imprimirTicketIndividual() {
   var consecutivo = document.getElementById("viewConsecutivo").innerText;
   var colaborador = document.getElementById("viewColaborador").innerText;
@@ -1528,7 +1538,7 @@ function imprimirTicketIndividual() {
   var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
   var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0;">Nuvia</h2>`;
 
-  var fechaAImprimir = document.getElementById("viewFechaHeader").innerText || fecha;
+  var fechaAImprimir = (document.getElementById("viewFechaHeader").innerText || fecha).replace(/^Fecha:\s*/, "");
 
   var htmlResumen = document.getElementById("viewResumenGeneral").innerHTML || "";
   var htmlDiscos = document.getElementById("viewDetalleDiscos").innerHTML || "";
@@ -1549,17 +1559,19 @@ function imprimirTicketIndividual() {
             .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
             .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
             .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
-            .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #475569; -webkit-print-color-adjust: exact; }
-            .grid-value { font-weight: 700; text-align: right; width: 17%; }
+            .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #1E293B; -webkit-print-color-adjust: exact; }
+            .grid-value { font-weight: 400; text-align: right; width: 17%; }
             .grid-cons-label { background-color: #F8FAFC !important; font-weight: 700; -webkit-print-color-adjust: exact; }
             .grid-cons-value { font-weight: 800; color: #EF4444 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
-            .grid-cant-value { font-weight: 800; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
+            .grid-cant-value { font-weight: 400; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
             .consulta-tabla { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
             .consulta-tabla th { background-color: #1A365D !important; color: white !important; font-weight: 700; text-align: center; padding: 8px; border: 1px solid #CBD5E1; -webkit-print-color-adjust: exact; }
             .consulta-tabla td { padding: 6px 8px; text-align: center; border: 1px solid #CBD5E1; }
             .fila-totales td { background-color: #F0F4F8 !important; font-weight: 800; color: #1A365D !important; border-top: 1px solid #CBD5E1 !important; -webkit-print-color-adjust: exact; }
             .firmas-table { width: 100%; margin-top: 40px; margin-bottom: 40px; font-size: 12px; font-weight: 700; page-break-inside: avoid; }
+            .firma-correo { font-weight: 400; font-size: 11px; color: #475569; margin-top: 3px; }
             .firmas-table td { width: 33.3%; text-align: center; padding-top: 40px; }
+            .firma-nombre { font-weight: 400; font-size: 12px; min-height: 16px; margin-bottom: 2px; }
             tr { page-break-inside: avoid; }
           }
         </style>
@@ -1574,12 +1586,12 @@ function imprimirTicketIndividual() {
               <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">Consecutivo</td><td class="grid-cons-value">${consecutivo}</td></tr>
               <tr><td class="grid-label">Colaborador</td><td class="grid-value">${colaborador}</td><td class="grid-label">Número de orden</td><td class="grid-value">${orden}</td><td class="grid-label">Área salida</td><td class="grid-value">${areaSalida}</td></tr>
               <tr><td class="grid-label">Fecha</td><td class="grid-value">${fecha}</td><td class="grid-label">Área creación</td><td class="grid-value">${areaCreacion}</td><td class="grid-label">Área entrada</td><td class="grid-value">${areaEntrada}</td></tr>
-              <tr><td class="grid-label">Hora</td><td class="grid-value">${hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 800;">${motivo}</td></tr>
+              <tr><td class="grid-label">Hora</td><td class="grid-value">${hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 400;">${motivo}</td></tr>
           </table>
           ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
           ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
 
-          <table class="firmas-table"><tr><td>_________________________________<br>Firma entregado:</td><td>_________________________________<br>Firma recibido:</td></tr></table>
+          ${firmasHtml(registroActivoModal)}
 
           ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
       </body>
@@ -1660,13 +1672,13 @@ function generarHtmlDocumentoRango(tickets) {
         </table>
         <table class="grid-table">
             <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">Consecutivo</td><td class="grid-cons-value">${String(t.id).padStart(4,'0')}</td></tr>
-            <tr><td class="grid-label">Colaborador</td><td class="grid-value">${nombrePropio(t.colaborador)}</td><td class="grid-label">Número de orden</td><td class="grid-value">${t.ordenes}</td><td class="grid-label">Área salida</td><td class="grid-value">${t.areaSalida}</td></tr>
-            <tr><td class="grid-label">Fecha</td><td class="grid-value">${t.fecha}</td><td class="grid-label">Área creación</td><td class="grid-value">${t.areaCreacion}</td><td class="grid-label">Área entrada</td><td class="grid-value">${t.areaEntrada}</td></tr>
-            <tr><td class="grid-label">Hora</td><td class="grid-value">${t.hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${t.cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 800;">${t.estado}</td></tr>
+            <tr><td class="grid-label">Colaborador</td><td class="grid-value">${nombrePropio(t.colaborador)}</td><td class="grid-label">Número de orden</td><td class="grid-value">${t.ordenes}</td><td class="grid-label">Área salida</td><td class="grid-value">${nombrePropio(t.areaSalida)}</td></tr>
+            <tr><td class="grid-label">Fecha</td><td class="grid-value">${t.fecha}</td><td class="grid-label">Área creación</td><td class="grid-value">${nombrePropio(t.areaCreacion)}</td><td class="grid-label">Área entrada</td><td class="grid-value">${nombrePropio(t.areaEntrada)}</td></tr>
+            <tr><td class="grid-label">Hora</td><td class="grid-value">${t.hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${t.cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 400;">${t.estado}</td></tr>
         </table>
         ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
         ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
-        <table class="firmas-table"><tr><td>_________________________________<br>Firma entregado:</td><td>_________________________________<br>Firma recibido:</td></tr></table>
+        ${firmasHtml(t)}
         ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
       </div>
     `;
@@ -1687,17 +1699,19 @@ function generarHtmlDocumentoRango(tickets) {
         .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
         .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
         .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
-        .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #475569; -webkit-print-color-adjust: exact; }
-        .grid-value { font-weight: 700; text-align: right; width: 17%; }
+        .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #1E293B; -webkit-print-color-adjust: exact; }
+        .grid-value { font-weight: 400; text-align: right; width: 17%; }
         .grid-cons-label { background-color: #F8FAFC !important; font-weight: 700; -webkit-print-color-adjust: exact; }
         .grid-cons-value { font-weight: 800; color: #EF4444 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
-        .grid-cant-value { font-weight: 800; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
+        .grid-cant-value { font-weight: 400; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
         .consulta-tabla { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
         .consulta-tabla th { background-color: #1A365D !important; color: white !important; font-weight: 700; text-align: center; padding: 8px; border: 1px solid #CBD5E1; -webkit-print-color-adjust: exact; }
         .consulta-tabla td { padding: 6px 8px; text-align: center; border: 1px solid #CBD5E1; }
         .fila-totales td { background-color: #F0F4F8 !important; font-weight: 800; color: #1A365D !important; border-top: 1px solid #CBD5E1 !important; -webkit-print-color-adjust: exact; }
         .firmas-table { width: 100%; margin-top: 40px; margin-bottom: 20px; font-size: 12px; font-weight: 700; page-break-inside: avoid; }
+            .firma-correo { font-weight: 400; font-size: 11px; color: #475569; margin-top: 3px; }
         .firmas-table td { width: 33.3%; text-align: center; padding-top: 40px; }
+            .firma-nombre { font-weight: 400; font-size: 12px; min-height: 16px; margin-bottom: 2px; }
         tr { page-break-inside: avoid; }
       }
     </style></head><body>${paginas}</body></html>

@@ -5,6 +5,7 @@ from sqlalchemy import func
 from .models import Empleado
 from .models_custodia import (CustodiaTraslado, CustodiaOrdenLinea, CustodiaResumen, CustodiaDiscos, CustodiaOP,
                               CustodiaFactorDisco, CustodiaArea, CustodiaMotivo)
+from .formato import nombre_propio
 
 # Legado: valores de prueba/migración que nunca fueron áreas de producción reales,
 # no administrables desde Parámetros (a diferencia de CustodiaArea.es_inventario).
@@ -189,6 +190,14 @@ def consultar(db: Session, tipo: str, area_salida: str = "", estado: str = "acti
     return q.all()
 
 
+def _nombre_firma(emp) -> str:
+    """Primer nombre y primer apellido del empleado que firma (ej. 'Carlos Barreto')."""
+    if not emp:
+        return ""
+    partes = [(emp.nombres or "").split()[:1], (emp.apellidos or "").split()[:1]]
+    return nombre_propio(" ".join(p[0] for p in partes if p))
+
+
 def serializar_traslado(t: CustodiaTraslado) -> dict:
     return {
         "id": t.id, "colaborador": t.colaborador, "idColaborador": t.id_colaborador,
@@ -198,6 +207,11 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
         "hora": t.hora.strftime("%H:%M") if t.hora else "", "usuario": t.usuario,
         "areaSalida": t.area_salida, "areaEntrada": t.area_entrada, "motivo": t.motivo,
         "estado": t.estado_texto, "anulado": t.anulado, "confirmadoEntrada": t.confirmado_entrada,
+        # Firmas del documento: entrega = quien registró (área salida); recibe = quien confirmó (área entrada).
+        "entregaEmail": t.creado_por.email if t.creado_por else "",
+        "entregaNombre": _nombre_firma(t.creado_por),
+        "recibeEmail": t.confirmado_por.email if (t.confirmado_entrada and t.confirmado_por) else "",
+        "recibeNombre": _nombre_firma(t.confirmado_por) if t.confirmado_entrada else "",
     }
 
 

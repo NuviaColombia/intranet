@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Solicitudes Nuvia</title>
-  <link rel="stylesheet" href="/static/style.css?v=9">
+  <link rel="stylesheet" href="/static/style.css?v=13">
 </head>
 <body>
 {% if user %}
@@ -28,7 +28,7 @@
   {% endif %}
   {% if es_custodia %}
   <span class="nav-ruta"><a href="/inventario">📦 Inventario</a> › <a href="/custodia">Cambio de custodia</a></span>
-  {# Segunda fila: opciones del submódulo (ver .nav-inventario en style.css) #}
+  {# Opciones del submódulo (ver .nav-inventario en style.css) #}
   {% set en_parametros = request.url.path == '/custodia/parametros' %}
   <div class="nav-sub">
     <a href="/custodia" class="custodia-tab" data-tab="nueva-orden">Nueva orden</a>
