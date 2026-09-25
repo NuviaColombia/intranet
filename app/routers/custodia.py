@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
 from ..models import Empleado
-from ..models_custodia import CustodiaTraslado
+from ..models_custodia import CustodiaTraslado, CustodiaArea, CustodiaMotivo
 from ..auth import require_modulo
 from ..main_templates import templates
 from .. import services_custodia as sc
@@ -21,7 +21,10 @@ async def pagina(request: Request, user: Empleado = Depends(require_modulo("cust
     return templates.TemplateResponse(request, "custodia.html",
                                       {"user": user, "areas": sc.areas_disponibles(db),
                                        "motivos": sc.motivos_disponibles(db), "es_custodia": True,
-                                       "custodia_pendientes": len(sc.pendientes_entrada(db))})
+                                       "custodia_pendientes": len(sc.pendientes_entrada(db)),
+                                       # Todas (incluidas inactivas), para dar formato a nombres de registros viejos.
+                                       "formato_areas": [a.nombre for a in db.query(CustodiaArea.nombre)],
+                                       "formato_motivos": [m.nombre for m in db.query(CustodiaMotivo.nombre)]})
 
 
 # ---------- Esquemas ----------

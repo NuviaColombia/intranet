@@ -31,7 +31,8 @@ async def parametros(request: Request, user: Empleado = Depends(require_admin), 
                                       {"user": user, "managers": managers, "candidatos": candidatos,
                                        "areas": areas, "motivos": motivos, "discos": discos,
                                        "areas_activas": sc.areas_disponibles(db),
-                                       "es_custodia": True, "msg": request.query_params.get("msg")})
+                                       "es_custodia": True, "msg": request.query_params.get("msg"),
+                                       "custodia_pendientes": len(sc.pendientes_entrada(db))})
 
 
 # ---------- Managers ----------
