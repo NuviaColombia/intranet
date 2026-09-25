@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Solicitudes Nuvia</title>
-  <link rel="stylesheet" href="/static/style.css?v=7">
+  <link rel="stylesheet" href="/static/style.css?v=8">
 </head>
 <body>
 {% if user %}
@@ -27,15 +27,19 @@
   {% endif %}
   {% endif %}
   {% if es_custodia %}
-  <a href="/inventario">📦 Inventario</a>
-  <a href="/custodia" class="custodia-tab" data-tab="existencias">Dashboard</a>
+  <span class="nav-ruta"><a href="/inventario">📦 Inventario</a> › <a href="/custodia">Cambio de custodia</a></span>
+  <span class="nav-sep">│</span>
   <a href="/custodia" class="custodia-tab" data-tab="nueva-orden">Nueva orden</a>
-  <a href="/custodia" class="custodia-tab activo" data-tab="registro">Registro de traslado</a>
-  <a href="/custodia" class="custodia-tab" data-tab="aprobaciones">Aprobaciones</a>
-  <a href="/custodia" class="custodia-tab" data-tab="consulta">Historial</a>
+  <a href="/custodia" class="custodia-tab activo" data-tab="registro">Nuevo registro</a>
+  <span class="nav-sep">│</span>
+  <a href="/custodia" class="custodia-tab" data-tab="aprobaciones">Aprobaciones/Firmas{% if custodia_pendientes %} <span class="badge-alertas">{{ custodia_pendientes }}</span>{% endif %}</a>
+  <span class="nav-sep">│</span>
+  <a href="/custodia" class="custodia-tab" data-tab="existencias">Dashboard</a>
   <a href="/custodia" class="custodia-tab" data-tab="activas">Estado órdenes</a>
+  <a href="/custodia" class="custodia-tab" data-tab="consulta">Consulta traslado</a>
   {% if user.rol in ('admin', 'superadmin') %}
-  <a href="/custodia/parametros">Parámetros</a>
+  <span class="nav-sep">│</span>
+  <a href="/custodia/parametros">⚙️ Parámetros</a>
   {% endif %}
   {% endif %}
   {% if es_design %}

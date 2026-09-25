@@ -20,7 +20,8 @@ async def pagina(request: Request, user: Empleado = Depends(require_modulo("cust
                  db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "custodia.html",
                                       {"user": user, "areas": sc.areas_disponibles(db),
-                                       "motivos": sc.motivos_disponibles(db), "es_custodia": True})
+                                       "motivos": sc.motivos_disponibles(db), "es_custodia": True,
+                                       "custodia_pendientes": len(sc.pendientes_entrada(db))})
 
 
 # ---------- Esquemas ----------
