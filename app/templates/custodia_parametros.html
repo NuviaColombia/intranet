@@ -32,6 +32,7 @@
   .cp-estado { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; }
   .cp-estado.si { background:#dcfce7; color:var(--verde); }
   .cp-estado.no { background:#e5e7eb; color:var(--gris); }
+  .cp-aviso-cargo { font-size:11px; color:var(--ambar); margin-top:2px; }
   .cp-vacio { text-align:center; color:var(--gris); padding:18px !important; }
 </style>
 
@@ -79,12 +80,12 @@
     </form>
   </details>
   <table class="cp-tabla">
-    <tr><th>Manager</th><th>Cargo en Producción</th><th>Área asignada</th><th></th></tr>
+    <tr><th>Manager</th><th>Cargo</th><th>Área asignada</th><th></th></tr>
     {% for m in managers %}
     <tr>
       <td>{{ m.nombre_completo|nombre_propio }}</td>
-      <td>{% if m.area_custodia %}<b>Manager {{ m.area_custodia|nombre_propio }}</b>{% elif m.rol in ('admin', 'superadmin') %}<b>Administrador</b>{% else %}<span style="color:var(--ambar)">Sin área asignada</span>{% endif %}
-        <div style="font-size:11px; color:var(--gris);">En People: {{ m.cargo }}</div></td>
+      <td>{{ m.cargo }}
+        {% if not cargo_coincide[m.id] %}<div class="cp-aviso-cargo" title="El cargo viene de People; la firma y los avisos usan el área asignada.">⚠️ No coincide con el área asignada ({{ m.area_custodia|nombre_propio }})</div>{% endif %}</td>
       <td>
         <form id="f-man-{{ m.id }}" method="post" action="/custodia/parametros/managers/{{ m.id }}"></form>
         <select name="area_custodia" form="f-man-{{ m.id }}">
