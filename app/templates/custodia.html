@@ -442,42 +442,30 @@
 
     <!-- SECCIÓN 4: DASHBOARD -->
     <div id="sec-existencias" class="content-section">
+      <!-- Filtros del balance: alimentan los gráficos y la tabla -->
       <div class="consulta-filtros">
-        <div style="display:flex; align-items:center; gap:8px;"><label>Desde:</label>
-          <input type="date" id="dashFechaDesde" onchange="cargarDashboardExistencias()">
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;"><label>Hasta:</label>
-          <input type="date" id="dashFechaHasta" onchange="cargarDashboardExistencias()">
+        <h4 style="margin:0; color:var(--brand-main); font-size:16px; font-weight:800;">📋 Balance de inventarios <span id="dashTituloCorte" style="font-weight:600; color:var(--text-muted);"></span></h4>
+        <div style="display:flex; align-items:center; gap:8px; margin-left:auto;"><label>Fecha corte:</label>
+          <input type="date" id="dashFechaCorte" onchange="cargarDashboardExistencias()">
         </div>
         <div id="dropdownBodegas" class="dropdown-check-list" tabindex="100">
           <span class="anchor" onclick="toggleDropdownBodegas()">🎛️ Seleccionar áreas</span>
           <ul class="items" id="listaCheckboxesBodegas"><li><i>Cargando áreas...</i></li></ul>
         </div>
         <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarDashboardExistencias()" id="btnCalcularDash">🔄 Refrescar</button>
-        <button type="button" class="btn" style="background:var(--success); margin-left: auto;" onclick="exportarResumenExistenciasExcel()">📥 Exportar tabla</button>
-      </div>
-
-      <div class="dash-kpi-container">
-        <div class="kpi-card"><h5>🔄 Movimientos</h5><p id="kpiMovimientos">0</p></div>
-        <div class="kpi-card" style="border-left-color: var(--brand-accent);"><h5>📦 Total trasladados</h5><p id="kpiTrasladados" style="color: var(--brand-accent);">0</p></div>
-        <div class="kpi-card" style="border-left-color: var(--success);"><h5>⚖️ Balance neto actual</h5><p id="kpiInventario" style="color: var(--success);">0</p></div>
-
-        <div class="kpi-card" style="border-left-color: var(--warning);"><h5>🏆 Área mayor movimiento</h5><p id="kpiAreaMayorMov" style="color: var(--warning); font-size:20px;">N/A</p></div>
-        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>🚨 Área más crítica</h5><p id="kpiAreaCritica" style="color: var(--danger); font-size:20px;">N/A</p></div>
-        <div class="kpi-card" style="border-left-color: var(--danger);"><h5>⚠️ Total mermas</h5><p id="kpiMermas" style="color: var(--danger);">0</p></div>
+        <button type="button" class="btn" style="background:var(--success);" onclick="descargarBalancePdf()" id="btnPdfBalance">📄 Descargar PDF</button>
       </div>
 
       <div class="dash-grid-full">
-        <div class="dash-panel"><h4>📈 Existencias netas</h4><div style="position: relative; height:320px;"><canvas id="chartExistencias"></canvas></div></div>
-        <div class="dash-panel"><h4>🍩 Producción vs. mermas</h4><div style="position: relative; height:320px;"><canvas id="chartMotivos"></canvas></div></div>
+        <div class="dash-panel"><h4>📈 Existencias netas (áreas seleccionadas)</h4><div style="position: relative; height:320px;"><canvas id="chartExistencias"></canvas></div></div>
+        <div class="dash-panel"><h4>🍩 Motivos de salida (áreas seleccionadas)</h4><div style="position: relative; height:320px;"><canvas id="chartMotivos"></canvas></div></div>
       </div>
 
       <div class="dash-panel">
-        <h4>📋 Balance general de inventarios</h4>
-        <div style="overflow-x:auto; max-height:400px; border-radius: 12px; border: 1px solid var(--border-soft);">
+        <div style="overflow-x:auto; max-height:520px; border-radius: 12px; border: 1px solid var(--border-soft);">
           <table class="consulta-tabla" id="tablaExistenciasFull" style="min-width: 100%;">
-            <thead><tr><th>Área de producción</th><th>Existencias iniciales</th><th>Entradas</th><th>Salidas</th><th>Existencia neta</th></tr></thead>
-            <tbody id="bodyTablaExistencias"><tr><td colspan="5" style="padding: 40px; color:var(--text-muted);">Selecciona un rango y filtra.</td></tr></tbody>
+            <thead><tr><th>Área de producción</th><th>Entradas totales</th><th>Salidas totales</th><th>Existencia neta</th></tr></thead>
+            <tbody id="bodyTablaExistencias"><tr><td colspan="4" style="padding: 40px; color:var(--text-muted);">Selecciona una fecha de corte.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -906,8 +894,7 @@ window.onload = function() {
   var hoy = new Date();
   document.getElementById("fecha").value = hoy.toISOString().split('T')[0];
   document.getElementById("fechaVersionHeader").innerText = hoy.toLocaleDateString('es-CO');
-  document.getElementById("dashFechaDesde").value = formatoFechaLocal(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
-  document.getElementById("dashFechaHasta").value = formatoFechaLocal(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
+  document.getElementById("dashFechaCorte").value = formatoFechaLocal(hoy);
   cargarConsecutivo();
   aplicarModoOrden(false);
   renderTablaResumen();
@@ -1958,15 +1945,15 @@ document.addEventListener('click', function(e) {
 });
 
 function cargarDashboardExistencias() {
-  var fechaDesde = document.getElementById("dashFechaDesde").value;
-  var fechaHasta = document.getElementById("dashFechaHasta").value;
+  // Balance acumulado desde el inicio hasta la fecha de corte (inclusive).
+  var fechaCorte = document.getElementById("dashFechaCorte").value;
+  document.getElementById("dashTituloCorte").innerText = fechaCorte ? "(al corte: " + fechaCorte + ")" : "";
   var btn = document.getElementById("btnCalcularDash"); btn.innerText = "Cargando...";
   var lista = document.getElementById("listaCheckboxesBodegas");
   lista.innerHTML = "<li><i>Cargando áreas...</i></li>";
 
   var params = new URLSearchParams();
-  if (fechaDesde) params.set('fechaDesde', fechaDesde);
-  if (fechaHasta) params.set('fechaHasta', fechaHasta);
+  if (fechaCorte) params.set('fechaHasta', fechaCorte);
 
   custodiaApi('/custodia/api/dashboard?' + params.toString()).then(function(res) {
     btn.innerText = "🔄 Refrescar";
@@ -2009,42 +1996,30 @@ function renderizarDashboardLocal() {
 
   var tbody = document.getElementById("bodyTablaExistencias"); tbody.innerHTML = "";
   if (seleccionadas.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:40px; color:var(--text-muted);">Selecciona al menos un área.</td></tr>';
-    ["kpiMovimientos","kpiTrasladados","kpiInventario","kpiMermas"].forEach(id => document.getElementById(id).innerText = "0");
-    ["kpiAreaMayorMov","kpiAreaCritica"].forEach(id => document.getElementById(id).innerText = "N/A");
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:40px; color:var(--text-muted);">Selecciona al menos un área.</td></tr>';
     renderChartExistencias([], [], []);
     renderChartMotivos({"PRODUCCIÓN NORMAL": 0, "MERMA/DAÑO": 0, "DEVOLUCIÓN": 0});
     return;
   }
 
-  var movimientos = 0, trasladados = 0, balanceNeto = 0, mermas = 0;
-  var areaMayorMov = "N/A", mayorMovVal = -1, areaCritica = "N/A", mayorMermaVal = -1;
   var labels = [], data = [], colores = [];
   var totalesMotivos = {"PRODUCCIÓN NORMAL": 0, "MERMA/DAÑO": 0, "DEVOLUCIÓN": 0};
+  var totEntradas = 0, totSalidas = 0, totNeto = 0;
 
   seleccionadas.forEach(function(a) {
     var d = datosDashboardGlobal[a];
     if (!d) return;
-    trasladados += d.entrada; balanceNeto += d.neto;
-    var movArea = d.entrada + d.salida; movimientos += movArea;
-    if (movArea > mayorMovVal) { mayorMovVal = movArea; areaMayorMov = a; }
-    var merma = d.motivos["MERMA/DAÑO"] || 0; mermas += merma;
-    if (merma > mayorMermaVal) { mayorMermaVal = merma; areaCritica = a; }
     Object.keys(totalesMotivos).forEach(function(m) { totalesMotivos[m] += d.motivos[m] || 0; });
-
+    totEntradas += d.entrada; totSalidas += d.salida; totNeto += d.neto;
     labels.push(a); data.push(d.neto); colores.push(d.neto < 0 ? '#EF4444' : '#1A365D');
 
     var tr = document.createElement("tr");
-    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.existenciasIniciales.toFixed(2)}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger)' : ''}">${d.neto.toFixed(2)}</td>`;
+    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger);' : ''}">${d.neto.toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
-
-  document.getElementById("kpiMovimientos").innerText = movimientos.toFixed(2);
-  document.getElementById("kpiTrasladados").innerText = trasladados.toFixed(2);
-  document.getElementById("kpiInventario").innerText = balanceNeto.toFixed(2);
-  document.getElementById("kpiAreaMayorMov").innerText = mayorMovVal > 0 ? areaMayorMov : "N/A";
-  document.getElementById("kpiAreaCritica").innerText = mayorMermaVal > 0 ? areaCritica : "N/A";
-  document.getElementById("kpiMermas").innerText = mermas.toFixed(2);
+  var trTot = document.createElement("tr"); trTot.className = "fila-totales";
+  trTot.innerHTML = `<td style="text-align:left;">Total general (áreas seleccionadas)</td><td>${totEntradas.toFixed(2)}</td><td>${totSalidas.toFixed(2)}</td><td>${totNeto.toFixed(2)}</td>`;
+  tbody.appendChild(trTot);
 
   renderChartExistencias(labels, data, colores);
   renderChartMotivos(totalesMotivos);
@@ -2070,15 +2045,135 @@ function renderChartMotivos(totales) {
   });
 }
 
-function exportarResumenExistenciasExcel() {
-  var filas = document.querySelectorAll("#bodyTablaExistencias tr");
-  if (filas.length === 0 || filas[0].children.length < 5) return alert("No hay datos para exportar.");
-  var csvContent = "﻿ÁREA;EXISTENCIAS INICIALES;ENTRADAS;SALIDAS;EXISTENCIA NETA\n";
-  filas.forEach(function(tr) {
-    var celdas = tr.querySelectorAll("td");
-    if (celdas.length === 5) { csvContent += Array.from(celdas).map(td => `"${td.innerText}"`).join(";") + "\n"; }
+// ---------------- REPORTE BALANCE DE INVENTARIO (PDF) ----------------
+var USUARIO_REPORTE = {{ (user.nombre_completo|nombre_propio)|tojson }};
+
+function cargarScript(url) {
+  return new Promise(function(ok, falla) {
+    if (document.querySelector('script[src="' + url + '"]')) return ok();
+    var s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = falla; document.head.appendChild(s);
   });
-  descargarCSV(csvContent, "Balance_Inventarios");
+}
+
+function imagenComoDataUrl(url) {
+  return new Promise(function(ok) {
+    var img = new Image();
+    img.onload = function() {
+      var escala = Math.min(1, 400 / img.naturalWidth);
+      var c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * escala); c.height = Math.round(img.naturalHeight * escala);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      ok({src: c.toDataURL("image/png"), w: c.width, h: c.height});
+    };
+    img.onerror = function() { ok(null); };
+    img.src = url;
+  });
+}
+
+// Copia un gráfico de pantalla en un lienzo de tamaño fijo con fondo blanco y lo devuelve como JPEG.
+function graficoParaPdf(instancia, anchoPx, altoPx) {
+  if (!instancia) return null;
+  var lienzo = document.createElement("canvas");
+  lienzo.width = anchoPx; lienzo.height = altoPx;
+  lienzo.style.cssText = "position:fixed; left:-10000px; top:0; width:" + anchoPx + "px; height:" + altoPx + "px;";
+  document.body.appendChild(lienzo);
+  var esDona = instancia.config.type === "doughnut";
+  var copia = new Chart(lienzo.getContext("2d"), {
+    type: instancia.config.type,
+    data: {
+      labels: instancia.data.labels.slice(),
+      datasets: instancia.data.datasets.map(function(ds) {
+        return {label: ds.label, data: ds.data.slice(), backgroundColor: ds.backgroundColor};
+      })
+    },
+    options: {
+      responsive: false, animation: false, devicePixelRatio: 1,
+      plugins: {legend: {display: esDona, position: "bottom", labels: {font: {size: 22}}}},
+      scales: esDona ? {} : {x: {ticks: {font: {size: 20}}}, y: {ticks: {font: {size: 20}}}}
+    },
+    plugins: [{id: "fondoBlanco", beforeDraw: function(ch) {
+      var c = ch.ctx; c.save(); c.fillStyle = "#FFFFFF"; c.fillRect(0, 0, ch.width, ch.height); c.restore();
+    }}]
+  });
+  var url = lienzo.toDataURL("image/jpeg", 0.9);
+  copia.destroy(); lienzo.remove();
+  return url;
+}
+
+// Arma el PDF del balance con el encabezado, los dos gráficos y la tabla que se ven en pantalla.
+function construirBalancePdf(logo) {
+  var filas = document.querySelectorAll("#bodyTablaExistencias tr");
+  var fechaCorte = document.getElementById("dashFechaCorte").value || "";
+  var doc = new window.jspdf.jsPDF({orientation: "portrait", unit: "mm", format: "a4"});
+  var ancho = doc.internal.pageSize.getWidth(), alto = doc.internal.pageSize.getHeight(), m = 14;
+  var azul = [26, 54, 93], gris = [71, 85, 105];
+  var ahora = new Date();
+  var generado = ahora.toLocaleDateString("es-CO") + " " + ahora.toLocaleTimeString("es-CO", {hour: "2-digit", minute: "2-digit"});
+
+  // Encabezado
+  if (logo) { var lh = 14, lw = lh * logo.w / logo.h; doc.addImage(logo.src, "PNG", m, 9, lw, lh); }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(azul[0], azul[1], azul[2]);
+  doc.text("Reporte balance de inventario", ancho / 2, 15, {align: "center"});
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(gris[0], gris[1], gris[2]);
+  doc.text("Cambio de custodia · Producción", ancho / 2, 21, {align: "center"});
+  doc.setFontSize(9);
+  doc.text("Fecha corte: " + fechaCorte, ancho - m, 12, {align: "right"});
+  doc.text("Generado: " + generado, ancho - m, 17, {align: "right"});
+  doc.text("Por: " + USUARIO_REPORTE, ancho - m, 22, {align: "right"});
+  doc.setDrawColor(203, 213, 225); doc.line(m, 27, ancho - m, 27);
+
+  // Gráficos: se redibujan a tamaño fijo (proporción correcta, letra legible y archivo liviano)
+  var y = 34, anchoCol = (ancho - m * 2 - 6) / 2, altoGraf = 58;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(azul[0], azul[1], azul[2]);
+  doc.text("Existencias netas", m, y); doc.text("Motivos de salida", m + anchoCol + 6, y);
+  var imgBarras = graficoParaPdf(chartExistenciasInstance, 1000, 660);
+  var imgDona = graficoParaPdf(chartMotivosInstance, 760, 660);
+  if (imgBarras) doc.addImage(imgBarras, "JPEG", m, y + 3, anchoCol, altoGraf);
+  var anchoDona = altoGraf * 760 / 660;
+  if (imgDona) doc.addImage(imgDona, "JPEG", m + anchoCol + 6 + (anchoCol - anchoDona) / 2, y + 3, anchoDona, altoGraf);
+
+  // Tabla del balance (la misma que se ve en pantalla)
+  var cuerpo = [], total = null;
+  filas.forEach(function(tr) {
+    var celdas = Array.from(tr.children).map(function(td) { return td.innerText.trim(); });
+    if (tr.classList.contains("fila-totales")) total = celdas; else cuerpo.push(celdas);
+  });
+  doc.autoTable({
+    startY: y + altoGraf + 10, margin: {left: m, right: m},
+    head: [["Área de producción", "Entradas totales", "Salidas totales", "Existencia neta"]],
+    body: cuerpo, foot: total ? [total] : undefined, showFoot: "lastPage",
+    styles: {font: "helvetica", fontSize: 9, cellPadding: 2.5, halign: "right", textColor: [15, 23, 42]},
+    columnStyles: {0: {halign: "left"}},
+    headStyles: {fillColor: azul, textColor: 255, fontStyle: "bold", halign: "center"},
+    footStyles: {fillColor: [240, 244, 248], textColor: azul, fontStyle: "bold"},
+    alternateRowStyles: {fillColor: [248, 250, 252]},
+    didParseCell: function(d) {
+      if (d.section === "body" && d.column.index === 3 && parseFloat(d.cell.raw) < 0) d.cell.styles.textColor = [239, 68, 68];
+      if (d.section === "foot") d.cell.styles.halign = d.column.index === 0 ? "left" : "right";
+    }
+  });
+
+  // Pie de página
+  var paginas = doc.getNumberOfPages();
+  for (var i = 1; i <= paginas; i++) {
+    doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(148, 163, 184);
+    doc.text("Nuvia Smiles Colombia S.A.S. · Código F-PRO-40", m, alto - 8);
+    doc.text("Página " + i + " de " + paginas, ancho - m, alto - 8, {align: "right"});
+  }
+  return {doc: doc, nombre: "Balance_inventario_" + (fechaCorte || "sin_fecha") + ".pdf"};
+}
+
+function descargarBalancePdf() {
+  var filas = document.querySelectorAll("#bodyTablaExistencias tr");
+  if (filas.length === 0 || filas[0].children.length < 4) return alert("No hay datos para el reporte. Selecciona una fecha de corte y al menos un área.");
+  var btn = document.getElementById("btnPdfBalance"); btn.innerText = "Generando..."; btn.disabled = true;
+  // Las librerías de PDF se cargan solo al usarlas, para no hacer más pesada la página.
+  cargarScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js")
+    .then(function() { return cargarScript("https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"); })
+    .then(function() { return imagenComoDataUrl("/static/logos/nuvia-smiles.png"); })
+    .then(function(logo) { var r = construirBalancePdf(logo); r.doc.save(r.nombre); })
+    .catch(function() { alert("No se pudo generar el PDF. Revisa tu conexión a internet e inténtalo de nuevo."); })
+    .finally(function() { btn.innerText = "📄 Descargar PDF"; btn.disabled = false; });
 }
 
 // ---------------- REGISTRO DE TRASLADOS ----------------
