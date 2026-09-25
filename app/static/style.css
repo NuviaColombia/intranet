@@ -19,22 +19,52 @@ nav .usuario { margin-left:auto; font-size:13px; color:#9ca3af; }
 .nav-sep { color:#4b5563; }
 .nav-ruta { color:#6b7280; font-size:14px; }
 .nav-ruta a:last-child { color:#fff; font-weight:600; }
-/* Barra de Inventario en una fila: logo, ruta, opciones del submódulo y, a la derecha, Módulos y usuario.
-   Si la pantalla es angosta, las opciones bajan solas a una segunda línea. */
-/* El logo conserva el mismo tamaño que en el resto de la intranet (nav .marca img). */
-nav.nav-inventario { gap:6px 16px; }
-nav.nav-inventario .nav-ruta { font-size:15px; white-space:nowrap; }
-nav.nav-inventario > a[href="/"] { margin-left:auto; }
-nav.nav-inventario .usuario { margin-left:0; white-space:nowrap; }
-nav.nav-inventario .nav-sub { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-left:8px; }
+/* Barra de Inventario: fija arriba al bajar por la página y todo en una sola fila
+   (logo, ruta, opciones del submódulo y, a la derecha, Módulos y usuario).
+   El logo conserva el mismo tamaño que en el resto de la intranet (nav .marca img).
+   Si la pantalla es muy angosta, solo las opciones se acomodan en dos líneas; lo demás no se mueve. */
+nav.nav-inventario { position:sticky; top:0; z-index:60; flex-wrap:nowrap; gap:12px;
+                     box-shadow:0 2px 8px rgba(0,0,0,.25); }
+nav.nav-inventario .marca { flex:0 0 auto; margin-right:0; }
+nav.nav-inventario .nav-ruta { flex:0 0 auto; font-size:15px; white-space:nowrap; }
+nav.nav-inventario > a[href="/"] { flex:0 0 auto; margin-left:auto; white-space:nowrap; }
+nav.nav-inventario .usuario { flex:0 0 auto; margin-left:0; white-space:nowrap; }
+nav.nav-inventario .nav-sub { flex:1 1 auto; min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-left:4px; }
 /* Divisiones entre grupos: registro │ aprobaciones │ consulta │ parámetros */
-nav.nav-inventario .nav-sub .nav-sep { color:#4b5563; margin:0 6px; font-size:18px; line-height:1; }
+nav.nav-inventario .nav-sub .nav-sep { color:#4b5563; margin:0 2px; font-size:18px; line-height:1; }
 /* Cada opción es un recuadro: el activo queda resaltado; al pasar el mouse, un borde sutil indica a dónde se puede ir. */
-nav.nav-inventario .nav-sub a { padding:7px 14px; border:1px solid transparent; border-radius:8px; white-space:nowrap;
+nav.nav-inventario .nav-sub a { padding:6px 11px; border:1px solid transparent; border-radius:8px; white-space:nowrap;
                                 transition:background .15s, border-color .15s, color .15s; }
 nav.nav-inventario .nav-sub a:hover { color:#fff; background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.22); }
 nav.nav-inventario .nav-sub a.activo { color:#fff; background:rgba(59,130,246,.22); border-color:rgba(96,165,250,.75);
                                        box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+/* Portátiles: letra y espacios un poco menores para que quepa en una fila. */
+@media (max-width: 1600px) {
+  nav.nav-inventario { gap:10px; padding:10px 16px; }
+  nav.nav-inventario .nav-ruta, nav.nav-inventario .nav-sub a, nav.nav-inventario > a[href="/"] { font-size:13px; }
+  nav.nav-inventario .nav-sub a { padding:5px 8px; }
+  nav.nav-inventario .usuario { font-size:12px; }
+}
+/* Perfil del usuario conectado (Inventario): círculo con iniciales y menú al pasar el mouse. */
+nav .perfil { position:relative; flex:0 0 auto; outline:none; }
+nav .perfil-avatar { width:38px; height:38px; border-radius:50%; background:#2563eb; color:#fff; font-weight:700; font-size:14px;
+                     display:flex; align-items:center; justify-content:center; cursor:pointer; letter-spacing:.5px;
+                     border:2px solid rgba(255,255,255,.25); transition:border-color .15s; }
+nav .perfil:hover .perfil-avatar, nav .perfil:focus-within .perfil-avatar { border-color:#93c5fd; }
+nav .perfil-menu { display:none; position:absolute; right:0; top:calc(100% + 10px); width:290px; background:#fff; color:#111827;
+                   border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.28); z-index:120; overflow:hidden; }
+nav .perfil-menu::before { content:""; position:absolute; top:-12px; left:0; right:0; height:12px; } /* puente para no perder el hover */
+nav .perfil:hover .perfil-menu, nav .perfil:focus-within .perfil-menu { display:block; }
+nav .perfil-cabecera { padding:16px 18px 12px; border-bottom:1px solid #e5e7eb; }
+nav .perfil-nombre { font-weight:700; font-size:15px; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+nav .perfil-correo { font-size:13px; color:#4b5563; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+nav .perfil-rol { display:inline-block; margin-top:8px; background:#2563eb; color:#fff; font-size:11px; font-weight:700;
+                  padding:2px 10px; border-radius:999px; }
+nav .perfil-empresa { padding:10px 18px; font-size:13px; color:#4b5563; border-bottom:1px solid #e5e7eb; }
+nav .perfil-opciones { padding:6px 0; }
+nav .perfil-opciones a { display:block; padding:9px 18px; color:#1f2937 !important; font-size:14px; text-decoration:none; }
+nav .perfil-opciones a:hover { background:#f3f4f6; }
+nav .perfil-opciones a.perfil-salir { color:#dc2626 !important; }
 .badge-alertas { background:var(--rojo); color:#fff; border-radius:999px; font-size:11px; font-weight:800; padding:1px 6px; min-width:16px; display:inline-block; text-align:center; }
 main { max-width:1100px; margin:24px auto; padding:0 16px; }
 h1 { font-size:22px; } h2 { font-size:17px; }
