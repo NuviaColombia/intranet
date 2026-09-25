@@ -1,5 +1,5 @@
 from datetime import date, time
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -16,12 +16,13 @@ router = APIRouter()
 # ---------- Página ----------
 
 @router.get("/custodia")
-async def pagina(request: Request, user: Empleado = Depends(require_modulo("custodia")),
+def pagina(request: Request, user: Empleado = Depends(require_modulo("custodia")),
                  db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "custodia.html",
                                       {"user": user, "areas": sc.areas_disponibles(db),
                                        "motivos": sc.motivos_disponibles(db), "es_custodia": True,
-                                       "custodia_pendientes": len(sc.pendientes_entrada(db)),
+                                       "custodia_pendientes": sum(1 for t in sc.pendientes_entrada(db)
+                                                                  if sc.puede_firmar_recibido(user, t)),
                                        # Todas (incluidas inactivas), para dar formato a nombres de registros viejos.
                                        "formato_areas": [a.nombre for a in db.query(CustodiaArea.nombre)],
                                        "formato_motivos": [m.nombre for m in db.query(CustodiaMotivo.nombre)]})
@@ -77,41 +78,41 @@ class VerificarOrdenIn(BaseModel):
 # ---------- API ----------
 
 @router.get("/custodia/api/areas")
-async def api_areas(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+def api_areas(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     return sc.areas_disponibles(db)
 
 
 @router.get("/custodia/api/motivos")
-async def api_motivos(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+def api_motivos(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     return sc.motivos_disponibles(db)
 
 
 @router.get("/custodia/api/areas-alertas")
-async def api_areas_alertas(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+def api_areas_alertas(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     return sc.alertas_por_area(db)
 
 
 @router.get("/custodia/api/consecutivo-siguiente")
-async def api_consecutivo(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+def api_consecutivo(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     siguiente = (db.query(func.max(CustodiaTraslado.id)).scalar() or 0) + 1
     return {"consecutivo": siguiente}
 
 
 @router.get("/custodia/api/ordenes-incompletas")
-async def api_ordenes_incompletas(user: Empleado = Depends(require_modulo("custodia")),
+def api_ordenes_incompletas(user: Empleado = Depends(require_modulo("custodia")),
                                   db: Session = Depends(get_db)):
     return sc.ordenes_incompletas(db)
 
 
 @router.post("/custodia/api/verificar-orden")
-async def api_verificar_orden(payload: VerificarOrdenIn, user: Empleado = Depends(require_modulo("custodia")),
+def api_verificar_orden(payload: VerificarOrdenIn, user: Empleado = Depends(require_modulo("custodia")),
                               db: Session = Depends(get_db)):
     return {"existe": sc.verificar_orden_existente(db, payload.numeroOrden)}
 
 
 @router.post("/custodia/api/traslados")
-async def api_registrar(payload: RegistrarPayload, user: Empleado = Depends(require_modulo("custodia")),
-                        db: Session = Depends(get_db)):
+def api_registrar(payload: RegistrarPayload, tareas: BackgroundTasks,
+                  user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     if not payload.traslados:
         raise HTTPException(400, "Sin datos de traslado.")
     primero = payload.traslados[0]
@@ -135,7 +136,14 @@ async def api_registrar(payload: RegistrarPayload, user: Empleado = Depends(requ
     traslado = sc.crear_traslado(db, user, cabecera, lineas, resumen,
                                  [d.model_dump() for d in payload.discos],
                                  [o.model_dump() for o in payload.op])
+    tareas.add_task(sc.notificar_traslado_pendiente, traslado.id)
     return {"mensaje": f"✅ Guardado exitoso. Consecutivo #{traslado.id}", "id": traslado.id}
+
+
+def _con_permiso(t: CustodiaTraslado, user: Empleado) -> dict:
+    d = sc.serializar_traslado(t)
+    d["puedeFirmar"] = sc.puede_firmar_recibido(user, t)
+    return d
 
 
 def _get_traslado(db: Session, traslado_id: int) -> CustodiaTraslado:
@@ -146,7 +154,7 @@ def _get_traslado(db: Session, traslado_id: int) -> CustodiaTraslado:
 
 
 @router.post("/custodia/api/traslados/{traslado_id}/confirmar-entrada")
-async def api_confirmar_entrada(traslado_id: int, user: Empleado = Depends(require_modulo("custodia")),
+def api_confirmar_entrada(traslado_id: int, user: Empleado = Depends(require_modulo("custodia")),
                                 db: Session = Depends(get_db)):
     traslado = _get_traslado(db, traslado_id)
     error = sc.confirmar_entrada(db, traslado, user)
@@ -155,35 +163,41 @@ async def api_confirmar_entrada(traslado_id: int, user: Empleado = Depends(requi
     return {"mensaje": "✅ Entrada confirmada."}
 
 
+class AnularIn(BaseModel):
+    motivo: str = ""
+
+
 @router.post("/custodia/api/traslados/{traslado_id}/anular")
-async def api_anular(traslado_id: int, user: Empleado = Depends(require_modulo("custodia")),
-                     db: Session = Depends(get_db)):
+def api_anular(traslado_id: int, payload: AnularIn | None = None,
+               user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     traslado = _get_traslado(db, traslado_id)
-    error = sc.anular_traslado(db, traslado, user)
+    error = sc.anular_traslado(db, traslado, user, payload.motivo if payload else "")
     if error:
         raise HTTPException(400, error)
     return {"mensaje": f"✅ Se anuló correctamente el traslado #{traslado.id}."}
 
 
 @router.get("/custodia/api/consultar")
-async def api_consultar(tipo: str = "ultimos30", areaSalida: str = "TODAS", estado: str = "ACTIVOS",
+def api_consultar(tipo: str = "ultimos30", areaSalida: str = "TODAS", estado: str = "ACTIVOS",
                         fechaInicio: str = "", fechaFin: str = "",
                         user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     fi = date.fromisoformat(fechaInicio) if fechaInicio else None
     ff = date.fromisoformat(fechaFin) if fechaFin else None
     traslados = sc.consultar(db, tipo, areaSalida, estado, fi, ff)
-    return {"data": [sc.serializar_traslado(t) for t in traslados]}
+    return {"data": [_con_permiso(t, user) for t in traslados],
+            "truncado": tipo == "rango" and len(traslados) >= sc.LIMITE_CONSULTA_RANGO,
+            "limite": sc.LIMITE_CONSULTA_RANGO}
 
 
 @router.get("/custodia/api/pendientes-entrada")
-async def api_pendientes_entrada(user: Empleado = Depends(require_modulo("custodia")),
+def api_pendientes_entrada(user: Empleado = Depends(require_modulo("custodia")),
                                  db: Session = Depends(get_db)):
     traslados = sc.pendientes_entrada(db)
-    return {"data": [sc.serializar_traslado(t) for t in traslados]}
+    return {"data": [_con_permiso(t, user) for t in traslados]}
 
 
 @router.get("/custodia/api/estado-ordenes")
-async def api_estado_ordenes(fechaDesde: str = "", fechaHasta: str = "",
+def api_estado_ordenes(fechaDesde: str = "", fechaHasta: str = "",
                              user: Empleado = Depends(require_modulo("custodia")),
                              db: Session = Depends(get_db)):
     fd = date.fromisoformat(fechaDesde) if fechaDesde else None
@@ -192,7 +206,7 @@ async def api_estado_ordenes(fechaDesde: str = "", fechaHasta: str = "",
 
 
 @router.get("/custodia/api/consultar-orden/{numero_orden}")
-async def api_consultar_orden(numero_orden: str, fechaDesde: str = "", fechaHasta: str = "",
+def api_consultar_orden(numero_orden: str, fechaDesde: str = "", fechaHasta: str = "",
                               user: Empleado = Depends(require_modulo("custodia")),
                               db: Session = Depends(get_db)):
     fd = date.fromisoformat(fechaDesde) if fechaDesde else None
@@ -201,20 +215,20 @@ async def api_consultar_orden(numero_orden: str, fechaDesde: str = "", fechaHast
 
 
 @router.get("/custodia/api/viaje/{numero_orden}")
-async def api_viaje(numero_orden: str, user: Empleado = Depends(require_modulo("custodia")),
+def api_viaje(numero_orden: str, user: Empleado = Depends(require_modulo("custodia")),
                     db: Session = Depends(get_db)):
     return sc.viaje_orden(db, numero_orden)
 
 
 @router.get("/custodia/api/detalles/{traslado_id}")
-async def api_detalles(traslado_id: int, user: Empleado = Depends(require_modulo("custodia")),
+def api_detalles(traslado_id: int, user: Empleado = Depends(require_modulo("custodia")),
                        db: Session = Depends(get_db)):
     traslado = _get_traslado(db, traslado_id)
     return sc.detalles_por_traslado(traslado)
 
 
 @router.get("/custodia/api/dashboard")
-async def api_dashboard(fechaDesde: str = "", fechaHasta: str = "",
+def api_dashboard(fechaDesde: str = "", fechaHasta: str = "",
                         user: Empleado = Depends(require_modulo("custodia")),
                         db: Session = Depends(get_db)):
     fd = date.fromisoformat(fechaDesde) if fechaDesde else None
@@ -223,15 +237,17 @@ async def api_dashboard(fechaDesde: str = "", fechaHasta: str = "",
 
 
 @router.get("/custodia/api/tickets-rango")
-async def api_tickets_rango(inicio: int, fin: int, user: Empleado = Depends(require_modulo("custodia")),
+def api_tickets_rango(inicio: int, fin: int, user: Empleado = Depends(require_modulo("custodia")),
                             db: Session = Depends(get_db)):
     if inicio > fin:
         raise HTTPException(400, "El consecutivo de inicio debe ser menor o igual al de fin.")
+    if fin - inicio + 1 > sc.LIMITE_TICKETS_RANGO:
+        raise HTTPException(400, f"Puedes imprimir máximo {sc.LIMITE_TICKETS_RANGO} consecutivos por vez.")
     traslados = sc.tickets_rango(db, inicio, fin)
     return {"tickets": [{"traslado": sc.serializar_traslado(t), "detalles": sc.detalles_por_traslado(t)}
                         for t in traslados]}
 
 
 @router.get("/custodia/api/factores-discos")
-async def api_factores_discos(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
+def api_factores_discos(user: Empleado = Depends(require_modulo("custodia")), db: Session = Depends(get_db)):
     return sc.catalogo_discos(db)

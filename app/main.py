@@ -242,6 +242,24 @@ def init_db():
         with engine.begin() as conn:
             conn.execute(text(
                 "ALTER TABLE design_favoritos ADD COLUMN cmt_template_id INTEGER REFERENCES design_comentario_templates(id)"))
+    columnas_traslados = {c["name"] for c in inspect(engine).get_columns("custodia_traslados")}
+    if "motivo_anulacion" not in columnas_traslados:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE custodia_traslados ADD COLUMN motivo_anulacion TEXT"))
+    # Cambio de custodia: índices para consultas con volumen alto (por fecha, estado, área y detalle
+    # de cada traslado). IF NOT EXISTS: no hace nada si ya existen; no modifica datos.
+    with engine.begin() as conn:
+        for nombre, tabla, columnas in (
+                ("ix_custodia_traslados_fecha", "custodia_traslados", "fecha"),
+                ("ix_custodia_traslados_estado", "custodia_traslados", "anulado, confirmado_entrada"),
+                ("ix_custodia_traslados_area_salida", "custodia_traslados", "area_salida"),
+                ("ix_custodia_traslados_area_entrada", "custodia_traslados", "area_entrada"),
+                ("ix_custodia_ordenes_traslado", "custodia_ordenes", "traslado_id"),
+                ("ix_custodia_resumen_traslado", "custodia_resumen", "traslado_id"),
+                ("ix_custodia_resumen_orden", "custodia_resumen", "orden"),
+                ("ix_custodia_discos_traslado", "custodia_discos", "traslado_id"),
+                ("ix_custodia_op_traslado", "custodia_op", "traslado_id")):
+            conn.execute(text(f"CREATE INDEX IF NOT EXISTS {nombre} ON {tabla} ({columnas})"))
     # Corrección de negocio: EMPAQUE sí cuenta como ubicación de inventario -- toda orden que
     # llega ahí se considera completada, y debe seguir apareciendo en Ubicación actual/Historial.
     with engine.begin() as conn:

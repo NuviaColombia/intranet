@@ -1,7 +1,7 @@
 """Lógica de negocio del módulo Custodia: traslados entre áreas de producción."""
-from datetime import datetime, date
+from datetime import datetime, date, time, timedelta
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_, literal, union_all, select, cast, String
 from .models import Empleado
 from .models_custodia import (CustodiaTraslado, CustodiaOrdenLinea, CustodiaResumen, CustodiaDiscos, CustodiaOP,
                               CustodiaFactorDisco, CustodiaArea, CustodiaMotivo)
@@ -151,11 +151,22 @@ def crear_traslado(db: Session, user: Empleado, cabecera: dict, lineas: list[dic
     return traslado
 
 
+def puede_firmar_recibido(user: Empleado, traslado: CustodiaTraslado) -> bool:
+    """Firma "recibido": un administrador, o un manager cuya área asignada en Parámetros sea el
+    área de entrada del traslado (quien recibe el material)."""
+    if user.rol in ("admin", "superadmin"):
+        return True
+    return bool(user.area_custodia) and user.area_custodia.strip().upper() == (traslado.area_entrada or "").strip().upper()
+
+
 def confirmar_entrada(db: Session, traslado: CustodiaTraslado, user: Empleado) -> str | None:
     if traslado.anulado:
         return "Este traslado fue anulado."
     if traslado.confirmado_entrada:
         return "Este traslado ya fue confirmado."
+    if not puede_firmar_recibido(user, traslado):
+        return (f"Solo un manager del área {nombre_propio(traslado.area_entrada)} (o un administrador) "
+                "puede firmar el recibido de este traslado.")
     traslado.confirmado_entrada = True
     traslado.confirmado_por_id = user.id
     traslado.confirmado_en = datetime.utcnow()
@@ -163,9 +174,13 @@ def confirmar_entrada(db: Session, traslado: CustodiaTraslado, user: Empleado) -
     return None
 
 
-def anular_traslado(db: Session, traslado: CustodiaTraslado, user: Empleado) -> str | None:
+def anular_traslado(db: Session, traslado: CustodiaTraslado, user: Empleado, motivo: str = "") -> str | None:
     if traslado.anulado:
         return "Este traslado ya estaba anulado."
+    motivo = (motivo or "").strip()
+    if len(motivo) < 5:
+        return "Escribe el motivo de la anulación (mínimo 5 caracteres)."
+    traslado.motivo_anulacion = motivo[:500]
     traslado.anulado = True
     traslado.anulado_por_id = user.id
     traslado.anulado_en = datetime.utcnow()
@@ -185,9 +200,14 @@ def consultar(db: Session, tipo: str, area_salida: str = "", estado: str = "acti
     if tipo == "rango" and fecha_inicio and fecha_fin:
         q = q.filter(CustodiaTraslado.fecha >= fecha_inicio, CustodiaTraslado.fecha <= fecha_fin)
     q = q.order_by(CustodiaTraslado.id.desc())
-    if tipo != "rango":
-        q = q.limit(30)
+    q = q.limit(30 if tipo != "rango" else LIMITE_CONSULTA_RANGO)
     return q.all()
+
+
+# Tope de filas para "Rango fechas" en Consulta traslado (evita traer miles de filas de una vez).
+LIMITE_CONSULTA_RANGO = 2000
+# Tope de consecutivos por impresión en "Imprimir por rango".
+LIMITE_TICKETS_RANGO = 300
 
 
 def _nombre_firma(emp) -> str:
@@ -212,6 +232,11 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
         "entregaNombre": _nombre_firma(t.creado_por),
         "recibeEmail": t.confirmado_por.email if (t.confirmado_entrada and t.confirmado_por) else "",
         "recibeNombre": _nombre_firma(t.confirmado_por) if t.confirmado_entrada else "",
+        # Anulación: quién, cuándo y por qué
+        "anuladoPor": nombre_propio(t.anulado_por.nombre_completo) if (t.anulado and t.anulado_por) else "",
+        # anulado_en se guarda en UTC; Colombia es UTC-5 (sin horario de verano)
+        "anuladoEn": (t.anulado_en - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M") if (t.anulado and t.anulado_en) else "",
+        "motivoAnulacion": (t.motivo_anulacion or "") if t.anulado else "",
     }
 
 
@@ -226,66 +251,58 @@ def _fecha_dt(f: date) -> datetime:
 
 
 def estado_ordenes(db: Session, fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
+    """Ubicación actual (neto > 0 por orden y área) y matriz Ent/Sal/Neto por orden.
+
+    La base de datos suma los movimientos agrupados por (orden, área); Python solo arma la
+    respuesta. Mismas reglas que antes: se excluyen áreas de legado/no inventario, y un traslado
+    anulado sigue contando si fue anulado después de la fecha de corte (fecha_hasta)."""
     areas_base = areas_disponibles(db)
     areas_excl = areas_excluidas(db)
+    T, L = CustodiaTraslado, CustodiaOrdenLinea
 
-    q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
-         .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id))
-    if fecha_desde:
-        q = q.filter(CustodiaTraslado.fecha >= fecha_desde)
+    vigente = T.anulado.is_(False)
     if fecha_hasta:
-        q = q.filter(CustodiaTraslado.fecha <= fecha_hasta)
+        vigente = or_(vigente, T.anulado_en >= datetime.combine(fecha_hasta + timedelta(days=1), time.min))
+    filtros = [vigente]
+    if fecha_desde:
+        filtros.append(T.fecha >= fecha_desde)
+    if fecha_hasta:
+        filtros.append(T.fecha <= fecha_hasta)
 
-    ubicacion_neta: dict[tuple[str, str], dict] = {}
-    matrix: dict[str, dict[str, dict]] = {}
-    areas_extra: set[str] = set()
+    momento = cast(T.fecha, String) + literal(" ") + func.coalesce(cast(T.hora, String), literal("00:00"))
+    cantidad = func.coalesce(L.cantidad_discos, 0.0)
 
-    def _celda(orden: str, area: str) -> dict:
-        matrix.setdefault(orden, {})
-        matrix[orden].setdefault(area, {"ent": 0.0, "sal": 0.0, "net": 0.0})
-        return matrix[orden][area]
+    def movimientos(columna_area, es_entrada: bool):
+        return (select(L.numero_orden.label("orden"), columna_area.label("area"),
+                       (cantidad if es_entrada else literal(0.0)).label("ent"),
+                       (literal(0.0) if es_entrada else cantidad).label("sal"),
+                       momento.label("momento"))
+                .join(T, L.traslado_id == T.id)
+                .where(and_(*filtros), columna_area.isnot(None), columna_area != ""))
 
-    for linea, traslado in q.all():
-        if traslado.anulado:
-            valido_por_corte = (fecha_hasta and traslado.anulado_en
-                               and traslado.anulado_en.date() > fecha_hasta)
-            if not valido_por_corte:
-                continue
+    mov = union_all(movimientos(T.area_entrada, True), movimientos(T.area_salida, False)).subquery()
+    filas = db.execute(select(mov.c.orden, mov.c.area, func.sum(mov.c.ent), func.sum(mov.c.sal), func.max(mov.c.momento))
+                       .group_by(mov.c.orden, mov.c.area)).all()
 
-        cantidad = linea.cantidad_discos or 0
-        fecha_str = traslado.fecha.isoformat()
-        hora_str = traslado.hora.strftime("%H:%M") if traslado.hora else "00:00"
-
-        for area, signo in ((traslado.area_entrada, 1), (traslado.area_salida, -1)):
-            if not area or area in areas_excl:
-                continue
-            key = (linea.numero_orden, area)
-            if key not in ubicacion_neta:
-                ubicacion_neta[key] = {"orden": linea.numero_orden, "ubicacion": area, "cantidad": 0.0,
-                                       "fechaStr": f"{fecha_str} {hora_str}", "fIso": fecha_str, "hIso": hora_str}
-            ubicacion_neta[key]["cantidad"] += signo * cantidad
-            ubicacion_neta[key]["fechaStr"] = f"{fecha_str} {hora_str}"
-            ubicacion_neta[key]["fIso"] = fecha_str
-            ubicacion_neta[key]["hIso"] = hora_str
-
-            celda = _celda(linea.numero_orden, area)
-            if signo > 0:
-                celda["ent"] += cantidad
-            else:
-                celda["sal"] += cantidad
-            celda["net"] += signo * cantidad
-            if area not in areas_base:
-                areas_extra.add(area)
-
-    resultado = [o for o in ubicacion_neta.values() if round(o["cantidad"], 3) > 0]
-    for o in resultado:
-        o["cantidad"] = round(o["cantidad"], 3)
+    resultado, matrix, areas_extra = [], {}, set()
+    for orden, area, ent, sal, ultimo in filas:
+        if area in areas_excl:
+            continue
+        ent, sal = float(ent or 0), float(sal or 0)
+        neto = ent - sal
+        ultimo = (ultimo or "")[:16]
+        f_iso, h_iso = (ultimo[:10], ultimo[11:16] or "00:00") if ultimo else ("", "00:00")
+        if round(neto, 3) > 0:
+            resultado.append({"orden": orden, "ubicacion": area, "cantidad": round(neto, 3),
+                              "fechaStr": f"{f_iso} {h_iso}", "fIso": f_iso, "hIso": h_iso})
+        matrix.setdefault(orden, {})[area] = {"ent": ent, "sal": sal, "net": neto}
+        if area not in areas_base:
+            areas_extra.add(area)
 
     areas_matrix = areas_base + sorted(areas_extra)
     matrix_out = []
     for orden, por_area in matrix.items():
-        fila = {"orden": orden,
-               "TOTAL": round(sum(c["net"] for c in por_area.values()), 3)}
+        fila = {"orden": orden, "TOTAL": round(sum(c["net"] for c in por_area.values()), 3)}
         for area in areas_matrix:
             c = por_area.get(area)
             fila[area] = ({"ent": round(c["ent"], 3), "sal": round(c["sal"], 3), "net": round(c["net"], 3)}
@@ -345,46 +362,43 @@ def viaje_orden(db: Session, numero_orden: str) -> list[dict]:
 def dashboard(db: Session, fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
     """Por área: existencias iniciales (balance acumulado antes de fecha_desde), entradas/salidas
     dentro del rango [fecha_desde, fecha_hasta], y existencia neta a fecha_hasta (iniciales +
-    entradas - salidas). Devuelve TODAS las áreas observadas; el front filtra localmente qué mostrar."""
+    entradas - salidas). Devuelve TODAS las áreas observadas; el front filtra localmente qué mostrar.
+    Las sumas las hace la base de datos (GROUP BY), sin traer cada línea a Python."""
     motivos = motivos_disponibles(db)
     data_por_area: dict[str, dict] = {}
+    T, L = CustodiaTraslado, CustodiaOrdenLinea
 
-    def init_area(a: str):
-        if a and a not in data_por_area:
-            data_por_area[a] = {"existenciasIniciales": 0.0, "entrada": 0.0, "salida": 0.0, "neto": 0.0,
-                               "motivos": {m: 0.0 for m in motivos}}
+    def area(a: str) -> dict:
+        return data_por_area.setdefault(a, {"existenciasIniciales": 0.0, "entrada": 0.0, "salida": 0.0, "neto": 0.0,
+                                            "motivos": {m: 0.0 for m in motivos}})
+
+    def sumas(columnas, *filtros):
+        return (db.query(*columnas, func.coalesce(func.sum(L.cantidad_discos), 0.0))
+                .join(T, L.traslado_id == T.id)
+                .filter(T.anulado.is_(False), *filtros)
+                .group_by(*columnas).all())
 
     if fecha_desde:
-        q_previo = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
-                   .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
-                   .filter(CustodiaTraslado.anulado.is_(False), CustodiaTraslado.fecha < fecha_desde))
-        for linea, traslado in q_previo.all():
-            cantidad = linea.cantidad_discos or 0
-            if traslado.area_entrada:
-                init_area(traslado.area_entrada)
-                data_por_area[traslado.area_entrada]["existenciasIniciales"] += cantidad
-            if traslado.area_salida:
-                init_area(traslado.area_salida)
-                data_por_area[traslado.area_salida]["existenciasIniciales"] -= cantidad
+        for a, total in sumas([T.area_entrada], T.fecha < fecha_desde):
+            if a:
+                area(a)["existenciasIniciales"] += float(total)
+        for a, total in sumas([T.area_salida], T.fecha < fecha_desde):
+            if a:
+                area(a)["existenciasIniciales"] -= float(total)
 
-    q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
-         .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
-         .filter(CustodiaTraslado.anulado.is_(False)))
+    en_rango = []
     if fecha_desde:
-        q = q.filter(CustodiaTraslado.fecha >= fecha_desde)
+        en_rango.append(T.fecha >= fecha_desde)
     if fecha_hasta:
-        q = q.filter(CustodiaTraslado.fecha <= fecha_hasta)
-
-    for linea, traslado in q.all():
-        cantidad = linea.cantidad_discos or 0
-        if traslado.area_entrada:
-            init_area(traslado.area_entrada)
-            data_por_area[traslado.area_entrada]["entrada"] += cantidad
-        if traslado.area_salida:
-            init_area(traslado.area_salida)
-            data_por_area[traslado.area_salida]["salida"] += cantidad
-            motivos_area = data_por_area[traslado.area_salida]["motivos"]
-            motivos_area[traslado.motivo] = motivos_area.get(traslado.motivo, 0.0) + cantidad
+        en_rango.append(T.fecha <= fecha_hasta)
+    for a, total in sumas([T.area_entrada], *en_rango):
+        if a:
+            area(a)["entrada"] += float(total)
+    for a, motivo, total in sumas([T.area_salida, T.motivo], *en_rango):
+        if a:
+            d = area(a)
+            d["salida"] += float(total)
+            d["motivos"][motivo] = d["motivos"].get(motivo, 0.0) + float(total)
 
     for d in data_por_area.values():
         d["neto"] = d["existenciasIniciales"] + d["entrada"] - d["salida"]
@@ -414,3 +428,35 @@ def detalles_por_traslado(traslado: CustodiaTraslado) -> dict:
         "op": [{"op": o.op, "descripcion": o.descripcion, "orden": o.orden, "tipo": o.tipo,
                "usuario": o.usuario, "observaciones": o.observaciones} for o in traslado.op],
     }
+
+
+def notificar_traslado_pendiente(traslado_id: int) -> None:
+    """Envía un mensaje directo de Zoho Cliq a los managers del área de entrada: tienen un traslado
+    por firmar. Se ejecuta en segundo plano después de guardar (abre su propia sesión)."""
+    from . import config
+    from .database import SessionLocal
+    from .zoho_cliq import enviar_cliq
+    db = SessionLocal()
+    try:
+        t = db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes)).get(traslado_id)
+        if not t or t.anulado or t.confirmado_entrada:
+            return
+        destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
+                         if e.tiene_modulo("custodia") and e.rol not in ("admin", "superadmin")
+                         and (e.area_custodia or "").strip().upper() == (t.area_entrada or "").strip().upper()]
+        if not destinatarios:
+            print(f"[Custodia] Traslado #{t.id}: ningún manager tiene asignada el área {t.area_entrada}; sin aviso.")
+            return
+        ordenes = ", ".join(o.numero_orden for o in t.ordenes) or "—"
+        total = sum(o.cantidad_discos or 0 for o in t.ordenes)
+        texto = (f"📦 *Traslado pendiente de firma* #{t.id:04d}\n"
+                 f"{nombre_propio(t.area_salida)} → {nombre_propio(t.area_entrada)} · {total:g} discos\n"
+                 f"Órdenes: {ordenes}\n"
+                 f"Registrado por: {nombre_propio(t.colaborador)}\n"
+                 f"Firma el recibido en: {config.BASE_URL}/custodia (Aprobaciones/Firmas)")
+        for e in destinatarios:
+            enviar_cliq(e.email, texto)
+    except Exception as ex:  # un aviso fallido nunca debe afectar el registro
+        print(f"[Custodia] Error enviando aviso del traslado #{traslado_id}: {ex}")
+    finally:
+        db.close()

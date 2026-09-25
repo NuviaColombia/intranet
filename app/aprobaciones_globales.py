@@ -34,6 +34,8 @@ def resumen_pendientes(db: Session, user: Empleado) -> dict:
 
     if user.tiene_modulo("custodia"):
         for t in sc.pendientes_entrada(db):
+            if not sc.puede_firmar_recibido(user, t):  # solo lo que este usuario puede firmar
+                continue
             items.append({
                 "modulo": "Cambio de custodia", "tipo": "custodia", "id": t.id,
                 "descripcion": f"Traslado #{t.id}: {t.colaborador} ({t.area_salida} → {t.area_entrada})",

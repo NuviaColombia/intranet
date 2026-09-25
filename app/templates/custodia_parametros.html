@@ -110,7 +110,8 @@
 <div class="cp-panel" id="panel-areas">
   <div class="cp-barra">
     <div class="cp-ayuda">Áreas disponibles para salida, entrada y creación. Las alertas pintan la orden en amarillo/rojo en
-      "Ubicación actual" cuando lleva esas horas en el área. "Inventario" indica si la orden puede quedar ubicada ahí.</div>
+      "Ubicación actual" cuando lleva esas horas en el área. "Inventario" indica si la orden puede quedar ubicada ahí.
+      <b>Empaque</b> siempre cuenta como inventario: ahí la orden se considera terminada.</div>
   </div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar área</span></summary>
@@ -132,7 +133,10 @@
       </td>
       <td><input name="alerta_horas_advertencia" type="number" min="0" value="{{ a.alerta_horas_advertencia }}" form="f-area-{{ a.id }}"></td>
       <td><input name="alerta_horas_critica" type="number" min="0" value="{{ a.alerta_horas_critica }}" form="f-area-{{ a.id }}"></td>
-      <td><input type="checkbox" name="es_inventario" value="1" {{ 'checked' if a.es_inventario }} style="width:auto" form="f-area-{{ a.id }}"></td>
+      <td>{% if a.nombre == 'EMPAQUE' %}
+        <input type="checkbox" checked disabled style="width:auto" title="Empaque siempre cuenta como inventario (ahí la orden se considera terminada)">
+        <input type="hidden" name="es_inventario" value="1" form="f-area-{{ a.id }}"> 🔒
+        {% else %}<input type="checkbox" name="es_inventario" value="1" {{ 'checked' if a.es_inventario }} style="width:auto" form="f-area-{{ a.id }}">{% endif %}</td>
       <td><span class="cp-estado {{ 'si' if a.activo else 'no' }}">{{ 'Activa' if a.activo else 'Inactiva' }}</span></td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-area-{{ a.id }}">Guardar</button>
