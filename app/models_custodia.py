@@ -30,6 +30,7 @@ class CustodiaTraslado(Base):
     anulado: Mapped[bool] = mapped_column(Boolean, default=False)
     anulado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     anulado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    motivo_anulacion: Mapped[str | None] = mapped_column(Text, nullable=True)  # obligatorio al anular
 
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
     confirmado_por = relationship("Empleado", foreign_keys=[confirmado_por_id])

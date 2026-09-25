@@ -17,7 +17,7 @@ NUVIA_SMILES = "Nuvia Smiles Colombia SAS"
 
 
 @router.get("/custodia/parametros")
-async def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     managers = (db.query(Empleado).filter(Empleado.modulos.contains("custodia"))
                .order_by(Empleado.apellidos).all())
     candidatos = (db.query(Empleado)
@@ -38,7 +38,7 @@ async def parametros(request: Request, user: Empleado = Depends(require_admin), 
 # ---------- Managers ----------
 
 @router.post("/custodia/parametros/managers")
-async def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                           empleado_id: int = Form(...), area_custodia: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp and emp.empresa == NUVIA_SMILES:
@@ -53,7 +53,7 @@ async def agregar_manager(user: Empleado = Depends(require_admin), db: Session =
 
 
 @router.post("/custodia/parametros/managers/{empleado_id}")
-async def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
+def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
                              db: Session = Depends(get_db), area_custodia: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp:
@@ -63,20 +63,29 @@ async def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_
 
 
 @router.post("/custodia/parametros/managers/{empleado_id}/quitar")
-async def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
+def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
                          db: Session = Depends(get_db)):
     emp = db.get(Empleado, empleado_id)
+    msg = "Manager retirado."
     if emp:
         emp.modulos = ",".join(m for m in emp.modulos_lista if m != "custodia")
         emp.area_custodia = ""
+        # Al agregarlo se subió a "aprobador"; si no aprueba a nadie en People, vuelve a "empleado".
+        if emp.rol == "aprobador":
+            aprueba_a_alguien = (db.query(Empleado.id)
+                                 .filter((Empleado.aprobador1_id == emp.id) | (Empleado.aprobador2_id == emp.id))
+                                 .first() is not None)
+            if not aprueba_a_alguien:
+                emp.rol = "empleado"
+                msg = "Manager retirado. Volvió al rol empleado."
         db.commit()
-    return RedirectResponse("/custodia/parametros?msg=Manager retirado.", status_code=303)
+    return RedirectResponse(f"/custodia/parametros?msg={msg}", status_code=303)
 
 
 # ---------- Áreas de producción ----------
 
 @router.post("/custodia/parametros/areas")
-async def crear_area(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_area(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                      nombre: str = Form(...), es_inventario: str = Form(""),
                      alerta_horas_advertencia: int = Form(24), alerta_horas_critica: int = Form(48)):
     nombre = nombre.strip().upper()
@@ -90,13 +99,14 @@ async def crear_area(user: Empleado = Depends(require_admin), db: Session = Depe
 
 
 @router.post("/custodia/parametros/areas/{area_id}/editar")
-async def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                       nombre: str = Form(...), es_inventario: str = Form(""),
                       alerta_horas_advertencia: int = Form(24), alerta_horas_critica: int = Form(48)):
     a = db.get(CustodiaArea, area_id)
     if a:
         a.nombre = nombre.strip().upper()
-        a.es_inventario = 1 if es_inventario else 0
+        # EMPAQUE siempre cuenta como inventario (regla de negocio; también se aplica al arrancar la app)
+        a.es_inventario = 1 if (es_inventario or a.nombre == "EMPAQUE") else 0
         a.alerta_horas_advertencia = alerta_horas_advertencia
         a.alerta_horas_critica = alerta_horas_critica
         db.commit()
@@ -104,7 +114,7 @@ async def editar_area(area_id: int, user: Empleado = Depends(require_admin), db:
 
 
 @router.post("/custodia/parametros/areas/{area_id}/toggle")
-async def toggle_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     a = db.get(CustodiaArea, area_id)
     if a:
         a.activo = 0 if a.activo else 1
@@ -115,7 +125,7 @@ async def toggle_area(area_id: int, user: Empleado = Depends(require_admin), db:
 # ---------- Catálogo de discos ----------
 
 @router.post("/custodia/parametros/discos")
-async def crear_disco(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_disco(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                       detalle: str = Form(...), factor: float = Form(...)):
     detalle = detalle.strip()
     if detalle and not db.query(CustodiaFactorDisco).filter(CustodiaFactorDisco.detalle == detalle).first():
@@ -126,7 +136,7 @@ async def crear_disco(user: Empleado = Depends(require_admin), db: Session = Dep
 
 
 @router.post("/custodia/parametros/discos/{disco_id}/editar")
-async def editar_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                        detalle: str = Form(...), factor: float = Form(...)):
     d = db.get(CustodiaFactorDisco, disco_id)
     if d:
@@ -137,7 +147,7 @@ async def editar_disco(disco_id: int, user: Empleado = Depends(require_admin), d
 
 
 @router.post("/custodia/parametros/discos/{disco_id}/toggle")
-async def toggle_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     d = db.get(CustodiaFactorDisco, disco_id)
     if d:
         d.activo = 0 if d.activo else 1
@@ -148,7 +158,7 @@ async def toggle_disco(disco_id: int, user: Empleado = Depends(require_admin), d
 # ---------- Motivos ----------
 
 @router.post("/custodia/parametros/motivos")
-async def crear_motivo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_motivo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                        nombre: str = Form(...)):
     nombre = nombre.strip().upper()
     if nombre and not db.query(CustodiaMotivo).filter(CustodiaMotivo.nombre == nombre).first():
@@ -159,7 +169,7 @@ async def crear_motivo(user: Empleado = Depends(require_admin), db: Session = De
 
 
 @router.post("/custodia/parametros/motivos/{motivo_id}/editar")
-async def editar_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                         nombre: str = Form(...), orden: int = Form(0)):
     m = db.get(CustodiaMotivo, motivo_id)
     if m:
@@ -170,7 +180,7 @@ async def editar_motivo(motivo_id: int, user: Empleado = Depends(require_admin),
 
 
 @router.post("/custodia/parametros/motivos/{motivo_id}/toggle")
-async def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     m = db.get(CustodiaMotivo, motivo_id)
     if m:
         m.activo = 0 if m.activo else 1

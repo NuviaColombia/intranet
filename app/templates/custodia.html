@@ -564,6 +564,7 @@
 
       </div>
 
+      <div id="viewAnulacionInfo" style="display:none; margin-top:20px; padding:12px 16px; border-radius:10px; background:#FEF2F2; border:1px solid #FECACA; color:#991B1B; font-size:13px; line-height:1.6;"></div>
       <div style="margin-top:35px; display:flex; justify-content:space-between; align-items:center;">
          <div style="display:flex; gap:10px;">
            <button type="button" class="btn btn-anular" id="btnAnularModal" onclick="ejecutarAnulacionDesdeModal()">🚫 Anular registro</button>
@@ -603,6 +604,22 @@
   </div>
 
   <!-- MODAL IMPRIMIR POR RANGO DE CONSECUTIVOS -->
+  <!-- MODAL ANULAR (motivo obligatorio) -->
+  <div id="modalAnular" class="modal">
+    <div class="modal-content" style="max-width:480px;">
+      <h3 style="margin-top:0; color:var(--danger);">🚫 Anular traslado <span id="anularConsecutivo"></span></h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:0;">Esta acción es irreversible. Queda registrado quién anuló, cuándo y por qué.</p>
+      <label for="anularMotivo" style="font-size:13px; font-weight:700; color:var(--text-dark);">Motivo de la anulación (obligatorio)</label>
+      <textarea id="anularMotivo" rows="4" maxlength="500" placeholder="Ej: Se registró la orden equivocada; el traslado correcto es el #0125."
+                style="width:100%; margin-top:6px; padding:10px; border:1px solid var(--border-medium); border-radius:8px; font-size:13px; resize:vertical;"></textarea>
+      <div id="anularError" style="display:none; color:var(--danger); font-size:12px; margin-top:6px;"></div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px;">
+        <button type="button" class="btn" style="background:var(--text-muted);" onclick="cerrarModalAnular()">Cancelar</button>
+        <button type="button" class="btn btn-anular" id="btnConfirmarAnulacion" onclick="confirmarAnulacion()">🚫 Anular registro</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modalRangoTickets" class="modal">
     <div class="modal-content">
       <h3 style="color:var(--brand-main); margin-top:0; font-weight:800;">Imprimir por rango</h3>
@@ -762,9 +779,16 @@ function cargarConfirmaciones() {
       `;
       var tdAccion = tr.lastElementChild;
       var btn = document.createElement("button");
-      btn.className = "btn"; btn.style.background = "var(--success)"; btn.style.padding = "8px 14px"; btn.style.fontSize = "11px";
-      btn.innerText = "✔ Confirmar recibido";
-      btn.onclick = function() { confirmarDesdeAprobaciones(t.id); };
+      btn.className = "btn"; btn.style.padding = "8px 14px"; btn.style.fontSize = "11px";
+      if (t.puedeFirmar) {
+        btn.style.background = "var(--success)";
+        btn.innerText = "✔ Confirmar recibido";
+        btn.onclick = function() { confirmarDesdeAprobaciones(t.id); };
+      } else {
+        btn.style.background = "var(--border-medium)"; btn.disabled = true;
+        btn.innerText = "🔒 Firma " + nombrePropio(t.areaEntrada);
+        btn.title = "Solo un manager del área " + nombrePropio(t.areaEntrada) + " (o un administrador) puede firmar el recibido.";
+      }
       tdAccion.appendChild(btn);
       tbody.appendChild(tr);
     });
@@ -1808,6 +1832,7 @@ function ejecutarConsulta() {
     document.getElementById("btnBuscar").innerText = "🔍 Buscar";
     datosConsultaActual = res.data;
     renderTabla();
+    if (res.truncado) alert("Se muestran los " + res.limite + " registros más recientes del rango. Acota las fechas para ver el resto.");
   }).catch(function(e) {
     document.getElementById("btnBuscar").innerText = "🔍 Buscar";
     document.getElementById("tablaBody").innerHTML = `<tr><td colspan="11" style="padding:40px;">${e.message}</td></tr>`;
@@ -1900,7 +1925,13 @@ function abrirModalPreview(t) {
   document.getElementById("viewConsecutivo").innerText = String(t.id).padStart(4, '0');
 
   document.getElementById("btnAnularModal").style.display = t.anulado ? "none" : "inline-block";
-  document.getElementById("btnConfirmarModal").style.display = (!t.anulado && !t.confirmadoEntrada) ? "inline-block" : "none";
+  document.getElementById("btnConfirmarModal").style.display = (!t.anulado && !t.confirmadoEntrada && t.puedeFirmar) ? "inline-block" : "none";
+  var infoAnul = document.getElementById("viewAnulacionInfo");
+  if (t.anulado) {
+    infoAnul.innerHTML = `🚫 <b>Anulado</b>${t.anuladoPor ? " por " + t.anuladoPor : ""}${t.anuladoEn ? " el " + t.anuladoEn : ""}.`
+      + `<br><b>Motivo:</b> ${t.motivoAnulacion ? t.motivoAnulacion.replace(/</g, "&lt;") : "<i>No registrado (anulación anterior a este cambio)</i>"}`;
+    infoAnul.style.display = "block";
+  } else { infoAnul.style.display = "none"; }
   document.getElementById("modalDocumentoPreview").style.display = "flex";
 
   document.getElementById("viewDetallesExcel").style.display = "none";
@@ -1914,12 +1945,27 @@ function cerrarModalPreview() { document.getElementById("modalDocumentoPreview")
 
 function ejecutarAnulacionDesdeModal() {
   if (!registroActivoModal) return;
-  var conf = confirm("⚠️ ¿Estás seguro de que deseas anular este registro?\nEsta acción es irreversible.");
-  if (conf) {
-    custodiaPostJSON('/custodia/api/traslados/' + registroActivoModal.id + '/anular').then(function(resp) {
-       alert(resp.mensaje); cerrarModalPreview(); ejecutarConsulta();
-    }).catch(function(e) { alert('Error: ' + e.message); });
-  }
+  document.getElementById("anularConsecutivo").innerText = String(registroActivoModal.id).padStart(4, '0');
+  document.getElementById("anularMotivo").value = "";
+  document.getElementById("anularError").style.display = "none";
+  document.getElementById("modalAnular").style.display = "flex";
+  setTimeout(function() { document.getElementById("anularMotivo").focus(); }, 50);
+}
+
+function cerrarModalAnular() { document.getElementById("modalAnular").style.display = "none"; }
+
+function confirmarAnulacion() {
+  var motivo = document.getElementById("anularMotivo").value.trim();
+  var err = document.getElementById("anularError");
+  if (motivo.length < 5) { err.innerText = "Escribe el motivo (mínimo 5 caracteres)."; err.style.display = "block"; return; }
+  var btn = document.getElementById("btnConfirmarAnulacion"); btn.disabled = true; btn.innerText = "Anulando...";
+  custodiaPostJSON('/custodia/api/traslados/' + registroActivoModal.id + '/anular', {motivo: motivo}).then(function(resp) {
+    btn.disabled = false; btn.innerText = "🚫 Anular registro";
+    cerrarModalAnular(); alert(resp.mensaje); cerrarModalPreview(); ejecutarConsulta();
+  }).catch(function(e) {
+    btn.disabled = false; btn.innerText = "🚫 Anular registro";
+    err.innerText = e.message; err.style.display = "block";
+  });
 }
 
 function ejecutarConfirmacionDesdeModal() {
