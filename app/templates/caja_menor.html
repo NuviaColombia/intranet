@@ -11,7 +11,8 @@
       <div><h2 class="cm-titulo">📝 Recibo de caja menor</h2>
         <p class="cm-sub" style="margin:0;">Escribe el número de un recibo existente para consultarlo, o completa los datos para uno nuevo.</p></div>
       <div class="cm-acciones">
-        <button type="button" class="btn gris" onclick="nuevoRecibo()">＋ Nuevo recibo</button>
+        {% if not solo_firmas %}<button type="button" class="btn gris" onclick="nuevoRecibo()">＋ Nuevo recibo</button>
+        {% else %}<button type="button" class="btn gris" onclick="switchTab('firmas')">← Volver a Firmas</button>{% endif %}
       </div>
     </div>
     <div id="reciboSello" class="cm-sello"></div>
@@ -89,6 +90,32 @@
     </table></div>
   </div>
 
+  <!-- ============ FIRMAS ============ -->
+  <div id="sec-firmas" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">✍️ Firmas de la caja</h2>
+        <p class="cm-sub" style="margin:0;">Recibos (Autorizado por) y FM (Supervisado por) que requieren firma. Solo la persona asignada puede firmar; al hacerlo queda su correo de acceso (Zoho) con la fecha y la hora.</p></div>
+    </div>
+    <div class="cm-filtros">
+      <label>Mostrar:</label>
+      <select id="fVer" onchange="pintarFirmas(); pintarFirmasFM();">
+        <option value="mios">Pendientes de mi firma</option>
+        <option value="pendientes">Todos los pendientes de la caja</option>
+        <option value="firmados">Firmados</option>
+        <option value="todos">Todos</option>
+      </select>
+    </div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>No. recibo</th><th>Fecha</th><th>Pagado a</th><th>Concepto</th><th>Valor</th><th>Estado</th><th>Autorizado por</th><th>Firma</th><th>Acción</th></tr></thead>
+      <tbody id="bodyFirmas"><tr><td colspan="9" class="cm-vacio">Cargando…</td></tr></tbody>
+    </table></div>
+    <h3 class="cm-titulo" style="font-size:15px; margin:26px 0 8px;">📋 Formatos de reembolso (FM) — visto bueno</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Formato</th><th>Fecha</th><th>Responsable</th><th>Recibos</th><th>Total</th><th>Supervisado por</th><th>Visto bueno</th><th>Acción</th></tr></thead>
+      <tbody id="bodyFirmasFM"><tr><td colspan="8" class="cm-vacio">Cargando…</td></tr></tbody>
+    </table></div>
+  </div>
+
   <!-- ============ LEGALIZAR ============ -->
   <div id="sec-legalizar" class="cm-seccion">
     <div id="legalizarLista">
@@ -112,7 +139,7 @@
       <h2 class="cm-titulo">🗂️ Historial de FMs</h2>
       <p class="cm-sub">Formatos de reembolso de esta caja. Ábrelos para reimprimirlos o anularlos.</p>
       <div class="cm-tabla-wrap"><table class="cm-tabla">
-        <thead><tr><th>Formato</th><th>Fecha</th><th>Responsable</th><th>Recibos</th><th>Total reembolsado</th><th>Estado</th><th>Acción</th></tr></thead>
+        <thead><tr><th>Formato</th><th>Fecha</th><th>Responsable</th><th>Recibos</th><th>Total reembolsado</th><th>Estado</th><th>Visto bueno</th><th>Acción</th></tr></thead>
         <tbody id="bodyFMs"><tr><td colspan="7" class="cm-vacio">Cargando…</td></tr></tbody>
       </table></div>
     </div>
@@ -182,6 +209,9 @@ var LOGO = {{ (logo or '')|tojson }};
 var MONEDAS = {{ denominaciones_monedas|tojson }}, BILLETES = {{ denominaciones_billetes|tojson }};
 var USUARIO = {{ (user.nombre_completo|nombre_propio)|tojson }};
 var API = '/caja-menor/api/' + CAJA.id;
+var USUARIO_ID = {{ user.id }};
+var SUPERVISORES = {{ supervisores|tojson }};  // nombres (mayúsculas) de quienes dan el visto bueno a los FM
+var SOLO_FIRMAS = {{ 'true' if solo_firmas else 'false' }};  // autoriza en esta caja pero no tiene acceso: solo ve y firma
 var reciboActual = null, recibosConsulta = [], recibosActivos = [], arqueosCache = [], fmActual = null, anulando = null;
 
 // Nombres propios (misma regla que app/formato.py): "LEIDER DAVID" -> "Leider David"; siglas en mayúscula.
@@ -241,6 +271,7 @@ function switchTab(tab) {
   if (tab === 'legalizar') cargarLegalizar();
   if (tab === 'fms') cargarFMs();
   if (tab === 'arqueo') tabArqueo('registrar');
+  if (tab === 'firmas') cargarFirmas();
 }
 document.querySelectorAll('.caja-tab').forEach(function(a) {
   a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); });
@@ -288,8 +319,8 @@ function mostrarRecibo(r) {
   else sello.className = 'cm-sello';
   document.getElementById('btnGuardarRecibo').style.display = 'none';
   document.getElementById('btnCopiaRecibo').style.display = r.estado === 'ANULADO' ? 'none' : '';
-  document.getElementById('btnEditarRecibo').style.display = r.estado === 'ACTIVO' ? '' : 'none';
-  document.getElementById('btnAnularRecibo').style.display = r.estado === 'ACTIVO' ? '' : 'none';
+  document.getElementById('btnEditarRecibo').style.display = r.estado === 'ACTIVO' && !r.firmadoEn && !SOLO_FIRMAS ? '' : 'none';  // firmado: solo anular
+  document.getElementById('btnAnularRecibo').style.display = r.estado === 'ACTIVO' && !SOLO_FIRMAS ? '' : 'none';
 }
 
 function pintarFirma(r) {
@@ -297,7 +328,7 @@ function pintarFirma(r) {
   if (!r || !r.autorizadoPor || r.estado === 'ANULADO') { el.style.display = 'none'; return; }
   el.style.display = '';
   el.className = 'cm-firma-estado ' + (r.firmadoEn ? 'firmado' : 'pendiente');
-  el.innerHTML = r.firmadoEn ? '✅ Firmado por <b>' + esc(r.firmaEmail) + '</b> el ' + esc(r.firmadoEn)
+  el.innerHTML = r.firmadoEn ? '✅ Firmado por <b>' + esc(r.firmaEmail) + '</b> el ' + esc(r.firmadoEn) + '. Ya no se puede editar; si tiene un error, anúlalo.' 
                              : '⏳ Pendiente de firma: se le avisó por Cliq a ' + esc(nombrePropio(r.autorizadoPor)) + '.';
 }
 function badgeFirma(r) {
@@ -392,8 +423,8 @@ function panelFM(fm, modo) {
   fmActual = fm;
   var recibos = fm.recibos, lectura = modo === 'ver';
   var total = recibos.reduce(function(s, r) { return s + r.valor; }, 0);
-  var html = '<div class="cm-barra"><button type="button" class="btn gris" onclick="' + (lectura ? "switchTab('fms')" : 'cargarLegalizar()') + '">← Volver</button>' +
-    '<div class="cm-acciones">' + (lectura ? (fm.estado === 'VIGENTE' ? '<button type="button" class="btn rojo" onclick="abrirAnulacion(\'fm\')">🚫 Anular FM</button>' : '') +
+  var html = '<div class="cm-barra"><button type="button" class="btn gris" onclick="' + (lectura ? (SOLO_FIRMAS ? "switchTab('firmas')" : "switchTab('fms')") : 'cargarLegalizar()') + '">← Volver</button>' +
+    '<div class="cm-acciones">' + (lectura ? (fm.estado === 'VIGENTE' && !SOLO_FIRMAS ? '<button type="button" class="btn rojo" onclick="abrirAnulacion(\'fm\')">🚫 Anular FM</button>' : '') +
       '<button type="button" class="btn" onclick="imprimirFM(fmActual)">🖨️ Imprimir</button>'
       : '<button type="button" class="btn verde" id="btnLegalizar" onclick="confirmarLegalizar()">✅ Legalizar e imprimir FM</button>') + '</div></div>';
   if (lectura && fm.estado === 'ANULADO') html += '<div class="cm-sello anulado">🚫 <b>FM anulado</b>' + (fm.anuladoPor ? ' por ' + esc(fm.anuladoPor) : '') +
@@ -405,7 +436,17 @@ function panelFM(fm, modo) {
     '<td class="cm-etq">Fondo permanente</td><td class="cm-val"><input readonly value="' + pesos(fm.fondo) + '"></td></tr>' +
     '<tr><td class="cm-etq">Responsable</td><td class="cm-val cm-mayus"><input id="fmResponsable" ' + (lectura ? 'readonly' : '') + ' value="' + esc(fm.responsable) + '"></td>' +
     '<td class="cm-etq">Valor en caja</td><td class="cm-val"><input readonly id="fmValorCaja" value="' + pesos(fm.valorEnCaja) + '"></td></tr>' +
-    '<tr><td class="cm-etq">Pagos efectuados</td><td class="cm-val" colspan="3"><input readonly id="fmPagos" value="' + pesos(total + (fm.ajuste || 0)) + '"></td></tr></table>' +
+    '<tr><td class="cm-etq">Pagos efectuados</td><td class="cm-val" colspan="3"><input readonly id="fmPagos" value="' + pesos(total + (fm.ajuste || 0)) + '"></td></tr>' +
+    '<tr><td class="cm-etq">Supervisado por</td><td class="cm-val" colspan="3">' + (lectura
+      ? '<input readonly value="' + esc(nombrePropio(fm.supervisadoPor) || '—') + '">'
+      : (SUPERVISORES.length
+          ? '<select id="fmSupervisa"><option value="">— Elige quién da el visto bueno —</option>' +
+            SUPERVISORES.map(function(n) { return '<option value="' + esc(n) + '">' + esc(nombrePropio(n)) + '</option>'; }).join('') + '</select>'
+          : '<input readonly value="Sin supervisores: agrégalos en Parámetros › Supervisan (FM)">')) + '</td></tr></table>' +
+    (lectura && fm.supervisadoPor && fm.estado === 'VIGENTE'
+      ? '<div class="cm-firma-estado ' + (fm.supervisadoEn ? 'firmado' : 'pendiente') + '" style="margin:-6px 0 14px">' +
+        (fm.supervisadoEn ? '✅ Visto bueno de <b>' + esc(fm.supervisionEmail) + '</b> el ' + esc(fm.supervisadoEn)
+                          : '⏳ Pendiente del visto bueno: se le avisó por Cliq a ' + esc(nombrePropio(fm.supervisadoPor)) + '.') + '</div>' : '') +
     tablaConteo('fm', fm.desglose || {}, lectura, 'recalcularFM') +
     '<div class="cm-tabla-wrap" style="max-height:none;"><table class="cm-tabla"><thead><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Neto pagado</th></tr></thead><tbody>' +
     recibos.map(function(r) { return '<tr><td class="cm-num-orden">' + r.consecutivo + '</td><td>' + esc(r.fecha) + '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) +
@@ -432,23 +473,113 @@ function prepararFM() {
 }
 function confirmarLegalizar() {
   var btn = document.getElementById('btnLegalizar'); btn.disabled = true; btn.innerText = 'Legalizando…';
+  var sup = document.getElementById('fmSupervisa');
+  if (sup && !sup.value) { btn.disabled = false; btn.innerText = '✅ Legalizar e imprimir FM'; return alert('Elige quién supervisa el FM (Supervisado por).'); }
   post(API + '/legalizar', {recibos: fmActual.recibos.map(function(r) { return r.id; }), responsable: document.getElementById('fmResponsable').value,
-                           desglose: leerDesglose('fm'), ajuste: parseFloat(document.getElementById('fmAjuste').value) || 0})
+                           desglose: leerDesglose('fm'), ajuste: parseFloat(document.getElementById('fmAjuste').value) || 0,
+                           supervisado_por: sup ? sup.value : ''})
     .then(function(res) { alert(res.mensaje); imprimirFM(res.fm); cargarLegalizar(); })
     .catch(function(e) { btn.disabled = false; btn.innerText = '✅ Legalizar e imprimir FM'; alert(e.message); });
+}
+
+// ---------------- firmas ----------------
+var recibosFirmas = [], fmsFirmas = [];
+function cargarFirmas() {
+  api(API + '/fms').then(function(res) {
+    fmsFirmas = res.data.filter(function(f) { return f.supervisadoPor && f.estado === 'VIGENTE'; }); pintarFirmasFM(); actualizarBadgeFirmas();
+  }).catch(function(e) { document.getElementById('bodyFirmasFM').innerHTML = '<tr><td colspan="8" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+  document.getElementById('bodyFirmas').innerHTML = '<tr><td colspan="9" class="cm-vacio">Cargando…</td></tr>';
+  api(API + '/recibos').then(function(res) {
+    recibosFirmas = res.data.filter(function(r) { return r.autorizadoPor && r.estado !== 'ANULADO'; });
+    var mios = recibosFirmas.filter(function(r) { return r.autorizadoPorId === USUARIO_ID && !r.firmadoEn; }).length +
+      fmsFirmas.filter(function(f) { return f.supervisadoPorId === USUARIO_ID && !f.supervisadoEn; }).length;
+    actualizarBadgeFirmas();
+    var sel = document.getElementById('fVer');
+    if (!mios && sel.value === 'mios' && !sel.dataset.tocado) sel.value = 'pendientes';
+    pintarFirmas();
+  }).catch(function(e) { document.getElementById('bodyFirmas').innerHTML = '<tr><td colspan="9" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+document.getElementById('fVer').addEventListener('change', function() { this.dataset.tocado = '1'; });
+function pintarFirmas() {
+  var ver = document.getElementById('fVer').value;
+  var filas = recibosFirmas.filter(function(r) {
+    if (ver === 'mios') return r.autorizadoPorId === USUARIO_ID && !r.firmadoEn;
+    if (ver === 'pendientes') return !r.firmadoEn;
+    if (ver === 'firmados') return !!r.firmadoEn;
+    return true;
+  });
+  var tb = document.getElementById('bodyFirmas');
+  if (!filas.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="cm-vacio">' + (ver === 'mios' ? 'No tienes recibos pendientes de firma en esta caja. 🎉' : 'No hay recibos para mostrar.') + '</td></tr>';
+    return;
+  }
+  tb.innerHTML = filas.map(function(r) {
+    var accion = !r.firmadoEn && r.autorizadoPorId === USUARIO_ID
+      ? '<button class="btn verde mini" onclick="firmarRecibo(' + r.id + ')">✍️ Firmar</button>'
+      : (!r.firmadoEn ? '<span style="font-size:12px;color:var(--text-muted)">Solo ' + esc(nombrePropio(r.autorizadoPor)) + '</span>' : '');
+    return '<tr><td class="cm-num-orden" style="white-space:nowrap">' + esc(r.noRecibo) + '</td><td style="white-space:nowrap">' + esc(r.fecha) +
+      '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) + '</td><td class="izq">' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) +
+      '</td><td>' + badge(r.estado) + '</td><td>' + esc(nombrePropio(r.autorizadoPor)) + '</td><td>' +
+      (r.firmadoEn ? '<span class="badge activo">Firmado</span><div style="font-size:11px;color:var(--text-muted);margin-top:3px">' + esc(r.firmaEmail) + '<br>' + esc(r.firmadoEn) + '</div>'
+                   : '<span class="badge sobrante">Pendiente</span>') +
+      '</td><td style="white-space:nowrap">' + accion + ' <button class="btn gris mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
+  }).join('');
+}
+function pintarFirmasFM() {
+  var ver = document.getElementById('fVer').value;
+  var filas = fmsFirmas.filter(function(f) {
+    if (ver === 'mios') return f.supervisadoPorId === USUARIO_ID && !f.supervisadoEn;
+    if (ver === 'pendientes') return !f.supervisadoEn;
+    if (ver === 'firmados') return !!f.supervisadoEn;
+    return true;
+  });
+  var tb = document.getElementById('bodyFirmasFM');
+  if (!filas.length) { tb.innerHTML = '<tr><td colspan="8" class="cm-vacio">' + (ver === 'mios' ? 'No tienes FM pendientes de tu visto bueno en esta caja.' : 'No hay FM para mostrar.') + '</td></tr>'; return; }
+  tb.innerHTML = filas.map(function(f) {
+    var accion = !f.supervisadoEn && f.supervisadoPorId === USUARIO_ID
+      ? '<button class="btn verde mini" onclick="vistoBuenoFM(' + f.id + ')">✅ Dar visto bueno</button>'
+      : (!f.supervisadoEn ? '<span style="font-size:12px;color:var(--text-muted)">Solo ' + esc(nombrePropio(f.supervisadoPor)) + '</span>' : '');
+    return '<tr><td class="cm-num-orden">' + esc(f.fm) + '</td><td style="white-space:nowrap">' + esc(f.fecha) + '</td><td class="izq">' + esc(nombrePropio(f.responsable)) +
+      '</td><td>' + (f.cantidad == null ? '—' : f.cantidad) + '</td><td class="der">' + pesos(f.totalPagos) + '</td><td>' + esc(nombrePropio(f.supervisadoPor)) + '</td><td>' +
+      (f.supervisadoEn ? '<span class="badge activo">Visto bueno</span><div style="font-size:11px;color:var(--text-muted);margin-top:3px">' + esc(f.supervisionEmail) + '<br>' + esc(f.supervisadoEn) + '</div>'
+                       : '<span class="badge sobrante">Pendiente</span>') +
+      '</td><td style="white-space:nowrap">' + accion + ' <button class="btn gris mini" onclick="verFMFirmas(' + f.id + ')">👁️ Ver</button></td></tr>';
+  }).join('');
+}
+function actualizarBadgeFirmas() {
+  var n = recibosFirmas.filter(function(r) { return r.autorizadoPorId === USUARIO_ID && !r.firmadoEn; }).length +
+          fmsFirmas.filter(function(f) { return f.supervisadoPorId === USUARIO_ID && !f.supervisadoEn; }).length;
+  var b = document.getElementById('badgeFirmas'); if (b) { b.innerText = n; b.style.display = n ? '' : 'none'; }
+}
+function verFMFirmas(id) { api(API + '/fms/' + id).then(function(fm) { switchTab('fms'); panelFM(fm, 'ver'); }); }
+function vistoBuenoFM(id) {
+  var f = fmsFirmas.filter(function(x) { return x.id === id; })[0];
+  if (!f || !confirm('¿Dar el visto bueno al ' + f.fm + ' por ' + pesos(f.totalPagos) + '?\nQuedará tu correo de acceso con la fecha y hora.')) return;
+  post(API + '/fms/' + id + '/visto-bueno', {}).then(function(res) { alert(res.mensaje); cargarFirmas(); }).catch(function(e) { alert(e.message); });
+}
+function firmarRecibo(id) {
+  var r = recibosFirmas.filter(function(x) { return x.id === id; })[0];
+  if (!r || !confirm('¿Firmar y autorizar el recibo ' + r.noRecibo + ' por ' + pesos(r.valor) + '?\nQuedará tu correo de acceso con la fecha y hora.')) return;
+  post(API + '/recibos/' + id + '/firmar', {}).then(function(res) { alert(res.mensaje); cargarFirmas(); })
+    .catch(function(e) { alert(e.message); });
 }
 
 function cargarFMs() {
   document.getElementById('fmsLista').style.display = ''; document.getElementById('fmPanel').style.display = 'none';
   api(API + '/fms').then(function(res) {
     var tb = document.getElementById('bodyFMs');
-    if (!res.data.length) { tb.innerHTML = '<tr><td colspan="7" class="cm-vacio">Aún no hay FMs en esta caja.</td></tr>'; return; }
+    if (!res.data.length) { tb.innerHTML = '<tr><td colspan="8" class="cm-vacio">Aún no hay FMs en esta caja.</td></tr>'; return; }
     tb.innerHTML = res.data.map(function(f) {
       return '<tr class="' + (f.estado === 'ANULADO' ? 'anulado' : '') + '"><td class="cm-num-orden">' + f.fm + '</td><td>' + esc(f.fecha) + '</td><td class="izq">' +
-        esc(nombrePropio(f.responsable)) + '</td><td>' + (f.cantidad == null ? '—' : f.cantidad) + '</td><td class="der">' + pesos(f.totalPagos) + '</td><td>' + badge(f.estado) +
+        esc(nombrePropio(f.responsable)) + '</td><td>' + (f.cantidad == null ? '—' : f.cantidad) + '</td><td class="der">' + pesos(f.totalPagos) + '</td><td>' + badge(f.estado) + '</td><td>' + badgeVistoBueno(f) +
         '</td><td><button class="btn mini" onclick="verFM(' + f.id + ')">👁️ Ver / imprimir</button></td></tr>';
     }).join('');
   });
+}
+function badgeVistoBueno(f) {
+  if (!f.supervisadoPor || f.estado !== 'VIGENTE') return '—';
+  return f.supervisadoEn ? '<span class="badge activo" title="' + esc(f.supervisionEmail + ' · ' + f.supervisadoEn) + '">Visto bueno</span>'
+                         : '<span class="badge sobrante">Pendiente</span>';
 }
 function verFM(id) { api(API + '/fms/' + id).then(function(fm) { panelFM(fm, 'ver'); }); }
 
@@ -585,26 +716,71 @@ function imprimirRecibo(r) {
   imprimirHtml(cuerpo, CSS_RECIBO);
 }
 
+// Formato del FM: mismo estilo que el recibo (una sola fuente, tamaños uniformes, columnas fijas)
+var CSS_FM = "@page{size:letter portrait;margin:12mm 14mm} *{box-sizing:border-box}" +
+  "body{margin:0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:10px;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
+  ".fm-enc{display:grid;grid-template-columns:1fr 1.6fr 1fr;align-items:center;padding-bottom:12px;border-bottom:1px solid #E5E7EB}" +
+  ".fm-enc img{max-height:44px} .fm-tit{text-align:center} .fm-tit small{display:block;font-size:8px;letter-spacing:2px;color:#6B7280;margin-bottom:4px}" +
+  ".fm-tit b{display:block;font-size:14px;letter-spacing:.3px} .fm-tit span{display:block;margin-top:3px;font-size:8.5px;font-weight:600;letter-spacing:.8px;color:#374151}" +
+  ".fm-num{text-align:right} .fm-num b{display:block;font-size:18px;color:#B91C1C;letter-spacing:.5px} .fm-num span{font-size:9px;color:#374151}" +
+  ".fila{display:grid;gap:0 16px;margin-top:14px} .c label{display:block;font-size:7.5px;font-weight:600;letter-spacing:1.2px;color:#6B7280;margin-bottom:4px}" +
+  ".c div{font-size:10.5px;font-weight:700;padding-bottom:4px;border-bottom:1px solid #9CA3AF;min-height:18px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+  ".c.der div{text-align:right}" +
+  ".sec{margin-top:18px;font-size:7.5px;font-weight:700;letter-spacing:1.2px;color:#6B7280}" +
+  "table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:5px}" +
+  ".den td{border:1px solid #E5E7EB;text-align:center;padding:4px 2px;font-size:9px;color:#6B7280} .den td b{display:block;font-size:10.5px;color:#111827;margin-top:1px}" +
+  ".den td.t{width:13%;text-align:left;padding-left:8px;font-weight:700;color:#111827;background:#F9FAFB}" +
+  ".rc th{font-size:7.5px;font-weight:700;letter-spacing:.8px;color:#374151;text-align:left;padding:6px;background:#F3F4F6;border-bottom:1px solid #9CA3AF}" +
+  ".rc td{font-size:9.5px;padding:6px;border-bottom:1px solid #E5E7EB;vertical-align:top;text-transform:uppercase;word-wrap:break-word}" +
+  ".rc .n{text-align:right;white-space:nowrap} .rc .m{text-align:center;white-space:nowrap}" +
+  ".rc tr.tot td{border-bottom:none;font-weight:700;padding-top:7px} .rc tr.tot.g td{font-size:11px;border-top:1.5px solid #111827}" +
+  ".anul{margin-top:10px;padding:6px 10px;border:1.5px solid #B91C1C;color:#B91C1C;font-weight:800;font-size:10px;text-align:center;letter-spacing:.5px}" +
+  ".firmas{margin-top:34px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 26px;text-align:center}" +
+  ".firmas .esp{height:44px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px}" +
+  ".firmas .fe{font-size:7.5px;font-weight:800;letter-spacing:.6px;color:#065F46;line-height:1.45} .firmas .fe span{font-weight:600;letter-spacing:0;color:#111827}" +
+  ".firmas .fe.pend{color:#92400E}" +
+  ".firmas .ln{border-top:1px solid #111827;padding-top:5px;font-size:8px;font-weight:800;letter-spacing:.8px}" +
+  ".firmas .sub{font-size:8.5px;font-weight:500;margin-top:3px;color:#374151;letter-spacing:0;text-transform:none}" +
+  ".pie{margin-top:12px;display:flex;justify-content:space-between;font-size:7.5px;color:#9CA3AF}";
+
 function imprimirFM(fm) {
-  var d = fm.desglose || {}, filasDen = function(t, den) { return '<tr><td class="etq">' + t + '</td>' + den.map(function(v) { return '<td style="text-align:center;font-size:11px">$ ' +
-    v.toLocaleString('es-CO') + '<br><b>' + (d[v] || 0) + '</b></td>'; }).join('') + '</tr>'; };
+  var d = fm.desglose || {};
+  function campo(etq, valor, extra) { return '<div class="c ' + (extra || '') + '"><label>' + etq + '</label><div>' + (valor || '&nbsp;') + '</div></div>'; }
+  function filaDen(t, den) {
+    return '<tr><td class="t">' + t + '</td>' + den.map(function(v) { return '<td>$ ' + v.toLocaleString('es-CO') + '<b>' + (d[v] || 0) + '</b></td>'; }).join('') + '</tr>';
+  }
   var total = fm.recibos.reduce(function(s, r) { return s + r.valor; }, 0) + (fm.ajuste || 0);
-  var cuerpo = '<table class="enc"><tr><td class="logo" rowspan="2">' + (LOGO ? '<img src="' + LOGO + '">' : '<b>Nuvia</b>') +
-    '</td><td class="doc" rowspan="2">Formato de reembolso caja menor<small>Dirección financiera · ' + esc(CAJA.nombre) + '</small></td><td class="etq">Formato</td><td class="num">' +
-    esc(fm.fm) + '</td></tr><tr><td class="etq">Fecha</td><td>' + esc(fm.fecha) + '</td></tr></table>' +
-    (fm.estado === 'ANULADO' ? '<p class="anulado">FM ANULADO — ' + esc(fm.motivoAnulacion) + '</p>' : '') + '<div class="gap"></div>' +
-    '<table><tr><td class="etq">Ciudad</td><td>' + esc(fm.ciudad || CAJA.ciudad) + '</td><td class="etq">Fondo permanente</td><td class="der">' + pesos(fm.fondo) + '</td></tr>' +
-    '<tr><td class="etq">Responsable</td><td>' + esc(fm.responsable) + '</td><td class="etq">Valor en caja</td><td class="der">' + pesos(fm.valorEnCaja) + '</td></tr>' +
-    '<tr><td class="etq">Pagos efectuados</td><td colspan="3" class="der">' + pesos(total) + '</td></tr></table><div class="gap"></div>' +
-    '<table>' + filasDen('Monedas', MONEDAS) + '</table><table>' + filasDen('Billetes', BILLETES) + '</table><div class="gap"></div>' +
-    '<table><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Neto pagado</th></tr>' +
-    fm.recibos.map(function(r) { return '<tr><td style="text-align:center">' + r.consecutivo + '</td><td style="white-space:nowrap">' + esc(r.fecha) + '</td><td>' + esc(r.pagadoA) +
-      '</td><td>' + esc(r.factura) + '</td><td>' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) + '</td></tr>'; }).join('') +
-    '<tr class="tot"><td colspan="5" class="der">Ajuste al peso</td><td class="der">' + pesos(fm.ajuste || 0) + '</td></tr>' +
-    '<tr class="tot"><td colspan="5" class="der">Total</td><td class="der">' + pesos(total) + '</td></tr></table>' +
-    '<table class="firmas"><tr><td style="width:33%"><div class="linea">Elaborado por</div></td><td style="width:33%"><div class="linea">Supervisado por</div></td>' +
-    '<td style="width:33%"><div class="linea">Radicación (recibido para su estudio)</div></td></tr></table>';
-  imprimirHtml(cuerpo, CSS_DOC.replace('portrait', 'portrait'));
+  var cuerpo =
+    '<div class="fm-enc"><div>' + (LOGO ? '<img src="' + LOGO + '">' : '<b>NUVIA</b>') + '</div>' +
+      '<div class="fm-tit"><small>FORMATO</small><b>REEMBOLSO DE CAJA MENOR</b><span>DIRECCIÓN FINANCIERA · ' + esc(String(CAJA.nombre || '').toUpperCase()) + '</span></div>' +
+      '<div class="fm-num"><b>' + esc(fm.fm) + '</b><span>' + esc(fechaDMY(fm.fecha)) + '</span></div></div>' +
+    (fm.estado === 'ANULADO' ? '<div class="anul">FM ANULADO — ' + esc(fm.motivoAnulacion || '') + '</div>' : '') +
+    '<div class="fila" style="grid-template-columns:1fr 2fr 1fr">' + campo('CIUDAD', esc(fm.ciudad || CAJA.ciudad)) +
+      campo('RESPONSABLE', esc(fm.responsable)) + campo('FECHA', esc(fechaDMY(fm.fecha))) + '</div>' +
+    '<div class="fila" style="grid-template-columns:1fr 1fr 1fr">' + campo('FONDO PERMANENTE', esc(pesos(fm.fondo)), 'der') +
+      campo('VALOR EN CAJA', esc(pesos(fm.valorEnCaja)), 'der') + campo('PAGOS EFECTUADOS', esc(pesos(total)), 'der') + '</div>' +
+    '<div class="sec">ARQUEO DE CAJA (CANTIDAD POR DENOMINACIÓN)</div>' +
+    '<table class="den">' + filaDen('Monedas', MONEDAS) + '</table><table class="den" style="margin-top:-1px">' + filaDen('Billetes', BILLETES) + '</table>' +
+    '<div class="sec">RECIBOS LEGALIZADOS (' + fm.recibos.length + ')</div>' +
+    '<table class="rc"><colgroup><col style="width:7%"><col style="width:12%"><col style="width:24%"><col style="width:14%"><col style="width:29%"><col style="width:14%"></colgroup>' +
+    '<tr><th class="m">RC</th><th>FECHA</th><th>TERCERO</th><th>FACTURA</th><th>DESCRIPCIÓN</th><th class="n">NETO PAGADO</th></tr>' +
+    fm.recibos.map(function(r) {
+      return '<tr><td class="m">' + r.consecutivo + '</td><td class="m" style="text-align:left">' + esc(fechaDMY(r.fecha)) + '</td><td>' + esc(r.pagadoA) +
+        '</td><td>' + esc(r.factura) + '</td><td>' + esc(r.concepto) + '</td><td class="n">' + pesos(r.valor) + '</td></tr>';
+    }).join('') +
+    '<tr class="tot"><td colspan="5" class="n">AJUSTE AL PESO</td><td class="n">' + pesos(fm.ajuste || 0) + '</td></tr>' +
+    '<tr class="tot g"><td colspan="5" class="n">TOTAL</td><td class="n">' + pesos(total) + '</td></tr></table>' +
+    '<div class="firmas">' +
+      '<div><div class="esp">' + (fm.creadoPorEmail ? '<div class="fe">LEGALIZADO ELECTRÓNICAMENTE<br><span>' + esc(fm.creadoPorEmail) + '</span><br><span>' +
+        esc(fechaHoraDMY(fm.creadoEn)) + '</span></div>' : '') + '</div>' +
+        '<div class="ln">ELABORADO POR' + (fm.responsable ? '<div class="sub">' + esc(nombrePropio(fm.responsable)) + '</div>' : '') + '</div></div>' +
+      '<div><div class="esp">' + (fm.supervisadoEn ? '<div class="fe">VISTO BUENO ELECTRÓNICO<br><span>' + esc(fm.supervisionEmail) + '</span><br><span>' +
+        esc(fechaHoraDMY(fm.supervisadoEn)) + '</span></div>' : (fm.supervisadoPor ? '<div class="fe pend">PENDIENTE DE VISTO BUENO</div>' : '')) + '</div>' +
+        '<div class="ln">SUPERVISADO POR' + (fm.supervisadoPor ? '<div class="sub">' + esc(nombrePropio(fm.supervisadoPor)) + '</div>' : '') + '</div></div>' +
+      '<div><div class="esp"></div><div class="ln">RADICACIÓN<div class="sub">Recibido para su estudio</div></div></div>' +
+    '</div>' +
+    '<div class="pie"><span>' + esc(fm.fm) + ' · Caja ' + esc(CAJA.nombre) + '</span><span>Nuvia Smiles Colombia S.A.S.</span></div>';
+  imprimirHtml(cuerpo, CSS_FM);
 }
 
 function imprimirTicket(a) {
@@ -621,6 +797,7 @@ function imprimirTicket(a) {
     '<b>Desglose efectivo:</b>' + desg + '<div class="firma">Custodio de caja</div><div class="c" style="margin-top:6px;font-size:9px">Registrado por ' + esc(a.registradoPor) + '</div>', css);
 }
 
-nuevoRecibo();
+if (SOLO_FIRMAS) switchTab('firmas');
+else { nuevoRecibo(); if ({{ (tab_inicial or '')|tojson }}) switchTab({{ (tab_inicial or '')|tojson }}); }
 </script>
 {% endblock %}
