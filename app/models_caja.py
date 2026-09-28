@@ -48,6 +48,19 @@ class CajaAutorizador(Base):
     empleado = relationship("Empleado")
 
 
+class CajaSupervisor(Base):
+    """Personas que supervisan (dan el visto bueno "Supervisado por") los FM de cada caja."""
+    __tablename__ = "caja_menor_supervisores"
+    __table_args__ = (UniqueConstraint("caja_id", "empleado_id", name="uq_caja_supervisor"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    caja_id: Mapped[int] = mapped_column(ForeignKey("caja_menor_cajas.id"))
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+
+    caja = relationship("CajaMenor")
+    empleado = relationship("Empleado")
+
+
 class CajaFM(Base):
     """Formato de reembolso de caja menor (legalización de un grupo de recibos) con su arqueo."""
     __tablename__ = "caja_menor_fms"
@@ -70,6 +83,10 @@ class CajaFM(Base):
     anulado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     anulado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     motivo_anulacion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    supervisado_por: Mapped[str] = mapped_column(String(150), default="")   # quien da el visto bueno
+    supervisado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
+    supervision_email: Mapped[str | None] = mapped_column(String(150), nullable=True)  # correo Zoho con el que firmó
+    supervisado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)   # UTC
 
     caja = relationship("CajaMenor")
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])

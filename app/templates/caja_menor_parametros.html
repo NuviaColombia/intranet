@@ -33,11 +33,12 @@
   <button type="button" class="cmp-tab" data-panel="cajas">💵 Cajas <span class="cmp-num">{{ cajas|length }}</span></button>
   <button type="button" class="cmp-tab" data-panel="accesos">👤 Accesos <span class="cmp-num">{{ usuarios|length }}</span></button>
   <button type="button" class="cmp-tab" data-panel="autorizan">✍️ Autorizan <span class="cmp-num">{{ autorizadores|length }}</span></button>
+  <button type="button" class="cmp-tab" data-panel="supervisan">📋 Supervisan (FM) <span class="cmp-num">{{ supervisores|length }}</span></button>
 </div>
 
 {# ---------- Cajas ---------- #}
 <div class="cmp-panel" id="panel-cajas">
-  <div class="cmp-ayuda">Cada caja tiene su prefijo, fondo permanente, responsable y consecutivos. El <b>responsable</b> se elige entre las personas con acceso a esa caja (pestaña Accesos). El <b>consecutivo inicial</b> solo aplica mientras la caja no tenga recibos;
+  <div class="cmp-ayuda">Cada caja tiene su prefijo, fondo permanente, responsable y consecutivos. El <b>responsable</b> se elige entre las personas con acceso a esa caja (pestaña Accesos) y es quien firma <b>Elaborado por</b> en el FM. El <b>consecutivo inicial</b> solo aplica mientras la caja no tenga recibos;
     después sigue el mayor + 1. El <b>siguiente FM</b> nunca puede quedar por debajo de uno ya usado.</div>
   <details class="cmp-agregar">
     <summary><span class="btn mini">＋ Agregar caja</span></summary>
@@ -133,7 +134,8 @@
 {# ---------- Autorizan ---------- #}
 <div class="cmp-panel" id="panel-autorizan">
   <div class="cmp-ayuda">Personas de People que autorizan los recibos. Al crear un recibo se elige quién lo autoriza y su nombre sale en la firma
-    <b>Aprobado por</b>. Si una caja no tiene autorizadores, el recibo se imprime con la línea en blanco.</div>
+    <b>Aprobado por</b>. Firma dentro de cada caja, en la pestaña <b>✍️ Firmas</b>; si no tiene acceso a esa caja, entra solo a ver y firmar sus recibos.
+    Si una caja no tiene autorizadores, el recibo se imprime con la línea en blanco.</div>
   <details class="cmp-agregar" {{ 'open' if not autorizadores }}>
     <summary><span class="btn mini">＋ Agregar quien autoriza</span></summary>
     <form method="post" action="/caja-menor/parametros/autorizadores/agregar" class="cmp-form">
@@ -171,6 +173,52 @@
     {% else %}
     <tr><td colspan="4" style="text-align:center; color:var(--gris); padding:18px;">
       Todavía no hay nadie que autorice recibos. Usa <b>＋ Agregar quien autoriza</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Supervisan (FM) ---------- #}
+<div class="cmp-panel" id="panel-supervisan">
+  <div class="cmp-ayuda">Personas de People que dan el visto bueno a los formatos de reembolso (FM). Al legalizar se elige quién lo supervisa: el bot le avisa por Cliq
+    y su firma electrónica sale en <b>Supervisado por</b>. <b>Elaborado por</b> es el responsable de la caja (pestaña Cajas). Firma dentro de cada caja, en la pestaña <b>✍️ Firmas</b>; si no tiene acceso a esa caja, entra solo a ver y firmar sus FM.
+    Si una caja no tiene supervisores, el FM se imprime con la línea en blanco.</div>
+  <details class="cmp-agregar" {{ 'open' if not supervisores }}>
+    <summary><span class="btn mini">＋ Agregar quien supervisa</span></summary>
+    <form method="post" action="/caja-menor/parametros/supervisores/agregar" class="cmp-form">
+      <div style="flex:1;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona" data-lista="lista-supervisa" placeholder="Escribe nombre, cédula o cargo para filtrar…" style="margin-bottom:4px">
+        <select name="empleado_id" id="lista-supervisa" required>
+          <option value="">— Elige una persona —</option>
+          {% for e in activos if e.id not in supervisa_por_empleado %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} · {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><label>Supervisa los FM de</label><div style="display:flex; align-items:center; min-height:32px; white-space:nowrap;">
+        {% for c in cajas if c.activo %}
+        <label class="cmp-chk"><input type="checkbox" name="cajas" value="{{ c.id }}"> {{ c.icono }} {{ c.nombre|nombre_propio }}</label>
+        {% endfor %}</div></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cmp-tabla">
+    <tr><th>Persona</th><th>Cargo</th><th>Supervisa los FM de</th><th></th></tr>
+    {% for e in supervisores %}
+    <tr>
+      <td>{{ e.nombre_completo|nombre_propio }}</td>
+      <td>{{ e.cargo }}</td>
+      <td><form id="f-sup-{{ e.id }}" method="post" action="/caja-menor/parametros/supervisores/{{ e.id }}"></form>
+        {% for c in cajas if c.activo %}
+        <label class="cmp-chk"><input type="checkbox" name="cajas" value="{{ c.id }}" form="f-sup-{{ e.id }}"
+               {{ 'checked' if c.id in supervisa_por_empleado.get(e.id, []) }}> {{ c.icono }} {{ c.nombre|nombre_propio }}</label>
+        {% endfor %}</td>
+      <td class="cmp-acciones"><button class="btn mini" form="f-sup-{{ e.id }}">Guardar</button>
+        <form class="inline" method="post" action="/caja-menor/parametros/supervisores/{{ e.id }}/quitar"
+              onsubmit="return confirm('¿Quitar a {{ e.nombre_completo|nombre_propio }} de quienes supervisan? Los FM que ya firmó conservan su nombre.');">
+          <button class="btn gris mini">Quitar</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="text-align:center; color:var(--gris); padding:18px;">
+      Todavía no hay nadie que autorice recibos. Usa <b>＋ Agregar quien supervisa</b>.</td></tr>
     {% endfor %}
   </table>
 </div>
