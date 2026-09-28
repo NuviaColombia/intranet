@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 MODULOS_DISPONIBLES = [("people", "People"), ("compras", "Compras"), ("sst", "SST"), ("custodia", "Producción (Cambio de custodia)"),
-                       ("design_schedule", "Design Schedule")]
+                       ("design_schedule", "Design Schedule"), ("caja_menor", "Caja menor Nuvia")]
 MODULOS_VALIDOS = {m for m, _ in MODULOS_DISPONIBLES}
 
 
