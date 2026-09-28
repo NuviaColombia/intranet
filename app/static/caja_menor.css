@@ -105,3 +105,6 @@
 #caja-app .cm-error { display: none; color: var(--danger); font-size: 12px; margin-top: 6px; }
 
 @media (max-width: 1200px) { #caja-app .cm-kpis { grid-template-columns: 1fr; } #caja-app .cm-val input { font-size: 13px; } }
+#caja-app .cm-firma-estado { margin: -6px 0 12px; font-size: 12px; padding: 6px 10px; border-radius: 6px; }
+#caja-app .cm-firma-estado.pendiente { background: #FEF3C7; color: #92400E; }
+#caja-app .cm-firma-estado.firmado { background: #D1FAE5; color: #065F46; }

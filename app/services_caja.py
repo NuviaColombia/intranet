@@ -130,6 +130,8 @@ def serializar_recibo(r: CajaRecibo) -> dict:
         "ciudad": r.ciudad, "fecha": r.fecha.isoformat() if r.fecha else "", "identificacion": r.identificacion,
         "pagadoA": r.pagado_a, "valor": r.valor, "valorLetras": r.valor_letras, "concepto": r.concepto,
         "factura": r.numero_factura, "anexo": bool(r.anexo), "autorizadoPor": r.autorizado_por or "", "estado": r.estado,
+        "autorizadoPorId": r.autorizado_por_id, "firmaEmail": r.firma_email or "", "firmadoEn": hora_colombia(r.firmado_en),
+        "caja": nombre_propio(r.caja.nombre),
         "fm": f"FM{r.fm.numero}" if r.fm else "", "fmId": r.fm_id,
         "creadoPor": nombre_propio(r.creado_por.nombre_completo) if r.creado_por else r.creado_por_texto,
         "creadoEn": hora_colombia(r.creado_en),
@@ -146,13 +148,20 @@ def autorizadores_de_caja(db: Session, caja: CajaMenor) -> list[str]:
     return [e.nombre_completo.strip().upper() for e in filas]
 
 
-def _validar_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: str = "") -> str | None:
-    """Si la caja tiene autorizadores, el recibo debe llevar uno de ellos (o conservar el que ya tenía)."""
+def _resolver_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: CajaRecibo | None = None):
+    """Si la caja tiene autorizadores, el recibo debe llevar uno de ellos (o conservar el que ya tenía).
+    Devuelve (empleado que autoriza o None, mensaje de error o None)."""
     elegido = str(datos.get("autorizado_por") or "").strip().upper()
-    lista = autorizadores_de_caja(db, caja)
-    if lista and elegido not in lista and not (actual and elegido == actual):
-        return "Elige quién autoriza el recibo."
-    return None
+    filas = (db.query(Empleado).join(CajaAutorizador, CajaAutorizador.empleado_id == Empleado.id)
+             .filter(CajaAutorizador.caja_id == caja.id, Empleado.activo == 1).all())
+    for e in filas:
+        if e.nombre_completo.strip().upper() == elegido:
+            return e, None
+    if actual and elegido and elegido == (actual.autorizado_por or ""):
+        return (db.get(Empleado, actual.autorizado_por_id) if actual.autorizado_por_id else None), None
+    if filas:
+        return None, "Elige quién autoriza el recibo."
+    return None, None
 
 
 def _datos_recibo(caja: CajaMenor, datos: dict) -> dict | str:
@@ -181,12 +190,13 @@ def crear_recibo(db: Session, caja: CajaMenor, user: Empleado, datos: dict) -> C
     limpios = _datos_recibo(caja, datos)
     if isinstance(limpios, str):
         return limpios
-    error = _validar_autoriza(db, caja, datos)
+    autoriza, error = _resolver_autoriza(db, caja, datos)
     if error:
         return error
     for _ in range(3):  # si dos personas guardan a la vez, el segundo toma el siguiente consecutivo
         consecutivo = siguiente_consecutivo(db, caja)
-        r = CajaRecibo(caja_id=caja.id, consecutivo=consecutivo, creado_por_id=user.id, **limpios)
+        r = CajaRecibo(caja_id=caja.id, consecutivo=consecutivo, creado_por_id=user.id,
+                       autorizado_por_id=autoriza.id if autoriza else None, **limpios)
         if not r.numero_factura:
             r.numero_factura = f"{caja.prefijo}-{consecutivo:04d}"  # igual que la app anterior
         db.add(r)
@@ -200,16 +210,19 @@ def crear_recibo(db: Session, caja: CajaMenor, user: Empleado, datos: dict) -> C
 
 
 def editar_recibo(db: Session, r: CajaRecibo, user: Empleado, datos: dict) -> str | None:
+    """Edita un recibo ACTIVO. Si ya estaba firmado, la firma se borra: quien autoriza debe firmar lo nuevo."""
     if r.estado != "ACTIVO":
         return f"Solo se pueden editar recibos ACTIVOS (este está {r.estado})."
     limpios = _datos_recibo(r.caja, datos)
     if isinstance(limpios, str):
         return limpios
-    error = _validar_autoriza(db, r.caja, datos, actual=r.autorizado_por or "")
+    autoriza, error = _resolver_autoriza(db, r.caja, datos, actual=r)
     if error:
         return error
     for k, v in limpios.items():
         setattr(r, k, v)
+    r.autorizado_por_id = autoriza.id if autoriza else None
+    r.firma_email, r.firmado_en = None, None
     if not r.numero_factura:
         r.numero_factura = f"{r.caja.prefijo}-{r.consecutivo:04d}"
     r.editado_por_id, r.editado_en = user.id, datetime.utcnow()
@@ -386,6 +399,62 @@ def _num(valor) -> float:
         return float(str(valor).replace("$", "").replace(".", "").replace(",", ".").strip()) if isinstance(valor, str) else float(valor or 0)
     except ValueError:
         return 0.0
+
+
+# ---------------- Firma de quien autoriza ----------------
+
+def necesita_aviso_firma(r: CajaRecibo) -> bool:
+    return bool(r.autorizado_por_id and not r.firmado_en and r.estado != "ANULADO")
+
+
+def notificar_firma_pendiente(recibo_id: int) -> None:
+    """Aviso por Cliq (solo desde el bot de la empresa) a quien debe autorizar el recibo. Corre en segundo plano."""
+    from . import config
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        r = db.get(CajaRecibo, recibo_id)
+        if not r or not necesita_aviso_firma(r):
+            return
+        quien = db.get(Empleado, r.autorizado_por_id)
+        if not quien or not quien.email:
+            return
+        valor = f"$ {r.valor:,.0f}".replace(",", ".")
+        creador = nombre_propio(r.creado_por.nombre_completo) if r.creado_por else (r.creado_por_texto or "—")
+        texto = (f"✍️ *Recibo de caja menor pendiente de tu firma*\n"
+                 f"{r.caja.prefijo}-{r.consecutivo:04d} · {valor} · Caja {nombre_propio(r.caja.nombre)}\n"
+                 f"Pagado a: {nombre_propio(r.pagado_a)}\n"
+                 f"Concepto: {r.concepto}\n"
+                 f"Registrado por: {creador}\n"
+                 f"Revísalo y fírmalo en: {config.BASE_URL}/caja-menor/firmas")
+        from .zoho_cliq import enviar_cliq
+        enviar_cliq(quien.email, texto)
+    except Exception as ex:  # un aviso fallido nunca debe afectar el recibo
+        print(f"[Caja menor] Error enviando aviso de firma del recibo #{recibo_id}: {ex}")
+    finally:
+        db.close()
+
+
+def recibos_por_firmar(db: Session, user: Empleado) -> tuple[list[CajaRecibo], list[CajaRecibo]]:
+    """(pendientes, firmados recientes) de los recibos que `user` debe autorizar."""
+    base = (db.query(CajaRecibo).options(joinedload(CajaRecibo.caja), joinedload(CajaRecibo.creado_por))
+            .filter(CajaRecibo.autorizado_por_id == user.id, CajaRecibo.estado != "ANULADO"))
+    pendientes = base.filter(CajaRecibo.firmado_en.is_(None)).order_by(CajaRecibo.creado_en).all()
+    firmados = base.filter(CajaRecibo.firmado_en.isnot(None)).order_by(CajaRecibo.firmado_en.desc()).limit(30).all()
+    return pendientes, firmados
+
+
+def firmar_recibo(db: Session, r: CajaRecibo, user: Empleado) -> str | None:
+    """Firma del autorizador: queda su correo Zoho (con el que inició sesión) y la fecha y hora."""
+    if r.autorizado_por_id != user.id:
+        return "Este recibo no está asignado a ti para firmar."
+    if r.estado == "ANULADO":
+        return "El recibo está anulado."
+    if r.firmado_en:
+        return "Este recibo ya está firmado."
+    r.firma_email, r.firmado_en = user.email, datetime.utcnow()
+    db.commit()
+    return None
 
 
 def importar_hoja_google(db: Session, contenido: bytes, user: Empleado) -> dict:

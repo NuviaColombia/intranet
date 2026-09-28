@@ -86,7 +86,7 @@
 {# ---------- Accesos ---------- #}
 <div class="cmp-panel" id="panel-accesos">
   <div class="cmp-ayuda">Da acceso aquí mismo: busca a la persona, marca sus cajas y pulsa <b>Dar acceso</b> (el módulo Caja menor Nuvia se le activa solo).
-    Los administradores entran a todas las cajas y no aparecen aquí.</div>
+    Los administradores siempre entran a todas las cajas; relaciónalos aquí si también deben aparecer como responsables.</div>
   <details class="cmp-agregar" {{ 'open' if not usuarios }}>
     <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
     <form method="post" action="/caja-menor/parametros/accesos/agregar" class="cmp-form">
@@ -109,17 +109,18 @@
     <tr><th>Persona</th><th>Cargo</th><th>Cajas a las que tiene acceso</th><th></th></tr>
     {% for e in usuarios %}
     <tr>
-      <td>{{ e.nombre_completo|nombre_propio }}</td>
+      <td>{{ e.nombre_completo|nombre_propio }}{% if e.rol in ('admin', 'superadmin') %}
+        <div style="font-size:11px; color:var(--gris);">Administrador · entra a todas las cajas</div>{% endif %}</td>
       <td>{{ e.cargo }}</td>
       <td><form id="f-acc-{{ e.id }}" method="post" action="/caja-menor/parametros/accesos/{{ e.id }}"></form>
         {% for c in cajas if c.activo %}
         <label class="cmp-chk"><input type="checkbox" name="cajas" value="{{ c.id }}" form="f-acc-{{ e.id }}"
                {{ 'checked' if c.id in por_empleado.get(e.id, []) }}> {{ c.icono }} {{ c.nombre|nombre_propio }}</label>
         {% endfor %}
-        {% if not por_empleado.get(e.id) %}<span style="font-size:12px; color:#b45309;">Sin cajas: no puede entrar a ninguna</span>{% endif %}</td>
+        {% if not por_empleado.get(e.id) and e.rol not in ('admin', 'superadmin') %}<span style="font-size:12px; color:#b45309;">Sin cajas: no puede entrar a ninguna</span>{% endif %}</td>
       <td class="cmp-acciones"><button class="btn mini" form="f-acc-{{ e.id }}">Guardar</button>
         <form class="inline" method="post" action="/caja-menor/parametros/accesos/{{ e.id }}/quitar"
-              onsubmit="return confirm('¿Quitar el acceso a Caja menor de {{ e.nombre_completo|nombre_propio }}? Sus recibos se conservan.');">
+              onsubmit="return confirm({% if e.rol in ('admin', 'superadmin') %}'¿Quitar a {{ e.nombre_completo|nombre_propio }} de la lista? Deja de aparecer como responsable, pero como administrador sigue entrando a todas las cajas.'{% else %}'¿Quitar el acceso a Caja menor de {{ e.nombre_completo|nombre_propio }}? Sus recibos se conservan.'{% endif %});">
           <button class="btn gris mini">Quitar acceso</button></form></td>
     </tr>
     {% else %}
@@ -195,7 +196,7 @@
       var ok = !q || o.dataset.buscar.indexOf(q) !== -1; o.hidden = !ok;
       if (ok && !primera) primera = o;
     });
-    if (q && primera) lista.value = primera.value;
+    lista.value = q ? (primera ? primera.value : '') : lista.value;
     });
   });
 })();
