@@ -108,7 +108,15 @@ def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)
     con_acceso = {c.id: [e for e in usuarios if c.id in por_empleado.get(e.id, set())] for c in cajas}
     autorizadores = [e for e in activos if e.id in autoriza_por_empleado]
     supervisores = [e for e in activos if e.id in supervisa_por_empleado]
+    # Por caja: quién opera (accesos), quién autoriza y quién supervisa (lista "Caja" de Parámetros)
+    miembros = {rol: {c.id: [e for e in activos if c.id in mapa.get(e.id, set())] for c in cajas}
+                for rol, mapa in (("accesos", por_empleado), ("autorizan", autoriza_por_empleado),
+                                  ("supervisan", supervisa_por_empleado))}
+    responsables = {c.responsable_id for c in cajas if c.responsable_id}
+    resumen = [e for e in activos if e.id in por_empleado or e.id in autoriza_por_empleado
+               or e.id in supervisa_por_empleado or e.id in responsables]
     return templates.TemplateResponse(request, "caja_menor_parametros.html", {
+        "miembros": miembros, "resumen": resumen,
         "user": user, "es_caja": True, "caja": None, "cajas": cajas, "usuarios": usuarios, "candidatos": candidatos, "con_acceso": con_acceso,
         "autorizadores": autorizadores, "autoriza_por_empleado": autoriza_por_empleado, "activos": activos,
         "supervisores": supervisores, "supervisa_por_empleado": supervisa_por_empleado,
@@ -553,7 +561,7 @@ def editar_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
         maximo = max([f.numero for f in db.query(CajaFM).filter(CajaFM.caja_id == caja.id)] or [0])
         caja.fm_siguiente = max(fm_siguiente, maximo + 1)
         db.commit()
-    return RedirectResponse("/caja-menor/parametros?msg=Caja actualizada.", status_code=303)
+    return RedirectResponse(f"/caja-menor/parametros?msg=Caja actualizada.&tab=caja{caja_id}-datos", status_code=303)
 
 
 @router.post("/caja-menor/parametros/cajas/{caja_id}/toggle")
@@ -641,6 +649,51 @@ async def guardar_accesos(empleado_id: int, request: Request, user: Empleado = D
         db.add(CajaAcceso(caja_id=caja_id, empleado_id=empleado_id))
     db.commit()
     return RedirectResponse("/caja-menor/parametros?msg=Accesos guardados.", status_code=303)
+
+
+ROLES_CAJA = {"accesos": CajaAcceso, "autorizan": CajaAutorizador, "supervisan": CajaSupervisor}
+NOMBRE_ROL = {"accesos": "acceso", "autorizan": "quién autoriza", "supervisan": "quién supervisa"}
+
+
+@router.post("/caja-menor/parametros/cajas/{caja_id}/personas/{rol}/agregar")
+async def agregar_persona_caja(caja_id: int, rol: str, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
+                               db: Session = Depends(get_db)):
+    """Da a una persona un papel en UNA caja: operar (accesos), autorizar recibos o supervisar FM."""
+    _solo_admin(user)
+    modelo, caja = ROLES_CAJA.get(rol), db.get(CajaMenor, caja_id)
+    volver = f"/caja-menor/parametros?tab=caja{caja_id}-{rol}"
+    if not modelo or not caja:
+        raise HTTPException(404, "No encontrado.")
+    form = await request.form()
+    empleado = db.get(Empleado, int(form.get("empleado_id") or 0))
+    if not empleado or not empleado.activo:
+        return RedirectResponse(f"{volver}&msg=Elige una persona de la lista.", status_code=303)
+    choque = _conflicto(db, empleado.id, {caja_id}, "acceso" if rol == "accesos" else "firma")
+    if choque:
+        return RedirectResponse(f"{volver}&msg={choque}", status_code=303)
+    if not db.query(modelo).filter(modelo.caja_id == caja_id, modelo.empleado_id == empleado.id).first():
+        db.add(modelo(caja_id=caja_id, empleado_id=empleado.id))
+    _dar_modulo(empleado)
+    db.commit()
+    return RedirectResponse(f"{volver}&msg={nombre_propio(empleado.nombre_completo)} agregado en {NOMBRE_ROL[rol]} de "
+                            f"{nombre_propio(caja.nombre)}.", status_code=303)
+
+
+@router.post("/caja-menor/parametros/cajas/{caja_id}/personas/{rol}/{empleado_id}/quitar")
+def quitar_persona_caja(caja_id: int, rol: str, empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)),
+                        db: Session = Depends(get_db)):
+    _solo_admin(user)
+    modelo, caja = ROLES_CAJA.get(rol), db.get(CajaMenor, caja_id)
+    volver = f"/caja-menor/parametros?tab=caja{caja_id}-{rol}"
+    if not modelo or not caja:
+        raise HTTPException(404, "No encontrado.")
+    if rol == "accesos" and caja.responsable_id == empleado_id:
+        return RedirectResponse(f"{volver}&msg=Es el responsable de la caja: elige primero otro responsable en la pestaña Datos.",
+                                status_code=303)
+    db.query(modelo).filter(modelo.caja_id == caja_id, modelo.empleado_id == empleado_id).delete()
+    db.commit()
+    _quitar_modulo_si_no_usa(db, empleado_id)
+    return RedirectResponse(f"{volver}&msg=Quitado. Los documentos que ya registró o firmó se conservan.", status_code=303)
 
 
 def _guardar_autorizaciones(db: Session, empleado_id: int, cajas: set[int]) -> None:

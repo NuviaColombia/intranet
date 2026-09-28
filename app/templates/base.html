@@ -56,20 +56,19 @@
     <span class="nav-sep">│</span>
     <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="firmas">✍️ Firmas{% if caja_por_firmar %} <span class="badge-alertas" id="badgeFirmas">{{ caja_por_firmar }}</span>{% endif %}</a>
     {% endif %}
-    {% if user.rol in ('admin', 'superadmin') %}
-    <span class="nav-sep">│</span>
-    <a href="/caja-menor/parametros">⚙️ Parámetros</a>
-    {% endif %}
   </div>
   {% else %}
   <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/parametros">Parámetros</a></span>
   <div class="nav-sub"><a href="/caja-menor/parametros" class="activo">⚙️ Parámetros</a></div>
   {% endif %}
   {% endif %}
-  {% if es_custodia %}
+  {% if es_custodia and request.url.path == '/inventario/parametros' %}
+  <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/inventario/parametros">Parámetros</a></span>
+  <div class="nav-sub"><a href="/inventario/parametros" class="activo">⚙️ Parámetros</a></div>
+  {% elif es_custodia %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/custodia">Cambio de custodia</a></span>
   {# Opciones del submódulo (ver .nav-inventario en style.css) #}
-  {% set en_parametros = request.url.path == '/custodia/parametros' %}
+  {% set en_parametros = false %}
   <div class="nav-sub">
     <a href="/custodia" class="custodia-tab" data-tab="nueva-orden">Nueva orden</a>
     <a href="/custodia" class="custodia-tab{{ '' if en_parametros else ' activo' }}" data-tab="registro">Nuevo registro</a>
@@ -79,10 +78,6 @@
     <a href="/custodia" class="custodia-tab" data-tab="existencias">Dashboard</a>
     <a href="/custodia" class="custodia-tab" data-tab="activas">Estado órdenes</a>
     <a href="/custodia" class="custodia-tab" data-tab="consulta">Consulta traslado</a>
-    {% if user.rol in ('admin', 'superadmin') %}
-    <span class="nav-sep">│</span>
-    <a href="/custodia/parametros"{% if en_parametros %} class="activo"{% endif %}>⚙️ Parámetros</a>
-    {% endif %}
   </div>
   {% endif %}
   {% if es_design %}

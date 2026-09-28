@@ -11,6 +11,9 @@
   .cp-tab.activo { color:var(--azul); border-bottom-color:var(--azul); }
   .cp-tab .cp-num { background:#e5e7eb; color:#374151; border-radius:999px; font-size:11px; padding:1px 7px; margin-left:4px; }
   .cp-tab.activo .cp-num { background:#dbeafe; color:var(--azul); }
+  .cp-selector { display:flex; align-items:center; gap:10px; margin:0 0 12px; }
+  .cp-selector label { font-size:13px; font-weight:700; color:#374151; }
+  .cp-selector select { width:auto; min-width:320px; max-width:440px; padding:8px 10px; font-size:14px; margin:0; border-radius:8px; }
   .cp-panel { display:none; background:#fff; border-radius:0 0 10px 10px; padding:14px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .cp-panel.activo { display:block; }
   .cp-barra { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
@@ -38,32 +41,61 @@
 
 <div class="cp-titulo">
   <h1>⚙️ Parámetros</h1>
-  <span>Producción › Cambio de custodia</span>
+  <span>Producción · aplican a todos sus submódulos</span>
 </div>
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
+{# Selector de submódulo: al elegirlo se cargan solo sus pestañas (lista en app/produccion.py) #}
+<div class="cp-selector">
+  <label for="cp-submodulo">Submódulo</label>
+  <select id="cp-submodulo">
+    <option value="general">⚙️ General · resumen de accesos</option>
+    {% for s in submodulos_produccion %}
+    <option value="sub{{ loop.index }}" {{ 'disabled' if not s.parametros }}>{{ s.icono }} {{ s.nombre }}{{ ' · próximamente' if not s.activo else (' · sin parámetros' if not s.parametros else '') }}</option>
+    {% endfor %}
+  </select>
+</div>
 <div class="cp-tabs">
-  <button type="button" class="cp-tab" data-panel="managers">👤 Managers <span class="cp-num">{{ managers|length }}</span></button>
-  <button type="button" class="cp-tab" data-panel="areas">🏭 Áreas <span class="cp-num">{{ areas|length }}</span></button>
-  <button type="button" class="cp-tab" data-panel="discos">💿 Catálogo de discos <span class="cp-num">{{ discos|length }}</span></button>
-  <button type="button" class="cp-tab" data-panel="motivos">📋 Motivos <span class="cp-num">{{ motivos|length }}</span></button>
+  <button type="button" class="cp-tab" data-grupo="general" data-panel="resumen">👥 Quién tiene acceso <span class="cp-num">{{ resumen|length }}</span></button>
+  {% for s in submodulos_produccion %}{% set i_sub = loop.index %}
+  {% for panel, titulo in s.parametros %}
+  <button type="button" class="cp-tab" data-grupo="sub{{ i_sub }}" data-panel="{{ panel }}">{{ titulo }} <span class="cp-num">{{ conteo_panel.get(panel, 0) }}</span></button>
+  {% endfor %}
+  {% endfor %}
 </div>
 
-{# ---------- Managers ---------- #}
+{# ---------- General: resumen de accesos por submódulo ---------- #}
+<div class="cp-panel" id="panel-resumen">
+  <div class="cp-barra"><div class="cp-ayuda">Quién entra a cada submódulo de <b>Producción</b>. El acceso se da o se quita dentro de cada submódulo
+    (elígelo en la lista <b>Submódulo</b> › pestaña 👤 Accesos). Los administradores entran a todos.</div></div>
+  <table class="cp-tabla">
+    <tr><th>Persona</th><th>Cargo</th>{% for s in submodulos_produccion %}<th style="text-align:center">{{ s.icono }} {{ s.nombre }}</th>{% endfor %}</tr>
+    {% for e in resumen %}
+    <tr><td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td>
+      {% for s in submodulos_produccion %}<td style="text-align:center">{% if s.slug in por_empleado.get(e.id, []) %}<span class="cp-estado si">Sí</span>{% else %}<span style="color:#d1d5db">—</span>{% endif %}</td>{% endfor %}</tr>
+    {% else %}
+    <tr><td colspan="{{ 2 + submodulos_produccion|length }}" class="cp-vacio">Todavía nadie tiene acceso a los submódulos de Producción.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Cambio de custodia: accesos (con su área asignada) ---------- #}
 <div class="cp-panel" id="panel-managers">
   <div class="cp-barra">
-    <div class="cp-ayuda">Empleados de Nuvia Smiles con acceso a Cambio de custodia. Al agregarlos pasan a rol "aprobador" si eran "empleado".
+    <div class="cp-ayuda">Quién entra a <b>Cambio de custodia</b>: da o quita el acceso aquí mismo (el módulo Producción se refleja en People › Empleados).
+      Solo empleados de Nuvia Smiles; al agregarlos pasan a rol "aprobador" si eran "empleado".
       El <b>área asignada</b> es el área de cada manager: aparece por defecto como área de salida en "Nueva orden" (sin asignar = DIR Producción), permite firmar los recibidos que llegan a esa área y define quién recibe el aviso por Zoho Cliq.</div>
   </div>
   <details class="cp-agregar">
-    <summary><span class="btn mini">＋ Agregar manager</span></summary>
-    <form method="post" action="/custodia/parametros/managers" class="cp-form-nuevo">
+    <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
+    <form method="post" action="/inventario/parametros/managers" class="cp-form-nuevo">
       <div style="flex:2;min-width:240px">
-        <label>Empleado (Nuvia Smiles)</label>
-        <select name="empleado_id" required>
+        <label>Persona (Nuvia Smiles)</label>
+        <input type="search" id="buscar-acceso" placeholder="Escribe nombre, cédula o cargo para filtrar…" style="margin-bottom:4px; width:100%;">
+        <select name="empleado_id" id="lista-acceso" required>
           <option value="">Seleccionar...</option>
           {% for c in candidatos %}
-          <option value="{{ c.id }}">{{ c.nombre_completo|nombre_propio }} — {{ c.cargo }}</option>
+          <option value="{{ c.id }}" data-buscar="{{ (c.nombre_completo ~ ' ' ~ c.identificacion ~ ' ' ~ c.cargo)|lower }}">{{ c.nombre_completo|nombre_propio }} — {{ c.cargo }}</option>
           {% endfor %}
         </select>
       </div>
@@ -76,18 +108,18 @@
           {% endfor %}
         </select>
       </div>
-      <div><button class="btn mini">Agregar</button></div>
+      <div><button class="btn mini">Dar acceso</button></div>
     </form>
   </details>
   <table class="cp-tabla">
-    <tr><th>Manager</th><th>Cargo</th><th>Área asignada</th><th></th></tr>
+    <tr><th>Persona</th><th>Cargo</th><th>Área asignada</th><th></th></tr>
     {% for m in managers %}
     <tr>
       <td>{{ m.nombre_completo|nombre_propio }}</td>
       <td>{{ m.cargo }}
         {% if not cargo_coincide[m.id] %}<div class="cp-aviso-cargo" title="El cargo viene de People; la firma y los avisos usan el área asignada.">⚠️ No coincide con el área asignada ({{ m.area_custodia|nombre_propio }})</div>{% endif %}</td>
       <td>
-        <form id="f-man-{{ m.id }}" method="post" action="/custodia/parametros/managers/{{ m.id }}"></form>
+        <form id="f-man-{{ m.id }}" method="post" action="/inventario/parametros/managers/{{ m.id }}"></form>
         <select name="area_custodia" form="f-man-{{ m.id }}">
           <option value="">-- Sin asignar --</option>
           {% for a in areas_activas %}
@@ -97,13 +129,13 @@
       </td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-man-{{ m.id }}">Guardar</button>
-        <form class="inline" method="post" action="/custodia/parametros/managers/{{ m.id }}/quitar"
-              onsubmit="return confirm('¿Quitar a {{ m.nombre_completo|nombre_propio }} como manager de Cambio de custodia?')">
-          <button class="btn rojo mini">Quitar</button></form>
+        <form class="inline" method="post" action="/inventario/parametros/managers/{{ m.id }}/quitar"
+              onsubmit="return confirm('¿Quitar el acceso a Cambio de custodia de {{ m.nombre_completo|nombre_propio }}?')">
+          <button class="btn gris mini">Quitar acceso</button></form>
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="4" class="cp-vacio">Ningún empleado tiene el módulo Producción (Cambio de custodia) asignado todavía.</td></tr>
+    <tr><td colspan="4" class="cp-vacio">Todavía nadie tiene acceso a Cambio de custodia. Usa <b>＋ Dar acceso a una persona</b>.</td></tr>
     {% endfor %}
   </table>
 </div>
@@ -117,7 +149,7 @@
   </div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar área</span></summary>
-    <form method="post" action="/custodia/parametros/areas" class="cp-form-nuevo">
+    <form method="post" action="/inventario/parametros/areas" class="cp-form-nuevo">
       <div style="flex:2;min-width:200px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Pulido"></div>
       <div style="width:130px"><label>🟡 Alerta (h)</label><input name="alerta_horas_advertencia" type="number" min="0" value="24"></div>
       <div style="width:130px"><label>🔴 Alerta (h)</label><input name="alerta_horas_critica" type="number" min="0" value="48"></div>
@@ -130,7 +162,7 @@
     {% for a in areas %}
     <tr class="{{ '' if a.activo else 'cp-inactivo' }}">
       <td>
-        <form id="f-area-{{ a.id }}" method="post" action="/custodia/parametros/areas/{{ a.id }}/editar"></form>
+        <form id="f-area-{{ a.id }}" method="post" action="/inventario/parametros/areas/{{ a.id }}/editar"></form>
         <input name="nombre" value="{{ a.nombre|nombre_propio }}" required form="f-area-{{ a.id }}">
       </td>
       <td><input name="alerta_horas_advertencia" type="number" min="0" value="{{ a.alerta_horas_advertencia }}" form="f-area-{{ a.id }}"></td>
@@ -142,7 +174,7 @@
       <td><span class="cp-estado {{ 'si' if a.activo else 'no' }}">{{ 'Activa' if a.activo else 'Inactiva' }}</span></td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-area-{{ a.id }}">Guardar</button>
-        <form class="inline" method="post" action="/custodia/parametros/areas/{{ a.id }}/toggle">
+        <form class="inline" method="post" action="/inventario/parametros/areas/{{ a.id }}/toggle">
           <button class="btn gris mini">{{ 'Desactivar' if a.activo else 'Activar' }}</button></form>
       </td>
     </tr>
@@ -157,7 +189,7 @@
   </div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar tipo de prótesis</span></summary>
-    <form method="post" action="/custodia/parametros/discos" class="cp-form-nuevo">
+    <form method="post" action="/inventario/parametros/discos" class="cp-form-nuevo">
       <div style="flex:2;min-width:240px"><label>Detalle</label><input name="detalle" required placeholder="Ej: Protesis Zirconia Tipo 4 B"></div>
       <div style="width:110px"><label>Factor</label><input name="factor" type="number" step="0.1" min="0" required></div>
       <div><button class="btn mini">Agregar</button></div>
@@ -168,14 +200,14 @@
     {% for d in discos %}
     <tr class="{{ '' if d.activo else 'cp-inactivo' }}">
       <td>
-        <form id="f-disco-{{ d.id }}" method="post" action="/custodia/parametros/discos/{{ d.id }}/editar"></form>
+        <form id="f-disco-{{ d.id }}" method="post" action="/inventario/parametros/discos/{{ d.id }}/editar"></form>
         <input name="detalle" value="{{ d.detalle }}" required form="f-disco-{{ d.id }}">
       </td>
       <td><input name="factor" type="number" step="0.1" min="0" value="{{ d.factor }}" required form="f-disco-{{ d.id }}"></td>
       <td><span class="cp-estado {{ 'si' if d.activo else 'no' }}">{{ 'Activo' if d.activo else 'Inactivo' }}</span></td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-disco-{{ d.id }}">Guardar</button>
-        <form class="inline" method="post" action="/custodia/parametros/discos/{{ d.id }}/toggle">
+        <form class="inline" method="post" action="/inventario/parametros/discos/{{ d.id }}/toggle">
           <button class="btn gris mini">{{ 'Desactivar' if d.activo else 'Activar' }}</button></form>
       </td>
     </tr>
@@ -192,7 +224,7 @@
   </div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar motivo</span></summary>
-    <form method="post" action="/custodia/parametros/motivos" class="cp-form-nuevo">
+    <form method="post" action="/inventario/parametros/motivos" class="cp-form-nuevo">
       <div style="flex:2;min-width:240px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Producción normal"></div>
       <div><button class="btn mini">Agregar</button></div>
     </form>
@@ -202,14 +234,14 @@
     {% for m in motivos %}
     <tr class="{{ '' if m.activo else 'cp-inactivo' }}">
       <td>
-        <form id="f-motivo-{{ m.id }}" method="post" action="/custodia/parametros/motivos/{{ m.id }}/editar"></form>
+        <form id="f-motivo-{{ m.id }}" method="post" action="/inventario/parametros/motivos/{{ m.id }}/editar"></form>
         <input name="nombre" value="{{ m.nombre|nombre_propio(true) }}" required form="f-motivo-{{ m.id }}">
       </td>
       <td><input name="orden" type="number" value="{{ m.orden }}" form="f-motivo-{{ m.id }}"></td>
       <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activo' if m.activo else 'Inactivo' }}</span></td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-motivo-{{ m.id }}">Guardar</button>
-        <form class="inline" method="post" action="/custodia/parametros/motivos/{{ m.id }}/toggle">
+        <form class="inline" method="post" action="/inventario/parametros/motivos/{{ m.id }}/toggle">
           <button class="btn gris mini">{{ 'Desactivar' if m.activo else 'Activar' }}</button></form>
       </td>
     </tr>
@@ -221,17 +253,39 @@
 (function() {
   // Recuerda la pestaña abierta: después de guardar, la página se recarga y vuelve a la misma.
   var CLAVE = 'custodiaParametrosTab';
+  var buscar = document.getElementById('buscar-acceso'), lista = document.getElementById('lista-acceso');
+  if (buscar) buscar.addEventListener('input', function() {
+    var q = buscar.value.trim().toLowerCase(), primera = null;
+    Array.prototype.forEach.call(lista.options, function(o, i) {
+      if (!i) return;
+      var ok = !q || (o.dataset.buscar || '').indexOf(q) !== -1; o.hidden = !ok;
+      if (ok && !primera) primera = o;
+    });
+    lista.value = q ? (primera ? primera.value : '') : lista.value;
+  });
+  var selector = document.getElementById('cp-submodulo');
+  function grupoDe(panel) { var t = document.querySelector('.cp-tab[data-panel="' + panel + '"]'); return t ? t.dataset.grupo : 'general'; }
+  // Muestra solo las pestañas del submódulo elegido en la lista
+  function mostrarGrupo(grupo) {
+    selector.value = grupo;
+    document.querySelectorAll('.cp-tab[data-panel]').forEach(function(t) { t.style.display = t.dataset.grupo === grupo ? '' : 'none'; });
+  }
+  selector.addEventListener('change', function() {
+    var primera = document.querySelector('.cp-tab[data-grupo="' + selector.value + '"]');
+    if (primera) abrir(primera.dataset.panel);
+  });
   function abrir(panel) {
-    if (!document.getElementById('panel-' + panel)) panel = 'managers';
-    document.querySelectorAll('.cp-tab').forEach(function(t) { t.classList.toggle('activo', t.dataset.panel === panel); });
+    if (!document.getElementById('panel-' + panel)) panel = 'resumen';
+    mostrarGrupo(grupoDe(panel));
+    document.querySelectorAll('.cp-tab[data-panel]').forEach(function(t) { t.classList.toggle('activo', t.dataset.panel === panel); });
     document.querySelectorAll('.cp-panel').forEach(function(p) { p.classList.toggle('activo', p.id === 'panel-' + panel); });
     try { sessionStorage.setItem(CLAVE, panel); } catch (e) {}
   }
-  document.querySelectorAll('.cp-tab').forEach(function(t) {
+  document.querySelectorAll('.cp-tab[data-panel]').forEach(function(t) {
     t.addEventListener('click', function() { abrir(t.dataset.panel); });
   });
-  var inicial = 'managers';
-  try { inicial = sessionStorage.getItem(CLAVE) || 'managers'; } catch (e) {}
+  var inicial = 'resumen';
+  try { inicial = sessionStorage.getItem(CLAVE) || 'resumen'; } catch (e) {}
   abrir(inicial);
 })();
 </script>

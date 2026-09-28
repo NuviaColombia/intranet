@@ -32,7 +32,8 @@ def resumen_pendientes(db: Session, user: Empleado) -> dict:
                 "fecha": he.fecha,
             })
 
-    if user.tiene_modulo("custodia"):
+    from .acceso_produccion import tiene_submodulo
+    if tiene_submodulo(db, user, "custodia"):
         for t in sc.pendientes_entrada(db):
             if not sc.puede_firmar_recibido(user, t):  # solo lo que este usuario puede firmar
                 continue

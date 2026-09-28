@@ -1,14 +1,17 @@
 """Submódulos del módulo Producción (entrada en /inventario).
 
-Única fuente para la página de entrada del módulo y para el texto de su tarjeta en el portal:
-para agregar un submódulo basta con añadirlo aquí.
+Única fuente para la página de entrada del módulo, el texto de su tarjeta en el portal y las
+pestañas de Producción › Parámetros: para agregar un submódulo basta con añadirlo aquí
+(en "parametros", el id de cada panel de custodia_parametros.html y su título).
 """
 
 SUBMODULOS_PRODUCCION = [
-    {"nombre": "Cambio de custodia", "icono": "🔄", "descripcion": "Traslados de material entre áreas",
-     "url": "/custodia", "activo": True},
-    {"nombre": "Seguimiento de consumo", "icono": "📊", "descripcion": "Próximamente",
-     "url": None, "activo": False},
+    {"slug": "custodia", "nombre": "Cambio de custodia", "icono": "🔄", "descripcion": "Traslados de material entre áreas",
+     "url": "/custodia", "activo": True,
+     "parametros": [("managers", "👤 Accesos"), ("areas", "🏭 Áreas"), ("discos", "💿 Catálogo de discos"),
+                    ("motivos", "📋 Motivos")]},
+    {"slug": "consumo", "nombre": "Seguimiento de consumo", "icono": "📊", "descripcion": "Próximamente",
+     "url": None, "activo": False, "parametros": []},
 ]
 
 
