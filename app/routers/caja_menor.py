@@ -4,14 +4,17 @@ import csv
 import io
 from pathlib import Path
 from datetime import date
+import asyncio
 from fastapi import APIRouter, Request, Depends, HTTPException, Form, BackgroundTasks
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..formato import nombre_propio
 from ..database import SessionLocal, get_db
 from ..models import Empleado
-from ..models_caja import CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo
+from ..models_caja import (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo,
+                           CajaObservacion)
 from ..auth import require_modulo, get_current_user
 from ..main_templates import templates
 from .. import services_caja as sc
@@ -26,6 +29,8 @@ def _caja(db: Session, user: Empleado, caja_id: int) -> CajaMenor:
         raise HTTPException(404, "Caja no encontrada.")
     if not sc.puede_usar_caja(db, user, caja):
         raise HTTPException(403, "No tienes acceso a esta caja.")
+    if sc.es_firmante_de_caja(db, user, caja):
+        raise HTTPException(403, "Eres firmante de esta caja: solo puedes consultar y firmar.")
     return caja
 
 
@@ -34,11 +39,18 @@ def _caja_o_firmas(db: Session, user: Empleado, caja_id: int) -> tuple[CajaMenor
     caja = db.get(CajaMenor, caja_id)
     if not caja or (not caja.activo and not sc.es_admin(user)):
         raise HTTPException(404, "Caja no encontrada.")
+    if sc.es_firmante_de_caja(db, user, caja):
+        return caja, True  # firmante: consulta y firma
     if sc.puede_usar_caja(db, user, caja):
         return caja, False
     if sc.autoriza_en_caja(db, user, caja):
         return caja, True
     raise HTTPException(403, "No tienes acceso a esta caja.")
+
+
+def _solo_lo_suyo(db: Session, user: Empleado, caja: CajaMenor, solo_firmas: bool) -> bool:
+    """Ya no es firmante de la caja pero tiene documentos asignados: ve únicamente los suyos."""
+    return solo_firmas and not sc.es_firmante_de_caja(db, user, caja)
 
 
 def _solo_admin(user: Empleado):
@@ -109,9 +121,12 @@ def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require
                 db: Session = Depends(get_db)):
     caja, solo_firmas = _caja_o_firmas(db, user, caja_id)
     return templates.TemplateResponse(request, "caja_menor.html", {
-        "user": user, "es_caja": True, "caja": caja, "autorizadores": sc.autorizadores_de_caja(db, caja),
-        "supervisores": sc.supervisores_de_caja(db, caja),
-        "solo_firmas": solo_firmas, "tab_inicial": "firmas" if solo_firmas else request.query_params.get("tab", ""),
+        "user": user, "es_caja": True, "caja": caja,
+        "autorizadores": [n for n in sc.autorizadores_de_caja(db, caja) if n != user.nombre_completo.strip().upper()],
+        "supervisores": [n for n in sc.supervisores_de_caja(db, caja) if n != (caja.responsable or "").strip().upper()],
+        "solo_firmas": solo_firmas, "puede_consultar": sc.es_firmante_de_caja(db, user, caja),
+        "tab_inicial": (request.query_params.get("tab") if request.query_params.get("tab") in ("consulta", "fms", "firmas") else "firmas")
+                       if solo_firmas else request.query_params.get("tab", ""),
         "caja_por_firmar": sc.pendientes_de_firma(db, user).get(caja.id, 0),
         "denominaciones_monedas": sc.MONEDAS,
         "denominaciones_billetes": sc.BILLETES})
@@ -129,6 +144,7 @@ class ReciboIn(BaseModel):
     numero_factura: str = ""
     anexo: bool = False
     autorizado_por: str = ""
+    confirmar: list[str] = []   # avisos que la persona ya confirmó (fecha_antigua, factura_repetida)
 
 
 class MotivoIn(BaseModel):
@@ -140,6 +156,7 @@ def api_resumen(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
     caja = _caja(db, user, caja_id)
     return {"siguienteRecibo": sc.siguiente_consecutivo(db, caja), "siguienteFM": caja.fm_siguiente,
             "siguienteArqueo": sc.siguiente_arqueo(db, caja), "pendiente": sc.total_pendiente(db, caja),
+            "sinReembolsar": sc.total_sin_reembolsar(db, caja),
             "fondo": caja.fondo, "responsable": caja.responsable, "ciudad": caja.ciudad, "prefijo": caja.prefijo}
 
 
@@ -149,7 +166,7 @@ def api_recibos(caja_id: int, estado: str = "", desde: str = "", hasta: str = ""
     caja, solo_firmas = _caja_o_firmas(db, user, caja_id)
     recibos = sc.recibos_de_caja(db, caja, estado.upper(), date.fromisoformat(desde) if desde else None,
                                  date.fromisoformat(hasta) if hasta else None)
-    if solo_firmas:  # quien solo autoriza ve únicamente los recibos que le asignaron
+    if _solo_lo_suyo(db, user, caja, solo_firmas):  # sin rol actual: solo los recibos que le asignaron
         recibos = [r for r in recibos if r.autorizado_por_id == user.id]
     return {"data": [sc.serializar_recibo(r) for r in recibos], "truncado": len(recibos) >= 2000}
 
@@ -159,7 +176,7 @@ def api_recibo(caja_id: int, consecutivo: int, user: Empleado = Depends(require_
                db: Session = Depends(get_db)):
     caja, solo_firmas = _caja_o_firmas(db, user, caja_id)
     r = db.query(CajaRecibo).filter(CajaRecibo.caja_id == caja.id, CajaRecibo.consecutivo == consecutivo).first()
-    if not r or (solo_firmas and r.autorizado_por_id != user.id):
+    if not r or (_solo_lo_suyo(db, user, caja, solo_firmas) and r.autorizado_por_id != user.id):
         raise HTTPException(404, f"No existe el recibo {caja.prefijo}-{consecutivo:04d}.")
     return sc.serializar_recibo(r)
 
@@ -169,6 +186,8 @@ def api_crear_recibo(caja_id: int, payload: ReciboIn, tareas: BackgroundTasks, u
                      db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
     r = sc.crear_recibo(db, caja, user, payload.model_dump())
+    if isinstance(r, dict):
+        raise HTTPException(409, r)  # hay que confirmar (fecha antigua / factura repetida)
     if isinstance(r, str):
         raise HTTPException(400, r)
     if sc.necesita_aviso_firma(r):
@@ -184,11 +203,75 @@ def api_editar_recibo(caja_id: int, recibo_id: int, payload: ReciboIn, tareas: B
     if not r or r.caja_id != caja.id:
         raise HTTPException(404, "Recibo no encontrado.")
     error = sc.editar_recibo(db, r, user, payload.model_dump())
+    if isinstance(error, dict):
+        raise HTTPException(409, error)
     if error:
         raise HTTPException(400, error)
     if sc.necesita_aviso_firma(r):  # tras editar, quien autoriza debe firmar de nuevo
         tareas.add_task(sc.notificar_firma_pendiente, r.id)
     return {"mensaje": "✅ Recibo actualizado.", "recibo": sc.serializar_recibo(r)}
+
+
+class IdsIn(BaseModel):
+    ids: list[int] = []
+
+
+@router.post("/caja-menor/api/{caja_id}/recibos/firmar-varios")
+def api_firmar_varios(caja_id: int, payload: IdsIn, tareas: BackgroundTasks,
+                      user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    """Firma de una vez los recibos marcados (solo los asignados a quien firma)."""
+    caja, _ = _caja_o_firmas(db, user, caja_id)
+    firmados, errores = [], []
+    for rid in dict.fromkeys(payload.ids):
+        r = db.get(CajaRecibo, rid)
+        if not r or r.caja_id != caja.id:
+            continue
+        error = sc.firmar_recibo(db, r, user)
+        numero = f"{caja.prefijo}-{r.consecutivo:04d}"
+        if error:
+            errores.append(f"{numero}: {error}")
+        else:
+            firmados.append(numero)
+            tareas.add_task(sc.notificar_firmado, r.id)
+    if not firmados:
+        raise HTTPException(400, "No se firmó ningún recibo. " + " ".join(errores))
+    return {"mensaje": f"✅ Firmaste {len(firmados)} recibo(s): {', '.join(firmados)}." + (f" No se pudo: {' '.join(errores)}" if errores else "")}
+
+
+@router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/reenviar-aviso")
+def api_reenviar_aviso_recibo(caja_id: int, recibo_id: int, user: Empleado = Depends(require_modulo(MODULO)),
+                              db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    r = db.get(CajaRecibo, recibo_id)
+    if not r or r.caja_id != caja.id:
+        raise HTTPException(404, "Recibo no encontrado.")
+    if not sc.necesita_aviso_firma(r):
+        raise HTTPException(400, "Este recibo no tiene una firma pendiente.")
+    sc.notificar_firma_pendiente(r.id)
+    db.refresh(r)
+    return {"mensaje": "✅ Aviso reenviado por Cliq." if r.aviso_ok else
+            "⚠️ No se pudo enviar el aviso por Cliq. Verifica que la persona esté suscrita a Nuvia Colombia Bot.",
+            "recibo": sc.serializar_recibo(r)}
+
+
+class TextoIn(BaseModel):
+    texto: str = ""
+
+
+@router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/observar")
+def api_observar_recibo(caja_id: int, recibo_id: int, payload: TextoIn, tareas: BackgroundTasks,
+                        user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    """Quien debe firmar no está de acuerdo: deja una observación y el bot avisa al responsable para corregir."""
+    caja, _ = _caja_o_firmas(db, user, caja_id)
+    r = db.get(CajaRecibo, recibo_id)
+    if not r or r.caja_id != caja.id:
+        raise HTTPException(404, "Recibo no encontrado.")
+    error = sc.observar_recibo(db, r, user, payload.texto)
+    if error:
+        raise HTTPException(400, error)
+    tareas.add_task(sc.notificar_observacion, recibo_id=r.id)
+    return {"mensaje": "📝 Observación enviada. Se le avisó por Cliq al responsable para que corrija el recibo.",
+            "recibo": sc.serializar_recibo(r)}
 
 
 @router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/firmar")
@@ -222,7 +305,9 @@ def api_anular_recibo(caja_id: int, recibo_id: int, payload: MotivoIn, tareas: B
 
 @router.get("/caja-menor/api/{caja_id}/exportar")
 def api_exportar(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
-    caja = _caja(db, user, caja_id)
+    caja, solo_firmas = _caja_o_firmas(db, user, caja_id)  # los firmantes también pueden consultar y exportar
+    if _solo_lo_suyo(db, user, caja, solo_firmas):
+        raise HTTPException(403, "No tienes acceso a esta caja.")
     salida = io.StringIO()
     salida.write("﻿")
     w = csv.writer(salida, delimiter=";")
@@ -258,7 +343,9 @@ def api_legalizar(caja_id: int, payload: LegalizarIn, tareas: BackgroundTasks, u
                       payload.supervisado_por)
     if isinstance(fm, str):
         raise HTTPException(400, fm)
-    if fm.supervisado_por_id:
+    if fm.elaborado_por_id and not fm.elaborado_en:
+        tareas.add_task(sc.notificar_elaboracion_pendiente, fm.id)  # otra persona legalizó: firma el responsable
+    elif fm.supervisado_por_id:
         tareas.add_task(sc.notificar_supervision_pendiente, fm.id)
     return {"mensaje": f"✅ Se legalizó el FM{fm.numero}.", "fm": sc.serializar_fm(fm, con_recibos=True)}
 
@@ -267,8 +354,8 @@ def api_legalizar(caja_id: int, payload: LegalizarIn, tareas: BackgroundTasks, u
 def api_fms(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja, solo_firmas = _caja_o_firmas(db, user, caja_id)
     q = db.query(CajaFM).filter(CajaFM.caja_id == caja.id)
-    if solo_firmas:  # quien solo supervisa ve únicamente los FM que le asignaron
-        q = q.filter(CajaFM.supervisado_por_id == user.id)
+    if _solo_lo_suyo(db, user, caja, solo_firmas):  # sin rol actual: solo los FM que le asignaron
+        q = q.filter((CajaFM.supervisado_por_id == user.id) | (CajaFM.elaborado_por_id == user.id))
     fms = q.order_by(CajaFM.numero.desc()).all()
     return {"data": [sc.serializar_fm(f) for f in fms]}
 
@@ -277,9 +364,91 @@ def api_fms(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: 
 def api_fm(caja_id: int, fm_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja, solo_firmas = _caja_o_firmas(db, user, caja_id)
     fm = db.get(CajaFM, fm_id)
-    if not fm or fm.caja_id != caja.id or (solo_firmas and fm.supervisado_por_id != user.id):
+    if not fm or fm.caja_id != caja.id or (_solo_lo_suyo(db, user, caja, solo_firmas)
+                                           and user.id not in (fm.supervisado_por_id, fm.elaborado_por_id)):
         raise HTTPException(404, "FM no encontrado.")
     return sc.serializar_fm(fm, con_recibos=True)
+
+
+@router.post("/caja-menor/api/{caja_id}/fms/{fm_id}/reembolsado")
+def api_fm_reembolsado(caja_id: int, fm_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    """Tesorería reembolsó el FM: su valor deja de contar como pendiente en el arqueo."""
+    caja = _caja(db, user, caja_id)
+    fm = db.get(CajaFM, fm_id)
+    if not fm or fm.caja_id != caja.id:
+        raise HTTPException(404, "FM no encontrado.")
+    error = sc.marcar_reembolsado(db, fm, user)
+    if error:
+        raise HTTPException(400, error)
+    return {"mensaje": f"✅ FM{fm.numero} marcado como reembolsado.", "fm": sc.serializar_fm(fm, con_recibos=True)}
+
+
+@router.post("/caja-menor/api/{caja_id}/fms/{fm_id}/reenviar-aviso")
+def api_reenviar_aviso_fm(caja_id: int, fm_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    fm = db.get(CajaFM, fm_id)
+    if not fm or fm.caja_id != caja.id or fm.estado != "VIGENTE":
+        raise HTTPException(404, "FM no encontrado.")
+    if not ((fm.elaborado_por_id and not fm.elaborado_en) or (fm.supervisado_por_id and not fm.supervisado_en)):
+        raise HTTPException(400, "Este FM no tiene firmas pendientes.")
+    sc.reenviar_aviso_fm(fm.id)
+    db.refresh(fm)
+    return {"mensaje": "✅ Aviso reenviado por Cliq." if fm.aviso_ok else
+            "⚠️ No se pudo enviar el aviso por Cliq. Verifica que la persona esté suscrita a Nuvia Colombia Bot.",
+            "fm": sc.serializar_fm(fm, con_recibos=True)}
+
+
+@router.post("/caja-menor/api/{caja_id}/fms/{fm_id}/observar")
+def api_observar_fm(caja_id: int, fm_id: int, payload: TextoIn, tareas: BackgroundTasks,
+                    user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    caja, _ = _caja_o_firmas(db, user, caja_id)
+    fm = db.get(CajaFM, fm_id)
+    if not fm or fm.caja_id != caja.id:
+        raise HTTPException(404, "FM no encontrado.")
+    error = sc.observar_fm(db, fm, user, payload.texto)
+    if error:
+        raise HTTPException(400, error)
+    tareas.add_task(sc.notificar_observacion, fm_id=fm.id)
+    return {"mensaje": "📝 Observación enviada. Se le avisó por Cliq al responsable para que corrija el FM.",
+            "fm": sc.serializar_fm(fm, con_recibos=True)}
+
+
+class CorregirFMIn(BaseModel):
+    desglose: dict = {}
+    ajuste: float = 0
+
+
+@router.post("/caja-menor/api/{caja_id}/fms/{fm_id}/corregir")
+def api_corregir_fm(caja_id: int, fm_id: int, payload: CorregirFMIn, tareas: BackgroundTasks,
+                    user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    """El responsable corrige el conteo y el ajuste del FM; el bot vuelve a pedir el visto bueno."""
+    caja = _caja(db, user, caja_id)
+    fm = db.get(CajaFM, fm_id)
+    if not fm or fm.caja_id != caja.id:
+        raise HTTPException(404, "FM no encontrado.")
+    error = sc.corregir_fm(db, fm, user, payload.desglose, payload.ajuste)
+    if error:
+        raise HTTPException(400, error)
+    if fm.supervisado_por_id:
+        tareas.add_task(sc.notificar_supervision_pendiente, fm.id)
+    return {"mensaje": f"✅ FM{fm.numero} corregido. Se le avisó por Cliq a quien supervisa para que dé el visto bueno.",
+            "fm": sc.serializar_fm(fm, con_recibos=True)}
+
+
+@router.post("/caja-menor/api/{caja_id}/fms/{fm_id}/elaboracion")
+def api_firmar_elaboracion(caja_id: int, fm_id: int, tareas: BackgroundTasks, user: Empleado = Depends(require_modulo(MODULO)),
+                           db: Session = Depends(get_db)):
+    """Firma "Elaborado por" desde la pestaña Firmas (solo el responsable de la caja asignado al FM)."""
+    caja, _ = _caja_o_firmas(db, user, caja_id)
+    fm = db.get(CajaFM, fm_id)
+    if not fm or fm.caja_id != caja.id:
+        raise HTTPException(404, "FM no encontrado.")
+    error = sc.firmar_elaboracion(db, fm, user)
+    if error:
+        raise HTTPException(400, error)
+    if fm.supervisado_por_id:
+        tareas.add_task(sc.notificar_supervision_pendiente, fm.id)  # ahora le toca al supervisor
+    return {"mensaje": f"✅ Firmaste la elaboración del FM{fm.numero}.", "fm": sc.serializar_fm(fm)}
 
 
 @router.post("/caja-menor/api/{caja_id}/fms/{fm_id}/visto-bueno")
@@ -330,7 +499,7 @@ def api_arqueos(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
 def api_crear_arqueo(caja_id: int, payload: ArqueoIn, user: Empleado = Depends(require_modulo(MODULO)),
                      db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
-    a = sc.crear_arqueo(db, caja, user, payload.responsable, payload.desglose)
+    a = sc.crear_arqueo(db, caja, user, "", payload.desglose)  # responsable: el de la caja
     if isinstance(a, str):
         raise HTTPException(400, a)
     return {"mensaje": f"✅ Arqueo ARQ-{a.consecutivo:04d} guardado.", "arqueo": sc.serializar_arqueo(a)}
@@ -367,7 +536,18 @@ def editar_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
     caja = db.get(CajaMenor, caja_id)
     if caja:
         caja.nombre, caja.prefijo, caja.ciudad = _texto(nombre), _texto(prefijo)[:10], _texto(ciudad)
-        caja.fondo, caja.responsable, caja.icono = fondo, _texto(responsable), (icono or "💵")[:4]
+        caja.fondo, caja.icono = fondo, (icono or "💵")[:4]
+        if responsable.isdigit():  # la lista envía el id de la persona (con acceso a la caja o administrador)
+            persona = db.get(Empleado, int(responsable))
+            choque = persona and _conflicto(db, persona.id, {caja.id}, "acceso")
+            if choque:
+                db.rollback()
+                return RedirectResponse(f"/caja-menor/parametros?msg={choque}", status_code=303)
+            if persona:
+                caja.responsable_id, caja.responsable = persona.id, persona.nombre_completo.strip().upper()
+        elif responsable == "":
+            caja.responsable_id, caja.responsable = None, ""
+        # "__actual__": se conserva el que ya tenía
         caja.consecutivo_inicial = max(consecutivo_inicial, 1)
         # El siguiente FM nunca puede quedar por debajo de uno ya usado
         maximo = max([f.numero for f in db.query(CajaFM).filter(CajaFM.caja_id == caja.id)] or [0])
@@ -386,6 +566,28 @@ def toggle_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
     return RedirectResponse("/caja-menor/parametros", status_code=303)
 
 
+def _conflicto(db: Session, empleado_id: int, cajas: set[int], como: str) -> str | None:
+    """Una persona no puede operar (Accesos / responsable) y firmar (Autorizan / Supervisan) la misma caja."""
+    if not cajas:
+        return None
+    nombres = {c.id: nombre_propio(c.nombre) for c in db.query(CajaMenor).filter(CajaMenor.id.in_(cajas))}
+    if como == "acceso":
+        firma = {a.caja_id for a in db.query(CajaAutorizador).filter(CajaAutorizador.empleado_id == empleado_id)}
+        firma |= {a.caja_id for a in db.query(CajaSupervisor).filter(CajaSupervisor.empleado_id == empleado_id)}
+        choque = sorted(nombres[c] for c in cajas & firma)
+        if choque:
+            return (f"No se guardó: esa persona firma en {', '.join(choque)} (Autorizan / Supervisan). "
+                    "Quien firma solo consulta y firma; no puede tener acceso para operar la misma caja.")
+    else:
+        opera = {a.caja_id for a in db.query(CajaAcceso).filter(CajaAcceso.empleado_id == empleado_id)}
+        opera |= {c.id for c in db.query(CajaMenor).filter(CajaMenor.responsable_id == empleado_id)}
+        choque = sorted(nombres[c] for c in cajas & opera)
+        if choque:
+            return (f"No se guardó: esa persona opera {', '.join(choque)} (tiene acceso o es responsable). "
+                    "Quien firma no puede operar la misma caja: quítale primero el acceso a esa caja.")
+    return None
+
+
 def _dar_modulo(empleado: Empleado) -> None:
     if MODULO not in empleado.modulos_lista:
         empleado.modulos = ",".join(empleado.modulos_lista + [MODULO])
@@ -402,6 +604,9 @@ async def agregar_acceso(request: Request, user: Empleado = Depends(require_modu
     elegidas = {int(v) for v in form.getlist("cajas")}
     if not elegidas:
         return RedirectResponse("/caja-menor/parametros?msg=Marca al menos una caja para esa persona.", status_code=303)
+    choque = _conflicto(db, empleado.id, elegidas, "acceso")
+    if choque:
+        return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=accesos", status_code=303)
     _dar_modulo(empleado)
     db.query(CajaAcceso).filter(CajaAcceso.empleado_id == empleado.id).delete()
     for caja_id in elegidas:
@@ -428,6 +633,9 @@ async def guardar_accesos(empleado_id: int, request: Request, user: Empleado = D
     _solo_admin(user)
     form = await request.form()
     elegidas = {int(v) for v in form.getlist("cajas")}
+    choque = _conflicto(db, empleado_id, elegidas, "acceso")
+    if choque:
+        return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=accesos", status_code=303)
     db.query(CajaAcceso).filter(CajaAcceso.empleado_id == empleado_id).delete()
     for caja_id in elegidas:
         db.add(CajaAcceso(caja_id=caja_id, empleado_id=empleado_id))
@@ -454,6 +662,9 @@ async def agregar_autorizador(request: Request, user: Empleado = Depends(require
     if not elegidas:
         return RedirectResponse("/caja-menor/parametros?msg=Marca al menos una caja que autorice esa persona.&tab=autorizan",
                                 status_code=303)
+    choque = _conflicto(db, empleado.id, elegidas, "firma")
+    if choque:
+        return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=autorizan", status_code=303)
     _dar_modulo(empleado)
     _guardar_autorizaciones(db, empleado.id, elegidas)
     return RedirectResponse(f"/caja-menor/parametros?msg={nombre_propio(empleado.nombre_completo)} ya puede autorizar recibos.&tab=autorizan",
@@ -474,7 +685,11 @@ async def guardar_autorizador(empleado_id: int, request: Request, user: Empleado
                               db: Session = Depends(get_db)):
     _solo_admin(user)
     form = await request.form()
-    _guardar_autorizaciones(db, empleado_id, {int(v) for v in form.getlist("cajas")})
+    elegidas = {int(v) for v in form.getlist("cajas")}
+    choque = _conflicto(db, empleado_id, elegidas, "firma")
+    if choque:
+        return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=autorizan", status_code=303)
+    _guardar_autorizaciones(db, empleado_id, elegidas)
     return RedirectResponse("/caja-menor/parametros?msg=Autorizaciones guardadas.&tab=autorizan", status_code=303)
 
 
@@ -509,6 +724,9 @@ async def agregar_supervisor(request: Request, user: Empleado = Depends(require_
     if not elegidas:
         return RedirectResponse("/caja-menor/parametros?msg=Marca al menos una caja que supervise esa persona.&tab=supervisan",
                                 status_code=303)
+    choque = _conflicto(db, empleado.id, elegidas, "firma")
+    if choque:
+        return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=supervisan", status_code=303)
     _dar_modulo(empleado)
     _guardar_supervisiones(db, empleado.id, elegidas)
     return RedirectResponse(f"/caja-menor/parametros?msg={nombre_propio(empleado.nombre_completo)} ya puede supervisar los FM.&tab=supervisan",
@@ -529,8 +747,27 @@ async def guardar_supervisor(empleado_id: int, request: Request, user: Empleado 
                              db: Session = Depends(get_db)):
     _solo_admin(user)
     form = await request.form()
-    _guardar_supervisiones(db, empleado_id, {int(v) for v in form.getlist("cajas")})
+    elegidas = {int(v) for v in form.getlist("cajas")}
+    choque = _conflicto(db, empleado_id, elegidas, "firma")
+    if choque:
+        return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=supervisan", status_code=303)
+    _guardar_supervisiones(db, empleado_id, elegidas)
     return RedirectResponse("/caja-menor/parametros?msg=Supervisiones guardadas.&tab=supervisan", status_code=303)
+
+
+@router.on_event("startup")
+async def iniciar_recordatorios() -> None:
+    """Cada hora revisa las firmas pendientes y manda recordatorio por Cliq a las que llevan más de 24 horas."""
+    async def ciclo():
+        while True:
+            await asyncio.sleep(3600)
+            try:
+                enviados = await run_in_threadpool(sc.enviar_recordatorios)
+                if enviados:
+                    print(f"Caja menor: {enviados} recordatorio(s) de firma enviados por Cliq.")
+            except Exception as e:  # un fallo nunca debe detener la intranet
+                print(f"Caja menor: error enviando recordatorios: {e}")
+    asyncio.create_task(ciclo())
 
 
 ARCHIVO_INICIAL = Path(__file__).resolve().parent.parent / "seed_data" / "caja_menor_inicial.xlsx"
@@ -542,7 +779,7 @@ def cargar_datos_iniciales() -> None:
     los recibos, FMs y arqueos de la app anterior (seed_data/caja_menor_inicial.xlsx), si ese archivo existe."""
     from sqlalchemy import inspect, text
     from ..database import engine  # este evento corre antes del create_all general: crea aquí sus tablas
-    for modelo in (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaFM, CajaRecibo, CajaArqueo):
+    for modelo in (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaFM, CajaRecibo, CajaArqueo, CajaObservacion):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear al mismo tiempo
@@ -553,7 +790,12 @@ def cargar_datos_iniciales() -> None:
               "firma_email": "VARCHAR(150)", "firmado_en": "TIMESTAMP"}
     columnas_fm = {c["name"] for c in inspect(engine).get_columns("caja_menor_fms")}
     nuevas_fm = {"supervisado_por": "VARCHAR(150) DEFAULT ''", "supervisado_por_id": "INTEGER REFERENCES empleados(id)",
-                 "supervision_email": "VARCHAR(150)", "supervisado_en": "TIMESTAMP"}
+                 "supervision_email": "VARCHAR(150)", "supervisado_en": "TIMESTAMP",
+                 "elaborado_por_id": "INTEGER REFERENCES empleados(id)", "elaboracion_email": "VARCHAR(150)",
+                 "elaborado_en": "TIMESTAMP", "reembolsado_en": "TIMESTAMP",
+                 "reembolsado_por_id": "INTEGER REFERENCES empleados(id)", "aviso_ok": "INTEGER", "aviso_en": "TIMESTAMP"}
+    nuevas.update({"aviso_ok": "INTEGER", "aviso_en": "TIMESTAMP"})
+    columnas_cajas = {c["name"] for c in inspect(engine).get_columns("caja_menor_cajas")}
     with engine.begin() as conn:
         for nombre, tipo in nuevas.items():
             if nombre not in columnas:
@@ -561,6 +803,21 @@ def cargar_datos_iniciales() -> None:
         for nombre, tipo in nuevas_fm.items():
             if nombre not in columnas_fm:
                 conn.execute(text(f"ALTER TABLE caja_menor_fms ADD COLUMN {nombre} {tipo}"))
+        if "responsable_id" not in columnas_cajas:
+            conn.execute(text("ALTER TABLE caja_menor_cajas ADD COLUMN responsable_id INTEGER REFERENCES empleados(id)"))
+    # Responsable guardado antes solo como nombre: se enlaza con la persona de People
+    db = SessionLocal()
+    try:
+        for caja in db.query(CajaMenor).filter(CajaMenor.responsable_id.is_(None), CajaMenor.responsable != "").all():
+            persona = sc.responsable_de_caja(db, caja)
+            if persona:
+                caja.responsable_id = persona.id
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Caja menor: no se pudo enlazar el responsable de las cajas: {e}")
+    finally:
+        db.close()
     if not ARCHIVO_INICIAL.exists():
         return
     db = SessionLocal()

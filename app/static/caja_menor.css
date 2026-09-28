@@ -108,3 +108,36 @@
 #caja-app .cm-firma-estado { margin: -6px 0 12px; font-size: 12px; padding: 6px 10px; border-radius: 6px; }
 #caja-app .cm-firma-estado.pendiente { background: #FEF3C7; color: #92400E; }
 #caja-app .cm-firma-estado.firmado { background: #D1FAE5; color: #065F46; }
+#caja-app .cm-firma-estado.observado { background: #FFEDD5; color: #9A3412; }
+#caja-app .cm-firma-estado.fallido { background: #FEE2E2; color: #991B1B; }
+#caja-app tr.cm-bloqueado td { color: #9CA3AF; }
+
+/* Celular: quien firma suele abrir el enlace de Cliq desde el teléfono */
+@media (max-width: 760px) {
+  /* Barra superior (solo en las páginas de Caja menor): en dos filas y las pestañas con desplazamiento lateral */
+  nav.nav-inventario { flex-wrap: wrap !important; gap: 8px !important; padding: 8px 10px !important; }
+  nav.nav-inventario .marca img { max-height: 34px; }
+  nav.nav-inventario .nav-ruta { flex: 1 1 0 !important; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px !important; }
+  nav.nav-inventario .nav-sub { order: 10; flex: 1 1 100% !important; margin-left: 0 !important; flex-wrap: nowrap !important;
+                                overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  nav.nav-inventario .nav-sub a { white-space: nowrap; }
+  #sec-firmas .cm-tabla td > * { max-width: 65%; }
+  #sec-firmas .cm-tabla td { flex-wrap: wrap; word-break: break-word; }
+  #caja-app .cm-main { padding: 10px; }
+  #caja-app .cm-barra { flex-direction: column; align-items: stretch; gap: 10px; }
+  #sec-firmas .cm-tabla-wrap { max-height: none; border: none; overflow: visible; }
+  #sec-firmas .cm-tabla thead { display: none; }
+  #sec-firmas .cm-tabla, #sec-firmas .cm-tabla tbody, #sec-firmas .cm-tabla tr, #sec-firmas .cm-tabla td { display: block; width: 100%; }
+  #sec-firmas .cm-tabla tr { background: #fff; border: 1px solid var(--border-medium); border-radius: 12px; margin-bottom: 12px; padding: 8px 12px;
+                             box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  #sec-firmas .cm-tabla td { border: none !important; padding: 5px 0 !important; text-align: right !important; display: flex; justify-content: space-between;
+                             align-items: center; gap: 12px; }
+  #sec-firmas .cm-tabla td::before { content: attr(data-label); font-size: 11px; font-weight: 700; color: var(--text-muted); text-align: left; }
+  #sec-firmas .cm-tabla td[data-label=""]::before { content: none; }
+  #sec-firmas .cm-tabla td.cm-vacio { display: block; text-align: center !important; }
+  #sec-firmas .cm-td-acciones { justify-content: flex-end !important; padding-top: 8px !important; }
+  #sec-firmas .cm-td-acciones .btn { padding: 10px 14px; font-size: 14px; }
+  #sec-firmas #barraFirmarVarios { position: sticky; bottom: 10px; z-index: 5; }
+  #sec-firmas #barraFirmarVarios .btn { width: 100%; padding: 14px; font-size: 15px; }
+  #sec-firmas .cm-filtros select { width: 100%; }
+}

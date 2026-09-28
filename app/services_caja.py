@@ -6,7 +6,8 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from .models import Empleado
-from .models_caja import CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo
+from .models_caja import (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo,
+                          CajaObservacion)
 from .formato import nombre_propio
 
 MONEDAS = [50, 100, 200, 500, 1000]
@@ -124,6 +125,8 @@ def autoriza_en_caja(db: Session, user: Empleado, caja: CajaMenor) -> bool:
     a firmar, aunque no tenga acceso a la caja."""
     if caja.id in ids_cajas_que_autoriza(db, user) or caja.id in ids_cajas_que_supervisa(db, user):
         return True
+    if db.query(CajaFM.id).filter(CajaFM.caja_id == caja.id, CajaFM.elaborado_por_id == user.id).first():
+        return True
     if db.query(CajaRecibo.id).filter(CajaRecibo.caja_id == caja.id, CajaRecibo.autorizado_por_id == user.id).first():
         return True
     return db.query(CajaFM.id).filter(CajaFM.caja_id == caja.id, CajaFM.supervisado_por_id == user.id).first() is not None
@@ -136,11 +139,58 @@ def pendientes_de_firma(db: Session, user: Empleado) -> dict[int, int]:
              .filter(CajaRecibo.autorizado_por_id == user.id, CajaRecibo.firmado_en.is_(None), CajaRecibo.estado != "ANULADO")
              .group_by(CajaRecibo.caja_id).all())
     filas += (db.query(CajaFM.caja_id, func.count(CajaFM.id))
-              .filter(CajaFM.supervisado_por_id == user.id, CajaFM.supervisado_en.is_(None), CajaFM.estado == "VIGENTE")
+              .filter(CajaFM.elaborado_por_id == user.id, CajaFM.elaborado_en.is_(None), CajaFM.estado == "VIGENTE")
+              .group_by(CajaFM.caja_id).all())
+    filas += (db.query(CajaFM.caja_id, func.count(CajaFM.id))
+              .filter(CajaFM.supervisado_por_id == user.id, CajaFM.supervisado_en.is_(None), CajaFM.estado == "VIGENTE",
+                      (CajaFM.elaborado_por_id.is_(None)) | (CajaFM.elaborado_en.isnot(None)))
               .group_by(CajaFM.caja_id).all())
     for caja_id, n in filas:
         total[caja_id] = total.get(caja_id, 0) + n
     return total
+
+
+def responsable_de_caja(db: Session, caja: CajaMenor) -> Empleado | None:
+    """Empleado activo que es el responsable de la caja (Parámetros › Cajas); firma el "Elaborado por" del FM."""
+    if caja.responsable_id:
+        e = db.get(Empleado, caja.responsable_id)
+        return e if e and e.activo else None
+    nombre = (caja.responsable or "").strip().upper()
+    if not nombre:
+        return None
+    for e in db.query(Empleado).filter(Empleado.activo == 1).all():
+        if e.nombre_completo.strip().upper() == nombre:
+            return e
+    return None
+
+
+def es_firmante_de_caja(db: Session, user: Empleado, caja: CajaMenor) -> bool:
+    """Quien está en Autorizan o Supervisan de la caja: solo consulta y firma (no crea, edita ni anula).
+    Los administradores conservan su acceso completo."""
+    if es_admin(user):
+        return False
+    return caja.id in ids_cajas_que_autoriza(db, user) or caja.id in ids_cajas_que_supervisa(db, user)
+
+
+def _serializar_observaciones(obs) -> tuple[list[dict], dict | None]:
+    lista = [{"id": o.id, "texto": o.texto, "autor": nombre_propio(o.autor.nombre_completo) if o.autor else "",
+              "creadoEn": hora_colombia(o.creado_en), "atendidaEn": hora_colombia(o.atendida_en),
+              "atendidaPor": nombre_propio(o.atendida_por.nombre_completo) if o.atendida_por else ""} for o in obs]
+    pendiente = next((o for o in reversed(lista) if not o["atendidaEn"]), None)
+    return lista, pendiente
+
+
+def _atender_observaciones(doc, user: Empleado) -> str:
+    """Marca como atendidas las observaciones pendientes del documento; devuelve el texto de la última."""
+    ultima = ""
+    for o in getattr(doc, "observaciones", []) or []:
+        if not o.atendida_en:
+            o.atendida_en, o.atendida_por_id, ultima = datetime.utcnow(), user.id, o.texto
+    return ultima
+
+
+def hoy_colombia() -> date:
+    return (datetime.utcnow() - timedelta(hours=5)).date()
 
 
 def puede_usar_caja(db: Session, user: Empleado, caja: CajaMenor) -> bool:
@@ -163,6 +213,9 @@ def serializar_recibo(r: CajaRecibo) -> dict:
         "pagadoA": r.pagado_a, "valor": r.valor, "valorLetras": r.valor_letras, "concepto": r.concepto,
         "factura": r.numero_factura, "anexo": bool(r.anexo), "autorizadoPor": r.autorizado_por or "", "estado": r.estado,
         "autorizadoPorId": r.autorizado_por_id, "firmaEmail": r.firma_email or "", "firmadoEn": hora_colombia(r.firmado_en),
+        "avisoOk": r.aviso_ok, "avisoEn": hora_colombia(r.aviso_en),
+        "observaciones": _serializar_observaciones(r.observaciones)[0],
+        "observacionPendiente": _serializar_observaciones(r.observaciones)[1],
         "caja": nombre_propio(r.caja.nombre),
         "fm": f"FM{r.fm.numero}" if r.fm else "", "fmId": r.fm_id,
         "creadoPor": nombre_propio(r.creado_por.nombre_completo) if r.creado_por else r.creado_por_texto,
@@ -188,7 +241,8 @@ def autorizadores_de_caja(db: Session, caja: CajaMenor) -> list[str]:
     return [e.nombre_completo.strip().upper() for e in filas]
 
 
-def _resolver_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: CajaRecibo | None = None):
+def _resolver_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: CajaRecibo | None = None,
+                       creador_id: int | None = None):
     """Si la caja tiene autorizadores, el recibo debe llevar uno de ellos (o conservar el que ya tenía).
     Devuelve (empleado que autoriza o None, mensaje de error o None)."""
     elegido = str(datos.get("autorizado_por") or "").strip().upper()
@@ -196,12 +250,35 @@ def _resolver_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: CajaRe
              .filter(CajaAutorizador.caja_id == caja.id, Empleado.activo == 1).all())
     for e in filas:
         if e.nombre_completo.strip().upper() == elegido:
+            if creador_id and e.id == creador_id:
+                return None, "Quien registra el recibo no puede autorizarlo. Elige a otra persona en «Autorizado por»."
             return e, None
     if actual and elegido and elegido == (actual.autorizado_por or ""):
         return (db.get(Empleado, actual.autorizado_por_id) if actual.autorizado_por_id else None), None
     if filas:
         return None, "Elige quién autoriza el recibo."
     return None, None
+
+
+def _confirmaciones(db: Session, caja: CajaMenor, limpios: dict, datos: dict, actual: CajaRecibo | None = None) -> dict | None:
+    """Casos que no son error pero hay que confirmar: fecha de hace más de 30 días y factura ya registrada
+    del mismo tercero. Devuelve {"codigo", "mensaje"} si falta confirmar."""
+    confirmados = set(datos.get("confirmar") or [])
+    if "fecha_antigua" not in confirmados and limpios["fecha"] < hoy_colombia() - timedelta(days=30):
+        return {"codigo": "fecha_antigua",
+                "mensaje": f"La fecha del recibo ({limpios['fecha'].strftime('%d/%m/%Y')}) es de hace más de 30 días. ¿Es correcta?"}
+    factura = limpios.get("numero_factura") or ""
+    if factura and "factura_repetida" not in confirmados:
+        q = (db.query(CajaRecibo).filter(CajaRecibo.numero_factura == factura, CajaRecibo.identificacion == limpios["identificacion"],
+                                         CajaRecibo.estado != "ANULADO"))
+        if actual:
+            q = q.filter(CajaRecibo.id != actual.id)
+        otro = q.first()
+        if otro:
+            return {"codigo": "factura_repetida",
+                    "mensaje": f"La factura {factura} de este tercero ya está registrada en el recibo "
+                               f"{otro.caja.prefijo}-{otro.consecutivo:04d} (caja {nombre_propio(otro.caja.nombre)}). ¿Guardar de todas formas?"}
+    return None
 
 
 def _datos_recibo(caja: CajaMenor, datos: dict) -> dict | str:
@@ -215,6 +292,8 @@ def _datos_recibo(caja: CajaMenor, datos: dict) -> dict | str:
         return "Valor inválido."
     if valor <= 0:
         return "El valor debe ser mayor que cero."
+    if fecha > hoy_colombia():
+        return "La fecha del recibo no puede ser futura."
     campos = {"identificacion": "No. identificación", "pagado_a": "Pagado a", "concepto": "Concepto"}
     limpios = {k: str(datos.get(k) or "").strip().upper() for k in ("identificacion", "pagado_a", "concepto")}
     for k, nombre in campos.items():
@@ -230,9 +309,12 @@ def crear_recibo(db: Session, caja: CajaMenor, user: Empleado, datos: dict) -> C
     limpios = _datos_recibo(caja, datos)
     if isinstance(limpios, str):
         return limpios
-    autoriza, error = _resolver_autoriza(db, caja, datos)
+    autoriza, error = _resolver_autoriza(db, caja, datos, creador_id=user.id)
     if error:
         return error
+    aviso = _confirmaciones(db, caja, limpios, datos)
+    if aviso:
+        return aviso
     for _ in range(3):  # si dos personas guardan a la vez, el segundo toma el siguiente consecutivo
         consecutivo = siguiente_consecutivo(db, caja)
         r = CajaRecibo(caja_id=caja.id, consecutivo=consecutivo, creado_por_id=user.id,
@@ -259,12 +341,16 @@ def editar_recibo(db: Session, r: CajaRecibo, user: Empleado, datos: dict) -> st
     limpios = _datos_recibo(r.caja, datos)
     if isinstance(limpios, str):
         return limpios
-    autoriza, error = _resolver_autoriza(db, r.caja, datos, actual=r)
+    autoriza, error = _resolver_autoriza(db, r.caja, datos, actual=r, creador_id=r.creado_por_id)
     if error:
         return error
+    aviso = _confirmaciones(db, r.caja, limpios, datos, actual=r)
+    if aviso:
+        return aviso
     for k, v in limpios.items():
         setattr(r, k, v)
     r.autorizado_por_id = autoriza.id if autoriza else None
+    _atender_observaciones(r, user)  # la corrección responde a la observación de quien firma
     if not r.numero_factura:
         r.numero_factura = f"{r.caja.prefijo}-{r.consecutivo:04d}"
     r.editado_por_id, r.editado_en = user.id, datetime.utcnow()
@@ -300,8 +386,19 @@ def recibos_de_caja(db: Session, caja: CajaMenor, estado: str = "", desde: date 
 
 
 def total_pendiente(db: Session, caja: CajaMenor) -> float:
-    return float(db.query(func.coalesce(func.sum(CajaRecibo.valor), 0.0))
-                 .filter(CajaRecibo.caja_id == caja.id, CajaRecibo.estado == "ACTIVO").scalar() or 0)
+    """Dinero que salió de la caja y aún no vuelve: recibos activos + recibos de FM vigentes sin reembolsar."""
+    activos = (db.query(func.coalesce(func.sum(CajaRecibo.valor), 0.0))
+               .filter(CajaRecibo.caja_id == caja.id, CajaRecibo.estado == "ACTIVO").scalar() or 0)
+    sin_reembolso = (db.query(func.coalesce(func.sum(CajaRecibo.valor), 0.0)).join(CajaFM, CajaRecibo.fm_id == CajaFM.id)
+                     .filter(CajaRecibo.caja_id == caja.id, CajaRecibo.estado == "LEGALIZADO", CajaFM.estado == "VIGENTE",
+                             CajaFM.reembolsado_en.is_(None)).scalar() or 0)
+    return float(activos) + float(sin_reembolso)
+
+
+def total_sin_reembolsar(db: Session, caja: CajaMenor) -> float:
+    return float(db.query(func.coalesce(func.sum(CajaRecibo.valor), 0.0)).join(CajaFM, CajaRecibo.fm_id == CajaFM.id)
+                 .filter(CajaRecibo.caja_id == caja.id, CajaRecibo.estado == "LEGALIZADO", CajaFM.estado == "VIGENTE",
+                         CajaFM.reembolsado_en.is_(None)).scalar() or 0)
 
 
 # ---------------- Legalización (FM) ----------------
@@ -320,6 +417,11 @@ def serializar_fm(fm: CajaFM, con_recibos: bool = False) -> dict:
         "supervisadoPor": fm.supervisado_por or "", "supervisadoPorId": fm.supervisado_por_id,
         "supervisionEmail": fm.supervision_email or "", "supervisadoEn": hora_colombia(fm.supervisado_en),
         "creadoPorEmail": fm.creado_por.email if fm.creado_por else "",
+        "elaboradoPorId": fm.elaborado_por_id, "elaboracionEmail": fm.elaboracion_email or "",
+        "elaboradoEn": hora_colombia(fm.elaborado_en),
+        "reembolsadoEn": hora_colombia(fm.reembolsado_en), "avisoOk": fm.aviso_ok, "avisoEn": hora_colombia(fm.aviso_en),
+        "observaciones": _serializar_observaciones(fm.observaciones)[0],
+        "observacionPendiente": _serializar_observaciones(fm.observaciones)[1],
     }
     if con_recibos:
         d["recibos"] = [serializar_recibo(r) for r in fm.recibos]
@@ -336,20 +438,33 @@ def legalizar(db: Session, caja: CajaMenor, user: Empleado, recibo_ids: list[int
     supervisor = next((e for e in supervisores if e.nombre_completo.strip().upper() == elegido), None)
     if supervisores and not supervisor:
         return "Elige quién supervisa el FM (Supervisado por)."
+    responsable_emp = responsable_de_caja(db, caja)
+    if not responsable_emp:
+        return ("La caja no tiene responsable. Un administrador debe asignarlo en Parámetros › Cajas: "
+                "es quien firma el «Elaborado por» del FM.")
+    if supervisor and supervisor.id == responsable_emp.id:
+        return "Quien supervisa el FM debe ser una persona distinta al responsable de la caja (Elaborado por)."
     recibos = db.query(CajaRecibo).filter(CajaRecibo.id.in_(recibo_ids), CajaRecibo.caja_id == caja.id).all()
     if len(recibos) != len(set(recibo_ids)):
         return "Algunos recibos no pertenecen a esta caja."
     no_activos = [f"{caja.prefijo}-{r.consecutivo:04d}" for r in recibos if r.estado != "ACTIVO"]
     if no_activos:
         return f"Estos recibos ya no están ACTIVOS (otra persona los pudo legalizar o anular): {', '.join(no_activos)}"
+    sin_firma = [f"{caja.prefijo}-{r.consecutivo:04d}" for r in recibos if r.autorizado_por_id and not r.firmado_en]
+    if sin_firma:
+        return f"Solo se pueden legalizar recibos firmados por quien los autoriza. Falta la firma de: {', '.join(sin_firma)}"
     desglose = _desglose_valido(desglose or {})
     try:
         ajuste = round(float(ajuste or 0), 2)
     except (TypeError, ValueError):
         ajuste = 0.0
     fm = CajaFM(caja_id=caja.id, numero=caja.fm_siguiente, fecha_legalizacion=(datetime.utcnow() - timedelta(hours=5)).date(),
-                responsable=(responsable or caja.responsable or "").strip().upper(), fondo=caja.fondo,
+                responsable=responsable_emp.nombre_completo.strip().upper(), fondo=caja.fondo,
                 valor_en_caja=total_desglose(desglose), ajuste=ajuste,
+                elaborado_por_id=responsable_emp.id,
+                # Si quien legaliza es el responsable, al legalizar queda firmada la elaboración
+                elaboracion_email=user.email if user.id == responsable_emp.id else None,
+                elaborado_en=datetime.utcnow() if user.id == responsable_emp.id else None,
                 total_pagos=round(sum(r.valor for r in recibos) + ajuste, 2),
                 desglose=json.dumps(desglose), creado_por_id=user.id,
                 supervisado_por=supervisor.nombre_completo.strip().upper() if supervisor else "",
@@ -364,9 +479,22 @@ def legalizar(db: Session, caja: CajaMenor, user: Empleado, recibo_ids: list[int
     return fm
 
 
+def marcar_reembolsado(db: Session, fm: CajaFM, user: Empleado) -> str | None:
+    """Tesorería devolvió a la caja el dinero del FM: deja de contar como pendiente en el arqueo."""
+    if fm.estado != "VIGENTE":
+        return "El FM está anulado."
+    if fm.reembolsado_en:
+        return "Este FM ya estaba marcado como reembolsado."
+    fm.reembolsado_en, fm.reembolsado_por_id = datetime.utcnow(), user.id
+    db.commit()
+    return None
+
+
 def anular_fm(db: Session, fm: CajaFM, user: Empleado, motivo: str) -> str | None:
     if fm.estado == "ANULADO":
         return "Este FM ya estaba anulado."
+    if fm.reembolsado_en:
+        return "Este FM ya fue reembolsado y no se puede anular."
     motivo = (motivo or "").strip()
     if len(motivo) < 5:
         return "Escribe el motivo de la anulación (mínimo 5 caracteres)."
@@ -392,6 +520,10 @@ def serializar_arqueo(a: CajaArqueo) -> dict:
 
 
 def crear_arqueo(db: Session, caja: CajaMenor, user: Empleado, responsable: str, desglose: dict) -> CajaArqueo | str:
+    responsable_emp = responsable_de_caja(db, caja)
+    if not responsable_emp:
+        return "La caja no tiene responsable. Un administrador debe asignarlo en Parámetros › Cajas."
+    responsable = responsable_emp.nombre_completo
     desglose = _desglose_valido(desglose or {})
     efectivo = total_desglose(desglose)
     pendientes = total_pendiente(db, caja)
@@ -399,7 +531,7 @@ def crear_arqueo(db: Session, caja: CajaMenor, user: Empleado, responsable: str,
     estado = "CUADRADO" if diferencia == 0 else ("FALTANTE" if diferencia < 0 else "SOBRANTE")
     for _ in range(3):
         a = CajaArqueo(caja_id=caja.id, consecutivo=siguiente_arqueo(db, caja),
-                       responsable=(responsable or caja.responsable or "").strip().upper(), fondo=caja.fondo,
+                       responsable=responsable.strip().upper(), fondo=caja.fondo,
                        recibos_pendientes=pendientes, efectivo_contado=efectivo, estado=estado, diferencia=diferencia,
                        desglose=json.dumps(desglose), creado_por_id=user.id)
         db.add(a)
@@ -460,8 +592,9 @@ def necesita_aviso_firma(r: CajaRecibo) -> bool:
     return bool(r.autorizado_por_id and not r.firmado_en and r.estado != "ANULADO")
 
 
-def notificar_firma_pendiente(recibo_id: int) -> None:
-    """Aviso por Cliq (solo desde el bot de la empresa) a quien debe autorizar el recibo. Corre en segundo plano."""
+def notificar_firma_pendiente(recibo_id: int, recordatorio: bool = False) -> None:
+    """Aviso por Cliq (solo desde el bot de la empresa) a quien debe autorizar el recibo. Corre en segundo plano.
+    Guarda en el recibo si el aviso llegó (aviso_ok) y cuándo (aviso_en)."""
     from . import config
     from .database import SessionLocal
     db = SessionLocal()
@@ -470,18 +603,19 @@ def notificar_firma_pendiente(recibo_id: int) -> None:
         if not r or not necesita_aviso_firma(r):
             return
         quien = db.get(Empleado, r.autorizado_por_id)
-        if not quien or not quien.email:
-            return
         valor = f"$ {r.valor:,.0f}".replace(",", ".")
         creador = nombre_propio(r.creado_por.nombre_completo) if r.creado_por else (r.creado_por_texto or "—")
-        texto = (f"✍️ *Recibo de caja menor pendiente de tu firma*\n"
+        corregida = next((o for o in reversed(r.observaciones or []) if o.atendida_en and (not r.aviso_en or o.atendida_en > r.aviso_en)), None)
+        texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}✍️ *Recibo de caja menor pendiente de tu firma*\n"
+                 f"{'✏️ Se corrigió según tu observación: «' + corregida.texto + '»' + chr(10) if corregida else ''}"
                  f"{r.caja.prefijo}-{r.consecutivo:04d} · {valor} · Caja {nombre_propio(r.caja.nombre)}\n"
                  f"Pagado a: {nombre_propio(r.pagado_a)}\n"
                  f"Concepto: {r.concepto}\n"
                  f"Registrado por: {creador}\n"
                  f"Revísalo y fírmalo en: {config.BASE_URL}/caja-menor/{r.caja_id}?tab=firmas")
-        from .zoho_cliq import enviar_cliq
-        enviar_cliq(quien.email, texto)
+        r.aviso_ok = 1 if _avisar([quien.email if quien else ""], texto) else 0
+        r.aviso_en = datetime.utcnow()
+        db.commit()
     except Exception as ex:  # un aviso fallido nunca debe afectar el recibo
         print(f"[Caja menor] Error enviando aviso de firma del recibo #{recibo_id}: {ex}")
     finally:
@@ -494,10 +628,147 @@ def _texto_recibo(r: CajaRecibo) -> str:
             f"Pagado a: {nombre_propio(r.pagado_a)}\nConcepto: {r.concepto}")
 
 
-def _avisar(emails: list[str], texto: str) -> None:
+def _avisar(emails: list[str], texto: str) -> bool:
+    """Envía por el bot; devuelve True solo si llegó a todos (False si alguno falló o no hay destinatario)."""
     from .zoho_cliq import enviar_cliq
-    for email in dict.fromkeys(e for e in emails if e):  # sin repetir
-        enviar_cliq(email, texto)
+    destinos = list(dict.fromkeys(e for e in emails if e))  # sin repetir
+    resultados = [bool(enviar_cliq(email, texto)) for email in destinos]
+    return bool(resultados) and all(resultados)
+
+
+def firmar_elaboracion(db: Session, fm: CajaFM, user: Empleado) -> str | None:
+    """Firma "Elaborado por" del responsable de la caja: queda su correo Zoho y la fecha y hora."""
+    if fm.elaborado_por_id != user.id:
+        return "Solo el responsable de la caja puede firmar la elaboración de este FM."
+    if fm.estado != "VIGENTE":
+        return "El FM está anulado."
+    if fm.elaborado_en:
+        return "La elaboración de este FM ya está firmada."
+    fm.elaboracion_email, fm.elaborado_en = user.email, datetime.utcnow()
+    db.commit()
+    return None
+
+
+def reenviar_aviso_fm(fm_id: int, recordatorio: bool = False) -> None:
+    """Vuelve a pedir la firma que le toca al FM: primero la del responsable, luego el visto bueno."""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        fm = db.get(CajaFM, fm_id)
+        falta_elaborar = bool(fm and fm.elaborado_por_id and not fm.elaborado_en)
+    finally:
+        db.close()
+    if falta_elaborar:
+        notificar_elaboracion_pendiente(fm_id, recordatorio)
+    else:
+        notificar_supervision_pendiente(fm_id, recordatorio)
+
+
+HORAS_RECORDATORIO = 24
+
+
+def enviar_recordatorios() -> int:
+    """Recordatorio por Cliq de las firmas pendientes cuyo último aviso tiene más de 24 horas. Devuelve cuántos envió."""
+    from .database import SessionLocal
+    limite = datetime.utcnow() - timedelta(hours=HORAS_RECORDATORIO)
+    db = SessionLocal()
+    try:
+        recibos = [r.id for r in db.query(CajaRecibo).filter(
+            CajaRecibo.autorizado_por_id.isnot(None), CajaRecibo.firmado_en.is_(None), CajaRecibo.estado != "ANULADO",
+            func.coalesce(CajaRecibo.aviso_en, CajaRecibo.creado_en) < limite)]
+        fms = [f.id for f in db.query(CajaFM).filter(
+            CajaFM.estado == "VIGENTE", func.coalesce(CajaFM.aviso_en, CajaFM.creado_en) < limite,
+            ((CajaFM.elaborado_por_id.isnot(None)) & (CajaFM.elaborado_en.is_(None)))
+            | ((CajaFM.supervisado_por_id.isnot(None)) & (CajaFM.supervisado_en.is_(None))))]
+    finally:
+        db.close()
+    for rid in recibos:
+        notificar_firma_pendiente(rid, recordatorio=True)
+    for fid in fms:
+        reenviar_aviso_fm(fid, recordatorio=True)
+    return len(recibos) + len(fms)
+
+
+def observar_recibo(db: Session, r: CajaRecibo, user: Empleado, texto: str) -> str | None:
+    """Quien debe autorizar el recibo no lo firma y deja una observación para que lo corrijan."""
+    if r.autorizado_por_id != user.id:
+        return "Solo quien debe autorizar este recibo puede dejarle una observación."
+    if r.estado == "ANULADO" or r.firmado_en:
+        return "El recibo ya no está pendiente de tu firma."
+    if r.estado == "LEGALIZADO":
+        return "El recibo ya está legalizado; para corregirlo hay que anular su FM."
+    texto = (texto or "").strip()
+    if len(texto) < 5:
+        return "Escribe la observación (mínimo 5 caracteres): qué se debe corregir."
+    db.add(CajaObservacion(recibo_id=r.id, autor_id=user.id, texto=texto[:1000]))
+    db.commit()
+    db.refresh(r)
+    return None
+
+
+def observar_fm(db: Session, fm: CajaFM, user: Empleado, texto: str) -> str | None:
+    """Quien supervisa el FM no da el visto bueno y deja una observación para que el responsable lo corrija."""
+    if fm.supervisado_por_id != user.id:
+        return "Solo quien supervisa este FM puede dejarle una observación."
+    if fm.estado != "VIGENTE" or fm.supervisado_en:
+        return "El FM ya no está pendiente de tu visto bueno."
+    texto = (texto or "").strip()
+    if len(texto) < 5:
+        return "Escribe la observación (mínimo 5 caracteres): qué se debe corregir."
+    db.add(CajaObservacion(fm_id=fm.id, autor_id=user.id, texto=texto[:1000]))
+    db.commit()
+    db.refresh(fm)
+    return None
+
+
+def corregir_fm(db: Session, fm: CajaFM, user: Empleado, desglose: dict, ajuste: float) -> str | None:
+    """El responsable corrige el conteo y el ajuste del FM (antes del visto bueno). Su firma queda renovada.
+    Si hay que cambiar los recibos del FM, se anula y se legaliza de nuevo."""
+    if fm.elaborado_por_id != user.id:
+        return "Solo el responsable de la caja (Elaborado por) puede corregir este FM."
+    if fm.estado != "VIGENTE" or fm.supervisado_en or fm.reembolsado_en:
+        return "Este FM ya no se puede corregir (está anulado, supervisado o reembolsado)."
+    desglose = _desglose_valido(desglose or {})
+    try:
+        ajuste = round(float(ajuste or 0), 2)
+    except (TypeError, ValueError):
+        ajuste = 0.0
+    fm.desglose, fm.valor_en_caja, fm.ajuste = json.dumps(desglose), total_desglose(desglose), ajuste
+    fm.total_pagos = round(sum(r.valor for r in fm.recibos) + ajuste, 2)
+    fm.elaboracion_email, fm.elaborado_en = user.email, datetime.utcnow()
+    _atender_observaciones(fm, user)
+    db.commit()
+    return None
+
+
+def notificar_observacion(recibo_id: int | None = None, fm_id: int | None = None) -> None:
+    """Aviso por Cliq (bot) al responsable de la caja y a quien registró/legalizó: hay una observación por corregir."""
+    from . import config
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        doc = db.get(CajaRecibo, recibo_id) if recibo_id else db.get(CajaFM, fm_id)
+        if not doc or not doc.observaciones:
+            return
+        obs = doc.observaciones[-1]
+        responsable = responsable_de_caja(db, doc.caja)
+        destinos = [e.email for e in (responsable, doc.creado_por) if e and e.id != obs.autor_id]
+        autor = nombre_propio(obs.autor.nombre_completo) if obs.autor else "—"
+        if recibo_id:
+            valor = f"$ {doc.valor:,.0f}".replace(",", ".")
+            cabeza = f"{doc.caja.prefijo}-{doc.consecutivo:04d} · {valor} · Caja {nombre_propio(doc.caja.nombre)}"
+            accion = f"Corrígelo (Editar) en: {config.BASE_URL}/caja-menor/{doc.caja_id}"
+            titulo = "Observación en recibo de caja menor"
+        else:
+            cabeza = _texto_fm(doc)
+            accion = f"El responsable lo corrige desde Historial FM en: {config.BASE_URL}/caja-menor/{doc.caja_id}?tab=fms"
+            titulo = "Observación en formato de reembolso (FM)"
+        texto = f"📝 *{titulo}*\n{cabeza}\n{autor} no firmó y dejó esta observación:\n«{obs.texto}»\n{accion}"
+        _avisar(destinos, texto)
+    except Exception as ex:
+        print(f"[Caja menor] Error enviando aviso de observación: {ex}")
+    finally:
+        db.close()
 
 
 def dar_visto_bueno(db: Session, fm: CajaFM, user: Empleado) -> str | None:
@@ -506,8 +777,11 @@ def dar_visto_bueno(db: Session, fm: CajaFM, user: Empleado) -> str | None:
         return "Este FM no está asignado a ti para supervisar."
     if fm.estado != "VIGENTE":
         return "El FM está anulado."
+    if fm.elaborado_por_id and not fm.elaborado_en:
+        return "Primero debe firmar el responsable de la caja (Elaborado por)."
     if fm.supervisado_en:
         return "Este FM ya tiene el visto bueno."
+    _atender_observaciones(fm, user)
     fm.supervision_email, fm.supervisado_en = user.email, datetime.utcnow()
     db.commit()
     return None
@@ -518,7 +792,30 @@ def _texto_fm(fm: CajaFM) -> str:
     return f"FM{fm.numero} · {total} · Caja {nombre_propio(fm.caja.nombre)} · {len(fm.recibos)} recibos"
 
 
-def notificar_supervision_pendiente(fm_id: int) -> None:
+def notificar_elaboracion_pendiente(fm_id: int, recordatorio: bool = False) -> None:
+    """Aviso por Cliq (bot) al responsable de la caja para firmar "Elaborado por" (cuando otra persona legalizó)."""
+    from . import config
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        fm = db.get(CajaFM, fm_id)
+        if not fm or not fm.elaborado_por_id or fm.elaborado_en or fm.estado != "VIGENTE":
+            return
+        quien = db.get(Empleado, fm.elaborado_por_id)
+        creador = nombre_propio(fm.creado_por.nombre_completo) if fm.creado_por else "—"
+        texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}📝 *FM pendiente de tu firma como responsable (Elaborado por)*\n"
+                 f"{_texto_fm(fm)}\nLegalizado por: {creador}\n"
+                 f"Revísalo y fírmalo en: {config.BASE_URL}/caja-menor/{fm.caja_id}?tab=firmas")
+        fm.aviso_ok = 1 if _avisar([quien.email if quien else ""], texto) else 0
+        fm.aviso_en = datetime.utcnow()
+        db.commit()
+    except Exception as ex:
+        print(f"[Caja menor] Error enviando aviso de elaboración del FM #{fm_id}: {ex}")
+    finally:
+        db.close()
+
+
+def notificar_supervision_pendiente(fm_id: int, recordatorio: bool = False) -> None:
     """Aviso por Cliq (bot) a quien debe dar el visto bueno del FM. Corre en segundo plano."""
     from . import config
     from .database import SessionLocal
@@ -527,12 +824,18 @@ def notificar_supervision_pendiente(fm_id: int) -> None:
         fm = db.get(CajaFM, fm_id)
         if not fm or not fm.supervisado_por_id or fm.supervisado_en or fm.estado != "VIGENTE":
             return
+        if fm.elaborado_por_id and not fm.elaborado_en:  # se avisa al supervisor cuando el responsable ya firmó
+            return
         quien = db.get(Empleado, fm.supervisado_por_id)
         creador = nombre_propio(fm.creado_por.nombre_completo) if fm.creado_por else "—"
-        texto = (f"📋 *Formato de reembolso (FM) pendiente de tu visto bueno*\n{_texto_fm(fm)}\n"
-                 f"Responsable: {nombre_propio(fm.responsable) or '—'}\nLegalizado por: {creador}\n"
+        corregida = next((o for o in reversed(fm.observaciones or []) if o.atendida_en and (not fm.aviso_en or o.atendida_en > fm.aviso_en)), None)
+        texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}📋 *Formato de reembolso (FM) pendiente de tu visto bueno*\n"
+                 f"{'✏️ Se corrigió según tu observación: «' + corregida.texto + '»' + chr(10) if corregida else ''}"
+                 f"{_texto_fm(fm)}\nResponsable: {nombre_propio(fm.responsable) or '—'}\nLegalizado por: {creador}\n"
                  f"Revísalo y fírmalo en: {config.BASE_URL}/caja-menor/{fm.caja_id}?tab=firmas")
-        _avisar([quien.email if quien else ""], texto)
+        fm.aviso_ok = 1 if _avisar([quien.email if quien else ""], texto) else 0
+        fm.aviso_en = datetime.utcnow()
+        db.commit()
     except Exception as ex:
         print(f"[Caja menor] Error enviando aviso de supervisión del FM #{fm_id}: {ex}")
     finally:
@@ -567,8 +870,9 @@ def notificar_fm_anulado(fm_id: int) -> None:
         if not fm or fm.estado != "ANULADO":
             return
         supervisor = db.get(Empleado, fm.supervisado_por_id) if fm.supervisado_por_id else None
+        responsable = db.get(Empleado, fm.elaborado_por_id) if fm.elaborado_por_id else None
         anula = fm.anulado_por
-        destinos = [e.email for e in (fm.creado_por, supervisor) if e and (not anula or e.id != anula.id)]
+        destinos = [e.email for e in (fm.creado_por, responsable, supervisor) if e and (not anula or e.id != anula.id)]
         if not destinos:
             return
         total = f"$ {fm.total_pagos:,.0f}".replace(",", ".")
@@ -633,6 +937,7 @@ def firmar_recibo(db: Session, r: CajaRecibo, user: Empleado) -> str | None:
         return "El recibo está anulado."
     if r.firmado_en:
         return "Este recibo ya está firmado."
+    _atender_observaciones(r, user)
     r.firma_email, r.firmado_en = user.email, datetime.utcnow()
     db.commit()
     return None
@@ -687,6 +992,7 @@ def importar_hoja_google(db: Session, contenido: bytes, user: Empleado) -> dict:
             creador_id, creador_txt = autor(valores[17])
             fm = CajaFM(caja_id=caja.id, numero=numero, fecha_legalizacion=_fecha(valores[0]) or date.today(),
                         responsable=str(valores[2] or "").upper(), fondo=caja.fondo, valor_en_caja=_num(valores[3]),
+                        reembolsado_en=datetime.utcnow(),  # la app anterior no llevaba el reembolso: se asumen reembolsados
                         total_pagos=_num(valores[4]), ajuste=_num(valores[16]), desglose=json.dumps(desglose),
                         creado_por_id=creador_id, creado_por_texto=creador_txt)
             db.add(fm)

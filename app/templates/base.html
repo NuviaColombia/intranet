@@ -39,6 +39,11 @@
   <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/{{ caja.id }}">{{ caja.nombre|nombre_propio }}</a></span>
   <div class="nav-sub">
     {% if solo_firmas %}
+    {% if puede_consultar %}
+    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="consulta">Consulta</a>
+    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="fms">Historial FM</a>
+    <span class="nav-sep">│</span>
+    {% endif %}
     <a href="/caja-menor/{{ caja.id }}" class="caja-tab activo" data-tab="firmas">✍️ Firmas{% if caja_por_firmar %} <span class="badge-alertas" id="badgeFirmas">{{ caja_por_firmar }}</span>{% endif %}</a>
     {% else %}
     <a href="/caja-menor/{{ caja.id }}" class="caja-tab activo" data-tab="recibo">Nuevo recibo</a>

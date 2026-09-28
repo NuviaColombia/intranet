@@ -66,10 +66,11 @@
       <td><select name="responsable" form="f-caja-{{ c.id }}">
           <option value="">{{ '— Elige una persona —' if con_acceso[c.id] else '— Nadie tiene acceso a esta caja —' }}</option>
           {% set ns = namespace(esta=false) %}
-          {% for e in con_acceso[c.id] %}{% set nombre = e.nombre_completo|upper %}{% if nombre == (c.responsable or '')|upper %}{% set ns.esta = true %}{% endif %}
-          <option value="{{ nombre }}" {{ 'selected' if nombre == (c.responsable or '')|upper }}>{{ e.nombre_completo|nombre_propio }}</option>
+          {% for e in con_acceso[c.id] %}{% set es = (e.id == c.responsable_id) or (not c.responsable_id and e.nombre_completo|upper == (c.responsable or '')|upper) %}
+          {% if es %}{% set ns.esta = true %}{% endif %}
+          <option value="{{ e.id }}" {{ 'selected' if es }}>{{ e.nombre_completo|nombre_propio }}</option>
           {% endfor %}
-          {% if c.responsable and not ns.esta %}<option value="{{ c.responsable }}" selected>{{ c.responsable|nombre_propio }} (sin acceso)</option>{% endif %}
+          {% if c.responsable and not ns.esta %}<option value="__actual__" selected>{{ c.responsable|nombre_propio }} (sin acceso a la caja)</option>{% endif %}
         </select></td>
       <td style="width:90px"><input name="consecutivo_inicial" type="number" min="1" value="{{ c.consecutivo_inicial }}" form="f-caja-{{ c.id }}"></td>
       <td style="width:90px"><input name="fm_siguiente" type="number" min="1" value="{{ c.fm_siguiente }}" form="f-caja-{{ c.id }}"></td>
@@ -87,7 +88,8 @@
 {# ---------- Accesos ---------- #}
 <div class="cmp-panel" id="panel-accesos">
   <div class="cmp-ayuda">Da acceso aquí mismo: busca a la persona, marca sus cajas y pulsa <b>Dar acceso</b> (el módulo Caja menor Nuvia se le activa solo).
-    Los administradores siempre entran a todas las cajas; relaciónalos aquí si también deben aparecer como responsables.</div>
+    Los administradores siempre entran a todas las cajas; relaciónalos aquí si también deben aparecer como responsables.
+    <br><b>Quien tiene acceso opera la caja</b> (crea, edita, anula, legaliza). Por eso no puede estar también en Autorizan o Supervisan de esa misma caja.</div>
   <details class="cmp-agregar" {{ 'open' if not usuarios }}>
     <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
     <form method="post" action="/caja-menor/parametros/accesos/agregar" class="cmp-form">
@@ -135,7 +137,7 @@
 <div class="cmp-panel" id="panel-autorizan">
   <div class="cmp-ayuda">Personas de People que autorizan los recibos. Al crear un recibo se elige quién lo autoriza y su nombre sale en la firma
     <b>Aprobado por</b>. Firma dentro de cada caja, en la pestaña <b>✍️ Firmas</b>; si no tiene acceso a esa caja, entra solo a ver y firmar sus recibos.
-    Si una caja no tiene autorizadores, el recibo se imprime con la línea en blanco.</div>
+    Si una caja no tiene autorizadores, el recibo se imprime con la línea en blanco.<br><b>Quien firma solo consulta y firma:</b> no puede crear, editar ni anular. Si no está de acuerdo, deja una observación y el responsable corrige. No puede tener acceso para operar la misma caja.</div>
   <details class="cmp-agregar" {{ 'open' if not autorizadores }}>
     <summary><span class="btn mini">＋ Agregar quien autoriza</span></summary>
     <form method="post" action="/caja-menor/parametros/autorizadores/agregar" class="cmp-form">
@@ -181,7 +183,7 @@
 <div class="cmp-panel" id="panel-supervisan">
   <div class="cmp-ayuda">Personas de People que dan el visto bueno a los formatos de reembolso (FM). Al legalizar se elige quién lo supervisa: el bot le avisa por Cliq
     y su firma electrónica sale en <b>Supervisado por</b>. <b>Elaborado por</b> es el responsable de la caja (pestaña Cajas). Firma dentro de cada caja, en la pestaña <b>✍️ Firmas</b>; si no tiene acceso a esa caja, entra solo a ver y firmar sus FM.
-    Si una caja no tiene supervisores, el FM se imprime con la línea en blanco.</div>
+    Si una caja no tiene supervisores, el FM se imprime con la línea en blanco.<br><b>Quien firma solo consulta y firma:</b> no puede crear, editar ni anular. Si no está de acuerdo, deja una observación y el responsable corrige. No puede tener acceso para operar la misma caja.</div>
   <details class="cmp-agregar" {{ 'open' if not supervisores }}>
     <summary><span class="btn mini">＋ Agregar quien supervisa</span></summary>
     <form method="post" action="/caja-menor/parametros/supervisores/agregar" class="cmp-form">
