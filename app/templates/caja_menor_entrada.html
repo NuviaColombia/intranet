@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Caja menor Nuvia</h1>
+<p style="color:var(--gris)">Elige la caja con la que vas a trabajar</p>
+<div class="modulos">
+  {% for c in cajas %}
+  <a class="modulo" href="/caja-menor/{{ c.id }}">
+    <span class="modulo-icono">{{ c.icono }}</span>
+    <span class="modulo-nombre">{{ c.nombre|nombre_propio }}</span>
+  </a>
+  {% else %}
+  <div class="tarjeta" style="grid-column:1/-1; text-align:center; color:var(--gris);">
+    Aún no tienes acceso a ninguna caja. Pide a un administrador que te asigne una en <b>Caja menor › Parámetros</b>.
+  </div>
+  {% endfor %}
+  {% if user.rol in ('admin', 'superadmin') %}
+  <a class="modulo" href="/caja-menor/parametros">
+    <span class="modulo-icono">⚙️</span>
+    <span class="modulo-nombre">Parámetros</span>
+    <span class="modulo-desc">Cajas, accesos y quién autoriza</span>
+  </a>
+  {% endif %}
+</div>
+{% endblock %}

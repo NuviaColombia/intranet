@@ -43,6 +43,19 @@
     <span class="modulo-desc">Sin acceso</span>
   </div>
   {% endif %}
+  {% if user.tiene_modulo('caja_menor') %}
+  <a class="modulo" href="/caja-menor">
+    <span class="modulo-icono">💵</span>
+    <span class="modulo-nombre">Caja menor Nuvia</span>
+    <span class="modulo-desc">Recibos, legalización (FM) y arqueos</span>
+  </a>
+  {% else %}
+  <div class="modulo disabled" title="Sin acceso">
+    <span class="modulo-icono">💵</span>
+    <span class="modulo-nombre">Caja menor Nuvia</span>
+    <span class="modulo-desc">Sin acceso</span>
+  </div>
+  {% endif %}
   <div class="modulo disabled" title="Próximamente">
     <span class="modulo-icono">🛒</span>
     <span class="modulo-nombre">Compras</span>

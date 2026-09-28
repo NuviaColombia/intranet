@@ -1,0 +1,107 @@
+/* Caja menor Nuvia: mismo sistema visual que Producción › Cambio de custodia (colores, letras, tablas, botones). */
+#caja-app {
+  --brand-main: #1A365D; --brand-light: #F0F4F8; --text-dark: #0F172A; --text-muted: #475569;
+  --border-soft: #E2E8F0; --border-medium: #CBD5E1; --success: #10B981; --danger: #EF4444; --warning: #F59E0B;
+  --bg-surface: #FFFFFF; --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / .05); --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .05);
+  font-family: 'Segoe UI', system-ui, sans-serif; color: var(--text-dark); font-size: 14px; line-height: 1.5;
+}
+#caja-app * { box-sizing: border-box; font-family: inherit; }
+#caja-app .cm-main { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 12px;
+  box-shadow: var(--shadow-md); padding: 24px; }
+#caja-app .cm-seccion { display: none; animation: cmEntrar .25s ease-out; }
+#caja-app .cm-seccion.activa { display: block; }
+@keyframes cmEntrar { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+#caja-app h2.cm-titulo { margin: 0 0 4px; color: var(--brand-main); font-size: 18px; font-weight: 800; }
+#caja-app .cm-sub { margin: 0 0 18px; color: var(--text-muted); font-size: 13px; }
+#caja-app .cm-barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+
+/* Botones (iguales a Cambio de custodia) */
+#caja-app .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border: none;
+  border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; white-space: nowrap;
+  background: var(--brand-main); transition: transform .15s, box-shadow .15s, background .15s; }
+#caja-app .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+#caja-app .btn:disabled { background: var(--border-medium) !important; cursor: not-allowed; }
+#caja-app .btn.verde { background: var(--success); } #caja-app .btn.rojo { background: var(--danger); }
+#caja-app .btn.gris { background: #e2e8f0; color: var(--text-dark); } #caja-app .btn.mini { padding: 5px 12px; font-size: 12px; }
+
+/* Formulario tipo documento (como el de Nuevo registro) */
+#caja-app table.cm-form { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; margin-bottom: 18px; }
+#caja-app table.cm-form td { border: 1px solid var(--border-soft); border-top: none; border-left: none; height: 38px; padding: 0; vertical-align: middle; }
+#caja-app table.cm-form tr:first-child td { border-top: 1px solid var(--border-soft); }
+#caja-app table.cm-form td:first-child { border-left: 1px solid var(--border-soft); }
+#caja-app table.cm-form tr:first-child td:first-child { border-top-left-radius: 12px; }
+#caja-app table.cm-form tr:first-child td:last-child { border-top-right-radius: 12px; }
+#caja-app table.cm-form tr:last-child td:first-child { border-bottom-left-radius: 12px; }
+#caja-app table.cm-form tr:last-child td:last-child { border-bottom-right-radius: 12px; }
+#caja-app .cm-etq { background: var(--brand-light); color: var(--text-muted); font-weight: 600; padding: 0 12px !important; width: 16%; white-space: nowrap; }
+#caja-app .cm-val input, #caja-app .cm-val select, #caja-app .cm-val textarea { width: 100%; height: 100%; min-height: 38px; border: none; margin: 0;
+  padding: 6px 12px; font-size: 14px; font-weight: 700; color: var(--brand-main); background: transparent; outline: none; }
+#caja-app .cm-val input:focus, #caja-app .cm-val textarea:focus { background: #F0F9FF; }
+#caja-app .cm-val input[readonly] { color: var(--text-muted); cursor: default; }
+#caja-app .cm-val.letras input { font-weight: 600; font-size: 13px; color: var(--text-muted); }
+#caja-app .cm-mayus input { text-transform: uppercase; }
+#caja-app .cm-encabezado td { height: 44px; }
+#caja-app .cm-encabezado .cm-logo { width: 18%; text-align: center; padding: 6px 10px !important; }
+#caja-app .cm-encabezado .cm-logo img { max-height: 46px; max-width: 100%; }
+#caja-app .cm-encabezado .cm-doc { text-align: center; font-weight: 800; font-size: 16px; color: var(--brand-main); }
+#caja-app .cm-encabezado .cm-doc small { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+#caja-app .cm-encabezado .cm-num { text-align: right; padding: 0 14px !important; font-weight: 800; font-size: 18px; color: var(--danger); width: 20%; white-space: nowrap; }
+#caja-app .cm-sello { display: none; margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+#caja-app .cm-sello.anulado { display: block; background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+#caja-app .cm-sello.legalizado { display: block; background: #EEF2FF; border: 1px solid #C7D2FE; color: #3730A3; }
+#caja-app .cm-acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Filtros y tablas (como Consulta traslado) */
+#caja-app .cm-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 18px; margin-bottom: 16px;
+  border: 1px solid var(--border-soft); border-radius: 12px; box-shadow: var(--shadow-sm); }
+#caja-app .cm-filtros label { font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+#caja-app .cm-filtros input, #caja-app .cm-filtros select { margin: 0; width: auto; padding: 8px 12px; border: 1px solid var(--border-soft);
+  border-radius: 8px; background: var(--brand-light); font-size: 13px; font-weight: 600; color: var(--brand-main); }
+#caja-app .cm-filtros input[type="text"] { min-width: 260px; }
+#caja-app .cm-tabla-wrap { overflow: auto; max-height: 560px; border: 1px solid var(--border-soft); border-radius: 12px; box-shadow: var(--shadow-sm); }
+#caja-app table.cm-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+#caja-app .cm-tabla th { position: sticky; top: 0; z-index: 2; background: var(--brand-main); color: #fff; font-size: 11px; font-weight: 700;
+  padding: 9px 12px; text-align: center; border: 1px solid var(--border-medium); }
+#caja-app .cm-tabla td { padding: 8px 12px; text-align: center; border: 1px solid var(--border-soft); vertical-align: middle; }
+#caja-app .cm-tabla td.izq { text-align: left; } #caja-app .cm-tabla td.der { text-align: right; white-space: nowrap; }
+#caja-app .cm-tabla tbody tr:hover td { background: var(--brand-light); }
+#caja-app .cm-tabla tr.anulado td { color: #9CA3AF; text-decoration: line-through; }
+#caja-app .cm-tabla tr.totales td { background: var(--brand-light); font-weight: 800; color: var(--brand-main); }
+#caja-app .cm-vacio { padding: 40px !important; color: var(--text-muted); }
+#caja-app .cm-num-orden { font-weight: 800; color: var(--brand-main); }
+#caja-app .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+#caja-app .badge.activo, #caja-app .badge.cuadrado, #caja-app .badge.vigente { background: #D1FAE5; color: #065F46; }
+#caja-app .badge.anulado, #caja-app .badge.faltante { background: #FEE2E2; color: #991B1B; }
+#caja-app .badge.legalizado { background: #E0E7FF; color: #3730A3; }
+#caja-app .badge.sobrante { background: #FEF3C7; color: #92400E; }
+
+/* Tarjetas de resumen y estado del arqueo */
+#caja-app .cm-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+#caja-app .cm-kpi { border: 1px solid var(--border-soft); border-left: 4px solid var(--brand-main); border-radius: 12px; padding: 12px 16px; }
+#caja-app .cm-kpi span { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+#caja-app .cm-kpi b { display: block; font-size: 20px; font-weight: 800; color: var(--brand-main); }
+#caja-app .cm-estado { padding: 10px; border-radius: 10px; text-align: center; font-weight: 700; font-size: 14px; margin-bottom: 14px; }
+#caja-app .cm-estado.cuadrado { background: #D1FAE5; color: #065F46; border: 1px solid #34D399; }
+#caja-app .cm-estado.faltante { background: #FEE2E2; color: #991B1B; border: 1px solid #F87171; }
+#caja-app .cm-estado.sobrante { background: #FEF3C7; color: #92400E; border: 1px solid #FBBF24; }
+#caja-app .cm-conteo input { text-align: center; font-weight: 700; background: #f8fafc; border: 1px solid var(--border-medium); border-radius: 6px; margin: 3px auto 6px; display: block; width: 80%; height: 30px; min-height: 0; padding: 2px 6px; font-size: 14px; box-sizing: border-box; }
+#caja-app .cm-conteo input[readonly] { background: transparent; border-color: transparent; }
+#caja-app .cm-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px;
+  padding-top: 14px; border-top: 1px dashed var(--border-medium); }
+#caja-app .cm-total { font-size: 18px; font-weight: 800; color: var(--brand-main); }
+#caja-app .cm-total b { color: var(--success); }
+#caja-app .cm-sub-tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 2px solid var(--border-soft); }
+#caja-app .cm-sub-tabs button { background: none; border: none; padding: 9px 14px; font-size: 13px; font-weight: 700; color: var(--text-muted);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+#caja-app .cm-sub-tabs button.activo { color: var(--brand-main); border-bottom-color: var(--brand-main); }
+
+/* Ventanas (anular con motivo) */
+#caja-app .cm-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .5); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; }
+#caja-app .cm-modal-caja { background: #fff; border-radius: 16px; padding: 26px; width: 92%; max-width: 480px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / .1); }
+#caja-app .cm-modal-caja h3 { margin: 0 0 6px; color: var(--danger); }
+#caja-app .cm-modal-caja textarea { width: 100%; margin: 6px 0 0; padding: 10px; border: 1px solid var(--border-medium); border-radius: 8px; font-size: 13px; resize: vertical; }
+#caja-app .cm-error { display: none; color: var(--danger); font-size: 12px; margin-top: 6px; }
+
+@media (max-width: 1200px) { #caja-app .cm-kpis { grid-template-columns: 1fr; } #caja-app .cm-val input { font-size: 13px; } }

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block contenido %}
+<style>
+  /* Mismo diseño que Producción › Parámetros */
+  .cmp-titulo { display:flex; align-items:baseline; gap:10px; margin-bottom:14px; }
+  .cmp-titulo h1 { margin:0; } .cmp-titulo span { color:var(--gris); font-size:13px; }
+  .cmp-tabs { display:flex; gap:4px; border-bottom:2px solid #e5e7eb; flex-wrap:wrap; }
+  .cmp-tab { background:none; border:none; padding:10px 16px; font-size:14px; font-family:inherit; color:var(--gris); cursor:pointer;
+             border-bottom:2px solid transparent; margin-bottom:-2px; font-weight:600; }
+  .cmp-tab:hover { color:#111827; } .cmp-tab.activo { color:var(--azul); border-bottom-color:var(--azul); }
+  .cmp-tab .cmp-num { background:#e5e7eb; color:#374151; border-radius:999px; font-size:11px; padding:1px 7px; margin-left:4px; }
+  .cmp-tab.activo .cmp-num { background:#dbeafe; color:var(--azul); }
+  .cmp-panel { display:none; background:#fff; border-radius:0 0 10px 10px; padding:14px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .cmp-panel.activo { display:block; }
+  .cmp-ayuda { font-size:13px; color:var(--gris); max-width:860px; margin-bottom:10px; }
+  .cmp-agregar summary { list-style:none; cursor:pointer; display:inline-block; } .cmp-agregar summary::-webkit-details-marker { display:none; }
+  .cmp-form { display:flex; gap:10px; flex-wrap:wrap; align-items:end; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; margin:8px 0 12px; }
+  .cmp-form label { display:block; font-size:11px; }
+  .cmp-panel input, .cmp-panel select { margin:0; padding:5px 8px; font-size:13px; }
+  .cmp-tabla { font-size:13px; } .cmp-tabla th { font-size:11px; padding:6px 8px; white-space:nowrap; } .cmp-tabla td { padding:5px 8px; vertical-align:middle; }
+  .cmp-tabla tr.inactivo td { color:#9ca3af; background:#fafafa; }
+  .cmp-acciones { white-space:nowrap; text-align:right; width:1%; }
+  .cmp-estado { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .cmp-estado.si { background:#dcfce7; color:var(--verde); } .cmp-estado.no { background:#e5e7eb; color:var(--gris); }
+  .cmp-chk { display:inline-flex; align-items:center; gap:4px; margin-right:12px; font-size:13px; font-weight:600; color:#374151; }
+  .cmp-chk input { width:auto; }
+</style>
+
+<div class="cmp-titulo"><h1>⚙️ Parámetros</h1><span>Caja menor Nuvia</span></div>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+
+<div class="cmp-tabs">
+  <button type="button" class="cmp-tab" data-panel="cajas">💵 Cajas <span class="cmp-num">{{ cajas|length }}</span></button>
+  <button type="button" class="cmp-tab" data-panel="accesos">👤 Accesos <span class="cmp-num">{{ usuarios|length }}</span></button>
+  <button type="button" class="cmp-tab" data-panel="autorizan">✍️ Autorizan <span class="cmp-num">{{ autorizadores|length }}</span></button>
+</div>
+
+{# ---------- Cajas ---------- #}
+<div class="cmp-panel" id="panel-cajas">
+  <div class="cmp-ayuda">Cada caja tiene su prefijo, fondo permanente, responsable y consecutivos. El <b>responsable</b> se elige entre las personas con acceso a esa caja (pestaña Accesos). El <b>consecutivo inicial</b> solo aplica mientras la caja no tenga recibos;
+    después sigue el mayor + 1. El <b>siguiente FM</b> nunca puede quedar por debajo de uno ya usado.</div>
+  <details class="cmp-agregar">
+    <summary><span class="btn mini">＋ Agregar caja</span></summary>
+    <form method="post" action="/caja-menor/parametros/cajas" class="cmp-form">
+      <div style="width:70px"><label>Ícono</label><input name="icono" value="💵"></div>
+      <div style="flex:2;min-width:180px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Compras" style="text-transform:uppercase"></div>
+      <div style="width:90px"><label>Prefijo</label><input name="prefijo" required placeholder="COMP" style="text-transform:uppercase"></div>
+      <div style="width:130px"><label>Ciudad</label><input name="ciudad" value="GALAPA" style="text-transform:uppercase"></div>
+      <div style="width:130px"><label>Fondo ($)</label><input name="fondo" type="number" min="0" value="1000000"></div>
+      <div style="width:110px"><label>Consec. inicial</label><input name="consecutivo_inicial" type="number" min="1" value="1"></div>
+      <div style="width:100px"><label>Siguiente FM</label><input name="fm_siguiente" type="number" min="1" value="1"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cmp-tabla">
+    <tr><th>Ícono</th><th>Nombre</th><th>Prefijo</th><th>Ciudad</th><th>Fondo ($)</th><th>Responsable</th><th>Consec. inicial</th><th>Siguiente FM</th><th>Estado</th><th></th></tr>
+    {% for c in cajas %}
+    <tr class="{{ '' if c.activo else 'inactivo' }}">
+      <td style="width:60px"><form id="f-caja-{{ c.id }}" method="post" action="/caja-menor/parametros/cajas/{{ c.id }}"></form>
+        <input name="icono" value="{{ c.icono }}" form="f-caja-{{ c.id }}"></td>
+      <td><input name="nombre" value="{{ c.nombre|nombre_propio }}" required form="f-caja-{{ c.id }}"></td>
+      <td style="width:80px"><input name="prefijo" value="{{ c.prefijo }}" required form="f-caja-{{ c.id }}"></td>
+      <td style="width:110px"><input name="ciudad" value="{{ c.ciudad|nombre_propio }}" form="f-caja-{{ c.id }}"></td>
+      <td style="width:120px"><input name="fondo" type="number" min="0" value="{{ '%.0f'|format(c.fondo) }}" form="f-caja-{{ c.id }}"></td>
+      <td><select name="responsable" form="f-caja-{{ c.id }}">
+          <option value="">{{ '— Elige una persona —' if con_acceso[c.id] else '— Nadie tiene acceso a esta caja —' }}</option>
+          {% set ns = namespace(esta=false) %}
+          {% for e in con_acceso[c.id] %}{% set nombre = e.nombre_completo|upper %}{% if nombre == (c.responsable or '')|upper %}{% set ns.esta = true %}{% endif %}
+          <option value="{{ nombre }}" {{ 'selected' if nombre == (c.responsable or '')|upper }}>{{ e.nombre_completo|nombre_propio }}</option>
+          {% endfor %}
+          {% if c.responsable and not ns.esta %}<option value="{{ c.responsable }}" selected>{{ c.responsable|nombre_propio }} (sin acceso)</option>{% endif %}
+        </select></td>
+      <td style="width:90px"><input name="consecutivo_inicial" type="number" min="1" value="{{ c.consecutivo_inicial }}" form="f-caja-{{ c.id }}"></td>
+      <td style="width:90px"><input name="fm_siguiente" type="number" min="1" value="{{ c.fm_siguiente }}" form="f-caja-{{ c.id }}"></td>
+      <td><span class="cmp-estado {{ 'si' if c.activo else 'no' }}">{{ 'Activa' if c.activo else 'Inactiva' }}</span></td>
+      <td class="cmp-acciones">
+        <button class="btn mini" form="f-caja-{{ c.id }}">Guardar</button>
+        <form class="inline" method="post" action="/caja-menor/parametros/cajas/{{ c.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if c.activo else 'Activar' }}</button></form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Accesos ---------- #}
+<div class="cmp-panel" id="panel-accesos">
+  <div class="cmp-ayuda">Da acceso aquí mismo: busca a la persona, marca sus cajas y pulsa <b>Dar acceso</b> (el módulo Caja menor Nuvia se le activa solo).
+    Los administradores entran a todas las cajas y no aparecen aquí.</div>
+  <details class="cmp-agregar" {{ 'open' if not usuarios }}>
+    <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
+    <form method="post" action="/caja-menor/parametros/accesos/agregar" class="cmp-form">
+      <div style="flex:1;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona" data-lista="lista-personas" placeholder="Escribe nombre, cédula o cargo para filtrar…" style="margin-bottom:4px">
+        <select name="empleado_id" id="lista-personas" required>
+          <option value="">— Elige una persona ({{ candidatos|length }}) —</option>
+          {% for e in candidatos %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} · {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><label>Cajas</label><div style="display:flex; align-items:center; min-height:32px; white-space:nowrap;">
+        {% for c in cajas if c.activo %}
+        <label class="cmp-chk"><input type="checkbox" name="cajas" value="{{ c.id }}"> {{ c.icono }} {{ c.nombre|nombre_propio }}</label>
+        {% endfor %}</div></div>
+      <div><button class="btn mini">Dar acceso</button></div>
+    </form>
+  </details>
+  <table class="cmp-tabla">
+    <tr><th>Persona</th><th>Cargo</th><th>Cajas a las que tiene acceso</th><th></th></tr>
+    {% for e in usuarios %}
+    <tr>
+      <td>{{ e.nombre_completo|nombre_propio }}</td>
+      <td>{{ e.cargo }}</td>
+      <td><form id="f-acc-{{ e.id }}" method="post" action="/caja-menor/parametros/accesos/{{ e.id }}"></form>
+        {% for c in cajas if c.activo %}
+        <label class="cmp-chk"><input type="checkbox" name="cajas" value="{{ c.id }}" form="f-acc-{{ e.id }}"
+               {{ 'checked' if c.id in por_empleado.get(e.id, []) }}> {{ c.icono }} {{ c.nombre|nombre_propio }}</label>
+        {% endfor %}
+        {% if not por_empleado.get(e.id) %}<span style="font-size:12px; color:#b45309;">Sin cajas: no puede entrar a ninguna</span>{% endif %}</td>
+      <td class="cmp-acciones"><button class="btn mini" form="f-acc-{{ e.id }}">Guardar</button>
+        <form class="inline" method="post" action="/caja-menor/parametros/accesos/{{ e.id }}/quitar"
+              onsubmit="return confirm('¿Quitar el acceso a Caja menor de {{ e.nombre_completo|nombre_propio }}? Sus recibos se conservan.');">
+          <button class="btn gris mini">Quitar acceso</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="text-align:center; color:var(--gris); padding:18px;">
+      Todavía nadie tiene acceso. Usa <b>＋ Dar acceso a una persona</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Autorizan ---------- #}
+<div class="cmp-panel" id="panel-autorizan">
+  <div class="cmp-ayuda">Personas de People que autorizan los recibos. Al crear un recibo se elige quién lo autoriza y su nombre sale en la firma
+    <b>Aprobado por</b>. Si una caja no tiene autorizadores, el recibo se imprime con la línea en blanco.</div>
+  <details class="cmp-agregar" {{ 'open' if not autorizadores }}>
+    <summary><span class="btn mini">＋ Agregar quien autoriza</span></summary>
+    <form method="post" action="/caja-menor/parametros/autorizadores/agregar" class="cmp-form">
+      <div style="flex:1;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona" data-lista="lista-autoriza" placeholder="Escribe nombre, cédula o cargo para filtrar…" style="margin-bottom:4px">
+        <select name="empleado_id" id="lista-autoriza" required>
+          <option value="">— Elige una persona —</option>
+          {% for e in activos if e.id not in autoriza_por_empleado %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} · {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><label>Autoriza recibos de</label><div style="display:flex; align-items:center; min-height:32px; white-space:nowrap;">
+        {% for c in cajas if c.activo %}
+        <label class="cmp-chk"><input type="checkbox" name="cajas" value="{{ c.id }}"> {{ c.icono }} {{ c.nombre|nombre_propio }}</label>
+        {% endfor %}</div></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cmp-tabla">
+    <tr><th>Persona</th><th>Cargo</th><th>Autoriza recibos de</th><th></th></tr>
+    {% for e in autorizadores %}
+    <tr>
+      <td>{{ e.nombre_completo|nombre_propio }}</td>
+      <td>{{ e.cargo }}</td>
+      <td><form id="f-aut-{{ e.id }}" method="post" action="/caja-menor/parametros/autorizadores/{{ e.id }}"></form>
+        {% for c in cajas if c.activo %}
+        <label class="cmp-chk"><input type="checkbox" name="cajas" value="{{ c.id }}" form="f-aut-{{ e.id }}"
+               {{ 'checked' if c.id in autoriza_por_empleado.get(e.id, []) }}> {{ c.icono }} {{ c.nombre|nombre_propio }}</label>
+        {% endfor %}</td>
+      <td class="cmp-acciones"><button class="btn mini" form="f-aut-{{ e.id }}">Guardar</button>
+        <form class="inline" method="post" action="/caja-menor/parametros/autorizadores/{{ e.id }}/quitar"
+              onsubmit="return confirm('¿Quitar a {{ e.nombre_completo|nombre_propio }} de quienes autorizan? Los recibos que ya firmó conservan su nombre.');">
+          <button class="btn gris mini">Quitar</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="text-align:center; color:var(--gris); padding:18px;">
+      Todavía no hay nadie que autorice recibos. Usa <b>＋ Agregar quien autoriza</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<script>
+(function() {
+  var CLAVE = 'cajaParametrosTab';
+  function abrir(panel) {
+    if (!document.getElementById('panel-' + panel)) panel = 'cajas';
+    document.querySelectorAll('.cmp-tab').forEach(function(t) { t.classList.toggle('activo', t.dataset.panel === panel); });
+    document.querySelectorAll('.cmp-panel').forEach(function(p) { p.classList.toggle('activo', p.id === 'panel-' + panel); });
+    try { sessionStorage.setItem(CLAVE, panel); } catch (e) {}
+  }
+  document.querySelectorAll('.cmp-tab').forEach(function(t) { t.addEventListener('click', function() { abrir(t.dataset.panel); }); });
+  var inicial = {{ tab|tojson }}; try { inicial = inicial || sessionStorage.getItem(CLAVE) || 'cajas'; } catch (e) { inicial = inicial || 'cajas'; }
+  abrir(inicial);
+  document.querySelectorAll('.buscar-persona').forEach(function(buscar) {
+    var lista = document.getElementById(buscar.dataset.lista);
+    buscar.addEventListener('input', function() {
+    var q = buscar.value.trim().toLowerCase(), primera = null;
+    Array.prototype.forEach.call(lista.options, function(o, i) {
+      if (!i) return;
+      var ok = !q || o.dataset.buscar.indexOf(q) !== -1; o.hidden = !ok;
+      if (ok && !primera) primera = o;
+    });
+    if (q && primera) lista.value = primera.value;
+    });
+  });
+})();
+</script>
+{% endblock %}

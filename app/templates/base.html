@@ -8,13 +8,13 @@
 </head>
 <body>
 {% if user %}
-{% set en_inventario = es_custodia or es_inventario %}
+{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
   <span class="marca">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </span>
-  {% if not es_portal and not es_custodia and not es_design %}
+  {% if not es_portal and not es_custodia and not es_design and not es_caja %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
@@ -29,6 +29,31 @@
   {% endif %}
   {% if es_inventario %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a></span>
+  {% endif %}
+  {% if es_caja_entrada %}
+  <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a></span>
+  {% endif %}
+  {% if es_caja %}
+  {# Caja menor Nuvia: mismo diseño de barra que Producción (ver .nav-inventario en style.css) #}
+  {% if caja %}
+  <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/{{ caja.id }}">{{ caja.nombre|nombre_propio }}</a></span>
+  <div class="nav-sub">
+    <a href="/caja-menor/{{ caja.id }}" class="caja-tab activo" data-tab="recibo">Nuevo recibo</a>
+    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="consulta">Consulta</a>
+    <span class="nav-sep">│</span>
+    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="legalizar">Legalizar</a>
+    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="fms">Historial FM</a>
+    <span class="nav-sep">│</span>
+    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="arqueo">Arqueo rápido</a>
+    {% if user.rol in ('admin', 'superadmin') %}
+    <span class="nav-sep">│</span>
+    <a href="/caja-menor/parametros">⚙️ Parámetros</a>
+    {% endif %}
+  </div>
+  {% else %}
+  <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/parametros">Parámetros</a></span>
+  <div class="nav-sub"><a href="/caja-menor/parametros" class="activo">⚙️ Parámetros</a></div>
+  {% endif %}
   {% endif %}
   {% if es_custodia %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/custodia">Cambio de custodia</a></span>
@@ -74,7 +99,7 @@
   <a href="/design/parametros">⚙️ Parámetros</a>
   {% endif %}
   {% endif %}
-  {% if not es_custodia and not es_design %}
+  {% if not es_custodia and not es_design and not es_caja and not es_caja_entrada %}
   {% set resumen = resumen_aprobaciones(user) %}
   {% if resumen is not none %}
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>

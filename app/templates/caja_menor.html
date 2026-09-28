@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/caja_menor.css?v=4">
+{% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
+<div id="caja-app" data-caja="{{ caja.id }}">
+ <div class="cm-main">
+
+  <!-- ============ NUEVO RECIBO ============ -->
+  <div id="sec-recibo" class="cm-seccion activa">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">📝 Recibo de caja menor</h2>
+        <p class="cm-sub" style="margin:0;">Escribe el número de un recibo existente para consultarlo, o completa los datos para uno nuevo.</p></div>
+      <div class="cm-acciones">
+        <button type="button" class="btn gris" onclick="nuevoRecibo()">＋ Nuevo recibo</button>
+      </div>
+    </div>
+    <div id="reciboSello" class="cm-sello"></div>
+    <form id="formRecibo" onsubmit="guardarRecibo(event)" autocomplete="off">
+      <table class="cm-form cm-encabezado">
+        <tr>
+          <td class="cm-logo" rowspan="2">{% if logo %}<img src="{{ logo }}" alt="Nuvia">{% else %}<b>Nuvia</b>{% endif %}</td>
+          <td class="cm-doc" rowspan="2">Recibo de caja menor<small>Departamento {{ caja.nombre|nombre_propio }}</small></td>
+          <td class="cm-etq">No. recibo</td>
+          <td class="cm-val"><input type="text" id="rNumero" inputmode="numeric" placeholder="0000"
+              onchange="buscarRecibo(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarRecibo(this.value);}"></td>
+        </tr>
+        <tr><td class="cm-etq">Prefijo</td><td class="cm-val"><input type="text" value="{{ caja.prefijo }}" readonly></td></tr>
+      </table>
+      <table class="cm-form">
+        <tr>
+          <td class="cm-etq">Ciudad</td><td class="cm-val cm-mayus"><input type="text" id="rCiudad" value="{{ caja.ciudad }}" required></td>
+          <td class="cm-etq">Fecha</td><td class="cm-val"><input type="date" id="rFecha" required></td>
+        </tr>
+        <tr>
+          <td class="cm-etq">No. identificación</td><td class="cm-val cm-mayus"><input type="text" id="rIdentificacion" placeholder="Ej. 1140886208" required></td>
+          <td class="cm-etq">Pagado a</td><td class="cm-val cm-mayus"><input type="text" id="rPagadoA" placeholder="Nombre de quien recibe" required></td>
+        </tr>
+        <tr>
+          <td class="cm-etq">Valor ($)</td><td class="cm-val"><input type="number" id="rValor" min="1" step="0.01" placeholder="15000" oninput="actualizarLetras()" required></td>
+          <td class="cm-etq">Valor en letras</td><td class="cm-val letras"><input type="text" id="rLetras" readonly placeholder="Se escribe solo al digitar el valor"></td>
+        </tr>
+        <tr><td class="cm-etq">Concepto</td><td class="cm-val cm-mayus" colspan="3"><input type="text" id="rConcepto" placeholder="Descripción detallada del pago" required></td></tr>
+        <tr>
+          <td class="cm-etq">Factura / cuenta de cobro</td>
+          <td class="cm-val cm-mayus" colspan="2"><input type="text" id="rFactura" placeholder="Ej. FKS-8449 (en blanco usa el número del recibo)"></td>
+          <td class="cm-val" style="padding:0 12px !important;"><label style="font-size:13px; font-weight:600; color:var(--text-muted); display:flex; gap:6px; align-items:center;">
+            <input type="checkbox" id="rAnexo" style="width:auto; min-height:0;"> Ver anexo en la firma</label></td>
+        </tr>
+        <tr>
+          <td class="cm-etq">Autorizado por</td>
+          <td class="cm-val" colspan="3">
+            {% if autorizadores %}
+            <select id="rAutoriza" required>
+              <option value="">— Elige quién autoriza —</option>
+              {% for nombre in autorizadores %}<option value="{{ nombre }}">{{ nombre|nombre_propio }}</option>{% endfor %}
+            </select>
+            {% else %}
+            <select id="rAutoriza"><option value="">Sin autorizadores: agrégalos en Parámetros › Autorizan</option></select>
+            {% endif %}</td>
+        </tr>
+      </table>
+      <div class="cm-acciones">
+        <button type="button" class="btn rojo" id="btnAnularRecibo" style="display:none;" onclick="abrirAnulacion('recibo')">🚫 Anular recibo</button>
+        <button type="button" class="btn gris" id="btnEditarRecibo" style="display:none;" onclick="habilitarEdicion()">✏️ Editar</button>
+        <button type="button" class="btn" id="btnCopiaRecibo" style="display:none;" onclick="imprimirRecibo(reciboActual)">🖨️ Imprimir copia</button>
+        <button type="submit" class="btn verde" id="btnGuardarRecibo">💾 Guardar e imprimir</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ============ CONSULTA ============ -->
+  <div id="sec-consulta" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">🔍 Consulta de recibos</h2><p class="cm-sub" style="margin:0;">Todos los recibos de la caja, del más reciente al más antiguo.</p></div>
+      <a class="btn verde" href="/caja-menor/api/{{ caja.id }}/exportar">📥 Exportar Excel</a>
+    </div>
+    <div class="cm-filtros">
+      <input type="text" id="cTexto" placeholder="No. recibo, pagado a, concepto, factura…" oninput="filtrarConsulta()">
+      <label>Estado:</label>
+      <select id="cEstado" onchange="filtrarConsulta()"><option value="">Todos</option><option>ACTIVO</option><option>LEGALIZADO</option><option>ANULADO</option></select>
+      <label>Desde:</label><input type="date" id="cDesde" onchange="filtrarConsulta()">
+      <label>Hasta:</label><input type="date" id="cHasta" onchange="filtrarConsulta()">
+      <button type="button" class="btn gris mini" onclick="limpiarConsulta()">Limpiar</button>
+    </div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>No. recibo</th><th>Fecha</th><th>Pagado a</th><th>Concepto</th><th>Valor</th><th>Factura</th><th>Estado</th><th>FM</th><th>Acción</th></tr></thead>
+      <tbody id="bodyConsulta"><tr><td colspan="9" class="cm-vacio">Cargando…</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ============ LEGALIZAR ============ -->
+  <div id="sec-legalizar" class="cm-seccion">
+    <div id="legalizarLista">
+      <h2 class="cm-titulo">✅ Legalizar recibos</h2>
+      <p class="cm-sub">Selecciona los recibos <b>activos</b> que quieres incluir en el formato de reembolso (FM).</p>
+      <div class="cm-tabla-wrap"><table class="cm-tabla">
+        <thead><tr><th><input type="checkbox" onchange="marcarTodos(this.checked)"></th><th>No. recibo</th><th>Fecha</th><th>Pagado a</th><th>Concepto / factura</th><th>Valor</th></tr></thead>
+        <tbody id="bodyLegalizar"><tr><td colspan="6" class="cm-vacio">Cargando…</td></tr></tbody>
+      </table></div>
+      <div class="cm-pie">
+        <div class="cm-total">Total a reembolsar: <b id="lTotal">$ 0</b></div>
+        <button type="button" class="btn" onclick="prepararFM()">Generar formato de reembolso →</button>
+      </div>
+    </div>
+    <div id="fmPanel" style="display:none;"></div>
+  </div>
+
+  <!-- ============ HISTORIAL FM ============ -->
+  <div id="sec-fms" class="cm-seccion">
+    <div id="fmsLista">
+      <h2 class="cm-titulo">🗂️ Historial de FMs</h2>
+      <p class="cm-sub">Formatos de reembolso de esta caja. Ábrelos para reimprimirlos o anularlos.</p>
+      <div class="cm-tabla-wrap"><table class="cm-tabla">
+        <thead><tr><th>Formato</th><th>Fecha</th><th>Responsable</th><th>Recibos</th><th>Total reembolsado</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody id="bodyFMs"><tr><td colspan="7" class="cm-vacio">Cargando…</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ============ ARQUEO RÁPIDO ============ -->
+  <div id="sec-arqueo" class="cm-seccion">
+    <div class="cm-barra" style="margin-bottom:6px;">
+      <h2 class="cm-titulo" style="margin:0;">🧮 Arqueo rápido</h2>
+      <div class="cm-sub-tabs" style="margin:0; border:none;">
+        <button type="button" id="aTabRegistrar" class="activo" onclick="tabArqueo('registrar')">Registrar arqueo</button>
+        <button type="button" id="aTabHistorial" onclick="tabArqueo('historial')">Historial</button>
+      </div>
+    </div>
+    <div id="arqueoRegistrar">
+      <p class="cm-sub">Cuadre de caja: el fondo debe ser igual al efectivo contado más los recibos pendientes (activos).</p>
+      <div class="cm-kpis">
+        <div class="cm-kpi"><span>Fondo permanente</span><b id="aFondo">$ 0</b></div>
+        <div class="cm-kpi" style="border-left-color:var(--warning);"><span>Recibos pendientes (activos)</span><b id="aPendientes" style="color:#B45309;">$ 0</b></div>
+        <div class="cm-kpi" style="border-left-color:var(--success);"><span>Efectivo contado</span><b id="aEfectivo" style="color:var(--success);">$ 0</b></div>
+      </div>
+      <div id="aEstado" class="cm-estado cuadrado">Caja cuadrada</div>
+      <div id="aConteo"></div>
+      <div class="cm-pie">
+        <div class="cm-filtros" style="margin:0; padding:8px 12px;">
+          <label>Responsable:</label><input type="text" id="aResponsable" style="text-transform:uppercase; min-width:240px;">
+          <span class="badge anulado" style="font-size:13px;" id="aConsecutivo">ARQ-0000</span>
+        </div>
+        <button type="button" class="btn verde" onclick="guardarArqueo()">✅ Guardar e imprimir ticket</button>
+      </div>
+    </div>
+    <div id="arqueoHistorial" style="display:none;">
+      <div class="cm-filtros">
+        <input type="text" id="hTexto" placeholder="Consecutivo, responsable, estado…" oninput="filtrarArqueos()">
+        <label>Desde:</label><input type="date" id="hDesde" onchange="filtrarArqueos()">
+        <label>Hasta:</label><input type="date" id="hHasta" onchange="filtrarArqueos()">
+        <button type="button" class="btn gris mini" onclick="document.getElementById('hTexto').value='';document.getElementById('hDesde').value='';document.getElementById('hHasta').value='';filtrarArqueos();">Limpiar</button>
+      </div>
+      <div class="cm-tabla-wrap"><table class="cm-tabla">
+        <thead><tr><th>Consecutivo</th><th>Fecha y hora</th><th>Responsable</th><th>Fondo</th><th>Recibos activos</th><th>Efectivo contado</th><th>Diferencia</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody id="bodyArqueos"><tr><td colspan="9" class="cm-vacio">Cargando…</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+ </div>
+
+ <!-- Ventana: anular con motivo -->
+ <div id="modalAnular" class="cm-modal">
+  <div class="cm-modal-caja">
+    <h3 id="anularTitulo">🚫 Anular</h3>
+    <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px;" id="anularTexto">Esta acción es irreversible. Queda registrado quién anuló, cuándo y por qué.</p>
+    <label style="font-size:13px; font-weight:700;">Motivo de la anulación (obligatorio)</label>
+    <textarea id="anularMotivo" rows="4" maxlength="500" placeholder="Ej: El valor se registró mal; se reemplaza por el recibo CONT-0120."></textarea>
+    <div id="anularError" class="cm-error"></div>
+    <div class="cm-acciones" style="margin-top:16px;">
+      <button type="button" class="btn gris" onclick="cerrarAnulacion()">Cancelar</button>
+      <button type="button" class="btn rojo" id="btnConfirmarAnular" onclick="confirmarAnulacion()">🚫 Anular</button>
+    </div>
+  </div>
+ </div>
+</div>
+
+<script>
+var CAJA = {id: {{ caja.id }}, nombre: {{ (caja.nombre|nombre_propio)|tojson }}, prefijo: {{ caja.prefijo|tojson }},
+            ciudad: {{ caja.ciudad|tojson }}, fondo: {{ caja.fondo }}, responsable: {{ caja.responsable|tojson }}};
+var LOGO = {{ (logo or '')|tojson }};
+var MONEDAS = {{ denominaciones_monedas|tojson }}, BILLETES = {{ denominaciones_billetes|tojson }};
+var USUARIO = {{ (user.nombre_completo|nombre_propio)|tojson }};
+var API = '/caja-menor/api/' + CAJA.id;
+var reciboActual = null, recibosConsulta = [], recibosActivos = [], arqueosCache = [], fmActual = null, anulando = null;
+
+// Nombres propios (misma regla que app/formato.py): "LEIDER DAVID" -> "Leider David"; siglas en mayúscula.
+var FMT_SIGLAS = new Set({{ formato_siglas|tojson }}), FMT_MINUSCULAS = new Set({{ formato_minusculas|tojson }});
+function nombrePropio(texto, frase) {
+  if (texto === null || texto === undefined) return '';
+  return String(texto).split(/(\/|\s-\s)/).map(function(parte) {
+    if (parte === '/' || /^\s-\s$/.test(parte)) return parte;
+    var primera = true;
+    return parte.split(' ').map(function(p) {
+      if (!p) return p;
+      var mayus = p.toLocaleUpperCase('es'), res;
+      if (FMT_SIGLAS.has(mayus)) res = mayus;
+      else if (/\d/.test(p)) res = p;
+      else { var minus = p.toLocaleLowerCase('es');
+        res = (!primera && (frase || FMT_MINUSCULAS.has(minus))) ? minus : minus.charAt(0).toLocaleUpperCase('es') + minus.slice(1); }
+      primera = false; return res;
+    }).join(' ');
+  }).join('');
+}
+
+// ---------------- utilidades ----------------
+function api(url, opciones) {
+  return fetch(url, opciones).then(function(r) {
+    return r.json().catch(function() { return {}; }).then(function(d) {
+      if (!r.ok) throw new Error(d.detail || ('Error ' + r.status));
+      return d;
+    });
+  });
+}
+function post(url, datos) { return api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datos || {})}); }
+function pesos(v) { return '$ ' + Number(v || 0).toLocaleString('es-CO', {maximumFractionDigits: 2}); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function num4(n) { return String(n).padStart(4, '0'); }
+function hoyISO() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+function badge(estado) { return '<span class="badge ' + String(estado).toLowerCase() + '">' + esc(nombrePropio(estado, true)) + '</span>'; }
+
+// Valor en letras (misma regla que el servidor; corrige "sesenta" por "cincuenta")
+function _u(n) { return ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'][n]; }
+function _d(n) { var d = Math.floor(n / 10), u = n % 10; if (d === 0) return _u(u);
+  if (d === 1) return u <= 5 ? ['diez', 'once', 'doce', 'trece', 'catorce', 'quince'][u] : 'dieci' + _u(u);
+  if (d === 2) return u === 0 ? 'veinte' : 'veinti' + _u(u);
+  return {3: 'treinta', 4: 'cuarenta', 5: 'cincuenta', 6: 'sesenta', 7: 'setenta', 8: 'ochenta', 9: 'noventa'}[d] + (u ? ' y ' + _u(u) : ''); }
+function _c(n) { var c = Math.floor(n / 100), r = n % 100; if (c === 0) return _d(r); if (c === 1) return r === 0 ? 'cien' : 'ciento ' + _d(r);
+  return {2: 'doscientos', 3: 'trescientos', 4: 'cuatrocientos', 5: 'quinientos', 6: 'seiscientos', 7: 'setecientos', 8: 'ochocientos', 9: 'novecientos'}[c] + (r ? ' ' + _d(r) : ''); }
+function numeroALetras(v) { var n = Math.floor(Number(v) || 0); if (n <= 0) return '';
+  var mi = Math.floor(n / 1000000), resto = n % 1000000, ml = Math.floor(resto / 1000), un = resto % 1000, p = [];
+  if (mi) p.push(mi === 1 ? 'un millón' : _c(mi) + ' millones'); if (ml) p.push(ml === 1 ? 'un mil' : _c(ml) + ' mil'); if (un) p.push(_c(un));
+  return (p.join(' ') + ' COP').toUpperCase(); }
+
+// ---------------- pestañas ----------------
+function switchTab(tab) {
+  document.querySelectorAll('#caja-app .cm-seccion').forEach(function(s) { s.classList.remove('activa'); });
+  document.getElementById('sec-' + tab).classList.add('activa');
+  document.querySelectorAll('.caja-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
+  if (tab === 'consulta') cargarConsulta();
+  if (tab === 'legalizar') cargarLegalizar();
+  if (tab === 'fms') cargarFMs();
+  if (tab === 'arqueo') tabArqueo('registrar');
+}
+document.querySelectorAll('.caja-tab').forEach(function(a) {
+  a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); });
+});
+
+// ---------------- recibo ----------------
+var CAMPOS = ['rCiudad', 'rFecha', 'rIdentificacion', 'rPagadoA', 'rValor', 'rConcepto', 'rFactura', 'rAnexo', 'rAutoriza'];
+function bloquear(si) { CAMPOS.forEach(function(id) { var el = document.getElementById(id); if (el.type === 'checkbox' || el.tagName === 'SELECT') el.disabled = si; else el.readOnly = si; }); }
+function actualizarLetras() { document.getElementById('rLetras').value = numeroALetras(document.getElementById('rValor').value); }
+
+function nuevoRecibo() {
+  reciboActual = null;
+  document.getElementById('formRecibo').reset();
+  document.getElementById('rCiudad').value = CAJA.ciudad;
+  document.getElementById('rFecha').value = hoyISO();
+  document.getElementById('rLetras').value = '';
+  document.getElementById('reciboSello').className = 'cm-sello';
+  bloquear(false);
+  ['btnAnularRecibo', 'btnEditarRecibo', 'btnCopiaRecibo'].forEach(function(id) { document.getElementById(id).style.display = 'none'; });
+  var g = document.getElementById('btnGuardarRecibo'); g.style.display = ''; g.innerText = '💾 Guardar e imprimir';
+  document.getElementById('rNumero').value = '…';
+  api(API + '/resumen').then(function(r) { document.getElementById('rNumero').value = num4(r.siguienteRecibo); });
+}
+
+function mostrarRecibo(r) {
+  reciboActual = r;
+  document.getElementById('rNumero').value = num4(r.consecutivo);
+  document.getElementById('rCiudad').value = r.ciudad; document.getElementById('rFecha').value = r.fecha;
+  document.getElementById('rIdentificacion').value = r.identificacion; document.getElementById('rPagadoA').value = r.pagadoA;
+  document.getElementById('rValor').value = r.valor; document.getElementById('rLetras').value = r.valorLetras;
+  document.getElementById('rConcepto').value = r.concepto; document.getElementById('rFactura').value = r.factura;
+  document.getElementById('rAnexo').checked = r.anexo;
+  var sel = document.getElementById('rAutoriza');
+  if (r.autorizadoPor && !Array.prototype.some.call(sel.options, function(o) { return o.value === r.autorizadoPor; })) {
+    var o = document.createElement('option'); o.value = r.autorizadoPor; o.text = nombrePropio(r.autorizadoPor); sel.add(o);
+  }
+  sel.value = r.autorizadoPor || '';
+  bloquear(true);
+  var sello = document.getElementById('reciboSello');
+  if (r.estado === 'ANULADO') { sello.className = 'cm-sello anulado';
+    sello.innerHTML = '🚫 <b>Anulado</b>' + (r.anuladoPor ? ' por ' + esc(r.anuladoPor) : '') + (r.anuladoEn ? ' el ' + esc(r.anuladoEn) : '') + '.<br><b>Motivo:</b> ' + esc(r.motivoAnulacion || 'No registrado'); }
+  else if (r.estado === 'LEGALIZADO') { sello.className = 'cm-sello legalizado'; sello.innerHTML = '✅ <b>Legalizado</b> en el ' + esc(r.fm) + '. No se puede editar ni anular (anula primero el FM si necesitas corregirlo).'; }
+  else sello.className = 'cm-sello';
+  document.getElementById('btnGuardarRecibo').style.display = 'none';
+  document.getElementById('btnCopiaRecibo').style.display = r.estado === 'ANULADO' ? 'none' : '';
+  document.getElementById('btnEditarRecibo').style.display = r.estado === 'ACTIVO' ? '' : 'none';
+  document.getElementById('btnAnularRecibo').style.display = r.estado === 'ACTIVO' ? '' : 'none';
+}
+
+function buscarRecibo(valor) {
+  var n = parseInt(valor, 10); if (!n) return;
+  api(API + '/recibos/' + n).then(mostrarRecibo).catch(function() {
+    if (reciboActual) nuevoRecibo();  // no existe: se queda como nuevo con el siguiente consecutivo
+  });
+}
+
+function habilitarEdicion() {
+  bloquear(false);
+  var g = document.getElementById('btnGuardarRecibo'); g.style.display = ''; g.innerText = '💾 Guardar cambios e imprimir';
+  ['btnEditarRecibo', 'btnAnularRecibo', 'btnCopiaRecibo'].forEach(function(id) { document.getElementById(id).style.display = 'none'; });
+}
+
+function guardarRecibo(e) {
+  e.preventDefault();
+  var datos = {ciudad: rCiudad.value, fecha: rFecha.value, identificacion: rIdentificacion.value, pagado_a: rPagadoA.value,
+               valor: parseFloat(rValor.value), concepto: rConcepto.value, numero_factura: rFactura.value, anexo: rAnexo.checked,
+               autorizado_por: rAutoriza.value};
+  var btn = document.getElementById('btnGuardarRecibo'); btn.disabled = true;
+  var url = reciboActual ? API + '/recibos/' + reciboActual.id + '/editar' : API + '/recibos';
+  post(url, datos).then(function(res) {
+    btn.disabled = false; mostrarRecibo(res.recibo); imprimirRecibo(res.recibo);
+  }).catch(function(err) { btn.disabled = false; alert(err.message); });
+}
+
+// ---------------- consulta ----------------
+function cargarConsulta() {
+  document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="9" class="cm-vacio">Cargando…</td></tr>';
+  api(API + '/recibos').then(function(res) { recibosConsulta = res.data; filtrarConsulta(); })
+    .catch(function(e) { document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="9" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function filtrarConsulta() {
+  var q = cTexto.value.trim().toUpperCase(), est = cEstado.value, de = cDesde.value, ha = cHasta.value;
+  var filas = recibosConsulta.filter(function(r) {
+    if (est && r.estado !== est) return false; if (de && r.fecha < de) return false; if (ha && r.fecha > ha) return false;
+    return !q || [r.noRecibo, r.pagadoA, r.concepto, r.factura, r.identificacion].join(' ').toUpperCase().indexOf(q) !== -1;
+  });
+  var tb = document.getElementById('bodyConsulta');
+  if (!filas.length) { tb.innerHTML = '<tr><td colspan="9" class="cm-vacio">No hay recibos con esos filtros.</td></tr>'; return; }
+  tb.innerHTML = filas.map(function(r) {
+    return '<tr class="' + (r.estado === 'ANULADO' ? 'anulado' : '') + '"><td class="cm-num-orden">' + esc(r.noRecibo) + '</td><td>' + esc(r.fecha) +
+      '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) + '</td><td class="izq">' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) +
+      '</td><td>' + esc(r.factura) + '</td><td>' + badge(r.estado) + '</td><td>' + esc(r.fm || '—') +
+      '</td><td><button class="btn mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
+  }).join('');
+}
+function limpiarConsulta() { cTexto.value = ''; cEstado.value = ''; cDesde.value = ''; cHasta.value = ''; filtrarConsulta(); }
+function verRecibo(consecutivo) { switchTab('recibo'); buscarRecibo(consecutivo); }
+
+// ---------------- legalizar y FM ----------------
+function cargarLegalizar() {
+  document.getElementById('legalizarLista').style.display = ''; document.getElementById('fmPanel').style.display = 'none';
+  document.getElementById('lTotal').innerText = '$ 0';
+  api(API + '/recibos?estado=ACTIVO').then(function(res) {
+    recibosActivos = res.data;
+    var tb = document.getElementById('bodyLegalizar');
+    if (!recibosActivos.length) { tb.innerHTML = '<tr><td colspan="6" class="cm-vacio">No hay recibos activos pendientes por legalizar.</td></tr>'; return; }
+    tb.innerHTML = recibosActivos.map(function(r, i) {
+      return '<tr><td><input type="checkbox" class="chkLeg" value="' + i + '" onchange="totalLegalizar()"></td><td class="cm-num-orden">' + esc(r.noRecibo) +
+        '</td><td>' + esc(r.fecha) + '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) + '</td><td class="izq">' + esc(r.concepto) + ' / <b>' + esc(r.factura) +
+        '</b></td><td class="der">' + pesos(r.valor) + '</td></tr>';
+    }).join('');
+  });
+}
+function marcarTodos(si) { document.querySelectorAll('.chkLeg').forEach(function(c) { c.checked = si; }); totalLegalizar(); }
+function seleccionados() { return Array.from(document.querySelectorAll('.chkLeg:checked')).map(function(c) { return recibosActivos[c.value]; }); }
+function totalLegalizar() { document.getElementById('lTotal').innerText = pesos(seleccionados().reduce(function(s, r) { return s + r.valor; }, 0)); }
+
+function tablaConteo(prefijo, desglose, soloLectura, alCambiar) {
+  function fila(titulo, denoms) {
+    return '<tr><td class="cm-etq">' + titulo + '</td>' + denoms.map(function(d) {
+      return '<td class="cm-val cm-conteo"><div style="font-size:11px; color:var(--text-muted); text-align:center; padding-top:4px;">$ ' + d.toLocaleString('es-CO') +
+        '</div><input type="number" min="0" id="' + prefijo + d + '" value="' + (desglose[d] || '') + '" placeholder="0" ' + (soloLectura ? 'readonly' : '') +
+        ' oninput="' + alCambiar + '()"></td>';
+    }).join('') + '</tr>';
+  }
+  return '<table class="cm-form">' + fila('Monedas', MONEDAS) + '</table><table class="cm-form">' + fila('Billetes', BILLETES) + '</table>';
+}
+function leerDesglose(prefijo) { var d = {}; MONEDAS.concat(BILLETES).forEach(function(v) { d[v] = parseInt((document.getElementById(prefijo + v) || {}).value, 10) || 0; }); return d; }
+function totalConteo(d) { return Object.keys(d).reduce(function(s, k) { return s + parseInt(k, 10) * (d[k] || 0); }, 0); }
+
+function panelFM(fm, modo) {
+  // modo: 'nuevo' (legalizar) | 'ver' (historial)
+  fmActual = fm;
+  var recibos = fm.recibos, lectura = modo === 'ver';
+  var total = recibos.reduce(function(s, r) { return s + r.valor; }, 0);
+  var html = '<div class="cm-barra"><button type="button" class="btn gris" onclick="' + (lectura ? "switchTab('fms')" : 'cargarLegalizar()') + '">← Volver</button>' +
+    '<div class="cm-acciones">' + (lectura ? (fm.estado === 'VIGENTE' ? '<button type="button" class="btn rojo" onclick="abrirAnulacion(\'fm\')">🚫 Anular FM</button>' : '') +
+      '<button type="button" class="btn" onclick="imprimirFM(fmActual)">🖨️ Imprimir</button>'
+      : '<button type="button" class="btn verde" id="btnLegalizar" onclick="confirmarLegalizar()">✅ Legalizar e imprimir FM</button>') + '</div></div>';
+  if (lectura && fm.estado === 'ANULADO') html += '<div class="cm-sello anulado">🚫 <b>FM anulado</b>' + (fm.anuladoPor ? ' por ' + esc(fm.anuladoPor) : '') +
+    (fm.anuladoEn ? ' el ' + esc(fm.anuladoEn) : '') + '.<br><b>Motivo:</b> ' + esc(fm.motivoAnulacion || 'No registrado') + '</div>';
+  html += '<table class="cm-form cm-encabezado"><tr><td class="cm-logo" rowspan="2">' + (LOGO ? '<img src="' + LOGO + '">' : '<b>Nuvia</b>') +
+    '</td><td class="cm-doc" rowspan="2">Formato de reembolso caja menor<small>Dirección financiera · ' + esc(CAJA.nombre) + '</small></td>' +
+    '<td class="cm-etq">Formato</td><td class="cm-num">' + esc(fm.fm) + '</td></tr><tr><td class="cm-etq">Fecha</td><td class="cm-val"><input readonly value="' + esc(fm.fecha) + '"></td></tr></table>' +
+    '<table class="cm-form"><tr><td class="cm-etq">Ciudad</td><td class="cm-val"><input readonly value="' + esc(fm.ciudad || CAJA.ciudad) + '"></td>' +
+    '<td class="cm-etq">Fondo permanente</td><td class="cm-val"><input readonly value="' + pesos(fm.fondo) + '"></td></tr>' +
+    '<tr><td class="cm-etq">Responsable</td><td class="cm-val cm-mayus"><input id="fmResponsable" ' + (lectura ? 'readonly' : '') + ' value="' + esc(fm.responsable) + '"></td>' +
+    '<td class="cm-etq">Valor en caja</td><td class="cm-val"><input readonly id="fmValorCaja" value="' + pesos(fm.valorEnCaja) + '"></td></tr>' +
+    '<tr><td class="cm-etq">Pagos efectuados</td><td class="cm-val" colspan="3"><input readonly id="fmPagos" value="' + pesos(total + (fm.ajuste || 0)) + '"></td></tr></table>' +
+    tablaConteo('fm', fm.desglose || {}, lectura, 'recalcularFM') +
+    '<div class="cm-tabla-wrap" style="max-height:none;"><table class="cm-tabla"><thead><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Neto pagado</th></tr></thead><tbody>' +
+    recibos.map(function(r) { return '<tr><td class="cm-num-orden">' + r.consecutivo + '</td><td>' + esc(r.fecha) + '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) +
+      '</td><td>' + esc(r.factura) + '</td><td class="izq">' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) + '</td></tr>'; }).join('') +
+    '<tr class="totales"><td colspan="5" class="der">Ajuste al peso</td><td class="der"><input type="number" id="fmAjuste" step="1" ' + (lectura ? 'readonly' : '') +
+      ' value="' + (fm.ajuste || '') + '" placeholder="0" oninput="recalcularFM()" style="width:110px; margin:0; text-align:right; font-weight:800;"></td></tr>' +
+    '<tr class="totales"><td colspan="5" class="der">Total</td><td class="der" id="fmTotal">' + pesos(total + (fm.ajuste || 0)) + '</td></tr></tbody></table></div>';
+  var panel = document.getElementById('fmPanel');
+  panel.innerHTML = html; panel.style.display = '';
+  (lectura ? document.getElementById('fmsLista') : document.getElementById('legalizarLista')).style.display = 'none';
+  if (lectura) { document.getElementById('sec-fms').appendChild(panel); } else { document.getElementById('sec-legalizar').appendChild(panel); }
+}
+function recalcularFM() {
+  var total = fmActual.recibos.reduce(function(s, r) { return s + r.valor; }, 0) + (parseFloat(document.getElementById('fmAjuste').value) || 0);
+  document.getElementById('fmValorCaja').value = pesos(totalConteo(leerDesglose('fm')));
+  document.getElementById('fmPagos').value = pesos(total); document.getElementById('fmTotal').innerText = pesos(total);
+}
+function prepararFM() {
+  var sel = seleccionados(); if (!sel.length) return alert('Selecciona al menos un recibo.');
+  api(API + '/resumen').then(function(res) {
+    panelFM({fm: 'FM' + res.siguienteFM, fecha: hoyISO(), fondo: CAJA.fondo, ciudad: CAJA.ciudad, responsable: CAJA.responsable,
+             valorEnCaja: 0, ajuste: 0, desglose: {}, recibos: sel, estado: 'NUEVO'}, 'nuevo');
+  });
+}
+function confirmarLegalizar() {
+  var btn = document.getElementById('btnLegalizar'); btn.disabled = true; btn.innerText = 'Legalizando…';
+  post(API + '/legalizar', {recibos: fmActual.recibos.map(function(r) { return r.id; }), responsable: document.getElementById('fmResponsable').value,
+                           desglose: leerDesglose('fm'), ajuste: parseFloat(document.getElementById('fmAjuste').value) || 0})
+    .then(function(res) { alert(res.mensaje); imprimirFM(res.fm); cargarLegalizar(); })
+    .catch(function(e) { btn.disabled = false; btn.innerText = '✅ Legalizar e imprimir FM'; alert(e.message); });
+}
+
+function cargarFMs() {
+  document.getElementById('fmsLista').style.display = ''; document.getElementById('fmPanel').style.display = 'none';
+  api(API + '/fms').then(function(res) {
+    var tb = document.getElementById('bodyFMs');
+    if (!res.data.length) { tb.innerHTML = '<tr><td colspan="7" class="cm-vacio">Aún no hay FMs en esta caja.</td></tr>'; return; }
+    tb.innerHTML = res.data.map(function(f) {
+      return '<tr class="' + (f.estado === 'ANULADO' ? 'anulado' : '') + '"><td class="cm-num-orden">' + f.fm + '</td><td>' + esc(f.fecha) + '</td><td class="izq">' +
+        esc(nombrePropio(f.responsable)) + '</td><td>' + (f.cantidad == null ? '—' : f.cantidad) + '</td><td class="der">' + pesos(f.totalPagos) + '</td><td>' + badge(f.estado) +
+        '</td><td><button class="btn mini" onclick="verFM(' + f.id + ')">👁️ Ver / imprimir</button></td></tr>';
+    }).join('');
+  });
+}
+function verFM(id) { api(API + '/fms/' + id).then(function(fm) { panelFM(fm, 'ver'); }); }
+
+// ---------------- arqueo rápido ----------------
+var pendienteArqueo = 0;
+function tabArqueo(t) {
+  document.getElementById('aTabRegistrar').classList.toggle('activo', t === 'registrar');
+  document.getElementById('aTabHistorial').classList.toggle('activo', t === 'historial');
+  document.getElementById('arqueoRegistrar').style.display = t === 'registrar' ? '' : 'none';
+  document.getElementById('arqueoHistorial').style.display = t === 'historial' ? '' : 'none';
+  if (t === 'registrar') iniciarArqueo(); else cargarArqueos();
+}
+function iniciarArqueo() {
+  document.getElementById('aConteo').innerHTML = tablaConteo('aq', {}, false, 'calcularArqueo');
+  document.getElementById('aResponsable').value = CAJA.responsable;
+  api(API + '/resumen').then(function(r) {
+    pendienteArqueo = r.pendiente;
+    document.getElementById('aFondo').innerText = pesos(r.fondo); document.getElementById('aPendientes').innerText = pesos(r.pendiente);
+    document.getElementById('aConsecutivo').innerText = 'ARQ-' + num4(r.siguienteArqueo); calcularArqueo();
+  });
+}
+function calcularArqueo() {
+  var efectivo = totalConteo(leerDesglose('aq')), dif = efectivo + pendienteArqueo - CAJA.fondo, el = document.getElementById('aEstado');
+  document.getElementById('aEfectivo').innerText = pesos(efectivo);
+  if (Math.abs(dif) < 0.005) { el.className = 'cm-estado cuadrado'; el.innerText = '✅ Caja cuadrada'; }
+  else if (dif < 0) { el.className = 'cm-estado faltante'; el.innerText = '❌ Faltante en caja: ' + pesos(-dif); }
+  else { el.className = 'cm-estado sobrante'; el.innerText = '⚠️ Sobrante en caja: ' + pesos(dif); }
+}
+function guardarArqueo() {
+  post(API + '/arqueos', {responsable: document.getElementById('aResponsable').value, desglose: leerDesglose('aq')})
+    .then(function(res) { alert(res.mensaje); imprimirTicket(res.arqueo); iniciarArqueo(); })
+    .catch(function(e) { alert(e.message); });
+}
+function cargarArqueos() {
+  api(API + '/arqueos').then(function(res) { arqueosCache = res.data; filtrarArqueos(); });
+}
+function filtrarArqueos() {
+  var q = hTexto.value.trim().toUpperCase(), de = hDesde.value, ha = hHasta.value;
+  var filas = arqueosCache.filter(function(a) {
+    var dia = a.fecha.slice(0, 10);  // AAAA-MM-DD: el filtro por fechas funciona (en la app anterior no)
+    if (de && dia < de) return false; if (ha && dia > ha) return false;
+    return !q || [a.consecutivo, a.responsable, a.estado].join(' ').toUpperCase().indexOf(q) !== -1;
+  });
+  var tb = document.getElementById('bodyArqueos');
+  if (!filas.length) { tb.innerHTML = '<tr><td colspan="9" class="cm-vacio">No hay arqueos con esos filtros.</td></tr>'; return; }
+  tb.innerHTML = filas.map(function(a) {
+    return '<tr><td class="cm-num-orden">' + a.consecutivo + '</td><td>' + esc(a.fecha) + '</td><td class="izq">' + esc(nombrePropio(a.responsable)) + '</td><td class="der">' +
+      pesos(a.fondo) + '</td><td class="der">' + pesos(a.recibosPendientes) + '</td><td class="der">' + pesos(a.efectivoContado) + '</td><td class="der">' + pesos(a.diferencia) +
+      '</td><td>' + badge(a.estado) + '</td><td><button class="btn mini" onclick=\'imprimirTicket(arqueosCache.find(function(x){return x.id===' + a.id + ';}))\'>🖨️ Ticket</button></td></tr>';
+  }).join('');
+}
+
+// ---------------- anular (recibo o FM) ----------------
+function abrirAnulacion(tipo) {
+  anulando = tipo;
+  document.getElementById('anularTitulo').innerText = tipo === 'fm' ? '🚫 Anular ' + fmActual.fm : '🚫 Anular recibo ' + CAJA.prefijo + '-' + num4(reciboActual.consecutivo);
+  document.getElementById('anularTexto').innerText = tipo === 'fm'
+    ? 'Los recibos de este FM volverán a ACTIVO para corregirlos o legalizarlos de nuevo. Queda registrado quién anuló, cuándo y por qué.'
+    : 'Esta acción es irreversible. Queda registrado quién anuló, cuándo y por qué.';
+  document.getElementById('anularMotivo').value = ''; document.getElementById('anularError').style.display = 'none';
+  document.getElementById('modalAnular').style.display = 'flex';
+  setTimeout(function() { document.getElementById('anularMotivo').focus(); }, 50);
+}
+function cerrarAnulacion() { document.getElementById('modalAnular').style.display = 'none'; }
+function confirmarAnulacion() {
+  var motivo = document.getElementById('anularMotivo').value.trim(), err = document.getElementById('anularError');
+  if (motivo.length < 5) { err.innerText = 'Escribe el motivo (mínimo 5 caracteres).'; err.style.display = 'block'; return; }
+  var url = anulando === 'fm' ? API + '/fms/' + fmActual.id + '/anular' : API + '/recibos/' + reciboActual.id + '/anular';
+  post(url, {motivo: motivo}).then(function(res) {
+    cerrarAnulacion(); alert(res.mensaje);
+    if (anulando === 'fm') verFM(fmActual.id); else mostrarRecibo(res.recibo);
+  }).catch(function(e) { err.innerText = e.message; err.style.display = 'block'; });
+}
+
+// ---------------- impresión ----------------
+function imprimirHtml(cuerpo, css) {
+  var iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:absolute; width:0; height:0; border:0;';
+  document.body.appendChild(iframe);
+  var doc = iframe.contentWindow.document;
+  doc.open(); doc.write('<html><head><title>Nuvia</title><style>' + css + '</style></head><body>' + cuerpo + '</body></html>'); doc.close();
+  setTimeout(function() { iframe.contentWindow.focus(); iframe.contentWindow.print(); setTimeout(function() { iframe.remove(); }, 1000); }, 400);
+}
+var CSS_DOC = "@page{size:letter portrait;margin:14mm} body{font-family:'Segoe UI',Arial,sans-serif;color:#0F172A;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
+  "table{width:100%;border-collapse:collapse} td,th{border:1px solid #CBD5E1;padding:7px 10px} .etq{background:#F8FAFC;font-weight:700;color:#1E293B;width:18%}" +
+  ".val{font-weight:400} .enc td{border-color:#CBD5E1} .logo{text-align:center;width:24%} .logo img{max-height:52px} .doc{text-align:center;font-weight:800;font-size:16px;color:#1A365D}" +
+  ".doc small{display:block;font-size:11px;font-weight:600;color:#475569} .num{text-align:right;font-weight:800;font-size:16px;color:#EF4444} .gap{height:14px;border:none}" +
+  ".firmas{margin-top:48px;border:none} .firmas td{border:none;text-align:center;width:50%;padding-top:30px} .linea{border-top:1px solid #334155;padding-top:6px;font-weight:700;font-size:11px}" +
+  "th{background:#1A365D;color:#fff;font-size:11px} .der{text-align:right;white-space:nowrap} .tot td{background:#F0F4F8;font-weight:800;color:#1A365D} .anulado{color:#991B1B;font-weight:800}";
+
+function imprimirRecibo(r) {
+  if (!r) return;
+  var enc = '<table class="enc"><tr><td class="logo" rowspan="2">' + (LOGO ? '<img src="' + LOGO + '">' : '<b>Nuvia</b>') + '</td><td class="doc" rowspan="2">Recibo de caja menor<small>Departamento ' +
+    esc(CAJA.nombre) + '</small></td><td class="etq">No. recibo</td><td class="num">' + esc(r.noRecibo) + '</td></tr><tr><td class="etq">Fecha</td><td>' + esc(r.fecha) + '</td></tr></table>';
+  var cuerpo = enc + '<div class="gap"></div><table>' +
+    '<tr><td class="etq">Ciudad</td><td class="val">' + esc(r.ciudad) + '</td><td class="etq">No. identificación</td><td class="val">' + esc(r.identificacion) + '</td></tr>' +
+    '<tr><td class="etq">Pagado a</td><td class="val" colspan="3">' + esc(r.pagadoA) + '</td></tr>' +
+    '<tr><td class="etq">Valor</td><td class="val"><b>' + pesos(r.valor) + '</b></td><td class="etq">Valor en letras</td><td class="val">' + esc(r.valorLetras) + '</td></tr>' +
+    '<tr><td class="etq">Concepto</td><td class="val" colspan="3">' + esc(r.concepto) + '</td></tr>' +
+    '<tr><td class="etq">Factura / cuenta de cobro</td><td class="val" colspan="3">' + esc(r.factura) + '</td></tr></table>' +
+    '<table class="firmas"><tr><td><div style="height:24px"></div><div class="linea">Aprobado por' + (r.autorizadoPor ? '<br><span style="font-weight:400">' + esc(nombrePropio(r.autorizadoPor)) + '</span>' : '') + '</div></td><td><div style="height:24px;font-weight:800">' +
+    (r.anexo ? 'VER ANEXO' : '') + '</div><div class="linea">Firma de recibido<br><span style="font-weight:400">C.C. ______________________</span></div></td></tr></table>' +
+    '<p style="margin-top:30px;font-size:10px;color:#94A3B8;">Registrado por ' + esc(r.creadoPor) + ' · ' + esc(r.creadoEn) + '</p>';
+  imprimirHtml(cuerpo, CSS_DOC);
+}
+
+function imprimirFM(fm) {
+  var d = fm.desglose || {}, filasDen = function(t, den) { return '<tr><td class="etq">' + t + '</td>' + den.map(function(v) { return '<td style="text-align:center;font-size:11px">$ ' +
+    v.toLocaleString('es-CO') + '<br><b>' + (d[v] || 0) + '</b></td>'; }).join('') + '</tr>'; };
+  var total = fm.recibos.reduce(function(s, r) { return s + r.valor; }, 0) + (fm.ajuste || 0);
+  var cuerpo = '<table class="enc"><tr><td class="logo" rowspan="2">' + (LOGO ? '<img src="' + LOGO + '">' : '<b>Nuvia</b>') +
+    '</td><td class="doc" rowspan="2">Formato de reembolso caja menor<small>Dirección financiera · ' + esc(CAJA.nombre) + '</small></td><td class="etq">Formato</td><td class="num">' +
+    esc(fm.fm) + '</td></tr><tr><td class="etq">Fecha</td><td>' + esc(fm.fecha) + '</td></tr></table>' +
+    (fm.estado === 'ANULADO' ? '<p class="anulado">FM ANULADO — ' + esc(fm.motivoAnulacion) + '</p>' : '') + '<div class="gap"></div>' +
+    '<table><tr><td class="etq">Ciudad</td><td>' + esc(fm.ciudad || CAJA.ciudad) + '</td><td class="etq">Fondo permanente</td><td class="der">' + pesos(fm.fondo) + '</td></tr>' +
+    '<tr><td class="etq">Responsable</td><td>' + esc(fm.responsable) + '</td><td class="etq">Valor en caja</td><td class="der">' + pesos(fm.valorEnCaja) + '</td></tr>' +
+    '<tr><td class="etq">Pagos efectuados</td><td colspan="3" class="der">' + pesos(total) + '</td></tr></table><div class="gap"></div>' +
+    '<table>' + filasDen('Monedas', MONEDAS) + '</table><table>' + filasDen('Billetes', BILLETES) + '</table><div class="gap"></div>' +
+    '<table><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Neto pagado</th></tr>' +
+    fm.recibos.map(function(r) { return '<tr><td style="text-align:center">' + r.consecutivo + '</td><td style="white-space:nowrap">' + esc(r.fecha) + '</td><td>' + esc(r.pagadoA) +
+      '</td><td>' + esc(r.factura) + '</td><td>' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) + '</td></tr>'; }).join('') +
+    '<tr class="tot"><td colspan="5" class="der">Ajuste al peso</td><td class="der">' + pesos(fm.ajuste || 0) + '</td></tr>' +
+    '<tr class="tot"><td colspan="5" class="der">Total</td><td class="der">' + pesos(total) + '</td></tr></table>' +
+    '<table class="firmas"><tr><td style="width:33%"><div class="linea">Elaborado por</div></td><td style="width:33%"><div class="linea">Supervisado por</div></td>' +
+    '<td style="width:33%"><div class="linea">Radicación (recibido para su estudio)</div></td></tr></table>';
+  imprimirHtml(cuerpo, CSS_DOC.replace('portrait', 'portrait'));
+}
+
+function imprimirTicket(a) {
+  if (!a) return;
+  var d = a.desglose || {}, desg = BILLETES.concat(MONEDAS).filter(function(v) { return d[v] > 0; }).map(function(v) {
+    return '<div class="f"><span>$' + v.toLocaleString('es-CO') + ' x ' + d[v] + '</span><span>' + pesos(v * d[v]) + '</span></div>'; }).join('') || '<div>Sin desglose</div>';
+  var css = "@page{size:80mm auto;margin:4mm} body{font-family:monospace;font-size:11px;color:#000;width:72mm} .c{text-align:center} .f{display:flex;justify-content:space-between;margin:2px 0}" +
+    " .s{border-top:1px dashed #000;margin:6px 0} .firma{margin-top:36px;border-top:1px solid #000;text-align:center;padding-top:3px}";
+  imprimirHtml('<div class="c"><b style="font-size:14px">NUVIA®</b><br>Smiles Colombia S.A.S.<br><b>Arqueo · ' + esc(CAJA.nombre) + '</b><br><b style="font-size:13px">' + esc(a.consecutivo) +
+    '</b><br>' + esc(a.fecha) + '<br>Responsable: ' + esc(a.responsable || '—') + '</div><div class="s"></div>' +
+    '<div class="f"><span>Fondo asignado:</span><span>' + pesos(a.fondo) + '</span></div><div class="f"><span>Recibos pendientes:</span><span>' + pesos(a.recibosPendientes) + '</span></div>' +
+    '<div class="f"><span>Efectivo contado:</span><span>' + pesos(a.efectivoContado) + '</span></div><div class="s"></div>' +
+    '<div class="f"><b>Resultado:</b><b>' + esc(a.estado) + '</b></div><div class="f"><b>Diferencia:</b><b>' + pesos(Math.abs(a.diferencia)) + '</b></div><div class="s"></div>' +
+    '<b>Desglose efectivo:</b>' + desg + '<div class="firma">Custodio de caja</div><div class="c" style="margin-top:6px;font-size:9px">Registrado por ' + esc(a.registradoPor) + '</div>', css);
+}
+
+nuevoRecibo();
+</script>
+{% endblock %}
