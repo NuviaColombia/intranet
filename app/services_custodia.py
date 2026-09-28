@@ -464,8 +464,9 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
         if not t or t.anulado or t.confirmado_entrada:
             return
         # Todos los que tienen asignada el área de entrada (incluidos administradores con esa área).
+        from .acceso_produccion import tiene_submodulo
         destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
-                         if e.tiene_modulo("custodia")
+                         if tiene_submodulo(db, e, "custodia")
                          and (e.area_custodia or "").strip().upper() == (t.area_entrada or "").strip().upper()]
         if not destinatarios:
             print(f"[Custodia] Traslado #{t.id}: ningún manager tiene asignada el área {t.area_entrada}; sin aviso.")
