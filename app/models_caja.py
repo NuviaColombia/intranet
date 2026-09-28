@@ -96,6 +96,9 @@ class CajaRecibo(Base):
     numero_factura: Mapped[str] = mapped_column(String(100), default="")
     anexo: Mapped[int] = mapped_column(Integer, default=0)                 # "VER ANEXO" en la firma
     autorizado_por: Mapped[str] = mapped_column(String(150), default="")   # quien firma "Aprobado por"
+    autorizado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
+    firma_email: Mapped[str | None] = mapped_column(String(150), nullable=True)  # correo Zoho con el que firmó
+    firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # UTC
     estado: Mapped[str] = mapped_column(String(20), default="ACTIVO")      # ACTIVO | LEGALIZADO | ANULADO
     fm_id: Mapped[int | None] = mapped_column(ForeignKey("caja_menor_fms.id"), nullable=True, index=True)
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)

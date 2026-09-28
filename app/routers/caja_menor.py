@@ -4,7 +4,7 @@ import csv
 import io
 from pathlib import Path
 from datetime import date
-from fastapi import APIRouter, Request, Depends, HTTPException, Form
+from fastapi import APIRouter, Request, Depends, HTTPException, Form, BackgroundTasks
 from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,7 +12,7 @@ from ..formato import nombre_propio
 from ..database import SessionLocal, get_db
 from ..models import Empleado
 from ..models_caja import CajaMenor, CajaAcceso, CajaAutorizador, CajaRecibo, CajaFM, CajaArqueo
-from ..auth import require_modulo
+from ..auth import require_modulo, get_current_user
 from ..main_templates import templates
 from .. import services_caja as sc
 
@@ -40,8 +40,31 @@ def _solo_admin(user: Empleado):
 def entrada(request: Request, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     sc.asegurar_cajas_iniciales(db)
     cajas = sc.cajas_de_usuario(db, user)
+    por_firmar = db.query(CajaRecibo).filter(CajaRecibo.autorizado_por_id == user.id, CajaRecibo.firmado_en.is_(None),
+                                             CajaRecibo.estado != "ANULADO").count()
+    es_autorizador = db.query(CajaAutorizador).filter(CajaAutorizador.empleado_id == user.id).first() is not None
     return templates.TemplateResponse(request, "caja_menor_entrada.html",
-                                      {"user": user, "es_portal": True, "es_caja_entrada": True, "cajas": cajas})
+                                      {"user": user, "es_portal": True, "es_caja_entrada": True, "cajas": cajas,
+                                       "por_firmar": por_firmar, "es_autorizador": es_autorizador or por_firmar > 0})
+
+
+@router.get("/caja-menor/firmas")
+def pagina_firmas(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    pendientes, firmados = sc.recibos_por_firmar(db, user)
+    return templates.TemplateResponse(request, "caja_menor_firmas.html", {
+        "user": user, "es_portal": True, "es_caja_entrada": True,
+        "pendientes": [sc.serializar_recibo(r) for r in pendientes],
+        "firmados": [sc.serializar_recibo(r) for r in firmados], "msg": request.query_params.get("msg")})
+
+
+@router.post("/caja-menor/firmas/{recibo_id}")
+def firmar(recibo_id: int, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    r = db.get(CajaRecibo, recibo_id)
+    if not r:
+        raise HTTPException(404, "Recibo no encontrado.")
+    error = sc.firmar_recibo(db, r, user)
+    msg = error or f"✅ Firmaste el recibo {r.caja.prefijo}-{r.consecutivo:04d}."
+    return RedirectResponse(f"/caja-menor/firmas?msg={msg}", status_code=303)
 
 
 @router.get("/caja-menor/parametros")
@@ -125,17 +148,19 @@ def api_recibo(caja_id: int, consecutivo: int, user: Empleado = Depends(require_
 
 
 @router.post("/caja-menor/api/{caja_id}/recibos")
-def api_crear_recibo(caja_id: int, payload: ReciboIn, user: Empleado = Depends(require_modulo(MODULO)),
+def api_crear_recibo(caja_id: int, payload: ReciboIn, tareas: BackgroundTasks, user: Empleado = Depends(require_modulo(MODULO)),
                      db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
     r = sc.crear_recibo(db, caja, user, payload.model_dump())
     if isinstance(r, str):
         raise HTTPException(400, r)
+    if sc.necesita_aviso_firma(r):
+        tareas.add_task(sc.notificar_firma_pendiente, r.id)
     return {"mensaje": f"✅ Recibo {caja.prefijo}-{r.consecutivo:04d} guardado.", "recibo": sc.serializar_recibo(r)}
 
 
 @router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/editar")
-def api_editar_recibo(caja_id: int, recibo_id: int, payload: ReciboIn,
+def api_editar_recibo(caja_id: int, recibo_id: int, payload: ReciboIn, tareas: BackgroundTasks,
                       user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
     r = db.get(CajaRecibo, recibo_id)
@@ -144,6 +169,8 @@ def api_editar_recibo(caja_id: int, recibo_id: int, payload: ReciboIn,
     error = sc.editar_recibo(db, r, user, payload.model_dump())
     if error:
         raise HTTPException(400, error)
+    if sc.necesita_aviso_firma(r):  # tras editar, quien autoriza debe firmar de nuevo
+        tareas.add_task(sc.notificar_firma_pendiente, r.id)
     return {"mensaje": "✅ Recibo actualizado.", "recibo": sc.serializar_recibo(r)}
 
 
@@ -398,13 +425,22 @@ ARCHIVO_INICIAL = Path(__file__).resolve().parent.parent / "seed_data" / "caja_m
 
 @router.on_event("startup")
 def cargar_datos_iniciales() -> None:
-    """Carga una sola vez los recibos, FMs y arqueos de la app anterior (hoja de Google exportada a
-    seed_data/caja_menor_inicial.xlsx), para seguir con los mismos consecutivos. Si ya hay recibos, no hace nada."""
-    if not ARCHIVO_INICIAL.exists():
-        return
+    """Al arrancar: crea las tablas del módulo, agrega columnas nuevas a las que ya existían y carga una sola vez
+    los recibos, FMs y arqueos de la app anterior (seed_data/caja_menor_inicial.xlsx), si ese archivo existe."""
+    from sqlalchemy import inspect, text
     from ..database import engine  # este evento corre antes del create_all general: crea aquí sus tablas
     for modelo in (CajaMenor, CajaAcceso, CajaAutorizador, CajaFM, CajaRecibo, CajaArqueo):
         modelo.__table__.create(bind=engine, checkfirst=True)
+    columnas = {c["name"] for c in inspect(engine).get_columns("caja_menor_recibos")}
+    nuevas = {"autorizado_por": "VARCHAR(150) DEFAULT ''",
+              "autorizado_por_id": "INTEGER REFERENCES empleados(id)",
+              "firma_email": "VARCHAR(150)", "firmado_en": "TIMESTAMP"}
+    with engine.begin() as conn:
+        for nombre, tipo in nuevas.items():
+            if nombre not in columnas:
+                conn.execute(text(f"ALTER TABLE caja_menor_recibos ADD COLUMN {nombre} {tipo}"))
+    if not ARCHIVO_INICIAL.exists():
+        return
     db = SessionLocal()
     try:
         sc.asegurar_cajas_iniciales(db)

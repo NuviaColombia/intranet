@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/caja_menor.css?v=6">
+<div id="caja-app">
+ <div class="cm-main">
+  <div class="cm-seccion activa">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">✍️ Recibos por firmar</h2>
+        <p class="cm-sub" style="margin:0;">Recibos de caja menor que te asignaron para autorizar. Al firmar queda registrado tu correo de acceso (Zoho) con la fecha y la hora.</p></div>
+    </div>
+    {% if msg %}<div class="aviso ok" style="margin-bottom:12px;">{{ msg }}</div>{% endif %}
+
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>No. recibo</th><th>Caja</th><th>Fecha</th><th>Pagado a</th><th>Concepto</th><th>Valor</th><th>Registrado por</th><th>Acción</th></tr></thead>
+      <tbody>
+      {% for r in pendientes %}
+        <tr>
+          <td class="cm-num-orden" style="white-space:nowrap">{{ r.noRecibo }}</td>
+          <td>{{ r.caja }}</td>
+          <td style="white-space:nowrap">{{ r.fecha }}</td>
+          <td class="izq">{{ r.pagadoA|nombre_propio }}</td>
+          <td class="izq">{{ r.concepto }}{% if r.anexo %} <span class="badge legalizado">Con anexo</span>{% endif %}</td>
+          <td class="der">$ {{ '{:,.0f}'.format(r.valor).replace(',', '.') }}</td>
+          <td>{{ r.creadoPor }}</td>
+          <td><form method="post" action="/caja-menor/firmas/{{ r.id }}" class="inline"
+                    onsubmit="return confirm('¿Firmar y autorizar el recibo {{ r.noRecibo }} por $ {{ '{:,.0f}'.format(r.valor).replace(',', '.') }}?\nQuedará tu correo {{ user.email }} con la fecha y hora.');">
+              <button class="btn verde mini">✍️ Firmar</button></form></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="cm-vacio">No tienes recibos pendientes de firma. 🎉</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+
+    {% if firmados %}
+    <h3 style="margin:26px 0 10px; font-size:15px;">Firmados recientemente</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>No. recibo</th><th>Caja</th><th>Pagado a</th><th>Valor</th><th>Estado</th><th>Firma</th></tr></thead>
+      <tbody>
+      {% for r in firmados %}
+        <tr>
+          <td class="cm-num-orden" style="white-space:nowrap">{{ r.noRecibo }}</td>
+          <td>{{ r.caja }}</td>
+          <td class="izq">{{ r.pagadoA|nombre_propio }}</td>
+          <td class="der">$ {{ '{:,.0f}'.format(r.valor).replace(',', '.') }}</td>
+          <td><span class="badge {{ r.estado|lower }}">{{ r.estado|capitalize }}</span></td>
+          <td>{{ r.firmaEmail }} · {{ r.firmadoEn }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% endif %}
+  </div>
+ </div>
+</div>
+{% endblock %}

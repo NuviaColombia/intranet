@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/caja_menor.css?v=4">
+<link rel="stylesheet" href="/static/caja_menor.css?v=6">
 {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 <div id="caja-app" data-caja="{{ caja.id }}">
  <div class="cm-main">
@@ -59,6 +59,7 @@
             {% endif %}</td>
         </tr>
       </table>
+      <div id="rFirmaEstado" class="cm-firma-estado" style="display:none;"></div>
       <div class="cm-acciones">
         <button type="button" class="btn rojo" id="btnAnularRecibo" style="display:none;" onclick="abrirAnulacion('recibo')">🚫 Anular recibo</button>
         <button type="button" class="btn gris" id="btnEditarRecibo" style="display:none;" onclick="habilitarEdicion()">✏️ Editar</button>
@@ -83,8 +84,8 @@
       <button type="button" class="btn gris mini" onclick="limpiarConsulta()">Limpiar</button>
     </div>
     <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th>No. recibo</th><th>Fecha</th><th>Pagado a</th><th>Concepto</th><th>Valor</th><th>Factura</th><th>Estado</th><th>FM</th><th>Acción</th></tr></thead>
-      <tbody id="bodyConsulta"><tr><td colspan="9" class="cm-vacio">Cargando…</td></tr></tbody>
+      <thead><tr><th>No. recibo</th><th>Fecha</th><th>Pagado a</th><th>Concepto</th><th>Valor</th><th>Factura</th><th>Estado</th><th>Firma</th><th>FM</th><th>Acción</th></tr></thead>
+      <tbody id="bodyConsulta"><tr><td colspan="10" class="cm-vacio">Cargando…</td></tr></tbody>
     </table></div>
   </div>
 
@@ -257,6 +258,7 @@ function nuevoRecibo() {
   document.getElementById('rFecha').value = hoyISO();
   document.getElementById('rLetras').value = '';
   document.getElementById('reciboSello').className = 'cm-sello';
+  pintarFirma(null);
   bloquear(false);
   ['btnAnularRecibo', 'btnEditarRecibo', 'btnCopiaRecibo'].forEach(function(id) { document.getElementById(id).style.display = 'none'; });
   var g = document.getElementById('btnGuardarRecibo'); g.style.display = ''; g.innerText = '💾 Guardar e imprimir';
@@ -277,6 +279,7 @@ function mostrarRecibo(r) {
     var o = document.createElement('option'); o.value = r.autorizadoPor; o.text = nombrePropio(r.autorizadoPor); sel.add(o);
   }
   sel.value = r.autorizadoPor || '';
+  pintarFirma(r);
   bloquear(true);
   var sello = document.getElementById('reciboSello');
   if (r.estado === 'ANULADO') { sello.className = 'cm-sello anulado';
@@ -287,6 +290,20 @@ function mostrarRecibo(r) {
   document.getElementById('btnCopiaRecibo').style.display = r.estado === 'ANULADO' ? 'none' : '';
   document.getElementById('btnEditarRecibo').style.display = r.estado === 'ACTIVO' ? '' : 'none';
   document.getElementById('btnAnularRecibo').style.display = r.estado === 'ACTIVO' ? '' : 'none';
+}
+
+function pintarFirma(r) {
+  var el = document.getElementById('rFirmaEstado');
+  if (!r || !r.autorizadoPor || r.estado === 'ANULADO') { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.className = 'cm-firma-estado ' + (r.firmadoEn ? 'firmado' : 'pendiente');
+  el.innerHTML = r.firmadoEn ? '✅ Firmado por <b>' + esc(r.firmaEmail) + '</b> el ' + esc(r.firmadoEn)
+                             : '⏳ Pendiente de firma: se le avisó por Cliq a ' + esc(nombrePropio(r.autorizadoPor)) + '.';
+}
+function badgeFirma(r) {
+  if (!r.autorizadoPor || r.estado === 'ANULADO') return '—';
+  return r.firmadoEn ? '<span class="badge activo" title="' + esc(r.firmaEmail + ' · ' + r.firmadoEn) + '">Firmado</span>'
+                     : '<span class="badge sobrante">Pendiente</span>';
 }
 
 function buscarRecibo(valor) {
@@ -316,9 +333,9 @@ function guardarRecibo(e) {
 
 // ---------------- consulta ----------------
 function cargarConsulta() {
-  document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="9" class="cm-vacio">Cargando…</td></tr>';
+  document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="10" class="cm-vacio">Cargando…</td></tr>';
   api(API + '/recibos').then(function(res) { recibosConsulta = res.data; filtrarConsulta(); })
-    .catch(function(e) { document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="9" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+    .catch(function(e) { document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="10" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
 function filtrarConsulta() {
   var q = cTexto.value.trim().toUpperCase(), est = cEstado.value, de = cDesde.value, ha = cHasta.value;
@@ -327,11 +344,11 @@ function filtrarConsulta() {
     return !q || [r.noRecibo, r.pagadoA, r.concepto, r.factura, r.identificacion].join(' ').toUpperCase().indexOf(q) !== -1;
   });
   var tb = document.getElementById('bodyConsulta');
-  if (!filas.length) { tb.innerHTML = '<tr><td colspan="9" class="cm-vacio">No hay recibos con esos filtros.</td></tr>'; return; }
+  if (!filas.length) { tb.innerHTML = '<tr><td colspan="10" class="cm-vacio">No hay recibos con esos filtros.</td></tr>'; return; }
   tb.innerHTML = filas.map(function(r) {
     return '<tr class="' + (r.estado === 'ANULADO' ? 'anulado' : '') + '"><td class="cm-num-orden">' + esc(r.noRecibo) + '</td><td>' + esc(r.fecha) +
       '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) + '</td><td class="izq">' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) +
-      '</td><td>' + esc(r.factura) + '</td><td>' + badge(r.estado) + '</td><td>' + esc(r.fm || '—') +
+      '</td><td>' + esc(r.factura) + '</td><td>' + badge(r.estado) + '</td><td>' + badgeFirma(r) + '</td><td>' + esc(r.fm || '—') +
       '</td><td><button class="btn mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
   }).join('');
 }
@@ -522,20 +539,50 @@ var CSS_DOC = "@page{size:letter portrait;margin:14mm} body{font-family:'Segoe U
   ".firmas{margin-top:48px;border:none} .firmas td{border:none;text-align:center;width:50%;padding-top:30px} .linea{border-top:1px solid #334155;padding-top:6px;font-weight:700;font-size:11px}" +
   "th{background:#1A365D;color:#fff;font-size:11px} .der{text-align:right;white-space:nowrap} .tot td{background:#F0F4F8;font-weight:800;color:#1A365D} .anulado{color:#991B1B;font-weight:800}";
 
+// Formato del recibo: el mismo diseño de la app anterior (campos con línea inferior), ocupa media carta
+var CSS_RECIBO = "@page{size:letter portrait;margin:12mm 14mm} *{box-sizing:border-box}" +
+  "body{margin:0;font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
+  ".rc{height:125mm;display:flex;flex-direction:column}" +
+  ".rc-enc{display:grid;grid-template-columns:1fr 1.4fr 1fr;align-items:center;padding-bottom:12px;border-bottom:1px solid #E5E7EB}" +
+  ".rc-enc img{max-height:44px} .rc-tit{text-align:center} .rc-tit small{display:block;font-size:9px;letter-spacing:2px;color:#6B7280;margin-bottom:4px}" +
+  ".rc-tit b{font-size:17px;letter-spacing:.3px} .rc-dep{text-align:right;font-size:10px;font-weight:800;line-height:1.35}" +
+  ".rc-num{display:inline-block;margin-top:6px;padding:3px 10px;border:1.5px solid #111827;border-radius:4px;font-size:13px;font-weight:800;letter-spacing:.5px}" +
+  ".rc-fila{display:grid;gap:0 16px;margin-top:16px} .rc-c label{display:block;font-size:8px;font-weight:600;letter-spacing:1.2px;color:#6B7280;margin-bottom:5px}" +
+  ".rc-c div{font-size:11.5px;font-weight:700;padding-bottom:5px;border-bottom:1px solid #9CA3AF;min-height:20px;text-transform:uppercase}" +
+  ".rc-firmas{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:0 40px;text-align:center}" +
+  ".rc-firmas .esp{height:46px;display:flex;align-items:flex-end;justify-content:center;font-size:11px;font-weight:800;padding-bottom:4px}" +
+  ".rc-firmas .fe{font-size:8.5px;font-weight:800;letter-spacing:.6px;color:#065F46;line-height:1.45} .rc-firmas .fe span{font-weight:600;letter-spacing:0;color:#111827}" +
+  ".rc-firmas .fe.pend{color:#92400E}" +
+  ".rc-firmas .ln{border-top:1px solid #111827;padding-top:5px;font-size:9px;font-weight:800;letter-spacing:.8px}" +
+  ".rc-firmas .sub{font-size:9px;font-weight:500;margin-top:3px;color:#374151;letter-spacing:0}" +
+  ".rc-pie{margin-top:10px;display:flex;justify-content:space-between;font-size:8px;color:#9CA3AF}" +
+  ".rc-corte{margin-top:6mm;border-top:1px dashed #D1D5DB}";
+
+function fechaHoraDMY(t) { var p = String(t || '').split(' '); return fechaDMY(p[0]) + (p[1] ? ' ' + p[1] : ''); }
+function fechaDMY(iso) { var p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : (iso || ''); }
+
 function imprimirRecibo(r) {
   if (!r) return;
-  var enc = '<table class="enc"><tr><td class="logo" rowspan="2">' + (LOGO ? '<img src="' + LOGO + '">' : '<b>Nuvia</b>') + '</td><td class="doc" rowspan="2">Recibo de caja menor<small>Departamento ' +
-    esc(CAJA.nombre) + '</small></td><td class="etq">No. recibo</td><td class="num">' + esc(r.noRecibo) + '</td></tr><tr><td class="etq">Fecha</td><td>' + esc(r.fecha) + '</td></tr></table>';
-  var cuerpo = enc + '<div class="gap"></div><table>' +
-    '<tr><td class="etq">Ciudad</td><td class="val">' + esc(r.ciudad) + '</td><td class="etq">No. identificación</td><td class="val">' + esc(r.identificacion) + '</td></tr>' +
-    '<tr><td class="etq">Pagado a</td><td class="val" colspan="3">' + esc(r.pagadoA) + '</td></tr>' +
-    '<tr><td class="etq">Valor</td><td class="val"><b>' + pesos(r.valor) + '</b></td><td class="etq">Valor en letras</td><td class="val">' + esc(r.valorLetras) + '</td></tr>' +
-    '<tr><td class="etq">Concepto</td><td class="val" colspan="3">' + esc(r.concepto) + '</td></tr>' +
-    '<tr><td class="etq">Factura / cuenta de cobro</td><td class="val" colspan="3">' + esc(r.factura) + '</td></tr></table>' +
-    '<table class="firmas"><tr><td><div style="height:24px"></div><div class="linea">Aprobado por' + (r.autorizadoPor ? '<br><span style="font-weight:400">' + esc(nombrePropio(r.autorizadoPor)) + '</span>' : '') + '</div></td><td><div style="height:24px;font-weight:800">' +
-    (r.anexo ? 'VER ANEXO' : '') + '</div><div class="linea">Firma de recibido<br><span style="font-weight:400">C.C. ______________________</span></div></td></tr></table>' +
-    '<p style="margin-top:30px;font-size:10px;color:#94A3B8;">Registrado por ' + esc(r.creadoPor) + ' · ' + esc(r.creadoEn) + '</p>';
-  imprimirHtml(cuerpo, CSS_DOC);
+  function campo(etq, valor) { return '<div class="rc-c"><label>' + etq + '</label><div>' + (valor || '&nbsp;') + '</div></div>'; }
+  var cuerpo = '<div class="rc">' +
+    '<div class="rc-enc"><div>' + (LOGO ? '<img src="' + LOGO + '">' : '<b>NUVIA</b>') + '</div>' +
+      '<div class="rc-tit"><small>FORMATO</small><b>RECIBO DE CAJA MENOR</b></div>' +
+      '<div class="rc-dep">DEPARTAMENTO<br>' + esc(String(CAJA.nombre || '').toUpperCase()) + '</div></div>' +
+    '<div class="rc-fila" style="grid-template-columns:1fr 1fr 2fr">' + campo('CIUDAD', esc(r.ciudad)) + campo('FECHA', esc(fechaDMY(r.fecha))) +
+      campo('NO. RECIBO', esc(r.noRecibo)) + '</div>' +
+    '<div class="rc-fila" style="grid-template-columns:1fr 2fr">' + campo('NO. IDENTIFICACIÓN', esc(r.identificacion)) + campo('PAGADO A', esc(r.pagadoA)) + '</div>' +
+    '<div class="rc-fila" style="grid-template-columns:1fr 2fr">' + campo('VALOR ($)', esc(pesos(r.valor))) + campo('VALOR EN LETRAS', esc(r.valorLetras)) + '</div>' +
+    '<div class="rc-fila">' + campo('CONCEPTO', esc(r.concepto)) + '</div>' +
+    '<div class="rc-fila">' + campo('NO. FACTURA / CUENTA DE COBRO', esc(r.factura)) + '</div>' +
+    '<div class="rc-firmas">' +
+      '<div><div class="esp">' + (r.firmadoEn ? '<div class="fe">FIRMADO ELECTRÓNICAMENTE<br><span>' + esc(r.firmaEmail) + '</span><br><span>' +
+        esc(fechaHoraDMY(r.firmadoEn)) + '</span></div>' : (r.autorizadoPor ? '<div class="fe pend">PENDIENTE DE FIRMA</div>' : '')) + '</div>' +
+        '<div class="ln">APROBADO POR' + (r.autorizadoPor ? '<div class="sub">' + esc(nombrePropio(r.autorizadoPor)) + '</div>' : '') + '</div></div>' +
+      '<div><div class="esp">' + (r.anexo ? 'VER ANEXO' : '') + '</div><div class="ln">FIRMA DE RECIBIDO<div class="sub">C.C. ________________________</div></div></div>' +
+    '</div>' +
+    '<div class="rc-pie"><span>Registrado por ' + esc(r.creadoPor) + (r.creadoEn ? ' · ' + esc(r.creadoEn) : '') + '</span><span>Nuvia Smiles Colombia S.A.S.</span></div>' +
+    '</div><div class="rc-corte"></div>';
+  imprimirHtml(cuerpo, CSS_RECIBO);
 }
 
 function imprimirFM(fm) {

@@ -13,6 +13,13 @@
     Aún no tienes acceso a ninguna caja. Pide a un administrador que te asigne una en <b>Caja menor › Parámetros</b>.
   </div>
   {% endfor %}
+  {% if es_autorizador %}
+  <a class="modulo" href="/caja-menor/firmas">
+    <span class="modulo-icono">✍️</span>
+    <span class="modulo-nombre">Por firmar{% if por_firmar %} <span class="badge-alertas">{{ por_firmar }}</span>{% endif %}</span>
+    <span class="modulo-desc">Recibos que debes autorizar</span>
+  </a>
+  {% endif %}
   {% if user.rol in ('admin', 'superadmin') %}
   <a class="modulo" href="/caja-menor/parametros">
     <span class="modulo-icono">⚙️</span>
