@@ -17,7 +17,7 @@
   <a class="modulo" href="/caja-menor/{{ c.id }}{{ '?tab=firmas' if pendientes.get(c.id) else '' }}">
     <span class="modulo-icono">{{ c.icono }}</span>
     <span class="modulo-nombre">{{ c.nombre|nombre_propio }}{% if pendientes.get(c.id) %} <span class="badge-alertas" title="Recibos pendientes de tu firma">{{ pendientes[c.id] }}</span>{% endif %}</span>
-    {% if c.id in solo_firmas %}<span class="modulo-desc">Solo firmas</span>{% elif pendientes.get(c.id) %}<span class="modulo-desc">{{ pendientes[c.id] }} por firmar</span>{% endif %}
+    {% if c.id in solo_firmas %}<span class="modulo-desc">Consulta y firma</span>{% elif pendientes.get(c.id) %}<span class="modulo-desc">{{ pendientes[c.id] }} por firmar</span>{% endif %}
   </a>
   {% else %}
   <div class="tarjeta" style="grid-column:1/-1; text-align:center; color:var(--gris);">

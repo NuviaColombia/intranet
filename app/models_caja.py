@@ -2,7 +2,7 @@
 formatos de reembolso (FM) y arqueos rápidos. Reemplaza la app de Google Apps Script "Recibo de Caja Menor"."""
 from datetime import datetime, date
 from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text, UniqueConstraint, Index
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import backref, Mapped, mapped_column, relationship
 from .database import Base
 
 
@@ -14,7 +14,8 @@ class CajaMenor(Base):
     prefijo: Mapped[str] = mapped_column(String(10))                       # ej. CONT
     ciudad: Mapped[str] = mapped_column(String(100), default="GALAPA")
     fondo: Mapped[float] = mapped_column(Float, default=1000000)           # fondo permanente
-    responsable: Mapped[str] = mapped_column(String(150), default="")      # responsable por defecto
+    responsable: Mapped[str] = mapped_column(String(150), default="")      # nombre del responsable (para mostrar)
+    responsable_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)  # la persona en People
     consecutivo_inicial: Mapped[int] = mapped_column(Integer, default=1)   # primer recibo si no hay registros
     fm_siguiente: Mapped[int] = mapped_column(Integer, default=1)          # número del próximo FM
     icono: Mapped[str] = mapped_column(String(10), default="💵")
@@ -87,6 +88,16 @@ class CajaFM(Base):
     supervisado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
     supervision_email: Mapped[str | None] = mapped_column(String(150), nullable=True)  # correo Zoho con el que firmó
     supervisado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)   # UTC
+    # "Elaborado por": lo firma el responsable de la caja (si él mismo legaliza, queda firmado al legalizar)
+    elaborado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
+    elaboracion_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    elaborado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)     # UTC
+    # Reembolso: mientras tesorería no reembolse el FM, su dinero sigue "por fuera" de la caja (cuenta en el arqueo)
+    reembolsado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reembolsado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    # Último aviso por Cliq pidiendo firma (elaboración o visto bueno): 1 enviado, 0 falló
+    aviso_ok: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    aviso_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     caja = relationship("CajaMenor")
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
@@ -116,6 +127,8 @@ class CajaRecibo(Base):
     autorizado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
     firma_email: Mapped[str | None] = mapped_column(String(150), nullable=True)  # correo Zoho con el que firmó
     firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # UTC
+    aviso_ok: Mapped[int | None] = mapped_column(Integer, nullable=True)       # último aviso por Cliq: 1 enviado, 0 falló
+    aviso_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     estado: Mapped[str] = mapped_column(String(20), default="ACTIVO")      # ACTIVO | LEGALIZADO | ANULADO
     fm_id: Mapped[int | None] = mapped_column(ForeignKey("caja_menor_fms.id"), nullable=True, index=True)
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
@@ -154,3 +167,23 @@ class CajaArqueo(Base):
 
     caja = relationship("CajaMenor")
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
+
+
+class CajaObservacion(Base):
+    """Observación de quien debe firmar (recibo o FM): pide una corrección antes de firmar.
+    Queda atendida cuando el responsable corrige el documento o cuando el firmante firma."""
+    __tablename__ = "caja_menor_observaciones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recibo_id: Mapped[int | None] = mapped_column(ForeignKey("caja_menor_recibos.id"), nullable=True, index=True)
+    fm_id: Mapped[int | None] = mapped_column(ForeignKey("caja_menor_fms.id"), nullable=True, index=True)
+    autor_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    texto: Mapped[str] = mapped_column(Text)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    atendida_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    atendida_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+
+    autor = relationship("Empleado", foreign_keys=[autor_id])
+    atendida_por = relationship("Empleado", foreign_keys=[atendida_por_id])
+    recibo = relationship("CajaRecibo", backref=backref("observaciones", lazy="selectin", order_by="CajaObservacion.id"))
+    fm = relationship("CajaFM", backref=backref("observaciones", lazy="selectin", order_by="CajaObservacion.id"))
