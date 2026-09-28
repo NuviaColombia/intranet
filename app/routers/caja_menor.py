@@ -77,8 +77,10 @@ def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)
     for a in accesos:
         por_empleado.setdefault(a.empleado_id, set()).add(a.caja_id)
     activos = db.query(Empleado).filter(Empleado.activo == 1).order_by(Empleado.apellidos, Empleado.nombres).all()
-    usuarios = [e for e in activos if MODULO in e.modulos_lista and not sc.es_admin(e)]
-    candidatos = [e for e in activos if MODULO not in e.modulos_lista and not sc.es_admin(e)]
+    # Los administradores siguen entrando a todas las cajas; se relacionan aquí para poder ser responsables.
+    relacionados = {e.id for e in activos if MODULO in e.modulos_lista or e.id in por_empleado}
+    usuarios = [e for e in activos if e.id in relacionados]
+    candidatos = [e for e in activos if e.id not in relacionados]
     # Responsable de cada caja: se elige entre quienes tienen acceso a ella
     con_acceso = {c.id: [e for e in usuarios if c.id in por_empleado.get(e.id, set())] for c in cajas}
     autoriza_por_empleado: dict[int, set[int]] = {}
