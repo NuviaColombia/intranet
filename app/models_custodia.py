@@ -56,6 +56,12 @@ class CustodiaOrdenLinea(Base):
     traslado_id: Mapped[int] = mapped_column(ForeignKey("custodia_traslados.id"))
     numero_orden: Mapped[str] = mapped_column(String(50), index=True)
     cantidad_discos: Mapped[float] = mapped_column(Float)
+    # Si la cantidad se tomó del Stock del área de salida y se le asignó este número de orden:
+    # en el área de salida descuenta de "orden_origen" (ej. STOCK) y en la de entrada suma a numero_orden.
+    orden_origen: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    # Orden nueva que sale de DIR Producción: el material entra y sale de DIR Producción en el mismo
+    # registro (se suma y se resta), para que su existencia no quede en negativo.
+    ingreso_directo: Mapped[bool] = mapped_column(Boolean, default=False)
 
     traslado = relationship("CustodiaTraslado", back_populates="ordenes")
 

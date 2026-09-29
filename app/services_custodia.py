@@ -15,6 +15,24 @@ AREAS_EXCLUIDAS_LEGADO = {"INICIAL", "SALDO INICIAL"}
 # otra área), así que nunca requiere confirmación previa para poder entregar desde ahí.
 AREA_ORIGEN = "DIR PRODUCCIÓN"
 
+# Orden genérica de material sin orden asignada; al sacarlo de un área se le puede asignar un número de orden.
+ORDEN_STOCK = "STOCK"
+
+
+def a_stock_si_entra_a_origen(lineas: list[dict], area_entrada: str) -> None:
+    """Dir Producción maneja existencias como Stock: lo que le llega de otra área (con cualquier número de
+    orden) entra como STOCK. En la salida se descuenta la orden original; en Dir Producción suma a STOCK."""
+    if area_entrada != AREA_ORIGEN:
+        return
+    for linea in lineas:
+        if linea["numero_orden"] != ORDEN_STOCK and not linea.get("orden_origen"):
+            linea["orden_origen"], linea["numero_orden"] = linea["numero_orden"], ORDEN_STOCK
+
+
+def _orden_salida():
+    """Orden que descuenta en el área de salida: la de origen (ej. STOCK) si la línea la tiene."""
+    return func.coalesce(CustodiaOrdenLinea.orden_origen, CustodiaOrdenLinea.numero_orden)
+
 
 def areas_disponibles(db: Session) -> list[str]:
     """Áreas activas configuradas en Parámetros, más cualquier área "extra" que aparezca
@@ -74,13 +92,16 @@ def _saldo_confirmado(db: Session, orden: str, area: str) -> float:
     la entrada no se haya confirmado todavía."""
     q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
-         .filter(CustodiaOrdenLinea.numero_orden == orden, CustodiaTraslado.anulado.is_(False)))
+         .filter(or_(CustodiaOrdenLinea.numero_orden == orden, CustodiaOrdenLinea.orden_origen == orden),
+                 CustodiaTraslado.anulado.is_(False)))
     saldo = 0.0
     for linea, traslado in q.all():
-        if traslado.area_entrada == area and traslado.confirmado_entrada:
+        if linea.numero_orden == orden and traslado.area_entrada == area and traslado.confirmado_entrada:
             saldo += linea.cantidad_discos
-        if traslado.area_salida == area:
+        if (linea.orden_origen or linea.numero_orden) == orden and traslado.area_salida == area:
             saldo -= linea.cantidad_discos
+            if linea.ingreso_directo:  # orden nueva: entró a DIR Producción en el mismo registro
+                saldo += linea.cantidad_discos
     return saldo
 
 
@@ -92,9 +113,28 @@ def validar_lineas_traslado(db: Session, lineas: list[dict], resumen: list[dict]
       o que el área de salida sea AREA_ORIGEN (ahí entra material nuevo, no se recibe de
       otra área, así que siempre se puede "entregar" -- incluso en lotes posteriores de
       una orden que ya existe)."""
+    usado: dict[str, float] = {}  # lo que este mismo registro ya toma de cada orden de origen (ej. STOCK)
     for linea in lineas:
         orden = linea["numero_orden"]
         cantidad = linea["cantidad_discos"]
+        origen = linea.get("orden_origen")
+        if origen:
+            # Se toma del Stock del área de salida y se le asigna un número de orden
+            if orden == origen:
+                return f"Asigna un número de orden distinto a {origen}."
+            disponible = _saldo_confirmado(db, origen, area_salida) - usado.get(origen, 0.0)
+            usado[origen] = usado.get(origen, 0.0) + cantidad
+            if len([l for l in lineas if l.get("orden_origen") == origen]) > 1 and disponible + 1e-6 < cantidad:
+                total = sum(l["cantidad_discos"] for l in lineas if l.get("orden_origen") == origen)
+                return (f"En {nombre_propio(area_salida)} hay {round(max(_saldo_confirmado(db, origen, area_salida), 0), 3):g} "
+                        f"disco(s) de {origen}; no alcanza para las {total:g} de estas órdenes.")
+            if disponible + 1e-6 < cantidad:
+                if orden == ORDEN_STOCK:  # pasa a Stock de Dir Producción
+                    return (f"En {nombre_propio(area_salida)} hay {round(max(disponible, 0), 3):g} disco(s) de la orden {origen}; "
+                            f"no puedes entregar {cantidad:g}.")
+                return (f"En {nombre_propio(area_salida)} hay {round(max(disponible, 0), 3):g} disco(s) de {origen}; "
+                        f"no puedes asignar {cantidad:g} a la orden {orden}.")
+            continue
 
         total_existente = (db.query(func.coalesce(func.sum(CustodiaResumen.total), 0.0))
                            .join(CustodiaTraslado, CustodiaResumen.traslado_id == CustodiaTraslado.id)
@@ -131,7 +171,8 @@ def crear_traslado(db: Session, user: Empleado, cabecera: dict, lineas: list[dic
 
     for linea in lineas:
         db.add(CustodiaOrdenLinea(traslado_id=traslado.id, numero_orden=linea["numero_orden"],
-                                  cantidad_discos=linea["cantidad_discos"]))
+                                  cantidad_discos=linea["cantidad_discos"], orden_origen=linea.get("orden_origen") or None,
+                                  ingreso_directo=bool(linea.get("ingreso_directo"))))
     for r in resumen:
         db.add(CustodiaResumen(traslado_id=traslado.id, orden=r.get("orden", ""),
                                descripcion=r.get("descripcion", ""), paciente=r.get("paciente", ""),
@@ -242,8 +283,9 @@ def _nombre_firma(emp) -> str:
 def serializar_traslado(t: CustodiaTraslado) -> dict:
     return {
         "id": t.id, "colaborador": t.colaborador, "idColaborador": t.id_colaborador,
-        "areaCreacion": t.area_creacion, "ordenes": ", ".join(o.numero_orden for o in t.ordenes),
-        "lineas": [{"numeroOrden": o.numero_orden, "cantidad": o.cantidad_discos} for o in t.ordenes],
+        "areaCreacion": t.area_creacion, "ordenes": ", ".join(o.numero_orden + (f" (de {nombre_propio(o.orden_origen)})" if o.orden_origen else "") for o in t.ordenes),
+        "lineas": [{"numeroOrden": o.numero_orden, "cantidad": o.cantidad_discos, "ordenOrigen": o.orden_origen or ""}
+                   for o in t.ordenes],
         "cantidad": sum(o.cantidad_discos for o in t.ordenes), "fecha": t.fecha.isoformat(),
         "hora": t.hora.strftime("%H:%M") if t.hora else "", "usuario": t.usuario,
         "areaSalida": t.area_salida, "areaEntrada": t.area_entrada, "motivo": t.motivo,
@@ -296,14 +338,20 @@ def estado_ordenes(db: Session, fecha_desde: date | None = None, fecha_hasta: da
     cantidad = func.coalesce(L.cantidad_discos, 0.0)
 
     def movimientos(columna_area, es_entrada: bool):
-        return (select(L.numero_orden.label("orden"), columna_area.label("area"),
+        # En la salida descuenta la orden de origen (ej. STOCK) si la línea se asignó desde Stock
+        orden = L.numero_orden if es_entrada else func.coalesce(L.orden_origen, L.numero_orden)
+        return (select(orden.label("orden"), columna_area.label("area"),
                        (cantidad if es_entrada else literal(0.0)).label("ent"),
                        (literal(0.0) if es_entrada else cantidad).label("sal"),
                        momento.label("momento"))
                 .join(T, L.traslado_id == T.id)
                 .where(and_(*filtros), columna_area.isnot(None), columna_area != ""))
 
-    mov = union_all(movimientos(T.area_entrada, True), movimientos(T.area_salida, False)).subquery()
+    # Orden nueva desde DIR Producción: además de la salida, cuenta la entrada en DIR Producción (neto 0 allí)
+    ingreso = (select(L.numero_orden.label("orden"), T.area_salida.label("area"), cantidad.label("ent"),
+                      literal(0.0).label("sal"), momento.label("momento"))
+               .join(T, L.traslado_id == T.id).where(and_(*filtros), L.ingreso_directo.is_(True)))
+    mov = union_all(movimientos(T.area_entrada, True), movimientos(T.area_salida, False), ingreso).subquery()
     filas = db.execute(select(mov.c.orden, mov.c.area, func.sum(mov.c.ent), func.sum(mov.c.sal), func.max(mov.c.momento))
                        .group_by(mov.c.orden, mov.c.area)).all()
 
@@ -369,14 +417,24 @@ def viaje_orden(db: Session, numero_orden: str) -> list[dict]:
     q = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
          .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
          .filter(CustodiaTraslado.anulado.is_(False))
-         .filter(CustodiaOrdenLinea.numero_orden.ilike(f"%{target}%")))
+         .filter(or_(CustodiaOrdenLinea.numero_orden.ilike(f"%{target}%"), CustodiaOrdenLinea.orden_origen.ilike(f"%{target}%"))))
 
     viaje = []
     for linea, traslado in q.all():
+        nota = ""
+        if linea.orden_origen and linea.numero_orden == ORDEN_STOCK:  # llegó a Dir Producción y pasó a Stock
+            nota = (f"Pasó a Stock en {nombre_propio(traslado.area_entrada)}" if target in (linea.orden_origen or "")
+                    else f"Llegó como Stock desde la orden {linea.orden_origen}")
+        elif linea.ingreso_directo:
+            nota = f"Orden nueva: ingresó a {nombre_propio(traslado.area_salida)}"
+        elif linea.orden_origen:  # asignada desde Stock
+            nota = (f"Tomado de {linea.orden_origen} y asignado a la orden {linea.numero_orden}"
+                    if target in (linea.numero_orden or "") else f"Asignado a la orden {linea.numero_orden}")
         viaje.append({
             "fechaHoraStr": f"{traslado.fecha.isoformat()} {traslado.hora.strftime('%H:%M') if traslado.hora else ''}",
             "areaSalida": traslado.area_salida, "areaEntrada": traslado.area_entrada,
-            "cantidad": linea.cantidad_discos, "motivo": traslado.motivo, "colaborador": traslado.colaborador,
+            "cantidad": linea.cantidad_discos, "motivo": traslado.motivo + (f" · {nota}" if nota else ""),
+            "colaborador": traslado.colaborador,
         })
     viaje.sort(key=lambda v: v["fechaHoraStr"])
     return viaje
@@ -405,6 +463,9 @@ def dashboard(db: Session, fecha_desde: date | None = None, fecha_hasta: date | 
         for a, total in sumas([T.area_entrada], T.fecha < fecha_desde):
             if a:
                 area(a)["existenciasIniciales"] += float(total)
+        for a, total in sumas([T.area_salida], T.fecha < fecha_desde, L.ingreso_directo.is_(True)):
+            if a:
+                area(a)["existenciasIniciales"] += float(total)
         for a, total in sumas([T.area_salida], T.fecha < fecha_desde):
             if a:
                 area(a)["existenciasIniciales"] -= float(total)
@@ -415,6 +476,10 @@ def dashboard(db: Session, fecha_desde: date | None = None, fecha_hasta: date | 
     if fecha_hasta:
         en_rango.append(T.fecha <= fecha_hasta)
     for a, total in sumas([T.area_entrada], *en_rango):
+        if a:
+            area(a)["entrada"] += float(total)
+    # Órdenes nuevas que salen de DIR Producción: también entran ahí (se suma y se resta)
+    for a, total in sumas([T.area_salida], *en_rango, L.ingreso_directo.is_(True)):
         if a:
             area(a)["entrada"] += float(total)
     for a, motivo, total in sumas([T.area_salida, T.motivo], *en_rango):

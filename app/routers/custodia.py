@@ -39,6 +39,8 @@ class TrasladoLineaIn(BaseModel):
     motivo: str
     numeroOrden: str
     cantidadDiscos: float
+    ordenOrigen: str = ""   # "STOCK" cuando se toma del Stock del área de salida y se le asigna numeroOrden
+    ordenNueva: bool = False  # registrada con "Registrar orden nueva"
 
 
 class ResumenIn(BaseModel):
@@ -128,8 +130,12 @@ def api_registrar(payload: RegistrarPayload, tareas: BackgroundTasks,
         "usuario": "", "area_salida": primero.areaSalida.strip().upper(),
         "area_entrada": area_entrada, "motivo": primero.motivo.strip().upper(),
     }
-    lineas = [{"numero_orden": t.numeroOrden.strip().upper(), "cantidad_discos": t.cantidadDiscos}
+    lineas = [{"numero_orden": t.numeroOrden.strip().upper(), "cantidad_discos": t.cantidadDiscos,
+               "orden_origen": (t.ordenOrigen or "").strip().upper() or None,
+               # Orden nueva desde DIR Producción: entra y sale de ahí en el mismo registro
+               "ingreso_directo": bool(t.ordenNueva and cabecera["area_salida"] == sc.AREA_ORIGEN and not t.ordenOrigen)}
              for t in payload.traslados]
+    sc.a_stock_si_entra_a_origen(lineas, area_entrada)  # lo que llega a Dir Producción queda como Stock
     resumen = [r.model_dump() for r in payload.resumen]
     error = sc.validar_lineas_traslado(db, lineas, resumen, cabecera["area_salida"])
     if error:
