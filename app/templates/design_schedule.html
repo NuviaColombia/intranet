@@ -252,11 +252,11 @@
   .pa-titulo { font-size:12px; color:#1d4ed8; text-transform:uppercase; font-weight:700; margin:0 0 8px; outline:none; border-radius:3px; display:inline-block; min-width:40px; }
   .pa-scroll { overflow-x:auto; border:1px solid #e2e6ef; border-radius:8px; background:#fff; }
   table.pa-t { border-collapse:separate; border-spacing:0; font-size:12.5px; table-layout:fixed; background:#fff; }
-  table.pa-t th, table.pa-t td { border-bottom:1px solid #e2e6ef; border-right:1px solid #eef1f6; padding:7px 9px; text-align:left; vertical-align:top; position:relative; overflow-wrap:anywhere; }
-  table.pa-t thead th { text-align:center; vertical-align:middle; }
+  /* Todo el texto de la tabla va centrado (a lo ancho y a lo alto) */
+  table.pa-t th, table.pa-t td { border-bottom:1px solid #e2e6ef; border-right:1px solid #eef1f6; padding:7px 9px; text-align:center; vertical-align:middle; position:relative; overflow-wrap:anywhere; }
   table.pa-t tr.pa-r-centros th { background:#eef2fb; color:#1d4ed8; font-size:11px; text-transform:uppercase; font-weight:700; }
   table.pa-t tr.pa-r-doctores th { background:#fff; color:#111827; font-size:11.5px; font-weight:700; border-bottom:2px solid #d8dde3; }
-  table.pa-t .pa-fija { position:sticky; left:0; z-index:2; background:#f8fafc; text-align:left; }
+  table.pa-t .pa-fija { position:sticky; left:0; z-index:2; background:#f8fafc; }
   table.pa-t thead .pa-fija { z-index:3; }
   table.pa-t tr.pa-r-doctores th.pa-fija { color:#6b7280; text-transform:uppercase; font-size:11px; }
   table.pa-t tbody th.pa-fija { font-weight:700; color:#111827; }
@@ -265,7 +265,6 @@
   .pa-txt { outline:none; border-radius:3px; min-height:16px; display:block; }
   .pa-txt[contenteditable]:focus { box-shadow:0 0 0 2px #93c5fd; background:#fff; }
   .pa-th { display:flex; align-items:center; justify-content:center; gap:4px; }
-  .pa-fija .pa-th { justify-content:space-between; }
   .pa-th .pa-txt { flex:1; }
   table.pa-t .faq-x { visibility:hidden; }
   table.pa-t th:hover .faq-x { visibility:visible; }
@@ -2875,7 +2874,7 @@ window.DS_PANELS.dashboard = ddCargar;
 
   // Celda/encabezado editable en su lugar (solo quien puede editar). Esc cancela.
   function paEditable(el, texto, alGuardar) {
-    el.textContent = texto || '';
+    el.textContent = String(texto || '').trim();
     if (!PA.edita) return;
     el.setAttribute('contenteditable', 'plaintext-only');
     var antes;
