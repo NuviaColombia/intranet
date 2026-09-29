@@ -5046,6 +5046,7 @@ window.DS_PANELS.dashboard = ddCargar;
       url.searchParams.set('panel', id);
       history.replaceState(null, '', url);
     } catch (e) {}
+    dsActualizarPestana();
   }
   function dsCerrarPaneles() {
     document.querySelectorAll('.ds-overlay.open').forEach(function(p) { p.classList.remove('open'); });
@@ -5055,7 +5056,28 @@ window.DS_PANELS.dashboard = ddCargar;
       url.searchParams.delete('panel');
       history.replaceState(null, '', url);
     } catch (e) {}
+    dsActualizarPestana();
   }
+  // Nombre de la pestaña del navegador según dónde está el usuario: "Pre-Approved (N2 Daniel)",
+  // "Comments", "Design Schedule (Team X)"... Toma el título del panel abierto (sin "— Design Schedule")
+  // y el detalle entre paréntesis (hoja o equipo), y se actualiza solo cuando ese detalle cambia.
+  function dsActualizarPestana() {
+    var panel = document.querySelector('.ds-overlay.open');
+    var h1 = panel ? panel.querySelector('h1') : document.querySelector('#dsTituloEquipo') && document.querySelector('#dsTituloEquipo').parentNode;
+    if (!h1) return;
+    var base = '', det = '';
+    h1.childNodes.forEach(function(n) {
+      if (n.nodeType === 3) base += n.textContent; else if (n.tagName === 'SPAN') det += n.textContent;
+    });
+    base = base.split(' — ')[0].trim();
+    var titulo = (base + ' ' + det.trim()).trim();
+    if (titulo && document.title !== titulo) document.title = titulo;
+  }
+  try {
+    var dsObsTitulo = new MutationObserver(dsActualizarPestana);
+    document.querySelectorAll('h1 > span[id]').forEach(function(sp) { dsObsTitulo.observe(sp, {childList: true, characterData: true, subtree: true}); });
+  } catch (e) {}
+  dsActualizarPestana();
   window.dsAbrirPanel = dsAbrirPanel;
   window.dsCerrarPaneles = dsCerrarPaneles;
 
