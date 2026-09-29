@@ -17,7 +17,7 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
                             FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule, inventario,
-                      caja_menor)
+                      caja_menor, consumo)
 
 app = FastAPI(title="Solicitudes Nuvia", docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, max_age=60 * 60 * 10,
@@ -48,6 +48,7 @@ app.include_router(mis_aprobaciones.router)
 app.include_router(design_schedule.router)
 app.include_router(inventario.router)
 app.include_router(caja_menor.router)
+app.include_router(consumo.router)
 
 
 @app.exception_handler(307)

@@ -8,13 +8,13 @@
 </head>
 <body>
 {% if user %}
-{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada %}
+{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
   <span class="marca">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </span>
-  {% if not es_portal and not es_custodia and not es_design and not es_caja %}
+  {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
@@ -62,6 +62,19 @@
   <div class="nav-sub"><a href="/caja-menor/parametros" class="activo">⚙️ Parámetros</a></div>
   {% endif %}
   {% endif %}
+  {% if es_consumo %}
+  <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/consumo">Seguimiento de consumo</a></span>
+  <div class="nav-sub">
+    {% if puede_entregar %}
+    <a href="/consumo" class="consumo-tab activo" data-tab="entrega">Entrega de insumos</a>
+    <a href="/consumo" class="consumo-tab" data-tab="consulta">Consulta</a>
+    <span class="nav-sep">│</span>
+    {% endif %}
+    <a href="/consumo" class="consumo-tab{{ '' if puede_entregar else ' activo' }}" data-tab="jornada">Jornada diaria</a>
+    <span class="nav-sep">│</span>
+    <a href="/consumo" class="consumo-tab" data-tab="reportes">Reportes</a>
+  </div>
+  {% endif %}
   {% if es_custodia and request.url.path == '/inventario/parametros' %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/inventario/parametros">Parámetros</a></span>
   <div class="nav-sub"><a href="/inventario/parametros" class="activo">⚙️ Parámetros</a></div>
@@ -105,7 +118,7 @@
   <a href="/design/parametros">⚙️ Parámetros</a>
   {% endif %}
   {% endif %}
-  {% if not es_custodia and not es_design and not es_caja and not es_caja_entrada %}
+  {% if not es_custodia and not es_design and not es_caja and not es_caja_entrada and not es_consumo %}
   {% set resumen = resumen_aprobaciones(user) %}
   {% if resumen is not none %}
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>
