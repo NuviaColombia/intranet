@@ -56,7 +56,7 @@
               {% for nombre in autorizadores %}<option value="{{ nombre }}">{{ nombre|nombre_propio }}</option>{% endfor %}
             </select>
             {% else %}
-            <select id="rAutoriza"><option value="">Sin autorizadores: agrégalos en Parámetros › Autorizan</option></select>
+            <select id="rAutoriza"><option value="">{{ 'Tú eres el único autorizador de esta caja y no puedes firmar tu propio recibo. Pide que agreguen a otra persona en Parámetros › Autorizan' if solo_yo_autorizo else 'Sin autorizadores: agrégalos en Parámetros › Autorizan' }}</option></select>
             {% endif %}</td>
         </tr>
       </table>
