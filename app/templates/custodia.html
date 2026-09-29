@@ -1596,91 +1596,13 @@ function imprimirHtmlEnIframe(htmlPrint, apaisado) {
 }
 
 // Firmas del documento impreso: correo Zoho de quien entrega (área salida) y de quien recibe (área entrada).
-function firmasHtml(t) {
-  var entrega = (t && t.entregaEmail) || "";
-  var recibe = (t && t.recibeEmail) || "Pendiente de confirmación";
-  return `<table class="firmas-table"><tr>
-    <td><div class="firma-nombre">${(t && t.entregaNombre) || ""}${(t && t.entregaNombre && t.entregaCargo) ? " · " + t.entregaCargo : ""}</div>_________________________________<br>Firma entregado:<div class="firma-correo">${entrega}</div></td>
-    <td><div class="firma-nombre">${(t && t.recibeNombre) || ""}${(t && t.recibeNombre && t.recibeCargo) ? " · " + t.recibeCargo : ""}</div>_________________________________<br>Firma recibido:<div class="firma-correo">${recibe}</div></td>
-  </tr></table>`;
-}
 
 function imprimirTicketIndividual() {
-  var consecutivo = document.getElementById("viewConsecutivo").innerText;
-  var colaborador = document.getElementById("viewColaborador").innerText;
-  var orden = document.getElementById("viewOrden").innerText;
-  var areaSalida = document.getElementById("viewAreaSalida").innerText;
-  var fecha = document.getElementById("viewFecha").innerText;
-  var areaEntrada = document.getElementById("viewAreaEntrada").innerText;
-  var areaCreacion = document.getElementById("viewAreaCreacion").innerText;
-  var hora = document.getElementById("viewHora").innerText;
-  var cantidad = document.getElementById("viewCantidad").innerText;
-  var motivo = document.getElementById("viewMotivo").innerText;
-
-  var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
-  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0;">Nuvia</h2>`;
-
-  var fechaAImprimir = (document.getElementById("viewFechaHeader").innerText || fecha).replace(/^Fecha:\s*/, "");
-
-  var htmlResumen = document.getElementById("viewResumenGeneral").innerHTML || "";
-  var htmlDiscos = document.getElementById("viewDetalleDiscos").innerHTML || "";
-  var htmlOP = document.getElementById("viewDetalleOP").innerHTML || "";
-
-  var printHtml = `
-      <html>
-      <head>
-        <style>
-          @media print {
-            @page { margin: 15mm; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F172A; }
-            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #CBD5E1; }
-            .header-table td { border: 1px solid #CBD5E1; padding: 10px; }
-            .header-logo { width: 25%; text-align: center; }
-            .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; }
-            .header-sub { font-size: 13px; color: #475569; font-weight: 600; }
-            .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
-            .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
-            .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
-            .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #1E293B; -webkit-print-color-adjust: exact; }
-            .grid-value { font-weight: 400; text-align: right; width: 17%; }
-            .grid-cons-label { background-color: #F8FAFC !important; font-weight: 700; -webkit-print-color-adjust: exact; }
-            .grid-cons-value { font-weight: 800; color: #EF4444 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
-            .grid-cant-value { font-weight: 400; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
-            .consulta-tabla { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
-            .consulta-tabla th { background-color: #1A365D !important; color: white !important; font-weight: 700; text-align: center; padding: 8px; border: 1px solid #CBD5E1; -webkit-print-color-adjust: exact; }
-            .consulta-tabla td { padding: 6px 8px; text-align: center; border: 1px solid #CBD5E1; }
-            .fila-totales td { background-color: #F0F4F8 !important; font-weight: 800; color: #1A365D !important; border-top: 1px solid #CBD5E1 !important; -webkit-print-color-adjust: exact; }
-            .firmas-table { width: 100%; margin-top: 40px; margin-bottom: 40px; font-size: 12px; font-weight: 700; page-break-inside: avoid; }
-            .firma-correo { font-weight: 400; font-size: 11px; color: #475569; margin-top: 3px; }
-            .firmas-table td { width: 33.3%; text-align: center; padding-top: 40px; }
-            .firma-nombre { font-weight: 400; font-size: 12px; min-height: 16px; margin-bottom: 2px; }
-            tr { page-break-inside: avoid; }
-          }
-        </style>
-      </head>
-      <body>
-          <table class="header-table">
-              <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">Cambio de custodia general<br><span class="header-sub">Producción</span></td><td class="header-meta">Código: F-PRO-40</td></tr>
-              <tr><td class="header-meta" style="border-top:none;">Versión: 02</td></tr>
-              <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">Fecha: ${fechaAImprimir}</td></tr>
-          </table>
-          <table class="grid-table">
-              <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">Consecutivo</td><td class="grid-cons-value">${consecutivo}</td></tr>
-              <tr><td class="grid-label">Colaborador</td><td class="grid-value">${colaborador}</td><td class="grid-label">Número de orden</td><td class="grid-value">${orden}</td><td class="grid-label">Área salida</td><td class="grid-value">${areaSalida}</td></tr>
-              <tr><td class="grid-label">Fecha</td><td class="grid-value">${fecha}</td><td class="grid-label">Área creación</td><td class="grid-value">${areaCreacion}</td><td class="grid-label">Área entrada</td><td class="grid-value">${areaEntrada}</td></tr>
-              <tr><td class="grid-label">Hora</td><td class="grid-value">${hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 400;">${motivo}</td></tr>
-          </table>
-          ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
-          ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
-
-          ${firmasHtml(registroActivoModal)}
-
-          ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
-      </body>
-      </html>
-  `;
-
-  imprimirHtmlEnIframe(printHtml);
+  if (!registroActivoModal) return;
+  var t = registroActivoModal;
+  custodiaApi('/custodia/api/detalles/' + t.id).then(function(det) {
+    generarHtmlDocumentoRango([{ traslado: t, detalles: det }]);
+  }).catch(function(e) { alert('No se pudo preparar la impresión: ' + e.message); });
 }
 
 // ---------------- IMPRESIÓN POR RANGO DE CONSECUTIVOS ----------------
@@ -1710,35 +1632,95 @@ function ejecutarImpresionRango() {
   }).catch(function(e) { btn.innerText = "Imprimir"; btn.disabled = false; alert('Error: ' + e.message); });
 }
 
+function _may(v) { return String(v == null ? '' : v).toUpperCase(); }
+function _num(v) { var n = parseFloat(v || 0); return n.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+
 function _tablaResumenHtml(resumen) {
   if (!resumen || resumen.length === 0) return "";
   var sum = 0;
-  var html = `<thead><tr><th>Orden</th><th>Descripción</th><th>Paciente</th><th>Total</th></tr></thead><tbody>`;
-  resumen.forEach(r => { sum += parseFloat(r.total || 0); html += `<tr><td>${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td>${r.total}</td></tr>`; });
-  html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">Total general</td><td>${sum}</td></tr></tbody>`;
+  var html = `<thead><tr><th style="width:14%">Orden</th><th>Descripción</th><th style="width:32%">Paciente</th><th style="width:14%">Total</th></tr></thead><tbody>`;
+  resumen.forEach(r => { sum += parseFloat(r.total || 0);
+    html += `<tr><td>${r.orden || ''}</td><td>${r.descripcion || ''}</td><td>${r.paciente || ''}</td><td class="verde">${r.total || ''}</td></tr>`; });
+  html += `<tr class="fila-totales"><td colspan="3" class="der">TOTAL GENERAL</td><td>${_num(sum)}</td></tr></tbody>`;
   return html;
 }
 
 function _tablaDiscosHtml(discos) {
   if (!discos || discos.length === 0) return "";
   var sumP = 0, sumD = 0;
-  var html = `<thead><tr><th>Detalle</th><th>Cant. paciente</th><th>Cant. discos</th></tr></thead><tbody>`;
-  discos.forEach(r => { sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0); html += `<tr><td>${r.detalle}</td><td>${r.cantPaciente}</td><td>${r.cantDiscos}</td></tr>`; });
-  html += `<tr class="fila-totales"><td style="text-align:right;">Total</td><td>${sumP}</td><td>${sumD.toFixed(2)}</td></tr></tbody>`;
+  var html = `<thead><tr><th>Detalle</th><th style="width:22%">Cant. paciente</th><th style="width:22%">Cant. discos</th></tr></thead><tbody>`;
+  discos.forEach(r => { sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0);
+    html += `<tr><td>${r.detalle || ''}</td><td>${r.cantPaciente || 0}</td><td class="verde">${r.cantDiscos || 0}</td></tr>`; });
+  html += `<tr class="fila-totales"><td class="der">TOTAL</td><td>${sumP}</td><td>${_num(sumD)}</td></tr></tbody>`;
   return html;
 }
 
 function _tablaOPHtml(op) {
   if (!op || op.length === 0) return "";
-  var html = `<thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Observaciones</th></tr></thead><tbody>`;
-  op.forEach(r => { html += `<tr><td>${r.orden}</td><td>${r.op}</td><td>${r.descripcion}</td><td>${r.tipo}</td><td>${r.observaciones}</td></tr>`; });
+  var html = `<thead><tr><th style="width:12%">Orden</th><th style="width:14%">OP</th><th>Descripción</th><th style="width:14%">Tipo</th><th style="width:24%">Observaciones</th></tr></thead><tbody>`;
+  op.forEach(r => { html += `<tr><td>${r.orden || ''}</td><td>${r.op || ''}</td><td><b>${r.descripcion || ''}</b></td><td>${r.tipo || ''}</td><td>${r.observaciones || ''}</td></tr>`; });
   html += `</tbody>`;
   return html;
 }
 
+// Firma electrónica: nombre, correo Zoho, fecha y hora (en todas las firmas)
+function _firmaHtml(titulo, nombre, correo, en, pendiente) {
+  var sello = correo
+    ? `<div class="fe">✅ FIRMADO ELECTRÓNICAMENTE</div><div class="fn">${_may(nombre)}${en ? ' / ' + en : ''}</div><div class="fc">${correo}</div>`
+    : `<div class="fe pend">${pendiente}</div>`;
+  return `<td><div class="esp"></div><div class="ln">${titulo}</div>${sello}</td>`;
+}
+
+function firmasHtml(t) {
+  t = t || {};
+  return `<table class="firmas-table"><tr>` +
+    _firmaHtml('FIRMA ÁREA SALIDA (ENTREGA)', t.entregaNombre, t.entregaEmail, t.entregaEn, 'SIN FIRMA') +
+    _firmaHtml('FIRMA ÁREA ENTRADA (RECIBIDO)', t.recibeNombre, t.recibeEmail, t.recibeEn, 'PENDIENTE DE CONFIRMACIÓN') +
+    `</tr></table>`;
+}
+
+var CSS_CUSTODIA = `
+  @page { size: letter portrait; margin: 12mm 12mm 14mm;
+          @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 8px Arial, Helvetica, sans-serif; color: #6B7280; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111827; font-size: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ticket-page { page-break-after: always; }
+  .ticket-page:last-child { page-break-after: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  .enc td { border: 1px solid #CBD5E1; padding: 6px 10px; }
+  .enc .logo { width: 20%; text-align: center; } .enc .logo img { max-height: 44px; }
+  .enc .tit { text-align: center; font-weight: 800; font-size: 13px; color: #1A365D; letter-spacing: .3px; }
+  .enc .sub { text-align: center; font-weight: 700; font-size: 9px; color: #475569; }
+  .enc .meta { width: 20%; text-align: right; font-weight: 700; font-size: 9px; color: #475569; }
+  .datos { margin-top: 12px; }
+  .datos td { border: 1px solid #CBD5E1; padding: 6px 8px; font-size: 9.5px; }
+  .datos td.vacia { border: none; }
+  .datos .etq { background: #F1F5F9; font-weight: 700; color: #475569; width: 15%; text-transform: uppercase; white-space: nowrap; }
+  .datos .val { text-align: right; font-weight: 700; width: 18.3%; text-transform: uppercase; }
+  .datos .cons { color: #EF4444; font-size: 13px; font-weight: 800; }
+  .datos .cant { color: #10B981; font-size: 13px; font-weight: 800; }
+  .anulado { margin-top: 10px; padding: 6px 10px; border: 1.5px solid #B91C1C; color: #B91C1C; font-weight: 800; text-align: center; }
+  h4 { margin: 16px 0 5px; font-size: 10.5px; font-weight: 800; color: #1A365D; text-transform: uppercase; letter-spacing: .3px; }
+  .consulta-tabla th { background: #1A365D; color: #FFFFFF; font-size: 8.5px; font-weight: 700; text-transform: uppercase; padding: 6px; border: 1px solid #CBD5E1; }
+  .consulta-tabla td { font-size: 9px; padding: 5px 6px; text-align: center; border: 1px solid #CBD5E1; }
+  .consulta-tabla td.verde { color: #10B981; font-weight: 700; }
+  .consulta-tabla td.der { text-align: right; }
+  .consulta-tabla thead { display: table-header-group; }
+  .fila-totales td { background: #F1F5F9; font-weight: 800; color: #111827; }
+  tr { page-break-inside: avoid; }
+  .firmas-table { margin-top: 26px; page-break-inside: avoid; }
+  .firmas-table td { width: 50%; text-align: center; vertical-align: top; padding: 0 22px; }
+  .firmas-table .esp { height: 42px; }
+  .firmas-table .ln { border-top: 1.5px solid #111827; padding-top: 5px; font-weight: 800; font-size: 9px; letter-spacing: .3px; }
+  .firmas-table .fe { margin-top: 3px; color: #10B981; font-weight: 800; font-size: 8.5px; }
+  .firmas-table .fe.pend { color: #92400E; }
+  .firmas-table .fn { margin-top: 2px; font-weight: 800; font-size: 8.5px; }
+  .firmas-table .fc { margin-top: 1px; font-size: 8px; color: #475569; }
+`;
+
 function generarHtmlDocumentoRango(tickets) {
   var logoImg = document.querySelector("#ticketImpresionIndividual .logo-cell img");
-  var displayLogo = logoImg ? `<img src="${logoImg.src}" style="max-height: 50px; object-fit: contain;">` : `<h2 style="color:#1A365D; margin:0;">Nuvia</h2>`;
+  var displayLogo = logoImg ? `<img src="${logoImg.src}">` : `<b style="color:#1A365D; font-size:16px;">NUVIA</b>`;
 
   var paginas = tickets.map(function(item) {
     var t = item.traslado, det = item.detalles || {};
@@ -1747,57 +1729,29 @@ function generarHtmlDocumentoRango(tickets) {
     var htmlOP = _tablaOPHtml(det.op);
     return `
       <div class="ticket-page">
-        <table class="header-table">
-            <tr><td class="header-logo" rowspan="3">${displayLogo}</td><td class="header-title" rowspan="2">Cambio de custodia general<br><span class="header-sub">Producción</span></td><td class="header-meta">Código: F-PRO-40</td></tr>
-            <tr><td class="header-meta" style="border-top:none;">Versión: 02</td></tr>
-            <tr><td style="text-align: center; color: transparent;">-</td><td class="header-meta" style="border-top:none;">Fecha: ${t.fecha}</td></tr>
+        <table class="enc">
+          <tr><td class="logo" rowspan="3">${displayLogo}</td><td class="tit" rowspan="2">CAMBIO DE CUSTODIA GENERAL</td><td class="meta">CÓDIGO: F-PRO-40</td></tr>
+          <tr><td class="meta">VERSIÓN: 02</td></tr>
+          <tr><td class="sub">PRODUCCIÓN</td><td class="meta">FECHA: ${t.fecha}</td></tr>
         </table>
-        <table class="grid-table">
-            <tr><td colspan="4" style="border: none;"></td><td class="grid-cons-label">Consecutivo</td><td class="grid-cons-value">${String(t.id).padStart(4,'0')}</td></tr>
-            <tr><td class="grid-label">Colaborador</td><td class="grid-value">${nombrePropio(t.colaborador)}</td><td class="grid-label">Número de orden</td><td class="grid-value">${t.ordenes}</td><td class="grid-label">Área salida</td><td class="grid-value">${nombrePropio(t.areaSalida)}</td></tr>
-            <tr><td class="grid-label">Fecha</td><td class="grid-value">${t.fecha}</td><td class="grid-label">Área creación</td><td class="grid-value">${nombrePropio(t.areaCreacion)}</td><td class="grid-label">Área entrada</td><td class="grid-value">${nombrePropio(t.areaEntrada)}</td></tr>
-            <tr><td class="grid-label">Hora</td><td class="grid-value">${t.hora}</td><td class="grid-label">Cantidad discos</td><td class="grid-cant-value">${t.cantidad}</td><td class="grid-label">Estado</td><td class="grid-value" style="font-weight: 400;">${t.estado}</td></tr>
+        <table class="datos">
+          <tr><td class="vacia" colspan="4"></td><td class="etq">Consecutivo</td><td class="val cons">${String(t.id).padStart(4, '0')}</td></tr>
+          <tr><td class="etq">Colaborador</td><td class="val">${_may(t.colaborador)}</td><td class="etq">Número de orden</td><td class="val">${_may(t.ordenes)}</td><td class="etq">Área salida</td><td class="val">${_may(t.areaSalida)}</td></tr>
+          <tr><td class="etq">ID colaborador</td><td class="val">${t.idColaborador || ''}</td><td class="etq">Fecha</td><td class="val">${t.fecha}</td><td class="etq">Área entrada</td><td class="val">${_may(t.areaEntrada)}</td></tr>
+          <tr><td class="etq">Área creación</td><td class="val">${_may(t.areaCreacion)}</td><td class="etq">Hora</td><td class="val">${t.hora}</td><td class="etq">Cantidad discos</td><td class="val cant">${t.cantidad}</td></tr>
+          <tr><td class="vacia" colspan="2"></td><td class="etq">Usuario</td><td class="val">${_may(t.usuario)}</td><td class="etq">Motivo</td><td class="val">${_may(t.motivo)}</td></tr>
         </table>
-        ${htmlResumen ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
-        ${htmlDiscos ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
+        ${t.anulado ? `<div class="anulado">DOCUMENTO ANULADO${t.anuladoPor ? ' POR ' + _may(t.anuladoPor) : ''}${t.anuladoEn ? ' EL ' + t.anuladoEn : ''}${t.motivoAnulacion ? ' — ' + t.motivoAnulacion : ''}</div>` : ''}
+        ${htmlResumen ? `<h4>Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
+        ${htmlDiscos ? `<h4>Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
+        ${htmlOP ? `<h4>Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
         ${firmasHtml(t)}
-        ${htmlOP ? `<h4 style="color:#1A365D; margin-bottom:5px; font-size:12px;">Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
       </div>
     `;
   }).join("");
 
-  var printHtml = `
-    <html><head><style>
-      @media print {
-        @page { margin: 15mm; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F172A; }
-        .ticket-page { page-break-after: always; }
-        .ticket-page:last-child { page-break-after: auto; }
-        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #CBD5E1; }
-        .header-table td { border: 1px solid #CBD5E1; padding: 10px; }
-        .header-logo { width: 25%; text-align: center; }
-        .header-title { text-align: center; font-weight: 800; font-size: 16px; color: #1A365D; }
-        .header-sub { font-size: 13px; color: #475569; font-weight: 600; }
-        .header-meta { width: 25%; text-align: right; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.8; }
-        .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11px; border: 1px solid #CBD5E1; }
-        .grid-table td { border: 1px solid #CBD5E1; padding: 8px 12px; }
-        .grid-label { background-color: #F8FAFC !important; font-weight: 700; width: 16%; color: #1E293B; -webkit-print-color-adjust: exact; }
-        .grid-value { font-weight: 400; text-align: right; width: 17%; }
-        .grid-cons-label { background-color: #F8FAFC !important; font-weight: 700; -webkit-print-color-adjust: exact; }
-        .grid-cons-value { font-weight: 800; color: #EF4444 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
-        .grid-cant-value { font-weight: 400; color: #10B981 !important; font-size: 14px; text-align: right; -webkit-print-color-adjust: exact; }
-        .consulta-tabla { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
-        .consulta-tabla th { background-color: #1A365D !important; color: white !important; font-weight: 700; text-align: center; padding: 8px; border: 1px solid #CBD5E1; -webkit-print-color-adjust: exact; }
-        .consulta-tabla td { padding: 6px 8px; text-align: center; border: 1px solid #CBD5E1; }
-        .fila-totales td { background-color: #F0F4F8 !important; font-weight: 800; color: #1A365D !important; border-top: 1px solid #CBD5E1 !important; -webkit-print-color-adjust: exact; }
-        .firmas-table { width: 100%; margin-top: 40px; margin-bottom: 20px; font-size: 12px; font-weight: 700; page-break-inside: avoid; }
-            .firma-correo { font-weight: 400; font-size: 11px; color: #475569; margin-top: 3px; }
-        .firmas-table td { width: 33.3%; text-align: center; padding-top: 40px; }
-            .firma-nombre { font-weight: 400; font-size: 12px; min-height: 16px; margin-bottom: 2px; }
-        tr { page-break-inside: avoid; }
-      }
-    </style></head><body>${paginas}</body></html>
-  `;
+  var printHtml = `<html><head><title>Cambio de Custodia - Nuvia Smiles</title><style>${CSS_CUSTODIA}</style></head><body>${paginas}</body></html>`;
+  if (window.__vistaPreviaImpresion) { window.__vistaPreviaImpresion(printHtml); return; }
 
   var iframe = document.createElement('iframe');
   iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';

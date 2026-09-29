@@ -280,6 +280,11 @@ def _nombre_firma(emp) -> str:
     return nombre_propio(" ".join(p[0] for p in partes if p))
 
 
+def _hora_firma(momento: datetime | None) -> str:
+    """UTC → hora Colombia (UTC-5) con el formato de las firmas: 28/09/2026 07:24 PM."""
+    return (momento - timedelta(hours=5)).strftime("%d/%m/%Y %I:%M %p") if momento else ""
+
+
 def serializar_traslado(t: CustodiaTraslado) -> dict:
     return {
         "id": t.id, "colaborador": t.colaborador, "idColaborador": t.id_colaborador,
@@ -297,6 +302,9 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
         "recibeEmail": t.confirmado_por.email if (t.confirmado_entrada and t.confirmado_por) else "",
         "recibeNombre": _nombre_firma(t.confirmado_por) if t.confirmado_entrada else "",
         "recibeCargo": cargo_people(t.confirmado_por) if t.confirmado_entrada else "",
+        # Fecha y hora de cada firma (hora Colombia), como en el formato impreso
+        "entregaEn": _hora_firma(t.creado_en) if t.creado_por else "",
+        "recibeEn": _hora_firma(t.confirmado_en) if t.confirmado_entrada else "",
         # Anulación: quién, cuándo y por qué
         "anuladoPor": nombre_propio(t.anulado_por.nombre_completo) if (t.anulado and t.anulado_por) else "",
         # anulado_en se guarda en UTC; Colombia es UTC-5 (sin horario de verano)
