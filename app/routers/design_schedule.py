@@ -1130,6 +1130,19 @@ async def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado =
 @router.post("/design/api/canvas/docs/{doc_id}/eliminar")
 async def api_canvas_eliminar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
-    if not sd.canvas_eliminar_doc(db, doc_id, user.nombre_completo):
+    trash_id = sd.canvas_eliminar_doc(db, doc_id, user.nombre_completo, user.id)
+    if not trash_id:
         raise HTTPException(404, "No encontrada.")
-    return {"mensaje": "Eliminada."}
+    return {"mensaje": "Eliminada.", "papeleraId": trash_id}
+
+
+@router.post("/design/api/canvas/deshacer/{trash_id}")
+async def api_canvas_deshacer(trash_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                              db: Session = Depends(get_db)):
+    r = sd.canvas_deshacer_eliminar(db, trash_id, user.id)
+    if r == "ok":
+        return {"mensaje": "Hoja restaurada."}
+    mensajes = {"no-existe": "La hoja ya no está en la Papelera.", "ajena": "Solo quien borró la hoja puede deshacerlo.",
+                "vencido": "Pasó el tiempo para deshacer; pídele a un líder que la restaure desde la Papelera.",
+                "error": "No se pudo restaurar la hoja."}
+    raise HTTPException(400, mensajes.get(r, "No se pudo restaurar la hoja."))

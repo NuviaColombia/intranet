@@ -312,6 +312,14 @@
   #ov-canvas .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
   #ov-canvas .ds-overlay-inner > h1, #ov-canvas .ds-overlay-inner > p { padding-right:56px; }
   #canvasHome{ margin:0 auto; }
+  .cv-aviso { position:fixed; left:50%; bottom:24px; transform:translate(-50%, 20px); z-index:450; display:flex; align-items:center; gap:12px;
+              background:#111827; color:#fff; padding:10px 12px 10px 16px; border-radius:10px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.3);
+              opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; }
+  .cv-aviso.open { opacity:1; transform:translate(-50%, 0); pointer-events:auto; }
+  .cv-aviso-btn { background:#fff; color:#1d4ed8; border:none; border-radius:6px; padding:5px 12px; font-weight:700; cursor:pointer; font-size:12.5px; width:auto; margin:0; }
+  .cv-aviso-btn:disabled { opacity:.6; cursor:default; }
+  .cv-aviso-x { background:none; border:none; color:#9ca3af; cursor:pointer; font-size:13px; padding:2px 4px; width:auto; margin:0; }
+  .cv-aviso-x:hover { color:#fff; }
   .cv-area-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
   .cv-area-tab{ padding:8px 16px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:13px; }
   .cv-area-tab.activo{ background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
@@ -3315,12 +3323,46 @@ window.DS_PANELS.dashboard = ddCargar;
         cvRender();
       });
   }
+  // Eliminar hoja: pide confirmación y luego muestra un aviso con "Deshacer" (10 s).
+  // Devuelve true si se eliminó (el panel de hojas lo usa para pasar a una hoja vecina).
   function cvDeleteDoc(id) {
-    var idx = CANVAS.docs.findIndex(function(x) { return x.id === id; }); if (idx < 0) return;
+    var idx = CANVAS.docs.findIndex(function(x) { return x.id === id; }); if (idx < 0) return false;
+    var nombre = CANVAS.docs[idx].name || CANVAS.docs[idx].title || 'Hoja';
+    if (!confirm('¿Eliminar la hoja "' + nombre + '"? Podrás deshacerlo en el aviso que aparece abajo.')) return false;
+    var areaId = CV.areaId;
     CANVAS.docs.splice(idx, 1);
     if (CANVAS.activeId === id) { CANVAS.view = "home"; CANVAS.activeId = null; }
     cvRender();
-    postJSON('/design/api/canvas/docs/' + id + '/eliminar');
+    fetch('/design/api/canvas/docs/' + id + '/eliminar', {method: 'POST'})
+      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo eliminar.'); return d; }); })
+      .then(function(r) { cvAvisoDeshacer(nombre, r.papeleraId, areaId); })
+      .catch(function(e) { alert(e.message); cvLoadDocs(areaId).then(cvRender); });
+    return true;
+  }
+  var cvAvisoTimer = null;
+  function cvAviso(html, conDeshacer) {
+    var v = document.getElementById('cvAviso');
+    if (!v) { v = document.createElement('div'); v.id = 'cvAviso'; v.className = 'cv-aviso'; v.setAttribute('role', 'status'); document.body.appendChild(v); }
+    v.innerHTML = html; v.classList.add('open');
+    clearTimeout(cvAvisoTimer);
+    cvAvisoTimer = setTimeout(function() { v.classList.remove('open'); }, conDeshacer ? 10000 : 3500);
+    return v;
+  }
+  function cvAvisoDeshacer(nombre, papeleraId, areaId) {
+    var v = cvAviso('<span>🗑️ Hoja <b></b> eliminada</span><button type="button" class="cv-aviso-btn">Deshacer</button><button type="button" class="cv-aviso-x" title="Cerrar">✕</button>', true);
+    v.querySelector('b').textContent = '"' + nombre + '"';
+    v.querySelector('.cv-aviso-x').onclick = function() { v.classList.remove('open'); };
+    var btn = v.querySelector('.cv-aviso-btn');
+    btn.onclick = function() {
+      btn.disabled = true;
+      fetch('/design/api/canvas/deshacer/' + papeleraId, {method: 'POST'})
+        .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo restaurar.'); return d; }); })
+        .then(function() {
+          cvAviso('<span>✅ Hoja restaurada</span>', false);
+          if (CV.areaId === areaId) cvLoadDocs(areaId).then(cvRender);
+        })
+        .catch(function(e) { cvAviso('<span></span>', false).querySelector('span').textContent = '⚠️ ' + e.message; });
+    };
   }
   function cvDuplicateDoc(id) {
     postJSON('/design/api/canvas/docs/' + id + '/duplicar').then(function(r) {
@@ -3617,7 +3659,7 @@ window.DS_PANELS.dashboard = ddCargar;
   function cvRailDelete(id) {
     var idx = CANVAS.docs.findIndex(function(d) { return String(d.id) === String(id); }); if (idx < 0) return;
     var wasActive = String(CANVAS.activeId) === String(id);
-    cvDeleteDoc(parseInt(id));
+    if (!cvDeleteDoc(parseInt(id))) return;
     if (wasActive && CANVAS.docs.length) { var ni = Math.min(idx, CANVAS.docs.length - 1); cvOpenDoc(CANVAS.docs[ni].id); }
   }
   function cvToggleRail() {

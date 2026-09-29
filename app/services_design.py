@@ -1410,9 +1410,11 @@ def perf_guardar_celda_seleccion(db: Session, fila_id: int, mes_indice: int,
 # Papelera (Trash)
 # ---------------------------------------------------------------------------
 
-def _trash_registrar(db: Session, modulo: str, etiqueta: str, payload: dict, eliminado_por: str) -> None:
-    db.add(DesignTrash(modulo=modulo, etiqueta=etiqueta, payload=json.dumps(payload, ensure_ascii=False),
-                       eliminado_por=eliminado_por or "Sistema"))
+def _trash_registrar(db: Session, modulo: str, etiqueta: str, payload: dict, eliminado_por: str) -> DesignTrash:
+    t = DesignTrash(modulo=modulo, etiqueta=etiqueta, payload=json.dumps(payload, ensure_ascii=False),
+                    eliminado_por=eliminado_por or "Sistema")
+    db.add(t)
+    return t
 
 
 def trash_listar(db: Session) -> list[DesignTrash]:
@@ -1833,15 +1835,33 @@ def canvas_mover_doc(db: Session, doc_id: int, target_id: int) -> bool:
     return True
 
 
-def canvas_eliminar_doc(db: Session, doc_id: int, eliminado_por: str = "") -> bool:
+def canvas_eliminar_doc(db: Session, doc_id: int, eliminado_por: str = "", empleado_id: int | None = None) -> int | None:
+    """Envía la hoja a la Papelera y devuelve el id de esa entrada (para "Deshacer"), o None si no existe."""
     d = db.get(DesignCanvasDoc, doc_id)
     if not d:
-        return False
-    payload = {"area_id": d.area_id, "orden": d.orden, "doc": canvas_serializar(d)}
-    _trash_registrar(db, "cv-doc", f'Hoja de Canvas "{d.nombre}"', payload, eliminado_por)
+        return None
+    payload = {"area_id": d.area_id, "orden": d.orden, "doc": canvas_serializar(d), "eliminado_por_id": empleado_id}
+    t = _trash_registrar(db, "cv-doc", f'Hoja de Canvas "{d.nombre}"', payload, eliminado_por)
     db.delete(d)
     db.commit()
-    return True
+    return t.id
+
+
+CANVAS_DESHACER_MINUTOS = 10
+
+
+def canvas_deshacer_eliminar(db: Session, trash_id: int, empleado_id: int) -> str:
+    """'Deshacer' tras borrar una hoja de Canvas: cualquier persona puede recuperar SU propia hoja
+    recién borrada (hasta 10 min); lo demás sigue en la Papelera, que es solo para líderes.
+    Devuelve 'ok' | 'no-existe' | 'ajena' | 'vencido' | 'error'."""
+    t = db.get(DesignTrash, trash_id)
+    if not t or t.modulo != "cv-doc":
+        return "no-existe"
+    if _json(t.payload, {}).get("eliminado_por_id") != empleado_id:
+        return "ajena"
+    if datetime.utcnow() - t.eliminado_en > timedelta(minutes=CANVAS_DESHACER_MINUTOS):
+        return "vencido"
+    return "ok" if trash_restaurar(db, trash_id) else "error"
 
 
 # ---------------------------------------------------------------------------
