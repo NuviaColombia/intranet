@@ -37,6 +37,7 @@
   .cp-estado.no { background:#e5e7eb; color:var(--gris); }
   .cp-aviso-cargo { font-size:11px; color:var(--ambar); margin-top:2px; }
   .cp-vacio { text-align:center; color:var(--gris); padding:18px !important; }
+  .cp-panel .btn:disabled { opacity:.45; cursor:not-allowed; }
 </style>
 
 <div class="cp-titulo">
@@ -248,6 +249,71 @@
     {% endfor %}
   </table>
 </div>
+
+{# ---------- Cambio de custodia: saldos iniciales ---------- #}
+<div class="cp-panel" id="panel-saldos">
+  <div class="cp-ayuda" style="max-width:900px">
+    Carga el <b>inventario inicial</b>: en qué área está cada orden y con qué cantidad de discos. Copia de tu Excel las tres columnas
+    <b>No ORDEN · CANTIDAD · ÁREA</b> y pégalas aquí (una orden por fila; sirve con o sin la fila de títulos, y con coma decimal).
+    Las áreas deben existir en la pestaña 🏭 Áreas. Cada orden queda recibida en su área y se puede seguir trasladando normalmente.
+  </div>
+  {% if saldos_cargados %}
+  <div style="margin:12px 0; padding:12px 14px; border-radius:8px; background:#dcfce7; color:#14532d; font-size:13px; max-width:900px;">
+    ✅ Los saldos iniciales ya están cargados ({{ saldos_cargados }} área(s)). Míralos en Cambio de custodia › Estado órdenes.
+    Si necesitas volver a cargarlos, usa primero <b>🧹 Limpiar pruebas</b>.
+  </div>
+  {% else %}
+  <form method="post" action="/inventario/parametros/custodia/saldos" style="max-width:900px"
+        onsubmit="return confirm('¿Cargar ' + (window.saldosFilas || 0) + ' órdenes como saldo inicial con fecha de corte ' + document.getElementById('saldos-fecha').value.split('-').reverse().join('/') + '?');">
+    <textarea name="texto" id="saldos-texto" rows="10" style="width:100%; font-family:Consolas,monospace; font-size:13px;"
+              placeholder="No ORDEN&#9;CANTIDAD&#9;AREA&#10;510&#9;1&#9;DAMAGE&#10;85&#9;0,5&#9;GLAZE">{{ texto_saldos }}</textarea>
+    <div id="saldos-vista" style="margin:10px 0; font-size:13px;"></div>
+    <div style="display:flex; align-items:end; gap:12px; flex-wrap:wrap;">
+      <div><label style="display:block; font-size:12px; font-weight:700;">Fecha de corte</label>
+        <input type="date" name="fecha_corte" id="saldos-fecha" required style="width:auto"
+               title="Los saldos quedan registrados en esta fecha (00:00): los traslados de ese día o posteriores se suman después."></div>
+      <button class="btn mini" id="saldos-boton" disabled>📥 Cargar saldos iniciales</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+<script>
+(function() {
+  var ta = document.getElementById('saldos-texto');
+  if (!ta) return;
+  var AREAS = {{ areas_config|tojson }};
+  function leer(texto) {
+    var filas = [], errores = [];
+    texto.split(/\r?\n/).forEach(function(linea, i) {
+      if (!linea.trim()) return;
+      var p = linea.indexOf('\t') >= 0 ? linea.split('\t') : (linea.indexOf(';') >= 0 ? linea.split(';') : linea.trim().split(/\s+/));
+      p = p.map(function(x) { return x.trim(); }).filter(function(x) { return x !== ''; });
+      if (p.length < 3) { errores.push('Fila ' + (i + 1) + ': faltan datos'); return; }
+      var orden = p[0].toUpperCase(), txt = p[1], area = p.slice(2).join(' ').toUpperCase();
+      var cant = parseFloat(txt.indexOf(',') >= 0 ? txt.replace(/\./g, '').replace(',', '.') : txt);
+      if (isNaN(cant)) { if (!filas.length) return; errores.push('Fila ' + (i + 1) + ': cantidad «' + txt + '» no es un número'); return; }
+      if (AREAS.indexOf(area) < 0) { errores.push('Fila ' + (i + 1) + ': el área «' + area + '» no existe'); return; }
+      filas.push({orden: orden, cant: cant, area: area});
+    });
+    return {filas: filas, errores: errores};
+  }
+  function pintar() {
+    var r = leer(ta.value), porArea = {}, total = 0;
+    r.filas.forEach(function(f) { porArea[f.area] = (porArea[f.area] || 0) + f.cant; total += f.cant; });
+    window.saldosFilas = r.filas.length;
+    var html = r.filas.length ? '<table class="cp-tabla" style="max-width:520px"><tr><th>Área</th><th style="text-align:right">Órdenes</th><th style="text-align:right">Discos</th></tr>' +
+      Object.keys(porArea).map(function(a) {
+        var n = r.filas.filter(function(f) { return f.area === a; }).length;
+        return '<tr><td>' + a + '</td><td style="text-align:right">' + n + '</td><td style="text-align:right">' + porArea[a].toLocaleString('es-CO') + '</td></tr>';
+      }).join('') + '<tr><td><b>Total</b></td><td style="text-align:right"><b>' + r.filas.length + '</b></td><td style="text-align:right"><b>' +
+      total.toLocaleString('es-CO') + '</b></td></tr></table>' : '';
+    if (r.errores.length) html += '<div class="aviso error" style="margin-top:8px">' + r.errores.slice(0, 8).join('<br>') + '</div>';
+    document.getElementById('saldos-vista').innerHTML = html;
+    document.getElementById('saldos-boton').disabled = !r.filas.length || r.errores.length > 0;
+  }
+  ta.addEventListener('input', pintar); pintar();
+})();
+</script>
 
 {# ---------- Cambio de custodia: limpiar registros de prueba ---------- #}
 <div class="cp-panel" id="panel-limpiar">

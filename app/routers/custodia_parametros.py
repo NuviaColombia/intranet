@@ -55,7 +55,11 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "registros": {"traslados": db.query(CustodiaTraslado).count(),
                                                      "ordenes": db.query(CustodiaOrdenLinea).count(),
                                                      "ultimo": db.query(CustodiaTraslado.id).order_by(CustodiaTraslado.id.desc()).limit(1).scalar()},
+                                       "saldos_cargados": sc.saldos_ya_cargados(db),
+                                       "areas_config": [a.nombre for a in areas if a.activo],
+                                       "texto_saldos": request.query_params.get("texto", ""),
                                        "conteo_panel": {"limpiar": db.query(CustodiaTraslado).count(),
+                                                        "saldos": sc.saldos_ya_cargados(db),
                                                         "managers": len(managers), "areas": len(areas), "discos": len(discos),
                                                         "motivos": len(motivos)},
                                        "resumen": resumen, "por_empleado": por_empleado,
@@ -140,13 +144,23 @@ def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Sessi
                       alerta_horas_advertencia: int = Form(24), alerta_horas_critica: int = Form(48)):
     a = db.get(CustodiaArea, area_id)
     if a:
-        a.nombre = nombre.strip().upper()
+        anterior, nuevo = a.nombre, nombre.strip().upper()
+        if nuevo and nuevo != anterior:
+            if db.query(CustodiaArea).filter(CustodiaArea.nombre == nuevo, CustodiaArea.id != a.id).first():
+                return RedirectResponse(f"/inventario/parametros?tab=areas&msg=No se guardó: ya existe un área llamada {nuevo}.",
+                                        status_code=303)
+            # Los registros guardan el nombre del área: se renombra en todos para no perder su historial
+            for campo in (CustodiaTraslado.area_salida, CustodiaTraslado.area_entrada, CustodiaTraslado.area_creacion):
+                db.query(CustodiaTraslado).filter(campo == anterior).update({campo: nuevo}, synchronize_session=False)
+            db.query(Empleado).filter(Empleado.area_custodia == anterior).update({Empleado.area_custodia: nuevo},
+                                                                                 synchronize_session=False)
+        a.nombre = nuevo or anterior
         # EMPAQUE siempre cuenta como inventario (regla de negocio; también se aplica al arrancar la app)
         a.es_inventario = 1 if (es_inventario or a.nombre == "EMPAQUE") else 0
         a.alerta_horas_advertencia = alerta_horas_advertencia
         a.alerta_horas_critica = alerta_horas_critica
         db.commit()
-    return RedirectResponse("/inventario/parametros?msg=Área actualizada.", status_code=303)
+    return RedirectResponse("/inventario/parametros?tab=areas&msg=Área actualizada.", status_code=303)
 
 
 @router.post("/inventario/parametros/areas/{area_id}/toggle")
@@ -256,3 +270,32 @@ def limpiar_registros(user: Empleado = Depends(require_admin), db: Session = Dep
     print(f"[Custodia] {user.email} borró {total} traslados de prueba y reinició el consecutivo.")
     return RedirectResponse(f"/inventario/parametros?tab=limpiar&msg=Listo: se borraron {total} traslados de prueba. "
                             "El próximo consecutivo es el 0001.", status_code=303)
+
+
+# ---------- Saldos iniciales ----------
+
+@router.post("/inventario/parametros/custodia/saldos")
+def cargar_saldos_iniciales(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                            texto: str = Form(""), fecha_corte: str = Form("")):
+    """Carga el inventario inicial: en qué área está cada orden y con qué cantidad (pegado desde Excel)."""
+    from urllib.parse import quote
+    if sc.saldos_ya_cargados(db):
+        return RedirectResponse("/inventario/parametros?tab=saldos&msg=No se cargó: los saldos iniciales ya se cargaron. "
+                                "Para volver a cargarlos, usa primero 🧹 Limpiar pruebas.", status_code=303)
+    from datetime import date as _date
+    try:
+        corte = _date.fromisoformat(fecha_corte)
+    except ValueError:
+        return RedirectResponse(f"/inventario/parametros?tab=saldos&texto={quote(texto)}&msg=No se cargó nada: elige la fecha de corte.",
+                                status_code=303)
+    activas = [a.nombre for a in db.query(CustodiaArea).filter(CustodiaArea.activo == 1).order_by(CustodiaArea.orden)]
+    filas, errores = sc.leer_saldos(texto, activas)
+    if errores or not filas:
+        detalle = " · ".join(errores[:6]) if errores else "no hay filas para cargar."
+        return RedirectResponse(f"/inventario/parametros?tab=saldos&texto={quote(texto)}&msg=No se cargó nada: {quote(detalle)}",
+                                status_code=303)
+    creados = sc.cargar_saldos(db, user, filas, corte)
+    total = sum(f["cantidad"] for f in filas)
+    print(f"[Custodia] {user.email} cargó saldos iniciales al {corte}: {len(filas)} órdenes en {len(creados)} áreas ({total:g} discos).")
+    return RedirectResponse(f"/inventario/parametros?tab=saldos&msg=Listo: se cargaron {len(filas)} órdenes en {len(creados)} áreas "
+                            f"({total:g} discos) con fecha de corte {corte.strftime('%d/%m/%Y')}. Ya aparecen en Estado órdenes y Dashboard.", status_code=303)
