@@ -270,7 +270,6 @@
   {% if saldos_cargados %}
   <div style="margin:12px 0; padding:12px 14px; border-radius:8px; background:#dcfce7; color:#14532d; font-size:13px; max-width:900px;">
     ✅ Los saldos iniciales ya están cargados ({{ saldos_cargados }} área(s)). Míralos en Cambio de custodia › Estado órdenes.
-    Si necesitas volver a cargarlos, usa primero <b>🧹 Limpiar pruebas</b>.
   </div>
   {% else %}
   <form method="post" action="/inventario/parametros/custodia/saldos" style="max-width:900px"
@@ -324,28 +323,6 @@
   ta.addEventListener('input', pintar); pintar();
 })();
 </script>
-
-{# ---------- Cambio de custodia: limpiar registros de prueba ---------- #}
-<div class="cp-panel" id="panel-limpiar">
-  <div class="cp-ayuda" style="max-width:860px">
-    Borra <b>todos</b> los registros de Cambio de custodia para empezar de cero: traslados con sus órdenes, resúmenes, discos y OP.
-    El <b>consecutivo vuelve a empezar en 0001</b>. <b>No</b> se tocan las áreas, el catálogo de discos, los motivos ni los accesos.
-  </div>
-  <div style="margin:12px 0; padding:12px 14px; border-radius:8px; background:#fef3c7; color:#92400e; font-size:13px; max-width:860px;">
-    ⚠️ Esto <b>no se puede deshacer</b>. Úsalo solo para quitar las pruebas antes de empezar a trabajar de verdad.
-    Hoy hay <b>{{ registros.traslados }}</b> traslado(s) y <b>{{ registros.ordenes }}</b> orden(es) registradas{% if registros.ultimo %}; el último consecutivo es el <b>{{ '%04d'|format(registros.ultimo) }}</b>{% endif %}.
-  </div>
-  {% if registros.traslados %}
-  <form method="post" action="/inventario/parametros/custodia/limpiar" class="cp-form-nuevo" style="max-width:860px"
-        onsubmit="return confirm('¿Seguro? Se borrarán los {{ registros.traslados }} traslados de Cambio de custodia y el consecutivo volverá a 0001. No se puede deshacer.');">
-    <div style="flex:1;min-width:260px"><label>Para confirmar escribe <b>BORRAR TODO</b></label>
-      <input name="confirmacion" autocomplete="off" placeholder="Escribe aquí la confirmación" style="width:100%"></div>
-    <div><button class="btn rojo mini">🧹 Borrar todos los registros</button></div>
-  </form>
-  {% else %}
-  <div class="cp-vacio">No hay registros: el próximo traslado será el 0001.</div>
-  {% endif %}
-</div>
 
 <script>
 (function() {

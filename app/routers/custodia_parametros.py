@@ -6,8 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
-from ..models_custodia import (CustodiaArea, CustodiaMotivo, CustodiaFactorDisco, CustodiaTraslado, CustodiaOrdenLinea,
-                               CustodiaResumen, CustodiaDiscos, CustodiaOP)
+from ..models_custodia import CustodiaArea, CustodiaMotivo, CustodiaFactorDisco, CustodiaTraslado, CustodiaOrdenLinea
 from ..auth import require_admin
 from ..database import SessionLocal, engine
 from ..acceso_produccion import ProduccionAcceso, asegurar_tabla_y_migrar, MODULO_PRODUCCION
@@ -133,14 +132,10 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "secciones_cfg": secciones_cfg, "administradores": administradores,
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
-                                       "registros": {"traslados": db.query(CustodiaTraslado).count(),
-                                                     "ordenes": db.query(CustodiaOrdenLinea).count(),
-                                                     "ultimo": db.query(CustodiaTraslado.id).order_by(CustodiaTraslado.id.desc()).limit(1).scalar()},
                                        "saldos_cargados": sc.saldos_ya_cargados(db),
                                        "areas_config": [a.nombre for a in areas if a.activo],
                                        "texto_saldos": request.query_params.get("texto", ""),
-                                       "conteo_panel": {"limpiar": db.query(CustodiaTraslado).count(),
-                                                        "saldos": sc.saldos_ya_cargados(db),
+                                       "conteo_panel": {"saldos": sc.saldos_ya_cargados(db),
                                                         "managers": len(managers), "areas": len(areas), "discos": len(discos),
                                                         "motivos": len(motivos),
                                                         "c_accesos": len(consumo["accesos"]),
@@ -325,40 +320,6 @@ def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: S
     return RedirectResponse("/inventario/parametros", status_code=303)
 
 
-# ---------- Limpiar registros de prueba ----------
-
-TABLAS_REGISTROS = [CustodiaOP, CustodiaDiscos, CustodiaResumen, CustodiaOrdenLinea, CustodiaTraslado]  # hijas primero
-CONFIRMACION_LIMPIAR = "BORRAR TODO"
-
-
-@router.post("/inventario/parametros/custodia/limpiar")
-def limpiar_registros(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                      confirmacion: str = Form("")):
-    """Borra TODOS los registros de Cambio de custodia (traslados con sus órdenes, resúmenes, discos y OP) y
-    reinicia el consecutivo en 1. No toca áreas, catálogo de discos, motivos ni accesos. Solo administradores."""
-    from sqlalchemy import text
-    if confirmacion.strip().upper() != CONFIRMACION_LIMPIAR:
-        return RedirectResponse(f"/inventario/parametros?tab=limpiar&msg=No se borró nada: escribe {CONFIRMACION_LIMPIAR} para confirmar.",
-                                status_code=303)
-    total = db.query(CustodiaTraslado).count()
-    for modelo in TABLAS_REGISTROS:
-        db.query(modelo).delete(synchronize_session=False)
-    # El consecutivo es el id del traslado: se reinicia el contador de la base para que el próximo sea el 1
-    if db.bind.dialect.name == "postgresql":
-        for modelo in TABLAS_REGISTROS:
-            db.execute(text(f"SELECT setval(pg_get_serial_sequence('{modelo.__tablename__}', 'id'), 1, false)"))
-    elif db.bind.dialect.name == "sqlite":
-        try:
-            nombres = ", ".join(f"'{m.__tablename__}'" for m in TABLAS_REGISTROS)
-            db.execute(text(f"DELETE FROM sqlite_sequence WHERE name IN ({nombres})"))
-        except Exception:
-            pass  # sin AUTOINCREMENT: el siguiente id ya es max + 1
-    db.commit()
-    print(f"[Custodia] {user.email} borró {total} traslados de prueba y reinició el consecutivo.")
-    return RedirectResponse(f"/inventario/parametros?tab=limpiar&msg=Listo: se borraron {total} traslados de prueba. "
-                            "El próximo consecutivo es el 0001.", status_code=303)
-
-
 # ---------- Saldos iniciales ----------
 
 @router.post("/inventario/parametros/custodia/saldos")
@@ -368,7 +329,7 @@ def cargar_saldos_iniciales(user: Empleado = Depends(require_admin), db: Session
     from urllib.parse import quote
     if sc.saldos_ya_cargados(db):
         return RedirectResponse("/inventario/parametros?tab=saldos&msg=No se cargó: los saldos iniciales ya se cargaron. "
-                                "Para volver a cargarlos, usa primero 🧹 Limpiar pruebas.", status_code=303)
+                                "Si necesitas corregirlos, pide ayuda a sistemas.", status_code=303)
     from datetime import date as _date
     try:
         corte = _date.fromisoformat(fecha_corte)
