@@ -129,6 +129,12 @@ class CajaRecibo(Base):
     firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # UTC
     aviso_ok: Mapped[int | None] = mapped_column(Integer, nullable=True)       # último aviso por Cliq: 1 enviado, 0 falló
     aviso_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Firma de recibido: si el No. identificación es de un colaborador de People, él firma que recibió el dinero
+    recibido_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
+    recibido_email: Mapped[str | None] = mapped_column(String(150), nullable=True)  # correo Zoho con el que firmó
+    recibido_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)   # UTC
+    recibido_aviso_ok: Mapped[int | None] = mapped_column(Integer, nullable=True)   # último aviso por Cliq: 1 enviado, 0 falló
+    recibido_aviso_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     estado: Mapped[str] = mapped_column(String(20), default="ACTIVO")      # ACTIVO | LEGALIZADO | ANULADO
     fm_id: Mapped[int | None] = mapped_column(ForeignKey("caja_menor_fms.id"), nullable=True, index=True)
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
@@ -144,6 +150,7 @@ class CajaRecibo(Base):
     fm = relationship("CajaFM", back_populates="recibos")
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
     anulado_por = relationship("Empleado", foreign_keys=[anulado_por_id])
+    recibido_por = relationship("Empleado", foreign_keys=[recibido_por_id])
 
 
 class CajaArqueo(Base):

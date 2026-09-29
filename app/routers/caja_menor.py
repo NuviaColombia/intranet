@@ -129,6 +129,32 @@ def _responsable_es_admin(db: Session, caja) -> bool:
     return bool(r and sc.es_admin(r))
 
 
+def _recibo_para_recibido(db: Session, user: Empleado, recibo_id: int) -> CajaRecibo:
+    r = db.get(CajaRecibo, recibo_id)
+    if not r or not (r.recibido_por_id == user.id or sc.es_admin(user)):
+        raise HTTPException(404, "Este recibo no está a tu nombre.")
+    return r
+
+
+@router.get("/caja-menor/recibido/{recibo_id}")
+def pagina_recibido(recibo_id: int, request: Request, user: Empleado = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    """Resumen del recibo para que el colaborador firme que recibió el dinero (no necesita el módulo de caja)."""
+    r = _recibo_para_recibido(db, user, recibo_id)
+    return templates.TemplateResponse(request, "caja_recibido.html", {
+        "user": user, "es_portal": True, "r": sc.serializar_recibo(r),
+        "es_quien_recibe": r.recibido_por_id == user.id, "msg": request.query_params.get("msg", "")})
+
+
+@router.post("/caja-menor/recibido/{recibo_id}/firmar")
+def firmar_recibido(recibo_id: int, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    r = _recibo_para_recibido(db, user, recibo_id)
+    error = sc.firmar_recibido(db, r, user)
+    msg = error or "✅ Listo: firmaste el recibido. Gracias."
+    return RedirectResponse(f"/caja-menor/recibido/{r.id}?msg={quote(msg)}", status_code=303)
+
+
 @router.get("/caja-menor/{caja_id}")
 def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                 db: Session = Depends(get_db)):
@@ -209,6 +235,8 @@ def api_crear_recibo(caja_id: int, payload: ReciboIn, tareas: BackgroundTasks, u
         raise HTTPException(400, r)
     if sc.necesita_aviso_firma(r):
         tareas.add_task(sc.notificar_firma_pendiente, r.id)
+    if sc.necesita_aviso_recibido(r):  # el No. identificación es de un colaborador: firma el recibido desde Cliq
+        tareas.add_task(sc.notificar_recibido_pendiente, r.id)
     return {"mensaje": f"✅ Recibo {caja.prefijo}-{r.consecutivo:04d} guardado.", "recibo": sc.serializar_recibo(r)}
 
 
@@ -226,6 +254,8 @@ def api_editar_recibo(caja_id: int, recibo_id: int, payload: ReciboIn, tareas: B
         raise HTTPException(400, error)
     if sc.necesita_aviso_firma(r):  # tras editar, quien autoriza debe firmar de nuevo
         tareas.add_task(sc.notificar_firma_pendiente, r.id)
+    if sc.necesita_aviso_recibido(r) and not r.recibido_aviso_en:  # cambió quien recibe: se le avisa
+        tareas.add_task(sc.notificar_recibido_pendiente, r.id)
     return {"mensaje": "✅ Recibo actualizado.", "recibo": sc.serializar_recibo(r)}
 
 
@@ -253,6 +283,31 @@ def api_firmar_varios(caja_id: int, payload: IdsIn, tareas: BackgroundTasks,
     if not firmados:
         raise HTTPException(400, "No se firmó ningún recibo. " + " ".join(errores))
     return {"mensaje": f"✅ Firmaste {len(firmados)} recibo(s): {', '.join(firmados)}." + (f" No se pudo: {' '.join(errores)}" if errores else "")}
+
+
+@router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/reenviar-recibido")
+def api_reenviar_recibido(caja_id: int, recibo_id: int, user: Empleado = Depends(require_modulo(MODULO)),
+                          db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    r = db.get(CajaRecibo, recibo_id)
+    if not r or r.caja_id != caja.id:
+        raise HTTPException(404, "Recibo no encontrado.")
+    if not sc.necesita_aviso_recibido(r):
+        raise HTTPException(400, "Este recibo no tiene una firma de recibido pendiente.")
+    sc.notificar_recibido_pendiente(r.id)
+    db.refresh(r)
+    return {"mensaje": "✅ Aviso de firma de recibido reenviado por Cliq." if r.recibido_aviso_ok else
+            "⚠️ No se pudo enviar el aviso por Cliq. Verifica que la persona esté suscrita a Nuvia Colombia Bot.",
+            "recibo": sc.serializar_recibo(r)}
+
+
+@router.get("/caja-menor/api/{caja_id}/colaborador")
+def api_colaborador(caja_id: int, identificacion: str = "", user: Empleado = Depends(require_modulo(MODULO)),
+                    db: Session = Depends(get_db)):
+    """¿El No. identificación es de un colaborador de People? (para avisar que firmará el recibido por Cliq)."""
+    _caja(db, user, caja_id)
+    e = sc.colaborador_por_identificacion(db, identificacion)
+    return {"encontrado": bool(e), "nombre": nombre_propio(e.nombre_completo) if e else ""}
 
 
 @router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/reenviar-aviso")
@@ -861,7 +916,9 @@ def cargar_datos_iniciales() -> None:
                  "elaborado_por_id": "INTEGER REFERENCES empleados(id)", "elaboracion_email": "VARCHAR(150)",
                  "elaborado_en": "TIMESTAMP", "reembolsado_en": "TIMESTAMP",
                  "reembolsado_por_id": "INTEGER REFERENCES empleados(id)", "aviso_ok": "INTEGER", "aviso_en": "TIMESTAMP"}
-    nuevas.update({"aviso_ok": "INTEGER", "aviso_en": "TIMESTAMP"})
+    nuevas.update({"aviso_ok": "INTEGER", "aviso_en": "TIMESTAMP",
+                   "recibido_por_id": "INTEGER REFERENCES empleados(id)", "recibido_email": "VARCHAR(150)",
+                   "recibido_en": "TIMESTAMP", "recibido_aviso_ok": "INTEGER", "recibido_aviso_en": "TIMESTAMP"})
     columnas_cajas = {c["name"] for c in inspect(engine).get_columns("caja_menor_cajas")}
     with engine.begin() as conn:
         for nombre, tipo in nuevas.items():

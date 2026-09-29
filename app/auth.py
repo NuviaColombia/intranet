@@ -53,6 +53,9 @@ async def zoho_get_email(code: str) -> str:
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> Empleado:
     email = request.session.get("user_email")
     if not email:
+        # Recuerda a qué página quería entrar (p. ej. el enlace de un aviso de Cliq) para volver ahí después del login
+        if request.method == "GET" and "/api/" not in request.url.path:
+            request.session["volver_a"] = request.url.path + (f"?{request.url.query}" if request.url.query else "")
         raise HTTPException(status_code=307, headers={"Location": "/login"})
     user = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()
     if not user:
