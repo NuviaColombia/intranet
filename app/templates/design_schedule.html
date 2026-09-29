@@ -3231,6 +3231,7 @@ window.DS_PANELS.dashboard = ddCargar;
 
   // ---------- Áreas ----------
   function cvCargarAreas() {
+    CANVAS.homeMode = "board"; // Canvas siempre abre en vista Tablero (se puede cambiar en el momento)
     api('/design/api/areas').then(function(areas) {
       CV.areas = areas;
       var cont = document.getElementById('cvAreaTabs'); cont.innerHTML = '';
@@ -3264,7 +3265,7 @@ window.DS_PANELS.dashboard = ddCargar;
   }
   function cvLoadPrefs() {
     try { CANVAS.railCollapsed = localStorage.getItem("canvas_rail_collapsed") === "1"; } catch (e) {}
-    try { var m = localStorage.getItem("canvas_home_mode"); CANVAS.homeMode = (m === "board" || m === "grid") ? m : "grid"; } catch (e) { CANVAS.homeMode = "grid"; }
+    if (!CANVAS.homeMode) CANVAS.homeMode = "board";
     try { CANVAS.expert = localStorage.getItem("canvas_expert") === "1"; } catch (e) { CANVAS.expert = false; }
     if (CANVAS.stroke == null) CANVAS.stroke = 7;
   }
@@ -3291,11 +3292,9 @@ window.DS_PANELS.dashboard = ddCargar;
     if (CANVAS.view === "editor") cvRenderEditor(); else cvRenderTools();
   }
   var CV_VIEWS = [{ id: "grid", label: "Cuadrícula" }, { id: "board", label: "Tablero" }];
-  function cvDefaultView() { try { var m = localStorage.getItem("canvas_home_mode"); return (m === "board" || m === "grid") ? m : "grid"; } catch (e) { return "grid"; } }
   function cvSetView(mode, makeDefault) {
     if (mode !== "grid" && mode !== "board") return;
     CANVAS.homeMode = mode;
-    if (makeDefault) { try { localStorage.setItem("canvas_home_mode", mode); } catch (e) {} }
     cvRender();
   }
 
@@ -3395,18 +3394,17 @@ window.DS_PANELS.dashboard = ddCargar;
     board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="10" rx="1.5"/></svg>',
   };
   function cvHomeHeader() {
-    var def = cvDefaultView(), cur = CANVAS.homeMode;
+    var cur = CANVAS.homeMode;
     var curLabel = (CV_VIEWS.find(function(v) { return v.id === cur; }) || CV_VIEWS[0]).label;
     var items = CV_VIEWS.map(function(v) {
       return '<div class="cv-view-item' + (v.id === cur ? ' active' : '') + '">' +
         '<button class="cv-view-pick" data-cvview="' + v.id + '">' + (CV_VIEW_ICON[v.id] || '') + '<span>' + v.label + '</span></button>' +
-        '<button class="cv-view-def' + (v.id === def ? ' on' : '') + '" data-cvdefault="' + v.id + '" title="' + (v.id === def ? 'Vista predeterminada' : 'Fijar como predeterminada') + '">' + (v.id === def ? '★' : '☆') + '</button>' +
       '</div>';
     }).join('');
     return '<div class="cv-home-head"><h3 class="cv-h">Hojas de trabajo</h3>' +
       '<div class="cv-view-wrap" id="cvViewWrap">' +
         '<button class="cv-mini-btn" data-cvviewtoggle>' + (CV_VIEW_ICON[cur] || '') + ' Vista: ' + esc(curLabel) + ' ▾</button>' +
-        '<div class="cv-view-menu"><div class="cv-view-menu-h">Vista de la galería · ★ = predeterminada</div>' + items + '</div>' +
+        '<div class="cv-view-menu"><div class="cv-view-menu-h">Vista de la galería</div>' + items + '</div>' +
       '</div></div>';
   }
   function cvRenderHome() {
