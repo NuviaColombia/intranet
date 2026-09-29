@@ -558,7 +558,6 @@
           <div id="viewDetallesExcel" style="margin-top: 35px; display: none;">
               <div class="consulta-tabla-wrapper" style="margin-bottom: 15px;">
                  <table class="consulta-tabla" style="min-width: 100%;">
-                    <thead><tr><th>Orden</th><th>Descripción</th><th>Paciente</th><th>Total</th></tr></thead>
                     <tbody id="viewResumenGeneral"></tbody>
                  </table>
               </div>
@@ -566,7 +565,6 @@
               <div style="display:flex; gap:15px;">
                  <div class="consulta-tabla-wrapper" style="flex:1;">
                     <table class="consulta-tabla" style="min-width: 100%;">
-                       <thead><tr><th>Detalle</th><th>Cant. paciente</th><th>Cant. discos</th></tr></thead>
                        <tbody id="viewDetalleDiscos"></tbody>
                     </table>
                  </div>
@@ -576,7 +574,6 @@
           <div id="viewOPContainer" style="display:none; margin-top: 20px;">
               <div class="consulta-tabla-wrapper">
                   <table class="consulta-tabla" style="min-width: 100%;">
-                      <thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Observaciones</th></tr></thead>
                       <tbody id="viewDetalleOP"></tbody>
                   </table>
               </div>
@@ -589,6 +586,8 @@
          <div style="display:flex; gap:10px;">
            <button type="button" class="btn btn-anular" id="btnAnularModal" onclick="ejecutarAnulacionDesdeModal()">🚫 Anular registro</button>
            <button type="button" class="btn" style="background:var(--success);" id="btnConfirmarModal" onclick="ejecutarConfirmacionDesdeModal()">✔ Confirmar recibido</button>
+           <button type="button" class="btn" style="background:var(--success); display:none;" id="btnFirmarDirModal" onclick="ejecutarFirmaDirDesdeModal()">✍️ Firmar DIR Producción</button>
+           <button type="button" class="btn" style="background:var(--text-muted); display:none;" id="btnAvisoModal" onclick="reenviarAvisoTraslado(registroActivoModal.id, this)">🔔 Reenviar aviso</button>
          </div>
          <button type="button" class="btn" style="background:var(--text-muted); padding:12px 24px;" onclick="cerrarModalPreview()">Cerrar consulta</button>
       </div>
@@ -823,11 +822,32 @@ function cargarConfirmaciones() {
               "Las salidas de QC Final las firma obligatoriamente quien tiene asignada DIR Producción (o un administrador).",
               function() { firmarDirDesdeAprobaciones(t.id); });
       }
+      var extras = document.createElement("div"); extras.style.marginTop = "4px";
+      var bVer = document.createElement("button"); bVer.className = "btn btn-ver"; bVer.style.cssText = "padding:6px 10px; font-size:11px; margin:2px;";
+      bVer.innerText = "👁️ Ver documento"; bVer.title = "Revisa el documento completo antes de firmar";
+      bVer.onclick = function() { abrirModalPreview(t); };
+      var bAviso = document.createElement("button"); bAviso.className = "btn"; bAviso.style.cssText = "padding:6px 10px; font-size:11px; margin:2px; background:var(--text-muted);";
+      bAviso.innerText = "🔔 Reenviar aviso"; bAviso.title = "Vuelve a enviar por Cliq el aviso a quienes les falta firmar";
+      bAviso.onclick = function() { reenviarAvisoTraslado(t.id, bAviso); };
+      extras.appendChild(bVer); extras.appendChild(bAviso); tdAccion.appendChild(extras);
       tbody.appendChild(tr);
     });
   }).catch(function(e) {
     tbody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
   });
+}
+
+function reenviarAvisoTraslado(id, boton) {
+  if (boton) { boton.disabled = true; boton.innerText = "Enviando…"; }
+  custodiaPostJSON('/custodia/api/traslados/' + id + '/reenviar-aviso').then(function(resp) {
+    alert(resp.mensaje);
+  }).catch(function(e) { alert('Error: ' + e.message); })
+    .then(function() { if (boton) { boton.disabled = false; boton.innerText = "🔔 Reenviar aviso"; } });
+}
+
+// Después de firmar desde el documento: recarga la lista de donde se abrió
+function refrescarTrasFirma() {
+  if (document.getElementById("sec-aprobaciones").classList.contains("active")) cargarConfirmaciones(); else ejecutarConsulta();
 }
 
 function firmarDirDesdeAprobaciones(id) {
@@ -1961,6 +1981,8 @@ function abrirModalPreview(t) {
 
   document.getElementById("btnAnularModal").style.display = t.anulado ? "none" : "inline-block";
   document.getElementById("btnConfirmarModal").style.display = (!t.anulado && !t.confirmadoEntrada && t.puedeFirmar) ? "inline-block" : "none";
+  document.getElementById("btnFirmarDirModal").style.display = (!t.anulado && t.puedeFirmarDir) ? "inline-block" : "none";
+  document.getElementById("btnAvisoModal").style.display = (!t.anulado && !t.completo) ? "inline-block" : "none";
   var infoAnul = document.getElementById("viewAnulacionInfo");
   if (t.anulado) {
     infoAnul.innerHTML = `🚫 <b>Anulado</b>${t.anuladoPor ? " por " + t.anuladoPor : ""}${t.anuladoEn ? " el " + t.anuladoEn : ""}.`
@@ -2006,7 +2028,14 @@ function confirmarAnulacion() {
 function ejecutarConfirmacionDesdeModal() {
   if (!registroActivoModal) return;
   custodiaPostJSON('/custodia/api/traslados/' + registroActivoModal.id + '/confirmar-entrada').then(function(resp) {
-     alert(resp.mensaje); cerrarModalPreview(); ejecutarConsulta();
+     alert(resp.mensaje); cerrarModalPreview(); refrescarTrasFirma();
+  }).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function ejecutarFirmaDirDesdeModal() {
+  if (!registroActivoModal) return;
+  custodiaPostJSON('/custodia/api/traslados/' + registroActivoModal.id + '/firmar-dir').then(function(resp) {
+     alert(resp.mensaje); cerrarModalPreview(); refrescarTrasFirma();
   }).catch(function(e) { alert('Error: ' + e.message); });
 }
 

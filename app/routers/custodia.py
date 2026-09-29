@@ -9,6 +9,7 @@ from ..models_custodia import CustodiaTraslado, CustodiaArea, CustodiaMotivo
 from ..auth import require_modulo
 from ..acceso_produccion import require_submodulo
 from ..main_templates import templates
+from ..formato import nombre_propio
 from .. import services_custodia as sc
 from .. import acceso_secciones as acs
 
@@ -188,6 +189,31 @@ def api_firmar_dir(traslado_id: int, user: Empleado = Depends(require_submodulo(
     if error:
         raise HTTPException(400, error)
     return {"mensaje": "✅ Firma de DIR Producción registrada."}
+
+
+@router.post("/custodia/api/traslados/{traslado_id}/reenviar-aviso")
+def api_reenviar_aviso(traslado_id: int, user: Empleado = Depends(require_submodulo("custodia")),
+                       db: Session = Depends(get_db)):
+    """Reenvía por Cliq el aviso de las firmas que faltan: el recibido del área de entrada y/o DIR Producción."""
+    acs.exigir(db, user, "custodia", "aprobaciones", "consulta")
+    t = _get_traslado(db, traslado_id)
+    if t.anulado:
+        raise HTTPException(400, "Este traslado está anulado.")
+    if t.completo:
+        raise HTTPException(400, "Este traslado ya tiene todas las firmas.")
+    enviados, fallidos = [], []
+    if not t.confirmado_entrada:
+        destino = f"{nombre_propio(t.area_entrada)} (recibido)"
+        (enviados if sc.notificar_traslado_pendiente(t.id, recordatorio=True) else fallidos).append(destino)
+    if t.pendiente_dir:
+        (enviados if sc.notificar_firma_dir_pendiente(t.id, recordatorio=True) else fallidos).append("DIR Producción")
+    partes = []
+    if enviados:
+        partes.append("✅ Aviso reenviado por Cliq a " + " y ".join(enviados) + ".")
+    if fallidos:
+        partes.append("⚠️ No se pudo avisar a " + " y ".join(fallidos) + ": revisa que alguien tenga esa área asignada "
+                      "(Parámetros › Accesos) y esté suscrito a Nuvia Colombia Bot.")
+    return {"mensaje": " ".join(partes), "enviado": bool(enviados) and not fallidos}
 
 
 class AnularIn(BaseModel):

@@ -563,7 +563,7 @@ def detalles_por_traslado(traslado: CustodiaTraslado) -> dict:
     }
 
 
-def notificar_traslado_pendiente(traslado_id: int) -> None:
+def notificar_traslado_pendiente(traslado_id: int, recordatorio: bool = False) -> bool:
     """Envía un mensaje directo de Zoho Cliq a los managers del área de entrada: tienen un traslado
     por firmar. Se ejecuta en segundo plano después de guardar (abre su propia sesión)."""
     from . import config
@@ -572,7 +572,7 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
     try:
         t = db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes)).get(traslado_id)
         if not t or t.anulado or t.confirmado_entrada:
-            return
+            return False
         # Todos los que tienen asignada el área de entrada (incluidos administradores con esa área).
         from .acceso_produccion import tiene_submodulo
         destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
@@ -580,24 +580,25 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
                          and (e.area_custodia or "").strip().upper() == (t.area_entrada or "").strip().upper()]
         if not destinatarios:
             print(f"[Custodia] Traslado #{t.id}: ningún manager tiene asignada el área {t.area_entrada}; sin aviso.")
-            return
+            return False
         ordenes = ", ".join(o.numero_orden for o in t.ordenes) or "—"
         total = sum(o.cantidad_discos or 0 for o in t.ordenes)
-        texto = (f"📦 *Traslado pendiente de firma* #{t.id:04d}\n"
+        texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}📦 *Traslado pendiente de firma* #{t.id:04d}\n"
                  f"{nombre_propio(t.area_salida)} → {nombre_propio(t.area_entrada)} · {total:g} discos\n"
                  f"Órdenes: {ordenes}\n"
                  f"Registrado por: {nombre_propio(t.colaborador)}\n"
                  f"Firma el recibido en: {config.BASE_URL}/custodia (Aprobaciones/Firmas)")
         # Desde el bot de Cliq (única vía de envío de la intranet), a todos en una sola llamada.
         from .zoho_cliq import enviar_cliq_varios
-        enviar_cliq_varios([e.email for e in destinatarios], texto)
+        return bool(enviar_cliq_varios([e.email for e in destinatarios], texto))
     except Exception as ex:  # un aviso fallido nunca debe afectar el registro
         print(f"[Custodia] Error enviando aviso del traslado #{traslado_id}: {ex}")
+        return False
     finally:
         db.close()
 
 
-def notificar_firma_dir_pendiente(traslado_id: int) -> None:
+def notificar_firma_dir_pendiente(traslado_id: int, recordatorio: bool = False) -> bool:
     """Aviso por Cliq (bot) a quienes tienen asignada DIR PRODUCCIÓN: una salida de QC FINAL espera su firma."""
     from . import config
     from .database import SessionLocal
@@ -605,24 +606,25 @@ def notificar_firma_dir_pendiente(traslado_id: int) -> None:
     try:
         t = db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes)).get(traslado_id)
         if not t or not t.pendiente_dir:
-            return
+            return False
         from .acceso_produccion import tiene_submodulo
         destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
                          if tiene_submodulo(db, e, "custodia") and (e.area_custodia or "").strip().upper() == AREA_ORIGEN]
         if not destinatarios:
             print(f"[Custodia] Traslado #{t.id}: nadie tiene asignada DIR PRODUCCIÓN para firmar; sin aviso.")
-            return
+            return False
         ordenes = ", ".join(o.numero_orden for o in t.ordenes) or "—"
         total = sum(o.cantidad_discos or 0 for o in t.ordenes)
-        texto = (f"✍️ *Salida de QC Final pendiente de firma de DIR Producción* #{t.id:04d}\n"
+        texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}✍️ *Salida de QC Final pendiente de firma de DIR Producción* #{t.id:04d}\n"
                  f"{nombre_propio(t.area_salida)} → {nombre_propio(t.area_entrada)} · {total:g} discos\n"
                  f"Órdenes: {ordenes}\n"
                  f"Registrado por: {nombre_propio(t.colaborador)}\n"
                  f"Fírmala en: {config.BASE_URL}/custodia (Aprobaciones/Firmas)")
         from .zoho_cliq import enviar_cliq_varios
-        enviar_cliq_varios([e.email for e in destinatarios], texto)
+        return bool(enviar_cliq_varios([e.email for e in destinatarios], texto))
     except Exception as ex:  # un aviso fallido nunca debe afectar el registro
         print(f"[Custodia] Error enviando aviso DIR del traslado #{traslado_id}: {ex}")
+        return False
     finally:
         db.close()
 
