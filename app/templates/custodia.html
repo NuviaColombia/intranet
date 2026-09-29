@@ -302,7 +302,7 @@
                  <div class="consulta-tabla-wrapper">
                     <table class="consulta-tabla" style="min-width:100%;">
                        <thead>
-                          <tr><th>OP</th><th>Orden</th><th>Descripción</th><th>Tipo</th><th>Usuario</th><th>Observaciones</th><th>#</th></tr>
+                          <tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Observaciones</th><th>#</th></tr>
                        </thead>
                        <tbody id="bodyOP"></tbody>
                     </table>
@@ -576,7 +576,7 @@
           <div id="viewOPContainer" style="display:none; margin-top: 20px;">
               <div class="consulta-tabla-wrapper">
                   <table class="consulta-tabla" style="min-width: 100%;">
-                      <thead><tr><th>OP</th><th>Descripción</th><th>Orden</th><th>Tipo</th><th>Usuario</th><th>Observaciones</th></tr></thead>
+                      <thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Observaciones</th></tr></thead>
                       <tbody id="viewDetalleOP"></tbody>
                   </table>
               </div>
@@ -1140,9 +1140,11 @@ function procesarPegadoOP(e) {
   e.preventDefault(); var data = (e.clipboardData || window.clipboardData).getData('text'); var rows = data.split(/\r?\n/);
   datosOPExcel = [];
   rows.forEach(r => {
-    if(!r.trim()) return; var cols = r.split('\t');
-    if(cols[0].toLowerCase().includes('op') || cols[0].toLowerCase().includes('detalle')) return;
-    datosOPExcel.push({ op: cols[0], descripcion: cols[1], orden: cols[2], tipo: cols[3], usuario: cols[4], observaciones: cols[5]||"" });
+    if(!r.trim()) return; var cols = r.split('\t').map(function(c) { return (c || "").trim(); });
+    var c0 = cols[0].toLowerCase();
+    if(c0 === 'orden' || c0 === 'op' || c0.includes('detalle')) return; // fila de encabezados
+    // Tal cual se pega: ORDEN | OP | DESCRIPCIÓN | TIPO | OBSERVACIONES
+    datosOPExcel.push({ orden: cols[0], op: cols[1]||"", descripcion: cols[2]||"", tipo: cols[3]||"", observaciones: cols.slice(4).filter(Boolean).join(" ") });
   });
   renderTablaOP(); e.target.value = "✅ ¡OP cargados!"; setTimeout(() => e.target.value = "", 2000);
 }
@@ -1150,12 +1152,12 @@ function procesarPegadoOP(e) {
 function crearFilaOP(datos) {
   datos = datos || {};
   var tr = document.createElement("tr");
-  ["op", "orden", "descripcion", "tipo", "usuario", "observaciones"].forEach(function(campo) {
+  ["orden", "op", "descripcion", "tipo", "observaciones"].forEach(function(campo) {
     var td = document.createElement("td");
     var input = document.createElement("input");
     input.type = "text"; input.dataset.campo = campo; input.value = datos[campo] || "";
     input.style.cssText = "width:100%; border:none; background:transparent; font-size:13px; padding:6px;"
-      + (campo === "op" ? " font-weight:800; color:var(--brand-main);" : campo === "orden" ? " font-weight:700;" : "");
+      + (campo === "orden" ? " font-weight:800; color:var(--brand-main);" : campo === "op" ? " font-weight:700;" : "");
     td.appendChild(input); tr.appendChild(td);
   });
   var tdAccion = document.createElement("td"); tdAccion.style.whiteSpace = "nowrap";
@@ -1728,8 +1730,8 @@ function _tablaDiscosHtml(discos) {
 
 function _tablaOPHtml(op) {
   if (!op || op.length === 0) return "";
-  var html = `<thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Usuario</th><th>Observaciones</th></tr></thead><tbody>`;
-  op.forEach(r => { html += `<tr><td>${r.orden}</td><td>${r.op}</td><td>${r.descripcion}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td></tr>`; });
+  var html = `<thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Observaciones</th></tr></thead><tbody>`;
+  op.forEach(r => { html += `<tr><td>${r.orden}</td><td>${r.op}</td><td>${r.descripcion}</td><td>${r.tipo}</td><td>${r.observaciones}</td></tr>`; });
   html += `</tbody>`;
   return html;
 }
@@ -1837,9 +1839,9 @@ function renderDetallesExcelModal(data) {
 
   if (data.op && data.op.length > 0) {
       document.getElementById("viewOPContainer").style.display = "block";
-      var html = `<thead><tr><th>OP</th><th>Descripción</th><th>Orden</th><th>Tipo</th><th>Usuario</th><th>Obs</th></tr></thead><tbody>`;
+      var html = `<thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Observaciones</th></tr></thead><tbody>`;
       data.op.forEach(r => {
-          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.op}</td><td>${r.descripcion}</td><td style="font-weight:700;">${r.orden}</td><td>${r.tipo}</td><td>${r.usuario}</td><td>${r.observaciones}</td></tr>`;
+          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td style="font-weight:700;">${r.op}</td><td>${r.descripcion}</td><td>${r.tipo}</td><td>${r.observaciones}</td></tr>`;
       });
       html += `</tbody>`;
       document.getElementById("viewDetalleOP").innerHTML = html;
