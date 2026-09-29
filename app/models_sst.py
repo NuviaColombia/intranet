@@ -59,6 +59,10 @@ class SstIngreso(Base):
     registrado_por = relationship("Empleado", foreign_keys=[registrado_por_id])
     resuelto_por = relationship("Empleado", foreign_keys=[resuelto_por_id])
 
+    @property
+    def consecutivo(self) -> str:
+        return f"EPP-E-{self.id:04d}"
+
 
 class SstSolicitud(Base):
     """Cabecera de una solicitud de EPP de un manager; se entrega o rechaza como un todo."""
@@ -77,6 +81,10 @@ class SstSolicitud(Base):
     solicitante = relationship("Empleado", foreign_keys=[solicitante_id])
     entregado_por = relationship("Empleado", foreign_keys=[entregado_por_id])
     lineas = relationship("SstSolicitudLinea", back_populates="solicitud", cascade="all, delete-orphan")
+
+    @property
+    def consecutivo(self) -> str:
+        return f"EPP-S-{self.id:04d}"
 
 
 class SstSolicitudLinea(Base):

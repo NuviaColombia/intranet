@@ -109,7 +109,7 @@ async def api_crear_ingreso(payload: IngresoIn, user: Empleado = Depends(require
 
 @router.get("/sst/api/ingresos/pendientes")
 async def api_ingresos_pendientes(user: Empleado = Depends(require_sst_coordinador), db: Session = Depends(get_db)):
-    return [{"id": i.id, "item": i.item.nombre, "cantidadIngresada": i.cantidad_ingresada,
+    return [{"id": i.id, "consecutivo": i.consecutivo, "item": i.item.nombre, "cantidadIngresada": i.cantidad_ingresada,
             "unidadUsada": i.unidad_usada, "cantidadUnidades": i.cantidad_unidades, "fecha": i.fecha.isoformat(),
             "registradoPor": i.registrado_por.nombre_completo if i.registrado_por else "", "notas": i.notas}
            for i in ss.ingresos_pendientes(db)]
@@ -171,7 +171,7 @@ async def api_solicitudes_pendientes(user: Empleado = Depends(require_sst_coordi
 
 
 def _serializar_solicitud(s: SstSolicitud) -> dict:
-    return {"id": s.id, "solicitante": s.solicitante.nombre_completo if s.solicitante else "",
+    return {"id": s.id, "consecutivo": s.consecutivo, "solicitante": s.solicitante.nombre_completo if s.solicitante else "",
            "fecha": s.fecha_solicitud.isoformat(), "estado": s.estado, "notas": s.notas,
            "motivoRechazo": s.motivo_rechazo,
            "lineas": [{"item": l.item.nombre, "cantidadSolicitada": l.cantidad_solicitada,

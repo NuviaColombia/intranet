@@ -13,6 +13,10 @@
   .sst-modal-bg.open { display:flex; }
   .sst-modal { background:#fff; border-radius:12px; padding:24px; max-width:520px; width:100%; }
   .sst-modal h2 { margin:0 0 4px; }
+  .doc-header { display:flex; align-items:center; gap:14px; border-bottom:2px solid var(--azul); padding-bottom:12px; margin-bottom:8px; }
+  .doc-header img { height:44px; }
+  .doc-header h2 { margin:0; font-size:18px; }
+  .doc-codigo { font-size:12px; color:var(--gris); margin-top:2px; }
   .sst-modal-fila { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
   .sst-modal-fila b { color:var(--gris); font-weight:600; }
   .sst-modal-lineas { margin:4px 0 0; padding-left:18px; }
@@ -23,6 +27,7 @@
     .sst-modal-cerrar, .sst-modal-imprimir { display:none; }
   }
 </style>
+{% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 <h1 style="margin-bottom:4px">🦺 SST — Inventario de EPP</h1>
 <p class="sst-sub" style="margin-bottom:18px">Nuvia Smiles Colombia SAS</p>
 
@@ -91,7 +96,13 @@
 <!-- ============ MODAL: resumen de transacción ============ -->
 <div class="sst-modal-bg" id="sstModalBg">
   <div class="sst-modal">
-    <h2 id="sstModalTitulo"></h2>
+    <div class="doc-header">
+      {% if logo %}<img src="{{ logo }}" alt="">{% endif %}
+      <div>
+        <h2 id="sstModalTitulo"></h2>
+        <div class="doc-codigo" id="sstModalCodigo"></div>
+      </div>
+    </div>
     <div id="sstModalCuerpo"></div>
     <div class="sst-acciones" style="margin-top:16px">
       <button type="button" class="btn sst-modal-imprimir" onclick="window.print()">🖨️ Imprimir</button>
@@ -248,8 +259,9 @@
   var USUARIO_ACTUAL = {{ user.nombre_completo|tojson }};
   var INGRESOS_PEND = {}, SOLICITUDES_PEND = {};
 
-  function abrirModal(titulo, filasHtml) {
+  function abrirModal(titulo, filasHtml, codigo) {
     document.getElementById('sstModalTitulo').textContent = titulo;
+    document.getElementById('sstModalCodigo').textContent = codigo || '';
     document.getElementById('sstModalCuerpo').innerHTML = filasHtml;
     document.getElementById('sstModalBg').classList.add('open');
   }
@@ -279,14 +291,15 @@
   };
   window.verIngreso = function(id) {
     var i = INGRESOS_PEND[id]; if (!i) return;
-    var html = filaModal('Ítem', esc(i.item)) +
+    var html = filaModal('Consecutivo', esc(i.consecutivo)) +
+      filaModal('Ítem', esc(i.item)) +
       filaModal('Cantidad', num(i.cantidadIngresada) + ' ' + i.unidadUsada + ' (' + num(i.cantidadUnidades) + ' unidades)') +
       filaModal('Fecha', i.fecha) +
       filaModal('Solicita (registra el ingreso)', esc(i.registradoPor)) +
       filaModal('Notas', esc(i.notas) || '—') +
       filaModal('Estado', 'Pendiente de aprobación') +
       filaModal('Aprueba', esc(USUARIO_ACTUAL) + ' <small style="color:var(--gris)">(al confirmar)</small>');
-    abrirModal('Resumen del ingreso #' + id, html);
+    abrirModal('Ingreso de EPP', html, 'Código: F-SST-01 · Versión: 01');
   };
 
   // ---------------- aprobar/entregar solicitudes ----------------
@@ -317,13 +330,14 @@
     var listaItems = '<ul class="sst-modal-lineas">' + s.lineas.map(function(l) {
       return '<li>' + esc(l.item) + ': ' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ' (' + num(l.cantidadUnidades) + ' unidades)</li>';
     }).join('') + '</ul>';
-    var html = filaModal('Solicita', esc(s.solicitante)) +
+    var html = filaModal('Consecutivo', esc(s.consecutivo)) +
+      filaModal('Solicita', esc(s.solicitante)) +
       filaModal('Fecha', s.fecha) +
       filaModal('Ítems', listaItems) +
       filaModal('Notas', esc(s.notas) || '—') +
       filaModal('Estado', 'Pendiente de entrega') +
       filaModal('Entrega', esc(USUARIO_ACTUAL) + ' <small style="color:var(--gris)">(al confirmar)</small>');
-    abrirModal('Resumen de la solicitud #' + id, html);
+    abrirModal('Solicitud de EPP', html, 'Código: F-SST-02 · Versión: 01');
   };
   {% endif %}
 
