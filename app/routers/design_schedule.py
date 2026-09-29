@@ -446,51 +446,153 @@ async def api_favorito_toggle_cmt_template(template_id: int,
     return {"favorito": sd.favorito_toggle_cmt_template(db, user.id, template_id)}
 
 
-# ---------- API: FAQ (Comments N2 / Face) ----------
+# ---------- API: FAQ (Comments N2 / Face): hojas ----------
+# Leen todos los del módulo; editan solo los roles por encima del diseñador.
 
-@router.get("/design/api/faq")
-async def api_faq(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
-                  db: Session = Depends(get_db)):
-    filas = sd.faq_de_area(db, area_id)
-    return [{"id": f.id, "seccion": f.seccion, "situacion": f.situacion, "producto": f.producto,
-            "comoProceder": f.como_proceder, "plantilla": f.plantilla, "ejemplos": f.ejemplos} for f in filas]
+FAQ_ROLES_EDITAN = ("aprobador", "admin", "superadmin")
 
 
-@router.post("/design/api/faq")
-async def api_crear_faq(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
-                        db: Session = Depends(get_db)):
-    f = sd.crear_faq(db, area_id)
+def _faq_editor(user: Empleado) -> None:
+    if user.rol not in FAQ_ROLES_EDITAN:
+        raise HTTPException(403, "Solo líderes y administradores pueden editar esta información.")
+
+
+@router.get("/design/api/faq/hojas")
+async def api_faq_hojas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    return {"hojas": sd.faq_hojas(db), "puedeEditar": user.rol in FAQ_ROLES_EDITAN}
+
+
+@router.get("/design/api/faq/hojas/{hoja_id}")
+async def api_faq_hoja(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                       db: Session = Depends(get_db)):
+    d = sd.faq_hoja_detalle(db, hoja_id)
+    if not d:
+        raise HTTPException(404, "Hoja no encontrada.")
+    return d
+
+
+class FaqHojaIn(BaseModel):
+    nombre: str = ""
+    duplicarDe: int | None = None
+
+
+@router.post("/design/api/faq/hojas")
+async def api_faq_hoja_crear(payload: FaqHojaIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                             db: Session = Depends(get_db)):
+    _faq_editor(user)
+    h = sd.faq_hoja_crear(db, payload.nombre, payload.duplicarDe)
+    if not h:
+        raise HTTPException(404, "Hoja no encontrada.")
+    return {"id": h.id}
+
+
+@router.post("/design/api/faq/hojas/{hoja_id}/renombrar")
+async def api_faq_hoja_renombrar(hoja_id: int, payload: FaqHojaIn,
+                                 user: Empleado = Depends(require_modulo("design_schedule")),
+                                 db: Session = Depends(get_db)):
+    _faq_editor(user)
+    if not sd.faq_hoja_renombrar(db, hoja_id, payload.nombre):
+        raise HTTPException(400, "Escribe un nombre.")
+    return {"mensaje": "Renombrada."}
+
+
+@router.post("/design/api/faq/hojas/{hoja_id}/eliminar")
+async def api_faq_hoja_eliminar(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    _faq_editor(user)
+    r = sd.faq_hoja_eliminar(db, hoja_id, user.nombre_completo)
+    if r == "ultima":
+        raise HTTPException(400, "Debe quedar al menos una hoja.")
+    if r != "ok":
+        raise HTTPException(404, "Hoja no encontrada.")
+    return {"mensaje": "Enviada a la Papelera."}
+
+
+class FaqColumnaIn(BaseModel):
+    titulo: str
+
+
+@router.post("/design/api/faq/hojas/{hoja_id}/columnas")
+async def api_faq_columna_agregar(hoja_id: int, payload: FaqColumnaIn,
+                                  user: Empleado = Depends(require_modulo("design_schedule")),
+                                  db: Session = Depends(get_db)):
+    _faq_editor(user)
+    col = sd.faq_columna_agregar(db, hoja_id, payload.titulo)
+    if not col:
+        raise HTTPException(400, "Escribe un nombre para la columna.")
+    return col
+
+
+@router.post("/design/api/faq/hojas/{hoja_id}/columnas/{clave}")
+async def api_faq_columna_renombrar(hoja_id: int, clave: str, payload: FaqColumnaIn,
+                                    user: Empleado = Depends(require_modulo("design_schedule")),
+                                    db: Session = Depends(get_db)):
+    _faq_editor(user)
+    if not sd.faq_columna_renombrar(db, hoja_id, clave, payload.titulo):
+        raise HTTPException(400, "No se pudo renombrar la columna.")
+    return {"mensaje": "Renombrada."}
+
+
+@router.post("/design/api/faq/hojas/{hoja_id}/columnas/{clave}/eliminar")
+async def api_faq_columna_eliminar(hoja_id: int, clave: str, user: Empleado = Depends(require_modulo("design_schedule")),
+                                   db: Session = Depends(get_db)):
+    _faq_editor(user)
+    if not sd.faq_columna_eliminar(db, hoja_id, clave, user.nombre_completo):
+        raise HTTPException(404, "Columna no encontrada.")
+    return {"mensaje": "Enviada a la Papelera."}
+
+
+class FaqFilaNuevaIn(BaseModel):
+    seccion: str = ""
+    despuesDe: int | None = None
+
+
+@router.post("/design/api/faq/hojas/{hoja_id}/filas")
+async def api_faq_fila_crear(hoja_id: int, payload: FaqFilaNuevaIn,
+                             user: Empleado = Depends(require_modulo("design_schedule")),
+                             db: Session = Depends(get_db)):
+    _faq_editor(user)
+    f = sd.faq_fila_crear(db, hoja_id, payload.seccion, payload.despuesDe)
+    if not f:
+        raise HTTPException(404, "Hoja no encontrada.")
     return {"id": f.id}
 
 
-class FaqIn(BaseModel):
-    seccion: str = ""
-    situacion: str = ""
-    producto: str = ""
-    comoProceder: str = ""
-    plantilla: str = ""
-    ejemplos: str = ""
+class FaqSeccionIn(BaseModel):
+    filas: list[int]
+    nombre: str
 
 
-@router.post("/design/api/faq/{faq_id}")
-async def api_actualizar_faq(faq_id: int, payload: FaqIn,
-                             user: Empleado = Depends(require_modulo("design_schedule")),
-                             db: Session = Depends(get_db)):
-    f = sd.actualizar_faq(db, faq_id, {
-        "seccion": payload.seccion, "situacion": payload.situacion, "producto": payload.producto,
-        "como_proceder": payload.comoProceder, "plantilla": payload.plantilla, "ejemplos": payload.ejemplos,
-    })
-    if not f:
+@router.post("/design/api/faq/hojas/{hoja_id}/seccion")
+async def api_faq_seccion_renombrar(hoja_id: int, payload: FaqSeccionIn,
+                                    user: Empleado = Depends(require_modulo("design_schedule")),
+                                    db: Session = Depends(get_db)):
+    _faq_editor(user)
+    return {"filas": sd.faq_seccion_renombrar(db, hoja_id, payload.filas, payload.nombre)}
+
+
+class FaqCeldaIn(BaseModel):
+    campo: str
+    valor: str = ""
+
+
+@router.post("/design/api/faq/filas/{fila_id}")
+async def api_faq_fila_actualizar(fila_id: int, payload: FaqCeldaIn,
+                                  user: Empleado = Depends(require_modulo("design_schedule")),
+                                  db: Session = Depends(get_db)):
+    _faq_editor(user)
+    if not sd.faq_fila_actualizar(db, fila_id, payload.campo, payload.valor):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Actualizado."}
 
 
-@router.post("/design/api/faq/{faq_id}/eliminar")
-async def api_eliminar_faq(faq_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
-                           db: Session = Depends(get_db)):
-    if not sd.eliminar_faq(db, faq_id):
+@router.post("/design/api/faq/filas/{fila_id}/eliminar")
+async def api_faq_fila_eliminar(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    _faq_editor(user)
+    if not sd.faq_fila_eliminar(db, fila_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
-    return {"mensaje": "Eliminado."}
+    return {"mensaje": "Enviada a la Papelera."}
 
 
 # ---------- Página: Pre-Approved ----------

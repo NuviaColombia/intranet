@@ -8,6 +8,7 @@ from pathlib import Path
 from sqlalchemy import inspect, text
 from . import config
 from .database import engine, SessionLocal
+from .services_design import faq_sembrar as sd_faq_sembrar
 from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
 from .models_custodia import CustodiaArea, CustodiaMotivo
 from .models_sst import SstItem, SstIngreso, SstAcceso
@@ -249,6 +250,18 @@ def init_db():
         with engine.begin() as conn:
             conn.execute(text(
                 "ALTER TABLE design_favoritos ADD COLUMN cmt_template_id INTEGER REFERENCES design_comentario_templates(id)"))
+    # Design Schedule · Comments N2 / Face: filas por hoja (+ columnas propias) y "Situación" sin
+    # límite de 200 caracteres (hay textos más largos). Solo agrega/amplía; no borra datos.
+    columnas_design_faq = {c["name"]: c for c in inspect(engine).get_columns("design_faq")}
+    if "hoja_id" not in columnas_design_faq:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_faq ADD COLUMN hoja_id INTEGER REFERENCES design_faq_hojas(id)"))
+    if "extras" not in columnas_design_faq:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_faq ADD COLUMN extras TEXT DEFAULT '{}'"))
+    if engine.dialect.name == "postgresql" and getattr(columnas_design_faq["situacion"]["type"], "length", None):
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_faq ALTER COLUMN situacion TYPE TEXT"))
     columnas_traslados = {c["name"] for c in inspect(engine).get_columns("custodia_traslados")}
     if "motivo_anulacion" not in columnas_traslados:
         with engine.begin() as conn:
@@ -428,6 +441,9 @@ def init_db():
         for i, (nombre, texto) in enumerate(CMT_TEMPLATES_FIJAS, start=1):
             if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre).first():
                 db.add(DesignComentarioTemplate(nombre=nombre, texto=texto, es_fija=1, orden=i))
+        # Comments N2 / Face: las 4 hojas del formato original (solo si aún no hay hojas).
+        db.flush()
+        sd_faq_sembrar(db, Path(__file__).resolve().parent / "seed_data" / "design_faq_n2.json")
         # SST: catálogo de EPP + inventario real de partida, migrados de
         # "CONTROL DE INVENTARIO INSUMOS SST 2026.xlsx" (hoja "Ingresos-Salidas AGOSTO 2").
         seed_sst_path = Path(__file__).resolve().parent / "seed_data" / "sst_items.json"

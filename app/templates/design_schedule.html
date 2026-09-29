@@ -204,10 +204,38 @@
   .cmt-nota .cmt-nota-po input { width:auto; margin:0; }
   .cmt-tpl-item .cmt-tpl-text { color:#374151; white-space:pre-wrap; }
   .cmt-hist-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
-  table.faq-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
-  table.faq-tabla th, table.faq-tabla td { border:1px solid #e2e6ea; padding:5px 6px; text-align:left; vertical-align:top; }
-  table.faq-tabla th { background:#f4f6f8; }
-  table.faq-tabla textarea, table.faq-tabla input { width:100%; border:none; font-size:12px; resize:vertical; }
+  /* Comments N2 / Face Design: hojas FAQ */
+  .faq-top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .faq-hojas, .faq-gestion { display:flex; gap:6px; flex-wrap:wrap; }
+  .faq-hoja { padding:6px 14px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:12.5px; }
+  .faq-hoja.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+  .faq-gbtn { padding:6px 10px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-size:12px; color:#374151; }
+  .faq-gbtn:hover { background:#f4f6fa; }
+  .faq-barra { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .faq-barra input.faq-buscar { flex:0 1 420px; width:auto; margin:0; padding:7px 10px; border:1px solid #d8dde3; border-radius:8px; font-size:13px; }
+  .faq-cuenta { font-size:12px; color:#6b7280; }
+  .faq-panel { background:#f4f6fa; border:1px solid #d8dde3; border-radius:10px; padding:12px; }
+  .faq-titulo { font-size:12px; color:#1d4ed8; text-transform:uppercase; font-weight:700; margin:0 0 8px; }
+  .faq-scroll { overflow-x:auto; }
+  table.faq-tabla { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; background:#fff; border:1px solid #e2e6ef; border-radius:8px; overflow:hidden; }
+  table.faq-tabla th, table.faq-tabla td { border-bottom:1px solid #e2e6ef; border-right:1px solid #eef1f6; padding:7px 8px; text-align:left; vertical-align:top; }
+  table.faq-tabla th:last-child, table.faq-tabla td:last-child { border-right:none; }
+  table.faq-tabla thead th { background:#fff; font-size:11px; text-transform:uppercase; color:#374151; position:relative; white-space:nowrap; }
+  .faq-th { display:flex; align-items:center; gap:4px; }
+  .faq-th-txt { flex:1; outline:none; border-radius:3px; }
+  .faq-th-txt[contenteditable]:focus, .faq-cel[contenteditable]:focus, .faq-sec-txt[contenteditable]:focus { box-shadow:0 0 0 2px #93c5fd; background:#fff; }
+  .faq-x { border:none; background:none; color:#9ca3af; cursor:pointer; font-size:13px; padding:0 3px; line-height:1; border-radius:4px; width:auto; margin:0; }
+  .faq-x:hover { color:#dc2626; background:#fef2f2; }
+  tr.faq-sec td { background:#f4f6fa; padding:6px 8px; }
+  .faq-sec-h { display:flex; align-items:center; gap:8px; }
+  .faq-sec-txt { font-size:11.5px; font-weight:700; color:#1d4ed8; text-transform:uppercase; outline:none; border-radius:3px; padding:0 2px; }
+  .faq-sec-n { font-size:11px; color:#6b7280; }
+  .faq-sec-add { width:20px; height:20px; border-radius:50%; border:none; background:#1d4ed8; color:#fff; font-size:14px; line-height:1; cursor:pointer; padding:0; margin:0; }
+  .faq-cel { white-space:pre-wrap; word-break:break-word; min-height:18px; outline:none; border-radius:3px; }
+  td.faq-tpl { background:#eff6ff; }
+  .faq-tpl-pie { display:flex; justify-content:flex-end; margin-top:6px; }
+  td.faq-acc { width:24px; text-align:center; }
+  .faq-vacio { color:#6b7280; font-size:13px; padding:18px; text-align:center; }
 
 
   .pa-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
@@ -643,13 +671,27 @@
 </div>
 
 <div id="cmtPanelFaq" style="display:none">
-  <div class="ds-tabs" style="display:flex;gap:8px;margin-bottom:14px" id="faqAreaTabs"></div>
-  <div class="ds-panel" style="background:#fff;border:1px solid #d8dde3;border-radius:12px;padding:16px;overflow-x:auto">
-    <table class="faq-tabla">
-      <thead><tr><th>Sección</th><th>Situación</th><th>Producto</th><th>Cómo proceder</th><th>Template</th><th>Ejemplos</th><th>#</th></tr></thead>
-      <tbody id="faqBody"></tbody>
-    </table>
-    <button type="button" class="btn" style="margin-top:8px" onclick="faqAgregarFila()">+ Agregar fila</button>
+  <div class="faq-top">
+    <div class="faq-hojas" id="faqHojas"></div>
+    <div class="faq-gestion" id="faqGestion" style="display:none">
+      <button type="button" class="faq-gbtn" onclick="faqHojaAccion('renombrar')" title="Renombrar hoja">✎ Renombrar</button>
+      <button type="button" class="faq-gbtn" onclick="faqHojaAccion('duplicar')" title="Duplicar hoja">⧉ Duplicar</button>
+      <button type="button" class="faq-gbtn" onclick="faqHojaAccion('nueva')" title="Nueva hoja">+ Nueva hoja</button>
+      <button type="button" class="faq-gbtn" onclick="faqHojaAccion('eliminar')" title="Eliminar hoja (va a la Papelera)">🗑 Eliminar hoja</button>
+    </div>
+  </div>
+  <div class="faq-barra">
+    <input type="text" class="faq-buscar" id="faqBuscar" placeholder="🔎 Buscar situación, ejemplo o template...">
+    <span class="faq-cuenta" id="faqCuenta"></span>
+    <span id="faqHerr" style="display:none">
+      <button type="button" class="faq-gbtn" onclick="faqAgregar('situacion')" title="Agregar situación al final de la última sección">+ Situación</button>
+      <button type="button" class="faq-gbtn" onclick="faqAgregar('seccion')" title="Agregar sección al final">+ Sección</button>
+      <button type="button" class="faq-gbtn" onclick="faqAgregar('columna')" title="Agregar columna">+ Columna</button>
+    </span>
+  </div>
+  <div class="faq-panel">
+    <div class="faq-titulo" id="faqTitulo"></div>
+    <div class="faq-scroll"><table class="faq-tabla"><thead id="faqHead"></thead><tbody id="faqBody"></tbody></table></div>
   </div>
 </div></div></div>
 <div class="ds-overlay" id="ov-preapproved"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Pre-Approved — Design Schedule<span id="paTituloHoja"></span></h1>
@@ -2457,66 +2499,212 @@ window.DS_PANELS.dashboard = ddCargar;
     if (CMT_TPL[i]) navigator.clipboard.writeText(cmtTplText(CMT_TPL[i], f)).catch(function() {});
   };
 
-  // ================= N2 / Face Design: FAQ editable =================
-  var faqAreaId = null, faqAreasReady = false;
+  // ================= N2 / Face Design: hojas FAQ =================
+  // Todos leen, buscan y copian el template; editan solo los roles por encima del diseñador.
+  var FAQ = {hojas: [], hojaId: null, hoja: null, edita: false, listo: false};
+  var FAQ_ANCHOS = {situacion: '17%', producto: '11%', como_proceder: '20%', plantilla: '34%', ejemplos: '14%'};
+  function faqPost(url, body) {
+    return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})})
+      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo guardar.'); return d; }); });
+  }
+  function faqError(e) { alert(e && e.message ? e.message : 'No se pudo guardar.'); faqCargarHoja(); }
+  function faqNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
   function faqInit() {
-    if (faqAreasReady) return;
-    faqAreasReady = true;
-    api('/design/api/areas').then(function(areas) {
-      var candidatas = areas.filter(function(a) { return a.formato === 'n2' || a.formato === 'single'; });
-      var cont = document.getElementById('faqAreaTabs');
-      cont.innerHTML = '';
-      candidatas.forEach(function(a, i) {
-        var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'ds-tab' + (i === 0 ? ' activo' : '');
-        btn.style.cssText = 'padding:8px 16px;border-radius:8px;border:1px solid #d8dde3;background:#fff;cursor:pointer;font-weight:600;font-size:13px;';
-        btn.innerText = a.nombre;
-        btn.onclick = function() {
-          document.querySelectorAll('#faqAreaTabs button').forEach(function(b) { b.style.background = '#fff'; b.style.color = '#000'; });
-          btn.style.background = '#1d4ed8'; btn.style.color = '#fff';
-          faqAreaId = a.id; faqCargar();
-        };
-        if (i === 0) { faqAreaId = a.id; btn.style.background = '#1d4ed8'; btn.style.color = '#fff'; }
-        cont.appendChild(btn);
+    if (FAQ.listo) { faqCargarHojas(); return; }
+    FAQ.listo = true;
+    document.getElementById('faqBuscar').addEventListener('input', faqFiltrar);
+    faqCargarHojas();
+  }
+  function faqCargarHojas(elegir) {
+    return api('/design/api/faq/hojas').then(function(r) {
+      FAQ.hojas = r.hojas || []; FAQ.edita = !!r.puedeEditar;
+      document.getElementById('faqGestion').style.display = FAQ.edita ? '' : 'none';
+      document.getElementById('faqHerr').style.display = FAQ.edita ? '' : 'none';
+      var guardada = null; try { guardada = parseInt(localStorage.getItem('ds_faq_hoja')); } catch (e) {}
+      var ids = FAQ.hojas.map(function(h) { return h.id; });
+      FAQ.hojaId = [elegir, FAQ.hojaId, guardada].filter(function(x) { return ids.indexOf(x) >= 0; })[0] || ids[0] || null;
+      faqPintarHojas();
+      return faqCargarHoja();
+    });
+  }
+  function faqPintarHojas() {
+    var cont = document.getElementById('faqHojas'); cont.innerHTML = '';
+    FAQ.hojas.forEach(function(h) {
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'faq-hoja' + (h.id === FAQ.hojaId ? ' activo' : ''); b.textContent = h.nombre;
+      b.onclick = function() {
+        FAQ.hojaId = h.id; try { localStorage.setItem('ds_faq_hoja', h.id); } catch (e) {}
+        document.getElementById('faqBuscar').value = '';
+        faqPintarHojas(); faqCargarHoja();
+      };
+      cont.appendChild(b);
+    });
+  }
+  function faqCargarHoja() {
+    if (!FAQ.hojaId) { FAQ.hoja = null; faqPintar(); return Promise.resolve(); }
+    var id = FAQ.hojaId;
+    return api('/design/api/faq/hojas/' + id).then(function(h) { if (id === FAQ.hojaId && h && h.id) { FAQ.hoja = h; faqPintar(); } });
+  }
+  // Secciones = filas contiguas con el mismo nombre de sección.
+  function faqGrupos(filas) {
+    var g = [];
+    filas.forEach(function(f) {
+      var ult = g[g.length - 1];
+      if (ult && ult.nombre === f.seccion) ult.filas.push(f); else g.push({nombre: f.seccion, filas: [f]});
+    });
+    return g;
+  }
+  function faqEditable(el, alGuardar) {
+    if (!FAQ.edita) return;
+    el.setAttribute('contenteditable', 'plaintext-only');
+    var antes;
+    el.addEventListener('focus', function() { antes = el.innerText; });
+    el.addEventListener('keydown', function(e) { if (e.key === 'Escape') { el.innerText = antes; el.blur(); } });
+    el.addEventListener('blur', function() {
+      var v = el.innerText.replace(/\n$/, '');
+      if (v !== antes) alGuardar(v, antes);
+    });
+  }
+  function faqPintar() {
+    var h = FAQ.hoja, head = document.getElementById('faqHead'), body = document.getElementById('faqBody');
+    head.innerHTML = ''; body.innerHTML = '';
+    document.getElementById('faqTitulo').textContent = h ? h.nombre : '';
+    if (!h) { body.innerHTML = '<tr><td class="faq-vacio">No hay hojas.</td></tr>'; faqFiltrar(); return; }
+    var cols = h.columnas, ncol = cols.length + (FAQ.edita ? 1 : 0);
+    var trh = document.createElement('tr');
+    cols.forEach(function(c) {
+      var th = document.createElement('th'); th.style.width = FAQ_ANCHOS[c.k] || '160px';
+      var d = document.createElement('div'); d.className = 'faq-th';
+      var t = document.createElement('span'); t.className = 'faq-th-txt'; t.textContent = c.l; d.appendChild(t);
+      faqEditable(t, function(v) {
+        if (!v.trim()) { t.textContent = c.l; return; }
+        faqPost('/design/api/faq/hojas/' + h.id + '/columnas/' + c.k, {titulo: v}).then(function() { c.l = v.trim(); }).catch(faqError);
       });
-      if (faqAreaId) faqCargar();
+      if (FAQ.edita) {
+        var x = document.createElement('button'); x.type = 'button'; x.className = 'faq-x'; x.textContent = '✕';
+        x.title = 'Eliminar columna "' + c.l + '" (va a la Papelera)';
+        x.onclick = function() {
+          if (!confirm('¿Eliminar la columna "' + c.l + '" con todo su contenido? Se puede recuperar desde la Papelera.')) return;
+          faqPost('/design/api/faq/hojas/' + h.id + '/columnas/' + c.k + '/eliminar').then(faqCargarHoja).catch(faqError);
+        };
+        d.appendChild(x);
+      }
+      th.appendChild(d); trh.appendChild(th);
     });
-  }
-  function faqCargar() {
-    api('/design/api/faq?area_id=' + faqAreaId).then(function(filas) {
-      var tbody = document.getElementById('faqBody'); tbody.innerHTML = '';
-      filas.forEach(function(f) { tbody.appendChild(faqFila(f)); });
+    if (FAQ.edita) { var tha = document.createElement('th'); tha.className = 'faq-acc'; trh.appendChild(tha); }
+    head.appendChild(trh);
+
+    faqGrupos(h.filas).forEach(function(g) {
+      var trs = document.createElement('tr'); trs.className = 'faq-sec';
+      var tds = document.createElement('td'); tds.colSpan = ncol;
+      var sh = document.createElement('div'); sh.className = 'faq-sec-h';
+      var st = document.createElement('span'); st.className = 'faq-sec-txt'; st.textContent = g.nombre || (FAQ.edita ? '' : 'Sin sección');
+      sh.appendChild(st);
+      var sn = document.createElement('span'); sn.className = 'faq-sec-n'; sh.appendChild(sn);
+      faqEditable(st, function(v) {
+        faqPost('/design/api/faq/hojas/' + h.id + '/seccion', {filas: g.filas.map(function(f) { return f.id; }), nombre: v})
+          .then(faqCargarHoja).catch(faqError);
+      });
+      if (FAQ.edita) {
+        if (!g.nombre) st.textContent = 'Sin sección';
+        var mas = document.createElement('button'); mas.type = 'button'; mas.className = 'faq-sec-add'; mas.textContent = '+';
+        mas.title = 'Agregar situación en esta sección';
+        mas.onclick = function() { faqNuevaFila(g.nombre, g.filas[g.filas.length - 1].id); };
+        sh.appendChild(mas);
+      }
+      tds.appendChild(sh); trs.appendChild(tds); body.appendChild(trs);
+      trs._filas = [];
+      g.filas.forEach(function(f) {
+        var tr = document.createElement('tr'); tr.className = 'faq-fila'; tr._sec = trs; trs._filas.push(tr);
+        tr._texto = faqNorm([g.nombre].concat(cols.map(function(c) { return f[c.k] || ''; })).join(' '));
+        cols.forEach(function(c) {
+          var td = document.createElement('td'); if (c.k === 'plantilla') td.className = 'faq-tpl';
+          var cel = document.createElement('div'); cel.className = 'faq-cel'; cel.textContent = f[c.k] || '';
+          faqEditable(cel, function(v) {
+            faqPost('/design/api/faq/filas/' + f.id, {campo: c.k, valor: v}).then(function() {
+              f[c.k] = v; tr._texto = faqNorm([g.nombre].concat(cols.map(function(cc) { return f[cc.k] || ''; })).join(' '));
+            }).catch(faqError);
+          });
+          td.appendChild(cel);
+          if (c.k === 'plantilla') {
+            var pie = document.createElement('div'); pie.className = 'faq-tpl-pie';
+            var cp = document.createElement('button'); cp.type = 'button'; cp.className = 'btn mini'; cp.textContent = 'Copiar';
+            cp.onclick = function() {
+              navigator.clipboard.writeText(f.plantilla || '').then(function() {
+                cp.textContent = 'Copiado'; setTimeout(function() { cp.textContent = 'Copiar'; }, 1200);
+              }).catch(function() {});
+            };
+            pie.appendChild(cp); td.appendChild(pie);
+          }
+          tr.appendChild(td);
+        });
+        if (FAQ.edita) {
+          var tda = document.createElement('td'); tda.className = 'faq-acc';
+          var x = document.createElement('button'); x.type = 'button'; x.className = 'faq-x'; x.textContent = '✕';
+          x.title = 'Eliminar esta situación (va a la Papelera)';
+          x.onclick = function() {
+            if (!confirm('¿Eliminar esta fila? Se puede recuperar desde la Papelera.')) return;
+            faqPost('/design/api/faq/filas/' + f.id + '/eliminar').then(faqCargarHoja).catch(faqError);
+          };
+          tda.appendChild(x); tr.appendChild(tda);
+        }
+        body.appendChild(tr);
+      });
     });
+    faqFiltrar();
   }
-  function faqFila(f) {
-    var tr = document.createElement('tr'); tr.dataset.id = f.id;
-    var campos = ['seccion','situacion','producto','comoProceder','plantilla','ejemplos'];
-    campos.forEach(function(c) {
-      var td = document.createElement('td');
-      var ta = document.createElement('textarea'); ta.rows = 2; ta.value = f[c] || ''; ta.dataset.campo = c;
-      ta.addEventListener('blur', function() { faqGuardar(tr); });
-      td.appendChild(ta); tr.appendChild(td);
+  function faqFiltrar() {
+    var q = faqNorm(document.getElementById('faqBuscar').value.trim()), vis = 0, tot = 0;
+    document.querySelectorAll('#faqBody tr.faq-sec').forEach(function(trs) {
+      var n = 0;
+      trs._filas.forEach(function(tr) { var ok = !q || tr._texto.indexOf(q) >= 0; tr.style.display = ok ? '' : 'none'; if (ok) n++; });
+      trs.style.display = n ? '' : 'none';
+      trs.querySelector('.faq-sec-n').textContent = '(' + n + ')';
+      vis += n; tot += trs._filas.length;
     });
-    var tdAccion = document.createElement('td');
-    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ds-btn-x';
-    btn.style.cssText = 'background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;';
-    btn.innerText = '✕'; btn.onclick = function() { faqEliminar(f.id, tr); };
-    tdAccion.appendChild(btn); tr.appendChild(tdAccion);
-    return tr;
+    document.getElementById('faqCuenta').textContent = q ? vis + ' de ' + tot + ' filas' : tot + (tot === 1 ? ' fila' : ' filas');
   }
-  function faqGuardar(tr) {
-    var datos = {};
-    tr.querySelectorAll('[data-campo]').forEach(function(ta) { datos[ta.dataset.campo] = ta.value; });
-    postJSON('/design/api/faq/' + tr.dataset.id, datos);
+  function faqNuevaFila(seccion, despuesDe) {
+    faqPost('/design/api/faq/hojas/' + FAQ.hojaId + '/filas', {seccion: seccion || '', despuesDe: despuesDe || null}).then(function(r) {
+      document.getElementById('faqBuscar').value = '';
+      return faqCargarHoja().then(function() {
+        var cel = null;
+        document.querySelectorAll('#faqBody tr.faq-fila').forEach(function(tr, i) {
+          if (FAQ.hoja.filas[i] && FAQ.hoja.filas[i].id === r.id) cel = tr.querySelector('.faq-cel');
+        });
+        if (cel) { cel.scrollIntoView({block: 'center'}); cel.focus(); }
+      });
+    }).catch(faqError);
   }
-  window.faqAgregarFila = function() {
-    if (!faqAreaId) return;
-    fetch('/design/api/faq?area_id=' + faqAreaId, {method:'POST'}).then(function(r) { return r.json(); }).then(faqCargar);
+  window.faqAgregar = function(que) {
+    if (!FAQ.hoja) return;
+    if (que === 'situacion') {
+      var ult = FAQ.hoja.filas[FAQ.hoja.filas.length - 1];
+      faqNuevaFila(ult ? ult.seccion : 'Nueva sección', null);
+    } else if (que === 'seccion') {
+      var n = (prompt('Nombre de la nueva sección:', 'Nueva sección') || '').trim();
+      if (n) faqNuevaFila(n, null);
+    } else if (que === 'columna') {
+      var c = (prompt('Nombre de la nueva columna:', 'Nueva columna') || '').trim();
+      if (c) faqPost('/design/api/faq/hojas/' + FAQ.hojaId + '/columnas', {titulo: c}).then(faqCargarHoja).catch(faqError);
+    }
   };
-  function faqEliminar(id, tr) {
-    if (!confirm('¿Eliminar esta fila?')) return;
-    postJSON('/design/api/faq/' + id + '/eliminar').then(function() { tr.remove(); });
-  }
+  window.faqHojaAccion = function(que) {
+    var h = FAQ.hoja; if (!h && que !== 'nueva') return;
+    if (que === 'renombrar') {
+      var n = (prompt('Nuevo nombre de la hoja:', h.nombre) || '').trim();
+      if (n && n !== h.nombre) faqPost('/design/api/faq/hojas/' + h.id + '/renombrar', {nombre: n}).then(function() { return faqCargarHojas(); }).catch(faqError);
+    } else if (que === 'duplicar') {
+      faqPost('/design/api/faq/hojas', {nombre: h.nombre + ' (copia)', duplicarDe: h.id}).then(function(r) { return faqCargarHojas(r.id); }).catch(faqError);
+    } else if (que === 'nueva') {
+      var nn = (prompt('Nombre de la nueva hoja:', 'Nueva hoja') || '').trim();
+      if (nn) faqPost('/design/api/faq/hojas', {nombre: nn}).then(function(r) { return faqCargarHojas(r.id); }).catch(faqError);
+    } else if (que === 'eliminar') {
+      if (FAQ.hojas.length <= 1) { alert('Debe quedar al menos una hoja.'); return; }
+      if (!confirm('¿Eliminar la hoja "' + h.nombre + '" con todas sus filas? Se puede recuperar desde la Papelera.')) return;
+      faqPost('/design/api/faq/hojas/' + h.id + '/eliminar').then(function() { FAQ.hojaId = null; return faqCargarHojas(); }).catch(faqError);
+    }
+  };
 
   window.DS_PANELS.comments = cmtInit;
 
@@ -4362,7 +4550,8 @@ window.DS_PANELS.dashboard = ddCargar;
 (function() {
   var MODULOS = {"pa-sheet":"Pre-Approved · hoja", "pa-centro":"Pre-Approved · centro",
                 "pa-doctor":"Pre-Approved · doctor", "pa-fila":"Pre-Approved · criterio",
-                "protocol":"Protocolo", "cv-doc":"Canvas · hoja", "cmt-template":"Comments · plantilla"};
+                "protocol":"Protocolo", "cv-doc":"Canvas · hoja", "cmt-template":"Comments · plantilla",
+                "faq-hoja":"Comments N2/Face · hoja", "faq-fila":"Comments N2/Face · situación", "faq-col":"Comments N2/Face · columna"};
 
   function postJSON(url) {
     return fetch(url, {method:'POST'}).then(function(r) {

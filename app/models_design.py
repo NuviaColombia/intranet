@@ -166,18 +166,33 @@ class DesignComentarioHistorial(Base):
     creado_por = relationship("Empleado")
 
 
+class DesignFaqHoja(Base):
+    """Hoja de Comments N2 / Face Design (FACE, NEW FACE, N2, FACE MANAGER QUESTIONS...).
+    `columnas` es un JSON [{"k": clave, "l": título}] con el orden de las columnas visibles:
+    las claves fijas son campos de DesignFaq y las propias ("c1", "c2"...) van en DesignFaq.extras."""
+    __tablename__ = "design_faq_hojas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(150), default="")
+    area_id: Mapped[int | None] = mapped_column(ForeignKey("design_areas.id"), nullable=True)
+    columnas: Mapped[str] = mapped_column(Text, default="[]")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class DesignFaq(Base):
-    """Hoja de preguntas frecuentes / cómo proceder (Comments N2 / Face Design)."""
+    """Fila de una hoja de Comments N2 / Face Design: situación, cómo proceder y template."""
     __tablename__ = "design_faq"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
+    hoja_id: Mapped[int | None] = mapped_column(ForeignKey("design_faq_hojas.id"), nullable=True)
     seccion: Mapped[str] = mapped_column(String(150), default="")
-    situacion: Mapped[str] = mapped_column(String(200), default="")
+    situacion: Mapped[str] = mapped_column(Text, default="")
     producto: Mapped[str] = mapped_column(String(150), default="")
     como_proceder: Mapped[str] = mapped_column(Text, default="")
     plantilla: Mapped[str] = mapped_column(Text, default="")
     ejemplos: Mapped[str] = mapped_column(Text, default="")
+    extras: Mapped[str] = mapped_column(Text, default="{}")
     orden: Mapped[int] = mapped_column(Integer, default=0)
 
     area = relationship("DesignArea")

@@ -1,0 +1,2192 @@
+[
+ {
+  "nombre": "FACE",
+  "area": "Face Design",
+  "columnas": [
+   {
+    "k": "situacion",
+    "l": "Situación"
+   },
+   {
+    "k": "producto",
+    "l": "Producto"
+   },
+   {
+    "k": "como_proceder",
+    "l": "Cómo proceder"
+   },
+   {
+    "k": "plantilla",
+    "l": "Template"
+   },
+   {
+    "k": "ejemplos",
+    "l": "Ejemplos"
+   }
+  ],
+  "filas": [
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que el bite en la foto no se encuentre ocluyendo pero en los scans si",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with face design; however, due to the discrepancy between the photos and the bite provided, there will be an incorrect perception of the lower arch. Please review the case carefully. If you would like a more accurate result, kindly have the patient back and send a new photo. Thank you",
+    "ejemplos": "Bite abierto/ Diferente a las fotos"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación, donde el paciente tiene la boca completamente abierta, dale skip a tu stage sin hacer el diseño de face con el siguiente template :",
+    "plantilla": "This case was not designed with face design as this case has a discrepancy between the photos and the bite provided because the patient in the Natural Smile photo has the mouth wide open, which will prevent correct alignment and there will be an incorrect perception of the lower arch. Please review the design carefully. If a more accurate result is desired, kindly have the patient come back and submit a new photo. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided, which will prevent correct alignment and there will be an incorrect perception of the lower arch. I would like to know if the doctor prefers to proceed with the case without face design or if new photos will be sent for the facel design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided, which will prevent correct alignment and there will be an incorrect perception of the lower arch. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que las fotos la sonrisa del paciente no muestre o le cueste mostrar información de los dientes.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template :",
+    "plantilla": "This case was not designed with face design as the patient's photo does not provide complete information of the teeth, which prevents us from aligning the intraoral scans with the face. Please review the design carefully. If a more accurate result is desired, kindly have the patient come back and submit a new photo. Thank you",
+    "ejemplos": "Fotos con falta de informacion / boca cerrada"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from aligning the intraoral scans with the face.  I would like to know if the doctor prefers to continue with the case without face design or if new photos will be sent for face design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "En casos de que la foto esta mal tomada pon el caso en hold con el siguiente template :",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from aligning the intraoral scans with the face. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación, donde el paciente tiene la boca cerrada, dale skip a tu stage sin hacer el diseño de face con el siguiente template :",
+    "plantilla": "This case was not designed with face design as the patient's photo does not provide information of the teeth, which prevents us from aligning the intraoral scans with the face. Please review the design carefully. If a more accurate result is desired, kindly have the patient come back and submit a new photo. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación, donde el paciente tiene la boca cerrada y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo does not provide information about the teeth, which prevents us from aligning the intraoral scans with the face.  I would like to know if the doctor prefers to continue with the case without face design or if new photos will be sent for face design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en donde el paciente tiene menos de 4 dientes anteriores y no tiene bite blocks,",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the patient would require partial bite blocks for the alignment of the scans, due to having less than four anterior teeth. Please review the case in detail. If the face design is needed, kindly have the patient come back and provide a new photograph. Thank you.",
+    "ejemplos": "Menos de 4 dientes anteriores sin biteblocks parciales"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has fewer than 4 anterior teeth. In order to design the face design, partial bite blocks are required. I would like to know if the doctor plans to proceed with the case without designing the face, or if the patient will be brought back to do the design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has fewer than 4 anterior teeth. In order to design the face design, partial bite blocks are required. I would like to know if the doctor plans to proceed with the case in 24Z without designing the face, or if the patient will be brought back to do the design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que el paciente tiene 3 dientes anteriores y un diente de preparación para corona o diente partido.",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with a face design; however, since the patient only has 3 complete teeth, there may be discrepancies with the alignment, and the occlusal plane could be affected. Please review the design carefully, and if a more precise design is needed, kindly send a new photograph and scans for the face design. Thank you.",
+    "ejemplos": "3 dientes anteriores y 1 diente de preparacion"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que el paciente tiene la cara orientada hacia la derecha/izquierda/arriba/abajo dando una mala percepción de la sonrisa del paciente donde puede afectar la midline, la rotación del arco o el plano oclusal.",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with a face design; however, since the patient’s face is angled to one side and ideally should be centered, there may be a different perception of the patient's bite, potentially affecting the occlusal plane, midline, and arch rotation. If a more accurate design is required, please bring the patient back and provide a new photograph. Thank you.",
+    "ejemplos": "Rostro angulado"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Si la cara está ligeramente ladeada, pero es apenas perceptible., realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with a face design; however, since the patient’s face is a little angled to one side and ideally should be centered, there may be a different perception of the patient's bite, potentially affecting the occlusal plane, midline, and arch rotation. If a more accurate design is required, please bring the patient back and provide a new photograph. Thank you.",
+    "ejemplos": "Rostro un poquito angulado"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design because the patient's face is very angled, preventing us from seeing the correct perception of the patient's smile and impeding the view of one of the patient's ears. Please review the design carefully. If a more accurate result is desired, kindly have the patient come back and submit a new Natural Smile photo. Thank you.",
+    "ejemplos": "Rostro un muy angulado (Oreja no visible)"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's face is excessively angled in the pictures wich is preventing us from clearly visualizing one of the ears and making a proper face alignment. I would like to know if the doctor prefers to proceed with the case without a face design in 24z, or if new photographs will be provided for the face design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Las fotos del natural smile tienen un bigote que no permiten la correcta visualización de los dientes para realizar la alineación correctamente.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the patient has a moustache which is preventing us to make a correct alignment. Please review the case in detail. If the face design is needed, kindly have the patient come back and provide a new photograph. Thank you.",
+    "ejemplos": "Fotos con bigotes que impiden alineacion"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This patient have a moustache on the pictures which is preventing us to make a correct alignment. I would like to know if the doctor prefers to proceed with the case without face design or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This patient have a moustache on the pictures which is preventing us to make a correct alignment. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "La Foto Natural Smile del paciente está desenfocada impidiendonos alinear correctamente los scans a la foto y hacer un buen diseño de cara.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the natural smile picture is blur which is preventing us to make a correct alignment. Please review the case in detail. If the face design is needed, kindly have the patient come back and provide a new photograph. Thank you.",
+    "ejemplos": "Foto Natural smile desenfocada"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The natural smile picture is blur which is preventing us to make a correct alignment. I would like to know if the doctor prefers to proceed with the case without face design or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "The natural smile picture is blur which is preventing us to make a correct alignment. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Las fotos recibidas fueron tomadas con Ipad/iPhone, esto tiende  a distorsionar las proporciones de la cara del paciente y a rebajar la calidad de la imagen.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was designed without face design due to the fact that the necessary photos were taken with an iPad/iPhone rather than a camera, which affects the proportions of the patient's face. Please review the case in detail. If the face design is needed, kindly have the patient come back and provide a new photograph. Thank you.",
+    "ejemplos": "Fotos tomadas con IPad/iPhone"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The necessary photos were taken with an iPad/iPhone rather than a camera, which affects the proportions of the patient's face. I would like to know if the doctor prefers to proceed with the case without face design or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "The necessary photos were taken with an iPad/iPhone rather than a camera, which affects the proportions of the patient's face. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent for the face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Las fotos del paciente no tienen biteblocks o denture pero los scans si y no podemos alinear los scans al face.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the patient would require biteblocks / denture in the photos for alignment, because the patient is edentulous and the scans do not match. Please review the case in detail. If face design is needed, please have the patient come back and provide new photos. Thank you",
+    "ejemplos": "Fotos sin denture / biteblocks y scans con denture / biteblocks"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the photos. I would like to know if the doctor prefers to proceed with the case without face design or if new photos will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the photos. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Las fotos del paciente tienen biteblocks en los anteriores pero en los scans no y no podemos alinear los scans al face design.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the patient would require biteblocks / denture in the scans for alignment, because the patient is partially edentulous / edentulous and the scans do not match, please review the case in detail. If face design is needed, please have the patient come back and provide new scans . Thank you",
+    "ejemplos": "Scans sin denture / biteblocks y fotos con denture / biteblocks"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the scans and the photo provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the scans. I would like to know if the doctor prefers to proceed with the case without face design or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the scans and the photo provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the scans. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "El biteblocks de los scans está diferente al biteblocks de las fotos y no podemos alinear",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the biteblocks of the scans do not match the biteblock of the photos and we cannot align them. If the face design is needed, kindly have the patient come back and provide a new scans that match the photos. Thank you.",
+    "ejemplos": "Biteblock no hace match con fotos"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, in order to design a face, the biteblocks of the scans must match the photos. I would like to know if the doctor prefers to proceed with the case without face design or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, in order to design a face, the biteblocks of the scans must match the photos. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Los dientes Anteriores tienen mucho movimiento y no podemos alinear los scans a la foto",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the anterior teeth of the scans do not match the anterior teeth of the photos because they have movement and we cannot align them. If the facial design is needed, kindly have the patient come back and provide a new scans that match the photos. Thank you.",
+    "ejemplos": "Dientes anteriores con movimiento"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case presents a discrepancy, the anterior teeth of the scans do not match the anterior teeth in the photos because they have movement and we cannot align them. I would like to know if the doctor prefers to proceed with the case without face design or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This case presents a discrepancy, the anterior teeth of the scans do not match the anterior teeth in the photos because they have movement and we cannot align them.  I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Los ojos del paciente están cerrados y no podemos realizar una correcta alineación de la Face..",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was created with a face design; however, since the patient's eyes are closed when they should be open, there may be a misalignment in the face design. If a more precise design is needed, kindly have the patient return for a new photograph. Thank you.",
+    "ejemplos": "Ojos del paciente cerrados"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "El paciente en las fotografías tiene las orejas tapadas y no podemos realizar un buen diseño de cara y una buena alineación de las fotografías.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the patient's has the ears covered which prevents us from making a correct alignment of the photos and perform a good face design. Please review the design carefully. If a more accurate result is desired, kindly have the patient come back and submit a new photo. Thank you.",
+    "ejemplos": "Orejas tapadas"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si la foto fue tomada de modo que la oreja quedó recortada de la imagen, dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the photo was taken without showing the ears, which prevents us from making a correct alignment of the photos and perform a good face design. Please review the design carefully. If a more accurate result is desired, kindly have the patient come back and submit a new photo. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The (----) photo does not provide complete information of the patient's ears, which prevents us from making a correct alignment and a good face design. Please let us know if you want to continue the case without face design or kindly have the patient come back and submit a new photos. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "The (----) photo does not provide complete information of the patient's ears, which prevents us from making a correct alignment and a good face design. Please let us know if you want to continue the case in 24z without face design or kindly have the patient come back and submit a new photos. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "El paciente en las fotografías tiene objetos que nos nos permite visualizar con claridad características faciales, estos nos impide realizar un correcto face design.",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was designed without face design due to the fact that the patient has objects in the face that prevent the correct performance of the face design. Please review the case in detail. If the face design is needed, kindly have the patient come back and provide a new photograph. Thank you.",
+    "ejemplos": "Fotos con objetos en el rostro"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This patient has objects on the face in the photos that are preventing us from doing a correct face design.  I would like to know if the doctor prefers to proceed with the case without face design or if new photos will be sent to design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This patient has objects on the face in the photos that are preventing us from doing a correct face design.  I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent to design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "Si no se puede hacer Face Design pero el Dr tiene en pre-aprobados que se puede continuar sin Face en 24z sin tener que preguntar.",
+    "producto": "Single 24z",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "(----). Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": "Pre-approved Regular Single 24z"
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT incorrecto",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CBCT uploaded does not correspond to the patient, we will proceed to continue the design. If you need to visualize the design with the CBCT please send the correct one. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT corrupto",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CBCT folder is corrupted, we will proceed to continue the design. If you need to visualize the design with the CBCT please send it again. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT incompleto",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CBCT uploaded is incomplete, we will proceed to continue the design. If you need to visualize the design with the CBCT please send it complete. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT no fue subido",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CBCT folder was not uploaded to the platform, we proceed to continue the design. In case you need to visualize the design with the CBCT please send the file again. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "Link de CBCT corresponde a scans",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CBCT link contains the intraoral scans, we proceed to continue the design. If you need to visualize the design with the CBCT please send the correct file. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT vacio",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CBCT folder is empty, we proceed to continue the design. In case you need to visualize the design with the CBCT please send the file again. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT con contraseña que nos impide descomprimir",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The uploaded CBCT file is compressed and requires a password to unzip it, which we do not have; therefore, we will proceed with the design. If you need to view the design using the CBCT, please send the file without requesting this information. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT se sale de la cara del pt",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CT scan has a different bite than the scans, causing it to shift away from the patient's face; we will proceed without the CT scan. If you need to visualize the design with the CBCT please send a new CBCT that match the bite. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT con ruido extra que no permite una optima alineación",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CT contains extra material, which prevents optimal alignment with the intraoral scans. We will proceed without the CT. If you need to visualize the design with the CBCT, please send a new CBCT scan with improved quality. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT formato incorrecto",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The uploaded CBCT files are in the wrong format, we proceed to continue the design, In case you need to visualize the design with the CBCT please send in the correct format. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "Upper sin paladar y no podemos alinear el CBCT",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The CT scan could not be aligned to the scans because the upper scans do not contain information about the patient's palate. If you need to visualize the design with the CBCT please send a new upper scans with palate information.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Fotos con retractores",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "We need the pictures of (--) without retractors to be able to perform face design, please upload again (--) photo without retractors or let us know if you want to continue the case without face design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "We need the pictures of (--) without retractors to be able to perform face design, please upload again (--) photo without retractors or let us know if you want to continue  as the case in 24z without face design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Dientes con Movimiento",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Tooth (--) has movement, please check, we did our best to align the scans to the face design. thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Dientes con informacion extra o falta de informacion",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Tooth # has different information than what can be seen in the photographs, please check carefully the design, we did our best to align the scans to the  face design. thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Scans que se traspasan entre si",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The scans overlap with each other. We aligned the models using the total bite scans provided and completed the design based on the bite records received. Please review the alignment carefully before proceeding.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Dientes con Falta de informacion",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Tooth No. [..] is missing information in the scan. Please send a new scan of the area or let us know how you would like to proceed. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Scans de alginato por mantenimiento del escáner intraoral:",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Please note that models printed from alginate impressions often have irregularities, bubbles, or distortions. We did our best to align them using the material provided; if you need millimeter-level precision, we recommend that you perform an intraoral scan (IOS).",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Los registros de mordida no ocluyen.",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The intraoral scans we received contain inconsistencies in the bite registration, which prevent the models from occluding properly. Please send new intraoral scans, or let us know how you would like to proceed, Doctor.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Scans de alginato que no hacen match con los new records de alginato  subidos:",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Please note that models printed from alginate impressions often have irregularities, bubbles, or distortions. We have done our best to align them using the material you provided, but they do not match, so we are asking you for new intraoral scans. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para Lunch",
+    "producto": "N/A",
+    "como_proceder": "Hold because of lunch, I'll continue in 1hour.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Comentario FACE SCAN",
+    "producto": "N/A",
+    "como_proceder": "Skipped because we received a face scan for this patient.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para hora de entrenamiento",
+    "producto": "N/A",
+    "como_proceder": "Hold because of weekly training.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para cualquier reunion",
+    "producto": "N/A",
+    "como_proceder": "Hold because of group meeting.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para finalizar el face design",
+    "producto": "N/A",
+    "como_proceder": "The Alignment designer is currently finalizing another case and will continue with this design once it has been completed.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para finalizar el face design mientras el alineador está en break",
+    "producto": "N/A",
+    "como_proceder": "The Alignment Designer is currently on a break and will continue working on this design in a few minutes upon returning.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para finalizar turno",
+    "producto": "N/A",
+    "como_proceder": "Shift ended, I'll continue tomorrow morning.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con plataforma",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to Platform issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con internet",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to internet connectivity issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con DropBox",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to DropBox connectivity issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con fluido eléctrico",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to electricity issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con el computador",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to Computer issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   }
+  ]
+ },
+ {
+  "nombre": "NEW FACE",
+  "area": "Face Design",
+  "columnas": [
+   {
+    "k": "situacion",
+    "l": "Situación"
+   },
+   {
+    "k": "producto",
+    "l": "Producto"
+   },
+   {
+    "k": "como_proceder",
+    "l": "Cómo proceder"
+   },
+   {
+    "k": "plantilla",
+    "l": "Template"
+   },
+   {
+    "k": "ejemplos",
+    "l": "Ejemplos"
+   }
+  ],
+  "filas": [
+   {
+    "seccion": "",
+    "situacion": "Los IOS no están completamente alineados o están desalineados",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Si los scans estan evidentemente desalineados realizar la alineacion, CONTINUA con el caso y envíalo con el siguiente template:",
+    "plantilla": "The (--) scans we received are not aligned and do not match the patient’s photo, which prevents us from aligning the intraoral scans with the face. However, we completed the design by aligning the scans and achieving the best possible match with the photo. Please review the case carefully. If a more accurate result is desired, kindly have the patient return and submit a new scans. Thank you.",
+    "ejemplos": "IOS MUY desalineados"
+   },
+   {
+    "seccion": "",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si los scans estan alineados pero no de manera precisa y esto hace no haga match con las fotos, pero si podemos alinear, envía el caso a HOLD con el siguiente template:",
+    "plantilla": "The scans we received are not fully aligned, making a discrepancy between the photos and the scans provided. We would like to know if the doctor would prefer to continue with these records, or if the doctor would like us to align the scans to match more accurately. Thank you.",
+    "ejemplos": "IOS un poco alineados pero no la mordida no hace match con la foto"
+   },
+   {
+    "seccion": "",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si los scans estan alineados pero no de manera precisa y esto hace no podamos alinear los scans a la foto, envía el caso a HOLD con el siguiente template:",
+    "plantilla": "The scans we received are not fully aligned and do not match the patient’s photo, which prevents us from accurately aligning the intraoral scans with the face. We would like to know if the doctor would prefer to continue with these scans without Face Design, or if the doctor would like us to align the scans to match the photo so that we can proceed with the Face Design alignment. Thank you.",
+    "ejemplos": "IOS un poco alineados pero no se puede alinear los scans a la foto"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Fotos anguladas",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with a face design; however, since the patient’s face is angled to one side and ideally should be centered, there may be a different perception of the patient's bite, potentially affecting the occlusal plane, midline, and arch rotation. If a more accurate design is required, please bring the patient back and provide a new photograph. Thank you.",
+    "ejemplos": "Rostro angulado"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Si la cara está ligeramente ladeada, pero es apenas perceptible., realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with a face design; however, since the patient’s face is a little angled to one side and ideally should be centered, there may be a different perception of the patient's bite, potentially affecting the occlusal plane, midline, and arch rotation. If a more accurate design is required, please bring the patient back and provide a new photograph. Thank you.",
+    "ejemplos": "Rostro un poquito angulado"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Bite abierto o diferente a las fotos",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with face design; however, due to the discrepancy between the photos and the bite provided, there will be an incorrect perception of the lower arch. Please review the case carefully. If you would like a more accurate result, kindly have the patient back and send a new photo. Thank you",
+    "ejemplos": "Casos en los que el bite en la foto no se encuentre ocluyendo pero en los scans si o que la mordida  de las fotos no hace match con los scans"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided, which will prevent correct alignment and there will be an incorrect perception of the lower arch. I would like to know if the doctor prefers to proceed with the retractors picture in 24z, or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided, which will prevent correct alignment and there will be an incorrect perception of the lower arch. However, we completed the face design using the with the retractors picture. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Bite MUY abierto",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided because the patient's photo has the mouth wide open, which will be an incorrect perception of the lower arch. However, we completed the face design using the with the retractors picture. If a more accurate result is desired, kindly have the patient return to submit a new photo. Thank you.",
+    "ejemplos": "Casos en los que el paciente tenga la boca MUY abierta y en los scans esta ocluyendo"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided because the patient's photo has the mouth wide open, which will be an incorrect perception of the lower arch. I would like to know if the doctor prefers to proceed with the with the retractors picture or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided because the patient's photo has the mouth wide open, which will be an incorrect perception of the lower arch. I would like to know if the doctor prefers to proceed with the with the retractors picture in 24z or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the bite provided because the patient's photo has the mouth wide open, which will be an incorrect perception of the lower arch. However, we completed the face design using the with the retractors picture. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Fotos tomadas con iPad/iPhone",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with face design using the best possible alignment based on the available photos. However, the necessary photos were taken with an iPad/iPhone rather than a camera, which affects the proportions of the patient's face. Please review the design carefully. If a more accurate face design is needed, kindly have the patient return and provide new photographs taken with a camera. Thank you.",
+    "ejemplos": "iPad/iPhone"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case could not be designed with face design because the necessary photos were taken with an iPad/iPhone rather than a camera, which affects the proportions of the patient's face and prevents an accurate face design. I would like to know if the doctor prefers to proceed with the existing photos, understanding that the facial proportions may not be fully accurate, or if the patient will return to provide new photographs taken with a camera. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "This case could not be designed with face design because the necessary photos were taken with an iPad/iPhone rather than a camera, which affects the proportions of the patient's face and prevents an accurate face design. I would like to know if the doctor prefersto proceed with the existing photos in 24z, understanding that the facial proportions may not be fully accurate, or if the patient will return to provide new photographs taken with a camera. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with face design using the best possible alignment based on the available photos. However, the necessary photos were taken with an iPad/iPhone rather than a camera, which affects the proportions of the patient's face and may impact the accuracy of the face design. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Menos de 4 dientes anteriores",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient has fewer than four anterior teeth, which prevents us from accurately aligning the intraoral scans with the face. However, we did our best to achieve the most accurate alignment possible with the available photos. If a more accurate result is desired, kindly have the patient return to submit a new photo and scans. Thank you.",
+    "ejemplos": "Fotos en donde el paciente tiene menos de 4 dientes anteriores pero no es edentulo"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient has fewer than four anterior teeth, which prevents us from accurately aligning the intraoral scans with the face. However, the face design could not be completed. Please let us know if the doctor prefers to proceed with the current photos, understanding that an accurate face design cannot be achieved, or if new photos and scans will be provided. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient has fewer than four anterior teeth, which prevents us from accurately aligning the intraoral scans with the face. However, the face design could not be completed. Please let us know if the doctor prefers to proceed with the existing photos in 24Z, understanding that the alignment may not be fully accurate, or if the patient will return to provide new photographs and scans. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The natural smile photo shows fewer than four anterior teeth, which prevents us from accurately aligning the intraoral scans with the face. Therefore, we did our best to achieve the most accurate alignment possible with the available photos. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Pacientes edentulos en Upper jaw",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient is edentulous in the upper arch, which prevents us from aligning the intraoral scans with the facial photo. However, the case was designed without using the photos for alignment. Please review the case in detail. If a more accurate result is desired, kindly have the patient return and provide the appropriate records for face design. Thank you.",
+    "ejemplos": "Fotos en donde los pacientes son edentulos en upper y no podemos realizar alineación"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient is edentulous in the upper arch, which prevents us from aligning the intraoral scans with the facial photo. However, the face design could not be completed. I would like to know if the doctor prefers to continue without face design or if new photos and scans will be provided. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient is edentulous in the upper arch, which prevents us from aligning the intraoral scans with the facial photo. However, the face design could not be completed. I would like to know if the doctor prefers to continue without face design in 24z or if new photos and scans will be provided. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realizalo sin face design y envíalo con el siguiente template:",
+    "plantilla": "The patient is edentulous in the upper arch, which prevents us from aligning the intraoral scans with the facial photo. The case was designed without using the photos for alignment, please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Poca información de dientes",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación y el paciente TIENE fotografía con retractores realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from accurately aligning the intraoral scans with the face. However, we completed the face design using the with the retractors picture. If a more accurate result is desired, kindly have the patient return to submit a new photo. Thank you.",
+    "ejemplos": "Fotos en donde la información de los dientes no es completamente visible"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación y el paciente NO tiene fotografía con retractores, pero el doctor en sus pre-aprobados permite continuar diseñalo SIN face design y envíalo con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from accurately aligning the intraoral scans with the face. Please review the design carefully. If a more accurate result is desired, kindly have the patient come back and submit a new photo. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el paciente TIENE fotografía con retractores, pero el doctor en sus pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from accurately aligning the intraoral scans with the face. I would like to know if the doctor prefers to proceed with the retractors picture or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el paciente NO TIENE fotografía con retractores, pero el doctor en sus pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from accurately aligning the intraoral scans with the face. I would like to know if the doctor prefersto proceed without face design, or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el paciente TIENE fotografía con retractores envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from accurately aligning the intraoral scans with the face. I would like to know if the doctor prefers to proceed with the (Frontal with cheek retractors) picture in 24Z, or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el paciente NO tiene fotografía con retractores envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from accurately aligning the intraoral scans with the face. I would like to know if the doctor prefers to continue with the case without face design in 24z or if new photos will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient's photo does not provide complete information about the teeth, which prevents us from accurately aligning the intraoral scans with the face. However, we completed the face design using the with the retractors picture. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Foto borrosa",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient's photo is blurry, which prevents us from accurately aligning the intraoral scans with the face. However, we did our best to achieve the most accurate alignment possible with the available photos. If a more accurate result is desired, kindly have the patient return and submit a new photo. Thank you.",
+    "ejemplos": "Fotos en donde la sonrisa no se pueda ver correctamente debido a que la foto está muy borrosa"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo is blurry, which prevents us from accurately aligning the intraoral scans with the face. I would like to know if the doctor prefers to proceed using the available photos or if new photos will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's photo is blurry, which prevents us from accurately aligning the intraoral scans with the face. I would like to know if the doctor prefers to proceed using the available photos in 24z or if new photos will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient's photo is blurry, which prevents us from accurately aligning the intraoral scans with the face.  However, we did our best to achieve the most accurate alignment possible with the available photos. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Fotos anguladas",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with a face design; however, since the patient’s face is angled to one side and ideally should be centered, there may be a different perception of the patient's bite, potentially affecting the occlusal plane, midline, and arch rotation. If a more accurate design is required, please bring the patient back and provide a new photograph. Thank you.",
+    "ejemplos": "Rostro angulado"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Si la cara está ligeramente ladeada, pero es apenas perceptible., realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was designed with a face design; however, since the patient’s face is a little angled to one side and ideally should be centered, there may be a different perception of the patient's bite, potentially affecting the occlusal plane, midline, and arch rotation. If a more accurate design is required, please bring the patient back and provide a new photograph. Thank you.",
+    "ejemplos": "Rostro un poquito angulado"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Fotos con bigote",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient has a moustache which is preventing us to make a correct alignment. However, we did our best to achieve the most accurate alignment possible with the available photos. If a more accurate result is desired, kindly have the patient return to submit a new photo. Thank you.",
+    "ejemplos": "Las fotos en donde el paciente tiene bigote que no permiten la correcta visualización de los dientes para realizar la alineación."
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This patient have a moustache on the pictures which is preventing us to make a correct alignment. I would like to know if the doctor prefers to proceed with the retractors picture or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This patient have a moustache on the pictures which is preventing us to make a correct alignment. I would like to know if the doctor prefers to proceed with the retractors picture in 24z or if the patient will return to provide new photographs. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient has a moustache which is preventing us to make a correct alignment. However, we did our best to achieve the most accurate alignment possible with the available photos. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, which will prevent correct alignmen. The patient would require partial biteblocks / denture in the photos for alignment, because the patient is partially edentulous and the scans do not match. Please review the case in detail. If face design is needed, please have the patient come back and provide new photos. Thank you",
+    "ejemplos": "Las fotos del paciente no tienen biteblocks o denture pero los scans si y no podemos alinear los scans al face."
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "FOTO SIN denture/biteblocks y scans con denture/biteblocks",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the photos. I would like to know if the doctor prefers to proceed with the case without face design or if new photos will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the photos. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Dale skip a tu stage sin hacer el diseño de face con el siguiente template:",
+    "plantilla": "This case was not designed with face design as the patient would require biteblocks / denture in the scans for alignment, because the patient is partially edentulous / edentulous and the scans do not match, please review the case in detail. If face design is needed, please have the patient come back and provide new scans . Thank you",
+    "ejemplos": "Los scans del paciente no tienen biteblocks o denture pero en las fotos si y no podemos alinear los scans al face."
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "SCANS SIN denture/biteblocks y fotos con denture/biteblocks",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the scans and the photo provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the scans. I would like to know if the doctor prefers to proceed with the case without face design or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the scans and the photo provided, which will prevent correct alignment. In order to perform the face design, biteblocks / denture are needed on the scans. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "El biteblock no hace match con la foto",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was not designed with face design because the biteblocks shown in the photos do not match the biteblocks in the intraoral scans, preventing the alignment. Please review the case carefully. If face design is required, kindly have the patient return to provide new photos and scans with matching biteblocks. Thank you.",
+    "ejemplos": "Fotos en donde la el biteblock no haga match con los scans"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the scans and the photo provided because the biteblocks shown in the photos do not match the biteblocks in the intraoral scans, preventing the alignment.  I would like to know if the doctor prefers to proceed with the case without face design or if new  new photos and scans with matching biteblocks will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the scans and the photo provided because the biteblocks shown in the photos do not match the biteblocks in the intraoral scans, preventing the alignment.  I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new  new photos and scans with matching biteblocks will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was not designed with face design because the biteblocks shown in the photos do not match the biteblocks in the intraoral scans, preventing the alignment. Please review the case carefully. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Fotos con bluemousse",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Si te ocurre esta situación realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient's photo contains BlueMousse, which prevents us from clearly visualizing the patient's dental information and accurately aligning the intraoral scans with the face. However, the case was continued without face design due to this limitation. If face design is needed, kindly have the patient return and submit a new photos and scans without BlueMousse. Thank you.",
+    "ejemplos": "Fotos en donde la mordida del paciente tenga bluemousse que no permite ver claramente la información del borde incisal del paciente"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "U/L - Single G-cam (HOLD)",
+    "como_proceder": "Si te ocurre esta situación y el doctor en los pre-aprobados no permite continuar sin preguntar, envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's has BlueMousse, which prevents us from clearly visualizing the patient's dental information and accurately aligning the intraoral scans with the face. I would like to know if the doctor prefers to proceed with the case without face design or if new photos and scans with matching biteblocks will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z (HOLD)",
+    "como_proceder": "Si te ocurre esta situación envía el caso a hold con el siguiente template:",
+    "plantilla": "The patient's has BlueMousse, which prevents us from clearly visualizing the patient's dental information and accurately aligning the intraoral scans with the face. I would like to know if the doctor prefers to proceed with the case without face design in 24z or if new photos and scans with matching biteblocks will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z Continuar",
+    "como_proceder": "Si te ocurre esta situación y el doctor en sus pre-aprobados permite continuar, realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "The patient's photo contains BlueMousse, which prevents us from clearly visualizing the patient's dental information and accurately aligning the intraoral scans with the face. However, the case was continued without face design due to this limitation. Please review the design carefully in order to proceed with the design as 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Uno o dos ojos cerrados",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de face design y envíalo con el siguiente template:",
+    "plantilla": "This case was created with a face design; however, since the patient's eyes are closed when they should be open, there may be a misalignment in the face design. If a more precise design is needed, kindly have the patient return for a new photograph. Thank you.",
+    "ejemplos": "Los ojos del paciente están cerrados y no podemos realizar una correcta alineación de la Face.."
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Fotos con retractores",
+    "producto": "U/L - Single G-cam",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "We need the pictures of (--) without retractors to be able to perform face design, please upload again (--) photo without retractors or please let us know if the doctor prefers to proceed the case with the retractor picture. Thank you.",
+    "ejemplos": "Fotos donde la foto de la sonrisa natural del paciente venga con retractores"
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envía el caso a hold con el siguiente template:",
+    "plantilla": "We need the pictures of (--) without retractors to be able to perform face design, please upload again (--) photo without retractors or please let us knowif the doctor prefers to proceed the case with the retractor picture in 24z. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "Problemas de Bluesky por la RAM",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The case was delayed because the program used to segment the CBCT crashed due to RAM memory issues.",
+    "ejemplos": "Si tu tiempo de diseño se ve afectado por la falta de memoria RAM al momento de segmentar el CBCT"
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT no corresponde al paciente.",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CBCT uploaded does not correspond to the patient, we will proceed to continue the design. If you need to visualize the design with the CBCT please send the correct one. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT corrupto",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CBCT folder is corrupted, we will proceed to continue the design. If you need to visualize the design with the CBCT please send it again. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT incompleto",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CBCT uploaded is incomplete, we will proceed to continue the design. If you need to visualize the design with the CBCT please send it complete. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT no fue subido",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CBCT folder was not uploaded to the platform, we proceed to continue the design. In case you need to visualize the design with the CBCT please send the file again. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "Link de CBCT corresponde a scans",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CBCT link contains the intraoral scans, we proceed to continue the design. If you need to visualize the design with the CBCT please send the correct file. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT vacio",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CBCT folder is empty, we proceed to continue the design. In case you need to visualize the design with the CBCT please send the file again. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT con contraseña que nos impide descomprimir",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The uploaded CBCT file is compressed and requires a password to unzip it, which we do not have; therefore, we will proceed with the design. If you need to view the design using the CBCT, please send the file without requesting this information. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT se sale de la cara del pt",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CT scan has a different bite than the scans, causing it to shift away from the patient's face; we will proceed without the CT scan. If you need to visualize the design with the CBCT please send a new CBCT that match the bite. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT con ruido extra que no permite una optima alineación",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CT contains extra material, which prevents optimal alignment with the intraoral scans. We will proceed without the CT. If you need to visualize the design with the CBCT, please send a new CBCT scan with improved quality. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "CBCT formato incorrecto",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The uploaded CBCT files are in the wrong format, we proceed to continue the design, In case you need to visualize the design with the CBCT please send in the correct format. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES CBCT",
+    "situacion": "Upper sin paladar y no podemos alinear el CBCT",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "The CT scan could not be aligned to the scans because the upper scans do not contain information about the patient's palate. If you need to visualize the design with the CBCT please send a new upper scans with palate information.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Dientes con Movimiento",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Tooth # has movement, please check, we did our best to align the scans to the face design. thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Parcial con Movimiento",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The partial denture has movement, please check, we did our best to align the scans to the face design, thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Dientes con informacion extra o falta de informacion",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Tooth # has different information than what can be seen in the photographs, please check carefully the design, we did our best to align the scans to the  face design. thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Dientes con Falta de informacion",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "Tooth # has missing information in the scan. Please send a new scan of the area or let us know how you would like to proceed. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Scans que se traspasan entre si",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The scans overlap with each other. We aligned the models using the total bite scans provided and completed the design based on the bite records received. Please review the alignment carefully before proceeding.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Scans de alginato por mantenimiento del escáner intraoral:",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Please note that models printed from alginate impressions often have irregularities, bubbles, or distortions. We did our best to align them using the material provided; if you need millimeter-level precision, we recommend that you perform an intraoral scan (IOS).",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Los registros de mordida no ocluyen.",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "The intraoral scans we received contain inconsistencies in the bite registration, which prevent the models from occluding properly. Please send new intraoral scans, or let us know how you would like to proceed, Doctor.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIO DIENTES",
+    "situacion": "Scans de alginato que no hacen match con los new records de alginato  subidos:",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso  con el siguiente template:",
+    "plantilla": "Please note that models printed from alginate impressions often have irregularities, bubbles, or distortions. We have done our best to align them using the material you provided, but they do not match, so we are asking you for new intraoral scans. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para Lunch",
+    "producto": "N/A",
+    "como_proceder": "Hold because of lunch, I'll continue in 1 hour.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para hora de entrenamiento",
+    "producto": "N/A",
+    "como_proceder": "The case was put on hold due to group training.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para cualquier reunion",
+    "producto": "N/A",
+    "como_proceder": "The case was put on hold due to group training.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para finalizar el face design",
+    "producto": "N/A",
+    "como_proceder": "The Alignment designer is currently finalizing another case and will continue with this design once it has been completed.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para finalizar el face design mientras el alineador está en break",
+    "producto": "N/A",
+    "como_proceder": "The Alignment Designer is currently on a break and will continue working on this design in a few minutes upon returning.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para finalizar turno",
+    "producto": "N/A",
+    "como_proceder": "Shift ended, I'll continue tomorrow morning.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "COMENTARIOS HOLD",
+    "situacion": "Para finalizar turno los viernes",
+    "producto": "N/A",
+    "como_proceder": "Shift ended, I'll continue Monday morning.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con plataforma",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to Platform issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con internet",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to internet connectivity issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con DropBox",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to DropBox connectivity issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con fluido eléctrico",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to electricity issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Tardanza por problemas con el computador",
+    "producto": "N/A",
+    "como_proceder": "The case took a little longer to be approved due to Computer issues.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTUALIDADES",
+    "situacion": "Dientes con Falta de informacion",
+    "producto": "U/L - Single G-cam - Single 24z",
+    "como_proceder": "Envía el caso con el siguiente template:",
+    "plantilla": "Tooth No. [..] is missing information in the scan. Please send a new scan of the area or let us know how you would like to proceed. Thank you.",
+    "ejemplos": ""
+   }
+  ]
+ },
+ {
+  "nombre": "N2",
+  "area": "N2 Demodenture",
+  "columnas": [
+   {
+    "k": "situacion",
+    "l": "Situación"
+   },
+   {
+    "k": "producto",
+    "l": "Producto"
+   },
+   {
+    "k": "como_proceder",
+    "l": "Cómo proceder"
+   },
+   {
+    "k": "plantilla",
+    "l": "Template"
+   },
+   {
+    "k": "ejemplos",
+    "l": "Ejemplos"
+   }
+  ],
+  "filas": [
+   {
+    "seccion": "",
+    "situacion": "Cuando se arreglan scans de forma digital despues de aprobacion del manager del centro",
+    "producto": "All Products",
+    "como_proceder": "Continua el caso arreglando de forma digitalmente los scans",
+    "plantilla": "The scans were with incomplete/duplicate information, it was approved to make digital adjustments, so they will not fit the patient's natural jaws perfectly.\n\nFor future cases please make sure everything is scanned correctly.",
+    "ejemplos": "N/A"
+   },
+   {
+    "seccion": "FINAL",
+    "situacion": "Se utilizaron cambios pre-aprobados para el diseño",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Realiza los cambios pre-aprobados y deja el mensaje en tu stage para que el doctor pueda confirmar los cambios",
+    "plantilla": "Per Dr's pre authorized changes we make the following changes so we can proceed with the design.",
+    "ejemplos": "N/A"
+   },
+   {
+    "seccion": "FINAL",
+    "situacion": "Casos con poca informacion de Gingiva necesitando reconstruccion del tejido para realizar la demo denture.",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de demo denture y envíalo con el siguiente template:",
+    "plantilla": "The scans provided for the demo denture do not include adequate tissue information to create an accurate demo denture. The design has been continued to avoid delays in the workflow; however, it is important for the doctor to carefully review the case before proceeding. If a more precise result is desired, please send new scans. Thank you.",
+    "ejemplos": "Tissue information"
+   },
+   {
+    "seccion": "FINAL",
+    "situacion": "Scans con dentaduras removibles parciales que tapan el hueso del paciente pero no el paladar",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de demo denture y envíalo con el siguiente template:",
+    "plantilla": "This case was designed using the received scans; however, there may be in consistent information due to the lack of data regarding the patient's natural tissue. Please review the case carefully. If a more precise denture design is needed, kindly send new scans for redesign. Thank you.",
+    "ejemplos": "Scans con Parciales"
+   },
+   {
+    "seccion": "FINAL",
+    "situacion": "Dentaduras parciales escaneadas como completas  sin tener informacion de dientes naturales (Unicamente aplica cuando se esta perdiendo informacion de maximo 3 dientes y tiene la informacion del hueso y paladar necesaria)",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de demo denture y envíalo con el siguiente template:",
+    "plantilla": "This case was designed using the received scans; however, there may be inconsistent information due to the lack of data regarding the patient's natural tooth spaces. Please review the case carefully. If a more precise denture design is needed, kindly send new scans for redesign. Thank you.",
+    "ejemplos": "Partials sin informacion de 1-3 piezas dentales"
+   },
+   {
+    "seccion": "FINAL",
+    "situacion": "Material añadido para capturar el paladar",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de demo denture y envíalo con el siguiente template:",
+    "plantilla": "Material was added to this case for capturing the information of the palate, which may result in data that does not accurately reflect the patient's actual anatomy. We have proceeded with the case by smoothing areas that we believe do not belong to the patient. However, please review the case carefully and let us know if you would like to proceed or have the patient return for a new scan. Thank you.",
+    "ejemplos": "Material agregado para capturar el paladar"
+   },
+   {
+    "seccion": "FINAL",
+    "situacion": "Scans con poca falta de informacion en paladar",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Realiza tu mejor trabajo en el diseño de demo denture y envíalo con el siguiente template:",
+    "plantilla": "In this case, we did the best we could with the received scan; however, it is missing a bit of palate information. Please review the case carefully, and if a better design result is desired, kindly bring the patient back for new scans. Thank you.",
+    "ejemplos": "Falta de informacion del paladar (poca)"
+   },
+   {
+    "seccion": "FINAL",
+    "situacion": "Bite diferentes a las fotos del paciente",
+    "producto": "Traveling Patient",
+    "como_proceder": "Si el bite y las fotos de un caso traveling estan diferentes haz tu mejor esfuerzo posicionando los scans y envialo con el siguiente template:",
+    "plantilla": "The bite provided and the photos do not match. We have done our best with the information received. We suggest ensuring consistency between both for a more accurate reference for bite positioning. Thank you.",
+    "ejemplos": "bite diferente a las fotos del paciente"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Demodentures Removibles/Bite Blocks Con Falta De Información",
+    "producto": "Single 24z",
+    "como_proceder": "Si el Caso es como el #1 de la imagen realiza tu mejor trabajo en el diseño de la demo denture y envialo con el siguiente template:",
+    "plantilla": "In this case, we did the best we could with the received scan; however, it is missing a bit of tissue information. Please review the case carefully, and if a better design result is desired, kindly bring the patient back for new scans. Thank you.",
+    "ejemplos": "Dentures/biteblocks con falta de informacion interna"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si el Caso es grave como el #2 de la imagen pon el caso en hold con el siguiente template:",
+    "plantilla": "This case lacks tissue information on the interior of the scan, which could make it difficult to create a more precise design for the patient. Since the palate information is complete, you can authorize proceeding with the case by filling in the missing spaces from the design team. Otherwise, if a better result is desired, please bring the patient back and provide new scans.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Single G-cam - U/L",
+    "como_proceder": "En cualquiera de los dos casos (#1-#2) realiza tu mejor trabajo en el diseño de la demo denture y envialo con el siguiente template:",
+    "plantilla": "In this case, we did the best we could with the received scan; however, it is missing tissue information. Please review the case carefully, and if a better design result is desired, kindly bring the patient back for new scans. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Los scans tienen protesis fijas y al mismo tiempo falta de info del tissue",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "Si el caso no tiene la informacion correcta del paladar/tissue en el arco a tratar (sea upper/lower) o el antagonista no esta en buenas condiciones envia el caso a hold con el siguiente template:",
+    "plantilla": "This case does not have sufficient palate/tissue information to design a single 24z case. Please send a new scan with the complete information to continue with the design.",
+    "ejemplos": "Falta de informacion en el paladar/tissue en el antagonista"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si el caso tiene la informacion correcta del paladar y el antagonista esta en buenas condiciones continua el caso haciendo tu mejor trabajo y envialo con el siguiente mensaje:",
+    "plantilla": "In this case, we did the best we could with the received scan; however, it is missing  tissue information. Please review the case carefully, and if a better design result is desired, kindly bring the patient back for new scans. Thank you.",
+    "ejemplos": "Falta de informacion de tissue con protesis fija"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "U/L - Traveling",
+    "como_proceder": "Si el caso no tiene la informacion correcta del paladar/tissue en cualquiera de los dos arcos envia el caso a hold con el siguiente template:",
+    "plantilla": "This case does not have sufficient palate/tissue information to design a demo denture.  Please send a new scan with the complete information, or let me know if you would like to use a stock denture and make changes at surgery.",
+    "ejemplos": "Falta de informacion de tissue con protesis fija"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Demo dentures modificadas usadas como biteblocks parciales",
+    "producto": "U/L - Single G-cam - Traveling",
+    "como_proceder": "Si el caso hace match con las fotos del paciente y se puede alinear perfectamente con el face design, realiza tu mejor trabajo.",
+    "plantilla": "",
+    "ejemplos": "Demo stock como biteblocks parciales"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "U/L - Single G-cam - Traveling",
+    "como_proceder": "Si el caso no hace match y/o los scans estan corridos haciendo que la alineacion con el face no sea precisa,  envia el caso a hold con el siguiente template:",
+    "plantilla": "This case has a discrepancy between the photos and the scans provided, in order to design a face, the partial demo scans must match the photos. I would like to know if the doctor prefers to proceed with the case without face design if new scans will be sent. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Envia el caso a Hold con el siguiente comentario",
+    "plantilla": "This case has stock demodenture as partial dentures, which will prevent correct alignment and give us an incorrect perception of the patient's smile. For Single 24z cases with fewer than 4 anterior teeth, they must have bite blocks or the patient's partial dentures. Please send new photos and intraoral scans. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Antagonista en mal estado",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "Si el antagonista tiene huecos o material extra que imposibilita diseñar una oclusión, poner el caso en hold con el siguiente template:",
+    "plantilla": "The scan of the antagonist does not provide enough information in the occlusal area to achieve an accurate occlusion. Kindly send a new scan. If a new scan is not possible, the prosthetic should be processed in G-CAM.",
+    "ejemplos": "Antagonista en mal estado"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Antagonista con un poco de suciedad",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "Si el antagonista tiene un minimo de exceso de sucidad en el scan consultar con el doctor y en caso de ser aprobado continuar con el requerimiento.",
+    "plantilla": "The scan of the antagonist has some extra information in the occlusal area that prevents us to achieve an accurate occlusion. Please let us know if you want to continue with the case by removing that extra information digitally, keep in mind that by removing the material we may sacrifice the occlusion or kindly have the patient come back and submit a new scans. Thank you.",
+    "ejemplos": "Antagonista con un poco de suciedad"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "El paciente tiene biteblocks en ambos arcos y la linea media no es visible en los scans/fotos",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Si el caso no tiene una referencia clara en los scans para ubicar la línea media deja tu caso en hold con el siguiente template:",
+    "plantilla": "The patient does not have a clear midline reference marked in the scans. Kindly send a new scan with the midline marked to ensure accurate design. Thank you.",
+    "ejemplos": "Bite block sin línea media"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Traveling patient",
+    "como_proceder": "Si el caso no tiene una referencia clara en los scans para ubicar la línea media continúa el caso haciendo tu mejor trabajo y envíalo con el siguiente mensaje:",
+    "plantilla": "The patient has biteblocks without a marked midline we did our best following the facial midline as we compared with the photo. Please remember to leave a mark in future cases. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Scans con  falta de informacion en paladar (Grandes)",
+    "producto": "Traveling Patient",
+    "como_proceder": "Si el caso tiene informacion faltante en el paladar pero es un traveling patient haz tu mejor esfuerzo cerrando los orificios que hacen falta y continua el caso con el siguiente template:",
+    "plantilla": "This case has little information captured from the palate, which is necessary for creating an accurate demo denture design. We have done our best with the provided data; however, we recommend sending scans with complete palate information for future cases. Thank you.",
+    "ejemplos": "Falta información del paladar"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Single G-cam U/L",
+    "como_proceder": "Si el caso tiene falta de informacion del paladar y es un single G-cam o U/L deja tu caso en hold con el siguiente template:",
+    "plantilla": "This case does not have sufficient palate information to design the case. Please send a new scan with the complete information, or let me know if you would like to use a stock denture and request changes on the day of the surgery. Thank you very much.",
+    "ejemplos": "Paladar con poca información"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Single 24z",
+    "como_proceder": "Si el caso tiene falta de informacion del paladar y es un single 24z deja tu caso en hold con el siguiente template:",
+    "plantilla": "This case does not have sufficient palate information to design a single case. Please send a new scan with the complete information to continue with the design.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Dentadura removible sin intaglio",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "En cualquiera de los casos donde las dentaduras removibles no hayan sido escaneadas completamente deja tu caso en hold con el siguiente template:",
+    "plantilla": "We need new scans of Upper/Lower denture as they are not completely scanned, remember that from the intaglio's part of the denture we will take/select the patient's tissue, Please send new scans, see attachments. Thank you.",
+    "ejemplos": "Dentadura removible sin intaglio"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Scans con protesis removible o parcial que tapan la informacion del paladar",
+    "producto": "U/L - Single 24z Upper - Single G-cam Upper",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "The patient has a prosthesis that covers the palate, which is the most important part for the demo denture design. Please send a new scan without the  prosthesis, or confirm if you would like to proceed with the design, keeping in mind that the fit in the patient's mouth may not be optimal. Thank you.",
+    "ejemplos": "Protesis tapando el paladar"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Scan de dentadura que no tiene informacion del paladar completa",
+    "producto": "U/L - Single 24z Upper - Single G-cam Upper",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "The scan provided does not have the  palate information, which is the most important part for the demo denture design. Please send a new scan capturing the palate, thank you.",
+    "ejemplos": "Scan sin informacion del paladar"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Se recibieron scans pero faltan algunos",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "We need the complete intraoral files. We have only received (---), and we need (---) to be able to continue with the design. Please upload the complete files in OBJ format. Thank you.",
+    "ejemplos": "Scans incompletos"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "No hay link de Scans en la plataforma",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "We have no intraoral scans in platform, please upload the files or let us know if something different it's going to be made to treat this patient, thank you.",
+    "ejemplos": "No link de Scans"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "La carpeta de los Scans esta vacia",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "The folder of intraoral scans is empty, please upload Obj files again and make sure that the files has the green checkmark from dropbox before compressing . Thank you.",
+    "ejemplos": "Carpeta de scans vacia"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Scan corresponden al CBCT",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "The uploaded scans correspond to CBCT, please upload correct intraoral scans, thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Registro del bite sin biteblocks",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "The bite registration does not have the biteblock included in the scan uploaded, we need the biteblock to be in the scan as well.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Traveling",
+    "como_proceder": "Si el caso ingresa con toda la informacion completa y solamente nos faltan los biteblocks en el registro de mordida, continua tu caso haciendo tu mejor trabajo con el siguiente template:",
+    "plantilla": "This case does not have the biteblock information that we see in the pictures to guide us in the teeth positioning. We have done our best with the provided data; however, we recommend sending scans with the complete information to have an accurate design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Scans que vienen doblemente escaneados con informacion extra, diferente a lo que se ve en las fotos",
+    "producto": "U/L",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "The scans received are double scanned, they have different information than what you can see in the pictures, please re scan them again to design a correct demo denture and face design. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Traveling",
+    "como_proceder": "Continua tu caso haciendo tu mejor trabajo con el siguiente template:",
+    "plantilla": "The scans received are double scanned, they have different information than what you can see in the pictures, We have done our best with the provided data; however, we recommend sending scans with the accurate information for future cases. Thank you",
+    "ejemplos": "Scans duplicados"
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "Deja tu caso en hold con el siguiente template:",
+    "plantilla": "The scans received are double scanned, they have different information than what you can see in the pictures, please re scan them again to make a correct occlusion. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SCANS ISSUES",
+    "situacion": "Scans intraorales que se traspasan entre sí",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Si tienes un caso donde los dos archivos se pasan entre si deja el caso en hold con el siguiente template:",
+    "plantilla": "The scans are overlapping material with each other so please let us know if we can continue or if you will take another bite registration that we could use. Thank you",
+    "ejemplos": "Scans intraorales que se traspasan entre sí"
+   },
+   {
+    "seccion": "ATTACHMENTS",
+    "situacion": "Los scans no pertenecen al paciente",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Pon el caso en hold con el siguiente template a la espera de recibir un nuevo attachment con los scans apropiados.",
+    "plantilla": "The uploaded scans do not belong to the patient, please upload the correct scans. Thank you.",
+    "ejemplos": "Los scans no pertenecen al paciente"
+   },
+   {
+    "seccion": "ATTACHMENTS",
+    "situacion": "Scans vacíos",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Pon el caso en hold con el siguiente template a la espera de recibir un nuevo attachment con los scans del paciente.",
+    "plantilla": "The  uploaded intraoral files are empty, please upload Obj files again and make sure that the files has the green checkmark from dropbox before compressing . Thank you.",
+    "ejemplos": "Scans vacíos"
+   },
+   {
+    "seccion": "DR REQUEST",
+    "situacion": "Diseñar con 2 tallas de morfologia diferentes",
+    "producto": "Single G-cam - Single 24z",
+    "como_proceder": "Continua con el caso siguiendo las indicaciones del doctor con el siguiente template:",
+    "plantilla": "In this case is possible to continue with two different sizes because is a custom design, please review the case carefully.",
+    "ejemplos": "Single con dos tallas"
+   },
+   {
+    "seccion": "DR REQUEST",
+    "situacion": "",
+    "producto": "U/L",
+    "como_proceder": "En caso de solicitar usar dos morfolofigas diferentes en un caso full mouth deja el caso en hold con el siguiente template:",
+    "plantilla": "The authorized morphology for designing in Nuvia is not modifiable for full mouth cases. Please select one size for both arches. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DR REQUEST",
+    "situacion": "RX (agregar notas necesarias)",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Si tienes un caso donde los cambios o notas en el Rx no son claras, deja tu caso en hold con el siguiente template:",
+    "plantilla": "We need confirmation about the following notes on the rx for us to proceed:\n(write notes here)",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DR REQUEST",
+    "situacion": "Doctor requiere HTML",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "En caso que el doctor requiere una revision previa al diseño de la demo denture o cambios solicitados, deja tu caso en hold con el siguiente template:",
+    "plantilla": "HTML ready to review under (stage name) attachment",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "Falta de medidas para diseñar una demo denture",
+    "producto": "Traveling Patient",
+    "como_proceder": "Si estamos necesitando medidas en Lower arch y el Dr no tiene cambios pre-autorizados de VDO y reduccion de hueso  continua tu caso reduciendo hueso o abriendo VDO segun sea lo mejor para el paciente con el siguiente template:",
+    "plantilla": "To design the demo denture, we needed additional measurements as the new morphology was embedded in the patient's tissue. For this reason, we reduced __mm of bone/opened __mm of VDO. We suggest pre-approving changes for traveling patients in future cases. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si estamos necesitando medidas en Upper arch y el Dr no tiene cambios pre-autorizados de VDO y reduccion de hueso  continua tu caso reduciendo hueso o abriendo VDO segun sea lo mejor para el paciente con el siguiente template:",
+    "plantilla": "To design the demo denture, we needed additional measurements as the new morphology was embedded in the patient's tissue. For this reason, we reduced __mm of bone/opened __mm of VDO, and moved __mm of the incisal edge down. We suggest pre-approving changes for traveling patients in future cases. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Si estamos necesitando medidas en Upper arch y el Dr no tiene cambios pre-autorizados de VDO y reduccion de hueso  deja tu caso en hold con el siguiente template:",
+    "plantilla": "To design the demo denture, we needed additional measurements as the new morphology was embedded in the patient's tissue. for this reason we suggest to reduce the upper patient´s bone digitaly  __mm or open VDO ___mm and move incisal edge down __mm in order to gain meassure to design. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si estamos necesitando medidas en Lower arch y el Dr no tiene cambios de VDO y reduccion de hueso pre-autorizados deja tu caso en hold con el siguiente template:",
+    "plantilla": "To design the demo denture, we needed additional measurements as the new morphology was embedded in the patient's tissue. for this reason we suggest to reduce the Lower patient´s bone by __mm so we can gain the space needed or open VDO ___mm. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "Modificar VDO /Incisal edge/Lip Support para hacer oclusion class 1.",
+    "producto": "Traveling patient",
+    "como_proceder": "Si tienes un single traveling patient donde después de los cambios no se está ocluyendo con el antagonista y se necesita entre 0 y 1.5mm de movimiento de VDO/Incisal Edge continúa tu caso realizando los movimientos según sea lo mejor para el paciente con el siguiente template:",
+    "plantilla": "following the Rx changes the prosthetic is not occluding with the antagonist, in order to achieve class 1 occlusion, we moved _mm of incisal edge up/down and VDO _mm . We suggest pre-approving changes for traveling patients in future cases. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si tienes un single Traveling patient donde después de los cambios no se está ocluyendo con el antagonista +1.5mm de movimiento de VDO/Incisal Edge para lograrlo pon tu caso en hold con el siguiente template:",
+    "plantilla": "following the Rx changes the prosthetic is not occluding with the antagonist, in order to achieve class 1 occlusion, we moved _mm of incisal edge up/down and VDO _mm . We suggest pre-approving changes for traveling patients in future cases. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "Si tienes un caso single donde despues de los cambios no se esta ocluyendo con el antagonista pon tu caso en hold con el siguiente template:",
+    "plantilla": "following the Rx changes the prosthetic is not occluding with the antagonist, in order to achieve class 1 occlusion, we moved _mm of incisal edge up/down and VDO _mm . We suggest pre-approving changes for traveling patients in future cases. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "Mover lip support single",
+    "producto": "Traveling patient",
+    "como_proceder": "Si tienes un single traveling patient donde después de los cambios no se está ocluyendo con el antagonista y se necesita entre 0 y 1.5mm de movimiento de Lip support continúa tu caso realizando los movimientos según sea lo mejor para el paciente con el siguiente template:",
+    "plantilla": "following the Rx changes the prosthetic is not occluding with the antagonist, in order to achive class 1 occlusion, we moved _mm of incisal edge up/down and VDO _mm . We suggest pre-approving changes for traveling patients in future cases. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si tienes un single Traveling patient donde después de los cambios no se está ocluyendo con el antagonista +1.5mm de movimiento de Lip Support para lograrlo pon tu caso en hold con el siguiente template:",
+    "plantilla": "following the Rx changes the prosthetic is not properly occluding with the antagonist, in order to achieve class 1 occlusion we suggest to move lip support __mm forward/back. see attachment for reference. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "Si tienes un caso single donde despues de los cambios no se tiene una oclusion clase 1 pon tu caso en hold con el siguiente template:",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "Mover lip support Full mouth para posicionar adecuadamente en el arco del paciente",
+    "producto": "Traveling Patient",
+    "como_proceder": "Si tienes un caso donde la morfologia despues de los cambios del Rx y despues de revisar las preferencias del doctor resulte posicionada fuera del arco del paciente, realiza la modificacion de lip support pertinente y continua con el caso dejando el siguiente template:",
+    "plantilla": "following the Rx changes we couldn´t get a proper position over the upper/lower ridge so we moved the lip support back/forward __mm so we coud have a better position over the ridge. We suggest pre-approving changes for traveling patients in future cases. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Si tienes un caso donde la morfologia despues de los cambios del Rx y despues de revisar las preferencias del doctor resulte posicionada fuera del arco del paciente, pon tu caso en hold dejando el siguiente template:",
+    "plantilla": "following the Rx changes we couldn´t get a proper position over the upper/lower ridge so we suggest to move the lip support back/forward __mm so we can have a better position over the ridge. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "DESIGN CHANGES",
+    "situacion": "Mover o mantener el incisal edge  cuando el paciente muestra mucho upper",
+    "producto": "Full Mouth",
+    "como_proceder": "Si tienes un caso donde las instrucciones del Rx te piden mover el borde incisal y el paciente no lo necesita, pon tu caso en hold dejando el siguiente template.",
+    "plantilla": "“Following the RX instructions, if we move the incisal edge by ___ mm, the patient shows excessive upper tooth display, and we would need to significantly reduce the lower bone.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SINGLE CASES",
+    "situacion": "Se confirma que el caso va a ser single G-CAM porque no habra modificacion de fechas.",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "En casos donde se deje el caso en hold para confirmar la fecha de cirugia para single 24z porque no hay suficiente tiempo y sea confirmada G-cam, deja el siguiente comentario final:",
+    "plantilla": "The clinic confirmed that there is no change of surgery date so we can continue with a G-cam Product because there´s not enough time to proceed as 24z. thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SINGLE CASES",
+    "situacion": "El arco a diseñar no esta claro en el RX",
+    "producto": "U/L - Single 24z - Single G-cam - Traveling",
+    "como_proceder": "Cuando las notas y el Rx no coinciden deja tu caso en hold con el siguiente template:",
+    "plantilla": "According to the Rx comments and instructions there is no clarity on which arch we will be designing, please confirm the arch to be treated and change the order to the correct arch if necessary.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SINGLE CASES",
+    "situacion": "La fecha de cirugía en plataforma no cumple con el tiempo suficiente para 24z",
+    "producto": "Single 24z - Single G-cam",
+    "como_proceder": "Si la fecha de la cirugia no tiene el tiempo suficiente para 24z y en el Rx dice que el material debe ser Zirconia pon tu caso en hold con el siguiente template:",
+    "plantilla": "Please confirm the surgery date for (name and order) as the one in platform does not have the  required time to make a single 24z prosthetic.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SINGLE CASES",
+    "situacion": "El caso sera G-cam porque el doctor lo solicitó en el RX",
+    "producto": "Single G-cam",
+    "como_proceder": "Cuando el Rx de un caso single mencione que se va a elaborar el G-cam continua tu caso con el siguiente template y reporta en el chat de cliq para conocimiento de todos:",
+    "plantilla": "This case is going to be G-cam per dr requested",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SINGLE CASES",
+    "situacion": "Casos que se van a diseñar en 24z",
+    "producto": "Single 24z",
+    "como_proceder": "Cuando el caso tiene todos los requerimientos para ser single 24z envialo con el siguiente template:",
+    "plantilla": "This case will be designed as 24Z, the lab checkin date was  __ and the surgery date is __. Please review the design at the required time to keep the case in 24z material. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "TICKETS",
+    "situacion": "Cambiar de 24z a G-cam",
+    "producto": "Single G-cam",
+    "como_proceder": "Cuando haya una equivocacion en el workflow y necesites cambiarlo a G-cam utiliza el siguiente template para enviar un ticket:",
+    "plantilla": "(# order, Patient name) Please change the workflow for this case because it is going to be designed as G-cam, there was an error when sending the case initially.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "TICKETS",
+    "situacion": "Cambiar de G-cam a 24z",
+    "producto": "Single 24z",
+    "como_proceder": "Cuando haya una equivocacion en el workflow y necesites cambiarlo a 24z utiliza el siguiente template para enviar un ticket:",
+    "plantilla": "(# case, Patient name) Please change the workflow for this case because it is going to be designed as 24z, there was an error when sending the case initially.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "Waxup modificado para la propuesta de posicion de los dientes",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Si recibes una propuesta con los waxups modificados que no permitan seguir la posicion completamente, deja el caso en hold con el siguiente template:",
+    "plantilla": "the morphology of the proposal is modified, we must receive it in the same way as the pre-existing one in order to follow the same position correctly. Make sure you don't use the cubes around the objet when moving the proposal in meshmixer. Please send a new proposal or approve to continue with making the position with a non modified Nuvia's morpholohy.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "",
+    "producto": "Traveling Patient",
+    "como_proceder": "Si recibes una propuesta con los waxups modificados y es un caso traveling continua posicionando una nueva morfologia y deja el siguiente comentario:",
+    "plantilla": "(# order, Patient name) Please change the workflow for this case because it is going to be designed as G-cam, there was an error when sending the case initially.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "Cuando se corta hueso para mostrar los dientes posteriores 8mm",
+    "producto": "U/L - Single 24z - Single G-cam -Traveling",
+    "como_proceder": "Si recibes un caso U/L o single en el cual debiste cortar mas 4mm en ambos arcos, deja el caso en hold con el siguiente template:",
+    "plantilla": "To design the demo denture we have to reduce the patient´s bone on the upper by __ (side) and on the lower by ___ (side) so we can expose all the posterior teeth by 8mm.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si recibes un caso U/L o single en el cual debiste cortar mas 4mm en Lower, deja el caso en hold con el siguiente template:",
+    "plantilla": "To design the demo denture we have to reduce the patient´s on the lower by ___ (side) so we can expose all the posterior teeth by 8mm.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "",
+    "producto": "",
+    "como_proceder": "Si recibes un caso U/L o single en el cual debiste cortar mas 4mm en Upper, deja el caso en hold con el siguiente template:",
+    "plantilla": "To design the demo denture we have to reduce the patient´s bone on the upper by __ (side) so we can expose all the posterior teeth by 8mm.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "Scans desalineados del face scan",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Si recibes un caso donde los scans individuales se encuentran desalineados del face scan deja tu caso en hold con el siguiente template:",
+    "plantilla": "the uploaded scans are not aligned to the face, please send again the scans completly aligned to the face scan in order to design or authorize to continue without using it. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "",
+    "producto": "Traveling Patient",
+    "como_proceder": "Si recibes los scans desalineados con el face design y es un caso traveling continua el caso sin face scan y deja el siguiente template:",
+    "plantilla": "the uploaded scans are not aligned to the face, in order to avoid any delays with this case as is a traveling patient we designed it without the face scan in order to deliver on time. For future cases please make sure everything is correctly aligned. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "Face scan de baja calidad",
+    "producto": "U/L - Single 24z - Single G-cam",
+    "como_proceder": "Si recibes el face scan con  baja calidad  deja tu caso en hold con el siguiente template:",
+    "plantilla": "the uploaded face scan is in poor quality, please send again the scans with the required quality in order to design or authorize to continue with the demo denture design without using it. Thank you",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SLC REQUEST",
+    "situacion": "",
+    "producto": "Traveling Patient",
+    "como_proceder": "Si recibes el face scan con  baja calidad  y es un caso traveling continua el caso sin face scan y deja el siguiente template:",
+    "plantilla": "the uploaded face scan is in poor quality, in order to avoid any delays with this case as is a traveling patient we designed it without the face scan in order to deliver on time. For future cases please make sure everything is scanned correctly. Thank you.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "MEETINGS",
+    "situacion": "Si hay meeting",
+    "producto": "",
+    "como_proceder": "24Z DESIGN MEETING _______\nToday we have meeting scheduled at ____ to review this case: _____________________ Single 24Z Dr Authorization.\nLink:",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "MEETINGS",
+    "situacion": "Si plataforma aprueba el caso automáticamente",
+    "producto": "",
+    "como_proceder": "Patient Name 25078 (Dr's Name): Single G-CAM because platform approved case automatically after 36h.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "MEETINGS",
+    "situacion": "doctor aprobó caso durante la meeting",
+    "producto": "",
+    "como_proceder": "Dr Approved (Patient Name 25078) during the meeting. Case procced as a single 24z.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "MEETINGS",
+    "situacion": "doctor mandó cambios durante la meeting",
+    "producto": "",
+    "como_proceder": "Dr requested these changes during the meeting:\nChanges:\nWe'll be sending changes through platform in about 1h.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLES REPORT",
+    "situacion": "Reporte de cambios cliq",
+    "producto": "",
+    "como_proceder": "Changes ready to review ( Kimisha Joe / 53386 | DALLAS  ) under Dr Authorization attachment #7",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLES REPORT",
+    "situacion": "Reporte de cambios plataforma",
+    "producto": "",
+    "como_proceder": "Changes ready to review. Please check this under Dr Authorization attachment #8",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLES REPORT",
+    "situacion": "Reporte de Cambio de Linea Media en plataforma",
+    "producto": "",
+    "como_proceder": "Following the dr requested we moved midline __mm(to the left/right), take in count that the red midline is following the actual waxup midline position, not the current pt's midline",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTOS",
+    "situacion": "Para Lunch",
+    "producto": "",
+    "como_proceder": "Hold because of lunch, I'll continue in 1hour.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTOS",
+    "situacion": "Para hora de entrenamiento",
+    "producto": "",
+    "como_proceder": "Hold because of weekly training.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTOS",
+    "situacion": "Para cualquier reunion",
+    "producto": "",
+    "como_proceder": "Hold because of group meeting.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTOS",
+    "situacion": "Para cambios (N2 stage Demo design)",
+    "producto": "",
+    "como_proceder": "Currently working on changes.",
+    "plantilla": "",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "HOLDS POR EVENTOS",
+    "situacion": "Para finalizar turno",
+    "producto": "",
+    "como_proceder": "Shift ended, bite its ready and I'll continue tomorrow morning.",
+    "plantilla": "",
+    "ejemplos": ""
+   }
+  ]
+ },
+ {
+  "nombre": "FACE MANAGER QUESTIONS",
+  "area": "Face Design",
+  "columnas": [
+   {
+    "k": "situacion",
+    "l": "Situación"
+   },
+   {
+    "k": "plantilla",
+    "l": "Template"
+   },
+   {
+    "k": "ejemplos",
+    "l": "Ejemplos"
+   }
+  ],
+  "filas": [
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que recibimos fotografías de retractores con la misma información",
+    "plantilla": "Para el caso Patient Name ORDER, recibimos las fotos Left Occlusion, Right Occlusion, Under Frontal Occlusion, Frontal with cheek retractors que muestran la misma información. Continuaremos con el diseño; sin embargo, es importante que en futuros casos tengan en cuenta que las fotografías deben enviarse correctamente y con las vistas correspondientes, ya que cada una nos proporciona información específica y necesaria para realizar un diseño preciso y adecuado. Muchas gracias.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que recibimos fotografía con información duplicada",
+    "plantilla": "Para el caso Patient Name ORDER, recibimos las fotografías (Ej:  Profile Pictures at Rest y Profile Pictures Smiling) duplicadas. Continuaremos con el diseño; sin embargo, es importante que en futuros casos se aseguren de enviar la información fotográfica completa y en las vistas correspondientes, ya que estas imágenes constituyen referencias fundamentales para realizar un diseño preciso y adecuado. Muchas gracias.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que las fotografías requeridas para el diseño se reciben de forma desordenada.",
+    "plantilla": "Para el caso Patient Name ORDER, recibimos las fotografías necesarias para el diseño en un orden diferente al correspondiente a su identificación. Continuaremos con el proceso de diseño; sin embargo, les agradeceríamos que en futuros casos se aseguren de enviar la información fotográfica en el orden correcto para facilitar su revisión y procesamiento. Muchas gracias por su colaboración.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Casos en los que las fotografías de N2 Preops Pictures y N2 Edentulous Patient se encuentran cargadas en orden inverso.",
+    "plantilla": "Para el caso Patient Name ORDER, recibimos las fotografías necesarias para el diseño en un orden diferente al correspondiente a su identificación. Continuaremos con el proceso de diseño; sin embargo, les agradeceríamos que en futuros casos se aseguren de enviar la información fotográfica en el orden correcto para facilitar su revisión y procesamiento. Muchas gracias por su colaboración.",
+    "ejemplos": ""
+   },
+   {
+    "seccion": "SITUACIONES FOTOS",
+    "situacion": "Fecha de cirugía en tiempo insuficiente según producto",
+    "plantilla": "¿Podrían ayudarnos, por favor, a confirmar la fecha de cirugía de la paciente? En la plataforma únicamente podemos visualizar la fecha indicada a continuación. De acuerdo con los tiempos requeridos para este producto, no contaríamos con el plazo suficiente para diseñar la demodenture. Gracias.",
+    "ejemplos": ""
+   }
+  ]
+ }
+]

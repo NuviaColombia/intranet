@@ -14,7 +14,7 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
                             DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc,
-                            DesignComentarioTemplate, FORMATO_DUAL)
+                            DesignComentarioTemplate, DesignFaqHoja, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -494,40 +494,324 @@ def cmt_template_eliminar(db: Session, template_id: int, eliminado_por: str = ""
     return True
 
 
-# ---------- Comments N2 / Face: FAQ ----------
+# ---------- Comments N2 / Face: hojas FAQ ----------
+# Cada hoja tiene sus columnas (JSON). Las claves fijas son campos de DesignFaq; las columnas
+# propias ("c1", "c2"...) se guardan en DesignFaq.extras. La sección agrupa filas contiguas.
 
-def faq_de_area(db: Session, area_id: int) -> list[DesignFaq]:
-    return db.query(DesignFaq).filter(DesignFaq.area_id == area_id).order_by(DesignFaq.orden).all()
-
-
-def crear_faq(db: Session, area_id: int) -> DesignFaq:
-    orden = db.query(DesignFaq).filter(DesignFaq.area_id == area_id).count() + 1
-    f = DesignFaq(area_id=area_id, orden=orden)
-    db.add(f)
-    db.commit()
-    db.refresh(f)
-    return f
+FAQ_CAMPOS_FIJOS = ("situacion", "producto", "como_proceder", "plantilla", "ejemplos")
+FAQ_COLUMNAS_BASE = [{"k": "situacion", "l": "Situación"}, {"k": "producto", "l": "Producto"},
+                     {"k": "como_proceder", "l": "Cómo proceder"}, {"k": "plantilla", "l": "Template"},
+                     {"k": "ejemplos", "l": "Ejemplos"}]
 
 
-def actualizar_faq(db: Session, faq_id: int, datos: dict) -> DesignFaq | None:
-    f = db.get(DesignFaq, faq_id)
-    if not f:
+def _json(texto, defecto):
+    try:
+        v = json.loads(texto or "")
+        return v if isinstance(v, type(defecto)) else defecto
+    except (ValueError, TypeError):
+        return defecto
+
+
+def faq_columnas(h: DesignFaqHoja) -> list[dict]:
+    return _json(h.columnas, [])
+
+
+def _faq_fila_dict(f: DesignFaq) -> dict:
+    d = {"id": f.id, "seccion": f.seccion or ""}
+    for c in FAQ_CAMPOS_FIJOS:
+        d[c] = getattr(f, c) or ""
+    d.update({k: str(v) for k, v in _json(f.extras, {}).items()})
+    return d
+
+
+def _faq_filas(db: Session, hoja_id: int) -> list[DesignFaq]:
+    return (db.query(DesignFaq).filter(DesignFaq.hoja_id == hoja_id)
+            .order_by(DesignFaq.orden, DesignFaq.id).all())
+
+
+def faq_hojas(db: Session) -> list[dict]:
+    hojas = db.query(DesignFaqHoja).order_by(DesignFaqHoja.orden, DesignFaqHoja.id).all()
+    return [{"id": h.id, "nombre": h.nombre} for h in hojas]
+
+
+def faq_hoja_detalle(db: Session, hoja_id: int) -> dict | None:
+    h = db.get(DesignFaqHoja, hoja_id)
+    if not h:
         return None
-    for campo in ("seccion", "situacion", "producto", "como_proceder", "plantilla", "ejemplos"):
-        if campo in datos:
-            setattr(f, campo, datos[campo])
+    return {"id": h.id, "nombre": h.nombre, "columnas": faq_columnas(h),
+            "filas": [_faq_fila_dict(f) for f in _faq_filas(db, h.id)]}
+
+
+def _faq_area_por_defecto(db: Session) -> int | None:
+    a = (db.query(DesignArea).filter(DesignArea.nombre == "Face Design").first()
+         or db.query(DesignArea).order_by(DesignArea.orden).first())
+    return a.id if a else None
+
+
+def faq_hoja_crear(db: Session, nombre: str, duplicar_de: int | None = None) -> DesignFaqHoja | None:
+    origen = db.get(DesignFaqHoja, duplicar_de) if duplicar_de else None
+    if duplicar_de and not origen:
+        return None
+    orden = (db.query(func.max(DesignFaqHoja.orden)).scalar() or 0) + 1
+    h = DesignFaqHoja(nombre=(nombre or "").strip()[:150] or "Nueva hoja", orden=orden,
+                      area_id=origen.area_id if origen else _faq_area_por_defecto(db),
+                      columnas=origen.columnas if origen else json.dumps(FAQ_COLUMNAS_BASE, ensure_ascii=False))
+    db.add(h)
+    db.flush()
+    if origen:
+        for f in _faq_filas(db, origen.id):
+            db.add(DesignFaq(area_id=f.area_id, hoja_id=h.id, seccion=f.seccion, situacion=f.situacion,
+                             producto=f.producto, como_proceder=f.como_proceder, plantilla=f.plantilla,
+                             ejemplos=f.ejemplos, extras=f.extras, orden=f.orden))
+    else:
+        db.add(DesignFaq(area_id=h.area_id, hoja_id=h.id, seccion="Nueva sección", orden=1))
     db.commit()
-    db.refresh(f)
+    db.refresh(h)
+    return h
+
+
+def faq_hoja_renombrar(db: Session, hoja_id: int, nombre: str) -> bool:
+    h = db.get(DesignFaqHoja, hoja_id)
+    if not h or not (nombre or "").strip():
+        return False
+    h.nombre = nombre.strip()[:150]
+    db.commit()
+    return True
+
+
+def faq_hoja_eliminar(db: Session, hoja_id: int, eliminado_por: str = "") -> str:
+    """'ok' | 'no-existe' | 'ultima' (debe quedar al menos una hoja)."""
+    h = db.get(DesignFaqHoja, hoja_id)
+    if not h:
+        return "no-existe"
+    if db.query(DesignFaqHoja).count() <= 1:
+        return "ultima"
+    filas = _faq_filas(db, h.id)
+    payload = {"hoja": {"nombre": h.nombre, "area_id": h.area_id, "columnas": faq_columnas(h), "orden": h.orden},
+               "filas": [_faq_fila_dict(f) for f in filas]}
+    _trash_registrar(db, "faq-hoja", f'Hoja Comments N2 / Face: "{h.nombre}"', payload, eliminado_por)
+    for f in filas:
+        db.delete(f)
+    db.delete(h)
+    db.commit()
+    return "ok"
+
+
+def faq_columna_agregar(db: Session, hoja_id: int, titulo: str) -> dict | None:
+    h = db.get(DesignFaqHoja, hoja_id)
+    if not h or not (titulo or "").strip():
+        return None
+    cols = faq_columnas(h)
+    usados = {c["k"] for c in cols}
+    n = 1
+    while f"c{n}" in usados:
+        n += 1
+    col = {"k": f"c{n}", "l": titulo.strip()[:100]}
+    cols.append(col)
+    h.columnas = json.dumps(cols, ensure_ascii=False)
+    db.commit()
+    return col
+
+
+def faq_columna_renombrar(db: Session, hoja_id: int, clave: str, titulo: str) -> bool:
+    h = db.get(DesignFaqHoja, hoja_id)
+    if not h or not (titulo or "").strip():
+        return False
+    cols = faq_columnas(h)
+    for c in cols:
+        if c["k"] == clave:
+            c["l"] = titulo.strip()[:100]
+            h.columnas = json.dumps(cols, ensure_ascii=False)
+            db.commit()
+            return True
+    return False
+
+
+def _faq_valor(f: DesignFaq, clave: str) -> str:
+    if clave in FAQ_CAMPOS_FIJOS:
+        return getattr(f, clave) or ""
+    return str(_json(f.extras, {}).get(clave, ""))
+
+
+def _faq_poner(f: DesignFaq, clave: str, valor: str) -> None:
+    if clave in FAQ_CAMPOS_FIJOS:
+        setattr(f, clave, valor)
+        return
+    ex = _json(f.extras, {})
+    if valor:
+        ex[clave] = valor
+    else:
+        ex.pop(clave, None)
+    f.extras = json.dumps(ex, ensure_ascii=False)
+
+
+def faq_columna_eliminar(db: Session, hoja_id: int, clave: str, eliminado_por: str = "") -> bool:
+    """Quita la columna de la hoja y borra su contenido; queda en la Papelera para restaurarla."""
+    h = db.get(DesignFaqHoja, hoja_id)
+    if not h:
+        return False
+    cols = faq_columnas(h)
+    idx = next((i for i, c in enumerate(cols) if c["k"] == clave), None)
+    if idx is None:
+        return False
+    valores = {}
+    for f in _faq_filas(db, h.id):
+        v = _faq_valor(f, clave)
+        if v:
+            valores[str(f.id)] = v
+            _faq_poner(f, clave, "")
+    payload = {"hoja_id": h.id, "indice": idx, "columna": cols[idx], "valores": valores}
+    _trash_registrar(db, "faq-col", f'Columna "{cols[idx]["l"]}" de la hoja "{h.nombre}"', payload, eliminado_por)
+    del cols[idx]
+    h.columnas = json.dumps(cols, ensure_ascii=False)
+    db.commit()
+    return True
+
+
+def faq_fila_crear(db: Session, hoja_id: int, seccion: str, despues_de: int | None = None) -> DesignFaq | None:
+    """Crea una fila al final de la hoja o justo después de `despues_de` (corre las siguientes)."""
+    h = db.get(DesignFaqHoja, hoja_id)
+    if not h:
+        return None
+    filas = _faq_filas(db, h.id)
+    pos = len(filas)
+    if despues_de:
+        pos = next((i + 1 for i, f in enumerate(filas) if f.id == despues_de), pos)
+    for i, f in enumerate(filas):
+        f.orden = i + 1 if i < pos else i + 2
+    nueva = DesignFaq(area_id=h.area_id or _faq_area_por_defecto(db), hoja_id=h.id,
+                      seccion=(seccion or "").strip()[:150], orden=pos + 1)
+    db.add(nueva)
+    db.commit()
+    db.refresh(nueva)
+    return nueva
+
+
+def faq_fila_actualizar(db: Session, fila_id: int, clave: str, valor: str) -> DesignFaq | None:
+    f = db.get(DesignFaq, fila_id)
+    if not f or not f.hoja_id:
+        return None
+    h = db.get(DesignFaqHoja, f.hoja_id)
+    if clave not in FAQ_CAMPOS_FIJOS and clave not in {c["k"] for c in faq_columnas(h)}:
+        return None
+    _faq_poner(f, clave, valor or "")
+    db.commit()
     return f
 
 
-def eliminar_faq(db: Session, faq_id: int) -> bool:
-    f = db.get(DesignFaq, faq_id)
-    if not f:
+def faq_seccion_renombrar(db: Session, hoja_id: int, fila_ids: list[int], nombre: str) -> int:
+    """Renombra la sección de las filas indicadas (el grupo visible), no otras con el mismo nombre."""
+    filas = (db.query(DesignFaq).filter(DesignFaq.hoja_id == hoja_id, DesignFaq.id.in_(fila_ids or [0])).all())
+    for f in filas:
+        f.seccion = (nombre or "").strip()[:150]
+    db.commit()
+    return len(filas)
+
+
+def faq_fila_eliminar(db: Session, fila_id: int, eliminado_por: str = "") -> bool:
+    f = db.get(DesignFaq, fila_id)
+    if not f or not f.hoja_id:
         return False
+    h = db.get(DesignFaqHoja, f.hoja_id)
+    payload = {"hoja_id": f.hoja_id, "orden": f.orden, "area_id": f.area_id, "fila": _faq_fila_dict(f)}
+    texto = (f.situacion or f.seccion or "(fila)")[:80]
+    _trash_registrar(db, "faq-fila", f'Situación "{texto}" de la hoja "{h.nombre if h else ""}"', payload, eliminado_por)
     db.delete(f)
     db.commit()
     return True
+
+
+def _faq_fila_desde_dict(fila: DesignFaq, d: dict) -> None:
+    fila.seccion = d.get("seccion", "")
+    extras = {}
+    for k, v in d.items():
+        if k in ("id", "seccion"):
+            continue
+        if k in FAQ_CAMPOS_FIJOS:
+            setattr(fila, k, v)
+        elif v:
+            extras[k] = v
+    fila.extras = json.dumps(extras, ensure_ascii=False)
+
+
+def _trash_restaurar_faq_hoja(db: Session, payload: dict) -> bool:
+    h = payload.get("hoja") or {}
+    hoja = DesignFaqHoja(nombre=h.get("nombre", "Hoja restaurada"), area_id=h.get("area_id"),
+                         columnas=json.dumps(h.get("columnas", []), ensure_ascii=False),
+                         orden=(db.query(func.max(DesignFaqHoja.orden)).scalar() or 0) + 1)
+    db.add(hoja)
+    db.flush()
+    for i, d in enumerate(payload.get("filas", []), start=1):
+        fila = DesignFaq(area_id=hoja.area_id or _faq_area_por_defecto(db), hoja_id=hoja.id, orden=i)
+        _faq_fila_desde_dict(fila, d)
+        db.add(fila)
+    return True
+
+
+def _trash_restaurar_faq_fila(db: Session, payload: dict) -> bool:
+    h = db.get(DesignFaqHoja, payload.get("hoja_id") or 0)
+    if not h:
+        return False
+    orden = payload.get("orden") or 0
+    for f in _faq_filas(db, h.id):
+        if f.orden >= orden:
+            f.orden += 1
+    fila = DesignFaq(area_id=payload.get("area_id") or h.area_id or _faq_area_por_defecto(db), hoja_id=h.id, orden=orden)
+    _faq_fila_desde_dict(fila, payload.get("fila") or {})
+    db.add(fila)
+    return True
+
+
+def _trash_restaurar_faq_col(db: Session, payload: dict) -> bool:
+    h = db.get(DesignFaqHoja, payload.get("hoja_id") or 0)
+    col = payload.get("columna") or {}
+    if not h or not col.get("k"):
+        return False
+    cols = faq_columnas(h)
+    if any(c["k"] == col["k"] for c in cols):
+        return False
+    cols.insert(min(payload.get("indice", len(cols)), len(cols)), col)
+    h.columnas = json.dumps(cols, ensure_ascii=False)
+    for fila_id, valor in (payload.get("valores") or {}).items():
+        f = db.get(DesignFaq, int(fila_id))
+        if f and f.hoja_id == h.id:
+            _faq_poner(f, col["k"], valor)
+    return True
+
+
+def faq_sembrar(db: Session, ruta_seed: Path) -> None:
+    """Idempotente. Filas antiguas sin hoja (de la versión por área) van a una hoja "<área> (anterior)".
+    Si no hay ninguna hoja, carga las 4 del formato original (FACE, NEW FACE, N2, FACE MANAGER QUESTIONS)."""
+    huerfanas = db.query(DesignFaq).filter(DesignFaq.hoja_id.is_(None)).order_by(DesignFaq.orden, DesignFaq.id).all()
+    hojas_nuevas = db.query(DesignFaqHoja).count() == 0
+    orden = db.query(func.max(DesignFaqHoja.orden)).scalar() or 0
+    if hojas_nuevas and ruta_seed.exists():
+        areas = {a.nombre: a.id for a in db.query(DesignArea).all()}
+        with open(ruta_seed, encoding="utf-8") as fh:
+            datos = json.load(fh)
+        for hd in datos:
+            orden += 1
+            h = DesignFaqHoja(nombre=hd["nombre"], area_id=areas.get(hd.get("area")) or _faq_area_por_defecto(db),
+                              columnas=json.dumps(hd["columnas"], ensure_ascii=False), orden=orden)
+            db.add(h)
+            db.flush()
+            for i, d in enumerate(hd["filas"], start=1):
+                fila = DesignFaq(area_id=h.area_id, hoja_id=h.id, orden=i)
+                _faq_fila_desde_dict(fila, d)
+                db.add(fila)
+    if huerfanas:
+        por_area = {}
+        for f in huerfanas:
+            por_area.setdefault(f.area_id, []).append(f)
+        for area_id, filas in por_area.items():
+            area = db.get(DesignArea, area_id)
+            orden += 1
+            h = DesignFaqHoja(nombre=f"{area.nombre if area else 'Hoja'} (anterior)", area_id=area_id,
+                              columnas=json.dumps(FAQ_COLUMNAS_BASE, ensure_ascii=False), orden=orden)
+            db.add(h)
+            db.flush()
+            for i, f in enumerate(filas, start=1):
+                f.hoja_id, f.orden = h.id, i
 
 
 # ---------- Pre-Approved ----------
@@ -1220,6 +1504,9 @@ _TRASH_RESTAURADORES = {
     "protocol": _trash_restaurar_protocolo,
     "cv-doc": _trash_restaurar_cv_doc,
     "cmt-template": _trash_restaurar_cmt_template,
+    "faq-hoja": _trash_restaurar_faq_hoja,
+    "faq-fila": _trash_restaurar_faq_fila,
+    "faq-col": _trash_restaurar_faq_col,
 }
 
 
