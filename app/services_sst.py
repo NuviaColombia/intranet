@@ -53,7 +53,7 @@ def accesos(db: Session) -> list[SstAcceso]:
 
 def agregar_acceso(db: Session, empleado_id: int, rol_sst: str) -> bool:
     emp = db.get(Empleado, empleado_id)
-    if not emp:
+    if not emp or emp.empresa != "Nuvia Smiles Colombia SAS":
         return False
     if not db.query(SstAcceso).filter_by(empleado_id=empleado_id, rol_sst=rol_sst).first():
         db.add(SstAcceso(empleado_id=empleado_id, rol_sst=rol_sst))

@@ -8,6 +8,20 @@
   .sst-linea { display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:8px; }
   .sst-vacio { color:var(--gris); text-align:center; padding:18px; }
   .sst-acciones { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .sst-ojo { background:none; border:none; cursor:pointer; font-size:16px; padding:4px 6px; }
+  .sst-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .sst-modal-bg.open { display:flex; }
+  .sst-modal { background:#fff; border-radius:12px; padding:24px; max-width:520px; width:100%; }
+  .sst-modal h2 { margin:0 0 4px; }
+  .sst-modal-fila { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+  .sst-modal-fila b { color:var(--gris); font-weight:600; }
+  .sst-modal-lineas { margin:4px 0 0; padding-left:18px; }
+  @media print {
+    body * { visibility:hidden; }
+    .sst-modal, .sst-modal * { visibility:visible; }
+    .sst-modal { position:absolute; top:0; left:0; width:100%; max-width:100%; box-shadow:none; }
+    .sst-modal-cerrar, .sst-modal-imprimir { display:none; }
+  }
 </style>
 <h1 style="margin-bottom:4px">🦺 SST — Inventario de EPP</h1>
 <p class="sst-sub" style="margin-bottom:18px">Nuvia Smiles Colombia SAS</p>
@@ -73,6 +87,18 @@
     <tbody id="asCuerpo"><tr><td colspan="5" class="sst-vacio">Cargando…</td></tr></tbody></table>
 </div>
 {% endif %}
+
+<!-- ============ MODAL: resumen de transacción ============ -->
+<div class="sst-modal-bg" id="sstModalBg">
+  <div class="sst-modal">
+    <h2 id="sstModalTitulo"></h2>
+    <div id="sstModalCuerpo"></div>
+    <div class="sst-acciones" style="margin-top:16px">
+      <button type="button" class="btn sst-modal-imprimir" onclick="window.print()">🖨️ Imprimir</button>
+      <button type="button" class="btn gris sst-modal-cerrar" onclick="document.getElementById('sstModalBg').classList.remove('open')">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============ REPORTES ============ -->
 <div id="sec-reportes" class="sst-seccion tarjeta">
@@ -219,14 +245,29 @@
   {% endif %}
 
   {% if es_coordinador %}
+  var USUARIO_ACTUAL = {{ user.nombre_completo|tojson }};
+  var INGRESOS_PEND = {}, SOLICITUDES_PEND = {};
+
+  function abrirModal(titulo, filasHtml) {
+    document.getElementById('sstModalTitulo').textContent = titulo;
+    document.getElementById('sstModalCuerpo').innerHTML = filasHtml;
+    document.getElementById('sstModalBg').classList.add('open');
+  }
+  function filaModal(etiqueta, valor) {
+    return '<div class="sst-modal-fila"><b>' + esc(etiqueta) + '</b><span>' + valor + '</span></div>';
+  }
+
   // ---------------- aprobar ingresos ----------------
   function cargarIngresosPendientes() {
     api('/sst/api/ingresos/pendientes').then(function(filas) {
+      INGRESOS_PEND = {};
+      filas.forEach(function(i) { INGRESOS_PEND[i.id] = i; });
       var cuerpo = document.getElementById('aiCuerpo');
       cuerpo.innerHTML = filas.map(function(i) {
         return '<tr><td>' + i.fecha + '</td><td>' + esc(i.item) + '</td><td>' + num(i.cantidadIngresada) + ' ' + i.unidadUsada +
           ' (' + num(i.cantidadUnidades) + ' unidades)</td><td>' + esc(i.registradoPor) + '</td><td>' + esc(i.notas) + '</td>' +
-          '<td><button type="button" class="btn verde mini" onclick="aprobarIngreso(' + i.id + ')">Aprobar</button> ' +
+          '<td><button type="button" class="sst-ojo" title="Ver resumen" onclick="verIngreso(' + i.id + ')">👁️</button> ' +
+          '<button type="button" class="btn verde mini" onclick="aprobarIngreso(' + i.id + ')">Aprobar</button> ' +
           '<button type="button" class="btn rojo mini" onclick="rechazarIngreso(' + i.id + ')">Rechazar</button></td></tr>';
       }).join('') || '<tr><td colspan="6" class="sst-vacio">No hay ingresos pendientes.</td></tr>';
     });
@@ -236,15 +277,29 @@
     var motivo = prompt('Motivo del rechazo:'); if (motivo === null) return;
     post('/sst/api/ingresos/' + id + '/rechazar', {motivo: motivo}).then(cargarIngresosPendientes);
   };
+  window.verIngreso = function(id) {
+    var i = INGRESOS_PEND[id]; if (!i) return;
+    var html = filaModal('Ítem', esc(i.item)) +
+      filaModal('Cantidad', num(i.cantidadIngresada) + ' ' + i.unidadUsada + ' (' + num(i.cantidadUnidades) + ' unidades)') +
+      filaModal('Fecha', i.fecha) +
+      filaModal('Solicita (registra el ingreso)', esc(i.registradoPor)) +
+      filaModal('Notas', esc(i.notas) || '—') +
+      filaModal('Estado', 'Pendiente de aprobación') +
+      filaModal('Aprueba', esc(USUARIO_ACTUAL) + ' <small style="color:var(--gris)">(al confirmar)</small>');
+    abrirModal('Resumen del ingreso #' + id, html);
+  };
 
   // ---------------- aprobar/entregar solicitudes ----------------
   function cargarSolicitudesPendientes() {
     api('/sst/api/solicitudes/pendientes').then(function(sols) {
+      SOLICITUDES_PEND = {};
+      sols.forEach(function(s) { SOLICITUDES_PEND[s.id] = s; });
       var cuerpo = document.getElementById('asCuerpo');
       cuerpo.innerHTML = sols.map(function(s) {
         var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ')'; }).join(', ');
         return '<tr><td>' + s.fecha + '</td><td>' + esc(s.solicitante) + '</td><td>' + items + '</td><td>' + esc(s.notas) + '</td>' +
-          '<td><button type="button" class="btn verde mini" onclick="entregarSolicitud(' + s.id + ')">Entregar</button> ' +
+          '<td><button type="button" class="sst-ojo" title="Ver resumen" onclick="verSolicitud(' + s.id + ')">👁️</button> ' +
+          '<button type="button" class="btn verde mini" onclick="entregarSolicitud(' + s.id + ')">Entregar</button> ' +
           '<button type="button" class="btn rojo mini" onclick="rechazarSolicitud(' + s.id + ')">Rechazar</button></td></tr>';
       }).join('') || '<tr><td colspan="5" class="sst-vacio">No hay solicitudes pendientes.</td></tr>';
     });
@@ -256,6 +311,19 @@
   window.rechazarSolicitud = function(id) {
     var motivo = prompt('Motivo del rechazo:'); if (motivo === null) return;
     post('/sst/api/solicitudes/' + id + '/rechazar', {motivo: motivo}).then(cargarSolicitudesPendientes);
+  };
+  window.verSolicitud = function(id) {
+    var s = SOLICITUDES_PEND[id]; if (!s) return;
+    var listaItems = '<ul class="sst-modal-lineas">' + s.lineas.map(function(l) {
+      return '<li>' + esc(l.item) + ': ' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ' (' + num(l.cantidadUnidades) + ' unidades)</li>';
+    }).join('') + '</ul>';
+    var html = filaModal('Solicita', esc(s.solicitante)) +
+      filaModal('Fecha', s.fecha) +
+      filaModal('Ítems', listaItems) +
+      filaModal('Notas', esc(s.notas) || '—') +
+      filaModal('Estado', 'Pendiente de entrega') +
+      filaModal('Entrega', esc(USUARIO_ACTUAL) + ' <small style="color:var(--gris)">(al confirmar)</small>');
+    abrirModal('Resumen de la solicitud #' + id, html);
   };
   {% endif %}
 

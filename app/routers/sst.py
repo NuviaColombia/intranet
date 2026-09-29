@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
 from ..models_sst import SstIngreso, SstSolicitud
-from ..auth import require_admin, get_current_user
-from ..sst import require_sst, require_sst_compras, require_sst_coordinador, es_compras_sst, es_coordinador_sst, EMPRESA_SST
+from ..sst import (require_sst, require_sst_compras, require_sst_coordinador, require_sst_admin,
+                   es_compras_sst, es_coordinador_sst, EMPRESA_SST)
 from ..main_templates import templates
 from .. import services_sst as ss
 
@@ -26,7 +26,7 @@ async def pagina(request: Request, user: Empleado = Depends(require_sst), db: Se
 
 
 @router.get("/sst/parametros")
-async def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+async def parametros(request: Request, user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db)):
     candidatos = (db.query(Empleado).filter(Empleado.empresa == EMPRESA_SST, Empleado.activo == 1)
                  .order_by(Empleado.apellidos).all())
     return templates.TemplateResponse(request, "sst_parametros.html", {
@@ -39,21 +39,21 @@ async def parametros(request: Request, user: Empleado = Depends(require_admin), 
 # ---------- Parámetros: catálogo de ítems ----------
 
 @router.post("/sst/parametros/items")
-async def crear_item(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+async def crear_item(user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db),
                      nombre: str = Form(...), unidad_conteo: str = Form(...), presentacion: int = Form(1)):
     ss.crear_item(db, nombre, unidad_conteo, presentacion)
     return RedirectResponse("/sst/parametros?msg=Ítem agregado.", status_code=303)
 
 
 @router.post("/sst/parametros/items/{item_id}")
-async def editar_item(item_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+async def editar_item(item_id: int, user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db),
                       nombre: str = Form(...), unidad_conteo: str = Form(...), presentacion: int = Form(1)):
     ss.editar_item(db, item_id, nombre, unidad_conteo, presentacion)
     return RedirectResponse("/sst/parametros?msg=Ítem actualizado.", status_code=303)
 
 
 @router.post("/sst/parametros/items/{item_id}/toggle")
-async def toggle_item(item_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+async def toggle_item(item_id: int, user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db)):
     ss.toggle_item(db, item_id)
     return RedirectResponse("/sst/parametros", status_code=303)
 
@@ -61,14 +61,14 @@ async def toggle_item(item_id: int, user: Empleado = Depends(require_admin), db:
 # ---------- Parámetros: accesos (Compras / Coordinación SST) ----------
 
 @router.post("/sst/parametros/accesos")
-async def agregar_acceso(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+async def agregar_acceso(user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db),
                          empleado_id: int = Form(...), rol_sst: str = Form(...)):
     ss.agregar_acceso(db, empleado_id, rol_sst)
     return RedirectResponse("/sst/parametros?msg=Acceso agregado.", status_code=303)
 
 
 @router.post("/sst/parametros/accesos/{acceso_id}/quitar")
-async def quitar_acceso(acceso_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+async def quitar_acceso(acceso_id: int, user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db)):
     ss.quitar_acceso(db, acceso_id)
     return RedirectResponse("/sst/parametros?msg=Acceso quitado.", status_code=303)
 
