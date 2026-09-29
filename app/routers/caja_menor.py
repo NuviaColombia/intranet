@@ -575,23 +575,28 @@ def toggle_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
 
 
 def _conflicto(db: Session, empleado_id: int, cajas: set[int], como: str) -> str | None:
-    """Una persona no puede operar (Accesos / responsable) y firmar (Autorizan / Supervisan) la misma caja."""
+    """Una persona no puede operar (Accesos / responsable) y firmar (Autorizan / Supervisan) la misma caja.
+    Los administradores sí pueden tener ambos papeles (en cada documento sigue sin poder firmar lo propio)."""
     if not cajas:
         return None
+    empleado = db.get(Empleado, empleado_id)
+    if empleado and sc.es_admin(empleado):
+        return None
+    quien = nombre_propio(empleado.nombre_completo) if empleado else "Esa persona"
     nombres = {c.id: nombre_propio(c.nombre) for c in db.query(CajaMenor).filter(CajaMenor.id.in_(cajas))}
     if como == "acceso":
         firma = {a.caja_id for a in db.query(CajaAutorizador).filter(CajaAutorizador.empleado_id == empleado_id)}
         firma |= {a.caja_id for a in db.query(CajaSupervisor).filter(CajaSupervisor.empleado_id == empleado_id)}
         choque = sorted(nombres[c] for c in cajas & firma)
         if choque:
-            return (f"No se guardó: esa persona firma en {', '.join(choque)} (Autorizan / Supervisan). "
+            return (f"No se guardó: {quien} firma en {', '.join(choque)} (Autorizan / Supervisan). "
                     "Quien firma solo consulta y firma; no puede tener acceso para operar la misma caja.")
     else:
         opera = {a.caja_id for a in db.query(CajaAcceso).filter(CajaAcceso.empleado_id == empleado_id)}
         opera |= {c.id for c in db.query(CajaMenor).filter(CajaMenor.responsable_id == empleado_id)}
         choque = sorted(nombres[c] for c in cajas & opera)
         if choque:
-            return (f"No se guardó: esa persona opera {', '.join(choque)} (tiene acceso o es responsable). "
+            return (f"No se guardó: {quien} opera {', '.join(choque)} (tiene acceso o es responsable). "
                     "Quien firma no puede operar la misma caja: quítale primero el acceso a esa caja.")
     return None
 
