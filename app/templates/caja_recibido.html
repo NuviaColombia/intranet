@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/caja_menor.css?v=9">
+<style>
+  #caja-app .rb-caja { max-width: 640px; margin: 24px auto; }
+  #caja-app .rb-tabla { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 13px; }
+  #caja-app .rb-tabla td { border: 1px solid var(--border-soft, #E2E8F0); padding: 8px 12px; }
+  #caja-app .rb-tabla td.etq { background: #F8FAFC; font-weight: 700; color: #475569; width: 36%; }
+  #caja-app .rb-valor { font-size: 22px; font-weight: 800; color: #065F46; }
+  #caja-app .rb-aviso { padding: 12px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+  #caja-app .rb-aviso.ok { background: #D1FAE5; color: #065F46; }
+  #caja-app .rb-aviso.pend { background: #FEF3C7; color: #92400E; }
+  #caja-app .rb-aviso.mal { background: #FEE2E2; color: #991B1B; }
+</style>
+<div id="caja-app">
+ <div class="cm-main">
+  <div class="cm-seccion activa rb-caja">
+    <h2 class="cm-titulo">🧾 Firma de recibido · Caja menor</h2>
+    <p class="cm-sub">Recibo <b>{{ r.noRecibo }}</b> de la caja {{ r.caja }}. Revisa los datos y confirma que recibiste el dinero.</p>
+
+    {% if msg %}<div class="rb-aviso {{ 'ok' if msg.startswith('✅') else 'mal' }}">{{ msg }}</div>{% endif %}
+
+    <table class="rb-tabla">
+      <tr><td class="etq">Valor</td><td><span class="rb-valor">$ {{ '{:,.0f}'.format(r.valor).replace(',', '.') }}</span><br><small>{{ r.valorLetras }}</small></td></tr>
+      <tr><td class="etq">Pagado a</td><td>{{ r.pagadoA|nombre_propio }}</td></tr>
+      <tr><td class="etq">C.C.</td><td>{{ r.identificacion }}</td></tr>
+      <tr><td class="etq">Fecha</td><td>{{ r.fecha }}</td></tr>
+      <tr><td class="etq">Concepto</td><td>{{ r.concepto }}</td></tr>
+      <tr><td class="etq">Factura / cuenta de cobro</td><td>{{ r.factura }}</td></tr>
+      <tr><td class="etq">Registrado por</td><td>{{ r.creadoPor }}{% if r.creadoEn %} · {{ r.creadoEn }}{% endif %}</td></tr>
+    </table>
+
+    {% if r.estado == 'ANULADO' %}
+      <div class="rb-aviso mal">🚫 Este recibo fue anulado{% if r.motivoAnulacion %}: {{ r.motivoAnulacion }}{% endif %}. Ya no hay que firmarlo.</div>
+    {% elif r.recibidoEn %}
+      <div class="rb-aviso ok">✅ <b>Recibido firmado electrónicamente</b> por {{ r.recibidoPor }} (C.C. {{ r.identificacion }})
+        con el correo <b>{{ r.recibidoEmail }}</b> el {{ r.recibidoEn }}.</div>
+    {% elif es_quien_recibe %}
+      <form method="post" action="/caja-menor/recibido/{{ r.id }}/firmar"
+            onsubmit="return confirm('¿Confirmas que recibiste $ {{ '{:,.0f}'.format(r.valor).replace(',', '.') }}? Quedará tu firma con tu correo, la fecha y la hora.');">
+        <div class="rb-aviso pend">Al firmar queda registrado tu nombre, tu C.C., tu correo de Zoho (<b>{{ user.email }}</b>) y la fecha y hora.</div>
+        <button class="btn verde">✍️ Firmar recibido</button>
+      </form>
+    {% else %}
+      <div class="rb-aviso pend">⏳ Pendiente de la firma de recibido de {{ r.recibidoPor }}.</div>
+    {% endif %}
+  </div>
+ </div>
+</div>
+{% endblock %}

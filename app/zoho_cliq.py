@@ -30,9 +30,14 @@ def _access_token() -> str:
     return _token_cache["access_token"]
 
 
-def enviar_cliq_varios(emails: list[str], texto: str) -> bool:
+def boton_enlace(texto: str, url: str) -> dict:
+    """Botón de Cliq que abre un enlace de la intranet (p. ej. «✍️ Firmar recibido»)."""
+    return {"label": texto[:20], "hint": texto, "type": "+", "action": {"type": "open.url", "data": {"web": url}}}
+
+
+def enviar_cliq_varios(emails: list[str], texto: str, botones: list[dict] | None = None) -> bool:
     """Envía un mensaje del bot a varios usuarios en una sola llamada. Devuelve False (sin lanzar)
-    si el bot no está configurado o Zoho rechaza el envío."""
+    si el bot no está configurado o Zoho rechaza el envío. Si Cliq rechaza los botones, reenvía solo el texto."""
     emails = [e for e in emails if e]
     if not emails:
         return False
@@ -41,12 +46,18 @@ def enviar_cliq_varios(emails: list[str], texto: str) -> bool:
               f"{', '.join(emails)} | Texto: {texto}")
         return False
     try:
+        mensaje = {"text": texto, "userids": ",".join(emails)}
+        if botones:
+            mensaje["buttons"] = botones
         r = httpx.post(
             f"https://cliq.zoho.com/api/v2/bots/{config.ZOHO_CLIQ_BOT}/message",
             headers={"Authorization": f"Zoho-oauthtoken {_access_token()}"},
-            json={"text": texto, "userids": ",".join(emails)},
+            json=mensaje,
             timeout=20,
         )
+        if botones and r.status_code == 400:  # Cliq no aceptó los botones: el texto ya lleva el enlace
+            print(f"[CLIQ bot] botones rechazados ({r.text[:200]}); se envía solo el texto.")
+            return enviar_cliq_varios(emails, texto)
         r.raise_for_status()
         return True
     except Exception as e:
@@ -55,6 +66,6 @@ def enviar_cliq_varios(emails: list[str], texto: str) -> bool:
         return False
 
 
-def enviar_cliq(email: str, texto: str) -> bool:
+def enviar_cliq(email: str, texto: str, botones: list[dict] | None = None) -> bool:
     """Envía un mensaje del bot al usuario `email` (misma firma de antes para los módulos que lo usan)."""
-    return enviar_cliq_varios([email], texto)
+    return enviar_cliq_varios([email], texto, botones)

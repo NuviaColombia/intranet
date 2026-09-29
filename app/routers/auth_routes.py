@@ -37,7 +37,10 @@ async def auth_callback(request: Request, code: str = "", db: Session = Depends(
     if not user:
         return RedirectResponse("/login?error=no_registrado")
     request.session["user_email"] = email
-    return RedirectResponse("/")
+    volver_a = request.session.pop("volver_a", "") or "/"
+    if not volver_a.startswith("/") or volver_a.startswith("//") or "\\" in volver_a:
+        volver_a = "/"  # solo rutas internas de la intranet
+    return RedirectResponse(volver_a)
 
 
 @router.get("/logout")

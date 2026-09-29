@@ -60,7 +60,9 @@
             {% endif %}</td>
         </tr>
       </table>
+      <div id="rColaborador" class="cm-firma-estado pendiente" style="display:none;"></div>
       <div id="rFirmaEstado" class="cm-firma-estado" style="display:none;"></div>
+      <div id="rRecibidoEstado" class="cm-firma-estado" style="display:none;"></div>
       <div class="cm-acciones">
         <button type="button" class="btn rojo" id="btnAnularRecibo" style="display:none;" onclick="abrirAnulacion('recibo')">🚫 Anular recibo</button>
         <button type="button" class="btn gris" id="btnEditarRecibo" style="display:none;" onclick="habilitarEdicion()">✏️ Editar</button>
@@ -298,6 +300,7 @@ function nuevoRecibo() {
   document.getElementById('rFecha').max = hoyISO();  // no se permiten fechas futuras
   document.getElementById('rLetras').value = '';
   document.getElementById('reciboSello').className = 'cm-sello';
+  document.getElementById('rColaborador').style.display = 'none';
   pintarFirma(null);
   bloquear(false);
   ['btnAnularRecibo', 'btnEditarRecibo', 'btnCopiaRecibo'].forEach(function(id) { document.getElementById(id).style.display = 'none'; });
@@ -328,17 +331,60 @@ function mostrarRecibo(r) {
   else sello.className = 'cm-sello';
   document.getElementById('btnGuardarRecibo').style.display = 'none';
   document.getElementById('btnCopiaRecibo').style.display = r.estado === 'ANULADO' ? 'none' : '';
-  document.getElementById('btnEditarRecibo').style.display = r.estado === 'ACTIVO' && !r.firmadoEn && !SOLO_FIRMAS ? '' : 'none';  // firmado: solo anular
+  document.getElementById('btnEditarRecibo').style.display = r.estado === 'ACTIVO' && !r.firmadoEn && !r.recibidoEn && !SOLO_FIRMAS ? '' : 'none';  // firmado: solo anular
   document.getElementById('btnAnularRecibo').style.display = r.estado === 'ACTIVO' && !SOLO_FIRMAS ? '' : 'none';
 }
 
+function pintarRecibido(r) {
+  var el = document.getElementById('rRecibidoEstado');
+  if (!r || !r.recibidoPorId || r.estado === 'ANULADO') { el.style.display = 'none'; return; }
+  el.style.display = '';
+  if (r.recibidoEn) {
+    el.className = 'cm-firma-estado firmado';
+    el.innerHTML = '🧾 Recibido firmado por <b>' + esc(r.recibidoPor) + '</b> (C.C. ' + esc(r.identificacion) + ') · ' + esc(r.recibidoEmail) +
+      ' · ' + esc(r.recibidoEn) + '.';
+    return;
+  }
+  var reenviar = SOLO_FIRMAS ? '' : ' <button type="button" class="btn gris mini" onclick="reenviarAvisoRecibido(' + r.id + ')">🔔 Reenviar aviso</button>';
+  el.className = 'cm-firma-estado ' + (r.recibidoAvisoOk === 0 ? 'fallido' : 'pendiente');
+  el.innerHTML = r.recibidoAvisoOk === 0
+    ? '⚠️ Pendiente la firma de recibido de ' + esc(r.recibidoPor) + ', pero <b>no se pudo avisar por Cliq</b>. Verifica que esté suscrito a Nuvia Colombia Bot.' + reenviar
+    : '🧾 Pendiente la firma de recibido de <b>' + esc(r.recibidoPor) + '</b>: se le envió el resumen por Cliq para firmar' +
+      (r.recibidoAvisoEn ? ' (' + esc(r.recibidoAvisoEn) + ')' : '') + '.' + reenviar;
+}
+function reenviarAvisoRecibido(id) {
+  post(API + '/recibos/' + id + '/reenviar-recibido', {}).then(function(res) {
+    alert(res.mensaje); if (reciboActual && reciboActual.id === id) mostrarRecibo(res.recibo);
+  }).catch(function(e) { alert(e.message); });
+}
+// Al escribir la identificación: si es de un colaborador de People, se le pedirá la firma de recibido por Cliq
+var _tColaborador = null;
+function buscarColaborador() {
+  clearTimeout(_tColaborador);
+  var el = document.getElementById('rColaborador'), ident = document.getElementById('rIdentificacion').value.trim();
+  if (reciboActual && document.getElementById('rIdentificacion').readOnly) return;
+  if (ident.replace(/\W/g, '').length < 5) { el.style.display = 'none'; return; }
+  _tColaborador = setTimeout(function() {
+    fetch(API + '/colaborador?identificacion=' + encodeURIComponent(ident)).then(function(r) { return r.json(); }).then(function(d) {
+      if (!d.encontrado) { el.style.display = 'none'; return; }
+      var pagado = document.getElementById('rPagadoA');
+      if (!pagado.value.trim()) pagado.value = d.nombre.toUpperCase();
+      el.style.display = '';
+      el.innerHTML = '👤 <b>' + esc(d.nombre) + '</b> es colaborador de People: al guardar le llega por Cliq el resumen del recibo para que firme el recibido.';
+    }).catch(function() { el.style.display = 'none'; });
+  }, 400);
+}
+document.getElementById('rIdentificacion').addEventListener('input', buscarColaborador);
+
 function pintarFirma(r) {
+  pintarRecibido(r);
   var el = document.getElementById('rFirmaEstado');
   if (!r || !r.autorizadoPor || r.estado === 'ANULADO') { el.style.display = 'none'; return; }
   el.style.display = '';
   el.className = 'cm-firma-estado ' + (r.firmadoEn ? 'firmado' : 'pendiente');
   if (r.firmadoEn) {
-    el.innerHTML = '✅ Firmado por <b>' + esc(r.firmaEmail) + '</b> el ' + esc(r.firmadoEn) + '. Ya no se puede editar; si tiene un error, anúlalo.';
+    el.innerHTML = '✅ Firmado por <b>' + esc(nombrePropio(r.autorizadoPor)) + '</b> · ' + esc(r.firmaEmail) + ' · ' + esc(r.firmadoEn) +
+      '. Ya no se puede editar; si tiene un error, anúlalo.';
     return;
   }
   var ob = r.observacionPendiente;
@@ -874,7 +920,11 @@ function imprimirRecibo(r) {
       '<div><div class="esp">' + (r.firmadoEn ? '<div class="fe">FIRMADO ELECTRÓNICAMENTE<br><span>' + esc(r.firmaEmail) + '</span><br><span>' +
         esc(fechaHoraDMY(r.firmadoEn)) + '</span></div>' : (r.autorizadoPor ? '<div class="fe pend">PENDIENTE DE FIRMA</div>' : '')) + '</div>' +
         '<div class="ln">APROBADO POR' + (r.autorizadoPor ? '<div class="sub">' + esc(nombrePropio(r.autorizadoPor)) + '</div>' : '') + '</div></div>' +
-      '<div><div class="esp">' + (r.anexo ? 'VER ANEXO' : '') + '</div><div class="ln">FIRMA DE RECIBIDO<div class="sub">C.C. ________________________</div></div></div>' +
+      '<div><div class="esp">' + (r.recibidoEn ? '<div class="fe">FIRMADO ELECTRÓNICAMENTE<br><span>' + esc(r.recibidoEmail) + '</span><br><span>' +
+        esc(fechaHoraDMY(r.recibidoEn)) + '</span></div>' : (r.recibidoPorId ? '<div class="fe pend">PENDIENTE DE FIRMA</div>' : (r.anexo ? 'VER ANEXO' : ''))) + '</div>' +
+        '<div class="ln">FIRMA DE RECIBIDO' + (r.recibidoPorId
+          ? '<div class="sub">' + esc(r.recibidoPor) + '</div><div class="sub">C.C. ' + esc(r.identificacion) + '</div>'
+          : '<div class="sub">C.C. ________________________</div>') + '</div></div>' +
     '</div>' +
     '<div class="rc-pie"><span>Registrado por ' + esc(r.creadoPor) + (r.creadoEn ? ' · ' + esc(r.creadoEn) : '') + '</span><span>Nuvia Smiles Colombia S.A.S.</span></div>' +
     '</div><div class="rc-corte"></div>';

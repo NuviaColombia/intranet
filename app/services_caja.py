@@ -214,6 +214,10 @@ def serializar_recibo(r: CajaRecibo) -> dict:
         "factura": r.numero_factura, "anexo": bool(r.anexo), "autorizadoPor": r.autorizado_por or "", "estado": r.estado,
         "autorizadoPorId": r.autorizado_por_id, "firmaEmail": r.firma_email or "", "firmadoEn": hora_colombia(r.firmado_en),
         "avisoOk": r.aviso_ok, "avisoEn": hora_colombia(r.aviso_en),
+        "recibidoPorId": r.recibido_por_id,
+        "recibidoPor": nombre_propio(r.recibido_por.nombre_completo) if r.recibido_por else "",
+        "recibidoEmail": r.recibido_email or "", "recibidoEn": hora_colombia(r.recibido_en),
+        "recibidoAvisoOk": r.recibido_aviso_ok, "recibidoAvisoEn": hora_colombia(r.recibido_aviso_en),
         "observaciones": _serializar_observaciones(r.observaciones)[0],
         "observacionPendiente": _serializar_observaciones(r.observaciones)[1],
         "caja": nombre_propio(r.caja.nombre),
@@ -323,8 +327,10 @@ def crear_recibo(db: Session, caja: CajaMenor, user: Empleado, datos: dict) -> C
         return aviso
     for _ in range(3):  # si dos personas guardan a la vez, el segundo toma el siguiente consecutivo
         consecutivo = siguiente_consecutivo(db, caja)
+        recibe = colaborador_por_identificacion(db, limpios.get("identificacion", ""))
         r = CajaRecibo(caja_id=caja.id, consecutivo=consecutivo, creado_por_id=user.id,
-                       autorizado_por_id=autoriza.id if autoriza else None, **limpios)
+                       autorizado_por_id=autoriza.id if autoriza else None,
+                       recibido_por_id=recibe.id if recibe else None, **limpios)
         if not r.numero_factura:
             r.numero_factura = f"{caja.prefijo}-{consecutivo:04d}"  # igual que la app anterior
         db.add(r)
@@ -344,6 +350,9 @@ def editar_recibo(db: Session, r: CajaRecibo, user: Empleado, datos: dict) -> st
     if r.firmado_en:
         return ("Este recibo ya fue firmado por quien lo autorizó y no se puede editar. "
                 "Si tiene un error, anúlalo y crea uno nuevo.")
+    if r.recibido_en:
+        return ("Este recibo ya tiene la firma de recibido y no se puede editar. "
+                "Si tiene un error, anúlalo y crea uno nuevo.")
     limpios = _datos_recibo(r.caja, datos)
     if isinstance(limpios, str):
         return limpios
@@ -356,6 +365,10 @@ def editar_recibo(db: Session, r: CajaRecibo, user: Empleado, datos: dict) -> st
     for k, v in limpios.items():
         setattr(r, k, v)
     r.autorizado_por_id = autoriza.id if autoriza else None
+    recibe = colaborador_por_identificacion(db, r.identificacion)
+    if (recibe.id if recibe else None) != r.recibido_por_id:
+        r.recibido_por_id = recibe.id if recibe else None
+        r.recibido_aviso_ok = r.recibido_aviso_en = None  # se le avisa a la nueva persona
     _atender_observaciones(r, user)  # la corrección responde a la observación de quien firma
     if not r.numero_factura:
         r.numero_factura = f"{r.caja.prefijo}-{r.consecutivo:04d}"
@@ -594,6 +607,64 @@ def _num(valor) -> float:
 
 # ---------------- Firma de quien autoriza ----------------
 
+def _solo_digitos(texto: str) -> str:
+    return "".join(ch for ch in str(texto or "") if ch.isalnum()).upper()
+
+
+def colaborador_por_identificacion(db: Session, identificacion: str) -> Empleado | None:
+    """Colaborador activo de People con ese No. identificación (sin importar puntos o espacios)."""
+    limpio = _solo_digitos(identificacion)
+    if len(limpio) < 5:
+        return None
+    candidatos = db.query(Empleado).filter(Empleado.activo == 1,
+                                           Empleado.identificacion.in_({str(identificacion).strip(), limpio})).all()
+    if not candidatos:  # guardada con puntos o espacios en People
+        candidatos = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all() if _solo_digitos(e.identificacion) == limpio]
+    return candidatos[0] if len(candidatos) == 1 else None
+
+
+def necesita_aviso_recibido(r: CajaRecibo) -> bool:
+    return bool(r.recibido_por_id and not r.recibido_en and r.estado != "ANULADO")
+
+
+def firmar_recibido(db: Session, r: CajaRecibo, user: Empleado) -> str | None:
+    """Firma de recibido del colaborador: queda su correo Zoho (el de la sesión) y la fecha y hora."""
+    if r.recibido_por_id != user.id:
+        return "Este recibo no está a tu nombre para firmar el recibido."
+    if r.estado == "ANULADO":
+        return "El recibo está anulado."
+    if r.recibido_en:
+        return "Ya firmaste el recibido de este recibo."
+    r.recibido_email, r.recibido_en = user.email, datetime.utcnow()
+    db.commit()
+    return None
+
+
+def notificar_recibido_pendiente(recibo_id: int, recordatorio: bool = False) -> None:
+    """Aviso por Cliq (bot) al colaborador que recibe el dinero, con el resumen del recibo y el botón para firmar."""
+    from . import config
+    from .database import SessionLocal
+    from .zoho_cliq import boton_enlace
+    db = SessionLocal()
+    try:
+        r = db.get(CajaRecibo, recibo_id)
+        if not r or not necesita_aviso_recibido(r):
+            return
+        quien = db.get(Empleado, r.recibido_por_id)
+        enlace = f"{config.BASE_URL}/caja-menor/recibido/{r.id}"
+        texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}🧾 *Firma de recibido pendiente*\n"
+                 f"{_texto_recibo(r)}\n"
+                 f"Fecha: {r.fecha.strftime('%d/%m/%Y') if r.fecha else ''} · C.C. {r.identificacion}\n"
+                 f"Confirma que recibiste este dinero: {enlace}")
+        r.recibido_aviso_ok = 1 if _avisar([quien.email if quien else ""], texto, [boton_enlace("✍️ Firmar recibido", enlace)]) else 0
+        r.recibido_aviso_en = datetime.utcnow()
+        db.commit()
+    except Exception as ex:  # un aviso fallido nunca debe afectar el recibo
+        print(f"[Caja menor] Error enviando aviso de recibido del recibo #{recibo_id}: {ex}")
+    finally:
+        db.close()
+
+
 def necesita_aviso_firma(r: CajaRecibo) -> bool:
     return bool(r.autorizado_por_id and not r.firmado_en and r.estado != "ANULADO")
 
@@ -634,11 +705,11 @@ def _texto_recibo(r: CajaRecibo) -> str:
             f"Pagado a: {nombre_propio(r.pagado_a)}\nConcepto: {r.concepto}")
 
 
-def _avisar(emails: list[str], texto: str) -> bool:
+def _avisar(emails: list[str], texto: str, botones: list[dict] | None = None) -> bool:
     """Envía por el bot; devuelve True solo si llegó a todos (False si alguno falló o no hay destinatario)."""
     from .zoho_cliq import enviar_cliq
     destinos = list(dict.fromkeys(e for e in emails if e))  # sin repetir
-    resultados = [bool(enviar_cliq(email, texto)) for email in destinos]
+    resultados = [bool(enviar_cliq(email, texto, botones) if botones else enviar_cliq(email, texto)) for email in destinos]
     return bool(resultados) and all(resultados)
 
 
@@ -686,13 +757,18 @@ def enviar_recordatorios() -> int:
             CajaFM.estado == "VIGENTE", func.coalesce(CajaFM.aviso_en, CajaFM.creado_en) < limite,
             ((CajaFM.elaborado_por_id.isnot(None)) & (CajaFM.elaborado_en.is_(None)))
             | ((CajaFM.supervisado_por_id.isnot(None)) & (CajaFM.supervisado_en.is_(None))))]
+        recibidos = [r.id for r in db.query(CajaRecibo).filter(
+            CajaRecibo.recibido_por_id.isnot(None), CajaRecibo.recibido_en.is_(None), CajaRecibo.estado != "ANULADO",
+            func.coalesce(CajaRecibo.recibido_aviso_en, CajaRecibo.creado_en) < limite)]
     finally:
         db.close()
+    for rid in recibidos:
+        notificar_recibido_pendiente(rid, recordatorio=True)
     for rid in recibos:
         notificar_firma_pendiente(rid, recordatorio=True)
     for fid in fms:
         reenviar_aviso_fm(fid, recordatorio=True)
-    return len(recibos) + len(fms)
+    return len(recibos) + len(fms) + len(recibidos)
 
 
 def observar_recibo(db: Session, r: CajaRecibo, user: Empleado, texto: str) -> str | None:
