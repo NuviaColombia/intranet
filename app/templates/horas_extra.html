@@ -1,5 +1,24 @@
 {% extends "base.html" %}
 {% block contenido %}
+<style>
+  .doc-oculto { display:none; }
+  .doc-ojo { background:none; border:none; cursor:pointer; font-size:16px; padding:4px 6px; }
+  .doc-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .doc-modal-bg.open { display:flex; }
+  .doc-modal { background:#fff; border-radius:12px; padding:24px; max-width:520px; width:100%; }
+  .doc-header { display:flex; align-items:center; gap:14px; border-bottom:2px solid var(--azul); padding-bottom:12px; margin-bottom:8px; }
+  .doc-header img { height:44px; }
+  .doc-header h2 { margin:0; font-size:18px; }
+  .doc-codigo { font-size:12px; color:var(--gris); margin-top:2px; }
+  .doc-fila { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+  .doc-fila b { color:var(--gris); font-weight:600; }
+  @media print {
+    body * { visibility:hidden; }
+    .doc-modal, .doc-modal * { visibility:visible; }
+    .doc-modal { position:absolute; top:0; left:0; width:100%; max-width:100%; box-shadow:none; }
+    .doc-modal-cerrar, .doc-modal-imprimir { display:none; }
+  }
+</style>
 <h1>Horas extra</h1>
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 {% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
@@ -31,6 +50,7 @@
 </div>
 {% endif %}
 
+{% set logo = logo_empresa(user.empresa) %}
 {% if user.rol in ('admin', 'superadmin') %}
 <div class="tarjeta" style="overflow-x:auto">
   <h2>Pendientes por aprobar ({{ pendientes_aprobar|length }})</h2>
@@ -44,7 +64,8 @@
       <td>{{ h.horas }}</td>
       <td>{{ h.motivo|truncate(80) }}</td>
       <td style="min-width:220px">
-        <form method="post" action="/horas-extra/{{ h.id }}">
+        <button type="button" class="doc-ojo" title="Ver resumen" onclick="verDoc('doc-he-{{ h.id }}')">👁️</button>
+        <form method="post" action="/horas-extra/{{ h.id }}" style="display:inline">
           <input name="comentario" placeholder="Comentario (opcional)">
           <button class="btn verde mini" name="decision" value="aprobada">Aprobar</button>
           <button class="btn rojo mini" name="decision" value="rechazada">Rechazar</button>
@@ -56,6 +77,44 @@
     {% endfor %}
   </table>
 </div>
+
+{% for h in pendientes_aprobar %}
+<div class="doc-oculto" id="doc-he-{{ h.id }}">
+  <div class="doc-header">
+    {% if logo %}<img src="{{ logo }}" alt="">{% endif %}
+    <div>
+      <h2>Solicitud de horas extra</h2>
+      <div class="doc-codigo">Código: F-RH-02 · Versión: 01</div>
+    </div>
+  </div>
+  <div class="doc-fila"><b>Consecutivo</b><span>{{ h.consecutivo }}</span></div>
+  <div class="doc-fila"><b>Empleado</b><span>{{ h.empleado.nombre_completo }}</span></div>
+  <div class="doc-fila"><b>Solicitada por</b><span>{{ h.solicitante.nombre_completo }}</span></div>
+  <div class="doc-fila"><b>Fecha</b><span>{{ h.fecha }}</span></div>
+  <div class="doc-fila"><b>Horas</b><span>{{ h.horas }}</span></div>
+  <div class="doc-fila"><b>Motivo</b><span>{{ h.motivo or '—' }}</span></div>
+  <div class="doc-fila"><b>Estado</b><span>Pendiente de aprobación</span></div>
+  <div class="doc-fila"><b>Decide</b><span>{{ user.nombre_completo }} <small style="color:var(--gris)">(al confirmar)</small></span></div>
+</div>
+{% endfor %}
+
+<div class="doc-modal-bg" id="docModalBg">
+  <div class="doc-modal">
+    <div id="docModalCuerpo"></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button type="button" class="btn doc-modal-imprimir" onclick="window.print()">🖨️ Imprimir</button>
+      <button type="button" class="btn gris doc-modal-cerrar" onclick="document.getElementById('docModalBg').classList.remove('open')">Cerrar</button>
+    </div>
+  </div>
+</div>
+<script>
+function verDoc(origenId) {
+  var origen = document.getElementById(origenId);
+  if (!origen) return;
+  document.getElementById('docModalCuerpo').innerHTML = origen.innerHTML;
+  document.getElementById('docModalBg').classList.add('open');
+}
+</script>
 
 <div class="tarjeta" style="overflow-x:auto">
   <h2>Historial</h2>

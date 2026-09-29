@@ -117,6 +117,10 @@ class Solicitud(Base):
     def estado_texto(self):
         return self.ESTADOS.get(self.estado, self.estado)
 
+    @property
+    def consecutivo(self) -> str:
+        return f"PER-{self.id:04d}"
+
 
 class Aprobacion(Base):
     __tablename__ = "aprobaciones"
@@ -155,6 +159,10 @@ class HoraExtra(Base):
     decidida_por = relationship("Empleado", foreign_keys=[decidida_por_id])
 
     ESTADOS = {"pendiente": "Pendiente", "aprobada": "Aprobada", "rechazada": "Rechazada"}
+
+    @property
+    def consecutivo(self) -> str:
+        return f"HE-{self.id:04d}"
 
     @property
     def estado_texto(self):
