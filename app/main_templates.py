@@ -5,6 +5,7 @@ from .database import SessionLocal
 from .aprobaciones_globales import resumen_pendientes
 from .formato import nombre_propio, SIGLAS, MINUSCULAS
 from .produccion import SUBMODULOS_PRODUCCION, resumen_submodulos_produccion
+from .sst import puede_sst
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["logo_empresa"] = logo_para
@@ -27,3 +28,4 @@ def _resumen_aprobaciones(user):
 
 
 templates.env.globals["resumen_aprobaciones"] = _resumen_aprobaciones
+templates.env.globals["puede_sst"] = puede_sst
