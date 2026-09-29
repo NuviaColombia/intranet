@@ -5,7 +5,7 @@ Puerto de una herramienta previa en HTML/localStorage sin backend real ni cuenta
 acciones quedan asociadas al usuario que las hizo (login con Zoho ya existente en la app).
 """
 from datetime import date, datetime
-from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text, Boolean
+from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text, Boolean, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
@@ -342,6 +342,42 @@ class DesignProtocolo(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     area = relationship("DesignArea")
+
+
+class DesignProtocoloArea(Base):
+    """Áreas en las que se ve un protocolo (uno puede compartirse entre varias).
+    Un protocolo sin filas aquí es "General" y se ve en todas las áreas."""
+    __tablename__ = "design_protocolo_areas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    protocolo_id: Mapped[int] = mapped_column(ForeignKey("design_protocolos.id"), index=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
+
+
+class DesignProtocoloArchivo(Base):
+    """PDF original del protocolo (diapositivas de Zoho Show). protocolo_id queda en NULL
+    mientras el protocolo está en la Papelera, para poder restaurarlo con su archivo."""
+    __tablename__ = "design_protocolo_archivos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    protocolo_id: Mapped[int | None] = mapped_column(ForeignKey("design_protocolos.id"), nullable=True, index=True)
+    nombre: Mapped[str] = mapped_column(String(255), default="")
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    paginas: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignProtocoloPagina(Base):
+    """Texto de cada diapositiva/página del PDF, para el buscador. texto_norm es el mismo
+    texto en minúsculas y sin tildes (misma longitud, para ubicar la coincidencia)."""
+    __tablename__ = "design_protocolo_paginas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    protocolo_id: Mapped[int] = mapped_column(ForeignKey("design_protocolos.id"), index=True)
+    pagina: Mapped[int] = mapped_column(Integer)
+    texto: Mapped[str] = mapped_column(Text, default="")
+    texto_norm: Mapped[str] = mapped_column(Text, default="")
 
 
 # ---------------------------------------------------------------------------

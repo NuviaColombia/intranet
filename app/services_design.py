@@ -14,7 +14,8 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
                             DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc,
-                            DesignComentarioTemplate, DesignFaqHoja, FORMATO_DUAL)
+                            DesignComentarioTemplate, DesignFaqHoja, DesignProtocoloArea,
+                            DesignProtocoloArchivo, DesignProtocoloPagina, FORMATO_DUAL)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -1426,12 +1427,16 @@ def trash_eliminar_permanente(db: Session, trash_id: int) -> bool:
     if not t:
         return False
     db.delete(t)
+    db.flush()
+    pr_limpiar_archivos_huerfanos(db)
     db.commit()
     return True
 
 
 def trash_vaciar(db: Session) -> None:
     db.query(DesignTrash).delete()
+    db.flush()
+    pr_limpiar_archivos_huerfanos(db)
     db.commit()
 
 
@@ -1530,9 +1535,16 @@ def _trash_restaurar_protocolo(db: Session, payload: dict) -> bool:
     area_id = p.get("area_id")
     if area_id and not db.get(DesignArea, area_id):
         area_id = None
-    db.add(DesignProtocolo(area_id=area_id, titulo=p.get("titulo", ""), descripcion=p.get("descripcion", ""),
-                           contenido=p.get("contenido", ""), version=p.get("version") or "v1.0",
-                           creado_por=p.get("creado_por", "")))
+    nuevo = DesignProtocolo(area_id=area_id, titulo=p.get("titulo", ""), descripcion=p.get("descripcion", ""),
+                            contenido=p.get("contenido", ""), version=p.get("version") or "v1.0",
+                            creado_por=p.get("creado_por", ""))
+    db.add(nuevo)
+    db.flush()
+    _pr_poner_areas(db, nuevo.id, payload.get("areas") or ([area_id] if area_id else []))
+    arch = db.get(DesignProtocoloArchivo, payload.get("archivo_id") or 0)
+    if arch and arch.protocolo_id is None:
+        arch.protocolo_id = nuevo.id
+    _pr_poner_paginas(db, nuevo.id, payload.get("paginas") or [])
     return True
 
 
@@ -1699,27 +1711,154 @@ def favoritos_activos(db: Session, empleado_id: int) -> dict:
 # Protocols: biblioteca de SOPs
 # ---------------------------------------------------------------------------
 
-def protocolos_listar(db: Session, area_id: int | None = None, q: str = "") -> list[DesignProtocolo]:
-    query = db.query(DesignProtocolo)
+PR_MAX_BYTES = 60 * 1024 * 1024  # 60 MB por PDF
+
+
+def pr_norm(texto: str) -> str:
+    """Minúsculas y sin tildes, carácter por carácter (misma longitud que el original)."""
+    return "".join((unicodedata.normalize("NFD", c)[:1] or c).lower() for c in (texto or ""))
+
+
+def _pr_areas_ids(db: Session, protocolo_id: int) -> list[int]:
+    return [r.area_id for r in db.query(DesignProtocoloArea).filter(DesignProtocoloArea.protocolo_id == protocolo_id)]
+
+
+def _pr_visibles(db: Session, area_id: int | None):
+    """Protocolos que se ven en el área: los marcados para ella y los generales (sin áreas)."""
+    q = db.query(DesignProtocolo)
     if area_id:
-        query = query.filter(DesignProtocolo.area_id == area_id)
-    if q:
-        like = f"%{q.lower()}%"
-        query = query.filter(func.lower(DesignProtocolo.titulo + " " + DesignProtocolo.descripcion + " " +
-                                        DesignProtocolo.contenido).like(like))
-    return query.order_by(DesignProtocolo.creado_en.desc()).all()
+        marcados = db.query(DesignProtocoloArea.protocolo_id).filter(DesignProtocoloArea.area_id == area_id)
+        con_areas = db.query(DesignProtocoloArea.protocolo_id)
+        q = q.filter(or_(DesignProtocolo.id.in_(marcados), ~DesignProtocolo.id.in_(con_areas)))
+    return q
+
+
+def pr_resumen(db: Session, p: DesignProtocolo, areas_por_id: dict | None = None) -> dict:
+    areas_por_id = areas_por_id or {a.id: a.nombre for a in db.query(DesignArea).all()}
+    arch = (db.query(DesignProtocoloArchivo.id, DesignProtocoloArchivo.nombre, DesignProtocoloArchivo.tamano,
+                     DesignProtocoloArchivo.paginas)
+            .filter(DesignProtocoloArchivo.protocolo_id == p.id).first())
+    ids = _pr_areas_ids(db, p.id)
+    return {"id": p.id, "titulo": p.titulo, "descripcion": p.descripcion, "version": p.version,
+            "creadoPor": p.creado_por, "areas": [{"id": i, "nombre": areas_por_id.get(i, "")} for i in ids],
+            "tieneArchivo": bool(arch), "archivo": arch.nombre if arch else "", "tamano": arch.tamano if arch else 0,
+            "paginas": arch.paginas if arch else 0, "archivoId": arch.id if arch else None}
+
+
+def protocolos_listar(db: Session, area_id: int | None = None) -> list[dict]:
+    areas_por_id = {a.id: a.nombre for a in db.query(DesignArea).all()}
+    return [pr_resumen(db, p, areas_por_id)
+            for p in _pr_visibles(db, area_id).order_by(func.lower(DesignProtocolo.titulo)).all()]
+
+
+def _pr_fragmento(texto: str, norm: str, palabras: list[str], largo: int = 90) -> str:
+    pos = min([i for i in (norm.find(w) for w in palabras) if i >= 0] or [0])
+    ini = max(0, pos - largo // 2)
+    fin = min(len(texto), pos + largo)
+    frag = " ".join(texto[ini:fin].split())
+    return ("…" if ini > 0 else "") + frag + ("…" if fin < len(texto) else "")
+
+
+def protocolos_buscar(db: Session, area_id: int | None, q: str, protocolo_id: int | None = None,
+                      limite: int = 120) -> dict:
+    """Diapositivas donde aparecen TODAS las palabras buscadas (sin distinguir mayúsculas ni tildes),
+    solo de los protocolos visibles en el área. Los protocolos de texto (sin PDF) se buscan en su contenido."""
+    palabras = [w for w in pr_norm(q).split() if len(w) >= 2]
+    if not palabras:
+        return {"resultados": [], "total": 0}
+    visibles = _pr_visibles(db, area_id)
+    if protocolo_id:
+        visibles = visibles.filter(DesignProtocolo.id == protocolo_id)
+    protos = {p.id: p for p in visibles.all()}
+    if not protos:
+        return {"resultados": [], "total": 0}
+    qp = db.query(DesignProtocoloPagina).filter(DesignProtocoloPagina.protocolo_id.in_(list(protos)))
+    for w in palabras:
+        qp = qp.filter(DesignProtocoloPagina.texto_norm.like(f"%{w}%"))
+    paginas = qp.order_by(DesignProtocoloPagina.protocolo_id, DesignProtocoloPagina.pagina).all()
+    total = len(paginas)
+    res = [{"protocoloId": pg.protocolo_id, "titulo": protos[pg.protocolo_id].titulo, "pagina": pg.pagina,
+            "fragmento": _pr_fragmento(pg.texto, pg.texto_norm, palabras)} for pg in paginas[:limite]]
+    con_pdf = {r[0] for r in db.query(DesignProtocoloArchivo.protocolo_id)
+               .filter(DesignProtocoloArchivo.protocolo_id.in_(list(protos)))}
+    for p in protos.values():  # protocolos de texto, sin PDF
+        if p.id in con_pdf:
+            continue
+        texto = f"{p.titulo}\n{p.descripcion}\n{p.contenido}"
+        norm = pr_norm(texto)
+        if all(w in norm for w in palabras):
+            total += 1
+            res.append({"protocoloId": p.id, "titulo": p.titulo, "pagina": 0,
+                        "fragmento": _pr_fragmento(texto, norm, palabras)})
+    orden = {pid: pr_norm(p.titulo) for pid, p in protos.items()}
+    res.sort(key=lambda r: (orden[r["protocoloId"]], r["pagina"]))
+    return {"resultados": res, "total": total, "palabras": palabras}
 
 
 def protocolo_detalle(db: Session, protocolo_id: int) -> DesignProtocolo | None:
     return db.get(DesignProtocolo, protocolo_id)
 
 
+def protocolo_archivo(db: Session, protocolo_id: int) -> DesignProtocoloArchivo | None:
+    return db.query(DesignProtocoloArchivo).filter(DesignProtocoloArchivo.protocolo_id == protocolo_id).first()
+
+
+def _pr_poner_areas(db: Session, protocolo_id: int, area_ids: list[int]) -> None:
+    validas = {a.id for a in db.query(DesignArea).all()}
+    db.query(DesignProtocoloArea).filter(DesignProtocoloArea.protocolo_id == protocolo_id).delete()
+    for a in dict.fromkeys(area_ids or []):
+        if a in validas:
+            db.add(DesignProtocoloArea(protocolo_id=protocolo_id, area_id=a))
+
+
+def _pr_poner_paginas(db: Session, protocolo_id: int, textos: list[str]) -> None:
+    db.query(DesignProtocoloPagina).filter(DesignProtocoloPagina.protocolo_id == protocolo_id).delete()
+    for i, t in enumerate(textos or [], start=1):
+        t = str(t or "")[:20000]
+        db.add(DesignProtocoloPagina(protocolo_id=protocolo_id, pagina=i, texto=t, texto_norm=pr_norm(t)))
+
+
+def protocolo_crear_pdf(db: Session, titulo: str, area_ids: list[int], nombre_archivo: str, datos: bytes,
+                        textos: list[str], version: str = "v1.0", creado_por: str = "") -> DesignProtocolo:
+    p = DesignProtocolo(area_id=(area_ids[0] if len(area_ids or []) == 1 else None),
+                        titulo=(titulo or "").strip()[:255] or nombre_archivo or "Protocolo sin título",
+                        descripcion="", contenido="", version=(version or "v1.0")[:20], creado_por=creado_por)
+    db.add(p)
+    db.flush()
+    db.add(DesignProtocoloArchivo(protocolo_id=p.id, nombre=(nombre_archivo or "")[:255], tamano=len(datos),
+                                  paginas=len(textos or []), datos=datos))
+    _pr_poner_areas(db, p.id, area_ids)
+    _pr_poner_paginas(db, p.id, textos)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+def protocolo_actualizar(db: Session, protocolo_id: int, titulo: str | None, area_ids: list[int] | None,
+                         version: str | None) -> DesignProtocolo | None:
+    p = db.get(DesignProtocolo, protocolo_id)
+    if not p:
+        return None
+    if titulo is not None and titulo.strip():
+        p.titulo = titulo.strip()[:255]
+    if version is not None:
+        p.version = (version or "v1.0")[:20]
+    if area_ids is not None:
+        _pr_poner_areas(db, p.id, area_ids)
+        p.area_id = area_ids[0] if len(area_ids) == 1 else None
+    db.commit()
+    return p
+
+
 def protocolo_crear(db: Session, area_id: int | None, titulo: str, descripcion: str, contenido: str,
-                    version: str = "v1.0", creado_por: str = "") -> DesignProtocolo:
-    p = DesignProtocolo(area_id=area_id, titulo=titulo.strip() or "Protocolo sin título",
+                    version: str = "v1.0", creado_por: str = "", area_ids: list[int] | None = None) -> DesignProtocolo:
+    area_ids = area_ids if area_ids is not None else ([area_id] if area_id else [])
+    p = DesignProtocolo(area_id=(area_ids[0] if len(area_ids) == 1 else None), titulo=titulo.strip() or "Protocolo sin título",
                         descripcion=descripcion, contenido=contenido, version=version or "v1.0",
                         creado_por=creado_por)
     db.add(p)
+    db.flush()
+    _pr_poner_areas(db, p.id, area_ids)
     db.commit()
     db.refresh(p)
     return p
@@ -1729,13 +1868,44 @@ def protocolo_eliminar(db: Session, protocolo_id: int, eliminado_por: str = "") 
     p = db.get(DesignProtocolo, protocolo_id)
     if not p:
         return False
+    arch = protocolo_archivo(db, p.id)
+    paginas = (db.query(DesignProtocoloPagina).filter(DesignProtocoloPagina.protocolo_id == p.id)
+               .order_by(DesignProtocoloPagina.pagina).all())
     payload = {"protocolo": {"area_id": p.area_id, "titulo": p.titulo, "descripcion": p.descripcion,
-                             "contenido": p.contenido, "version": p.version, "creado_por": p.creado_por}}
+                             "contenido": p.contenido, "version": p.version, "creado_por": p.creado_por},
+               "areas": _pr_areas_ids(db, p.id), "archivo_id": arch.id if arch else None,
+               "paginas": [x.texto for x in paginas]}
     _trash_registrar(db, "protocol", f'Protocolo: "{p.titulo}"', payload, eliminado_por)
+    if arch:
+        arch.protocolo_id = None  # el PDF se conserva mientras esté en la Papelera
+    db.query(DesignProtocoloPagina).filter(DesignProtocoloPagina.protocolo_id == p.id).delete()
+    db.query(DesignProtocoloArea).filter(DesignProtocoloArea.protocolo_id == p.id).delete()
     db.query(DesignFavorito).filter(DesignFavorito.tipo == "protocolo", DesignFavorito.protocolo_id == protocolo_id).delete()
+    db.flush()
     db.delete(p)
     db.commit()
     return True
+
+
+def pr_limpiar_archivos_huerfanos(db: Session) -> None:
+    """PDFs de protocolos borrados cuya entrada de Papelera ya no existe (vaciada o eliminada)."""
+    en_papelera = set()
+    for t in db.query(DesignTrash).filter(DesignTrash.modulo == "protocol"):
+        aid = _json(t.payload, {}).get("archivo_id")
+        if aid:
+            en_papelera.add(aid)
+    q = db.query(DesignProtocoloArchivo).filter(DesignProtocoloArchivo.protocolo_id.is_(None))
+    if en_papelera:
+        q = q.filter(~DesignProtocoloArchivo.id.in_(en_papelera))
+    q.delete(synchronize_session=False)
+
+
+def protocolos_migrar_areas(db: Session) -> None:
+    """Idempotente: protocolos creados antes de tener varias áreas pasan su área única a la tabla de áreas."""
+    con_areas = {r[0] for r in db.query(DesignProtocoloArea.protocolo_id)}
+    for p in db.query(DesignProtocolo).filter(DesignProtocolo.area_id.isnot(None)):
+        if p.id not in con_areas:
+            db.add(DesignProtocoloArea(protocolo_id=p.id, area_id=p.area_id))
 
 
 # ---------------------------------------------------------------------------

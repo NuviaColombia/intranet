@@ -1,7 +1,8 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
+import json
 from datetime import date
-from fastapi import APIRouter, Request, Depends, Form, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -996,13 +997,21 @@ async def pagina_protocols(request: Request, user: Empleado = Depends(require_mo
     return _redirigir_a_panel(request, "protocols")
 
 
+def _pr_editor(user: Empleado) -> None:
+    if user.rol not in FAQ_ROLES_EDITAN:
+        raise HTTPException(403, "Solo líderes y administradores pueden subir o editar protocolos.")
+
+
 @router.get("/design/api/protocolos")
-async def api_protocolos_listar(area_id: int = 0, q: str = "",
+async def api_protocolos_listar(area_id: int = 0, user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    return {"protocolos": sd.protocolos_listar(db, area_id or None), "puedeEditar": user.rol in FAQ_ROLES_EDITAN}
+
+
+@router.get("/design/api/protocolos/buscar")
+async def api_protocolos_buscar(q: str = "", area_id: int = 0, protocolo_id: int = 0,
                                 user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    protocolos = sd.protocolos_listar(db, area_id or None, q)
-    return [{"id": p.id, "areaId": p.area_id, "areaNombre": p.area.nombre if p.area else "",
-            "titulo": p.titulo, "descripcion": p.descripcion, "version": p.version,
-            "creadoPor": p.creado_por} for p in protocolos]
+    return sd.protocolos_buscar(db, area_id or None, q, protocolo_id or None)
 
 
 @router.get("/design/api/protocolos/{protocolo_id}")
@@ -1011,13 +1020,67 @@ async def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(requ
     p = sd.protocolo_detalle(db, protocolo_id)
     if not p:
         raise HTTPException(404, "No encontrado.")
-    return {"id": p.id, "areaId": p.area_id, "areaNombre": p.area.nombre if p.area else "",
-           "titulo": p.titulo, "descripcion": p.descripcion, "contenido": p.contenido,
-           "version": p.version, "creadoPor": p.creado_por}
+    d = sd.pr_resumen(db, p)
+    d["contenido"] = p.contenido
+    return d
+
+
+@router.get("/design/api/protocolos/{protocolo_id}/pdf")
+async def api_protocolo_pdf(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                            db: Session = Depends(get_db)):
+    a = sd.protocolo_archivo(db, protocolo_id)
+    if not a:
+        raise HTTPException(404, "Este protocolo no tiene PDF.")
+    nombre = (a.nombre or "protocolo.pdf").replace('"', "")
+    return Response(content=a.datos, media_type="application/pdf",
+                    headers={"Cache-Control": "private, max-age=86400", "ETag": f'"pr{a.id}-{a.tamano}"',
+                             "Content-Disposition": f'inline; filename="{nombre.encode("ascii", "ignore").decode() or "protocolo.pdf"}"'})
+
+
+@router.post("/design/api/protocolos/pdf")
+async def api_protocolo_subir_pdf(archivo: UploadFile = File(...), paginas: UploadFile = File(...),
+                                  titulo: str = Form(""), areas: str = Form("[]"), version: str = Form("v1.0"),
+                                  user: Empleado = Depends(require_modulo("design_schedule")),
+                                  db: Session = Depends(get_db)):
+    _pr_editor(user)
+    datos = await archivo.read()
+    if len(datos) > sd.PR_MAX_BYTES:
+        raise HTTPException(413, f"El PDF supera {sd.PR_MAX_BYTES // (1024 * 1024)} MB.")
+    if not datos.startswith(b"%PDF"):
+        raise HTTPException(400, "El archivo no es un PDF.")
+    try:
+        textos = json.loads((await paginas.read()).decode("utf-8"))
+        area_ids = [int(x) for x in json.loads(areas or "[]")]
+        assert isinstance(textos, list)
+    except (ValueError, AssertionError, TypeError):
+        raise HTTPException(400, "No se pudo leer el texto de las diapositivas.")
+    if not area_ids:
+        raise HTTPException(400, "Elige al menos un área.")
+    p = sd.protocolo_crear_pdf(db, titulo, area_ids, archivo.filename or "", datos, textos, version, user.nombre_completo)
+    return {"id": p.id}
+
+
+class ProtocoloEditIn(BaseModel):
+    titulo: str | None = None
+    areas: list[int] | None = None
+    version: str | None = None
+
+
+@router.post("/design/api/protocolos/{protocolo_id}")
+async def api_protocolo_actualizar(protocolo_id: int, payload: ProtocoloEditIn,
+                                   user: Empleado = Depends(require_modulo("design_schedule")),
+                                   db: Session = Depends(get_db)):
+    _pr_editor(user)
+    if payload.areas is not None and not payload.areas:
+        raise HTTPException(400, "Elige al menos un área.")
+    if not sd.protocolo_actualizar(db, protocolo_id, payload.titulo, payload.areas, payload.version):
+        raise HTTPException(404, "No encontrado.")
+    return {"mensaje": "Actualizado."}
 
 
 class ProtocoloIn(BaseModel):
     areaId: int | None = None
+    areas: list[int] | None = None
     titulo: str
     descripcion: str = ""
     contenido: str = ""
@@ -1027,17 +1090,19 @@ class ProtocoloIn(BaseModel):
 @router.post("/design/api/protocolos")
 async def api_protocolo_crear(payload: ProtocoloIn, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
+    _pr_editor(user)
     p = sd.protocolo_crear(db, payload.areaId, payload.titulo, payload.descripcion, payload.contenido,
-                           payload.version, user.nombre_completo)
+                           payload.version, user.nombre_completo, payload.areas)
     return {"id": p.id}
 
 
 @router.post("/design/api/protocolos/{protocolo_id}/eliminar")
 async def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
+    _pr_editor(user)
     if not sd.protocolo_eliminar(db, protocolo_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
-    return {"mensaje": "Eliminado."}
+    return {"mensaje": "Enviado a la Papelera."}
 
 
 # ---------- Canvas ----------

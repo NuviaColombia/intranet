@@ -463,34 +463,74 @@
   .cv-frame-btn:hover{ background:rgba(20,28,38,.92); }
 
 
-  .pr-toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
-  .pr-toolbar input[type=search] { padding:8px 12px; border:1px solid #d8dde3; border-radius:8px; font-size:13px; min-width:220px; }
-  .pr-tabs { display:flex; gap:8px; flex-wrap:wrap; }
-  .pr-tab { padding:6px 14px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:12px; }
+  /* Protocols: PDF completos (diapositivas de Zoho Show) buscables por página y filtrados por área */
+  #ov-protocols .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
+  #ov-protocols .ds-overlay-inner > h1 { padding-right:56px; }
+  .pr-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .pr-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+  .pr-tab { padding:7px 14px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:12.5px; }
   .pr-tab.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
-  .pr-upload { border:2px dashed #d8dde3; border-radius:10px; padding:16px; text-align:center; color:#6b7280; cursor:pointer; font-size:13px; margin-bottom:16px; }
-  .pr-upload.dragover { border-color:#1d4ed8; color:#1d4ed8; background:#f4f6fa; }
-  .pr-status { font-size:12px; color:#1d4ed8; margin-top:6px; }
-  .pr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
-  .pr-card { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:14px; cursor:pointer; display:flex; flex-direction:column; gap:6px; }
-  .pr-card:hover { border-color:#1d4ed8; }
-  .pr-area { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; font-weight:700; }
-  .pr-titulo { font-size:14px; font-weight:700; color:#111827; }
-  .pr-desc { font-size:12px; color:#6b7280; flex:1; }
-  .pr-actions { display:flex; justify-content:space-between; align-items:center; }
-  .pr-fav { border:none; background:none; cursor:pointer; font-size:15px; }
-  .pr-del { border:none; background:none; cursor:pointer; color:#9ca3af; font-size:13px; }
-  .pr-del:hover { color:#dc2626; }
-  .pr-meta { font-size:11px; color:#9ca3af; }
-  .pr-empty { color:#6b7280; padding:40px; text-align:center; }
-  .pr-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:50; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
-  .pr-modal-bg.open { display:flex; }
-  .pr-modal { background:#fff; border-radius:12px; padding:24px; max-width:700px; width:100%; }
-  .pr-modal h2 { margin:0 0 4px; }
-  .pr-modal pre { white-space:pre-wrap; font-family:inherit; font-size:13px; color:#374151; background:#f4f6f8; border-radius:8px; padding:12px; margin-top:12px; max-height:50vh; overflow:auto; }
-  .pr-form { display:flex; flex-direction:column; gap:10px; max-width:500px; margin-bottom:20px; background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:16px; }
-  .pr-form input, .pr-form select, .pr-form textarea { padding:7px 10px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; }
-  .pr-form textarea { min-height:80px; }
+  .pr-top-der { margin-left:auto; display:flex; gap:6px; }
+  .pr-buscar-wrap { position:relative; margin-bottom:6px; }
+  .pr-buscar-wrap input.pr-buscar { width:100%; box-sizing:border-box; margin:0; padding:12px 14px 12px 40px; border:1px solid #d8dde3; border-radius:10px; font-size:15px; background:#fff; }
+  .pr-buscar-wrap input.pr-buscar:focus { outline:none; border-color:#1d4ed8; box-shadow:0 0 0 3px #dbeafe; }
+  .pr-buscar-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:16px; color:#6b7280; pointer-events:none; }
+  .pr-cuenta { font-size:12.5px; color:#6b7280; margin:0 0 12px 2px; min-height:16px; }
+  .pr-panel { background:#f4f6fa; border:1px solid #d8dde3; border-radius:10px; padding:14px; }
+  .pr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }
+  .pr-card { background:#fff; border:1px solid #e2e6ef; border-radius:10px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+  .pr-card:hover { border-color:#1d4ed8; box-shadow:0 4px 14px rgba(29,78,216,.12); }
+  .pr-thumb { position:relative; background:#eef1f6; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .pr-thumb canvas { width:100%; height:100%; object-fit:contain; display:block; }
+  .pr-thumb .pr-cargando { font-size:12px; color:#9ca3af; }
+  .pr-thumb .pr-texto-ico { font-size:34px; opacity:.5; }
+  .pr-card-body { padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; }
+  .pr-titulo { font-size:13.5px; font-weight:700; color:#111827; }
+  .pr-sub { font-size:11.5px; color:#6b7280; }
+  .pr-chips { display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; }
+  .pr-chip { font-size:10.5px; font-weight:700; color:#1d4ed8; background:#eef2fb; border-radius:999px; padding:2px 8px; }
+  .pr-chip.general { color:#6b7280; background:#f1f3f6; }
+  .pr-frag { font-size:12px; color:#374151; line-height:1.4; }
+  .pr-frag mark, .pr-visor-lista mark { background:#fde68a; color:inherit; border-radius:2px; padding:0 1px; }
+  .pr-acc { position:absolute; top:6px; right:6px; display:flex; gap:4px; opacity:0; transition:opacity .12s; }
+  .pr-card:hover .pr-acc { opacity:1; }
+  .pr-acc button { border:none; background:rgba(255,255,255,.95); border-radius:6px; padding:3px 7px; cursor:pointer; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.15); width:auto; margin:0; }
+  .pr-grupo { margin-bottom:18px; }
+  .pr-grupo-h { display:flex; align-items:baseline; gap:8px; margin:0 0 8px 2px; }
+  .pr-grupo-h b { font-size:13px; color:#1d4ed8; text-transform:uppercase; }
+  .pr-grupo-h span { font-size:12px; color:#6b7280; }
+  .pr-pag { position:absolute; left:8px; bottom:8px; background:rgba(17,24,39,.8); color:#fff; font-size:11px; font-weight:700; border-radius:6px; padding:2px 7px; }
+  .pr-empty { color:#6b7280; padding:40px; text-align:center; font-size:14px; }
+  /* Visor */
+  .pr-visor-bg { display:none; position:fixed; inset:0; top:var(--ds-nav-h, 0px); z-index:340; background:rgba(17,24,39,.72); }
+  .pr-visor-bg.open { display:flex; flex-direction:column; }
+  .pr-visor-bar { display:flex; align-items:center; gap:10px; padding:10px 18px; background:#111827; color:#fff; flex-wrap:wrap; }
+  .pr-visor-bar .t { font-weight:700; font-size:14px; }
+  .pr-visor-bar .n { font-size:12.5px; color:#d1d5db; }
+  .pr-visor-bar button, .pr-visor-bar a { background:#1f2937; color:#fff; border:1px solid #374151; border-radius:7px; padding:5px 11px; cursor:pointer; font-size:12.5px; text-decoration:none; width:auto; margin:0; }
+  .pr-visor-bar button:hover, .pr-visor-bar a:hover { background:#374151; }
+  .pr-visor-bar button:disabled { opacity:.4; cursor:default; }
+  .pr-visor-bar .sp { flex:1; }
+  .pr-visor-body { flex:1; display:flex; min-height:0; }
+  .pr-visor-lista { width:250px; background:#fff; overflow-y:auto; padding:10px; box-sizing:border-box; border-right:1px solid #e5e7eb; }
+  .pr-visor-lista .h { font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; margin:2px 2px 8px; }
+  .pr-visor-lista button { display:block; width:100%; text-align:left; border:1px solid #e2e6ef; background:#fff; border-radius:8px; padding:7px 9px; margin:0 0 6px; cursor:pointer; font-size:12px; color:#374151; }
+  .pr-visor-lista button.activo { border-color:#1d4ed8; background:#eff6ff; }
+  .pr-visor-lista button b { color:#1d4ed8; }
+  .pr-visor-stage { flex:1; overflow:auto; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .pr-visor-stage canvas { background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.4); border-radius:4px; max-width:none; }
+  .pr-visor-texto { background:#fff; border-radius:8px; padding:20px 24px; max-width:900px; width:100%; white-space:pre-wrap; font-size:14px; color:#111827; max-height:100%; overflow:auto; box-sizing:border-box; }
+  /* Subir / editar */
+  .pr-form-lista { max-height:260px; overflow:auto; margin:6px 0 10px; }
+  .pr-form-fila { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .pr-form-fila input[type=text] { flex:1; margin:0; padding:6px 8px; font-size:13px; }
+  .pr-form-fila .tam { font-size:11px; color:#6b7280; white-space:nowrap; }
+  .pr-form-fila .est { font-size:11.5px; min-width:120px; text-align:right; }
+  .pr-areas-sel { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+  .pr-areas-sel label { display:flex; align-items:center; gap:5px; border:1px solid #d8dde3; border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer; font-weight:600; }
+  .pr-areas-sel label:has(input:checked) { border-color:#1d4ed8; background:#eff6ff; color:#1d4ed8; }
+  .pr-areas-sel input { width:auto; margin:0; }
+  .pr-lbl { display:block; font-size:12px; font-weight:600; color:#374151; margin:0 0 4px; }
 
 
 
@@ -799,43 +839,38 @@
 <div id="canvasEditor" style="display:none"></div></div></div>
 <div class="ds-overlay" id="ov-protocols"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Protocols — Design Schedule</h1>
 
-<div class="pr-upload" id="prUploadZone">
-  <span>📄 Arrastra un PDF aquí o haz clic para seleccionar (se extrae el texto, el archivo no se guarda)</span>
-  <input type="file" id="prFileInput" accept=".pdf" style="display:none">
-  <div class="pr-status" id="prUploadStatus"></div>
-</div>
-
-<details style="margin-bottom:16px">
-  <summary style="cursor:pointer;font-size:13px;color:#1d4ed8;font-weight:600">+ Agregar protocolo manualmente</summary>
-  <div class="pr-form">
-    <select id="prNewArea"><option value="">Sin área específica</option></select>
-    <input type="text" id="prNewTitulo" placeholder="Título">
-    <input type="text" id="prNewDesc" placeholder="Descripción corta">
-    <textarea id="prNewContenido" placeholder="Contenido / pasos"></textarea>
-    <button type="button" class="btn mini" onclick="prCrearManual()">Guardar protocolo</button>
-  </div>
-</details>
-
-<div class="pr-toolbar">
-  <input type="search" id="prSearch" placeholder="Buscar por título, descripción o contenido...">
+<div class="pr-top">
   <div class="pr-tabs" id="prAreaTabs"></div>
-</div>
-
-<div class="pr-grid" id="prGrid"></div>
-
-<div class="pr-modal-bg" id="prModalBg">
-  <div class="pr-modal">
-    <span class="pr-area" id="prModalArea"></span>
-    <h2 id="prModalTitulo"></h2>
-    <div style="color:#6b7280;font-size:13px" id="prModalDesc"></div>
-    <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
-      <button type="button" class="pr-fav" id="prModalFav">🤍</button>
-      <span class="pr-meta" id="prModalVersion"></span>
-      <button type="button" class="btn gris mini" style="margin-left:auto" onclick="document.getElementById('prModalBg').classList.remove('open')">Cerrar</button>
-    </div>
-    <pre id="prModalContenido"></pre>
+  <div class="pr-top-der" id="prHerr" style="display:none">
+    <button type="button" class="faq-gbtn" onclick="prSubirAbrir()" title="Subir uno o varios PDF (diapositivas de Zoho Show)">⬆ Subir protocolos (PDF)</button>
   </div>
-</div></div></div>
+</div>
+<div class="pr-buscar-wrap"><span class="pr-buscar-ico">🔎</span>
+  <input type="search" class="pr-buscar" id="prSearch" placeholder="Busca una palabra en los protocolos (ej. tissue)..." autocomplete="off">
+</div>
+<div class="pr-cuenta" id="prCuenta"></div>
+<div class="pr-panel"><div id="prGrid"></div></div>
+<input type="file" id="prFileInput" accept="application/pdf,.pdf" multiple style="display:none">
+
+<div class="pr-visor-bg" id="prVisor">
+  <div class="pr-visor-bar">
+    <span class="t" id="prVisorTitulo"></span>
+    <span class="n" id="prVisorPos"></span>
+    <button type="button" id="prVisorAnt" title="Diapositiva anterior (←)">‹</button>
+    <button type="button" id="prVisorSig" title="Diapositiva siguiente (→)">›</button>
+    <span class="n" id="prVisorCoinc"></span>
+    <span class="sp"></span>
+    <button type="button" id="prVisorMenos" title="Alejar">−</button>
+    <button type="button" id="prVisorMas" title="Acercar">+</button>
+    <a id="prVisorDescargar" href="#" target="_blank" rel="noopener" title="Abrir o descargar el PDF">⬇ PDF</a>
+    <button type="button" id="prVisorCerrar" title="Cerrar (Esc)">✕</button>
+  </div>
+  <div class="pr-visor-body">
+    <div class="pr-visor-lista" id="prVisorLista"></div>
+    <div class="pr-visor-stage" id="prVisorStage"></div>
+  </div>
+</div>
+</div></div>
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Dashboard — Design Schedule</h1>
 
@@ -966,6 +1001,7 @@ document.addEventListener('keydown', function(e) {
   var URL_PARAMS = new URLSearchParams(location.search);
   // Desmarcar un descanso ya registrado: solo roles por encima del diseñador (empleado).
   var DS_PUEDE_DESMARCAR = {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }};
+  window.dsAreaActual = function() { return DS.areaId; };
   var DS = {
     areas: [], areaId: null, areaFormato: null,
     teams: [], teamId: null,
@@ -4544,173 +4580,387 @@ window.DS_PANELS.dashboard = ddCargar;
   }
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  var PR = { areas: [], areaId: 0, q: '', favIds: [], items: [] };
+  // ============ Protocols: PDF completos, buscables por diapositiva y filtrados por área ============
+  // Un protocolo se ve en sus áreas (o en todas si es General). El texto de cada diapositiva se extrae
+  // en el navegador (pdf.js) al subirlo; las diapositivas se dibujan desde el PDF guardado.
+  var PR = { areas: [], areaId: null, q: '', items: [], edita: false, docs: {}, busq: null, seq: 0 };
+  function prNorm(t) { return Array.from(String(t || '')).map(function(c) { return (c.normalize('NFD')[0] || c).toLowerCase(); }).join(''); }
+  function prPalabras(q) { return prNorm(q).split(/\s+/).filter(function(w) { return w.length >= 2; }); }
+  function prMarcar(texto, palabras) {
+    var n = prNorm(texto), marcas = [];
+    palabras.forEach(function(w) { var i = n.indexOf(w); while (i >= 0) { marcas.push([i, i + w.length]); i = n.indexOf(w, i + w.length); } });
+    marcas.sort(function(a, b) { return a[0] - b[0]; });
+    var out = '', k = 0;
+    marcas.forEach(function(m) { if (m[0] < k) return; out += esc(texto.slice(k, m[0])) + '<mark>' + esc(texto.slice(m[0], m[1])) + '</mark>'; k = m[1]; });
+    return out + esc(texto.slice(k));
+  }
+  function prPost(url, opts) {
+    return fetch(url, opts).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo guardar.'); return d; }); });
+  }
+  function prTam(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
 
   function cargarAreas() {
-    Promise.all([api('/design/api/areas'), api('/design/api/favoritos/activos')]).then(function(r) {
-      PR.areas = r[0];
-      PR.favIds = r[1].protocolos || [];
-      var sel = document.getElementById('prNewArea');
-      var tabs = document.getElementById('prAreaTabs'); tabs.innerHTML = '';
-      var todos = document.createElement('button');
-      todos.type = 'button'; todos.className = 'pr-tab activo'; todos.innerText = 'Todos';
-      todos.onclick = function() { PR.areaId = 0; renderTabs(); cargarProtocolos(); };
-      tabs.appendChild(todos);
-      PR.areas.forEach(function(a) {
-        var opt = document.createElement('option'); opt.value = a.id; opt.innerText = a.nombre; sel.appendChild(opt);
-        var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'pr-tab'; btn.innerText = a.nombre;
-        btn.onclick = function() { PR.areaId = a.id; renderTabs(); cargarProtocolos(); };
-        tabs.appendChild(btn);
-      });
+    api('/design/api/areas').then(function(areas) {
+      PR.areas = areas;
+      var actual = window.dsAreaActual && window.dsAreaActual();
+      if (!PR.areaId || !areas.some(function(a) { return a.id === PR.areaId; })) {
+        PR.areaId = areas.some(function(a) { return a.id === actual; }) ? actual : (areas[0] && areas[0].id);
+      }
+      renderTabs();
       cargarProtocolos();
     });
   }
-
   function renderTabs() {
-    var tabs = document.getElementById('prAreaTabs').children;
-    for (var i = 0; i < tabs.length; i++) {
-      var esTodos = i === 0;
-      tabs[i].classList.toggle('activo', esTodos ? PR.areaId === 0 : PR.areas[i-1].id === PR.areaId);
-    }
+    var tabs = document.getElementById('prAreaTabs'); tabs.innerHTML = '';
+    PR.areas.forEach(function(a) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = a.nombre;
+      b.className = 'pr-tab' + (a.id === PR.areaId ? ' activo' : '');
+      b.onclick = function() { PR.areaId = a.id; renderTabs(); cargarProtocolos(); };
+      tabs.appendChild(b);
+    });
+    var area = PR.areas.find(function(a) { return a.id === PR.areaId; });
+    document.getElementById('prSearch').placeholder = 'Busca una palabra en los protocolos de ' + (area ? area.nombre : 'esta área') + ' (ej. tissue)...';
   }
-
   function cargarProtocolos() {
-    var url = '/design/api/protocolos?area_id=' + PR.areaId + '&q=' + encodeURIComponent(PR.q);
-    api(url).then(function(items) { PR.items = items; renderGrid(); });
+    var areaId = PR.areaId;
+    api('/design/api/protocolos?area_id=' + areaId).then(function(r) {
+      if (areaId !== PR.areaId) return;
+      PR.items = r.protocolos || []; PR.edita = !!r.puedeEditar;
+      document.getElementById('prHerr').style.display = PR.edita ? '' : 'none';
+      if (PR.q.trim()) buscar(); else renderLista();
+    });
   }
 
-  function renderGrid() {
-    var grid = document.getElementById('prGrid');
-    if (!PR.items.length) {
-      grid.innerHTML = '<div class="pr-empty">No hay protocolos que coincidan con tu búsqueda.</div>';
-      return;
+  // ---- PDF: se carga una vez por protocolo y se dibujan las diapositivas que se ven en pantalla ----
+  function prDoc(id) {
+    if (!PR.docs[id]) PR.docs[id] = pdfjsLib.getDocument({url: '/design/api/protocolos/' + id + '/pdf'}).promise
+      .catch(function(e) { delete PR.docs[id]; throw e; });
+    return PR.docs[id];
+  }
+  // Resalta en la diapositiva las palabras buscadas (ubicación a partir del texto del PDF).
+  function prResaltar(page, viewport, ctx, palabras) {
+    if (!palabras || !palabras.length) return Promise.resolve();
+    return page.getTextContent().then(function(tc) {
+      ctx.save(); ctx.fillStyle = 'rgba(250, 204, 21, 0.42)';
+      tc.items.forEach(function(it) {
+        if (!it.str) return;
+        var n = prNorm(it.str), tx = pdfjsLib.Util.transform(viewport.transform, it.transform);
+        var alto = Math.hypot(tx[2], tx[3]), ancho = it.width * viewport.scale, x = tx[4], y = tx[5];
+        palabras.forEach(function(w) {
+          var i = n.indexOf(w);
+          while (i >= 0) {
+            ctx.fillRect(x + ancho * i / n.length - 1, y - alto * 1.02, ancho * w.length / n.length + 2, alto * 1.3);
+            i = n.indexOf(w, i + w.length);
+          }
+        });
+      });
+      ctx.restore();
+    });
+  }
+  function prDibujar(canvas, id, pagina, anchoCss, palabras) {
+    return prDoc(id).then(function(pdf) { return pdf.getPage(Math.min(Math.max(1, pagina), pdf.numPages)); }).then(function(page) {
+      var base = page.getViewport({scale: 1}), dpr = window.devicePixelRatio || 1;
+      var escala = anchoCss / base.width, vp = page.getViewport({scale: escala * dpr});
+      canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+      canvas.style.width = Math.round(vp.width / dpr) + 'px'; canvas.style.height = Math.round(vp.height / dpr) + 'px';
+      var ctx = canvas.getContext('2d');
+      return page.render({canvasContext: ctx, viewport: vp}).promise.then(function() { return prResaltar(page, vp, ctx, palabras); });
+    });
+  }
+  // Miniaturas: se dibujan al aparecer en pantalla, de a pocas a la vez.
+  var prCola = [], prActivos = 0;
+  function prEncolar(job) { prCola.push(job); prSiguiente(); }
+  function prSiguiente() {
+    while (prActivos < 3 && prCola.length) {
+      var job = prCola.shift(); prActivos++;
+      job().catch(function() {}).then(function() { prActivos--; prSiguiente(); });
     }
-    grid.innerHTML = PR.items.map(function(p) {
-      var fav = PR.favIds.indexOf(p.id) >= 0;
-      return '<div class="pr-card" data-id="' + p.id + '">' +
-        '<div class="pr-area">' + esc(p.areaNombre || 'General') + '</div>' +
-        '<div class="pr-titulo">' + esc(p.titulo) + '</div>' +
-        '<div class="pr-desc">' + esc(p.descripcion) + '</div>' +
-        '<div class="pr-actions">' +
-          '<button type="button" class="pr-fav" data-fav="' + p.id + '">' + (fav ? '❤️' : '🤍') + '</button>' +
-          '<span class="pr-meta">' + esc(p.version) + '</span>' +
-          '<button type="button" class="pr-del" data-del="' + p.id + '">✕</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-
-    grid.querySelectorAll('[data-fav]').forEach(function(btn) {
-      btn.addEventListener('click', function(ev) {
-        ev.stopPropagation();
-        var id = parseInt(this.dataset.fav);
-        postJSON('/design/api/favoritos/protocolo/' + id + '/toggle').then(function(res) {
-          if (res.favorito) { if (PR.favIds.indexOf(id) < 0) PR.favIds.push(id); }
-          else { PR.favIds = PR.favIds.filter(function(x) { return x !== id; }); }
-          renderGrid();
-        });
-      });
-    });
-    grid.querySelectorAll('[data-del]').forEach(function(btn) {
-      btn.addEventListener('click', function(ev) {
-        ev.stopPropagation();
-        if (!confirm('¿Eliminar este protocolo? Podrás restaurarlo desde la Papelera.')) return;
-        postJSON('/design/api/protocolos/' + this.dataset.del + '/eliminar').then(cargarProtocolos);
-      });
-    });
-    grid.querySelectorAll('.pr-card').forEach(function(card) {
-      card.addEventListener('click', function() { abrirDetalle(parseInt(this.dataset.id)); });
-    });
   }
-
-  function abrirDetalle(id) {
-    api('/design/api/protocolos/' + id).then(function(p) {
-      document.getElementById('prModalArea').innerText = p.areaNombre || 'General';
-      document.getElementById('prModalTitulo').innerText = p.titulo;
-      document.getElementById('prModalDesc').innerText = p.descripcion;
-      document.getElementById('prModalVersion').innerText = 'Versión: ' + p.version;
-      document.getElementById('prModalContenido').innerText = p.contenido;
-      var favBtn = document.getElementById('prModalFav');
-      var fav = PR.favIds.indexOf(p.id) >= 0;
-      favBtn.innerText = fav ? '❤️' : '🤍';
-      favBtn.onclick = function() {
-        postJSON('/design/api/favoritos/protocolo/' + p.id + '/toggle').then(function(res) {
-          if (res.favorito) { if (PR.favIds.indexOf(p.id) < 0) PR.favIds.push(p.id); }
-          else { PR.favIds = PR.favIds.filter(function(x) { return x !== p.id; }); }
-          favBtn.innerText = res.favorito ? '❤️' : '🤍';
-          renderGrid();
-        });
-      };
-      document.getElementById('prModalBg').classList.add('open');
-    });
-  }
-  document.getElementById('prModalBg').addEventListener('click', function(ev) {
-    if (ev.target === this) this.classList.remove('open');
-  });
-
-  window.prCrearManual = function() {
-    var titulo = document.getElementById('prNewTitulo').value.trim();
-    if (!titulo) { alert('Escribe un título.'); return; }
-    var areaId = document.getElementById('prNewArea').value;
-    postJSON('/design/api/protocolos', {
-      areaId: areaId ? parseInt(areaId) : null,
-      titulo: titulo,
-      descripcion: document.getElementById('prNewDesc').value,
-      contenido: document.getElementById('prNewContenido').value,
-    }).then(function() {
-      document.getElementById('prNewTitulo').value = '';
-      document.getElementById('prNewDesc').value = '';
-      document.getElementById('prNewContenido').value = '';
-      cargarProtocolos();
-    });
-  };
-
-  document.getElementById('prSearch').addEventListener('input', function() {
-    PR.q = this.value; cargarProtocolos();
-  });
-
-  // ---------- Carga de PDF (extracción de texto en el navegador, con pdf.js) ----------
-  var uploadZone = document.getElementById('prUploadZone');
-  var fileInput = document.getElementById('prFileInput');
-  uploadZone.addEventListener('click', function() { fileInput.click(); });
-  uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); });
-  uploadZone.addEventListener('dragleave', function() { uploadZone.classList.remove('dragover'); });
-  uploadZone.addEventListener('drop', function(e) { e.preventDefault(); uploadZone.classList.remove('dragover'); handleFileUpload(e.dataTransfer.files); });
-  fileInput.addEventListener('change', function(e) { handleFileUpload(e.target.files); });
-
-  function handleFileUpload(files) {
-    var statusEl = document.getElementById('prUploadStatus');
-    if (!files.length) return;
-    var file = files[0];
-    statusEl.textContent = 'Extrayendo contenido...';
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
-        var fullText = '';
-        var pagePromises = [];
-        for (var i = 1; i <= pdf.numPages; i++) {
-          pagePromises.push((function(pageNum) {
-            return pdf.getPage(pageNum).then(function(page) { return page.getTextContent(); })
-              .then(function(textContent) { return textContent.items.map(function(item) { return item.str; }).join(' '); });
-          })(i));
-        }
-        Promise.all(pagePromises).then(function(pageTexts) {
-          fullText = pageTexts.join('\n');
-          var titulo = file.name.replace(/\.pdf$/i, '');
-          postJSON('/design/api/protocolos', {
-            titulo: titulo, descripcion: 'Protocolo extraído de PDF', contenido: fullText.trim(),
-          }).then(function() {
-            statusEl.textContent = '✓ Protocolo agregado';
-            setTimeout(function() { statusEl.textContent = ''; fileInput.value = ''; }, 2000);
-            cargarProtocolos();
-          });
-        });
-      }).catch(function(err) {
-        statusEl.textContent = '❌ Error al procesar PDF: ' + err.message;
-        setTimeout(function() { statusEl.textContent = ''; }, 3000);
+  var prObs = ('IntersectionObserver' in window) ? new IntersectionObserver(function(ents) {
+    ents.forEach(function(e) { if (e.isIntersecting) { prObs.unobserve(e.target); e.target._dibujar(); } });
+  }, {rootMargin: '300px'}) : null;
+  function prMiniatura(thumb, id, pagina, palabras) {
+    var seq = PR.seq;
+    thumb.innerHTML = '<span class="pr-cargando">Cargando…</span>';
+    thumb._dibujar = function() {
+      prEncolar(function() {
+        if (seq !== PR.seq) return Promise.resolve();
+        var c = document.createElement('canvas');
+        return prDibujar(c, id, pagina, Math.max(260, thumb.clientWidth || 300), palabras).then(function() {
+          if (seq !== PR.seq) return;
+          thumb.innerHTML = ''; thumb.appendChild(c); c.style.width = '100%'; c.style.height = 'auto';
+          if (thumb._pag) thumb.appendChild(thumb._pag);
+        }, function() { thumb.innerHTML = '<span class="pr-cargando">No se pudo abrir el PDF</span>'; });
       });
     };
-    reader.readAsArrayBuffer(file);
+    if (prObs) prObs.observe(thumb); else thumb._dibujar();
+  }
+  function prChips(p) {
+    if (!p.areas.length) return '<span class="pr-chip general">General</span>';
+    return p.areas.map(function(a) { return '<span class="pr-chip">' + esc(a.nombre) + '</span>'; }).join('');
+  }
+
+  // ---- Sin búsqueda: todos los protocolos del área ----
+  function renderLista() {
+    PR.seq++; prCola = [];
+    var grid = document.getElementById('prGrid');
+    var area = PR.areas.find(function(a) { return a.id === PR.areaId; });
+    document.getElementById('prCuenta').textContent = PR.items.length + (PR.items.length === 1 ? ' protocolo' : ' protocolos') + ' en ' + (area ? area.nombre : '');
+    if (!PR.items.length) {
+      grid.innerHTML = '<div class="pr-empty">Todavía no hay protocolos para esta área.' + (PR.edita ? ' Usa “⬆ Subir protocolos (PDF)”.' : '') + '</div>';
+      return;
+    }
+    grid.innerHTML = ''; var cont = document.createElement('div'); cont.className = 'pr-grid'; grid.appendChild(cont);
+    PR.items.forEach(function(p) {
+      var card = document.createElement('div'); card.className = 'pr-card';
+      card.innerHTML = '<div class="pr-thumb"></div><div class="pr-card-body"><div class="pr-titulo"></div>' +
+        '<div class="pr-sub"></div><div class="pr-chips">' + prChips(p) + '</div></div>';
+      card.querySelector('.pr-titulo').textContent = p.titulo;
+      card.querySelector('.pr-sub').textContent = (p.tieneArchivo ? p.paginas + ' diapositivas · ' + prTam(p.tamano) : 'Protocolo de texto') + (p.version ? ' · ' + p.version : '');
+      var th = card.querySelector('.pr-thumb');
+      if (p.tieneArchivo) prMiniatura(th, p.id, 1, null); else th.innerHTML = '<span class="pr-texto-ico">📄</span>';
+      if (PR.edita) {
+        var acc = document.createElement('div'); acc.className = 'pr-acc';
+        acc.innerHTML = '<button type="button" title="Editar título y áreas">✎</button><button type="button" title="Eliminar (va a la Papelera)">🗑</button>';
+        acc.children[0].onclick = function(e) { e.stopPropagation(); prEditar(p); };
+        acc.children[1].onclick = function(e) { e.stopPropagation(); prEliminar(p); };
+        card.appendChild(acc);
+      }
+      card.onclick = function() { prAbrirVisor(p.id, 1, null); };
+      cont.appendChild(card);
+    });
+  }
+
+  // ---- Con búsqueda: las diapositivas donde aparece la palabra ----
+  var prTimer = null;
+  document.getElementById('prSearch').addEventListener('input', function() {
+    PR.q = this.value; clearTimeout(prTimer);
+    prTimer = setTimeout(function() { if (PR.q.trim()) buscar(); else renderLista(); }, 280);
+  });
+  function buscar() {
+    var q = PR.q.trim(), areaId = PR.areaId;
+    if (!prPalabras(q).length) { renderLista(); document.getElementById('prCuenta').textContent = 'Escribe al menos 2 letras.'; return; }
+    api('/design/api/protocolos/buscar?area_id=' + areaId + '&q=' + encodeURIComponent(q)).then(function(r) {
+      if (q !== PR.q.trim() || areaId !== PR.areaId) return;
+      PR.busq = {q: q, palabras: prPalabras(q), res: r.resultados || []};
+      renderResultados(r);
+    });
+  }
+  function renderResultados(r) {
+    PR.seq++; prCola = [];
+    var grid = document.getElementById('prGrid'), res = PR.busq.res, palabras = PR.busq.palabras;
+    var area = PR.areas.find(function(a) { return a.id === PR.areaId; });
+    var grupos = [];
+    res.forEach(function(x) { var g = grupos[grupos.length - 1]; if (!g || g.id !== x.protocoloId) grupos.push(g = {id: x.protocoloId, titulo: x.titulo, items: []}); g.items.push(x); });
+    document.getElementById('prCuenta').textContent = res.length
+      ? r.total + (r.total === 1 ? ' diapositiva' : ' diapositivas') + ' con “' + PR.busq.q + '” en ' + grupos.length + (grupos.length === 1 ? ' protocolo' : ' protocolos') + ' de ' + (area ? area.nombre : '') + (r.total > res.length ? ' (se muestran las primeras ' + res.length + ')' : '')
+      : '';
+    if (!res.length) { grid.innerHTML = '<div class="pr-empty">No se encontró “' + esc(PR.busq.q) + '” en los protocolos de ' + esc(area ? area.nombre : 'esta área') + '.</div>'; return; }
+    grid.innerHTML = '';
+    grupos.forEach(function(g) {
+      var sec = document.createElement('div'); sec.className = 'pr-grupo';
+      sec.innerHTML = '<div class="pr-grupo-h"><b></b><span></span></div><div class="pr-grid"></div>';
+      sec.querySelector('b').textContent = g.titulo;
+      sec.querySelector('span').textContent = g.items.length + (g.items.length === 1 ? ' diapositiva' : ' diapositivas');
+      var cont = sec.querySelector('.pr-grid');
+      g.items.forEach(function(x) {
+        var card = document.createElement('div'); card.className = 'pr-card';
+        card.innerHTML = '<div class="pr-thumb"></div><div class="pr-card-body"><div class="pr-frag"></div></div>';
+        card.querySelector('.pr-frag').innerHTML = prMarcar(x.fragmento, palabras);
+        var th = card.querySelector('.pr-thumb');
+        if (x.pagina) {
+          var pag = document.createElement('span'); pag.className = 'pr-pag'; pag.textContent = 'Diapositiva ' + x.pagina;
+          th._pag = pag; prMiniatura(th, x.protocoloId, x.pagina, palabras);
+        } else th.innerHTML = '<span class="pr-texto-ico">📄</span>';
+        card.onclick = function() { prAbrirVisor(x.protocoloId, x.pagina || 1, PR.busq); };
+        cont.appendChild(card);
+      });
+      grid.appendChild(sec);
+    });
+  }
+
+  // ---- Visor: protocolo completo, en la diapositiva elegida ----
+  var PV = {id: null, pagina: 1, total: 0, zoom: 1, palabras: null, coinc: [], p: null};
+  function prAbrirVisor(id, pagina, busq) {
+    api('/design/api/protocolos/' + id).then(function(p) {
+      PV = {id: id, pagina: pagina || 1, total: p.paginas || 0, zoom: 1, palabras: busq ? busq.palabras : null, coinc: [], p: p};
+      if (busq) PV.coinc = busq.res.filter(function(x) { return x.protocoloId === id && x.pagina; });
+      document.getElementById('prVisorTitulo').textContent = p.titulo;
+      var dl = document.getElementById('prVisorDescargar');
+      dl.style.display = p.tieneArchivo ? '' : 'none'; dl.href = '/design/api/protocolos/' + id + '/pdf';
+      document.getElementById('prVisor').classList.add('open');
+      prVisorLista(); prVisorPintar();
+    });
+  }
+  function prVisorLista() {
+    var l = document.getElementById('prVisorLista');
+    if (!PV.coinc.length) { l.style.display = 'none'; return; }
+    l.style.display = '';
+    l.innerHTML = '<div class="h">Coincidencias (' + PV.coinc.length + ')</div>';
+    PV.coinc.forEach(function(x) {
+      var b = document.createElement('button'); b.type = 'button'; b.dataset.pag = x.pagina;
+      b.innerHTML = '<b>Diapositiva ' + x.pagina + '</b><br>' + prMarcar(x.fragmento, PV.palabras);
+      b.onclick = function() { PV.pagina = x.pagina; prVisorPintar(); };
+      l.appendChild(b);
+    });
+  }
+  function prVisorPintar() {
+    var stage = document.getElementById('prVisorStage'), p = PV.p;
+    document.querySelectorAll('#prVisorLista button').forEach(function(b) { b.classList.toggle('activo', +b.dataset.pag === PV.pagina); });
+    var act = document.querySelector('#prVisorLista button.activo'); if (act) act.scrollIntoView({block: 'nearest'});
+    var i = PV.coinc.findIndex(function(x) { return x.pagina === PV.pagina; });
+    document.getElementById('prVisorCoinc').textContent = PV.coinc.length ? (i >= 0 ? 'Coincidencia ' + (i + 1) + ' de ' + PV.coinc.length : PV.coinc.length + ' coincidencias') : '';
+    if (!p.tieneArchivo) {
+      document.getElementById('prVisorPos').textContent = '';
+      ['prVisorAnt', 'prVisorSig', 'prVisorMenos', 'prVisorMas'].forEach(function(b) { document.getElementById(b).style.display = 'none'; });
+      stage.innerHTML = '<div class="pr-visor-texto"></div>';
+      stage.firstChild.innerHTML = PV.palabras ? prMarcar(p.contenido || p.descripcion || '', PV.palabras) : esc(p.contenido || p.descripcion || '');
+      return;
+    }
+    ['prVisorAnt', 'prVisorSig', 'prVisorMenos', 'prVisorMas'].forEach(function(b) { document.getElementById(b).style.display = ''; });
+    document.getElementById('prVisorPos').textContent = 'Diapositiva ' + PV.pagina + ' de ' + PV.total;
+    document.getElementById('prVisorAnt').disabled = PV.pagina <= 1;
+    document.getElementById('prVisorSig').disabled = PV.pagina >= PV.total;
+    var c = document.createElement('canvas'), pag = PV.pagina, id = PV.id;
+    prDoc(id).then(function(pdf) { return pdf.getPage(pag); }).then(function(page) {
+      if (pag !== PV.pagina || id !== PV.id) return;
+      var vp = page.getViewport({scale: 1});
+      var ancho = Math.min((stage.clientWidth - 36) / vp.width, (stage.clientHeight - 36) / vp.height) * vp.width * PV.zoom;
+      return prDibujar(c, id, pag, Math.max(300, ancho), PV.palabras).then(function() {
+        if (pag === PV.pagina && id === PV.id) { stage.innerHTML = ''; stage.appendChild(c); }
+      });
+    }).catch(function() { stage.innerHTML = '<div class="pr-visor-texto">No se pudo abrir el PDF.</div>'; });
+  }
+  function prVisorIr(d) { var n = PV.pagina + d; if (n >= 1 && n <= PV.total) { PV.pagina = n; prVisorPintar(); } }
+  function prVisorCerrar() { document.getElementById('prVisor').classList.remove('open'); document.getElementById('prVisorStage').innerHTML = ''; }
+  document.getElementById('prVisorAnt').onclick = function() { prVisorIr(-1); };
+  document.getElementById('prVisorSig').onclick = function() { prVisorIr(1); };
+  document.getElementById('prVisorMas').onclick = function() { PV.zoom = Math.min(3, PV.zoom * 1.2); prVisorPintar(); };
+  document.getElementById('prVisorMenos').onclick = function() { PV.zoom = Math.max(0.4, PV.zoom / 1.2); prVisorPintar(); };
+  document.getElementById('prVisorCerrar').onclick = prVisorCerrar;
+  document.addEventListener('keydown', function(e) {
+    if (!document.getElementById('prVisor').classList.contains('open')) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); prVisorCerrar(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prVisorIr(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); prVisorIr(1); }
+  }, true);
+  window.addEventListener('resize', function() { if (document.getElementById('prVisor').classList.contains('open')) prVisorPintar(); });
+
+  // ---- Áreas (casillas) para subir y editar ----
+  function prAreasHtml(marcadas) {
+    return '<div class="pr-areas-sel">' + PR.areas.map(function(a) {
+      return '<label><input type="checkbox" value="' + a.id + '"' + (marcadas.indexOf(a.id) >= 0 ? ' checked' : '') + '> ' + esc(a.nombre) + '</label>';
+    }).join('') + '</div>';
+  }
+  function prAreasLeer(bg) { return Array.from(bg.querySelectorAll('.pr-areas-sel input:checked')).map(function(i) { return +i.value; }); }
+  function prModal(html, ancho) {
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'prModal';
+    bg.innerHTML = '<div class="ds-qc" role="dialog" aria-modal="true" style="width:' + (ancho || 560) + 'px">' + html + '</div>';
+    document.body.appendChild(bg);
+    var cerrar = function() { if (bg._ocupado) return; bg.remove(); document.removeEventListener('keydown', esc1, true); };
+    var esc1 = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
+    document.addEventListener('keydown', esc1, true);
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    bg._cerrar = cerrar;
+    return bg;
+  }
+
+  // ---- Subir: uno o varios PDF; el texto de cada diapositiva se lee aquí con pdf.js ----
+  var fileInput = document.getElementById('prFileInput');
+  window.prSubirAbrir = function() { fileInput.value = ''; fileInput.click(); };
+  fileInput.addEventListener('change', function() { if (this.files.length) prSubirForm(Array.from(this.files)); });
+  document.getElementById('ov-protocols').addEventListener('dragover', function(e) { if (PR.edita && e.dataTransfer && Array.from(e.dataTransfer.types).indexOf('Files') >= 0) e.preventDefault(); });
+  document.getElementById('ov-protocols').addEventListener('drop', function(e) {
+    if (!PR.edita || !e.dataTransfer || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    var pdfs = Array.from(e.dataTransfer.files).filter(function(f) { return /\.pdf$/i.test(f.name) || f.type === 'application/pdf'; });
+    if (pdfs.length) prSubirForm(pdfs);
+  });
+  function prSubirForm(files) {
+    var bg = prModal('<h4>Subir protocolos (PDF)</h4><div class="ds-qc-sub">Cada PDF queda como un protocolo. Se guarda completo y se puede buscar por diapositiva.</div>' +
+      '<label class="pr-lbl">Título de cada protocolo</label><div class="pr-form-lista"></div>' +
+      '<label class="pr-lbl">¿En qué áreas se verán?</label>' + prAreasHtml([PR.areaId]) +
+      '<label class="pr-lbl" for="prVer">Versión</label><input type="text" id="prVer" value="v1.0" style="width:120px;margin:0 0 10px">' +
+      '<div class="ds-qc-err" id="prErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-b="no">Cancelar</button><button type="button" class="btn" data-b="si">Subir</button></div>', 620);
+    var lista = bg.querySelector('.pr-form-lista');
+    files.forEach(function(f) {
+      var fila = document.createElement('div'); fila.className = 'pr-form-fila';
+      fila.innerHTML = '<input type="text" maxlength="255"><span class="tam"></span><span class="est"></span>';
+      fila.querySelector('input').value = f.name.replace(/\.pdf$/i, '').replace(/[_]+/g, ' ').trim();
+      fila.querySelector('.tam').textContent = prTam(f.size);
+      if (f.size > 60 * 1048576) { fila.querySelector('.est').textContent = '⚠️ Supera 60 MB'; fila.querySelector('.est').style.color = '#dc2626'; }
+      fila._file = f; lista.appendChild(fila);
+    });
+    bg.querySelector('[data-b="no"]').onclick = bg._cerrar;
+    bg.querySelector('[data-b="si"]').onclick = function() {
+      var areas = prAreasLeer(bg), err = bg.querySelector('#prErr'), btn = this;
+      if (!areas.length) { err.textContent = 'Elige al menos un área.'; return; }
+      err.textContent = ''; btn.disabled = true; bg.querySelector('[data-b="no"]').disabled = true; bg._ocupado = true;
+      var filas = Array.from(lista.children), fallos = 0, ok = 0;
+      filas.reduce(function(prom, fila) {
+        return prom.then(function() {
+          var est = fila.querySelector('.est'), f = fila._file;
+          if (f.size > 60 * 1048576) { fallos++; return; }
+          est.style.color = '#1d4ed8'; est.textContent = 'Leyendo…';
+          return f.arrayBuffer().then(function(buf) {
+            return pdfjsLib.getDocument({data: new Uint8Array(buf.slice(0))}).promise.then(function(pdf) {
+              var textos = [], n = pdf.numPages;
+              var leer = function(i) {
+                if (i > n) return Promise.resolve();
+                est.textContent = 'Leyendo ' + i + '/' + n + '…';
+                return pdf.getPage(i).then(function(pg) { return pg.getTextContent(); }).then(function(tc) {
+                  textos.push(tc.items.map(function(it) { return (it.str || '') + (it.hasEOL ? '\n' : ' '); }).join('').replace(/[ \t]+/g, ' ').trim());
+                  return leer(i + 1);
+                });
+              };
+              return leer(1).then(function() {
+                est.textContent = 'Subiendo…';
+                var fd = new FormData();
+                fd.append('archivo', f, f.name);
+                fd.append('paginas', new Blob([JSON.stringify(textos)], {type: 'application/json'}), 'paginas.json');
+                fd.append('titulo', fila.querySelector('input').value.trim() || f.name);
+                fd.append('areas', JSON.stringify(areas));
+                fd.append('version', bg.querySelector('#prVer').value.trim() || 'v1.0');
+                return prPost('/design/api/protocolos/pdf', {method: 'POST', body: fd});
+              });
+            });
+          }).then(function() { ok++; est.style.color = '#16a34a'; est.textContent = '✓ Listo'; },
+                  function(e) { fallos++; est.style.color = '#dc2626'; est.textContent = '⚠️ ' + (e && e.message ? e.message : 'Error'); });
+        });
+      }, Promise.resolve()).then(function() {
+        bg._ocupado = false; bg.querySelector('[data-b="no"]').disabled = false;
+        bg.querySelector('[data-b="no"]').textContent = 'Cerrar'; btn.style.display = 'none';
+        err.style.color = fallos ? '#dc2626' : '#16a34a';
+        err.textContent = ok + ' subido(s)' + (fallos ? ', ' + fallos + ' con error' : '') + '.';
+        cargarProtocolos();
+      });
+    };
+  }
+
+  function prEditar(p) {
+    var bg = prModal('<h4>Editar protocolo</h4><div class="ds-qc-sub"></div>' +
+      '<label class="pr-lbl" for="prEdTit">Título</label><input type="text" id="prEdTit" maxlength="255" style="width:100%;margin:0 0 10px;box-sizing:border-box">' +
+      '<label class="pr-lbl">¿En qué áreas se verá?</label>' + prAreasHtml(p.areas.map(function(a) { return a.id; })) +
+      '<label class="pr-lbl" for="prEdVer">Versión</label><input type="text" id="prEdVer" style="width:120px;margin:0 0 10px">' +
+      '<div class="ds-qc-err" id="prErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-b="no">Cancelar</button><button type="button" class="btn" data-b="si">Guardar</button></div>');
+    bg.querySelector('.ds-qc-sub').textContent = p.tieneArchivo ? p.archivo + ' · ' + p.paginas + ' diapositivas' : 'Protocolo de texto';
+    bg.querySelector('#prEdTit').value = p.titulo; bg.querySelector('#prEdVer').value = p.version || '';
+    bg.querySelector('[data-b="no"]').onclick = bg._cerrar;
+    bg.querySelector('[data-b="si"]').onclick = function() {
+      var areas = prAreasLeer(bg);
+      if (!areas.length) { bg.querySelector('#prErr').textContent = 'Elige al menos un área.'; return; }
+      prPost('/design/api/protocolos/' + p.id, {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({titulo: bg.querySelector('#prEdTit').value, areas: areas, version: bg.querySelector('#prEdVer').value})})
+        .then(function() { bg._cerrar(); cargarProtocolos(); })
+        .catch(function(e) { bg.querySelector('#prErr').textContent = e.message; });
+    };
+  }
+  function prEliminar(p) {
+    if (!confirm('¿Eliminar el protocolo "' + p.titulo + '"? Un líder puede restaurarlo desde la Papelera.')) return;
+    prPost('/design/api/protocolos/' + p.id + '/eliminar', {method: 'POST'}).then(function() { delete PR.docs[p.id]; cargarProtocolos(); })
+      .catch(function(e) { alert(e.message); });
   }
 
   window.DS_PANELS.protocols = cargarAreas;

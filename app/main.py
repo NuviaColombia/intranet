@@ -8,7 +8,7 @@ from pathlib import Path
 from sqlalchemy import inspect, text
 from . import config
 from .database import engine, SessionLocal
-from .services_design import faq_sembrar as sd_faq_sembrar
+from .services_design import faq_sembrar as sd_faq_sembrar, protocolos_migrar_areas as sd_protocolos_migrar_areas
 from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
 from .models_custodia import CustodiaArea, CustodiaMotivo
 from .models_sst import SstItem, SstIngreso, SstAcceso
@@ -445,6 +445,8 @@ def init_db():
         for i, (nombre, texto) in enumerate(CMT_TEMPLATES_FIJAS, start=1):
             if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre).first():
                 db.add(DesignComentarioTemplate(nombre=nombre, texto=texto, es_fija=1, orden=i))
+        # Protocols: un protocolo puede verse en varias áreas; los existentes pasan su área a la tabla nueva.
+        sd_protocolos_migrar_areas(db)
         # Comments N2 / Face: las 4 hojas del formato original (solo si aún no hay hojas).
         db.flush()
         sd_faq_sembrar(db, Path(__file__).resolve().parent / "seed_data" / "design_faq_n2.json")
