@@ -6,7 +6,8 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
-from ..models_custodia import CustodiaArea, CustodiaMotivo, CustodiaFactorDisco
+from ..models_custodia import (CustodiaArea, CustodiaMotivo, CustodiaFactorDisco, CustodiaTraslado, CustodiaOrdenLinea,
+                               CustodiaResumen, CustodiaDiscos, CustodiaOP)
 from ..auth import require_admin
 from ..database import SessionLocal, engine
 from ..acceso_produccion import ProduccionAcceso, asegurar_tabla_y_migrar, MODULO_PRODUCCION
@@ -51,7 +52,11 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
     return templates.TemplateResponse(request, "custodia_parametros.html",
                                       {"user": user, "managers": managers, "candidatos": candidatos,
                                        "areas": areas, "motivos": motivos, "discos": discos,
-                                       "conteo_panel": {"managers": len(managers), "areas": len(areas), "discos": len(discos),
+                                       "registros": {"traslados": db.query(CustodiaTraslado).count(),
+                                                     "ordenes": db.query(CustodiaOrdenLinea).count(),
+                                                     "ultimo": db.query(CustodiaTraslado.id).order_by(CustodiaTraslado.id.desc()).limit(1).scalar()},
+                                       "conteo_panel": {"limpiar": db.query(CustodiaTraslado).count(),
+                                                        "managers": len(managers), "areas": len(areas), "discos": len(discos),
                                                         "motivos": len(motivos)},
                                        "resumen": resumen, "por_empleado": por_empleado,
                                        "areas_activas": sc.areas_disponibles(db),
@@ -217,3 +222,37 @@ def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: S
         m.activo = 0 if m.activo else 1
         db.commit()
     return RedirectResponse("/inventario/parametros", status_code=303)
+
+
+# ---------- Limpiar registros de prueba ----------
+
+TABLAS_REGISTROS = [CustodiaOP, CustodiaDiscos, CustodiaResumen, CustodiaOrdenLinea, CustodiaTraslado]  # hijas primero
+CONFIRMACION_LIMPIAR = "BORRAR TODO"
+
+
+@router.post("/inventario/parametros/custodia/limpiar")
+def limpiar_registros(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                      confirmacion: str = Form("")):
+    """Borra TODOS los registros de Cambio de custodia (traslados con sus órdenes, resúmenes, discos y OP) y
+    reinicia el consecutivo en 1. No toca áreas, catálogo de discos, motivos ni accesos. Solo administradores."""
+    from sqlalchemy import text
+    if confirmacion.strip().upper() != CONFIRMACION_LIMPIAR:
+        return RedirectResponse(f"/inventario/parametros?tab=limpiar&msg=No se borró nada: escribe {CONFIRMACION_LIMPIAR} para confirmar.",
+                                status_code=303)
+    total = db.query(CustodiaTraslado).count()
+    for modelo in TABLAS_REGISTROS:
+        db.query(modelo).delete(synchronize_session=False)
+    # El consecutivo es el id del traslado: se reinicia el contador de la base para que el próximo sea el 1
+    if db.bind.dialect.name == "postgresql":
+        for modelo in TABLAS_REGISTROS:
+            db.execute(text(f"SELECT setval(pg_get_serial_sequence('{modelo.__tablename__}', 'id'), 1, false)"))
+    elif db.bind.dialect.name == "sqlite":
+        try:
+            nombres = ", ".join(f"'{m.__tablename__}'" for m in TABLAS_REGISTROS)
+            db.execute(text(f"DELETE FROM sqlite_sequence WHERE name IN ({nombres})"))
+        except Exception:
+            pass  # sin AUTOINCREMENT: el siguiente id ya es max + 1
+    db.commit()
+    print(f"[Custodia] {user.email} borró {total} traslados de prueba y reinició el consecutivo.")
+    return RedirectResponse(f"/inventario/parametros?tab=limpiar&msg=Listo: se borraron {total} traslados de prueba. "
+                            "El próximo consecutivo es el 0001.", status_code=303)
