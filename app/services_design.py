@@ -5,7 +5,7 @@ import unicodedata
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, text
 from .models import Empleado, Solicitud, TipoPermiso
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
@@ -1791,7 +1791,7 @@ def protocolos_buscar(db: Session, area_id: int | None, q: str, protocolo_id: in
             res.append({"protocoloId": p.id, "titulo": p.titulo, "pagina": 0,
                         "fragmento": _pr_fragmento(texto, norm, palabras)})
     orden = {pid: pr_norm(p.titulo) for pid, p in protos.items()}
-    res.sort(key=lambda r: (orden[r["protocoloId"]], r["pagina"]))
+    res.sort(key=lambda r: (orden[r["protocoloId"]], r["protocoloId"], r["pagina"]))  # mismo título: no se mezclan
     return {"resultados": res, "total": total, "palabras": palabras}
 
 
@@ -1811,11 +1811,99 @@ def _pr_poner_areas(db: Session, protocolo_id: int, area_ids: list[int]) -> None
             db.add(DesignProtocoloArea(protocolo_id=protocolo_id, area_id=a))
 
 
+_PR_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ufffe\uffff]")
+
+
+def pr_limpiar_texto(t) -> str:
+    """Quita caracteres de control (p. ej. NUL, que traen algunos PDF de Zoho Show) que Postgres no acepta."""
+    return _PR_CONTROL.sub(" ", str(t or ""))
+
+
 def _pr_poner_paginas(db: Session, protocolo_id: int, textos: list[str]) -> None:
     db.query(DesignProtocoloPagina).filter(DesignProtocoloPagina.protocolo_id == protocolo_id).delete()
     for i, t in enumerate(textos or [], start=1):
-        t = str(t or "")[:20000]
+        t = pr_limpiar_texto(t)[:20000]
         db.add(DesignProtocoloPagina(protocolo_id=protocolo_id, pagina=i, texto=t, texto_norm=pr_norm(t)))
+
+
+# ---- Subida por partes: el PDF llega en trozos de pocos MB (cada petición es liviana en memoria y
+# tiempo, sin importar el tamaño del archivo) y se arma dentro de la base de datos. Mientras se sube,
+# el archivo no tiene protocolo (protocolo_id NULL); al terminar se crea el protocolo y se enlaza.
+PR_PARTE_MAX = 5 * 1024 * 1024
+
+
+def pr_archivo_largo(db: Session, archivo_id: int) -> int | None:
+    r = db.query(func.length(DesignProtocoloArchivo.datos)).filter(DesignProtocoloArchivo.id == archivo_id).first()
+    return None if r is None else int(r[0] or 0)
+
+
+def pr_subida_iniciar(db: Session, nombre: str, tamano: int) -> DesignProtocoloArchivo:
+    # Limpia subidas abandonadas (sin protocolo, fuera de la Papelera y de más de un día).
+    ayer = datetime.utcnow() - timedelta(days=1)
+    en_papelera = {(_json(t.payload, {}).get("archivo_id")) for t in db.query(DesignTrash).filter(DesignTrash.modulo == "protocol")}
+    viejas = db.query(DesignProtocoloArchivo).filter(DesignProtocoloArchivo.protocolo_id.is_(None),
+                                                     DesignProtocoloArchivo.creado_en < ayer)
+    for a in viejas:
+        if a.id not in en_papelera:
+            db.delete(a)
+    a = DesignProtocoloArchivo(protocolo_id=None, nombre=(nombre or "")[:255], tamano=int(tamano), paginas=0, datos=b"")
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    return a
+
+
+def pr_subida_parte(db: Session, archivo_id: int, offset: int, datos: bytes) -> int | None:
+    """Agrega un trozo en la posición `offset` (si ese trozo ya llegó, no lo repite). Devuelve el largo actual."""
+    a = db.get(DesignProtocoloArchivo, archivo_id)
+    if not a or a.protocolo_id is not None:
+        return None
+    largo = pr_archivo_largo(db, archivo_id)
+    if offset < largo:
+        return largo  # reintento de un trozo ya guardado
+    if offset != largo or largo + len(datos) > a.tamano:
+        raise ValueError("Las partes del archivo llegaron desordenadas; vuelve a subirlo.")
+    if db.bind.dialect.name == "postgresql":
+        db.execute(text("UPDATE design_protocolo_archivos SET datos = datos || :d WHERE id = :i"), {"d": datos, "i": archivo_id})
+    else:
+        a.datos = (a.datos or b"") + datos
+    db.commit()
+    return largo + len(datos)
+
+
+def pr_subida_finalizar(db: Session, archivo_id: int, titulo: str, area_ids: list[int], textos: list[str],
+                        version: str = "v1.0", creado_por: str = "") -> DesignProtocolo:
+    a = db.get(DesignProtocoloArchivo, archivo_id)
+    if not a or a.protocolo_id is not None:
+        raise ValueError("La subida no existe o ya terminó.")
+    if pr_archivo_largo(db, archivo_id) != a.tamano:
+        raise ValueError("El archivo no llegó completo; vuelve a subirlo.")
+    inicio = db.query(func.substr(DesignProtocoloArchivo.datos, 1, 4)).filter(DesignProtocoloArchivo.id == archivo_id).scalar()
+    if bytes(inicio or b"") != b"%PDF":
+        raise ValueError("El archivo no es un PDF.")
+    p = DesignProtocolo(area_id=(area_ids[0] if len(area_ids or []) == 1 else None),
+                        titulo=pr_limpiar_texto(titulo).strip()[:255] or a.nombre or "Protocolo sin título",
+                        descripcion="", contenido="", version=pr_limpiar_texto(version or "v1.0")[:20], creado_por=creado_por)
+    db.add(p)
+    db.flush()
+    a.protocolo_id = p.id
+    a.paginas = len(textos or [])
+    _pr_poner_areas(db, p.id, area_ids)
+    _pr_poner_paginas(db, p.id, textos)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+def pr_archivo_trozo(db: Session, archivo_id: int, inicio: int, largo: int) -> bytes:
+    """Lee solo un pedazo del PDF (para el visor, que pide por rangos); no carga el archivo completo."""
+    r = db.query(func.substr(DesignProtocoloArchivo.datos, inicio + 1, largo)).filter(DesignProtocoloArchivo.id == archivo_id).scalar()
+    return bytes(r or b"")
+
+
+def pr_archivo_info(db: Session, protocolo_id: int):
+    return (db.query(DesignProtocoloArchivo.id, DesignProtocoloArchivo.nombre, DesignProtocoloArchivo.tamano)
+            .filter(DesignProtocoloArchivo.protocolo_id == protocolo_id).first())
 
 
 def protocolo_crear_pdf(db: Session, titulo: str, area_ids: list[int], nombre_archivo: str, datos: bytes,

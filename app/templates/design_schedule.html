@@ -1001,7 +1001,8 @@ document.addEventListener('keydown', function(e) {
   var URL_PARAMS = new URLSearchParams(location.search);
   // Desmarcar un descanso ya registrado: solo roles por encima del diseñador (empleado).
   var DS_PUEDE_DESMARCAR = {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }};
-  window.dsAreaActual = function() { return DS.areaId; };
+  // Área en la que se está trabajando (la del equipo abierto; si aún está cargando, la del enlace).
+  window.dsAreaActual = function() { return DS.areaId || parseInt(new URLSearchParams(location.search).get('area_id')) || null; };
   var DS = {
     areas: [], areaId: null, areaFormato: null,
     teams: [], teamId: null,
@@ -4595,7 +4596,14 @@ window.DS_PANELS.dashboard = ddCargar;
     return out + esc(texto.slice(k));
   }
   function prPost(url, opts) {
-    return fetch(url, opts).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo guardar.'); return d; }); });
+    return fetch(url, opts).catch(function() { throw new Error('Se perdió la conexión con el servidor. Intenta de nuevo.'); }).then(function(r) {
+      return r.text().then(function(t) {
+        var d = null; try { d = JSON.parse(t); } catch (e) {}
+        if (!r.ok) throw new Error((d && d.detail) || ('El servidor respondió con un error (' + r.status + '). Intenta de nuevo.'));
+        if (!d) throw new Error('Respuesta inesperada del servidor. Intenta de nuevo.');
+        return d;
+      });
+    });
   }
   function prTam(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
 
@@ -4633,7 +4641,7 @@ window.DS_PANELS.dashboard = ddCargar;
 
   // ---- PDF: se carga una vez por protocolo y se dibujan las diapositivas que se ven en pantalla ----
   function prDoc(id) {
-    if (!PR.docs[id]) PR.docs[id] = pdfjsLib.getDocument({url: '/design/api/protocolos/' + id + '/pdf'}).promise
+    if (!PR.docs[id]) PR.docs[id] = pdfjsLib.getDocument({url: '/design/api/protocolos/' + id + '/pdf', disableStream: true, disableAutoFetch: true, rangeChunkSize: 262144}).promise
       .catch(function(e) { delete PR.docs[id]; throw e; });
     return PR.docs[id];
   }
@@ -4914,15 +4922,11 @@ window.DS_PANELS.dashboard = ddCargar;
                   return leer(i + 1);
                 });
               };
-              return leer(1).then(function() {
-                est.textContent = 'Subiendo…';
-                var fd = new FormData();
-                fd.append('archivo', f, f.name);
-                fd.append('paginas', new Blob([JSON.stringify(textos)], {type: 'application/json'}), 'paginas.json');
-                fd.append('titulo', fila.querySelector('input').value.trim() || f.name);
-                fd.append('areas', JSON.stringify(areas));
-                fd.append('version', bg.querySelector('#prVer').value.trim() || 'v1.0');
-                return prPost('/design/api/protocolos/pdf', {method: 'POST', body: fd});
+              return leer(1).then(function() { return prSubirPorPartes(f, est); }).then(function(archivoId) {
+                est.textContent = 'Guardando…';
+                return prPost('/design/api/protocolos/subida/' + archivoId + '/finalizar', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({titulo: fila.querySelector('input').value.trim() || f.name, areas: areas,
+                                        version: bg.querySelector('#prVer').value.trim() || 'v1.0', paginas: textos})});
               });
             });
           }).then(function() { ok++; est.style.color = '#16a34a'; est.textContent = '✓ Listo'; },
@@ -4936,6 +4940,26 @@ window.DS_PANELS.dashboard = ddCargar;
         cargarProtocolos();
       });
     };
+  }
+
+  // Sube el PDF en trozos de 4 MB (cada envío es liviano; si uno falla por la red, se reintenta).
+  function prSubirPorPartes(f, est) {
+    return prPost('/design/api/protocolos/subida', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nombre: f.name, tamano: f.size})}).then(function(r) {
+      var parte = r.parte, total = Math.ceil(f.size / parte);
+      var enviar = function(i, intento) {
+        if (i >= total) return Promise.resolve(r.archivoId);
+        est.textContent = 'Subiendo ' + Math.round(i * 100 / total) + '%…';
+        var ini = i * parte;
+        return prPost('/design/api/protocolos/subida/' + r.archivoId + '/parte?offset=' + ini,
+          {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body: f.slice(ini, ini + parte)})
+          .then(function() { return enviar(i + 1, 0); }, function(e) {
+            if (intento >= 2) throw e;
+            return new Promise(function(ok) { setTimeout(ok, 1500 * (intento + 1)); }).then(function() { return enviar(i, intento + 1); });
+          });
+      };
+      return enviar(0, 0);
+    });
   }
 
   function prEditar(p) {

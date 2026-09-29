@@ -364,7 +364,7 @@ class DesignProtocoloArchivo(Base):
     nombre: Mapped[str] = mapped_column(String(255), default="")
     tamano: Mapped[int] = mapped_column(Integer, default=0)
     paginas: Mapped[int] = mapped_column(Integer, default=0)
-    datos: Mapped[bytes] = mapped_column(LargeBinary)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)  # no se carga salvo que se pida
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

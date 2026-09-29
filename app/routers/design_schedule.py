@@ -1,8 +1,9 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
 import json
+import re
 from datetime import date
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -1026,37 +1027,95 @@ async def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(requ
 
 
 @router.get("/design/api/protocolos/{protocolo_id}/pdf")
-async def api_protocolo_pdf(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+async def api_protocolo_pdf(protocolo_id: int, request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
-    a = sd.protocolo_archivo(db, protocolo_id)
+    """Sirve el PDF por rangos (el visor pide solo las partes que necesita) o completo en streaming,
+    leyendo de la base de datos de a 1 MB para no cargar archivos grandes en memoria."""
+    a = sd.pr_archivo_info(db, protocolo_id)
     if not a:
         raise HTTPException(404, "Este protocolo no tiene PDF.")
-    nombre = (a.nombre or "protocolo.pdf").replace('"', "")
-    return Response(content=a.datos, media_type="application/pdf",
-                    headers={"Cache-Control": "private, max-age=86400", "ETag": f'"pr{a.id}-{a.tamano}"',
-                             "Content-Disposition": f'inline; filename="{nombre.encode("ascii", "ignore").decode() or "protocolo.pdf"}"'})
+    archivo_id, total = a.id, int(a.tamano or 0)
+    nombre = (a.nombre or "protocolo.pdf").replace('"', "").encode("ascii", "ignore").decode() or "protocolo.pdf"
+    base = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=86400", "ETag": f'"pr{archivo_id}-{total}"',
+            "Content-Disposition": f'inline; filename="{nombre}"'}
+    rango = request.headers.get("range", "")
+    m = re.match(r"bytes=(\d*)-(\d*)$", rango.strip())
+    if m and total:
+        ini = int(m.group(1)) if m.group(1) else max(0, total - int(m.group(2) or 0))
+        fin = min(int(m.group(2)), total - 1) if (m.group(1) and m.group(2)) else total - 1
+        if ini >= total or fin < ini:
+            return Response(status_code=416, headers={"Content-Range": f"bytes */{total}"})
+        datos = sd.pr_archivo_trozo(db, archivo_id, ini, fin - ini + 1)
+        return Response(content=datos, status_code=206, media_type="application/pdf",
+                        headers={**base, "Content-Range": f"bytes {ini}-{fin}/{total}", "Content-Length": str(len(datos))})
+
+    def trozos():
+        from ..database import SessionLocal
+        s2 = SessionLocal()
+        try:
+            pos = 0
+            while pos < total:
+                d = sd.pr_archivo_trozo(s2, archivo_id, pos, 1024 * 1024)
+                if not d:
+                    break
+                yield d
+                pos += len(d)
+        finally:
+            s2.close()
+    return StreamingResponse(trozos(), media_type="application/pdf", headers={**base, "Content-Length": str(total)})
 
 
-@router.post("/design/api/protocolos/pdf")
-async def api_protocolo_subir_pdf(archivo: UploadFile = File(...), paginas: UploadFile = File(...),
-                                  titulo: str = Form(""), areas: str = Form("[]"), version: str = Form("v1.0"),
-                                  user: Empleado = Depends(require_modulo("design_schedule")),
-                                  db: Session = Depends(get_db)):
+class PdfNuevoIn(BaseModel):
+    nombre: str = ""
+    tamano: int
+
+
+@router.post("/design/api/protocolos/subida")
+async def api_protocolo_subida_iniciar(payload: PdfNuevoIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                                       db: Session = Depends(get_db)):
     _pr_editor(user)
-    datos = await archivo.read()
-    if len(datos) > sd.PR_MAX_BYTES:
-        raise HTTPException(413, f"El PDF supera {sd.PR_MAX_BYTES // (1024 * 1024)} MB.")
-    if not datos.startswith(b"%PDF"):
-        raise HTTPException(400, "El archivo no es un PDF.")
+    if payload.tamano <= 0 or payload.tamano > sd.PR_MAX_BYTES:
+        raise HTTPException(413, f"El PDF debe pesar menos de {sd.PR_MAX_BYTES // (1024 * 1024)} MB.")
+    a = sd.pr_subida_iniciar(db, payload.nombre, payload.tamano)
+    return {"archivoId": a.id, "parte": sd.PR_PARTE_MAX - 1024 * 1024}
+
+
+@router.post("/design/api/protocolos/subida/{archivo_id}/parte")
+async def api_protocolo_subida_parte(archivo_id: int, offset: int, request: Request,
+                                     user: Empleado = Depends(require_modulo("design_schedule")),
+                                     db: Session = Depends(get_db)):
+    _pr_editor(user)
+    datos = await request.body()
+    if not datos or len(datos) > sd.PR_PARTE_MAX:
+        raise HTTPException(413, "Parte del archivo inválida.")
     try:
-        textos = json.loads((await paginas.read()).decode("utf-8"))
-        area_ids = [int(x) for x in json.loads(areas or "[]")]
-        assert isinstance(textos, list)
-    except (ValueError, AssertionError, TypeError):
-        raise HTTPException(400, "No se pudo leer el texto de las diapositivas.")
-    if not area_ids:
+        largo = sd.pr_subida_parte(db, archivo_id, offset, datos)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    if largo is None:
+        raise HTTPException(404, "La subida no existe o ya terminó.")
+    return {"recibido": largo}
+
+
+class PdfFinalizarIn(BaseModel):
+    titulo: str = ""
+    areas: list[int] = []
+    version: str = "v1.0"
+    paginas: list[str] = []
+
+
+@router.post("/design/api/protocolos/subida/{archivo_id}/finalizar")
+async def api_protocolo_subida_finalizar(archivo_id: int, payload: PdfFinalizarIn,
+                                         user: Empleado = Depends(require_modulo("design_schedule")),
+                                         db: Session = Depends(get_db)):
+    _pr_editor(user)
+    if not payload.areas:
         raise HTTPException(400, "Elige al menos un área.")
-    p = sd.protocolo_crear_pdf(db, titulo, area_ids, archivo.filename or "", datos, textos, version, user.nombre_completo)
+    try:
+        p = sd.pr_subida_finalizar(db, archivo_id, payload.titulo, payload.areas, payload.paginas,
+                                   payload.version, user.nombre_completo)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     return {"id": p.id}
 
 
