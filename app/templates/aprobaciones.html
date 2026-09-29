@@ -1,7 +1,27 @@
 {% extends "base.html" %}
 {% block contenido %}
+<style>
+  .doc-oculto { display:none; }
+  .doc-ojo { background:none; border:none; cursor:pointer; font-size:16px; padding:4px 6px; }
+  .doc-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .doc-modal-bg.open { display:flex; }
+  .doc-modal { background:#fff; border-radius:12px; padding:24px; max-width:520px; width:100%; }
+  .doc-header { display:flex; align-items:center; gap:14px; border-bottom:2px solid var(--azul); padding-bottom:12px; margin-bottom:8px; }
+  .doc-header img { height:44px; }
+  .doc-header h2 { margin:0; font-size:18px; }
+  .doc-codigo { font-size:12px; color:var(--gris); margin-top:2px; }
+  .doc-fila { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+  .doc-fila b { color:var(--gris); font-weight:600; }
+  @media print {
+    body * { visibility:hidden; }
+    .doc-modal, .doc-modal * { visibility:visible; }
+    .doc-modal { position:absolute; top:0; left:0; width:100%; max-width:100%; box-shadow:none; }
+    .doc-modal-cerrar, .doc-modal-imprimir { display:none; }
+  }
+</style>
 <h1>Aprobaciones</h1>
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% set logo = logo_empresa(user.empresa) %}
 
 <div class="tarjeta">
   <h2>Pendientes de mi decisión ({{ pendientes|length }})</h2>
@@ -18,7 +38,8 @@
       <td>{{ a.solicitud.motivo|truncate(80) }}</td>
       <td>{{ a.nivel }} de {{ a.solicitud.aprobaciones|length }}</td>
       <td style="min-width:220px">
-        <form method="post" action="/aprobaciones/{{ a.id }}">
+        <button type="button" class="doc-ojo" title="Ver resumen" onclick="verDoc('doc-per-{{ a.id }}')">👁️</button>
+        <form method="post" action="/aprobaciones/{{ a.id }}" style="display:inline">
           <input name="comentario" placeholder="Comentario (opcional)">
           <button class="btn verde mini" name="decision" value="aprobada">Aprobar</button>
           <button class="btn rojo mini" name="decision" value="rechazada">Rechazar</button>
@@ -30,6 +51,47 @@
     {% endfor %}
   </table>
 </div>
+
+{% for a in pendientes %}
+<div class="doc-oculto" id="doc-per-{{ a.id }}">
+  <div class="doc-header">
+    {% if logo %}<img src="{{ logo }}" alt="">{% endif %}
+    <div>
+      <h2>Solicitud de permiso</h2>
+      <div class="doc-codigo">Código: F-RH-01 · Versión: 01</div>
+    </div>
+  </div>
+  <div class="doc-fila"><b>Consecutivo</b><span>{{ a.solicitud.consecutivo }}</span></div>
+  <div class="doc-fila"><b>Empleado</b><span>{{ a.solicitud.empleado.nombre_completo }}</span></div>
+  <div class="doc-fila"><b>Tipo de permiso</b><span>{{ a.solicitud.tipo.nombre }}</span></div>
+  <div class="doc-fila"><b>Fechas</b><span>{% if a.solicitud.hora_inicio %}{{ a.solicitud.fecha_inicio }} ({{ a.solicitud.hora_inicio.strftime('%H:%M') }}–{{ a.solicitud.hora_fin.strftime('%H:%M') }}){% else %}{{ a.solicitud.fecha_inicio }} → {{ a.solicitud.fecha_fin }}{% endif %}</span></div>
+  <div class="doc-fila"><b>Días</b><span>{{ a.solicitud.dias }}</span></div>
+  <div class="doc-fila"><b>Motivo</b><span>{{ a.solicitud.motivo or '—' }}</span></div>
+  <div class="doc-fila"><b>Estado</b><span>{{ a.solicitud.estado_texto }}</span></div>
+  {% for ap in a.solicitud.aprobaciones %}
+  <div class="doc-fila"><b>Aprobador nivel {{ ap.nivel }}</b><span>{{ ap.aprobador.nombre_completo }} —
+    {% if ap.decision == 'pendiente' %}Pendiente{% else %}{{ ap.decision|capitalize }}{% if ap.decidida_en %} ({{ ap.decidida_en.strftime('%Y-%m-%d %H:%M') }}){% endif %}{% endif %}</span></div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<div class="doc-modal-bg" id="docModalBg">
+  <div class="doc-modal">
+    <div id="docModalCuerpo"></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button type="button" class="btn doc-modal-imprimir" onclick="window.print()">🖨️ Imprimir</button>
+      <button type="button" class="btn gris doc-modal-cerrar" onclick="document.getElementById('docModalBg').classList.remove('open')">Cerrar</button>
+    </div>
+  </div>
+</div>
+<script>
+function verDoc(origenId) {
+  var origen = document.getElementById(origenId);
+  if (!origen) return;
+  document.getElementById('docModalCuerpo').innerHTML = origen.innerHTML;
+  document.getElementById('docModalBg').classList.add('open');
+}
+</script>
 
 <div class="tarjeta">
   <h2>Historial reciente</h2>

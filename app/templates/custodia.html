@@ -801,9 +801,13 @@ function cargarConfirmaciones() {
         <td>${t.motivo}</td>
         <td></td>
       `;
-      var tdAccion = tr.lastElementChild;
+      var tdAccion = tr.lastElementChild; tdAccion.style.whiteSpace = "nowrap";
+      var btnVer = document.createElement("button");
+      btnVer.className = "btn btn-ver"; btnVer.innerText = "👁️ Ver detalle";
+      btnVer.onclick = function() { abrirModalPreview(t); };
+      tdAccion.appendChild(btnVer);
       var btn = document.createElement("button");
-      btn.className = "btn"; btn.style.padding = "8px 14px"; btn.style.fontSize = "11px";
+      btn.className = "btn"; btn.style.padding = "8px 14px"; btn.style.fontSize = "11px"; btn.style.marginLeft = "6px";
       if (t.puedeFirmar) {
         btn.style.background = "var(--success)";
         btn.innerText = "✔ Confirmar recibido";
