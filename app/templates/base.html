@@ -8,13 +8,13 @@
 </head>
 <body>
 {% if user %}
-{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo %}
+{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_sst %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
   <a href="/" class="marca" title="Ir al inicio: todos los módulos">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </a>
-  {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo %}
+  {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo and not es_sst %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
@@ -60,6 +60,34 @@
   {% else %}
   <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/parametros">Parámetros</a></span>
   <div class="nav-sub"><a href="/caja-menor/parametros" class="activo">⚙️ Parámetros</a></div>
+  {% endif %}
+  {% endif %}
+  {% if es_sst %}
+  {% if request.url.path == '/sst/parametros' %}
+  <span class="nav-ruta"><a href="/sst">🦺 SST</a> › <a href="/sst/parametros">Parámetros</a></span>
+  <div class="nav-sub"><a href="/sst/parametros" class="activo">⚙️ Parámetros</a></div>
+  {% else %}
+  <span class="nav-ruta"><a href="/sst">🦺 SST</a></span>
+  <div class="nav-sub">
+    <a href="/sst" class="sst-tab activo" data-tab="inventario">📦 Inventario</a>
+    <a href="/sst" class="sst-tab" data-tab="solicitar">📝 Solicitar EPP</a>
+    <a href="/sst" class="sst-tab" data-tab="mias">📋 Mis solicitudes</a>
+    {% if es_compras %}
+    <span class="nav-sep">│</span>
+    <a href="/sst" class="sst-tab" data-tab="ingreso">📥 Registrar ingreso</a>
+    {% endif %}
+    {% if es_coordinador %}
+    <span class="nav-sep">│</span>
+    <a href="/sst" class="sst-tab" data-tab="aprobar-ingresos">✅ Aprobar ingresos</a>
+    <a href="/sst" class="sst-tab" data-tab="aprobar-solicitudes">🚚 Entregar solicitudes</a>
+    {% endif %}
+    <span class="nav-sep">│</span>
+    <a href="/sst" class="sst-tab" data-tab="reportes">📊 Reportes</a>
+    {% if user.rol in ('admin', 'superadmin') %}
+    <span class="nav-sep">│</span>
+    <a href="/sst/parametros">⚙️ Parámetros</a>
+    {% endif %}
+  </div>
   {% endif %}
   {% endif %}
   {% if es_consumo %}

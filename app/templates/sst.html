@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block contenido %}
+<style>
+  .sst-seccion { display:none; }
+  .sst-seccion.activa { display:block; }
+  .sst-barra { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .sst-sub { color:var(--gris); font-size:13px; margin:0; }
+  .sst-linea { display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:8px; }
+  .sst-vacio { color:var(--gris); text-align:center; padding:18px; }
+  .sst-acciones { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+</style>
+<h1 style="margin-bottom:4px">🦺 SST — Inventario de EPP</h1>
+<p class="sst-sub" style="margin-bottom:18px">Nuvia Smiles Colombia SAS</p>
+
+<!-- ============ INVENTARIO ============ -->
+<div id="sec-inventario" class="sst-seccion activa tarjeta">
+  <div class="sst-barra"><h2 style="margin:0">📦 Inventario actual</h2>
+    <div><label style="display:inline;margin-right:6px">A fecha:</label><input type="date" id="invFecha" style="width:auto;display:inline-block;margin:0" onchange="cargarInventario()"></div>
+  </div>
+  <table><thead><tr><th>EPP</th><th>Unidad de conteo</th><th>Stock (unidades)</th></tr></thead>
+    <tbody id="invCuerpo"><tr><td colspan="3" class="sst-vacio">Cargando…</td></tr></tbody></table>
+</div>
+
+<!-- ============ SOLICITAR EPP ============ -->
+<div id="sec-solicitar" class="sst-seccion tarjeta">
+  <h2 style="margin-top:0">📝 Solicitar EPP</h2>
+  <p class="sst-sub">Agrega los EPP que necesitas. La Coordinación SST aprueba y entrega la solicitud completa.</p>
+  <div id="solLineas"></div>
+  <div class="sst-acciones">
+    <button type="button" class="btn gris" onclick="agregarLineaSolicitud()">＋ Agregar ítem</button>
+  </div>
+  <div style="margin-top:12px"><label>Notas (opcional)</label><textarea id="solNotas" rows="2"></textarea></div>
+  <div class="sst-acciones"><button type="button" class="btn verde" onclick="enviarSolicitud()">Enviar solicitud</button></div>
+  <div id="solMsg"></div>
+</div>
+
+<!-- ============ MIS SOLICITUDES ============ -->
+<div id="sec-mias" class="sst-seccion tarjeta">
+  <h2 style="margin-top:0">📋 Mis solicitudes</h2>
+  <table><thead><tr><th>Fecha</th><th>Ítems</th><th>Estado</th><th>Notas</th></tr></thead>
+    <tbody id="miasCuerpo"><tr><td colspan="4" class="sst-vacio">Cargando…</td></tr></tbody></table>
+</div>
+
+{% if es_compras %}
+<!-- ============ REGISTRAR INGRESO ============ -->
+<div id="sec-ingreso" class="sst-seccion tarjeta">
+  <h2 style="margin-top:0">📥 Registrar ingreso</h2>
+  <p class="sst-sub">Queda pendiente de aprobación de Coordinación SST antes de sumar al inventario.</p>
+  <div class="sst-linea" style="grid-template-columns:2fr 1fr 1fr 1fr">
+    <div><label>Ítem</label><select id="ingItem"></select></div>
+    <div><label>Cantidad</label><input type="number" min="0" step="any" id="ingCantidad"></div>
+    <div><label>Unidad</label><select id="ingUnidad"></select></div>
+    <div><label>Fecha</label><input type="date" id="ingFecha"></div>
+  </div>
+  <div><label>Notas (opcional)</label><textarea id="ingNotas" rows="2"></textarea></div>
+  <div class="sst-acciones"><button type="button" class="btn verde" onclick="registrarIngreso()">Registrar ingreso</button></div>
+  <div id="ingMsg"></div>
+</div>
+{% endif %}
+
+{% if es_coordinador %}
+<!-- ============ APROBAR INGRESOS ============ -->
+<div id="sec-aprobar-ingresos" class="sst-seccion tarjeta">
+  <h2 style="margin-top:0">✅ Ingresos pendientes de aprobación</h2>
+  <table><thead><tr><th>Fecha</th><th>Ítem</th><th>Cantidad</th><th>Registrado por</th><th>Notas</th><th>Acción</th></tr></thead>
+    <tbody id="aiCuerpo"><tr><td colspan="6" class="sst-vacio">Cargando…</td></tr></tbody></table>
+</div>
+
+<!-- ============ APROBAR / ENTREGAR SOLICITUDES ============ -->
+<div id="sec-aprobar-solicitudes" class="sst-seccion tarjeta">
+  <h2 style="margin-top:0">🚚 Solicitudes pendientes de entrega</h2>
+  <table><thead><tr><th>Fecha</th><th>Solicitante</th><th>Ítems</th><th>Notas</th><th>Acción</th></tr></thead>
+    <tbody id="asCuerpo"><tr><td colspan="5" class="sst-vacio">Cargando…</td></tr></tbody></table>
+</div>
+{% endif %}
+
+<!-- ============ REPORTES ============ -->
+<div id="sec-reportes" class="sst-seccion tarjeta">
+  <h2 style="margin-top:0">📊 Reportes</h2>
+  <h3>Inventario a una fecha</h3>
+  <div class="filtros"><div><label>Fecha</label><input type="date" id="repFecha"></div>
+    <div style="align-self:end"><button type="button" class="btn" onclick="cargarReporteInventario()">Consultar</button></div></div>
+  <table><thead><tr><th>EPP</th><th>Stock (unidades)</th></tr></thead>
+    <tbody id="repInvCuerpo"><tr><td colspan="2" class="sst-vacio">Elige una fecha.</td></tr></tbody></table>
+  <h3 style="margin-top:26px">Seguimiento de movimientos</h3>
+  <div class="filtros"><div><label>Desde</label><input type="date" id="repDesde"></div>
+    <div><label>Hasta</label><input type="date" id="repHasta"></div>
+    <div style="align-self:end"><button type="button" class="btn" onclick="cargarReporteMovimientos()">Consultar</button></div></div>
+  <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Ítem</th><th>Cantidad</th><th>Persona</th></tr></thead>
+    <tbody id="repMovCuerpo"><tr><td colspan="5" class="sst-vacio">Elige un rango.</td></tr></tbody></table>
+</div>
+
+<script>
+(function() {
+  var CATALOGO = [];
+
+  function api(url, opts) {
+    return fetch(url, opts || {}).then(function(r) {
+      if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || r.statusText); });
+      return r.json();
+    });
+  }
+  function post(url, datos) { return api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datos || {})}); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function num(v) { return Number(v || 0).toLocaleString('es-CO', {maximumFractionDigits: 2}); }
+  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+  function badgeEstado(e) {
+    var mapa = {pendiente: 'pendiente', aprobado: 'aprobada', entregada: 'aprobada', rechazado: 'rechazada', rechazada: 'rechazada'};
+    var texto = {pendiente: 'Pendiente', aprobado: 'Aprobado', entregada: 'Entregada', rechazado: 'Rechazado', rechazada: 'Rechazada'};
+    return '<span class="badge ' + (mapa[e] || '') + '">' + (texto[e] || e) + '</span>';
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.sst-seccion').forEach(function(s) { s.classList.remove('activa'); });
+    var sec = document.getElementById('sec-' + tab); if (!sec) return; sec.classList.add('activa');
+    document.querySelectorAll('.sst-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
+    if (tab === 'inventario') cargarInventario();
+    if (tab === 'mias') cargarMias();
+    if (tab === 'aprobar-ingresos') cargarIngresosPendientes();
+    if (tab === 'aprobar-solicitudes') cargarSolicitudesPendientes();
+  }
+  document.querySelectorAll('.sst-tab').forEach(function(a) { a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); }); });
+  window.addEventListener('DOMContentLoaded', function() {
+    var params = new URLSearchParams(location.search);
+    switchTab(params.get('panel') || 'inventario');
+  });
+
+  // ---------------- catálogo / inventario ----------------
+  function cargarCatalogo() {
+    return api('/sst/api/catalogo').then(function(d) { CATALOGO = d; });
+  }
+  function opcionesUnidad(sel, unidadConteo) {
+    var opts = unidadConteo === 'PACK' ? ['PACK', 'UND'] : [unidadConteo];
+    sel.innerHTML = opts.map(function(u) { return '<option value="' + u + '">' + u + '</option>'; }).join('');
+  }
+
+  document.getElementById('invFecha').value = hoyISO();
+  function cargarInventario() {
+    var fecha = document.getElementById('invFecha').value || hoyISO();
+    api('/sst/api/stock?fecha=' + fecha).then(function(filas) {
+      var cuerpo = document.getElementById('invCuerpo');
+      cuerpo.innerHTML = filas.map(function(f) {
+        return '<tr><td>' + esc(f.nombre) + '</td><td>' + esc(f.unidadConteo) + '</td><td>' + num(f.stockUnidades) + '</td></tr>';
+      }).join('') || '<tr><td colspan="3" class="sst-vacio">Sin ítems.</td></tr>';
+    });
+  }
+
+  // ---------------- solicitar ----------------
+  function agregarLineaSolicitud() {
+    var cont = document.getElementById('solLineas');
+    var fila = document.createElement('div');
+    fila.className = 'sst-linea';
+    var opcionesItems = CATALOGO.map(function(it) { return '<option value="' + it.id + '">' + esc(it.nombre) + '</option>'; }).join('');
+    fila.innerHTML =
+      '<div><label>Ítem</label><select class="sl-item">' + opcionesItems + '</select></div>' +
+      '<div><label>Cantidad</label><input type="number" min="0" step="any" class="sl-cantidad"></div>' +
+      '<div><label>Unidad</label><select class="sl-unidad"></select></div>' +
+      '<div><button type="button" class="btn gris mini" onclick="this.closest(\'.sst-linea\').remove()">✕</button></div>';
+    cont.appendChild(fila);
+    var selItem = fila.querySelector('.sl-item'), selUnidad = fila.querySelector('.sl-unidad');
+    function sync() {
+      var it = CATALOGO.find(function(x) { return String(x.id) === selItem.value; });
+      if (it) opcionesUnidad(selUnidad, it.unidadConteo);
+    }
+    selItem.addEventListener('change', sync);
+    sync();
+  }
+  window.agregarLineaSolicitud = agregarLineaSolicitud;
+
+  window.enviarSolicitud = function() {
+    var lineas = Array.from(document.querySelectorAll('#solLineas .sst-linea')).map(function(fila) {
+      return {itemId: parseInt(fila.querySelector('.sl-item').value), cantidad: parseFloat(fila.querySelector('.sl-cantidad').value || 0),
+             unidadUsada: fila.querySelector('.sl-unidad').value};
+    }).filter(function(l) { return l.cantidad > 0; });
+    var msg = document.getElementById('solMsg');
+    if (!lineas.length) { msg.innerHTML = '<div class="aviso error">Agrega al menos un ítem con cantidad.</div>'; return; }
+    post('/sst/api/solicitudes', {lineas: lineas, notas: document.getElementById('solNotas').value})
+      .then(function() {
+        msg.innerHTML = '<div class="aviso ok">Solicitud enviada.</div>';
+        document.getElementById('solLineas').innerHTML = ''; document.getElementById('solNotas').value = '';
+        agregarLineaSolicitud();
+      })
+      .catch(function(e) { msg.innerHTML = '<div class="aviso error">' + esc(e.message) + '</div>'; });
+  };
+
+  // ---------------- mis solicitudes ----------------
+  function cargarMias() {
+    api('/sst/api/solicitudes/mias').then(function(sols) {
+      var cuerpo = document.getElementById('miasCuerpo');
+      cuerpo.innerHTML = sols.map(function(s) {
+        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ')'; }).join(', ');
+        return '<tr><td>' + s.fecha + '</td><td>' + items + '</td><td>' + badgeEstado(s.estado) +
+          (s.estado === 'rechazada' && s.motivoRechazo ? '<br><small>' + esc(s.motivoRechazo) + '</small>' : '') +
+          '</td><td>' + esc(s.notas) + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="sst-vacio">Aún no has hecho solicitudes.</td></tr>';
+    });
+  }
+
+  {% if es_compras %}
+  // ---------------- registrar ingreso ----------------
+  document.getElementById('ingFecha').value = hoyISO();
+  document.getElementById('ingItem').addEventListener('change', function() {
+    var it = CATALOGO.find(function(x) { return String(x.id) === this.value; }.bind(this));
+    if (it) opcionesUnidad(document.getElementById('ingUnidad'), it.unidadConteo);
+  });
+  window.registrarIngreso = function() {
+    var msg = document.getElementById('ingMsg');
+    var payload = {itemId: parseInt(document.getElementById('ingItem').value), cantidad: parseFloat(document.getElementById('ingCantidad').value || 0),
+                   unidadUsada: document.getElementById('ingUnidad').value, fecha: document.getElementById('ingFecha').value,
+                   notas: document.getElementById('ingNotas').value};
+    if (!(payload.cantidad > 0)) { msg.innerHTML = '<div class="aviso error">Ingresa una cantidad válida.</div>'; return; }
+    post('/sst/api/ingresos', payload)
+      .then(function() {
+        msg.innerHTML = '<div class="aviso ok">Ingreso registrado, queda pendiente de aprobación.</div>';
+        document.getElementById('ingCantidad').value = ''; document.getElementById('ingNotas').value = '';
+      })
+      .catch(function(e) { msg.innerHTML = '<div class="aviso error">' + esc(e.message) + '</div>'; });
+  };
+  {% endif %}
+
+  {% if es_coordinador %}
+  // ---------------- aprobar ingresos ----------------
+  function cargarIngresosPendientes() {
+    api('/sst/api/ingresos/pendientes').then(function(filas) {
+      var cuerpo = document.getElementById('aiCuerpo');
+      cuerpo.innerHTML = filas.map(function(i) {
+        return '<tr><td>' + i.fecha + '</td><td>' + esc(i.item) + '</td><td>' + num(i.cantidadIngresada) + ' ' + i.unidadUsada +
+          ' (' + num(i.cantidadUnidades) + ' unidades)</td><td>' + esc(i.registradoPor) + '</td><td>' + esc(i.notas) + '</td>' +
+          '<td><button type="button" class="btn verde mini" onclick="aprobarIngreso(' + i.id + ')">Aprobar</button> ' +
+          '<button type="button" class="btn rojo mini" onclick="rechazarIngreso(' + i.id + ')">Rechazar</button></td></tr>';
+      }).join('') || '<tr><td colspan="6" class="sst-vacio">No hay ingresos pendientes.</td></tr>';
+    });
+  }
+  window.aprobarIngreso = function(id) { post('/sst/api/ingresos/' + id + '/aprobar').then(cargarIngresosPendientes); };
+  window.rechazarIngreso = function(id) {
+    var motivo = prompt('Motivo del rechazo:'); if (motivo === null) return;
+    post('/sst/api/ingresos/' + id + '/rechazar', {motivo: motivo}).then(cargarIngresosPendientes);
+  };
+
+  // ---------------- aprobar/entregar solicitudes ----------------
+  function cargarSolicitudesPendientes() {
+    api('/sst/api/solicitudes/pendientes').then(function(sols) {
+      var cuerpo = document.getElementById('asCuerpo');
+      cuerpo.innerHTML = sols.map(function(s) {
+        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ')'; }).join(', ');
+        return '<tr><td>' + s.fecha + '</td><td>' + esc(s.solicitante) + '</td><td>' + items + '</td><td>' + esc(s.notas) + '</td>' +
+          '<td><button type="button" class="btn verde mini" onclick="entregarSolicitud(' + s.id + ')">Entregar</button> ' +
+          '<button type="button" class="btn rojo mini" onclick="rechazarSolicitud(' + s.id + ')">Rechazar</button></td></tr>';
+      }).join('') || '<tr><td colspan="5" class="sst-vacio">No hay solicitudes pendientes.</td></tr>';
+    });
+  }
+  window.entregarSolicitud = function(id) {
+    post('/sst/api/solicitudes/' + id + '/entregar').then(cargarSolicitudesPendientes)
+      .catch(function(e) { alert(e.message); });
+  };
+  window.rechazarSolicitud = function(id) {
+    var motivo = prompt('Motivo del rechazo:'); if (motivo === null) return;
+    post('/sst/api/solicitudes/' + id + '/rechazar', {motivo: motivo}).then(cargarSolicitudesPendientes);
+  };
+  {% endif %}
+
+  // ---------------- reportes ----------------
+  document.getElementById('repFecha').value = hoyISO();
+  window.cargarReporteInventario = function() {
+    var fecha = document.getElementById('repFecha').value || hoyISO();
+    api('/sst/api/reportes/inventario?fecha=' + fecha).then(function(filas) {
+      document.getElementById('repInvCuerpo').innerHTML = filas.map(function(f) {
+        return '<tr><td>' + esc(f.nombre) + '</td><td>' + num(f.stockUnidades) + '</td></tr>';
+      }).join('') || '<tr><td colspan="2" class="sst-vacio">Sin ítems.</td></tr>';
+    });
+  };
+  window.cargarReporteMovimientos = function() {
+    var desde = document.getElementById('repDesde').value, hasta = document.getElementById('repHasta').value;
+    if (!desde || !hasta) return;
+    api('/sst/api/reportes/movimientos?desde=' + desde + '&hasta=' + hasta).then(function(filas) {
+      document.getElementById('repMovCuerpo').innerHTML = filas.map(function(m) {
+        return '<tr><td>' + m.fecha + '</td><td>' + m.tipo + '</td><td>' + esc(m.item) + '</td><td>' + num(m.cantidadUnidades) +
+          '</td><td>' + esc(m.persona) + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" class="sst-vacio">Sin movimientos en ese rango.</td></tr>';
+    });
+  };
+
+  cargarCatalogo().then(function() {
+    agregarLineaSolicitud();
+    cargarInventario();
+  });
+})();
+</script>
+{% endblock %}

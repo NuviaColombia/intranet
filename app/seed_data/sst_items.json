@@ -1,0 +1,314 @@
+[
+ {
+  "nombre": "Guantes Nitriles Gloves Largos L",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 7605.0
+ },
+ {
+  "nombre": "Guantes Nitriles Gloves Largos M",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 14336.0
+ },
+ {
+  "nombre": "Guantes Nitriles Gloves Largos S",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 10758.0
+ },
+ {
+  "nombre": "Guantes Nitriles Gloves cortos L",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 3243.0
+ },
+ {
+  "nombre": "Guantes Nitriles Gloves cortos M",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 4730.0
+ },
+ {
+  "nombre": "Guantes Nitriles Gloves cortos S",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 3252.0
+ },
+ {
+  "nombre": "Guantes Bio Fit Cortos M sin talco",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 1500.0
+ },
+ {
+  "nombre": "Guantes Coraza Largos L 8mm",
+  "unidadConteo": "PACK",
+  "presentacion": 50,
+  "stockActual": 1550.0
+ },
+ {
+  "nombre": "Guantes Coraza Largos M 8mm",
+  "unidadConteo": "PACK",
+  "presentacion": 50,
+  "stockActual": 600.0
+ },
+ {
+  "nombre": "Guantes Coraza Largos S 8mm",
+  "unidadConteo": "PACK",
+  "presentacion": 50,
+  "stockActual": 1150.0
+ },
+ {
+  "nombre": "Gorro",
+  "unidadConteo": "PACK",
+  "presentacion": 100,
+  "stockActual": 49425.0
+ },
+ {
+  "nombre": "Tapabocas N95",
+  "unidadConteo": "PACK",
+  "presentacion": 25,
+  "stockActual": 16423.0
+ },
+ {
+  "nombre": "Tapabocas desechables",
+  "unidadConteo": "PACK",
+  "presentacion": 50,
+  "stockActual": 5100.0
+ },
+ {
+  "nombre": "Respirador N95",
+  "unidadConteo": "PACK",
+  "presentacion": 25,
+  "stockActual": 575.0
+ },
+ {
+  "nombre": "Gorro escafandra",
+  "unidadConteo": "PACK",
+  "presentacion": 50,
+  "stockActual": 100.0
+ },
+ {
+  "nombre": "Filtro de gases y vapores",
+  "unidadConteo": "PACK",
+  "presentacion": 2,
+  "stockActual": 28.0
+ },
+ {
+  "nombre": "Máscara media Cara",
+  "unidadConteo": "PACK",
+  "presentacion": 1,
+  "stockActual": 14.0
+ },
+ {
+  "nombre": "Máscara Full face",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 3.0
+ },
+ {
+  "nombre": "Filtro de MP P100",
+  "unidadConteo": "PACK",
+  "presentacion": 2,
+  "stockActual": 14.0
+ },
+ {
+  "nombre": "Filtros MP 7093",
+  "unidadConteo": "PACK",
+  "presentacion": 2,
+  "stockActual": 18.0
+ },
+ {
+  "nombre": "Delantal PVC Negro",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 0.0
+ },
+ {
+  "nombre": "Bata quirúrgica Biofit Resortadas M-L",
+  "unidadConteo": "PACK",
+  "presentacion": 10,
+  "stockActual": 150.0
+ },
+ {
+  "nombre": "Bata quirúrgica S",
+  "unidadConteo": "PACK",
+  "presentacion": 10,
+  "stockActual": 157.0
+ },
+ {
+  "nombre": "Bata quirúrgica M",
+  "unidadConteo": "PACK",
+  "presentacion": 10,
+  "stockActual": 241.0
+ },
+ {
+  "nombre": "Bata quirúrgica L",
+  "unidadConteo": "PACK",
+  "presentacion": 10,
+  "stockActual": 138.0
+ },
+ {
+  "nombre": "Gafas de Seguridad",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 124.0
+ },
+ {
+  "nombre": "Gafas Sobrepuestas",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 4.0
+ },
+ {
+  "nombre": "Monogafas",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 2.0
+ },
+ {
+  "nombre": "Overol antifluido Talla M azul turqui",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 0.0
+ },
+ {
+  "nombre": "Overol antifluido Talla L azul turqui",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 0.0
+ },
+ {
+  "nombre": "Overol Tela Antifluido S Blanco",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 2.0
+ },
+ {
+  "nombre": "Overol Tela Antifluido L Blanco",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 6.0
+ },
+ {
+  "nombre": "Overol Tela Antifluido XL Blanco",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 2.0
+ },
+ {
+  "nombre": "Overol desechables Tyuek M",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 9.0
+ },
+ {
+  "nombre": "Overol desechables Tyuek L",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 4.0
+ },
+ {
+  "nombre": "Protectores Auditivos Reutilizables",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 267.0
+ },
+ {
+  "nombre": "Protectores Auditivos de Copa",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 3.0
+ },
+ {
+  "nombre": "Guantes deseguridad poliuretano T10",
+  "unidadConteo": "PACK",
+  "presentacion": 2,
+  "stockActual": 4.0
+ },
+ {
+  "nombre": "Guantes de seguridad poliuretano T09",
+  "unidadConteo": "PACK",
+  "presentacion": 2,
+  "stockActual": 12.0
+ },
+ {
+  "nombre": "Chaleco brigadistas talla S",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 5.0
+ },
+ {
+  "nombre": "Chaleco brigadista talla M",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 7.0
+ },
+ {
+  "nombre": "Chaleco brigadistas talla L",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 4.0
+ },
+ {
+  "nombre": "Chaleco brigadista talla XL",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 2.0
+ },
+ {
+  "nombre": "Botas de seguridad dieléctrica",
+  "unidadConteo": "PACK",
+  "presentacion": 1,
+  "stockActual": 1.0
+ },
+ {
+  "nombre": "Casco de seguridad azul",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 1.0
+ },
+ {
+  "nombre": "Alcohol antiseptico 70%",
+  "unidadConteo": "GALON",
+  "presentacion": 1,
+  "stockActual": 1.0
+ },
+ {
+  "nombre": "Venda elastica 3x5\"",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 3.0
+ },
+ {
+  "nombre": "Venda de algodón 5x5\"",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 9.0
+ },
+ {
+  "nombre": "Jeringa de 10cc",
+  "unidadConteo": "UND",
+  "presentacion": 1,
+  "stockActual": 22.0
+ },
+ {
+  "nombre": "Diclofenaco gel topico al 1%",
+  "unidadConteo": "UND",
+  "presentacion": 2,
+  "stockActual": 8.0
+ },
+ {
+  "nombre": "Gorro gel frio para aliviar el dolor de cabeza",
+  "unidadConteo": "UND",
+  "presentacion": 2,
+  "stockActual": 8.0
+ },
+ {
+  "nombre": "Gasas esteriles",
+  "unidadConteo": "PACK",
+  "presentacion": 5,
+  "stockActual": 355.0
+ }
+]

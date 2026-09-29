@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>⚙️ Parámetros — SST</h1>
+<p style="color:var(--gris);font-size:13px">Catálogo de EPP y quién tiene acceso de Compras (registra ingresos) o
+  Coordinación SST (aprueba ingresos, aprueba y entrega solicitudes).</p>
+{% if msg %}<div class="aviso {{ 'error' if msg.startswith('No se') else 'ok' }}">{{ msg }}</div>{% endif %}
+
+<div class="tarjeta">
+  <h2>Agregar ítem de EPP</h2>
+  <form method="post" action="/sst/parametros/items" class="filtros">
+    <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: Guantes Nitriles Largos M"></div>
+    <div><label>Unidad de conteo</label>
+      <select name="unidad_conteo">
+        <option value="PACK">PACK (paquete/caja)</option>
+        <option value="UND">UND (unidad suelta)</option>
+        <option value="GALON">GALON</option>
+      </select>
+    </div>
+    <div><label>Unidades por paquete</label><input name="presentacion" type="number" min="1" value="1"></div>
+    <div><button class="btn">Agregar</button></div>
+  </form>
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>Catálogo de EPP</h2>
+  <table>
+    <tr><th>Nombre</th><th>Unidad de conteo</th><th>Unidades por paquete</th><th>Estado</th><th></th></tr>
+    {% for it in items %}
+    <tr>
+      <td colspan="3">
+        <form class="inline filtros" method="post" action="/sst/parametros/items/{{ it.id }}">
+          <div style="flex:2"><input name="nombre" value="{{ it.nombre }}" required></div>
+          <div><select name="unidad_conteo">
+            <option value="PACK" {{ 'selected' if it.unidad_conteo == 'PACK' }}>PACK</option>
+            <option value="UND" {{ 'selected' if it.unidad_conteo == 'UND' }}>UND</option>
+            <option value="GALON" {{ 'selected' if it.unidad_conteo == 'GALON' }}>GALON</option>
+          </select></div>
+          <div><input name="presentacion" type="number" min="1" value="{{ it.presentacion }}"></div>
+          <div><button class="btn mini">Guardar</button></div>
+        </form>
+      </td>
+      <td>{{ 'Activo' if it.activo else 'Inactivo' }}</td>
+      <td><form class="inline" method="post" action="/sst/parametros/items/{{ it.id }}/toggle">
+        <button class="btn gris mini">{{ 'Desactivar' if it.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>Dar acceso de Compras o Coordinación SST</h2>
+  <form method="post" action="/sst/parametros/accesos" class="filtros">
+    <div style="flex:2"><label>Empleado (Nuvia Smiles)</label>
+      <select name="empleado_id" required>
+        <option value="">Seleccionar…</option>
+        {% for c in candidatos %}<option value="{{ c.id }}">{{ c.nombre_completo }} — {{ c.cargo }}</option>{% endfor %}
+      </select>
+    </div>
+    <div><label>Rol en SST</label>
+      <select name="rol_sst">
+        <option value="compras">Compras (registra ingresos)</option>
+        <option value="coordinador">Coordinación SST (aprueba y entrega)</option>
+      </select>
+    </div>
+    <div><button class="btn">Dar acceso</button></div>
+  </form>
+</div>
+
+<div class="tarjeta">
+  <h2>Accesos actuales</h2>
+  <table>
+    <tr><th>Empleado</th><th>Cargo</th><th>Rol en SST</th><th></th></tr>
+    {% for a in accesos %}
+    <tr>
+      <td>{{ a.empleado.nombre_completo }}</td>
+      <td>{{ a.empleado.cargo }}</td>
+      <td>{{ 'Compras' if a.rol_sst == 'compras' else 'Coordinación SST' }}</td>
+      <td><form class="inline" method="post" action="/sst/parametros/accesos/{{ a.id }}/quitar"
+                onsubmit="return confirm('¿Quitar este acceso?');">
+        <button class="btn rojo mini">Quitar</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="text-align:center;color:var(--gris)">Nadie tiene acceso de Compras o Coordinación SST todavía.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

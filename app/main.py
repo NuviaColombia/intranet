@@ -1,4 +1,5 @@
 import json
+from datetime import date, datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +10,7 @@ from . import config
 from .database import engine, SessionLocal
 from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
 from .models_custodia import CustodiaArea, CustodiaMotivo
+from .models_sst import SstItem, SstIngreso, SstAcceso
 from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, DesignPreApprovedSheet,
                             DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
                             DesignPreApprovedCelda, DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado,
@@ -17,7 +19,7 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
                             FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule, inventario,
-                      caja_menor, consumo)
+                      caja_menor, consumo, sst)
 
 app = FastAPI(title="Solicitudes Nuvia", docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, max_age=60 * 60 * 10,
@@ -49,6 +51,7 @@ app.include_router(design_schedule.router)
 app.include_router(inventario.router)
 app.include_router(caja_menor.router)
 app.include_router(consumo.router)
+app.include_router(sst.router)
 
 
 @app.exception_handler(307)
@@ -424,6 +427,54 @@ def init_db():
         for i, (nombre, texto) in enumerate(CMT_TEMPLATES_FIJAS, start=1):
             if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre).first():
                 db.add(DesignComentarioTemplate(nombre=nombre, texto=texto, es_fija=1, orden=i))
+        # SST: catálogo de EPP + inventario real de partida, migrados de
+        # "CONTROL DE INVENTARIO INSUMOS SST 2026.xlsx" (hoja "Ingresos-Salidas AGOSTO 2").
+        seed_sst_path = Path(__file__).resolve().parent / "seed_data" / "sst_items.json"
+        if seed_sst_path.exists() and db.query(SstItem).count() == 0:
+            with open(seed_sst_path, encoding="utf-8") as f:
+                sst_data = json.load(f)
+            hoy = date.today()
+            for i, fila in enumerate(sst_data, start=1):
+                item = SstItem(nombre=fila["nombre"], unidad_conteo=fila["unidadConteo"],
+                               presentacion=fila["presentacion"], orden=i)
+                db.add(item)
+                db.flush()
+                if fila["stockActual"] > 0:
+                    db.add(SstIngreso(item_id=item.id, cantidad_ingresada=fila["stockActual"],
+                                      unidad_usada="UND", cantidad_unidades=fila["stockActual"],
+                                      fecha=hoy, estado="aprobado", registrado_por_id=None,
+                                      resuelto_en=datetime.utcnow(),
+                                      notas="Inventario inicial migrado desde Excel"))
+        # SST: acceso de Compras y Coordinación SST para las personas responsables. Si no se
+        # encuentra a alguien por nombre, no se inventa el registro -- queda para asignar a mano
+        # en /sst/parametros (se reporta abajo).
+        def _normalizar_sst(s: str) -> str:
+            import unicodedata
+            s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode("ascii")
+            return " ".join(s.lower().split())
+
+        def _buscar_por_nombre_sst(nombre_buscado: str) -> Empleado | None:
+            palabras = set(_normalizar_sst(nombre_buscado).split())
+            candidatos = (db.query(Empleado)
+                         .filter(Empleado.empresa == "Nuvia Smiles Colombia SAS", Empleado.activo == 1).all())
+            for c in candidatos:
+                if palabras <= set(_normalizar_sst(c.nombre_completo).split()):
+                    return c
+            return None
+
+        if db.query(SstAcceso).count() == 0:
+            asignaciones_sst = [("Boris Urrego", "compras"), ("Dayana Mendoza", "compras"),
+                                ("Vanessa Reyes", "coordinador")]
+            no_encontrados = []
+            for nombre_buscado, rol_sst in asignaciones_sst:
+                emp = _buscar_por_nombre_sst(nombre_buscado)
+                if emp:
+                    db.add(SstAcceso(empleado_id=emp.id, rol_sst=rol_sst))
+                else:
+                    no_encontrados.append(nombre_buscado)
+            if no_encontrados:
+                print(f"SST: no se encontró en Empleados (Nuvia Smiles) a: {', '.join(no_encontrados)}. "
+                      f"Asignar manualmente en /sst/parametros.")
         # Garantizar que los correos de ADMIN_EMAILS existan y tengan rol admin
         for email in config.ADMIN_EMAILS:
             emp = db.query(Empleado).filter(Empleado.email == email).first()
