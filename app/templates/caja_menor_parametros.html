@@ -33,7 +33,7 @@
 </style>
 
 <div class="cmp-titulo"><h1>⚙️ Parámetros</h1><span>Caja menor Nuvia · cada caja es independiente</span></div>
-{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% if msg %}<div class="aviso {{ 'error' if msg.startswith('No se') or msg.startswith('Es el responsable') or msg.startswith('Elige') else 'ok' }}">{{ msg }}</div>{% endif %}
 
 {# Selector de caja: al elegirla se cargan solo sus pestañas (datos, accesos, quién autoriza y quién supervisa) #}
 <div class="cmp-selector">
@@ -117,9 +117,9 @@
 
 {# ================= Cada caja ================= #}
 {% set textos = {
-  'accesos': ('Personas que <b>operan</b> esta caja: crean, editan y anulan recibos, legalizan y hacen arqueos. El responsable se elige entre ellas (pestaña Datos). No pueden autorizar ni supervisar esta misma caja.', 'Dar acceso', '¿Quitar el acceso a esta caja de'),
-  'autorizan': ('Personas que <b>autorizan los recibos</b> de esta caja (firma «Aprobado por»). Solo consultan y firman; si no están de acuerdo dejan una observación. No pueden operar esta misma caja.', 'Agregar quien autoriza', '¿Quitar de quienes autorizan esta caja a'),
-  'supervisan': ('Personas que <b>dan el visto bueno a los FM</b> de esta caja (firma «Supervisado por»). Solo consultan y firman; si no están de acuerdo dejan una observación. No pueden operar esta misma caja.', 'Agregar quien supervisa', '¿Quitar de quienes supervisan esta caja a'),
+  'accesos': ('Personas que <b>operan</b> esta caja: crean, editan y anulan recibos, legalizan y hacen arqueos. El responsable se elige entre ellas (pestaña Datos). No pueden autorizar ni supervisar esta misma caja (los administradores sí).', 'Dar acceso', '¿Quitar el acceso a esta caja de'),
+  'autorizan': ('Personas que <b>autorizan los recibos</b> de esta caja (firma «Aprobado por»). Solo consultan y firman; si no están de acuerdo dejan una observación. No pueden operar esta misma caja (los administradores sí).', 'Agregar quien autoriza', '¿Quitar de quienes autorizan esta caja a'),
+  'supervisan': ('Personas que <b>dan el visto bueno a los FM</b> de esta caja (firma «Supervisado por»). Solo consultan y firman; si no están de acuerdo dejan una observación. No pueden operar esta misma caja (los administradores sí).', 'Agregar quien supervisa', '¿Quitar de quienes supervisan esta caja a'),
 } %}
 {% for c in cajas %}
 <div class="cmp-panel" id="panel-caja{{ c.id }}-datos">
@@ -158,7 +158,12 @@
         <select name="empleado_id" id="lista-{{ c.id }}-{{ rol }}" required>
           <option value="">— Elige una persona —</option>
           {% for e in activos if e not in miembros[rol][c.id] %}
-          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} · {{ e.cargo }}</option>
+          {# Quien opera no firma la misma caja y viceversa (los administradores pueden ambos) #}
+          {% set admin = e.rol in ('admin', 'superadmin') %}
+          {% set firma_aqui = e in miembros.autorizan[c.id] or e in miembros.supervisan[c.id] %}
+          {% set opera_aqui = e in miembros.accesos[c.id] or c.responsable_id == e.id %}
+          {% set bloqueo = '' if admin else ('firma en esta caja' if rol == 'accesos' and firma_aqui else ('opera esta caja' if rol != 'accesos' and opera_aqui else '')) %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}" {{ 'disabled' if bloqueo }}>{{ e.nombre_completo|nombre_propio }} · {{ e.cargo }}{{ ' (' ~ bloqueo ~ ')' if bloqueo }}</option>
           {% endfor %}
         </select></div>
       <div><button class="btn mini">{{ boton }}</button></div>
