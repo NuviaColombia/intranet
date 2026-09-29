@@ -124,15 +124,23 @@ def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)
         "por_empleado": por_empleado, "msg": request.query_params.get("msg")})
 
 
+def _responsable_es_admin(db: Session, caja) -> bool:
+    r = sc.responsable_de_caja(db, caja)
+    return bool(r and sc.es_admin(r))
+
+
 @router.get("/caja-menor/{caja_id}")
 def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                 db: Session = Depends(get_db)):
     caja, solo_firmas = _caja_o_firmas(db, user, caja_id)
     return templates.TemplateResponse(request, "caja_menor.html", {
         "user": user, "es_caja": True, "caja": caja,
-        "autorizadores": [n for n in sc.autorizadores_de_caja(db, caja) if n != user.nombre_completo.strip().upper()],
-        "solo_yo_autorizo": sc.autorizadores_de_caja(db, caja) == [user.nombre_completo.strip().upper()],
-        "supervisores": [n for n in sc.supervisores_de_caja(db, caja) if n != (caja.responsable or "").strip().upper()],
+        # Los administradores pueden autorizar sus propios recibos y ser responsable y supervisor a la vez
+        "autorizadores": [n for n in sc.autorizadores_de_caja(db, caja)
+                          if sc.es_admin(user) or n != user.nombre_completo.strip().upper()],
+        "solo_yo_autorizo": not sc.es_admin(user) and sc.autorizadores_de_caja(db, caja) == [user.nombre_completo.strip().upper()],
+        "supervisores": [n for n in sc.supervisores_de_caja(db, caja)
+                         if n != (caja.responsable or "").strip().upper() or _responsable_es_admin(db, caja)],
         "solo_firmas": solo_firmas, "puede_consultar": sc.es_firmante_de_caja(db, user, caja),
         "tab_inicial": (request.query_params.get("tab") if request.query_params.get("tab") in ("consulta", "fms", "firmas") else "firmas")
                        if solo_firmas else request.query_params.get("tab", ""),

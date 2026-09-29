@@ -246,6 +246,9 @@ def _resolver_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: CajaRe
     """Si la caja tiene autorizadores, el recibo debe llevar uno de ellos (o conservar el que ya tenía).
     Devuelve (empleado que autoriza o None, mensaje de error o None)."""
     elegido = str(datos.get("autorizado_por") or "").strip().upper()
+    creador = db.get(Empleado, creador_id) if creador_id else None
+    if creador and es_admin(creador):
+        creador_id = None  # los administradores pueden autorizar sus propios recibos
     filas = (db.query(Empleado).join(CajaAutorizador, CajaAutorizador.empleado_id == Empleado.id)
              .filter(CajaAutorizador.caja_id == caja.id, Empleado.activo == 1).all())
     for e in filas:
@@ -445,7 +448,7 @@ def legalizar(db: Session, caja: CajaMenor, user: Empleado, recibo_ids: list[int
     if not responsable_emp:
         return ("La caja no tiene responsable. Un administrador debe asignarlo en Parámetros › Cajas: "
                 "es quien firma el «Elaborado por» del FM.")
-    if supervisor and supervisor.id == responsable_emp.id:
+    if supervisor and supervisor.id == responsable_emp.id and not es_admin(responsable_emp):  # admin: puede ser ambos
         return "Quien supervisa el FM debe ser una persona distinta al responsable de la caja (Elaborado por)."
     recibos = db.query(CajaRecibo).filter(CajaRecibo.id.in_(recibo_ids), CajaRecibo.caja_id == caja.id).all()
     if len(recibos) != len(set(recibo_ids)):

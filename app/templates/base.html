@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Solicitudes Nuvia</title>
-  <link rel="stylesheet" href="/static/style.css?v=15">
+  <link rel="stylesheet" href="/static/style.css?v=16">
 </head>
 <body>
 {% if user %}
 {% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
-  <span class="marca">
+  <a href="/" class="marca" title="Ir al inicio: todos los módulos">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
-  </span>
+  </a>
   {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
