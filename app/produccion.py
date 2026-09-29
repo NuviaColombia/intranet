@@ -9,7 +9,7 @@ SUBMODULOS_PRODUCCION = [
     {"slug": "custodia", "nombre": "Cambio de custodia", "icono": "🔄", "descripcion": "Traslados de material entre áreas",
      "url": "/custodia", "activo": True,
      "parametros": [("managers", "👤 Accesos"), ("areas", "🏭 Áreas"), ("discos", "💿 Catálogo de discos"),
-                    ("motivos", "📋 Motivos"), ("limpiar", "🧹 Limpiar pruebas")]},
+                    ("motivos", "📋 Motivos"), ("saldos", "📥 Saldos iniciales"), ("limpiar", "🧹 Limpiar pruebas")]},
     {"slug": "consumo", "nombre": "Seguimiento de consumo", "icono": "📊", "descripcion": "Próximamente",
      "url": None, "activo": False, "parametros": []},
 ]

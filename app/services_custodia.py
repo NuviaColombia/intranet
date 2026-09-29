@@ -485,3 +485,72 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
         print(f"[Custodia] Error enviando aviso del traslado #{traslado_id}: {ex}")
     finally:
         db.close()
+
+
+# ---------------- Saldos iniciales ----------------
+# Se cargan como traslados ya recibidos desde el origen "SALDO INICIAL" (área de legado, no se muestra
+# como área): así cada orden queda en su área con su cantidad y se puede seguir moviendo normalmente.
+ORIGEN_SALDO_INICIAL = "SALDO INICIAL"
+
+
+def leer_saldos(texto: str, areas_validas: list[str]) -> tuple[list[dict], list[str]]:
+    """Lee filas "orden  cantidad  área" pegadas desde Excel (tabulador), con ";" o con espacios.
+    Devuelve (filas, errores). Acepta coma decimal y omite la fila de encabezados."""
+    filas, errores = [], []
+    por_nombre = {a.strip().upper(): a for a in areas_validas}
+    for n, linea in enumerate((texto or "").splitlines(), start=1):
+        if not linea.strip():
+            continue
+        if "\t" in linea:
+            partes = [p.strip() for p in linea.split("\t")]
+        elif ";" in linea:
+            partes = [p.strip() for p in linea.split(";")]
+        else:
+            partes = linea.split(None, 2)
+        partes = [p for p in partes if p != ""]
+        if len(partes) < 3:
+            errores.append(f"Fila {n}: faltan datos (se espera orden, cantidad y área): «{linea.strip()}»")
+            continue
+        orden, cantidad_txt, area = partes[0].upper(), partes[1], " ".join(partes[2:]).strip().upper()
+        try:
+            cantidad = float(cantidad_txt.replace(".", "").replace(",", ".") if "," in cantidad_txt else cantidad_txt)
+        except ValueError:
+            if n == 1 or not filas:  # encabezados (No ORDEN / CANTIDAD / AREA)
+                continue
+            errores.append(f"Fila {n}: la cantidad «{cantidad_txt}» no es un número")
+            continue
+        if cantidad <= 0:
+            errores.append(f"Fila {n}: la cantidad de la orden {orden} debe ser mayor que cero")
+            continue
+        if area not in por_nombre:
+            errores.append(f"Fila {n}: el área «{area}» no existe en Parámetros › Áreas")
+            continue
+        filas.append({"orden": orden, "cantidad": round(cantidad, 3), "area": por_nombre[area]})
+    return filas, errores
+
+
+def saldos_ya_cargados(db: Session) -> int:
+    return db.query(CustodiaTraslado).filter(CustodiaTraslado.area_salida == ORIGEN_SALDO_INICIAL,
+                                             CustodiaTraslado.anulado.is_(False)).count()
+
+
+def cargar_saldos(db: Session, user: Empleado, filas: list[dict], fecha_corte: date) -> list[CustodiaTraslado]:
+    """Un traslado por área (SALDO INICIAL → área), ya recibido, con sus órdenes y cantidades.
+    Queda con la fecha de corte a las 00:00, para que todo movimiento de ese día o posterior vaya después."""
+    por_area: dict[str, list[dict]] = {}
+    for f in filas:
+        por_area.setdefault(f["area"], []).append(f)
+    creados = []
+    for area, lineas in por_area.items():
+        t = CustodiaTraslado(colaborador=nombre_propio(user.nombre_completo).upper(), id_colaborador=user.identificacion or "",
+                             area_creacion=area, fecha=fecha_corte, hora=time(0, 0),
+                             usuario=user.email or "", area_salida=ORIGEN_SALDO_INICIAL, area_entrada=area,
+                             motivo=ORIGEN_SALDO_INICIAL, creado_por_id=user.id,
+                             confirmado_entrada=True, confirmado_por_id=user.id, confirmado_en=datetime.utcnow())
+        db.add(t)
+        db.flush()
+        for f in lineas:
+            db.add(CustodiaOrdenLinea(traslado_id=t.id, numero_orden=f["orden"], cantidad_discos=f["cantidad"]))
+        creados.append(t)
+    db.commit()
+    return creados
