@@ -43,7 +43,7 @@
   <h1>⚙️ Parámetros</h1>
   <span>Producción · aplican a todos sus submódulos</span>
 </div>
-{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% if msg %}<div class="aviso {{ 'error' if msg.startswith('No se') else 'ok' }}">{{ msg }}</div>{% endif %}
 
 {# Selector de submódulo: al elegirlo se cargan solo sus pestañas (lista en app/produccion.py) #}
 <div class="cp-selector">
@@ -249,6 +249,28 @@
   </table>
 </div>
 
+{# ---------- Cambio de custodia: limpiar registros de prueba ---------- #}
+<div class="cp-panel" id="panel-limpiar">
+  <div class="cp-ayuda" style="max-width:860px">
+    Borra <b>todos</b> los registros de Cambio de custodia para empezar de cero: traslados con sus órdenes, resúmenes, discos y OP.
+    El <b>consecutivo vuelve a empezar en 0001</b>. <b>No</b> se tocan las áreas, el catálogo de discos, los motivos ni los accesos.
+  </div>
+  <div style="margin:12px 0; padding:12px 14px; border-radius:8px; background:#fef3c7; color:#92400e; font-size:13px; max-width:860px;">
+    ⚠️ Esto <b>no se puede deshacer</b>. Úsalo solo para quitar las pruebas antes de empezar a trabajar de verdad.
+    Hoy hay <b>{{ registros.traslados }}</b> traslado(s) y <b>{{ registros.ordenes }}</b> orden(es) registradas{% if registros.ultimo %}; el último consecutivo es el <b>{{ '%04d'|format(registros.ultimo) }}</b>{% endif %}.
+  </div>
+  {% if registros.traslados %}
+  <form method="post" action="/inventario/parametros/custodia/limpiar" class="cp-form-nuevo" style="max-width:860px"
+        onsubmit="return confirm('¿Seguro? Se borrarán los {{ registros.traslados }} traslados de Cambio de custodia y el consecutivo volverá a 0001. No se puede deshacer.');">
+    <div style="flex:1;min-width:260px"><label>Para confirmar escribe <b>BORRAR TODO</b></label>
+      <input name="confirmacion" autocomplete="off" placeholder="Escribe aquí la confirmación" style="width:100%"></div>
+    <div><button class="btn rojo mini">🧹 Borrar todos los registros</button></div>
+  </form>
+  {% else %}
+  <div class="cp-vacio">No hay registros: el próximo traslado será el 0001.</div>
+  {% endif %}
+</div>
+
 <script>
 (function() {
   // Recuerda la pestaña abierta: después de guardar, la página se recarga y vuelve a la misma.
@@ -284,8 +306,8 @@
   document.querySelectorAll('.cp-tab[data-panel]').forEach(function(t) {
     t.addEventListener('click', function() { abrir(t.dataset.panel); });
   });
-  var inicial = 'resumen';
-  try { inicial = sessionStorage.getItem(CLAVE) || 'resumen'; } catch (e) {}
+  var inicial = {{ (request.query_params.get('tab') or '')|tojson }};  // pestaña pedida al volver de guardar
+  try { inicial = inicial || sessionStorage.getItem(CLAVE) || 'resumen'; } catch (e) { inicial = inicial || 'resumen'; }
   abrir(inicial);
 })();
 </script>
