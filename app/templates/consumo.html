@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/consumo.css?v=1">
+<div id="consumo-app">
+ <div class="cm-main">
+
+  <!-- ============ ENTREGA DE INSUMOS ============ -->
+  <div id="sec-entrega" class="cm-seccion {{ 'activa' if puede_entregar }}">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">📦 Entrega de insumos</h2>
+        <p class="cm-sub" style="margin:0;">Registra los frascos que el manager entrega a un técnico. Cada frasco lleva su propio lote, referencia y número de serie.</p></div>
+    </div>
+    <div class="cs-form">
+      <div><label>Fecha de entrega</label><input type="date" id="eFecha"></div>
+      <div><label>Hora</label><input type="time" id="eHora"></div>
+      <div><label>Manager que entrega</label><input id="eManager" readonly></div>
+      <div><label>Técnico que recibe</label><select id="eTecnico" onchange="cambiarTecnicoEntrega()"></select></div>
+      <div><label>Área</label><input id="eArea" readonly placeholder="Se completa con el técnico"></div>
+      <div><label>Frascos</label><input id="eTotal" readonly value="0"></div>
+    </div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th style="width:26%">Materia prima</th><th>Presentación</th><th>Lote</th><th>Ref.</th><th>N.º de serie</th><th style="width:1%"></th></tr></thead>
+      <tbody id="eFrascos"></tbody>
+    </table></div>
+    <div class="cm-acciones" style="justify-content:flex-start; margin:10px 0 16px;">
+      <button type="button" class="btn gris" onclick="agregarFrasco()">＋ Agregar frasco</button>
+      <button type="button" class="btn gris" onclick="duplicarFrasco()">⧉ Duplicar el último (otro n.º de serie)</button>
+    </div>
+    <div class="cs-form" style="grid-template-columns:1fr;"><div><label>Observaciones</label><textarea id="eObs" rows="2" placeholder="Opcional"></textarea></div></div>
+    <div class="cm-acciones"><button type="button" class="btn verde" id="btnEntrega" onclick="guardarEntrega()">💾 Registrar entrega</button></div>
+  </div>
+
+  <!-- ============ CONSULTA ============ -->
+  <div id="sec-consulta" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">🔎 Consulta de entregas</h2>
+        <p class="cm-sub" style="margin:0;">Entregas registradas. Una entrega solo se puede anular si ninguno de sus frascos tiene jornadas registradas.</p></div>
+    </div>
+    <div class="cm-filtros"><label>Buscar:</label><input type="text" id="cFiltro" placeholder="Consecutivo, técnico, materia prima, lote o serie…" oninput="pintarConsulta()"></div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>N.º</th><th>Fecha</th><th>Técnico</th><th>Área</th><th>Manager</th><th>Frascos</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody id="cCuerpo"><tr><td colspan="8" class="cm-vacio">Cargando…</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ============ JORNADA DIARIA ============ -->
+  <div id="sec-jornada" class="cm-seccion {{ '' if puede_entregar else 'activa' }}">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">🛠️ Jornada diaria</h2>
+        <p class="cm-sub" style="margin:0;">Arcos producidos por frasco en el día. Si vuelves a abrir el mismo día, se corrige lo registrado (no se duplica). Marca «Consumido» cuando el frasco se acaba.</p></div>
+    </div>
+    <div class="cm-filtros">
+      <label>Técnico:</label><select id="jTecnico" onchange="cargarJornada()"></select>
+      <label>Día:</label><input type="date" id="jFecha" onchange="cargarJornada()">
+    </div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead id="jCabeza"></thead>
+      <tbody id="jCuerpo"><tr><td class="cm-vacio">Elige el técnico.</td></tr></tbody>
+    </table></div>
+    <div class="cm-acciones" style="margin-top:14px;"><button type="button" class="btn verde" id="btnJornada" onclick="guardarJornada()">💾 Guardar jornada</button></div>
+  </div>
+
+  <!-- ============ REPORTES ============ -->
+  <div id="sec-reportes" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">📊 Reportes de consumo</h2>
+        <p class="cm-sub" style="margin:0;">El promedio de arcos por frasco se calcula solo con frascos <b>consumidos</b> (los líquidos se cuentan aparte).
+          En rojo: técnicos o lotes que rinden menos del 80 % del promedio.</p></div>
+      <div class="cm-acciones">
+        <button type="button" class="btn gris" onclick="exportarReporte()">⬇️ Exportar Excel</button>
+        <button type="button" class="btn gris" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <div class="cm-filtros">
+      <label>Desde:</label><input type="date" id="rDesde" onchange="cargarReportes()">
+      <label>Hasta:</label><input type="date" id="rHasta" onchange="cargarReportes()">
+      <label>Técnico:</label><select id="rTecnico" onchange="cargarReportes()"></select>
+      <label>Materia prima:</label><select id="rMateria" onchange="cargarReportes()"></select>
+    </div>
+    <div class="cm-kpis cinco" id="rKpis"></div>
+    <h3 class="cs-h3">👷 Productividad por técnico</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla"><thead id="rTecCab"></thead><tbody id="rTec"></tbody></table></div>
+    <h3 class="cs-h3">🧪 Rendimiento por materia prima y lote (frascos consumidos)</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla"><thead id="rLotCab"></thead><tbody id="rLot"></tbody></table></div>
+    <h3 class="cs-h3">🧴 Frascos en uso ahora</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Técnico</th><th>Área</th><th>Materia prima</th><th>Lote / Ref. / Serie</th><th>Entregado</th><th>Días abierto</th><th>Arcos acumulados</th></tr></thead>
+      <tbody id="rWip"></tbody></table></div>
+  </div>
+
+ </div>
+</div>
+
+<script>
+var D = null, entregas = [], frascosJornada = [];
+function api(url, op) {
+  return fetch(url, op).then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) {
+    if (!r.ok) throw new Error(d.detail || ('Error ' + r.status)); return d; }); });
+}
+function post(url, datos) { return api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datos || {})}); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function np(t) { return String(t || '').toLowerCase().replace(/(^|[\s\/\-(])([a-záéíóúñ])/g, function(m, a, b) { return a + b.toUpperCase(); }); }
+function num(v) { return Number(v || 0).toLocaleString('es-CO', {maximumFractionDigits: 2}); }
+function badge(e) { var c = {ACTIVO: 'activo', ANULADO: 'anulado', EN_USO: 'activo', CONSUMIDO: 'legalizado'}[e] || '';
+  return '<span class="badge ' + c + '">' + ({EN_USO: 'En uso', CONSUMIDO: 'Consumido'}[e] || np(e)) + '</span>'; }
+
+function switchTab(tab) {
+  document.querySelectorAll('#consumo-app .cm-seccion').forEach(function(s) { s.classList.remove('activa'); });
+  var sec = document.getElementById('sec-' + tab); if (!sec) return; sec.classList.add('activa');
+  document.querySelectorAll('.consumo-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
+  if (tab === 'consulta') cargarConsulta();
+  if (tab === 'jornada') cargarJornada();
+  if (tab === 'reportes') cargarReportes();
+}
+document.querySelectorAll('.consumo-tab').forEach(function(a) { a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); }); });
+
+function opcionesTecnicos(id, conTodos) {
+  var sel = document.getElementById(id);
+  sel.innerHTML = (conTodos ? '<option value="">Todos</option>' : (D.tecnicos.length === 1 ? '' : '<option value="">Seleccionar…</option>')) +
+    D.tecnicos.map(function(t) { return '<option value="' + t.id + '">' + esc(t.nombre) + ' (' + esc(np(t.area)) + ')</option>'; }).join('');
+}
+
+// ---------------- entrega ----------------
+function materiasDeArea() {
+  var t = D.tecnicos.filter(function(x) { return String(x.id) === document.getElementById('eTecnico').value; })[0];
+  return D.materias.filter(function(m) { return !t || !m.area || m.area === t.area; });
+}
+function cambiarTecnicoEntrega() {
+  var t = D.tecnicos.filter(function(x) { return String(x.id) === document.getElementById('eTecnico').value; })[0];
+  document.getElementById('eArea').value = t ? np(t.area) : '';
+  document.getElementById('eFrascos').innerHTML = ''; agregarFrasco();
+}
+function filaFrasco(v) {
+  v = v || {};
+  var ops = '<option value="">Seleccionar…</option>' + materiasDeArea().map(function(m) {
+    return '<option value="' + m.id + '"' + (String(v.materia_id) === String(m.id) ? ' selected' : '') + '>' + esc(np(m.descripcion)) + '</option>'; }).join('');
+  var tr = document.createElement('tr');
+  tr.innerHTML = '<td><select class="fMat" onchange="pintarPres(this)">' + ops + '</select></td><td class="fPres izq" style="font-size:12px;color:var(--text-muted)"></td>' +
+    '<td><input class="fLote" value="' + esc(v.lote || '') + '" placeholder="Lote"></td><td><input class="fRef" value="' + esc(v.ref || '') + '" placeholder="Ref."></td>' +
+    '<td><input class="fSerie" placeholder="N.º de serie"></td><td><button type="button" class="btn rojo mini" onclick="this.closest(\'tr\').remove(); contarFrascos();">✕</button></td>';
+  document.getElementById('eFrascos').appendChild(tr); pintarPres(tr.querySelector('.fMat')); contarFrascos();
+  return tr;
+}
+function pintarPres(sel) {
+  var m = D.materias.filter(function(x) { return String(x.id) === sel.value; })[0];
+  sel.closest('tr').querySelector('.fPres').innerText = m ? [np(m.presentacion), m.contenido].filter(Boolean).join(' · ') + (m.mideArcos ? '' : ' · líquido') : '';
+}
+function agregarFrasco() { filaFrasco(); }
+function duplicarFrasco() {
+  var filas = document.querySelectorAll('#eFrascos tr'); if (!filas.length) return agregarFrasco();
+  var u = filas[filas.length - 1];
+  filaFrasco({materia_id: u.querySelector('.fMat').value, lote: u.querySelector('.fLote').value, ref: u.querySelector('.fRef').value}).querySelector('.fSerie').focus();
+}
+function contarFrascos() { document.getElementById('eTotal').value = document.querySelectorAll('#eFrascos tr').length; }
+function guardarEntrega() {
+  var frascos = Array.from(document.querySelectorAll('#eFrascos tr')).map(function(tr) {
+    return {materia_id: parseInt(tr.querySelector('.fMat').value, 10) || 0, lote: tr.querySelector('.fLote').value,
+            ref: tr.querySelector('.fRef').value, serie: tr.querySelector('.fSerie').value}; });
+  var btn = document.getElementById('btnEntrega'); btn.disabled = true;
+  post('/consumo/api/entregas', {fecha: eFecha.value, hora: eHora.value, tecnico_id: parseInt(eTecnico.value, 10) || 0,
+                                 observaciones: eObs.value, frascos: frascos})
+    .then(function(r) { alert(r.mensaje); eObs.value = ''; cambiarTecnicoEntrega(); btn.disabled = false; })
+    .catch(function(e) { alert(e.message); btn.disabled = false; });
+}
+
+// ---------------- consulta ----------------
+function cargarConsulta() {
+  api('/consumo/api/entregas').then(function(r) { entregas = r.data; pintarConsulta(); })
+    .catch(function(e) { cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function pintarConsulta() {
+  var q = document.getElementById('cFiltro').value.trim().toLowerCase();
+  var filas = entregas.filter(function(e) {
+    return !q || [e.id, e.tecnico, e.area, e.manager].concat(e.frascos.map(function(f) { return f.materia + ' ' + f.lote + ' ' + f.serie; }))
+      .join(' ').toLowerCase().indexOf(q) !== -1; });
+  if (!filas.length) { cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">No hay entregas.</td></tr>'; return; }
+  cCuerpo.innerHTML = filas.map(function(e) {
+    var det = '<tr class="cs-detalle" id="det' + e.id + '" style="display:none"><td colspan="8"><table class="cm-tabla"><thead><tr><th>Materia prima</th><th>Lote</th><th>Ref.</th><th>Serie</th><th>Estado</th><th>Jornadas</th></tr></thead><tbody>' +
+      e.frascos.map(function(f) { return '<tr><td class="izq">' + esc(np(f.materia)) + '</td><td>' + esc(f.lote) + '</td><td>' + esc(f.ref) + '</td><td>' + esc(f.serie) +
+        '</td><td>' + badge(f.estado) + (f.consumidoEn ? ' <small>' + esc(f.consumidoEn) + '</small>' : '') + '</td><td>' + f.jornadas + '</td></tr>'; }).join('') +
+      '</tbody></table>' + (e.observaciones ? '<p><b>Observaciones:</b> ' + esc(e.observaciones) + '</p>' : '') +
+      (e.estado === 'ANULADO' ? '<p class="cs-alerta">Anulada por ' + esc(e.anuladoPor) + ' el ' + esc(e.anuladoEn) + ': ' + esc(e.motivoAnulacion) + '</p>'
+        : '<div class="cm-acciones" style="margin-top:8px"><button class="btn rojo mini" onclick="anularEntrega(' + e.id + ')">🚫 Anular entrega</button></div>') + '</td></tr>';
+    return '<tr><td class="cm-num-orden">' + String(e.id).padStart(4, '0') + '</td><td>' + esc(e.fecha) + ' ' + esc(e.hora) + '</td><td class="izq">' + esc(e.tecnico) +
+      '</td><td>' + esc(np(e.area)) + '</td><td>' + esc(e.manager) + '</td><td>' + e.frascos.length + '</td><td>' + badge(e.estado) +
+      '</td><td><button class="btn gris mini" onclick="var d=document.getElementById(\'det' + e.id + '\'); d.style.display = d.style.display ? \'\' : \'none\';">👁️ Detalle</button></td></tr>' + det;
+  }).join('');
+}
+function anularEntrega(id) {
+  var motivo = prompt('Motivo de la anulación de la entrega n.º ' + String(id).padStart(4, '0') + ' (obligatorio):');
+  if (motivo === null) return;
+  post('/consumo/api/entregas/' + id + '/anular', {motivo: motivo}).then(function(r) { alert(r.mensaje); cargarConsulta(); }).catch(function(e) { alert(e.message); });
+}
+
+// ---------------- jornada ----------------
+function cargarJornada() {
+  var tid = jTecnico.value, fecha = jFecha.value;
+  jCabeza.innerHTML = '<tr><th>Materia prima</th><th>Lote / Ref. / Serie</th><th>Entregado</th>' +
+    D.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('') + '<th>Total día</th><th>Acumulado</th><th>Consumido</th></tr>';
+  var cols = D.tipos.length + 6;
+  if (!tid) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Elige el técnico.</td></tr>'; return; }
+  api('/consumo/api/jornada?tecnico_id=' + tid + '&fecha=' + fecha).then(function(r) {
+    frascosJornada = r.frascos;
+    if (!r.frascos.length) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Este técnico no tiene frascos en uso en esa fecha.</td></tr>'; return; }
+    jCuerpo.innerHTML = r.frascos.map(function(f) {
+      return '<tr data-id="' + f.id + '"><td class="izq"><b>' + esc(np(f.materia)) + '</b>' + (f.midesArcos ? '' : ' <small>(líquido)</small>') +
+        '</td><td style="font-size:12px">' + esc(f.lote) + ' / ' + esc(f.ref) + ' / ' + esc(f.serie) + '</td><td style="font-size:12px">' + esc(f.fechaEntrega) +
+        '<br><small>' + f.diasAbierto + ' día(s)</small></td>' +
+        D.tipos.map(function(t) { return '<td><input type="number" min="0" step="0.5" class="num jArco" data-tipo="' + t.id + '" value="' + (f.arcos[t.id] || '') + '"' +
+          (f.midesArcos ? '' : ' disabled') + ' oninput="sumarFila(this)"></td>'; }).join('') +
+        '<td class="jTotal" style="font-weight:800">' + num(Object.values(f.arcos).reduce(function(a, b) { return a + b; }, 0)) + '</td><td>' + num(f.acumulado) +
+        '</td><td><input type="checkbox" class="jCons" style="width:auto"' + (f.consumido ? ' checked' : '') + '></td></tr>'; }).join('');
+  }).catch(function(e) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function sumarFila(inp) {
+  var tr = inp.closest('tr'), t = 0;
+  tr.querySelectorAll('.jArco').forEach(function(x) { t += parseFloat(x.value) || 0; });
+  tr.querySelector('.jTotal').innerText = num(t);
+}
+function guardarJornada() {
+  var filas = Array.from(document.querySelectorAll('#jCuerpo tr[data-id]')).map(function(tr) {
+    var arcos = {}; tr.querySelectorAll('.jArco').forEach(function(x) { if (parseFloat(x.value)) arcos[x.dataset.tipo] = parseFloat(x.value); });
+    return {frasco_id: parseInt(tr.dataset.id, 10), arcos: arcos, consumido: tr.querySelector('.jCons').checked}; });
+  if (!filas.length) return alert('No hay frascos para registrar.');
+  var btn = document.getElementById('btnJornada'); btn.disabled = true;
+  post('/consumo/api/jornada', {tecnico_id: parseInt(jTecnico.value, 10), fecha: jFecha.value, filas: filas})
+    .then(function(r) { alert(r.mensaje); btn.disabled = false; cargarJornada(); })
+    .catch(function(e) { alert(e.message); btn.disabled = false; });
+}
+
+// ---------------- reportes ----------------
+function filtrosReporte() {
+  return 'desde=' + rDesde.value + '&hasta=' + rHasta.value + '&tecnico_id=' + (rTecnico.value || 0) + '&materia_id=' + (rMateria.value || 0);
+}
+function cargarReportes() {
+  api('/consumo/api/reportes?' + filtrosReporte()).then(function(r) {
+    var k = r.kpis;
+    rKpis.innerHTML = [['Arcos producidos', num(k.arcos)], ['Frascos consumidos', k.consumidos], ['Promedio arcos / frasco', k.promedio == null ? '—' : num(k.promedio)],
+      ['Frascos en uso', k.enUso], ['Líquidos consumidos', k.liquidos]].map(function(x) { return '<div class="cm-kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
+    var tn = r.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('');
+    rTecCab.innerHTML = '<tr><th>Técnico</th><th>Área</th>' + tn + '<th>Total arcos</th><th>Frascos consumidos</th><th>Promedio / frasco</th><th>Días</th></tr>';
+    rTec.innerHTML = r.tecnicos.length ? r.tecnicos.map(function(t) {
+      return '<tr class="' + (t.bajo ? 'cs-bajo' : '') + '"><td class="izq">' + esc(t.tecnico) + (t.bajo ? ' <span class="cs-alerta">⚠️ bajo el promedio</span>' : '') +
+        '</td><td>' + esc(np(t.area)) + '</td>' + r.tipos.map(function(x) { return '<td>' + num(t.tipos[x.id]) + '</td>'; }).join('') +
+        '<td><b>' + num(t.total) + '</b></td><td>' + t.consumidos + '</td><td>' + (t.promedio == null ? '—' : num(t.promedio)) + '</td><td>' + t.dias + '</td></tr>'; }).join('')
+      : '<tr><td colspan="' + (r.tipos.length + 6) + '" class="cm-vacio">Sin jornadas en el periodo.</td></tr>';
+    rLotCab.innerHTML = '<tr><th>Materia prima</th><th>Lote</th><th>Frascos</th>' + tn + '<th>Total arcos</th><th>Promedio / frasco</th><th>Promedio de la materia</th></tr>';
+    rLot.innerHTML = r.lotes.length ? r.lotes.map(function(m) {
+      return '<tr class="' + (m.bajo ? 'cs-bajo' : '') + '"><td class="izq">' + esc(np(m.materia)) + '</td><td>' + esc(m.lote) + (m.bajo ? ' <span class="cs-alerta">⚠️</span>' : '') +
+        '</td><td>' + m.frascos + '</td>' + r.tipos.map(function(x) { return '<td>' + num(m.tipos[x.id]) + '</td>'; }).join('') + '<td><b>' + num(m.arcos) +
+        '</b></td><td>' + num(m.promedio) + '</td><td>' + num(m.promedioMateria) + '</td></tr>'; }).join('')
+      : '<tr><td colspan="' + (r.tipos.length + 6) + '" class="cm-vacio">Sin frascos consumidos en el periodo.</td></tr>';
+    rWip.innerHTML = r.wip.length ? r.wip.map(function(w) {
+      return '<tr><td class="izq">' + esc(w.tecnico) + '</td><td>' + esc(np(w.area)) + '</td><td class="izq">' + esc(np(w.materia)) + '</td><td style="font-size:12px">' +
+        esc(w.lote) + ' / ' + esc(w.ref) + ' / ' + esc(w.serie) + '</td><td>' + esc(w.fechaEntrega) + '</td><td>' + w.dias + '</td><td>' + num(w.acumulado) + '</td></tr>'; }).join('')
+      : '<tr><td colspan="7" class="cm-vacio">No hay frascos en uso.</td></tr>';
+  }).catch(function(e) { alert(e.message); });
+}
+function exportarReporte() { window.location = '/consumo/api/reportes/exportar?' + filtrosReporte(); }
+
+api('/consumo/api/datos').then(function(d) {
+  D = d;
+  var ahora = new Date();
+  eFecha.value = d.hoy; eFecha.max = d.hoy; eHora.value = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+  eManager.value = d.manager + (d.areaManager ? ' (' + np(d.areaManager) + ')' : (d.esAdmin ? ' (administrador)' : ''));
+  jFecha.value = d.hoy; jFecha.max = d.hoy; rHasta.value = d.hoy; rDesde.value = d.hoy.slice(0, 8) + '01';
+  opcionesTecnicos('eTecnico'); opcionesTecnicos('jTecnico'); opcionesTecnicos('rTecnico', true);
+  rMateria.innerHTML = '<option value="">Todas</option>' + d.materias.map(function(m) { return '<option value="' + m.id + '">' + esc(np(m.descripcion)) + '</option>'; }).join('');
+  cambiarTecnicoEntrega();
+  var tab = new URLSearchParams(location.search).get('tab');
+  if (tab) switchTab(tab); else if (!d.puedeEntregar) switchTab('jornada');
+});
+</script>
+{% endblock %}

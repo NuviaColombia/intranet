@@ -1,0 +1,159 @@
+{# Producción › Parámetros › Seguimiento de consumo (incluido en custodia_parametros.html) #}
+
+{# ---------- Accesos ---------- #}
+<div class="cp-panel" id="panel-c_accesos">
+  <div class="cp-ayuda" style="max-width:900px">Quién entra a <b>Seguimiento de consumo</b>. Con <b>área</b> es manager de esa área: entrega frascos
+    y registra las jornadas de sus técnicos. <b>Sin área</b> solo registra su propia jornada (si está en la pestaña Técnicos).
+    Los administradores entran y gestionan todo.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
+    <form method="post" action="/inventario/parametros/consumo/accesos" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-c" data-lista="c-lista-accesos" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="c-lista-accesos" required>
+          <option value="">Seleccionar...</option>
+          {% for e in consumo.personas if e not in consumo.accesos %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div style="min-width:180px"><label>Área (manager)</label>
+        <select name="area"><option value="">— Sin área (solo su jornada) —</option>
+          {% for a in areas_config %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}</select></div>
+      <div><button class="btn mini">Dar acceso</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Persona</th><th>Cargo</th><th>Área (manager)</th><th></th></tr>
+    {% for e in consumo.accesos %}
+    <tr>
+      <td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td>
+      <td><form id="f-cacc-{{ e.id }}" method="post" action="/inventario/parametros/consumo/accesos"><input type="hidden" name="empleado_id" value="{{ e.id }}"></form>
+        <select name="area" form="f-cacc-{{ e.id }}"><option value="">— Sin área (solo su jornada) —</option>
+          {% for a in areas_config %}<option value="{{ a }}" {{ 'selected' if consumo.area_de.get(e.id) == a }}>{{ a|nombre_propio }}</option>{% endfor %}</select></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-cacc-{{ e.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/consumo/accesos/{{ e.id }}/quitar"
+              onsubmit="return confirm('¿Quitar el acceso a Seguimiento de consumo de {{ e.nombre_completo|nombre_propio }}?')">
+          <button class="btn gris mini">Quitar acceso</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="cp-vacio">Todavía nadie tiene acceso a Seguimiento de consumo. Usa <b>＋ Dar acceso a una persona</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Técnicos ---------- #}
+<div class="cp-panel" id="panel-c_tecnicos">
+  <div class="cp-ayuda" style="max-width:900px">Técnicos (de People) a los que se les entregan frascos, con su área. El manager de cada área ve solo a los técnicos de su área.
+    Si el técnico debe registrar su propia jornada, dale también acceso (pestaña Accesos) sin área.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar técnico</span></summary>
+    <form method="post" action="/inventario/parametros/consumo/tecnicos" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-c" data-lista="c-lista-tecnicos" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="c-lista-tecnicos" required>
+          <option value="">Seleccionar...</option>
+          {% for e in consumo.personas if e.id not in tecnicos_ids %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div style="min-width:180px"><label>Área</label>
+        <select name="area" required><option value="">Seleccionar...</option>
+          {% for a in areas_config %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}</select></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Técnico</th><th>Cargo</th><th>Área</th><th>Estado</th><th></th></tr>
+    {% for t in consumo.tecnicos %}
+    <tr class="{{ '' if t.activo else 'cp-inactivo' }}">
+      <td>{{ t.empleado.nombre_completo|nombre_propio }}</td><td>{{ t.empleado.cargo }}</td>
+      <td><form id="f-ctec-{{ t.id }}" method="post" action="/inventario/parametros/consumo/tecnicos/{{ t.id }}"></form>
+        <select name="area" form="f-ctec-{{ t.id }}">
+          {% for a in areas_config %}<option value="{{ a }}" {{ 'selected' if t.area == a }}>{{ a|nombre_propio }}</option>{% endfor %}</select></td>
+      <td><span class="cp-estado {{ 'si' if t.activo else 'no' }}">{{ 'Activo' if t.activo else 'Inactivo' }}</span></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-ctec-{{ t.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/consumo/tecnicos/{{ t.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if t.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="cp-vacio">Todavía no hay técnicos. Usa <b>＋ Agregar técnico</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Materias primas ---------- #}
+<div class="cp-panel" id="panel-c_materias">
+  <div class="cp-ayuda" style="max-width:900px">Materias primas que se entregan por frasco. <b>Mide arcos</b>: en la jornada se anotan los arcos producidos con ese frasco
+    (desmárcalo para líquidos, que solo se registran como consumidos). Con <b>área</b> solo aparece en esa área; sin área, en todas.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar materia prima</span></summary>
+    <form method="post" action="/inventario/parametros/consumo/materias" class="cp-form-nuevo">
+      <div style="flex:2;min-width:200px"><label>Descripción</label><input name="descripcion" required placeholder="Ej: Zirconia polvo A2"></div>
+      <div style="width:130px"><label>Presentación</label><input name="presentacion" placeholder="Frasco"></div>
+      <div style="width:120px"><label>Contenido neto</label><input name="contenido" placeholder="100 g"></div>
+      <div style="min-width:160px"><label>Área</label><select name="area"><option value="">Todas</option>
+        {% for a in areas_config %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}</select></div>
+      <div><label>Mide arcos</label><input type="checkbox" name="mide_arcos" value="1" checked style="width:auto"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Descripción</th><th>Presentación</th><th>Contenido</th><th>Área</th><th>Mide arcos</th><th>Estado</th><th></th></tr>
+    {% for m in consumo.materias %}
+    <tr class="{{ '' if m.activo else 'cp-inactivo' }}">
+      <td><form id="f-cmat-{{ m.id }}" method="post" action="/inventario/parametros/consumo/materias/{{ m.id }}"></form>
+        <input name="descripcion" value="{{ m.descripcion }}" required form="f-cmat-{{ m.id }}"></td>
+      <td style="width:130px"><input name="presentacion" value="{{ m.presentacion }}" form="f-cmat-{{ m.id }}"></td>
+      <td style="width:110px"><input name="contenido" value="{{ m.contenido }}" form="f-cmat-{{ m.id }}"></td>
+      <td style="width:160px"><select name="area" form="f-cmat-{{ m.id }}"><option value="">Todas</option>
+        {% for a in areas_config %}<option value="{{ a }}" {{ 'selected' if m.area == a }}>{{ a|nombre_propio }}</option>{% endfor %}</select></td>
+      <td style="text-align:center"><input type="checkbox" name="mide_arcos" value="1" {{ 'checked' if m.mide_arcos }} form="f-cmat-{{ m.id }}" style="width:auto"></td>
+      <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activa' if m.activo else 'Inactiva' }}</span></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-cmat-{{ m.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/consumo/materias/{{ m.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if m.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="cp-vacio">Todavía no hay materias primas. Usa <b>＋ Agregar materia prima</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Tipos de producto ---------- #}
+<div class="cp-panel" id="panel-c_tipos">
+  <div class="cp-ayuda" style="max-width:900px">Tipos de producto que se cuentan en la jornada diaria (columnas de arcos). Desactivar un tipo lo quita de la jornada; lo ya registrado se conserva.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar tipo</span></summary>
+    <form method="post" action="/inventario/parametros/consumo/tipos" class="cp-form-nuevo">
+      <div style="min-width:200px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Tipo 6"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Nombre</th><th>Estado</th><th></th></tr>
+    {% for t in consumo.tipos %}
+    <tr class="{{ '' if t.activo else 'cp-inactivo' }}">
+      <td><form id="f-ctip-{{ t.id }}" method="post" action="/inventario/parametros/consumo/tipos/{{ t.id }}"></form>
+        <input name="nombre" value="{{ t.nombre|nombre_propio }}" required form="f-ctip-{{ t.id }}"></td>
+      <td><span class="cp-estado {{ 'si' if t.activo else 'no' }}">{{ 'Activo' if t.activo else 'Inactivo' }}</span></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-ctip-{{ t.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/consumo/tipos/{{ t.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if t.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+<script>
+document.querySelectorAll('.buscar-persona-c').forEach(function(buscar) {
+  var lista = document.getElementById(buscar.dataset.lista);
+  buscar.addEventListener('input', function() {
+    var q = buscar.value.trim().toLowerCase(), primera = null;
+    Array.prototype.forEach.call(lista.options, function(o, i) {
+      if (!i) return;
+      var ok = !q || (o.dataset.buscar || '').indexOf(q) !== -1; o.hidden = !ok;
+      if (ok && !primera) primera = o;
+    });
+    lista.value = q ? (primera ? primera.value : '') : lista.value;
+  });
+});
+</script>

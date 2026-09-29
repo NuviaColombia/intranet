@@ -110,8 +110,23 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
     areas = db.query(CustodiaArea).order_by(CustodiaArea.orden).all()
     motivos = db.query(CustodiaMotivo).order_by(CustodiaMotivo.orden).all()
     discos = db.query(CustodiaFactorDisco).order_by(CustodiaFactorDisco.orden).all()
+    # Seguimiento de consumo
+    from ..models_consumo import ConsumoMateria, ConsumoTipo, ConsumoTecnico, ConsumoManager
+    from .. import services_consumo as scc
+    scc.asegurar_tipos(db)
+    con_consumo = {i for i, subs in por_empleado.items() if "consumo" in subs}
+    consumo = {
+        "accesos": db.query(Empleado).filter(Empleado.id.in_(con_consumo or [0])).order_by(Empleado.apellidos).all(),
+        "area_de": {m.empleado_id: m.area for m in db.query(ConsumoManager).all()},
+        "tecnicos": sorted(db.query(ConsumoTecnico).all(), key=lambda t: (not t.activo, t.area, t.empleado.nombre_completo)),
+        "materias": db.query(ConsumoMateria).order_by(ConsumoMateria.activo.desc(), ConsumoMateria.area, ConsumoMateria.orden).all(),
+        "tipos": db.query(ConsumoTipo).order_by(ConsumoTipo.orden).all(),
+        "personas": db.query(Empleado).filter(Empleado.activo == 1).order_by(Empleado.apellidos, Empleado.nombres).all(),
+    }
+    tecnicos_ids = {t.empleado_id for t in consumo["tecnicos"] if t.activo}
     return templates.TemplateResponse(request, "custodia_parametros.html",
-                                      {"user": user, "managers": managers, "candidatos": candidatos,
+                                      {"user": user, "managers": managers, "candidatos": candidatos, "consumo": consumo,
+                                       "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
                                        "registros": {"traslados": db.query(CustodiaTraslado).count(),
                                                      "ordenes": db.query(CustodiaOrdenLinea).count(),
@@ -122,7 +137,11 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "conteo_panel": {"limpiar": db.query(CustodiaTraslado).count(),
                                                         "saldos": sc.saldos_ya_cargados(db),
                                                         "managers": len(managers), "areas": len(areas), "discos": len(discos),
-                                                        "motivos": len(motivos)},
+                                                        "motivos": len(motivos),
+                                                        "c_accesos": len(consumo["accesos"]),
+                                                        "c_tecnicos": len([t for t in consumo["tecnicos"] if t.activo]),
+                                                        "c_materias": len([m for m in consumo["materias"] if m.activo]),
+                                                        "c_tipos": len([t for t in consumo["tipos"] if t.activo])},
                                        "resumen": resumen, "por_empleado": por_empleado,
                                        "areas_activas": sc.areas_disponibles(db),
                                        "es_custodia": True, "msg": request.query_params.get("msg"),
