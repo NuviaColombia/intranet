@@ -7,7 +7,20 @@
   <link rel="stylesheet" href="/static/style.css?v=16">
 </head>
 <body>
+{% macro pestanas(grupos, clase, href, sec, activa) %}
+{%- set ns = namespace(previo=false) -%}
+{%- for grupo in grupos -%}
+  {%- set visibles = [] -%}
+  {%- for slug, nombre in grupo if sec is none or slug in sec %}{% set _ = visibles.append((slug, nombre)) %}{% endfor -%}
+  {%- if visibles -%}
+    {%- if ns.previo %}<span class="nav-sep">│</span>{% endif -%}
+    {%- for slug, nombre in visibles %}<a href="{{ href }}" class="{{ clase }}{{ ' activo' if slug == activa }}" data-tab="{{ slug }}">{{ nombre|safe }}</a>{% endfor -%}
+    {%- set ns.previo = true -%}
+  {%- endif -%}
+{%- endfor -%}
+{% endmacro %}
 {% if user %}
+{% set sec_permitidas = secciones if secciones is defined else none %}
 {% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_sst %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
   <a href="/" class="marca" title="Ir al inicio: todos los módulos">
@@ -46,15 +59,10 @@
     {% endif %}
     <a href="/caja-menor/{{ caja.id }}" class="caja-tab activo" data-tab="firmas">✍️ Firmas{% if caja_por_firmar %} <span class="badge-alertas" id="badgeFirmas">{{ caja_por_firmar }}</span>{% endif %}</a>
     {% else %}
-    <a href="/caja-menor/{{ caja.id }}" class="caja-tab activo" data-tab="recibo">Nuevo recibo</a>
-    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="consulta">Consulta</a>
-    <span class="nav-sep">│</span>
-    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="legalizar">Legalizar</a>
-    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="fms">Historial FM</a>
-    <span class="nav-sep">│</span>
-    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="arqueo">Arqueo rápido</a>
-    <span class="nav-sep">│</span>
-    <a href="/caja-menor/{{ caja.id }}" class="caja-tab" data-tab="firmas">✍️ Firmas{% if caja_por_firmar %} <span class="badge-alertas" id="badgeFirmas">{{ caja_por_firmar }}</span>{% endif %}</a>
+    {% set firmas_txt = '✍️ Firmas' ~ ((' <span class="badge-alertas" id="badgeFirmas">' ~ caja_por_firmar ~ '</span>') if caja_por_firmar else '') %}
+    {{ pestanas([[('recibo', 'Nuevo recibo'), ('consulta', 'Consulta')], [('legalizar', 'Legalizar'), ('fms', 'Historial FM')],
+                 [('arqueo', 'Arqueo rápido')], [('firmas', firmas_txt)]],
+                'caja-tab', '/caja-menor/' ~ caja.id, sec_permitidas, (sec_permitidas[0] if sec_permitidas else 'recibo')) }}
     {% endif %}
   </div>
   {% else %}
@@ -93,14 +101,9 @@
   {% if es_consumo %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/consumo">Seguimiento de consumo</a></span>
   <div class="nav-sub">
-    {% if puede_entregar %}
-    <a href="/consumo" class="consumo-tab activo" data-tab="entrega">Entrega de insumos</a>
-    <a href="/consumo" class="consumo-tab" data-tab="consulta">Consulta</a>
-    <span class="nav-sep">│</span>
-    {% endif %}
-    <a href="/consumo" class="consumo-tab{{ '' if puede_entregar else ' activo' }}" data-tab="jornada">Jornada diaria</a>
-    <span class="nav-sep">│</span>
-    <a href="/consumo" class="consumo-tab" data-tab="reportes">Reportes</a>
+    {% set grupos_consumo = ([[('entrega', 'Entrega de insumos'), ('consulta', 'Consulta')]] if puede_entregar else [])
+                            + [[('jornada', 'Jornada diaria')], [('reportes', 'Reportes')]] %}
+    {{ pestanas(grupos_consumo, 'consumo-tab', '/consumo', sec_permitidas, consumo_tab_inicial|default('entrega' if puede_entregar else 'jornada')) }}
   </div>
   {% endif %}
   {% if es_custodia and request.url.path == '/inventario/parametros' %}
@@ -111,14 +114,11 @@
   {# Opciones del submódulo (ver .nav-inventario en style.css) #}
   {% set en_parametros = false %}
   <div class="nav-sub">
-    <a href="/custodia" class="custodia-tab" data-tab="nueva-orden">Nueva orden</a>
-    <a href="/custodia" class="custodia-tab{{ '' if en_parametros else ' activo' }}" data-tab="registro">Nuevo registro</a>
-    <span class="nav-sep">│</span>
-    <a href="/custodia" class="custodia-tab" data-tab="aprobaciones">Aprobaciones/Firmas{% if custodia_pendientes %} <span class="badge-alertas">{{ custodia_pendientes }}</span>{% endif %}</a>
-    <span class="nav-sep">│</span>
-    <a href="/custodia" class="custodia-tab" data-tab="existencias">Dashboard</a>
-    <a href="/custodia" class="custodia-tab" data-tab="activas">Estado órdenes</a>
-    <a href="/custodia" class="custodia-tab" data-tab="consulta">Consulta traslado</a>
+    {% set aprob_txt = 'Aprobaciones/Firmas' ~ ((' <span class="badge-alertas">' ~ custodia_pendientes ~ '</span>') if custodia_pendientes else '') %}
+    {{ pestanas([[('nueva-orden', 'Nueva orden'), ('registro', 'Nuevo registro')], [('aprobaciones', aprob_txt)],
+                 [('existencias', 'Dashboard'), ('activas', 'Estado órdenes'), ('consulta', 'Consulta traslado')]],
+                'custodia-tab', '/custodia', sec_permitidas,
+                ('' if en_parametros else (('registro' if 'registro' in sec_permitidas else sec_permitidas[0]) if sec_permitidas else 'registro'))) }}
   </div>
   {% endif %}
   {% if es_design %}

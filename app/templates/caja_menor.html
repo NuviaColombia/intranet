@@ -214,6 +214,7 @@ var USUARIO = {{ (user.nombre_completo|nombre_propio)|tojson }};
 var API = '/caja-menor/api/' + CAJA.id;
 var USUARIO_ID = {{ user.id }};
 var SUPERVISORES = {{ supervisores|tojson }};  // nombres (mayúsculas) de quienes dan el visto bueno a los FM
+var SECCIONES = {{ (secciones or [])|tojson }};  // pestañas permitidas (Caja menor › Parámetros › Secciones)
 var SOLO_FIRMAS = {{ 'true' if solo_firmas else 'false' }};  // autoriza en esta caja pero no tiene acceso: solo ve y firma
 var reciboActual = null, recibosConsulta = [], recibosActivos = [], arqueosCache = [], fmActual = null, anulando = null;
 
@@ -963,6 +964,11 @@ function imprimirTicket(a) {
 }
 
 if (SOLO_FIRMAS) switchTab({{ (tab_inicial or 'firmas')|tojson }});
-else { nuevoRecibo(); if ({{ (tab_inicial or '')|tojson }}) switchTab({{ (tab_inicial or '')|tojson }}); }
+else {
+  nuevoRecibo();
+  var _inicial = {{ (tab_inicial or '')|tojson }};
+  if (SECCIONES.length && SECCIONES.indexOf(_inicial || 'recibo') < 0) _inicial = SECCIONES[0];  // sin Nuevo recibo: la primera que tenga
+  if (_inicial) switchTab(_inicial);
+}
 </script>
 {% endblock %}

@@ -40,6 +40,7 @@
   .cp-panel .btn:disabled { opacity:.45; cursor:not-allowed; }
 </style>
 
+{% from "_secciones.html" import celda_secciones, estilos_secciones %}{{ estilos_secciones() }}
 <div class="cp-titulo">
   <h1>⚙️ Parámetros</h1>
   <span>Producción · aplican a todos sus submódulos</span>
@@ -68,7 +69,13 @@
 {# ---------- General: resumen de accesos por submódulo ---------- #}
 <div class="cp-panel" id="panel-resumen">
   <div class="cp-barra"><div class="cp-ayuda">Quién entra a cada submódulo de <b>Producción</b>. El acceso se da o se quita dentro de cada submódulo
-    (elígelo en la lista <b>Submódulo</b> › pestaña 👤 Accesos). Los administradores entran a todos.</div></div>
+    (elígelo en la lista <b>Submódulo</b> › pestaña 👤 Accesos), y ahí mismo, en la columna <b>Secciones</b>, eliges qué pestañas puede usar cada persona.
+    Los administradores entran a todos.</div></div>
+  <div class="cp-ayuda" style="max-width:900px; margin:8px 0 12px; padding:10px 12px; background:#EEF2FF; border-radius:8px;">
+    🔐 <b>Quién puede entrar a Parámetros</b> (de Producción y de Caja menor): solo los <b>administradores</b> de la intranet
+    (rol Administrador o Superadministrador en People › Empleados):
+    {% for a in administradores %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ' (superadmin)' if a.rol == 'superadmin' }}{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
+  </div>
   <table class="cp-tabla">
     <tr><th>Persona</th><th>Cargo</th>{% for s in submodulos_produccion %}<th style="text-align:center">{{ s.icono }} {{ s.nombre }}</th>{% endfor %}</tr>
     {% for e in resumen %}
@@ -113,7 +120,7 @@
     </form>
   </details>
   <table class="cp-tabla">
-    <tr><th>Persona</th><th>Cargo</th><th>Área asignada</th><th></th></tr>
+    <tr><th>Persona</th><th>Cargo</th><th>Área asignada</th><th>Secciones</th><th></th></tr>
     {% for m in managers %}
     <tr>
       <td>{{ m.nombre_completo|nombre_propio }}</td>
@@ -128,6 +135,7 @@
           {% endfor %}
         </select>
       </td>
+      <td>{{ celda_secciones(m, "custodia", secciones_cfg.custodia, "/inventario/parametros?tab=managers") }}</td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-man-{{ m.id }}">Guardar</button>
         <form class="inline" method="post" action="/inventario/parametros/managers/{{ m.id }}/quitar"
@@ -136,7 +144,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="4" class="cp-vacio">Todavía nadie tiene acceso a Cambio de custodia. Usa <b>＋ Dar acceso a una persona</b>.</td></tr>
+    <tr><td colspan="5" class="cp-vacio">Todavía nadie tiene acceso a Cambio de custodia. Usa <b>＋ Dar acceso a una persona</b>.</td></tr>
     {% endfor %}
   </table>
 </div>

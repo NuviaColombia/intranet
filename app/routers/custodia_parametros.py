@@ -124,8 +124,13 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
         "personas": db.query(Empleado).filter(Empleado.activo == 1).order_by(Empleado.apellidos, Empleado.nombres).all(),
     }
     tecnicos_ids = {t.empleado_id for t in consumo["tecnicos"] if t.activo}
+    from .. import acceso_secciones as acs
+    secciones_cfg = {m: acs.configuracion(db, m) for m in ("custodia", "consumo")}
+    administradores = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.rol.in_(["admin", "superadmin"]))
+                       .order_by(Empleado.nombres, Empleado.apellidos).all())
     return templates.TemplateResponse(request, "custodia_parametros.html",
                                       {"user": user, "managers": managers, "candidatos": candidatos, "consumo": consumo,
+                                       "secciones_cfg": secciones_cfg, "administradores": administradores,
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
                                        "registros": {"traslados": db.query(CustodiaTraslado).count(),
@@ -198,7 +203,9 @@ def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
             if not aprueba_a_alguien:
                 emp.rol = "empleado"
                 msg = "Acceso a Cambio de custodia quitado. Volvió al rol empleado."
-        db.commit()
+        from .. import acceso_secciones as acs
+        acs.quitar(db, emp.id, "custodia")  # también su configuración de secciones
+    db.commit()
     return RedirectResponse(f"/inventario/parametros?msg={msg}", status_code=303)
 
 
