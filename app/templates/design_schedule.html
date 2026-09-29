@@ -5,10 +5,13 @@
 <style>
 
   /* ---------- Shell: paneles superpuestos ---------- */
-  .ds-overlay { display:none; position:fixed; inset:0; background:#fff; z-index:300; overflow-y:auto; }
+  /* La barra superior (Design Schedule · Herramientas · Gestión...) queda fija y siempre visible:
+     los paneles se abren debajo de ella (--ds-nav-h = alto de la barra, lo calcula el script del shell). */
+  body > nav { position:sticky; top:0; z-index:400; }
+  .ds-overlay { display:none; position:fixed; inset:0; top:var(--ds-nav-h, 0px); background:#fff; z-index:300; overflow-y:auto; }
   .ds-overlay.open { display:block; }
   .ds-overlay-inner { max-width:1300px; margin:0 auto; padding:24px 24px 70px; }
-  .ds-overlay-close { position:fixed; top:16px; right:24px; z-index:310; background:#111827; color:#fff; border:none;
+  .ds-overlay-close { position:fixed; top:calc(var(--ds-nav-h, 0px) + 16px); right:24px; z-index:310; background:#111827; color:#fff; border:none;
                        border-radius:50%; width:38px; height:38px; font-size:16px; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,.3); }
   .ds-overlay-close:hover { background:#1d4ed8; }
   body.ds-locked { overflow:hidden; }
@@ -366,7 +369,7 @@
   .cv-stage-wrap{ display:flex; justify-content:center; align-items:center; flex:1; min-width:0; }
   .cv-stage{ position:relative; box-shadow:0 8px 30px rgba(0,0,0,.22); border-radius:2px; }
   .cv-ed-body{ display:flex; align-items:flex-start; gap:12px; }
-  .cv-rail{ flex:none; width:172px; max-height:calc(100vh - 200px); overflow-y:auto; overflow-x:hidden;
+  .cv-rail{ flex:none; width:172px; max-height:calc(100vh - 200px - var(--ds-nav-h, 0px)); overflow-y:auto; overflow-x:hidden;
     border:1px solid #e2e6ea; border-radius:10px; background:#f4f6f8; padding:8px; }
   .cv-rail-head{ display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; padding:2px 2px 8px; }
   .cv-rail-head .cv-rail-collapse{ margin-left:auto; }
@@ -5079,6 +5082,26 @@ window.DS_PANELS.dashboard = ddCargar;
     document.querySelectorAll('h1 > span[id]').forEach(function(sp) { dsObsTitulo.observe(sp, {childList: true, characterData: true, subtree: true}); });
   } catch (e) {}
   dsActualizarPestana();
+  // Alto de la barra superior fija, para que los paneles empiecen justo debajo.
+  var dsNav = document.querySelector('body > nav');
+  function dsMedirNav() { document.documentElement.style.setProperty('--ds-nav-h', (dsNav ? dsNav.offsetHeight : 0) + 'px'); }
+  dsMedirNav();
+  window.addEventListener('resize', dsMedirNav);
+  try { if (dsNav) new ResizeObserver(dsMedirNav).observe(dsNav); } catch (e) {}
+  // Con la barra visible, sus enlaces cambian de panel sin recargar la página:
+  // Herramientas/Gestión abren el panel y "Design Schedule" vuelve a la tabla principal.
+  if (dsNav) dsNav.addEventListener('click', function(e) {
+    var a = e.target.closest('a[href]');
+    if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+    var url; try { url = new URL(a.href, location.href); } catch (err) { return; }
+    if (url.origin !== location.origin || url.pathname !== '/design') return;
+    var panel = url.searchParams.get('panel');
+    if (panel && !document.getElementById('ov-' + panel)) return;
+    if (!panel && !document.querySelector('.ds-overlay.open')) return; // ya está en la tabla: navegación normal
+    e.preventDefault();
+    document.querySelectorAll('.nav-drop-menu.open').forEach(function(m) { m.classList.remove('open'); });
+    if (panel) dsAbrirPanel(panel); else dsCerrarPaneles();
+  });
   window.dsAbrirPanel = dsAbrirPanel;
   window.dsCerrarPaneles = dsCerrarPaneles;
 
