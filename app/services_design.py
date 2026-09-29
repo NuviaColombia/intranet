@@ -831,6 +831,7 @@ def preapproved_detalle(db: Session, sheet_id: int) -> dict | None:
         celdas_por_fila[fila.id] = {c.doctor_id: c.valor for c in fila.celdas}
     return {
         "id": s.id, "nombre": s.nombre, "titulo": s.titulo, "changesLabel": s.changes_label,
+        "anchos": _json(s.anchos, {}),
         "centros": [{"id": c.id, "nombre": c.nombre, "span": c.span} for c in s.centros],
         "doctores": [{"id": d.id, "nombre": d.nombre} for d in doctores],
         "filas": [{"id": f.id, "criterio": f.criterio,
@@ -853,7 +854,7 @@ def actualizar_preapproved_sheet(db: Session, sheet_id: int, datos: dict) -> Des
     if not s:
         return None
     for campo in ("nombre", "titulo", "changes_label"):
-        if campo in datos:
+        if datos.get(campo) is not None:
             setattr(s, campo, datos[campo])
     db.commit()
     db.refresh(s)
@@ -872,9 +873,16 @@ def eliminar_preapproved_sheet(db: Session, sheet_id: int, eliminado_por: str = 
 
 
 def preapproved_agregar_centro(db: Session, sheet_id: int, nombre: str = "", span: int = 1) -> DesignPreApprovedCentro:
-    orden = db.query(DesignPreApprovedCentro).filter(DesignPreApprovedCentro.sheet_id == sheet_id).count() + 1
-    c = DesignPreApprovedCentro(sheet_id=sheet_id, nombre=nombre, span=span, orden=orden)
+    """Crea el centro al final con `span` doctores nuevos ("Dr. ") debajo."""
+    span = max(1, min(span or 1, 30))
+    orden = (db.query(func.max(DesignPreApprovedCentro.orden))
+             .filter(DesignPreApprovedCentro.sheet_id == sheet_id).scalar() or 0) + 1
+    c = DesignPreApprovedCentro(sheet_id=sheet_id, nombre=(nombre or "").strip()[:150], span=span, orden=orden)
     db.add(c)
+    ult = (db.query(func.max(DesignPreApprovedDoctor.orden))
+           .filter(DesignPreApprovedDoctor.sheet_id == sheet_id).scalar() or 0)
+    for k in range(span):
+        db.add(DesignPreApprovedDoctor(sheet_id=sheet_id, nombre="Dr. ", orden=ult + k + 1))
     db.commit()
     db.refresh(c)
     return c
@@ -892,17 +900,31 @@ def preapproved_eliminar_centro(db: Session, centro_id: int, eliminado_por: str 
     c = db.get(DesignPreApprovedCentro, centro_id)
     if not c:
         return False
-    payload = {"sheet_id": c.sheet_id, "nombre": c.nombre, "span": c.span}
+    doctores = _pac_doctores_del_centro(db, c)
+    payload = {"sheet_id": c.sheet_id, "nombre": c.nombre, "span": c.span, "doctores": [
+        {"nombre": d.nombre, "celdas": [{"fila_id": x.fila_id, "valor": x.valor} for x in
+                                        db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == d.id)]}
+        for d in doctores]}
     _trash_registrar(db, "pa-centro", f"Centro Pre-Approved: {c.nombre}", payload, eliminado_por)
+    for d in doctores:
+        db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == d.id).delete()
+        db.delete(d)
     db.delete(c)
     db.commit()
     return True
 
 
 def preapproved_agregar_doctor(db: Session, sheet_id: int, nombre: str = "") -> DesignPreApprovedDoctor:
-    orden = db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id == sheet_id).count() + 1
-    d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=nombre, orden=orden)
+    """Agrega el doctor al final, dentro del último centro (o crea uno sin nombre si no hay)."""
+    orden = (db.query(func.max(DesignPreApprovedDoctor.orden))
+             .filter(DesignPreApprovedDoctor.sheet_id == sheet_id).scalar() or 0) + 1
+    d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=nombre or "Dr. ", orden=orden)
     db.add(d)
+    centros = _pac_centros_ordenados(db, sheet_id)
+    if centros:
+        centros[-1].span += 1
+    else:
+        db.add(DesignPreApprovedCentro(sheet_id=sheet_id, nombre="", span=1, orden=1))
     db.commit()
     db.refresh(d)
     return d
@@ -920,11 +942,33 @@ def preapproved_eliminar_doctor(db: Session, doctor_id: int, eliminado_por: str 
     if not d:
         return False
     celdas = db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == doctor_id).all()
+    orden_docs = [x.id for x in _pac_doctores_ordenados(db, d.sheet_id)]
+    dentro = orden_docs.index(d.id) < sum(c.span for c in _pac_centros_ordenados(db, d.sheet_id))
+    centro = _pac_centro_de_doctor(db, d.sheet_id, d.id) if dentro else None
     payload = {"sheet_id": d.sheet_id, "nombre": d.nombre,
-              "celdas": [{"fila_id": c.fila_id, "valor": c.valor} for c in celdas]}
+              "celdas": [{"fila_id": c.fila_id, "valor": c.valor} for c in celdas],
+              "centro_id": centro.id if centro else None, "centro_nombre": centro.nombre if centro else ""}
     _trash_registrar(db, "pa-doctor", f"Doctor Pre-Approved: {d.nombre}", payload, eliminado_por)
     db.query(DesignPreApprovedCelda).filter(DesignPreApprovedCelda.doctor_id == doctor_id).delete()
     db.delete(d)
+    if centro:
+        centro.span -= 1
+        if centro.span <= 0:
+            db.delete(centro)
+    db.commit()
+    return True
+
+
+def preapproved_guardar_ancho(db: Session, sheet_id: int, clave: str, px: int | None) -> bool:
+    s = db.get(DesignPreApprovedSheet, sheet_id)
+    if not s:
+        return False
+    anchos = _json(s.anchos, {})
+    if px:
+        anchos[str(clave)[:20]] = max(60, min(int(px), 800))
+    else:
+        anchos.pop(str(clave), None)
+    s.anchos = json.dumps(anchos)
     db.commit()
     return True
 
@@ -1424,9 +1468,23 @@ def _trash_restaurar_pa_centro(db: Session, payload: dict) -> bool:
     sheet_id = payload.get("sheet_id")
     if not db.get(DesignPreApprovedSheet, sheet_id):
         return False
-    orden = db.query(DesignPreApprovedCentro).filter(DesignPreApprovedCentro.sheet_id == sheet_id).count() + 1
-    db.add(DesignPreApprovedCentro(sheet_id=sheet_id, nombre=payload.get("nombre", ""),
-                                   span=payload.get("span") or 1, orden=orden))
+    orden = (db.query(func.max(DesignPreApprovedCentro.orden))
+             .filter(DesignPreApprovedCentro.sheet_id == sheet_id).scalar() or 0) + 1
+    doctores = payload.get("doctores")
+    if doctores is None:  # borrados antes de este cambio: solo el encabezado
+        db.add(DesignPreApprovedCentro(sheet_id=sheet_id, nombre=payload.get("nombre", ""),
+                                       span=payload.get("span") or 1, orden=orden))
+        return True
+    db.add(DesignPreApprovedCentro(sheet_id=sheet_id, nombre=payload.get("nombre", ""), span=max(1, len(doctores)), orden=orden))
+    ult = (db.query(func.max(DesignPreApprovedDoctor.orden))
+           .filter(DesignPreApprovedDoctor.sheet_id == sheet_id).scalar() or 0)
+    for k, doc in enumerate(doctores or [{"nombre": "Dr. ", "celdas": []}], start=1):
+        d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=doc.get("nombre", ""), orden=ult + k)
+        db.add(d)
+        db.flush()
+        for c in doc.get("celdas", []):
+            if db.get(DesignPreApprovedFila, c.get("fila_id")):
+                db.add(DesignPreApprovedCelda(fila_id=c["fila_id"], doctor_id=d.id, valor=c.get("valor", "")))
     return True
 
 
@@ -1434,10 +1492,15 @@ def _trash_restaurar_pa_doctor(db: Session, payload: dict) -> bool:
     sheet_id = payload.get("sheet_id")
     if not db.get(DesignPreApprovedSheet, sheet_id):
         return False
-    orden = db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id == sheet_id).count() + 1
+    orden = (db.query(func.max(DesignPreApprovedDoctor.orden))
+             .filter(DesignPreApprovedDoctor.sheet_id == sheet_id).scalar() or 0) + 1
     d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=payload.get("nombre", ""), orden=orden)
     db.add(d)
     db.flush()
+    if "centro_id" in payload:  # vuelve a su centro (o a uno nuevo con su nombre si ya no existe)
+        centro = db.get(DesignPreApprovedCentro, payload.get("centro_id") or 0)
+        _pac_insertar_doctor(db, d, sheet_id, centro.id if centro and centro.sheet_id == sheet_id else None,
+                             payload.get("centro_nombre", ""))
     for c in payload.get("celdas", []):
         if db.get(DesignPreApprovedFila, c.get("fila_id")):
             db.add(DesignPreApprovedCelda(fila_id=c["fila_id"], doctor_id=d.id, valor=c.get("valor", "")))

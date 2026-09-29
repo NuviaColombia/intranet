@@ -223,6 +223,8 @@ class DesignPreApprovedSheet(Base):
     titulo: Mapped[str] = mapped_column(String(150), default="Pre-approved changes")
     changes_label: Mapped[str] = mapped_column(String(100), default="Changes")
     orden: Mapped[int] = mapped_column(Integer, default=0)
+    # Anchos de columna guardados por hoja (JSON): {"crit": px, "<doctor_id>": px}.
+    anchos: Mapped[str] = mapped_column(Text, default="{}")
 
     area = relationship("DesignArea")
     centros = relationship("DesignPreApprovedCentro", back_populates="sheet",

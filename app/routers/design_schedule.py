@@ -603,6 +603,12 @@ async def pagina_preapproved(request: Request, user: Empleado = Depends(require_
 
 
 # ---------- API: Pre-Approved ----------
+# Leen todos los del módulo; editan solo los roles por encima del diseñador (como Comments N2 / Face).
+
+def _pa_editor(user: Empleado) -> None:
+    if user.rol not in FAQ_ROLES_EDITAN:
+        raise HTTPException(403, "Solo líderes y administradores pueden editar el Pre-Approved.")
+
 
 @router.get("/design/api/preapproved/sheets")
 async def api_preapproved_sheets(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
@@ -616,6 +622,7 @@ async def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(requir
     detalle = sd.preapproved_detalle(db, sheet_id)
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada.")
+    detalle["puedeEditar"] = user.rol in FAQ_ROLES_EDITAN
     return detalle
 
 
@@ -623,20 +630,22 @@ async def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(requir
 async def api_crear_preapproved_sheet(area_id: int, nombre: str = "",
                                       user: Empleado = Depends(require_modulo("design_schedule")),
                                       db: Session = Depends(get_db)):
+    _pa_editor(user)
     s = sd.crear_preapproved_sheet(db, area_id, nombre)
     return {"id": s.id, "nombre": s.nombre}
 
 
 class PreApprovedSheetIn(BaseModel):
-    nombre: str = ""
-    titulo: str = ""
-    changesLabel: str = ""
+    nombre: str | None = None
+    titulo: str | None = None
+    changesLabel: str | None = None
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}")
 async def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSheetIn,
                                            user: Empleado = Depends(require_modulo("design_schedule")),
                                            db: Session = Depends(get_db)):
+    _pa_editor(user)
     s = sd.actualizar_preapproved_sheet(db, sheet_id, {"nombre": payload.nombre, "titulo": payload.titulo,
                                                        "changes_label": payload.changesLabel})
     if not s:
@@ -647,15 +656,18 @@ async def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSh
 @router.post("/design/api/preapproved/sheets/{sheet_id}/eliminar")
 async def api_eliminar_preapproved_sheet(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                          db: Session = Depends(get_db)):
+    _pa_editor(user)
     if not sd.eliminar_preapproved_sheet(db, sheet_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}/centros")
-async def api_agregar_centro(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+async def api_agregar_centro(sheet_id: int, nombre: str = "", doctores: int = 1,
+                             user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
-    c = sd.preapproved_agregar_centro(db, sheet_id)
+    _pa_editor(user)
+    c = sd.preapproved_agregar_centro(db, sheet_id, nombre, doctores)
     return {"id": c.id}
 
 
@@ -668,6 +680,7 @@ class CentroIn(BaseModel):
 async def api_actualizar_centro(centro_id: int, payload: CentroIn,
                                 user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
+    _pa_editor(user)
     sd.preapproved_actualizar_centro(db, centro_id, payload.nombre, payload.span)
     return {"mensaje": "Actualizado."}
 
@@ -675,6 +688,7 @@ async def api_actualizar_centro(centro_id: int, payload: CentroIn,
 @router.post("/design/api/preapproved/centros/{centro_id}/eliminar")
 async def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
+    _pa_editor(user)
     if not sd.preapproved_eliminar_centro(db, centro_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
@@ -683,6 +697,7 @@ async def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_m
 @router.post("/design/api/preapproved/sheets/{sheet_id}/doctores")
 async def api_agregar_doctor(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
+    _pa_editor(user)
     d = sd.preapproved_agregar_doctor(db, sheet_id)
     return {"id": d.id}
 
@@ -695,6 +710,7 @@ class NombreIn(BaseModel):
 async def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
                                db: Session = Depends(get_db)):
+    _pa_editor(user)
     sd.preapproved_renombrar_doctor(db, doctor_id, payload.nombre)
     return {"mensaje": "Actualizado."}
 
@@ -702,6 +718,7 @@ async def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
 @router.post("/design/api/preapproved/doctores/{doctor_id}/eliminar")
 async def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
+    _pa_editor(user)
     if not sd.preapproved_eliminar_doctor(db, doctor_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
@@ -710,6 +727,7 @@ async def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_m
 @router.post("/design/api/preapproved/sheets/{sheet_id}/filas")
 async def api_agregar_fila(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
+    _pa_editor(user)
     f = sd.preapproved_agregar_fila(db, sheet_id)
     return {"id": f.id}
 
@@ -718,6 +736,7 @@ async def api_agregar_fila(sheet_id: int, user: Empleado = Depends(require_modul
 async def api_renombrar_fila(fila_id: int, payload: NombreIn,
                              user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
+    _pa_editor(user)
     sd.preapproved_renombrar_fila(db, fila_id, payload.nombre)
     return {"mensaje": "Actualizado."}
 
@@ -725,6 +744,7 @@ async def api_renombrar_fila(fila_id: int, payload: NombreIn,
 @router.post("/design/api/preapproved/filas/{fila_id}/eliminar")
 async def api_eliminar_fila(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
+    _pa_editor(user)
     if not sd.preapproved_eliminar_fila(db, fila_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
@@ -739,7 +759,22 @@ class CeldaIn(BaseModel):
 @router.post("/design/api/preapproved/celdas")
 async def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
+    _pa_editor(user)
     sd.preapproved_guardar_celda(db, payload.filaId, payload.doctorId, payload.valor)
+    return {"mensaje": "Guardado."}
+
+
+class AnchoIn(BaseModel):
+    clave: str
+    px: int | None = None
+
+
+@router.post("/design/api/preapproved/sheets/{sheet_id}/anchos")
+async def api_preapproved_ancho(sheet_id: int, payload: AnchoIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                                db: Session = Depends(get_db)):
+    _pa_editor(user)
+    if not sd.preapproved_guardar_ancho(db, sheet_id, payload.clave, payload.px):
+        raise HTTPException(404, "Hoja no encontrada.")
     return {"mensaje": "Guardado."}
 
 

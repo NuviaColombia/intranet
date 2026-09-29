@@ -262,6 +262,10 @@ def init_db():
     if engine.dialect.name == "postgresql" and getattr(columnas_design_faq["situacion"]["type"], "length", None):
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE design_faq ALTER COLUMN situacion TYPE TEXT"))
+    columnas_pa_sheets = {c["name"] for c in inspect(engine).get_columns("design_preapproved_sheets")}
+    if "anchos" not in columnas_pa_sheets:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_preapproved_sheets ADD COLUMN anchos TEXT DEFAULT '{}'"))
     columnas_traslados = {c["name"] for c in inspect(engine).get_columns("custodia_traslados")}
     if "motivo_anulacion" not in columnas_traslados:
         with engine.begin() as conn:
