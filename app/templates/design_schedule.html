@@ -305,7 +305,10 @@
   @media (max-width:720px) { .pac-cols { grid-template-columns:1fr; } .pac-mid { padding-top:0; } }
 
 
-  #canvasHome{ max-width:1100px; margin:0 auto; }
+  /* Canvas usa todo el ancho de la pantalla (como Comments y Pre-Approved) */
+  #ov-canvas .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
+  #ov-canvas .ds-overlay-inner > h1, #ov-canvas .ds-overlay-inner > p { padding-right:56px; }
+  #canvasHome{ margin:0 auto; }
   .cv-area-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
   .cv-area-tab{ padding:8px 16px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:13px; }
   .cv-area-tab.activo{ background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
