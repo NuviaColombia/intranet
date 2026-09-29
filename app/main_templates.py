@@ -20,7 +20,7 @@ templates.env.globals["secciones_acceso"] = SECCIONES
 
 
 def _resumen_aprobaciones(user):
-    if not user or user.rol not in ("aprobador", "admin"):
+    if not user or user.rol not in ("aprobador", "admin", "superadmin"):
         return None
     db = SessionLocal()
     try:
