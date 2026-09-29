@@ -131,6 +131,7 @@ def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require
     return templates.TemplateResponse(request, "caja_menor.html", {
         "user": user, "es_caja": True, "caja": caja,
         "autorizadores": [n for n in sc.autorizadores_de_caja(db, caja) if n != user.nombre_completo.strip().upper()],
+        "solo_yo_autorizo": sc.autorizadores_de_caja(db, caja) == [user.nombre_completo.strip().upper()],
         "supervisores": [n for n in sc.supervisores_de_caja(db, caja) if n != (caja.responsable or "").strip().upper()],
         "solo_firmas": solo_firmas, "puede_consultar": sc.es_firmante_de_caja(db, user, caja),
         "tab_inicial": (request.query_params.get("tab") if request.query_params.get("tab") in ("consulta", "fms", "firmas") else "firmas")

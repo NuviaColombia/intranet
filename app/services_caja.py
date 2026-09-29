@@ -255,6 +255,9 @@ def _resolver_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: CajaRe
             return e, None
     if actual and elegido and elegido == (actual.autorizado_por or ""):
         return (db.get(Empleado, actual.autorizado_por_id) if actual.autorizado_por_id else None), None
+    if filas and creador_id and all(e.id == creador_id for e in filas):
+        return None, ("Eres el único autorizador de esta caja y no puedes firmar tu propio recibo. "
+                      "Pide que agreguen a otra persona en Parámetros › Autorizan.")
     if filas:
         return None, "Elige quién autoriza el recibo."
     return None, None
