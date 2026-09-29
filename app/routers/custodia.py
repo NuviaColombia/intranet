@@ -10,6 +10,7 @@ from ..auth import require_modulo
 from ..acceso_produccion import require_submodulo
 from ..main_templates import templates
 from .. import services_custodia as sc
+from .. import acceso_secciones as acs
 
 router = APIRouter()
 
@@ -26,7 +27,9 @@ def pagina(request: Request, user: Empleado = Depends(require_submodulo("custodi
                                                                   if sc.puede_firmar_recibido(user, t)),
                                        # Todas (incluidas inactivas), para dar formato a nombres de registros viejos.
                                        "formato_areas": [a.nombre for a in db.query(CustodiaArea.nombre)],
-                                       "formato_motivos": [m.nombre for m in db.query(CustodiaMotivo.nombre)]})
+                                       "formato_motivos": [m.nombre for m in db.query(CustodiaMotivo.nombre)],
+                                       # Pestañas que puede usar (Producción › Parámetros › Accesos › Secciones)
+                                       "secciones": acs.secciones_de(db, user, "custodia")})
 
 
 # ---------- Esquemas ----------
@@ -118,6 +121,7 @@ def api_registrar(payload: RegistrarPayload, tareas: BackgroundTasks,
                   user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
     if not payload.traslados:
         raise HTTPException(400, "Sin datos de traslado.")
+    acs.exigir(db, user, "custodia", "nueva-orden" if any(t.ordenNueva for t in payload.traslados) else "registro")
     primero = payload.traslados[0]
     try:
         hora_obj = time.fromisoformat(primero.hora)
@@ -163,6 +167,7 @@ def _get_traslado(db: Session, traslado_id: int) -> CustodiaTraslado:
 @router.post("/custodia/api/traslados/{traslado_id}/confirmar-entrada")
 def api_confirmar_entrada(traslado_id: int, user: Empleado = Depends(require_submodulo("custodia")),
                                 db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'aprobaciones')
     traslado = _get_traslado(db, traslado_id)
     error = sc.confirmar_entrada(db, traslado, user)
     if error:
@@ -177,6 +182,7 @@ class AnularIn(BaseModel):
 @router.post("/custodia/api/traslados/{traslado_id}/anular")
 def api_anular(traslado_id: int, payload: AnularIn | None = None,
                user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'consulta', 'activas')
     traslado = _get_traslado(db, traslado_id)
     error = sc.anular_traslado(db, traslado, user, payload.motivo if payload else "")
     if error:
@@ -188,6 +194,7 @@ def api_anular(traslado_id: int, payload: AnularIn | None = None,
 def api_consultar(tipo: str = "ultimos30", areaSalida: str = "TODAS", estado: str = "ACTIVOS",
                         fechaInicio: str = "", fechaFin: str = "",
                         user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'consulta')
     fi = date.fromisoformat(fechaInicio) if fechaInicio else None
     ff = date.fromisoformat(fechaFin) if fechaFin else None
     traslados = sc.consultar(db, tipo, areaSalida, estado, fi, ff)
@@ -199,6 +206,7 @@ def api_consultar(tipo: str = "ultimos30", areaSalida: str = "TODAS", estado: st
 @router.get("/custodia/api/pendientes-entrada")
 def api_pendientes_entrada(user: Empleado = Depends(require_submodulo("custodia")),
                                  db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'aprobaciones')
     traslados = sc.pendientes_entrada(db)
     return {"data": [_con_permiso(t, user) for t in traslados]}
 
@@ -207,6 +215,7 @@ def api_pendientes_entrada(user: Empleado = Depends(require_submodulo("custodia"
 def api_estado_ordenes(fechaDesde: str = "", fechaHasta: str = "",
                              user: Empleado = Depends(require_submodulo("custodia")),
                              db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'activas')
     fd = date.fromisoformat(fechaDesde) if fechaDesde else None
     fh = date.fromisoformat(fechaHasta) if fechaHasta else None
     return sc.estado_ordenes(db, fd, fh)
@@ -230,6 +239,7 @@ def api_viaje(numero_orden: str, user: Empleado = Depends(require_submodulo("cus
 @router.get("/custodia/api/detalles/{traslado_id}")
 def api_detalles(traslado_id: int, user: Empleado = Depends(require_submodulo("custodia")),
                        db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'consulta', 'activas', 'aprobaciones')
     traslado = _get_traslado(db, traslado_id)
     return sc.detalles_por_traslado(traslado)
 
@@ -238,6 +248,7 @@ def api_detalles(traslado_id: int, user: Empleado = Depends(require_submodulo("c
 def api_dashboard(fechaDesde: str = "", fechaHasta: str = "",
                         user: Empleado = Depends(require_submodulo("custodia")),
                         db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'existencias')
     fd = date.fromisoformat(fechaDesde) if fechaDesde else None
     fh = date.fromisoformat(fechaHasta) if fechaHasta else None
     return sc.dashboard(db, fd, fh)
@@ -246,6 +257,7 @@ def api_dashboard(fechaDesde: str = "", fechaHasta: str = "",
 @router.get("/custodia/api/tickets-rango")
 def api_tickets_rango(inicio: int, fin: int, user: Empleado = Depends(require_submodulo("custodia")),
                             db: Session = Depends(get_db)):
+    acs.exigir(db, user, "custodia", 'consulta')
     if inicio > fin:
         raise HTTPException(400, "El consecutivo de inicio debe ser menor o igual al de fin.")
     if fin - inicio + 1 > sc.LIMITE_TICKETS_RANGO:

@@ -1,0 +1,43 @@
+{# Editor de secciones por persona (Parámetros). Uso: {% from "_secciones.html" import celda_secciones %}
+   celda_secciones(persona, "custodia", config_de_ese_modulo, "/inventario/parametros?tab=managers") #}
+{% macro celda_secciones(persona, modulo, config, volver) %}
+{% set todas = secciones_acceso[modulo] %}
+{% set actuales = config.get(persona.id) %}
+{% if persona.rol in ('admin', 'superadmin') %}
+  <span class="sc-todas">Todas <small>(administrador)</small></span>
+{% else %}
+<details class="sc-editor">
+  <summary title="Cambiar las secciones que puede usar">
+    {% if actuales is none %}<span class="sc-todas">Todas</span>
+    {% else %}{% for slug, nombre in todas if slug in actuales %}<span class="sc-chip">{{ nombre }}</span>{% endfor %}{% endif %}
+    <span class="sc-lapiz">✏️</span>
+  </summary>
+  <form method="post" action="/parametros/secciones" class="sc-form">
+    <input type="hidden" name="empleado_id" value="{{ persona.id }}">
+    <input type="hidden" name="modulo" value="{{ modulo }}">
+    <input type="hidden" name="volver" value="{{ volver }}">
+    <div class="sc-opciones">
+      {% for slug, nombre in todas %}
+      <label><input type="checkbox" name="secciones" value="{{ slug }}" {{ 'checked' if actuales is none or slug in actuales }}> {{ nombre }}</label>
+      {% endfor %}
+    </div>
+    <button class="btn mini">Guardar secciones</button>
+  </form>
+</details>
+{% endif %}
+{% endmacro %}
+
+{% macro estilos_secciones() %}
+<style>
+  .sc-editor summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .sc-editor summary::-webkit-details-marker { display: none; }
+  .sc-chip { background: #E0E7FF; color: #3730A3; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .sc-todas { background: #DCFCE7; color: #166534; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
+  .sc-todas small { font-weight: 500; }
+  .sc-lapiz { font-size: 11px; opacity: .6; }
+  .sc-form { margin-top: 8px; padding: 10px; border: 1px solid #E2E8F0; border-radius: 8px; background: #F8FAFC; min-width: 220px; }
+  .sc-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin-bottom: 8px; font-size: 12px; }
+  .sc-opciones label { display: flex; gap: 6px; align-items: center; white-space: nowrap; font-weight: 500; }
+  .sc-opciones input { width: auto; min-height: 0; margin: 0; }
+</style>
+{% endmacro %}

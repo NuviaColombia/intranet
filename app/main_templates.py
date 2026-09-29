@@ -6,6 +6,7 @@ from .aprobaciones_globales import resumen_pendientes
 from .formato import nombre_propio, SIGLAS, MINUSCULAS
 from .produccion import SUBMODULOS_PRODUCCION, resumen_submodulos_produccion
 from .sst import puede_sst
+from .acceso_secciones import SECCIONES
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["logo_empresa"] = logo_para
@@ -15,6 +16,7 @@ templates.env.globals["formato_siglas"] = SIGLAS
 templates.env.globals["formato_minusculas"] = MINUSCULAS
 templates.env.globals["submodulos_produccion"] = SUBMODULOS_PRODUCCION
 templates.env.globals["resumen_submodulos_produccion"] = resumen_submodulos_produccion
+templates.env.globals["secciones_acceso"] = SECCIONES
 
 
 def _resumen_aprobaciones(user):

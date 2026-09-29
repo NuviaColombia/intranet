@@ -3,9 +3,12 @@
 <link rel="stylesheet" href="/static/consumo.css?v=1">
 <div id="consumo-app">
  <div class="cm-main">
+  {% if not consumo_tab_inicial %}
+  <div class="cm-seccion activa"><p class="cm-vacio">No tienes secciones habilitadas en Seguimiento de consumo. Pídeselas a un administrador (Producción › Parámetros › Accesos).</p></div>
+  {% endif %}
 
   <!-- ============ ENTREGA DE INSUMOS ============ -->
-  <div id="sec-entrega" class="cm-seccion {{ 'activa' if puede_entregar }}">
+  <div id="sec-entrega" class="cm-seccion {{ 'activa' if consumo_tab_inicial == 'entrega' }}">
     <div class="cm-barra">
       <div><h2 class="cm-titulo">📦 Entrega de insumos</h2>
         <p class="cm-sub" style="margin:0;">Registra los frascos que el manager entrega a un técnico. Cada frasco lleva su propio lote, referencia y número de serie.</p></div>
@@ -44,7 +47,7 @@
   </div>
 
   <!-- ============ JORNADA DIARIA ============ -->
-  <div id="sec-jornada" class="cm-seccion {{ '' if puede_entregar else 'activa' }}">
+  <div id="sec-jornada" class="cm-seccion {{ 'activa' if consumo_tab_inicial == 'jornada' }}">
     <div class="cm-barra">
       <div><h2 class="cm-titulo">🛠️ Jornada diaria</h2>
         <p class="cm-sub" style="margin:0;">Arcos producidos por frasco en el día. Si vuelves a abrir el mismo día, se corrige lo registrado (no se duplica). Marca «Consumido» cuando el frasco se acaba.</p></div>
@@ -104,7 +107,9 @@ function num(v) { return Number(v || 0).toLocaleString('es-CO', {maximumFraction
 function badge(e) { var c = {ACTIVO: 'activo', ANULADO: 'anulado', EN_USO: 'activo', CONSUMIDO: 'legalizado'}[e] || '';
   return '<span class="badge ' + c + '">' + ({EN_USO: 'En uso', CONSUMIDO: 'Consumido'}[e] || np(e)) + '</span>'; }
 
+var SECCIONES = {{ (secciones or [])|tojson }};  // pestañas permitidas (Parámetros › Accesos › Secciones)
 function switchTab(tab) {
+  if (SECCIONES.length && SECCIONES.indexOf(tab) < 0) return;
   document.querySelectorAll('#consumo-app .cm-seccion').forEach(function(s) { s.classList.remove('activa'); });
   var sec = document.getElementById('sec-' + tab); if (!sec) return; sec.classList.add('activa');
   document.querySelectorAll('.consumo-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
@@ -268,7 +273,7 @@ api('/consumo/api/datos').then(function(d) {
   rMateria.innerHTML = '<option value="">Todas</option>' + d.materias.map(function(m) { return '<option value="' + m.id + '">' + esc(np(m.descripcion)) + '</option>'; }).join('');
   cambiarTecnicoEntrega();
   var tab = new URLSearchParams(location.search).get('tab');
-  if (tab) switchTab(tab); else if (!d.puedeEntregar) switchTab('jornada');
+  switchTab(tab && SECCIONES.indexOf(tab) >= 0 ? tab : {{ (consumo_tab_inicial or 'jornada')|tojson }});
 });
 </script>
 {% endblock %}

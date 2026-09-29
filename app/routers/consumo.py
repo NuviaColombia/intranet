@@ -15,6 +15,7 @@ from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PROD
 from ..formato import nombre_propio
 from ..main_templates import templates
 from .. import services_consumo as sc
+from .. import acceso_secciones as acs
 
 router = APIRouter()
 SUB = "consumo"
@@ -23,9 +24,11 @@ SUB = "consumo"
 @router.get("/consumo")
 def pagina(request: Request, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     sc.asegurar_tipos(db)
+    puede = sc.puede_entregar(db, user)
+    secciones = [s for s in acs.secciones_de(db, user, SUB) if puede or s not in ("entrega", "consulta")]
     return templates.TemplateResponse(request, "consumo.html", {
-        "user": user, "es_consumo": True, "puede_entregar": sc.puede_entregar(db, user),
-        "area_manager": sc.area_manager(db, user)})
+        "user": user, "es_consumo": True, "puede_entregar": puede, "area_manager": sc.area_manager(db, user),
+        "secciones": secciones, "consumo_tab_inicial": secciones[0] if secciones else ""})
 
 
 @router.get("/consumo/api/datos")
@@ -60,6 +63,7 @@ class EntregaIn(BaseModel):
 
 @router.post("/consumo/api/entregas")
 def api_crear_entrega(payload: EntregaIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'entrega')
     datos = payload.model_dump()
     e = sc.crear_entrega(db, user, datos)
     if isinstance(e, str):
@@ -69,6 +73,7 @@ def api_crear_entrega(payload: EntregaIn, user: Empleado = Depends(require_submo
 
 @router.get("/consumo/api/entregas")
 def api_entregas(user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'consulta')
     visibles = {t.id for t in sc.tecnicos_visibles(db, user)}
     entregas = (db.query(ConsumoEntrega).filter(ConsumoEntrega.tecnico_id.in_(visibles or [0]))
                 .order_by(ConsumoEntrega.id.desc()).limit(1000).all())
@@ -81,6 +86,7 @@ class MotivoIn(BaseModel):
 
 @router.post("/consumo/api/entregas/{entrega_id}/anular")
 def api_anular(entrega_id: int, payload: MotivoIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'consulta')
     e = db.get(ConsumoEntrega, entrega_id)
     if not e:
         raise HTTPException(404, "Entrega no encontrada.")
@@ -106,6 +112,7 @@ def _fecha(valor: str) -> date:
 
 @router.get("/consumo/api/jornada")
 def api_jornada(tecnico_id: int, fecha: str, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'jornada')
     t = _tecnico(db, user, tecnico_id)
     return {"frascos": sc.frascos_para_jornada(db, t, _fecha(fecha))}
 
@@ -124,6 +131,7 @@ class JornadaIn(BaseModel):
 
 @router.post("/consumo/api/jornada")
 def api_guardar_jornada(payload: JornadaIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'jornada')
     t = _tecnico(db, user, payload.tecnico_id)
     error = sc.guardar_jornada(db, user, t, _fecha(payload.fecha), [f.model_dump() for f in payload.filas])
     if error:
@@ -138,6 +146,7 @@ def _rango(desde: str, hasta: str) -> tuple[date | None, date | None]:
 @router.get("/consumo/api/reportes")
 def api_reportes(desde: str = "", hasta: str = "", tecnico_id: int = 0, materia_id: int = 0,
                  user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'reportes')
     d, h = _rango(desde, hasta)
     return sc.reportes(db, d, h, tecnico_id or None, materia_id or None, user)
 
@@ -145,6 +154,7 @@ def api_reportes(desde: str = "", hasta: str = "", tecnico_id: int = 0, materia_
 @router.get("/consumo/api/reportes/exportar")
 def api_exportar(desde: str = "", hasta: str = "", tecnico_id: int = 0, materia_id: int = 0,
                  user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'reportes')
     d, h = _rango(desde, hasta)
     r = sc.reportes(db, d, h, tecnico_id or None, materia_id or None, user)
     salida = io.StringIO()
@@ -310,6 +320,8 @@ def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin), db:
     if e:
         db.query(ProduccionAcceso).filter_by(empleado_id=e.id, submodulo=SUB).delete()
         db.query(ConsumoManager).filter(ConsumoManager.empleado_id == e.id).delete()
+        from .. import acceso_secciones as acs
+        acs.quitar(db, e.id, SUB)
         if not db.query(ProduccionAcceso).filter(ProduccionAcceso.empleado_id == e.id).first():
             e.modulos = ",".join(m for m in e.modulos_lista if m != MODULO_PRODUCCION)
         db.commit()

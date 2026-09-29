@@ -751,7 +751,10 @@ function nf(texto) {
   window.custodiaPostJSON = postJSON;
 })();
 
+// Pestañas que esta persona puede usar (Producción › Parámetros › Accesos › Secciones)
+var SECCIONES = {{ (secciones or [])|tojson }};
 function switchTab(tab) {
+  if (SECCIONES.length && SECCIONES.indexOf(tab) < 0) return;
   document.querySelectorAll("#custodia-app .content-section").forEach(el => el.classList.remove("active"));
   document.querySelectorAll(".custodia-tab").forEach(el => el.classList.remove("activo"));
   var seccionId = (tab === 'nueva-orden') ? 'sec-registro' : ('sec-' + tab);
@@ -766,6 +769,7 @@ function switchTab(tab) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  if (SECCIONES.length && SECCIONES.indexOf('registro') < 0) switchTab(SECCIONES[0]);  // sin Nuevo registro: abre la primera que tenga
   document.querySelectorAll('.custodia-tab').forEach(function(el) {
     el.addEventListener('click', function(e) {
       e.preventDefault();

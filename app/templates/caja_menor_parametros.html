@@ -94,11 +94,17 @@
   </table>
 </div>
 
+{% from "_secciones.html" import celda_secciones, estilos_secciones %}{{ estilos_secciones() }}
 <div class="cmp-panel" id="panel-resumen">
   <div class="cmp-ayuda">Qué hace cada persona en cada caja. Se cambia dentro de cada caja (lista <b>Caja</b> › Accesos, Autorizan o Supervisan).
-    <b>Opera</b> = tiene acceso (crea, edita, anula, legaliza). <b>Autoriza</b> y <b>Supervisa</b> = solo consultan y firman.</div>
+    <b>Opera</b> = tiene acceso (crea, edita, anula, legaliza). <b>Autoriza</b> y <b>Supervisa</b> = solo consultan y firman.
+    En <b>Secciones</b> eliges qué pestañas puede usar cada persona que opera (aplica a todas sus cajas).</div>
+  <div class="cmp-ayuda" style="margin:8px 0 12px; padding:10px 12px; background:#EEF2FF; border-radius:8px;">
+    🔐 <b>Quién puede entrar a Parámetros</b>: solo los <b>administradores</b> de la intranet (rol Administrador o Superadministrador en People › Empleados):
+    {% for a in administradores %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ' (superadmin)' if a.rol == 'superadmin' }}{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
+  </div>
   <table class="cmp-tabla">
-    <tr><th>Persona</th><th>Cargo</th>{% for c in cajas %}<th style="text-align:center">{{ c.icono }} {{ c.nombre|nombre_propio }}</th>{% endfor %}</tr>
+    <tr><th>Persona</th><th>Cargo</th>{% for c in cajas %}<th style="text-align:center">{{ c.icono }} {{ c.nombre|nombre_propio }}</th>{% endfor %}<th>Secciones</th></tr>
     {% for e in resumen %}
     <tr><td>{{ e.nombre_completo|nombre_propio }}{% if e.rol in ('admin', 'superadmin') %}<div style="font-size:11px; color:var(--gris);">Administrador · entra a todas</div>{% endif %}</td>
       <td>{{ e.cargo }}</td>
@@ -108,9 +114,11 @@
         {% if e in miembros.autorizan[c.id] %}{% set _ = roles.append('Autoriza') %}{% endif %}
         {% if e in miembros.supervisan[c.id] %}{% set _ = roles.append('Supervisa') %}{% endif %}
         {% for r in roles %}<span class="cmp-rol {{ r|lower }}">{{ r }}</span> {% else %}<span style="color:#d1d5db">—</span>{% endfor %}</td>{% endfor %}
+      <td>{% if e.id in por_empleado or e.rol in ('admin', 'superadmin') %}{{ celda_secciones(e, "caja", secciones_cfg, "/caja-menor/parametros?tab=resumen") }}
+          {% else %}<span style="color:#9ca3af; font-size:11px;">Solo firma</span>{% endif %}</td>
     </tr>
     {% else %}
-    <tr><td colspan="{{ 2 + cajas|length }}" style="text-align:center; color:var(--gris); padding:18px;">Todavía nadie tiene funciones en las cajas.</td></tr>
+    <tr><td colspan="{{ 3 + cajas|length }}" style="text-align:center; color:var(--gris); padding:18px;">Todavía nadie tiene funciones en las cajas.</td></tr>
     {% endfor %}
   </table>
 </div>

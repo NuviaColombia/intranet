@@ -18,6 +18,7 @@ from ..models_caja import (CajaMenor, CajaAcceso, CajaAutorizador, CajaSuperviso
 from ..auth import require_modulo, get_current_user
 from ..main_templates import templates
 from .. import services_caja as sc
+from .. import acceso_secciones as acs
 
 router = APIRouter()
 MODULO = "caja_menor"
@@ -116,7 +117,8 @@ def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)
     resumen = [e for e in activos if e.id in por_empleado or e.id in autoriza_por_empleado
                or e.id in supervisa_por_empleado or e.id in responsables]
     return templates.TemplateResponse(request, "caja_menor_parametros.html", {
-        "miembros": miembros, "resumen": resumen,
+        "miembros": miembros, "resumen": resumen, "secciones_cfg": acs.configuracion(db, "caja"),
+        "administradores": [e for e in activos if e.rol in ("admin", "superadmin")],
         "user": user, "es_caja": True, "caja": None, "cajas": cajas, "usuarios": usuarios, "candidatos": candidatos, "con_acceso": con_acceso,
         "autorizadores": autorizadores, "autoriza_por_empleado": autoriza_por_empleado, "activos": activos,
         "supervisores": supervisores, "supervisa_por_empleado": supervisa_por_empleado,
@@ -142,6 +144,7 @@ def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require
         "supervisores": [n for n in sc.supervisores_de_caja(db, caja)
                          if n != (caja.responsable or "").strip().upper() or _responsable_es_admin(db, caja)],
         "solo_firmas": solo_firmas, "puede_consultar": sc.es_firmante_de_caja(db, user, caja),
+        "secciones": None if solo_firmas else acs.secciones_de(db, user, "caja"),
         "tab_inicial": (request.query_params.get("tab") if request.query_params.get("tab") in ("consulta", "fms", "firmas") else "firmas")
                        if solo_firmas else request.query_params.get("tab", ""),
         "caja_por_firmar": sc.pendientes_de_firma(db, user).get(caja.id, 0),
@@ -202,6 +205,7 @@ def api_recibo(caja_id: int, consecutivo: int, user: Empleado = Depends(require_
 def api_crear_recibo(caja_id: int, payload: ReciboIn, tareas: BackgroundTasks, user: Empleado = Depends(require_modulo(MODULO)),
                      db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'recibo')
     r = sc.crear_recibo(db, caja, user, payload.model_dump())
     if isinstance(r, dict):
         raise HTTPException(409, r)  # hay que confirmar (fecha antigua / factura repetida)
@@ -216,6 +220,7 @@ def api_crear_recibo(caja_id: int, payload: ReciboIn, tareas: BackgroundTasks, u
 def api_editar_recibo(caja_id: int, recibo_id: int, payload: ReciboIn, tareas: BackgroundTasks,
                       user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'recibo', 'consulta')
     r = db.get(CajaRecibo, recibo_id)
     if not r or r.caja_id != caja.id:
         raise HTTPException(404, "Recibo no encontrado.")
@@ -310,6 +315,7 @@ def api_firmar_recibo(caja_id: int, recibo_id: int, tareas: BackgroundTasks,
 def api_anular_recibo(caja_id: int, recibo_id: int, payload: MotivoIn, tareas: BackgroundTasks,
                       user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'consulta', 'recibo')
     r = db.get(CajaRecibo, recibo_id)
     if not r or r.caja_id != caja.id:
         raise HTTPException(404, "Recibo no encontrado.")
@@ -323,6 +329,8 @@ def api_anular_recibo(caja_id: int, recibo_id: int, payload: MotivoIn, tareas: B
 @router.get("/caja-menor/api/{caja_id}/exportar")
 def api_exportar(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja, solo_firmas = _caja_o_firmas(db, user, caja_id)  # los firmantes también pueden consultar y exportar
+    if not solo_firmas:
+        acs.exigir(db, user, "caja", "consulta")
     if _solo_lo_suyo(db, user, caja, solo_firmas):
         raise HTTPException(403, "No tienes acceso a esta caja.")
     salida = io.StringIO()
@@ -356,6 +364,7 @@ class LegalizarIn(BaseModel):
 def api_legalizar(caja_id: int, payload: LegalizarIn, tareas: BackgroundTasks, user: Empleado = Depends(require_modulo(MODULO)),
                   db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'legalizar')
     fm = sc.legalizar(db, caja, user, payload.recibos, payload.responsable, payload.desglose, payload.ajuste,
                       payload.supervisado_por)
     if isinstance(fm, str):
@@ -391,6 +400,7 @@ def api_fm(caja_id: int, fm_id: int, user: Empleado = Depends(require_modulo(MOD
 def api_fm_reembolsado(caja_id: int, fm_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     """Tesorería reembolsó el FM: su valor deja de contar como pendiente en el arqueo."""
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'fms')
     fm = db.get(CajaFM, fm_id)
     if not fm or fm.caja_id != caja.id:
         raise HTTPException(404, "FM no encontrado.")
@@ -487,6 +497,7 @@ def api_visto_bueno(caja_id: int, fm_id: int, tareas: BackgroundTasks, user: Emp
 def api_anular_fm(caja_id: int, fm_id: int, payload: MotivoIn, tareas: BackgroundTasks,
                   user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'fms')
     fm = db.get(CajaFM, fm_id)
     if not fm or fm.caja_id != caja.id:
         raise HTTPException(404, "FM no encontrado.")
@@ -507,6 +518,7 @@ class ArqueoIn(BaseModel):
 @router.get("/caja-menor/api/{caja_id}/arqueos")
 def api_arqueos(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'arqueo')
     arqueos = (db.query(CajaArqueo).filter(CajaArqueo.caja_id == caja.id)
                .order_by(CajaArqueo.consecutivo.desc()).limit(2000).all())
     return {"data": [sc.serializar_arqueo(a) for a in arqueos]}
@@ -516,6 +528,7 @@ def api_arqueos(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
 def api_crear_arqueo(caja_id: int, payload: ArqueoIn, user: Empleado = Depends(require_modulo(MODULO)),
                      db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'arqueo')
     a = sc.crear_arqueo(db, caja, user, "", payload.desglose)  # responsable: el de la caja
     if isinstance(a, str):
         raise HTTPException(400, a)
