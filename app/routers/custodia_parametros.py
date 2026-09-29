@@ -38,6 +38,16 @@ def _accesos_produccion() -> None:
             _entradas_dir_a_stock()
     except Exception as e:
         print(f"Custodia: columna ingreso_directo ({type(e).__name__}: {e}).")
+    try:  # Firma obligatoria de DIR PRODUCCIÓN en las salidas de QC FINAL
+        if inspect(engine).has_table("custodia_traslados"):
+            columnas = {c["name"] for c in inspect(engine).get_columns("custodia_traslados")}
+            with engine.begin() as conn:
+                if "dir_firmado_por_id" not in columnas:
+                    conn.execute(text("ALTER TABLE custodia_traslados ADD COLUMN dir_firmado_por_id INTEGER REFERENCES empleados(id)"))
+                if "dir_firmado_en" not in columnas:
+                    conn.execute(text("ALTER TABLE custodia_traslados ADD COLUMN dir_firmado_en TIMESTAMP"))
+    except Exception as e:
+        print(f"Custodia: columnas de firma DIR ({type(e).__name__}: {e}).")
 
 
 def _entradas_dir_a_stock() -> None:
