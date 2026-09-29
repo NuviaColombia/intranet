@@ -499,6 +499,17 @@
   .pr-grupo-h { display:flex; align-items:baseline; gap:8px; margin:0 0 8px 2px; }
   .pr-grupo-h b { font-size:13px; color:#1d4ed8; text-transform:uppercase; }
   .pr-grupo-h span { font-size:12px; color:#6b7280; }
+  .pr-star { position:absolute; top:6px; left:6px; z-index:2; border:none; background:rgba(255,255,255,.95); border-radius:50%; width:30px; height:30px;
+             font-size:17px; line-height:1; cursor:pointer; color:#9ca3af; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0; margin:0; }
+  .pr-star:hover { color:#f59e0b; }
+  .pr-star.on { color:#f59e0b; }
+  .pr-card.marcado { border-color:#f59e0b; box-shadow:0 0 0 2px #fde68a; }
+  .pr-solo { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 10px 2px; font-size:12.5px; color:#92400e; }
+  .pr-solo .c { background:#fef3c7; border:1px solid #fcd34d; border-radius:999px; padding:3px 6px 3px 10px; display:inline-flex; align-items:center; gap:4px; font-weight:600; }
+  .pr-solo .c button, .pr-solo .quitar { border:none; background:none; cursor:pointer; color:#92400e; font-size:12px; padding:0 3px; width:auto; margin:0; }
+  .pr-solo .quitar { text-decoration:underline; }
+  .pr-espacio { font-size:12px; border-radius:8px; padding:8px 10px; margin:0 0 10px; background:#f4f6fa; color:#374151; }
+  .pr-espacio.alerta { background:#fef2f2; color:#991b1b; }
   .pr-pag { position:absolute; left:8px; bottom:8px; background:rgba(17,24,39,.8); color:#fff; font-size:11px; font-weight:700; border-radius:6px; padding:2px 7px; }
   .pr-empty { color:#6b7280; padding:40px; text-align:center; font-size:14px; }
   /* Visor */
@@ -848,6 +859,7 @@
 <div class="pr-buscar-wrap"><span class="pr-buscar-ico">🔎</span>
   <input type="search" class="pr-buscar" id="prSearch" placeholder="Busca una palabra en los protocolos (ej. tissue)..." autocomplete="off">
 </div>
+<div class="pr-solo" id="prSolo" style="display:none"></div>
 <div class="pr-cuenta" id="prCuenta"></div>
 <div class="pr-panel"><div id="prGrid"></div></div>
 <input type="file" id="prFileInput" accept="application/pdf,.pdf" multiple style="display:none">
@@ -4585,6 +4597,34 @@ window.DS_PANELS.dashboard = ddCargar;
   // Un protocolo se ve en sus áreas (o en todas si es General). El texto de cada diapositiva se extrae
   // en el navegador (pdf.js) al subirlo; las diapositivas se dibujan desde el PDF guardado.
   var PR = { areas: [], areaId: null, q: '', items: [], edita: false, docs: {}, busq: null, seq: 0 };
+  // Estrella: protocolos marcados por esta persona. Si hay marcados en el área, se busca solo en ellos.
+  // Es personal y dura solo mientras la página esté abierta (se quita al recargar).
+  var PR_MARCADOS = {};
+  function prMarcadosArea() { return PR.items.filter(function(p) { return PR_MARCADOS[p.id]; }); }
+  function prPintarSolo() {
+    var cont = document.getElementById('prSolo'), m = prMarcadosArea();
+    if (!m.length) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+    cont.style.display = '';
+    cont.innerHTML = '<span>★ Buscando solo en:</span>';
+    m.forEach(function(p) {
+      var c = document.createElement('span'); c.className = 'c'; c.textContent = p.titulo;
+      var x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.title = 'Quitar la estrella';
+      x.onclick = function() { prMarcar2(p.id, false); };
+      c.appendChild(x); cont.appendChild(c);
+    });
+    var q = document.createElement('button'); q.type = 'button'; q.className = 'quitar'; q.textContent = 'Quitar todas';
+    q.onclick = function() { m.forEach(function(p) { delete PR_MARCADOS[p.id]; }); prRefrescar(); };
+    cont.appendChild(q);
+  }
+  function prMarcar2(id, on) { if (on) PR_MARCADOS[id] = true; else delete PR_MARCADOS[id]; prRefrescar(); }
+  function prRefrescar() { prPintarSolo(); if (PR.q.trim()) buscar(); else renderLista(); }
+  function prBotonEstrella(p) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'pr-star' + (PR_MARCADOS[p.id] ? ' on' : '');
+    b.textContent = PR_MARCADOS[p.id] ? '★' : '☆';
+    b.title = PR_MARCADOS[p.id] ? 'Quitar la estrella' : 'Marcar: al buscar, solo se busca en los protocolos marcados';
+    b.onclick = function(e) { e.stopPropagation(); prMarcar2(p.id, !PR_MARCADOS[p.id]); };
+    return b;
+  }
   function prNorm(t) { return Array.from(String(t || '')).map(function(c) { return (c.normalize('NFD')[0] || c).toLowerCase(); }).join(''); }
   function prPalabras(q) { return prNorm(q).split(/\s+/).filter(function(w) { return w.length >= 2; }); }
   function prMarcar(texto, palabras) {
@@ -4635,6 +4675,7 @@ window.DS_PANELS.dashboard = ddCargar;
       if (areaId !== PR.areaId) return;
       PR.items = r.protocolos || []; PR.edita = !!r.puedeEditar;
       document.getElementById('prHerr').style.display = PR.edita ? '' : 'none';
+      prPintarSolo();
       if (PR.q.trim()) buscar(); else renderLista();
     });
   }
@@ -4734,6 +4775,8 @@ window.DS_PANELS.dashboard = ddCargar;
         acc.children[1].onclick = function(e) { e.stopPropagation(); prEliminar(p); };
         card.appendChild(acc);
       }
+      card.appendChild(prBotonEstrella(p));
+      if (PR_MARCADOS[p.id]) card.classList.add('marcado');
       card.onclick = function() { prAbrirVisor(p.id, 1, null); };
       cont.appendChild(card);
     });
@@ -4748,7 +4791,8 @@ window.DS_PANELS.dashboard = ddCargar;
   function buscar() {
     var q = PR.q.trim(), areaId = PR.areaId;
     if (!prPalabras(q).length) { renderLista(); document.getElementById('prCuenta').textContent = 'Escribe al menos 2 letras.'; return; }
-    api('/design/api/protocolos/buscar?area_id=' + areaId + '&q=' + encodeURIComponent(q)).then(function(r) {
+    var solo = prMarcadosArea().map(function(p) { return p.id; }).join(',');
+    api('/design/api/protocolos/buscar?area_id=' + areaId + '&q=' + encodeURIComponent(q) + (solo ? '&solo=' + solo : '')).then(function(r) {
       if (q !== PR.q.trim() || areaId !== PR.areaId) return;
       PR.busq = {q: q, palabras: prPalabras(q), res: r.resultados || []};
       renderResultados(r);
@@ -4760,15 +4804,18 @@ window.DS_PANELS.dashboard = ddCargar;
     var area = PR.areas.find(function(a) { return a.id === PR.areaId; });
     var grupos = [];
     res.forEach(function(x) { var g = grupos[grupos.length - 1]; if (!g || g.id !== x.protocoloId) grupos.push(g = {id: x.protocoloId, titulo: x.titulo, items: []}); g.items.push(x); });
+    var nMarc = prMarcadosArea().length, donde = nMarc ? (nMarc === 1 ? 'el protocolo marcado' : 'los ' + nMarc + ' protocolos marcados') : 'los protocolos de ' + (area ? area.nombre : 'esta área');
     document.getElementById('prCuenta').textContent = res.length
-      ? r.total + (r.total === 1 ? ' diapositiva' : ' diapositivas') + ' con “' + PR.busq.q + '” en ' + grupos.length + (grupos.length === 1 ? ' protocolo' : ' protocolos') + ' de ' + (area ? area.nombre : '') + (r.total > res.length ? ' (se muestran las primeras ' + res.length + ')' : '')
+      ? r.total + (r.total === 1 ? ' diapositiva' : ' diapositivas') + ' con “' + PR.busq.q + '” en ' + (nMarc ? donde : grupos.length + (grupos.length === 1 ? ' protocolo' : ' protocolos') + ' de ' + (area ? area.nombre : '')) + (r.total > res.length ? ' (se muestran las primeras ' + res.length + ')' : '')
       : '';
-    if (!res.length) { grid.innerHTML = '<div class="pr-empty">No se encontró “' + esc(PR.busq.q) + '” en los protocolos de ' + esc(area ? area.nombre : 'esta área') + '.</div>'; return; }
+    if (!res.length) { grid.innerHTML = '<div class="pr-empty">No se encontró “' + esc(PR.busq.q) + '” en ' + esc(donde) + '.</div>'; return; }
     grid.innerHTML = '';
     grupos.forEach(function(g) {
       var sec = document.createElement('div'); sec.className = 'pr-grupo';
       sec.innerHTML = '<div class="pr-grupo-h"><b></b><span></span></div><div class="pr-grid"></div>';
       sec.querySelector('b').textContent = g.titulo;
+      var pg0 = PR.items.find(function(x) { return x.id === g.id; });
+      if (pg0) { var st = prBotonEstrella(pg0); st.style.position = 'static'; st.style.boxShadow = 'none'; st.style.width = '24px'; st.style.height = '24px'; st.style.fontSize = '16px'; sec.querySelector('.pr-grupo-h').insertBefore(st, sec.querySelector('b')); }
       sec.querySelector('span').textContent = g.items.length + (g.items.length === 1 ? ' diapositiva' : ' diapositivas');
       var cont = sec.querySelector('.pr-grid');
       g.items.forEach(function(x) {
@@ -4889,15 +4936,28 @@ window.DS_PANELS.dashboard = ddCargar;
       '<label class="pr-lbl">Título de cada protocolo</label><div class="pr-form-lista"></div>' +
       '<label class="pr-lbl">¿En qué áreas se verán?</label>' + prAreasHtml([PR.areaId]) +
       '<label class="pr-lbl" for="prVer">Versión</label><input type="text" id="prVer" value="v1.0" style="width:120px;margin:0 0 10px">' +
+      '<div class="pr-espacio" id="prEspacio">Calculando espacio…</div>' +
       '<div class="ds-qc-err" id="prErr"></div>' +
       '<div class="ds-qc-btns"><button type="button" class="btn gris" data-b="no">Cancelar</button><button type="button" class="btn" data-b="si">Subir</button></div>', 620);
     var lista = bg.querySelector('.pr-form-lista');
+    // Espacio: en el plan gratuito de Supabase la base completa (toda la intranet) tiene 500 MB.
+    var suma = files.reduce(function(a, f) { return a + (f.size <= 120 * 1048576 ? f.size : 0); }, 0);
+    api('/design/api/protocolos/espacio').then(function(e) {
+      var el = bg.querySelector('#prEspacio'); if (!el) return;
+      if (e.baseBytes == null) { el.textContent = 'Estos archivos suman ' + prTam(suma) + '.'; return; }
+      var despues = e.baseBytes + suma;
+      el.textContent = 'Base de datos: ' + prTam(e.baseBytes) + ' usados (PDF de protocolos: ' + prTam(e.pdfBytes) + '). Estos archivos suman ' + prTam(suma) + ' → quedaría en ' + prTam(despues) + '.';
+      if (despues > 450 * 1048576) {
+        el.classList.add('alerta');
+        el.textContent += ' ⚠️ Si el plan de Supabase es el gratuito (500 MB para toda la intranet), no alcanzaría y la intranet quedaría en solo lectura. Confirma el plan antes de subir.';
+      }
+    }).catch(function() { var el = bg.querySelector('#prEspacio'); if (el) el.textContent = 'Estos archivos suman ' + prTam(suma) + '.'; });
     files.forEach(function(f) {
       var fila = document.createElement('div'); fila.className = 'pr-form-fila';
       fila.innerHTML = '<input type="text" maxlength="255"><span class="tam"></span><span class="est"></span>';
       fila.querySelector('input').value = f.name.replace(/\.pdf$/i, '').replace(/[_]+/g, ' ').trim();
       fila.querySelector('.tam').textContent = prTam(f.size);
-      if (f.size > 60 * 1048576) { fila.querySelector('.est').textContent = '⚠️ Supera 60 MB'; fila.querySelector('.est').style.color = '#dc2626'; }
+      if (f.size > 120 * 1048576) { fila.querySelector('.est').textContent = '⚠️ Supera 120 MB'; fila.querySelector('.est').style.color = '#dc2626'; }
       fila._file = f; lista.appendChild(fila);
     });
     bg.querySelector('[data-b="no"]').onclick = bg._cerrar;
@@ -4909,7 +4969,7 @@ window.DS_PANELS.dashboard = ddCargar;
       filas.reduce(function(prom, fila) {
         return prom.then(function() {
           var est = fila.querySelector('.est'), f = fila._file;
-          if (f.size > 60 * 1048576) { fallos++; return; }
+          if (f.size > 120 * 1048576) { fallos++; return; }
           est.style.color = '#1d4ed8'; est.textContent = 'Leyendo…';
           return f.arrayBuffer().then(function(buf) {
             return pdfjsLib.getDocument({data: new Uint8Array(buf.slice(0))}).promise.then(function(pdf) {

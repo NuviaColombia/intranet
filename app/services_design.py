@@ -1711,7 +1711,7 @@ def favoritos_activos(db: Session, empleado_id: int) -> dict:
 # Protocols: biblioteca de SOPs
 # ---------------------------------------------------------------------------
 
-PR_MAX_BYTES = 60 * 1024 * 1024  # 60 MB por PDF
+PR_MAX_BYTES = 120 * 1024 * 1024  # 120 MB por PDF
 
 
 def pr_norm(texto: str) -> str:
@@ -1759,8 +1759,23 @@ def _pr_fragmento(texto: str, norm: str, palabras: list[str], largo: int = 90) -
     return ("…" if ini > 0 else "") + frag + ("…" if fin < len(texto) else "")
 
 
+def pr_espacio(db: Session) -> dict:
+    """Tamaño actual de la base de datos y de los PDF de Protocols (para avisar antes de subir archivos grandes)."""
+    pdfs = int(db.query(func.coalesce(func.sum(DesignProtocoloArchivo.tamano), 0)).scalar() or 0)
+    total = None
+    if db.bind.dialect.name == "postgresql":
+        total = int(db.execute(text("SELECT pg_database_size(current_database())")).scalar() or 0)
+    else:
+        try:
+            ruta = str(db.bind.url.database or "")
+            total = Path(ruta).stat().st_size if ruta else None
+        except OSError:
+            total = None
+    return {"baseBytes": total, "pdfBytes": pdfs}
+
+
 def protocolos_buscar(db: Session, area_id: int | None, q: str, protocolo_id: int | None = None,
-                      limite: int = 120) -> dict:
+                      limite: int = 120, protocolo_ids: list[int] | None = None) -> dict:
     """Diapositivas donde aparecen TODAS las palabras buscadas (sin distinguir mayúsculas ni tildes),
     solo de los protocolos visibles en el área. Los protocolos de texto (sin PDF) se buscan en su contenido."""
     palabras = [w for w in pr_norm(q).split() if len(w) >= 2]
@@ -1769,6 +1784,8 @@ def protocolos_buscar(db: Session, area_id: int | None, q: str, protocolo_id: in
     visibles = _pr_visibles(db, area_id)
     if protocolo_id:
         visibles = visibles.filter(DesignProtocolo.id == protocolo_id)
+    if protocolo_ids:  # protocolos marcados con estrella: solo se busca en ellos
+        visibles = visibles.filter(DesignProtocolo.id.in_(protocolo_ids))
     protos = {p.id: p for p in visibles.all()}
     if not protos:
         return {"resultados": [], "total": 0}

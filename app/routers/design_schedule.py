@@ -1010,9 +1010,16 @@ async def api_protocolos_listar(area_id: int = 0, user: Empleado = Depends(requi
 
 
 @router.get("/design/api/protocolos/buscar")
-async def api_protocolos_buscar(q: str = "", area_id: int = 0, protocolo_id: int = 0,
+async def api_protocolos_buscar(q: str = "", area_id: int = 0, protocolo_id: int = 0, solo: str = "",
                                 user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    return sd.protocolos_buscar(db, area_id or None, q, protocolo_id or None)
+    ids = [int(x) for x in solo.split(",") if x.strip().isdigit()]
+    return sd.protocolos_buscar(db, area_id or None, q, protocolo_id or None, protocolo_ids=ids or None)
+
+
+@router.get("/design/api/protocolos/espacio")
+async def api_protocolos_espacio(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pr_editor(user)
+    return sd.pr_espacio(db)
 
 
 @router.get("/design/api/protocolos/{protocolo_id}")
