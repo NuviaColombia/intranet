@@ -15,7 +15,12 @@ EMPRESA_SST = "Nuvia Smiles Colombia SAS"
 
 
 def es_admin_sst(user: Empleado) -> bool:
-    return user.rol in ("admin", "superadmin")
+    """Superadmin administra ambas empresas; un admin normal solo si es de Nuvia Smiles -- un
+    admin de Nuvia Design NO debe tener acceso a SST (igual que en el resto de la plataforma,
+    un admin solo administra su propia empresa)."""
+    if user.rol == "superadmin":
+        return True
+    return user.rol == "admin" and user.empresa == EMPRESA_SST
 
 
 def es_manager_sst(user: Empleado) -> bool:
@@ -73,4 +78,11 @@ def require_sst_compras(user: Empleado = Depends(require_sst), db: Session = Dep
 def require_sst_coordinador(user: Empleado = Depends(require_sst), db: Session = Depends(get_db)) -> Empleado:
     if not es_coordinador_sst(db, user):
         raise HTTPException(403, "Requiere acceso de Coordinación SST.")
+    return user
+
+
+def require_sst_admin(user: Empleado = Depends(get_current_user)) -> Empleado:
+    """Para /sst/parametros: superadmin, o admin de Nuvia Smiles -- nunca un admin de otra empresa."""
+    if not es_admin_sst(user):
+        raise HTTPException(403, "Requiere ser administrador de Nuvia Smiles Colombia SAS (o superadmin).")
     return user
