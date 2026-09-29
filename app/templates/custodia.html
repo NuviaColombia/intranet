@@ -203,11 +203,31 @@
             <td class="input-cell" style="width: 17%; border-top: 1px solid var(--border-soft) !important;"><input type="text" id="colaborador" readonly value="{{ user.nombre_completo|nombre_propio }}" style="color: var(--text-muted); cursor: not-allowed; text-transform: none;"></td>
             <td class="label-cell" style="border-top: 1px solid var(--border-soft) !important;">Número de orden</td>
             <td class="input-cell" colspan="3" style="border-top: 1px solid var(--border-soft) !important;">
-              <select id="numeroOrdenSelect" required onchange="validarCantidadInline()">
+              <select id="numeroOrdenSelect" required onchange="alternarStock(); validarCantidadInline()">
                 <option value="">Cargando...</option>
               </select>
               <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled>
             </td>
+          </tr>
+          <tr id="filaOrigenNueva" style="display:none;">
+            <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">Origen de los discos</td>
+            <td class="input-cell" colspan="2">
+              <select id="origenNueva" onchange="actualizarOrigenNueva()">
+                <option value="nuevo">Material nuevo (se suma y se resta)</option>
+                <option value="stock">Tomar del Stock del área de salida</option>
+              </select></td>
+            <td class="input-cell" colspan="3" id="origenNuevaInfo" style="font-size:12px; color:var(--text-muted); text-align:left; padding:6px 12px;"></td>
+          </tr>
+          <tr id="avisoAStock" style="display:none;">
+            <td class="input-cell" colspan="6" style="font-size:12px; color:#1e3a8a; background:#eff6ff; text-align:left; padding:8px 12px; border-left: 1px solid var(--border-soft) !important;">
+              ℹ️ <b>Dir Producción maneja existencias como Stock:</b> lo que se le entrega llega como <b>STOCK</b> (la orden se descuenta del área de salida).
+              Desde Dir Producción se le puede asignar después un número de orden.</td>
+          </tr>
+          <tr id="bloqueStock" style="display:none;">
+            <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important; background:#fef3c7;">Asignar orden<br><small style="font-weight:500">(tomado del Stock)</small></td>
+            <td class="input-cell"><input type="text" id="ordenDesdeStock" placeholder="Ej. 540" inputmode="numeric"></td>
+            <td class="input-cell" colspan="4" style="font-size:12px; color:#92400e; text-align:left; padding:6px 12px;">
+              Los discos se toman del <b>Stock</b> del área de salida y llegan al área de entrada con este <b>número de orden</b> (ya no como Stock).</td>
           </tr>
           <tr>
             <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">Fecha</td>
@@ -221,7 +241,7 @@
             </td>
             <td class="label-cell">Área entrada</td>
             <td class="input-cell">
-              <select id="areaEntrada" required>
+              <select id="areaEntrada" required onchange="alternarStock()">
                 <option value="">Seleccionar...</option>
                 {% for a in areas %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}
               </select>
@@ -844,6 +864,41 @@ function actualizarAreaEntradaDefault() {
   var salida = document.getElementById("areaSalida").value;
   var siguiente = SIGUIENTE_AREA[salida];
   if (siguiente) document.getElementById("areaEntrada").value = siguiente;
+  if (typeof alternarStock === "function") alternarStock();
+  if (typeof actualizarOrigenNueva === "function") actualizarOrigenNueva();
+}
+
+// Stock: material sin orden; al sacarlo de un área se le asigna un número de orden
+var ORDEN_STOCK = "STOCK";
+var stockPorArea = {};   // existencia de STOCK por área (para "Nueva orden" › Tomar del Stock)
+function cargarStockPorArea() {
+  return custodiaApi('/custodia/api/ordenes-incompletas').then(function(lista) {
+    stockPorArea = {};
+    lista.forEach(function(o) { if (o.orden === ORDEN_STOCK) stockPorArea[o.ubicacion] = (stockPorArea[o.ubicacion] || 0) + o.cantidad; });
+    actualizarOrigenNueva();
+  }).catch(function() {});
+}
+function actualizarOrigenNueva() {
+  var fila = document.getElementById("filaOrigenNueva");
+  fila.style.display = modoOrdenNuevaActivo ? "" : "none";
+  if (!modoOrdenNuevaActivo) return;
+  var area = document.getElementById("areaSalida").value, disp = stockPorArea[area] || 0;
+  var sel = document.getElementById("origenNueva"), info = document.getElementById("origenNuevaInfo");
+  sel.options[1].disabled = disp <= 0;
+  if (disp <= 0 && sel.value === "stock") sel.value = "nuevo";
+  var nombreArea = area ? nombrePropio(area) : "el área de salida";
+  info.innerHTML = sel.value === "stock"
+    ? "Se descuenta del <b>Stock de " + nombreArea + "</b> (disponible: <b>" + disp.toFixed(2) + "</b>) y la orden nueva pasa al área de entrada con su número."
+    : (disp > 0 ? "Stock disponible en " + nombreArea + ": <b>" + disp.toFixed(2) + "</b>. " : "") +
+      "Material que entra a producción: se suma y se resta en " + nombreArea + ", así no queda sobregirada.";
+}
+function alternarStock() {
+  var esStock = !modoOrdenNuevaActivo && document.getElementById("numeroOrdenSelect").value === ORDEN_STOCK;
+  var aDir = !modoOrdenNuevaActivo && document.getElementById("areaEntrada").value === "DIR PRODUCCIÓN";
+  document.getElementById("avisoAStock").style.display = aDir && !esStock ? "" : "none";
+  document.getElementById("bloqueStock").style.display = esStock ? "" : "none";
+  document.getElementById("ordenDesdeStock").required = esStock;
+  if (!esStock) document.getElementById("ordenDesdeStock").value = "";
 }
 
 function aplicarModoOrden(nueva) {
@@ -859,6 +914,8 @@ function aplicarModoOrden(nueva) {
   document.getElementById("btnGuardar").innerText = nueva ? "Registrar orden nueva" : "Registrar traslado";
   var selSalida = document.getElementById("areaSalida");
   if (nueva) { sel.value = ""; } else { txt.value = ""; cargarOrdenesIncompletas(); }
+  alternarStock();
+  cargarStockPorArea();
   selSalida.value = areaSalidaManager || "DIR PRODUCCIÓN";
   actualizarAreaEntradaDefault();
   ocultarErrorCantidad();
@@ -879,6 +936,7 @@ function verificarCantidadOrden(ordenSel, cant, mostrarError) {
 function validarCantidadInline() {
   if (modoOrdenNuevaActivo) { ocultarErrorCantidad(); return; }
   var ordenSel = document.getElementById("numeroOrdenSelect").value;
+  if (ordenSel === ORDEN_STOCK) { ocultarErrorCantidad(); return; }  // el servidor valida el Stock del área de salida
   var cant = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
   verificarCantidadOrden(ordenSel, cant, true);
 }
@@ -2256,6 +2314,9 @@ function prepararEnvio(e) {
   };
 
   var esOrdenNueva = modoOrdenNuevaActivo;
+  if (esOrdenNueva) datosBase.ordenNueva = true;  // desde DIR Producción: entra y sale ahí (no queda en negativo)
+  var desdeStock = esOrdenNueva && document.getElementById("origenNueva").value === "stock";
+  if (desdeStock) datosBase.ordenOrigen = ORDEN_STOCK;  // las cantidades se descuentan del Stock del área de salida
 
   if (!esOrdenNueva) {
     // Orden existente: se elige de la lista de órdenes incompletas, sin validación de duplicado ni división por guiones.
@@ -2263,6 +2324,22 @@ function prepararEnvio(e) {
     if (!ordenSel) { alert("Selecciona una orden de la lista."); desbloquearBotonGuardar(); return; }
     var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
     if (isNaN(cantNumerica) || cantNumerica <= 0) { alert("Ingresa una cantidad de discos válida."); desbloquearBotonGuardar(); return; }
+    if (ordenSel === ORDEN_STOCK) {
+      // Se toma del Stock del área de salida y se le asigna un número de orden
+      var asignada = document.getElementById("ordenDesdeStock").value.trim().toUpperCase();
+      if (!/^[0-9]+$/.test(asignada)) {
+        alert("⚠️ Escribe el número de orden que tendrán los discos tomados del Stock (solo números).");
+        document.getElementById("ordenDesdeStock").focus(); desbloquearBotonGuardar(); return;
+      }
+      custodiaPostJSON('/custodia/api/verificar-orden', {numeroOrden: asignada}).then(function(resultado) {
+        if (resultado.existe && !confirm("⚠️ La orden " + asignada + " ya está registrada.\n¿Sumarle estos " + cantNumerica + " disco(s) tomados del Stock?")) {
+          desbloquearBotonGuardar(); return;
+        }
+        datosBase.numeroOrden = asignada; datosBase.cantidadDiscos = cantNumerica; datosBase.ordenOrigen = ORDEN_STOCK;
+        enviarAlServidor([datosBase], [{orden: asignada, total: cantNumerica}]);
+      }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
+      return;
+    }
     verificarCantidadOrden(ordenSel, cantNumerica, true).then(function(ok) {
       if (!ok) { desbloquearBotonGuardar(); return; }
       datosBase.numeroOrden = ordenSel; datosBase.cantidadDiscos = cantNumerica; enviarAlServidor([datosBase]);
@@ -2287,6 +2364,10 @@ function prepararEnvio(e) {
     } else {
       var cantNumerica = parseFloat(document.getElementById("cantidadDiscos").value.replace(',', '.'));
       if(isNaN(cantNumerica) || cantNumerica <= 0) { alert("Ingresa una cantidad de discos válida."); desbloquearBotonGuardar(); return; }
+      if (desdeStock && cantNumerica > (stockPorArea[datosBase.areaSalida] || 0) + 1e-6) {
+        alert("⚠️ En " + nombrePropio(datosBase.areaSalida) + " solo hay " + (stockPorArea[datosBase.areaSalida] || 0).toFixed(2) + " disco(s) de Stock.");
+        desbloquearBotonGuardar(); return;
+      }
       datosBase.numeroOrden = ordenRaw; datosBase.cantidadDiscos = cantNumerica;
       enviarAlServidor([datosBase], [{orden: ordenRaw, total: cantNumerica}]);
     }

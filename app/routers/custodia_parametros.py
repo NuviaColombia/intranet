@@ -21,6 +21,67 @@ router = APIRouter()
 @router.on_event("startup")
 def _accesos_produccion() -> None:
     asegurar_tabla_y_migrar(engine, SessionLocal)
+    # Cambio de custodia: órdenes asignadas desde Stock
+    from sqlalchemy import inspect, text
+    try:
+        if inspect(engine).has_table("custodia_ordenes") and "orden_origen" not in {
+                c["name"] for c in inspect(engine).get_columns("custodia_ordenes")}:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE custodia_ordenes ADD COLUMN orden_origen VARCHAR(50)"))
+    except Exception as e:  # otro proceso la acaba de agregar
+        print(f"Custodia: columna orden_origen ({type(e).__name__}).")
+    try:
+        if inspect(engine).has_table("custodia_ordenes") and "ingreso_directo" not in {
+                c["name"] for c in inspect(engine).get_columns("custodia_ordenes")}:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE custodia_ordenes ADD COLUMN ingreso_directo BOOLEAN DEFAULT FALSE"))
+            _marcar_ingresos_directos()
+            _entradas_dir_a_stock()
+    except Exception as e:
+        print(f"Custodia: columna ingreso_directo ({type(e).__name__}: {e}).")
+
+
+def _entradas_dir_a_stock() -> None:
+    """Registros anteriores: lo que se entregó a DIR Producción con un número de orden pasa a ser su STOCK
+    (en la salida se sigue descontando la orden original), igual que los traslados nuevos."""
+    from ..models_custodia import CustodiaOrdenLinea
+    db = SessionLocal()
+    try:
+        lineas = (db.query(CustodiaOrdenLinea).join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
+                  .filter(CustodiaTraslado.area_entrada == sc.AREA_ORIGEN, CustodiaOrdenLinea.numero_orden != sc.ORDEN_STOCK,
+                          CustodiaOrdenLinea.orden_origen.is_(None)).all())
+        for linea in lineas:
+            linea.orden_origen, linea.numero_orden = linea.numero_orden, sc.ORDEN_STOCK
+        db.commit()
+        if lineas:
+            print(f"Custodia: {len(lineas)} entrega(s) anteriores a DIR Producción quedaron como Stock.")
+    finally:
+        db.close()
+
+
+def _marcar_ingresos_directos() -> None:
+    """Registros anteriores: el primer movimiento de cada orden, si salió de DIR Producción, fue una orden
+    nueva: se marca para que también sume en DIR Producción y su existencia no quede en negativo."""
+    from ..models_custodia import CustodiaOrdenLinea
+    db = SessionLocal()
+    try:
+        filas = (db.query(CustodiaOrdenLinea, CustodiaTraslado)
+                 .join(CustodiaTraslado, CustodiaOrdenLinea.traslado_id == CustodiaTraslado.id)
+                 .filter(CustodiaTraslado.anulado.is_(False))
+                 .order_by(CustodiaTraslado.fecha, CustodiaTraslado.hora, CustodiaTraslado.id).all())
+        vistas, marcadas = set(), 0
+        for linea, t in filas:
+            if linea.numero_orden in vistas:
+                continue
+            vistas.add(linea.numero_orden)
+            if t.area_salida == sc.AREA_ORIGEN and not linea.orden_origen:
+                linea.ingreso_directo = True
+                marcadas += 1
+        db.commit()
+        if marcadas:
+            print(f"Custodia: {marcadas} orden(es) nueva(s) de DIR Producción corregidas para que no quede en negativo.")
+    finally:
+        db.close()
 
 
 NUVIA_SMILES = "Nuvia Smiles Colombia SAS"
