@@ -14,6 +14,7 @@ AREAS_EXCLUIDAS_LEGADO = {"INICIAL", "SALDO INICIAL"}
 # Punto de origen del proceso: aquí entra material nuevo a producción (no se "recibe" de
 # otra área), así que nunca requiere confirmación previa para poder entregar desde ahí.
 AREA_ORIGEN = "DIR PRODUCCIÓN"
+AREA_QC_FINAL = "QC FINAL"  # sus salidas llevan también la firma de DIR PRODUCCIÓN
 
 # Orden genérica de material sin orden asignada; al sacarlo de un área se le puede asignar un número de orden.
 ORDEN_STOCK = "STOCK"
@@ -215,6 +216,33 @@ def confirmar_entrada(db: Session, traslado: CustodiaTraslado, user: Empleado) -
     return None
 
 
+def puede_firmar_dir(user: Empleado) -> bool:
+    """Firma DIR PRODUCCIÓN (salidas de QC FINAL): un administrador o quien tenga asignada el área DIR PRODUCCIÓN."""
+    if user.rol in ("admin", "superadmin"):
+        return True
+    return (user.area_custodia or "").strip().upper() == AREA_ORIGEN
+
+
+def firmar_dir(db: Session, traslado: CustodiaTraslado, user: Empleado) -> str | None:
+    if traslado.anulado:
+        return "Este traslado fue anulado."
+    if not traslado.requiere_firma_dir:
+        return "Este traslado no necesita la firma de DIR Producción (solo las salidas de QC Final)."
+    if traslado.dir_firmado_en:
+        return "DIR Producción ya firmó este traslado."
+    if not puede_firmar_dir(user):
+        return "Solo quien tiene asignada el área DIR Producción (o un administrador) puede firmar este traslado."
+    traslado.dir_firmado_por_id, traslado.dir_firmado_en = user.id, datetime.utcnow()
+    db.commit()
+    return None
+
+
+def puede_firmar_algo(user: Empleado, t: CustodiaTraslado) -> bool:
+    """¿Tiene esta persona una firma pendiente en el traslado? (recibido o DIR Producción)"""
+    return ((not t.confirmado_entrada and puede_firmar_recibido(user, t))
+            or (t.pendiente_dir and puede_firmar_dir(user)))
+
+
 def anular_traslado(db: Session, traslado: CustodiaTraslado, user: Empleado, motivo: str = "") -> str | None:
     if traslado.anulado:
         return "Este traslado ya estaba anulado."
@@ -305,6 +333,11 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
         # Fecha y hora de cada firma (hora Colombia), como en el formato impreso
         "entregaEn": _hora_firma(t.creado_en) if t.creado_por else "",
         "recibeEn": _hora_firma(t.confirmado_en) if t.confirmado_entrada else "",
+        # Firma de DIR PRODUCCIÓN (obligatoria en las salidas de QC FINAL)
+        "requiereDir": t.requiere_firma_dir, "pendienteDir": t.pendiente_dir, "completo": t.completo,
+        "dirEmail": t.dir_firmado_por.email if (t.dir_firmado_en and t.dir_firmado_por) else "",
+        "dirNombre": _nombre_firma(t.dir_firmado_por) if t.dir_firmado_en else "",
+        "dirEn": _hora_firma(t.dir_firmado_en),
         # Anulación: quién, cuándo y por qué
         "anuladoPor": nombre_propio(t.anulado_por.nombre_completo) if (t.anulado and t.anulado_por) else "",
         # anulado_en se guarda en UTC; Colombia es UTC-5 (sin horario de verano)
@@ -314,8 +347,12 @@ def serializar_traslado(t: CustodiaTraslado) -> dict:
 
 
 def pendientes_entrada(db: Session) -> list[CustodiaTraslado]:
+    """Traslados con alguna firma pendiente: el recibido del área de entrada o la de DIR Producción."""
+    falta_dir = ((func.upper(CustodiaTraslado.area_salida) == AREA_QC_FINAL)
+                 & (func.upper(CustodiaTraslado.area_entrada) != AREA_ORIGEN)
+                 & CustodiaTraslado.dir_firmado_en.is_(None))
     return (db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes))
-            .filter(CustodiaTraslado.anulado.is_(False), CustodiaTraslado.confirmado_entrada.is_(False))
+            .filter(CustodiaTraslado.anulado.is_(False), CustodiaTraslado.confirmado_entrada.is_(False) | falta_dir)
             .order_by(CustodiaTraslado.id.desc()).all())
 
 
@@ -556,6 +593,36 @@ def notificar_traslado_pendiente(traslado_id: int) -> None:
         enviar_cliq_varios([e.email for e in destinatarios], texto)
     except Exception as ex:  # un aviso fallido nunca debe afectar el registro
         print(f"[Custodia] Error enviando aviso del traslado #{traslado_id}: {ex}")
+    finally:
+        db.close()
+
+
+def notificar_firma_dir_pendiente(traslado_id: int) -> None:
+    """Aviso por Cliq (bot) a quienes tienen asignada DIR PRODUCCIÓN: una salida de QC FINAL espera su firma."""
+    from . import config
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        t = db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes)).get(traslado_id)
+        if not t or not t.pendiente_dir:
+            return
+        from .acceso_produccion import tiene_submodulo
+        destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
+                         if tiene_submodulo(db, e, "custodia") and (e.area_custodia or "").strip().upper() == AREA_ORIGEN]
+        if not destinatarios:
+            print(f"[Custodia] Traslado #{t.id}: nadie tiene asignada DIR PRODUCCIÓN para firmar; sin aviso.")
+            return
+        ordenes = ", ".join(o.numero_orden for o in t.ordenes) or "—"
+        total = sum(o.cantidad_discos or 0 for o in t.ordenes)
+        texto = (f"✍️ *Salida de QC Final pendiente de firma de DIR Producción* #{t.id:04d}\n"
+                 f"{nombre_propio(t.area_salida)} → {nombre_propio(t.area_entrada)} · {total:g} discos\n"
+                 f"Órdenes: {ordenes}\n"
+                 f"Registrado por: {nombre_propio(t.colaborador)}\n"
+                 f"Fírmala en: {config.BASE_URL}/custodia (Aprobaciones/Firmas)")
+        from .zoho_cliq import enviar_cliq_varios
+        enviar_cliq_varios([e.email for e in destinatarios], texto)
+    except Exception as ex:  # un aviso fallido nunca debe afectar el registro
+        print(f"[Custodia] Error enviando aviso DIR del traslado #{traslado_id}: {ex}")
     finally:
         db.close()
 

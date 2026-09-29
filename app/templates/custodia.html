@@ -801,24 +801,39 @@ function cargarConfirmaciones() {
         <td>${t.motivo}</td>
         <td></td>
       `;
-      var tdAccion = tr.lastElementChild;
-      var btn = document.createElement("button");
-      btn.className = "btn"; btn.style.padding = "8px 14px"; btn.style.fontSize = "11px";
-      if (t.puedeFirmar) {
-        btn.style.background = "var(--success)";
-        btn.innerText = "✔ Confirmar recibido";
-        btn.onclick = function() { confirmarDesdeAprobaciones(t.id); };
-      } else {
-        btn.style.background = "var(--border-medium)"; btn.disabled = true;
-        btn.innerText = "🔒 Firma " + nombrePropio(t.areaEntrada);
-        btn.title = "Solo un manager del área " + nombrePropio(t.areaEntrada) + " (o un administrador) puede firmar el recibido.";
+      var tdAccion = tr.lastElementChild; tdAccion.style.whiteSpace = "nowrap";
+      function boton(texto, activo, titulo, accion) {
+        var b = document.createElement("button");
+        b.className = "btn"; b.style.padding = "8px 14px"; b.style.fontSize = "11px"; b.style.margin = "2px";
+        b.innerText = texto; b.title = titulo || "";
+        if (activo) { b.style.background = "var(--success)"; b.onclick = accion; }
+        else { b.style.background = "var(--border-medium)"; b.disabled = true; }
+        tdAccion.appendChild(b);
       }
-      tdAccion.appendChild(btn);
+      if (!t.confirmadoEntrada) {
+        boton(t.puedeFirmar ? "✔ Confirmar recibido" : "🔒 Firma " + nombrePropio(t.areaEntrada), t.puedeFirmar,
+              "Solo un manager del área " + nombrePropio(t.areaEntrada) + " (o un administrador) puede firmar el recibido.",
+              function() { confirmarDesdeAprobaciones(t.id); });
+      } else {
+        var ok = document.createElement("div"); ok.style.cssText = "font-size:11px; color:var(--success); font-weight:700;";
+        ok.innerText = "✅ Recibido por " + (t.recibeNombre || nombrePropio(t.areaEntrada)); tdAccion.appendChild(ok);
+      }
+      if (t.pendienteDir) {
+        boton(t.puedeFirmarDir ? "✍️ Firmar DIR Producción" : "🔒 Firma DIR Producción", t.puedeFirmarDir,
+              "Las salidas de QC Final las firma obligatoriamente quien tiene asignada DIR Producción (o un administrador).",
+              function() { firmarDirDesdeAprobaciones(t.id); });
+      }
       tbody.appendChild(tr);
     });
   }).catch(function(e) {
     tbody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
   });
+}
+
+function firmarDirDesdeAprobaciones(id) {
+  custodiaPostJSON('/custodia/api/traslados/' + id + '/firmar-dir').then(function(resp) {
+    alert(resp.mensaje); cargarConfirmaciones();
+  }).catch(function(e) { alert('Error: ' + e.message); });
 }
 
 function confirmarDesdeAprobaciones(id) {
@@ -1669,16 +1684,17 @@ function _tablaOPHtml(op) {
 
 // Firma electrónica: nombre, correo Zoho, fecha y hora (en todas las firmas)
 function _firmaHtml(titulo, nombre, correo, en, pendiente) {
-  var sello = correo
-    ? `<div class="fe">✅ FIRMADO ELECTRÓNICAMENTE</div><div class="fn">${_may(nombre)}${en ? ' / ' + en : ''}</div><div class="fc">${correo}</div>`
+  var arriba = correo
+    ? `<div class="fe">✅ FIRMADO ELECTRÓNICAMENTE</div><div class="fn">${_may(nombre)}</div><div class="fh">${en || ''}</div>`
     : `<div class="fe pend">${pendiente}</div>`;
-  return `<td><div class="esp"></div><div class="ln">${titulo}</div>${sello}</td>`;
+  return `<td><div class="esp">${arriba}</div><div class="ln">${titulo}</div><div class="fc">${correo || '&nbsp;'}</div></td>`;
 }
 
 function firmasHtml(t) {
   t = t || {};
-  return `<table class="firmas-table"><tr>` +
+  return `<table class="firmas-table${t.requiereDir ? ' tres' : ''}"><tr>` +
     _firmaHtml('FIRMA ÁREA SALIDA (ENTREGA)', t.entregaNombre, t.entregaEmail, t.entregaEn, 'SIN FIRMA') +
+    (t.requiereDir ? _firmaHtml('FIRMA DIR PRODUCCIÓN', t.dirNombre, t.dirEmail, t.dirEn, 'PENDIENTE DE FIRMA') : '') +
     _firmaHtml('FIRMA ÁREA ENTRADA (RECIBIDO)', t.recibeNombre, t.recibeEmail, t.recibeEn, 'PENDIENTE DE CONFIRMACIÓN') +
     `</tr></table>`;
 }
@@ -1713,13 +1729,15 @@ var CSS_CUSTODIA = `
   .fila-totales td { background: #F1F5F9; font-weight: 800; color: #111827; }
   tr { page-break-inside: avoid; }
   .firmas-table { margin-top: 26px; page-break-inside: avoid; }
-  .firmas-table td { width: 50%; text-align: center; vertical-align: top; padding: 0 22px; }
-  .firmas-table .esp { height: 42px; }
+  .firmas-table td { width: 50%; text-align: center; vertical-align: bottom; padding: 0 22px; }
+  .firmas-table.tres td { width: 33.3%; padding: 0 12px; }
+  .firmas-table .esp { min-height: 46px; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 5px; }
   .firmas-table .ln { border-top: 1.5px solid #111827; padding-top: 5px; font-weight: 800; font-size: 9px; letter-spacing: .3px; }
-  .firmas-table .fe { margin-top: 3px; color: #10B981; font-weight: 800; font-size: 8.5px; }
+  .firmas-table .fe { color: #10B981; font-weight: 800; font-size: 8.5px; }
   .firmas-table .fe.pend { color: #92400E; }
   .firmas-table .fn { margin-top: 2px; font-weight: 800; font-size: 8.5px; }
-  .firmas-table .fc { margin-top: 1px; font-size: 8px; color: #475569; }
+  .firmas-table .fh { margin-top: 1px; font-weight: 700; font-size: 8.5px; }
+  .firmas-table .fc { margin-top: 3px; font-size: 8.5px; color: #1E293B; }
 `;
 
 function generarHtmlDocumentoRango(tickets) {
@@ -1741,9 +1759,8 @@ function generarHtmlDocumentoRango(tickets) {
         <table class="datos">
           <tr><td class="vacia" colspan="4"></td><td class="etq">Consecutivo</td><td class="val cons">${String(t.id).padStart(4, '0')}</td></tr>
           <tr><td class="etq">Colaborador</td><td class="val">${_may(t.colaborador)}</td><td class="etq">Número de orden</td><td class="val">${_may(t.ordenes)}</td><td class="etq">Área salida</td><td class="val">${_may(t.areaSalida)}</td></tr>
-          <tr><td class="etq">ID colaborador</td><td class="val">${t.idColaborador || ''}</td><td class="etq">Fecha</td><td class="val">${t.fecha}</td><td class="etq">Área entrada</td><td class="val">${_may(t.areaEntrada)}</td></tr>
-          <tr><td class="etq">Área creación</td><td class="val">${_may(t.areaCreacion)}</td><td class="etq">Hora</td><td class="val">${t.hora}</td><td class="etq">Cantidad discos</td><td class="val cant">${t.cantidad}</td></tr>
-          <tr><td class="vacia" colspan="2"></td><td class="etq">Usuario</td><td class="val">${_may(t.usuario)}</td><td class="etq">Motivo</td><td class="val">${_may(t.motivo)}</td></tr>
+          <tr><td class="etq">Área creación</td><td class="val">${_may(t.areaCreacion)}</td><td class="etq">Fecha</td><td class="val">${t.fecha}</td><td class="etq">Área entrada</td><td class="val">${_may(t.areaEntrada)}</td></tr>
+          <tr><td class="etq">Motivo</td><td class="val">${_may(t.motivo)}</td><td class="etq">Hora</td><td class="val">${t.hora}</td><td class="etq">Cantidad discos</td><td class="val cant">${t.cantidad}</td></tr>
         </table>
         ${t.anulado ? `<div class="anulado">DOCUMENTO ANULADO${t.anuladoPor ? ' POR ' + _may(t.anuladoPor) : ''}${t.anuladoEn ? ' EL ' + t.anuladoEn : ''}${t.motivoAnulacion ? ' — ' + t.motivoAnulacion : ''}</div>` : ''}
         ${htmlResumen ? `<h4>Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
@@ -1911,7 +1928,7 @@ function renderTabla() {
   filas.forEach(function(t) {
     let tr = document.createElement("tr");
     if (t.anulado) tr.className = "anulado-row";
-    var badgeClass = t.anulado ? "badge-danger" : (t.confirmadoEntrada ? "badge-success" : "badge-warning");
+    var badgeClass = t.anulado ? "badge-danger" : (t.completo ? "badge-success" : "badge-warning");
     tr.innerHTML = `
       <td>${nf(t.colaborador)}</td><td>${t.areaCreacion}</td><td style="font-weight:800; color:var(--brand-main);">${t._orden}</td>
       <td>${t.fecha}</td><td>${t.areaSalida}</td><td>${t.areaEntrada}</td>

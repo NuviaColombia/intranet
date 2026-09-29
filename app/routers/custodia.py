@@ -24,7 +24,7 @@ def pagina(request: Request, user: Empleado = Depends(require_submodulo("custodi
                                       {"user": user, "areas": sc.areas_disponibles(db),
                                        "motivos": sc.motivos_disponibles(db), "es_custodia": True,
                                        "custodia_pendientes": sum(1 for t in sc.pendientes_entrada(db)
-                                                                  if sc.puede_firmar_recibido(user, t)),
+                                                                  if sc.puede_firmar_algo(user, t)),
                                        # Todas (incluidas inactivas), para dar formato a nombres de registros viejos.
                                        "formato_areas": [a.nombre for a in db.query(CustodiaArea.nombre)],
                                        "formato_motivos": [m.nombre for m in db.query(CustodiaMotivo.nombre)],
@@ -148,12 +148,15 @@ def api_registrar(payload: RegistrarPayload, tareas: BackgroundTasks,
                                  [d.model_dump() for d in payload.discos],
                                  [o.model_dump() for o in payload.op])
     tareas.add_task(sc.notificar_traslado_pendiente, traslado.id)
+    if traslado.requiere_firma_dir:
+        tareas.add_task(sc.notificar_firma_dir_pendiente, traslado.id)
     return {"mensaje": f"✅ Guardado exitoso. Consecutivo #{traslado.id}", "id": traslado.id}
 
 
 def _con_permiso(t: CustodiaTraslado, user: Empleado) -> dict:
     d = sc.serializar_traslado(t)
     d["puedeFirmar"] = sc.puede_firmar_recibido(user, t)
+    d["puedeFirmarDir"] = t.pendiente_dir and sc.puede_firmar_dir(user)
     return d
 
 
@@ -173,6 +176,18 @@ def api_confirmar_entrada(traslado_id: int, user: Empleado = Depends(require_sub
     if error:
         raise HTTPException(400, error)
     return {"mensaje": "✅ Entrada confirmada."}
+
+
+@router.post("/custodia/api/traslados/{traslado_id}/firmar-dir")
+def api_firmar_dir(traslado_id: int, user: Empleado = Depends(require_submodulo("custodia")),
+                   db: Session = Depends(get_db)):
+    """Firma obligatoria de DIR PRODUCCIÓN en las salidas de QC FINAL."""
+    acs.exigir(db, user, "custodia", "aprobaciones")
+    traslado = _get_traslado(db, traslado_id)
+    error = sc.firmar_dir(db, traslado, user)
+    if error:
+        raise HTTPException(400, error)
+    return {"mensaje": "✅ Firma de DIR Producción registrada."}
 
 
 class AnularIn(BaseModel):

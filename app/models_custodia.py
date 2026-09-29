@@ -5,6 +5,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 
+AREA_QC_FINAL = "QC FINAL"
+AREA_DIR_PRODUCCION = "DIR PRODUCCIÓN"
+
+
 class CustodiaTraslado(Base):
     """Cabecera de un traslado (un registro = lo que antes compartía un CONSECUTIVO)."""
     __tablename__ = "custodia_traslados"
@@ -26,6 +30,9 @@ class CustodiaTraslado(Base):
     confirmado_entrada: Mapped[bool] = mapped_column(Boolean, default=False)
     confirmado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     confirmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Salidas de QC FINAL: además de salida y entrada, las firma obligatoriamente DIR PRODUCCIÓN
+    dir_firmado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    dir_firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     anulado: Mapped[bool] = mapped_column(Boolean, default=False)
     anulado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
@@ -34,6 +41,7 @@ class CustodiaTraslado(Base):
 
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
     confirmado_por = relationship("Empleado", foreign_keys=[confirmado_por_id])
+    dir_firmado_por = relationship("Empleado", foreign_keys=[dir_firmado_por_id])
     anulado_por = relationship("Empleado", foreign_keys=[anulado_por_id])
 
     ordenes = relationship("CustodiaOrdenLinea", back_populates="traslado", order_by="CustodiaOrdenLinea.id")
@@ -42,10 +50,25 @@ class CustodiaTraslado(Base):
     op = relationship("CustodiaOP", back_populates="traslado")
 
     @property
+    def requiere_firma_dir(self) -> bool:
+        """Lo que sale de QC FINAL lo firma también DIR PRODUCCIÓN (si va a DIR, su recibido ya es esa firma)."""
+        salida, entrada = (self.area_salida or "").strip().upper(), (self.area_entrada or "").strip().upper()
+        return salida == AREA_QC_FINAL and entrada != AREA_DIR_PRODUCCION
+
+    @property
+    def pendiente_dir(self) -> bool:
+        return self.requiere_firma_dir and not self.dir_firmado_en and not self.anulado
+
+    @property
+    def completo(self) -> bool:
+        return not self.anulado and bool(self.confirmado_entrada) and not self.pendiente_dir
+
+    @property
     def estado_texto(self) -> str:
         if self.anulado:
             return "Anulado"
-        return "Completado" if self.confirmado_entrada else "Pendiente entrada"
+        faltan = ([] if self.confirmado_entrada else ["entrada"]) + (["DIR Producción"] if self.pendiente_dir else [])
+        return "Completado" if not faltan else "Pendiente " + " y ".join(faltan)
 
 
 class CustodiaOrdenLinea(Base):
