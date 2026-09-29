@@ -186,7 +186,22 @@
   #ov-comments .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
   #ov-comments .ds-overlay-inner > h1 { padding-right:56px; }
   .cmt-tpl-item .cmt-tpl-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-  .cmt-tpl-item .cmt-tpl-name { font-weight:700; font-size:13px; }
+  .cmt-tpl-item .cmt-tpl-name { font-weight:700; font-size:13px; flex:1; }
+  .cmt-tpl-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .cmt-tpl-h h4 { margin:0; }
+  .cmt-tpl-add { width:24px; height:24px; border-radius:50%; border:none; background:#1d4ed8; color:#fff; font-size:17px; line-height:1; cursor:pointer; padding:0; }
+  .cmt-tpl-add:hover { background:#1e40af; }
+  .cmt-tpl-acc { display:flex; align-items:center; gap:4px; }
+  .cmt-tpl-ico { border:none; background:none; cursor:pointer; padding:2px 4px; font-size:14px; color:#9ca3af; line-height:1; border-radius:4px; width:auto; margin:0; }
+  .cmt-tpl-ico:hover { background:#eef1f6; color:#374151; }
+  .cmt-tpl-star { font-size:17px; margin-right:4px; }
+  .cmt-tpl-star.on { color:#f59e0b; }
+  .cmt-tpl-sep { font-size:11px; color:#6b7280; text-transform:uppercase; margin:10px 0 6px; font-weight:600; }
+  .cmt-nota label.cmt-nota-lbl { display:block; font-size:12px; font-weight:600; color:#374151; margin:0 0 4px; }
+  .cmt-nota input[type=text] { width:100%; margin:0 0 10px; padding:6px 8px; box-sizing:border-box; font-size:13px; }
+  .cmt-nota textarea { min-height:120px; }
+  .cmt-nota .cmt-nota-po { display:flex; align-items:center; gap:6px; font-size:12px; color:#374151; margin:0 0 6px; cursor:pointer; }
+  .cmt-nota .cmt-nota-po input { width:auto; margin:0; }
   .cmt-tpl-item .cmt-tpl-text { color:#374151; white-space:pre-wrap; }
   .cmt-hist-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
   table.faq-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -621,7 +636,7 @@
     </div>
 
     <div class="cmt-col">
-      <div class="cmt-section cmt-section-tpl"><h4>Plantillas de notas</h4><div id="cmtTplList"></div></div>
+      <div class="cmt-section cmt-section-tpl"><div class="cmt-tpl-h"><h4>Plantillas de notas</h4><button type="button" class="cmt-tpl-add" title="Agregar nota nueva" onclick="cmtNotaAbrir()">+</button></div><div id="cmtTplList"></div></div>
       <div class="cmt-section"><h4>Historial (se borra a los 2 días)</h4><div id="cmtHistList"></div></div>
     </div>
   </div>
@@ -2287,14 +2302,94 @@ window.DS_PANELS.dashboard = ddCargar;
     cmtRenderPlantillas();
   }
   function cmtEscHtml(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  // Plantillas: compartidas por todo el equipo (las 11 fijas + las que se agreguen); favoritos por persona.
+  // Mientras carga (o si falla la carga) se muestran las 11 fijas escritas aquí.
+  var CMT_TPL = CMT_TEMPLATES.map(function(t) { return {id: null, n: t.n, t: t.t, fija: true}; });
+  var CMT_FAVS = {};
+  function cmtCargarPlantillas() {
+    Promise.all([api('/design/api/comentarios/templates'), api('/design/api/favoritos/activos')]).then(function(r) {
+      if (!Array.isArray(r[0])) return;
+      CMT_TPL = r[0].map(function(t) { return {id: t.id, n: t.nombre, t: t.texto, fija: t.esFija}; });
+      CMT_FAVS = {};
+      ((r[1] || {}).cmtTemplates || []).forEach(function(id) { CMT_FAVS[id] = true; });
+      cmtRenderPlantillas();
+    }).catch(function() {});
+  }
+  function cmtTplHtml(tpl, f) {
+    var fav = tpl.id != null && CMT_FAVS[tpl.id];
+    var star = tpl.id == null ? '' :
+      '<button type="button" class="cmt-tpl-ico cmt-tpl-star' + (fav ? ' on' : '') + '" title="' + (fav ? 'Quitar de favoritos' : 'Marcar como favorito') + '" onclick="cmtFavToggle(' + tpl.id + ')">' + (fav ? '★' : '☆') + '</button>';
+    var edit = (tpl.id == null || tpl.fija) ? '' :
+      '<button type="button" class="cmt-tpl-ico" title="Editar nota" onclick="cmtNotaAbrir(' + tpl.id + ')">✎</button>' +
+      '<button type="button" class="cmt-tpl-ico" title="Eliminar nota (va a la Papelera)" onclick="cmtNotaEliminar(' + tpl.id + ')">🗑</button>';
+    return '<div class="cmt-tpl-item"><div class="cmt-tpl-head">' + star + '<span class="cmt-tpl-name">' + cmtEscHtml(tpl.n) + '</span>' +
+           '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ')">Copiar</button></span></div>' +
+           '<div class="cmt-tpl-text">' + cmtEscHtml(cmtTplText(tpl, f)) + '</div></div>';
+  }
   function cmtRenderPlantillas() {
     var f = cmtLeer();
-    document.getElementById('cmtTplList').innerHTML = CMT_TEMPLATES.map(function(tpl, i) {
-      return '<div class="cmt-tpl-item"><div class="cmt-tpl-head"><span class="cmt-tpl-name">' + cmtEscHtml(tpl.n) + '</span>' +
-             '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + i + ')">Copiar</button></div>' +
-             '<div class="cmt-tpl-text">' + cmtEscHtml(cmtTplText(tpl, f)) + '</div></div>';
-    }).join('');
+    var favs = CMT_TPL.filter(function(t) { return t.id != null && CMT_FAVS[t.id]; });
+    var resto = CMT_TPL.filter(function(t) { return favs.indexOf(t) < 0; });
+    var html = favs.map(function(t) { return cmtTplHtml(t, f); }).join('');
+    if (favs.length && resto.length) html += '<div class="cmt-tpl-sep">Otras notas</div>';
+    html += resto.map(function(t) { return cmtTplHtml(t, f); }).join('');
+    document.getElementById('cmtTplList').innerHTML = html;
   }
+  window.cmtFavToggle = function(id) {
+    CMT_FAVS[id] = !CMT_FAVS[id]; cmtRenderPlantillas();
+    postJSON('/design/api/favoritos/cmt-template/' + id + '/toggle').then(function(r) {
+      if (!r || typeof r.favorito !== 'boolean') { cmtCargarPlantillas(); return; }
+      if (r.favorito !== !!CMT_FAVS[id]) { CMT_FAVS[id] = r.favorito; cmtRenderPlantillas(); }
+    }).catch(cmtCargarPlantillas);
+  };
+  // Ventanita para crear o editar una nota. "{PO}" se reemplaza por el paciente y la orden.
+  window.cmtNotaAbrir = function(id) {
+    if (document.getElementById('cmtNota')) return;
+    var tpl = id != null ? CMT_TPL.find(function(t) { return t.id === id; }) : null;
+    var texto = tpl ? tpl.t : '', conPo = tpl ? /^\{PO\}/.test(texto) : true;
+    if (conPo) texto = texto.replace(/^\{PO\}\n?/, '');
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'cmtNota';
+    bg.innerHTML = '<div class="ds-qc cmt-nota" role="dialog" aria-modal="true" aria-labelledby="cmtNotaTit" style="width:520px">' +
+      '<h4 id="cmtNotaTit">' + (tpl ? 'Editar nota' : 'Nueva nota') + '</h4>' +
+      '<div class="ds-qc-sub">La ve todo el equipo en Plantillas de notas.</div>' +
+      '<label class="cmt-nota-lbl" for="cmtNotaNom">Nombre</label><input type="text" id="cmtNotaNom" maxlength="150" placeholder="Ej: Hold — falta scan">' +
+      '<label class="cmt-nota-lbl" for="cmtNotaTxt">Texto</label>' +
+      '<label class="cmt-nota-po"><input type="checkbox" id="cmtNotaPo"' + (conPo ? ' checked' : '') + '> Empezar con el paciente y la orden</label>' +
+      '<textarea id="cmtNotaTxt" placeholder="Escribe la nota..."></textarea>' +
+      '<div class="ds-qc-err" id="cmtNotaErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-n="no">Cancelar</button><button type="button" class="btn" data-n="si">Guardar</button></div></div>';
+    document.body.appendChild(bg);
+    var nom = bg.querySelector('#cmtNotaNom'), txt = bg.querySelector('#cmtNotaTxt'), err = bg.querySelector('#cmtNotaErr');
+    var btnSi = bg.querySelector('[data-n="si"]');
+    nom.value = tpl ? tpl.n : ''; txt.value = texto; nom.focus();
+    [nom, txt].forEach(function(el) { el.addEventListener('input', function() { err.innerText = ''; }); });
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
+    var guardar = function() {
+      if (btnSi.disabled) return;
+      var n = nom.value.trim(), t = txt.value.replace(/\s+$/, '');
+      if (!n) { err.innerText = 'Escribe un nombre para la nota.'; nom.focus(); return; }
+      if (!t.trim()) { err.innerText = 'Escribe el texto de la nota.'; txt.focus(); return; }
+      if (bg.querySelector('#cmtNotaPo').checked) t = '{PO}\n' + t;
+      btnSi.disabled = true;
+      postJSON('/design/api/comentarios/templates' + (tpl ? '/' + tpl.id : ''), {nombre: n, texto: t}).then(function(r) {
+        if (!r || !r.id) throw new Error((r && r.detail) || 'No se pudo guardar.');
+        cerrar(); cmtCargarPlantillas();
+      }).catch(function(e) { err.innerText = e.message || 'No se pudo guardar.'; btnSi.disabled = false; });
+    };
+    var teclas = function(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || e.target.tagName !== 'TEXTAREA')) { e.preventDefault(); e.stopPropagation(); guardar(); }
+    };
+    document.addEventListener('keydown', teclas, true);
+    btnSi.onclick = guardar;
+    bg.querySelector('[data-n="no"]').onclick = cerrar;
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+  };
+  window.cmtNotaEliminar = function(id) {
+    var tpl = CMT_TPL.find(function(t) { return t.id === id; });
+    if (!tpl || !confirm('¿Eliminar la nota "' + tpl.n + '"? Se puede recuperar desde la Papelera.')) return;
+    postJSON('/design/api/comentarios/templates/' + id + '/eliminar').then(cmtCargarPlantillas);
+  };
   window.cmtCopiar = function(id) {
     var el = document.getElementById(id);
     navigator.clipboard.writeText(el.value).then(function() {}, function() { el.select(); document.execCommand('copy'); });
@@ -2355,10 +2450,11 @@ window.DS_PANELS.dashboard = ddCargar;
     });
     cmtRecalcular();
     cmtCargarHistorial();
+    cmtCargarPlantillas();
   }
   window.cmtCopiarPlantilla = function(i) {
     var f = cmtLeer();
-    navigator.clipboard.writeText(cmtTplText(CMT_TEMPLATES[i], f)).catch(function() {});
+    if (CMT_TPL[i]) navigator.clipboard.writeText(cmtTplText(CMT_TPL[i], f)).catch(function() {});
   };
 
   // ================= N2 / Face Design: FAQ editable =================
