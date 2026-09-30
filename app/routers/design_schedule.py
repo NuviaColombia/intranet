@@ -90,6 +90,44 @@ def api_auditoria_conexiones(user: Empleado = Depends(require_admin), db: Sessio
     return sd.auditar_conexiones(db)
 
 
+@router.get("/design/api/parametros/correcciones")
+def api_correcciones_vista(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Vista previa de las correcciones de nombres acordadas (no cambia nada)."""
+    return sd.correcciones_acordadas(db, aplicar=False)
+
+
+@router.post("/design/api/parametros/correcciones/aplicar")
+def api_correcciones_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return sd.correcciones_acordadas(db, aplicar=True, eliminado_por=user.nombre_completo)
+
+
+class RenombrarFilaIn(BaseModel):
+    hoja: str
+    de: str
+    empleadoId: int
+
+
+@router.post("/design/api/parametros/renombrar-fila")
+def api_parametros_renombrar_fila_perf(payload: RenombrarFilaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    r = sd.renombrar_fila_perf(db, payload.hoja, payload.de, payload.empleadoId)
+    if not r["ok"]:
+        raise HTTPException(404, r["detalle"])
+    return r
+
+
+class FilaHojaIn(BaseModel):
+    hoja: str
+    nombre: str
+
+
+@router.post("/design/api/parametros/agregar-al-equipo")
+def api_parametros_agregar_al_equipo(payload: FilaHojaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    r = sd.agregar_fila_al_equipo(db, payload.hoja, payload.nombre)
+    if not r["ok"]:
+        raise HTTPException(404, r["detalle"])
+    return r
+
+
 @router.post("/design/api/parametros/importar-equipos")
 def api_importar_equipos_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return sd.importar_equipos_desde_desempeno(db, aplicar=True)

@@ -35,6 +35,17 @@
   .aud-grupo table { width:100%; font-size:12px; margin:0; }
   .aud-grupo .aud-scroll { max-height:340px; overflow:auto; padding:0 12px 10px; }
   .aud-ok { font-size:12.5px; color:#15803d; margin:4px 0; }
+  .aud-sug { display:flex; gap:6px; align-items:center; margin-top:4px; flex-wrap:wrap; }
+  .aud-sug select { font-size:12px; padding:2px 4px; max-width:300px; }
+  .aud-cor-lista { list-style:none; margin:0; padding:0 12px 10px; font-size:12.5px; }
+  .aud-cor-lista li { padding:5px 0; border-bottom:1px solid #f1f5f9; display:flex; gap:10px; }
+  .aud-cor-lista li:last-child { border-bottom:0; }
+  .aud-est { flex:none; font-size:11px; font-weight:700; border-radius:10px; padding:1px 8px; height:fit-content; }
+  .aud-est.pendiente { background:#fef3c7; color:#92400e; } .aud-est.hecho, .aud-est.aplicado { background:#dcfce7; color:#166534; }
+  .aud-est.no_aplica { background:#f1f5f9; color:#475569; }
+  .aud-cor-det { color:#64748b; font-size:11.5px; }
+  .aud-cor-acc { padding:0 12px 12px; }
+  .aud-grupo.aud-cor > summary .aud-cant { color:#92400e; background:#fef3c7; }
 </style>
 <div class="tarjeta aud-tarjeta">
   <div class="aud-fila">
@@ -246,22 +257,32 @@
            '<div class="aud-scroll">' + t + '</table></div></details>';
   }
   function renderAuditoria(d) {
-    var okHojas = 0, okFilas = 0, totFilas = 0, probHoja = [], probFila = [], faltan = [];
+    var okHojas = 0, okFilas = 0, totFilas = 0, probHoja = [], probFila = [], faltan = [], faltanMgr = [];
     d.hojas.forEach(function(h) {
       if (!h.problemas.length) okHojas++;
       h.problemas.forEach(function(p) { probHoja.push([esc(h.hoja), AUD_ROJO(esc(p))]); });
       h.filas.forEach(function(f) {
         totFilas++;
-        if (f.estado === 'ok') { okFilas++; return; }
-        probFila.push([esc(h.hoja), esc(f.nombre), f.persona ? esc(f.persona) : '—', AUD_ROJO(esc(f.detalle))]);
+        if (f.estado === 'ok' || f.estado === 'historico') { okFilas++; return; }
+        var prob = AUD_ROJO(esc(f.detalle));
+        if (f.sugerencias && f.sugerencias.length) {
+          prob += '<div class="aud-sug"><select aria-label="Persona de People para ' + esc(f.nombre) + '">' +
+            f.sugerencias.map(function(x) { return '<option value="' + x.id + '">' + esc(x.nombre) + '</option>'; }).join('') +
+            '</select><button type="button" class="btn mini" data-usar="1" data-hoja="' + esc(h.hoja) + '" data-de="' + esc(f.nombre) + '">Usar</button></div>';
+        }
+        if (f.estado === 'otro_equipo' && h.equipo) {
+          prob += '<div class="aud-sug"><button type="button" class="btn mini" data-agregar="1" data-hoja="' + esc(h.hoja) + '" data-de="' +
+                  esc(f.nombre) + '">Agregar al equipo de ' + esc(h.manager || h.equipo) + '</button></div>';
+        }
+        probFila.push([esc(h.hoja), esc(f.nombre), f.persona ? esc(f.persona) : '—', prob]);
       });
-      if (h.faltan.length) faltan.push([esc(h.hoja), esc(h.equipo || ''), h.faltan.map(esc).join('<br>')]);
+      if (h.faltan.length) (h.general ? faltanMgr : faltan).push([esc(h.hoja), esc(h.equipo || ''), h.faltan.map(esc).join('<br>')]);
     });
-    var sel = d.seleccion.filter(function(x) { return x.estado !== 'ok'; }).map(function(x) {
+    var sel = d.seleccion.filter(function(x) { return x.estado !== 'ok' && x.estado !== 'historico'; }).map(function(x) {
       return [esc(x.hoja), esc(x.evaluador), x.persona ? esc(x.persona) : '—',
               AUD_ROJO(x.estado === 'sin_persona' ? 'No coincide con nadie en People.' : 'No es manager de ningún equipo.')];
     });
-    var pa = d.preapproved.filter(function(x) { return x.estado !== 'ok'; }).map(function(x) {
+    var pa = d.preapproved.filter(function(x) { return x.estado !== 'ok' && x.estado !== 'historico'; }).map(function(x) {
       return [esc(x.area), esc(x.hoja), AUD_ROJO(x.estado === 'ambiguo' ? 'Coincide con varios managers: ' + x.managers.map(esc).join(', ')
                                                                          : 'No coincide con el manager de ningún equipo del área.')];
     });
@@ -274,22 +295,75 @@
     var grupos = audGrupo('Hojas de Desempeño sin equipo', probHoja, ['Hoja', 'Problema']) +
       audGrupo('Filas de Desempeño que no coinciden', probFila, ['Hoja', 'Nombre en Desempeño', 'Persona en People', 'Problema']) +
       audGrupo('Diseñadores del equipo sin fila en su hoja', faltan, ['Hoja', 'Equipo', 'Personas']) +
+      audGrupo('Managers que faltan en la hoja general', faltanMgr.map(function(x) { return [x[0], x[2]]; }), ['Hoja', 'Managers']) +
       audGrupo('Equipos sin hoja de Desempeño', sinHoja, ['Equipo']) +
       audGrupo('Selección: evaluadores que no coinciden', sel, ['Hoja', 'Evaluador', 'Persona en People', 'Problema']) +
       audGrupo('Pre-Approved: hojas sin manager claro', pa, ['Área', 'Hoja', 'Problema']);
     html += grupos || '<p class="aud-ok">✓ Todo coincide con los equipos y personas de Parámetros.</p>';
-    document.getElementById('audResultado').innerHTML = html;
+    document.getElementById('audResultado').innerHTML = audCorreccionesHtml() + html;
   }
-  var audSw = document.getElementById('audSwitch'), audTxt = document.getElementById('audSwitchTxt'), audTok = 0;
-  audSw.addEventListener('change', function() {
-    var res = document.getElementById('audResultado'), t = ++audTok;
-    if (!audSw.checked) { res.innerHTML = ''; audTxt.innerText = 'Revisar'; return; }
+  // Correcciones de nombres acordadas: vista previa y aplicar (el servidor revisa el estado real de cada paso)
+  var audCor = [];
+  var AUD_EST = {pendiente: 'Pendiente', hecho: 'Ya está', aplicado: 'Aplicado', no_aplica: 'No aplica'};
+  function audCorreccionesHtml() {
+    if (!audCor.length) return '';
+    var pend = audCor.filter(function(c) { return c.estado === 'pendiente'; }).length;
+    return '<details class="aud-grupo aud-cor"' + (pend ? ' open' : '') + '><summary>Correcciones acordadas' +
+      '<span class="aud-cant">' + (pend ? pend + ' pendientes' : 'al día') + '</span></summary><ul class="aud-cor-lista">' +
+      audCor.map(function(c) {
+        return '<li><span class="aud-est ' + c.estado + '">' + AUD_EST[c.estado] + '</span><span>' + esc(c.descripcion) +
+               (c.detalle ? '<br><span class="aud-cor-det">' + esc(c.detalle) + '</span>' : '') + '</span></li>';
+      }).join('') + '</ul>' +
+      (pend ? '<div class="aud-cor-acc"><button type="button" class="btn" id="audAplicar">Aplicar ' + pend + ' correcciones</button></div>' : '') +
+      '</details>';
+  }
+  function audCargar() {
+    var t = ++audTok, res = document.getElementById('audResultado');
     audSw.disabled = true; audTxt.innerText = 'Revisando…';
-    fetch('/design/api/parametros/auditoria-conexiones').then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-    }).then(function(d) { if (t === audTok && audSw.checked) renderAuditoria(d); }).catch(function(e) {
+    return Promise.all([
+      fetch('/design/api/parametros/correcciones').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
+      fetch('/design/api/parametros/auditoria-conexiones').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    ]).then(function(x) { if (t === audTok && audSw.checked) { audCor = x[0]; renderAuditoria(x[1]); } }).catch(function(e) {
       if (t === audTok) res.innerHTML = AUD_ROJO('No se pudo revisar: ' + esc(e.message));
     }).then(function() { audSw.disabled = false; audTxt.innerText = audSw.checked ? 'Ocultar' : 'Revisar'; });
+  }
+  document.getElementById('audResultado').addEventListener('click', function(e) {
+    var ap = e.target.closest('#audAplicar');
+    if (ap) {
+      var pend = audCor.filter(function(c) { return c.estado === 'pendiente'; });
+      if (!confirm('¿Aplicar ' + pend.length + ' correcciones?\n\n' + pend.map(function(c) { return '• ' + c.descripcion; }).join('\n') +
+                   '\n\nLas filas que se quitan quedan en la Papelera de Design.')) return;
+      ap.disabled = true; ap.innerText = 'Aplicando…';
+      fetch('/design/api/parametros/correcciones/aplicar', {method: 'POST'}).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+      }).then(function() { return audCargar(); }).catch(function(err) { alert('No se pudo aplicar: ' + err.message); ap.disabled = false; });
+      return;
+    }
+    var ag = e.target.closest('[data-agregar]');
+    if (ag) {
+      if (!confirm('¿Agregar a "' + ag.dataset.de + '" al equipo del manager de la hoja "' + ag.dataset.hoja + '" en Parámetros?')) return;
+      ag.disabled = true;
+      fetch('/design/api/parametros/agregar-al-equipo', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({hoja: ag.dataset.hoja, nombre: ag.dataset.de})}).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+      }).then(function() { return audCargar(); }).catch(function(err) { alert('No se pudo agregar: ' + err.message); ag.disabled = false; });
+      return;
+    }
+    var b = e.target.closest('[data-usar]');
+    if (!b) return;
+    var sel = b.parentNode.querySelector('select');
+    var nombre = sel.options[sel.selectedIndex].text;
+    if (!confirm('En la hoja "' + b.dataset.hoja + '", "' + b.dataset.de + '" pasará a llamarse "' + nombre + '". ¿Continuar?')) return;
+    b.disabled = true;
+    fetch('/design/api/parametros/renombrar-fila', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({hoja: b.dataset.hoja, de: b.dataset.de, empleadoId: parseInt(sel.value)})}).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+    }).then(function() { return audCargar(); }).catch(function(err) { alert('No se pudo corregir: ' + err.message); b.disabled = false; });
+  });
+  var audSw = document.getElementById('audSwitch'), audTxt = document.getElementById('audSwitchTxt'), audTok = 0;
+  audSw.addEventListener('change', function() {
+    if (!audSw.checked) { ++audTok; document.getElementById('audResultado').innerHTML = ''; audTxt.innerText = 'Revisar'; return; }
+    audCargar();
   });
 
   document.getElementById('impAplicarBtn').addEventListener('click', function() {

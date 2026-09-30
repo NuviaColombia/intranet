@@ -1806,7 +1806,24 @@ def _trash_restaurar_cmt_template(db: Session, payload: dict) -> bool:
     return True
 
 
+def _trash_restaurar_perf_emp(db: Session, payload: dict) -> bool:
+    if not db.get(DesignPerfSheet, payload.get("sheet_id")):
+        return False
+    e = DesignPerfEmpleado(sheet_id=payload["sheet_id"], nombre=payload.get("nombre", ""), nota=payload.get("nota", ""),
+                           orden=payload.get("orden", 0))
+    db.add(e)
+    db.flush()
+    criterios = {c.id for c in db.query(DesignPerfCriterio).all()}
+    for c in payload.get("celdas", []):
+        if c.get("criterio_id") in criterios:
+            db.add(DesignPerfCelda(empleado_id=e.id, criterio_id=c["criterio_id"], mes_indice=c["mes_indice"],
+                                   nivel=c.get("nivel", ""), puntaje=c.get("puntaje", 0)))
+    db.commit()
+    return True
+
+
 _TRASH_RESTAURADORES = {
+    "perf-emp": _trash_restaurar_perf_emp,
     "pa-sheet": _trash_restaurar_pa_sheet,
     "pa-centro": _trash_restaurar_pa_centro,
     "pa-doctor": _trash_restaurar_pa_doctor,
@@ -2445,7 +2462,7 @@ SHEET_MANAGER_MAP = {
     "N3 Luisa": ("N3 Prosthetic", "Luisa Ortiz"),
     "N3 Paula Dlt": ("N3 Prosthetic", "Paula de la Torre"),
     "N3 Paola T": ("N3 Prosthetic", "Paola Tuiran"),
-    "N3 Mauricio": ("N3 Prosthetic", "Mauricio Folliaco"),
+    "N3 Mauricio": ("N3 Prosthetic", "Mauricio Foliaco"),
     "N3 Julio": ("N3 Prosthetic", "Julio Hernandez Florez"),
 }
 
@@ -2565,6 +2582,38 @@ def _sin_prefijo_area(nombre: str) -> str:
     return re.sub(r"^\s*(face|n2|n3|n6)\s+", "", nombre or "", flags=re.I).strip()
 
 
+# Personas que ya no son managers pero se conservan como históricas en Selección / Pre-Approved (30-sep-2026).
+PERF_HISTORICOS = ["Luis Felipe Blaschke", "Paul Andion"]
+
+
+def _es_historico(nombre: str) -> bool:
+    pal = _palabras(_sin_prefijo_area(nombre))
+    return bool(pal) and any(pal <= _palabras(h) or _palabras(h) <= pal for h in PERF_HISTORICOS)
+
+
+def _es_hoja_general(nombre: str) -> bool:
+    """DESIGN MANAGERS: hoja general donde se califica a todos los managers de las áreas (sin manager propio)."""
+    return bool(re.search(r"design\s+managers?", nombre or "", re.I))
+
+
+def _sugerencias(nombre: str, personas: list[Empleado], n: int = 3) -> list[dict]:
+    """Personas de People con nombre parecido (tolera errores de escritura: Vazques ~ Vasquez)."""
+    import difflib
+    pal = _normalizar_texto(nombre).replace(".", " ").split()
+    if not pal:
+        return []
+    out = []
+    for e in personas:
+        pe = _normalizar_texto(e.nombre_completo).split()
+        if not pe:
+            continue
+        score = sum(max(difflib.SequenceMatcher(None, w, x).ratio() for x in pe) for w in pal) / len(pal)
+        if score >= 0.72:
+            out.append((score, e))
+    out.sort(key=lambda t: -t[0])
+    return [{"id": e.id, "nombre": e.nombre_completo, "parecido": round(sc, 2)} for sc, e in out[:n]]
+
+
 def auditar_conexiones(db: Session) -> dict:
     personas = db.query(Empleado).filter(Empleado.activo == 1).all()
     teams = (db.query(DesignTeam).options(joinedload(DesignTeam.designers), joinedload(DesignTeam.area),
@@ -2575,15 +2624,18 @@ def auditar_conexiones(db: Session) -> dict:
         for d in t.designers:
             equipo_de.setdefault(d.empleado_id, []).append(t.nombre)
     nombre_de = {e.id: e.nombre_completo for e in personas}
+    managers_ids = {t.manager_id for t in teams if t.manager_id and t.area.formato != FORMATO_SUPPORT}
 
     hojas = []
     for sh in perf_sheets(db):
         if sh.tipo != "eval":
             continue
-        r = {"hoja": sh.nombre, "manager": None, "equipo": None, "problemas": [], "filas": []}
+        r = {"hoja": sh.nombre, "manager": None, "equipo": None, "problemas": [], "filas": [], "general": False}
         mapeo = SHEET_MANAGER_MAP.get(sh.nombre)
         team = None
-        if not mapeo:
+        if _es_hoja_general(sh.nombre):
+            r["general"] = True
+        elif not mapeo:
             r["problemas"].append("La hoja no está asociada a ningún manager (el nombre no está en la lista de hojas).")
         else:
             area_nombre, manager_nombre = mapeo
@@ -2604,15 +2656,22 @@ def auditar_conexiones(db: Session) -> dict:
             item = {"nombre": fila.nombre, "persona": persona.nombre_completo if persona else None, "estado": "ok", "detalle": ""}
             if not persona:
                 item["estado"], item["detalle"] = "sin_persona", "No coincide con nadie en People."
+                item["sugerencias"] = _sugerencias(fila.nombre, personas)
             else:
                 vistos.add(persona.id)
-                if team and persona.id not in ids_team and persona.id != team.manager_id:
+                if r["general"] and persona.id not in managers_ids and not _es_historico(persona.nombre_completo):
+                    item["estado"], item["detalle"] = "no_manager", "Es una hoja de managers y no es manager de ningún equipo."
+                elif r["general"] and persona.id not in managers_ids:
+                    item["estado"], item["detalle"] = "historico", "Histórico: ya no es manager."
+                elif team and persona.id not in ids_team and persona.id != team.manager_id:
                     otros = equipo_de.get(persona.id) or []
                     item["estado"] = "otro_equipo"
                     item["detalle"] = (f"En Parámetros está en {', '.join(otros)}." if otros
                                        else "En Parámetros no está en ningún equipo.")
             r["filas"].append(item)
-        r["faltan"] = sorted(nombre_de.get(i, str(i)) for i in ids_team - vistos)  # en el equipo, sin fila en la hoja
+        # en el equipo (o, en la hoja general, managers) sin fila en la hoja
+        esperados = managers_ids if r["general"] else ids_team
+        r["faltan"] = sorted(nombre_de.get(i, str(i)) for i in esperados - vistos)
         hojas.append(r)
 
     managers = {t.manager_id for t in teams if t.manager_id}
@@ -2623,6 +2682,8 @@ def auditar_conexiones(db: Session) -> dict:
         for fila in sh.filas_seleccion:
             persona = _buscar_empleado_por_nombre(fila.evaluador, personas)
             estado = "ok" if persona and persona.id in managers else ("no_manager" if persona else "sin_persona")
+            if estado != "ok" and _es_historico(fila.evaluador):
+                estado = "historico"
             seleccion.append({"hoja": sh.nombre, "evaluador": fila.evaluador, "persona": persona.nombre_completo if persona else None,
                               "estado": estado})
 
@@ -2633,6 +2694,8 @@ def auditar_conexiones(db: Session) -> dict:
         candidatos = [t for t in teams if t.area_id == sh.area_id and t.manager and palabras
                       and palabras <= _palabras(t.manager.nombre_completo)]
         estado = "ok" if len(candidatos) == 1 else ("ambiguo" if candidatos else "sin_manager")
+        if estado != "ok" and _es_historico(sh.nombre):
+            estado = "historico"
         preapproved.append({"area": sh.area.nombre, "hoja": sh.nombre, "estado": estado,
                             "managers": [f"{t.manager.nombre_completo} ({t.nombre})" for t in candidatos]})
 
@@ -2641,3 +2704,192 @@ def auditar_conexiones(db: Session) -> dict:
     sin_hoja = sorted(f"{t.area.nombre} · {t.nombre}" for t in teams if t.manager_id and t.nombre not in con_hoja
                       and t.area.formato != FORMATO_SUPPORT)
     return {"hojas": hojas, "seleccion": seleccion, "preapproved": preapproved, "equiposSinHoja": sin_hoja}
+
+
+
+# ---------------------------------------------------------------------------
+# Correcciones de nombres acordadas (30-sep-2026) para conectar Desempeño con los equipos de Parámetros.
+# Se ven primero en vista previa y se aplican desde Parámetros (solo admins). Cada paso revisa el estado
+# actual: aplicarlas otra vez no repite nada. Lo eliminado queda en la Papelera de Design.
+# ---------------------------------------------------------------------------
+
+CORRECCIONES_ACORDADAS = [
+    {"op": "renombrar_fila", "hoja": "Face Juliana", "de": "DNIELA CAMACHO", "a": "DANIELA CAMACHO"},
+    {"op": "renombrar_fila", "hoja": "DESIGN MANAGERS", "de": "MAURICIO FOLLIACO", "a": "MAURICIO FOLIACO"},
+    {"op": "renombrar_fila", "hoja": "N3 Mauricio", "de": "CARLOS S. RAMIREZ", "a": "CARLOS SANTIAGO RAMIREZ"},
+    {"op": "eliminar_fila", "hoja": "N6 Marlene", "nombre": "Ma Fernanda Olier", "motivo": "ya no trabaja en Nuvia"},
+    {"op": "eliminar_fila", "hoja": "N2 Heiner", "nombre": "ANGIE DUQUE", "motivo": "ya no trabaja en Nuvia"},
+    {"op": "eliminar_fila", "hoja": "N2 Samuel", "nombre": "LUIS BERMONT", "motivo": "ya no trabaja en Nuvia"},
+    {"op": "eliminar_fila", "hoja": "N3 Vanesa", "nombre": "RAFAEL GARCIA", "motivo": "ya no trabaja en Nuvia"},
+    {"op": "eliminar_fila", "hoja": "N3 Luisa", "nombre": "Anderson Maldonado", "motivo": "ya no trabaja en Nuvia"},
+    {"op": "eliminar_fila", "hoja": "N2 Heiner", "nombre": "GELIDER GARCÍA", "motivo": "Gleider García es manager de su equipo"},
+    {"op": "unir_duplicado", "hoja": "N2 Daniel", "nombre": "Gabriel Jinete"},
+    {"op": "agregar_a_equipo", "area": "N6 Material Changes", "manager": "Marlene Aguirre", "persona": "Juan Camilo Lopez Arboleda"},
+    {"op": "agregar_a_equipo", "area": "N2 Demodenture", "manager": "Heiner Cañon", "persona": "Andres Julian Sierra Castañeda"},
+    {"op": "crear_equipo", "area": "N3 Prosthetic", "manager": "Mauricio Foliaco", "desde_hoja": "N3 Mauricio"},
+    {"op": "crear_equipo", "area": "N3 Prosthetic", "manager": "Leonardo Naranjo"},
+]
+
+
+def _hoja_por_nombre(db: Session, nombre: str) -> DesignPerfSheet | None:
+    return db.query(DesignPerfSheet).filter(DesignPerfSheet.nombre == nombre).first()
+
+
+def _filas_con_nombre(sheet: DesignPerfSheet, nombre: str) -> list[DesignPerfEmpleado]:
+    n = _normalizar_texto(nombre)
+    return sorted((e for e in sheet.empleados if _normalizar_texto(e.nombre) == n), key=lambda e: (e.orden, e.id))
+
+
+def _snapshot_fila(e: DesignPerfEmpleado) -> dict:
+    return {"sheet_id": e.sheet_id, "sheet": e.sheet.nombre, "nombre": e.nombre, "nota": e.nota, "orden": e.orden,
+            "celdas": [{"criterio_id": c.criterio_id, "mes_indice": c.mes_indice, "nivel": c.nivel, "puntaje": c.puntaje}
+                       for c in e.celdas]}
+
+
+def _team_de_manager(db: Session, area_nombre: str, manager: Empleado) -> DesignTeam | None:
+    return (db.query(DesignTeam).join(DesignArea, DesignArea.id == DesignTeam.area_id)
+            .filter(DesignArea.nombre == area_nombre, DesignTeam.manager_id == manager.id).first())
+
+
+def _correccion(db: Session, op: dict, aplicar: bool, eliminado_por: str) -> dict:
+    """{"descripcion", "estado": pendiente|hecho|aplicado|no_aplica, "detalle"} de un paso."""
+    personas = db.query(Empleado).filter(Empleado.activo == 1).all()
+    tipo = op["op"]
+    if tipo in ("renombrar_fila", "eliminar_fila", "unir_duplicado"):
+        sh = _hoja_por_nombre(db, op["hoja"])
+        nombre = op.get("de") or op.get("nombre")
+        desc = {"renombrar_fila": f'Hoja {op["hoja"]}: "{nombre}" → "{op.get("a")}"',
+                "eliminar_fila": f'Hoja {op["hoja"]}: quitar "{nombre}" ({op.get("motivo", "")}) — queda en la Papelera',
+                "unir_duplicado": f'Hoja {op["hoja"]}: dejar una sola fila de "{nombre}"'}[tipo]
+        if not sh:
+            return {"descripcion": desc, "estado": "no_aplica", "detalle": "No existe esa hoja."}
+        filas = _filas_con_nombre(sh, nombre)
+        if tipo == "renombrar_fila":
+            if not filas:
+                ya = _filas_con_nombre(sh, op["a"])
+                return {"descripcion": desc, "estado": "hecho" if ya else "no_aplica", "detalle": "" if ya else "No está esa fila."}
+            p = _buscar_empleado_por_nombre(op["a"], personas)
+            detalle = f"Coincidirá con {p.nombre_completo}." if p else "Ojo: el nombre nuevo tampoco coincide con People."
+            if aplicar:
+                for f in filas:
+                    f.nombre = op["a"]
+                db.commit()
+            return {"descripcion": desc, "estado": "aplicado" if aplicar else "pendiente", "detalle": detalle}
+        if tipo == "eliminar_fila":
+            if not filas:
+                return {"descripcion": desc, "estado": "hecho", "detalle": ""}
+            if aplicar:
+                for f in filas:
+                    _trash_registrar(db, "perf-emp", f"Desempeño {sh.nombre}: {f.nombre}", _snapshot_fila(f), eliminado_por)
+                    db.delete(f)
+                db.commit()
+            return {"descripcion": desc, "estado": "aplicado" if aplicar else "pendiente",
+                    "detalle": f"{sum(len(f.celdas) for f in filas)} calificaciones guardadas en la Papelera."}
+        # unir_duplicado
+        if len(filas) <= 1:
+            return {"descripcion": desc, "estado": "hecho", "detalle": ""}
+        queda = max(filas, key=lambda f: (sum(1 for c in f.celdas if c.nivel), -f.orden, -f.id))
+        otras = [f for f in filas if f.id != queda.id]
+        if aplicar:
+            ya = {(c.criterio_id, c.mes_indice): c for c in queda.celdas}
+            for o in otras:
+                for c in o.celdas:  # lo que la fila que queda no tenga calificado se toma de la repetida
+                    if c.nivel and not (ya.get((c.criterio_id, c.mes_indice)) and ya[(c.criterio_id, c.mes_indice)].nivel):
+                        if (c.criterio_id, c.mes_indice) in ya:
+                            ya[(c.criterio_id, c.mes_indice)].nivel, ya[(c.criterio_id, c.mes_indice)].puntaje = c.nivel, c.puntaje
+                        else:
+                            db.add(DesignPerfCelda(empleado_id=queda.id, criterio_id=c.criterio_id, mes_indice=c.mes_indice,
+                                                   nivel=c.nivel, puntaje=c.puntaje))
+                if (o.nota or "").strip() and (o.nota or "").strip() not in (queda.nota or ""):
+                    queda.nota = ((queda.nota or "").strip() + "\n" + o.nota.strip()).strip()
+                _trash_registrar(db, "perf-emp", f"Desempeño {sh.nombre}: {o.nombre} (repetida)", _snapshot_fila(o), eliminado_por)
+                db.delete(o)
+            db.commit()
+        return {"descripcion": desc, "estado": "aplicado" if aplicar else "pendiente",
+                "detalle": f"{len(filas)} filas; se conserva la que tiene más calificaciones y se completan los meses vacíos con la otra."}
+    if tipo == "agregar_a_equipo":
+        desc = f'Equipo de {op["manager"]} ({op["area"]}): agregar a {op["persona"]}'
+        mgr = _buscar_empleado_por_nombre(op["manager"], personas)
+        per = _buscar_empleado_por_nombre(op["persona"], personas)
+        team = _team_de_manager(db, op["area"], mgr) if mgr else None
+        if not team or not per:
+            return {"descripcion": desc, "estado": "no_aplica", "detalle": "No se encontró el equipo o la persona."}
+        if any(d.empleado_id == per.id for d in team.designers):
+            return {"descripcion": desc, "estado": "hecho", "detalle": ""}
+        if aplicar:
+            db.add(DesignTeamDesigner(team_id=team.id, empleado_id=per.id, orden=len(team.designers) + 1))
+            db.commit()
+        return {"descripcion": desc, "estado": "aplicado" if aplicar else "pendiente", "detalle": f"{per.nombre_completo} → {team.nombre}"}
+    if tipo == "crear_equipo":
+        desde = op.get("desde_hoja")
+        desc = f'{op["area"]}: equipo de {op["manager"]}' + (f' con las personas de la hoja {desde}' if desde else ' (vacío)')
+        mgr = _buscar_empleado_por_nombre(op["manager"], personas)
+        area = db.query(DesignArea).filter(DesignArea.nombre == op["area"]).first()
+        if not mgr or not area:
+            return {"descripcion": desc, "estado": "no_aplica", "detalle": "No se encontró el manager en People o el área."}
+        team = _team_de_manager(db, op["area"], mgr)
+        en_equipo = {d.empleado_id: d.team.nombre for d in db.query(DesignTeamDesigner).join(DesignTeam)
+                     .filter(DesignTeam.activo == 1).all()}
+        agregar, omitidos = [], []
+        sh = _hoja_por_nombre(db, desde) if desde else None
+        for f in (sh.empleados if sh else []):
+            p = _buscar_empleado_por_nombre(f.nombre, personas)
+            if not p or p.id == mgr.id:
+                continue
+            if team and any(d.empleado_id == p.id for d in team.designers):
+                continue
+            if p.id in en_equipo:
+                omitidos.append(f"{p.nombre_completo} (ya está en {en_equipo[p.id]})")
+            elif p.id not in {a.id for a in agregar}:
+                agregar.append(p)
+        if team and not agregar:
+            return {"descripcion": desc, "estado": "hecho",
+                    "detalle": ("No se movió: " + "; ".join(omitidos)) if omitidos else ""}
+        if aplicar:
+            if not team:
+                team = DesignTeam(area_id=area.id, nombre=mgr.nombre_completo, manager_id=mgr.id,
+                                  orden=db.query(DesignTeam).filter(DesignTeam.area_id == area.id).count() + 1)
+                db.add(team)
+                db.flush()
+            base = len(team.designers)
+            for i, p in enumerate(agregar, start=1):
+                db.add(DesignTeamDesigner(team_id=team.id, empleado_id=p.id, orden=base + i))
+            db.commit()
+        det = (f"Manager: {mgr.nombre_completo}." + (f" Diseñadores: {', '.join(p.nombre_completo for p in agregar)}." if agregar else "")
+               + (f" No se mueven (ya tienen equipo): {'; '.join(omitidos)}." if omitidos else ""))
+        return {"descripcion": desc, "estado": "aplicado" if aplicar else "pendiente", "detalle": det}
+    return {"descripcion": str(op), "estado": "no_aplica", "detalle": "Tipo de corrección desconocido."}
+
+
+def correcciones_acordadas(db: Session, aplicar: bool = False, eliminado_por: str = "") -> list[dict]:
+    return [_correccion(db, op, aplicar, eliminado_por) for op in CORRECCIONES_ACORDADAS]
+
+
+def renombrar_fila_perf(db: Session, hoja: str, de: str, empleado_id: int) -> dict:
+    """Sugerencia elegida en la revisión: la fila toma el nombre completo de la persona de People."""
+    sh = _hoja_por_nombre(db, hoja)
+    per = db.get(Empleado, empleado_id)
+    filas = _filas_con_nombre(sh, de) if sh else []
+    if not filas or not per:
+        return {"ok": False, "detalle": "No se encontró la fila o la persona."}
+    for f in filas:
+        f.nombre = per.nombre_completo
+    db.commit()
+    return {"ok": True, "detalle": f'"{de}" ahora es {per.nombre_completo}.'}
+
+
+
+def agregar_fila_al_equipo(db: Session, hoja: str, nombre: str) -> dict:
+    """La persona de una fila de Desempeño pasa a ser diseñadora del equipo del manager de esa hoja."""
+    sh = _hoja_por_nombre(db, hoja)
+    mapeo = SHEET_MANAGER_MAP.get(hoja)
+    personas = db.query(Empleado).filter(Empleado.activo == 1).all()
+    per = _buscar_empleado_por_nombre(nombre, personas)
+    mgr = _buscar_empleado_por_nombre(mapeo[1], personas) if mapeo else None
+    team = _team_de_manager(db, mapeo[0], mgr) if mgr else None
+    if not sh or not per or not team:
+        return {"ok": False, "detalle": "No se encontró la persona o el equipo de esa hoja."}
+    if not any(d.empleado_id == per.id for d in team.designers):
+        db.add(DesignTeamDesigner(team_id=team.id, empleado_id=per.id, orden=len(team.designers) + 1))
+        db.commit()
+    return {"ok": True, "detalle": f"{per.nombre_completo} → {team.nombre}"}
