@@ -142,3 +142,22 @@ class ConteoAviso(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
     fecha: Mapped[date] = mapped_column(Date)
+
+
+class ConteoDocumento(Base):
+    """PDF firmado generado por el sistema: el acta de un área (al validarse) o el consolidado del mes."""
+    __tablename__ = "conteo_documentos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(12))                  # ACTA | CONSOLIDADO
+    reporte_id: Mapped[int | None] = mapped_column(ForeignKey("conteo_reportes.id"), nullable=True, index=True)
+    anio: Mapped[int] = mapped_column(Integer)
+    mes: Mapped[int] = mapped_column(Integer)
+    area: Mapped[str] = mapped_column(String(100), default="")
+    nombre: Mapped[str] = mapped_column(String(250))
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    workdrive_estado: Mapped[str] = mapped_column(String(12), default="PENDIENTE")
+    workdrive_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    workdrive_error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    workdrive_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

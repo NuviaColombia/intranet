@@ -94,6 +94,7 @@
     <div class="cm-barra"><div><h2 class="cm-titulo">📊 Reportes de conteo · <span id="rTitulo"></span></h2>
       <p class="cm-sub" style="margin:0;">Lo que reportó cada área (la cifra validada cuando ya se validó), la suma por bodega y material, y quién falta por enviar.</p></div>
       <div class="cm-acciones no-print">
+        <button type="button" class="btn verde" onclick="pdfConsolidado()">📄 PDF firmado del mes</button>
         <button type="button" class="btn gris" onclick="exportarConteo()">⬇️ Exportar Excel</button>
         <button type="button" class="btn gris" onclick="window.print()">🖨️ Imprimir</button></div></div>
     <div class="cm-filtros no-print"><label>Mes:</label><select id="rMes" onchange="cargarConsolidado()"></select>
@@ -215,7 +216,8 @@ function cargarReporte() {
     else if (e === 'ENVIADO') est.innerHTML = '<div class="ct-aviso info">📤 Enviado con tu firma el ' + esc(actual.enviadoEn) + ' (' + esc(actual.enviadoEmail) + '). Está <b>en validación</b>: ya no se puede cambiar.</div>';
     else if (e === 'DEVUELTO') est.innerHTML = '<div class="ct-aviso no">↩️ <b>Devuelto</b> por ' + esc(actual.devueltoPor) + ' el ' + esc(actual.devueltoEn) + ':<br>«' + esc(actual.observacion) +
       '»<br>Corrige y envíalo de nuevo.</div>';
-    else if (e === 'VALIDADO') est.innerHTML = '<div class="ct-aviso ok">✅ <b>Validado</b> por ' + esc(actual.validadoPor) + ' el ' + esc(actual.validadoEn) + '. El conteo quedó cerrado.</div>';
+    else if (e === 'VALIDADO') est.innerHTML = '<div class="ct-aviso ok">✅ <b>Validado</b> por ' + esc(actual.validadoPor) + ' el ' + esc(actual.validadoEn) +
+      '. El conteo quedó cerrado. <a target="_blank" href="/conteo/api/reportes/' + actual.id + '/acta.pdf"><b>📄 Ver el acta firmada (PDF)</b></a></div>';
     if (!actual) return;
     document.getElementById('btnImprimirManager').style.display = '';
     document.getElementById('cFecha').value = actual.fechaReporte;
@@ -336,7 +338,8 @@ function abrirValidacion(id) {
   var editable = x.estado === 'ENVIADO', comp = x.comparacion, det = document.getElementById('vDetalle');
   det.innerHTML = '<div class="cm-barra"><div><h3 class="cs-h3" style="margin:0">📋 ' + esc(np(x.area)) + ' · ' + esc(x.mesNombre) + ' ' + x.anio + ' ' + estadoHtml(x.estado) + '</h3>' +
       '<p class="cm-sub" style="margin:4px 0 0;">Manager: <b>' + esc(x.responsable) + '</b> (' + esc(x.responsableEmail) + ') · enviado ' + esc(x.enviadoEn) + (x.novedad ? ' · Novedad: «' + esc(x.novedad) + '»' : '') + '</p></div>' +
-      '<div class="cm-acciones no-print"><button class="btn gris mini" onclick="imprimirConteo(vActual)">🖨️ Imprimir</button>' +
+      '<div class="cm-acciones no-print">' + (x.estado === 'VALIDADO' ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + x.id + '/acta.pdf">📄 Acta firmada (PDF)</a> ' : '') +
+      '<button class="btn gris mini" onclick="imprimirConteo(vActual)">🖨️ Imprimir</button>' +
       (x.estado === 'VALIDADO' && D.esAdmin ? ' <button class="btn gris mini" onclick="reabrirConteo(' + x.id + ')">🔓 Reabrir</button>' : '') + '</div></div>' +
     (x.ciego ? '<div class="ct-aviso info">🙈 <b>Conteo a ciegas:</b> cuenta tú mismo cada material. Cuando guardes, aparece el conteo del manager y las diferencias.</div>'
       : comp ? '<div class="ct-aviso ' + (comp.diferencias ? 'edit' : 'ok') + '">' + (comp.diferencias ? '⚠️ Hay <b>' + comp.diferencias + '</b> diferencia(s)' : '✅ Tu conteo <b>coincide</b> con el del manager') +
@@ -401,7 +404,8 @@ function cargarConsolidado() {
       return '<tr><td class="izq"><b>' + esc(np(r.area)) + '</b></td><td>' + estadoHtml(r.estado) + '</td><td>' + esc(r.responsable) + '</td><td>' + esc(r.enviadoEn || '—') +
         '</td><td>' + esc(r.validadoPor || '—') + '</td><td>' + r.evidencias.length + '</td><td class="izq" style="max-width:260px">' + esc(r.novedad) +
         '</td><td class="no-print" style="white-space:nowrap"><button class="btn gris mini" onclick="verEvidencias(' + i + ')">👁️ Evidencias</button> ' +
-        (r.oculto ? '' : '<button class="btn gris mini" onclick="imprimirConteo(window._reportesMes[' + i + '])">🖨️</button>') + '</td></tr>';
+        (r.oculto ? '' : '<button class="btn gris mini" onclick="imprimirConteo(window._reportesMes[' + i + '])">🖨️</button>') +
+        (r.estado === 'VALIDADO' ? ' <a class="btn verde mini" target="_blank" title="Acta firmada" href="/conteo/api/reportes/' + r.id + '/acta.pdf">📄</a>' : '') + '</td></tr>';
     }).join('') : '<tr><td colspan="8" class="cm-vacio">Sin conteos.</td></tr>';
     document.getElementById('rDetalle').innerHTML = '';
   }).catch(function(e) { alert(e.message); });
@@ -420,6 +424,7 @@ function verEvidencias(i) {
   }).join('') : '<p class="cm-vacio">Este conteo no tiene evidencias.</p>');
   document.getElementById('rDetalle').scrollIntoView({behavior: 'smooth'});
 }
+function pdfConsolidado() { window.open('/conteo/api/consolidado/pdf?anio=' + document.getElementById('rAnio').value + '&mes=' + document.getElementById('rMes').value, '_blank'); }
 function exportarConteo() { window.location = '/conteo/api/consolidado/exportar?anio=' + document.getElementById('rAnio').value + '&mes=' + document.getElementById('rMes').value; }
 
 // ---------------- formato impreso (con las firmas del manager y del validador) ----------------

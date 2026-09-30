@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                            ConteoLinea, ConteoEvidencia, ConteoAviso, BORRADOR, ENVIADO, DEVUELTO, VALIDADO)
+                            ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, BORRADOR, ENVIADO, DEVUELTO, VALIDADO)
 from .formato import nombre_propio
 
 MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre",
@@ -163,6 +163,8 @@ def serializar(db: Session, r: ConteoReporte, user: Empleado | None = None) -> d
         "conteo": {} if ciego else man, "danados": {} if ciego else man_d,
         "vconteo": val, "vdanados": val_d,
         "comparacion": None if ciego or not r.validacion_guardada_en else comparacion(db, r),
+        "acta": next(({"id": d.id, "nombre": d.nombre, "workdrive": d.workdrive_estado} for d in
+                      db.query(ConteoDocumento).filter_by(tipo="ACTA", reporte_id=r.id)), None),
         "evidencias": [{"id": e.id, "materialId": e.material_id, "etapa": e.etapa, "nombre": e.nombre, "tipo": e.tipo_mime,
                         "tamano": e.tamano, "workdrive": e.workdrive_estado or "PENDIENTE"} for e in r.evidencias],
     }
@@ -286,6 +288,7 @@ def reabrir(db: Session, user: Empleado, r: ConteoReporte) -> str | None:
     r.observacion = f"Reabierto por {nombre_propio(user.nombre_completo)}."
     r.devuelto_por_id, r.devuelto_en = user.id, datetime.utcnow()
     db.commit()
+    quitar_acta(db, r)  # el acta firmada deja de valer; se genera otra al validar de nuevo
     return None
 
 
@@ -386,9 +389,10 @@ def reintentar_workdrive(limite: int = 50) -> int:
     try:
         ids = [x for (x,) in db.query(ConteoEvidencia.id).filter(ConteoEvidencia.workdrive_estado != "OK")
                .order_by(ConteoEvidencia.id).limit(limite)]
+        docs = [x for (x,) in db.query(ConteoDocumento.id).filter(ConteoDocumento.workdrive_estado != "OK").limit(limite)]
     finally:
         db.close()
-    return sum(1 for i in ids if copiar_a_workdrive(i))
+    return sum(1 for i in ids if copiar_a_workdrive(i)) + sum(1 for i in docs if copiar_documento_workdrive(i))
 
 
 def estado_workdrive(db: Session) -> dict:
@@ -434,6 +438,103 @@ def consolidado(db: Session, anio: int, mes: int, areas_config: list[str], user:
         "pendientes": [a for a in areas_config if a not in enviadas],
         "validados": sum(1 for r in reportes if r.estado == VALIDADO),
     }
+
+
+# ---------------- PDF firmados (acta del área y consolidado del mes) ----------------
+
+def _guardar_documento(db: Session, tipo: str, anio: int, mes: int, area: str, nombre: str, datos: bytes,
+                       reporte_id: int | None) -> ConteoDocumento:
+    """Guarda (o reemplaza) el PDF; si ya estaba en WorkDrive, el anterior va a la papelera y se sube el nuevo."""
+    q = db.query(ConteoDocumento).filter_by(tipo=tipo, anio=anio, mes=mes)
+    q = q.filter_by(reporte_id=reporte_id) if tipo == "ACTA" else q
+    for viejo in q.all():
+        _papelera_workdrive(viejo.workdrive_id)
+        db.delete(viejo)
+    doc = ConteoDocumento(tipo=tipo, anio=anio, mes=mes, area=area, nombre=nombre, datos=datos, reporte_id=reporte_id)
+    db.add(doc)
+    db.commit()
+    return doc
+
+
+def _papelera_workdrive(archivo_id: str | None) -> None:
+    if not archivo_id:
+        return
+    from . import zoho_workdrive as wd
+    try:
+        wd.a_papelera(archivo_id)
+    except Exception as ex:
+        print(f"[Conteo] No se pudo mandar a la papelera de WorkDrive {archivo_id}: {ex}")
+
+
+def generar_acta(db: Session, r: ConteoReporte) -> ConteoDocumento:
+    from .pdf_conteo import acta_area
+    datos = acta_area(r, bodegas_activas(db), materiales_activos(db, r.area), comparacion(db, r), MESES)
+    nombre = f"Conteo inventario mensual - {nombre_propio(r.area)} - {MESES[r.mes - 1]} {r.anio} - Acta firmada.pdf"
+    return _guardar_documento(db, "ACTA", r.anio, r.mes, r.area, nombre, datos, r.id)
+
+
+def generar_consolidado(db: Session, anio: int, mes: int, areas_config: list[str]) -> ConteoDocumento:
+    from .pdf_conteo import consolidado_mes
+    reportes = db.query(ConteoReporte).filter_by(anio=anio, mes=mes).order_by(ConteoReporte.area).all()
+    por_validar = sorted(r.area for r in reportes if r.estado in (ENVIADO, DEVUELTO))  # esperando validación o corrección
+    con_envio = {r.area for r in reportes if r.estado != BORRADOR}
+    finales = {r.id: cantidad_final(r) for r in reportes}
+    datos = consolidado_mes(anio, mes, reportes, bodegas_activas(db), materiales_activos(db), finales,
+                            por_validar, MESES, [a for a in areas_config if a not in con_envio])
+    nombre = f"Conteo inventario mensual - {MESES[mes - 1]} {anio} - Consolidado firmado.pdf"
+    return _guardar_documento(db, "CONSOLIDADO", anio, mes, "", nombre, datos, None)
+
+
+def documentos_al_validar(reporte_id: int, areas_config: list[str]) -> None:
+    """En segundo plano, después de validar: acta del área + consolidado del mes actualizado, y copia en WorkDrive."""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        r = db.get(ConteoReporte, reporte_id)
+        if not r or r.estado != VALIDADO:
+            return
+        acta = generar_acta(db, r)
+        cons = generar_consolidado(db, r.anio, r.mes, areas_config)
+        ids = [acta.id, cons.id]
+    except Exception as ex:  # un PDF fallido nunca debe afectar la validación
+        print(f"[Conteo] Error generando los PDF del conteo #{reporte_id}: {ex}")
+        return
+    finally:
+        db.close()
+    for i in ids:
+        copiar_documento_workdrive(i)
+
+
+def quitar_acta(db: Session, r: ConteoReporte) -> None:
+    for d in db.query(ConteoDocumento).filter_by(tipo="ACTA", reporte_id=r.id).all():
+        _papelera_workdrive(d.workdrive_id)
+        db.delete(d)
+    db.commit()
+
+
+def copiar_documento_workdrive(documento_id: int) -> bool:
+    """Sube el PDF a WorkDrive: el acta en «Mes Año / Área», el consolidado en «Mes Año»."""
+    from . import zoho_workdrive as wd
+    from .database import SessionLocal
+    if not wd.configurado():
+        return False
+    db = SessionLocal()
+    try:
+        d = db.get(ConteoDocumento, documento_id)
+        if not d or d.workdrive_estado == "OK":
+            return False
+        ruta = [f"{d.anio}-{d.mes:02d} {MESES[d.mes - 1]}"] + ([nombre_propio(d.area)] if d.tipo == "ACTA" else [])
+        try:
+            d.workdrive_id = wd.subir(ruta, d.nombre, d.datos, "application/pdf")
+            d.workdrive_estado, d.workdrive_error = "OK", None
+        except Exception as ex:
+            detalle = getattr(getattr(ex, "response", None), "text", "") or str(ex)
+            d.workdrive_estado, d.workdrive_error = "ERROR", detalle[:300]
+        d.workdrive_en = datetime.utcnow()
+        db.commit()
+        return d.workdrive_estado == "OK"
+    finally:
+        db.close()
 
 
 # ---------------- Avisos por Cliq (bot) ----------------

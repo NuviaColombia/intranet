@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db, engine
 from ..models import Empleado
 from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                             ConteoLinea, ConteoEvidencia, ConteoAviso, BORRADOR, ENVIADO, VALIDADO)
+                             ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, BORRADOR, ENVIADO, VALIDADO)
 from ..models_custodia import CustodiaArea
 from ..auth import require_admin
 from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
@@ -38,7 +38,7 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
 def _tablas_conteo() -> None:
     from sqlalchemy import inspect, text
     for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                   ConteoLinea, ConteoEvidencia, ConteoAviso):
+                   ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear
@@ -196,6 +196,7 @@ def api_validar(reporte_id: int, payload: ValidacionIn, tareas: BackgroundTasks,
     db.refresh(r)
     if payload.decision == "validar":
         tareas.add_task(sc.notificar, r.id, "validado")
+        tareas.add_task(sc.documentos_al_validar, r.id, _areas(db))  # acta del área + consolidado del mes (PDF firmados)
         msg = f"✅ Conteo de {nombre_propio(r.area)} validado y firmado."
     elif payload.decision == "devolver":
         tareas.add_task(sc.notificar, r.id, "devuelto")
@@ -205,6 +206,34 @@ def api_validar(reporte_id: int, payload: ValidacionIn, tareas: BackgroundTasks,
         msg = ("✅ Tu conteo coincide con el del manager." if not c["diferencias"]
                else f"⚠️ Hay {c['diferencias']} diferencia(s) con el conteo del manager.")
     return {"mensaje": msg, "reporte": sc.serializar(db, r, user)}
+
+
+def _pdf(doc: ConteoDocumento) -> Response:
+    return Response(doc.datos, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{doc.nombre}"'})
+
+
+@router.get("/conteo/api/reportes/{reporte_id}/acta.pdf")
+def api_acta(reporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """Acta firmada del área (se genera al validar)."""
+    acs.exigir(db, user, SUB, "nuevo", "reportes", "validacion")
+    r = _reporte(db, reporte_id)
+    if r.estado != VALIDADO:
+        raise HTTPException(400, "El acta firmada se genera cuando el conteo queda validado.")
+    if not sc.puede_editar(user, r) and not sc.puede_validar(db, user) and "reportes" not in acs.secciones_de(db, user, SUB):
+        raise HTTPException(403, "No puedes ver el acta de esta área.")
+    doc = db.query(ConteoDocumento).filter_by(tipo="ACTA", reporte_id=r.id).first() or sc.generar_acta(db, r)
+    return _pdf(doc)
+
+
+@router.get("/conteo/api/consolidado/pdf")
+def api_consolidado_pdf(anio: int, mes: int, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
+                        db: Session = Depends(get_db)):
+    """Consolidado firmado del mes (con lo validado hasta ahora); se actualiza y se copia a WorkDrive."""
+    acs.exigir(db, user, SUB, "reportes")
+    doc = sc.generar_consolidado(db, anio, mes, _areas(db))
+    tareas.add_task(sc.copiar_documento_workdrive, doc.id)
+    return _pdf(doc)
 
 
 @router.post("/conteo/api/reportes/{reporte_id}/reabrir")
