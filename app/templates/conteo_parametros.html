@@ -38,6 +38,48 @@
   </table>
 </div>
 
+{# ---------- Validadores y ajustes ---------- #}
+<div class="cp-panel" id="panel-n_validadores">
+  <div class="cp-ayuda" style="max-width:900px">Los <b>validadores</b> hacen el conteo de validación de todas las áreas: cuentan
+    <b>a ciegas</b> (no ven el conteo del manager hasta guardar el suyo), el sistema compara material por material y ellos
+    <b>validan y firman</b> o <b>devuelven</b> el conteo con una observación. Les llega un aviso por Cliq cuando un manager envía su conteo.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar validador</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/validadores" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-n" data-lista="n-lista-validadores" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="n-lista-validadores" required>
+          <option value="">Seleccionar...</option>
+          {% for e in inv_conteo.personas if e not in inv_conteo.validadores %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla" style="max-width:900px">
+    <tr><th>Validador</th><th>Cargo</th><th>Correo</th><th></th></tr>
+    {% for e in inv_conteo.validadores %}
+    <tr><td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td><td>{{ e.email }}</td>
+      <td class="cp-acciones"><form class="inline" method="post" action="/inventario/parametros/conteo/validadores/{{ e.id }}/quitar"
+            onsubmit="return confirm('¿Quitar a {{ e.nombre_completo|nombre_propio }} de los validadores?')">
+          <button class="btn gris mini">Quitar</button></form></td></tr>
+    {% else %}
+    <tr><td colspan="4" class="cp-vacio">Todavía no hay validadores. Los administradores también pueden validar.</td></tr>
+    {% endfor %}
+  </table>
+  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">⚙️ Ajustes</h3>
+  <form method="post" action="/inventario/parametros/conteo/ajustes" class="cp-form-nuevo" style="max-width:900px">
+    <div style="width:220px"><label>Tolerancia de diferencia</label>
+      <input name="tolerancia" value="{{ '%g'|format(inv_conteo.config.tolerancia) }}" inputmode="decimal">
+      <small style="color:#64748b">0 = debe coincidir exacto. Ej. 0.5 = se acepta media unidad de diferencia.</small></div>
+    <div style="width:240px"><label>Día límite para enviar</label>
+      <input name="dia_limite" type="number" min="0" max="28" value="{{ inv_conteo.config.dia_limite }}">
+      <small style="color:#64748b">Día del mes siguiente (ej. 3 = hasta el 3). 0 = el último día del mismo mes. Después solo un administrador puede registrarlo.</small></div>
+    <div><button class="btn mini">Guardar ajustes</button></div>
+  </form>
+</div>
+
 {# ---------- Materiales ---------- #}
 <div class="cp-panel" id="panel-n_materiales">
   <div class="cp-ayuda" style="max-width:900px">Materiales que se cuentan cada mes en cada bodega (en el formulario salen como
@@ -52,13 +94,19 @@
     </form>
   </details>
   <table class="cp-tabla">
-    <tr><th>Orden</th><th>Código</th><th>Descripción</th><th>Estado</th><th></th></tr>
+    <tr><th>Orden</th><th>Código</th><th>Descripción</th><th>Áreas que lo cuentan</th><th>Estado</th><th></th></tr>
     {% for m in inv_conteo.materiales %}
     <tr class="{{ '' if m.activo else 'cp-inactivo' }}">
       <td style="width:70px"><form id="f-nmat-{{ m.id }}" method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}"></form>
         <input name="orden" type="number" value="{{ m.orden }}" form="f-nmat-{{ m.id }}" style="width:60px"></td>
       <td style="width:130px"><input name="codigo" value="{{ m.codigo }}" required form="f-nmat-{{ m.id }}"></td>
       <td><input name="descripcion" value="{{ m.descripcion }}" required form="f-nmat-{{ m.id }}"></td>
+      <td>{% set sus = inv_conteo.areas_material.get(m.id, []) %}
+        <details class="sc-editor"><summary>{% if not sus %}<span class="sc-todas">Todas</span>{% else %}{% for a in sus %}<span class="sc-chip">{{ a|nombre_propio }}</span>{% endfor %}{% endif %} <span class="sc-lapiz">✏️</span></summary>
+          <form method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}/areas" class="sc-form">
+            <div class="sc-opciones">{% for a in areas_config %}<label><input type="checkbox" name="areas" value="{{ a }}" {{ 'checked' if a in sus }}> {{ a|nombre_propio }}</label>{% endfor %}</div>
+            <small style="display:block; color:#64748b; margin-bottom:6px;">Sin marcar ninguna = lo cuentan todas las áreas.</small>
+            <button class="btn mini">Guardar áreas</button></form></details></td>
       <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activo' if m.activo else 'Inactivo' }}</span></td>
       <td class="cp-acciones"><button class="btn mini" form="f-nmat-{{ m.id }}">Guardar</button>
         <form class="inline" method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}/toggle">
