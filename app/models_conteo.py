@@ -125,6 +125,11 @@ class ConteoEvidencia(Base):
     datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)  # no se carga salvo que se pida
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Copia en Zoho WorkDrive (carpeta raíz / Mes Año / Área / archivo)
+    workdrive_estado: Mapped[str] = mapped_column(String(12), default="PENDIENTE")  # PENDIENTE | OK | ERROR
+    workdrive_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    workdrive_error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    workdrive_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     reporte = relationship("ConteoReporte", back_populates="evidencias")
 

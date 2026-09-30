@@ -164,7 +164,7 @@ def serializar(db: Session, r: ConteoReporte, user: Empleado | None = None) -> d
         "vconteo": val, "vdanados": val_d,
         "comparacion": None if ciego or not r.validacion_guardada_en else comparacion(db, r),
         "evidencias": [{"id": e.id, "materialId": e.material_id, "etapa": e.etapa, "nombre": e.nombre, "tipo": e.tipo_mime,
-                        "tamano": e.tamano} for e in r.evidencias],
+                        "tamano": e.tamano, "workdrive": e.workdrive_estado or "PENDIENTE"} for e in r.evidencias],
     }
 
 
@@ -318,9 +318,87 @@ def quitar_evidencia(db: Session, user: Empleado, e: ConteoEvidencia) -> str | N
             return "Esta evidencia ya no se puede quitar."
     elif not puede_editar(user, r) or r.estado in (ENVIADO, VALIDADO):
         return "Esta evidencia ya no se puede quitar: el conteo se envió."
+    if e.workdrive_id:  # también sale de WorkDrive (queda en su papelera)
+        from . import zoho_workdrive as wd
+        try:
+            wd.a_papelera(e.workdrive_id)
+        except Exception as ex:
+            print(f"[Conteo] No se pudo mandar a la papelera de WorkDrive la evidencia #{e.id}: {ex}")
     db.delete(e)
     db.commit()
     return None
+
+
+# ---------------- Copia de las evidencias en Zoho WorkDrive ----------------
+
+def ruta_workdrive(db: Session, e: ConteoEvidencia) -> tuple[list[str], str]:
+    """Carpetas y nombre del archivo: «2026-09 Septiembre» / «Milling» /
+    «Conteo inventario mensual - Milling - Septiembre 2026 - S-MATP16-Glaze paste (manager) - 12.jpg»."""
+    r = e.reporte
+    mes = f"{r.anio}-{r.mes:02d} {MESES[r.mes - 1]}"
+    area = nombre_propio(r.area)
+    if e.material_id:
+        m = db.get(ConteoMaterial, e.material_id)
+        b = bodegas_activas(db)
+        prefijo = b[0].prefijo + "-" if len(b) == 1 else ""
+        item = f"{prefijo}{m.codigo}-{m.descripcion}" if m else "Material"
+    else:
+        item = "Disco de zirconia - DAÑADOS"
+    etapa = "validación" if e.etapa == "VALIDACION" else "manager"
+    ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "application/pdf": ".pdf"}.get(e.tipo_mime, "")
+    nombre = f"Conteo inventario mensual - {area} - {MESES[r.mes - 1]} {r.anio} - {item} ({etapa}) - {e.id}{ext}"
+    return [mes, area], nombre
+
+
+def copiar_a_workdrive(evidencia_id: int) -> bool:
+    """Sube una evidencia a WorkDrive. Si falla o no está configurado, queda PENDIENTE/ERROR y se reintenta después."""
+    from . import zoho_workdrive as wd
+    from .database import SessionLocal
+    if not wd.configurado():
+        return False
+    db = SessionLocal()
+    try:
+        e = db.get(ConteoEvidencia, evidencia_id)
+        if not e or e.workdrive_estado == "OK":
+            return False
+        ruta, nombre = ruta_workdrive(db, e)
+        try:
+            e.workdrive_id = wd.subir(ruta, nombre, e.datos, e.tipo_mime)
+            e.workdrive_estado, e.workdrive_error = "OK", None
+        except Exception as ex:
+            detalle = getattr(getattr(ex, "response", None), "text", "") or str(ex)
+            e.workdrive_estado, e.workdrive_error = "ERROR", detalle[:300]
+            print(f"[Conteo] No se pudo copiar a WorkDrive la evidencia #{e.id}: {detalle[:200]}")
+        e.workdrive_en = datetime.utcnow()
+        db.commit()
+        return e.workdrive_estado == "OK"
+    finally:
+        db.close()
+
+
+def reintentar_workdrive(limite: int = 50) -> int:
+    """Copia las evidencias que faltan (pendientes o con error). Devuelve cuántas quedaron copiadas."""
+    from . import zoho_workdrive as wd
+    from .database import SessionLocal
+    if not wd.configurado():
+        return 0
+    db = SessionLocal()
+    try:
+        ids = [x for (x,) in db.query(ConteoEvidencia.id).filter(ConteoEvidencia.workdrive_estado != "OK")
+               .order_by(ConteoEvidencia.id).limit(limite)]
+    finally:
+        db.close()
+    return sum(1 for i in ids if copiar_a_workdrive(i))
+
+
+def estado_workdrive(db: Session) -> dict:
+    from sqlalchemy import func
+    from . import zoho_workdrive as wd
+    cuenta = dict(db.query(ConteoEvidencia.workdrive_estado, func.count(ConteoEvidencia.id)).group_by(ConteoEvidencia.workdrive_estado).all())
+    ultimo_error = (db.query(ConteoEvidencia.workdrive_error).filter(ConteoEvidencia.workdrive_estado == "ERROR")
+                    .order_by(ConteoEvidencia.workdrive_en.desc()).limit(1).scalar())
+    return {"configurado": wd.configurado(), "ok": cuenta.get("OK", 0), "pendientes": cuenta.get("PENDIENTE", 0) + cuenta.get(None, 0),
+            "errores": cuenta.get("ERROR", 0), "ultimoError": ultimo_error or ""}
 
 
 def cantidad_final(r: ConteoReporte) -> tuple[dict, dict]:

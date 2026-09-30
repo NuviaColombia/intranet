@@ -13,7 +13,13 @@
   #consumo-app .ct-tabla th { background:#1A365D; color:#fff; padding:7px 10px; font-size:12px; text-align:left; }
   #consumo-app .ct-tabla th.n, #consumo-app .ct-tabla td.n { text-align:right; white-space:nowrap; }
   #consumo-app .ct-tabla td { border:1px solid #CBD5E1; padding:5px 10px; }
-  #consumo-app .ct-tabla td.c { width:140px; }
+  #consumo-app .ct-tabla td.c { width:130px; }
+  #consumo-app .ct-tabla td.ev { width:250px; }
+  #consumo-app .ct-tabla .ev-btns { display:flex; gap:6px; flex-wrap:wrap; }
+  #consumo-app .ct-tabla .ev-btns label { cursor:pointer; margin:0; }
+  #consumo-app .ct-tabla .ct-fotos { margin-top:5px; gap:6px; }
+  #consumo-app .ct-tabla .ct-foto { width:60px; } #consumo-app .ct-tabla .ct-foto img, #consumo-app .ct-tabla .ct-foto .pdf { width:60px; height:60px; }
+  @media (max-width: 700px) { #consumo-app .ct-tabla td.ev { width:auto; } #consumo-app .ct-tabla .ev-btns label { padding:6px 8px; } }
   #consumo-app .ct-tabla input { width:100%; text-align:right; padding:5px 8px; }
   #consumo-app .ct-tabla tr.mal td { background:#fef2f2; } #consumo-app .ct-tabla tr.bien td.dif { color:#15803d; font-weight:700; }
   #consumo-app .ct-tabla tr.mal td.dif { color:#b91c1c; font-weight:800; }
@@ -63,10 +69,7 @@
     </div>
     <div id="cEstado"></div>
     <div id="cBodegas"></div>
-    <div class="ct-danados" id="cDanados"></div>
-    <div class="ct-evid"><h3 style="font-size:14px; color:#1A365D; margin:0 0 4px;">📷 Evidencias</h3>
-      <p class="ct-nota">Toma o sube una foto de cada material (o un PDF). Las fotos se reducen antes de subir para que carguen rápido.</p>
-      <div id="cEvidencias"></div></div>
+    <p class="ct-nota" style="margin-top:8px">📷 Toma o sube la foto de evidencia de cada material en su fila (o un PDF). Las fotos se reducen antes de subir para que carguen rápido.</p>
     <div style="max-width:900px; margin-top:16px;"><label style="display:block; font-size:12.5px; font-weight:700; color:#1A365D; margin-bottom:4px;">Reportar novedad</label>
       <textarea id="cNovedad" rows="3" style="width:100%" placeholder="Opcional: algo que se deba saber de este conteo"></textarea></div>
     <div class="cm-acciones" style="justify-content:flex-start; margin-top:14px;" id="cBotones">
@@ -134,35 +137,33 @@ document.querySelectorAll('.conteo-tab').forEach(function(a) { a.addEventListene
 function opcionesMes(sel) { sel.innerHTML = D.meses.map(function(m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join(''); }
 
 // Tablas por bodega. modo: "manager" (inputs ct-) · "validacion" (inputs v-, con comparación si ya se guardó)
-function tablasBodegas(area, prefijo, comp) {
+// Celda de evidencia de un material (0 = discos dañados): 📷 tomar foto (cámara del celular) · ⬆️ subir foto o PDF
+function celdaEvidencia(mid, etapa) {
+  var cambio = ' onchange="elegirArchivos(this, ' + mid + ', \'' + etapa + '\')"';
+  return '<td class="ev"><div class="ev-btns sube-' + etapa + '">' +
+    '<label class="btn gris mini" title="Tomar foto con la cámara">📷 Tomar foto<input type="file" accept="image/*" capture="environment" style="display:none"' + cambio + '></label>' +
+    '<label class="btn gris mini" title="Subir foto o PDF">⬆️ Subir<input type="file" accept="image/*,application/pdf" multiple style="display:none"' + cambio + '></label></div>' +
+    '<div class="ct-fotos" id="fotos-' + etapa + '-' + mid + '"></div></td>';
+}
+// Tablas por bodega: material · cantidades (o manager · validación · diferencia) · evidencia
+function tablasBodegas(area, prefijo, comp, etapa) {
   var mats = materialesDe(area);
-  return D.bodegas.map(function(b) {
-    var cab = comp ? '<th class="n">Manager</th><th class="n">Validación</th><th class="n">Diferencia</th>' : '<th class="n">Cantidades</th>';
-    var fila = function(etq, k, clase, esDan) {
-      var inp = '<input class="' + prefijo + (esDan ? 'dan' : 'cant') + '" data-b="' + b.id + '"' + (esDan ? '' : ' data-m="' + k.split(':')[1] + '"') + ' inputmode="decimal" placeholder="0.00">';
-      if (!comp) return '<tr class="' + (clase || '') + '"><td>' + etq + '</td><td class="c">' + inp + '</td></tr>';
+  return D.bodegas.map(function(b, bi) {
+    var cab = (comp ? '<th class="n">Manager</th><th class="n">Validación</th><th class="n">Diferencia</th>' : '<th class="n">Cantidades</th>') + '<th>Evidencia</th>';
+    var fila = function(etq, k, mid, clase, esDan) {
+      var inp = '<input class="' + prefijo + (esDan ? 'dan' : 'cant') + '" data-b="' + b.id + '"' + (esDan ? ' data-etq="' + esc(etq) + '"' : ' data-m="' + mid + '"') +
+        ' inputmode="decimal" placeholder="0.00">';
+      var ev = bi === 0 ? celdaEvidencia(mid, etapa) : '<td class="ev" style="color:#94a3b8">—</td>';  // la evidencia es por material
+      if (!comp) return '<tr class="' + (clase || '') + '"><td>' + etq + (esDan ? ' <b style="color:#dc2626">*</b>' : '') + '</td><td class="c">' + inp + '</td>' + ev + '</tr>';
       var f = comp.filas[k] || {manager: 0, validacion: 0, diferencia: 0, ok: true};
       return '<tr class="' + (clase || '') + ' ' + (f.ok ? 'bien' : 'mal') + '"><td>' + etq + '</td><td class="n">' + num(f.manager) + '</td><td class="c">' + inp +
-        '</td><td class="n dif">' + (f.ok ? '✅ ' : '⚠️ ') + (f.diferencia > 0 ? '+' : '') + num(f.diferencia) + '</td></tr>';
+        '</td><td class="n dif">' + (f.ok ? '✅ ' : '⚠️ ') + (f.diferencia > 0 ? '+' : '') + num(f.diferencia) + '</td>' + ev + '</tr>';
     };
     return '<div class="ct-bodega"><h3>CONTEO - ' + esc(b.nombre) + ' - BODEGA ' + esc(b.codigo) + '</h3>' +
       '<p class="ct-nota">*Discos de Zirconia: sume los discos enteros con la equivalencia de los discos parciales. Ejemplo: 10 discos enteros + 5 discos al 50% (que equivalen a 2.5) = digitar 12.5.</p>' +
       '<table class="ct-tabla"><tr><th>Material</th>' + cab + '</tr>' +
-      mats.map(function(m) { return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), b.id + ':' + m.id); }).join('') +
-      (comp ? fila('Disco de zirconia - DAÑADOS', b.id + ':danados', 'dan', true) : '') + '</table></div>';
-  }).join('');
-}
-function danadosHtml(prefijo) {
-  return D.bodegas.map(function(b) {
-    return '<div><label>Disco de zirconia - DAÑADOS - ' + esc(b.nombre) + ' <b style="color:#dc2626">*</b></label><input class="' + prefijo + 'dan" data-b="' + b.id + '" inputmode="decimal" placeholder="0.00" style="width:100%; text-align:right;"></div>';
-  }).join('');
-}
-function evidenciasHtml(area, etapa) {
-  var items = [{id: 0, titulo: 'Disco de zirconia - DAÑADOS'}].concat(materialesDe(area).map(function(m) { return {id: m.id, titulo: m.codigo + '-' + m.descripcion}; }));
-  return items.map(function(it) {
-    return '<div class="ct-evid-item"><div class="t"><span>Cargar evidencia: ' + esc(it.titulo) + '</span>' +
-      '<label class="btn gris mini sube-' + etapa + '" style="cursor:pointer; margin:0;">📷 Agregar<input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="elegirArchivos(this, ' + it.id + ', \'' + etapa + '\')"></label></div>' +
-      '<div class="ct-fotos" id="fotos-' + etapa + '-' + it.id + '"></div></div>';
+      mats.map(function(m) { return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), b.id + ':' + m.id, m.id); }).join('') +
+      fila('Disco de zirconia - DAÑADOS - ' + esc(b.nombre), b.id + ':danados', 0, 'dan', true) + '</table></div>';
   }).join('');
 }
 function leerCantidades(prefijo) {
@@ -184,9 +185,7 @@ function sugerirMes() {
 }
 function pintarFormulario() {
   var area = document.getElementById('cArea').value;
-  document.getElementById('cBodegas').innerHTML = tablasBodegas(area, 'ct-', null);
-  document.getElementById('cDanados').innerHTML = danadosHtml('ct-');
-  document.getElementById('cEvidencias').innerHTML = evidenciasHtml(area, 'MANAGER');
+  document.getElementById('cBodegas').innerHTML = tablasBodegas(area, 'ct-', null, 'MANAGER');
 }
 function bloquearManager(si) {
   document.querySelectorAll('#sec-nuevo .ct-cant, #sec-nuevo .ct-dan, #cNovedad, #cFecha').forEach(function(i) { i.disabled = si; });
@@ -233,7 +232,8 @@ function pintarFotos(etapa, rep, pend, soloVer) {
     if (etapa === 'MANAGER' && e.etapa !== 'MANAGER') return;
     var url = '/conteo/api/evidencias/' + e.id, propia = e.etapa === etapa;
     destino.insertAdjacentHTML('beforeend', '<div class="ct-foto' + (e.etapa === 'VALIDACION' ? ' val' : '') + '" title="' + (e.etapa === 'VALIDACION' ? 'Evidencia de validación' : 'Evidencia del manager') + '"><a href="' + url + '" target="_blank">' +
-      (e.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + url + '" alt="">') + '</a><small>' + (e.etapa === 'VALIDACION' ? '🔵 ' : '') + esc(e.nombre) + '</small>' +
+      (e.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + url + '" alt="">') + '</a><small title="' + ({OK: 'Copiada en WorkDrive', ERROR: 'No se pudo copiar a WorkDrive (se reintenta)'}[e.workdrive] || 'Pendiente de copiar a WorkDrive') + '">' +
+      ({OK: '☁️ ', ERROR: '⚠️ '}[e.workdrive] || '⏳ ') + (e.etapa === 'VALIDACION' ? '🔵 ' : '') + esc(e.nombre) + '</small>' +
       (propia && !soloVer ? '<button class="x" title="Quitar" onclick="quitarEvidencia(' + e.id + ', \'' + etapa + '\')">✕</button>' : '') + '</div>');
   });
   (pend || []).forEach(function(p, i) {
@@ -295,7 +295,7 @@ function guardarConteo(enviar) {
                novedad: document.getElementById('cNovedad').value, enviar: false}, leerCantidades('ct-'));
   if (enviar) {
     var faltan = [];
-    document.querySelectorAll('#sec-nuevo .ct-dan').forEach(function(i) { if (i.value.trim() === '') faltan.push(i.previousElementSibling.textContent.replace('*', '').trim()); });
+    document.querySelectorAll('#sec-nuevo .ct-dan').forEach(function(i) { if (i.value.trim() === '') faltan.push(i.dataset.etq); });
     if (faltan.length) { alert('⚠️ Completa (aunque sea con 0): ' + faltan.join(' · ')); return; }
     if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nDespués ya no se puede cambiar, salvo que el validador te lo devuelva.')) return;
   }
@@ -343,10 +343,8 @@ function abrirValidacion(id) {
         ' (tolerancia: ' + comp.tolerancia + ').</div>' : '') +
     (x.estado === 'DEVUELTO' ? '<div class="ct-aviso no">↩️ Devuelto por ' + esc(x.devueltoPor) + ' el ' + esc(x.devueltoEn) + ': «' + esc(x.observacion) + '»</div>' : '') +
     (x.estado === 'VALIDADO' ? '<div class="ct-aviso ok">✅ Validado por ' + esc(x.validadoPor) + ' (' + esc(x.validadoEmail) + ') el ' + esc(x.validadoEn) + '.</div>' : '') +
-    tablasBodegas(x.area, 'v-', comp) +
-    (comp ? '' : '<div class="ct-danados">' + danadosHtml('v-') + '</div>') +
-    '<div class="ct-evid"><h3 style="font-size:14px; color:#1A365D; margin:0 0 4px;">📷 Evidencias</h3><p class="ct-nota">🔵 = de validación. ' +
-      (x.ciego ? 'Las fotos del manager aparecen cuando guardes tu conteo.' : '') + '</p>' + evidenciasHtml(x.area, 'VALIDACION') + '</div>' +
+    tablasBodegas(x.area, 'v-', comp, 'VALIDACION') +
+    '<p class="ct-nota" style="margin-top:8px">📷 Evidencias en cada fila · 🔵 = de validación.' + (x.ciego ? ' Las fotos del manager aparecen cuando guardes tu conteo.' : '') + '</p>' +
     (editable ? '<div class="cm-acciones no-print" style="justify-content:flex-start; margin-top:14px; flex-wrap:wrap;">' +
       '<button class="btn gris" id="btnVGuardar" onclick="guardarValidacion(\'\')">💾 Guardar mi conteo y comparar</button>' +
       (comp ? '<button class="btn verde" onclick="guardarValidacion(\'validar\')">✅ Validar y firmar</button>' : '') + '</div>' +

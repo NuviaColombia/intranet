@@ -153,7 +153,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
         "materiales": db.query(ConteoMaterial).order_by(ConteoMaterial.activo.desc(), ConteoMaterial.orden).all(),
         "bodegas": db.query(ConteoBodega).order_by(ConteoBodega.activo.desc(), ConteoBodega.orden).all(),
         "validadores": [v.empleado for v in db.query(ConteoValidador).all() if v.empleado],
-        "areas_material": sct.areas_de_material(db), "config": sct.config(db),
+        "areas_material": sct.areas_de_material(db), "config": sct.config(db), "workdrive": sct.estado_workdrive(db),
     }
     administradores = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.rol.in_(["admin", "superadmin"]))
                        .order_by(Empleado.nombres, Empleado.apellidos).all())

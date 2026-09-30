@@ -78,6 +78,19 @@
       <small style="color:#64748b">Día del mes siguiente (ej. 3 = hasta el 3). 0 = el último día del mismo mes. Después solo un administrador puede registrarlo.</small></div>
     <div><button class="btn mini">Guardar ajustes</button></div>
   </form>
+  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">☁️ Copia de las fotos en Zoho WorkDrive</h3>
+  {% set wd = inv_conteo.workdrive %}
+  <div class="cp-ayuda" style="max-width:900px">Cada foto de evidencia se guarda en la intranet y además se copia en la carpeta de WorkDrive:
+    <b>Carpeta / 2026-09 Septiembre / Milling / Conteo inventario mensual - Milling - Septiembre 2026 - S-MATP16-Glaze paste (manager).jpg</b>.
+    Si WorkDrive falla, la foto queda pendiente y se reintenta sola cada hora.</div>
+  <div style="margin:8px 0; padding:10px 12px; border-radius:8px; max-width:900px; font-size:13px; background:{{ '#dcfce7' if wd.configurado else '#fef3c7' }}; color:{{ '#14532d' if wd.configurado else '#92400e' }}">
+    {% if wd.configurado %}✅ Conectado.{% else %}⚠️ Falta configurar WorkDrive en Render (variables <b>ZOHO_WORKDRIVE_REFRESH_TOKEN</b> y <b>ZOHO_WORKDRIVE_CARPETA_ID</b>): las fotos quedan pendientes y se copian cuando se configure.{% endif %}
+    Copiadas: <b>{{ wd.ok }}</b> · Pendientes: <b>{{ wd.pendientes }}</b> · Con error: <b>{{ wd.errores }}</b>
+    {% if wd.ultimoError %}<br><small>Último error: {{ wd.ultimoError }}</small>{% endif %}
+  </div>
+  {% if wd.configurado and (wd.pendientes or wd.errores) %}
+  <form method="post" action="/inventario/parametros/conteo/workdrive/reintentar"><button class="btn mini">☁️ Copiar ahora las pendientes</button></form>
+  {% endif %}
 </div>
 
 {# ---------- Materiales ---------- #}

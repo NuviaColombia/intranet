@@ -29,7 +29,8 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
                         "validado_por_id": "INTEGER REFERENCES empleados(id)", "validado_en": "TIMESTAMP",
                         "validado_email": "VARCHAR(150)", "devuelto_por_id": "INTEGER REFERENCES empleados(id)",
                         "devuelto_en": "TIMESTAMP", "observacion": "TEXT"},
-    "conteo_evidencias": {"etapa": "VARCHAR(12) DEFAULT 'MANAGER'"},
+    "conteo_evidencias": {"etapa": "VARCHAR(12) DEFAULT 'MANAGER'", "workdrive_estado": "VARCHAR(12) DEFAULT 'PENDIENTE'",
+                          "workdrive_id": "VARCHAR(100)", "workdrive_error": "VARCHAR(300)", "workdrive_en": "TIMESTAMP"},
 }
 
 
@@ -65,6 +66,12 @@ async def _recordatorios_conteo() -> None:
                     print(f"Conteo: {n} recordatorio(s) enviados por Cliq.")
             except Exception as e:  # un fallo nunca debe detener la intranet
                 print(f"Conteo: error enviando recordatorios: {e}")
+            try:
+                n = await run_in_threadpool(sc.reintentar_workdrive)
+                if n:
+                    print(f"Conteo: {n} evidencia(s) copiadas a WorkDrive.")
+            except Exception as e:
+                print(f"Conteo: error copiando a WorkDrive: {e}")
     asyncio.create_task(ciclo())
 
 
@@ -212,8 +219,8 @@ def api_reabrir(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depen
 
 
 @router.post("/conteo/api/reportes/{reporte_id}/evidencias")
-async def api_evidencia(reporte_id: int, archivo: UploadFile = File(...), material_id: int = Form(0), etapa: str = Form("MANAGER"),
-                        user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+async def api_evidencia(reporte_id: int, tareas: BackgroundTasks, archivo: UploadFile = File(...), material_id: int = Form(0),
+                        etapa: str = Form("MANAGER"), user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     etapa = "VALIDACION" if etapa.upper() == "VALIDACION" else "MANAGER"
     acs.exigir(db, user, SUB, "validacion" if etapa == "VALIDACION" else "nuevo")
     r = _reporte(db, reporte_id)
@@ -222,6 +229,7 @@ async def api_evidencia(reporte_id: int, archivo: UploadFile = File(...), materi
                              (archivo.content_type or "").lower(), datos, etapa)
     if isinstance(e, str):
         raise HTTPException(400, e)
+    tareas.add_task(sc.copiar_a_workdrive, e.id)  # copia en la carpeta de WorkDrive (si está configurada)
     return {"id": e.id, "nombre": e.nombre, "materialId": e.material_id, "etapa": e.etapa, "tipo": e.tipo_mime, "tamano": e.tamano}
 
 
@@ -356,6 +364,15 @@ def guardar_ajustes(user: Empleado = Depends(require_admin), db: Session = Depen
         db.add(c)
     db.commit()
     return _volver("n_validadores", "Ajustes guardados.")
+
+
+@router.post("/inventario/parametros/conteo/workdrive/reintentar")
+def workdrive_reintentar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from .. import zoho_workdrive as wd
+    if not wd.configurado():
+        return _volver("n_validadores", "No se copió nada: falta configurar WorkDrive en Render (ver la ayuda).")
+    n = sc.reintentar_workdrive(limite=200)
+    return _volver("n_validadores", f"Listo: {n} evidencia(s) copiadas a WorkDrive.")
 
 
 @router.post("/inventario/parametros/conteo/materiales")
