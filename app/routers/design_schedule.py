@@ -1,10 +1,11 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
-import json
 import re
 from datetime import date
-from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File
+from typing import Literal
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
@@ -21,7 +22,7 @@ NUVIA_DESIGN = "Nuvia Design Colombia SAS"
 # ---------- Páginas ----------
 
 @router.get("/design")
-async def pagina(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+def pagina(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
                  db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "design_schedule.html",
                                       {"user": user, "es_design": True})
@@ -37,17 +38,17 @@ def _redirigir_a_panel(request: Request, panel: str) -> RedirectResponse:
 
 
 @router.get("/design/dashboard")
-async def pagina_dashboard(request: Request, user: Empleado = Depends(require_design_manager)):
+def pagina_dashboard(request: Request, user: Empleado = Depends(require_design_manager)):
     return _redirigir_a_panel(request, "dashboard")
 
 
 @router.get("/design/comments")
-async def pagina_comments(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+def pagina_comments(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
     return _redirigir_a_panel(request, "comments")
 
 
 @router.get("/design/parametros")
-async def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     areas = sd.ordenar_areas(db.query(DesignArea).all())
     teams = (db.query(DesignTeam).order_by(DesignTeam.orden).all())
     candidatos = (db.query(Empleado).filter(Empleado.empresa == NUVIA_DESIGN, Empleado.activo == 1)
@@ -64,19 +65,19 @@ async def parametros(request: Request, user: Empleado = Depends(require_admin), 
 # ---------- Parámetros: importar equipos desde Desempeño ----------
 
 @router.get("/design/api/parametros/importar-equipos-preview")
-async def api_importar_equipos_preview(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_importar_equipos_preview(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return sd.importar_equipos_desde_desempeno(db, aplicar=False)
 
 
 @router.post("/design/api/parametros/importar-equipos")
-async def api_importar_equipos_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_importar_equipos_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return sd.importar_equipos_desde_desempeno(db, aplicar=True)
 
 
 # ---------- Parámetros: equipos ----------
 
 @router.post("/design/parametros/equipos")
-async def crear_equipo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_equipo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                        area_id: int = Form(...), nombre: str = Form(...), manager_id: str = Form("")):
     orden = db.query(DesignTeam).filter(DesignTeam.area_id == area_id).count() + 1
     db.add(DesignTeam(area_id=area_id, nombre=nombre.strip(), orden=orden,
@@ -86,7 +87,7 @@ async def crear_equipo(user: Empleado = Depends(require_admin), db: Session = De
 
 
 @router.post("/design/parametros/equipos/{team_id}/toggle")
-async def toggle_equipo(team_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_equipo(team_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     t = db.get(DesignTeam, team_id)
     if t:
         t.activo = 0 if t.activo else 1
@@ -95,7 +96,7 @@ async def toggle_equipo(team_id: int, user: Empleado = Depends(require_admin), d
 
 
 @router.post("/design/parametros/equipos/{team_id}/designers")
-async def agregar_designer(team_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def agregar_designer(team_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                            empleado_id: int = Form(...)):
     ya_existe = (db.query(DesignTeamDesigner)
                 .filter(DesignTeamDesigner.team_id == team_id, DesignTeamDesigner.empleado_id == empleado_id)
@@ -108,7 +109,7 @@ async def agregar_designer(team_id: int, user: Empleado = Depends(require_admin)
 
 
 @router.post("/design/parametros/designers/{registro_id}/quitar")
-async def quitar_designer(registro_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def quitar_designer(registro_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     r = db.get(DesignTeamDesigner, registro_id)
     if r:
         db.delete(r)
@@ -119,14 +120,14 @@ async def quitar_designer(registro_id: int, user: Empleado = Depends(require_adm
 # ---------- Parámetros: catálogos ----------
 
 @router.post("/design/parametros/catalogos")
-async def crear_valor_catalogo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_valor_catalogo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                                area_id: int = Form(...), tipo: str = Form(...), valor: str = Form(...)):
     sd.agregar_valor_catalogo(db, area_id, tipo, valor)
     return RedirectResponse("/design/parametros?msg=Valor agregado.", status_code=303)
 
 
 @router.post("/design/parametros/catalogos/{cat_id}/toggle")
-async def toggle_catalogo(cat_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_catalogo(cat_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     c = db.get(DesignCatalogo, cat_id)
     if c:
         c.activo = 0 if c.activo else 1
@@ -135,7 +136,7 @@ async def toggle_catalogo(cat_id: int, user: Empleado = Depends(require_admin), 
 
 
 @router.post("/design/parametros/ausencias")
-async def crear_ausencia(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_ausencia(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                          nombre: str = Form(...)):
     nombre = nombre.strip()
     if nombre and not db.query(DesignAusenciaTipo).filter(DesignAusenciaTipo.nombre == nombre).first():
@@ -146,7 +147,7 @@ async def crear_ausencia(user: Empleado = Depends(require_admin), db: Session = 
 
 
 @router.post("/design/parametros/ausencias/{aus_id}/toggle")
-async def toggle_ausencia(aus_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_ausencia(aus_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     a = db.get(DesignAusenciaTipo, aus_id)
     if a:
         a.activo = 0 if a.activo else 1
@@ -166,12 +167,12 @@ def _verificar_equipo(db: Session, user: Empleado, team_id: int) -> DesignTeam:
 
 
 @router.get("/design/api/areas")
-async def api_areas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_areas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     return [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in sd.areas_disponibles(db)]
 
 
 @router.get("/design/api/teams")
-async def api_teams(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_teams(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                     db: Session = Depends(get_db)):
     equipos = [t for t in sd.equipos_de_area(db, area_id) if sd.puede_ver_equipo(user, t)]
     return [{"id": t.id, "nombre": t.nombre, "manager": t.manager.nombre_completo if t.manager else "",
@@ -180,27 +181,34 @@ async def api_teams(area_id: int, user: Empleado = Depends(require_modulo("desig
 
 
 @router.get("/design/api/catalogo")
-async def api_catalogo(area_id: int, tipo: str, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_catalogo(area_id: int, tipo: str, user: Empleado = Depends(require_modulo("design_schedule")),
                        db: Session = Depends(get_db)):
     return sd.catalogo(db, area_id, tipo)
 
 
 @router.get("/design/api/ausencias")
-async def api_ausencias(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_ausencias(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     return sd.ausencias_disponibles(db)
 
 
+def _fecha(texto: str) -> date:
+    try:
+        return date.fromisoformat(str(texto)[:10])
+    except ValueError:
+        raise HTTPException(400, "Fecha inválida.")
+
+
 @router.get("/design/api/dia")
-async def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                   db: Session = Depends(get_db)):
     team = _verificar_equipo(db, user, team_id)
-    return sd.datos_dia(db, team, date.fromisoformat(fecha))
+    return sd.datos_dia(db, team, _fecha(fecha))
 
 
 @router.get("/design/api/todas-areas")
-async def api_todas_areas(fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_todas_areas(fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
-    return sd.resumen_todas_areas(db, user, date.fromisoformat(fecha))
+    return sd.resumen_todas_areas(db, user, _fecha(fecha))
 
 
 # ---------- API: escritura ----------
@@ -208,7 +216,7 @@ async def api_todas_areas(fecha: str, user: Empleado = Depends(require_modulo("d
 class OrdenIn(BaseModel):
     teamId: int
     fecha: str
-    tabla: str = "principal"
+    tabla: Literal["principal", "nightguard"] = "principal"
     orden: str = ""
     paciente: str = ""
     centro: str = ""
@@ -254,12 +262,12 @@ DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede
 
 
 @router.post("/design/api/ordenes")
-async def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
     _verificar_equipo(db, user, payload.teamId)
-    if sd.dia_cerrado(date.fromisoformat(payload.fecha)):
+    if sd.dia_cerrado(_fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
-    o = sd.crear_orden(db, user, payload.teamId, date.fromisoformat(payload.fecha), payload.tabla,
+    o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla,
                        _datos_desde_in(payload))
     return sd.serializar_orden(o)
 
@@ -267,7 +275,7 @@ async def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_mod
 class LoteIn(BaseModel):
     teamId: int
     fecha: str
-    tabla: str = "principal"
+    tabla: Literal["principal", "nightguard"] = "principal"
     filas: list[dict] = []  # cada fila con los mismos campos de OrdenIn (vacía = orden en blanco)
 
 
@@ -276,26 +284,30 @@ MAX_LOTE = 100
 
 # Va antes de /design/api/ordenes/{orden_id} para que "lote" no se tome como un id.
 @router.post("/design/api/ordenes/lote")
-async def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
     """Crea varias órdenes de una vez: "+ Agregar orden" con cantidad, pegar un bloque con filas nuevas y
     deshacer una eliminación. Devuelve las órdenes creadas en el mismo orden."""
     _verificar_equipo(db, user, payload.teamId)
-    fecha = date.fromisoformat(payload.fecha)
+    fecha = _fecha(payload.fecha)
     if sd.dia_cerrado(fecha):
         raise HTTPException(403, DIA_CERRADO)
     if not 1 <= len(payload.filas) <= MAX_LOTE:
         raise HTTPException(400, f"Se pueden crear entre 1 y {MAX_LOTE} órdenes por vez.")
+    try:
+        validadas = [OrdenIn.model_validate({**fila, "teamId": payload.teamId, "fecha": payload.fecha, "tabla": payload.tabla})
+                     for fila in payload.filas]
+    except ValueError as e:
+        raise HTTPException(400, f"Hay filas con datos inválidos: {str(e)[:200]}")
     creadas = []
-    for fila in payload.filas:
-        datos = OrdenIn.model_validate({**fila, "teamId": payload.teamId, "fecha": payload.fecha, "tabla": payload.tabla})
+    for datos in validadas:
         creadas.append(sd.serializar_orden(sd.crear_orden(db, user, payload.teamId, fecha, payload.tabla,
                                                          _datos_desde_in(datos))))
     return creadas
 
 
 @router.post("/design/api/ordenes/{orden_id}")
-async def api_actualizar_orden(orden_id: int, payload: OrdenIn,
+def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
                                db: Session = Depends(get_db)):
     orden_existente = db.get(DesignOrden, orden_id)
@@ -314,7 +326,7 @@ async def api_actualizar_orden(orden_id: int, payload: OrdenIn,
 
 
 @router.post("/design/api/ordenes/{orden_id}/eliminar")
-async def api_eliminar_orden(orden_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_eliminar_orden(orden_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     orden_existente = db.get(DesignOrden, orden_id)
     if not orden_existente:
@@ -340,12 +352,12 @@ class BreakIn(BaseModel):
 
 
 @router.post("/design/api/breaks")
-async def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
     _verificar_equipo(db, user, payload.teamId)
-    if sd.dia_cerrado(date.fromisoformat(payload.fecha)):
+    if sd.dia_cerrado(_fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
-    b = sd.guardar_break(db, payload.teamId, payload.empleadoId, date.fromisoformat(payload.fecha), {
+    b = sd.guardar_break(db, payload.teamId, payload.empleadoId, _fecha(payload.fecha), {
         "tipo_ausencia": payload.tipoAusencia,
         "almuerzo_inicio": payload.almuerzoInicio, "almuerzo_fin": payload.almuerzoFin,
         "break1_inicio": payload.break1Inicio, "break1_fin": payload.break1Fin,
@@ -357,25 +369,25 @@ async def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_m
 # ---------- API: Dashboard ----------
 
 @router.get("/design/api/dashboard")
-async def api_dashboard(area_id: int | None = None, team_id: int | None = None, designer_id: int | None = None,
+def api_dashboard(area_id: int | None = None, team_id: int | None = None, designer_id: int | None = None,
                         producto: str = "", estado: str = "", qc: str = "",
                         fecha_desde: str = "", fecha_hasta: str = "",
                         user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    fd = date.fromisoformat(fecha_desde) if fecha_desde else None
-    fh = date.fromisoformat(fecha_hasta) if fecha_hasta else None
+    fd = _fecha(fecha_desde) if fecha_desde else None
+    fh = _fecha(fecha_hasta) if fecha_hasta else None
     return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh)
 
 
 @router.get("/design/api/buscar")
-async def api_buscar(q: str, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_buscar(q: str, user: Empleado = Depends(require_modulo("design_schedule")),
                      db: Session = Depends(get_db)):
-    return sd.buscar_ordenes(db, q)
+    return sd.buscar_ordenes(db, q, user)
 
 
 # ---------- API: Comments N3 (historial) ----------
 
 @router.get("/design/api/comentarios/historial")
-async def api_historial_comentarios(user: Empleado = Depends(require_modulo("design_schedule")),
+def api_historial_comentarios(user: Empleado = Depends(require_modulo("design_schedule")),
                                     db: Session = Depends(get_db)):
     return sd.historial_comentarios(db)
 
@@ -387,7 +399,7 @@ class HistorialComentarioIn(BaseModel):
 
 
 @router.post("/design/api/comentarios/historial")
-async def api_guardar_historial(payload: HistorialComentarioIn,
+def api_guardar_historial(payload: HistorialComentarioIn,
                                 user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     sd.guardar_historial_comentario(db, user, payload.paciente, payload.orden, payload.campos)
@@ -395,7 +407,7 @@ async def api_guardar_historial(payload: HistorialComentarioIn,
 
 
 @router.post("/design/api/comentarios/historial/{historial_id}/eliminar")
-async def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
     if not sd.eliminar_historial_comentario(db, historial_id):
         raise HTTPException(404, "No encontrado.")
@@ -405,7 +417,7 @@ async def api_eliminar_historial(historial_id: int, user: Empleado = Depends(req
 # ---------- API: Comments N3 (plantillas de notas personalizadas) ----------
 
 @router.get("/design/api/comentarios/templates")
-async def api_cmt_templates_listar(user: Empleado = Depends(require_modulo("design_schedule")),
+def api_cmt_templates_listar(user: Empleado = Depends(require_modulo("design_schedule")),
                                    db: Session = Depends(get_db)):
     return [{"id": t.id, "nombre": t.nombre, "texto": t.texto, "esFija": bool(t.es_fija)}
            for t in sd.cmt_templates_listar(db)]
@@ -417,14 +429,14 @@ class CmtTemplateIn(BaseModel):
 
 
 @router.post("/design/api/comentarios/templates")
-async def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
     t = sd.cmt_template_crear(db, payload.nombre, payload.texto, user.nombre_completo)
     return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
 
 
 @router.post("/design/api/comentarios/templates/{template_id}")
-async def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
+def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
                                   user: Empleado = Depends(require_modulo("design_schedule")),
                                   db: Session = Depends(get_db)):
     t = sd.cmt_template_editar(db, template_id, payload.nombre, payload.texto)
@@ -434,7 +446,7 @@ async def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
 
 
 @router.post("/design/api/comentarios/templates/{template_id}/eliminar")
-async def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                     db: Session = Depends(get_db)):
     if not sd.cmt_template_eliminar(db, template_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
@@ -442,7 +454,7 @@ async def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(r
 
 
 @router.post("/design/api/favoritos/cmt-template/{template_id}/toggle")
-async def api_favorito_toggle_cmt_template(template_id: int,
+def api_favorito_toggle_cmt_template(template_id: int,
                                            user: Empleado = Depends(require_modulo("design_schedule")),
                                            db: Session = Depends(get_db)):
     return {"favorito": sd.favorito_toggle_cmt_template(db, user.id, template_id)}
@@ -460,12 +472,12 @@ def _faq_editor(user: Empleado) -> None:
 
 
 @router.get("/design/api/faq/hojas")
-async def api_faq_hojas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_faq_hojas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     return {"hojas": sd.faq_hojas(db), "puedeEditar": user.rol in FAQ_ROLES_EDITAN}
 
 
 @router.get("/design/api/faq/hojas/{hoja_id}")
-async def api_faq_hoja(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_hoja(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                        db: Session = Depends(get_db)):
     d = sd.faq_hoja_detalle(db, hoja_id)
     if not d:
@@ -479,7 +491,7 @@ class FaqHojaIn(BaseModel):
 
 
 @router.post("/design/api/faq/hojas")
-async def api_faq_hoja_crear(payload: FaqHojaIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_hoja_crear(payload: FaqHojaIn, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _faq_editor(user)
     h = sd.faq_hoja_crear(db, payload.nombre, payload.duplicarDe)
@@ -489,7 +501,7 @@ async def api_faq_hoja_crear(payload: FaqHojaIn, user: Empleado = Depends(requir
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/renombrar")
-async def api_faq_hoja_renombrar(hoja_id: int, payload: FaqHojaIn,
+def api_faq_hoja_renombrar(hoja_id: int, payload: FaqHojaIn,
                                  user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
     _faq_editor(user)
@@ -499,7 +511,7 @@ async def api_faq_hoja_renombrar(hoja_id: int, payload: FaqHojaIn,
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/eliminar")
-async def api_faq_hoja_eliminar(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_hoja_eliminar(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     _faq_editor(user)
     r = sd.faq_hoja_eliminar(db, hoja_id, user.nombre_completo)
@@ -515,7 +527,7 @@ class FaqColumnaIn(BaseModel):
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/columnas")
-async def api_faq_columna_agregar(hoja_id: int, payload: FaqColumnaIn,
+def api_faq_columna_agregar(hoja_id: int, payload: FaqColumnaIn,
                                   user: Empleado = Depends(require_modulo("design_schedule")),
                                   db: Session = Depends(get_db)):
     _faq_editor(user)
@@ -526,7 +538,7 @@ async def api_faq_columna_agregar(hoja_id: int, payload: FaqColumnaIn,
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/columnas/{clave}")
-async def api_faq_columna_renombrar(hoja_id: int, clave: str, payload: FaqColumnaIn,
+def api_faq_columna_renombrar(hoja_id: int, clave: str, payload: FaqColumnaIn,
                                     user: Empleado = Depends(require_modulo("design_schedule")),
                                     db: Session = Depends(get_db)):
     _faq_editor(user)
@@ -536,7 +548,7 @@ async def api_faq_columna_renombrar(hoja_id: int, clave: str, payload: FaqColumn
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/columnas/{clave}/eliminar")
-async def api_faq_columna_eliminar(hoja_id: int, clave: str, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_columna_eliminar(hoja_id: int, clave: str, user: Empleado = Depends(require_modulo("design_schedule")),
                                    db: Session = Depends(get_db)):
     _faq_editor(user)
     if not sd.faq_columna_eliminar(db, hoja_id, clave, user.nombre_completo):
@@ -550,7 +562,7 @@ class FaqFilaNuevaIn(BaseModel):
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/filas")
-async def api_faq_fila_crear(hoja_id: int, payload: FaqFilaNuevaIn,
+def api_faq_fila_crear(hoja_id: int, payload: FaqFilaNuevaIn,
                              user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _faq_editor(user)
@@ -566,7 +578,7 @@ class FaqSeccionIn(BaseModel):
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/seccion")
-async def api_faq_seccion_renombrar(hoja_id: int, payload: FaqSeccionIn,
+def api_faq_seccion_renombrar(hoja_id: int, payload: FaqSeccionIn,
                                     user: Empleado = Depends(require_modulo("design_schedule")),
                                     db: Session = Depends(get_db)):
     _faq_editor(user)
@@ -579,7 +591,7 @@ class FaqCeldaIn(BaseModel):
 
 
 @router.post("/design/api/faq/filas/{fila_id}")
-async def api_faq_fila_actualizar(fila_id: int, payload: FaqCeldaIn,
+def api_faq_fila_actualizar(fila_id: int, payload: FaqCeldaIn,
                                   user: Empleado = Depends(require_modulo("design_schedule")),
                                   db: Session = Depends(get_db)):
     _faq_editor(user)
@@ -589,7 +601,7 @@ async def api_faq_fila_actualizar(fila_id: int, payload: FaqCeldaIn,
 
 
 @router.post("/design/api/faq/filas/{fila_id}/eliminar")
-async def api_faq_fila_eliminar(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_fila_eliminar(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     _faq_editor(user)
     if not sd.faq_fila_eliminar(db, fila_id, user.nombre_completo):
@@ -600,7 +612,7 @@ async def api_faq_fila_eliminar(fila_id: int, user: Empleado = Depends(require_m
 # ---------- Página: Pre-Approved ----------
 
 @router.get("/design/preapproved")
-async def pagina_preapproved(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+def pagina_preapproved(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
     return _redirigir_a_panel(request, "preapproved")
 
 
@@ -613,13 +625,13 @@ def _pa_editor(user: Empleado) -> None:
 
 
 @router.get("/design/api/preapproved/sheets")
-async def api_preapproved_sheets(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_preapproved_sheets(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
     return [{"id": s.id, "nombre": s.nombre} for s in sd.preapproved_sheets(db, area_id)]
 
 
 @router.get("/design/api/preapproved/sheets/{sheet_id}")
-async def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                   db: Session = Depends(get_db)):
     detalle = sd.preapproved_detalle(db, sheet_id)
     if not detalle:
@@ -629,7 +641,7 @@ async def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(requir
 
 
 @router.post("/design/api/preapproved/sheets")
-async def api_crear_preapproved_sheet(area_id: int, nombre: str = "",
+def api_crear_preapproved_sheet(area_id: int, nombre: str = "",
                                       user: Empleado = Depends(require_modulo("design_schedule")),
                                       db: Session = Depends(get_db)):
     _pa_editor(user)
@@ -644,7 +656,7 @@ class PreApprovedSheetIn(BaseModel):
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}")
-async def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSheetIn,
+def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSheetIn,
                                            user: Empleado = Depends(require_modulo("design_schedule")),
                                            db: Session = Depends(get_db)):
     _pa_editor(user)
@@ -656,7 +668,7 @@ async def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSh
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}/eliminar")
-async def api_eliminar_preapproved_sheet(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_eliminar_preapproved_sheet(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                          db: Session = Depends(get_db)):
     _pa_editor(user)
     if not sd.eliminar_preapproved_sheet(db, sheet_id, user.nombre_completo):
@@ -665,7 +677,7 @@ async def api_eliminar_preapproved_sheet(sheet_id: int, user: Empleado = Depends
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}/centros")
-async def api_agregar_centro(sheet_id: int, nombre: str = "", doctores: int = 1,
+def api_agregar_centro(sheet_id: int, nombre: str = "", doctores: int = 1,
                              user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
@@ -679,7 +691,7 @@ class CentroIn(BaseModel):
 
 
 @router.post("/design/api/preapproved/centros/{centro_id}")
-async def api_actualizar_centro(centro_id: int, payload: CentroIn,
+def api_actualizar_centro(centro_id: int, payload: CentroIn,
                                 user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     _pa_editor(user)
@@ -688,7 +700,7 @@ async def api_actualizar_centro(centro_id: int, payload: CentroIn,
 
 
 @router.post("/design/api/preapproved/centros/{centro_id}/eliminar")
-async def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     _pa_editor(user)
     if not sd.preapproved_eliminar_centro(db, centro_id, user.nombre_completo):
@@ -697,7 +709,7 @@ async def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_m
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}/doctores")
-async def api_agregar_doctor(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_agregar_doctor(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
     d = sd.preapproved_agregar_doctor(db, sheet_id)
@@ -709,7 +721,7 @@ class NombreIn(BaseModel):
 
 
 @router.post("/design/api/preapproved/doctores/{doctor_id}")
-async def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
+def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
                                db: Session = Depends(get_db)):
     _pa_editor(user)
@@ -718,7 +730,7 @@ async def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
 
 
 @router.post("/design/api/preapproved/doctores/{doctor_id}/eliminar")
-async def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     _pa_editor(user)
     if not sd.preapproved_eliminar_doctor(db, doctor_id, user.nombre_completo):
@@ -727,7 +739,7 @@ async def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_m
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}/filas")
-async def api_agregar_fila(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_agregar_fila(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
     _pa_editor(user)
     f = sd.preapproved_agregar_fila(db, sheet_id)
@@ -735,7 +747,7 @@ async def api_agregar_fila(sheet_id: int, user: Empleado = Depends(require_modul
 
 
 @router.post("/design/api/preapproved/filas/{fila_id}")
-async def api_renombrar_fila(fila_id: int, payload: NombreIn,
+def api_renombrar_fila(fila_id: int, payload: NombreIn,
                              user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
@@ -744,7 +756,7 @@ async def api_renombrar_fila(fila_id: int, payload: NombreIn,
 
 
 @router.post("/design/api/preapproved/filas/{fila_id}/eliminar")
-async def api_eliminar_fila(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_eliminar_fila(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
     _pa_editor(user)
     if not sd.preapproved_eliminar_fila(db, fila_id, user.nombre_completo):
@@ -759,7 +771,7 @@ class CeldaIn(BaseModel):
 
 
 @router.post("/design/api/preapproved/celdas")
-async def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
     _pa_editor(user)
     sd.preapproved_guardar_celda(db, payload.filaId, payload.doctorId, payload.valor)
@@ -772,7 +784,7 @@ class AnchoIn(BaseModel):
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}/anchos")
-async def api_preapproved_ancho(sheet_id: int, payload: AnchoIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_preapproved_ancho(sheet_id: int, payload: AnchoIn, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     _pa_editor(user)
     if not sd.preapproved_guardar_ancho(db, sheet_id, payload.clave, payload.px):
@@ -811,26 +823,26 @@ def _pac_respuesta(resultado: dict) -> dict:
 
 
 @router.post("/design/api/preapproved/cambios/mover-doctor")
-async def api_pac_mover_doctor(payload: PACMoverDoctorIn, user: Empleado = Depends(require_design_manager),
+def api_pac_mover_doctor(payload: PACMoverDoctorIn, user: Empleado = Depends(require_design_manager),
                                db: Session = Depends(get_db)):
     return _pac_respuesta(sd.pac_mover_doctor(db, payload.doctorId, payload.sheetDestinoId, payload.centroDestinoId))
 
 
 @router.post("/design/api/preapproved/cambios/mover-centro")
-async def api_pac_mover_centro(payload: PACMoverCentroIn, user: Empleado = Depends(require_design_manager),
+def api_pac_mover_centro(payload: PACMoverCentroIn, user: Empleado = Depends(require_design_manager),
                                db: Session = Depends(get_db)):
     return _pac_respuesta(sd.pac_mover_centro(db, payload.centroId, payload.sheetDestinoId, payload.centroDestinoId))
 
 
 @router.post("/design/api/preapproved/cambios/intercambiar-doctor")
-async def api_pac_intercambiar_doctor(payload: PACIntercambiarDoctorIn,
+def api_pac_intercambiar_doctor(payload: PACIntercambiarDoctorIn,
                                       user: Empleado = Depends(require_design_manager),
                                       db: Session = Depends(get_db)):
     return _pac_respuesta(sd.pac_intercambiar_doctor(db, payload.doctorAId, payload.doctorBId))
 
 
 @router.post("/design/api/preapproved/cambios/intercambiar-centro")
-async def api_pac_intercambiar_centro(payload: PACIntercambiarCentroIn,
+def api_pac_intercambiar_centro(payload: PACIntercambiarCentroIn,
                                       user: Empleado = Depends(require_design_manager),
                                       db: Session = Depends(get_db)):
     return _pac_respuesta(sd.pac_intercambiar_centro(db, payload.centroAId, payload.centroBId))
@@ -839,17 +851,17 @@ async def api_pac_intercambiar_centro(payload: PACIntercambiarCentroIn,
 # ---------- Desempeño (aprobadores y admins: equivalente a "Tools Managers") ----------
 
 @router.get("/design/perf")
-async def pagina_perf(request: Request, user: Empleado = Depends(require_design_manager)):
+def pagina_perf(request: Request, user: Empleado = Depends(require_design_manager)):
     return _redirigir_a_panel(request, "perf")
 
 
 @router.get("/design/api/perf/sheets")
-async def api_perf_sheets(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+def api_perf_sheets(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     return [{"id": s.id, "nombre": s.nombre, "tipo": s.tipo} for s in sd.perf_sheets(db)]
 
 
 @router.get("/design/api/perf/sheets/{sheet_id}/eval")
-async def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     detalle = sd.perf_detalle_eval(db, sheet_id)
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada")
@@ -859,13 +871,13 @@ async def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_
 class PerfCeldaIn(BaseModel):
     empleadoId: int
     criterioId: int
-    mesIndice: int
+    mesIndice: int = Field(ge=0, lt=60)
     nivel: str = ""
     puntaje: float = 0
 
 
 @router.post("/design/api/perf/celdas")
-async def api_perf_guardar_celda(payload: PerfCeldaIn, user: Empleado = Depends(require_design_manager),
+def api_perf_guardar_celda(payload: PerfCeldaIn, user: Empleado = Depends(require_design_manager),
                                  db: Session = Depends(get_db)):
     sd.perf_guardar_celda(db, payload.empleadoId, payload.criterioId, payload.mesIndice,
                           payload.nivel, payload.puntaje)
@@ -877,14 +889,14 @@ class PerfNotaIn(BaseModel):
 
 
 @router.post("/design/api/perf/empleados/{empleado_id}/nota")
-async def api_perf_guardar_nota(empleado_id: int, payload: PerfNotaIn, user: Empleado = Depends(require_design_manager),
+def api_perf_guardar_nota(empleado_id: int, payload: PerfNotaIn, user: Empleado = Depends(require_design_manager),
                                 db: Session = Depends(get_db)):
     sd.perf_guardar_nota(db, empleado_id, payload.nota)
     return {"mensaje": "Guardado."}
 
 
 @router.get("/design/api/perf/sheets/{sheet_id}/seleccion")
-async def api_perf_detalle_seleccion(sheet_id: int, user: Empleado = Depends(require_design_manager),
+def api_perf_detalle_seleccion(sheet_id: int, user: Empleado = Depends(require_design_manager),
                                      db: Session = Depends(get_db)):
     detalle = sd.perf_detalle_seleccion(db, sheet_id)
     if not detalle:
@@ -893,26 +905,26 @@ async def api_perf_detalle_seleccion(sheet_id: int, user: Empleado = Depends(req
 
 
 class PerfGanadorMesIn(BaseModel):
-    mesIndice: int
+    mesIndice: int = Field(ge=0, lt=60)
     nombre: str = ""
 
 
 @router.post("/design/api/perf/ganadores/{ganador_id}")
-async def api_perf_guardar_ganador(ganador_id: int, payload: PerfGanadorMesIn, user: Empleado = Depends(require_design_manager),
+def api_perf_guardar_ganador(ganador_id: int, payload: PerfGanadorMesIn, user: Empleado = Depends(require_design_manager),
                                    db: Session = Depends(get_db)):
     sd.perf_guardar_ganador_mes(db, ganador_id, payload.mesIndice, payload.nombre)
     return {"mensaje": "Guardado."}
 
 
 class PerfCeldaSeleccionIn(BaseModel):
-    mesIndice: int
+    mesIndice: int = Field(ge=0, lt=60)
     persona: str = ""
     puntaje: str = ""
     nota: str = ""
 
 
 @router.post("/design/api/perf/filas/{fila_id}/celdas")
-async def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSeleccionIn,
+def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSeleccionIn,
                                            user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     sd.perf_guardar_celda_seleccion(db, fila_id, payload.mesIndice, payload.persona, payload.puntaje, payload.nota)
     return {"mensaje": "Guardado."}
@@ -921,18 +933,18 @@ async def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSelec
 # ---------- Papelera ----------
 
 @router.get("/design/papelera")
-async def pagina_papelera(request: Request, user: Empleado = Depends(require_design_manager)):
+def pagina_papelera(request: Request, user: Empleado = Depends(require_design_manager)):
     return _redirigir_a_panel(request, "papelera")
 
 
 @router.get("/design/api/papelera")
-async def api_papelera_listar(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+def api_papelera_listar(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     return [{"id": t.id, "modulo": t.modulo, "etiqueta": t.etiqueta, "eliminado_por": t.eliminado_por,
             "eliminado_en": t.eliminado_en.strftime("%d/%m/%Y %H:%M")} for t in sd.trash_listar(db)]
 
 
 @router.post("/design/api/papelera/{trash_id}/restaurar")
-async def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_design_manager),
+def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_design_manager),
                                  db: Session = Depends(get_db)):
     if not sd.trash_restaurar(db, trash_id):
         raise HTTPException(400, "No se pudo restaurar (el destino cambió demasiado o ya no existe).")
@@ -940,7 +952,7 @@ async def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require
 
 
 @router.post("/design/api/papelera/{trash_id}/eliminar")
-async def api_papelera_eliminar(trash_id: int, user: Empleado = Depends(require_design_manager),
+def api_papelera_eliminar(trash_id: int, user: Empleado = Depends(require_admin),
                                 db: Session = Depends(get_db)):
     if not sd.trash_eliminar_permanente(db, trash_id):
         raise HTTPException(404, "No encontrado.")
@@ -948,7 +960,7 @@ async def api_papelera_eliminar(trash_id: int, user: Empleado = Depends(require_
 
 
 @router.post("/design/api/papelera/vaciar")
-async def api_papelera_vaciar(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+def api_papelera_vaciar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     sd.trash_vaciar(db)
     return {"mensaje": "Historial vaciado."}
 
@@ -956,17 +968,17 @@ async def api_papelera_vaciar(user: Empleado = Depends(require_design_manager), 
 # ---------- Favoritos ----------
 
 @router.get("/design/favoritos")
-async def pagina_favoritos(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+def pagina_favoritos(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
     return _redirigir_a_panel(request, "favoritos")
 
 
 @router.get("/design/api/favoritos")
-async def api_favoritos(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_favoritos(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     return sd.favoritos_de(db, user.id)
 
 
 @router.get("/design/api/favoritos/activos")
-async def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_schedule")),
+def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     activos = sd.favoritos_activos(db, user.id)
     return {"teams": list(activos["teams"]), "preapproved": list(activos["preapproved"]),
@@ -974,19 +986,19 @@ async def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_
 
 
 @router.post("/design/api/favoritos/team/{team_id}/toggle")
-async def api_favorito_toggle_team(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_favorito_toggle_team(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                    db: Session = Depends(get_db)):
     return {"favorito": sd.favorito_toggle_team(db, user.id, team_id)}
 
 
 @router.post("/design/api/favoritos/preapproved/{sheet_id}/toggle")
-async def api_favorito_toggle_preapproved(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_favorito_toggle_preapproved(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                           db: Session = Depends(get_db)):
     return {"favorito": sd.favorito_toggle_preapproved(db, user.id, sheet_id)}
 
 
 @router.post("/design/api/favoritos/protocolo/{protocolo_id}/toggle")
-async def api_favorito_toggle_protocolo(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_favorito_toggle_protocolo(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                         db: Session = Depends(get_db)):
     return {"favorito": sd.favorito_toggle_protocolo(db, user.id, protocolo_id)}
 
@@ -994,7 +1006,7 @@ async def api_favorito_toggle_protocolo(protocolo_id: int, user: Empleado = Depe
 # ---------- Protocols ----------
 
 @router.get("/design/protocols")
-async def pagina_protocols(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+def pagina_protocols(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
     return _redirigir_a_panel(request, "protocols")
 
 
@@ -1004,26 +1016,26 @@ def _pr_editor(user: Empleado) -> None:
 
 
 @router.get("/design/api/protocolos")
-async def api_protocolos_listar(area_id: int = 0, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_protocolos_listar(area_id: int = 0, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     return {"protocolos": sd.protocolos_listar(db, area_id or None), "puedeEditar": user.rol in FAQ_ROLES_EDITAN}
 
 
 @router.get("/design/api/protocolos/buscar")
-async def api_protocolos_buscar(q: str = "", area_id: int = 0, protocolo_id: int = 0, solo: str = "",
+def api_protocolos_buscar(q: str = "", area_id: int = 0, protocolo_id: int = 0, solo: str = "",
                                 user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     ids = [int(x) for x in solo.split(",") if x.strip().isdigit()]
     return sd.protocolos_buscar(db, area_id or None, q, protocolo_id or None, protocolo_ids=ids or None)
 
 
 @router.get("/design/api/protocolos/espacio")
-async def api_protocolos_espacio(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_protocolos_espacio(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     _pr_editor(user)
     return sd.pr_espacio(db)
 
 
 @router.get("/design/api/protocolos/{protocolo_id}")
-async def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     p = sd.protocolo_detalle(db, protocolo_id)
     if not p:
@@ -1034,7 +1046,7 @@ async def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(requ
 
 
 @router.get("/design/api/protocolos/{protocolo_id}/pdf")
-async def api_protocolo_pdf(protocolo_id: int, request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_protocolo_pdf(protocolo_id: int, request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
     """Sirve el PDF por rangos (el visor pide solo las partes que necesita) o completo en streaming,
     leyendo de la base de datos de a 1 MB para no cargar archivos grandes en memoria."""
@@ -1050,6 +1062,7 @@ async def api_protocolo_pdf(protocolo_id: int, request: Request, user: Empleado 
     if m and total:
         ini = int(m.group(1)) if m.group(1) else max(0, total - int(m.group(2) or 0))
         fin = min(int(m.group(2)), total - 1) if (m.group(1) and m.group(2)) else total - 1
+        fin = min(fin, ini + 2 * 1024 * 1024 - 1)  # el cliente pide el resto en otra petición (RFC 9110)
         if ini >= total or fin < ini:
             return Response(status_code=416, headers={"Content-Range": f"bytes */{total}"})
         datos = sd.pr_archivo_trozo(db, archivo_id, ini, fin - ini + 1)
@@ -1078,7 +1091,7 @@ class PdfNuevoIn(BaseModel):
 
 
 @router.post("/design/api/protocolos/subida")
-async def api_protocolo_subida_iniciar(payload: PdfNuevoIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_protocolo_subida_iniciar(payload: PdfNuevoIn, user: Empleado = Depends(require_modulo("design_schedule")),
                                        db: Session = Depends(get_db)):
     _pr_editor(user)
     if payload.tamano <= 0 or payload.tamano > sd.PR_MAX_BYTES:
@@ -1092,11 +1105,13 @@ async def api_protocolo_subida_parte(archivo_id: int, offset: int, request: Requ
                                      user: Empleado = Depends(require_modulo("design_schedule")),
                                      db: Session = Depends(get_db)):
     _pr_editor(user)
+    if int(request.headers.get("content-length") or 0) > sd.PR_PARTE_MAX:
+        raise HTTPException(413, "Parte del archivo inválida.")
     datos = await request.body()
     if not datos or len(datos) > sd.PR_PARTE_MAX:
         raise HTTPException(413, "Parte del archivo inválida.")
     try:
-        largo = sd.pr_subida_parte(db, archivo_id, offset, datos)
+        largo = await run_in_threadpool(sd.pr_subida_parte, db, archivo_id, offset, datos)
     except ValueError as e:
         raise HTTPException(409, str(e))
     if largo is None:
@@ -1112,7 +1127,7 @@ class PdfFinalizarIn(BaseModel):
 
 
 @router.post("/design/api/protocolos/subida/{archivo_id}/finalizar")
-async def api_protocolo_subida_finalizar(archivo_id: int, payload: PdfFinalizarIn,
+def api_protocolo_subida_finalizar(archivo_id: int, payload: PdfFinalizarIn,
                                          user: Empleado = Depends(require_modulo("design_schedule")),
                                          db: Session = Depends(get_db)):
     _pr_editor(user)
@@ -1133,7 +1148,7 @@ class ProtocoloEditIn(BaseModel):
 
 
 @router.post("/design/api/protocolos/{protocolo_id}")
-async def api_protocolo_actualizar(protocolo_id: int, payload: ProtocoloEditIn,
+def api_protocolo_actualizar(protocolo_id: int, payload: ProtocoloEditIn,
                                    user: Empleado = Depends(require_modulo("design_schedule")),
                                    db: Session = Depends(get_db)):
     _pr_editor(user)
@@ -1154,7 +1169,7 @@ class ProtocoloIn(BaseModel):
 
 
 @router.post("/design/api/protocolos")
-async def api_protocolo_crear(payload: ProtocoloIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_protocolo_crear(payload: ProtocoloIn, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     _pr_editor(user)
     p = sd.protocolo_crear(db, payload.areaId, payload.titulo, payload.descripcion, payload.contenido,
@@ -1163,7 +1178,7 @@ async def api_protocolo_crear(payload: ProtocoloIn, user: Empleado = Depends(req
 
 
 @router.post("/design/api/protocolos/{protocolo_id}/eliminar")
-async def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
     _pr_editor(user)
     if not sd.protocolo_eliminar(db, protocolo_id, user.nombre_completo):
@@ -1174,18 +1189,18 @@ async def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(req
 # ---------- Canvas ----------
 
 @router.get("/design/canvas")
-async def pagina_canvas(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+def pagina_canvas(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
     return _redirigir_a_panel(request, "canvas")
 
 
 @router.get("/design/api/canvas/docs")
-async def api_canvas_docs(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_docs(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
     return sd.canvas_docs(db, area_id)
 
 
 @router.get("/design/api/canvas/docs/{doc_id}")
-async def api_canvas_doc(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_doc(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                          db: Session = Depends(get_db)):
     d = sd.canvas_doc(db, doc_id)
     if not d:
@@ -1202,7 +1217,7 @@ class CanvasCrearIn(BaseModel):
 
 
 @router.post("/design/api/canvas/docs")
-async def api_canvas_crear(payload: CanvasCrearIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_crear(payload: CanvasCrearIn, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
     d = sd.canvas_crear_doc(db, payload.areaId, payload.nombre, payload.templateId, payload.titulo,
                             payload.frames, user.nombre_completo)
@@ -1220,7 +1235,7 @@ class CanvasGuardarIn(BaseModel):
 
 
 @router.post("/design/api/canvas/docs/{doc_id}")
-async def api_canvas_guardar(doc_id: int, payload: CanvasGuardarIn,
+def api_canvas_guardar(doc_id: int, payload: CanvasGuardarIn,
                              user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     datos = {k: v for k, v in payload.model_dump().items() if v is not None}
     d = sd.canvas_guardar_doc(db, doc_id, datos)
@@ -1230,7 +1245,7 @@ async def api_canvas_guardar(doc_id: int, payload: CanvasGuardarIn,
 
 
 @router.post("/design/api/canvas/docs/{doc_id}/renombrar")
-async def api_canvas_renombrar(doc_id: int, payload: NombreIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_renombrar(doc_id: int, payload: NombreIn, user: Empleado = Depends(require_modulo("design_schedule")),
                                db: Session = Depends(get_db)):
     if not sd.canvas_renombrar_doc(db, doc_id, payload.nombre):
         raise HTTPException(404, "No encontrada.")
@@ -1238,7 +1253,7 @@ async def api_canvas_renombrar(doc_id: int, payload: NombreIn, user: Empleado = 
 
 
 @router.post("/design/api/canvas/docs/{doc_id}/duplicar")
-async def api_canvas_duplicar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_duplicar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     d = sd.canvas_duplicar_doc(db, doc_id)
     if not d:
@@ -1251,7 +1266,7 @@ class CanvasMoverIn(BaseModel):
 
 
 @router.post("/design/api/canvas/docs/{doc_id}/mover")
-async def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
     if not sd.canvas_mover_doc(db, doc_id, payload.targetId):
         raise HTTPException(400, "No se pudo mover.")
@@ -1259,7 +1274,7 @@ async def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado =
 
 
 @router.post("/design/api/canvas/docs/{doc_id}/eliminar")
-async def api_canvas_eliminar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_eliminar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     trash_id = sd.canvas_eliminar_doc(db, doc_id, user.nombre_completo, user.id)
     if not trash_id:
@@ -1268,7 +1283,7 @@ async def api_canvas_eliminar(doc_id: int, user: Empleado = Depends(require_modu
 
 
 @router.post("/design/api/canvas/deshacer/{trash_id}")
-async def api_canvas_deshacer(trash_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_deshacer(trash_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     r = sd.canvas_deshacer_eliminar(db, trash_id, user.id)
     if r == "ok":

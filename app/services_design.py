@@ -4,7 +4,7 @@ import re
 import unicodedata
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, defer
 from sqlalchemy import func, and_, or_, text
 from .models import Empleado, Solicitud, TipoPermiso
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
@@ -15,7 +15,7 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
                             DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc,
                             DesignComentarioTemplate, DesignFaqHoja, DesignProtocoloArea,
-                            DesignProtocoloArchivo, DesignProtocoloPagina, FORMATO_DUAL)
+                            DesignProtocoloArchivo, DesignProtocoloPagina)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -25,9 +25,6 @@ CAMPOS_ORDEN = [
     "estado", "qc", "qc_reporte", "notas",
 ]
 
-
-def lunes_de(fecha: date) -> date:
-    return fecha - timedelta(days=fecha.weekday())
 
 
 # Orden de presentación de las áreas en toda la UI de Design Schedule. Se aplica en código
@@ -417,13 +414,15 @@ def _duracion_minutos(inicio: str, fin: str) -> float:
         return 0
 
 
-def buscar_ordenes(db: Session, texto: str) -> list[dict]:
+def buscar_ordenes(db: Session, texto: str, user: Empleado | None = None) -> list[dict]:
     texto = texto.strip().upper()
     if not texto:
         return []
-    filas = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area))
-            .filter((DesignOrden.orden.ilike(f"%{texto}%")) | (DesignOrden.paciente.ilike(f"%{texto}%")))
-            .order_by(DesignOrden.fecha.desc()).limit(50).all())
+    q = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area))
+         .filter((DesignOrden.orden.ilike(f"%{texto}%")) | (DesignOrden.paciente.ilike(f"%{texto}%"))))
+    if user is not None and user.rol not in ("admin", "superadmin"):  # mismo alcance que puede_ver_equipo
+        q = q.join(DesignTeam, DesignOrden.team_id == DesignTeam.id).filter(DesignTeam.manager_id == user.id)
+    filas = q.order_by(DesignOrden.fecha.desc()).limit(50).all()
     return [{"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
             "area": f.team.area.nombre, "equipo": f.team.nombre, "teamId": f.team_id} for f in filas]
 
@@ -476,6 +475,9 @@ def cmt_template_editar(db: Session, template_id: int, nombre: str, texto: str) 
     t = db.get(DesignComentarioTemplate, template_id)
     if not t or t.es_fija:
         return None
+    if (nombre.strip() or t.nombre) != t.nombre or texto != t.texto:
+        _trash_registrar(db, "cmt-template", f'Versión anterior de la plantilla "{t.nombre}"',
+                         {"template": {"nombre": t.nombre + " (anterior)", "texto": t.texto, "creado_por": t.creado_por}}, "")
     t.nombre = nombre.strip() or t.nombre
     t.texto = texto
     db.commit()
@@ -828,8 +830,9 @@ def preapproved_detalle(db: Session, sheet_id: int) -> dict | None:
         return None
     doctores = s.doctores
     celdas_por_fila = {}
-    for fila in s.filas:
-        celdas_por_fila[fila.id] = {c.doctor_id: c.valor for c in fila.celdas}
+    for c in (db.query(DesignPreApprovedCelda).join(DesignPreApprovedFila, DesignPreApprovedCelda.fila_id == DesignPreApprovedFila.id)
+              .filter(DesignPreApprovedFila.sheet_id == s.id)):
+        celdas_por_fila.setdefault(c.fila_id, {})[c.doctor_id] = c.valor
     return {
         "id": s.id, "nombre": s.nombre, "titulo": s.titulo, "changesLabel": s.changes_label,
         "anchos": _json(s.anchos, {}),
@@ -868,6 +871,8 @@ def eliminar_preapproved_sheet(db: Session, sheet_id: int, eliminado_por: str = 
         return False
     payload = {"area_id": s.area_id, "orden": s.orden, "detalle": preapproved_detalle(db, sheet_id)}
     _trash_registrar(db, "pa-sheet", f"Hoja Pre-Approved: {s.nombre}", payload, eliminado_por)
+    db.query(DesignFavorito).filter(DesignFavorito.tipo == "preapproved",
+                                    DesignFavorito.preapproved_sheet_id == sheet_id).delete()
     db.delete(s)
     db.commit()
     return True
@@ -1003,7 +1008,10 @@ def preapproved_eliminar_fila(db: Session, fila_id: int, eliminado_por: str = ""
     return True
 
 
-def preapproved_guardar_celda(db: Session, fila_id: int, doctor_id: int, valor: str) -> None:
+def preapproved_guardar_celda(db: Session, fila_id: int, doctor_id: int, valor: str, commit: bool = True) -> bool:
+    fila, doc = db.get(DesignPreApprovedFila, fila_id), db.get(DesignPreApprovedDoctor, doctor_id)
+    if not fila or not doc or fila.sheet_id != doc.sheet_id:
+        return False  # fila y doctor deben existir y ser de la misma hoja
     c = (db.query(DesignPreApprovedCelda)
         .filter(DesignPreApprovedCelda.fila_id == fila_id, DesignPreApprovedCelda.doctor_id == doctor_id).first())
     if not c:
@@ -1011,7 +1019,9 @@ def preapproved_guardar_celda(db: Session, fila_id: int, doctor_id: int, valor: 
         db.add(c)
     else:
         c.valor = valor
-    db.commit()
+    if commit:
+        db.commit()
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -1042,7 +1052,7 @@ def _pac_aplicar_valores(db: Session, doctor_id: int, sheet_id: int, valores: di
     for criterio_norm, valor in valores.items():
         fila = mapa.get(criterio_norm)
         if fila:
-            preapproved_guardar_celda(db, fila.id, doctor_id, valor)
+            preapproved_guardar_celda(db, fila.id, doctor_id, valor, commit=False)
         else:
             sin_match += 1
     return sin_match
@@ -1116,10 +1126,26 @@ def _pac_insertar_doctor(db: Session, doctor: DesignPreApprovedDoctor, sheet_dst
         d.orden = i
 
 
+def _pac_destino_invalido(db: Session, sheet_src_id: int, sheet_dst_id: int, centro_dst_id: int | None) -> str | None:
+    src, dst = db.get(DesignPreApprovedSheet, sheet_src_id), db.get(DesignPreApprovedSheet, sheet_dst_id)
+    if not src or not dst:
+        return "El manager de destino no existe."
+    if src.area_id != dst.area_id:
+        return "Solo se puede mover entre managers de la misma área."
+    if centro_dst_id:
+        c = db.get(DesignPreApprovedCentro, centro_dst_id)
+        if not c or c.sheet_id != sheet_dst_id:
+            return "El centro de destino no pertenece a ese manager."
+    return None
+
+
 def pac_mover_doctor(db: Session, doctor_id: int, sheet_dst_id: int, centro_dst_id: int | None) -> dict:
     doctor = db.get(DesignPreApprovedDoctor, doctor_id)
     if not doctor:
         return {"error": "Doctor no encontrado."}
+    err = _pac_destino_invalido(db, doctor.sheet_id, sheet_dst_id, centro_dst_id)
+    if err:
+        return {"error": err}
     sheet_src_id = doctor.sheet_id
     if sheet_src_id == sheet_dst_id:
         return {"error": "Elige un manager de destino distinto."}
@@ -1148,6 +1174,9 @@ def pac_mover_centro(db: Session, centro_id: int, sheet_dst_id: int, centro_dst_
     centro = db.get(DesignPreApprovedCentro, centro_id)
     if not centro:
         return {"error": "Centro no encontrado."}
+    err = _pac_destino_invalido(db, centro.sheet_id, sheet_dst_id, centro_dst_id)
+    if err:
+        return {"error": err}
     sheet_src_id = centro.sheet_id
     if sheet_src_id == sheet_dst_id:
         return {"error": "Elige un manager de destino distinto."}
@@ -1206,6 +1235,9 @@ def pac_intercambiar_doctor(db: Session, doctor_a_id: int, doctor_b_id: int) -> 
         return {"error": "Doctor no encontrado."}
     if a.sheet_id == b.sheet_id:
         return {"error": "Para intercambiar elige dos managers distintos."}
+    err = _pac_destino_invalido(db, a.sheet_id, b.sheet_id, None)
+    if err:
+        return {"error": err}
 
     valores_a = _pac_valores_doctor(db, doctor_a_id)
     valores_b = _pac_valores_doctor(db, doctor_b_id)
@@ -1229,6 +1261,9 @@ def pac_intercambiar_centro(db: Session, centro_a_id: int, centro_b_id: int) -> 
         return {"error": "Centro no encontrado."}
     if a.sheet_id == b.sheet_id:
         return {"error": "Para intercambiar elige dos managers distintos."}
+    err = _pac_destino_invalido(db, a.sheet_id, b.sheet_id, None)
+    if err:
+        return {"error": err}
 
     sheet_a_id, sheet_b_id = a.sheet_id, b.sheet_id
     doctores_a = _pac_doctores_del_centro(db, a)
@@ -1339,8 +1374,13 @@ def perf_detalle_eval(db: Session, sheet_id: int) -> dict | None:
     }
 
 
+PERF_MAX_MESES = 60
+
+
 def perf_guardar_celda(db: Session, empleado_id: int, criterio_id: int, mes_indice: int,
                        nivel: str, puntaje: float) -> None:
+    if not 0 <= mes_indice < PERF_MAX_MESES:
+        return
     c = (db.query(DesignPerfCelda)
         .filter(DesignPerfCelda.empleado_id == empleado_id, DesignPerfCelda.criterio_id == criterio_id,
                 DesignPerfCelda.mes_indice == mes_indice).first())
@@ -1383,7 +1423,7 @@ def perf_detalle_seleccion(db: Session, sheet_id: int) -> dict | None:
 
 def perf_guardar_ganador_mes(db: Session, ganador_id: int, mes_indice: int, nombre: str) -> None:
     g = db.get(DesignPerfGanador, ganador_id)
-    if not g:
+    if not g or not 0 <= mes_indice < PERF_MAX_MESES:
         return
     valores = json.loads(g.ganadores_mes or "[]")
     while len(valores) <= mes_indice:
@@ -1419,7 +1459,7 @@ def _trash_registrar(db: Session, modulo: str, etiqueta: str, payload: dict, eli
 
 
 def trash_listar(db: Session) -> list[DesignTrash]:
-    return db.query(DesignTrash).order_by(DesignTrash.eliminado_en.desc()).all()
+    return db.query(DesignTrash).options(defer(DesignTrash.payload)).order_by(DesignTrash.eliminado_en.desc()).all()
 
 
 def trash_eliminar_permanente(db: Session, trash_id: int) -> bool:
@@ -1747,8 +1787,23 @@ def pr_resumen(db: Session, p: DesignProtocolo, areas_por_id: dict | None = None
 
 def protocolos_listar(db: Session, area_id: int | None = None) -> list[dict]:
     areas_por_id = {a.id: a.nombre for a in db.query(DesignArea).all()}
-    return [pr_resumen(db, p, areas_por_id)
-            for p in _pr_visibles(db, area_id).order_by(func.lower(DesignProtocolo.titulo)).all()]
+    protos = _pr_visibles(db, area_id).order_by(func.lower(DesignProtocolo.titulo)).all()
+    ids = [p.id for p in protos] or [0]
+    archivos = {a.protocolo_id: a for a in db.query(DesignProtocoloArchivo.protocolo_id, DesignProtocoloArchivo.id,
+                                                      DesignProtocoloArchivo.nombre, DesignProtocoloArchivo.tamano,
+                                                      DesignProtocoloArchivo.paginas)
+                .filter(DesignProtocoloArchivo.protocolo_id.in_(ids))}
+    areas = {}
+    for r in db.query(DesignProtocoloArea).filter(DesignProtocoloArea.protocolo_id.in_(ids)):
+        areas.setdefault(r.protocolo_id, []).append(r.area_id)
+    out = []
+    for p in protos:
+        a = archivos.get(p.id)
+        out.append({"id": p.id, "titulo": p.titulo, "descripcion": p.descripcion, "version": p.version,
+                    "creadoPor": p.creado_por, "areas": [{"id": i, "nombre": areas_por_id.get(i, "")} for i in areas.get(p.id, [])],
+                    "tieneArchivo": bool(a), "archivo": a.nombre if a else "", "tamano": a.tamano if a else 0,
+                    "paginas": a.paginas if a else 0, "archivoId": a.id if a else None})
+    return out
 
 
 def _pr_fragmento(texto: str, norm: str, palabras: list[str], largo: int = 90) -> str:
@@ -1923,21 +1978,6 @@ def pr_archivo_info(db: Session, protocolo_id: int):
             .filter(DesignProtocoloArchivo.protocolo_id == protocolo_id).first())
 
 
-def protocolo_crear_pdf(db: Session, titulo: str, area_ids: list[int], nombre_archivo: str, datos: bytes,
-                        textos: list[str], version: str = "v1.0", creado_por: str = "") -> DesignProtocolo:
-    p = DesignProtocolo(area_id=(area_ids[0] if len(area_ids or []) == 1 else None),
-                        titulo=(titulo or "").strip()[:255] or nombre_archivo or "Protocolo sin título",
-                        descripcion="", contenido="", version=(version or "v1.0")[:20], creado_por=creado_por)
-    db.add(p)
-    db.flush()
-    db.add(DesignProtocoloArchivo(protocolo_id=p.id, nombre=(nombre_archivo or "")[:255], tamano=len(datos),
-                                  paginas=len(textos or []), datos=datos))
-    _pr_poner_areas(db, p.id, area_ids)
-    _pr_poner_paginas(db, p.id, textos)
-    db.commit()
-    db.refresh(p)
-    return p
-
 
 def protocolo_actualizar(db: Session, protocolo_id: int, titulo: str | None, area_ids: list[int] | None,
                          version: str | None) -> DesignProtocolo | None:
@@ -2049,10 +2089,56 @@ def canvas_crear_doc(db: Session, area_id: int, nombre: str, template_id: str, t
     return d
 
 
+_CV_COLOR = re.compile(r"^#[0-9a-fA-F]{3,8}$")
+_CV_IMG = re.compile(r"^data:image/(png|jpe?g|gif|webp|bmp|svg\+xml);base64,[A-Za-z0-9+/=\s]*$")
+_CV_NUM = ("x", "y", "w", "h", "r", "x1", "y1", "x2", "y2", "stroke", "size", "rot", "zoom", "ox", "oy", "sx", "sy")
+
+
+def _cv_num(v, defecto=0):
+    try:
+        f = float(v)
+        return f if f == f and abs(f) < 1e7 else defecto  # descarta NaN y valores absurdos
+    except (TypeError, ValueError):
+        return defecto
+
+
+def _cv_limpiar(obj: dict) -> dict:
+    """Deja solo datos seguros para dibujar: números en coordenadas, colores #hex e imágenes data:image."""
+    if not isinstance(obj, dict):
+        return {}
+    o = dict(obj)
+    for k in _CV_NUM:
+        if k in o and not isinstance(o[k], (int, float)):
+            o[k] = _cv_num(o[k])
+    if "color" in o and not (isinstance(o["color"], str) and _CV_COLOR.match(o["color"])):
+        o["color"] = "#e11d1d"
+    if "n" in o:
+        o["n"] = int(_cv_num(o["n"], 1))
+    if "id" in o:
+        o["id"] = re.sub(r"[^A-Za-z0-9_-]", "", str(o["id"]))[:40]
+    if isinstance(o.get("points"), list):
+        o["points"] = [{"x": _cv_num(p.get("x")), "y": _cv_num(p.get("y"))} for p in o["points"] if isinstance(p, dict)]
+    img = o.get("img")
+    if isinstance(img, dict):
+        if not (isinstance(img.get("src"), str) and _CV_IMG.match(img["src"][:200] + ("" if len(img["src"]) <= 200 else "A"))):
+            o["img"] = None
+        else:
+            o["img"] = {k: (v if k == "src" or isinstance(v, (int, float, bool)) or v is None else _cv_num(v)) for k, v in img.items()}
+    elif img is not None:
+        o["img"] = None
+    return o
+
+
 def canvas_guardar_doc(db: Session, doc_id: int, datos: dict) -> DesignCanvasDoc | None:
     d = db.get(DesignCanvasDoc, doc_id)
     if not d:
         return None
+    if "tituloColor" in datos and not (isinstance(datos["tituloColor"], str) and _CV_COLOR.match(datos["tituloColor"] or "")):
+        datos = {**datos, "tituloColor": None}
+    if "frames" in datos and datos["frames"] is not None:
+        datos = {**datos, "frames": [_cv_limpiar(f) for f in datos["frames"] if isinstance(f, dict)]}
+    if "elements" in datos and datos["elements"] is not None:
+        datos = {**datos, "elements": [_cv_limpiar(e) for e in datos["elements"] if isinstance(e, dict)]}
     if "nombre" in datos:
         d.nombre = datos["nombre"] or d.nombre
     if "titulo" in datos:
@@ -2063,9 +2149,9 @@ def canvas_guardar_doc(db: Session, doc_id: int, datos: dict) -> DesignCanvasDoc
         d.w = int(datos["w"])
     if "h" in datos and datos["h"]:
         d.h = int(datos["h"])
-    if "frames" in datos:
+    if "frames" in datos and datos["frames"] is not None:
         d.frames = json.dumps(datos["frames"], ensure_ascii=False)
-    if "elements" in datos:
+    if "elements" in datos and datos["elements"] is not None:
         d.elements = json.dumps(datos["elements"], ensure_ascii=False)
     db.commit()
     return d

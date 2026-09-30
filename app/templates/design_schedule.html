@@ -1,7 +1,22 @@
 {% extends "base.html" %}
 {% block contenido %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script>
+// pdf.js pesa ~300 KB: antes se descargaba y ejecutaba en cada visita (bloqueaba la carga ~200 ms, y hasta
+// ~2.6 s en frío) aunque nunca se abriera Protocols. Ahora se carga la primera vez que se necesita.
+window.dsPdfjs = function() {
+  if (!window._dsPdfjsProm) window._dsPdfjsProm = new Promise(function(ok, falla) {
+    var sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    sc.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      ok(window.pdfjsLib);
+    };
+    sc.onerror = function() { window._dsPdfjsProm = null; falla(new Error('No se pudo cargar el lector de PDF. Revisa la conexión.')); };
+    document.head.appendChild(sc);
+  });
+  return window._dsPdfjsProm;
+};
+</script>
 <style>
 
   /* ---------- Shell: paneles superpuestos ---------- */
@@ -49,10 +64,10 @@
   .ds-drop-item.activo { background:#1d4ed8; color:#fff; font-weight:600; }
   /* Mensaje "Selecciona un área..." centrado en el espacio visible bajo la fila de áreas */
   .ds-sin-equipo { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center;
-                   margin:0; min-height:max(200px, calc(100vh - 300px)); color:#6b7280; font-size:15px; }
+                   margin:0; min-height:max(200px, calc(100vh - 300px)); color:#4b5563; font-size:15px; }
   /* Mismo ícono que el módulo People en el portal (🗓️), ~3x la altura del texto */
   .ds-sin-equipo-icono { font-size:44px; line-height:1; }
-  .ds-drop-vacio { padding:8px 12px; color:#6b7280; font-size:12px; white-space:nowrap; }
+  .ds-drop-vacio { padding:8px 12px; color:#4b5563; font-size:12px; white-space:nowrap; }
   .ds-semana { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .ds-dia { padding:6px 14px; border-radius:8px; border:1px solid var(--borde,#d8dde3); background:#fff;
             cursor:pointer; font-size:13px; }
@@ -78,7 +93,7 @@
   .ds-qc-bg { position:fixed; inset:0; z-index:325; background:rgba(17,24,39,.35); display:flex; align-items:center; justify-content:center; }
   .ds-qc { background:#fff; border-radius:12px; padding:18px 20px; width:420px; max-width:calc(100vw - 32px); box-shadow:0 12px 32px rgba(0,0,0,.25); font-size:13px; }
   .ds-qc h4 { margin:0 0 4px; font-size:15px; color:#111827; }
-  .ds-qc .ds-qc-sub { color:#6b7280; font-size:12px; margin-bottom:14px; }
+  .ds-qc .ds-qc-sub { color:#4b5563; font-size:12px; margin-bottom:14px; }
   .ds-qc-opciones { display:flex; gap:10px; margin-bottom:12px; }
   .ds-qc-opciones label { flex:1; display:flex; align-items:center; gap:8px; border:1px solid #d8dde3; border-radius:8px; padding:9px 12px; cursor:pointer; font-weight:600; }
   .ds-qc-opciones label:has(input:checked) { border-color:#1d4ed8; background:#eff6ff; }
@@ -88,6 +103,8 @@
   .ds-qc-err { color:#dc2626; font-size:12px; min-height:16px; margin-bottom:8px; }
   .ds-qc-btns { display:flex; justify-content:flex-end; gap:8px; }
   .ds-qc-btns .btn { padding:6px 14px; font-size:13px; }
+  body.ds-cargando-dia .ds-tabla, body.ds-cargando-dia .ds-tl-grid { opacity:.45; pointer-events:none; transition:opacity .15s; }
+  .ds-err-carga { color:#b91c1c; font-size:13px; padding:12px 0; }
   .ds-toast { position:fixed; right:20px; bottom:20px; z-index:330; background:#111827; color:#fff; padding:10px 14px;
               border-radius:8px; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.25); max-width:420px; }
   .ds-candado { font-size:13px; line-height:1; cursor:help; }
@@ -98,6 +115,8 @@
   table.ds-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
   table.ds-tabla th, table.ds-tabla td { border:1px solid #e2e6ea; padding:3px 6px; text-align:center; vertical-align:middle; height:32px; }
   table.ds-tabla th { background:#f4f6f8; font-size:11px; }
+  /* contraste suficiente (WCAG AA) para los encabezados de las tablas de Design */
+  table.ds-tabla th, table.dd-tabla th, table.pf-tabla th { color:#374151; }
   /* Anula el estilo global de inputs (padding 8px, margin inferior 12px) que descuadraba las celdas */
   table.ds-tabla input, table.ds-tabla select { width:100%; height:26px; margin:0; padding:0 4px; box-sizing:border-box;
                                                 border:none; background:transparent; font-size:12px; text-align:center; vertical-align:middle; }
@@ -112,7 +131,7 @@
   table.ds-tabla th.ds-th-sort.on .ds-sort-ind { color:#1d4ed8; }
   .ds-btn-x { background:#9ca3af; color:#fff; border:none; border-radius:4px; width:18px; height:18px; padding:0;
               font-size:10px; line-height:18px; cursor:pointer; display:block; margin:0 auto; }
-  .ds-btn-x:hover { background:#6b7280; }
+  .ds-btn-x:hover { background:#4b5563; }
   .ds-panel-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   .ds-panel-h h3 { margin:0; }
   .ds-btn-add { padding:3px 10px; font-size:12px; line-height:1.4; border-radius:6px; }
@@ -137,7 +156,7 @@
   .dd-filtros { display:flex; gap:10px; flex-wrap:wrap; align-items:end; background:#fff; border:1px solid #d8dde3;
                 border-radius:12px; padding:14px; margin-bottom:16px; }
   .dd-filtros div { display:flex; flex-direction:column; gap:4px; }
-  .dd-filtros label { font-size:11px; color:#6b7280; }
+  .dd-filtros label { font-size:11px; color:#4b5563; }
   .dd-filtros input, .dd-filtros select { padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; }
   .dd-kpis { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
   .dd-kpi { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:10px 16px; min-width:110px; }
@@ -165,7 +184,7 @@
   .cmt-grid { display:grid; gap:8px; }
   .cmt-grid.c2 { grid-template-columns:1fr 1fr; }
   .cmt-grid.c3 { grid-template-columns:1fr 1fr 1fr; }
-  .cmt-field label { display:block; font-size:11px; color:#6b7280; margin-bottom:2px; }
+  .cmt-field label { display:block; font-size:11px; color:#4b5563; margin-bottom:2px; }
   .cmt-field input, .cmt-field select, .cmt-field textarea { width:100%; padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; box-sizing:border-box; }
   .cmt-field input.ro { background:#f4f6f8; }
   .cmt-toggle-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #eee; }
@@ -182,7 +201,7 @@
   /* N3: todas las secciones igual que Plantillas (panel gris, campos y cajas en blanco) */
   #cmtPanelN3 .cmt-section, #cmtPanelN3 .cmt-outbox { background:#f4f6fa; }
   #cmtPanelN3 input, #cmtPanelN3 select, #cmtPanelN3 textarea { background:#fff; border-color:#e2e6ef; }
-  #cmtPanelN3 .cmt-field input.ro { background:#fff; color:#6b7280; cursor:not-allowed; }
+  #cmtPanelN3 .cmt-field input.ro { background:#fff; color:#4b5563; cursor:not-allowed; }
   #cmtPanelN3 .cmt-toggle-row { border-bottom-color:#e2e6ef; }
   #cmtPanelN3 .cmt-hist-item { background:#fff; border-color:#e2e6ef; }
   /* Comments usa todo el ancho de la pantalla */
@@ -199,7 +218,7 @@
   .cmt-tpl-ico:hover { background:#eef1f6; color:#374151; }
   .cmt-tpl-star { font-size:17px; margin-right:4px; }
   .cmt-tpl-star.on { color:#f59e0b; }
-  .cmt-tpl-sep { font-size:11px; color:#6b7280; text-transform:uppercase; margin:10px 0 6px; font-weight:600; }
+  .cmt-tpl-sep { font-size:11px; color:#4b5563; text-transform:uppercase; margin:10px 0 6px; font-weight:600; }
   .cmt-nota label.cmt-nota-lbl { display:block; font-size:12px; font-weight:600; color:#374151; margin:0 0 4px; }
   .cmt-nota input[type=text] { width:100%; margin:0 0 10px; padding:6px 8px; box-sizing:border-box; font-size:13px; }
   .cmt-nota textarea { min-height:120px; }
@@ -216,7 +235,7 @@
   .faq-gbtn:hover { background:#f4f6fa; }
   .faq-barra { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
   .faq-barra input.faq-buscar { flex:0 1 420px; width:auto; margin:0; padding:7px 10px; border:1px solid #d8dde3; border-radius:8px; font-size:13px; }
-  .faq-cuenta { font-size:12px; color:#6b7280; }
+  .faq-cuenta { font-size:12px; color:#4b5563; }
   .faq-panel { background:#f4f6fa; border:1px solid #d8dde3; border-radius:10px; padding:12px; }
   .faq-titulo { font-size:12px; color:#1d4ed8; text-transform:uppercase; font-weight:700; margin:0 0 8px; }
   .faq-scroll { overflow-x:auto; }
@@ -232,13 +251,13 @@
   tr.faq-sec td { background:#f4f6fa; padding:6px 8px; }
   .faq-sec-h { display:flex; align-items:center; gap:8px; }
   .faq-sec-txt { font-size:11.5px; font-weight:700; color:#1d4ed8; text-transform:uppercase; outline:none; border-radius:3px; padding:0 2px; }
-  .faq-sec-n { font-size:11px; color:#6b7280; }
+  .faq-sec-n { font-size:11px; color:#4b5563; }
   .faq-sec-add { width:20px; height:20px; border-radius:50%; border:none; background:#1d4ed8; color:#fff; font-size:14px; line-height:1; cursor:pointer; padding:0; margin:0; }
   .faq-cel { white-space:pre-wrap; word-break:break-word; min-height:18px; outline:none; border-radius:3px; }
   td.faq-tpl { background:#eff6ff; }
   .faq-tpl-pie { display:flex; justify-content:flex-end; margin-top:6px; }
   td.faq-acc { width:24px; text-align:center; }
-  .faq-vacio { color:#6b7280; font-size:13px; padding:18px; text-align:center; }
+  .faq-vacio { color:#4b5563; font-size:13px; padding:18px; text-align:center; }
 
 
   .pa-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
@@ -261,7 +280,7 @@
   table.pa-t tr.pa-r-doctores th { background:#fff; color:#111827; font-size:11.5px; font-weight:700; border-bottom:2px solid #d8dde3; }
   table.pa-t .pa-fija { position:sticky; left:0; z-index:2; background:#f8fafc; }
   table.pa-t thead .pa-fija { z-index:3; }
-  table.pa-t tr.pa-r-doctores th.pa-fija { color:#6b7280; text-transform:uppercase; font-size:11px; }
+  table.pa-t tr.pa-r-doctores th.pa-fija { color:#4b5563; text-transform:uppercase; font-size:11px; }
   table.pa-t tbody th.pa-fija { font-weight:700; color:#111827; }
   table.pa-t td { white-space:pre-wrap; color:#111827; }
   table.pa-t td.pa-ask { color:#9ca3af; }
@@ -275,12 +294,12 @@
   .pa-rsz { position:absolute; top:0; right:-3px; width:7px; height:100%; cursor:col-resize; z-index:4; }
   .pa-rsz:hover, .pa-rsz.activo { background:#93c5fd; }
 
-  .pac-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:60; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .pac-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:320; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
   .pac-modal-bg.open { display:flex; }
   .pac-modal { background:#fff; border-radius:12px; padding:22px; max-width:880px; width:100%; }
   .pac-modal h2 { margin:0 0 14px; font-size:17px; }
   .pac-mode { display:inline-flex; gap:4px; background:#f4f6f8; border:1px solid #d8dde3; border-radius:9px; padding:4px; margin-bottom:14px; }
-  .pac-mode-btn { border:none; background:transparent; color:#6b7280; font-family:inherit; font-size:12.5px; font-weight:700; padding:6px 16px; border-radius:6px; cursor:pointer; }
+  .pac-mode-btn { border:none; background:transparent; color:#4b5563; font-family:inherit; font-size:12.5px; font-weight:700; padding:6px 16px; border-radius:6px; cursor:pointer; }
   .pac-mode-btn.activo { background:#1d4ed8; color:#fff; }
   .pac-cols { display:grid; grid-template-columns:1fr 190px 1fr; gap:12px; align-items:start; }
   .pac-side { border:1px solid #d8dde3; border-radius:10px; padding:10px; background:#f9fafb; min-width:0; }
@@ -298,11 +317,11 @@
   .pac-doc:hover { background:#eff6ff; }
   .pac-doc.sel { background:#1d4ed8; color:#fff; font-weight:700; }
   .pac-mid { display:flex; flex-direction:column; align-items:stretch; gap:10px; padding-top:26px; }
-  .pac-dest-centro label { font-size:10.5px; font-weight:700; color:#6b7280; display:block; margin-bottom:4px; }
+  .pac-dest-centro label { font-size:10.5px; font-weight:700; color:#4b5563; display:block; margin-bottom:4px; }
   .pac-target-centro { width:100%; padding:7px 9px; border:1px solid #d1d5db; border-radius:8px; background:#fff; color:#111827; font-family:inherit; font-size:12px; box-sizing:border-box; }
   .pac-apply { padding:10px 12px; border:none; border-radius:9px; background:#1d4ed8; color:#fff; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; }
   .pac-apply:disabled { opacity:.45; cursor:not-allowed; }
-  .pac-summary { font-size:11px; line-height:1.45; color:#6b7280; text-align:center; }
+  .pac-summary { font-size:11px; line-height:1.45; color:#4b5563; text-align:center; }
   .pac-summary.warn { color:#dc2626; font-weight:600; }
   .pac-summary.ok { color:#16a34a; font-weight:600; }
   @media (max-width:720px) { .pac-cols { grid-template-columns:1fr; } .pac-mid { padding-top:0; } }
@@ -335,13 +354,13 @@
   .cv-view-wrap{ position:relative; }
   .cv-view-menu{ display:none; position:absolute; right:0; top:calc(100% + 6px); z-index:50; background:#fff; border:1px solid #d8dde3; border-radius:11px; box-shadow:0 16px 36px -14px rgba(24,21,69,.45); padding:6px; min-width:224px; }
   .cv-view-wrap.open .cv-view-menu{ display:block; }
-  .cv-view-menu-h{ font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; font-weight:700; padding:4px 8px 7px; }
+  .cv-view-menu-h{ font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:#4b5563; font-weight:700; padding:4px 8px 7px; }
   .cv-view-item{ display:flex; align-items:center; gap:2px; border-radius:8px; }
   .cv-view-item.active{ background:#eff6ff; }
   .cv-view-pick{ flex:1; display:inline-flex; align-items:center; gap:9px; background:none; border:none; text-align:left; font-family:inherit; font-size:12.5px; font-weight:600; color:#111827; padding:8px 9px; border-radius:8px; cursor:pointer; }
   .cv-view-pick:hover{ background:#f4f6f8; }
   .cv-view-item.active .cv-view-pick{ color:#1d4ed8; }
-  .cv-view-def{ background:none; border:none; cursor:pointer; font-size:15px; line-height:1; padding:5px 9px; color:#6b7280; border-radius:8px; }
+  .cv-view-def{ background:none; border:none; cursor:pointer; font-size:15px; line-height:1; padding:5px 9px; color:#4b5563; border-radius:8px; }
   .cv-view-def:hover{ background:#f4f6f8; }
   .cv-view-def.on{ color:#e6a700; }
   .cv-board{ display:flex; flex-wrap:wrap; gap:22px; align-items:flex-start; padding-bottom:24px; }
@@ -358,9 +377,9 @@
   .cv-thumb-plus{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:300; color:#9db8d4; pointer-events:none; }
   .cv-board-name{ background:none; border:none; font-family:inherit; cursor:pointer; font-size:12.5px; font-weight:700; color:#111827; text-align:center; padding:0; }
   .cv-board-name:hover{ color:#1d4ed8; text-decoration:underline; }
-  .cv-board-sub{ font-size:10.5px; color:#6b7280; text-align:center; margin-top:-2px; }
+  .cv-board-sub{ font-size:10.5px; color:#4b5563; text-align:center; margin-top:-2px; }
   .cv-tpl-name{ font-size:12px; font-weight:700; color:#111827; line-height:1.2; }
-  .cv-tpl-sub{ font-size:10.5px; color:#6b7280; margin-top:2px; }
+  .cv-tpl-sub{ font-size:10.5px; color:#4b5563; margin-top:2px; }
   .cv-mini-btn{ border:1px solid #d8dde3; background:#fff; color:#374151; border-radius:7px; font-size:11px; font-weight:700; padding:4px 9px; cursor:pointer; }
   .cv-mini-btn:hover{ background:#eff6ff; color:#111827; }
   .cv-mini-btn.cv-danger:hover{ background:#dc2626; color:#fff; border-color:#dc2626; }
@@ -369,7 +388,7 @@
   .cv-ed-bar{ display:flex; align-items:center; gap:7px; margin-bottom:10px; flex-wrap:wrap; }
   .cv-size{ display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border:1px solid #d8dde3; border-radius:9px; background:#fff; }
   .cv-size-in{ width:56px; padding:4px 6px; border:1px solid #e2e6ea; border-radius:6px; font-family:inherit; font-size:12px; font-weight:600; color:#111827; background:#fff; text-align:right; }
-  .cv-size-x{ color:#6b7280; font-weight:700; font-size:12px; }
+  .cv-size-x{ color:#4b5563; font-weight:700; font-size:12px; }
   .cv-size-preset{ font-family:inherit; font-size:11.5px; font-weight:600; color:#111827; background:#fff; border:1px solid #e2e6ea; border-radius:6px; padding:4px 6px; cursor:pointer; max-width:170px; }
   .cv-ed-name{ font-size:14px; font-weight:800; color:#111827; outline:none; border-bottom:1px dashed transparent; padding:1px 2px; border-radius:3px; }
   .cv-ed-name:hover{ border-bottom-color:#d8dde3; }
@@ -379,7 +398,7 @@
   .cv-ed-body{ display:flex; align-items:flex-start; gap:12px; }
   .cv-rail{ flex:none; width:172px; max-height:calc(100vh - 200px - var(--ds-nav-h, 0px)); overflow-y:auto; overflow-x:hidden;
     border:1px solid #e2e6ea; border-radius:10px; background:#f4f6f8; padding:8px; }
-  .cv-rail-head{ display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; padding:2px 2px 8px; }
+  .cv-rail-head{ display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#4b5563; padding:2px 2px 8px; }
   .cv-rail-head .cv-rail-collapse{ margin-left:auto; }
   .cv-rail-item{ position:relative; border:2px solid transparent; border-radius:9px; padding:6px; margin-bottom:8px; cursor:pointer; background:#fff; transition:border-color .12s, background .12s; }
   .cv-rail-item:hover{ background:#eff6ff; }
@@ -474,8 +493,8 @@
   .pr-buscar-wrap { position:relative; margin-bottom:6px; }
   .pr-buscar-wrap input.pr-buscar { width:100%; box-sizing:border-box; margin:0; padding:12px 14px 12px 40px; border:1px solid #d8dde3; border-radius:10px; font-size:15px; background:#fff; }
   .pr-buscar-wrap input.pr-buscar:focus { outline:none; border-color:#1d4ed8; box-shadow:0 0 0 3px #dbeafe; }
-  .pr-buscar-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:16px; color:#6b7280; pointer-events:none; }
-  .pr-cuenta { font-size:12.5px; color:#6b7280; margin:0 0 12px 2px; min-height:16px; }
+  .pr-buscar-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:16px; color:#4b5563; pointer-events:none; }
+  .pr-cuenta { font-size:12.5px; color:#4b5563; margin:0 0 12px 2px; min-height:16px; }
   .pr-panel { background:#f4f6fa; border:1px solid #d8dde3; border-radius:10px; padding:14px; }
   .pr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }
   .pr-card { background:#fff; border:1px solid #e2e6ef; border-radius:10px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
@@ -486,10 +505,10 @@
   .pr-thumb .pr-texto-ico { font-size:34px; opacity:.5; }
   .pr-card-body { padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; }
   .pr-titulo { font-size:13.5px; font-weight:700; color:#111827; }
-  .pr-sub { font-size:11.5px; color:#6b7280; }
+  .pr-sub { font-size:11.5px; color:#4b5563; }
   .pr-chips { display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; }
   .pr-chip { font-size:10.5px; font-weight:700; color:#1d4ed8; background:#eef2fb; border-radius:999px; padding:2px 8px; }
-  .pr-chip.general { color:#6b7280; background:#f1f3f6; }
+  .pr-chip.general { color:#4b5563; background:#f1f3f6; }
   .pr-frag { font-size:12px; color:#374151; line-height:1.4; }
   .pr-frag mark, .pr-visor-lista mark { background:#fde68a; color:inherit; border-radius:2px; padding:0 1px; }
   .pr-acc { position:absolute; top:6px; right:6px; display:flex; gap:4px; opacity:0; transition:opacity .12s; }
@@ -498,7 +517,7 @@
   .pr-grupo { margin-bottom:18px; }
   .pr-grupo-h { display:flex; align-items:baseline; gap:8px; margin:0 0 8px 2px; }
   .pr-grupo-h b { font-size:13px; color:#1d4ed8; text-transform:uppercase; }
-  .pr-grupo-h span { font-size:12px; color:#6b7280; }
+  .pr-grupo-h span { font-size:12px; color:#4b5563; }
   .pr-star { position:absolute; top:6px; left:6px; z-index:2; border:none; background:rgba(255,255,255,.95); border-radius:50%; width:30px; height:30px;
              font-size:17px; line-height:1; cursor:pointer; color:#9ca3af; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0; margin:0; }
   .pr-star:hover { color:#f59e0b; }
@@ -511,7 +530,7 @@
   .pr-espacio { font-size:12px; border-radius:8px; padding:8px 10px; margin:0 0 10px; background:#f4f6fa; color:#374151; }
   .pr-espacio.alerta { background:#fef2f2; color:#991b1b; }
   .pr-pag { position:absolute; left:8px; bottom:8px; background:rgba(17,24,39,.8); color:#fff; font-size:11px; font-weight:700; border-radius:6px; padding:2px 7px; }
-  .pr-empty { color:#6b7280; padding:40px; text-align:center; font-size:14px; }
+  .pr-empty { color:#4b5563; padding:40px; text-align:center; font-size:14px; }
   /* Visor */
   .pr-visor-bg { display:none; position:fixed; inset:0; top:var(--ds-nav-h, 0px); z-index:340; background:rgba(17,24,39,.72); }
   .pr-visor-bg.open { display:flex; flex-direction:column; }
@@ -524,7 +543,7 @@
   .pr-visor-bar .sp { flex:1; }
   .pr-visor-body { flex:1; display:flex; min-height:0; }
   .pr-visor-lista { width:250px; background:#fff; overflow-y:auto; padding:10px; box-sizing:border-box; border-right:1px solid #e5e7eb; }
-  .pr-visor-lista .h { font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; margin:2px 2px 8px; }
+  .pr-visor-lista .h { font-size:11px; font-weight:700; color:#4b5563; text-transform:uppercase; margin:2px 2px 8px; }
   .pr-visor-lista button { display:block; width:100%; text-align:left; border:1px solid #e2e6ef; background:#fff; border-radius:8px; padding:7px 9px; margin:0 0 6px; cursor:pointer; font-size:12px; color:#374151; }
   .pr-visor-lista button.activo { border-color:#1d4ed8; background:#eff6ff; }
   .pr-visor-lista button b { color:#1d4ed8; }
@@ -535,7 +554,7 @@
   .pr-form-lista { max-height:260px; overflow:auto; margin:6px 0 10px; }
   .pr-form-fila { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
   .pr-form-fila input[type=text] { flex:1; margin:0; padding:6px 8px; font-size:13px; }
-  .pr-form-fila .tam { font-size:11px; color:#6b7280; white-space:nowrap; }
+  .pr-form-fila .tam { font-size:11px; color:#4b5563; white-space:nowrap; }
   .pr-form-fila .est { font-size:11.5px; min-width:120px; text-align:right; }
   .pr-areas-sel { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
   .pr-areas-sel label { display:flex; align-items:center; gap:5px; border:1px solid #d8dde3; border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer; font-weight:600; }
@@ -552,13 +571,13 @@
   .tr-ico { font-size:18px; margin-top:1px; }
   .tr-main { flex:1; min-width:0; }
   .tr-label { font-size:13px; font-weight:700; color:#111827; word-break:break-word; }
-  .tr-meta { font-size:11px; color:#6b7280; margin-top:3px; }
+  .tr-meta { font-size:11px; color:#4b5563; margin-top:3px; }
   .tr-badge { display:inline-block; font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; background:#f4f6f8; border:1px solid #d8dde3; border-radius:6px; padding:1px 6px; margin-right:6px; color:#374151; font-weight:700; }
   .tr-actions { display:flex; gap:6px; }
   .tr-restore { background:#1d4ed8; color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; font-weight:700; cursor:pointer; }
-  .tr-perma { background:none; border:1px solid #d8dde3; color:#6b7280; border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; }
+  .tr-perma { background:none; border:1px solid #d8dde3; color:#4b5563; border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; }
   .tr-perma:hover { color:#dc2626; border-color:#dc2626; }
-  .tr-empty { color:#6b7280; padding:40px; text-align:center; }
+  .tr-empty { color:#4b5563; padding:40px; text-align:center; }
 
 
   .pf-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
@@ -676,7 +695,7 @@
   </div>
 </div>
 
-<div class="ds-overlay" id="ov-comments"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Comments</h1>
+<div class="ds-overlay" id="ov-comments"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Comments</h1>
 <div class="cmt-tabs">
   <button type="button" class="cmt-tab activo" id="cmtTabN3" onclick="cmtMostrarTab('n3')">N3</button>
   <button type="button" class="cmt-tab" id="cmtTabFaq" onclick="cmtMostrarTab('faq')">N2 / Face Design</button>
@@ -687,49 +706,49 @@
     <div class="cmt-col">
       <div class="cmt-section"><h4>General information</h4>
         <div class="cmt-grid c2">
-          <div class="cmt-field"><label>Patient</label><input id="cmt_b4" placeholder="Nombre del paciente"></div>
-          <div class="cmt-field"><label>Order #</label><input id="cmt_j4" placeholder="155273"></div>
+          <div class="cmt-field"><label for="cmt_b4">Patient</label><input id="cmt_b4" placeholder="Nombre del paciente"></div>
+          <div class="cmt-field"><label for="cmt_j4">Order #</label><input id="cmt_j4" placeholder="155273"></div>
         </div>
       </div>
       <div class="cmt-section"><h4>Product</h4>
-        <div class="cmt-field"><label>Product</label>
+        <div class="cmt-field"><label for="cmt_b7">Product</label>
           <input id="cmt_b7" list="cmtProdList" placeholder="Escribe o elige un producto…">
           <datalist id="cmtProdList"></datalist>
         </div>
       </div>
       <div class="cmt-section"><h4>Design details</h4>
         <div class="cmt-grid c3">
-          <div class="cmt-field"><label>Bar adapt</label><input id="cmt_b11" placeholder="0,1mm"></div>
-          <div class="cmt-field"><label>Arch size</label><select id="cmt_d11"></select></div>
-          <div class="cmt-field"><label>TC Custom</label><select id="cmt_f11"></select></div>
-          <div class="cmt-field"><label>VDO lab</label><input id="cmt_h11" placeholder="-1"></div>
-          <div class="cmt-field"><label>VDO Digital</label><input id="cmt_j11" placeholder="-0.8"></div>
-          <div class="cmt-field"><label>PC</label><input id="cmt_l11" placeholder="PC / DDI / InTech #"></div>
+          <div class="cmt-field"><label for="cmt_b11">Bar adapt</label><input id="cmt_b11" placeholder="0,1mm"></div>
+          <div class="cmt-field"><label for="cmt_d11">Arch size</label><select id="cmt_d11"></select></div>
+          <div class="cmt-field"><label for="cmt_f11">TC Custom</label><select id="cmt_f11"></select></div>
+          <div class="cmt-field"><label for="cmt_h11">VDO lab</label><input id="cmt_h11" placeholder="-1"></div>
+          <div class="cmt-field"><label for="cmt_j11">VDO Digital</label><input id="cmt_j11" placeholder="-0.8"></div>
+          <div class="cmt-field"><label for="cmt_l11">PC</label><input id="cmt_l11" placeholder="PC / DDI / InTech #"></div>
         </div>
       </div>
       <div class="cmt-section"><h4>Implants Upper</h4>
         <div class="cmt-grid c2">
-          <div class="cmt-field"><label>Skipped implants</label><input id="cmt_b15" placeholder="#11, #13"></div>
-          <div class="cmt-field"><label>Still moved</label><input id="cmt_f15" placeholder="#16"></div>
-          <div class="cmt-field"><label>Total</label><select id="cmt_j15"></select></div>
-          <div class="cmt-field"><label>Total moved (auto)</label><input class="ro" id="cmt_L15" readonly></div>
+          <div class="cmt-field"><label for="cmt_b15">Skipped implants</label><input id="cmt_b15" placeholder="#11, #13"></div>
+          <div class="cmt-field"><label for="cmt_f15">Still moved</label><input id="cmt_f15" placeholder="#16"></div>
+          <div class="cmt-field"><label for="cmt_j15">Total</label><select id="cmt_j15"></select></div>
+          <div class="cmt-field"><label for="cmt_L15">Total moved (auto)</label><input class="ro" id="cmt_L15" readonly></div>
         </div>
       </div>
       <div class="cmt-section"><h4>Implants Lower</h4>
         <div class="cmt-grid c2">
-          <div class="cmt-field"><label>Skipped implants</label><input id="cmt_b19" placeholder="#36"></div>
-          <div class="cmt-field"><label>Still moved</label><input id="cmt_f19" placeholder="#33"></div>
-          <div class="cmt-field"><label>Total</label><select id="cmt_j19"></select></div>
-          <div class="cmt-field"><label>Total moved (auto)</label><input class="ro" id="cmt_L19" readonly></div>
+          <div class="cmt-field"><label for="cmt_b19">Skipped implants</label><input id="cmt_b19" placeholder="#36"></div>
+          <div class="cmt-field"><label for="cmt_f19">Still moved</label><input id="cmt_f19" placeholder="#33"></div>
+          <div class="cmt-field"><label for="cmt_j19">Total</label><select id="cmt_j19"></select></div>
+          <div class="cmt-field"><label for="cmt_L19">Total moved (auto)</label><input class="ro" id="cmt_L19" readonly></div>
         </div>
       </div>
       <div class="cmt-section"><h4>Additional comments</h4>
-        <div class="cmt-toggle-row"><span class="lbl">Número de Attachment del archivo To mill</span><input id="cmt_l22" placeholder="#"></div>
-        <div class="cmt-toggle-row"><span class="lbl">Número de Attachment del HTML aprobado por el doctor</span><input id="cmt_l23" placeholder="#"></div>
-        <div class="cmt-toggle-row"><span class="lbl">Se hicieron cambios de midline o cant sin rearticular el caso</span><select id="cmt_l24"></select></div>
-        <div class="cmt-toggle-row"><span class="lbl">Se extendió el tissue para tener información suficiente</span><select id="cmt_l25"></select></div>
-        <div class="cmt-toggle-row"><span class="lbl">Single 24z: El doctor aprobó continuar con la oclusión del N2</span><select id="cmt_l26"></select></div>
-        <div class="cmt-toggle-row"><span class="lbl">Single 24Z: El waxup se está pasando con el antagonista</span><select id="cmt_l27"></select></div>
+        <div class="cmt-toggle-row"><label class="lbl" for="cmt_l22">Número de Attachment del archivo To mill</label><input id="cmt_l22" placeholder="#"></div>
+        <div class="cmt-toggle-row"><label class="lbl" for="cmt_l23">Número de Attachment del HTML aprobado por el doctor</label><input id="cmt_l23" placeholder="#"></div>
+        <div class="cmt-toggle-row"><label class="lbl" for="cmt_l24">Se hicieron cambios de midline o cant sin rearticular el caso</label><select id="cmt_l24"></select></div>
+        <div class="cmt-toggle-row"><label class="lbl" for="cmt_l25">Se extendió el tissue para tener información suficiente</label><select id="cmt_l25"></select></div>
+        <div class="cmt-toggle-row"><label class="lbl" for="cmt_l26">Single 24z: El doctor aprobó continuar con la oclusión del N2</label><select id="cmt_l26"></select></div>
+        <div class="cmt-toggle-row"><label class="lbl" for="cmt_l27">Single 24Z: El waxup se está pasando con el antagonista</label><select id="cmt_l27"></select></div>
       </div>
       <div class="cmt-section"><h4>Notes</h4>
         <div class="cmt-field"><textarea id="cmt_b30" rows="3" placeholder="Notas libres…"></textarea></div>
@@ -740,13 +759,13 @@
     <div class="cmt-col">
       <div class="cmt-outbox">
         <div class="cmt-outbox-head"><span class="t">Ready to mill comment</span>
-          <button type="button" class="btn mini" onclick="cmtCopiar('cmtOut1')">Copiar</button></div>
-        <textarea id="cmtOut1" readonly></textarea>
+          <button type="button" class="btn mini" onclick="cmtCopiar('cmtOut1', this)">Copiar</button></div>
+        <textarea id="cmtOut1" readonly aria-label="Ready to mill comment (generado)"></textarea>
       </div>
       <div class="cmt-outbox">
         <div class="cmt-outbox-head"><span class="t">Everything is Ok comment</span>
-          <button type="button" class="btn mini" onclick="cmtCopiar('cmtOut2')">Copiar</button></div>
-        <textarea id="cmtOut2" readonly></textarea>
+          <button type="button" class="btn mini" onclick="cmtCopiar('cmtOut2', this)">Copiar</button></div>
+        <textarea id="cmtOut2" readonly aria-label="Everything is Ok comment (generado)"></textarea>
       </div>
     </div>
 
@@ -781,7 +800,7 @@
     <div class="faq-scroll"><table class="faq-tabla"><thead id="faqHead"></thead><tbody id="faqBody"></tbody></table></div>
   </div>
 </div></div></div>
-<div class="ds-overlay" id="ov-preapproved"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Pre-Approved — Design Schedule<span id="paTituloHoja"></span></h1>
+<div class="ds-overlay" id="ov-preapproved"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Pre-Approved — Design Schedule<span id="paTituloHoja"></span></h1>
 <div class="ds-area-row"><div class="pa-tabs" id="paAreaTabs"></div></div>
 <div class="pa-top">
   <div class="pa-top-izq" id="paIzq" style="display:none">
@@ -804,10 +823,10 @@
     {% endif %}
   </div>
 </div>
-<p id="paSinHoja" style="color:#6b7280;padding:40px 0;text-align:center">Selecciona un área y una hoja para verla.</p>
+<p id="paSinHoja" style="color:#4b5563;padding:40px 0;text-align:center">Selecciona un área y una hoja para verla.</p>
 
 <div class="pac-modal-bg" id="pacModal">
-  <div class="pac-modal">
+  <div class="pac-modal" role="dialog" aria-modal="true" aria-label="Cambios: mover o intercambiar entre managers">
     <h2>🔀 Cambios — Mover / Intercambiar entre managers</h2>
     <div class="pac-mode">
       <button type="button" class="pac-mode-btn activo" data-mode="move">Mover</button>
@@ -843,12 +862,12 @@
   <div class="pa-titulo" id="paTitulo"></div>
   <div class="pa-scroll" id="paScroll"><table class="pa-t" id="paTabla"></table></div>
 </div></div></div>
-<div class="ds-overlay" id="ov-canvas"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1 style="margin-bottom:6px">Canvas — Design Schedule</h1>
-<p style="color:#6b7280;font-size:13px;margin-top:-2px">Hojas de trabajo con marcos de foto (arcos dentales, angulación de implantes) y anotaciones.</p>
+<div class="ds-overlay" id="ov-canvas"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 style="margin-bottom:6px">Canvas — Design Schedule</h1>
+<p style="color:#4b5563;font-size:13px;margin-top:-2px">Hojas de trabajo con marcos de foto (arcos dentales, angulación de implantes) y anotaciones.</p>
 <div class="cv-area-tabs" id="cvAreaTabs"></div>
 <div id="canvasHome"></div>
 <div id="canvasEditor" style="display:none"></div></div></div>
-<div class="ds-overlay" id="ov-protocols"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Protocols — Design Schedule</h1>
+<div class="ds-overlay" id="ov-protocols"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Protocols — Design Schedule</h1>
 
 <div class="pr-top">
   <div class="pr-tabs" id="prAreaTabs"></div>
@@ -864,18 +883,18 @@
 <div class="pr-panel"><div id="prGrid"></div></div>
 <input type="file" id="prFileInput" accept="application/pdf,.pdf" multiple style="display:none">
 
-<div class="pr-visor-bg" id="prVisor">
+<div class="pr-visor-bg" id="prVisor" role="dialog" aria-modal="true" aria-labelledby="prVisorTitulo">
   <div class="pr-visor-bar">
     <span class="t" id="prVisorTitulo"></span>
     <span class="n" id="prVisorPos"></span>
-    <button type="button" id="prVisorAnt" title="Diapositiva anterior (←)">‹</button>
-    <button type="button" id="prVisorSig" title="Diapositiva siguiente (→)">›</button>
+    <button type="button" id="prVisorAnt" title="Diapositiva anterior (←)" aria-label="Diapositiva anterior">‹</button>
+    <button type="button" id="prVisorSig" title="Diapositiva siguiente (→)" aria-label="Diapositiva siguiente">›</button>
     <span class="n" id="prVisorCoinc"></span>
     <span class="sp"></span>
-    <button type="button" id="prVisorMenos" title="Alejar">−</button>
-    <button type="button" id="prVisorMas" title="Acercar">+</button>
-    <a id="prVisorDescargar" href="#" target="_blank" rel="noopener" title="Abrir o descargar el PDF">⬇ PDF</a>
-    <button type="button" id="prVisorCerrar" title="Cerrar (Esc)">✕</button>
+    <button type="button" id="prVisorMenos" title="Alejar" aria-label="Alejar">−</button>
+    <button type="button" id="prVisorMas" title="Acercar" aria-label="Acercar">+</button>
+    <a id="prVisorDescargar" target="_blank" rel="noopener" title="Abrir o descargar el PDF">⬇ PDF</a>
+    <button type="button" id="prVisorCerrar" title="Cerrar (Esc)" aria-label="Cerrar visor">✕</button>
   </div>
   <div class="pr-visor-body">
     <div class="pr-visor-lista" id="prVisorLista"></div>
@@ -884,29 +903,29 @@
 </div>
 </div></div>
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
-<div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Dashboard — Design Schedule</h1>
+<div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Dashboard — Design Schedule</h1>
 
 <div class="dd-search">
-  <input type="text" id="ddBuscar" placeholder="Buscar por número de orden o paciente en todos los equipos...">
+  <input type="text" id="ddBuscar" aria-label="Buscar orden o paciente" onkeydown="if (event.key === 'Enter') ddBuscar()" placeholder="Buscar por número de orden o paciente en todos los equipos...">
   <button type="button" class="btn" onclick="ddBuscar()">Buscar</button>
 </div>
 <div id="ddResultadosBusqueda"></div>
 
 <div class="dd-filtros">
-  <div><label>Área</label>
+  <div><label for="ddArea">Área</label>
     <select id="ddArea" onchange="ddCambioArea()">
       <option value="">-- Todas --</option>
       {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
     </select>
   </div>
-  <div><label>Equipo</label><select id="ddTeam"><option value="">-- Todos --</option></select></div>
-  <div><label>Producto</label><input type="text" id="ddProducto" placeholder="Ej: N3 - Screw Retained"></div>
-  <div><label>Estado</label><input type="text" id="ddEstado" placeholder="Ej: Approved"></div>
-  <div><label>QC</label>
+  <div><label for="ddTeam">Equipo</label><select id="ddTeam"><option value="">-- Todos --</option></select></div>
+  <div><label for="ddProducto">Producto</label><input type="text" id="ddProducto" placeholder="Ej: N3 - Screw Retained"></div>
+  <div><label for="ddEstado">Estado</label><input type="text" id="ddEstado" placeholder="Ej: Approved"></div>
+  <div><label for="ddQc">QC</label>
     <select id="ddQc"><option value="">-- Todos --</option><option value="si">Con QC</option><option value="no">Sin QC</option></select>
   </div>
-  <div><label>Desde</label><input type="date" id="ddDesde"></div>
-  <div><label>Hasta</label><input type="date" id="ddHasta"></div>
+  <div><label for="ddDesde">Desde</label><input type="date" id="ddDesde"></div>
+  <div><label for="ddHasta">Hasta</label><input type="date" id="ddHasta"></div>
   <div><button type="button" class="btn" onclick="ddCargar()">Filtrar</button></div>
 </div>
 
@@ -936,18 +955,18 @@
 </div></div></div>
 {% endif %}
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
-<div class="ds-overlay" id="ov-perf"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><h1>Desempeño<span id="pfTituloHoja"></span></h1>
-<p style="color:#6b7280;font-size:13px;margin-top:-8px">Solo aprobadores y administradores. Evaluaciones mensuales por equipo y selección de empleado del mes.</p>
+<div class="ds-overlay" id="ov-perf"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Desempeño<span id="pfTituloHoja"></span></h1>
+<p style="color:#4b5563;font-size:13px;margin-top:-8px">Solo aprobadores y administradores. Evaluaciones mensuales por equipo y selección de empleado del mes.</p>
 <div class="ds-area-row"><div class="pf-tabs" id="pfSheetTabs"></div></div>
 <p id="pfSinHoja" class="ds-sin-equipo" style="min-height:260px">Selecciona un área y un equipo para ver su evaluación.</p>
 <div class="pf-panel" id="pfPanel" style="display:none"></div></div></div>
 {% endif %}
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
-<div class="ds-overlay" id="ov-papelera"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar">&#10005;</button><div class="tr-toolbar">
+<div class="ds-overlay" id="ov-papelera"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><div class="tr-toolbar">
   <h1 style="margin:0">Papelera — Design Schedule</h1>
-  <button type="button" class="btn gris" id="trVaciarBtn">Vaciar historial</button>
+  {% if user.rol in ('admin', 'superadmin') %}<button type="button" class="btn gris" id="trVaciarBtn">Vaciar historial</button>{% endif %}
 </div>
-<p style="color:#6b7280;font-size:13px;margin-top:-8px">Registro de borrados en Pre-Approved (hojas, centros, doctores, criterios), Protocols y Canvas. Se puede restaurar mientras el destino siga existiendo.</p>
+<p style="color:#4b5563;font-size:13px;margin-top:-8px">Registro de borrados en Pre-Approved (hojas, centros, doctores, criterios), Protocols y Canvas. Se puede restaurar mientras el destino siga existiendo.</p>
 <div class="tr-list" id="trList"></div></div></div>
 {% endif %}
 
@@ -997,15 +1016,38 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <script>
+// ---------- Red: una sola función para todos los paneles de Design Schedule ----------
+// Revisa el código de respuesta (antes varios paneles trataban un error 4xx/5xx como éxito) y da un
+// mensaje claro si el servidor devuelve HTML (sesión vencida, error del proxy) en vez de JSON.
+window.dsFetchJSON = function(url, opts) {
+  return fetch(url, opts || {}).catch(function() {
+    var e = new Error('Se perdió la conexión con el servidor. Intenta de nuevo.'); e.ds = true; throw e;
+  }).then(function(r) {
+    return r.text().then(function(t) {
+      var d = null; try { d = t ? JSON.parse(t) : null; } catch (x) {}
+      var e;
+      if (!r.ok) {
+        var det = d && d.detail;
+        e = new Error(Array.isArray(det) ? 'Hay datos inválidos en lo que se envió.' : (det || ('El servidor respondió con un error (' + r.status + ').')));
+      } else if (d === null && t) {
+        e = new Error('Respuesta inesperada del servidor. Si se cerró la sesión, recarga la página.');
+      }
+      if (e) { e.ds = true; e.status = r.status; throw e; }
+      return d;
+    });
+  });
+};
+window.dsPostJSON = function(url, body) {
+  return window.dsFetchJSON(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
+};
+// Red de seguridad: si una acción falla y nadie manejó el error, se avisa en pantalla en vez de fallar en silencio.
+window.addEventListener('unhandledrejection', function(ev) {
+  var e = ev.reason;
+  if (e && e.ds && window.dsToast) { window.dsToast('⚠️ ' + e.message); ev.preventDefault(); }
+});
 
 (function() {
-  function api(url, opts) {
-    opts = opts || {};
-    return fetch(url, opts).then(function(r) {
-      if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || r.statusText); });
-      return r.json();
-    });
-  }
+  function api(url, opts) { return window.dsFetchJSON(url, opts); }
   function postJSON(url, body) {
     return api(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   }
@@ -1152,6 +1194,10 @@ document.addEventListener('keydown', function(e) {
       var teamId = DS.deepLinkTeamId;
       DS.deepLinkAreaId = DS.deepLinkTeamId = null;
       if (area && teamId) dsIrAEquipo(area, teamId);
+    }).catch(function(e) {
+      var cont = document.getElementById('dsAreaTabs');
+      cont.innerHTML = '<span class="ds-err-carga">No se pudieron cargar las áreas. <button type="button" class="btn mini">Reintentar</button></span>';
+      cont.querySelector('button').onclick = dsCargarAreas;
     });
   }
 
@@ -1324,7 +1370,10 @@ document.addEventListener('keydown', function(e) {
         return;
       }
       var ev = (input.tagName === 'SELECT' || input.type === 'checkbox') ? 'change' : 'blur';
-      input.addEventListener(ev, function() { dsGuardarFila(tr, tabla); });
+      input.addEventListener(ev, function() {
+        if (ev === 'blur' && input._alEnfocar !== undefined && input.value === input._alEnfocar) return; // no cambió
+        dsGuardarFila(tr, tabla);
+      });
     });
   }
 
@@ -1430,22 +1479,22 @@ document.addEventListener('keydown', function(e) {
   }
 
   function dsCeldaInput(c, f) {
-    var val = f[c.k];
-    if (c.t === 'text') return '<input type="text" data-campo="' + c.k + '" value="' + dsEsc(val || '') + '">';
-    if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '" value="' + dsEsc(val || 0) + '">';
-    if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '" value="' + dsEsc(val || '') + '">';
-    if (c.t === 'checkbox') return '<input type="checkbox" data-campo="' + c.k + '" ' + (val ? 'checked' : '') + '>';
+    var val = f[c.k], al = ' aria-label="' + dsEsc(c.l || c.k) + '"';
+    if (c.t === 'text') return '<input type="text" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
+    if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || 0) + '">';
+    if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
+    if (c.t === 'checkbox') return '<input type="checkbox" data-campo="' + c.k + '"' + al + ' ' + (val ? 'checked' : '') + '>';
     if (c.t === 'select') {
-      var html = '<select data-campo="' + c.k + '">';
-      c.opciones.forEach(function(o) { html += '<option value="' + o + '"' + (o === val ? ' selected' : '') + '>' + (o || '—') + '</option>'; });
+      var html = '<select data-campo="' + c.k + '"' + al + '>';
+      c.opciones.forEach(function(o) { html += '<option value="' + dsEsc(o) + '"' + (o === val ? ' selected' : '') + '>' + (o ? dsEsc(o) : '—') + '</option>'; });
       return html + '</select>';
     }
     if (c.t === 'catalogo') {
-      return '<select data-campo="' + c.k + '" data-valor-actual="' + dsEsc(val || '') + '"><option value="">—</option>' +
+      return '<select data-campo="' + c.k + '"' + al + ' data-valor-actual="' + dsEsc(val || '') + '"><option value="">—</option>' +
              (val ? '<option value="' + dsEsc(val) + '" selected>' + dsEsc(val) + '</option>' : '') + '</select>';
     }
     if (c.t === 'designer') {
-      var html = '<select data-campo="designerId"><option value="">—</option>';
+      var html = '<select data-campo="designerId"' + al + '><option value="">—</option>';
       (DS.diaData ? DS.diaData.designers : []).forEach(function(d) {
         html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + '</option>';
       });
@@ -1454,7 +1503,7 @@ document.addEventListener('keydown', function(e) {
     return '';
   }
 
-  function dsEsc(v) { return String(v).replace(/"/g, '&quot;'); }
+  function dsEsc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
   function dsFilaDesdeForm(tr) {
     var datos = {teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada())};
@@ -1517,7 +1566,11 @@ document.addEventListener('keydown', function(e) {
         dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [{id: id, antes: antes, despues: dsClon(o)}], creadas: [], eliminadas: []});
       }
       dsTrasGuardar(tabla, tr, o);
-    }).catch(function(e) { alert('Error guardando: ' + e.message); });
+    }).catch(function(e) {
+      if (local && antes) Object.assign(local, antes); // los contadores y el orden no quedan con datos no guardados
+      alert('Error guardando: ' + e.message);
+      dsCargarDia(true);
+    });
   }
 
   function dsTrasGuardar(tabla, tr, o) {
@@ -1635,7 +1688,7 @@ document.addEventListener('keydown', function(e) {
   var dsAusenciasPromesa = null; // la lista de tipos de ausencia se pide una sola vez
   function dsRenderBreaks(dia) {
     var cont = document.getElementById('dsBreaks');
-    if (!dia.designers.length) { cont.innerHTML = '<p style="color:#6b7280">Este equipo no tiene diseñadores asignados.</p>'; return; }
+    if (!dia.designers.length) { cont.innerHTML = '<p style="color:#4b5563">Este equipo no tiene diseñadores asignados.</p>'; return; }
     if (!dsAusenciasPromesa) dsAusenciasPromesa = api('/design/api/ausencias').catch(function(e) { dsAusenciasPromesa = null; throw e; });
     dsAusenciasPromesa.then(function(tipos) {
       if (DS.diaData !== dia) return; // cambió de día/equipo mientras cargaba
@@ -1645,10 +1698,10 @@ document.addEventListener('keydown', function(e) {
         var card = document.createElement('div'); card.className = 'ds-tl-card'; card.dataset.empleadoId = d.id;
         var fila = function(lbl, ini, fin, conCheck) {
           return '<div class="ds-tl-fila"><span class="ds-tl-lbl">' + lbl + '</span>' +
-            (conCheck ? '<input type="checkbox" data-descanso="' + conCheck + '" title="Registrar descanso de ' + DS_DESCANSO_MIN + ' min desde ahora">' : '<span></span>') +
-            '<input type="time" data-campo="' + ini + '" value="' + dsEsc(b[ini] || '') + '">' +
+            (conCheck ? '<input type="checkbox" data-descanso="' + conCheck + '" title="Registrar descanso de ' + DS_DESCANSO_MIN + ' min desde ahora" aria-label="Registrar ' + lbl + ' de ' + dsEsc(d.nombre) + '">' : '<span></span>') +
+            '<input type="time" data-campo="' + ini + '" aria-label="' + lbl + ' de ' + dsEsc(d.nombre) + ': inicio" value="' + dsEsc(b[ini] || '') + '">' +
             '<span class="ds-tl-guion">-</span>' +
-            '<input type="time" data-campo="' + fin + '" value="' + dsEsc(b[fin] || '') + '"></div>';
+            '<input type="time" data-campo="' + fin + '" aria-label="' + lbl + ' de ' + dsEsc(d.nombre) + ': fin" value="' + dsEsc(b[fin] || '') + '"></div>';
         };
         // La ausencia funciona igual que antes (mismo selector y valores); solo cambió de lugar.
         card.innerHTML =
@@ -1656,7 +1709,7 @@ document.addEventListener('keydown', function(e) {
             '<span class="ds-tl-aus">' +
               (b.ausenciaAutomatica ? '<span title="Tomado automáticamente de un permiso aprobado en People" style="color:#16a34a">🔒 People</span>' : '') +
               '<select data-campo="tipoAusencia" title="Ausencia" aria-label="Ausencia"><option value="">—</option>' +
-                tipos.map(function(t) { return '<option value="' + t + '"' + (t === b.tipoAusencia ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
+                tipos.map(function(t) { return '<option value="' + dsEsc(t) + '"' + (t === b.tipoAusencia ? ' selected' : '') + '>' + dsEsc(t) + '</option>'; }).join('') +
               '</select></span></div>' +
           fila('Almuerzo', 'almuerzoInicio', 'almuerzoFin', null) +
           fila('Descanso 1', 'break1Inicio', 'break1Fin', 'break1') +
@@ -1732,14 +1785,26 @@ document.addEventListener('keydown', function(e) {
     if (!DS.teamId) return;
     var url = '/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada());
     DS.diaUrl = url;
+    // Mientras llega el día nuevo, la tabla del día anterior no se puede editar (se guardaría con otra fecha).
+    document.body.classList.add('ds-cargando-dia');
     api(url).then(function(dia) {
       if (DS.diaUrl !== url) return; // llegó tarde: ya se pidió otro día/equipo
+      document.body.classList.remove('ds-cargando-dia');
       DS.diaData = dia;
       dsRenderTabla('principal');
       if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
       dsAplicarCierre();
       dsRenderKpis(dia);
       if (!soloOrdenes) dsRenderBreaks(dia);
+    }).catch(function(e) {
+      if (DS.diaUrl !== url) return;
+      document.body.classList.remove('ds-cargando-dia');
+      DS.diaData = null;
+      ['dsTablaPrincipal', 'dsTablaNightguard'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
+      var cont = document.getElementById('dsTablaPrincipal');
+      cont.innerHTML = '<p class="ds-err-carga">No se pudo cargar el día: <span></span> <button type="button" class="btn mini">Reintentar</button></p>';
+      cont.querySelector('span').textContent = e.message;
+      cont.querySelector('button').onclick = function() { dsCargarDia(); };
     });
   }
 
@@ -1755,6 +1820,7 @@ document.addEventListener('keydown', function(e) {
   function dsMismaOrden(a, b) { return DS_CAMPOS.every(function(k) { return (a[k] == null ? '' : a[k]) === (b[k] == null ? '' : b[k]); }); }
   function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
 
+  window.dsToast = function(m) { dsToast(m); };
   function dsToast(msg) {
     var t = document.getElementById('dsToast');
     if (!t) { t = document.createElement('div'); t.id = 'dsToast'; t.className = 'ds-toast'; document.body.appendChild(t); }
@@ -2099,7 +2165,7 @@ document.addEventListener('keydown', function(e) {
     {k:'producto', l:'Producto'}, {k:'designerNombre', l:'Diseñador'}, {k:'estado', l:'Estado'},
   ];
   function dsRenderResumenTabla(filas) {
-    if (!filas.length) return '<p style="color:#6b7280;font-size:12px;margin:4px 0 14px">Sin órdenes este día.</p>';
+    if (!filas.length) return '<p style="color:#4b5563;font-size:12px;margin:4px 0 14px">Sin órdenes este día.</p>';
     var html = '<table class="ds-tabla" style="margin-bottom:14px"><thead><tr>';
     COLS_RESUMEN.forEach(function(c) { html += '<th>' + c.l + '</th>'; });
     html += '</tr></thead><tbody>';
@@ -2112,12 +2178,15 @@ document.addEventListener('keydown', function(e) {
   function dsCargarTodasAreas() {
     var fecha = dsFechaISO(new Date(DS.lunes.getFullYear(), DS.lunes.getMonth(), DS.lunes.getDate() + DS.diaSel));
     var cont = document.getElementById('dsTodasAreasCont');
-    cont.innerHTML = '<p style="color:#6b7280">Cargando…</p>';
+    cont.innerHTML = '<p style="color:#4b5563">Cargando…</p>';
     DS.todasFecha = fecha;
-    api('/design/api/todas-areas?fecha=' + fecha).then(function(areas) {
-      if (DS.todasFecha !== fecha) return; // cambió el día/semana mientras cargaba
+    api('/design/api/todas-areas?fecha=' + fecha).catch(function(e) {
+      if (DS.todasFecha === fecha) { cont.innerHTML = '<p class="ds-err-carga"></p>'; cont.firstChild.textContent = 'No se pudo cargar: ' + e.message; }
+      return null;
+    }).then(function(areas) {
+      if (!areas || DS.todasFecha !== fecha) return; // cambió el día/semana mientras cargaba
       var conEquipos = areas.filter(function(a) { return a.teams.length; });
-      if (!conEquipos.length) { cont.innerHTML = '<p style="color:#6b7280">No hay equipos configurados en ninguna área todavía.</p>'; return; }
+      if (!conEquipos.length) { cont.innerHTML = '<p style="color:#4b5563">No hay equipos configurados en ninguna área todavía.</p>'; return; }
       var html = '';
       conEquipos.forEach(function(a) {
         html += '<div class="ds-panel"><h3 style="font-size:16px;color:#111827">' + dsEsc(a.nombre) + '</h3>';
@@ -2172,15 +2241,18 @@ document.addEventListener('keydown', function(e) {
 
 <script>
 
-function ddApi(url) { return fetch(url).then(function(r) { return r.json(); }); }
+function ddApi(url) { return window.dsFetchJSON(url); }
 function ddEsc(v) { return String(v == null ? '' : v).replace(/</g, '&lt;'); }
 function ddMin(m) { return Math.floor(m/60) + 'h ' + Math.round(m%60) + 'm'; }
 
 function ddCambioArea() {
   var areaId = document.getElementById('ddArea').value;
   var sel = document.getElementById('ddTeam'); sel.innerHTML = '<option value="">-- Todos --</option>';
+  var tok = ddCambioArea.tok = (ddCambioArea.tok || 0) + 1; // dos cambios rápidos ya no mezclan equipos
   if (!areaId) return;
   ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
+    if (tok !== ddCambioArea.tok) return;
+    sel.innerHTML = '<option value="">-- Todos --</option>';
     teams.forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
   });
 }
@@ -2195,7 +2267,17 @@ function ddCargar() {
   var desde = document.getElementById('ddDesde').value; if (desde) params.set('fecha_desde', desde);
   var hasta = document.getElementById('ddHasta').value; if (hasta) params.set('fecha_hasta', hasta);
 
-  ddApi('/design/api/dashboard?' + params.toString()).then(function(data) {
+  var tok = ddCargar.tok = (ddCargar.tok || 0) + 1;
+  document.getElementById('ddKpis').style.opacity = '.5';
+  ddApi('/design/api/dashboard?' + params.toString()).catch(function(e) {
+    if (tok !== ddCargar.tok) return null;
+    document.getElementById('ddKpis').style.opacity = '';
+    document.getElementById('ddKpis').innerHTML = '<div style="color:#b91c1c;padding:10px"></div>';
+    document.getElementById('ddKpis').firstChild.textContent = 'No se pudo cargar el dashboard: ' + e.message;
+    return null;
+  }).then(function(data) {
+    if (!data || tok !== ddCargar.tok) return;
+    document.getElementById('ddKpis').style.opacity = '';
     document.getElementById('ddKpis').innerHTML =
       '<div class="dd-kpi"><b>' + data.totalCasos + '</b>Casos totales</div>' +
       '<div class="dd-kpi"><b>' + data.qcReportes.length + '</b>Con reporte QC</div>' +
@@ -2203,7 +2285,7 @@ function ddCargar() {
 
     document.getElementById('ddProduccion').innerHTML = data.porDesigner.map(function(d) {
       return '<tr><td>' + ddEsc(d.nombre) + '</td><td>' + d.casos + '</td><td>' + ddMin(d.duracionMin) + '</td></tr>';
-    }).join('') || '<tr><td colspan="3" style="color:#6b7280">Sin datos.</td></tr>';
+    }).join('') || '<tr><td colspan="3" style="color:#4b5563">Sin datos.</td></tr>';
 
     var maxCasos = Math.max.apply(null, data.porProducto.map(function(p) { return p.casos; }).concat([1]));
     document.getElementById('ddProductoMix').innerHTML = data.porProducto.map(function(p) {
@@ -2211,17 +2293,17 @@ function ddCargar() {
       return '<div class="dd-bar-row"><span class="dd-bar-label">' + ddEsc(p.producto) + '</span>' +
              '<div class="dd-bar-track"><div class="dd-bar-fill" style="width:' + pct + '%"></div></div>' +
              '<span>' + p.casos + '</span></div>';
-    }).join('') || '<p style="color:#6b7280">Sin datos.</p>';
+    }).join('') || '<p style="color:#4b5563">Sin datos.</p>';
 
     document.getElementById('ddQcReportes').innerHTML = data.qcReportes.map(function(r) {
       return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td>' +
              '<td>' + ddEsc(r.designerNombre) + '</td><td>' + ddEsc(r.qcReporte) + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" style="color:#6b7280">Sin datos.</td></tr>';
+    }).join('') || '<tr><td colspan="5" style="color:#4b5563">Sin datos.</td></tr>';
 
     document.getElementById('ddSinQc').innerHTML = data.sinQc.map(function(r) {
       return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td>' +
              '<td>' + ddEsc(r.estado) + '</td><td>' + ddEsc(r.designerNombre) + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" style="color:#6b7280">Sin datos.</td></tr>';
+    }).join('') || '<tr><td colspan="5" style="color:#4b5563">Sin datos.</td></tr>';
   });
 }
 
@@ -2230,7 +2312,7 @@ function ddBuscar() {
   if (!q) { document.getElementById('ddResultadosBusqueda').innerHTML = ''; return; }
   ddApi('/design/api/buscar?q=' + encodeURIComponent(q)).then(function(res) {
     var cont = document.getElementById('ddResultadosBusqueda');
-    if (!res.length) { cont.innerHTML = '<p style="color:#6b7280">Sin resultados.</p>'; return; }
+    if (!res.length) { cont.innerHTML = '<p style="color:#4b5563">Sin resultados.</p>'; return; }
     cont.innerHTML = '<div class="dd-panel"><table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Área</th><th>Equipo</th><th>Fecha</th></tr></thead><tbody>' +
       res.map(function(r) {
         return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + ddEsc(r.area) + '</td>' +
@@ -2246,11 +2328,8 @@ window.DS_PANELS.dashboard = ddCargar;
 <script>
 
 (function() {
-  function api(url) { return fetch(url).then(function(r) { return r.json(); }); }
-  function postJSON(url, body) {
-    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})})
-      .then(function(r) { return r.json(); });
-  }
+  function api(url) { return window.dsFetchJSON(url); }
+  function postJSON(url, body) { return window.dsPostJSON(url, body); }
 
   window.cmtMostrarTab = function(tab) {
     document.getElementById('cmtPanelN3').style.display = tab === 'n3' ? '' : 'none';
@@ -2451,7 +2530,7 @@ window.DS_PANELS.dashboard = ddCargar;
       '<button type="button" class="cmt-tpl-ico" title="Editar nota" onclick="cmtNotaAbrir(' + tpl.id + ')">✎</button>' +
       '<button type="button" class="cmt-tpl-ico" title="Eliminar nota (va a la Papelera)" onclick="cmtNotaEliminar(' + tpl.id + ')">🗑</button>';
     return '<div class="cmt-tpl-item"><div class="cmt-tpl-head">' + star + '<span class="cmt-tpl-name">' + cmtEscHtml(tpl.n) + '</span>' +
-           '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ')">Copiar</button></span></div>' +
+           '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ', this)">Copiar</button></span></div>' +
            '<div class="cmt-tpl-text">' + cmtEscHtml(cmtTplText(tpl, f)) + '</div></div>';
   }
   function cmtRenderPlantillas() {
@@ -2518,17 +2597,32 @@ window.DS_PANELS.dashboard = ddCargar;
     if (!tpl || !confirm('¿Eliminar la nota "' + tpl.n + '"? Se puede recuperar desde la Papelera.')) return;
     postJSON('/design/api/comentarios/templates/' + id + '/eliminar').then(cmtCargarPlantillas);
   };
-  window.cmtCopiar = function(id) {
-    var el = document.getElementById(id);
-    navigator.clipboard.writeText(el.value).then(function() {}, function() { el.select(); document.execCommand('copy'); });
+  // Copiar: usa el portapapeles del navegador y, si no está disponible, el método clásico. Muestra "Copiado".
+  window.dsCopiar = function(texto, boton) {
+    var hecho = function() {
+      if (!boton) return;
+      var t = boton.textContent; boton.textContent = 'Copiado ✓';
+      setTimeout(function() { boton.textContent = t; }, 1200);
+    };
+    var clasico = function() {
+      var ta = document.createElement('textarea'); ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); hecho(); } catch (e) { alert('No se pudo copiar. Selecciona el texto y usa Ctrl+C.'); }
+      ta.remove();
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texto).then(hecho, clasico); else clasico();
   };
+  window.cmtCopiar = function(id, boton) { window.dsCopiar(document.getElementById(id).value, boton); };
   window.cmtLimpiar = function() {
     var f = cmtLeer();
-    if (f.b4 || f.j4) {
-      postJSON('/design/api/comentarios/historial', {paciente: f.b4, orden: f.j4, campos: f}).then(cmtCargarHistorial);
-    }
-    CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = ""; });
-    cmtRecalcular();
+    var vaciar = function() {
+      CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = ""; });
+      cmtRecalcular();
+    };
+    if (!(f.b4 || f.j4)) { vaciar(); return; }
+    postJSON('/design/api/comentarios/historial', {paciente: f.b4, orden: f.j4, campos: f})
+      .then(function() { vaciar(); cmtCargarHistorial(); })
+      .catch(function(e) { alert('No se guardó en el historial, así que no se borró el formulario: ' + e.message); });
   };
   function cmtCargarDesdeHistorial(campos) {
     CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = campos[k] || ""; });
@@ -2538,10 +2632,10 @@ window.DS_PANELS.dashboard = ddCargar;
     api('/design/api/comentarios/historial').then(function(hist) {
       var cont = document.getElementById('cmtHistList');
       cont.innerHTML = hist.map(function(h) {
-        return '<div class="cmt-hist-item"><span>' + (h.paciente || '') + ' ' + (h.orden || '') + '</span>' +
+        return '<div class="cmt-hist-item"><span>' + cmtEscHtml(h.paciente || '') + ' ' + cmtEscHtml(h.orden || '') + '</span>' +
                '<span><button type="button" class="btn mini" onclick="cmtVerHistorial(' + h.id + ')">Cargar</button> ' +
                '<button type="button" class="btn rojo mini" onclick="cmtBorrarHistorial(' + h.id + ')">×</button></span></div>';
-      }).join('') || '<p style="color:#6b7280;font-size:12px">Sin historial reciente.</p>';
+      }).join('') || '<p style="color:#4b5563;font-size:12px">Sin historial reciente.</p>';
       window._cmtHist = hist;
     });
   }
@@ -2553,7 +2647,10 @@ window.DS_PANELS.dashboard = ddCargar;
     postJSON('/design/api/comentarios/historial/' + id + '/eliminar').then(cmtCargarHistorial);
   };
 
+  var cmtListo = false;
   function cmtInit() {
+    if (cmtListo) { cmtCargarHistorial(); cmtCargarPlantillas(); return; }
+    cmtListo = true;
     document.getElementById('cmt_d11').innerHTML = '<option value="">—</option>' + CMT_ARCH.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
     document.getElementById('cmt_j15').innerHTML = '<option value="">—</option>' + CMT_TOTALS.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
     document.getElementById('cmt_j19').innerHTML = '<option value="">—</option>' + CMT_TOTALS.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
@@ -2571,7 +2668,7 @@ window.DS_PANELS.dashboard = ddCargar;
         document.getElementById('cmtProdList').innerHTML = todos.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
       });
     });
-    CMT_FIELDS.concat(['fake']).forEach(function(k) {
+    CMT_FIELDS.forEach(function(k) {
       var el = document.getElementById('cmt_' + k);
       if (el) el.addEventListener('input', cmtRecalcular);
       if (el && el.tagName === 'SELECT') el.addEventListener('change', cmtRecalcular);
@@ -2580,9 +2677,9 @@ window.DS_PANELS.dashboard = ddCargar;
     cmtCargarHistorial();
     cmtCargarPlantillas();
   }
-  window.cmtCopiarPlantilla = function(i) {
+  window.cmtCopiarPlantilla = function(i, boton) {
     var f = cmtLeer();
-    if (CMT_TPL[i]) navigator.clipboard.writeText(cmtTplText(CMT_TPL[i], f)).catch(function() {});
+    if (CMT_TPL[i]) window.dsCopiar(cmtTplText(CMT_TPL[i], f), boton);
   };
 
   // ================= N2 / Face Design: hojas FAQ =================
@@ -2645,7 +2742,7 @@ window.DS_PANELS.dashboard = ddCargar;
     el.setAttribute('contenteditable', 'plaintext-only');
     var antes;
     el.addEventListener('focus', function() { antes = el.innerText; });
-    el.addEventListener('keydown', function(e) { if (e.key === 'Escape') { el.innerText = antes; el.blur(); } });
+    el.addEventListener('keydown', function(e) { if (e.key === 'Escape') { e.stopPropagation(); el.innerText = antes; el.blur(); } });
     el.addEventListener('blur', function() {
       var v = el.innerText.replace(/\n$/, '');
       if (v !== antes) alGuardar(v, antes);
@@ -2715,11 +2812,7 @@ window.DS_PANELS.dashboard = ddCargar;
           if (c.k === 'plantilla') {
             var pie = document.createElement('div'); pie.className = 'faq-tpl-pie';
             var cp = document.createElement('button'); cp.type = 'button'; cp.className = 'btn mini'; cp.textContent = 'Copiar';
-            cp.onclick = function() {
-              navigator.clipboard.writeText(f.plantilla || '').then(function() {
-                cp.textContent = 'Copiado'; setTimeout(function() { cp.textContent = 'Copiar'; }, 1200);
-              }).catch(function() {});
-            };
+            cp.onclick = function() { window.dsCopiar(f.plantilla || '', cp); };
             pie.appendChild(cp); td.appendChild(pie);
           }
           tr.appendChild(td);
@@ -2801,11 +2894,8 @@ window.DS_PANELS.dashboard = ddCargar;
 <script>
 
 (function() {
-  function api(url) { return fetch(url).then(function(r) { return r.json(); }); }
-  function postJSON(url, body) {
-    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})})
-      .then(function(r) { return r.json(); });
-  }
+  function api(url) { return window.dsFetchJSON(url); }
+  function postJSON(url, body) { return window.dsPostJSON(url, body); }
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   var URL_PARAMS = new URLSearchParams(location.search);
@@ -2819,7 +2909,7 @@ window.DS_PANELS.dashboard = ddCargar;
   function cargarAreas() {
     api('/design/api/areas').then(function(todas) {
       return Promise.all(todas.map(function(a) {
-        return api('/design/api/preapproved/sheets?area_id=' + a.id).then(function(h) { return h.length ? a : null; });
+        return api('/design/api/preapproved/sheets?area_id=' + a.id).then(function(h) { return h.length ? a : null; }, function() { return null; });
       })).then(function(r) { return r.filter(Boolean); });
     }).then(function(areas) {
       PA.areas = areas;
@@ -2900,8 +2990,8 @@ window.DS_PANELS.dashboard = ddCargar;
 
   window.paNuevaHoja = function() {
     if (!PA.areaId) return;
-    var nombre = prompt('Nombre de la nueva hoja (ej. nombre del diseñador/manager):');
-    if (nombre === null) return;
+    var nombre = (prompt('Nombre de la nueva hoja (ej. nombre del diseñador/manager):') || '').trim();
+    if (!nombre) return;
     paPost('/design/api/preapproved/sheets?area_id=' + PA.areaId + '&nombre=' + encodeURIComponent(nombre))
       .then(function(r) { PA.sheetId = r.id; cargarHojas(); }).catch(paError);
   };
@@ -2942,7 +3032,7 @@ window.DS_PANELS.dashboard = ddCargar;
     el.setAttribute('contenteditable', 'plaintext-only');
     var antes;
     el.addEventListener('focus', function() { antes = el.innerText; });
-    el.addEventListener('keydown', function(e) { if (e.key === 'Escape') { el.innerText = antes; el.blur(); } });
+    el.addEventListener('keydown', function(e) { if (e.key === 'Escape') { e.stopPropagation(); el.innerText = antes; el.blur(); } });
     el.addEventListener('blur', function() {
       var v = el.innerText.replace(/\n$/, '');
       if (v !== antes) alGuardar(v);
@@ -3120,6 +3210,9 @@ window.DS_PANELS.dashboard = ddCargar;
     document.getElementById('pacModal').classList.add('open');
   };
   window.pacCerrar = function() { document.getElementById('pacModal').classList.remove('open'); };
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('pacModal').classList.contains('open')) { e.stopImmediatePropagation(); e.preventDefault(); pacCerrar(); }
+  }, true);
 
   function pacRenderTodo() {
     pacRenderManagers();
@@ -3127,6 +3220,9 @@ window.DS_PANELS.dashboard = ddCargar;
       .then(function(r) {
         PAC.srcDetalle = r[0]; PAC.dstDetalle = r[1];
         pacRenderArbol('src'); pacRenderArbol('dst'); pacRenderMid();
+      }).catch(function(e) {
+        var summary = document.getElementById('pacSummary');
+        summary.textContent = 'No se pudieron cargar las hojas: ' + e.message; summary.className = 'pac-summary warn';
       });
   }
 
@@ -3157,7 +3253,7 @@ window.DS_PANELS.dashboard = ddCargar;
       return '<div class="pac-centro' + (centroSel ? ' sel' : '') + '">' +
         '<div class="pac-centro-head" data-side="' + side + '" data-tipo="centro" data-id="' + c.id + '">🏢 ' + esc(c.nombre || 'Sin centro') + '<span class="pac-badge">' + c.span + '</span></div>' +
         '<div class="pac-docs">' + docsHtml + '</div></div>';
-    }).join('') || '<div style="color:#6b7280;font-size:12px;padding:8px">Este manager no tiene centros.</div>';
+    }).join('') || '<div style="color:#4b5563;font-size:12px;padding:8px">Este manager no tiene centros.</div>';
     host.innerHTML = html;
     var seleccionable = PAC.mode === 'swap' || side === 'src';
     host.style.opacity = seleccionable ? '1' : '.6';
@@ -3234,6 +3330,10 @@ window.DS_PANELS.dashboard = ddCargar;
         PAC.srcSel = null; PAC.dstSel = null; PAC.targetCentro = '__new__';
         pacRenderTodo();
         cargarHojas();
+      }).catch(function() {
+        var summary = document.getElementById('pacSummary');
+        summary.textContent = 'No se pudo aplicar: se perdió la conexión o el servidor falló. Intenta de nuevo.';
+        summary.className = 'pac-summary warn'; btn.disabled = false;
       });
   };
 
@@ -3278,16 +3378,13 @@ window.DS_PANELS.dashboard = ddCargar;
 
 (function() {
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function api(url) { return fetch(url).then(function(r) { return r.json(); }); }
-  function postJSON(url, body) {
-    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})})
-      .then(function(r) { return r.json(); });
-  }
+  function api(url) { return window.dsFetchJSON(url); }
+  function postJSON(url, body) { return window.dsPostJSON(url, body); }
   function Date_nowSafe() { try { return Date.now(); } catch (e) { return 0; } }
 
   var CV = { areas: [], areaId: null };
   var CANVAS = { docs: [], activeId: null, view: "home", selFrame: null, scale: 1, railCollapsed: false };
-  var cvSaveTimers = {}, cvNextEl = 1, cvNextFree = 1;
+  var cvSaveTimers = {}, cvGuardando = {};
 
   // ---------- Áreas ----------
   function cvCargarAreas() {
@@ -3302,7 +3399,7 @@ window.DS_PANELS.dashboard = ddCargar;
         btn.onclick = function() { cvSeleccionarArea(a.id); };
         cont.appendChild(btn);
       });
-      if (areas.length) cvSeleccionarArea(areas[0].id);
+      if (areas.length) cvSeleccionarArea(areas.some(function(a) { return a.id === CV.areaId; }) ? CV.areaId : areas[0].id);
     });
   }
   function cvSeleccionarArea(areaId) {
@@ -3310,16 +3407,38 @@ window.DS_PANELS.dashboard = ddCargar;
     document.querySelectorAll('#cvAreaTabs .cv-area-tab').forEach(function(b, i) { b.classList.toggle('activo', CV.areas[i].id === areaId); });
     CANVAS.view = "home"; CANVAS.activeId = null; CANVAS.selFrame = null; CANVAS.selEl = null;
     cvLoadPrefs();
-    cvLoadDocs(areaId).then(cvRender);
+    CANVAS.hist = { undo: [], redo: [] };
+    cvLoadDocs(areaId).then(cvRender, function(e) {
+      if (e && e.viejo) return;
+      var home = document.getElementById("canvasHome");
+      home.innerHTML = '<div class="cv-empty" style="padding:30px;color:#b91c1c">No se pudieron cargar las hojas. <button type="button" class="cv-mini-btn">Reintentar</button></div>';
+      home.querySelector("button").onclick = function() { cvSeleccionarArea(areaId); };
+    });
   }
 
   // ---------- Persistencia ----------
+  var CV_NUM = ["x", "y", "w", "h", "r", "x1", "y1", "x2", "y2", "stroke", "size", "rot", "nw", "nh", "scale", "ox", "oy", "bri", "con"];
+  function cvColorSeguro(c, def) { return (typeof c === "string" && /^#[0-9a-fA-F]{3,8}$/.test(c)) ? c : def; }
+  function cvSanear(o) {
+    if (!o || typeof o !== "object") return o;
+    CV_NUM.forEach(function(k) { if (k in o && typeof o[k] !== "number") o[k] = Number(o[k]) || 0; });
+    if ("color" in o) o.color = cvColorSeguro(o.color, "#e11d1d");
+    if ("n" in o) o.n = parseInt(o.n, 10) || 1;
+    if ("id" in o) o.id = String(o.id).replace(/[^A-Za-z0-9_-]/g, "");
+    if (Array.isArray(o.points)) o.points = o.points.map(function(p) { return {x: Number(p && p.x) || 0, y: Number(p && p.y) || 0}; });
+    if (o.img) {
+      if (typeof o.img.src !== "string" || !/^data:image\/(png|jpe?g|gif|webp|bmp|svg\+xml);base64,[A-Za-z0-9+\/=\s]*$/.test(o.img.src.slice(0, 300))) o.img = null;
+      else cvSanear(o.img);
+    }
+    return o;
+  }
   function cvFromServer(d) {
-    return { id: d.id, name: d.nombre, templateId: d.templateId, title: d.titulo, titleColor: d.tituloColor || "#d10a11",
-             w: d.w || 1080, h: d.h || 1080, frames: d.frames || [], elements: d.elements || [], updated: Date_nowSafe() };
+    return { id: d.id, name: d.nombre, templateId: d.templateId, title: d.titulo, titleColor: cvColorSeguro(d.tituloColor, "#d10a11"),
+             w: Number(d.w) || 1080, h: Number(d.h) || 1080, frames: (d.frames || []).map(cvSanear), elements: (d.elements || []).map(cvSanear), updated: Date_nowSafe() };
   }
   function cvLoadDocs(areaId) {
     return api('/design/api/canvas/docs?area_id=' + areaId).then(function(docs) {
+      if (areaId !== CV.areaId) throw {viejo: true}; // el usuario ya cambió de área
       CANVAS.docs = docs.map(cvFromServer);
     });
   }
@@ -3335,15 +3454,23 @@ window.DS_PANELS.dashboard = ddCargar;
     if (!docId) return;
     cvRailRefreshActive();
     clearTimeout(cvSaveTimers[docId]);
+    var docRef = CANVAS.docs.find(function(d) { return d.id === docId; }); // si cambia de área antes de guardar, no se pierde
     cvSaveTimers[docId] = setTimeout(function() {
-      var doc = CANVAS.docs.find(function(d) { return d.id === docId; });
+      cvSaveTimers[docId] = null;
+      var doc = CANVAS.docs.find(function(d) { return d.id === docId; }) || docRef;
       if (!doc) return;
-      postJSON('/design/api/canvas/docs/' + docId, {
-        nombre: doc.name, titulo: doc.title, tituloColor: doc.titleColor,
-        w: doc.w, h: doc.h, frames: doc.frames, elements: doc.elements,
+      var cuerpo = {nombre: doc.name, titulo: doc.title, tituloColor: doc.titleColor, w: doc.w, h: doc.h, frames: doc.frames, elements: doc.elements};
+      // Los guardados de una misma hoja salen uno tras otro: nunca llega uno viejo después de uno nuevo.
+      cvGuardando[docId] = (cvGuardando[docId] || Promise.resolve()).then(function() {
+        return postJSON('/design/api/canvas/docs/' + docId, cuerpo).catch(function(e) {
+          cvAviso('<span>⚠️ No se pudo guardar la hoja "' + esc(doc.name || '') + '": ' + esc(e.message) + '</span>', false);
+        });
       });
     }, 300);
   }
+  window.addEventListener('beforeunload', function(e) {
+    if (Object.keys(cvSaveTimers).some(function(k) { return cvSaveTimers[k]; })) { e.preventDefault(); e.returnValue = ''; }
+  });
   function cvToggleExpert() {
     CANVAS.expert = !CANVAS.expert;
     try { localStorage.setItem("canvas_expert", CANVAS.expert ? "1" : "0"); } catch (e) {}
@@ -3508,7 +3635,7 @@ window.DS_PANELS.dashboard = ddCargar;
       var tiles = CANVAS.docs.map(function(d) {
         var filled = d.frames.filter(function(f) { return f.img; }).length;
         return '<div class="cv-board-card">' +
-          '<div class="cv-thumb-wrap" data-open="' + d.id + '" title="Abrir hoja para editar">' + cvSheetThumb(d, 300) + '</div>' +
+          '<div class="cv-thumb-wrap" data-open="' + d.id + '" tabindex="0" role="button" title="Abrir hoja para editar">' + cvSheetThumb(d, 300) + '</div>' +
           '<button class="cv-board-name" data-open="' + d.id + '">' + esc(d.name || d.title || "Hoja") + '</button>' +
           '<div class="cv-board-sub">' + d.frames.length + ' marco' + (d.frames.length === 1 ? "" : "s") + (filled ? (" · " + filled + " con foto") : "") + '</div>' +
         '</div>';
@@ -3667,7 +3794,7 @@ window.DS_PANELS.dashboard = ddCargar;
           '<button data-ren="' + d.id + '" title="Renombrar hoja">✎</button>' +
           '<button class="cv-danger" data-cvraildel="' + d.id + '" title="Eliminar hoja">🗑️</button>' +
         '</div>' +
-        '<div class="cv-rail-thumbwrap" data-open="' + d.id + '"><span class="cv-rail-num">' + (i + 1) + '</span>' + cvRailThumb(d, CV_RAIL_W) + '</div>' +
+        '<div class="cv-rail-thumbwrap" data-open="' + d.id + '" tabindex="0" role="button" aria-label="Abrir hoja ' + (i + 1) + '"><span class="cv-rail-num">' + (i + 1) + '</span>' + cvRailThumb(d, CV_RAIL_W) + '</div>' +
         '<div class="cv-rail-name" data-open="' + d.id + '">' + esc(d.name || d.title || "Hoja") + '</div>' +
       '</div>';
     }).join('');
@@ -3756,6 +3883,7 @@ window.DS_PANELS.dashboard = ddCargar;
     }).catch(function() {});
   }
   function cvCloseAdjust() { var p = document.getElementById("cvAdjustPop"); if (p) p.remove(); }
+  window.cvCloseAdjust = cvCloseAdjust;
   function cvOpenAdjust(frameId, anchorBtn) {
     cvCloseAdjust();
     var doc = cvActiveDoc(); var f = doc && doc.frames.find(function(x) { return x.id === frameId; }); if (!f || !f.img) return;
@@ -3783,8 +3911,17 @@ window.DS_PANELS.dashboard = ddCargar;
     var doc = CANVAS.docs.find(function(d) { return d.id === docId; }); if (!doc) return;
     var f = doc.frames.find(function(x) { return x.id === frameId; }); if (!f) return;
     if (!board) cvRecord();
+    var antes = f.img;
     f.img = null; doc.updated = Date_nowSafe(); cvSave(docId);
     if (board) cvRender(); else cvRenderEditor();
+    if (board && antes) {
+      var v = cvAviso('<span>🗑️ Foto quitada</span><button type="button" class="cv-aviso-btn">Deshacer</button>', true);
+      v.querySelector('.cv-aviso-btn').onclick = function() {
+        var d2 = CANVAS.docs.find(function(d) { return d.id === docId; }), f2 = d2 && d2.frames.find(function(x) { return x.id === frameId; });
+        if (f2 && !f2.img) { f2.img = antes; cvSave(docId); cvRender(); }
+        v.classList.remove('open');
+      };
+    }
   }
   function cvClearFrame(frameId) { cvClearFrameOn(CANVAS.activeId, frameId, false); }
   function cvReadFileToTarget(file, tg) {
@@ -3916,7 +4053,8 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   /* ---------- Anotaciones: modelo/geometría ---------- */
-  function cvElId() { cvNextEl += 1; return "el" + cvNextEl; }
+  function cvUid(prefijo) { return prefijo + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function cvElId() { return cvUid("el"); }
   function cvSelElement() { var d = cvActiveDoc(); return d ? (d.elements || []).find(function(e) { return e.id === CANVAS.selEl; }) : null; }
   function cvElBBox(el) {
     if (el.type === "ellipse" || el.type === "rect") return { x: el.x, y: el.y, w: Math.abs(el.w), h: Math.abs(el.h) };
@@ -4250,7 +4388,7 @@ window.DS_PANELS.dashboard = ddCargar;
     else if (e.key === "ArrowRight" && !typing0) { e.preventDefault(); cvNavDoc(1); }
     else if (e.key === "Enter" && !typing0 && CANVAS.selFrame) { e.preventDefault(); var dd = cvActiveDoc(); var ff = dd && dd.frames.find(function(x) { return x.id === CANVAS.selFrame; }); if (ff && !ff.img) cvPickImage(ff.id); }
     else if ((e.key === "Delete" || e.key === "Backspace") && !typing0 && CANVAS.selEl) { e.preventDefault(); cvDeleteEl(); }
-    else if (e.key === "Escape") { if (CANVAS.editText) { CANVAS.editText = null; cvRenderAnno(); } else if (CANVAS.selEl) { CANVAS.selEl = null; cvRenderAnno(); } else { cvBackHome(); } }
+    else if (e.key === "Escape") { e.stopImmediatePropagation(); cvCloseAdjust(); if (CANVAS.editText) { CANVAS.editText = null; cvRenderAnno(); } else if (CANVAS.selEl) { CANVAS.selEl = null; cvRenderAnno(); } else { cvBackHome(); } }
   }
   function cvDrawEl(ctx, el) {
     ctx.save();
@@ -4288,23 +4426,29 @@ window.DS_PANELS.dashboard = ddCargar;
 
   /* ---------- Deshacer / rehacer ---------- */
   CANVAS.hist = { undo: [], redo: [] };
-  function cvSnapDoc(d) { return { docId: d.id, doc: JSON.parse(JSON.stringify(d)) }; }
+  // Copia profunda que reutiliza los textos (las fotos en base64 pesan MB; copiarlas 80 veces llenaba la memoria).
+  function cvClonar(v) {
+    if (Array.isArray(v)) return v.map(cvClonar);
+    if (v && typeof v === "object") { var o = {}; for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k)) o[k] = cvClonar(v[k]); return o; }
+    return v;
+  }
+  function cvSnapDoc(d) { return { docId: d.id, doc: cvClonar(d) }; }
   function cvRecord() {
     var d = cvActiveDoc(); if (!d) return;
     CANVAS.hist.undo.push(cvSnapDoc(d));
-    if (CANVAS.hist.undo.length > 80) CANVAS.hist.undo.shift();
+    if (CANVAS.hist.undo.length > 40) CANVAS.hist.undo.shift();
     CANVAS.hist.redo = []; CANVAS._lastAct = null;
   }
   function cvRecordAct(tag) {
     if (tag && tag === CANVAS._lastAct) return;
     var d = cvActiveDoc(); if (!d) return;
     CANVAS.hist.undo.push(cvSnapDoc(d));
-    if (CANVAS.hist.undo.length > 80) CANVAS.hist.undo.shift();
+    if (CANVAS.hist.undo.length > 40) CANVAS.hist.undo.shift();
     CANVAS.hist.redo = []; CANVAS._lastAct = tag || null;
   }
   function cvApplySnap(snap) {
     var i = CANVAS.docs.findIndex(function(x) { return x.id === snap.docId; }); if (i < 0) return;
-    CANVAS.docs[i] = JSON.parse(JSON.stringify(snap.doc));
+    CANVAS.docs[i] = cvClonar(snap.doc);
     CANVAS.activeId = snap.docId; CANVAS.selFrame = null; CANVAS.selEl = null; CANVAS.editText = null; CANVAS._lastAct = null;
     cvSave(); cvRenderEditor();
   }
@@ -4320,7 +4464,7 @@ window.DS_PANELS.dashboard = ddCargar;
   function cvAddFreeFrame() {
     var doc = cvActiveDoc(); if (!doc) return;
     cvRecord();
-    cvNextFree += 1; var id = "ff" + cvNextFree;
+    var id = cvUid("ff");
     var n = doc.frames.filter(function(f) { return f.free; }).length;
     var x = Math.min(700, 120 + n * 46), y = Math.min(760, 300 + n * 46);
     doc.frames.push({ id: id, x: x, y: y, w: 380, h: 285, img: null, free: true });
@@ -4461,7 +4605,6 @@ window.DS_PANELS.dashboard = ddCargar;
     var rdel = t.closest("[data-cvraildel]"); if (rdel) { e.stopPropagation(); cvRailDelete(rdel.dataset.cvraildel); return; }
     if (t.closest("[data-cvviewtoggle]")) { e.stopPropagation(); var w = document.getElementById("cvViewWrap"); if (w) w.classList.toggle("open"); return; }
     var vpick = t.closest("[data-cvview]"); if (vpick) { cvSetView(vpick.dataset.cvview, false); return; }
-    var vdef = t.closest("[data-cvdefault]"); if (vdef) { cvSetView(vdef.dataset.cvdefault, true); return; }
     var bframe = t.closest("[data-bframe]"); if (bframe) { e.stopPropagation(); cvBoardFrameClick(bframe.dataset.bdoc, bframe.dataset.bframe); return; }
     if (t.closest("[data-newsheet]")) { cvNewCustomSheet(); return; }
     var open = t.closest("[data-open]"); if (open) { cvOpenDoc(parseInt(open.dataset.open)); return; }
@@ -4524,6 +4667,8 @@ window.DS_PANELS.dashboard = ddCargar;
     if (file2) cvReadFileToFrame(file2, fr.dataset.frame);
   }
   function cvOnPaste(e) {
+    var ovC = document.getElementById("ov-canvas");
+    if (!ovC || !ovC.classList.contains("open")) return;
     var items = (e.clipboardData && e.clipboardData.items) || [];
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
@@ -4568,11 +4713,14 @@ window.DS_PANELS.dashboard = ddCargar;
   document.addEventListener("drop", cvOnDrop);
   document.addEventListener("mousedown", cvPanStart);
   document.addEventListener("mousedown", cvAnnoMouseDown);
-  document.addEventListener("wheel", cvOnWheel, { passive: false });
+  document.getElementById("ov-canvas").addEventListener("wheel", cvOnWheel, { passive: false });
   document.addEventListener("focusout", cvOnFocusOut);
   document.addEventListener("focusin", cvOnFocusIn);
   document.addEventListener("keydown", cvOnKey);
   document.addEventListener("paste", cvOnPaste);
+  document.getElementById("ov-canvas").addEventListener("keydown", function(e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches('div[data-open][role="button"]')) { e.preventDefault(); e.target.click(); }
+  });
   document.addEventListener("click", function(e) { if (!e.target.closest(".cv-view-wrap")) { var w = document.getElementById("cvViewWrap"); if (w) w.classList.remove("open"); } });
   document.addEventListener("mouseover", cvBoardHoverTrack);
   window.addEventListener("resize", function() { if (CANVAS.view === "editor") cvLayoutStage(); });
@@ -4586,11 +4734,8 @@ window.DS_PANELS.dashboard = ddCargar;
 <script>
 
 (function() {
-  function api(url) { return fetch(url).then(function(r) { return r.json(); }); }
-  function postJSON(url, body) {
-    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})})
-      .then(function(r) { return r.json(); });
-  }
+  function api(url) { return window.dsFetchJSON(url); }
+  function postJSON(url, body) { return window.dsPostJSON(url, body); }
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   // ============ Protocols: PDF completos, buscables por diapositiva y filtrados por área ============
@@ -4648,7 +4793,8 @@ window.DS_PANELS.dashboard = ddCargar;
   function prTam(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
 
   function cargarAreas() {
-    api('/design/api/areas').then(function(areas) {
+    api('/design/api/areas').catch(function(e) { prErrorGrid('No se pudieron cargar las áreas: ' + e.message, cargarAreas); return null; }).then(function(areas) {
+      if (!areas) return;
       PR.areas = areas;
       var actual = window.dsAreaActual && window.dsAreaActual();
       if (!PR.areaId || !areas.some(function(a) { return a.id === PR.areaId; })) {
@@ -4669,9 +4815,20 @@ window.DS_PANELS.dashboard = ddCargar;
     var area = PR.areas.find(function(a) { return a.id === PR.areaId; });
     document.getElementById('prSearch').placeholder = 'Busca una palabra en los protocolos de ' + (area ? area.nombre : 'esta área') + ' (ej. tissue)...';
   }
+  function prErrorGrid(msg, reintentar) {
+    var grid = document.getElementById('prGrid');
+    grid.innerHTML = '<div class="pr-empty"><span></span> <button type="button" class="btn mini">Reintentar</button></div>';
+    grid.querySelector('span').textContent = msg;
+    grid.querySelector('button').onclick = reintentar;
+  }
   function cargarProtocolos() {
     var areaId = PR.areaId;
-    api('/design/api/protocolos?area_id=' + areaId).then(function(r) {
+    if (!PR.items.length) document.getElementById('prGrid').innerHTML = '<div class="pr-empty">Cargando…</div>';
+    api('/design/api/protocolos?area_id=' + areaId).catch(function(e) {
+      if (areaId === PR.areaId) prErrorGrid('No se pudieron cargar los protocolos: ' + e.message, cargarProtocolos);
+      return null;
+    }).then(function(r) {
+      if (!r) return;
       if (areaId !== PR.areaId) return;
       PR.items = r.protocolos || []; PR.edita = !!r.puedeEditar;
       document.getElementById('prHerr').style.display = PR.edita ? '' : 'none';
@@ -4682,7 +4839,9 @@ window.DS_PANELS.dashboard = ddCargar;
 
   // ---- PDF: se carga una vez por protocolo y se dibujan las diapositivas que se ven en pantalla ----
   function prDoc(id) {
-    if (!PR.docs[id]) PR.docs[id] = pdfjsLib.getDocument({url: '/design/api/protocolos/' + id + '/pdf', disableStream: true, disableAutoFetch: true, rangeChunkSize: 262144}).promise
+    if (!PR.docs[id]) PR.docs[id] = window.dsPdfjs().then(function() {
+      return pdfjsLib.getDocument({url: '/design/api/protocolos/' + id + '/pdf', isEvalSupported: false, disableStream: true, disableAutoFetch: true, rangeChunkSize: 262144}).promise;
+    })
       .catch(function(e) { delete PR.docs[id]; throw e; });
     return PR.docs[id];
   }
@@ -4713,7 +4872,15 @@ window.DS_PANELS.dashboard = ddCargar;
       canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
       canvas.style.width = Math.round(vp.width / dpr) + 'px'; canvas.style.height = Math.round(vp.height / dpr) + 'px';
       var ctx = canvas.getContext('2d');
-      return page.render({canvasContext: ctx, viewport: vp}).promise.then(function() { return prResaltar(page, vp, ctx, palabras); });
+      // Tope de 16 Mpx por lienzo (más grande queda en blanco en Safari/iPad y dispara la memoria).
+      var px = vp.width * vp.height;
+      if (px > 16e6) {
+        vp = page.getViewport({scale: escala * dpr * Math.sqrt(16e6 / px)});
+        canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+      }
+      return page.render({canvasContext: ctx, viewport: vp}).promise
+        .then(function() { return prResaltar(page, vp, ctx, palabras); })
+        .then(function() { page.cleanup(); });
     });
   }
   // Miniaturas: se dibujan al aparecer en pantalla, de a pocas a la vez.
@@ -4744,6 +4911,12 @@ window.DS_PANELS.dashboard = ddCargar;
     };
     if (prObs) prObs.observe(thumb); else thumb._dibujar();
   }
+  function prTeclado(card, nombre) {
+    card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', 'Abrir ' + nombre);
+    card.addEventListener('keydown', function(e) {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); card.click(); }
+    });
+  }
   function prChips(p) {
     if (!p.areas.length) return '<span class="pr-chip general">General</span>';
     return p.areas.map(function(a) { return '<span class="pr-chip">' + esc(a.nombre) + '</span>'; }).join('');
@@ -4751,7 +4924,7 @@ window.DS_PANELS.dashboard = ddCargar;
 
   // ---- Sin búsqueda: todos los protocolos del área ----
   function renderLista() {
-    PR.seq++; prCola = [];
+    PR.seq++; prCola = []; if (prObs) prObs.disconnect();
     var grid = document.getElementById('prGrid');
     var area = PR.areas.find(function(a) { return a.id === PR.areaId; });
     document.getElementById('prCuenta').textContent = PR.items.length + (PR.items.length === 1 ? ' protocolo' : ' protocolos') + ' en ' + (area ? area.nombre : '');
@@ -4778,6 +4951,7 @@ window.DS_PANELS.dashboard = ddCargar;
       card.appendChild(prBotonEstrella(p));
       if (PR_MARCADOS[p.id]) card.classList.add('marcado');
       card.onclick = function() { prAbrirVisor(p.id, 1, null); };
+      prTeclado(card, p.titulo);
       cont.appendChild(card);
     });
   }
@@ -4792,14 +4966,19 @@ window.DS_PANELS.dashboard = ddCargar;
     var q = PR.q.trim(), areaId = PR.areaId;
     if (!prPalabras(q).length) { renderLista(); document.getElementById('prCuenta').textContent = 'Escribe al menos 2 letras.'; return; }
     var solo = prMarcadosArea().map(function(p) { return p.id; }).join(',');
-    api('/design/api/protocolos/buscar?area_id=' + areaId + '&q=' + encodeURIComponent(q) + (solo ? '&solo=' + solo : '')).then(function(r) {
+    document.getElementById('prCuenta').textContent = 'Buscando…';
+    api('/design/api/protocolos/buscar?area_id=' + areaId + '&q=' + encodeURIComponent(q) + (solo ? '&solo=' + solo : '')).catch(function(e) {
+      if (q === PR.q.trim() && areaId === PR.areaId) { document.getElementById('prCuenta').textContent = ''; prErrorGrid('No se pudo buscar: ' + e.message, buscar); }
+      return null;
+    }).then(function(r) {
+      if (!r) return;
       if (q !== PR.q.trim() || areaId !== PR.areaId) return;
       PR.busq = {q: q, palabras: prPalabras(q), res: r.resultados || []};
       renderResultados(r);
     });
   }
   function renderResultados(r) {
-    PR.seq++; prCola = [];
+    PR.seq++; prCola = []; if (prObs) prObs.disconnect();
     var grid = document.getElementById('prGrid'), res = PR.busq.res, palabras = PR.busq.palabras;
     var area = PR.areas.find(function(a) { return a.id === PR.areaId; });
     var grupos = [];
@@ -4828,6 +5007,7 @@ window.DS_PANELS.dashboard = ddCargar;
           th._pag = pag; prMiniatura(th, x.protocoloId, x.pagina, palabras);
         } else th.innerHTML = '<span class="pr-texto-ico">📄</span>';
         card.onclick = function() { prAbrirVisor(x.protocoloId, x.pagina || 1, PR.busq); };
+        prTeclado(card, x.titulo + (x.pagina ? ', diapositiva ' + x.pagina : ''));
         cont.appendChild(card);
       });
       grid.appendChild(sec);
@@ -4835,10 +5015,13 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   // ---- Visor: protocolo completo, en la diapositiva elegida ----
-  var PV = {id: null, pagina: 1, total: 0, zoom: 1, palabras: null, coinc: [], p: null};
+  var PV = {id: null, pagina: 1, total: 0, zoom: 1, palabras: null, coinc: [], p: null, dibujo: 0};
+  var prVisorTok = 0;
   function prAbrirVisor(id, pagina, busq) {
-    api('/design/api/protocolos/' + id).then(function(p) {
-      PV = {id: id, pagina: pagina || 1, total: p.paginas || 0, zoom: 1, palabras: busq ? busq.palabras : null, coinc: [], p: p};
+    var tok = ++prVisorTok;
+    api('/design/api/protocolos/' + id).catch(function(e) { window.dsToast('⚠️ No se pudo abrir el protocolo: ' + e.message); return null; }).then(function(p) {
+      if (!p || tok !== prVisorTok) return;
+      PV = {id: id, pagina: pagina || 1, total: p.paginas || 0, zoom: 1, palabras: busq ? busq.palabras : null, coinc: [], p: p, dibujo: 0};
       if (busq) PV.coinc = busq.res.filter(function(x) { return x.protocoloId === id && x.pagina; });
       document.getElementById('prVisorTitulo').textContent = p.titulo;
       var dl = document.getElementById('prVisorDescargar');
@@ -4876,15 +5059,15 @@ window.DS_PANELS.dashboard = ddCargar;
     document.getElementById('prVisorPos').textContent = 'Diapositiva ' + PV.pagina + ' de ' + PV.total;
     document.getElementById('prVisorAnt').disabled = PV.pagina <= 1;
     document.getElementById('prVisorSig').disabled = PV.pagina >= PV.total;
-    var c = document.createElement('canvas'), pag = PV.pagina, id = PV.id;
+    var c = document.createElement('canvas'), pag = PV.pagina, id = PV.id, tok = ++PV.dibujo;
     prDoc(id).then(function(pdf) { return pdf.getPage(pag); }).then(function(page) {
-      if (pag !== PV.pagina || id !== PV.id) return;
+      if (tok !== PV.dibujo) return;
       var vp = page.getViewport({scale: 1});
       var ancho = Math.min((stage.clientWidth - 36) / vp.width, (stage.clientHeight - 36) / vp.height) * vp.width * PV.zoom;
       return prDibujar(c, id, pag, Math.max(300, ancho), PV.palabras).then(function() {
-        if (pag === PV.pagina && id === PV.id) { stage.innerHTML = ''; stage.appendChild(c); }
+        if (tok === PV.dibujo) { stage.innerHTML = ''; stage.appendChild(c); }
       });
-    }).catch(function() { stage.innerHTML = '<div class="pr-visor-texto">No se pudo abrir el PDF.</div>'; });
+    }).catch(function() { if (tok === PV.dibujo) stage.innerHTML = '<div class="pr-visor-texto">No se pudo abrir el PDF.</div>'; });
   }
   function prVisorIr(d) { var n = PV.pagina + d; if (n >= 1 && n <= PV.total) { PV.pagina = n; prVisorPintar(); } }
   function prVisorCerrar() { document.getElementById('prVisor').classList.remove('open'); document.getElementById('prVisorStage').innerHTML = ''; }
@@ -4899,7 +5082,11 @@ window.DS_PANELS.dashboard = ddCargar;
     else if (e.key === 'ArrowLeft') { e.preventDefault(); prVisorIr(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); prVisorIr(1); }
   }, true);
-  window.addEventListener('resize', function() { if (document.getElementById('prVisor').classList.contains('open')) prVisorPintar(); });
+  var prRz = null;
+  window.addEventListener('resize', function() {
+    clearTimeout(prRz);
+    prRz = setTimeout(function() { if (document.getElementById('prVisor').classList.contains('open')) prVisorPintar(); }, 150);
+  });
 
   // ---- Áreas (casillas) para subir y editar ----
   function prAreasHtml(marcadas) {
@@ -4971,8 +5158,8 @@ window.DS_PANELS.dashboard = ddCargar;
           var est = fila.querySelector('.est'), f = fila._file;
           if (f.size > 120 * 1048576) { fallos++; return; }
           est.style.color = '#1d4ed8'; est.textContent = 'Leyendo…';
-          return f.arrayBuffer().then(function(buf) {
-            return pdfjsLib.getDocument({data: new Uint8Array(buf.slice(0))}).promise.then(function(pdf) {
+          return window.dsPdfjs().then(function() { return f.arrayBuffer(); }).then(function(buf) {
+            return pdfjsLib.getDocument({data: new Uint8Array(buf), isEvalSupported: false}).promise.then(function(pdf) {
               var textos = [], n = pdf.numPages;
               var leer = function(i) {
                 if (i > n) return Promise.resolve();
@@ -4982,7 +5169,7 @@ window.DS_PANELS.dashboard = ddCargar;
                   return leer(i + 1);
                 });
               };
-              return leer(1).then(function() { return prSubirPorPartes(f, est); }).then(function(archivoId) {
+              return leer(1).then(function() { pdf.destroy(); return prSubirPorPartes(f, est); }).then(function(archivoId) {
                 est.textContent = 'Guardando…';
                 return prPost('/design/api/protocolos/subida/' + archivoId + '/finalizar', {method: 'POST', headers: {'Content-Type': 'application/json'},
                   body: JSON.stringify({titulo: fila.querySelector('input').value.trim() || f.name, areas: areas,
@@ -5070,13 +5257,17 @@ window.DS_PANELS.dashboard = ddCargar;
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   function cargar() {
-    fetch('/design/api/papelera').then(function(r) { return r.json(); }).then(render);
+    window.dsFetchJSON('/design/api/papelera').then(render).catch(function(e) {
+      var list = document.getElementById('trList');
+      list.innerHTML = '<div class="tr-empty"></div>';
+      list.firstChild.textContent = 'No se pudo cargar la papelera: ' + e.message;
+    });
   }
 
   function render(items) {
     var list = document.getElementById('trList');
     if (!items.length) {
-      list.innerHTML = '<div class="tr-empty">No hay borrados registrados.<br>Cuando alguien elimine algo en Pre-Approved, aparecerá aquí para poder restaurarlo.</div>';
+      list.innerHTML = '<div class="tr-empty">No hay borrados registrados.<br>Cuando alguien elimine algo en Design Schedule (Pre-Approved, Comments, Canvas, Protocols…), aparecerá aquí para poder restaurarlo.</div>';
       return;
     }
     list.innerHTML = items.map(function(it) {
@@ -5088,16 +5279,17 @@ window.DS_PANELS.dashboard = ddCargar;
         '</div>' +
         '<div class="tr-actions">' +
           '<button type="button" class="tr-restore" data-restore="' + it.id + '">↺ Restaurar</button>' +
-          '<button type="button" class="tr-perma" data-perma="' + it.id + '" title="Eliminar del historial (permanente)">✕</button>' +
+          (TR_ES_ADMIN ? '<button type="button" class="tr-perma" data-perma="' + it.id + '" title="Eliminar del historial (permanente)" aria-label="Eliminar del historial">✕</button>' : '') +
         '</div>' +
       '</div>';
     }).join('');
 
     list.querySelectorAll('[data-restore]').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        var b = this; if (b.disabled) return; b.disabled = true; // evita restaurar dos veces con doble clic
         postJSON('/design/api/papelera/' + this.dataset.restore + '/restaurar')
           .then(function() { cargar(); })
-          .catch(function(e) { alert(e.message); });
+          .catch(function(e) { b.disabled = false; alert(e.message); });
       });
     });
     list.querySelectorAll('[data-perma]').forEach(function(btn) {
@@ -5114,10 +5306,11 @@ window.DS_PANELS.dashboard = ddCargar;
   var trVaciarBtn = document.getElementById('trVaciarBtn');
   if (trVaciarBtn) trVaciarBtn.addEventListener('click', function() {
     if (!confirm('¿Vaciar todo el historial de la papelera? Esta acción no se puede deshacer.')) return;
-    postJSON('/design/api/papelera/vaciar').then(function() { cargar(); });
+    postJSON('/design/api/papelera/vaciar').then(function() { cargar(); }).catch(function(e) { alert(e.message); });
   });
 
   window.DS_PANELS.papelera = cargar;
+  var TR_ES_ADMIN = {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}; // vaciar y borrar para siempre: solo admins
 
 })();
 
@@ -5126,11 +5319,8 @@ window.DS_PANELS.dashboard = ddCargar;
 <script>
 
 (function() {
-  function api(url) { return fetch(url).then(function(r) { return r.json(); }); }
-  function postJSON(url, body) {
-    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})})
-      .then(function(r) { return r.json(); });
-  }
+  function api(url) { return window.dsFetchJSON(url); }
+  function postJSON(url, body) { return window.dsPostJSON(url, body); }
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   var PF = { sheets: [], sheetId: null, mesIdx: 0, detalle: null };
@@ -5223,8 +5413,11 @@ window.DS_PANELS.dashboard = ddCargar;
     return sel;
   }
 
+  function pfFallo(recargar) { return function(e) { window.dsToast('⚠️ No se guardó: ' + e.message); recargar(); }; }
   function cargarEval() {
-    api('/design/api/perf/sheets/' + PF.sheetId + '/eval').then(function(d) {
+    var sid = PF.sheetId;
+    api('/design/api/perf/sheets/' + sid + '/eval').then(function(d) {
+      if (sid !== PF.sheetId) return; // cambió de hoja mientras cargaba
       PF.detalle = d;
       if (PF.mesIdx === null || PF.mesIdx >= d.meses.length) PF.mesIdx = mesActualIdx(d.meses);
       renderEval(d);
@@ -5288,7 +5481,7 @@ window.DS_PANELS.dashboard = ddCargar;
           var nivel = sel.value, pct = PF_PCT[nivel] || 0;
           postJSON('/design/api/perf/celdas', {
             empleadoId: emp.id, criterioId: crit.id, mesIndice: PF.mesIdx, nivel: nivel, puntaje: pct,
-          });
+          }).catch(pfFallo(cargarEval));
           emp.celdas[key] = {nivel: nivel, puntaje: pct};
           num.innerText = pct + '%';
           td.className = nivel ? 'pf-nivel-' + nivel : '';
@@ -5310,7 +5503,7 @@ window.DS_PANELS.dashboard = ddCargar;
       var tdNota = document.createElement('td');
       var ta = document.createElement('textarea'); ta.className = 'pf-nota'; ta.value = emp.nota || '';
       ta.addEventListener('blur', function() {
-        postJSON('/design/api/perf/empleados/' + emp.id + '/nota', { nota: this.value });
+        postJSON('/design/api/perf/empleados/' + emp.id + '/nota', { nota: this.value }).catch(pfFallo(cargarEval));
       });
       tdNota.appendChild(ta);
       tr.appendChild(tdNota);
@@ -5322,7 +5515,9 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   function cargarSeleccion() {
-    api('/design/api/perf/sheets/' + PF.sheetId + '/seleccion').then(function(d) {
+    var sid = PF.sheetId;
+    api('/design/api/perf/sheets/' + sid + '/seleccion').then(function(d) {
+      if (sid !== PF.sheetId) return;
       PF.detalle = d;
       if (PF.mesIdx === null || PF.mesIdx >= d.meses.length) PF.mesIdx = mesActualIdx(d.meses);
       renderSeleccion(d);
@@ -5349,7 +5544,7 @@ window.DS_PANELS.dashboard = ddCargar;
         var inp = document.createElement('input'); inp.className = 'pf-mini'; inp.style.width = '120px';
         inp.value = g.ganadoresMes[i] || '';
         inp.addEventListener('blur', function() {
-          postJSON('/design/api/perf/ganadores/' + g.id, { mesIndice: i, nombre: this.value });
+          postJSON('/design/api/perf/ganadores/' + g.id, { mesIndice: i, nombre: this.value }).catch(pfFallo(cargarSeleccion));
         });
         td.appendChild(inp); tr.appendChild(td);
       });
@@ -5418,8 +5613,13 @@ window.DS_PANELS.dashboard = ddCargar;
     document.querySelectorAll('.ds-overlay.open').forEach(function(p) { p.classList.remove('open'); });
     var panel = document.getElementById('ov-' + id);
     if (!panel) return;
+    if (window.cvCloseAdjust) window.cvCloseAdjust();
+    if (!document.querySelector('.ds-overlay.open')) dsFocoPrevio = document.activeElement;
     panel.classList.add('open');
+    panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true');
+    var h1 = panel.querySelector('h1'); if (h1) { h1.id = h1.id || ('dsTit_' + id); panel.setAttribute('aria-labelledby', h1.id); }
     document.body.classList.add('ds-locked');
+    var cerrar = panel.querySelector('.ds-overlay-close'); if (cerrar) cerrar.focus({preventScroll: true});
     if (window.DS_PANELS[id]) window.DS_PANELS[id]();
     try {
       var url = new URL(location.href);
@@ -5428,9 +5628,13 @@ window.DS_PANELS.dashboard = ddCargar;
     } catch (e) {}
     dsActualizarPestana();
   }
+  var dsFocoPrevio = null;
   function dsCerrarPaneles() {
+    if (window.cvCloseAdjust) window.cvCloseAdjust();
     document.querySelectorAll('.ds-overlay.open').forEach(function(p) { p.classList.remove('open'); });
     document.body.classList.remove('ds-locked');
+    if (dsFocoPrevio && dsFocoPrevio.isConnected && dsFocoPrevio.focus) { try { dsFocoPrevio.focus({preventScroll: true}); } catch (e) {} }
+    dsFocoPrevio = null;
     try {
       var url = new URL(location.href);
       url.searchParams.delete('panel');
