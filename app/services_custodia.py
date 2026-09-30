@@ -676,6 +676,32 @@ def saldos_ya_cargados(db: Session) -> int:
                                              CustodiaTraslado.anulado.is_(False)).count()
 
 
+def saldos_existentes(db: Session) -> set[tuple[str, str]]:
+    """(orden, área) que ya tienen saldo inicial cargado (sin anular): no se pueden cargar otra vez."""
+    return {(o.numero_orden.strip().upper(), t.area_entrada.strip().upper())
+            for o, t in db.query(CustodiaOrdenLinea, CustodiaTraslado).join(CustodiaTraslado)
+            .filter(CustodiaTraslado.area_salida == ORIGEN_SALDO_INICIAL, CustodiaTraslado.anulado.is_(False))}
+
+
+def ultima_fecha_corte(db: Session) -> date | None:
+    t = (db.query(CustodiaTraslado).filter(CustodiaTraslado.area_salida == ORIGEN_SALDO_INICIAL, CustodiaTraslado.anulado.is_(False))
+         .order_by(CustodiaTraslado.id.desc()).first())
+    return t.fecha if t else None
+
+
+def saldos_repetidos(db: Session, filas: list[dict]) -> list[str]:
+    """Filas que ya están cargadas (misma orden en la misma área) o repetidas dentro de lo pegado."""
+    ya, vistas, errores = saldos_existentes(db), set(), []
+    for f in filas:
+        clave = (f["orden"].strip().upper(), f["area"].strip().upper())
+        if clave in ya:
+            errores.append(f"la orden {f['orden']} ya tiene saldo inicial en {nombre_propio(f['area'])}")
+        elif clave in vistas:
+            errores.append(f"la orden {f['orden']} está repetida en {nombre_propio(f['area'])}")
+        vistas.add(clave)
+    return errores
+
+
 def cargar_saldos(db: Session, user: Empleado, filas: list[dict], fecha_corte: date) -> list[CustodiaTraslado]:
     """Un traslado por área (SALDO INICIAL → área), ya recibido, con sus órdenes y cantidades.
     Queda con la fecha de corte a las 00:00, para que todo movimiento de ese día o posterior vaya después."""

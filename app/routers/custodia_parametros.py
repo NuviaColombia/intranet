@@ -143,6 +143,8 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
                                        "saldos_cargados": sc.saldos_ya_cargados(db),
+                                       "saldos_existentes": sorted(f"{o}|{a}" for o, a in sc.saldos_existentes(db)),
+                                       "fecha_corte_anterior": (sc.ultima_fecha_corte(db) or "") and sc.ultima_fecha_corte(db).isoformat(),
                                        "areas_config": [a.nombre for a in areas if a.activo],
                                        "texto_saldos": request.query_params.get("texto", ""),
                                        "conteo_panel": {"saldos": sc.saldos_ya_cargados(db),
@@ -335,11 +337,9 @@ def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: S
 @router.post("/inventario/parametros/custodia/saldos")
 def cargar_saldos_iniciales(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                             texto: str = Form(""), fecha_corte: str = Form("")):
-    """Carga el inventario inicial: en qué área está cada orden y con qué cantidad (pegado desde Excel)."""
+    """Carga el inventario inicial: en qué área está cada orden y con qué cantidad (pegado desde Excel).
+    Se puede volver a usar para agregar las órdenes que quedaron por fuera: no deja repetir una orden en la misma área."""
     from urllib.parse import quote
-    if sc.saldos_ya_cargados(db):
-        return RedirectResponse("/inventario/parametros?tab=saldos&msg=No se cargó: los saldos iniciales ya se cargaron. "
-                                "Si necesitas corregirlos, pide ayuda a sistemas.", status_code=303)
     from datetime import date as _date
     try:
         corte = _date.fromisoformat(fecha_corte)
@@ -348,12 +348,15 @@ def cargar_saldos_iniciales(user: Empleado = Depends(require_admin), db: Session
                                 status_code=303)
     activas = [a.nombre for a in db.query(CustodiaArea).filter(CustodiaArea.activo == 1).order_by(CustodiaArea.orden)]
     filas, errores = sc.leer_saldos(texto, activas)
+    if not errores and filas:
+        errores = sc.saldos_repetidos(db, filas)
     if errores or not filas:
         detalle = " · ".join(errores[:6]) if errores else "no hay filas para cargar."
         return RedirectResponse(f"/inventario/parametros?tab=saldos&texto={quote(texto)}&msg=No se cargó nada: {quote(detalle)}",
                                 status_code=303)
+    adicionales = bool(sc.saldos_ya_cargados(db))
     creados = sc.cargar_saldos(db, user, filas, corte)
     total = sum(f["cantidad"] for f in filas)
     print(f"[Custodia] {user.email} cargó saldos iniciales al {corte}: {len(filas)} órdenes en {len(creados)} áreas ({total:g} discos).")
-    return RedirectResponse(f"/inventario/parametros?tab=saldos&msg=Listo: se cargaron {len(filas)} órdenes en {len(creados)} áreas "
+    return RedirectResponse(f"/inventario/parametros?tab=saldos&msg=Listo: se cargaron {len(filas)} órdenes{' adicionales' if adicionales else ''} en {len(creados)} áreas "
                             f"({total:g} discos) con fecha de corte {corte.strftime('%d/%m/%Y')}. Ya aparecen en Estado órdenes y Dashboard.", status_code=303)
