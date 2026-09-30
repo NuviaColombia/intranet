@@ -50,17 +50,39 @@ def equipos_de_area(db: Session, area_id: int) -> list[DesignTeam]:
             .order_by(DesignTeam.orden).all())
 
 
-def puede_ver_equipo(user: Empleado, team: DesignTeam) -> bool:
-    """Admins/superadmins ven todos los equipos; un aprobador (manager) solo el/los suyos."""
-    if user.rol in ("admin", "superadmin"):
-        return True
-    return team.manager_id == user.id
+def es_admin(user: Empleado) -> bool:
+    return user.rol in ("admin", "superadmin")
+
+
+def equipos_como_designer(db: Session, user: Empleado) -> set[int]:
+    """Ids de los equipos en los que `user` está asignado como diseñador."""
+    return {tid for (tid,) in db.query(DesignTeamDesigner.team_id)
+            .filter(DesignTeamDesigner.empleado_id == user.id).all()}
+
+
+def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
+    """Ve y edita todo el horario del equipo: admins/superadmins y el manager del equipo."""
+    return es_admin(user) or team.manager_id == user.id
+
+
+def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = frozenset()) -> bool:
+    """Admins ven todos los equipos; un manager, los suyos; un diseñador, los equipos en los que está
+    asignado (y dentro de ellos solo sus propias órdenes y tiempos libres: ver gestiona_equipo)."""
+    return gestiona_equipo(user, team) or team.id in ids_designer
 
 
 def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     return [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
+
+
+def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
+              .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
+        out.setdefault(c.tipo, []).append(c.valor)
+    return out
 
 
 def agregar_valor_catalogo(db: Session, area_id: int, tipo: str, valor: str) -> None:
@@ -220,17 +242,25 @@ def serializar_break(b: DesignBreak) -> dict:
     }
 
 
-def datos_dia(db: Session, team: DesignTeam, fecha: date) -> dict:
+def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int | None = None) -> dict:
+    """Horario del equipo en `fecha`. Con `solo_empleado_id` (vista de un diseñador) solo van sus órdenes
+    y sus tiempos libres."""
     trasladar_holds(db)
-    ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
-              .filter(DesignOrden.team_id == team.id, DesignOrden.fecha == fecha)
-              .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
-    breaks = db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha).all()
+    q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
+         .filter(DesignOrden.team_id == team.id, DesignOrden.fecha == fecha))
+    qb = db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha)
+    qd = (db.query(DesignTeamDesigner).options(joinedload(DesignTeamDesigner.empleado))
+          .filter(DesignTeamDesigner.team_id == team.id))
+    if solo_empleado_id is not None:
+        q = q.filter(DesignOrden.designer_id == solo_empleado_id)
+        qb = qb.filter(DesignBreak.empleado_id == solo_empleado_id)
+        qd = qd.filter(DesignTeamDesigner.empleado_id == solo_empleado_id)
+    ordenes = q.order_by(DesignOrden.orden_visual, DesignOrden.id).all()
+    breaks = qb.all()
     principal = [serializar_orden(o) for o in ordenes if o.tabla == "principal"]
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]
     # Diseñadores con su empleado en una sola consulta (team.designers haría una consulta por diseñador).
-    designers = (db.query(DesignTeamDesigner).options(joinedload(DesignTeamDesigner.empleado))
-                 .filter(DesignTeamDesigner.team_id == team.id).order_by(DesignTeamDesigner.orden).all())
+    designers = qd.order_by(DesignTeamDesigner.orden).all()
 
     permisos = _permisos_aprobados_del_dia(db, [d.empleado_id for d in designers], fecha)
     breaks_out = []
@@ -257,6 +287,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date) -> dict:
         "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers],
         "cerrado": dia_cerrado(fecha), "qcEditable": qc_editable(fecha),
         "qcEditableHasta": qc_editable_hasta(fecha).isoformat(),
+        "soloPropias": solo_empleado_id is not None,
     }
 
 
@@ -268,13 +299,17 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
     teams = (db.query(DesignTeam)
              .filter(DesignTeam.area_id.in_([a.id for a in areas]), DesignTeam.activo == 1)
              .order_by(DesignTeam.orden).all())
-    teams = [t for t in teams if puede_ver_equipo(user, t)]
+    ids_designer = equipos_como_designer(db, user)
+    teams = [t for t in teams if puede_ver_equipo(user, t, ids_designer)]
+    gestionados = {t.id for t in teams if gestiona_equipo(user, t)}
     ordenes = []
     if teams:
         ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
                    .filter(DesignOrden.team_id.in_([t.id for t in teams]), DesignOrden.fecha == fecha,
                            DesignOrden.tabla.in_(["principal", "nightguard"]), filtro_orden_completa())
                    .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
+        # En los equipos donde solo es diseñador, únicamente sus órdenes.
+        ordenes = [o for o in ordenes if o.team_id in gestionados or o.designer_id == user.id]
     por_team: dict[int, list[DesignOrden]] = {}
     for o in ordenes:
         por_team.setdefault(o.team_id, []).append(o)
@@ -346,10 +381,15 @@ def guardar_break(db: Session, team_id: int, empleado_id: int, fecha: date, dato
 
 def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None = None,
                     designer_id: int | None = None, producto: str = "", estado: str = "",
-                    qc: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
+                    qc: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None,
+                    user: Empleado | None = None) -> dict:
     trasladar_holds(db)
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team))
          .filter(filtro_orden_completa()))
+    if user is not None and not es_admin(user):
+        # Un aprobador ve el Dashboard solo de los equipos que maneja.
+        propios = db.query(DesignTeam.id).filter(DesignTeam.manager_id == user.id)
+        q = q.filter(DesignOrden.team_id.in_(propios))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:
@@ -420,8 +460,9 @@ def buscar_ordenes(db: Session, texto: str, user: Empleado | None = None) -> lis
         return []
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area))
          .filter((DesignOrden.orden.ilike(f"%{texto}%")) | (DesignOrden.paciente.ilike(f"%{texto}%"))))
-    if user is not None and user.rol not in ("admin", "superadmin"):  # mismo alcance que puede_ver_equipo
-        q = q.join(DesignTeam, DesignOrden.team_id == DesignTeam.id).filter(DesignTeam.manager_id == user.id)
+    if user is not None and not es_admin(user):  # mismo alcance que el horario: sus equipos o sus propias órdenes
+        q = (q.join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
+             .filter(or_(DesignTeam.manager_id == user.id, DesignOrden.designer_id == user.id)))
     filas = q.order_by(DesignOrden.fecha.desc()).limit(50).all()
     return [{"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
             "area": f.team.area.nombre, "equipo": f.team.nombre, "teamId": f.team_id} for f in filas]
@@ -1445,6 +1486,35 @@ def perf_guardar_celda_seleccion(db: Session, fila_id: int, mes_indice: int,
     c.puntaje = puntaje
     c.nota = nota
     db.commit()
+
+
+# ---------- Desempeño: quién ve y califica qué ----------
+# Admins: todo. Un aprobador ve y califica solo la hoja de evaluación de su equipo (SHEET_MANAGER_MAP: la
+# hoja "N3 Paula" es del manager "Paula Parra") y nunca su propia fila. En la hoja de selección solo edita
+# su fila de evaluador; "Empleado del mes" (ganadores) y las hojas sin manager (DESIGN MANAGERS) son de
+# los admins. Los nombres de Desempeño son texto libre, así que se comparan como en la importación de
+# equipos (_buscar_empleado_por_nombre), que exige una coincidencia clara de palabras.
+
+def _es_la_persona(nombre: str, user: Empleado) -> bool:
+    return _buscar_empleado_por_nombre(nombre or "", [user]) is not None
+
+
+def perf_sheet_visible(user: Empleado, sheet: DesignPerfSheet) -> bool:
+    if es_admin(user) or sheet.tipo == "seleccion":
+        return True
+    mapeo = SHEET_MANAGER_MAP.get(sheet.nombre)
+    return bool(mapeo) and _es_la_persona(mapeo[1], user)
+
+
+def perf_puede_calificar(user: Empleado, emp: DesignPerfEmpleado) -> bool:
+    if es_admin(user):
+        return True
+    return (emp.sheet.tipo == "eval" and perf_sheet_visible(user, emp.sheet)
+            and not _es_la_persona(emp.nombre, user))
+
+
+def perf_puede_editar_fila_seleccion(user: Empleado, fila: DesignPerfSeleccionFila) -> bool:
+    return es_admin(user) or _es_la_persona(fila.evaluador, user)
 
 
 # ---------------------------------------------------------------------------

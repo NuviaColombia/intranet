@@ -1,20 +1,53 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
+import asyncio
+import os
 import re
+import weakref
 from datetime import date
 from typing import Literal
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi.routing import APIRoute
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
-from ..models_design import DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignOrden
+from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignOrden,
+                             DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila)
 from ..auth import require_modulo, require_admin, require_design_manager
 from ..main_templates import templates
 from .. import services_design as sd
 
-router = APIRouter()
+# Tope de peticiones de Design usando la base a la vez. Sin él, un pico (p. ej. 130 personas abriendo el
+# horario al inicio del turno) trababa el servidor: las peticiones que esperaban conexión del pool (5 + 10,
+# compartido con todos los módulos) ocupaban los 40 hilos de FastAPI, y las que ya tenían conexión no
+# conseguían hilo para terminar y devolverla -> 30 s de espera y error 500. Aquí la espera ocurre antes de
+# tomar hilo o conexión, así que Design nunca agota ni los hilos ni el pool de los demás módulos.
+# Se puede ajustar con la variable de entorno DESIGN_CONCURRENCIA (debe quedar por debajo del tamaño del pool).
+DESIGN_CONCURRENCIA = max(1, int(os.getenv("DESIGN_CONCURRENCIA", "8")))
+_cupos_por_loop: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = weakref.WeakKeyDictionary()
+
+
+def _cupos_design() -> asyncio.Semaphore:
+    loop = asyncio.get_running_loop()  # uno por event loop (las pruebas crean varios)
+    sem = _cupos_por_loop.get(loop)
+    if sem is None:
+        sem = _cupos_por_loop[loop] = asyncio.Semaphore(DESIGN_CONCURRENCIA)
+    return sem
+
+
+class _RutaDesign(APIRoute):
+    def get_route_handler(self):
+        original = super().get_route_handler()
+
+        async def handler(request: Request):
+            async with _cupos_design():
+                return await original(request)
+        return handler
+
+
+router = APIRouter(route_class=_RutaDesign)
 
 NUVIA_DESIGN = "Nuvia Design Colombia SAS"
 
@@ -24,8 +57,13 @@ NUVIA_DESIGN = "Nuvia Design Colombia SAS"
 @router.get("/design")
 def pagina(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
                  db: Session = Depends(get_db)):
+    # Áreas y tipos de ausencia van dentro de la página: son 2 peticiones menos por persona al abrir el horario.
+    areas = sd.areas_disponibles(db)
+    inicio = {"areas": [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in areas],
+              "ausencias": sd.ausencias_disponibles(db)}
+    # `areas` también llena el filtro de Área del Dashboard (desde que Design es una sola página salía vacío).
     return templates.TemplateResponse(request, "design_schedule.html",
-                                      {"user": user, "es_design": True})
+                                      {"user": user, "es_design": True, "ds_inicio": inicio, "areas": areas})
 
 
 def _redirigir_a_panel(request: Request, panel: str) -> RedirectResponse:
@@ -161,29 +199,47 @@ def _verificar_equipo(db: Session, user: Empleado, team_id: int) -> DesignTeam:
     team = db.get(DesignTeam, team_id)
     if not team:
         raise HTTPException(404, "Equipo no encontrado.")
-    if not sd.puede_ver_equipo(user, team):
+    if not sd.gestiona_equipo(user, team) and team_id not in sd.equipos_como_designer(db, user):
         raise HTTPException(403, "No tienes acceso a este equipo.")
     return team
 
 
+SOLO_MANAGER = "Solo el manager del equipo o un administrador puede crear o eliminar órdenes."
+
+
 @router.get("/design/api/areas")
 def api_areas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    return _areas_json(db)
+
+
+def _areas_json(db: Session) -> list[dict]:
     return [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in sd.areas_disponibles(db)]
 
 
 @router.get("/design/api/teams")
 def api_teams(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                     db: Session = Depends(get_db)):
-    equipos = [t for t in sd.equipos_de_area(db, area_id) if sd.puede_ver_equipo(user, t)]
+    ids_designer = sd.equipos_como_designer(db, user)
+    equipos = [t for t in sd.equipos_de_area(db, area_id) if sd.puede_ver_equipo(user, t, ids_designer)]
+
+    def designers(t):
+        ds = t.designers if sd.gestiona_equipo(user, t) else [d for d in t.designers if d.empleado_id == user.id]
+        return [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in ds]
     return [{"id": t.id, "nombre": t.nombre, "manager": t.manager.nombre_completo if t.manager else "",
-            "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in t.designers]}
-            for t in equipos]
+            "designers": designers(t)} for t in equipos]
 
 
 @router.get("/design/api/catalogo")
 def api_catalogo(area_id: int, tipo: str, user: Empleado = Depends(require_modulo("design_schedule")),
                        db: Session = Depends(get_db)):
     return sd.catalogo(db, area_id, tipo)
+
+
+@router.get("/design/api/catalogos")
+def api_catalogos(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                  db: Session = Depends(get_db)):
+    """Todos los catálogos del área en una sola petición ({tipo: [valores]}); antes era una por columna."""
+    return sd.catalogos_de_area(db, area_id)
 
 
 @router.get("/design/api/ausencias")
@@ -202,7 +258,7 @@ def _fecha(texto: str) -> date:
 def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                   db: Session = Depends(get_db)):
     team = _verificar_equipo(db, user, team_id)
-    return sd.datos_dia(db, team, _fecha(fecha))
+    return sd.datos_dia(db, team, _fecha(fecha), None if sd.gestiona_equipo(user, team) else user.id)
 
 
 @router.get("/design/api/todas-areas")
@@ -264,7 +320,8 @@ DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede
 @router.post("/design/api/ordenes")
 def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
-    _verificar_equipo(db, user, payload.teamId)
+    if not sd.gestiona_equipo(user, _verificar_equipo(db, user, payload.teamId)):
+        raise HTTPException(403, SOLO_MANAGER)
     if sd.dia_cerrado(_fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
     o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla,
@@ -288,7 +345,8 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
                                  db: Session = Depends(get_db)):
     """Crea varias órdenes de una vez: "+ Agregar orden" con cantidad, pegar un bloque con filas nuevas y
     deshacer una eliminación. Devuelve las órdenes creadas en el mismo orden."""
-    _verificar_equipo(db, user, payload.teamId)
+    if not sd.gestiona_equipo(user, _verificar_equipo(db, user, payload.teamId)):
+        raise HTTPException(403, SOLO_MANAGER)
     fecha = _fecha(payload.fecha)
     if sd.dia_cerrado(fecha):
         raise HTTPException(403, DIA_CERRADO)
@@ -313,7 +371,10 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     orden_existente = db.get(DesignOrden, orden_id)
     if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
-    _verificar_equipo(db, user, orden_existente.team_id)
+    team = _verificar_equipo(db, user, orden_existente.team_id)
+    solo_propia = not sd.gestiona_equipo(user, team)
+    if solo_propia and orden_existente.designer_id != user.id:
+        raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
     if sd.dia_cerrado(orden_existente.fecha):
         # Día cerrado: solo el QC (checkbox + reporte de hallazgos), y solo hasta las 5:00 am de D+2.
         # El resto de campos se ignora.
@@ -321,7 +382,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             raise HTTPException(403, DIA_CERRADO)
         o = sd.actualizar_orden(db, orden_id, {"qc": payload.qc, "qc_reporte": payload.qcReporte})
         return sd.serializar_orden(o)
-    o = sd.actualizar_orden(db, orden_id, _datos_desde_in(payload))
+    datos = _datos_desde_in(payload)
+    if solo_propia:  # un diseñador edita su fila pero no la reasigna
+        datos["designer_id"] = orden_existente.designer_id
+        datos["designer_prestado"] = orden_existente.designer_prestado
+    o = sd.actualizar_orden(db, orden_id, datos)
     return sd.serializar_orden(o)
 
 
@@ -331,7 +396,8 @@ def api_eliminar_orden(orden_id: int, user: Empleado = Depends(require_modulo("d
     orden_existente = db.get(DesignOrden, orden_id)
     if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
-    _verificar_equipo(db, user, orden_existente.team_id)
+    if not sd.gestiona_equipo(user, _verificar_equipo(db, user, orden_existente.team_id)):
+        raise HTTPException(403, SOLO_MANAGER)
     if sd.dia_cerrado(orden_existente.fecha):
         raise HTTPException(403, DIA_CERRADO)
     sd.eliminar_orden(db, orden_id)
@@ -354,7 +420,9 @@ class BreakIn(BaseModel):
 @router.post("/design/api/breaks")
 def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
-    _verificar_equipo(db, user, payload.teamId)
+    team = _verificar_equipo(db, user, payload.teamId)
+    if not sd.gestiona_equipo(user, team) and payload.empleadoId != user.id:
+        raise HTTPException(403, "Solo puedes registrar tus propios tiempos libres.")
     if sd.dia_cerrado(_fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
     b = sd.guardar_break(db, payload.teamId, payload.empleadoId, _fecha(payload.fecha), {
@@ -375,7 +443,7 @@ def api_dashboard(area_id: int | None = None, team_id: int | None = None, design
                         user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     fd = _fecha(fecha_desde) if fecha_desde else None
     fh = _fecha(fecha_hasta) if fecha_hasta else None
-    return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh)
+    return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user)
 
 
 @router.get("/design/api/buscar")
@@ -857,15 +925,38 @@ def pagina_perf(request: Request, user: Empleado = Depends(require_design_manage
 
 @router.get("/design/api/perf/sheets")
 def api_perf_sheets(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    return [{"id": s.id, "nombre": s.nombre, "tipo": s.tipo} for s in sd.perf_sheets(db)]
+    return [{"id": s.id, "nombre": s.nombre, "tipo": s.tipo} for s in sd.perf_sheets(db) if sd.perf_sheet_visible(user, s)]
+
+
+def _perf_sheet(db: Session, user: Empleado, sheet_id: int) -> DesignPerfSheet:
+    sheet = db.get(DesignPerfSheet, sheet_id)
+    if not sheet:
+        raise HTTPException(404, "Hoja no encontrada")
+    if not sd.perf_sheet_visible(user, sheet):
+        raise HTTPException(403, "Solo puedes ver la evaluación de tu equipo.")
+    return sheet
+
+
+NO_CALIFICA = "Solo puedes calificar a los diseñadores de tu equipo (nunca a ti mismo)."
 
 
 @router.get("/design/api/perf/sheets/{sheet_id}/eval")
 def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    _perf_sheet(db, user, sheet_id)
     detalle = sd.perf_detalle_eval(db, sheet_id)
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada")
+    for e in detalle["empleados"]:
+        e["editable"] = sd.perf_puede_calificar(user, db.get(DesignPerfEmpleado, e["id"]))
     return detalle
+
+
+def _perf_empleado_calificable(db: Session, user: Empleado, empleado_id: int) -> None:
+    emp = db.get(DesignPerfEmpleado, empleado_id)
+    if not emp:
+        raise HTTPException(404, "Persona no encontrada.")
+    if not sd.perf_puede_calificar(user, emp):
+        raise HTTPException(403, NO_CALIFICA)
 
 
 class PerfCeldaIn(BaseModel):
@@ -879,6 +970,7 @@ class PerfCeldaIn(BaseModel):
 @router.post("/design/api/perf/celdas")
 def api_perf_guardar_celda(payload: PerfCeldaIn, user: Empleado = Depends(require_design_manager),
                                  db: Session = Depends(get_db)):
+    _perf_empleado_calificable(db, user, payload.empleadoId)
     sd.perf_guardar_celda(db, payload.empleadoId, payload.criterioId, payload.mesIndice,
                           payload.nivel, payload.puntaje)
     return {"mensaje": "Guardado."}
@@ -891,6 +983,7 @@ class PerfNotaIn(BaseModel):
 @router.post("/design/api/perf/empleados/{empleado_id}/nota")
 def api_perf_guardar_nota(empleado_id: int, payload: PerfNotaIn, user: Empleado = Depends(require_design_manager),
                                 db: Session = Depends(get_db)):
+    _perf_empleado_calificable(db, user, empleado_id)
     sd.perf_guardar_nota(db, empleado_id, payload.nota)
     return {"mensaje": "Guardado."}
 
@@ -898,9 +991,13 @@ def api_perf_guardar_nota(empleado_id: int, payload: PerfNotaIn, user: Empleado 
 @router.get("/design/api/perf/sheets/{sheet_id}/seleccion")
 def api_perf_detalle_seleccion(sheet_id: int, user: Empleado = Depends(require_design_manager),
                                      db: Session = Depends(get_db)):
+    _perf_sheet(db, user, sheet_id)
     detalle = sd.perf_detalle_seleccion(db, sheet_id)
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada")
+    detalle["ganadoresEditables"] = sd.es_admin(user)
+    for f in detalle["filas"]:
+        f["editable"] = sd.perf_puede_editar_fila_seleccion(user, db.get(DesignPerfSeleccionFila, f["id"]))
     return detalle
 
 
@@ -912,6 +1009,8 @@ class PerfGanadorMesIn(BaseModel):
 @router.post("/design/api/perf/ganadores/{ganador_id}")
 def api_perf_guardar_ganador(ganador_id: int, payload: PerfGanadorMesIn, user: Empleado = Depends(require_design_manager),
                                    db: Session = Depends(get_db)):
+    if not sd.es_admin(user):
+        raise HTTPException(403, "El empleado del mes lo registra un administrador.")
     sd.perf_guardar_ganador_mes(db, ganador_id, payload.mesIndice, payload.nombre)
     return {"mensaje": "Guardado."}
 
@@ -926,6 +1025,11 @@ class PerfCeldaSeleccionIn(BaseModel):
 @router.post("/design/api/perf/filas/{fila_id}/celdas")
 def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSeleccionIn,
                                            user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    fila = db.get(DesignPerfSeleccionFila, fila_id)
+    if not fila:
+        raise HTTPException(404, "Fila no encontrada.")
+    if not sd.perf_puede_editar_fila_seleccion(user, fila):
+        raise HTTPException(403, "Solo puedes editar tu propia fila de evaluador.")
     sd.perf_guardar_celda_seleccion(db, fila_id, payload.mesIndice, payload.persona, payload.puntaje, payload.nota)
     return {"mensaje": "Guardado."}
 
@@ -988,6 +1092,8 @@ def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_schedu
 @router.post("/design/api/favoritos/team/{team_id}/toggle")
 def api_favorito_toggle_team(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                    db: Session = Depends(get_db)):
+    if team_id not in sd.favoritos_activos(db, user.id)["teams"]:
+        _verificar_equipo(db, user, team_id)  # solo se marcan equipos que la persona puede ver (quitar, siempre)
     return {"favorito": sd.favorito_toggle_team(db, user.id, team_id)}
 
 

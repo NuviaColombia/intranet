@@ -584,6 +584,7 @@ window.dsPdfjs = function() {
   .pf-tab { padding:8px 16px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:13px; }
   .pf-tab.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   .pf-panel { background:#fff; border:1px solid #d8dde3; border-radius:12px; padding:16px; overflow-x:auto; }
+  .pf-solo-lectura td { background:#f9fafb; color:#4b5563; }
   /* Desempeño usa todo el ancho de la pantalla (las tablas de evaluación son muy anchas) */
   #ov-perf .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
   #ov-perf .ds-overlay-inner > h1 { padding-right:56px; }
@@ -906,7 +907,7 @@ window.dsPdfjs = function() {
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Dashboard — Design Schedule</h1>
 
 <div class="dd-search">
-  <input type="text" id="ddBuscar" aria-label="Buscar orden o paciente" onkeydown="if (event.key === 'Enter') ddBuscar()" placeholder="Buscar por número de orden o paciente en todos los equipos...">
+  <input type="text" id="ddBuscar" aria-label="Buscar orden o paciente" onkeydown="if (event.key === 'Enter') ddBuscar()" placeholder="Buscar por número de orden o paciente en {{ 'todos los equipos' if user.rol in ('admin', 'superadmin') else 'tus equipos' }}...">
   <button type="button" class="btn" onclick="ddBuscar()">Buscar</button>
 </div>
 <div id="ddResultadosBusqueda"></div>
@@ -971,6 +972,11 @@ window.dsPdfjs = function() {
 {% endif %}
 
 <script>window.DS_PANELS = {};
+// Datos que ya vienen con la página (áreas y tipos de ausencia): no hace falta pedirlos al abrir.
+window.DS_INICIO = {{ ds_inicio | tojson }};
+window.dsAreas = function() {
+  return window.DS_INICIO.areas ? Promise.resolve(window.DS_INICIO.areas) : window.dsFetchJSON('/design/api/areas');
+};
 
 // Botón de área con lista desplegable (Horario: equipos; Pre-Approved: hojas).
 // Cada área se pinta como <div class="ds-drop" data-area="id"><button class="{tabClass}"> + <div class="ds-drop-menu">.
@@ -1183,7 +1189,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // ---------- Áreas / Equipos ----------
   // Presionar un área solo abre su lista de equipos; el horario cambia únicamente al elegir un equipo.
   function dsCargarAreas() {
-    api('/design/api/areas').then(function(areas) {
+    window.dsAreas().then(function(areas) {
       DS.areas = areas;
       var cont = document.getElementById('dsAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
@@ -1300,13 +1306,16 @@ window.addEventListener('unhandledrejection', function(ev) {
     ]},
   };
 
+  // Todos los catálogos del área llegan en una sola petición y se guarda la promesa (antes cada tabla
+  // pedía cada columna por separado: 6 peticiones al abrir un equipo de Face Design).
   var catalogoCache = {};
   function dsCatalogo(tipo) {
-    var key = DS.areaId + ':' + tipo;
-    if (catalogoCache[key]) return Promise.resolve(catalogoCache[key]);
-    return api('/design/api/catalogo?area_id=' + DS.areaId + '&tipo=' + tipo).then(function(vals) {
-      catalogoCache[key] = vals; return vals;
-    });
+    var areaId = DS.areaId;
+    if (!catalogoCache[areaId]) {
+      catalogoCache[areaId] = api('/design/api/catalogos?area_id=' + areaId)
+        .catch(function(e) { delete catalogoCache[areaId]; throw e; });
+    }
+    return catalogoCache[areaId].then(function(todos) { return todos[tipo] || []; });
   }
 
   function dsDuracion(inicio, fin) {
@@ -1351,7 +1360,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
     spec.forEach(function(c, i) { html += '<td data-col="' + i + '">' + dsCeldaInput(c, f) + '</td>'; });
     html += '<td class="ds-total">' + dsDuracion(f.horaInicio, f.horaFin) + '</td>';
-    html += '<td class="ds-acc">' + (nueva || dsDiaCerrado() ? '' : dsBtnEliminar(f.id)) + '</td>';
+    html += '<td class="ds-acc">' + (nueva || dsDiaCerrado() || dsSoloPropias() ? '' : dsBtnEliminar(f.id)) + '</td>';
     return html + '</tr>';
   }
   function dsBtnEliminar(id) {
@@ -1456,7 +1465,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     html += '<th>Total</th><th></th></tr></thead><tbody>';
     filas.forEach(function(f) { html += dsFilaHtml(spec, f); });
-    if (!dsDiaCerrado() && !filas.some(function(f) { return !dsOrdenCompleta(f); })) html += dsFilaHtml(spec, {});
+    if (dsPuedeCrear() && !filas.some(function(f) { return !dsOrdenCompleta(f); })) html += dsFilaHtml(spec, {});
     html += '</tbody></table>';
     DS.renderizando = true; // si la celda con foco desaparece, su "blur" no debe guardar
     try { cont.innerHTML = html; } finally { DS.renderizando = false; }
@@ -1466,6 +1475,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       cont.querySelectorAll('[data-campo]').forEach(function(el) {
         el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable);
       });
+    }
+    if (dsSoloPropias()) {
+      // Vista del diseñador: edita sus órdenes pero no las reasigna.
+      cont.querySelectorAll('[data-campo="designerId"]').forEach(function(el) { el.disabled = true; el.title = 'Solo el manager puede reasignar la orden'; });
     }
     cont.querySelectorAll('th[data-sort]').forEach(function(th) {
       th.addEventListener('click', function() {
@@ -1579,7 +1592,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsRenderKpis(DS.diaData);
     // Si ya no queda ninguna fila incompleta, se agrega una fila nueva vacía al final (sin redibujar: no se pierde el foco).
     var tbody = tr.parentNode;
-    if (!dsDiaCerrado() && !DS.diaData[tabla].some(function(f) { return !dsOrdenCompleta(f); }) && !tbody.querySelector('tr[data-id="nuevo"]')) {
+    if (dsPuedeCrear() && !DS.diaData[tabla].some(function(f) { return !dsOrdenCompleta(f); }) && !tbody.querySelector('tr[data-id="nuevo"]')) {
       var spec = COLSPEC[DS.areaFormato][tabla];
       var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaHtml(spec, {});
       var nueva = tmp.firstChild;
@@ -1640,12 +1653,15 @@ window.addEventListener('unhandledrejection', function(ev) {
   };
 
   function dsDiaCerrado() { return !!(DS.diaData && DS.diaData.cerrado); }
+  // Vista de un diseñador: solo sus órdenes y sus tiempos libres; no crea, no borra ni reasigna órdenes.
+  function dsSoloPropias() { return !!(DS.diaData && DS.diaData.soloPropias); }
+  function dsPuedeCrear() { return !dsDiaCerrado() && !dsSoloPropias(); }
 
   // Candado junto al título + botones "Agregar orden" según si el día ya se cerró (5:00 am del día siguiente, hora Colombia).
   function dsAplicarCierre() {
     var candado = document.getElementById('dsCandado');
     var cerrado = dsDiaCerrado();
-    document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = cerrado ? 'none' : ''; });
+    document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = dsPuedeCrear() ? '' : 'none'; });
     if (!cerrado) { candado.style.display = 'none'; return; }
     var txt = '🔒 Este día ya se cerró y no se puede editar.';
     if (DS.diaData.qcEditable) {
@@ -1688,8 +1704,11 @@ window.addEventListener('unhandledrejection', function(ev) {
   var dsAusenciasPromesa = null; // la lista de tipos de ausencia se pide una sola vez
   function dsRenderBreaks(dia) {
     var cont = document.getElementById('dsBreaks');
-    if (!dia.designers.length) { cont.innerHTML = '<p style="color:#4b5563">Este equipo no tiene diseñadores asignados.</p>'; return; }
-    if (!dsAusenciasPromesa) dsAusenciasPromesa = api('/design/api/ausencias').catch(function(e) { dsAusenciasPromesa = null; throw e; });
+    if (!dia.designers.length) { cont.innerHTML = '<p style="color:#4b5563">' + (dia.soloPropias ? 'No estás asignado como diseñador en este equipo.' : 'Este equipo no tiene diseñadores asignados.') + '</p>'; return; }
+    if (!dsAusenciasPromesa) {
+      dsAusenciasPromesa = window.DS_INICIO.ausencias ? Promise.resolve(window.DS_INICIO.ausencias)
+        : api('/design/api/ausencias').catch(function(e) { dsAusenciasPromesa = null; throw e; });
+    }
     dsAusenciasPromesa.then(function(tipos) {
       if (DS.diaData !== dia) return; // cambió de día/equipo mientras cargaba
       var grid = document.createElement('div'); grid.className = 'ds-tl-grid';
@@ -2032,7 +2051,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!ediciones.length && !nuevas.length) return Promise.resolve();
     ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, tabla, e.despues).then(function(o) { e.despues = dsClon(o); })); });
     return Promise.all(pasos).then(function() {
-      return nuevas.length && !dsDiaCerrado() ? dsCrearOrdenes(tabla, nuevas, false) : [];
+      return nuevas.length && dsPuedeCrear() ? dsCrearOrdenes(tabla, nuevas, false) : [];
     }).then(function(creadas) {
       dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: ediciones,
                   creadas: (creadas || []).map(function(o) { return {id: o.id, datos: dsClon(o)}; }), eliminadas: []});
@@ -2101,12 +2120,12 @@ window.addEventListener('unhandledrejection', function(ev) {
         });
         if (!tr && Object.keys(nueva).length) extras.push(nueva);
       });
-      if (extras.length && dsDiaCerrado()) { bloqueados += extras.length; extras = []; }
+      if (extras.length && !dsPuedeCrear()) { bloqueados += extras.length; extras = []; }
       DS.sel = {tabla: tabla, r1: r0, c1: c0, r2: r0 + bloque.length - 1, c2: c0 + Math.max.apply(null, bloque.map(function(f) { return f.length; })) - 1};
     }
     var avisos = [];
     if (omitidos) avisos.push(omitidos + ' valor(es) no coinciden con las opciones de la lista y no se pegaron');
-    if (bloqueados) avisos.push(bloqueados + ' celda(s) bloqueadas por el cierre del día');
+    if (bloqueados) avisos.push(bloqueados + ' celda(s) no editables' + (dsDiaCerrado() ? ' por el cierre del día' : ''));
     if (qcOmitidos) avisos.push('el QC no se marca pegando: márcalo en su checkbox para registrar los hallazgos');
     if (avisos.length) dsToast(avisos.join('. ') + '.');
     dsAplicarLote(tabla, cambios, extras).then(function() { dsPintarSel(); });
@@ -2660,7 +2679,7 @@ window.DS_PANELS.dashboard = ddCargar;
     document.getElementById('cmt_l26').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
     document.getElementById('cmt_l27').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
     document.getElementById('cmtProdList').innerHTML = CMT_PRODUCTS_DEFAULTS.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
-    api('/design/api/areas').then(function(areas) {
+    window.dsAreas().then(function(areas) {
       var n3 = areas.find(function(a) { return a.nombre === 'N3 Prosthetic'; });
       if (!n3) return;
       api('/design/api/catalogo?area_id=' + n3.id + '&tipo=producto').then(function(productos) {
@@ -2907,7 +2926,7 @@ window.DS_PANELS.dashboard = ddCargar;
   // Solo se muestran las áreas que tienen hojas (Face Design, N6 y Support hoy no tienen ninguna);
   // si un área recibe hojas más adelante, vuelve a aparecer sola.
   function cargarAreas() {
-    api('/design/api/areas').then(function(todas) {
+    window.dsAreas().then(function(todas) {
       return Promise.all(todas.map(function(a) {
         return api('/design/api/preapproved/sheets?area_id=' + a.id).then(function(h) { return h.length ? a : null; }, function() { return null; });
       })).then(function(r) { return r.filter(Boolean); });
@@ -3389,7 +3408,7 @@ window.DS_PANELS.dashboard = ddCargar;
   // ---------- Áreas ----------
   function cvCargarAreas() {
     CANVAS.homeMode = "board"; // Canvas siempre abre en vista Tablero (se puede cambiar en el momento)
-    api('/design/api/areas').then(function(areas) {
+    window.dsAreas().then(function(areas) {
       CV.areas = areas;
       var cont = document.getElementById('cvAreaTabs'); cont.innerHTML = '';
       areas.forEach(function(a) {
@@ -4793,7 +4812,7 @@ window.DS_PANELS.dashboard = ddCargar;
   function prTam(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
 
   function cargarAreas() {
-    api('/design/api/areas').catch(function(e) { prErrorGrid('No se pudieron cargar las áreas: ' + e.message, cargarAreas); return null; }).then(function(areas) {
+    window.dsAreas().catch(function(e) { prErrorGrid('No se pudieron cargar las áreas: ' + e.message, cargarAreas); return null; }).then(function(areas) {
       if (!areas) return;
       PR.areas = areas;
       var actual = window.dsAreaActual && window.dsAreaActual();
@@ -5490,6 +5509,8 @@ window.DS_PANELS.dashboard = ddCargar;
           tdTotal.innerText = pfPct(emp.total);
         }
         sel.onchange = guardar;
+        sel.setAttribute('aria-label', crit.nombre + ' de ' + emp.nombre);
+        if (emp.editable === false) sel.disabled = true;
         td.className = val.nivel ? 'pf-nivel-' + val.nivel : '';
         wrap.appendChild(sel); wrap.appendChild(num); td.appendChild(wrap);
         tr.appendChild(td);
@@ -5502,6 +5523,12 @@ window.DS_PANELS.dashboard = ddCargar;
 
       var tdNota = document.createElement('td');
       var ta = document.createElement('textarea'); ta.className = 'pf-nota'; ta.value = emp.nota || '';
+      ta.setAttribute('aria-label', 'Notas de ' + emp.nombre);
+      if (emp.editable === false) {
+        ta.disabled = true;
+        tr.title = 'Solo lectura: no puedes calificarte a ti mismo ni a personas de otros equipos.';
+        tr.classList.add('pf-solo-lectura');
+      }
       ta.addEventListener('blur', function() {
         postJSON('/design/api/perf/empleados/' + emp.id + '/nota', { nota: this.value }).catch(pfFallo(cargarEval));
       });
@@ -5543,6 +5570,8 @@ window.DS_PANELS.dashboard = ddCargar;
         var td = document.createElement('td');
         var inp = document.createElement('input'); inp.className = 'pf-mini'; inp.style.width = '120px';
         inp.value = g.ganadoresMes[i] || '';
+        inp.setAttribute('aria-label', g.categoria + ' — ' + m);
+        if (d.ganadoresEditables === false) { inp.disabled = true; inp.title = 'Lo registra un administrador'; }
         inp.addEventListener('blur', function() {
           postJSON('/design/api/perf/ganadores/' + g.id, { mesIndice: i, nombre: this.value }).catch(pfFallo(cargarSeleccion));
         });
@@ -5583,10 +5612,18 @@ window.DS_PANELS.dashboard = ddCargar;
       var ta = document.createElement('textarea'); ta.className = 'pf-nota-sel'; ta.value = celda.nota;
       tdNota.appendChild(ta); tr.appendChild(tdNota);
 
+      if (f.editable === false) {
+        inpP.disabled = inpS.disabled = ta.disabled = true;
+        tr.title = 'Solo lectura: cada líder edita su propia fila.';
+        tr.classList.add('pf-solo-lectura');
+      }
+      inpP.setAttribute('aria-label', 'Persona nominada por ' + f.evaluador);
+      inpS.setAttribute('aria-label', 'Puntaje de ' + f.evaluador);
+      ta.setAttribute('aria-label', 'Nota de ' + f.evaluador);
       function guardar() {
         postJSON('/design/api/perf/filas/' + f.id + '/celdas', {
           mesIndice: PF.mesIdx, persona: inpP.value, puntaje: inpS.value, nota: ta.value,
-        });
+        }).catch(pfFallo(cargarSeleccion));
       }
       inpP.addEventListener('blur', guardar);
       inpS.addEventListener('blur', guardar);
