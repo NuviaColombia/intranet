@@ -159,8 +159,168 @@ def validar_lineas_traslado(db: Session, lineas: list[dict], resumen: list[dict]
     return None
 
 
+# ---------------- Stock por descripción ----------------
+SIN_DESCRIPCION = "SIN DESCRIPCIÓN"
+
+
+def _descripcion(texto: str) -> str:
+    return " ".join(str(texto or "").split()).upper() or SIN_DESCRIPCION
+
+
+def _sale_de_stock(linea: dict) -> bool:
+    return (linea.get("orden_origen") or linea["numero_orden"]) == ORDEN_STOCK
+
+
+def stock_por_descripcion(db: Session) -> dict[str, dict[str, float]]:
+    """{área: {descripción: cantidad}} de lo asignado por descripción (las entradas cuentan al confirmarse)."""
+    from .models_custodia import CustodiaStockDescripcion as SD
+    filas = (db.query(SD.area, SD.descripcion, func.sum(SD.cantidad))
+             .outerjoin(CustodiaTraslado, SD.traslado_id == CustodiaTraslado.id)
+             .filter(or_(SD.traslado_id.is_(None),
+                         and_(CustodiaTraslado.anulado.is_(False),
+                              or_(SD.cantidad < 0, CustodiaTraslado.confirmado_entrada.is_(True)))))
+             .group_by(SD.area, SD.descripcion).all())
+    salida: dict[str, dict[str, float]] = {}
+    for area, desc, total in filas:
+        if abs(total or 0) > 1e-9:
+            salida.setdefault(area, {})[desc] = round(float(total), 4)
+    return salida
+
+
+def inventario_stock(db: Session, area: str | None = None) -> list[dict]:
+    """Stock de cada área: total, lo asignado por descripción y lo que queda «Sin descripción»."""
+    por_desc = stock_por_descripcion(db)
+    areas = [area] if area else list(dict.fromkeys(areas_disponibles(db) + list(por_desc)))
+    salida = []
+    for a in areas:
+        total = round(_saldo_confirmado(db, ORDEN_STOCK, a), 4)
+        descs = {d: c for d, c in por_desc.get(a, {}).items() if c > 1e-9}
+        if total <= 1e-9 and not descs:
+            continue
+        asignado = sum(descs.values())
+        salida.append({"area": a, "total": total, "sinDescripcion": round(max(total - asignado, 0), 4),
+                       "descripciones": [{"descripcion": d, "cantidad": c} for d, c in sorted(descs.items())]})
+    return salida
+
+
+def validar_stock_descripciones(db: Session, area_salida: str, lineas: list[dict],
+                                elegidas: list[dict]) -> tuple[str | None, list[tuple[str, float]]]:
+    """Lo que sale del Stock debe decir de qué descripción sale (si el área tiene Stock con descripciones)."""
+    total = round(sum(l["cantidad_discos"] for l in lineas if _sale_de_stock(l)), 4)
+    if total <= 0:
+        return None, []
+    inv = (inventario_stock(db, area_salida) or [{"descripciones": [], "sinDescripcion": 0}])[0]
+    disponibles = {d["descripcion"]: d["cantidad"] for d in inv["descripciones"]}
+    disponibles[SIN_DESCRIPCION] = inv["sinDescripcion"]
+    juntas: dict[str, float] = {}
+    for e in elegidas or []:
+        cantidad = round(float(e.get("cantidad") or 0), 4)
+        if cantidad > 0:
+            d = _descripcion(e.get("descripcion"))
+            juntas[d] = juntas.get(d, 0) + cantidad
+    if not juntas:
+        if inv["descripciones"]:
+            return (f"El Stock de {nombre_propio(area_salida)} tiene descripciones: elige de cuáles salen "
+                    f"los {total:g} disco(s)."), []
+        return None, [(SIN_DESCRIPCION, total)]
+    suma = round(sum(juntas.values()), 4)
+    if abs(suma - total) > 1e-6:
+        return f"Las descripciones del Stock suman {suma:g} y la cantidad que sale del Stock es {total:g}.", []
+    for d, c in juntas.items():
+        if c > disponibles.get(d, 0) + 1e-6:
+            return (f"En {nombre_propio(area_salida)} hay {disponibles.get(d, 0):g} disco(s) de Stock «{d.title() if d == SIN_DESCRIPCION else d}»; "
+                    f"no puedes sacar {c:g}."), []
+    return None, list(juntas.items())
+
+
+def _repartir(fuentes: list[tuple[str, float]], cantidad: float) -> list[tuple[str, float]]:
+    """Toma `cantidad` de las fuentes en orden (lo que sobra queda sin descripción)."""
+    salida, falta = [], cantidad
+    for d, c in fuentes:
+        if falta <= 1e-9:
+            break
+        tomar = min(c, falta)
+        salida.append((d, tomar))
+        falta -= tomar
+    if falta > 1e-9:
+        salida.append((SIN_DESCRIPCION, falta))
+    return salida
+
+
+def _movimientos_stock(db: Session, traslado: CustodiaTraslado, lineas: list[dict], resumen: list[dict],
+                       elegidas: list[tuple[str, float]], user: Empleado) -> None:
+    from .models_custodia import CustodiaStockDescripcion as SD
+
+    def agregar(area, desc, cantidad, tipo):
+        if desc != SIN_DESCRIPCION and abs(cantidad) > 1e-9:
+            db.add(SD(traslado_id=traslado.id, area=area, descripcion=desc, cantidad=round(cantidad, 4), tipo=tipo,
+                      creado_por_id=user.id))
+
+    for d, c in elegidas:  # sale del Stock del área de salida
+        agregar(traslado.area_salida, d, -c, "SALIDA")
+    restantes = list(elegidas)
+    for l in lineas:
+        if l["numero_orden"] != ORDEN_STOCK:
+            continue
+        origen = l.get("orden_origen")
+        if not origen:  # Stock que pasa como Stock a otra área: lleva las mismas descripciones
+            partes = _repartir(restantes, l["cantidad_discos"])
+            usado = dict(partes)
+            restantes = [(d, c - usado.get(d, 0)) for d, c in restantes if c - usado.get(d, 0) > 1e-9]
+        else:  # una orden que entra al Stock (ej. a DIR Producción): toma las descripciones de su Resumen general
+            fuentes = [(_descripcion(r.get("descripcion")), float(r.get("total") or 0)) for r in resumen
+                       if str(r.get("orden") or "").strip().upper() == origen and (r.get("total") or 0) > 0]
+            partes = _repartir(fuentes, l["cantidad_discos"])
+        for d, c in partes:
+            agregar(traslado.area_entrada, d, c, "ENTRADA")
+
+
+def leer_stock_inicial(texto: str) -> tuple[list[tuple[str, float]], list[str]]:
+    """Filas «DESCRIPCIÓN  CANTIDAD» pegadas (tabulador, ; o la cantidad al final)."""
+    filas, errores = [], []
+    for n, linea in enumerate((texto or "").splitlines(), start=1):
+        if not linea.strip():
+            continue
+        partes = [p.strip() for p in (linea.split("\t") if "\t" in linea else linea.split(";") if ";" in linea
+                                      else linea.rsplit(None, 1)) if p.strip()]
+        if len(partes) < 2:
+            errores.append(f"Fila {n}: se espera descripción y cantidad: «{linea.strip()}»")
+            continue
+        desc, txt = " ".join(partes[:-1]), partes[-1]
+        try:
+            cantidad = float(txt.replace(".", "").replace(",", ".") if "," in txt else txt)
+        except ValueError:
+            if n == 1 and not filas:  # títulos
+                continue
+            errores.append(f"Fila {n}: la cantidad «{txt}» no es un número")
+            continue
+        if cantidad <= 0:
+            errores.append(f"Fila {n}: la cantidad debe ser mayor que cero")
+            continue
+        filas.append((_descripcion(desc), cantidad))
+    return filas, errores
+
+
+def asignar_stock_inicial(db: Session, user: Empleado, area: str, filas: list[tuple[str, float]]) -> str | None:
+    """Le pone descripción al Stock «Sin descripción» que ya tiene el área (inventario inicial)."""
+    from .models_custodia import CustodiaStockDescripcion as SD
+    inv = inventario_stock(db, area)
+    libre = inv[0]["sinDescripcion"] if inv else 0
+    suma = round(sum(c for _, c in filas), 4)
+    if suma > libre + 1e-6:
+        return (f"No se guardó: en {nombre_propio(area)} hay {libre:g} disco(s) de Stock sin descripción "
+                f"y quieres asignar {suma:g}.")
+    for d, c in filas:
+        if d == SIN_DESCRIPCION:
+            return "No se guardó: escribe la descripción de cada fila."
+        db.add(SD(area=area, descripcion=d, cantidad=round(c, 4), tipo="INICIAL", creado_por_id=user.id))
+    db.commit()
+    return None
+
+
 def crear_traslado(db: Session, user: Empleado, cabecera: dict, lineas: list[dict],
-                   resumen: list[dict], discos: list[dict], op: list[dict]) -> CustodiaTraslado:
+                   resumen: list[dict], discos: list[dict], op: list[dict],
+                   stock_descripciones: list[tuple[str, float]] | None = None) -> CustodiaTraslado:
     traslado = CustodiaTraslado(
         colaborador=cabecera["colaborador"], id_colaborador=cabecera.get("id_colaborador", ""),
         area_creacion=cabecera["area_creacion"], fecha=cabecera["fecha"], hora=cabecera["hora"],
@@ -187,6 +347,7 @@ def crear_traslado(db: Session, user: Empleado, cabecera: dict, lineas: list[dic
         db.add(CustodiaOP(traslado_id=traslado.id, orden=o.get("orden", ""), op=o.get("op", ""),
                           descripcion=o.get("descripcion", ""), tipo=o.get("tipo", ""),
                           usuario=o.get("usuario", ""), observaciones=o.get("observaciones", "")))
+    _movimientos_stock(db, traslado, lineas, resumen, stock_descripciones or [], user)
 
     db.commit()
     db.refresh(traslado)

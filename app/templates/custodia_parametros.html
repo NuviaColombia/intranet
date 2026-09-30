@@ -286,6 +286,56 @@
       <button class="btn mini" id="saldos-boton" disabled>📥 {{ 'Cargar saldos adicionales' if saldos_cargados else 'Cargar saldos iniciales' }}</button>
     </div>
   </form>
+
+  {# ---------- Stock por descripción (inventario inicial del Stock) ---------- #}
+  <h3 style="margin:28px 0 6px; font-size:15px; color:#1A365D;">📦 Stock por descripción</h3>
+  <div class="cp-ayuda" style="max-width:900px">
+    A los discos de <b>Stock</b> de cada área asígnales su <b>descripción</b> (la misma del Resumen general, ej. NDZ-B1-A10-N).
+    Desde ahí el sistema lleva el inventario por descripción: lo que llega al Stock toma las descripciones del Resumen general del traslado,
+    y al sacar discos del Stock se elige de qué descripción salen. Se ve en Cambio de custodia › Dashboard.
+  </div>
+  {% if stock_inventario %}
+  <table class="cp-tabla" style="max-width:900px; margin:10px 0;">
+    <tr><th>Área</th><th style="text-align:right">Stock total</th><th>Con descripción</th><th style="text-align:right">Sin descripción</th></tr>
+    {% for a in stock_inventario %}
+    <tr><td>{{ a.area|nombre_propio }}</td><td style="text-align:right"><b>{{ '%g'|format(a.total) }}</b></td>
+      <td style="font-size:12px">{% for d in a.descripciones %}<span class="sc-chip" style="background:#E0E7FF;color:#3730A3;border-radius:10px;padding:1px 8px;margin:1px;display:inline-block">{{ d.descripcion }} · {{ '%g'|format(d.cantidad) }}</span>{% else %}<span style="color:#9ca3af">—</span>{% endfor %}</td>
+      <td style="text-align:right; {{ 'color:#92400e; font-weight:700' if a.sinDescripcion > 0 }}">{{ '%g'|format(a.sinDescripcion) }}</td></tr>
+    {% endfor %}
+  </table>
+  <form method="post" action="/inventario/parametros/custodia/stock-descripciones" style="max-width:900px"
+        onsubmit="return confirm('¿Asignar estas descripciones al Stock de ' + document.getElementById('stock-area').value + '?');">
+    <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:6px;">
+      <div><label style="display:block; font-size:12px; font-weight:700;">Área</label>
+        <select name="area" id="stock-area" required style="width:auto">
+          <option value="">Seleccionar...</option>
+          {% for a in stock_inventario if a.sinDescripcion > 0 %}
+          <option value="{{ a.area }}" {{ 'selected' if stock_area == a.area }}>{{ a.area|nombre_propio }} — {{ '%g'|format(a.sinDescripcion) }} sin descripción</option>
+          {% endfor %}
+        </select></div>
+      <div id="stock-libre" style="font-size:12px; color:#475569;"></div>
+    </div>
+    <textarea name="texto" id="stock-texto" rows="6" style="width:100%; font-family:Consolas,monospace; font-size:13px;"
+              placeholder="DESCRIPCIÓN&#9;CANTIDAD&#10;NDZ-B1-A10-N&#9;3&#10;NDZ-B1-C5-N&#9;2,5">{{ stock_texto }}</textarea>
+    <div style="margin-top:8px;"><button class="btn mini">📦 Asignar descripciones</button></div>
+  </form>
+  {% if stock_iniciales %}
+  <details style="margin-top:10px; max-width:900px;"><summary style="cursor:pointer; font-size:13px;">Ver asignaciones iniciales ({{ stock_iniciales|length }})</summary>
+    <table class="cp-tabla" style="margin-top:6px;">
+      <tr><th>Área</th><th>Descripción</th><th style="text-align:right">Cantidad</th><th>Asignado por</th><th></th></tr>
+      {% for m in stock_iniciales %}
+      <tr><td>{{ m.area|nombre_propio }}</td><td>{{ m.descripcion }}</td><td style="text-align:right">{{ '%g'|format(m.cantidad) }}</td>
+        <td style="font-size:12px">{{ (m.creado_por.nombre_completo if m.creado_por else '')|nombre_propio }}</td>
+        <td><form class="inline" method="post" action="/inventario/parametros/custodia/stock-descripciones/{{ m.id }}/quitar"
+                  onsubmit="return confirm('¿Quitar esta asignación? Esos discos vuelven a quedar sin descripción.')">
+          <button class="btn gris mini">Quitar</button></form></td></tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endif %}
+  {% else %}
+  <div class="cp-vacio" style="max-width:900px">Ninguna área tiene discos de Stock en este momento.</div>
+  {% endif %}
 </div>
 <script>
 (function() {
