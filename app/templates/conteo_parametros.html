@@ -42,8 +42,9 @@
 <div class="cp-panel" id="panel-n_director">
   <div class="cp-ayuda" style="max-width:900px">El conteo de cada área lleva <b>3 firmas</b>: el <b>manager</b> que lo carga (pestaña Accesos),
     el <b>Director de Producción</b> y un <b>testigo</b> de esta lista (lo elige el manager al enviar). Al Director y al testigo les llega
-    un aviso por Cliq para firmar o rechazar con una observación. Con las 3 firmas se guarda el PDF del reporte en la carpeta de WorkDrive
-    y pasa al <b>conteo físico</b> de los validadores.</div>
+    un aviso por Cliq para firmar o rechazar con una observación. Con las 3 firmas el conteo <b>queda en firme</b> y se guarda el PDF
+    del reporte en la carpeta de WorkDrive. Solo el <b>Director de Producción</b> o un <b>administrador</b> pueden <b>anular las firmas</b>
+    para que el manager corrija y se vuelva a firmar. Se puede enviar en cualquier momento y las cantidades aceptan decimales (ej. 12.5).</div>
   <h3 style="margin:14px 0 6px; font-size:14px; color:#1A365D;">🏭 Director de Producción (firma 2)</h3>
   <form method="post" action="/inventario/parametros/conteo/director" class="cp-form-nuevo" style="max-width:900px">
     <div style="flex:2;min-width:260px"><label>Persona</label>
@@ -77,52 +78,10 @@
     <tr><td colspan="4" class="cp-vacio">Todavía no hay testigos. Usa <b>＋ Agregar testigo</b>.</td></tr>
     {% endfor %}
   </table>
-</div>
-
-{# ---------- Validadores y ajustes ---------- #}
-<div class="cp-panel" id="panel-n_validadores">
-  <div class="cp-ayuda" style="max-width:900px">Los <b>validadores</b> hacen el <b>conteo físico posterior</b> al del manager, en todas las áreas: cuentan
-    <b>a ciegas</b> (no ven el conteo del manager hasta guardar el suyo), el sistema compara material por material y ellos
-    <b>validan y firman</b> o <b>devuelven</b> el conteo con una observación. Les llega un aviso por Cliq cuando el conteo de un área tiene las 3 firmas.</div>
-  <details class="cp-agregar">
-    <summary><span class="btn mini">＋ Agregar validador</span></summary>
-    <form method="post" action="/inventario/parametros/conteo/validadores" class="cp-form-nuevo">
-      <div style="flex:2;min-width:260px"><label>Persona</label>
-        <input type="search" class="buscar-persona-n" data-lista="n-lista-validadores" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
-        <select name="empleado_id" id="n-lista-validadores" required>
-          <option value="">Seleccionar...</option>
-          {% for e in inv_conteo.personas if e not in inv_conteo.validadores %}
-          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
-          {% endfor %}
-        </select></div>
-      <div><button class="btn mini">Agregar</button></div>
-    </form>
-  </details>
-  <table class="cp-tabla" style="max-width:900px">
-    <tr><th>Validador</th><th>Cargo</th><th>Correo</th><th></th></tr>
-    {% for e in inv_conteo.validadores %}
-    <tr><td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td><td>{{ e.email }}</td>
-      <td class="cp-acciones"><form class="inline" method="post" action="/inventario/parametros/conteo/validadores/{{ e.id }}/quitar"
-            onsubmit="return confirm('¿Quitar a {{ e.nombre_completo|nombre_propio }} de los validadores?')">
-          <button class="btn gris mini">Quitar</button></form></td></tr>
-    {% else %}
-    <tr><td colspan="4" class="cp-vacio">Todavía no hay validadores. Los administradores también pueden validar.</td></tr>
-    {% endfor %}
-  </table>
-  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">⚙️ Ajustes</h3>
-  <form method="post" action="/inventario/parametros/conteo/ajustes" class="cp-form-nuevo" style="max-width:900px">
-    <div style="width:220px"><label>Tolerancia de diferencia</label>
-      <input name="tolerancia" value="{{ '%g'|format(inv_conteo.config.tolerancia) }}" inputmode="decimal">
-      <small style="color:#64748b">0 = debe coincidir exacto. Ej. 0.5 = se acepta media unidad de diferencia.</small></div>
-    <div style="width:240px"><label>Día límite para enviar</label>
-      <input name="dia_limite" type="number" min="0" max="28" value="{{ inv_conteo.config.dia_limite }}">
-      <small style="color:#64748b">Día del mes siguiente (ej. 3 = hasta el 3). 0 = el último día del mismo mes. Después solo un administrador puede registrarlo.</small></div>
-    <div><button class="btn mini">Guardar ajustes</button></div>
-  </form>
-  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">☁️ Copia de las fotos en Zoho WorkDrive</h3>
+  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">☁️ Copia de las fotos y PDF en Zoho WorkDrive</h3>
   {% set wd = inv_conteo.workdrive %}
-  <div class="cp-ayuda" style="max-width:900px">Cada foto de evidencia se guarda en la intranet y además se copia en la carpeta de WorkDrive:
-    <b>Carpeta / 2026-09 Septiembre / Milling / Conteo inventario mensual - Milling - Septiembre 2026 - S-MATP16-Glaze paste (manager).jpg</b>.
+  <div class="cp-ayuda" style="max-width:900px">Cada soporte y cada PDF en firme se guarda en la intranet y además se copia en la carpeta de WorkDrive:
+    <b>Carpeta / 2026-09 Septiembre / Milling / Conteo inventario mensual - Milling - Septiembre 2026 - S-MATP16-Glaze paste - 12.jpg</b>.
     Si WorkDrive falla, la foto queda pendiente y se reintenta sola cada hora.</div>
   <div style="margin:8px 0; padding:10px 12px; border-radius:8px; max-width:900px; font-size:13px; background:{{ '#dcfce7' if wd.configurado else '#fef3c7' }}; color:{{ '#14532d' if wd.configurado else '#92400e' }}">
     {% if wd.configurado %}✅ Conectado.{% else %}⚠️ Falta configurar WorkDrive en Render (variables <b>ZOHO_WORKDRIVE_REFRESH_TOKEN</b> y <b>ZOHO_WORKDRIVE_CARPETA_ID</b>): las fotos quedan pendientes y se copian cuando se configure.{% endif %}

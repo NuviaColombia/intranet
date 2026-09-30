@@ -55,10 +55,17 @@
         <button class="btn rojo mini" style="margin-top:6px">↩️ Rechazar</button></form>
     {% elif r.estado == 'DEVUELTO' %}
       <div class="cf-aviso mal">↩️ Este conteo fue devuelto: {{ r.observacion }}</div>
-    {% elif r.firmasCompletas %}
-      <div class="cf-aviso ok">✅ El conteo tiene las 3 firmas{{ ' y ya fue validado' if r.estado == 'VALIDADO' else ' y está en validación' }}.</div>
+    {% elif r.estado == 'VALIDADO' %}
+      <div class="cf-aviso ok">✅ El conteo quedó <b>en firme</b> con las 3 firmas el {{ r.enFirmeEn }}.</div>
     {% else %}
       <div class="cf-aviso pend">⏳ Esperando las demás firmas.</div>
+    {% endif %}
+    {% if puede_anular and r.estado in ('ENVIADO', 'VALIDADO') %}
+      <form method="post" action="/conteo/firma/{{ r.id }}/anular" style="margin-top:14px"
+            onsubmit="return confirm('¿Anular las firmas? El conteo vuelve al manager para corregirlo y se debe firmar de nuevo.');">
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#991B1B;">🔓 Anular firmas (Director de Producción o administrador)</label>
+        <textarea name="motivo" rows="2" style="width:100%" required minlength="5" placeholder="Motivo: qué se debe corregir"></textarea>
+        <button class="btn rojo mini" style="margin-top:6px">🔓 Anular firmas</button></form>
     {% endif %}
   </div>
  </div>
