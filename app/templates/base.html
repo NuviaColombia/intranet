@@ -21,13 +21,13 @@
 {% endmacro %}
 {% if user %}
 {% set sec_permitidas = secciones if secciones is defined else none %}
-{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_sst %}
+{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_sst or es_conteo %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
   <a href="/" class="marca" title="Ir al inicio: todos los módulos">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </a>
-  {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo and not es_sst %}
+  {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo and not es_sst and not es_conteo %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
@@ -106,6 +106,12 @@
     {{ pestanas(grupos_consumo, 'consumo-tab', '/consumo', sec_permitidas, consumo_tab_inicial|default('entrega' if puede_entregar else 'jornada')) }}
   </div>
   {% endif %}
+  {% if es_conteo %}
+  <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/conteo">Conteo inventario mensual</a></span>
+  <div class="nav-sub">
+    {{ pestanas([[('nuevo', 'Conteo del mes')], [('reportes', 'Reportes')]], 'conteo-tab', '/conteo', sec_permitidas, conteo_tab_inicial|default('nuevo')) }}
+  </div>
+  {% endif %}
   {% if es_custodia and request.url.path == '/inventario/parametros' %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/inventario/parametros">Parámetros</a></span>
   <div class="nav-sub"><a href="/inventario/parametros" class="activo">⚙️ Parámetros</a></div>
@@ -146,7 +152,7 @@
   <a href="/design/parametros">⚙️ Parámetros</a>
   {% endif %}
   {% endif %}
-  {% if not es_custodia and not es_design and not es_caja and not es_caja_entrada and not es_consumo %}
+  {% if not es_custodia and not es_design and not es_caja and not es_caja_entrada and not es_consumo and not es_conteo %}
   {% set resumen = resumen_aprobaciones(user) %}
   {% if resumen is not none %}
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>

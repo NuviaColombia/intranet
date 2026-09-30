@@ -1,0 +1,113 @@
+{# Producción › Parámetros › Conteo inventario mensual (incluido en custodia_parametros.html) #}
+{% from "_secciones.html" import celda_secciones %}
+
+{# ---------- Accesos ---------- #}
+<div class="cp-panel" id="panel-n_accesos">
+  <div class="cp-ayuda" style="max-width:900px">Quién entra a <b>Conteo inventario mensual</b>. Cada persona reporta el conteo de su
+    <b>área asignada</b> (la de Producción › Cambio de custodia › Accesos); si no tiene área asignada, la elige en el formulario.
+    En <b>Secciones</b> eliges si solo reporta (Conteo del mes) o también ve los Reportes. Los administradores entran y ven todo.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/accesos" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-n" data-lista="n-lista-accesos" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="n-lista-accesos" required>
+          <option value="">Seleccionar...</option>
+          {% for e in inv_conteo.personas if e not in inv_conteo.accesos %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><button class="btn mini">Dar acceso</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Persona</th><th>Cargo</th><th>Área asignada</th><th>Secciones</th><th></th></tr>
+    {% for e in inv_conteo.accesos %}
+    <tr>
+      <td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td>
+      <td>{{ (e.area_custodia or '')|nombre_propio or '—' }}</td>
+      <td>{{ celda_secciones(e, "conteo", secciones_cfg.conteo, "/inventario/parametros?tab=n_accesos") }}</td>
+      <td class="cp-acciones">
+        <form class="inline" method="post" action="/inventario/parametros/conteo/accesos/{{ e.id }}/quitar"
+              onsubmit="return confirm('¿Quitar el acceso a Conteo inventario mensual de {{ e.nombre_completo|nombre_propio }}?')">
+          <button class="btn gris mini">Quitar acceso</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="cp-vacio">Todavía nadie tiene acceso a Conteo inventario mensual. Usa <b>＋ Dar acceso a una persona</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Materiales ---------- #}
+<div class="cp-panel" id="panel-n_materiales">
+  <div class="cp-ayuda" style="max-width:900px">Materiales que se cuentan cada mes en cada bodega (en el formulario salen como
+    <b>prefijo de la bodega - código - descripción</b>, ej. B-MATP6-Incisal Enhancer 1.5 DPLB10). Desactivar un material lo quita del
+    formulario; lo ya contado se conserva.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar material</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/materiales" class="cp-form-nuevo">
+      <div style="width:140px"><label>Código</label><input name="codigo" required placeholder="MATP60"></div>
+      <div style="flex:2;min-width:240px"><label>Descripción</label><input name="descripcion" required placeholder="Ej: Glaze paste"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Orden</th><th>Código</th><th>Descripción</th><th>Estado</th><th></th></tr>
+    {% for m in inv_conteo.materiales %}
+    <tr class="{{ '' if m.activo else 'cp-inactivo' }}">
+      <td style="width:70px"><form id="f-nmat-{{ m.id }}" method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}"></form>
+        <input name="orden" type="number" value="{{ m.orden }}" form="f-nmat-{{ m.id }}" style="width:60px"></td>
+      <td style="width:130px"><input name="codigo" value="{{ m.codigo }}" required form="f-nmat-{{ m.id }}"></td>
+      <td><input name="descripcion" value="{{ m.descripcion }}" required form="f-nmat-{{ m.id }}"></td>
+      <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activo' if m.activo else 'Inactivo' }}</span></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-nmat-{{ m.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if m.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Bodegas ---------- #}
+<div class="cp-panel" id="panel-n_bodegas">
+  <div class="cp-ayuda" style="max-width:900px">Bodegas en las que se cuenta (ej. 103 Bienes con prefijo B, 200 Servicio con prefijo S).
+    Cada bodega tiene su tabla de materiales y su campo de discos de zirconia dañados.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar bodega</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/bodegas" class="cp-form-nuevo">
+      <div style="width:110px"><label>Código</label><input name="codigo" required placeholder="300"></div>
+      <div style="flex:1;min-width:180px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Consignación"></div>
+      <div style="width:100px"><label>Prefijo</label><input name="prefijo" required placeholder="C"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Código</th><th>Nombre</th><th>Prefijo</th><th>Estado</th><th></th></tr>
+    {% for b in inv_conteo.bodegas %}
+    <tr class="{{ '' if b.activo else 'cp-inactivo' }}">
+      <td style="width:110px"><form id="f-nbod-{{ b.id }}" method="post" action="/inventario/parametros/conteo/bodegas/{{ b.id }}"></form>
+        <input name="codigo" value="{{ b.codigo }}" required form="f-nbod-{{ b.id }}"></td>
+      <td><input name="nombre" value="{{ b.nombre }}" required form="f-nbod-{{ b.id }}"></td>
+      <td style="width:100px"><input name="prefijo" value="{{ b.prefijo }}" required form="f-nbod-{{ b.id }}"></td>
+      <td><span class="cp-estado {{ 'si' if b.activo else 'no' }}">{{ 'Activa' if b.activo else 'Inactiva' }}</span></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-nbod-{{ b.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/conteo/bodegas/{{ b.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if b.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+<script>
+document.querySelectorAll('.buscar-persona-n').forEach(function(buscar) {
+  var lista = document.getElementById(buscar.dataset.lista);
+  buscar.addEventListener('input', function() {
+    var q = buscar.value.trim().toLowerCase(), primera = null;
+    Array.prototype.forEach.call(lista.options, function(o, i) {
+      if (!i) return;
+      var ok = !q || (o.dataset.buscar || '').indexOf(q) !== -1; o.hidden = !ok;
+      if (ok && !primera) primera = o;
+    });
+    lista.value = q ? (primera ? primera.value : '') : lista.value;
+  });
+});
+</script>

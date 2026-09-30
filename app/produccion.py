@@ -14,6 +14,9 @@ SUBMODULOS_PRODUCCION = [
      "descripcion": "Consumo de materias primas por técnico", "url": "/consumo", "activo": True,
      "parametros": [("c_accesos", "👤 Accesos"), ("c_tecnicos", "👷 Técnicos"), ("c_materias", "🧪 Materias primas"),
                     ("c_tipos", "🔢 Tipos de producto")]},
+    {"slug": "conteo", "nombre": "Conteo inventario mensual", "icono": "📋",
+     "descripcion": "Conteo mensual de materiales por área y bodega", "url": "/conteo", "activo": True,
+     "parametros": [("n_accesos", "👤 Accesos"), ("n_materiales", "🧪 Materiales"), ("n_bodegas", "🏬 Bodegas")]},
 ]
 
 

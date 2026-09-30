@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/consumo.css?v=1">
+<style>
+  #consumo-app .ct-enc { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px 18px; margin:14px 0 6px; }
+  #consumo-app .ct-enc label { display:block; font-size:12px; font-weight:700; color:#1A365D; margin-bottom:4px; }
+  #consumo-app .ct-enc label b { color:#dc2626; }
+  #consumo-app .ct-enc input, #consumo-app .ct-enc select { width:100%; }
+  #consumo-app .ct-bodega { margin-top:22px; }
+  #consumo-app .ct-bodega h3 { margin:0 0 4px; font-size:14px; color:#1A365D; letter-spacing:.3px; }
+  #consumo-app .ct-nota { font-size:11.5px; color:#475569; margin:0 0 8px; }
+  #consumo-app .ct-tabla { width:100%; max-width:760px; border-collapse:collapse; font-size:13px; }
+  #consumo-app .ct-tabla th { background:#1A365D; color:#fff; padding:7px 10px; font-size:12px; text-align:left; }
+  #consumo-app .ct-tabla td { border:1px solid #CBD5E1; padding:5px 10px; }
+  #consumo-app .ct-tabla td.c { width:150px; }
+  #consumo-app .ct-tabla input { width:100%; text-align:right; padding:5px 8px; }
+  #consumo-app .ct-danados { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px 18px; max-width:760px; margin-top:18px; }
+  #consumo-app .ct-danados label { display:block; font-size:12.5px; font-weight:700; color:#1A365D; margin-bottom:4px; }
+  #consumo-app .ct-evid { max-width:760px; margin-top:22px; }
+  #consumo-app .ct-evid-item { border:1px dashed #94A3B8; border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+  #consumo-app .ct-evid-item .t { font-size:12.5px; font-weight:700; color:#1A365D; margin-bottom:6px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  #consumo-app .ct-fotos { display:flex; flex-wrap:wrap; gap:8px; }
+  #consumo-app .ct-foto { position:relative; width:86px; }
+  #consumo-app .ct-foto img, #consumo-app .ct-foto .pdf { width:86px; height:86px; object-fit:cover; border-radius:6px; border:1px solid #CBD5E1; display:block; background:#F8FAFC; }
+  #consumo-app .ct-foto .pdf { display:flex; align-items:center; justify-content:center; font-size:26px; }
+  #consumo-app .ct-foto .x { position:absolute; top:-6px; right:-6px; background:#dc2626; color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:11px; cursor:pointer; }
+  #consumo-app .ct-foto small { display:block; font-size:10px; color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #consumo-app .ct-foto.pend img { opacity:.6; outline:2px solid #f59e0b; }
+  #consumo-app .ct-aviso { padding:10px 12px; border-radius:8px; font-size:13px; margin:10px 0; max-width:760px; }
+  #consumo-app .ct-aviso.ok { background:#dcfce7; color:#14532d; } #consumo-app .ct-aviso.edit { background:#fef3c7; color:#92400e; }
+  #consumo-app .ct-aviso.no { background:#fee2e2; color:#991b1b; }
+  #consumo-app .ct-matriz td.n, #consumo-app .ct-matriz th.n { text-align:right; white-space:nowrap; }
+  #consumo-app .ct-matriz tr.dan td { background:#fff7ed; }
+  @media print { .no-print, nav { display:none !important; } #consumo-app .cm-seccion { display:none !important; } #consumo-app #sec-reportes { display:block !important; } }
+</style>
+<div id="consumo-app">
+ <div class="cm-main">
+  {% if not conteo_tab_inicial %}
+  <div class="cm-seccion activa"><p class="cm-vacio">No tienes secciones habilitadas en Conteo inventario mensual. Pídeselas a un administrador (Producción › Parámetros › Accesos).</p></div>
+  {% endif %}
+
+  <!-- ============ CONTEO DEL MES ============ -->
+  <div id="sec-nuevo" class="cm-seccion {{ 'activa' if conteo_tab_inicial == 'nuevo' }}">
+    <div class="cm-barra"><div><h2 class="cm-titulo">📋 Conteo inventario mensual</h2>
+      <p class="cm-sub" style="margin:0;">Un conteo por área y mes. Si ya existe, al guardar se corrige (queda quién y cuándo).</p></div></div>
+    <div class="ct-enc">
+      <div><label>Fecha reporte <b>*</b></label><input type="date" id="cFecha" onchange="sugerirMes()"></div>
+      <div><label>Mes del reporte <b>*</b></label>
+        <div style="display:flex; gap:6px;"><select id="cMes" onchange="cargarReporte()"></select>
+          <input type="number" id="cAnio" min="2020" max="2100" style="width:90px" onchange="cargarReporte()"></div></div>
+      <div><label>Manager - Responsable <b>*</b></label><input id="cResponsable" readonly></div>
+      <div><label>Área <b>*</b></label><select id="cArea" onchange="cargarReporte()"></select></div>
+      <div><label>Correo (Zoho)</label><input id="cCorreo" readonly></div>
+    </div>
+    <div id="cEstado"></div>
+    <div id="cBodegas"></div>
+    <div class="ct-danados" id="cDanados"></div>
+    <div class="ct-evid"><h3 style="font-size:14px; color:#1A365D; margin:0 0 4px;">📷 Evidencias</h3>
+      <p class="ct-nota">Toma o sube una foto de cada material (o un PDF). Las fotos se reducen antes de subir para que carguen rápido.</p>
+      <div id="cEvidencias"></div></div>
+    <div style="max-width:760px; margin-top:16px;"><label style="display:block; font-size:12.5px; font-weight:700; color:#1A365D; margin-bottom:4px;">Reportar novedad</label>
+      <textarea id="cNovedad" rows="3" style="width:100%" placeholder="Opcional: algo que se deba saber de este conteo"></textarea></div>
+    <div class="cm-acciones" style="justify-content:flex-start; margin-top:14px;">
+      <button type="button" class="btn verde" id="btnGuardarConteo" onclick="guardarConteo()">💾 Guardar conteo</button></div>
+  </div>
+
+  <!-- ============ REPORTES ============ -->
+  <div id="sec-reportes" class="cm-seccion {{ 'activa' if conteo_tab_inicial == 'reportes' }}">
+    <div class="cm-barra"><div><h2 class="cm-titulo">📊 Reportes de conteo · <span id="rTitulo"></span></h2>
+      <p class="cm-sub" style="margin:0;">Lo que reportó cada área en el mes, la suma por bodega y material, y quién falta por reportar.</p></div>
+      <div class="cm-acciones no-print">
+        <button type="button" class="btn gris" onclick="exportarConteo()">⬇️ Exportar Excel</button>
+        <button type="button" class="btn gris" onclick="window.print()">🖨️ Imprimir</button></div></div>
+    <div class="cm-filtros no-print"><label>Mes:</label><select id="rMes" onchange="cargarConsolidado()"></select>
+      <label>Año:</label><input type="number" id="rAnio" min="2020" max="2100" style="width:90px" onchange="cargarConsolidado()"></div>
+    <div id="rPendientes"></div>
+    <div id="rMatrices"></div>
+    <h3 class="cs-h3">🗂️ Reportes del mes</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Área</th><th>Responsable</th><th>Correo</th><th>Fecha reporte</th><th>Evidencias</th><th>Novedad</th><th class="no-print"></th></tr></thead>
+      <tbody id="rLista"></tbody></table></div>
+    <div id="rDetalle" style="margin-top:14px;"></div>
+  </div>
+ </div>
+</div>
+
+<script>
+var D = null, actual = null, pendientes = [];  // pendientes: archivos elegidos que se suben al guardar
+function api(url, op) {
+  return fetch(url, op).then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) {
+    if (!r.ok) throw new Error(d.detail || ('Error ' + r.status)); return d; }); });
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function np(t) { return String(t || '').toLowerCase().replace(/(^|[\s\/\-(])([a-záéíóúñ])/g, function(m, a, b) { return a + b.toUpperCase(); }); }
+function num(v) { return Number(v || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function leerNum(v) { var n = parseFloat(String(v || '').replace(',', '.')); return isNaN(n) ? 0 : n; }
+var SECCIONES = {{ (secciones or [])|tojson }};
+
+function switchTab(tab) {
+  if (SECCIONES.length && SECCIONES.indexOf(tab) < 0) return;
+  document.querySelectorAll('#consumo-app .cm-seccion').forEach(function(s) { s.classList.remove('activa'); });
+  var sec = document.getElementById('sec-' + tab); if (!sec) return; sec.classList.add('activa');
+  document.querySelectorAll('.conteo-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
+  if (tab === 'reportes') cargarConsolidado();
+}
+document.querySelectorAll('.conteo-tab').forEach(function(a) { a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); }); });
+
+function opcionesMes(sel) { sel.innerHTML = D.meses.map(function(m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join(''); }
+function sugerirMes() {
+  var f = document.getElementById('cFecha').value; if (!f) return;
+  document.getElementById('cMes').value = parseInt(f.slice(5, 7), 10); document.getElementById('cAnio').value = f.slice(0, 4);
+  cargarReporte();
+}
+
+// ---------------- formulario ----------------
+function pintarFormulario() {
+  document.getElementById('cBodegas').innerHTML = D.bodegas.map(function(b) {
+    return '<div class="ct-bodega"><h3>CONTEO - ' + esc(b.nombre) + ' - BODEGA ' + esc(b.codigo) + '</h3>' +
+      '<p class="ct-nota">*Discos de Zirconia: sume los discos enteros con la equivalencia de los discos parciales. Ejemplo: 10 discos enteros + 5 discos al 50% (que equivalen a 2.5) = digitar 12.5.</p>' +
+      '<table class="ct-tabla"><tr><th>Material</th><th style="text-align:right">Cantidades</th></tr>' +
+      D.materiales.map(function(m) {
+        return '<tr><td>' + esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion) + '</td><td class="c"><input class="ct-cant" data-b="' + b.id + '" data-m="' + m.id +
+          '" inputmode="decimal" placeholder="0.00"></td></tr>';
+      }).join('') + '</table></div>';
+  }).join('');
+  document.getElementById('cDanados').innerHTML = D.bodegas.map(function(b) {
+    return '<div><label>Disco de zirconia - DAÑADOS - ' + esc(b.nombre) + ' <b style="color:#dc2626">*</b></label><input class="ct-dan" data-b="' + b.id + '" inputmode="decimal" placeholder="0.00" style="width:100%; text-align:right;"></div>';
+  }).join('');
+  var items = [{id: 0, titulo: 'Disco de zirconia - DAÑADOS'}].concat(D.materiales.map(function(m) { return {id: m.id, titulo: m.codigo + '-' + m.descripcion}; }));
+  document.getElementById('cEvidencias').innerHTML = items.map(function(it) {
+    return '<div class="ct-evid-item" data-m="' + it.id + '"><div class="t"><span>Cargar evidencia: ' + esc(it.titulo) + '</span>' +
+      '<label class="btn gris mini" style="cursor:pointer; margin:0;">📷 Agregar<input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="elegirArchivos(this, ' + it.id + ')"></label></div>' +
+      '<div class="ct-fotos" id="fotos-' + it.id + '"></div></div>';
+  }).join('');
+}
+
+function cargarReporte() {
+  var area = document.getElementById('cArea').value, anio = document.getElementById('cAnio').value, mes = document.getElementById('cMes').value;
+  pendientes = [];
+  document.querySelectorAll('.ct-cant, .ct-dan').forEach(function(i) { i.value = ''; });
+  document.getElementById('cNovedad').value = '';
+  actual = null; pintarFotos();
+  if (!area || !anio || !mes) return;
+  api('/conteo/api/reporte?area=' + encodeURIComponent(area) + '&anio=' + anio + '&mes=' + mes).then(function(r) {
+    actual = r.reporte;
+    var est = document.getElementById('cEstado'), nombreMes = D.meses[mes - 1] + ' ' + anio;
+    var bloquear = !!(actual && !r.puedeEditar);
+    document.querySelectorAll('.ct-cant, .ct-dan, #cNovedad, #cFecha').forEach(function(i) { i.disabled = bloquear; });
+    document.getElementById('btnGuardarConteo').style.display = bloquear ? 'none' : '';
+    if (!actual) { est.innerHTML = '<div class="ct-aviso ok">🆕 Conteo de <b>' + nombreMes + '</b> de ' + esc(np(area)) + ': todavía no se ha reportado.</div>'; pintarFotos(); return; }
+    est.innerHTML = bloquear
+      ? '<div class="ct-aviso no">🔒 El conteo de <b>' + nombreMes + '</b> de ' + esc(np(area)) + ' ya lo reportó ' + esc(actual.responsable) + ' (' + esc(actual.creadoEn) + ').</div>'
+      : '<div class="ct-aviso edit">✏️ Ya existe el conteo de <b>' + nombreMes + '</b> de ' + esc(np(area)) + ', reportado por ' + esc(actual.responsable) + ' el ' + esc(actual.creadoEn) +
+        (actual.actualizadoEn ? ' (corregido por ' + esc(actual.actualizadoPor) + ' el ' + esc(actual.actualizadoEn) + ')' : '') + '. Si guardas, se corrige.</div>';
+    document.getElementById('cFecha').value = actual.fechaReporte;
+    document.querySelectorAll('.ct-cant').forEach(function(i) { var v = actual.conteo[i.dataset.b + ':' + i.dataset.m]; i.value = v ? v : ''; });
+    document.querySelectorAll('.ct-dan').forEach(function(i) { var v = actual.danados[i.dataset.b]; i.value = v ? v : ''; });
+    document.getElementById('cNovedad').value = actual.novedad;
+    pintarFotos();
+  }).catch(function(e) { document.getElementById('cEstado').innerHTML = '<div class="ct-aviso no">' + esc(e.message) + '</div>'; });
+}
+
+function pintarFotos() {
+  document.querySelectorAll('.ct-fotos').forEach(function(c) { c.innerHTML = ''; });
+  (actual ? actual.evidencias : []).forEach(function(e) {
+    var c = document.getElementById('fotos-' + (e.materialId || 0)); if (!c) return;
+    var url = '/conteo/api/evidencias/' + e.id;
+    c.insertAdjacentHTML('beforeend', '<div class="ct-foto"><a href="' + url + '" target="_blank">' +
+      (e.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + url + '" alt="">') + '</a><small>' + esc(e.nombre) + '</small>' +
+      (document.getElementById('btnGuardarConteo').style.display === 'none' ? '' : '<button class="x" title="Quitar" onclick="quitarEvidencia(' + e.id + ')">✕</button>') + '</div>');
+  });
+  pendientes.forEach(function(p, i) {
+    var c = document.getElementById('fotos-' + p.materialId); if (!c) return;
+    c.insertAdjacentHTML('beforeend', '<div class="ct-foto pend" title="Se sube al guardar">' +
+      (p.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + p.vista + '" alt="">') + '<small>⏳ ' + esc(p.nombre) + '</small>' +
+      '<button class="x" title="Quitar" onclick="pendientes.splice(' + i + ',1); pintarFotos();">✕</button></div>');
+  });
+}
+
+// Reduce las fotos (máx. 1600 px, JPEG) antes de subirlas
+function comprimir(archivo) {
+  return new Promise(function(ok, mal) {
+    if (archivo.type === 'application/pdf') { ok({blob: archivo, tipo: archivo.type, nombre: archivo.name, vista: ''}); return; }
+    var img = new Image(), url = URL.createObjectURL(archivo);
+    img.onload = function() {
+      var escala = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * escala); cv.height = Math.round(img.height * escala);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(function(b) { URL.revokeObjectURL(url);
+        ok({blob: b, tipo: 'image/jpeg', nombre: archivo.name.replace(/\.[^.]+$/, '') + '.jpg', vista: cv.toDataURL('image/jpeg', 0.5)}); }, 'image/jpeg', 0.75);
+    };
+    img.onerror = function() { mal(new Error('No se pudo leer la imagen ' + archivo.name)); };
+    img.src = url;
+  });
+}
+function elegirArchivos(input, materialId) {
+  var archivos = Array.prototype.slice.call(input.files); input.value = '';
+  Promise.all(archivos.map(comprimir)).then(function(lista) {
+    lista.forEach(function(x) { pendientes.push({materialId: materialId, blob: x.blob, tipo: x.tipo, nombre: x.nombre, vista: x.vista}); });
+    pintarFotos();
+  }).catch(function(e) { alert(e.message); });
+}
+function quitarEvidencia(id) {
+  if (!confirm('¿Quitar esta evidencia?')) return;
+  api('/conteo/api/evidencias/' + id + '/quitar', {method: 'POST'}).then(function() { cargarReporte(); }).catch(function(e) { alert(e.message); });
+}
+
+function guardarConteo() {
+  var datos = {fecha: document.getElementById('cFecha').value, anio: parseInt(document.getElementById('cAnio').value, 10),
+               mes: parseInt(document.getElementById('cMes').value, 10), area: document.getElementById('cArea').value,
+               novedad: document.getElementById('cNovedad').value, lineas: [], danados: []};
+  var faltan = [];
+  document.querySelectorAll('.ct-cant').forEach(function(i) {
+    datos.lineas.push({bodega_id: parseInt(i.dataset.b, 10), material_id: parseInt(i.dataset.m, 10), cantidad: leerNum(i.value)}); });
+  document.querySelectorAll('.ct-dan').forEach(function(i) {
+    if (i.value.trim() === '') faltan.push(i.previousElementSibling.textContent.replace('*', '').trim());
+    datos.danados.push({bodega_id: parseInt(i.dataset.b, 10), cantidad: leerNum(i.value)}); });
+  if (faltan.length) { alert('⚠️ Completa (aunque sea con 0): ' + faltan.join(' · ')); return; }
+  var btn = document.getElementById('btnGuardarConteo'); btn.disabled = true; btn.innerText = 'Guardando…';
+  api('/conteo/api/reportes', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datos)}).then(function(r) {
+    var id = r.reporte.id, n = pendientes.length, i = 0;
+    function siguiente() {
+      if (i >= pendientes.length) return Promise.resolve();
+      var p = pendientes[i++], fd = new FormData();
+      fd.append('archivo', p.blob, p.nombre); fd.append('material_id', p.materialId);
+      btn.innerText = 'Subiendo evidencias ' + i + '/' + n + '…';
+      return api('/conteo/api/reportes/' + id + '/evidencias', {method: 'POST', body: fd}).then(siguiente);
+    }
+    return siguiente().then(function() { alert(r.mensaje + (n ? '\n' + n + ' evidencia(s) subida(s).' : '')); pendientes = []; cargarReporte(); });
+  }).catch(function(e) { alert(e.message); })
+    .then(function() { btn.disabled = false; btn.innerText = '💾 Guardar conteo'; });
+}
+
+// ---------------- reportes ----------------
+function cargarConsolidado() {
+  var anio = document.getElementById('rAnio').value, mes = document.getElementById('rMes').value;
+  api('/conteo/api/consolidado?anio=' + anio + '&mes=' + mes).then(function(c) {
+    document.getElementById('rTitulo').innerText = c.mesNombre + ' ' + c.anio;
+    document.getElementById('rPendientes').innerHTML = c.pendientes.length
+      ? '<div class="ct-aviso edit" style="max-width:none">⏳ Sin reportar en ' + c.mesNombre + ': <b>' + c.pendientes.map(np).map(esc).join(', ') + '</b></div>'
+      : '<div class="ct-aviso ok" style="max-width:none">✅ Todas las áreas reportaron ' + c.mesNombre + '.</div>';
+    var areas = c.reportes.map(function(r) { return r.area; });
+    document.getElementById('rMatrices').innerHTML = !c.reportes.length ? '<p class="cm-vacio">Ninguna área ha reportado este mes.</p>' : c.bodegas.map(function(b) {
+      var fila = function(etq, clave, get, clase) {
+        return '<tr class="' + (clase || '') + '"><td class="izq">' + etq + '</td>' + c.reportes.map(function(r) { return '<td class="n">' + num(get(r)) + '</td>'; }).join('') +
+          '<td class="n"><b>' + num(c.totales[clave]) + '</b></td></tr>';
+      };
+      return '<h3 class="cs-h3">CONTEO - ' + esc(b.nombre) + ' - BODEGA ' + esc(b.codigo) + '</h3><div class="cm-tabla-wrap"><table class="cm-tabla ct-matriz">' +
+        '<thead><tr><th>Material</th>' + areas.map(function(a) { return '<th class="n">' + esc(np(a)) + '</th>'; }).join('') + '<th class="n">Total</th></tr></thead><tbody>' +
+        c.materiales.map(function(m) { var k = b.id + ':' + m.id; return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), k, function(r) { return r.conteo[k]; }); }).join('') +
+        fila('Disco de zirconia - DAÑADOS', b.id + ':danados', function(r) { return r.danados[String(b.id)]; }, 'dan') + '</tbody></table></div>';
+    }).join('');
+    window._reportesMes = c.reportes; window._materialesMes = c.materiales;
+    document.getElementById('rLista').innerHTML = c.reportes.length ? c.reportes.map(function(r, i) {
+      return '<tr><td class="izq"><b>' + esc(np(r.area)) + '</b></td><td>' + esc(r.responsable) + '</td><td>' + esc(r.responsableEmail) + '</td><td>' + esc(r.fechaReporte) +
+        (r.actualizadoEn ? '<br><small>corregido ' + esc(r.actualizadoEn) + '</small>' : '') + '</td><td>' + r.evidencias.length + '</td><td class="izq" style="max-width:280px">' +
+        esc(r.novedad) + '</td><td class="no-print"><button class="btn gris mini" onclick="verEvidencias(' + i + ')">👁️ Evidencias</button></td></tr>';
+    }).join('') : '<tr><td colspan="7" class="cm-vacio">Sin reportes.</td></tr>';
+    document.getElementById('rDetalle').innerHTML = '';
+  }).catch(function(e) { alert(e.message); });
+}
+function verEvidencias(i) {
+  var r = window._reportesMes[i], mats = {0: 'Disco de zirconia - DAÑADOS'};
+  window._materialesMes.forEach(function(m) { mats[m.id] = m.codigo + '-' + m.descripcion; });
+  var grupos = {};
+  r.evidencias.forEach(function(e) { (grupos[e.materialId || 0] = grupos[e.materialId || 0] || []).push(e); });
+  document.getElementById('rDetalle').innerHTML = '<h3 class="cs-h3">📷 Evidencias · ' + esc(np(r.area)) + '</h3>' + (Object.keys(grupos).length ? Object.keys(grupos).map(function(k) {
+    return '<div class="ct-evid-item"><div class="t">' + esc(mats[k] || 'Material') + '</div><div class="ct-fotos">' + grupos[k].map(function(e) {
+      var url = '/conteo/api/evidencias/' + e.id;
+      return '<div class="ct-foto"><a href="' + url + '" target="_blank">' + (e.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + url + '" alt="">') +
+        '</a><small>' + esc(e.nombre) + '</small></div>';
+    }).join('') + '</div></div>';
+  }).join('') : '<p class="cm-vacio">Este reporte no tiene evidencias.</p>');
+  document.getElementById('rDetalle').scrollIntoView({behavior: 'smooth'});
+}
+function exportarConteo() { window.location = '/conteo/api/consolidado/exportar?anio=' + document.getElementById('rAnio').value + '&mes=' + document.getElementById('rMes').value; }
+
+api('/conteo/api/datos').then(function(d) {
+  D = d;
+  opcionesMes(document.getElementById('cMes')); opcionesMes(document.getElementById('rMes'));
+  var hoy = d.hoy, mes = parseInt(hoy.slice(5, 7), 10), anio = parseInt(hoy.slice(0, 4), 10);
+  document.getElementById('cFecha').value = hoy; document.getElementById('cFecha').max = hoy;
+  document.getElementById('cMes').value = mes; document.getElementById('cAnio').value = anio;
+  document.getElementById('rMes').value = mes; document.getElementById('rAnio').value = anio;
+  document.getElementById('cResponsable').value = d.responsable; document.getElementById('cCorreo').value = d.correo;
+  var sel = document.getElementById('cArea');
+  sel.innerHTML = (d.areaAsignada ? '' : '<option value="">Seleccionar...</option>') + d.areas.map(function(a) {
+    return '<option value="' + esc(a) + '"' + (a === d.areaAsignada ? ' selected' : '') + '>' + esc(np(a)) + '</option>'; }).join('');
+  if (d.areaAsignada && !d.esAdmin) sel.disabled = true;  // cada manager reporta su área asignada
+  pintarFormulario();
+  cargarReporte();
+  var tab = new URLSearchParams(location.search).get('tab');
+  switchTab(tab && SECCIONES.indexOf(tab) >= 0 ? tab : {{ (conteo_tab_inicial or 'nuevo')|tojson }});
+});
+</script>
+{% endblock %}
