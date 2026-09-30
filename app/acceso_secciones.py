@@ -17,10 +17,12 @@ SECCIONES = {
                  ("existencias", "Dashboard"), ("activas", "Estado órdenes"), ("consulta", "Consulta traslado")],
     "consumo": [("entrega", "Entrega de insumos"), ("consulta", "Consulta"), ("jornada", "Jornada diaria"),
                 ("reportes", "Reportes")],
+    "conteo": [("nuevo", "Conteo del mes"), ("validacion", "Validación"), ("reportes", "Reportes")],
     "caja": [("recibo", "Nuevo recibo"), ("consulta", "Consulta"), ("legalizar", "Legalizar"), ("fms", "Historial FM"),
              ("arqueo", "Arqueo rápido"), ("firmas", "Firmas")],
 }
-NOMBRE_MODULO = {"custodia": "Cambio de custodia", "consumo": "Seguimiento de consumo", "caja": "Caja menor"}
+NOMBRE_MODULO = {"custodia": "Cambio de custodia", "consumo": "Seguimiento de consumo", "caja": "Caja menor",
+                 "conteo": "Conteo inventario mensual"}
 
 
 class SeccionAcceso(Base):

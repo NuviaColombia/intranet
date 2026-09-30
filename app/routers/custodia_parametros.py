@@ -142,11 +142,26 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
     }
     tecnicos_ids = {t.empleado_id for t in consumo["tecnicos"] if t.activo}
     from .. import acceso_secciones as acs
-    secciones_cfg = {m: acs.configuracion(db, m) for m in ("custodia", "consumo")}
+    secciones_cfg = {m: acs.configuracion(db, m) for m in ("custodia", "consumo", "conteo")}
+    # Conteo inventario mensual
+    from ..models_conteo import ConteoBodega, ConteoMaterial, ConteoValidador
+    from .. import services_conteo as sct
+    sct.asegurar_catalogo(db)
+    con_conteo = {i for i, subs in por_empleado.items() if "conteo" in subs}
+    inv_conteo = {
+        "accesos": db.query(Empleado).filter(Empleado.id.in_(con_conteo or [0])).order_by(Empleado.apellidos).all(),
+        "personas": consumo["personas"],
+        "materiales": db.query(ConteoMaterial).order_by(ConteoMaterial.activo.desc(), ConteoMaterial.orden).all(),
+        "bodegas": db.query(ConteoBodega).order_by(ConteoBodega.activo.desc(), ConteoBodega.orden).all(),
+        "validadores": [v.empleado for v in db.query(ConteoValidador).all() if v.empleado],
+        "director": sct.director_produccion(db), "testigos": sct.testigos(db),
+        "areas_material": sct.areas_de_material(db), "config": sct.config(db), "workdrive": sct.estado_workdrive(db),
+    }
     administradores = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.rol.in_(["admin", "superadmin"]))
                        .order_by(Empleado.nombres, Empleado.apellidos).all())
     return templates.TemplateResponse(request, "custodia_parametros.html",
                                       {"user": user, "managers": managers, "candidatos": candidatos, "consumo": consumo,
+                                       "inv_conteo": inv_conteo,
                                        "secciones_cfg": secciones_cfg, "administradores": administradores,
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
@@ -165,7 +180,12 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                                         "c_accesos": len(consumo["accesos"]),
                                                         "c_tecnicos": len([t for t in consumo["tecnicos"] if t.activo]),
                                                         "c_materias": len([m for m in consumo["materias"] if m.activo]),
-                                                        "c_tipos": len([t for t in consumo["tipos"] if t.activo])},
+                                                        "c_tipos": len([t for t in consumo["tipos"] if t.activo]),
+                                                        "n_accesos": len(inv_conteo["accesos"]),
+                                                        "n_validadores": len(inv_conteo["validadores"]),
+                                                        "n_director": len(inv_conteo["testigos"]) + (1 if inv_conteo["director"] else 0),
+                                                        "n_materiales": len([m for m in inv_conteo["materiales"] if m.activo]),
+                                                        "n_bodegas": len([b for b in inv_conteo["bodegas"] if b.activo])},
                                        "resumen": resumen, "por_empleado": por_empleado,
                                        "areas_activas": sc.areas_disponibles(db),
                                        "es_custodia": True, "msg": request.query_params.get("msg"),

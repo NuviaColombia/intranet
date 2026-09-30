@@ -20,7 +20,7 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
                             FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule, inventario,
-                      caja_menor, consumo, sst, accesos_secciones)
+                      caja_menor, consumo, sst, accesos_secciones, conteo)
 from .texto_seguro import instalar_en_todos
 
 # Todos los modelos ya están importados (los routers los importan): textos seguros para Postgres en todos los
@@ -78,6 +78,7 @@ app.include_router(caja_menor.router)
 app.include_router(consumo.router)
 app.include_router(sst.router)
 app.include_router(accesos_secciones.router)
+app.include_router(conteo.router)
 
 
 @app.exception_handler(307)

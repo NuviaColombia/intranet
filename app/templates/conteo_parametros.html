@@ -1,0 +1,215 @@
+{# Producción › Parámetros › Conteo inventario mensual (incluido en custodia_parametros.html) #}
+{% from "_secciones.html" import celda_secciones %}
+
+{# ---------- Accesos ---------- #}
+<div class="cp-panel" id="panel-n_accesos">
+  <div class="cp-ayuda" style="max-width:900px">Quién entra a <b>Conteo inventario mensual</b>. Cada persona reporta el conteo de su
+    <b>área asignada</b> (la de Producción › Cambio de custodia › Accesos); si no tiene área asignada, la elige en el formulario.
+    En <b>Secciones</b> eliges si solo reporta (Conteo del mes) o también ve los Reportes. Los administradores entran y ven todo.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/accesos" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-n" data-lista="n-lista-accesos" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="n-lista-accesos" required>
+          <option value="">Seleccionar...</option>
+          {% for e in inv_conteo.personas if e not in inv_conteo.accesos %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><button class="btn mini">Dar acceso</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Persona</th><th>Cargo</th><th>Área asignada</th><th>Secciones</th><th></th></tr>
+    {% for e in inv_conteo.accesos %}
+    <tr>
+      <td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td>
+      <td>{{ (e.area_custodia or '')|nombre_propio or '—' }}</td>
+      <td>{{ celda_secciones(e, "conteo", secciones_cfg.conteo, "/inventario/parametros?tab=n_accesos") }}</td>
+      <td class="cp-acciones">
+        <form class="inline" method="post" action="/inventario/parametros/conteo/accesos/{{ e.id }}/quitar"
+              onsubmit="return confirm('¿Quitar el acceso a Conteo inventario mensual de {{ e.nombre_completo|nombre_propio }}?')">
+          <button class="btn gris mini">Quitar acceso</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="cp-vacio">Todavía nadie tiene acceso a Conteo inventario mensual. Usa <b>＋ Dar acceso a una persona</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Director de Producción y testigos ---------- #}
+<div class="cp-panel" id="panel-n_director">
+  <div class="cp-ayuda" style="max-width:900px">El conteo de cada área lleva <b>3 firmas</b>: el <b>manager</b> que lo carga (pestaña Accesos),
+    el <b>Director de Producción</b> y un <b>testigo</b> de esta lista (lo elige el manager al enviar). Al Director y al testigo les llega
+    un aviso por Cliq para firmar o rechazar con una observación. Con las 3 firmas se guarda el PDF del reporte en la carpeta de WorkDrive
+    y pasa al <b>conteo físico</b> de los validadores.</div>
+  <h3 style="margin:14px 0 6px; font-size:14px; color:#1A365D;">🏭 Director de Producción (firma 2)</h3>
+  <form method="post" action="/inventario/parametros/conteo/director" class="cp-form-nuevo" style="max-width:900px">
+    <div style="flex:2;min-width:260px"><label>Persona</label>
+      <select name="empleado_id"><option value="">— Sin asignar —</option>
+        {% for e in inv_conteo.personas %}<option value="{{ e.id }}" {{ 'selected' if inv_conteo.director and inv_conteo.director.id == e.id }}>{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>{% endfor %}
+      </select></div>
+    <div><button class="btn mini">Guardar</button></div>
+  </form>
+  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">👀 Testigos del conteo (firma 3)</h3>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar testigo</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/testigos" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-n" data-lista="n-lista-testigos" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="n-lista-testigos" required>
+          <option value="">Seleccionar...</option>
+          {% for e in inv_conteo.personas if e not in inv_conteo.testigos %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla" style="max-width:900px">
+    <tr><th>Testigo</th><th>Cargo</th><th>Correo</th><th></th></tr>
+    {% for e in inv_conteo.testigos %}
+    <tr><td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td><td>{{ e.email }}</td>
+      <td class="cp-acciones"><form class="inline" method="post" action="/inventario/parametros/conteo/testigos/{{ e.id }}/quitar">
+        <button class="btn gris mini">Quitar</button></form></td></tr>
+    {% else %}
+    <tr><td colspan="4" class="cp-vacio">Todavía no hay testigos. Usa <b>＋ Agregar testigo</b>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Validadores y ajustes ---------- #}
+<div class="cp-panel" id="panel-n_validadores">
+  <div class="cp-ayuda" style="max-width:900px">Los <b>validadores</b> hacen el <b>conteo físico posterior</b> al del manager, en todas las áreas: cuentan
+    <b>a ciegas</b> (no ven el conteo del manager hasta guardar el suyo), el sistema compara material por material y ellos
+    <b>validan y firman</b> o <b>devuelven</b> el conteo con una observación. Les llega un aviso por Cliq cuando el conteo de un área tiene las 3 firmas.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar validador</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/validadores" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-n" data-lista="n-lista-validadores" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="n-lista-validadores" required>
+          <option value="">Seleccionar...</option>
+          {% for e in inv_conteo.personas if e not in inv_conteo.validadores %}
+          <option value="{{ e.id }}" data-buscar="{{ (e.nombre_completo ~ ' ' ~ e.identificacion ~ ' ' ~ e.cargo)|lower }}">{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla" style="max-width:900px">
+    <tr><th>Validador</th><th>Cargo</th><th>Correo</th><th></th></tr>
+    {% for e in inv_conteo.validadores %}
+    <tr><td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td><td>{{ e.email }}</td>
+      <td class="cp-acciones"><form class="inline" method="post" action="/inventario/parametros/conteo/validadores/{{ e.id }}/quitar"
+            onsubmit="return confirm('¿Quitar a {{ e.nombre_completo|nombre_propio }} de los validadores?')">
+          <button class="btn gris mini">Quitar</button></form></td></tr>
+    {% else %}
+    <tr><td colspan="4" class="cp-vacio">Todavía no hay validadores. Los administradores también pueden validar.</td></tr>
+    {% endfor %}
+  </table>
+  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">⚙️ Ajustes</h3>
+  <form method="post" action="/inventario/parametros/conteo/ajustes" class="cp-form-nuevo" style="max-width:900px">
+    <div style="width:220px"><label>Tolerancia de diferencia</label>
+      <input name="tolerancia" value="{{ '%g'|format(inv_conteo.config.tolerancia) }}" inputmode="decimal">
+      <small style="color:#64748b">0 = debe coincidir exacto. Ej. 0.5 = se acepta media unidad de diferencia.</small></div>
+    <div style="width:240px"><label>Día límite para enviar</label>
+      <input name="dia_limite" type="number" min="0" max="28" value="{{ inv_conteo.config.dia_limite }}">
+      <small style="color:#64748b">Día del mes siguiente (ej. 3 = hasta el 3). 0 = el último día del mismo mes. Después solo un administrador puede registrarlo.</small></div>
+    <div><button class="btn mini">Guardar ajustes</button></div>
+  </form>
+  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">☁️ Copia de las fotos en Zoho WorkDrive</h3>
+  {% set wd = inv_conteo.workdrive %}
+  <div class="cp-ayuda" style="max-width:900px">Cada foto de evidencia se guarda en la intranet y además se copia en la carpeta de WorkDrive:
+    <b>Carpeta / 2026-09 Septiembre / Milling / Conteo inventario mensual - Milling - Septiembre 2026 - S-MATP16-Glaze paste (manager).jpg</b>.
+    Si WorkDrive falla, la foto queda pendiente y se reintenta sola cada hora.</div>
+  <div style="margin:8px 0; padding:10px 12px; border-radius:8px; max-width:900px; font-size:13px; background:{{ '#dcfce7' if wd.configurado else '#fef3c7' }}; color:{{ '#14532d' if wd.configurado else '#92400e' }}">
+    {% if wd.configurado %}✅ Conectado.{% else %}⚠️ Falta configurar WorkDrive en Render (variables <b>ZOHO_WORKDRIVE_REFRESH_TOKEN</b> y <b>ZOHO_WORKDRIVE_CARPETA_ID</b>): las fotos quedan pendientes y se copian cuando se configure.{% endif %}
+    Copiadas: <b>{{ wd.ok }}</b> · Pendientes: <b>{{ wd.pendientes }}</b> · Con error: <b>{{ wd.errores }}</b>
+    {% if wd.ultimoError %}<br><small>Último error: {{ wd.ultimoError }}</small>{% endif %}
+  </div>
+  {% if wd.configurado and (wd.pendientes or wd.errores) %}
+  <form method="post" action="/inventario/parametros/conteo/workdrive/reintentar"><button class="btn mini">☁️ Copiar ahora las pendientes</button></form>
+  {% endif %}
+</div>
+
+{# ---------- Materiales ---------- #}
+<div class="cp-panel" id="panel-n_materiales">
+  <div class="cp-ayuda" style="max-width:900px">Materiales que se cuentan cada mes en cada bodega (en el formulario salen como
+    <b>prefijo de la bodega - código - descripción</b>, ej. B-MATP6-Incisal Enhancer 1.5 DPLB10). Desactivar un material lo quita del
+    formulario; lo ya contado se conserva.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar material</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/materiales" class="cp-form-nuevo">
+      <div style="width:140px"><label>Código</label><input name="codigo" required placeholder="MATP60"></div>
+      <div style="flex:2;min-width:240px"><label>Descripción</label><input name="descripcion" required placeholder="Ej: Glaze paste"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Orden</th><th>Código</th><th>Descripción</th><th>Áreas que lo cuentan</th><th>Estado</th><th></th></tr>
+    {% for m in inv_conteo.materiales %}
+    <tr class="{{ '' if m.activo else 'cp-inactivo' }}">
+      <td style="width:70px"><form id="f-nmat-{{ m.id }}" method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}"></form>
+        <input name="orden" type="number" value="{{ m.orden }}" form="f-nmat-{{ m.id }}" style="width:60px"></td>
+      <td style="width:130px"><input name="codigo" value="{{ m.codigo }}" required form="f-nmat-{{ m.id }}"></td>
+      <td><input name="descripcion" value="{{ m.descripcion }}" required form="f-nmat-{{ m.id }}"></td>
+      <td>{% set sus = inv_conteo.areas_material.get(m.id, []) %}
+        <details class="sc-editor"><summary>{% if not sus %}<span class="sc-todas">Todas</span>{% else %}{% for a in sus %}<span class="sc-chip">{{ a|nombre_propio }}</span>{% endfor %}{% endif %} <span class="sc-lapiz">✏️</span></summary>
+          <form method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}/areas" class="sc-form">
+            <div class="sc-opciones">{% for a in areas_config %}<label><input type="checkbox" name="areas" value="{{ a }}" {{ 'checked' if a in sus }}> {{ a|nombre_propio }}</label>{% endfor %}</div>
+            <small style="display:block; color:#64748b; margin-bottom:6px;">Sin marcar ninguna = lo cuentan todas las áreas.</small>
+            <button class="btn mini">Guardar áreas</button></form></details></td>
+      <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activo' if m.activo else 'Inactivo' }}</span></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-nmat-{{ m.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/conteo/materiales/{{ m.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if m.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- Bodegas ---------- #}
+<div class="cp-panel" id="panel-n_bodegas">
+  <div class="cp-ayuda" style="max-width:900px">Bodegas en las que se cuenta (ej. 103 Bienes con prefijo B, 200 Servicio con prefijo S).
+    Cada bodega tiene su tabla de materiales y su campo de discos de zirconia dañados.</div>
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar bodega</span></summary>
+    <form method="post" action="/inventario/parametros/conteo/bodegas" class="cp-form-nuevo">
+      <div style="width:110px"><label>Código</label><input name="codigo" required placeholder="300"></div>
+      <div style="flex:1;min-width:180px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Consignación"></div>
+      <div style="width:100px"><label>Prefijo</label><input name="prefijo" required placeholder="C"></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  <table class="cp-tabla">
+    <tr><th>Código</th><th>Nombre</th><th>Prefijo</th><th>Estado</th><th></th></tr>
+    {% for b in inv_conteo.bodegas %}
+    <tr class="{{ '' if b.activo else 'cp-inactivo' }}">
+      <td style="width:110px"><form id="f-nbod-{{ b.id }}" method="post" action="/inventario/parametros/conteo/bodegas/{{ b.id }}"></form>
+        <input name="codigo" value="{{ b.codigo }}" required form="f-nbod-{{ b.id }}"></td>
+      <td><input name="nombre" value="{{ b.nombre }}" required form="f-nbod-{{ b.id }}"></td>
+      <td style="width:100px"><input name="prefijo" value="{{ b.prefijo }}" required form="f-nbod-{{ b.id }}"></td>
+      <td><span class="cp-estado {{ 'si' if b.activo else 'no' }}">{{ 'Activa' if b.activo else 'Inactiva' }}</span></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-nbod-{{ b.id }}">Guardar</button>
+        <form class="inline" method="post" action="/inventario/parametros/conteo/bodegas/{{ b.id }}/toggle">
+          <button class="btn gris mini">{{ 'Desactivar' if b.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+<script>
+document.querySelectorAll('.buscar-persona-n').forEach(function(buscar) {
+  var lista = document.getElementById(buscar.dataset.lista);
+  buscar.addEventListener('input', function() {
+    var q = buscar.value.trim().toLowerCase(), primera = null;
+    Array.prototype.forEach.call(lista.options, function(o, i) {
+      if (!i) return;
+      var ok = !q || (o.dataset.buscar || '').indexOf(q) !== -1; o.hidden = !ok;
+      if (ok && !primera) primera = o;
+    });
+    lista.value = q ? (primera ? primera.value : '') : lista.value;
+  });
+});
+</script>

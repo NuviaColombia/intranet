@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/consumo.css?v=1">
+<style>
+  #consumo-app .cf-caja { max-width: 820px; margin: 20px auto; }
+  #consumo-app .cf-tabla { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 13px; }
+  #consumo-app .cf-tabla th { background: #1A365D; color: #fff; padding: 7px 10px; font-size: 12px; text-align: left; }
+  #consumo-app .cf-tabla td { border: 1px solid #CBD5E1; padding: 6px 10px; vertical-align: top; }
+  #consumo-app .cf-tabla td.n { text-align: right; white-space: nowrap; font-weight: 700; }
+  #consumo-app .cf-tabla tr.dan td { background: #fff7ed; }
+  #consumo-app .cf-fotos { display: flex; gap: 5px; flex-wrap: wrap; }
+  #consumo-app .cf-fotos img, #consumo-app .cf-fotos span { width: 48px; height: 48px; object-fit: cover; border-radius: 5px; border: 1px solid #CBD5E1; display: flex; align-items: center; justify-content: center; }
+  #consumo-app .cf-aviso { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+  #consumo-app .cf-aviso.ok { background: #D1FAE5; color: #065F46; } #consumo-app .cf-aviso.pend { background: #FEF3C7; color: #92400E; }
+  #consumo-app .cf-aviso.mal { background: #FEE2E2; color: #991B1B; }
+  #consumo-app .cf-firmas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 16px; }
+  #consumo-app .cf-firma { border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px 10px; font-size: 12px; }
+  #consumo-app .cf-firma b { display: block; color: #1A365D; margin-bottom: 3px; }
+  @media (max-width: 640px) { #consumo-app .cf-firmas { grid-template-columns: 1fr; } }
+</style>
+<div id="consumo-app">
+ <div class="cm-main">
+  <div class="cm-seccion activa cf-caja">
+    <h2 class="cm-titulo">✍️ Firma del conteo de inventario</h2>
+    <p class="cm-sub"><b>{{ r.area|nombre_propio }}</b> · {{ r.mesNombre }} {{ r.anio }} · cargado por <b>{{ r.responsable }}</b>
+      ({{ r.responsableEmail }}){% if r.enviadoEn %} el {{ r.enviadoEn }}{% endif %}.</p>
+
+    {% if msg %}<div class="cf-aviso {{ 'ok' if msg.startswith('✅') else ('pend' if msg.startswith('↩️') else 'mal') }}">{{ msg }}</div>{% endif %}
+
+    <div class="cf-firmas">
+      <div class="cf-firma"><b>1. Manager (carga)</b>{% if r.enviadoEn %}✅ {{ r.responsable }}<br>{{ r.enviadoEmail }}<br>{{ r.enviadoEn }}{% else %}⏳ Sin enviar{% endif %}</div>
+      <div class="cf-firma"><b>2. Director de Producción</b>{% if r.managerFirma.en %}✅ {{ r.managerFirma.nombre }}<br>{{ r.managerFirma.email }}<br>{{ r.managerFirma.en }}{% else %}⏳ {{ r.managerFirma.nombre or 'Pendiente' }}{% endif %}</div>
+      <div class="cf-firma"><b>3. Testigo del conteo</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ {{ r.testigo.nombre or 'Pendiente' }}{% endif %}</div>
+    </div>
+
+    <table class="cf-tabla">
+      <tr><th>Material</th><th style="text-align:right">Cantidad</th><th>Evidencia</th></tr>
+      {% for f in filas %}
+      <tr class="{{ 'dan' if f.danado }}"><td>{{ f.material }}</td><td class="n">{{ '%.2f'|format(f.cantidad)|replace('.', ',') }}</td>
+        <td><div class="cf-fotos">{% for e in f.evidencias %}<a href="/conteo/api/evidencias/{{ e.id }}" target="_blank">{% if e.tipo == 'application/pdf' %}<span>📄</span>{% else %}<img src="/conteo/api/evidencias/{{ e.id }}" alt="">{% endif %}</a>{% endfor %}</div></td></tr>
+      {% endfor %}
+    </table>
+    {% if r.novedad %}<p style="font-size:13px"><b>Novedad:</b> {{ r.novedad }}</p>{% endif %}
+
+    {% if rol %}
+      <div class="cf-aviso pend">Vas a firmar como <b>{{ 'Director de Producción' if rol == 'manager' else 'testigo del conteo' }}</b>: queda tu nombre,
+        tu correo de Zoho (<b>{{ user.email }}</b>) y la fecha y hora. Si algo no está bien, recházalo con una observación.</div>
+      <form method="post" action="/conteo/firma/{{ r.id }}/firmar" style="display:inline"
+            onsubmit="return confirm('¿Firmar el conteo de {{ r.area|nombre_propio }} de {{ r.mesNombre }} {{ r.anio }}?');">
+        <button class="btn verde">✍️ Firmar conteo</button></form>
+      <form method="post" action="/conteo/firma/{{ r.id }}/rechazar" style="margin-top:12px">
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#1A365D;">No estoy de acuerdo (rechazar con observación)</label>
+        <textarea name="observacion" rows="2" style="width:100%" placeholder="Qué se debe corregir (ej. Glaze paste: se contaron 30, no 32)"></textarea>
+        <button class="btn rojo mini" style="margin-top:6px">↩️ Rechazar</button></form>
+    {% elif r.estado == 'DEVUELTO' %}
+      <div class="cf-aviso mal">↩️ Este conteo fue devuelto: {{ r.observacion }}</div>
+    {% elif r.firmasCompletas %}
+      <div class="cf-aviso ok">✅ El conteo tiene las 3 firmas{{ ' y ya fue validado' if r.estado == 'VALIDADO' else ' y está en validación' }}.</div>
+    {% else %}
+      <div class="cf-aviso pend">⏳ Esperando las demás firmas.</div>
+    {% endif %}
+  </div>
+ </div>
+</div>
+{% endblock %}
