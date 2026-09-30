@@ -12,9 +12,9 @@ from sqlalchemy.orm import Session
 from ..database import get_db, engine
 from ..models import Empleado
 from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                             ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, BORRADOR, ENVIADO, VALIDADO)
+                             ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoManagerArea, BORRADOR, ENVIADO, VALIDADO)
 from ..models_custodia import CustodiaArea
-from ..auth import require_admin
+from ..auth import require_admin, get_current_user
 from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
 from ..formato import nombre_propio
 from ..main_templates import templates
@@ -28,7 +28,10 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
                         "validacion_por_id": "INTEGER REFERENCES empleados(id)", "validacion_guardada_en": "TIMESTAMP",
                         "validado_por_id": "INTEGER REFERENCES empleados(id)", "validado_en": "TIMESTAMP",
                         "validado_email": "VARCHAR(150)", "devuelto_por_id": "INTEGER REFERENCES empleados(id)",
-                        "devuelto_en": "TIMESTAMP", "observacion": "TEXT"},
+                        "devuelto_en": "TIMESTAMP", "observacion": "TEXT",
+                        "manager_firma_id": "INTEGER REFERENCES empleados(id)", "manager_firma_email": "VARCHAR(150)",
+                        "manager_firmado_en": "TIMESTAMP", "testigo_id": "INTEGER REFERENCES empleados(id)",
+                        "testigo_email": "VARCHAR(150)", "testigo_firmado_en": "TIMESTAMP"},
     "conteo_evidencias": {"etapa": "VARCHAR(12) DEFAULT 'MANAGER'", "workdrive_estado": "VARCHAR(12) DEFAULT 'PENDIENTE'",
                           "workdrive_id": "VARCHAR(100)", "workdrive_error": "VARCHAR(300)", "workdrive_en": "TIMESTAMP"},
 }
@@ -38,7 +41,7 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
 def _tablas_conteo() -> None:
     from sqlalchemy import inspect, text
     for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                   ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento):
+                   ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoManagerArea):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear
@@ -106,6 +109,10 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
         "puedeValidar": sc.puede_validar(db, user), "config": sc.config(db),
         "responsable": nombre_propio(user.nombre_completo), "correo": user.email or "", "usuarioId": user.id,
         "hoy": sc.hoy_colombia().isoformat(), "meses": sc.MESES,
+        "personas": [{"id": e.id, "nombre": nombre_propio(e.nombre_completo), "cargo": e.cargo or ""}
+                     for e in db.query(Empleado).filter(Empleado.activo == 1).order_by(Empleado.nombres, Empleado.apellidos)],
+        "managersArea": {x.area: {"id": x.empleado_id, "nombre": nombre_propio(x.empleado.nombre_completo)}
+                         for x in db.query(ConteoManagerArea).all() if x.empleado},
     }
 
 
@@ -137,6 +144,7 @@ class ReporteIn(BaseModel):
     area: str = ""
     novedad: str = ""
     enviar: bool = False
+    testigo_id: int = 0       # testigo del conteo (tercera firma), se elige al enviar
     lineas: list[LineaIn] = []
     danados: list[DanadoIn] = []
 
@@ -151,7 +159,8 @@ def api_guardar(payload: ReporteIn, tareas: BackgroundTasks, user: Empleado = De
         raise HTTPException(400, r)
     if r.estado == ENVIADO:
         tareas.add_task(sc.notificar, r.id, "enviado")
-    accion = "enviado a validación" if r.estado == ENVIADO else "guardado como borrador"
+    accion = ("enviado: ya tiene las 3 firmas y pasa a validación" if sc.firmas_completas(r) else
+              "enviado con tu firma: se les avisó al manager del área y al testigo para que firmen") if r.estado == ENVIADO         else "guardado como borrador"
     return {"mensaje": f"✅ Conteo de {sc.MESES[r.mes - 1]} {r.anio} de {nombre_propio(r.area)} {accion}.",
             "reporte": sc.serializar(db, r, user)}
 
@@ -206,6 +215,79 @@ def api_validar(reporte_id: int, payload: ValidacionIn, tareas: BackgroundTasks,
         msg = ("✅ Tu conteo coincide con el del manager." if not c["diferencias"]
                else f"⚠️ Hay {c['diferencias']} diferencia(s) con el conteo del manager.")
     return {"mensaje": msg, "reporte": sc.serializar(db, r, user)}
+
+
+def _reporte_para_firmar(db: Session, user: Empleado, reporte_id: int) -> ConteoReporte:
+    r = _reporte(db, reporte_id)
+    if user.id not in (r.manager_firma_id, r.testigo_id, r.responsable_id) and not sc.es_admin(user):
+        raise HTTPException(404, "Este conteo no tiene una firma a tu nombre.")
+    return r
+
+
+@router.get("/conteo/firma/{reporte_id}")
+def pagina_firma(reporte_id: int, request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Resumen del conteo para que el manager del área o el testigo lo firme (no necesita el módulo)."""
+    r = _reporte_para_firmar(db, user, reporte_id)
+    datos = sc.serializar(db, r)
+    bodegas = sc.bodegas_activas(db)
+    materiales = sc.materiales_activos(db, r.area)
+    filas = []
+    for b in bodegas:
+        for m in materiales:
+            filas.append({"bodega": f"{b.nombre} - Bodega {b.codigo}", "material": f"{b.prefijo}-{m.codigo}-{m.descripcion}",
+                          "cantidad": datos["conteo"].get(f"{b.id}:{m.id}", 0),
+                          "evidencias": [e for e in datos["evidencias"] if e["materialId"] == m.id and e["etapa"] == "MANAGER"]})
+        filas.append({"bodega": f"{b.nombre} - Bodega {b.codigo}", "material": "Disco de zirconia - DAÑADOS", "danado": True,
+                      "cantidad": datos["danados"].get(str(b.id), 0),
+                      "evidencias": [e for e in datos["evidencias"] if not e["materialId"] and e["etapa"] == "MANAGER"]})
+    return templates.TemplateResponse(request, "conteo_firma.html", {
+        "user": user, "es_portal": True, "r": datos, "filas": filas, "rol": sc.rol_firmante(user, r),
+        "msg": request.query_params.get("msg", "")})
+
+
+@router.post("/conteo/firma/{reporte_id}/firmar")
+def firmar(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    r = _reporte_para_firmar(db, user, reporte_id)
+    error = sc.firmar_conteo(db, user, r)
+    if not error and sc.firmas_completas(r):
+        tareas.add_task(sc.notificar, r.id, "firmado")  # con las 3 firmas pasa a validación
+    msg = error or "✅ Listo: firmaste el conteo. Gracias."
+    return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
+
+
+@router.post("/conteo/firma/{reporte_id}/rechazar")
+def rechazar(reporte_id: int, tareas: BackgroundTasks, observacion: str = Form(""), user: Empleado = Depends(get_current_user),
+             db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    r = _reporte_para_firmar(db, user, reporte_id)
+    error = sc.rechazar_firma(db, user, r, observacion)
+    if not error:
+        tareas.add_task(sc.notificar, r.id, "devuelto")
+    msg = error or "↩️ Listo: el conteo volvió a quien lo cargó con tu observación."
+    return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
+
+
+@router.post("/inventario/parametros/conteo/managers")
+def guardar_manager_area(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                         area: str = Form(...), empleado_id: int = Form(...)):
+    area = _texto(area).upper()
+    e = db.get(Empleado, empleado_id)
+    if not area or not e or not e.activo:
+        return _volver("n_managers", "No se guardó: elige el área y la persona.")
+    x = db.query(ConteoManagerArea).filter_by(area=area).first() or ConteoManagerArea(area=area)
+    x.empleado_id = e.id
+    db.add(x)
+    _dar_modulo(db, e)  # el manager también entra al submódulo
+    db.commit()
+    return _volver("n_managers", f"{nombre_propio(e.nombre_completo)} es el manager de {nombre_propio(area)} para el conteo.")
+
+
+@router.post("/inventario/parametros/conteo/managers/{area}/quitar")
+def quitar_manager_area(area: str, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    db.query(ConteoManagerArea).filter_by(area=area.strip().upper()).delete()
+    db.commit()
+    return _volver("n_managers", f"Manager de {nombre_propio(area)} quitado.")
 
 
 def _pdf(doc: ConteoDocumento) -> Response:
@@ -274,11 +356,16 @@ def api_quitar_evidencia(evidencia_id: int, user: Empleado = Depends(require_sub
 
 
 @router.get("/conteo/api/evidencias/{evidencia_id}")
-def api_ver_evidencia(evidencia_id: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "nuevo", "reportes", "validacion")
+def api_ver_evidencia(evidencia_id: int, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    from ..acceso_produccion import tiene_submodulo
     e = db.get(ConteoEvidencia, evidencia_id)
     if not e:
         raise HTTPException(404, "Evidencia no encontrada.")
+    firmante = user.id in (e.reporte.manager_firma_id, e.reporte.testigo_id)
+    if not firmante:
+        if not tiene_submodulo(db, user, SUB):
+            raise HTTPException(403, "No tienes acceso a esta evidencia.")
+        acs.exigir(db, user, SUB, "nuevo", "reportes", "validacion")
     return Response(e.datos, media_type=e.tipo_mime,
                     headers={"Content-Disposition": f'inline; filename="{e.nombre}"', "Cache-Control": "private, max-age=3600"})
 

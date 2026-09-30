@@ -138,6 +138,24 @@ class _Doc(FPDF):
         return y
 
 
+def _cuatro_firmas(doc: "_Doc", r, sufijo: str = "") -> None:
+    """Carga · Manager del área (fila 1) y Testigo · Validación (fila 2)."""
+    mitad = (doc.w - 24) / 2
+    nom = lambda e: nombre_propio(e.nombre_completo) if e else ""
+    filas = [(("Carga del conteo", nom(r.responsable), r.enviado_email, r.enviado_en, "SIN ENVIAR"),
+              ("Manager del area", nom(r.manager_firma), r.manager_firma_email, r.manager_firmado_en, "PENDIENTE DE FIRMA")),
+             (("Testigo del conteo", nom(r.testigo), r.testigo_email, r.testigo_firmado_en, "PENDIENTE DE FIRMA"),
+              ("Validacion", nom(r.validado_por), r.validado_email, r.validado_en, "PENDIENTE DE VALIDACION"))]
+    for izq, der in filas:
+        if doc.get_y() > doc.h - 38:
+            doc.add_page()
+        y = doc.firma(12, mitad, izq[0] + sufijo, izq[1], izq[2] or "", _hora(izq[3]), izq[4])
+        fin = doc.get_y()
+        doc.set_y(y)
+        doc.firma(12 + mitad, mitad, der[0] + sufijo, der[1], der[2] or "", _hora(der[3]), der[4])
+        doc.set_y(max(fin, doc.get_y()) + 6)
+
+
 def _hora(m: datetime | None) -> str:
     return (m - timedelta(hours=5)).strftime("%d/%m/%Y %I:%M %p") if m else ""
 
@@ -149,6 +167,8 @@ def acta_area(r, bodegas, materiales, comparacion: dict, meses: list[str]) -> by
     doc.datos([("Area", nombre_propio(r.area)), ("Mes del reporte", mes),
                ("Responsable", nombre_propio(r.responsable.nombre_completo) if r.responsable else ""),
                ("Fecha reporte", r.fecha_reporte.strftime("%d/%m/%Y")),
+               ("Manager del area", nombre_propio(r.manager_firma.nombre_completo) if r.manager_firma else ""),
+               ("Testigo", nombre_propio(r.testigo.nombre_completo) if r.testigo else ""),
                ("Validado por", nombre_propio(r.validado_por.nombre_completo) if r.validado_por else ""),
                ("Estado", "VALIDADO" if r.estado == "VALIDADO" else r.estado)])
     filas_cmp = comparacion.get("filas", {})
@@ -171,24 +191,16 @@ def acta_area(r, bodegas, materiales, comparacion: dict, meses: list[str]) -> by
     doc.multi_cell(0, 4.5, _t(f"Tolerancia aceptada: {tol:g}. Diferencias fuera de tolerancia: {dif}."), new_x="LMARGIN", new_y="NEXT")
     if r.novedad:
         doc.multi_cell(0, 4.5, _t(f"Novedad del manager: {r.novedad}"), new_x="LMARGIN", new_y="NEXT")
-    doc.ln(10)
-    if doc.get_y() > doc.h - 50:
-        doc.add_page()
-    mitad = ancho / 2
-    y = doc.firma(12, mitad, "Conteo (manager)", nombre_propio(r.responsable.nombre_completo) if r.responsable else "",
-                  r.enviado_email or "", _hora(r.enviado_en), "SIN ENVIAR")
-    doc.set_y(y)
-    doc.firma(12 + mitad, mitad, "Validacion", nombre_propio(r.validado_por.nombre_completo) if r.validado_por else "",
-              r.validado_email or "", _hora(r.validado_en), "PENDIENTE DE VALIDACION")
+    doc.ln(8)
+    _cuatro_firmas(doc, r)
     return bytes(doc.output())
 
 
-def consolidado_mes(anio: int, mes: int, reportes, bodegas, materiales, finales: dict, pendientes: list[str],
-                    meses: list[str], sin_enviar: list[str] | None = None) -> bytes:
-    """Consolidado firmado del mes: cantidades validadas por área y totales, con las firmas de cada área y validador."""
+def consolidado_mes(anio: int, mes: int, reportes, bodegas, materiales_de_area, comparaciones: dict, finales: dict,
+                    pendientes: list[str], meses: list[str], sin_enviar: list[str] | None = None) -> bytes:
+    """Consolidado firmado del mes: una sección por área validada (su tabla y sus dos firmas) y al final el total del mes."""
     nombre_mes = f"{meses[mes - 1]} {anio}"
-    horizontal = len(reportes) > 4
-    doc = _Doc("CONTEO INVENTARIO MENSUAL - CONSOLIDADO", nombre_mes.upper(), horizontal=horizontal)
+    doc = _Doc("CONTEO INVENTARIO MENSUAL - CONSOLIDADO", nombre_mes.upper())
     ancho = doc.w - 24
     validados = [r for r in reportes if r.estado == "VALIDADO"]
     doc.datos([("Mes del reporte", nombre_mes), ("Areas validadas", str(len(validados)))])
@@ -196,42 +208,54 @@ def consolidado_mes(anio: int, mes: int, reportes, bodegas, materiales, finales:
     for etq, lista in (("Pendientes de validar", pendientes), ("Sin enviar", sin_enviar or [])):
         doc.multi_cell(0, 4.8, _t(f"{etq}: " + (", ".join(nombre_propio(a) for a in lista) or "Ninguna")), new_x="LMARGIN", new_y="NEXT")
     doc.ln(3)
-    col_mat = ancho * (0.36 if horizontal else 0.40)
-    resto = (ancho - col_mat) / (len(validados) + 1) if validados else ancho - col_mat
-    for b in bodegas:
-        filas = []
-        for m in materiales:
-            k = f"{b.id}:{m.id}"
-            vals = [finales[r.id][0].get(k, 0) for r in validados]
-            filas.append([f"{b.prefijo}-{m.codigo}-{m.descripcion}", *[_n(v) for v in vals], _n(sum(vals))])
-        vals = [finales[r.id][1].get(str(b.id), 0) for r in validados]
-        filas.append(["Disco de zirconia - DAÑADOS", *[_n(v) for v in vals], _n(sum(vals))])
-        doc.titulo_seccion(f"Conteo - {b.nombre} - Bodega {b.codigo} (cantidades validadas)")
-        doc.tabla(["Material", *[nombre_propio(r.area) for r in validados], "Total"], filas, [col_mat] + [resto] * (len(validados) + 1))
-    doc.titulo_seccion("Firmas de las areas y de la validacion")
-    cols = 3 if horizontal else 2
-    w = ancho / cols
-    for i in range(0, len(validados), cols):
-        grupo = validados[i:i + cols]
-        if doc.get_y() > doc.h - 70:
+    mitad = ancho / 2
+    for r in validados:
+        comp = comparaciones.get(r.id, {}).get("filas", {})
+        if doc.get_y() > doc.h - 90:
             doc.add_page()
-        doc.ln(4)
-        y0 = doc.get_y()
-        alto = 0
-        for j, r in enumerate(grupo):
-            x = 12 + j * w
-            doc.set_xy(x, y0)
-            doc.set_font("Helvetica", "B", 8.5)
-            doc.set_text_color(*AZUL)
-            doc.cell(w, 5, _t(nombre_propio(r.area).upper()), align="C")
-            doc.set_text_color(*TEXTO)
-            doc.set_xy(x, y0 + 7)
-            doc.firma(x, w, "Conteo (manager)", nombre_propio(r.responsable.nombre_completo) if r.responsable else "",
-                      r.enviado_email or "", _hora(r.enviado_en), "SIN ENVIAR")
-            doc.ln(4)
-            doc.set_x(x)
-            doc.firma(x, w, "Validacion", nombre_propio(r.validado_por.nombre_completo) if r.validado_por else "",
-                      r.validado_email or "", _hora(r.validado_en), "PENDIENTE")
-            alto = max(alto, doc.get_y() - y0)
-        doc.set_y(y0 + alto + 4)
+        doc.set_fill_color(*AZUL)
+        doc.set_text_color(255, 255, 255)
+        doc.set_font("Helvetica", "B", 10)
+        doc.cell(0, 7, _t(f"  AREA: {nombre_propio(r.area).upper()}"), fill=True, new_x="LMARGIN", new_y="NEXT")
+        doc.set_text_color(*TEXTO)
+        doc.ln(2)
+        for b in bodegas:
+            filas, marcar = [], []
+            for m in materiales_de_area(r.area):
+                f = comp.get(f"{b.id}:{m.id}", {"manager": 0, "validacion": 0, "diferencia": 0, "ok": True})
+                filas.append([f"{b.prefijo}-{m.codigo}-{m.descripcion}", _n(f["manager"]), _n(f["validacion"]),
+                              ("+" if f["diferencia"] > 0 else "") + _n(f["diferencia"])])
+                marcar.append(not f["ok"])
+            f = comp.get(f"{b.id}:danados", {"manager": 0, "validacion": 0, "diferencia": 0, "ok": True})
+            filas.append(["Disco de zirconia - DAÑADOS", _n(f["manager"]), _n(f["validacion"]), ("+" if f["diferencia"] > 0 else "") + _n(f["diferencia"])])
+            marcar.append(not f["ok"])
+            doc.titulo_seccion(f"{b.nombre} - Bodega {b.codigo}")
+            doc.tabla(["Material", "Manager", "Validacion", "Diferencia"], filas, [ancho * 0.52, ancho * 0.16, ancho * 0.16, ancho * 0.16], marcar)
+        if r.novedad:
+            doc.set_font("Helvetica", "", 8)
+            doc.multi_cell(0, 4.5, _t(f"Novedad: {r.novedad}"), new_x="LMARGIN", new_y="NEXT")
+        doc.ln(6)
+        _cuatro_firmas(doc, r, f" - {nombre_propio(r.area)}")
+        doc.ln(2)
+    # Total del mes (cantidades validadas de todas las áreas)
+    if validados:
+        if doc.get_y() > doc.h - 60:
+            doc.add_page()
+        doc.set_fill_color(*AZUL)
+        doc.set_text_color(255, 255, 255)
+        doc.set_font("Helvetica", "B", 10)
+        doc.cell(0, 7, _t(f"  TOTAL DEL MES - {nombre_mes.upper()} ({len(validados)} areas validadas)"), fill=True, new_x="LMARGIN", new_y="NEXT")
+        doc.set_text_color(*TEXTO)
+        doc.ln(2)
+        todos = {}
+        for r in validados:
+            for m in materiales_de_area(r.area):
+                todos[m.id] = m
+        for b in bodegas:
+            filas = []
+            for m in sorted(todos.values(), key=lambda x: (x.orden, x.codigo)):
+                filas.append([f"{b.prefijo}-{m.codigo}-{m.descripcion}", _n(sum(finales[r.id][0].get(f"{b.id}:{m.id}", 0) for r in validados))])
+            filas.append(["Disco de zirconia - DAÑADOS", _n(sum(finales[r.id][1].get(str(b.id), 0) for r in validados))])
+            doc.titulo_seccion(f"{b.nombre} - Bodega {b.codigo}")
+            doc.tabla(["Material", "Total"], filas, [ancho * 0.75, ancho * 0.25])
     return bytes(doc.output())

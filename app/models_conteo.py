@@ -50,6 +50,16 @@ class ConteoValidador(Base):
     empleado = relationship("Empleado")
 
 
+class ConteoManagerArea(Base):
+    """Manager de cada área: firma el conteo de su área (segunda firma)."""
+    __tablename__ = "conteo_managers_area"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    area: Mapped[str] = mapped_column(String(100), unique=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    empleado = relationship("Empleado")
+
+
 class ConteoConfig(Base):
     """Ajustes del submódulo: tolerancia de diferencia y día límite para enviar el conteo."""
     __tablename__ = "conteo_config"
@@ -75,9 +85,16 @@ class ConteoReporte(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     actualizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     actualizado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
-    # Firma del manager al enviar
+    # Firma 1: quien carga el conteo (al enviarlo)
     enviado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     enviado_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    # Firma 2: manager del área (asignado en Parámetros) · Firma 3: testigo del conteo (se elige al enviar)
+    manager_firma_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    manager_firma_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    manager_firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    testigo_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    testigo_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    testigo_firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Conteo de validación
     validacion_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     validacion_guardada_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -93,6 +110,8 @@ class ConteoReporte(Base):
     validacion_por = relationship("Empleado", foreign_keys=[validacion_por_id])
     validado_por = relationship("Empleado", foreign_keys=[validado_por_id])
     devuelto_por = relationship("Empleado", foreign_keys=[devuelto_por_id])
+    manager_firma = relationship("Empleado", foreign_keys=[manager_firma_id])
+    testigo = relationship("Empleado", foreign_keys=[testigo_id])
     lineas = relationship("ConteoLinea", back_populates="reporte", cascade="all, delete-orphan")
     evidencias = relationship("ConteoEvidencia", back_populates="reporte", cascade="all, delete-orphan")
 

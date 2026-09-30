@@ -44,6 +44,14 @@
   #consumo-app .ct-estado.BORRADOR { background:#e5e7eb; color:#374151; } #consumo-app .ct-estado.ENVIADO { background:#dbeafe; color:#1e40af; }
   #consumo-app .ct-estado.DEVUELTO { background:#fee2e2; color:#991b1b; } #consumo-app .ct-estado.VALIDADO { background:#dcfce7; color:#166534; }
   #consumo-app .ct-matriz td.n, #consumo-app .ct-matriz th.n { text-align:right; white-space:nowrap; }
+  #consumo-app .ct-firmas { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  #consumo-app .ct-firma { font-size:11.5px; padding:3px 8px; border-radius:10px; }
+  #consumo-app .ct-firma.si { background:#dcfce7; color:#166534; } #consumo-app .ct-firma.no { background:#fef3c7; color:#92400e; }
+  #consumo-app .ct-area { border:1px solid #CBD5E1; border-radius:10px; padding:12px 14px; margin:14px 0; page-break-inside:avoid; }
+  #consumo-app .ct-area-cab { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:flex-start; justify-content:space-between; margin-bottom:8px; }
+  #consumo-app .ct-area-cab h3 { margin:0; font-size:15px; color:#1A365D; width:100%; }
+  #consumo-app .ct-area-meta { font-size:12px; color:#475569; flex:1; min-width:260px; }
+  #consumo-app .ct-matriz tr.mal td { background:#fef2f2; color:#991b1b; font-weight:700; }
   #consumo-app .ct-matriz tr.dan td { background:#fff7ed; }
   @media print { .no-print, nav { display:none !important; } }
 </style>
@@ -66,10 +74,14 @@
       <div><label>Manager - Responsable <b>*</b></label><input id="cResponsable" readonly></div>
       <div><label>Área <b>*</b></label><select id="cArea" onchange="pintarFormulario(); cargarReporte()"></select></div>
       <div><label>Correo (Zoho)</label><input id="cCorreo" readonly></div>
+      <div><label>Manager del área (firma 2)</label><input id="cManagerArea" readonly placeholder="Se asigna en Parámetros"></div>
+      <div><label>Testigo del conteo (firma 3) <b>*</b></label>
+        <input type="search" id="cBuscarTestigo" placeholder="Busca por nombre o cargo…" style="margin-bottom:4px" oninput="filtrarTestigos()">
+        <select id="cTestigo"></select></div>
     </div>
     <div id="cEstado"></div>
     <div id="cBodegas"></div>
-    <p class="ct-nota" style="margin-top:8px">📷 Toma o sube la foto de evidencia de cada material en su fila (o un PDF). Las fotos se reducen antes de subir para que carguen rápido.</p>
+    <p class="ct-nota" style="margin-top:8px">📎 Con «Subir soporte» tomas la foto (en el celular) o subes una imagen o PDF de cada material en su fila. Las fotos se reducen antes de subir para que carguen rápido.</p>
     <div style="max-width:900px; margin-top:16px;"><label style="display:block; font-size:12.5px; font-weight:700; color:#1A365D; margin-bottom:4px;">Reportar novedad</label>
       <textarea id="cNovedad" rows="3" style="width:100%" placeholder="Opcional: algo que se deba saber de este conteo"></textarea></div>
     <div class="cm-acciones" style="justify-content:flex-start; margin-top:14px;" id="cBotones">
@@ -84,7 +96,7 @@
     <div class="cm-filtros no-print"><label>Mes:</label><select id="vMes" onchange="cargarValidacion()"></select>
       <label>Año:</label><input type="number" id="vAnio" min="2020" max="2100" style="width:90px" onchange="cargarValidacion()"></div>
     <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th>Área</th><th>Manager</th><th>Enviado</th><th>Estado</th><th>Validación</th><th></th></tr></thead>
+      <thead><tr><th>Área</th><th>Cargado por</th><th>Enviado</th><th>Firmas</th><th>Estado</th><th>Validación</th><th></th></tr></thead>
       <tbody id="vLista"><tr><td colspan="6" class="cm-vacio">Cargando…</td></tr></tbody></table></div>
     <div id="vDetalle" style="margin-top:18px;"></div>
   </div>
@@ -100,12 +112,8 @@
     <div class="cm-filtros no-print"><label>Mes:</label><select id="rMes" onchange="cargarConsolidado()"></select>
       <label>Año:</label><input type="number" id="rAnio" min="2020" max="2100" style="width:90px" onchange="cargarConsolidado()"></div>
     <div id="rPendientes"></div>
-    <div id="rMatrices"></div>
-    <h3 class="cs-h3">🗂️ Conteos del mes</h3>
-    <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th>Área</th><th>Estado</th><th>Manager</th><th>Enviado</th><th>Validado por</th><th>Evidencias</th><th>Novedad</th><th class="no-print"></th></tr></thead>
-      <tbody id="rLista"></tbody></table></div>
-    <div id="rDetalle" style="margin-top:14px;"></div>
+    <div id="rAreas"></div>
+    <div id="rTotal"></div>
   </div>
  </div>
 </div>
@@ -138,12 +146,12 @@ document.querySelectorAll('.conteo-tab').forEach(function(a) { a.addEventListene
 function opcionesMes(sel) { sel.innerHTML = D.meses.map(function(m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join(''); }
 
 // Tablas por bodega. modo: "manager" (inputs ct-) · "validacion" (inputs v-, con comparación si ya se guardó)
-// Celda de evidencia de un material (0 = discos dañados): 📷 tomar foto (cámara del celular) · ⬆️ subir foto o PDF
+// Celda de evidencia de un material (0 = discos dañados): 📎 subir soporte (en el celular: tomar foto o galería; o PDF)
 function celdaEvidencia(mid, etapa) {
   var cambio = ' onchange="elegirArchivos(this, ' + mid + ', \'' + etapa + '\')"';
   return '<td class="ev"><div class="ev-btns sube-' + etapa + '">' +
-    '<label class="btn gris mini" title="Tomar foto con la cámara">📷 Tomar foto<input type="file" accept="image/*" capture="environment" style="display:none"' + cambio + '></label>' +
-    '<label class="btn gris mini" title="Subir foto o PDF">⬆️ Subir<input type="file" accept="image/*,application/pdf" multiple style="display:none"' + cambio + '></label></div>' +
+    '<label class="btn gris mini" title="En el celular puedes tomar la foto o escogerla de la galería (o un PDF)">📎 Subir soporte' +
+    '<input type="file" accept="image/*,application/pdf" multiple style="display:none"' + cambio + '></label></div>' +
     '<div class="ct-fotos" id="fotos-' + etapa + '-' + mid + '"></div></td>';
 }
 // Tablas por bodega: material · cantidades (o manager · validación · diferencia) · evidencia
@@ -184,12 +192,33 @@ function sugerirMes() {
   document.getElementById('cMes').value = parseInt(f.slice(5, 7), 10); document.getElementById('cAnio').value = f.slice(0, 4);
   cargarReporte();
 }
+function pintarTestigos() {
+  var sel = document.getElementById('cTestigo'), antes = sel.value;
+  sel.innerHTML = '<option value="">Seleccionar…</option>' + D.personas.filter(function(p) { return p.id !== D.usuarioId; }).map(function(p) {
+    return '<option value="' + p.id + '" data-buscar="' + esc((p.nombre + ' ' + p.cargo).toLowerCase()) + '">' + esc(p.nombre) + (p.cargo ? ' — ' + esc(p.cargo) : '') + '</option>'; }).join('');
+  sel.value = antes;
+}
+function filtrarTestigos() {
+  var q = document.getElementById('cBuscarTestigo').value.trim().toLowerCase(), sel = document.getElementById('cTestigo'), primera = null;
+  Array.prototype.forEach.call(sel.options, function(o, i) { if (!i) return; var ok = !q || o.dataset.buscar.indexOf(q) >= 0; o.hidden = !ok; if (ok && !primera) primera = o; });
+  if (q && primera) sel.value = primera.value;
+}
+function managerDelArea(area) { return (D.managersArea || {})[area]; }
+function firmasHtml(r) {
+  var f = function(n, titulo, nombre, correo, en) {
+    return '<span class="ct-firma ' + (en ? 'si' : 'no') + '">' + n + '. ' + titulo + ': ' + (en ? '✅ ' + esc(nombre) + ' · ' + esc(en) : '⏳ ' + esc(nombre || 'pendiente')) + '</span>';
+  };
+  return '<div class="ct-firmas">' + f(1, 'Carga', r.responsable, r.enviadoEmail, r.enviadoEn) +
+    f(2, 'Manager', r.managerFirma.nombre, r.managerFirma.email, r.managerFirma.en) + f(3, 'Testigo', r.testigo.nombre, r.testigo.email, r.testigo.en) + '</div>';
+}
 function pintarFormulario() {
   var area = document.getElementById('cArea').value;
   document.getElementById('cBodegas').innerHTML = tablasBodegas(area, 'ct-', null, 'MANAGER');
+  var man = managerDelArea(area);
+  document.getElementById('cManagerArea').value = man ? man.nombre + (man.id === D.usuarioId ? ' (tú: tu firma queda al enviar)' : '') : (area ? '⚠️ Sin asignar en Parámetros' : '');
 }
 function bloquearManager(si) {
-  document.querySelectorAll('#sec-nuevo .ct-cant, #sec-nuevo .ct-dan, #cNovedad, #cFecha').forEach(function(i) { i.disabled = si; });
+  document.querySelectorAll('#sec-nuevo .ct-cant, #sec-nuevo .ct-dan, #cNovedad, #cFecha, #cTestigo, #cBuscarTestigo').forEach(function(i) { i.disabled = si; });
   document.getElementById('cBotones').style.display = si ? 'none' : '';
   document.querySelectorAll('.sube-MANAGER').forEach(function(l) { l.style.display = si ? 'none' : ''; });
 }
@@ -213,12 +242,15 @@ function cargarReporte() {
     else if (actual && !r.puedeEditar) est.innerHTML = '<div class="ct-aviso no">🔒 El conteo de <b>' + nm + '</b> de ' + esc(np(area)) + ' lo está haciendo ' + esc(actual.responsable) + '.</div>';
     else if (e === 'BORRADOR') est.innerHTML = '<div class="ct-aviso edit">📝 <b>Borrador</b> guardado' + (actual.actualizadoEn ? ' el ' + esc(actual.actualizadoEn) : ' el ' + esc(actual.creadoEn)) +
       '. Todavía <b>no se ha enviado</b>: cuando esté completo pulsa «Enviar conteo».' + plazo + '</div>';
-    else if (e === 'ENVIADO') est.innerHTML = '<div class="ct-aviso info">📤 Enviado con tu firma el ' + esc(actual.enviadoEn) + ' (' + esc(actual.enviadoEmail) + '). Está <b>en validación</b>: ya no se puede cambiar.</div>';
+    else if (e === 'ENVIADO') est.innerHTML = '<div class="ct-aviso info">📤 Enviado con tu firma el ' + esc(actual.enviadoEn) + ' (' + esc(actual.enviadoEmail) + '). ' +
+      (actual.firmasCompletas ? 'Tiene las 3 firmas y está <b>en validación</b>.' : 'Falta que firmen el manager del área y/o el testigo (les llegó el aviso por Cliq).') +
+      ' Ya no se puede cambiar.' + firmasHtml(actual) + '</div>';
     else if (e === 'DEVUELTO') est.innerHTML = '<div class="ct-aviso no">↩️ <b>Devuelto</b> por ' + esc(actual.devueltoPor) + ' el ' + esc(actual.devueltoEn) + ':<br>«' + esc(actual.observacion) +
       '»<br>Corrige y envíalo de nuevo.</div>';
     else if (e === 'VALIDADO') est.innerHTML = '<div class="ct-aviso ok">✅ <b>Validado</b> por ' + esc(actual.validadoPor) + ' el ' + esc(actual.validadoEn) +
       '. El conteo quedó cerrado. <a target="_blank" href="/conteo/api/reportes/' + actual.id + '/acta.pdf"><b>📄 Ver el acta firmada (PDF)</b></a></div>';
     if (!actual) return;
+    if (actual.testigo && actual.testigo.id) document.getElementById('cTestigo').value = actual.testigo.id;
     document.getElementById('btnImprimirManager').style.display = '';
     document.getElementById('cFecha').value = actual.fechaReporte;
     ponerCantidades('ct-', actual.conteo, actual.danados);
@@ -294,12 +326,15 @@ function quitarEvidencia(id, etapa) {
 function guardarConteo(enviar) {
   var datos = Object.assign({fecha: document.getElementById('cFecha').value, anio: +document.getElementById('cAnio').value,
                mes: +document.getElementById('cMes').value, area: document.getElementById('cArea').value,
-               novedad: document.getElementById('cNovedad').value, enviar: false}, leerCantidades('ct-'));
+               novedad: document.getElementById('cNovedad').value, enviar: false,
+               testigo_id: +document.getElementById('cTestigo').value || 0}, leerCantidades('ct-'));
   if (enviar) {
+    if (!managerDelArea(datos.area)) { alert('⚠️ Falta asignar el manager de ' + np(datos.area) + ' en Parámetros › Managers por área.'); return; }
+    if (!datos.testigo_id) { alert('⚠️ Elige el testigo del conteo (la persona que estuvo presente).'); document.getElementById('cBuscarTestigo').focus(); return; }
     var faltan = [];
     document.querySelectorAll('#sec-nuevo .ct-dan').forEach(function(i) { if (i.value.trim() === '') faltan.push(i.dataset.etq); });
     if (faltan.length) { alert('⚠️ Completa (aunque sea con 0): ' + faltan.join(' · ')); return; }
-    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nDespués ya no se puede cambiar, salvo que el validador te lo devuelva.')) return;
+    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al manager del área y al testigo para firmar. Después ya no se puede cambiar, salvo que te lo devuelvan.')) return;
   }
   var btn = document.getElementById(enviar ? 'btnEnviar' : 'btnBorrador'), texto = btn.innerText; btn.disabled = true; btn.innerText = 'Guardando…';
   // 1) guarda como borrador · 2) sube las fotos · 3) si es envío, lo envía (con las fotos ya adentro)
@@ -324,10 +359,12 @@ function cargarValidacion() {
     window._validacion = r.data;
     document.getElementById('vLista').innerHTML = r.data.length ? r.data.map(function(x) {
       var accion = x.estado === 'ENVIADO' ? (x.ciego ? '🔢 Contar' : '⚖️ Revisar') : '👁️ Ver';
-      return '<tr><td class="izq"><b>' + esc(np(x.area)) + '</b></td><td>' + esc(x.responsable) + '</td><td>' + esc(x.enviadoEn) + '</td><td>' + estadoHtml(x.estado) +
+      var nf = (x.enviadoEn ? 1 : 0) + (x.managerFirma.en ? 1 : 0) + (x.testigo.en ? 1 : 0);
+      return '<tr><td class="izq"><b>' + esc(np(x.area)) + '</b></td><td>' + esc(x.responsable) + '</td><td>' + esc(x.enviadoEn) + '</td><td>' +
+        (nf === 3 ? '✅ 3/3' : '⏳ ' + nf + '/3') + '</td><td>' + estadoHtml(x.estado) +
         '</td><td style="font-size:12px">' + (x.validadoPor ? '✅ ' + esc(x.validadoPor) : x.validacionPor ? '🔢 ' + esc(x.validacionPor) : '—') +
         '</td><td><button class="btn ' + (x.estado === 'ENVIADO' ? 'verde' : 'gris') + ' mini" onclick="abrirValidacion(' + x.id + ')">' + accion + '</button></td></tr>';
-    }).join('') : '<tr><td colspan="6" class="cm-vacio">Ningún manager ha enviado el conteo de este mes.</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="cm-vacio">Ningún manager ha enviado el conteo de este mes.</td></tr>';
     if (vActual && r.data.some(function(x) { return x.id === vActual.id; })) abrirValidacion(vActual.id); else document.getElementById('vDetalle').innerHTML = '';
   }).catch(function(e) { document.getElementById('vLista').innerHTML = '<tr><td colspan="6" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
@@ -341,6 +378,7 @@ function abrirValidacion(id) {
       '<div class="cm-acciones no-print">' + (x.estado === 'VALIDADO' ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + x.id + '/acta.pdf">📄 Acta firmada (PDF)</a> ' : '') +
       '<button class="btn gris mini" onclick="imprimirConteo(vActual)">🖨️ Imprimir</button>' +
       (x.estado === 'VALIDADO' && D.esAdmin ? ' <button class="btn gris mini" onclick="reabrirConteo(' + x.id + ')">🔓 Reabrir</button>' : '') + '</div></div>' +
+    firmasHtml(x) + (x.estado === 'ENVIADO' && !x.firmasCompletas ? '<div class="ct-aviso edit">⏳ Puedes hacer tu conteo, pero <b>validar</b> se habilita cuando el conteo tenga las 3 firmas.</div>' : '') +
     (x.ciego ? '<div class="ct-aviso info">🙈 <b>Conteo a ciegas:</b> cuenta tú mismo cada material. Cuando guardes, aparece el conteo del manager y las diferencias.</div>'
       : comp ? '<div class="ct-aviso ' + (comp.diferencias ? 'edit' : 'ok') + '">' + (comp.diferencias ? '⚠️ Hay <b>' + comp.diferencias + '</b> diferencia(s)' : '✅ Tu conteo <b>coincide</b> con el del manager') +
         ' (tolerancia: ' + comp.tolerancia + ').</div>' : '') +
@@ -350,7 +388,7 @@ function abrirValidacion(id) {
     '<p class="ct-nota" style="margin-top:8px">📷 Evidencias en cada fila · 🔵 = de validación.' + (x.ciego ? ' Las fotos del manager aparecen cuando guardes tu conteo.' : '') + '</p>' +
     (editable ? '<div class="cm-acciones no-print" style="justify-content:flex-start; margin-top:14px; flex-wrap:wrap;">' +
       '<button class="btn gris" id="btnVGuardar" onclick="guardarValidacion(\'\')">💾 Guardar mi conteo y comparar</button>' +
-      (comp ? '<button class="btn verde" onclick="guardarValidacion(\'validar\')">✅ Validar y firmar</button>' : '') + '</div>' +
+      (comp ? '<button class="btn verde" onclick="guardarValidacion(\'validar\')"' + (x.firmasCompletas ? '' : ' disabled title="Faltan firmas del conteo"') + '>✅ Validar y firmar</button>' : '') + '</div>' +
       (comp ? '<div class="no-print" style="max-width:900px; margin-top:10px;"><label style="font-size:12.5px; font-weight:700; color:#1A365D;">Devolver al manager con observación</label>' +
         '<textarea id="vObs" rows="2" style="width:100%" placeholder="Qué debe revisar (ej. Glaze paste: yo conté 30, no 32)"></textarea>' +
         '<button class="btn rojo mini" style="margin-top:6px" onclick="guardarValidacion(\'devolver\')">↩️ Devolver</button></div>' : '') : '');
@@ -384,45 +422,61 @@ function cargarConsolidado() {
   var anio = document.getElementById('rAnio').value, mes = document.getElementById('rMes').value;
   api('/conteo/api/consolidado?anio=' + anio + '&mes=' + mes).then(function(c) {
     document.getElementById('rTitulo').innerText = c.mesNombre + ' ' + c.anio;
+    var enviados = c.reportes.filter(function(r) { return r.estado !== 'BORRADOR'; }).length;
     document.getElementById('rPendientes').innerHTML = (c.pendientes.length
       ? '<div class="ct-aviso edit" style="max-width:none">⏳ Sin enviar en ' + c.mesNombre + ' (plazo ' + c.fechaLimite + '): <b>' + c.pendientes.map(np).map(esc).join(', ') + '</b></div>'
       : '<div class="ct-aviso ok" style="max-width:none">✅ Todas las áreas enviaron ' + c.mesNombre + '.</div>') +
-      '<div class="ct-aviso info" style="max-width:none">✔️ Validados: <b>' + c.validados + '</b> de ' + c.reportes.filter(function(r) { return r.estado !== 'BORRADOR'; }).length + ' enviados.</div>';
-    var visibles = c.reportes.filter(function(r) { return !r.oculto; });
-    document.getElementById('rMatrices').innerHTML = !visibles.length ? '<p class="cm-vacio">Todavía no hay conteos para mostrar este mes.</p>' : c.bodegas.map(function(b) {
-      var fila = function(etq, clave, get, clase) {
-        return '<tr class="' + (clase || '') + '"><td class="izq">' + etq + '</td>' + visibles.map(function(r) { return '<td class="n">' + num(get(r)) + '</td>'; }).join('') +
-          '<td class="n"><b>' + num(c.totales[clave]) + '</b></td></tr>';
-      };
-      return '<h3 class="cs-h3">CONTEO - ' + esc(b.nombre) + ' - BODEGA ' + esc(b.codigo) + '</h3><div class="cm-tabla-wrap"><table class="cm-tabla ct-matriz">' +
-        '<thead><tr><th>Material</th>' + visibles.map(function(r) { return '<th class="n">' + esc(np(r.area)) + (r.estado === 'VALIDADO' ? ' ✅' : '') + '</th>'; }).join('') + '<th class="n">Total</th></tr></thead><tbody>' +
-        c.materiales.map(function(m) { var k = b.id + ':' + m.id; return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), k, function(r) { return r.final[k]; }); }).join('') +
-        fila('Disco de zirconia - DAÑADOS', b.id + ':danados', function(r) { return r.finalDanados[String(b.id)]; }, 'dan') + '</tbody></table></div>';
-    }).join('');
+      '<div class="ct-aviso info" style="max-width:none">✔️ Validados: <b>' + c.validados + '</b> de ' + enviados + ' enviados.</div>';
     window._reportesMes = c.reportes; window._materialesMes = c.materiales;
-    document.getElementById('rLista').innerHTML = c.reportes.length ? c.reportes.map(function(r, i) {
-      return '<tr><td class="izq"><b>' + esc(np(r.area)) + '</b></td><td>' + estadoHtml(r.estado) + '</td><td>' + esc(r.responsable) + '</td><td>' + esc(r.enviadoEn || '—') +
-        '</td><td>' + esc(r.validadoPor || '—') + '</td><td>' + r.evidencias.length + '</td><td class="izq" style="max-width:260px">' + esc(r.novedad) +
-        '</td><td class="no-print" style="white-space:nowrap"><button class="btn gris mini" onclick="verEvidencias(' + i + ')">👁️ Evidencias</button> ' +
-        (r.oculto ? '' : '<button class="btn gris mini" onclick="imprimirConteo(window._reportesMes[' + i + '])">🖨️</button>') +
-        (r.estado === 'VALIDADO' ? ' <a class="btn verde mini" target="_blank" title="Acta firmada" href="/conteo/api/reportes/' + r.id + '/acta.pdf">📄</a>' : '') + '</td></tr>';
-    }).join('') : '<tr><td colspan="8" class="cm-vacio">Sin conteos.</td></tr>';
-    document.getElementById('rDetalle').innerHTML = '';
+    // Un bloque por área, con su tabla, su estado, sus firmas y sus evidencias
+    document.getElementById('rAreas').innerHTML = !c.reportes.length ? '<p class="cm-vacio">Ningún área ha registrado el conteo de este mes.</p>' : c.reportes.map(function(r, i) {
+      var mats = materialesDe(r.area), comp = r.comparacion && !r.oculto ? r.comparacion : null;
+      var cab = '<div class="ct-area-cab"><h3>📍 ' + esc(np(r.area)) + ' ' + estadoHtml(r.estado) + '</h3>' +
+        '<div class="ct-area-meta">' + (r.estado !== 'BORRADOR' ? firmasHtml(r) : 'Cargado por: <b>' + esc(r.responsable || '—') + '</b>') +
+        (r.validadoPor ? ' · validado por <b>' + esc(r.validadoPor) + '</b> el ' + esc(r.validadoEn) : '') +
+        (r.novedad ? '<br>Novedad: «' + esc(r.novedad) + '»' : '') + (r.observacion ? '<br>Observación: «' + esc(r.observacion) + '»' : '') + '</div>' +
+        '<div class="cm-acciones no-print">' + (r.estado === 'VALIDADO' ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + r.id + '/acta.pdf">📄 Acta firmada</a>' : '') +
+        (r.oculto ? '' : '<button class="btn gris mini" onclick="imprimirConteo(window._reportesMes[' + i + '])">🖨️ Imprimir</button>') +
+        (r.evidencias.length ? '<button class="btn gris mini" onclick="verEvidencias(' + i + ')">👁️ Evidencias (' + r.evidencias.length + ')</button>' : '') + '</div></div>';
+      if (r.oculto) return '<div class="ct-area">' + cab + '<p class="cm-vacio">' + (r.estado === 'BORRADOR' ? 'Borrador: todavía no se ha enviado.' : 'Pendiente de tu conteo de validación (a ciegas).') + '</p></div>';
+      var tablas = c.bodegas.map(function(b) {
+        var fila = function(etq, k, dan) {
+          var f = comp ? comp.filas[k] : null, final = dan ? r.finalDanados[String(b.id)] : r.final[k];
+          return '<tr class="' + (dan ? 'dan ' : '') + (f && !f.ok ? 'mal' : '') + '"><td class="izq">' + etq + '</td>' +
+            (comp ? '<td class="n">' + num(f ? f.manager : 0) + '</td><td class="n">' + num(f ? f.validacion : 0) + '</td><td class="n dif">' +
+              (f && !f.ok ? '⚠️ ' : '') + (f && f.diferencia > 0 ? '+' : '') + num(f ? f.diferencia : 0) + '</td>' : '<td class="n">' + num(final) + '</td>') + '</tr>';
+        };
+        return '<div class="cm-tabla-wrap"><table class="cm-tabla ct-matriz"><thead><tr><th>' + esc(b.nombre) + ' - Bodega ' + esc(b.codigo) + '</th>' +
+          (comp ? '<th class="n">Manager</th><th class="n">Validación</th><th class="n">Diferencia</th>' : '<th class="n">Cantidad</th>') + '</tr></thead><tbody>' +
+          mats.map(function(m) { return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), b.id + ':' + m.id); }).join('') +
+          fila('Disco de zirconia - DAÑADOS', b.id + ':danados', true) + '</tbody></table></div>';
+      }).join('');
+      return '<div class="ct-area">' + cab + tablas + '<div id="rEvid-' + i + '"></div></div>';
+    }).join('');
+    // Total del mes (lo validado o, si aún no, lo del manager)
+    var visibles = c.reportes.filter(function(r) { return !r.oculto; });
+    document.getElementById('rTotal').innerHTML = !visibles.length ? '' : '<h3 class="cs-h3">🧮 Total del mes (' + visibles.length + ' área' + (visibles.length > 1 ? 's' : '') + ')</h3>' +
+      c.bodegas.map(function(b) {
+        return '<div class="cm-tabla-wrap"><table class="cm-tabla ct-matriz"><thead><tr><th>' + esc(b.nombre) + ' - Bodega ' + esc(b.codigo) + '</th><th class="n">Total</th></tr></thead><tbody>' +
+          c.materiales.map(function(m) { return '<tr><td class="izq">' + esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion) + '</td><td class="n"><b>' + num(c.totales[b.id + ':' + m.id]) + '</b></td></tr>'; }).join('') +
+          '<tr class="dan"><td class="izq">Disco de zirconia - DAÑADOS</td><td class="n"><b>' + num(c.totales[b.id + ':danados']) + '</b></td></tr></tbody></table></div>';
+      }).join('');
   }).catch(function(e) { alert(e.message); });
 }
 function verEvidencias(i) {
-  var r = window._reportesMes[i], mats = {0: 'Disco de zirconia - DAÑADOS'};
+  var r = window._reportesMes[i], mats = {0: 'Disco de zirconia - DAÑADOS'}, destino = document.getElementById('rEvid-' + i);
+  if (!destino) return;
+  if (destino.innerHTML) { destino.innerHTML = ''; return; }  // segundo clic: las oculta
   window._materialesMes.forEach(function(m) { mats[m.id] = m.codigo + '-' + m.descripcion; });
   var grupos = {};
   r.evidencias.forEach(function(e) { (grupos[e.materialId || 0] = grupos[e.materialId || 0] || []).push(e); });
-  document.getElementById('rDetalle').innerHTML = '<h3 class="cs-h3">📷 Evidencias · ' + esc(np(r.area)) + '</h3>' + (Object.keys(grupos).length ? Object.keys(grupos).map(function(k) {
+  destino.innerHTML = '<div style="margin-top:8px">' + Object.keys(grupos).map(function(k) {
     return '<div class="ct-evid-item"><div class="t">' + esc(mats[k] || 'Material') + '</div><div class="ct-fotos">' + grupos[k].map(function(e) {
       var url = '/conteo/api/evidencias/' + e.id;
       return '<div class="ct-foto' + (e.etapa === 'VALIDACION' ? ' val' : '') + '"><a href="' + url + '" target="_blank">' + (e.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + url + '" alt="">') +
         '</a><small>' + (e.etapa === 'VALIDACION' ? '🔵 ' : '') + esc(e.nombre) + '</small></div>';
     }).join('') + '</div></div>';
-  }).join('') : '<p class="cm-vacio">Este conteo no tiene evidencias.</p>');
-  document.getElementById('rDetalle').scrollIntoView({behavior: 'smooth'});
+  }).join('') + '</div>';
 }
 function pdfConsolidado() { window.open('/conteo/api/consolidado/pdf?anio=' + document.getElementById('rAnio').value + '&mes=' + document.getElementById('rMes').value, '_blank'); }
 function exportarConteo() { window.location = '/conteo/api/consolidado/exportar?anio=' + document.getElementById('rAnio').value + '&mes=' + document.getElementById('rMes').value; }
@@ -455,7 +509,7 @@ function imprimirConteo(r) {
     'h4{margin:14px 0 5px;font-size:10.5px;color:#1A365D}.t th{background:#1A365D;color:#fff;font-size:8.5px;padding:5px;border:1px solid #CBD5E1;text-align:right}' +
     '.t td{font-size:9px;padding:4px 6px;border:1px solid #CBD5E1;text-align:right}.t .izq{text-align:left}.t tr.mal td{background:#FEF2F2;color:#991B1B;font-weight:700}.t tr.dan td{background:#FFF7ED}' +
     'thead{display:table-header-group}tr{page-break-inside:avoid}.nov{margin-top:10px;border:1px solid #CBD5E1;padding:6px 8px;font-size:9.5px}' +
-    '.firmas{margin-top:26px;page-break-inside:avoid}.firmas td{width:50%;text-align:center;vertical-align:bottom;padding:0 22px}' +
+    '.firmas{margin-top:26px;page-break-inside:avoid}.firmas td{width:50%;text-align:center;vertical-align:bottom;padding:14px 22px 0}' +
     '.firmas .esp{min-height:46px;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:5px}.firmas .ln{border-top:1.5px solid #111827;padding-top:5px;font-weight:800;font-size:9px}' +
     '.firmas .fe{color:#10B981;font-weight:800;font-size:8.5px}.firmas .fe.pend{color:#92400E}.firmas .fn{margin-top:2px;font-weight:800;font-size:8.5px}.firmas .fh{font-weight:700;font-size:8.5px}.firmas .fc{margin-top:3px;font-size:8.5px}';
   var html = '<table class="enc"><tr><td class="logo" rowspan="2">' + (logo ? '<img src="' + logo.src + '">' : '<b>NUVIA</b>') + '</td><td class="tit" rowspan="2">CONTEO INVENTARIO MENSUAL</td>' +
@@ -464,7 +518,9 @@ function imprimirConteo(r) {
     '<tr><td class="etq">Manager - Responsable</td><td class="val">' + esc(r.responsable) + '</td><td class="etq">Correo (Zoho)</td><td class="val" style="text-transform:none">' + esc(r.responsableEmail) + '</td></tr></table>' +
     (r.ciego ? '<p style="color:#92400E;font-weight:700">Conteo del manager oculto hasta que el validador guarde su conteo.</p>' : tablas) +
     (r.novedad ? '<div class="nov"><b>NOVEDAD:</b> ' + esc(r.novedad) + '</div>' : '') + (r.observacion ? '<div class="nov"><b>OBSERVACIÓN DE VALIDACIÓN:</b> ' + esc(r.observacion) + '</div>' : '') +
-    '<table class="firmas"><tr>' + firma('CONTEO (MANAGER)', r.responsable, r.enviadoEmail, r.enviadoEn, 'SIN ENVIAR') +
+    '<table class="firmas"><tr>' + firma('CARGA DEL CONTEO', r.responsable, r.enviadoEmail, r.enviadoEn, 'SIN ENVIAR') +
+      firma('MANAGER DEL ÁREA', r.managerFirma.nombre, r.managerFirma.email, r.managerFirma.en, 'PENDIENTE DE FIRMA') + '</tr><tr>' +
+      firma('TESTIGO DEL CONTEO', r.testigo.nombre, r.testigo.email, r.testigo.en, 'PENDIENTE DE FIRMA') +
       firma('VALIDACIÓN', r.validadoPor, r.validadoEmail, r.validadoEn, 'PENDIENTE DE VALIDACIÓN') + '</tr></table>';
   var iframe = document.createElement('iframe'); iframe.style.cssText = 'position:absolute;width:0;height:0;border:0'; document.body.appendChild(iframe);
   var doc = iframe.contentWindow.document; doc.open(); doc.write('<html><head><title>Conteo inventario mensual</title><style>' + css + '</style></head><body>' + html + '</body></html>'); doc.close();
@@ -483,6 +539,7 @@ api('/conteo/api/datos').then(function(d) {
   sel.innerHTML = (d.areaAsignada ? '' : '<option value="">Seleccionar...</option>') + d.areas.map(function(a) {
     return '<option value="' + esc(a) + '"' + (a === d.areaAsignada ? ' selected' : '') + '>' + esc(np(a)) + '</option>'; }).join('');
   if (d.areaAsignada && !d.esAdmin) sel.disabled = true;  // cada manager reporta su área asignada
+  pintarTestigos();
   pintarFormulario();
   cargarReporte();
   switchTab({{ (conteo_tab_inicial or 'nuevo')|tojson }});

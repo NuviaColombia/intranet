@@ -38,6 +38,28 @@
   </table>
 </div>
 
+{# ---------- Managers por área ---------- #}
+<div class="cp-panel" id="panel-n_managers">
+  <div class="cp-ayuda" style="max-width:900px">El conteo de cada área lleva <b>3 firmas</b>: quien lo carga, el <b>manager del área</b>
+    (el que asignas aquí) y el <b>testigo del conteo</b> (se elige al enviarlo). Al manager y al testigo les llega un aviso por Cliq para firmar
+    o rechazar con una observación. Después pasa a validación. Si quien carga es el mismo manager, su firma queda puesta al enviar.</div>
+  <table class="cp-tabla" style="max-width:900px">
+    <tr><th>Área</th><th>Manager del área</th><th></th></tr>
+    {% for a in areas_config %}{% set m = inv_conteo.managers_area.get(a) %}
+    <tr>
+      <td><b>{{ a|nombre_propio }}</b></td>
+      <td><form id="f-nman-{{ loop.index }}" method="post" action="/inventario/parametros/conteo/managers"><input type="hidden" name="area" value="{{ a }}"></form>
+        <select name="empleado_id" form="f-nman-{{ loop.index }}" style="min-width:260px">
+          <option value="">— Sin asignar —</option>
+          {% for e in inv_conteo.personas %}<option value="{{ e.id }}" {{ 'selected' if m and m.id == e.id }}>{{ e.nombre_completo|nombre_propio }} — {{ e.cargo }}</option>{% endfor %}
+        </select></td>
+      <td class="cp-acciones"><button class="btn mini" form="f-nman-{{ loop.index }}">Guardar</button>
+        {% if m %}<form class="inline" method="post" action="/inventario/parametros/conteo/managers/{{ a }}/quitar"><button class="btn gris mini">Quitar</button></form>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
 {# ---------- Validadores y ajustes ---------- #}
 <div class="cp-panel" id="panel-n_validadores">
   <div class="cp-ayuda" style="max-width:900px">Los <b>validadores</b> hacen el conteo de validación de todas las áreas: cuentan
