@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends
+from ..concurrencia import RutaGeneral
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
@@ -6,7 +7,7 @@ from ..auth import require_modulo
 from ..acceso_produccion import submodulos_de, es_admin
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.get("/inventario")

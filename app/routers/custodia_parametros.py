@@ -2,6 +2,7 @@
 accesos al módulo (con el área asignada de cada persona) y, de Cambio de custodia, áreas de
 producción, catálogo de discos y motivos. Solo administradores."""
 from fastapi import APIRouter, Request, Depends, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -15,7 +16,7 @@ from ..main_templates import templates
 from ..formato import nombre_propio
 from .. import services_custodia as sc
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.on_event("startup")
@@ -348,6 +349,9 @@ def editar_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: S
                         nombre: str = Form(...), orden: int = Form(0)):
     m = db.get(CustodiaMotivo, motivo_id)
     if m:
+        # El nombre es único: si ya lo usa otro motivo se avisa (antes daba error 500).
+        if db.query(CustodiaMotivo).filter(CustodiaMotivo.nombre == nombre.strip().upper(), CustodiaMotivo.id != m.id).first():
+            return RedirectResponse("/inventario/parametros?msg=Ya existe otro motivo con ese nombre.", status_code=303)
         m.nombre = nombre.strip().upper()
         m.orden = orden
         db.commit()

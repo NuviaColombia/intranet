@@ -510,26 +510,7 @@ class DesignPerfSeleccionCelda(Base):
 # estos modelos se quitan los caracteres de control (p. ej. NUL, que Postgres rechaza) y se recorta
 # al largo de la columna String(n) (antes un texto más largo daba error 500 y se perdía la edición).
 # ---------------------------------------------------------------------------
-import re as _re
-from sqlalchemy import event as _event
-
-_CONTROL = _re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
-
-
-def _instalar_limpieza(cls) -> None:
-    for prop in cls.__mapper__.column_attrs:
-        col = prop.columns[0]
-        if not isinstance(col.type, String):
-            continue
-        largo = None if isinstance(col.type, Text) else col.type.length
-
-        def limpiar(target, value, oldvalue, initiator, _largo=largo):
-            if isinstance(value, str):
-                value = _CONTROL.sub(" ", value)
-                if _largo:
-                    value = value[:_largo]
-            return value
-        _event.listen(getattr(cls, prop.key), "set", limpiar, retval=True)
+from .texto_seguro import instalar_limpieza as _instalar_limpieza  # noqa: E402
 
 
 for _cls in list(globals().values()):

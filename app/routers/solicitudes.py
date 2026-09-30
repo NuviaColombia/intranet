@@ -1,5 +1,6 @@
 from datetime import date, time
 from fastapi import APIRouter, Request, Depends, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -8,11 +9,11 @@ from ..auth import get_current_user
 from ..services import crear_solicitud, saldo_disponible, auditar, config_actual, HORAS_SEMANA
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.get("/solicitudes")
-async def mis_solicitudes(request: Request, user: Empleado = Depends(get_current_user),
+def mis_solicitudes(request: Request, user: Empleado = Depends(get_current_user),
                           db: Session = Depends(get_db)):
     sols = (db.query(Solicitud).filter(Solicitud.empleado_id == user.id)
             .order_by(Solicitud.creada_en.desc()).all())

@@ -1,6 +1,8 @@
 """Rutas del módulo SST: inventario de EPP, ingresos, solicitudes y reportes."""
+from typing import Literal
 from datetime import date
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,13 +14,13 @@ from ..sst import (require_sst, require_sst_compras, require_sst_coordinador, re
 from ..main_templates import templates
 from .. import services_sst as ss
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 # ---------- Páginas ----------
 
 @router.get("/sst")
-async def pagina(request: Request, user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
+def pagina(request: Request, user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "sst.html", {
         "user": user, "es_sst": True,
         "es_compras": es_compras_sst(db, user), "es_coordinador": es_coordinador_sst(db, user),
@@ -26,7 +28,7 @@ async def pagina(request: Request, user: Empleado = Depends(require_sst), db: Se
 
 
 @router.get("/sst/parametros")
-async def parametros(request: Request, user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db)):
+def parametros(request: Request, user: Empleado = Depends(require_sst_admin), db: Session = Depends(get_db)):
     candidatos = (db.query(Empleado).filter(Empleado.empresa == EMPRESA_SST, Empleado.activo == 1)
                  .order_by(Empleado.apellidos).all())
     return templates.TemplateResponse(request, "sst_parametros.html", {
@@ -76,13 +78,13 @@ async def quitar_acceso(acceso_id: int, user: Empleado = Depends(require_sst_adm
 # ---------- API: catálogo y stock ----------
 
 @router.get("/sst/api/catalogo")
-async def api_catalogo(user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
+def api_catalogo(user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
     return [{"id": it.id, "nombre": it.nombre, "unidadConteo": it.unidad_conteo, "presentacion": it.presentacion}
             for it in ss.catalogo(db)]
 
 
 @router.get("/sst/api/stock")
-async def api_stock(fecha: str | None = None, user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
+def api_stock(fecha: str | None = None, user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
     f = date.fromisoformat(fecha) if fecha else date.today()
     return ss.reporte_inventario(db, f)
 
@@ -92,7 +94,7 @@ async def api_stock(fecha: str | None = None, user: Empleado = Depends(require_s
 class IngresoIn(BaseModel):
     itemId: int
     cantidad: float
-    unidadUsada: str
+    unidadUsada: Literal["PACK", "UND", "GALON"]  # = UNIDADES_CONTEO
     fecha: str
     notas: str = ""
 
@@ -108,7 +110,7 @@ async def api_crear_ingreso(payload: IngresoIn, user: Empleado = Depends(require
 
 
 @router.get("/sst/api/ingresos/pendientes")
-async def api_ingresos_pendientes(user: Empleado = Depends(require_sst_coordinador), db: Session = Depends(get_db)):
+def api_ingresos_pendientes(user: Empleado = Depends(require_sst_coordinador), db: Session = Depends(get_db)):
     return [{"id": i.id, "consecutivo": i.consecutivo, "item": i.item.nombre, "cantidadIngresada": i.cantidad_ingresada,
             "unidadUsada": i.unidad_usada, "cantidadUnidades": i.cantidad_unidades, "fecha": i.fecha.isoformat(),
             "registradoPor": i.registrado_por.nombre_completo if i.registrado_por else "", "notas": i.notas}
@@ -144,7 +146,7 @@ async def api_rechazar_ingreso(ingreso_id: int, payload: MotivoIn, user: Emplead
 class LineaSolicitudIn(BaseModel):
     itemId: int
     cantidad: float
-    unidadUsada: str
+    unidadUsada: Literal["PACK", "UND", "GALON"]  # = UNIDADES_CONTEO
 
 
 class SolicitudIn(BaseModel):
@@ -161,12 +163,12 @@ async def api_crear_solicitud(payload: SolicitudIn, user: Empleado = Depends(req
 
 
 @router.get("/sst/api/solicitudes/mias")
-async def api_solicitudes_mias(user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
+def api_solicitudes_mias(user: Empleado = Depends(require_sst), db: Session = Depends(get_db)):
     return [_serializar_solicitud(s) for s in ss.solicitudes_de(db, user.id)]
 
 
 @router.get("/sst/api/solicitudes/pendientes")
-async def api_solicitudes_pendientes(user: Empleado = Depends(require_sst_coordinador), db: Session = Depends(get_db)):
+def api_solicitudes_pendientes(user: Empleado = Depends(require_sst_coordinador), db: Session = Depends(get_db)):
     return [_serializar_solicitud(s) for s in ss.solicitudes_pendientes(db)]
 
 
@@ -203,13 +205,13 @@ async def api_rechazar_solicitud(solicitud_id: int, payload: MotivoIn, user: Emp
 # ---------- API: reportes ----------
 
 @router.get("/sst/api/reportes/inventario")
-async def api_reporte_inventario(fecha: str | None = None, user: Empleado = Depends(require_sst),
+def api_reporte_inventario(fecha: str | None = None, user: Empleado = Depends(require_sst),
                                  db: Session = Depends(get_db)):
     f = date.fromisoformat(fecha) if fecha else date.today()
     return ss.reporte_inventario(db, f)
 
 
 @router.get("/sst/api/reportes/movimientos")
-async def api_reporte_movimientos(desde: str, hasta: str, user: Empleado = Depends(require_sst),
+def api_reporte_movimientos(desde: str, hasta: str, user: Empleado = Depends(require_sst),
                                   db: Session = Depends(get_db)):
     return ss.reporte_movimientos(db, date.fromisoformat(desde), date.fromisoformat(hasta))

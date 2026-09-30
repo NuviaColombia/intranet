@@ -2,6 +2,7 @@
 (formulario «Secciones» de las pestañas de Accesos en Parámetros). Solo administradores."""
 from urllib.parse import quote
 from fastapi import APIRouter, Depends, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -10,7 +11,7 @@ from ..auth import require_admin
 from ..formato import nombre_propio
 from .. import acceso_secciones as acs
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 VOLVER_PERMITIDO = ("/inventario/parametros", "/caja-menor/parametros")
 
 

@@ -699,6 +699,13 @@ function nombrePropio(texto, frase) {
   }).join("");
 }
 
+// Para insertar texto escrito por usuarios dentro de HTML (órdenes, áreas, motivos, descripciones, observaciones):
+// sin esto, un texto como <img onerror=...> se ejecutaba en el navegador de quien lo viera.
+function esc(v) {
+  return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // Para insertar en plantillas HTML: nombre de persona sin heredar las MAYÚSCULAS de la tabla.
 function nf(texto) {
   var s = nombrePropio(texto, false).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -804,12 +811,12 @@ function cargarConfirmaciones() {
       tr.innerHTML = `
         <td style="font-weight:800; color:var(--brand-main);">${String(t.id).padStart(4,'0')}</td>
         <td>${nf(t.colaborador)}</td>
-        <td style="font-weight:800; color:var(--brand-main);">${t.ordenes}</td>
-        <td>${t.areaSalida}</td>
-        <td>${t.areaEntrada}</td>
+        <td style="font-weight:800; color:var(--brand-main);">${esc(t.ordenes)}</td>
+        <td>${esc(t.areaSalida)}</td>
+        <td>${esc(t.areaEntrada)}</td>
         <td style="font-weight:800; color:var(--success);">${t.cantidad}</td>
         <td>${t.fecha}</td>
-        <td>${t.motivo}</td>
+        <td>${esc(t.motivo)}</td>
         <td></td>
       `;
       var tdAccion = tr.lastElementChild; tdAccion.style.whiteSpace = "nowrap";
@@ -845,7 +852,7 @@ function cargarConfirmaciones() {
       tbody.appendChild(tr);
     });
   }).catch(function(e) {
-    tbody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:var(--danger);">${esc(e.message)}</td></tr>`;
   });
 }
 
@@ -976,9 +983,9 @@ function pintarStockDesc() {
   celda.innerHTML = '<table style="border-collapse:collapse; font-size:12px; width:auto;">' +
     '<tr><th style="text-align:left; padding:3px 10px 3px 0;">Descripción</th><th style="text-align:right; padding:3px 10px;">Disponible</th><th style="padding:3px 0;">Sale</th></tr>' +
     ops.map(function(o, i) {
-      return '<tr><td style="padding:2px 10px 2px 0; font-weight:700;">' + (o.descripcion === SIN_DESC ? '<i style="font-weight:500">Sin descripción</i>' : o.descripcion) + '</td>' +
+      return '<tr><td style="padding:2px 10px 2px 0; font-weight:700;">' + (o.descripcion === SIN_DESC ? '<i style="font-weight:500">Sin descripción</i>' : esc(o.descripcion)) + '</td>' +
         '<td style="text-align:right; padding:2px 10px;">' + o.disponible.toLocaleString('es-CO') + '</td>' +
-        '<td><input type="text" class="stock-desc-cant" data-desc="' + o.descripcion.replace(/"/g, '&quot;') + '" data-max="' + o.disponible + '" ' +
+        '<td><input type="text" class="stock-desc-cant" data-desc="' + esc(o.descripcion) + '" data-max="' + o.disponible + '" ' +
         'style="width:80px; padding:4px 6px; text-align:right;" placeholder="0" oninput="this.value = this.value.replace(/\\./g, \',\').replace(/[^0-9,]/g, \'\'); sumarStockDesc()"></td></tr>';
     }).join('') + '</table><div id="stockDescSuma" style="margin-top:4px; font-size:12px;"></div>';
   sumarStockDesc();
@@ -1391,7 +1398,7 @@ function actualizarResumenOrdenActivas() {
     } else {
       res.ubicaciones.forEach(function(u) {
         var tr = document.createElement("tr");
-        tr.innerHTML = `<td style="font-weight:700;">${u.area}</td><td style="font-weight:800; color:var(--success);">${u.cantidad.toFixed(2)}</td>`;
+        tr.innerHTML = `<td style="font-weight:700;">${esc(u.area)}</td><td style="font-weight:800; color:var(--success);">${u.cantidad.toFixed(2)}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -1420,7 +1427,7 @@ function cargarEstadoOrdenes() {
     actualizarResumenOrdenActivas();
   }).catch(function(e) {
     btn.innerText = "🔍 Buscar";
-    document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="3" style="padding:40px; color:var(--danger);">${e.message}</td></tr>`;
+    document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="3" style="padding:40px; color:var(--danger);">${esc(e.message)}</td></tr>`;
   });
 }
 
@@ -1486,15 +1493,15 @@ function filtrarTablaActivas() {
         var r = resumenPorArea[areaActual];
         var trGrupo = document.createElement("tr");
         trGrupo.className = "grupo-ubicacion";
-        trGrupo.innerHTML = `<td colspan="3">📍 ${nombrePropio(areaActual)}
+        trGrupo.innerHTML = `<td colspan="3">📍 ${esc(nombrePropio(areaActual))}
           <span class="grupo-detalle">${r.ordenes} ${r.ordenes === 1 ? "orden" : "órdenes"} · ${r.cantidad.toFixed(2)} discos</span></td>`;
         tbody1.appendChild(trGrupo);
       }
       var tr = document.createElement("tr");
       tr.innerHTML = `
         <td style="font-weight:800; color:var(--brand-main);">
-          ${o.orden}
-          <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 11px;" onclick="abrirModalTimeline('${o.orden}')">🛤️ Viaje</button>
+          ${esc(o.orden)}
+          <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 11px;" data-orden="${esc(o.orden)}" onclick="abrirModalTimeline(this.dataset.orden)">🛤️ Viaje</button>
         </td>
         <td style="font-weight:800; color:var(--success);">${o.cantidad.toFixed(2)}</td>
         <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
@@ -1511,7 +1518,7 @@ function filtrarTablaMatrix() {
   var filaAreas = `<tr><th rowspan="2" style="min-width: 90px; text-align: left; vertical-align:middle;">Orden</th>`;
   var filaSub = `<tr>`;
   areasMatrixGlobal.forEach(function(area) {
-    filaAreas += `<th colspan="3">${area}</th>`;
+    filaAreas += `<th colspan="3">${esc(area)}</th>`;
     filaSub += `<th style="font-size:11px;">Ent</th><th style="font-size:11px;">Sal</th><th style="font-size:11px;">Neto</th>`;
   });
   filaAreas += `<th rowspan="2" style="color:var(--brand-main); vertical-align:middle;">Total</th></tr>`;
@@ -1529,7 +1536,7 @@ function filtrarTablaMatrix() {
     filtradosMatrix.sort(function(a,b){ return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
     filtradosMatrix.forEach(function(o) {
       var tr = document.createElement("tr");
-      var tds = `<td style="font-weight:800; color:var(--brand-main); text-align: left;">${o.orden}</td>`;
+      var tds = `<td style="font-weight:800; color:var(--brand-main); text-align: left;">${esc(o.orden)}</td>`;
       areasMatrixGlobal.forEach(function(area) {
          var celda = o[area] || {ent:0, sal:0, net:0};
          var ent = celda.ent > 0 ? celda.ent.toFixed(2) : "-";
@@ -1564,12 +1571,12 @@ function renderTimelineModal(datosViaje) {
       return;
    }
    datosViaje.forEach(function(v) {
-      var badge = v.motivo === "PRODUCCIÓN NORMAL" ? `<span style="color:var(--success); font-weight:800;">${v.motivo}</span>` : `<span style="color:var(--danger); font-weight:800;">${v.motivo}</span>`;
+      var badge = v.motivo === "PRODUCCIÓN NORMAL" ? `<span style="color:var(--success); font-weight:800;">${esc(v.motivo)}</span>` : `<span style="color:var(--danger); font-weight:800;">${esc(v.motivo)}</span>`;
       var html = `
          <div class="timeline-item">
             <div class="timeline-date">${v.fechaHoraStr}</div>
             <div class="timeline-content">
-               <span style="color:var(--brand-main); font-weight:800;">Mueve ${v.cantidad} discos:</span> De <b>${v.areaSalida || 'N/A'}</b> a <b>${v.areaEntrada || 'N/A'}</b><br>
+               <span style="color:var(--brand-main); font-weight:800;">Mueve ${v.cantidad} discos:</span> De <b>${esc(v.areaSalida || 'N/A')}</b> a <b>${esc(v.areaEntrada || 'N/A')}</b><br>
                <span style="color:var(--text-muted); font-size:11px;">${badge} | Por: ${nf(v.colaborador)}</span>
             </div>
          </div>
@@ -1653,7 +1660,7 @@ function imprimirReporteCorte() {
     htmlPrint += `
       <div style="margin-bottom: 20px; page-break-inside: avoid;">
         <div style="background-color: #1A365D; color: white; padding: 6px 12px; font-weight: bold; font-size: 13px; border: 1px solid #1A365D;">
-          📍 ${area} | Total: ${dataArea.total.toFixed(2)} Discos
+          📍 ${esc(area)} | Total: ${dataArea.total.toFixed(2)} Discos
         </div>
         <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #CBD5E1;">
           <thead>
@@ -1667,7 +1674,7 @@ function imprimirReporteCorte() {
     dataArea.ordenes.forEach(function(item) {
       htmlPrint += `
         <tr style="border-bottom: 1px solid #E2E8F0;">
-          <td style="padding: 6px; border-right: 1px solid #E2E8F0; font-weight: bold;">${item.orden}</td>
+          <td style="padding: 6px; border-right: 1px solid #E2E8F0; font-weight: bold;">${esc(item.orden)}</td>
           <td style="padding: 6px; text-align: right; font-weight: bold; color: #10B981;">${item.cantidad.toFixed(2)}</td>
         </tr>
       `;
@@ -1708,7 +1715,7 @@ function imprimirReporteMatriz() {
         <thead>
           <tr><th rowspan="2" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px; vertical-align: middle;">Orden</th>
   `;
-  areasMatrixGlobal.forEach(function(area) { htmlPrint += `<th colspan="3" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px;">${area}</th>`; });
+  areasMatrixGlobal.forEach(function(area) { htmlPrint += `<th colspan="3" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px;">${esc(area)}</th>`; });
   htmlPrint += `</tr><tr>`;
   areasMatrixGlobal.forEach(function() {
       htmlPrint += `<th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">Ent</th>
@@ -1718,7 +1725,7 @@ function imprimirReporteMatriz() {
   htmlPrint += `</tr></thead><tbody>`;
 
   filtradosMatrix.forEach(function(o) {
-      htmlPrint += `<tr><td style="border: 1px solid #CBD5E1; padding: 4px; font-weight: bold; text-align:left;">${o.orden}</td>`;
+      htmlPrint += `<tr><td style="border: 1px solid #CBD5E1; padding: 4px; font-weight: bold; text-align:left;">${esc(o.orden)}</td>`;
       areasMatrixGlobal.forEach(function(area) {
           var c = o[area];
           if (c && (c.ent || c.sal || c.net)) {
@@ -1792,7 +1799,7 @@ function ejecutarImpresionRango() {
   }).catch(function(e) { btn.innerText = "Imprimir"; btn.disabled = false; alert('Error: ' + e.message); });
 }
 
-function _may(v) { return String(v == null ? '' : v).toUpperCase(); }
+function _may(v) { return esc(String(v == null ? '' : v).toUpperCase()); } // solo se usa al armar HTML
 function _num(v) { var n = parseFloat(v || 0); return n.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 
 function _tablaResumenHtml(resumen) {
@@ -1800,7 +1807,7 @@ function _tablaResumenHtml(resumen) {
   var sum = 0;
   var html = `<thead><tr><th style="width:14%">Orden</th><th>Descripción</th><th style="width:32%">Paciente</th><th style="width:14%">Total</th></tr></thead><tbody>`;
   resumen.forEach(r => { sum += parseFloat(r.total || 0);
-    html += `<tr><td>${r.orden || ''}</td><td>${r.descripcion || ''}</td><td>${r.paciente || ''}</td><td class="verde">${r.total || ''}</td></tr>`; });
+    html += `<tr><td>${esc(r.orden)}</td><td>${esc(r.descripcion)}</td><td>${esc(r.paciente)}</td><td class="verde">${esc(r.total || '')}</td></tr>`; });
   html += `<tr class="fila-totales"><td colspan="3" class="der">TOTAL GENERAL</td><td>${_num(sum)}</td></tr></tbody>`;
   return html;
 }
@@ -1810,7 +1817,7 @@ function _tablaDiscosHtml(discos) {
   var sumP = 0, sumD = 0;
   var html = `<thead><tr><th>Detalle</th><th style="width:22%">Cant. paciente</th><th style="width:22%">Cant. discos</th></tr></thead><tbody>`;
   discos.forEach(r => { sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0);
-    html += `<tr><td>${r.detalle || ''}</td><td>${r.cantPaciente || 0}</td><td class="verde">${r.cantDiscos || 0}</td></tr>`; });
+    html += `<tr><td>${esc(r.detalle)}</td><td>${r.cantPaciente || 0}</td><td class="verde">${r.cantDiscos || 0}</td></tr>`; });
   html += `<tr class="fila-totales"><td class="der">TOTAL</td><td>${sumP}</td><td>${_num(sumD)}</td></tr></tbody>`;
   return html;
 }
@@ -1818,7 +1825,7 @@ function _tablaDiscosHtml(discos) {
 function _tablaOPHtml(op) {
   if (!op || op.length === 0) return "";
   var html = `<thead><tr><th style="width:12%">Orden</th><th style="width:14%">OP</th><th>Descripción</th><th style="width:14%">Tipo</th><th style="width:24%">Observaciones</th></tr></thead><tbody>`;
-  op.forEach(r => { html += `<tr><td>${r.orden || ''}</td><td>${r.op || ''}</td><td><b>${r.descripcion || ''}</b></td><td>${r.tipo || ''}</td><td>${r.observaciones || ''}</td></tr>`; });
+  op.forEach(r => { html += `<tr><td>${esc(r.orden)}</td><td>${esc(r.op)}</td><td><b>${esc(r.descripcion)}</b></td><td>${esc(r.tipo)}</td><td>${esc(r.observaciones)}</td></tr>`; });
   html += `</tbody>`;
   return html;
 }
@@ -1826,9 +1833,9 @@ function _tablaOPHtml(op) {
 // Firma electrónica: nombre, correo Zoho, fecha y hora (en todas las firmas)
 function _firmaHtml(titulo, nombre, correo, en, pendiente) {
   var arriba = correo
-    ? `<div class="fe">✅ FIRMADO ELECTRÓNICAMENTE</div><div class="fn">${_may(nombre)}</div><div class="fh">${en || ''}</div>`
+    ? `<div class="fe">✅ FIRMADO ELECTRÓNICAMENTE</div><div class="fn">${_may(nombre)}</div><div class="fh">${esc(en || '')}</div>`
     : `<div class="fe pend">${pendiente}</div>`;
-  return `<td><div class="esp">${arriba}</div><div class="ln">${titulo}</div><div class="fc">${correo || '&nbsp;'}</div></td>`;
+  return `<td><div class="esp">${arriba}</div><div class="ln">${titulo}</div><div class="fc">${correo ? esc(correo) : '&nbsp;'}</div></td>`;
 }
 
 function firmasHtml(t) {
@@ -1903,7 +1910,7 @@ function generarHtmlDocumentoRango(tickets) {
           <tr><td class="etq">Fecha</td><td class="val">${t.fecha}</td><td class="etq">Cantidad discos</td><td class="val cant">${t.cantidad}</td><td class="etq">Área entrada</td><td class="val">${_may(t.areaEntrada)}</td></tr>
           <tr><td class="etq">Motivo</td><td class="val" colspan="5" style="text-align:left">${_may(t.motivo)}</td></tr>
         </table>
-        ${t.anulado ? `<div class="anulado">DOCUMENTO ANULADO${t.anuladoPor ? ' POR ' + _may(t.anuladoPor) : ''}${t.anuladoEn ? ' EL ' + t.anuladoEn : ''}${t.motivoAnulacion ? ' — ' + t.motivoAnulacion : ''}</div>` : ''}
+        ${t.anulado ? `<div class="anulado">DOCUMENTO ANULADO${t.anuladoPor ? ' POR ' + _may(t.anuladoPor) : ''}${t.anuladoEn ? ' EL ' + t.anuladoEn : ''}${t.motivoAnulacion ? ' — ' + esc(t.motivoAnulacion) : ''}</div>` : ''}
         ${htmlResumen ? `<h4>Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
         ${htmlDiscos ? `<h4>Detalle de discos</h4><table class="consulta-tabla">${htmlDiscos}</table>` : ''}
         ${htmlOP ? `<h4>Detalle OP</h4><table class="consulta-tabla">${htmlOP}</table>` : ''}
@@ -1935,7 +1942,7 @@ function renderDetallesExcelModal(data) {
       var sum = 0;
       data.resumen.forEach(r => {
           sum += parseFloat(r.total || 0);
-          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td>${r.descripcion}</td><td>${r.paciente}</td><td style="font-weight:800; color:var(--success);">${r.total}</td></tr>`;
+          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${esc(r.orden)}</td><td>${esc(r.descripcion)}</td><td>${esc(r.paciente)}</td><td style="font-weight:800; color:var(--success);">${esc(r.total)}</td></tr>`;
       });
       html += `<tr class="fila-totales"><td colspan="3" style="text-align:right;">Total general</td><td style="color:var(--brand-main);">${sum}</td></tr></tbody>`;
       document.getElementById("viewResumenGeneral").innerHTML = html;
@@ -1947,7 +1954,7 @@ function renderDetallesExcelModal(data) {
       var sumP = 0, sumD = 0;
       data.discos.forEach(r => {
           sumP += parseFloat(r.cantPaciente || 0); sumD += parseFloat(r.cantDiscos || 0);
-          html += `<tr><td style="font-weight:700;">${r.detalle}</td><td>${r.cantPaciente}</td><td style="font-weight:700; color:var(--success);">${r.cantDiscos}</td></tr>`;
+          html += `<tr><td style="font-weight:700;">${esc(r.detalle)}</td><td>${esc(r.cantPaciente)}</td><td style="font-weight:700; color:var(--success);">${r.cantDiscos}</td></tr>`;
       });
       html += `<tr class="fila-totales"><td style="text-align:right;">Total</td><td>${sumP}</td><td style="color:var(--brand-main);">${sumD.toFixed(2)}</td></tr></tbody>`;
       document.getElementById("viewDetalleDiscos").innerHTML = html;
@@ -1957,7 +1964,7 @@ function renderDetallesExcelModal(data) {
       document.getElementById("viewOPContainer").style.display = "block";
       var html = `<thead><tr><th>Orden</th><th>OP</th><th>Descripción</th><th>Tipo</th><th>Observaciones</th></tr></thead><tbody>`;
       data.op.forEach(r => {
-          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${r.orden}</td><td style="font-weight:700;">${r.op}</td><td>${r.descripcion}</td><td>${r.tipo}</td><td>${r.observaciones}</td></tr>`;
+          html += `<tr><td style="font-weight:800; color:var(--brand-main);">${esc(r.orden)}</td><td style="font-weight:700;">${esc(r.op)}</td><td>${esc(r.descripcion)}</td><td>${esc(r.tipo)}</td><td>${esc(r.observaciones)}</td></tr>`;
       });
       html += `</tbody>`;
       document.getElementById("viewDetalleOP").innerHTML = html;
@@ -2011,7 +2018,7 @@ function ejecutarConsulta() {
     if (res.truncado) alert("Se muestran los " + res.limite + " registros más recientes del rango. Acota las fechas para ver el resto.");
   }).catch(function(e) {
     document.getElementById("btnBuscar").innerText = "🔍 Buscar";
-    document.getElementById("tablaBody").innerHTML = `<tr><td colspan="11" style="padding:40px;">${e.message}</td></tr>`;
+    document.getElementById("tablaBody").innerHTML = `<tr><td colspan="11" style="padding:40px;">${esc(e.message)}</td></tr>`;
   });
 }
 
@@ -2071,9 +2078,9 @@ function renderTabla() {
     if (t.anulado) tr.className = "anulado-row";
     var badgeClass = t.anulado ? "badge-danger" : (t.completo ? "badge-success" : "badge-warning");
     tr.innerHTML = `
-      <td>${nf(t.colaborador)}</td><td>${t.areaCreacion}</td><td style="font-weight:800; color:var(--brand-main);">${t._orden}</td>
-      <td>${t.fecha}</td><td>${t.areaSalida}</td><td>${t.areaEntrada}</td>
-      <td style="font-weight:800; color:var(--success);">${t._cantidad}</td><td>${t.motivo}</td>
+      <td>${nf(t.colaborador)}</td><td>${esc(t.areaCreacion)}</td><td style="font-weight:800; color:var(--brand-main);">${esc(t._orden)}</td>
+      <td>${t.fecha}</td><td>${esc(t.areaSalida)}</td><td>${esc(t.areaEntrada)}</td>
+      <td style="font-weight:800; color:var(--success);">${t._cantidad}</td><td>${esc(t.motivo)}</td>
       <td><span class="badge ${badgeClass}">${t.estado}</span></td>
       <td style="font-weight:800; color:var(--brand-main);">${String(t.id).padStart(4,'0')}</td>
       <td></td>
@@ -2105,8 +2112,8 @@ function abrirModalPreview(t) {
   document.getElementById("btnAvisoModal").style.display = (!t.anulado && !t.completo) ? "inline-block" : "none";
   var infoAnul = document.getElementById("viewAnulacionInfo");
   if (t.anulado) {
-    infoAnul.innerHTML = `🚫 <b>Anulado</b>${t.anuladoPor ? " por " + t.anuladoPor : ""}${t.anuladoEn ? " el " + t.anuladoEn : ""}.`
-      + `<br><b>Motivo:</b> ${t.motivoAnulacion ? t.motivoAnulacion.replace(/</g, "&lt;") : "<i>No registrado (anulación anterior a este cambio)</i>"}`;
+    infoAnul.innerHTML = `🚫 <b>Anulado</b>${t.anuladoPor ? " por " + esc(t.anuladoPor) : ""}${t.anuladoEn ? " el " + esc(t.anuladoEn) : ""}.`
+      + `<br><b>Motivo:</b> ${t.motivoAnulacion ? esc(t.motivoAnulacion) : "<i>No registrado (anulación anterior a este cambio)</i>"}`;
     infoAnul.style.display = "block";
   } else { infoAnul.style.display = "none"; }
   document.getElementById("modalDocumentoPreview").style.display = "flex";
@@ -2191,10 +2198,10 @@ function cargarStockDashboard() {
     var areas = r.areas || [];
     if (!areas.length) { tb.innerHTML = '<tr><td colspan="3" style="padding:30px; color:var(--text-muted);">Ninguna área tiene discos de Stock.</td></tr>'; return; }
     tb.innerHTML = areas.map(function(a) {
-      var filas = a.descripciones.map(function(d) { return {d: d.descripcion, c: d.cantidad}; });
+      var filas = a.descripciones.map(function(d) { return {d: esc(d.descripcion), c: d.cantidad}; });
       if (a.sinDescripcion > 1e-9) filas.push({d: '<i style="color:#92400e">Sin descripción</i>', c: a.sinDescripcion});
       return filas.map(function(f, i) {
-        return '<tr>' + (i === 0 ? '<td rowspan="' + (filas.length + 1) + '" style="font-weight:800; color:var(--brand-main);">' + nombrePropio(a.area) + '</td>' : '') +
+        return '<tr>' + (i === 0 ? '<td rowspan="' + (filas.length + 1) + '" style="font-weight:800; color:var(--brand-main);">' + esc(nombrePropio(a.area)) + '</td>' : '') +
           '<td>' + f.d + '</td><td style="font-weight:700; color:var(--success);">' + f.c.toLocaleString('es-CO') + '</td></tr>';
       }).join('') + '<tr class="fila-totales"><td style="text-align:right;">Total Stock</td><td>' + a.total.toLocaleString('es-CO') + '</td></tr>';
     }).join('');
@@ -2272,7 +2279,7 @@ function renderizarDashboardLocal() {
     labels.push(a); data.push(d.neto); colores.push(d.neto < 0 ? '#EF4444' : '#1A365D');
 
     var tr = document.createElement("tr");
-    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${a}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger);' : ''}">${d.neto.toFixed(2)}</td>`;
+    tr.innerHTML = `<td style="text-align:left; font-weight:700;">${esc(a)}</td><td>${d.entrada.toFixed(2)}</td><td>${d.salida.toFixed(2)}</td><td style="font-weight:800; ${d.neto < 0 ? 'color:var(--danger);' : ''}">${d.neto.toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
   var trTot = document.createElement("tr"); trTot.className = "fila-totales";

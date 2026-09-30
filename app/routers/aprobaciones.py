@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -8,11 +9,11 @@ from ..services import resolver_aprobacion, pendientes_de
 from ..tokens import leer_token
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.get("/aprobaciones")
-async def bandeja(request: Request, user: Empleado = Depends(get_current_user),
+def bandeja(request: Request, user: Empleado = Depends(get_current_user),
                   db: Session = Depends(get_db)):
     pendientes = pendientes_de(db, user)
     historial = (db.query(Aprobacion).filter(Aprobacion.aprobador_id == user.id,
