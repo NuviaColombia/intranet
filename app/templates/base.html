@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Solicitudes Nuvia</title>
+  <title>{% block titulo %}Nuvia{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css?v=16">
 </head>
 <body>
@@ -198,6 +198,37 @@
   document.addEventListener('click', function() {
     document.querySelectorAll('.nav-drop-menu.open').forEach(function(m) { m.classList.remove('open'); });
   });
+})();
+</script>
+<script>
+// Pestaña del navegador: siempre dice dónde está la persona. En los módulos con ruta en la barra (Producción,
+// Caja menor, SST...) se arma con la ruta y la pestaña interna activa, y se actualiza al cambiar de pestaña:
+// "Cambio de custodia (Consulta traslado)", "SST (Inventario)", "Parámetros (Producción)". Las demás páginas usan
+// el bloque "titulo" de su plantilla; Design Schedule lo maneja su propia página.
+(function() {
+  var ruta = document.querySelector('nav .nav-ruta');
+  if (!ruta) return;
+  var PARAM = /^par[aá]metros$/i;
+  function limpio(el) {
+    var c = el.cloneNode(true);
+    c.querySelectorAll('.badge-alertas').forEach(function(b) { b.remove(); });
+    return c.textContent.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim();
+  }
+  function actualizar() {
+    var enlaces = ruta.querySelectorAll('a');
+    if (!enlaces.length) return;
+    var ultimo = limpio(enlaces[enlaces.length - 1]);
+    var base = (PARAM.test(ultimo) && enlaces.length > 1) ? 'Parámetros (' + limpio(enlaces[enlaces.length - 2]) + ')' : ultimo;
+    // Una caja de Caja menor: "Caja Contabilidad" (el nombre de la caja solo, suelto, no dice qué es)
+    if (enlaces.length > 1 && !PARAM.test(ultimo) && /caja menor/i.test(limpio(enlaces[0])) && !/caja/i.test(ultimo)) base = 'Caja ' + ultimo;
+    var activa = document.querySelector('nav .nav-sub a.activo');
+    var pestana = activa ? limpio(activa) : '';
+    var titulo = (pestana && !PARAM.test(pestana) && pestana.toLowerCase() !== ultimo.toLowerCase()) ? base + ' (' + pestana + ')' : base;
+    if (titulo && document.title !== titulo) document.title = titulo;
+  }
+  actualizar();
+  var sub = document.querySelector('nav .nav-sub');
+  if (sub) { try { new MutationObserver(actualizar).observe(sub, {subtree: true, attributes: true, attributeFilter: ['class']}); } catch (e) {} }
 })();
 </script>
 </body>
