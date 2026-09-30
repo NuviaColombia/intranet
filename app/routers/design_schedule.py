@@ -324,9 +324,35 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         raise HTTPException(403, SOLO_MANAGER)
     if sd.dia_cerrado(_fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
-    o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla,
-                       _datos_desde_in(payload))
+    datos = _datos_desde_in(payload)
+    if sd.orden_repetida(db, payload.teamId, _fecha(payload.fecha), datos["orden"]):
+        raise HTTPException(400, _msg_repetida(datos["orden"]))
+    o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla, datos)
     return sd.serializar_orden(o)
+
+
+def _msg_repetida(orden: str) -> str:
+    return f'Ya existe una orden con el número "{orden}" en este día. Usa un número distinto.'
+
+
+@router.get("/design/api/prestables")
+def api_prestables(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                   db: Session = Depends(get_db)):
+    """Diseñador prestado ("Others"): los otros equipos de la misma área con sus diseñadores."""
+    team = _verificar_equipo(db, user, team_id)
+    if not sd.gestiona_equipo(user, team):
+        raise HTTPException(403, "Solo el manager del equipo asigna diseñadores.")
+    return sd.equipos_prestables(db, team)
+
+
+@router.get("/design/api/support/autocompletar")
+def api_support_autocompletar(team_id: int, orden: str, user: Empleado = Depends(require_modulo("design_schedule")),
+                              db: Session = Depends(get_db)):
+    """Support: paciente, centro, producto y diseñador del caso, tomados del horario donde ya existe la orden."""
+    team = _verificar_equipo(db, user, team_id)
+    if team.area.formato != "support":
+        raise HTTPException(400, "Solo disponible en Support.")
+    return sd.autocompletar_support(db, orden) or {}
 
 
 class LoteIn(BaseModel):
@@ -357,6 +383,12 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
                      for fila in payload.filas]
     except ValueError as e:
         raise HTTPException(400, f"Hay filas con datos inválidos: {str(e)[:200]}")
+    vistos = set()
+    for datos in validadas:  # número repetido: contra el día y dentro del mismo lote
+        n = datos.orden.strip().upper()
+        if n and (n in vistos or sd.orden_repetida(db, payload.teamId, fecha, n)):
+            raise HTTPException(400, _msg_repetida(n))
+        vistos.add(n)
     creadas = []
     for datos in validadas:
         creadas.append(sd.serializar_orden(sd.crear_orden(db, user, payload.teamId, fecha, payload.tabla,
@@ -371,10 +403,14 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     orden_existente = db.get(DesignOrden, orden_id)
     if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
-    team = _verificar_equipo(db, user, orden_existente.team_id)
+    team = db.get(DesignTeam, orden_existente.team_id)
     solo_propia = not sd.gestiona_equipo(user, team)
-    if solo_propia and orden_existente.designer_id != user.id:
-        raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
+    if solo_propia:
+        # Un diseñador edita sus órdenes: las de su equipo y las de otro equipo que se lo pidió prestado.
+        propia = orden_existente.designer_id == user.id and (
+            team.id in sd.equipos_como_designer(db, user) or sd.es_orden_prestada_a(db, orden_existente, user))
+        if not propia:
+            raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
     if sd.dia_cerrado(orden_existente.fecha):
         # Día cerrado: solo el QC (checkbox + reporte de hallazgos), y solo hasta las 5:00 am de D+2.
         # El resto de campos se ignora.
@@ -383,6 +419,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         o = sd.actualizar_orden(db, orden_id, {"qc": payload.qc, "qc_reporte": payload.qcReporte})
         return sd.serializar_orden(o)
     datos = _datos_desde_in(payload)
+    if (datos["orden"] != (orden_existente.orden or "").strip().upper()
+            and sd.orden_repetida(db, orden_existente.team_id, orden_existente.fecha, datos["orden"], orden_id)):
+        raise HTTPException(400, _msg_repetida(datos["orden"]))
     if solo_propia:  # un diseñador edita su fila pero no la reasigna
         datos["designer_id"] = orden_existente.designer_id
         datos["designer_prestado"] = orden_existente.designer_prestado

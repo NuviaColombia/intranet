@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session, joinedload, defer
 from sqlalchemy import func, and_, or_, text
 from .models import Empleado, Solicitud, TipoPermiso
+from .models_design import FORMATO_N2, FORMATO_SUPPORT
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
@@ -61,8 +62,11 @@ def equipos_como_designer(db: Session, user: Empleado) -> set[int]:
 
 
 def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
-    """Ve y edita todo el horario del equipo: admins/superadmins y el manager del equipo."""
-    return es_admin(user) or team.manager_id == user.id
+    """Ve y edita todo el horario del equipo: admins/superadmins, el manager del equipo y, en Support,
+    todos sus miembros (allí 'Diseñador' es el del caso, de otra área; quien atiende va en 'Soporte')."""
+    if es_admin(user) or team.manager_id == user.id:
+        return True
+    return team.area.formato == FORMATO_SUPPORT and any(d.empleado_id == user.id for d in team.designers)
 
 
 def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = frozenset()) -> bool:
@@ -281,14 +285,54 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
             "break2Inicio": "", "break2Fin": "", "ausenciaAutomatica": True,
         })
 
-    return {
+    salida = {
         "principal": principal, "nightguard": nightguard,
         "breaks": breaks_out,
         "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers],
         "cerrado": dia_cerrado(fecha), "qcEditable": qc_editable(fecha),
         "qcEditableHasta": qc_editable_hasta(fecha).isoformat(),
         "soloPropias": solo_empleado_id is not None,
+        "prestadas": [],
     }
+    if team.area.formato == FORMATO_SUPPORT:
+        # En Support el 'Diseñador' es el del caso: se elige entre todos los diseñadores de Design.
+        salida["designersCaso"] = disenadores_de_todos_los_equipos(db)
+    if solo_empleado_id is not None:
+        salida["prestadas"] = ordenes_prestadas(db, solo_empleado_id, fecha)
+    return salida
+
+
+def disenadores_de_todos_los_equipos(db: Session) -> list[dict]:
+    filas = (db.query(Empleado.id, Empleado.nombres, Empleado.apellidos)
+             .join(DesignTeamDesigner, DesignTeamDesigner.empleado_id == Empleado.id)
+             .join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+             .filter(DesignTeam.activo == 1, Empleado.activo == 1).distinct().all())
+    out = [{"id": i, "nombre": f"{n or ''} {a or ''}".strip()} for i, n, a in filas]
+    return sorted(out, key=lambda d: d["nombre"].lower())
+
+
+def _equipos_support_ids(db: Session):
+    return (db.query(DesignTeam.id).join(DesignArea, DesignArea.id == DesignTeam.area_id)
+            .filter(DesignArea.formato == FORMATO_SUPPORT))
+
+
+def es_orden_prestada_a(db: Session, o: DesignOrden, user: Empleado) -> bool:
+    """La orden es de otro equipo pero está asignada a `user` como diseñador prestado. No aplica a Support,
+    donde la columna Diseñador es la del caso y no quien lo atiende."""
+    return (o.designer_id == user.id and o.team.area.formato != FORMATO_SUPPORT
+            and o.team_id not in equipos_como_designer(db, user) and o.team.manager_id != user.id)
+
+
+def ordenes_prestadas(db: Session, empleado_id: int, fecha: date) -> list[dict]:
+    """Órdenes del día asignadas a esta persona en equipos a los que no pertenece (la pidieron prestada)."""
+    propios = db.query(DesignTeamDesigner.team_id).filter(DesignTeamDesigner.empleado_id == empleado_id)
+    filas = (db.query(DesignOrden).options(joinedload(DesignOrden.designer),
+                                           joinedload(DesignOrden.team).joinedload(DesignTeam.area))
+             .filter(DesignOrden.designer_id == empleado_id, DesignOrden.fecha == fecha,
+                     DesignOrden.team_id.notin_(propios), DesignOrden.team_id.notin_(_equipos_support_ids(db)))
+             .order_by(DesignOrden.team_id, DesignOrden.orden_visual, DesignOrden.id).all())
+    return [{**serializar_orden(o), "equipo": o.team.nombre, "teamId": o.team_id,
+             "area": o.team.area.nombre, "formato": o.team.area.formato} for o in filas]
 
 
 def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
@@ -384,7 +428,8 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
                     qc: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None,
                     user: Empleado | None = None) -> dict:
     trasladar_holds(db)
-    q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team))
+    q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer),
+                                       joinedload(DesignOrden.team).joinedload(DesignTeam.area))
          .filter(filtro_orden_completa()))
     if user is not None and not es_admin(user):
         # Un aprobador ve el Dashboard solo de los equipos que maneja.
@@ -419,7 +464,7 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
         if clave not in por_designer:
             por_designer[clave] = {"designerId": f.designer_id, "nombre": nombre_d, "casos": 0, "duracionMin": 0}
         por_designer[clave]["casos"] += 1
-        por_designer[clave]["duracionMin"] += _duracion_minutos(f.hora_inicio, f.hora_fin)
+        por_designer[clave]["duracionMin"] += duracion_orden_min(f, f.team.area.formato)
 
         if f.producto:
             por_producto[f.producto] = por_producto.get(f.producto, 0) + 1
@@ -442,16 +487,39 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
     }
 
 
-def _duracion_minutos(inicio: str, fin: str) -> float:
-    if not inicio or not fin:
-        return 0
+def _minutos(hhmm: str) -> int | None:
     try:
-        h1, m1 = [int(x) for x in inicio.split(":")]
-        h2, m2 = [int(x) for x in fin.split(":")]
-        mins = (h2 * 60 + m2) - (h1 * 60 + m1)
-        return mins if mins > 0 else 0
+        h, m = [int(x) for x in (hhmm or "").split(":")[:2]]
+        return h * 60 + m
     except (ValueError, IndexError):
+        return None
+
+
+def _entre(inicio: str, fin: str) -> float:
+    """Minutos de `inicio` a `fin`; si cruza la medianoche se suma un día (como la herramienta original)."""
+    a, b = _minutos(inicio), _minutos(fin)
+    if a is None or b is None:
         return 0
+    d = b - a
+    return d + 24 * 60 if d < 0 else d
+
+
+def duracion_orden_min(o: DesignOrden, formato: str) -> float:
+    """Duración de una orden, igual que en el horario (dsDuracionFila en design_schedule.html):
+    - N3/N6 (Cirugías) y Face: Fin − Inicio diseño − Hold (min).
+    - N2: Fin − Inicio − T. Hold, con T. Hold = F.Hold − S.Hold.
+    - Nightguards / TC: Fin − Inicio.  - Support: no lleva horas."""
+    if formato == FORMATO_SUPPORT:
+        return 0
+    if o.tabla == "nightguard":
+        return _entre(o.hora_inicio, o.hora_fin)
+    if formato == FORMATO_N2:
+        if not o.hora_inicio or not o.hora_fin:
+            return 0
+        return max(0, _entre(o.hora_inicio, o.hora_fin) - _entre(o.s_hold, o.f_hold))
+    if not o.hora_inicio_diseno or not o.hora_fin:
+        return 0
+    return max(0, _entre(o.hora_inicio_diseno, o.hora_fin) - (o.hold_minutos or 0))
 
 
 def buscar_ordenes(db: Session, texto: str, user: Empleado | None = None) -> list[dict]:
@@ -460,12 +528,67 @@ def buscar_ordenes(db: Session, texto: str, user: Empleado | None = None) -> lis
         return []
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area))
          .filter((DesignOrden.orden.ilike(f"%{texto}%")) | (DesignOrden.paciente.ilike(f"%{texto}%"))))
-    if user is not None and not es_admin(user):  # mismo alcance que el horario: sus equipos o sus propias órdenes
+    if user is not None and not es_admin(user):  # mismo alcance que el horario
+        support_propios = (db.query(DesignTeamDesigner.team_id)
+                           .filter(DesignTeamDesigner.empleado_id == user.id,
+                                   DesignTeamDesigner.team_id.in_(_equipos_support_ids(db))))
         q = (q.join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
-             .filter(or_(DesignTeam.manager_id == user.id, DesignOrden.designer_id == user.id)))
-    filas = q.order_by(DesignOrden.fecha.desc()).limit(50).all()
-    return [{"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
-            "area": f.team.area.nombre, "equipo": f.team.nombre, "teamId": f.team_id} for f in filas]
+             .filter(or_(DesignTeam.manager_id == user.id,
+                         DesignOrden.team_id.in_(support_propios),
+                         and_(DesignOrden.designer_id == user.id,
+                              DesignOrden.team_id.notin_(_equipos_support_ids(db))))))
+    filas = q.order_by(DesignOrden.fecha.desc(), DesignOrden.id.desc()).limit(50).all()
+    out = []
+    for f in filas:
+        r = {"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
+             "estado": f.estado, "area": f.team.area.nombre, "areaId": f.team.area_id,
+             "equipo": f.team.nombre, "teamId": f.team_id, "abrirTeamId": f.team_id, "abrirAreaId": f.team.area_id}
+        if user is not None and es_orden_prestada_a(db, f, user):
+            # Orden prestada: se abre en su propio horario (bloque "Prestadas"), no en el equipo ajeno.
+            propio = (db.query(DesignTeam).join(DesignTeamDesigner, DesignTeamDesigner.team_id == DesignTeam.id)
+                      .filter(DesignTeamDesigner.empleado_id == user.id, DesignTeam.activo == 1)
+                      .order_by(DesignTeam.id).first())
+            if propio:
+                r["abrirTeamId"], r["abrirAreaId"] = propio.id, propio.area_id
+        out.append(r)
+    return out
+
+
+def orden_repetida(db: Session, team_id: int, fecha: date, orden: str, excluir_id: int | None = None) -> bool:
+    """¿Ya hay otra orden con ese número en el horario del equipo ese día (Cirugías y Nightguards)?"""
+    orden = (orden or "").strip().upper()
+    if not orden:
+        return False
+    q = db.query(DesignOrden.id).filter(DesignOrden.team_id == team_id, DesignOrden.fecha == fecha,
+                                        func.upper(func.trim(DesignOrden.orden)) == orden)
+    if excluir_id is not None:
+        q = q.filter(DesignOrden.id != excluir_id)
+    return q.first() is not None
+
+
+def autocompletar_support(db: Session, orden: str) -> dict | None:
+    """Support: datos del caso tomados del horario donde ya existe esa orden (la más reciente, fuera de
+    Support). Solo paciente, centro, producto y diseñador."""
+    orden = (orden or "").strip().upper()
+    if not orden:
+        return None
+    o = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
+         .filter(func.upper(func.trim(DesignOrden.orden)) == orden,
+                 DesignOrden.team_id.notin_(_equipos_support_ids(db)))
+         .order_by(DesignOrden.fecha.desc(), DesignOrden.id.desc()).first())
+    if not o:
+        return None
+    return {"paciente": o.paciente or "", "centro": o.centro or "", "producto": o.producto or "",
+            "designerId": o.designer_id, "designerNombre": o.designer.nombre_completo if o.designer else ""}
+
+
+def equipos_prestables(db: Session, team: DesignTeam) -> list[dict]:
+    """Otros equipos activos de la misma área, con sus diseñadores, para elegir un diseñador prestado."""
+    teams = [t for t in equipos_de_area(db, team.area_id) if t.id != team.id]
+    return [{"id": t.id, "nombre": t.nombre,
+             "designers": sorted(({"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in t.designers),
+                                 key=lambda x: x["nombre"].lower())}
+            for t in teams]
 
 
 # ---------- Comments N3: historial ----------
