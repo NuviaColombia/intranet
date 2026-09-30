@@ -2722,6 +2722,7 @@ CORRECCIONES_ACORDADAS = [
     {"op": "eliminar_fila", "hoja": "N2 Samuel", "nombre": "LUIS BERMONT", "motivo": "ya no trabaja en Nuvia"},
     {"op": "eliminar_fila", "hoja": "N3 Vanesa", "nombre": "RAFAEL GARCIA", "motivo": "ya no trabaja en Nuvia"},
     {"op": "eliminar_fila", "hoja": "N3 Luisa", "nombre": "Anderson Maldonado", "motivo": "ya no trabaja en Nuvia"},
+    {"op": "eliminar_fila", "hoja": "N3 Paula", "nombre": "JULIAN MORILLO", "motivo": "Julián Murillo ya no trabaja en Nuvia"},
     {"op": "eliminar_fila", "hoja": "N2 Heiner", "nombre": "GELIDER GARCÍA", "motivo": "Gleider García es manager de su equipo"},
     {"op": "unir_duplicado", "hoja": "N2 Daniel", "nombre": "Gabriel Jinete"},
     {"op": "agregar_a_equipo", "area": "N6 Material Changes", "manager": "Marlene Aguirre", "persona": "Juan Camilo Lopez Arboleda"},
