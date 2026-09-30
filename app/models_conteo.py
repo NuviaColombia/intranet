@@ -50,13 +50,13 @@ class ConteoValidador(Base):
     empleado = relationship("Empleado")
 
 
-class ConteoManagerArea(Base):
-    """Manager de cada área: firma el conteo de su área (segunda firma)."""
-    __tablename__ = "conteo_managers_area"
+class ConteoTestigo(Base):
+    """Personas que pueden firmar como testigo del conteo (tercera firma). El Director de Producción
+    (segunda firma) se guarda en ConteoConfig (clave director_id)."""
+    __tablename__ = "conteo_testigos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    area: Mapped[str] = mapped_column(String(100), unique=True)
-    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), unique=True)
     empleado = relationship("Empleado")
 
 
@@ -88,7 +88,7 @@ class ConteoReporte(Base):
     # Firma 1: quien carga el conteo (al enviarlo)
     enviado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     enviado_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    # Firma 2: manager del área (asignado en Parámetros) · Firma 3: testigo del conteo (se elige al enviar)
+    # Firma 2: Director de Producción (Parámetros) · Firma 3: testigo del conteo (de la lista de testigos; se elige al enviar)
     manager_firma_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     manager_firma_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
     manager_firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

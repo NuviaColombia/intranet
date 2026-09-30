@@ -143,7 +143,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
     from .. import acceso_secciones as acs
     secciones_cfg = {m: acs.configuracion(db, m) for m in ("custodia", "consumo", "conteo")}
     # Conteo inventario mensual
-    from ..models_conteo import ConteoBodega, ConteoMaterial, ConteoValidador, ConteoManagerArea
+    from ..models_conteo import ConteoBodega, ConteoMaterial, ConteoValidador
     from .. import services_conteo as sct
     sct.asegurar_catalogo(db)
     con_conteo = {i for i, subs in por_empleado.items() if "conteo" in subs}
@@ -153,7 +153,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
         "materiales": db.query(ConteoMaterial).order_by(ConteoMaterial.activo.desc(), ConteoMaterial.orden).all(),
         "bodegas": db.query(ConteoBodega).order_by(ConteoBodega.activo.desc(), ConteoBodega.orden).all(),
         "validadores": [v.empleado for v in db.query(ConteoValidador).all() if v.empleado],
-        "managers_area": {x.area: x.empleado for x in db.query(ConteoManagerArea).all() if x.empleado},
+        "director": sct.director_produccion(db), "testigos": sct.testigos(db),
         "areas_material": sct.areas_de_material(db), "config": sct.config(db), "workdrive": sct.estado_workdrive(db),
     }
     administradores = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.rol.in_(["admin", "superadmin"]))
@@ -182,7 +182,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                                         "c_tipos": len([t for t in consumo["tipos"] if t.activo]),
                                                         "n_accesos": len(inv_conteo["accesos"]),
                                                         "n_validadores": len(inv_conteo["validadores"]),
-                                                        "n_managers": len(inv_conteo["managers_area"]),
+                                                        "n_director": len(inv_conteo["testigos"]) + (1 if inv_conteo["director"] else 0),
                                                         "n_materiales": len([m for m in inv_conteo["materiales"] if m.activo]),
                                                         "n_bodegas": len([b for b in inv_conteo["bodegas"] if b.activo])},
                                        "resumen": resumen, "por_empleado": por_empleado,

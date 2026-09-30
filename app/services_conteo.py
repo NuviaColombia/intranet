@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                            ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoManagerArea,
+                            ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo,
                             BORRADOR, ENVIADO, DEVUELTO, VALIDADO)
 from .formato import nombre_propio
 
@@ -110,13 +110,20 @@ def area_de(user: Empleado) -> str:
     return (user.area_custodia or "").strip().upper()
 
 
-def manager_de_area(db: Session, area: str) -> Empleado | None:
-    x = db.query(ConteoManagerArea).filter(ConteoManagerArea.area == (area or "").strip().upper()).first()
-    return x.empleado if x and x.empleado and x.empleado.activo else None
+def director_produccion(db: Session) -> Empleado | None:
+    """Director de Producción (Parámetros): segunda firma de todos los conteos."""
+    c = db.get(ConteoConfig, "director_id")
+    e = db.get(Empleado, int(c.valor)) if c and str(c.valor or "").isdigit() else None
+    return e if e and e.activo else None
+
+
+def testigos(db: Session) -> list[Empleado]:
+    return sorted((t.empleado for t in db.query(ConteoTestigo).all() if t.empleado and t.empleado.activo),
+                  key=lambda e: e.nombre_completo)
 
 
 def firmas_completas(r: ConteoReporte) -> bool:
-    """Las 3 firmas del conteo: quien lo carga, el manager del área y el testigo."""
+    """Las 3 firmas del conteo: el manager que lo carga, el Director de Producción y el testigo."""
     return bool(r.enviado_en and r.manager_firmado_en and r.testigo_firmado_en)
 
 
@@ -132,7 +139,7 @@ def rol_firmante(user: Empleado, r: ConteoReporte) -> str:
 
 
 def firmar_conteo(db: Session, user: Empleado, r: ConteoReporte) -> str | None:
-    """Firma del manager del área o del testigo: queda su correo Zoho (el de la sesión) y la fecha y hora."""
+    """Firma del Director de Producción o del testigo: queda su correo Zoho (el de la sesión) y la fecha y hora."""
     rol = rol_firmante(user, r)
     if not rol:
         return "Este conteo no tiene una firma pendiente a tu nombre."
@@ -146,14 +153,14 @@ def firmar_conteo(db: Session, user: Empleado, r: ConteoReporte) -> str | None:
 
 
 def rechazar_firma(db: Session, user: Empleado, r: ConteoReporte, observacion: str) -> str | None:
-    """El manager o el testigo no firma: el conteo vuelve a quien lo cargó con la observación."""
+    """El Director o el testigo no firma: el conteo vuelve a quien lo cargó con la observación."""
     rol = rol_firmante(user, r)
     if not rol:
         return "Este conteo no tiene una firma pendiente a tu nombre."
     obs = (observacion or "").strip()
     if len(obs) < 5:
         return "Escribe la observación (mínimo 5 caracteres): qué se debe corregir."
-    quien = "manager del área" if rol == "manager" else "testigo"
+    quien = "Director de Producción" if rol == "manager" else "testigo"
     r.estado, r.devuelto_por_id, r.devuelto_en = DEVUELTO, user.id, datetime.utcnow()
     r.observacion = f"No firmó el {quien} ({nombre_propio(user.nombre_completo)}): {obs[:900]}"
     db.commit()
@@ -296,11 +303,10 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
     r.fecha_reporte, r.novedad = fecha, str(datos.get("novedad") or "").strip()[:2000]
     r.lineas.extend(lineas)
     if enviar:
-        manager = manager_de_area(db, area)
+        manager = director_produccion(db)
         if not manager:
             db.rollback()
-            return (f"Falta asignar el manager de {nombre_propio(area)} en Parámetros › Managers por área: "
-                    "es quien firma el conteo del área.")
+            return "Falta asignar el Director de Producción en Parámetros › Director y testigos: es la segunda firma del conteo."
         try:
             testigo = db.get(Empleado, int(datos.get("testigo_id") or 0))
         except (TypeError, ValueError):
@@ -308,14 +314,17 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
         if not testigo or not testigo.activo:
             db.rollback()
             return "Elige el testigo del conteo (la persona que estuvo presente)."
+        if testigo.id not in {t.id for t in testigos(db)}:
+            db.rollback()
+            return "El testigo debe estar en la lista de testigos (Parámetros › Director y testigos)."
         if testigo.id in (user.id, manager.id):
             db.rollback()
-            return "El testigo debe ser una persona distinta a quien carga el conteo y al manager del área."
+            return "El testigo debe ser una persona distinta a quien carga el conteo y al Director de Producción."
         ahora = datetime.utcnow()
         r.estado, r.enviado_en, r.enviado_email = ENVIADO, ahora, user.email or ""
         r.manager_firma_id, r.testigo_id = manager.id, testigo.id
         r.testigo_email = r.testigo_firmado_en = None
-        if manager.id == user.id:  # quien carga es el manager del área: su firma queda puesta al enviar
+        if manager.id == user.id:  # quien carga es el Director: su firma de director queda puesta al enviar
             r.manager_firma_email, r.manager_firmado_en = user.email or "", ahora
         else:
             r.manager_firma_email = r.manager_firmado_en = None
@@ -348,7 +357,7 @@ def guardar_validacion(db: Session, user: Empleado, r: ConteoReporte, datos: dic
     if decision and not r.validacion_guardada_en:
         return "Primero guarda tu conteo de validación."
     if decision == "validar" and not firmas_completas(r):
-        faltan = [x for x, ok in (("el manager del área", r.manager_firmado_en), ("el testigo", r.testigo_firmado_en)) if not ok]
+        faltan = [x for x, ok in (("el Director de Producción", r.manager_firmado_en), ("el testigo", r.testigo_firmado_en)) if not ok]
         return f"Todavía no se puede validar: falta la firma de {' y '.join(faltan)}."
     if decision == "validar":
         r.estado, r.validado_por_id, r.validado_en, r.validado_email = VALIDADO, user.id, datetime.utcnow(), user.email or ""
@@ -550,7 +559,8 @@ def _papelera_workdrive(archivo_id: str | None) -> None:
 def generar_acta(db: Session, r: ConteoReporte) -> ConteoDocumento:
     from .pdf_conteo import acta_area
     datos = acta_area(r, bodegas_activas(db), materiales_activos(db, r.area), comparacion(db, r), MESES)
-    nombre = f"Conteo inventario mensual - {nombre_propio(r.area)} - {MESES[r.mes - 1]} {r.anio} - Acta firmada.pdf"
+    nombre = f"Conteo inventario mensual - {nombre_propio(r.area)} - {MESES[r.mes - 1]} {r.anio} - " + \
+             ("Acta final validada.pdf" if r.estado == VALIDADO else "Reporte firmado.pdf")
     return _guardar_documento(db, "ACTA", r.anio, r.mes, r.area, nombre, datos, r.id)
 
 
@@ -565,6 +575,24 @@ def generar_consolidado(db: Session, anio: int, mes: int, areas_config: list[str
                             finales, por_validar, MESES, [a for a in areas_config if a not in con_envio])
     nombre = f"Conteo inventario mensual - {MESES[mes - 1]} {anio} - Consolidado firmado.pdf"
     return _guardar_documento(db, "CONSOLIDADO", anio, mes, "", nombre, datos, None)
+
+
+def documentos_con_firmas(reporte_id: int) -> None:
+    """En segundo plano, apenas el conteo tiene las 3 firmas: guarda el PDF del reporte y lo copia a la carpeta.
+    Al validarse se reemplaza por el PDF final (con la firma de la validación)."""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        r = db.get(ConteoReporte, reporte_id)
+        if not r or not firmas_completas(r):
+            return
+        doc_id = generar_acta(db, r).id
+    except Exception as ex:
+        print(f"[Conteo] Error generando el PDF del conteo #{reporte_id}: {ex}")
+        return
+    finally:
+        db.close()
+    copiar_documento_workdrive(doc_id)
 
 
 def documentos_al_validar(reporte_id: int, areas_config: list[str]) -> None:
@@ -643,7 +671,7 @@ def notificar(reporte_id: int, evento: str) -> None:
         if not r:
             return
         url = f"{cfg.BASE_URL}/conteo?tab={'validacion' if evento == 'firmado' else 'nuevo'}"
-        if evento == "enviado":  # a quienes les falta firmar: manager del área y testigo
+        if evento == "enviado":  # a quienes les falta firmar: Director de Producción y testigo
             url = f"{cfg.BASE_URL}/conteo/firma/{r.id}"
             destinos = ([r.manager_firma.email] if r.manager_firma and not r.manager_firmado_en else []) + \
                        ([r.testigo.email] if r.testigo and not r.testigo_firmado_en else [])

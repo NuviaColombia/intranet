@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db, engine
 from ..models import Empleado
 from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                             ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoManagerArea, BORRADOR, ENVIADO, VALIDADO)
+                             ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, BORRADOR, ENVIADO, VALIDADO)
 from ..models_custodia import CustodiaArea
 from ..auth import require_admin, get_current_user
 from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
@@ -41,7 +41,7 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
 def _tablas_conteo() -> None:
     from sqlalchemy import inspect, text
     for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                   ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoManagerArea):
+                   ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear
@@ -109,10 +109,8 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
         "puedeValidar": sc.puede_validar(db, user), "config": sc.config(db),
         "responsable": nombre_propio(user.nombre_completo), "correo": user.email or "", "usuarioId": user.id,
         "hoy": sc.hoy_colombia().isoformat(), "meses": sc.MESES,
-        "personas": [{"id": e.id, "nombre": nombre_propio(e.nombre_completo), "cargo": e.cargo or ""}
-                     for e in db.query(Empleado).filter(Empleado.activo == 1).order_by(Empleado.nombres, Empleado.apellidos)],
-        "managersArea": {x.area: {"id": x.empleado_id, "nombre": nombre_propio(x.empleado.nombre_completo)}
-                         for x in db.query(ConteoManagerArea).all() if x.empleado},
+        "personas": [{"id": e.id, "nombre": nombre_propio(e.nombre_completo), "cargo": e.cargo or ""} for e in sc.testigos(db)],
+        "director": ({"id": d.id, "nombre": nombre_propio(d.nombre_completo)} if (d := sc.director_produccion(db)) else None),
     }
 
 
@@ -160,7 +158,7 @@ def api_guardar(payload: ReporteIn, tareas: BackgroundTasks, user: Empleado = De
     if r.estado == ENVIADO:
         tareas.add_task(sc.notificar, r.id, "enviado")
     accion = ("enviado: ya tiene las 3 firmas y pasa a validación" if sc.firmas_completas(r) else
-              "enviado con tu firma: se les avisó al manager del área y al testigo para que firmen") if r.estado == ENVIADO         else "guardado como borrador"
+              "enviado con tu firma: se les avisó al Director de Producción y al testigo para que firmen") if r.estado == ENVIADO         else "guardado como borrador"
     return {"mensaje": f"✅ Conteo de {sc.MESES[r.mes - 1]} {r.anio} de {nombre_propio(r.area)} {accion}.",
             "reporte": sc.serializar(db, r, user)}
 
@@ -226,7 +224,7 @@ def _reporte_para_firmar(db: Session, user: Empleado, reporte_id: int) -> Conteo
 
 @router.get("/conteo/firma/{reporte_id}")
 def pagina_firma(reporte_id: int, request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Resumen del conteo para que el manager del área o el testigo lo firme (no necesita el módulo)."""
+    """Resumen del conteo para que el Director de Producción o el testigo lo firme (no necesita el módulo)."""
     r = _reporte_para_firmar(db, user, reporte_id)
     datos = sc.serializar(db, r)
     bodegas = sc.bodegas_activas(db)
@@ -251,7 +249,8 @@ def firmar(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depends(ge
     r = _reporte_para_firmar(db, user, reporte_id)
     error = sc.firmar_conteo(db, user, r)
     if not error and sc.firmas_completas(r):
-        tareas.add_task(sc.notificar, r.id, "firmado")  # con las 3 firmas pasa a validación
+        tareas.add_task(sc.notificar, r.id, "firmado")  # con las 3 firmas pasa a validación (conteo físico)
+        tareas.add_task(sc.documentos_con_firmas, r.id)  # y se guarda el PDF del reporte en la carpeta
     msg = error or "✅ Listo: firmaste el conteo. Gracias."
     return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
 
@@ -268,26 +267,35 @@ def rechazar(reporte_id: int, tareas: BackgroundTasks, observacion: str = Form("
     return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
 
 
-@router.post("/inventario/parametros/conteo/managers")
-def guardar_manager_area(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                         area: str = Form(...), empleado_id: int = Form(...)):
-    area = _texto(area).upper()
+@router.post("/inventario/parametros/conteo/director")
+def guardar_director(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: str = Form("")):
+    e = db.get(Empleado, int(empleado_id)) if empleado_id.isdigit() else None
+    c = db.get(ConteoConfig, "director_id") or ConteoConfig(clave="director_id")
+    c.valor = str(e.id) if e and e.activo else ""
+    db.add(c)
+    if e:
+        _dar_modulo(db, e)  # el director también entra al submódulo
+    db.commit()
+    return _volver("n_director", f"{nombre_propio(e.nombre_completo)} es el Director de Producción del conteo." if e
+                   else "Director de Producción quitado.")
+
+
+@router.post("/inventario/parametros/conteo/testigos")
+def agregar_testigo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: int = Form(...)):
     e = db.get(Empleado, empleado_id)
-    if not area or not e or not e.activo:
-        return _volver("n_managers", "No se guardó: elige el área y la persona.")
-    x = db.query(ConteoManagerArea).filter_by(area=area).first() or ConteoManagerArea(area=area)
-    x.empleado_id = e.id
-    db.add(x)
-    _dar_modulo(db, e)  # el manager también entra al submódulo
+    if not e or not e.activo:
+        return _volver("n_director", "No se guardó: elige una persona de la lista.")
+    if not db.query(ConteoTestigo).filter_by(empleado_id=e.id).first():
+        db.add(ConteoTestigo(empleado_id=e.id))
     db.commit()
-    return _volver("n_managers", f"{nombre_propio(e.nombre_completo)} es el manager de {nombre_propio(area)} para el conteo.")
+    return _volver("n_director", f"{nombre_propio(e.nombre_completo)} puede firmar como testigo del conteo.")
 
 
-@router.post("/inventario/parametros/conteo/managers/{area}/quitar")
-def quitar_manager_area(area: str, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    db.query(ConteoManagerArea).filter_by(area=area.strip().upper()).delete()
+@router.post("/inventario/parametros/conteo/testigos/{empleado_id}/quitar")
+def quitar_testigo(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    db.query(ConteoTestigo).filter_by(empleado_id=empleado_id).delete()
     db.commit()
-    return _volver("n_managers", f"Manager de {nombre_propio(area)} quitado.")
+    return _volver("n_director", "Testigo quitado de la lista.")
 
 
 def _pdf(doc: ConteoDocumento) -> Response:
@@ -300,8 +308,8 @@ def api_acta(reporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), 
     """Acta firmada del área (se genera al validar)."""
     acs.exigir(db, user, SUB, "nuevo", "reportes", "validacion")
     r = _reporte(db, reporte_id)
-    if r.estado != VALIDADO:
-        raise HTTPException(400, "El acta firmada se genera cuando el conteo queda validado.")
+    if r.estado != VALIDADO and not sc.firmas_completas(r):
+        raise HTTPException(400, "El PDF del reporte se genera cuando el conteo tiene las 3 firmas.")
     if not sc.puede_editar(user, r) and not sc.puede_validar(db, user) and "reportes" not in acs.secciones_de(db, user, SUB):
         raise HTTPException(403, "No puedes ver el acta de esta área.")
     doc = db.query(ConteoDocumento).filter_by(tipo="ACTA", reporte_id=r.id).first() or sc.generar_acta(db, r)

@@ -74,8 +74,8 @@
       <div><label>Manager - Responsable <b>*</b></label><input id="cResponsable" readonly></div>
       <div><label>Área <b>*</b></label><select id="cArea" onchange="pintarFormulario(); cargarReporte()"></select></div>
       <div><label>Correo (Zoho)</label><input id="cCorreo" readonly></div>
-      <div><label>Manager del área (firma 2)</label><input id="cManagerArea" readonly placeholder="Se asigna en Parámetros"></div>
-      <div><label>Testigo del conteo (firma 3) <b>*</b></label>
+      <div><label>Director de Producción (firma 2)</label><input id="cManagerArea" readonly placeholder="Se asigna en Parámetros"></div>
+      <div><label>Testigo del conteo (firma 3, de la lista de testigos) <b>*</b></label>
         <input type="search" id="cBuscarTestigo" placeholder="Busca por nombre o cargo…" style="margin-bottom:4px" oninput="filtrarTestigos()">
         <select id="cTestigo"></select></div>
     </div>
@@ -203,19 +203,19 @@ function filtrarTestigos() {
   Array.prototype.forEach.call(sel.options, function(o, i) { if (!i) return; var ok = !q || o.dataset.buscar.indexOf(q) >= 0; o.hidden = !ok; if (ok && !primera) primera = o; });
   if (q && primera) sel.value = primera.value;
 }
-function managerDelArea(area) { return (D.managersArea || {})[area]; }
+function managerDelArea(area) { return D.director; }  // la firma 2 es el Director de Producción (Parámetros)
 function firmasHtml(r) {
   var f = function(n, titulo, nombre, correo, en) {
     return '<span class="ct-firma ' + (en ? 'si' : 'no') + '">' + n + '. ' + titulo + ': ' + (en ? '✅ ' + esc(nombre) + ' · ' + esc(en) : '⏳ ' + esc(nombre || 'pendiente')) + '</span>';
   };
-  return '<div class="ct-firmas">' + f(1, 'Carga', r.responsable, r.enviadoEmail, r.enviadoEn) +
-    f(2, 'Manager', r.managerFirma.nombre, r.managerFirma.email, r.managerFirma.en) + f(3, 'Testigo', r.testigo.nombre, r.testigo.email, r.testigo.en) + '</div>';
+  return '<div class="ct-firmas">' + f(1, 'Manager', r.responsable, r.enviadoEmail, r.enviadoEn) +
+    f(2, 'Director', r.managerFirma.nombre, r.managerFirma.email, r.managerFirma.en) + f(3, 'Testigo', r.testigo.nombre, r.testigo.email, r.testigo.en) + '</div>';
 }
 function pintarFormulario() {
   var area = document.getElementById('cArea').value;
   document.getElementById('cBodegas').innerHTML = tablasBodegas(area, 'ct-', null, 'MANAGER');
   var man = managerDelArea(area);
-  document.getElementById('cManagerArea').value = man ? man.nombre + (man.id === D.usuarioId ? ' (tú: tu firma queda al enviar)' : '') : (area ? '⚠️ Sin asignar en Parámetros' : '');
+  document.getElementById('cManagerArea').value = man ? man.nombre + (man.id === D.usuarioId ? ' (tú: tu firma queda al enviar)' : '') : '⚠️ Sin asignar en Parámetros › Director y testigos';
 }
 function bloquearManager(si) {
   document.querySelectorAll('#sec-nuevo .ct-cant, #sec-nuevo .ct-dan, #cNovedad, #cFecha, #cTestigo, #cBuscarTestigo').forEach(function(i) { i.disabled = si; });
@@ -243,7 +243,7 @@ function cargarReporte() {
     else if (e === 'BORRADOR') est.innerHTML = '<div class="ct-aviso edit">📝 <b>Borrador</b> guardado' + (actual.actualizadoEn ? ' el ' + esc(actual.actualizadoEn) : ' el ' + esc(actual.creadoEn)) +
       '. Todavía <b>no se ha enviado</b>: cuando esté completo pulsa «Enviar conteo».' + plazo + '</div>';
     else if (e === 'ENVIADO') est.innerHTML = '<div class="ct-aviso info">📤 Enviado con tu firma el ' + esc(actual.enviadoEn) + ' (' + esc(actual.enviadoEmail) + '). ' +
-      (actual.firmasCompletas ? 'Tiene las 3 firmas y está <b>en validación</b>.' : 'Falta que firmen el manager del área y/o el testigo (les llegó el aviso por Cliq).') +
+      (actual.firmasCompletas ? 'Tiene las 3 firmas y está <b>en validación</b>.' : 'Falta que firmen el Director de Producción y/o el testigo (les llegó el aviso por Cliq).') +
       ' Ya no se puede cambiar.' + firmasHtml(actual) + '</div>';
     else if (e === 'DEVUELTO') est.innerHTML = '<div class="ct-aviso no">↩️ <b>Devuelto</b> por ' + esc(actual.devueltoPor) + ' el ' + esc(actual.devueltoEn) + ':<br>«' + esc(actual.observacion) +
       '»<br>Corrige y envíalo de nuevo.</div>';
@@ -329,12 +329,12 @@ function guardarConteo(enviar) {
                novedad: document.getElementById('cNovedad').value, enviar: false,
                testigo_id: +document.getElementById('cTestigo').value || 0}, leerCantidades('ct-'));
   if (enviar) {
-    if (!managerDelArea(datos.area)) { alert('⚠️ Falta asignar el manager de ' + np(datos.area) + ' en Parámetros › Managers por área.'); return; }
+    if (!D.director) { alert('⚠️ Falta asignar el Director de Producción en Parámetros › Director y testigos.'); return; }
     if (!datos.testigo_id) { alert('⚠️ Elige el testigo del conteo (la persona que estuvo presente).'); document.getElementById('cBuscarTestigo').focus(); return; }
     var faltan = [];
     document.querySelectorAll('#sec-nuevo .ct-dan').forEach(function(i) { if (i.value.trim() === '') faltan.push(i.dataset.etq); });
     if (faltan.length) { alert('⚠️ Completa (aunque sea con 0): ' + faltan.join(' · ')); return; }
-    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al manager del área y al testigo para firmar. Después ya no se puede cambiar, salvo que te lo devuelvan.')) return;
+    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al Director de Producción y al testigo para firmar. Después ya no se puede cambiar, salvo que te lo devuelvan.')) return;
   }
   var btn = document.getElementById(enviar ? 'btnEnviar' : 'btnBorrador'), texto = btn.innerText; btn.disabled = true; btn.innerText = 'Guardando…';
   // 1) guarda como borrador · 2) sube las fotos · 3) si es envío, lo envía (con las fotos ya adentro)
@@ -375,7 +375,7 @@ function abrirValidacion(id) {
   var editable = x.estado === 'ENVIADO', comp = x.comparacion, det = document.getElementById('vDetalle');
   det.innerHTML = '<div class="cm-barra"><div><h3 class="cs-h3" style="margin:0">📋 ' + esc(np(x.area)) + ' · ' + esc(x.mesNombre) + ' ' + x.anio + ' ' + estadoHtml(x.estado) + '</h3>' +
       '<p class="cm-sub" style="margin:4px 0 0;">Manager: <b>' + esc(x.responsable) + '</b> (' + esc(x.responsableEmail) + ') · enviado ' + esc(x.enviadoEn) + (x.novedad ? ' · Novedad: «' + esc(x.novedad) + '»' : '') + '</p></div>' +
-      '<div class="cm-acciones no-print">' + (x.estado === 'VALIDADO' ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + x.id + '/acta.pdf">📄 Acta firmada (PDF)</a> ' : '') +
+      '<div class="cm-acciones no-print">' + (x.estado === 'VALIDADO' || x.firmasCompletas ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + x.id + '/acta.pdf">📄 ' + (x.estado === 'VALIDADO' ? 'Acta final' : 'Reporte firmado') + ' (PDF)</a> ' : '') +
       '<button class="btn gris mini" onclick="imprimirConteo(vActual)">🖨️ Imprimir</button>' +
       (x.estado === 'VALIDADO' && D.esAdmin ? ' <button class="btn gris mini" onclick="reabrirConteo(' + x.id + ')">🔓 Reabrir</button>' : '') + '</div></div>' +
     firmasHtml(x) + (x.estado === 'ENVIADO' && !x.firmasCompletas ? '<div class="ct-aviso edit">⏳ Puedes hacer tu conteo, pero <b>validar</b> se habilita cuando el conteo tenga las 3 firmas.</div>' : '') +
@@ -435,7 +435,7 @@ function cargarConsolidado() {
         '<div class="ct-area-meta">' + (r.estado !== 'BORRADOR' ? firmasHtml(r) : 'Cargado por: <b>' + esc(r.responsable || '—') + '</b>') +
         (r.validadoPor ? ' · validado por <b>' + esc(r.validadoPor) + '</b> el ' + esc(r.validadoEn) : '') +
         (r.novedad ? '<br>Novedad: «' + esc(r.novedad) + '»' : '') + (r.observacion ? '<br>Observación: «' + esc(r.observacion) + '»' : '') + '</div>' +
-        '<div class="cm-acciones no-print">' + (r.estado === 'VALIDADO' ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + r.id + '/acta.pdf">📄 Acta firmada</a>' : '') +
+        '<div class="cm-acciones no-print">' + (r.estado === 'VALIDADO' || r.firmasCompletas ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + r.id + '/acta.pdf">📄 ' + (r.estado === 'VALIDADO' ? 'Acta final' : 'Reporte firmado') + ' (PDF)</a>' : '') +
         (r.oculto ? '' : '<button class="btn gris mini" onclick="imprimirConteo(window._reportesMes[' + i + '])">🖨️ Imprimir</button>') +
         (r.evidencias.length ? '<button class="btn gris mini" onclick="verEvidencias(' + i + ')">👁️ Evidencias (' + r.evidencias.length + ')</button>' : '') + '</div></div>';
       if (r.oculto) return '<div class="ct-area">' + cab + '<p class="cm-vacio">' + (r.estado === 'BORRADOR' ? 'Borrador: todavía no se ha enviado.' : 'Pendiente de tu conteo de validación (a ciegas).') + '</p></div>';
@@ -518,8 +518,8 @@ function imprimirConteo(r) {
     '<tr><td class="etq">Manager - Responsable</td><td class="val">' + esc(r.responsable) + '</td><td class="etq">Correo (Zoho)</td><td class="val" style="text-transform:none">' + esc(r.responsableEmail) + '</td></tr></table>' +
     (r.ciego ? '<p style="color:#92400E;font-weight:700">Conteo del manager oculto hasta que el validador guarde su conteo.</p>' : tablas) +
     (r.novedad ? '<div class="nov"><b>NOVEDAD:</b> ' + esc(r.novedad) + '</div>' : '') + (r.observacion ? '<div class="nov"><b>OBSERVACIÓN DE VALIDACIÓN:</b> ' + esc(r.observacion) + '</div>' : '') +
-    '<table class="firmas"><tr>' + firma('CARGA DEL CONTEO', r.responsable, r.enviadoEmail, r.enviadoEn, 'SIN ENVIAR') +
-      firma('MANAGER DEL ÁREA', r.managerFirma.nombre, r.managerFirma.email, r.managerFirma.en, 'PENDIENTE DE FIRMA') + '</tr><tr>' +
+    '<table class="firmas"><tr>' + firma('MANAGER (CARGA DEL CONTEO)', r.responsable, r.enviadoEmail, r.enviadoEn, 'SIN ENVIAR') +
+      firma('DIRECTOR DE PRODUCCIÓN', r.managerFirma.nombre, r.managerFirma.email, r.managerFirma.en, 'PENDIENTE DE FIRMA') + '</tr><tr>' +
       firma('TESTIGO DEL CONTEO', r.testigo.nombre, r.testigo.email, r.testigo.en, 'PENDIENTE DE FIRMA') +
       firma('VALIDACIÓN', r.validadoPor, r.validadoEmail, r.validadoEn, 'PENDIENTE DE VALIDACIÓN') + '</tr></table>';
   var iframe = document.createElement('iframe'); iframe.style.cssText = 'position:absolute;width:0;height:0;border:0'; document.body.appendChild(iframe);

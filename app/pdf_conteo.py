@@ -139,11 +139,11 @@ class _Doc(FPDF):
 
 
 def _cuatro_firmas(doc: "_Doc", r, sufijo: str = "") -> None:
-    """Carga · Manager del área (fila 1) y Testigo · Validación (fila 2)."""
+    """Manager (carga) · Director de Producción (fila 1) y Testigo · Validación (fila 2)."""
     mitad = (doc.w - 24) / 2
     nom = lambda e: nombre_propio(e.nombre_completo) if e else ""
-    filas = [(("Carga del conteo", nom(r.responsable), r.enviado_email, r.enviado_en, "SIN ENVIAR"),
-              ("Manager del area", nom(r.manager_firma), r.manager_firma_email, r.manager_firmado_en, "PENDIENTE DE FIRMA")),
+    filas = [(("Manager (carga del conteo)", nom(r.responsable), r.enviado_email, r.enviado_en, "SIN ENVIAR"),
+              ("Director de produccion", nom(r.manager_firma), r.manager_firma_email, r.manager_firmado_en, "PENDIENTE DE FIRMA")),
              (("Testigo del conteo", nom(r.testigo), r.testigo_email, r.testigo_firmado_en, "PENDIENTE DE FIRMA"),
               ("Validacion", nom(r.validado_por), r.validado_email, r.validado_en, "PENDIENTE DE VALIDACION"))]
     for izq, der in filas:
@@ -163,32 +163,40 @@ def _hora(m: datetime | None) -> str:
 def acta_area(r, bodegas, materiales, comparacion: dict, meses: list[str]) -> bytes:
     """Acta del área: conteo del manager vs validación con las firmas del manager y del validador."""
     mes = f"{meses[r.mes - 1]} {r.anio}"
-    doc = _Doc("CONTEO INVENTARIO MENSUAL - ACTA DE VALIDACION", f"{nombre_propio(r.area).upper()} - {mes.upper()}")
+    validado = r.estado == "VALIDADO"
+    doc = _Doc("CONTEO INVENTARIO MENSUAL - " + ("ACTA DE VALIDACION" if validado else "REPORTE FIRMADO"),
+               f"{nombre_propio(r.area).upper()} - {mes.upper()}")
     doc.datos([("Area", nombre_propio(r.area)), ("Mes del reporte", mes),
                ("Responsable", nombre_propio(r.responsable.nombre_completo) if r.responsable else ""),
                ("Fecha reporte", r.fecha_reporte.strftime("%d/%m/%Y")),
-               ("Manager del area", nombre_propio(r.manager_firma.nombre_completo) if r.manager_firma else ""),
+               ("Director de produccion", nombre_propio(r.manager_firma.nombre_completo) if r.manager_firma else ""),
                ("Testigo", nombre_propio(r.testigo.nombre_completo) if r.testigo else ""),
                ("Validado por", nombre_propio(r.validado_por.nombre_completo) if r.validado_por else ""),
-               ("Estado", "VALIDADO" if r.estado == "VALIDADO" else r.estado)])
-    filas_cmp = comparacion.get("filas", {})
+               ("Estado", "VALIDADO" if validado else "EN VALIDACION (CONTEO FISICO PENDIENTE)")])
+    filas_cmp = comparacion.get("filas", {}) if validado else {}
+    man = {f"{l.bodega_id}:{l.material_id}": l.cantidad for l in r.lineas if l.tipo == "CONTEO"}
+    man_d = {str(l.bodega_id): l.cantidad for l in r.lineas if l.tipo == "DANADO"}
     ancho = doc.w - 24
     for b in bodegas:
         filas, marcar = [], []
         for m in materiales:
-            f = filas_cmp.get(f"{b.id}:{m.id}", {"manager": 0, "validacion": 0, "diferencia": 0, "ok": True})
+            f = filas_cmp.get(f"{b.id}:{m.id}", {"manager": man.get(f"{b.id}:{m.id}", 0), "validacion": 0, "diferencia": 0, "ok": True})
             filas.append([f"{b.prefijo}-{m.codigo}-{m.descripcion}", _n(f["manager"]), _n(f["validacion"]),
                           ("+" if f["diferencia"] > 0 else "") + _n(f["diferencia"])])
             marcar.append(not f["ok"])
-        f = filas_cmp.get(f"{b.id}:danados", {"manager": 0, "validacion": 0, "diferencia": 0, "ok": True})
+        f = filas_cmp.get(f"{b.id}:danados", {"manager": man_d.get(str(b.id), 0), "validacion": 0, "diferencia": 0, "ok": True})
         filas.append(["Disco de zirconia - DAÑADOS", _n(f["manager"]), _n(f["validacion"]), ("+" if f["diferencia"] > 0 else "") + _n(f["diferencia"])])
         marcar.append(not f["ok"])
         doc.titulo_seccion(f"Conteo - {b.nombre} - Bodega {b.codigo}")
-        doc.tabla(["Material", "Manager", "Validacion", "Diferencia"], filas, [ancho * 0.52, ancho * 0.16, ancho * 0.16, ancho * 0.16], marcar)
+        if validado:
+            doc.tabla(["Material", "Manager", "Validacion", "Diferencia"], filas, [ancho * 0.52, ancho * 0.16, ancho * 0.16, ancho * 0.16], marcar)
+        else:  # antes del conteo físico de validación: solo lo que contó el manager
+            doc.tabla(["Material", "Cantidad"], [[f[0], f[1]] for f in filas], [ancho * 0.75, ancho * 0.25])
     doc.set_font("Helvetica", "", 8)
-    tol = comparacion.get("tolerancia", 0)
-    dif = comparacion.get("diferencias", 0)
-    doc.multi_cell(0, 4.5, _t(f"Tolerancia aceptada: {tol:g}. Diferencias fuera de tolerancia: {dif}."), new_x="LMARGIN", new_y="NEXT")
+    if validado:
+        tol = comparacion.get("tolerancia", 0)
+        dif = comparacion.get("diferencias", 0)
+        doc.multi_cell(0, 4.5, _t(f"Tolerancia aceptada: {tol:g}. Diferencias fuera de tolerancia: {dif}."), new_x="LMARGIN", new_y="NEXT")
     if r.novedad:
         doc.multi_cell(0, 4.5, _t(f"Novedad del manager: {r.novedad}"), new_x="LMARGIN", new_y="NEXT")
     doc.ln(8)

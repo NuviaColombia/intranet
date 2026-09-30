@@ -28,8 +28,8 @@
     {% if msg %}<div class="cf-aviso {{ 'ok' if msg.startswith('✅') else ('pend' if msg.startswith('↩️') else 'mal') }}">{{ msg }}</div>{% endif %}
 
     <div class="cf-firmas">
-      <div class="cf-firma"><b>1. Quien carga</b>{% if r.enviadoEn %}✅ {{ r.responsable }}<br>{{ r.enviadoEmail }}<br>{{ r.enviadoEn }}{% else %}⏳ Sin enviar{% endif %}</div>
-      <div class="cf-firma"><b>2. Manager del área</b>{% if r.managerFirma.en %}✅ {{ r.managerFirma.nombre }}<br>{{ r.managerFirma.email }}<br>{{ r.managerFirma.en }}{% else %}⏳ {{ r.managerFirma.nombre or 'Pendiente' }}{% endif %}</div>
+      <div class="cf-firma"><b>1. Manager (carga)</b>{% if r.enviadoEn %}✅ {{ r.responsable }}<br>{{ r.enviadoEmail }}<br>{{ r.enviadoEn }}{% else %}⏳ Sin enviar{% endif %}</div>
+      <div class="cf-firma"><b>2. Director de Producción</b>{% if r.managerFirma.en %}✅ {{ r.managerFirma.nombre }}<br>{{ r.managerFirma.email }}<br>{{ r.managerFirma.en }}{% else %}⏳ {{ r.managerFirma.nombre or 'Pendiente' }}{% endif %}</div>
       <div class="cf-firma"><b>3. Testigo del conteo</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ {{ r.testigo.nombre or 'Pendiente' }}{% endif %}</div>
     </div>
 
@@ -43,7 +43,7 @@
     {% if r.novedad %}<p style="font-size:13px"><b>Novedad:</b> {{ r.novedad }}</p>{% endif %}
 
     {% if rol %}
-      <div class="cf-aviso pend">Vas a firmar como <b>{{ 'manager del área' if rol == 'manager' else 'testigo del conteo' }}</b>: queda tu nombre,
+      <div class="cf-aviso pend">Vas a firmar como <b>{{ 'Director de Producción' if rol == 'manager' else 'testigo del conteo' }}</b>: queda tu nombre,
         tu correo de Zoho (<b>{{ user.email }}</b>) y la fecha y hora. Si algo no está bien, recházalo con una observación.</div>
       <form method="post" action="/conteo/firma/{{ r.id }}/firmar" style="display:inline"
             onsubmit="return confirm('¿Firmar el conteo de {{ r.area|nombre_propio }} de {{ r.mesNombre }} {{ r.anio }}?');">
