@@ -206,7 +206,7 @@
               <select id="numeroOrdenSelect" required onchange="alternarStock(); validarCantidadInline()">
                 <option value="">Cargando...</option>
               </select>
-              <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled>
+              <input type="text" id="numeroOrdenNuevo" placeholder="123-456..." style="display:none;" disabled oninput="sincronizarResumenStock()">
             </td>
           </tr>
           <tr id="filaOrigenNueva" style="display:none;">
@@ -225,7 +225,7 @@
           </tr>
           <tr id="bloqueStock" style="display:none;">
             <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important; background:#fef3c7;">Asignar orden<br><small style="font-weight:500">(tomado del Stock)</small></td>
-            <td class="input-cell"><input type="text" id="ordenDesdeStock" placeholder="Ej. 540" inputmode="numeric"></td>
+            <td class="input-cell"><input type="text" id="ordenDesdeStock" placeholder="Ej. 540" inputmode="numeric" oninput="sincronizarResumenStock()"></td>
             <td class="input-cell" colspan="4" style="font-size:12px; color:#92400e; text-align:left; padding:6px 12px;">
               Los discos se toman del <b>Stock</b> del área de salida y llegan al área de entrada con este <b>número de orden</b> (ya no como Stock).</td>
           </tr>
@@ -969,7 +969,7 @@ function pintarStockDesc() {
   var fila = document.getElementById("bloqueStockDesc");
   if (!fila) return;
   var area = document.getElementById("areaSalida").value;
-  if (!tomaDeStock() || !area) { fila.style.display = "none"; return; }
+  if (!tomaDeStock() || !area) { fila.style.display = "none"; sincronizarResumenStock(); return; }
   fila.style.display = "";
   var ops = opcionesStock(area), celda = document.getElementById("stockDescCelda");
   if (!ops.length) { celda.innerHTML = '<span style="color:var(--danger); font-size:12px;">' + nombrePropio(area) + ' no tiene discos de Stock.</span>'; return; }
@@ -988,7 +988,34 @@ function leerStockDesc() {
     return {descripcion: inp.dataset.desc, cantidad: parseFloat((inp.value || "0").replace(",", ".")) || 0, max: parseFloat(inp.dataset.max)};
   }).filter(function(x) { return x.cantidad > 0; });
 }
+// Pone en la tabla Resumen general las descripciones que salen del Stock (orden · descripción · total)
+function sincronizarResumenStock() {
+  var tbody = document.getElementById("bodyResumen"); if (!tbody) return;
+  tbody.querySelectorAll("tr[data-stock]").forEach(function(tr) { tr.remove(); });
+  var area = document.getElementById("areaSalida").value;
+  if (tomaDeStock() && area) {
+    var lista = leerStockDesc(), ops = opcionesStock(area);
+    var cant = parseFloat((document.getElementById("cantidadDiscos").value || "0").replace(",", ".")) || 0;
+    if (!lista.length && ops.length === 1 && cant > 0) lista = [{descripcion: ops[0].descripcion, cantidad: cant}];
+    var orden = (modoOrdenNuevaActivo ? document.getElementById("numeroOrdenNuevo").value : document.getElementById("ordenDesdeStock").value).trim().toUpperCase();
+    if (lista.length) {  // quita la fila vacía de ejemplo
+      tbody.querySelectorAll("tr:not(.fila-totales)").forEach(function(tr) {
+        var vacia = Array.prototype.every.call(tr.querySelectorAll("input[data-campo]"), function(i) { return !i.value.trim(); });
+        if (vacia) tr.remove();
+      });
+    }
+    var totales = tbody.querySelector("tr.fila-totales");
+    lista.forEach(function(x) {
+      var tr = crearFilaResumen({orden: orden, descripcion: x.descripcion === SIN_DESC ? "" : x.descripcion, paciente: "", total: x.cantidad});
+      tr.dataset.stock = "1"; tr.style.background = "#fffbeb"; tr.title = "Sale del Stock (se llena solo con las descripciones elegidas)";
+      tbody.insertBefore(tr, totales);
+    });
+  }
+  if (typeof recalcularTotalResumen === "function") recalcularTotalResumen();
+}
+
 function sumarStockDesc() {
+  sincronizarResumenStock();
   var el = document.getElementById("stockDescSuma"); if (!el) return;
   var suma = leerStockDesc().reduce(function(s, x) { return s + x.cantidad; }, 0);
   var cant = parseFloat((document.getElementById("cantidadDiscos").value || "0").replace(",", ".")) || 0;
@@ -2456,7 +2483,8 @@ function prepararEnvio(e) {
         var descs = stockDescParaEnviar(cantNumerica);
         if (!descs) { desbloquearBotonGuardar(); return; }
         stockDescActual = descs;
-        enviarAlServidor([datosBase], resumenDesdeStock(asignada, descs));
+        sincronizarResumenStock();
+        enviarAlServidor([datosBase], []);
       }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
       return;
     }
@@ -2493,7 +2521,8 @@ function prepararEnvio(e) {
         var descs = stockDescParaEnviar(cantNumerica);
         if (!descs) { desbloquearBotonGuardar(); return; }
         stockDescActual = descs;
-        enviarAlServidor([datosBase], resumenDesdeStock(ordenRaw, descs));
+        sincronizarResumenStock();
+        enviarAlServidor([datosBase], []);
         return;
       }
       enviarAlServidor([datosBase], [{orden: ordenRaw, total: cantNumerica}]);
@@ -2527,6 +2556,7 @@ function confirmarMultiples() {
     var descs = stockDescParaEnviar(totalStock);
     if (!descs) return;
     stockDescActual = descs;
+    document.querySelectorAll("#bodyResumen tr[data-stock]").forEach(function(tr) { tr.remove(); });  // van por orden (resumenExtra)
   }
   document.getElementById("modalCantidades").style.display = "none"; enviarAlServidor(arrDatos, resumenExtra);
 }

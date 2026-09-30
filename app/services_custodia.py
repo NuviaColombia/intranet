@@ -270,9 +270,30 @@ def _movimientos_stock(db: Session, traslado: CustodiaTraslado, lineas: list[dic
         else:  # una orden que entra al Stock (ej. a DIR Producción): toma las descripciones de su Resumen general
             fuentes = [(_descripcion(r.get("descripcion")), float(r.get("total") or 0)) for r in resumen
                        if str(r.get("orden") or "").strip().upper() == origen and (r.get("total") or 0) > 0]
+            if not fuentes and len(lineas) == 1:  # Resumen pegado sin número de orden: es de la única orden del traslado
+                fuentes = [(_descripcion(r.get("descripcion")), float(r.get("total") or 0)) for r in resumen
+                           if not str(r.get("orden") or "").strip() and (r.get("total") or 0) > 0]
             partes = _repartir(fuentes, l["cantidad_discos"])
         for d, c in partes:
             agregar(traslado.area_entrada, d, c, "ENTRADA")
+
+
+def recalcular_entradas_stock(db: Session, traslado: CustodiaTraslado) -> int:
+    """Vuelve a calcular lo que un traslado dejó en el Stock por descripción, desde su Resumen general
+    (solo si ese traslado no tiene movimientos de Stock). Devuelve cuántos movimientos creó."""
+    from .models_custodia import CustodiaStockDescripcion as SD
+    if traslado.anulado or db.query(SD).filter(SD.traslado_id == traslado.id).first():
+        return 0
+    lineas = [{"numero_orden": o.numero_orden, "cantidad_discos": o.cantidad_discos, "orden_origen": o.orden_origen}
+              for o in traslado.ordenes]
+    if any(_sale_de_stock(l) for l in lineas):
+        return 0  # las salidas del Stock necesitan que alguien diga de qué descripción salieron
+    resumen = [{"orden": r.orden, "descripcion": r.descripcion, "total": r.total} for r in traslado.resumen]
+    antes = len(db.new)
+    _movimientos_stock(db, traslado, lineas, resumen, [], traslado.creado_por)
+    creados = len(db.new) - antes
+    db.commit()
+    return creados
 
 
 def leer_stock_inicial(texto: str) -> tuple[list[tuple[str, float]], list[str]]:
