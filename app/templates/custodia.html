@@ -542,16 +542,14 @@
             </tr>
             <tr>
               <td class="label-cell" style="border-left: 1px solid var(--border-soft) !important;">Fecha</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewFecha"></td>
-              <td class="label-cell">Área creación</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaCreacion"></td>
+              <td class="label-cell">Cantidad discos</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; color:var(--success); font-size:14px;" id="viewCantidad"></td>
               <td class="label-cell">Área entrada</td><td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700;" id="viewAreaEntrada"></td>
             </tr>
             <tr>
-              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">Hora</td>
-              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:700; border-bottom: 1px solid var(--border-soft) !important;" id="viewHora"></td>
-              <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Cantidad discos</td>
-              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; color:var(--success); font-size:14px; border-bottom: 1px solid var(--border-soft) !important;" id="viewCantidad"></td>
+              <td class="label-cell" style="border-bottom-left-radius: 12px; border-left: 1px solid var(--border-soft) !important; border-bottom: 1px solid var(--border-soft) !important;">Motivo</td>
+              <td class="input-cell" colspan="3" style="padding:10px 15px; text-align:right; font-weight:700; border-bottom: 1px solid var(--border-soft) !important;" id="viewMotivo"></td>
               <td class="label-cell" style="border-bottom: 1px solid var(--border-soft) !important;">Estado</td>
-              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;" id="viewMotivo"></td>
+              <td class="input-cell" style="padding:10px 15px; text-align:right; font-weight:800; border-bottom-right-radius: 12px; border-bottom: 1px solid var(--border-soft) !important;" id="viewEstado"></td>
             </tr>
           </table>
 
@@ -1779,8 +1777,8 @@ function generarHtmlDocumentoRango(tickets) {
         <table class="datos">
           <tr><td class="vacia" colspan="4"></td><td class="etq">Consecutivo</td><td class="val cons">${String(t.id).padStart(4, '0')}</td></tr>
           <tr><td class="etq">Colaborador</td><td class="val">${_may(t.colaborador)}</td><td class="etq">Número de orden</td><td class="val">${_may(t.ordenes)}</td><td class="etq">Área salida</td><td class="val">${_may(t.areaSalida)}</td></tr>
-          <tr><td class="etq">Área creación</td><td class="val">${_may(t.areaCreacion)}</td><td class="etq">Fecha</td><td class="val">${t.fecha}</td><td class="etq">Área entrada</td><td class="val">${_may(t.areaEntrada)}</td></tr>
-          <tr><td class="etq">Motivo</td><td class="val">${_may(t.motivo)}</td><td class="etq">Hora</td><td class="val">${t.hora}</td><td class="etq">Cantidad discos</td><td class="val cant">${t.cantidad}</td></tr>
+          <tr><td class="etq">Fecha</td><td class="val">${t.fecha}</td><td class="etq">Cantidad discos</td><td class="val cant">${t.cantidad}</td><td class="etq">Área entrada</td><td class="val">${_may(t.areaEntrada)}</td></tr>
+          <tr><td class="etq">Motivo</td><td class="val" colspan="5" style="text-align:left">${_may(t.motivo)}</td></tr>
         </table>
         ${t.anulado ? `<div class="anulado">DOCUMENTO ANULADO${t.anuladoPor ? ' POR ' + _may(t.anuladoPor) : ''}${t.anuladoEn ? ' EL ' + t.anuladoEn : ''}${t.motivoAnulacion ? ' — ' + t.motivoAnulacion : ''}</div>` : ''}
         ${htmlResumen ? `<h4>Resumen general</h4><table class="consulta-tabla">${htmlResumen}</table>` : ''}
@@ -1968,15 +1966,14 @@ function renderTabla() {
 function abrirModalPreview(t) {
   registroActivoModal = t;
   document.getElementById("viewColaborador").innerText = nombrePropio(t.colaborador || "");
-  document.getElementById("viewAreaCreacion").innerText = t.areaCreacion || "";
   document.getElementById("viewOrden").innerText = t.ordenes || "";
   document.getElementById("viewFecha").innerText = t.fecha || "";
   document.getElementById("viewFechaHeader").innerText = "Fecha: " + (t.fecha || "");
-  document.getElementById("viewHora").innerText = t.hora || "";
   document.getElementById("viewAreaSalida").innerText = t.areaSalida || "";
   document.getElementById("viewAreaEntrada").innerText = t.areaEntrada || "";
   document.getElementById("viewCantidad").innerText = t.cantidad || "";
-  document.getElementById("viewMotivo").innerText = t.estado || t.motivo || "";
+  document.getElementById("viewMotivo").innerText = nombrePropio(t.motivo || "");
+  document.getElementById("viewEstado").innerText = t.estado || "";
   document.getElementById("viewConsecutivo").innerText = String(t.id).padStart(4, '0');
 
   document.getElementById("btnAnularModal").style.display = t.anulado ? "none" : "inline-block";

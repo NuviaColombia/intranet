@@ -269,9 +269,11 @@
   </div>
   {% if saldos_cargados %}
   <div style="margin:12px 0; padding:12px 14px; border-radius:8px; background:#dcfce7; color:#14532d; font-size:13px; max-width:900px;">
-    ✅ Los saldos iniciales ya están cargados ({{ saldos_cargados }} área(s)). Míralos en Cambio de custodia › Estado órdenes.
+    ✅ Ya hay saldos iniciales cargados: <b>{{ saldos_existentes|length }}</b> orden(es) en {{ saldos_cargados }} carga(s). Míralos en Cambio de custodia › Estado órdenes.<br>
+    Si quedaron órdenes por fuera, pégalas aquí abajo y cárgalas como <b>saldos adicionales</b>: no se repiten las que ya están
+    (misma orden en la misma área).
   </div>
-  {% else %}
+  {% endif %}
   <form method="post" action="/inventario/parametros/custodia/saldos" style="max-width:900px"
         onsubmit="return confirm('¿Cargar ' + (window.saldosFilas || 0) + ' órdenes como saldo inicial con fecha de corte ' + document.getElementById('saldos-fecha').value.split('-').reverse().join('/') + '?');">
     <textarea name="texto" id="saldos-texto" rows="10" style="width:100%; font-family:Consolas,monospace; font-size:13px;"
@@ -279,18 +281,18 @@
     <div id="saldos-vista" style="margin:10px 0; font-size:13px;"></div>
     <div style="display:flex; align-items:end; gap:12px; flex-wrap:wrap;">
       <div><label style="display:block; font-size:12px; font-weight:700;">Fecha de corte</label>
-        <input type="date" name="fecha_corte" id="saldos-fecha" required style="width:auto"
+        <input type="date" name="fecha_corte" id="saldos-fecha" required style="width:auto" value="{{ fecha_corte_anterior or '' }}"
                title="Los saldos quedan registrados en esta fecha (00:00): los traslados de ese día o posteriores se suman después."></div>
-      <button class="btn mini" id="saldos-boton" disabled>📥 Cargar saldos iniciales</button>
+      <button class="btn mini" id="saldos-boton" disabled>📥 {{ 'Cargar saldos adicionales' if saldos_cargados else 'Cargar saldos iniciales' }}</button>
     </div>
   </form>
-  {% endif %}
 </div>
 <script>
 (function() {
   var ta = document.getElementById('saldos-texto');
   if (!ta) return;
   var AREAS = {{ areas_config|tojson }};
+  var YA_CARGADOS = {{ saldos_existentes|tojson }};  // "orden|ÁREA" que ya tienen saldo inicial
   function leer(texto) {
     var filas = [], errores = [];
     texto.split(/\r?\n/).forEach(function(linea, i) {
@@ -302,6 +304,8 @@
       var cant = parseFloat(txt.indexOf(',') >= 0 ? txt.replace(/\./g, '').replace(',', '.') : txt);
       if (isNaN(cant)) { if (!filas.length) return; errores.push('Fila ' + (i + 1) + ': cantidad «' + txt + '» no es un número'); return; }
       if (AREAS.indexOf(area) < 0) { errores.push('Fila ' + (i + 1) + ': el área «' + area + '» no existe'); return; }
+      if (YA_CARGADOS.indexOf(orden + '|' + area) >= 0) { errores.push('Fila ' + (i + 1) + ': la orden ' + orden + ' ya tiene saldo inicial en ' + area); return; }
+      if (filas.some(function(f) { return f.orden === orden && f.area === area; })) { errores.push('Fila ' + (i + 1) + ': la orden ' + orden + ' está repetida en ' + area); return; }
       filas.push({orden: orden, cant: cant, area: area});
     });
     return {filas: filas, errores: errores};
