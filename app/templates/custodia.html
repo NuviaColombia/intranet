@@ -915,6 +915,7 @@ function actualizarAreaEntradaDefault() {
   var salida = document.getElementById("areaSalida").value;
   var siguiente = SIGUIENTE_AREA[salida];
   if (siguiente) document.getElementById("areaEntrada").value = siguiente;
+  if (!modoOrdenNuevaActivo) pintarOrdenesPorArea();
   if (typeof alternarStock === "function") alternarStock();
   if (typeof actualizarOrigenNueva === "function") actualizarOrigenNueva();
 }
@@ -1069,23 +1070,36 @@ function ocultarErrorCantidad() {
   document.getElementById("errorCantidadDiscos").style.display = "none";
 }
 
+// Órdenes activas (con saldo) por área: la lista «Número de orden» muestra solo las del área de salida elegida
+var ordenesActivasRegistro = null;
 function cargarOrdenesIncompletas() {
   var sel = document.getElementById("numeroOrdenSelect");
   sel.innerHTML = '<option value="">Cargando...</option>';
   custodiaApi('/custodia/api/ordenes-incompletas').then(function(lista) {
-    sel.innerHTML = '<option value="">Seleccionar...</option>';
-    if (lista.length === 0) {
-      sel.innerHTML = '<option value="">Sin órdenes en proceso</option>';
-      return;
-    }
     lista.sort(function(a, b) { return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
-    lista.forEach(function(o) {
+    ordenesActivasRegistro = lista;
+    pintarOrdenesPorArea();
+  });
+}
+function pintarOrdenesPorArea() {
+  var sel = document.getElementById("numeroOrdenSelect");
+  if (!sel || ordenesActivasRegistro === null) return;
+  var area = (document.getElementById("areaSalida").value || "").toUpperCase(), anterior = sel.value;
+  if (!area) { sel.innerHTML = '<option value="">Elige primero el área de salida</option>'; alternarStock(); return; }
+  var delArea = ordenesActivasRegistro.filter(function(o) { return String(o.ubicacion || "").toUpperCase() === area; });
+  if (!delArea.length) {
+    sel.innerHTML = '<option value="">Sin órdenes activas en ' + nombrePropio(area) + '</option>';
+  } else {
+    sel.innerHTML = '<option value="">Seleccionar... (' + delArea.length + ' en ' + nombrePropio(area) + ')</option>';
+    delArea.forEach(function(o) {
       var opt = document.createElement("option");
       opt.value = o.orden;
-      opt.innerText = o.orden + " — " + o.ubicacion + " (" + o.cantidad.toFixed(2) + ")";
+      opt.innerText = o.orden + " (" + o.cantidad.toFixed(2) + ")";
       sel.appendChild(opt);
     });
-  });
+    if (delArea.some(function(o) { return o.orden === anterior; })) sel.value = anterior;  // conserva la elegida si sigue en esa área
+  }
+  alternarStock();
 }
 
 function formatoFechaLocal(d) {
