@@ -1,6 +1,7 @@
 """Certificado laboral autogenerado por el propio empleado."""
 from datetime import date
 from fastapi import APIRouter, Request, Depends, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -18,7 +19,7 @@ def fecha_larga_es(d: date) -> str:
     return f"{d.day} de {MESES_ES[d.month - 1]} de {d.year}"
 
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 FIRMANTE_NOMBRE = "Pamela Manzur"
 FIRMANTE_CARGO = "Directora de People"
@@ -27,7 +28,7 @@ CORREO_VERIFICACION = "pamela.manzurroca@nuviasmiles.com"
 
 
 @router.get("/certificaciones")
-async def certificaciones_form(request: Request, user: Empleado = Depends(get_current_user)):
+def certificaciones_form(request: Request, user: Empleado = Depends(get_current_user)):
     return templates.TemplateResponse(request, "certificaciones.html",
                                       {"user": user, "error": request.query_params.get("error")})
 

@@ -1,12 +1,10 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
-import asyncio
 import os
 import re
-import weakref
 from datetime import date
 from typing import Literal
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
-from fastapi.routing import APIRoute
+from ..concurrencia import clase_con_cupo
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
@@ -19,32 +17,10 @@ from ..auth import require_modulo, require_admin, require_design_manager
 from ..main_templates import templates
 from .. import services_design as sd
 
-# Tope de peticiones de Design usando la base a la vez. Sin él, un pico (p. ej. 130 personas abriendo el
-# horario al inicio del turno) trababa el servidor: las peticiones que esperaban conexión del pool (5 + 10,
-# compartido con todos los módulos) ocupaban los 40 hilos de FastAPI, y las que ya tenían conexión no
-# conseguían hilo para terminar y devolverla -> 30 s de espera y error 500. Aquí la espera ocurre antes de
-# tomar hilo o conexión, así que Design nunca agota ni los hilos ni el pool de los demás módulos.
-# Se puede ajustar con la variable de entorno DESIGN_CONCURRENCIA (debe quedar por debajo del tamaño del pool).
+# Tope de peticiones de Design usando la base a la vez (ver app/concurrencia.py). Se puede ajustar con la
+# variable de entorno DESIGN_CONCURRENCIA (debe quedar por debajo del tamaño del pool junto con el resto).
 DESIGN_CONCURRENCIA = max(1, int(os.getenv("DESIGN_CONCURRENCIA", "8")))
-_cupos_por_loop: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = weakref.WeakKeyDictionary()
-
-
-def _cupos_design() -> asyncio.Semaphore:
-    loop = asyncio.get_running_loop()  # uno por event loop (las pruebas crean varios)
-    sem = _cupos_por_loop.get(loop)
-    if sem is None:
-        sem = _cupos_por_loop[loop] = asyncio.Semaphore(DESIGN_CONCURRENCIA)
-    return sem
-
-
-class _RutaDesign(APIRoute):
-    def get_route_handler(self):
-        original = super().get_route_handler()
-
-        async def handler(request: Request):
-            async with _cupos_design():
-                return await original(request)
-        return handler
+_RutaDesign = clase_con_cupo(DESIGN_CONCURRENCIA)
 
 
 router = APIRouter(route_class=_RutaDesign)
@@ -114,12 +90,21 @@ def api_importar_equipos_aplicar(user: Empleado = Depends(require_admin), db: Se
 
 # ---------- Parámetros: equipos ----------
 
+def _param_invalido(msg: str) -> RedirectResponse:
+    """Dato de Parámetros que no existe (área, equipo, persona): aviso en la página en vez de error 500."""
+    return RedirectResponse(f"/design/parametros?msg={msg}", status_code=303)
+
+
 @router.post("/design/parametros/equipos")
 def crear_equipo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                        area_id: int = Form(...), nombre: str = Form(...), manager_id: str = Form("")):
+    if not db.get(DesignArea, area_id):
+        return _param_invalido("El área elegida no existe.")
+    mid = int(manager_id) if manager_id.strip().isdigit() else None
+    if manager_id.strip() and (mid is None or not db.get(Empleado, mid)):
+        return _param_invalido("El manager elegido no existe.")
     orden = db.query(DesignTeam).filter(DesignTeam.area_id == area_id).count() + 1
-    db.add(DesignTeam(area_id=area_id, nombre=nombre.strip(), orden=orden,
-                      manager_id=int(manager_id) if manager_id else None))
+    db.add(DesignTeam(area_id=area_id, nombre=nombre.strip(), orden=orden, manager_id=mid))
     db.commit()
     return RedirectResponse("/design/parametros?msg=Equipo creado.", status_code=303)
 
@@ -136,6 +121,8 @@ def toggle_equipo(team_id: int, user: Empleado = Depends(require_admin), db: Ses
 @router.post("/design/parametros/equipos/{team_id}/designers")
 def agregar_designer(team_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                            empleado_id: int = Form(...)):
+    if not db.get(DesignTeam, team_id) or not db.get(Empleado, empleado_id):
+        return _param_invalido("El equipo o la persona elegida no existe.")
     ya_existe = (db.query(DesignTeamDesigner)
                 .filter(DesignTeamDesigner.team_id == team_id, DesignTeamDesigner.empleado_id == empleado_id)
                 .first())
@@ -160,6 +147,8 @@ def quitar_designer(registro_id: int, user: Empleado = Depends(require_admin), d
 @router.post("/design/parametros/catalogos")
 def crear_valor_catalogo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                                area_id: int = Form(...), tipo: str = Form(...), valor: str = Form(...)):
+    if not db.get(DesignArea, area_id):
+        return _param_invalido("El área elegida no existe.")
     sd.agregar_valor_catalogo(db, area_id, tipo, valor)
     return RedirectResponse("/design/parametros?msg=Valor agregado.", status_code=303)
 
@@ -564,6 +553,7 @@ def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require
 def api_favorito_toggle_cmt_template(template_id: int,
                                            user: Empleado = Depends(require_modulo("design_schedule")),
                                            db: Session = Depends(get_db)):
+    _exigir_para_marcar(db, user, "cmtTemplates", template_id, sd.DesignComentarioTemplate, "Plantilla no encontrada.")
     return {"favorito": sd.favorito_toggle_cmt_template(db, user.id, template_id)}
 
 
@@ -752,6 +742,8 @@ def api_crear_preapproved_sheet(area_id: int, nombre: str = "",
                                       user: Empleado = Depends(require_modulo("design_schedule")),
                                       db: Session = Depends(get_db)):
     _pa_editor(user)
+    if not db.get(DesignArea, area_id):
+        raise HTTPException(404, "Área no encontrada.")
     s = sd.crear_preapproved_sheet(db, area_id, nombre)
     return {"id": s.id, "nombre": s.nombre}
 
@@ -788,6 +780,8 @@ def api_agregar_centro(sheet_id: int, nombre: str = "", doctores: int = 1,
                              user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
+    if not db.get(sd.DesignPreApprovedSheet, sheet_id):
+        raise HTTPException(404, "Hoja no encontrada.")
     c = sd.preapproved_agregar_centro(db, sheet_id, nombre, doctores)
     return {"id": c.id}
 
@@ -819,6 +813,8 @@ def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo(
 def api_agregar_doctor(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
+    if not db.get(sd.DesignPreApprovedSheet, sheet_id):
+        raise HTTPException(404, "Hoja no encontrada.")
     d = sd.preapproved_agregar_doctor(db, sheet_id)
     return {"id": d.id}
 
@@ -849,6 +845,8 @@ def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_modulo(
 def api_agregar_fila(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
     _pa_editor(user)
+    if not db.get(sd.DesignPreApprovedSheet, sheet_id):
+        raise HTTPException(404, "Hoja no encontrada.")
     f = sd.preapproved_agregar_fila(db, sheet_id)
     return {"id": f.id}
 
@@ -1139,13 +1137,22 @@ def api_favorito_toggle_team(team_id: int, user: Empleado = Depends(require_modu
 @router.post("/design/api/favoritos/preapproved/{sheet_id}/toggle")
 def api_favorito_toggle_preapproved(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                           db: Session = Depends(get_db)):
+    _exigir_para_marcar(db, user, "preapproved", sheet_id, sd.DesignPreApprovedSheet, "Hoja no encontrada.")
     return {"favorito": sd.favorito_toggle_preapproved(db, user.id, sheet_id)}
 
 
 @router.post("/design/api/favoritos/protocolo/{protocolo_id}/toggle")
 def api_favorito_toggle_protocolo(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                         db: Session = Depends(get_db)):
+    _exigir_para_marcar(db, user, "protocolos", protocolo_id, sd.DesignProtocolo, "Protocolo no encontrado.")
     return {"favorito": sd.favorito_toggle_protocolo(db, user.id, protocolo_id)}
+
+
+def _exigir_para_marcar(db: Session, user: Empleado, clave: str, obj_id: int, modelo, msg: str) -> None:
+    """Al marcar un favorito el elemento debe existir (antes: error 500 por la llave foránea en Postgres).
+    Quitar un favorito siempre se puede, aunque el elemento ya no exista."""
+    if obj_id not in sd.favoritos_activos(db, user.id)[clave] and not db.get(modelo, obj_id):
+        raise HTTPException(404, msg)
 
 
 # ---------- Protocols ----------

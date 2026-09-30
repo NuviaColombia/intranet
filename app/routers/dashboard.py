@@ -1,5 +1,6 @@
 from datetime import date
 from fastapi import APIRouter, Request, Depends
+from ..concurrencia import RutaGeneral
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
@@ -8,11 +9,11 @@ from ..auth import require_modulo, empresa_filtro
 from ..services import saldo_disponible, pendientes_de
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.get("/panel")
-async def home(request: Request, user: Empleado = Depends(require_modulo("people")),
+def home(request: Request, user: Empleado = Depends(require_modulo("people")),
                db: Session = Depends(get_db)):
     anio = date.today().year
     tipos = db.query(TipoPermiso).filter(TipoPermiso.activo == 1).all()

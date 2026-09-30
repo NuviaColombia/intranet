@@ -1,5 +1,8 @@
 from datetime import date, datetime, timedelta
+import zipfile
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
+from openpyxl.utils.exceptions import InvalidFileException
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
@@ -11,7 +14,7 @@ from ..excel_import import importar_empleados, generar_plantilla, exportar_repor
 from ..services import auditar, notificar_empleado_creado
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -19,7 +22,7 @@ XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 # ---------- Empleados ----------
 
 @router.get("/empleados")
-async def empleados(request: Request, user: Empleado = Depends(require_admin),
+def empleados(request: Request, user: Empleado = Depends(require_admin),
                     db: Session = Depends(get_db)):
     q = db.query(Empleado)
     empresa_propia = empresa_filtro(user)
@@ -40,22 +43,67 @@ async def empleados(request: Request, user: Empleado = Depends(require_admin),
 
 
 @router.get("/empleados/plantilla")
-async def plantilla(user: Empleado = Depends(require_admin)):
+def plantilla(user: Empleado = Depends(require_admin)):
     return Response(generar_plantilla(), media_type=XLSX,
                     headers={"Content-Disposition": "attachment; filename=plantilla_empleados.xlsx"})
+
+
+MAX_IMPORT_BYTES = 10 * 1024 * 1024
 
 
 @router.post("/empleados/importar")
 async def importar(request: Request, user: Empleado = Depends(require_admin),
                    db: Session = Depends(get_db), archivo: UploadFile = File(...)):
-    contenido = await archivo.read()
-    resultado = importar_empleados(db, contenido, empresa_forzada=empresa_filtro(user))
+    # Tope de 10 MB (una plantilla de empleados pesa unos KB): un archivo gigante por error no llena la memoria.
+    contenido = await archivo.read(MAX_IMPORT_BYTES + 1)
+    if len(contenido) > MAX_IMPORT_BYTES:
+        return RedirectResponse("/empleados?msg=El archivo es demasiado grande (máximo 10 MB).", status_code=303)
+    try:
+        resultado = importar_empleados(db, contenido, empresa_forzada=empresa_filtro(user))
+    except (zipfile.BadZipFile, InvalidFileException, OSError):  # no es un .xlsx (antes: error 500)
+        db.rollback()
+        return RedirectResponse("/empleados?msg=El archivo no es un Excel válido (.xlsx). Usa la plantilla.",
+                                status_code=303)
     auditar(db, user.email, "Import de empleados",
             f"creados={resultado['creados']} actualizados={resultado['actualizados']} "
             f"errores={len(resultado['errores'])}")
     db.commit()
     request.session["import_resultado"] = resultado
     return RedirectResponse("/empleados", status_code=303)
+
+
+class _DatoInvalido(ValueError):
+    """Un dato del formulario no tiene el formato esperado: se avisa al usuario en vez de dar error 500."""
+
+
+def _fecha_form(txt: str, etiqueta: str) -> date | None:
+    txt = (txt or "").strip()
+    if not txt:
+        return None
+    try:
+        return date.fromisoformat(txt)
+    except ValueError:
+        raise _DatoInvalido(f"La {etiqueta} no es una fecha válida.")
+
+
+def _numero_form(txt: str, etiqueta: str) -> float | None:
+    txt = (txt or "").strip()
+    if not txt:
+        return None
+    try:
+        return float(txt)
+    except ValueError:
+        raise _DatoInvalido(f"{etiqueta} debe ser un número.")
+
+
+def _id_form(txt: str) -> int | None:
+    txt = (txt or "").strip()
+    if not txt:
+        return None
+    try:
+        return int(txt)
+    except ValueError:
+        raise _DatoInvalido("El aprobador elegido no es válido.")
 
 
 @router.post("/empleados/nuevo")
@@ -69,6 +117,13 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
                          aprobador1_id: str = Form(""), aprobador2_id: str = Form(""),
                          salario: str = Form(""),
                          modulos: list[str] = Form([])):
+    try:
+        f_nac = _fecha_form(fecha_nacimiento, "fecha de nacimiento")
+        f_ini = _fecha_form(fecha_inicio_empresa, "fecha de inicio en la empresa")
+        salario_num = _numero_form(salario, "El salario")
+        a1_id, a2_id = _id_form(aprobador1_id), _id_form(aprobador2_id)
+    except _DatoInvalido as e:
+        return RedirectResponse(f"/empleados?msg={e}", status_code=303)
     identificacion = identificacion.strip()
     email = email.strip().lower()
     if db.query(Empleado).filter(Empleado.identificacion == identificacion).first():
@@ -81,8 +136,8 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
     rol_final = rol if rol in ("empleado", "admin", "aprobador", "superadmin") else "empleado"
     if rol_final == "superadmin" and user.rol != "superadmin":
         rol_final = "admin"  # solo un superadmin puede otorgar el rol de superadmin
-    aprobador1 = db.get(Empleado, int(aprobador1_id)) if aprobador1_id else None
-    aprobador2 = db.get(Empleado, int(aprobador2_id)) if aprobador2_id else None
+    aprobador1 = db.get(Empleado, a1_id) if a1_id else None
+    aprobador2 = db.get(Empleado, a2_id) if a2_id else None
     if user.rol != "superadmin":
         if aprobador1 and not puede_administrar_empresa(user, aprobador1.empresa):
             aprobador1 = None
@@ -90,15 +145,15 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
             aprobador2 = None
     emp = Empleado(
         nombres=nombres.strip(), apellidos=apellidos.strip(),
-        fecha_nacimiento=date.fromisoformat(fecha_nacimiento) if fecha_nacimiento.strip() else None,
-        fecha_inicio_empresa=date.fromisoformat(fecha_inicio_empresa) if fecha_inicio_empresa.strip() else None,
+        fecha_nacimiento=f_nac,
+        fecha_inicio_empresa=f_ini,
         empresa=empresa_final, cargo=cargo.strip(), area=area.strip(),
         identificacion=identificacion, email=email,
         num_aprobaciones=num_aprobaciones if num_aprobaciones in (1, 2) else 1,
         rol=rol_final,
         aprobador1_id=aprobador1.id if aprobador1 else None,
         aprobador2_id=aprobador2.id if aprobador2 else None,
-        salario=float(salario) if salario.strip() else None,
+        salario=salario_num,
         modulos=",".join(m for m in modulos if m in MODULOS_VALIDOS),
     )
     db.add(emp)
@@ -110,7 +165,7 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
 
 
 @router.get("/empleados/{emp_id}/editar")
-async def editar_empleado_form(request: Request, emp_id: int, user: Empleado = Depends(require_admin),
+def editar_empleado_form(request: Request, emp_id: int, user: Empleado = Depends(require_admin),
                                db: Session = Depends(get_db)):
     emp = db.get(Empleado, emp_id)
     if not emp:
@@ -157,6 +212,13 @@ async def editar_empleado(emp_id: int, user: Empleado = Depends(require_admin),
         return RedirectResponse("/empleados?msg=No tienes permiso para editar empleados de otra empresa.",
                                 status_code=303)
 
+    try:
+        f_nac = _fecha_form(fecha_nacimiento, "fecha de nacimiento")
+        f_ini = _fecha_form(fecha_inicio_empresa, "fecha de inicio en la empresa")
+        salario_num = _numero_form(salario, "El salario")
+        a1_id, a2_id = _id_form(aprobador1_id), _id_form(aprobador2_id)
+    except _DatoInvalido as e:
+        return RedirectResponse(f"/empleados/{emp_id}/editar?error={e}", status_code=303)
     identificacion = identificacion.strip()
     email = email.strip().lower()
     if db.query(Empleado).filter(Empleado.identificacion == identificacion, Empleado.id != emp_id).first():
@@ -172,8 +234,8 @@ async def editar_empleado(emp_id: int, user: Empleado = Depends(require_admin),
     rol_final = rol if rol in ("empleado", "admin", "aprobador", "superadmin") else "empleado"
     if rol_final == "superadmin" and user.rol != "superadmin":
         rol_final = emp.rol if emp.rol == "superadmin" else "admin"  # no degradar por accidente ni escalar
-    aprobador1 = db.get(Empleado, int(aprobador1_id)) if aprobador1_id else None
-    aprobador2 = db.get(Empleado, int(aprobador2_id)) if aprobador2_id else None
+    aprobador1 = db.get(Empleado, a1_id) if a1_id else None
+    aprobador2 = db.get(Empleado, a2_id) if a2_id else None
     if user.rol != "superadmin":
         if aprobador1 and not puede_administrar_empresa(user, aprobador1.empresa):
             aprobador1 = None
@@ -182,15 +244,15 @@ async def editar_empleado(emp_id: int, user: Empleado = Depends(require_admin),
 
     emp.nombres = nombres.strip()
     emp.apellidos = apellidos.strip()
-    emp.fecha_nacimiento = date.fromisoformat(fecha_nacimiento) if fecha_nacimiento.strip() else None
-    emp.fecha_inicio_empresa = date.fromisoformat(fecha_inicio_empresa) if fecha_inicio_empresa.strip() else None
+    emp.fecha_nacimiento = f_nac
+    emp.fecha_inicio_empresa = f_ini
     emp.empresa = empresa_final
     emp.cargo = cargo.strip()
     emp.area = area.strip()
     emp.identificacion = identificacion
     emp.email = email
     emp.dias_vacaciones = dias_vacaciones
-    emp.salario = float(salario) if salario.strip() else None
+    emp.salario = salario_num
     emp.rol = rol_final
     emp.num_aprobaciones = num_aprobaciones if num_aprobaciones in (1, 2) else 1
     emp.aprobador1_id = aprobador1.id if aprobador1 else None
@@ -205,7 +267,7 @@ async def editar_empleado(emp_id: int, user: Empleado = Depends(require_admin),
 # ---------- Parámetros (tipos de permiso) ----------
 
 @router.get("/tipos")
-async def tipos(request: Request, user: Empleado = Depends(require_admin),
+def tipos(request: Request, user: Empleado = Depends(require_admin),
                 db: Session = Depends(get_db)):
     lista = db.query(TipoPermiso).order_by(TipoPermiso.nombre).all()
     empresas = db.query(Empresa).order_by(Empresa.nombre).all()
@@ -219,9 +281,13 @@ async def tipos(request: Request, user: Empleado = Depends(require_admin),
 @router.post("/tipos")
 async def crear_tipo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                      nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form("")):
-    db.add(TipoPermiso(nombre=nombre.strip(),
-                       dias_anuales=float(dias_anuales) if dias_anuales.strip() else None,
-                       permite_horas=1 if permite_horas else 0))
+    try:
+        dias = _numero_form(dias_anuales, "Los días anuales")
+    except _DatoInvalido as e:
+        return RedirectResponse(f"/tipos?msg={e}", status_code=303)
+    if db.query(TipoPermiso).filter(TipoPermiso.nombre == nombre.strip()).first():
+        return RedirectResponse("/tipos?msg=Ya existe un parámetro con ese nombre.", status_code=303)
+    db.add(TipoPermiso(nombre=nombre.strip(), dias_anuales=dias, permite_horas=1 if permite_horas else 0))
     db.commit()
     return RedirectResponse("/tipos", status_code=303)
 
@@ -231,9 +297,15 @@ async def editar_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db:
                       nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form("")):
     t = db.get(TipoPermiso, tipo_id)
     if t:
+        try:
+            dias = _numero_form(dias_anuales, "Los días anuales")
+        except _DatoInvalido as e:
+            return RedirectResponse(f"/tipos?msg={e}", status_code=303)
+        if db.query(TipoPermiso).filter(TipoPermiso.nombre == nombre.strip(), TipoPermiso.id != tipo_id).first():
+            return RedirectResponse("/tipos?msg=Ya existe otro parámetro con ese nombre.", status_code=303)
         t.nombre = nombre.strip()
         if not t.es_vacaciones:
-            t.dias_anuales = float(dias_anuales) if dias_anuales.strip() else None
+            t.dias_anuales = dias
             t.permite_horas = 1 if permite_horas else 0
         auditar(db, user.email, f"Parámetro editado: {t.nombre}")
         db.commit()
@@ -314,7 +386,7 @@ async def actualizar_configuracion(user: Empleado = Depends(require_admin), db: 
 # ---------- Reportes ----------
 
 @router.get("/reportes")
-async def reportes(request: Request, user: Empleado = Depends(require_admin),
+def reportes(request: Request, user: Empleado = Depends(require_admin),
                    db: Session = Depends(get_db),
                    aud_desde: str = "", aud_hasta: str = "", aud_actor: str = "",
                    aud_accion: str = "", aud_empleado_id: str = "", aud_solicitud: str = "",
@@ -365,7 +437,7 @@ async def reportes(request: Request, user: Empleado = Depends(require_admin),
 
 
 @router.get("/reportes/exportar")
-async def exportar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def exportar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                    desde: str = "", hasta: str = "", area: str = "", empresa: str = "",
                    estado: str = ""):
     empresa_propia = empresa_filtro(user)

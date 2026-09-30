@@ -225,7 +225,7 @@
     api('/sst/api/solicitudes/mias').then(function(sols) {
       var cuerpo = document.getElementById('miasCuerpo');
       cuerpo.innerHTML = sols.map(function(s) {
-        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ')'; }).join(', ');
+        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + esc(l.unidadUsada) + ')'; }).join(', ');
         return '<tr><td>' + s.fecha + '</td><td>' + items + '</td><td>' + badgeEstado(s.estado) +
           (s.estado === 'rechazada' && s.motivoRechazo ? '<br><small>' + esc(s.motivoRechazo) + '</small>' : '') +
           '</td><td>' + esc(s.notas) + '</td></tr>';
@@ -276,7 +276,7 @@
       filas.forEach(function(i) { INGRESOS_PEND[i.id] = i; });
       var cuerpo = document.getElementById('aiCuerpo');
       cuerpo.innerHTML = filas.map(function(i) {
-        return '<tr><td>' + i.fecha + '</td><td>' + esc(i.item) + '</td><td>' + num(i.cantidadIngresada) + ' ' + i.unidadUsada +
+        return '<tr><td>' + i.fecha + '</td><td>' + esc(i.item) + '</td><td>' + num(i.cantidadIngresada) + ' ' + esc(i.unidadUsada) +
           ' (' + num(i.cantidadUnidades) + ' unidades)</td><td>' + esc(i.registradoPor) + '</td><td>' + esc(i.notas) + '</td>' +
           '<td><button type="button" class="sst-ojo" title="Ver resumen" onclick="verIngreso(' + i.id + ')">👁️</button> ' +
           '<button type="button" class="btn verde mini" onclick="aprobarIngreso(' + i.id + ')">Aprobar</button> ' +
@@ -293,7 +293,7 @@
     var i = INGRESOS_PEND[id]; if (!i) return;
     var html = filaModal('Consecutivo', esc(i.consecutivo)) +
       filaModal('Ítem', esc(i.item)) +
-      filaModal('Cantidad', num(i.cantidadIngresada) + ' ' + i.unidadUsada + ' (' + num(i.cantidadUnidades) + ' unidades)') +
+      filaModal('Cantidad', num(i.cantidadIngresada) + ' ' + esc(i.unidadUsada) + ' (' + num(i.cantidadUnidades) + ' unidades)') +
       filaModal('Fecha', i.fecha) +
       filaModal('Solicita (registra el ingreso)', esc(i.registradoPor)) +
       filaModal('Notas', esc(i.notas) || '—') +
@@ -309,7 +309,7 @@
       sols.forEach(function(s) { SOLICITUDES_PEND[s.id] = s; });
       var cuerpo = document.getElementById('asCuerpo');
       cuerpo.innerHTML = sols.map(function(s) {
-        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ')'; }).join(', ');
+        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + esc(l.unidadUsada) + ')'; }).join(', ');
         return '<tr><td>' + s.fecha + '</td><td>' + esc(s.solicitante) + '</td><td>' + items + '</td><td>' + esc(s.notas) + '</td>' +
           '<td><button type="button" class="sst-ojo" title="Ver resumen" onclick="verSolicitud(' + s.id + ')">👁️</button> ' +
           '<button type="button" class="btn verde mini" onclick="entregarSolicitud(' + s.id + ')">Entregar</button> ' +
@@ -328,7 +328,7 @@
   window.verSolicitud = function(id) {
     var s = SOLICITUDES_PEND[id]; if (!s) return;
     var listaItems = '<ul class="sst-modal-lineas">' + s.lineas.map(function(l) {
-      return '<li>' + esc(l.item) + ': ' + num(l.cantidadSolicitada) + ' ' + l.unidadUsada + ' (' + num(l.cantidadUnidades) + ' unidades)</li>';
+      return '<li>' + esc(l.item) + ': ' + num(l.cantidadSolicitada) + ' ' + esc(l.unidadUsada) + ' (' + num(l.cantidadUnidades) + ' unidades)</li>';
     }).join('') + '</ul>';
     var html = filaModal('Consecutivo', esc(s.consecutivo)) +
       filaModal('Solicita', esc(s.solicitante)) +

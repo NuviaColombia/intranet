@@ -2,6 +2,7 @@
 y los admins las aprueban o rechazan."""
 from datetime import date
 from fastapi import APIRouter, Request, Depends, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -10,11 +11,11 @@ from ..auth import get_current_user, require_admin, empresa_filtro
 from ..services import empleados_a_cargo, crear_horas_extra, resolver_horas_extra
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.get("/horas-extra")
-async def horas_extra_home(request: Request, user: Empleado = Depends(get_current_user),
+def horas_extra_home(request: Request, user: Empleado = Depends(get_current_user),
                            db: Session = Depends(get_db)):
     if user.rol in ("admin", "superadmin"):
         q_activos = db.query(Empleado).filter(Empleado.activo == 1)

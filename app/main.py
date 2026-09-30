@@ -1,7 +1,7 @@
 import json
 from datetime import date, datetime
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from pathlib import Path
@@ -21,11 +21,29 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule, inventario,
                       caja_menor, consumo, sst, accesos_secciones)
+from .texto_seguro import instalar_en_todos
+
+# Todos los modelos ya están importados (los routers los importan): textos seguros para Postgres en todos los
+# módulos, igual que en Design (quitar caracteres de control y recortar al largo de la columna).
+instalar_en_todos(Base)
 
 app = FastAPI(title="Solicitudes Nuvia", docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, max_age=60 * 60 * 10,
                    https_only=config.BASE_URL.startswith("https://"), same_site="lax")
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
+
+
+@app.exception_handler(ValueError)
+async def dato_invalido(request: Request, exc: ValueError):
+    """Un dato con formato inválido (p. ej. una fecha '2026-13-45' en la URL de un reporte) daba error 500 en
+    muchas rutas de todos los módulos. Se responde 400 con un mensaje claro y queda registrado en el log."""
+    print(f"Dato inválido en {request.method} {request.url.path}: {type(exc).__name__}: {exc}", flush=True)
+    msg = "Dato inválido: revisa el formato de lo que enviaste (por ejemplo, las fechas van como AAAA-MM-DD)."
+    if "/api/" in request.url.path or "application/json" in request.headers.get("accept", ""):
+        return JSONResponse({"detail": msg}, status_code=400)
+    return HTMLResponse(f'<p style="font-family:sans-serif">{msg}</p>'
+                        '<p style="font-family:sans-serif"><a href="javascript:history.back()">Volver</a></p>',
+                        status_code=400)
 
 
 @app.middleware("http")
@@ -35,6 +53,12 @@ async def cabeceras_seguridad(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # La intranet no debe aparecer en buscadores (cubre también PDF, descargas y páginas sin base.html).
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    # CSS y logos: el navegador los reutiliza por un día en vez de validarlos en cada página. Un día (no más)
+    # porque los logos no llevan versión (?v=) en la URL: si se cambia uno, a más tardar al día siguiente se ve.
+    if request.url.path.startswith("/static/") and response.status_code == 200:
+        response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
 app.include_router(auth_routes.router)
@@ -283,6 +307,18 @@ def init_db():
                 ("ix_custodia_resumen_orden", "custodia_resumen", "orden"),
                 ("ix_custodia_discos_traslado", "custodia_discos", "traslado_id"),
                 ("ix_custodia_op_traslado", "custodia_op", "traslado_id")):
+            conn.execute(text(f"CREATE INDEX IF NOT EXISTS {nombre} ON {tabla} ({columnas})"))
+    # Design Schedule: índices para las consultas más frecuentes (horario de un equipo por día, órdenes de un
+    # diseñador, Dashboard por fechas, tiempos libres, favoritos). IF NOT EXISTS: no modifica datos.
+    with engine.begin() as conn:
+        for nombre, tabla, columnas in (
+                ("ix_design_ordenes_team_fecha", "design_ordenes", "team_id, fecha"),
+                ("ix_design_ordenes_designer_fecha", "design_ordenes", "designer_id, fecha"),
+                ("ix_design_ordenes_fecha", "design_ordenes", "fecha"),
+                ("ix_design_breaks_team_fecha", "design_breaks", "team_id, fecha"),
+                ("ix_design_team_designers_team", "design_team_designers", "team_id"),
+                ("ix_design_team_designers_empleado", "design_team_designers", "empleado_id"),
+                ("ix_design_favoritos_empleado", "design_favoritos", "empleado_id")):
             conn.execute(text(f"CREATE INDEX IF NOT EXISTS {nombre} ON {tabla} ({columnas})"))
     # Corrección de negocio: EMPAQUE sí cuenta como ubicación de inventario -- toda orden que
     # llega ahí se considera completada, y debe seguir apareciendo en Ubicación actual/Historial.

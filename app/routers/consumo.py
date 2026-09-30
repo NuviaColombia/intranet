@@ -4,6 +4,7 @@ import csv
 import io
 from datetime import date
 from fastapi import APIRouter, Request, Depends, HTTPException, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -17,7 +18,7 @@ from ..main_templates import templates
 from .. import services_consumo as sc
 from .. import acceso_secciones as acs
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 SUB = "consumo"
 
 

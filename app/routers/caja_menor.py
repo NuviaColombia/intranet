@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import date
 import asyncio
 from fastapi import APIRouter, Request, Depends, HTTPException, Form, BackgroundTasks
+from ..concurrencia import RutaGeneral
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
@@ -20,7 +21,7 @@ from ..main_templates import templates
 from .. import services_caja as sc
 from .. import acceso_secciones as acs
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 MODULO = "caja_menor"
 
 
@@ -620,6 +621,10 @@ def editar_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
     _solo_admin(user)
     caja = db.get(CajaMenor, caja_id)
     if caja:
+        # El nombre es único: si ya lo usa otra caja se avisa (antes daba error 500).
+        if db.query(CajaMenor).filter(CajaMenor.nombre == _texto(nombre), CajaMenor.id != caja.id).first():
+            return RedirectResponse(f"/caja-menor/parametros?msg=Ya existe otra caja con ese nombre.&tab=caja{caja_id}-datos",
+                                    status_code=303)
         caja.nombre, caja.prefijo, caja.ciudad = _texto(nombre), _texto(prefijo)[:10], _texto(ciudad)
         caja.fondo, caja.icono = fondo, (icono or "💵")[:4]
         if responsable.isdigit():  # la lista envía el id de la persona (con acceso a la caja o administrador)
@@ -914,6 +919,9 @@ def cargar_datos_iniciales() -> None:
     los recibos, FMs y arqueos de la app anterior (seed_data/caja_menor_inicial.xlsx), si ese archivo existe."""
     from sqlalchemy import inspect, text
     from ..database import engine  # este evento corre antes del create_all general: crea aquí sus tablas
+    # Sus tablas apuntan a empleados: en una base nueva (vacía) hay que crearla antes, si no el arranque fallaba.
+    # En una base existente no hace nada (checkfirst).
+    Empleado.__table__.create(bind=engine, checkfirst=True)
     for modelo in (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaFM, CajaRecibo, CajaArqueo, CajaObservacion):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)

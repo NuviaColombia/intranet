@@ -1,5 +1,6 @@
 from datetime import date, time
 from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
+from ..concurrencia import RutaGeneral
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -13,7 +14,7 @@ from ..formato import nombre_propio
 from .. import services_custodia as sc
 from .. import acceso_secciones as acs
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 # ---------- Página ----------

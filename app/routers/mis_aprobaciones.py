@@ -1,6 +1,7 @@
 """Bandeja unificada de aprobaciones pendientes de todos los módulos (People, Horas extra,
 Custodia), enlazada desde el contador de la barra superior."""
 from fastapi import APIRouter, Request, Depends, Form
+from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -12,11 +13,11 @@ from .. import services_custodia as sc
 from ..aprobaciones_globales import resumen_pendientes
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.get("/mis-aprobaciones")
-async def bandeja(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+def bandeja(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.rol not in ("aprobador", "admin", "superadmin"):
         return RedirectResponse("/", status_code=303)
     resumen = resumen_pendientes(db, user)

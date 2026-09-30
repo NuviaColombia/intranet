@@ -139,7 +139,8 @@
       <td class="cp-acciones">
         <button class="btn mini" form="f-man-{{ m.id }}">Guardar</button>
         <form class="inline" method="post" action="/inventario/parametros/managers/{{ m.id }}/quitar"
-              onsubmit="return confirm('¿Quitar el acceso a Cambio de custodia de {{ m.nombre_completo|nombre_propio }}?')">
+              data-nombre="{{ m.nombre_completo|nombre_propio }}"
+              onsubmit="return confirm('¿Quitar el acceso a Cambio de custodia de ' + this.dataset.nombre + '?')">
           <button class="btn gris mini">Quitar acceso</button></form>
       </td>
     </tr>

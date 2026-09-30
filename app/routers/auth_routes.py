@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.get("/login")
-async def login(request: Request):
+def login(request: Request):
     error = request.query_params.get("error")
     mensajes = {
         "no_registrado": "Tu correo de Zoho no está registrado como empleado. Contacta al administrador.",
@@ -21,7 +21,7 @@ async def login(request: Request):
 
 
 @router.get("/auth/zoho")
-async def auth_zoho():
+def auth_zoho():
     return RedirectResponse(zoho_login_url())
 
 
@@ -44,6 +44,6 @@ async def auth_callback(request: Request, code: str = "", db: Session = Depends(
 
 
 @router.get("/logout")
-async def logout(request: Request):
+def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/login")

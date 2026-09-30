@@ -4,6 +4,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-inseguro")
+if SECRET_KEY in ("", "dev-secret-inseguro") and os.getenv("RENDER"):
+    # Con la clave por defecto cualquiera podría falsificar cookies de sesión. No se bloquea el arranque para no
+    # tumbar la intranet, pero queda como alerta visible en el log de Render.
+    print("ALERTA DE SEGURIDAD: falta (o está vacía) la variable SECRET_KEY en Render; la sesión usa una clave conocida. "
+          "Configúrala en Environment.", flush=True)
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000").rstrip("/")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./permisos.db")
 
