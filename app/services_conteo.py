@@ -13,7 +13,8 @@ from .formato import nombre_propio
 
 MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre",
          "Noviembre", "Diciembre"]
-BODEGAS_INICIALES = [("103", "BIENES", "B"), ("200", "SERVICIO", "S")]
+# (código, nombre, prefijo, activa): Bienes 103 queda desactivada (lo de bienes se entrega a depósito); se activa en Parámetros
+BODEGAS_INICIALES = [("103", "BIENES", "B", False), ("200", "SERVICIO", "S", True)]
 MATERIALES_INICIALES = [("MATP6", "Incisal Enhancer 1.5 DPLB10"), ("MATP9", "Tissue"), ("MATP15", "Glaze Stain Liquid"),
                         ("MATP16", "Glaze paste"), ("MATP20", "Miyo"), ("MATP23", "Bonding Illusion o Ziradd"),
                         ("MATP27", "Disco de Zirconia"), ("MATP53", "Ceramic spheres ZR Pink (DPCG07)"),
@@ -47,8 +48,8 @@ def puede_validar(db: Session, user: Empleado) -> bool:
 def asegurar_catalogo(db: Session) -> None:
     """La primera vez: las bodegas, materiales y ajustes del formulario anterior (se editan en Parámetros)."""
     if db.query(ConteoBodega).count() == 0:
-        for i, (codigo, nombre, prefijo) in enumerate(BODEGAS_INICIALES, start=1):
-            db.add(ConteoBodega(codigo=codigo, nombre=nombre, prefijo=prefijo, orden=i))
+        for i, (codigo, nombre, prefijo, activa) in enumerate(BODEGAS_INICIALES, start=1):
+            db.add(ConteoBodega(codigo=codigo, nombre=nombre, prefijo=prefijo, orden=i, activo=activa))
     if db.query(ConteoMaterial).count() == 0:
         for i, (codigo, desc) in enumerate(MATERIALES_INICIALES, start=1):
             db.add(ConteoMaterial(codigo=codigo, descripcion=desc, orden=i))
