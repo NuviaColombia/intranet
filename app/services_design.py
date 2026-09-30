@@ -2586,6 +2586,21 @@ def _sin_prefijo_area(nombre: str) -> str:
 PERF_HISTORICOS = ["Luis Felipe Blaschke", "Paul Andion"]
 
 
+# Personas que están en DESIGN MANAGERS sin ser manager de un equipo, y está bien así (30-sep-2026).
+PERF_GENERAL_ACEPTADOS = {
+    "Estefania Hernandez": "Entrenadora.",
+    "Analia Ternera": "Manager de N2 sin equipo (incapacidad permanente).",
+}
+
+
+def _aceptado_general(nombre: str) -> str | None:
+    pal = _palabras(nombre)
+    for n, motivo in PERF_GENERAL_ACEPTADOS.items():
+        if pal and _palabras(n) <= pal:
+            return motivo
+    return None
+
+
 def _es_historico(nombre: str) -> bool:
     pal = _palabras(_sin_prefijo_area(nombre))
     return bool(pal) and any(pal <= _palabras(h) or _palabras(h) <= pal for h in PERF_HISTORICOS)
@@ -2625,6 +2640,26 @@ def auditar_conexiones(db: Session) -> dict:
             equipo_de.setdefault(d.empleado_id, []).append(t.nombre)
     nombre_de = {e.id: e.nombre_completo for e in personas}
     managers_ids = {t.manager_id for t in teams if t.manager_id and t.area.formato != FORMATO_SUPPORT}
+    todos_teams = None
+
+    def por_que_no_manager(persona: Empleado) -> str:
+        """Explica por qué alguien que se cree manager no cuenta como tal (dato para corregir en Equipos/People)."""
+        nonlocal todos_teams
+        if todos_teams is None:
+            todos_teams = (db.query(DesignTeam).options(joinedload(DesignTeam.area), joinedload(DesignTeam.manager)).all())
+        pal = _palabras(persona.nombre_completo)
+        for t in todos_teams:
+            if not t.manager:
+                continue
+            if t.manager_id == persona.id or _palabras(t.manager.nombre_completo) == pal:
+                if t.manager_id != persona.id:
+                    return (f'El equipo "{t.nombre}" ({t.area.nombre}) tiene como manager otro registro de People con el mismo nombre '
+                            f'({t.manager.email or "sin correo"}{", inactivo" if t.manager.activo != 1 else ""}); '
+                            f'la hoja coincide con {persona.email or "sin correo"}.')
+                if t.activo != 1:
+                    return f'Su equipo "{t.nombre}" ({t.area.nombre}) está inactivo.'
+                return f'Su equipo "{t.nombre}" está en el área "{t.area.nombre}", marcada como Support (no cuenta como manager).'
+        return "Es una hoja de managers y no es manager de ningún equipo."
 
     hojas = []
     for sh in perf_sheets(db):
@@ -2659,8 +2694,10 @@ def auditar_conexiones(db: Session) -> dict:
                 item["sugerencias"] = _sugerencias(fila.nombre, personas)
             else:
                 vistos.add(persona.id)
-                if r["general"] and persona.id not in managers_ids and not _es_historico(persona.nombre_completo):
-                    item["estado"], item["detalle"] = "no_manager", "Es una hoja de managers y no es manager de ningún equipo."
+                if r["general"] and persona.id not in managers_ids and _aceptado_general(persona.nombre_completo):
+                    item["detalle"] = _aceptado_general(persona.nombre_completo)
+                elif r["general"] and persona.id not in managers_ids and not _es_historico(persona.nombre_completo):
+                    item["estado"], item["detalle"] = "no_manager", por_que_no_manager(persona)
                 elif r["general"] and persona.id not in managers_ids:
                     item["estado"], item["detalle"] = "historico", "Histórico: ya no es manager."
                 elif team and persona.id not in ids_team and persona.id != team.manager_id:
