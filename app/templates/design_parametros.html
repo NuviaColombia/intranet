@@ -4,14 +4,53 @@
 <h1>Parámetros de Design Schedule</h1>
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
-<div class="tarjeta">
-  <h2>Conexión con los equipos (Desempeño y Pre-Approved)</h2>
-  <p style="font-size:13px;color:var(--gris)">
-    Desempeño y Pre-Approved guardan <b>nombres escritos</b> (vienen del Excel), no la persona ni el equipo de esta
-    página. Esta revisión muestra qué no coincide para corregir los nombres. <b>Solo lee, no cambia nada.</b>
-  </p>
-  <button type="button" class="btn gris" id="audBtn">Revisar conexiones</button>
-  <div id="audResultado" style="margin-top:12px"></div>
+<style>
+  /* Conexión con los equipos: tarjeta compacta con interruptor */
+  .aud-tarjeta { padding:12px 18px; }
+  .aud-fila { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .aud-titulo { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; min-width:0; }
+  .aud-titulo h2 { margin:0; font-size:16px; }
+  .aud-sub { font-size:12.5px; color:var(--gris); }
+  .aud-info { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%;
+              border:1px solid #cbd5e1; color:#475569; font-size:11px; font-weight:700; cursor:help; }
+  .aud-switch { display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600; color:#334155; user-select:none; }
+  .aud-switch input { position:absolute; opacity:0; width:1px; height:1px; }
+  .aud-slider { position:relative; width:38px; height:22px; border-radius:11px; background:#cbd5e1; transition:background .2s; flex:none; }
+  .aud-slider::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff;
+                       box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .2s; }
+  .aud-switch input:checked + .aud-slider { background:#1d4ed8; }
+  .aud-switch input:checked + .aud-slider::after { transform:translateX(16px); }
+  .aud-switch input:focus-visible + .aud-slider { outline:2px solid #1d4ed8; outline-offset:2px; }
+  .aud-switch input:disabled + .aud-slider { opacity:.6; }
+  #audResultado:not(:empty) { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
+  .aud-resumen { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .aud-chip { font-size:12px; padding:3px 10px; border-radius:12px; background:#f1f5f9; color:#334155; }
+  .aud-chip b { color:#0f172a; }
+  .aud-grupo { border:1px solid #e5e7eb; border-radius:8px; margin:6px 0; }
+  .aud-grupo > summary { cursor:pointer; padding:7px 12px; font-size:13px; font-weight:600; list-style:none; display:flex; align-items:center; gap:8px; }
+  .aud-grupo > summary::-webkit-details-marker { display:none; }
+  .aud-grupo > summary::before { content:"▸"; color:#64748b; transition:transform .15s; }
+  .aud-grupo[open] > summary::before { transform:rotate(90deg); }
+  .aud-cant { margin-left:auto; font-size:12px; font-weight:700; color:#b91c1c; background:#fef2f2; border-radius:10px; padding:1px 9px; }
+  .aud-grupo table { width:100%; font-size:12px; margin:0; }
+  .aud-grupo .aud-scroll { max-height:340px; overflow:auto; padding:0 12px 10px; }
+  .aud-ok { font-size:12.5px; color:#15803d; margin:4px 0; }
+</style>
+<div class="tarjeta aud-tarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Conexión con los equipos</h2>
+      <span class="aud-sub">Desempeño y Pre-Approved · solo lectura</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Qué revisa"
+            title="Desempeño y Pre-Approved guardan nombres escritos (vienen del Excel), no la persona ni el equipo de esta página. La revisión muestra qué nombres no coinciden con los equipos y personas para corregirlos. No cambia nada.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="audSwitch" role="switch" aria-controls="audResultado">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="audSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="audResultado" aria-live="polite"></div>
 </div>
 
 <div class="tarjeta">
@@ -197,18 +236,17 @@
     });
   });
 
-  // ---------- Auditoría de conexiones (solo lectura) ----------
-  function audTabla(titulo, filas, encabezados, vacio) {
-    var h = '<h3 style="margin:18px 0 6px;font-size:15px">' + titulo + '</h3>';
-    if (!filas.length) return h + '<p style="color:#16a34a;font-size:13px">✓ ' + vacio + '</p>';
-    h += '<table><tr>' + encabezados.map(function(x) { return '<th>' + x + '</th>'; }).join('') + '</tr>';
-    filas.forEach(function(f) { h += '<tr>' + f.map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; });
-    return h + '</table>';
-  }
+  // ---------- Auditoría de conexiones (solo lectura): interruptor, resumen y grupos plegables ----------
   var AUD_ROJO = function(t) { return '<span style="color:#b91c1c">' + t + '</span>'; };
+  function audGrupo(titulo, filas, encabezados) {
+    if (!filas.length) return '';
+    var t = '<table><tr>' + encabezados.map(function(x) { return '<th>' + x + '</th>'; }).join('') + '</tr>';
+    filas.forEach(function(f) { t += '<tr>' + f.map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; });
+    return '<details class="aud-grupo"><summary>' + titulo + '<span class="aud-cant">' + filas.length + '</span></summary>' +
+           '<div class="aud-scroll">' + t + '</table></div></details>';
+  }
   function renderAuditoria(d) {
-    var html = '', okHojas = 0, okFilas = 0, totFilas = 0;
-    var probHoja = [], probFila = [], faltan = [];
+    var okHojas = 0, okFilas = 0, totFilas = 0, probHoja = [], probFila = [], faltan = [];
     d.hojas.forEach(function(h) {
       if (!h.problemas.length) okHojas++;
       h.problemas.forEach(function(p) { probHoja.push([esc(h.hoja), AUD_ROJO(esc(p))]); });
@@ -219,36 +257,39 @@
       });
       if (h.faltan.length) faltan.push([esc(h.hoja), esc(h.equipo || ''), h.faltan.map(esc).join('<br>')]);
     });
-    html += '<p style="font-size:13px">Desempeño: <b>' + okHojas + ' de ' + d.hojas.length + '</b> hojas conectadas con su equipo · <b>' +
-            okFilas + ' de ' + totFilas + '</b> filas coinciden con la persona y el equipo.</p>';
-    html += audTabla('Hojas de Desempeño sin equipo', probHoja, ['Hoja', 'Problema'], 'Todas las hojas tienen su manager y su equipo.');
-    html += audTabla('Filas de Desempeño que no coinciden', probFila, ['Hoja', 'Nombre en Desempeño', 'Persona en People', 'Problema'],
-                     'Todas las filas coinciden con su persona y su equipo.');
-    html += audTabla('Diseñadores del equipo sin fila en su hoja', faltan, ['Hoja', 'Equipo', 'Personas'],
-                     'Cada diseñador de Parámetros tiene su fila en la hoja de su equipo.');
-    html += audTabla('Equipos sin hoja de Desempeño', d.equiposSinHoja.map(function(t) { return [esc(t)]; }), ['Equipo'],
-                     'Todos los equipos con manager tienen hoja.');
     var sel = d.seleccion.filter(function(x) { return x.estado !== 'ok'; }).map(function(x) {
       return [esc(x.hoja), esc(x.evaluador), x.persona ? esc(x.persona) : '—',
               AUD_ROJO(x.estado === 'sin_persona' ? 'No coincide con nadie en People.' : 'No es manager de ningún equipo.')];
     });
-    html += audTabla('Selección: evaluadores que no coinciden', sel, ['Hoja', 'Evaluador', 'Persona en People', 'Problema'],
-                     'Todos los evaluadores son managers de un equipo.');
     var pa = d.preapproved.filter(function(x) { return x.estado !== 'ok'; }).map(function(x) {
       return [esc(x.area), esc(x.hoja), AUD_ROJO(x.estado === 'ambiguo' ? 'Coincide con varios managers: ' + x.managers.map(esc).join(', ')
                                                                          : 'No coincide con el manager de ningún equipo del área.')];
     });
-    html += audTabla('Pre-Approved: hojas sin manager claro', pa, ['Área', 'Hoja', 'Problema'],
-                     'Cada hoja corresponde a un solo manager de su área.');
+    var sinHoja = d.equiposSinHoja.map(function(t) { return [esc(t)]; });
+    var html = '<div class="aud-resumen">' +
+      '<span class="aud-chip">Hojas conectadas <b>' + okHojas + ' / ' + d.hojas.length + '</b></span>' +
+      '<span class="aud-chip">Filas que coinciden <b>' + okFilas + ' / ' + totFilas + '</b></span>' +
+      '<span class="aud-chip">Selección <b>' + (d.seleccion.length - sel.length) + ' / ' + d.seleccion.length + '</b></span>' +
+      '<span class="aud-chip">Pre-Approved <b>' + (d.preapproved.length - pa.length) + ' / ' + d.preapproved.length + '</b></span></div>';
+    var grupos = audGrupo('Hojas de Desempeño sin equipo', probHoja, ['Hoja', 'Problema']) +
+      audGrupo('Filas de Desempeño que no coinciden', probFila, ['Hoja', 'Nombre en Desempeño', 'Persona en People', 'Problema']) +
+      audGrupo('Diseñadores del equipo sin fila en su hoja', faltan, ['Hoja', 'Equipo', 'Personas']) +
+      audGrupo('Equipos sin hoja de Desempeño', sinHoja, ['Equipo']) +
+      audGrupo('Selección: evaluadores que no coinciden', sel, ['Hoja', 'Evaluador', 'Persona en People', 'Problema']) +
+      audGrupo('Pre-Approved: hojas sin manager claro', pa, ['Área', 'Hoja', 'Problema']);
+    html += grupos || '<p class="aud-ok">✓ Todo coincide con los equipos y personas de Parámetros.</p>';
     document.getElementById('audResultado').innerHTML = html;
   }
-  document.getElementById('audBtn').addEventListener('click', function() {
-    var btn = this; btn.disabled = true; btn.innerText = 'Revisando...';
+  var audSw = document.getElementById('audSwitch'), audTxt = document.getElementById('audSwitchTxt'), audTok = 0;
+  audSw.addEventListener('change', function() {
+    var res = document.getElementById('audResultado'), t = ++audTok;
+    if (!audSw.checked) { res.innerHTML = ''; audTxt.innerText = 'Revisar'; return; }
+    audSw.disabled = true; audTxt.innerText = 'Revisando…';
     fetch('/design/api/parametros/auditoria-conexiones').then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-    }).then(renderAuditoria).catch(function(e) {
-      document.getElementById('audResultado').innerHTML = AUD_ROJO('No se pudo revisar: ' + esc(e.message));
-    }).then(function() { btn.disabled = false; btn.innerText = 'Revisar conexiones'; });
+    }).then(function(d) { if (t === audTok && audSw.checked) renderAuditoria(d); }).catch(function(e) {
+      if (t === audTok) res.innerHTML = AUD_ROJO('No se pudo revisar: ' + esc(e.message));
+    }).then(function() { audSw.disabled = false; audTxt.innerText = audSw.checked ? 'Ocultar' : 'Revisar'; });
   });
 
   document.getElementById('impAplicarBtn').addEventListener('click', function() {
