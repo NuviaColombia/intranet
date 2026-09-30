@@ -655,6 +655,31 @@ window.dsPdfjs = function() {
   table.pf-tabla-lideres th:nth-child(3) { width:110px; }
   table.pf-tabla-lideres input.pf-mini { width:100% !important; }
   table.pf-tabla-lideres textarea.pf-nota-sel { width:100%; min-height:44px; padding:6px 8px; display:block; }
+  /* Vista del año completo (como la herramienta original): un bloque por persona, requerimientos en filas y los
+     meses en columnas (Resultado + Score). table-layout fijo para que los anchos ajustables se respeten. */
+  .pf-emp { margin-bottom:22px; }
+  .pf-emp-h { font-weight:700; font-size:14px; color:#0f1b33; margin:0 0 6px; }
+  .pf-emp.pf-solo-lectura .pf-emp-h::after { content:"  · solo lectura"; font-weight:500; color:#6b7280; font-size:12px; }
+  .pf-anual-wrap { overflow-x:auto; }
+  table.pf-anual { table-layout:fixed; width:max-content; }
+  table.pf-anual th { max-width:none; min-width:0; position:relative; }
+  /* la vista de un mes fija un mínimo de 170px a la primera columna (nombre); aquí la primera es "#" */
+  table.pf-anual th:first-child, table.pf-anual td:first-child { min-width:0; max-width:none; position:static; }
+  table.pf-anual td.pf-crit { text-align:left; white-space:normal; line-height:1.3; }
+  table.pf-anual td.pf-num { color:#6b7280; }
+  table.pf-anual td.pf-res select { width:100%; height:26px; padding:0 2px; text-align:center; text-align-last:center; }
+  table.pf-anual tr.pf-fila-total td { font-weight:700; background:#f4f6f8; }
+  table.pf-anual tr.pf-fila-notas textarea { width:100%; min-height:44px; padding:6px 8px; font-family:inherit; }
+  table.pf-anual td.pf-lideres-in input, table.pf-anual td.pf-lideres-in textarea { width:100%; }
+  table.pf-anual td.pf-lideres-in textarea { min-height:34px; padding:4px 6px; font-family:inherit; }
+  .pf-mes-h { white-space:nowrap; }
+  .pf-ocultar { border:0; background:none; cursor:pointer; font-size:11px; padding:0 2px; opacity:.55; }
+  .pf-ocultar:hover, .pf-ocultar:focus { opacity:1; }
+  .pf-rz { position:absolute; top:0; right:-3px; width:7px; height:100%; cursor:col-resize; z-index:4; }
+  .pf-rz:hover { background:rgba(29,78,216,.25); }
+  .pf-vista button { border:1px solid #d8dde3; background:#fff; padding:5px 12px; font-size:12px; cursor:pointer; }
+  .pf-vista button:first-child { border-radius:6px 0 0 6px; } .pf-vista button:last-child { border-radius:0 6px 6px 0; border-left:0; }
+  .pf-vista button.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   .pf-nivel-ALTO { background:#e6f6ea; }
   .pf-nivel-SOBRESALIENTE { background:#e3f0fb; }
   .pf-nivel-MEDIO { background:#fff8e1; }
@@ -5796,13 +5821,135 @@ window.DS_PANELS.dashboard = ddCargar;
 
   function pfPct(f) { return ((f || 0) * 100).toFixed(1).replace(/\.0$/, '') + '%'; }
 
+  // ---------- Preferencias de cada persona (solo en su navegador): vista, meses ocultos y anchos por hoja ----------
+  var PF_UI_KEY = 'pf_ui_v1';
+  function pfUiTodo() { try { return JSON.parse(localStorage.getItem(PF_UI_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function pfUi(sid) { var t = pfUiTodo(); var u = t[sid] || {}; u.ocultos = u.ocultos || []; u.anchos = u.anchos || {}; return u; }
+  function pfUiGuardar(sid, u) { try { var t = pfUiTodo(); t[sid] = u; localStorage.setItem(PF_UI_KEY, JSON.stringify(t)); } catch (e) {} }
+  function pfVista() { try { return localStorage.getItem('pf_vista') || 'anio'; } catch (e) { return 'anio'; } }
+  function pfSetVista(v) { try { localStorage.setItem('pf_vista', v); } catch (e) {} }
+  function pfMesesVisibles(meses, u) { return meses.map(function(m, i) { return i; }).filter(function(i) { return u.ocultos.indexOf(i) < 0; }); }
+  var PF_ANCHO = {num: 34, crit: 230, res: 146, score: 62, total: 84, ev: 190, post: 150, pscore: 70, pnota: 190};
+  function pfAncho(u, clave) { return u.anchos[clave] || PF_ANCHO[clave]; }
+  function pfCol(u, clave) { return '<col data-clave="' + clave + '" style="width:' + pfAncho(u, clave) + 'px">'; }
+  function pfRz(clave) { return '<span class="pf-rz" data-rz="' + clave + '" title="Arrastra para ajustar el ancho"></span>'; }
+
+  // Barra: Año completo / Un mes, selector de mes (solo en "Un mes") y "Mostrar ocultos".
+  function pfBarra(d, alCambiar) {
+    var toolbar = document.createElement('div'); toolbar.className = 'pf-toolbar';
+    var vista = document.createElement('span'); vista.className = 'pf-vista'; vista.setAttribute('role', 'group'); vista.setAttribute('aria-label', 'Vista');
+    [['anio', 'Año completo'], ['mes', 'Un mes']].forEach(function(o) {
+      var b = document.createElement('button'); b.type = 'button'; b.innerText = o[1];
+      b.className = pfVista() === o[0] ? 'activo' : ''; b.setAttribute('aria-pressed', pfVista() === o[0] ? 'true' : 'false');
+      b.onclick = function() { pfSetVista(o[0]); alCambiar(); };
+      vista.appendChild(b);
+    });
+    toolbar.appendChild(vista);
+    if (pfVista() === 'mes') {
+      var label = document.createElement('span'); label.innerText = 'Mes:'; toolbar.appendChild(label);
+      toolbar.appendChild(selectMeses(d.meses, alCambiar));
+    } else {
+      var u = pfUi(PF.sheetId);
+      if (u.ocultos.length) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'btn gris mini';
+        b.innerText = '👁 Mostrar ' + u.ocultos.length + (u.ocultos.length === 1 ? ' mes oculto' : ' meses ocultos');
+        b.onclick = function() { u.ocultos = []; pfUiGuardar(PF.sheetId, u); alCambiar(); };
+        toolbar.appendChild(b);
+      }
+    }
+    return toolbar;
+  }
+  function pfEncMes(nombre, i) {
+    return '<span>' + esc(nombre) + '</span> <button type="button" class="pf-ocultar" data-ocultar="' + i + '" title="Ocultar este mes" aria-label="Ocultar ' + esc(nombre) + '">🚫</button>';
+  }
+  // Delegación: ocultar mes y ajustar anchos (una sola vez por panel).
+  (function() {
+    var panel = document.getElementById('pfPanel');
+    if (!panel) return;
+    panel.addEventListener('click', function(e) {
+      var b = e.target.closest('[data-ocultar]'); if (!b) return;
+      var u = pfUi(PF.sheetId), i = parseInt(b.dataset.ocultar);
+      if (u.ocultos.indexOf(i) < 0) u.ocultos.push(i);
+      pfUiGuardar(PF.sheetId, u);
+      if (PF.detalle) (PF.detalle.tipo === 'eval' ? renderEval : renderSeleccion)(PF.detalle);
+    });
+    panel.addEventListener('mousedown', function(e) {
+      var h = e.target.closest('.pf-rz'); if (!h) return;
+      e.preventDefault();
+      var clave = h.dataset.rz, u = pfUi(PF.sheetId), x0 = e.clientX, w0 = pfAncho(u, clave);
+      var mover = function(ev) {
+        var w = Math.max(30, Math.round(w0 + ev.clientX - x0));
+        panel.querySelectorAll('col[data-clave="' + clave + '"]').forEach(function(c) { c.style.width = w + 'px'; });
+        u.anchos[clave] = w;
+      };
+      var soltar = function() { document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar); pfUiGuardar(PF.sheetId, u); };
+      document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
+    });
+  })();
+
   function renderEval(d) {
+    if (pfVista() === 'mes') { renderEvalMes(d); return; }
     var panel = document.getElementById('pfPanel');
     panel.innerHTML = '';
-    var toolbar = document.createElement('div'); toolbar.className = 'pf-toolbar';
-    var label = document.createElement('span'); label.innerText = 'Mes:'; toolbar.appendChild(label);
-    toolbar.appendChild(selectMeses(d.meses, function() { renderEval(d); }));
-    panel.appendChild(toolbar);
+    panel.appendChild(pfBarra(d, function() { renderEval(d); }));
+    var u = pfUi(PF.sheetId), vis = pfMesesVisibles(d.meses, u), nC = d.criterios.length;
+    var niveles = ['', 'BAJO', 'MEDIO', 'SOBRESALIENTE', 'ALTO'];
+    var html = '';
+    d.empleados.forEach(function(emp, ei) {
+      var ro = emp.editable === false;
+      var cols = pfCol(u, 'num') + pfCol(u, 'crit');
+      vis.forEach(function() { cols += pfCol(u, 'res') + pfCol(u, 'score'); });
+      cols += pfCol(u, 'total');
+      var h = '<thead><tr><th rowspan="2">#' + pfRz('num') + '</th><th rowspan="2">Requerimiento' + pfRz('crit') + '</th>';
+      vis.forEach(function(i) { h += '<th colspan="2" class="pf-mes-h">' + pfEncMes(d.meses[i], i) + '</th>'; });
+      h += '<th rowspan="2">Total general' + pfRz('total') + '</th></tr><tr>';
+      vis.forEach(function() { h += '<th>Resultado' + pfRz('res') + '</th><th>Score' + pfRz('score') + '</th>'; });
+      h += '</tr></thead><tbody>';
+      d.criterios.forEach(function(c, ci) {
+        h += '<tr><td class="pf-num">' + (ci + 1) + '</td><td class="pf-crit">' + esc(c.nombre) + '</td>';
+        vis.forEach(function(i) {
+          var v = emp.celdas[c.id + '_' + i] || {nivel: ''};
+          h += '<td class="pf-res' + (v.nivel ? ' pf-nivel-' + v.nivel : '') + '"><select data-emp="' + ei + '" data-crit="' + c.id + '" data-mes="' + i + '"' +
+               (ro ? ' disabled' : '') + ' aria-label="' + esc(c.nombre + ' — ' + d.meses[i] + ' — ' + emp.nombre) + '">' +
+               niveles.map(function(n) { return '<option value="' + n + '"' + (n === v.nivel ? ' selected' : '') + '>' + (n || '—') + '</option>'; }).join('') +
+               '</select></td><td class="pf-total" data-score="' + ei + '-' + c.id + '-' + i + '">' + (v.nivel ? (PF_PCT[v.nivel] || 0) + '%' : '') + '</td>';
+        });
+        if (ci === 0) h += '<td class="pf-total" rowspan="' + nC + '" data-total-gral="' + ei + '">' + pfPct(emp.total) + '</td>';
+        h += '</tr>';
+      });
+      h += '<tr class="pf-fila-total"><td colspan="2">TOTAL SCORE</td>';
+      vis.forEach(function(i) { h += '<td colspan="2" data-total-mes="' + ei + '-' + i + '">' + pfPct(emp.totalesMes[i]) + '</td>'; });
+      h += '<td></td></tr><tr class="pf-fila-notas"><td colspan="2">Notas</td><td colspan="' + (vis.length * 2 + 1) + '">' +
+           '<textarea data-nota="' + ei + '"' + (ro ? ' disabled' : '') + ' aria-label="Notas de ' + esc(emp.nombre) + '">' + esc(emp.nota || '') + '</textarea></td></tr></tbody>';
+      html += '<div class="pf-emp' + (ro ? ' pf-solo-lectura' : '') + '"' + (ro ? ' title="Solo lectura: no puedes calificarte a ti mismo ni a personas de otros equipos."' : '') + '>' +
+              '<h4 class="pf-emp-h">' + esc(emp.nombre) + '</h4><div class="pf-anual-wrap"><table class="pf-tabla pf-anual"><colgroup>' + cols + '</colgroup>' + h + '</table></div></div>';
+    });
+    var cont = document.createElement('div'); cont.innerHTML = html || '<p style="color:#4b5563">Esta hoja no tiene personas.</p>';
+    panel.appendChild(cont);
+    cont.addEventListener('change', function(e) {
+      var sel = e.target.closest('select[data-emp]'); if (!sel) return;
+      var emp = d.empleados[+sel.dataset.emp], cid = +sel.dataset.crit, mes = +sel.dataset.mes, nivel = sel.value, pct = PF_PCT[nivel] || 0;
+      postJSON('/design/api/perf/celdas', {empleadoId: emp.id, criterioId: cid, mesIndice: mes, nivel: nivel, puntaje: pct}).catch(pfFallo(cargarEval));
+      emp.celdas[cid + '_' + mes] = {nivel: nivel, puntaje: pct};
+      sel.parentNode.className = 'pf-res' + (nivel ? ' pf-nivel-' + nivel : '');
+      cont.querySelector('[data-score="' + sel.dataset.emp + '-' + cid + '-' + mes + '"]').innerText = nivel ? pct + '%' : '';
+      pfTotales(emp, d);
+      cont.querySelector('[data-total-mes="' + sel.dataset.emp + '-' + mes + '"]').innerText = pfPct(emp.totalesMes[mes]);
+      cont.querySelector('[data-total-gral="' + sel.dataset.emp + '"]').innerText = pfPct(emp.total);
+    });
+    cont.addEventListener('focusout', function(e) {
+      var ta = e.target.closest('textarea[data-nota]'); if (!ta) return;
+      var emp = d.empleados[+ta.dataset.nota];
+      if ((emp.nota || '') === ta.value) return;
+      emp.nota = ta.value;
+      postJSON('/design/api/perf/empleados/' + emp.id + '/nota', {nota: ta.value}).catch(pfFallo(cargarEval));
+    });
+  }
+
+  function renderEvalMes(d) {
+    var panel = document.getElementById('pfPanel');
+    panel.innerHTML = '';
+    panel.appendChild(pfBarra(d, function() { renderEval(d); }));
 
     var tabla = document.createElement('table'); tabla.className = 'pf-tabla';
     var head = '<thead><tr><th>Diseñador/a</th>';
@@ -5888,8 +6035,72 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   function renderSeleccion(d) {
+    if (pfVista() === 'mes') { renderSeleccionMes(d); return; }
     var panel = document.getElementById('pfPanel');
     panel.innerHTML = '';
+    panel.appendChild(pfBarra(d, function() { renderSeleccion(d); }));
+    var u = pfUi(PF.sheetId), vis = pfMesesVisibles(d.meses, u);
+    // Empleado del mes
+    var g = '<h3>Empleado del mes</h3><div class="pf-anual-wrap"><table class="pf-tabla pf-anual"><colgroup>' + pfCol(u, 'ev');
+    vis.forEach(function() { g += pfCol(u, 'post'); });
+    g += '</colgroup><thead><tr><th>Categoría' + pfRz('ev') + '</th>';
+    vis.forEach(function(i) { g += '<th class="pf-mes-h">' + pfEncMes(d.meses[i], i) + pfRz('post') + '</th>'; });
+    g += '</tr></thead><tbody>';
+    d.ganadores.forEach(function(w, wi) {
+      g += '<tr><td class="pf-nombre">' + esc(w.categoria) + '</td>';
+      vis.forEach(function(i) {
+        g += '<td class="pf-lideres-in"><input class="pf-mini" data-gan="' + wi + '" data-mes="' + i + '" value="' + esc(w.ganadoresMes[i] || '') + '"' +
+             (d.ganadoresEditables === false ? ' disabled title="Lo registra un administrador"' : '') +
+             ' aria-label="' + esc(w.categoria + ' — ' + d.meses[i]) + '"></td>';
+      });
+      g += '</tr>';
+    });
+    g += '</tbody></table></div>';
+    // Evaluaciones por líder: por mes Persona nominada + Puntaje + Nota
+    var l = '<div class="pf-seccion-h"><h3>Evaluaciones por líder</h3></div><div class="pf-anual-wrap"><table class="pf-tabla pf-anual"><colgroup>' + pfCol(u, 'ev');
+    vis.forEach(function() { l += pfCol(u, 'post') + pfCol(u, 'pscore') + pfCol(u, 'pnota'); });
+    l += '</colgroup><thead><tr><th rowspan="2">Evaluador/a' + pfRz('ev') + '</th>';
+    vis.forEach(function(i) { l += '<th colspan="3" class="pf-mes-h">' + pfEncMes(d.meses[i], i) + '</th>'; });
+    l += '</tr><tr>';
+    vis.forEach(function() { l += '<th>Persona nominada' + pfRz('post') + '</th><th>Puntaje' + pfRz('pscore') + '</th><th>Nota' + pfRz('pnota') + '</th>'; });
+    l += '</tr></thead><tbody>';
+    d.filas.forEach(function(f, fi) {
+      var ro = f.editable === false;
+      l += '<tr' + (ro ? ' class="pf-solo-lectura" title="Solo lectura: cada líder edita su propia fila."' : '') + '><td class="pf-nombre">' + esc(f.evaluador) + '</td>';
+      vis.forEach(function(i) {
+        var c = f.celdas[i] || {persona: '', puntaje: '', nota: ''}, dis = ro ? ' disabled' : '', lab = esc(f.evaluador + ' — ' + d.meses[i]);
+        l += '<td class="pf-lideres-in"><input class="pf-mini" data-fila="' + fi + '" data-mes="' + i + '" data-k="persona" value="' + esc(c.persona) + '"' + dis + ' aria-label="Persona nominada: ' + lab + '"></td>' +
+             '<td class="pf-lideres-in"><input class="pf-mini" data-fila="' + fi + '" data-mes="' + i + '" data-k="puntaje" value="' + esc(c.puntaje) + '"' + dis + ' aria-label="Puntaje: ' + lab + '"></td>' +
+             '<td class="pf-lideres-in"><textarea data-fila="' + fi + '" data-mes="' + i + '" data-k="nota"' + dis + ' aria-label="Nota: ' + lab + '">' + esc(c.nota) + '</textarea></td>';
+      });
+      l += '</tr>';
+    });
+    l += '</tbody></table></div>';
+    var cont = document.createElement('div'); cont.innerHTML = g + l;
+    panel.appendChild(cont);
+    cont.addEventListener('focusout', function(e) {
+      var el = e.target;
+      if (el.dataset.gan !== undefined) {
+        var w = d.ganadores[+el.dataset.gan], i = +el.dataset.mes;
+        if ((w.ganadoresMes[i] || '') === el.value) return;
+        w.ganadoresMes[i] = el.value;
+        postJSON('/design/api/perf/ganadores/' + w.id, {mesIndice: i, nombre: el.value}).catch(pfFallo(cargarSeleccion));
+        return;
+      }
+      if (el.dataset.fila === undefined) return;
+      var f = d.filas[+el.dataset.fila], mes = +el.dataset.mes;
+      var c = f.celdas[mes] = f.celdas[mes] || {persona: '', puntaje: '', nota: ''};
+      if ((c[el.dataset.k] || '') === el.value) return;
+      c[el.dataset.k] = el.value;
+      postJSON('/design/api/perf/filas/' + f.id + '/celdas', {mesIndice: mes, persona: c.persona || '', puntaje: c.puntaje || '', nota: c.nota || ''})
+        .catch(pfFallo(cargarSeleccion));
+    });
+  }
+
+  function renderSeleccionMes(d) {
+    var panel = document.getElementById('pfPanel');
+    panel.innerHTML = '';
+    panel.appendChild(pfBarra(d, function() { renderSeleccion(d); }));
 
     var h2 = document.createElement('h3'); h2.innerText = 'Empleado del mes'; panel.appendChild(h2);
     var tablaGan = document.createElement('table'); tablaGan.className = 'pf-tabla';
@@ -5921,10 +6132,6 @@ window.DS_PANELS.dashboard = ddCargar;
     // Título y selector de mes en la misma fila (el mes al final), con el mismo espacio que "Empleado del mes".
     var cab = document.createElement('div'); cab.className = 'pf-seccion-h';
     var h3 = document.createElement('h3'); h3.innerText = 'Evaluaciones por líder'; cab.appendChild(h3);
-    var toolbar2 = document.createElement('div'); toolbar2.className = 'pf-toolbar';
-    var label = document.createElement('span'); label.innerText = 'Mes:'; toolbar2.appendChild(label);
-    toolbar2.appendChild(selectMeses(d.meses, function() { renderSeleccion(d); }));
-    cab.appendChild(toolbar2);
     panel.appendChild(cab);
 
     var tabla = document.createElement('table'); tabla.className = 'pf-tabla pf-tabla-lideres';

@@ -4,6 +4,16 @@
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
 <div class="tarjeta">
+  <h2>Conexión con los equipos (Desempeño y Pre-Approved)</h2>
+  <p style="font-size:13px;color:var(--gris)">
+    Desempeño y Pre-Approved guardan <b>nombres escritos</b> (vienen del Excel), no la persona ni el equipo de esta
+    página. Esta revisión muestra qué no coincide para corregir los nombres. <b>Solo lee, no cambia nada.</b>
+  </p>
+  <button type="button" class="btn gris" id="audBtn">Revisar conexiones</button>
+  <div id="audResultado" style="margin-top:12px"></div>
+</div>
+
+<div class="tarjeta">
   <h2>Importar equipos desde Desempeño</h2>
   <p style="font-size:13px;color:var(--gris)">
     Cruza los 16 equipos de las hojas de Desempeño (manager + diseñadores) contra los empleados ya
@@ -184,6 +194,60 @@
       document.getElementById('impAplicarBtn').style.display = '';
       btn.disabled = false; btn.innerText = 'Vista previa';
     });
+  });
+
+  // ---------- Auditoría de conexiones (solo lectura) ----------
+  function audTabla(titulo, filas, encabezados, vacio) {
+    var h = '<h3 style="margin:18px 0 6px;font-size:15px">' + titulo + '</h3>';
+    if (!filas.length) return h + '<p style="color:#16a34a;font-size:13px">✓ ' + vacio + '</p>';
+    h += '<table><tr>' + encabezados.map(function(x) { return '<th>' + x + '</th>'; }).join('') + '</tr>';
+    filas.forEach(function(f) { h += '<tr>' + f.map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; });
+    return h + '</table>';
+  }
+  var AUD_ROJO = function(t) { return '<span style="color:#b91c1c">' + t + '</span>'; };
+  function renderAuditoria(d) {
+    var html = '', okHojas = 0, okFilas = 0, totFilas = 0;
+    var probHoja = [], probFila = [], faltan = [];
+    d.hojas.forEach(function(h) {
+      if (!h.problemas.length) okHojas++;
+      h.problemas.forEach(function(p) { probHoja.push([esc(h.hoja), AUD_ROJO(esc(p))]); });
+      h.filas.forEach(function(f) {
+        totFilas++;
+        if (f.estado === 'ok') { okFilas++; return; }
+        probFila.push([esc(h.hoja), esc(f.nombre), f.persona ? esc(f.persona) : '—', AUD_ROJO(esc(f.detalle))]);
+      });
+      if (h.faltan.length) faltan.push([esc(h.hoja), esc(h.equipo || ''), h.faltan.map(esc).join('<br>')]);
+    });
+    html += '<p style="font-size:13px">Desempeño: <b>' + okHojas + ' de ' + d.hojas.length + '</b> hojas conectadas con su equipo · <b>' +
+            okFilas + ' de ' + totFilas + '</b> filas coinciden con la persona y el equipo.</p>';
+    html += audTabla('Hojas de Desempeño sin equipo', probHoja, ['Hoja', 'Problema'], 'Todas las hojas tienen su manager y su equipo.');
+    html += audTabla('Filas de Desempeño que no coinciden', probFila, ['Hoja', 'Nombre en Desempeño', 'Persona en People', 'Problema'],
+                     'Todas las filas coinciden con su persona y su equipo.');
+    html += audTabla('Diseñadores del equipo sin fila en su hoja', faltan, ['Hoja', 'Equipo', 'Personas'],
+                     'Cada diseñador de Parámetros tiene su fila en la hoja de su equipo.');
+    html += audTabla('Equipos sin hoja de Desempeño', d.equiposSinHoja.map(function(t) { return [esc(t)]; }), ['Equipo'],
+                     'Todos los equipos con manager tienen hoja.');
+    var sel = d.seleccion.filter(function(x) { return x.estado !== 'ok'; }).map(function(x) {
+      return [esc(x.hoja), esc(x.evaluador), x.persona ? esc(x.persona) : '—',
+              AUD_ROJO(x.estado === 'sin_persona' ? 'No coincide con nadie en People.' : 'No es manager de ningún equipo.')];
+    });
+    html += audTabla('Selección: evaluadores que no coinciden', sel, ['Hoja', 'Evaluador', 'Persona en People', 'Problema'],
+                     'Todos los evaluadores son managers de un equipo.');
+    var pa = d.preapproved.filter(function(x) { return x.estado !== 'ok'; }).map(function(x) {
+      return [esc(x.area), esc(x.hoja), AUD_ROJO(x.estado === 'ambiguo' ? 'Coincide con varios managers: ' + x.managers.map(esc).join(', ')
+                                                                         : 'No coincide con el manager de ningún equipo del área.')];
+    });
+    html += audTabla('Pre-Approved: hojas sin manager claro', pa, ['Área', 'Hoja', 'Problema'],
+                     'Cada hoja corresponde a un solo manager de su área.');
+    document.getElementById('audResultado').innerHTML = html;
+  }
+  document.getElementById('audBtn').addEventListener('click', function() {
+    var btn = this; btn.disabled = true; btn.innerText = 'Revisando...';
+    fetch('/design/api/parametros/auditoria-conexiones').then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+    }).then(renderAuditoria).catch(function(e) {
+      document.getElementById('audResultado').innerHTML = AUD_ROJO('No se pudo revisar: ' + esc(e.message));
+    }).then(function() { btn.disabled = false; btn.innerText = 'Revisar conexiones'; });
   });
 
   document.getElementById('impAplicarBtn').addEventListener('click', function() {

@@ -83,6 +83,13 @@ def api_importar_equipos_preview(user: Empleado = Depends(require_admin), db: Se
     return sd.importar_equipos_desde_desempeno(db, aplicar=False)
 
 
+@router.get("/design/api/parametros/auditoria-conexiones")
+def api_auditoria_conexiones(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Solo lectura: qué hojas de Desempeño, filas de Selección y hojas de Pre-Approved no coinciden con los
+    equipos y personas de Parámetros/People."""
+    return sd.auditar_conexiones(db)
+
+
 @router.post("/design/api/parametros/importar-equipos")
 def api_importar_equipos_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return sd.importar_equipos_desde_desempeno(db, aplicar=True)

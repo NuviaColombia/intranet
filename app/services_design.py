@@ -2552,3 +2552,92 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
             "miembrosAgregados": agregados,
         })
     return resultado
+
+
+
+# ---------------------------------------------------------------------------
+# Auditoría (solo lectura): qué partes de Design NO están conectadas con los equipos de Parámetros.
+# Desempeño y Pre-Approved guardan nombres escritos (vienen del Excel), no la persona ni el equipo: esta
+# revisión dice cuáles no coinciden para corregir los nombres. No modifica nada.
+# ---------------------------------------------------------------------------
+
+def _sin_prefijo_area(nombre: str) -> str:
+    return re.sub(r"^\s*(face|n2|n3|n6)\s+", "", nombre or "", flags=re.I).strip()
+
+
+def auditar_conexiones(db: Session) -> dict:
+    personas = db.query(Empleado).filter(Empleado.activo == 1).all()
+    teams = (db.query(DesignTeam).options(joinedload(DesignTeam.designers), joinedload(DesignTeam.area),
+                                          joinedload(DesignTeam.manager))
+             .filter(DesignTeam.activo == 1).all())
+    equipo_de = {}  # empleado_id -> [nombres de equipo]
+    for t in teams:
+        for d in t.designers:
+            equipo_de.setdefault(d.empleado_id, []).append(t.nombre)
+    nombre_de = {e.id: e.nombre_completo for e in personas}
+
+    hojas = []
+    for sh in perf_sheets(db):
+        if sh.tipo != "eval":
+            continue
+        r = {"hoja": sh.nombre, "manager": None, "equipo": None, "problemas": [], "filas": []}
+        mapeo = SHEET_MANAGER_MAP.get(sh.nombre)
+        team = None
+        if not mapeo:
+            r["problemas"].append("La hoja no está asociada a ningún manager (el nombre no está en la lista de hojas).")
+        else:
+            area_nombre, manager_nombre = mapeo
+            mgr = _buscar_empleado_por_nombre(manager_nombre, personas)
+            if not mgr:
+                r["problemas"].append(f'El manager "{manager_nombre}" no se encontró en People.')
+            else:
+                r["manager"] = mgr.nombre_completo
+                team = next((t for t in teams if t.manager_id == mgr.id and t.area.nombre == area_nombre), None)
+                if not team:
+                    r["problemas"].append(f'{mgr.nombre_completo} no es manager de ningún equipo activo de {area_nombre} en Parámetros.')
+                else:
+                    r["equipo"] = team.nombre
+        ids_team = {d.empleado_id for d in team.designers} if team else set()
+        vistos = set()
+        for fila in sh.empleados:
+            persona = _buscar_empleado_por_nombre(fila.nombre, personas)
+            item = {"nombre": fila.nombre, "persona": persona.nombre_completo if persona else None, "estado": "ok", "detalle": ""}
+            if not persona:
+                item["estado"], item["detalle"] = "sin_persona", "No coincide con nadie en People."
+            else:
+                vistos.add(persona.id)
+                if team and persona.id not in ids_team and persona.id != team.manager_id:
+                    otros = equipo_de.get(persona.id) or []
+                    item["estado"] = "otro_equipo"
+                    item["detalle"] = (f"En Parámetros está en {', '.join(otros)}." if otros
+                                       else "En Parámetros no está en ningún equipo.")
+            r["filas"].append(item)
+        r["faltan"] = sorted(nombre_de.get(i, str(i)) for i in ids_team - vistos)  # en el equipo, sin fila en la hoja
+        hojas.append(r)
+
+    managers = {t.manager_id for t in teams if t.manager_id}
+    seleccion = []
+    for sh in perf_sheets(db):
+        if sh.tipo != "seleccion":
+            continue
+        for fila in sh.filas_seleccion:
+            persona = _buscar_empleado_por_nombre(fila.evaluador, personas)
+            estado = "ok" if persona and persona.id in managers else ("no_manager" if persona else "sin_persona")
+            seleccion.append({"hoja": sh.nombre, "evaluador": fila.evaluador, "persona": persona.nombre_completo if persona else None,
+                              "estado": estado})
+
+    preapproved = []
+    for sh in db.query(DesignPreApprovedSheet).options(joinedload(DesignPreApprovedSheet.area)).order_by(
+            DesignPreApprovedSheet.area_id, DesignPreApprovedSheet.orden).all():
+        palabras = _palabras(_sin_prefijo_area(sh.nombre))
+        candidatos = [t for t in teams if t.area_id == sh.area_id and t.manager and palabras
+                      and palabras <= _palabras(t.manager.nombre_completo)]
+        estado = "ok" if len(candidatos) == 1 else ("ambiguo" if candidatos else "sin_manager")
+        preapproved.append({"area": sh.area.nombre, "hoja": sh.nombre, "estado": estado,
+                            "managers": [f"{t.manager.nombre_completo} ({t.nombre})" for t in candidatos]})
+
+    # Equipos activos con manager que no tienen hoja de evaluación asociada
+    con_hoja = {h["equipo"] for h in hojas if h["equipo"]}
+    sin_hoja = sorted(f"{t.area.nombre} · {t.nombre}" for t in teams if t.manager_id and t.nombre not in con_hoja
+                      and t.area.formato != FORMATO_SUPPORT)
+    return {"hojas": hojas, "seleccion": seleccion, "preapproved": preapproved, "equiposSinHoja": sin_hoja}
