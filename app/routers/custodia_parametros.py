@@ -12,6 +12,7 @@ from ..database import SessionLocal, engine
 from ..acceso_produccion import ProduccionAcceso, asegurar_tabla_y_migrar, MODULO_PRODUCCION
 from ..produccion import SUBMODULOS_PRODUCCION
 from ..main_templates import templates
+from ..formato import nombre_propio
 from .. import services_custodia as sc
 
 router = APIRouter()
@@ -102,6 +103,12 @@ def parametros_antes(request: Request, user: Empleado = Depends(require_admin)):
     return RedirectResponse("/inventario/parametros", status_code=303)
 
 
+def _stock_iniciales(db: Session) -> list:
+    from ..models_custodia import CustodiaStockDescripcion
+    return (db.query(CustodiaStockDescripcion).filter(CustodiaStockDescripcion.tipo == "INICIAL")
+            .order_by(CustodiaStockDescripcion.area, CustodiaStockDescripcion.descripcion).all())
+
+
 @router.get("/inventario/parametros")
 def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     # Accesos por submódulo: {empleado_id: {slugs}}
@@ -143,6 +150,10 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
                                        "saldos_cargados": sc.saldos_ya_cargados(db),
+                                       "stock_inventario": sc.inventario_stock(db),
+                                       "stock_iniciales": _stock_iniciales(db),
+                                       "stock_area": request.query_params.get("stock_area", ""),
+                                       "stock_texto": request.query_params.get("stock_texto", ""),
                                        "saldos_existentes": sorted(f"{o}|{a}" for o, a in sc.saldos_existentes(db)),
                                        "fecha_corte_anterior": (sc.ultima_fecha_corte(db) or "") and sc.ultima_fecha_corte(db).isoformat(),
                                        "areas_config": [a.nombre for a in areas if a.activo],
@@ -330,6 +341,47 @@ def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: S
         m.activo = 0 if m.activo else 1
         db.commit()
     return RedirectResponse("/inventario/parametros", status_code=303)
+
+
+# ---------- Stock por descripción (inicial) ----------
+
+@router.post("/inventario/parametros/custodia/stock-descripciones")
+def asignar_stock_descripciones(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                                area: str = Form(""), texto: str = Form("")):
+    """Le asigna descripciones (las del Resumen general) al Stock que ya tiene un área."""
+    from urllib.parse import quote
+    area = area.strip().upper()
+    filas, errores = sc.leer_stock_inicial(texto)
+    if not area:
+        errores = ["elige el área"] + errores
+    if errores or not filas:
+        detalle = " · ".join(errores[:6]) if errores else "no hay filas para asignar."
+        return RedirectResponse(f"/inventario/parametros?tab=saldos&stock_area={quote(area)}&stock_texto={quote(texto)}"
+                                f"&msg=No se guardó: {quote(detalle)}", status_code=303)
+    error = sc.asignar_stock_inicial(db, user, area, filas)
+    if error:
+        return RedirectResponse(f"/inventario/parametros?tab=saldos&stock_area={quote(area)}&stock_texto={quote(texto)}"
+                                f"&msg={quote(error)}", status_code=303)
+    total = sum(c for _, c in filas)
+    return RedirectResponse(f"/inventario/parametros?tab=saldos&msg={quote(f'Listo: {total:g} disco(s) del Stock de {nombre_propio(area)} quedaron con su descripción.')}",
+                            status_code=303)
+
+
+@router.post("/inventario/parametros/custodia/stock-descripciones/{mov_id}/quitar")
+def quitar_stock_descripcion(mov_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from ..models_custodia import CustodiaStockDescripcion
+    from urllib.parse import quote
+    m = db.get(CustodiaStockDescripcion, mov_id)
+    if m and m.tipo == "INICIAL":
+        actual = sc.stock_por_descripcion(db).get(m.area, {}).get(m.descripcion, 0)
+        if actual - m.cantidad < -1e-6:  # ya salieron discos de esa descripción
+            msg = (f"No se quitó: del Stock de {nombre_propio(m.area)} ya salieron discos de {m.descripcion} "
+                   f"(quedan {actual:g} de {m.cantidad:g}).")
+            return RedirectResponse(f"/inventario/parametros?tab=saldos&msg={quote(msg)}", status_code=303)
+        db.delete(m)
+        db.commit()
+    return RedirectResponse("/inventario/parametros?tab=saldos&msg=Asignación quitada: esos discos vuelven a quedar sin descripción.",
+                            status_code=303)
 
 
 # ---------- Saldos iniciales ----------

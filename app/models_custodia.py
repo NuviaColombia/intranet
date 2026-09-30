@@ -165,3 +165,23 @@ class CustodiaOP(Base):
     observaciones: Mapped[str] = mapped_column(Text, default="")
 
     traslado = relationship("CustodiaTraslado", back_populates="op")
+
+
+
+class CustodiaStockDescripcion(Base):
+    """Movimientos del Stock por descripción (la del Resumen general, ej. NDZ-B1-A10-N) en cada área.
+    INICIAL: asignado en Parámetros · ENTRADA: llega al Stock de un área (cuenta al confirmar la entrada) ·
+    SALIDA: sale del Stock (cantidad negativa). Si el traslado se anula, sus movimientos dejan de contar."""
+    __tablename__ = "custodia_stock_descripciones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    traslado_id: Mapped[int | None] = mapped_column(ForeignKey("custodia_traslados.id"), nullable=True, index=True)
+    area: Mapped[str] = mapped_column(String(100))
+    descripcion: Mapped[str] = mapped_column(String(200))
+    cantidad: Mapped[float] = mapped_column(Float)          # + entra, - sale
+    tipo: Mapped[str] = mapped_column(String(20))           # INICIAL | ENTRADA | SALIDA
+    creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    traslado = relationship("CustodiaTraslado")
+    creado_por = relationship("Empleado", foreign_keys=[creado_por_id])

@@ -71,7 +71,13 @@ class OPIn(BaseModel):
     observaciones: str = ""
 
 
+class StockDescripcionIn(BaseModel):
+    descripcion: str = ""
+    cantidad: float = 0
+
+
 class RegistrarPayload(BaseModel):
+    stockDescripciones: list[StockDescripcionIn] = []  # de qué descripciones sale lo que se toma del Stock
     traslados: list[TrasladoLineaIn]
     resumen: list[ResumenIn] = []
     discos: list[DiscosIn] = []
@@ -145,9 +151,13 @@ def api_registrar(payload: RegistrarPayload, tareas: BackgroundTasks,
     error = sc.validar_lineas_traslado(db, lineas, resumen, cabecera["area_salida"])
     if error:
         raise HTTPException(400, error)
+    error, elegidas = sc.validar_stock_descripciones(db, cabecera["area_salida"], lineas,
+                                                     [d.model_dump() for d in payload.stockDescripciones])
+    if error:
+        raise HTTPException(400, error)
     traslado = sc.crear_traslado(db, user, cabecera, lineas, resumen,
                                  [d.model_dump() for d in payload.discos],
-                                 [o.model_dump() for o in payload.op])
+                                 [o.model_dump() for o in payload.op], elegidas)
     tareas.add_task(sc.notificar_traslado_pendiente, traslado.id)
     if traslado.requiere_firma_dir:
         tareas.add_task(sc.notificar_firma_dir_pendiente, traslado.id)
@@ -283,6 +293,16 @@ def api_detalles(traslado_id: int, user: Empleado = Depends(require_submodulo("c
     acs.exigir(db, user, "custodia", 'consulta', 'activas', 'aprobaciones')
     traslado = _get_traslado(db, traslado_id)
     return sc.detalles_por_traslado(traslado)
+
+
+@router.get("/custodia/api/stock-descripciones")
+def api_stock_descripciones(user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
+    """Inventario del Stock por área y descripción (Dashboard y «Tomar del Stock» en el registro)."""
+    acs.exigir(db, user, "custodia", "registro", "nueva-orden", "existencias")
+    from ..models_custodia import CustodiaResumen, CustodiaStockDescripcion
+    sugerencias = sorted({sc._descripcion(d) for (d,) in db.query(CustodiaResumen.descripcion).distinct().limit(3000) if (d or "").strip()}
+                         | {d for (d,) in db.query(CustodiaStockDescripcion.descripcion).distinct()})
+    return {"areas": sc.inventario_stock(db), "sugerencias": sugerencias[:2000], "sinDescripcion": sc.SIN_DESCRIPCION}
 
 
 @router.get("/custodia/api/dashboard")
