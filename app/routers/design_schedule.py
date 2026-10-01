@@ -1146,10 +1146,14 @@ def api_preapproved_sheets(area_id: int, user: Empleado = Depends(require_modulo
 
 
 @router.get("/design/api/preapproved/buscar")
-def api_preapproved_buscar(q: str = Query("", max_length=100), user: Empleado = Depends(require_modulo("design_schedule")),
-                           db: Session = Depends(get_db)):
-    """Buscar doctor o centro en todas las hojas de Pre-Approved que la persona ve (las de su área)."""
-    return sd.preapproved_buscar(db, q, sd.preapproved_areas_permitidas(db, user))
+def api_preapproved_buscar(q: str = Query("", max_length=100), area_id: int | None = None,
+                           user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Buscar doctor o centro en todas las hojas de Pre-Approved del área abierta (cada área busca solo en la suya)."""
+    permitidas = sd.preapproved_areas_permitidas(db, user)
+    if area_id is not None:
+        _pa_area(db, user, area_id)
+        permitidas = {area_id}
+    return sd.preapproved_buscar(db, q, permitidas)
 
 
 @router.get("/design/api/preapproved/sheets/{sheet_id}")

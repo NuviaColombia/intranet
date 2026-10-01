@@ -888,7 +888,7 @@ window.dsPdfjs = function() {
 <div class="ds-area-row"><div class="pa-tabs" id="paAreaTabs"></div></div>
 <div class="pa-top">
   <div class="pa-top-izq" id="paIzq" style="display:none">
-    <input type="text" class="faq-buscar" id="paBuscar" placeholder="🔎 Ir a un doctor o centro (todas las hojas)..." title="Busca en todas las hojas de tu área. Enter: siguiente coincidencia">
+    <input type="text" class="faq-buscar" id="paBuscar" placeholder="🔎 Ir a un doctor o centro (todas las hojas del área)..." title="Busca en todas las hojas del área abierta. Enter: siguiente coincidencia">
     <span class="faq-cuenta" id="paCuenta"></span>
     <span id="paHerr" style="display:none">
       <button type="button" class="faq-gbtn" onclick="paAgregarFila()" title="Agregar criterio (fila)">+ Criterio</button>
@@ -3396,6 +3396,7 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   function elegirHoja(areaId, sheets, sheetId) {
+    if (PA.areaId && PA.areaId !== areaId && PA_BUSQ.q) { PA_BUSQ.q = ''; PA_BUSQ.hits = []; PA_BUSQ.tok++; document.getElementById('paBuscar').value = ''; }
     PA.areaId = areaId; PA.sheets = sheets;
     marcarArea();
     seleccionarHoja(sheetId);
@@ -3608,7 +3609,7 @@ window.DS_PANELS.dashboard = ddCargar;
     tabla.appendChild(tbody);
   }
 
-  // Buscar: busca doctores y centros en TODAS las hojas que la persona ve. Resalta los de la hoja abierta y lleva
+  // Buscar: busca doctores y centros en todas las hojas del ÁREA ABIERTA (cada área funciona por separado). Resalta los de la hoja abierta y lleva
   // al primero; si solo hay en otra hoja, cambia a esa hoja. Enter pasa al siguiente (también de una hoja a otra).
   var PA_BUSQ = {q: '', hits: [], i: 0, tok: 0};
   function paNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
@@ -3653,7 +3654,8 @@ window.DS_PANELS.dashboard = ddCargar;
     }
     var t = ++PA_BUSQ.tok;
     if (!q) { PA_BUSQ.q = ''; PA_BUSQ.hits = []; paMarcarBusqueda(); return; }
-    api('/design/api/preapproved/buscar?q=' + encodeURIComponent(q)).then(function(hits) {
+    // solo en el área abierta: N3 busca en N3, N2 en N2
+    api('/design/api/preapproved/buscar?q=' + encodeURIComponent(q) + (PA.areaId ? '&area_id=' + PA.areaId : '')).then(function(hits) {
       if (t !== PA_BUSQ.tok) return;
       PA_BUSQ.q = q; PA_BUSQ.hits = hits || [];
       var aqui = PA_BUSQ.hits.findIndex(function(h) { return h.sheetId === PA.sheetId; });
