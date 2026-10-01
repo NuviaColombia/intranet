@@ -1489,6 +1489,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   // pedía cada columna por separado: 6 peticiones al abrir un equipo de Face Design).
   var catalogoCache = {};
   function dsCatalogo(tipo) {
+    // Centro: los centros de Openings del manager del equipo (los manda el servidor con el día); si no hay, el catálogo.
+    if (tipo === 'centro' && DS.diaData && Array.isArray(DS.diaData.centros)) return Promise.resolve(DS.diaData.centros);
     var areaId = DS.areaId;
     if (!catalogoCache[areaId]) {
       catalogoCache[areaId] = api('/design/api/catalogos?area_id=' + areaId)

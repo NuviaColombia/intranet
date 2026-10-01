@@ -412,6 +412,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         "soloPropias": solo_empleado_id is not None,
         "prestadas": [],
     }
+    salida["centros"] = centros_de_equipo(db, team)  # desplegable Centro: los centros de Openings de su manager
     # El manager a veces diseña casos: va al final de la columna Diseñador (no en Tiempos libres, que usa "designers").
     salida["manager"] = _manager_elegible(team, {d.empleado_id for d in designers}) if solo_empleado_id is None else None
     if team.area.formato == FORMATO_SUPPORT:
@@ -3382,12 +3383,57 @@ def _openings_ordenar_por_numero_una_vez(db: Session, h) -> None:
         db.rollback()  # otra petición lo hizo al mismo tiempo
 
 
+# Zona horaria de cada centro de Openings (1-oct-2026; Dublin = Ohio, Portland = Oregon, Richmond = Virginia,
+# confirmados). Las diferencias con Colombia se calculan solas en la pantalla (Hoy y Desde el próximo cambio).
+OPENINGS_ZONAS = {
+    "Este": ["Hartford", "Bufallo", "Long Island", "Orlando", "Westbury", "Indianapolis", "Wellesley", "Cleveland", "Louisville",
+             "Philadelphia", "Alpharetta", "Jacksonville", "Tampa", "Miami", "Fort lauderdale", "Moorestown", "Harrison", "Providence",
+             "Marietta", "Reading", "Richmond", "Fort Mill", "Dublin", "Baltimore", "Parsippany", "Pittsburgh", "Detroit", "Fort Myers",
+             "Chevy Chase", "Alexandria"],
+    "Centro": ["San Antonio", "Austin", "Dallas", "Fort worth", "Saint Louis", "Houston", "Oklahoma", "Kansas", "Woodlands",
+               "New Orleans", "Nashville", "Minneapolis", "Milwaukee", "Lemont", "Chicago"],
+    "Montaña": ["Denver", "Salt Lake"],
+    "Arizona": ["Phoenix"],
+    "Pacífico": ["Fresno", "Sacramento", "Riverside", "Walnut creek", "Fremont", "Torrance", "Bellevue", "Fullerton", "Portland",
+                 "Encino", "San Diego", "Las Vegas"],
+}
+OPENINGS_COLS_HORA_VIEJAS = ("dif_2025_10_26", "dif_actual", "dif_2026_03_08")
+
+
+def _openings_zonas_una_vez(db: Session, h) -> None:
+    from .models_design import DesignConexionRegla
+    H, C, Fi = _openings_modelos()
+    marca = "openings_zonas_horarias"
+    if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+        return
+    zona_de = {_normalizar_texto(c): z for z, cs in OPENINGS_ZONAS.items() for c in cs}
+    cols = db.query(C).filter(C.hoja_id == h.id).order_by(C.orden, C.id).all()
+    viejas = [c for c in cols if c.clave in OPENINGS_COLS_HORA_VIEJAS]
+    if not any(c.clave == "zona_horaria" for c in cols):
+        pos = min((c.orden for c in viejas), default=(max((c.orden for c in cols), default=0) + 1))
+        db.add(C(hoja_id=h.id, clave="zona_horaria", titulo="Zona horaria", orden=pos))
+        for f in db.query(Fi).filter(Fi.hoja_id == h.id).all():
+            d = json.loads(f.datos or "{}")
+            if not d.get("zona_horaria"):
+                d["zona_horaria"] = zona_de.get(_normalizar_texto(d.get("centro", "")), "")
+                f.datos = json.dumps(d, ensure_ascii=False)
+        db.flush()
+    for c in viejas:  # quedan en la Papelera con sus valores (se pueden restaurar)
+        openings_eliminar_columna(db, c.id, "Sistema (reemplazadas por zona horaria)", commit=False)
+    try:
+        db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
 def openings_hoja(db: Session):
     """La hoja de Openings; la primera vez se llena con el Excel."""
     H, C, Fi = _openings_modelos()
     h = db.query(H).order_by(H.id).first()
     if h:
         _openings_ordenar_por_numero_una_vez(db, h)
+        _openings_zonas_una_vez(db, h)
         return h
     ruta = Path(__file__).resolve().parent / "seed_data" / "design_openings_2026.json"
     datos = json.loads(ruta.read_text(encoding="utf-8")) if ruta.exists() else {"columnas": [], "filas": []}
@@ -3404,6 +3450,7 @@ def openings_hoja(db: Session):
         db.rollback()  # otra petición la creó al mismo tiempo
     h = db.query(H).order_by(H.id).first()
     _openings_ordenar_por_numero_una_vez(db, h)
+    _openings_zonas_una_vez(db, h)
     return h
 
 
@@ -3420,6 +3467,7 @@ def openings_detalle(db: Session) -> dict:
 
 def _openings_tocar(h) -> None:
     h.actualizado_en = datetime.utcnow()
+    _OPEN_CACHE["filas"] = None  # el desplegable Centro del Schedule toma el cambio al instante
 
 
 def openings_guardar_celda(db: Session, fila_id: int, clave: str, valor: str) -> bool:
@@ -3495,7 +3543,7 @@ def openings_renombrar_columna(db: Session, col_id: int, titulo: str) -> bool:
     return True
 
 
-def openings_eliminar_columna(db: Session, col_id: int, eliminado_por: str) -> bool:
+def openings_eliminar_columna(db: Session, col_id: int, eliminado_por: str, commit: bool = True) -> bool:
     """La columna y sus valores van a la Papelera (se pueden restaurar)."""
     H, C, Fi = _openings_modelos()
     c = db.get(C, col_id)
@@ -3512,7 +3560,8 @@ def openings_eliminar_columna(db: Session, col_id: int, eliminado_por: str) -> b
                      eliminado_por)
     _openings_tocar(db.get(H, c.hoja_id))
     db.delete(c)
-    db.commit()
+    if commit:
+        db.commit()
     return True
 
 
@@ -3574,3 +3623,53 @@ def _trash_restaurar_openings_col(db: Session, payload: dict) -> bool:
 
 _TRASH_RESTAURADORES["openings-fila"] = _trash_restaurar_openings_fila
 _TRASH_RESTAURADORES["openings-col"] = _trash_restaurar_openings_col
+
+
+
+# ---------- Centro en el Schedule: los centros de Openings del manager del equipo ----------
+# N3 / N2 / Face: los centros cuyo Manager N3 / N2 / Face es el manager del equipo. N6 y Support: todos.
+# Al final siempre Training y Colaboracion (1-oct-2026). Si el manager no aparece en Openings, se usa el
+# catálogo de Centros del área (como antes), para que nunca quede vacío.
+OPENINGS_COL_MANAGER = {"N3 Prosthetic": "manager_n3", "N2 Demodenture": "manager_n2", "Face Design": "manager_face"}
+CENTROS_EXTRA = ["Training", "Colaboracion"]
+_OPEN_CACHE = {"t": 0.0, "filas": None}
+
+
+def _openings_filas_cache(db: Session) -> list[dict]:
+    import time as _t
+    if _OPEN_CACHE["filas"] is not None and _t.monotonic() - _OPEN_CACHE["t"] < 30:
+        return _OPEN_CACHE["filas"]
+    H, C, Fi = _openings_modelos()
+    h = db.query(H).order_by(H.id).first()
+    filas = []
+    if h:
+        filas = [json.loads(f.datos or "{}") for f in db.query(Fi).filter(Fi.hoja_id == h.id).order_by(Fi.orden, Fi.id).all()]
+    _OPEN_CACHE["t"], _OPEN_CACHE["filas"] = _t.monotonic(), filas
+    return filas
+
+
+def centros_de_equipo(db: Session, team: DesignTeam) -> list[str] | None:
+    """Centros para el desplegable Centro de ese equipo; None = usar el catálogo del área."""
+    filas = _openings_filas_cache(db)
+    if not filas:
+        return None
+    todos = [f.get("centro", "").strip() for f in filas if f.get("centro", "").strip()]
+    col = OPENINGS_COL_MANAGER.get(team.area.nombre)
+    if team.area.formato == FORMATO_SUPPORT or team.area.nombre == "N6 Material Changes":
+        base = todos
+    elif col and team.manager:
+        # se ignoran iniciales y puntos ("Julio E. Hernandez" = Julio Enrique Hernandez Florez)
+        pal = lambda t: {w for w in re.sub(r"[^a-z0-9 ]", " ", _normalizar_texto(t)).split() if len(w) > 1}
+        pm = pal(team.manager.nombre_completo)
+        base = [f.get("centro", "").strip() for f in filas
+                if f.get("centro", "").strip() and pal(f.get(col, "")) and pal(f.get(col, "")) <= pm]
+        if not base:
+            return None
+    else:
+        return None
+    vistos, out = set(), []
+    for c in base + CENTROS_EXTRA:
+        if _normalizar_texto(c) not in vistos:
+            vistos.add(_normalizar_texto(c))
+            out.append(c)
+    return out

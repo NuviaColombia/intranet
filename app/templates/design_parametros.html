@@ -161,6 +161,9 @@
   .op-menu button:hover, .op-menu button:focus-visible { background:#f1f5f9; outline:none; }
   .op-menu hr { border:0; border-top:1px solid #eef2f7; margin:4px 2px; }
   .op-celda { min-width:60px; cursor:text; }
+  .op-calc { background:#f8fafc; color:#0f172a; font-weight:600; text-align:center; }
+  .op-calc.mas { color:#1d4ed8; } .op-calc.menos { color:#b45309; } .op-calc.err { color:#b91c1c; font-weight:400; }
+  .op-tabla thead th.op-th-calc { background:#eef2ff; }
   .op-celda:hover { background:#f8fafc; }
   .op-celda[contenteditable="true"] { background:#fff; outline:2px solid #1d4ed8; outline-offset:-2px; }
   .op-celda.op-guardado { background:#dcfce7; transition:background .6s; }
@@ -471,7 +474,7 @@
       <h2>Openings</h2>
       <span class="aud-sub" id="opSub">distribución de centros de Design · editable</span>
       <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
-            title="Base de datos de la distribución de centros (cargada de la hoja 2026 del Excel 'Openings Distribucion 2026'). Todo se edita aquí: haz clic en una celda o en un título para cambiarlo (Enter guarda, Esc cancela). + Fila / + Columna agregan; × quita una fila (queda en la Papelera de Design). En cada columna, el ▾ de la esquina (o clic en el título) abre sus opciones: renombrar, ordenar la vista, moverla u ocultarla (ocultar es solo en tu vista; los datos no se borran; 'Mostrar ocultas' las trae de vuelta).">i</span>
+            title="Base de datos de la distribución de centros (cargada de la hoja 2026 del Excel 'Openings Distribucion 2026'). Todo se edita aquí: haz clic en una celda o en un título para cambiarlo (Enter guarda, Esc cancela). + Fila / + Columna agregan; × quita una fila (queda en la Papelera de Design). Las columnas Hoy y Desde (próximo cambio de hora) se calculan solas con la Zona horaria de cada centro (Este, Centro, Montaña, Arizona o Pacífico) comparada con la hora de Colombia. En cada columna, el ▾ de la esquina (o clic en el título) abre sus opciones: renombrar, ordenar la vista, moverla u ocultarla (ocultar es solo en tu vista; los datos no se borran; 'Mostrar ocultas' las trae de vuelta).">i</span>
     </div>
     <label class="aud-switch">
       <input type="checkbox" id="opSwitch" role="switch" aria-controls="opContenido">
@@ -941,7 +944,50 @@
     var OP_OCULTAS_KEY = 'opColumnasOcultas', ocultas = [];
     try { ocultas = JSON.parse(localStorage.getItem(OP_OCULTAS_KEY) || '[]') || []; } catch (e) { ocultas = []; }
     function guardarOcultas() { try { localStorage.setItem(OP_OCULTAS_KEY, JSON.stringify(ocultas)); } catch (e) {} }
-    function visibles() { return OP.columnas.filter(function(c) { return ocultas.indexOf(c.clave) < 0; }); }
+    // Diferencia horaria con Colombia: se calcula sola con la zona horaria de cada centro y la fecha de hoy.
+    var ZONAS = {este: 'America/New_York', east: 'America/New_York', eastern: 'America/New_York', centro: 'America/Chicago',
+                 central: 'America/Chicago', montana: 'America/Denver', mountain: 'America/Denver', arizona: 'America/Phoenix',
+                 pacifico: 'America/Los_Angeles', pacific: 'America/Los_Angeles'};
+    function sinTilde(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+    function zonaIana(texto) { var k = sinTilde(texto).split(/[\s(]/)[0]; return ZONAS[k] || null; }
+    function offsetMin(tz, fecha) {
+      try {
+        var p = new Intl.DateTimeFormat('en-US', {timeZone: tz, timeZoneName: 'shortOffset'}).formatToParts(fecha)
+          .find(function(x) { return x.type === 'timeZoneName'; }).value;  // "GMT-5" / "GMT-4"
+        var m = p.match(/GMT([+-])(\d+)(?::(\d+))?/); if (!m) return 0;
+        return (m[1] === '-' ? -1 : 1) * (parseInt(m[2]) * 60 + parseInt(m[3] || '0'));
+      } catch (e) {  // navegador sin datos de zonas: regla de EE.UU. (2.º domingo de marzo a 1.er domingo de noviembre)
+        var base = {'America/New_York': -300, 'America/Chicago': -360, 'America/Denver': -420, 'America/Phoenix': -420,
+                    'America/Los_Angeles': -480, 'America/Bogota': -300}[tz] || 0;
+        if (tz === 'America/Phoenix' || tz === 'America/Bogota') return base;
+        var y = fecha.getFullYear(), dom = function(mes, n) { var d = new Date(y, mes, 1); d.setDate(1 + (7 - d.getDay()) % 7 + 7 * (n - 1)); return d; };
+        return base + (fecha >= dom(2, 2) && fecha < dom(10, 1) ? 60 : 0);
+      }
+    }
+    function difTexto(tz, fecha) {
+      if (!tz) return null;
+      var h = (offsetMin(tz, fecha) - offsetMin('America/Bogota', fecha)) / 60;
+      return h === 0 ? 'Igual' : (h > 0 ? '+' + h : String(h));
+    }
+    var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    var HOY = new Date(); HOY.setHours(12, 0, 0, 0);
+    var PROX = (function() {  // primer día en que cambia la hora en EE.UU. (desde mañana)
+      var ref = offsetMin('America/New_York', HOY);
+      for (var i = 1; i < 400; i++) { var d = new Date(HOY); d.setDate(d.getDate() + i); if (offsetMin('America/New_York', d) !== ref) return d; }
+      return null;
+    })();
+    var COLS_CALC = [{id: 'calc_hoy', clave: '_hoy', titulo: 'Hoy', calc: true, fecha: HOY}].concat(PROX ? [{id: 'calc_prox', clave: '_prox',
+      titulo: 'Desde ' + PROX.getDate() + ' ' + MESES[PROX.getMonth()] + ' ' + PROX.getFullYear(), calc: true, fecha: PROX}] : []);
+    function valor(f, c) {
+      if (!c.calc) return f.datos[c.clave] || '';
+      return difTexto(zonaIana(f.datos.zona_horaria), c.fecha) || '';
+    }
+    function todasLasColumnas() {  // las calculadas van justo después de Zona horaria
+      var out = [];
+      OP.columnas.forEach(function(c) { out.push(c); if (c.clave === 'zona_horaria') out = out.concat(COLS_CALC); });
+      return out;
+    }
+    function visibles() { return todasLasColumnas().filter(function(c) { return ocultas.indexOf(c.clave) < 0; }); }
     function post(url, body) {
       return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})})
         .then(function(r) { return r.json().catch(function() { return {}; }).then(function(x) {
@@ -958,7 +1004,8 @@
       if (orden) {
         var num = function(v) { var n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
         f.sort(function(a, b) {
-          var x = a.datos[orden.clave] || '', y = b.datos[orden.clave] || '', nx = num(x), ny = num(y);
+          var oc = todasLasColumnas().find(function(c) { return c.clave === orden.clave; }) || {clave: orden.clave};
+          var x = valor(a, oc), y = valor(b, oc), nx = num(x === 'Igual' ? '0' : x), ny = num(y === 'Igual' ? '0' : y);
           var c = (nx !== null && ny !== null) ? nx - ny : x.localeCompare(y, 'es', {sensitivity: 'base'});
           return c * orden.dir;
         });
@@ -985,7 +1032,7 @@
       filtrar();
     }
     function resumen() {
-      var ocu = OP.columnas.length - visibles().length;
+      var ocu = todasLasColumnas().length - visibles().length;
       document.getElementById('opSub').textContent = OP.filas.length + ' centros · ' + OP.columnas.length + ' columnas' +
         (ocu ? ' (' + ocu + ' ocultas)' : '') + ' · editable';
       var bm = cont.querySelector('[data-op="mostrar"]');
@@ -993,7 +1040,12 @@
     }
     function filaHtml(f) {
       var h = '<tr data-fila="' + f.id + '">';
-      visibles().forEach(function(c) { h += '<td class="op-celda" data-clave="' + esc(c.clave) + '">' + esc(f.datos[c.clave] || '') + '</td>'; });
+      visibles().forEach(function(c) {
+        if (c.calc) {
+          var v = valor(f, c), cls = !v ? ' err' : (v.charAt(0) === '+' ? ' mas' : (v.charAt(0) === '-' ? ' menos' : ''));
+          h += '<td class="op-calc' + cls + '" data-clave="' + c.clave + '" title="' + (v ? 'Se calcula solo con la zona horaria' : 'Escribe la zona horaria: Este, Centro, Montaña, Arizona o Pacífico') + '">' + (v || '?') + '</td>';
+        } else h += '<td class="op-celda" data-clave="' + esc(c.clave) + '">' + esc(f.datos[c.clave] || '') + '</td>';
+      });
       return h + '<td class="op-acc op-acc-col"><button type="button" data-op="insertar" title="Agregar una fila debajo" aria-label="Agregar fila debajo">+</button>' +
              '<button type="button" class="op-x" data-op="quitar-fila" title="Quitar fila" aria-label="Quitar fila">×</button></td></tr>';
     }
@@ -1002,7 +1054,8 @@
       var vis = visibles();
       vis.forEach(function(c, i) {
         var flecha = orden && orden.clave === c.clave ? (orden.dir > 0 ? ' ▲' : ' ▼') : '';
-        h += '<th data-col="' + c.id + '" data-i="' + i + '"><span class="op-th-tit op-edit" data-op-col="' + c.id + '" title="Opciones de la columna">' +
+        h += '<th data-col="' + c.id + '" data-i="' + i + '"' + (c.calc ? ' class="op-th-calc" title="Se calcula solo: diferencia con la hora de Colombia"' : '') +
+          '><span class="op-th-tit op-edit" data-op-col="' + c.id + '" title="Opciones de la columna">' +
           esc(c.titulo || c.clave) + '</span>' + flecha +
           '<button type="button" class="op-menu-btn" data-op="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de la columna ' +
           esc(c.titulo || c.clave) + '">▾</button></th>';
@@ -1049,18 +1102,20 @@
       var th = btn.closest('th'), abierto = menuBtn === btn;
       cerrarMenu();
       if (abierto) return;
-      var cid = parseInt(th.dataset.col), i = parseInt(th.dataset.i), c = OP.columnas.find(function(x) { return x.id === cid; });
+      var cid = th.dataset.col, i = parseInt(th.dataset.i), c = todasLasColumnas().find(function(x) { return String(x.id) === cid; });
       var n = visibles().length, ord = orden && orden.clave === c.clave;
       var it = function(op, txt, extra) {
         return '<button type="button" role="menuitem" data-op="' + op + '" data-col="' + cid + '" data-clave="' + esc(c.clave) + '"' + (extra || '') + '>' + txt + '</button>';
       };
       var m = document.createElement('div'); m.className = 'op-menu'; m.id = 'opMenu'; m.setAttribute('role', 'menu');
       m.setAttribute('aria-label', 'Opciones de la columna ' + c.titulo);
-      m.innerHTML = it('renombrar', '✏️ Renombrar') + '<hr>' +
-        it('ordenar', '↑ Ordenar A → Z', ' data-dir="1"') + it('ordenar', '↓ Ordenar Z → A', ' data-dir="-1"') +
-        (ord ? it('ordenar', '✕ Quitar orden', ' data-dir="0"') : '') + '<hr>' +
-        (i > 0 ? it('izq', '‹ Mover a la izquierda') : '') + (i < n - 1 ? it('der', '› Mover a la derecha') : '') +
-        (i > 0 || i < n - 1 ? '<hr>' : '') + it('ocultar', '− Ocultar columna');
+      var ordenar = it('ordenar', '↑ Ordenar A → Z', ' data-dir="1"') + it('ordenar', '↓ Ordenar Z → A', ' data-dir="-1"') +
+        (ord ? it('ordenar', '✕ Quitar orden', ' data-dir="0"') : '');
+      m.innerHTML = c.calc
+        ? '<div class="cat-sin" style="padding:4px 10px 6px">Se calcula sola con la zona horaria</div>' + ordenar + '<hr>' + it('ocultar', '− Ocultar columna')
+        : it('renombrar', '✏️ Renombrar') + '<hr>' + ordenar + '<hr>' +
+          (i > 0 ? it('izq', '‹ Mover a la izquierda') : '') + (i < n - 1 ? it('der', '› Mover a la derecha') : '') +
+          (i > 0 || i < n - 1 ? '<hr>' : '') + it('ocultar', '− Ocultar columna');
       cont.appendChild(m);
       var r = btn.getBoundingClientRect(), w = m.offsetWidth;
       m.style.top = (r.bottom + 4) + 'px';
@@ -1087,7 +1142,14 @@
         var fid = parseInt(celda.parentNode.dataset.fila), clave = celda.dataset.clave;
         editar(celda, function(v) {
           return post('/design/api/openings/celda', {filaId: fid, clave: clave, valor: v}).then(function() {
-            var f = OP.filas.find(function(x) { return x.id === fid; }); if (f) f.datos[clave] = v; });
+            var f = OP.filas.find(function(x) { return x.id === fid; }); if (f) f.datos[clave] = v;
+            if (f && clave === 'zona_horaria') {
+              var tmp = document.createElement('tbody'); tmp.innerHTML = filaHtml(f);
+              celda.parentNode.querySelectorAll('.op-calc').forEach(function(td) {
+                var nuevo = tmp.querySelector('.op-calc[data-clave="' + td.dataset.clave + '"]'); if (nuevo) td.replaceWith(nuevo);
+              });
+            }
+          });
         });
         return;
       }
