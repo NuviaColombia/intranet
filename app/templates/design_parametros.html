@@ -147,6 +147,19 @@
   .op-th button, .op-acc button { border:0; background:transparent; cursor:pointer; color:#64748b; font-size:11px; padding:0 3px; border-radius:4px; line-height:1.4; }
   .op-th button:hover, .op-acc button:hover { background:#e2e8f0; color:#0f172a; }
   .op-th button.op-x:hover, .op-acc button.op-x:hover { background:#fee2e2; color:#991b1b; }
+  .op-tabla thead th { padding-right:24px; }
+  .op-th-tit { cursor:pointer; }
+  /* triángulo en la esquina superior derecha del encabezado: abre el menú de la columna */
+  .op-menu-btn { position:absolute; top:0; right:0; width:20px; height:20px; border:0; padding:0; cursor:pointer;
+                 background:linear-gradient(225deg, #94a3b8 0 50%, transparent 50%); border-top-right-radius:2px; color:transparent; font-size:0; }
+  .op-menu-btn:hover, .op-menu-btn[aria-expanded="true"] { background:linear-gradient(225deg, #1d4ed8 0 50%, transparent 50%); }
+  .op-menu-btn:focus-visible { outline:2px solid #1d4ed8; outline-offset:1px; }
+  .op-menu { position:fixed; z-index:60; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 8px 24px rgba(15,23,42,.15);
+             padding:4px; min-width:190px; }
+  .op-menu button { display:block; width:100%; text-align:left; border:0; background:transparent; padding:6px 10px; font-size:12.5px;
+                    border-radius:6px; cursor:pointer; color:#0f172a; }
+  .op-menu button:hover, .op-menu button:focus-visible { background:#f1f5f9; outline:none; }
+  .op-menu hr { border:0; border-top:1px solid #eef2f7; margin:4px 2px; }
   .op-celda { min-width:60px; cursor:text; }
   .op-celda:hover { background:#f8fafc; }
   .op-celda[contenteditable="true"] { background:#fff; outline:2px solid #1d4ed8; outline-offset:-2px; }
@@ -458,7 +471,7 @@
       <h2>Openings</h2>
       <span class="aud-sub" id="opSub">distribución de centros de Design · editable</span>
       <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
-            title="Base de datos de la distribución de centros (cargada de la hoja 2026 del Excel 'Openings Distribucion 2026'). Todo se edita aquí: haz clic en una celda o en un título para cambiarlo (Enter guarda, Esc cancela). + Fila / + Columna agregan; × quita (queda en la Papelera de Design y se puede restaurar). ‹ › mueven la columna; ↕ ordena la vista.">i</span>
+            title="Base de datos de la distribución de centros (cargada de la hoja 2026 del Excel 'Openings Distribucion 2026'). Todo se edita aquí: haz clic en una celda o en un título para cambiarlo (Enter guarda, Esc cancela). + Fila / + Columna agregan; × quita una fila (queda en la Papelera de Design). En cada columna, el ▾ de la esquina (o clic en el título) abre sus opciones: renombrar, ordenar la vista, moverla u ocultarla (ocultar es solo en tu vista; los datos no se borran; 'Mostrar ocultas' las trae de vuelta).">i</span>
     </div>
     <label class="aud-switch">
       <input type="checkbox" id="opSwitch" role="switch" aria-controls="opContenido">
@@ -924,6 +937,11 @@
   (function() {
     var sw = document.getElementById('opSwitch'), txt = document.getElementById('opSwitchTxt'), cont = document.getElementById('opContenido');
     var OP = null, orden = null;  // orden = {clave, dir} (solo la vista)
+    // columnas ocultas: solo la vista de cada quien (se recuerda en este navegador; los datos no cambian)
+    var OP_OCULTAS_KEY = 'opColumnasOcultas', ocultas = [];
+    try { ocultas = JSON.parse(localStorage.getItem(OP_OCULTAS_KEY) || '[]') || []; } catch (e) { ocultas = []; }
+    function guardarOcultas() { try { localStorage.setItem(OP_OCULTAS_KEY, JSON.stringify(ocultas)); } catch (e) {} }
+    function visibles() { return OP.columnas.filter(function(c) { return ocultas.indexOf(c.clave) < 0; }); }
     function post(url, body) {
       return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})})
         .then(function(r) { return r.json().catch(function() { return {}; }).then(function(x) {
@@ -949,25 +967,27 @@
     }
     function pintar() {
       var q = (document.getElementById('opBuscar') || {}).value || '';
-      document.getElementById('opSub').textContent = OP.filas.length + ' centros · ' + OP.columnas.length + ' columnas · editable';
+      document.getElementById('opSub').textContent = OP.filas.length + ' centros · ' + OP.columnas.length + ' columnas' +
+        (OP.columnas.length > visibles().length ? ' (' + (OP.columnas.length - visibles().length) + ' ocultas)' : '') + ' · editable';
       var h = '<div class="op-cab"><span class="op-tit op-edit" data-op-hoja="titulo" title="Clic para editar">' + esc(OP.titulo || 'Sin título') + '</span>' +
         '<span class="op-sub op-edit" data-op-hoja="subtitulo" title="Clic para editar">' + esc(OP.subtitulo || '—') + '</span></div>' +
         '<div class="op-barra"><input type="search" id="opBuscar" placeholder="Buscar centro, manager, diseñador…" aria-label="Buscar en Openings" value="' + esc(q) + '">' +
         '<button type="button" class="btn" data-op="fila">+ Fila</button><button type="button" class="btn gris" data-op="columna">+ Columna</button>' +
+        (OP.columnas.length > visibles().length ? '<button type="button" class="btn gris" data-op="mostrar">Mostrar ocultas (' + (OP.columnas.length - visibles().length) + ')</button>' : '') +
         '<span class="cat-sin" id="opCuenta"></span></div>' +
         '<div class="op-wrap"><table class="op-tabla"><thead><tr>';
-      OP.columnas.forEach(function(c, i) {
+      var vis = visibles();
+      vis.forEach(function(c, i) {
         var flecha = orden && orden.clave === c.clave ? (orden.dir > 0 ? ' ▲' : ' ▼') : '';
-        h += '<th><span class="op-th"><span class="op-edit" data-op-col="' + c.id + '" title="Clic para renombrar">' + esc(c.titulo || c.clave) + '</span>' +
-          '<button type="button" data-op="ordenar" data-clave="' + esc(c.clave) + '" title="Ordenar la vista" aria-label="Ordenar por ' + esc(c.titulo) + '">↕' + flecha + '</button>' +
-          (i > 0 ? '<button type="button" data-op="izq" data-col="' + c.id + '" title="Mover a la izquierda" aria-label="Mover ' + esc(c.titulo) + ' a la izquierda">‹</button>' : '') +
-          (i < OP.columnas.length - 1 ? '<button type="button" data-op="der" data-col="' + c.id + '" title="Mover a la derecha" aria-label="Mover ' + esc(c.titulo) + ' a la derecha">›</button>' : '') +
-          '<button type="button" class="op-x" data-op="quitar-col" data-col="' + c.id + '" title="Quitar columna" aria-label="Quitar columna ' + esc(c.titulo) + '">×</button></span></th>';
+        h += '<th data-col="' + c.id + '" data-i="' + i + '"><span class="op-th-tit op-edit" data-op-col="' + c.id + '" title="Opciones de la columna">' +
+          esc(c.titulo || c.clave) + '</span>' + flecha +
+          '<button type="button" class="op-menu-btn" data-op="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de la columna ' +
+          esc(c.titulo || c.clave) + '">▾</button></th>';
       });
       h += '<th class="op-acc-col"></th></tr></thead><tbody>';
       filasOrdenadas().forEach(function(f) {
         h += '<tr data-fila="' + f.id + '">';
-        OP.columnas.forEach(function(c) {
+        vis.forEach(function(c) {
           h += '<td class="op-celda" data-clave="' + esc(c.clave) + '">' + esc(f.datos[c.clave] || '') + '</td>';
         });
         h += '<td class="op-acc op-acc-col"><button type="button" data-op="insertar" title="Agregar una fila debajo" aria-label="Agregar fila debajo">+</button>' +
@@ -1007,6 +1027,47 @@
       function alSalir() { fin(true); }
       el.addEventListener('keydown', tecla); el.addEventListener('blur', alSalir);
     }
+    // Menú de cada columna (▾ en la esquina del encabezado): vive dentro de la tarjeta para usar el mismo manejador de clics.
+    var menuBtn = null;
+    function cerrarMenu() {
+      var m = document.getElementById('opMenu'); if (m) m.remove();
+      if (menuBtn) { menuBtn.setAttribute('aria-expanded', 'false'); menuBtn = null; }
+    }
+    function abrirMenu(btn) {
+      var th = btn.closest('th'), abierto = menuBtn === btn;
+      cerrarMenu();
+      if (abierto) return;
+      var cid = parseInt(th.dataset.col), i = parseInt(th.dataset.i), c = OP.columnas.find(function(x) { return x.id === cid; });
+      var n = visibles().length, ord = orden && orden.clave === c.clave;
+      var it = function(op, txt, extra) {
+        return '<button type="button" role="menuitem" data-op="' + op + '" data-col="' + cid + '" data-clave="' + esc(c.clave) + '"' + (extra || '') + '>' + txt + '</button>';
+      };
+      var m = document.createElement('div'); m.className = 'op-menu'; m.id = 'opMenu'; m.setAttribute('role', 'menu');
+      m.setAttribute('aria-label', 'Opciones de la columna ' + c.titulo);
+      m.innerHTML = it('renombrar', '✏️ Renombrar') + '<hr>' +
+        it('ordenar', '↑ Ordenar A → Z', ' data-dir="1"') + it('ordenar', '↓ Ordenar Z → A', ' data-dir="-1"') +
+        (ord ? it('ordenar', '✕ Quitar orden', ' data-dir="0"') : '') + '<hr>' +
+        (i > 0 ? it('izq', '‹ Mover a la izquierda') : '') + (i < n - 1 ? it('der', '› Mover a la derecha') : '') +
+        (i > 0 || i < n - 1 ? '<hr>' : '') + it('ocultar', '− Ocultar columna');
+      cont.appendChild(m);
+      var r = btn.getBoundingClientRect(), w = m.offsetWidth;
+      m.style.top = (r.bottom + 4) + 'px';
+      m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px';
+      menuBtn = btn; btn.setAttribute('aria-expanded', 'true');
+      var pri = m.querySelector('button'); if (pri) pri.focus();
+    }
+    document.addEventListener('mousedown', function(e) {
+      if (menuBtn && !e.target.closest('#opMenu') && !e.target.closest('.op-menu-btn') && !e.target.closest('.op-th-tit')) cerrarMenu();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (!menuBtn) return;
+      var m = document.getElementById('opMenu'); if (!m) return;
+      var items = [].slice.call(m.querySelectorAll('button')), k = items.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.preventDefault(); var b0 = menuBtn; cerrarMenu(); b0.focus(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); (items[k + 1] || items[0]).focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); (items[k - 1] || items[items.length - 1]).focus(); }
+    });
+    document.addEventListener('scroll', function(e) { if (menuBtn && !(e.target.closest && e.target.closest('#opMenu'))) cerrarMenu(); }, true);
     cont.addEventListener('input', function(e) { if (e.target.id === 'opBuscar') filtrar(); });
     cont.addEventListener('click', function(e) {
       var celda = e.target.closest('.op-celda');
@@ -1025,20 +1086,25 @@
         return;
       }
       var col = e.target.closest('[data-op-col]');
-      if (col) {
-        var cid = parseInt(col.dataset.opCol);
-        editar(col, function(v) { return post('/design/api/openings/columnas/' + cid, {titulo: v}).then(function() {
-          var c = OP.columnas.find(function(x) { return x.id === cid; }); if (c) c.titulo = v; }); });
-        return;
-      }
+      if (col && !col.isContentEditable) { abrirMenu(col.closest('th').querySelector('.op-menu-btn')); return; }
+      if (col) return;
       var b = e.target.closest('[data-op]');
       if (!b) return;
       var op = b.dataset.op, tr = b.closest('tr'), filaId = tr && tr.dataset.fila ? parseInt(tr.dataset.fila) : null;
-      if (op === 'ordenar') {
-        var k = b.dataset.clave;
-        orden = (!orden || orden.clave !== k) ? {clave: k, dir: 1} : (orden.dir === 1 ? {clave: k, dir: -1} : null);
-        pintar(); return;
+      if (op === 'menu') { abrirMenu(b); return; }
+      if (op === 'renombrar') {
+        cerrarMenu();
+        var cid = parseInt(b.dataset.col), cc = OP.columnas.find(function(x) { return x.id === cid; });
+        var tit = cont.querySelector('[data-op-col="' + cid + '"]');
+        if (tit && cc) editar(tit, function(v) { return post('/design/api/openings/columnas/' + cid, {titulo: v}).then(function() { cc.titulo = v; }); });
+        return;
       }
+      if (op === 'ordenar') {
+        cerrarMenu(); var dir = parseInt(b.dataset.dir || '0');
+        orden = dir ? {clave: b.dataset.clave, dir: dir} : null; pintar(); return;
+      }
+      if (op === 'ocultar') { cerrarMenu(); ocultas.push(b.dataset.clave); guardarOcultas(); pintar(); return; }
+      if (op === 'mostrar') { ocultas = []; guardarOcultas(); pintar(); return; }
       var accion = null;
       if (op === 'fila') accion = post('/design/api/openings/filas', {});
       else if (op === 'insertar') accion = post('/design/api/openings/filas', {despuesDe: filaId});
@@ -1054,6 +1120,7 @@
         if (!confirm('¿Quitar la columna "' + (c ? c.titulo : '') + '" con todos sus valores? Queda en la Papelera de Design.')) return;
         accion = post('/design/api/openings/columnas/' + b.dataset.col + '/eliminar');
       } else if (op === 'izq' || op === 'der') {
+        cerrarMenu();
         accion = post('/design/api/openings/columnas/' + b.dataset.col + '/mover', {paso: op === 'der' ? 1 : -1});
       }
       if (!accion) return;
