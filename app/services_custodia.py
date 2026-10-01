@@ -464,10 +464,13 @@ def anular_traslado(db: Session, traslado: CustodiaTraslado, user: Empleado, mot
 
 
 def consultar(db: Session, tipo: str, area_salida: str = "", estado: str = "activos",
-             fecha_inicio: date | None = None, fecha_fin: date | None = None) -> list[CustodiaTraslado]:
+             fecha_inicio: date | None = None, fecha_fin: date | None = None,
+             area_entrada: str = "") -> list[CustodiaTraslado]:
     q = db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.ordenes))
     if area_salida and area_salida != "TODAS":
         q = q.filter(CustodiaTraslado.area_salida == area_salida)
+    if area_entrada and area_entrada != "TODAS":
+        q = q.filter(CustodiaTraslado.area_entrada == area_entrada)
     if estado == "ACTIVOS":
         q = q.filter(CustodiaTraslado.anulado.is_(False))
     elif estado == "ANULADOS":
@@ -475,9 +478,11 @@ def consultar(db: Session, tipo: str, area_salida: str = "", estado: str = "acti
     if tipo == "rango" and fecha_inicio and fecha_fin:
         q = q.filter(CustodiaTraslado.fecha >= fecha_inicio, CustodiaTraslado.fecha <= fecha_fin)
     q = q.order_by(CustodiaTraslado.id.desc())
-    q = q.limit(30 if tipo != "rango" else LIMITE_CONSULTA_RANGO)
+    q = q.limit(ULTIMOS_CONSULTA if tipo != "rango" else LIMITE_CONSULTA_RANGO)
     return q.all()
 
+
+ULTIMOS_CONSULTA = 50  # «Últimos 50» de Consulta traslado
 
 # Tope de filas para "Rango fechas" en Consulta traslado (evita traer miles de filas de una vez).
 LIMITE_CONSULTA_RANGO = 2000

@@ -243,13 +243,13 @@ def api_anular(traslado_id: int, payload: AnularIn | None = None,
 
 
 @router.get("/custodia/api/consultar")
-def api_consultar(tipo: str = "ultimos30", areaSalida: str = "TODAS", estado: str = "ACTIVOS",
+def api_consultar(tipo: str = "ultimos50", areaSalida: str = "TODAS", areaEntrada: str = "TODAS", estado: str = "ACTIVOS",
                         fechaInicio: str = "", fechaFin: str = "",
                         user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
     acs.exigir(db, user, "custodia", 'consulta')
     fi = date.fromisoformat(fechaInicio) if fechaInicio else None
     ff = date.fromisoformat(fechaFin) if fechaFin else None
-    traslados = sc.consultar(db, tipo, areaSalida, estado, fi, ff)
+    traslados = sc.consultar(db, tipo, areaSalida, estado, fi, ff, area_entrada=areaEntrada)
     return {"data": [_con_permiso(t, user) for t in traslados],
             "truncado": tipo == "rango" and len(traslados) >= sc.LIMITE_CONSULTA_RANGO,
             "limite": sc.LIMITE_CONSULTA_RANGO}

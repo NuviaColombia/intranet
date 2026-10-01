@@ -342,13 +342,16 @@
     <!-- SECCIÓN 2: HISTORIAL -->
     <div id="sec-consulta" class="content-section">
       <div class="consulta-filtros">
-        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="ultimos30" checked onchange="toggleFechas()"> Últimos 30</label>
+        <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="ultimos50" checked onchange="toggleFechas()"> Últimos 50</label>
         <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="tipoFiltro" value="rango" onchange="toggleFechas()"> Rango fechas</label>
         <div id="contenedorFechas" style="display:none; margin-left:10px;"><input type="date" id="filtroFechaInicio"> <span style="margin: 0 5px; color:var(--text-muted); font-weight:700;">A</span> <input type="date" id="filtroFechaFin"></div>
 
         <div style="margin-left: auto; display: flex; gap: 15px;">
             <div style="display:flex; align-items:center; gap:8px;"><label>Área salida:</label>
               <select id="filtroAreaSalida"><option value="TODAS">-- Todas --</option></select>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;"><label>Área entrada:</label>
+              <select id="filtroAreaEntrada"><option value="TODAS">-- Todas --</option></select>
             </div>
             <div style="display:flex; align-items:center; gap:8px;"><label>Estado:</label>
               <select id="filtroEstado">
@@ -782,7 +785,7 @@ function switchTab(tab) {
   if (link) link.classList.add("activo");
   if (tab === 'registro' || tab === 'nueva-orden') aplicarModoOrden(tab === 'nueva-orden');
   if (tab === 'aprobaciones') cargarConfirmaciones();
-  if (tab === 'consulta') cargarAreasSalidaDropdown();
+  if (tab === 'consulta') cargarAreasSalidaDropdown().then(ejecutarConsulta);  // al entrar se cargan los últimos 50
   if (tab === 'existencias') { cargarDashboardExistencias(); }
   if (tab === 'activas') { cargarEstadoOrdenes(); }
 }
@@ -887,10 +890,15 @@ function toggleFechas() {
   document.getElementById("contenedorFechas").style.display = (tipo === 'rango') ? 'inline-block' : 'none';
 }
 
+// Áreas de salida y de entrada de Consulta traslado (se cargan una vez y se conserva lo elegido)
 function cargarAreasSalidaDropdown() {
-  custodiaApi('/custodia/api/areas').then(function(areas) {
-    var sel = document.getElementById("filtroAreaSalida"); sel.innerHTML = '<option value="TODAS">-- Todas --</option>';
-    areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
+  var salida = document.getElementById("filtroAreaSalida");
+  if (salida.options.length > 1) return Promise.resolve();
+  return custodiaApi('/custodia/api/areas').then(function(areas) {
+    ["filtroAreaSalida", "filtroAreaEntrada"].forEach(function(id) {
+      var sel = document.getElementById(id); sel.innerHTML = '<option value="TODAS">-- Todas --</option>';
+      areas.forEach(a => { var opt = document.createElement("option"); opt.value = a.toUpperCase(); opt.innerText = a.toUpperCase(); sel.appendChild(opt); });
+    });
   });
 }
 
@@ -2006,6 +2014,7 @@ function ordenarHistorial(campo) {
 function ejecutarConsulta() {
   var tipo = document.querySelector('input[name="tipoFiltro"]:checked').value;
   var params = new URLSearchParams({ tipo: tipo, areaSalida: document.getElementById("filtroAreaSalida").value,
+                                     areaEntrada: document.getElementById("filtroAreaEntrada").value,
                                      estado: document.getElementById("filtroEstado").value });
   if (tipo === 'rango') {
     params.set('fechaInicio', document.getElementById("filtroFechaInicio").value);
