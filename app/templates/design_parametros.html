@@ -46,6 +46,12 @@
   .aud-cor-det { color:#64748b; font-size:11.5px; }
   .aud-cor-acc { padding:0 12px 12px; }
   .aud-grupo.aud-cor > summary .aud-cant { color:#92400e; background:#fef3c7; }
+  /* Importar equipos: mismos estilos que Conexión con los equipos */
+  #impResultado:not(:empty) { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
+  .aud-grupo.imp-pend > summary .aud-cant { color:#1e40af; background:#dbeafe; }
+  .aud-grupo.imp-ok > summary .aud-cant { color:#166534; background:#dcfce7; }
+  .imp-m { display:block; }
+  .imp-m.nuevo { color:#1e40af; } .imp-m.otro { color:#b45309; }
 </style>
 <div class="tarjeta aud-tarjeta">
   <div class="aud-fila">
@@ -64,18 +70,21 @@
   <div id="audResultado" aria-live="polite"></div>
 </div>
 
-<div class="tarjeta">
-  <h2>Importar equipos desde Desempeño</h2>
-  <p style="font-size:13px;color:var(--gris)">
-    Cruza los 16 equipos de las hojas de Desempeño (manager + diseñadores) contra los empleados ya
-    registrados en People (empresa Nuvia Design Colombia SAS) por nombre. No crea empleados nuevos —
-    si un nombre no tiene una coincidencia clara, queda marcado para revisar/agregar a mano.
-  </p>
-  <div style="display:flex;gap:10px;margin-bottom:12px">
-    <button type="button" class="btn gris" id="impVistaPreviaBtn">Vista previa</button>
-    <button type="button" class="btn" id="impAplicarBtn" style="display:none">Aplicar coincidencias</button>
+<div class="tarjeta aud-tarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Importar equipos desde Desempeño</h2>
+      <span class="aud-sub">Hojas de Desempeño → Equipos · vista previa antes de aplicar</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Qué hace"
+            title="Cruza los equipos de las hojas de Desempeño (manager + diseñadores) contra los empleados de People (Nuvia Design Colombia SAS) por nombre. No crea empleados nuevos: si un nombre no tiene una coincidencia clara, queda marcado para agregarlo a mano. Al aplicar crea los equipos que faltan y agrega los diseñadores encontrados; no quita a nadie.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="impSwitch" role="switch" aria-controls="impResultado">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="impSwitchTxt">Vista previa</span>
+    </label>
   </div>
-  <div id="impResultado"></div>
+  <div id="impResultado" aria-live="polite"></div>
 </div>
 
 <div class="tarjeta">
@@ -122,7 +131,7 @@
           <div style="flex:2">
             <select name="empleado_id" required>
               <option value="">+ AGREGAR DISEÑADOR...</option>
-              {% for c in candidatos %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
+              {% for c in candidatos_az %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
             </select>
           </div>
           <div><button class="btn mini">Agregar</button></div>
@@ -206,45 +215,87 @@
 (function() {
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  function renderReporte(data) {
-    var cont = document.getElementById('impResultado');
-    var totalMiembros = 0, matchMiembros = 0, matchManagers = 0;
-    var html = '<table><tr><th>Hoja</th><th>Área</th><th>Manager buscado</th><th>Manager encontrado</th>' +
-      '<th>Diseñadores (buscado → encontrado)</th><th>Equipo</th></tr>';
-    data.equipos.forEach(function(eq) {
-      if (eq.managerEncontrado) matchManagers++;
-      var miembrosHtml = eq.miembros.map(function(m) {
-        totalMiembros++;
-        if (m.empleadoId) { matchMiembros++; return '<div style="color:#16a34a">✓ ' + esc(m.nombreOriginal) + ' → ' + esc(m.empleadoNombre) + '</div>'; }
-        return '<div style="color:#dc2626">✕ ' + esc(m.nombreOriginal) + ' (sin coincidencia)</div>';
-      }).join('');
-      var estadoEquipo = eq.equipoYaExistia ? 'Ya existía' : (eq.equipoCreado ? 'Creado' : (eq.managerEncontrado ? 'Pendiente de aplicar' : 'No se puede crear (falta el manager)'));
-      html += '<tr>' +
-        '<td>' + esc(eq.hoja) + '</td>' +
-        '<td>' + esc(eq.area) + (eq.areaEncontrada ? '' : ' <b style="color:#dc2626">(no existe)</b>') + '</td>' +
-        '<td>' + esc(eq.managerBuscado) + '</td>' +
-        '<td>' + (eq.managerEncontrado ? '<span style="color:#16a34a">' + esc(eq.managerEncontrado) + '</span>' : '<span style="color:#dc2626">sin coincidencia</span>') + '</td>' +
-        '<td style="font-size:12px">' + miembrosHtml + '</td>' +
-        '<td>' + estadoEquipo + (eq.miembrosAgregados ? ' · +' + eq.miembrosAgregados + ' diseñador(es)' : '') + '</td>' +
-      '</tr>';
-    });
-    html += '</table>';
-    if (data.sinMapeo && data.sinMapeo.length) {
-      html = '<p style="font-size:12px;color:var(--gris)">Hojas de Desempeño sin equipo propio (managers evaluados sin lista de diseñadores): ' +
-        data.sinMapeo.map(esc).join(', ') + '</p>' + html;
-    }
-    html = '<p style="font-size:13px;margin-bottom:8px"><b>' + matchManagers + '/' + data.equipos.length + '</b> managers encontrados · ' +
-      '<b>' + matchMiembros + '/' + totalMiembros + '</b> diseñadores encontrados</p>' + html;
-    cont.innerHTML = html;
+  // ---------- Importar equipos desde Desempeño: interruptor, resumen y grupos plegables ----------
+  function impGrupo(titulo, filas, encabezados, clase) {
+    if (!filas.length) return '';
+    var t = '<table><tr>' + encabezados.map(function(x) { return '<th>' + x + '</th>'; }).join('') + '</tr>';
+    filas.forEach(function(f) { t += '<tr>' + f.map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; });
+    return '<details class="aud-grupo ' + (clase || '') + '"><summary>' + titulo +
+           '<span class="aud-cant">' + filas.length + '</span></summary><div class="aud-scroll">' + t + '</table></div></details>';
   }
-
-  document.getElementById('impVistaPreviaBtn').addEventListener('click', function() {
-    var btn = this; btn.disabled = true; btn.innerText = 'Cargando...';
-    fetch('/design/api/parametros/importar-equipos-preview').then(function(r) { return r.json(); }).then(function(data) {
-      renderReporte(data);
-      document.getElementById('impAplicarBtn').style.display = '';
-      btn.disabled = false; btn.innerText = 'Vista previa';
+  var IMP_TXT = {nuevo: 'se agregará', otro_equipo: 'ya está en otro equipo', es_manager: 'es el manager de esta hoja'};
+  function renderImport(data, aplicado) {
+    var totM = 0, okM = 0, okMgr = 0, cambios = 0, pend = [], sinCoin = [], noCrea = [], alDia = [];
+    data.equipos.forEach(function(eq) {
+      if (eq.managerEncontrado) okMgr++;
+      var porAgregar = [], ya = 0;
+      eq.miembros.forEach(function(m) {
+        totM++;
+        if (!m.empleadoId) { sinCoin.push([esc(eq.hoja), esc(m.nombreOriginal), 'Diseñador']); return; }
+        okM++;
+        if (m.estado === 'en_equipo') { ya++; return; }
+        var extra = m.estado === 'otro_equipo' && m.otrosEquipos && m.otrosEquipos.length ? ': ' + m.otrosEquipos.map(esc).join(', ') : '';
+        porAgregar.push('<span class="imp-m ' + (m.estado === 'nuevo' ? 'nuevo' : 'otro') + '">' + esc(m.empleadoNombre) +
+                        ' <small>(' + (IMP_TXT[m.estado] || esc(m.estado)) + extra + ')</small></span>');
+      });
+      if (!eq.managerEncontrado) sinCoin.push([esc(eq.hoja), esc(eq.managerBuscado), 'Manager']);
+      var area = esc(eq.area) + (eq.areaEncontrada ? '' : ' <b style="color:#b91c1c">(no existe)</b>');
+      if (!eq.managerEncontrado || !eq.areaEncontrada) {
+        noCrea.push([esc(eq.hoja), area, AUD_ROJO(!eq.areaEncontrada ? 'El área no existe.' : 'Falta el manager en People.')]);
+        return;
+      }
+      var crear = !eq.equipoYaExistia;
+      if (crear || porAgregar.length) {
+        cambios += (crear ? 1 : 0) + porAgregar.length;
+        pend.push([esc(eq.hoja), area, esc(eq.managerEncontrado) + (crear ? ' <small style="color:#1e40af">(se creará el equipo)</small>' : ''),
+                   porAgregar.join('') || '—']);
+      } else {
+        alDia.push([esc(eq.hoja), area, esc(eq.managerEncontrado), ya + ' diseñador(es)']);
+      }
     });
+    var sinMapeo = (data.sinMapeo || []).map(function(h) { return [esc(h)]; });
+    var html = (aplicado ? '<p class="aud-ok">✓ Aplicado. <a href="/design/parametros">Recarga la página</a> para ver los cambios en la tabla de Equipos.</p>' : '') +
+      '<div class="aud-resumen">' +
+      '<span class="aud-chip">Managers encontrados <b>' + okMgr + ' / ' + data.equipos.length + '</b></span>' +
+      '<span class="aud-chip">Diseñadores encontrados <b>' + okM + ' / ' + totM + '</b></span>' +
+      '<span class="aud-chip">Cambios por aplicar <b>' + cambios + '</b></span>' +
+      '<span class="aud-chip">Sin coincidencia <b>' + sinCoin.length + '</b></span></div>' +
+      impGrupo('Por aplicar', pend, ['Hoja', 'Área', 'Manager', 'Diseñadores que se agregarán'], 'imp-pend') +
+      impGrupo('Sin coincidencia en People (agregar a mano)', sinCoin, ['Hoja', 'Nombre en Desempeño', 'Rol']) +
+      impGrupo('Equipos que no se pueden crear', noCrea, ['Hoja', 'Área', 'Motivo']) +
+      impGrupo('Al día', alDia, ['Hoja', 'Área', 'Manager', 'En el equipo'], 'imp-ok') +
+      impGrupo('Hojas sin equipo propio (managers evaluados sin lista de diseñadores)', sinMapeo, ['Hoja']);
+    if (cambios) {
+      html += '<div style="margin-top:8px"><button type="button" class="btn" id="impAplicar">Aplicar ' + cambios + ' cambios</button></div>';
+    } else if (!aplicado) {
+      html += '<p class="aud-ok">✓ No hay nada por aplicar: los equipos ya coinciden con Desempeño.</p>';
+    }
+    document.getElementById('impResultado').innerHTML = html;
+    impCambios = cambios;
+  }
+  var impSw = document.getElementById('impSwitch'), impTxt = document.getElementById('impSwitchTxt'), impTok = 0, impCambios = 0;
+  function impCargar(aplicado) {
+    var t = ++impTok, res = document.getElementById('impResultado');
+    impSw.disabled = true; impTxt.innerText = 'Cargando…';
+    return fetch('/design/api/parametros/importar-equipos-preview').then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+    }).then(function(d) { if (t === impTok && impSw.checked) renderImport(d, aplicado); }).catch(function(e) {
+      if (t === impTok) res.innerHTML = AUD_ROJO('No se pudo cargar la vista previa: ' + esc(e.message));
+    }).then(function() { impSw.disabled = false; impTxt.innerText = impSw.checked ? 'Ocultar' : 'Vista previa'; });
+  }
+  impSw.addEventListener('change', function() {
+    if (!impSw.checked) { ++impTok; document.getElementById('impResultado').innerHTML = ''; impTxt.innerText = 'Vista previa'; return; }
+    impCargar(false);
+  });
+  document.getElementById('impResultado').addEventListener('click', function(e) {
+    var btn = e.target.closest('#impAplicar');
+    if (!btn) return;
+    if (!confirm('¿Aplicar ' + impCambios + ' cambios? Se crean los equipos que faltan y se agregan los diseñadores encontrados ' +
+                 '(también los marcados "ya está en otro equipo"). No se quita a nadie. Los nombres sin coincidencia quedan para agregar a mano.')) return;
+    btn.disabled = true; btn.innerText = 'Aplicando…';
+    fetch('/design/api/parametros/importar-equipos', {method: 'POST'}).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+    }).then(function() { return impCargar(true); }).catch(function(err) { alert('No se pudo aplicar: ' + err.message); btn.disabled = false; });
   });
 
   // ---------- Auditoría de conexiones (solo lectura): interruptor, resumen y grupos plegables ----------
@@ -366,18 +417,6 @@
     audCargar();
   });
 
-  document.getElementById('impAplicarBtn').addEventListener('click', function() {
-    if (!confirm('¿Crear/actualizar los equipos y asignar los diseñadores encontrados? Los nombres sin coincidencia quedarán pendientes de agregar a mano.')) return;
-    var btn = this; btn.disabled = true; btn.innerText = 'Aplicando...';
-    fetch('/design/api/parametros/importar-equipos', {method: 'POST'}).then(function(r) { return r.json(); }).then(function(data) {
-      renderReporte(data);
-      btn.disabled = false; btn.innerText = 'Aplicar coincidencias';
-      var aviso = document.createElement('p');
-      aviso.style.cssText = 'font-size:12px;color:var(--gris);margin-top:8px';
-      aviso.innerText = 'Aplicado. Refresca la página para ver los equipos creados en la tabla de abajo.';
-      document.getElementById('impResultado').prepend(aviso);
-    });
-  });
 })();
 </script>
 {% endblock %}

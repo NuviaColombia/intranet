@@ -2508,6 +2508,11 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
                         .filter(Empleado.empresa == "Nuvia Design Colombia SAS", Empleado.activo == 1).all())
 
     resultado = {"equipos": [], "sinMapeo": []}
+    # dónde está hoy cada persona (para que la vista previa avise antes de aplicar)
+    equipos_de: dict[int, list[tuple[int, str]]] = {}
+    for d in (db.query(DesignTeamDesigner).join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+              .filter(DesignTeam.activo == 1).options(joinedload(DesignTeamDesigner.team)).all()):
+        equipos_de.setdefault(d.empleado_id, []).append((d.team_id, d.team.nombre))
     for sheet in perf_data.get("sheets", []):
         nombre_sheet = sheet.get("name", "")
         mapeo = SHEET_MANAGER_MAP.get(nombre_sheet)
@@ -2535,6 +2540,19 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
             equipo_existente = (db.query(DesignTeam)
                                 .filter(DesignTeam.area_id == area.id, DesignTeam.manager_id == manager_emp.id)
                                 .first())
+        for m in miembros_info:  # estado antes de aplicar
+            if not m["empleadoId"]:
+                m["estado"] = "sin_coincidencia"
+                continue
+            actuales = equipos_de.get(m["empleadoId"], [])
+            if equipo_existente and any(tid == equipo_existente.id for tid, _ in actuales):
+                m["estado"] = "en_equipo"
+            elif manager_emp and m["empleadoId"] == manager_emp.id:
+                m["estado"] = "es_manager"
+            else:
+                otros = [n for tid, n in actuales if not equipo_existente or tid != equipo_existente.id]
+                m["estado"] = "otro_equipo" if otros else "nuevo"
+                m["otrosEquipos"] = otros
 
         creado = False
         agregados = 0

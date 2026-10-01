@@ -72,6 +72,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                                    DesignCatalogo.orden).all())
     return templates.TemplateResponse(request, "design_parametros.html",
                                       {"user": user, "areas": areas, "teams": teams, "candidatos": candidatos,
+                                       "candidatos_az": sorted(candidatos, key=lambda e: sd._normalizar_texto(e.nombre_completo)),
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
                                        "msg": request.query_params.get("msg")})
 
