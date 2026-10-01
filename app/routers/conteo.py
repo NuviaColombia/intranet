@@ -238,8 +238,12 @@ def pagina_firma(reporte_id: int, request: Request, user: Empleado = Depends(get
                       "campo": f"d_{b.id}", "cantidad": datos["danados"].get(str(b.id), 0),
                       "segundo": datos["segundoDanados"].get(str(b.id)), "diferencia": comp.get(k, {}).get("diferencia", 0),
                       "evidencias": [e for e in datos["evidencias"] if not e["materialId"]]})
+    from ..acceso_produccion import tiene_submodulo
+    # Con acceso al submódulo: barra del conteo (pestañas); el testigo sin el módulo ve la barra del portal
+    nav = ({"es_conteo": True, "secciones": _secciones(db, user), "conteo_tab_inicial": "validacion"}
+           if tiene_submodulo(db, user, SUB) or sc.es_admin(user) else {"es_portal": True})
     return templates.TemplateResponse(request, "conteo_firma.html", {
-        "user": user, "es_portal": True, "r": datos, "filas": filas, "rol": sc.rol_firmante(db, user, r),
+        **nav, "user": user, "r": datos, "filas": filas, "rol": sc.rol_firmante(db, user, r),
         "puede_segundo": sc.puede_segundo_conteo(db, user, r), "puede_anular": sc.puede_anular(db, user),
         "msg": request.query_params.get("msg", "")})
 
