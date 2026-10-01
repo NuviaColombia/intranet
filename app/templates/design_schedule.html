@@ -1046,6 +1046,8 @@ window.dsPdfjs = function() {
 <script>window.DS_PANELS = {};
 // Datos que ya vienen con la página (áreas y tipos de ausencia): no hace falta pedirlos al abrir.
 window.DS_INICIO = {{ ds_inicio | tojson }};
+// Gestión (Dashboard, Desempeño, Papelera): solo aprobadores y admins, igual que el menú y el servidor.
+window.DS_GESTION = {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }};
 window.dsAreas = function() {
   return window.DS_INICIO.areas ? Promise.resolve(window.DS_INICIO.areas) : window.dsFetchJSON('/design/api/areas');
 };
@@ -6202,7 +6204,13 @@ window.DS_PANELS.dashboard = ddCargar;
 (function() {
   window.DS_PANELS = window.DS_PANELS || {};
 
+  var DS_PANELES_GESTION = ['dashboard', 'perf', 'papelera'];
   function dsAbrirPanel(id) {
+    if (DS_PANELES_GESTION.indexOf(id) >= 0 && !window.DS_GESTION) {
+      // un enlace ?panel=dashboard|perf|papelera no abre nada para un empleado
+      try { var u = new URL(location.href); u.searchParams.delete('panel'); history.replaceState(null, '', u); } catch (e) {}
+      return;
+    }
     document.querySelectorAll('.ds-overlay.open').forEach(function(p) { p.classList.remove('open'); });
     var panel = document.getElementById('ov-' + id);
     if (!panel) return;
