@@ -3371,6 +3371,9 @@ window.DS_PANELS.dashboard = ddCargar;
       // Deep link (?area_id=&sheet_id=): abre directamente esa hoja.
       var areaId = PA.deepLinkAreaId, sheetId = PA.deepLinkSheetId;
       PA.deepLinkAreaId = PA.deepLinkSheetId = null;
+      // Sin enlace, empleados y aprobadores abren la hoja de su equipo (como el Schedule).
+      var mia = window.DS_INICIO && window.DS_INICIO.miPreapproved;
+      if (!sheetId && !PA.sheetId && mia) { areaId = mia.areaId; sheetId = mia.sheetId; }
       if (areaId && sheetId) {
         api('/design/api/preapproved/sheets?area_id=' + areaId).then(function(sheets) {
           if (sheets.some(function(s) { return s.id === sheetId; })) elegirHoja(areaId, sheets, sheetId);

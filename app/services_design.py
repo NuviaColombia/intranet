@@ -106,6 +106,36 @@ def preapproved_areas_permitidas(db: Session, user: Empleado) -> set[int] | None
     return {a.id for a in db.query(DesignArea).all() if a.nombre in nombres}
 
 
+def preapproved_hoja_de(db: Session, user: Empleado) -> dict | None:
+    """Hoja de Pre-Approved que se abre sola para un empleado o aprobador: la del manager de su equipo. Se usa la
+    misma conexión que Parámetros › Conexión con los equipos (hoja conectada a mano, o nombre de la hoja = manager).
+    Se busca en el área del equipo y, si allí no hay, en la vinculada (N6 → N3, Face → N2)."""
+    equipos = mis_equipos(db, user)
+    if not equipos:
+        return None
+    reglas = reglas_conexion(db)["pa_manager"]
+    nombre_area = {a.id: a.nombre for a in db.query(DesignArea).all()}
+    id_area = {v: k for k, v in nombre_area.items()}
+    for e in equipos:
+        team = db.get(DesignTeam, e["teamId"])
+        if not team:
+            continue
+        areas = [team.area_id]
+        vinc = PA_AREAS_VINCULADAS.get(nombre_area.get(team.area_id))
+        if vinc in id_area:
+            areas.append(id_area[vinc])
+        for area_id in areas:
+            hojas = preapproved_sheets(db, area_id)
+            elegida = next((s for s in hojas if reglas.get(s.id) == team.id), None)
+            if not elegida and team.manager:
+                pm = _palabras(team.manager.nombre_completo)
+                elegida = next((s for s in hojas if _palabras(_sin_prefijo_area(s.nombre))
+                                and _palabras(_sin_prefijo_area(s.nombre)) <= pm), None)
+            if elegida:
+                return {"areaId": elegida.area_id, "sheetId": elegida.id}
+    return None
+
+
 def mis_equipos(db: Session, user: Empleado) -> list[dict]:
     """Equipos propios de un empleado o aprobador (no admin): primero los que maneja y luego aquellos en los que
     está como diseñador, cada grupo según el orden de las áreas. El primero es el que se abre al entrar."""

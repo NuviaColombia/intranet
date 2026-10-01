@@ -139,7 +139,8 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
     inicio = {"areas": [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in areas],
               "ausencias": sd.ausencias_disponibles(db),
               "misEquipos": sd.mis_equipos(db, user),  # empleados y aprobadores entran directo a su schedule
-              "comments": sd.comments_permitidos(db, user)}
+              "comments": sd.comments_permitidos(db, user),
+              "miPreapproved": sd.preapproved_hoja_de(db, user)}  # Pre-Approved abre la hoja de su equipo
     inicio["miEquipo"] = ({"areaId": inicio["misEquipos"][0]["areaId"], "teamId": inicio["misEquipos"][0]["teamId"]}
                           if inicio["misEquipos"] else None)
     # `areas` también llena el filtro de Área del Dashboard (desde que Design es una sola página salía vacío).
