@@ -41,8 +41,8 @@
 {# ---------- Director de Producción y testigos ---------- #}
 <div class="cp-panel" id="panel-n_director">
   <div class="cp-ayuda" style="max-width:900px">El conteo de cada área lleva <b>3 firmas</b>: el <b>manager</b> que lo carga (pestaña Accesos),
-    el <b>Director de Producción</b> y un <b>testigo</b> de esta lista. En el formulario no se eligen: al enviar el conteo les llega el
-    aviso al Director y a todos los testigos, y basta con que firme uno de los testigos (queda registrado quién firmó). Antes de firmar, el Director y el testigo hacen el <b>segundo conteo</b>: se compara con el del manager y queda como la cifra oficial. Al Director y al testigo les llega
+    el <b>Director de Producción</b> y una persona del <b>área contable</b> de esta lista (acompaña el conteo). En el formulario no se eligen: al enviar el conteo les llega el
+    aviso al Director y a todas las personas del área contable, y basta con que firme una de ellas (queda registrado quién firmó). Antes de firmar, el Director y el área contable hacen el <b>segundo conteo</b>: se compara con el del manager y queda como la cifra oficial. Al Director y al área contable les llega
     un aviso por Cliq para firmar o rechazar con una observación. Con las 3 firmas el conteo <b>queda en firme</b> y se guarda el PDF
     del reporte en la carpeta de WorkDrive. Solo el <b>Director de Producción</b> o un <b>administrador</b> pueden <b>anular las firmas</b>
     para que el manager corrija y se vuelva a firmar. Se puede enviar en cualquier momento y las cantidades aceptan decimales (ej. 12.5).</div>
@@ -54,9 +54,9 @@
       </select></div>
     <div><button class="btn mini">Guardar</button></div>
   </form>
-  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">👀 Testigos del conteo (firma 3)</h3>
+  <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">🧾 Área contable que acompaña el conteo (firma 3)</h3>
   <details class="cp-agregar">
-    <summary><span class="btn mini">＋ Agregar testigo</span></summary>
+    <summary><span class="btn mini">＋ Agregar persona del área contable</span></summary>
     <form method="post" action="/inventario/parametros/conteo/testigos" class="cp-form-nuevo">
       <div style="flex:2;min-width:260px"><label>Persona</label>
         <input type="search" class="buscar-persona-n" data-lista="n-lista-testigos" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
@@ -70,13 +70,13 @@
     </form>
   </details>
   <table class="cp-tabla" style="max-width:900px">
-    <tr><th>Testigo</th><th>Cargo</th><th>Correo</th><th></th></tr>
+    <tr><th>Área contable</th><th>Cargo</th><th>Correo</th><th></th></tr>
     {% for e in inv_conteo.testigos %}
     <tr><td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td><td>{{ e.email }}</td>
       <td class="cp-acciones"><form class="inline" method="post" action="/inventario/parametros/conteo/testigos/{{ e.id }}/quitar">
         <button class="btn gris mini">Quitar</button></form></td></tr>
     {% else %}
-    <tr><td colspan="4" class="cp-vacio">Todavía no hay testigos. Usa <b>＋ Agregar testigo</b>.</td></tr>
+    <tr><td colspan="4" class="cp-vacio">Todavía no hay personas del área contable. Usa <b>＋ Agregar persona del área contable</b>.</td></tr>
     {% endfor %}
   </table>
   <h3 style="margin:22px 0 6px; font-size:14px; color:#1A365D;">☁️ Copia de las fotos y PDF en Zoho WorkDrive</h3>

@@ -140,7 +140,7 @@ def firmar_conteo(db: Session, user: Empleado, r: ConteoReporte) -> str | None:
     if not rol:
         return "Este conteo no tiene una firma pendiente a tu nombre."
     if not tiene_segundo(r):
-        return "Primero registren el segundo conteo (Director de Producción y testigo) y después firmen."
+        return "Primero registren el segundo conteo (Director de Producción y área contable) y después firmen."
     if rol == "manager":
         r.manager_firma_email, r.manager_firmado_en = user.email or "", datetime.utcnow()
     else:  # el testigo que firma queda registrado como el testigo del conteo
@@ -158,7 +158,7 @@ def rechazar_firma(db: Session, user: Empleado, r: ConteoReporte, observacion: s
     obs = (observacion or "").strip()
     if len(obs) < 5:
         return "Escribe la observación (mínimo 5 caracteres): qué se debe corregir."
-    quien = "Director de Producción" if rol == "manager" else "testigo"
+    quien = "Director de Producción" if rol == "manager" else "área contable"
     r.estado, r.devuelto_por_id, r.devuelto_en = DEVUELTO, user.id, datetime.utcnow()
     r.observacion = f"No firmó el {quien} ({nombre_propio(user.nombre_completo)}): {obs[:900]}"
     _borrar_firmas(r)
@@ -168,7 +168,7 @@ def rechazar_firma(db: Session, user: Empleado, r: ConteoReporte, observacion: s
 
 def puede_segundo_conteo(db: Session, user: Empleado, r: ConteoReporte) -> bool:
     """El segundo conteo lo registra el Director de Producción o un testigo de la lista, mientras espera firmas."""
-    if r.estado != ENVIADO:
+    if r.estado != ENVIADO or user.id == r.responsable_id:  # quien cargó el conteo no hace el segundo conteo
         return False
     return user.id == r.manager_firma_id or user.id == r.testigo_id or user.id in {t.id for t in testigos_posibles(db, r)}
 
@@ -176,7 +176,7 @@ def puede_segundo_conteo(db: Session, user: Empleado, r: ConteoReporte) -> bool:
 def guardar_segundo_conteo(db: Session, user: Empleado, r: ConteoReporte, datos: dict) -> str | None:
     """Guarda (o corrige) el segundo conteo. Si alguien ya había firmado, su firma se borra: debe firmar lo nuevo."""
     if not puede_segundo_conteo(db, user, r):
-        return "Solo el Director de Producción o un testigo pueden registrar el segundo conteo de un conteo enviado."
+        return "Solo el Director de Producción o el área contable (que no hayan cargado este conteo) registran el segundo conteo de un conteo enviado."
     lineas = _leer_lineas(db, datos, r.area, segundo=True)
     if isinstance(lineas, str):
         return lineas
@@ -268,7 +268,7 @@ def anular_reporte(db: Session, user: Empleado, r: ConteoReporte, motivo: str) -
 
 def faltan_firmas(r: ConteoReporte) -> list[str]:
     return (([] if tiene_segundo(r) else ["Segundo conteo"]) + ([] if r.manager_firmado_en else ["Director de Producción"])
-            + ([] if r.testigo_firmado_en else ["Testigo"]))
+            + ([] if r.testigo_firmado_en else ["Área contable"]))
 
 
 def pendientes_por_validar(db: Session, user: Empleado) -> list[dict]:
@@ -305,6 +305,23 @@ def ve_consulta(db: Session, user: Empleado) -> bool:
     """Pestaña «Consulta» (conteos firmados): el Director de Producción y los administradores."""
     d = director_produccion(db)
     return es_admin(user) or bool(d and d.id == user.id)
+
+
+def invalidar_segundos_del_responsable(db: Session) -> list[int]:
+    """Conteos que esperan firmas cuyo segundo conteo lo registró quien cargó el conteo (antes se permitía):
+    ese segundo conteo queda sin efecto y lo hacen de nuevo el Director y el área contable."""
+    ids = []
+    for r in db.query(ConteoReporte).filter(ConteoReporte.estado == ENVIADO, ConteoReporte.segundo_en.isnot(None)):
+        if r.segundo_por_id and r.segundo_por_id == r.responsable_id:
+            for l in [l for l in r.lineas if l.tipo in ("VCONTEO", "VDANADO")]:
+                r.lineas.remove(l)
+            r.segundo_por_id = r.segundo_en = None
+            if r.manager_firma_id != r.responsable_id:  # la firma del Director (si no es quien cargó) se hizo sobre ese segundo conteo
+                r.manager_firma_email = r.manager_firmado_en = None
+            r.testigo_email = r.testigo_firmado_en = None
+            ids.append(r.id)
+    db.commit()
+    return ids
 
 
 def puede_editar(user: Empleado, r: ConteoReporte) -> bool:
@@ -409,7 +426,7 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
                 f"{nombre_propio(r.responsable.nombre_completo) if r.responsable else 'otra persona'}.")
     if r and r.estado == ENVIADO:
         return ("Este conteo ya se envió y está esperando las firmas: no se puede cambiar. Si hay algo mal, "
-                "el Director o el testigo lo rechazan, o el Director de Producción anula las firmas.")
+                "el Director o el área contable lo rechazan, o el Director de Producción anula las firmas.")
     if r and r.estado == EN_FIRME:
         return "Este conteo quedó en firme con las 3 firmas. Si hay un error, el Director de Producción o un administrador anula el reporte completo y se realiza de nuevo."
     lineas = _leer_lineas(db, datos, area)
@@ -429,11 +446,11 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
         director = director_produccion(db)
         if not director:
             db.rollback()
-            return "Falta asignar el Director de Producción en Parámetros › Director y testigos: es la segunda firma del conteo."
+            return "Falta asignar el Director de Producción en Parámetros › Director y área contable: es la segunda firma del conteo."
         if not [t for t in testigos(db) if t.id not in (user.id, director.id)]:
             db.rollback()
-            return ("Falta la lista de testigos en Parámetros › Director y testigos (personas distintas a quien carga "
-                    "el conteo y al Director de Producción): uno de ellos firma como testigo.")
+            return ("Falta asignar el área contable en Parámetros › Director y área contable (personas distintas a quien carga "
+                    "el conteo y al Director de Producción): una de ellas acompaña el conteo y firma.")
         ahora = datetime.utcnow()
         r.estado, r.enviado_en, r.enviado_email = ENVIADO, ahora, user.email or ""
         r.segundo_por_id = r.segundo_en = None  # el segundo conteo se hace sobre lo enviado
@@ -720,7 +737,7 @@ def notificar(reporte_id: int, evento: str) -> None:
             texto = (f"✍️ *Conteo de inventario pendiente de tu firma*\n{_resumen(r)}\n"
                      f"Cargado por: {nombre_propio(r.responsable.nombre_completo) if r.responsable else '—'}\n"
                      f"Hagan el segundo conteo, regístrenlo y firmen (o recházalo con una observación) en: {url}\n"
-                     f"(Testigos: basta con la firma de uno de la lista.)")
+                     f"(Área contable: basta con la firma de una persona.)")
         elif evento == "en_firme":
             url = f"{cfg.BASE_URL}/conteo"
             destinos = [r.responsable.email if r.responsable else ""]
