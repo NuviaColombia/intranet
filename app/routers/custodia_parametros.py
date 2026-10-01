@@ -50,6 +50,16 @@ def _accesos_produccion() -> None:
                     conn.execute(text("ALTER TABLE custodia_traslados ADD COLUMN dir_firmado_en TIMESTAMP"))
     except Exception as e:
         print(f"Custodia: columnas de firma DIR ({type(e).__name__}: {e}).")
+    db = SessionLocal()
+    try:  # Resumen general: filas «orden + cantidad» duplicadas por el guardado anterior (salían como subtotal)
+        quitadas = sc.limpiar_subtotales_duplicados(db)
+        if quitadas:
+            print(f"Custodia: {len(quitadas)} fila(s) duplicada(s) del Resumen general quitadas: "
+                  + ", ".join(f"#{t:04d} orden {o} ({c:g})" for t, o, c in quitadas[:50]))
+    except Exception as e:
+        print(f"Custodia: limpieza del Resumen general ({type(e).__name__}: {e}).")
+    finally:
+        db.close()
 
 
 def _entradas_dir_a_stock() -> None:

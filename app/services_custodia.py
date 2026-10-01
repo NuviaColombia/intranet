@@ -278,6 +278,30 @@ def _movimientos_stock(db: Session, traslado: CustodiaTraslado, lineas: list[dic
             agregar(traslado.area_entrada, d, c, "ENTRADA")
 
 
+def limpiar_subtotales_duplicados(db: Session) -> list[tuple[int, str, float]]:
+    """Quita del Resumen general las filas «orden + cantidad» que agregaba el guardado aunque ya se hubiera pegado
+    el resumen de esa orden (salían sin descripción y duplicaban el total). Solo quita la fila si, a la vez:
+    no tiene descripción ni paciente, en el mismo traslado hay otras filas de esa orden con descripción, y su total
+    es igual a la cantidad de discos de esa orden en el traslado. Devuelve (traslado, orden, total) de lo quitado."""
+    quitadas = []
+    for t in db.query(CustodiaTraslado).options(joinedload(CustodiaTraslado.resumen), joinedload(CustodiaTraslado.ordenes)).all():
+        cantidades: dict[str, float] = {}
+        for o in t.ordenes:
+            k = (o.numero_orden or "").strip().upper()
+            cantidades[k] = cantidades.get(k, 0.0) + (o.cantidad_discos or 0)
+        for r in list(t.resumen):
+            k = (r.orden or "").strip().upper()
+            if not k or (r.descripcion or "").strip() or (r.paciente or "").strip() or k not in cantidades:
+                continue
+            con_descripcion = [x for x in t.resumen if x is not r and (x.orden or "").strip().upper() == k
+                               and (x.descripcion or "").strip()]
+            if con_descripcion and abs((r.total or 0) - cantidades[k]) < 1e-6:
+                quitadas.append((t.id, r.orden, r.total))
+                db.delete(r)
+    db.commit()
+    return quitadas
+
+
 def recalcular_entradas_stock(db: Session, traslado: CustodiaTraslado) -> int:
     """Vuelve a calcular lo que un traslado dejó en el Stock por descripción, desde su Resumen general
     (solo si ese traslado no tiene movimientos de Stock). Devuelve cuántos movimientos creó."""
