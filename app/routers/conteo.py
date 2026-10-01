@@ -1,6 +1,6 @@
-"""Producción › Conteo inventario mensual: conteo del manager por área y mes, conteo de validación a ciegas,
-comparación, evidencias y reportes. Sus parámetros (accesos, validadores, materiales, bodegas, ajustes) están en
-Producción › Parámetros."""
+"""Producción › Conteo inventario mensual: conteo del manager por área y mes con soportes, 3 firmas (manager,
+Director de Producción y testigo) y reportes. Sus parámetros (accesos, Director y testigos, materiales, bodegas) están
+en Producción › Parámetros."""
 import asyncio
 import csv
 import io
@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db, engine
 from ..models import Empleado
-from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                             ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, BORRADOR, ENVIADO, VALIDADO)
+from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea,
+                             ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO)
 from ..models_custodia import CustodiaArea
 from ..auth import require_admin, get_current_user
 from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
@@ -23,16 +23,17 @@ from .. import acceso_secciones as acs
 
 router = APIRouter()
 SUB = "conteo"
+ESTADOS = {"BORRADOR": "Borrador", "ENVIADO": "Esperando firmas", "DEVUELTO": "Devuelto", "VALIDADO": "En firme",
+           "ANULADO": "Anulado"}
 COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
     "conteo_reportes": {"estado": "VARCHAR(20) DEFAULT 'BORRADOR'", "enviado_en": "TIMESTAMP", "enviado_email": "VARCHAR(150)",
-                        "validacion_por_id": "INTEGER REFERENCES empleados(id)", "validacion_guardada_en": "TIMESTAMP",
-                        "validado_por_id": "INTEGER REFERENCES empleados(id)", "validado_en": "TIMESTAMP",
-                        "validado_email": "VARCHAR(150)", "devuelto_por_id": "INTEGER REFERENCES empleados(id)",
+                        "validado_en": "TIMESTAMP", "validacion_por_id": "INTEGER REFERENCES empleados(id)",
+                        "validacion_guardada_en": "TIMESTAMP", "devuelto_por_id": "INTEGER REFERENCES empleados(id)",
                         "devuelto_en": "TIMESTAMP", "observacion": "TEXT",
                         "manager_firma_id": "INTEGER REFERENCES empleados(id)", "manager_firma_email": "VARCHAR(150)",
                         "manager_firmado_en": "TIMESTAMP", "testigo_id": "INTEGER REFERENCES empleados(id)",
                         "testigo_email": "VARCHAR(150)", "testigo_firmado_en": "TIMESTAMP"},
-    "conteo_evidencias": {"etapa": "VARCHAR(12) DEFAULT 'MANAGER'", "workdrive_estado": "VARCHAR(12) DEFAULT 'PENDIENTE'",
+    "conteo_evidencias": {"workdrive_estado": "VARCHAR(12) DEFAULT 'PENDIENTE'",
                           "workdrive_id": "VARCHAR(100)", "workdrive_error": "VARCHAR(300)", "workdrive_en": "TIMESTAMP"},
 }
 
@@ -40,8 +41,7 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
 @router.on_event("startup")
 def _tablas_conteo() -> None:
     from sqlalchemy import inspect, text
-    for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoValidador, ConteoConfig, ConteoReporte,
-                   ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo):
+    for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear
@@ -55,6 +55,25 @@ def _tablas_conteo() -> None:
                         conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {tipo}"))
     except Exception as e:
         print(f"Conteo: columnas nuevas ({type(e).__name__}: {e}).")
+    # La versión anterior tenía conteo_evidencias.etapa obligatoria; la nueva ya no la llena
+    if engine.dialect.name != "sqlite":
+        try:
+            if "etapa" in {c["name"] for c in inspect(engine).get_columns("conteo_evidencias")}:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE conteo_evidencias ALTER COLUMN etapa SET DEFAULT 'MANAGER'"))
+                    conn.execute(text("ALTER TABLE conteo_evidencias ALTER COLUMN etapa DROP NOT NULL"))
+        except Exception as e:
+            print(f"Conteo: columna etapa ({type(e).__name__}: {e}).")
+    from ..database import SessionLocal
+    db = SessionLocal()
+    try:
+        n = sc.migrar_flujo_anterior(db)
+        if n:
+            print(f"Conteo: {n} conteo(s) con las 3 firmas pasaron a en firme.")
+    except Exception as e:
+        print(f"Conteo: migración del flujo anterior ({type(e).__name__}: {e}).")
+    finally:
+        db.close()
 
 
 @router.on_event("startup")
@@ -83,8 +102,14 @@ def _areas(db: Session) -> list[str]:
 
 
 def _secciones(db: Session, user: Empleado) -> list[str]:
-    s = acs.secciones_de(db, user, SUB)
-    return [x for x in s if x != "validacion" or sc.puede_validar(db, user)]
+    """Secciones de Parámetros, y además por rol: Pendientes (Director, testigos, admin) y Consulta (Director, admin)."""
+    return [x for x in acs.secciones_de(db, user, SUB)
+            if (x != "validacion" or sc.ve_pendientes(db, user)) and (x != "reportes" or sc.ve_consulta(db, user))]
+
+
+def _exigir(db: Session, user: Empleado, *secciones: str) -> None:
+    if not set(secciones) & set(_secciones(db, user)):
+        raise HTTPException(403, "No tienes acceso a esta sección de Conteo inventario mensual.")
 
 
 @router.get("/conteo")
@@ -106,7 +131,7 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
         "materiales": [{"id": m.id, "codigo": m.codigo, "descripcion": m.descripcion, "areas": por_mat.get(m.id, [])}
                        for m in sc.materiales_activos(db)],
         "areas": _areas(db), "areaAsignada": sc.area_de(user), "esAdmin": sc.es_admin(user),
-        "puedeValidar": sc.puede_validar(db, user), "config": sc.config(db),
+        "puedeAnular": sc.puede_anular(db, user),
         "responsable": nombre_propio(user.nombre_completo), "correo": user.email or "", "usuarioId": user.id,
         "hoy": sc.hoy_colombia().isoformat(), "meses": sc.MESES,
         "personas": [{"id": e.id, "nombre": nombre_propio(e.nombre_completo), "cargo": e.cargo or ""} for e in sc.testigos(db)],
@@ -116,15 +141,31 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
 
 @router.get("/conteo/api/reporte")
 def api_reporte(area: str, anio: int, mes: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "nuevo", "reportes", "validacion")
+    _exigir(db, user, "nuevo", "reportes")
     r = db.query(ConteoReporte).filter(ConteoReporte.area == area.strip().upper(), ConteoReporte.anio == anio,
                                        ConteoReporte.mes == mes).first()
-    return {"reporte": sc.serializar(db, r, user) if r else None, "puedeEditar": bool(r is None or sc.puede_editar(user, r)),
-            "fechaLimite": sc.fecha_limite(db, anio, mes).strftime("%d/%m/%Y"),
-            "vencido": sc.hoy_colombia() > sc.fecha_limite(db, anio, mes) and not sc.es_admin(user)}
+    return {"reporte": sc.serializar(db, r, user) if r else None, "puedeEditar": bool(r is None or sc.puede_editar(user, r))}
 
 
-class LineaIn(BaseModel):
+@router.get("/conteo/api/pendientes")
+def api_pendientes(user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """Pestaña «Pendientes por validar»: conteos enviados que esperan la firma del Director y/o de un testigo."""
+    _exigir(db, user, "validacion")
+    return {"data": sc.pendientes_por_validar(db, user)}
+
+
+@router.post("/conteo/api/reportes/{reporte_id}/reenviar-aviso")
+def api_reenviar_aviso(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
+                       db: Session = Depends(get_db)):
+    _exigir(db, user, "validacion", "nuevo")
+    r = _reporte(db, reporte_id)
+    if r.estado != ENVIADO:
+        raise HTTPException(400, "Este conteo no está esperando firmas.")
+    tareas.add_task(sc.notificar, r.id, "enviado")
+    return {"mensaje": "🔔 Se reenvió el aviso por Cliq a quienes les falta firmar: " + ", ".join(sc.faltan_firmas(r)) + "."}
+
+
+class LineaIn(BaseModel):  # cantidades con decimales (12.5)
     bodega_id: int
     material_id: int
     cantidad: float = 0
@@ -142,7 +183,6 @@ class ReporteIn(BaseModel):
     area: str = ""
     novedad: str = ""
     enviar: bool = False
-    testigo_id: int = 0       # testigo del conteo (tercera firma), se elige al enviar
     lineas: list[LineaIn] = []
     danados: list[DanadoIn] = []
 
@@ -150,24 +190,17 @@ class ReporteIn(BaseModel):
 @router.post("/conteo/api/reportes")
 def api_guardar(payload: ReporteIn, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
                 db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "nuevo")
+    _exigir(db, user, "nuevo")
     datos = payload.model_dump()
     r = sc.guardar_reporte(db, user, datos, enviar=datos.pop("enviar"))
     if isinstance(r, str):
         raise HTTPException(400, r)
     if r.estado == ENVIADO:
         tareas.add_task(sc.notificar, r.id, "enviado")
-    accion = ("enviado: ya tiene las 3 firmas y pasa a validación" if sc.firmas_completas(r) else
-              "enviado con tu firma: se les avisó al Director de Producción y al testigo para que firmen") if r.estado == ENVIADO         else "guardado como borrador"
+    accion = ("enviado con tu firma: se les avisó al Director de Producción y a los testigos para que firmen"
+              if r.estado == ENVIADO else "guardado como borrador")
     return {"mensaje": f"✅ Conteo de {sc.MESES[r.mes - 1]} {r.anio} de {nombre_propio(r.area)} {accion}.",
             "reporte": sc.serializar(db, r, user)}
-
-
-class ValidacionIn(BaseModel):
-    lineas: list[LineaIn] | None = None
-    danados: list[DanadoIn] | None = None
-    decision: str = ""        # "" (guardar y comparar) | "validar" | "devolver"
-    observacion: str = ""
 
 
 def _reporte(db: Session, reporte_id: int) -> ConteoReporte:
@@ -177,47 +210,9 @@ def _reporte(db: Session, reporte_id: int) -> ConteoReporte:
     return r
 
 
-@router.get("/conteo/api/validacion")
-def api_para_validar(anio: int, mes: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "validacion")
-    if not sc.puede_validar(db, user):
-        raise HTTPException(403, "Solo los validadores pueden ver esta sección.")
-    reportes = (db.query(ConteoReporte).filter(ConteoReporte.anio == anio, ConteoReporte.mes == mes, ConteoReporte.estado != BORRADOR)
-                .order_by(ConteoReporte.area).all())
-    return {"data": [sc.serializar(db, r, user) for r in reportes]}
-
-
-@router.post("/conteo/api/reportes/{reporte_id}/validacion")
-def api_validar(reporte_id: int, payload: ValidacionIn, tareas: BackgroundTasks,
-                user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "validacion")
-    r = _reporte(db, reporte_id)
-    datos = payload.model_dump()
-    if datos["lineas"] is None:
-        datos.pop("lineas")
-    if datos["danados"] is None:
-        datos.pop("danados")
-    error = sc.guardar_validacion(db, user, r, datos, payload.decision)
-    if error:
-        raise HTTPException(400, error)
-    db.refresh(r)
-    if payload.decision == "validar":
-        tareas.add_task(sc.notificar, r.id, "validado")
-        tareas.add_task(sc.documentos_al_validar, r.id, _areas(db))  # acta del área + consolidado del mes (PDF firmados)
-        msg = f"✅ Conteo de {nombre_propio(r.area)} validado y firmado."
-    elif payload.decision == "devolver":
-        tareas.add_task(sc.notificar, r.id, "devuelto")
-        msg = f"↩️ Conteo de {nombre_propio(r.area)} devuelto al manager."
-    else:
-        c = sc.comparacion(db, r)
-        msg = ("✅ Tu conteo coincide con el del manager." if not c["diferencias"]
-               else f"⚠️ Hay {c['diferencias']} diferencia(s) con el conteo del manager.")
-    return {"mensaje": msg, "reporte": sc.serializar(db, r, user)}
-
-
 def _reporte_para_firmar(db: Session, user: Empleado, reporte_id: int) -> ConteoReporte:
     r = _reporte(db, reporte_id)
-    if user.id not in (r.manager_firma_id, r.testigo_id, r.responsable_id) and not sc.es_admin(user):
+    if not sc.es_firmante(db, user, r) and not sc.es_admin(user):
         raise HTTPException(404, "Este conteo no tiene una firma a tu nombre.")
     return r
 
@@ -230,17 +225,45 @@ def pagina_firma(reporte_id: int, request: Request, user: Empleado = Depends(get
     bodegas = sc.bodegas_activas(db)
     materiales = sc.materiales_activos(db, r.area)
     filas = []
+    comp = (datos["comparacion"] or {}).get("filas", {})
     for b in bodegas:
         for m in materiales:
+            k = f"{b.id}:{m.id}"
             filas.append({"bodega": f"{b.nombre} - Bodega {b.codigo}", "material": f"{b.prefijo}-{m.codigo}-{m.descripcion}",
-                          "cantidad": datos["conteo"].get(f"{b.id}:{m.id}", 0),
-                          "evidencias": [e for e in datos["evidencias"] if e["materialId"] == m.id and e["etapa"] == "MANAGER"]})
+                          "campo": f"c_{b.id}_{m.id}", "cantidad": datos["conteo"].get(k, 0),
+                          "segundo": datos["segundo"].get(k), "diferencia": comp.get(k, {}).get("diferencia", 0),
+                          "evidencias": [e for e in datos["evidencias"] if e["materialId"] == m.id]})
+        k = f"{b.id}:danados"
         filas.append({"bodega": f"{b.nombre} - Bodega {b.codigo}", "material": "Disco de zirconia - DAÑADOS", "danado": True,
-                      "cantidad": datos["danados"].get(str(b.id), 0),
-                      "evidencias": [e for e in datos["evidencias"] if not e["materialId"] and e["etapa"] == "MANAGER"]})
+                      "campo": f"d_{b.id}", "cantidad": datos["danados"].get(str(b.id), 0),
+                      "segundo": datos["segundoDanados"].get(str(b.id)), "diferencia": comp.get(k, {}).get("diferencia", 0),
+                      "evidencias": [e for e in datos["evidencias"] if not e["materialId"]]})
     return templates.TemplateResponse(request, "conteo_firma.html", {
-        "user": user, "es_portal": True, "r": datos, "filas": filas, "rol": sc.rol_firmante(user, r),
+        "user": user, "es_portal": True, "r": datos, "filas": filas, "rol": sc.rol_firmante(db, user, r),
+        "puede_segundo": sc.puede_segundo_conteo(db, user, r), "puede_anular": sc.puede_anular(db, user),
         "msg": request.query_params.get("msg", "")})
+
+
+@router.post("/conteo/firma/{reporte_id}/segundo")
+async def guardar_segundo(reporte_id: int, request: Request, user: Empleado = Depends(get_current_user),
+                          db: Session = Depends(get_db)):
+    """Segundo conteo del Director de Producción y el testigo (desde la página de firma)."""
+    from urllib.parse import quote
+    r = _reporte_para_firmar(db, user, reporte_id)
+    form = await request.form()
+    datos = {"lineas": [], "danados": []}
+    for campo, valor in form.items():
+        partes = campo.split("_")
+        if partes[0] == "c" and len(partes) == 3:
+            datos["lineas"].append({"bodega_id": partes[1], "material_id": partes[2], "cantidad": valor or 0})
+        elif partes[0] == "d" and len(partes) == 2:
+            datos["danados"].append({"bodega_id": partes[1], "cantidad": valor or 0})
+    error = sc.guardar_segundo_conteo(db, user, r, datos)
+    db.refresh(r)
+    dif = (sc.comparacion(r, sc.bodegas_activas(db), sc.materiales_activos(db, r.area))["diferencias"] if not error else 0)
+    msg = error or ("✅ Segundo conteo guardado: coincide con el del manager. Ya puedes firmar." if not dif else
+                    f"⚠️ Segundo conteo guardado con {dif} diferencia(s) frente al manager (queda como cifra oficial). Ya puedes firmar, o rechazarlo.")
+    return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
 
 
 @router.post("/conteo/firma/{reporte_id}/firmar")
@@ -248,10 +271,11 @@ def firmar(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depends(ge
     from urllib.parse import quote
     r = _reporte_para_firmar(db, user, reporte_id)
     error = sc.firmar_conteo(db, user, r)
-    if not error and sc.firmas_completas(r):
-        tareas.add_task(sc.notificar, r.id, "firmado")  # con las 3 firmas pasa a validación (conteo físico)
-        tareas.add_task(sc.documentos_con_firmas, r.id)  # y se guarda el PDF del reporte en la carpeta
-    msg = error or "✅ Listo: firmaste el conteo. Gracias."
+    if not error and r.estado == sc.EN_FIRME:
+        tareas.add_task(sc.notificar, r.id, "en_firme")
+        tareas.add_task(sc.documentos_en_firme, r.id, _areas(db))  # PDF del reporte + consolidado a la carpeta
+    msg = error or ("✅ Listo: firmaste el conteo. Con las 3 firmas quedó en firme." if r.estado == sc.EN_FIRME
+                    else "✅ Listo: firmaste el conteo. Gracias.")
     return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
 
 
@@ -264,6 +288,32 @@ def rechazar(reporte_id: int, tareas: BackgroundTasks, observacion: str = Form("
     if not error:
         tareas.add_task(sc.notificar, r.id, "devuelto")
     msg = error or "↩️ Listo: el conteo volvió a quien lo cargó con tu observación."
+    return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
+
+
+@router.post("/conteo/firma/{reporte_id}/anular")
+def anular_desde_firma(reporte_id: int, tareas: BackgroundTasks, motivo: str = Form(""),
+                       user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    r = _reporte(db, reporte_id)
+    error = sc.anular_firmas(db, user, r, motivo)
+    if not error:
+        tareas.add_task(sc.notificar, r.id, "devuelto")
+        tareas.add_task(sc.actualizar_consolidado, r.anio, r.mes, _areas(db))
+    msg = error or "↩️ Firmas anuladas: el conteo volvió al manager para corregirlo y firmarlo de nuevo."
+    return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
+
+
+@router.post("/conteo/firma/{reporte_id}/anular-reporte")
+def anular_reporte_desde_firma(reporte_id: int, tareas: BackgroundTasks, motivo: str = Form(""),
+                               user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    r = _reporte(db, reporte_id)
+    error = sc.anular_reporte(db, user, r, motivo)
+    if not error:
+        tareas.add_task(sc.notificar, r.id, "anulado")
+        tareas.add_task(sc.actualizar_consolidado, r.anio, r.mes, _areas(db))
+    msg = error or "🚫 Reporte anulado: el manager debe realizar el conteo de nuevo."
     return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
 
 
@@ -305,12 +355,12 @@ def _pdf(doc: ConteoDocumento) -> Response:
 
 @router.get("/conteo/api/reportes/{reporte_id}/acta.pdf")
 def api_acta(reporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    """Acta firmada del área (se genera al validar)."""
-    acs.exigir(db, user, SUB, "nuevo", "reportes", "validacion")
+    """PDF firmado del área (se genera cuando queda en firme con las 3 firmas)."""
+    _exigir(db, user, "nuevo", "reportes")
     r = _reporte(db, reporte_id)
-    if r.estado != VALIDADO and not sc.firmas_completas(r):
-        raise HTTPException(400, "El PDF del reporte se genera cuando el conteo tiene las 3 firmas.")
-    if not sc.puede_editar(user, r) and not sc.puede_validar(db, user) and "reportes" not in acs.secciones_de(db, user, SUB):
+    if r.estado != sc.EN_FIRME:
+        raise HTTPException(400, "El PDF del reporte se genera cuando el conteo queda en firme (3 firmas).")
+    if not sc.puede_editar(user, r) and "reportes" not in acs.secciones_de(db, user, SUB):
         raise HTTPException(403, "No puedes ver el acta de esta área.")
     doc = db.query(ConteoDocumento).filter_by(tipo="ACTA", reporte_id=r.id).first() or sc.generar_acta(db, r)
     return _pdf(doc)
@@ -319,37 +369,57 @@ def api_acta(reporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), 
 @router.get("/conteo/api/consolidado/pdf")
 def api_consolidado_pdf(anio: int, mes: int, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
                         db: Session = Depends(get_db)):
-    """Consolidado firmado del mes (con lo validado hasta ahora); se actualiza y se copia a WorkDrive."""
-    acs.exigir(db, user, SUB, "reportes")
+    """Consolidado firmado del mes (con las áreas en firme hasta ahora); se actualiza y se copia a WorkDrive."""
+    _exigir(db, user, "reportes")
     doc = sc.generar_consolidado(db, anio, mes, _areas(db))
     tareas.add_task(sc.copiar_documento_workdrive, doc.id)
     return _pdf(doc)
 
 
-@router.post("/conteo/api/reportes/{reporte_id}/reabrir")
-def api_reabrir(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
-                db: Session = Depends(get_db)):
+class AnularIn(BaseModel):
+    motivo: str = ""
+
+
+@router.post("/conteo/api/reportes/{reporte_id}/anular")
+def api_anular(reporte_id: int, payload: AnularIn, tareas: BackgroundTasks, user: Empleado = Depends(get_current_user),
+               db: Session = Depends(get_db)):
+    """Solo el Director de Producción o un administrador: anula las firmas para corregir y volver a firmar."""
     r = _reporte(db, reporte_id)
-    error = sc.reabrir(db, user, r)
+    error = sc.anular_firmas(db, user, r, payload.motivo)
     if error:
-        raise HTTPException(403, error)
+        raise HTTPException(403 if not sc.puede_anular(db, user) else 400, error)
     tareas.add_task(sc.notificar, r.id, "devuelto")
-    return {"mensaje": "Conteo reabierto: el manager puede corregirlo y enviarlo de nuevo."}
+    tareas.add_task(sc.actualizar_consolidado, r.anio, r.mes, _areas(db))
+    return {"mensaje": f"🔓 Firmas anuladas: el conteo de {nombre_propio(r.area)} volvió para corregirlo y firmarlo de nuevo.",
+            "reporte": sc.serializar(db, r, user)}
+
+
+@router.post("/conteo/api/reportes/{reporte_id}/anular-reporte")
+def api_anular_reporte(reporte_id: int, payload: AnularIn, tareas: BackgroundTasks, user: Empleado = Depends(get_current_user),
+                       db: Session = Depends(get_db)):
+    """Solo el Director de Producción o un administrador: anula por completo un reporte en firme (se vuelve a realizar)."""
+    r = _reporte(db, reporte_id)
+    error = sc.anular_reporte(db, user, r, payload.motivo)
+    if error:
+        raise HTTPException(403 if not sc.puede_anular(db, user) else 400, error)
+    tareas.add_task(sc.notificar, r.id, "anulado")
+    tareas.add_task(sc.actualizar_consolidado, r.anio, r.mes, _areas(db))
+    return {"mensaje": f"🚫 Reporte anulado: el manager de {nombre_propio(r.area)} debe realizar el conteo de nuevo.",
+            "reporte": sc.serializar(db, r, user)}
 
 
 @router.post("/conteo/api/reportes/{reporte_id}/evidencias")
 async def api_evidencia(reporte_id: int, tareas: BackgroundTasks, archivo: UploadFile = File(...), material_id: int = Form(0),
-                        etapa: str = Form("MANAGER"), user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    etapa = "VALIDACION" if etapa.upper() == "VALIDACION" else "MANAGER"
-    acs.exigir(db, user, SUB, "validacion" if etapa == "VALIDACION" else "nuevo")
+                        user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    _exigir(db, user, "nuevo")
     r = _reporte(db, reporte_id)
     datos = await archivo.read()
     e = sc.agregar_evidencia(db, user, r, material_id or None, archivo.filename or "evidencia",
-                             (archivo.content_type or "").lower(), datos, etapa)
+                             (archivo.content_type or "").lower(), datos)
     if isinstance(e, str):
         raise HTTPException(400, e)
     tareas.add_task(sc.copiar_a_workdrive, e.id)  # copia en la carpeta de WorkDrive (si está configurada)
-    return {"id": e.id, "nombre": e.nombre, "materialId": e.material_id, "etapa": e.etapa, "tipo": e.tipo_mime, "tamano": e.tamano}
+    return {"id": e.id, "nombre": e.nombre, "materialId": e.material_id, "tipo": e.tipo_mime, "tamano": e.tamano}
 
 
 @router.post("/conteo/api/evidencias/{evidencia_id}/quitar")
@@ -369,31 +439,31 @@ def api_ver_evidencia(evidencia_id: int, user: Empleado = Depends(get_current_us
     e = db.get(ConteoEvidencia, evidencia_id)
     if not e:
         raise HTTPException(404, "Evidencia no encontrada.")
-    firmante = user.id in (e.reporte.manager_firma_id, e.reporte.testigo_id)
+    firmante = sc.es_firmante(db, user, e.reporte)
     if not firmante:
         if not tiene_submodulo(db, user, SUB):
             raise HTTPException(403, "No tienes acceso a esta evidencia.")
-        acs.exigir(db, user, SUB, "nuevo", "reportes", "validacion")
+        _exigir(db, user, "nuevo", "reportes")
     return Response(e.datos, media_type=e.tipo_mime,
                     headers={"Content-Disposition": f'inline; filename="{e.nombre}"', "Cache-Control": "private, max-age=3600"})
 
 
 @router.get("/conteo/api/consolidado")
 def api_consolidado(anio: int, mes: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "reportes")
+    _exigir(db, user, "reportes")
     return sc.consolidado(db, anio, mes, _areas(db), user)
 
 
 @router.get("/conteo/api/consolidado/exportar")
 def api_exportar(anio: int, mes: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "reportes")
+    _exigir(db, user, "reportes")
     c = sc.consolidado(db, anio, mes, _areas(db), user)
     salida = io.StringIO()
     salida.write("﻿")
     w = csv.writer(salida, delimiter=";")
-    reportes = [r for r in c["reportes"] if not r["oculto"]]
+    reportes = [r for r in c["reportes"] if r["estado"] == "VALIDADO"]  # solo lo firmado
     w.writerow([f"CONTEO INVENTARIO MENSUAL · {c['mesNombre'].upper()} {anio}"])
-    w.writerow(["Bodega", "Material", *[f"{nombre_propio(r['area'])} ({r['estado'].title()})" for r in reportes], "Total"])
+    w.writerow(["Bodega", "Material", *[f"{nombre_propio(r['area'])} ({ESTADOS.get(r['estado'], r['estado'])})" for r in reportes], "Total"])
     for b in c["bodegas"]:
         for m in c["materiales"]:
             clave = f"{b['id']}:{m['id']}"
@@ -402,10 +472,12 @@ def api_exportar(anio: int, mes: int, user: Empleado = Depends(require_submodulo
         w.writerow([f"{b['codigo']} {b['nombre']}", "Disco de zirconia - DAÑADOS",
                     *[r["finalDanados"].get(str(b["id"]), 0) for r in reportes], c["totales"].get(f"{b['id']}:danados", 0)])
     w.writerow([])
-    w.writerow(["Área", "Estado", "Responsable", "Correo", "Enviado", "Validado por", "Validado", "Novedad"])
-    for r in c["reportes"]:
-        w.writerow([nombre_propio(r["area"]), r["estado"], r["responsable"], r["responsableEmail"], r["enviadoEn"],
-                    r["validadoPor"], r["validadoEn"], r["novedad"]])
+    w.writerow(["Área", "Estado", "Responsable", "Correo", "Enviado", "Director de Producción", "Firmó", "Testigo", "Firmó",
+                "En firme", "Novedad"])
+    for r in reportes:
+        w.writerow([nombre_propio(r["area"]), ESTADOS.get(r["estado"], r["estado"]), r["responsable"], r["responsableEmail"],
+                    r["enviadoEn"], r["managerFirma"]["nombre"], r["managerFirma"]["en"], r["testigo"]["nombre"],
+                    r["testigo"]["en"], r["enFirmeEn"], r["novedad"]])
     if c["pendientes"]:
         w.writerow([])
         w.writerow(["Áreas sin enviar", ", ".join(nombre_propio(a) for a in c["pendientes"])])
@@ -447,7 +519,6 @@ def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin), db:
     e = db.get(Empleado, empleado_id)
     if e:
         db.query(ProduccionAcceso).filter_by(empleado_id=e.id, submodulo=SUB).delete()
-        db.query(ConteoValidador).filter_by(empleado_id=e.id).delete()
         acs.quitar(db, e.id, SUB)
         if not db.query(ProduccionAcceso).filter(ProduccionAcceso.empleado_id == e.id).first():
             e.modulos = ",".join(m for m in e.modulos_lista if m != MODULO_PRODUCCION)
@@ -455,48 +526,13 @@ def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin), db:
     return _volver("n_accesos", "Acceso a Conteo inventario mensual quitado.")
 
 
-@router.post("/inventario/parametros/conteo/validadores")
-def agregar_validador(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: int = Form(...)):
-    e = db.get(Empleado, empleado_id)
-    if not e or not e.activo:
-        return _volver("n_validadores", "No se guardó: elige una persona de la lista.")
-    _dar_modulo(db, e)  # para validar también necesita entrar al submódulo
-    if not db.query(ConteoValidador).filter_by(empleado_id=e.id).first():
-        db.add(ConteoValidador(empleado_id=e.id))
-    db.commit()
-    return _volver("n_validadores", f"{nombre_propio(e.nombre_completo)} ahora valida los conteos.")
-
-
-@router.post("/inventario/parametros/conteo/validadores/{empleado_id}/quitar")
-def quitar_validador(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    db.query(ConteoValidador).filter_by(empleado_id=empleado_id).delete()
-    db.commit()
-    return _volver("n_validadores", "Validador quitado (conserva el acceso al submódulo).")
-
-
-@router.post("/inventario/parametros/conteo/ajustes")
-def guardar_ajustes(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                    tolerancia: str = Form("0"), dia_limite: str = Form("3")):
-    try:
-        tol = max(float(tolerancia.replace(",", ".")), 0)
-        dia = min(max(int(dia_limite), 0), 28)
-    except ValueError:
-        return _volver("n_validadores", "No se guardó: la tolerancia y el día límite deben ser números.")
-    for clave, valor in (("tolerancia", f"{tol:g}"), ("dia_limite", str(dia))):
-        c = db.get(ConteoConfig, clave) or ConteoConfig(clave=clave)
-        c.valor = valor
-        db.add(c)
-    db.commit()
-    return _volver("n_validadores", "Ajustes guardados.")
-
-
 @router.post("/inventario/parametros/conteo/workdrive/reintentar")
 def workdrive_reintentar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     from .. import zoho_workdrive as wd
     if not wd.configurado():
-        return _volver("n_validadores", "No se copió nada: falta configurar WorkDrive en Render (ver la ayuda).")
+        return _volver("n_director", "No se copió nada: falta configurar WorkDrive en Render (ver la ayuda).")
     n = sc.reintentar_workdrive(limite=200)
-    return _volver("n_validadores", f"Listo: {n} evidencia(s) copiadas a WorkDrive.")
+    return _volver("n_director", f"Listo: {n} archivo(s) copiados a WorkDrive.")
 
 
 @router.post("/inventario/parametros/conteo/materiales")

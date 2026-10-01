@@ -26,25 +26,41 @@
     <p class="cm-sub"><b>{{ r.area|nombre_propio }}</b> · {{ r.mesNombre }} {{ r.anio }} · cargado por <b>{{ r.responsable }}</b>
       ({{ r.responsableEmail }}){% if r.enviadoEn %} el {{ r.enviadoEn }}{% endif %}.</p>
 
-    {% if msg %}<div class="cf-aviso {{ 'ok' if msg.startswith('✅') else ('pend' if msg.startswith('↩️') else 'mal') }}">{{ msg }}</div>{% endif %}
+    {% if msg %}<div class="cf-aviso {{ 'ok' if msg.startswith('✅') else ('pend' if msg.startswith('↩️') or msg.startswith('⚠️') else 'mal') }}">{{ msg }}</div>{% endif %}
 
     <div class="cf-firmas">
       <div class="cf-firma"><b>1. Manager (carga)</b>{% if r.enviadoEn %}✅ {{ r.responsable }}<br>{{ r.enviadoEmail }}<br>{{ r.enviadoEn }}{% else %}⏳ Sin enviar{% endif %}</div>
       <div class="cf-firma"><b>2. Director de Producción</b>{% if r.managerFirma.en %}✅ {{ r.managerFirma.nombre }}<br>{{ r.managerFirma.email }}<br>{{ r.managerFirma.en }}{% else %}⏳ {{ r.managerFirma.nombre or 'Pendiente' }}{% endif %}</div>
-      <div class="cf-firma"><b>3. Testigo del conteo</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ {{ r.testigo.nombre or 'Pendiente' }}{% endif %}</div>
+      <div class="cf-firma"><b>3. Testigo del conteo</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ Firma cualquiera de la lista de testigos{% endif %}</div>
     </div>
 
+    <h3 style="margin:14px 0 4px; font-size:14px; color:#1A365D;">🔢 Segundo conteo (Director de Producción y testigo)</h3>
+    <p style="font-size:12.5px; color:#475569; margin:0 0 6px;">Cuenten de nuevo cada material y regístrenlo aquí antes de firmar. Se compara con lo del manager
+      y <b>el segundo conteo queda como la cifra oficial</b>. Se aceptan decimales (12.5 o 12,5).
+      {% if r.tieneSegundo %}<br>Registrado por <b>{{ r.segundoPor }}</b> el {{ r.segundoEn }}{% if r.comparacion and r.comparacion.diferencias %} · <b style="color:#b91c1c">{{ r.comparacion.diferencias }} diferencia(s)</b>{% else %} · ✅ coincide con el manager{% endif %}.{% endif %}</p>
+    {% if puede_segundo %}<form method="post" action="/conteo/firma/{{ r.id }}/segundo"
+      {% if r.managerFirma.en or r.testigo.en %}onsubmit="return confirm('Cambiar el segundo conteo borra las firmas ya puestas del Director o del testigo: deben firmar de nuevo. ¿Continuar?');"{% endif %}>{% endif %}
     <table class="cf-tabla">
-      <tr><th>Material</th><th style="text-align:right">Cantidad</th><th>Evidencia</th></tr>
+      <tr><th>Material</th><th style="text-align:right">Manager</th><th style="text-align:right">Segundo conteo</th><th style="text-align:right">Diferencia</th><th>Evidencia</th></tr>
       {% for f in filas %}
       <tr class="{{ 'dan' if f.danado }}"><td>{{ f.material }}</td><td class="n">{{ '%.2f'|format(f.cantidad)|replace('.', ',') }}</td>
+        <td class="n">{% if puede_segundo %}<input name="{{ f.campo }}" inputmode="decimal" {{ '' if f.danado else 'required' }} placeholder="{{ '0' if f.danado }}" value="{{ '%g'|format(f.segundo) if f.segundo is not none else '' }}"
+             pattern="\d+([.,]\d+)?" title="Número; con decimales así: 12.5 o 12,5" style="width:90px; text-align:right">{% elif f.segundo is not none %}{{ '%.2f'|format(f.segundo)|replace('.', ',') }}{% else %}—{% endif %}</td>
+        <td class="n" style="color:{{ '#b91c1c' if f.diferencia else '#15803d' }}">{% if r.tieneSegundo %}{{ '+' if f.diferencia > 0 }}{{ '%.2f'|format(f.diferencia)|replace('.', ',') }}{% else %}—{% endif %}</td>
         <td><div class="cf-fotos">{% for e in f.evidencias %}<a href="/conteo/api/evidencias/{{ e.id }}" target="_blank">{% if e.tipo == 'application/pdf' %}<span>📄</span>{% else %}<img src="/conteo/api/evidencias/{{ e.id }}" alt="">{% endif %}</a>{% endfor %}</div></td></tr>
       {% endfor %}
     </table>
+    {% if puede_segundo %}<button class="btn">💾 {{ 'Corregir' if r.tieneSegundo else 'Guardar' }} segundo conteo</button></form>{% endif %}
     {% if r.novedad %}<p style="font-size:13px"><b>Novedad:</b> {{ r.novedad }}</p>{% endif %}
 
-    {% if rol %}
-      <div class="cf-aviso pend">Vas a firmar como <b>{{ 'Director de Producción' if rol == 'manager' else 'testigo del conteo' }}</b>: queda tu nombre,
+    {% if rol and not r.tieneSegundo %}
+      <div class="cf-aviso pend" style="margin-top:12px">🔢 Primero guarden el <b>segundo conteo</b>; después se habilita la firma.</div>
+      <form method="post" action="/conteo/firma/{{ r.id }}/rechazar" style="margin-top:12px">
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#1A365D;">No estoy de acuerdo (rechazar con observación)</label>
+        <textarea name="observacion" rows="2" style="width:100%" placeholder="Qué se debe corregir"></textarea>
+        <button class="btn rojo mini" style="margin-top:6px">↩️ Rechazar</button></form>
+    {% elif rol %}
+      <div class="cf-aviso pend" style="margin-top:12px">Vas a firmar como <b>{{ 'Director de Producción' if rol == 'manager' else 'testigo del conteo' }}</b>: queda tu nombre,
         tu correo de Zoho (<b>{{ user.email }}</b>) y la fecha y hora. Si algo no está bien, recházalo con una observación.</div>
       <form method="post" action="/conteo/firma/{{ r.id }}/firmar" style="display:inline"
             onsubmit="return confirm('¿Firmar el conteo de {{ r.area|nombre_propio }} de {{ r.mesNombre }} {{ r.anio }}?');">
@@ -55,10 +71,26 @@
         <button class="btn rojo mini" style="margin-top:6px">↩️ Rechazar</button></form>
     {% elif r.estado == 'DEVUELTO' %}
       <div class="cf-aviso mal">↩️ Este conteo fue devuelto: {{ r.observacion }}</div>
-    {% elif r.firmasCompletas %}
-      <div class="cf-aviso ok">✅ El conteo tiene las 3 firmas{{ ' y ya fue validado' if r.estado == 'VALIDADO' else ' y está en validación' }}.</div>
+    {% elif r.estado == 'VALIDADO' %}
+      <div class="cf-aviso ok">✅ El conteo quedó <b>en firme</b> con las 3 firmas el {{ r.enFirmeEn }}.</div>
     {% else %}
       <div class="cf-aviso pend">⏳ Esperando las demás firmas.</div>
+    {% endif %}
+    {% if puede_anular and r.estado == 'VALIDADO' %}
+      <form method="post" action="/conteo/firma/{{ r.id }}/anular-reporte" style="margin-top:14px"
+            onsubmit="return confirm('¿Anular el reporte completo? Se borran las cantidades, el segundo conteo, las firmas, los soportes y el PDF: el manager debe realizarlo de nuevo.');">
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#991B1B;">🚫 Anular reporte (Director de Producción o administrador)</label>
+        <textarea name="motivo" rows="2" style="width:100%" required minlength="5" placeholder="Motivo: por qué se anula el reporte"></textarea>
+        <button class="btn rojo mini" style="margin-top:6px">🚫 Anular reporte</button></form>
+    {% elif r.estado == 'ANULADO' %}
+      <div class="cf-aviso mal">🚫 {{ r.observacion }}</div>
+    {% endif %}
+    {% if puede_anular and r.estado == 'ENVIADO' %}
+      <form method="post" action="/conteo/firma/{{ r.id }}/anular" style="margin-top:14px"
+            onsubmit="return confirm('¿Anular las firmas? El conteo vuelve al manager para corregirlo y se debe firmar de nuevo.');">
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#991B1B;">🔓 Anular firmas (Director de Producción o administrador)</label>
+        <textarea name="motivo" rows="2" style="width:100%" required minlength="5" placeholder="Motivo: qué se debe corregir"></textarea>
+        <button class="btn rojo mini" style="margin-top:6px">🔓 Anular firmas</button></form>
     {% endif %}
   </div>
  </div>
