@@ -28,6 +28,8 @@ class DesignArea(Base):
     teams = relationship("DesignTeam", back_populates="area")
 
 
+# ⚠️ ORIGEN DE DATOS DE DESIGN — validar con Rosember antes de cambiar (ver app/services_design_origenes.py y CLAUDE.md).
+# Equipos (Parámetros › Equipos) = origen de los managers y diseñadores del Schedule; sus cambios llegan a Openings.
 class DesignTeam(Base):
     __tablename__ = "design_teams"
 
@@ -291,6 +293,8 @@ class DesignPreApprovedCelda(Base):
 # restaurar. No cubre acciones del día a día (crear/borrar órdenes).
 # ---------------------------------------------------------------------------
 
+# ⚠️ ORIGEN DE DATOS DE DESIGN — validar con Rosember antes de cambiar (ver app/services_design_origenes.py y CLAUDE.md).
+# Openings = base de datos de asignación de centros a los equipos (Schedule y Pre-Approved salen de aquí).
 class DesignOpeningsHoja(Base):
     """Openings / distribución de centros de Design (Parámetros). Se cargó de la hoja 2026 del Excel
     'Openings Distribucion 2026'; desde entonces todo se edita aquí."""

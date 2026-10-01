@@ -653,6 +653,8 @@ window.dsPdfjs = function() {
             background:rgba(255,255,255,.7); font-weight:600; color:#374151; font-size:12px; }
   .pf-nota { width:100%; min-width:220px; min-height:56px; padding:6px 8px; font-size:12px; display:block; font-family:inherit; }
   textarea.pf-nota-sel { font-family:inherit; }
+  #pfPanel td.pf-lideres-in, table.pf-tabla-lideres td { vertical-align:top; }
+  textarea.pf-nota-auto { overflow:hidden; resize:none; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.35; }
   .pf-total { font-weight:700; text-align:center; white-space:nowrap; }
   /* SELECCION: empleado del mes y evaluaciones por líder */
   #pfPanel > h3 { margin:0 0 12px; font-size:15px; }
@@ -998,7 +1000,7 @@ window.dsPdfjs = function() {
 <div class="dd-filtros">
   <div><label for="ddArea">Área</label>
     <select id="ddArea" onchange="ddCambioArea()">
-      <option value="">-- Todas --</option>
+      <option value="">{{ '-- Todas --' if dash_teams is none else '-- Mis áreas --' }}</option>
       {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
     </select>
   </div>
@@ -2683,6 +2685,8 @@ function ddApi(url) { return window.dsFetchJSON(url); }
 function ddEsc(v) { return String(v == null ? '' : v).replace(/</g, '&lt;'); }
 function ddMin(m) { return Math.floor(m/60) + 'h ' + Math.round(m%60) + 'm'; }
 
+// Aprobador: solo los equipos que maneja (null = admin, ve todos).
+var DD_PROPIOS = {{ dash_teams | tojson }};
 function ddCambioArea() {
   var areaId = document.getElementById('ddArea').value;
   var sel = document.getElementById('ddTeam'); sel.innerHTML = '<option value="">-- Todos --</option>';
@@ -2690,8 +2694,9 @@ function ddCambioArea() {
   if (!areaId) return;
   ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
     if (tok !== ddCambioArea.tok) return;
-    sel.innerHTML = '<option value="">-- Todos --</option>';
-    teams.forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
+    sel.innerHTML = '<option value="">' + (DD_PROPIOS ? '-- Mis equipos --' : '-- Todos --') + '</option>';
+    teams.filter(function(t) { return !DD_PROPIOS || DD_PROPIOS.indexOf(t.id) >= 0; })
+         .forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
   });
 }
 
@@ -3818,7 +3823,8 @@ window.DS_PANELS.dashboard = ddCargar;
           btn.disabled = false;
           return;
         }
-        summary.textContent = 'Listo.' + (res.data.unmatched ? ' ⚠️ ' + res.data.unmatched + ' valor(es) en criterios que no existen en el destino se descartaron.' : '');
+        summary.textContent = 'Listo.' + (res.data.unmatched ? ' ⚠️ ' + res.data.unmatched + ' valor(es) en criterios que no existen en el destino se descartaron.' : '') +
+          (res.data.openings && res.data.openings.length ? ' Openings también se actualizó (' + res.data.openings.join(' · ') + ').' : '');
         summary.className = 'pac-summary ok';
         PAC.srcSel = null; PAC.dstSel = null; PAC.targetCentro = '__new__';
         pacRenderTodo();
@@ -5855,8 +5861,10 @@ window.DS_PANELS.dashboard = ddCargar;
         btn.onclick = function() { dsDropCerrar(); seleccionarSheet(s.id); };
         cont.appendChild(btn);
       });
-      // Al reabrir el panel se conserva la hoja elegida; si no hay, se espera a que el usuario elija.
+      // Al reabrir el panel se conserva la hoja elegida; el aprobador entra directo a la de su equipo; un admin elige.
+      var propia = sheets.find(function(s) { return s.propia; });
       if (PF.sheetId && sheets.some(function(s) { return s.id === PF.sheetId; })) seleccionarSheet(PF.sheetId);
+      else if (propia) seleccionarSheet(propia.id);
       else { PF.sheetId = null; marcarSheet(); }
     });
   }
@@ -5942,7 +5950,7 @@ window.DS_PANELS.dashboard = ddCargar;
   function pfVista() { try { return localStorage.getItem('pf_vista') || 'anio'; } catch (e) { return 'anio'; } }
   function pfSetVista(v) { try { localStorage.setItem('pf_vista', v); } catch (e) {} }
   function pfMesesVisibles(meses, u) { return meses.map(function(m, i) { return i; }).filter(function(i) { return u.ocultos.indexOf(i) < 0; }); }
-  var PF_ANCHO = {num: 34, crit: 230, res: 146, score: 62, total: 84, ev: 190, post: 150, pscore: 70, pnota: 190};
+  var PF_ANCHO = {num: 34, crit: 230, res: 146, score: 62, total: 84, ev: 190, post: 150, pscore: 70, pnota: 280};
   function pfAncho(u, clave) { return u.anchos[clave] || PF_ANCHO[clave]; }
   function pfCol(u, clave) { return '<col data-clave="' + clave + '" style="width:' + pfAncho(u, clave) + 'px">'; }
   function pfRz(clave) { return '<span class="pf-rz" data-rz="' + clave + '" title="Arrastra para ajustar el ancho"></span>'; }
@@ -6153,13 +6161,14 @@ window.DS_PANELS.dashboard = ddCargar;
     panel.innerHTML = '';
     panel.appendChild(pfBarra(d, function() { renderSeleccion(d); }));
     var u = pfUi(PF.sheetId), vis = pfMesesVisibles(d.meses, u);
-    // Empleado del mes
+    // Empleado del mes (solo admins: ellos deciden)
     var g = '<h3>Empleado del mes</h3><div class="pf-anual-wrap"><table class="pf-tabla pf-anual"><colgroup>' + pfCol(u, 'ev');
     vis.forEach(function() { g += pfCol(u, 'post'); });
     g += '</colgroup><thead><tr><th>Categoría' + pfRz('ev') + '</th>';
     vis.forEach(function(i) { g += '<th class="pf-mes-h">' + pfEncMes(d.meses[i], i) + pfRz('post') + '</th>'; });
     g += '</tr></thead><tbody>';
-    d.ganadores.forEach(function(w, wi) {
+    if (d.verGanadores === false) g = '';
+    else d.ganadores.forEach(function(w, wi) {
       g += '<tr><td class="pf-nombre">' + esc(w.categoria) + '</td>';
       vis.forEach(function(i) {
         g += '<td class="pf-lideres-in"><input class="pf-mini" data-gan="' + wi + '" data-mes="' + i + '" value="' + esc(w.ganadoresMes[i] || '') + '"' +
@@ -6168,7 +6177,7 @@ window.DS_PANELS.dashboard = ddCargar;
       });
       g += '</tr>';
     });
-    g += '</tbody></table></div>';
+    if (d.verGanadores !== false) g += '</tbody></table></div>';
     // Evaluaciones por líder: por mes Persona nominada + Puntaje + Nota
     var l = '<div class="pf-seccion-h"><h3>Evaluaciones por líder</h3></div><div class="pf-anual-wrap"><table class="pf-tabla pf-anual"><colgroup>' + pfCol(u, 'ev');
     vis.forEach(function() { l += pfCol(u, 'post') + pfCol(u, 'pscore') + pfCol(u, 'pnota'); });
@@ -6191,6 +6200,7 @@ window.DS_PANELS.dashboard = ddCargar;
     l += '</tbody></table></div>';
     var cont = document.createElement('div'); cont.innerHTML = g + l;
     panel.appendChild(cont);
+    pfAjustarNotas(cont);
     cont.addEventListener('focusout', function(e) {
       var el = e.target;
       if (el.dataset.gan !== undefined) {
@@ -6215,8 +6225,9 @@ window.DS_PANELS.dashboard = ddCargar;
     panel.innerHTML = '';
     panel.appendChild(pfBarra(d, function() { renderSeleccion(d); }));
 
-    var h2 = document.createElement('h3'); h2.innerText = 'Empleado del mes'; panel.appendChild(h2);
+    var h2 = document.createElement('h3'); h2.innerText = 'Empleado del mes';
     var tablaGan = document.createElement('table'); tablaGan.className = 'pf-tabla';
+    if (d.verGanadores !== false) panel.appendChild(h2);
     var headGan = '<thead><tr><th>Categoría</th>';
     d.meses.forEach(function(m) { headGan += '<th>' + esc(m) + '</th>'; });
     headGan += '</tr></thead>';
@@ -6240,7 +6251,7 @@ window.DS_PANELS.dashboard = ddCargar;
       bodyGan.appendChild(tr);
     });
     tablaGan.appendChild(bodyGan);
-    panel.appendChild(tablaGan);
+    if (d.verGanadores !== false) panel.appendChild(tablaGan);
 
     // Título y selector de mes en la misma fila (el mes al final), con el mismo espacio que "Empleado del mes".
     var cab = document.createElement('div'); cab.className = 'pf-seccion-h';
@@ -6289,6 +6300,22 @@ window.DS_PANELS.dashboard = ddCargar;
     });
     tabla.appendChild(tbody);
     panel.appendChild(tabla);
+    pfAjustarNotas(tabla);
+  }
+
+  // Notas de Evaluaciones por líder: la celda crece con el texto (como Excel con ajuste de texto), sin barra para leer.
+  function pfAutoAlto(ta) { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
+  function pfAjustarNotas(cont) {
+    var tas = cont.querySelectorAll('td.pf-lideres-in textarea, textarea.pf-nota-sel');
+    // al cambiar el ancho (ventana o arrastrando la columna) se vuelve a ajustar el alto
+    var ro = window.ResizeObserver ? new ResizeObserver(function(es) {
+      es.forEach(function(e) { if (e.target._pfAncho !== e.contentRect.width) { e.target._pfAncho = e.contentRect.width; pfAutoAlto(e.target); } });
+    }) : null;
+    tas.forEach(function(ta) {
+      ta.classList.add('pf-nota-auto'); ta.addEventListener('input', function() { pfAutoAlto(ta); });
+      if (ro) ro.observe(ta);
+    });
+    requestAnimationFrame(function() { tas.forEach(pfAutoAlto); });
   }
 
   window.DS_PANELS.perf = cargarSheets;

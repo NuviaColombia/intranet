@@ -1,4 +1,5 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
+import json
 import logging
 import os
 import re
@@ -17,6 +18,7 @@ from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignC
 from ..auth import get_current_user
 from ..main_templates import templates
 from .. import services_design as sd
+from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
 
 # ---------- Simulación (solo Design): un admin ve y usa Design como otra persona ----------
@@ -215,8 +217,15 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
     inicio["miEquipo"] = ({"areaId": inicio["misEquipos"][0]["areaId"], "teamId": inicio["misEquipos"][0]["teamId"]}
                           if inicio["misEquipos"] else None)
     # `areas` también llena el filtro de Área del Dashboard (desde que Design es una sola página salía vacío).
+    # Un aprobador solo filtra sus equipos (los que maneja): mismas áreas y equipos que el servidor le deja ver.
+    dash_teams = None
+    if not sd.es_admin(user):
+        propios = [t for t in db.query(DesignTeam).filter(DesignTeam.manager_id == user.id, DesignTeam.activo == 1).all()]
+        dash_teams = [t.id for t in propios]
+        areas = [a for a in areas if a.id in {t.area_id for t in propios}]
     return templates.TemplateResponse(request, "design_schedule.html",
-                                      {"user": user, "es_design": True, "ds_inicio": inicio, "areas": areas})
+                                      {"user": user, "es_design": True, "ds_inicio": inicio, "areas": areas,
+                                       "dash_teams": dash_teams})
 
 
 def _redirigir_a_panel(request: Request, panel: str) -> RedirectResponse:
@@ -295,11 +304,43 @@ def api_openings(user: Empleado = Depends(require_admin), db: Session = Depends(
     return sd.openings_detalle(db)
 
 
+OP_COLS_PA = ("centro",) + tuple(so.PA_OPENINGS_COL.values())  # columnas de Openings que ordenan Pre-Approved
+
+
 @router.post("/design/api/openings/celda")
 def api_openings_celda(payload: OpCeldaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    viejo = None
+    if payload.clave == "centro":
+        f = db.get(sd._openings_modelos()[2], payload.filaId)
+        viejo = json.loads(f.datos or "{}").get("centro", "") if f else None
     if not sd.openings_guardar_celda(db, payload.filaId, payload.clave, payload.valor):
         raise HTTPException(404, "No se encontró la fila o la columna.")
-    return {"ok": True}
+    pa = None
+    if payload.clave in OP_COLS_PA:
+        if viejo is not None:
+            so.renombrar_centro_en_pa(db, viejo, payload.valor)
+        pa = so.tras_cambio_openings(db, user.nombre_completo)
+    return {"ok": True, "pa": _pa_resumen(pa)}
+
+
+def _pa_resumen(r: dict | None) -> list[str] | None:
+    """Lo que cambió en Pre-Approved por un cambio en Openings (para avisarlo en pantalla)."""
+    if not r:
+        return None
+    return [a for x in r["areas"] for a in x["acciones"]]
+
+
+@router.get("/design/api/parametros/pa-openings")
+def api_pa_openings(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return so.pa_sync_openings(db, aplicar=False)
+
+
+@router.post("/design/api/parametros/pa-openings/aplicar")
+def api_pa_openings_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    hecho = so.pa_sync_openings(db, aplicar=True, por=user.nombre_completo)
+    despues = so.pa_sync_openings(db, aplicar=False)
+    despues["aplicadas"] = hecho["total"]
+    return despues
 
 
 @router.post("/design/api/openings/filas")
@@ -311,7 +352,7 @@ def api_openings_agregar_fila(payload: OpFilaIn, user: Empleado = Depends(requir
 def api_openings_eliminar_fila(fila_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     if not sd.openings_eliminar_fila(db, fila_id, user.nombre_completo):
         raise HTTPException(404, "No se encontró la fila.")
-    return {"ok": True}
+    return {"ok": True, "pa": _pa_resumen(so.tras_cambio_openings(db, user.nombre_completo))}
 
 
 @router.post("/design/api/openings/columnas")
@@ -519,10 +560,16 @@ def crear_equipo(user: Empleado = Depends(require_admin), db: Session = Depends(
 @router.post("/design/parametros/equipos/{team_id}/toggle")
 def toggle_equipo(team_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     t = db.get(DesignTeam, team_id)
+    msg = ""
     if t:
         t.activo = 0 if t.activo else 1
         db.commit()
-    return RedirectResponse("/design/parametros", status_code=303)
+        if not t.activo and t.manager:  # Equipos → Openings: sus centros quedan sin manager
+            cambiados = so.openings_por_cambio_de_equipo(db, t, t.manager, None)
+            if cambiados:
+                msg = (f"?msg=Equipo {t.nombre} desactivado. Openings: {len(cambiados)} centros quedaron sin manager "
+                       f"({', '.join(cambiados)}): asígnalos en Openings.")
+    return RedirectResponse("/design/parametros" + msg, status_code=303)
 
 
 @router.post("/design/parametros/equipos/{team_id}/designers")
@@ -559,10 +606,21 @@ def editar_equipo(team_id: int, user: Empleado = Depends(require_admin), db: Ses
             return _param_invalido(f"El equipo {t.nombre} ya tiene órdenes: no se puede cambiar de área (se moverían a otro schedule).")
         t.area_id = area_id
         t.orden = db.query(DesignTeam).filter(DesignTeam.area_id == area_id).count() + 1
+    anterior = t.manager if t.manager_id != mid else None
+    if anterior:  # la hoja de Pre-Approved sigue siendo del equipo aunque cambie el nombre del manager
+        so.fijar_hoja_pa_de_equipo(db, t, user.nombre_completo)
     t.nombre = nombre.strip()
     t.manager_id = mid
     db.commit()
-    return RedirectResponse("/design/parametros?msg=Equipo actualizado.", status_code=303)
+    msg = "Equipo actualizado."
+    if anterior:  # Equipos → Openings: los centros del manager anterior pasan al nuevo (o quedan sin manager)
+        db.refresh(t)
+        cambiados = so.openings_por_cambio_de_equipo(db, t, anterior, t.manager)
+        if cambiados:
+            msg += (f" Openings: {len(cambiados)} centros pasaron a {t.manager.nombre_completo}." if t.manager else
+                    f" Openings: {len(cambiados)} centros quedaron sin manager ({', '.join(cambiados)}): asígnalos en Openings.")
+            so.tras_cambio_openings(db, user.nombre_completo)
+    return RedirectResponse(f"/design/parametros?msg={msg}", status_code=303)
 
 
 class MoverDesignerIn(BaseModel):
@@ -1466,7 +1524,12 @@ def api_pac_mover_doctor(payload: PACMoverDoctorIn, user: Empleado = Depends(req
 def api_pac_mover_centro(payload: PACMoverCentroIn, user: Empleado = Depends(require_design_manager),
                                db: Session = Depends(get_db)):
     _pa_de(db, user, sd.DesignPreApprovedCentro, payload.centroId); _pa_de(db, user, sd.DesignPreApprovedSheet, payload.sheetDestinoId)
-    return _pac_respuesta(sd.pac_mover_centro(db, payload.centroId, payload.sheetDestinoId, payload.centroDestinoId))
+    c = db.get(sd.DesignPreApprovedCentro, payload.centroId)
+    nombre, area_id = c.nombre, c.sheet.area_id
+    r = _pac_respuesta(sd.pac_mover_centro(db, payload.centroId, payload.sheetDestinoId, payload.centroDestinoId))
+    if payload.centroDestinoId is None:  # el centro pasó a otro manager: Openings también
+        r["openings"] = so.openings_asignar_por_pa(db, area_id, [(nombre, payload.sheetDestinoId)])
+    return r
 
 
 @router.post("/design/api/preapproved/cambios/intercambiar-doctor")
@@ -1482,7 +1545,12 @@ def api_pac_intercambiar_centro(payload: PACIntercambiarCentroIn,
                                       user: Empleado = Depends(require_design_manager),
                                       db: Session = Depends(get_db)):
     _pa_de(db, user, sd.DesignPreApprovedCentro, payload.centroAId); _pa_de(db, user, sd.DesignPreApprovedCentro, payload.centroBId)
-    return _pac_respuesta(sd.pac_intercambiar_centro(db, payload.centroAId, payload.centroBId))
+    a, b = db.get(sd.DesignPreApprovedCentro, payload.centroAId), db.get(sd.DesignPreApprovedCentro, payload.centroBId)
+    cambio = [(a.nombre, b.sheet_id), (b.nombre, a.sheet_id)]
+    area_id = a.sheet.area_id
+    r = _pac_respuesta(sd.pac_intercambiar_centro(db, payload.centroAId, payload.centroBId))
+    r["openings"] = so.openings_asignar_por_pa(db, area_id, cambio)  # cada centro queda con el manager de su nueva hoja
+    return r
 
 
 # ---------- Desempeño (aprobadores y admins: equivalente a "Tools Managers") ----------
@@ -1494,7 +1562,10 @@ def pagina_perf(request: Request, user: Empleado = Depends(require_design_manage
 
 @router.get("/design/api/perf/sheets")
 def api_perf_sheets(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    return [{"id": s.id, "nombre": s.nombre, "tipo": s.tipo} for s in sd.perf_sheets(db) if sd.perf_sheet_visible(user, s)]
+    hojas = [s for s in sd.perf_sheets(db) if sd.perf_sheet_visible(user, s)]
+    # El aprobador entra directo a la evaluación de su equipo (la primera hoja de equipo que maneja).
+    propia = None if sd.es_admin(user) else next((s.id for s in hojas if s.tipo == "eval" and not sd._es_hoja_general(s.nombre)), None)
+    return [{"id": s.id, "nombre": s.nombre, "tipo": s.tipo, "propia": s.id == propia} for s in hojas]
 
 
 def _perf_sheet(db: Session, user: Empleado, sheet_id: int) -> DesignPerfSheet:
@@ -1511,10 +1582,13 @@ NO_CALIFICA = "Solo puedes calificar a los diseñadores de tu equipo (nunca a ti
 
 @router.get("/design/api/perf/sheets/{sheet_id}/eval")
 def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    _perf_sheet(db, user, sheet_id)
+    sheet = _perf_sheet(db, user, sheet_id)
     detalle = sd.perf_detalle_eval(db, sheet_id)
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada")
+    if not sd.es_admin(user) and sd._es_hoja_general(sheet.nombre):
+        # DESIGN MANAGERS: cada aprobador ve solo sus propias calificaciones (sin editar)
+        detalle["empleados"] = [e for e in detalle["empleados"] if sd._es_la_persona(e["nombre"], user)]
     for e in detalle["empleados"]:
         e["editable"] = sd.perf_puede_calificar(user, db.get(DesignPerfEmpleado, e["id"]))
     return detalle
@@ -1565,6 +1639,10 @@ def api_perf_detalle_seleccion(sheet_id: int, user: Empleado = Depends(require_d
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada")
     detalle["ganadoresEditables"] = sd.es_admin(user)
+    if not sd.es_admin(user):
+        # Empleado del mes lo deciden y lo ven solo los admins; el aprobador ve y edita solo su fila de nominación.
+        detalle["ganadores"], detalle["verGanadores"] = [], False
+        detalle["filas"] = [f for f in detalle["filas"] if sd._es_la_persona(f["evaluador"], user)]
     for f in detalle["filas"]:
         f["editable"] = sd.perf_puede_editar_fila_seleccion(user, db.get(DesignPerfSeleccionFila, f["id"]))
     return detalle
@@ -1626,8 +1704,11 @@ def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_desig
     t = db.get(sd.DesignTrash, trash_id)
     if t and t.modulo in PAPELERA_SOLO_ADMIN and user.rol not in ("admin", "superadmin"):
         raise HTTPException(403, "Solo los administradores pueden restaurar esto.")
+    modulo = t.modulo if t else ""
     if not sd.trash_restaurar(db, trash_id):
         raise HTTPException(400, "No se pudo restaurar (el destino cambió demasiado o ya no existe).")
+    if modulo == "openings-fila":  # un centro que vuelve a Openings vuelve a ordenar Pre-Approved
+        so.tras_cambio_openings(db, user.nombre_completo)
     return {"mensaje": "Restaurado."}
 
 

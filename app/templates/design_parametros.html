@@ -48,6 +48,8 @@
   .aud-cor-acc { padding:0 12px 12px; }
   .aud-grupo.aud-cor > summary .aud-cant { color:#92400e; background:#fef3c7; }
   /* Importar equipos: mismos estilos que Conexión con los equipos */
+  #syResultado:not(:empty) { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
+  .sy-estado { font-size:13px; margin:0 0 8px; } .sy-estado.auto { color:#166534; } .sy-estado.manual { color:#92400e; }
   #impResultado:not(:empty) { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
   .aud-grupo.imp-pend > summary .aud-cant { color:#1e40af; background:#dbeafe; }
   .aud-grupo.imp-ok > summary .aud-cant { color:#166534; background:#dcfce7; }
@@ -483,6 +485,23 @@
     </label>
   </div>
   <div id="opContenido" hidden></div>
+</div>
+
+<div class="tarjeta aud-tarjeta" id="syTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Pre-Approved según Openings</h2>
+      <span class="aud-sub" id="sySub">centros de cada manager N3 y N2</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Openings es la base de datos de los centros de cada manager. Aquí ves qué cambia en Pre-Approved para que cada hoja tenga solo los centros que Openings le da a su manager (Manager N3 y Manager N2): se mueven los bloques con sus doctores y valores, se unen los repetidos, se crean vacíos los que faltan y lo que sobra va a la Papelera de Design. La primera vez se aplica con el botón; después es automático: al cambiar un centro o su manager en Openings, Pre-Approved se actualiza solo, y si se mueve un centro en Pre-Approved, Openings también cambia. Los bloques sin nombre de centro no se tocan.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="sySwitch" role="switch" aria-controls="syResultado">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="sySwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="syResultado" aria-live="polite"></div>
 </div>
 
 <datalist id="paramPersonas"></datalist>
@@ -1141,8 +1160,9 @@
       if (celda) {
         var fid = parseInt(celda.parentNode.dataset.fila), clave = celda.dataset.clave;
         editar(celda, function(v) {
-          return post('/design/api/openings/celda', {filaId: fid, clave: clave, valor: v}).then(function() {
+          return post('/design/api/openings/celda', {filaId: fid, clave: clave, valor: v}).then(function(res) {
             var f = OP.filas.find(function(x) { return x.id === fid; }); if (f) f.datos[clave] = v;
+            if (res && res.pa && window.paAvisoOpenings) window.paAvisoOpenings(res.pa);
             if (f && clave === 'zona_horaria') {
               var tmp = document.createElement('tbody'); tmp.innerHTML = filaHtml(f);
               celda.parentNode.querySelectorAll('.op-calc').forEach(function(td) {
@@ -1207,6 +1227,7 @@
           var cel = trn.querySelector('.op-celda');
           if (cel) { cel.scrollIntoView({block: 'nearest', inline: 'nearest'}); cel.click(); }
         } else if (op === 'quitar-fila') {
+          if (res && res.pa && window.paAvisoOpenings) window.paAvisoOpenings(res.pa);
           OP.filas = OP.filas.filter(function(x) { return x.id !== filaId; });
           if (tr) tr.remove();
           resumen(); filtrar();
@@ -1316,6 +1337,57 @@
     fila.classList.remove('eq-sobre');
     eqMover(eqArrastre.registro, parseInt(fila.dataset.team), false);
   });
+  // ---------- Pre-Approved según Openings: vista previa, aplicar (la primera vez) y avisos ----------
+  var sySw = document.getElementById('sySwitch'), syTxt = document.getElementById('sySwitchTxt'), syTok = 0;
+  function syLista(titulo, items, clase, abierto) {
+    if (!items.length) return '';
+    return '<details class="aud-grupo ' + clase + '"' + (abierto ? ' open' : '') + '><summary>' + titulo + '<span class="aud-cant">' + items.length + '</span></summary>' +
+           '<ul class="aud-cor-lista">' + items.map(function(x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></details>';
+  }
+  function syRender(d) {
+    var h = '<p class="sy-estado ' + (d.auto ? 'auto' : 'manual') + '">' + (d.auto
+      ? '✓ Sincronización automática activa: los cambios en Openings se aplican solos en Pre-Approved.'
+      : 'Todavía no se ha aplicado. Revisa los cambios y aplícalos; desde ese momento la sincronización es automática.') + '</p>';
+    if (d.aplicadas !== undefined) h += '<p class="aud-ok">Se aplicaron ' + d.aplicadas + ' cambios.</p>';
+    d.areas.forEach(function(a) {
+      h += '<h3 style="font-size:14px;margin:12px 0 4px">' + esc(a.area) + '</h3>';
+      if (!a.acciones.length) h += '<p class="aud-ok">✓ Cada hoja tiene exactamente los centros que Openings le da a su manager.</p>';
+      h += syLista('Cambios que se aplicarán', a.acciones, 'imp-pend', !d.auto) + syLista('Para revisar a mano (no se tocan)', a.pendientes, 'aud-cor', false);
+    });
+    var sm = (d.sinManager || []).map(function(x) { return x.centro + ': sin manager en ' + x.areas.join(', '); });
+    h += syLista('Centros de Openings sin manager (asígnalos en Openings)', sm, 'aud-cor', false);
+    if (d.total) h += '<div class="aud-cor-acc" style="padding:8px 0 0"><button type="button" class="btn" id="syAplicar">Aplicar ' + d.total + ' cambios</button></div>';
+    document.getElementById('syResultado').innerHTML = h;
+    document.getElementById('sySub').textContent = d.auto ? 'automática · centros de cada manager N3 y N2' : 'pendiente de aplicar · ' + d.total + ' cambios';
+  }
+  function syCargar() {
+    var t = ++syTok;
+    sySw.disabled = true; syTxt.innerText = 'Cargando…';
+    return fetch('/design/api/parametros/pa-openings').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(d) { if (t === syTok && sySw.checked) syRender(d); })
+      .catch(function(e) { if (t === syTok) document.getElementById('syResultado').innerHTML = AUD_ROJO('No se pudo cargar: ' + esc(e.message)); })
+      .then(function() { sySw.disabled = false; syTxt.innerText = sySw.checked ? 'Ocultar' : 'Revisar'; });
+  }
+  sySw.addEventListener('change', function() {
+    if (!sySw.checked) { ++syTok; document.getElementById('syResultado').innerHTML = ''; syTxt.innerText = 'Revisar'; return; }
+    syCargar();
+  });
+  document.getElementById('syResultado').addEventListener('click', function(e) {
+    var b = e.target.closest('#syAplicar');
+    if (!b) return;
+    if (!confirm('¿Aplicar los cambios en Pre-Approved? Los bloques se mueven con sus doctores y valores; lo que sobra queda en la Papelera de Design. ' +
+                 'Desde ahora, cada cambio en Openings se aplicará solo.')) return;
+    b.disabled = true; b.innerText = 'Aplicando…';
+    fetch('/design/api/parametros/pa-openings/aplicar', {method: 'POST'}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(d) { ++syTok; syRender(d); paramToast('Pre-Approved quedó igual que Openings.'); })
+      .catch(function(err) { alert('No se pudo aplicar: ' + err.message); b.disabled = false; });
+  });
+  // un cambio en Openings que movió algo en Pre-Approved: se avisa y se refresca la revisión si está abierta
+  window.paAvisoOpenings = function(lista) {
+    if (!lista || !lista.length) return;
+    paramToast('Pre-Approved se actualizó: ' + lista.slice(0, 3).join(' · ') + (lista.length > 3 ? ' (+' + (lista.length - 3) + ' más)' : ''));
+    if (sySw.checked) syCargar();
+  };
 })();
 </script>
 {% endblock %}

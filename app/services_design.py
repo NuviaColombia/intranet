@@ -412,6 +412,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         "soloPropias": solo_empleado_id is not None,
         "prestadas": [],
     }
+    # ⚠️ ORIGEN DE DATOS DE DESIGN — validar con Rosember antes de cambiar (ver app/services_design_origenes.py y CLAUDE.md).
     salida["centros"] = centros_de_equipo(db, team)  # desplegable Centro: los centros de Openings de su manager
     # El manager a veces diseña casos: va al final de la columna Diseñador (no en Tiempos libres, que usa "designers").
     salida["manager"] = _manager_elegible(team, {d.empleado_id for d in designers}) if solo_empleado_id is None else None
@@ -1764,6 +1765,8 @@ def _es_la_persona(nombre: str, user: Empleado) -> bool:
 def perf_sheet_visible(user: Empleado, sheet: DesignPerfSheet) -> bool:
     if es_admin(user) or sheet.tipo == "seleccion":
         return True
+    if _es_hoja_general(sheet.nombre):  # DESIGN MANAGERS: el aprobador la ve si tiene su fila (solo verá esa fila)
+        return any(_es_la_persona(e.nombre, user) for e in sheet.empleados)
     from sqlalchemy.orm import object_session
     db = object_session(sheet)
     mapeo = (mapa_hojas(db) if db else SHEET_MANAGER_MAP).get(sheet.nombre)
@@ -3626,6 +3629,7 @@ _TRASH_RESTAURADORES["openings-col"] = _trash_restaurar_openings_col
 
 
 
+# ⚠️ ORIGEN DE DATOS DE DESIGN — validar con Rosember antes de cambiar (ver app/services_design_origenes.py y CLAUDE.md).
 # ---------- Centro en el Schedule: los centros de Openings del manager del equipo ----------
 # N3 / N2 / Face: los centros cuyo Manager N3 / N2 / Face es el manager del equipo. N6 y Support: todos.
 # Al final siempre Training y Colaboracion (1-oct-2026). Si el manager no aparece en Openings, se usa el
