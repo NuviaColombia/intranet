@@ -1,4 +1,5 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
+import logging
 import os
 import re
 from datetime import date
@@ -13,9 +14,67 @@ from ..database import get_db
 from ..models import Empleado
 from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignOrden,
                              DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila, FORMATO_SUPPORT)
-from ..auth import require_modulo, require_admin, require_design_manager
+from ..auth import get_current_user
+from ..auth import require_admin as _auth_require_admin
 from ..main_templates import templates
 from .. import services_design as sd
+
+
+# ---------- Simulación (solo Design): un admin ve y usa Design como otra persona ----------
+# El admin elige a alguien en /design/simulacion y, mientras dure, TODAS las rutas de Design lo tratan como esa
+# persona (lo que ve y lo que guarda queda a su nombre). Cada cambio hecho simulando queda en el log del servidor
+# con el admin real. Fuera de Design la intranet sigue igual: el inicio de sesión no cambia.
+SIM_KEY = "design_simular_id"
+_log_sim = logging.getLogger("design.simulacion")
+
+
+def _usuario_efectivo(request: Request, user: Empleado, db: Session) -> Empleado:
+    sid = request.session.get(SIM_KEY)
+    if not sid:
+        return user
+    sim = db.get(Empleado, sid) if user.rol in ("admin", "superadmin") else None
+    if not sim or not sim.activo:
+        request.session.pop(SIM_KEY, None)
+        return user
+    request.state.design_real = user
+    if request.method != "GET":
+        _log_sim.warning("SIMULACION %s (%s) como %s (%s): %s %s", user.email, user.id, sim.email, sim.id,
+                         request.method, request.url.path)
+    return sim
+
+
+def _sin_acceso_simulando(request: Request, sim: Empleado):
+    if getattr(request.state, "design_real", None):  # simulando: volver a elegir, no salir de Design
+        raise HTTPException(status_code=307, headers={
+            "Location": f"/design/simulacion?msg={sim.nombre_completo} no tiene el módulo Design Schedule."})
+
+
+def require_modulo(modulo: str):
+    def checker(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
+        u = _usuario_efectivo(request, user, db)
+        if not u.tiene_modulo(modulo):
+            _sin_acceso_simulando(request, u)
+            raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
+        return u
+    return checker
+
+
+def require_admin(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
+    u = _usuario_efectivo(request, user, db)
+    if u.rol not in ("admin", "superadmin"):
+        raise HTTPException(403, "Requiere rol de administrador.")
+    return u
+
+
+def require_design_manager(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
+    """Dashboard y Papelera: aprobadores y admins (igual que app.auth.require_design_manager)."""
+    u = _usuario_efectivo(request, user, db)
+    if not u.tiene_modulo("design_schedule"):
+        _sin_acceso_simulando(request, u)
+        raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
+    if u.rol not in ("aprobador", "admin", "superadmin"):
+        raise HTTPException(403, "Requiere rol de aprobador o administrador.")
+    return u
 
 # Tope de peticiones de Design usando la base a la vez (ver app/concurrencia.py). Se puede ajustar con la
 # variable de entorno DESIGN_CONCURRENCIA (debe quedar por debajo del tamaño del pool junto con el resto).
@@ -29,6 +88,37 @@ NUVIA_DESIGN = "Nuvia Design Colombia SAS"
 
 
 # ---------- Páginas ----------
+
+@router.get("/design/simulacion")
+def pagina_simulacion(request: Request, user: Empleado = Depends(_auth_require_admin), db: Session = Depends(get_db)):
+    """Elegir a quién simular (solo admins reales; siempre se ve como uno mismo)."""
+    sim = db.get(Empleado, request.session.get(SIM_KEY) or 0)
+    personas = sd.personas_para_simular(db)
+    return templates.TemplateResponse(request, "design_simulacion.html",
+                                      {"user": user, "es_design": True, "personas": personas, "simulando": sim,
+                                       "msg": request.query_params.get("msg")})
+
+
+@router.post("/design/simulacion/iniciar")
+def iniciar_simulacion(request: Request, user: Empleado = Depends(_auth_require_admin), db: Session = Depends(get_db),
+                       empleado_id: int = Form(...)):
+    p = db.get(Empleado, empleado_id)
+    if not p or not p.activo:
+        return RedirectResponse("/design/simulacion?msg=Esa persona no existe o está inactiva.", status_code=303)
+    if p.id == user.id:
+        request.session.pop(SIM_KEY, None)
+        return RedirectResponse("/design", status_code=303)
+    request.session[SIM_KEY] = p.id
+    _log_sim.warning("SIMULACION inicia %s (%s) como %s (%s)", user.email, user.id, p.email, p.id)
+    return RedirectResponse("/design", status_code=303)
+
+
+@router.post("/design/simulacion/salir")
+def salir_simulacion(request: Request, user: Empleado = Depends(get_current_user)):
+    if request.session.pop(SIM_KEY, None):
+        _log_sim.warning("SIMULACION termina %s (%s)", user.email, user.id)
+    return RedirectResponse("/design/simulacion" if user.rol in ("admin", "superadmin") else "/design", status_code=303)
+
 
 @router.get("/design")
 def pagina(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),

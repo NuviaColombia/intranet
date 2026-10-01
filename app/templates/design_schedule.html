@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Design Schedule{% endblock %}
 {% block contenido %}
+{% include "_design_simulacion.html" %}
 <script>
 // pdf.js pesa ~300 KB: antes se descargaba y ejecutaba en cada visita (bloqueaba la carga ~200 ms, y hasta
 // ~2.6 s en frío) aunque nunca se abriera Protocols. Ahora se carga la primera vez que se necesita.

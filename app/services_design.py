@@ -3199,3 +3199,22 @@ def eliminar_regla(db: Session, regla_id: int) -> bool:
     db.commit()
     _reglas_invalidar()
     return True
+
+
+
+def personas_para_simular(db: Session) -> list[dict]:
+    """Empleados activos con su rol, si tienen el módulo Design y su lugar en los equipos (para /design/simulacion)."""
+    teams = db.query(DesignTeam).options(joinedload(DesignTeam.designers), joinedload(DesignTeam.area)).filter(DesignTeam.activo == 1).all()
+    lugar: dict[int, list[str]] = {}
+    for t in teams:
+        if t.manager_id:
+            lugar.setdefault(t.manager_id, []).append(f"Manager de {t.nombre} ({t.area.nombre})")
+        for d in t.designers:
+            lugar.setdefault(d.empleado_id, []).append(f"Diseñador en {t.nombre} ({t.area.nombre})")
+    out = []
+    for e in db.query(Empleado).filter(Empleado.activo == 1).all():
+        out.append({"id": e.id, "nombre": e.nombre_completo, "rol": e.rol or "empleado", "empresa": e.empresa or "",
+                    "design": e.tiene_modulo("design_schedule"), "lugar": lugar.get(e.id, []),
+                    "esManager": any(x.startswith("Manager") for x in lugar.get(e.id, [])),
+                    "esDisenador": any(x.startswith("Diseñador") for x in lugar.get(e.id, []))})
+    return sorted(out, key=lambda x: _normalizar_texto(x["nombre"]))
