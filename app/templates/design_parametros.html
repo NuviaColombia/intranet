@@ -112,6 +112,20 @@
   .cat-chip.off button { color:#166534; text-decoration:none; }
   .cat-chip button:hover { background:rgba(0,0,0,.08); }
   .cat-sin { color:#64748b; font-size:11.5px; }
+  /* Simulación: ver Design como otra persona y su rol solo de Design */
+  #simContenido { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
+  .sim-filtros { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 8px; }
+  .sim-filtros input[type=search], .sim-filtros select { width:auto; margin:0; padding:5px 8px; font-size:12.5px; }
+  .sim-filtros input[type=search] { width:260px; }
+  .sim-tabla { width:100%; font-size:12.5px; margin:0; }
+  .sim-tabla td { vertical-align:middle; padding:5px 8px; }
+  .sim-tabla select { margin:0; width:auto; font-size:12px; padding:3px 6px; }
+  .sim-sub { font-size:11.5px; color:#64748b; }
+  .sim-rol { font-size:11px; font-weight:700; border-radius:10px; padding:1px 8px; background:#f1f5f9; color:#334155; white-space:nowrap; }
+  .sim-rol.admin, .sim-rol.superadmin { background:#ede9fe; color:#5b21b6; } .sim-rol.aprobador { background:#dbeafe; color:#1e40af; }
+  .sim-no { color:#9f1239; font-size:11.5px; }
+  .sim-tabla form { margin:0; }
+  .sim-tabla .btn { padding:3px 10px; font-size:11.5px; }
   .eq-toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#0f172a; color:#fff; padding:9px 14px;
               border-radius:8px; font-size:13px; display:flex; gap:12px; align-items:center; z-index:50; box-shadow:0 4px 14px rgba(0,0,0,.25); }
   .eq-toast button { background:transparent; border:1px solid #64748b; color:#fff; border-radius:6px; padding:2px 10px; cursor:pointer; }
@@ -348,6 +362,65 @@
         </form>
       </span>
       {% else %}<span class="cat-sin">Ningún tipo de ausencia creado todavía.</span>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="tarjeta aud-tarjeta" id="simTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Simulación</h2>
+      <span class="aud-sub">ver Design como otra persona · rol solo de Design</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Simular: entras a Design exactamente como esa persona (sus equipos, órdenes, Dashboard, Desempeño). Lo que guardes queda a su nombre y cada cambio queda registrado en el servidor con tu usuario. Fuera de Design sigues siendo tú. Rol en Design: cambia lo que la persona ve y hace solo dentro de Design; su rol de People y los demás módulos no cambian. Reglas como en People: un admin solo cambia personas de su empresa y no a otros admins; solo un superadmin da el rol admin.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="simSwitch" role="switch" aria-controls="simContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="simSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="simContenido" hidden>
+    <div class="sim-filtros">
+      <input type="search" id="simBuscar" placeholder="Buscar por nombre…" aria-label="Buscar persona">
+      <select id="simRol" aria-label="Filtrar por rol en Design">
+        <option value="">Todos los roles</option><option value="empleado">Empleado</option><option value="aprobador">Aprobador</option>
+        <option value="admin">Admin</option><option value="superadmin">Superadmin</option>
+      </select>
+      <select id="simLugar" aria-label="Filtrar por lugar en Design">
+        <option value="">Todos</option><option value="manager">Managers de equipo</option><option value="disenador">Diseñadores</option>
+        <option value="sin">Sin equipo</option>
+      </select>
+      <label style="font-size:12.5px;display:flex;gap:5px;align-items:center;margin:0"><input type="checkbox" id="simSoloDesign" checked style="width:auto;margin:0"> Solo con acceso a Design</label>
+      <span id="simCuenta" class="sim-sub"></span>
+    </div>
+    <div class="aud-scroll" style="max-height:520px;overflow:auto;padding:0">
+    <table class="sim-tabla">
+      <tr><th>Persona</th><th>Rol en People</th><th>Rol en Design</th><th>Lugar en Design</th><th></th></tr>
+      {% for p in sim_personas %}
+      <tr class="sim-fila" data-id="{{ p.id }}" data-nombre="{{ p.nombre|lower }}" data-rol="{{ p.rolEfectivo }}" data-design="{{ 1 if p.design else 0 }}"
+          data-lugar="{{ ('manager ' if p.esManager else '') ~ ('disenador' if p.esDisenador else '') ~ ('' if p.lugar else 'sin') }}">
+        <td>{{ p.nombre }}<div class="sim-sub">{{ p.empresa }}</div></td>
+        <td><span class="sim-rol {{ p.rol }}">{{ p.rol }}</span></td>
+        <td>
+          {% if p.rol == 'superadmin' %}<span class="sim-rol superadmin">superadmin</span>
+          {% else %}
+          <select class="sim-rol-sel" aria-label="Rol en Design de {{ p.nombre }}" data-id="{{ p.id }}" data-actual="{{ p.rolDesign }}"
+                  {% if p.motivoRol %}disabled title="{{ p.motivoRol }}"{% endif %}>
+            <option value=""{{ ' selected' if not p.rolDesign }}>Igual que People ({{ p.rol }})</option>
+            {% for r in ['empleado', 'aprobador', 'admin'] if r != p.rol %}
+            <option value="{{ r }}"{{ ' selected' if p.rolDesign == r }}{% if r == 'admin' and not p.puedeAdmin and p.rolDesign != 'admin' %} disabled{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+          {% if p.motivoRol and p.id != user.id %}<div class="sim-sub">{{ p.motivoRol }}</div>{% endif %}
+          {% endif %}
+        </td>
+        <td class="sim-sub">{% if not p.design %}<span class="sim-no">Sin acceso a Design</span>{% elif p.lugar %}{{ p.lugar|join('<br>'|safe) }}{% else %}Sin equipo{% endif %}</td>
+        <td>{% if p.id != user.id %}<form method="post" action="/design/simulacion/iniciar"><input type="hidden" name="empleado_id" value="{{ p.id }}">
+          <button class="btn mini"{% if not p.design %} disabled title="No tiene acceso a Design"{% endif %}>Simular</button></form>{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
     </div>
   </div>
 </div>
@@ -758,6 +831,48 @@
     cont.addEventListener('submit', function(e) {
       if (!e.target.closest('.aus-guarda')) return;
       try { sessionStorage.setItem(KEY, JSON.stringify({on: true, y: window.scrollY, foco: !e.target.closest('.cat-chip')})); } catch (x) {}
+    });
+  })();
+
+  // ---------- Simulación: interruptor, filtros y rol solo de Design ----------
+  (function() {
+    var sw = document.getElementById('simSwitch'), txt = document.getElementById('simSwitchTxt'), cont = document.getElementById('simContenido');
+    function mostrar(on) { sw.checked = on; cont.hidden = !on; txt.innerText = on ? 'Ocultar' : 'Revisar'; }
+    sw.addEventListener('change', function() { mostrar(sw.checked); });
+    {% if sim_abrir %}mostrar(true); document.getElementById('simTarjeta').scrollIntoView({block: 'start'});{% endif %}
+    var b = document.getElementById('simBuscar'), r = document.getElementById('simRol'), l = document.getElementById('simLugar'),
+        d = document.getElementById('simSoloDesign'), cuenta = document.getElementById('simCuenta');
+    function filtrar() {
+      var q = b.value.trim().toLowerCase(), n = 0;
+      document.querySelectorAll('.sim-fila').forEach(function(f) {
+        var ver = (!q || f.dataset.nombre.indexOf(q) >= 0) && (!r.value || f.dataset.rol === r.value) &&
+                  (!l.value || f.dataset.lugar.indexOf(l.value) >= 0) && (!d.checked || f.dataset.design === '1');
+        f.hidden = !ver; if (ver) n++;
+      });
+      cuenta.textContent = n + ' persona' + (n === 1 ? '' : 's');
+    }
+    [b, r, l, d].forEach(function(x) { x.addEventListener('input', filtrar); x.addEventListener('change', filtrar); });
+    filtrar();
+    cont.addEventListener('change', function(e) {
+      var sel = e.target.closest('.sim-rol-sel');
+      if (!sel) return;
+      var antes = sel.dataset.actual, nombre = sel.closest('tr').querySelector('td').firstChild.textContent.trim();
+      var txtRol = sel.options[sel.selectedIndex].text;
+      if (!confirm('¿Cambiar el rol en Design de ' + nombre + ' a "' + txtRol + '"?\n\nSolo cambia lo que ve y hace dentro de Design; su rol en People y los demás módulos no cambian.')) {
+        sel.value = antes; return;
+      }
+      sel.disabled = true;
+      fetch('/design/api/parametros/rol-design', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({empleadoId: parseInt(sel.dataset.id), rol: sel.value})})
+        .then(function(res) { return res.json().catch(function() { return {}; }).then(function(x) {
+          if (!res.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + res.status); return x; }); })
+        .then(function(x) {
+          sel.dataset.actual = x.rolDesign; sel.value = x.rolDesign;
+          var fila = sel.closest('tr'); fila.dataset.rol = x.rolEfectivo;
+          if (fila.dataset.rol === 'admin') fila.dataset.design = '1';
+          paramToast('✓ ' + x.detalle);
+        }).catch(function(err) { sel.value = antes; paramToast('No se pudo: ' + err.message, true); })
+        .then(function() { sel.disabled = false; });
     });
   })();
 

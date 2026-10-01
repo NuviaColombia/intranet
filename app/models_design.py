@@ -291,6 +291,17 @@ class DesignPreApprovedCelda(Base):
 # restaurar. No cubre acciones del día a día (crear/borrar órdenes).
 # ---------------------------------------------------------------------------
 
+class DesignRolUsuario(Base):
+    """Rol de una persona solo dentro de Design (empleado | aprobador | admin). Reemplaza su rol de People
+    únicamente en las páginas y APIs de Design; People y los demás módulos no cambian. Sin fila = igual que People."""
+    __tablename__ = "design_roles_usuario"
+
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), primary_key=True)
+    rol: Mapped[str] = mapped_column(String(20))
+    asignado_por: Mapped[str] = mapped_column(String(150), default="")
+    asignado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignConexionRegla(Base):
     """Decisiones de Parámetros › Conexión con los equipos que no son un dato de otra tabla:
     historico (persona que ya no es manager), aceptado_general (está en DESIGN MANAGERS sin ser manager),

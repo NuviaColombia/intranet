@@ -1,30 +1,18 @@
-{# Simulación de Design: aviso mientras se ve Design como otra persona y botón junto a "Módulos" (solo admins reales). #}
+{# Aviso mientras un admin ve Design como otra persona (Parámetros › Simulación). #}
 {% set sim_real = request.state.design_real %}
-{% set quien_real = sim_real or user %}
 {% if sim_real %}
-<div class="sim-aviso" role="status">
-  <span><b>Modo simulación:</b> estás viendo Design como <b>{{ user.nombre_completo }}</b> ({{ user.rol or 'empleado' }}).
-    Lo que guardes queda a su nombre.</span>
-  <span class="sim-acc">
-    <a href="/design/simulacion" class="btn mini gris">Cambiar persona</a>
-    <form method="post" action="/design/simulacion/salir" style="display:inline;margin:0"><button class="btn mini">Salir de la simulación</button></form>
-  </span>
-</div>
-{% endif %}
-{% if quien_real and quien_real.rol in ('admin', 'superadmin') %}
 <style>
   .sim-aviso { position:sticky; top:0; z-index:40; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
                background:#fef3c7; color:#78350f; border:1px solid #f59e0b; border-radius:8px; padding:8px 14px; margin:0 0 12px; font-size:13px; }
   .sim-acc { display:flex; gap:6px; }
-  nav a.sim-link { font-weight:600; }
+  .sim-acc form { display:inline; margin:0; }
 </style>
-<script>
-(function() {
-  var mod = [].find.call(document.querySelectorAll('nav a[href="/"]'), function(a) { return a.textContent.trim() === 'Módulos'; });
-  if (!mod || document.querySelector('nav a.sim-link')) return;
-  var a = document.createElement('a'); a.href = '/design/simulacion'; a.className = 'sim-link';
-  a.textContent = 'Simulación'{% if sim_real %} + ' (activa)'{% endif %};
-  mod.parentNode.insertBefore(a, mod.nextSibling);
-})();
-</script>
+<div class="sim-aviso" role="status">
+  <span><b>Modo simulación:</b> estás viendo Design como <b>{{ user.nombre_completo }}</b> ({{ user.rol or 'empleado' }}).
+    Lo que guardes queda a su nombre.</span>
+  <span class="sim-acc">
+    <form method="post" action="/design/simulacion/salir"><button class="btn mini gris">Cambiar persona</button></form>
+    <form method="post" action="/design/simulacion/salir"><button class="btn mini">Salir de la simulación</button></form>
+  </span>
+</div>
 {% endif %}

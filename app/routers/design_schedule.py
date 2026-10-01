@@ -2,7 +2,7 @@
 import logging
 import os
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from ..concurrencia import clase_con_cupo
@@ -15,7 +15,6 @@ from ..models import Empleado
 from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignOrden,
                              DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila, FORMATO_SUPPORT)
 from ..auth import get_current_user
-from ..auth import require_admin as _auth_require_admin
 from ..main_templates import templates
 from .. import services_design as sd
 
@@ -28,11 +27,30 @@ SIM_KEY = "design_simular_id"
 _log_sim = logging.getLogger("design.simulacion")
 
 
+ROLES_DESIGN = ("empleado", "aprobador", "admin")
+
+
+def _aplicar_rol_design(db: Session, e: Empleado | None) -> Empleado | None:
+    """Rol solo de Design: si la persona tiene uno, reemplaza su rol de People en esta petición (en memoria, sin
+    guardarlo: set_committed_value no marca cambios). Un superadmin de People siempre es superadmin."""
+    if e is None or e.rol == "superadmin" or getattr(e, "_rol_design_ok", False):
+        return e
+    from sqlalchemy.orm.attributes import set_committed_value
+    from ..models_design import DesignRolUsuario
+    r = db.get(DesignRolUsuario, e.id)
+    if r and r.rol in ROLES_DESIGN and r.rol != e.rol:
+        e._rol_people = e.rol
+        set_committed_value(e, "rol", r.rol)
+    e._rol_design_ok = True
+    return e
+
+
 def _usuario_efectivo(request: Request, user: Empleado, db: Session) -> Empleado:
+    user = _aplicar_rol_design(db, user)
     sid = request.session.get(SIM_KEY)
     if not sid:
         return user
-    sim = db.get(Empleado, sid) if user.rol in ("admin", "superadmin") else None
+    sim = _aplicar_rol_design(db, db.get(Empleado, sid)) if user.rol in ("admin", "superadmin") else None
     if not sim or not sim.activo:
         request.session.pop(SIM_KEY, None)
         return user
@@ -101,21 +119,20 @@ NUVIA_DESIGN = "Nuvia Design Colombia SAS"
 # ---------- Páginas ----------
 
 @router.get("/design/simulacion")
-def pagina_simulacion(request: Request, user: Empleado = Depends(_auth_require_admin), db: Session = Depends(get_db)):
-    """Elegir a quién simular (solo admins reales; siempre se ve como uno mismo)."""
-    sim = db.get(Empleado, request.session.get(SIM_KEY) or 0)
-    personas = sd.personas_para_simular(db)
-    return templates.TemplateResponse(request, "design_simulacion.html",
-                                      {"user": user, "es_design": True, "personas": personas, "simulando": sim,
-                                       "msg": request.query_params.get("msg")})
+def pagina_simulacion(request: Request):
+    """Simulación vive ahora en Parámetros (tarjeta Simulación)."""
+    msg = request.query_params.get("msg")
+    return RedirectResponse("/design/parametros?sim=1" + (f"&msg={msg}" if msg else ""), status_code=303)
 
 
 @router.post("/design/simulacion/iniciar")
-def iniciar_simulacion(request: Request, user: Empleado = Depends(_auth_require_admin), db: Session = Depends(get_db),
+def iniciar_simulacion(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db),
                        empleado_id: int = Form(...)):
+    if _aplicar_rol_design(db, user).rol not in ("admin", "superadmin"):
+        raise HTTPException(403, "Requiere rol de administrador.")
     p = db.get(Empleado, empleado_id)
     if not p or not p.activo:
-        return RedirectResponse("/design/simulacion?msg=Esa persona no existe o está inactiva.", status_code=303)
+        return RedirectResponse("/design/parametros?sim=1&msg=Esa persona no existe o está inactiva.", status_code=303)
     if p.id == user.id:
         request.session.pop(SIM_KEY, None)
         return RedirectResponse("/design", status_code=303)
@@ -125,10 +142,64 @@ def iniciar_simulacion(request: Request, user: Empleado = Depends(_auth_require_
 
 
 @router.post("/design/simulacion/salir")
-def salir_simulacion(request: Request, user: Empleado = Depends(get_current_user)):
+def salir_simulacion(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
     if request.session.pop(SIM_KEY, None):
         _log_sim.warning("SIMULACION termina %s (%s)", user.email, user.id)
-    return RedirectResponse("/design/simulacion" if user.rol in ("admin", "superadmin") else "/design", status_code=303)
+    es_adm = _aplicar_rol_design(db, user).rol in ("admin", "superadmin")
+    return RedirectResponse("/design/parametros?sim=1" if es_adm else "/design", status_code=303)
+
+
+class RolDesignIn(BaseModel):
+    empleadoId: int
+    rol: Literal["", "empleado", "aprobador", "admin"]
+
+
+def _motivo_rol(actor_id: int, rp_actor: str | None, empresa_actor: str, obj_id: int, rp_obj: str | None,
+                empresa_obj: str) -> str | None:
+    """Mismas reglas que People: nadie se cambia a sí mismo; un superadmin no se cambia; un admin solo cambia
+    personas de su empresa y no a otros admins. Devuelve el motivo si no se puede (roles de People, no de Design)."""
+    if obj_id == actor_id:
+        return "No puedes cambiar tu propio rol."
+    if rp_obj == "superadmin":
+        return "Un superadmin siempre es admin en Design."
+    if rp_actor != "superadmin":
+        if rp_obj == "admin":
+            return "Solo un superadmin puede cambiar el rol de un admin."
+        if (empresa_obj or "") != (empresa_actor or ""):
+            return "Solo puedes cambiar personas de tu empresa."
+    return None
+
+
+def _rol_people(db: Session, empleado_id: int) -> str | None:
+    return db.query(Empleado.rol).filter(Empleado.id == empleado_id).scalar()
+
+
+@router.post("/design/api/parametros/rol-design")
+def api_rol_design(payload: RolDesignIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from ..models_design import DesignRolUsuario
+    obj = db.get(Empleado, payload.empleadoId)
+    if not obj or not obj.activo:
+        raise HTTPException(404, "Esa persona no existe o está inactiva.")
+    rp_actor = _rol_people(db, user.id)
+    rol_people = _rol_people(db, obj.id) or "empleado"
+    motivo = _motivo_rol(user.id, rp_actor, user.empresa, obj.id, rol_people, obj.empresa)
+    if motivo:
+        raise HTTPException(403, motivo)
+    if payload.rol == "admin" and rp_actor != "superadmin":
+        raise HTTPException(403, "Solo un superadmin puede dar el rol admin de Design.")
+    r = db.get(DesignRolUsuario, obj.id)
+    if not payload.rol or payload.rol == rol_people:
+        if r:
+            db.delete(r)
+    elif r:
+        r.rol, r.asignado_por, r.asignado_en = payload.rol, user.nombre_completo, datetime.utcnow()
+    else:
+        db.add(DesignRolUsuario(empleado_id=obj.id, rol=payload.rol, asignado_por=user.nombre_completo))
+    db.commit()
+    _log_sim.warning("ROL DESIGN %s (%s) pone a %s (%s): %s", user.email, user.id, obj.email, obj.id, payload.rol or "igual que People")
+    efectivo = payload.rol or rol_people
+    return {"ok": True, "rolEfectivo": efectivo, "rolDesign": "" if payload.rol in ("", rol_people) else payload.rol,
+            "detalle": f"{obj.nombre_completo}: en Design es {efectivo}" + (" (igual que en People)." if efectivo == rol_people else ".")}
 
 
 @router.get("/design")
@@ -181,7 +252,17 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "candidatos_az": sorted(candidatos, key=lambda e: sd._normalizar_texto(e.nombre_completo)),
                                        "con_ordenes": {tid for (tid,) in db.query(DesignOrden.team_id).distinct()},
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
+                                       "sim_personas": _personas_simulacion(db, user), "sim_abrir": request.query_params.get("sim") == "1",
                                        "msg": request.query_params.get("msg")})
+
+
+def _personas_simulacion(db: Session, actor: Empleado) -> list[dict]:
+    rp_actor = _rol_people(db, actor.id)
+    personas = sd.personas_para_simular(db)
+    for p in personas:  # p["rol"] y p["empresa"] ya vienen de la base
+        p["motivoRol"] = _motivo_rol(actor.id, rp_actor, actor.empresa, p["id"], p["rol"], p["empresa"])
+        p["puedeAdmin"] = rp_actor == "superadmin"
+    return personas
 
 
 # ---------- Parámetros: importar equipos desde Desempeño ----------

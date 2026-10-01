@@ -3302,10 +3302,19 @@ def personas_para_simular(db: Session) -> list[dict]:
             lugar.setdefault(t.manager_id, []).append(f"Manager de {t.nombre} ({t.area.nombre})")
         for d in t.designers:
             lugar.setdefault(d.empleado_id, []).append(f"Diseñador en {t.nombre} ({t.area.nombre})")
+    from .models_design import DesignRolUsuario
+    rol_design = {r.empleado_id: r.rol for r in db.query(DesignRolUsuario).all()}
+    # el rol de People se lee de la base (la persona que consulta puede tener su rol de Design aplicado en memoria)
+    rol_people = {i: r for i, r in db.query(Empleado.id, Empleado.rol).filter(Empleado.activo == 1).all()}
     out = []
     for e in db.query(Empleado).filter(Empleado.activo == 1).all():
-        out.append({"id": e.id, "nombre": e.nombre_completo, "rol": e.rol or "empleado", "empresa": e.empresa or "",
-                    "design": e.tiene_modulo("design_schedule"), "lugar": lugar.get(e.id, []),
+        rp = rol_people.get(e.id) or "empleado"
+        rd = rol_design.get(e.id) if rp != "superadmin" else None
+        efectivo = rd or rp
+        out.append({"id": e.id, "nombre": e.nombre_completo, "rol": rp, "rolDesign": rd or "", "rolEfectivo": efectivo,
+                    "empresa": e.empresa or "",
+                    "design": efectivo in ("admin", "superadmin") or "design_schedule" in e.modulos_lista,
+                    "lugar": lugar.get(e.id, []),
                     "esManager": any(x.startswith("Manager") for x in lugar.get(e.id, [])),
                     "esDisenador": any(x.startswith("Diseñador") for x in lugar.get(e.id, []))})
     return sorted(out, key=lambda x: _normalizar_texto(x["nombre"]))
