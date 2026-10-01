@@ -69,6 +69,21 @@ def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
     return team.area.formato == FORMATO_SUPPORT and any(d.empleado_id == user.id for d in team.designers)
 
 
+def equipo_por_defecto(db: Session, user: Empleado) -> dict | None:
+    """Equipo que se abre solo al entrar al Schedule: el que maneja y, si no maneja ninguno, aquel en el que
+    está como diseñador (el primero según el orden de las áreas). Los admins eligen (ven todos)."""
+    if es_admin(user):
+        return None
+    pos = {a.id: i for i, a in enumerate(areas_disponibles(db))}
+    activos = [t for t in db.query(DesignTeam).filter(DesignTeam.activo == 1).all() if t.area_id in pos]
+    clave = lambda t: (pos[t.area_id], t.orden or 0, t.id)
+    propios = sorted((t for t in activos if t.manager_id == user.id), key=clave)
+    if not propios:
+        ids = equipos_como_designer(db, user)
+        propios = sorted((t for t in activos if t.id in ids), key=clave)
+    return {"areaId": propios[0].area_id, "teamId": propios[0].id} if propios else None
+
+
 def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = frozenset()) -> bool:
     """Admins ven todos los equipos; un manager, los suyos; un diseñador, los equipos en los que está
     asignado (y dentro de ellos solo sus propias órdenes y tiempos libres: ver gestiona_equipo)."""

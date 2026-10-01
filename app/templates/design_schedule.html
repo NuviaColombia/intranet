@@ -1267,9 +1267,11 @@ window.addEventListener('unhandledrejection', function(ev) {
       areas.forEach(function(a) {
         cont.appendChild(dsDropArea(a, 'ds-tab' + (a.id === DS.areaId ? ' activo' : ''), function() { dsAbrirListaArea(a); }));
       });
-      // Deep link (?area_id=&team_id=): abre directamente ese equipo.
-      var area = areas.find(function(a) { return a.id === DS.deepLinkAreaId; });
-      var teamId = DS.deepLinkTeamId;
+      // Deep link (?area_id=&team_id=): abre directamente ese equipo. Sin enlace, empleados y aprobadores
+      // entran directo a su propio schedule (el que manejan o en el que son diseñadores).
+      var mio = !DS.deepLinkTeamId && !DS.teamId && window.DS_INICIO && window.DS_INICIO.miEquipo;
+      var area = areas.find(function(a) { return a.id === (mio ? mio.areaId : DS.deepLinkAreaId); });
+      var teamId = mio ? mio.teamId : DS.deepLinkTeamId;
       DS.deepLinkAreaId = DS.deepLinkTeamId = null;
       if (area && teamId) dsIrAEquipo(area, teamId);
     }).catch(function(e) {
