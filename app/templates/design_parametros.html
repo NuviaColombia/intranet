@@ -948,7 +948,7 @@
           if (!r.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + r.status); return x; }); });
     }
     function cargar() {
-      cont.innerHTML = '<p class="cat-sin">Cargando…</p>';
+      if (!OP) cont.innerHTML = '<p class="cat-sin">Cargando…</p>';
       return fetch('/design/api/openings').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(d) { OP = d; pintar(); })
         .catch(function(e) { cont.innerHTML = '<p style="color:#b91c1c">No se pudo cargar: ' + esc(e.message) + '</p>'; });
@@ -965,17 +965,40 @@
       }
       return f;
     }
+    // Marco (título, barra, contenedor de la tabla): se arma una sola vez. Después solo cambia la tabla, así no
+    // se pierde la posición ni la búsqueda (como en Excel: se agrega o se mueve y ya).
     function pintar() {
-      var q = (document.getElementById('opBuscar') || {}).value || '';
+      if (!cont.querySelector('.op-wrap')) {
+        cont.innerHTML = '<div class="op-cab"><span class="op-tit op-edit" data-op-hoja="titulo" title="Clic para editar"></span>' +
+          '<span class="op-sub op-edit" data-op-hoja="subtitulo" title="Clic para editar"></span></div>' +
+          '<div class="op-barra"><input type="search" id="opBuscar" placeholder="Buscar centro, manager, diseñador…" aria-label="Buscar en Openings">' +
+          '<button type="button" class="btn" data-op="fila">+ Fila</button><button type="button" class="btn gris" data-op="columna">+ Columna</button>' +
+          '<button type="button" class="btn gris" data-op="mostrar" style="display:none"></button><span class="cat-sin" id="opCuenta"></span></div>' +
+          '<div class="op-wrap"><table class="op-tabla"><thead></thead><tbody></tbody></table></div>';
+        cont.querySelector('[data-op-hoja="titulo"]').textContent = OP.titulo || 'Sin título';
+        cont.querySelector('[data-op-hoja="subtitulo"]').textContent = OP.subtitulo || '—';
+      }
+      pintarCabecera();
+      var tb = cont.querySelector('.op-tabla tbody');
+      tb.innerHTML = filasOrdenadas().map(filaHtml).join('');
+      resumen();
+      filtrar();
+    }
+    function resumen() {
+      var ocu = OP.columnas.length - visibles().length;
       document.getElementById('opSub').textContent = OP.filas.length + ' centros · ' + OP.columnas.length + ' columnas' +
-        (OP.columnas.length > visibles().length ? ' (' + (OP.columnas.length - visibles().length) + ' ocultas)' : '') + ' · editable';
-      var h = '<div class="op-cab"><span class="op-tit op-edit" data-op-hoja="titulo" title="Clic para editar">' + esc(OP.titulo || 'Sin título') + '</span>' +
-        '<span class="op-sub op-edit" data-op-hoja="subtitulo" title="Clic para editar">' + esc(OP.subtitulo || '—') + '</span></div>' +
-        '<div class="op-barra"><input type="search" id="opBuscar" placeholder="Buscar centro, manager, diseñador…" aria-label="Buscar en Openings" value="' + esc(q) + '">' +
-        '<button type="button" class="btn" data-op="fila">+ Fila</button><button type="button" class="btn gris" data-op="columna">+ Columna</button>' +
-        (OP.columnas.length > visibles().length ? '<button type="button" class="btn gris" data-op="mostrar">Mostrar ocultas (' + (OP.columnas.length - visibles().length) + ')</button>' : '') +
-        '<span class="cat-sin" id="opCuenta"></span></div>' +
-        '<div class="op-wrap"><table class="op-tabla"><thead><tr>';
+        (ocu ? ' (' + ocu + ' ocultas)' : '') + ' · editable';
+      var bm = cont.querySelector('[data-op="mostrar"]');
+      if (bm) { bm.style.display = ocu ? '' : 'none'; bm.textContent = 'Mostrar ocultas (' + ocu + ')'; }
+    }
+    function filaHtml(f) {
+      var h = '<tr data-fila="' + f.id + '">';
+      visibles().forEach(function(c) { h += '<td class="op-celda" data-clave="' + esc(c.clave) + '">' + esc(f.datos[c.clave] || '') + '</td>'; });
+      return h + '<td class="op-acc op-acc-col"><button type="button" data-op="insertar" title="Agregar una fila debajo" aria-label="Agregar fila debajo">+</button>' +
+             '<button type="button" class="op-x" data-op="quitar-fila" title="Quitar fila" aria-label="Quitar fila">×</button></td></tr>';
+    }
+    function pintarCabecera() {
+      var h = '<tr>';
       var vis = visibles();
       vis.forEach(function(c, i) {
         var flecha = orden && orden.clave === c.clave ? (orden.dir > 0 ? ' ▲' : ' ▼') : '';
@@ -984,18 +1007,7 @@
           '<button type="button" class="op-menu-btn" data-op="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de la columna ' +
           esc(c.titulo || c.clave) + '">▾</button></th>';
       });
-      h += '<th class="op-acc-col"></th></tr></thead><tbody>';
-      filasOrdenadas().forEach(function(f) {
-        h += '<tr data-fila="' + f.id + '">';
-        vis.forEach(function(c) {
-          h += '<td class="op-celda" data-clave="' + esc(c.clave) + '">' + esc(f.datos[c.clave] || '') + '</td>';
-        });
-        h += '<td class="op-acc op-acc-col"><button type="button" data-op="insertar" title="Agregar una fila debajo" aria-label="Agregar fila debajo">+</button>' +
-             '<button type="button" class="op-x" data-op="quitar-fila" title="Quitar fila" aria-label="Quitar fila">×</button></td></tr>';
-      });
-      h += '</tbody></table></div>';
-      cont.innerHTML = h;
-      filtrar();
+      cont.querySelector('.op-tabla thead').innerHTML = h + '<th class="op-acc-col"></th></tr>';
     }
     function filtrar() {
       var inp = document.getElementById('opBuscar'); if (!inp) return;
@@ -1115,25 +1127,44 @@
       } else if (op === 'columna') {
         var t = prompt('Nombre de la nueva columna:', ''); if (t === null || !t.trim()) return;
         accion = post('/design/api/openings/columnas', {titulo: t.trim()});
-      } else if (op === 'quitar-col') {
-        var c = OP.columnas.find(function(x) { return x.id === parseInt(b.dataset.col); });
-        if (!confirm('¿Quitar la columna "' + (c ? c.titulo : '') + '" con todos sus valores? Queda en la Papelera de Design.')) return;
-        accion = post('/design/api/openings/columnas/' + b.dataset.col + '/eliminar');
       } else if (op === 'izq' || op === 'der') {
         cerrarMenu();
         accion = post('/design/api/openings/columnas/' + b.dataset.col + '/mover', {paso: op === 'der' ? 1 : -1});
       }
       if (!accion) return;
       b.disabled = true;
-      var y = (cont.querySelector('.op-wrap') || {}).scrollTop || 0, x = (cont.querySelector('.op-wrap') || {}).scrollLeft || 0;
       accion.then(function(res) {
-        return cargar().then(function() {
-          var w = cont.querySelector('.op-wrap'); if (w) { w.scrollTop = y; w.scrollLeft = x; }
-          if ((op === 'fila' || op === 'insertar') && res && res.id) {
-            var nueva = cont.querySelector('tr[data-fila="' + res.id + '"] .op-celda');
-            if (nueva) { nueva.scrollIntoView({block: 'nearest'}); nueva.click(); }
+        b.disabled = false;
+        if (op === 'fila' || op === 'insertar') {
+          var nf = {id: res.id, datos: res.datos || {}}, pos = OP.filas.length;
+          if (op === 'insertar') { var k = OP.filas.findIndex(function(x) { return x.id === filaId; }); if (k >= 0) pos = k + 1; }
+          OP.filas.splice(pos, 0, nf);
+          var tmp = document.createElement('tbody'); tmp.innerHTML = filaHtml(nf); var trn = tmp.firstChild;
+          if (op === 'insertar' && tr && !orden) tr.after(trn); else cont.querySelector('.op-tabla tbody').appendChild(trn);
+          resumen(); filtrar();
+          var cel = trn.querySelector('.op-celda');
+          if (cel) { cel.scrollIntoView({block: 'nearest', inline: 'nearest'}); cel.click(); }
+        } else if (op === 'quitar-fila') {
+          OP.filas = OP.filas.filter(function(x) { return x.id !== filaId; });
+          if (tr) tr.remove();
+          resumen(); filtrar();
+        } else if (op === 'columna') {
+          OP.columnas.push({id: res.id, clave: res.clave, titulo: res.titulo});
+          pintarCabecera();
+          cont.querySelectorAll('.op-tabla tbody tr').forEach(function(t) {
+            var td = document.createElement('td'); td.className = 'op-celda'; td.dataset.clave = res.clave;
+            t.insertBefore(td, t.querySelector('.op-acc'));
+          });
+          resumen();
+          var w = cont.querySelector('.op-wrap'); if (w) w.scrollTo({left: w.scrollWidth, behavior: 'smooth'});
+        } else if (op === 'izq' || op === 'der') {
+          var cols = OP.columnas, i = cols.findIndex(function(x) { return x.id === parseInt(b.dataset.col); });
+          if (i >= 0) {  // igual que el servidor: un lugar en la lista completa
+            var j = Math.max(0, Math.min(cols.length - 1, i + (op === 'der' ? 1 : -1)));
+            cols.splice(j, 0, cols.splice(i, 1)[0]);
           }
-        });
+          pintar();
+        }
       }).catch(function(err) { paramToast('No se pudo: ' + err.message, true); b.disabled = false; });
     });
     sw.addEventListener('change', function() {

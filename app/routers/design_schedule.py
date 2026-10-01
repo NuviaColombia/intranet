@@ -1616,9 +1616,16 @@ def api_papelera_listar(user: Empleado = Depends(require_design_manager), db: Se
             "eliminado_en": t.eliminado_en.strftime("%d/%m/%Y %H:%M")} for t in sd.trash_listar(db)]
 
 
+# Lo que solo los admins editan (Protocolos, Openings) tampoco lo restaura un aprobador desde la Papelera.
+PAPELERA_SOLO_ADMIN = ("protocol", "openings-fila", "openings-col")
+
+
 @router.post("/design/api/papelera/{trash_id}/restaurar")
 def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_design_manager),
                                  db: Session = Depends(get_db)):
+    t = db.get(sd.DesignTrash, trash_id)
+    if t and t.modulo in PAPELERA_SOLO_ADMIN and user.rol not in ("admin", "superadmin"):
+        raise HTTPException(403, "Solo los administradores pueden restaurar esto.")
     if not sd.trash_restaurar(db, trash_id):
         raise HTTPException(400, "No se pudo restaurar (el destino cambió demasiado o ya no existe).")
     return {"mensaje": "Restaurado."}
@@ -1695,15 +1702,19 @@ def pagina_protocols(request: Request, user: Empleado = Depends(require_modulo("
     return _redirigir_a_panel(request, "protocols")
 
 
+# Protocolos: solo los admins suben, editan o eliminan (1-oct-2026); el resto los consulta.
+PROTOCOLOS_ROLES_EDITAN = ("admin", "superadmin")
+
+
 def _pr_editor(user: Empleado) -> None:
-    if user.rol not in FAQ_ROLES_EDITAN:
-        raise HTTPException(403, "Solo líderes y administradores pueden subir o editar protocolos.")
+    if user.rol not in PROTOCOLOS_ROLES_EDITAN:
+        raise HTTPException(403, "Solo los administradores pueden subir o editar protocolos.")
 
 
 @router.get("/design/api/protocolos")
 def api_protocolos_listar(area_id: int = 0, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
-    return {"protocolos": sd.protocolos_listar(db, area_id or None), "puedeEditar": user.rol in FAQ_ROLES_EDITAN}
+    return {"protocolos": sd.protocolos_listar(db, area_id or None), "puedeEditar": user.rol in PROTOCOLOS_ROLES_EDITAN}
 
 
 @router.get("/design/api/protocolos/buscar")

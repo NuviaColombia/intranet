@@ -2772,7 +2772,7 @@ def reglas_conexion(db: Session) -> dict:
     if c["v"] is not None and _t.monotonic() - c["t"] < 20:
         return c["v"]
     filas = db.query(DesignConexionRegla).all()
-    if not any(r.tipo == "sistema" for r in filas):
+    if not any(r.tipo == "sistema" and r.clave == "inicial" for r in filas):
         try:
             db.add(DesignConexionRegla(tipo="sistema", clave="inicial", creado_por="Sistema"))
             for n in PERF_HISTORICOS:
@@ -3360,11 +3360,34 @@ def _openings_modelos():
     return DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila
 
 
+def _openings_ordenar_por_numero_una_vez(db: Session, h) -> None:
+    """Una sola vez (1-oct-2026): las filas quedan en el orden de la columna # (1, 2 … 60). Después el orden
+    lo decide quien edita (no se vuelve a reordenar)."""
+    from .models_design import DesignConexionRegla
+    H, C, Fi = _openings_modelos()
+    marca = "openings_orden_numero"
+    if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+        return
+    filas = db.query(Fi).filter(Fi.hoja_id == h.id).order_by(Fi.orden, Fi.id).all()
+
+    def clave(f):
+        n = (json.loads(f.datos or "{}").get("numero") or "").strip()
+        return (0, int(n), f.orden) if n.isdigit() else (1, 0, f.orden)
+    for i, f in enumerate(sorted(filas, key=clave), start=1):
+        f.orden = i
+    try:
+        db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+        db.commit()
+    except Exception:
+        db.rollback()  # otra petición lo hizo al mismo tiempo
+
+
 def openings_hoja(db: Session):
     """La hoja de Openings; la primera vez se llena con el Excel."""
     H, C, Fi = _openings_modelos()
     h = db.query(H).order_by(H.id).first()
     if h:
+        _openings_ordenar_por_numero_una_vez(db, h)
         return h
     ruta = Path(__file__).resolve().parent / "seed_data" / "design_openings_2026.json"
     datos = json.loads(ruta.read_text(encoding="utf-8")) if ruta.exists() else {"columnas": [], "filas": []}
@@ -3379,7 +3402,9 @@ def openings_hoja(db: Session):
         db.commit()
     except Exception:
         db.rollback()  # otra petición la creó al mismo tiempo
-    return db.query(H).order_by(H.id).first()
+    h = db.query(H).order_by(H.id).first()
+    _openings_ordenar_por_numero_una_vez(db, h)
+    return h
 
 
 def openings_detalle(db: Session) -> dict:
