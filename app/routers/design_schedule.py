@@ -73,6 +73,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
     return templates.TemplateResponse(request, "design_parametros.html",
                                       {"user": user, "areas": areas, "teams": teams, "candidatos": candidatos,
                                        "candidatos_az": sorted(candidatos, key=lambda e: sd._normalizar_texto(e.nombre_completo)),
+                                       "con_ordenes": {tid for (tid,) in db.query(DesignOrden.team_id).distinct()},
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
                                        "msg": request.query_params.get("msg")})
 
@@ -177,6 +178,63 @@ def agregar_designer(team_id: int, user: Empleado = Depends(require_admin), db: 
         db.add(DesignTeamDesigner(team_id=team_id, empleado_id=empleado_id, orden=orden))
         db.commit()
     return RedirectResponse("/design/parametros?msg=Diseñador agregado.", status_code=303)
+
+
+@router.post("/design/parametros/equipos/{team_id}/editar")
+def editar_equipo(team_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                  nombre: str = Form(...), area_id: int = Form(...), manager_id: str = Form("")):
+    t = db.get(DesignTeam, team_id)
+    if not t:
+        return _param_invalido("El equipo no existe.")
+    if not nombre.strip():
+        return _param_invalido("El nombre del equipo no puede quedar vacío.")
+    if not db.get(DesignArea, area_id):
+        return _param_invalido("El área elegida no existe.")
+    mid = int(manager_id) if manager_id.strip().isdigit() else None
+    if manager_id.strip() and (mid is None or not db.get(Empleado, mid)):
+        return _param_invalido("El manager elegido no existe.")
+    if area_id != t.area_id:
+        # las órdenes del equipo se verían en el schedule de la otra área: solo se cambia si no tiene órdenes
+        if db.query(DesignOrden).filter(DesignOrden.team_id == t.id).first():
+            return _param_invalido(f"El equipo {t.nombre} ya tiene órdenes: no se puede cambiar de área (se moverían a otro schedule).")
+        t.area_id = area_id
+        t.orden = db.query(DesignTeam).filter(DesignTeam.area_id == area_id).count() + 1
+    t.nombre = nombre.strip()
+    t.manager_id = mid
+    db.commit()
+    return RedirectResponse("/design/parametros?msg=Equipo actualizado.", status_code=303)
+
+
+class MoverDesignerIn(BaseModel):
+    teamId: int
+
+
+@router.post("/design/api/parametros/designers/{registro_id}/mover")
+def api_mover_designer(registro_id: int, payload: MoverDesignerIn, user: Empleado = Depends(require_admin),
+                       db: Session = Depends(get_db)):
+    """Arrastrar un diseñador a otro equipo = quitarlo del equipo de origen y agregarlo al de destino.
+    Sus órdenes y breaks no cambian (guardan su propio equipo)."""
+    r = db.get(DesignTeamDesigner, registro_id)
+    destino = db.get(DesignTeam, payload.teamId)
+    if not r or not destino:
+        raise HTTPException(404, "El diseñador o el equipo no existe.")
+    origen = r.team
+    if origen.id == destino.id:
+        return {"ok": True, "registroId": r.id, "origenId": origen.id, "origen": origen.nombre, "destino": destino.nombre,
+                "nombre": r.empleado.nombre_completo}
+    ya = (db.query(DesignTeamDesigner)
+          .filter(DesignTeamDesigner.team_id == destino.id, DesignTeamDesigner.empleado_id == r.empleado_id).first())
+    nombre = r.empleado.nombre_completo
+    if ya:
+        nuevo = ya
+    else:
+        orden = db.query(DesignTeamDesigner).filter(DesignTeamDesigner.team_id == destino.id).count() + 1
+        nuevo = DesignTeamDesigner(team_id=destino.id, empleado_id=r.empleado_id, orden=orden)
+        db.add(nuevo)
+    db.delete(r)
+    db.commit()
+    return {"ok": True, "registroId": nuevo.id, "origenId": origen.id, "origen": origen.nombre, "destino": destino.nombre,
+            "nombre": nombre}
 
 
 @router.post("/design/parametros/designers/{registro_id}/quitar")

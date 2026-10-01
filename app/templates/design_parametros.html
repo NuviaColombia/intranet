@@ -52,6 +52,39 @@
   .aud-grupo.imp-ok > summary .aud-cant { color:#166534; background:#dcfce7; }
   .imp-m { display:block; }
   .imp-m.nuevo { color:#1e40af; }
+  /* Equipos: por área (plegadas), una fila por equipo, diseñadores arrastrables */
+  #eqContenido { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
+  .eq-crear { display:flex; gap:8px; align-items:flex-end; flex-wrap:nowrap; margin-bottom:10px; }
+  .eq-crear > div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .eq-crear label { font-size:12px; color:var(--gris); }
+  .eq-crear .eq-n { flex:2; } .eq-crear .eq-a { flex:1.2; } .eq-crear .eq-m { flex:2; }
+  .eq-crear select, .eq-crear input { width:100%; }
+  .eq-area > summary .aud-cant { color:#334155; background:#f1f5f9; font-weight:600; }
+  .eq-tabla { width:100%; font-size:12.5px; margin:0; }
+  .eq-tabla td { vertical-align:middle; padding:6px 8px; }
+  .eq-tabla tr.eq-inactivo td { background:#f8fafc; }
+  .eq-estado-off { font-size:11px; font-weight:700; color:#475569; background:#e2e8f0; border-radius:10px; padding:1px 8px; }
+  .eq-tabla tr.eq-sobre td { background:#eff6ff; box-shadow:inset 0 0 0 9999px rgba(29,78,216,.04); }
+  .eq-tabla tr.eq-sobre { outline:2px dashed #1d4ed8; outline-offset:-2px; }
+  .eq-nombre { font-weight:600; white-space:nowrap; }
+  .eq-dis { display:flex; flex-wrap:wrap; gap:4px; min-width:260px; }
+  .eq-chip { display:inline-flex; align-items:center; gap:4px; background:#dcfce7; color:#166534; border-radius:12px;
+             padding:2px 4px 2px 9px; font-size:11.5px; cursor:grab; user-select:none; }
+  .eq-chip:active { cursor:grabbing; } .eq-chip.eq-arrastrando { opacity:.4; }
+  .eq-chip form { display:inline; margin:0; }
+  .eq-chip button { border:0; background:transparent; color:#991b1b; cursor:pointer; font-size:13px; line-height:1; padding:0 3px; border-radius:50%; }
+  .eq-chip button:hover { background:#fecaca; }
+  .eq-vacio { color:#64748b; font-size:11.5px; }
+  .eq-add { display:flex; gap:4px; margin:0; align-items:center; }
+  .eq-add .btn { padding:4px 10px; }
+  .eq-add select { font-size:12px; max-width:220px; margin:0; padding:4px 6px; }
+  .eq-crear select, .eq-crear input { margin:0; }
+  .eq-acc { display:flex; gap:4px; white-space:nowrap; justify-content:flex-end; }
+  .eq-acc form { margin:0; }
+  .eq-edit input, .eq-edit select { font-size:12px; width:100%; }
+  .eq-toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#0f172a; color:#fff; padding:9px 14px;
+              border-radius:8px; font-size:13px; display:flex; gap:12px; align-items:center; z-index:50; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+  .eq-toast button { background:transparent; border:1px solid #64748b; color:#fff; border-radius:6px; padding:2px 10px; cursor:pointer; }
   .aud-grupo.imp-omit > summary .aud-cant { color:#475569; background:#f1f5f9; }
 </style>
 <div class="tarjeta aud-tarjeta">
@@ -82,70 +115,106 @@
     <label class="aud-switch">
       <input type="checkbox" id="impSwitch" role="switch" aria-controls="impResultado">
       <span class="aud-slider" aria-hidden="true"></span>
-      <span id="impSwitchTxt">Vista previa</span>
+      <span id="impSwitchTxt">Revisar</span>
     </label>
   </div>
   <div id="impResultado" aria-live="polite"></div>
 </div>
 
-<div class="tarjeta">
-  <h2>Equipos</h2>
-  <p style="font-size:13px;color:var(--gris)">
-    Cada equipo pertenece a un área y tiene un manager y una lista de diseñadores
-    (empleados de Nuvia Design Colombia SAS).
-  </p>
-  <form method="post" action="/design/parametros/equipos" class="filtros">
-    <div>
-      <label>Área</label>
-      <select name="area_id" required>
-        {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
-      </select>
+{% set n_dis = namespace(v=0) %}{% for t in teams %}{% set n_dis.v = n_dis.v + t.designers|length %}{% endfor %}
+<div class="tarjeta aud-tarjeta" id="eqTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Equipos</h2>
+      <span class="aud-sub">{{ teams|length }} equipos · {{ n_dis.v }} diseñadores</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Cada equipo pertenece a un área y tiene un manager y una lista de diseñadores (empleados de Nuvia Design Colombia SAS). Haz clic en un área para desplegarla. Para mover a un diseñador a otro equipo, mantén presionado su nombre y suéltalo sobre la fila del otro equipo. Sus órdenes y breaks no cambian.">i</span>
     </div>
-    <div style="flex:2"><label>Nombre del equipo</label><input name="nombre" required placeholder="Ej: Equipo David"></div>
-    <div>
-      <label>Manager</label>
-      <select name="manager_id">
-        <option value="">-- SIN ASIGNAR --</option>
-        {% for c in candidatos %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
-      </select>
-    </div>
-    <div><button class="btn">Crear equipo</button></div>
-  </form>
-  <table style="margin-top:12px">
-    <tr><th>Equipo</th><th>Área</th><th>Manager</th><th>Diseñadores</th><th>Estado</th><th></th></tr>
-    {% for t in teams %}
-    <tr>
-      <td>{{ t.nombre }}</td>
-      <td>{{ t.area.nombre }}</td>
-      <td>{{ t.manager.nombre_completo if t.manager else '—' }}</td>
-      <td>
-        {% for d in t.designers %}
-        <span class="badge aprobada" style="margin:2px;">
-          {{ d.empleado.nombre_completo }}
-          <form class="inline" method="post" action="/design/parametros/designers/{{ d.id }}/quitar"
-                style="display:inline">
-            <button class="btn rojo mini" style="padding:1px 6px;font-size:10px;">×</button>
-          </form>
-        </span>
-        {% endfor %}
-        <form class="inline filtros" method="post" action="/design/parametros/equipos/{{ t.id }}/designers" style="margin-top:6px">
-          <div style="flex:2">
-            <select name="empleado_id" required>
-              <option value="">+ AGREGAR DISEÑADOR...</option>
-              {% for c in candidatos_az %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
-            </select>
-          </div>
-          <div><button class="btn mini">Agregar</button></div>
-        </form>
-      </td>
-      <td>{{ 'Activo' if t.activo else 'Inactivo' }}</td>
-      <td><form class="inline" method="post" action="/design/parametros/equipos/{{ t.id }}/toggle">
-        <button class="btn gris mini">{{ 'Desactivar' if t.activo else 'Activar' }}</button></form></td>
-    </tr>
-    {% else %}
-    <tr><td colspan="6">Ningún equipo creado todavía.</td></tr>
+    <label class="aud-switch">
+      <input type="checkbox" id="eqSwitch" role="switch" aria-controls="eqContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="eqSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="eqContenido" hidden>
+    <form method="post" action="/design/parametros/equipos" class="eq-crear eq-guarda">
+      <div class="eq-a"><label for="eqNuevoArea">Área</label>
+        <select name="area_id" id="eqNuevoArea" required>
+          {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
+        </select></div>
+      <div class="eq-n"><label for="eqNuevoNombre">Nombre del equipo</label><input name="nombre" id="eqNuevoNombre" required placeholder="Ej: Equipo David"></div>
+      <div class="eq-m"><label for="eqNuevoMgr">Manager</label>
+        <select name="manager_id" id="eqNuevoMgr">
+          <option value="">-- SIN ASIGNAR --</option>
+          {% for c in candidatos_az %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
+        </select></div>
+      <div><button class="btn">Crear equipo</button></div>
+    </form>
+    {% for a in areas %}
+    {% set ts = teams|selectattr('area_id', 'equalto', a.id)|list %}
+    {% set nd = namespace(v=0) %}{% for t in ts %}{% set nd.v = nd.v + t.designers|length %}{% endfor %}
+    <details class="aud-grupo eq-area" data-area="{{ a.id }}">
+      <summary>{{ a.nombre }}<span class="aud-cant">{{ ts|length }} equipo{{ '' if ts|length == 1 else 's' }} · {{ nd.v }} diseñador{{ '' if nd.v == 1 else 'es' }}</span></summary>
+      <div class="aud-scroll" style="max-height:none">
+        {% if ts %}
+        <table class="eq-tabla">
+          <tr><th>Equipo</th><th>Manager</th><th>Diseñadores</th><th>Agregar diseñador</th><th>Estado</th><th></th></tr>
+          {% for t in ts %}
+          <tr class="eq-fila{{ '' if t.activo else ' eq-inactivo' }}" data-team="{{ t.id }}" data-nombre="{{ t.nombre }}">
+            <td class="eq-nombre">{{ t.nombre }}</td>
+            <td>{{ t.manager.nombre_completo if t.manager else '—' }}</td>
+            <td><div class="eq-dis">
+              {% for d in t.designers %}
+              <span class="eq-chip" draggable="true" data-registro="{{ d.id }}" data-nombre="{{ d.empleado.nombre_completo }}"
+                    title="Arrástralo a otro equipo para moverlo">{{ d.empleado.nombre_completo }}
+                <form method="post" action="/design/parametros/designers/{{ d.id }}/quitar" class="eq-guarda">
+                  <button aria-label="Quitar a {{ d.empleado.nombre_completo }} de {{ t.nombre }}">×</button>
+                </form>
+              </span>
+              {% else %}<span class="eq-vacio">Sin diseñadores (suelta aquí para agregar)</span>{% endfor %}
+            </div></td>
+            <td><form class="eq-add eq-guarda" method="post" action="/design/parametros/equipos/{{ t.id }}/designers">
+              <select name="empleado_id" required aria-label="Agregar diseñador a {{ t.nombre }}">
+                <option value="">+ AGREGAR DISEÑADOR...</option>
+                {% for c in candidatos_az %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}
+              </select>
+              <button class="btn mini">Agregar</button>
+            </form></td>
+            <td>{% if t.activo %}Activo{% else %}<span class="eq-estado-off">Inactivo</span>{% endif %}</td>
+            <td><div class="eq-acc">
+              <button type="button" class="btn gris mini" data-editar="{{ t.id }}">Editar</button>
+              <form method="post" action="/design/parametros/equipos/{{ t.id }}/toggle" class="eq-guarda">
+                <button class="btn gris mini">{{ 'Desactivar' if t.activo else 'Activar' }}</button></form>
+            </div></td>
+          </tr>
+          <tr class="eq-edit" data-edit="{{ t.id }}" hidden>
+            <td colspan="6">
+              <form method="post" action="/design/parametros/equipos/{{ t.id }}/editar" class="eq-crear eq-guarda" style="margin:0">
+                <div class="eq-n"><label>Nombre del equipo</label><input name="nombre" required value="{{ t.nombre }}"></div>
+                <div class="eq-a"><label>Área</label>
+                  {% if t.id in con_ordenes %}
+                  <input type="hidden" name="area_id" value="{{ t.area_id }}">
+                  <select disabled title="Tiene órdenes: no se puede cambiar de área (se moverían a otro schedule)"><option>{{ a.nombre }}</option></select>
+                  {% else %}
+                  <select name="area_id">{% for a2 in areas %}<option value="{{ a2.id }}"{{ ' selected' if a2.id == t.area_id }}>{{ a2.nombre }}</option>{% endfor %}</select>
+                  {% endif %}</div>
+                <div class="eq-m"><label>Manager</label>
+                  <select name="manager_id">
+                    <option value="">-- SIN ASIGNAR --</option>
+                    {% for c in candidatos_az %}<option value="{{ c.id }}"{{ ' selected' if c.id == t.manager_id }}>{{ c.nombre_completo }}</option>{% endfor %}
+                  </select></div>
+                <div style="flex-direction:row;gap:6px"><button class="btn">Guardar</button>
+                  <button type="button" class="btn gris" data-cancelar="{{ t.id }}">Cancelar</button></div>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+        {% else %}<p class="eq-vacio" style="margin:4px 0 8px">Ningún equipo en esta área.</p>{% endif %}
+      </div>
+    </details>
     {% endfor %}
-  </table>
+  </div>
 </div>
 
 <div class="tarjeta" style="overflow-x:auto">
@@ -286,10 +355,10 @@
       if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
     }).then(function(d) { if (t === impTok && impSw.checked) renderImport(d, aplicado); }).catch(function(e) {
       if (t === impTok) res.innerHTML = AUD_ROJO('No se pudo cargar la vista previa: ' + esc(e.message));
-    }).then(function() { impSw.disabled = false; impTxt.innerText = impSw.checked ? 'Ocultar' : 'Vista previa'; });
+    }).then(function() { impSw.disabled = false; impTxt.innerText = impSw.checked ? 'Ocultar' : 'Revisar'; });
   }
   impSw.addEventListener('change', function() {
-    if (!impSw.checked) { ++impTok; document.getElementById('impResultado').innerHTML = ''; impTxt.innerText = 'Vista previa'; return; }
+    if (!impSw.checked) { ++impTok; document.getElementById('impResultado').innerHTML = ''; impTxt.innerText = 'Revisar'; return; }
     impCargar(false);
   });
   document.getElementById('impResultado').addEventListener('click', function(e) {
@@ -422,6 +491,87 @@
     audCargar();
   });
 
+  // ---------- Equipos: interruptor, áreas plegadas, editar y arrastrar diseñadores ----------
+  var eqSw = document.getElementById('eqSwitch'), eqTxt = document.getElementById('eqSwitchTxt'), eqCont = document.getElementById('eqContenido');
+  var EQ_KEY = 'paramEquipos';
+  function eqMostrar(on) { eqSw.checked = on; eqCont.hidden = !on; eqTxt.innerText = on ? 'Ocultar' : 'Revisar'; }
+  // al guardar algo la página se recarga: se recuerda qué estaba abierto para volver al mismo punto
+  function eqGuardarEstado(extra) {
+    try {
+      var abiertas = [].map.call(eqCont.querySelectorAll('details.eq-area[open]'), function(d) { return d.dataset.area; });
+      sessionStorage.setItem(EQ_KEY, JSON.stringify(Object.assign({on: eqSw.checked, abiertas: abiertas, y: window.scrollY}, extra || {})));
+    } catch (e) {}
+  }
+  (function eqRestaurar() {
+    var st = null;
+    try { st = JSON.parse(sessionStorage.getItem(EQ_KEY) || 'null'); sessionStorage.removeItem(EQ_KEY); } catch (e) {}
+    if (!st || !st.on) return;
+    eqMostrar(true);
+    (st.abiertas || []).forEach(function(id) { var d = eqCont.querySelector('details.eq-area[data-area="' + id + '"]'); if (d) d.open = true; });
+    window.scrollTo(0, st.y || 0);
+    if (st.movido) eqToast(st.movido);
+  })();
+  eqSw.addEventListener('change', function() { eqMostrar(eqSw.checked); });
+  eqCont.addEventListener('submit', function(e) { if (e.target.closest('.eq-guarda')) eqGuardarEstado(); });
+  eqCont.addEventListener('click', function(e) {
+    var ed = e.target.closest('[data-editar]'), ca = e.target.closest('[data-cancelar]');
+    if (ed) { var f = eqCont.querySelector('tr[data-edit="' + ed.dataset.editar + '"]'); f.hidden = !f.hidden; if (!f.hidden) f.querySelector('input[name="nombre"]').focus(); }
+    if (ca) eqCont.querySelector('tr[data-edit="' + ca.dataset.cancelar + '"]').hidden = true;
+  });
+  function eqToast(m) {
+    var t = document.createElement('div'); t.className = 'eq-toast'; t.setAttribute('role', 'status');
+    t.innerHTML = '<span>' + esc(m.nombre) + ' pasó de <b>' + esc(m.origen) + '</b> a <b>' + esc(m.destino) + '</b></span>';
+    if (m.registroId && m.origenId) {
+      var b = document.createElement('button'); b.type = 'button'; b.innerText = 'Deshacer';
+      b.addEventListener('click', function() { b.disabled = true; eqMover(m.registroId, m.origenId, true); });
+      t.appendChild(b);
+    }
+    document.body.appendChild(t);
+    setTimeout(function() { t.remove(); }, 9000);
+  }
+  function eqMover(registro, teamId, deshacer) {
+    fetch('/design/api/parametros/designers/' + registro + '/mover', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({teamId: teamId})}).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+    }).then(function(d) {
+      eqGuardarEstado({movido: deshacer ? {nombre: d.nombre, origen: d.origen, destino: d.destino} : d});
+      location.href = '/design/parametros';
+    }).catch(function(err) { alert('No se pudo mover: ' + err.message); });
+  }
+  var eqArrastre = null;
+  eqCont.addEventListener('dragstart', function(e) {
+    var c = e.target.closest && e.target.closest('.eq-chip');
+    if (!c) return;
+    eqArrastre = {registro: c.dataset.registro, nombre: c.dataset.nombre, origen: c.closest('tr').dataset.team};
+    c.classList.add('eq-arrastrando');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', c.dataset.nombre); } catch (x) {}
+  });
+  eqCont.addEventListener('dragend', function(e) {
+    var c = e.target.closest && e.target.closest('.eq-chip'); if (c) c.classList.remove('eq-arrastrando');
+    eqCont.querySelectorAll('.eq-sobre').forEach(function(r) { r.classList.remove('eq-sobre'); });
+    eqArrastre = null;
+  });
+  eqCont.addEventListener('dragover', function(e) {
+    var fila = e.target.closest && e.target.closest('tr.eq-fila');
+    if (!eqArrastre || !fila || fila.dataset.team === eqArrastre.origen) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    if (!fila.classList.contains('eq-sobre')) {
+      eqCont.querySelectorAll('.eq-sobre').forEach(function(r) { r.classList.remove('eq-sobre'); });
+      fila.classList.add('eq-sobre');
+    }
+  });
+  eqCont.addEventListener('dragleave', function(e) {
+    var fila = e.target.closest && e.target.closest('tr.eq-fila');
+    if (fila && !fila.contains(e.relatedTarget)) fila.classList.remove('eq-sobre');
+  });
+  eqCont.addEventListener('drop', function(e) {
+    var fila = e.target.closest && e.target.closest('tr.eq-fila');
+    if (!eqArrastre || !fila || fila.dataset.team === eqArrastre.origen) return;
+    e.preventDefault();
+    fila.classList.remove('eq-sobre');
+    eqMover(eqArrastre.registro, parseInt(fila.dataset.team), false);
+  });
 })();
 </script>
 {% endblock %}
