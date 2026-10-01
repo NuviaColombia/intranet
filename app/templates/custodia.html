@@ -2570,7 +2570,11 @@ function confirmarMultiples() {
 }
 
 function enviarAlServidor(arregloDatos, resumenExtra) {
-  var resumenFinal = obtenerDatosResumenTabla().concat(resumenExtra || []);
+  // La fila «orden + cantidad» solo se agrega si el Resumen general no trae ya esa orden (si no, se duplica el total)
+  var resumenTabla = obtenerDatosResumenTabla();
+  var yaEstan = {};
+  resumenTabla.forEach(function(r) { yaEstan[String(r.orden || '').trim()] = true; });
+  var resumenFinal = resumenTabla.concat((resumenExtra || []).filter(function(r) { return !yaEstan[String(r.orden || '').trim()]; }));
   var payload = { traslados: arregloDatos, resumen: resumenFinal, discos: obtenerDatosDiscosCalculados(), op: obtenerDatosOPTabla(),
                   stockDescripciones: stockDescActual || [] };
   var btn = document.getElementById("btnGuardar"); btn.innerText = "Guardando registros...";
