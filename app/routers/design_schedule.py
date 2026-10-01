@@ -4,7 +4,7 @@ import os
 import re
 from datetime import date, datetime
 from typing import Literal
-from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi import APIRouter, Request, Depends, Form, HTTPException, Query
 from ..concurrencia import clase_con_cupo
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
@@ -1143,6 +1143,13 @@ def api_preapproved_sheets(area_id: int, user: Empleado = Depends(require_modulo
                                  db: Session = Depends(get_db)):
     _pa_area(db, user, area_id)
     return [{"id": s.id, "nombre": s.nombre} for s in sd.preapproved_sheets(db, area_id)]
+
+
+@router.get("/design/api/preapproved/buscar")
+def api_preapproved_buscar(q: str = Query("", max_length=100), user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    """Buscar doctor o centro en todas las hojas de Pre-Approved que la persona ve (las de su área)."""
+    return sd.preapproved_buscar(db, q, sd.preapproved_areas_permitidas(db, user))
 
 
 @router.get("/design/api/preapproved/sheets/{sheet_id}")

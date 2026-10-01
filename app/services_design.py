@@ -106,6 +106,35 @@ def preapproved_areas_permitidas(db: Session, user: Empleado) -> set[int] | None
     return {a.id for a in db.query(DesignArea).all() if a.nombre in nombres}
 
 
+def preapproved_buscar(db: Session, q: str, areas_permitidas: set[int] | None, limite: int = 300) -> list[dict]:
+    """Doctores y centros cuyo nombre contiene `q` en todas las hojas que la persona ve, en el orden de las áreas,
+    de las hojas y de las columnas (así 'siguiente' recorre las hojas en orden)."""
+    q = _normalizar_texto(q)
+    if not q:
+        return []
+    pos = {a.id: i for i, a in enumerate(areas_disponibles(db))}
+    hojas = [s for s in db.query(DesignPreApprovedSheet).all()
+             if s.area_id in pos and (areas_permitidas is None or s.area_id in areas_permitidas)]
+    hojas.sort(key=lambda s: (pos[s.area_id], s.orden or 0, s.id))
+    ids = [s.id for s in hojas]
+    centros, doctores = {}, {}
+    for c in db.query(DesignPreApprovedCentro).filter(DesignPreApprovedCentro.sheet_id.in_(ids or [-1])).all():
+        centros.setdefault(c.sheet_id, []).append(c)
+    for d in db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id.in_(ids or [-1])).all():
+        doctores.setdefault(d.sheet_id, []).append(d)
+    out = []
+    for s in hojas:
+        for c in sorted(centros.get(s.id, []), key=lambda x: (x.orden or 0, x.id)):
+            if q in _normalizar_texto(c.nombre):
+                out.append({"sheetId": s.id, "areaId": s.area_id, "hoja": s.nombre, "tipo": "centro", "id": c.id, "nombre": c.nombre})
+        for d in sorted(doctores.get(s.id, []), key=lambda x: (x.orden or 0, x.id)):
+            if q in _normalizar_texto(d.nombre):
+                out.append({"sheetId": s.id, "areaId": s.area_id, "hoja": s.nombre, "tipo": "doctor", "id": d.id, "nombre": d.nombre})
+        if len(out) >= limite:
+            break
+    return out[:limite]
+
+
 def preapproved_hoja_de(db: Session, user: Empleado) -> dict | None:
     """Hoja de Pre-Approved que se abre sola para un empleado o aprobador: la del manager de su equipo. Se usa la
     misma conexión que Parámetros › Conexión con los equipos (hoja conectada a mano, o nombre de la hoja = manager).

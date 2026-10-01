@@ -888,7 +888,7 @@ window.dsPdfjs = function() {
 <div class="ds-area-row"><div class="pa-tabs" id="paAreaTabs"></div></div>
 <div class="pa-top">
   <div class="pa-top-izq" id="paIzq" style="display:none">
-    <input type="text" class="faq-buscar" id="paBuscar" placeholder="🔎 Ir a un doctor o centro..." title="Enter: siguiente coincidencia">
+    <input type="text" class="faq-buscar" id="paBuscar" placeholder="🔎 Ir a un doctor o centro (todas las hojas)..." title="Busca en todas las hojas de tu área. Enter: siguiente coincidencia">
     <span class="faq-cuenta" id="paCuenta"></span>
     <span id="paHerr" style="display:none">
       <button type="button" class="faq-gbtn" onclick="paAgregarFila()" title="Agregar criterio (fila)">+ Criterio</button>
@@ -3475,7 +3475,7 @@ window.DS_PANELS.dashboard = ddCargar;
       var sc = document.getElementById('paScroll'), x = sc.scrollLeft;
       renderTabla(d);
       sc.scrollLeft = x;
-      paBuscar(false);
+      paMarcarBusqueda();
     });
   }
 
@@ -3608,29 +3608,64 @@ window.DS_PANELS.dashboard = ddCargar;
     tabla.appendChild(tbody);
   }
 
-  // Buscar: resalta los doctores y centros que coinciden y lleva al primero; Enter pasa al siguiente.
-  var PA_BUSQ = {q: '', i: 0};
+  // Buscar: busca doctores y centros en TODAS las hojas que la persona ve. Resalta los de la hoja abierta y lleva
+  // al primero; si solo hay en otra hoja, cambia a esa hoja. Enter pasa al siguiente (también de una hoja a otra).
+  var PA_BUSQ = {q: '', hits: [], i: 0, tok: 0};
   function paNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
-  function paBuscar(siguiente) {
-    var inp = document.getElementById('paBuscar'), q = paNorm(inp.value.trim()), d = PA.detalle;
+  function paCuentaTexto() {
+    var cuenta = document.getElementById('paCuenta'), n = PA_BUSQ.hits.length, h = PA_BUSQ.hits[PA_BUSQ.i];
+    if (!PA_BUSQ.q) { cuenta.textContent = ''; return; }
+    if (!n) { cuenta.textContent = 'Sin coincidencias'; return; }
+    var otras = new Set(PA_BUSQ.hits.map(function(x) { return x.sheetId; })).size;
+    cuenta.textContent = (n === 1 ? '1 coincidencia' : (PA_BUSQ.i + 1) + ' de ' + n + ' coincidencias') +
+      (otras > 1 || (h && h.sheetId !== PA.sheetId) ? ' · hoja ' + h.hoja : '');
+  }
+  // Resalta en la hoja abierta lo que coincide y lleva al resultado actual (si es de esta hoja).
+  function paMarcarBusqueda() {
     document.querySelectorAll('#paTabla .pa-hl').forEach(function(x) { x.classList.remove('pa-hl'); });
-    var cuenta = document.getElementById('paCuenta');
-    if (!q || !d) { cuenta.textContent = ''; PA_BUSQ.q = ''; return; }
-    var hits = [];
-    d.centros.forEach(function(c) { if (paNorm(c.nombre).indexOf(q) >= 0) hits.push(document.querySelector('#paTabla th[data-centro="' + c.id + '"]')); });
-    d.doctores.forEach(function(doc) { if (paNorm(doc.nombre).indexOf(q) >= 0) hits.push(document.querySelector('#paTabla th[data-doctor="' + doc.id + '"]')); });
-    hits = hits.filter(Boolean);
-    hits.forEach(function(h) { h.classList.add('pa-hl'); });
-    if (!hits.length) { cuenta.textContent = 'Sin coincidencias'; return; }
-    PA_BUSQ.i = (siguiente && PA_BUSQ.q === q) ? (PA_BUSQ.i + 1) % hits.length : 0;
-    PA_BUSQ.q = q;
-    cuenta.textContent = hits.length === 1 ? '1 coincidencia' : (PA_BUSQ.i + 1) + ' de ' + hits.length + ' coincidencias';
-    var obj = hits[PA_BUSQ.i], sc = document.getElementById('paScroll');
-    var fija = document.querySelector('#paTabla thead .pa-fija').offsetWidth;
+    paCuentaTexto();
+    if (!PA_BUSQ.q) return;
+    PA_BUSQ.hits.forEach(function(h) {
+      if (h.sheetId !== PA.sheetId) return;
+      var el = document.querySelector('#paTabla th[data-' + h.tipo + '="' + h.id + '"]'); if (el) el.classList.add('pa-hl');
+    });
+    var act = PA_BUSQ.hits[PA_BUSQ.i];
+    if (!act || act.sheetId !== PA.sheetId) return;
+    var obj = document.querySelector('#paTabla th[data-' + act.tipo + '="' + act.id + '"]'), sc = document.getElementById('paScroll');
+    var fijaEl = document.querySelector('#paTabla thead .pa-fija');
+    if (!obj || !sc || !fijaEl) return;
+    var fija = fijaEl.offsetWidth;
     sc.scrollTo({left: Math.max(0, obj.offsetLeft - fija - (sc.clientWidth - fija - obj.offsetWidth) / 2), behavior: 'smooth'});
   }
-  document.getElementById('paBuscar').addEventListener('input', function() { paBuscar(false); });
-  document.getElementById('paBuscar').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); paBuscar(true); } });
+  function paIrAResultado() {
+    var h = PA_BUSQ.hits[PA_BUSQ.i];
+    if (!h) { paMarcarBusqueda(); return; }
+    if (h.sheetId === PA.sheetId) { paMarcarBusqueda(); return; }
+    api('/design/api/preapproved/sheets?area_id=' + h.areaId).then(function(sheets) {
+      if (PA_BUSQ.hits[PA_BUSQ.i] !== h) return;  // el usuario siguió escribiendo
+      elegirHoja(h.areaId, sheets, h.sheetId);  // al cargar, cargarDetalle llama a paMarcarBusqueda
+    });
+  }
+  function paBuscar(siguiente) {
+    var q = paNorm(document.getElementById('paBuscar').value.trim());
+    if (siguiente && q && q === PA_BUSQ.q && PA_BUSQ.hits.length) {
+      PA_BUSQ.i = (PA_BUSQ.i + 1) % PA_BUSQ.hits.length; paIrAResultado(); return;
+    }
+    var t = ++PA_BUSQ.tok;
+    if (!q) { PA_BUSQ.q = ''; PA_BUSQ.hits = []; paMarcarBusqueda(); return; }
+    api('/design/api/preapproved/buscar?q=' + encodeURIComponent(q)).then(function(hits) {
+      if (t !== PA_BUSQ.tok) return;
+      PA_BUSQ.q = q; PA_BUSQ.hits = hits || [];
+      var aqui = PA_BUSQ.hits.findIndex(function(h) { return h.sheetId === PA.sheetId; });
+      PA_BUSQ.i = aqui >= 0 ? aqui : 0;  // primero lo de la hoja abierta
+      paIrAResultado();
+    }).catch(function() { if (t === PA_BUSQ.tok) document.getElementById('paCuenta').textContent = 'No se pudo buscar'; });
+  }
+  var paBuscarTimer = null;
+  document.getElementById('paBuscar').addEventListener('input', function() { clearTimeout(paBuscarTimer); paBuscarTimer = setTimeout(function() { paBuscar(false); }, 350); });
+  document.getElementById('paBuscar').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(paBuscarTimer); paBuscar(true); }
+  });
 
   window.paAgregarCentro = function() {
     var n = (prompt('Nombre del nuevo centro:', 'Nuevo centro') || '').trim();
