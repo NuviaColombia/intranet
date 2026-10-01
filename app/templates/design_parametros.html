@@ -94,6 +94,23 @@
   .eq-acc { display:flex; gap:4px; white-space:nowrap; justify-content:flex-end; }
   .eq-acc form { margin:0; }
   .eq-edit input, .eq-edit select { font-size:12px; width:100%; }
+  /* Catálogos: por área (plegadas) y por tipo, valores como etiquetas */
+  #catContenido { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
+  .cat-buscar { margin:0 0 8px; }
+  .cat-buscar input { width:280px; font-size:12.5px; padding:5px 8px; margin:0; }
+  .cat-tipo { padding:6px 12px 10px; border-top:1px solid #f1f5f9; }
+  .cat-tipo:first-child { border-top:0; }
+  .cat-tipo h3 { font-size:12.5px; margin:0 0 6px; color:#334155; display:flex; gap:8px; align-items:baseline; }
+  .cat-tipo h3 small { font-weight:400; color:#64748b; }
+  .cat-vals { display:flex; flex-wrap:wrap; gap:4px; }
+  .cat-chip { display:inline-flex; align-items:center; gap:3px; background:#e0f2fe; color:#075985; border-radius:12px;
+              padding:2px 4px 2px 9px; font-size:11.5px; }
+  .cat-chip.off { background:#f1f5f9; color:#475569; text-decoration:line-through; border:1px dashed #94a3b8; }
+  .cat-chip form { display:inline; margin:0; }
+  .cat-chip button { border:0; background:transparent; cursor:pointer; font-size:12px; line-height:1; padding:1px 4px; border-radius:50%; color:#9f1239; }
+  .cat-chip.off button { color:#166534; text-decoration:none; }
+  .cat-chip button:hover { background:rgba(0,0,0,.08); }
+  .cat-sin { color:#64748b; font-size:11.5px; }
   .eq-toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#0f172a; color:#fff; padding:9px 14px;
               border-radius:8px; font-size:13px; display:flex; gap:12px; align-items:center; z-index:50; box-shadow:0 4px 14px rgba(0,0,0,.25); }
   .eq-toast button { background:transparent; border:1px solid #64748b; color:#fff; border-radius:6px; padding:2px 10px; cursor:pointer; }
@@ -230,47 +247,74 @@
   </div>
 </div>
 
-<div class="tarjeta" style="overflow-x:auto">
-  <h2>Catálogos por área (centros, productos, estados)</h2>
-  <p style="font-size:13px;color:var(--gris)">
-    Valores disponibles en los desplegables del horario. Se pueden agregar en cualquier momento.
-  </p>
-  <form method="post" action="/design/parametros/catalogos" class="filtros">
-    <div>
-      <label>Área</label>
-      <select name="area_id" required>
-        {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
-      </select>
+{% set CAT_NOMBRE = {'centro': 'Centros', 'producto': 'Productos', 'estado': 'Estados', 'etapa': 'Etapas', 'soporte': 'Soporte', 'clasificacion': 'Clasificación'} %}
+{% set CAT_UNO = {'centro': 'centro', 'producto': 'producto', 'estado': 'estado', 'etapa': 'etapa', 'soporte': 'soporte', 'clasificacion': 'clasificación'} %}
+<div class="tarjeta aud-tarjeta" id="catTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Catálogos por área</h2>
+      <span class="aud-sub">{{ catalogos|selectattr('activo')|list|length }} valores activos · centros, productos, estados</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Son las opciones de los desplegables de las órdenes del Schedule (Centro, Producto, Estado; en Support también Etapa, Soporte y Clasificación). Cada área tiene sus propias opciones. Desactivar un valor lo quita de los desplegables; las órdenes que ya lo tienen lo conservan.">i</span>
     </div>
-    <div>
-      <label>Tipo</label>
-      <select name="tipo" required>
-        <option value="centro">Centro</option>
-        <option value="producto">Producto</option>
-        <option value="estado">Estado</option>
-        <option value="etapa">Etapa (Support)</option>
-        <option value="soporte">Soporte (Support)</option>
-        <option value="clasificacion">Clasificación (Support)</option>
-      </select>
-    </div>
-    <div style="flex:2"><label>Valor</label><input name="valor" required placeholder="Ej: St Louis - Oswaldo Hernandez"></div>
-    <div><button class="btn">Agregar</button></div>
-  </form>
-  <table style="margin-top:12px">
-    <tr><th>Área</th><th>Tipo</th><th>Valor</th><th>Estado</th><th></th></tr>
-    {% for c in catalogos %}
-    <tr>
-      <td>{{ c.area.nombre }}</td>
-      <td>{{ c.tipo }}</td>
-      <td>{{ c.valor }}</td>
-      <td>{{ 'Activo' if c.activo else 'Inactivo' }}</td>
-      <td><form class="inline" method="post" action="/design/parametros/catalogos/{{ c.id }}/toggle">
-        <button class="btn gris mini">{{ 'Desactivar' if c.activo else 'Activar' }}</button></form></td>
-    </tr>
-    {% else %}
-    <tr><td colspan="5">Ningún valor de catálogo creado todavía.</td></tr>
+    <label class="aud-switch">
+      <input type="checkbox" id="catSwitch" role="switch" aria-controls="catContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="catSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="catContenido" hidden>
+    <form method="post" action="/design/parametros/catalogos" class="eq-crear cat-guarda" id="catForm">
+      <div class="eq-a"><label for="catArea">Área</label>
+        <select name="area_id" id="catArea" required>
+          {% for a in areas %}<option value="{{ a.id }}" data-support="{{ 1 if a.formato == 'support' else 0 }}">{{ a.nombre }}</option>{% endfor %}
+        </select></div>
+      <div class="eq-a"><label for="catTipo">Tipo</label>
+        <select name="tipo" id="catTipo" required>
+          <option value="centro">Centro</option>
+          <option value="producto">Producto</option>
+          <option value="estado" data-solo="normal">Estado</option>
+          <option value="etapa" data-solo="support">Etapa</option>
+          <option value="soporte" data-solo="support">Soporte</option>
+          <option value="clasificacion" data-solo="support">Clasificación</option>
+        </select></div>
+      <div class="eq-m" style="flex:3"><label for="catValor">Valor</label><input name="valor" id="catValor" required maxlength="150" placeholder="Ej: St Louis - Oswaldo Hernandez"></div>
+      <div><button class="btn">Agregar</button></div>
+    </form>
+    <div class="cat-buscar"><input type="search" id="catBuscar" placeholder="Buscar un valor…" aria-label="Buscar un valor en los catálogos"></div>
+    {% for a in areas %}
+    {% set cs = catalogos|selectattr('area_id', 'equalto', a.id)|list %}
+    {% set tipos = ['centro', 'producto', 'etapa', 'soporte', 'clasificacion'] if a.formato == 'support' else ['centro', 'producto', 'estado'] %}
+    {% set n_on = cs|selectattr('activo')|list|length %}
+    <details class="aud-grupo eq-area cat-area" data-area="{{ a.id }}">
+      <summary>{{ a.nombre }}<span class="aud-cant">{{ n_on }} activo{{ '' if n_on == 1 else 's' }}{% if cs|length > n_on %} · {{ cs|length - n_on }} inactivo{{ '' if cs|length - n_on == 1 else 's' }}{% endif %}</span></summary>
+      {% for tp in tipos %}
+      {% set vs = cs|selectattr('tipo', 'equalto', tp)|list %}
+      <div class="cat-tipo" data-tipo="{{ tp }}">
+        <h3>{{ CAT_NOMBRE[tp] }} <small>{{ vs|selectattr('activo')|list|length }}</small></h3>
+        <div class="cat-vals">
+          {% for c in vs|sort(attribute='activo', reverse=true) %}
+          <span class="cat-chip{{ '' if c.activo else ' off' }}" data-valor="{{ c.valor|lower }}">{{ c.valor }}
+            <form method="post" action="/design/parametros/catalogos/{{ c.id }}/toggle" class="cat-guarda">
+              {% if c.activo %}<button aria-label="Desactivar {{ c.valor }}" title="Desactivar (deja de salir en los desplegables)">×</button>
+              {% else %}<button aria-label="Activar {{ c.valor }}" title="Activar otra vez">↺</button>{% endif %}
+            </form>
+          </span>
+          {% else %}<span class="cat-sin">Sin {{ CAT_NOMBRE[tp]|lower }} todavía.</span>{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      {% set otros = cs|rejectattr('tipo', 'in', tipos)|list %}
+      {% if otros %}
+      <div class="cat-tipo"><h3>Otros <small>no se usan en el schedule de esta área</small></h3><div class="cat-vals">
+        {% for c in otros %}<span class="cat-chip{{ '' if c.activo else ' off' }}" data-valor="{{ c.valor|lower }}">{{ c.tipo }}: {{ c.valor }}
+          <form method="post" action="/design/parametros/catalogos/{{ c.id }}/toggle" class="cat-guarda">
+            <button aria-label="{{ 'Desactivar' if c.activo else 'Activar' }} {{ c.valor }}">{{ '×' if c.activo else '↺' }}</button></form></span>{% endfor %}
+      </div></div>
+      {% endif %}
+    </details>
     {% endfor %}
-  </table>
+  </div>
 </div>
 
 <div class="tarjeta">
@@ -640,6 +684,52 @@
   audSw.addEventListener('change', function() {
     if (!audSw.checked) { ++audTok; document.getElementById('audResultado').innerHTML = ''; audTxt.innerText = 'Revisar'; return; }
     audCargar();
+  });
+
+  // ---------- Catálogos: interruptor, áreas plegadas, tipo según el área y búsqueda ----------
+  var catSw = document.getElementById('catSwitch'), catTxt = document.getElementById('catSwitchTxt'), catCont = document.getElementById('catContenido');
+  var CAT_KEY = 'paramCatalogos';
+  function catMostrar(on) { catSw.checked = on; catCont.hidden = !on; catTxt.innerText = on ? 'Ocultar' : 'Revisar'; }
+  var catArea = document.getElementById('catArea'), catTipo = document.getElementById('catTipo');
+  function catTipos() {  // solo los tipos que usa el schedule del área elegida
+    var sup = catArea.options[catArea.selectedIndex].dataset.support === '1';
+    [].forEach.call(catTipo.options, function(o) {
+      var ver = !o.dataset.solo || (o.dataset.solo === 'support') === sup;
+      o.hidden = !ver; o.disabled = !ver;
+    });
+    if (catTipo.options[catTipo.selectedIndex].disabled) catTipo.value = 'centro';
+  }
+  catArea.addEventListener('change', catTipos);
+  catTipos();
+  (function catRestaurar() {
+    var st = null;
+    try { st = JSON.parse(sessionStorage.getItem(CAT_KEY) || 'null'); sessionStorage.removeItem(CAT_KEY); } catch (e) {}
+    if (!st || !st.on) return;
+    catMostrar(true);
+    (st.abiertas || []).forEach(function(id) { var d = catCont.querySelector('details.cat-area[data-area="' + id + '"]'); if (d) d.open = true; });
+    if (st.area) { catArea.value = st.area; catTipos(); if (st.tipo) catTipo.value = st.tipo; }
+    window.scrollTo(0, st.y || 0);
+  })();
+  catSw.addEventListener('change', function() { catMostrar(catSw.checked); });
+  catCont.addEventListener('submit', function(e) {
+    if (!e.target.closest('.cat-guarda')) return;
+    try {
+      var abiertas = [].map.call(catCont.querySelectorAll('details.cat-area[open]'), function(d) { return d.dataset.area; });
+      if (e.target.id === 'catForm' && abiertas.indexOf(catArea.value) < 0) abiertas.push(catArea.value);  // se ve lo que se agregó
+      sessionStorage.setItem(CAT_KEY, JSON.stringify({on: true, abiertas: abiertas, y: window.scrollY, area: catArea.value, tipo: catTipo.value}));
+    } catch (x) {}
+  });
+  var catAbiertasAntes = null;
+  document.getElementById('catBuscar').addEventListener('input', function() {
+    var q = this.value.trim().toLowerCase(), areas = catCont.querySelectorAll('details.cat-area');
+    if (q && catAbiertasAntes === null) catAbiertasAntes = [].map.call(areas, function(d) { return d.open; });
+    [].forEach.call(areas, function(d, i) {
+      var n = 0;
+      d.querySelectorAll('.cat-chip').forEach(function(ch) { var si = !q || ch.dataset.valor.indexOf(q) >= 0; ch.hidden = !si; if (si) n++; });
+      d.hidden = !!q && !n;
+      if (q) d.open = n > 0; else if (catAbiertasAntes) d.open = catAbiertasAntes[i];
+    });
+    if (!q) catAbiertasAntes = null;
   });
 
   // ---------- Equipos: interruptor, áreas plegadas, editar y arrastrar diseñadores ----------

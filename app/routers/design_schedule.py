@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
 from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignOrden,
-                             DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila)
+                             DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila, FORMATO_SUPPORT)
 from ..auth import require_modulo, require_admin, require_design_manager
 from ..main_templates import templates
 from .. import services_design as sd
@@ -338,11 +338,22 @@ def quitar_designer(registro_id: int, user: Empleado = Depends(require_admin), d
 
 # ---------- Parámetros: catálogos ----------
 
+# Tipos de catálogo que usa el schedule de cada área (columnas con desplegable)
+CATALOGO_TIPOS = ("centro", "producto", "estado")
+CATALOGO_TIPOS_SUPPORT = ("centro", "producto", "etapa", "soporte", "clasificacion")
+
+
 @router.post("/design/parametros/catalogos")
 def crear_valor_catalogo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                                area_id: int = Form(...), tipo: str = Form(...), valor: str = Form(...)):
-    if not db.get(DesignArea, area_id):
+    area = db.get(DesignArea, area_id)
+    if not area:
         return _param_invalido("El área elegida no existe.")
+    tipos = CATALOGO_TIPOS_SUPPORT if area.formato == FORMATO_SUPPORT else CATALOGO_TIPOS
+    if tipo not in tipos:
+        return _param_invalido(f"El tipo elegido no aplica para {area.nombre}.")
+    if len(valor.strip()) > 150:
+        return _param_invalido("El valor no puede tener más de 150 caracteres.")
     sd.agregar_valor_catalogo(db, area_id, tipo, valor)
     return RedirectResponse("/design/parametros?msg=Valor agregado.", status_code=303)
 
