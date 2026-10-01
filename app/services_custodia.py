@@ -404,7 +404,7 @@ def puede_firmar_recibido(user: Empleado, traslado: CustodiaTraslado) -> bool:
     área de entrada del traslado (quien recibe el material)."""
     if user.rol in ("admin", "superadmin"):
         return True
-    return bool(user.area_custodia) and user.area_custodia.strip().upper() == (traslado.area_entrada or "").strip().upper()
+    return user.tiene_area(traslado.area_entrada)  # cualquiera de sus áreas asignadas (máx. 2)
 
 
 def confirmar_entrada(db: Session, traslado: CustodiaTraslado, user: Empleado) -> str | None:
@@ -426,7 +426,7 @@ def puede_firmar_dir(user: Empleado) -> bool:
     """Firma DIR PRODUCCIÓN (salidas de QC FINAL): un administrador o quien tenga asignada el área DIR PRODUCCIÓN."""
     if user.rol in ("admin", "superadmin"):
         return True
-    return (user.area_custodia or "").strip().upper() == AREA_ORIGEN
+    return AREA_ORIGEN in user.areas_custodia
 
 
 def firmar_dir(db: Session, traslado: CustodiaTraslado, user: Empleado) -> str | None:
@@ -500,6 +500,8 @@ def cargo_coincide_con_area(cargo: str, area: str) -> bool:
     "DIRECTOR DE PRODUCCION" y "DIR PRODUCCIÓN"). Sin área asignada no hay nada que comparar."""
     if not area:
         return True
+    if "," in area:  # varias áreas asignadas: basta con que el cargo mencione una
+        return any(cargo_coincide_con_area(cargo, a) for a in area.split(",") if a.strip())
     import re
     cargo_n = _sin_tildes(cargo)
     palabras = [p for p in re.split(r"[^A-Z0-9]+", _sin_tildes(area)) if len(p) >= 2 and p not in ("DE", "DEL", "LA")]
@@ -783,7 +785,7 @@ def notificar_traslado_pendiente(traslado_id: int, recordatorio: bool = False) -
         from .acceso_produccion import tiene_submodulo
         destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
                          if tiene_submodulo(db, e, "custodia")
-                         and (e.area_custodia or "").strip().upper() == (t.area_entrada or "").strip().upper()]
+                         and e.tiene_area(t.area_entrada)]
         if not destinatarios:
             print(f"[Custodia] Traslado #{t.id}: ningún manager tiene asignada el área {t.area_entrada}; sin aviso.")
             return False
@@ -815,7 +817,7 @@ def notificar_firma_dir_pendiente(traslado_id: int, recordatorio: bool = False) 
             return False
         from .acceso_produccion import tiene_submodulo
         destinatarios = [e for e in db.query(Empleado).filter(Empleado.activo == 1).all()
-                         if tiene_submodulo(db, e, "custodia") and (e.area_custodia or "").strip().upper() == AREA_ORIGEN]
+                         if tiene_submodulo(db, e, "custodia") and AREA_ORIGEN in e.areas_custodia]
         if not destinatarios:
             print(f"[Custodia] Traslado #{t.id}: nadie tiene asignada DIR PRODUCCIÓN para firmar; sin aviso.")
             return False

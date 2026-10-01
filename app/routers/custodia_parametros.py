@@ -206,7 +206,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
 
 @router.post("/inventario/parametros/managers")
 def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                          empleado_id: int = Form(...), area_custodia: str = Form("")):
+                          empleado_id: int = Form(...), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp and emp.empresa == NUVIA_SMILES:
         modulos = set(emp.modulos_lista)
@@ -216,19 +216,25 @@ def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depen
             db.add(ProduccionAcceso(empleado_id=emp.id, submodulo="custodia"))
         if emp.rol == "empleado":
             emp.rol = "aprobador"
-        emp.area_custodia = area_custodia.strip().upper()
+        emp.area_custodia = _areas_asignadas(area_custodia, area_custodia_2)
         db.commit()
     return RedirectResponse("/inventario/parametros?msg=Acceso a Cambio de custodia dado.", status_code=303)
 
 
 @router.post("/inventario/parametros/managers/{empleado_id}")
 def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
-                             db: Session = Depends(get_db), area_custodia: str = Form("")):
+                             db: Session = Depends(get_db), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp:
-        emp.area_custodia = area_custodia.strip().upper()
+        emp.area_custodia = _areas_asignadas(area_custodia, area_custodia_2)
         db.commit()
-    return RedirectResponse("/inventario/parametros?msg=Área asignada actualizada.", status_code=303)
+    return RedirectResponse("/inventario/parametros?msg=Área(s) asignada(s) actualizada(s).", status_code=303)
+
+
+def _areas_asignadas(*areas: str) -> str:
+    """Hasta 2 áreas por manager, sin repetir; se guardan separadas por coma (la primera es la principal)."""
+    limpias = list(dict.fromkeys(a.strip().upper() for a in areas if a and a.strip()))
+    return ",".join(limpias[:2])
 
 
 @router.post("/inventario/parametros/managers/{empleado_id}/quitar")
@@ -286,8 +292,9 @@ def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Sessi
             # Los registros guardan el nombre del área: se renombra en todos para no perder su historial
             for campo in (CustodiaTraslado.area_salida, CustodiaTraslado.area_entrada, CustodiaTraslado.area_creacion):
                 db.query(CustodiaTraslado).filter(campo == anterior).update({campo: nuevo}, synchronize_session=False)
-            db.query(Empleado).filter(Empleado.area_custodia == anterior).update({Empleado.area_custodia: nuevo},
-                                                                                 synchronize_session=False)
+            for e in db.query(Empleado).filter(Empleado.area_custodia.like(f"%{anterior}%")):
+                if anterior in e.areas_custodia:  # también si es su segunda área
+                    e.area_custodia = ",".join(nuevo if x == anterior else x for x in e.areas_custodia)
         a.nombre = nuevo or anterior
         # EMPAQUE siempre cuenta como inventario (regla de negocio; también se aplica al arrancar la app)
         a.es_inventario = 1 if (es_inventario or a.nombre == "EMPAQUE") else 0

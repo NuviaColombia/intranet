@@ -74,9 +74,14 @@ def areas_de_material(db: Session) -> dict[int, list[str]]:
     return salida
 
 
+def areas_de(user: Empleado) -> list[str]:
+    """Áreas con las que reporta el manager: las asignadas en Producción (Parámetros › Accesos de Cambio de custodia, máx. 2)."""
+    return user.areas_custodia
+
+
 def area_de(user: Empleado) -> str:
-    """Área con la que reporta el manager: la asignada en Producción (Parámetros › Accesos de Cambio de custodia)."""
-    return (user.area_custodia or "").strip().upper()
+    """Área principal del manager (la primera asignada)."""
+    return (areas_de(user) or [""])[0]
 
 
 def director_produccion(db: Session) -> Empleado | None:
@@ -325,7 +330,7 @@ def invalidar_segundos_del_responsable(db: Session) -> list[int]:
 
 
 def puede_editar(user: Empleado, r: ConteoReporte) -> bool:
-    return es_admin(user) or r.responsable_id == user.id or bool(area_de(user) and area_de(user) == r.area)
+    return es_admin(user) or r.responsable_id == user.id or r.area in areas_de(user)
 
 
 def cantidades(r: ConteoReporte, segundo: bool = False) -> tuple[dict, dict]:
@@ -416,8 +421,8 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
     if not (1 <= mes <= 12) or not (2020 <= anio <= 2100):
         return "Elige el mes del reporte."
     area = str(datos.get("area") or "").strip().upper()
-    if not es_admin(user) and area_de(user):
-        area = area_de(user)  # cada manager reporta su área asignada
+    if not es_admin(user) and areas_de(user) and area not in areas_de(user):
+        area = area_de(user)  # cada manager reporta una de sus áreas asignadas (máx. 2)
     if not area:
         return "Elige el área."
     r = db.query(ConteoReporte).filter(ConteoReporte.area == area, ConteoReporte.anio == anio, ConteoReporte.mes == mes).first()
@@ -782,17 +787,17 @@ def enviar_recordatorios(hoy: date | None = None) -> int:
             return 0
         ids = {a.empleado_id for a in db.query(ProduccionAcceso).filter(ProduccionAcceso.submodulo == "conteo")}
         for e in db.query(Empleado).filter(Empleado.id.in_(ids or [0]), Empleado.activo == 1).all():
-            area = area_de(e)
-            if not area or db.query(ConteoAviso).filter_by(empleado_id=e.id, fecha=hoy).first():
+            if not areas_de(e) or db.query(ConteoAviso).filter_by(empleado_id=e.id, fecha=hoy).first():
                 continue
             faltan = []
-            for anio, mes in candidatos:
-                r = db.query(ConteoReporte).filter_by(area=area, anio=anio, mes=mes).first()
-                if not r or r.estado in (BORRADOR, DEVUELTO, ANULADO):
-                    faltan.append((anio, mes))
+            for area_e in areas_de(e):  # cada una de sus áreas (máx. 2)
+                for anio, mes in candidatos:
+                    r = db.query(ConteoReporte).filter_by(area=area_e, anio=anio, mes=mes).first()
+                    if not r or r.estado in (BORRADOR, DEVUELTO, ANULADO):
+                        faltan.append((area_e, anio, mes))
             if not faltan:
                 continue
-            anio, mes = faltan[0]
+            area, anio, mes = faltan[0]
             texto = (f"🔔 *Recordatorio: conteo de inventario de {MESES[mes - 1]} {anio}*\n"
                      f"Área: {nombre_propio(area)}\nEnvíalo en: {cfg.BASE_URL}/conteo")
             if _enviar([e.email], texto, f"{cfg.BASE_URL}/conteo"):

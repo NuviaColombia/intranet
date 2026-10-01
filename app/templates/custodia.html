@@ -906,7 +906,7 @@ function cargarConsecutivo() {
 }
 
 var modoOrdenNuevaActivo = false;
-var areaSalidaManager = {{ (user.area_custodia or '') | tojson }};
+var areaSalidaManager = {{ (user.areas_custodia[0] if user.areas_custodia else '') | tojson }};  // la principal (si tiene 2)
 
 // Orden real del proceso de producción: de cada área, hacia dónde sigue normalmente el traslado.
 var SIGUIENTE_AREA = {

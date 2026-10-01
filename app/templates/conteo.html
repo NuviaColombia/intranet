@@ -524,9 +524,11 @@ api('/conteo/api/datos').then(function(d) {
   ['c', 'r'].forEach(function(p) { document.getElementById(p + 'Mes').value = mes; document.getElementById(p + 'Anio').value = anio; });
   document.getElementById('cResponsable').value = d.responsable; document.getElementById('cCorreo').value = d.correo;
   var sel = document.getElementById('cArea');
-  sel.innerHTML = (d.areaAsignada ? '' : '<option value="">Seleccionar...</option>') + d.areas.map(function(a) {
+  // Cada manager reporta sus áreas asignadas (máx. 2); el administrador elige cualquiera
+  var propias = d.areasAsignadas || [], lista = (propias.length && !d.esAdmin) ? propias : d.areas;
+  sel.innerHTML = (d.areaAsignada ? '' : '<option value="">Seleccionar...</option>') + lista.map(function(a) {
     return '<option value="' + esc(a) + '"' + (a === d.areaAsignada ? ' selected' : '') + '>' + esc(np(a)) + '</option>'; }).join('');
-  if (d.areaAsignada && !d.esAdmin) sel.disabled = true;  // cada manager reporta su área asignada
+  if (propias.length === 1 && !d.esAdmin) sel.disabled = true;
   pintarTestigos();
   pintarFormulario();
   cargarReporte();

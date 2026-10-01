@@ -93,7 +93,7 @@
   <div class="cp-barra">
     <div class="cp-ayuda">Quién entra a <b>Cambio de custodia</b>: da o quita el acceso aquí mismo (el módulo Producción se refleja en People › Empleados).
       Solo empleados de Nuvia Smiles; al agregarlos pasan a rol "aprobador" si eran "empleado".
-      El <b>área asignada</b> es el área de cada manager: aparece por defecto como área de salida en "Nueva orden" (sin asignar = DIR Producción), permite firmar los recibidos que llegan a esa área y define quién recibe el aviso por Zoho Cliq.</div>
+      Cada manager puede tener <b>hasta 2 áreas asignadas</b> (ej. DIR Producción y Damage): la primera aparece por defecto como área de salida en "Nueva orden" (sin asignar = DIR Producción); con cualquiera de las dos firma los recibidos que llegan a esa área, recibe el aviso por Zoho Cliq y reporta su Conteo inventario mensual.</div>
   </div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
@@ -117,6 +117,15 @@
           {% endfor %}
         </select>
       </div>
+      <div style="min-width:180px">
+        <label>Segunda área (opcional)</label>
+        <select name="area_custodia_2">
+          <option value="">-- Ninguna --</option>
+          {% for a in areas_activas %}
+          <option value="{{ a }}">{{ a|nombre_propio }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <div><button class="btn mini">Dar acceso</button></div>
     </form>
   </details>
@@ -126,13 +135,20 @@
     <tr>
       <td>{{ m.nombre_completo|nombre_propio }}</td>
       <td>{{ m.cargo }}
-        {% if not cargo_coincide[m.id] %}<div class="cp-aviso-cargo" title="El cargo viene de People; la firma y los avisos usan el área asignada.">⚠️ No coincide con el área asignada ({{ m.area_custodia|nombre_propio }})</div>{% endif %}</td>
+        {% if not cargo_coincide[m.id] %}<div class="cp-aviso-cargo" title="El cargo viene de People; la firma y los avisos usan el área asignada.">⚠️ No coincide con el área asignada ({{ m.areas_custodia|map('nombre_propio')|join(' y ') }})</div>{% endif %}</td>
       <td>
         <form id="f-man-{{ m.id }}" method="post" action="/inventario/parametros/managers/{{ m.id }}"></form>
-        <select name="area_custodia" form="f-man-{{ m.id }}">
+        {% set mis_areas = m.areas_custodia %}
+        <select name="area_custodia" form="f-man-{{ m.id }}" title="Área principal (área de salida por defecto)">
           <option value="">-- Sin asignar --</option>
           {% for a in areas_activas %}
-          <option value="{{ a }}" {{ 'selected' if m.area_custodia == a }}>{{ a|nombre_propio }}</option>
+          <option value="{{ a }}" {{ 'selected' if mis_areas and mis_areas[0] == a }}>{{ a|nombre_propio }}</option>
+          {% endfor %}
+        </select>
+        <select name="area_custodia_2" form="f-man-{{ m.id }}" title="Segunda área (opcional, máximo 2)" style="margin-top:4px">
+          <option value="">-- Segunda área (opcional) --</option>
+          {% for a in areas_activas %}
+          <option value="{{ a }}" {{ 'selected' if mis_areas|length > 1 and mis_areas[1] == a }}>{{ a|nombre_propio }}</option>
           {% endfor %}
         </select>
       </td>
