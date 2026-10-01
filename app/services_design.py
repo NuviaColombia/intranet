@@ -3347,3 +3347,205 @@ def personas_para_simular(db: Session) -> list[dict]:
                     "esManager": any(x.startswith("Manager") for x in lugar.get(e.id, [])),
                     "esDisenador": any(x.startswith("Diseñador") for x in lugar.get(e.id, []))})
     return sorted(out, key=lambda x: _normalizar_texto(x["nombre"]))
+
+
+
+# ---------------------------------------------------------------------------
+# Openings (Parámetros): distribución de centros de Design. Se carga una sola vez desde
+# app/seed_data/design_openings_2026.json (hoja 2026 del Excel) y luego se edita aquí.
+# ---------------------------------------------------------------------------
+
+def _openings_modelos():
+    from .models_design import DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila
+    return DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila
+
+
+def openings_hoja(db: Session):
+    """La hoja de Openings; la primera vez se llena con el Excel."""
+    H, C, Fi = _openings_modelos()
+    h = db.query(H).order_by(H.id).first()
+    if h:
+        return h
+    ruta = Path(__file__).resolve().parent / "seed_data" / "design_openings_2026.json"
+    datos = json.loads(ruta.read_text(encoding="utf-8")) if ruta.exists() else {"columnas": [], "filas": []}
+    try:
+        h = H(nombre="2026", titulo=datos.get("titulo", ""), subtitulo=datos.get("subtitulo", ""))
+        db.add(h)
+        db.flush()
+        for i, c in enumerate(datos.get("columnas", []), start=1):
+            db.add(C(hoja_id=h.id, clave=c["clave"], titulo=c["titulo"], orden=i))
+        for i, f in enumerate(datos.get("filas", []), start=1):
+            db.add(Fi(hoja_id=h.id, orden=i, datos=json.dumps(f, ensure_ascii=False)))
+        db.commit()
+    except Exception:
+        db.rollback()  # otra petición la creó al mismo tiempo
+    return db.query(H).order_by(H.id).first()
+
+
+def openings_detalle(db: Session) -> dict:
+    H, C, Fi = _openings_modelos()
+    h = openings_hoja(db)
+    cols = db.query(C).filter(C.hoja_id == h.id).order_by(C.orden, C.id).all()
+    filas = db.query(Fi).filter(Fi.hoja_id == h.id).order_by(Fi.orden, Fi.id).all()
+    return {"id": h.id, "nombre": h.nombre, "titulo": h.titulo, "subtitulo": h.subtitulo,
+            "actualizado": h.actualizado_en.isoformat() if h.actualizado_en else None,
+            "columnas": [{"id": c.id, "clave": c.clave, "titulo": c.titulo} for c in cols],
+            "filas": [{"id": f.id, "datos": json.loads(f.datos or "{}")} for f in filas]}
+
+
+def _openings_tocar(h) -> None:
+    h.actualizado_en = datetime.utcnow()
+
+
+def openings_guardar_celda(db: Session, fila_id: int, clave: str, valor: str) -> bool:
+    H, C, Fi = _openings_modelos()
+    f = db.get(Fi, fila_id)
+    if not f or not db.query(C).filter(C.hoja_id == f.hoja_id, C.clave == clave).first():
+        return False
+    d = json.loads(f.datos or "{}")
+    d[clave] = (valor or "").strip()[:500]
+    f.datos = json.dumps(d, ensure_ascii=False)
+    _openings_tocar(db.get(H, f.hoja_id))
+    db.commit()
+    return True
+
+
+def openings_agregar_fila(db: Session, despues_de: int | None = None) -> dict:
+    H, C, Fi = _openings_modelos()
+    h = openings_hoja(db)
+    filas = db.query(Fi).filter(Fi.hoja_id == h.id).order_by(Fi.orden, Fi.id).all()
+    pos = len(filas)
+    if despues_de:
+        pos = next((i + 1 for i, f in enumerate(filas) if f.id == despues_de), pos)
+    nueva = Fi(hoja_id=h.id, datos="{}")
+    filas.insert(pos, nueva)
+    db.add(nueva)
+    for i, f in enumerate(filas, start=1):
+        f.orden = i
+    _openings_tocar(h)
+    db.commit()
+    return {"id": nueva.id, "datos": {}}
+
+
+def openings_eliminar_fila(db: Session, fila_id: int, eliminado_por: str) -> bool:
+    H, C, Fi = _openings_modelos()
+    f = db.get(Fi, fila_id)
+    if not f:
+        return False
+    d = json.loads(f.datos or "{}")
+    _trash_registrar(db, "openings-fila", f"Openings: {d.get('centro') or ('fila ' + str(f.orden))}",
+                     {"hoja_id": f.hoja_id, "orden": f.orden, "datos": d}, eliminado_por)
+    _openings_tocar(db.get(H, f.hoja_id))
+    db.delete(f)
+    db.commit()
+    return True
+
+
+def openings_agregar_columna(db: Session, titulo: str) -> dict:
+    H, C, Fi = _openings_modelos()
+    h = openings_hoja(db)
+    titulo = (titulo or "").strip()[:150] or "Nueva columna"
+    base = re.sub(r"[^a-z0-9]+", "_", _normalizar_texto(titulo)).strip("_") or "columna"
+    existentes = {c.clave for c in db.query(C).filter(C.hoja_id == h.id).all()}
+    clave, n = base, 2
+    while clave in existentes:
+        clave, n = f"{base}_{n}", n + 1
+    orden = (db.query(func.max(C.orden)).filter(C.hoja_id == h.id).scalar() or 0) + 1
+    c = C(hoja_id=h.id, clave=clave, titulo=titulo, orden=orden)
+    db.add(c)
+    _openings_tocar(h)
+    db.commit()
+    return {"id": c.id, "clave": c.clave, "titulo": c.titulo}
+
+
+def openings_renombrar_columna(db: Session, col_id: int, titulo: str) -> bool:
+    H, C, Fi = _openings_modelos()
+    c = db.get(C, col_id)
+    titulo = (titulo or "").strip()[:150]
+    if not c or not titulo:
+        return False
+    c.titulo = titulo
+    _openings_tocar(db.get(H, c.hoja_id))
+    db.commit()
+    return True
+
+
+def openings_eliminar_columna(db: Session, col_id: int, eliminado_por: str) -> bool:
+    """La columna y sus valores van a la Papelera (se pueden restaurar)."""
+    H, C, Fi = _openings_modelos()
+    c = db.get(C, col_id)
+    if not c:
+        return False
+    valores = {}
+    for f in db.query(Fi).filter(Fi.hoja_id == c.hoja_id).all():
+        d = json.loads(f.datos or "{}")
+        if c.clave in d:
+            valores[str(f.id)] = d.pop(c.clave)
+            f.datos = json.dumps(d, ensure_ascii=False)
+    _trash_registrar(db, "openings-col", f"Openings: columna {c.titulo}",
+                     {"hoja_id": c.hoja_id, "clave": c.clave, "titulo": c.titulo, "orden": c.orden, "valores": valores},
+                     eliminado_por)
+    _openings_tocar(db.get(H, c.hoja_id))
+    db.delete(c)
+    db.commit()
+    return True
+
+
+def openings_mover_columna(db: Session, col_id: int, paso: int) -> bool:
+    H, C, Fi = _openings_modelos()
+    c = db.get(C, col_id)
+    if not c:
+        return False
+    cols = db.query(C).filter(C.hoja_id == c.hoja_id).order_by(C.orden, C.id).all()
+    i = cols.index(c)
+    j = max(0, min(len(cols) - 1, i + (1 if paso > 0 else -1)))
+    cols.insert(j, cols.pop(i))
+    for k, x in enumerate(cols, start=1):
+        x.orden = k
+    db.commit()
+    return True
+
+
+def openings_actualizar_hoja(db: Session, titulo: str | None, subtitulo: str | None) -> None:
+    h = openings_hoja(db)
+    if titulo is not None:
+        h.titulo = titulo.strip()[:200]
+    if subtitulo is not None:
+        h.subtitulo = subtitulo.strip()[:200]
+    _openings_tocar(h)
+    db.commit()
+
+
+def _trash_restaurar_openings_fila(db: Session, payload: dict) -> bool:
+    H, C, Fi = _openings_modelos()
+    if not db.get(H, payload.get("hoja_id")):
+        return False
+    filas = db.query(Fi).filter(Fi.hoja_id == payload["hoja_id"]).order_by(Fi.orden, Fi.id).all()
+    nueva = Fi(hoja_id=payload["hoja_id"], datos=json.dumps(payload.get("datos", {}), ensure_ascii=False))
+    filas.insert(max(0, min(len(filas), (payload.get("orden") or len(filas) + 1) - 1)), nueva)
+    db.add(nueva)
+    for i, f in enumerate(filas, start=1):
+        f.orden = i
+    db.commit()
+    return True
+
+
+def _trash_restaurar_openings_col(db: Session, payload: dict) -> bool:
+    H, C, Fi = _openings_modelos()
+    if not db.get(H, payload.get("hoja_id")):
+        return False
+    if db.query(C).filter(C.hoja_id == payload["hoja_id"], C.clave == payload["clave"]).first():
+        return False  # ya hay una columna con esa clave
+    db.add(C(hoja_id=payload["hoja_id"], clave=payload["clave"], titulo=payload.get("titulo", ""), orden=payload.get("orden", 0)))
+    valores = payload.get("valores", {})
+    for f in db.query(Fi).filter(Fi.hoja_id == payload["hoja_id"]).all():
+        if str(f.id) in valores:
+            d = json.loads(f.datos or "{}")
+            d[payload["clave"]] = valores[str(f.id)]
+            f.datos = json.dumps(d, ensure_ascii=False)
+    db.commit()
+    return True
+
+
+_TRASH_RESTAURADORES["openings-fila"] = _trash_restaurar_openings_fila
+_TRASH_RESTAURADORES["openings-col"] = _trash_restaurar_openings_col

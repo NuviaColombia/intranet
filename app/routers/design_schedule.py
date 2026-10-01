@@ -265,6 +265,89 @@ def _personas_simulacion(db: Session, actor: Empleado) -> list[dict]:
     return personas
 
 
+# ---------- Parámetros: Openings (distribución de centros) ----------
+
+class OpCeldaIn(BaseModel):
+    filaId: int
+    clave: str = Field(max_length=60)
+    valor: str = Field("", max_length=500)
+
+
+class OpFilaIn(BaseModel):
+    despuesDe: int | None = None
+
+
+class OpColumnaIn(BaseModel):
+    titulo: str = Field("", max_length=150)
+
+
+class OpHojaIn(BaseModel):
+    titulo: str | None = Field(None, max_length=200)
+    subtitulo: str | None = Field(None, max_length=200)
+
+
+class OpMoverIn(BaseModel):
+    paso: int
+
+
+@router.get("/design/api/openings")
+def api_openings(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return sd.openings_detalle(db)
+
+
+@router.post("/design/api/openings/celda")
+def api_openings_celda(payload: OpCeldaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    if not sd.openings_guardar_celda(db, payload.filaId, payload.clave, payload.valor):
+        raise HTTPException(404, "No se encontró la fila o la columna.")
+    return {"ok": True}
+
+
+@router.post("/design/api/openings/filas")
+def api_openings_agregar_fila(payload: OpFilaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return sd.openings_agregar_fila(db, payload.despuesDe)
+
+
+@router.post("/design/api/openings/filas/{fila_id}/eliminar")
+def api_openings_eliminar_fila(fila_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    if not sd.openings_eliminar_fila(db, fila_id, user.nombre_completo):
+        raise HTTPException(404, "No se encontró la fila.")
+    return {"ok": True}
+
+
+@router.post("/design/api/openings/columnas")
+def api_openings_agregar_columna(payload: OpColumnaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return sd.openings_agregar_columna(db, payload.titulo)
+
+
+@router.post("/design/api/openings/columnas/{col_id}")
+def api_openings_renombrar_columna(col_id: int, payload: OpColumnaIn, user: Empleado = Depends(require_admin),
+                                   db: Session = Depends(get_db)):
+    if not sd.openings_renombrar_columna(db, col_id, payload.titulo):
+        raise HTTPException(404, "No se encontró la columna o el título está vacío.")
+    return {"ok": True}
+
+
+@router.post("/design/api/openings/columnas/{col_id}/mover")
+def api_openings_mover_columna(col_id: int, payload: OpMoverIn, user: Empleado = Depends(require_admin),
+                               db: Session = Depends(get_db)):
+    if not sd.openings_mover_columna(db, col_id, payload.paso):
+        raise HTTPException(404, "No se encontró la columna.")
+    return {"ok": True}
+
+
+@router.post("/design/api/openings/columnas/{col_id}/eliminar")
+def api_openings_eliminar_columna(col_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    if not sd.openings_eliminar_columna(db, col_id, user.nombre_completo):
+        raise HTTPException(404, "No se encontró la columna.")
+    return {"ok": True}
+
+
+@router.post("/design/api/openings/hoja")
+def api_openings_hoja(payload: OpHojaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    sd.openings_actualizar_hoja(db, payload.titulo, payload.subtitulo)
+    return {"ok": True}
+
+
 # ---------- Parámetros: importar equipos desde Desempeño ----------
 
 @router.get("/design/api/parametros/importar-equipos-preview")

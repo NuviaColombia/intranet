@@ -291,6 +291,39 @@ class DesignPreApprovedCelda(Base):
 # restaurar. No cubre acciones del día a día (crear/borrar órdenes).
 # ---------------------------------------------------------------------------
 
+class DesignOpeningsHoja(Base):
+    """Openings / distribución de centros de Design (Parámetros). Se cargó de la hoja 2026 del Excel
+    'Openings Distribucion 2026'; desde entonces todo se edita aquí."""
+    __tablename__ = "design_openings_hojas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(100), default="2026")
+    titulo: Mapped[str] = mapped_column(String(200), default="")
+    subtitulo: Mapped[str] = mapped_column(String(200), default="")
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignOpeningsColumna(Base):
+    """Columna de la hoja: `clave` es fija (para conectarla después con otros datos); `titulo` se puede cambiar."""
+    __tablename__ = "design_openings_columnas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hoja_id: Mapped[int] = mapped_column(ForeignKey("design_openings_hojas.id"))
+    clave: Mapped[str] = mapped_column(String(60))
+    titulo: Mapped[str] = mapped_column(String(150), default="")
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class DesignOpeningsFila(Base):
+    """Fila (un centro). `datos` es JSON {clave_columna: texto}."""
+    __tablename__ = "design_openings_filas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hoja_id: Mapped[int] = mapped_column(ForeignKey("design_openings_hojas.id"))
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[str] = mapped_column(Text, default="{}")
+
+
 class DesignRolUsuario(Base):
     """Rol de una persona solo dentro de Design (empleado | aprobador | admin). Reemplaza su rol de People
     únicamente en las páginas y APIs de Design; People y los demás módulos no cambian. Sin fila = igual que People."""

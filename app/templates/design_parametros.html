@@ -126,6 +126,33 @@
   .sim-no { color:#9f1239; font-size:11.5px; }
   .sim-tabla form { margin:0; }
   .sim-tabla .btn { padding:3px 10px; font-size:11.5px; }
+  /* Openings: distribución de centros (tabla editable) */
+  #opContenido { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
+  .op-cab { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:8px; }
+  .op-cab .op-tit { font-weight:700; font-size:14px; color:#0f172a; }
+  .op-cab .op-sub { font-size:12.5px; color:#475569; }
+  .op-edit { cursor:text; border-radius:4px; padding:1px 3px; }
+  .op-edit:hover { background:#f1f5f9; }
+  .op-edit[contenteditable="true"] { background:#fff; outline:2px solid #1d4ed8; }
+  .op-barra { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .op-barra input { width:260px; margin:0; padding:5px 8px; font-size:12.5px; }
+  .op-barra .btn { padding:4px 10px; font-size:12px; }
+  .op-wrap { max-height:620px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; }
+  .op-tabla { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:12px; margin:0; }
+  .op-tabla th, .op-tabla td { border-bottom:1px solid #eef2f7; border-right:1px solid #eef2f7; padding:4px 7px; white-space:nowrap; vertical-align:middle; }
+  .op-tabla thead th { position:sticky; top:0; z-index:2; background:#f8fafc; font-weight:700; color:#1e293b; text-align:left; }
+  .op-tabla .op-acc-col { position:sticky; right:0; background:#fff; z-index:1; }
+  .op-tabla thead .op-acc-col { z-index:3; background:#f8fafc; }
+  .op-th { display:flex; align-items:center; gap:4px; }
+  .op-th button, .op-acc button { border:0; background:transparent; cursor:pointer; color:#64748b; font-size:11px; padding:0 3px; border-radius:4px; line-height:1.4; }
+  .op-th button:hover, .op-acc button:hover { background:#e2e8f0; color:#0f172a; }
+  .op-th button.op-x:hover, .op-acc button.op-x:hover { background:#fee2e2; color:#991b1b; }
+  .op-celda { min-width:60px; cursor:text; }
+  .op-celda:hover { background:#f8fafc; }
+  .op-celda[contenteditable="true"] { background:#fff; outline:2px solid #1d4ed8; outline-offset:-2px; }
+  .op-celda.op-guardado { background:#dcfce7; transition:background .6s; }
+  .op-tabla tr.op-oculta { display:none; }
+  .op-acc { white-space:nowrap; }
   .eq-toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#0f172a; color:#fff; padding:9px 14px;
               border-radius:8px; font-size:13px; display:flex; gap:12px; align-items:center; z-index:50; box-shadow:0 4px 14px rgba(0,0,0,.25); }
   .eq-toast button { background:transparent; border:1px solid #64748b; color:#fff; border-radius:6px; padding:2px 10px; cursor:pointer; }
@@ -423,6 +450,23 @@
     </table>
     </div>
   </div>
+</div>
+
+<div class="tarjeta aud-tarjeta" id="opTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Openings</h2>
+      <span class="aud-sub" id="opSub">distribución de centros de Design · editable</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Base de datos de la distribución de centros (cargada de la hoja 2026 del Excel 'Openings Distribucion 2026'). Todo se edita aquí: haz clic en una celda o en un título para cambiarlo (Enter guarda, Esc cancela). + Fila / + Columna agregan; × quita (queda en la Papelera de Design y se puede restaurar). ‹ › mueven la columna; ↕ ordena la vista.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="opSwitch" role="switch" aria-controls="opContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="opSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="opContenido" hidden></div>
 </div>
 
 <datalist id="paramPersonas"></datalist>
@@ -873,6 +917,161 @@
           paramToast('✓ ' + x.detalle);
         }).catch(function(err) { sel.value = antes; paramToast('No se pudo: ' + err.message, true); })
         .then(function() { sel.disabled = false; });
+    });
+  })();
+
+  // ---------- Openings: tabla editable (celdas, títulos, filas y columnas) ----------
+  (function() {
+    var sw = document.getElementById('opSwitch'), txt = document.getElementById('opSwitchTxt'), cont = document.getElementById('opContenido');
+    var OP = null, orden = null;  // orden = {clave, dir} (solo la vista)
+    function post(url, body) {
+      return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})})
+        .then(function(r) { return r.json().catch(function() { return {}; }).then(function(x) {
+          if (!r.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + r.status); return x; }); });
+    }
+    function cargar() {
+      cont.innerHTML = '<p class="cat-sin">Cargando…</p>';
+      return fetch('/design/api/openings').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(d) { OP = d; pintar(); })
+        .catch(function(e) { cont.innerHTML = '<p style="color:#b91c1c">No se pudo cargar: ' + esc(e.message) + '</p>'; });
+    }
+    function filasOrdenadas() {
+      var f = OP.filas.slice();
+      if (orden) {
+        var num = function(v) { var n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
+        f.sort(function(a, b) {
+          var x = a.datos[orden.clave] || '', y = b.datos[orden.clave] || '', nx = num(x), ny = num(y);
+          var c = (nx !== null && ny !== null) ? nx - ny : x.localeCompare(y, 'es', {sensitivity: 'base'});
+          return c * orden.dir;
+        });
+      }
+      return f;
+    }
+    function pintar() {
+      var q = (document.getElementById('opBuscar') || {}).value || '';
+      document.getElementById('opSub').textContent = OP.filas.length + ' centros · ' + OP.columnas.length + ' columnas · editable';
+      var h = '<div class="op-cab"><span class="op-tit op-edit" data-op-hoja="titulo" title="Clic para editar">' + esc(OP.titulo || 'Sin título') + '</span>' +
+        '<span class="op-sub op-edit" data-op-hoja="subtitulo" title="Clic para editar">' + esc(OP.subtitulo || '—') + '</span></div>' +
+        '<div class="op-barra"><input type="search" id="opBuscar" placeholder="Buscar centro, manager, diseñador…" aria-label="Buscar en Openings" value="' + esc(q) + '">' +
+        '<button type="button" class="btn" data-op="fila">+ Fila</button><button type="button" class="btn gris" data-op="columna">+ Columna</button>' +
+        '<span class="cat-sin" id="opCuenta"></span></div>' +
+        '<div class="op-wrap"><table class="op-tabla"><thead><tr>';
+      OP.columnas.forEach(function(c, i) {
+        var flecha = orden && orden.clave === c.clave ? (orden.dir > 0 ? ' ▲' : ' ▼') : '';
+        h += '<th><span class="op-th"><span class="op-edit" data-op-col="' + c.id + '" title="Clic para renombrar">' + esc(c.titulo || c.clave) + '</span>' +
+          '<button type="button" data-op="ordenar" data-clave="' + esc(c.clave) + '" title="Ordenar la vista" aria-label="Ordenar por ' + esc(c.titulo) + '">↕' + flecha + '</button>' +
+          (i > 0 ? '<button type="button" data-op="izq" data-col="' + c.id + '" title="Mover a la izquierda" aria-label="Mover ' + esc(c.titulo) + ' a la izquierda">‹</button>' : '') +
+          (i < OP.columnas.length - 1 ? '<button type="button" data-op="der" data-col="' + c.id + '" title="Mover a la derecha" aria-label="Mover ' + esc(c.titulo) + ' a la derecha">›</button>' : '') +
+          '<button type="button" class="op-x" data-op="quitar-col" data-col="' + c.id + '" title="Quitar columna" aria-label="Quitar columna ' + esc(c.titulo) + '">×</button></span></th>';
+      });
+      h += '<th class="op-acc-col"></th></tr></thead><tbody>';
+      filasOrdenadas().forEach(function(f) {
+        h += '<tr data-fila="' + f.id + '">';
+        OP.columnas.forEach(function(c) {
+          h += '<td class="op-celda" data-clave="' + esc(c.clave) + '">' + esc(f.datos[c.clave] || '') + '</td>';
+        });
+        h += '<td class="op-acc op-acc-col"><button type="button" data-op="insertar" title="Agregar una fila debajo" aria-label="Agregar fila debajo">+</button>' +
+             '<button type="button" class="op-x" data-op="quitar-fila" title="Quitar fila" aria-label="Quitar fila">×</button></td></tr>';
+      });
+      h += '</tbody></table></div>';
+      cont.innerHTML = h;
+      filtrar();
+    }
+    function filtrar() {
+      var inp = document.getElementById('opBuscar'); if (!inp) return;
+      var q = inp.value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), n = 0;
+      cont.querySelectorAll('tbody tr').forEach(function(tr) {
+        var t = tr.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        var ver = !q || t.indexOf(q) >= 0; tr.classList.toggle('op-oculta', !ver); if (ver) n++;
+      });
+      document.getElementById('opCuenta').textContent = q ? n + ' de ' + OP.filas.length + ' filas' : '';
+    }
+    // edición en el lugar: clic → editar; Enter guarda; Esc cancela
+    function editar(el, alGuardar) {
+      if (el.isContentEditable) return;
+      var antes = el.textContent;
+      el.contentEditable = 'true'; el.focus();
+      var r = document.createRange(); r.selectNodeContents(el); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      function fin(guardar) {
+        el.removeEventListener('keydown', tecla); el.removeEventListener('blur', alSalir);
+        el.contentEditable = 'false';
+        var v = el.textContent.trim();
+        if (!guardar || v === antes.trim()) { el.textContent = antes; return; }
+        alGuardar(v).then(function() { el.classList.add('op-guardado'); setTimeout(function() { el.classList.remove('op-guardado'); }, 900); })
+          .catch(function(e) { el.textContent = antes; paramToast('No se pudo guardar: ' + e.message, true); });
+      }
+      function tecla(e) {
+        if (e.key === 'Enter') { e.preventDefault(); fin(true); }
+        else if (e.key === 'Escape') { e.preventDefault(); fin(false); }
+      }
+      function alSalir() { fin(true); }
+      el.addEventListener('keydown', tecla); el.addEventListener('blur', alSalir);
+    }
+    cont.addEventListener('input', function(e) { if (e.target.id === 'opBuscar') filtrar(); });
+    cont.addEventListener('click', function(e) {
+      var celda = e.target.closest('.op-celda');
+      if (celda) {
+        var fid = parseInt(celda.parentNode.dataset.fila), clave = celda.dataset.clave;
+        editar(celda, function(v) {
+          return post('/design/api/openings/celda', {filaId: fid, clave: clave, valor: v}).then(function() {
+            var f = OP.filas.find(function(x) { return x.id === fid; }); if (f) f.datos[clave] = v; });
+        });
+        return;
+      }
+      var hoja = e.target.closest('[data-op-hoja]');
+      if (hoja) {
+        var campo = hoja.dataset.opHoja;
+        editar(hoja, function(v) { var b = {}; b[campo] = v; return post('/design/api/openings/hoja', b).then(function() { OP[campo] = v; }); });
+        return;
+      }
+      var col = e.target.closest('[data-op-col]');
+      if (col) {
+        var cid = parseInt(col.dataset.opCol);
+        editar(col, function(v) { return post('/design/api/openings/columnas/' + cid, {titulo: v}).then(function() {
+          var c = OP.columnas.find(function(x) { return x.id === cid; }); if (c) c.titulo = v; }); });
+        return;
+      }
+      var b = e.target.closest('[data-op]');
+      if (!b) return;
+      var op = b.dataset.op, tr = b.closest('tr'), filaId = tr && tr.dataset.fila ? parseInt(tr.dataset.fila) : null;
+      if (op === 'ordenar') {
+        var k = b.dataset.clave;
+        orden = (!orden || orden.clave !== k) ? {clave: k, dir: 1} : (orden.dir === 1 ? {clave: k, dir: -1} : null);
+        pintar(); return;
+      }
+      var accion = null;
+      if (op === 'fila') accion = post('/design/api/openings/filas', {});
+      else if (op === 'insertar') accion = post('/design/api/openings/filas', {despuesDe: filaId});
+      else if (op === 'quitar-fila') {
+        var cen = (OP.filas.find(function(x) { return x.id === filaId; }) || {datos: {}}).datos.centro;
+        if (!confirm('¿Quitar la fila' + (cen ? ' de ' + cen : '') + '? Queda en la Papelera de Design.')) return;
+        accion = post('/design/api/openings/filas/' + filaId + '/eliminar');
+      } else if (op === 'columna') {
+        var t = prompt('Nombre de la nueva columna:', ''); if (t === null || !t.trim()) return;
+        accion = post('/design/api/openings/columnas', {titulo: t.trim()});
+      } else if (op === 'quitar-col') {
+        var c = OP.columnas.find(function(x) { return x.id === parseInt(b.dataset.col); });
+        if (!confirm('¿Quitar la columna "' + (c ? c.titulo : '') + '" con todos sus valores? Queda en la Papelera de Design.')) return;
+        accion = post('/design/api/openings/columnas/' + b.dataset.col + '/eliminar');
+      } else if (op === 'izq' || op === 'der') {
+        accion = post('/design/api/openings/columnas/' + b.dataset.col + '/mover', {paso: op === 'der' ? 1 : -1});
+      }
+      if (!accion) return;
+      b.disabled = true;
+      var y = (cont.querySelector('.op-wrap') || {}).scrollTop || 0, x = (cont.querySelector('.op-wrap') || {}).scrollLeft || 0;
+      accion.then(function(res) {
+        return cargar().then(function() {
+          var w = cont.querySelector('.op-wrap'); if (w) { w.scrollTop = y; w.scrollLeft = x; }
+          if ((op === 'fila' || op === 'insertar') && res && res.id) {
+            var nueva = cont.querySelector('tr[data-fila="' + res.id + '"] .op-celda');
+            if (nueva) { nueva.scrollIntoView({block: 'nearest'}); nueva.click(); }
+          }
+        });
+      }).catch(function(err) { paramToast('No se pudo: ' + err.message, true); b.disabled = false; });
+    });
+    sw.addEventListener('change', function() {
+      cont.hidden = !sw.checked; txt.innerText = sw.checked ? 'Ocultar' : 'Revisar';
+      if (sw.checked && !OP) cargar();
     });
   })();
 
