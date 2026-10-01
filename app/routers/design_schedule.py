@@ -371,7 +371,13 @@ def toggle_catalogo(cat_id: int, user: Empleado = Depends(require_admin), db: Se
 def crear_ausencia(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                          nombre: str = Form(...)):
     nombre = nombre.strip()
-    if nombre and not db.query(DesignAusenciaTipo).filter(DesignAusenciaTipo.nombre == nombre).first():
+    if len(nombre) > 100:
+        return _param_invalido("El nombre no puede tener más de 100 caracteres.")
+    existe = db.query(DesignAusenciaTipo).filter(DesignAusenciaTipo.nombre == nombre).first()
+    if existe and not existe.activo:  # como en Catálogos: si ya existía desactivado, se vuelve a activar
+        existe.activo = 1
+        db.commit()
+    if nombre and not existe:
         orden = db.query(DesignAusenciaTipo).count() + 1
         db.add(DesignAusenciaTipo(nombre=nombre, orden=orden))
         db.commit()

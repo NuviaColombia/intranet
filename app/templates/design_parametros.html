@@ -317,25 +317,38 @@
   </div>
 </div>
 
-<div class="tarjeta">
-  <h2>Tipos de ausencia (Tiempos libres)</h2>
-  <form method="post" action="/design/parametros/ausencias" class="filtros">
-    <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: Vacaciones"></div>
-    <div><button class="btn">Agregar</button></div>
-  </form>
-  <table style="margin-top:12px">
-    <tr><th>Nombre</th><th>Estado</th><th></th></tr>
-    {% for a in ausencias %}
-    <tr>
-      <td>{{ a.nombre }}</td>
-      <td>{{ 'Activo' if a.activo else 'Inactivo' }}</td>
-      <td><form class="inline" method="post" action="/design/parametros/ausencias/{{ a.id }}/toggle">
-        <button class="btn gris mini">{{ 'Desactivar' if a.activo else 'Activar' }}</button></form></td>
-    </tr>
-    {% else %}
-    <tr><td colspan="3">Ningún tipo de ausencia creado todavía.</td></tr>
-    {% endfor %}
-  </table>
+{% set n_aus = ausencias|selectattr('activo')|list|length %}
+<div class="tarjeta aud-tarjeta" id="ausTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Tipos de ausencia</h2>
+      <span class="aud-sub">{{ n_aus }} activo{{ '' if n_aus == 1 else 's' }} · Tiempos libres del Schedule</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Son las opciones del desplegable de ausencia en Tiempos libres del Schedule (por ejemplo Vacaciones o Incapacidad). La lista es la misma para todas las áreas. Desactivar un tipo lo quita del desplegable; las ausencias ya registradas lo conservan.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="ausSwitch" role="switch" aria-controls="ausContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="ausSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="ausContenido" hidden style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px">
+    <form method="post" action="/design/parametros/ausencias" class="eq-crear aus-guarda">
+      <div class="eq-m" style="flex:3"><label for="ausNombre">Nuevo tipo de ausencia</label>
+        <input name="nombre" id="ausNombre" required maxlength="100" placeholder="Ej: Vacaciones"></div>
+      <div><button class="btn">Agregar</button></div>
+    </form>
+    <div class="cat-vals" style="padding:2px 0 4px">
+      {% for a in ausencias|sort(attribute='activo', reverse=true) %}
+      <span class="cat-chip{{ '' if a.activo else ' off' }}">{{ a.nombre }}
+        <form method="post" action="/design/parametros/ausencias/{{ a.id }}/toggle" class="aus-guarda">
+          {% if a.activo %}<button aria-label="Desactivar {{ a.nombre }}" title="Desactivar (deja de salir en Tiempos libres)">×</button>
+          {% else %}<button aria-label="Activar {{ a.nombre }}" title="Activar otra vez">↺</button>{% endif %}
+        </form>
+      </span>
+      {% else %}<span class="cat-sin">Ningún tipo de ausencia creado todavía.</span>{% endfor %}
+    </div>
+  </div>
 </div>
 
 <datalist id="paramPersonas"></datalist>
@@ -731,6 +744,21 @@
     });
     if (!q) catAbiertasAntes = null;
   });
+
+  // ---------- Tipos de ausencia: interruptor; al guardar vuelve abierta ----------
+  (function() {
+    var sw = document.getElementById('ausSwitch'), txt = document.getElementById('ausSwitchTxt'), cont = document.getElementById('ausContenido');
+    var KEY = 'paramAusencias';
+    function mostrar(on) { sw.checked = on; cont.hidden = !on; txt.innerText = on ? 'Ocultar' : 'Revisar'; }
+    var st = null;
+    try { st = JSON.parse(sessionStorage.getItem(KEY) || 'null'); sessionStorage.removeItem(KEY); } catch (e) {}
+    if (st && st.on) { mostrar(true); window.scrollTo(0, st.y || 0); if (st.foco) document.getElementById('ausNombre').focus({preventScroll: true}); }
+    sw.addEventListener('change', function() { mostrar(sw.checked); });
+    cont.addEventListener('submit', function(e) {
+      if (!e.target.closest('.aus-guarda')) return;
+      try { sessionStorage.setItem(KEY, JSON.stringify({on: true, y: window.scrollY, foco: !e.target.closest('.cat-chip')})); } catch (x) {}
+    });
+  })();
 
   // ---------- Equipos: interruptor, áreas plegadas, editar y arrastrar diseñadores ----------
   var eqSw = document.getElementById('eqSwitch'), eqTxt = document.getElementById('eqSwitchTxt'), eqCont = document.getElementById('eqContenido');
