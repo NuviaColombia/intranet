@@ -133,7 +133,7 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
         "bodegas": [{"id": b.id, "codigo": b.codigo, "nombre": b.nombre, "prefijo": b.prefijo} for b in sc.bodegas_activas(db)],
         "materiales": [{"id": m.id, "codigo": m.codigo, "descripcion": m.descripcion, "areas": por_mat.get(m.id, [])}
                        for m in sc.materiales_activos(db)],
-        "areas": _areas(db), "areaAsignada": sc.area_de(user), "esAdmin": sc.es_admin(user),
+        "areas": _areas(db), "areaAsignada": sc.area_de(user), "areasAsignadas": sc.areas_de(user), "esAdmin": sc.es_admin(user),
         "puedeAnular": sc.puede_anular(db, user),
         "responsable": nombre_propio(user.nombre_completo), "correo": user.email or "", "usuarioId": user.id,
         "hoy": sc.hoy_colombia().isoformat(), "meses": sc.MESES,

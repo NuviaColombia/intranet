@@ -25,7 +25,7 @@
     {% for e in inv_conteo.accesos %}
     <tr>
       <td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td>
-      <td>{{ (e.area_custodia or '')|nombre_propio or '—' }}</td>
+      <td>{{ e.areas_custodia|map('nombre_propio')|join(' y ') or '—' }}</td>
       <td>{{ celda_secciones(e, "conteo", secciones_cfg.conteo, "/inventario/parametros?tab=n_accesos") }}</td>
       <td class="cp-acciones">
         <form class="inline" method="post" action="/inventario/parametros/conteo/accesos/{{ e.id }}/quitar"

@@ -26,7 +26,7 @@ class Empleado(Base):
     activo: Mapped[int] = mapped_column(Integer, default=1)
     dias_vacaciones: Mapped[float] = mapped_column(Float, default=0)  # saldo acumulado disponible
     modulos: Mapped[str] = mapped_column(String(100), default="people")  # slugs separados por coma
-    area_custodia: Mapped[str] = mapped_column(String(100), default="")  # área fija para el módulo Custodia
+    area_custodia: Mapped[str] = mapped_column(String(100), default="")  # áreas de Producción (máx. 2, separadas por coma)
     salario: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
 
     aprobador1_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
@@ -38,6 +38,14 @@ class Empleado(Base):
     @property
     def nombre_completo(self):
         return f"{self.nombres} {self.apellidos}"
+
+    @property
+    def areas_custodia(self) -> list[str]:
+        """Áreas de Producción asignadas (máx. 2), en mayúscula. La primera es la principal (área de salida por defecto)."""
+        return [a.strip().upper() for a in (self.area_custodia or "").split(",") if a.strip()][:2]
+
+    def tiene_area(self, area: str | None) -> bool:
+        return bool(area) and area.strip().upper() in self.areas_custodia
 
     @property
     def modulos_lista(self) -> list[str]:
