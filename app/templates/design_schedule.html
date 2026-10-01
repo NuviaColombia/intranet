@@ -3364,6 +3364,7 @@ window.DS_PANELS.dashboard = ddCargar;
     }).then(function(areas) {
       PA.areas = areas;
       var cont = document.getElementById('paAreaTabs'); cont.innerHTML = '';
+      if (!areas.length) { cont.innerHTML = '<p style="color:#4b5563;margin:4px 0">No hay Pre-Approved para tu área.</p>'; return; }
       areas.forEach(function(a) {
         cont.appendChild(dsDropArea(a, 'pa-tab' + (a.id === PA.areaId ? ' activo' : ''), function() { abrirListaArea(a); }));
       });

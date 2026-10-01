@@ -1032,6 +1032,25 @@ def pagina_preapproved(request: Request, user: Empleado = Depends(require_modulo
 # ---------- API: Pre-Approved ----------
 # Leen todos los del módulo; editan solo los roles por encima del diseñador (como Comments N2 / Face).
 
+def _pa_area(db: Session, user: Empleado, area_id: int | None) -> None:
+    """Pre-Approved: solo las áreas que ve `user` (ver sd.preapproved_areas_permitidas)."""
+    permitidas = sd.preapproved_areas_permitidas(db, user)
+    if permitidas is not None and area_id not in permitidas:
+        raise HTTPException(403, "Este Pre-Approved es de otra área.")
+
+
+def _pa_de(db: Session, user: Empleado, modelo, obj_id: int | None) -> None:
+    """Revisa el área de una hoja (o de un centro, doctor o fila, por su hoja). Si no existe, sigue (la ruta da 404)."""
+    if obj_id is None:
+        return
+    o = db.get(modelo, obj_id)
+    if not o:
+        return
+    sheet = o if isinstance(o, sd.DesignPreApprovedSheet) else db.get(sd.DesignPreApprovedSheet, o.sheet_id)
+    if sheet:
+        _pa_area(db, user, sheet.area_id)
+
+
 def _pa_editor(user: Empleado) -> None:
     if user.rol not in FAQ_ROLES_EDITAN:
         raise HTTPException(403, "Solo líderes y administradores pueden editar el Pre-Approved.")
@@ -1040,12 +1059,14 @@ def _pa_editor(user: Empleado) -> None:
 @router.get("/design/api/preapproved/sheets")
 def api_preapproved_sheets(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                  db: Session = Depends(get_db)):
+    _pa_area(db, user, area_id)
     return [{"id": s.id, "nombre": s.nombre} for s in sd.preapproved_sheets(db, area_id)]
 
 
 @router.get("/design/api/preapproved/sheets/{sheet_id}")
 def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                   db: Session = Depends(get_db)):
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     detalle = sd.preapproved_detalle(db, sheet_id)
     if not detalle:
         raise HTTPException(404, "Hoja no encontrada.")
@@ -1058,6 +1079,7 @@ def api_crear_preapproved_sheet(area_id: int, nombre: str = "",
                                       user: Empleado = Depends(require_modulo("design_schedule")),
                                       db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_area(db, user, area_id)
     if not db.get(DesignArea, area_id):
         raise HTTPException(404, "Área no encontrada.")
     s = sd.crear_preapproved_sheet(db, area_id, nombre)
@@ -1075,6 +1097,7 @@ def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSheetIn,
                                            user: Empleado = Depends(require_modulo("design_schedule")),
                                            db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     s = sd.actualizar_preapproved_sheet(db, sheet_id, {"nombre": payload.nombre, "titulo": payload.titulo,
                                                        "changes_label": payload.changesLabel})
     if not s:
@@ -1086,6 +1109,7 @@ def api_actualizar_preapproved_sheet(sheet_id: int, payload: PreApprovedSheetIn,
 def api_eliminar_preapproved_sheet(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                          db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     if not sd.eliminar_preapproved_sheet(db, sheet_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
@@ -1096,6 +1120,7 @@ def api_agregar_centro(sheet_id: int, nombre: str = "", doctores: int = 1,
                              user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     if not db.get(sd.DesignPreApprovedSheet, sheet_id):
         raise HTTPException(404, "Hoja no encontrada.")
     c = sd.preapproved_agregar_centro(db, sheet_id, nombre, doctores)
@@ -1112,6 +1137,7 @@ def api_actualizar_centro(centro_id: int, payload: CentroIn,
                                 user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedCentro, centro_id)
     sd.preapproved_actualizar_centro(db, centro_id, payload.nombre, payload.span)
     return {"mensaje": "Actualizado."}
 
@@ -1120,6 +1146,7 @@ def api_actualizar_centro(centro_id: int, payload: CentroIn,
 def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedCentro, centro_id)
     if not sd.preapproved_eliminar_centro(db, centro_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
@@ -1129,6 +1156,7 @@ def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo(
 def api_agregar_doctor(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     if not db.get(sd.DesignPreApprovedSheet, sheet_id):
         raise HTTPException(404, "Hoja no encontrada.")
     d = sd.preapproved_agregar_doctor(db, sheet_id)
@@ -1144,6 +1172,7 @@ def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
                                db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedDoctor, doctor_id)
     sd.preapproved_renombrar_doctor(db, doctor_id, payload.nombre)
     return {"mensaje": "Actualizado."}
 
@@ -1152,6 +1181,7 @@ def api_renombrar_doctor(doctor_id: int, payload: NombreIn,
 def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedDoctor, doctor_id)
     if not sd.preapproved_eliminar_doctor(db, doctor_id, user.nombre_completo):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
@@ -1161,6 +1191,7 @@ def api_eliminar_doctor(doctor_id: int, user: Empleado = Depends(require_modulo(
 def api_agregar_fila(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     if not db.get(sd.DesignPreApprovedSheet, sheet_id):
         raise HTTPException(404, "Hoja no encontrada.")
     f = sd.preapproved_agregar_fila(db, sheet_id)
@@ -1172,6 +1203,7 @@ def api_renombrar_fila(fila_id: int, payload: NombreIn,
                              user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedFila, fila_id)
     sd.preapproved_renombrar_fila(db, fila_id, payload.nombre)
     return {"mensaje": "Actualizado."}
 
@@ -1180,6 +1212,7 @@ def api_renombrar_fila(fila_id: int, payload: NombreIn,
 def api_eliminar_fila(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedFila, fila_id)
     if not sd.preapproved_eliminar_fila(db, fila_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
@@ -1195,6 +1228,8 @@ class CeldaIn(BaseModel):
 def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_modulo("design_schedule")),
                             db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedFila, payload.filaId)
+    _pa_de(db, user, sd.DesignPreApprovedDoctor, payload.doctorId)
     sd.preapproved_guardar_celda(db, payload.filaId, payload.doctorId, payload.valor)
     return {"mensaje": "Guardado."}
 
@@ -1208,6 +1243,7 @@ class AnchoIn(BaseModel):
 def api_preapproved_ancho(sheet_id: int, payload: AnchoIn, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
     _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     if not sd.preapproved_guardar_ancho(db, sheet_id, payload.clave, payload.px):
         raise HTTPException(404, "Hoja no encontrada.")
     return {"mensaje": "Guardado."}
@@ -1246,12 +1282,14 @@ def _pac_respuesta(resultado: dict) -> dict:
 @router.post("/design/api/preapproved/cambios/mover-doctor")
 def api_pac_mover_doctor(payload: PACMoverDoctorIn, user: Empleado = Depends(require_design_manager),
                                db: Session = Depends(get_db)):
+    _pa_de(db, user, sd.DesignPreApprovedDoctor, payload.doctorId); _pa_de(db, user, sd.DesignPreApprovedSheet, payload.sheetDestinoId)
     return _pac_respuesta(sd.pac_mover_doctor(db, payload.doctorId, payload.sheetDestinoId, payload.centroDestinoId))
 
 
 @router.post("/design/api/preapproved/cambios/mover-centro")
 def api_pac_mover_centro(payload: PACMoverCentroIn, user: Empleado = Depends(require_design_manager),
                                db: Session = Depends(get_db)):
+    _pa_de(db, user, sd.DesignPreApprovedCentro, payload.centroId); _pa_de(db, user, sd.DesignPreApprovedSheet, payload.sheetDestinoId)
     return _pac_respuesta(sd.pac_mover_centro(db, payload.centroId, payload.sheetDestinoId, payload.centroDestinoId))
 
 
@@ -1259,6 +1297,7 @@ def api_pac_mover_centro(payload: PACMoverCentroIn, user: Empleado = Depends(req
 def api_pac_intercambiar_doctor(payload: PACIntercambiarDoctorIn,
                                       user: Empleado = Depends(require_design_manager),
                                       db: Session = Depends(get_db)):
+    _pa_de(db, user, sd.DesignPreApprovedDoctor, payload.doctorAId); _pa_de(db, user, sd.DesignPreApprovedDoctor, payload.doctorBId)
     return _pac_respuesta(sd.pac_intercambiar_doctor(db, payload.doctorAId, payload.doctorBId))
 
 
@@ -1266,6 +1305,7 @@ def api_pac_intercambiar_doctor(payload: PACIntercambiarDoctorIn,
 def api_pac_intercambiar_centro(payload: PACIntercambiarCentroIn,
                                       user: Empleado = Depends(require_design_manager),
                                       db: Session = Depends(get_db)):
+    _pa_de(db, user, sd.DesignPreApprovedCentro, payload.centroAId); _pa_de(db, user, sd.DesignPreApprovedCentro, payload.centroBId)
     return _pac_respuesta(sd.pac_intercambiar_centro(db, payload.centroAId, payload.centroBId))
 
 
@@ -1431,7 +1471,7 @@ def pagina_favoritos(request: Request, user: Empleado = Depends(require_modulo("
 
 @router.get("/design/api/favoritos")
 def api_favoritos(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    return sd.favoritos_de(db, user.id)
+    return sd.favoritos_de(db, user.id, sd.preapproved_areas_permitidas(db, user))
 
 
 @router.get("/design/api/favoritos/activos")
@@ -1453,6 +1493,7 @@ def api_favorito_toggle_team(team_id: int, user: Empleado = Depends(require_modu
 @router.post("/design/api/favoritos/preapproved/{sheet_id}/toggle")
 def api_favorito_toggle_preapproved(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                           db: Session = Depends(get_db)):
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     _exigir_para_marcar(db, user, "preapproved", sheet_id, sd.DesignPreApprovedSheet, "Hoja no encontrada.")
     return {"favorito": sd.favorito_toggle_preapproved(db, user.id, sheet_id)}
 

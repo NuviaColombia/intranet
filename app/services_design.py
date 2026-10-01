@@ -87,6 +87,25 @@ def comments_permitidos(db: Session, user: Empleado) -> dict:
     return {k: bool(areas & v) for k, v in COMMENTS_AREAS.items()}
 
 
+# Pre-Approved: cada quien ve su área; N6 ve también N3 y Face también N2 (no tienen hojas propias).
+# Support y los admins ven todas (1-oct-2026).
+PA_AREAS_VINCULADAS = {"N6 Material Changes": "N3 Prosthetic", "Face Design": "N2 Demodenture"}
+
+
+def preapproved_areas_permitidas(db: Session, user: Empleado) -> set[int] | None:
+    """Ids de las áreas de Pre-Approved que ve `user`; None = todas."""
+    if es_admin(user):
+        return None
+    ids = equipos_como_designer(db, user)
+    teams = (db.query(DesignTeam).options(joinedload(DesignTeam.area))
+             .filter(DesignTeam.activo == 1, or_(DesignTeam.manager_id == user.id, DesignTeam.id.in_(ids or [-1]))).all())
+    if any(t.area.formato == FORMATO_SUPPORT for t in teams):
+        return None
+    nombres = {t.area.nombre for t in teams}
+    nombres |= {PA_AREAS_VINCULADAS[n] for n in nombres if n in PA_AREAS_VINCULADAS}
+    return {a.id for a in db.query(DesignArea).all() if a.nombre in nombres}
+
+
 def mis_equipos(db: Session, user: Empleado) -> list[dict]:
     """Equipos propios de un empleado o aprobador (no admin): primero los que maneja y luego aquellos en los que
     está como diseñador, cada grupo según el orden de las áreas. El primero es el que se abre al entrar."""
@@ -1924,7 +1943,7 @@ def trash_restaurar(db: Session, trash_id: int) -> bool:
 # Favoritos
 # ---------------------------------------------------------------------------
 
-def favoritos_de(db: Session, empleado_id: int) -> list[dict]:
+def favoritos_de(db: Session, empleado_id: int, pa_areas: set[int] | None = None) -> list[dict]:
     favs = (db.query(DesignFavorito).filter(DesignFavorito.empleado_id == empleado_id)
            .order_by(DesignFavorito.creado_en.desc()).all())
     out = []
@@ -1942,6 +1961,8 @@ def favoritos_de(db: Session, empleado_id: int) -> list[dict]:
             if not s:
                 huerfanos.append(f.id)
                 continue
+            if pa_areas is not None and s.area_id not in pa_areas:
+                continue  # hoja de un área que ya no ve
             out.append({"id": f.id, "tipo": "preapproved", "etiqueta": "Pre-Approved — " + s.nombre,
                        "areaId": s.area_id, "sheetId": s.id})
         elif f.tipo == "protocolo":
