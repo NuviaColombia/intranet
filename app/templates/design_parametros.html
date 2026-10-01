@@ -52,6 +52,17 @@
   .aud-grupo.imp-ok > summary .aud-cant { color:#166534; background:#dcfce7; }
   .imp-m { display:block; }
   .imp-m.nuevo { color:#1e40af; }
+  /* acciones dentro de las revisiones */
+  .acc { display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-top:4px; }
+  .acc input, .acc select { font-size:12px; padding:3px 6px; margin:0; width:auto; min-width:0; }
+  .acc input { width:210px; } .acc select { max-width:230px; }
+  .acc .btn { padding:3px 9px; font-size:11.5px; }
+  .acc .btn.rojo { background:#b91c1c; }
+  .acc-sep { color:#64748b; }
+  .aud-grupo.aud-reglas > summary .aud-cant { color:#334155; background:#f1f5f9; }
+  .param-toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#0f172a; color:#fff; padding:9px 14px;
+                 border-radius:8px; font-size:13px; z-index:50; box-shadow:0 4px 14px rgba(0,0,0,.25); max-width:90vw; }
+  .param-toast.error { background:#991b1b; }
   /* Equipos: por área (plegadas), una fila por equipo, diseñadores arrastrables */
   #eqContenido { margin-top:12px; border-top:1px solid #e5e7eb; padding-top:10px; }
   .eq-crear { display:flex; gap:8px; align-items:flex-end; flex-wrap:nowrap; margin-bottom:10px; }
@@ -91,9 +102,9 @@
   <div class="aud-fila">
     <div class="aud-titulo">
       <h2>Conexión con los equipos</h2>
-      <span class="aud-sub">Desempeño y Pre-Approved · solo lectura</span>
+      <span class="aud-sub">Desempeño y Pre-Approved · revisa y corrige</span>
       <span class="aud-info" tabindex="0" role="img" aria-label="Qué revisa"
-            title="Desempeño y Pre-Approved guardan nombres escritos (vienen del Excel), no la persona ni el equipo de esta página. La revisión muestra qué nombres no coinciden con los equipos y personas para corregirlos. No cambia nada.">i</span>
+            title="Desempeño y Pre-Approved guardan nombres escritos, no la persona ni el equipo de esta página. La revisión muestra qué no coincide con los equipos y personas de People, y cada fila tiene la acción para corregirlo. Lo que se quita queda en la Papelera de Design.">i</span>
     </div>
     <label class="aud-switch">
       <input type="checkbox" id="audSwitch" role="switch" aria-controls="audResultado">
@@ -108,9 +119,9 @@
   <div class="aud-fila">
     <div class="aud-titulo">
       <h2>Importar equipos desde Desempeño</h2>
-      <span class="aud-sub">Hojas de Desempeño → Equipos · vista previa antes de aplicar</span>
+      <span class="aud-sub">Hojas de Desempeño → Equipos · revisa, corrige y aplica</span>
       <span class="aud-info" tabindex="0" role="img" aria-label="Qué hace"
-            title="Cruza los equipos de las hojas de Desempeño (manager + diseñadores) contra los empleados de People (Nuvia Design Colombia SAS) por nombre. No crea empleados nuevos: si un nombre no tiene una coincidencia clara, queda marcado para agregarlo a mano. Al aplicar crea los equipos que faltan y agrega los diseñadores encontrados; no quita a nadie.">i</span>
+            title="Cruza las hojas de Desempeño actuales (manager + diseñadores) contra los empleados de People (Nuvia Design Colombia SAS) por nombre. No crea empleados nuevos: si un nombre no tiene una coincidencia clara, queda marcado para agregarlo a mano. Al aplicar crea los equipos que faltan y agrega los diseñadores encontrados; no quita a nadie.">i</span>
     </div>
     <label class="aud-switch">
       <input type="checkbox" id="impSwitch" role="switch" aria-controls="impResultado">
@@ -281,11 +292,120 @@
   </table>
 </div>
 
+<datalist id="paramPersonas"></datalist>
 <script>
 (function() {
+  var P_AREAS = [{% for a in areas %}{id: {{ a.id }}, nombre: {{ a.nombre|tojson }}}{{ ',' if not loop.last }}{% endfor %}];
+  var P_TEAMS = [{% for t in teams if t.manager and t.activo %}{id: {{ t.id }}, areaId: {{ t.area_id }}, nombre: {{ t.nombre|tojson }}, manager: {{ t.manager.nombre_completo|tojson }}}{{ ',' if not loop.last }}{% endfor %}];
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  // ---------- Importar equipos desde Desempeño: interruptor, resumen y grupos plegables ----------
+  // ---------- Acciones compartidas por Conexión e Importar ----------
+  var AUD_ROJO = function(t) { return '<span style="color:#b91c1c">' + t + '</span>'; };
+  var pPersonas = null, pPorNombre = {};
+  function cargarPersonas() {
+    if (pPersonas) return pPersonas;
+    pPersonas = fetch('/design/api/parametros/personas').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(l) {
+        var dl = document.getElementById('paramPersonas');
+        dl.innerHTML = l.map(function(x) { pPorNombre[x.nombre.toLowerCase()] = x.id; return '<option value="' + esc(x.nombre) + '">'; }).join('');
+        return l;
+      }).catch(function(e) { pPersonas = null; throw e; });
+    return pPersonas;
+  }
+  function dataAttrs(o) {
+    return Object.keys(o).map(function(k) { return ' data-' + k + '="' + esc(o[k]) + '"'; }).join('');
+  }
+  function btnAcc(acc, txt, datos, clase) {
+    return '<button type="button" class="btn mini' + (clase ? ' ' + clase : '') + '" data-acc="' + acc + '"' + dataAttrs(datos || {}) + '>' + txt + '</button>';
+  }
+  function inPersona(etq) { return '<input class="acc-persona" list="paramPersonas" placeholder="Buscar en People…" aria-label="' + esc(etq) + '">'; }
+  function selArea(sel, etq) {
+    return '<select class="acc-area" aria-label="' + esc(etq) + '">' + P_AREAS.map(function(a) {
+      return '<option value="' + a.id + '"' + (a.id === sel ? ' selected' : '') + '>' + esc(a.nombre) + '</option>'; }).join('') + '</select>';
+  }
+  function selEquipo(areaId, etq) {
+    var ts = P_TEAMS.filter(function(t) { return t.areaId === areaId; });
+    if (!ts.length) return '<span class="eq-vacio">No hay equipos con manager en esta área.</span>';
+    return '<select class="acc-equipo" aria-label="' + esc(etq) + '">' + ts.map(function(t) {
+      return '<option value="' + t.id + '">' + esc(t.manager) + (t.nombre !== t.manager ? ' (' + esc(t.nombre) + ')' : '') + '</option>'; }).join('') + '</select>';
+  }
+  function accAsociar(hoja, areaId) {
+    return '<div class="acc">' + selArea(areaId, 'Área de ' + hoja) + inPersona('Manager de ' + hoja) +
+           btnAcc('asociar', 'Asociar manager', {hoja: hoja}) + '</div>';
+  }
+  function accElegir(hoja, de) {
+    return '<div class="acc">' + inPersona('Persona de People para ' + de) + btnAcc('elegir', 'Usar', {hoja: hoja, de: de}) + '</div>';
+  }
+  function paramToast(msg, error) {
+    var t = document.createElement('div'); t.className = 'param-toast' + (error ? ' error' : ''); t.setAttribute('role', 'status');
+    t.innerText = msg; document.body.appendChild(t); setTimeout(function() { t.remove(); }, error ? 7000 : 4500);
+  }
+  function personaDe(cont) {
+    var i = cont.querySelector('.acc-persona');
+    var id = i && pPorNombre[(i.value || '').trim().toLowerCase()];
+    if (!id) { paramToast('Elige una persona de la lista de People.', true); if (i) i.focus(); }
+    return id;
+  }
+  var ACC = {
+    usar: function(b, c) { var sel = c.querySelector('select'); var nom = sel.options[sel.selectedIndex].text;
+      return {url: 'renombrar-fila', body: {hoja: b.dataset.hoja, de: b.dataset.de, empleadoId: parseInt(sel.value)},
+              conf: 'En la hoja "' + b.dataset.hoja + '", "' + b.dataset.de + '" pasará a llamarse "' + nom + '".'}; },
+    elegir: function(b, c) { var id = personaDe(c); if (!id) return null; var nom = c.querySelector('.acc-persona').value;
+      return {url: 'renombrar-fila', body: {hoja: b.dataset.hoja, de: b.dataset.de, empleadoId: id},
+              conf: 'En la hoja "' + b.dataset.hoja + '", "' + b.dataset.de + '" pasará a llamarse "' + nom + '".'}; },
+    quitar: function(b) { return {url: 'quitar-fila', body: {hoja: b.dataset.hoja, nombre: b.dataset.nombre},
+              conf: 'Quitar la fila "' + b.dataset.nombre + '" de la hoja "' + b.dataset.hoja + '". Sus calificaciones quedan en la Papelera de Design.'}; },
+    agregar: function(b) { return {url: 'agregar-al-equipo', body: {hoja: b.dataset.hoja, nombre: b.dataset.nombre}, equipos: true,
+              conf: 'Agregar a "' + b.dataset.nombre + '" al equipo del manager de la hoja "' + b.dataset.hoja + '" (sigue también en su equipo actual).'}; },
+    mover: function(b) { return {url: 'mover-al-equipo', body: {hoja: b.dataset.hoja, nombre: b.dataset.nombre}, equipos: true,
+              conf: 'Mover a "' + b.dataset.nombre + '" al equipo del manager de la hoja "' + b.dataset.hoja + '"' +
+                    (b.dataset.otros ? '. Sale de: ' + b.dataset.otros : '') + '.'}; },
+    aceptar: function(b) { var m = prompt('¿Por qué está en DESIGN MANAGERS sin ser manager? (ej.: Entrenadora)', ''); if (m === null) return null;
+      return {url: 'marcar', body: {tipo: 'aceptado_general', nombre: b.dataset.nombre, motivo: m}}; },
+    historico: function(b) { return {url: 'marcar', body: {tipo: 'historico', nombre: b.dataset.nombre},
+              conf: 'Marcar a "' + b.dataset.nombre + '" como histórico (ya no es manager). Se conserva todo; deja de salir como error.'}; },
+    agregarFila: function(b) { return {url: 'agregar-fila', body: {hoja: b.dataset.hoja, nombre: b.dataset.nombre},
+              conf: 'Agregar a "' + b.dataset.nombre + '" a la hoja "' + b.dataset.hoja + '" con los meses vacíos.'}; },
+    crearEquipo: function(b) { return {url: 'crear-equipo-hoja', body: {hoja: b.dataset.hoja}, equipos: true,
+              conf: 'Crear el equipo de ' + b.dataset.manager + ' con las personas de la hoja "' + b.dataset.hoja + '" que no tienen equipo.'}; },
+    asociar: function(b, c) { var id = personaDe(c); if (!id) return null; var a = c.querySelector('.acc-area');
+      return {url: 'asociar-hoja', body: {hoja: b.dataset.hoja, areaId: parseInt(a.value), empleadoId: id},
+              conf: 'La hoja "' + b.dataset.hoja + '" será de ' + c.querySelector('.acc-persona').value + ' (' + a.options[a.selectedIndex].text +
+                    '). Ese manager podrá verla y calificarla en Desempeño.'}; },
+    asociarEquipo: function(b, c) { var h = c.querySelector('.acc-hoja');
+      return {url: 'asociar-hoja', body: {hoja: h.value, areaId: parseInt(b.dataset.area), empleadoId: parseInt(b.dataset.manager)},
+              conf: 'La hoja "' + h.value + '" será del equipo ' + b.dataset.equipo + '. Su manager podrá verla y calificarla en Desempeño.'}; },
+    evaluador: function(b, c) { var id = personaDe(c); if (!id) return null;
+      return {url: 'renombrar-evaluador', body: {filaId: parseInt(b.dataset.fila), empleadoId: id},
+              conf: 'El evaluador "' + b.dataset.nombre + '" pasará a llamarse "' + c.querySelector('.acc-persona').value + '".'}; },
+    pa: function(b, c) { var t = c.querySelector('.acc-equipo'); if (!t) return null;
+      return {url: 'asociar-pa', body: {sheetId: parseInt(b.dataset.sheet), teamId: parseInt(t.value)},
+              conf: 'La hoja de Pre-Approved "' + b.dataset.hoja + '" quedará conectada con ' + t.options[t.selectedIndex].text + '.'}; },
+    reglaQuitar: function(b) { return {url: 'reglas/' + b.dataset.id + '/eliminar', body: {},
+              conf: 'Quitar esta regla: "' + b.dataset.texto + '". Lo que dependía de ella vuelve a revisarse.'}; }
+  };
+  var pEquiposCambiados = false;
+  document.addEventListener('click', function(e) {
+    var b = e.target.closest('[data-acc]');
+    if (!b || !ACC[b.dataset.acc]) return;
+    var c = b.closest('.acc') || b.parentNode;
+    var a = ACC[b.dataset.acc](b, c);
+    if (!a || (a.conf && !confirm(a.conf + '\n\n¿Continuar?'))) return;
+    b.disabled = true;
+    fetch('/design/api/parametros/' + a.url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(a.body)})
+      .then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) {
+        if (!r.ok) throw new Error(d.detail ? (typeof d.detail === 'string' ? d.detail : 'Datos inválidos') : 'HTTP ' + r.status); return d; }); })
+      .then(function(d) {
+        if (a.equipos) pEquiposCambiados = true;
+        paramToast('✓ ' + (d.detalle || 'Hecho.') + (pEquiposCambiados ? ' La tabla de Equipos se actualiza al recargar la página.' : ''));
+        var t = [];
+        if (audSw.checked) t.push(audCargar());
+        if (impSw.checked) t.push(impCargar(false));
+        return Promise.all(t);
+      }).catch(function(err) { paramToast('No se pudo: ' + err.message, true); b.disabled = false; });
+  });
+
+  // ---------- Importar equipos desde Desempeño: interruptor, resumen, grupos plegables y acciones ----------
   function impGrupo(titulo, filas, encabezados, clase) {
     if (!filas.length) return '';
     var t = '<table><tr>' + encabezados.map(function(x) { return '<th>' + x + '</th>'; }).join('') + '</tr>';
@@ -301,20 +421,23 @@
       var porAgregar = [], ya = 0;
       eq.miembros.forEach(function(m) {
         totM++;
-        if (!m.empleadoId) { sinCoin.push([esc(eq.hoja), esc(m.nombreOriginal), 'Diseñador']); return; }
+        if (!m.empleadoId) { sinCoin.push([esc(eq.hoja), esc(m.nombreOriginal), 'Diseñador', accElegir(eq.hoja, m.nombreOriginal)]); return; }
         okM++;
         if (m.estado === 'en_equipo') { ya++; return; }
         if (m.estado !== 'nuevo') {
-          var extra = m.estado === 'otro_equipo' && m.otrosEquipos && m.otrosEquipos.length ? ': ' + m.otrosEquipos.map(esc).join(', ') : '';
-          omitidos.push([esc(eq.hoja), esc(m.empleadoNombre), (IMP_OMITE[m.estado] || esc(m.estado)) + extra]);
+          var otros = m.otrosEquipos || [];
+          var acc = m.estado === 'otro_equipo' && eq.equipoId
+            ? '<div class="acc">' + btnAcc('mover', 'Mover a este equipo', {hoja: eq.hoja, nombre: m.empleadoNombre, otros: otros.join(', ')}) + '</div>' : '';
+          omitidos.push([esc(eq.hoja), esc(m.empleadoNombre), (IMP_OMITE[m.estado] || esc(m.estado)) +
+                         (m.estado === 'otro_equipo' && otros.length ? ': ' + otros.map(esc).join(', ') : '') + acc]);
           return;
         }
         porAgregar.push('<span class="imp-m nuevo">' + esc(m.empleadoNombre) + '</span>');
       });
-      if (!eq.managerEncontrado) sinCoin.push([esc(eq.hoja), esc(eq.managerBuscado), 'Manager']);
+      if (!eq.managerEncontrado) sinCoin.push([esc(eq.hoja), esc(eq.managerBuscado), 'Manager', accAsociar(eq.hoja, eq.areaId)]);
       var area = esc(eq.area) + (eq.areaEncontrada ? '' : ' <b style="color:#b91c1c">(no existe)</b>');
       if (!eq.managerEncontrado || !eq.areaEncontrada) {
-        noCrea.push([esc(eq.hoja), area, AUD_ROJO(!eq.areaEncontrada ? 'El área no existe.' : 'Falta el manager en People.')]);
+        noCrea.push([esc(eq.hoja), area, AUD_ROJO(!eq.areaEncontrada ? 'El área no existe.' : 'Falta el manager en People.') + accAsociar(eq.hoja, eq.areaId)]);
         return;
       }
       var crear = !eq.equipoYaExistia;
@@ -326,7 +449,9 @@
         alDia.push([esc(eq.hoja), area, esc(eq.managerEncontrado), ya + ' diseñador(es)']);
       }
     });
-    var sinMapeo = (data.sinMapeo || []).map(function(h) { return [esc(h)]; });
+    var sinMapeo = (data.sinMapeo || []).map(function(h) {
+      return [esc(h.hoja), h.general ? 'Hoja general de managers (no es un equipo).' : AUD_ROJO('No está asociada a un manager.') + accAsociar(h.hoja, null)];
+    });
     var html = (aplicado ? '<p class="aud-ok">✓ Aplicado. <a href="/design/parametros">Recarga la página</a> para ver los cambios en la tabla de Equipos.</p>' : '') +
       '<div class="aud-resumen">' +
       '<span class="aud-chip">Managers encontrados <b>' + okMgr + ' / ' + data.equipos.length + '</b></span>' +
@@ -335,26 +460,35 @@
       '<span class="aud-chip">Sin coincidencia <b>' + sinCoin.length + '</b></span></div>' +
       impGrupo('Por aplicar', pend, ['Hoja', 'Área', 'Manager', 'Diseñadores que se agregarán'], 'imp-pend') +
       impGrupo('No se agregarán al aplicar', omitidos, ['Hoja', 'Persona', 'Motivo'], 'imp-omit') +
-      impGrupo('Sin coincidencia en People (agregar a mano)', sinCoin, ['Hoja', 'Nombre en Desempeño', 'Rol']) +
+      impGrupo('Sin coincidencia en People', sinCoin, ['Hoja', 'Nombre en Desempeño', 'Rol', 'Corregir']) +
       impGrupo('Equipos que no se pueden crear', noCrea, ['Hoja', 'Área', 'Motivo']) +
       impGrupo('Al día', alDia, ['Hoja', 'Área', 'Manager', 'En el equipo'], 'imp-ok') +
-      impGrupo('Hojas sin equipo propio (managers evaluados sin lista de diseñadores)', sinMapeo, ['Hoja']);
+      impGrupo('Hojas sin equipo propio', sinMapeo, ['Hoja', 'Motivo']);
     if (cambios) {
       html += '<div style="margin-top:8px"><button type="button" class="btn" id="impAplicar">Aplicar ' + cambios + ' cambios</button></div>';
     } else if (!aplicado) {
       html += '<p class="aud-ok">✓ No hay nada por aplicar: los equipos ya coinciden con Desempeño.</p>';
     }
-    document.getElementById('impResultado').innerHTML = html;
+    var res = document.getElementById('impResultado'), abiertos = gruposAbiertos(res);
+    res.innerHTML = html;
+    reabrir(res, abiertos);
     impCambios = cambios;
+  }
+  // al recargar después de una acción, los grupos que estaban abiertos siguen abiertos
+  function gruposAbiertos(cont) {
+    return [].map.call(cont.querySelectorAll('details[open] > summary'), function(s) { return s.firstChild.textContent; });
+  }
+  function reabrir(cont, titulos) {
+    [].forEach.call(cont.querySelectorAll('details > summary'), function(s) { if (titulos.indexOf(s.firstChild.textContent) >= 0) s.parentNode.open = true; });
   }
   var impSw = document.getElementById('impSwitch'), impTxt = document.getElementById('impSwitchTxt'), impTok = 0, impCambios = 0;
   function impCargar(aplicado) {
     var t = ++impTok, res = document.getElementById('impResultado');
     impSw.disabled = true; impTxt.innerText = 'Cargando…';
-    return fetch('/design/api/parametros/importar-equipos-preview').then(function(r) {
+    return Promise.all([fetch('/design/api/parametros/importar-equipos-preview').then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-    }).then(function(d) { if (t === impTok && impSw.checked) renderImport(d, aplicado); }).catch(function(e) {
-      if (t === impTok) res.innerHTML = AUD_ROJO('No se pudo cargar la vista previa: ' + esc(e.message));
+    }), cargarPersonas()]).then(function(x) { if (t === impTok && impSw.checked) renderImport(x[0], aplicado); }).catch(function(e) {
+      if (t === impTok) res.innerHTML = AUD_ROJO('No se pudo cargar: ' + esc(e.message));
     }).then(function() { impSw.disabled = false; impTxt.innerText = impSw.checked ? 'Ocultar' : 'Revisar'; });
   }
   impSw.addEventListener('change', function() {
@@ -369,63 +503,100 @@
     btn.disabled = true; btn.innerText = 'Aplicando…';
     fetch('/design/api/parametros/importar-equipos', {method: 'POST'}).then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-    }).then(function() { return impCargar(true); }).catch(function(err) { alert('No se pudo aplicar: ' + err.message); btn.disabled = false; });
+    }).then(function() { pEquiposCambiados = true; return impCargar(true); }).catch(function(err) { alert('No se pudo aplicar: ' + err.message); btn.disabled = false; });
   });
 
-  // ---------- Auditoría de conexiones (solo lectura): interruptor, resumen y grupos plegables ----------
-  var AUD_ROJO = function(t) { return '<span style="color:#b91c1c">' + t + '</span>'; };
-  function audGrupo(titulo, filas, encabezados) {
+  // ---------- Conexión con los equipos: interruptor, resumen, grupos plegables y acciones ----------
+  function audGrupo(titulo, filas, encabezados, clase) {
     if (!filas.length) return '';
     var t = '<table><tr>' + encabezados.map(function(x) { return '<th>' + x + '</th>'; }).join('') + '</tr>';
     filas.forEach(function(f) { t += '<tr>' + f.map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; });
-    return '<details class="aud-grupo"><summary>' + titulo + '<span class="aud-cant">' + filas.length + '</span></summary>' +
+    return '<details class="aud-grupo' + (clase ? ' ' + clase : '') + '"><summary>' + titulo + '<span class="aud-cant">' + filas.length + '</span></summary>' +
            '<div class="aud-scroll">' + t + '</table></div></details>';
   }
+  var audReglas = [];
   function renderAuditoria(d) {
     var okHojas = 0, okFilas = 0, totFilas = 0, probHoja = [], probFila = [], faltan = [], faltanMgr = [];
+    var hojasLibres = d.hojas.filter(function(h) { return !h.general && !h.equipo; }).map(function(h) { return h.hoja; });
     d.hojas.forEach(function(h) {
       if (!h.problemas.length) okHojas++;
-      h.problemas.forEach(function(p) { probHoja.push([esc(h.hoja), AUD_ROJO(esc(p))]); });
+      h.problemas.forEach(function(p) {
+        var acc = h.accion === 'asociar' ? accAsociar(h.hoja, null)
+          : h.accion === 'crear_equipo' ? '<div class="acc">' + btnAcc('crearEquipo', 'Crear equipo de ' + esc(h.manager), {hoja: h.hoja, manager: h.manager}) +
+                                           '</div><div class="acc-sep" style="font-size:11px;margin-top:2px">o asociar otro manager:</div>' + accAsociar(h.hoja, null)
+          : '';
+        probHoja.push([esc(h.hoja), AUD_ROJO(esc(p)) + acc]);
+      });
       h.filas.forEach(function(f) {
         totFilas++;
         if (f.estado === 'ok' || f.estado === 'historico') { okFilas++; return; }
-        var prob = AUD_ROJO(esc(f.detalle));
-        if (f.sugerencias && f.sugerencias.length) {
-          prob += '<div class="aud-sug"><select aria-label="Persona de People para ' + esc(f.nombre) + '">' +
-            f.sugerencias.map(function(x) { return '<option value="' + x.id + '">' + esc(x.nombre) + '</option>'; }).join('') +
-            '</select><button type="button" class="btn mini" data-usar="1" data-hoja="' + esc(h.hoja) + '" data-de="' + esc(f.nombre) + '">Usar</button></div>';
-        }
-        if (f.estado === 'otro_equipo' && h.equipo) {
-          prob += '<div class="aud-sug"><button type="button" class="btn mini" data-agregar="1" data-hoja="' + esc(h.hoja) + '" data-de="' +
-                  esc(f.nombre) + '">Agregar al equipo de ' + esc(h.manager || h.equipo) + '</button></div>';
+        var prob = AUD_ROJO(esc(f.detalle)), dat = {hoja: h.hoja, nombre: f.nombre};
+        if (f.estado === 'sin_persona') {
+          if (f.sugerencias && f.sugerencias.length) {
+            prob += '<div class="acc"><select aria-label="Sugerencias de People para ' + esc(f.nombre) + '">' +
+              f.sugerencias.map(function(x) { return '<option value="' + x.id + '">' + esc(x.nombre) + '</option>'; }).join('') +
+              '</select>' + btnAcc('usar', 'Usar', {hoja: h.hoja, de: f.nombre}) + '</div>';
+          }
+          prob += '<div class="acc">' + inPersona('Otra persona de People para ' + f.nombre) + btnAcc('elegir', 'Usar', {hoja: h.hoja, de: f.nombre}) +
+                  '<span class="acc-sep">·</span>' + btnAcc('quitar', 'Quitar fila (ya no trabaja)', dat, 'rojo') + '</div>';
+        } else if (f.estado === 'otro_equipo' && h.equipo) {
+          prob += '<div class="acc">' + btnAcc('agregar', 'Agregar al equipo de ' + esc(h.manager || h.equipo), dat) +
+                  ((f.otros || []).length ? btnAcc('mover', 'Mover a este equipo', {hoja: h.hoja, nombre: f.nombre, otros: f.otros.join(', ')}) : '') +
+                  '<span class="acc-sep">·</span>' + btnAcc('quitar', 'Quitar fila', dat, 'rojo') + '</div>';
+        } else if (f.estado === 'no_manager') {
+          prob += '<div class="acc">' + btnAcc('aceptar', 'Aceptar', {nombre: f.persona || f.nombre}) +
+                  btnAcc('historico', 'Histórico', {nombre: f.persona || f.nombre}) +
+                  '<span class="acc-sep">·</span>' + btnAcc('quitar', 'Quitar fila', dat, 'rojo') + '</div>';
         }
         probFila.push([esc(h.hoja), esc(f.nombre), f.persona ? esc(f.persona) : '—', prob]);
       });
-      if (h.faltan.length) (h.general ? faltanMgr : faltan).push([esc(h.hoja), esc(h.equipo || ''), h.faltan.map(esc).join('<br>')]);
+      if (h.faltan.length) {
+        if (h.general) h.faltan.forEach(function(n) {
+          faltanMgr.push([esc(h.hoja), esc(n), '<div class="acc">' + btnAcc('agregarFila', 'Agregar a la hoja', {hoja: h.hoja, nombre: n}) + '</div>']);
+        });
+        else faltan.push([esc(h.hoja), esc(h.equipo || ''), h.faltan.map(esc).join('<br>')]);
+      }
     });
     var sel = d.seleccion.filter(function(x) { return x.estado !== 'ok' && x.estado !== 'historico'; }).map(function(x) {
       return [esc(x.hoja), esc(x.evaluador), x.persona ? esc(x.persona) : '—',
-              AUD_ROJO(x.estado === 'sin_persona' ? 'No coincide con nadie en People.' : 'No es manager de ningún equipo.')];
+              AUD_ROJO(x.estado === 'sin_persona' ? 'No coincide con nadie en People.' : 'No es manager de ningún equipo.') +
+              '<div class="acc">' + inPersona('Manager para ' + x.evaluador) + btnAcc('evaluador', 'Corregir', {fila: x.filaId, nombre: x.evaluador}) +
+              '<span class="acc-sep">·</span>' + btnAcc('historico', 'Histórico', {nombre: x.evaluador}) + '</div>'];
     });
     var pa = d.preapproved.filter(function(x) { return x.estado !== 'ok' && x.estado !== 'historico'; }).map(function(x) {
       return [esc(x.area), esc(x.hoja), AUD_ROJO(x.estado === 'ambiguo' ? 'Coincide con varios managers: ' + x.managers.map(esc).join(', ')
-                                                                         : 'No coincide con el manager de ningún equipo del área.')];
+                                                                         : 'No coincide con el manager de ningún equipo del área.') +
+              '<div class="acc">' + selEquipo(x.areaId, 'Equipo para ' + x.hoja) + btnAcc('pa', 'Conectar', {sheet: x.sheetId, hoja: x.hoja}) +
+              '<span class="acc-sep">·</span>' + btnAcc('historico', 'Histórico', {nombre: x.hoja}) + '</div>'];
     });
-    var sinHoja = d.equiposSinHoja.map(function(t) { return [esc(t)]; });
+    var sinHoja = d.equiposSinHoja.map(function(t) {
+      var acc = hojasLibres.length
+        ? '<div class="acc"><select class="acc-hoja" aria-label="Hoja para ' + esc(t.texto) + '">' + hojasLibres.map(function(h) {
+            return '<option>' + esc(h) + '</option>'; }).join('') + '</select>' +
+          btnAcc('asociarEquipo', 'Asociar hoja', {area: t.areaId, manager: t.managerId, equipo: t.texto}) + '</div>'
+        : '<span class="eq-vacio">No hay hojas libres para asociar.</span>';
+      return [esc(t.texto), acc];
+    });
+    var reglas = audReglas.map(function(r) {
+      return [esc(r.texto), esc(r.por || ''), '<div class="acc">' + btnAcc('reglaQuitar', 'Quitar', {id: r.id, texto: r.texto}) + '</div>'];
+    });
     var html = '<div class="aud-resumen">' +
       '<span class="aud-chip">Hojas conectadas <b>' + okHojas + ' / ' + d.hojas.length + '</b></span>' +
       '<span class="aud-chip">Filas que coinciden <b>' + okFilas + ' / ' + totFilas + '</b></span>' +
       '<span class="aud-chip">Selección <b>' + (d.seleccion.length - sel.length) + ' / ' + d.seleccion.length + '</b></span>' +
       '<span class="aud-chip">Pre-Approved <b>' + (d.preapproved.length - pa.length) + ' / ' + d.preapproved.length + '</b></span></div>';
-    var grupos = audGrupo('Hojas de Desempeño sin equipo', probHoja, ['Hoja', 'Problema']) +
-      audGrupo('Filas de Desempeño que no coinciden', probFila, ['Hoja', 'Nombre en Desempeño', 'Persona en People', 'Problema']) +
-      audGrupo('Diseñadores del equipo sin fila en su hoja', faltan, ['Hoja', 'Equipo', 'Personas']) +
-      audGrupo('Managers que faltan en la hoja general', faltanMgr.map(function(x) { return [x[0], x[2]]; }), ['Hoja', 'Managers']) +
-      audGrupo('Equipos sin hoja de Desempeño', sinHoja, ['Equipo']) +
-      audGrupo('Selección: evaluadores que no coinciden', sel, ['Hoja', 'Evaluador', 'Persona en People', 'Problema']) +
-      audGrupo('Pre-Approved: hojas sin manager claro', pa, ['Área', 'Hoja', 'Problema']);
+    var grupos = audGrupo('Hojas de Desempeño sin equipo', probHoja, ['Hoja', 'Problema y acción']) +
+      audGrupo('Filas de Desempeño que no coinciden', probFila, ['Hoja', 'Nombre en Desempeño', 'Persona en People', 'Problema y acción']) +
+      audGrupo('Diseñadores del equipo sin fila en su hoja (se mantienen hasta asignarlos)', faltan, ['Hoja', 'Equipo', 'Personas']) +
+      audGrupo('Managers que faltan en la hoja general', faltanMgr, ['Hoja', 'Manager', 'Acción']) +
+      audGrupo('Equipos sin hoja de Desempeño', sinHoja, ['Equipo', 'Acción']) +
+      audGrupo('Selección: evaluadores que no coinciden', sel, ['Hoja', 'Evaluador', 'Persona en People', 'Problema y acción']) +
+      audGrupo('Pre-Approved: hojas sin manager claro', pa, ['Área', 'Hoja', 'Problema y acción']);
     html += grupos || '<p class="aud-ok">✓ Todo coincide con los equipos y personas de Parámetros.</p>';
-    document.getElementById('audResultado').innerHTML = audCorreccionesHtml() + html;
+    html += audGrupo('Reglas guardadas', reglas, ['Regla', 'Por', ''], 'aud-reglas');
+    var res = document.getElementById('audResultado'), abiertos = gruposAbiertos(res);
+    res.innerHTML = audCorreccionesHtml() + html;
+    reabrir(res, abiertos);
   }
   // Correcciones de nombres acordadas: vista previa y aplicar (el servidor revisa el estado real de cada paso)
   var audCor = [];
@@ -442,48 +613,26 @@
       (pend ? '<div class="aud-cor-acc"><button type="button" class="btn" id="audAplicar">Aplicar ' + pend + ' correcciones</button></div>' : '') +
       '</details>';
   }
+  function audJson(u) { return fetch(u).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); }
   function audCargar() {
     var t = ++audTok, res = document.getElementById('audResultado');
     audSw.disabled = true; audTxt.innerText = 'Revisando…';
-    return Promise.all([
-      fetch('/design/api/parametros/correcciones').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
-      fetch('/design/api/parametros/auditoria-conexiones').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    ]).then(function(x) { if (t === audTok && audSw.checked) { audCor = x[0]; renderAuditoria(x[1]); } }).catch(function(e) {
-      if (t === audTok) res.innerHTML = AUD_ROJO('No se pudo revisar: ' + esc(e.message));
-    }).then(function() { audSw.disabled = false; audTxt.innerText = audSw.checked ? 'Ocultar' : 'Revisar'; });
+    return Promise.all([audJson('/design/api/parametros/correcciones'), audJson('/design/api/parametros/auditoria-conexiones'),
+                        audJson('/design/api/parametros/reglas'), cargarPersonas()])
+      .then(function(x) { if (t === audTok && audSw.checked) { audCor = x[0]; audReglas = x[2]; renderAuditoria(x[1]); } }).catch(function(e) {
+        if (t === audTok) res.innerHTML = AUD_ROJO('No se pudo revisar: ' + esc(e.message));
+      }).then(function() { audSw.disabled = false; audTxt.innerText = audSw.checked ? 'Ocultar' : 'Revisar'; });
   }
   document.getElementById('audResultado').addEventListener('click', function(e) {
     var ap = e.target.closest('#audAplicar');
-    if (ap) {
-      var pend = audCor.filter(function(c) { return c.estado === 'pendiente'; });
-      if (!confirm('¿Aplicar ' + pend.length + ' correcciones?\n\n' + pend.map(function(c) { return '• ' + c.descripcion; }).join('\n') +
-                   '\n\nLas filas que se quitan quedan en la Papelera de Design.')) return;
-      ap.disabled = true; ap.innerText = 'Aplicando…';
-      fetch('/design/api/parametros/correcciones/aplicar', {method: 'POST'}).then(function(r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-      }).then(function() { return audCargar(); }).catch(function(err) { alert('No se pudo aplicar: ' + err.message); ap.disabled = false; });
-      return;
-    }
-    var ag = e.target.closest('[data-agregar]');
-    if (ag) {
-      if (!confirm('¿Agregar a "' + ag.dataset.de + '" al equipo del manager de la hoja "' + ag.dataset.hoja + '" en Parámetros?')) return;
-      ag.disabled = true;
-      fetch('/design/api/parametros/agregar-al-equipo', {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({hoja: ag.dataset.hoja, nombre: ag.dataset.de})}).then(function(r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-      }).then(function() { return audCargar(); }).catch(function(err) { alert('No se pudo agregar: ' + err.message); ag.disabled = false; });
-      return;
-    }
-    var b = e.target.closest('[data-usar]');
-    if (!b) return;
-    var sel = b.parentNode.querySelector('select');
-    var nombre = sel.options[sel.selectedIndex].text;
-    if (!confirm('En la hoja "' + b.dataset.hoja + '", "' + b.dataset.de + '" pasará a llamarse "' + nombre + '". ¿Continuar?')) return;
-    b.disabled = true;
-    fetch('/design/api/parametros/renombrar-fila', {method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({hoja: b.dataset.hoja, de: b.dataset.de, empleadoId: parseInt(sel.value)})}).then(function(r) {
+    if (!ap) return;
+    var pend = audCor.filter(function(c) { return c.estado === 'pendiente'; });
+    if (!confirm('¿Aplicar ' + pend.length + ' correcciones?\n\n' + pend.map(function(c) { return '• ' + c.descripcion; }).join('\n') +
+                 '\n\nLas filas que se quitan quedan en la Papelera de Design.')) return;
+    ap.disabled = true; ap.innerText = 'Aplicando…';
+    fetch('/design/api/parametros/correcciones/aplicar', {method: 'POST'}).then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-    }).then(function() { return audCargar(); }).catch(function(err) { alert('No se pudo corregir: ' + err.message); b.disabled = false; });
+    }).then(function() { pEquiposCambiados = true; return audCargar(); }).catch(function(err) { alert('No se pudo aplicar: ' + err.message); ap.disabled = false; });
   });
   var audSw = document.getElementById('audSwitch'), audTxt = document.getElementById('audSwitchTxt'), audTok = 0;
   audSw.addEventListener('change', function() {

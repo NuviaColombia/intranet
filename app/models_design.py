@@ -5,7 +5,7 @@ Puerto de una herramienta previa en HTML/localStorage sin backend real ni cuenta
 acciones quedan asociadas al usuario que las hizo (login con Zoho ya existente en la app).
 """
 from datetime import date, datetime
-from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text, Boolean, LargeBinary
+from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text, Boolean, LargeBinary, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
@@ -290,6 +290,22 @@ class DesignPreApprovedCelda(Base):
 # que se sume después: Protocols, Canvas), con snapshot suficiente para
 # restaurar. No cubre acciones del día a día (crear/borrar órdenes).
 # ---------------------------------------------------------------------------
+
+class DesignConexionRegla(Base):
+    """Decisiones de Parámetros › Conexión con los equipos que no son un dato de otra tabla:
+    historico (persona que ya no es manager), aceptado_general (está en DESIGN MANAGERS sin ser manager),
+    hoja_manager (hoja de Desempeño → área + manager; también decide qué hoja ve el aprobador) y
+    pa_manager (hoja de Pre-Approved → equipo)."""
+    __tablename__ = "design_conexion_reglas"
+    __table_args__ = (UniqueConstraint("tipo", "clave", name="uq_design_conexion_regla"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(30))
+    clave: Mapped[str] = mapped_column(String(200))
+    valor: Mapped[str] = mapped_column(Text, default="")
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 class DesignTrash(Base):
     __tablename__ = "design_trash"

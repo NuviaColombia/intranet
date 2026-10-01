@@ -118,8 +118,98 @@ def api_parametros_renombrar_fila_perf(payload: RenombrarFilaIn, user: Empleado 
 
 
 class FilaHojaIn(BaseModel):
-    hoja: str
-    nombre: str
+    hoja: str = Field(max_length=150)
+    nombre: str = Field(max_length=150)
+
+
+class HojaIn(BaseModel):
+    hoja: str = Field(max_length=150)
+
+
+class EvaluadorIn(BaseModel):
+    filaId: int
+    empleadoId: int
+
+
+class MarcarIn(BaseModel):
+    tipo: Literal["historico", "aceptado_general"]
+    nombre: str = Field(max_length=150)
+    motivo: str = Field("", max_length=300)
+
+
+class AsociarHojaIn(BaseModel):
+    hoja: str = Field(max_length=150)
+    areaId: int
+    empleadoId: int
+
+
+class AsociarPaIn(BaseModel):
+    sheetId: int
+    teamId: int
+
+
+def _resp(r: dict) -> dict:
+    if not r["ok"]:
+        raise HTTPException(404, r["detalle"])
+    return r
+
+
+@router.get("/design/api/parametros/personas")
+def api_parametros_personas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    personas = db.query(Empleado).filter(Empleado.activo == 1).all()
+    return sorted(({"id": e.id, "nombre": e.nombre_completo} for e in personas), key=lambda x: sd._normalizar_texto(x["nombre"]))
+
+
+@router.post("/design/api/parametros/quitar-fila")
+def api_parametros_quitar_fila(payload: FilaHojaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.quitar_fila_perf(db, payload.hoja, payload.nombre, user.nombre_completo))
+
+
+@router.post("/design/api/parametros/agregar-fila")
+def api_parametros_agregar_fila(payload: FilaHojaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.agregar_fila_perf(db, payload.hoja, payload.nombre))
+
+
+@router.post("/design/api/parametros/mover-al-equipo")
+def api_parametros_mover_al_equipo(payload: FilaHojaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.mover_al_equipo_de_hoja(db, payload.hoja, payload.nombre))
+
+
+@router.post("/design/api/parametros/crear-equipo-hoja")
+def api_parametros_crear_equipo_hoja(payload: HojaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.crear_equipo_de_hoja(db, payload.hoja))
+
+
+@router.post("/design/api/parametros/renombrar-evaluador")
+def api_parametros_renombrar_evaluador(payload: EvaluadorIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.renombrar_evaluador(db, payload.filaId, payload.empleadoId))
+
+
+@router.post("/design/api/parametros/marcar")
+def api_parametros_marcar(payload: MarcarIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.marcar_regla_persona(db, payload.tipo, payload.nombre, payload.motivo, user.nombre_completo))
+
+
+@router.post("/design/api/parametros/asociar-hoja")
+def api_parametros_asociar_hoja(payload: AsociarHojaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.asociar_hoja_manager(db, payload.hoja, payload.areaId, payload.empleadoId, user.nombre_completo))
+
+
+@router.post("/design/api/parametros/asociar-pa")
+def api_parametros_asociar_pa(payload: AsociarPaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return _resp(sd.asociar_pa_equipo(db, payload.sheetId, payload.teamId, user.nombre_completo))
+
+
+@router.get("/design/api/parametros/reglas")
+def api_parametros_reglas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return sd.listar_reglas(db)
+
+
+@router.post("/design/api/parametros/reglas/{regla_id}/eliminar")
+def api_parametros_regla_eliminar(regla_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    if not sd.eliminar_regla(db, regla_id):
+        raise HTTPException(404, "La regla no existe.")
+    return {"ok": True}
 
 
 @router.post("/design/api/parametros/agregar-al-equipo")

@@ -1625,7 +1625,9 @@ def _es_la_persona(nombre: str, user: Empleado) -> bool:
 def perf_sheet_visible(user: Empleado, sheet: DesignPerfSheet) -> bool:
     if es_admin(user) or sheet.tipo == "seleccion":
         return True
-    mapeo = SHEET_MANAGER_MAP.get(sheet.nombre)
+    from sqlalchemy.orm import object_session
+    db = object_session(sheet)
+    mapeo = (mapa_hojas(db) if db else SHEET_MANAGER_MAP).get(sheet.nombre)
     return bool(mapeo) and _es_la_persona(mapeo[1], user)
 
 
@@ -2500,10 +2502,10 @@ def _buscar_empleado_por_nombre(nombre_buscado: str, empleados: list[Empleado]) 
 
 
 def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict:
-    seed_path = Path(__file__).resolve().parent / "seed_data" / "design_perf.json"
-    with open(seed_path, encoding="utf-8") as f:
-        perf_data = json.load(f)
-
+    # Lee las hojas de Desempeño actuales (con lo corregido en Parámetros), no la copia inicial
+    # app/seed_data/design_perf.json (30-sep-2026).
+    mapa = mapa_hojas(db)
+    historicos = reglas_conexion(db)["historico"]
     empleados_design = (db.query(Empleado)
                         .filter(Empleado.empresa == "Nuvia Design Colombia SAS", Empleado.activo == 1).all())
 
@@ -2513,11 +2515,13 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
     for d in (db.query(DesignTeamDesigner).join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
               .filter(DesignTeam.activo == 1).options(joinedload(DesignTeamDesigner.team)).all()):
         equipos_de.setdefault(d.empleado_id, []).append((d.team_id, d.team.nombre))
-    for sheet in perf_data.get("sheets", []):
-        nombre_sheet = sheet.get("name", "")
-        mapeo = SHEET_MANAGER_MAP.get(nombre_sheet)
+    for sheet in perf_sheets(db):
+        if sheet.tipo != "eval":
+            continue
+        nombre_sheet = sheet.nombre
+        mapeo = mapa.get(nombre_sheet)
         if not mapeo:
-            resultado["sinMapeo"].append(nombre_sheet)
+            resultado["sinMapeo"].append({"hoja": nombre_sheet, "general": _es_hoja_general(nombre_sheet)})
             continue
         area_nombre, manager_nombre = mapeo
         area = db.query(DesignArea).filter(DesignArea.nombre == area_nombre).first()
@@ -2525,8 +2529,8 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
 
         miembros_info = []
         vistos = set()
-        for emp_data in sheet.get("employees", []):
-            nombre_raw = emp_data.get("n", "")
+        for emp_fila in sorted(sheet.empleados, key=lambda e: (e.orden, e.id)):
+            nombre_raw = emp_fila.nombre or ""
             clave = _normalizar_texto(nombre_raw)
             if not clave or clave in vistos:
                 continue  # evita duplicados dentro de la misma hoja (p.ej. un nombre repetido)
@@ -2549,7 +2553,7 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
                 m["estado"] = "en_equipo"
             elif manager_emp and m["empleadoId"] == manager_emp.id:
                 m["estado"] = "es_manager"
-            elif _es_historico(m["empleadoNombre"]):
+            elif _es_historico(m["empleadoNombre"], historicos):
                 m["estado"] = "historico"
             else:
                 otros = [n for tid, n in actuales if not equipo_existente or tid != equipo_existente.id]
@@ -2579,7 +2583,8 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
             db.commit()
 
         resultado["equipos"].append({
-            "hoja": nombre_sheet, "area": area_nombre, "areaEncontrada": bool(area),
+            "hoja": nombre_sheet, "area": area_nombre, "areaEncontrada": bool(area), "areaId": area.id if area else None,
+            "equipoId": (equipo_existente.id if equipo_existente else None),
             "managerBuscado": manager_nombre,
             "managerEncontrado": manager_emp.nombre_completo if manager_emp else None,
             "managerId": manager_emp.id if manager_emp else None,
@@ -2603,6 +2608,7 @@ def _sin_prefijo_area(nombre: str) -> str:
 
 
 # Personas que ya no son managers pero se conservan como históricas en Selección / Pre-Approved (30-sep-2026).
+# Son el valor inicial de la tabla de reglas; desde ahí se agregan o quitan en Parámetros.
 PERF_HISTORICOS = ["Luis Felipe Blaschke", "Paul Andion"]
 
 
@@ -2613,17 +2619,73 @@ PERF_GENERAL_ACEPTADOS = {
 }
 
 
-def _aceptado_general(nombre: str) -> str | None:
+REGLA_TIPOS = ("historico", "aceptado_general", "hoja_manager", "pa_manager")
+_REGLAS_CACHE = {"t": 0.0, "v": None}
+
+
+def reglas_conexion(db: Session) -> dict:
+    """{"historico": [nombres], "aceptado_general": {nombre: motivo}, "hoja_manager": {hoja: (área, manager)},
+    "pa_manager": {sheet_id: team_id}}. La primera vez se llena con las decisiones que estaban en el código."""
+    import time as _t
+    from .models_design import DesignConexionRegla
+    c = _REGLAS_CACHE
+    if c["v"] is not None and _t.monotonic() - c["t"] < 20:
+        return c["v"]
+    filas = db.query(DesignConexionRegla).all()
+    if not any(r.tipo == "sistema" for r in filas):
+        try:
+            db.add(DesignConexionRegla(tipo="sistema", clave="inicial", creado_por="Sistema"))
+            for n in PERF_HISTORICOS:
+                db.add(DesignConexionRegla(tipo="historico", clave=n, creado_por="Sistema"))
+            for n, m in PERF_GENERAL_ACEPTADOS.items():
+                db.add(DesignConexionRegla(tipo="aceptado_general", clave=n, valor=m, creado_por="Sistema"))
+            db.commit()
+        except Exception:
+            db.rollback()  # otro proceso la llenó al mismo tiempo
+        filas = db.query(DesignConexionRegla).all()
+    v = {"historico": [], "aceptado_general": {}, "hoja_manager": {}, "pa_manager": {},
+         "filas": [{"id": r.id, "tipo": r.tipo, "clave": r.clave, "valor": r.valor or "", "creado_por": r.creado_por or ""}
+                   for r in filas if r.tipo in REGLA_TIPOS]}
+    for r in filas:
+        if r.tipo == "historico":
+            v["historico"].append(r.clave)
+        elif r.tipo == "aceptado_general":
+            v["aceptado_general"][r.clave] = r.valor or "Aceptado."
+        elif r.tipo == "hoja_manager":
+            try:
+                d = json.loads(r.valor or "{}")
+                v["hoja_manager"][r.clave] = (d["area"], d["manager"])
+            except (ValueError, KeyError):
+                pass
+        elif r.tipo == "pa_manager" and (r.valor or "").isdigit() and r.clave.isdigit():
+            v["pa_manager"][int(r.clave)] = int(r.valor)
+    c["t"], c["v"] = _t.monotonic(), v
+    return v
+
+
+def _reglas_invalidar() -> None:
+    _REGLAS_CACHE["v"] = None
+
+
+def mapa_hojas(db: Session) -> dict:
+    """Hoja de Desempeño → (área, manager): la lista del código + las hojas asociadas en Parámetros."""
+    m = dict(SHEET_MANAGER_MAP)
+    m.update(reglas_conexion(db)["hoja_manager"])
+    return m
+
+
+def _aceptado_general(nombre: str, aceptados: dict | None = None) -> str | None:
     pal = _palabras(nombre)
-    for n, motivo in PERF_GENERAL_ACEPTADOS.items():
+    for n, motivo in (PERF_GENERAL_ACEPTADOS if aceptados is None else aceptados).items():
         if pal and _palabras(n) <= pal:
             return motivo
     return None
 
 
-def _es_historico(nombre: str) -> bool:
+def _es_historico(nombre: str, historicos: list | None = None) -> bool:
     pal = _palabras(_sin_prefijo_area(nombre))
-    return bool(pal) and any(pal <= _palabras(h) or _palabras(h) <= pal for h in PERF_HISTORICOS)
+    return bool(pal) and any(pal <= _palabras(h) or _palabras(h) <= pal
+                             for h in (PERF_HISTORICOS if historicos is None else historicos))
 
 
 def _es_hoja_general(nombre: str) -> bool:
@@ -2651,6 +2713,9 @@ def _sugerencias(nombre: str, personas: list[Empleado], n: int = 3) -> list[dict
 
 def auditar_conexiones(db: Session) -> dict:
     personas = db.query(Empleado).filter(Empleado.activo == 1).all()
+    reglas = reglas_conexion(db)
+    mapa = mapa_hojas(db)
+    historicos, aceptados = reglas["historico"], reglas["aceptado_general"]
     teams = (db.query(DesignTeam).options(joinedload(DesignTeam.designers), joinedload(DesignTeam.area),
                                           joinedload(DesignTeam.manager))
              .filter(DesignTeam.activo == 1).all())
@@ -2685,23 +2750,27 @@ def auditar_conexiones(db: Session) -> dict:
     for sh in perf_sheets(db):
         if sh.tipo != "eval":
             continue
-        r = {"hoja": sh.nombre, "manager": None, "equipo": None, "problemas": [], "filas": [], "general": False}
-        mapeo = SHEET_MANAGER_MAP.get(sh.nombre)
+        r = {"hoja": sh.nombre, "manager": None, "equipo": None, "problemas": [], "filas": [], "general": False,
+             "accion": None, "asociada": sh.nombre in reglas["hoja_manager"]}
+        mapeo = mapa.get(sh.nombre)
         team = None
         if _es_hoja_general(sh.nombre):
             r["general"] = True
         elif not mapeo:
             r["problemas"].append("La hoja no está asociada a ningún manager (el nombre no está en la lista de hojas).")
+            r["accion"] = "asociar"
         else:
             area_nombre, manager_nombre = mapeo
             mgr = _buscar_empleado_por_nombre(manager_nombre, personas)
             if not mgr:
                 r["problemas"].append(f'El manager "{manager_nombre}" no se encontró en People.')
+                r["accion"] = "asociar"
             else:
                 r["manager"] = mgr.nombre_completo
                 team = next((t for t in teams if t.manager_id == mgr.id and t.area.nombre == area_nombre), None)
                 if not team:
                     r["problemas"].append(f'{mgr.nombre_completo} no es manager de ningún equipo activo de {area_nombre} en Parámetros.')
+                    r["accion"] = "crear_equipo"
                 else:
                     r["equipo"] = team.nombre
         ids_team = {d.empleado_id for d in team.designers} if team else set()
@@ -2714,15 +2783,16 @@ def auditar_conexiones(db: Session) -> dict:
                 item["sugerencias"] = _sugerencias(fila.nombre, personas)
             else:
                 vistos.add(persona.id)
-                if r["general"] and persona.id not in managers_ids and _aceptado_general(persona.nombre_completo):
-                    item["detalle"] = _aceptado_general(persona.nombre_completo)
-                elif r["general"] and persona.id not in managers_ids and not _es_historico(persona.nombre_completo):
+                if r["general"] and persona.id not in managers_ids and _aceptado_general(persona.nombre_completo, aceptados):
+                    item["detalle"] = _aceptado_general(persona.nombre_completo, aceptados)
+                elif r["general"] and persona.id not in managers_ids and not _es_historico(persona.nombre_completo, historicos):
                     item["estado"], item["detalle"] = "no_manager", por_que_no_manager(persona)
                 elif r["general"] and persona.id not in managers_ids:
                     item["estado"], item["detalle"] = "historico", "Histórico: ya no es manager."
                 elif team and persona.id not in ids_team and persona.id != team.manager_id:
                     otros = equipo_de.get(persona.id) or []
                     item["estado"] = "otro_equipo"
+                    item["otros"] = otros
                     item["detalle"] = (f"En Parámetros está en {', '.join(otros)}." if otros
                                        else "En Parámetros no está en ningún equipo.")
             r["filas"].append(item)
@@ -2739,27 +2809,30 @@ def auditar_conexiones(db: Session) -> dict:
         for fila in sh.filas_seleccion:
             persona = _buscar_empleado_por_nombre(fila.evaluador, personas)
             estado = "ok" if persona and persona.id in managers else ("no_manager" if persona else "sin_persona")
-            if estado != "ok" and _es_historico(fila.evaluador):
+            if estado != "ok" and _es_historico(fila.evaluador, historicos):
                 estado = "historico"
-            seleccion.append({"hoja": sh.nombre, "evaluador": fila.evaluador, "persona": persona.nombre_completo if persona else None,
+            seleccion.append({"filaId": fila.id, "hoja": sh.nombre, "evaluador": fila.evaluador, "persona": persona.nombre_completo if persona else None,
                               "estado": estado})
 
     preapproved = []
     for sh in db.query(DesignPreApprovedSheet).options(joinedload(DesignPreApprovedSheet.area)).order_by(
             DesignPreApprovedSheet.area_id, DesignPreApprovedSheet.orden).all():
         palabras = _palabras(_sin_prefijo_area(sh.nombre))
-        candidatos = [t for t in teams if t.area_id == sh.area_id and t.manager and palabras
-                      and palabras <= _palabras(t.manager.nombre_completo)]
+        elegido = next((t for t in teams if t.id == reglas["pa_manager"].get(sh.id) and t.manager), None)
+        candidatos = [elegido] if elegido else [t for t in teams if t.area_id == sh.area_id and t.manager and palabras
+                                                and palabras <= _palabras(t.manager.nombre_completo)]
         estado = "ok" if len(candidatos) == 1 else ("ambiguo" if candidatos else "sin_manager")
-        if estado != "ok" and _es_historico(sh.nombre):
+        if estado != "ok" and _es_historico(sh.nombre, historicos):
             estado = "historico"
-        preapproved.append({"area": sh.area.nombre, "hoja": sh.nombre, "estado": estado,
+        preapproved.append({"sheetId": sh.id, "areaId": sh.area_id, "area": sh.area.nombre, "hoja": sh.nombre, "estado": estado,
+                            "asociada": bool(elegido),
                             "managers": [f"{t.manager.nombre_completo} ({t.nombre})" for t in candidatos]})
 
     # Equipos activos con manager que no tienen hoja de evaluación asociada
     con_hoja = {h["equipo"] for h in hojas if h["equipo"]}
-    sin_hoja = sorted(f"{t.area.nombre} · {t.nombre}" for t in teams if t.manager_id and t.nombre not in con_hoja
-                      and t.area.formato != FORMATO_SUPPORT)
+    sin_hoja = sorted(({"texto": f"{t.area.nombre} · {t.nombre}", "teamId": t.id, "areaId": t.area_id, "managerId": t.manager_id}
+                       for t in teams if t.manager_id and t.nombre not in con_hoja and t.area.formato != FORMATO_SUPPORT),
+                      key=lambda x: x["texto"])
     return {"hojas": hojas, "seleccion": seleccion, "preapproved": preapproved, "equiposSinHoja": sin_hoja}
 
 
@@ -2940,7 +3013,7 @@ def renombrar_fila_perf(db: Session, hoja: str, de: str, empleado_id: int) -> di
 def agregar_fila_al_equipo(db: Session, hoja: str, nombre: str) -> dict:
     """La persona de una fila de Desempeño pasa a ser diseñadora del equipo del manager de esa hoja."""
     sh = _hoja_por_nombre(db, hoja)
-    mapeo = SHEET_MANAGER_MAP.get(hoja)
+    mapeo = mapa_hojas(db).get(hoja)
     personas = db.query(Empleado).filter(Empleado.activo == 1).all()
     per = _buscar_empleado_por_nombre(nombre, personas)
     mgr = _buscar_empleado_por_nombre(mapeo[1], personas) if mapeo else None
@@ -2951,3 +3024,158 @@ def agregar_fila_al_equipo(db: Session, hoja: str, nombre: str) -> dict:
         db.add(DesignTeamDesigner(team_id=team.id, empleado_id=per.id, orden=len(team.designers) + 1))
         db.commit()
     return {"ok": True, "detalle": f"{per.nombre_completo} → {team.nombre}"}
+
+
+
+# ---------------------------------------------------------------------------
+# Acciones de Parámetros › Conexión con los equipos / Importar equipos (solo admins).
+# Cada una corrige un dato puntual; lo que se quita va a la Papelera de Design.
+# ---------------------------------------------------------------------------
+
+def _team_de_hoja(db: Session, hoja: str) -> tuple[DesignTeam | None, Empleado | None, str | None]:
+    mapeo = mapa_hojas(db).get(hoja)
+    if not mapeo:
+        return None, None, None
+    personas = db.query(Empleado).filter(Empleado.activo == 1).all()
+    mgr = _buscar_empleado_por_nombre(mapeo[1], personas)
+    return (_team_de_manager(db, mapeo[0], mgr) if mgr else None), mgr, mapeo[0]
+
+
+def quitar_fila_perf(db: Session, hoja: str, nombre: str, eliminado_por: str) -> dict:
+    sh = _hoja_por_nombre(db, hoja)
+    filas = _filas_con_nombre(sh, nombre) if sh else []
+    if not filas:
+        return {"ok": False, "detalle": "No se encontró esa fila."}
+    for f in filas:
+        _trash_registrar(db, "perf-emp", f"Desempeño {sh.nombre}: {f.nombre}", _snapshot_fila(f), eliminado_por)
+        db.delete(f)
+    db.commit()
+    return {"ok": True, "detalle": f'"{nombre}" quitada de {hoja} (queda en la Papelera).'}
+
+
+def agregar_fila_perf(db: Session, hoja: str, nombre: str) -> dict:
+    """Fila nueva en una hoja de Desempeño (meses vacíos para calificar)."""
+    sh = _hoja_por_nombre(db, hoja)
+    nombre = (nombre or "").strip()
+    if not sh or sh.tipo != "eval" or not nombre:
+        return {"ok": False, "detalle": "No se encontró la hoja."}
+    pal = _palabras(nombre)
+    if any(_palabras(e.nombre) and (_palabras(e.nombre) <= pal or pal <= _palabras(e.nombre)) for e in sh.empleados):
+        return {"ok": True, "detalle": f"{nombre} ya tiene fila en {hoja}."}
+    orden = max([e.orden or 0 for e in sh.empleados] or [0]) + 1
+    db.add(DesignPerfEmpleado(sheet_id=sh.id, nombre=nombre, orden=orden))
+    db.commit()
+    return {"ok": True, "detalle": f"{nombre} agregada a {hoja}."}
+
+
+def mover_al_equipo_de_hoja(db: Session, hoja: str, nombre: str) -> dict:
+    """La persona deja los otros equipos activos y queda en el equipo del manager de la hoja."""
+    team, _mgr, _area = _team_de_hoja(db, hoja)
+    personas = db.query(Empleado).filter(Empleado.activo == 1).all()
+    per = _buscar_empleado_por_nombre(nombre, personas)
+    if not team or not per:
+        return {"ok": False, "detalle": "No se encontró la persona o el equipo de esa hoja."}
+    salio = []
+    for d in (db.query(DesignTeamDesigner).join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+              .filter(DesignTeamDesigner.empleado_id == per.id, DesignTeam.activo == 1, DesignTeam.id != team.id).all()):
+        salio.append(d.team.nombre)
+        db.delete(d)
+    if not any(d.empleado_id == per.id for d in team.designers):
+        db.add(DesignTeamDesigner(team_id=team.id, empleado_id=per.id, orden=len(team.designers) + 1))
+    db.commit()
+    return {"ok": True, "detalle": f"{per.nombre_completo} → {team.nombre}" + (f" (salió de {', '.join(salio)})" if salio else "")}
+
+
+def crear_equipo_de_hoja(db: Session, hoja: str) -> dict:
+    mapeo = mapa_hojas(db).get(hoja)
+    if not mapeo:
+        return {"ok": False, "detalle": "La hoja no está asociada a un manager."}
+    r = _correccion(db, {"op": "crear_equipo", "area": mapeo[0], "manager": mapeo[1], "desde_hoja": hoja}, True, "")
+    return {"ok": r["estado"] in ("aplicado", "hecho"), "detalle": r["detalle"]}
+
+
+def renombrar_evaluador(db: Session, fila_id: int, empleado_id: int) -> dict:
+    f = db.get(DesignPerfSeleccionFila, fila_id)
+    per = db.get(Empleado, empleado_id)
+    if not f or not per:
+        return {"ok": False, "detalle": "No se encontró la fila o la persona."}
+    antes = f.evaluador
+    f.evaluador = per.nombre_completo
+    db.commit()
+    return {"ok": True, "detalle": f'"{antes}" ahora es {per.nombre_completo}.'}
+
+
+def _guardar_regla(db: Session, tipo: str, clave: str, valor: str, creado_por: str) -> None:
+    from .models_design import DesignConexionRegla
+    reglas_conexion(db)  # asegura los valores iniciales
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == tipo, DesignConexionRegla.clave == clave).first()
+    if r:
+        r.valor, r.creado_por, r.creado_en = valor, creado_por, datetime.utcnow()
+    else:
+        db.add(DesignConexionRegla(tipo=tipo, clave=clave, valor=valor, creado_por=creado_por))
+    db.commit()
+    _reglas_invalidar()
+
+
+def marcar_regla_persona(db: Session, tipo: str, nombre: str, motivo: str, creado_por: str) -> dict:
+    nombre = (nombre or "").strip()
+    if tipo not in ("historico", "aceptado_general") or not nombre:
+        return {"ok": False, "detalle": "Dato inválido."}
+    _guardar_regla(db, tipo, nombre, (motivo or "").strip()[:300], creado_por)
+    return {"ok": True, "detalle": f"{nombre}: {'histórico' if tipo == 'historico' else 'aceptado'}."}
+
+
+def asociar_hoja_manager(db: Session, hoja: str, area_id: int, empleado_id: int, creado_por: str) -> dict:
+    sh = _hoja_por_nombre(db, hoja)
+    area = db.get(DesignArea, area_id)
+    per = db.get(Empleado, empleado_id)
+    if not sh or sh.tipo != "eval" or _es_hoja_general(sh.nombre) or not area or not per:
+        return {"ok": False, "detalle": "No se encontró la hoja, el área o la persona."}
+    _guardar_regla(db, "hoja_manager", sh.nombre,
+                   json.dumps({"area": area.nombre, "manager": per.nombre_completo, "managerId": per.id}, ensure_ascii=False), creado_por)
+    return {"ok": True, "detalle": f"{sh.nombre} → {per.nombre_completo} ({area.nombre})."}
+
+
+def asociar_pa_equipo(db: Session, sheet_id: int, team_id: int, creado_por: str) -> dict:
+    sh = db.get(DesignPreApprovedSheet, sheet_id)
+    t = db.get(DesignTeam, team_id)
+    if not sh or not t or t.area_id != sh.area_id or not t.manager_id:
+        return {"ok": False, "detalle": "El equipo debe ser de la misma área y tener manager."}
+    _guardar_regla(db, "pa_manager", str(sh.id), str(t.id), creado_por)
+    return {"ok": True, "detalle": f"Pre-Approved {sh.nombre} → {t.nombre}."}
+
+
+def listar_reglas(db: Session) -> list[dict]:
+    v = reglas_conexion(db)
+    pa = {s.id: s for s in db.query(DesignPreApprovedSheet).all()}
+    eq = {t.id: t for t in db.query(DesignTeam).all()}
+    out = []
+    for r in sorted(v["filas"], key=lambda r: (REGLA_TIPOS.index(r["tipo"]), r["clave"])):
+        tipo, clave, valor = r["tipo"], r["clave"], r["valor"]
+        if tipo == "historico":
+            txt = f"{clave}: histórico (ya no es manager)"
+        elif tipo == "aceptado_general":
+            txt = f"{clave}: aceptado en DESIGN MANAGERS" + (f" — {valor}" if valor else "")
+        elif tipo == "hoja_manager":
+            try:
+                d = json.loads(valor or "{}")
+                txt = f"Hoja {clave} → {d.get('manager')} ({d.get('area')})"
+            except ValueError:
+                txt = f"Hoja {clave}"
+        else:
+            s_ = pa.get(int(clave)) if clave.isdigit() else None
+            t_ = eq.get(int(valor)) if valor.isdigit() else None
+            txt = f"Pre-Approved {s_.nombre if s_ else clave} → {t_.nombre if t_ else valor}"
+        out.append({"id": r["id"], "tipo": tipo, "texto": txt, "por": r["creado_por"]})
+    return out
+
+
+def eliminar_regla(db: Session, regla_id: int) -> bool:
+    from .models_design import DesignConexionRegla
+    r = db.get(DesignConexionRegla, regla_id)
+    if not r or r.tipo not in REGLA_TIPOS:
+        return False
+    db.delete(r)
+    db.commit()
+    _reglas_invalidar()
+    return True
