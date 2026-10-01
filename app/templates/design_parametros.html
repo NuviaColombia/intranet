@@ -78,6 +78,7 @@
   .eq-tabla tr.eq-sobre td { background:#eff6ff; box-shadow:inset 0 0 0 9999px rgba(29,78,216,.04); }
   .eq-tabla tr.eq-sobre { outline:2px dashed #1d4ed8; outline-offset:-2px; }
   .eq-nombre { font-weight:600; white-space:nowrap; }
+  .eq-mgr { display:block; font-weight:400; font-size:11px; color:#64748b; }
   .eq-dis { display:flex; flex-wrap:wrap; gap:4px; min-width:260px; }
   .eq-chip { display:inline-flex; align-items:center; gap:4px; background:#dcfce7; color:#166534; border-radius:12px;
              padding:2px 4px 2px 9px; font-size:11.5px; cursor:grab; user-select:none; }
@@ -169,11 +170,12 @@
       <div class="aud-scroll" style="max-height:none">
         {% if ts %}
         <table class="eq-tabla">
-          <tr><th>Equipo</th><th>Manager</th><th>Diseñadores</th><th>Agregar diseñador</th><th>Estado</th><th></th></tr>
+          <tr><th>Equipo</th><th>Diseñadores</th><th>Agregar diseñador</th><th>Estado</th><th></th></tr>
           {% for t in ts %}
           <tr class="eq-fila{{ '' if t.activo else ' eq-inactivo' }}" data-team="{{ t.id }}" data-nombre="{{ t.nombre }}">
-            <td class="eq-nombre">{{ t.nombre }}</td>
-            <td>{{ t.manager.nombre_completo if t.manager else '—' }}</td>
+            <td class="eq-nombre">{{ t.nombre }}
+              {%- if not t.manager %}<small class="eq-mgr">Sin manager</small>
+              {%- elif t.manager.nombre_completo != t.nombre %}<small class="eq-mgr">Manager: {{ t.manager.nombre_completo }}</small>{% endif %}</td>
             <td><div class="eq-dis">
               {% for d in t.designers %}
               <span class="eq-chip" draggable="true" data-registro="{{ d.id }}" data-nombre="{{ d.empleado.nombre_completo }}"
@@ -199,7 +201,7 @@
             </div></td>
           </tr>
           <tr class="eq-edit" data-edit="{{ t.id }}" hidden>
-            <td colspan="6">
+            <td colspan="5">
               <form method="post" action="/design/parametros/equipos/{{ t.id }}/editar" class="eq-crear eq-guarda" style="margin:0">
                 <div class="eq-n"><label>Nombre del equipo</label><input name="nombre" required value="{{ t.nombre }}"></div>
                 <div class="eq-a"><label>Área</label>
