@@ -2767,7 +2767,20 @@ window.DS_PANELS.dashboard = ddCargar;
   function api(url) { return window.dsFetchJSON(url); }
   function postJSON(url, body) { return window.dsPostJSON(url, body); }
 
+  // Pestañas según el área (N3 para N3/N6; N2 / Face Design para N2/Face; Support y admins, las dos).
+  var CMT_PERM = (window.DS_INICIO && window.DS_INICIO.comments) || {n3: true, faq: true};
+  (function cmtPestanas() {
+    var tn3 = document.getElementById('cmtTabN3'), tfaq = document.getElementById('cmtTabFaq');
+    if (!tn3 || !tfaq) return;
+    tn3.hidden = !CMT_PERM.n3; tfaq.hidden = !CMT_PERM.faq;
+    if (!CMT_PERM.n3 && !CMT_PERM.faq) {
+      tn3.parentNode.insertAdjacentHTML('afterend', '<p id="cmtSinArea" style="color:#4b5563;margin:16px 0">No hay comentarios para tu área.</p>');
+      document.getElementById('cmtPanelN3').style.display = 'none';
+      document.getElementById('cmtPanelFaq').style.display = 'none';
+    }
+  })();
   window.cmtMostrarTab = function(tab) {
+    if (!CMT_PERM[tab]) return;
     document.getElementById('cmtPanelN3').style.display = tab === 'n3' ? '' : 'none';
     document.getElementById('cmtPanelFaq').style.display = tab === 'faq' ? '' : 'none';
     document.getElementById('cmtTabN3').classList.toggle('activo', tab === 'n3');
@@ -3085,6 +3098,7 @@ window.DS_PANELS.dashboard = ddCargar;
 
   var cmtListo = false;
   function cmtInit() {
+    if (!CMT_PERM.n3) { if (CMT_PERM.faq) cmtMostrarTab('faq'); return; }  // solo N2 / Face: abre esa pestaña
     if (cmtListo) { cmtCargarHistorial(); cmtCargarPlantillas(); return; }
     cmtListo = true;
     document.getElementById('cmt_d11').innerHTML = '<option value="">—</option>' + CMT_ARCH.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');

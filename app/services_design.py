@@ -69,6 +69,24 @@ def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
     return team.area.formato == FORMATO_SUPPORT and any(d.empleado_id == user.id for d in team.designers)
 
 
+# Comments: cada pestaña es de unas áreas. Support y los admins ven las dos (1-oct-2026).
+COMMENTS_AREAS = {"n3": {"N3 Prosthetic", "N6 Material Changes"}, "faq": {"N2 Demodenture", "Face Design"}}
+
+
+def comments_permitidos(db: Session, user: Empleado) -> dict:
+    """{"n3": bool, "faq": bool}: qué pestañas de Comments ve `user`, según las áreas de sus equipos activos
+    (como manager o diseñador)."""
+    if es_admin(user):
+        return {k: True for k in COMMENTS_AREAS}
+    ids = equipos_como_designer(db, user)
+    teams = (db.query(DesignTeam).options(joinedload(DesignTeam.area))
+             .filter(DesignTeam.activo == 1, or_(DesignTeam.manager_id == user.id, DesignTeam.id.in_(ids or [-1]))).all())
+    if any(t.area.formato == FORMATO_SUPPORT for t in teams):
+        return {k: True for k in COMMENTS_AREAS}
+    areas = {t.area.nombre for t in teams}
+    return {k: bool(areas & v) for k, v in COMMENTS_AREAS.items()}
+
+
 def mis_equipos(db: Session, user: Empleado) -> list[dict]:
     """Equipos propios de un empleado o aprobador (no admin): primero los que maneja y luego aquellos en los que
     está como diseñador, cada grupo según el orden de las áreas. El primero es el que se abre al entrar."""

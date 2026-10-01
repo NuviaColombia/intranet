@@ -59,6 +59,17 @@ def require_modulo(modulo: str):
     return checker
 
 
+def require_comments(tab: str):
+    """Comments: N3 para N3/N6, N2 / Face Design para N2/Face; Support y admins, las dos."""
+    base = require_modulo("design_schedule")
+
+    def checker(user: Empleado = Depends(base), db: Session = Depends(get_db)) -> Empleado:
+        if not sd.comments_permitidos(db, user).get(tab):
+            raise HTTPException(403, "Estos comentarios son de otra área.")
+        return user
+    return checker
+
+
 def require_admin(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
     u = _usuario_efectivo(request, user, db)
     if u.rol not in ("admin", "superadmin"):
@@ -127,7 +138,8 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
     areas = sd.areas_disponibles(db)
     inicio = {"areas": [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in areas],
               "ausencias": sd.ausencias_disponibles(db),
-              "misEquipos": sd.mis_equipos(db, user)}  # empleados y aprobadores entran directo a su schedule
+              "misEquipos": sd.mis_equipos(db, user),  # empleados y aprobadores entran directo a su schedule
+              "comments": sd.comments_permitidos(db, user)}
     inicio["miEquipo"] = ({"areaId": inicio["misEquipos"][0]["areaId"], "teamId": inicio["misEquipos"][0]["teamId"]}
                           if inicio["misEquipos"] else None)
     # `areas` también llena el filtro de Área del Dashboard (desde que Design es una sola página salía vacío).
@@ -787,7 +799,7 @@ def api_buscar(q: str, user: Empleado = Depends(require_modulo("design_schedule"
 # ---------- API: Comments N3 (historial) ----------
 
 @router.get("/design/api/comentarios/historial")
-def api_historial_comentarios(user: Empleado = Depends(require_modulo("design_schedule")),
+def api_historial_comentarios(user: Empleado = Depends(require_comments("n3")),
                                     db: Session = Depends(get_db)):
     return sd.historial_comentarios(db)
 
@@ -800,14 +812,14 @@ class HistorialComentarioIn(BaseModel):
 
 @router.post("/design/api/comentarios/historial")
 def api_guardar_historial(payload: HistorialComentarioIn,
-                                user: Empleado = Depends(require_modulo("design_schedule")),
+                                user: Empleado = Depends(require_comments("n3")),
                                 db: Session = Depends(get_db)):
     sd.guardar_historial_comentario(db, user, payload.paciente, payload.orden, payload.campos)
     return {"mensaje": "Guardado en historial."}
 
 
 @router.post("/design/api/comentarios/historial/{historial_id}/eliminar")
-def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_comments("n3")),
                                  db: Session = Depends(get_db)):
     if not sd.eliminar_historial_comentario(db, historial_id):
         raise HTTPException(404, "No encontrado.")
@@ -817,7 +829,7 @@ def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_m
 # ---------- API: Comments N3 (plantillas de notas personalizadas) ----------
 
 @router.get("/design/api/comentarios/templates")
-def api_cmt_templates_listar(user: Empleado = Depends(require_modulo("design_schedule")),
+def api_cmt_templates_listar(user: Empleado = Depends(require_comments("n3")),
                                    db: Session = Depends(get_db)):
     return [{"id": t.id, "nombre": t.nombre, "texto": t.texto, "esFija": bool(t.es_fija)}
            for t in sd.cmt_templates_listar(db)]
@@ -829,7 +841,7 @@ class CmtTemplateIn(BaseModel):
 
 
 @router.post("/design/api/comentarios/templates")
-def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(require_comments("n3")),
                                  db: Session = Depends(get_db)):
     t = sd.cmt_template_crear(db, payload.nombre, payload.texto, user.nombre_completo)
     return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
@@ -837,7 +849,7 @@ def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(requ
 
 @router.post("/design/api/comentarios/templates/{template_id}")
 def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
-                                  user: Empleado = Depends(require_modulo("design_schedule")),
+                                  user: Empleado = Depends(require_comments("n3")),
                                   db: Session = Depends(get_db)):
     t = sd.cmt_template_editar(db, template_id, payload.nombre, payload.texto)
     if not t:
@@ -846,7 +858,7 @@ def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
 
 
 @router.post("/design/api/comentarios/templates/{template_id}/eliminar")
-def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require_comments("n3")),
                                     db: Session = Depends(get_db)):
     if not sd.cmt_template_eliminar(db, template_id, user.nombre_completo):
         raise HTTPException(404, "No encontrada.")
@@ -873,12 +885,12 @@ def _faq_editor(user: Empleado) -> None:
 
 
 @router.get("/design/api/faq/hojas")
-def api_faq_hojas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_faq_hojas(user: Empleado = Depends(require_comments("faq")), db: Session = Depends(get_db)):
     return {"hojas": sd.faq_hojas(db), "puedeEditar": user.rol in FAQ_ROLES_EDITAN}
 
 
 @router.get("/design/api/faq/hojas/{hoja_id}")
-def api_faq_hoja(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_hoja(hoja_id: int, user: Empleado = Depends(require_comments("faq")),
                        db: Session = Depends(get_db)):
     d = sd.faq_hoja_detalle(db, hoja_id)
     if not d:
@@ -892,7 +904,7 @@ class FaqHojaIn(BaseModel):
 
 
 @router.post("/design/api/faq/hojas")
-def api_faq_hoja_crear(payload: FaqHojaIn, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_hoja_crear(payload: FaqHojaIn, user: Empleado = Depends(require_comments("faq")),
                              db: Session = Depends(get_db)):
     _faq_editor(user)
     h = sd.faq_hoja_crear(db, payload.nombre, payload.duplicarDe)
@@ -903,7 +915,7 @@ def api_faq_hoja_crear(payload: FaqHojaIn, user: Empleado = Depends(require_modu
 
 @router.post("/design/api/faq/hojas/{hoja_id}/renombrar")
 def api_faq_hoja_renombrar(hoja_id: int, payload: FaqHojaIn,
-                                 user: Empleado = Depends(require_modulo("design_schedule")),
+                                 user: Empleado = Depends(require_comments("faq")),
                                  db: Session = Depends(get_db)):
     _faq_editor(user)
     if not sd.faq_hoja_renombrar(db, hoja_id, payload.nombre):
@@ -912,7 +924,7 @@ def api_faq_hoja_renombrar(hoja_id: int, payload: FaqHojaIn,
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/eliminar")
-def api_faq_hoja_eliminar(hoja_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_hoja_eliminar(hoja_id: int, user: Empleado = Depends(require_comments("faq")),
                                 db: Session = Depends(get_db)):
     _faq_editor(user)
     r = sd.faq_hoja_eliminar(db, hoja_id, user.nombre_completo)
@@ -929,7 +941,7 @@ class FaqColumnaIn(BaseModel):
 
 @router.post("/design/api/faq/hojas/{hoja_id}/columnas")
 def api_faq_columna_agregar(hoja_id: int, payload: FaqColumnaIn,
-                                  user: Empleado = Depends(require_modulo("design_schedule")),
+                                  user: Empleado = Depends(require_comments("faq")),
                                   db: Session = Depends(get_db)):
     _faq_editor(user)
     col = sd.faq_columna_agregar(db, hoja_id, payload.titulo)
@@ -940,7 +952,7 @@ def api_faq_columna_agregar(hoja_id: int, payload: FaqColumnaIn,
 
 @router.post("/design/api/faq/hojas/{hoja_id}/columnas/{clave}")
 def api_faq_columna_renombrar(hoja_id: int, clave: str, payload: FaqColumnaIn,
-                                    user: Empleado = Depends(require_modulo("design_schedule")),
+                                    user: Empleado = Depends(require_comments("faq")),
                                     db: Session = Depends(get_db)):
     _faq_editor(user)
     if not sd.faq_columna_renombrar(db, hoja_id, clave, payload.titulo):
@@ -949,7 +961,7 @@ def api_faq_columna_renombrar(hoja_id: int, clave: str, payload: FaqColumnaIn,
 
 
 @router.post("/design/api/faq/hojas/{hoja_id}/columnas/{clave}/eliminar")
-def api_faq_columna_eliminar(hoja_id: int, clave: str, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_columna_eliminar(hoja_id: int, clave: str, user: Empleado = Depends(require_comments("faq")),
                                    db: Session = Depends(get_db)):
     _faq_editor(user)
     if not sd.faq_columna_eliminar(db, hoja_id, clave, user.nombre_completo):
@@ -964,7 +976,7 @@ class FaqFilaNuevaIn(BaseModel):
 
 @router.post("/design/api/faq/hojas/{hoja_id}/filas")
 def api_faq_fila_crear(hoja_id: int, payload: FaqFilaNuevaIn,
-                             user: Empleado = Depends(require_modulo("design_schedule")),
+                             user: Empleado = Depends(require_comments("faq")),
                              db: Session = Depends(get_db)):
     _faq_editor(user)
     f = sd.faq_fila_crear(db, hoja_id, payload.seccion, payload.despuesDe)
@@ -980,7 +992,7 @@ class FaqSeccionIn(BaseModel):
 
 @router.post("/design/api/faq/hojas/{hoja_id}/seccion")
 def api_faq_seccion_renombrar(hoja_id: int, payload: FaqSeccionIn,
-                                    user: Empleado = Depends(require_modulo("design_schedule")),
+                                    user: Empleado = Depends(require_comments("faq")),
                                     db: Session = Depends(get_db)):
     _faq_editor(user)
     return {"filas": sd.faq_seccion_renombrar(db, hoja_id, payload.filas, payload.nombre)}
@@ -993,7 +1005,7 @@ class FaqCeldaIn(BaseModel):
 
 @router.post("/design/api/faq/filas/{fila_id}")
 def api_faq_fila_actualizar(fila_id: int, payload: FaqCeldaIn,
-                                  user: Empleado = Depends(require_modulo("design_schedule")),
+                                  user: Empleado = Depends(require_comments("faq")),
                                   db: Session = Depends(get_db)):
     _faq_editor(user)
     if not sd.faq_fila_actualizar(db, fila_id, payload.campo, payload.valor):
@@ -1002,7 +1014,7 @@ def api_faq_fila_actualizar(fila_id: int, payload: FaqCeldaIn,
 
 
 @router.post("/design/api/faq/filas/{fila_id}/eliminar")
-def api_faq_fila_eliminar(fila_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_faq_fila_eliminar(fila_id: int, user: Empleado = Depends(require_comments("faq")),
                                 db: Session = Depends(get_db)):
     _faq_editor(user)
     if not sd.faq_fila_eliminar(db, fila_id, user.nombre_completo):
