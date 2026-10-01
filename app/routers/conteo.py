@@ -133,7 +133,6 @@ class ReporteIn(BaseModel):
     area: str = ""
     novedad: str = ""
     enviar: bool = False
-    testigo_id: int = 0       # testigo del conteo (tercera firma), se elige al enviar
     lineas: list[LineaIn] = []
     danados: list[DanadoIn] = []
 
@@ -148,7 +147,7 @@ def api_guardar(payload: ReporteIn, tareas: BackgroundTasks, user: Empleado = De
         raise HTTPException(400, r)
     if r.estado == ENVIADO:
         tareas.add_task(sc.notificar, r.id, "enviado")
-    accion = ("enviado con tu firma: se les avisó al Director de Producción y al testigo para que firmen"
+    accion = ("enviado con tu firma: se les avisó al Director de Producción y a los testigos para que firmen"
               if r.estado == ENVIADO else "guardado como borrador")
     return {"mensaje": f"✅ Conteo de {sc.MESES[r.mes - 1]} {r.anio} de {nombre_propio(r.area)} {accion}.",
             "reporte": sc.serializar(db, r, user)}
@@ -163,7 +162,7 @@ def _reporte(db: Session, reporte_id: int) -> ConteoReporte:
 
 def _reporte_para_firmar(db: Session, user: Empleado, reporte_id: int) -> ConteoReporte:
     r = _reporte(db, reporte_id)
-    if user.id not in (r.manager_firma_id, r.testigo_id, r.responsable_id) and not sc.es_admin(user):
+    if not sc.es_firmante(db, user, r) and not sc.es_admin(user):
         raise HTTPException(404, "Este conteo no tiene una firma a tu nombre.")
     return r
 
@@ -185,7 +184,7 @@ def pagina_firma(reporte_id: int, request: Request, user: Empleado = Depends(get
                       "cantidad": datos["danados"].get(str(b.id), 0),
                       "evidencias": [e for e in datos["evidencias"] if not e["materialId"]]})
     return templates.TemplateResponse(request, "conteo_firma.html", {
-        "user": user, "es_portal": True, "r": datos, "filas": filas, "rol": sc.rol_firmante(user, r),
+        "user": user, "es_portal": True, "r": datos, "filas": filas, "rol": sc.rol_firmante(db, user, r),
         "puede_anular": sc.puede_anular(db, user),
         "msg": request.query_params.get("msg", "")})
 
@@ -336,7 +335,7 @@ def api_ver_evidencia(evidencia_id: int, user: Empleado = Depends(get_current_us
     e = db.get(ConteoEvidencia, evidencia_id)
     if not e:
         raise HTTPException(404, "Evidencia no encontrada.")
-    firmante = user.id in (e.reporte.manager_firma_id, e.reporte.testigo_id)
+    firmante = sc.es_firmante(db, user, e.reporte)
     if not firmante:
         if not tiene_submodulo(db, user, SUB):
             raise HTTPException(403, "No tienes acceso a esta evidencia.")

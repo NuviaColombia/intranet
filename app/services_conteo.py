@@ -1,7 +1,7 @@
 """Lógica de Producción › Conteo inventario mensual (ver models_conteo.py).
 
-Flujo de cada área y mes: el manager guarda un BORRADOR y lo ENVÍA con su firma (firma 1) eligiendo el testigo →
-firman el Director de Producción (firma 2) y el testigo (firma 3) → con las 3 firmas el conteo queda EN FIRME
+Flujo de cada área y mes: el manager guarda un BORRADOR y lo ENVÍA con su firma (firma 1) → firman el Director de
+Producción (firma 2) y un testigo (firma 3): cualquiera de la lista de testigos de Parámetros (no se elige en el formulario) → con las 3 firmas el conteo queda EN FIRME
 (estado VALIDADO en la base) y se guarda el PDF del reporte. Si el Director o el testigo no están de acuerdo, lo
 rechazan con una observación (DEVUELTO). Solo el Director de Producción o un administrador pueden anular las firmas
 para que se corrija y se vuelva a firmar. Se puede enviar en cualquier momento (sin fecha límite)."""
@@ -96,20 +96,31 @@ def puede_anular(db: Session, user: Empleado) -> bool:
     return es_admin(user) or bool(d and d.id == user.id)
 
 
+def testigos_posibles(db: Session, r: ConteoReporte) -> list[Empleado]:
+    """Quienes pueden firmar como testigo este conteo: la lista de Parámetros, sin quien lo cargó ni el Director."""
+    return [t for t in testigos(db) if t.id not in (r.responsable_id, r.manager_firma_id)]
+
+
 def firmas_completas(r: ConteoReporte) -> bool:
     """Las 3 firmas del conteo: el manager que lo carga, el Director de Producción y el testigo."""
     return bool(r.enviado_en and r.manager_firmado_en and r.testigo_firmado_en)
 
 
-def rol_firmante(user: Empleado, r: ConteoReporte) -> str:
-    """"manager" (= Director de Producción) / "testigo" si a esta persona le falta firmar el conteo enviado."""
+def rol_firmante(db: Session, user: Empleado, r: ConteoReporte) -> str:
+    """"manager" (= Director de Producción) / "testigo" si a esta persona le toca firmar el conteo enviado.
+    Testigo: cualquiera de la lista de Parámetros (el primero que firma queda como testigo)."""
     if r.estado != ENVIADO:
         return ""
     if r.manager_firma_id == user.id and not r.manager_firmado_en:
         return "manager"
-    if r.testigo_id == user.id and not r.testigo_firmado_en:
+    if not r.testigo_firmado_en and user.id in {t.id for t in testigos_posibles(db, r)}:
         return "testigo"
     return ""
+
+
+def es_firmante(db: Session, user: Empleado, r: ConteoReporte) -> bool:
+    """Puede ver el conteo para firmarlo (o lo firmó): Director, testigo que firmó o cualquiera de la lista de testigos."""
+    return user.id in (r.manager_firma_id, r.testigo_id, r.responsable_id) or user.id in {t.id for t in testigos(db)}
 
 
 def _quedar_en_firme(r: ConteoReporte) -> None:
@@ -120,13 +131,13 @@ def _quedar_en_firme(r: ConteoReporte) -> None:
 def firmar_conteo(db: Session, user: Empleado, r: ConteoReporte) -> str | None:
     """Firma del Director de Producción o del testigo: queda su correo Zoho (el de la sesión) y la fecha y hora.
     Con las 3 firmas el conteo queda en firme."""
-    rol = rol_firmante(user, r)
+    rol = rol_firmante(db, user, r)
     if not rol:
         return "Este conteo no tiene una firma pendiente a tu nombre."
     if rol == "manager":
         r.manager_firma_email, r.manager_firmado_en = user.email or "", datetime.utcnow()
-    else:
-        r.testigo_email, r.testigo_firmado_en = user.email or "", datetime.utcnow()
+    else:  # el testigo que firma queda registrado como el testigo del conteo
+        r.testigo_id, r.testigo_email, r.testigo_firmado_en = user.id, user.email or "", datetime.utcnow()
     _quedar_en_firme(r)
     db.commit()
     return None
@@ -134,7 +145,7 @@ def firmar_conteo(db: Session, user: Empleado, r: ConteoReporte) -> str | None:
 
 def rechazar_firma(db: Session, user: Empleado, r: ConteoReporte, observacion: str) -> str | None:
     """El Director o el testigo no firma: el conteo vuelve al manager con la observación."""
-    rol = rol_firmante(user, r)
+    rol = rol_firmante(db, user, r)
     if not rol:
         return "Este conteo no tiene una firma pendiente a tu nombre."
     obs = (observacion or "").strip()
@@ -151,7 +162,7 @@ def rechazar_firma(db: Session, user: Empleado, r: ConteoReporte, observacion: s
 def _borrar_firmas(r: ConteoReporte) -> None:
     r.enviado_en = r.enviado_email = None
     r.manager_firma_email = r.manager_firmado_en = None
-    r.testigo_email = r.testigo_firmado_en = None
+    r.testigo_id = r.testigo_email = r.testigo_firmado_en = None
     r.validado_en = None
 
 
@@ -238,7 +249,7 @@ def _leer_lineas(db: Session, datos: dict, area: str) -> list[ConteoLinea] | str
 
 
 def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = False) -> ConteoReporte | str:
-    """El manager guarda su conteo (borrador) o lo envía con su firma. Enviado ya no se cambia, salvo que lo
+    """El manager guarda su conteo (borrador) o lo envía con su firma (el Director y los testigos salen de Parámetros). Enviado ya no se cambia, salvo que lo
     rechacen o el Director/administrador anule las firmas. Se puede enviar en cualquier momento."""
     try:
         fecha = date.fromisoformat(str(datos.get("fecha") or ""))
@@ -284,23 +295,14 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
         if not director:
             db.rollback()
             return "Falta asignar el Director de Producción en Parámetros › Director y testigos: es la segunda firma del conteo."
-        try:
-            testigo = db.get(Empleado, int(datos.get("testigo_id") or 0))
-        except (TypeError, ValueError):
-            testigo = None
-        if not testigo or not testigo.activo:
+        if not [t for t in testigos(db) if t.id not in (user.id, director.id)]:
             db.rollback()
-            return "Elige el testigo del conteo (la persona que estuvo presente)."
-        if testigo.id not in {t.id for t in testigos(db)}:
-            db.rollback()
-            return "El testigo debe estar en la lista de testigos (Parámetros › Director y testigos)."
-        if testigo.id in (user.id, director.id):
-            db.rollback()
-            return "El testigo debe ser una persona distinta a quien carga el conteo y al Director de Producción."
+            return ("Falta la lista de testigos en Parámetros › Director y testigos (personas distintas a quien carga "
+                    "el conteo y al Director de Producción): uno de ellos firma como testigo.")
         ahora = datetime.utcnow()
         r.estado, r.enviado_en, r.enviado_email = ENVIADO, ahora, user.email or ""
-        r.manager_firma_id, r.testigo_id = director.id, testigo.id
-        r.testigo_email = r.testigo_firmado_en = None
+        r.manager_firma_id = director.id
+        r.testigo_id = r.testigo_email = r.testigo_firmado_en = None  # firma cualquiera de la lista de testigos
         if director.id == user.id:  # quien carga es el Director: su firma de Director queda puesta al enviar
             r.manager_firma_email, r.manager_firmado_en = user.email or "", ahora
         else:
@@ -573,13 +575,14 @@ def notificar(reporte_id: int, evento: str) -> None:
         r = db.get(ConteoReporte, reporte_id)
         if not r:
             return
-        if evento == "enviado":  # a quienes les falta firmar: Director de Producción y testigo
+        if evento == "enviado":  # a quienes les falta firmar: Director de Producción y todos los testigos de la lista
             url = f"{cfg.BASE_URL}/conteo/firma/{r.id}"
             destinos = ([r.manager_firma.email] if r.manager_firma and not r.manager_firmado_en else []) + \
-                       ([r.testigo.email] if r.testigo and not r.testigo_firmado_en else [])
+                       ([t.email for t in testigos_posibles(db, r)] if not r.testigo_firmado_en else [])
             texto = (f"✍️ *Conteo de inventario pendiente de tu firma*\n{_resumen(r)}\n"
                      f"Cargado por: {nombre_propio(r.responsable.nombre_completo) if r.responsable else '—'}\n"
-                     f"Revísalo y fírmalo (o recházalo con una observación) en: {url}")
+                     f"Revísalo y fírmalo (o recházalo con una observación) en: {url}\n"
+                     f"(Testigos: basta con la firma de uno de la lista.)")
         elif evento == "en_firme":
             url = f"{cfg.BASE_URL}/conteo"
             destinos = [r.responsable.email if r.responsable else ""]

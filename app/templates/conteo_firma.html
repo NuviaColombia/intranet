@@ -31,7 +31,7 @@
     <div class="cf-firmas">
       <div class="cf-firma"><b>1. Manager (carga)</b>{% if r.enviadoEn %}✅ {{ r.responsable }}<br>{{ r.enviadoEmail }}<br>{{ r.enviadoEn }}{% else %}⏳ Sin enviar{% endif %}</div>
       <div class="cf-firma"><b>2. Director de Producción</b>{% if r.managerFirma.en %}✅ {{ r.managerFirma.nombre }}<br>{{ r.managerFirma.email }}<br>{{ r.managerFirma.en }}{% else %}⏳ {{ r.managerFirma.nombre or 'Pendiente' }}{% endif %}</div>
-      <div class="cf-firma"><b>3. Testigo del conteo</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ {{ r.testigo.nombre or 'Pendiente' }}{% endif %}</div>
+      <div class="cf-firma"><b>3. Testigo del conteo</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ Firma cualquiera de la lista de testigos{% endif %}</div>
     </div>
 
     <table class="cf-tabla">

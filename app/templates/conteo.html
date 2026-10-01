@@ -71,9 +71,8 @@
       <div><label>Área <b>*</b></label><select id="cArea" onchange="pintarFormulario(); cargarReporte()"></select></div>
       <div><label>Correo (Zoho)</label><input id="cCorreo" readonly></div>
       <div><label>Director de Producción (firma 2)</label><input id="cDirector" readonly placeholder="Se asigna en Parámetros"></div>
-      <div><label>Testigo del conteo (firma 3, de la lista de testigos) <b>*</b></label>
-        <input type="search" id="cBuscarTestigo" placeholder="Busca por nombre o cargo…" style="margin-bottom:4px" oninput="filtrarTestigos()">
-        <select id="cTestigo"></select></div>
+      <div><label>Testigos (firma 3: firma cualquiera de ellos)</label><input id="cTestigos" readonly placeholder="Se asignan en Parámetros"
+        title="Se asignan en Parámetros › Director y testigos. Les llega el aviso a todos y basta con la firma de uno."></div>
     </div>
     <div id="cEstado"></div>
     <div id="cBodegas"></div>
@@ -177,23 +176,20 @@ function sugerirMes() {
   document.getElementById('cMes').value = parseInt(f.slice(5, 7), 10); document.getElementById('cAnio').value = f.slice(0, 4);
   cargarReporte();
 }
-function pintarTestigos() {
-  var sel = document.getElementById('cTestigo'), antes = sel.value;
-  sel.innerHTML = '<option value="">Seleccionar…</option>' + D.personas.filter(function(p) { return p.id !== D.usuarioId; }).map(function(p) {
-    return '<option value="' + p.id + '" data-buscar="' + esc((p.nombre + ' ' + p.cargo).toLowerCase()) + '">' + esc(p.nombre) + (p.cargo ? ' — ' + esc(p.cargo) : '') + '</option>'; }).join('');
-  sel.value = antes;
+// Director y testigos salen de Parámetros: no se eligen aquí
+function testigosPosibles() {
+  return D.personas.filter(function(p) { return p.id !== D.usuarioId && !(D.director && p.id === D.director.id); });
 }
-function filtrarTestigos() {
-  var q = document.getElementById('cBuscarTestigo').value.trim().toLowerCase(), sel = document.getElementById('cTestigo'), primera = null;
-  Array.prototype.forEach.call(sel.options, function(o, i) { if (!i) return; var ok = !q || o.dataset.buscar.indexOf(q) >= 0; o.hidden = !ok; if (ok && !primera) primera = o; });
-  if (q && primera) sel.value = primera.value;
+function pintarTestigos() {
+  var t = testigosPosibles();
+  document.getElementById('cTestigos').value = t.length ? t.map(function(p) { return p.nombre; }).join(', ') : '⚠️ Sin testigos en Parámetros › Director y testigos';
 }
 function firmasHtml(r) {
   var f = function(n, titulo, nombre, en) {
     return '<span class="ct-firma ' + (en ? 'si' : 'no') + '">' + n + '. ' + titulo + ': ' + (en ? '✅ ' + esc(nombre) + ' · ' + esc(en) : '⏳ ' + esc(nombre || 'pendiente')) + '</span>';
   };
   return '<div class="ct-firmas">' + f(1, 'Manager', r.responsable, r.enviadoEn) +
-    f(2, 'Director', r.managerFirma.nombre, r.managerFirma.en) + f(3, 'Testigo', r.testigo.nombre, r.testigo.en) + '</div>';
+    f(2, 'Director', r.managerFirma.nombre, r.managerFirma.en) + f(3, 'Testigo', r.testigo.nombre || 'cualquiera de la lista', r.testigo.en) + '</div>';
 }
 // Solo el Director de Producción o un administrador: anula las firmas para corregir y volver a firmar
 function botonAnular(r, alVolver) {
@@ -213,7 +209,7 @@ function pintarFormulario() {
   document.getElementById('cDirector').value = d ? d.nombre + (d.id === D.usuarioId ? ' (tú: tu firma queda al enviar)' : '') : '⚠️ Sin asignar en Parámetros › Director y testigos';
 }
 function bloquearManager(si) {
-  document.querySelectorAll('#sec-nuevo .ct-cant, #sec-nuevo .ct-dan, #cNovedad, #cFecha, #cTestigo, #cBuscarTestigo').forEach(function(i) { i.disabled = si; });
+  document.querySelectorAll('#sec-nuevo .ct-cant, #sec-nuevo .ct-dan, #cNovedad, #cFecha').forEach(function(i) { i.disabled = si; });
   document.getElementById('cBotones').style.display = si ? 'none' : '';
   document.querySelectorAll('#sec-nuevo .sube').forEach(function(l) { l.style.display = si ? 'none' : ''; });
 }
@@ -235,14 +231,13 @@ function cargarReporte() {
     else if (e === 'BORRADOR') est.innerHTML = '<div class="ct-aviso edit">📝 <b>Borrador</b> guardado el ' + esc(actual.actualizadoEn || actual.creadoEn) +
       '. Todavía <b>no se ha enviado</b>: cuando esté completo pulsa «Enviar conteo».</div>';
     else if (e === 'ENVIADO') est.innerHTML = '<div class="ct-aviso info">📤 Enviado con tu firma el ' + esc(actual.enviadoEn) + ' (' + esc(actual.enviadoEmail) + '). ' +
-      'Falta que firmen el Director de Producción y/o el testigo (les llegó el aviso por Cliq). Ya no se puede cambiar.' + botonAnular(actual, 'cargarReporte') + firmasHtml(actual) + '</div>';
+      'Falta que firmen el Director de Producción y/o un testigo (les llegó el aviso por Cliq). Ya no se puede cambiar.' + botonAnular(actual, 'cargarReporte') + firmasHtml(actual) + '</div>';
     else if (e === 'DEVUELTO') est.innerHTML = '<div class="ct-aviso no">↩️ <b>Devuelto</b> por ' + esc(actual.devueltoPor) + ' el ' + esc(actual.devueltoEn) + ':<br>«' + esc(actual.observacion) +
       '»<br>Corrige y envíalo de nuevo: se vuelve a firmar.</div>';
     else if (e === 'VALIDADO') est.innerHTML = '<div class="ct-aviso ok">✅ <b>En firme</b> desde el ' + esc(actual.enFirmeEn) + ' con las 3 firmas. ' +
       '<a target="_blank" href="/conteo/api/reportes/' + actual.id + '/acta.pdf"><b>📄 Ver el reporte firmado (PDF)</b></a>' + botonAnular(actual, 'cargarReporte') + firmasHtml(actual) +
       '<small>Para corregirlo, el Director de Producción o un administrador debe anular las firmas.</small></div>';
     if (!actual) return;
-    if (actual.testigo && actual.testigo.id) document.getElementById('cTestigo').value = actual.testigo.id;
     document.getElementById('btnImprimirManager').style.display = '';
     document.getElementById('cFecha').value = actual.fechaReporte;
     ponerCantidades(actual.conteo, actual.danados);
@@ -314,15 +309,14 @@ function guardarConteo(enviar) {
   if (malos.length) { alert('⚠️ Revisa estas cantidades (usa números, con decimales así: 12.5 o 12,5):\n' + malos.join('\n')); return; }
   var datos = Object.assign({fecha: document.getElementById('cFecha').value, anio: +document.getElementById('cAnio').value,
                mes: +document.getElementById('cMes').value, area: document.getElementById('cArea').value,
-               novedad: document.getElementById('cNovedad').value, enviar: false,
-               testigo_id: +document.getElementById('cTestigo').value || 0}, leerCantidades());
+               novedad: document.getElementById('cNovedad').value, enviar: false}, leerCantidades());
   if (enviar) {
     if (!D.director) { alert('⚠️ Falta asignar el Director de Producción en Parámetros › Director y testigos.'); return; }
-    if (!datos.testigo_id) { alert('⚠️ Elige el testigo del conteo (la persona que estuvo presente).'); document.getElementById('cBuscarTestigo').focus(); return; }
+    if (!testigosPosibles().length) { alert('⚠️ Falta asignar los testigos en Parámetros › Director y testigos.'); return; }
     var faltan = [];
     document.querySelectorAll('#sec-nuevo .ct-dan').forEach(function(i) { if (i.value.trim() === '') faltan.push(i.dataset.etq); });
     if (faltan.length) { alert('⚠️ Completa (aunque sea con 0): ' + faltan.join(' · ')); return; }
-    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al Director de Producción y al testigo para firmar. Con las 3 firmas queda en firme.')) return;
+    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al Director de Producción y a los testigos (firma uno de ellos). Con las 3 firmas queda en firme.')) return;
   }
   var btn = document.getElementById(enviar ? 'btnEnviar' : 'btnBorrador'), texto = btn.innerText; btn.disabled = true; btn.innerText = 'Guardando…';
   // 1) guarda como borrador · 2) sube los soportes · 3) si es envío, lo envía (con los soportes ya adentro)
