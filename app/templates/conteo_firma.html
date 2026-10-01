@@ -22,6 +22,8 @@
 <div id="consumo-app">
  <div class="cm-main">
   <div class="cm-seccion activa cf-caja">
+    {% if es_conteo %}<div style="margin-bottom:10px">
+      <a class="btn gris mini" href="/conteo?tab={{ 'validacion' if 'validacion' in secciones else (secciones[0] if secciones else 'nuevo') }}">← Volver a {{ 'Pendientes por validar' if 'validacion' in secciones else 'Conteo inventario mensual' }}</a></div>{% endif %}
     <h2 class="cm-titulo">✍️ Firma del conteo de inventario</h2>
     <p class="cm-sub"><b>{{ r.area|nombre_propio }}</b> · {{ r.mesNombre }} {{ r.anio }} · cargado por <b>{{ r.responsable }}</b>
       ({{ r.responsableEmail }}){% if r.enviadoEn %} el {{ r.enviadoEn }}{% endif %}.</p>
@@ -95,4 +97,8 @@
   </div>
  </div>
 </div>
+{% if es_conteo %}<script>
+// Desde la firma, cada pestaña de la barra abre esa sección del conteo
+document.querySelectorAll('.conteo-tab').forEach(function(a) { a.href = '/conteo?tab=' + a.dataset.tab; });
+</script>{% endif %}
 {% endblock %}
