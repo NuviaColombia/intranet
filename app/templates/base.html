@@ -110,7 +110,7 @@
   {% if es_conteo %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/conteo">Conteo inventario mensual</a></span>
   <div class="nav-sub">
-    {{ pestanas([[('nuevo', 'Conteo del mes')], [('reportes', 'Reportes')]], 'conteo-tab', '/conteo', sec_permitidas, conteo_tab_inicial|default('nuevo')) }}
+    {{ pestanas([[('nuevo', 'Conteo del mes')], [('validacion', '⏳ Pendientes por validar')], [('reportes', 'Reportes')]], 'conteo-tab', '/conteo', sec_permitidas, conteo_tab_inicial|default('nuevo')) }}
   </div>
   {% endif %}
   {% if es_custodia and request.url.path == '/inventario/parametros' %}

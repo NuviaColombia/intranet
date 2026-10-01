@@ -86,6 +86,10 @@ class ConteoReporte(Base):
     testigo_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     testigo_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
     testigo_firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Segundo conteo (lo hacen el Director de Producción y el testigo antes de firmar); usa las columnas de la
+    # validación de la versión anterior, así lo ya contado por los validadores cuenta como segundo conteo
+    segundo_por_id: Mapped[int | None] = mapped_column("validacion_por_id", ForeignKey("empleados.id"), nullable=True)
+    segundo_en: Mapped[datetime | None] = mapped_column("validacion_guardada_en", DateTime, nullable=True)
     validado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # cuándo quedó en firme (3 firmas)
     # Rechazo de una firma o firmas anuladas por el Director / administrador
     devuelto_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
@@ -96,13 +100,14 @@ class ConteoReporte(Base):
     actualizado_por = relationship("Empleado", foreign_keys=[actualizado_por_id])
     devuelto_por = relationship("Empleado", foreign_keys=[devuelto_por_id])
     manager_firma = relationship("Empleado", foreign_keys=[manager_firma_id])
+    segundo_por = relationship("Empleado", foreign_keys=[segundo_por_id])
     testigo = relationship("Empleado", foreign_keys=[testigo_id])
     lineas = relationship("ConteoLinea", back_populates="reporte", cascade="all, delete-orphan")
     evidencias = relationship("ConteoEvidencia", back_populates="reporte", cascade="all, delete-orphan")
 
 
 class ConteoLinea(Base):
-    """Cantidad (acepta decimales) de un material en una bodega. tipo: CONTEO / DANADO (discos dañados)."""
+    """Cantidad (acepta decimales) de un material en una bodega. tipo: CONTEO / DANADO (manager) · VCONTEO / VDANADO (segundo conteo)."""
     __tablename__ = "conteo_lineas"
 
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -160,12 +160,35 @@ def _hora(m: datetime | None) -> str:
 
 
 def _tablas_area(doc: "_Doc", r, bodegas, materiales, conteo: dict, danados: dict, titulo_bodega) -> None:
+    """Con segundo conteo: Manager · Segundo conteo (cifra oficial) · Diferencia; sin él, solo la cantidad."""
     ancho = doc.w - 24
+    segundo = getattr(r, "segundo_en", None) is not None
+    man = {f"{l.bodega_id}:{l.material_id}": l.cantidad for l in r.lineas if l.tipo == "CONTEO"}
+    man_d = {str(l.bodega_id): l.cantidad for l in r.lineas if l.tipo == "DANADO"}
+    seg = {f"{l.bodega_id}:{l.material_id}": l.cantidad for l in r.lineas if l.tipo == "VCONTEO"}
+    seg_d = {str(l.bodega_id): l.cantidad for l in r.lineas if l.tipo == "VDANADO"}
+
+    def dif(a, b):
+        d = round(b - a, 2)
+        return ("+" if d > 0 else "") + _n(d)
     for b in bodegas:
-        filas = [[f"{b.prefijo}-{m.codigo}-{m.descripcion}", _n(conteo.get(f"{b.id}:{m.id}", 0))] for m in materiales]
-        filas.append(["Disco de zirconia - DAÑADOS", _n(danados.get(str(b.id), 0))])
         doc.titulo_seccion(titulo_bodega(b))
-        doc.tabla(["Material", "Cantidad"], filas, [ancho * 0.75, ancho * 0.25])
+        if not segundo:
+            filas = [[f"{b.prefijo}-{m.codigo}-{m.descripcion}", _n(conteo.get(f"{b.id}:{m.id}", 0))] for m in materiales]
+            filas.append(["Disco de zirconia - DAÑADOS", _n(danados.get(str(b.id), 0))])
+            doc.tabla(["Material", "Cantidad"], filas, [ancho * 0.75, ancho * 0.25])
+            continue
+        filas, marcar = [], []
+        for m in materiales:
+            k = f"{b.id}:{m.id}"
+            a1, a2 = man.get(k, 0), seg.get(k, 0)
+            filas.append([f"{b.prefijo}-{m.codigo}-{m.descripcion}", _n(a1), _n(a2), dif(a1, a2)])
+            marcar.append(round(a2 - a1, 2) != 0)
+        a1, a2 = man_d.get(str(b.id), 0), seg_d.get(str(b.id), 0)
+        filas.append(["Disco de zirconia - DAÑADOS", _n(a1), _n(a2), dif(a1, a2)])
+        marcar.append(round(a2 - a1, 2) != 0)
+        doc.tabla(["Material", "Manager", "Segundo conteo", "Diferencia"], filas,
+                  [ancho * 0.49, ancho * 0.17, ancho * 0.17, ancho * 0.17], marcar)
 
 
 def acta_area(r, bodegas, materiales, meses: list[str]) -> bytes:
@@ -180,7 +203,9 @@ def acta_area(r, bodegas, materiales, meses: list[str]) -> bytes:
                ("Director", nombre_propio(r.manager_firma.nombre_completo) if r.manager_firma else ""),
                ("Testigo", nombre_propio(r.testigo.nombre_completo) if r.testigo else ""),
                ("Estado", "EN FIRME (3 FIRMAS)" if en_firme else "PENDIENTE DE FIRMAS"),
-               ("En firme desde", _hora(r.validado_en))])
+               ("En firme desde", _hora(r.validado_en)),
+               ("Segundo conteo", (nombre_propio(r.segundo_por.nombre_completo) + " - " + _hora(r.segundo_en)) if r.segundo_en and r.segundo_por else "Pendiente"),
+               ("Cifra oficial", "Segundo conteo" if r.segundo_en else "Conteo del manager")])
     conteo = {f"{l.bodega_id}:{l.material_id}": l.cantidad for l in r.lineas if l.tipo == "CONTEO"}
     danados = {str(l.bodega_id): l.cantidad for l in r.lineas if l.tipo == "DANADO"}
     _tablas_area(doc, r, bodegas, materiales, conteo, danados, lambda b: f"Conteo - {b.nombre} - Bodega {b.codigo}")

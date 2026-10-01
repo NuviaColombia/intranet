@@ -26,7 +26,8 @@ SUB = "conteo"
 ESTADOS = {"BORRADOR": "Borrador", "ENVIADO": "Esperando firmas", "DEVUELTO": "Devuelto", "VALIDADO": "En firme"}
 COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
     "conteo_reportes": {"estado": "VARCHAR(20) DEFAULT 'BORRADOR'", "enviado_en": "TIMESTAMP", "enviado_email": "VARCHAR(150)",
-                        "validado_en": "TIMESTAMP", "devuelto_por_id": "INTEGER REFERENCES empleados(id)",
+                        "validado_en": "TIMESTAMP", "validacion_por_id": "INTEGER REFERENCES empleados(id)",
+                        "validacion_guardada_en": "TIMESTAMP", "devuelto_por_id": "INTEGER REFERENCES empleados(id)",
                         "devuelto_en": "TIMESTAMP", "observacion": "TEXT",
                         "manager_firma_id": "INTEGER REFERENCES empleados(id)", "manager_firma_email": "VARCHAR(150)",
                         "manager_firmado_en": "TIMESTAMP", "testigo_id": "INTEGER REFERENCES empleados(id)",
@@ -53,6 +54,25 @@ def _tablas_conteo() -> None:
                         conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {tipo}"))
     except Exception as e:
         print(f"Conteo: columnas nuevas ({type(e).__name__}: {e}).")
+    # La versión anterior tenía conteo_evidencias.etapa obligatoria; la nueva ya no la llena
+    if engine.dialect.name != "sqlite":
+        try:
+            if "etapa" in {c["name"] for c in inspect(engine).get_columns("conteo_evidencias")}:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE conteo_evidencias ALTER COLUMN etapa SET DEFAULT 'MANAGER'"))
+                    conn.execute(text("ALTER TABLE conteo_evidencias ALTER COLUMN etapa DROP NOT NULL"))
+        except Exception as e:
+            print(f"Conteo: columna etapa ({type(e).__name__}: {e}).")
+    from ..database import SessionLocal
+    db = SessionLocal()
+    try:
+        n = sc.migrar_flujo_anterior(db)
+        if n:
+            print(f"Conteo: {n} conteo(s) con las 3 firmas pasaron a en firme.")
+    except Exception as e:
+        print(f"Conteo: migración del flujo anterior ({type(e).__name__}: {e}).")
+    finally:
+        db.close()
 
 
 @router.on_event("startup")
@@ -115,6 +135,24 @@ def api_reporte(area: str, anio: int, mes: int, user: Empleado = Depends(require
     return {"reporte": sc.serializar(db, r, user) if r else None, "puedeEditar": bool(r is None or sc.puede_editar(user, r))}
 
 
+@router.get("/conteo/api/pendientes")
+def api_pendientes(user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """Pestaña «Pendientes por validar»: conteos enviados que esperan la firma del Director y/o de un testigo."""
+    acs.exigir(db, user, SUB, "validacion")
+    return {"data": sc.pendientes_por_validar(db, user)}
+
+
+@router.post("/conteo/api/reportes/{reporte_id}/reenviar-aviso")
+def api_reenviar_aviso(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
+                       db: Session = Depends(get_db)):
+    acs.exigir(db, user, SUB, "validacion", "nuevo")
+    r = _reporte(db, reporte_id)
+    if r.estado != ENVIADO:
+        raise HTTPException(400, "Este conteo no está esperando firmas.")
+    tareas.add_task(sc.notificar, r.id, "enviado")
+    return {"mensaje": "🔔 Se reenvió el aviso por Cliq a quienes les falta firmar: " + ", ".join(sc.faltan_firmas(r)) + "."}
+
+
 class LineaIn(BaseModel):  # cantidades con decimales (12.5)
     bodega_id: int
     material_id: int
@@ -175,18 +213,45 @@ def pagina_firma(reporte_id: int, request: Request, user: Empleado = Depends(get
     bodegas = sc.bodegas_activas(db)
     materiales = sc.materiales_activos(db, r.area)
     filas = []
+    comp = (datos["comparacion"] or {}).get("filas", {})
     for b in bodegas:
         for m in materiales:
+            k = f"{b.id}:{m.id}"
             filas.append({"bodega": f"{b.nombre} - Bodega {b.codigo}", "material": f"{b.prefijo}-{m.codigo}-{m.descripcion}",
-                          "cantidad": datos["conteo"].get(f"{b.id}:{m.id}", 0),
+                          "campo": f"c_{b.id}_{m.id}", "cantidad": datos["conteo"].get(k, 0),
+                          "segundo": datos["segundo"].get(k), "diferencia": comp.get(k, {}).get("diferencia", 0),
                           "evidencias": [e for e in datos["evidencias"] if e["materialId"] == m.id]})
+        k = f"{b.id}:danados"
         filas.append({"bodega": f"{b.nombre} - Bodega {b.codigo}", "material": "Disco de zirconia - DAÑADOS", "danado": True,
-                      "cantidad": datos["danados"].get(str(b.id), 0),
+                      "campo": f"d_{b.id}", "cantidad": datos["danados"].get(str(b.id), 0),
+                      "segundo": datos["segundoDanados"].get(str(b.id)), "diferencia": comp.get(k, {}).get("diferencia", 0),
                       "evidencias": [e for e in datos["evidencias"] if not e["materialId"]]})
     return templates.TemplateResponse(request, "conteo_firma.html", {
         "user": user, "es_portal": True, "r": datos, "filas": filas, "rol": sc.rol_firmante(db, user, r),
-        "puede_anular": sc.puede_anular(db, user),
+        "puede_segundo": sc.puede_segundo_conteo(db, user, r), "puede_anular": sc.puede_anular(db, user),
         "msg": request.query_params.get("msg", "")})
+
+
+@router.post("/conteo/firma/{reporte_id}/segundo")
+async def guardar_segundo(reporte_id: int, request: Request, user: Empleado = Depends(get_current_user),
+                          db: Session = Depends(get_db)):
+    """Segundo conteo del Director de Producción y el testigo (desde la página de firma)."""
+    from urllib.parse import quote
+    r = _reporte_para_firmar(db, user, reporte_id)
+    form = await request.form()
+    datos = {"lineas": [], "danados": []}
+    for campo, valor in form.items():
+        partes = campo.split("_")
+        if partes[0] == "c" and len(partes) == 3:
+            datos["lineas"].append({"bodega_id": partes[1], "material_id": partes[2], "cantidad": valor or 0})
+        elif partes[0] == "d" and len(partes) == 2:
+            datos["danados"].append({"bodega_id": partes[1], "cantidad": valor or 0})
+    error = sc.guardar_segundo_conteo(db, user, r, datos)
+    db.refresh(r)
+    dif = (sc.comparacion(r, sc.bodegas_activas(db), sc.materiales_activos(db, r.area))["diferencias"] if not error else 0)
+    msg = error or ("✅ Segundo conteo guardado: coincide con el del manager. Ya puedes firmar." if not dif else
+                    f"⚠️ Segundo conteo guardado con {dif} diferencia(s) frente al manager (queda como cifra oficial). Ya puedes firmar, o rechazarlo.")
+    return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
 
 
 @router.post("/conteo/firma/{reporte_id}/firmar")

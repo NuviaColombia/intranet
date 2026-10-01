@@ -1,7 +1,8 @@
 """Lógica de Producción › Conteo inventario mensual (ver models_conteo.py).
 
 Flujo de cada área y mes: el manager guarda un BORRADOR y lo ENVÍA con su firma (firma 1) → firman el Director de
-Producción (firma 2) y un testigo (firma 3): cualquiera de la lista de testigos de Parámetros (no se elige en el formulario) → con las 3 firmas el conteo queda EN FIRME
+Producción (firma 2) y un testigo (firma 3): cualquiera de la lista de testigos de Parámetros (no se elige en el formulario).
+Antes de firmar, el Director y el testigo hacen el SEGUNDO CONTEO (la cifra oficial; se compara con la del manager) → con las 3 firmas el conteo queda EN FIRME
 (estado VALIDADO en la base) y se guarda el PDF del reporte. Si el Director o el testigo no están de acuerdo, lo
 rechazan con una observación (DEVUELTO). Solo el Director de Producción o un administrador pueden anular las firmas
 para que se corrija y se vuelva a firmar. Se puede enviar en cualquier momento (sin fecha límite)."""
@@ -123,8 +124,12 @@ def es_firmante(db: Session, user: Empleado, r: ConteoReporte) -> bool:
     return user.id in (r.manager_firma_id, r.testigo_id, r.responsable_id) or user.id in {t.id for t in testigos(db)}
 
 
+def tiene_segundo(r: ConteoReporte) -> bool:
+    return r.segundo_en is not None
+
+
 def _quedar_en_firme(r: ConteoReporte) -> None:
-    if firmas_completas(r) and r.estado == ENVIADO:
+    if firmas_completas(r) and tiene_segundo(r) and r.estado == ENVIADO:
         r.estado, r.validado_en = EN_FIRME, datetime.utcnow()
 
 
@@ -134,6 +139,8 @@ def firmar_conteo(db: Session, user: Empleado, r: ConteoReporte) -> str | None:
     rol = rol_firmante(db, user, r)
     if not rol:
         return "Este conteo no tiene una firma pendiente a tu nombre."
+    if not tiene_segundo(r):
+        return "Primero registren el segundo conteo (Director de Producción y testigo) y después firmen."
     if rol == "manager":
         r.manager_firma_email, r.manager_firmado_en = user.email or "", datetime.utcnow()
     else:  # el testigo que firma queda registrado como el testigo del conteo
@@ -159,7 +166,56 @@ def rechazar_firma(db: Session, user: Empleado, r: ConteoReporte, observacion: s
     return None
 
 
+def puede_segundo_conteo(db: Session, user: Empleado, r: ConteoReporte) -> bool:
+    """El segundo conteo lo registra el Director de Producción o un testigo de la lista, mientras espera firmas."""
+    if r.estado != ENVIADO:
+        return False
+    return user.id == r.manager_firma_id or user.id == r.testigo_id or user.id in {t.id for t in testigos_posibles(db, r)}
+
+
+def guardar_segundo_conteo(db: Session, user: Empleado, r: ConteoReporte, datos: dict) -> str | None:
+    """Guarda (o corrige) el segundo conteo. Si alguien ya había firmado, su firma se borra: debe firmar lo nuevo."""
+    if not puede_segundo_conteo(db, user, r):
+        return "Solo el Director de Producción o un testigo pueden registrar el segundo conteo de un conteo enviado."
+    lineas = _leer_lineas(db, datos, r.area, segundo=True)
+    if isinstance(lineas, str):
+        return lineas
+    for l in [l for l in r.lineas if l.tipo in ("VCONTEO", "VDANADO")]:
+        r.lineas.remove(l)
+    r.lineas.extend(lineas)
+    r.segundo_por_id, r.segundo_en = user.id, datetime.utcnow()
+    auto = r.manager_firma_id == r.responsable_id  # el Director cargó el conteo: su firma de Director se mantiene
+    if r.manager_firmado_en and not auto and r.manager_firma_id != user.id:
+        r.manager_firma_email = r.manager_firmado_en = None
+    if r.testigo_firmado_en and r.testigo_id != user.id:
+        r.testigo_id = r.testigo_email = r.testigo_firmado_en = None
+    if r.manager_firma_id == user.id and not auto:
+        r.manager_firma_email = r.manager_firmado_en = None  # vuelve a firmar con lo nuevo
+    if r.testigo_id == user.id:
+        r.testigo_email = r.testigo_firmado_en = None
+    db.commit()
+    return None
+
+
+def comparacion(r: ConteoReporte, bodegas, materiales) -> dict:
+    """Manager vs segundo conteo, material por material."""
+    c1, d1 = cantidades(r)
+    c2, d2 = cantidades(r, segundo=True)
+    filas = {}
+    for b in bodegas:
+        for m in materiales:
+            k = f"{b.id}:{m.id}"
+            filas[k] = {"manager": c1.get(k, 0), "segundo": c2.get(k, 0), "diferencia": round(c2.get(k, 0) - c1.get(k, 0), 2)}
+        k = f"{b.id}:danados"
+        filas[k] = {"manager": d1.get(str(b.id), 0), "segundo": d2.get(str(b.id), 0),
+                    "diferencia": round(d2.get(str(b.id), 0) - d1.get(str(b.id), 0), 2)}
+    return {"filas": filas, "diferencias": sum(1 for f in filas.values() if f["diferencia"])}
+
+
 def _borrar_firmas(r: ConteoReporte) -> None:
+    for l in [l for l in r.lineas if l.tipo in ("VCONTEO", "VDANADO")]:  # el segundo conteo se vuelve a hacer
+        r.lineas.remove(l)
+    r.segundo_por_id = r.segundo_en = None
     r.enviado_en = r.enviado_email = None
     r.manager_firma_email = r.manager_firmado_en = None
     r.testigo_id = r.testigo_email = r.testigo_firmado_en = None
@@ -183,18 +239,54 @@ def anular_firmas(db: Session, user: Empleado, r: ConteoReporte, motivo: str) ->
     return None
 
 
+def faltan_firmas(r: ConteoReporte) -> list[str]:
+    return (([] if tiene_segundo(r) else ["Segundo conteo"]) + ([] if r.manager_firmado_en else ["Director de Producción"])
+            + ([] if r.testigo_firmado_en else ["Testigo"]))
+
+
+def pendientes_por_validar(db: Session, user: Empleado) -> list[dict]:
+    """Conteos enviados que esperan firmas (de cualquier mes), con lo que falta y si a esta persona le toca firmar."""
+    salida = []
+    for r in (db.query(ConteoReporte).filter(ConteoReporte.estado == ENVIADO)
+              .order_by(ConteoReporte.anio.desc(), ConteoReporte.mes.desc(), ConteoReporte.area)):
+        d = serializar(db, r, user)
+        d["faltan"], d["miFirma"] = faltan_firmas(r), rol_firmante(db, user, r) or ("segundo" if puede_segundo_conteo(db, user, r) else "")
+        d["puedeVer"] = es_firmante(db, user, r) or es_admin(user)
+        salida.append(d)
+    return salida
+
+
+def migrar_flujo_anterior(db: Session) -> int:
+    """Conteos del flujo anterior con las 3 firmas y el conteo físico del validador (= segundo conteo) que quedaron
+    «en validación»: pasan a en firme. Los que no tienen segundo conteo siguen en Pendientes por validar."""
+    n = 0
+    for r in db.query(ConteoReporte).filter(ConteoReporte.estado == ENVIADO):
+        if firmas_completas(r) and tiene_segundo(r):
+            r.estado, r.validado_en = EN_FIRME, r.validado_en or max(r.manager_firmado_en, r.testigo_firmado_en)
+            n += 1
+    db.commit()
+    return n
+
+
 def puede_editar(user: Empleado, r: ConteoReporte) -> bool:
     return es_admin(user) or r.responsable_id == user.id or bool(area_de(user) and area_de(user) == r.area)
 
 
-def cantidades(r: ConteoReporte) -> tuple[dict, dict]:
-    conteo = {f"{l.bodega_id}:{l.material_id}": l.cantidad for l in r.lineas if l.tipo == "CONTEO"}
-    danados = {str(l.bodega_id): l.cantidad for l in r.lineas if l.tipo == "DANADO"}
+def cantidades(r: ConteoReporte, segundo: bool = False) -> tuple[dict, dict]:
+    t_cont, t_dan = ("VCONTEO", "VDANADO") if segundo else ("CONTEO", "DANADO")
+    conteo = {f"{l.bodega_id}:{l.material_id}": l.cantidad for l in r.lineas if l.tipo == t_cont}
+    danados = {str(l.bodega_id): l.cantidad for l in r.lineas if l.tipo == t_dan}
     return conteo, danados
+
+
+def cantidades_finales(r: ConteoReporte) -> tuple[dict, dict]:
+    """La cifra oficial: el segundo conteo (Director y testigo) si ya se hizo; si no, la del manager."""
+    return cantidades(r, segundo=True) if tiene_segundo(r) else cantidades(r)
 
 
 def serializar(db: Session, r: ConteoReporte, user: Empleado | None = None) -> dict:
     conteo, danados = cantidades(r)
+    seg, seg_d = cantidades(r, segundo=True)
     acta = db.query(ConteoDocumento).filter_by(tipo="ACTA", reporte_id=r.id).first()
     return {
         "id": r.id, "fechaReporte": r.fecha_reporte.isoformat(), "anio": r.anio, "mes": r.mes,
@@ -212,14 +304,18 @@ def serializar(db: Session, r: ConteoReporte, user: Empleado | None = None) -> d
         "devueltoPor": nombre_propio(r.devuelto_por.nombre_completo) if r.devuelto_por else "",
         "devueltoEn": _hora(r.devuelto_en), "observacion": r.observacion or "",
         "conteo": conteo, "danados": danados,
+        "tieneSegundo": tiene_segundo(r), "segundo": seg, "segundoDanados": seg_d, "segundoEn": _hora(r.segundo_en),
+        "segundoPor": nombre_propio(r.segundo_por.nombre_completo) if r.segundo_por else "",
+        "comparacion": comparacion(r, bodegas_activas(db), materiales_activos(db, r.area)) if tiene_segundo(r) else None,
         "acta": {"id": acta.id, "nombre": acta.nombre, "workdrive": acta.workdrive_estado} if acta else None,
         "evidencias": [{"id": e.id, "materialId": e.material_id, "nombre": e.nombre, "tipo": e.tipo_mime,
                         "tamano": e.tamano, "workdrive": e.workdrive_estado or "PENDIENTE"} for e in r.evidencias],
     }
 
 
-def _leer_lineas(db: Session, datos: dict, area: str) -> list[ConteoLinea] | str:
-    """Cantidades con decimales (ej. 12.5 o 12,5 discos)."""
+def _leer_lineas(db: Session, datos: dict, area: str, segundo: bool = False) -> list[ConteoLinea] | str:
+    """Cantidades con decimales (ej. 12.5 o 12,5 discos). segundo=True: las del segundo conteo."""
+    t_cont, t_dan = ("VCONTEO", "VDANADO") if segundo else ("CONTEO", "DANADO")
     bodegas = {b.id for b in bodegas_activas(db)}
     materiales = {m.id for m in materiales_activos(db, area)}
 
@@ -235,7 +331,7 @@ def _leer_lineas(db: Session, datos: dict, area: str) -> list[ConteoLinea] | str
         if c < 0:
             return "Las cantidades no pueden ser negativas."
         if b in bodegas and m in materiales:
-            lineas.append(ConteoLinea(bodega_id=b, material_id=m, tipo="CONTEO", cantidad=round(c, 2)))
+            lineas.append(ConteoLinea(bodega_id=b, material_id=m, tipo=t_cont, cantidad=round(c, 2)))
     for l in datos.get("danados") or []:
         try:
             b, c = int(l.get("bodega_id")), numero(l.get("cantidad"))
@@ -244,7 +340,7 @@ def _leer_lineas(db: Session, datos: dict, area: str) -> list[ConteoLinea] | str
         if c < 0:
             return "Las cantidades no pueden ser negativas."
         if b in bodegas:
-            lineas.append(ConteoLinea(bodega_id=b, material_id=None, tipo="DANADO", cantidad=round(c, 2)))
+            lineas.append(ConteoLinea(bodega_id=b, material_id=None, tipo=t_dan, cantidad=round(c, 2)))
     return lineas
 
 
@@ -301,6 +397,7 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
                     "el conteo y al Director de Producción): uno de ellos firma como testigo.")
         ahora = datetime.utcnow()
         r.estado, r.enviado_en, r.enviado_email = ENVIADO, ahora, user.email or ""
+        r.segundo_por_id = r.segundo_en = None  # el segundo conteo se hace sobre lo enviado
         r.manager_firma_id = director.id
         r.testigo_id = r.testigo_email = r.testigo_firmado_en = None  # firma cualquiera de la lista de testigos
         if director.id == user.id:  # quien carga es el Director: su firma de Director queda puesta al enviar
@@ -422,7 +519,7 @@ def consolidado(db: Session, anio: int, mes: int, areas_config: list[str], user:
     for r in reportes:
         d = serializar(db, r, user)
         oculto = r.estado == BORRADOR
-        conteo, danados = ({}, {}) if oculto else cantidades(r)
+        conteo, danados = ({}, {}) if oculto else cantidades_finales(r)
         d["final"], d["finalDanados"], d["oculto"] = conteo, danados, oculto
         for k, v in conteo.items():
             totales[k] = round(totales.get(k, 0) + v, 2)
@@ -479,7 +576,7 @@ def generar_consolidado(db: Session, anio: int, mes: int, areas_config: list[str
     esperando = sorted(r.area for r in reportes if r.estado in (ENVIADO, DEVUELTO))
     con_envio = {r.area for r in reportes if r.estado in (ENVIADO, EN_FIRME, DEVUELTO)}
     datos = consolidado_mes(anio, mes, reportes, bodegas_activas(db), lambda area: materiales_activos(db, area),
-                            {r.id: cantidades(r) for r in reportes}, esperando, MESES,
+                            {r.id: cantidades_finales(r) for r in reportes}, esperando, MESES,
                             [a for a in areas_config if a not in con_envio])
     nombre = f"Conteo inventario mensual - {MESES[mes - 1]} {anio} - Consolidado en firme.pdf"
     return _guardar_documento(db, "CONSOLIDADO", anio, mes, "", nombre, datos, None)
@@ -581,7 +678,7 @@ def notificar(reporte_id: int, evento: str) -> None:
                        ([t.email for t in testigos_posibles(db, r)] if not r.testigo_firmado_en else [])
             texto = (f"✍️ *Conteo de inventario pendiente de tu firma*\n{_resumen(r)}\n"
                      f"Cargado por: {nombre_propio(r.responsable.nombre_completo) if r.responsable else '—'}\n"
-                     f"Revísalo y fírmalo (o recházalo con una observación) en: {url}\n"
+                     f"Hagan el segundo conteo, regístrenlo y firmen (o recházalo con una observación) en: {url}\n"
                      f"(Testigos: basta con la firma de uno de la lista.)")
         elif evento == "en_firme":
             url = f"{cfg.BASE_URL}/conteo"

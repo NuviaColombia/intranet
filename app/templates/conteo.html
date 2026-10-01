@@ -84,6 +84,15 @@
       <button type="button" class="btn verde" id="btnEnviar" onclick="guardarConteo(true)">📤 Enviar conteo (firmar)</button></div>
   </div>
 
+  <!-- ============ PENDIENTES POR VALIDAR (esperan firmas) ============ -->
+  <div id="sec-validacion" class="cm-seccion {{ 'activa' if conteo_tab_inicial == 'validacion' }}">
+    <div class="cm-barra"><div><h2 class="cm-titulo">⏳ Pendientes por validar</h2>
+      <p class="cm-sub" style="margin:0;">Conteos enviados que esperan el <b>segundo conteo</b> y la firma del <b>Director de Producción</b> y de un <b>testigo</b>. Con el segundo conteo y las 3 firmas quedan en firme y salen de esta lista.</p></div></div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Mes</th><th>Área</th><th>Cargado por</th><th>Enviado</th><th>Firmas</th><th>Falta</th><th></th></tr></thead>
+      <tbody id="pLista"><tr><td colspan="7" class="cm-vacio">Cargando…</td></tr></tbody></table></div>
+  </div>
+
   <!-- ============ REPORTES ============ -->
   <div id="sec-reportes" class="cm-seccion {{ 'activa' if conteo_tab_inicial == 'reportes' }}">
     <div class="cm-barra"><div><h2 class="cm-titulo">📊 Reportes de conteo · <span id="rTitulo"></span></h2>
@@ -131,6 +140,7 @@ function switchTab(tab) {
   var sec = document.getElementById('sec-' + tab); if (!sec) return; sec.classList.add('activa');
   document.querySelectorAll('.conteo-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
   if (tab === 'reportes') cargarConsolidado();
+  if (tab === 'validacion') cargarPendientes();
 }
 document.querySelectorAll('.conteo-tab').forEach(function(a) { a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); }); });
 function opcionesMes(sel) { sel.innerHTML = D.meses.map(function(m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join(''); }
@@ -333,6 +343,27 @@ function guardarConteo(enviar) {
     .then(function() { btn.disabled = false; btn.innerText = texto; });
 }
 
+// ---------------- pendientes por validar ----------------
+function cargarPendientes() {
+  api('/conteo/api/pendientes').then(function(r) {
+    window._pendientes = r.data;
+    document.getElementById('pLista').innerHTML = r.data.length ? r.data.map(function(x, i) {
+      var nf = 1 + (x.managerFirma.en ? 1 : 0) + (x.testigo.en ? 1 : 0);
+      var acc = (x.miFirma ? '<a class="btn verde mini" href="/conteo/firma/' + x.id + '">' + (x.tieneSegundo ? '✍️ Firmar' : '🔢 Segundo conteo y firmar') + '</a> ' :
+                 x.puedeVer ? '<a class="btn gris mini" href="/conteo/firma/' + x.id + '">👁️ Ver</a> ' :
+                 '<button class="btn gris mini" onclick="imprimirConteo(window._pendientes[' + i + '])">👁️ Ver</button> ') +
+        '<button class="btn gris mini" onclick="reenviarAviso(' + x.id + ', this)">🔔 Reenviar aviso</button>' + botonAnular(x, 'cargarPendientes');
+      return '<tr><td>' + esc(x.mesNombre) + ' ' + x.anio + '</td><td class="izq"><b>' + esc(np(x.area)) + '</b></td><td>' + esc(x.responsable) + '</td><td>' + esc(x.enviadoEn) +
+        '</td><td>⏳ ' + nf + '/3' + firmasHtml(x) + '</td><td style="color:#92400e; font-weight:700">' + esc(x.faltan.join(' y ')) + '</td><td style="white-space:nowrap">' + acc + '</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="cm-vacio">No hay conteos pendientes por validar. 🎉</td></tr>';
+  }).catch(function(e) { document.getElementById('pLista').innerHTML = '<tr><td colspan="7" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function reenviarAviso(id, b) {
+  b.disabled = true;
+  postJSON('/conteo/api/reportes/' + id + '/reenviar-aviso').then(function(r) { alert(r.mensaje); })
+    .catch(function(e) { alert(e.message); }).then(function() { b.disabled = false; });
+}
+
 // ---------------- reportes ----------------
 function cargarConsolidado() {
   var anio = document.getElementById('rAnio').value, mes = document.getElementById('rMes').value;
@@ -350,18 +381,23 @@ function cargarConsolidado() {
       var cab = '<div class="ct-area-cab"><h3>📍 ' + esc(np(r.area)) + ' ' + estadoHtml(r.estado) + '</h3>' +
         '<div class="ct-area-meta">' + (r.estado !== 'BORRADOR' ? firmasHtml(r) : 'Cargado por: <b>' + esc(r.responsable || '—') + '</b>') +
         (r.enFirmeEn ? ' · en firme desde el <b>' + esc(r.enFirmeEn) + '</b>' : '') +
+        (r.tieneSegundo ? '<br>🔢 Segundo conteo: <b>' + esc(r.segundoPor) + '</b> el ' + esc(r.segundoEn) + (r.comparacion.diferencias ? ' · <b style="color:#b91c1c">' + r.comparacion.diferencias + ' diferencia(s)</b>' : ' · ✅ coincide') : (r.estado === 'ENVIADO' ? '<br>🔢 Segundo conteo pendiente' : '')) +
         (r.novedad ? '<br>Novedad: «' + esc(r.novedad) + '»' : '') + (r.observacion ? '<br>Observación: «' + esc(r.observacion) + '»' : '') + '</div>' +
         '<div class="cm-acciones no-print">' + (r.estado === 'VALIDADO' ? '<a class="btn verde mini" target="_blank" href="/conteo/api/reportes/' + r.id + '/acta.pdf">📄 Reporte en firme (PDF)</a>' : '') +
         (r.oculto ? '' : '<button class="btn gris mini" onclick="imprimirConteo(window._reportesMes[' + i + '])">🖨️ Imprimir</button>') +
         (r.evidencias.length && !r.oculto ? '<button class="btn gris mini" onclick="verEvidencias(' + i + ')">👁️ Soportes (' + r.evidencias.length + ')</button>' : '') +
         botonAnular(r, 'cargarConsolidado') + '</div></div>';
       if (r.oculto) return '<div class="ct-area">' + cab + '<p class="cm-vacio">Borrador: todavía no se ha enviado.</p></div>';
+      var comp = r.comparacion;
       var tablas = c.bodegas.map(function(b) {
         var fila = function(etq, k, dan) {
+          var f = comp ? comp.filas[k] : null;
+          if (f) return '<tr class="' + (dan ? 'dan' : '') + '"><td class="izq">' + etq + '</td><td class="n">' + num(f.manager) + '</td><td class="n"><b>' + num(f.segundo) +
+            '</b></td><td class="n" style="color:' + (f.diferencia ? '#b91c1c' : '#15803d') + '">' + (f.diferencia > 0 ? '+' : '') + num(f.diferencia) + '</td></tr>';
           return '<tr class="' + (dan ? 'dan' : '') + '"><td class="izq">' + etq + '</td><td class="n">' + num(dan ? r.finalDanados[String(b.id)] : r.final[k]) + '</td></tr>';
         };
         return '<div class="cm-tabla-wrap"><table class="cm-tabla ct-matriz"><thead><tr><th>' + esc(b.nombre) + ' - Bodega ' + esc(b.codigo) + '</th>' +
-          '<th class="n">Cantidad</th></tr></thead><tbody>' +
+          (comp ? '<th class="n">Manager</th><th class="n">Segundo conteo (oficial)</th><th class="n">Diferencia</th>' : '<th class="n">Cantidad</th>') + '</tr></thead><tbody>' +
           mats.map(function(m) { return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), b.id + ':' + m.id); }).join('') +
           fila('Disco de zirconia - DAÑADOS', b.id + ':danados', true) + '</tbody></table></div>';
       }).join('');
@@ -404,11 +440,17 @@ function imprimirConteo(r) {
       : '<div class="fe pend">' + pendiente + '</div>') + '</div><div class="ln">' + titulo + '</div><div class="fc">' + esc(correo || '') + '</div></td>';
   };
   var tablas = D.bodegas.map(function(b) {
+    var comp = r.comparacion;
+    var celdas = function(k, man) {
+      var f = comp ? comp.filas[k] : null;
+      return '<td>' + num(man) + '</td>' + (f ? '<td><b>' + num(f.segundo) + '</b></td><td>' + (f.diferencia > 0 ? '+' : '') + num(f.diferencia) + '</td>' : '');
+    };
     var filas = mats.map(function(m) {
-      return '<tr><td class="izq">' + esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion) + '</td><td>' + num((r.conteo || {})[b.id + ':' + m.id]) + '</td></tr>';
+      return '<tr><td class="izq">' + esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion) + '</td>' + celdas(b.id + ':' + m.id, (r.conteo || {})[b.id + ':' + m.id]) + '</tr>';
     }).join('');
-    filas += '<tr class="dan"><td class="izq">Disco de zirconia - DAÑADOS</td><td>' + num((r.danados || {})[String(b.id)]) + '</td></tr>';
-    return '<h4>CONTEO - ' + esc(b.nombre) + ' - BODEGA ' + esc(b.codigo) + '</h4><table class="t"><thead><tr><th class="izq">Material</th><th>Cantidad</th></tr></thead><tbody>' + filas + '</tbody></table>';
+    filas += '<tr class="dan"><td class="izq">Disco de zirconia - DAÑADOS</td>' + celdas(b.id + ':danados', (r.danados || {})[String(b.id)]) + '</tr>';
+    return '<h4>CONTEO - ' + esc(b.nombre) + ' - BODEGA ' + esc(b.codigo) + '</h4><table class="t"><thead><tr><th class="izq">Material</th><th>' + (comp ? 'Manager' : 'Cantidad') + '</th>' +
+      (comp ? '<th>Segundo conteo</th><th>Diferencia</th>' : '') + '</tr></thead><tbody>' + filas + '</tbody></table>';
   }).join('');
   var css = '@page{size:letter portrait;margin:12mm 12mm 14mm;@bottom-right{content:"Página " counter(page) " de " counter(pages);font:8px Arial;color:#6B7280}}' +
     'body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}table{width:100%;border-collapse:collapse}' +
