@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea,
                             ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo,
-                            BORRADOR, ENVIADO, DEVUELTO, VALIDADO)
+                            BORRADOR, ENVIADO, DEVUELTO, VALIDADO, ANULADO)
 from .formato import nombre_propio
 
 EN_FIRME = VALIDADO  # nombre del estado final en pantalla: «En firme»
@@ -223,10 +223,13 @@ def _borrar_firmas(r: ConteoReporte) -> None:
 
 
 def anular_firmas(db: Session, user: Empleado, r: ConteoReporte, motivo: str) -> str | None:
-    """Director de Producción o administrador: anula las firmas para que el manager corrija y se vuelva a firmar."""
+    """Director de Producción o administrador, mientras espera firmas: anula las firmas para que el manager corrija
+    y se vuelva a firmar. En firme (3 firmas) ya no se anulan firmas: se anula el reporte completo."""
     if not puede_anular(db, user):
         return "Solo el Director de Producción o un administrador pueden anular las firmas del conteo."
-    if r.estado not in (ENVIADO, EN_FIRME):
+    if r.estado == EN_FIRME:
+        return "Este conteo ya está en firme (3 firmas): no se anulan las firmas, se debe anular el reporte completo."
+    if r.estado != ENVIADO:
         return "Este conteo no tiene firmas para anular."
     motivo = (motivo or "").strip()
     if len(motivo) < 5:
@@ -236,6 +239,30 @@ def anular_firmas(db: Session, user: Empleado, r: ConteoReporte, motivo: str) ->
     _borrar_firmas(r)
     db.commit()
     quitar_acta(db, r)  # el PDF firmado deja de valer; se genera otro cuando vuelva a quedar en firme
+    return None
+
+
+def anular_reporte(db: Session, user: Empleado, r: ConteoReporte, motivo: str) -> str | None:
+    """Director de Producción o administrador: anula por completo un reporte en firme. Se borran las cantidades,
+    el segundo conteo, las firmas, los soportes y el PDF; el manager debe volver a realizarlo desde cero."""
+    if not puede_anular(db, user):
+        return "Solo el Director de Producción o un administrador pueden anular el reporte."
+    if r.estado != EN_FIRME:
+        return "Solo se anula el reporte completo cuando está en firme. Si espera firmas, usa «Anular firmas»."
+    motivo = (motivo or "").strip()
+    if len(motivo) < 5:
+        return "Escribe el motivo (mínimo 5 caracteres): por qué se anula el reporte."
+    _borrar_firmas(r)
+    for l in list(r.lineas):
+        r.lineas.remove(l)
+    for e in list(r.evidencias):
+        _papelera_workdrive(e.workdrive_id)
+        r.evidencias.remove(e)
+    r.novedad = ""
+    r.estado, r.devuelto_por_id, r.devuelto_en = ANULADO, user.id, datetime.utcnow()
+    r.observacion = f"Reporte anulado por {nombre_propio(user.nombre_completo)}: {motivo[:900]}"
+    db.commit()
+    quitar_acta(db, r)
     return None
 
 
@@ -266,6 +293,18 @@ def migrar_flujo_anterior(db: Session) -> int:
             n += 1
     db.commit()
     return n
+
+
+def ve_pendientes(db: Session, user: Empleado) -> bool:
+    """Pestaña «Pendientes por validar»: el Director de Producción, los testigos y los administradores."""
+    d = director_produccion(db)
+    return es_admin(user) or bool(d and d.id == user.id) or user.id in {t.id for t in testigos(db)}
+
+
+def ve_consulta(db: Session, user: Empleado) -> bool:
+    """Pestaña «Consulta» (conteos firmados): el Director de Producción y los administradores."""
+    d = director_produccion(db)
+    return es_admin(user) or bool(d and d.id == user.id)
 
 
 def puede_editar(user: Empleado, r: ConteoReporte) -> bool:
@@ -372,7 +411,7 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
         return ("Este conteo ya se envió y está esperando las firmas: no se puede cambiar. Si hay algo mal, "
                 "el Director o el testigo lo rechazan, o el Director de Producción anula las firmas.")
     if r and r.estado == EN_FIRME:
-        return "Este conteo quedó en firme con las 3 firmas. Para corregirlo, el Director de Producción debe anular las firmas."
+        return "Este conteo quedó en firme con las 3 firmas. Si hay un error, el Director de Producción o un administrador anula el reporte completo y se realiza de nuevo."
     lineas = _leer_lineas(db, datos, area)
     if isinstance(lineas, str):
         return lineas
@@ -521,6 +560,8 @@ def consolidado(db: Session, anio: int, mes: int, areas_config: list[str], user:
         oculto = r.estado == BORRADOR
         conteo, danados = ({}, {}) if oculto else cantidades_finales(r)
         d["final"], d["finalDanados"], d["oculto"] = conteo, danados, oculto
+        if r.estado != EN_FIRME:  # el total del mes es lo ya firmado (en firme)
+            conteo, danados = {}, {}
         for k, v in conteo.items():
             totales[k] = round(totales.get(k, 0) + v, 2)
         for b, v in danados.items():
@@ -684,6 +725,11 @@ def notificar(reporte_id: int, evento: str) -> None:
             url = f"{cfg.BASE_URL}/conteo"
             destinos = [r.responsable.email if r.responsable else ""]
             texto = f"✅ *Tu conteo de inventario quedó en firme* (3 firmas)\n{_resumen(r)}\nEl PDF firmado ya está en la carpeta."
+        elif evento == "anulado":
+            url = f"{cfg.BASE_URL}/conteo"
+            destinos = [r.responsable.email if r.responsable else ""]
+            texto = (f"🚫 *Tu conteo de inventario fue anulado*\n{_resumen(r)}\n{r.observacion}\n"
+                     f"Debes realizarlo de nuevo (conteo, soportes y envío) en: {url}")
         elif evento == "devuelto":
             url = f"{cfg.BASE_URL}/conteo"
             destinos = [r.responsable.email if r.responsable else ""]
@@ -725,7 +771,7 @@ def enviar_recordatorios(hoy: date | None = None) -> int:
             faltan = []
             for anio, mes in candidatos:
                 r = db.query(ConteoReporte).filter_by(area=area, anio=anio, mes=mes).first()
-                if not r or r.estado in (BORRADOR, DEVUELTO):
+                if not r or r.estado in (BORRADOR, DEVUELTO, ANULADO):
                     faltan.append((anio, mes))
             if not faltan:
                 continue

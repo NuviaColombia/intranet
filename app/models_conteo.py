@@ -6,8 +6,9 @@ from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text,
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
-# Estados del conteo de un área en un mes (VALIDADO = «En firme»: tiene las 3 firmas)
-BORRADOR, ENVIADO, DEVUELTO, VALIDADO = "BORRADOR", "ENVIADO", "DEVUELTO", "VALIDADO"
+# Estados del conteo de un área en un mes (VALIDADO = «En firme»: tiene las 3 firmas; ANULADO = reporte en firme
+# anulado por el Director o un administrador: el manager lo vuelve a realizar desde cero)
+BORRADOR, ENVIADO, DEVUELTO, VALIDADO, ANULADO = "BORRADOR", "ENVIADO", "DEVUELTO", "VALIDADO", "ANULADO"
 
 
 class ConteoBodega(Base):

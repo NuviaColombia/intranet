@@ -17,7 +17,7 @@ SECCIONES = {
                  ("existencias", "Dashboard"), ("activas", "Estado órdenes"), ("consulta", "Consulta traslado")],
     "consumo": [("entrega", "Entrega de insumos"), ("consulta", "Consulta"), ("jornada", "Jornada diaria"),
                 ("reportes", "Reportes")],
-    "conteo": [("nuevo", "Conteo del mes"), ("validacion", "Pendientes por validar"), ("reportes", "Reportes")],
+    "conteo": [("nuevo", "Conteo del mes"), ("validacion", "Pendientes por validar"), ("reportes", "Consulta (firmados)")],
     "caja": [("recibo", "Nuevo recibo"), ("consulta", "Consulta"), ("legalizar", "Legalizar"), ("fms", "Historial FM"),
              ("arqueo", "Arqueo rápido"), ("firmas", "Firmas")],
 }

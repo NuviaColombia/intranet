@@ -23,7 +23,8 @@ from .. import acceso_secciones as acs
 
 router = APIRouter()
 SUB = "conteo"
-ESTADOS = {"BORRADOR": "Borrador", "ENVIADO": "Esperando firmas", "DEVUELTO": "Devuelto", "VALIDADO": "En firme"}
+ESTADOS = {"BORRADOR": "Borrador", "ENVIADO": "Esperando firmas", "DEVUELTO": "Devuelto", "VALIDADO": "En firme",
+           "ANULADO": "Anulado"}
 COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
     "conteo_reportes": {"estado": "VARCHAR(20) DEFAULT 'BORRADOR'", "enviado_en": "TIMESTAMP", "enviado_email": "VARCHAR(150)",
                         "validado_en": "TIMESTAMP", "validacion_por_id": "INTEGER REFERENCES empleados(id)",
@@ -100,10 +101,21 @@ def _areas(db: Session) -> list[str]:
     return [a.nombre for a in db.query(CustodiaArea).filter(CustodiaArea.activo == 1).order_by(CustodiaArea.orden)]
 
 
+def _secciones(db: Session, user: Empleado) -> list[str]:
+    """Secciones de Parámetros, y además por rol: Pendientes (Director, testigos, admin) y Consulta (Director, admin)."""
+    return [x for x in acs.secciones_de(db, user, SUB)
+            if (x != "validacion" or sc.ve_pendientes(db, user)) and (x != "reportes" or sc.ve_consulta(db, user))]
+
+
+def _exigir(db: Session, user: Empleado, *secciones: str) -> None:
+    if not set(secciones) & set(_secciones(db, user)):
+        raise HTTPException(403, "No tienes acceso a esta sección de Conteo inventario mensual.")
+
+
 @router.get("/conteo")
 def pagina(request: Request, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     sc.asegurar_catalogo(db)
-    secciones = acs.secciones_de(db, user, SUB)
+    secciones = _secciones(db, user)
     tab = request.query_params.get("tab")
     return templates.TemplateResponse(request, "conteo.html", {
         "user": user, "es_conteo": True, "secciones": secciones,
@@ -129,7 +141,7 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
 
 @router.get("/conteo/api/reporte")
 def api_reporte(area: str, anio: int, mes: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "nuevo", "reportes")
+    _exigir(db, user, "nuevo", "reportes")
     r = db.query(ConteoReporte).filter(ConteoReporte.area == area.strip().upper(), ConteoReporte.anio == anio,
                                        ConteoReporte.mes == mes).first()
     return {"reporte": sc.serializar(db, r, user) if r else None, "puedeEditar": bool(r is None or sc.puede_editar(user, r))}
@@ -138,14 +150,14 @@ def api_reporte(area: str, anio: int, mes: int, user: Empleado = Depends(require
 @router.get("/conteo/api/pendientes")
 def api_pendientes(user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     """Pestaña «Pendientes por validar»: conteos enviados que esperan la firma del Director y/o de un testigo."""
-    acs.exigir(db, user, SUB, "validacion")
+    _exigir(db, user, "validacion")
     return {"data": sc.pendientes_por_validar(db, user)}
 
 
 @router.post("/conteo/api/reportes/{reporte_id}/reenviar-aviso")
 def api_reenviar_aviso(reporte_id: int, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
                        db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "validacion", "nuevo")
+    _exigir(db, user, "validacion", "nuevo")
     r = _reporte(db, reporte_id)
     if r.estado != ENVIADO:
         raise HTTPException(400, "Este conteo no está esperando firmas.")
@@ -178,7 +190,7 @@ class ReporteIn(BaseModel):
 @router.post("/conteo/api/reportes")
 def api_guardar(payload: ReporteIn, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
                 db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "nuevo")
+    _exigir(db, user, "nuevo")
     datos = payload.model_dump()
     r = sc.guardar_reporte(db, user, datos, enviar=datos.pop("enviar"))
     if isinstance(r, str):
@@ -292,6 +304,19 @@ def anular_desde_firma(reporte_id: int, tareas: BackgroundTasks, motivo: str = F
     return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
 
 
+@router.post("/conteo/firma/{reporte_id}/anular-reporte")
+def anular_reporte_desde_firma(reporte_id: int, tareas: BackgroundTasks, motivo: str = Form(""),
+                               user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    r = _reporte(db, reporte_id)
+    error = sc.anular_reporte(db, user, r, motivo)
+    if not error:
+        tareas.add_task(sc.notificar, r.id, "anulado")
+        tareas.add_task(sc.actualizar_consolidado, r.anio, r.mes, _areas(db))
+    msg = error or "🚫 Reporte anulado: el manager debe realizar el conteo de nuevo."
+    return RedirectResponse(f"/conteo/firma/{r.id}?msg={quote(msg)}", status_code=303)
+
+
 @router.post("/inventario/parametros/conteo/director")
 def guardar_director(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: str = Form("")):
     e = db.get(Empleado, int(empleado_id)) if empleado_id.isdigit() else None
@@ -331,7 +356,7 @@ def _pdf(doc: ConteoDocumento) -> Response:
 @router.get("/conteo/api/reportes/{reporte_id}/acta.pdf")
 def api_acta(reporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     """PDF firmado del área (se genera cuando queda en firme con las 3 firmas)."""
-    acs.exigir(db, user, SUB, "nuevo", "reportes")
+    _exigir(db, user, "nuevo", "reportes")
     r = _reporte(db, reporte_id)
     if r.estado != sc.EN_FIRME:
         raise HTTPException(400, "El PDF del reporte se genera cuando el conteo queda en firme (3 firmas).")
@@ -345,7 +370,7 @@ def api_acta(reporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), 
 def api_consolidado_pdf(anio: int, mes: int, tareas: BackgroundTasks, user: Empleado = Depends(require_submodulo(SUB)),
                         db: Session = Depends(get_db)):
     """Consolidado firmado del mes (con las áreas en firme hasta ahora); se actualiza y se copia a WorkDrive."""
-    acs.exigir(db, user, SUB, "reportes")
+    _exigir(db, user, "reportes")
     doc = sc.generar_consolidado(db, anio, mes, _areas(db))
     tareas.add_task(sc.copiar_documento_workdrive, doc.id)
     return _pdf(doc)
@@ -369,10 +394,24 @@ def api_anular(reporte_id: int, payload: AnularIn, tareas: BackgroundTasks, user
             "reporte": sc.serializar(db, r, user)}
 
 
+@router.post("/conteo/api/reportes/{reporte_id}/anular-reporte")
+def api_anular_reporte(reporte_id: int, payload: AnularIn, tareas: BackgroundTasks, user: Empleado = Depends(get_current_user),
+                       db: Session = Depends(get_db)):
+    """Solo el Director de Producción o un administrador: anula por completo un reporte en firme (se vuelve a realizar)."""
+    r = _reporte(db, reporte_id)
+    error = sc.anular_reporte(db, user, r, payload.motivo)
+    if error:
+        raise HTTPException(403 if not sc.puede_anular(db, user) else 400, error)
+    tareas.add_task(sc.notificar, r.id, "anulado")
+    tareas.add_task(sc.actualizar_consolidado, r.anio, r.mes, _areas(db))
+    return {"mensaje": f"🚫 Reporte anulado: el manager de {nombre_propio(r.area)} debe realizar el conteo de nuevo.",
+            "reporte": sc.serializar(db, r, user)}
+
+
 @router.post("/conteo/api/reportes/{reporte_id}/evidencias")
 async def api_evidencia(reporte_id: int, tareas: BackgroundTasks, archivo: UploadFile = File(...), material_id: int = Form(0),
                         user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "nuevo")
+    _exigir(db, user, "nuevo")
     r = _reporte(db, reporte_id)
     datos = await archivo.read()
     e = sc.agregar_evidencia(db, user, r, material_id or None, archivo.filename or "evidencia",
@@ -404,25 +443,25 @@ def api_ver_evidencia(evidencia_id: int, user: Empleado = Depends(get_current_us
     if not firmante:
         if not tiene_submodulo(db, user, SUB):
             raise HTTPException(403, "No tienes acceso a esta evidencia.")
-        acs.exigir(db, user, SUB, "nuevo", "reportes")
+        _exigir(db, user, "nuevo", "reportes")
     return Response(e.datos, media_type=e.tipo_mime,
                     headers={"Content-Disposition": f'inline; filename="{e.nombre}"', "Cache-Control": "private, max-age=3600"})
 
 
 @router.get("/conteo/api/consolidado")
 def api_consolidado(anio: int, mes: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "reportes")
+    _exigir(db, user, "reportes")
     return sc.consolidado(db, anio, mes, _areas(db), user)
 
 
 @router.get("/conteo/api/consolidado/exportar")
 def api_exportar(anio: int, mes: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, SUB, "reportes")
+    _exigir(db, user, "reportes")
     c = sc.consolidado(db, anio, mes, _areas(db), user)
     salida = io.StringIO()
     salida.write("﻿")
     w = csv.writer(salida, delimiter=";")
-    reportes = [r for r in c["reportes"] if not r["oculto"]]
+    reportes = [r for r in c["reportes"] if r["estado"] == "VALIDADO"]  # solo lo firmado
     w.writerow([f"CONTEO INVENTARIO MENSUAL · {c['mesNombre'].upper()} {anio}"])
     w.writerow(["Bodega", "Material", *[f"{nombre_propio(r['area'])} ({ESTADOS.get(r['estado'], r['estado'])})" for r in reportes], "Total"])
     for b in c["bodegas"]:
@@ -435,7 +474,7 @@ def api_exportar(anio: int, mes: int, user: Empleado = Depends(require_submodulo
     w.writerow([])
     w.writerow(["Área", "Estado", "Responsable", "Correo", "Enviado", "Director de Producción", "Firmó", "Testigo", "Firmó",
                 "En firme", "Novedad"])
-    for r in c["reportes"]:
+    for r in reportes:
         w.writerow([nombre_propio(r["area"]), ESTADOS.get(r["estado"], r["estado"]), r["responsable"], r["responsableEmail"],
                     r["enviadoEn"], r["managerFirma"]["nombre"], r["managerFirma"]["en"], r["testigo"]["nombre"],
                     r["testigo"]["en"], r["enFirmeEn"], r["novedad"]])

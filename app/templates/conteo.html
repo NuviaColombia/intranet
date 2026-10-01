@@ -95,8 +95,8 @@
 
   <!-- ============ REPORTES ============ -->
   <div id="sec-reportes" class="cm-seccion {{ 'activa' if conteo_tab_inicial == 'reportes' }}">
-    <div class="cm-barra"><div><h2 class="cm-titulo">📊 Reportes de conteo · <span id="rTitulo"></span></h2>
-      <p class="cm-sub" style="margin:0;">Lo que reportó cada área en el mes, sus 3 firmas, la suma por bodega y material, y quién falta por enviar.</p></div>
+    <div class="cm-barra"><div><h2 class="cm-titulo">📁 Consulta de conteos firmados · <span id="rTitulo"></span></h2>
+      <p class="cm-sub" style="margin:0;">Los conteos <b>en firme</b> del mes (segundo conteo y 3 firmas), con su PDF, la suma por bodega y material, y las áreas que faltan.</p></div>
       <div class="cm-acciones no-print">
         <button type="button" class="btn verde" onclick="pdfConsolidado()">📄 PDF firmado del mes</button>
         <button type="button" class="btn gris" onclick="exportarConteo()">⬇️ Exportar Excel</button>
@@ -113,7 +113,7 @@
 <script>
 var D = null, actual = null, pendientes = [];
 var SECCIONES = {{ (secciones or [])|tojson }};
-var ESTADOS = {BORRADOR: 'Borrador', ENVIADO: 'Esperando firmas', DEVUELTO: 'Devuelto', VALIDADO: 'En firme'};
+var ESTADOS = {BORRADOR: 'Borrador', ENVIADO: 'Esperando firmas', DEVUELTO: 'Devuelto', VALIDADO: 'En firme', ANULADO: 'Anulado'};
 function api(url, op) {
   return fetch(url, op).then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) {
     if (!r.ok) throw new Error(d.detail || ('Error ' + r.status)); return d; }); });
@@ -160,7 +160,7 @@ function tablasBodegas(area) {
       var inp = '<input class="' + (esDan ? 'ct-dan' : 'ct-cant') + '" data-b="' + b.id + '"' + (esDan ? ' data-etq="' + esc(etq) + '"' : ' data-m="' + mid + '"') +
         ' data-nombre="' + esc(etq) + '" inputmode="decimal" placeholder="0" title="Se aceptan decimales: 12.5 o 12,5" oninput="limpiarNum(this)">';
       var ev = bi === 0 ? celdaEvidencia(mid) : '<td class="ev" style="color:#94a3b8">—</td>';  // el soporte es por material
-      return '<tr class="' + (clase || '') + '"><td>' + etq + (esDan ? ' <b style="color:#dc2626">*</b>' : '') + '</td><td class="c">' + inp + '</td>' + ev + '</tr>';
+      return '<tr class="' + (clase || '') + '"><td>' + etq + '</td><td class="c">' + inp + '</td>' + ev + '</tr>';
     };
     return '<div class="ct-bodega"><h3>CONTEO - ' + esc(b.nombre) + ' - BODEGA ' + esc(b.codigo) + '</h3>' +
       '<p class="ct-nota">*Discos de Zirconia: sume los discos enteros con la equivalencia de los discos parciales. Ejemplo: 10 discos enteros + 5 discos al 50% (que equivalen a 2.5) = digitar 12.5.</p>' +
@@ -201,10 +201,20 @@ function firmasHtml(r) {
   return '<div class="ct-firmas">' + f(1, 'Manager', r.responsable, r.enviadoEn) +
     f(2, 'Director', r.managerFirma.nombre, r.managerFirma.en) + f(3, 'Testigo', r.testigo.nombre || 'cualquiera de la lista', r.testigo.en) + '</div>';
 }
-// Solo el Director de Producción o un administrador: anula las firmas para corregir y volver a firmar
+// Solo el Director de Producción o un administrador. Esperando firmas: anular firmas (corregir y volver a firmar).
+// En firme (3 firmas): solo se anula el reporte completo y el manager lo vuelve a realizar.
 function botonAnular(r, alVolver) {
-  if (!D.puedeAnular || !r || (r.estado !== 'ENVIADO' && r.estado !== 'VALIDADO')) return '';
-  return ' <button type="button" class="btn rojo mini no-print" onclick="anularFirmas(' + r.id + ', ' + alVolver + ')">🔓 Anular firmas</button>';
+  if (!D.puedeAnular || !r) return '';
+  if (r.estado === 'ENVIADO') return ' <button type="button" class="btn rojo mini no-print" onclick="anularFirmas(' + r.id + ', ' + alVolver + ')">🔓 Anular firmas</button>';
+  if (r.estado === 'VALIDADO') return ' <button type="button" class="btn rojo mini no-print" onclick="anularReporte(' + r.id + ', ' + alVolver + ')">🚫 Anular reporte</button>';
+  return '';
+}
+function anularReporte(id, alVolver) {
+  var motivo = prompt('¿Por qué se anula el reporte completo?\nSe borran las cantidades, el segundo conteo, las firmas, los soportes y el PDF: el manager debe realizar el conteo de nuevo.');
+  if (motivo === null) return;
+  if (motivo.trim().length < 5) { alert('Escribe el motivo (mínimo 5 caracteres).'); return; }
+  postJSON('/conteo/api/reportes/' + id + '/anular-reporte', {motivo: motivo}).then(function(r) { alert(r.mensaje); alVolver(); })
+    .catch(function(e) { alert(e.message); });
 }
 function anularFirmas(id, alVolver) {
   var motivo = prompt('¿Por qué se anulan las firmas? (qué se debe corregir)\nEl conteo vuelve al manager para editarlo y se debe firmar de nuevo.');
@@ -246,7 +256,9 @@ function cargarReporte() {
       '»<br>Corrige y envíalo de nuevo: se vuelve a firmar.</div>';
     else if (e === 'VALIDADO') est.innerHTML = '<div class="ct-aviso ok">✅ <b>En firme</b> desde el ' + esc(actual.enFirmeEn) + ' con las 3 firmas. ' +
       '<a target="_blank" href="/conteo/api/reportes/' + actual.id + '/acta.pdf"><b>📄 Ver el reporte firmado (PDF)</b></a>' + botonAnular(actual, 'cargarReporte') + firmasHtml(actual) +
-      '<small>Para corregirlo, el Director de Producción o un administrador debe anular las firmas.</small></div>';
+      '<small>Ya no se pueden anular firmas: si hay un error, el Director de Producción o un administrador anula el reporte completo y se realiza de nuevo.</small></div>';
+    else if (e === 'ANULADO') est.innerHTML = '<div class="ct-aviso no">🚫 <b>Reporte anulado</b> el ' + esc(actual.devueltoEn) + ':<br>«' + esc(actual.observacion) +
+      '»<br>Debes <b>realizar el conteo de nuevo</b>: cantidades, soportes y envío.</div>';
     if (!actual) return;
     document.getElementById('btnImprimirManager').style.display = '';
     document.getElementById('cFecha').value = actual.fechaReporte;
@@ -323,9 +335,6 @@ function guardarConteo(enviar) {
   if (enviar) {
     if (!D.director) { alert('⚠️ Falta asignar el Director de Producción en Parámetros › Director y testigos.'); return; }
     if (!testigosPosibles().length) { alert('⚠️ Falta asignar los testigos en Parámetros › Director y testigos.'); return; }
-    var faltan = [];
-    document.querySelectorAll('#sec-nuevo .ct-dan').forEach(function(i) { if (i.value.trim() === '') faltan.push(i.dataset.etq); });
-    if (faltan.length) { alert('⚠️ Completa (aunque sea con 0): ' + faltan.join(' · ')); return; }
     if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al Director de Producción y a los testigos (firma uno de ellos). Con las 3 firmas queda en firme.')) return;
   }
   var btn = document.getElementById(enviar ? 'btnEnviar' : 'btnBorrador'), texto = btn.innerText; btn.disabled = true; btn.innerText = 'Guardando…';
@@ -374,9 +383,13 @@ function cargarConsolidado() {
       ? '<div class="ct-aviso edit" style="max-width:none">⏳ Sin enviar en ' + c.mesNombre + ': <b>' + c.pendientes.map(np).map(esc).join(', ') + '</b></div>'
       : '<div class="ct-aviso ok" style="max-width:none">✅ Todas las áreas enviaron ' + c.mesNombre + '.</div>') +
       '<div class="ct-aviso info" style="max-width:none">✔️ En firme (3 firmas): <b>' + c.enFirme + '</b> de ' + enviados + ' enviados.</div>';
+    var esperando = c.reportes.filter(function(r) { return r.estado === 'ENVIADO'; }).length;
+    if (esperando) document.getElementById('rPendientes').innerHTML += '<div class="ct-aviso edit" style="max-width:none">⏳ <b>' + esperando +
+      '</b> conteo(s) esperando el segundo conteo y las firmas: están en «Pendientes por validar».</div>';
+    c.reportes = c.reportes.filter(function(r) { return r.estado === 'VALIDADO'; });  // aquí reposan solo los firmados
     window._reportesMes = c.reportes; window._materialesMes = c.materiales;
     // Un bloque por área, con su tabla, su estado, sus firmas y sus soportes
-    document.getElementById('rAreas').innerHTML = !c.reportes.length ? '<p class="cm-vacio">Ningún área ha registrado el conteo de este mes.</p>' : c.reportes.map(function(r, i) {
+    document.getElementById('rAreas').innerHTML = !c.reportes.length ? '<p class="cm-vacio">Todavía no hay conteos firmados (en firme) en este mes.</p>' : c.reportes.map(function(r, i) {
       var mats = materialesDe(r.area);
       var cab = '<div class="ct-area-cab"><h3>📍 ' + esc(np(r.area)) + ' ' + estadoHtml(r.estado) + '</h3>' +
         '<div class="ct-area-meta">' + (r.estado !== 'BORRADOR' ? firmasHtml(r) : 'Cargado por: <b>' + esc(r.responsable || '—') + '</b>') +
