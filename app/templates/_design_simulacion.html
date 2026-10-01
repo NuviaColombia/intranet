@@ -3,7 +3,7 @@
 {% set quien_real = sim_real or user %}
 {% if sim_real %}
 <div class="sim-aviso" role="status">
-  <span>🧪 <b>Modo simulación:</b> estás viendo Design como <b>{{ user.nombre_completo }}</b> ({{ user.rol or 'empleado' }}).
+  <span><b>Modo simulación:</b> estás viendo Design como <b>{{ user.nombre_completo }}</b> ({{ user.rol or 'empleado' }}).
     Lo que guardes queda a su nombre.</span>
   <span class="sim-acc">
     <a href="/design/simulacion" class="btn mini gris">Cambiar persona</a>
@@ -23,7 +23,7 @@
   var mod = [].find.call(document.querySelectorAll('nav a[href="/"]'), function(a) { return a.textContent.trim() === 'Módulos'; });
   if (!mod || document.querySelector('nav a.sim-link')) return;
   var a = document.createElement('a'); a.href = '/design/simulacion'; a.className = 'sim-link';
-  a.textContent = '🧪 Simulación'{% if sim_real %} + ' (activa)'{% endif %};
+  a.textContent = 'Simulación'{% if sim_real %} + ' (activa)'{% endif %};
   mod.parentNode.insertBefore(a, mod.nextSibling);
 })();
 </script>
