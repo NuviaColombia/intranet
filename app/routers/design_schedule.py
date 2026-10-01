@@ -127,7 +127,9 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
     areas = sd.areas_disponibles(db)
     inicio = {"areas": [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in areas],
               "ausencias": sd.ausencias_disponibles(db),
-              "miEquipo": sd.equipo_por_defecto(db, user)}  # empleados y aprobadores entran directo a su schedule
+              "misEquipos": sd.mis_equipos(db, user)}  # empleados y aprobadores entran directo a su schedule
+    inicio["miEquipo"] = ({"areaId": inicio["misEquipos"][0]["areaId"], "teamId": inicio["misEquipos"][0]["teamId"]}
+                          if inicio["misEquipos"] else None)
     # `areas` también llena el filtro de Área del Dashboard (desde que Design es una sola página salía vacío).
     return templates.TemplateResponse(request, "design_schedule.html",
                                       {"user": user, "es_design": True, "ds_inicio": inicio, "areas": areas})

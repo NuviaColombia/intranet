@@ -69,19 +69,26 @@ def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
     return team.area.formato == FORMATO_SUPPORT and any(d.empleado_id == user.id for d in team.designers)
 
 
-def equipo_por_defecto(db: Session, user: Empleado) -> dict | None:
-    """Equipo que se abre solo al entrar al Schedule: el que maneja y, si no maneja ninguno, aquel en el que
-    está como diseñador (el primero según el orden de las áreas). Los admins eligen (ven todos)."""
+def mis_equipos(db: Session, user: Empleado) -> list[dict]:
+    """Equipos propios de un empleado o aprobador (no admin): primero los que maneja y luego aquellos en los que
+    está como diseñador, cada grupo según el orden de las áreas. El primero es el que se abre al entrar."""
     if es_admin(user):
-        return None
-    pos = {a.id: i for i, a in enumerate(areas_disponibles(db))}
+        return []
+    areas = areas_disponibles(db)
+    pos = {a.id: i for i, a in enumerate(areas)}
+    nombre_area = {a.id: a.nombre for a in areas}
     activos = [t for t in db.query(DesignTeam).filter(DesignTeam.activo == 1).all() if t.area_id in pos]
     clave = lambda t: (pos[t.area_id], t.orden or 0, t.id)
+    ids = equipos_como_designer(db, user)
     propios = sorted((t for t in activos if t.manager_id == user.id), key=clave)
-    if not propios:
-        ids = equipos_como_designer(db, user)
-        propios = sorted((t for t in activos if t.id in ids), key=clave)
-    return {"areaId": propios[0].area_id, "teamId": propios[0].id} if propios else None
+    propios += [t for t in sorted((t for t in activos if t.id in ids), key=clave) if t not in propios]
+    return [{"areaId": t.area_id, "teamId": t.id, "nombre": t.nombre, "area": nombre_area[t.area_id]} for t in propios]
+
+
+def equipo_por_defecto(db: Session, user: Empleado) -> dict | None:
+    """Equipo que se abre solo al entrar al Schedule (el primero de mis_equipos). Los admins eligen (ven todos)."""
+    m = mis_equipos(db, user)
+    return {"areaId": m[0]["areaId"], "teamId": m[0]["teamId"]} if m else None
 
 
 def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = frozenset()) -> bool:

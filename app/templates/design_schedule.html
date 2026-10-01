@@ -78,6 +78,16 @@ window.dsPdfjs = function() {
   .ds-fila-kpis { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
   .ds-fila-kpis > .ds-kpis, .ds-fila-kpis > .ds-tabs { margin-bottom:0; }
   .ds-fila-kpis > .ds-tabs { flex:none; justify-content:flex-end; }
+  /* Empleados y aprobadores: sin fila de áreas; la semana (y su equipo, si tiene varios) va al final de los contadores */
+  #ds-app.ds-solo-mio > .ds-area-row { display:none; }
+  .ds-solo-mio .ds-fila-kpis { align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; }
+  .ds-solo-mio .ds-fila-kpis > .ds-kpis { flex:0 1 auto; margin-right:auto; }
+  .ds-solo-mio #dsRangoSemana { display:none; }  /* el selector de semana ya muestra las fechas */
+  .ds-solo-mio #dsSemanaCtrl > * { order:1; } .ds-solo-mio #dsSemanaCtrl > .ds-flecha:last-of-type { order:2; }  /* ← mes semana → */
+  .ds-fila-kpis > .ds-semana { margin-bottom:0; flex:none; gap:8px; }
+  .ds-fila-kpis .ds-semana select, .ds-fila-kpis .ds-mis-equipos { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; }
+  .ds-fila-kpis .ds-flecha { height:34px; min-width:34px; padding:0 10px; font-size:16px; line-height:1; }
+  .ds-fila-kpis .ds-mis-equipos { flex:none; max-width:260px; }
   .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
   .ds-kpi b { display:block; font-size:20px; }
   .ds-panel-titulo { display:flex; align-items:center; gap:6px; }
@@ -727,6 +737,7 @@ window.dsPdfjs = function() {
     <!-- Contadores a la izquierda y días de la semana al final de la fila, justo debajo del rango de semana -->
     <div class="ds-fila-kpis">
       <div id="dsKpis" class="ds-kpis"></div>
+      {% if user.rol not in ('admin', 'superadmin') %}<select id="dsMisEquipos" class="ds-mis-equipos" aria-label="Mi equipo" hidden></select>{% endif %}
       <div id="dsDiaTabs" class="ds-tabs"></div>
     </div>
 
@@ -1046,6 +1057,8 @@ window.dsPdfjs = function() {
 <script>window.DS_PANELS = {};
 // Datos que ya vienen con la página (áreas y tipos de ausencia): no hace falta pedirlos al abrir.
 window.DS_INICIO = {{ ds_inicio | tojson }};
+// Empleados y aprobadores siempre están en su schedule: sin fila de áreas (ver dsSoloMio).
+window.DS_SOLO_MIO = {{ 'false' if user.rol in ('admin', 'superadmin') else 'true' }};
 // Gestión (Dashboard, Desempeño, Papelera): solo aprobadores y admins, igual que el menú y el servidor.
 window.DS_GESTION = {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }};
 window.dsAreas = function() {
@@ -1260,6 +1273,33 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsRefrescarSemana();
   }
 
+  // Empleados y aprobadores: sin la fila de áreas; la semana pasa al final de la fila de contadores y, si tienen
+  // más de un equipo, un selector "Mi equipo" en la misma fila.
+  (function dsSoloMio() {
+    if (!window.DS_SOLO_MIO) return;
+    var cont = document.getElementById('dsVistaNormal');
+    if (cont && cont.parentNode) cont.parentNode.classList.add('ds-solo-mio');
+    var fila = document.querySelector('.ds-fila-kpis'), sem = document.getElementById('dsSemanaCtrl');
+    if (fila && sem) fila.appendChild(sem);
+    var sin = document.querySelector('#dsSinEquipo span:last-child');
+    if (sin) sin.textContent = 'No tienes un equipo asignado en Design. Pídele a un administrador que te agregue en Parámetros › Equipos.';
+    var mios = (window.DS_INICIO && window.DS_INICIO.misEquipos) || [], sel = document.getElementById('dsMisEquipos');
+    if (sel && mios.length > 1) {
+      sel.innerHTML = mios.map(function(t) {
+        return '<option value="' + t.teamId + '">' + dsEsc(t.area + ' · ' + t.nombre) + '</option>'; }).join('');
+      sel.hidden = false;
+      sel.addEventListener('change', function() {
+        var t = mios.find(function(x) { return String(x.teamId) === sel.value; });
+        var area = t && DS.areas.find(function(a) { return a.id === t.areaId; });
+        if (area) dsIrAEquipo(area, t.teamId);
+      });
+    }
+  })();
+  function dsMarcarMiEquipo() {
+    var sel = document.getElementById('dsMisEquipos');
+    if (sel && !sel.hidden && DS.teamId) sel.value = String(DS.teamId);
+  }
+
   // ---------- Áreas / Equipos ----------
   // Presionar un área solo abre su lista de equipos; el horario cambia únicamente al elegir un equipo.
   function dsCargarAreas() {
@@ -1388,6 +1428,7 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsSeleccionarEquipo(teamId) {
     DS.teamId = teamId;
+    dsMarcarMiEquipo();
     dsActualizarTitulo();
     dsActualizarSemanaCtrl();
     dsRenderDias();
