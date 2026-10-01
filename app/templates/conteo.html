@@ -89,8 +89,8 @@
     <div class="cm-barra"><div><h2 class="cm-titulo">⏳ Pendientes por validar</h2>
       <p class="cm-sub" style="margin:0;">Conteos enviados que esperan el <b>segundo conteo</b> y la firma del <b>Director de Producción</b> y de un <b>testigo</b>. Con el segundo conteo y las 3 firmas quedan en firme y salen de esta lista.</p></div></div>
     <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th>Mes</th><th>Área</th><th>Cargado por</th><th>Enviado</th><th>Firmas</th><th>Falta</th><th></th></tr></thead>
-      <tbody id="pLista"><tr><td colspan="7" class="cm-vacio">Cargando…</td></tr></tbody></table></div>
+      <thead><tr><th>Mes</th><th>Área</th><th>Cargado por</th><th>Enviado</th><th>Firmas</th><th>Segundo conteo</th><th>Falta</th><th></th></tr></thead>
+      <tbody id="pLista"><tr><td colspan="8" class="cm-vacio">Cargando…</td></tr></tbody></table></div>
   </div>
 
   <!-- ============ REPORTES ============ -->
@@ -362,10 +362,36 @@ function cargarPendientes() {
                  x.puedeVer ? '<a class="btn gris mini" href="/conteo/firma/' + x.id + '">👁️ Ver</a> ' :
                  '<button class="btn gris mini" onclick="imprimirConteo(window._pendientes[' + i + '])">👁️ Ver</button> ') +
         '<button class="btn gris mini" onclick="reenviarAviso(' + x.id + ', this)">🔔 Reenviar aviso</button>' + botonAnular(x, 'cargarPendientes');
+      var seg = x.tieneSegundo
+        ? '<div style="font-size:12px">🔢 <b>' + esc(x.segundoPor) + '</b><br>' + esc(x.segundoEn) + '<br>' +
+          (x.comparacion.diferencias ? '<b style="color:#b91c1c">⚠️ ' + x.comparacion.diferencias + ' diferencia(s)</b>' : '<b style="color:#15803d">✅ Coincide</b>') + '</div>' +
+          '<button class="btn gris mini" style="margin-top:4px" onclick="verSegundo(' + i + ', this)">👁️ Ver segundo conteo</button>'
+        : '<span style="color:#92400e; font-weight:700">⏳ Pendiente</span>';
       return '<tr><td>' + esc(x.mesNombre) + ' ' + x.anio + '</td><td class="izq"><b>' + esc(np(x.area)) + '</b></td><td>' + esc(x.responsable) + '</td><td>' + esc(x.enviadoEn) +
-        '</td><td>⏳ ' + nf + '/3' + firmasHtml(x) + '</td><td style="color:#92400e; font-weight:700">' + esc(x.faltan.join(' y ')) + '</td><td style="white-space:nowrap">' + acc + '</td></tr>';
-    }).join('') : '<tr><td colspan="7" class="cm-vacio">No hay conteos pendientes por validar. 🎉</td></tr>';
-  }).catch(function(e) { document.getElementById('pLista').innerHTML = '<tr><td colspan="7" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+        '</td><td>⏳ ' + nf + '/3' + firmasHtml(x) + '</td><td>' + seg + '</td><td style="color:#92400e; font-weight:700">' + esc(x.faltan.join(' y ')) +
+        '</td><td style="white-space:nowrap">' + acc + '</td></tr><tr id="pSeg-' + i + '" style="display:none"><td colspan="8" style="background:#f8fafc"></td></tr>';
+    }).join('') : '<tr><td colspan="8" class="cm-vacio">No hay conteos pendientes por validar. 🎉</td></tr>';
+  }).catch(function(e) { document.getElementById('pLista').innerHTML = '<tr><td colspan="8" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+// Segundo conteo de un pendiente (Manager · Segundo conteo · Diferencia), visible mientras espera las firmas
+function verSegundo(i, boton) {
+  var x = window._pendientes[i], fila = document.getElementById('pSeg-' + i);
+  if (fila.style.display !== 'none') { fila.style.display = 'none'; boton.innerText = '👁️ Ver segundo conteo'; return; }
+  var mats = materialesDe(x.area), comp = x.comparacion;
+  var linea = function(etq, k, dan) {
+    var f = comp.filas[k] || {manager: 0, segundo: 0, diferencia: 0};
+    return '<tr class="' + (dan ? 'dan' : '') + '"><td class="izq">' + etq + '</td><td class="n">' + num(f.manager) + '</td><td class="n"><b>' + num(f.segundo) +
+      '</b></td><td class="n" style="color:' + (f.diferencia ? '#b91c1c' : '#15803d') + '; font-weight:700">' + (f.diferencia > 0 ? '+' : '') + num(f.diferencia) + '</td></tr>';
+  };
+  fila.firstChild.innerHTML = '<div style="padding:6px 4px"><b style="color:#1A365D">🔢 Segundo conteo · ' + esc(np(x.area)) + ' · ' + esc(x.mesNombre) + ' ' + x.anio +
+    '</b> <span style="font-size:12px; color:#475569">(registrado por ' + esc(x.segundoPor) + ' el ' + esc(x.segundoEn) + '; es la cifra oficial)</span>' +
+    D.bodegas.map(function(b) {
+      return '<div class="cm-tabla-wrap" style="margin-top:6px"><table class="cm-tabla ct-matriz"><thead><tr><th>' + esc(b.nombre) + ' - Bodega ' + esc(b.codigo) +
+        '</th><th class="n">Manager</th><th class="n">Segundo conteo</th><th class="n">Diferencia</th></tr></thead><tbody>' +
+        mats.map(function(m) { return linea(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), b.id + ':' + m.id); }).join('') +
+        linea('Disco de zirconia - DAÑADOS', b.id + ':danados', true) + '</tbody></table></div>';
+    }).join('') + '</div>';
+  fila.style.display = ''; boton.innerText = '🙈 Ocultar segundo conteo';
 }
 function reenviarAviso(id, b) {
   b.disabled = true;
