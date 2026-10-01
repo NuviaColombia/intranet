@@ -1529,7 +1529,7 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsTextoOrden(f, k) {
     if (k !== 'designerId') return f[k] || '';
-    var d = (DS.diaData ? DS.diaData.designers : []).find(function(x) { return x.id === f.designerId; });
+    var d = dsElegibles().find(function(x) { return x.id === f.designerId; });
     return d ? d.nombre : (f.designerNombre || f.designerPrestado || '');
   }
 
@@ -1638,8 +1638,9 @@ window.addEventListener('unhandledrejection', function(ev) {
       sub.textContent = 'Equipo ' + t.nombre + ' — elige el diseñador prestado:';
       lista.innerHTML = '';
       var v = boton('‹ Volver a equipos'); v.classList.add('ds-prest-volver'); v.onclick = verEquipos; lista.appendChild(v);
-      if (!t.designers.length) vacio('Este equipo no tiene diseñadores registrados.');
+      if (!t.designers.length && !t.manager) vacio('Este equipo no tiene diseñadores registrados.');
       t.designers.forEach(function(d) { var b = boton('🎨 ' + d.nombre); b.onclick = function() { cerrar(d); }; lista.appendChild(b); });
+      if (t.manager) { var bm = boton('👤 ' + t.manager.nombre + ' (manager)'); bm.onclick = function() { cerrar(t.manager); }; lista.appendChild(bm); }
       foco();
     }
     bg.querySelector('[data-prest="cancelar"]').onclick = function() { cerrar(null); };
@@ -1831,10 +1832,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     if (c.t === 'designer') {
       // Support elige entre todos los diseñadores de Design; las demás áreas, entre los del equipo + "Others" (prestado).
-      var lista = (DS.diaData && (DS.diaData.designersCaso || DS.diaData.designers)) || [];
+      var lista = dsElegibles();
       var html = '<select data-campo="designerId"' + al + ' data-previo="' + dsEsc(val || '') + '"><option value="">—</option>';
       lista.forEach(function(d) {
-        html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + '</option>';
+        html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + (d.esManager ? ' (manager)' : '') + '</option>';
       });
       if (val && !lista.some(function(d) { return d.id === val; })) {
         html += '<option value="' + dsEsc(val) + '" selected>' + dsEsc((f.designerNombre || 'Diseñador') + ' (prestado)') + '</option>';
@@ -1843,6 +1844,14 @@ window.addEventListener('unhandledrejection', function(ev) {
       return html + '</select>';
     }
     return '';
+  }
+
+  // Quiénes se pueden elegir en la columna Diseñador: los diseñadores del equipo y, al final, su manager
+  // (Support: todos los diseñadores de Design y al final los managers).
+  function dsElegibles() {
+    if (!DS.diaData) return [];
+    if (DS.diaData.designersCaso) return DS.diaData.designersCaso;
+    return (DS.diaData.designers || []).concat(DS.diaData.manager ? [DS.diaData.manager] : []);
   }
 
   function dsEsc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }

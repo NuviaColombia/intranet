@@ -294,12 +294,31 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         "soloPropias": solo_empleado_id is not None,
         "prestadas": [],
     }
+    # El manager a veces diseña casos: va al final de la columna Diseñador (no en Tiempos libres, que usa "designers").
+    salida["manager"] = _manager_elegible(team, {d.empleado_id for d in designers}) if solo_empleado_id is None else None
     if team.area.formato == FORMATO_SUPPORT:
-        # En Support el 'Diseñador' es el del caso: se elige entre todos los diseñadores de Design.
-        salida["designersCaso"] = disenadores_de_todos_los_equipos(db)
+        # En Support el 'Diseñador' es el del caso: se elige entre todos los diseñadores de Design (y al final los managers).
+        salida["designersCaso"] = disenadores_de_todos_los_equipos(db) + managers_de_todos_los_equipos(db)
     if solo_empleado_id is not None:
         salida["prestadas"] = ordenes_prestadas(db, solo_empleado_id, fecha)
     return salida
+
+
+def _manager_elegible(team: DesignTeam, ya: set) -> dict | None:
+    m = team.manager
+    if not m or not m.activo or m.id in ya:
+        return None
+    return {"id": m.id, "nombre": m.nombre_completo, "esManager": True}
+
+
+def managers_de_todos_los_equipos(db: Session) -> list[dict]:
+    """Managers de equipos activos que no son también diseñadores (para el final de la lista de Support)."""
+    disenadores = {i for (i,) in db.query(DesignTeamDesigner.empleado_id).join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+                   .filter(DesignTeam.activo == 1)}
+    filas = (db.query(Empleado.id, Empleado.nombres, Empleado.apellidos).join(DesignTeam, DesignTeam.manager_id == Empleado.id)
+             .filter(DesignTeam.activo == 1, Empleado.activo == 1).distinct().all())
+    out = [{"id": i, "nombre": f"{n or ''} {a or ''}".strip(), "esManager": True} for i, n, a in filas if i not in disenadores]
+    return sorted(out, key=lambda d: d["nombre"].lower())
 
 
 def disenadores_de_todos_los_equipos(db: Session) -> list[dict]:
@@ -587,7 +606,8 @@ def equipos_prestables(db: Session, team: DesignTeam) -> list[dict]:
     teams = [t for t in equipos_de_area(db, team.area_id) if t.id != team.id]
     return [{"id": t.id, "nombre": t.nombre,
              "designers": sorted(({"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in t.designers),
-                                 key=lambda x: x["nombre"].lower())}
+                                 key=lambda x: x["nombre"].lower()),
+             "manager": _manager_elegible(t, {d.empleado_id for d in t.designers})}
             for t in teams]
 
 
