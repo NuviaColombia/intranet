@@ -2549,6 +2549,8 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
                 m["estado"] = "en_equipo"
             elif manager_emp and m["empleadoId"] == manager_emp.id:
                 m["estado"] = "es_manager"
+            elif _es_historico(m["empleadoNombre"]):
+                m["estado"] = "historico"
             else:
                 otros = [n for tid, n in actuales if not equipo_existente or tid != equipo_existente.id]
                 m["estado"] = "otro_equipo" if otros else "nuevo"
@@ -2569,7 +2571,7 @@ def importar_equipos_desde_desempeno(db: Session, aplicar: bool = False) -> dict
                             .filter(DesignTeamDesigner.team_id == team.id).all()}
             orden_d = len(ids_actuales) + 1
             for m in miembros_info:
-                if m["empleadoId"] and m["empleadoId"] not in ids_actuales:
+                if m.get("estado") == "nuevo" and m["empleadoId"] not in ids_actuales:
                     db.add(DesignTeamDesigner(team_id=team.id, empleado_id=m["empleadoId"], orden=orden_d))
                     ids_actuales.add(m["empleadoId"])
                     agregados += 1

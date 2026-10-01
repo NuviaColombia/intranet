@@ -51,7 +51,8 @@
   .aud-grupo.imp-pend > summary .aud-cant { color:#1e40af; background:#dbeafe; }
   .aud-grupo.imp-ok > summary .aud-cant { color:#166534; background:#dcfce7; }
   .imp-m { display:block; }
-  .imp-m.nuevo { color:#1e40af; } .imp-m.otro { color:#b45309; }
+  .imp-m.nuevo { color:#1e40af; }
+  .aud-grupo.imp-omit > summary .aud-cant { color:#475569; background:#f1f5f9; }
 </style>
 <div class="tarjeta aud-tarjeta">
   <div class="aud-fila">
@@ -223,9 +224,9 @@
     return '<details class="aud-grupo ' + (clase || '') + '"><summary>' + titulo +
            '<span class="aud-cant">' + filas.length + '</span></summary><div class="aud-scroll">' + t + '</table></div></details>';
   }
-  var IMP_TXT = {nuevo: 'se agregará', otro_equipo: 'ya está en otro equipo', es_manager: 'es el manager de esta hoja'};
+  var IMP_OMITE = {otro_equipo: 'Ya está en otro equipo', es_manager: 'Es el manager de esta hoja', historico: 'Histórico: ya no está en el área'};
   function renderImport(data, aplicado) {
-    var totM = 0, okM = 0, okMgr = 0, cambios = 0, pend = [], sinCoin = [], noCrea = [], alDia = [];
+    var totM = 0, okM = 0, okMgr = 0, cambios = 0, pend = [], sinCoin = [], noCrea = [], alDia = [], omitidos = [];
     data.equipos.forEach(function(eq) {
       if (eq.managerEncontrado) okMgr++;
       var porAgregar = [], ya = 0;
@@ -234,9 +235,12 @@
         if (!m.empleadoId) { sinCoin.push([esc(eq.hoja), esc(m.nombreOriginal), 'Diseñador']); return; }
         okM++;
         if (m.estado === 'en_equipo') { ya++; return; }
-        var extra = m.estado === 'otro_equipo' && m.otrosEquipos && m.otrosEquipos.length ? ': ' + m.otrosEquipos.map(esc).join(', ') : '';
-        porAgregar.push('<span class="imp-m ' + (m.estado === 'nuevo' ? 'nuevo' : 'otro') + '">' + esc(m.empleadoNombre) +
-                        ' <small>(' + (IMP_TXT[m.estado] || esc(m.estado)) + extra + ')</small></span>');
+        if (m.estado !== 'nuevo') {
+          var extra = m.estado === 'otro_equipo' && m.otrosEquipos && m.otrosEquipos.length ? ': ' + m.otrosEquipos.map(esc).join(', ') : '';
+          omitidos.push([esc(eq.hoja), esc(m.empleadoNombre), (IMP_OMITE[m.estado] || esc(m.estado)) + extra]);
+          return;
+        }
+        porAgregar.push('<span class="imp-m nuevo">' + esc(m.empleadoNombre) + '</span>');
       });
       if (!eq.managerEncontrado) sinCoin.push([esc(eq.hoja), esc(eq.managerBuscado), 'Manager']);
       var area = esc(eq.area) + (eq.areaEncontrada ? '' : ' <b style="color:#b91c1c">(no existe)</b>');
@@ -261,6 +265,7 @@
       '<span class="aud-chip">Cambios por aplicar <b>' + cambios + '</b></span>' +
       '<span class="aud-chip">Sin coincidencia <b>' + sinCoin.length + '</b></span></div>' +
       impGrupo('Por aplicar', pend, ['Hoja', 'Área', 'Manager', 'Diseñadores que se agregarán'], 'imp-pend') +
+      impGrupo('No se agregarán al aplicar', omitidos, ['Hoja', 'Persona', 'Motivo'], 'imp-omit') +
       impGrupo('Sin coincidencia en People (agregar a mano)', sinCoin, ['Hoja', 'Nombre en Desempeño', 'Rol']) +
       impGrupo('Equipos que no se pueden crear', noCrea, ['Hoja', 'Área', 'Motivo']) +
       impGrupo('Al día', alDia, ['Hoja', 'Área', 'Manager', 'En el equipo'], 'imp-ok') +
@@ -291,7 +296,7 @@
     var btn = e.target.closest('#impAplicar');
     if (!btn) return;
     if (!confirm('¿Aplicar ' + impCambios + ' cambios? Se crean los equipos que faltan y se agregan los diseñadores encontrados ' +
-                 '(también los marcados "ya está en otro equipo"). No se quita a nadie. Los nombres sin coincidencia quedan para agregar a mano.')) return;
+                 '(no se agregan históricos, managers ni personas que ya están en otro equipo). No se quita a nadie.')) return;
     btn.disabled = true; btn.innerText = 'Aplicando…';
     fetch('/design/api/parametros/importar-equipos', {method: 'POST'}).then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
