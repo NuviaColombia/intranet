@@ -60,7 +60,7 @@
   <div id="sec-nuevo" class="cm-seccion {{ 'activa' if conteo_tab_inicial == 'nuevo' }}">
     <div class="cm-barra"><div><h2 class="cm-titulo">📋 Conteo inventario mensual</h2>
       <p class="cm-sub" style="margin:0;">Guarda tu conteo como borrador y, cuando esté completo, <b>envíalo con tu firma</b> (en cualquier momento). Cuando firmen el
-        Director de Producción y el testigo, el conteo <b>queda en firme</b>.</p></div>
+        Director de Producción y el área contable, el conteo <b>queda en firme</b>.</p></div>
       <div class="cm-acciones no-print"><button type="button" class="btn gris" id="btnImprimirManager" style="display:none" onclick="imprimirConteo(actual)">🖨️ Imprimir</button></div></div>
     <div class="ct-enc">
       <div><label>Fecha reporte <b>*</b></label><input type="date" id="cFecha" onchange="sugerirMes()"></div>
@@ -71,8 +71,8 @@
       <div><label>Área <b>*</b></label><select id="cArea" onchange="pintarFormulario(); cargarReporte()"></select></div>
       <div><label>Correo (Zoho)</label><input id="cCorreo" readonly></div>
       <div><label>Director de Producción (firma 2)</label><input id="cDirector" readonly placeholder="Se asigna en Parámetros"></div>
-      <div><label>Testigos (firma 3: firma cualquiera de ellos)</label><input id="cTestigos" readonly placeholder="Se asignan en Parámetros"
-        title="Se asignan en Parámetros › Director y testigos. Les llega el aviso a todos y basta con la firma de uno."></div>
+      <div><label>Área contable (firma 3, acompaña el conteo: firma cualquiera)</label><input id="cTestigos" readonly placeholder="Se asignan en Parámetros"
+        title="Se asignan en Parámetros › Director y área contable. Les llega el aviso a todos y basta con la firma de uno."></div>
     </div>
     <div id="cEstado"></div>
     <div id="cBodegas"></div>
@@ -87,7 +87,7 @@
   <!-- ============ PENDIENTES POR VALIDAR (esperan firmas) ============ -->
   <div id="sec-validacion" class="cm-seccion {{ 'activa' if conteo_tab_inicial == 'validacion' }}">
     <div class="cm-barra"><div><h2 class="cm-titulo">⏳ Pendientes por validar</h2>
-      <p class="cm-sub" style="margin:0;">Conteos enviados que esperan el <b>segundo conteo</b> y la firma del <b>Director de Producción</b> y de un <b>testigo</b>. Con el segundo conteo y las 3 firmas quedan en firme y salen de esta lista.</p></div></div>
+      <p class="cm-sub" style="margin:0;">Conteos enviados que esperan el <b>segundo conteo</b> y la firma del <b>Director de Producción</b> y del <b>área contable</b> (acompaña el conteo). Con el segundo conteo y las 3 firmas quedan en firme y salen de esta lista.</p></div></div>
     <div class="cm-tabla-wrap"><table class="cm-tabla">
       <thead><tr><th>Mes</th><th>Área</th><th>Cargado por</th><th>Enviado</th><th>Firmas</th><th>Segundo conteo</th><th>Falta</th><th></th></tr></thead>
       <tbody id="pLista"><tr><td colspan="8" class="cm-vacio">Cargando…</td></tr></tbody></table></div>
@@ -192,14 +192,14 @@ function testigosPosibles() {
 }
 function pintarTestigos() {
   var t = testigosPosibles();
-  document.getElementById('cTestigos').value = t.length ? t.map(function(p) { return p.nombre; }).join(', ') : '⚠️ Sin testigos en Parámetros › Director y testigos';
+  document.getElementById('cTestigos').value = t.length ? t.map(function(p) { return p.nombre; }).join(', ') : '⚠️ Sin personas del área contable en Parámetros › Director y área contable';
 }
 function firmasHtml(r) {
   var f = function(n, titulo, nombre, en) {
     return '<span class="ct-firma ' + (en ? 'si' : 'no') + '">' + n + '. ' + titulo + ': ' + (en ? '✅ ' + esc(nombre) + ' · ' + esc(en) : '⏳ ' + esc(nombre || 'pendiente')) + '</span>';
   };
   return '<div class="ct-firmas">' + f(1, 'Manager', r.responsable, r.enviadoEn) +
-    f(2, 'Director', r.managerFirma.nombre, r.managerFirma.en) + f(3, 'Testigo', r.testigo.nombre || 'cualquiera de la lista', r.testigo.en) + '</div>';
+    f(2, 'Director', r.managerFirma.nombre, r.managerFirma.en) + f(3, 'Área contable', r.testigo.nombre || 'cualquiera de la lista', r.testigo.en) + '</div>';
 }
 // Solo el Director de Producción o un administrador. Esperando firmas: anular firmas (corregir y volver a firmar).
 // En firme (3 firmas): solo se anula el reporte completo y el manager lo vuelve a realizar.
@@ -226,7 +226,7 @@ function anularFirmas(id, alVolver) {
 function pintarFormulario() {
   document.getElementById('cBodegas').innerHTML = tablasBodegas(document.getElementById('cArea').value);
   var d = D.director;
-  document.getElementById('cDirector').value = d ? d.nombre + (d.id === D.usuarioId ? ' (tú: tu firma queda al enviar)' : '') : '⚠️ Sin asignar en Parámetros › Director y testigos';
+  document.getElementById('cDirector').value = d ? d.nombre + (d.id === D.usuarioId ? ' (tú: tu firma queda al enviar)' : '') : '⚠️ Sin asignar en Parámetros › Director y área contable';
 }
 function bloquearManager(si) {
   document.querySelectorAll('#sec-nuevo .ct-cant, #sec-nuevo .ct-dan, #cNovedad, #cFecha').forEach(function(i) { i.disabled = si; });
@@ -251,7 +251,7 @@ function cargarReporte() {
     else if (e === 'BORRADOR') est.innerHTML = '<div class="ct-aviso edit">📝 <b>Borrador</b> guardado el ' + esc(actual.actualizadoEn || actual.creadoEn) +
       '. Todavía <b>no se ha enviado</b>: cuando esté completo pulsa «Enviar conteo».</div>';
     else if (e === 'ENVIADO') est.innerHTML = '<div class="ct-aviso info">📤 Enviado con tu firma el ' + esc(actual.enviadoEn) + ' (' + esc(actual.enviadoEmail) + '). ' +
-      'Falta que firmen el Director de Producción y/o un testigo (les llegó el aviso por Cliq). Ya no se puede cambiar.' + botonAnular(actual, 'cargarReporte') + firmasHtml(actual) + '</div>';
+      'Falta que firmen el Director de Producción y/o el área contable (les llegó el aviso por Cliq). Ya no se puede cambiar.' + botonAnular(actual, 'cargarReporte') + firmasHtml(actual) + '</div>';
     else if (e === 'DEVUELTO') est.innerHTML = '<div class="ct-aviso no">↩️ <b>Devuelto</b> por ' + esc(actual.devueltoPor) + ' el ' + esc(actual.devueltoEn) + ':<br>«' + esc(actual.observacion) +
       '»<br>Corrige y envíalo de nuevo: se vuelve a firmar.</div>';
     else if (e === 'VALIDADO') est.innerHTML = '<div class="ct-aviso ok">✅ <b>En firme</b> desde el ' + esc(actual.enFirmeEn) + ' con las 3 firmas. ' +
@@ -333,9 +333,9 @@ function guardarConteo(enviar) {
                mes: +document.getElementById('cMes').value, area: document.getElementById('cArea').value,
                novedad: document.getElementById('cNovedad').value, enviar: false}, leerCantidades());
   if (enviar) {
-    if (!D.director) { alert('⚠️ Falta asignar el Director de Producción en Parámetros › Director y testigos.'); return; }
-    if (!testigosPosibles().length) { alert('⚠️ Falta asignar los testigos en Parámetros › Director y testigos.'); return; }
-    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al Director de Producción y a los testigos (firma uno de ellos). Con las 3 firmas queda en firme.')) return;
+    if (!D.director) { alert('⚠️ Falta asignar el Director de Producción en Parámetros › Director y área contable.'); return; }
+    if (!testigosPosibles().length) { alert('⚠️ Falta asignar las personas del área contable en Parámetros › Director y área contable.'); return; }
+    if (!confirm('¿Enviar el conteo de ' + D.meses[datos.mes - 1] + ' ' + datos.anio + ' con tu firma (' + D.correo + ')?\nLes llega el aviso al Director de Producción y al área contable (firma uno de ellos). Con las 3 firmas queda en firme.')) return;
   }
   var btn = document.getElementById(enviar ? 'btnEnviar' : 'btnBorrador'), texto = btn.innerText; btn.disabled = true; btn.innerText = 'Guardando…';
   // 1) guarda como borrador · 2) sube los soportes · 3) si es envío, lo envía (con los soportes ya adentro)
@@ -509,7 +509,7 @@ function imprimirConteo(r) {
     tablas + (r.novedad ? '<div class="nov"><b>NOVEDAD:</b> ' + esc(r.novedad) + '</div>' : '') + (r.observacion ? '<div class="nov"><b>OBSERVACIÓN:</b> ' + esc(r.observacion) + '</div>' : '') +
     '<table class="firmas"><tr>' + firma('MANAGER (CARGA DEL CONTEO)', r.responsable, r.enviadoEmail, r.enviadoEn, 'SIN ENVIAR') +
       firma('DIRECTOR DE PRODUCCIÓN', r.managerFirma.nombre, r.managerFirma.email, r.managerFirma.en, 'PENDIENTE DE FIRMA') +
-      firma('TESTIGO DEL CONTEO', r.testigo.nombre, r.testigo.email, r.testigo.en, 'PENDIENTE DE FIRMA') + '</tr></table>';
+      firma('ÁREA CONTABLE (ACOMPAÑA CONTEO)', r.testigo.nombre, r.testigo.email, r.testigo.en, 'PENDIENTE DE FIRMA') + '</tr></table>';
   var iframe = document.createElement('iframe'); iframe.style.cssText = 'position:absolute;width:0;height:0;border:0'; document.body.appendChild(iframe);
   var doc = iframe.contentWindow.document; doc.open(); doc.write('<html><head><title>Conteo inventario mensual</title><style>' + css + '</style></head><body>' + html + '</body></html>'); doc.close();
   if (window.__vistaPreviaImpresion) { window.__vistaPreviaImpresion(doc.documentElement.outerHTML); return; }

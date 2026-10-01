@@ -16,7 +16,7 @@ SUBMODULOS_PRODUCCION = [
                     ("c_tipos", "🔢 Tipos de producto")]},
     {"slug": "conteo", "nombre": "Conteo inventario mensual", "icono": "📋",
      "descripcion": "Conteo mensual de materiales por área y bodega", "url": "/conteo", "activo": True,
-     "parametros": [("n_accesos", "👤 Accesos (managers)"), ("n_director", "🏭 Director, testigos y WorkDrive"),
+     "parametros": [("n_accesos", "👤 Accesos (managers)"), ("n_director", "🏭 Director, área contable y WorkDrive"),
                     ("n_materiales", "🧪 Materiales"),
                     ("n_bodegas", "🏬 Bodegas")]},
 ]

@@ -144,7 +144,7 @@ def _tres_firmas(doc: "_Doc", r, sufijo: str = "") -> None:
     nom = lambda e: nombre_propio(e.nombre_completo) if e else ""
     firmas = [("Manager (carga del conteo)", nom(r.responsable), r.enviado_email, r.enviado_en, "SIN ENVIAR"),
               ("Director de produccion", nom(r.manager_firma), r.manager_firma_email, r.manager_firmado_en, "PENDIENTE DE FIRMA"),
-              ("Testigo del conteo", nom(r.testigo), r.testigo_email, r.testigo_firmado_en, "PENDIENTE DE FIRMA")]
+              ("Area contable (acompana conteo)", nom(r.testigo), r.testigo_email, r.testigo_firmado_en, "PENDIENTE DE FIRMA")]
     if doc.get_y() > doc.h - 40:
         doc.add_page()
     y, fin = doc.get_y(), doc.get_y()
@@ -201,7 +201,7 @@ def acta_area(r, bodegas, materiales, meses: list[str]) -> bytes:
                ("Responsable", nombre_propio(r.responsable.nombre_completo) if r.responsable else ""),
                ("Fecha reporte", r.fecha_reporte.strftime("%d/%m/%Y")),
                ("Director", nombre_propio(r.manager_firma.nombre_completo) if r.manager_firma else ""),
-               ("Testigo", nombre_propio(r.testigo.nombre_completo) if r.testigo else ""),
+               ("Area contable", nombre_propio(r.testigo.nombre_completo) if r.testigo else ""),
                ("Estado", "EN FIRME (3 FIRMAS)" if en_firme else "PENDIENTE DE FIRMAS"),
                ("En firme desde", _hora(r.validado_en)),
                ("Segundo conteo", (nombre_propio(r.segundo_por.nombre_completo) + " - " + _hora(r.segundo_en)) if r.segundo_en and r.segundo_por else "Pendiente"),

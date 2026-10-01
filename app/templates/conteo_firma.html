@@ -33,15 +33,15 @@
     <div class="cf-firmas">
       <div class="cf-firma"><b>1. Manager (carga)</b>{% if r.enviadoEn %}✅ {{ r.responsable }}<br>{{ r.enviadoEmail }}<br>{{ r.enviadoEn }}{% else %}⏳ Sin enviar{% endif %}</div>
       <div class="cf-firma"><b>2. Director de Producción</b>{% if r.managerFirma.en %}✅ {{ r.managerFirma.nombre }}<br>{{ r.managerFirma.email }}<br>{{ r.managerFirma.en }}{% else %}⏳ {{ r.managerFirma.nombre or 'Pendiente' }}{% endif %}</div>
-      <div class="cf-firma"><b>3. Testigo del conteo</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ Firma cualquiera de la lista de testigos{% endif %}</div>
+      <div class="cf-firma"><b>3. Área contable (acompaña conteo)</b>{% if r.testigo.en %}✅ {{ r.testigo.nombre }}<br>{{ r.testigo.email }}<br>{{ r.testigo.en }}{% else %}⏳ Firma cualquiera del área contable{% endif %}</div>
     </div>
 
-    <h3 style="margin:14px 0 4px; font-size:14px; color:#1A365D;">🔢 Segundo conteo (Director de Producción y testigo)</h3>
+    <h3 style="margin:14px 0 4px; font-size:14px; color:#1A365D;">🔢 Segundo conteo (Director de Producción y área contable)</h3>
     <p style="font-size:12.5px; color:#475569; margin:0 0 6px;">Cuenten de nuevo cada material y regístrenlo aquí antes de firmar. Se compara con lo del manager
       y <b>el segundo conteo queda como la cifra oficial</b>. Se aceptan decimales (12.5 o 12,5).
       {% if r.tieneSegundo %}<br>Registrado por <b>{{ r.segundoPor }}</b> el {{ r.segundoEn }}{% if r.comparacion and r.comparacion.diferencias %} · <b style="color:#b91c1c">{{ r.comparacion.diferencias }} diferencia(s)</b>{% else %} · ✅ coincide con el manager{% endif %}.{% endif %}</p>
     {% if puede_segundo %}<form method="post" action="/conteo/firma/{{ r.id }}/segundo"
-      {% if r.managerFirma.en or r.testigo.en %}onsubmit="return confirm('Cambiar el segundo conteo borra las firmas ya puestas del Director o del testigo: deben firmar de nuevo. ¿Continuar?');"{% endif %}>{% endif %}
+      {% if r.managerFirma.en or r.testigo.en %}onsubmit="return confirm('Cambiar el segundo conteo borra las firmas ya puestas del Director o del área contable: deben firmar de nuevo. ¿Continuar?');"{% endif %}>{% endif %}
     <table class="cf-tabla">
       <tr><th>Material</th><th style="text-align:right">Manager</th><th style="text-align:right">Segundo conteo</th><th style="text-align:right">Diferencia</th><th>Evidencia</th></tr>
       {% for f in filas %}
@@ -62,7 +62,7 @@
         <textarea name="observacion" rows="2" style="width:100%" placeholder="Qué se debe corregir"></textarea>
         <button class="btn rojo mini" style="margin-top:6px">↩️ Rechazar</button></form>
     {% elif rol %}
-      <div class="cf-aviso pend" style="margin-top:12px">Vas a firmar como <b>{{ 'Director de Producción' if rol == 'manager' else 'testigo del conteo' }}</b>: queda tu nombre,
+      <div class="cf-aviso pend" style="margin-top:12px">Vas a firmar como <b>{{ 'Director de Producción' if rol == 'manager' else 'área contable (acompaña el conteo)' }}</b>: queda tu nombre,
         tu correo de Zoho (<b>{{ user.email }}</b>) y la fecha y hora. Si algo no está bien, recházalo con una observación.</div>
       <form method="post" action="/conteo/firma/{{ r.id }}/firmar" style="display:inline"
             onsubmit="return confirm('¿Firmar el conteo de {{ r.area|nombre_propio }} de {{ r.mesNombre }} {{ r.anio }}?');">

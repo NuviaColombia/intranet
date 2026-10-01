@@ -70,6 +70,9 @@ def _tablas_conteo() -> None:
         n = sc.migrar_flujo_anterior(db)
         if n:
             print(f"Conteo: {n} conteo(s) con las 3 firmas pasaron a en firme.")
+        ids = sc.invalidar_segundos_del_responsable(db)
+        if ids:
+            print(f"Conteo: segundo conteo hecho por quien cargó el conteo, sin efecto en #{', #'.join(map(str, ids))}.")
     except Exception as e:
         print(f"Conteo: migración del flujo anterior ({type(e).__name__}: {e}).")
     finally:
@@ -197,7 +200,7 @@ def api_guardar(payload: ReporteIn, tareas: BackgroundTasks, user: Empleado = De
         raise HTTPException(400, r)
     if r.estado == ENVIADO:
         tareas.add_task(sc.notificar, r.id, "enviado")
-    accion = ("enviado con tu firma: se les avisó al Director de Producción y a los testigos para que firmen"
+    accion = ("enviado con tu firma: se les avisó al Director de Producción y al área contable para que firmen"
               if r.estado == ENVIADO else "guardado como borrador")
     return {"mensaje": f"✅ Conteo de {sc.MESES[r.mes - 1]} {r.anio} de {nombre_propio(r.area)} {accion}.",
             "reporte": sc.serializar(db, r, user)}
@@ -342,14 +345,14 @@ def agregar_testigo(user: Empleado = Depends(require_admin), db: Session = Depen
     if not db.query(ConteoTestigo).filter_by(empleado_id=e.id).first():
         db.add(ConteoTestigo(empleado_id=e.id))
     db.commit()
-    return _volver("n_director", f"{nombre_propio(e.nombre_completo)} puede firmar como testigo del conteo.")
+    return _volver("n_director", f"{nombre_propio(e.nombre_completo)} puede firmar como área contable (acompaña el conteo).")
 
 
 @router.post("/inventario/parametros/conteo/testigos/{empleado_id}/quitar")
 def quitar_testigo(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     db.query(ConteoTestigo).filter_by(empleado_id=empleado_id).delete()
     db.commit()
-    return _volver("n_director", "Testigo quitado de la lista.")
+    return _volver("n_director", "Persona quitada del área contable.")
 
 
 def _pdf(doc: ConteoDocumento) -> Response:
@@ -476,7 +479,7 @@ def api_exportar(anio: int, mes: int, user: Empleado = Depends(require_submodulo
         w.writerow([f"{b['codigo']} {b['nombre']}", "Disco de zirconia - DAÑADOS",
                     *[r["finalDanados"].get(str(b["id"]), 0) for r in reportes], c["totales"].get(f"{b['id']}:danados", 0)])
     w.writerow([])
-    w.writerow(["Área", "Estado", "Responsable", "Correo", "Enviado", "Director de Producción", "Firmó", "Testigo", "Firmó",
+    w.writerow(["Área", "Estado", "Responsable", "Correo", "Enviado", "Director de Producción", "Firmó", "Área contable", "Firmó",
                 "En firme", "Novedad"])
     for r in reportes:
         w.writerow([nombre_propio(r["area"]), ESTADOS.get(r["estado"], r["estado"]), r["responsable"], r["responsableEmail"],
