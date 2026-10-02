@@ -1511,7 +1511,11 @@ window.addEventListener('unhandledrejection', function(ev) {
       catalogoCache[areaId] = api('/design/api/catalogos?area_id=' + areaId)
         .catch(function(e) { delete catalogoCache[areaId]; throw e; });
     }
-    return catalogoCache[areaId].then(function(todos) { return todos[tipo] || []; });
+    return catalogoCache[areaId].then(function(todos) {
+      var l = todos[tipo] || [];
+      // Centro siempre en orden alfabético (como los centros de Openings)
+      return tipo === 'centro' ? l.slice().sort(function(a, b) { return a.localeCompare(b, 'es', {sensitivity: 'base'}); }) : l;
+    });
   }
 
   // ---------- Duración (misma fórmula que duracion_orden_min en services_design.py) ----------

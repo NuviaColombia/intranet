@@ -3777,6 +3777,7 @@ def centros_de_equipo(db: Session, team: DesignTeam) -> list[str] | None:
     else:
         return None
     vistos, out = set(), []
+    base = sorted(base, key=_normalizar_texto)  # en orden alfabético; Training y Colaboracion siempre al final
     for c in base + CENTROS_EXTRA:
         if _normalizar_texto(c) not in vistos:
             vistos.add(_normalizar_texto(c))
