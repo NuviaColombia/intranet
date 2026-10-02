@@ -328,6 +328,15 @@ class DesignOpeningsFila(Base):
     datos: Mapped[str] = mapped_column(Text, default="{}")
 
 
+class DesignFestivo(Base):
+    """Festivo de la empresa: las órdenes en Hold no pasan a este día (se saltan, como sábados y domingos)."""
+    __tablename__ = "design_festivos"
+
+    fecha: Mapped[date] = mapped_column(Date, primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(100), default="")
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+
+
 class DesignDelegacion(Base):
     """Diseñador que queda a cargo del Schedule de su equipo por unas fechas (cuando el manager no está): mientras
     dure, puede lo mismo que el manager en ese Schedule (no en Gestión). Uno por equipo; lo da el manager o un admin."""

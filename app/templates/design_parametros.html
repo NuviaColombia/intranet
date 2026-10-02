@@ -411,6 +411,45 @@
   </div>
 </div>
 
+{% set fest_prox = festivos|selectattr('fecha', 'ge', hoy)|list %}
+<div class="tarjeta aud-tarjeta" id="festTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Festivos</h2>
+      <span class="aud-sub">{{ fest_prox|length }} próximo{{ '' if fest_prox|length == 1 else 's' }} · días que se saltan las órdenes en Hold</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Días que no se trabajan en la empresa. Al cerrar el día (5:00 am del día siguiente), las órdenes en Hold pasan al siguiente día hábil: se saltan los sábados, los domingos y estos festivos. Agrega aquí los de cada año (los festivos de EE. UU. cambian de fecha).">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="festSwitch" role="switch" aria-controls="festContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="festSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="festContenido" hidden style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px">
+    <form method="post" action="/design/parametros/festivos" class="eq-crear fest-guarda">
+      <div class="eq-m"><label for="festFecha">Fecha</label><input type="date" name="fecha" id="festFecha" required></div>
+      <div class="eq-m" style="flex:3"><label for="festNombre">Nombre (opcional)</label>
+        <input name="nombre" id="festNombre" maxlength="100" placeholder="Ej: Thanksgiving"></div>
+      <div><button class="btn">Agregar</button></div>
+    </form>
+    {% for anio, grupo in festivos|groupby('fecha.year')|reverse %}
+    <div style="font-size:12.5px;font-weight:700;color:#334155;margin:8px 0 4px">{{ anio }}</div>
+    <div class="cat-vals" style="padding:0 0 4px">
+      {% for f in grupo %}
+      <span class="cat-chip{{ ' off' if f.fecha < hoy else '' }}" title="{{ 'Ya pasó' if f.fecha < hoy else 'Las órdenes en Hold no pasan a este día' }}">
+        {{ ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'][f.fecha.weekday()] }} {{ f.fecha.day }} {{ ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][f.fecha.month - 1] }}{% if f.nombre %} · {{ f.nombre }}{% endif %}
+        <form method="post" action="/design/parametros/festivos/{{ f.fecha.isoformat() }}/eliminar" class="fest-guarda"
+              onsubmit="return confirm('¿Quitar el festivo del {{ f.fecha.strftime('%d/%m/%Y') }}?')">
+          <button aria-label="Quitar festivo {{ f.fecha.isoformat() }}" title="Quitar">×</button>
+        </form>
+      </span>
+      {% endfor %}
+    </div>
+    {% else %}<span class="cat-sin">No hay festivos. Solo se saltan sábados y domingos.</span>{% endfor %}
+  </div>
+</div>
+
 <div class="tarjeta aud-tarjeta" id="simTarjeta">
   <div class="aud-fila">
     <div class="aud-titulo">
@@ -910,6 +949,21 @@
     cont.addEventListener('submit', function(e) {
       if (!e.target.closest('.aus-guarda')) return;
       try { sessionStorage.setItem(KEY, JSON.stringify({on: true, y: window.scrollY, foco: !e.target.closest('.cat-chip')})); } catch (x) {}
+    });
+  })();
+
+  // ---------- Festivos: interruptor; al guardar vuelve abierta ----------
+  (function() {
+    var sw = document.getElementById('festSwitch'), txt = document.getElementById('festSwitchTxt'), cont = document.getElementById('festContenido');
+    var KEY = 'paramFestivos';
+    function mostrar(on) { sw.checked = on; cont.hidden = !on; txt.innerText = on ? 'Ocultar' : 'Revisar'; }
+    var st = null;
+    try { st = JSON.parse(sessionStorage.getItem(KEY) || 'null'); sessionStorage.removeItem(KEY); } catch (e) {}
+    if (st && st.on) { mostrar(true); window.scrollTo(0, st.y || 0); }
+    sw.addEventListener('change', function() { mostrar(sw.checked); });
+    cont.addEventListener('submit', function(e) {
+      if (!e.target.closest('.fest-guarda')) return;
+      try { sessionStorage.setItem(KEY, JSON.stringify({on: true, y: window.scrollY})); } catch (x) {}
     });
   })();
 

@@ -366,9 +366,44 @@ def qc_editable_hasta(fecha: date) -> datetime:
     return _limite(fecha, 2)
 
 
-def siguiente_dia_habil(fecha: date) -> date:
+# Festivos de la empresa (Parámetros › Festivos). Los iniciales son los que dio Rosember el 2-oct-2026.
+FESTIVOS_INICIALES = [(date(2026, 1, 1), "Año nuevo"), (date(2026, 1, 2), "Año nuevo"), (date(2026, 5, 25), "Memorial Day"),
+                      (date(2026, 7, 3), "Independence Day"), (date(2026, 9, 7), "Labor Day"),
+                      (date(2026, 11, 26), "Thanksgiving"), (date(2026, 11, 27), "Thanksgiving"), (date(2026, 12, 25), "Navidad")]
+_FESTIVOS_CACHE = {"t": 0.0, "v": None}
+
+
+def festivos(db: Session) -> set[date]:
+    """Fechas festivas de la empresa. La primera vez se llena con FESTIVOS_INICIALES (una sola vez: si después se
+    borran, no vuelven)."""
+    import time as _t
+    from .models_design import DesignFestivo, DesignConexionRegla
+    c = _FESTIVOS_CACHE
+    if c["v"] is not None and _t.monotonic() - c["t"] < 60:
+        return c["v"]
+    if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema",
+                                                DesignConexionRegla.clave == "festivos_iniciales").first():
+        try:
+            for f, n in FESTIVOS_INICIALES:
+                if not db.get(DesignFestivo, f):
+                    db.add(DesignFestivo(fecha=f, nombre=n, creado_por="Sistema"))
+            db.add(DesignConexionRegla(tipo="sistema", clave="festivos_iniciales", creado_por="Sistema"))
+            db.commit()
+        except Exception:
+            db.rollback()  # otro proceso los llenó al mismo tiempo
+    v = {f.fecha for f in db.query(DesignFestivo).all()}
+    c["t"], c["v"] = _t.monotonic(), v
+    return v
+
+
+def festivos_invalidar() -> None:
+    _FESTIVOS_CACHE["v"] = None
+
+
+def siguiente_dia_habil(fecha: date, no_laborables: set[date] = frozenset()) -> date:
+    """El siguiente día que no es sábado, domingo ni festivo de la empresa."""
     d = fecha + timedelta(days=1)
-    while d.weekday() >= 5:  # sábado / domingo -> lunes
+    while d.weekday() >= 5 or d in no_laborables:
         d += timedelta(days=1)
     return d
 
@@ -393,10 +428,11 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                .filter(DesignOrden.estado == ESTADO_HOLD, DesignOrden.fecha >= TRASLADO_HOLD_DESDE,
                        DesignOrden.fecha <= cerrado_hasta)
                .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    libres = festivos(db) if ordenes else set()
     for o in ordenes:
-        destino = siguiente_dia_habil(o.fecha)
+        destino = siguiente_dia_habil(o.fecha, libres)  # se saltan sábados, domingos y festivos de la empresa
         while destino <= cerrado_hasta:  # si nadie abrió el horario varios días, llega al primer día abierto
-            destino = siguiente_dia_habil(destino)
+            destino = siguiente_dia_habil(destino, libres)
         max_visual = (db.query(func.max(DesignOrden.orden_visual))
                       .filter(DesignOrden.team_id == o.team_id, DesignOrden.fecha == destino,
                               DesignOrden.tabla == o.tabla).scalar())

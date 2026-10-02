@@ -254,6 +254,9 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
     candidatos = (db.query(Empleado).filter(Empleado.empresa == NUVIA_DESIGN, Empleado.activo == 1)
                  .order_by(Empleado.apellidos).all())
     ausencias = db.query(DesignAusenciaTipo).order_by(DesignAusenciaTipo.orden).all()
+    sd.festivos(db)  # asegura los festivos iniciales
+    from ..models_design import DesignFestivo
+    festivos = db.query(DesignFestivo).order_by(DesignFestivo.fecha).all()
     catalogos = (db.query(DesignCatalogo).order_by(DesignCatalogo.area_id, DesignCatalogo.tipo,
                                                    DesignCatalogo.orden).all())
     return templates.TemplateResponse(request, "design_parametros.html",
@@ -261,6 +264,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "candidatos_az": sorted(candidatos, key=lambda e: sd._normalizar_texto(e.nombre_completo)),
                                        "con_ordenes": {tid for (tid,) in db.query(DesignOrden.team_id).distinct()},
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
+                                       "festivos": festivos, "hoy": sd.ahora_colombia().date(),
                                        "sim_personas": _personas_simulacion(db, user), "sim_abrir": request.query_params.get("sim") == "1",
                                        "msg": request.query_params.get("msg")})
 
@@ -719,6 +723,44 @@ def toggle_ausencia(aus_id: int, user: Empleado = Depends(require_admin), db: Se
         a.activo = 0 if a.activo else 1
         db.commit()
     return RedirectResponse("/design/parametros", status_code=303)
+
+
+# ---------- Parámetros: festivos de la empresa (las órdenes en Hold no pasan a estos días) ----------
+
+@router.post("/design/parametros/festivos")
+def crear_festivo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                  fecha: str = Form(...), nombre: str = Form("")):
+    from ..models_design import DesignFestivo
+    try:
+        f = date.fromisoformat(fecha.strip())
+    except ValueError:
+        return _param_invalido("Fecha inválida.")
+    nombre = nombre.strip()[:100]
+    sd.festivos(db)
+    if f.weekday() >= 5:
+        return RedirectResponse(f"/design/parametros?msg=El {f.strftime('%d/%m/%Y')} es fin de semana: ya se salta.", status_code=303)
+    x = db.get(DesignFestivo, f)
+    if x:
+        x.nombre = nombre or x.nombre
+    else:
+        db.add(DesignFestivo(fecha=f, nombre=nombre, creado_por=user.nombre_completo))
+    db.commit()
+    sd.festivos_invalidar()
+    return RedirectResponse(f"/design/parametros?msg=Festivo agregado: {f.strftime('%d/%m/%Y')}.", status_code=303)
+
+
+@router.post("/design/parametros/festivos/{fecha}/eliminar")
+def eliminar_festivo(fecha: str, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from ..models_design import DesignFestivo
+    try:
+        x = db.get(DesignFestivo, date.fromisoformat(fecha))
+    except ValueError:
+        x = None
+    if x:
+        db.delete(x)
+        db.commit()
+        sd.festivos_invalidar()
+    return RedirectResponse("/design/parametros?msg=Festivo quitado.", status_code=303)
 
 
 # ---------- API: lectura ----------
