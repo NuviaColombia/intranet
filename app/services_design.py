@@ -62,11 +62,80 @@ def equipos_como_designer(db: Session, user: Empleado) -> set[int]:
 
 
 def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
-    """Ve y edita todo el horario del equipo: admins/superadmins, el manager del equipo y, en Support,
-    todos sus miembros (allí 'Diseñador' es el del caso, de otra área; quien atiende va en 'Soporte')."""
+    """Ve y edita todo el horario del equipo: admins/superadmins, el manager del equipo, el diseñador que el
+    manager dejó a cargo (solo en sus fechas) y, en Support, todos sus miembros (allí 'Diseñador' es el del caso,
+    de otra área; quien atiende va en 'Soporte')."""
     if es_admin(user) or team.manager_id == user.id:
         return True
-    return team.area.formato == FORMATO_SUPPORT and any(d.empleado_id == user.id for d in team.designers)
+    if team.area.formato == FORMATO_SUPPORT and any(d.empleado_id == user.id for d in team.designers):
+        return True
+    from sqlalchemy.orm import object_session
+    db = object_session(team)
+    return bool(db) and delegaciones_activas(db).get(team.id) == user.id
+
+
+# ---------- Diseñador a cargo del equipo (cuando el manager no está) ----------
+_DELEG_CACHE = {"t": 0.0, "dia": None, "v": None}
+
+
+def delegaciones_activas(db: Session) -> dict[int, int]:
+    """{team_id: empleado_id} de los diseñadores a cargo hoy (fecha de Colombia). Se guarda 20 s."""
+    import time as _t
+    from .models_design import DesignDelegacion
+    hoy = ahora_colombia().date()
+    c = _DELEG_CACHE
+    if c["v"] is not None and c["dia"] == hoy and _t.monotonic() - c["t"] < 20:
+        return c["v"]
+    v = {d.team_id: d.empleado_id for d in db.query(DesignDelegacion)
+         .filter(DesignDelegacion.desde <= hoy, DesignDelegacion.hasta >= hoy).all()}
+    c["t"], c["dia"], c["v"] = _t.monotonic(), hoy, v
+    return v
+
+
+def puede_delegar(user: Empleado, team: DesignTeam) -> bool:
+    """Solo el manager del equipo (o un admin) deja a alguien a cargo; el que está a cargo no puede pasarlo a otro."""
+    return es_admin(user) or team.manager_id == user.id
+
+
+def delegacion_de(db: Session, team: DesignTeam) -> dict | None:
+    """La autorización vigente o programada del equipo (las vencidas no cuentan)."""
+    from .models_design import DesignDelegacion
+    d = db.get(DesignDelegacion, team.id)
+    hoy = ahora_colombia().date()
+    if not d or d.hasta < hoy:
+        return None
+    return {"empleadoId": d.empleado_id, "nombre": d.empleado.nombre_completo if d.empleado else "",
+            "desde": d.desde.isoformat(), "hasta": d.hasta.isoformat(), "activa": d.desde <= hoy,
+            "asignadoPor": d.asignado_por or ""}
+
+
+def guardar_delegacion(db: Session, team: DesignTeam, empleado_id: int, desde: date, hasta: date, por: str) -> str | None:
+    """Deja a un diseñador del equipo a cargo entre `desde` y `hasta` (reemplaza la anterior). Devuelve el error."""
+    from .models_design import DesignDelegacion
+    if not any(d.empleado_id == empleado_id for d in team.designers):
+        return "Solo puedes dejar a cargo a un diseñador de este equipo."
+    if empleado_id == team.manager_id:
+        return "El manager ya tiene el permiso."
+    if hasta < desde:
+        return "La fecha final no puede ser antes de la inicial."
+    if hasta < ahora_colombia().date():
+        return "La fecha final ya pasó."
+    d = db.get(DesignDelegacion, team.id) or DesignDelegacion(team_id=team.id)
+    d.empleado_id, d.desde, d.hasta, d.asignado_por, d.asignado_en = empleado_id, desde, hasta, por, datetime.utcnow()
+    db.add(d)
+    db.commit()
+    _DELEG_CACHE["v"] = None
+    return None
+
+
+def quitar_delegacion(db: Session, team: DesignTeam) -> bool:
+    from .models_design import DesignDelegacion
+    d = db.get(DesignDelegacion, team.id)
+    if d:
+        db.delete(d)
+        db.commit()
+    _DELEG_CACHE["v"] = None
+    return bool(d)
 
 
 # Comments: cada pestaña es de unas áreas. Support y los admins ven las dos (1-oct-2026).

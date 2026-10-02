@@ -328,6 +328,21 @@ class DesignOpeningsFila(Base):
     datos: Mapped[str] = mapped_column(Text, default="{}")
 
 
+class DesignDelegacion(Base):
+    """Diseñador que queda a cargo del Schedule de su equipo por unas fechas (cuando el manager no está): mientras
+    dure, puede lo mismo que el manager en ese Schedule (no en Gestión). Uno por equipo; lo da el manager o un admin."""
+    __tablename__ = "design_delegaciones"
+
+    team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id"), primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    desde: Mapped[date] = mapped_column(Date)
+    hasta: Mapped[date] = mapped_column(Date)
+    asignado_por: Mapped[str] = mapped_column(String(150), default="")
+    asignado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    empleado = relationship("Empleado")
+
+
 class DesignRolUsuario(Base):
     """Rol de una persona solo dentro de Design (empleado | aprobador | admin). Reemplaza su rol de People
     únicamente en las páginas y APIs de Design; People y los demás módulos no cambian. Sin fila = igual que People."""

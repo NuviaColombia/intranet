@@ -88,6 +88,18 @@ window.dsPdfjs = function() {
   .ds-fila-kpis .ds-semana select, .ds-fila-kpis .ds-mis-equipos { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; }
   .ds-fila-kpis .ds-flecha { height:34px; min-width:34px; padding:0 10px; font-size:16px; line-height:1; }
   .ds-fila-kpis .ds-mis-equipos { flex:none; max-width:260px; }
+  /* Diseñador a cargo del equipo */
+  .ds-acargo { flex:none; display:flex; align-items:center; gap:6px; font-size:12.5px; }
+  .ds-acargo[hidden] { display:none; }
+  .ds-acargo .btn { height:34px; padding:0 12px; font-size:13px; margin:0; }
+  .ds-acargo-chip { display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 6px 0 12px; border-radius:17px;
+                    background:#eef2ff; color:#1e3a8a; border:1px solid #c7d2fe; white-space:nowrap; }
+  .ds-acargo-chip.prog { background:#f8fafc; color:#334155; border-color:#cbd5e1; }
+  .ds-acargo-chip.yo { background:#ecfdf5; color:#065f46; border-color:#a7f3d0; padding-right:12px; }
+  .ds-acargo-chip button { border:0; background:#fff; color:inherit; border-radius:12px; padding:3px 10px; cursor:pointer; font-size:12px; }
+  .ds-acargo-form label { display:block; font-size:12.5px; font-weight:600; margin:10px 0 4px; }
+  .ds-acargo-form select, .ds-acargo-form input { width:100%; margin:0; }
+  .ds-acargo-fechas { display:flex; gap:10px; } .ds-acargo-fechas > div { flex:1; }
   .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
   .ds-kpi b { display:block; font-size:20px; }
   .ds-panel-titulo { display:flex; align-items:center; gap:6px; }
@@ -740,6 +752,7 @@ window.dsPdfjs = function() {
     <div class="ds-fila-kpis">
       <div id="dsKpis" class="ds-kpis"></div>
       {% if user.rol not in ('admin', 'superadmin') %}<select id="dsMisEquipos" class="ds-mis-equipos" aria-label="Mi equipo" hidden></select>{% endif %}
+      <div id="dsACargo" class="ds-acargo" hidden></div>
       <div id="dsDiaTabs" class="ds-tabs"></div>
     </div>
 
@@ -2211,6 +2224,66 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   // soloOrdenes: al agregar/eliminar una orden no se redibuja "Tiempos libres" (no cambió y parpadeaba).
+  // ---------- Diseñador a cargo (el manager no está): mismas opciones que el manager en este Schedule ----------
+  var DS_MESES_C = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function dsACargoFecha(iso) { var p = iso.split('-'); return parseInt(p[2], 10) + ' ' + DS_MESES_C[parseInt(p[1], 10) - 1]; }
+  function dsRangoTxt(a) { return a.desde === a.hasta ? 'el ' + dsACargoFecha(a.desde) : 'del ' + dsACargoFecha(a.desde) + ' al ' + dsACargoFecha(a.hasta); }
+  function dsRenderACargo(dia) {
+    var cont = document.getElementById('dsACargo'); if (!cont) return;
+    var a = dia && dia.aCargo;
+    cont.innerHTML = '';
+    cont.hidden = !(dia && (dia.puedeDelegar || (a && a.esYo)));
+    if (cont.hidden) return;
+    if (a && a.esYo) {
+      cont.innerHTML = '<span class="ds-acargo-chip yo" title="Mientras tanto puedes asignar y editar los casos de todo el equipo, como el manager.">' +
+        (a.activa ? 'Estás a cargo del equipo hasta el ' + dsACargoFecha(a.hasta) : 'Estarás a cargo del equipo ' + dsRangoTxt(a)) + '</span>';
+      return;
+    }
+    if (a) {
+      cont.innerHTML = '<span class="ds-acargo-chip' + (a.activa ? '' : ' prog') + '" title="' + dsEsc('Autorizó: ' + (a.asignadoPor || '—')) + '">' +
+        (a.activa ? 'A cargo: ' + dsEsc(a.nombre) + ' · hasta el ' + dsACargoFecha(a.hasta) : 'Programado: ' + dsEsc(a.nombre) + ' · ' + dsRangoTxt(a)) +
+        '<button type="button" id="dsACargoEditar" aria-label="Cambiar quién queda a cargo">Cambiar</button></span>';
+    } else {
+      cont.innerHTML = '<button type="button" class="btn gris" id="dsACargoEditar" title="Autoriza a un diseñador del equipo a asignar casos en este Schedule mientras no estás">Dejar a cargo</button>';
+    }
+    document.getElementById('dsACargoEditar').onclick = function() { dsModalACargo(dia); };
+  }
+  function dsModalACargo(dia) {
+    var a = dia.aCargo, hoy = dsFechaISO(new Date());
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
+    var ops = (dia.designers || []).filter(function(d) { return !d.esManager; }).map(function(d) {
+      return '<option value="' + d.id + '"' + (a && a.empleadoId === d.id ? ' selected' : '') + '>' + dsEsc(d.nombre) + '</option>'; }).join('');
+    bg.innerHTML = '<div class="ds-qc ds-acargo-form" role="dialog" aria-modal="true" aria-labelledby="dsACargoTit" style="width:420px">' +
+      '<h4 id="dsACargoTit">Dejar a cargo del equipo</h4>' +
+      '<div class="ds-qc-sub">Mientras no estás, el diseñador elegido puede asignar y editar los casos de todo el equipo en este Schedule, igual que tú. Solo uno a la vez; se apaga solo al terminar las fechas.</div>' +
+      (ops ? '<label for="dsACargoQuien">Diseñador</label><select id="dsACargoQuien">' + ops + '</select>' +
+             '<div class="ds-acargo-fechas"><div><label for="dsACargoDesde">Desde</label><input type="date" id="dsACargoDesde" min="' + hoy + '" value="' + (a ? (a.desde < hoy ? hoy : a.desde) : hoy) + '"></div>' +
+             '<div><label for="dsACargoHasta">Hasta</label><input type="date" id="dsACargoHasta" min="' + hoy + '" value="' + (a ? a.hasta : hoy) + '"></div></div>'
+           : '<p class="ds-prest-vacio">Este equipo no tiene diseñadores asignados.</p>') +
+      '<div class="ds-qc-btns">' + (a ? '<button type="button" class="btn rojo" data-ac="quitar">Quitar autorización</button>' : '') +
+      '<button type="button" class="btn gris" data-ac="cancelar">Cancelar</button>' + (ops ? '<button type="button" class="btn" data-ac="guardar">Guardar</button>' : '') + '</div></div>';
+    document.body.appendChild(bg);
+    var teclas = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
+    var listo = function(msg) { cerrar(); dsToast(msg); dsCargarDia(); };
+    var falla = function(e) { alert('No se pudo guardar: ' + e.message); };
+    var url = '/design/api/teams/' + DS.teamId + '/delegacion';
+    bg.addEventListener('click', function(e) {
+      var b = e.target.closest('[data-ac]'); if (!b) return;
+      if (b.dataset.ac === 'cancelar') { cerrar(); return; }
+      if (b.dataset.ac === 'quitar') { postJSON(url + '/quitar', {}).then(function() { listo('Se quitó la autorización.'); }, falla); return; }
+      var sel = document.getElementById('dsACargoQuien'), de = document.getElementById('dsACargoDesde').value, ha = document.getElementById('dsACargoHasta').value;
+      if (!de || !ha) { alert('Elige las fechas.'); return; }
+      if (ha < de) { alert('La fecha final no puede ser antes de la inicial.'); return; }
+      postJSON(url, {empleadoId: parseInt(sel.value, 10), desde: de, hasta: ha}).then(function() {
+        listo(sel.options[sel.selectedIndex].text + ' queda a cargo ' + dsRangoTxt({desde: de, hasta: ha}) + '.');
+      }, falla);
+    });
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    document.addEventListener('keydown', teclas, true);
+    (bg.querySelector('select') || bg.querySelector('[data-ac]')).focus();
+  }
+
   function dsCargarDia(soloOrdenes) {
     if (!DS.teamId) return;
     var url = '/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada());
@@ -2221,6 +2294,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (DS.diaUrl !== url) return; // llegó tarde: ya se pidió otro día/equipo
       document.body.classList.remove('ds-cargando-dia');
       DS.diaData = dia;
+      dsRenderACargo(dia);
       dsRenderTabla('principal');
       if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
       dsRenderPrestadas();
@@ -2239,6 +2313,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (DS.diaUrl !== url) return;
       document.body.classList.remove('ds-cargando-dia');
       DS.diaData = null;
+      dsRenderACargo(null);
       dsRenderPrestadas();
       ['dsTablaPrincipal', 'dsTablaNightguard'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
       var cont = document.getElementById('dsTablaPrincipal');

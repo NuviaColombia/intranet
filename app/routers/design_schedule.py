@@ -786,7 +786,45 @@ def _fecha(texto: str) -> date:
 def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                   db: Session = Depends(get_db)):
     team = _verificar_equipo(db, user, team_id)
-    return sd.datos_dia(db, team, _fecha(fecha), None if sd.gestiona_equipo(user, team) else user.id)
+    dia = sd.datos_dia(db, team, _fecha(fecha), None if sd.gestiona_equipo(user, team) else user.id)
+    # Diseñador a cargo: el manager lo ve y lo cambia; el que está a cargo ve hasta cuándo.
+    dg = sd.delegacion_de(db, team)
+    dia["puedeDelegar"] = sd.puede_delegar(user, team) and team.area.formato != sd.FORMATO_SUPPORT
+    dia["aCargo"] = dict(dg, esYo=dg["empleadoId"] == user.id) if dg and (dia["puedeDelegar"] or dg["empleadoId"] == user.id) else None
+    return dia
+
+
+class DelegacionIn(BaseModel):
+    empleadoId: int
+    desde: date
+    hasta: date
+
+
+def _equipo_delegable(db: Session, user: Empleado, team_id: int) -> DesignTeam:
+    team = db.get(DesignTeam, team_id)
+    if not team:
+        raise HTTPException(404, "Equipo no encontrado.")
+    if not sd.puede_delegar(user, team):
+        raise HTTPException(403, "Solo el manager del equipo (o un admin) puede dejar a alguien a cargo.")
+    return team
+
+
+@router.post("/design/api/teams/{team_id}/delegacion")
+def api_delegacion_guardar(team_id: int, payload: DelegacionIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    team = _equipo_delegable(db, user, team_id)
+    err = sd.guardar_delegacion(db, team, payload.empleadoId, payload.desde, payload.hasta, user.nombre_completo)
+    if err:
+        raise HTTPException(400, err)
+    logging.getLogger("design.delegacion").info("%s deja a cargo de %s a %s (%s a %s)", user.nombre_completo, team.nombre,
+                                                payload.empleadoId, payload.desde, payload.hasta)
+    return {"ok": True, "aCargo": sd.delegacion_de(db, team)}
+
+
+@router.post("/design/api/teams/{team_id}/delegacion/quitar")
+def api_delegacion_quitar(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    sd.quitar_delegacion(db, _equipo_delegable(db, user, team_id))
+    return {"ok": True}
 
 
 @router.get("/design/api/todas-areas")
