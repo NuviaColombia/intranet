@@ -86,9 +86,9 @@ async def redirect_handler(request: Request, exc):
     return RedirectResponse(exc.headers.get("Location", "/login"))
 
 
-TIPOS_INICIALES = [("Cita médica", None, 1), ("Calamidad doméstica", None, 1),
-                   ("Licencia de luto", 5, 0), ("Permiso personal", 3, 1),
-                   ("Diligencia personal (horas)", None, 1)]
+TIPOS_INICIALES = [("Cita médica", None, 1, 1), ("Calamidad doméstica", None, 1, 1),
+                   ("Licencia de luto", 5, 0, 1), ("Permiso personal", 3, 1, 0),
+                   ("Diligencia personal (horas)", None, 1, 0)]
 
 EMPRESAS_INICIALES = ["Nuvia Smiles Colombia SAS", "Nuvia Design Colombia SAS"]
 SUPERADMIN_EMAILS = ["oscaralmanza@nuvia.app"]  # Oscar David Almanza Herazo
@@ -295,6 +295,27 @@ def init_db():
     if "motivo_anulacion" not in columnas_traslados:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE custodia_traslados ADD COLUMN motivo_anulacion TEXT"))
+    # Permisos: soporte documental obligatorio (incapacidad, certificado de defunción, etc.) para Cita
+    # médica, Calamidad doméstica y Licencia de luto -- la solicitud no queda aprobada hasta que el
+    # jefe apruebe Y People valide el soporte.
+    if "requiere_soporte" not in columnas_tipos:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE tipos_permiso ADD COLUMN requiere_soporte INTEGER DEFAULT 0"))
+            conn.execute(text(
+                "UPDATE tipos_permiso SET requiere_soporte = 1 "
+                "WHERE nombre IN ('Cita médica', 'Calamidad doméstica', 'Licencia de luto')"))
+    if "soporte_subido_en" not in columnas_solicitudes:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_nombre VARCHAR(200) DEFAULT ''"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_tipo_mime VARCHAR(80) DEFAULT ''"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_tamano INTEGER DEFAULT 0"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_datos BYTEA" if engine.dialect.name == "postgresql"
+                              else "ALTER TABLE solicitudes ADD COLUMN soporte_datos BLOB"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_subido_en TIMESTAMP"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_decision VARCHAR(20) DEFAULT 'pendiente'"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_decidido_por_id INTEGER REFERENCES empleados(id)"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_decidido_en TIMESTAMP"))
+            conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_comentario TEXT DEFAULT ''"))
     # Cambio de custodia: índices para consultas con volumen alto (por fecha, estado, área y detalle
     # de cada traslado). IF NOT EXISTS: no hace nada si ya existen; no modifica datos.
     with engine.begin() as conn:
@@ -328,8 +349,9 @@ def init_db():
     db = SessionLocal()
     try:
         if db.query(TipoPermiso).count() == 0:
-            for nombre, dias, permite_horas in TIPOS_INICIALES:
-                db.add(TipoPermiso(nombre=nombre, dias_anuales=dias, permite_horas=permite_horas))
+            for nombre, dias, permite_horas, requiere_soporte in TIPOS_INICIALES:
+                db.add(TipoPermiso(nombre=nombre, dias_anuales=dias, permite_horas=permite_horas,
+                                   requiere_soporte=requiere_soporte))
         if not db.query(TipoPermiso).filter(TipoPermiso.es_vacaciones == 1).first():
             db.add(TipoPermiso(nombre="Vacaciones", dias_anuales=None, es_vacaciones=1, permite_horas=0))
         if db.query(Empresa).count() == 0:

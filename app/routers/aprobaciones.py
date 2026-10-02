@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Request, Depends, Form
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Empleado, Aprobacion
+from ..models import Empleado, Aprobacion, Solicitud
 from ..auth import get_current_user
-from ..services import resolver_aprobacion, pendientes_de
+from ..services import resolver_aprobacion, pendientes_de, pendientes_soporte, decidir_soporte, es_aprobador_soporte
 from ..tokens import leer_token
 from ..main_templates import templates
 
@@ -19,10 +19,33 @@ def bandeja(request: Request, user: Empleado = Depends(get_current_user),
     historial = (db.query(Aprobacion).filter(Aprobacion.aprobador_id == user.id,
                                              Aprobacion.decision != "pendiente")
                  .order_by(Aprobacion.decidida_en.desc()).limit(30).all())
+    es_pamela = es_aprobador_soporte(user)
+    historial_soporte = []
+    if es_pamela:
+        historial_soporte = (db.query(Solicitud)
+                             .filter(Solicitud.soporte_decidido_por_id == user.id,
+                                     Solicitud.soporte_decision != "pendiente")
+                             .order_by(Solicitud.soporte_decidido_en.desc()).limit(30).all())
     return templates.TemplateResponse(request, "aprobaciones.html",
                                       {"user": user, "pendientes": pendientes,
                                        "historial": historial,
+                                       "es_aprobador_soporte": es_pamela,
+                                       "pendientes_soporte": pendientes_soporte(db) if es_pamela else [],
+                                       "historial_soporte": historial_soporte,
                                        "msg": request.query_params.get("msg")})
+
+
+@router.post("/aprobaciones/soporte/{sol_id}")
+async def decidir_soporte_endpoint(sol_id: int, user: Empleado = Depends(get_current_user),
+                                   db: Session = Depends(get_db), decision: str = Form(...),
+                                   comentario: str = Form("")):
+    if not es_aprobador_soporte(user):
+        raise HTTPException(403, "Solo People (o superadmin) puede validar el soporte de un permiso.")
+    sol = db.get(Solicitud, sol_id)
+    if not sol or decision not in ("aprobado", "rechazado"):
+        return RedirectResponse("/aprobaciones?msg=Acción inválida.", status_code=303)
+    msg = decidir_soporte(db, sol, user, decision, comentario)
+    return RedirectResponse(f"/aprobaciones?msg={msg}", status_code=303)
 
 
 @router.post("/aprobaciones/{apr_id}")
