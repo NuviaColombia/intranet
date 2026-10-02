@@ -1,5 +1,5 @@
 from datetime import datetime, date, time
-from sqlalchemy import String, Integer, Date, DateTime, Time, ForeignKey, Text, Float, UniqueConstraint
+from sqlalchemy import String, Integer, Date, DateTime, Time, ForeignKey, Text, Float, LargeBinary, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
@@ -68,6 +68,7 @@ class TipoPermiso(Base):
     activo: Mapped[int] = mapped_column(Integer, default=1)
     es_vacaciones: Mapped[int] = mapped_column(Integer, default=0)  # usa el saldo acumulado del empleado
     permite_horas: Mapped[int] = mapped_column(Integer, default=1)  # permite solicitar por horas si es el mismo día
+    requiere_soporte: Mapped[int] = mapped_column(Integer, default=0)  # necesita adjuntar un documento que valide People
 
 
 class Empresa(Base):
@@ -105,17 +106,32 @@ class Solicitud(Base):
     motivo: Mapped[str] = mapped_column(Text, default="")
     hora_inicio: Mapped[time | None] = mapped_column(Time, nullable=True)
     hora_fin: Mapped[time | None] = mapped_column(Time, nullable=True)
-    # pendiente_1 | pendiente_2 | aprobada | rechazada | cancelada
+    # pendiente_1 | pendiente_2 | pendiente_soporte | aprobada | rechazada | cancelada
     estado: Mapped[str] = mapped_column(String(20), default="pendiente_1", index=True)
     creada_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Soporte documental (incapacidad, certificado de defunción, etc.) para los tipos que lo requieren
+    # (TipoPermiso.requiere_soporte): se puede anexar en cualquier momento, independiente de si el jefe
+    # ya decidió; la solicitud no queda "aprobada" hasta que el jefe apruebe Y People valide el soporte.
+    soporte_nombre: Mapped[str] = mapped_column(String(200), default="")
+    soporte_tipo_mime: Mapped[str] = mapped_column(String(80), default="")
+    soporte_tamano: Mapped[int] = mapped_column(Integer, default=0)
+    soporte_datos: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    soporte_subido_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    soporte_decision: Mapped[str] = mapped_column(String(20), default="pendiente")  # pendiente | aprobado | rechazado
+    soporte_decidido_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    soporte_decidido_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    soporte_comentario: Mapped[str] = mapped_column(Text, default="")
 
     empleado = relationship("Empleado", foreign_keys=[empleado_id])
     tipo = relationship("TipoPermiso")
     aprobaciones = relationship("Aprobacion", back_populates="solicitud", order_by="Aprobacion.nivel")
+    soporte_decidido_por = relationship("Empleado", foreign_keys=[soporte_decidido_por_id])
 
     ESTADOS = {
         "pendiente_1": "Pendiente 1ª aprobación",
         "pendiente_2": "Pendiente 2ª aprobación",
+        "pendiente_soporte": "Pendiente de soporte (People)",
         "aprobada": "Aprobada",
         "rechazada": "Rechazada",
         "cancelada": "Cancelada",
@@ -128,6 +144,18 @@ class Solicitud(Base):
     @property
     def consecutivo(self) -> str:
         return f"PER-{self.id:04d}"
+
+    @property
+    def requiere_soporte(self) -> bool:
+        return bool(self.tipo.requiere_soporte)
+
+    @property
+    def soporte_pendiente_subir(self) -> bool:
+        return self.requiere_soporte and not self.soporte_subido_en and self.estado not in ("rechazada", "cancelada")
+
+    @property
+    def soporte_pendiente_revisar(self) -> bool:
+        return self.requiere_soporte and bool(self.soporte_subido_en) and self.soporte_decision == "pendiente"
 
 
 class Aprobacion(Base):

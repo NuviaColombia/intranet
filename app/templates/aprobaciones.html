@@ -69,6 +69,12 @@
   <div class="doc-fila"><b>Días</b><span>{{ a.solicitud.dias }}</span></div>
   <div class="doc-fila"><b>Motivo</b><span>{{ a.solicitud.motivo or '—' }}</span></div>
   <div class="doc-fila"><b>Estado</b><span>{{ a.solicitud.estado_texto }}</span></div>
+  {% if a.solicitud.requiere_soporte %}
+  <div class="doc-fila"><b>Soporte</b><span>
+    {% if not a.solicitud.soporte_subido_en %}Pendiente de anexar
+    {% elif a.solicitud.soporte_decision == 'pendiente' %}{{ a.solicitud.soporte_nombre }} (pendiente de validar por People)
+    {% else %}{{ a.solicitud.soporte_nombre }} — {{ a.solicitud.soporte_decision }} por People{% endif %}</span></div>
+  {% endif %}
   {% for ap in a.solicitud.aprobaciones %}
   <div class="doc-fila"><b>Aprobador nivel {{ ap.nivel }}</b><span>{{ ap.aprobador.nombre_completo }} —
     {% if ap.decision == 'pendiente' %}Pendiente{% else %}{{ ap.decision|capitalize }}{% if ap.decidida_en %} ({{ ap.decidida_en.strftime('%Y-%m-%d %H:%M') }}){% endif %}{% endif %}</span></div>
@@ -111,4 +117,52 @@ function verDoc(origenId) {
     {% endfor %}
   </table>
 </div>
+
+{% if es_aprobador_soporte %}
+<div class="tarjeta">
+  <h2>📎 Soportes pendientes de validar ({{ pendientes_soporte|length }})</h2>
+  <p style="font-size:13px;color:var(--gris)">Cita médica, Calamidad doméstica y Licencia de luto: la
+    solicitud no queda aprobada hasta validar el soporte anexado.</p>
+  <table>
+    <tr><th>#</th><th>Empleado</th><th>Tipo</th><th>Fechas</th><th>Soporte</th><th>Decisión</th></tr>
+    {% for s in pendientes_soporte %}
+    <tr>
+      <td>{{ s.consecutivo }}</td>
+      <td>{{ s.empleado.nombre_completo }}<br>
+          <small style="color:var(--gris)">{{ s.empleado.cargo }} · {{ s.empleado.area }}</small></td>
+      <td>{{ s.tipo.nombre }}</td>
+      <td>{{ s.fecha_inicio }} → {{ s.fecha_fin }}</td>
+      <td><a href="/solicitudes/{{ s.id }}/soporte" target="_blank">{{ s.soporte_nombre }}</a></td>
+      <td style="min-width:220px">
+        <form method="post" action="/aprobaciones/soporte/{{ s.id }}" style="display:inline">
+          <input name="comentario" placeholder="Comentario (opcional)">
+          <button class="btn verde mini" name="decision" value="aprobado">Aprobar</button>
+          <button class="btn rojo mini" name="decision" value="rechazado">Rechazar</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">No hay soportes pendientes de validar. 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>Historial de soportes validados</h2>
+  <table>
+    <tr><th>#</th><th>Empleado</th><th>Tipo</th><th>Mi decisión</th><th>Fecha</th></tr>
+    {% for s in historial_soporte %}
+    <tr>
+      <td>{{ s.consecutivo }}</td>
+      <td>{{ s.empleado.nombre_completo }}</td>
+      <td>{{ s.tipo.nombre }}</td>
+      <td><span class="badge {{ 'aprobada' if s.soporte_decision == 'aprobado' else 'rechazada' }}">{{ s.soporte_decision }}</span></td>
+      <td>{{ s.soporte_decidido_en.strftime('%Y-%m-%d %H:%M') if s.soporte_decidido_en }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">Sin decisiones registradas.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
 {% endblock %}

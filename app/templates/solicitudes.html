@@ -27,6 +27,17 @@
           <button class="btn gris mini">Cancelar</button>
         </form>
         {% endif %}
+        {% if s.soporte_pendiente_subir %}
+        <form class="inline" method="post" action="/solicitudes/{{ s.id }}/soporte" enctype="multipart/form-data" style="margin-top:4px">
+          <input type="file" name="archivo" accept="image/jpeg,image/png,image/webp,application/pdf" required style="width:auto;font-size:11px">
+          <button class="btn mini">Anexar soporte</button>
+        </form>
+        {% elif s.requiere_soporte and s.soporte_subido_en %}
+        <small style="color:var(--gris)">
+          📎 <a href="/solicitudes/{{ s.id }}/soporte" target="_blank">{{ s.soporte_nombre }}</a>
+          {% if s.soporte_decision == 'pendiente' %}(pendiente de validar){% else %}({{ s.soporte_decision }}){% endif %}
+        </small>
+        {% endif %}
       </td>
     </tr>
     {% else %}

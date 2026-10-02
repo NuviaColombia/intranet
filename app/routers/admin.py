@@ -280,21 +280,24 @@ def tipos(request: Request, user: Empleado = Depends(require_admin),
 
 @router.post("/tipos")
 async def crear_tipo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                     nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form("")):
+                     nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form(""),
+                     requiere_soporte: str = Form("")):
     try:
         dias = _numero_form(dias_anuales, "Los días anuales")
     except _DatoInvalido as e:
         return RedirectResponse(f"/tipos?msg={e}", status_code=303)
     if db.query(TipoPermiso).filter(TipoPermiso.nombre == nombre.strip()).first():
         return RedirectResponse("/tipos?msg=Ya existe un parámetro con ese nombre.", status_code=303)
-    db.add(TipoPermiso(nombre=nombre.strip(), dias_anuales=dias, permite_horas=1 if permite_horas else 0))
+    db.add(TipoPermiso(nombre=nombre.strip(), dias_anuales=dias, permite_horas=1 if permite_horas else 0,
+                       requiere_soporte=1 if requiere_soporte else 0))
     db.commit()
     return RedirectResponse("/tipos", status_code=303)
 
 
 @router.post("/tipos/{tipo_id}/editar")
 async def editar_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
-                      nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form("")):
+                      nombre: str = Form(...), dias_anuales: str = Form(""), permite_horas: str = Form(""),
+                      requiere_soporte: str = Form("")):
     t = db.get(TipoPermiso, tipo_id)
     if t:
         try:
@@ -307,6 +310,7 @@ async def editar_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db:
         if not t.es_vacaciones:
             t.dias_anuales = dias
             t.permite_horas = 1 if permite_horas else 0
+            t.requiere_soporte = 1 if requiere_soporte else 0
         auditar(db, user.email, f"Parámetro editado: {t.nombre}")
         db.commit()
     return RedirectResponse("/tipos?msg=Parámetro actualizado.", status_code=303)
