@@ -12,6 +12,7 @@ from .models import Empleado
 from .auth import require_modulo
 
 MODULO_PRODUCCION = "custodia"   # permiso del módulo en People (nombre histórico)
+EMPRESA_PRODUCCION = "Nuvia Smiles Colombia SAS"  # Producción (Custodia, Consumo) es exclusivo de esta empresa
 
 
 class ProduccionAcceso(Base):
@@ -25,7 +26,11 @@ class ProduccionAcceso(Base):
 
 
 def es_admin(user: Empleado) -> bool:
-    return user.rol in ("admin", "superadmin")
+    """Superadmin administra todo; un admin normal solo si es de Nuvia Smiles -- Producción
+    (Custodia, Consumo) es exclusivo de esa empresa, igual que SST."""
+    if user.rol == "superadmin":
+        return True
+    return user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION
 
 
 def submodulos_de(db: Session, user: Empleado) -> set[str]:

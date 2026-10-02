@@ -6,6 +6,7 @@ from .models import Empleado
 from .models_custodia import (CustodiaTraslado, CustodiaOrdenLinea, CustodiaResumen, CustodiaDiscos, CustodiaOP,
                               CustodiaFactorDisco, CustodiaArea, CustodiaMotivo)
 from .formato import nombre_propio
+from .acceso_produccion import EMPRESA_PRODUCCION
 
 # Legado: valores de prueba/migración que nunca fueron áreas de producción reales,
 # no administrables desde Parámetros (a diferencia de CustodiaArea.es_inventario).
@@ -400,9 +401,9 @@ def crear_traslado(db: Session, user: Empleado, cabecera: dict, lineas: list[dic
 
 
 def puede_firmar_recibido(user: Empleado, traslado: CustodiaTraslado) -> bool:
-    """Firma "recibido": un administrador, o un manager cuya área asignada en Parámetros sea el
-    área de entrada del traslado (quien recibe el material)."""
-    if user.rol in ("admin", "superadmin"):
+    """Firma "recibido": un administrador de Nuvia Smiles (o superadmin), o un manager cuya área
+    asignada en Parámetros sea el área de entrada del traslado (quien recibe el material)."""
+    if user.rol == "superadmin" or (user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION):
         return True
     return user.tiene_area(traslado.area_entrada)  # cualquiera de sus áreas asignadas (máx. 2)
 
@@ -423,8 +424,9 @@ def confirmar_entrada(db: Session, traslado: CustodiaTraslado, user: Empleado) -
 
 
 def puede_firmar_dir(user: Empleado) -> bool:
-    """Firma DIR PRODUCCIÓN (salidas de QC FINAL): un administrador o quien tenga asignada el área DIR PRODUCCIÓN."""
-    if user.rol in ("admin", "superadmin"):
+    """Firma DIR PRODUCCIÓN (salidas de QC FINAL): un administrador de Nuvia Smiles (o superadmin)
+    o quien tenga asignada el área DIR PRODUCCIÓN."""
+    if user.rol == "superadmin" or (user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION):
         return True
     return AREA_ORIGEN in user.areas_custodia
 
