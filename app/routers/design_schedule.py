@@ -255,6 +255,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                  .order_by(Empleado.apellidos).all())
     ausencias = db.query(DesignAusenciaTipo).order_by(DesignAusenciaTipo.orden).all()
     sd.festivos(db)  # asegura los festivos iniciales
+    sd.ordenar_estados_n3_n6_una_vez(db)
     from ..models_design import DesignFestivo
     festivos = db.query(DesignFestivo).order_by(DesignFestivo.fecha).all()
     catalogos = (db.query(DesignCatalogo).order_by(DesignCatalogo.area_id, DesignCatalogo.tipo,

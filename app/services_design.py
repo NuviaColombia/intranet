@@ -263,12 +263,52 @@ def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = 
 
 
 def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
+    ordenar_estados_n3_n6_una_vez(db)
     return [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
 
 
+# Orden de los estados en N3 y N6 (pedido por Rosember el 2-oct-2026). Los que falten se crean; los demás estados
+# activos del área quedan después, en su orden de antes.
+ESTADOS_N3_N6 = ["Order Entered", "Pickup received", "Ready to design", "Initiated", "Hold", "Bite ready",
+                 "Approved", "Skipped", "Canceled"]
+_estados_ordenados = {"ok": False}
+
+
+def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
+    from .models_design import DesignConexionRegla
+    if _estados_ordenados["ok"]:
+        return
+    marca = "estados_n3_n6_orden"
+    if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+        _estados_ordenados["ok"] = True
+        return
+    try:
+        for area in db.query(DesignArea).filter(DesignArea.nombre.in_(["N3 Prosthetic", "N6 Material Changes"])).all():
+            existentes = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "estado")
+                          .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+            por_nombre = {_normalizar_texto(c.valor): c for c in existentes}
+            usados = []
+            for i, nombre in enumerate(ESTADOS_N3_N6, start=1):
+                c = por_nombre.get(_normalizar_texto(nombre))
+                if not c:
+                    c = DesignCatalogo(area_id=area.id, tipo="estado", valor=nombre)
+                    db.add(c)
+                c.orden, c.activo = i, 1
+                usados.append(c)
+            resto = [c for c in existentes if c not in usados]
+            for k, c in enumerate(resto, start=len(ESTADOS_N3_N6) + 1):
+                c.orden = k
+        db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+        db.commit()
+        _estados_ordenados["ok"] = True
+    except Exception:
+        db.rollback()
+
+
 def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
+    ordenar_estados_n3_n6_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
