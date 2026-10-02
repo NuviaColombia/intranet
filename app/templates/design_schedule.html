@@ -179,7 +179,7 @@ window.dsPdfjs = function() {
   table.ds-tabla input[type=text] { text-align:left; }
   table.ds-tabla input[type=checkbox] { width:15px; height:15px; padding:0; display:block; margin:0 auto; cursor:pointer; }
   table.ds-tabla tr.ds-fila-nueva td { background:#fafbfc; }
-  /* Encabezados ordenables (Centro, Producto, Diseñador) */
+  /* Encabezados ordenables (Centro, Producto, Diseñador, Estado) */
   /* El texto queda centrado como en las demás columnas y la flecha va al extremo derecho de la celda */
   table.ds-tabla th.ds-th-sort { cursor:pointer; user-select:none; white-space:nowrap; position:relative; padding-left:20px; padding-right:20px; }
   table.ds-tabla th.ds-th-sort:hover { background:#e8ecf1; }
@@ -1591,7 +1591,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // mismo criterio que filtro_orden_completa() en services_design.py.
   function dsOrdenCompleta(f) { return !!(f.centro && f.producto && (f.designerId || f.designerPrestado)); }
 
-  var DS_SORTABLES = {centro: true, producto: true, designerId: true};
+  var DS_SORTABLES = {centro: true, producto: true, designerId: true, estado: true};
   DS.sort = {principal: null, nightguard: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
 
   function dsTextoOrden(f, k) {
