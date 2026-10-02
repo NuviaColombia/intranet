@@ -37,4 +37,21 @@
     {% endfor %}
   </table>
 </div>
+
+<div class="tarjeta">
+  <h2>Historial reciente</h2>
+  <table>
+    <tr><th>Módulo</th><th>Detalle</th><th>Mi decisión</th><th>Fecha</th></tr>
+    {% for h in historial %}
+    <tr>
+      <td><span class="badge" style="background:#e5e7eb">{{ h.modulo }}</span></td>
+      <td>{{ h.descripcion }}</td>
+      <td><span class="badge {{ h.decision }}">{{ h.decision }}</span></td>
+      <td>{{ h.fecha.strftime('%Y-%m-%d %H:%M') if h.fecha }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4">Sin decisiones registradas.</td></tr>
+    {% endfor %}
+  </table>
+</div>
 {% endblock %}
