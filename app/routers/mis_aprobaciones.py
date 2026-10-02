@@ -10,7 +10,7 @@ from ..models_custodia import CustodiaTraslado
 from ..auth import get_current_user
 from ..services import resolver_aprobacion, resolver_horas_extra
 from .. import services_custodia as sc
-from ..aprobaciones_globales import resumen_pendientes
+from ..aprobaciones_globales import resumen_pendientes, historial_decisiones
 from ..main_templates import templates
 
 router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
@@ -23,6 +23,7 @@ def bandeja(request: Request, user: Empleado = Depends(get_current_user), db: Se
     resumen = resumen_pendientes(db, user)
     return templates.TemplateResponse(request, "mis_aprobaciones.html",
                                       {"user": user, "items": resumen["items"],
+                                       "historial": historial_decisiones(db, user),
                                        "msg": request.query_params.get("msg")})
 
 
