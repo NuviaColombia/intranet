@@ -141,3 +141,13 @@
   #sec-firmas #barraFirmarVarios .btn { width: 100%; padding: 14px; font-size: 15px; }
   #sec-firmas .cm-filtros select { width: 100%; }
 }
+
+/* Documentos y fotos adjuntos al recibo */
+#caja-app .cm-adjuntos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+#caja-app .cm-adjunto { position: relative; width: 82px; }
+#caja-app .cm-adjunto img, #caja-app .cm-adjunto .pdf { width: 82px; height: 82px; object-fit: cover; border-radius: 6px; border: 1px solid #CBD5E1;
+  display: flex; align-items: center; justify-content: center; font-size: 26px; background: #F8FAFC; }
+#caja-app .cm-adjunto small { display: block; font-size: 10px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#caja-app .cm-adjunto.pend img { opacity: .6; outline: 2px solid #f59e0b; }
+#caja-app .cm-adjunto .x { position: absolute; top: -6px; right: -6px; background: #dc2626; color: #fff; border: none; border-radius: 50%;
+  width: 20px; height: 20px; font-size: 11px; cursor: pointer; padding: 0; }

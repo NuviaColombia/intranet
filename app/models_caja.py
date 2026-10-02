@@ -1,7 +1,7 @@
 """Módulo Caja menor Nuvia: cajas configurables (Contabilidad, Mantenimiento, ...), recibos de caja menor,
 formatos de reembolso (FM) y arqueos rápidos. Reemplaza la app de Google Apps Script "Recibo de Caja Menor"."""
 from datetime import datetime, date
-from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text, UniqueConstraint, Index
+from sqlalchemy import String, Integer, Date, DateTime, Float, ForeignKey, Text, UniqueConstraint, Index, LargeBinary
 from sqlalchemy.orm import backref, Mapped, mapped_column, relationship
 from .database import Base
 
@@ -151,6 +151,25 @@ class CajaRecibo(Base):
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
     anulado_por = relationship("Empleado", foreign_keys=[anulado_por_id])
     recibido_por = relationship("Empleado", foreign_keys=[recibido_por_id])
+    adjuntos = relationship("CajaAdjunto", back_populates="recibo", cascade="all, delete-orphan", lazy="selectin",
+                            order_by="CajaAdjunto.id")
+
+
+class CajaAdjunto(Base):
+    """Documento o foto adjunto a un recibo (factura, cuenta de cobro, soporte). Se guarda en la base."""
+    __tablename__ = "caja_menor_adjuntos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recibo_id: Mapped[int] = mapped_column(ForeignKey("caja_menor_recibos.id"), index=True)
+    nombre: Mapped[str] = mapped_column(String(200), default="")
+    tipo_mime: Mapped[str] = mapped_column(String(80), default="image/jpeg")
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)  # no se carga salvo que se pida
+    creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    recibo = relationship("CajaRecibo", back_populates="adjuntos")
+    creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
 
 
 class CajaArqueo(Base):

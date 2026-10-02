@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Caja menor{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/caja_menor.css?v=9">
+<link rel="stylesheet" href="/static/caja_menor.css?v=10">
 {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 <div id="caja-app" data-caja="{{ caja.id }}">
  <div class="cm-main">
@@ -47,6 +47,15 @@
           <td class="cm-val cm-mayus" colspan="2"><input type="text" id="rFactura" placeholder="Ej. FKS-8449 (en blanco usa el número del recibo)"></td>
           <td class="cm-val" style="padding:0 12px !important;"><label style="font-size:13px; font-weight:600; color:var(--text-muted); display:flex; gap:6px; align-items:center;">
             <input type="checkbox" id="rAnexo" style="width:auto; min-height:0;"> Ver anexo en la firma</label></td>
+        </tr>
+        <tr>
+          <td class="cm-etq">Documentos y fotos</td>
+          <td class="cm-val" colspan="3" style="padding:8px 12px !important;">
+            <label class="btn gris mini" id="rSubirAdjunto" style="cursor:pointer; margin:0;"
+                   title="En el celular puedes tomar la foto o escogerla de la galería; en el computador, elige el archivo (foto o PDF)">📎 Subir documento o tomar foto
+              <input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="elegirAdjuntos(this)"></label>
+            <small style="color:var(--text-muted); margin-left:8px;">Factura, cuenta de cobro o soporte · foto o PDF · máx. 5 MB c/u</small>
+            <div id="rAdjuntos" class="cm-adjuntos"></div></td>
         </tr>
         <tr>
           <td class="cm-etq">Autorizado por</td>
@@ -192,6 +201,16 @@
   </div>
  </div>
 
+ <!-- Ventana: soportes (documentos y fotos) de un recibo, para revisarlos antes de firmar -->
+ <div id="modalSoportes" class="cm-modal" onclick="if (event.target === this) cerrarSoportes()">
+  <div class="cm-modal-caja" style="max-width:900px; max-height:90vh; overflow:auto;">
+    <h3 id="soportesTitulo" style="color:#1A365D">📎 Soportes</h3>
+    <p id="soportesSub" style="font-size:13px; color:var(--text-muted); margin:0 0 10px;"></p>
+    <div id="soportesCuerpo"></div>
+    <div class="cm-acciones" style="margin-top:16px;"><button type="button" class="btn gris" onclick="cerrarSoportes()">Cerrar</button></div>
+  </div>
+ </div>
+
  <!-- Ventana: anular con motivo -->
  <div id="modalAnular" class="cm-modal">
   <div class="cm-modal-caja">
@@ -216,6 +235,7 @@ var MONEDAS = {{ denominaciones_monedas|tojson }}, BILLETES = {{ denominaciones_
 var USUARIO = {{ (user.nombre_completo|nombre_propio)|tojson }};
 var API = '/caja-menor/api/' + CAJA.id;
 var USUARIO_ID = {{ user.id }};
+var ES_ADMIN = {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }};
 var SUPERVISORES = {{ supervisores|tojson }};  // nombres (mayúsculas) de quienes dan el visto bueno a los FM
 var SECCIONES = {{ (secciones or [])|tojson }};  // pestañas permitidas (Caja menor › Parámetros › Secciones)
 var SOLO_FIRMAS = {{ 'true' if solo_firmas else 'false' }};  // autoriza en esta caja pero no tiene acceso: solo ve y firma
@@ -288,6 +308,86 @@ document.querySelectorAll('.caja-tab').forEach(function(a) {
   a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); });
 });
 
+// ---------------- adjuntos del recibo (documentos y fotos) ----------------
+var adjuntosPendientes = [];  // elegidos en un recibo nuevo: se suben al guardarlo
+function comprimirAdjunto(archivo) {  // fotos: máx. 1600 px en JPEG; los PDF van tal cual
+  return new Promise(function(ok, mal) {
+    if (archivo.type === 'application/pdf') { ok({blob: archivo, nombre: archivo.name, tipo: archivo.type, vista: ''}); return; }
+    var img = new Image(), url = URL.createObjectURL(archivo);
+    img.onload = function() {
+      var escala = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * escala); cv.height = Math.round(img.height * escala);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(function(b) { URL.revokeObjectURL(url);
+        ok({blob: b, tipo: 'image/jpeg', nombre: archivo.name.replace(/\.[^.]+$/, '') + '.jpg', vista: cv.toDataURL('image/jpeg', 0.5)}); }, 'image/jpeg', 0.75);
+    };
+    img.onerror = function() { mal(new Error('No se pudo leer la imagen ' + archivo.name)); };
+    img.src = url;
+  });
+}
+function subirAdjuntos(reciboId, lista) {
+  var i = 0;
+  function siguiente() {
+    if (i >= lista.length) return Promise.resolve(lista.length);
+    var p = lista[i++], fd = new FormData(); fd.append('archivo', p.blob, p.nombre);
+    return api(API + '/recibos/' + reciboId + '/adjuntos', {method: 'POST', body: fd}).then(siguiente);
+  }
+  return siguiente();
+}
+function elegirAdjuntos(input) {
+  var archivos = Array.prototype.slice.call(input.files); input.value = '';
+  Promise.all(archivos.map(comprimirAdjunto)).then(function(lista) {
+    if (reciboActual) {  // recibo ya guardado: se suben de una vez
+      var b = document.getElementById('rSubirAdjunto'); b.style.opacity = .6;
+      return subirAdjuntos(reciboActual.id, lista).then(function() { return api(API + '/recibos/' + reciboActual.consecutivo); })
+        .then(function(r) { reciboActual = r; pintarAdjuntos(r); }).then(function() { b.style.opacity = 1; }, function(e) { b.style.opacity = 1; throw e; });
+    }
+    lista.forEach(function(x) { adjuntosPendientes.push(x); });
+    document.getElementById('rAnexo').checked = true;  // con soportes, la firma dice «VER ANEXO»
+    pintarAdjuntos(null);
+  }).catch(function(e) { alert(e.message); });
+}
+function pintarAdjuntos(r) {
+  var el = document.getElementById('rAdjuntos'), html = '';
+  (r ? r.adjuntos : []).forEach(function(a) {
+    var url = API + '/adjuntos/' + a.id, quitar = !SOLO_FIRMAS && r.estado === 'ACTIVO' && !r.firmadoEn && (ES_ADMIN || a.creadoPorId === USUARIO_ID);
+    html += '<div class="cm-adjunto" title="' + esc(a.nombre + ' · ' + a.creadoEn) + '"><a href="' + url + '" target="_blank">' +
+      (a.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + url + '" alt="">') + '</a><small>' + esc(a.nombre) + '</small>' +
+      (quitar ? '<button type="button" class="x" title="Quitar" onclick="quitarAdjunto(' + a.id + ')">✕</button>' : '') + '</div>';
+  });
+  adjuntosPendientes.forEach(function(p, i) {
+    html += '<div class="cm-adjunto pend" title="Se sube al guardar el recibo">' + (p.tipo === 'application/pdf' ? '<div class="pdf">📄</div>' : '<img src="' + p.vista + '" alt="">') +
+      '<small>⏳ ' + esc(p.nombre) + '</small><button type="button" class="x" title="Quitar" onclick="adjuntosPendientes.splice(' + i + ',1); pintarAdjuntos(null)">✕</button></div>';
+  });
+  el.innerHTML = html || '<small style="color:var(--text-muted)">Sin documentos adjuntos.</small>';
+  document.getElementById('rSubirAdjunto').style.display = (SOLO_FIRMAS || (r && r.estado === 'ANULADO')) ? 'none' : '';
+}
+function quitarAdjunto(id) {
+  if (!confirm('¿Quitar este documento del recibo?')) return;
+  post(API + '/adjuntos/' + id + '/quitar', {}).then(function() { return api(API + '/recibos/' + reciboActual.consecutivo); })
+    .then(function(r) { reciboActual = r; pintarAdjuntos(r); }).catch(function(e) { alert(e.message); });
+}
+
+// Ver los soportes de un recibo sin salir de Firmas o del FM (fotos en grande y PDF)
+function verSoportes(r) {
+  document.getElementById('soportesTitulo').innerText = '📎 Soportes del recibo ' + r.noRecibo;
+  document.getElementById('soportesSub').innerText = nombrePropio(r.pagadoA) + ' · ' + pesos(r.valor) + ' · ' + r.concepto + (r.factura ? ' · Factura ' + r.factura : '');
+  document.getElementById('soportesCuerpo').innerHTML = (r.adjuntos || []).map(function(a) {
+    var url = API + '/adjuntos/' + a.id;
+    return '<div style="margin-bottom:16px"><div style="font-size:12.5px; font-weight:700; color:#1A365D; margin-bottom:4px">' + esc(a.nombre) +
+      ' <a href="' + url + '" target="_blank" style="font-weight:600">↗ Abrir en otra pestaña</a></div>' +
+      (a.tipo === 'application/pdf' ? '<iframe src="' + url + '" style="width:100%; height:70vh; border:1px solid #CBD5E1; border-radius:8px"></iframe>'
+                                    : '<img src="' + url + '" alt="" style="max-width:100%; border:1px solid #CBD5E1; border-radius:8px">') + '</div>';
+  }).join('') || '<p class="cm-vacio">Este recibo no tiene soportes adjuntos.</p>';
+  document.getElementById('modalSoportes').style.display = 'flex';
+}
+function cerrarSoportes() { document.getElementById('modalSoportes').style.display = 'none'; document.getElementById('soportesCuerpo').innerHTML = ''; }
+function botonSoportes(lista, i) {
+  var r = lista[i];
+  return r.adjuntos && r.adjuntos.length ? ' <button class="btn gris mini" title="Ver la factura o soporte" onclick="verSoportes(' + (lista === recibosFirmas ? 'recibosFirmas' : 'fmActual.recibos') +
+    '[' + i + '])">📎 Soportes (' + r.adjuntos.length + ')</button>' : '';
+}
+
 // ---------------- recibo ----------------
 var CAMPOS = ['rCiudad', 'rFecha', 'rIdentificacion', 'rPagadoA', 'rValor', 'rConcepto', 'rFactura', 'rAnexo', 'rAutoriza'];
 function bloquear(si) { CAMPOS.forEach(function(id) { var el = document.getElementById(id); if (el.type === 'checkbox' || el.tagName === 'SELECT') el.disabled = si; else el.readOnly = si; }); }
@@ -302,6 +402,7 @@ function nuevoRecibo() {
   document.getElementById('rLetras').value = '';
   document.getElementById('reciboSello').className = 'cm-sello';
   document.getElementById('rColaborador').style.display = 'none';
+  adjuntosPendientes = []; pintarAdjuntos(null);
   pintarFirma(null);
   bloquear(false);
   ['btnAnularRecibo', 'btnEditarRecibo', 'btnCopiaRecibo'].forEach(function(id) { document.getElementById(id).style.display = 'none'; });
@@ -324,6 +425,7 @@ function mostrarRecibo(r) {
   }
   sel.value = r.autorizadoPor || '';
   pintarFirma(r);
+  adjuntosPendientes = []; pintarAdjuntos(r);
   bloquear(true);
   var sello = document.getElementById('reciboSello');
   if (r.estado === 'ANULADO') { sello.className = 'cm-sello anulado';
@@ -448,7 +550,12 @@ function guardarRecibo(e) {
   datos.confirmar = [];
   function enviar() {
     post(url, datos).then(function(res) {
-      btn.disabled = false; mostrarRecibo(res.recibo); imprimirRecibo(res.recibo);
+      if (!adjuntosPendientes.length) return res.recibo;
+      // recibo nuevo con documentos elegidos: se suben y se vuelve a leer el recibo
+      return subirAdjuntos(res.recibo.id, adjuntosPendientes).then(function() { adjuntosPendientes = []; return api(API + '/recibos/' + res.recibo.consecutivo); },
+        function(e) { alert('El recibo se guardó, pero no se pudo subir un documento: ' + e.message + '\nAdjúntalo de nuevo desde el recibo.'); adjuntosPendientes = []; return res.recibo; });
+    }).then(function(recibo) {
+      btn.disabled = false; mostrarRecibo(recibo); imprimirRecibo(recibo);
     }).catch(function(err) {
       // Fecha de hace más de 30 días o factura repetida: se pide confirmar y se reenvía
       if (err.confirmar && confirm('⚠️ ' + err.message)) { datos.confirmar.push(err.confirmar); return enviar(); }
@@ -475,7 +582,8 @@ function filtrarConsulta() {
   tb.innerHTML = filas.map(function(r) {
     return '<tr class="' + (r.estado === 'ANULADO' ? 'anulado' : '') + '"><td class="cm-num-orden">' + esc(r.noRecibo) + '</td><td>' + esc(r.fecha) +
       '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) + '</td><td class="izq">' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) +
-      '</td><td>' + esc(r.factura) + '</td><td>' + badge(r.estado) + '</td><td>' + badgeFirma(r) + '</td><td>' + esc(r.fm || '—') +
+      '</td><td>' + esc(r.factura) + (r.adjuntos && r.adjuntos.length ? ' <span title="Documentos adjuntos">📎' + r.adjuntos.length + '</span>' : '') +
+      '</td><td>' + badge(r.estado) + '</td><td>' + badgeFirma(r) + '</td><td>' + esc(r.fm || '—') +
       '</td><td><button class="btn mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
   }).join('');
 }
@@ -571,12 +679,13 @@ function panelFM(fm, modo) {
       ? '<div class="cm-firma-estado fallido" style="margin:0 0 14px">⚠️ No se pudo avisar por Cliq a quien debe firmar. Verifica que esté suscrito a Nuvia Colombia Bot.' +
         (SOLO_FIRMAS ? '' : ' <button type="button" class="btn gris mini" onclick="reenviarAvisoFM(' + fm.id + ')">🔔 Reenviar aviso</button>') + '</div>' : '') +
     tablaConteo('fm', fm.desglose || {}, lectura, 'recalcularFM') +
-    '<div class="cm-tabla-wrap" style="max-height:none;"><table class="cm-tabla"><thead><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Neto pagado</th></tr></thead><tbody>' +
-    recibos.map(function(r) { return '<tr><td class="cm-num-orden">' + r.consecutivo + '</td><td>' + esc(r.fecha) + '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) +
-      '</td><td>' + esc(r.factura) + '</td><td class="izq">' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) + '</td></tr>'; }).join('') +
-    '<tr class="totales"><td colspan="5" class="der">Ajuste al peso</td><td class="der"><input type="number" id="fmAjuste" step="1" ' + (lectura ? 'readonly' : '') +
+    '<div class="cm-tabla-wrap" style="max-height:none;"><table class="cm-tabla"><thead><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Soportes</th><th>Neto pagado</th></tr></thead><tbody>' +
+    recibos.map(function(r, i) { return '<tr><td class="cm-num-orden">' + r.consecutivo + '</td><td>' + esc(r.fecha) + '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) +
+      '</td><td>' + esc(r.factura) + '</td><td class="izq">' + esc(r.concepto) + '</td><td>' + (r.adjuntos && r.adjuntos.length ? botonSoportes(fm.recibos, i) : '—') +
+      '</td><td class="der">' + pesos(r.valor) + '</td></tr>'; }).join('') +
+    '<tr class="totales"><td colspan="6" class="der">Ajuste al peso</td><td class="der"><input type="number" id="fmAjuste" step="1" ' + (lectura ? 'readonly' : '') +
       ' value="' + (fm.ajuste || '') + '" placeholder="0" oninput="recalcularFM()" style="width:110px; margin:0; text-align:right; font-weight:800;"></td></tr>' +
-    '<tr class="totales"><td colspan="5" class="der">Total</td><td class="der" id="fmTotal">' + pesos(total + (fm.ajuste || 0)) + '</td></tr></tbody></table></div>';
+    '<tr class="totales"><td colspan="6" class="der">Total</td><td class="der" id="fmTotal">' + pesos(total + (fm.ajuste || 0)) + '</td></tr></tbody></table></div>';
   var panel = document.getElementById('fmPanel');
   panel.innerHTML = html; panel.style.display = '';
   (lectura ? document.getElementById('fmsLista') : document.getElementById('legalizarLista')).style.display = 'none';
@@ -648,7 +757,7 @@ function pintarFirmas() {
     return;
   }
   tb.innerHTML = filas.map(function(r) {
-    var puedo = !r.firmadoEn && r.autorizadoPorId === USUARIO_ID;
+    var puedo = !r.firmadoEn && r.autorizadoPorId === USUARIO_ID, soportes = botonSoportes(recibosFirmas, recibosFirmas.indexOf(r));
     var accion = puedo
       ? '<button class="btn verde mini" onclick="firmarRecibo(' + r.id + ')">✍️ Firmar</button>' +
         (r.estado === 'ACTIVO' && !r.observacionPendiente ? ' <button class="btn gris mini" onclick="abrirObservacion(\'recibo\',' + r.id + ',\'' + esc(r.noRecibo) + '\')">📝 Observación</button>' : '')
@@ -663,7 +772,7 @@ function pintarFirmas() {
       (r.firmadoEn ? '<span class="badge activo">Firmado</span><div style="font-size:11px;color:var(--text-muted);margin-top:3px">' + esc(r.firmaEmail) + '<br>' + esc(r.firmadoEn) + '</div>'
                    : (r.observacionPendiente ? '<span class="badge anulado">Observado</span><div style="font-size:11px;color:#9A3412;margin-top:3px">«' +
                         esc(r.observacionPendiente.texto) + '»<br>esperando corrección</div>' : '<span class="badge sobrante">Pendiente</span>') + aviso) +
-      '</td><td data-label="" class="cm-td-acciones" style="white-space:nowrap">' + accion + ' <button class="btn gris mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
+      '</td><td data-label="" class="cm-td-acciones" style="white-space:nowrap">' + accion + soportes + ' <button class="btn gris mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
   }).join('');
   actualizarFirmarVarios();
 }

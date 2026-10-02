@@ -5,17 +5,17 @@ import io
 from pathlib import Path
 from datetime import date
 import asyncio
-from fastapi import APIRouter, Request, Depends, HTTPException, Form, BackgroundTasks
+from fastapi import APIRouter, Request, Depends, HTTPException, Form, BackgroundTasks, UploadFile, File
 from ..concurrencia import RutaGeneral
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..formato import nombre_propio
 from ..database import SessionLocal, get_db
 from ..models import Empleado
 from ..models_caja import (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo,
-                           CajaObservacion)
+                           CajaObservacion, CajaAdjunto)
 from ..auth import require_modulo, get_current_user
 from ..main_templates import templates
 from .. import services_caja as sc
@@ -263,6 +263,52 @@ def api_editar_recibo(caja_id: int, recibo_id: int, payload: ReciboIn, tareas: B
     if sc.necesita_aviso_recibido(r) and not r.recibido_aviso_en:  # cambió quien recibe: se le avisa
         tareas.add_task(sc.notificar_recibido_pendiente, r.id)
     return {"mensaje": "✅ Recibo actualizado.", "recibo": sc.serializar_recibo(r)}
+
+
+# ---------------- API: adjuntos del recibo (documentos y fotos) ----------------
+
+@router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/adjuntos")
+async def api_subir_adjunto(caja_id: int, recibo_id: int, archivo: UploadFile = File(...),
+                            user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", "recibo", "consulta")
+    r = db.get(CajaRecibo, recibo_id)
+    if not r or r.caja_id != caja.id:
+        raise HTTPException(404, "Recibo no encontrado.")
+    datos = await archivo.read()
+    a = sc.agregar_adjunto(db, user, r, archivo.filename or "adjunto", (archivo.content_type or "").lower(), datos)
+    if isinstance(a, str):
+        raise HTTPException(400, a)
+    return {"id": a.id, "nombre": a.nombre, "tipo": a.tipo_mime, "tamano": a.tamano}
+
+
+@router.post("/caja-menor/api/{caja_id}/adjuntos/{adjunto_id}/quitar")
+def api_quitar_adjunto(caja_id: int, adjunto_id: int, user: Empleado = Depends(require_modulo(MODULO)),
+                       db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    a = db.get(CajaAdjunto, adjunto_id)
+    if not a or a.recibo.caja_id != caja.id:
+        raise HTTPException(404, "Documento no encontrado.")
+    error = sc.quitar_adjunto(db, user, a)
+    if error:
+        raise HTTPException(403, error)
+    return {"mensaje": "Documento quitado."}
+
+
+@router.get("/caja-menor/api/{caja_id}/adjuntos/{adjunto_id}")
+def api_ver_adjunto(caja_id: int, adjunto_id: int, user: Empleado = Depends(require_modulo(MODULO)),
+                    db: Session = Depends(get_db)):
+    """Lo ven quienes ven el recibo, incluido quien lo firma (para revisar el soporte antes de firmar)."""
+    caja, solo_firmas = _caja_o_firmas(db, user, caja_id)
+    a = db.get(CajaAdjunto, adjunto_id)
+    if not a or a.recibo.caja_id != caja.id:
+        raise HTTPException(404, "Documento no encontrado.")
+    fm = a.recibo.fm
+    firma_el_fm = bool(fm and user.id in (fm.supervisado_por_id, fm.elaborado_por_id))
+    if _solo_lo_suyo(db, user, caja, solo_firmas) and a.recibo.autorizado_por_id != user.id and not firma_el_fm:
+        raise HTTPException(404, "Documento no encontrado.")
+    return Response(a.datos, media_type=a.tipo_mime,
+                    headers={"Content-Disposition": f'inline; filename="{a.nombre}"', "Cache-Control": "private, max-age=3600"})
 
 
 class IdsIn(BaseModel):
@@ -922,7 +968,8 @@ def cargar_datos_iniciales() -> None:
     # Sus tablas apuntan a empleados: en una base nueva (vacía) hay que crearla antes, si no el arranque fallaba.
     # En una base existente no hace nada (checkfirst).
     Empleado.__table__.create(bind=engine, checkfirst=True)
-    for modelo in (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaFM, CajaRecibo, CajaArqueo, CajaObservacion):
+    for modelo in (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaFM, CajaRecibo, CajaArqueo, CajaObservacion,
+                   CajaAdjunto):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear al mismo tiempo

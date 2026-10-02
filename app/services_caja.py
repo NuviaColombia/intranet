@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from .models import Empleado
 from .models_caja import (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo,
-                          CajaObservacion)
+                          CajaObservacion, CajaAdjunto)
 from .formato import nombre_propio
 
 MONEDAS = [50, 100, 200, 500, 1000]
@@ -226,7 +226,49 @@ def serializar_recibo(r: CajaRecibo) -> dict:
         "creadoEn": hora_colombia(r.creado_en),
         "anuladoPor": nombre_propio(r.anulado_por.nombre_completo) if r.anulado_por else "",
         "anuladoEn": hora_colombia(r.anulado_en), "motivoAnulacion": r.motivo_anulacion or "",
+        "adjuntos": [{"id": a.id, "nombre": a.nombre, "tipo": a.tipo_mime, "tamano": a.tamano,
+                      "creadoPorId": a.creado_por_id, "creadoEn": hora_colombia(a.creado_en)} for a in r.adjuntos],
     }
+
+
+# ---------------- Adjuntos del recibo (documentos y fotos) ----------------
+
+TIPOS_ADJUNTO = ("image/jpeg", "image/png", "image/webp", "application/pdf")
+MAX_ADJUNTO = 5 * 1024 * 1024  # 5 MB por archivo (las fotos se reducen en el navegador antes de subir)
+
+
+def agregar_adjunto(db: Session, user: Empleado, r: CajaRecibo, nombre: str, tipo: str, datos: bytes) -> CajaAdjunto | str:
+    """Se pueden adjuntar soportes mientras el recibo no esté anulado (también después de firmado o legalizado)."""
+    if r.estado == "ANULADO":
+        return "El recibo está anulado: no se le pueden adjuntar documentos."
+    if tipo not in TIPOS_ADJUNTO:
+        return "Solo se aceptan fotos (JPG, PNG, WEBP) o PDF."
+    if not datos:
+        return "El archivo está vacío."
+    if len(datos) > MAX_ADJUNTO:
+        return "El archivo pesa más de 5 MB."
+    a = CajaAdjunto(recibo_id=r.id, nombre=(nombre or "adjunto")[:200], tipo_mime=tipo, tamano=len(datos), datos=datos,
+                    creado_por_id=user.id)
+    db.add(a)
+    db.commit()
+    return a
+
+
+def puede_quitar_adjunto(user: Empleado, a: CajaAdjunto) -> bool:
+    """Quien lo subió o un administrador, mientras el recibo esté activo y sin firmar (lo firmado conserva sus soportes)."""
+    r = a.recibo
+    if r.estado != "ACTIVO" or r.firmado_en:
+        return es_admin(user) and r.estado != "LEGALIZADO"
+    return es_admin(user) or a.creado_por_id == user.id
+
+
+def quitar_adjunto(db: Session, user: Empleado, a: CajaAdjunto) -> str | None:
+    if not puede_quitar_adjunto(user, a):
+        return ("Este documento ya no se puede quitar: el recibo está firmado o legalizado. "
+                "Solo quien lo subió (o un administrador) lo quita mientras el recibo está sin firmar.")
+    db.delete(a)
+    db.commit()
+    return None
 
 
 def supervisores_de_caja(db: Session, caja: CajaMenor) -> list[str]:
@@ -689,6 +731,7 @@ def notificar_firma_pendiente(recibo_id: int, recordatorio: bool = False) -> Non
                  f"Pagado a: {nombre_propio(r.pagado_a)}\n"
                  f"Concepto: {r.concepto}\n"
                  f"Registrado por: {creador}\n"
+                 f"{'📎 ' + str(len(r.adjuntos)) + ' soporte(s) adjunto(s): míralos en Firmas › 📎 Soportes' + chr(10) if r.adjuntos else ''}"
                  f"Revísalo y fírmalo en: {config.BASE_URL}/caja-menor/{r.caja_id}?tab=firmas")
         r.aviso_ok = 1 if _avisar([quien.email if quien else ""], texto) else 0
         r.aviso_en = datetime.utcnow()
