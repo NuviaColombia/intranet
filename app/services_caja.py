@@ -731,6 +731,7 @@ def notificar_firma_pendiente(recibo_id: int, recordatorio: bool = False) -> Non
                  f"Pagado a: {nombre_propio(r.pagado_a)}\n"
                  f"Concepto: {r.concepto}\n"
                  f"Registrado por: {creador}\n"
+                 f"{'📎 ' + str(len(r.adjuntos)) + ' soporte(s) adjunto(s): míralos en Firmas › 📎 Soportes' + chr(10) if r.adjuntos else ''}"
                  f"Revísalo y fírmalo en: {config.BASE_URL}/caja-menor/{r.caja_id}?tab=firmas")
         r.aviso_ok = 1 if _avisar([quien.email if quien else ""], texto) else 0
         r.aviso_en = datetime.utcnow()

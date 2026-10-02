@@ -303,7 +303,9 @@ def api_ver_adjunto(caja_id: int, adjunto_id: int, user: Empleado = Depends(requ
     a = db.get(CajaAdjunto, adjunto_id)
     if not a or a.recibo.caja_id != caja.id:
         raise HTTPException(404, "Documento no encontrado.")
-    if _solo_lo_suyo(db, user, caja, solo_firmas) and a.recibo.autorizado_por_id != user.id:
+    fm = a.recibo.fm
+    firma_el_fm = bool(fm and user.id in (fm.supervisado_por_id, fm.elaborado_por_id))
+    if _solo_lo_suyo(db, user, caja, solo_firmas) and a.recibo.autorizado_por_id != user.id and not firma_el_fm:
         raise HTTPException(404, "Documento no encontrado.")
     return Response(a.datos, media_type=a.tipo_mime,
                     headers={"Content-Disposition": f'inline; filename="{a.nombre}"', "Cache-Control": "private, max-age=3600"})

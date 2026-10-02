@@ -201,6 +201,16 @@
   </div>
  </div>
 
+ <!-- Ventana: soportes (documentos y fotos) de un recibo, para revisarlos antes de firmar -->
+ <div id="modalSoportes" class="cm-modal" onclick="if (event.target === this) cerrarSoportes()">
+  <div class="cm-modal-caja" style="max-width:900px; max-height:90vh; overflow:auto;">
+    <h3 id="soportesTitulo" style="color:#1A365D">📎 Soportes</h3>
+    <p id="soportesSub" style="font-size:13px; color:var(--text-muted); margin:0 0 10px;"></p>
+    <div id="soportesCuerpo"></div>
+    <div class="cm-acciones" style="margin-top:16px;"><button type="button" class="btn gris" onclick="cerrarSoportes()">Cerrar</button></div>
+  </div>
+ </div>
+
  <!-- Ventana: anular con motivo -->
  <div id="modalAnular" class="cm-modal">
   <div class="cm-modal-caja">
@@ -356,6 +366,26 @@ function quitarAdjunto(id) {
   if (!confirm('¿Quitar este documento del recibo?')) return;
   post(API + '/adjuntos/' + id + '/quitar', {}).then(function() { return api(API + '/recibos/' + reciboActual.consecutivo); })
     .then(function(r) { reciboActual = r; pintarAdjuntos(r); }).catch(function(e) { alert(e.message); });
+}
+
+// Ver los soportes de un recibo sin salir de Firmas o del FM (fotos en grande y PDF)
+function verSoportes(r) {
+  document.getElementById('soportesTitulo').innerText = '📎 Soportes del recibo ' + r.noRecibo;
+  document.getElementById('soportesSub').innerText = nombrePropio(r.pagadoA) + ' · ' + pesos(r.valor) + ' · ' + r.concepto + (r.factura ? ' · Factura ' + r.factura : '');
+  document.getElementById('soportesCuerpo').innerHTML = (r.adjuntos || []).map(function(a) {
+    var url = API + '/adjuntos/' + a.id;
+    return '<div style="margin-bottom:16px"><div style="font-size:12.5px; font-weight:700; color:#1A365D; margin-bottom:4px">' + esc(a.nombre) +
+      ' <a href="' + url + '" target="_blank" style="font-weight:600">↗ Abrir en otra pestaña</a></div>' +
+      (a.tipo === 'application/pdf' ? '<iframe src="' + url + '" style="width:100%; height:70vh; border:1px solid #CBD5E1; border-radius:8px"></iframe>'
+                                    : '<img src="' + url + '" alt="" style="max-width:100%; border:1px solid #CBD5E1; border-radius:8px">') + '</div>';
+  }).join('') || '<p class="cm-vacio">Este recibo no tiene soportes adjuntos.</p>';
+  document.getElementById('modalSoportes').style.display = 'flex';
+}
+function cerrarSoportes() { document.getElementById('modalSoportes').style.display = 'none'; document.getElementById('soportesCuerpo').innerHTML = ''; }
+function botonSoportes(lista, i) {
+  var r = lista[i];
+  return r.adjuntos && r.adjuntos.length ? ' <button class="btn gris mini" title="Ver la factura o soporte" onclick="verSoportes(' + (lista === recibosFirmas ? 'recibosFirmas' : 'fmActual.recibos') +
+    '[' + i + '])">📎 Soportes (' + r.adjuntos.length + ')</button>' : '';
 }
 
 // ---------------- recibo ----------------
@@ -649,12 +679,13 @@ function panelFM(fm, modo) {
       ? '<div class="cm-firma-estado fallido" style="margin:0 0 14px">⚠️ No se pudo avisar por Cliq a quien debe firmar. Verifica que esté suscrito a Nuvia Colombia Bot.' +
         (SOLO_FIRMAS ? '' : ' <button type="button" class="btn gris mini" onclick="reenviarAvisoFM(' + fm.id + ')">🔔 Reenviar aviso</button>') + '</div>' : '') +
     tablaConteo('fm', fm.desglose || {}, lectura, 'recalcularFM') +
-    '<div class="cm-tabla-wrap" style="max-height:none;"><table class="cm-tabla"><thead><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Neto pagado</th></tr></thead><tbody>' +
-    recibos.map(function(r) { return '<tr><td class="cm-num-orden">' + r.consecutivo + '</td><td>' + esc(r.fecha) + '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) +
-      '</td><td>' + esc(r.factura) + '</td><td class="izq">' + esc(r.concepto) + '</td><td class="der">' + pesos(r.valor) + '</td></tr>'; }).join('') +
-    '<tr class="totales"><td colspan="5" class="der">Ajuste al peso</td><td class="der"><input type="number" id="fmAjuste" step="1" ' + (lectura ? 'readonly' : '') +
+    '<div class="cm-tabla-wrap" style="max-height:none;"><table class="cm-tabla"><thead><tr><th>RC</th><th>Fecha</th><th>Tercero</th><th>Factura</th><th>Descripción</th><th>Soportes</th><th>Neto pagado</th></tr></thead><tbody>' +
+    recibos.map(function(r, i) { return '<tr><td class="cm-num-orden">' + r.consecutivo + '</td><td>' + esc(r.fecha) + '</td><td class="izq">' + esc(nombrePropio(r.pagadoA)) +
+      '</td><td>' + esc(r.factura) + '</td><td class="izq">' + esc(r.concepto) + '</td><td>' + (r.adjuntos && r.adjuntos.length ? botonSoportes(fm.recibos, i) : '—') +
+      '</td><td class="der">' + pesos(r.valor) + '</td></tr>'; }).join('') +
+    '<tr class="totales"><td colspan="6" class="der">Ajuste al peso</td><td class="der"><input type="number" id="fmAjuste" step="1" ' + (lectura ? 'readonly' : '') +
       ' value="' + (fm.ajuste || '') + '" placeholder="0" oninput="recalcularFM()" style="width:110px; margin:0; text-align:right; font-weight:800;"></td></tr>' +
-    '<tr class="totales"><td colspan="5" class="der">Total</td><td class="der" id="fmTotal">' + pesos(total + (fm.ajuste || 0)) + '</td></tr></tbody></table></div>';
+    '<tr class="totales"><td colspan="6" class="der">Total</td><td class="der" id="fmTotal">' + pesos(total + (fm.ajuste || 0)) + '</td></tr></tbody></table></div>';
   var panel = document.getElementById('fmPanel');
   panel.innerHTML = html; panel.style.display = '';
   (lectura ? document.getElementById('fmsLista') : document.getElementById('legalizarLista')).style.display = 'none';
@@ -726,7 +757,7 @@ function pintarFirmas() {
     return;
   }
   tb.innerHTML = filas.map(function(r) {
-    var puedo = !r.firmadoEn && r.autorizadoPorId === USUARIO_ID;
+    var puedo = !r.firmadoEn && r.autorizadoPorId === USUARIO_ID, soportes = botonSoportes(recibosFirmas, recibosFirmas.indexOf(r));
     var accion = puedo
       ? '<button class="btn verde mini" onclick="firmarRecibo(' + r.id + ')">✍️ Firmar</button>' +
         (r.estado === 'ACTIVO' && !r.observacionPendiente ? ' <button class="btn gris mini" onclick="abrirObservacion(\'recibo\',' + r.id + ',\'' + esc(r.noRecibo) + '\')">📝 Observación</button>' : '')
@@ -741,7 +772,7 @@ function pintarFirmas() {
       (r.firmadoEn ? '<span class="badge activo">Firmado</span><div style="font-size:11px;color:var(--text-muted);margin-top:3px">' + esc(r.firmaEmail) + '<br>' + esc(r.firmadoEn) + '</div>'
                    : (r.observacionPendiente ? '<span class="badge anulado">Observado</span><div style="font-size:11px;color:#9A3412;margin-top:3px">«' +
                         esc(r.observacionPendiente.texto) + '»<br>esperando corrección</div>' : '<span class="badge sobrante">Pendiente</span>') + aviso) +
-      '</td><td data-label="" class="cm-td-acciones" style="white-space:nowrap">' + accion + ' <button class="btn gris mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
+      '</td><td data-label="" class="cm-td-acciones" style="white-space:nowrap">' + accion + soportes + ' <button class="btn gris mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
   }).join('');
   actualizarFirmarVarios();
 }
