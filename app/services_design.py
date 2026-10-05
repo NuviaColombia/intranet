@@ -524,6 +524,14 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         qb = qb.filter(DesignBreak.empleado_id == solo_empleado_id)
         qd = qd.filter(DesignTeamDesigner.empleado_id == solo_empleado_id)
     ordenes = q.order_by(DesignOrden.orden_visual, DesignOrden.id).all()
+    if es_face_nuevo(team.area.formato, fecha):
+        # Formato nuevo: si una hora quedó en el campo viejo (página abierta desde antes del cambio), pasa a Inicio diseño
+        sueltas = [o for o in ordenes if o.tabla == "principal" and not (o.hora_inicio or "").strip()
+                   and (o.hora_inicio_diseno or "").strip()]
+        for o in sueltas:
+            o.hora_inicio, o.hora_inicio_diseno = o.hora_inicio_diseno, ""
+        if sueltas:
+            db.commit()
     breaks = qb.all()
     principal = [serializar_orden(o) for o in ordenes if o.tabla == "principal"]
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]

@@ -1071,6 +1071,12 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if ("orden" in datos and datos["orden"] != (orden_existente.orden or "").strip().upper()
             and sd.orden_repetida(db, orden_existente.team_id, orden_existente.fecha, datos["orden"], orden_id)):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
+    if ("hora_inicio_diseno" in datos and orden_existente.tabla == "principal"
+            and sd.es_face_nuevo(team.area.formato, orden_existente.fecha)):
+        # Página abierta desde antes del formato nuevo: su "Inicio diseño" llega en el campo viejo → va a Inicio diseño (hora_inicio)
+        viejo = datos.pop("hora_inicio_diseno")
+        if viejo:
+            datos["hora_inicio"] = viejo
     if ("estado" in datos and datos["estado"] != (orden_existente.estado or "") and orden_existente.tabla == "principal"
             and sd.es_face_nuevo(team.area.formato, orden_existente.fecha)):
         # Face: el estado llena solo las horas (Initiated → Inicio diseño / Re-initiated, Hold → Start hold, Approved → Fin)
