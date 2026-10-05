@@ -90,7 +90,8 @@ window.dsPdfjs = function() {
   .ds-fila-kpis .ds-mis-equipos { flex:none; max-width:260px; }
   /* Diseñador a cargo del equipo */
   .ds-acargo { flex:none; display:flex; align-items:center; gap:6px; font-size:12.5px; }
-  .ds-acargo[hidden] { display:none; }
+  .ds-acargo[hidden], .ds-acargo.ds-fuera { display:none; }
+  .ds-cabecera-der { display:flex; align-items:center; gap:10px; flex-wrap:wrap; max-width:100%; }
   .ds-acargo .btn { height:34px; padding:0 12px; font-size:13px; margin:0; }
   .ds-acargo-chip { display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 6px 0 12px; border-radius:17px;
                     background:#eef2ff; color:#1e3a8a; border:1px solid #c7d2fe; white-space:nowrap; }
@@ -741,10 +742,13 @@ window.dsPdfjs = function() {
 <div id="ds-app">
   <div class="ds-cabecera">
     <h1 style="margin:0">Design Schedule<span id="dsTituloEquipo"></span></h1>
-    <div class="ds-buscar" role="search">
-      <input type="search" id="dsBuscarInput" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente"
-             autocomplete="off" aria-controls="dsBuscarRes">
-      <div id="dsBuscarRes" class="ds-buscar-res" hidden></div>
+    <div class="ds-cabecera-der">
+      <div id="dsACargo" class="ds-acargo" hidden></div>
+      <div class="ds-buscar" role="search">
+        <input type="search" id="dsBuscarInput" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente"
+               autocomplete="off" aria-controls="dsBuscarRes">
+        <div id="dsBuscarRes" class="ds-buscar-res" hidden></div>
+      </div>
     </div>
   </div>
   <div class="ds-area-row">
@@ -775,7 +779,6 @@ window.dsPdfjs = function() {
     <div class="ds-fila-kpis">
       <div id="dsKpis" class="ds-kpis"></div>
       {% if user.rol not in ('admin', 'superadmin') %}<select id="dsMisEquipos" class="ds-mis-equipos" aria-label="Mi equipo" hidden></select>{% endif %}
-      <div id="dsACargo" class="ds-acargo" hidden></div>
       <div id="dsDiaTabs" class="ds-tabs"></div>
     </div>
 
@@ -1226,6 +1229,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsActualizarSemanaCtrl() {
     var chk = document.getElementById('dsTodasAreasChk');
     document.getElementById('dsSemanaCtrl').style.display = (DS.teamId || (chk && chk.checked)) ? '' : 'none';
+    // "Dejar a cargo" está junto al buscador: solo se ve con un equipo abierto (no en todas las áreas)
+    document.getElementById('dsACargo').classList.toggle('ds-fuera', !DS.teamId || !!(chk && chk.checked));
   }
 
   function dsLunesDe(d) {
