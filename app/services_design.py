@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session, joinedload, defer
 from sqlalchemy import func, and_, or_, text
 from .models import Empleado, Solicitud, TipoPermiso
-from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE
+from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE, FORMATO_DUAL
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
@@ -835,10 +835,15 @@ def _entre(inicio: str, fin: str) -> float:
 # Total = Fin − Inicio diseño − tiempo en Hold. El tiempo en Hold es Re-initiated − Start hold más los Hold anteriores
 # del mismo caso (se acumulan en hold_minutos). Las horas se llenan solas con el estado (ver face_horas_por_estado).
 FACE_NUEVO_DESDE = date(2026, 10, 5)
+# N3 y N6 (tabla Cirugías) con el mismo formato desde el 5-oct-2026 (Nightguards / TC sigue con Inicio y Fin).
+DUAL_NUEVO_DESDE = date(2026, 10, 5)
 
 
 def es_face_nuevo(formato: str, fecha: date) -> bool:
-    return formato == FORMATO_SINGLE and fecha >= FACE_NUEVO_DESDE
+    """Formato de horas nuevo (Inicio diseño · Start hold · Re-initiated · Fin): Face y la tabla Cirugías de N3/N6.
+    Quien lo use para N3/N6 debe revisar que la orden sea de la tabla principal (Nightguards no cambia)."""
+    return ((formato == FORMATO_SINGLE and fecha >= FACE_NUEVO_DESDE) or
+            (formato == FORMATO_DUAL and fecha >= DUAL_NUEVO_DESDE))
 
 
 def face_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
@@ -873,11 +878,14 @@ def face_convertir_una_vez(db: Session) -> None:
     from .models_design import DesignConexionRegla
     if _face_convertido["ok"]:
         return
-    marca = "face_formato_nuevo"
-    if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+    # (marca, formato, desde): Face primero; N3/N6 (Cirugías) se agregó después con su propia marca
+    for marca, formato, desde in (("face_formato_nuevo", FORMATO_SINGLE, FACE_NUEVO_DESDE),
+                                  ("dual_formato_nuevo", FORMATO_DUAL, DUAL_NUEVO_DESDE)):
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            continue
         try:
-            ids = [t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.formato == FORMATO_SINGLE).all()]
-            for o in db.query(DesignOrden).filter(DesignOrden.team_id.in_(ids or [-1]), DesignOrden.fecha >= FACE_NUEVO_DESDE,
+            ids = [t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.formato == formato).all()]
+            for o in db.query(DesignOrden).filter(DesignOrden.team_id.in_(ids or [-1]), DesignOrden.fecha >= desde,
                                                    DesignOrden.tabla == "principal").all():
                 if (o.hora_inicio_diseno or "").strip():
                     o.hora_inicio = o.hora_inicio_diseno

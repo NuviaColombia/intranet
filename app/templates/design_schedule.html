@@ -1521,6 +1521,20 @@ window.addEventListener('unhandledrejection', function(ev) {
       {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
       {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
     ]},
+    // N3 / N6 desde el 5-oct-2026: Cirugías con el formato de horas de Face (Nightguards / TC no cambia)
+    dualNuevo: {
+      principal: [
+        {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+        {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+        {k:'designerId', l:'Diseñador', t:'designer'},
+        {k:'horaInicio', l:'Inicio diseño', t:'time'}, {k:'sHold', l:'Start hold', t:'time'}, {k:'fHold', l:'Re-initiated', t:'time', sinTHold: true},
+        {k:'horaFin', l:'Fin', t:'time'},
+        {k:'esferas', l:'Esferas', t:'select', opciones:['','Yes','No','N/A']},
+        {k:'critico', l:'Crítico', t:'select', opciones:['','N/A','Inaccurate tissue','Min Thickness','Implant moved','Implant angled','Implant close','Tissue smooth >15']},
+        {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
+        {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+      ],
+    },
     n2: { principal: [
       {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
       {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
@@ -1582,11 +1596,18 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // Columnas de la tabla. "Crítico" (Critical Cases) solo existe en N3 Prosthetic, como en la herramienta original.
   var DS_FACE_NUEVO_DESDE = '2026-10-05';
-  function dsFaceNuevo(formato) { return formato === 'single' && dsFechaISO(dsFechaSeleccionada()) >= DS_FACE_NUEVO_DESDE; }
+  var DS_DUAL_NUEVO_DESDE = '2026-10-05';
+  // Formato de horas nuevo (Inicio diseño · Start hold · Re-initiated · Fin): Face y Cirugías de N3/N6.
+  // Ojo: para N3/N6 aplica solo a la tabla principal; quien lo use revisa antes que no sea Nightguards.
+  function dsFaceNuevo(formato) {
+    var f = dsFechaISO(dsFechaSeleccionada());
+    return (formato === 'single' && f >= DS_FACE_NUEVO_DESDE) || (formato === 'dual' && f >= DS_DUAL_NUEVO_DESDE);
+  }
   function dsSpec(tabla, formato, areaNombre) {
     var area = areaNombre || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre;
     var fm = formato || DS.areaFormato;
-    var spec = (dsFaceNuevo(fm) ? COLSPEC.faceNuevo : COLSPEC[fm])[tabla] || [];
+    var base = !dsFaceNuevo(fm) ? COLSPEC[fm] : (fm === 'dual' ? {principal: COLSPEC.dualNuevo.principal, nightguard: COLSPEC.dual.nightguard} : COLSPEC.faceNuevo);
+    var spec = base[tabla] || [];
     return area === 'N3 Prosthetic' ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
   }
   function dsEncabezadoExtra(c) { return c.k === 'fHold' && !c.sinTHold ? '<th>T. Hold</th>' : ''; } // N2: T. Hold calculado
