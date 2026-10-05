@@ -705,6 +705,24 @@ def guardar_break(db: Session, team_id: int, empleado_id: int, fecha: date, dato
     return b
 
 
+# ---------- Schedule en vivo: huella del día para saber si alguien cambió algo ----------
+
+def version_dia(db: Session, team: DesignTeam, fecha: date, empleado_id: int | None = None) -> str:
+    """Huella corta de lo que se ve en el día de un equipo (órdenes, también las prestadas a esa persona, y tiempos
+    libres). Si cambia, la pantalla vuelve a pedir el día. Son pocas filas, así que se calcula directo."""
+    import hashlib
+    q = db.query(DesignOrden).filter(DesignOrden.fecha == fecha)
+    q = q.filter(or_(DesignOrden.team_id == team.id, DesignOrden.designer_id == empleado_id) if empleado_id
+                 else DesignOrden.team_id == team.id)
+    partes = [(o.id, o.team_id, o.tabla, o.orden_visual, o.actualizado_en.isoformat() if o.actualizado_en else "")
+              for o in q.order_by(DesignOrden.id).all()]
+    for b in db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha).order_by(DesignBreak.id).all():
+        partes.append((b.id, b.empleado_id, b.tipo_ausencia, b.almuerzo_inicio, b.almuerzo_fin, b.break1_inicio,
+                       b.break1_fin, b.break2_inicio, b.break2_fin))
+    partes.append(("deleg", delegaciones_activas(db).get(team.id)))
+    return hashlib.md5(repr(partes).encode()).hexdigest()[:16]
+
+
 # ---------- Dashboard ----------
 
 def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None = None,

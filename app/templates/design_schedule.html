@@ -179,6 +179,8 @@ window.dsPdfjs = function() {
   table.ds-tabla input[type=text] { text-align:left; }
   table.ds-tabla input[type=checkbox] { width:15px; height:15px; padding:0; display:block; margin:0 auto; cursor:pointer; }
   table.ds-tabla tr.ds-fila-nueva td { background:#fafbfc; }
+  /* Schedule en vivo: fila que alguien más acaba de cambiar */
+  table.ds-tabla tr.ds-vivo td { background:#fef9c3 !important; transition: background .6s; }
   /* Encabezados ordenables (Centro, Producto, Diseñador, Estado) */
   /* El texto queda centrado como en las demás columnas y la flecha va al extremo derecho de la celda */
   table.ds-tabla th.ds-th-sort { cursor:pointer; user-select:none; white-space:nowrap; position:relative; padding-left:20px; padding-right:20px; }
@@ -1145,8 +1147,13 @@ window.dsFetchJSON = function(url, opts) {
     });
   });
 };
+window.dsEnVuelo = 0;  // guardados en curso: mientras haya, el Schedule no se refresca en vivo
 window.dsPostJSON = function(url, body) {
-  return window.dsFetchJSON(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
+  window.dsEnVuelo++;
+  var fin = function() { window.dsEnVuelo = Math.max(0, window.dsEnVuelo - 1); };
+  var pr = window.dsFetchJSON(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
+  pr.then(fin, fin);
+  return pr;
 };
 // Red de seguridad: si una acción falla y nadie manejó el error, se avisa en pantalla en vez de fallar en silencio.
 window.addEventListener('unhandledrejection', function(ev) {
@@ -1991,8 +1998,17 @@ window.addEventListener('unhandledrejection', function(ev) {
       datos.qcReporte = tr._qcReporte !== undefined ? tr._qcReporte : (local.qcReporte || '');
     }
     delete tr._qcReporte;
+    // Solo se envían los campos que cambiaron: si otra persona editó otro campo de esta orden, no se pisa.
+    var envio = {teamId: datos.teamId, fecha: datos.fecha, tabla: datos.tabla};
+    if (antes) {
+      Object.keys(datos).forEach(function(k) {
+        if (k === 'teamId' || k === 'fecha' || k === 'tabla') return;
+        var a = antes[k], d = datos[k];
+        if ((a === null || a === undefined ? '' : String(a)) !== (d === null || d === undefined ? '' : String(d))) envio[k] = d;
+      });
+    } else envio = datos;
     if (local) Object.assign(local, datos); // refleja el cambio de inmediato (orden A→Z, contadores)
-    dsSeguir(postJSON('/design/api/ordenes/' + id, datos)).then(function(o) {
+    dsSeguir(postJSON('/design/api/ordenes/' + id, envio)).then(function(o) {
       var i = filas.findIndex(function(x) { return x.id === id; });
       if (i >= 0) filas[i] = tabla === 'prestadas' ? Object.assign({}, filas[i], o) : o; // prestadas conserva equipo/formato
       if (tabla === 'prestadas' && i >= 0) o = filas[i];
@@ -2007,11 +2023,26 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
   }
 
+  // La respuesta del servidor trae la orden completa: si otra persona cambió otros campos de la misma orden,
+  // se muestran ya (sin tocar la celda donde está el cursor).
+  function dsPonerValores(tr, o) {
+    tr.querySelectorAll('[data-campo]').forEach(function(el) {
+      var k = el.dataset.campo;
+      if (el === document.activeElement || !(k in o)) return;
+      if (el.type === 'checkbox') { if (el.checked !== !!o[k]) el.checked = !!o[k]; return; }
+      var v = o[k] === null || o[k] === undefined ? '' : String(o[k]);
+      if (k === 'holdMinutos' && v === '0' && el.value === '') return;
+      if (el.tagName === 'SELECT' && v && !el.querySelector('option[value="' + CSS.escape(v) + '"]')) return;
+      if (el.value !== v) { el.value = v; el._alEnfocar = v; if (el.dataset.valorActual !== undefined) el.dataset.valorActual = v; }
+    });
+  }
+
   function dsTrasGuardar(tabla, tr, o) {
     if (!tr.isConnected) { // la tabla se redibujó mientras guardaba
       if (tabla === 'prestadas') dsRenderPrestadas(); else dsRenderTabla(tabla);
       dsRenderKpis(DS.diaData); return;
     }
+    dsPonerValores(tr, o);
     tr.querySelector('.ds-total').innerText = dsDuracionFila(o, tabla);
     var tdTHold = tr.querySelector('.ds-thold'); if (tdTHold) tdTHold.innerText = dsFmtMin(dsEntre(o.sHold, o.fHold));
     var selD = tr.querySelector('[data-campo="designerId"]'); if (selD) selD.dataset.previo = o.designerId || '';
@@ -2288,6 +2319,83 @@ window.addEventListener('unhandledrejection', function(ev) {
     (bg.querySelector('select') || bg.querySelector('[data-ac]')).focus();
   }
 
+  function dsAplicarDia(dia, soloOrdenes) {
+    DS.diaData = dia;
+    DS.diaVersion = dia.version || null;  // huella del día (Schedule en vivo)
+    DS.diaVersionClave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
+    dsRenderACargo(dia);
+    dsRenderTabla('principal');
+    if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
+    dsRenderPrestadas();
+    dsAplicarCierre();
+    dsRenderKpis(dia);
+    if (!soloOrdenes) dsRenderBreaks(dia);
+  }
+
+  // ---------- Schedule en vivo ----------
+  // Cada pocos segundos se pregunta al servidor la "huella" del día abierto. Si cambió (alguien creó, editó o
+  // borró una orden o un tiempo libre), se vuelve a pedir el día y se redibuja sin recargar la página. No se
+  // redibuja mientras la persona está escribiendo en una celda, tiene celdas seleccionadas, una ventana abierta o
+  // un guardado en curso: se espera a que termine. Las filas que cambiaron se marcan un momento.
+  var DS_VIVO_MS = 5000;
+  var dsUltimaTecla = 0;
+  document.addEventListener('input', function() { dsUltimaTecla = Date.now(); }, true);
+  document.addEventListener('keydown', function() { dsUltimaTecla = Date.now(); }, true);
+  function dsOcupado() {
+    var a = document.activeElement, vista = document.getElementById('dsVistaEquipo');
+    if (window.dsEnVuelo > 0 || document.body.classList.contains('ds-cargando-dia')) return true;
+    if (a && vista && vista.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) {
+      // está escribiendo (hace menos de 3 s) o tiene un cambio sin guardar en la celda: se espera
+      if (Date.now() - dsUltimaTecla < 3000) return true;
+      if (a._alEnfocar !== undefined && a.type !== 'checkbox' && a.value !== a._alEnfocar) return true;
+    }
+    if (document.querySelector('.ds-qc-bg, #dsPop, .ds-tabla td.ds-sel, .ds-tabla td.ds-sel-activa')) return true;
+    return false;
+  }
+  function dsHuellaFila(f) { var c = Object.assign({}, f); return JSON.stringify(c); }
+  function dsVivoTick() {
+    if (document.hidden || !DS.teamId || !DS.diaData || document.querySelector('.ds-overlay.open')) return;
+    var vistaEq = document.getElementById('dsVistaEquipo');
+    if (!vistaEq || vistaEq.style.display === 'none') return;
+    var fecha = dsFechaISO(dsFechaSeleccionada()), clave = DS.teamId + ':' + fecha, url = DS.diaUrl;
+    api('/design/api/dia/version?team_id=' + DS.teamId + '&fecha=' + fecha).then(function(r) {
+      if (!r || DS.diaUrl !== url) return;
+      if (DS.diaVersion === null || DS.diaVersionClave !== clave) { DS.diaVersion = r.v; DS.diaVersionClave = clave; return; }
+      if (r.v === DS.diaVersion || dsOcupado()) return;  // sin cambios, o se espera al próximo turno
+      return api(url).then(function(dia) {
+        if (DS.diaUrl !== url || dsOcupado()) return;
+        var antes = {};
+        ['principal', 'nightguard', 'prestadas'].forEach(function(t) {
+          (DS.diaData[t] || []).forEach(function(f) { antes[f.id] = dsHuellaFila(f); });
+        });
+        var sinV = function(d) { var c = Object.assign({}, d); delete c.version; return JSON.stringify(c); };
+        var mismo = sinV(dia) === sinV(DS.diaData);
+        var y = window.scrollY;
+        if (mismo) { DS.diaVersion = r.v; DS.diaData.version = r.v; return; }  // fue un cambio propio: ya se ve
+        var act = document.activeElement, foco = null;
+        if (act && act.dataset && act.dataset.campo) {
+          var trA = act.closest('tr[data-id]'), tbA = act.closest('[id^="dsTabla"]');
+          if (trA && tbA) foco = {tabla: tbA.id, id: trA.dataset.id, campo: act.dataset.campo};
+        }
+        dsAplicarDia(dia);
+        if (foco) {  // vuelve a la misma celda
+          var el = document.querySelector('#' + foco.tabla + ' tr[data-id="' + foco.id + '"] [data-campo="' + foco.campo + '"]');
+          if (el) el.focus({preventScroll: true});
+        }
+        window.scrollTo(0, y);
+        ['principal', 'nightguard', 'prestadas'].forEach(function(t) {
+          (dia[t] || []).forEach(function(f) {
+            if (antes[f.id] === dsHuellaFila(f)) return;
+            var tr = document.querySelector('#dsVistaEquipo tr[data-id="' + f.id + '"]');
+            if (tr) { tr.classList.add('ds-vivo'); setTimeout(function() { tr.classList.remove('ds-vivo'); }, 2500); }
+          });
+        });
+      });
+    }).catch(function() {});
+  }
+  setInterval(dsVivoTick, DS_VIVO_MS);
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) dsVivoTick(); });
+
   function dsCargarDia(soloOrdenes) {
     if (!DS.teamId) return;
     var url = '/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada());
@@ -2297,14 +2405,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     api(url).then(function(dia) {
       if (DS.diaUrl !== url) return; // llegó tarde: ya se pidió otro día/equipo
       document.body.classList.remove('ds-cargando-dia');
-      DS.diaData = dia;
-      dsRenderACargo(dia);
-      dsRenderTabla('principal');
-      if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
-      dsRenderPrestadas();
-      dsAplicarCierre();
-      dsRenderKpis(dia);
-      if (!soloOrdenes) dsRenderBreaks(dia);
+      dsAplicarDia(dia, soloOrdenes);
       if (DS.resaltar) { // viene de la búsqueda: marca la orden encontrada
         var trR = document.querySelector('#dsVistaEquipo tr[data-id="' + DS.resaltar + '"]');
         DS.resaltar = null;

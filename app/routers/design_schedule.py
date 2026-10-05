@@ -834,7 +834,16 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dg = sd.delegacion_de(db, team)
     dia["puedeDelegar"] = sd.puede_delegar(user, team) and team.area.formato != sd.FORMATO_SUPPORT
     dia["aCargo"] = dict(dg, esYo=dg["empleadoId"] == user.id) if dg and (dia["puedeDelegar"] or dg["empleadoId"] == user.id) else None
+    dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id)  # huella para el Schedule en vivo
     return dia
+
+
+@router.get("/design/api/dia/version")
+def api_dia_version(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
+                    db: Session = Depends(get_db)):
+    """Huella del día: la pantalla la consulta cada pocos segundos y, si cambió, vuelve a pedir el día (en vivo)."""
+    team = _verificar_equipo(db, user, team_id)
+    return {"v": sd.version_dia(db, team, _fecha(fecha), user.id)}
 
 
 class DelegacionIn(BaseModel):
@@ -922,6 +931,16 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
         "estado": payload.estado, "qc": payload.qc, "qc_reporte": payload.qcReporte, "notas": payload.notas,
     }
 
+
+# Campo de la pantalla → columna. Al editar una orden solo se cambian los campos que llegan, así dos personas que
+# editan campos distintos de la misma orden a la vez no se pisan (Schedule en vivo).
+CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "producto": "producto",
+                 "designerId": "designer_id", "designerPrestado": "designer_prestado", "horaInicio": "hora_inicio",
+                 "horaInicioDiseno": "hora_inicio_diseno", "horaFin": "hora_fin", "holdMinutos": "hold_minutos",
+                 "esferas": "esferas", "critico": "critico", "sHold": "s_hold", "fHold": "f_hold", "etapa": "etapa",
+                 "solicitadoPor": "solicitado_por", "situacion": "situacion", "solucion": "solucion",
+                 "clasificacion": "clasificacion", "soporte": "soporte", "estado": "estado", "qc": "qc",
+                 "qcReporte": "qc_reporte", "notas": "notas"}
 
 DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
 
@@ -1027,8 +1046,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             raise HTTPException(403, DIA_CERRADO)
         o = sd.actualizar_orden(db, orden_id, {"qc": payload.qc, "qc_reporte": payload.qcReporte})
         return sd.serializar_orden(o)
-    datos = _datos_desde_in(payload)
-    if (datos["orden"] != (orden_existente.orden or "").strip().upper()
+    enviados = {CAMPO_COLUMNA[k] for k in payload.model_fields_set if k in CAMPO_COLUMNA}
+    datos = {k: v for k, v in _datos_desde_in(payload).items() if k in enviados}
+    if ("orden" in datos and datos["orden"] != (orden_existente.orden or "").strip().upper()
             and sd.orden_repetida(db, orden_existente.team_id, orden_existente.fecha, datos["orden"], orden_id)):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
     if solo_propia:  # un diseñador edita su fila pero no la reasigna
