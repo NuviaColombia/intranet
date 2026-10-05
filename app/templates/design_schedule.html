@@ -188,6 +188,13 @@ window.dsPdfjs = function() {
   table.ds-tabla th.ds-th-sort:hover { background:#e8ecf1; }
   table.ds-tabla th.ds-th-sort .ds-sort-ind { color:#9ca3af; position:absolute; right:7px; top:50%; transform:translateY(-50%); }
   table.ds-tabla th.ds-th-sort.on .ds-sort-ind { color:#1d4ed8; }
+  /* Filas ocultas (aprobadores): las que tienen QC y las que se ocultan a mano */
+  table.ds-tabla tr.ds-oculta { display:none; }
+  table.ds-tabla tr.ds-oculta-ver td { opacity:.5; background:#f8fafc; }
+  .ds-panel-acc { display:inline-flex; gap:8px; align-items:center; }
+  .ds-btn-ocultas { padding:4px 10px; font-size:12.5px; margin:0; }
+  .ds-btn-ojo { border:0; background:none; cursor:pointer; font-size:13px; padding:0 3px; color:#64748b; line-height:1; }
+  .ds-btn-ojo:hover { color:#1d4ed8; }
   .ds-btn-x { background:#9ca3af; color:#fff; border:none; border-radius:4px; width:18px; height:18px; padding:0;
               font-size:10px; line-height:18px; cursor:pointer; display:block; margin:0 auto; }
   .ds-btn-x:hover { background:#4b5563; }
@@ -778,7 +785,8 @@ window.dsPdfjs = function() {
           <h3 id="dsTituloPrincipal">Órdenes</h3>
           <span id="dsCandado" class="ds-candado" style="display:none" tabindex="0">🔒</span>
         </div>
-        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal', event)">+ Agregar orden</button>
+        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal', event)">+ Agregar orden</button></span>
       </div>
       <div id="dsTablaPrincipal"></div>
     </div>
@@ -786,7 +794,8 @@ window.dsPdfjs = function() {
     <div class="ds-panel" id="dsPanelNightguard" style="display:none">
       <div class="ds-panel-h">
         <h3>Nightguards / TC</h3>
-        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard', event)">+ Agregar orden</button>
+        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_nightguard" style="display:none" onclick="dsVerOcultas()"></button>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard', event)">+ Agregar orden</button></span>
       </div>
       <div id="dsTablaNightguard"></div>
     </div>
@@ -1661,9 +1670,63 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (c.k === 'fHold' && !c.sinTHold) html += '<td class="ds-thold">' + dsFmtMin(dsEntre(f.sHold, f.fHold)) + '</td>';
     });
     html += '<td class="ds-total">' + dsDuracionFila(f, tabla) + '</td>';
-    html += '<td class="ds-acc">' + (nueva || dsDiaCerrado() || dsSoloPropias() || tabla === 'prestadas' ? '' : dsBtnEliminar(f.id)) + '</td>';
+    html += '<td class="ds-acc">' + (!nueva && tabla !== 'prestadas' && window.DS_GESTION ? dsBtnOjo(f.id) : '') +
+            (nueva || dsDiaCerrado() || dsSoloPropias() || tabla === 'prestadas' ? '' : dsBtnEliminar(f.id)) + '</td>';
     return html + '</tr>';
   }
+  // ---------- Filas ocultas (solo aprobadores y admins) ----------
+  // Las órdenes con QC se ocultan solas (las que se marcan ahora, a los 30 s). Cada fila tiene un botón para
+  // ocultarla o volver a mostrarla, y cada tabla un botón "Mostrar ocultas (N)". Es solo la vista de esta persona
+  // (se recuerda en este navegador); los contadores siguen contando todo.
+  var DS_OCULTAS_KEY = 'dsOcultasV1';
+  DS.qcGracia = {}; DS.verOcultas = false;
+  function dsOcultasLeer() { try { return JSON.parse(localStorage.getItem(DS_OCULTAS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function dsOcultasGuardar(o) { try { localStorage.setItem(DS_OCULTAS_KEY, JSON.stringify(o)); } catch (e) {} }
+  // estado manual: {id: 'oculta' | 'visible'}
+  function dsEstaOculta(f, man) {
+    var m = man[f.id];
+    if (m === 'oculta') return true;
+    if (m === 'visible') return false;
+    if (!f.qc) return false;
+    var g = DS.qcGracia[f.id];
+    return !(g && Date.now() - g < 30000);
+  }
+  function dsBtnOjo(id) {
+    return '<button type="button" class="ds-btn-ojo" data-ojo="' + id + '" title="Ocultar esta fila" aria-label="Ocultar o mostrar esta fila" onclick="dsOjoFila(' + id + ')">👁</button>';
+  }
+  function dsAplicarOcultas(tabla) {
+    var btn = document.getElementById('dsOcultas_' + tabla);
+    if (!window.DS_GESTION || !DS.diaData || (tabla !== 'principal' && tabla !== 'nightguard')) { if (btn) btn.style.display = 'none'; return; }
+    var man = dsOcultasLeer(), n = 0, cambio = false;
+    (DS.diaData[tabla] || []).forEach(function(f) {
+      var tr = document.querySelector('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' tr[data-id="' + f.id + '"]');
+      var oc = dsEstaOculta(f, man);
+      if (oc) n++;
+      if (!tr) return;
+      if (tr.classList.contains('ds-oculta') !== (oc && !DS.verOcultas)) cambio = true;
+      tr.classList.toggle('ds-oculta', oc && !DS.verOcultas);
+      tr.classList.toggle('ds-oculta-ver', oc && DS.verOcultas);
+      var ojo = tr.querySelector('[data-ojo]');
+      if (ojo) { ojo.title = oc ? 'Mostrar esta fila' : 'Ocultar esta fila'; ojo.textContent = oc ? '🙈' : '👁'; }
+    });
+    if (btn) {
+      btn.style.display = !n && !DS.verOcultas ? 'none' : '';  // (.btn pisa el atributo hidden)
+      btn.textContent = DS.verOcultas ? 'Ocultar (' + n + ')' : 'Mostrar ocultas (' + n + ')';
+      btn.title = DS.verOcultas ? 'Vuelve a ocultar las órdenes con QC y las que ocultaste' : 'Muestra las órdenes con QC y las que ocultaste (atenuadas)';
+    }
+    if (cambio && DS.sel) { DS.sel = null; dsPintarSel(); }  // cambiaron las filas visibles: la selección ya no aplica
+  }
+  window.dsVerOcultas = function() { DS.verOcultas = !DS.verOcultas; dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard'); };
+  window.dsOjoFila = function(id) {
+    var man = dsOcultasLeer(), f = null;
+    ['principal', 'nightguard'].forEach(function(t) { f = f || (DS.diaData[t] || []).find(function(x) { return x.id === id; }); });
+    if (!f) return;
+    if (dsEstaOculta(f, man)) man[id] = f.qc ? 'visible' : undefined; else man[id] = 'oculta';
+    if (man[id] === undefined) delete man[id];
+    dsOcultasGuardar(man);
+    dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard');
+  };
+
   function dsBtnEliminar(id) {
     return '<button type="button" class="ds-btn-x" title="Eliminar orden" onclick="dsEliminarFila(' + id + ')">✕</button>';
   }
@@ -1816,6 +1879,12 @@ window.addEventListener('unhandledrejection', function(ev) {
       chk.checked = true;
       cerrar();
       dsGuardarFila(tr, tabla);
+      var idQc = parseInt(tr.dataset.id);
+      if (window.DS_GESTION && idQc) {  // se oculta a los 30 s (aprobadores)
+        var man = dsOcultasLeer(); if (man[idQc] === 'visible') { delete man[idQc]; dsOcultasGuardar(man); }
+        DS.qcGracia[idQc] = Date.now();
+        setTimeout(function() { dsAplicarOcultas(tabla); }, 30500);
+      }
     };
     var teclas = function(e) {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
@@ -1870,7 +1939,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dsDiaCerrado()) {
       // Día cerrado: todo en solo lectura; el QC sigue editable hasta las 5:00 am de D+2.
       cont.querySelectorAll('[data-campo]').forEach(function(el) {
-        el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable);
+        el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable && DS.diaData.puedeQc !== false);
       });
     }
     if (dsSoloPropias()) {
@@ -1886,6 +1955,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       });
     });
     dsPoblarCatalogos(cont, spec, tabla);
+    dsAplicarOcultas(tabla);
   }
 
   // Órdenes de otros equipos asignadas a este diseñador como prestado (solo en la vista del diseñador).
@@ -2013,7 +2083,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsSeguir(postJSON('/design/api/ordenes', datos)).then(function(o) {
         tr._creando = false;
         tr.dataset.id = o.id; tr.classList.remove('ds-fila-nueva');
-        tr.querySelector('.ds-acc').innerHTML = dsBtnEliminar(o.id);
+        tr.querySelector('.ds-acc').innerHTML = (window.DS_GESTION ? dsBtnOjo(o.id) : '') + dsBtnEliminar(o.id);
         filas.push(o);
         dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [], creadas: [{id: o.id, datos: dsClon(o)}], eliminadas: []});
         if (tr._pendiente) { tr._pendiente = false; dsGuardarFila(tr, tabla); return; }
@@ -2081,6 +2151,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsRenderKpis(DS.diaData); return;
     }
     dsPonerValores(tr, o);
+    if (tabla !== 'prestadas') setTimeout(function() { dsAplicarOcultas(tabla); }, 0);
     tr.querySelector('.ds-total').innerText = dsDuracionFila(o, tabla);
     var tdTHold = tr.querySelector('.ds-thold'); if (tdTHold) tdTHold.innerText = dsFmtMin(dsEntre(o.sHold, o.fHold));
     var selD = tr.querySelector('[data-campo="designerId"]'); if (selD) selD.dataset.previo = o.designerId || '';
@@ -2574,8 +2645,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   // ---------- Selección de celdas ----------
   DS.sel = null; // {tabla, r1, c1, r2, c2} (filas/columnas visibles de la tabla)
   function dsTablaDe(el) { var cont = el.closest('#dsTablaPrincipal, #dsTablaNightguard'); return cont ? (cont.id === 'dsTablaPrincipal' ? 'principal' : 'nightguard') : null; }
-  function dsFilasDom(tabla) { return Array.prototype.slice.call(document.querySelectorAll('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' tbody tr')); }
-  function dsCoord(td) { var tr = td.parentNode; return {r: Array.prototype.indexOf.call(tr.parentNode.children, tr), c: parseInt(td.dataset.col)}; }
+  // Solo las filas visibles (las ocultas no entran en la selección, copiar ni pegar)
+  function dsFilasDom(tabla) { return Array.prototype.slice.call(document.querySelectorAll('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' tbody tr:not(.ds-oculta)')); }
+  function dsCoord(td) { var tr = td.parentNode; return {r: dsFilasDom(dsTablaDe(td)).indexOf(tr), c: parseInt(td.dataset.col)}; }
   function dsPintarSel() {
     document.querySelectorAll('.ds-tabla td.ds-sel, .ds-tabla td.ds-sel-activa').forEach(function(td) { td.classList.remove('ds-sel', 'ds-sel-activa'); });
     var s = DS.sel; if (!s) return;
