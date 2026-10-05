@@ -246,6 +246,19 @@ window.dsPdfjs = function() {
   .cmt-field label { display:block; font-size:11px; color:#4b5563; margin-bottom:2px; }
   .cmt-field input, .cmt-field select, .cmt-field textarea { width:100%; padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; box-sizing:border-box; }
   .cmt-field input.ro { background:#f4f6f8; }
+  /* Implantes: lista de selección múltiple */
+  #cmtPanelN3 .cmt-field input.cmt-impl { cursor:pointer; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E") no-repeat right 9px center; padding-right:24px; }
+  .cmt-multi { position:absolute; z-index:330; background:#fff; border:1px solid #d8dde3; border-radius:8px; box-shadow:0 8px 24px rgba(15,23,42,.16);
+               padding:6px; display:grid; grid-template-columns:repeat(5, auto); gap:2px 6px; }
+  .cmt-multi label { display:flex; align-items:center; gap:5px; font-size:13px; padding:4px 6px; border-radius:5px; cursor:pointer; white-space:nowrap; }
+  .cmt-multi label:hover { background:#f1f5f9; }
+  .cmt-multi label.no { color:#9ca3af; cursor:not-allowed; }
+  .cmt-multi .pie { grid-column:1/-1; display:flex; justify-content:space-between; gap:8px; border-top:1px solid #eef1f6; margin-top:4px; padding-top:6px; }
+  .cmt-multi .pie button { border:0; background:none; color:#1d4ed8; font-size:12px; cursor:pointer; padding:2px 4px; }
+  /* Total moved vacío con implantes escritos: aviso */
+  #cmtPanelN3 .cmt-field input.ro.cmt-aviso { border-color:#f59e0b; background:#fffbeb; color:#92400e; cursor:help; }
+  /* Copiar Ready to mill con campos del formato vacíos */
+  #cmtPanelN3 .cmt-field .cmt-missing { border-color:#dc2626 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15); }
   .cmt-toggle-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #eee; }
   .cmt-toggle-row .lbl { font-size:12px; flex:1; }
   .cmt-toggle-row input, .cmt-toggle-row select { width:150px; padding:5px 6px; border:1px solid #d8dde3; border-radius:6px; }
@@ -830,16 +843,16 @@ window.dsPdfjs = function() {
       </div>
       <div class="cmt-section"><h4>Implants Upper</h4>
         <div class="cmt-grid c2">
-          <div class="cmt-field"><label for="cmt_b15">Skipped implants</label><input id="cmt_b15" placeholder="#11, #13"></div>
-          <div class="cmt-field"><label for="cmt_f15">Still moved</label><input id="cmt_f15" placeholder="#16"></div>
+          <div class="cmt-field"><label for="cmt_b15">Skipped implants</label><input id="cmt_b15" class="cmt-impl" data-arcada="up" data-par="cmt_f15" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
+          <div class="cmt-field"><label for="cmt_f15">Still moved</label><input id="cmt_f15" class="cmt-impl" data-arcada="up" data-par="cmt_b15" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
           <div class="cmt-field"><label for="cmt_j15">Total</label><select id="cmt_j15"></select></div>
           <div class="cmt-field"><label for="cmt_L15">Total moved (auto)</label><input class="ro" id="cmt_L15" readonly></div>
         </div>
       </div>
       <div class="cmt-section"><h4>Implants Lower</h4>
         <div class="cmt-grid c2">
-          <div class="cmt-field"><label for="cmt_b19">Skipped implants</label><input id="cmt_b19" placeholder="#36"></div>
-          <div class="cmt-field"><label for="cmt_f19">Still moved</label><input id="cmt_f19" placeholder="#33"></div>
+          <div class="cmt-field"><label for="cmt_b19">Skipped implants</label><input id="cmt_b19" class="cmt-impl" data-arcada="low" data-par="cmt_f19" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
+          <div class="cmt-field"><label for="cmt_f19">Still moved</label><input id="cmt_f19" class="cmt-impl" data-arcada="low" data-par="cmt_b19" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
           <div class="cmt-field"><label for="cmt_j19">Total</label><select id="cmt_j19"></select></div>
           <div class="cmt-field"><label for="cmt_L19">Total moved (auto)</label><input class="ro" id="cmt_L19" readonly></div>
         </div>
@@ -3027,7 +3040,8 @@ window.DS_PANELS.dashboard = ddCargar;
     if(cmtProdEq(p,"N6 - Dummy Set")) return "dummy";
     return "bar";
   }
-  function cmtImplCount(v){ return cmtNe(v) ? (cmtLen(v)+2)/5 : 0; }
+  // Cuenta los implantes por sus números (#11, #13 → 2), sin depender de cómo estén separados.
+  function cmtImplCount(v){ return cmtNe(v) ? (String(v).match(/\d+/g) || []).length : 0; }
   function cmtCalcMoved(skip, still, total){
     var t = cmtNum(total);
     var c = cmtImplCount(skip) + cmtImplCount(still);
@@ -3095,7 +3109,7 @@ window.DS_PANELS.dashboard = ddCargar;
     }
     if(cmtNe(f.b7)){
       s += "We used VDO at "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.h11)+
-           (cmtNz(f.h11)?" (Digitally "+(cmtNum(f.j11)>0?"+":"")+cmtDisp(f.j11)+")":"")+". ";
+           (cmtNz(f.h11)?" (Digitally "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.j11)+")":"")+". ";
     }
     if(cmtNe(f.b11) && !cmtRemovableLike(f.b7)) s += "This bar was adapted to "+f.b11+". ";
     if(cmtNe(f.b7) && !cmtA12Excluded(f)){
@@ -3150,12 +3164,109 @@ window.DS_PANELS.dashboard = ddCargar;
     CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); f[k] = el ? el.value : ""; });
     return f;
   }
+  // Si hay implantes elegidos pero Total moved queda vacío, el campo se marca en ámbar con ⚠ y explica por qué.
+  function cmtAvisoMovidos(id, skip, still, total, moved) {
+    var el = document.getElementById(id);
+    var falta = (cmtNe(skip) || cmtNe(still)) && (moved === "" || moved === 0);
+    el.classList.toggle('cmt-aviso', falta);
+    if (falta) {
+      el.value = '⚠';
+      el.title = cmtNe(total) ? 'Los implantes elegidos superan el Total elegido — revisa el Total o los implantes.'
+                              : 'Elige el Total para calcular los implantes movidos.';
+    } else el.removeAttribute('title');
+  }
+
+  // ---------- Skipped implants / Still moved: lista de selección múltiple ----------
+  var CMT_IMPL = {up: ['#11', '#13', '#14', '#15', '#16', '#21', '#23', '#24', '#25', '#26'],
+                  low: ['#31', '#33', '#34', '#35', '#36', '#41', '#43', '#44', '#45', '#46']};
+  function cmtNums(v) { return (String(v || '').match(/\d+/g) || []).map(function(n) { return '#' + n; }); }
+  function cmtCerrarMulti() {
+    var m = document.getElementById('cmtMulti'); if (m) m.remove();
+    document.removeEventListener('mousedown', cmtMultiFuera, true);
+    document.removeEventListener('keydown', cmtMultiTecla, true);
+  }
+  function cmtMultiFuera(e) { var m = document.getElementById('cmtMulti'); if (m && !m.contains(e.target) && !e.target.classList.contains('cmt-impl')) cmtCerrarMulti(); }
+  function cmtMultiTecla(e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); cmtCerrarMulti(); } }
+  function cmtAbrirMulti(inp) {
+    var abierto = document.getElementById('cmtMulti');
+    if (abierto && abierto.dataset.para === inp.id) { cmtCerrarMulti(); return; }
+    cmtCerrarMulti();
+    var lista = CMT_IMPL[inp.dataset.arcada], elegidos = cmtNums(inp.value), otros = cmtNums(document.getElementById(inp.dataset.par).value);
+    var m = document.createElement('div'); m.id = 'cmtMulti'; m.className = 'cmt-multi'; m.dataset.para = inp.id; m.setAttribute('role', 'listbox');
+    m.innerHTML = lista.map(function(n) {
+      var en = elegidos.indexOf(n) >= 0, no = !en && otros.indexOf(n) >= 0;
+      return '<label' + (no ? ' class="no" title="Ya está en el otro campo de esta arcada"' : '') + '><input type="checkbox" value="' + n + '"' +
+             (en ? ' checked' : '') + (no ? ' disabled' : '') + '>' + n + '</label>';
+    }).join('') + '<div class="pie"><button type="button" data-acc="limpiar">Quitar todos</button><button type="button" data-acc="cerrar">Listo</button></div>';
+    document.body.appendChild(m);
+    var r = inp.getBoundingClientRect();
+    m.style.left = (r.left + window.scrollX) + 'px'; m.style.top = (r.bottom + window.scrollY + 4) + 'px';
+    var aplicar = function() {
+      var sel = [].map.call(m.querySelectorAll('input:checked'), function(c) { return c.value; });
+      inp.value = lista.filter(function(n) { return sel.indexOf(n) >= 0; }).join(', ');
+      inp.dispatchEvent(new Event('input', {bubbles: true}));
+    };
+    m.addEventListener('change', aplicar);
+    m.addEventListener('click', function(e) {
+      var b = e.target.closest('button[data-acc]'); if (!b) return;
+      if (b.dataset.acc === 'limpiar') { m.querySelectorAll('input:checked').forEach(function(c) { c.checked = false; }); aplicar(); }
+      cmtCerrarMulti(); inp.focus();
+    });
+    document.addEventListener('mousedown', cmtMultiFuera, true);
+    document.addEventListener('keydown', cmtMultiTecla, true);
+    var primero = m.querySelector('input:not([disabled])'); if (primero) primero.focus();
+  }
+  document.addEventListener('click', function(e) {
+    var inp = e.target.closest && e.target.closest('input.cmt-impl'); if (inp) cmtAbrirMulti(inp);
+  });
+  document.addEventListener('keydown', function(e) {
+    var inp = e.target; if (!inp.classList || !inp.classList.contains('cmt-impl')) return;
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); cmtAbrirMulti(inp); }
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); inp.value = ''; inp.dispatchEvent(new Event('input', {bubbles: true})); }
+  });
+
+  // ---------- Copiar "Ready to mill": revisa que el formato esté diligenciado (como el original) ----------
+  var CMT_REQUIRED = [
+    {id: "b4", label: "Patient (General information)"}, {id: "j4", label: "Order # (General information)"},
+    {id: "b7", label: "Product"}, {id: "b11", label: "Bar adapt (Design details)"}, {id: "d11", label: "Arch size (Design details)"},
+    {id: "f11", label: "TC Custom (Design details)"}, {id: "h11", label: "VDO lab (Design details)"},
+    {id: "j11", label: "VDO Digital (Design details)"}, {id: "l11", label: "PC (Design details)"},
+    {id: "j15", label: "Total (Implants Upper)"}, {id: "j19", label: "Total (Implants Lower)"}];
+  function cmtMarcarFaltantes() {
+    var faltan = [];
+    CMT_REQUIRED.forEach(function(c) {
+      var el = document.getElementById('cmt_' + c.id), vacio = !el || String(el.value || '').trim() === '';
+      if (el) el.classList.toggle('cmt-missing', vacio);
+      if (vacio) faltan.push(c);
+    });
+    return faltan;
+  }
+  function cmtVentanaFaltantes(faltan, copiar) {
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
+    bg.innerHTML = '<div class="ds-qc" role="dialog" aria-modal="true" aria-labelledby="cmtFaltTit" style="width:440px">' +
+      '<h4 id="cmtFaltTit">Formato incompleto</h4><div class="ds-qc-sub">Estos campos del formato no fueron diligenciados. ¿Deseas copiar el comentario de todas formas o volver a editar?</div>' +
+      '<ul style="margin:6px 0 10px 18px;font-size:13px">' + faltan.map(function(c) { return '<li>' + cmtEscHtml(c.label) + '</li>'; }).join('') + '</ul>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-acc="editar">Volver a editar</button><button type="button" class="btn" data-acc="copiar">Copiar de todas formas</button></div></div>';
+    document.body.appendChild(bg);
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', tecla, true); };
+    var tecla = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
+    bg.addEventListener('click', function(e) {
+      var b = e.target.closest('[data-acc]');
+      if (e.target === bg || (b && b.dataset.acc === 'editar')) { cerrar(); var el = document.getElementById('cmt_' + faltan[0].id); if (el) el.focus(); return; }
+      if (b && b.dataset.acc === 'copiar') { cerrar(); copiar(); }
+    });
+    document.addEventListener('keydown', tecla, true);
+    bg.querySelector('[data-acc="copiar"]').focus();
+  }
+
   function cmtRecalcular() {
     var f = cmtLeer();
     var L15 = cmtCalcMoved(f.b15, f.f15, f.j15);
     var L19 = cmtCalcMoved(f.b19, f.f19, f.j19);
     document.getElementById("cmt_L15").value = cmtFmt(L15);
     document.getElementById("cmt_L19").value = cmtFmt(L19);
+    cmtAvisoMovidos("cmt_L15", f.b15, f.f15, f.j15, L15);
+    cmtAvisoMovidos("cmt_L19", f.b19, f.f19, f.j19, L19);
     document.getElementById("cmtOut1").value = cmtGenReadyToMill(f);
     document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
     cmtRenderPlantillas();
@@ -3264,7 +3375,11 @@ window.DS_PANELS.dashboard = ddCargar;
     };
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texto).then(hecho, clasico); else clasico();
   };
-  window.cmtCopiar = function(id, boton) { window.dsCopiar(document.getElementById(id).value, boton); };
+  window.cmtCopiar = function(id, boton) {
+    var copiar = function() { window.dsCopiar(document.getElementById(id).value, boton); };
+    if (id === 'cmtOut1') { var faltan = cmtMarcarFaltantes(); if (faltan.length) { cmtVentanaFaltantes(faltan, copiar); return; } }
+    copiar();
+  };
   window.cmtLimpiar = function() {
     var f = cmtLeer();
     var vaciar = function() {
@@ -3324,6 +3439,8 @@ window.DS_PANELS.dashboard = ddCargar;
     CMT_FIELDS.forEach(function(k) {
       var el = document.getElementById('cmt_' + k);
       if (el) el.addEventListener('input', cmtRecalcular);
+      if (el) el.addEventListener('input', function() { if (String(el.value || '').trim()) el.classList.remove('cmt-missing'); });
+      if (el && el.tagName === 'SELECT') el.addEventListener('change', function() { if (el.value) el.classList.remove('cmt-missing'); });
       if (el && el.tagName === 'SELECT') el.addEventListener('change', cmtRecalcular);
     });
     cmtRecalcular();
