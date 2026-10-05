@@ -2013,7 +2013,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (i >= 0) filas[i] = tabla === 'prestadas' ? Object.assign({}, filas[i], o) : o; // prestadas conserva equipo/formato
       if (tabla === 'prestadas' && i >= 0) o = filas[i];
       if (antes && !dsMismaOrden(antes, o)) {
-        dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [{id: id, antes: antes, despues: dsClon(o)}], creadas: [], eliminadas: []});
+        dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [{id: id, antes: antes, despues: dsClon(o),
+                    campos: Object.keys(envio).filter(function(k) { return DS_CAMPOS.indexOf(k) >= 0; })}], creadas: [], eliminadas: []});
       }
       dsTrasGuardar(tabla, tr, o);
     }).catch(function(e) {
@@ -2338,18 +2339,24 @@ window.addEventListener('unhandledrejection', function(ev) {
   // redibuja mientras la persona está escribiendo en una celda, tiene celdas seleccionadas, una ventana abierta o
   // un guardado en curso: se espera a que termine. Las filas que cambiaron se marcan un momento.
   var DS_VIVO_MS = 5000;
-  var dsUltimaTecla = 0;
+  var dsUltimaTecla = 0, dsUltimoClic = 0;
   document.addEventListener('input', function() { dsUltimaTecla = Date.now(); }, true);
   document.addEventListener('keydown', function() { dsUltimaTecla = Date.now(); }, true);
+  document.addEventListener('pointerdown', function() { dsUltimoClic = Date.now(); }, true);
   function dsOcupado() {
-    var a = document.activeElement, vista = document.getElementById('dsVistaEquipo');
+    var a = document.activeElement, vista = document.getElementById('dsVistaEquipo'), ahora = Date.now();
     if (window.dsEnVuelo > 0 || document.body.classList.contains('ds-cargando-dia')) return true;
+    if (document.querySelector('.ds-qc-bg, #dsPop')) return true;  // ventana abierta (QC, prestado, a cargo, cantidad)
     if (a && vista && vista.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) {
       // está escribiendo (hace menos de 3 s) o tiene un cambio sin guardar en la celda: se espera
-      if (Date.now() - dsUltimaTecla < 3000) return true;
+      if (ahora - dsUltimaTecla < 3000) return true;
       if (a._alEnfocar !== undefined && a.type !== 'checkbox' && a.value !== a._alEnfocar) return true;
+      // una lista recién abierta: redibujar la cerraría
+      if (a.tagName === 'SELECT' && ahora - Math.max(dsUltimoClic, dsUltimaTecla) < 10000) return true;
     }
-    if (document.querySelector('.ds-qc-bg, #dsPop, .ds-tabla td.ds-sel, .ds-tabla td.ds-sel-activa')) return true;
+    // celdas seleccionadas para copiar/pegar: se espera mientras la persona siga trabajando (15 s sin tocar nada)
+    if (document.querySelector('.ds-tabla td.ds-sel, .ds-tabla td.ds-sel-activa') &&
+        ahora - Math.max(dsUltimoClic, dsUltimaTecla) < 15000) return true;
     return false;
   }
   function dsHuellaFila(f) { var c = Object.assign({}, f); return JSON.stringify(c); }
@@ -2480,8 +2487,11 @@ window.addEventListener('unhandledrejection', function(ev) {
         return creadas;
       });
   }
-  function dsActualizarOrden(id, tabla, datos) {
-    return postJSON('/design/api/ordenes/' + dsIdReal(id), Object.assign(dsSoloCampos(datos),
+  // `campos`: solo esos campos (los que tocó la operación), para no pisar lo que otra persona cambió en la misma orden.
+  function dsActualizarOrden(id, tabla, datos, campos) {
+    var cuerpo = dsSoloCampos(datos);
+    if (campos && campos.length) { var sub = {}; campos.forEach(function(k) { if (k in cuerpo) sub[k] = cuerpo[k]; }); cuerpo = sub; }
+    return postJSON('/design/api/ordenes/' + dsIdReal(id), Object.assign(cuerpo,
       {teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada()), tabla: tabla === 'prestadas' ? (datos.tabla || 'principal') : tabla}));
   }
   function dsBorrarOrden(id) { return postJSON('/design/api/ordenes/' + dsIdReal(id) + '/eliminar', {}); }
@@ -2492,7 +2502,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var aCrear = atras ? op.eliminadas : op.creadas, aBorrar = atras ? op.creadas : op.eliminadas;
     var pasos = [];
     aBorrar.forEach(function(x) { pasos.push(dsBorrarOrden(x.id)); });
-    op.ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, op.tabla, atras ? e.antes : e.despues)); });
+    op.ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, op.tabla, atras ? e.antes : e.despues, e.campos)); });
     return Promise.all(pasos).then(function() {
       if (!aCrear.length) return;
       return dsCrearOrdenes(op.tabla, aCrear.map(function(x) { return dsSoloCampos(x.datos); }), false).then(function(nuevas) {
@@ -2646,11 +2656,11 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (!local) return;
       var antes = dsClon(local), despues = Object.assign(dsClon(local), valores);
       if (dsMismaOrden(antes, despues)) return;
-      ediciones.push({id: id, antes: antes, despues: despues});
+      ediciones.push({id: id, antes: antes, despues: despues, campos: Object.keys(valores)});
     });
     nuevas = nuevas.concat(extras || []);
     if (!ediciones.length && !nuevas.length) return Promise.resolve();
-    ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, tabla, e.despues).then(function(o) { e.despues = dsClon(o); })); });
+    ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, tabla, e.despues, e.campos).then(function(o) { e.despues = dsClon(o); })); });
     return Promise.all(pasos).then(function() {
       return nuevas.length && dsPuedeCrear() ? dsCrearOrdenes(tabla, nuevas, false) : [];
     }).then(function(creadas) {

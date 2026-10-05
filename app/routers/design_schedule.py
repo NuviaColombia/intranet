@@ -1044,7 +1044,10 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         # El resto de campos se ignora.
         if not sd.qc_editable(orden_existente.fecha):
             raise HTTPException(403, DIA_CERRADO)
-        o = sd.actualizar_orden(db, orden_id, {"qc": payload.qc, "qc_reporte": payload.qcReporte})
+        # solo lo que llegó: si no se envió el checkbox (no cambió), no se desmarca
+        qc = {c: v for k, c, v in (("qc", "qc", payload.qc), ("qcReporte", "qc_reporte", payload.qcReporte))
+              if k in payload.model_fields_set}
+        o = sd.actualizar_orden(db, orden_id, qc) if qc else orden_existente
         return sd.serializar_orden(o)
     enviados = {CAMPO_COLUMNA[k] for k in payload.model_fields_set if k in CAMPO_COLUMNA}
     datos = {k: v for k, v in _datos_desde_in(payload).items() if k in enviados}
