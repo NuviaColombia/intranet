@@ -24,7 +24,7 @@
 {% set sec_permitidas = secciones if secciones is defined else none %}
 {% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_sst or es_conteo %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
-  <a href="/" class="marca" title="Ir al inicio: todos los módulos">
+  <a href="{{ '/design/inicio' if es_design else '/' }}" class="marca" title="{{ 'Ir a la página principal de Design' if es_design else 'Ir al inicio: todos los módulos' }}">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </a>

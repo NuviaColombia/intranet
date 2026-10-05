@@ -204,6 +204,12 @@ def api_rol_design(payload: RolDesignIn, user: Empleado = Depends(require_admin)
             "detalle": f"{obj.nombre_completo}: en Design es {efectivo}" + (" (igual que en People)." if efectivo == rol_people else ".")}
 
 
+@router.get("/design/inicio")
+def pagina_inicio(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
+    """Página principal de Design: se abre desde la tarjeta de Módulos y con el logo (por ahora vacía)."""
+    return templates.TemplateResponse(request, "design_inicio.html", {"user": user, "es_design": True})
+
+
 @router.get("/design")
 def pagina(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
                  db: Session = Depends(get_db)):
