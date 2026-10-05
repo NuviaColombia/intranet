@@ -249,7 +249,7 @@ window.dsPdfjs = function() {
   /* Implantes: lista de selección múltiple */
   #cmtPanelN3 .cmt-field input.cmt-impl { cursor:pointer; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E") no-repeat right 9px center; padding-right:24px; }
   .cmt-multi { position:absolute; z-index:330; background:#fff; border:1px solid #d8dde3; border-radius:8px; box-shadow:0 8px 24px rgba(15,23,42,.16);
-               padding:6px; display:grid; grid-template-columns:repeat(5, auto); gap:2px 6px; }
+               padding:6px; display:grid; grid-template-columns:repeat(4, auto); gap:2px 6px; }
   .cmt-multi label { display:flex; align-items:center; gap:5px; font-size:13px; padding:4px 6px; border-radius:5px; cursor:pointer; white-space:nowrap; }
   .cmt-multi label:hover { background:#f1f5f9; }
   .cmt-multi label.no { color:#9ca3af; cursor:not-allowed; }
@@ -3196,8 +3196,8 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   // ---------- Skipped implants / Still moved: lista de selección múltiple ----------
-  var CMT_IMPL = {up: ['#11', '#13', '#14', '#15', '#16', '#21', '#23', '#24', '#25', '#26'],
-                  low: ['#31', '#33', '#34', '#35', '#36', '#41', '#43', '#44', '#45', '#46']};
+  var CMT_IMPL = {up: ['#11', '#13', '#16', '#18', '#21', '#23', '#26', '#28'],
+                  low: ['#31', '#33', '#36', '#38', '#41', '#43', '#46', '#48']};
   function cmtNums(v) { return (String(v || '').match(/\d+/g) || []).map(function(n) { return '#' + n; }); }
   function cmtCerrarMulti() {
     var m = document.getElementById('cmtMulti'); if (m) m.remove();
