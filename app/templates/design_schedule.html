@@ -886,7 +886,7 @@ window.dsPdfjs = function() {
 
     <div class="cmt-col">
       <div class="cmt-section cmt-section-tpl"><div class="cmt-tpl-h"><h4>Plantillas de notas</h4><button type="button" class="cmt-tpl-add" title="Agregar nota nueva" onclick="cmtNotaAbrir()">+</button></div><div id="cmtTplList"></div></div>
-      <div class="cmt-section"><h4>Historial (se borra a los 2 días)</h4><div id="cmtHistList"></div></div>
+      <div class="cmt-section"><h4>Historial <span id="cmtHistCount" style="color:#64748b;font-weight:600"></span> (se borra a los 2 días)</h4><div id="cmtHistList"></div></div>
     </div>
   </div>
 </div>
@@ -3259,6 +3259,14 @@ window.DS_PANELS.dashboard = ddCargar;
     bg.querySelector('[data-acc="copiar"]').focus();
   }
 
+  // Las cajas de comentario crecen con el texto (como el original): sin barra para leer todo.
+  function cmtAutoGrow(el) {
+    if (!el || !el.offsetParent) return;
+    var min = parseInt(el.dataset.minAlto || '0', 10);
+    if (!min) { min = el.offsetHeight || 120; el.dataset.minAlto = min; }
+    el.style.height = 'auto'; el.style.height = Math.max(min, el.scrollHeight + 2) + 'px';
+  }
+
   function cmtRecalcular() {
     var f = cmtLeer();
     var L15 = cmtCalcMoved(f.b15, f.f15, f.j15);
@@ -3269,6 +3277,7 @@ window.DS_PANELS.dashboard = ddCargar;
     cmtAvisoMovidos("cmt_L19", f.b19, f.f19, f.j19, L19);
     document.getElementById("cmtOut1").value = cmtGenReadyToMill(f);
     document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
+    cmtAutoGrow(document.getElementById("cmtOut1")); cmtAutoGrow(document.getElementById("cmtOut2"));
     cmtRenderPlantillas();
   }
   function cmtEscHtml(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -3386,7 +3395,8 @@ window.DS_PANELS.dashboard = ddCargar;
       CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = ""; });
       cmtRecalcular();
     };
-    if (!(f.b4 || f.j4)) { vaciar(); return; }
+    // como el original: se guarda si hay cualquier dato (sin paciente queda como "(sin nombre)")
+    if (!CMT_FIELDS.some(function(k) { return cmtNe(f[k]); })) { vaciar(); return; }
     postJSON('/design/api/comentarios/historial', {paciente: f.b4, orden: f.j4, campos: f})
       .then(function() { vaciar(); cmtCargarHistorial(); })
       .catch(function(e) { alert('No se guardó en el historial, así que no se borró el formulario: ' + e.message); });
@@ -3395,11 +3405,25 @@ window.DS_PANELS.dashboard = ddCargar;
     CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = campos[k] || ""; });
     cmtRecalcular();
   }
+  // "Hoy 14:05", "Ayer 09:30" o "03/10 16:20", en la hora del computador (el servidor guarda UTC).
+  function cmtFechaHist(iso) {
+    if (!iso) return '';
+    var d = new Date(/Z|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z'), hoy = new Date(), pad = function(n) { return String(n).padStart(2, '0'); };
+    if (isNaN(d)) return '';
+    var hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (d.toDateString() === hoy.toDateString()) return 'Hoy ' + hm;
+    var ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+    if (d.toDateString() === ayer.toDateString()) return 'Ayer ' + hm;
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + hm;
+  }
   function cmtCargarHistorial() {
     api('/design/api/comentarios/historial').then(function(hist) {
       var cont = document.getElementById('cmtHistList');
+      document.getElementById('cmtHistCount').textContent = hist.length ? '(' + hist.length + ')' : '';
       cont.innerHTML = hist.map(function(h) {
-        return '<div class="cmt-hist-item"><span>' + cmtEscHtml(h.paciente || '') + ' ' + cmtEscHtml(h.orden || '') + '</span>' +
+        var nombre = ((h.paciente || '') + ' ' + (h.orden || '')).trim() || '(sin nombre)';
+        return '<div class="cmt-hist-item"><span>' + cmtEscHtml(nombre) +
+               ' <small style="color:#64748b;white-space:nowrap">' + cmtFechaHist(h.creadoEn) + '</small></span>' +
                '<span><button type="button" class="btn mini" onclick="cmtVerHistorial(' + h.id + ')">Cargar</button> ' +
                '<button type="button" class="btn rojo mini" onclick="cmtBorrarHistorial(' + h.id + ')">×</button></span></div>';
       }).join('') || '<p style="color:#4b5563;font-size:12px">Sin historial reciente.</p>';
@@ -3417,7 +3441,7 @@ window.DS_PANELS.dashboard = ddCargar;
   var cmtListo = false;
   function cmtInit() {
     if (!CMT_PERM.n3) { if (CMT_PERM.faq) cmtMostrarTab('faq'); return; }  // solo N2 / Face: abre esa pestaña
-    if (cmtListo) { cmtCargarHistorial(); cmtCargarPlantillas(); return; }
+    if (cmtListo) { cmtCargarHistorial(); cmtCargarPlantillas(); setTimeout(cmtRecalcular, 0); return; }
     cmtListo = true;
     document.getElementById('cmt_d11').innerHTML = '<option value="">—</option>' + CMT_ARCH.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
     document.getElementById('cmt_j15').innerHTML = '<option value="">—</option>' + CMT_TOTALS.map(function(a) { return '<option value="'+a+'">'+a+'</option>'; }).join('');
@@ -3444,6 +3468,7 @@ window.DS_PANELS.dashboard = ddCargar;
       if (el && el.tagName === 'SELECT') el.addEventListener('change', cmtRecalcular);
     });
     cmtRecalcular();
+    setTimeout(cmtRecalcular, 0);  // con el panel ya visible, para que las cajas tomen su alto
     cmtCargarHistorial();
     cmtCargarPlantillas();
   }
