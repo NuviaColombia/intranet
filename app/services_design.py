@@ -16,7 +16,7 @@ from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCa
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
                             DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc,
                             DesignComentarioTemplate, DesignFaqHoja, DesignProtocoloArea,
-                            DesignProtocoloArchivo, DesignProtocoloPagina)
+                            DesignProtocoloArchivo, DesignProtocoloPagina, DesignProtocoloMiniatura)
 
 CAMPOS_ORDEN = [
     "orden", "paciente", "centro", "producto", "designer_id", "designer_prestado",
@@ -2397,6 +2397,50 @@ def _pr_visibles(db: Session, area_id: int | None):
     return q
 
 
+# Quién ve qué: cada equipo ve los protocolos de su área y los de su área pareja. Admins, Support y quien no
+# está en un equipo de estas áreas ven todo. Los protocolos "General" (sin áreas) los ven todos.
+PR_PAREJAS = {"N2 Demodenture": "Face Design", "Face Design": "N2 Demodenture",
+              "N3 Prosthetic": "N6 Material Changes", "N6 Material Changes": "N3 Prosthetic"}
+
+
+def pr_areas_permitidas(db: Session, user: Empleado) -> set[int] | None:
+    """Áreas de Protocols que puede ver la persona; None = todas."""
+    if es_admin(user):
+        return None
+    areas = {a.id: a for a in db.query(DesignArea).all()}
+    mias = [areas[e["areaId"]] for e in mis_equipos(db, user) if e["areaId"] in areas]
+    if any(a.formato == FORMATO_SUPPORT for a in mias):
+        return None
+    nombres = {a.nombre for a in mias if a.nombre in PR_PAREJAS}
+    if not nombres:
+        return None
+    nombres |= {PR_PAREJAS[n] for n in nombres}
+    return {a.id for a in areas.values() if a.nombre in nombres}
+
+
+def pr_puede_ver(db: Session, protocolo_id: int, permitidas: set[int] | None) -> bool:
+    if permitidas is None:
+        return True
+    ids = _pr_areas_ids(db, protocolo_id)
+    return not ids or bool(set(ids) & permitidas)
+
+
+def pr_miniatura(db: Session, archivo_id: int) -> DesignProtocoloMiniatura | None:
+    return db.get(DesignProtocoloMiniatura, archivo_id)
+
+
+def pr_miniatura_guardar(db: Session, archivo_id: int, tipo: str, datos: bytes, reemplazar: bool) -> bool:
+    m = db.get(DesignProtocoloMiniatura, archivo_id)
+    if m and not reemplazar:
+        return False
+    if m:
+        m.tipo, m.datos, m.creado_en = tipo, datos, datetime.utcnow()
+    else:
+        db.add(DesignProtocoloMiniatura(archivo_id=archivo_id, tipo=tipo, datos=datos))
+    db.commit()
+    return True
+
+
 def pr_resumen(db: Session, p: DesignProtocolo, areas_por_id: dict | None = None) -> dict:
     areas_por_id = areas_por_id or {a.id: a.nombre for a in db.query(DesignArea).all()}
     arch = (db.query(DesignProtocoloArchivo.id, DesignProtocoloArchivo.nombre, DesignProtocoloArchivo.tamano,
@@ -2420,13 +2464,16 @@ def protocolos_listar(db: Session, area_id: int | None = None) -> list[dict]:
     areas = {}
     for r in db.query(DesignProtocoloArea).filter(DesignProtocoloArea.protocolo_id.in_(ids)):
         areas.setdefault(r.protocolo_id, []).append(r.area_id)
+    con_mini = {r[0] for r in db.query(DesignProtocoloMiniatura.archivo_id)
+                .filter(DesignProtocoloMiniatura.archivo_id.in_([a.id for a in archivos.values()] or [0]))}
     out = []
     for p in protos:
         a = archivos.get(p.id)
         out.append({"id": p.id, "titulo": p.titulo, "descripcion": p.descripcion, "version": p.version,
                     "creadoPor": p.creado_por, "areas": [{"id": i, "nombre": areas_por_id.get(i, "")} for i in areas.get(p.id, [])],
                     "tieneArchivo": bool(a), "archivo": a.nombre if a else "", "tamano": a.tamano if a else 0,
-                    "paginas": a.paginas if a else 0, "archivoId": a.id if a else None})
+                    "paginas": a.paginas if a else 0, "archivoId": a.id if a else None,
+                    "miniatura": bool(a) and a.id in con_mini})
     return out
 
 
@@ -2541,6 +2588,7 @@ def pr_subida_iniciar(db: Session, nombre: str, tamano: int) -> DesignProtocoloA
                                                      DesignProtocoloArchivo.creado_en < ayer)
     for a in viejas:
         if a.id not in en_papelera:
+            db.query(DesignProtocoloMiniatura).filter(DesignProtocoloMiniatura.archivo_id == a.id).delete()
             db.delete(a)
     a = DesignProtocoloArchivo(protocolo_id=None, nombre=(nombre or "")[:255], tamano=int(tamano), paginas=0, datos=b"")
     db.add(a)
@@ -2666,6 +2714,9 @@ def pr_limpiar_archivos_huerfanos(db: Session) -> None:
     q = db.query(DesignProtocoloArchivo).filter(DesignProtocoloArchivo.protocolo_id.is_(None))
     if en_papelera:
         q = q.filter(~DesignProtocoloArchivo.id.in_(en_papelera))
+    huerfanos = [r[0] for r in q.with_entities(DesignProtocoloArchivo.id)]
+    if huerfanos:
+        db.query(DesignProtocoloMiniatura).filter(DesignProtocoloMiniatura.archivo_id.in_(huerfanos)).delete(synchronize_session=False)
     q.delete(synchronize_session=False)
 
 

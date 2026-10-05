@@ -220,6 +220,8 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
               "misEquipos": sd.mis_equipos(db, user),  # empleados y aprobadores entran directo a su schedule
               "comments": sd.comments_permitidos(db, user),
               "miPreapproved": sd.preapproved_hoja_de(db, user)}  # Pre-Approved abre la hoja de su equipo
+    pr_areas = sd.pr_areas_permitidas(db, user)  # Protocols: su área y la pareja (None = todas)
+    inicio["prAreas"] = sorted(pr_areas) if pr_areas is not None else None
     inicio["miEquipo"] = ({"areaId": inicio["misEquipos"][0]["areaId"], "teamId": inicio["misEquipos"][0]["teamId"]}
                           if inicio["misEquipos"] else None)
     # `areas` también llena el filtro de Área del Dashboard (desde que Design es una sola página salía vacío).
@@ -1941,15 +1943,29 @@ def _pr_editor(user: Empleado) -> None:
         raise HTTPException(403, "Solo los administradores pueden subir o editar protocolos.")
 
 
+def _pr_area_permitida(db: Session, user: Empleado, area_id: int) -> None:
+    """Cada equipo ve los protocolos de su área y de su pareja (N2↔Face, N3↔N6); ver sd.pr_areas_permitidas."""
+    permitidas = sd.pr_areas_permitidas(db, user)
+    if permitidas is not None and area_id not in permitidas:
+        raise HTTPException(403, "No tienes acceso a los protocolos de esa área.")
+
+
+def _pr_protocolo_permitido(db: Session, user: Empleado, protocolo_id: int) -> None:
+    if not sd.pr_puede_ver(db, protocolo_id, sd.pr_areas_permitidas(db, user)):
+        raise HTTPException(403, "No tienes acceso a este protocolo.")
+
+
 @router.get("/design/api/protocolos")
 def api_protocolos_listar(area_id: int = 0, user: Empleado = Depends(require_modulo("design_schedule")),
                                 db: Session = Depends(get_db)):
+    _pr_area_permitida(db, user, area_id)
     return {"protocolos": sd.protocolos_listar(db, area_id or None), "puedeEditar": user.rol in PROTOCOLOS_ROLES_EDITAN}
 
 
 @router.get("/design/api/protocolos/buscar")
 def api_protocolos_buscar(q: str = "", area_id: int = 0, protocolo_id: int = 0, solo: str = "",
                                 user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pr_area_permitida(db, user, area_id)
     ids = [int(x) for x in solo.split(",") if x.strip().isdigit()]
     return sd.protocolos_buscar(db, area_id or None, q, protocolo_id or None, protocolo_ids=ids or None)
 
@@ -1966,6 +1982,7 @@ def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(require_mo
     p = sd.protocolo_detalle(db, protocolo_id)
     if not p:
         raise HTTPException(404, "No encontrado.")
+    _pr_protocolo_permitido(db, user, protocolo_id)
     d = sd.pr_resumen(db, p)
     d["contenido"] = p.contenido
     return d
@@ -1979,6 +1996,7 @@ def api_protocolo_pdf(protocolo_id: int, request: Request, user: Empleado = Depe
     a = sd.pr_archivo_info(db, protocolo_id)
     if not a:
         raise HTTPException(404, "Este protocolo no tiene PDF.")
+    _pr_protocolo_permitido(db, user, protocolo_id)
     archivo_id, total = a.id, int(a.tamano or 0)
     nombre = (a.nombre or "protocolo.pdf").replace('"', "").encode("ascii", "ignore").decode() or "protocolo.pdf"
     base = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=86400", "ETag": f'"pr{archivo_id}-{total}"',
@@ -2009,6 +2027,41 @@ def api_protocolo_pdf(protocolo_id: int, request: Request, user: Empleado = Depe
         finally:
             s2.close()
     return StreamingResponse(trozos(), media_type="application/pdf", headers={**base, "Content-Length": str(total)})
+
+
+# Miniatura de la primera diapositiva: la tarjeta muestra esta imagen en vez de abrir el PDF (que es lento).
+PR_MINI_TIPOS = ("image/jpeg", "image/png", "image/webp")
+
+
+@router.get("/design/api/protocolos/{protocolo_id}/miniatura")
+def api_protocolo_miniatura(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                            db: Session = Depends(get_db)):
+    a = sd.pr_archivo_info(db, protocolo_id)
+    m = sd.pr_miniatura(db, a.id) if a else None
+    if not m:
+        raise HTTPException(404, "Sin miniatura.")
+    _pr_protocolo_permitido(db, user, protocolo_id)
+    return Response(content=m.datos, media_type=m.tipo,
+                    headers={"Cache-Control": "private, max-age=604800", "ETag": f'"mini{a.id}"'})
+
+
+@router.post("/design/api/protocolos/{protocolo_id}/miniatura")
+async def api_protocolo_miniatura_guardar(protocolo_id: int, request: Request,
+                                          user: Empleado = Depends(require_modulo("design_schedule")),
+                                          db: Session = Depends(get_db)):
+    tipo = (request.headers.get("content-type") or "").split(";")[0].strip()
+    if tipo not in PR_MINI_TIPOS:
+        raise HTTPException(400, "Formato de imagen no válido.")
+    datos = await request.body()
+    if not datos or len(datos) > 400 * 1024:
+        raise HTTPException(400, "La miniatura debe pesar menos de 400 KB.")
+    a = sd.pr_archivo_info(db, protocolo_id)
+    if not a:
+        raise HTTPException(404, "Este protocolo no tiene PDF.")
+    _pr_protocolo_permitido(db, user, protocolo_id)
+    # La primera que llega queda; solo quien edita protocolos puede reemplazarla.
+    guardada = sd.pr_miniatura_guardar(db, a.id, tipo, datos, reemplazar=user.rol in PROTOCOLOS_ROLES_EDITAN)
+    return {"ok": True, "guardada": guardada}
 
 
 class PdfNuevoIn(BaseModel):

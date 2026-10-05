@@ -456,6 +456,18 @@ class DesignProtocoloArchivo(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignProtocoloMiniatura(Base):
+    """Imagen pequeña de la primera diapositiva de un PDF de Protocols, para las tarjetas (así no se abre el
+    PDF para cada tarjeta). La genera el navegador la primera vez que alguien ve el protocolo.
+    Va por archivo_id (sin llave foránea: se borra junto con el archivo)."""
+    __tablename__ = "design_protocolo_miniaturas"
+
+    archivo_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(30), default="image/jpeg")
+    datos: Mapped[bytes] = mapped_column(LargeBinary)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignProtocoloPagina(Base):
     """Texto de cada diapositiva/página del PDF, para el buscador. texto_norm es el mismo
     texto en minúsculas y sin tildes (misma longitud, para ubicar la coincidencia)."""

@@ -5806,6 +5806,9 @@ window.DS_PANELS.dashboard = ddCargar;
   function cargarAreas() {
     window.dsAreas().catch(function(e) { prErrorGrid('No se pudieron cargar las áreas: ' + e.message, cargarAreas); return null; }).then(function(areas) {
       if (!areas) return;
+      // Cada equipo ve su área y la pareja (N2↔Face, N3↔N6); null = todas (admins, Support, sin equipo)
+      var permitidas = window.DS_INICIO && window.DS_INICIO.prAreas;
+      if (permitidas) areas = areas.filter(function(a) { return permitidas.indexOf(a.id) >= 0; });
       PR.areas = areas;
       var actual = window.dsAreaActual && window.dsAreaActual();
       if (!PR.areaId || !areas.some(function(a) { return a.id === PR.areaId; })) {
@@ -5906,7 +5909,9 @@ window.DS_PANELS.dashboard = ddCargar;
   var prObs = ('IntersectionObserver' in window) ? new IntersectionObserver(function(ents) {
     ents.forEach(function(e) { if (e.isIntersecting) { prObs.unobserve(e.target); e.target._dibujar(); } });
   }, {rootMargin: '300px'}) : null;
-  function prMiniatura(thumb, id, pagina, palabras) {
+  // guardar: la primera diapositiva sin búsqueda se sube como imagen pequeña; la próxima vez la tarjeta
+  // muestra esa imagen y no abre el PDF (abrir cada PDF es lo que hacía lenta la lista).
+  function prMiniatura(thumb, id, pagina, palabras, guardar) {
     var seq = PR.seq;
     thumb.innerHTML = '<span class="pr-cargando">Cargando…</span>';
     thumb._dibujar = function() {
@@ -5914,6 +5919,7 @@ window.DS_PANELS.dashboard = ddCargar;
         if (seq !== PR.seq) return Promise.resolve();
         var c = document.createElement('canvas');
         return prDibujar(c, id, pagina, Math.max(260, thumb.clientWidth || 300), palabras).then(function() {
+          if (guardar) prSubirMiniatura(id, c);
           if (seq !== PR.seq) return;
           thumb.innerHTML = ''; thumb.appendChild(c); c.style.width = '100%'; c.style.height = 'auto';
           if (thumb._pag) thumb.appendChild(thumb._pag);
@@ -5921,6 +5927,23 @@ window.DS_PANELS.dashboard = ddCargar;
       });
     };
     if (prObs) prObs.observe(thumb); else thumb._dibujar();
+  }
+  function prSubirMiniatura(id, canvas) {
+    try {
+      var ancho = Math.min(560, canvas.width), alto = Math.round(canvas.height * ancho / canvas.width);
+      var c2 = document.createElement('canvas'); c2.width = ancho; c2.height = alto;
+      var ctx = c2.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, ancho, alto); ctx.drawImage(canvas, 0, 0, ancho, alto);
+      c2.toBlob(function(b) {
+        if (b && b.size < 400 * 1024) fetch('/design/api/protocolos/' + id + '/miniatura', {method: 'POST', headers: {'Content-Type': 'image/jpeg'}, body: b}).catch(function() {});
+      }, 'image/jpeg', 0.82);
+    } catch (e) {}
+  }
+  function prMiniaturaGuardada(thumb, p) {
+    var img = new Image(); img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+    img.style.width = '100%'; img.style.height = 'auto'; img.style.display = 'block';
+    img.onerror = function() { prMiniatura(thumb, p.id, 1, null, true); };  // si falla, como antes: desde el PDF
+    img.src = '/design/api/protocolos/' + p.id + '/miniatura?v=' + p.archivoId;
+    thumb.innerHTML = ''; thumb.appendChild(img);
   }
   function prTeclado(card, nombre) {
     card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', 'Abrir ' + nombre);
@@ -5951,7 +5974,9 @@ window.DS_PANELS.dashboard = ddCargar;
       card.querySelector('.pr-titulo').textContent = p.titulo;
       card.querySelector('.pr-sub').textContent = (p.tieneArchivo ? p.paginas + ' diapositivas · ' + prTam(p.tamano) : 'Protocolo de texto') + (p.version ? ' · ' + p.version : '');
       var th = card.querySelector('.pr-thumb');
-      if (p.tieneArchivo) prMiniatura(th, p.id, 1, null); else th.innerHTML = '<span class="pr-texto-ico">📄</span>';
+      if (p.tieneArchivo && p.miniatura) prMiniaturaGuardada(th, p);
+      else if (p.tieneArchivo) prMiniatura(th, p.id, 1, null, true);
+      else th.innerHTML = '<span class="pr-texto-ico">📄</span>';
       if (PR.edita) {
         var acc = document.createElement('div'); acc.className = 'pr-acc';
         acc.innerHTML = '<button type="button" title="Editar título y áreas">✎</button><button type="button" title="Eliminar (va a la Papelera)">🗑</button>';
