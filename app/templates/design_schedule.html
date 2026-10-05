@@ -181,6 +181,7 @@ window.dsPdfjs = function() {
   table.ds-tabla tr.ds-fila-nueva td { background:#fafbfc; }
   /* Schedule en vivo: fila que alguien más acaba de cambiar */
   table.ds-tabla tr.ds-vivo td { background:#fef9c3 !important; transition: background .6s; }
+  table.pa-t td.pa-vivo { background:#fef9c3 !important; transition: background .6s; }
   /* Encabezados ordenables (Centro, Producto, Diseñador, Estado) */
   /* El texto queda centrado como en las demás columnas y la flecha va al extremo derecho de la celda */
   table.ds-tabla th.ds-th-sort { cursor:pointer; user-select:none; white-space:nowrap; position:relative; padding-left:20px; padding-right:20px; }
@@ -1894,7 +1895,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (c.t === 'text') return '<input type="text" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
     if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || 0) + '">';
     if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
-    if (c.t === 'checkbox') return '<input type="checkbox" data-campo="' + c.k + '"' + al + ' ' + (val ? 'checked' : '') + '>';
+    if (c.t === 'checkbox') {
+      var bloq = c.k === 'qc' && DS.diaData && DS.diaData.puedeQc === false;  // el QC lo marcan aprobadores y el diseñador a cargo
+      return '<input type="checkbox" data-campo="' + c.k + '"' + al + ' ' + (val ? 'checked' : '') +
+             (bloq ? ' disabled title="Solo los aprobadores marcan el QC"' : '') + '>';
+    }
     if (c.t === 'select') {
       var html = '<select data-campo="' + c.k + '"' + al + '>';
       c.opciones.forEach(function(o) { html += '<option value="' + dsEsc(o) + '"' + (o === val ? ' selected' : '') + '>' + (o ? dsEsc(o) : '—') + '</option>'; });
@@ -2644,6 +2649,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Aplica valores a varias celdas: [{tr, spec, valor}] + filas nuevas (arreglo de {campo: valor}).
   // Todo en una sola operación de historial; al final se redibujan las tablas.
   function dsAplicarLote(tabla, cambios, extras) {
+    if (DS.diaData && DS.diaData.puedeQc === false) cambios = cambios.filter(function(x) { return x.spec.k !== 'qc'; });
     var filas = DS.diaData[tabla] || [], porFila = new Map();
     cambios.forEach(function(x) {
       if (!porFila.has(x.tr)) porFila.set(x.tr, {});
@@ -3635,8 +3641,12 @@ window.DS_PANELS.dashboard = ddCargar;
   }
 
   function paPost(url, body) {
-    return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})})
+    PA.enVuelo = (PA.enVuelo || 0) + 1;
+    var fin = function() { PA.enVuelo = Math.max(0, PA.enVuelo - 1); };
+    var pr = fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})})
       .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo guardar.'); return d; }); });
+    pr.then(fin, fin);
+    return pr;
   }
   function paError(e) { alert(e && e.message ? e.message : 'No se pudo guardar.'); cargarDetalle(); }
 
@@ -3663,19 +3673,67 @@ window.DS_PANELS.dashboard = ddCargar;
     cargarDetalle();
   }
 
-  function cargarDetalle() {
+  function cargarDetalle(enVivo) {
     var id = PA.sheetId;
-    if (!id) return;
-    api('/design/api/preapproved/sheets/' + id).then(function(d) {
+    if (!id) return Promise.resolve();
+    return api('/design/api/preapproved/sheets/' + id).then(function(d) {
       if (id !== PA.sheetId || !d || !d.id) return;
-      PA.detalle = d; PA.edita = !!d.puedeEditar;
+      var previo = PA.detalle && PA.detalle.id === d.id ? PA.detalle : null;
+      if (enVivo && previo && JSON.stringify(previo) === JSON.stringify(d)) return;  // fue un cambio propio: ya se ve
+      PA.detalle = d; PA.edita = !!d.puedeEditar; PA.version = null;
       mostrarHoja(true);
-      var sc = document.getElementById('paScroll'), x = sc.scrollLeft;
+      var sc = document.getElementById('paScroll'), x = sc.scrollLeft, ov = document.getElementById('ov-preapproved'), y = ov ? ov.scrollTop : 0;
       renderTabla(d);
-      sc.scrollLeft = x;
+      sc.scrollLeft = x; if (ov && enVivo) ov.scrollTop = y;
       paMarcarBusqueda();
+      if (enVivo && previo) {  // marca un momento las celdas que cambió otra persona
+        d.filas.forEach(function(f) {
+          var fp = previo.filas.find(function(z) { return z.id === f.id; });
+          Object.keys(f.valores).forEach(function(doc) {
+            if (fp && (fp.valores[doc] || '') === (f.valores[doc] || '')) return;
+            var td = document.querySelector('#paTabla td[data-fila="' + f.id + '"][data-doc="' + doc + '"]');
+            if (td) { td.classList.add('pa-vivo'); setTimeout(function() { td.classList.remove('pa-vivo'); }, 2500); }
+          });
+        });
+      }
     });
   }
+
+  // ---------- Pre-Approved en vivo ----------
+  // Cada 5 s se pregunta la huella de la hoja abierta; si alguien la cambió, se vuelve a pedir y se redibuja
+  // (conservando la posición). No se redibuja mientras la persona está editando una celda, tiene la ventana de
+  // Cambios abierta, está ajustando un ancho o hay un guardado en curso.
+  var paUltimaTecla = 0;
+  document.addEventListener('keydown', function() { paUltimaTecla = Date.now(); }, true);
+  function paOcupado() {
+    var a = document.activeElement, ov = document.getElementById('ov-preapproved');
+    if (PA.enVuelo > 0) return true;
+    if (a && ov && ov.contains(a) && (a.isContentEditable || a.tagName === 'INPUT' && a.type !== 'search')) return true;
+    if (a && a.id === 'paBuscar' && Date.now() - paUltimaTecla < 3000) return true;
+    if (document.querySelector('#pacModal.open, .pa-rz.activo')) return true;
+    return document.body.style.cursor === 'col-resize';
+  }
+  function paVivoTick() {
+    var ov = document.getElementById('ov-preapproved');
+    if (document.hidden || !ov || !ov.classList.contains('open') || !PA.sheetId || !PA.detalle) return;
+    var id = PA.sheetId;
+    api('/design/api/preapproved/sheets/' + id + '/version').then(function(r) {
+      if (!r || id !== PA.sheetId) return;
+      if (r.v === null) { if (!paOcupado()) cargarHojas(); return; }  // la hoja ya no existe
+      if (PA.version === null || PA.version === undefined) { PA.version = r.v; return; }
+      if (r.v === PA.version || paOcupado()) return;
+      var vAntes = PA.version;
+      api('/design/api/preapproved/sheets?area_id=' + PA.areaId).then(function(sheets) {
+        if (id !== PA.sheetId || paOcupado()) return;
+        var cambioLista = JSON.stringify((sheets || []).map(function(s) { return [s.id, s.nombre]; })) !==
+                          JSON.stringify((PA.sheets || []).map(function(s) { return [s.id, s.nombre]; }));
+        if (cambioLista) { PA.sheets = sheets; actualizarTitulo(); }
+        return cargarDetalle(true).then(function() { if (id === PA.sheetId) PA.version = r.v; });
+      });
+    }).catch(function() {});
+  }
+  setInterval(paVivoTick, 5000);
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) paVivoTick(); });
 
   // Celda/encabezado editable en su lugar (solo quien puede editar). Esc cancela.
   function paEditable(el, texto, alGuardar) {
@@ -3792,6 +3850,7 @@ window.DS_PANELS.dashboard = ddCargar;
       th.appendChild(h); tr.appendChild(th);
       d.doctores.forEach(function(doc) {
         var td = document.createElement('td'), val = fila.valores[String(doc.id)] || '';
+        td.dataset.fila = fila.id; td.dataset.doc = doc.id;
         if (paEsAsk(val)) td.className = 'pa-ask';
         var c = document.createElement('div'); c.className = 'pa-txt'; td.appendChild(c);
         paEditable(c, val, function(v) {

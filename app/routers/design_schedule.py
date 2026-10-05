@@ -835,6 +835,7 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dia["puedeDelegar"] = sd.puede_delegar(user, team) and team.area.formato != sd.FORMATO_SUPPORT
     dia["aCargo"] = dict(dg, esYo=dg["empleadoId"] == user.id) if dg and (dia["puedeDelegar"] or dg["empleadoId"] == user.id) else None
     dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id)  # huella para el Schedule en vivo
+    dia["puedeQc"] = sd.puede_qc(user, team)  # el QC lo marcan aprobadores, admins y el diseñador a cargo
     return dia
 
 
@@ -943,6 +944,17 @@ CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "
                  "qcReporte": "qc_reporte", "notas": "notas"}
 
 DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
+SOLO_QC = "Solo los aprobadores (o el diseñador a cargo del equipo) marcan el QC."
+
+
+def _verificar_qc(user: Empleado, team: DesignTeam, payload: "OrdenIn", existente: DesignOrden | None) -> None:
+    """Cambiar el QC (casilla o reporte) solo lo hacen aprobadores, admins y el diseñador a cargo."""
+    if sd.puede_qc(user, team):
+        return
+    cambia = (("qc" in payload.model_fields_set and bool(payload.qc) != bool(existente.qc if existente else False)) or
+              ("qcReporte" in payload.model_fields_set and (payload.qcReporte or "") != ((existente.qc_reporte if existente else "") or "")))
+    if cambia:
+        raise HTTPException(403, SOLO_QC)
 
 
 @router.post("/design/api/ordenes")
@@ -952,6 +964,7 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         raise HTTPException(403, SOLO_MANAGER)
     if sd.dia_cerrado(_fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
+    _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
     datos = _datos_desde_in(payload)
     if sd.orden_repetida(db, payload.teamId, _fecha(payload.fecha), datos["orden"]):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
@@ -1039,6 +1052,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             team.id in sd.equipos_como_designer(db, user) or sd.es_orden_prestada_a(db, orden_existente, user))
         if not propia:
             raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
+    _verificar_qc(user, team, payload, orden_existente)
     if sd.dia_cerrado(orden_existente.fecha):
         # Día cerrado: solo el QC (checkbox + reporte de hallazgos), y solo hasta las 5:00 am de D+2.
         # El resto de campos se ignora.
@@ -1410,6 +1424,17 @@ def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(require_modu
         raise HTTPException(404, "Hoja no encontrada.")
     detalle["puedeEditar"] = user.rol in FAQ_ROLES_EDITAN
     return detalle
+
+
+@router.get("/design/api/preapproved/sheets/{sheet_id}/version")
+def api_preapproved_version(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                            db: Session = Depends(get_db)):
+    """Huella de la hoja abierta (Pre-Approved en vivo): si cambia, la pantalla vuelve a pedirla."""
+    s = db.get(sd.DesignPreApprovedSheet, sheet_id)
+    if not s:  # la borraron: la pantalla recarga la lista de hojas
+        return {"v": None}
+    _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
+    return {"v": sd.version_preapproved(db, sheet_id)}
 
 
 @router.post("/design/api/preapproved/sheets")

@@ -705,6 +705,30 @@ def guardar_break(db: Session, team_id: int, empleado_id: int, fecha: date, dato
     return b
 
 
+def puede_qc(user: Empleado, team: DesignTeam) -> bool:
+    """Marcar o desmarcar el QC: aprobadores y admins, y el diseñador que está a cargo del equipo (5-oct-2026)."""
+    if user.rol in ("aprobador", "admin", "superadmin"):
+        return True
+    from sqlalchemy.orm import object_session
+    db = object_session(team)
+    return bool(db) and delegaciones_activas(db).get(team.id) == user.id
+
+
+def version_preapproved(db: Session, sheet_id: int) -> str | None:
+    """Huella de una hoja de Pre-Approved (y de la lista de hojas de su área) para verla en vivo."""
+    import hashlib
+    s = db.get(DesignPreApprovedSheet, sheet_id)
+    if not s:
+        return None
+    hojas = [(h.id, h.nombre, h.orden) for h in preapproved_sheets(db, s.area_id)]
+    return hashlib.md5(json.dumps([preapproved_detalle(db, sheet_id), hojas], sort_keys=True, default=str).encode()).hexdigest()[:16]
+
+
+def version_hojas_pa(db: Session, area_id: int) -> str:
+    import hashlib
+    return hashlib.md5(repr([(h.id, h.nombre, h.orden) for h in preapproved_sheets(db, area_id)]).encode()).hexdigest()[:16]
+
+
 # ---------- Schedule en vivo: huella del día para saber si alguien cambió algo ----------
 
 def version_dia(db: Session, team: DesignTeam, fecha: date, empleado_id: int | None = None) -> str:
