@@ -966,6 +966,9 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         raise HTTPException(403, DIA_CERRADO)
     _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
     datos = _datos_desde_in(payload)
+    t_face = db.get(DesignTeam, payload.teamId)
+    if datos.get("estado") and payload.tabla == "principal" and sd.es_face_nuevo(t_face.area.formato, _fecha(payload.fecha)):
+        datos.update(sd.face_horas_por_estado(datos, datos["estado"]))
     if sd.orden_repetida(db, payload.teamId, _fecha(payload.fecha), datos["orden"]):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
     o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla, datos)
@@ -1068,6 +1071,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if ("orden" in datos and datos["orden"] != (orden_existente.orden or "").strip().upper()
             and sd.orden_repetida(db, orden_existente.team_id, orden_existente.fecha, datos["orden"], orden_id)):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
+    if ("estado" in datos and datos["estado"] != (orden_existente.estado or "") and orden_existente.tabla == "principal"
+            and sd.es_face_nuevo(team.area.formato, orden_existente.fecha)):
+        # Face: el estado llena solo las horas (Initiated → Inicio diseño / Re-initiated, Hold → Start hold, Approved → Fin)
+        actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")}
+        datos.update(sd.face_horas_por_estado(actual, datos["estado"]))
     if solo_propia:  # un diseñador edita su fila pero no la reasigna
         datos["designer_id"] = orden_existente.designer_id
         datos["designer_prestado"] = orden_existente.designer_prestado

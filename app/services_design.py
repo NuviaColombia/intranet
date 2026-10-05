@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session, joinedload, defer
 from sqlalchemy import func, and_, or_, text
 from .models import Empleado, Solicitud, TipoPermiso
-from .models_design import FORMATO_N2, FORMATO_SUPPORT
+from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE
 from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
@@ -510,6 +510,7 @@ def serializar_break(b: DesignBreak) -> dict:
 
 
 def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int | None = None) -> dict:
+    face_convertir_una_vez(db)
     """Horario del equipo en `fecha`. Con `solo_empleado_id` (vista de un diseñador) solo van sus órdenes
     y sus tiempos libres."""
     trasladar_holds(db)
@@ -830,6 +831,65 @@ def _entre(inicio: str, fin: str) -> float:
     return d + 24 * 60 if d < 0 else d
 
 
+# Face Design desde el 5-oct-2026 (pedido por Rosember): Inicio diseño · Start hold · Re-initiated · Fin.
+# Total = Fin − Inicio diseño − tiempo en Hold. El tiempo en Hold es Re-initiated − Start hold más los Hold anteriores
+# del mismo caso (se acumulan en hold_minutos). Las horas se llenan solas con el estado (ver face_horas_por_estado).
+FACE_NUEVO_DESDE = date(2026, 10, 5)
+
+
+def es_face_nuevo(formato: str, fecha: date) -> bool:
+    return formato == FORMATO_SINGLE and fecha >= FACE_NUEVO_DESDE
+
+
+def face_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
+    """Horas que el estado llena solas en Face (hora de Colombia). `actual` = valores de la orden ya combinados con lo
+    que se está guardando (claves de columna). Solo llena horas vacías; un Hold nuevo después de un Re-initiated
+    acumula el Hold anterior y empieza otro. Devuelve solo lo que cambia."""
+    ahora = ahora_colombia().strftime("%H:%M")
+    s_hold, f_hold = actual.get("s_hold") or "", actual.get("f_hold") or ""
+    if estado_nuevo == "Initiated":
+        if s_hold and not f_hold:
+            return {"f_hold": ahora}  # vuelve de Hold: Re-initiated
+        if not actual.get("hora_inicio"):
+            return {"hora_inicio": ahora}  # primera vez: Inicio diseño
+    elif estado_nuevo == "Hold":
+        if s_hold and f_hold:  # otro Hold en el mismo caso: se suma el anterior y empieza uno nuevo
+            return {"hold_minutos": (actual.get("hold_minutos") or 0) + _entre(s_hold, f_hold), "s_hold": ahora, "f_hold": ""}
+        if not s_hold:
+            return {"s_hold": ahora}
+    elif estado_nuevo == "Approved":
+        if not actual.get("hora_fin"):
+            return {"hora_fin": ahora}
+    return {}
+
+
+_face_convertido = {"ok": False}
+
+
+def face_convertir_una_vez(db: Session) -> None:
+    """Una sola vez: las órdenes de Face desde el 5-oct-2026 que se llenaron con el formato anterior pasan al nuevo
+    conservando su Total: Inicio diseño (anterior) → Inicio diseño (nuevo, columna hora_inicio); Hold (min) queda
+    como tiempo en Hold acumulado."""
+    from .models_design import DesignConexionRegla
+    if _face_convertido["ok"]:
+        return
+    marca = "face_formato_nuevo"
+    if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+        try:
+            ids = [t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.formato == FORMATO_SINGLE).all()]
+            for o in db.query(DesignOrden).filter(DesignOrden.team_id.in_(ids or [-1]), DesignOrden.fecha >= FACE_NUEVO_DESDE,
+                                                   DesignOrden.tabla == "principal").all():
+                if (o.hora_inicio_diseno or "").strip():
+                    o.hora_inicio = o.hora_inicio_diseno
+                    o.hora_inicio_diseno = ""
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        except Exception:
+            db.rollback()
+            return
+    _face_convertido["ok"] = True
+
+
 def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     """Duración de una orden, igual que en el horario (dsDuracionFila en design_schedule.html):
     - N3/N6 (Cirugías) y Face: Fin − Inicio diseño − Hold (min).
@@ -843,6 +903,11 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
         if not o.hora_inicio or not o.hora_fin:
             return 0
         return max(0, _entre(o.hora_inicio, o.hora_fin) - _entre(o.s_hold, o.f_hold))
+    if es_face_nuevo(formato, o.fecha):
+        if not o.hora_inicio or not o.hora_fin:
+            return 0
+        hold = (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
+        return max(0, _entre(o.hora_inicio, o.hora_fin) - hold)
     if not o.hora_inicio_diseno or not o.hora_fin:
         return 0
     return max(0, _entre(o.hora_inicio_diseno, o.hora_fin) - (o.hold_minutos or 0))

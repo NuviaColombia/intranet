@@ -1502,6 +1502,16 @@ window.addEventListener('unhandledrejection', function(ev) {
       {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
       {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
     ]},
+    // Face Design desde el 5-oct-2026: Inicio diseño · Start hold · Re-initiated · Fin (las horas las llena el estado)
+    faceNuevo: { principal: [
+      {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+      {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+      {k:'designerId', l:'Diseñador', t:'designer'},
+      {k:'horaInicio', l:'Inicio diseño', t:'time'}, {k:'sHold', l:'Start hold', t:'time'}, {k:'fHold', l:'Re-initiated', t:'time', sinTHold: true},
+      {k:'horaFin', l:'Fin', t:'time'},
+      {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
+      {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+    ]},
     n2: { principal: [
       {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
       {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
@@ -1549,6 +1559,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (formato === 'support') return null;
     if (tabla === 'nightguard') return dsEntre(f.horaInicio, f.horaFin);
     if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : Math.max(0, t - (dsEntre(f.sHold, f.fHold) || 0)); }
+    if (dsFaceNuevo(formato)) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
+      var tf = dsEntre(f.horaInicio, f.horaFin); if (tf === null) return null;
+      var hold = (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0);
+      return Math.max(0, tf - hold);
+    }
     var d = dsEntre(f.horaInicioDiseno, f.horaFin);
     return d === null ? null : Math.max(0, d - (parseFloat(f.holdMinutos) || 0));
   }
@@ -1557,12 +1572,15 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   // Columnas de la tabla. "Crítico" (Critical Cases) solo existe en N3 Prosthetic, como en la herramienta original.
+  var DS_FACE_NUEVO_DESDE = '2026-10-05';
+  function dsFaceNuevo(formato) { return formato === 'single' && dsFechaISO(dsFechaSeleccionada()) >= DS_FACE_NUEVO_DESDE; }
   function dsSpec(tabla, formato, areaNombre) {
     var area = areaNombre || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre;
-    var spec = COLSPEC[formato || DS.areaFormato][tabla] || [];
+    var fm = formato || DS.areaFormato;
+    var spec = (dsFaceNuevo(fm) ? COLSPEC.faceNuevo : COLSPEC[fm])[tabla] || [];
     return area === 'N3 Prosthetic' ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
   }
-  function dsEncabezadoExtra(c) { return c.k === 'fHold' ? '<th>T. Hold</th>' : ''; } // N2: T. Hold calculado
+  function dsEncabezadoExtra(c) { return c.k === 'fHold' && !c.sinTHold ? '<th>T. Hold</th>' : ''; } // N2: T. Hold calculado
 
   function dsEsProductoNG(v) { return /nightguard/i.test(v) || /\btc\b/i.test(v); }
 
@@ -1588,6 +1606,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var formato = tabla === 'prestadas' ? f.formato : DS.areaFormato, tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
     var aprobada = f.estado === 'Approved', falta = false;
     var req = formato === 'support' ? [] : (tablaReal === 'nightguard' || formato === 'n2') ? ['horaInicio', 'horaFin']
+            : dsFaceNuevo(formato) ? (f.sHold ? ['horaInicio', 'fHold', 'horaFin'] : ['horaInicio', 'horaFin'])
             : ['horaInicio', 'horaInicioDiseno', 'horaFin'];
     req.forEach(function(k) {
       var el = tr.querySelector('[data-campo="' + k + '"]'), miss = aprobada && !f[k];
@@ -1639,7 +1658,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
     spec.forEach(function(c, i) {
       html += '<td data-col="' + i + '">' + dsCeldaInput(c, f) + '</td>';
-      if (c.k === 'fHold') html += '<td class="ds-thold">' + dsFmtMin(dsEntre(f.sHold, f.fHold)) + '</td>';
+      if (c.k === 'fHold' && !c.sinTHold) html += '<td class="ds-thold">' + dsFmtMin(dsEntre(f.sHold, f.fHold)) + '</td>';
     });
     html += '<td class="ds-total">' + dsDuracionFila(f, tabla) + '</td>';
     html += '<td class="ds-acc">' + (nueva || dsDiaCerrado() || dsSoloPropias() || tabla === 'prestadas' ? '' : dsBtnEliminar(f.id)) + '</td>';
