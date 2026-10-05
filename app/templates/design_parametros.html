@@ -181,6 +181,8 @@
   .eq-dis, .eq-acc, .eq-add, .op-th { justify-content:center; }
   .eq-tabla select, .sim-tabla select { text-align:center; text-align-last:center; }
 </style>
+{# Aprobadores (solo_openings): solo la tarjeta Openings; el resto de Parámetros es de admins #}
+{% if not solo_openings %}
 <div class="tarjeta aud-tarjeta">
   <div class="aud-fila">
     <div class="aud-titulo">
@@ -514,6 +516,7 @@
   </div>
 </div>
 
+{% endif %}
 <div class="tarjeta aud-tarjeta" id="opTarjeta">
   <div class="aud-fila">
     <div class="aud-titulo">
@@ -531,6 +534,7 @@
   <div id="opContenido" hidden></div>
 </div>
 
+{% if not solo_openings %}
 <div class="tarjeta aud-tarjeta" id="syTarjeta">
   <div class="aud-fila">
     <div class="aud-titulo">
@@ -549,12 +553,17 @@
 </div>
 
 <datalist id="paramPersonas"></datalist>
+{% endif %}
 <script>
 (function() {
   var P_AREAS = [{% for a in areas %}{id: {{ a.id }}, nombre: {{ a.nombre|tojson }}}{{ ',' if not loop.last }}{% endfor %}];
   var P_TEAMS = [{% for t in teams if t.manager and t.activo %}{id: {{ t.id }}, areaId: {{ t.area_id }}, nombre: {{ t.nombre|tojson }}, manager: {{ t.manager.nombre_completo|tojson }}}{{ ',' if not loop.last }}{% endfor %}];
   function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
+  function paramToast(msg, error) {
+    var t = document.createElement('div'); t.className = 'param-toast' + (error ? ' error' : ''); t.setAttribute('role', 'status');
+    t.innerText = msg; document.body.appendChild(t); setTimeout(function() { t.remove(); }, error ? 7000 : 4500);
+  }
+{% if not solo_openings %}
   // ---------- Acciones compartidas por Conexión e Importar ----------
   var AUD_ROJO = function(t) { return '<span style="color:#b91c1c">' + t + '</span>'; };
   var pPersonas = null, pPorNombre = {};
@@ -591,10 +600,6 @@
   }
   function accElegir(hoja, de) {
     return '<div class="acc">' + inPersona('Persona de People para ' + de) + btnAcc('elegir', 'Usar', {hoja: hoja, de: de}) + '</div>';
-  }
-  function paramToast(msg, error) {
-    var t = document.createElement('div'); t.className = 'param-toast' + (error ? ' error' : ''); t.setAttribute('role', 'status');
-    t.innerText = msg; document.body.appendChild(t); setTimeout(function() { t.remove(); }, error ? 7000 : 4500);
   }
   function personaDe(cont) {
     var i = cont.querySelector('.acc-persona');
@@ -1014,6 +1019,7 @@
     });
   })();
 
+{% endif %}
   // ---------- Openings: tabla editable (celdas, títulos, filas y columnas) ----------
   (function() {
     var sw = document.getElementById('opSwitch'), txt = document.getElementById('opSwitchTxt'), cont = document.getElementById('opContenido');
@@ -1315,6 +1321,7 @@
     });
   })();
 
+{% if not solo_openings %}
   // ---------- Equipos: interruptor, áreas plegadas, editar y arrastrar diseñadores ----------
   var eqSw = document.getElementById('eqSwitch'), eqTxt = document.getElementById('eqSwitchTxt'), eqCont = document.getElementById('eqContenido');
   var EQ_KEY = 'paramEquipos';
@@ -1447,6 +1454,7 @@
     paramToast('Pre-Approved se actualizó: ' + lista.slice(0, 3).join(' · ') + (lista.length > 3 ? ' (+' + (lista.length - 3) + ' más)' : ''));
     if (sySw.checked) syCargar();
   };
+{% endif %}
 })();
 </script>
 {% endblock %}

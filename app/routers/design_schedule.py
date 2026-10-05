@@ -256,7 +256,12 @@ def pagina_comments(request: Request, user: Empleado = Depends(require_modulo("d
 
 
 @router.get("/design/parametros")
-def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def parametros(request: Request, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    if not sd.es_admin(user):
+        # Aprobadores: solo la tarjeta Openings (la ven y la editan); el resto de Parámetros es de admins
+        return templates.TemplateResponse(request, "design_parametros.html",
+                                          {"user": user, "es_design": True, "solo_openings": True, "areas": [], "teams": [],
+                                           "msg": request.query_params.get("msg")})
     areas = sd.ordenar_areas(db.query(DesignArea).all())
     teams = (db.query(DesignTeam).order_by(DesignTeam.orden).all())
     candidatos = (db.query(Empleado).filter(Empleado.empresa == NUVIA_DESIGN, Empleado.activo == 1)
@@ -313,7 +318,7 @@ class OpMoverIn(BaseModel):
 
 
 @router.get("/design/api/openings")
-def api_openings(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_openings(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     return sd.openings_detalle(db)
 
 
@@ -321,7 +326,7 @@ OP_COLS_PA = ("centro",) + tuple(so.PA_OPENINGS_COL.values())  # columnas de Ope
 
 
 @router.post("/design/api/openings/celda")
-def api_openings_celda(payload: OpCeldaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_openings_celda(payload: OpCeldaIn, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     viejo = None
     if payload.clave == "centro":
         f = db.get(sd._openings_modelos()[2], payload.filaId)
@@ -357,24 +362,24 @@ def api_pa_openings_aplicar(user: Empleado = Depends(require_admin), db: Session
 
 
 @router.post("/design/api/openings/filas")
-def api_openings_agregar_fila(payload: OpFilaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_openings_agregar_fila(payload: OpFilaIn, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     return sd.openings_agregar_fila(db, payload.despuesDe)
 
 
 @router.post("/design/api/openings/filas/{fila_id}/eliminar")
-def api_openings_eliminar_fila(fila_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_openings_eliminar_fila(fila_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     if not sd.openings_eliminar_fila(db, fila_id, user.nombre_completo):
         raise HTTPException(404, "No se encontró la fila.")
     return {"ok": True, "pa": _pa_resumen(so.tras_cambio_openings(db, user.nombre_completo))}
 
 
 @router.post("/design/api/openings/columnas")
-def api_openings_agregar_columna(payload: OpColumnaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_openings_agregar_columna(payload: OpColumnaIn, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     return sd.openings_agregar_columna(db, payload.titulo)
 
 
 @router.post("/design/api/openings/columnas/{col_id}")
-def api_openings_renombrar_columna(col_id: int, payload: OpColumnaIn, user: Empleado = Depends(require_admin),
+def api_openings_renombrar_columna(col_id: int, payload: OpColumnaIn, user: Empleado = Depends(require_design_manager),
                                    db: Session = Depends(get_db)):
     if not sd.openings_renombrar_columna(db, col_id, payload.titulo):
         raise HTTPException(404, "No se encontró la columna o el título está vacío.")
@@ -382,7 +387,7 @@ def api_openings_renombrar_columna(col_id: int, payload: OpColumnaIn, user: Empl
 
 
 @router.post("/design/api/openings/columnas/{col_id}/mover")
-def api_openings_mover_columna(col_id: int, payload: OpMoverIn, user: Empleado = Depends(require_admin),
+def api_openings_mover_columna(col_id: int, payload: OpMoverIn, user: Empleado = Depends(require_design_manager),
                                db: Session = Depends(get_db)):
     if not sd.openings_mover_columna(db, col_id, payload.paso):
         raise HTTPException(404, "No se encontró la columna.")
@@ -390,7 +395,7 @@ def api_openings_mover_columna(col_id: int, payload: OpMoverIn, user: Empleado =
 
 
 @router.post("/design/api/openings/columnas/{col_id}/eliminar")
-def api_openings_eliminar_columna(col_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_openings_eliminar_columna(col_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     if not sd.openings_eliminar_columna(db, col_id, user.nombre_completo):
         raise HTTPException(404, "No se encontró la columna.")
     return {"ok": True}

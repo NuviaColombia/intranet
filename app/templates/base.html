@@ -149,7 +149,7 @@
     </div>
   </div>
   {% endif %}
-  {% if user.rol in ('admin', 'superadmin') %}
+  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}{# aprobadores: solo Openings #}
   <a href="/design/parametros">Parámetros</a>
   {% endif %}
   {% endif %}
