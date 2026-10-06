@@ -56,7 +56,14 @@ def puede_gestionar_tecnico(db: Session, user: Empleado, tecnico: ConsumoTecnico
 
 
 def puede_entregar(db: Session, user: Empleado) -> bool:
+    """Crear, editar y anular: los managers (Parámetros › Accesos, con su área) y los administradores.
+    Los técnicos solo consultan lo de las secciones que se les dieron."""
     return es_admin(user) or area_manager(db, user) is not None
+
+
+def puede_editar_tecnico(db: Session, user: Empleado, tecnico: ConsumoTecnico) -> bool:
+    """Registrar o corregir la jornada de un técnico: el manager de su área o un administrador."""
+    return es_admin(user) or area_manager(db, user) == tecnico.area
 
 
 def materias_activas(db: Session, area: str | None = None) -> list[ConsumoMateria]:
@@ -174,8 +181,8 @@ def frascos_para_jornada(db: Session, tecnico: ConsumoTecnico, fecha: date) -> l
 
 def guardar_jornada(db: Session, user: Empleado, tecnico: ConsumoTecnico, fecha: date, filas: list[dict]) -> str | None:
     """Guarda (o corrige, si ya existe) la jornada del día: arcos por tipo y si el frasco se consumió."""
-    if not puede_gestionar_tecnico(db, user, tecnico):
-        return "No puedes registrar la jornada de ese técnico."
+    if not puede_editar_tecnico(db, user, tecnico):
+        return "Solo el manager del área del técnico (o un administrador) registra y corrige la jornada."
     if fecha > hoy_colombia():
         return "La fecha de la jornada no puede ser futura."
     tipos_validos = {str(t.id) for t in tipos_activos(db)}

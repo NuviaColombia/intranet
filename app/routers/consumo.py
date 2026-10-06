@@ -43,6 +43,7 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
                       "area": m.area, "mideArcos": bool(m.mide_arcos)} for m in sc.materias_activas(db)],
         "tipos": [{"id": str(t.id), "nombre": t.nombre} for t in sc.tipos_activos(db)],
         "areaManager": area, "esAdmin": sc.es_admin(user), "puedeEntregar": sc.puede_entregar(db, user),
+        "puedeEditar": sc.puede_entregar(db, user),
         "manager": nombre_propio(user.nombre_completo), "hoy": sc.hoy_colombia().isoformat(),
     }
 
@@ -325,11 +326,13 @@ def toggle_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin_produ
 @router.post("/inventario/parametros/consumo/accesos")
 def agregar_acceso(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                    empleado_id: int = Form(...), area: str = Form("")):
-    """Da acceso a Seguimiento de consumo. Con área = manager de esa área (entrega y registra jornadas);
-    sin área = solo registra su propia jornada (si es técnico)."""
+    """Da acceso a Seguimiento de consumo como manager de un área: crea entregas, registra y corrige jornadas y anula
+    (solo de su área). Los técnicos reciben su acceso en la pestaña Técnicos (solo consulta)."""
     e = db.get(Empleado, empleado_id)
     if not e or not e.activo:
         return _volver("c_accesos", "No se guardó: elige una persona de la lista.")
+    if not _texto(area):
+        return _volver("c_accesos", "No se guardó: elige el área del manager.")
     if MODULO_PRODUCCION not in e.modulos_lista:
         e.modulos = ",".join(e.modulos_lista + [MODULO_PRODUCCION])
     if not db.query(ProduccionAcceso).filter_by(empleado_id=e.id, submodulo=SUB).first():

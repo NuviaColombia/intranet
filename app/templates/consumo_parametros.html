@@ -3,9 +3,9 @@
 
 {# ---------- Accesos ---------- #}
 <div class="cp-panel" id="panel-c_accesos">
-  <div class="cp-ayuda" style="max-width:900px">Quién entra a <b>Seguimiento de consumo</b>. Con <b>área</b> es manager de esa área: entrega frascos
-    y registra las jornadas de sus técnicos. <b>Sin área</b> solo registra su propia jornada (si está en la pestaña Técnicos).
-    Los administradores entran y gestionan todo.</div>
+  <div class="cp-ayuda" style="max-width:900px">Los <b>managers</b> de <b>Seguimiento de consumo</b>, cada uno con su <b>área</b>: son los que
+    <b>crean</b> entregas, <b>registran y corrigen</b> las jornadas y <b>anulan</b>, solo en su área. Los <b>técnicos</b> (pestaña Técnicos)
+    entran solo a consultar las secciones que se les dieron. Los administradores entran y gestionan todo.</div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Dar acceso a una persona</span></summary>
     <form method="post" action="/inventario/parametros/consumo/accesos" class="cp-form-nuevo">
@@ -18,18 +18,18 @@
           {% endfor %}
         </select></div>
       <div style="min-width:180px"><label>Área (manager)</label>
-        <select name="area"><option value="">— Sin área (solo su jornada) —</option>
+        <select name="area" required><option value="">Seleccionar...</option>
           {% for a in areas_config %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}</select></div>
       <div><button class="btn mini">Dar acceso</button></div>
     </form>
   </details>
   <table class="cp-tabla">
-    <tr><th>Persona</th><th>Cargo</th><th>Área (manager)</th><th>Secciones</th><th></th></tr>
+    <tr><th>Manager</th><th>Cargo</th><th>Área</th><th>Secciones</th><th></th></tr>
     {% for e in consumo.accesos %}
     <tr>
       <td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td>
       <td><form id="f-cacc-{{ e.id }}" method="post" action="/inventario/parametros/consumo/accesos"><input type="hidden" name="empleado_id" value="{{ e.id }}"></form>
-        <select name="area" form="f-cacc-{{ e.id }}"><option value="">— Sin área (solo su jornada) —</option>
+        <select name="area" form="f-cacc-{{ e.id }}" required><option value="">{{ '⚠️ Elige el área' if not consumo.area_de.get(e.id) else 'Seleccionar...' }}</option>
           {% for a in areas_config %}<option value="{{ a }}" {{ 'selected' if consumo.area_de.get(e.id) == a }}>{{ a|nombre_propio }}</option>{% endfor %}</select></td>
       <td>{{ celda_secciones(e, "consumo", secciones_cfg.consumo, "/inventario/parametros?tab=c_accesos") }}</td>
       <td class="cp-acciones"><button class="btn mini" form="f-cacc-{{ e.id }}">Guardar</button>
@@ -46,7 +46,7 @@
 {# ---------- Técnicos ---------- #}
 <div class="cp-panel" id="panel-c_tecnicos">
   <div class="cp-ayuda" style="max-width:900px">Técnicos (de People) a los que se les entregan frascos, con su área. El manager de cada área ve solo a los técnicos de su área.
-    Al agregar un técnico <b>entra a Seguimiento de consumo</b> y eliges <b>a qué secciones</b> (por ejemplo, solo Jornada diaria para registrar su propia jornada).</div>
+    Al agregar un técnico <b>entra a Seguimiento de consumo solo a consultar</b> las secciones que elijas; crear, editar y anular lo hacen los managers (pestaña Accesos).</div>
   {% set ids_acceso_consumo = consumo.accesos|map(attribute='id')|list %}
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar técnico</span></summary>
