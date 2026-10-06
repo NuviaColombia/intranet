@@ -1,9 +1,20 @@
 {% extends "base.html" %}
 {% block titulo %}Seguimiento de consumo{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/consumo.css?v=4">
+<link rel="stylesheet" href="/static/consumo.css?v=5">
 <div id="consumo-app">
  <div class="cm-main">
+  {% if modo_pruebas %}
+  <div class="cs-pruebas activo">
+    <div>🧪 <b>MODO PRUEBAS</b> — lo que registres aquí (entregas, jornadas, anulaciones, traslados) <b>no cuenta</b> en los datos reales ni envía avisos.</div>
+    <div class="cm-acciones" style="margin:0">
+      {% if puede_entregar %}<button type="button" class="btn rojo mini" onclick="borrarPruebas()">🗑️ Borrar datos de prueba</button>{% endif %}
+      <button type="button" class="btn mini" onclick="modoPruebas(false)">✅ Volver a los datos reales</button></div>
+  </div>
+  {% else %}
+  <div class="cs-pruebas"><button type="button" class="btn gris mini" onclick="modoPruebas(true)"
+       title="Practica sin afectar los datos reales">🧪 Modo pruebas</button></div>
+  {% endif %}
   {% if not consumo_tab_inicial %}
   <div class="cm-seccion activa"><p class="cm-vacio">No tienes secciones habilitadas en Seguimiento de consumo. Pídeselas a un administrador (Producción › Parámetros › Managers o Técnicos).</p></div>
   {% endif %}
@@ -51,8 +62,11 @@
   <div id="sec-jornada" class="cm-seccion {{ 'activa' if consumo_tab_inicial == 'jornada' }}">
     <div class="cm-barra">
       <div><h2 class="cm-titulo">🛠️ Jornada diaria</h2>
-        <p class="cm-sub" style="margin:0;">Arcos producidos por frasco en el día. Si vuelves a abrir el mismo día, se corrige lo registrado (no se duplica). Marca «Consumido» cuando el frasco se acaba.</p></div>
+        <p class="cm-sub" style="margin:0;">Registra los arcos producidos y las gotas usadas por frasco; puedes hacer <b>varios registros en el día</b>.
+          🔒 Lo guardado <b>no se modifica</b>: si hay un error, usa «Solicitar anulación» con una observación y el manager de tu área decide.
+          Marca «Consumido» cuando el frasco se acaba.</p></div>
     </div>
+    <div id="jSolicitudes" style="display:none"></div>
     <div class="cm-filtros">
       <label>Técnico:</label><select id="jTecnico" onchange="cargarJornada()"></select>
       <label>Día:</label><input type="date" id="jFecha" onchange="cargarJornada()">
@@ -61,7 +75,7 @@
       <thead id="jCabeza"></thead>
       <tbody id="jCuerpo"><tr><td class="cm-vacio">Elige el técnico.</td></tr></tbody>
     </table></div>
-    <div class="cm-acciones" style="margin-top:14px;"><button type="button" class="btn verde" id="btnJornada" onclick="guardarJornada()">💾 Guardar jornada</button></div>
+    <div class="cm-acciones" style="margin-top:14px;"><button type="button" class="btn verde" id="btnJornada" onclick="guardarJornada()">💾 Guardar registro</button></div>
   </div>
 
   <!-- ============ REPORTES ============ -->
@@ -88,7 +102,7 @@
     <div class="cm-tabla-wrap"><table class="cm-tabla"><thead id="rLotCab"></thead><tbody id="rLot"></tbody></table></div>
     <h3 class="cs-h3">💧 Gotas usadas (materias que se miden por gotas)</h3>
     <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th>Técnico</th><th>Área</th><th>Materia prima</th><th>Gotas usadas</th><th>Días</th><th>Promedio gotas / día</th></tr></thead>
+      <thead><tr><th>Técnico</th><th>Área</th><th>Materia prima</th><th>Gotas usadas</th><th>Arcos</th><th>Gotas por arco</th><th>Promedio de la materia</th><th>Días</th><th>Promedio gotas / día</th></tr></thead>
       <tbody id="rGotas"></tbody></table></div>
     <h3 class="cs-h3">🧴 Frascos en uso ahora</h3>
     <div class="cm-tabla-wrap"><table class="cm-tabla">
@@ -147,7 +161,8 @@ function filaFrasco(v) {
   var tr = document.createElement('tr');
   tr.innerHTML = '<td><select class="fMat" onchange="pintarPres(this)">' + ops + '</select></td><td class="fPres izq" style="font-size:12px;color:var(--text-muted)"></td>' +
     '<td><input class="fLote" value="' + esc(v.lote || '') + '" placeholder="Lote"></td><td><input class="fRef" value="' + esc(v.ref || '') + '" placeholder="Ref."></td>' +
-    '<td><input class="fSerie" placeholder="N.º de serie"></td><td><button type="button" class="btn rojo mini" onclick="this.closest(\'tr\').remove(); contarFrascos();">✕</button></td>';
+    '<td style="white-space:nowrap"><input class="fSerie" placeholder="N.º de serie" style="width:calc(100% - 40px)"> ' +
+    '<button type="button" class="btn gris mini" title="Leer el código con la cámara" onclick="escanearSerie(this)">📷</button></td><td><button type="button" class="btn rojo mini" onclick="this.closest(\'tr\').remove(); contarFrascos();">✕</button></td>';
   document.getElementById('eFrascos').appendChild(tr); pintarPres(tr.querySelector('.fMat')); contarFrascos();
   return tr;
 }
@@ -174,6 +189,24 @@ function guardarEntrega() {
 }
 
 // ---------------- consulta ----------------
+function celdaTraslado(e, f) {
+  var h = f.traslados.map(function(t) { return '<div><small>🔁 ' + esc(t.de) + ' → <b>' + esc(t.a) + '</b> (' + esc(t.en) + ', ' + esc(t.por) + '): ' + esc(t.motivo) + '</small></div>'; }).join('');
+  if (e.estado === 'ACTIVO' && f.estado === 'EN_USO' && D.puedeEntregar) {
+    var ops = D.tecnicos.filter(function(t) { return t.id !== f.tecnicoActualId; })
+      .map(function(t) { return '<option value="' + t.id + '">' + esc(t.nombre) + '</option>'; }).join('');
+    if (ops) h += '<div style="display:flex;gap:4px;margin-top:4px"><select id="tras' + f.id + '" style="max-width:170px"><option value="">Trasladar a…</option>' + ops +
+      '</select><button class="btn gris mini" onclick="trasladarFrasco(' + f.id + ')">🔁</button></div>';
+  }
+  return h || '<small style="color:#94A3B8">—</small>';
+}
+function trasladarFrasco(id) {
+  var sel = document.getElementById('tras' + id);
+  if (!sel.value) return alert('Elige el técnico que recibe el frasco.');
+  var m = prompt('Motivo del traslado (incapacidad, retiro, cambio de área…):');
+  if (m === null) return;
+  post('/consumo/api/frascos/' + id + '/trasladar', {tecnico_id: parseInt(sel.value, 10), motivo: m})
+    .then(function(r) { alert(r.mensaje); cargarConsulta(); }).catch(function(e) { alert(e.message); });
+}
 function cargarConsulta() {
   api('/consumo/api/entregas').then(function(r) { entregas = r.data; pintarConsulta(); })
     .catch(function(e) { cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
@@ -185,9 +218,10 @@ function pintarConsulta() {
       .join(' ').toLowerCase().indexOf(q) !== -1; });
   if (!filas.length) { cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">No hay entregas.</td></tr>'; return; }
   cCuerpo.innerHTML = filas.map(function(e) {
-    var det = '<tr class="cs-detalle" id="det' + e.id + '" style="display:none"><td colspan="8"><table class="cm-tabla"><thead><tr><th>Materia prima</th><th>Lote</th><th>Ref.</th><th>Serie</th><th>Estado</th><th>Jornadas</th></tr></thead><tbody>' +
+    var det = '<tr class="cs-detalle" id="det' + e.id + '" style="display:none"><td colspan="8"><table class="cm-tabla"><thead><tr><th>Materia prima</th><th>Lote</th><th>Ref.</th><th>Serie</th><th>Estado</th><th>Registros</th><th>Traslado</th></tr></thead><tbody>' +
       e.frascos.map(function(f) { return '<tr><td class="izq">' + esc(np(f.materia)) + '</td><td>' + esc(f.lote) + '</td><td>' + esc(f.ref) + '</td><td>' + esc(f.serie) +
-        '</td><td>' + badge(f.estado) + (f.consumidoEn ? ' <small>' + esc(f.consumidoEn) + '</small>' : '') + '</td><td>' + f.jornadas + '</td></tr>'; }).join('') +
+        '</td><td>' + badge(f.estado) + (f.consumidoEn ? ' <small>' + esc(f.consumidoEn) + '</small>' : '') + '</td><td>' + f.jornadas + '</td><td class="izq">' +
+        celdaTraslado(e, f) + '</td></tr>'; }).join('') +
       '</tbody></table>' + (e.observaciones ? '<p><b>Observaciones:</b> ' + esc(e.observaciones) + '</p>' : '') +
       (e.estado === 'ANULADO' ? '<p class="cs-alerta">Anulada por ' + esc(e.anuladoPor) + ' el ' + esc(e.anuladoEn) + ': ' + esc(e.motivoAnulacion) + '</p>'
         : (D.puedeEntregar ? '<div class="cm-acciones" style="margin-top:8px"><button class="btn rojo mini" onclick="anularEntrega(' + e.id + ')">🚫 Anular entrega</button></div>' : '')) + '</td></tr>';
@@ -203,48 +237,153 @@ function anularEntrega(id) {
 }
 
 // ---------------- jornada ----------------
+var J = {puedeCorregir: false, usuarioId: 0, esElTecnico: false};
+var EST_REG = {ACTIVO: ['Vigente', '#DCFCE7', '#166534'], SOLICITADA: ['⏳ Anulación solicitada', '#FEF3C7', '#92400E'],
+               ANULADO: ['🚫 Anulado', '#FEE2E2', '#991B1B']};
+function chipReg(e) { var x = EST_REG[e] || EST_REG.ACTIVO;
+  return '<span style="background:' + x[1] + ';color:' + x[2] + ';border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700">' + x[0] + '</span>'; }
+function textoValores(r) {
+  var partes = [];
+  var tipos = D.tipos.filter(function(t) { return r.arcos[t.id]; }).map(function(t) { return np(t.nombre) + ': ' + num(r.arcos[t.id]); });
+  if (r.total) partes.push('<b>' + num(r.total) + ' arcos</b>' + (tipos.length ? ' <small>(' + esc(tipos.join(', ')) + ')</small>' : ''));
+  if (r.gotas) partes.push('<b>' + num(r.gotas) + ' gotas</b>');
+  if (r.consumido) partes.push('✅ <b>marcó consumido</b>');
+  return partes.join(' · ') || '—';
+}
+function lineaRegistro(r) {
+  var anulado = r.estado === 'ANULADO';
+  var acciones = '';
+  if (!anulado && J.puedeCorregir) {
+    acciones += '<button class="btn rojo mini" onclick="anularRegistro(' + r.id + ', ' + (r.estado === 'SOLICITADA') + ')">' +
+      (r.estado === 'SOLICITADA' ? '✔️ Aprobar anulación' : '🚫 Anular') + '</button>';
+    if (r.estado === 'SOLICITADA') acciones += ' <button class="btn gris mini" onclick="rechazarSolicitud(' + r.id + ')">Rechazar</button>';
+  } else if (r.estado === 'ACTIVO' && (J.esElTecnico || r.registradoPorId === J.usuarioId)) {
+    acciones = '<button class="btn gris mini" onclick="solicitarAnulacion(' + r.id + ')">📨 Solicitar anulación</button>';
+  }
+  var notas = '';
+  if (r.observacion) notas += '<div><small>📝 ' + esc(r.observacion) + '</small></div>';
+  if (r.estado === 'SOLICITADA') notas += '<div><small style="color:#92400E">⏳ ' + esc(r.solicitadoPor) + ' pidió anular (' + esc(r.solicitadoEn) + '): ' + esc(r.solicitudMotivo) + '</small></div>';
+  if (r.respuesta && r.estado === 'ACTIVO') notas += '<div><small style="color:#475569">↩️ Solicitud rechazada: ' + esc(r.respuesta) + '</small></div>';
+  if (anulado) notas += '<div><small style="color:#991B1B">🚫 Anulado por ' + esc(r.anuladoPor) + ' (' + esc(r.anuladoEn) + '): ' + esc(r.motivoAnulacion) + '</small></div>';
+  return '<div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:6px 0;border-top:1px dashed #E2E8F0' +
+    (anulado ? ';opacity:.6' : '') + '"><div style="text-align:left"><small>🕒 ' + esc(r.hora) + ' · ' + esc(r.registradoPor) + '</small> ' + chipReg(r.estado) +
+    '<div' + (anulado ? ' style="text-decoration:line-through"' : '') + '>' + textoValores(r) + '</div>' + notas + '</div><div style="white-space:nowrap">' + acciones + '</div></div>';
+}
 function cargarJornada() {
   var tid = jTecnico.value, fecha = jFecha.value;
   jCabeza.innerHTML = '<tr><th>Materia prima</th><th>Lote / Ref. / Serie</th><th>Entregado</th>' +
-    D.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('') + '<th>Total arcos día</th><th>💧 Gotas día</th><th>Acumulado</th><th>Consumido</th></tr>';
-  var cols = D.tipos.length + 7;
+    D.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('') +
+    '<th>💧 Gotas</th><th>Consumido</th><th>Observación</th><th>Hoy (vigente)</th><th>Acumulado</th></tr>';
+  var cols = D.tipos.length + 8;
   if (!tid) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Elige el técnico.</td></tr>'; return; }
   api('/consumo/api/jornada?tecnico_id=' + tid + '&fecha=' + fecha).then(function(r) {
     frascosJornada = r.frascos;
+    J = {puedeCorregir: !!r.puedeCorregir, usuarioId: r.usuarioId, esElTecnico: !!r.esElTecnico};
     if (!r.frascos.length) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Este técnico no tiene frascos en uso en esa fecha.</td></tr>'; return; }
     jCuerpo.innerHTML = r.frascos.map(function(f) {
+      var dis = (D.puedeEditar && !f.consumido) ? '' : ' disabled';
       var etiqueta = [f.midesArcos ? 'arcos' : '', f.midesGotas ? 'gotas' : ''].filter(Boolean).join(' + ') || 'líquido';
+      var hoy = [f.midesArcos ? num(f.arcosDia) + ' arcos' : '', f.midesGotas ? num(f.gotasDia) + ' gotas' : ''].filter(Boolean).join('<br>') || '—';
       var acum = [f.midesArcos ? num(f.acumulado) + ' arcos' : '', f.midesGotas ? num(f.gotasAcumuladas) + ' gotas' : ''].filter(Boolean).join('<br>') || '—';
-      var inicio = '<tr data-id="' + f.id + '"><td class="izq"><b>' + esc(np(f.materia)) + '</b> <small>(' + etiqueta + ')</small>' +
+      var fila = '<tr data-id="' + f.id + '"><td class="izq"><b>' + esc(np(f.materia)) + '</b> <small>(' + etiqueta + ')</small>' +
+        (f.consumido ? '<br>' + badge('CONSUMIDO') : '') +
+        (f.recibidoDe ? '<br><small style="color:#1D4ED8">🔁 Recibido de ' + esc(f.recibidoDe) + '</small>' : '') +
         '</td><td style="font-size:12px">' + esc(f.lote) + ' / ' + esc(f.ref) + ' / ' + esc(f.serie) + '</td><td style="font-size:12px">' + esc(f.fechaEntrega) +
-        '<br><small>' + f.diasAbierto + ' día(s)</small></td>';
-      var gotas = f.midesGotas
-        ? '<td><input type="number" min="0" step="1" class="num jGotas" value="' + (f.gotas || '') + '"' + (D.puedeEditar ? '' : ' disabled') + '></td>'
-        : '<td style="color:#94A3B8">—</td>';
-      return inicio +
-        D.tipos.map(function(t) { return '<td><input type="number" min="0" step="0.5" class="num jArco" data-tipo="' + t.id + '" value="' + (f.arcos[t.id] || '') + '"' +
-          (f.midesArcos && D.puedeEditar ? '' : ' disabled') + ' oninput="sumarFila(this)"></td>'; }).join('') +
-        '<td class="jTotal" style="font-weight:800">' + (f.midesArcos ? num(Object.values(f.arcos).reduce(function(a, b) { return a + b; }, 0)) : '—') + '</td>' +
-        gotas + '<td style="font-size:12px">' + acum +
-        '</td><td><input type="checkbox" class="jCons" style="width:auto"' + (f.consumido ? ' checked' : '') + (D.puedeEditar ? '' : ' disabled') + '></td></tr>'; }).join('');
+        '<br><small' + (f.alertaDias ? ' style="color:#B91C1C;font-weight:700" title="Supera ' + f.diasAlerta + ' días abierto">⚠️ ' : '>') +
+        f.diasAbierto + ' día(s)</small></td>' +
+        D.tipos.map(function(t) { return '<td><input type="number" min="0" step="0.5" class="num jArco" data-tipo="' + t.id + '"' +
+          (f.midesArcos ? dis : ' disabled') + '></td>'; }).join('') +
+        (f.midesGotas ? '<td><input type="number" min="0" step="1" class="num jGotas"' + dis + '></td>' : '<td style="color:#94A3B8">—</td>') +
+        '<td><input type="checkbox" class="jCons" style="width:auto"' + dis + '></td>' +
+        '<td><input type="text" class="jObs" maxlength="500" placeholder="Opcional" style="min-width:140px"' + dis + '></td>' +
+        '<td style="font-size:12px;font-weight:700">' + hoy + '</td><td style="font-size:12px">' + acum + '</td></tr>';
+      if (f.registros.length)
+        fila += '<tr class="cs-detalle"><td colspan="' + cols + '" style="padding:4px 14px 8px"><small><b>Registros del día (' + f.registros.length + ')</b></small>' +
+          f.registros.map(lineaRegistro).join('') + '</td></tr>';
+      return fila; }).join('');
   }).catch(function(e) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
-}
-function sumarFila(inp) {
-  var tr = inp.closest('tr'), t = 0;
-  tr.querySelectorAll('.jArco').forEach(function(x) { t += parseFloat(x.value) || 0; });
-  tr.querySelector('.jTotal').innerText = num(t);
 }
 function guardarJornada() {
   var filas = Array.from(document.querySelectorAll('#jCuerpo tr[data-id]')).map(function(tr) {
     var arcos = {}; tr.querySelectorAll('.jArco').forEach(function(x) { if (parseFloat(x.value)) arcos[x.dataset.tipo] = parseFloat(x.value); });
     var g = tr.querySelector('.jGotas');
     return {frasco_id: parseInt(tr.dataset.id, 10), arcos: arcos, gotas: g ? (parseFloat(g.value) || 0) : 0,
-            consumido: tr.querySelector('.jCons').checked}; });
-  if (!filas.length) return alert('No hay frascos para registrar.');
+            consumido: tr.querySelector('.jCons').checked, observacion: tr.querySelector('.jObs').value}; })
+    .filter(function(f) { return Object.keys(f.arcos).length || f.gotas || f.consumido; });
+  if (!filas.length) return alert('Escribe arcos, gotas o marca «Consumido» en al menos un frasco.');
+  if (!confirm('¿Guardar ' + filas.length + ' registro(s)? Después no se pueden modificar: si hay un error, deberás solicitar la anulación al manager.')) return;
   var btn = document.getElementById('btnJornada'); btn.disabled = true;
   post('/consumo/api/jornada', {tecnico_id: parseInt(jTecnico.value, 10), fecha: jFecha.value, filas: filas})
     .then(function(r) { alert(r.mensaje); btn.disabled = false; cargarJornada(); })
     .catch(function(e) { alert(e.message); btn.disabled = false; });
+}
+function accionRegistro(url, motivo) {
+  post(url, {motivo: motivo}).then(function(r) { alert(r.mensaje); cargarJornada(); cargarSolicitudes(); }).catch(function(e) { alert(e.message); });
+}
+function solicitarAnulacion(id) {
+  var m = prompt('Observación: ¿por qué se debe anular este registro? (el manager de tu área la revisa)');
+  if (m === null) return;
+  accionRegistro('/consumo/api/jornada/registros/' + id + '/solicitar-anulacion', m);
+}
+function anularRegistro(id, conSolicitud) {
+  var m = prompt(conSolicitud ? 'Aprobar la anulación. Comentario (opcional; si lo dejas vacío se usa la observación del técnico):'
+                              : 'Motivo de la anulación (obligatorio):');
+  if (m === null) return;
+  accionRegistro('/consumo/api/jornada/registros/' + id + '/anular', m);
+}
+function rechazarSolicitud(id) {
+  var m = prompt('¿Por qué se rechaza la solicitud? (el registro sigue vigente)');
+  if (m === null) return;
+  accionRegistro('/consumo/api/jornada/registros/' + id + '/rechazar', m);
+}
+function modoPruebas(activo) {
+  if (activo && !confirm('🧪 Modo pruebas: lo que registres no se mezcla con los datos reales y luego se puede borrar. ¿Activar?')) return;
+  post('/consumo/api/modo-pruebas', {activo: activo}).then(function() { location.reload(); }).catch(function(e) { alert(e.message); });
+}
+function borrarPruebas() {
+  if (!confirm('¿Borrar TODOS los datos de prueba (de todos los usuarios)? Los datos reales no se tocan.')) return;
+  post('/consumo/api/pruebas/borrar', {}).then(function(r) { alert(r.mensaje); location.reload(); }).catch(function(e) { alert(e.message); });
+}
+var lector = null;
+function escanearSerie(btn) {
+  var input = btn.parentNode.querySelector('.fSerie');
+  if (!('BarcodeDetector' in window) || !navigator.mediaDevices) {
+    return alert('Este navegador no puede leer códigos con la cámara (funciona en Chrome de Android). Escribe el número de serie.');
+  }
+  var capa = document.createElement('div');
+  capa.className = 'cs-lector';
+  capa.innerHTML = '<div><video autoplay playsinline muted></video><p>Apunta al código de barras o QR del frasco…</p>' +
+    '<button type="button" class="btn gris">Cancelar</button></div>';
+  document.body.appendChild(capa);
+  var video = capa.querySelector('video'), detector = new BarcodeDetector(), flujo = null, vivo = true;
+  function cerrar() { vivo = false; if (flujo) flujo.getTracks().forEach(function(t) { t.stop(); }); capa.remove(); }
+  capa.querySelector('button').onclick = cerrar;
+  navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}}).then(function(st) {
+    flujo = st; video.srcObject = st;
+    (function buscar() {
+      if (!vivo) return;
+      detector.detect(video).then(function(cod) {
+        if (cod.length) { input.value = cod[0].rawValue.trim().toUpperCase(); cerrar(); input.focus(); }
+        else setTimeout(buscar, 300);
+      }).catch(function() { setTimeout(buscar, 500); });
+    })();
+  }).catch(function() { cerrar(); alert('No se pudo abrir la cámara. Revisa el permiso del navegador.'); });
+}
+function cargarSolicitudes() {
+  if (!D || !D.puedeEntregar) return;  // solo managers y administradores resuelven solicitudes
+  api('/consumo/api/jornada/solicitudes').then(function(r) {
+    var caja = document.getElementById('jSolicitudes');
+    if (!r.solicitudes.length) { caja.style.display = 'none'; caja.innerHTML = ''; return; }
+    caja.style.display = '';
+    caja.innerHTML = '<div style="border:1px solid #FCD34D;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin:8px 0 12px">' +
+      '<b>📨 Solicitudes de anulación pendientes (' + r.solicitudes.length + ')</b>' +
+      r.solicitudes.map(function(x) {
+        return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed #FCD34D;align-items:flex-start">' +
+          '<div><b>' + esc(x.tecnico) + '</b> · ' + esc(np(x.materia)) + ' <small>(serie ' + esc(x.serie) + ')</small> · ' + esc(x.fecha) + ' ' + esc(x.hora) +
+          '<div>' + textoValores(x) + '</div><small style="color:#92400E">📝 ' + esc(x.solicitudMotivo) + '</small></div>' +
+          '<div style="white-space:nowrap"><button class="btn rojo mini" onclick="J.puedeCorregir=true;anularRegistro(' + x.id + ', true)">✔️ Aprobar anulación</button> ' +
+          '<button class="btn gris mini" onclick="rechazarSolicitud(' + x.id + ')">Rechazar</button></div></div>'; }).join('') + '</div>';
+  }).catch(function() {});
 }
 
 // ---------------- reportes ----------------
@@ -255,7 +394,7 @@ function cargarReportes() {
   api('/consumo/api/reportes?' + filtrosReporte()).then(function(r) {
     var k = r.kpis;
     rKpis.innerHTML = [['Arcos producidos', num(k.arcos)], ['Frascos consumidos', k.consumidos], ['Promedio arcos / frasco', k.promedio == null ? '—' : num(k.promedio)],
-      ['Frascos en uso', k.enUso], ['Líquidos consumidos', k.liquidos], ['Gotas usadas', num(k.gotas)]].map(function(x) { return '<div class="cm-kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
+      ['Frascos en uso', k.enUso + (k.alertasDias ? ' <small style="color:#B91C1C">⚠️ ' + k.alertasDias + '</small>' : '')], ['Líquidos consumidos', k.liquidos], ['Gotas usadas', num(k.gotas)]].map(function(x) { return '<div class="cm-kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
     var tn = r.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('');
     rTecCab.innerHTML = '<tr><th>Técnico</th><th>Área</th>' + tn + '<th>Total arcos</th><th>Frascos consumidos</th><th>Promedio / frasco</th><th>Días</th></tr>';
     rTec.innerHTML = r.tecnicos.length ? r.tecnicos.map(function(t) {
@@ -270,12 +409,15 @@ function cargarReportes() {
         '</b></td><td>' + num(m.promedio) + '</td><td>' + num(m.promedioMateria) + '</td></tr>'; }).join('')
       : '<tr><td colspan="' + (r.tipos.length + 6) + '" class="cm-vacio">Sin frascos consumidos en el periodo.</td></tr>';
     rGotas.innerHTML = r.gotas.length ? r.gotas.map(function(g) {
-      return '<tr><td class="izq">' + esc(g.tecnico) + '</td><td>' + esc(np(g.area)) + '</td><td class="izq">' + esc(np(g.materia)) + '</td><td><b>' +
-        num(g.gotas) + '</b></td><td>' + g.dias + '</td><td>' + num(g.promedioDia) + '</td></tr>'; }).join('')
-      : '<tr><td colspan="6" class="cm-vacio">Sin gotas registradas en el periodo.</td></tr>';
+      return '<tr class="' + (g.alto ? 'cs-bajo' : '') + '"><td class="izq">' + esc(g.tecnico) + (g.alto ? ' <span class="cs-alerta">⚠️ gasta más del promedio</span>' : '') +
+        '</td><td>' + esc(np(g.area)) + '</td><td class="izq">' + esc(np(g.materia)) + '</td><td><b>' + num(g.gotas) + '</b></td><td>' +
+        (g.mideArcos ? num(g.arcos) : '—') + '</td><td><b>' + (g.gotasPorArco == null ? '—' : num(g.gotasPorArco)) + '</b></td><td>' +
+        (g.promedioMateria == null ? '—' : num(g.promedioMateria)) + '</td><td>' + g.dias + '</td><td>' + num(g.promedioDia) + '</td></tr>'; }).join('')
+      : '<tr><td colspan="9" class="cm-vacio">Sin gotas registradas en el periodo.</td></tr>';
     rWip.innerHTML = r.wip.length ? r.wip.map(function(w) {
-      return '<tr><td class="izq">' + esc(w.tecnico) + '</td><td>' + esc(np(w.area)) + '</td><td class="izq">' + esc(np(w.materia)) + '</td><td style="font-size:12px">' +
-        esc(w.lote) + ' / ' + esc(w.ref) + ' / ' + esc(w.serie) + '</td><td>' + esc(w.fechaEntrega) + '</td><td>' + w.dias + '</td><td>' +
+      return '<tr class="' + (w.alerta ? 'cs-bajo' : '') + '"><td class="izq">' + esc(w.tecnico) + '</td><td>' + esc(np(w.area)) + '</td><td class="izq">' + esc(np(w.materia)) + '</td><td style="font-size:12px">' +
+        esc(w.lote) + ' / ' + esc(w.ref) + ' / ' + esc(w.serie) + '</td><td>' + esc(w.fechaEntrega) + '</td><td>' +
+        (w.alerta ? '<span class="cs-alerta">⚠️ ' + w.dias + '</span> <small>(máx. ' + w.diasAlerta + ')</small>' : w.dias) + '</td><td>' +
         ([w.midesArcos ? num(w.acumulado) + ' arcos' : '', w.midesGotas ? num(w.gotas) + ' gotas' : ''].filter(Boolean).join(' · ') || '—') + '</td></tr>'; }).join('')
       : '<tr><td colspan="7" class="cm-vacio">No hay frascos en uso.</td></tr>';
   }).catch(function(e) { alert(e.message); });
@@ -287,7 +429,11 @@ api('/consumo/api/datos').then(function(d) {
   var ahora = new Date();
   eFecha.value = d.hoy; eFecha.max = d.hoy; eHora.value = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
   eManager.value = d.manager + (d.areaManager ? ' (' + np(d.areaManager) + ')' : (d.esAdmin ? ' (administrador)' : ''));
-  jFecha.value = d.hoy; jFecha.max = d.hoy; rHasta.value = d.hoy; rDesde.value = d.hoy.slice(0, 8) + '01';
+  jFecha.value = d.hoy; jFecha.max = d.hoy;
+  if (!d.puedeEntregar) {  // el técnico registra hasta N días atrás; más antiguo, el manager
+    var lim = new Date(d.hoy + 'T12:00:00'); lim.setDate(lim.getDate() - d.diasRegistroTecnico);
+    jFecha.min = lim.toISOString().slice(0, 10);
+  } rHasta.value = d.hoy; rDesde.value = d.hoy.slice(0, 8) + '01';
   opcionesTecnicos('eTecnico'); opcionesTecnicos('jTecnico'); opcionesTecnicos('rTecnico', true);
   rMateria.innerHTML = '<option value="">Todas</option>' + d.materias.map(function(m) { return '<option value="' + m.id + '">' + esc(np(m.descripcion)) + '</option>'; }).join('');
   cambiarTecnicoEntrega();
@@ -295,6 +441,7 @@ api('/consumo/api/datos').then(function(d) {
     var bj = document.getElementById('btnJornada');
     if (bj) bj.outerHTML = '<p class="cm-sub" style="margin:0">👀 Solo consulta: la jornada la registra el técnico o el manager de su área.</p>';
   }
+  cargarSolicitudes();
   var tab = new URLSearchParams(location.search).get('tab');
   switchTab(tab && SECCIONES.indexOf(tab) >= 0 ? tab : {{ (consumo_tab_inicial or 'jornada')|tojson }});
 });

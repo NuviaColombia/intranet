@@ -18,6 +18,7 @@ class ConsumoMateria(Base):
     area: Mapped[str] = mapped_column(String(100), default="")            # área de producción que la usa
     mide_arcos: Mapped[bool] = mapped_column(Boolean, default=True)       # False = líquido: no registra arcos
     medida: Mapped[str] = mapped_column(String(20), default="")           # arcos | gotas | consumo ("" = según mide_arcos)
+    dias_alerta: Mapped[int] = mapped_column(Integer, default=0)          # alerta si un frasco lleva más días abierto (0 = sin alerta)
     orden: Mapped[int] = mapped_column(Integer, default=0)
     activo: Mapped[int] = mapped_column(Integer, default=1)
 
@@ -69,6 +70,7 @@ class ConsumoEntrega(Base):
     tecnico_id: Mapped[int] = mapped_column(ForeignKey("consumo_tecnicos.id"))
     observaciones: Mapped[str] = mapped_column(Text, default="")
     estado: Mapped[str] = mapped_column(String(20), default="ACTIVO")     # ACTIVO | ANULADO
+    prueba: Mapped[int] = mapped_column(Integer, default=0)               # 1 = hecha en modo pruebas (no cuenta en lo real)
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     anulado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
@@ -93,25 +95,73 @@ class ConsumoFrasco(Base):
     serie: Mapped[str] = mapped_column(String(60), default="")
     estado: Mapped[str] = mapped_column(String(20), default="EN_USO")     # EN_USO | CONSUMIDO
     consumido_en: Mapped[date | None] = mapped_column(Date, nullable=True)
+    tecnico_actual_id: Mapped[int | None] = mapped_column(ForeignKey("consumo_tecnicos.id"), nullable=True)  # si se trasladó
 
     entrega = relationship("ConsumoEntrega", back_populates="frascos")
+    tecnico_actual = relationship("ConsumoTecnico", foreign_keys=[tecnico_actual_id])
+    traslados = relationship("ConsumoTraslado", order_by="ConsumoTraslado.id", back_populates="frasco")
+
+    @property
+    def tecnico_id_actual(self) -> int:
+        """Quién tiene hoy el frasco: el de la entrega, o a quien se le trasladó."""
+        return self.tecnico_actual_id or self.entrega.tecnico_id
+
+    @property
+    def tecnico_vigente(self):
+        return self.tecnico_actual if self.tecnico_actual_id else self.entrega.tecnico
     materia = relationship("ConsumoMateria")
-    jornadas = relationship("ConsumoJornada", back_populates="frasco", order_by="ConsumoJornada.fecha")
+    # registros: todos (también los anulados, para el historial); jornadas: solo los vigentes (acumulados y reportes)
+    registros = relationship("ConsumoJornada", back_populates="frasco", order_by="ConsumoJornada.registrado_en")
+    jornadas = relationship("ConsumoJornada", viewonly=True, order_by="ConsumoJornada.fecha",
+                            primaryjoin="and_(ConsumoFrasco.id == ConsumoJornada.frasco_id, ConsumoJornada.estado != 'ANULADO')")
 
 
 class ConsumoJornada(Base):
-    """Rendimiento de un frasco en un día: arcos por tipo (JSON {tipo_id: cantidad}). Uno por frasco y día."""
+    """Registro de la jornada de un frasco: arcos por tipo (JSON {tipo_id: cantidad}) y gotas usadas.
+    Puede haber varios por frasco y día. Quien lo guarda no lo modifica: para corregir, el técnico solicita
+    la anulación (con observación) y el manager del área la aprueba o la rechaza."""
     __tablename__ = "consumo_jornadas"
-    __table_args__ = (UniqueConstraint("frasco_id", "fecha", name="uq_consumo_jornada"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     frasco_id: Mapped[int] = mapped_column(ForeignKey("consumo_frascos.id"), index=True)
     fecha: Mapped[date] = mapped_column(Date, index=True)
+    tecnico_id: Mapped[int | None] = mapped_column(ForeignKey("consumo_tecnicos.id"), nullable=True)  # quién produjo
     arcos: Mapped[str] = mapped_column(Text, default="{}")
     total: Mapped[float] = mapped_column(Float, default=0)
     gotas: Mapped[float] = mapped_column(Float, default=0)                # materias que se miden por gotas usadas en el día
+    consumido: Mapped[int] = mapped_column(Integer, default=0)            # este registro marcó el frasco como consumido
+    observacion: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(20), default="ACTIVO")     # ACTIVO | SOLICITADA (anulación) | ANULADO
     registrado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     registrado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    solicitud_motivo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    solicitado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    solicitado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    respuesta: Mapped[str | None] = mapped_column(Text, nullable=True)   # por qué el manager rechazó la solicitud
+    anulado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    anulado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    motivo_anulacion: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    frasco = relationship("ConsumoFrasco", back_populates="jornadas")
-    registrado_por = relationship("Empleado")
+    frasco = relationship("ConsumoFrasco", back_populates="registros")
+    tecnico = relationship("ConsumoTecnico", foreign_keys=[tecnico_id])
+    registrado_por = relationship("Empleado", foreign_keys=[registrado_por_id])
+    solicitado_por = relationship("Empleado", foreign_keys=[solicitado_por_id])
+    anulado_por = relationship("Empleado", foreign_keys=[anulado_por_id])
+
+
+class ConsumoTraslado(Base):
+    """Traslado de un frasco en uso de un técnico a otro (incapacidad, retiro, cambio de área...)."""
+    __tablename__ = "consumo_traslados"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    frasco_id: Mapped[int] = mapped_column(ForeignKey("consumo_frascos.id"), index=True)
+    de_tecnico_id: Mapped[int] = mapped_column(ForeignKey("consumo_tecnicos.id"))
+    a_tecnico_id: Mapped[int] = mapped_column(ForeignKey("consumo_tecnicos.id"))
+    motivo: Mapped[str] = mapped_column(Text, default="")
+    por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    frasco = relationship("ConsumoFrasco", back_populates="traslados")
+    de_tecnico = relationship("ConsumoTecnico", foreign_keys=[de_tecnico_id])
+    a_tecnico = relationship("ConsumoTecnico", foreign_keys=[a_tecnico_id])
+    por = relationship("Empleado")

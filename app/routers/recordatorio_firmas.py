@@ -104,13 +104,40 @@ def _caja(db: Session) -> dict[int, list[str]]:
     return salida
 
 
+def _consumo(db: Session) -> dict[int, list[str]]:
+    """Solicitudes de anulación de registros de jornada: las resuelve el manager del área."""
+    from ..models_consumo import ConsumoJornada
+    from .. import services_consumo as scc
+    salida: dict[int, list[str]] = {}
+    for r in db.query(ConsumoJornada).filter(ConsumoJornada.estado == "SOLICITADA"):
+        if r.frasco.entrega.prueba:
+            continue
+        tecnico = scc._tecnico_de(r)
+        desc = (f"{nombre_propio(tecnico.empleado.nombre_completo) if tecnico.empleado else ''} · {r.frasco.materia.descripcion} "
+                f"· {r.fecha.isoformat()} — aprobar o rechazar anulación")
+        for m in scc.managers_del_area(db, tecnico.area):
+            salida.setdefault(m.id, []).append(desc)
+    # Jornada del día sin registrar (desde las 3:00 p. m.): aviso al técnico y a su manager
+    if _ahora_colombia().hour >= scc.HORA_AVISO_JORNADA:
+        from ..models_consumo import ConsumoTecnico
+        for tid, n in scc.sin_jornada_hoy(db).items():
+            t = db.get(ConsumoTecnico, tid)
+            if not t or not t.empleado:
+                continue
+            salida.setdefault(t.empleado_id, []).append(f"No has registrado la jornada de hoy ({n} frasco{'s' if n != 1 else ''} en uso)")
+            for m in scc.managers_del_area(db, t.area):
+                salida.setdefault(m.id, []).append(f"{nombre_propio(t.empleado.nombre_completo)} no ha registrado la jornada de hoy")
+    return salida
+
+
 def pendientes_por_persona(db: Session) -> dict[int, list[tuple[str, list[str], str]]]:
     """{empleado_id: [(módulo, [pendientes], enlace)]} de quienes tienen algo por firmar."""
     from .. import config
     base = config.BASE_URL
     secciones = (("🏭 Cambio de custodia", _custodia, f"{base}/custodia?tab=aprobaciones"),
                  ("📋 Conteo inventario mensual", _conteo, f"{base}/conteo?tab=validacion"),
-                 ("💵 Caja menor Nuvia", _caja, f"{base}/caja-menor/firmas"))
+                 ("💵 Caja menor Nuvia", _caja, f"{base}/caja-menor/firmas"),
+                 ("📊 Seguimiento de consumo", _consumo, f"{base}/consumo?tab=jornada"))
     salida: dict[int, list] = {}
     for titulo, funcion, url in secciones:
         try:
