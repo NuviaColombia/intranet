@@ -57,7 +57,7 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
         "tecnicos": [{"id": t.id, "nombre": nombre_propio(t.empleado.nombre_completo), "area": t.area}
                      for t in sc.tecnicos_visibles(db, user)],
         "materias": [{"id": m.id, "descripcion": m.descripcion, "presentacion": m.presentacion, "contenido": m.contenido,
-                      "area": m.area, "mideArcos": sc.medida_de(m) == "arcos", "medida": sc.medida_de(m)} for m in sc.materias_activas(db)],
+                      "area": m.area, "mideArcos": "arcos" in sc.medidas_de(m), "medidas": sc.medidas_de(m)} for m in sc.materias_activas(db)],
         "tipos": [{"id": str(t.id), "nombre": t.nombre} for t in sc.tipos_activos(db)],
         "areaManager": area, "esAdmin": sc.es_admin(user), "puedeEntregar": sc.puede_entregar(db, user),
         "puedeEditar": sc.puede_entregar(db, user) or sc.mi_tecnico(db, user) is not None,  # jornada
@@ -194,9 +194,9 @@ def api_exportar(desde: str = "", hasta: str = "", tecnico_id: int = 0, materia_
                     m["promedio"], m["promedioMateria"]])
     w.writerow([])
     w.writerow(["FRASCOS EN USO"])
-    w.writerow(["Técnico", "Área", "Materia prima", "Lote", "Ref", "Serie", "Fecha entrega", "Días abierto", "Acumulado", "Unidad"])
+    w.writerow(["Técnico", "Área", "Materia prima", "Lote", "Ref", "Serie", "Fecha entrega", "Días abierto", "Arcos acumulados", "Gotas acumuladas"])
     for x in r["wip"]:
-        w.writerow([x["tecnico"], x["area"], x["materia"], x["lote"], x["ref"], x["serie"], x["fechaEntrega"], x["dias"], x["acumulado"], x["unidad"]])
+        w.writerow([x["tecnico"], x["area"], x["materia"], x["lote"], x["ref"], x["serie"], x["fechaEntrega"], x["dias"], x["acumulado"] if x["midesArcos"] else "", x["gotas"] if x["midesGotas"] else ""])
     salida.seek(0)
     return StreamingResponse(iter([salida.getvalue()]), media_type="text/csv; charset=utf-8",
                              headers={"Content-Disposition": 'attachment; filename="seguimiento_consumo.csv"'})
@@ -217,13 +217,13 @@ def _texto(v: str) -> str:
 
 @router.post("/inventario/parametros/consumo/materias")
 def crear_materia(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), descripcion: str = Form(...),
-                  presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""), medida: str = Form("arcos")):
+                  presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""), medida: list[str] = Form([])):
     if not _texto(descripcion):
         return _volver("c_materias", "No se guardó: escribe la descripción.")
-    medida = medida if medida in sc.MEDIDAS else "arcos"
+    medida = sc.normalizar_medidas(medida)
     orden = db.query(ConsumoMateria).count() + 1
     db.add(ConsumoMateria(descripcion=_texto(descripcion), presentacion=_texto(presentacion), contenido=_texto(contenido),
-                          area=_texto(area), medida=medida, mide_arcos=medida == "arcos", orden=orden))
+                          area=_texto(area), medida=medida, mide_arcos="arcos" in medida, orden=orden))
     db.commit()
     return _volver("c_materias", "Materia prima agregada.")
 
@@ -231,12 +231,12 @@ def crear_materia(user: Empleado = Depends(require_admin_produccion), db: Sessio
 @router.post("/inventario/parametros/consumo/materias/{materia_id}")
 def editar_materia(materia_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                    descripcion: str = Form(...), presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""),
-                   medida: str = Form("arcos")):
+                   medida: list[str] = Form([])):
     m = db.get(ConsumoMateria, materia_id)
     if m and _texto(descripcion):
         m.descripcion, m.presentacion, m.contenido, m.area = _texto(descripcion), _texto(presentacion), _texto(contenido), _texto(area)
-        m.medida = medida if medida in sc.MEDIDAS else "arcos"
-        m.mide_arcos = m.medida == "arcos"
+        m.medida = sc.normalizar_medidas(medida)
+        m.mide_arcos = "arcos" in m.medida
         db.commit()
     return _volver("c_materias", "Materia prima actualizada.")
 

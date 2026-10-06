@@ -206,27 +206,26 @@ function anularEntrega(id) {
 function cargarJornada() {
   var tid = jTecnico.value, fecha = jFecha.value;
   jCabeza.innerHTML = '<tr><th>Materia prima</th><th>Lote / Ref. / Serie</th><th>Entregado</th>' +
-    D.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('') + '<th>Total día</th><th>Acumulado</th><th>Consumido</th></tr>';
-  var cols = D.tipos.length + 6;
+    D.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('') + '<th>Total arcos día</th><th>💧 Gotas día</th><th>Acumulado</th><th>Consumido</th></tr>';
+  var cols = D.tipos.length + 7;
   if (!tid) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Elige el técnico.</td></tr>'; return; }
   api('/consumo/api/jornada?tecnico_id=' + tid + '&fecha=' + fecha).then(function(r) {
     frascosJornada = r.frascos;
     if (!r.frascos.length) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Este técnico no tiene frascos en uso en esa fecha.</td></tr>'; return; }
     jCuerpo.innerHTML = r.frascos.map(function(f) {
-      var inicio = '<tr data-id="' + f.id + '"><td class="izq"><b>' + esc(np(f.materia)) + '</b>' +
-        (f.medida === 'gotas' ? ' <small>(gotas)</small>' : (f.midesArcos ? '' : ' <small>(líquido)</small>')) +
+      var etiqueta = [f.midesArcos ? 'arcos' : '', f.midesGotas ? 'gotas' : ''].filter(Boolean).join(' + ') || 'líquido';
+      var acum = [f.midesArcos ? num(f.acumulado) + ' arcos' : '', f.midesGotas ? num(f.gotasAcumuladas) + ' gotas' : ''].filter(Boolean).join('<br>') || '—';
+      var inicio = '<tr data-id="' + f.id + '"><td class="izq"><b>' + esc(np(f.materia)) + '</b> <small>(' + etiqueta + ')</small>' +
         '</td><td style="font-size:12px">' + esc(f.lote) + ' / ' + esc(f.ref) + ' / ' + esc(f.serie) + '</td><td style="font-size:12px">' + esc(f.fechaEntrega) +
         '<br><small>' + f.diasAbierto + ' día(s)</small></td>';
-      var cons = '</td><td><input type="checkbox" class="jCons" style="width:auto"' + (f.consumido ? ' checked' : '') + (D.puedeEditar ? '' : ' disabled') + '></td></tr>';
-      if (f.medida === 'gotas')  // se mide por gotas usadas en el día, no por arcos
-        return inicio + '<td colspan="' + D.tipos.length + '" style="text-align:left"><label style="font-size:12px;font-weight:700">💧 Gotas usadas hoy: ' +
-          '<input type="number" min="0" step="1" class="num jGotas" style="width:110px" value="' + (f.gotas || '') + '"' + (D.puedeEditar ? '' : ' disabled') +
-          ' oninput="this.closest(\'tr\').querySelector(\'.jTotal\').innerText = num(parseFloat(this.value) || 0) + \' gotas\'"></label></td>' +
-          '<td class="jTotal" style="font-weight:800">' + num(f.gotas) + ' gotas</td><td>' + num(f.acumulado) + ' gotas' + cons;
+      var gotas = f.midesGotas
+        ? '<td><input type="number" min="0" step="1" class="num jGotas" value="' + (f.gotas || '') + '"' + (D.puedeEditar ? '' : ' disabled') + '></td>'
+        : '<td style="color:#94A3B8">—</td>';
       return inicio +
         D.tipos.map(function(t) { return '<td><input type="number" min="0" step="0.5" class="num jArco" data-tipo="' + t.id + '" value="' + (f.arcos[t.id] || '') + '"' +
           (f.midesArcos && D.puedeEditar ? '' : ' disabled') + ' oninput="sumarFila(this)"></td>'; }).join('') +
-        '<td class="jTotal" style="font-weight:800">' + num(Object.values(f.arcos).reduce(function(a, b) { return a + b; }, 0)) + '</td><td>' + num(f.acumulado) +
+        '<td class="jTotal" style="font-weight:800">' + (f.midesArcos ? num(Object.values(f.arcos).reduce(function(a, b) { return a + b; }, 0)) : '—') + '</td>' +
+        gotas + '<td style="font-size:12px">' + acum +
         '</td><td><input type="checkbox" class="jCons" style="width:auto"' + (f.consumido ? ' checked' : '') + (D.puedeEditar ? '' : ' disabled') + '></td></tr>'; }).join('');
   }).catch(function(e) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
@@ -276,7 +275,8 @@ function cargarReportes() {
       : '<tr><td colspan="6" class="cm-vacio">Sin gotas registradas en el periodo.</td></tr>';
     rWip.innerHTML = r.wip.length ? r.wip.map(function(w) {
       return '<tr><td class="izq">' + esc(w.tecnico) + '</td><td>' + esc(np(w.area)) + '</td><td class="izq">' + esc(np(w.materia)) + '</td><td style="font-size:12px">' +
-        esc(w.lote) + ' / ' + esc(w.ref) + ' / ' + esc(w.serie) + '</td><td>' + esc(w.fechaEntrega) + '</td><td>' + w.dias + '</td><td>' + num(w.acumulado) + (w.unidad === 'gotas' ? ' gotas' : '') + '</td></tr>'; }).join('')
+        esc(w.lote) + ' / ' + esc(w.ref) + ' / ' + esc(w.serie) + '</td><td>' + esc(w.fechaEntrega) + '</td><td>' + w.dias + '</td><td>' +
+        ([w.midesArcos ? num(w.acumulado) + ' arcos' : '', w.midesGotas ? num(w.gotas) + ' gotas' : ''].filter(Boolean).join(' · ') || '—') + '</td></tr>'; }).join('')
       : '<tr><td colspan="7" class="cm-vacio">No hay frascos en uso.</td></tr>';
   }).catch(function(e) { alert(e.message); });
 }

@@ -107,8 +107,8 @@
 
 {# ---------- Materias primas ---------- #}
 <div class="cp-panel" id="panel-c_materias">
-  <div class="cp-ayuda" style="max-width:900px">Materias primas que se entregan por frasco. <b>Se mide por</b>: en la jornada se anotan los <b>arcos</b> producidos con ese frasco,
-    las <b>gotas usadas</b> en el día, o <b>solo si se consumió</b> (líquidos). Con <b>área</b> solo aparece en esa área; sin área, en todas.</div>
+  <div class="cp-ayuda" style="max-width:900px">Materias primas que se entregan por frasco. <b>Se mide por</b> (puedes marcar varias): en la jornada se anotan los <b>arcos</b> producidos con ese frasco
+    y/o las <b>gotas usadas</b> en el día; <b>solo consumido</b> (líquidos) solo marca cuándo se acaba el frasco. Con <b>área</b> solo aparece en esa área; sin área, en todas.</div>
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar materia prima</span></summary>
     <form method="post" action="/inventario/parametros/consumo/materias" class="cp-form-nuevo">
@@ -117,8 +117,10 @@
       <div style="width:120px"><label>Contenido neto</label><input name="contenido" placeholder="100 g"></div>
       <div style="min-width:160px"><label>Área</label><select name="area"><option value="">Todas</option>
         {% for a in areas_config %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}</select></div>
-      <div style="min-width:170px"><label>Se mide por</label><select name="medida">
-        {% for k, v in consumo.medidas.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+      <div style="min-width:170px"><label>Se mide por (varias)</label>
+        <div class="sc-opciones cp-medidas" style="margin:0">
+          {% for k, v in consumo.medidas.items() %}<label><input type="checkbox" name="medida" value="{{ k }}" {{ 'checked' if k == 'arcos' }}
+            onchange="medidaCambio(this)"> {{ v }}</label>{% endfor %}</div></div>
       <div><button class="btn mini">Agregar</button></div>
     </form>
   </details>
@@ -132,8 +134,9 @@
       <td style="width:110px"><input name="contenido" value="{{ m.contenido }}" form="f-cmat-{{ m.id }}"></td>
       <td style="width:160px"><select name="area" form="f-cmat-{{ m.id }}"><option value="">Todas</option>
         {% for a in areas_config %}<option value="{{ a }}" {{ 'selected' if m.area == a }}>{{ a|nombre_propio }}</option>{% endfor %}</select></td>
-      <td style="width:190px"><select name="medida" form="f-cmat-{{ m.id }}">
-        {% for k, v in consumo.medidas.items() %}<option value="{{ k }}" {{ 'selected' if consumo.medida_de(m) == k }}>{{ v }}</option>{% endfor %}</select></td>
+      <td style="width:230px"><div class="sc-opciones cp-medidas" style="margin:0">
+          {% for k, v in consumo.medidas.items() %}<label><input type="checkbox" name="medida" value="{{ k }}" form="f-cmat-{{ m.id }}" {{ 'checked' if k in consumo.medidas_de(m) }}
+            onchange="medidaCambio(this)"> {{ v }}</label>{% endfor %}</div></td>
       <td><span class="cp-estado {{ 'si' if m.activo else 'no' }}">{{ 'Activa' if m.activo else 'Inactiva' }}</span></td>
       <td class="cp-acciones"><button class="btn mini" form="f-cmat-{{ m.id }}">Guardar</button>
         <form class="inline" method="post" action="/inventario/parametros/consumo/materias/{{ m.id }}/toggle">
@@ -182,4 +185,13 @@ document.querySelectorAll('.buscar-persona-c').forEach(function(buscar) {
     lista.value = q ? (primera ? primera.value : '') : lista.value;
   });
 });
+</script>
+
+<script>
+function medidaCambio(c) {
+  var caja = c.closest('.cp-medidas');
+  if (c.value === 'consumo' && c.checked) caja.querySelectorAll('input').forEach(function(x) { if (x !== c) x.checked = false; });
+  if (c.value !== 'consumo' && c.checked) caja.querySelector('input[value=consumo]').checked = false;
+  if (!caja.querySelector('input:checked')) caja.querySelector('input[value=consumo]').checked = true;
+}
 </script>

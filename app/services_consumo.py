@@ -66,12 +66,23 @@ def puede_editar_tecnico(db: Session, user: Empleado, tecnico: ConsumoTecnico) -
     return es_admin(user) or tecnico.empleado_id == user.id or area_manager(db, user) == tecnico.area
 
 
-MEDIDAS = {"arcos": "Arcos producidos", "gotas": "Gotas usadas por día", "consumo": "Solo consumido (líquido)"}
+MEDIDAS = {"arcos": "Arcos producidos", "gotas": "Gotas usadas por día", "consumo": "Solo consumido (líquido)"}  # se combinan arcos y gotas
 
 
-def medida_de(m: ConsumoMateria) -> str:
-    """Cómo se registra la materia en la jornada: arcos por tipo, gotas usadas en el día o solo si se consumió."""
-    return m.medida if m.medida in MEDIDAS else ("arcos" if m.mide_arcos else "consumo")
+def medidas_de(m: ConsumoMateria) -> list[str]:
+    """Cómo se registra la materia en la jornada; puede ser varias a la vez (ej. arcos y gotas).
+    Sin arcos ni gotas = solo se marca cuando se consume (líquido)."""
+    guardadas = [x for x in (m.medida or "").split(",") if x in MEDIDAS]
+    if not guardadas:
+        guardadas = ["arcos"] if m.mide_arcos else ["consumo"]
+    medidas = [x for x in ("arcos", "gotas") if x in guardadas]
+    return medidas or ["consumo"]
+
+
+def normalizar_medidas(elegidas: list[str]) -> str:
+    """Lo que se guarda en la materia: «arcos», «gotas», «arcos,gotas» o «consumo»."""
+    medidas = [x for x in ("arcos", "gotas") if x in set(elegidas or [])]
+    return ",".join(medidas) or "consumo"
 
 
 def materias_activas(db: Session, area: str | None = None) -> list[ConsumoMateria]:
@@ -177,14 +188,14 @@ def frascos_para_jornada(db: Session, tecnico: ConsumoTecnico, fecha: date) -> l
     salida = []
     for f in frascos:
         j = db.query(ConsumoJornada).filter(ConsumoJornada.frasco_id == f.id, ConsumoJornada.fecha == fecha).first()
-        medida = medida_de(f.materia)
-        acumulado = sum((x.gotas or 0) if medida == "gotas" else x.total for x in f.jornadas)
+        medidas = medidas_de(f.materia)
         salida.append({
-            "id": f.id, "materia": f.materia.descripcion, "midesArcos": medida == "arcos", "medida": medida,
-            "gotas": (j.gotas or 0) if j else 0,
+            "id": f.id, "materia": f.materia.descripcion, "medidas": medidas,
+            "midesArcos": "arcos" in medidas, "midesGotas": "gotas" in medidas,
+            "gotas": (j.gotas or 0) if j else 0, "gotasAcumuladas": sum(x.gotas or 0 for x in f.jornadas),
             "lote": f.lote, "ref": f.ref, "serie": f.serie, "fechaEntrega": f.entrega.fecha.isoformat(),
             "arcos": json.loads(j.arcos) if j else {}, "consumido": f.estado == "CONSUMIDO",
-            "acumulado": acumulado, "diasAbierto": (fecha - f.entrega.fecha).days,
+            "acumulado": sum(x.total for x in f.jornadas), "diasAbierto": (fecha - f.entrega.fecha).days,
         })
     return salida
 
@@ -202,15 +213,15 @@ def guardar_jornada(db: Session, user: Empleado, tecnico: ConsumoTecnico, fecha:
         frasco = db.get(ConsumoFrasco, int(fila.get("frasco_id") or 0))
         if not frasco or frasco.id not in permitidos:
             return "Uno de los frascos ya no está en uso por este técnico."
-        arcos, gotas, medida = {}, 0.0, medida_de(frasco.materia)
-        if medida == "gotas":
+        arcos, gotas, medidas = {}, 0.0, medidas_de(frasco.materia)
+        if "gotas" in medidas:
             try:
                 gotas = round(float(fila.get("gotas") or 0), 2)
             except (TypeError, ValueError):
                 return "Las gotas usadas deben ser un número."
             if gotas < 0:
                 return "Las gotas usadas no pueden ser negativas."
-        if medida == "arcos":
+        if "arcos" in medidas:
             for tid, cant in (fila.get("arcos") or {}).items():
                 try:
                     cant = round(float(cant or 0), 2)
@@ -268,7 +279,7 @@ def reportes(db: Session, desde: date | None, hasta: date | None, tecnico_id: in
         tec = f.entrega.tecnico
         t = por_tec.setdefault(tec.id, {"tecnico": _nombre_tecnico(tec), "area": tec.area, "tipos": {}, "total": 0.0,
                                         "consumidos": 0, "arcosConsumidos": 0.0, "dias": set()})
-        medida = medida_de(f.materia)
+        medidas = medidas_de(f.materia)
         for j in f.jornadas:
             if not en_rango(j.fecha):
                 continue
@@ -286,7 +297,7 @@ def reportes(db: Session, desde: date | None, hasta: date | None, tecnico_id: in
                 t["dias"].add(j.fecha)
         arcos_frasco = sum(j.total for j in f.jornadas)
         if f.estado == "CONSUMIDO" and en_rango(f.consumido_en):
-            if medida == "arcos":
+            if "arcos" in medidas:
                 consumidos += 1
                 arcos_consumidos += arcos_frasco
                 t["consumidos"] += 1
@@ -298,14 +309,14 @@ def reportes(db: Session, desde: date | None, hasta: date | None, tecnico_id: in
                 for j in f.jornadas:
                     for tid, cant in json.loads(j.arcos or "{}").items():
                         m["tipos"][tid] = m["tipos"].get(tid, 0) + cant
-            else:
+            elif "gotas" not in medidas:
                 liquidos += 1
         if f.estado == "EN_USO":
             wip.append({"tecnico": _nombre_tecnico(tec), "area": tec.area, "materia": f.materia.descripcion,
                         "lote": f.lote, "ref": f.ref, "serie": f.serie, "fechaEntrega": f.entrega.fecha.isoformat(),
                         "dias": (hoy_colombia() - f.entrega.fecha).days,
-                        "acumulado": sum(j.gotas or 0 for j in f.jornadas) if medida == "gotas" else arcos_frasco,
-                        "unidad": "gotas" if medida == "gotas" else "arcos"})
+                        "acumulado": arcos_frasco, "gotas": sum(j.gotas or 0 for j in f.jornadas),
+                        "midesArcos": "arcos" in medidas, "midesGotas": "gotas" in medidas})
 
     promedio = round(arcos_consumidos / consumidos, 1) if consumidos else None
     # Promedio por materia (para comparar cada lote contra su materia)
