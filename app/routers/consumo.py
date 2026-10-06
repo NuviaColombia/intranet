@@ -12,7 +12,7 @@ from ..database import get_db
 from ..models import Empleado
 from ..models_consumo import ConsumoMateria, ConsumoTipo, ConsumoTecnico, ConsumoManager, ConsumoEntrega
 from ..auth import require_admin
-from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
+from ..acceso_produccion import require_admin_produccion, require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
 from ..formato import nombre_propio
 from ..main_templates import templates
 from .. import services_consumo as sc
@@ -197,7 +197,7 @@ def _texto(v: str) -> str:
 
 
 @router.post("/inventario/parametros/consumo/materias")
-def crear_materia(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), descripcion: str = Form(...),
+def crear_materia(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), descripcion: str = Form(...),
                   presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""), mide_arcos: str = Form("")):
     if not _texto(descripcion):
         return _volver("c_materias", "No se guardó: escribe la descripción.")
@@ -209,7 +209,7 @@ def crear_materia(user: Empleado = Depends(require_admin), db: Session = Depends
 
 
 @router.post("/inventario/parametros/consumo/materias/{materia_id}")
-def editar_materia(materia_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_materia(materia_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                    descripcion: str = Form(...), presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""),
                    mide_arcos: str = Form("")):
     m = db.get(ConsumoMateria, materia_id)
@@ -221,7 +221,7 @@ def editar_materia(materia_id: int, user: Empleado = Depends(require_admin), db:
 
 
 @router.post("/inventario/parametros/consumo/materias/{materia_id}/toggle")
-def toggle_materia(materia_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_materia(materia_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     m = db.get(ConsumoMateria, materia_id)
     if m:
         m.activo = 0 if m.activo else 1
@@ -230,7 +230,7 @@ def toggle_materia(materia_id: int, user: Empleado = Depends(require_admin), db:
 
 
 @router.post("/inventario/parametros/consumo/tipos")
-def crear_tipo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), nombre: str = Form(...)):
+def crear_tipo(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), nombre: str = Form(...)):
     nombre = _texto(nombre)
     if nombre and not db.query(ConsumoTipo).filter(ConsumoTipo.nombre == nombre).first():
         db.add(ConsumoTipo(nombre=nombre, orden=db.query(ConsumoTipo).count() + 1))
@@ -239,7 +239,7 @@ def crear_tipo(user: Empleado = Depends(require_admin), db: Session = Depends(ge
 
 
 @router.post("/inventario/parametros/consumo/tipos/{tipo_id}")
-def editar_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db), nombre: str = Form(...)):
+def editar_tipo(tipo_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), nombre: str = Form(...)):
     t, nombre = db.get(ConsumoTipo, tipo_id), _texto(nombre)
     if t and nombre and not db.query(ConsumoTipo).filter(ConsumoTipo.nombre == nombre, ConsumoTipo.id != tipo_id).first():
         t.nombre = nombre
@@ -248,7 +248,7 @@ def editar_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db: Sessi
 
 
 @router.post("/inventario/parametros/consumo/tipos/{tipo_id}/toggle")
-def toggle_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_tipo(tipo_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     t = db.get(ConsumoTipo, tipo_id)
     if t:
         t.activo = 0 if t.activo else 1
@@ -257,7 +257,7 @@ def toggle_tipo(tipo_id: int, user: Empleado = Depends(require_admin), db: Sessi
 
 
 @router.post("/inventario/parametros/consumo/tecnicos")
-def agregar_tecnico(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def agregar_tecnico(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                     empleado_id: int = Form(...), area: str = Form("")):
     e = db.get(Empleado, empleado_id)
     if not e or not e.activo:
@@ -274,7 +274,7 @@ def agregar_tecnico(user: Empleado = Depends(require_admin), db: Session = Depen
 
 
 @router.post("/inventario/parametros/consumo/tecnicos/{tecnico_id}")
-def editar_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db), area: str = Form("")):
+def editar_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), area: str = Form("")):
     t = db.get(ConsumoTecnico, tecnico_id)
     if t and _texto(area):
         t.area = _texto(area)
@@ -283,7 +283,7 @@ def editar_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin), db:
 
 
 @router.post("/inventario/parametros/consumo/tecnicos/{tecnico_id}/toggle")
-def toggle_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     t = db.get(ConsumoTecnico, tecnico_id)
     if t:
         t.activo = 0 if t.activo else 1
@@ -292,7 +292,7 @@ def toggle_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin), db:
 
 
 @router.post("/inventario/parametros/consumo/accesos")
-def agregar_acceso(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def agregar_acceso(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                    empleado_id: int = Form(...), area: str = Form("")):
     """Da acceso a Seguimiento de consumo. Con área = manager de esa área (entrega y registra jornadas);
     sin área = solo registra su propia jornada (si es técnico)."""
@@ -316,7 +316,7 @@ def agregar_acceso(user: Empleado = Depends(require_admin), db: Session = Depend
 
 
 @router.post("/inventario/parametros/consumo/accesos/{empleado_id}/quitar")
-def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     e = db.get(Empleado, empleado_id)
     if e:
         db.query(ProduccionAcceso).filter_by(empleado_id=e.id, submodulo=SUB).delete()

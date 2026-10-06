@@ -17,6 +17,8 @@ templates.env.globals["formato_minusculas"] = MINUSCULAS
 templates.env.globals["submodulos_produccion"] = SUBMODULOS_PRODUCCION
 templates.env.globals["resumen_submodulos_produccion"] = resumen_submodulos_produccion
 templates.env.globals["secciones_acceso"] = SECCIONES
+from .acceso_produccion import es_admin_produccion  # noqa: E402
+templates.env.globals["es_admin_produccion"] = es_admin_produccion
 
 
 def _resumen_aprobaciones(user):

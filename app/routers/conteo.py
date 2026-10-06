@@ -15,7 +15,7 @@ from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, C
                              ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO, ConteoContable, ConteoContableSoporte)
 from ..models_custodia import CustodiaArea
 from ..auth import require_admin, get_current_user
-from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
+from ..acceso_produccion import require_admin_produccion, require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
 from ..formato import nombre_propio
 from ..main_templates import templates
 from .. import services_conteo as sc
@@ -333,7 +333,7 @@ def anular_reporte_desde_firma(reporte_id: int, tareas: BackgroundTasks, motivo:
 
 
 @router.post("/inventario/parametros/conteo/director")
-def guardar_director(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: str = Form("")):
+def guardar_director(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), empleado_id: str = Form("")):
     e = db.get(Empleado, int(empleado_id)) if empleado_id.isdigit() else None
     c = db.get(ConteoConfig, "director_id") or ConteoConfig(clave="director_id")
     c.valor = str(e.id) if e and e.activo else ""
@@ -346,7 +346,7 @@ def guardar_director(user: Empleado = Depends(require_admin), db: Session = Depe
 
 
 @router.post("/inventario/parametros/conteo/testigos")
-def agregar_testigo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: int = Form(...)):
+def agregar_testigo(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), empleado_id: int = Form(...)):
     e = db.get(Empleado, empleado_id)
     if not e or not e.activo:
         return _volver("n_director", "No se guardó: elige una persona de la lista.")
@@ -358,7 +358,7 @@ def agregar_testigo(user: Empleado = Depends(require_admin), db: Session = Depen
 
 
 @router.post("/inventario/parametros/conteo/testigos/{empleado_id}/quitar")
-def quitar_testigo(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def quitar_testigo(empleado_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     db.query(ConteoTestigo).filter_by(empleado_id=empleado_id).delete()
     db.commit()
     return _volver("n_director", "Persona quitada del área contable.")
@@ -606,7 +606,7 @@ def _dar_modulo(db: Session, e: Empleado) -> None:
 
 
 @router.post("/inventario/parametros/conteo/accesos")
-def agregar_acceso(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: int = Form(...)):
+def agregar_acceso(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), empleado_id: int = Form(...)):
     e = db.get(Empleado, empleado_id)
     if not e or not e.activo:
         return _volver("n_accesos", "No se guardó: elige una persona de la lista.")
@@ -616,7 +616,7 @@ def agregar_acceso(user: Empleado = Depends(require_admin), db: Session = Depend
 
 
 @router.post("/inventario/parametros/conteo/accesos/{empleado_id}/quitar")
-def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     e = db.get(Empleado, empleado_id)
     if e:
         db.query(ProduccionAcceso).filter_by(empleado_id=e.id, submodulo=SUB).delete()
@@ -628,7 +628,7 @@ def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin), db:
 
 
 @router.post("/inventario/parametros/conteo/workdrive/reintentar")
-def workdrive_reintentar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def workdrive_reintentar(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     from .. import zoho_workdrive as wd
     if not wd.configurado():
         return _volver("n_director", "No se copió nada: falta configurar WorkDrive en Render (ver la ayuda).")
@@ -637,7 +637,7 @@ def workdrive_reintentar(user: Empleado = Depends(require_admin), db: Session = 
 
 
 @router.post("/inventario/parametros/conteo/materiales")
-def crear_material(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_material(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                    codigo: str = Form(...), descripcion: str = Form(...)):
     codigo, descripcion = _texto(codigo).upper(), _texto(descripcion)
     if not codigo or not descripcion:
@@ -648,7 +648,7 @@ def crear_material(user: Empleado = Depends(require_admin), db: Session = Depend
 
 
 @router.post("/inventario/parametros/conteo/materiales/{material_id}")
-def editar_material(material_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_material(material_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                     codigo: str = Form(...), descripcion: str = Form(...), orden: int = Form(0)):
     m = db.get(ConteoMaterial, material_id)
     if m and _texto(codigo) and _texto(descripcion):
@@ -658,7 +658,7 @@ def editar_material(material_id: int, user: Empleado = Depends(require_admin), d
 
 
 @router.post("/inventario/parametros/conteo/materiales/{material_id}/areas")
-def areas_material(material_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def areas_material(material_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                    areas: list[str] = Form([])):
     m = db.get(ConteoMaterial, material_id)
     if m:
@@ -671,7 +671,7 @@ def areas_material(material_id: int, user: Empleado = Depends(require_admin), db
 
 
 @router.post("/inventario/parametros/conteo/materiales/{material_id}/toggle")
-def toggle_material(material_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_material(material_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     m = db.get(ConteoMaterial, material_id)
     if m:
         m.activo = not m.activo
@@ -680,7 +680,7 @@ def toggle_material(material_id: int, user: Empleado = Depends(require_admin), d
 
 
 @router.post("/inventario/parametros/conteo/bodegas")
-def crear_bodega(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_bodega(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                  codigo: str = Form(...), nombre: str = Form(...), prefijo: str = Form(...)):
     codigo, nombre, prefijo = _texto(codigo), _texto(nombre).upper(), _texto(prefijo).upper()
     if not (codigo and nombre and prefijo):
@@ -691,7 +691,7 @@ def crear_bodega(user: Empleado = Depends(require_admin), db: Session = Depends(
 
 
 @router.post("/inventario/parametros/conteo/bodegas/{bodega_id}")
-def editar_bodega(bodega_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_bodega(bodega_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                   codigo: str = Form(...), nombre: str = Form(...), prefijo: str = Form(...)):
     b = db.get(ConteoBodega, bodega_id)
     if b and _texto(codigo) and _texto(nombre) and _texto(prefijo):
@@ -701,7 +701,7 @@ def editar_bodega(bodega_id: int, user: Empleado = Depends(require_admin), db: S
 
 
 @router.post("/inventario/parametros/conteo/bodegas/{bodega_id}/toggle")
-def toggle_bodega(bodega_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_bodega(bodega_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     b = db.get(ConteoBodega, bodega_id)
     if b:
         b.activo = not b.activo

@@ -10,7 +10,8 @@ from ..models import Empleado
 from ..models_custodia import CustodiaArea, CustodiaMotivo, CustodiaFactorDisco, CustodiaTraslado, CustodiaOrdenLinea
 from ..auth import require_admin
 from ..database import SessionLocal, engine
-from ..acceso_produccion import ProduccionAcceso, asegurar_tabla_y_migrar, MODULO_PRODUCCION
+from ..acceso_produccion import (require_admin_produccion, ProduccionAcceso, ProduccionAdmin, asegurar_tabla_y_migrar,
+                                 MODULO_PRODUCCION)
 from ..produccion import SUBMODULOS_PRODUCCION
 from ..main_templates import templates
 from ..formato import nombre_propio
@@ -22,6 +23,10 @@ router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurr
 @router.on_event("startup")
 def _accesos_produccion() -> None:
     asegurar_tabla_y_migrar(engine, SessionLocal)
+    try:
+        ProduccionAdmin.__table__.create(bind=engine, checkfirst=True)
+    except Exception as e:  # otro proceso la acaba de crear
+        print(f"Producción: tabla produccion_admins ({type(e).__name__}).")
     # Cambio de custodia: órdenes asignadas desde Stock
     from sqlalchemy import inspect, text
     try:
@@ -109,7 +114,7 @@ NUVIA_SMILES = "Nuvia Smiles Colombia SAS"
 
 
 @router.get("/custodia/parametros")
-def parametros_antes(request: Request, user: Empleado = Depends(require_admin)):
+def parametros_antes(request: Request, user: Empleado = Depends(require_admin_produccion)):
     """Dirección anterior (cuando los parámetros estaban dentro de Cambio de custodia)."""
     return RedirectResponse("/inventario/parametros", status_code=303)
 
@@ -121,7 +126,7 @@ def _stock_iniciales(db: Session) -> list:
 
 
 @router.get("/inventario/parametros")
-def parametros(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def parametros(request: Request, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     # Accesos por submódulo: {empleado_id: {slugs}}
     por_empleado: dict[int, set[str]] = {}
     for a in db.query(ProduccionAcceso).all():
@@ -171,6 +176,12 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
     return templates.TemplateResponse(request, "custodia_parametros.html",
                                       {"user": user, "managers": managers, "candidatos": candidatos, "consumo": consumo,
                                        "inv_conteo": inv_conteo,
+                                       "admins_produccion": (db.query(Empleado).join(ProduccionAdmin, ProduccionAdmin.empleado_id == Empleado.id)
+                                                             .order_by(Empleado.nombres, Empleado.apellidos).all()),
+                                       "puede_asignar_admins": user.rol in ("admin", "superadmin"),
+                                       "candidatos_admin": (db.query(Empleado).filter(Empleado.activo == 1, Empleado.empresa == NUVIA_SMILES)
+                                                            .filter(~Empleado.id.in_(db.query(ProduccionAdmin.empleado_id)))
+                                                            .order_by(Empleado.nombres, Empleado.apellidos).all()),
                                        "secciones_cfg": secciones_cfg, "administradores": administradores,
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
@@ -202,10 +213,42 @@ def parametros(request: Request, user: Empleado = Depends(require_admin), db: Se
                                        "custodia_pendientes": len(sc.pendientes_entrada(db))})
 
 
+# ---------- Administradores de Producción ----------
+
+@router.post("/inventario/parametros/admins")
+def agregar_admin_produccion(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), empleado_id: int = Form(...)):
+    """Solo un administrador de la intranet asigna administradores de Producción."""
+    from urllib.parse import quote
+    emp = db.get(Empleado, empleado_id)
+    if not emp or not emp.activo:
+        return RedirectResponse("/inventario/parametros?tab=admins&msg=" + quote("No se guardó: elige una persona de la lista."), status_code=303)
+    if not db.get(ProduccionAdmin, emp.id):
+        db.add(ProduccionAdmin(empleado_id=emp.id, asignado_por_id=user.id))
+    if MODULO_PRODUCCION not in emp.modulos_lista:  # para entrar al módulo Producción
+        emp.modulos = ",".join(emp.modulos_lista + [MODULO_PRODUCCION])
+    db.commit()
+    return RedirectResponse("/inventario/parametros?tab=admins&msg=" +
+                            quote(f"{nombre_propio(emp.nombre_completo)} ahora es administrador de Producción."), status_code=303)
+
+
+@router.post("/inventario/parametros/admins/{empleado_id}/quitar")
+def quitar_admin_produccion(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    fila = db.get(ProduccionAdmin, empleado_id)
+    emp = db.get(Empleado, empleado_id)
+    if fila:
+        db.delete(fila)
+        # Si tampoco tiene ningún submódulo asignado, deja de ver el módulo Producción
+        if emp and not db.query(ProduccionAcceso).filter(ProduccionAcceso.empleado_id == emp.id).first():
+            emp.modulos = ",".join(m for m in emp.modulos_lista if m != MODULO_PRODUCCION)
+        db.commit()
+    return RedirectResponse("/inventario/parametros?tab=admins&msg=" + quote("Administrador de Producción quitado."), status_code=303)
+
+
 # ---------- Managers ----------
 
 @router.post("/inventario/parametros/managers")
-def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def agregar_manager(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                           empleado_id: int = Form(...), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp and emp.empresa == NUVIA_SMILES:
@@ -222,7 +265,7 @@ def agregar_manager(user: Empleado = Depends(require_admin), db: Session = Depen
 
 
 @router.post("/inventario/parametros/managers/{empleado_id}")
-def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
+def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin_produccion),
                              db: Session = Depends(get_db), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp:
@@ -238,7 +281,7 @@ def _areas_asignadas(*areas: str) -> str:
 
 
 @router.post("/inventario/parametros/managers/{empleado_id}/quitar")
-def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
+def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admin_produccion),
                          db: Session = Depends(get_db)):
     emp = db.get(Empleado, empleado_id)
     msg = "Acceso a Cambio de custodia quitado."
@@ -265,7 +308,7 @@ def quitar_manager(empleado_id: int, user: Empleado = Depends(require_admin),
 # ---------- Áreas de producción ----------
 
 @router.post("/inventario/parametros/areas")
-def crear_area(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_area(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                      nombre: str = Form(...), es_inventario: str = Form(""),
                      alerta_horas_advertencia: int = Form(24), alerta_horas_critica: int = Form(48)):
     nombre = nombre.strip().upper()
@@ -279,7 +322,7 @@ def crear_area(user: Empleado = Depends(require_admin), db: Session = Depends(ge
 
 
 @router.post("/inventario/parametros/areas/{area_id}/editar")
-def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_area(area_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                       nombre: str = Form(...), es_inventario: str = Form(""),
                       alerta_horas_advertencia: int = Form(24), alerta_horas_critica: int = Form(48)):
     a = db.get(CustodiaArea, area_id)
@@ -305,7 +348,7 @@ def editar_area(area_id: int, user: Empleado = Depends(require_admin), db: Sessi
 
 
 @router.post("/inventario/parametros/areas/{area_id}/toggle")
-def toggle_area(area_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_area(area_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     a = db.get(CustodiaArea, area_id)
     if a:
         a.activo = 0 if a.activo else 1
@@ -316,7 +359,7 @@ def toggle_area(area_id: int, user: Empleado = Depends(require_admin), db: Sessi
 # ---------- Catálogo de discos ----------
 
 @router.post("/inventario/parametros/discos")
-def crear_disco(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_disco(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                       detalle: str = Form(...), factor: float = Form(...)):
     detalle = detalle.strip()
     if detalle and not db.query(CustodiaFactorDisco).filter(CustodiaFactorDisco.detalle == detalle).first():
@@ -327,7 +370,7 @@ def crear_disco(user: Empleado = Depends(require_admin), db: Session = Depends(g
 
 
 @router.post("/inventario/parametros/discos/{disco_id}/editar")
-def editar_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_disco(disco_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                        detalle: str = Form(...), factor: float = Form(...)):
     d = db.get(CustodiaFactorDisco, disco_id)
     if d:
@@ -338,7 +381,7 @@ def editar_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Ses
 
 
 @router.post("/inventario/parametros/discos/{disco_id}/toggle")
-def toggle_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_disco(disco_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     d = db.get(CustodiaFactorDisco, disco_id)
     if d:
         d.activo = 0 if d.activo else 1
@@ -349,7 +392,7 @@ def toggle_disco(disco_id: int, user: Empleado = Depends(require_admin), db: Ses
 # ---------- Motivos ----------
 
 @router.post("/inventario/parametros/motivos")
-def crear_motivo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def crear_motivo(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                        nombre: str = Form(...)):
     nombre = nombre.strip().upper()
     if nombre and not db.query(CustodiaMotivo).filter(CustodiaMotivo.nombre == nombre).first():
@@ -360,7 +403,7 @@ def crear_motivo(user: Empleado = Depends(require_admin), db: Session = Depends(
 
 
 @router.post("/inventario/parametros/motivos/{motivo_id}/editar")
-def editar_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def editar_motivo(motivo_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                         nombre: str = Form(...), orden: int = Form(0)):
     m = db.get(CustodiaMotivo, motivo_id)
     if m:
@@ -374,7 +417,7 @@ def editar_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: S
 
 
 @router.post("/inventario/parametros/motivos/{motivo_id}/toggle")
-def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     m = db.get(CustodiaMotivo, motivo_id)
     if m:
         m.activo = 0 if m.activo else 1
@@ -385,7 +428,7 @@ def toggle_motivo(motivo_id: int, user: Empleado = Depends(require_admin), db: S
 # ---------- Stock por descripción (inicial) ----------
 
 @router.post("/inventario/parametros/custodia/stock-descripciones")
-def asignar_stock_descripciones(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def asignar_stock_descripciones(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                                 area: str = Form(""), texto: str = Form("")):
     """Le asigna descripciones (las del Resumen general) al Stock que ya tiene un área."""
     from urllib.parse import quote
@@ -407,7 +450,7 @@ def asignar_stock_descripciones(user: Empleado = Depends(require_admin), db: Ses
 
 
 @router.post("/inventario/parametros/custodia/stock-descripciones/{mov_id}/quitar")
-def quitar_stock_descripcion(mov_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def quitar_stock_descripcion(mov_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     from ..models_custodia import CustodiaStockDescripcion
     from urllib.parse import quote
     m = db.get(CustodiaStockDescripcion, mov_id)
@@ -426,7 +469,7 @@ def quitar_stock_descripcion(mov_id: int, user: Empleado = Depends(require_admin
 # ---------- Saldos iniciales ----------
 
 @router.post("/inventario/parametros/custodia/saldos")
-def cargar_saldos_iniciales(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+def cargar_saldos_iniciales(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                             texto: str = Form(""), fecha_corte: str = Form("")):
     """Carga el inventario inicial: en qué área está cada orden y con qué cantidad (pegado desde Excel).
     Se puede volver a usar para agregar las órdenes que quedaron por fuera: no deja repetir una orden en la misma área."""

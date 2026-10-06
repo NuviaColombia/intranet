@@ -8,7 +8,7 @@
 </style>
 <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
   <h1 style="margin:0;">Producción</h1>
-  {% if user.rol in ('admin', 'superadmin') %}
+  {% if user.rol in ('admin', 'superadmin') or es_admin_produccion(user) %}
   <a href="/inventario/parametros" class="param-discreto" title="Parámetros de todos los submódulos de Producción">⚙️ Parámetros</a>
   {% endif %}
 </div>
