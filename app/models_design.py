@@ -606,6 +606,42 @@ class DesignPerfSeleccionCelda(Base):
 
 
 # ---------------------------------------------------------------------------
+# Nuvia Office (Herramientas): documentos tipo Word y presentaciones tipo PowerPoint de cada persona.
+# Solo aprobadores y admins de Design. El contenido va en HTML (Word) o JSON (presentaciones).
+# ---------------------------------------------------------------------------
+
+class DesignOfficeDoc(Base):
+    __tablename__ = "design_office_docs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(10), default="word")  # word | ppt
+    titulo: Mapped[str] = mapped_column(String(255), default="Documento")
+    contenido: Mapped[str] = mapped_column(Text, default="", deferred=True)  # no se carga en las listas
+    ajustes: Mapped[str] = mapped_column(Text, default="{}", deferred=True)  # página, márgenes, encabezado…
+    version: Mapped[int] = mapped_column(Integer, default=1)  # para avisar si otra ventana guardó antes
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    propietario_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), index=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+    eliminado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # en "Eliminados" (se puede restaurar)
+
+    propietario = relationship("Empleado")
+
+
+class DesignOfficeCompartido(Base):
+    __tablename__ = "design_office_compartidos"
+    __table_args__ = (UniqueConstraint("doc_id", "empleado_id", name="uq_design_office_compartido"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    doc_id: Mapped[int] = mapped_column(ForeignKey("design_office_docs.id"), index=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), index=True)
+    puede_editar: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    empleado = relationship("Empleado")
+
+
+# ---------------------------------------------------------------------------
 # Textos seguros para Postgres, sin tocar el esquema: al asignar un texto a cualquier columna de
 # estos modelos se quitan los caracteres de control (p. ej. NUL, que Postgres rechaza) y se recorta
 # al largo de la columna String(n) (antes un texto más largo daba error 500 y se perdía la edición).

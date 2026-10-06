@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuvia Office</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23185abd'/%3E%3Ctext x='16' y='23' font-family='Segoe UI,Arial' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
+{% set v = '20261005a' %}
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Caladea:ital,wght@0,400;0,700;1,400;1,700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&family=Cousine:ital,wght@0,400;0,700;1,400;1,700&family=Gelasio:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Comic+Neue:wght@400;700&display=swap">
+<link rel="stylesheet" href="/static/office/office.css?v={{ v }}">
+</head>
+<body>
+{% include "_design_simulacion.html" %}
+<div id="nvVistaInicio"></div>
+
+<div id="nvVistaWord" class="nv-oculto">
+  <header class="nv-titulo">
+    <span class="nv-app-ico" id="nvAppIco" title="Inicio de Nuvia Office" role="button" tabindex="0" aria-label="Inicio de Nuvia Office">W</span>
+    <span class="nv-app-nombre">Nuvia Word</span>
+    <span class="nv-autoguardado" title="Autoguardado: los cambios se guardan solos en Nuvia Office"><span>Autoguardado</span><button type="button" class="nv-switch on" id="nvAuto" role="switch" aria-checked="true" aria-label="Autoguardado"></button></span>
+    <div class="nv-qat" role="toolbar" aria-label="Barra de herramientas de acceso rápido">
+      <button type="button" id="nvGuardar" title="Guardar (Ctrl+S)" aria-label="Guardar"></button>
+      <button type="button" id="nvDeshacer" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"></button>
+      <button type="button" id="nvRehacer" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"></button>
+    </div>
+    <div class="nv-doc-titulo"><button type="button" id="nvDocTitulo" title="Cambiar el nombre del documento">Documento</button><span class="nv-estado" id="nvEstadoDoc">· Guardado</span></div>
+    <div class="nv-buscar-cmd"><span id="nvLupa"></span><input type="search" id="nvBuscarCmd" placeholder="Buscar (Alt+Q)" aria-label="Buscar comandos de Nuvia Word" autocomplete="off"><div class="nv-buscar-res nv-oculto" id="nvBuscarRes" role="listbox"></div></div>
+    <div class="nv-titulo-der">
+      <button type="button" class="nv-btn-compartir" id="nvCompartir" title="Compartir"></button>
+      <span class="nv-avatar" title="{{ user.nombre_completo }}">{{ (user.nombres or '?')[:1] }}{{ (user.apellidos or '')[:1] }}</span>
+    </div>
+  </header>
+  <nav class="nv-tabs" id="nvTabs" role="tablist" aria-label="Pestañas de la cinta"></nav>
+  <div class="nv-cinta" id="nvCinta" aria-label="Cinta de opciones"></div>
+  <div class="nv-trabajo" id="nvTrabajo">
+    <aside class="nv-panel-lateral nv-oculto" id="nvPanelNav" aria-label="Navegación">
+      <div class="nv-panel-h"><span>Navegación</span><button type="button" id="nvCerrarNav" aria-label="Cerrar el panel de navegación" title="Cerrar"></button></div>
+      <div class="nv-panel-c"></div>
+    </aside>
+    <div class="nv-doc-zona">
+      <div class="nv-regla nv-oculto" id="nvRegla" aria-hidden="true"></div>
+      <div class="nv-editor-host"><textarea id="nvEditor" aria-label="Documento"></textarea></div>
+    </div>
+  </div>
+  <footer class="nv-estado-barra" role="status">
+    <button type="button" id="nvEstPagina" title="Ir a una página">Página 1 de 1</button>
+    <button type="button" id="nvEstPalabras" title="Contar palabras">0 palabras</button>
+    <button type="button" id="nvEstIdioma" title="Idioma de revisión">Español (Colombia)</button>
+    <span class="esp"></span>
+    <button type="button" data-vista="lectura" title="Modo de lectura" aria-label="Modo de lectura"></button>
+    <button type="button" data-vista="impresion" class="on" title="Diseño de impresión" aria-label="Diseño de impresión"></button>
+    <button type="button" data-vista="web" title="Diseño web" aria-label="Diseño web"></button>
+    <span class="nv-zoom"><button type="button" id="nvZoomMenos" aria-label="Alejar" title="Alejar">−</button>
+      <input type="range" id="nvZoomRango" min="10" max="500" step="10" value="100" aria-label="Zoom">
+      <button type="button" id="nvZoomMas" aria-label="Acercar" title="Acercar">+</button>
+      <button type="button" id="nvZoomTxt" title="Zoom" style="min-width:46px">100%</button></span>
+  </footer>
+</div>
+
+<script>
+window.NV = window.NV || {};
+NV.usuario = {id: {{ user.id }}, nombre: {{ user.nombre_completo | tojson }}, email: {{ user.email | tojson }}};
+</script>
+<script src="/static/office/iconos.js?v={{ v }}"></script>
+<script src="/static/office/nucleo.js?v={{ v }}"></script>
+<script src="/static/office/word.js?v={{ v }}"></script>
+<script src="/static/office/word_cinta.js?v={{ v }}"></script>
+<script src="/static/office/word_acciones.js?v={{ v }}"></script>
+<script src="/static/office/word_objetos.js?v={{ v }}"></script>
+<script src="/static/office/word_dialogos.js?v={{ v }}"></script>
+<script src="/static/office/word_docx.js?v={{ v }}"></script>
+<script src="/static/office/word_pdf.js?v={{ v }}"></script>
+<script src="/static/office/inicio.js?v={{ v }}"></script>
+<script src="/static/office/app.js?v={{ v }}"></script>
+</body>
+</html>

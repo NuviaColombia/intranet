@@ -2276,3 +2276,8 @@ def api_canvas_deshacer(trash_id: int, user: Empleado = Depends(require_modulo("
                 "vencido": "Pasó el tiempo para deshacer; pídele a un líder que la restaure desde la Papelera.",
                 "error": "No se pudo restaurar la hoja."}
     raise HTTPException(400, mensajes.get(r, "No se pudo restaurar la hoja."))
+
+
+# ---------- Nuvia Office (Herramientas): rutas en routers/design_office.py ----------
+from .design_office import router as _office_router  # noqa: E402  (importa require_design_manager de aquí)
+router.include_router(_office_router)

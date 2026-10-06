@@ -137,6 +137,7 @@
       <a href="/design?panel=preapproved">✅ Pre-Approved</a>
       <a href="/design?panel=canvas">🎨 Canvas</a>
       <a href="/design?panel=protocols">📋 Protocols</a>
+      {% if user.rol in ('aprobador', 'admin', 'superadmin') %}<a href="/design/office">📝 Nuvia Office</a>{% endif %}
     </div>
   </div>
   {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
