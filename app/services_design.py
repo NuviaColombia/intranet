@@ -384,6 +384,11 @@ HORA_CIERRE = 5
 ESTADO_HOLD = "Hold"
 # Solo se trasladan las órdenes en Hold a partir de esta fecha (las anteriores se quedan en su día).
 TRASLADO_HOLD_DESDE = date(2026, 9, 22)
+# N2 Demodenture: las órdenes en "Html" también pasan al siguiente día hábil, como Hold (pedido por Rosember el
+# 6-oct-2026; las de días anteriores se quedan en su día).
+ESTADO_HTML = "Html"
+AREA_HTML = "N2 Demodenture"
+TRASLADO_HTML_DESDE = date(2026, 10, 6)
 
 
 def ahora_colombia() -> datetime:
@@ -468,6 +473,13 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                .filter(DesignOrden.estado == ESTADO_HOLD, DesignOrden.fecha >= TRASLADO_HOLD_DESDE,
                        DesignOrden.fecha <= cerrado_hasta)
                .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    equipos_html = [t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.nombre == AREA_HTML).all()]
+    if equipos_html:
+        ordenes += (db.query(DesignOrden)
+                    .filter(func.lower(DesignOrden.estado) == ESTADO_HTML.lower(), DesignOrden.team_id.in_(equipos_html),
+                            DesignOrden.fecha >= TRASLADO_HTML_DESDE, DesignOrden.fecha <= cerrado_hasta)
+                    .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+        ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
     libres = festivos(db) if ordenes else set()
     for o in ordenes:
         destino = siguiente_dia_habil(o.fecha, libres)  # se saltan sábados, domingos y festivos de la empresa
@@ -773,7 +785,14 @@ def preapproved_de_centro(db: Session, area_id: int, centro: str, areas_permitid
         pal = _palabras(_sin_prefijo_area(h.nombre))
         return bool(pm and pal and pal <= pm)
     out = []
-    for h, c, grupo in sorted(exactos or parciales, key=lambda x: not del_equipo(x[0])):
+    # Un centro repetido en varios grupos de la misma hoja se muestra junto (una tabla por hoja)
+    por_hoja: dict[int, list] = {}
+    for h, c, grupo in exactos or parciales:
+        if h.id in por_hoja:
+            por_hoja[h.id][2] = por_hoja[h.id][2] + [d for d in grupo if d not in por_hoja[h.id][2]]
+        else:
+            por_hoja[h.id] = [h, c, list(grupo)]
+    for h, c, grupo in sorted(por_hoja.values(), key=lambda x: not del_equipo(x[0])):
         ids = [d.id for d in grupo]
         valores: dict[int, dict[int, str]] = {}
         for ce in (db.query(DesignPreApprovedCelda).join(DesignPreApprovedFila, DesignPreApprovedCelda.fila_id == DesignPreApprovedFila.id)
