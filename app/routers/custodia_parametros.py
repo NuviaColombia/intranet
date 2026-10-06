@@ -157,7 +157,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
     }
     tecnicos_ids = {t.empleado_id for t in consumo["tecnicos"] if t.activo}
     consumo["con_acceso_ids"] = [e.id for e in consumo["accesos"]]  # managers y técnicos con acceso
-    consumo["medidas"], consumo["medida_de"] = scc.MEDIDAS, scc.medida_de
+    consumo["medidas"], consumo["medidas_de"] = scc.MEDIDAS, scc.medidas_de
     consumo["accesos"] = [e for e in consumo["accesos"] if e.id not in tecnicos_ids]  # pestaña Managers
     consumo["admins_ids"] = [e.id for e in consumo["accesos"] if scc.es_admin(e)]
     from .. import acceso_secciones as acs
