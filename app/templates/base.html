@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block titulo %}Nuvia{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css?v=16">
+  <link rel="stylesheet" href="/static/style.css?v=17">
 </head>
 <body>
 {% macro pestanas(grupos, clase, href, sec, activa) %}
@@ -123,7 +123,7 @@
   <div class="nav-sub">
     {% set aprob_txt = 'Aprobaciones/Firmas' ~ ((' <span class="badge-alertas">' ~ custodia_pendientes ~ '</span>') if custodia_pendientes else '') %}
     {{ pestanas([[('nueva-orden', 'Nueva orden'), ('registro', 'Nuevo registro')], [('aprobaciones', aprob_txt)],
-                 [('existencias', 'Dashboard'), ('activas', 'Estado órdenes'), ('consulta', 'Consulta traslado')]],
+                 [('existencias', 'Dashboard'), ('activas', 'Estado órdenes'), ('consulta', 'Consulta traslado'), ('conteos', '📋 Conteos mensuales')]],
                 'custodia-tab', '/custodia', sec_permitidas,
                 ('' if en_parametros else (('registro' if 'registro' in sec_permitidas else sec_permitidas[0]) if sec_permitidas else 'registro'))) }}
   </div>
@@ -184,7 +184,7 @@
   {% endif %}
 </nav>
 {% endif %}
-<main{% if not es_portal %} style="max-width:100%"{% endif %}>{% block contenido %}{% endblock %}</main>
+<main{% if not es_portal %} style="max-width:100%"{% endif %}{% if user and (es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_conteo) %} class="app-completa"{% endif %}>{% block contenido %}{% endblock %}</main>
 <script>
 (function() {
   document.querySelectorAll('.nav-drop-btn').forEach(function(btn) {

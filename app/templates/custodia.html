@@ -133,6 +133,35 @@
   .fila-totales td { background-color: var(--brand-light) !important; font-weight: 800 !important; color: var(--brand-main) !important; border-top: 1px solid var(--border-medium) !important; border-bottom: none !important;}
 
   .split-layout { display: flex; flex-direction: column; gap: 24px; }
+  /* Estado órdenes: indicadores, chips de área y tarjetas por área */
+  .eo-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .eo-kpi { background: var(--bg-surface); border: 1px solid var(--border-soft); border-left: 4px solid var(--brand-main); border-radius: 12px; padding: 10px 14px; }
+  .eo-kpi small { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+  .eo-kpi b { font-size: 22px; color: var(--brand-main); }
+  .eo-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .eo-chip { border: 1px solid var(--border-soft); background: var(--bg-surface); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 700;
+    color: var(--brand-main); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .eo-chip span { font-weight: 600; color: var(--text-muted); }
+  .eo-chip.activo { background: var(--brand-main); color: #fff; border-color: var(--brand-main); }
+  .eo-chip.activo span { color: #cbd5e1; }
+  .eo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .eo-card { border: 1px solid var(--border-soft); border-top: 4px solid var(--success); border-radius: 12px; background: var(--bg-surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; }
+  .eo-card.warning { border-top-color: var(--warning); } .eo-card.danger { border-top-color: var(--danger); }
+  .eo-card-cab { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px 4px; }
+  .eo-card-cab h5 { margin: 0; font-size: 14px; color: var(--brand-main); font-weight: 800; }
+  .eo-card-cab .tot { font-size: 20px; font-weight: 800; color: var(--brand-main); }
+  .eo-card-cab .tot small { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .eo-card-sub { font-size: 11.5px; color: var(--text-muted); padding: 0 14px 8px; border-bottom: 1px solid var(--border-soft); }
+  .eo-lista { max-height: 260px; overflow-y: auto; padding: 4px 6px 8px; }
+  .eo-fila { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; font-size: 13px; }
+  .eo-fila:hover { background: var(--brand-light); }
+  .eo-fila .ord { font-weight: 800; color: var(--brand-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .eo-fila .cant { font-weight: 800; color: var(--success); text-align: right; min-width: 52px; }
+  .eo-fila .cant.neg { color: var(--danger); }
+  .eo-fila .viaje { border: 1px solid var(--border-soft); background: var(--bg-surface); color: var(--brand-main); cursor: pointer; font-size: 11px;
+    font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .eo-fila .viaje:hover { background: var(--brand-main); color: #fff; }
+  .eo-fila .badge { font-size: 10.5px; padding: 3px 8px; }
   .split-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); }
   .split-panel h4 { margin-top: 0; margin-bottom: 15px; color: var(--brand-main); font-size: 14px; font-weight: 800; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px;}
   .split-panel .consulta-tabla th { font-size: 11px; padding: 12px 10px; background: var(--brand-light); color: var(--text-muted); border: none; border-bottom: 1px solid var(--border-soft);}
@@ -163,6 +192,43 @@
   @media print {
     #custodia-app .main-container, #custodia-app .nav-tabs, #custodia-app .modal { display: none !important; }
   }
+
+  /* ===== Diseño compacto: menos márgenes, bordes y sombras para dar más espacio a la información ===== */
+  #custodia-app .content-section { padding: 12px 14px; }
+  #custodia-app .main-container { box-shadow: none; border: none; border-radius: 0; background: transparent; }
+  #custodia-app .content-section { padding: 2px 0; }
+  #custodia-app .consulta-tabla-wrapper { max-height: calc(100vh - 210px); background: var(--bg-surface); }
+  #custodia-app .consulta-filtros { padding: 8px 12px; margin-bottom: 10px; gap: 10px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .consulta-filtros h4 { font-size: 14px !important; }
+  #custodia-app .consulta-filtros label { font-size: 12px; }
+  #custodia-app .consulta-filtros select, #custodia-app .consulta-filtros input[type="date"], #custodia-app .consulta-filtros input[type="text"],
+  #custodia-app .consulta-filtros input[type="number"] { padding: 6px 10px; }
+  #custodia-app .split-layout { gap: 12px; }
+  #custodia-app .split-panel { padding: 12px 14px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .split-panel h4 { margin-bottom: 8px; padding-bottom: 6px; border-bottom-width: 1px; }
+  #custodia-app .split-panel > div[style*="border-bottom: 2px"] { border-bottom-width: 1px !important; padding-bottom: 6px !important; margin-bottom: 10px !important; }
+  #custodia-app #sec-activas input[type="text"], #custodia-app #sec-activas input[type="date"] { padding: 6px 10px !important; }
+  #custodia-app .dash-panel { padding: 12px 14px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .dash-panel h4 { margin-bottom: 10px; }
+  #custodia-app .dash-grid-full { gap: 12px; margin-bottom: 12px; }
+  #custodia-app .dash-kpi-container { gap: 12px; margin-bottom: 12px; }
+  #custodia-app .kpi-card { padding: 10px 14px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .kpi-card:hover { transform: none; box-shadow: none; }
+  #custodia-app .kpi-card h5 { font-size: 11.5px; }
+  #custodia-app .kpi-card p { margin-top: 2px; font-size: 22px; }
+  #custodia-app .consulta-tabla-wrapper { border-radius: 8px; box-shadow: none; margin-bottom: 10px; }
+  #custodia-app .consulta-tabla th { padding: 7px 10px; }
+  #custodia-app .consulta-tabla td { padding: 6px 10px; }
+  #custodia-app .split-panel .consulta-tabla th { padding: 7px 8px; }
+  #custodia-app .split-panel .consulta-tabla td { padding: 6px 8px; }
+  #custodia-app .btn { padding: 7px 14px; }
+  #custodia-app .dropdown-check-list .anchor { padding: 6px 28px 6px 12px; }
+  #custodia-app .eo-kpis { gap: 10px; margin-bottom: 10px; }
+  #custodia-app .eo-kpi { padding: 8px 12px; border-radius: 10px; }
+  #custodia-app .eo-kpi b { font-size: 20px; }
+  #custodia-app .eo-chips { margin-bottom: 10px; }
+  #custodia-app .eo-grid { gap: 10px; }
+  #custodia-app .eo-card { box-shadow: none; border-top-width: 3px; border-radius: 10px; }
 </style>
 
 <div id="custodia-app">
@@ -378,8 +444,8 @@
     <!-- SECCIÓN 3: ESTADO ÓRDENES -->
     <div id="sec-activas" class="content-section">
 
-      <div class="split-panel" style="margin-bottom:24px;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:16px;">
+      <div class="split-panel" style="margin-bottom:16px; padding:14px 18px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
           <div style="flex:2; min-width:220px;">
             <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Buscar número de orden</label>
             <input type="text" id="inputOrdenActivas" placeholder="Número de orden..." oninput="filtrarTablaActivas(); filtrarTablaMatrix();"
@@ -394,13 +460,11 @@
             <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Hasta</label>
             <input type="date" id="filtroFechaHastaActivas" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
           </div>
+          <div id="togglePendientesCompletadas" style="display:flex; gap:6px; align-self:center;">
+            <button type="button" class="btn mini" id="btnEstadoPendientes" onclick="setFiltroEstadoOrden('pendientes')" style="background:var(--brand-main);">Pendientes</button>
+            <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">Completadas</button>
+          </div>
           <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔍 Buscar</button>
-          <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ Reporte corte</button>
-        </div>
-
-        <div id="togglePendientesCompletadas" style="display:flex; gap:8px; margin-bottom:8px;">
-          <button type="button" class="btn mini" id="btnEstadoPendientes" onclick="setFiltroEstadoOrden('pendientes')" style="background:var(--brand-main);">Pendientes</button>
-          <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">Completadas</button>
         </div>
 
         <div id="resultadoConsultaOrden" style="display:none; margin-top:16px; border-top:1px solid var(--border-soft); padding-top:16px;">
@@ -423,29 +487,16 @@
           <div class="split-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px; margin-bottom: 15px;">
                <h4 style="margin:0; border:none; padding:0;">📍 Ubicación actual</h4>
-               <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:11px;" onclick="exportarActivasExcel()">📥 Excel</button>
+               <div style="display:flex; gap:8px;">
+                 <button type="button" class="btn" style="background:var(--success); padding: 6px 12px; font-size:11px;" onclick="imprimirReporteCorte()" title="Hoja para hacer el conteo físico a mano">🖨️ Reporte corte</button>
+                 <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:11px;" onclick="exportarActivasExcel()">📥 Excel</button>
+               </div>
             </div>
 
-            <div style="display:flex; gap:10px; margin-bottom: 20px;">
-              <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none; flex:1; cursor:pointer;">
-                <option value="TODAS">-- Todas las áreas --</option>
-              </select>
-            </div>
-
-            <div class="consulta-tabla-wrapper" style="max-height: 480px;">
-              <table class="consulta-tabla" id="tablaActivasFull">
-                <thead>
-                  <tr>
-                    <th style="width: 40%;">Orden</th>
-                    <th style="width: 25%;">Cant.</th>
-                    <th style="width: 35%;">Tiempo en área</th>
-                  </tr>
-                </thead>
-                <tbody id="bodyTablaActivas">
-                  <tr><td colspan="3" style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando...</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <!-- el filtro por área se usa desde los chips; el select queda oculto para el resto del código -->
+            <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="display:none"><option value="TODAS">-- Todas las áreas --</option></select>
+            <div id="eoChips" class="eo-chips"></div>
+            <div id="bodyTablaActivas" class="eo-grid"><p style="padding:40px; color:var(--text-muted); font-weight:600;">Cargando...</p></div>
           </div>
 
           <div class="split-panel">
@@ -457,6 +508,10 @@
                </div>
             </div>
 
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-muted);">Bodegas:</span>
+              <div id="matrizBodegas" class="eo-chips" style="margin:0;"></div>
+            </div>
             <div class="consulta-tabla-wrapper" style="max-height: 480px;">
               <table class="consulta-tabla" id="tablaMatrixFull">
                 <thead id="headTablaMatrix"></thead>
@@ -468,6 +523,20 @@
           </div>
 
       </div>
+    </div>
+
+    <!-- SECCIÓN: CONTEOS MENSUALES (solo consulta del submódulo Conteo inventario mensual) -->
+    <div id="sec-conteos" class="content-section">
+      <div class="consulta-filtros">
+        <h4 style="margin:0; color:var(--brand-main); font-size:16px; font-weight:800;">📋 Conteos inventario mensual <span id="ctTitulo" style="font-weight:600; color:var(--text-muted);"></span></h4>
+        <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+          <label>Corte (mes):</label><select id="ctMes" onchange="cargarConteosMes()"></select>
+          <label>Año:</label><input type="number" id="ctAnio" min="2020" max="2100" style="width:90px" onchange="cargarConteosMes()">
+        </div>
+      </div>
+      <p style="font-size:12.5px; color:var(--text-muted); margin:8px 0;" id="ctNota">Discos de zirconia por área: <b>Sistema</b> = existencia neta del Dashboard al último día del mes ·
+        <b>Conteo</b> = lo contado en Conteo inventario mensual (cifra oficial: el segundo conteo cuando ya se hizo) · en <b>Damage</b> el conteo son los discos <b>dañados</b> reportados por las áreas. Solo consulta.</p>
+      <div style="overflow-x:auto"><table class="consulta-tabla" id="ctTabla" style="min-width:100%"></table></div>
     </div>
 
     <!-- SECCIÓN 4: DASHBOARD -->
@@ -487,8 +556,8 @@
       </div>
 
       <div class="dash-grid-full">
-        <div class="dash-panel"><h4>📈 Existencias netas (áreas seleccionadas)</h4><div style="position: relative; height:320px;"><canvas id="chartExistencias"></canvas></div></div>
-        <div class="dash-panel"><h4>🍩 Motivos de salida (áreas seleccionadas)</h4><div style="position: relative; height:320px;"><canvas id="chartMotivos"></canvas></div></div>
+        <div class="dash-panel"><h4>📈 Existencias netas (áreas seleccionadas)</h4><div style="position: relative; height:240px;"><canvas id="chartExistencias"></canvas></div></div>
+        <div class="dash-panel"><h4>🍩 Motivos de salida (áreas seleccionadas)</h4><div style="position: relative; height:240px;"><canvas id="chartMotivos"></canvas></div></div>
       </div>
 
       <div class="dash-panel">
@@ -614,7 +683,7 @@
   <div id="modalTimeline" class="modal">
     <div class="modal-content" style="max-width: 600px; padding: 30px;">
       <h3 style="color:var(--brand-main); margin-top:0; border-bottom:2px solid var(--brand-light); padding-bottom:15px; font-weight:800;">
-         🛤️ Línea de tiempo: orden <span id="lblTimelineOrden" style="color:var(--accent);"></span>
+         🕒 Línea de tiempo: orden <span id="lblTimelineOrden" style="color:var(--accent);"></span>
       </h3>
       <div class="timeline-container" id="containerTimelineModal" style="max-height: 55vh; overflow-y: auto;">
          <p style="font-size:13px; color:var(--text-muted);">Cargando historial completo...</p>
@@ -788,6 +857,7 @@ function switchTab(tab) {
   if (tab === 'consulta') cargarAreasSalidaDropdown().then(ejecutarConsulta);  // al entrar se cargan los últimos 50
   if (tab === 'existencias') { cargarDashboardExistencias(); }
   if (tab === 'activas') { cargarEstadoOrdenes(); }
+  if (tab === 'conteos') { cargarConteosMes(); }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1436,7 +1506,7 @@ function cargarEstadoOrdenes() {
     actualizarResumenOrdenActivas();
   }).catch(function(e) {
     btn.innerText = "🔍 Buscar";
-    document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="3" style="padding:40px; color:var(--danger);">${esc(e.message)}</td></tr>`;
+    document.getElementById("bodyTablaActivas").innerHTML = `<p style="padding:40px; color:var(--danger);">${esc(e.message)}</p>`;
   });
 }
 
@@ -1461,15 +1531,24 @@ function calcularTiempoRetencion(fIso, hIso, area) {
   return `<span class="badge badge-success">${timeStr}</span>`;
 }
 
+// Nivel de alerta del tiempo en área (mismos umbrales que calcularTiempoRetencion): 0 bien · 1 advertencia · 2 crítica
+function nivelAlerta(o) {
+  if (!o.fIso) return 0;
+  var d = new Date(o.fIso + "T" + (o.hIso || "00:00") + ":00");
+  if (isNaN(d.getTime())) return 0;
+  var hrs = (Date.now() - d.getTime()) / 3600000, u = areasAlertaGlobal[o.ubicacion] || {advertencia: 24, critica: 48};
+  return hrs > u.critica ? 2 : (hrs > u.advertencia ? 1 : 0);
+}
+
+// Ubicación actual: indicadores, chips por área y una tarjeta por área con sus órdenes
 function filtrarTablaActivas() {
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
-  var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
-  var tbody1 = document.getElementById("bodyTablaActivas");
-  tbody1.innerHTML = "";
+  var sel = document.getElementById("filtroAreaActivas"), areaBuscada = sel.value.toUpperCase();
+  var grid = document.getElementById("bodyTablaActivas");
 
-  var filtrados = ordenesActivasGlobal.filter(function(o) {
+  // Órdenes según la búsqueda y Pendientes/Completadas (antes del filtro de área: alimentan indicadores y chips)
+  var base = ordenesActivasGlobal.filter(function(o) {
     if (!o.orden.includes(textoBuscado)) return false;
-    if (areaBuscada !== "TODAS" && o.ubicacion !== areaBuscada) return false;
     if (!textoBuscado) {
       var completada = o.ubicacion === 'EMPAQUE';
       if (filtroEstadoOrdenActivas === 'completadas' && !completada) return false;
@@ -1477,56 +1556,75 @@ function filtrarTablaActivas() {
     }
     return true;
   });
+  var porArea = {};
+  base.forEach(function(o) { (porArea[o.ubicacion] = porArea[o.ubicacion] || []).push(o); });
+  var areas = Object.keys(porArea).sort(function(a, b) { return ordenAscendenteUbicacion ? a.localeCompare(b) : b.localeCompare(a); });
+  if (areaBuscada !== "TODAS" && !porArea[areaBuscada]) { areaBuscada = "TODAS"; sel.value = "TODAS"; }
+  var suma = function(lista) { return lista.reduce(function(s, o) { return s + o.cantidad; }, 0); };
 
-  filtrados.sort(function(a, b) {
-    var comp = a.ubicacion.localeCompare(b.ubicacion);
-    if (comp === 0) {
-        comp = a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' });
-    }
-    return ordenAscendenteUbicacion ? comp : -comp;
+  var totalDiscos = suma(base);
+
+  // Chips de área (reemplazan el desplegable)
+  var chip = function(valor, texto, detalle) {
+    return '<button type="button" class="eo-chip' + (areaBuscada === valor ? ' activo' : '') + '" data-area="' + esc(valor) + '">' + esc(texto) + ' <span>' + detalle + '</span></button>';
+  };
+  document.getElementById("eoChips").innerHTML = chip('TODAS', 'Todas', totalDiscos.toFixed(2)) +
+    areas.map(function(a) { return chip(a, nombrePropio(a), suma(porArea[a]).toFixed(2)); }).join('');
+  document.querySelectorAll('#eoChips .eo-chip').forEach(function(b) {
+    b.onclick = function() { sel.value = this.dataset.area; filtrarTablaActivas(); };
   });
 
-  if(filtrados.length === 0) {
-    tbody1.innerHTML = `<tr><td colspan="3" style="padding:50px; color:var(--text-muted); font-weight:600;">No se encontraron órdenes en este corte.</td></tr>`;
-  } else {
-    // Agrupado por ubicación: una fila de encabezado por área (órdenes y total de discos) y debajo sus órdenes.
-    var resumenPorArea = {};
-    filtrados.forEach(function(o) {
-      var r = resumenPorArea[o.ubicacion] || (resumenPorArea[o.ubicacion] = {ordenes: 0, cantidad: 0});
-      r.ordenes += 1; r.cantidad += o.cantidad;
-    });
-    var areaActual = null;
-    filtrados.forEach(function(o) {
-      if (o.ubicacion !== areaActual) {
-        areaActual = o.ubicacion;
-        var r = resumenPorArea[areaActual];
-        var trGrupo = document.createElement("tr");
-        trGrupo.className = "grupo-ubicacion";
-        trGrupo.innerHTML = `<td colspan="3">📍 ${esc(nombrePropio(areaActual))}
-          <span class="grupo-detalle">${r.ordenes} ${r.ordenes === 1 ? "orden" : "órdenes"} · ${r.cantidad.toFixed(2)} discos</span></td>`;
-        tbody1.appendChild(trGrupo);
-      }
-      var tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td style="font-weight:800; color:var(--brand-main);">
-          ${esc(o.orden)}
-          <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 11px;" data-orden="${esc(o.orden)}" onclick="abrirModalTimeline(this.dataset.orden)">🛤️ Viaje</button>
-        </td>
-        <td style="font-weight:800; color:${o.negativo ? 'var(--danger)' : 'var(--success)'};"${o.negativo ? ' title="Saldo negativo: salió más de lo que entró a esta área (falta registrar o firmar un traslado)"' : ''}>${o.negativo ? '⚠️ ' : ''}${o.cantidad.toFixed(2)}</td>
-        <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
-      `;
-      tbody1.appendChild(tr);
-    });
+  // Una tarjeta por área
+  var visibles = areaBuscada === "TODAS" ? areas : [areaBuscada];
+  if (!visibles.length) {
+    grid.innerHTML = '<p style="padding:40px; color:var(--text-muted); font-weight:600; grid-column:1/-1; text-align:center;">No se encontraron órdenes en este corte.</p>';
+    return;
   }
+  grid.innerHTML = visibles.map(function(a) {
+    var lista = porArea[a].slice().sort(function(x, y) { return x.orden.localeCompare(y.orden, undefined, {numeric: true, sensitivity: 'base'}); });
+    var niveles = lista.map(nivelAlerta), peor = Math.max.apply(null, niveles);
+    var crit = niveles.filter(function(n) { return n === 2; }).length;
+    return '<div class="eo-card' + (peor === 2 ? ' danger' : (peor === 1 ? ' warning' : '')) + '">' +
+      '<div class="eo-card-cab"><h5>📍 ' + esc(nombrePropio(a)) + '</h5><div class="tot">' + suma(lista).toFixed(2) + ' <small>discos</small></div></div>' +
+      '<div class="eo-card-sub">' + lista.length + (lista.length === 1 ? ' orden' : ' órdenes') +
+        (crit ? ' · <b style="color:var(--danger)">' + crit + ' en alerta crítica</b>' : '') + '</div>' +
+      '<div class="eo-lista">' + lista.map(function(o) {
+        var neg = o.negativo || o.cantidad < 0;
+        return '<div class="eo-fila" title="Último movimiento: ' + esc(o.fechaStr) + '"><span class="ord">' + esc(o.orden) + '</span>' +
+          '<span class="cant' + (neg ? ' neg' : '') + '"' + (neg ? ' title="Saldo negativo: salió más de lo que entró (falta registrar o firmar un traslado)"' : '') + '>' +
+          (neg ? '⚠️ ' : '') + o.cantidad.toFixed(2) + '</span>' + calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion) +
+          '<button type="button" class="viaje" title="Ver la línea de tiempo de la orden" data-orden="' + esc(o.orden) + '" onclick="abrirModalTimeline(this.dataset.orden)">🕒 Línea de tiempo</button></div>';
+      }).join('') + '</div></div>';
+  }).join('');
+}
+
+// Bodegas que se ocultan por defecto en la matriz (se pueden volver a mostrar con los chips)
+var matrizOcultas = {"EMPAQUE": true, "BODEGA": true, "SALDO INICIAL": true, "INICIAL": true};
+function areasMatrizVisibles() { return areasMatrixGlobal.filter(function(a) { return !matrizOcultas[a]; }); }
+function totalMatrizVisible(o) { return areasMatrizVisibles().reduce(function(t, a) { return t + (o[a] ? o[a].net : 0); }, 0); }
+function filasMatrizVisibles(lista) {  // sin las órdenes que no tienen movimiento en las bodegas visibles
+  var vis = areasMatrizVisibles();
+  return lista.filter(function(o) { return vis.some(function(a) { var c = o[a]; return c && (c.ent || c.sal || c.net); }); });
+}
+function pintarBodegasMatriz() {
+  var cont = document.getElementById("matrizBodegas");
+  cont.innerHTML = areasMatrixGlobal.map(function(a) {
+    return '<button type="button" class="eo-chip' + (matrizOcultas[a] ? '' : ' activo') + '" data-area="' + esc(a) + '" title="Clic para mostrar u ocultar esta bodega">' +
+      (matrizOcultas[a] ? '' : '✓ ') + esc(nombrePropio(a)) + '</button>';
+  }).join('');
+  cont.querySelectorAll('.eo-chip').forEach(function(b) {
+    b.onclick = function() { var a = this.dataset.area; if (matrizOcultas[a]) delete matrizOcultas[a]; else matrizOcultas[a] = true; filtrarTablaMatrix(); };
+  });
 }
 
 function filtrarTablaMatrix() {
+  pintarBodegasMatriz();
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
 
   var thead2 = document.getElementById("headTablaMatrix");
   var filaAreas = `<tr><th rowspan="2" style="min-width: 90px; text-align: left; vertical-align:middle;">Orden</th>`;
   var filaSub = `<tr>`;
-  areasMatrixGlobal.forEach(function(area) {
+  areasMatrizVisibles().forEach(function(area) {
     filaAreas += `<th colspan="3">${esc(area)}</th>`;
     filaSub += `<th style="font-size:11px;">Ent</th><th style="font-size:11px;">Sal</th><th style="font-size:11px;">Neto</th>`;
   });
@@ -1537,16 +1635,16 @@ function filtrarTablaMatrix() {
   var tbody2 = document.getElementById("bodyTablaMatrix");
   tbody2.innerHTML = "";
 
-  var filtradosMatrix = matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); });
+  var filtradosMatrix = filasMatrizVisibles(matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); }));
 
   if(filtradosMatrix.length === 0) {
-    tbody2.innerHTML = `<tr><td colspan="${areasMatrixGlobal.length * 3 + 2}" style="padding:50px; color:var(--text-muted); font-weight:600;">Sin datos de seguimiento en este corte.</td></tr>`;
+    tbody2.innerHTML = `<tr><td colspan="${areasMatrizVisibles().length * 3 + 2}" style="padding:50px; color:var(--text-muted); font-weight:600;">Sin datos de seguimiento en este corte.</td></tr>`;
   } else {
     filtradosMatrix.sort(function(a,b){ return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
     filtradosMatrix.forEach(function(o) {
       var tr = document.createElement("tr");
       var tds = `<td style="font-weight:800; color:var(--brand-main); text-align: left;">${esc(o.orden)}</td>`;
-      areasMatrixGlobal.forEach(function(area) {
+      areasMatrizVisibles().forEach(function(area) {
          var celda = o[area] || {ent:0, sal:0, net:0};
          var ent = celda.ent > 0 ? celda.ent.toFixed(2) : "-";
          var sal = celda.sal > 0 ? celda.sal.toFixed(2) : "-";
@@ -1555,7 +1653,7 @@ function filtrarTablaMatrix() {
          tds += `<td style="color:var(--warning); font-weight:700;">${sal}</td>`;
          tds += `<td style="font-weight:800;">${net}</td>`;
       });
-      tds += `<td style="font-weight:800; color:var(--accent);">${o.TOTAL.toFixed(2)}</td>`;
+      tds += `<td style="font-weight:800; color:var(--accent);">${totalMatrizVisible(o).toFixed(2)}</td>`;
       tr.innerHTML = tds;
       tbody2.appendChild(tr);
     });
@@ -1603,11 +1701,11 @@ function exportarActivasExcel() {
 
 function exportarMatrixExcel() {
   if(matrixGlobal.length === 0) return alert("No hay datos de matriz cargados.");
-  var csvContent = "﻿ORDEN;" + areasMatrixGlobal.join(";") + ";TOTAL\n";
-  matrixGlobal.forEach(o => {
+  var csvContent = "﻿ORDEN;" + areasMatrizVisibles().join(";") + ";TOTAL\n";
+  filasMatrizVisibles(matrixGlobal).forEach(o => {
       var fila = [o.orden];
-      areasMatrixGlobal.forEach(a => { fila.push(o[a] ? o[a].net : 0); });
-      fila.push(o.TOTAL);
+      areasMatrizVisibles().forEach(a => { fila.push(o[a] ? o[a].net : 0); });
+      fila.push(totalMatrizVisible(o));
       csvContent += `"${fila.join('";"')}"\n`;
   });
   descargarCSV(csvContent, "Matriz_Seguimiento");
@@ -1622,9 +1720,10 @@ function descargarCSV(contenido, prefijo) {
 }
 
 function imprimirReporteCorte() {
-  var fDesde = document.getElementById("filtroFechaDesdeActivas").value;
+  // Hoja para el conteo físico: lo que dice el sistema por área y orden, con espacios para escribir a mano
   var fHasta = document.getElementById("filtroFechaHastaActivas").value;
-  var fechaCorte = (fDesde || fHasta) ? `${fDesde || '...'} a ${fHasta || '...'}` : "Sin filtro de fecha";
+  var hoy = new Date();
+  var corte = fHasta ? fHasta.split('-').reverse().join('/') : hoy.toLocaleDateString('es-CO') + ' (hoy)';
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
   var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
 
@@ -1638,68 +1737,67 @@ function imprimirReporteCorte() {
     }
     return true;
   });
+  if (filtrados.length === 0) return alert("No hay órdenes para imprimir en este corte.");
 
-  if (filtrados.length === 0) return alert("No hay datos de órdenes activas para imprimir en este corte.");
-
-  var grupos = {}; var granTotal = 0;
+  var grupos = {}, granTotal = 0;
   filtrados.forEach(function(o) {
-    if (!grupos[o.ubicacion]) { grupos[o.ubicacion] = { ordenes: [], total: 0 }; }
-    grupos[o.ubicacion].ordenes.push(o);
-    grupos[o.ubicacion].total += o.cantidad;
-    granTotal += o.cantidad;
+    var g = grupos[o.ubicacion] || (grupos[o.ubicacion] = {ordenes: [], total: 0});
+    g.ordenes.push(o); g.total += o.cantidad; granTotal += o.cantidad;
   });
-
-  Object.keys(grupos).forEach(k => {
-     grupos[k].ordenes.sort((a,b) => a.orden.localeCompare(b.orden, undefined, { numeric: true }));
+  Object.keys(grupos).forEach(function(k) {
+    grupos[k].ordenes.sort(function(a, b) { return a.orden.localeCompare(b.orden, undefined, {numeric: true}); });
   });
+  var n = function(v) { return v.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+  var logo = document.querySelector('nav .marca img');
 
-  var hoyStr = new Date().toLocaleString();
+  var css = '@page { size: letter portrait; margin: 9mm 10mm 11mm; }' +
+    'body { font-family: Arial, Helvetica, sans-serif; color: #0F172A; font-size: 10px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+    'table { width: 100%; border-collapse: collapse; }' +
+    '.enc td { border: 1px solid #94A3B8; padding: 4px 8px; vertical-align: middle; }' +
+    '.enc .logo { width: 22%; text-align: center; } .enc .logo img { max-height: 34px; }' +
+    '.enc .tit { text-align: center; } .enc .tit b { display: block; font-size: 13px; color: #1A365D; } .enc .tit span { font-size: 9.5px; color: #475569; }' +
+    '.enc .meta { width: 26%; font-size: 9.5px; } .enc .meta b { color: #1A365D; }' +
+    '.datos { margin: 6px 0 8px; } .datos td { font-size: 10px; padding: 3px 0; } .datos .linea { border-bottom: 1px solid #0F172A; width: 30%; }' +
+    '.area { margin-bottom: 7px; page-break-inside: avoid; }' +
+    '.area-cab { background: #1A365D; color: #fff; font-weight: 700; font-size: 10.5px; padding: 3px 8px; display: flex; justify-content: space-between; }' +
+    '.t th { background: #E2E8F0; font-size: 9px; font-weight: 700; padding: 3px 5px; border: 1px solid #94A3B8; text-transform: uppercase; }' +
+    '.t td { border: 1px solid #94A3B8; padding: 0 6px; height: 19px; font-size: 10.5px; }' +
+    '.t .num { text-align: right; font-weight: 700; } .t .ord { font-weight: 700; } .t .i { text-align: center; color: #64748B; width: 5%; }' +
+    '.t .neg { color: #DC2626; } .t tr.tot td { background: #F1F5F9; font-weight: 700; }' +
+    '.resumen { margin-top: 8px; border: 1px solid #94A3B8; } .resumen td { padding: 4px 8px; font-size: 10.5px; border: 1px solid #94A3B8; }' +
+    '.firmas { margin-top: 26px; page-break-inside: avoid; } .firmas td { width: 33%; text-align: center; padding: 0 14px; font-size: 9.5px; vertical-align: bottom; }' +
+    '.firmas .l { border-top: 1px solid #0F172A; padding-top: 3px; font-weight: 700; }';
 
-  var htmlPrint = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #0F172A;">
-      <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #1A365D; padding-bottom: 15px;">
-         <h2 style="margin:0; color:#1A365D; font-weight: 900;">Nuvia Smiles Colombia S.A.S.</h2>
-         <h3 style="margin:8px 0 5px 0;">Inventario en proceso (cantidades)</h3>
-         <p style="margin:0; font-size:12px; color:#475569;">Corte a fecha: <b>${fechaCorte}</b> | Impreso: ${hoyStr}</p>
-      </div>
-  `;
+  var html = '<style>' + css + '</style>' +
+    '<table class="enc"><tr><td class="logo" rowspan="2">' + (logo ? '<img src="' + logo.src + '">' : '<b>NUVIA</b>') + '</td>' +
+    '<td class="tit" rowspan="2"><b>CONTEO FÍSICO · INVENTARIO EN PROCESO</b><span>Cambio de custodia · Producción · discos por área y orden</span></td>' +
+    '<td class="meta">Corte del sistema: <b>' + esc(corte) + '</b></td></tr>' +
+    '<tr><td class="meta">Impreso: ' + esc(hoy.toLocaleString('es-CO')) + '</td></tr></table>' +
+    '<table class="datos"><tr><td style="width:14%">Fecha del conteo:</td><td class="linea"></td><td style="width:6%"></td>' +
+    '<td style="width:12%">Hora inicio / fin:</td><td class="linea"></td></tr></table>';
 
   Object.keys(grupos).sort().forEach(function(area) {
-    var dataArea = grupos[area];
-    htmlPrint += `
-      <div style="margin-bottom: 20px; page-break-inside: avoid;">
-        <div style="background-color: #1A365D; color: white; padding: 6px 12px; font-weight: bold; font-size: 13px; border: 1px solid #1A365D;">
-          📍 ${esc(area)} | Total: ${dataArea.total.toFixed(2)} Discos
-        </div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #CBD5E1;">
-          <thead>
-            <tr style="background-color: #F8FAFC; border-bottom: 2px solid #CBD5E1;">
-              <th style="padding: 6px; text-align: left; border-right: 1px solid #CBD5E1; width: 50%;">Número de orden</th>
-              <th style="padding: 6px; text-align: right; width: 50%;">Cantidad</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    dataArea.ordenes.forEach(function(item) {
-      htmlPrint += `
-        <tr style="border-bottom: 1px solid #E2E8F0;">
-          <td style="padding: 6px; border-right: 1px solid #E2E8F0; font-weight: bold;">${esc(item.orden)}</td>
-          <td style="padding: 6px; text-align: right; font-weight: bold; color: ${item.cantidad < 0 ? '#DC2626' : '#10B981'};">${item.cantidad.toFixed(2)}</td>
-        </tr>
-      `;
+    var g = grupos[area];
+    html += '<div class="area"><div class="area-cab"><span>📍 ' + esc(area) + '</span><span>' + g.ordenes.length + (g.ordenes.length === 1 ? ' orden' : ' órdenes') +
+      ' · Sistema: ' + n(g.total) + ' discos</span></div>' +
+      '<table class="t"><thead><tr><th class="i">#</th><th style="width:20%; text-align:left">Orden</th><th style="width:13%">Sistema</th>' +
+      '<th style="width:14%">Conteo físico</th><th style="width:12%">Diferencia</th><th style="text-align:left">Observación</th></tr></thead><tbody>';
+    g.ordenes.forEach(function(o, i) {
+      html += '<tr><td class="i">' + (i + 1) + '</td><td class="ord">' + esc(o.orden) + '</td><td class="num' + (o.cantidad < 0 ? ' neg' : '') + '">' + n(o.cantidad) +
+        '</td><td></td><td></td><td></td></tr>';
     });
-    htmlPrint += `</tbody></table></div>`;
+    // Filas en blanco para órdenes encontradas que no aparecen en el sistema
+    html += '<tr><td class="i">+</td><td></td><td></td><td></td><td></td><td></td></tr>' +
+      '<tr class="tot"><td></td><td>Total ' + esc(area) + '</td><td class="num">' + n(g.total) + '</td><td></td><td></td><td></td></tr></tbody></table></div>';
   });
 
-  htmlPrint += `
-      <div style="margin-top: 30px; text-align: right; padding: 12px; background-color: #F1F5F9; border-radius: 8px; border: 1px solid #CBD5E1;">
-         <h3 style="margin: 0; color: #1A365D;">Gran total discos: ${granTotal.toFixed(2)}</h3>
-         <p style="margin: 5px 0 0 0; font-size: 11px; font-weight: bold; color: #475569;">Total órdenes: ${filtrados.length}</p>
-      </div>
-    </div>
-  `;
+  html += '<table class="resumen"><tr><td style="width:40%"><b>TOTAL DISCOS</b> · ' + Object.keys(grupos).length + ' áreas · ' + filtrados.length + ' órdenes</td>' +
+    '<td style="width:20%">Sistema: <b>' + n(granTotal) + '</b></td><td style="width:20%">Conteo físico: ______</td><td>Diferencia: ______</td></tr></table>' +
+    '<table class="firmas"><tr><td><div style="height:30px"></div><div class="l">Contado por (manager del área)</div>Nombre y firma</td>' +
+    '<td><div style="height:30px"></div><div class="l">Área contable (acompaña el conteo)</div>Nombre y firma</td>' +
+    '<td><div style="height:30px"></div><div class="l">Director de Producción</div>Nombre y firma</td></tr></table>';
 
-  imprimirHtmlEnIframe(htmlPrint);
+  imprimirHtmlEnIframe(html);
 }
 
 function imprimirReporteMatriz() {
@@ -1707,7 +1805,7 @@ function imprimirReporteMatriz() {
   var fHastaM = document.getElementById("filtroFechaHastaActivas").value;
   var fechaCorte = (fDesdeM || fHastaM) ? `${fDesdeM || '...'} a ${fHastaM || '...'}` : "Sin filtro de fecha";
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
-  var filtradosMatrix = matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); });
+  var filtradosMatrix = filasMatrizVisibles(matrixGlobal.filter(function(o) { return o.orden.includes(textoBuscado); }));
   if (filtradosMatrix.length === 0) return alert("No hay datos de matriz para imprimir.");
 
   filtradosMatrix.sort(function(a, b) { return a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' }); });
@@ -1724,9 +1822,9 @@ function imprimirReporteMatriz() {
         <thead>
           <tr><th rowspan="2" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px; vertical-align: middle;">Orden</th>
   `;
-  areasMatrixGlobal.forEach(function(area) { htmlPrint += `<th colspan="3" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px;">${esc(area)}</th>`; });
+  areasMatrizVisibles().forEach(function(area) { htmlPrint += `<th colspan="3" style="background-color: #1A365D; color: white; border: 1px solid #CBD5E1; padding: 4px;">${esc(area)}</th>`; });
   htmlPrint += `</tr><tr>`;
-  areasMatrixGlobal.forEach(function() {
+  areasMatrizVisibles().forEach(function() {
       htmlPrint += `<th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">Ent</th>
                     <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">Sal</th>
                     <th style="background-color: #F0F4F8; color: #1A365D; border: 1px solid #CBD5E1; padding: 2px;">Neto</th>`;
@@ -1735,7 +1833,7 @@ function imprimirReporteMatriz() {
 
   filtradosMatrix.forEach(function(o) {
       htmlPrint += `<tr><td style="border: 1px solid #CBD5E1; padding: 4px; font-weight: bold; text-align:left;">${esc(o.orden)}</td>`;
-      areasMatrixGlobal.forEach(function(area) {
+      areasMatrizVisibles().forEach(function(area) {
           var c = o[area];
           if (c && (c.ent || c.sal || c.net)) {
               var ent = c.ent > 0 ? c.ent.toFixed(2) : "-";
@@ -2600,6 +2698,37 @@ function enviarAlServidor(arregloDatos, resumenExtra) {
       });
       calcularTablaDiscos();
     }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
+}
+
+// ---------------- Conteos mensuales (solo consulta): discos de zirconia, sistema vs conteo por área ----------------
+var CT_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var CT_ESTADO = {VALIDADO: '✅ En firme', ENVIADO: '⏳ Esperando firmas', SIN_ENVIAR: '— Sin enviar', DANADOS: 'Dañados reportados', DANADOS_SIN: '— Sin conteos enviados'};
+function ctNum(v) { return v === null || v === undefined ? '—' : Number(v).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function cargarConteosMes() {
+  var selMes = document.getElementById('ctMes'), anio = document.getElementById('ctAnio');
+  if (!selMes.options.length) {  // primera vez: el mes anterior (el último que se cuenta)
+    var h = new Date(); h.setDate(1); h.setMonth(h.getMonth() - 1);
+    selMes.innerHTML = CT_MESES.map(function(m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join('');
+    selMes.value = h.getMonth() + 1; anio.value = h.getFullYear();
+  }
+  var tabla = document.getElementById('ctTabla');
+  custodiaApi('/custodia/api/conteos?anio=' + anio.value + '&mes=' + selMes.value).then(function(c) {
+    document.getElementById('ctTitulo').innerText = '· Discos de zirconia · corte ' + c.corte;
+    var cab = ['Área', 'Sistema (Dashboard)', 'Conteo', 'Diferencia', 'Estado del conteo'];
+    var tSis = 0, tCon = 0;
+    var html = '<thead><tr>' + cab.map(function(t, i) { return '<th' + (i === 0 ? ' style="text-align:left"' : '') + '>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
+    c.filas.forEach(function(f) {
+      if (f.conteo !== null) { tSis += f.sistema; tCon += f.conteo; }  // el total compara solo las áreas con conteo
+      var dif = f.diferencia, color = dif === null ? 'var(--text-muted)' : (Math.abs(dif) < 0.005 ? 'var(--success)' : 'var(--danger)');
+      html += '<tr' + (f.area === 'DAMAGE' ? ' style="background:#fff7ed"' : '') + '><td style="text-align:left; font-weight:700">' + esc(nombrePropio(f.area)) + (f.area === 'DAMAGE' ? ' <small>(dañados)</small>' : '') +
+        '</td><td>' + ctNum(f.sistema) + '</td><td style="font-weight:700">' + ctNum(f.conteo) + '</td><td style="font-weight:800; color:' + color + '">' +
+        (dif === null ? '—' : (dif > 0 ? '+' : '') + ctNum(dif)) + '</td><td>' + esc(CT_ESTADO[f.estado] || f.estado) + '</td></tr>';
+    });
+    var tDif = Math.round((tCon - tSis) * 100) / 100;
+    html += '</tbody><tbody><tr style="background:#f1f5f9; font-weight:800"><td style="text-align:left">TOTAL <small style="font-weight:600">(áreas con conteo)</small></td><td>' + ctNum(tSis) + '</td><td>' + ctNum(tCon) +
+      '</td><td style="color:' + (Math.abs(tDif) < 0.005 ? 'var(--success)' : 'var(--danger)') + '">' + (tDif > 0 ? '+' : '') + ctNum(tDif) + '</td><td></td></tr></tbody>';
+    tabla.innerHTML = html;
+  }).catch(function(e) { tabla.innerHTML = '<tbody><tr><td style="color:var(--danger); padding:20px">' + esc(e.message) + '</td></tr></tbody>'; });
 }
 </script>
 {% endblock %}

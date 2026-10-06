@@ -273,6 +273,47 @@ def api_estado_ordenes(fechaDesde: str = "", fechaHasta: str = "",
     return sc.estado_ordenes(db, fd, fh)
 
 
+# ---------- Conteos mensuales (solo consulta de Producción › Conteo inventario mensual) ----------
+
+@router.get("/custodia/api/conteos")
+def api_conteos(anio: int, mes: int, user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
+    """Discos de zirconia por área: lo que dice el sistema (Balance al último día del mes) contra lo contado en
+    Conteo inventario mensual (cifra oficial). En Damage el conteo son los discos DAÑADOS reportados por las áreas.
+    Solo consulta: no se edita, firma ni anula desde aquí."""
+    import calendar
+    from datetime import date as _date
+    acs.exigir(db, user, "custodia", "conteos")
+    from .. import services_conteo as sct
+    from ..models_conteo import ConteoReporte
+    from ..models_custodia import CustodiaArea
+    sct.asegurar_catalogo(db)
+    corte = _date(anio, mes, calendar.monthrange(anio, mes)[1])
+    excluidas = sc.areas_excluidas(db)
+    sistema = {a: round(d["neto"], 2) for a, d in sc.dashboard(db, None, corte)["dataPorArea"].items() if a not in excluidas}
+    zirconia = [m for m in sct.materiales_activos(db) if "ZIRCONIA" in (m.descripcion or "").upper()]
+    reportes = {r.area: r for r in db.query(ConteoReporte).filter_by(anio=anio, mes=mes)
+                if r.estado in (sct.ENVIADO, sct.EN_FIRME)}  # borradores, devueltos y anulados no tienen cifra válida
+    danados_total, conteo = 0.0, {}
+    for area, r in reportes.items():
+        cant, dan = sct.cantidades_finales(r)
+        conteo[area] = round(sum(v for k, v in cant.items() if int(k.split(":")[1]) in {m.id for m in zirconia}), 2)
+        danados_total += sum(dan.values())
+    areas = [a.nombre for a in db.query(CustodiaArea).filter(CustodiaArea.activo == 1).order_by(CustodiaArea.orden)
+             if a.nombre not in excluidas]
+    filas = []
+    for area in areas + sorted(set(sistema) - set(areas)):
+        es_damage = area == "DAMAGE"
+        r = reportes.get(area)
+        contado = (round(danados_total, 2) if reportes else None) if es_damage else conteo.get(area)
+        if not es_damage and r is None and not sistema.get(area):
+            continue  # área sin discos en el sistema y sin conteo
+        filas.append({"area": area, "sistema": sistema.get(area, 0.0), "conteo": contado,
+                      "estado": (("DANADOS" if reportes else "DANADOS_SIN") if es_damage else (r.estado if r else "SIN_ENVIAR")),
+                      "diferencia": None if contado is None else round(contado - sistema.get(area, 0.0), 2)})
+    return {"anio": anio, "mes": mes, "mesNombre": sct.MESES[mes - 1], "corte": corte.isoformat(),
+            "material": ", ".join(f"{m.codigo} {m.descripcion}" for m in zirconia) or "Disco de zirconia", "filas": filas}
+
+
 @router.get("/custodia/api/consultar-orden/{numero_orden}")
 def api_consultar_orden(numero_orden: str, fechaDesde: str = "", fechaHasta: str = "",
                               user: Empleado = Depends(require_submodulo("custodia")),
