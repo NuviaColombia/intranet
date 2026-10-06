@@ -817,6 +817,81 @@ def _semaforo(valor: float | None, verde: float, amarillo: float, mayor_es_mejor
     return "verde" if valor <= verde else ("amarillo" if valor <= amarillo else "rojo")
 
 
+def _duenio_en(f: ConsumoFrasco, d: date) -> int:
+    """Técnico que tenía el frasco ese día (según los traslados)."""
+    tid = f.entrega.tecnico_id
+    for tr in f.traslados:
+        if (tr.en - timedelta(hours=5)).date() <= d:
+            tid = tr.a_tecnico_id
+    return tid
+
+
+def registro_diario(frascos: list[ConsumoFrasco], tecs: dict[int, ConsumoTecnico], anio: int, mes: int,
+                    tecnico_id: int | None = None) -> dict:
+    """Por técnico y día hábil del mes: «si» registró, «no» (tenía frascos en uso y no registró) o «na» (no tenía frascos)."""
+    ini = date(anio, mes, 1)
+    corte = min(date(anio, mes, calendar.monthrange(anio, mes)[1]), hoy_colombia())
+    dias = _dias_habiles(ini, corte) if corte >= ini else []
+    en_uso: dict[int, set] = {}
+    registro: dict[int, set] = {}
+    for f in frascos:
+        for d in dias:
+            if f.entrega.fecha <= d and (f.estado == "EN_USO" or (f.consumido_en and f.consumido_en >= d)):
+                en_uso.setdefault(_duenio_en(f, d), set()).add(d)
+        for j in f.jornadas:
+            if ini <= j.fecha <= corte:
+                registro.setdefault(_tecnico_de(j).id, set()).add(j.fecha)
+    filas = []
+    for tid, t in tecs.items():
+        if tecnico_id and tid != tecnico_id:
+            continue
+        estado = {d.isoformat(): ("si" if d in registro.get(tid, set()) else ("no" if d in en_uso.get(tid, set()) else "na"))
+                  for d in dias}
+        faltas = [d for d, e in estado.items() if e == "no"]
+        if not faltas and not any(e == "si" for e in estado.values()):
+            continue  # no tuvo frascos ni registros en el mes
+        filas.append({"tecnicoId": tid, "tecnico": _nombre_tecnico(t), "area": t.area, "dias": estado, "faltas": len(faltas),
+                      "fechasFalta": faltas, "registrados": sum(1 for e in estado.values() if e == "si")})
+    filas.sort(key=lambda x: (-x["faltas"], x["tecnico"]))
+    hoy = hoy_colombia().isoformat()
+    return {"dias": [d.isoformat() for d in dias], "filas": filas,
+            "porDia": {d.isoformat(): [x["tecnico"] for x in filas if x["dias"][d.isoformat()] == "no"] for d in dias},
+            "hoy": hoy if hoy in {d.isoformat() for d in dias} else None}
+
+
+def sin_registro(db: Session, user: Empleado, fecha: date, area: str = "", prueba: bool = False) -> dict:
+    """Técnicos que tenían frascos en uso ese día y no registraron la jornada (más el cuadro del mes)."""
+    tecs = {t.id: t for t in tecnicos_visibles(db, user) if not area or t.area == area}
+    frascos = (db.query(ConsumoFrasco).join(ConsumoEntrega)
+               .options(joinedload(ConsumoFrasco.materia), joinedload(ConsumoFrasco.registros), joinedload(ConsumoFrasco.traslados),
+                        joinedload(ConsumoFrasco.entrega))
+               .filter(ConsumoEntrega.estado == "ACTIVO", ConsumoEntrega.prueba == (1 if prueba else 0)).all())
+    en_uso: dict[int, list[str]] = {}
+    hoy_reg: dict[int, int] = {}
+    ultimo: dict[int, date] = {}
+    for f in frascos:
+        if f.entrega.fecha <= fecha and (f.estado == "EN_USO" or (f.consumido_en and f.consumido_en >= fecha)):
+            en_uso.setdefault(_duenio_en(f, fecha), []).append(f"{nombre_propio(f.materia.descripcion)} · {f.serie}")
+        for j in f.jornadas:
+            tid = _tecnico_de(j).id
+            if j.fecha == fecha:
+                hoy_reg[tid] = hoy_reg.get(tid, 0) + 1
+            if j.fecha <= fecha and (tid not in ultimo or j.fecha > ultimo[tid]):
+                ultimo[tid] = j.fecha
+    faltan, registraron = [], []
+    for tid, t in sorted(tecs.items(), key=lambda x: _nombre_tecnico(x[1])):
+        fila = {"tecnicoId": tid, "tecnico": _nombre_tecnico(t), "area": t.area, "frascos": en_uso.get(tid, []),
+                "ultimoRegistro": ultimo[tid].isoformat() if tid in ultimo else None,
+                "diasDesdeUltimo": (fecha - ultimo[tid]).days if tid in ultimo else None, "registros": hoy_reg.get(tid, 0)}
+        if hoy_reg.get(tid):
+            registraron.append(fila)
+        elif en_uso.get(tid):
+            faltan.append(fila)
+    faltan.sort(key=lambda x: (-(x["diasDesdeUltimo"] if x["diasDesdeUltimo"] is not None else 999), x["tecnico"]))
+    return {"fecha": fecha.isoformat(), "habil": fecha.weekday() < 5, "faltan": faltan, "registraron": registraron,
+            "diario": registro_diario(frascos, tecs, fecha.year, fecha.month)}
+
+
 def reporte_general(db: Session, user: Empleado, anio: int, mes: int, area: str = "", tecnico_id: int | None = None,
                     prueba: bool = False) -> dict:
     """Mide a todos los técnicos (visibles) en un mes: producción, rendimiento, consumo, cumplimiento y calidad del registro."""

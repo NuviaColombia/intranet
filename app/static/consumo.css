@@ -252,3 +252,20 @@ body.cs-con-modal { overflow: hidden; }
   body.cs-imprime-doc #consumo-app .cs-modal { position: static; background: none; padding: 0; }
 }
 
+/* ===== Registro diario por técnico (Reporte general) ===== */
+#consumo-app .cs-diario th, #consumo-app .cs-diario td { padding: 4px 3px; min-width: 26px; font-size: 12px; }
+#consumo-app .cs-dia-cab { cursor: pointer; line-height: 1.15; }
+#consumo-app .cs-dia-cab.hoy { background: #2563EB !important; }
+#consumo-app .cs-dia-cab.sel { outline: 3px solid #FACC15; outline-offset: -3px; }
+#consumo-app .cs-dia-n { display: inline-block; background: #DC2626; color: #fff; border-radius: 8px; padding: 0 5px; font-size: 10px; }
+#consumo-app .cs-dia { text-align: center; font-weight: 800; }
+#consumo-app .cs-dia.si { color: #15803D; background: #F0FDF4; }
+#consumo-app .cs-dia.no { color: #fff; background: #EF4444; }
+#consumo-app .cs-dia.na { color: #CBD5E1; }
+#consumo-app span.cs-dia { display: inline-block; width: 18px; border-radius: 4px; }
+#consumo-app .cs-dia-lista { border: 1px solid #FCA5A5; background: #FEF2F2; color: #7F1D1D; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
+#consumo-app .cs-dia-lista.ok { border-color: #86EFAC; background: #F0FDF4; color: #166534; }
+#consumo-app .cm-kpis.tres { grid-template-columns: repeat(3, 1fr); }
+#consumo-app .cs-registraron { margin: 10px 0; }
+#consumo-app .cs-registraron summary { cursor: pointer; font-weight: 700; color: #166534; padding: 6px 0; }
+
