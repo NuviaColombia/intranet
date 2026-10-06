@@ -156,6 +156,10 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
         "personas": db.query(Empleado).filter(Empleado.activo == 1).order_by(Empleado.apellidos, Empleado.nombres).all(),
     }
     tecnicos_ids = {t.empleado_id for t in consumo["tecnicos"] if t.activo}
+    consumo["con_acceso_ids"] = [e.id for e in consumo["accesos"]]  # managers y técnicos con acceso
+    consumo["medidas"], consumo["medida_de"] = scc.MEDIDAS, scc.medida_de
+    consumo["accesos"] = [e for e in consumo["accesos"] if e.id not in tecnicos_ids]  # pestaña Managers
+    consumo["admins_ids"] = [e.id for e in consumo["accesos"] if scc.es_admin(e)]
     from .. import acceso_secciones as acs
     secciones_cfg = {m: acs.configuracion(db, m) for m in ("custodia", "consumo", "conteo")}
     # Conteo inventario mensual

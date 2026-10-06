@@ -150,11 +150,12 @@
 #consumo-app .cm-tabla td input, #consumo-app .cm-tabla td select { margin: 0; width: 100%; padding: 6px 8px; border: 1px solid var(--border-medium); border-radius: 6px; font-size: 13px; }
 #consumo-app .cm-tabla td input.num { width: 80px; text-align: center; font-weight: 700; }
 #consumo-app .cm-kpis.cinco { grid-template-columns: repeat(5, 1fr); }
+#consumo-app .cm-kpis.seis { grid-template-columns: repeat(6, 1fr); }
 #consumo-app tr.cs-bajo td { background: #FEF2F2; }
 #consumo-app .cs-alerta { color: #B91C1C; font-weight: 700; font-size: 12px; }
 #consumo-app h3.cs-h3 { font-size: 14px; color: var(--brand-main); margin: 22px 0 8px; }
 #consumo-app .cs-detalle td { background: #F8FAFC; text-align: left; }
-@media (max-width: 760px) { #consumo-app .cs-form, #consumo-app .cm-kpis.cinco { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { #consumo-app .cs-form, #consumo-app .cm-kpis.cinco, #consumo-app .cm-kpis.seis { grid-template-columns: 1fr 1fr; } }
 
 /* ===== Diseño compacto (Producción): menos márgenes, bordes y sombras ===== */
 #consumo-app .cm-main { padding: 12px 14px; box-shadow: none; border: none; border-radius: 0; min-height: calc(100vh - 110px); }

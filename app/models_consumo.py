@@ -17,6 +17,7 @@ class ConsumoMateria(Base):
     contenido: Mapped[str] = mapped_column(String(80), default="")        # ej. 100 g
     area: Mapped[str] = mapped_column(String(100), default="")            # área de producción que la usa
     mide_arcos: Mapped[bool] = mapped_column(Boolean, default=True)       # False = líquido: no registra arcos
+    medida: Mapped[str] = mapped_column(String(20), default="")           # arcos | gotas | consumo ("" = según mide_arcos)
     orden: Mapped[int] = mapped_column(Integer, default=0)
     activo: Mapped[int] = mapped_column(Integer, default=1)
 
@@ -108,6 +109,7 @@ class ConsumoJornada(Base):
     fecha: Mapped[date] = mapped_column(Date, index=True)
     arcos: Mapped[str] = mapped_column(Text, default="{}")
     total: Mapped[float] = mapped_column(Float, default=0)
+    gotas: Mapped[float] = mapped_column(Float, default=0)                # materias que se miden por gotas usadas en el día
     registrado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     registrado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
