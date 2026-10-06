@@ -1,6 +1,6 @@
 """Recordatorio único de firmas pendientes (Producción y Caja menor Nuvia).
 
-Cada 2 horas, en horario laboral, cada persona recibe por Cliq UN solo mensaje con todo lo que tiene pendiente
+Cada 2 horas, en horario laboral (lunes a viernes de 7 a. m. a 5 p. m.), cada persona recibe por Cliq UN solo mensaje con todo lo que tiene pendiente
 por firmar: recibidos y firmas de DIR Producción en Cambio de custodia, segundo conteo y firmas del Conteo
 inventario mensual, y recibos, FM y recibidos de Caja menor. Reemplaza los recordatorios sueltos por documento
 (el aviso inmediato al crear cada documento se mantiene). Si se corren varios procesos de la intranet, la tabla
@@ -18,8 +18,8 @@ from ..formato import nombre_propio
 router = APIRouter()
 
 HORAS_ENTRE_RECORDATORIOS = 2
-HORARIO = (7, 18)          # se envía de 7:00 a. m. a 6:00 p. m. (hora Colombia)
-DIAS_LABORALES = range(0, 6)  # lunes a sábado
+HORARIO = (7, 17)          # se envía de 7:00 a. m. a 5:00 p. m. (hora Colombia)
+DIAS_LABORALES = range(0, 5)  # lunes a viernes
 MAX_POR_SECCION = 12
 
 
