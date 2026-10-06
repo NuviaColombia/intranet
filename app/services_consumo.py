@@ -15,7 +15,8 @@ def hoy_colombia() -> date:
 
 
 def es_admin(user: Empleado) -> bool:
-    return user.rol in ("admin", "superadmin")
+    from .acceso_produccion import es_admin_produccion
+    return user.rol in ("admin", "superadmin") or es_admin_produccion(user)
 
 
 def asegurar_tipos(db: Session) -> None:

@@ -9,7 +9,7 @@ from sqlalchemy import String, Integer, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, Session
 from .database import Base, get_db
 from .models import Empleado
-from .auth import require_modulo
+from .auth import require_modulo, get_current_user
 
 MODULO_PRODUCCION = "custodia"   # permiso del módulo en People (nombre histórico)
 EMPRESA_PRODUCCION = "Nuvia Smiles Colombia SAS"  # Producción (Custodia, Consumo) es exclusivo de esta empresa
@@ -25,12 +25,48 @@ class ProduccionAcceso(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class ProduccionAdmin(Base):
+    """Administradores de Producción: entran con todos los permisos a todos los submódulos de Producción y a sus
+    Parámetros, sin ser administradores del resto de la intranet. Los asigna un administrador en
+    Producción › Parámetros › General."""
+    __tablename__ = "produccion_admins"
+
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), primary_key=True)
+    asignado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    asignado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+def es_admin_produccion(user: Empleado | None) -> bool:
+    """¿Está en la lista de administradores de Producción? (se consulta una vez por petición y se recuerda)."""
+    if user is None or not getattr(user, "id", None):
+        return False
+    guardado = user.__dict__.get("_admin_produccion")
+    if guardado is None:
+        from .database import SessionLocal
+        db = SessionLocal()
+        try:
+            guardado = bool(user.activo) and db.get(ProduccionAdmin, user.id) is not None
+        except Exception:  # la tabla aún no existe (primer arranque)
+            guardado = False
+        finally:
+            db.close()
+        user.__dict__["_admin_produccion"] = guardado
+    return guardado
+
+
 def es_admin(user: Empleado) -> bool:
     """Superadmin administra todo; un admin normal solo si es de Nuvia Smiles -- Producción
-    (Custodia, Consumo) es exclusivo de esa empresa, igual que SST."""
+    (Custodia, Consumo) es exclusivo de esa empresa, igual que SST. Además, los administradores de Producción."""
     if user.rol == "superadmin":
         return True
-    return user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION
+    return (user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION) or es_admin_produccion(user)
+
+
+def require_admin_produccion(user: Empleado = Depends(get_current_user)) -> Empleado:
+    """Parámetros de Producción: administradores de la intranet o administradores de Producción."""
+    if user.rol not in ("admin", "superadmin") and not es_admin_produccion(user):
+        raise HTTPException(403, "Requiere ser administrador (de la intranet o de Producción).")
+    return user
 
 
 def submodulos_de(db: Session, user: Empleado) -> set[str]:

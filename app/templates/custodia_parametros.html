@@ -60,6 +60,7 @@
 </div>
 <div class="cp-tabs">
   <button type="button" class="cp-tab" data-grupo="general" data-panel="resumen">👥 Quién tiene acceso <span class="cp-num">{{ resumen|length }}</span></button>
+  <button type="button" class="cp-tab" data-grupo="general" data-panel="admins">🛡️ Administradores de Producción <span class="cp-num">{{ admins_produccion|length }}</span></button>
   {% for s in submodulos_produccion %}{% set i_sub = loop.index %}
   {% for panel, titulo in s.parametros %}
   <button type="button" class="cp-tab" data-grupo="sub{{ i_sub }}" data-panel="{{ panel }}">{{ titulo }} <span class="cp-num">{{ conteo_panel.get(panel, 0) }}</span></button>
@@ -73,8 +74,8 @@
     (elígelo en la lista <b>Submódulo</b> › pestaña 👤 Accesos), y ahí mismo, en la columna <b>Secciones</b>, eliges qué pestañas puede usar cada persona.
     Los administradores entran a todos.</div></div>
   <div class="cp-ayuda" style="max-width:900px; margin:8px 0 12px; padding:10px 12px; background:#EEF2FF; border-radius:8px;">
-    🔐 <b>Quién puede entrar a Parámetros</b> (de Producción y de Caja menor): solo los <b>administradores</b> de la intranet
-    (rol Administrador o Superadministrador en People › Empleados):
+    🔐 <b>Quién puede entrar a Parámetros</b>: los <b>administradores de Producción</b> (pestaña 🛡️, solo a Producción) y los <b>administradores</b> de la intranet
+    (rol Administrador o Superadministrador en People › Empleados, a Producción y a Caja menor):
     {% for a in administradores %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ' (superadmin)' if a.rol == 'superadmin' }}{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
   </div>
   <table class="cp-tabla">
@@ -87,6 +88,50 @@
     {% endfor %}
   </table>
 </div>
+
+{# ---------- General: administradores de Producción ---------- #}
+<div class="cp-panel" id="panel-admins">
+  <div class="cp-ayuda" style="max-width:900px">Los <b>administradores de Producción</b> entran con <b>todos los permisos</b> a todos los submódulos
+    (Cambio de custodia, Seguimiento de consumo y Conteo inventario mensual), a todas sus pestañas y a estos <b>Parámetros</b>: firman, anulan y
+    configuran como un administrador, pero solo dentro de Producción (no en People, Caja menor, SST ni Design).
+    {% if puede_asignar_admins %}Los asigna un administrador de la intranet.{% else %}Solo un administrador de la intranet puede agregar o quitar administradores de Producción.{% endif %}</div>
+  {% if puede_asignar_admins %}
+  <details class="cp-agregar">
+    <summary><span class="btn mini">＋ Agregar administrador de Producción</span></summary>
+    <form method="post" action="/inventario/parametros/admins" class="cp-form-nuevo">
+      <div style="flex:2;min-width:260px"><label>Persona</label>
+        <input type="search" class="buscar-persona-adm" data-lista="lista-admin-prod" placeholder="Escribe nombre, cédula o cargo…" style="width:100%;margin-bottom:4px">
+        <select name="empleado_id" id="lista-admin-prod" required>
+          <option value="">Seleccionar...</option>
+          {% for c in candidatos_admin %}
+          <option value="{{ c.id }}" data-buscar="{{ (c.nombre_completo ~ ' ' ~ c.identificacion ~ ' ' ~ c.cargo)|lower }}">{{ c.nombre_completo|nombre_propio }} — {{ c.cargo }}</option>
+          {% endfor %}
+        </select></div>
+      <div><button class="btn mini">Agregar</button></div>
+    </form>
+  </details>
+  {% endif %}
+  <table class="cp-tabla" style="max-width:900px">
+    <tr><th>Administrador de Producción</th><th>Cargo</th><th>Correo</th><th></th></tr>
+    {% for e in admins_produccion %}
+    <tr><td>{{ e.nombre_completo|nombre_propio }}</td><td>{{ e.cargo }}</td><td>{{ e.email }}</td>
+      <td class="cp-acciones">{% if puede_asignar_admins %}<form class="inline" method="post" action="/inventario/parametros/admins/{{ e.id }}/quitar"
+            data-nombre="{{ e.nombre_completo|nombre_propio }}" onsubmit="return confirm('¿Quitar a ' + this.dataset.nombre + ' como administrador de Producción?')">
+          <button class="btn gris mini">Quitar</button></form>{% endif %}</td></tr>
+    {% else %}
+    <tr><td colspan="4" class="cp-vacio">Todavía no hay administradores de Producción.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+<script>
+document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
+  inp.addEventListener('input', function() {
+    var q = inp.value.trim().toLowerCase(), sel = document.getElementById(inp.dataset.lista), primera = null;
+    Array.prototype.forEach.call(sel.options, function(o, i) { if (!i) return; var ok = !q || o.dataset.buscar.indexOf(q) >= 0; o.hidden = !ok; if (ok && !primera) primera = o; });
+    if (q && primera) sel.value = primera.value;
+  });
+});
+</script>
 
 {# ---------- Cambio de custodia: accesos (con su área asignada) ---------- #}
 <div class="cp-panel" id="panel-managers">

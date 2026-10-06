@@ -50,6 +50,10 @@ def secciones_de(db: Session, user: Empleado, modulo: str) -> list[str]:
     """Slugs de las secciones que la persona puede usar en el submódulo, en el orden de la barra."""
     if _es_admin(user):
         return todas(modulo)
+    if modulo in ("custodia", "consumo", "conteo"):  # Producción: sus administradores ven todas las secciones
+        from .acceso_produccion import es_admin_produccion
+        if es_admin_produccion(user):
+            return todas(modulo)
     fila = db.query(SeccionAcceso).filter(SeccionAcceso.empleado_id == user.id, SeccionAcceso.modulo == modulo).first()
     if not fila:
         return todas(modulo)

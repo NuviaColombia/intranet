@@ -39,7 +39,8 @@ def _hora(m: datetime | None) -> str:
 
 
 def es_admin(user: Empleado) -> bool:
-    return user.rol in ("admin", "superadmin")
+    from .acceso_produccion import es_admin_produccion
+    return user.rol in ("admin", "superadmin") or es_admin_produccion(user)
 
 
 def asegurar_catalogo(db: Session) -> None:
