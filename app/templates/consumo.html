@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Seguimiento de consumo{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/consumo.css?v=7">
+<link rel="stylesheet" href="/static/consumo.css?v=9">
 <div id="consumo-app">
  <div class="cm-main">
   {% if modo_pruebas %}
@@ -192,6 +192,35 @@
       <tbody id="gLot"></tbody></table></div>
   </div>
 
+  <!-- ============ SIN REGISTRO ============ -->
+  <div id="sec-sinregistro" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">📅 Técnicos sin registro de jornada</h2>
+        <p class="cm-sub" style="margin:0;">Técnicos que tenían frascos en uso el día elegido y no registraron su jornada.</p></div>
+      <div class="cm-acciones"><button type="button" class="btn gris" onclick="exportarSinRegistro()">⬇️ Exportar Excel</button>
+        <button type="button" class="btn gris" onclick="window.print()">🖨️ Imprimir</button></div>
+    </div>
+    <div class="cm-filtros">
+      <label>Día:</label><input type="date" id="sDia" onchange="cargarSinRegistro()">
+      <button type="button" class="btn gris mini" onclick="moverDia(-1)">◀ Anterior</button>
+      <button type="button" class="btn gris mini" onclick="moverDia(1)">Siguiente ▶</button>
+      <button type="button" class="btn gris mini" onclick="sDia.value = D.hoy; cargarSinRegistro()">Hoy</button>
+      <label>Área:</label><select id="sArea" onchange="cargarSinRegistro()"></select>
+    </div>
+    <div class="cm-kpis tres" id="sKpis"></div>
+    <h3 class="cs-h3" id="sTitulo">❌ No registraron</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Técnico</th><th>Área</th><th>Frascos en uso ese día</th><th>Último registro</th><th>Días desde el último registro</th></tr></thead>
+      <tbody id="sFaltan"><tr><td colspan="5" class="cm-vacio">Cargando…</td></tr></tbody></table></div>
+    <details class="cs-registraron"><summary id="sRegTitulo">✅ Sí registraron</summary>
+      <div class="cm-tabla-wrap"><table class="cm-tabla"><thead><tr><th>Técnico</th><th>Área</th><th>Registros del día</th></tr></thead>
+        <tbody id="sRegistraron"></tbody></table></div></details>
+    <h3 class="cs-h3">🗓️ Resumen del mes <small style="font-weight:400;color:var(--text-muted)">(haz clic en un día para consultarlo)</small></h3>
+    <p class="cm-sub" style="margin:-4px 0 8px"><span class="cs-dia si">✓</span> registró · <span class="cs-dia no">✗</span> tenía frascos en uso y no registró ·
+      <span class="cs-dia na">·</span> sin frascos.</p>
+    <div class="cm-tabla-wrap"><table class="cm-tabla cs-diario"><thead id="gDiaCab"></thead><tbody id="gDia"></tbody></table></div>
+  </div>
+
   <!-- Ventana con la entrega en formato documento -->
   <div id="docEntrega" class="cs-modal" style="display:none" onclick="if (event.target === this) cerrarDoc()">
     <div class="cs-modal-caja">
@@ -233,6 +262,7 @@ function switchTab(tab) {
   if (tab === 'jornada') cargarJornada();
   if (tab === 'reportes') cargarReportes();
   if (tab === 'general') cargarGeneral();
+  if (tab === 'sinregistro') cargarSinRegistro();
 }
 document.querySelectorAll('.consumo-tab').forEach(function(a) { a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); }); });
 
@@ -666,6 +696,52 @@ function cargarGeneral() {
       : '<tr><td colspan="6" class="cm-vacio">Sin frascos consumidos en el mes.</td></tr>';
   }).catch(function(e) { gTec.innerHTML = '<tr><td colspan="13" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
+var DIARIO = null;
+function pintarDiario(d) {
+  DIARIO = d;
+  var sem = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
+  gDiaCab.innerHTML = '<tr><th class="izq">Técnico</th><th>Sin registro</th>' + d.dias.map(function(x) {
+    var f = new Date(x + 'T12:00:00'), n = d.porDia[x].length;
+    return '<th class="cs-dia-cab' + (x === d.hoy ? ' hoy' : '') + '" onclick="verDia(\'' + x + '\')" title="' + (n ? n + ' sin registro' : 'Todos registraron') + '">' +
+      sem[f.getDay()] + '<br>' + f.getDate() + (n ? '<br><span class="cs-dia-n">' + n + '</span>' : '') + '</th>'; }).join('') + '</tr>';
+  gDia.innerHTML = d.filas.length ? d.filas.map(function(t) {
+    return '<tr><td class="izq"><b>' + esc(t.tecnico) + '</b><br><small>' + esc(np(t.area)) + '</small></td><td>' +
+      (t.faltas ? '<span class="cs-alerta">' + t.faltas + '</span>' : '<span class="cs-sube">0</span>') + '</td>' +
+      d.dias.map(function(x) { var e = t.dias[x];
+        return '<td class="cs-dia ' + e + '" title="' + esc(t.tecnico) + ' · ' + x + '">' + (e === 'si' ? '✓' : (e === 'no' ? '✗' : '·')) + '</td>'; }).join('') + '</tr>'; }).join('')
+    : '<tr><td colspan="' + (d.dias.length + 2) + '" class="cm-vacio">Sin técnicos con frascos en el mes.</td></tr>';
+  verDia(sDia.value);
+}
+function verDia(x) {
+  if (!x) return;
+  if (x !== sDia.value) { sDia.value = x; cargarSinRegistro(); return; }
+  document.querySelectorAll('#gDiaCab .cs-dia-cab').forEach(function(th) { th.classList.toggle('sel', th.getAttribute('onclick').indexOf(x) >= 0); });
+}
+function moverDia(n) {
+  var f = new Date((sDia.value || D.hoy) + 'T12:00:00'); f.setDate(f.getDate() + n);
+  var v = f.toISOString().slice(0, 10); if (v > D.hoy) return;
+  sDia.value = v; cargarSinRegistro();
+}
+function cargarSinRegistro() {
+  if (!sDia.value) sDia.value = D.hoy;
+  api('/consumo/api/sin-registro?fecha=' + sDia.value + '&area=' + encodeURIComponent(sArea.value)).then(function(r) {
+    var total = r.faltan.length + r.registraron.length;
+    sKpis.innerHTML = [['Técnicos con frascos ese día', total], ['❌ No registraron', '<span style="color:#B91C1C">' + r.faltan.length + '</span>'],
+      ['✅ Sí registraron', '<span style="color:#15803D">' + r.registraron.length + '</span>']].map(function(x) { return '<div class="cm-kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
+    sTitulo.innerHTML = '❌ No registraron el ' + esc(r.fecha) + (r.habil ? '' : ' <small style="color:#B45309">(fin de semana)</small>');
+    sFaltan.innerHTML = r.faltan.length ? r.faltan.map(function(t) {
+      return '<tr class="cs-bajo"><td class="izq"><b>' + esc(t.tecnico) + '</b></td><td>' + esc(np(t.area)) + '</td><td class="izq" style="font-size:12px">' +
+        t.frascos.map(esc).join('<br>') + '</td><td>' + (t.ultimoRegistro ? esc(t.ultimoRegistro) : '<span class="cs-alerta">Nunca</span>') + '</td><td>' +
+        (t.diasDesdeUltimo == null ? '—' : '<span class="cs-alerta">' + t.diasDesdeUltimo + '</span>') + '</td></tr>'; }).join('')
+      : '<tr><td colspan="5" class="cm-vacio">✅ Todos los técnicos con frascos en uso registraron la jornada este día.</td></tr>';
+    sRegTitulo.innerText = '✅ Sí registraron (' + r.registraron.length + ')';
+    sRegistraron.innerHTML = r.registraron.length ? r.registraron.map(function(t) {
+      return '<tr><td class="izq">' + esc(t.tecnico) + '</td><td>' + esc(np(t.area)) + '</td><td>' + t.registros + '</td></tr>'; }).join('')
+      : '<tr><td colspan="3" class="cm-vacio">Nadie registró este día.</td></tr>';
+    pintarDiario(r.diario);
+  }).catch(function(e) { sFaltan.innerHTML = '<tr><td colspan="5" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function exportarSinRegistro() { window.location = '/consumo/api/sin-registro/exportar?fecha=' + sDia.value + '&area=' + encodeURIComponent(sArea.value); }
 function exportarGeneral() { window.location = '/consumo/api/general/exportar?' + filtrosGeneral(); }
 
 api('/consumo/api/datos').then(function(d) {
@@ -684,6 +760,7 @@ api('/consumo/api/datos').then(function(d) {
   if (tOrigen.options.length && tOrigen.options[0].value) tOrigen.insertAdjacentHTML('afterbegin', '<option value="" selected>Seleccionar…</option>');
   if (tDestino.options.length && tDestino.options[0].value) tDestino.insertAdjacentHTML('afterbegin', '<option value="" selected>Seleccionar…</option>');
   gArea.innerHTML = '<option value="">Todas</option>' + (d.areas || []).map(function(a) { return '<option value="' + esc(a) + '">' + esc(np(a)) + '</option>'; }).join('');
+  sArea.innerHTML = gArea.innerHTML; sDia.value = d.hoy; sDia.max = d.hoy;
   rMateria.innerHTML = '<option value="">Todas</option>' + d.materias.map(function(m) { return '<option value="' + m.id + '">' + esc(np(m.descripcion)) + '</option>'; }).join('');
   cambiarTecnicoEntrega();
   if (!d.puedeEditar) {  // sin técnico propio ni área: solo consulta

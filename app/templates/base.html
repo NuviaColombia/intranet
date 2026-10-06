@@ -104,7 +104,7 @@
   <div class="nav-sub">
     {% set grupos_consumo = ([[('entrega', 'Entrega de insumos'), ('consulta', 'Consulta'), ('traslado', 'Traslados')]] if puede_entregar else [])
                             + [[('jornada', 'Jornada diaria')], [('reportes', 'Reportes' if puede_entregar else 'Mis reportes')]
-                               + ([('general', 'Reporte general')] if puede_entregar else [])] %}
+                               + ([('general', 'Reporte general'), ('sinregistro', 'Sin registro')] if puede_entregar else [])] %}
     {{ pestanas(grupos_consumo, 'consumo-tab', '/consumo', sec_permitidas, consumo_tab_inicial|default('entrega' if puede_entregar else 'jornada')) }}
   </div>
   {% endif %}

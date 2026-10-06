@@ -140,7 +140,7 @@ def api_trasladar(frasco_id: int, payload: TrasladoIn, user: Empleado = Depends(
 def pagina(request: Request, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     sc.asegurar_tipos(db)
     puede = sc.puede_entregar(db, user)
-    secciones = [s for s in acs.secciones_de(db, user, SUB) if puede or s not in ("entrega", "consulta", "traslado", "general")]
+    secciones = [s for s in acs.secciones_de(db, user, SUB) if puede or s not in ("entrega", "consulta", "traslado", "general", "sinregistro")]
     return templates.TemplateResponse(request, "consumo.html", {
         "user": user, "es_consumo": True, "puede_entregar": puede, "area_manager": sc.area_manager(db, user),
         "secciones": secciones, "consumo_tab_inicial": secciones[0] if secciones else "", "modo_pruebas": _prueba(request)})
@@ -245,6 +245,38 @@ def _mes(anio: int, mes: int) -> tuple[int, int]:
     if not (1 <= mes <= 12 and 2000 <= anio <= 2100):
         raise HTTPException(400, "Mes inválido.")
     return anio, mes
+
+
+@router.get("/consumo/api/sin-registro")
+def api_sin_registro(request: Request, fecha: str = "", area: str = "", user: Empleado = Depends(require_submodulo(SUB)),
+                     db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'sinregistro')
+    _solo_managers(db, user)
+    return sc.sin_registro(db, user, _fecha(fecha) if fecha else sc.hoy_colombia(), area, _prueba(request))
+
+
+@router.get("/consumo/api/sin-registro/exportar")
+def api_sin_registro_exportar(request: Request, fecha: str = "", area: str = "", user: Empleado = Depends(require_submodulo(SUB)),
+                              db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'sinregistro')
+    _solo_managers(db, user)
+    r = sc.sin_registro(db, user, _fecha(fecha) if fecha else sc.hoy_colombia(), area, _prueba(request))
+    salida = io.StringIO()
+    salida.write("\ufeff")
+    w = csv.writer(salida, delimiter=";")
+    w.writerow([f"TÉCNICOS SIN REGISTRO DE JORNADA — {r['fecha']}"])
+    w.writerow(["Técnico", "Área", "Frascos en uso", "Último registro", "Días desde el último registro"])
+    for x in r["faltan"]:
+        w.writerow([x["tecnico"], x["area"], " | ".join(x["frascos"]), x["ultimoRegistro"] or "Nunca",
+                    "" if x["diasDesdeUltimo"] is None else x["diasDesdeUltimo"]])
+    w.writerow([])
+    w.writerow(["RESUMEN DEL MES (días hábiles)"])
+    w.writerow(["Técnico", "Área", "Días sin registro", "Fechas"])
+    for x in r["diario"]["filas"]:
+        w.writerow([x["tecnico"], x["area"], x["faltas"], ", ".join(x["fechasFalta"])])
+    salida.seek(0)
+    return StreamingResponse(iter([salida.getvalue()]), media_type="text/csv; charset=utf-8",
+                             headers={"Content-Disposition": f'attachment; filename="sin_registro_{r["fecha"]}.csv"'})
 
 
 @router.get("/consumo/api/general")
