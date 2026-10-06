@@ -1599,6 +1599,16 @@ window.addEventListener('unhandledrejection', function(ev) {
         {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
         {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
       ],
+      // Nightguards / TC desde el 6-oct-2026: mismo formato de horas (el estado llena las horas)
+      nightguard: [
+        {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+        {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+        {k:'designerId', l:'Diseñador', t:'designer'},
+        {k:'horaInicio', l:'Inicio diseño', t:'time'}, {k:'sHold', l:'Start hold', t:'time'}, {k:'fHold', l:'Re-initiated', t:'time', sinTHold: true},
+        {k:'horaFin', l:'Fin', t:'time'},
+        {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
+        {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+      ],
     },
     n2: { principal: [
       {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
@@ -1645,9 +1655,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsFmtMin(m) { if (m === null || m === undefined || isNaN(m)) return ''; m = Math.max(0, Math.round(m)); return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
   function dsDuracionMin(f, tabla, formato) {
     if (formato === 'support') return null;
-    if (tabla === 'nightguard') return dsEntre(f.horaInicio, f.horaFin);
+    if (tabla === 'nightguard' && !dsNgNuevo(formato, f)) return dsEntre(f.horaInicio, f.horaFin);
     if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : Math.max(0, t - (dsEntre(f.sHold, f.fHold) || 0)); }
-    if (dsFaceNuevo(formato)) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
+    if (dsFaceNuevo(formato) || (tabla === 'nightguard' && dsNgNuevo(formato, f))) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
       var tf = dsEntre(f.horaInicio, f.horaFin); if (tf === null) return null;
       var hold = (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0);
       return Math.max(0, tf - hold);
@@ -1662,6 +1672,12 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Columnas de la tabla. "Crítico" (Critical Cases) solo existe en N3 Prosthetic, como en la herramienta original.
   var DS_FACE_NUEVO_DESDE = '2026-10-05';
   var DS_DUAL_NUEVO_DESDE = '2026-10-05';
+  var DS_NG_NUEVO_DESDE = '2026-10-06';  // Nightguards / TC de N3 y N6 con el mismo formato (horas_por_estado en services_design.py)
+  // f: orden (para la tabla de prestadas usa su propia fecha); si no, el día abierto
+  function dsNgNuevo(formato, f) {
+    var d = f && f.fecha ? String(f.fecha).slice(0, 10) : dsFechaISO(dsFechaSeleccionada());
+    return formato === 'dual' && d >= DS_NG_NUEVO_DESDE;
+  }
   // Formato de horas nuevo (Inicio diseño · Start hold · Re-initiated · Fin): Face y Cirugías de N3/N6.
   // Ojo: para N3/N6 aplica solo a la tabla principal; quien lo use revisa antes que no sea Nightguards.
   function dsFaceNuevo(formato) {
@@ -1671,7 +1687,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsSpec(tabla, formato, areaNombre) {
     var area = areaNombre || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre;
     var fm = formato || DS.areaFormato;
-    var base = !dsFaceNuevo(fm) ? COLSPEC[fm] : (fm === 'dual' ? {principal: COLSPEC.dualNuevo.principal, nightguard: COLSPEC.dual.nightguard} : COLSPEC.faceNuevo);
+    var base = !dsFaceNuevo(fm) ? COLSPEC[fm] : (fm === 'dual' ? {principal: COLSPEC.dualNuevo.principal, nightguard: dsNgNuevo(fm) ? COLSPEC.dualNuevo.nightguard : COLSPEC.dual.nightguard} : COLSPEC.faceNuevo);
     var spec = base[tabla] || [];
     return area === 'N3 Prosthetic' ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
   }
@@ -1700,8 +1716,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     tr.classList.toggle('ds-fila-hold', f.estado === 'Hold');
     var formato = tabla === 'prestadas' ? f.formato : DS.areaFormato, tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
     var aprobada = f.estado === 'Approved', falta = false;
-    var req = formato === 'support' ? [] : (tablaReal === 'nightguard' || formato === 'n2') ? ['horaInicio', 'horaFin']
-            : dsFaceNuevo(formato) ? (f.sHold ? ['horaInicio', 'fHold', 'horaFin'] : ['horaInicio', 'horaFin'])
+    var ngNuevo = tablaReal === 'nightguard' && dsNgNuevo(formato, tabla === 'prestadas' ? f : null);
+    var req = formato === 'support' ? [] : ((tablaReal === 'nightguard' && !ngNuevo) || formato === 'n2') ? ['horaInicio', 'horaFin']
+            : (dsFaceNuevo(formato) || ngNuevo) ? (f.sHold ? ['horaInicio', 'fHold', 'horaFin'] : ['horaInicio', 'horaFin'])
             : ['horaInicio', 'horaInicioDiseno', 'horaFin'];
     req.forEach(function(k) {
       var el = tr.querySelector('[data-campo="' + k + '"]'), miss = aprobada && !f[k];

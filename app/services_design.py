@@ -949,6 +949,18 @@ FACE_NUEVO_DESDE = date(2026, 10, 5)
 DUAL_NUEVO_DESDE = date(2026, 10, 5)
 
 
+# Nightguards / TC de N3 y N6 con el mismo formato desde el 6-oct-2026 (pedido por Rosember). Los campos son los mismos
+# (Inicio → hora_inicio, Fin → hora_fin), así que las órdenes de antes no se convierten.
+NG_NUEVO_DESDE = date(2026, 10, 6)
+
+
+def horas_por_estado(formato: str, fecha: date, tabla: str) -> bool:
+    """¿Esta orden usa el formato Inicio diseño · Start hold · Re-initiated · Fin (el estado llena las horas)?"""
+    if tabla == "nightguard":
+        return formato == FORMATO_DUAL and fecha >= NG_NUEVO_DESDE
+    return es_face_nuevo(formato, fecha)
+
+
 def es_face_nuevo(formato: str, fecha: date) -> bool:
     """Formato de horas nuevo (Inicio diseño · Start hold · Re-initiated · Fin): Face y la tabla Cirugías de N3/N6.
     Quien lo use para N3/N6 debe revisar que la orden sea de la tabla principal (Nightguards no cambia)."""
@@ -1015,13 +1027,13 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     - Nightguards / TC: Fin − Inicio.  - Support: no lleva horas."""
     if formato == FORMATO_SUPPORT:
         return 0
-    if o.tabla == "nightguard":
+    if o.tabla == "nightguard" and not horas_por_estado(formato, o.fecha, o.tabla):
         return _entre(o.hora_inicio, o.hora_fin)
     if formato == FORMATO_N2:
         if not o.hora_inicio or not o.hora_fin:
             return 0
         return max(0, _entre(o.hora_inicio, o.hora_fin) - _entre(o.s_hold, o.f_hold))
-    if es_face_nuevo(formato, o.fecha):
+    if horas_por_estado(formato, o.fecha, o.tabla):
         if not o.hora_inicio or not o.hora_fin:
             return 0
         hold = (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
