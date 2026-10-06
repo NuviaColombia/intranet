@@ -46,7 +46,8 @@
 {# ---------- Técnicos ---------- #}
 <div class="cp-panel" id="panel-c_tecnicos">
   <div class="cp-ayuda" style="max-width:900px">Técnicos (de People) a los que se les entregan frascos, con su área. El manager de cada área ve solo a los técnicos de su área.
-    Si el técnico debe registrar su propia jornada, dale también acceso (pestaña Accesos) sin área.</div>
+    Al agregar un técnico <b>entra a Seguimiento de consumo</b> y eliges <b>a qué secciones</b> (por ejemplo, solo Jornada diaria para registrar su propia jornada).</div>
+  {% set ids_acceso_consumo = consumo.accesos|map(attribute='id')|list %}
   <details class="cp-agregar">
     <summary><span class="btn mini">＋ Agregar técnico</span></summary>
     <form method="post" action="/inventario/parametros/consumo/tecnicos" class="cp-form-nuevo">
@@ -61,24 +62,38 @@
       <div style="min-width:180px"><label>Área</label>
         <select name="area" required><option value="">Seleccionar...</option>
           {% for a in areas_config %}<option value="{{ a }}">{{ a|nombre_propio }}</option>{% endfor %}</select></div>
-      <div><button class="btn mini">Agregar</button></div>
+      <div><label>Secciones a las que entra</label>
+        <div class="sc-opciones" style="margin:0">
+          {% for slug, nombre in secciones_acceso['consumo'] %}
+          <label><input type="checkbox" name="secciones" value="{{ slug }}" {{ 'checked' if slug == 'jornada' }}> {{ nombre }}</label>
+          {% endfor %}</div></div>
+      <div><button class="btn mini" onclick="if (!this.form.querySelector('input[name=secciones]:checked')) { alert('Elige al menos una sección.'); return false; }">Agregar</button></div>
     </form>
   </details>
   <table class="cp-tabla">
-    <tr><th>Técnico</th><th>Cargo</th><th>Área</th><th>Estado</th><th></th></tr>
+    <tr><th>Técnico</th><th>Cargo</th><th>Área</th><th>Acceso (secciones)</th><th>Estado</th><th></th></tr>
     {% for t in consumo.tecnicos %}
     <tr class="{{ '' if t.activo else 'cp-inactivo' }}">
       <td>{{ t.empleado.nombre_completo|nombre_propio }}</td><td>{{ t.empleado.cargo }}</td>
       <td><form id="f-ctec-{{ t.id }}" method="post" action="/inventario/parametros/consumo/tecnicos/{{ t.id }}"></form>
         <select name="area" form="f-ctec-{{ t.id }}">
           {% for a in areas_config %}<option value="{{ a }}" {{ 'selected' if t.area == a }}>{{ a|nombre_propio }}</option>{% endfor %}</select></td>
+      <td>{% if t.empleado_id in ids_acceso_consumo %}{{ celda_secciones(t.empleado, "consumo", secciones_cfg.consumo, "/inventario/parametros?tab=c_tecnicos") }}
+        {% else %}<details class="sc-editor"><summary><span class="sc-chip" style="background:#FEF3C7; color:#92400E">Sin acceso</span>
+          <span class="btn mini" style="padding:2px 8px">Dar acceso</span></summary>
+          <form method="post" action="/inventario/parametros/consumo/tecnicos/{{ t.id }}/acceso" class="sc-form">
+            <div class="sc-opciones">
+              {% for slug, nombre in secciones_acceso['consumo'] %}
+              <label><input type="checkbox" name="secciones" value="{{ slug }}" {{ 'checked' if slug == 'jornada' }}> {{ nombre }}</label>
+              {% endfor %}</div>
+            <button class="btn mini">Dar acceso</button></form></details>{% endif %}</td>
       <td><span class="cp-estado {{ 'si' if t.activo else 'no' }}">{{ 'Activo' if t.activo else 'Inactivo' }}</span></td>
       <td class="cp-acciones"><button class="btn mini" form="f-ctec-{{ t.id }}">Guardar</button>
         <form class="inline" method="post" action="/inventario/parametros/consumo/tecnicos/{{ t.id }}/toggle">
           <button class="btn gris mini">{{ 'Desactivar' if t.activo else 'Activar' }}</button></form></td>
     </tr>
     {% else %}
-    <tr><td colspan="5" class="cp-vacio">Todavía no hay técnicos. Usa <b>＋ Agregar técnico</b>.</td></tr>
+    <tr><td colspan="6" class="cp-vacio">Todavía no hay técnicos. Usa <b>＋ Agregar técnico</b>.</td></tr>
     {% endfor %}
   </table>
 </div>
