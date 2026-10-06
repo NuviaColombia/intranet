@@ -165,3 +165,27 @@ class ConsumoTraslado(Base):
     de_tecnico = relationship("ConsumoTecnico", foreign_keys=[de_tecnico_id])
     a_tecnico = relationship("ConsumoTecnico", foreign_keys=[a_tecnico_id])
     por = relationship("Empleado")
+
+
+class ConsumoApertura(Base):
+    """Solicitud de un técnico para registrar la jornada de un día anterior; el manager del área abre (o no) ese día.
+    Un día aprobado queda abierto para ese técnico hasta el final del día en que se aprobó."""
+    __tablename__ = "consumo_aperturas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tecnico_id: Mapped[int] = mapped_column(ForeignKey("consumo_tecnicos.id"), index=True)
+    fecha: Mapped[date] = mapped_column(Date)                              # día que se quiere registrar
+    motivo: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(20), default="SOLICITADA")  # SOLICITADA | APROBADA | RECHAZADA
+    prueba: Mapped[int] = mapped_column(Integer, default=0)
+    solicitado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    solicitado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    resuelto_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    resuelto_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    respuesta: Mapped[str | None] = mapped_column(Text, nullable=True)
+    abierto_hasta: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # UTC
+
+    tecnico = relationship("ConsumoTecnico")
+    solicitado_por = relationship("Empleado", foreign_keys=[solicitado_por_id])
+    resuelto_por = relationship("Empleado", foreign_keys=[resuelto_por_id])
+

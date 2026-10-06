@@ -15,8 +15,8 @@ from .models import Empleado
 SECCIONES = {
     "custodia": [("nueva-orden", "Nueva orden"), ("registro", "Nuevo registro"), ("aprobaciones", "Aprobaciones/Firmas"),
                  ("existencias", "Dashboard"), ("activas", "Estado órdenes"), ("consulta", "Consulta traslado"), ("conteos", "Conteos mensuales")],
-    "consumo": [("entrega", "Entrega de insumos"), ("consulta", "Consulta"), ("jornada", "Jornada diaria"),
-                ("reportes", "Reportes")],
+    "consumo": [("entrega", "Entrega de insumos"), ("consulta", "Consulta"), ("traslado", "Traslados"),
+                ("jornada", "Jornada diaria"), ("reportes", "Reportes"), ("general", "Reporte general")],
     "conteo": [("nuevo", "Conteo del mes"), ("validacion", "Pendientes por validar"), ("reportes", "Consulta (firmados)")],
     "caja": [("recibo", "Nuevo recibo"), ("consulta", "Consulta"), ("legalizar", "Legalizar"), ("fms", "Historial FM"),
              ("arqueo", "Arqueo rápido"), ("firmas", "Firmas")],

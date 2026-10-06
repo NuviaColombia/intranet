@@ -102,8 +102,9 @@
   {% if es_consumo %}
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a> › <a href="/consumo">Seguimiento de consumo</a></span>
   <div class="nav-sub">
-    {% set grupos_consumo = ([[('entrega', 'Entrega de insumos'), ('consulta', 'Consulta')]] if puede_entregar else [])
-                            + [[('jornada', 'Jornada diaria')], [('reportes', 'Reportes')]] %}
+    {% set grupos_consumo = ([[('entrega', 'Entrega de insumos'), ('consulta', 'Consulta'), ('traslado', 'Traslados')]] if puede_entregar else [])
+                            + [[('jornada', 'Jornada diaria')], [('reportes', 'Reportes' if puede_entregar else 'Mis reportes')]
+                               + ([('general', 'Reporte general')] if puede_entregar else [])] %}
     {{ pestanas(grupos_consumo, 'consumo-tab', '/consumo', sec_permitidas, consumo_tab_inicial|default('entrega' if puede_entregar else 'jornada')) }}
   </div>
   {% endif %}

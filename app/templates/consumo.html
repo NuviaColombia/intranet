@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Seguimiento de consumo{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/consumo.css?v=5">
+<link rel="stylesheet" href="/static/consumo.css?v=7">
 <div id="consumo-app">
  <div class="cm-main">
   {% if modo_pruebas %}
@@ -23,38 +23,76 @@
   <div id="sec-entrega" class="cm-seccion {{ 'activa' if consumo_tab_inicial == 'entrega' }}">
     <div class="cm-barra">
       <div><h2 class="cm-titulo">📦 Entrega de insumos</h2>
-        <p class="cm-sub" style="margin:0;">Registra los frascos que el manager entrega a un técnico. Cada frasco lleva su propio lote, referencia y número de serie.</p></div>
+        <p class="cm-sub" style="margin:0;">Frascos que el manager entrega a un técnico. El <b>lote</b> y la <b>referencia</b> se pueden repetir;
+          el <b>n.º de serie</b> es único por frasco. Al agregar un frasco se copian la materia, el lote y la ref. del anterior.</p></div>
     </div>
-    <div class="cs-form">
-      <div><label>Fecha de entrega</label><input type="date" id="eFecha"></div>
-      <div><label>Hora</label><input type="time" id="eHora"></div>
-      <div><label>Manager que entrega</label><input id="eManager" readonly></div>
-      <div><label>Técnico que recibe</label><select id="eTecnico" onchange="cambiarTecnicoEntrega()"></select></div>
-      <div><label>Área</label><input id="eArea" readonly placeholder="Se completa con el técnico"></div>
-      <div><label>Frascos</label><input id="eTotal" readonly value="0"></div>
+    <div class="cs-tarjeta cs-entrega-cab">
+      <div class="cs-campo ancho"><label>Técnico que recibe</label><select id="eTecnico" onchange="cambiarTecnicoEntrega()"></select></div>
+      <div class="cs-campo"><label>Área</label><div class="cs-dato" id="eArea">—</div></div>
+      <div class="cs-campo"><label>Fecha</label><input type="date" id="eFecha"></div>
+      <div class="cs-campo"><label>Hora</label><input type="time" id="eHora"></div>
+      <div class="cs-campo"><label>Entrega</label><div class="cs-dato" id="eManager"></div></div>
     </div>
-    <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th style="width:26%">Materia prima</th><th>Presentación</th><th>Lote</th><th>Ref.</th><th>N.º de serie</th><th style="width:1%"></th></tr></thead>
+    <h3 class="cs-h3">🧴 Frascos <span class="cs-cuenta" id="eTotal">0</span></h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla cs-tabla-frascos">
+      <thead><tr><th style="width:36px">#</th><th style="width:28%">Materia prima</th><th style="width:16%">Presentación</th><th>Lote</th><th>Ref.</th><th>N.º de serie</th><th style="width:44px"></th></tr></thead>
       <tbody id="eFrascos"></tbody>
     </table></div>
-    <div class="cm-acciones" style="justify-content:flex-start; margin:10px 0 16px;">
-      <button type="button" class="btn gris" onclick="agregarFrasco()">＋ Agregar frasco</button>
-      <button type="button" class="btn gris" onclick="duplicarFrasco()">⧉ Duplicar el último (otro n.º de serie)</button>
+    <div class="cm-acciones" style="justify-content:flex-start; margin:8px 0 14px;">
+      <button type="button" class="btn gris" onclick="agregarFrasco()">＋ Agregar frasco <small>(copia materia, lote y ref.)</small></button>
     </div>
-    <div class="cs-form" style="grid-template-columns:1fr;"><div><label>Observaciones</label><textarea id="eObs" rows="2" placeholder="Opcional"></textarea></div></div>
-    <div class="cm-acciones"><button type="button" class="btn verde" id="btnEntrega" onclick="guardarEntrega()">💾 Registrar entrega</button></div>
+    <div class="cs-campo"><label>Observaciones</label><textarea id="eObs" rows="2" placeholder="Opcional"></textarea></div>
+    <div class="cm-acciones" style="margin-top:12px"><button type="button" class="btn verde" id="btnEntrega" onclick="guardarEntrega()">💾 Registrar entrega</button></div>
   </div>
 
   <!-- ============ CONSULTA ============ -->
   <div id="sec-consulta" class="cm-seccion">
     <div class="cm-barra">
       <div><h2 class="cm-titulo">🔎 Consulta de entregas</h2>
-        <p class="cm-sub" style="margin:0;">Entregas registradas. Una entrega solo se puede anular si ninguno de sus frascos tiene jornadas registradas.</p></div>
+        <p class="cm-sub" style="margin:0;">Últimas <b>100</b> entregas. Con <b>👁️ Ver</b> se abre la entrega completa en formato documento (para imprimir o guardar en PDF).
+          Una entrega solo se puede anular si ninguno de sus frascos tiene registros vigentes.</p></div>
     </div>
-    <div class="cm-filtros"><label>Buscar:</label><input type="text" id="cFiltro" placeholder="Consecutivo, técnico, materia prima, lote o serie…" oninput="pintarConsulta()"></div>
-    <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th>N.º</th><th>Fecha</th><th>Técnico</th><th>Área</th><th>Manager</th><th>Frascos</th><th>Estado</th><th>Acción</th></tr></thead>
+    <div class="cm-filtros">
+      <label>Desde:</label><input type="date" id="cDesde" onchange="cargarConsulta()">
+      <label>Hasta:</label><input type="date" id="cHasta" onchange="cargarConsulta()">
+      <label>Técnico:</label><select id="cTecnico" onchange="cargarConsulta()"></select>
+      <label>Buscar:</label><input type="text" id="cFiltro" placeholder="N.º, materia, lote o serie…" oninput="pintarConsulta()">
+    </div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla cs-compacta">
+      <thead><tr><th>N.º</th><th>Fecha</th><th>Técnico</th><th>Área</th><th>Manager</th><th>Frascos</th><th>Estado</th><th></th></tr></thead>
       <tbody id="cCuerpo"><tr><td colspan="8" class="cm-vacio">Cargando…</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ============ TRASLADOS ============ -->
+  <div id="sec-traslado" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">🔁 Traslados de frascos</h2>
+        <p class="cm-sub" style="margin:0;">Pasa frascos en uso de un técnico a otro (incapacidad, retiro, cambio de área…). Lo ya registrado sigue a nombre de quien lo produjo.</p></div>
+    </div>
+    <div class="cs-tarjeta">
+      <div class="cs-traslado-cab">
+        <div class="cs-campo ancho"><label>① Técnico que entrega</label><select id="tOrigen" onchange="cargarDisponibles()"></select></div>
+        <div class="cs-campo ancho"><label>③ Técnico que recibe</label><select id="tDestino" onchange="contarTraslado()"></select></div>
+        <div class="cs-campo ancho"><label>④ Motivo</label><input id="tMotivo" placeholder="Ej.: incapacidad de 5 días"></div>
+      </div>
+      <h3 class="cs-h3" style="margin-top:12px">② Frascos disponibles <span class="cs-cuenta" id="tCuenta">0</span></h3>
+      <div class="cm-tabla-wrap"><table class="cm-tabla">
+        <thead><tr><th style="width:36px"><input type="checkbox" id="tTodos" style="width:auto" onchange="marcarTodos(this.checked)" title="Seleccionar todos"></th>
+          <th>Materia prima</th><th>Lote</th><th>Ref.</th><th>Serie</th><th>Entrega</th><th>Días abierto</th><th>Acumulado</th></tr></thead>
+        <tbody id="tFrascos"><tr><td colspan="8" class="cm-vacio">Elige el técnico que entrega.</td></tr></tbody>
+      </table></div>
+      <div class="cm-acciones" style="margin-top:10px"><button type="button" class="btn verde" id="btnTraslado" onclick="trasladar()" disabled>🔁 Trasladar</button></div>
+    </div>
+    <h3 class="cs-h3">🕒 Historial de traslados <small style="font-weight:400;color:var(--text-muted)">(últimos 100)</small></h3>
+    <div class="cm-filtros">
+      <label>Desde:</label><input type="date" id="hDesde" onchange="cargarHistorialTraslados()">
+      <label>Hasta:</label><input type="date" id="hHasta" onchange="cargarHistorialTraslados()">
+      <label>Técnico:</label><select id="hTecnico" onchange="cargarHistorialTraslados()"></select>
+    </div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Fecha</th><th>Materia prima</th><th>Lote / Ref. / Serie</th><th>Entrega</th><th>De</th><th></th><th>A</th><th>Motivo</th><th>Hecho por</th></tr></thead>
+      <tbody id="hCuerpo"><tr><td colspan="9" class="cm-vacio">Cargando…</td></tr></tbody>
     </table></div>
   </div>
 
@@ -63,36 +101,49 @@
     <div class="cm-barra">
       <div><h2 class="cm-titulo">🛠️ Jornada diaria</h2>
         <p class="cm-sub" style="margin:0;">Registra los arcos producidos y las gotas usadas por frasco; puedes hacer <b>varios registros en el día</b>.
-          🔒 Lo guardado <b>no se modifica</b>: si hay un error, usa «Solicitar anulación» con una observación y el manager de tu área decide.
-          Marca «Consumido» cuando el frasco se acaba.</p></div>
+          🔒 Lo guardado <b>no se modifica</b>: si hay un error, usa «Solicitar anulación» y el manager de tu área decide.
+          Los técnicos registran solo el día de hoy; para un día anterior, solicitan al manager que lo abra.</p></div>
     </div>
     <div id="jSolicitudes" style="display:none"></div>
     <div class="cm-filtros">
       <label>Técnico:</label><select id="jTecnico" onchange="cargarJornada()"></select>
       <label>Día:</label><input type="date" id="jFecha" onchange="cargarJornada()">
     </div>
-    <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead id="jCabeza"></thead>
-      <tbody id="jCuerpo"><tr><td class="cm-vacio">Elige el técnico.</td></tr></tbody>
-    </table></div>
-    <div class="cm-acciones" style="margin-top:14px;"><button type="button" class="btn verde" id="btnJornada" onclick="guardarJornada()">💾 Guardar registro</button></div>
+    <div class="cs-jornada">
+      <div class="cs-jornada-izq">
+        <div id="jDia"></div>
+        <div class="cm-tabla-wrap"><table class="cm-tabla cs-tabla-jornada">
+          <thead id="jCabeza"></thead>
+          <tbody id="jCuerpo"><tr><td class="cm-vacio">Elige el técnico.</td></tr></tbody>
+        </table></div>
+        <div class="cm-acciones" style="margin-top:12px;"><button type="button" class="btn verde" id="btnJornada" onclick="guardarJornada()">💾 Guardar registro</button></div>
+      </div>
+      <div class="cs-jornada-der">
+        <div class="cs-hist">
+          <div class="cs-hist-cab"><b>🕒 Historial de registros</b>
+            <select id="jFiltroFrasco" onchange="pintarHistorial()"><option value="">Todos los frascos</option></select></div>
+          <div id="jResumen"></div>
+          <div id="jHistorial"><p class="cm-vacio" style="padding:14px">Elige el técnico.</p></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ============ REPORTES ============ -->
   <div id="sec-reportes" class="cm-seccion">
     <div class="cm-barra">
-      <div><h2 class="cm-titulo">📊 Reportes de consumo</h2>
+      <div><h2 class="cm-titulo" id="rTitulo">📊 Reportes de consumo</h2>
         <p class="cm-sub" style="margin:0;">El promedio de arcos por frasco se calcula solo con frascos <b>consumidos</b> (los líquidos se cuentan aparte).
           En rojo: técnicos o lotes que rinden menos del 80 % del promedio.</p></div>
-      <div class="cm-acciones">
+      {% if puede_entregar %}<div class="cm-acciones">
         <button type="button" class="btn gris" onclick="exportarReporte()">⬇️ Exportar Excel</button>
         <button type="button" class="btn gris" onclick="window.print()">🖨️ Imprimir</button>
-      </div>
+      </div>{% endif %}
     </div>
     <div class="cm-filtros">
       <label>Desde:</label><input type="date" id="rDesde" onchange="cargarReportes()">
       <label>Hasta:</label><input type="date" id="rHasta" onchange="cargarReportes()">
-      <label>Técnico:</label><select id="rTecnico" onchange="cargarReportes()"></select>
+      <label class="solo-manager">Técnico:</label><select id="rTecnico" class="solo-manager" onchange="cargarReportes()"></select>
       <label>Materia prima:</label><select id="rMateria" onchange="cargarReportes()"></select>
     </div>
     <div class="cm-kpis seis" id="rKpis"></div>
@@ -110,11 +161,54 @@
       <tbody id="rWip"></tbody></table></div>
   </div>
 
+  <!-- ============ REPORTE GENERAL (MENSUAL) ============ -->
+  <div id="sec-general" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">📈 Reporte general — <span id="gTitulo"></span></h2>
+        <p class="cm-sub" style="margin:0;">Mide a todos los técnicos en el mes frente al promedio del área.
+          Semáforo: <span class="cs-sem verde"></span> bien · <span class="cs-sem amarillo"></span> atención · <span class="cs-sem rojo"></span> revisar.</p></div>
+      <div class="cm-acciones"><button type="button" class="btn gris" onclick="exportarGeneral()">⬇️ Exportar Excel</button>
+        <button type="button" class="btn gris" onclick="window.print()">🖨️ Imprimir</button></div>
+    </div>
+    <div class="cm-filtros">
+      <label>Mes:</label><input type="month" id="gMes" onchange="cargarGeneral()">
+      <label>Área:</label><select id="gArea" onchange="cargarGeneral()"></select>
+      <label>Técnico:</label><select id="gTecnico" onchange="cargarGeneral()"></select>
+    </div>
+    <div class="cm-kpis seis" id="gKpis"></div>
+    <h3 class="cs-h3">🏆 Ranking del mes por técnico</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla cs-general">
+      <thead><tr><th>#</th><th>Técnico</th><th>Arcos<br><small>vs mes anterior</small></th><th>Últimos 6 meses</th><th>Días · arcos/día</th>
+        <th>Cumplimiento<br><small>días hábiles con registro</small></th><th>Frascos<br>consumidos</th><th>Arcos por frasco<br><small>rendimiento vs área</small></th>
+        <th>Gotas por arco<br><small>vs área</small></th><th>Duración<br>frasco</th><th>En uso<br><small>⚠️ alerta días</small></th>
+        <th>Calidad del registro<br><small>solicitudes · anulados</small></th><th>Traslados<br><small>recibidos · entregados</small></th></tr></thead>
+      <tbody id="gTec"></tbody></table></div>
+    <h3 class="cs-h3">🧪 Consumo promedio por materia prima y tipo de arco</h3>
+    <p class="cm-sub" style="margin:-4px 0 8px">Frascos consumidos en el mes. El contenido de cada frasco (Parámetros › Materias primas › Contenido) se reparte entre los tipos según los arcos producidos de cada tipo.</p>
+    <div class="cm-tabla-wrap"><table class="cm-tabla"><thead id="gMatCab"></thead><tbody id="gMat"></tbody></table></div>
+    <h3 class="cs-h3">🏷️ Rendimiento por lote del mes</h3>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Materia prima</th><th>Lote</th><th>Frascos</th><th>Arcos</th><th>Arcos por frasco</th><th>Promedio de la materia</th></tr></thead>
+      <tbody id="gLot"></tbody></table></div>
+  </div>
+
+  <!-- Ventana con la entrega en formato documento -->
+  <div id="docEntrega" class="cs-modal" style="display:none" onclick="if (event.target === this) cerrarDoc()">
+    <div class="cs-modal-caja">
+      <div class="cs-modal-barra">
+        <b>📄 Entrega de insumos</b>
+        <div><button type="button" class="btn gris mini" onclick="imprimirDoc()">🖨️ Imprimir / Guardar PDF</button>
+          <button type="button" class="btn gris mini" onclick="cerrarDoc()">✕ Cerrar</button></div>
+      </div>
+      <div id="docHoja" class="cs-doc"></div>
+    </div>
+  </div>
  </div>
 </div>
 
 <script>
-var D = null, entregas = [], frascosJornada = [];
+var LOGO = {{ (logo_empresa(user.empresa) or '')|tojson }};
+var D = null, entregas = [], frascosJornada = [], disponibles = [];
 function api(url, op) {
   return fetch(url, op).then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) {
     if (!r.ok) throw new Error(d.detail || ('Error ' + r.status)); return d; }); });
@@ -123,8 +217,10 @@ function post(url, datos) { return api(url, {method: 'POST', headers: {'Content-
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function np(t) { return String(t || '').toLowerCase().replace(/(^|[\s\/\-(])([a-záéíóúñ])/g, function(m, a, b) { return a + b.toUpperCase(); }); }
 function num(v) { return Number(v || 0).toLocaleString('es-CO', {maximumFractionDigits: 2}); }
+function nd(v, suf) { return v == null ? '—' : num(v) + (suf || ''); }
 function badge(e) { var c = {ACTIVO: 'activo', ANULADO: 'anulado', EN_USO: 'activo', CONSUMIDO: 'legalizado'}[e] || '';
   return '<span class="badge ' + c + '">' + ({EN_USO: 'En uso', CONSUMIDO: 'Consumido'}[e] || np(e)) + '</span>'; }
+function sem(c) { return c ? '<span class="cs-sem ' + c + '"></span>' : ''; }
 
 var SECCIONES = {{ (secciones or [])|tojson }};  // pestañas permitidas (Parámetros › Managers / Técnicos › Secciones)
 function switchTab(tab) {
@@ -133,107 +229,173 @@ function switchTab(tab) {
   var sec = document.getElementById('sec-' + tab); if (!sec) return; sec.classList.add('activa');
   document.querySelectorAll('.consumo-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
   if (tab === 'consulta') cargarConsulta();
+  if (tab === 'traslado') { cargarDisponibles(); cargarHistorialTraslados(); }
   if (tab === 'jornada') cargarJornada();
   if (tab === 'reportes') cargarReportes();
+  if (tab === 'general') cargarGeneral();
 }
 document.querySelectorAll('.consumo-tab').forEach(function(a) { a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); }); });
 
-function opcionesTecnicos(id, conTodos) {
+function opcionesTecnicos(id, conTodos, textoVacio) {
   var sel = document.getElementById(id);
-  sel.innerHTML = (conTodos ? '<option value="">Todos</option>' : (D.tecnicos.length === 1 ? '' : '<option value="">Seleccionar…</option>')) +
+  sel.innerHTML = (conTodos ? '<option value="">' + (textoVacio || 'Todos') + '</option>' : (D.tecnicos.length === 1 ? '' : '<option value="">Seleccionar…</option>')) +
     D.tecnicos.map(function(t) { return '<option value="' + t.id + '">' + esc(t.nombre) + ' (' + esc(np(t.area)) + ')</option>'; }).join('');
 }
+function tecnicoPorId(id) { return D.tecnicos.filter(function(x) { return String(x.id) === String(id); })[0]; }
 
 // ---------------- entrega ----------------
 function materiasDeArea() {
-  var t = D.tecnicos.filter(function(x) { return String(x.id) === document.getElementById('eTecnico').value; })[0];
+  var t = tecnicoPorId(eTecnico.value);
   return D.materias.filter(function(m) { return !t || !m.area || m.area === t.area; });
 }
 function cambiarTecnicoEntrega() {
-  var t = D.tecnicos.filter(function(x) { return String(x.id) === document.getElementById('eTecnico').value; })[0];
-  document.getElementById('eArea').value = t ? np(t.area) : '';
-  document.getElementById('eFrascos').innerHTML = ''; agregarFrasco();
+  var t = tecnicoPorId(eTecnico.value);
+  eArea.innerText = t ? np(t.area) : '—';
+  eFrascos.innerHTML = ''; agregarFrasco(); resumenEntrega();
 }
 function filaFrasco(v) {
   v = v || {};
   var ops = '<option value="">Seleccionar…</option>' + materiasDeArea().map(function(m) {
     return '<option value="' + m.id + '"' + (String(v.materia_id) === String(m.id) ? ' selected' : '') + '>' + esc(np(m.descripcion)) + '</option>'; }).join('');
   var tr = document.createElement('tr');
-  tr.innerHTML = '<td><select class="fMat" onchange="pintarPres(this)">' + ops + '</select></td><td class="fPres izq" style="font-size:12px;color:var(--text-muted)"></td>' +
+  tr.innerHTML = '<td class="fNum"></td><td><select class="fMat" onchange="pintarPres(this)">' + ops + '</select></td><td class="fPres izq" style="font-size:12px;color:var(--text-muted)"></td>' +
     '<td><input class="fLote" value="' + esc(v.lote || '') + '" placeholder="Lote"></td><td><input class="fRef" value="' + esc(v.ref || '') + '" placeholder="Ref."></td>' +
-    '<td style="white-space:nowrap"><input class="fSerie" placeholder="N.º de serie" style="width:calc(100% - 40px)"> ' +
-    '<button type="button" class="btn gris mini" title="Leer el código con la cámara" onclick="escanearSerie(this)">📷</button></td><td><button type="button" class="btn rojo mini" onclick="this.closest(\'tr\').remove(); contarFrascos();">✕</button></td>';
-  document.getElementById('eFrascos').appendChild(tr); pintarPres(tr.querySelector('.fMat')); contarFrascos();
+    '<td><input class="fSerie" placeholder="N.º de serie" onkeydown="if (event.key === \'Enter\') { event.preventDefault(); agregarFrasco(); }"></td>' +
+    '<td><button type="button" class="btn rojo mini" title="Quitar" onclick="this.closest(\'tr\').remove(); resumenEntrega();">✕</button></td>';
+  eFrascos.appendChild(tr); pintarPres(tr.querySelector('.fMat')); resumenEntrega();
   return tr;
 }
 function pintarPres(sel) {
   var m = D.materias.filter(function(x) { return String(x.id) === sel.value; })[0];
-  sel.closest('tr').querySelector('.fPres').innerText = m ? [np(m.presentacion), m.contenido].filter(Boolean).join(' · ') + (m.mideArcos ? '' : ' · líquido') : '';
+  sel.closest('tr').querySelector('.fPres').innerText = m ? [np(m.presentacion), m.contenido].filter(Boolean).join(' · ') : '';
 }
-function agregarFrasco() { filaFrasco(); }
-function duplicarFrasco() {
-  var filas = document.querySelectorAll('#eFrascos tr'); if (!filas.length) return agregarFrasco();
-  var u = filas[filas.length - 1];
-  filaFrasco({materia_id: u.querySelector('.fMat').value, lote: u.querySelector('.fLote').value, ref: u.querySelector('.fRef').value}).querySelector('.fSerie').focus();
+function agregarFrasco() {  // copia materia, lote y ref. del último; solo falta la serie
+  var filas = document.querySelectorAll('#eFrascos tr'), u = filas[filas.length - 1];
+  var tr = filaFrasco(u ? {materia_id: u.querySelector('.fMat').value, lote: u.querySelector('.fLote').value, ref: u.querySelector('.fRef').value} : {});
+  if (u) tr.querySelector('.fSerie').focus();
 }
-function contarFrascos() { document.getElementById('eTotal').value = document.querySelectorAll('#eFrascos tr').length; }
+function resumenEntrega() {
+  var filas = document.querySelectorAll('#eFrascos tr');
+  filas.forEach(function(tr, i) { tr.querySelector('.fNum').innerText = i + 1; });
+  eTotal.innerText = filas.length;
+  var t = tecnicoPorId(eTecnico.value);
+  btnEntrega.innerText = '💾 Registrar entrega · ' + filas.length + ' frasco' + (filas.length === 1 ? '' : 's') + (t ? ' para ' + t.nombre : '');
+}
 function guardarEntrega() {
   var frascos = Array.from(document.querySelectorAll('#eFrascos tr')).map(function(tr) {
     return {materia_id: parseInt(tr.querySelector('.fMat').value, 10) || 0, lote: tr.querySelector('.fLote').value,
             ref: tr.querySelector('.fRef').value, serie: tr.querySelector('.fSerie').value}; });
-  var btn = document.getElementById('btnEntrega'); btn.disabled = true;
+  btnEntrega.disabled = true;
   post('/consumo/api/entregas', {fecha: eFecha.value, hora: eHora.value, tecnico_id: parseInt(eTecnico.value, 10) || 0,
                                  observaciones: eObs.value, frascos: frascos})
-    .then(function(r) { alert(r.mensaje); eObs.value = ''; cambiarTecnicoEntrega(); btn.disabled = false; })
-    .catch(function(e) { alert(e.message); btn.disabled = false; });
+    .then(function(r) { alert(r.mensaje); eObs.value = ''; cambiarTecnicoEntrega(); btnEntrega.disabled = false; })
+    .catch(function(e) { alert(e.message); btnEntrega.disabled = false; });
 }
 
-// ---------------- consulta ----------------
-function celdaTraslado(e, f) {
-  var h = f.traslados.map(function(t) { return '<div><small>🔁 ' + esc(t.de) + ' → <b>' + esc(t.a) + '</b> (' + esc(t.en) + ', ' + esc(t.por) + '): ' + esc(t.motivo) + '</small></div>'; }).join('');
-  if (e.estado === 'ACTIVO' && f.estado === 'EN_USO' && D.puedeEntregar) {
-    var ops = D.tecnicos.filter(function(t) { return t.id !== f.tecnicoActualId; })
-      .map(function(t) { return '<option value="' + t.id + '">' + esc(t.nombre) + '</option>'; }).join('');
-    if (ops) h += '<div style="display:flex;gap:4px;margin-top:4px"><select id="tras' + f.id + '" style="max-width:170px"><option value="">Trasladar a…</option>' + ops +
-      '</select><button class="btn gris mini" onclick="trasladarFrasco(' + f.id + ')">🔁</button></div>';
-  }
-  return h || '<small style="color:#94A3B8">—</small>';
-}
-function trasladarFrasco(id) {
-  var sel = document.getElementById('tras' + id);
-  if (!sel.value) return alert('Elige el técnico que recibe el frasco.');
-  var m = prompt('Motivo del traslado (incapacidad, retiro, cambio de área…):');
-  if (m === null) return;
-  post('/consumo/api/frascos/' + id + '/trasladar', {tecnico_id: parseInt(sel.value, 10), motivo: m})
-    .then(function(r) { alert(r.mensaje); cargarConsulta(); }).catch(function(e) { alert(e.message); });
-}
+// ---------------- consulta (tabla plana) ----------------
 function cargarConsulta() {
-  api('/consumo/api/entregas').then(function(r) { entregas = r.data; pintarConsulta(); })
+  cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">Cargando…</td></tr>';
+  api('/consumo/api/entregas?desde=' + cDesde.value + '&hasta=' + cHasta.value + '&tecnico_id=' + (cTecnico.value || 0))
+    .then(function(r) { entregas = r.data; pintarConsulta(); })
     .catch(function(e) { cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
+function resumenFrascos(e) {
+  var cuenta = {};
+  e.frascos.forEach(function(f) { cuenta[f.materia] = (cuenta[f.materia] || 0) + 1; });
+  return Object.keys(cuenta).map(function(m) { return np(m) + (cuenta[m] > 1 ? ' ×' + cuenta[m] : ''); }).join(', ');
+}
 function pintarConsulta() {
-  var q = document.getElementById('cFiltro').value.trim().toLowerCase();
+  var q = cFiltro.value.trim().toLowerCase();
   var filas = entregas.filter(function(e) {
-    return !q || [e.id, e.tecnico, e.area, e.manager].concat(e.frascos.map(function(f) { return f.materia + ' ' + f.lote + ' ' + f.serie; }))
+    return !q || [String(e.id).padStart(4, '0'), e.tecnico, e.area, e.manager, e.observaciones].concat(e.frascos.map(function(f) { return f.materia + ' ' + f.lote + ' ' + f.ref + ' ' + f.serie; }))
       .join(' ').toLowerCase().indexOf(q) !== -1; });
-  if (!filas.length) { cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">No hay entregas.</td></tr>'; return; }
+  if (!filas.length) { cCuerpo.innerHTML = '<tr><td colspan="8" class="cm-vacio">No hay entregas con esos filtros.</td></tr>'; return; }
   cCuerpo.innerHTML = filas.map(function(e) {
-    var det = '<tr class="cs-detalle" id="det' + e.id + '" style="display:none"><td colspan="8"><table class="cm-tabla"><thead><tr><th>Materia prima</th><th>Lote</th><th>Ref.</th><th>Serie</th><th>Estado</th><th>Registros</th><th>Traslado</th></tr></thead><tbody>' +
-      e.frascos.map(function(f) { return '<tr><td class="izq">' + esc(np(f.materia)) + '</td><td>' + esc(f.lote) + '</td><td>' + esc(f.ref) + '</td><td>' + esc(f.serie) +
-        '</td><td>' + badge(f.estado) + (f.consumidoEn ? ' <small>' + esc(f.consumidoEn) + '</small>' : '') + '</td><td>' + f.jornadas + '</td><td class="izq">' +
-        celdaTraslado(e, f) + '</td></tr>'; }).join('') +
-      '</tbody></table>' + (e.observaciones ? '<p><b>Observaciones:</b> ' + esc(e.observaciones) + '</p>' : '') +
-      (e.estado === 'ANULADO' ? '<p class="cs-alerta">Anulada por ' + esc(e.anuladoPor) + ' el ' + esc(e.anuladoEn) + ': ' + esc(e.motivoAnulacion) + '</p>'
-        : (D.puedeEntregar ? '<div class="cm-acciones" style="margin-top:8px"><button class="btn rojo mini" onclick="anularEntrega(' + e.id + ')">🚫 Anular entrega</button></div>' : '')) + '</td></tr>';
-    return '<tr><td class="cm-num-orden">' + String(e.id).padStart(4, '0') + '</td><td>' + esc(e.fecha) + ' ' + esc(e.hora) + '</td><td class="izq">' + esc(e.tecnico) +
-      '</td><td>' + esc(np(e.area)) + '</td><td>' + esc(e.manager) + '</td><td>' + e.frascos.length + '</td><td>' + badge(e.estado) +
-      '</td><td><button class="btn gris mini" onclick="var d=document.getElementById(\'det' + e.id + '\'); d.style.display = d.style.display ? \'\' : \'none\';">👁️ Detalle</button></td></tr>' + det;
+    var enUso = e.frascos.filter(function(f) { return f.estado === 'EN_USO'; }).length;
+    return '<tr class="' + (e.estado === 'ANULADO' ? 'cs-anulada' : '') + '"><td class="cm-num-orden">' + String(e.id).padStart(4, '0') + '</td><td>' + esc(e.fecha) +
+      ' <small>' + esc(e.hora) + '</small></td><td class="izq">' + esc(e.tecnico) + '</td><td>' + esc(np(e.area)) + '</td><td class="izq">' + esc(e.manager) +
+      '</td><td class="izq"><b>' + e.frascos.length + '</b> <small>· ' + esc(resumenFrascos(e)) + '</small>' +
+      (e.estado === 'ACTIVO' ? '<br><small style="color:var(--text-muted)">' + enUso + ' en uso · ' + (e.frascos.length - enUso) + ' consumido(s)</small>' : '') +
+      '</td><td>' + badge(e.estado) + '</td><td style="white-space:nowrap"><button class="btn gris mini" onclick="verEntrega(' + e.id + ')">👁️ Ver</button>' +
+      (e.estado === 'ACTIVO' && D.puedeEntregar ? ' <button class="btn rojo mini" onclick="anularEntrega(' + e.id + ')">🚫 Anular</button>' : '') + '</td></tr>';
   }).join('');
 }
+function verEntrega(id) {
+  var e = entregas.filter(function(x) { return x.id === id; })[0];
+  if (!e) return;
+  var traslados = [];
+  e.frascos.forEach(function(f) { f.traslados.forEach(function(t) { traslados.push({serie: f.serie, materia: f.materia, t: t}); }); });
+  docHoja.innerHTML =
+    '<div class="cs-doc-cab">' + (LOGO ? '<img src="' + esc(LOGO) + '" alt="">' : '') +
+      '<div class="cs-doc-titulo"><h1>Entrega de insumos</h1><div>Producción · Seguimiento de consumo</div></div>' +
+      '<div class="cs-doc-num"><span>N.º</span><b>' + String(e.id).padStart(4, '0') + '</b>' + badge(e.estado) + (e.prueba ? '<div class="cs-doc-prueba">🧪 PRUEBA</div>' : '') + '</div></div>' +
+    '<table class="cs-doc-datos"><tr><th>Fecha y hora</th><td>' + esc(e.fecha) + ' ' + esc(e.hora) + '</td><th>Área</th><td>' + esc(np(e.area)) + '</td></tr>' +
+      '<tr><th>Técnico que recibe</th><td>' + esc(e.tecnico) + '</td><th>Manager que entrega</th><td>' + esc(e.manager) + '</td></tr></table>' +
+    '<h2>Frascos entregados (' + e.frascos.length + ')</h2>' +
+    '<table class="cs-doc-tabla"><thead><tr><th>#</th><th>Materia prima</th><th>Presentación</th><th>Lote</th><th>Ref.</th><th>N.º de serie</th><th>Estado</th><th>Registros</th></tr></thead><tbody>' +
+      e.frascos.map(function(f, i) {
+        return '<tr><td>' + (i + 1) + '</td><td class="izq">' + esc(np(f.materia)) + '</td><td>' + esc([np(f.presentacion), f.contenido].filter(Boolean).join(' · ')) +
+          '</td><td>' + esc(f.lote) + '</td><td>' + esc(f.ref) + '</td><td><b>' + esc(f.serie) + '</b>' + (f.tecnicoActual ? '<br><small>ahora: ' + esc(f.tecnicoActual) + '</small>' : '') +
+          '</td><td>' + (f.estado === 'CONSUMIDO' ? 'Consumido ' + esc(f.consumidoEn) : 'En uso') + '</td><td>' + f.jornadas + '</td></tr>'; }).join('') + '</tbody></table>' +
+    (e.observaciones ? '<h2>Observaciones</h2><p class="cs-doc-obs">' + esc(e.observaciones) + '</p>' : '') +
+    (traslados.length ? '<h2>Traslados</h2><table class="cs-doc-tabla"><thead><tr><th>Fecha</th><th>Frasco</th><th>De</th><th>A</th><th>Motivo</th><th>Hecho por</th></tr></thead><tbody>' +
+      traslados.map(function(x) { return '<tr><td>' + esc(x.t.en) + '</td><td>' + esc(np(x.materia)) + ' · <b>' + esc(x.serie) + '</b></td><td>' + esc(x.t.de) + '</td><td>' + esc(x.t.a) +
+        '</td><td class="izq">' + esc(x.t.motivo) + '</td><td>' + esc(x.t.por) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
+    (e.estado === 'ANULADO' ? '<div class="cs-doc-anulada">ENTREGA ANULADA por ' + esc(e.anuladoPor) + ' el ' + esc(e.anuladoEn) + '<br>Motivo: ' + esc(e.motivoAnulacion) + '</div>' : '') +
+    '<div class="cs-doc-firmas"><div><span></span>Entrega: ' + esc(e.manager) + '</div><div><span></span>Recibe: ' + esc(e.tecnico) + '</div></div>' +
+    '<div class="cs-doc-pie">Generado desde la intranet NuviaColombia · ' + new Date().toLocaleString('es-CO') + '</div>';
+  docEntrega.style.display = '';
+  document.body.classList.add('cs-con-modal');
+}
+function cerrarDoc() { docEntrega.style.display = 'none'; document.body.classList.remove('cs-con-modal'); }
+function imprimirDoc() { document.body.classList.add('cs-imprime-doc'); window.print(); document.body.classList.remove('cs-imprime-doc'); }
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && docEntrega.style.display !== 'none') cerrarDoc(); });
 function anularEntrega(id) {
   var motivo = prompt('Motivo de la anulación de la entrega n.º ' + String(id).padStart(4, '0') + ' (obligatorio):');
   if (motivo === null) return;
   post('/consumo/api/entregas/' + id + '/anular', {motivo: motivo}).then(function(r) { alert(r.mensaje); cargarConsulta(); }).catch(function(e) { alert(e.message); });
+}
+
+// ---------------- traslados ----------------
+function cargarDisponibles() {
+  var tid = tOrigen.value;
+  tTodos.checked = false;
+  if (!tid) { disponibles = []; tFrascos.innerHTML = '<tr><td colspan="8" class="cm-vacio">Elige el técnico que entrega.</td></tr>'; contarTraslado(); return; }
+  api('/consumo/api/traslados/frascos?tecnico_id=' + tid).then(function(r) {
+    disponibles = r.frascos;
+    tFrascos.innerHTML = r.frascos.length ? r.frascos.map(function(f) {
+      return '<tr><td><input type="checkbox" class="tSel" value="' + f.id + '" style="width:auto" onchange="contarTraslado()"></td><td class="izq"><b>' + esc(np(f.materia)) + '</b>' +
+        (f.recibidoDe ? '<br><small style="color:#1D4ED8">🔁 recibido de ' + esc(f.recibidoDe) + '</small>' : '') + '</td><td>' + esc(f.lote) + '</td><td>' + esc(f.ref) +
+        '</td><td><b>' + esc(f.serie) + '</b></td><td>' + String(f.entrega).padStart(4, '0') + '<br><small>' + esc(f.fechaEntrega) + '</small></td><td>' +
+        (f.alerta ? '<span class="cs-alerta">⚠️ ' + f.dias + '</span>' : f.dias) + '</td><td style="font-size:12px">' +
+        ([f.midesArcos ? num(f.acumulado) + ' arcos' : '', f.midesGotas ? num(f.gotas) + ' gotas' : ''].filter(Boolean).join(' · ') || '—') + '</td></tr>'; }).join('')
+      : '<tr><td colspan="8" class="cm-vacio">Este técnico no tiene frascos en uso.</td></tr>';
+    contarTraslado();
+  }).catch(function(e) { tFrascos.innerHTML = '<tr><td colspan="8" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function marcarTodos(v) { document.querySelectorAll('.tSel').forEach(function(c) { c.checked = v; }); contarTraslado(); }
+function contarTraslado() {
+  var n = document.querySelectorAll('.tSel:checked').length, d = tecnicoPorId(tDestino.value);
+  tCuenta.innerText = disponibles.length;
+  btnTraslado.disabled = !n || !d || tDestino.value === tOrigen.value;
+  btnTraslado.innerText = '🔁 Trasladar ' + n + ' frasco' + (n === 1 ? '' : 's') + (d ? ' a ' + d.nombre : '');
+}
+function trasladar() {
+  var ids = Array.from(document.querySelectorAll('.tSel:checked')).map(function(c) { return parseInt(c.value, 10); });
+  if (!confirm(btnTraslado.innerText.replace('🔁 ', '') + '?')) return;
+  btnTraslado.disabled = true;
+  post('/consumo/api/traslados', {frasco_ids: ids, tecnico_id: parseInt(tDestino.value, 10) || 0, motivo: tMotivo.value})
+    .then(function(r) { alert(r.mensaje); tMotivo.value = ''; cargarDisponibles(); cargarHistorialTraslados(); })
+    .catch(function(e) { alert(e.message); contarTraslado(); });
+}
+function cargarHistorialTraslados() {
+  api('/consumo/api/traslados?desde=' + hDesde.value + '&hasta=' + hHasta.value + '&tecnico_id=' + (hTecnico.value || 0)).then(function(r) {
+    hCuerpo.innerHTML = r.data.length ? r.data.map(function(t) {
+      return '<tr><td>' + esc(t.en) + '</td><td class="izq">' + esc(np(t.materia)) + '</td><td style="font-size:12px">' + esc(t.lote) + ' / ' + esc(t.ref) + ' / <b>' + esc(t.serie) +
+        '</b></td><td>' + String(t.entrega).padStart(4, '0') + '</td><td class="izq">' + esc(t.de) + '</td><td>➜</td><td class="izq"><b>' + esc(t.a) + '</b></td><td class="izq">' +
+        esc(t.motivo) + '</td><td class="izq">' + esc(t.por) + '</td></tr>'; }).join('')
+      : '<tr><td colspan="9" class="cm-vacio">No hay traslados con esos filtros.</td></tr>';
+  }).catch(function(e) { hCuerpo.innerHTML = '<tr><td colspan="9" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
 
 // ---------------- jornada ----------------
@@ -250,58 +412,102 @@ function textoValores(r) {
   if (r.consumido) partes.push('✅ <b>marcó consumido</b>');
   return partes.join(' · ') || '—';
 }
-function lineaRegistro(r) {
-  var anulado = r.estado === 'ANULADO';
-  var acciones = '';
-  if (!anulado && J.puedeCorregir) {
-    acciones += '<button class="btn rojo mini" onclick="anularRegistro(' + r.id + ', ' + (r.estado === 'SOLICITADA') + ')">' +
-      (r.estado === 'SOLICITADA' ? '✔️ Aprobar anulación' : '🚫 Anular') + '</button>';
-    if (r.estado === 'SOLICITADA') acciones += ' <button class="btn gris mini" onclick="rechazarSolicitud(' + r.id + ')">Rechazar</button>';
-  } else if (r.estado === 'ACTIVO' && (J.esElTecnico || r.registradoPorId === J.usuarioId)) {
-    acciones = '<button class="btn gris mini" onclick="solicitarAnulacion(' + r.id + ')">📨 Solicitar anulación</button>';
+function accionesRegistro(r) {
+  if (r.estado !== 'ANULADO' && J.puedeCorregir) {
+    return '<button class="btn rojo mini" onclick="anularRegistro(' + r.id + ', ' + (r.estado === 'SOLICITADA') + ')">' +
+      (r.estado === 'SOLICITADA' ? '✔️ Aprobar anulación' : '🚫 Anular') + '</button>' +
+      (r.estado === 'SOLICITADA' ? ' <button class="btn gris mini" onclick="rechazarSolicitud(' + r.id + ')">Rechazar</button>' : '');
   }
-  var notas = '';
+  if (r.estado === 'ACTIVO' && (J.esElTecnico || r.registradoPorId === J.usuarioId))
+    return '<button class="btn gris mini" onclick="solicitarAnulacion(' + r.id + ')">📨 Solicitar anulación</button>';
+  return '';
+}
+function tarjetaRegistro(r) {
+  var anulado = r.estado === 'ANULADO', notas = '';
   if (r.observacion) notas += '<div><small>📝 ' + esc(r.observacion) + '</small></div>';
   if (r.estado === 'SOLICITADA') notas += '<div><small style="color:#92400E">⏳ ' + esc(r.solicitadoPor) + ' pidió anular (' + esc(r.solicitadoEn) + '): ' + esc(r.solicitudMotivo) + '</small></div>';
   if (r.respuesta && r.estado === 'ACTIVO') notas += '<div><small style="color:#475569">↩️ Solicitud rechazada: ' + esc(r.respuesta) + '</small></div>';
   if (anulado) notas += '<div><small style="color:#991B1B">🚫 Anulado por ' + esc(r.anuladoPor) + ' (' + esc(r.anuladoEn) + '): ' + esc(r.motivoAnulacion) + '</small></div>';
-  return '<div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:6px 0;border-top:1px dashed #E2E8F0' +
-    (anulado ? ';opacity:.6' : '') + '"><div style="text-align:left"><small>🕒 ' + esc(r.hora) + ' · ' + esc(r.registradoPor) + '</small> ' + chipReg(r.estado) +
-    '<div' + (anulado ? ' style="text-decoration:line-through"' : '') + '>' + textoValores(r) + '</div>' + notas + '</div><div style="white-space:nowrap">' + acciones + '</div></div>';
+  var acc = accionesRegistro(r);
+  return '<div class="cs-reg' + (anulado ? ' anulado' : '') + '"><div class="cs-reg-cab"><small>🕒 <b>' + esc(r.hora) + '</b> · ' + esc(r.registradoPor) + '</small> ' + chipReg(r.estado) + '</div>' +
+    '<div class="cs-reg-frasco">' + esc(np(r.materia)) + ' <small>· serie ' + esc(r.serie) + '</small></div>' +
+    '<div' + (anulado ? ' style="text-decoration:line-through"' : '') + '>' + textoValores(r) + '</div>' + notas + (acc ? '<div class="cs-reg-acc">' + acc + '</div>' : '') + '</div>';
 }
 function cargarJornada() {
   var tid = jTecnico.value, fecha = jFecha.value;
-  jCabeza.innerHTML = '<tr><th>Materia prima</th><th>Lote / Ref. / Serie</th><th>Entregado</th>' +
-    D.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('') +
-    '<th>💧 Gotas</th><th>Consumido</th><th>Observación</th><th>Hoy (vigente)</th><th>Acumulado</th></tr>';
-  var cols = D.tipos.length + 8;
-  if (!tid) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Elige el técnico.</td></tr>'; return; }
+  var col = D.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('');
+  var todos = D.tipos.map(function(t) { return '<th class="cs-todos"><input type="number" min="0" step="0.5" class="num" placeholder="Todos" oninput="aplicarTodos(\'' + t.id + '\', this.value)"></th>'; }).join('');
+  jCabeza.innerHTML = '<tr><th>Frasco</th>' + col + '<th>💧 Gotas</th><th>Consumido</th><th>Observación</th></tr>' +
+    '<tr class="cs-fila-todos"><th class="izq"><small>⬇️ Aplicar a todos</small></th>' + todos +
+    '<th class="cs-todos"><input type="number" min="0" step="1" class="num" placeholder="Todos" oninput="aplicarTodos(\'gotas\', this.value)"></th><th></th><th></th></tr>';
+  var cols = D.tipos.length + 4;
+  jFiltroFrasco.innerHTML = '<option value="">Todos los frascos</option>';
+  if (!tid) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Elige el técnico.</td></tr>'; jHistorial.innerHTML = ''; jResumen.innerHTML = ''; return; }
   api('/consumo/api/jornada?tecnico_id=' + tid + '&fecha=' + fecha).then(function(r) {
     frascosJornada = r.frascos;
-    J = {puedeCorregir: !!r.puedeCorregir, usuarioId: r.usuarioId, esElTecnico: !!r.esElTecnico};
+    J = {puedeCorregir: !!r.puedeCorregir, usuarioId: r.usuarioId, esElTecnico: !!r.esElTecnico, diaAbierto: !!r.diaAbierto};
+    pintarDia(r);
+    jFiltroFrasco.innerHTML = '<option value="">Todos los frascos</option>' + r.frascos.map(function(f) {
+      return '<option value="' + f.id + '">' + esc(np(f.materia)) + ' · ' + esc(f.serie) + '</option>'; }).join('');
+    pintarHistorial();
     if (!r.frascos.length) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">Este técnico no tiene frascos en uso en esa fecha.</td></tr>'; return; }
     jCuerpo.innerHTML = r.frascos.map(function(f) {
-      var dis = (D.puedeEditar && !f.consumido) ? '' : ' disabled';
+      var dis = (D.puedeEditar && !f.consumido && J.diaAbierto) ? '' : ' disabled';
       var etiqueta = [f.midesArcos ? 'arcos' : '', f.midesGotas ? 'gotas' : ''].filter(Boolean).join(' + ') || 'líquido';
-      var hoy = [f.midesArcos ? num(f.arcosDia) + ' arcos' : '', f.midesGotas ? num(f.gotasDia) + ' gotas' : ''].filter(Boolean).join('<br>') || '—';
-      var acum = [f.midesArcos ? num(f.acumulado) + ' arcos' : '', f.midesGotas ? num(f.gotasAcumuladas) + ' gotas' : ''].filter(Boolean).join('<br>') || '—';
-      var fila = '<tr data-id="' + f.id + '"><td class="izq"><b>' + esc(np(f.materia)) + '</b> <small>(' + etiqueta + ')</small>' +
-        (f.consumido ? '<br>' + badge('CONSUMIDO') : '') +
-        (f.recibidoDe ? '<br><small style="color:#1D4ED8">🔁 Recibido de ' + esc(f.recibidoDe) + '</small>' : '') +
-        '</td><td style="font-size:12px">' + esc(f.lote) + ' / ' + esc(f.ref) + ' / ' + esc(f.serie) + '</td><td style="font-size:12px">' + esc(f.fechaEntrega) +
-        '<br><small' + (f.alertaDias ? ' style="color:#B91C1C;font-weight:700" title="Supera ' + f.diasAlerta + ' días abierto">⚠️ ' : '>') +
-        f.diasAbierto + ' día(s)</small></td>' +
+      return '<tr data-id="' + f.id + '"><td class="izq"><b>' + esc(np(f.materia)) + '</b> <small>(' + etiqueta + ')</small>' + (f.consumido ? ' ' + badge('CONSUMIDO') : '') +
+        '<br><small style="color:var(--text-muted)">' + esc(f.lote) + ' / ' + esc(f.ref) + ' / <b>' + esc(f.serie) + '</b> · ' +
+        '<span' + (f.alertaDias ? ' class="cs-alerta" title="Supera ' + f.diasAlerta + ' días abierto">⚠️ ' : '>') + f.diasAbierto + ' día(s)</span></small>' +
+        (f.recibidoDe ? '<br><small style="color:#1D4ED8">🔁 Recibido de ' + esc(f.recibidoDe) + '</small>' : '') + '</td>' +
         D.tipos.map(function(t) { return '<td><input type="number" min="0" step="0.5" class="num jArco" data-tipo="' + t.id + '"' +
           (f.midesArcos ? dis : ' disabled') + '></td>'; }).join('') +
         (f.midesGotas ? '<td><input type="number" min="0" step="1" class="num jGotas"' + dis + '></td>' : '<td style="color:#94A3B8">—</td>') +
         '<td><input type="checkbox" class="jCons" style="width:auto"' + dis + '></td>' +
-        '<td><input type="text" class="jObs" maxlength="500" placeholder="Opcional" style="min-width:140px"' + dis + '></td>' +
-        '<td style="font-size:12px;font-weight:700">' + hoy + '</td><td style="font-size:12px">' + acum + '</td></tr>';
-      if (f.registros.length)
-        fila += '<tr class="cs-detalle"><td colspan="' + cols + '" style="padding:4px 14px 8px"><small><b>Registros del día (' + f.registros.length + ')</b></small>' +
-          f.registros.map(lineaRegistro).join('') + '</td></tr>';
-      return fila; }).join('');
+        '<td><input type="text" class="jObs" maxlength="500" placeholder="Opcional"' + dis + '></td></tr>'; }).join('');
   }).catch(function(e) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function pintarDia(r) {  // día anterior cerrado para el técnico: solicitar al manager que lo abra
+  var a = r.apertura, h = '';
+  if (r.diaAbierto && a && a.vigente && !r.puedeCorregir) {
+    h = '<div class="cs-dia-cerrado" style="background:#ECFDF5;border-color:#86EFAC">🔓 <b>Día abierto</b> por ' + esc(a.resueltoPor) + ' (' + esc(a.resueltoEn) + ') hasta el final de hoy.</div>';
+  } else if (!r.diaAbierto) {
+    var estado = !a ? '' : (a.estado === 'SOLICITADA' ? '<span>⏳ Solicitud enviada (' + esc(a.solicitadoEn) + '): «' + esc(a.motivo) + '». Espera la respuesta del manager.</span>'
+      : (a.estado === 'RECHAZADA' ? '<span style="color:#991B1B">↩️ ' + esc(a.resueltoPor) + ' no abrió el día: ' + esc(a.respuesta) + '</span>' : '<span>El permiso para este día ya venció.</span>'));
+    var boton = (r.esElTecnico && !(a && a.estado === 'SOLICITADA')) ? '<button class="btn mini" onclick="solicitarApertura()">📨 Solicitar abrir el día</button>' : '';
+    h = '<div class="cs-dia-cerrado"><div>🔒 <b>El día ' + esc(jFecha.value) + ' está cerrado.</b> Los técnicos solo registran el día de hoy. ' + estado + '</div>' + boton + '</div>';
+  }
+  jDia.innerHTML = h;
+  var b = document.getElementById('btnJornada'); if (b) b.disabled = !r.diaAbierto;
+}
+function solicitarApertura() {
+  var m = prompt('¿Por qué necesitas registrar el día ' + jFecha.value + '? (el manager de tu área decide si lo abre)');
+  if (m === null) return;
+  post('/consumo/api/jornada/aperturas', {tecnico_id: parseInt(jTecnico.value, 10), fecha: jFecha.value, motivo: m})
+    .then(function(r) { alert(r.mensaje); cargarJornada(); }).catch(function(e) { alert(e.message); });
+}
+function resolverApertura(id, aprobar) {
+  var m = aprobar ? '' : prompt('¿Por qué no se abre el día?');
+  if (m === null) return;
+  post('/consumo/api/jornada/aperturas/' + id + '/' + (aprobar ? 'aprobar' : 'rechazar'), {motivo: m})
+    .then(function(r) { alert(r.mensaje); cargarSolicitudes(); cargarJornada(); }).catch(function(e) { alert(e.message); });
+}
+function aplicarTodos(col, valor) {  // copia el valor a todos los frascos habilitados; cada casilla sigue editable
+  var sel = col === 'gotas' ? '.jGotas' : '.jArco[data-tipo="' + col + '"]';
+  document.querySelectorAll('#jCuerpo ' + sel).forEach(function(x) { if (!x.disabled) x.value = valor; });
+}
+function pintarHistorial() {
+  var filtro = jFiltroFrasco.value, regs = [], arcos = 0, gotas = 0;
+  frascosJornada.forEach(function(f) {
+    if (filtro && String(f.id) !== filtro) return;
+    f.registros.forEach(function(r) { regs.push(Object.assign({materia: f.materia, serie: f.serie}, r)); });
+    arcos += f.arcosDia; gotas += f.gotasDia;
+  });
+  var sel = frascosJornada.filter(function(f) { return !filtro || String(f.id) === filtro; });
+  jResumen.innerHTML = sel.length ? '<div class="cs-hist-resumen"><div><span>' + (jFecha.value === D.hoy ? 'Hoy' : 'Este día') + ' (vigente)</span><b>' + num(arcos) + ' arcos' + (gotas ? ' · ' + num(gotas) + ' gotas' : '') + '</b></div>' +
+    '<div><span>Acumulado</span><b>' + sel.map(function(f) {
+      return [f.midesArcos ? num(f.acumulado) + ' arcos' : '', f.midesGotas ? num(f.gotasAcumuladas) + ' gotas' : ''].filter(Boolean).join(' · '); })
+      .filter(Boolean).join(' | ') + '</b></div></div>' : '';
+  regs.sort(function(a, b) { return a.hora < b.hora ? 1 : (a.hora > b.hora ? -1 : b.id - a.id); });
+  jHistorial.innerHTML = regs.length ? regs.map(tarjetaRegistro).join('') : '<p class="cm-vacio" style="padding:14px">Sin registros este día.</p>';
 }
 function guardarJornada() {
   var filas = Array.from(document.querySelectorAll('#jCuerpo tr[data-id]')).map(function(tr) {
@@ -312,10 +518,10 @@ function guardarJornada() {
     .filter(function(f) { return Object.keys(f.arcos).length || f.gotas || f.consumido; });
   if (!filas.length) return alert('Escribe arcos, gotas o marca «Consumido» en al menos un frasco.');
   if (!confirm('¿Guardar ' + filas.length + ' registro(s)? Después no se pueden modificar: si hay un error, deberás solicitar la anulación al manager.')) return;
-  var btn = document.getElementById('btnJornada'); btn.disabled = true;
+  btnJornada.disabled = true;
   post('/consumo/api/jornada', {tecnico_id: parseInt(jTecnico.value, 10), fecha: jFecha.value, filas: filas})
-    .then(function(r) { alert(r.mensaje); btn.disabled = false; cargarJornada(); })
-    .catch(function(e) { alert(e.message); btn.disabled = false; });
+    .then(function(r) { alert(r.mensaje); btnJornada.disabled = false; cargarJornada(); })
+    .catch(function(e) { alert(e.message); btnJornada.disabled = false; });
 }
 function accionRegistro(url, motivo) {
   post(url, {motivo: motivo}).then(function(r) { alert(r.mensaje); cargarJornada(); cargarSolicitudes(); }).catch(function(e) { alert(e.message); });
@@ -336,6 +542,27 @@ function rechazarSolicitud(id) {
   if (m === null) return;
   accionRegistro('/consumo/api/jornada/registros/' + id + '/rechazar', m);
 }
+function cargarSolicitudes() {
+  if (!D || !D.puedeEntregar) return;  // solo managers y administradores resuelven solicitudes
+  api('/consumo/api/jornada/solicitudes').then(function(r) {
+    var caja = document.getElementById('jSolicitudes');
+    if (!r.solicitudes.length && !r.aperturas.length) { caja.style.display = 'none'; caja.innerHTML = ''; return; }
+    caja.style.display = '';
+    caja.innerHTML = (r.aperturas.length ? '<div class="cs-solicitudes" style="background:#EFF6FF;border-color:#93C5FD"><b>📅 Solicitudes para abrir un día (' + r.aperturas.length + ')</b>' +
+      r.aperturas.map(function(a) {
+        return '<div class="cs-solicitud" style="border-color:#93C5FD"><div><b>' + esc(a.tecnico) + '</b> pide registrar el <b>' + esc(a.fecha) + '</b> <small>(' + esc(a.solicitadoEn) + ')</small>' +
+          '<br><small>📝 ' + esc(a.motivo) + '</small></div><div style="white-space:nowrap"><button class="btn verde mini" onclick="resolverApertura(' + a.id + ', true)">🔓 Abrir el día</button> ' +
+          '<button class="btn gris mini" onclick="resolverApertura(' + a.id + ', false)">Rechazar</button></div></div>'; }).join('') + '</div>' : '') +
+      (!r.solicitudes.length ? '' : '<div class="cs-solicitudes"><b>📨 Solicitudes de anulación pendientes (' + r.solicitudes.length + ')</b>' +
+      r.solicitudes.map(function(x) {
+        return '<div class="cs-solicitud"><div><b>' + esc(x.tecnico) + '</b> · ' + esc(np(x.materia)) + ' <small>(serie ' + esc(x.serie) + ')</small> · ' + esc(x.fecha) + ' ' + esc(x.hora) +
+          '<div>' + textoValores(x) + '</div><small style="color:#92400E">📝 ' + esc(x.solicitudMotivo) + '</small></div>' +
+          '<div style="white-space:nowrap"><button class="btn rojo mini" onclick="J.puedeCorregir=true;anularRegistro(' + x.id + ', true)">✔️ Aprobar anulación</button> ' +
+          '<button class="btn gris mini" onclick="rechazarSolicitud(' + x.id + ')">Rechazar</button></div></div>'; }).join('') + '</div>');
+  }).catch(function() {});
+}
+
+// ---------------- modo pruebas ----------------
 function modoPruebas(activo) {
   if (activo && !confirm('🧪 Modo pruebas: lo que registres no se mezcla con los datos reales y luego se puede borrar. ¿Activar?')) return;
   post('/consumo/api/modo-pruebas', {activo: activo}).then(function() { location.reload(); }).catch(function(e) { alert(e.message); });
@@ -343,47 +570,6 @@ function modoPruebas(activo) {
 function borrarPruebas() {
   if (!confirm('¿Borrar TODOS los datos de prueba (de todos los usuarios)? Los datos reales no se tocan.')) return;
   post('/consumo/api/pruebas/borrar', {}).then(function(r) { alert(r.mensaje); location.reload(); }).catch(function(e) { alert(e.message); });
-}
-var lector = null;
-function escanearSerie(btn) {
-  var input = btn.parentNode.querySelector('.fSerie');
-  if (!('BarcodeDetector' in window) || !navigator.mediaDevices) {
-    return alert('Este navegador no puede leer códigos con la cámara (funciona en Chrome de Android). Escribe el número de serie.');
-  }
-  var capa = document.createElement('div');
-  capa.className = 'cs-lector';
-  capa.innerHTML = '<div><video autoplay playsinline muted></video><p>Apunta al código de barras o QR del frasco…</p>' +
-    '<button type="button" class="btn gris">Cancelar</button></div>';
-  document.body.appendChild(capa);
-  var video = capa.querySelector('video'), detector = new BarcodeDetector(), flujo = null, vivo = true;
-  function cerrar() { vivo = false; if (flujo) flujo.getTracks().forEach(function(t) { t.stop(); }); capa.remove(); }
-  capa.querySelector('button').onclick = cerrar;
-  navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}}).then(function(st) {
-    flujo = st; video.srcObject = st;
-    (function buscar() {
-      if (!vivo) return;
-      detector.detect(video).then(function(cod) {
-        if (cod.length) { input.value = cod[0].rawValue.trim().toUpperCase(); cerrar(); input.focus(); }
-        else setTimeout(buscar, 300);
-      }).catch(function() { setTimeout(buscar, 500); });
-    })();
-  }).catch(function() { cerrar(); alert('No se pudo abrir la cámara. Revisa el permiso del navegador.'); });
-}
-function cargarSolicitudes() {
-  if (!D || !D.puedeEntregar) return;  // solo managers y administradores resuelven solicitudes
-  api('/consumo/api/jornada/solicitudes').then(function(r) {
-    var caja = document.getElementById('jSolicitudes');
-    if (!r.solicitudes.length) { caja.style.display = 'none'; caja.innerHTML = ''; return; }
-    caja.style.display = '';
-    caja.innerHTML = '<div style="border:1px solid #FCD34D;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin:8px 0 12px">' +
-      '<b>📨 Solicitudes de anulación pendientes (' + r.solicitudes.length + ')</b>' +
-      r.solicitudes.map(function(x) {
-        return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed #FCD34D;align-items:flex-start">' +
-          '<div><b>' + esc(x.tecnico) + '</b> · ' + esc(np(x.materia)) + ' <small>(serie ' + esc(x.serie) + ')</small> · ' + esc(x.fecha) + ' ' + esc(x.hora) +
-          '<div>' + textoValores(x) + '</div><small style="color:#92400E">📝 ' + esc(x.solicitudMotivo) + '</small></div>' +
-          '<div style="white-space:nowrap"><button class="btn rojo mini" onclick="J.puedeCorregir=true;anularRegistro(' + x.id + ', true)">✔️ Aprobar anulación</button> ' +
-          '<button class="btn gris mini" onclick="rechazarSolicitud(' + x.id + ')">Rechazar</button></div></div>'; }).join('') + '</div>';
-  }).catch(function() {});
 }
 
 // ---------------- reportes ----------------
@@ -424,22 +610,84 @@ function cargarReportes() {
 }
 function exportarReporte() { window.location = '/consumo/api/reportes/exportar?' + filtrosReporte(); }
 
+// ---------------- reporte general (mensual) ----------------
+function filtrosGeneral() {
+  var p = (gMes.value || D.hoy.slice(0, 7)).split('-');
+  return 'anio=' + p[0] + '&mes=' + parseInt(p[1], 10) + '&area=' + encodeURIComponent(gArea.value) + '&tecnico_id=' + (gTecnico.value || 0);
+}
+function mini(valores, etiquetas) {  // gráfico pequeño de los últimos 6 meses
+  var max = Math.max.apply(null, valores.concat([1])), w = 96, h = 26;
+  var pts = valores.map(function(v, i) { return (i * (w - 6) / (valores.length - 1) + 3).toFixed(1) + ',' + (h - 3 - v * (h - 6) / max).toFixed(1); });
+  return '<svg width="' + w + '" height="' + h + '" class="cs-mini"><title>' + valores.map(function(v, i) { return etiquetas[i] + ': ' + num(v); }).join('\n') + '</title>' +
+    '<polyline fill="none" stroke="#2563EB" stroke-width="2" points="' + pts.join(' ') + '"/>' +
+    '<circle r="3" fill="#2563EB" cx="' + pts[pts.length - 1].split(',')[0] + '" cy="' + pts[pts.length - 1].split(',')[1] + '"/></svg>';
+}
+function variacion(v) {
+  if (v == null) return '';
+  return ' <small class="' + (v >= 0 ? 'cs-sube' : 'cs-baja') + '">' + (v >= 0 ? '▲' : '▼') + ' ' + Math.abs(v) + ' %</small>';
+}
+function cargarGeneral() {
+  api('/consumo/api/general?' + filtrosGeneral()).then(function(r) {
+    gTitulo.innerText = r.nombreMes;
+    var p = r.promedios;
+    gKpis.innerHTML = [['Técnicos medidos', p.tecnicos], ['Arcos producidos', num(p.arcos)], ['Frascos consumidos', p.consumidos],
+      ['Arcos por frasco (área)', nd(p.arcosPorFrasco)], ['Gotas por arco (área)', nd(p.gotasPorArco)], ['Cumplimiento promedio', p.cumplimiento == null ? '—' : p.cumplimiento + ' %']]
+      .map(function(x) { return '<div class="cm-kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
+    gTec.innerHTML = r.tecnicos.length ? r.tecnicos.map(function(t) {
+      var tipos = r.tipos.filter(function(x) { return t.tipos[x.id]; }).map(function(x) { return np(x.nombre) + ': ' + num(t.tipos[x.id]); }).join(' · ');
+      return '<tr><td class="cs-puesto">' + (t.puesto <= 3 ? ['🥇', '🥈', '🥉'][t.puesto - 1] : t.puesto) + '</td>' +
+        '<td class="izq"><b>' + esc(t.tecnico) + '</b><br><small>' + esc(np(t.area)) + '</small></td>' +
+        '<td title="' + esc(tipos) + '"><b>' + num(t.arcos) + '</b>' + variacion(t.variacionArcos) + '<br><small>' + esc(tipos) + '</small></td>' +
+        '<td>' + mini(t.evolucion, r.meses) + '</td>' +
+        '<td>' + t.dias + ' d<br><small>' + nd(t.arcosDia) + ' / día</small></td>' +
+        '<td>' + sem(t.cumplimientoSem) + ' ' + (t.cumplimiento == null ? '—' : '<b>' + t.cumplimiento + ' %</b>') + '<br><small>' + t.diasConRegistro + ' de ' + t.diasHabiles + ' días</small></td>' +
+        '<td>' + t.consumidos + '</td>' +
+        '<td>' + sem(t.rendimientoSem) + ' <b>' + nd(t.arcosPorFrasco) + '</b>' + (t.rendimiento == null ? '' : '<br><small>' + t.rendimiento + ' % del área</small>') + '</td>' +
+        '<td>' + sem(t.gotasSem) + ' <b>' + nd(t.gotasPorArco) + '</b>' + (t.gotasIndice == null ? '' : '<br><small>' + t.gotasIndice + ' % del área</small>') + '</td>' +
+        '<td>' + nd(t.duracion, ' d') + '</td>' +
+        '<td>' + t.enUso + (t.alertas ? ' <span class="cs-alerta">⚠️ ' + t.alertas + '</span>' : '') + '</td>' +
+        '<td>' + sem(t.errorSem) + ' ' + t.solicitudes + ' · ' + t.anulados + (t.error == null ? '' : '<br><small>' + num(t.error) + ' % anulado de ' + t.registros + '</small>') + '</td>' +
+        '<td>↓ ' + t.recibidos + ' · ↑ ' + t.entregados + '</td></tr>'; }).join('')
+      : '<tr><td colspan="13" class="cm-vacio">Sin movimientos en el mes.</td></tr>';
+    gMatCab.innerHTML = '<tr><th>Materia prima</th><th>Frascos consumidos</th>' + r.tipos.map(function(t) { return '<th>' + esc(np(t.nombre)) + '</th>'; }).join('') + '</tr>';
+    gMat.innerHTML = r.consumoTipo.length ? r.consumoTipo.map(function(x) {
+      return '<tr><td class="izq"><b>' + esc(np(x.materia)) + '</b><br><small>' + (x.contenido == null ? '⚠️ sin contenido en Parámetros' : num(x.contenido) + ' ' + esc(x.unidad) + ' por frasco') +
+        '</small></td><td>' + x.frascos + '</td>' + r.tipos.map(function(t) {
+          var c = x.tipos[t.id];
+          if (!c) return '<td style="color:#94A3B8">—</td>';
+          return '<td class="cs-celda-tipo">' + (c.consumoPorArco == null ? '' : '<b>' + num(c.consumoPorArco) + ' ' + esc(x.unidad) + '/arco</b><br>') +
+            (c.arcosPorFrasco == null ? '' : '<small>' + num(c.arcosPorFrasco) + ' arcos/frasco</small><br>') +
+            (c.gotasPorArco == null ? '' : '<small>💧 ' + num(c.gotasPorArco) + ' gotas/arco</small><br>') + '<small style="color:var(--text-muted)">' + num(c.arcos) + ' arcos</small></td>';
+        }).join('') + '</tr>'; }).join('')
+      : '<tr><td colspan="' + (r.tipos.length + 2) + '" class="cm-vacio">Sin frascos consumidos en el mes.</td></tr>';
+    gLot.innerHTML = r.lotes.length ? r.lotes.map(function(m) {
+      return '<tr class="' + (m.bajo ? 'cs-bajo' : '') + '"><td class="izq">' + esc(np(m.materia)) + '</td><td>' + esc(m.lote) + (m.bajo ? ' <span class="cs-alerta">⚠️ bajo</span>' : '') +
+        '</td><td>' + m.frascos + '</td><td>' + num(m.arcos) + '</td><td><b>' + num(m.promedio) + '</b></td><td>' + num(m.promedioMateria) + '</td></tr>'; }).join('')
+      : '<tr><td colspan="6" class="cm-vacio">Sin frascos consumidos en el mes.</td></tr>';
+  }).catch(function(e) { gTec.innerHTML = '<tr><td colspan="13" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
+}
+function exportarGeneral() { window.location = '/consumo/api/general/exportar?' + filtrosGeneral(); }
+
 api('/consumo/api/datos').then(function(d) {
   D = d;
   var ahora = new Date();
   eFecha.value = d.hoy; eFecha.max = d.hoy; eHora.value = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
-  eManager.value = d.manager + (d.areaManager ? ' (' + np(d.areaManager) + ')' : (d.esAdmin ? ' (administrador)' : ''));
+  eManager.innerText = d.manager + (d.areaManager ? ' (' + np(d.areaManager) + ')' : (d.esAdmin ? ' (administrador)' : ''));
   jFecha.value = d.hoy; jFecha.max = d.hoy;
-  if (!d.puedeEntregar) {  // el técnico registra hasta N días atrás; más antiguo, el manager
-    var lim = new Date(d.hoy + 'T12:00:00'); lim.setDate(lim.getDate() - d.diasRegistroTecnico);
-    jFecha.min = lim.toISOString().slice(0, 10);
-  } rHasta.value = d.hoy; rDesde.value = d.hoy.slice(0, 8) + '01';
-  opcionesTecnicos('eTecnico'); opcionesTecnicos('jTecnico'); opcionesTecnicos('rTecnico', true);
+  if (!d.puedeEntregar) {
+    rTitulo.innerText = '📊 Mis reportes';
+    document.querySelectorAll('#sec-reportes .solo-manager').forEach(function(x) { x.style.display = 'none'; });
+  }
+  rHasta.value = d.hoy; rDesde.value = d.hoy.slice(0, 8) + '01'; gMes.value = d.hoy.slice(0, 7); gMes.max = d.hoy.slice(0, 7);
+  opcionesTecnicos('eTecnico'); opcionesTecnicos('jTecnico'); opcionesTecnicos('rTecnico', true); opcionesTecnicos('cTecnico', true);
+  opcionesTecnicos('tOrigen'); opcionesTecnicos('tDestino'); opcionesTecnicos('hTecnico', true); opcionesTecnicos('gTecnico', true);
+  if (tOrigen.options.length && tOrigen.options[0].value) tOrigen.insertAdjacentHTML('afterbegin', '<option value="" selected>Seleccionar…</option>');
+  if (tDestino.options.length && tDestino.options[0].value) tDestino.insertAdjacentHTML('afterbegin', '<option value="" selected>Seleccionar…</option>');
+  gArea.innerHTML = '<option value="">Todas</option>' + (d.areas || []).map(function(a) { return '<option value="' + esc(a) + '">' + esc(np(a)) + '</option>'; }).join('');
   rMateria.innerHTML = '<option value="">Todas</option>' + d.materias.map(function(m) { return '<option value="' + m.id + '">' + esc(np(m.descripcion)) + '</option>'; }).join('');
   cambiarTecnicoEntrega();
   if (!d.puedeEditar) {  // sin técnico propio ni área: solo consulta
-    var bj = document.getElementById('btnJornada');
-    if (bj) bj.outerHTML = '<p class="cm-sub" style="margin:0">👀 Solo consulta: la jornada la registra el técnico o el manager de su área.</p>';
+    btnJornada.outerHTML = '<p class="cm-sub" style="margin:0">👀 Solo consulta: la jornada la registra el técnico o el manager de su área.</p>';
   }
   cargarSolicitudes();
   var tab = new URLSearchParams(location.search).get('tab');

@@ -173,3 +173,82 @@
 .cs-lector > div { background: #fff; border-radius: 12px; padding: 12px; text-align: center; max-width: 92vw; }
 .cs-lector video { width: 420px; max-width: 86vw; border-radius: 8px; background: #000; }
 
+
+/* ===== Entrega, consulta, traslados, jornada en dos columnas y reporte general ===== */
+#consumo-app .cs-tarjeta { border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px 14px; background: #FBFCFE; margin-bottom: 10px; }
+#consumo-app .cs-campo label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+#consumo-app .cs-campo input, #consumo-app .cs-campo select, #consumo-app .cs-campo textarea { width: 100%; }
+#consumo-app .cs-dato { padding: 8px 10px; background: #EEF2F7; border-radius: 6px; font-size: 13px; font-weight: 600; min-height: 36px; }
+#consumo-app .cs-entrega-cab { display: grid; grid-template-columns: 2fr 1fr 1fr .8fr 1.6fr; gap: 12px; align-items: start; }
+#consumo-app .cs-entrega-cab input, #consumo-app .cs-entrega-cab select, #consumo-app .cs-dato { height: 38px; box-sizing: border-box; margin: 0; }
+#consumo-app .cs-traslado-cab { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+#consumo-app .cs-cuenta { display: inline-block; min-width: 22px; padding: 1px 8px; border-radius: 10px; background: #DBEAFE; color: #1D4ED8; font-size: 12px; text-align: center; }
+#consumo-app .cs-tabla-frascos td.fNum { color: var(--text-muted); font-weight: 700; }
+#consumo-app .cs-plana td { vertical-align: middle; }
+#consumo-app .cs-plana tr.cs-fin-grupo td { border-bottom: 2px solid #CBD5E1; }
+#consumo-app .cs-plana tr.cs-anulada td { color: #94A3B8; }
+#consumo-app .cs-jornada { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 14px; align-items: start; }
+#consumo-app .cs-tabla-jornada td input.num { width: 70px; }
+#consumo-app .cs-tabla-jornada td input.jObs { min-width: 120px; }
+#consumo-app .cs-fila-todos th { background: #E0E7FF !important; color: #1E3A8A !important; padding: 4px 6px !important; }
+#consumo-app .cs-fila-todos input { width: 70px; margin: 0; padding: 4px 6px; border: 1px dashed #6366F1; border-radius: 6px; font-size: 12px; text-align: center; }
+#consumo-app .cs-hist { border: 1px solid var(--border-soft); border-radius: 10px; background: #FBFCFE; max-height: 70vh; overflow: auto; }
+#consumo-app .cs-hist-cab { position: sticky; top: 0; background: #F1F5F9; padding: 8px 12px; display: flex; justify-content: space-between; gap: 8px; align-items: center; border-bottom: 1px solid var(--border-soft); z-index: 1; }
+#consumo-app .cs-hist-cab select { max-width: 55%; padding: 4px 6px; font-size: 12px; }
+#consumo-app .cs-hist-resumen { display: flex; gap: 10px; padding: 8px 12px; border-bottom: 1px dashed var(--border-soft); font-size: 12px; }
+#consumo-app .cs-hist-resumen div { flex: 1; }
+#consumo-app .cs-hist-resumen span { display: block; color: var(--text-muted); font-size: 11px; }
+#consumo-app .cs-reg { padding: 8px 12px; border-bottom: 1px solid #EEF2F7; font-size: 13px; }
+#consumo-app .cs-reg.anulado { opacity: .6; }
+#consumo-app .cs-reg-frasco { font-weight: 700; font-size: 12px; color: #334155; margin: 2px 0; }
+#consumo-app .cs-reg-acc { margin-top: 6px; }
+#consumo-app .cs-solicitudes { border: 1px solid #FCD34D; background: #FFFBEB; border-radius: 10px; padding: 10px 14px; margin: 8px 0 12px; }
+#consumo-app .cs-solicitud { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px dashed #FCD34D; align-items: flex-start; }
+#consumo-app .cs-sem { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
+#consumo-app .cs-sem.verde { background: #16A34A; } #consumo-app .cs-sem.amarillo { background: #EAB308; } #consumo-app .cs-sem.rojo { background: #DC2626; }
+#consumo-app .cs-sube { color: #15803D; font-weight: 700; } #consumo-app .cs-baja { color: #B91C1C; font-weight: 700; }
+#consumo-app .cs-general td { font-size: 12.5px; }
+#consumo-app .cs-puesto { font-size: 16px; font-weight: 800; }
+#consumo-app .cs-celda-tipo { line-height: 1.35; }
+#consumo-app .cs-dia-cerrado { border: 1px solid #CBD5E1; background: #F1F5F9; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 1100px) { #consumo-app .cs-jornada { grid-template-columns: 1fr; } #consumo-app .cs-entrega-cab, #consumo-app .cs-traslado-cab { grid-template-columns: 1fr 1fr; } }
+@media print { #consumo-app .cs-pruebas, #consumo-app .cm-filtros, #consumo-app .cm-acciones { display: none !important; } }
+
+/* ===== Consulta compacta y entrega en formato documento ===== */
+#consumo-app .cs-compacta td { vertical-align: middle; }
+#consumo-app .cs-compacta tr.cs-anulada td { color: #94A3B8; }
+#consumo-app .cs-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .55); z-index: 9000; display: flex; justify-content: center; align-items: flex-start; padding: 24px 12px; overflow: auto; }
+#consumo-app .cs-modal-caja { background: #E5E7EB; border-radius: 10px; width: 860px; max-width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+#consumo-app .cs-modal-barra { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; background: #1E293B; color: #fff; border-radius: 10px 10px 0 0; }
+.cs-doc { background: #fff; margin: 14px; padding: 34px 40px; color: #111827; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.15); min-height: 900px; }
+.cs-doc-cab { display: flex; align-items: center; gap: 18px; border-bottom: 3px solid #1E3A8A; padding-bottom: 14px; margin-bottom: 16px; }
+.cs-doc-cab img { height: 54px; }
+.cs-doc-titulo { flex: 1; }
+.cs-doc-titulo h1 { margin: 0; font-size: 22px; color: #1E3A8A; }
+.cs-doc-titulo div { color: #6B7280; font-size: 12px; }
+.cs-doc-num { text-align: right; }
+.cs-doc-num span { display: block; font-size: 11px; color: #6B7280; }
+.cs-doc-num b { display: block; font-size: 26px; color: #1E3A8A; letter-spacing: 1px; }
+.cs-doc-prueba { margin-top: 4px; font-weight: 800; color: #B45309; }
+.cs-doc h2 { font-size: 14px; color: #1E3A8A; border-bottom: 1px solid #CBD5E1; padding-bottom: 4px; margin: 18px 0 8px; }
+.cs-doc-datos { width: 100%; border-collapse: collapse; }
+.cs-doc-datos th { text-align: left; width: 20%; color: #6B7280; font-weight: 600; padding: 5px 8px; background: #F8FAFC; border: 1px solid #E5E7EB; }
+.cs-doc-datos td { padding: 5px 8px; border: 1px solid #E5E7EB; font-weight: 600; }
+.cs-doc-tabla { width: 100%; border-collapse: collapse; }
+.cs-doc-tabla th { background: #1E3A8A; color: #fff; padding: 6px; font-size: 12px; }
+.cs-doc-tabla td { border: 1px solid #E5E7EB; padding: 6px; text-align: center; }
+.cs-doc-tabla td.izq { text-align: left; }
+.cs-doc-obs { border: 1px solid #E5E7EB; padding: 8px 10px; background: #F8FAFC; margin: 0; }
+.cs-doc-anulada { margin-top: 16px; padding: 10px; border: 2px solid #DC2626; color: #991B1B; font-weight: 700; text-align: center; }
+.cs-doc-firmas { display: flex; gap: 40px; margin-top: 70px; }
+.cs-doc-firmas div { flex: 1; text-align: center; font-size: 12px; color: #374151; }
+.cs-doc-firmas span { display: block; border-top: 1px solid #111827; margin-bottom: 6px; }
+.cs-doc-pie { margin-top: 40px; font-size: 10px; color: #9CA3AF; text-align: center; }
+body.cs-con-modal { overflow: hidden; }
+@media print {
+  body.cs-imprime-doc * { visibility: hidden; }
+  body.cs-imprime-doc #docHoja, body.cs-imprime-doc #docHoja * { visibility: visible; }
+  body.cs-imprime-doc #docHoja { position: absolute; left: 0; top: 0; margin: 0; box-shadow: none; width: 100%; min-height: 0; padding: 10mm; }
+  body.cs-imprime-doc #consumo-app .cs-modal { position: static; background: none; padding: 0; }
+}
+

@@ -117,6 +117,13 @@ def _consumo(db: Session) -> dict[int, list[str]]:
                 f"· {r.fecha.isoformat()} — aprobar o rechazar anulación")
         for m in scc.managers_del_area(db, tecnico.area):
             salida.setdefault(m.id, []).append(desc)
+    # Solicitudes para abrir un día anterior
+    from ..models_consumo import ConsumoApertura
+    for a in db.query(ConsumoApertura).filter(ConsumoApertura.estado == "SOLICITADA", ConsumoApertura.prueba == 0):
+        if not a.tecnico or not a.tecnico.empleado:
+            continue
+        for m in scc.managers_del_area(db, a.tecnico.area):
+            salida.setdefault(m.id, []).append(f"{nombre_propio(a.tecnico.empleado.nombre_completo)} · abrir el día {a.fecha.isoformat()}")
     # Jornada del día sin registrar (desde las 3:00 p. m.): aviso al técnico y a su manager
     if _ahora_colombia().hour >= scc.HORA_AVISO_JORNADA:
         from ..models_consumo import ConsumoTecnico
