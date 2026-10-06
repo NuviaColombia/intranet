@@ -110,8 +110,8 @@ window.dsPdfjs = function() {
   table.ds-tabla tr.ds-fila-cancelada td { background:#f3f4f6; }
   table.ds-tabla tr.ds-fila-cancelada input, table.ds-tabla tr.ds-fila-cancelada select {
     color:#6b7280; -webkit-text-fill-color:#6b7280; text-decoration:line-through; }
-  table.ds-tabla tr.ds-fila-hold td { background:#fef3c7; }
-  table.ds-tabla tr.ds-fila-ready td { background:#edbfab; }
+  table.ds-tabla tr.ds-fila-hold td { background:#edbfab; }
+  table.ds-tabla tr.ds-fila-ready td { background:#fef3c7; }
   table.ds-tabla tr.ds-fila-html td { background:#f5c9d7; }
   table.ds-tabla tr.ds-fila-aprobada td { background:#d6f5b8; }
   /* Interruptor "Ocultar QC" (aprobadores) en la fila de Mostrar ocultas */
@@ -2757,7 +2757,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.nombre; orden.push(k); });
     (dia.principal || []).concat(dia.nightguard || []).forEach(function(f) {
       var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
-      if (!k) return;
+      if (!k || String(f.estado || '').trim().toLowerCase() === 'canceled') return;  // las canceladas no cuentan
       if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
       cuenta[k]++;
     });
@@ -2768,7 +2768,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var filas = dsProduccionDia(DS.diaData), total = filas.reduce(function(a, x) { return a + x.casos; }, 0);
     var f = dsFechaSeleccionada();
     pop.innerHTML = '<h4>Producción del día</h4><div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
-      ' · casos asignados a cada diseñador</div>' +
+      ' · casos asignados a cada diseñador (sin canceladas)</div>' +
       (filas.length ? '<table><thead><tr><th>Diseñador</th><th class="n">Casos</th></tr></thead><tbody>' +
         filas.map(function(x) { return '<tr' + (x.casos ? '' : ' class="cero"') + '><td>' + dsEsc(x.nombre) + '</td><td class="n">' + x.casos + '</td></tr>'; }).join('') +
         '<tr class="total"><td>Total</td><td class="n">' + total + '</td></tr></tbody></table>'
