@@ -8,6 +8,7 @@ rechazan con una observación (DEVUELTO). Solo el Director de Producción o un a
 para que se corrija y se vuelva a firmar. Se puede enviar en cualquier momento (sin fecha límite)."""
 import calendar
 from datetime import datetime, date, timedelta
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea,
@@ -312,6 +313,22 @@ def ve_consulta(db: Session, user: Empleado) -> bool:
     return es_admin(user) or bool(d and d.id == user.id)
 
 
+def corregir_responsables(db: Session) -> list[int]:
+    """Conteos enviados cuyo responsable quedó con quien lo creó antes y no con quien lo envió (antes no se actualizaba):
+    el responsable pasa a ser quien lo envió (su correo es el de la firma 1)."""
+    ids = []
+    for r in db.query(ConteoReporte).filter(ConteoReporte.estado.in_([ENVIADO, EN_FIRME]), ConteoReporte.enviado_email.isnot(None)):
+        correo = (r.enviado_email or "").strip().lower()
+        if not correo or correo == (r.responsable_email or "").strip().lower():
+            continue
+        quien = db.query(Empleado).filter(func.lower(Empleado.email) == correo).first()
+        if quien and quien.id != r.responsable_id:
+            r.responsable_id, r.responsable_email = quien.id, quien.email or ""
+            ids.append(r.id)
+    db.commit()
+    return ids
+
+
 def invalidar_segundos_del_responsable(db: Session) -> list[int]:
     """Conteos que esperan firmas cuyo segundo conteo lo registró quien cargó el conteo (antes se permitía):
     ese segundo conteo queda sin efecto y lo hacen de nuevo el Director y el área contable."""
@@ -441,6 +458,9 @@ def guardar_reporte(db: Session, user: Empleado, datos: dict, enviar: bool = Fal
         for l in list(r.lineas):
             r.lineas.remove(l)
         r.actualizado_en, r.actualizado_por_id = datetime.utcnow(), user.id
+        # El responsable (firma 1, «Cargado por») es quien carga el conteo ahora, no quien lo creó antes
+        # (ej. un conteo anulado o devuelto que vuelve a hacer otro manager del área)
+        r.responsable_id, r.responsable_email = user.id, user.email or ""
     else:
         r = ConteoReporte(area=area, anio=anio, mes=mes, responsable_id=user.id, responsable_email=user.email or "",
                           estado=BORRADOR)

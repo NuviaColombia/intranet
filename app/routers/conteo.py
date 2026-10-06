@@ -70,6 +70,9 @@ def _tablas_conteo() -> None:
         n = sc.migrar_flujo_anterior(db)
         if n:
             print(f"Conteo: {n} conteo(s) con las 3 firmas pasaron a en firme.")
+        corregidos = sc.corregir_responsables(db)  # antes que lo del segundo conteo: usa el responsable correcto
+        if corregidos:
+            print(f"Conteo: responsable corregido a quien envió el conteo en #{', #'.join(map(str, corregidos))}.")
         ids = sc.invalidar_segundos_del_responsable(db)
         if ids:
             print(f"Conteo: segundo conteo hecho por quien cargó el conteo, sin efecto en #{', #'.join(map(str, ids))}.")
