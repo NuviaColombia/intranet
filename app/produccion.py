@@ -12,7 +12,7 @@ SUBMODULOS_PRODUCCION = [
                     ("motivos", "📋 Motivos"), ("saldos", "📥 Saldos iniciales")]},
     {"slug": "consumo", "nombre": "Seguimiento de consumo", "icono": "📊",
      "descripcion": "Consumo de materias primas por técnico", "url": "/consumo", "activo": True,
-     "parametros": [("c_accesos", "👤 Accesos"), ("c_tecnicos", "👷 Técnicos"), ("c_materias", "🧪 Materias primas"),
+     "parametros": [("c_accesos", "🧑‍💼 Managers"), ("c_tecnicos", "👷 Técnicos"), ("c_materias", "🧪 Materias primas"),
                     ("c_tipos", "🔢 Tipos de producto")]},
     {"slug": "conteo", "nombre": "Conteo inventario mensual", "icono": "📋",
      "descripcion": "Conteo mensual de materiales por área y bodega", "url": "/conteo", "activo": True,

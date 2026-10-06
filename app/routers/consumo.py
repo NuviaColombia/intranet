@@ -20,6 +20,23 @@ from .. import acceso_secciones as acs
 
 router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 SUB = "consumo"
+COLUMNAS_NUEVAS = {"consumo_materias": {"medida": "VARCHAR(20) DEFAULT ''"},
+                   "consumo_jornadas": {"gotas": "FLOAT DEFAULT 0"}}
+
+
+@router.on_event("startup")
+def _columnas_consumo() -> None:
+    from sqlalchemy import inspect, text
+    from ..database import engine
+    try:
+        with engine.begin() as conn:
+            for tabla, nuevas in COLUMNAS_NUEVAS.items():
+                existentes = {c["name"] for c in inspect(engine).get_columns(tabla)}
+                for nombre, tipo in nuevas.items():
+                    if nombre not in existentes:
+                        conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {tipo}"))
+    except Exception as e:
+        print(f"Consumo: columnas nuevas ({type(e).__name__}: {e}).")
 
 
 @router.get("/consumo")
@@ -40,10 +57,10 @@ def api_datos(user: Empleado = Depends(require_submodulo(SUB)), db: Session = De
         "tecnicos": [{"id": t.id, "nombre": nombre_propio(t.empleado.nombre_completo), "area": t.area}
                      for t in sc.tecnicos_visibles(db, user)],
         "materias": [{"id": m.id, "descripcion": m.descripcion, "presentacion": m.presentacion, "contenido": m.contenido,
-                      "area": m.area, "mideArcos": bool(m.mide_arcos)} for m in sc.materias_activas(db)],
+                      "area": m.area, "mideArcos": sc.medida_de(m) == "arcos", "medida": sc.medida_de(m)} for m in sc.materias_activas(db)],
         "tipos": [{"id": str(t.id), "nombre": t.nombre} for t in sc.tipos_activos(db)],
         "areaManager": area, "esAdmin": sc.es_admin(user), "puedeEntregar": sc.puede_entregar(db, user),
-        "puedeEditar": sc.puede_entregar(db, user),
+        "puedeEditar": sc.puede_entregar(db, user) or sc.mi_tecnico(db, user) is not None,  # jornada
         "manager": nombre_propio(user.nombre_completo), "hoy": sc.hoy_colombia().isoformat(),
     }
 
@@ -122,6 +139,7 @@ def api_jornada(tecnico_id: int, fecha: str, user: Empleado = Depends(require_su
 class FilaJornadaIn(BaseModel):
     frasco_id: int
     arcos: dict = {}
+    gotas: float = 0
     consumido: bool = False
 
 
@@ -176,9 +194,9 @@ def api_exportar(desde: str = "", hasta: str = "", tecnico_id: int = 0, materia_
                     m["promedio"], m["promedioMateria"]])
     w.writerow([])
     w.writerow(["FRASCOS EN USO"])
-    w.writerow(["Técnico", "Área", "Materia prima", "Lote", "Ref", "Serie", "Fecha entrega", "Días abierto", "Arcos acumulados"])
+    w.writerow(["Técnico", "Área", "Materia prima", "Lote", "Ref", "Serie", "Fecha entrega", "Días abierto", "Acumulado", "Unidad"])
     for x in r["wip"]:
-        w.writerow([x["tecnico"], x["area"], x["materia"], x["lote"], x["ref"], x["serie"], x["fechaEntrega"], x["dias"], x["acumulado"]])
+        w.writerow([x["tecnico"], x["area"], x["materia"], x["lote"], x["ref"], x["serie"], x["fechaEntrega"], x["dias"], x["acumulado"], x["unidad"]])
     salida.seek(0)
     return StreamingResponse(iter([salida.getvalue()]), media_type="text/csv; charset=utf-8",
                              headers={"Content-Disposition": 'attachment; filename="seguimiento_consumo.csv"'})
@@ -199,12 +217,13 @@ def _texto(v: str) -> str:
 
 @router.post("/inventario/parametros/consumo/materias")
 def crear_materia(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), descripcion: str = Form(...),
-                  presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""), mide_arcos: str = Form("")):
+                  presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""), medida: str = Form("arcos")):
     if not _texto(descripcion):
         return _volver("c_materias", "No se guardó: escribe la descripción.")
+    medida = medida if medida in sc.MEDIDAS else "arcos"
     orden = db.query(ConsumoMateria).count() + 1
     db.add(ConsumoMateria(descripcion=_texto(descripcion), presentacion=_texto(presentacion), contenido=_texto(contenido),
-                          area=_texto(area), mide_arcos=bool(mide_arcos), orden=orden))
+                          area=_texto(area), medida=medida, mide_arcos=medida == "arcos", orden=orden))
     db.commit()
     return _volver("c_materias", "Materia prima agregada.")
 
@@ -212,11 +231,12 @@ def crear_materia(user: Empleado = Depends(require_admin_produccion), db: Sessio
 @router.post("/inventario/parametros/consumo/materias/{materia_id}")
 def editar_materia(materia_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
                    descripcion: str = Form(...), presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""),
-                   mide_arcos: str = Form("")):
+                   medida: str = Form("arcos")):
     m = db.get(ConsumoMateria, materia_id)
     if m and _texto(descripcion):
         m.descripcion, m.presentacion, m.contenido, m.area = _texto(descripcion), _texto(presentacion), _texto(contenido), _texto(area)
-        m.mide_arcos = bool(mide_arcos)
+        m.medida = medida if medida in sc.MEDIDAS else "arcos"
+        m.mide_arcos = m.medida == "arcos"
         db.commit()
     return _volver("c_materias", "Materia prima actualizada.")
 
@@ -325,13 +345,13 @@ def toggle_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin_produ
 
 @router.post("/inventario/parametros/consumo/accesos")
 def agregar_acceso(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
-                   empleado_id: int = Form(...), area: str = Form("")):
+                   empleado_id: int = Form(...), area: str = Form(""), secciones: list[str] = Form([])):
     """Da acceso a Seguimiento de consumo como manager de un área: crea entregas, registra y corrige jornadas y anula
-    (solo de su área). Los técnicos reciben su acceso en la pestaña Técnicos (solo consulta)."""
+    (solo de su área), en las secciones elegidas. Los técnicos reciben su acceso en la pestaña Técnicos."""
     e = db.get(Empleado, empleado_id)
     if not e or not e.activo:
         return _volver("c_accesos", "No se guardó: elige una persona de la lista.")
-    if not _texto(area):
+    if not _texto(area) and not sc.es_admin(e):
         return _volver("c_accesos", "No se guardó: elige el área del manager.")
     if MODULO_PRODUCCION not in e.modulos_lista:
         e.modulos = ",".join(e.modulos_lista + [MODULO_PRODUCCION])
@@ -346,7 +366,11 @@ def agregar_acceso(user: Empleado = Depends(require_admin_produccion), db: Sessi
     elif m:
         db.delete(m)
     db.commit()
-    return _volver("c_accesos", f"Acceso a Seguimiento de consumo dado a {nombre_propio(e.nombre_completo)}.")
+    if secciones:  # al agregar se eligen sus secciones; al cambiar el área no se tocan
+        error = acs.guardar(db, e.id, SUB, secciones, user)
+        if error:
+            return _volver("c_accesos", error)
+    return _volver("c_accesos", f"{nombre_propio(e.nombre_completo)} quedó como manager de Seguimiento de consumo.")
 
 
 @router.post("/inventario/parametros/consumo/accesos/{empleado_id}/quitar")
