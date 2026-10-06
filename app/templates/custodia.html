@@ -133,6 +133,33 @@
   .fila-totales td { background-color: var(--brand-light) !important; font-weight: 800 !important; color: var(--brand-main) !important; border-top: 1px solid var(--border-medium) !important; border-bottom: none !important;}
 
   .split-layout { display: flex; flex-direction: column; gap: 24px; }
+  /* Estado órdenes: indicadores, chips de área y tarjetas por área */
+  .eo-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .eo-kpi { background: var(--bg-surface); border: 1px solid var(--border-soft); border-left: 4px solid var(--brand-main); border-radius: 12px; padding: 10px 14px; }
+  .eo-kpi small { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+  .eo-kpi b { font-size: 22px; color: var(--brand-main); }
+  .eo-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .eo-chip { border: 1px solid var(--border-soft); background: var(--bg-surface); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 700;
+    color: var(--brand-main); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .eo-chip span { font-weight: 600; color: var(--text-muted); }
+  .eo-chip.activo { background: var(--brand-main); color: #fff; border-color: var(--brand-main); }
+  .eo-chip.activo span { color: #cbd5e1; }
+  .eo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .eo-card { border: 1px solid var(--border-soft); border-top: 4px solid var(--success); border-radius: 12px; background: var(--bg-surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; }
+  .eo-card.warning { border-top-color: var(--warning); } .eo-card.danger { border-top-color: var(--danger); }
+  .eo-card-cab { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px 4px; }
+  .eo-card-cab h5 { margin: 0; font-size: 14px; color: var(--brand-main); font-weight: 800; }
+  .eo-card-cab .tot { font-size: 20px; font-weight: 800; color: var(--brand-main); }
+  .eo-card-cab .tot small { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .eo-card-sub { font-size: 11.5px; color: var(--text-muted); padding: 0 14px 8px; border-bottom: 1px solid var(--border-soft); }
+  .eo-lista { max-height: 260px; overflow-y: auto; padding: 4px 6px 8px; }
+  .eo-fila { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; font-size: 13px; }
+  .eo-fila:hover { background: var(--brand-light); }
+  .eo-fila .ord { font-weight: 800; color: var(--brand-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .eo-fila .cant { font-weight: 800; color: var(--success); text-align: right; min-width: 52px; }
+  .eo-fila .cant.neg { color: var(--danger); }
+  .eo-fila .viaje { border: none; background: transparent; cursor: pointer; font-size: 15px; padding: 2px 4px; }
+  .eo-fila .badge { font-size: 10.5px; padding: 3px 8px; }
   .split-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); }
   .split-panel h4 { margin-top: 0; margin-bottom: 15px; color: var(--brand-main); font-size: 14px; font-weight: 800; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px;}
   .split-panel .consulta-tabla th { font-size: 11px; padding: 12px 10px; background: var(--brand-light); color: var(--text-muted); border: none; border-bottom: 1px solid var(--border-soft);}
@@ -378,8 +405,8 @@
     <!-- SECCIÓN 3: ESTADO ÓRDENES -->
     <div id="sec-activas" class="content-section">
 
-      <div class="split-panel" style="margin-bottom:24px;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:16px;">
+      <div class="split-panel" style="margin-bottom:16px; padding:14px 18px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
           <div style="flex:2; min-width:220px;">
             <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Buscar número de orden</label>
             <input type="text" id="inputOrdenActivas" placeholder="Número de orden..." oninput="filtrarTablaActivas(); filtrarTablaMatrix();"
@@ -394,13 +421,12 @@
             <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Hasta</label>
             <input type="date" id="filtroFechaHastaActivas" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none;">
           </div>
+          <div id="togglePendientesCompletadas" style="display:flex; gap:6px; align-self:center;">
+            <button type="button" class="btn mini" id="btnEstadoPendientes" onclick="setFiltroEstadoOrden('pendientes')" style="background:var(--brand-main);">Pendientes</button>
+            <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">Completadas</button>
+          </div>
           <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔍 Buscar</button>
           <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ Reporte corte</button>
-        </div>
-
-        <div id="togglePendientesCompletadas" style="display:flex; gap:8px; margin-bottom:8px;">
-          <button type="button" class="btn mini" id="btnEstadoPendientes" onclick="setFiltroEstadoOrden('pendientes')" style="background:var(--brand-main);">Pendientes</button>
-          <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">Completadas</button>
         </div>
 
         <div id="resultadoConsultaOrden" style="display:none; margin-top:16px; border-top:1px solid var(--border-soft); padding-top:16px;">
@@ -426,26 +452,11 @@
                <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:11px;" onclick="exportarActivasExcel()">📥 Excel</button>
             </div>
 
-            <div style="display:flex; gap:10px; margin-bottom: 20px;">
-              <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="padding:10px 14px; border-radius:8px; border:1px solid var(--border-soft); font-weight:700; color:var(--brand-main); outline:none; flex:1; cursor:pointer;">
-                <option value="TODAS">-- Todas las áreas --</option>
-              </select>
-            </div>
-
-            <div class="consulta-tabla-wrapper" style="max-height: 480px;">
-              <table class="consulta-tabla" id="tablaActivasFull">
-                <thead>
-                  <tr>
-                    <th style="width: 40%;">Orden</th>
-                    <th style="width: 25%;">Cant.</th>
-                    <th style="width: 35%;">Tiempo en área</th>
-                  </tr>
-                </thead>
-                <tbody id="bodyTablaActivas">
-                  <tr><td colspan="3" style="padding: 50px; color:var(--text-muted); font-size:13px; font-weight:600;">Cargando...</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <!-- el filtro por área se usa desde los chips; el select queda oculto para el resto del código -->
+            <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="display:none"><option value="TODAS">-- Todas las áreas --</option></select>
+            <div id="eoKpis" class="eo-kpis"></div>
+            <div id="eoChips" class="eo-chips"></div>
+            <div id="bodyTablaActivas" class="eo-grid"><p style="padding:40px; color:var(--text-muted); font-weight:600;">Cargando...</p></div>
           </div>
 
           <div class="split-panel">
@@ -1452,7 +1463,7 @@ function cargarEstadoOrdenes() {
     actualizarResumenOrdenActivas();
   }).catch(function(e) {
     btn.innerText = "🔍 Buscar";
-    document.getElementById("bodyTablaActivas").innerHTML = `<tr><td colspan="3" style="padding:40px; color:var(--danger);">${esc(e.message)}</td></tr>`;
+    document.getElementById("bodyTablaActivas").innerHTML = `<p style="padding:40px; color:var(--danger);">${esc(e.message)}</p>`;
   });
 }
 
@@ -1477,15 +1488,24 @@ function calcularTiempoRetencion(fIso, hIso, area) {
   return `<span class="badge badge-success">${timeStr}</span>`;
 }
 
+// Nivel de alerta del tiempo en área (mismos umbrales que calcularTiempoRetencion): 0 bien · 1 advertencia · 2 crítica
+function nivelAlerta(o) {
+  if (!o.fIso) return 0;
+  var d = new Date(o.fIso + "T" + (o.hIso || "00:00") + ":00");
+  if (isNaN(d.getTime())) return 0;
+  var hrs = (Date.now() - d.getTime()) / 3600000, u = areasAlertaGlobal[o.ubicacion] || {advertencia: 24, critica: 48};
+  return hrs > u.critica ? 2 : (hrs > u.advertencia ? 1 : 0);
+}
+
+// Ubicación actual: indicadores, chips por área y una tarjeta por área con sus órdenes
 function filtrarTablaActivas() {
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
-  var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
-  var tbody1 = document.getElementById("bodyTablaActivas");
-  tbody1.innerHTML = "";
+  var sel = document.getElementById("filtroAreaActivas"), areaBuscada = sel.value.toUpperCase();
+  var grid = document.getElementById("bodyTablaActivas");
 
-  var filtrados = ordenesActivasGlobal.filter(function(o) {
+  // Órdenes según la búsqueda y Pendientes/Completadas (antes del filtro de área: alimentan indicadores y chips)
+  var base = ordenesActivasGlobal.filter(function(o) {
     if (!o.orden.includes(textoBuscado)) return false;
-    if (areaBuscada !== "TODAS" && o.ubicacion !== areaBuscada) return false;
     if (!textoBuscado) {
       var completada = o.ubicacion === 'EMPAQUE';
       if (filtroEstadoOrdenActivas === 'completadas' && !completada) return false;
@@ -1493,47 +1513,57 @@ function filtrarTablaActivas() {
     }
     return true;
   });
+  var porArea = {};
+  base.forEach(function(o) { (porArea[o.ubicacion] = porArea[o.ubicacion] || []).push(o); });
+  var areas = Object.keys(porArea).sort(function(a, b) { return ordenAscendenteUbicacion ? a.localeCompare(b) : b.localeCompare(a); });
+  if (areaBuscada !== "TODAS" && !porArea[areaBuscada]) { areaBuscada = "TODAS"; sel.value = "TODAS"; }
+  var suma = function(lista) { return lista.reduce(function(s, o) { return s + o.cantidad; }, 0); };
 
-  filtrados.sort(function(a, b) {
-    var comp = a.ubicacion.localeCompare(b.ubicacion);
-    if (comp === 0) {
-        comp = a.orden.localeCompare(b.orden, undefined, { numeric: true, sensitivity: 'base' });
-    }
-    return ordenAscendenteUbicacion ? comp : -comp;
+  // Indicadores
+  var totalDiscos = suma(base);
+  var criticas = base.filter(function(o) { return nivelAlerta(o) === 2; }).length;
+  var advert = base.filter(function(o) { return nivelAlerta(o) === 1; }).length;
+  var negativos = base.filter(function(o) { return o.negativo || o.cantidad < 0; }).length;
+  var kpi = function(t, v, color) { return '<div class="eo-kpi" style="border-left-color:' + color + '"><small>' + t + '</small><b style="color:' + color + '">' + v + '</b></div>'; };
+  document.getElementById("eoKpis").innerHTML =
+    kpi(filtroEstadoOrdenActivas === 'completadas' ? 'Discos terminados' : 'Discos en proceso', totalDiscos.toFixed(2), 'var(--brand-main)') +
+    kpi('Órdenes', base.length, 'var(--brand-main)') + kpi('Áreas con discos', areas.length, 'var(--brand-main)') +
+    kpi('Alerta crítica', criticas, criticas ? 'var(--danger)' : 'var(--success)') +
+    kpi('En advertencia', advert, advert ? 'var(--warning)' : 'var(--success)') +
+    (negativos ? kpi('Saldos negativos', negativos, 'var(--danger)') : '');
+
+  // Chips de área (reemplazan el desplegable)
+  var chip = function(valor, texto, detalle) {
+    return '<button type="button" class="eo-chip' + (areaBuscada === valor ? ' activo' : '') + '" data-area="' + esc(valor) + '">' + esc(texto) + ' <span>' + detalle + '</span></button>';
+  };
+  document.getElementById("eoChips").innerHTML = chip('TODAS', 'Todas', totalDiscos.toFixed(2)) +
+    areas.map(function(a) { return chip(a, nombrePropio(a), suma(porArea[a]).toFixed(2)); }).join('');
+  document.querySelectorAll('#eoChips .eo-chip').forEach(function(b) {
+    b.onclick = function() { sel.value = this.dataset.area; filtrarTablaActivas(); };
   });
 
-  if(filtrados.length === 0) {
-    tbody1.innerHTML = `<tr><td colspan="3" style="padding:50px; color:var(--text-muted); font-weight:600;">No se encontraron órdenes en este corte.</td></tr>`;
-  } else {
-    // Agrupado por ubicación: una fila de encabezado por área (órdenes y total de discos) y debajo sus órdenes.
-    var resumenPorArea = {};
-    filtrados.forEach(function(o) {
-      var r = resumenPorArea[o.ubicacion] || (resumenPorArea[o.ubicacion] = {ordenes: 0, cantidad: 0});
-      r.ordenes += 1; r.cantidad += o.cantidad;
-    });
-    var areaActual = null;
-    filtrados.forEach(function(o) {
-      if (o.ubicacion !== areaActual) {
-        areaActual = o.ubicacion;
-        var r = resumenPorArea[areaActual];
-        var trGrupo = document.createElement("tr");
-        trGrupo.className = "grupo-ubicacion";
-        trGrupo.innerHTML = `<td colspan="3">📍 ${esc(nombrePropio(areaActual))}
-          <span class="grupo-detalle">${r.ordenes} ${r.ordenes === 1 ? "orden" : "órdenes"} · ${r.cantidad.toFixed(2)} discos</span></td>`;
-        tbody1.appendChild(trGrupo);
-      }
-      var tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td style="font-weight:800; color:var(--brand-main);">
-          ${esc(o.orden)}
-          <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 11px;" data-orden="${esc(o.orden)}" onclick="abrirModalTimeline(this.dataset.orden)">🛤️ Viaje</button>
-        </td>
-        <td style="font-weight:800; color:${o.negativo ? 'var(--danger)' : 'var(--success)'};"${o.negativo ? ' title="Saldo negativo: salió más de lo que entró a esta área (falta registrar o firmar un traslado)"' : ''}>${o.negativo ? '⚠️ ' : ''}${o.cantidad.toFixed(2)}</td>
-        <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
-      `;
-      tbody1.appendChild(tr);
-    });
+  // Una tarjeta por área
+  var visibles = areaBuscada === "TODAS" ? areas : [areaBuscada];
+  if (!visibles.length) {
+    grid.innerHTML = '<p style="padding:40px; color:var(--text-muted); font-weight:600; grid-column:1/-1; text-align:center;">No se encontraron órdenes en este corte.</p>';
+    return;
   }
+  grid.innerHTML = visibles.map(function(a) {
+    var lista = porArea[a].slice().sort(function(x, y) { return x.orden.localeCompare(y.orden, undefined, {numeric: true, sensitivity: 'base'}); });
+    var niveles = lista.map(nivelAlerta), peor = Math.max.apply(null, niveles);
+    var crit = niveles.filter(function(n) { return n === 2; }).length;
+    return '<div class="eo-card' + (peor === 2 ? ' danger' : (peor === 1 ? ' warning' : '')) + '">' +
+      '<div class="eo-card-cab"><h5>📍 ' + esc(nombrePropio(a)) + '</h5><div class="tot">' + suma(lista).toFixed(2) + ' <small>discos</small></div></div>' +
+      '<div class="eo-card-sub">' + lista.length + (lista.length === 1 ? ' orden' : ' órdenes') +
+        (crit ? ' · <b style="color:var(--danger)">' + crit + ' en alerta crítica</b>' : '') + '</div>' +
+      '<div class="eo-lista">' + lista.map(function(o) {
+        var neg = o.negativo || o.cantidad < 0;
+        return '<div class="eo-fila" title="Último movimiento: ' + esc(o.fechaStr) + '"><span class="ord">' + esc(o.orden) + '</span>' +
+          '<span class="cant' + (neg ? ' neg' : '') + '"' + (neg ? ' title="Saldo negativo: salió más de lo que entró (falta registrar o firmar un traslado)"' : '') + '>' +
+          (neg ? '⚠️ ' : '') + o.cantidad.toFixed(2) + '</span>' + calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion) +
+          '<button type="button" class="viaje" title="Ver el viaje de la orden" data-orden="' + esc(o.orden) + '" onclick="abrirModalTimeline(this.dataset.orden)">🛤️</button></div>';
+      }).join('') + '</div></div>';
+  }).join('');
 }
 
 function filtrarTablaMatrix() {
