@@ -733,6 +733,58 @@ def version_preapproved(db: Session, sheet_id: int) -> str | None:
     return hashlib.md5(json.dumps([preapproved_detalle(db, sheet_id), hojas], sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
+def preapproved_de_centro(db: Session, area_id: int, centro: str, areas_permitidas: set[int] | None,
+                          team_id: int | None = None) -> list[dict]:
+    """Doctores de Pre-Approved del `centro` del Schedule (para la ventana flotante del Schedule). Busca en las hojas
+    del área y de su área vinculada (N6 → N3, Face → N2). Cada encabezado de centro agrupa los `span` doctores que
+    le siguen, como en la pantalla de Pre-Approved. Coincide el nombre sin tildes ni mayúsculas (o uno contiene al otro)."""
+    area = db.get(DesignArea, area_id)
+    if not area or not (centro or "").strip():
+        return []
+    nombres = {area.nombre}
+    if area.nombre in PA_AREAS_VINCULADAS:
+        nombres.add(PA_AREAS_VINCULADAS[area.nombre])
+    ids_area = [a.id for a in db.query(DesignArea).all() if a.nombre in nombres
+                and (areas_permitidas is None or a.id in areas_permitidas)]
+    hojas = (db.query(DesignPreApprovedSheet).filter(DesignPreApprovedSheet.area_id.in_(ids_area or [-1]))
+             .order_by(DesignPreApprovedSheet.area_id != area_id, DesignPreApprovedSheet.orden, DesignPreApprovedSheet.id).all())
+    q = _normalizar_texto(centro)
+    exactos, parciales = [], []
+    for h in hojas:
+        docs, i = h.doctores, 0
+        for c in h.centros:
+            span = max(1, c.span or 1)
+            grupo = docs[i:i + span]
+            i += span
+            n = _normalizar_texto(c.nombre)
+            if not grupo or not n:
+                continue
+            if n == q or (len(q) >= 4 and (q in n or n in q)):
+                (exactos if n == q else parciales).append((h, c, grupo))
+    # Primero la hoja del equipo de la orden (misma conexión que preapproved_hoja_de: a mano o nombre = manager)
+    team = db.get(DesignTeam, team_id) if team_id else None
+    reglas = reglas_conexion(db)["pa_manager"] if team else {}
+    pm = _palabras(team.manager.nombre_completo) if team and team.manager else set()
+    def del_equipo(h):
+        if not team:
+            return False
+        if reglas.get(h.id) == team.id:
+            return True
+        pal = _palabras(_sin_prefijo_area(h.nombre))
+        return bool(pm and pal and pal <= pm)
+    out = []
+    for h, c, grupo in sorted(exactos or parciales, key=lambda x: not del_equipo(x[0])):
+        ids = [d.id for d in grupo]
+        valores: dict[int, dict[int, str]] = {}
+        for ce in (db.query(DesignPreApprovedCelda).join(DesignPreApprovedFila, DesignPreApprovedCelda.fila_id == DesignPreApprovedFila.id)
+                   .filter(DesignPreApprovedFila.sheet_id == h.id, DesignPreApprovedCelda.doctor_id.in_(ids))):
+            valores.setdefault(ce.fila_id, {})[ce.doctor_id] = ce.valor or ""
+        out.append({"sheetId": h.id, "hoja": h.nombre, "titulo": h.titulo, "changesLabel": h.changes_label, "delEquipo": del_equipo(h),
+                    "centro": c.nombre, "doctores": [d.nombre for d in grupo],
+                    "filas": [{"criterio": f.criterio, "valores": [valores.get(f.id, {}).get(d, "") for d in ids]} for f in h.filas]})
+    return out
+
+
 def version_hojas_pa(db: Session, area_id: int) -> str:
     import hashlib
     return hashlib.md5(repr([(h.id, h.nombre, h.orden) for h in preapproved_sheets(db, area_id)]).encode()).hexdigest()[:16]

@@ -1512,6 +1512,16 @@ def api_preapproved_buscar(q: str = Query("", max_length=100), area_id: int | No
     return sd.preapproved_buscar(db, q, permitidas)
 
 
+@router.get("/design/api/preapproved/centro")
+def api_preapproved_centro(area_id: int, centro: str = Query("", max_length=150), team_id: int | None = None,
+                           user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Schedule: Pre-Approved de los doctores del centro elegido en una orden (miniatura y ventana flotante).
+    Solo hojas de las áreas que la persona puede ver en Pre-Approved. `v` cambia cuando cambia algo (en vivo)."""
+    import hashlib
+    datos = sd.preapproved_de_centro(db, area_id, centro, sd.preapproved_areas_permitidas(db, user), team_id)
+    return {"hojas": datos, "v": hashlib.md5(json.dumps(datos, sort_keys=True).encode()).hexdigest()[:16]}
+
+
 @router.get("/design/api/preapproved/sheets/{sheet_id}")
 def api_preapproved_detalle(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                                   db: Session = Depends(get_db)):
