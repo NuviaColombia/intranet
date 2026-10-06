@@ -170,3 +170,37 @@ class ConteoDocumento(Base):
     workdrive_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     workdrive_error: Mapped[str | None] = mapped_column(String(300), nullable=True)
     workdrive_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class ConteoContable(Base):
+    """Existencia según la información contable, por mes, bodega y material (sin material = discos dañados).
+    La carga el área contable en Conteo › Consulta › Total del mes, para compararla con lo contado."""
+    __tablename__ = "conteo_contable"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    anio: Mapped[int] = mapped_column(Integer)
+    mes: Mapped[int] = mapped_column(Integer)
+    bodega_id: Mapped[int] = mapped_column(ForeignKey("conteo_bodegas.id"))
+    material_id: Mapped[int | None] = mapped_column(ForeignKey("conteo_materiales.id"), nullable=True)
+    cantidad: Mapped[float] = mapped_column(Float, default=0)
+    actualizado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    actualizado_por = relationship("Empleado")
+
+
+class ConteoContableSoporte(Base):
+    """Pantallazo o archivo de la información contable del mes (lo pega el área contable en Total del mes)."""
+    __tablename__ = "conteo_contable_soportes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    anio: Mapped[int] = mapped_column(Integer)
+    mes: Mapped[int] = mapped_column(Integer)
+    nombre: Mapped[str] = mapped_column(String(200), default="")
+    tipo_mime: Mapped[str] = mapped_column(String(80), default="image/png")
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    creado_por = relationship("Empleado")

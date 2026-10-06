@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db, engine
 from ..models import Empleado
 from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea,
-                             ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO)
+                             ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO, ConteoContable, ConteoContableSoporte)
 from ..models_custodia import CustodiaArea
 from ..auth import require_admin, get_current_user
 from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
@@ -41,7 +41,8 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
 @router.on_event("startup")
 def _tablas_conteo() -> None:
     from sqlalchemy import inspect, text
-    for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo):
+    for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ConteoContable,
+                   ConteoContableSoporte):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear
@@ -73,6 +74,10 @@ def _tablas_conteo() -> None:
         corregidos = sc.corregir_responsables(db)  # antes que lo del segundo conteo: usa el responsable correcto
         if corregidos:
             print(f"Conteo: responsable corregido a quien envió el conteo en #{', #'.join(map(str, corregidos))}.")
+        for t in db.query(ConteoTestigo).all():  # el área contable ya registrada también entra al submódulo
+            if t.empleado and t.empleado.activo:
+                _dar_modulo(db, t.empleado)
+        db.commit()
         ids = sc.invalidar_segundos_del_responsable(db)
         if ids:
             print(f"Conteo: segundo conteo hecho por quien cargó el conteo, sin efecto en #{', #'.join(map(str, ids))}.")
@@ -347,6 +352,7 @@ def agregar_testigo(user: Empleado = Depends(require_admin), db: Session = Depen
         return _volver("n_director", "No se guardó: elige una persona de la lista.")
     if not db.query(ConteoTestigo).filter_by(empleado_id=e.id).first():
         db.add(ConteoTestigo(empleado_id=e.id))
+    _dar_modulo(db, e)  # el área contable entra al submódulo (Pendientes por validar y Consulta)
     db.commit()
     return _volver("n_director", f"{nombre_propio(e.nombre_completo)} puede firmar como área contable (acompaña el conteo).")
 
@@ -456,6 +462,91 @@ def api_ver_evidencia(evidencia_id: int, user: Empleado = Depends(get_current_us
         _exigir(db, user, "nuevo", "reportes")
     return Response(e.datos, media_type=e.tipo_mime,
                     headers={"Content-Disposition": f'inline; filename="{e.nombre}"', "Cache-Control": "private, max-age=3600"})
+
+
+class ContableIn(BaseModel):
+    anio: int
+    mes: int
+    clave: str            # "bodega:material" o "bodega:danados"
+    cantidad: str = ""    # vacío = borrar
+
+
+@router.post("/conteo/api/contable")
+def api_contable(payload: ContableIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """El área contable carga la existencia según la información contable (Consulta › Total del mes)."""
+    _exigir(db, user, "reportes")
+    error = sc.guardar_contable(db, user, payload.anio, payload.mes, payload.clave, payload.cantidad)
+    if error:
+        raise HTTPException(403 if "Solo" in error else 400, error)
+    return {"ok": True, "contable": sc.contable_del_mes(db, payload.anio, payload.mes).get(payload.clave)}
+
+
+class ContableLoteIn(BaseModel):
+    anio: int
+    mes: int
+    valores: dict[str, str] = {}   # {"bodega:material" o "bodega:danados": cantidad (vacío = quitar)}
+
+
+@router.post("/conteo/api/contable/lote")
+def api_contable_lote(payload: ContableLoteIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """Botón «Guardar existencia contable»: guarda todas las cifras del mes de una vez."""
+    _exigir(db, user, "reportes")
+    error = sc.guardar_contable_lote(db, user, payload.anio, payload.mes, payload.valores)
+    if error:
+        raise HTTPException(403 if "Solo" in error else 400, error)
+    return {"mensaje": "✅ Existencia contable guardada.", "contable": sc.contable_del_mes(db, payload.anio, payload.mes)}
+
+
+@router.post("/conteo/api/contable/soportes")
+async def api_contable_soporte(archivo: UploadFile = File(...), anio: int = Form(...), mes: int = Form(...),
+                               user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """Pantallazo (pegado con Ctrl+V) o archivo de la información contable del mes."""
+    _exigir(db, user, "reportes")
+    datos = await archivo.read()
+    error = sc.agregar_soporte_contable(db, user, anio, mes, archivo.filename or "pantallazo.png", (archivo.content_type or "").lower(), datos)
+    if error:
+        raise HTTPException(403 if "Solo" in error else 400, error)
+    return {"soportes": sc.soportes_contables(db, anio, mes)}
+
+
+@router.get("/conteo/api/contable/soportes/{soporte_id}")
+def api_ver_soporte_contable(soporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    _exigir(db, user, "reportes")
+    x = db.get(ConteoContableSoporte, soporte_id)
+    if not x:
+        raise HTTPException(404, "Soporte no encontrado.")
+    return Response(x.datos, media_type=x.tipo_mime, headers={"Content-Disposition": f'inline; filename="{x.nombre}"'})
+
+
+class MesIn(BaseModel):
+    anio: int
+    mes: int
+
+
+@router.post("/conteo/api/contable/reabrir")
+def api_reabrir_contable(payload: MesIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """Director de Producción o administrador: reabre la existencia contable firmada para corregirla."""
+    _exigir(db, user, "reportes")
+    error = sc.reabrir_contable(db, user, payload.anio, payload.mes)
+    if error:
+        raise HTTPException(403 if "Solo" in error else 400, error)
+    return {"mensaje": "🔓 Existencia contable reabierta: el área contable puede corregirla y guardarla de nuevo."}
+
+
+@router.post("/conteo/api/contable/soportes/{soporte_id}/quitar")
+def api_quitar_soporte_contable(soporte_id: int, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    _exigir(db, user, "reportes")
+    if not sc.puede_cargar_contable(db, user):
+        raise HTTPException(403, "Solo el área contable (o un administrador) quita el soporte contable.")
+    x = db.get(ConteoContableSoporte, soporte_id)
+    if x and sc.firma_contable(db, x.anio, x.mes):
+        raise HTTPException(400, "La existencia contable de este mes ya se firmó: el soporte no se puede quitar.")
+    if x:
+        anio, mes = x.anio, x.mes
+        db.delete(x)
+        db.commit()
+        return {"soportes": sc.soportes_contables(db, anio, mes)}
+    return {"soportes": []}
 
 
 @router.get("/conteo/api/consolidado")
