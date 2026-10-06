@@ -215,6 +215,20 @@ def _texto(v: str) -> str:
     return (v or "").strip().upper()
 
 
+@router.post("/inventario/parametros/consumo/limpiar")
+def limpiar(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), confirmacion: str = Form("")):
+    """Empezar desde cero (administradores): borra entregas, frascos y jornadas; conserva los parámetros."""
+    if (confirmacion or "").strip().upper() != "BORRAR":
+        return _volver("c_accesos", "No se borró nada: escribe BORRAR para confirmar.")
+    from ..services import auditar
+    n = sc.limpiar_movimientos(db)
+    auditar(db, user.email, "Seguimiento de consumo: datos borrados (empezar desde cero)",
+            f"{n['entregas']} entregas, {n['frascos']} frascos, {n['jornadas']} jornadas")
+    db.commit()
+    return _volver("c_accesos", f"🧹 Listo: se borraron {n['entregas']} entregas, {n['frascos']} frascos y {n['jornadas']} jornadas. "
+                                "Managers, técnicos y materias primas se conservan.")
+
+
 @router.post("/inventario/parametros/consumo/materias")
 def crear_materia(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db), descripcion: str = Form(...),
                   presentacion: str = Form(""), contenido: str = Form(""), area: str = Form(""), medida: list[str] = Form([])):
