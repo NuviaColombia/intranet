@@ -195,3 +195,120 @@ def dejar_de_compartir(db: Session, doc_id: int, user: Empleado, empleado_id: in
     db.query(DesignOfficeCompartido).filter(DesignOfficeCompartido.doc_id == doc.id,
                                             DesignOfficeCompartido.empleado_id == empleado_id).delete()
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Plantillas (Word y PowerPoint): las administran los admins; todos las usan para crear documentos.
+# ---------------------------------------------------------------------------
+from .models_design import DesignOfficePlantilla  # noqa: E402
+
+ROLES_ADMIN_PLANTILLAS = ("admin", "superadmin")
+MAX_MINIATURA = 400 * 1024
+
+
+def puede_administrar_plantillas(user: Empleado) -> bool:
+    return user.rol in ROLES_ADMIN_PLANTILLAS
+
+
+def plantilla_resumen(p: DesignOfficePlantilla, con_miniatura: bool = True) -> dict:
+    d = {"id": p.id, "tipo": p.tipo, "titulo": p.titulo, "descripcion": p.descripcion or "", "version": p.version,
+         "tamano": p.tamano or 0, "orden": p.orden or 0, "creadoPor": p.creado_por, "actualizadoEn": _iso(p.actualizado_en),
+         "actualizadoPor": p.actualizado_por, "esPlantilla": True}
+    if con_miniatura:
+        d["miniatura"] = p.miniatura or ""
+    return d
+
+
+def plantillas_listar(db: Session) -> list[dict]:
+    q = (db.query(DesignOfficePlantilla).options(undefer(DesignOfficePlantilla.miniatura))
+         .order_by(DesignOfficePlantilla.tipo, DesignOfficePlantilla.orden, DesignOfficePlantilla.titulo))
+    return [plantilla_resumen(p) for p in q]
+
+
+def plantilla_obtener(db: Session, pid: int) -> DesignOfficePlantilla:
+    p = (db.query(DesignOfficePlantilla).options(undefer(DesignOfficePlantilla.contenido), undefer(DesignOfficePlantilla.ajustes),
+                                                 undefer(DesignOfficePlantilla.miniatura))
+         .filter(DesignOfficePlantilla.id == pid).first())
+    if not p:
+        raise KeyError(pid)
+    return p
+
+
+def plantilla_completa(p: DesignOfficePlantilla, user: Empleado) -> dict:
+    d = plantilla_resumen(p)
+    d["contenido"] = p.contenido or ""
+    try:
+        d["ajustes"] = json.loads(p.ajustes or "{}")
+    except ValueError:
+        d["ajustes"] = {}
+    d["permiso"] = "dueño" if puede_administrar_plantillas(user) else "ver"
+    d["propietario"] = p.creado_por
+    return d
+
+
+def plantilla_crear(db: Session, user: Empleado, tipo: str, titulo: str, descripcion: str, contenido: str,
+                    ajustes: dict | None, miniatura: str) -> DesignOfficePlantilla:
+    if not puede_administrar_plantillas(user):
+        raise SinPermiso()
+    if tipo not in TIPOS:
+        raise ValueError("Tipo de plantilla no válido.")
+    aj = json.dumps(ajustes or {}, ensure_ascii=False)
+    t = _tamano(contenido, aj)
+    if t > MAX_BYTES:
+        raise ValueError("La plantilla supera 40 MB. Reduce el tamaño de las imágenes.")
+    ahora = datetime.utcnow()
+    p = DesignOfficePlantilla(tipo=tipo, titulo=(titulo or "").strip()[:255] or "Plantilla", descripcion=(descripcion or "")[:500],
+                              contenido=contenido or "", ajustes=aj, miniatura=(miniatura or "")[:MAX_MINIATURA], version=1, tamano=t,
+                              creado_por=user.nombre_completo, creado_en=ahora, actualizado_en=ahora, actualizado_por=user.nombre_completo)
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+def plantilla_guardar(db: Session, pid: int, user: Empleado, version: int, titulo: str | None, descripcion: str | None,
+                      contenido: str | None, ajustes: dict | None, miniatura: str | None, forzar: bool = False) -> DesignOfficePlantilla:
+    if not puede_administrar_plantillas(user):
+        raise SinPermiso()
+    p = plantilla_obtener(db, pid)
+    if not forzar and version != p.version:
+        raise Conflicto(p)
+    if titulo is not None:
+        p.titulo = titulo.strip()[:255] or p.titulo
+    if descripcion is not None:
+        p.descripcion = descripcion[:500]
+    if contenido is not None:
+        p.contenido = contenido
+    if ajustes is not None:
+        p.ajustes = json.dumps(ajustes, ensure_ascii=False)
+    if miniatura is not None:
+        p.miniatura = miniatura[:MAX_MINIATURA]
+    t = _tamano(p.contenido, p.ajustes)
+    if t > MAX_BYTES:
+        db.rollback()
+        raise ValueError("La plantilla supera 40 MB. Reduce el tamaño de las imágenes.")
+    p.tamano = t
+    p.version = (p.version or 0) + 1
+    p.actualizado_en = datetime.utcnow()
+    p.actualizado_por = user.nombre_completo
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+def plantilla_eliminar(db: Session, pid: int, user: Empleado) -> None:
+    if not puede_administrar_plantillas(user):
+        raise SinPermiso()
+    db.delete(plantilla_obtener(db, pid))
+    db.commit()
+
+
+def plantilla_usar(db: Session, pid: int, user: Empleado, titulo: str | None = None) -> DesignOfficeDoc:
+    """Crea un documento de la persona a partir de la plantilla (las fechas "de hoy" siguen siendo campos)."""
+    p = plantilla_obtener(db, pid)
+    try:
+        aj = json.loads(p.ajustes or "{}")
+    except ValueError:
+        aj = {}
+    aj["plantillaId"] = p.id
+    return crear(db, user, p.tipo, (titulo or p.titulo)[:255], p.contenido, aj)

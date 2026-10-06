@@ -309,6 +309,7 @@
     {n: 'Courier New', css: '"Courier New", Cousine, monospace', pdf: 'Cousine'},
     {n: 'Garamond', css: 'Garamond, Gelasio, serif', pdf: 'Gelasio'},
     {n: 'Georgia', css: 'Georgia, Gelasio, serif', pdf: 'Gelasio'},
+    {n: 'Gill Sans MT', css: '"Gill Sans MT", "Gill Sans", Lato, sans-serif', pdf: 'Lato'},
     {n: 'Helvetica', css: 'Helvetica, Arimo, Arial, sans-serif', pdf: 'Arimo'},
     {n: 'Lato', css: 'Lato, sans-serif', pdf: 'Lato'},
     {n: 'Montserrat', css: 'Montserrat, sans-serif', pdf: 'Montserrat'},
@@ -318,6 +319,7 @@
     {n: 'Tahoma', css: 'Tahoma, Arimo, sans-serif', pdf: 'Arimo'},
     {n: 'Times New Roman', css: '"Times New Roman", Tinos, Times, serif', pdf: 'Tinos'},
     {n: 'Trebuchet MS', css: '"Trebuchet MS", "Open Sans", sans-serif', pdf: 'OpenSans'},
+    {n: 'Tw Cen MT', css: '"Tw Cen MT", Montserrat, sans-serif', pdf: 'Montserrat'},
     {n: 'Verdana', css: 'Verdana, "Open Sans", sans-serif', pdf: 'OpenSans'}
   ];
   NV.fuentePorNombre = function(n) {

@@ -303,9 +303,17 @@
     var fm = [d0.toLocaleDateString(loc), d0.toLocaleDateString(loc, {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'}), d0.toLocaleDateString(loc, {day: 'numeric', month: 'long', year: 'numeric'}),
       d0.toISOString().slice(0, 10), d0.toLocaleDateString(loc, {month: 'long', year: 'numeric'}), d0.toLocaleTimeString(loc, {hour: 'numeric', minute: '2-digit'}),
       d0.toLocaleString(loc, {dateStyle: 'short', timeStyle: 'short'})];
-    NV.dialogo({titulo: 'Fecha y hora', ancho: 380, html: '<div class="nv-campo"><label for="dfh">Formatos disponibles</label><select id="dfh" size="7" style="height:auto">' +
-      fm.map(function(f, i) { return '<option' + (i ? '' : ' selected') + '>' + esc(f) + '</option>'; }).join('') + '</select></div>',
-      botones: [{texto: 'Aceptar', prim: true, accion: function(d) { ed().focus(); ed().insertContent(esc(v(d, 'dfh'))); cambio(); return true; }}, {texto: 'Cancelar', valor: null}]});
+    var F = NV.fechas.FORMATOS;  // formatos que se pueden actualizar solos; la hora queda fija
+    NV.dialogo({titulo: 'Fecha y hora', ancho: 420, html: '<div class="nv-campo"><label for="dfh">Formatos disponibles</label><select id="dfh" size="9" style="height:auto">' +
+      F.map(function(f, i) { return '<option value="f' + i + '"' + (i ? '' : ' selected') + '>' + esc(NV.fechas.formatear(f)) + '</option>'; }).join('') +
+      '<option value="h">' + esc(fm[5]) + '</option><option value="fh">' + esc(fm[6]) + '</option></select></div>' +
+      '<label class="nv-chk"><input type="checkbox" id="dfhA" checked> Actualizar automáticamente (siempre la fecha del día)</label>',
+      botones: [{texto: 'Aceptar', prim: true, accion: function(d) {
+        var val = v(d, 'dfh'), html;
+        if (/^f\d+$/.test(val)) { var f = F[+val.slice(1)]; html = v(d, 'dfhA') ? NV.fechas.span(f).replace('<span ', '<span contenteditable="false" ') : esc(NV.fechas.formatear(f)); }
+        else html = esc(val === 'h' ? fm[5] : fm[6]);
+        ed().focus(); ed().insertContent(html + '&nbsp;'); cambio(); return true;
+      }}, {texto: 'Cancelar', valor: null}]});
   };
   D.lineaFirma = function() {
     NV.dialogo({titulo: 'Configuración de firma', ancho: 420, html:
@@ -382,7 +390,7 @@
       NV.$$('input[data-v]', d).forEach(function(i) { var p = i.dataset.v.split(','); g.series[+p[1]].valores[+p[0]] = parseFloat(String(i.value).replace(',', '.')) || 0; });
       g.tipo = v(d, 'dgrTipo'); g.titulo = v(d, 'dgrTit');
     };
-    NV.dialogo({titulo: editar ? 'Editar gráfico' : 'Insertar gráfico', ancho: 820, html:
+    return NV.dialogo({titulo: editar ? 'Editar gráfico' : 'Insertar gráfico', ancho: 820, html:
       '<div class="nv-filas2"><div class="nv-campo"><label for="dgrTipo">Tipo</label><select id="dgrTipo">' + opts([['columnas', 'Columnas agrupadas'], ['barras', 'Barras agrupadas'], ['lineas', 'Líneas con marcadores'], ['circular', 'Circular']], g.tipo) + '</select></div>' +
       '<div class="nv-campo"><label for="dgrTit">Título del gráfico</label><input type="text" id="dgrTit" value="' + esc(g.titulo) + '"></div></div>' +
       '<div style="display:flex;gap:16px;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;margin-bottom:4px">Datos</div><div id="dgrDatos" style="max-height:260px;overflow:auto">' + tabla() + '</div>' +

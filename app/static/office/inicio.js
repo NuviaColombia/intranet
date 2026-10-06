@@ -2,17 +2,35 @@
    y herramientas PDF (imágenes → PDF, documentos → PDF, PDF → documento editable, unir PDF). */
 (function() {
   'use strict';
-  var NV = window.NV, W = NV.word, esc = NV.esc, I = NV.icono;
+  var NV = window.NV, W = NV.word, P = NV.ppt, esc = NV.esc, I = NV.icono;
   NV.vistaActual = 'inicio';
   NV.mostrarVista = function(v) {
     NV.vistaActual = v;
     NV.$('#nvVistaInicio').classList.toggle('nv-oculto', v !== 'inicio');
     NV.$('#nvVistaWord').classList.toggle('nv-oculto', v !== 'word');
+    NV.$('#nvVistaPpt').classList.toggle('nv-oculto', v !== 'ppt');
+    document.body.classList.toggle('nv-ppt', v === 'ppt');
     if (v === 'word' && W.cinta) setTimeout(W.cinta.posicionar, 0);
+    if (v === 'ppt' && P.posicionar) setTimeout(function() { P.posicionar(); P.ajustarZoom(); }, 0);
+  };
+  // App y documento abiertos (Word o PowerPoint)
+  var esPpt = function() { return NV.vistaActual === 'ppt'; };
+  var docAct = function() { return esPpt() ? P.doc : W.doc; };
+  var guardarAct = function() { return esPpt() ? P.guardar() : W.guardar(); };
+  NV.docActual = docAct;
+  NV.abrirDocumento = function(d) { return d.tipo === 'ppt' ? P.abrir(d) : W.abrir(d); };
+  NV.nuevaPresentacion = function(temaId) {
+    NV.cargando('Creando presentación…');
+    var pres = P.nueva(temaId || 'office');
+    return NV.api('/design/api/office/docs', {json: {tipo: 'ppt', titulo: 'Presentación ' + new Date().toLocaleDateString('es-CO'), contenido: JSON.stringify(pres), ajustes: {tipo: 'ppt'}}})
+      .then(function(d) { NV.cargando(false); NV.backstage.cerrar(); return P.abrir(d); }).catch(function(e) { NV.cargando(false); NV.toast(e.message, true); });
+  };
+  NV.crearPresentacionDesde = function(titulo, pres) {
+    return NV.api('/design/api/office/docs', {json: {tipo: 'ppt', titulo: titulo, contenido: JSON.stringify(pres), ajustes: {tipo: 'ppt'}}}).then(function(d) { return P.abrir(d); });
   };
 
   // ---------- Plantillas ----------
-  var hoy = function() { return new Date().toLocaleDateString('es-CO', {day: 'numeric', month: 'long', year: 'numeric'}); };
+  var hoy = function() { return NV.fechas.span('{d} de {mes} de {aaaa}'); };  // campo "Fecha de hoy": siempre la fecha del día
   var PLANTILLAS = [
     {id: 'blanco', n: 'Documento en blanco', html: '<p><br></p>'},
     {id: 'carta', n: 'Carta formal', html: function() {
@@ -76,7 +94,14 @@
   NV.abrirDesdePC = function(f) {
     var ext = NV.extension(f.name), titulo = NV.sinExtension(f.name);
     if (ext === 'doc') { NV.alerta('Formato antiguo', 'Los archivos .doc (Word 97-2003) no se pueden abrir. Ábrelo en Word y guárdalo como .docx, o expórtalo a PDF.'); return Promise.resolve(); }
-    if (ext === 'pptx' || ext === 'ppt') { NV.alerta('Presentaciones', 'Las presentaciones de PowerPoint llegan en la fase 2 de Nuvia Office.'); return Promise.resolve(); }
+    if (ext === 'ppt' || ext === 'pps') { NV.alerta('Formato antiguo', 'Los archivos .ppt (PowerPoint 97-2003) no se pueden abrir. Ábrelo en PowerPoint y guárdalo como .pptx.'); return Promise.resolve(); }
+    if (/^(pptx|potx|ppsx|pptm)$/.test(ext)) {
+      NV.cargando('Abriendo ' + f.name + '…');
+      return NV.leerArchivo(f).then(function(b) { return P.pptx.importar(b, function(x, t) { NV.cargando('Leyendo presentación… ' + t, x); }); })
+        .then(function(pres) { NV.cargando('Guardando en Nuvia Office…'); return NV.crearPresentacionDesde(titulo, pres); })
+        .then(function() { NV.cargando(false); NV.backstage.cerrar(); })
+        .catch(function(e) { NV.cargando(false); NV.toast('No se pudo abrir la presentación: ' + (e.message || e), true); });
+    }
     NV.cargando('Abriendo ' + f.name + '…');
     var p;
     if (ext === 'docx' || ext === 'docm' || ext === 'dotx') p = NV.leerArchivo(f).then(function(b) { return NV.docx.importar(b); });
@@ -84,12 +109,12 @@
     else if (ext === 'txt' || ext === 'csv' || ext === 'md') p = NV.leerArchivo(f, 'texto').then(function(t) { return {html: t.split(/\r?\n/).map(function(l) { return '<p>' + (esc(l) || '<br>') + '</p>'; }).join('')}; });
     else if (ext === 'html' || ext === 'htm') p = NV.leerArchivo(f, 'texto').then(function(t) { var d = new DOMParser().parseFromString(t, 'text/html'); NV.$$('script,style,link,meta', d).forEach(function(x) { x.remove(); }); return {html: d.body.innerHTML}; });
     else if (/^(png|jpe?g|gif|webp|bmp)$/.test(ext)) p = NV.imagenADataUrl(f).then(function(u) { return {html: '<p style="text-align:center"><img src="' + u + '" alt="' + esc(titulo) + '" style="max-width:100%"></p><p><br></p>'}; });
-    else { NV.cargando(false); NV.toast('Formato no compatible. Abre archivos .docx, .pdf, .txt, .html o imágenes.', true); return Promise.resolve(); }
+    else { NV.cargando(false); NV.toast('Formato no compatible. Abre archivos .docx, .pptx, .pdf, .txt, .html o imágenes.', true); return Promise.resolve(); }
     return p.then(function(r) { NV.cargando('Guardando en Nuvia Office…'); return NV.crearDesdeHtml(titulo, r.html, r.ajustes); })
       .then(function() { NV.cargando(false); NV.backstage.cerrar(); })
       .catch(function(e) { NV.cargando(false); NV.toast(e.message || String(e), true); });
   };
-  var ACEPTA = '.docx,.docm,.dotx,.pdf,.txt,.csv,.md,.html,.htm,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.pptx';
+  var ACEPTA = '.docx,.docm,.dotx,.pptx,.potx,.ppsx,.pdf,.txt,.csv,.md,.html,.htm,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.ppt';
 
   // ---------- Lista de archivos ----------
   var listaCache = null;
@@ -118,9 +143,9 @@
     cont.onkeydown = function(e) { if (e.key === 'Enter' && e.target.matches('tr.doc')) e.target.click(); };
   }
   function abrirDoc(d) {
-    if (d.tipo === 'ppt') { NV.alerta('Presentaciones', 'Nuvia PowerPoint llega en la fase 2.'); return; }
-    if (W.doc && W.doc.id === d.id && NV.vistaActual === 'word') { NV.backstage.cerrar(); return; }
-    var antes = W.doc && !W.est.guardado ? W.guardar() : Promise.resolve();
+    var act = docAct();
+    if (act && act.id === d.id && !act.esPlantilla) { NV.backstage.cerrar(); return; }
+    var antes = (W.doc && !W.est.guardado ? W.guardar() : Promise.resolve()).then(function() { return P.doc && !P.est.guardado ? P.guardar() : null; });
     antes.then(function() { W.abrirPorId(d.id); });
   }
   function menuDoc(b, d, modo, refrescar) {
@@ -136,6 +161,7 @@
       {texto: 'Abrir', icono: 'open', accion: function() { NV.backstage.cerrar(); abrirDoc(d); }},
       {texto: 'Abrir en una ventana nueva', icono: 'window_new', accion: function() { window.open('/design/office?doc=' + d.id, '_blank'); }},
       {sep: true},
+      d.tipo === 'ppt' ? {texto: 'Descargar como PowerPoint (.pptx)', icono: 'arrow_download', accion: function() { descargarDocId(d.id, 'pptx'); }} :
       {texto: 'Descargar como Word (.docx)', icono: 'arrow_download', accion: function() { descargarDocId(d.id, 'docx'); }},
       {texto: 'Descargar como PDF', icono: 'document_pdf', accion: function() { descargarDocId(d.id, 'pdf'); }},
       {sep: true},
@@ -143,7 +169,7 @@
         NV.preguntar('Cambiar nombre', 'Nombre del documento:', d.titulo).then(function(t) {
           t = (t || '').trim(); if (!t || t === d.titulo) return;
           NV.api('/design/api/office/docs/' + d.id).then(function(full) { return NV.api('/design/api/office/docs/' + d.id, {json: {version: full.version, titulo: t}}); })
-            .then(function() { if (W.doc && W.doc.id === d.id) { W.doc.titulo = t; NV.$('#nvDocTitulo').textContent = t; W.doc.version++; } refrescar(); }).catch(function(e) { NV.toast(e.message, true); });
+            .then(function() { if (W.doc && W.doc.id === d.id) { W.doc.titulo = t; NV.$('#nvDocTitulo').textContent = t; W.doc.version++; } if (P.doc && P.doc.id === d.id) { P.doc.titulo = t; NV.$('#nvpTitulo').textContent = t; P.doc.version++; } refrescar(); }).catch(function(e) { NV.toast(e.message, true); });
         });
       }} : null,
       {texto: 'Hacer una copia', icono: 'copy', accion: function() { NV.api('/design/api/office/docs/' + d.id + '/duplicar', {json: {}}).then(function() { NV.toast('Copia creada.'); refrescar(); }).catch(function(e) { NV.toast(e.message, true); }); }},
@@ -152,7 +178,7 @@
       modo === 'mios' ? {texto: 'Eliminar', icono: 'delete', accion: function() {
         NV.api('/design/api/office/docs/' + d.id + '/eliminar', {json: {}}).then(function() {
           NV.toast('"' + d.titulo + '" se movió a Eliminados (puedes restaurarlo).');
-          if (W.doc && W.doc.id === d.id) { W.doc = null; NV.mostrarVista('inicio'); NV.inicio.mostrar(); }
+          if ((W.doc && W.doc.id === d.id) || (P.doc && P.doc.id === d.id)) { W.doc = null; P.doc = null; NV.inicio.mostrar(); }
           refrescar();
         }).catch(function(e) { NV.toast(e.message, true); });
       }} : null];
@@ -161,6 +187,7 @@
   function descargarDocId(id, fmt) {
     NV.cargando('Preparando descarga…');
     NV.api('/design/api/office/docs/' + id).then(function(d) {
+      if (d.tipo === 'ppt') return descargarPres(JSON.parse(d.contenido || 'null') || P.nueva(), d.titulo, d.propietario, fmt);
       var aj = Object.assign(W.ajustesPredeterminados(), d.ajustes || {});
       if (aj.temaPersonalizado) W.TEMAS.personalizado = aj.temaPersonalizado;
       return fmt === 'pdf' ? NV.pdf.exportarDoc(d.contenido, aj, d.titulo, d.propietario).then(function(b) { NV.descargar(b, NV.nombreArchivo(d.titulo, 'pdf')); })
@@ -168,8 +195,25 @@
     }).then(function() { NV.cargando(false); }).catch(function(e) { NV.cargando(false); NV.toast('No se pudo descargar: ' + e.message, true); });
   }
 
+  // Presentación → .pptx / .pdf / .png (P.pres se cambia un momento si no es la abierta)
+  function descargarPres(pres, titulo, autor, fmt) {
+    if (fmt === 'pptx') return P.pptx.exportar(pres, titulo, autor).then(function(b) { NV.descargar(b, NV.nombreArchivo(titulo, 'pptx')); });
+    var antes = P.pres; P.pres = pres;
+    var hecho = function() { P.pres = antes; };
+    var pr = fmt === 'png' ? P.show.imagen(P.est.actual).then(function(b) { NV.descargar(b, NV.nombreArchivo(titulo + ' - diapositiva ' + (P.est.actual + 1), 'png')); })
+      : P.show.pdf(function(x, t) { NV.cargando('Creando PDF… ' + t, x); }).then(function(b) { NV.descargar(b, NV.nombreArchivo(titulo, 'pdf')); });
+    return pr.then(hecho, function(e) { hecho(); throw e; });
+  }
+  NV.descargarPres = descargarPres;
+
   // ---------- Descargar el documento abierto ----------
   NV.descargarActual = function(fmt) {
+    if (esPpt()) {
+      if (!P.doc) return Promise.resolve();
+      NV.cargando(fmt === 'pptx' ? 'Creando presentación de PowerPoint…' : 'Preparando…');
+      return descargarPres(P.pres, P.doc.titulo, (NV.usuario || {}).nombre, fmt).then(function() { NV.cargando(false); NV.toast('Descarga lista.'); })
+        .catch(function(e) { NV.cargando(false); NV.toast('No se pudo crear el archivo: ' + (e.message || e), true); });
+    }
     if (!W.doc) return;
     var html = W.contenidoLimpio(), aj = W.aj, t = W.doc.titulo, autor = (NV.usuario || {}).nombre;
     if (fmt === 'html') {
@@ -189,7 +233,7 @@
 
   // ---------- Compartir ----------
   NV.compartir = function(id) {
-    id = id || (W.doc && W.doc.id);
+    id = id || (docAct() && !docAct().esPlantilla && docAct().id);
     if (!id) return;
     Promise.all([NV.api('/design/api/office/docs/' + id), NV.api('/design/api/office/personas')]).then(function(r) {
       var d = r[0], personas = r[1];
@@ -218,10 +262,11 @@
   function vistaImpresion(cont) {
     cont.innerHTML = '<div style="display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap"><div style="width:260px"><h1 style="margin-bottom:14px">Imprimir</h1>' +
       '<button type="button" class="nv-btn prim" id="nbImp" style="height:60px;width:110px;flex-direction:column;justify-content:center">' + I('print', 'g') + 'Imprimir</button>' +
-      '<p style="font-size:13px;color:#605e5c;line-height:1.5;margin-top:18px">Se imprime exactamente como el PDF: páginas, encabezado, pie y números de página. En la ventana de impresión puedes elegir la impresora, las copias y las páginas.</p>' +
+      '<p style="font-size:13px;color:#605e5c;line-height:1.5;margin-top:18px">' + (esPpt() ? 'Se imprime una diapositiva por página, igual que el PDF.' : 'Se imprime exactamente como el PDF: páginas, encabezado, pie y números de página.') + ' En la ventana de impresión puedes elegir la impresora, las copias y las páginas.</p>' +
       '<button type="button" class="nv-btn" id="nbImpPdf">' + I('document_pdf', 'p') + 'Descargar el PDF</button></div>' +
       '<div style="flex:1;min-width:320px;height:calc(100vh - 110px);background:#e8e6e4;border-radius:6px;display:flex;align-items:center;justify-content:center" id="nbVista"><div class="nv-spin"></div></div></div>';
-    NV.pdf.exportarDoc(W.contenidoLimpio(), W.aj, W.doc.titulo, (NV.usuario || {}).nombre).then(function(b) {
+    var tituloAct = docAct().titulo;
+    (esPpt() ? P.show.pdf() : NV.pdf.exportarDoc(W.contenidoLimpio(), W.aj, W.doc.titulo, (NV.usuario || {}).nombre)).then(function(b) {
       if (urlVista) URL.revokeObjectURL(urlVista);
       urlVista = URL.createObjectURL(b);
       var v = cont.querySelector('#nbVista'); if (!v) return;
@@ -230,14 +275,14 @@
         var f = cont.querySelector('#nbFrame');
         try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(urlVista, '_blank'); }
       };
-      cont.querySelector('#nbImpPdf').onclick = function() { NV.descargar(b, NV.nombreArchivo(W.doc.titulo, 'pdf')); };
+      cont.querySelector('#nbImpPdf').onclick = function() { NV.descargar(b, NV.nombreArchivo(tituloAct, 'pdf')); };
     }).catch(function(e) { var v = cont.querySelector('#nbVista'); if (v) v.innerHTML = '<p style="padding:20px">No se pudo preparar la vista previa: ' + esc(e.message) + '</p>'; });
   }
 
   // ---------- Herramientas PDF ----------
   var HERR = [
     {id: 'img2pdf', n: 'Imágenes a PDF', d: 'Convierte fotos PNG, JPG y otros formatos en un PDF, una imagen por página.', ic: 'image', c: '#0f7b0f'},
-    {id: 'doc2pdf', n: 'Documento a PDF', d: 'Convierte archivos de Word (.docx), texto o HTML en PDF.', ic: 'document_pdf', c: '#c50f1f'},
+    {id: 'doc2pdf', n: 'Documento a PDF', d: 'Convierte archivos de Word (.docx), PowerPoint (.pptx), texto o HTML en PDF.', ic: 'document_pdf', c: '#c50f1f'},
     {id: 'pdf2doc', n: 'PDF a documento editable', d: 'Convierte un PDF en un documento de Nuvia Word para editarlo o guardarlo como .docx.', ic: 'document_edit', c: '#185abd'},
     {id: 'unirpdf', n: 'Unir PDF', d: 'Combina varios PDF en uno solo, en el orden que elijas.', ic: 'document_multiple', c: '#8764b8'}
   ];
@@ -309,15 +354,15 @@
     return Promise.reject(new Error('"' + f.name + '" no es un documento compatible (.docx, .txt, .html).'));
   }
   function documentoAPdf() {
-    var mios = (listaCache && listaCache.mios || []).filter(function(d) { return d.tipo === 'word'; });
-    var html = '<div class="nv-arrastre" tabindex="0" role="button">' + I('document_arrow_up', 'g') + '<br>Arrastra aquí los documentos o <b>haz clic para elegirlos</b><br><small>Word (.docx), texto (.txt) o HTML</small></div>' +
+    var mios = (listaCache && listaCache.mios || []);
+    var html = '<div class="nv-arrastre" tabindex="0" role="button">' + I('document_arrow_up', 'g') + '<br>Arrastra aquí los documentos o <b>haz clic para elegirlos</b><br><small>Word (.docx), PowerPoint (.pptx), texto (.txt) o HTML</small></div>' +
       '<div class="nv-imgs"></div><div class="nv-cuenta" style="font-size:12.5px;color:#605e5c;margin-bottom:10px"></div>' +
       (mios.length ? '<div class="nv-campo"><label for="dpMio">O un documento de Nuvia Office</label><select id="dpMio"><option value="">—</option>' + mios.map(function(d) { return '<option value="' + d.id + '">' + esc(d.titulo) + '</option>'; }).join('') + '</select></div>' : '') +
       '<label class="nv-chk"><input type="checkbox" id="dpUnir"> Unir todo en un solo PDF</label>';
     var z;
     NV.dialogo({titulo: 'Documento a PDF', html: html, ancho: 620, alAbrir: function(d) {
-      d.dataset.accept = '.docx,.docm,.dotx,.txt,.csv,.md,.html,.htm';
-      z = zonaArchivos(d, /\.(docx|docm|dotx|txt|csv|md|html?)$/i, true, function(a) { return '<div style="height:94px;display:grid;place-items:center;color:#185abd">' + I('document', 'g') + '</div>'; });
+      d.dataset.accept = '.docx,.docm,.dotx,.pptx,.potx,.txt,.csv,.md,.html,.htm';
+      z = zonaArchivos(d, /\.(docx|docm|dotx|pptx|potx|txt|csv|md|html?)$/i, true, function(a) { return '<div style="height:94px;display:grid;place-items:center;color:#185abd">' + I('document', 'g') + '</div>'; });
     }, botones: [{texto: 'Convertir y descargar', prim: true, accion: function(d) {
       var fs = z.archivos(), mio = d.querySelector('#dpMio') ? d.querySelector('#dpMio').value : '';
       if (!fs.length && !mio) { NV.toast('Elige al menos un documento.', true); return false; }
@@ -325,9 +370,18 @@
       var paso = function(n) { k++; NV.cargando('Convirtiendo ' + n + '…', k / total); };
       var cadena = Promise.resolve();
       if (mio) cadena = cadena.then(function() {
-        return NV.api('/design/api/office/docs/' + mio).then(function(doc) { paso(doc.titulo); var aj = Object.assign(W.ajustesPredeterminados(), doc.ajustes || {}); return NV.pdf.exportarDoc(doc.contenido, aj, doc.titulo).then(function(b) { blobs.push(b); nombres.push(doc.titulo); }); });
+        return NV.api('/design/api/office/docs/' + mio).then(function(doc) {
+          paso(doc.titulo);
+          if (doc.tipo === 'ppt') return pdfDePres(JSON.parse(doc.contenido)).then(function(b) { blobs.push(b); nombres.push(doc.titulo); });
+          var aj = Object.assign(W.ajustesPredeterminados(), doc.ajustes || {}); return NV.pdf.exportarDoc(doc.contenido, aj, doc.titulo).then(function(b) { blobs.push(b); nombres.push(doc.titulo); });
+        });
       });
       fs.forEach(function(f) {
+        if (/\.(pptx|potx)$/i.test(f.name)) {
+          cadena = cadena.then(function() { paso(f.name); return NV.leerArchivo(f); }).then(function(b) { return P.pptx.importar(b); }).then(function(pres) { return pdfDePres(pres); })
+            .then(function(b) { blobs.push(b); nombres.push(NV.sinExtension(f.name)); });
+          return;
+        }
         cadena = cadena.then(function() { paso(f.name); return convertirAHtml(f); }).then(function(r) {
           var aj = Object.assign(W.ajustesPredeterminados(), r.ajustes || {});
           return NV.pdf.exportarDoc(r.html, aj, NV.sinExtension(f.name)).then(function(b) { blobs.push(b); nombres.push(NV.sinExtension(f.name)); });
@@ -338,6 +392,10 @@
         blobs.forEach(function(b, i) { setTimeout(function() { NV.descargar(b, NV.nombreArchivo(nombres[i], 'pdf')); }, i * 400); });
       }).then(function() { NV.cargando(false); NV.toast(blobs.length + ' PDF listo' + (blobs.length === 1 ? '' : 's') + '.'); return true; }, function(e) { NV.cargando(false); throw e; });
     }}, {texto: 'Cancelar', valor: null}]});
+  }
+  function pdfDePres(pres) {
+    var antes = P.pres; P.pres = pres;
+    return P.show.pdf().then(function(b) { P.pres = antes; return b; }, function(e) { P.pres = antes; throw e; });
   }
   function pdfADocumento() {
     var html = '<div class="nv-arrastre" tabindex="0" role="button">' + I('document_pdf', 'g') + '<br>Arrastra aquí el PDF o <b>haz clic para elegirlo</b></div><div class="nv-imgs"></div><div class="nv-cuenta" style="font-size:12.5px;color:#605e5c;margin-bottom:10px"></div>' +
@@ -397,10 +455,21 @@
     };
     pintarInicio(seccion || 'inicio');
   };
+  var TEMAS_NUEVOS = ['office', 'faceta', 'ion', 'integral', 'nuvia', 'noche', 'retrospectiva', 'minimal'];
   function seccionNuevo(soloWord) {
-    return '<div class="nv-plantillas">' + PLANTILLAS.map(function(p) {
+    var docs = '<div class="nv-plantillas">' + PLANTILLAS.map(function(p) {
       return '<button type="button" class="nv-plantilla" data-plantilla="' + p.id + '"><div class="hoja">' + (p.id === 'blanco' ? '' : miniPlantilla(p)) + '</div><div class="nom">' + esc(p.n) + '</div></button>';
-    }).join('') + (soloWord ? '' : '<button type="button" class="nv-plantilla ancha" data-plantilla="ppt" title="Disponible en la fase 2"><div class="hoja" style="background:#fbeee9;color:#c43e1c;font-weight:600">Presentación en blanco<br><small style="font-weight:400">(fase 2)</small></div><div class="nom">Presentación en blanco</div></button>') + '</div>';
+    }).join('') + '</div>';
+    if (soloWord) return docs;
+    var pres = '<h3 class="nv-sub-nuevo">Presentaciones</h3><div class="nv-plantillas">' + TEMAS_NUEVOS.map(function(k, i) {
+      var t = P.TEMAS[k], bg = P.fondoCss(t.fondo, {tema: t}), claro = t.claroSobreOscuro;
+      return '<button type="button" class="nv-plantilla ancha" data-plantilla="ppt:' + k + '" title="' + (i ? 'Tema ' + esc(t.n) : 'Presentación en blanco') + '"><div class="hoja" style="background:' + bg + ';flex-direction:column;gap:6px;padding:10px;position:relative">' +
+        (k === 'faceta' ? '<i style="position:absolute;left:0;top:0;bottom:0;width:10px;background:' + t.c.a[0] + '"></i>' : '') + (k === 'nuvia' ? '<i style="position:absolute;left:0;right:0;bottom:0;height:5px;background:' + t.c.a[0] + '"></i>' : '') +
+        '<span style="font:600 17px ' + NV.cssFuente(t.titulos).replace(/"/g, "'") + ';color:' + (claro ? '#fff' : '#262626') + '">' + (i ? esc(t.n) : 'Presentación') + '</span>' +
+        '<span style="display:flex;gap:3px">' + t.c.a.slice(0, 5).map(function(c) { return '<i style="display:block;width:14px;height:5px;background:' + c + '"></i>'; }).join('') + '</span></div>' +
+        '<div class="nom">' + (i ? esc(t.n) : 'Presentación en blanco') + '</div></button>';
+    }).join('') + '</div>';
+    return '<h3 class="nv-sub-nuevo">Documentos</h3>' + docs + pres + '<h3 class="nv-sub-nuevo">Plantillas de la organización</h3><div class="nv-gal-org"></div>';
   }
   function pintarInicio(s) {
     var c = NV.$('#nvInicioC'), u = NV.usuario || {};
@@ -434,18 +503,23 @@
   }
   function conectarPlantillas(c) {
     NV.$$('[data-plantilla]', c).forEach(function(b) {
-      b.onclick = function() { if (b.dataset.plantilla === 'ppt') { NV.alerta('Presentaciones', 'Nuvia PowerPoint llega en la fase 2 de Nuvia Office.'); return; } NV.backstage.cerrar(); NV.nuevoDocumento(b.dataset.plantilla); };
+      b.onclick = function() {
+        var v = b.dataset.plantilla, antes = (W.doc && !W.est.guardado ? W.guardar() : Promise.resolve()).then(function() { return P.doc && !P.est.guardado ? P.guardar() : null; });
+        antes.then(function() { NV.backstage.cerrar(); if (/^ppt:/.test(v)) NV.nuevaPresentacion(v.slice(4)); else NV.nuevoDocumento(v); });
+      };
     });
+    var g = c.querySelector('.nv-gal-org'); if (g && NV.plantillas) NV.plantillas.galeria(g);
   }
   function conectarHerr(c) { NV.$$('[data-herr]', c).forEach(function(b) { b.onclick = function() { NV.herramienta(b.dataset.herr); }; }); }
 
   // ---------- Menú Archivo (backstage) ----------
   NV.backstage = {};
   NV.backstage.abrir = function(seccion) {
-    if (!W.doc) { NV.inicio.mostrar(); return; }
-    W.guardar();
+    if (!docAct()) { NV.inicio.mostrar(); return; }
+    guardarAct();
+    var doc0 = docAct(), plantilla = !!doc0.esPlantilla;
     var bs = document.createElement('div'); bs.className = 'nv-backstage'; bs.id = 'nvBackstage'; bs.setAttribute('role', 'dialog'); bs.setAttribute('aria-label', 'Archivo');
-    var dueno = W.doc.permiso === 'dueño';
+    var dueno = doc0.permiso === 'dueño' && !plantilla;
     bs.innerHTML = '<nav class="nv-bs-nav"><button type="button" class="volver" data-s="cerrar" title="Volver al documento (Esc)">' + I('arrow_left') + '<span>Volver</span></button>' +
       '<button type="button" data-s="inicio">' + I('home') + '<span>Inicio</span></button><button type="button" data-s="nuevo">' + I('document_add') + '<span>Nuevo</span></button>' +
       '<button type="button" data-s="abrir">' + I('folder_open') + '<span>Abrir</span></button><div class="sep"></div>' +
@@ -456,6 +530,7 @@
       '<button type="button" data-s="imprimir">' + I('print') + '<span>Imprimir</span></button>' +
       (dueno ? '<button type="button" data-s="compartir">' + I('share') + '<span>Compartir</span></button>' : '') +
       '<button type="button" data-s="pdf">' + I('wrench') + '<span>Herramientas PDF</span></button>' +
+      (NV.usuario && NV.usuario.adminPlantillas && !plantilla ? '<button type="button" data-s="plantilla">' + I('document_one_page') + '<span>Guardar como plantilla</span></button>' : '') +
       '<div class="sep"></div><button type="button" data-s="salir" class="abajo">' + I('dismiss') + '<span>Cerrar</span></button></nav><div class="nv-bs-c" id="nvBsC"></div>';
     document.body.appendChild(bs);
     var tecla = function(e) { if (e.key === 'Escape' && !document.querySelector('.nv-fondo-dlg')) { e.preventDefault(); NV.backstage.cerrar(); } };
@@ -467,13 +542,15 @@
   NV.backstage.cerrar = function() {
     var bs = NV.$('#nvBackstage'); if (!bs) return;
     document.removeEventListener('keydown', bs._tecla); bs.remove();
+    if (esPpt()) { P.pintarEscena && P.pintarEscena(); return; }
     if (W.ed()) { W.ed().focus(); W.paginar(); }
   };
   function ir(s) {
     var c = NV.$('#nvBsC'); if (!c) return;
     NV.$$('#nvBackstage nav button').forEach(function(b) { b.classList.toggle('on', b.dataset.s === s); });
     if (s === 'cerrar') { NV.backstage.cerrar(); return; }
-    if (s === 'salir') { W.guardar().then(function() { NV.backstage.cerrar(); W.doc = null; NV.inicio.mostrar(); }); return; }
+    if (s === 'salir') { guardarAct().then(function() { NV.backstage.cerrar(); W.doc = null; P.doc = null; NV.inicio.mostrar(); }); return; }
+    if (s === 'plantilla') { NV.plantillas.guardarComo(); return; }
     if (s === 'compartir') { NV.compartir(); return; }
     if (s === 'pdf') { c.innerHTML = '<h1>Herramientas PDF</h1>' + herramientasHtml(); conectarHerr(c); return; }
     if (s === 'nuevo') { c.innerHTML = '<h1>Nuevo</h1>' + seccionNuevo(); conectarPlantillas(c); return; }
@@ -485,28 +562,43 @@
       conectarLista(c); return;
     }
     if (s === 'copia') {
-      c.innerHTML = '<h1>Guardar una copia</h1><div class="nv-campo" style="max-width:420px"><label for="nbCT">Nombre de la copia</label><input type="text" id="nbCT" value="Copia de ' + esc(W.doc.titulo) + '"></div>' +
+      c.innerHTML = '<h1>Guardar una copia</h1><div class="nv-campo" style="max-width:420px"><label for="nbCT">Nombre de la copia</label><input type="text" id="nbCT" value="Copia de ' + esc(docAct().titulo) + '"></div>' +
         '<button type="button" class="nv-btn prim" id="nbCG">' + I('save_copy', 'p') + 'Guardar copia en Nuvia Office</button>' +
-        '<h2>O descárgala a tu equipo</h2><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="nv-btn" data-d="docx">Word (.docx)</button><button type="button" class="nv-btn" data-d="pdf">PDF</button></div>';
+        '<h2>O descárgala a tu equipo</h2><div style="display:flex;gap:10px;flex-wrap:wrap">' + (esPpt() ? '<button type="button" class="nv-btn" data-d="pptx">PowerPoint (.pptx)</button>' : '<button type="button" class="nv-btn" data-d="docx">Word (.docx)</button>') + '<button type="button" class="nv-btn" data-d="pdf">PDF</button></div>';
       c.querySelector('#nbCG').onclick = function() {
         var t = c.querySelector('#nbCT').value.trim() || 'Copia';
         NV.cargando('Guardando copia…');
-        NV.api('/design/api/office/docs', {json: {tipo: 'word', titulo: t, contenido: W.contenidoLimpio(), ajustes: W.aj}}).then(function(d) { NV.cargando(false); NV.backstage.cerrar(); return W.abrir(d); })
+        var cuerpo = esPpt() ? {tipo: 'ppt', titulo: t, contenido: JSON.stringify(P.pres), ajustes: {tipo: 'ppt'}} : {tipo: 'word', titulo: t, contenido: W.contenidoLimpio(), ajustes: W.aj};
+        NV.api('/design/api/office/docs', {json: cuerpo}).then(function(d) { NV.cargando(false); NV.backstage.cerrar(); return NV.abrirDocumento(d); })
           .then(function() { NV.toast('Copia guardada. Ahora estás editando la copia.'); }).catch(function(e) { NV.cargando(false); NV.toast(e.message, true); });
       };
       NV.$$('[data-d]', c).forEach(function(b) { b.onclick = function() { NV.descargarActual(b.dataset.d); }; });
       return;
     }
     if (s === 'descargar' || s === 'exportar') {
-      var op = s === 'exportar' ? [['pdf', 'document_pdf', 'Exportar a PDF', 'Documento PDF con el mismo diseño, texto seleccionable, encabezado, pie y números de página.']] :
+      var op = esPpt() ? (s === 'exportar' ? [['pdf', 'document_pdf', 'Exportar a PDF', 'Una diapositiva por página, con el mismo diseño.'], ['png', 'image', 'Imagen de la diapositiva actual (.png)', 'Para usarla en otro documento o enviarla.']] :
+        [['pptx', 'slide_text', 'Presentación de PowerPoint (.pptx)', 'Se abre en Microsoft PowerPoint con sus textos, formas, imágenes, tablas, gráficos, notas y transiciones.'],
+         ['pdf', 'document_pdf', 'Documento PDF (.pdf)', 'Una diapositiva por página; para enviar o imprimir.'], ['png', 'image', 'Imagen de la diapositiva actual (.png)', 'La diapositiva que estás viendo, en alta resolución.']]) :
+        s === 'exportar' ? [['pdf', 'document_pdf', 'Exportar a PDF', 'Documento PDF con el mismo diseño, texto seleccionable, encabezado, pie y números de página.']] :
         [['docx', 'document', 'Documento de Word (.docx)', 'Se abre en Microsoft Word con sus estilos, tablas, imágenes, encabezado, pie y notas al pie.'],
          ['pdf', 'document_pdf', 'Documento PDF (.pdf)', 'Para enviar o imprimir; nadie puede modificarlo fácilmente.'],
          ['html', 'globe', 'Página web (.html)', 'Para publicar en una página web o abrir en el navegador.'],
          ['txt', 'text_t', 'Texto sin formato (.txt)', 'Solo el texto, sin formato.']];
       c.innerHTML = '<h1>' + (s === 'exportar' ? 'Exportar' : 'Descargar') + '</h1><div style="display:flex;flex-direction:column;gap:10px;max-width:640px">' + op.map(function(o) {
-        return '<button type="button" class="nv-herr" data-d="' + o[0] + '"><span class="ic" style="background:' + (o[0] === 'pdf' ? '#c50f1f' : o[0] === 'docx' ? '#185abd' : '#605e5c') + '">' + I(o[1]) + '</span><span><b>' + esc(o[2]) + '</b><span>' + esc(o[3]) + '</span></span></button>';
+        return '<button type="button" class="nv-herr" data-d="' + o[0] + '"><span class="ic" style="background:' + (o[0] === 'pdf' ? '#c50f1f' : o[0] === 'docx' ? '#185abd' : o[0] === 'pptx' ? '#c43e1c' : '#605e5c') + '">' + I(o[1]) + '</span><span><b>' + esc(o[2]) + '</b><span>' + esc(o[3]) + '</span></span></button>';
       }).join('') + '</div>';
       NV.$$('[data-d]', c).forEach(function(b) { b.onclick = function() { NV.descargarActual(b.dataset.d); }; });
+      return;
+    }
+    if (s === 'info' && esPpt()) {
+      var dp = P.doc, nd = P.pres.diapositivas.length;
+      c.innerHTML = '<h1>Información</h1><h2 style="margin-top:0">' + esc(dp.titulo) + '</h2>' + (dp.esPlantilla ? '<p style="color:#605e5c">Plantilla de la organización.</p>' : '') +
+        '<table class="nv-info-tabla"><tr><td>Diapositivas</td><td>' + nd + ' (' + P.pres.diapositivas.filter(function(x) { return x.oculta; }).length + ' ocultas)</td></tr>' +
+        '<tr><td>Tamaño de diapositiva</td><td>' + esc(P.pres.tam.n || '') + '</td></tr><tr><td>Tema</td><td>' + esc(P.tema(P.pres).n) + '</td></tr>' +
+        '<tr><td>Tamaño</td><td>' + NV.tamano(dp.tamano) + '</td></tr><tr><td>Última modificación</td><td>' + new Date(dp.actualizadoEn).toLocaleString('es-CO') + '</td></tr>' +
+        '<tr><td>Modificado por</td><td>' + esc(dp.actualizadoPor || '') + '</td></tr><tr><td>Dueño</td><td>' + esc(dp.propietario || '') + '</td></tr></table>' +
+        (dp.permiso !== 'ver' ? '<p><button type="button" class="nv-btn" id="nbRen">' + I('rename', 'p') + 'Cambiar nombre</button></p>' : '');
+      var rn = c.querySelector('#nbRen'); if (rn) rn.onclick = function() { P.renombrar().then(function() { ir('info'); }); };
       return;
     }
     if (s === 'info') {

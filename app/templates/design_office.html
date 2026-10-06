@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nuvia Office</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23185abd'/%3E%3Ctext x='16' y='23' font-family='Segoe UI,Arial' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
-{% set v = '20261005b' %}
+{% set v = version or '1' %}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Caladea:ital,wght@0,400;0,700;1,400;1,700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&family=Cousine:ital,wght@0,400;0,700;1,400;1,700&family=Gelasio:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Comic+Neue:wght@400;700&display=swap">
 <link rel="stylesheet" href="/static/office/office.css?v={{ v }}">
@@ -31,6 +31,7 @@
       <span class="nv-avatar" title="{{ user.nombre_completo }}">{{ (user.nombres or '?')[:1] }}{{ (user.apellidos or '')[:1] }}</span>
     </div>
   </header>
+  <div class="nvp-banda-plantilla nv-oculto" id="nvBandaPlantilla"></div>
   <nav class="nv-tabs" id="nvTabs" role="tablist" aria-label="Pestañas de la cinta"></nav>
   <div class="nv-cinta" id="nvCinta" aria-label="Cinta de opciones"></div>
   <div class="nv-trabajo" id="nvTrabajo">
@@ -58,12 +59,15 @@
   </footer>
 </div>
 
+<div id="nvVistaPpt" class="nv-oculto"></div>
+
 <script>
 window.NV = window.NV || {};
-NV.usuario = {id: {{ user.id }}, nombre: {{ user.nombre_completo | tojson }}, email: {{ user.email | tojson }}};
+NV.usuario = {id: {{ user.id }}, nombre: {{ user.nombre_completo | tojson }}, email: {{ user.email | tojson }}, adminPlantillas: {{ 'true' if admin_plantillas else 'false' }}};
 </script>
 <script src="/static/office/iconos.js?v={{ v }}"></script>
 <script src="/static/office/nucleo.js?v={{ v }}"></script>
+<script src="/static/office/fechas.js?v={{ v }}"></script>
 <script src="/static/office/word.js?v={{ v }}"></script>
 <script src="/static/office/word_cinta.js?v={{ v }}"></script>
 <script src="/static/office/word_acciones.js?v={{ v }}"></script>
@@ -71,6 +75,12 @@ NV.usuario = {id: {{ user.id }}, nombre: {{ user.nombre_completo | tojson }}, em
 <script src="/static/office/word_dialogos.js?v={{ v }}"></script>
 <script src="/static/office/word_docx.js?v={{ v }}"></script>
 <script src="/static/office/word_pdf.js?v={{ v }}"></script>
+<script src="/static/office/ppt_temas.js?v={{ v }}"></script>
+<script src="/static/office/ppt.js?v={{ v }}"></script>
+<script src="/static/office/ppt_cinta.js?v={{ v }}"></script>
+<script src="/static/office/ppt_pptx.js?v={{ v }}"></script>
+<script src="/static/office/ppt_show.js?v={{ v }}"></script>
+<script src="/static/office/plantillas.js?v={{ v }}"></script>
 <script src="/static/office/inicio.js?v={{ v }}"></script>
 <script src="/static/office/app.js?v={{ v }}"></script>
 </body>

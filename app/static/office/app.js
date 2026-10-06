@@ -70,12 +70,19 @@
   }
 
   function iniciar() {
-    iconos(); controles(); W.cinta.construir();
+    iconos(); controles(); W.cinta.construir(); NV.ppt.construir();
     var abrirOrig = W.abrir;
-    W.abrir = function(d) { return abrirOrig(d).then(function() { dobleClicObjetos(); var i = NV.$('#nvEstIdioma'); if (i) i.textContent = W.nombreIdioma(W.aj.idioma); W.cinta.mostrarTab('inicio'); }); };
-    var p = new URLSearchParams(location.search), id = parseInt(p.get('doc'), 10);
-    if (id) W.abrirPorId(id).then(function() { if (!W.doc) NV.inicio.mostrar(); });
+    W.abrir = function(d) {
+      return abrirOrig(d).then(function() {
+        if (d.tipo === 'ppt') return;  // las presentaciones las abre Nuvia PowerPoint
+        dobleClicObjetos(); var i = NV.$('#nvEstIdioma'); if (i) i.textContent = W.nombreIdioma(W.aj.idioma); W.cinta.mostrarTab('inicio');
+      });
+    };
+    var p = new URLSearchParams(location.search), id = parseInt(p.get('doc'), 10), pl = parseInt(p.get('plantilla'), 10);
+    if (id) W.abrirPorId(id).then(function() { if (!W.doc && !NV.ppt.doc) NV.inicio.mostrar(); });
+    else if (pl && NV.usuario.adminPlantillas) NV.plantillas.editar(pl);
     else if (p.get('nuevo') === 'word') NV.nuevoDocumento('blanco');
+    else if (p.get('nuevo') === 'ppt') NV.nuevaPresentacion(p.get('tema') || 'office');
     else if (p.get('herramienta')) { NV.inicio.mostrar('pdf'); NV.herramienta(p.get('herramienta')); }
     else NV.inicio.mostrar();
   }

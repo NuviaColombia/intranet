@@ -38,7 +38,7 @@
   // ---------- Documento → PDF ----------
   PDF.exportarDoc = function(html, aj, titulo, autor) {
     return NV.lib.pdfmake().then(function(L) {
-      var cont = document.createElement('div'); cont.innerHTML = html;
+      var cont = document.createElement('div'); cont.innerHTML = NV.fechas.actualizarHtml(html);
       return NV.docx.prepararImagenes(cont).then(function() { return generar(L, cont, aj, titulo, autor); });
     });
   };

@@ -284,3 +284,97 @@ svg.nv-ic.p { width: 16px; height: 16px; }
   .nv-bs-c { padding: 20px; }
 }
 @media print { body * { visibility: hidden; } }
+
+/* ---------- Plantillas ---------- */
+.nvp-banda-plantilla { background: #fff4ce; color: #5c4400; border-bottom: 1px solid #f2d68a; font-size: 13px; padding: 6px 14px; display: flex; align-items: center; gap: 8px; }
+.nv-sub-nuevo { font-size: 14px; font-weight: 600; color: var(--nv-gris7); margin: 18px 0 10px; }
+.nv-plantilla.org { position: relative; cursor: pointer; }
+.nv-plantilla.org .hoja img { display: block; }
+.nv-pl-tipo { position: absolute; left: 6px; bottom: 6px; width: 20px; height: 20px; border-radius: 3px; color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.nv-pl-menu { position: absolute; right: 4px; top: 4px; border: 0; background: rgba(255,255,255,.92); width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2); opacity: 0; }
+.nv-plantilla.org:hover .nv-pl-menu, .nv-pl-menu:focus { opacity: 1; }
+.nv-campo-fecha { background: rgba(0,120,212,.08); border-radius: 2px; }
+
+/* ---------- Nuvia PowerPoint ---------- */
+.nvp-minis { width: 210px; flex: none; background: var(--nv-gris2); border-right: 1px solid var(--nv-gris4); overflow-y: auto; padding: 10px 6px 30px; outline: none; }
+.nvp-mini { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; cursor: pointer; }
+.nvp-mini-n { width: 18px; font-size: 12px; color: var(--nv-gris7); text-align: right; flex: none; line-height: 1.3; }
+.nvp-mini-marco { position: relative; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px var(--nv-gris4); border-radius: 2px; pointer-events: none; }
+.nvp-mini.on .nvp-mini-marco { box-shadow: 0 0 0 3px var(--nv-app); }
+.nvp-mini.sobre .nvp-mini-marco { box-shadow: 0 0 0 2px var(--nv-app), 0 -6px 0 -3px var(--nv-app); }
+.nvp-mini.oculta .nvp-mini-marco { opacity: .45; }
+.nvp-mini.oculta .nvp-mini-n { text-decoration: line-through; }
+.nvp-minis:focus .nvp-mini.on .nvp-mini-marco { box-shadow: 0 0 0 3px var(--nv-app), 0 0 0 5px #fff, 0 0 0 6px var(--nv-app); }
+.nvp-centro { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.nvp-lienzo { flex: 1; position: relative; overflow: auto; background: #e8e6e4; }
+.nvp-escena { position: absolute; box-shadow: 0 2px 8px rgba(0,0,0,.18); background: #fff; overflow: hidden; }
+.nvp-sel-capa { position: absolute; pointer-events: none; }
+.nvp-sel-capa > * { pointer-events: auto; }
+.nvp-notas { height: 96px; border-top: 1px solid var(--nv-gris4); background: #fff; flex: none; overflow: auto; }
+.nvp-notas-ed { min-height: 100%; padding: 8px 14px; font-size: 14px; outline: none; }
+.nvp-notas-ed:empty::before { content: attr(data-placeholder); color: var(--nv-gris6); }
+.nvp-diap { position: relative; overflow: hidden; }
+.nvp-el { position: absolute; box-sizing: border-box; }
+.nvp-txt { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+.nvp-txt-in { outline: none; line-height: 1.2; overflow-wrap: break-word; word-break: break-word; }
+.nvp-txt-in p { margin: 0; }
+.nvp-txt-in ul, .nvp-txt-in ol { margin: 0; padding-left: 1.1em; }
+.nvp-txt-in li { margin: 0 0 .25em; }
+.nvp-txt-in ul ul, .nvp-txt-in ol ol, .nvp-txt-in ul ol, .nvp-txt-in ol ul { font-size: .9em; }
+.nvp-txt-in a { color: #0563C1; }
+.nvp-texto.editando .nvp-txt, .nvp-forma.editando .nvp-txt { overflow: visible; }
+.nvp-el.editando .nvp-txt-in { cursor: text; }
+.nvp-prompt { color: #7f7f7f; }
+.nvp-marcador:not(.editando) .nvp-txt-in:has(.nvp-prompt) { width: 100%; }
+#nvpEscena .nvp-marcador { outline: 1px dashed rgba(0,0,0,.25); outline-offset: -1px; }
+.nvp-forma-img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.nvp-img { width: 100%; height: 100%; display: block; pointer-events: none; box-sizing: border-box; }
+.nvp-img-vacia { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(0,0,0,.035);
+  border: 1px dashed #a19f9d; color: #605e5c; font-size: 14px; cursor: pointer; text-align: center; padding: 10px; }
+.nvp-img-vacia:hover { background: rgba(0,120,212,.07); color: var(--nv-app); }
+.nvp-tabla { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+.nvp-tabla td { padding: 4px 8px; overflow: hidden; outline: none; }
+.nvp-el.editando .nvp-tabla td:focus { box-shadow: inset 0 0 0 2px #f29436; }
+.nvp-pie { position: absolute; font-size: 12px; height: 24px; line-height: 24px; white-space: nowrap; overflow: hidden; }
+.nvp-cuadricula { background-image: linear-gradient(rgba(0,0,0,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.08) 1px, transparent 1px) !important; background-size: 30px 30px !important; }
+.nvp-caja { position: absolute; border: 1px solid #5b8fd6; box-sizing: border-box; cursor: move; transform-origin: center center; }
+.nvp-caja.editando { border: 1px dashed #5b8fd6; cursor: text; pointer-events: none; }
+.nvp-h { position: absolute; width: 9px; height: 9px; background: #fff; border: 1px solid #5b8fd6; border-radius: 50%; box-sizing: border-box; }
+.nvp-h.nw { left: -5px; top: -5px; cursor: nwse-resize; } .nvp-h.n { left: calc(50% - 5px); top: -5px; cursor: ns-resize; } .nvp-h.ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.nvp-h.e { right: -5px; top: calc(50% - 5px); cursor: ew-resize; } .nvp-h.se { right: -5px; bottom: -5px; cursor: nwse-resize; } .nvp-h.s { left: calc(50% - 5px); bottom: -5px; cursor: ns-resize; }
+.nvp-h.sw { left: -5px; bottom: -5px; cursor: nesw-resize; } .nvp-h.w { left: -5px; top: calc(50% - 5px); cursor: ew-resize; }
+.nvp-h.rot { left: calc(50% - 10px); top: -30px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; cursor: grab; color: #5b8fd6; }
+.nvp-h.rot svg { width: 13px; height: 13px; }
+.nvp-marquesina { position: absolute; border: 1px solid #5b8fd6; background: rgba(91,143,214,.12); pointer-events: none; }
+.nvp-guia { position: absolute; pointer-events: none; z-index: 3; }
+.nvp-guia.v { top: -2000px; bottom: -2000px; width: 0; border-left: 1px dashed #e8442e; }
+.nvp-guia.h { left: -2000px; right: -2000px; height: 0; border-top: 1px dashed #e8442e; }
+.nvp-clasificador { flex: 1; overflow: auto; padding: 24px; display: flex; flex-wrap: wrap; gap: 22px; align-content: flex-start; background: var(--nv-gris2); }
+.nvp-clas { cursor: pointer; } .nvp-clas.on .nvp-mini-marco { box-shadow: 0 0 0 3px var(--nv-app); } .nvp-clas.oculta .nvp-mini-marco { opacity: .45; }
+.nvp-clas-n { font-size: 12px; color: var(--nv-gris7); margin-top: 4px; }
+/* presentación */
+.nvp-show { position: fixed; inset: 0; z-index: 2000; background: #000; outline: none; cursor: none; user-select: none; }
+.nvp-show:hover { cursor: default; }
+.nvp-show.ventana { inset: 0; }
+.nvp-show-esc { position: absolute; inset: 0; overflow: hidden; }
+.nvp-show-marco { position: absolute; overflow: hidden; }
+.nvp-show-tapa { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.nvp-show-tapa.negra { background: #000; pointer-events: auto; } .nvp-show-tapa.blanca { background: #fff; pointer-events: auto; }
+.nvp-show-barra { position: absolute; left: 16px; bottom: 14px; display: flex; gap: 4px; align-items: center; opacity: 0; transition: opacity .2s; z-index: 6; background: rgba(0,0,0,.55);
+  border-radius: 6px; padding: 4px 6px; color: #fff; font-size: 12px; }
+.nvp-show:hover .nvp-show-barra { opacity: 1; }
+.nvp-show-barra button { background: transparent; border: 0; color: #fff; width: 30px; height: 28px; border-radius: 4px; cursor: pointer; display: grid; place-items: center; }
+.nvp-show-barra button:hover { background: rgba(255,255,255,.2); }
+.nvp-show-n { padding: 0 6px; min-width: 50px; text-align: center; }
+.nvp-show-fin { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 30px; color: #fff; font-size: 16px; }
+.nvp-show.moderador .nvp-show-esc { right: 380px; }
+.nvp-mod { position: absolute; top: 0; right: 0; bottom: 0; width: 380px; background: #1f1f1f; color: #eee; z-index: 7; overflow: auto; }
+.nvp-mod-panel { padding: 16px; display: flex; flex-direction: column; gap: 10px; cursor: default; }
+.nvp-mod-t { display: flex; justify-content: space-between; font-size: 22px; font-variant-numeric: tabular-nums; }
+.nvp-mod-sig-t { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: .05em; }
+.nvp-mod-sig { position: relative; overflow: hidden; background: #000; border: 1px solid #444; }
+.nvp-mod-notas { background: #2b2b2b; border-radius: 6px; padding: 10px 12px; font-size: 16px; line-height: 1.5; min-height: 120px; }
+.nvp-mod-acc { display: flex; gap: 8px; }
+.nvp-mod-acc button { flex: 1; height: 38px; border: 0; border-radius: 6px; background: #3a3a3a; color: #fff; cursor: pointer; font: inherit; }
+.nvp-mod-acc button:hover { background: #4a4a4a; }

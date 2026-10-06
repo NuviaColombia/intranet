@@ -629,6 +629,27 @@ class DesignOfficeDoc(Base):
     propietario = relationship("Empleado")
 
 
+class DesignOfficePlantilla(Base):
+    """Plantillas de Nuvia Office (Word y PowerPoint). Las cargan y modifican los admins; todos las usan.
+    Las fechas marcadas como campo "Fecha de hoy" se muestran siempre con la fecha del día."""
+    __tablename__ = "design_office_plantillas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(10), default="word")  # word | ppt
+    titulo: Mapped[str] = mapped_column(String(255), default="Plantilla")
+    descripcion: Mapped[str] = mapped_column(String(500), default="")
+    contenido: Mapped[str] = mapped_column(Text, default="", deferred=True)
+    ajustes: Mapped[str] = mapped_column(Text, default="{}", deferred=True)
+    miniatura: Mapped[str] = mapped_column(Text, default="", deferred=True)  # imagen pequeña (data URL)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+
+
 class DesignOfficeCompartido(Base):
     __tablename__ = "design_office_compartidos"
     __table_args__ = (UniqueConstraint("doc_id", "empleado_id", name="uq_design_office_compartido"),)

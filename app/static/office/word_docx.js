@@ -141,6 +141,13 @@
         if (n.getAttribute('data-campo') === 'pagina') { out.push(new D.TextRun(Object.assign({children: [D.PageNumber.CURRENT]}, opcRun(f)))); return; }
         if (n.getAttribute('data-campo') === 'paginas') { out.push(new D.TextRun(Object.assign({children: [D.PageNumber.TOTAL_PAGES]}, opcRun(f)))); return; }
         if (n.getAttribute('data-campo') === 'fecha') { out.push(new D.TextRun(Object.assign({text: new Date().toLocaleDateString('es-CO')}, opcRun(f)))); return; }
+        if (n.getAttribute('data-campo') === 'hoy') {  // "Fecha de hoy" → campo DATE de Word (Word también lo actualiza al abrir)
+          var fmt = n.getAttribute('data-formato') || '{d} de {mes} de {aaaa}', txtHoy = NV.fechas.formatear(fmt);
+          var g2 = Object.assign({}, f); aplicarCss(g2, estilos(n), n);
+          if (D.SimpleField) out.push(new D.SimpleField('DATE \\@ "' + NV.fechas.formatoWord(fmt) + '"', txtHoy));
+          else out.push(new D.TextRun(Object.assign({text: txtHoy}, opcRun(g2))));
+          return;
+        }
         if (n.classList.contains('nv-salto-col')) { out.push(new D.ColumnBreak()); return; }
         if (tag === 'STRONG' || tag === 'B') g.bold = true;
         if (tag === 'EM' || tag === 'I' || tag === 'CITE' || tag === 'DFN') g.italics = true;

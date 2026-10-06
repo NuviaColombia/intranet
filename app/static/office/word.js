@@ -237,7 +237,10 @@
   W.camposHtml = function(html, pagina, total) {  // reemplaza {PÁGINA} y {PÁGINAS} en encabezado/pie
     return String(html || '').replace(/<span[^>]*data-campo="pagina"[^>]*>[^<]*<\/span>/g, numFormato(pagina + (W.aj.numInicio || 1) - 1))
       .replace(/<span[^>]*data-campo="paginas"[^>]*>[^<]*<\/span>/g, String(total))
-      .replace(/<span[^>]*data-campo="fecha"[^>]*>[^<]*<\/span>/g, new Date().toLocaleDateString('es-CO'));
+      .replace(/<span[^>]*data-campo="fecha"[^>]*>[^<]*<\/span>/g, new Date().toLocaleDateString('es-CO'))
+      .replace(/(<span[^>]*data-campo="hoy"[^>]*>)[^<]*(<\/span>)/g, function(m, a, b) {  // campo "Fecha de hoy"
+        var f = /data-formato="([^"]*)"/.exec(a); return a + NV.esc(NV.fechas.formatear(f ? f[1].replace(/&amp;/g, '&') : '')) + b;
+      });
   };
   function dibujarHojas(cont, n, H, P) {
     var d = ed.getDoc(), b = ed.getBody(), a = W.aj, dm = W.dim();
@@ -327,7 +330,10 @@
     W.est.guardando = true; W.est.guardado = true; pintarGuardado();
     var cuerpo = {version: W.doc.version, titulo: W.doc.titulo, contenido: W.contenidoLimpio(), ajustes: W.aj};
     if (forzar === 'forzar') cuerpo.forzar = true;
-    return NV.api('/design/api/office/docs/' + W.doc.id, {json: cuerpo}).then(function(r) {
+    var plantilla = !!W.doc.esPlantilla, url = (plantilla ? '/design/api/office/plantillas/' : '/design/api/office/docs/') + W.doc.id;
+    // las plantillas guardan también su miniatura (como mucho cada 20 s)
+    var mini = plantilla && NV.plantillas && (!W._miniT || Date.now() - W._miniT > 20000 || forzar) ? (W._miniT = Date.now(), NV.plantillas.miniaturaWord(cuerpo.contenido, W.aj)) : Promise.resolve(null);
+    return mini.then(function(m) { if (m) cuerpo.miniatura = m; return NV.api(url, {json: cuerpo}); }).then(function(r) {
       W.doc.version = r.version; W.doc.actualizadoEn = r.actualizadoEn;
     }).catch(function(e) {
       W.est.guardado = false;
@@ -337,7 +343,7 @@
           botones: [{texto: 'Guardar mi versión', prim: true, valor: 'mia'}, {texto: 'Abrir la otra versión', valor: 'otra'}, {texto: 'Cancelar', valor: null}]})
           .then(function(v) {
             if (v === 'mia') { W.est.guardando = false; return W.guardar('forzar'); }
-            if (v === 'otra') { W.est.guardado = true; return W.abrirPorId(W.doc.id); }
+            if (v === 'otra') { W.est.guardado = true; return W.doc.esPlantilla ? NV.plantillas.editar(W.doc.id) : W.abrirPorId(W.doc.id); }
           });
       }
       NV.toast('No se guardó: ' + e.message, true);
@@ -353,23 +359,31 @@
   // ---------- Abrir un documento ----------
   W.abrirPorId = function(id) {
     NV.cargando('Abriendo documento…');
-    return NV.api('/design/api/office/docs/' + id).then(function(d) { NV.cargando(false); return W.abrir(d); })
+    return NV.api('/design/api/office/docs/' + id).then(function(d) { NV.cargando(false); return NV.abrirDocumento(d); })
       .catch(function(e) { NV.cargando(false); NV.toast('No se pudo abrir: ' + e.message, true); });
   };
   W.abrir = function(d) {
+    if (d.tipo === 'ppt') return NV.ppt.abrir(d);
+    document.body.classList.remove('nv-ppt');
     W.doc = d;
     W.aj = Object.assign(W.ajustesPredeterminados(), d.ajustes || {});
     W.aj.pagina = Object.assign(W.ajustesPredeterminados().pagina, W.aj.pagina || {});
     W.est.soloLectura = d.permiso === 'ver';
     W.est.guardado = true;
     document.title = d.titulo + ' - Nuvia Word';
-    try { history.replaceState(null, '', '/design/office?doc=' + d.id); } catch (e) {}
+    try { history.replaceState(null, '', '/design/office?' + (d.esPlantilla ? 'plantilla=' : 'doc=') + d.id); } catch (e) {}
     NV.mostrarVista('word');
+    var banda = NV.$('#nvBandaPlantilla');
+    if (banda) {
+      banda.classList.toggle('nv-oculto', !d.esPlantilla);
+      if (d.esPlantilla) banda.innerHTML = NV.icono('document_one_page', 'p') + ' Estás editando la plantilla <b>' + NV.esc(d.titulo) + '</b>. Los cambios los verán todos al crear documentos nuevos. Las fechas marcadas como "Fecha de hoy" se actualizan solas.';
+    }
     NV.$('#nvDocTitulo').textContent = d.titulo;
     pintarGuardado();
     return iniciarEditor().then(function() {
       ed.setContent(d.contenido || '<p><br></p>');
-      ed.undoManager.clear(); ed.undoManager.add();
+      W.actualizarFechas();  // las fechas "de hoy" muestran la fecha del día (sin marcar el documento como cambiado)
+      ed.undoManager.clear(); ed.undoManager.add(); ed.setDirty(false);
       ed.mode.set(W.est.soloLectura ? 'readonly' : 'design');
       aplicarEstilos();
       ed.focus(); ed.selection.select(ed.getBody(), true); ed.selection.collapse(true);
@@ -377,6 +391,13 @@
       if (W.regla) W.regla();
       setTimeout(W.paginarYa, 300); setTimeout(W.paginarYa, 1200);  // fuentes e imágenes que cargan después
     });
+  };
+
+  // Campos "Fecha de hoy": siempre la fecha del día y no se editan letra por letra (se borran o se reemplazan completos)
+  W.actualizarFechas = function() {
+    if (!ed) return;
+    NV.$$('[data-campo="hoy"]', ed.getBody()).forEach(function(s) { s.setAttribute('contenteditable', 'false'); });
+    NV.fechas.actualizar(ed.getBody());
   };
 
   // ---------- Motor de edición ----------

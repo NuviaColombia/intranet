@@ -1,5 +1,6 @@
 """Rutas de Nuvia Office (Design › Herramientas). Solo aprobadores y admins de Design (require_design_manager).
 Se incluye desde routers/design_schedule.py (mismo router, mismo cupo de concurrencia)."""
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -24,9 +25,21 @@ def _doc_o_error(fn):
         raise HTTPException(400, str(e))
 
 
+_ESTATICOS = Path(__file__).resolve().parent.parent / "static" / "office"
+
+
+def _version_estaticos() -> str:
+    """Versión de los archivos de Nuvia Office (la fecha del más reciente): así el navegador nunca usa una copia vieja."""
+    try:
+        return str(int(max(f.stat().st_mtime for f in _ESTATICOS.iterdir() if f.is_file())))
+    except (OSError, ValueError):
+        return "1"
+
+
 @router.get("/design/office")
 def pagina_office(request: Request, user: Empleado = Depends(require_design_manager)):
-    return templates.TemplateResponse(request, "design_office.html", {"user": user, "es_design": True})
+    return templates.TemplateResponse(request, "design_office.html", {"user": user, "es_design": True, "version": _version_estaticos(),
+                                                                      "admin_plantillas": so.puede_administrar_plantillas(user)})
 
 
 @router.get("/design/api/office/docs")
@@ -122,3 +135,70 @@ def api_dejar_de_compartir(doc_id: int, empleado_id: int, user: Empleado = Depen
     _doc_o_error(lambda: so.dejar_de_compartir(db, doc_id, user, empleado_id))
     doc, p = so.obtener(db, doc_id, user)
     return so.completo(db, doc, p)["compartido"]
+
+
+# ---------- Plantillas (solo los admins las cargan, modifican y borran; todos las usan) ----------
+class PlantillaIn(BaseModel):
+    tipo: str = "word"
+    titulo: str = Field("", max_length=255)
+    descripcion: str = Field("", max_length=500)
+    contenido: str = ""
+    ajustes: dict | None = None
+    miniatura: str = ""
+
+
+class PlantillaGuardarIn(BaseModel):
+    version: int
+    titulo: str | None = Field(None, max_length=255)
+    descripcion: str | None = Field(None, max_length=500)
+    contenido: str | None = None
+    ajustes: dict | None = None
+    miniatura: str | None = None
+    forzar: bool = False
+
+
+@router.get("/design/api/office/plantillas")
+def api_plantillas(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    return {"plantillas": so.plantillas_listar(db), "puedeAdministrar": so.puede_administrar_plantillas(user)}
+
+
+@router.get("/design/api/office/plantillas/{pid}")
+def api_plantilla(pid: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    p = _doc_o_error(lambda: so.plantilla_obtener(db, pid))
+    return so.plantilla_completa(p, user)
+
+
+@router.post("/design/api/office/plantillas")
+def api_plantilla_crear(payload: PlantillaIn, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    p = _doc_o_error(lambda: so.plantilla_crear(db, user, payload.tipo, payload.titulo, payload.descripcion, payload.contenido,
+                                                payload.ajustes, payload.miniatura))
+    return so.plantilla_completa(p, user)
+
+
+@router.post("/design/api/office/plantillas/{pid}")
+def api_plantilla_guardar(pid: int, payload: PlantillaGuardarIn, user: Empleado = Depends(require_design_manager),
+                          db: Session = Depends(get_db)):
+    try:
+        p = _doc_o_error(lambda: so.plantilla_guardar(db, pid, user, payload.version, payload.titulo, payload.descripcion,
+                                                      payload.contenido, payload.ajustes, payload.miniatura, payload.forzar))
+    except so.Conflicto as c:
+        return JSONResponse(status_code=409, content={
+            "detail": f"{c.doc.actualizado_por or 'Otra persona'} guardó esta plantilla después de que la abriste.", "version": c.doc.version})
+    return so.plantilla_resumen(p, con_miniatura=False)
+
+
+@router.post("/design/api/office/plantillas/{pid}/eliminar")
+def api_plantilla_eliminar(pid: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    _doc_o_error(lambda: so.plantilla_eliminar(db, pid, user))
+    return {"ok": True}
+
+
+class UsarPlantillaIn(BaseModel):
+    titulo: str | None = Field(None, max_length=255)
+
+
+@router.post("/design/api/office/plantillas/{pid}/usar")
+def api_plantilla_usar(pid: int, payload: UsarPlantillaIn, user: Empleado = Depends(require_design_manager),
+                       db: Session = Depends(get_db)):
+    doc = _doc_o_error(lambda: so.plantilla_usar(db, pid, user, payload.titulo))
+    return so.completo(db, doc, "dueño")
