@@ -1,6 +1,5 @@
 from datetime import date, time
 from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
-from fastapi.responses import Response
 from ..concurrencia import RutaGeneral
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -290,28 +289,6 @@ def api_conteos(anio: int, mes: int, user: Empleado = Depends(require_submodulo(
         r["soportes"] = len(r.pop("evidencias", []))
     c["areasMaterial"] = {str(k): v for k, v in sct.areas_de_material(db).items()}
     return c
-
-
-@router.get("/custodia/api/conteos/{reporte_id}/pdf")
-def api_conteo_pdf(reporte_id: int, user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
-    """PDF en firme del conteo de un área (el que ya se guardó al quedar en firme)."""
-    acs.exigir(db, user, "custodia", "conteos")
-    from ..models_conteo import ConteoDocumento
-    doc = db.query(ConteoDocumento).filter_by(tipo="ACTA", reporte_id=reporte_id).first()
-    if not doc:
-        raise HTTPException(404, "Este conteo todavía no tiene PDF en firme.")
-    return Response(doc.datos, media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{doc.nombre}"'})
-
-
-@router.get("/custodia/api/conteos-mes/pdf")
-def api_conteos_mes_pdf(anio: int, mes: int, user: Empleado = Depends(require_submodulo("custodia")), db: Session = Depends(get_db)):
-    """Consolidado firmado del mes, si ya existe (no se genera desde aquí)."""
-    acs.exigir(db, user, "custodia", "conteos")
-    from ..models_conteo import ConteoDocumento
-    doc = db.query(ConteoDocumento).filter_by(tipo="CONSOLIDADO", anio=anio, mes=mes).first()
-    if not doc:
-        raise HTTPException(404, "Este mes todavía no tiene consolidado en firme.")
-    return Response(doc.datos, media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{doc.nombre}"'})
 
 
 @router.get("/custodia/api/consultar-orden/{numero_orden}")
