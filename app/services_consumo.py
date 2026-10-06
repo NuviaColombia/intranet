@@ -1,15 +1,16 @@
 """Lógica de Producción › Seguimiento de consumo (ver models_consumo.py)."""
+import calendar
 import json
+import re
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from .models import Empleado
 from .models_consumo import (ConsumoMateria, ConsumoTipo, ConsumoTecnico, ConsumoManager, ConsumoEntrega,
-                             ConsumoFrasco, ConsumoJornada, ConsumoTraslado)
+                             ConsumoFrasco, ConsumoJornada, ConsumoTraslado, ConsumoApertura)
 from .formato import nombre_propio
 
 TIPOS_INICIALES = ["TIPO 5", "TIPO 4", "TIPO 7"]
-DIAS_REGISTRO_TECNICO = 3   # el técnico registra hasta 3 días atrás; más antiguo, solo el manager
 HORA_AVISO_JORNADA = 15     # desde las 3:00 p. m. se avisa a quien no ha registrado la jornada del día
 ALERTA_GOTAS = 1.2          # gotas por arco por encima del 120 % del promedio de la materia
 
@@ -185,7 +186,83 @@ def anular_entrega(db: Session, e: ConsumoEntrega, user: Empleado, motivo: str) 
     return None
 
 
-def trasladar_frasco(db: Session, user: Empleado, f: ConsumoFrasco, a_tecnico_id: int, motivo: str) -> str | None:
+ULTIMOS_CONSULTA = 100
+
+
+def listar_entregas(db: Session, user: Empleado, prueba: bool = False, desde: date | None = None, hasta: date | None = None,
+                    tecnico_id: int | None = None) -> list[ConsumoEntrega]:
+    """Últimas entregas (100) de los técnicos visibles, con filtros de fecha y técnico (también si recibió un frasco trasladado)."""
+    visibles = {t.id for t in tecnicos_visibles(db, user)}
+    if tecnico_id:
+        visibles &= {tecnico_id}
+    recibidos = {e for (e,) in db.query(ConsumoFrasco.entrega_id).filter(ConsumoFrasco.tecnico_actual_id.in_(visibles or [0]))}
+    q = db.query(ConsumoEntrega).filter(ConsumoEntrega.tecnico_id.in_(visibles or [0]) | ConsumoEntrega.id.in_(recibidos or [0]),
+                                        ConsumoEntrega.prueba == (1 if prueba else 0))
+    if desde:
+        q = q.filter(ConsumoEntrega.fecha >= desde)
+    if hasta:
+        q = q.filter(ConsumoEntrega.fecha <= hasta)
+    return q.order_by(ConsumoEntrega.fecha.desc(), ConsumoEntrega.id.desc()).limit(ULTIMOS_CONSULTA).all()
+
+
+def frascos_disponibles(db: Session, tecnico: ConsumoTecnico, prueba: bool = False) -> list[dict]:
+    """Frascos que un técnico tiene en uso (para trasladarlos)."""
+    frascos = (db.query(ConsumoFrasco).join(ConsumoEntrega)
+               .filter(func.coalesce(ConsumoFrasco.tecnico_actual_id, ConsumoEntrega.tecnico_id) == tecnico.id,
+                       ConsumoFrasco.estado == "EN_USO", ConsumoEntrega.estado == "ACTIVO",
+                       ConsumoEntrega.prueba == (1 if prueba else 0))
+               .order_by(ConsumoEntrega.fecha, ConsumoFrasco.id).all())
+    hoy = hoy_colombia()
+    salida = []
+    for f in frascos:
+        medidas = medidas_de(f.materia)
+        dias = (hoy - f.entrega.fecha).days
+        salida.append({"id": f.id, "materia": f.materia.descripcion, "lote": f.lote, "ref": f.ref, "serie": f.serie,
+                       "entrega": f.entrega_id, "fechaEntrega": f.entrega.fecha.isoformat(), "dias": dias,
+                       "alerta": bool(f.materia.dias_alerta) and dias > f.materia.dias_alerta,
+                       "acumulado": round(sum(j.total for j in f.jornadas), 2), "gotas": round(sum(j.gotas or 0 for j in f.jornadas), 2),
+                       "midesArcos": "arcos" in medidas, "midesGotas": "gotas" in medidas,
+                       "recibidoDe": _nombre_tecnico(f.traslados[-1].de_tecnico) if f.tecnico_actual_id and f.traslados else ""})
+    return salida
+
+
+def trasladar_varios(db: Session, user: Empleado, frasco_ids: list[int], a_tecnico_id: int, motivo: str) -> str | None:
+    """Traslada varios frascos a la vez: si alguno no se puede, no se traslada ninguno."""
+    ids = list(dict.fromkeys(int(i) for i in (frasco_ids or []) if i))
+    if not ids:
+        return "Elige al menos un frasco para trasladar."
+    frascos = [db.get(ConsumoFrasco, i) for i in ids]
+    if any(f is None for f in frascos):
+        return "Uno de los frascos no existe."
+    for f in frascos:
+        error = trasladar_frasco(db, user, f, a_tecnico_id, motivo, guardar=False)
+        if error:
+            db.rollback()
+            return f"Frasco {f.serie}: {error}"
+    db.commit()
+    return None
+
+
+def historial_traslados(db: Session, user: Empleado, prueba: bool = False, desde: date | None = None, hasta: date | None = None,
+                        tecnico_id: int | None = None) -> list[dict]:
+    """Últimos 100 traslados de frascos de los técnicos visibles (origen o destino)."""
+    visibles = {t.id for t in tecnicos_visibles(db, user)}
+    q = (db.query(ConsumoTraslado).join(ConsumoFrasco, ConsumoTraslado.frasco_id == ConsumoFrasco.id).join(ConsumoEntrega)
+         .filter(ConsumoEntrega.prueba == (1 if prueba else 0),
+                 ConsumoTraslado.de_tecnico_id.in_(visibles or [0]) | ConsumoTraslado.a_tecnico_id.in_(visibles or [0])))
+    if tecnico_id:
+        q = q.filter((ConsumoTraslado.de_tecnico_id == tecnico_id) | (ConsumoTraslado.a_tecnico_id == tecnico_id))
+    if desde:
+        q = q.filter(ConsumoTraslado.en >= datetime.combine(desde, datetime.min.time()) + timedelta(hours=5))
+    if hasta:
+        q = q.filter(ConsumoTraslado.en < datetime.combine(hasta + timedelta(days=1), datetime.min.time()) + timedelta(hours=5))
+    return [{"id": t.id, "en": _hora_col(t.en), "materia": t.frasco.materia.descripcion, "lote": t.frasco.lote, "ref": t.frasco.ref,
+             "serie": t.frasco.serie, "entrega": t.frasco.entrega_id, "de": _nombre_tecnico(t.de_tecnico), "a": _nombre_tecnico(t.a_tecnico),
+             "motivo": t.motivo, "por": nombre_propio(t.por.nombre_completo) if t.por else ""}
+            for t in q.order_by(ConsumoTraslado.en.desc()).limit(ULTIMOS_CONSULTA).all()]
+
+
+def trasladar_frasco(db: Session, user: Empleado, f: ConsumoFrasco, a_tecnico_id: int, motivo: str, guardar: bool = True) -> str | None:
     """Pasa un frasco en uso a otro técnico. Lo ya registrado queda a nombre de quien lo produjo."""
     if f.entrega.estado != "ACTIVO" or f.estado != "EN_USO":
         return "Solo se trasladan frascos en uso de entregas vigentes."
@@ -204,7 +281,8 @@ def trasladar_frasco(db: Session, user: Empleado, f: ConsumoFrasco, a_tecnico_id
         return "Escribe el motivo del traslado (mínimo 5 caracteres)."
     db.add(ConsumoTraslado(frasco_id=f.id, de_tecnico_id=actual.id, a_tecnico_id=destino.id, motivo=motivo[:500], por_id=user.id))
     f.tecnico_actual_id = destino.id
-    db.commit()
+    if guardar:
+        db.commit()
     return None
 
 
@@ -222,7 +300,7 @@ def frascos_para_jornada(db: Session, tecnico: ConsumoTecnico, fecha: date, prue
     salida = []
     for f in frascos:
         medidas = medidas_de(f.materia)
-        del_dia = [r for r in f.registros if r.fecha == fecha]
+        del_dia = [r for r in f.registros if r.fecha == fecha and _tecnico_de(r).id == tecnico.id]  # solo lo que produjo este técnico
         vigentes = [r for r in del_dia if r.estado != "ANULADO"]
         salida.append({
             "id": f.id, "materia": f.materia.descripcion, "medidas": medidas,
@@ -265,9 +343,9 @@ def guardar_jornada(db: Session, user: Empleado, tecnico: ConsumoTecnico, fecha:
         return "No puedes registrar la jornada de ese técnico."
     if fecha > hoy_colombia():
         return "La fecha de la jornada no puede ser futura."
-    if (hoy_colombia() - fecha).days > DIAS_REGISTRO_TECNICO and not puede_corregir_jornada(db, user, tecnico):
-        return (f"Solo puedes registrar jornadas de los últimos {DIAS_REGISTRO_TECNICO} días. "
-                "Para una fecha anterior, pídeselo al manager de tu área.")
+    if not dia_abierto(db, user, tecnico, fecha, prueba):
+        return (f"🔒 El día {fecha.isoformat()} está cerrado. Solicita al manager de tu área que lo abra "
+                "(botón «Solicitar abrir el día»).")
     tipos_validos = {str(t.id) for t in tipos_activos(db)}
     permitidos = {f["id"] for f in frascos_para_jornada(db, tecnico, fecha, prueba)}
     cambios = 0
@@ -412,6 +490,80 @@ def managers_del_area(db: Session, area: str) -> list[Empleado]:
             if m.empleado and m.empleado.activo]
 
 
+# ---------------- Días anteriores: el técnico solicita y el manager abre el día ----------------
+
+def _fin_de_hoy_utc() -> datetime:
+    return datetime.combine(hoy_colombia() + timedelta(days=1), datetime.min.time()) + timedelta(hours=5)
+
+
+def apertura_de(db: Session, tecnico_id: int, fecha: date, prueba: bool = False) -> ConsumoApertura | None:
+    return (db.query(ConsumoApertura).filter(ConsumoApertura.tecnico_id == tecnico_id, ConsumoApertura.fecha == fecha,
+                                             ConsumoApertura.prueba == (1 if prueba else 0))
+            .order_by(ConsumoApertura.id.desc()).first())
+
+
+def dia_abierto(db: Session, user: Empleado, tecnico: ConsumoTecnico, fecha: date, prueba: bool = False) -> bool:
+    """Hoy siempre está abierto. Un día anterior: el manager del área o un administrador; el técnico, solo si se lo abrieron."""
+    if fecha >= hoy_colombia() or puede_corregir_jornada(db, user, tecnico):
+        return True
+    a = apertura_de(db, tecnico.id, fecha, prueba)
+    return bool(a and a.estado == "APROBADA" and a.abierto_hasta and a.abierto_hasta >= datetime.utcnow())
+
+
+def serializar_apertura(a: ConsumoApertura | None) -> dict | None:
+    if not a:
+        return None
+    return {"id": a.id, "fecha": a.fecha.isoformat(), "motivo": a.motivo, "estado": a.estado,
+            "tecnico": _nombre_tecnico(a.tecnico), "tecnicoId": a.tecnico_id, "solicitadoEn": _hora_col(a.solicitado_en),
+            "resueltoPor": nombre_propio(a.resuelto_por.nombre_completo) if a.resuelto_por else "",
+            "resueltoEn": _hora_col(a.resuelto_en), "respuesta": a.respuesta or "",
+            "vigente": a.estado == "APROBADA" and bool(a.abierto_hasta) and a.abierto_hasta >= datetime.utcnow()}
+
+
+def solicitar_apertura(db: Session, user: Empleado, tecnico: ConsumoTecnico, fecha: date, motivo: str,
+                       prueba: bool = False) -> ConsumoApertura | str:
+    if tecnico.empleado_id != user.id:
+        return "Solo el técnico solicita abrir un día de su propia jornada."
+    if fecha >= hoy_colombia():
+        return "El día de hoy ya está abierto; solo se solicitan días anteriores."
+    actual = apertura_de(db, tecnico.id, fecha, prueba)
+    if actual and actual.estado == "SOLICITADA":
+        return "Ya hay una solicitud pendiente para ese día."
+    if actual and actual.estado == "APROBADA" and serializar_apertura(actual)["vigente"]:
+        return "Ese día ya está abierto."
+    motivo = (motivo or "").strip()
+    if len(motivo) < 5:
+        return "Escribe por qué necesitas registrar ese día (mínimo 5 caracteres)."
+    a = ConsumoApertura(tecnico_id=tecnico.id, fecha=fecha, motivo=motivo[:500], prueba=1 if prueba else 0,
+                        solicitado_por_id=user.id, solicitado_en=datetime.utcnow())
+    db.add(a)
+    db.commit()
+    return a
+
+
+def resolver_apertura(db: Session, user: Empleado, a: ConsumoApertura, aprobar: bool, respuesta: str = "") -> str | None:
+    if not puede_corregir_jornada(db, user, a.tecnico):
+        return "Solo el manager del área del técnico o un administrador abre días."
+    if a.estado != "SOLICITADA":
+        return "Esa solicitud ya fue respondida."
+    respuesta = (respuesta or "").strip()
+    if not aprobar and len(respuesta) < 3:
+        return "Escribe por qué no se abre el día."
+    a.estado = "APROBADA" if aprobar else "RECHAZADA"
+    a.resuelto_por_id, a.resuelto_en, a.respuesta = user.id, datetime.utcnow(), respuesta[:500] or None
+    a.abierto_hasta = _fin_de_hoy_utc() if aprobar else None
+    db.commit()
+    return None
+
+
+def aperturas_pendientes(db: Session, user: Empleado, prueba: bool = False) -> list[dict]:
+    admin, area = es_admin(user), area_manager(db, user)
+    if not admin and not area:
+        return []
+    q = db.query(ConsumoApertura).filter(ConsumoApertura.estado == "SOLICITADA", ConsumoApertura.prueba == (1 if prueba else 0))
+    return [serializar_apertura(a) for a in q.order_by(ConsumoApertura.solicitado_en).all() if admin or a.tecnico.area == area]
+
+
 def limpiar_pruebas(db: Session) -> dict:
     """Borra solo lo hecho en modo pruebas (entregas con prueba=1, sus frascos, traslados y registros)."""
     entregas = [i for (i,) in db.query(ConsumoEntrega.id).filter(ConsumoEntrega.prueba == 1)]
@@ -422,6 +574,7 @@ def limpiar_pruebas(db: Session) -> dict:
     db.query(ConsumoTraslado).filter(ConsumoTraslado.frasco_id.in_(frascos or [0])).delete(synchronize_session=False)
     db.query(ConsumoFrasco).filter(ConsumoFrasco.id.in_(frascos or [0])).delete(synchronize_session=False)
     db.query(ConsumoEntrega).filter(ConsumoEntrega.id.in_(entregas or [0])).delete(synchronize_session=False)
+    db.query(ConsumoApertura).filter(ConsumoApertura.prueba == 1).delete(synchronize_session=False)
     db.commit()
     return n
 
@@ -437,6 +590,7 @@ def limpiar_movimientos(db: Session) -> dict:
     antes = contar_movimientos(db)
     db.query(ConsumoJornada).delete(synchronize_session=False)
     db.query(ConsumoTraslado).delete(synchronize_session=False)
+    db.query(ConsumoApertura).delete(synchronize_session=False)
     db.query(ConsumoFrasco).delete(synchronize_session=False)
     db.query(ConsumoEntrega).delete(synchronize_session=False)
     db.commit()
@@ -566,3 +720,241 @@ def reportes(db: Session, desde: date | None, hasta: date | None, tecnico_id: in
         "lotes": sorted(lotes, key=lambda x: (x["materia"], x["lote"])),
         "wip": sorted(wip, key=lambda x: (not x["alerta"], -x["dias"])),
     }
+
+
+# ---------------- Reporte general (mensual, todos los técnicos) ----------------
+
+MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+
+
+def _numero(texto: str | None) -> float | None:
+    """Contenido del frasco como número (ej. «5», «258», «4,5 g»)."""
+    m = re.search(r"\d+(?:[.,]\d+)?", texto or "")
+    return float(m.group(0).replace(",", ".")) if m else None
+
+
+def _unidad(presentacion: str | None) -> str:
+    p = (presentacion or "").upper()
+    return "g" if p.startswith("GRAM") else ("ml" if p.startswith(("MILI", "MILL")) else (presentacion or "").lower())
+
+
+def _mes_anterior(anio: int, mes: int, n: int = 1) -> tuple[int, int]:
+    total = anio * 12 + (mes - 1) - n
+    return total // 12, total % 12 + 1
+
+
+def _dias_habiles(ini: date, fin: date) -> list[date]:
+    return [ini + timedelta(days=i) for i in range((fin - ini).days + 1) if (ini + timedelta(days=i)).weekday() < 5]
+
+
+def _metricas_mes(frascos: list[ConsumoFrasco], tecs: dict[int, ConsumoTecnico], anio: int, mes: int) -> dict[int, dict]:
+    """Mediciones de un mes por técnico (solo técnicos de `tecs`)."""
+    ini = date(anio, mes, 1)
+    fin = date(anio, mes, calendar.monthrange(anio, mes)[1])
+    corte = min(fin, hoy_colombia())
+    habiles = _dias_habiles(ini, corte) if corte >= ini else []
+    out: dict[int, dict] = {}
+
+    def fila(tid: int) -> dict:
+        return out.setdefault(tid, {"arcos": 0.0, "tipos": {}, "dias": set(), "registros": 0, "anulados": 0, "solicitudes": 0,
+                                    "gotas": 0.0, "arcosGotas": 0.0, "consumidos": 0, "arcosConsumidos": 0.0, "duraciones": [],
+                                    "enUso": 0, "alertas": 0, "recibidos": 0, "entregados": 0})
+
+    for f in frascos:
+        medidas = medidas_de(f.materia)
+        for r in f.registros:
+            if not (ini <= r.fecha <= fin):
+                continue
+            tec = _tecnico_de(r)
+            if tec.id not in tecs:
+                continue
+            t = fila(tec.id)
+            t["registros"] += 1
+            if r.solicitado_en or r.solicitud_motivo:
+                t["solicitudes"] += 1
+            if r.estado == "ANULADO":
+                t["anulados"] += 1
+                continue
+            t["arcos"] += r.total
+            for tid, cant in json.loads(r.arcos or "{}").items():
+                t["tipos"][tid] = t["tipos"].get(tid, 0) + cant
+            if r.total or r.gotas:
+                t["dias"].add(r.fecha)
+            if r.gotas:
+                t["gotas"] += r.gotas
+                if "arcos" in medidas:
+                    t["arcosGotas"] += r.total
+        duenio = f.tecnico_vigente
+        if f.estado == "CONSUMIDO" and f.consumido_en and ini <= f.consumido_en <= fin and duenio.id in tecs and "arcos" in medidas:
+            t = fila(duenio.id)
+            t["consumidos"] += 1
+            t["arcosConsumidos"] += sum(j.total for j in f.jornadas)
+            t["duraciones"].append((f.consumido_en - f.entrega.fecha).days)
+        abierto = f.entrega.fecha <= corte and (f.estado == "EN_USO" or (f.consumido_en and f.consumido_en > corte))
+        if abierto and duenio.id in tecs and corte >= ini:
+            t = fila(duenio.id)
+            t["enUso"] += 1
+            if f.materia.dias_alerta and (corte - f.entrega.fecha).days > f.materia.dias_alerta:
+                t["alertas"] += 1
+        for tr in f.traslados:
+            d = (tr.en - timedelta(hours=5)).date()
+            if ini <= d <= fin:
+                if tr.de_tecnico_id in tecs:
+                    fila(tr.de_tecnico_id)["entregados"] += 1
+                if tr.a_tecnico_id in tecs:
+                    fila(tr.a_tecnico_id)["recibidos"] += 1
+    for t in out.values():
+        t["diasHabiles"] = len(habiles)
+        t["diasHabilesConRegistro"] = len([d for d in t["dias"] if d.weekday() < 5])
+    return out
+
+
+def _semaforo(valor: float | None, verde: float, amarillo: float, mayor_es_mejor: bool = True) -> str:
+    if valor is None:
+        return ""
+    if mayor_es_mejor:
+        return "verde" if valor >= verde else ("amarillo" if valor >= amarillo else "rojo")
+    return "verde" if valor <= verde else ("amarillo" if valor <= amarillo else "rojo")
+
+
+def reporte_general(db: Session, user: Empleado, anio: int, mes: int, area: str = "", tecnico_id: int | None = None,
+                    prueba: bool = False) -> dict:
+    """Mide a todos los técnicos (visibles) en un mes: producción, rendimiento, consumo, cumplimiento y calidad del registro."""
+    tecs = {t.id: t for t in tecnicos_visibles(db, user) if not area or t.area == area}
+    tipos = tipos_activos(db)
+    frascos = (db.query(ConsumoFrasco).join(ConsumoEntrega)
+               .options(joinedload(ConsumoFrasco.materia), joinedload(ConsumoFrasco.registros), joinedload(ConsumoFrasco.traslados),
+                        joinedload(ConsumoFrasco.entrega).joinedload(ConsumoEntrega.tecnico).joinedload(ConsumoTecnico.empleado))
+               .filter(ConsumoEntrega.estado == "ACTIVO", ConsumoEntrega.prueba == (1 if prueba else 0)).all())
+    actual = _metricas_mes(frascos, tecs, anio, mes)
+    pa, pm = _mes_anterior(anio, mes)
+    anterior = _metricas_mes(frascos, tecs, pa, pm)
+    meses6 = [_mes_anterior(anio, mes, n) for n in range(5, -1, -1)]
+    evolucion = {ym: _metricas_mes(frascos, tecs, *ym) for ym in meses6[:-2]}
+    evolucion[(pa, pm)], evolucion[(anio, mes)] = anterior, actual
+
+    def apf(t: dict) -> float | None:
+        return t["arcosConsumidos"] / t["consumidos"] if t["consumidos"] else None
+
+    def gpa(t: dict) -> float | None:
+        return t["gotas"] / t["arcosGotas"] if t["arcosGotas"] else None
+
+    tot_cons = sum(t["consumidos"] for t in actual.values())
+    prom_apf = sum(t["arcosConsumidos"] for t in actual.values()) / tot_cons if tot_cons else None
+    tot_ag = sum(t["arcosGotas"] for t in actual.values())
+    prom_gpa = sum(t["gotas"] for t in actual.values() if t["arcosGotas"]) / tot_ag if tot_ag else None
+    filas = []
+    for tid, t in actual.items():
+        if not (t["registros"] or t["consumidos"] or t["enUso"] or t["recibidos"] or t["entregados"]):
+            continue
+        if tecnico_id and tid != tecnico_id:
+            continue
+        tec, ant = tecs[tid], anterior.get(tid, {})
+        a, g = apf(t), gpa(t)
+        cumpl = round(t["diasHabilesConRegistro"] * 100 / t["diasHabiles"]) if t["diasHabiles"] else None
+        rend = round(a * 100 / prom_apf) if a is not None and prom_apf else None
+        gotas_idx = round(g * 100 / prom_gpa) if g is not None and prom_gpa else None
+        error = round(t["anulados"] * 100 / t["registros"], 1) if t["registros"] else None
+        arcos_ant = ant.get("arcos", 0)
+        filas.append({
+            "tecnicoId": tid, "tecnico": _nombre_tecnico(tec), "area": tec.area,
+            "arcos": round(t["arcos"], 2), "tipos": t["tipos"], "dias": len(t["dias"]),
+            "arcosDia": round(t["arcos"] / len(t["dias"]), 1) if t["dias"] else None,
+            "cumplimiento": cumpl, "cumplimientoSem": _semaforo(cumpl, 90, 70),
+            "diasHabiles": t["diasHabiles"], "diasConRegistro": t["diasHabilesConRegistro"],
+            "consumidos": t["consumidos"], "arcosPorFrasco": round(a, 1) if a is not None else None,
+            "rendimiento": rend, "rendimientoSem": _semaforo(rend, 95, 80),
+            "gotas": round(t["gotas"], 2), "gotasPorArco": round(g, 2) if g is not None else None,
+            "gotasIndice": gotas_idx, "gotasSem": _semaforo(gotas_idx, 105, 120, mayor_es_mejor=False),
+            "duracion": round(sum(t["duraciones"]) / len(t["duraciones"]), 1) if t["duraciones"] else None,
+            "enUso": t["enUso"], "alertas": t["alertas"],
+            "registros": t["registros"], "solicitudes": t["solicitudes"], "anulados": t["anulados"], "error": error,
+            "errorSem": _semaforo(error, 5, 10, mayor_es_mejor=False),
+            "recibidos": t["recibidos"], "entregados": t["entregados"],
+            "variacionArcos": round((t["arcos"] - arcos_ant) * 100 / arcos_ant) if arcos_ant else None,
+            "arcosMesAnterior": round(arcos_ant, 2),
+            "evolucion": [round(evolucion[ym].get(tid, {}).get("arcos", 0), 2) for ym in meses6],
+        })
+    filas.sort(key=lambda x: -x["arcos"])
+    for i, x in enumerate(filas, start=1):
+        x["puesto"] = i
+
+    # Rendimiento por lote del mes (frascos consumidos en el mes)
+    ini = date(anio, mes, 1)
+    fin = date(anio, mes, calendar.monthrange(anio, mes)[1])
+    del_mes = [f for f in frascos if f.estado == "CONSUMIDO" and f.consumido_en and ini <= f.consumido_en <= fin
+               and f.tecnico_vigente.id in tecs and (not tecnico_id or f.tecnico_vigente.id == tecnico_id)
+               and "arcos" in medidas_de(f.materia)]
+    lotes: dict[tuple, dict] = {}
+    for f in del_mes:
+        m = lotes.setdefault((f.materia.descripcion, f.lote), {"materia": f.materia.descripcion, "lote": f.lote, "frascos": 0, "arcos": 0.0})
+        m["frascos"] += 1
+        m["arcos"] += sum(j.total for j in f.jornadas)
+    prom_mat: dict[str, float] = {}
+    for mat in {m["materia"] for m in lotes.values()}:
+        g = [m for m in lotes.values() if m["materia"] == mat]
+        prom_mat[mat] = sum(m["arcos"] for m in g) / sum(m["frascos"] for m in g)
+    lotes_out = [{**m, "arcos": round(m["arcos"], 2), "promedio": round(m["arcos"] / m["frascos"], 1),
+                  "promedioMateria": round(prom_mat[m["materia"]], 1),
+                  "bajo": prom_mat[m["materia"]] > 0 and m["arcos"] / m["frascos"] < prom_mat[m["materia"]] * 0.8}
+                 for m in lotes.values()]
+
+    # Consumo promedio por materia prima y tipo de arco (el consumo de cada frasco se reparte según los arcos de cada tipo)
+    por_mt: dict[int, dict] = {}
+    for f in del_mes:
+        vig = [j for j in f.jornadas]
+        total = sum(j.total for j in vig)
+        if not total:
+            continue
+        c = _numero(f.materia.contenido)
+        x = por_mt.setdefault(f.materia_id, {"materia": f.materia.descripcion, "unidad": _unidad(f.materia.presentacion),
+                                             "contenido": c, "frascos": 0, "tipos": {}})
+        x["frascos"] += 1
+        por_tipo: dict[str, float] = {}
+        for j in vig:
+            for tid, cant in json.loads(j.arcos or "{}").items():
+                por_tipo[tid] = por_tipo.get(tid, 0) + cant
+        for tid, cant in por_tipo.items():
+            y = x["tipos"].setdefault(tid, {"arcos": 0.0, "frascosEq": 0.0, "consumo": 0.0, "gotas": 0.0, "arcosGotas": 0.0})
+            y["arcos"] += cant
+            y["frascosEq"] += cant / total
+            if c:
+                y["consumo"] += c * cant / total
+    # gotas por tipo: las gotas de cada registro se reparten según los arcos de ese registro (registros del mes)
+    for f in frascos:
+        if "gotas" not in medidas_de(f.materia) or "arcos" not in medidas_de(f.materia):
+            continue
+        for j in f.jornadas:
+            if not (ini <= j.fecha <= fin) or not j.gotas or not j.total or _tecnico_de(j).id not in tecs:
+                continue
+            if tecnico_id and _tecnico_de(j).id != tecnico_id:
+                continue
+            x = por_mt.setdefault(f.materia_id, {"materia": f.materia.descripcion, "unidad": _unidad(f.materia.presentacion),
+                                                 "contenido": _numero(f.materia.contenido), "frascos": 0, "tipos": {}})
+            for tid, cant in json.loads(j.arcos or "{}").items():
+                y = x["tipos"].setdefault(tid, {"arcos": 0.0, "frascosEq": 0.0, "consumo": 0.0, "gotas": 0.0, "arcosGotas": 0.0})
+                y["gotas"] += j.gotas * cant / j.total
+                y["arcosGotas"] += cant
+    consumo_tipo = []
+    for x in sorted(por_mt.values(), key=lambda v: v["materia"]):
+        celdas = {}
+        for tid, y in x["tipos"].items():
+            celdas[tid] = {
+                "arcos": round(y["arcos"], 2),
+                "arcosPorFrasco": round(y["arcos"] / y["frascosEq"], 1) if y["frascosEq"] else None,
+                "consumoPorArco": round(y["consumo"] / y["arcos"], 3) if y["arcos"] and y["consumo"] else None,
+                "gotasPorArco": round(y["gotas"] / y["arcosGotas"], 2) if y["arcosGotas"] else None,
+            }
+        consumo_tipo.append({"materia": x["materia"], "unidad": x["unidad"], "contenido": x["contenido"],
+                             "frascos": x["frascos"], "tipos": celdas})
+    return {
+        "anio": anio, "mes": mes, "nombreMes": f"{MESES[mes - 1]} {anio}",
+        "meses": [f"{MESES[m - 1][:3]} {str(a)[2:]}" for a, m in meses6],
+        "tipos": [{"id": str(t.id), "nombre": t.nombre} for t in tipos],
+        "promedios": {"arcosPorFrasco": round(prom_apf, 1) if prom_apf else None, "gotasPorArco": round(prom_gpa, 2) if prom_gpa else None,
+                      "arcos": round(sum(x["arcos"] for x in filas), 2), "consumidos": sum(x["consumidos"] for x in filas),
+                      "tecnicos": len(filas),
+                      "cumplimiento": round(sum(x["cumplimiento"] or 0 for x in filas) / len(filas)) if filas else None},
+        "tecnicos": filas, "lotes": sorted(lotes_out, key=lambda v: (v["materia"], v["lote"])), "consumoTipo": consumo_tipo,
+    }
+

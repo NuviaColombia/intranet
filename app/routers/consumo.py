@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
 from ..models_consumo import (ConsumoMateria, ConsumoTipo, ConsumoTecnico, ConsumoManager, ConsumoEntrega, ConsumoJornada,
-                              ConsumoFrasco, ConsumoTraslado)
+                              ConsumoFrasco, ConsumoTraslado, ConsumoApertura)
 from ..auth import require_admin
 from ..acceso_produccion import require_admin_produccion, require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
 from ..formato import nombre_propio
@@ -39,8 +39,9 @@ def _columnas_consumo() -> None:
     from ..database import engine
     try:
         ConsumoTraslado.__table__.create(bind=engine, checkfirst=True)
+        ConsumoApertura.__table__.create(bind=engine, checkfirst=True)
     except Exception as e:  # otro proceso la acaba de crear
-        print(f"Consumo: tabla consumo_traslados ({type(e).__name__}).")
+        print(f"Consumo: tablas nuevas ({type(e).__name__}).")
     try:
         with engine.begin() as conn:
             for tabla, nuevas in COLUMNAS_NUEVAS.items():
@@ -124,7 +125,7 @@ class TrasladoIn(BaseModel):
 
 @router.post("/consumo/api/frascos/{frasco_id}/trasladar")
 def api_trasladar(frasco_id: int, payload: TrasladoIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
-    acs.exigir(db, user, "consumo", 'consulta')
+    acs.exigir(db, user, "consumo", 'traslado')
     f = db.get(ConsumoFrasco, frasco_id)
     if not f:
         raise HTTPException(404, "Frasco no encontrado.")
@@ -139,7 +140,7 @@ def api_trasladar(frasco_id: int, payload: TrasladoIn, user: Empleado = Depends(
 def pagina(request: Request, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     sc.asegurar_tipos(db)
     puede = sc.puede_entregar(db, user)
-    secciones = [s for s in acs.secciones_de(db, user, SUB) if puede or s not in ("entrega", "consulta")]
+    secciones = [s for s in acs.secciones_de(db, user, SUB) if puede or s not in ("entrega", "consulta", "traslado", "general")]
     return templates.TemplateResponse(request, "consumo.html", {
         "user": user, "es_consumo": True, "puede_entregar": puede, "area_manager": sc.area_manager(db, user),
         "secciones": secciones, "consumo_tab_inicial": secciones[0] if secciones else "", "modo_pruebas": _prueba(request)})
@@ -158,7 +159,8 @@ def api_datos(request: Request, user: Empleado = Depends(require_submodulo(SUB))
         "areaManager": area, "esAdmin": sc.es_admin(user), "puedeEntregar": sc.puede_entregar(db, user),
         "puedeEditar": sc.puede_entregar(db, user) or sc.mi_tecnico(db, user) is not None,  # jornada
         "manager": nombre_propio(user.nombre_completo), "hoy": sc.hoy_colombia().isoformat(),
-        "modoPruebas": _prueba(request), "diasRegistroTecnico": sc.DIAS_REGISTRO_TECNICO,
+        "modoPruebas": _prueba(request),
+        "areas": sorted({t.area for t in sc.tecnicos_visibles(db, user) if t.area}),
     }
 
 
@@ -189,14 +191,111 @@ def api_crear_entrega(payload: EntregaIn, request: Request, user: Empleado = Dep
 
 
 @router.get("/consumo/api/entregas")
-def api_entregas(request: Request, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+def api_entregas(request: Request, desde: str = "", hasta: str = "", tecnico_id: int = 0,
+                 user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     acs.exigir(db, user, "consumo", 'consulta')
-    visibles = {t.id for t in sc.tecnicos_visibles(db, user)}
-    recibidos = {e for (e,) in db.query(ConsumoFrasco.entrega_id).filter(ConsumoFrasco.tecnico_actual_id.in_(visibles or [0]))}
-    entregas = (db.query(ConsumoEntrega).filter(ConsumoEntrega.tecnico_id.in_(visibles or [0]) | ConsumoEntrega.id.in_(recibidos or [0]),
-                                                ConsumoEntrega.prueba == (1 if _prueba(request) else 0))
-                .order_by(ConsumoEntrega.id.desc()).limit(1000).all())
-    return {"data": [sc.serializar_entrega(e) for e in entregas]}
+    d, h = _rango(desde, hasta)
+    entregas = sc.listar_entregas(db, user, _prueba(request), d, h, tecnico_id or None)
+    return {"data": [sc.serializar_entrega(e) for e in entregas], "limite": sc.ULTIMOS_CONSULTA}
+
+
+def _solo_managers(db: Session, user: Empleado) -> None:
+    if not sc.puede_entregar(db, user):
+        raise HTTPException(403, "Esta sección es solo para managers y administradores.")
+
+
+@router.get("/consumo/api/traslados/frascos")
+def api_frascos_traslado(tecnico_id: int, request: Request, user: Empleado = Depends(require_submodulo(SUB)),
+                         db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'traslado')
+    _solo_managers(db, user)
+    return {"frascos": sc.frascos_disponibles(db, _tecnico(db, user, tecnico_id), _prueba(request))}
+
+
+class TrasladoVariosIn(BaseModel):
+    frasco_ids: list[int] = []
+    tecnico_id: int = 0
+    motivo: str = ""
+
+
+@router.post("/consumo/api/traslados")
+def api_trasladar_varios(payload: TrasladoVariosIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'traslado')
+    error = sc.trasladar_varios(db, user, payload.frasco_ids, payload.tecnico_id, payload.motivo)
+    if error:
+        raise HTTPException(400, error)
+    destino = db.get(ConsumoTecnico, payload.tecnico_id)
+    n = len(set(payload.frasco_ids))
+    return {"mensaje": f"🔁 {n} frasco{'s' if n != 1 else ''} trasladado{'s' if n != 1 else ''} a "
+                       f"{nombre_propio(destino.empleado.nombre_completo)}. Lo ya registrado sigue a nombre de quien lo produjo."}
+
+
+@router.get("/consumo/api/traslados")
+def api_historial_traslados(request: Request, desde: str = "", hasta: str = "", tecnico_id: int = 0,
+                            user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'traslado')
+    _solo_managers(db, user)
+    d, h = _rango(desde, hasta)
+    return {"data": sc.historial_traslados(db, user, _prueba(request), d, h, tecnico_id or None), "limite": sc.ULTIMOS_CONSULTA}
+
+
+def _mes(anio: int, mes: int) -> tuple[int, int]:
+    hoy = sc.hoy_colombia()
+    anio, mes = anio or hoy.year, mes or hoy.month
+    if not (1 <= mes <= 12 and 2000 <= anio <= 2100):
+        raise HTTPException(400, "Mes inválido.")
+    return anio, mes
+
+
+@router.get("/consumo/api/general")
+def api_general(request: Request, anio: int = 0, mes: int = 0, area: str = "", tecnico_id: int = 0,
+                user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'general')
+    _solo_managers(db, user)
+    a, m = _mes(anio, mes)
+    return sc.reporte_general(db, user, a, m, area, tecnico_id or None, _prueba(request))
+
+
+@router.get("/consumo/api/general/exportar")
+def api_general_exportar(request: Request, anio: int = 0, mes: int = 0, area: str = "", tecnico_id: int = 0,
+                         user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'general')
+    _solo_managers(db, user)
+    a, m = _mes(anio, mes)
+    r = sc.reporte_general(db, user, a, m, area, tecnico_id or None, _prueba(request))
+    salida = io.StringIO()
+    salida.write("\ufeff")
+    w = csv.writer(salida, delimiter=";")
+    nombres = [t["nombre"] for t in r["tipos"]]
+    w.writerow([f"REPORTE GENERAL — {r['nombreMes'].upper()}"])
+    w.writerow(["Puesto", "Técnico", "Área", "Arcos", *nombres, "Variación vs mes anterior (%)", "Días con registro",
+                "Arcos por día", "Cumplimiento (%)", "Frascos consumidos", "Arcos por frasco", "Rendimiento vs área (%)",
+                "Gotas", "Gotas por arco", "Gotas vs área (%)", "Duración frasco (días)", "Frascos en uso al cierre",
+                "Con alerta de días", "Registros", "Solicitudes de anulación", "Anulados", "Error (%)", "Traslados recibidos",
+                "Traslados entregados"])
+    v = lambda x: "" if x is None else x  # noqa: E731
+    for t in r["tecnicos"]:
+        w.writerow([t["puesto"], t["tecnico"], t["area"], t["arcos"], *[t["tipos"].get(x["id"], 0) for x in r["tipos"]],
+                    v(t["variacionArcos"]), t["dias"], v(t["arcosDia"]), v(t["cumplimiento"]), t["consumidos"], v(t["arcosPorFrasco"]),
+                    v(t["rendimiento"]), t["gotas"], v(t["gotasPorArco"]), v(t["gotasIndice"]), v(t["duracion"]), t["enUso"],
+                    t["alertas"], t["registros"], t["solicitudes"], t["anulados"], v(t["error"]), t["recibidos"], t["entregados"]])
+    w.writerow([])
+    w.writerow(["CONSUMO PROMEDIO POR MATERIA PRIMA Y TIPO DE ARCO"])
+    w.writerow(["Materia prima", "Contenido", "Frascos consumidos", "Tipo", "Arcos", "Arcos por frasco", "Consumo por arco", "Gotas por arco"])
+    for x in r["consumoTipo"]:
+        for t in r["tipos"]:
+            c = x["tipos"].get(t["id"])
+            if c:
+                w.writerow([x["materia"], f"{v(x['contenido'])} {x['unidad']}", x["frascos"], t["nombre"], c["arcos"], v(c["arcosPorFrasco"]),
+                            v(c["consumoPorArco"]), v(c["gotasPorArco"])])
+    w.writerow([])
+    w.writerow(["RENDIMIENTO POR LOTE"])
+    w.writerow(["Materia prima", "Lote", "Frascos", "Arcos", "Arcos por frasco", "Promedio de la materia"])
+    for x in r["lotes"]:
+        w.writerow([x["materia"], x["lote"], x["frascos"], x["arcos"], x["promedio"], x["promedioMateria"]])
+    salida.seek(0)
+    return StreamingResponse(iter([salida.getvalue()]), media_type="text/csv; charset=utf-8",
+                             headers={"Content-Disposition": f'attachment; filename="reporte_general_{a}_{m:02d}.csv"'})
 
 
 class MotivoIn(BaseModel):
@@ -234,8 +333,10 @@ def api_jornada(tecnico_id: int, fecha: str, request: Request, user: Empleado = 
                 db: Session = Depends(get_db)):
     acs.exigir(db, user, "consumo", 'jornada')
     t = _tecnico(db, user, tecnico_id)
-    return {"frascos": sc.frascos_para_jornada(db, t, _fecha(fecha), _prueba(request)),
+    f, p = _fecha(fecha), _prueba(request)
+    return {"frascos": sc.frascos_para_jornada(db, t, f, p),
             "puedeCorregir": sc.puede_corregir_jornada(db, user, t),
+            "diaAbierto": sc.dia_abierto(db, user, t, f, p), "apertura": sc.serializar_apertura(sc.apertura_de(db, t.id, f, p)),
             "usuarioId": user.id, "esElTecnico": t.empleado_id == user.id}
 
 
@@ -249,7 +350,57 @@ def _registro(db: Session, registro_id: int) -> ConsumoJornada:
 @router.get("/consumo/api/jornada/solicitudes")
 def api_solicitudes(request: Request, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     acs.exigir(db, user, "consumo", 'jornada')
-    return {"solicitudes": sc.solicitudes_pendientes(db, user, _prueba(request))}
+    return {"solicitudes": sc.solicitudes_pendientes(db, user, _prueba(request)),
+            "aperturas": sc.aperturas_pendientes(db, user, _prueba(request))}
+
+
+class AperturaIn(BaseModel):
+    tecnico_id: int
+    fecha: str
+    motivo: str = ""
+
+
+@router.post("/consumo/api/jornada/aperturas")
+def api_solicitar_apertura(payload: AperturaIn, request: Request, user: Empleado = Depends(require_submodulo(SUB)),
+                           db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'jornada')
+    t = _tecnico(db, user, payload.tecnico_id)
+    a = sc.solicitar_apertura(db, user, t, _fecha(payload.fecha), payload.motivo, _prueba(request))
+    if isinstance(a, str):
+        raise HTTPException(400, a)
+    if not a.prueba:
+        _avisar_apertura(db, a)
+    return {"mensaje": f"📨 Solicitud enviada: el manager de tu área decide si abre el día {a.fecha.isoformat()}."}
+
+
+def _avisar_apertura(db: Session, a: ConsumoApertura) -> None:
+    try:
+        from ..zoho_cliq import enviar_cliq_varios, boton_enlace
+        from .. import config
+        emails = [m.email for m in sc.managers_del_area(db, a.tecnico.area) if m.email]
+        if emails:
+            enviar_cliq_varios(emails, f"📅 *Solicitud para abrir un día — Seguimiento de consumo*\n"
+                                       f"Técnico: {nombre_propio(a.tecnico.empleado.nombre_completo)} ({nombre_propio(a.tecnico.area)})\n"
+                                       f"Día: {a.fecha.isoformat()}\nMotivo: {a.motivo}",
+                               [boton_enlace("Revisar", f"{config.BASE_URL}/consumo?tab=jornada")])
+    except Exception as e:
+        print(f"Consumo: aviso de apertura de día ({type(e).__name__}: {e}).")
+
+
+@router.post("/consumo/api/jornada/aperturas/{apertura_id}/{accion}")
+def api_resolver_apertura(apertura_id: int, accion: str, payload: MotivoIn, user: Empleado = Depends(require_submodulo(SUB)),
+                          db: Session = Depends(get_db)):
+    acs.exigir(db, user, "consumo", 'jornada')
+    if accion not in ("aprobar", "rechazar"):
+        raise HTTPException(404, "Acción no válida.")
+    a = db.get(ConsumoApertura, apertura_id)
+    if not a:
+        raise HTTPException(404, "Solicitud no encontrada.")
+    error = sc.resolver_apertura(db, user, a, accion == "aprobar", payload.motivo)
+    if error:
+        raise HTTPException(400, error)
+    return {"mensaje": f"✅ Día {a.fecha.isoformat()} abierto para {nombre_propio(a.tecnico.empleado.nombre_completo)} hasta el final de hoy."
+            if accion == "aprobar" else "Solicitud rechazada: el día sigue cerrado."}
 
 
 @router.post("/consumo/api/jornada/registros/{registro_id}/solicitar-anulacion")
@@ -346,6 +497,7 @@ def api_reportes(request: Request, desde: str = "", hasta: str = "", tecnico_id:
 def api_exportar(request: Request, desde: str = "", hasta: str = "", tecnico_id: int = 0, materia_id: int = 0,
                  user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     acs.exigir(db, user, "consumo", 'reportes')
+    _solo_managers(db, user)  # los técnicos no exportan
     d, h = _rango(desde, hasta)
     r = sc.reportes(db, d, h, tecnico_id or None, materia_id or None, user, _prueba(request))
     salida = io.StringIO()
