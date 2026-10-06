@@ -155,3 +155,9 @@
 #consumo-app h3.cs-h3 { font-size: 14px; color: var(--brand-main); margin: 22px 0 8px; }
 #consumo-app .cs-detalle td { background: #F8FAFC; text-align: left; }
 @media (max-width: 760px) { #consumo-app .cs-form, #consumo-app .cm-kpis.cinco { grid-template-columns: 1fr 1fr; } }
+
+/* ===== Diseño compacto (Producción): menos márgenes, bordes y sombras ===== */
+#consumo-app .cm-main { padding: 14px 16px; box-shadow: none; border-radius: 10px; }
+#consumo-app .cm-barra { margin-bottom: 10px; }
+#consumo-app .cm-filtros { padding: 8px 12px; margin-bottom: 10px; gap: 10px; border-radius: 10px; box-shadow: none; }
+#consumo-app .cm-tabla td { padding: 6px 10px; }

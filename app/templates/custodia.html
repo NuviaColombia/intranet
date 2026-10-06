@@ -190,6 +190,41 @@
   @media print {
     #custodia-app .main-container, #custodia-app .nav-tabs, #custodia-app .modal { display: none !important; }
   }
+
+  /* ===== Diseño compacto: menos márgenes, bordes y sombras para dar más espacio a la información ===== */
+  #custodia-app .content-section { padding: 12px 14px; }
+  #custodia-app .main-container { box-shadow: none; border-radius: 10px; }
+  #custodia-app .consulta-filtros { padding: 8px 12px; margin-bottom: 10px; gap: 10px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .consulta-filtros h4 { font-size: 14px !important; }
+  #custodia-app .consulta-filtros label { font-size: 12px; }
+  #custodia-app .consulta-filtros select, #custodia-app .consulta-filtros input[type="date"], #custodia-app .consulta-filtros input[type="text"],
+  #custodia-app .consulta-filtros input[type="number"] { padding: 6px 10px; }
+  #custodia-app .split-layout { gap: 12px; }
+  #custodia-app .split-panel { padding: 12px 14px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .split-panel h4 { margin-bottom: 8px; padding-bottom: 6px; border-bottom-width: 1px; }
+  #custodia-app .split-panel > div[style*="border-bottom: 2px"] { border-bottom-width: 1px !important; padding-bottom: 6px !important; margin-bottom: 10px !important; }
+  #custodia-app #sec-activas input[type="text"], #custodia-app #sec-activas input[type="date"] { padding: 6px 10px !important; }
+  #custodia-app .dash-panel { padding: 12px 14px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .dash-panel h4 { margin-bottom: 10px; }
+  #custodia-app .dash-grid-full { gap: 12px; margin-bottom: 12px; }
+  #custodia-app .dash-kpi-container { gap: 12px; margin-bottom: 12px; }
+  #custodia-app .kpi-card { padding: 10px 14px; border-radius: 10px; box-shadow: none; }
+  #custodia-app .kpi-card:hover { transform: none; box-shadow: none; }
+  #custodia-app .kpi-card h5 { font-size: 11.5px; }
+  #custodia-app .kpi-card p { margin-top: 2px; font-size: 22px; }
+  #custodia-app .consulta-tabla-wrapper { border-radius: 8px; box-shadow: none; margin-bottom: 10px; }
+  #custodia-app .consulta-tabla th { padding: 7px 10px; }
+  #custodia-app .consulta-tabla td { padding: 6px 10px; }
+  #custodia-app .split-panel .consulta-tabla th { padding: 7px 8px; }
+  #custodia-app .split-panel .consulta-tabla td { padding: 6px 8px; }
+  #custodia-app .btn { padding: 7px 14px; }
+  #custodia-app .dropdown-check-list .anchor { padding: 6px 28px 6px 12px; }
+  #custodia-app .eo-kpis { gap: 10px; margin-bottom: 10px; }
+  #custodia-app .eo-kpi { padding: 8px 12px; border-radius: 10px; }
+  #custodia-app .eo-kpi b { font-size: 20px; }
+  #custodia-app .eo-chips { margin-bottom: 10px; }
+  #custodia-app .eo-grid { gap: 10px; }
+  #custodia-app .eo-card { box-shadow: none; border-top-width: 3px; border-radius: 10px; }
 </style>
 
 <div id="custodia-app">
@@ -513,8 +548,8 @@
       </div>
 
       <div class="dash-grid-full">
-        <div class="dash-panel"><h4>📈 Existencias netas (áreas seleccionadas)</h4><div style="position: relative; height:320px;"><canvas id="chartExistencias"></canvas></div></div>
-        <div class="dash-panel"><h4>🍩 Motivos de salida (áreas seleccionadas)</h4><div style="position: relative; height:320px;"><canvas id="chartMotivos"></canvas></div></div>
+        <div class="dash-panel"><h4>📈 Existencias netas (áreas seleccionadas)</h4><div style="position: relative; height:240px;"><canvas id="chartExistencias"></canvas></div></div>
+        <div class="dash-panel"><h4>🍩 Motivos de salida (áreas seleccionadas)</h4><div style="position: relative; height:240px;"><canvas id="chartMotivos"></canvas></div></div>
       </div>
 
       <div class="dash-panel">
