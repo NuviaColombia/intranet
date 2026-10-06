@@ -389,6 +389,12 @@ TRASLADO_HOLD_DESDE = date(2026, 9, 22)
 ESTADO_HTML = "Html"
 AREA_HTML = "N2 Demodenture"
 TRASLADO_HTML_DESDE = date(2026, 10, 6)
+# Todas las áreas: las órdenes en "Ready to design" también pasan al siguiente día hábil (pedido por Rosember el
+# 6-oct-2026; las de días anteriores se quedan y las que ya se pasaron a mano se limpian en Parámetros).
+ESTADO_READY = "Ready to design"
+TRASLADO_READY_DESDE = date(2026, 10, 6)
+# Un mismo número de orden puede estar hasta 5 veces en el horario de un equipo el mismo día.
+MAX_REPETICIONES_ORDEN = 5
 
 
 def ahora_colombia() -> datetime:
@@ -479,7 +485,11 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                     .filter(func.lower(DesignOrden.estado) == ESTADO_HTML.lower(), DesignOrden.team_id.in_(equipos_html),
                             DesignOrden.fecha >= TRASLADO_HTML_DESDE, DesignOrden.fecha <= cerrado_hasta)
                     .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
-        ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
+    ordenes += (db.query(DesignOrden)
+                .filter(func.lower(DesignOrden.estado) == ESTADO_READY.lower(),
+                        DesignOrden.fecha >= TRASLADO_READY_DESDE, DesignOrden.fecha <= cerrado_hasta)
+                .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
     libres = festivos(db) if ordenes else set()
     for o in ordenes:
         destino = siguiente_dia_habil(o.fecha, libres)  # se saltan sábados, domingos y festivos de la empresa
@@ -1146,8 +1156,10 @@ def buscar_ordenes(db: Session, texto: str, user: Empleado | None = None) -> lis
     return out
 
 
-def orden_repetida(db: Session, team_id: int, fecha: date, orden: str, excluir_id: int | None = None) -> bool:
-    """¿Ya hay otra orden con ese número en el horario del equipo ese día (Cirugías y Nightguards)?"""
+def orden_repetida(db: Session, team_id: int, fecha: date, orden: str, excluir_id: int | None = None,
+                   mas: int = 0) -> bool:
+    """¿El número ya llegó al máximo de veces (MAX_REPETICIONES_ORDEN) en el horario del equipo ese día (Cirugías y
+    Nightguards)? `mas` = cuántas más se van a crear con el mismo número en el mismo lote."""
     orden = (orden or "").strip().upper()
     if not orden:
         return False
@@ -1155,7 +1167,29 @@ def orden_repetida(db: Session, team_id: int, fecha: date, orden: str, excluir_i
                                         func.upper(func.trim(DesignOrden.orden)) == orden)
     if excluir_id is not None:
         q = q.filter(DesignOrden.id != excluir_id)
-    return q.first() is not None
+    return q.count() + mas >= MAX_REPETICIONES_ORDEN
+
+
+def ready_movidas_a_mano(db: Session, hoy: date | None = None) -> list[dict]:
+    """Órdenes en "Ready to design" de días anteriores cuyo mismo número ya está en un día posterior del mismo equipo
+    (alguien la pasó a mano al día siguiente). Para revisarlas y borrarlas en Parámetros."""
+    hoy = hoy or ahora_colombia().date()
+    viejas = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area), joinedload(DesignOrden.designer))
+              .filter(func.lower(DesignOrden.estado) == ESTADO_READY.lower(), DesignOrden.fecha < hoy,
+                      func.coalesce(DesignOrden.orden, "") != "")
+              .order_by(DesignOrden.fecha, DesignOrden.team_id, DesignOrden.id).all())
+    out = []
+    for o in viejas:
+        n = (o.orden or "").strip().upper()
+        despues = (db.query(DesignOrden).filter(DesignOrden.team_id == o.team_id, DesignOrden.fecha > o.fecha,
+                                                func.upper(func.trim(DesignOrden.orden)) == n)
+                   .order_by(DesignOrden.fecha).first())
+        if not despues:
+            continue
+        out.append({"id": o.id, "orden": o.orden, "paciente": o.paciente, "fecha": o.fecha.isoformat(), "area": o.team.area.nombre,
+                    "equipo": o.team.nombre, "disenador": o.designer.nombre_completo if o.designer else (o.designer_prestado or ""),
+                    "despuesFecha": despues.fecha.isoformat(), "despuesEstado": despues.estado or ""})
+    return out
 
 
 def autocompletar_support(db: Session, orden: str) -> dict | None:

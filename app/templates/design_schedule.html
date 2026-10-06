@@ -114,8 +114,17 @@ window.dsPdfjs = function() {
   table.ds-tabla tr.ds-fila-ready td { background:#fef3c7; }
   table.ds-tabla tr.ds-fila-html td { background:#f5c9d7; }
   table.ds-tabla tr.ds-fila-aprobada td { background:#d6f5b8; }
+  /* Interruptor de colores apagado: el color del estado solo en la columna Estado */
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-hold td, body.ds-color-solo-estado table.ds-tabla tr.ds-fila-ready td,
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-html td, body.ds-color-solo-estado table.ds-tabla tr.ds-fila-aprobada td,
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-cancelada td { background:transparent; }
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-hold td:has([data-campo="estado"]) { background:#edbfab; }
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-ready td:has([data-campo="estado"]) { background:#fef3c7; }
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-html td:has([data-campo="estado"]) { background:#f5c9d7; }
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-aprobada td:has([data-campo="estado"]) { background:#d6f5b8; }
+  body.ds-color-solo-estado table.ds-tabla tr.ds-fila-cancelada td:has([data-campo="estado"]) { background:#f3f4f6; }
   /* Interruptor "Ocultar QC" (aprobadores) en la fila de Mostrar ocultas */
-  .ds-auto-oc { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#374151; margin-right:6px; cursor:pointer; user-select:none; }
+  .ds-auto-oc { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#374151; margin-right:6px; cursor:pointer; user-select:none; position:relative; }
   .ds-auto-oc input { position:absolute; opacity:0; width:1px; height:1px; }
   .ds-auto-oc .sw { width:34px; height:19px; border-radius:10px; background:#cbd5e1; position:relative; transition:background .15s; flex:none; }
   .ds-auto-oc .sw::after { content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3); transition:left .15s; }
@@ -880,7 +889,7 @@ window.dsPdfjs = function() {
           <h3 id="dsTituloPrincipal">Órdenes</h3>
           <span id="dsCandado" class="ds-candado" style="display:none" tabindex="0">🔒</span>
         </div>
-        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Encendido: las órdenes con QC se ocultan solas (en el día activo). Apagado: se ven todas."><input type="checkbox" class="ds-auto-oc-chk" role="switch"><span class="sw"></span>Ocultar QC</label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
+        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><span class="sw"></span></label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal', event)">+ Agregar orden</button></span>
       </div>
       <div id="dsTablaPrincipal"></div>
@@ -889,7 +898,7 @@ window.dsPdfjs = function() {
     <div class="ds-panel" id="dsPanelNightguard" style="display:none">
       <div class="ds-panel-h">
         <h3>Nightguards / TC</h3>
-        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Encendido: las órdenes con QC se ocultan solas (en el día activo). Apagado: se ven todas."><input type="checkbox" class="ds-auto-oc-chk" role="switch"><span class="sw"></span>Ocultar QC</label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_nightguard" style="display:none" onclick="dsVerOcultas()"></button>
+        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><span class="sw"></span></label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_nightguard" style="display:none" onclick="dsVerOcultas()"></button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard', event)">+ Agregar orden</button></span>
       </div>
       <div id="dsTablaNightguard"></div>
@@ -1758,15 +1767,17 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsEsProductoNG(v) { return /nightguard/i.test(v) || /\btc\b/i.test(v); }
 
   // ¿Ya hay otra orden con ese número hoy en este equipo? (el servidor valida también las que no se ven)
+  // Un número puede estar hasta 5 veces en el día del equipo (MAX_REPETICIONES_ORDEN en services_design.py)
+  var DS_MAX_REPETIDAS = 5;
   function dsOrdenRepetida(orden, idActual) {
     var n = String(orden || '').trim().toUpperCase();
     if (!n || !DS.diaData) return false;
-    return (DS.diaData.principal || []).concat(DS.diaData.nightguard || []).some(function(f) {
+    return (DS.diaData.principal || []).concat(DS.diaData.nightguard || []).filter(function(f) {
       return String(f.id) !== String(idActual) && String(f.orden || '').trim().toUpperCase() === n;
-    });
+    }).length >= DS_MAX_REPETIDAS;
   }
   function dsAvisoRepetida(orden) {
-    alert('⚠️ Ya existe una orden con el número "' + String(orden).trim().toUpperCase() + '" en este día. Usa un número distinto.');
+    alert('⚠️ El número de orden "' + String(orden).trim().toUpperCase() + '" ya está ' + DS_MAX_REPETIDAS + ' veces en este día (es el máximo).');
   }
 
   // Colores por estado + alertas de la orden aprobada (horas que faltan y QC pendiente), como la herramienta original.
@@ -2048,14 +2059,17 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsOcultasLeer() { try { return JSON.parse(localStorage.getItem(DS_OCULTAS_KEY) || '{}') || {}; } catch (e) { return {}; } }
   function dsOcultasGuardar(o) { try { localStorage.setItem(DS_OCULTAS_KEY, JSON.stringify(o)); } catch (e) {} }
   // estado manual: {id: 'oculta' | 'visible'}
-  // Interruptor "Ocultar QC" (por persona, en este navegador): apagado = las órdenes con QC no se ocultan solas
-  function dsAutoOcultar() { try { return localStorage.getItem('dsAutoOcultarQc') !== 'no'; } catch (e) { return true; } }
+  // Interruptor de colores (por persona, en este navegador): encendido = color del estado en toda la fila;
+  // apagado = solo en la columna Estado.
+  function dsColoresFila() { try { return localStorage.getItem('dsColoresFila') !== 'no'; } catch (e) { return true; } }
+  function dsAplicarColores() { document.body.classList.toggle('ds-color-solo-estado', !dsColoresFila()); }
+  dsAplicarColores();
   function dsEstaOculta(f, man) {
     if (dsDiaCerrado()) return false;  // ocultar aplica solo al día activo: un día cerrado muestra todas sus órdenes
     var m = man[f.id];
     if (m === 'oculta') return true;
     if (m === 'visible') return false;
-    if (!f.qc || !dsAutoOcultar()) return false;
+    if (!f.qc) return false;
     var g = DS.qcGracia[f.id];
     return !(g && Date.now() - g < 30000);
   }
@@ -2065,7 +2079,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsAplicarOcultas(tabla) {
     var btn = document.getElementById('dsOcultas_' + tabla);
     var sw = btn && btn.parentNode.querySelector('.ds-auto-oc');
-    if (sw) { sw.style.display = window.DS_GESTION && DS.diaData && !dsDiaCerrado() ? '' : 'none'; sw.querySelector('input').checked = dsAutoOcultar(); }
+    if (sw) { sw.style.display = DS.diaData ? '' : 'none'; sw.querySelector('input').checked = dsColoresFila(); }
     if (!window.DS_GESTION || !DS.diaData || (tabla !== 'principal' && tabla !== 'nightguard')) { if (btn) btn.style.display = 'none'; return; }
     var man = dsOcultasLeer(), n = 0, cambio = false;
     (DS.diaData[tabla] || []).forEach(function(f) {
@@ -2089,9 +2103,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   document.querySelectorAll('.ds-auto-oc-chk').forEach(function(c) {
     c.addEventListener('change', function() {
-      try { localStorage.setItem('dsAutoOcultarQc', c.checked ? 'si' : 'no'); } catch (e) {}
-      dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard');
-      if (window.dsToast) window.dsToast(c.checked ? 'Las órdenes con QC se ocultarán solas (día activo).' : 'Las órdenes con QC ya no se ocultan solas.');
+      try { localStorage.setItem('dsColoresFila', c.checked ? 'si' : 'no'); } catch (e) {}
+      document.querySelectorAll('.ds-auto-oc-chk').forEach(function(x) { x.checked = c.checked; });
+      dsAplicarColores();
     });
   });
   window.dsVerOcultas = function() { DS.verOcultas = !DS.verOcultas; dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard'); };

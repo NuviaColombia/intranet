@@ -423,9 +423,9 @@
   <div class="aud-fila">
     <div class="aud-titulo">
       <h2>Festivos</h2>
-      <span class="aud-sub">{{ fest_prox|length }} próximo{{ '' if fest_prox|length == 1 else 's' }} · días que se saltan las órdenes en Hold</span>
+      <span class="aud-sub">{{ fest_prox|length }} próximo{{ '' if fest_prox|length == 1 else 's' }} · días que se saltan las órdenes que pasan al día siguiente</span>
       <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
-            title="Días que no se trabajan en la empresa. Al cerrar el día (5:00 am del día siguiente), las órdenes en Hold pasan al siguiente día hábil: se saltan los sábados, los domingos y estos festivos. Agrega aquí los de cada año (los festivos de EE. UU. cambian de fecha).">i</span>
+            title="Días que no se trabajan en la empresa. Al cerrar el día (5:00 am del día siguiente), las órdenes en Hold, Ready to design y Html (N2) pasan al siguiente día hábil: se saltan los sábados, los domingos y estos festivos. Agrega aquí los de cada año (los festivos de EE. UU. cambian de fecha).">i</span>
     </div>
     <label class="aud-switch">
       <input type="checkbox" id="festSwitch" role="switch" aria-controls="festContenido">
@@ -454,6 +454,25 @@
       {% endfor %}
     </div>
     {% else %}<span class="cat-sin">No hay festivos. Solo se saltan sábados y domingos.</span>{% endfor %}
+  </div>
+</div>
+
+<div class="tarjeta aud-tarjeta" id="readyTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Ready to design pasadas a mano</h2>
+      <span class="aud-sub">órdenes de días anteriores que ya se copiaron a un día posterior</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Desde el 6-oct-2026 las órdenes en Ready to design pasan solas al siguiente día hábil (como Hold). Antes se pasaban a mano y quedó la orden vieja en su día. Aquí salen las órdenes en Ready to design de días anteriores cuyo mismo número ya está en un día posterior del mismo equipo. Revisa la lista y borra las que sobran.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="readySwitch" role="switch" aria-controls="readyContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="readySwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="readyContenido" hidden style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px">
+    <div id="readyLista" style="font-size:13px">Cargando…</div>
   </div>
 </div>
 
@@ -1322,6 +1341,45 @@
   })();
 
 {% if not solo_openings %}
+  // ---------- Ready to design pasadas a mano: revisar y borrar ----------
+  (function() {
+    var sw = document.getElementById('readySwitch'), cont = document.getElementById('readyContenido'), lista = document.getElementById('readyLista');
+    if (!sw) return;
+    var esc = function(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;'); };
+    var fecha = function(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; };
+    function cargar() {
+      lista.textContent = 'Cargando…';
+      fetch('/design/api/parametros/ready-movidas').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function(filas) {
+        if (!filas.length) { lista.innerHTML = '<span class="cat-sin">No hay órdenes en Ready to design de días anteriores que se hayan pasado a mano.</span>'; return; }
+        lista.innerHTML = '<p style="margin:0 0 8px">' + filas.length + ' orden(es). Las marcadas se borran del día anterior; la del día posterior no se toca.</p>' +
+          '<div style="max-height:420px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:12.5px">' +
+          '<thead><tr style="background:#f8fafc"><th style="padding:6px"><input type="checkbox" id="readyTodas" checked aria-label="Marcar todas"></th><th style="padding:6px;text-align:left">Día (se borra)</th><th style="padding:6px;text-align:left">Orden</th><th style="padding:6px;text-align:left">Paciente</th><th style="padding:6px;text-align:left">Equipo</th><th style="padding:6px;text-align:left">Diseñador</th><th style="padding:6px;text-align:left">Ya está el</th></tr></thead><tbody>' +
+          filas.map(function(f) {
+            return '<tr style="border-top:1px solid #eef1f6"><td style="padding:5px 6px;text-align:center"><input type="checkbox" class="readyChk" value="' + f.id + '" checked aria-label="Borrar ' + esc(f.orden) + ' del ' + fecha(f.fecha) + '"></td>' +
+              '<td style="padding:5px 6px">' + fecha(f.fecha) + '</td><td style="padding:5px 6px;font-weight:600">' + esc(f.orden) + '</td><td style="padding:5px 6px">' + esc(f.paciente) + '</td>' +
+              '<td style="padding:5px 6px">' + esc(f.area) + ' · ' + esc(f.equipo) + '</td><td style="padding:5px 6px">' + esc(f.disenador) + '</td>' +
+              '<td style="padding:5px 6px">' + fecha(f.despuesFecha) + (f.despuesEstado ? ' (' + esc(f.despuesEstado) + ')' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>' +
+          '<div style="margin-top:10px"><button type="button" class="btn rojo" id="readyBorrar">Borrar las marcadas</button></div>';
+        document.getElementById('readyTodas').onchange = function() { var on = this.checked; lista.querySelectorAll('.readyChk').forEach(function(c) { c.checked = on; }); };
+        document.getElementById('readyBorrar').onclick = function() {
+          var ids = Array.prototype.filter.call(lista.querySelectorAll('.readyChk'), function(c) { return c.checked; }).map(function(c) { return +c.value; });
+          if (!ids.length) { alert('No hay órdenes marcadas.'); return; }
+          if (!confirm('¿Borrar ' + ids.length + ' orden(es) en Ready to design de días anteriores?\n\nLa copia del día posterior no se toca. Esto no se puede deshacer.')) return;
+          var b = this; b.disabled = true;
+          fetch('/design/api/parametros/ready-movidas/borrar', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids: ids})})
+            .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'HTTP ' + r.status); return d; }); })
+            .then(function(d) { alert('Se borraron ' + d.borradas + ' orden(es).'); cargar(); })
+            .catch(function(e) { alert('No se pudo borrar: ' + e.message); b.disabled = false; });
+        };
+      }).catch(function(e) { lista.textContent = 'No se pudo cargar: ' + e.message; });
+    }
+    sw.addEventListener('change', function() {
+      cont.hidden = !sw.checked; document.getElementById('readySwitchTxt').innerText = sw.checked ? 'Ocultar' : 'Revisar';
+      if (sw.checked) cargar();
+    });
+  })();
+
   // ---------- Equipos: interruptor, áreas plegadas, editar y arrastrar diseñadores ----------
   var eqSw = document.getElementById('eqSwitch'), eqTxt = document.getElementById('eqSwitchTxt'), eqCont = document.getElementById('eqContenido');
   var EQ_KEY = 'paramEquipos';

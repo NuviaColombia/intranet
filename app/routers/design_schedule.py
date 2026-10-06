@@ -483,6 +483,28 @@ def _resp(r: dict) -> dict:
     return r
 
 
+class IdsIn(BaseModel):
+    ids: list[int] = Field(default_factory=list, max_length=5000)
+
+
+@router.get("/design/api/parametros/ready-movidas")
+def api_ready_movidas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Órdenes en Ready to design de días anteriores que ya se pasaron a mano a un día posterior (mismo número y equipo)."""
+    return sd.ready_movidas_a_mano(db)
+
+
+@router.post("/design/api/parametros/ready-movidas/borrar")
+def api_ready_movidas_borrar(payload: IdsIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Borra las elegidas, solo si siguen cumpliendo la regla (Ready to design, día anterior y repetida después)."""
+    validas = {x["id"] for x in sd.ready_movidas_a_mano(db)}
+    n = 0
+    for oid in payload.ids:
+        if oid in validas and sd.eliminar_orden(db, oid):
+            n += 1
+    logging.getLogger("design").info("Ready movidas a mano: %s borró %d órdenes (%s)", user.email, n, payload.ids[:50])
+    return {"borradas": n}
+
+
 @router.get("/design/api/parametros/personas")
 def api_parametros_personas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     personas = db.query(Empleado).filter(Empleado.activo == 1).all()
@@ -989,7 +1011,7 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
 
 
 def _msg_repetida(orden: str) -> str:
-    return f'Ya existe una orden con el número "{orden}" en este día. Usa un número distinto.'
+    return f'El número de orden "{orden}" ya está {sd.MAX_REPETICIONES_ORDEN} veces en este día (es el máximo).'
 
 
 @router.get("/design/api/prestables")
@@ -1040,12 +1062,12 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
                      for fila in payload.filas]
     except ValueError as e:
         raise HTTPException(400, f"Hay filas con datos inválidos: {str(e)[:200]}")
-    vistos = set()
-    for datos in validadas:  # número repetido: contra el día y dentro del mismo lote
+    vistos: dict[str, int] = {}
+    for datos in validadas:  # número repetido (máximo 5 por día): contra el día y dentro del mismo lote
         n = datos.orden.strip().upper()
-        if n and (n in vistos or sd.orden_repetida(db, payload.teamId, fecha, n)):
+        if n and sd.orden_repetida(db, payload.teamId, fecha, n, mas=vistos.get(n, 0)):
             raise HTTPException(400, _msg_repetida(n))
-        vistos.add(n)
+        vistos[n] = vistos.get(n, 0) + 1
     creadas = []
     for datos in validadas:
         creadas.append(sd.serializar_orden(sd.crear_orden(db, user, payload.teamId, fecha, payload.tabla,
