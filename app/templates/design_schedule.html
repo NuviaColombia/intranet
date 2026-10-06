@@ -143,7 +143,14 @@ window.dsPdfjs = function() {
   .ds-fw-cab button:hover { background:rgba(255,255,255,.32); }
   .ds-fw-cuerpo { flex:1; overflow:auto; padding:10px; background:#f4f6fa; }
   .ds-fw-cuerpo .pa-scroll { margin-bottom:10px; }
-  .ds-fw-cuerpo table.pa-t { width:100%; }
+  .ds-fw-cuerpo table.pa-t { width:auto; min-width:100%; table-layout:auto; }
+  .ds-fw-cuerpo table.pa-t th, .ds-fw-cuerpo table.pa-t td { min-width:130px; max-width:340px; }
+  .ds-fw-cuerpo table.pa-t .pa-fija { min-width:110px; max-width:180px; }
+  .ds-fw-docs { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+  .ds-fw-docs:empty { display:none; }
+  .ds-fw-docs button { border:1px solid #c7d2fe; background:#fff; color:#1e3a8a; border-radius:14px; padding:3px 10px; font-size:12px; cursor:pointer; }
+  .ds-fw-docs button:hover { background:#eef2ff; }
+  .ds-fw-docs button.on { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
   .ds-fw-vivo { font-size:10.5px; color:#6b7280; margin-top:-4px; margin-bottom:6px; }
   /* QC ya marcado: al pasar el mouse muestra si tuvo hallazgos y cuáles (esquina naranja = con hallazgos) */
   table.ds-tabla td.ds-qc-hallazgo { position:relative; }
@@ -1815,12 +1822,15 @@ window.addEventListener('unhandledrejection', function(ev) {
     return window.dsFetchJSON('/design/api/preapproved/centro?area_id=' + DS.areaId + '&team_id=' + (DS.teamId || '') + '&centro=' + encodeURIComponent(centro))
       .then(function(d) { DS_PA_CACHE[k] = {t: Date.now(), d: d}; return d; });
   }
-  function dsPaTablaHtml(hj) {
-    var esc = dsEsc;
-    return '<table class="pa-t"><thead><tr class="pa-r-centros"><th class="pa-fija"></th><th colspan="' + hj.doctores.length + '">' + esc(hj.centro) + '</th></tr>' +
-      '<tr class="pa-r-doctores"><th class="pa-fija">' + esc(hj.changesLabel || 'Changes') + '</th>' + hj.doctores.map(function(d) { return '<th>' + esc(d) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+  // doctor: nombre del doctor a mostrar (vacío = todos)
+  function dsPaTablaHtml(hj, doctor) {
+    var esc = dsEsc, idx = hj.doctores.map(function(d, i) { return i; }).filter(function(i) { return !doctor || hj.doctores[i] === doctor; });
+    if (!idx.length) return '';
+    return '<table class="pa-t"><thead><tr class="pa-r-centros"><th class="pa-fija"></th><th colspan="' + idx.length + '">' + esc(hj.centro) + '</th></tr>' +
+      '<tr class="pa-r-doctores"><th class="pa-fija">' + esc(hj.changesLabel || 'Changes') + '</th>' + idx.map(function(i) { return '<th>' + esc(hj.doctores[i]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       hj.filas.map(function(fl) {
-        return '<tr><th class="pa-fija">' + esc(fl.criterio) + '</th>' + fl.valores.map(function(v) {
+        return '<tr><th class="pa-fija">' + esc(fl.criterio) + '</th>' + idx.map(function(i) {
+          var v = fl.valores[i];
           return '<td' + (/^\s*always ask\.?\s*$/i.test(v || '') ? ' class="pa-ask"' : '') + '>' + esc(v || '') + '</td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table>';
@@ -1862,11 +1872,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     var n = DS_FW_N++ % 6;
     el.style.left = Math.max(8, Math.min(window.innerWidth - 640, 140 + n * 28)) + 'px'; el.style.top = (110 + n * 28) + 'px';
     el.innerHTML = '<div class="ds-fw-cab"><b></b><small></small><button type="button" data-fw="min" title="Minimizar">—</button><button type="button" data-fw="cerrar" title="Cerrar">✕</button></div>' +
-      '<div class="ds-fw-cuerpo"><div class="ds-fw-vivo">Cargando…</div><div class="ds-fw-c"></div></div>';
+      '<div class="ds-fw-cuerpo"><div class="ds-fw-vivo">Cargando…</div><div class="ds-fw-docs" role="group" aria-label="Doctor"></div><div class="ds-fw-c"></div></div>';
     el.querySelector('b').textContent = 'Pre-Approved · ' + centro;
     el.setAttribute('aria-label', 'Pre-Approved ' + centro);
     document.body.appendChild(el);
-    w = DS_FW[clave] = {el: el, centro: centro, area: area, v: null};
+    w = DS_FW[clave] = {el: el, centro: centro, area: area, v: null, doctor: '', datos: null, manual: false};
     var cab = el.querySelector('.ds-fw-cab');
     el.addEventListener('mousedown', function() { el.style.zIndex = ++DS_FW_Z; });
     cab.addEventListener('mousedown', function(e) {
@@ -1888,14 +1898,48 @@ window.addEventListener('unhandledrejection', function(ev) {
         var hora = new Date().toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
         el.querySelector('.ds-fw-vivo').textContent = 'En vivo · actualizado ' + hora;
         if (d.v === w.v) return;
-        w.v = d.v;
+        var primera = w.v === null;
+        w.v = d.v; w.datos = d;
         el.querySelector('small').textContent = d.hojas.map(function(x) { return x.hoja; }).join(' · ');
-        el.querySelector('.ds-fw-c').innerHTML = d.hojas.length ? d.hojas.map(function(hj) {
-          return (d.hojas.length > 1 ? '<div class="pa-titulo">' + dsEsc(hj.hoja) + '</div>' : '') + '<div class="pa-scroll">' + dsPaTablaHtml(hj) + '</div>';
-        }).join('') : '<p style="color:#4b5563;font-size:13px;margin:6px 2px">No hay doctores de este centro en Pre-Approved.</p>';
+        dibujar(primera);
         DS_PA_CACHE[area + '|' + team + '|' + centro] = {t: Date.now(), d: d};
       }).catch(function() { el.querySelector('.ds-fw-vivo').textContent = 'Sin conexión: se reintenta en unos segundos…'; });
     };
+    // Botones de doctor (Todos + cada doctor) y la tabla del doctor elegido
+    var dibujar = function(ajustar) {
+      var d = w.datos; if (!d) return;
+      var docs = [];
+      d.hojas.forEach(function(hj) { hj.doctores.forEach(function(x) { if (docs.indexOf(x) < 0) docs.push(x); }); });
+      if (w.doctor && docs.indexOf(w.doctor) < 0) w.doctor = '';
+      var cont = el.querySelector('.ds-fw-docs');
+      cont.innerHTML = docs.length > 1 ? ['<button type="button" data-doc=""' + (w.doctor ? '' : ' class="on"') + '>Todos</button>'].concat(docs.map(function(x) {
+        return '<button type="button" data-doc="' + dsEsc(x) + '"' + (w.doctor === x ? ' class="on"' : '') + '>' + dsEsc(x) + '</button>';
+      })).join('') : '';
+      cont.querySelectorAll('[data-doc]').forEach(function(b) { b.onclick = function() { w.doctor = b.dataset.doc; dibujar(!w.manual); }; });
+      var partes = d.hojas.map(function(hj) {
+        var t = dsPaTablaHtml(hj, w.doctor); if (!t) return '';
+        return (d.hojas.length > 1 ? '<div class="pa-titulo">' + dsEsc(hj.hoja) + '</div>' : '') + '<div class="pa-scroll">' + t + '</div>';
+      }).join('');
+      el.querySelector('.ds-fw-c').innerHTML = partes || '<p style="color:#4b5563;font-size:13px;margin:6px 2px">No hay doctores de este centro en Pre-Approved.</p>';
+      if (ajustar) ajustarTamano();
+    };
+    // Tamaño según el texto: ancho para que las columnas no queden apretadas y alto hasta donde quepa en la pantalla
+    var ajustarTamano = function() {
+      if (el.classList.contains('min')) return;
+      var maxW = window.innerWidth - 24, maxH = window.innerHeight - 24;
+      el.style.width = maxW + 'px'; el.style.height = 'auto';
+      var ancho = 0;
+      el.querySelectorAll('.ds-fw-c table.pa-t').forEach(function(t) { t.style.minWidth = '0'; ancho = Math.max(ancho, t.offsetWidth); t.style.minWidth = ''; });
+      ancho = Math.max(ancho, 340);  // los botones de doctores se acomodan en varias líneas
+      el.style.width = Math.min(maxW, ancho + 24 + 2) + 'px';
+      var cab = el.querySelector('.ds-fw-cab').offsetHeight, cuerpo = el.querySelector('.ds-fw-cuerpo');
+      el.style.height = Math.min(maxH, cab + cuerpo.scrollHeight + 4) + 'px';
+      var r = el.getBoundingClientRect();
+      if (r.right > window.innerWidth - 8) el.style.left = Math.max(8, window.innerWidth - 8 - r.width) + 'px';
+      if (r.bottom > window.innerHeight - 8) el.style.top = Math.max(8, window.innerHeight - 8 - r.height) + 'px';
+    };
+    // si la persona cambia el tamaño a mano, se respeta (no se vuelve a ajustar al elegir doctor)
+    el.addEventListener('mousedown', function(e) { var r = el.getBoundingClientRect(); if (e.clientX > r.right - 18 && e.clientY > r.bottom - 18) w.manual = true; });
     pintar();
     w.timer = setInterval(function() { if (!document.hidden && el.isConnected) pintar(); }, 6000);
   }
@@ -1974,6 +2018,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsOcultasGuardar(o) { try { localStorage.setItem(DS_OCULTAS_KEY, JSON.stringify(o)); } catch (e) {} }
   // estado manual: {id: 'oculta' | 'visible'}
   function dsEstaOculta(f, man) {
+    if (dsDiaCerrado()) return false;  // ocultar aplica solo al día activo: un día cerrado muestra todas sus órdenes
     var m = man[f.id];
     if (m === 'oculta') return true;
     if (m === 'visible') return false;
@@ -1997,6 +2042,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       tr.classList.toggle('ds-oculta', oc && !DS.verOcultas);
       tr.classList.toggle('ds-oculta-ver', oc && DS.verOcultas);
       var ojo = tr.querySelector('[data-ojo]');
+      if (ojo) ojo.style.display = dsDiaCerrado() ? 'none' : '';
       if (ojo) { ojo.title = oc ? 'Mostrar esta fila' : 'Ocultar esta fila'; ojo.textContent = oc ? '🙈' : '👁'; }
     });
     if (btn) {
