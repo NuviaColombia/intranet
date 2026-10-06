@@ -329,11 +329,103 @@ def contable_del_mes(db: Session, anio: int, mes: int) -> dict:
     return salida
 
 
+def _clave_firma_contable(anio: int, mes: int) -> str:
+    return f"contable_firma_{anio}_{mes:02d}"
+
+
+def firma_contable(db: Session, anio: int, mes: int) -> dict | None:
+    """Quién guardó y firmó la existencia contable del mes (después ya no se edita, salvo que la reabran)."""
+    c = db.get(ConteoConfig, _clave_firma_contable(anio, mes))
+    if not c or not c.valor:
+        return None
+    try:
+        eid, iso = c.valor.split("|", 1)
+        e = db.get(Empleado, int(eid))
+        momento = datetime.fromisoformat(iso)
+    except (ValueError, TypeError):
+        return None
+    return {"por": nombre_propio(e.nombre_completo) if e else "", "email": (e.email or "") if e else "", "en": _hora(momento)}
+
+
+def _firmar_contable(db: Session, user: Empleado, anio: int, mes: int) -> None:
+    c = db.get(ConteoConfig, _clave_firma_contable(anio, mes)) or ConteoConfig(clave=_clave_firma_contable(anio, mes))
+    c.valor = f"{user.id}|{datetime.utcnow().isoformat(timespec='seconds')}"
+    db.add(c)
+
+
+def reabrir_contable(db: Session, user: Empleado, anio: int, mes: int) -> str | None:
+    """Director de Producción o administrador: quita la firma para que el área contable corrija y vuelva a guardar."""
+    if not puede_anular(db, user):
+        return "Solo el Director de Producción o un administrador reabren la existencia contable."
+    c = db.get(ConteoConfig, _clave_firma_contable(anio, mes))
+    if not c or not c.valor:
+        return "La existencia contable de este mes no está firmada."
+    db.delete(c)
+    db.commit()
+    return None
+
+
+def _contable_bloqueada(db: Session, anio: int, mes: int) -> str | None:
+    f = firma_contable(db, anio, mes)
+    if f:
+        return (f"La existencia contable de este mes ya se guardó y firmó ({f['por']} · {f['en']}): no se puede editar. "
+                "Para corregirla, el Director de Producción o un administrador debe reabrirla.")
+    return None
+
+
+def soportes_contables(db: Session, anio: int, mes: int) -> list[dict]:
+    from .models_conteo import ConteoContableSoporte as CS
+    return [{"id": x.id, "nombre": x.nombre, "tipo": x.tipo_mime, "en": _hora(x.creado_en),
+             "por": nombre_propio(x.creado_por.nombre_completo) if x.creado_por else ""}
+            for x in db.query(CS).filter_by(anio=anio, mes=mes).order_by(CS.id)]
+
+
+def agregar_soporte_contable(db: Session, user: Empleado, anio: int, mes: int, nombre: str, tipo: str, datos: bytes) -> str | None:
+    from .models_conteo import ConteoContableSoporte as CS
+    if not puede_cargar_contable(db, user):
+        return "Solo el área contable (o un administrador) carga el soporte contable."
+    bloqueo = _contable_bloqueada(db, anio, mes)
+    if bloqueo:
+        return bloqueo
+    if tipo not in TIPOS_EVIDENCIA:
+        return "Solo se aceptan imágenes (pantallazo, JPG, PNG) o PDF."
+    if not datos:
+        return "El archivo está vacío."
+    if len(datos) > MAX_EVIDENCIA:
+        return "El archivo pesa más de 5 MB."
+    db.add(CS(anio=anio, mes=mes, nombre=(nombre or "soporte contable")[:200], tipo_mime=tipo, tamano=len(datos),
+              datos=datos, creado_por_id=user.id))
+    db.commit()
+    return None
+
+
+def guardar_contable_lote(db: Session, user: Empleado, anio: int, mes: int, valores: dict) -> str | None:
+    """Botón Guardar: guarda de una vez las existencias contables del mes ({clave: cantidad}; vacío = quitar)
+    y queda firmada por quien la guardó (correo, fecha y hora). Después ya no se edita."""
+    if not puede_cargar_contable(db, user):
+        return "Solo el área contable (o un administrador) carga la existencia contable."
+    bloqueo = _contable_bloqueada(db, anio, mes)
+    if bloqueo:
+        return bloqueo
+    if not any(str(v or "").strip() for v in (valores or {}).values()):
+        return "Escribe al menos una existencia contable antes de guardar."
+    for clave, valor in (valores or {}).items():
+        error = guardar_contable(db, user, anio, mes, clave, valor)
+        if error:
+            return error
+    _firmar_contable(db, user, anio, mes)
+    db.commit()
+    return None
+
+
 def guardar_contable(db: Session, user: Empleado, anio: int, mes: int, clave: str, valor) -> str | None:
     """Guarda (o borra, si viene vacío) la existencia contable de un material en una bodega."""
     from .models_conteo import ConteoContable
     if not puede_cargar_contable(db, user):
         return "Solo el área contable (o un administrador) carga la existencia contable."
+    bloqueo = _contable_bloqueada(db, anio, mes)
+    if bloqueo:
+        return bloqueo
     try:
         bodega, mat = clave.split(":")
         bodega_id = int(bodega)
@@ -667,6 +759,8 @@ def consolidado(db: Session, anio: int, mes: int, areas_config: list[str], user:
         "materiales": [{"id": m.id, "codigo": m.codigo, "descripcion": m.descripcion} for m in materiales_activos(db)],
         "reportes": visibles, "totales": totales,
         "contable": contable_del_mes(db, anio, mes), "puedeCargarContable": bool(user and puede_cargar_contable(db, user)),
+        "soportesContables": soportes_contables(db, anio, mes), "contableFirma": firma_contable(db, anio, mes),
+        "puedeReabrirContable": bool(user and puede_anular(db, user)),
         "pendientes": [a for a in areas_config if a not in enviadas],
         "enFirme": sum(1 for r in reportes if r.estado == EN_FIRME),
     }

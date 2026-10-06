@@ -445,15 +445,19 @@ function cargarConsolidado() {
     }).join('');
     // Total del mes (todas las áreas enviadas)
     var visibles = c.reportes.filter(function(r) { return !r.oculto; });
+    var editaContable = c.puedeCargarContable && !c.contableFirma;  // firmada: solo lectura
     document.getElementById('rTotal').innerHTML = !visibles.length ? '' : '<h3 class="cs-h3">🧮 Total del mes (' + visibles.length + ' área' + (visibles.length > 1 ? 's' : '') + ')</h3>' +
       '<p class="ct-nota">Total contado (áreas en firme) vs <b>existencia contable</b>: la carga el área contable según la información contable' +
-      (c.puedeCargarContable ? ' (escribe la cifra y se guarda sola).' : '.') + ' Diferencia = contado − contable.</p>' +
+      (editaContable ? ': pega el pantallazo, escribe las cifras y pulsa «💾 Guardar y firmar» (después ya no se puede editar).' : '.') + ' Diferencia = contado − contable.</p>' +
+      (c.contableFirma ? '<div class="ct-aviso ok" style="max-width:none">✅ Existencia contable guardada y firmada por <b>' + esc(c.contableFirma.por) + '</b> · ' + esc(c.contableFirma.email) +
+        ' · ' + esc(c.contableFirma.en) + '. Ya no se puede editar.' +
+        (c.puedeReabrirContable ? ' <button type="button" class="btn rojo mini no-print" onclick="reabrirContable()">🔓 Reabrir para corregir</button>' : '') + '</div>' : '') +
       c.bodegas.map(function(b) {
         var fila = function(etq, k, dan) {
           var tot = Number(c.totales[k] || 0), ct = (c.contable || {})[k], tieneCt = ct && ct.cantidad !== null && ct.cantidad !== undefined;
-          var celda = c.puedeCargarContable
+          var celda = editaContable
             ? '<input class="ct-contable" data-clave="' + k + '" inputmode="decimal" placeholder="—" value="' + (tieneCt ? ct.cantidad : '') +
-              '" oninput="limpiarNum(this)" onchange="guardarContable(this)" title="' + (tieneCt ? 'Cargado por ' + esc(ct.por) + ' · ' + esc(ct.en) : 'Existencia según la información contable') + '">'
+              '" oninput="limpiarNum(this); difEnVivo(this)" title="' + (tieneCt ? 'Cargado por ' + esc(ct.por) + ' · ' + esc(ct.en) : 'Existencia según la información contable') + '">'
             : (tieneCt ? '<span title="Cargado por ' + esc(ct.por) + ' · ' + esc(ct.en) + '">' + num(ct.cantidad) + '</span>' : '—');
           return '<tr class="' + (dan ? 'dan' : '') + '"><td class="izq">' + etq + '</td><td class="n"><b>' + num(tot) + '</b></td><td class="n">' + celda +
             '</td><td class="n ct-dif" data-clave="' + k + '">' + difContable(tot, tieneCt ? ct.cantidad : null) + '</td></tr>';
@@ -462,8 +466,22 @@ function cargarConsolidado() {
           '</th><th class="n">Total contado</th><th class="n">Existencia contable</th><th class="n">Diferencia</th></tr></thead><tbody>' +
           c.materiales.map(function(m) { return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), b.id + ':' + m.id); }).join('') +
           fila('Disco de zirconia - DAÑADOS', b.id + ':danados', true) + '</tbody></table></div>';
-      }).join('');
+      }).join('') +
+      (editaContable ? '<div class="cm-acciones no-print" style="justify-content:flex-start; margin-top:8px"><button type="button" class="btn verde" id="btnContable" onclick="guardarContableTodo()">💾 Guardar y firmar existencia contable</button></div>' : '') +
+      // Soporte de la información contable: pantallazos pegados con Ctrl+V o archivos
+      '<h3 class="cs-h3" style="margin-top:16px">🧾 Soporte de la información contable</h3>' +
+      (editaContable ? '<div id="zonaPegarContable" tabindex="0" class="no-print" style="border:2px dashed #3B82F6; background:#F0F9FF; color:#1D4ED8; border-radius:8px; padding:14px; text-align:center; font-weight:700; cursor:pointer;">' +
+        '📋 Haz clic aquí y pega el pantallazo (Ctrl+V) · o <label style="text-decoration:underline; cursor:pointer">sube un archivo<input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="subirSoportesContables(this.files); this.value=\'\'"></label></div>' : '') +
+      '<div id="soportesContables" class="ct-fotos" style="margin-top:10px"></div>';
     window._totalesMes = c.totales;
+    pintarSoportesContables(c.soportesContables || [], editaContable);
+    var zona = document.getElementById('zonaPegarContable');
+    if (zona) zona.addEventListener('paste', function(e) {
+      var archivos = Array.prototype.filter.call((e.clipboardData || {}).items || [], function(it) { return it.kind === 'file'; })
+        .map(function(it) { var f = it.getAsFile(); return new File([f], 'pantallazo-contable-' + Date.now() + '.png', {type: f.type || 'image/png'}); });
+      if (!archivos.length) { alert('No hay una imagen copiada. Toma el pantallazo (Windows + Shift + S) y vuelve a pegar aquí.'); return; }
+      e.preventDefault(); subirSoportesContables(archivos);
+    });
   }).catch(function(e) { alert(e.message); });
 }
 // Existencia contable (área contable): diferencia = contado − contable
@@ -471,6 +489,55 @@ function difContable(tot, ct) {
   if (ct === null || ct === undefined || ct === '') return '—';
   var d = Math.round((Number(tot) - Number(ct)) * 100) / 100;
   return '<b style="color:' + (d ? '#b91c1c' : '#15803d') + '">' + (d > 0 ? '+' : '') + num(d) + '</b>';
+}
+function difEnVivo(inp) {
+  var celda = document.querySelector('.ct-dif[data-clave="' + inp.dataset.clave + '"]'), v = inp.value.trim();
+  celda.innerHTML = difContable((window._totalesMes || {})[inp.dataset.clave] || 0, v === '' ? null : leerNum(v));
+  inp.style.outline = '2px solid #f59e0b';  // cambiado, sin guardar
+}
+function reabrirContable() {
+  if (!confirm('¿Reabrir la existencia contable de este mes? El área contable podrá corregirla y deberá guardar y firmar de nuevo.')) return;
+  postJSON('/conteo/api/contable/reabrir', {anio: +document.getElementById('rAnio').value, mes: +document.getElementById('rMes').value})
+    .then(function(r) { alert(r.mensaje); cargarConsolidado(); }).catch(function(e) { alert(e.message); });
+}
+function guardarContableTodo() {
+  if (!confirm('¿Guardar y firmar la existencia contable de este mes con tu correo (' + D.correo + ')? Después ya no se puede editar.')) return;
+  var valores = {}, malos = [];
+  document.querySelectorAll('input.ct-contable').forEach(function(i) {
+    if (i.value.trim() && !numValido(i.value)) malos.push(i.value); valores[i.dataset.clave] = i.value.trim();
+  });
+  if (malos.length) { alert('Revisa las cifras: usa números (decimales con punto o coma).'); return; }
+  var b = document.getElementById('btnContable'); b.disabled = true; b.innerText = 'Guardando…';
+  postJSON('/conteo/api/contable/lote', {anio: +document.getElementById('rAnio').value, mes: +document.getElementById('rMes').value, valores: valores})
+    .then(function(r) {
+      document.querySelectorAll('input.ct-contable').forEach(function(i) {
+        i.style.outline = ''; var ct = r.contable[i.dataset.clave]; i.title = ct ? 'Cargado por ' + ct.por + ' · ' + ct.en : 'Existencia según la información contable';
+      });
+      alert(r.mensaje); cargarConsolidado();
+    }).catch(function(e) { alert(e.message); b.disabled = false; b.innerText = '💾 Guardar y firmar existencia contable'; });
+}
+function pintarSoportesContables(lista, puede) {
+  var cont = document.getElementById('soportesContables'); if (!cont) return;
+  cont.innerHTML = lista.length ? lista.map(function(x) {
+    var url = '/conteo/api/contable/soportes/' + x.id;
+    return '<div class="ct-foto" style="width:150px" title="' + esc(x.nombre + ' · ' + x.por + ' · ' + x.en) + '"><a href="' + url + '" target="_blank">' +
+      (x.tipo === 'application/pdf' ? '<div class="pdf" style="width:150px; height:100px">📄</div>' : '<img src="' + url + '" alt="" style="width:150px; height:100px; object-fit:contain; background:#fff">') +
+      '</a><small>' + esc(x.por) + ' · ' + esc(x.en) + '</small>' + (puede ? '<button class="x" title="Quitar" onclick="quitarSoporteContable(' + x.id + ')">✕</button>' : '') + '</div>';
+  }).join('') : '<small style="color:#64748b">Todavía no hay soporte de la información contable de este mes.</small>';
+}
+function subirSoportesContables(archivos) {
+  var lista = Array.prototype.slice.call(archivos), i = 0, puede = true, anio = document.getElementById('rAnio').value, mes = document.getElementById('rMes').value;
+  var zona = document.getElementById('zonaPegarContable'); if (zona) zona.style.opacity = .6;
+  function siguiente(r) {
+    if (i >= lista.length) { if (zona) zona.style.opacity = 1; if (r) pintarSoportesContables(r.soportes, puede); return; }
+    var fd = new FormData(); fd.append('archivo', lista[i], lista[i].name || 'pantallazo.png'); fd.append('anio', anio); fd.append('mes', mes); i++;
+    return api('/conteo/api/contable/soportes', {method: 'POST', body: fd}).then(siguiente);
+  }
+  siguiente(null).catch(function(e) { if (zona) zona.style.opacity = 1; alert(e.message); });
+}
+function quitarSoporteContable(id) {
+  if (!confirm('¿Quitar este soporte contable?')) return;
+  postJSON('/conteo/api/contable/soportes/' + id + '/quitar').then(function(r) { pintarSoportesContables(r.soportes, true); }).catch(function(e) { alert(e.message); });
 }
 function guardarContable(inp) {
   var clave = inp.dataset.clave, valor = inp.value.trim(), celda = document.querySelector('.ct-dif[data-clave="' + clave + '"]');

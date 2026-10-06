@@ -187,3 +187,20 @@ class ConteoContable(Base):
     actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     actualizado_por = relationship("Empleado")
+
+
+class ConteoContableSoporte(Base):
+    """Pantallazo o archivo de la información contable del mes (lo pega el área contable en Total del mes)."""
+    __tablename__ = "conteo_contable_soportes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    anio: Mapped[int] = mapped_column(Integer)
+    mes: Mapped[int] = mapped_column(Integer)
+    nombre: Mapped[str] = mapped_column(String(200), default="")
+    tipo_mime: Mapped[str] = mapped_column(String(80), default="image/png")
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    creado_por = relationship("Empleado")
