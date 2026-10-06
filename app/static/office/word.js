@@ -137,11 +137,12 @@
     return [
       'html{background:#e8e6e4;min-height:100%;}',
       'body{box-sizing:border-box;width:' + d.w + 'cm;min-height:' + d.h + 'cm;margin:24px auto 48px;padding:' + m.sup + 'cm ' + m.der + 'cm ' + m.inf + 'cm ' + m.izq + 'cm;' +
-        'position:relative;z-index:1;background:transparent;}',
+        'background:transparent;}',  // sin position: el editor ubica sus barras y agarraderas respecto al documento
       'html.nv-web{background:#fff;} html.nv-web body{width:auto;max-width:none;margin:0;padding:24px 56px;min-height:100%;}',
       'html.nv-web #nv-hojas{display:none;}',
       'body.mce-content-readonly{cursor:default;}',
-      '#nv-hojas{position:absolute;left:0;top:0;width:100%;z-index:0;pointer-events:none;}',
+      '#nv-hojas{position:absolute;left:0;top:0;width:100%;z-index:-1;pointer-events:none;}',  // detrás del texto (el cuerpo no tiene position)
+      'html.nv-zoom .ephox-snooker-resizer-bar,html.nv-zoom .mce-resizehandle,html.nv-zoom .mce-resize-backdrop{display:none !important;}',  // con zoom el editor ubica mal barras y agarraderas
       '.nv-hoja{position:absolute;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 2px 6px rgba(0,0,0,.12);overflow:hidden;}',
       '.nv-hoja-borde{position:absolute;inset:24pt;pointer-events:none;}',
       '.nv-zona{position:absolute;overflow:hidden;font-size:11pt;line-height:1.15;color:#000;pointer-events:auto;cursor:default;}',
@@ -190,10 +191,11 @@
     if (W.est.vista === 'web') { cont.innerHTML = ''; W.paginas = 1; actualizarEstado(); return; }
     var dm = W.dim(), H = NV.cmAPx(dm.h), mt = NV.cmAPx(dm.m.sup), mb = NV.cmAPx(dm.m.inf), util = H - mt - mb, P = H + GAP;
     var txt = [], k = 0, saltoPend = false, prev = null;
+    var T = parseFloat(ed.getWin().getComputedStyle(b).marginTop) || 0;  // offsetTop se mide desde el documento (el cuerpo no tiene position)
     var hijos = Array.prototype.filter.call(b.children, function(el) { return !el.hasAttribute('data-mce-bogus') && el.nodeName !== 'STYLE'; });
     hijos.forEach(function(el) {
       var esSalto = el.classList.contains('nv-salto');
-      var top = el.offsetTop, alto = el.offsetHeight;
+      var top = el.offsetTop - T, alto = el.offsetHeight;
       var p = Math.floor(top / P), cTop = p * P + mt, cBot = p * P + H - mb, destino = null;
       if (saltoPend) destino = (top <= cTop + 1 ? cTop : (p + 1) * P + mt);
       else if (top > cBot - 2) destino = (p + 1) * P + mt;
@@ -211,7 +213,7 @@
       saltoPend = esSalto;
       prev = el;
     });
-    var ultimo = hijos[hijos.length - 1], fin = ultimo ? ultimo.offsetTop + ultimo.offsetHeight : 0;
+    var ultimo = hijos[hijos.length - 1], fin = ultimo ? ultimo.offsetTop - T + ultimo.offsetHeight : 0;
     var n = Math.max(1, Math.ceil((fin + mb) / P - 0.0001));
     if (saltoPend) n = Math.max(n, Math.floor(fin / P) + 2);
     txt.push('body{min-height:' + (n * P - GAP) + 'px !important;}');
@@ -269,11 +271,17 @@
     if (!ed || W.est.vista === 'web') return 1;
     var n = ed.selection.getNode(), b = ed.getBody();
     while (n && n.parentNode && n.parentNode !== b) n = n.parentNode;
-    if (!n || n === b || !n.offsetTop && n.offsetTop !== 0) return 1;
+    if (!n || n === b || !W.top(n) && W.top(n) !== 0) return 1;
     var P = NV.cmAPx(W.dim().h) + GAP;
-    return Math.min(W.paginas || 1, Math.floor(n.offsetTop / P) + 1);
+    return Math.min(W.paginas || 1, Math.floor(W.top(n) / P) + 1);
   }
   W.paginaActual = paginaActual;
+  // Posición vertical de un bloque del cuerpo medida desde el borde superior de la primera hoja.
+  W.top = function(el) {
+    var b = ed.getBody();
+    while (el && el.parentNode && el.parentNode !== b) el = el.parentNode;
+    return el ? el.offsetTop - (parseFloat(ed.getWin().getComputedStyle(b).marginTop) || 0) : 0;
+  };
   W.contar = function() {
     var b = ed.getBody(), t = (b.innerText || '').replace(/ /g, ' ');
     var palabras = (t.match(/[^\s]+/g) || []).length;
@@ -462,9 +470,19 @@
     editor.on('init', function() {
       var dd = editor.getDoc();
       dd.addEventListener('load', function() { W.paginar(); }, true);  // imágenes que terminan de cargar
+      // Doble clic en el encabezado o el pie (están detrás del texto, así que se ubican por la posición del clic)
       dd.addEventListener('dblclick', function(e) {
-        var z = e.target.closest && e.target.closest('.nv-zona');
-        if (z && W.dialogos && !W.est.soloLectura) W.dialogos.encabezadoPie(z.getAttribute('data-zona'));
+        if (!W.dialogos || W.est.soloLectura || W.est.vista !== 'impresion') return;
+        var zona = NV.$$('.nv-zona', dd).filter(function(z) { var r = z.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top - 4 && e.clientY <= r.bottom + 4; })[0];
+        if (!zona) {  // zona vacía: cualquier clic en el margen superior o inferior de una hoja
+          var hoja = NV.$$('.nv-hoja', dd).filter(function(h) { var r = h.getBoundingClientRect(); return e.clientY >= r.top && e.clientY <= r.bottom; })[0];
+          if (hoja) {
+            var r = hoja.getBoundingClientRect(), z = W.est.zoom / 100, mt = NV.cmAPx(W.aj.pagina.margenes.sup) * z, mb = NV.cmAPx(W.aj.pagina.margenes.inf) * z;
+            if (e.clientY < r.top + mt) zona = {getAttribute: function() { return 'encabezado'; }};
+            else if (e.clientY > r.bottom - mb) zona = {getAttribute: function() { return 'pie'; }};
+          }
+        }
+        if (zona) { e.preventDefault(); W.dialogos.encabezadoPie(zona.getAttribute('data-zona')); }
       });
       editor.getWin().addEventListener('scroll', function() { actualizarEstado(); });
       if (dd.fonts && dd.fonts.ready) dd.fonts.ready.then(function() { W.paginarYa(); });
@@ -493,7 +511,7 @@
   W.zoom = function(z) {
     z = Math.max(10, Math.min(500, Math.round(z)));
     W.est.zoom = z;
-    if (ed) { ed.getDoc().documentElement.style.zoom = (z / 100); W.paginar(); }
+    if (ed) { ed.getDoc().documentElement.style.zoom = (z / 100); ed.getDoc().documentElement.classList.toggle('nv-zoom', z !== 100); W.paginar(); }
     var r = NV.$('#nvZoomRango'), t = NV.$('#nvZoomTxt');
     if (r) r.value = z; if (t) t.textContent = z + '%';
     if (W.regla) W.regla();

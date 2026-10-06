@@ -294,7 +294,7 @@
       botones: [{texto: 'Insertar', prim: true, accion: function(d) {
         var x = lista[+v(d, 'drR')]; if (!x) return false;
         if (!x.id) x.id = 'nv-ref-' + Date.now().toString(36);
-        var t = v(d, 'drQ') === 'pagina' ? String(W.numPagina(Math.floor(x.offsetTop / (NV.cmAPx(W.dim().h) + 24)) + 1)) : x.textContent.trim();
+        var t = v(d, 'drQ') === 'pagina' ? String(W.numPagina(Math.floor(W.top(x) / (NV.cmAPx(W.dim().h) + 24)) + 1)) : x.textContent.trim();
         e.focus(); e.insertContent('<a href="#' + x.id + '">' + esc(t) + '</a>'); cambio(); return true;
       }}, {texto: 'Cerrar', valor: null}]});
   };
@@ -515,7 +515,7 @@
   };
   W.irAPagina = function(n) {
     var e = ed(), b = e.getBody(), P = NV.cmAPx(W.dim().h) + 24, y = (n - 1) * P;
-    var bl = Array.prototype.filter.call(b.children, function(x) { return x.offsetTop >= y - 2; })[0];
+    var bl = Array.prototype.filter.call(b.children, function(x) { return W.top(x) >= y - 2; })[0];
     if (bl) { e.selection.setCursorLocation(bl, 0); e.getWin().scrollTo(0, (bl.offsetTop - 30) * W.est.zoom / 100); }
     e.focus(); W.actualizarEstado();
   };

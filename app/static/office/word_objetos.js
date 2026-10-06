@@ -455,7 +455,7 @@
     return NV.$$('h1,h2,h3', b).filter(function(h) { return !h.closest('.nv-toc') && h.textContent.trim(); }).map(function(h, i) {
       if (!h.id) h.id = 'nv-t-' + Date.now().toString(36) + i;
       var top = h.offsetTop; var bl = h; while (bl.parentNode && bl.parentNode !== b) bl = bl.parentNode;
-      return {id: h.id, n: +h.nodeName[1], t: h.textContent.trim(), p: W.numPagina(Math.floor(bl.offsetTop / P) + (W.aj.numInicio || 1))};
+      return {id: h.id, n: +h.nodeName[1], t: h.textContent.trim(), p: W.numPagina(Math.floor(W.top(bl) / P) + (W.aj.numInicio || 1))};
     });
   }
   function htmlTOC(titulo) {
@@ -489,7 +489,7 @@
     var h = '<div class="nv-toc" contenteditable="false" data-nv-toc="Tabla de ilustraciones"><p class="nv-toc-t">Tabla de ilustraciones</p>' + caps.map(function(c, i) {
       if (!c.id) c.id = 'nv-cap-' + Date.now().toString(36) + i;
       var bl = c; while (bl.parentNode && bl.parentNode !== b) bl = bl.parentNode;
-      return '<p class="n1"><a href="#' + c.id + '">' + esc(c.textContent.trim()) + '</a><span class="nv-toc-p"></span><span>' + (Math.floor(bl.offsetTop / P) + 1) + '</span></p>';
+      return '<p class="n1"><a href="#' + c.id + '">' + esc(c.textContent.trim()) + '</a><span class="nv-toc-p"></span><span>' + (Math.floor(W.top(bl) / P) + 1) + '</span></p>';
     }).join('') + '</div><p><br data-mce-bogus="1"></p>';
     e.insertContent(h); cambio();
   };
