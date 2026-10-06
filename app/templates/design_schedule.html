@@ -2759,6 +2759,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsHuellaFila(f) { var c = Object.assign({}, f); return JSON.stringify(c); }
   function dsVivoTick() {
+    var chkTodas = document.getElementById('dsTodasAreasChk');
+    if (!document.hidden && chkTodas && chkTodas.checked && !document.querySelector('.ds-overlay.open')) { dsCargarTodasAreas(true); return; }
     if (document.hidden || !DS.teamId || !DS.diaData || document.querySelector('.ds-overlay.open')) return;
     var vistaEq = document.getElementById('dsVistaEquipo');
     if (!vistaEq || vistaEq.style.display === 'none') return;
@@ -3205,16 +3207,19 @@ window.addEventListener('unhandledrejection', function(ev) {
     return html + '</tbody></table>';
   }
   // Una sola petición trae áreas, equipos y órdenes del día (antes: 1 por área + 1 por equipo).
-  function dsCargarTodasAreas() {
+  // vivo = refresco en vivo (cada 5 s, como el horario del equipo): sin "Cargando…" y solo redibuja si algo cambió
+  function dsCargarTodasAreas(vivo) {
     var fecha = dsFechaISO(new Date(DS.lunes.getFullYear(), DS.lunes.getMonth(), DS.lunes.getDate() + DS.diaSel));
     var cont = document.getElementById('dsTodasAreasCont');
-    cont.innerHTML = '<p style="color:#4b5563">Cargando…</p>';
+    if (vivo && DS.todasFecha !== fecha) return;
+    if (!vivo) { cont.innerHTML = '<p style="color:#4b5563">Cargando…</p>'; DS.todasJson = null; }
     DS.todasFecha = fecha;
     api('/design/api/todas-areas?fecha=' + fecha).catch(function(e) {
-      if (DS.todasFecha === fecha) { cont.innerHTML = '<p class="ds-err-carga"></p>'; cont.firstChild.textContent = 'No se pudo cargar: ' + e.message; }
+      if (!vivo && DS.todasFecha === fecha) { cont.innerHTML = '<p class="ds-err-carga"></p>'; cont.firstChild.textContent = 'No se pudo cargar: ' + e.message; }
       return null;
     }).then(function(areas) {
       if (!areas || DS.todasFecha !== fecha) return; // cambió el día/semana mientras cargaba
+      var j = JSON.stringify(areas); if (vivo && j === DS.todasJson) return; DS.todasJson = j;
       var conEquipos = areas.filter(function(a) { return a.teams.length; });
       if (!conEquipos.length) { cont.innerHTML = '<p style="color:#4b5563">No hay equipos configurados en ninguna área todavía.</p>'; return; }
       var html = '';
@@ -3790,6 +3795,22 @@ window.DS_PANELS.dashboard = function() {
     document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
     cmtAutoGrow(document.getElementById("cmtOut1")); cmtAutoGrow(document.getElementById("cmtOut2"));
     cmtRenderPlantillas();
+    cmtGuardarBorrador(f);
+  }
+  // Borrador: lo escrito en Comments N3 se guarda en este navegador (por persona) con cada cambio, así al
+  // actualizar la página o cerrarla por error no se pierde. "Limpiar" lo vacía (y guarda el caso en el historial).
+  var CMT_BORRADOR_KEY = 'cmtBorradorV1:{{ user.id }}', cmtBorradorListo = false;
+  function cmtGuardarBorrador(f) {
+    if (!cmtBorradorListo) return;
+    try {
+      if (CMT_FIELDS.some(function(k) { return cmtNe(f[k]); })) localStorage.setItem(CMT_BORRADOR_KEY, JSON.stringify({t: Date.now(), campos: f}));
+      else localStorage.removeItem(CMT_BORRADOR_KEY);
+    } catch (e) {}
+  }
+  function cmtRestaurarBorrador() {
+    var b = null; try { b = JSON.parse(localStorage.getItem(CMT_BORRADOR_KEY) || 'null'); } catch (e) {}
+    if (b && b.campos && CMT_FIELDS.some(function(k) { return cmtNe(b.campos[k]); })) cmtCargarDesdeHistorial(b.campos);
+    cmtBorradorListo = true;
   }
   function cmtEscHtml(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   // Plantillas: compartidas por todo el equipo (las 11 fijas + las que se agreguen); favoritos por persona.
@@ -3999,6 +4020,7 @@ window.DS_PANELS.dashboard = function() {
       if (el && el.tagName === 'SELECT') el.addEventListener('change', function() { if (el.value) el.classList.remove('cmt-missing'); });
       if (el && el.tagName === 'SELECT') el.addEventListener('change', cmtRecalcular);
     });
+    cmtRestaurarBorrador();  // lo que estaba escrito antes de actualizar la página
     cmtRecalcular();
     setTimeout(cmtRecalcular, 0);  // con el panel ya visible, para que las cajas tomen su alto
     cmtCargarHistorial();
