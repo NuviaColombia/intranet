@@ -480,8 +480,8 @@
           <button type="button" class="btn" style="background:var(--success)" onclick="exportarConteosMes()">⬇️ Exportar Excel</button>
         </div>
       </div>
-      <p style="font-size:12.5px; color:var(--text-muted); margin:8px 0;">Solo consulta de lo cargado en Producción › Conteo inventario mensual (cifra oficial: el segundo conteo cuando ya se hizo).
-        ✅ = en firme · ⏳ = esperando firmas.</p>
+      <p style="font-size:12.5px; color:var(--text-muted); margin:8px 0;" id="ctNota">Discos de zirconia por área: <b>Sistema</b> = existencia neta del Dashboard al último día del mes ·
+        <b>Conteo</b> = lo contado en Conteo inventario mensual (cifra oficial: el segundo conteo cuando ya se hizo) · en <b>Damage</b> el conteo son los discos <b>dañados</b> reportados por las áreas. Solo consulta.</p>
       <div style="overflow-x:auto"><table class="consulta-tabla" id="ctTabla" style="min-width:100%"></table></div>
     </div>
 
@@ -2618,10 +2618,11 @@ function enviarAlServidor(arregloDatos, resumenExtra) {
     }).catch(function(e) { alert('Error: ' + e.message); desbloquearBotonGuardar(); });
 }
 
-// ---------------- Conteos mensuales (solo consulta): material × área y total del mes ----------------
+// ---------------- Conteos mensuales (solo consulta): discos de zirconia, sistema vs conteo por área ----------------
 var CT_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var CT_ESTADO = {VALIDADO: '✅ En firme', ENVIADO: '⏳ Esperando firmas', SIN_ENVIAR: '— Sin enviar', DANADOS: 'Dañados reportados'};
 var ctFilas = [];  // para exportar
-function ctNum(v) { return v ? Number(v).toLocaleString('es-CO', {maximumFractionDigits: 2}) : ''; }
+function ctNum(v) { return v === null || v === undefined ? '—' : Number(v).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 function cargarConteosMes() {
   var selMes = document.getElementById('ctMes'), anio = document.getElementById('ctAnio');
   if (!selMes.options.length) {  // primera vez: el mes anterior (el último que se cuenta)
@@ -2631,27 +2632,24 @@ function cargarConteosMes() {
   }
   var tabla = document.getElementById('ctTabla');
   custodiaApi('/custodia/api/conteos?anio=' + anio.value + '&mes=' + selMes.value).then(function(c) {
-    document.getElementById('ctTitulo').innerText = '· ' + c.mesNombre + ' ' + c.anio;
-    // Áreas con conteo enviado o en firme (devueltos y anulados no tienen cifra válida)
-    var reps = c.reportes.filter(function(r) { return r.estado === 'ENVIADO' || r.estado === 'VALIDADO'; });
-    var variasBodegas = c.bodegas.length > 1;
-    var cab = ['Referencia', 'Desc. item'].concat(reps.map(function(r) { return (r.estado === 'VALIDADO' ? '✅ ' : '⏳ ') + nombrePropio(r.area); }), ['TOTAL CONTEO REPORTADO MES']);
+    document.getElementById('ctTitulo').innerText = '· Discos de zirconia · corte ' + c.corte;
+    var cab = ['Área', 'Sistema (Dashboard)', 'Conteo', 'Diferencia', 'Estado del conteo'];
     ctFilas = [cab];
-    var html = '<thead><tr>' + cab.map(function(t, i) { return '<th' + (i < 2 ? ' style="text-align:left"' : '') + '>' + esc(t) + '</th>'; }).join('') + '</tr></thead><tbody>';
-    c.bodegas.forEach(function(b) {
-      var filas = c.materiales.map(function(m) { return {ref: (variasBodegas ? b.prefijo + '-' : '') + m.codigo, desc: m.descripcion, k: b.id + ':' + m.id, dan: false}; });
-      filas.push({ref: (variasBodegas ? b.prefijo + '-' : '') + 'DAÑADOS', desc: 'Disco de zirconia - DAÑADOS', k: String(b.id), dan: true});
-      if (variasBodegas) html += '<tr><td colspan="' + cab.length + '" style="text-align:left; font-weight:800; background:#f1f5f9">' + esc(b.nombre) + ' - Bodega ' + esc(b.codigo) + '</td></tr>';
-      filas.forEach(function(f) {
-        var valores = reps.map(function(r) { return Number((f.dan ? r.finalDanados[f.k] : r.final[f.k]) || 0); });
-        var total = valores.reduce(function(a, v) { return a + v; }, 0);
-        ctFilas.push([f.ref, f.desc].concat(valores, [total]));
-        var resaltar = /zirconia/i.test(f.desc) && !f.dan;
-        html += '<tr' + (resaltar ? ' style="background:#fef9c3"' : '') + '><td style="text-align:left; font-weight:700">' + esc(f.ref) + '</td><td style="text-align:left">' + esc(f.desc) + '</td>' +
-          valores.map(function(v) { return '<td>' + ctNum(v) + '</td>'; }).join('') + '<td style="font-weight:800">' + ctNum(total) + '</td></tr>';
-      });
+    var tSis = 0, tCon = 0;
+    var html = '<thead><tr>' + cab.map(function(t, i) { return '<th' + (i === 0 ? ' style="text-align:left"' : '') + '>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
+    c.filas.forEach(function(f) {
+      if (f.conteo !== null) { tSis += f.sistema; tCon += f.conteo; }  // el total compara solo las áreas con conteo
+      var dif = f.diferencia, color = dif === null ? 'var(--text-muted)' : (Math.abs(dif) < 0.005 ? 'var(--success)' : 'var(--danger)');
+      ctFilas.push([nombrePropio(f.area) + (f.area === 'DAMAGE' ? ' (dañados)' : ''), f.sistema, f.conteo === null ? '' : f.conteo, dif === null ? '' : dif, CT_ESTADO[f.estado] || f.estado]);
+      html += '<tr' + (f.area === 'DAMAGE' ? ' style="background:#fff7ed"' : '') + '><td style="text-align:left; font-weight:700">' + esc(nombrePropio(f.area)) + (f.area === 'DAMAGE' ? ' <small>(dañados)</small>' : '') +
+        '</td><td>' + ctNum(f.sistema) + '</td><td style="font-weight:700">' + ctNum(f.conteo) + '</td><td style="font-weight:800; color:' + color + '">' +
+        (dif === null ? '—' : (dif > 0 ? '+' : '') + ctNum(dif)) + '</td><td>' + esc(CT_ESTADO[f.estado] || f.estado) + '</td></tr>';
     });
-    tabla.innerHTML = html + '</tbody>' + (reps.length ? '' : '<tbody><tr><td colspan="' + cab.length + '" style="padding:30px; color:var(--text-muted)">Ningún área ha enviado el conteo de ' + esc(c.mesNombre) + ' ' + c.anio + '.</td></tr></tbody>');
+    var tDif = Math.round((tCon - tSis) * 100) / 100;
+    ctFilas.push(['TOTAL (áreas con conteo)', tSis, tCon, tDif, '']);
+    html += '</tbody><tbody><tr style="background:#f1f5f9; font-weight:800"><td style="text-align:left">TOTAL <small style="font-weight:600">(áreas con conteo)</small></td><td>' + ctNum(tSis) + '</td><td>' + ctNum(tCon) +
+      '</td><td style="color:' + (Math.abs(tDif) < 0.005 ? 'var(--success)' : 'var(--danger)') + '">' + (tDif > 0 ? '+' : '') + ctNum(tDif) + '</td><td></td></tr></tbody>';
+    tabla.innerHTML = html;
   }).catch(function(e) { tabla.innerHTML = '<tbody><tr><td style="color:var(--danger); padding:20px">' + esc(e.message) + '</td></tr></tbody>'; });
 }
 function exportarConteosMes() {
