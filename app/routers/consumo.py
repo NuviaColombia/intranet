@@ -256,21 +256,52 @@ def toggle_tipo(tipo_id: int, user: Empleado = Depends(require_admin_produccion)
     return _volver("c_tipos", "Tipo de producto actualizado.")
 
 
+def _dar_acceso_tecnico(db: Session, e: Empleado, secciones: list[str], user: Empleado) -> str | None:
+    """El técnico entra a Seguimiento de consumo solo a las secciones elegidas."""
+    from .. import acceso_secciones as acs
+    elegidas = [s for s in acs.todas(SUB) if s in set(secciones)]
+    if not elegidas:
+        return "No se guardó: elige al menos una sección a la que entra el técnico."
+    if MODULO_PRODUCCION not in e.modulos_lista:
+        e.modulos = ",".join(e.modulos_lista + [MODULO_PRODUCCION])
+    if not db.query(ProduccionAcceso).filter_by(empleado_id=e.id, submodulo=SUB).first():
+        db.add(ProduccionAcceso(empleado_id=e.id, submodulo=SUB))
+    db.commit()
+    return acs.guardar(db, e.id, SUB, elegidas, user)
+
+
 @router.post("/inventario/parametros/consumo/tecnicos")
 def agregar_tecnico(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
-                    empleado_id: int = Form(...), area: str = Form("")):
+                    empleado_id: int = Form(...), area: str = Form(""), secciones: list[str] = Form([])):
+    """Agrega el técnico con su área y le da acceso a Seguimiento de consumo en las secciones elegidas."""
     e = db.get(Empleado, empleado_id)
     if not e or not e.activo:
         return _volver("c_tecnicos", "No se guardó: elige una persona de la lista.")
     if not _texto(area):
         return _volver("c_tecnicos", "No se guardó: elige el área del técnico.")
+    if not secciones:
+        return _volver("c_tecnicos", "No se guardó: elige al menos una sección a la que entra el técnico.")
     t = db.query(ConsumoTecnico).filter(ConsumoTecnico.empleado_id == e.id).first()
     if t:
         t.area, t.activo = _texto(area), 1
     else:
         db.add(ConsumoTecnico(empleado_id=e.id, area=_texto(area)))
     db.commit()
-    return _volver("c_tecnicos", f"{nombre_propio(e.nombre_completo)} agregado como técnico.")
+    error = _dar_acceso_tecnico(db, e, secciones, user)
+    if error:
+        return _volver("c_tecnicos", error)
+    return _volver("c_tecnicos", f"{nombre_propio(e.nombre_completo)} agregado como técnico, con acceso a Seguimiento de consumo.")
+
+
+@router.post("/inventario/parametros/consumo/tecnicos/{tecnico_id}/acceso")
+def acceso_tecnico(tecnico_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
+                   secciones: list[str] = Form([])):
+    """Da acceso (con sus secciones) a un técnico que ya estaba en la lista sin acceso al submódulo."""
+    t = db.get(ConsumoTecnico, tecnico_id)
+    if not t or not t.empleado:
+        return _volver("c_tecnicos", "Técnico no encontrado.")
+    error = _dar_acceso_tecnico(db, t.empleado, secciones, user)
+    return _volver("c_tecnicos", error or f"Acceso a Seguimiento de consumo dado a {nombre_propio(t.empleado.nombre_completo)}.")
 
 
 @router.post("/inventario/parametros/consumo/tecnicos/{tecnico_id}")
