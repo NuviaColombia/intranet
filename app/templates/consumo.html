@@ -186,7 +186,7 @@ function pintarConsulta() {
         '</td><td>' + badge(f.estado) + (f.consumidoEn ? ' <small>' + esc(f.consumidoEn) + '</small>' : '') + '</td><td>' + f.jornadas + '</td></tr>'; }).join('') +
       '</tbody></table>' + (e.observaciones ? '<p><b>Observaciones:</b> ' + esc(e.observaciones) + '</p>' : '') +
       (e.estado === 'ANULADO' ? '<p class="cs-alerta">Anulada por ' + esc(e.anuladoPor) + ' el ' + esc(e.anuladoEn) + ': ' + esc(e.motivoAnulacion) + '</p>'
-        : '<div class="cm-acciones" style="margin-top:8px"><button class="btn rojo mini" onclick="anularEntrega(' + e.id + ')">🚫 Anular entrega</button></div>') + '</td></tr>';
+        : (D.puedeEditar ? '<div class="cm-acciones" style="margin-top:8px"><button class="btn rojo mini" onclick="anularEntrega(' + e.id + ')">🚫 Anular entrega</button></div>' : '')) + '</td></tr>';
     return '<tr><td class="cm-num-orden">' + String(e.id).padStart(4, '0') + '</td><td>' + esc(e.fecha) + ' ' + esc(e.hora) + '</td><td class="izq">' + esc(e.tecnico) +
       '</td><td>' + esc(np(e.area)) + '</td><td>' + esc(e.manager) + '</td><td>' + e.frascos.length + '</td><td>' + badge(e.estado) +
       '</td><td><button class="btn gris mini" onclick="var d=document.getElementById(\'det' + e.id + '\'); d.style.display = d.style.display ? \'\' : \'none\';">👁️ Detalle</button></td></tr>' + det;
@@ -213,9 +213,9 @@ function cargarJornada() {
         '</td><td style="font-size:12px">' + esc(f.lote) + ' / ' + esc(f.ref) + ' / ' + esc(f.serie) + '</td><td style="font-size:12px">' + esc(f.fechaEntrega) +
         '<br><small>' + f.diasAbierto + ' día(s)</small></td>' +
         D.tipos.map(function(t) { return '<td><input type="number" min="0" step="0.5" class="num jArco" data-tipo="' + t.id + '" value="' + (f.arcos[t.id] || '') + '"' +
-          (f.midesArcos ? '' : ' disabled') + ' oninput="sumarFila(this)"></td>'; }).join('') +
+          (f.midesArcos && D.puedeEditar ? '' : ' disabled') + ' oninput="sumarFila(this)"></td>'; }).join('') +
         '<td class="jTotal" style="font-weight:800">' + num(Object.values(f.arcos).reduce(function(a, b) { return a + b; }, 0)) + '</td><td>' + num(f.acumulado) +
-        '</td><td><input type="checkbox" class="jCons" style="width:auto"' + (f.consumido ? ' checked' : '') + '></td></tr>'; }).join('');
+        '</td><td><input type="checkbox" class="jCons" style="width:auto"' + (f.consumido ? ' checked' : '') + (D.puedeEditar ? '' : ' disabled') + '></td></tr>'; }).join('');
   }).catch(function(e) { jCuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
 function sumarFila(inp) {
@@ -273,6 +273,10 @@ api('/consumo/api/datos').then(function(d) {
   opcionesTecnicos('eTecnico'); opcionesTecnicos('jTecnico'); opcionesTecnicos('rTecnico', true);
   rMateria.innerHTML = '<option value="">Todas</option>' + d.materias.map(function(m) { return '<option value="' + m.id + '">' + esc(np(m.descripcion)) + '</option>'; }).join('');
   cambiarTecnicoEntrega();
+  if (!d.puedeEditar) {  // técnico: solo consulta
+    var bj = document.getElementById('btnJornada');
+    if (bj) bj.outerHTML = '<p class="cm-sub" style="margin:0">👀 Solo consulta: el manager de tu área registra y corrige la jornada.</p>';
+  }
   var tab = new URLSearchParams(location.search).get('tab');
   switchTab(tab && SECCIONES.indexOf(tab) >= 0 ? tab : {{ (consumo_tab_inicial or 'jornada')|tojson }});
 });
