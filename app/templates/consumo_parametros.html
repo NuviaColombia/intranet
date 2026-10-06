@@ -48,6 +48,20 @@
     <tr><td colspan="5" class="cp-vacio">Todavía no hay managers. Usa <b>＋ Agregar manager</b>.</td></tr>
     {% endfor %}
   </table>
+  {% set mov = consumo.movimientos %}
+  <details class="cp-agregar" style="margin-top:22px; border-top:1px dashed #FCA5A5; padding-top:12px">
+    <summary><span class="btn gris mini">🧹 Empezar desde cero (borrar datos cargados)</span></summary>
+    <form method="post" action="/inventario/parametros/consumo/limpiar" class="cp-form-nuevo"
+          onsubmit="return confirm('¿Borrar TODAS las entregas, frascos y jornadas de Seguimiento de consumo? No se puede deshacer.')">
+      <div style="flex:3; min-width:300px; font-size:13px; color:#7F1D1D">
+        Borra <b>todas</b> las entregas (también las anuladas), frascos y jornadas: hoy hay <b>{{ mov.entregas }}</b> entregas,
+        <b>{{ mov.frascos }}</b> frascos y <b>{{ mov.jornadas }}</b> jornadas. <b>No se puede deshacer.</b><br>
+        Se conservan managers, técnicos, materias primas y tipos de producto.</div>
+      <div style="min-width:180px"><label>Escribe BORRAR para confirmar</label>
+        <input name="confirmacion" required autocomplete="off" placeholder="BORRAR" pattern="[Bb][Oo][Rr][Rr][Aa][Rr]"></div>
+      <div><button class="btn rojo mini">🧹 Borrar datos</button></div>
+    </form>
+  </details>
 </div>
 
 {# ---------- Técnicos ---------- #}

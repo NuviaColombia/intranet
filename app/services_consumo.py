@@ -254,6 +254,22 @@ def guardar_jornada(db: Session, user: Empleado, tecnico: ConsumoTecnico, fecha:
     return None
 
 
+def contar_movimientos(db: Session) -> dict:
+    return {"entregas": db.query(ConsumoEntrega).count(), "frascos": db.query(ConsumoFrasco).count(),
+            "jornadas": db.query(ConsumoJornada).count()}
+
+
+def limpiar_movimientos(db: Session) -> dict:
+    """Empezar desde cero: borra entregas (también las anuladas), frascos y jornadas.
+    Conserva la configuración: managers, técnicos, materias primas y tipos de producto."""
+    antes = contar_movimientos(db)
+    db.query(ConsumoJornada).delete(synchronize_session=False)
+    db.query(ConsumoFrasco).delete(synchronize_session=False)
+    db.query(ConsumoEntrega).delete(synchronize_session=False)
+    db.commit()
+    return antes
+
+
 # ---------------- Reportes ----------------
 
 def reportes(db: Session, desde: date | None, hasta: date | None, tecnico_id: int | None = None,
