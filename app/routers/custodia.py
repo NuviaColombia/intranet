@@ -304,11 +304,11 @@ def api_conteos(anio: int, mes: int, user: Empleado = Depends(require_submodulo(
     for area in areas + sorted(set(sistema) - set(areas)):
         es_damage = area == "DAMAGE"
         r = reportes.get(area)
-        contado = round(danados_total, 2) if es_damage else conteo.get(area)
+        contado = (round(danados_total, 2) if reportes else None) if es_damage else conteo.get(area)
         if not es_damage and r is None and not sistema.get(area):
             continue  # área sin discos en el sistema y sin conteo
         filas.append({"area": area, "sistema": sistema.get(area, 0.0), "conteo": contado,
-                      "estado": ("DANADOS" if es_damage else (r.estado if r else "SIN_ENVIAR")),
+                      "estado": (("DANADOS" if reportes else "DANADOS_SIN") if es_damage else (r.estado if r else "SIN_ENVIAR")),
                       "diferencia": None if contado is None else round(contado - sistema.get(area, 0.0), 2)})
     return {"anio": anio, "mes": mes, "mesNombre": sct.MESES[mes - 1], "corte": corte.isoformat(),
             "material": ", ".join(f"{m.codigo} {m.descripcion}" for m in zirconia) or "Disco de zirconia", "filas": filas}

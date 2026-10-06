@@ -465,7 +465,6 @@
             <button type="button" class="btn mini" id="btnEstadoCompletadas" onclick="setFiltroEstadoOrden('completadas')" style="background:var(--border-medium); color:var(--brand-main);">Completadas</button>
           </div>
           <button type="button" class="btn" style="background:var(--brand-main);" onclick="cargarEstadoOrdenes()" id="btnRefrescarActivas">🔍 Buscar</button>
-          <button type="button" class="btn" style="background:var(--success);" onclick="imprimirReporteCorte()">🖨️ Reporte corte</button>
         </div>
 
         <div id="resultadoConsultaOrden" style="display:none; margin-top:16px; border-top:1px solid var(--border-soft); padding-top:16px;">
@@ -488,7 +487,10 @@
           <div class="split-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px; margin-bottom: 15px;">
                <h4 style="margin:0; border:none; padding:0;">📍 Ubicación actual</h4>
-               <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:11px;" onclick="exportarActivasExcel()">📥 Excel</button>
+               <div style="display:flex; gap:8px;">
+                 <button type="button" class="btn" style="background:var(--success); padding: 6px 12px; font-size:11px;" onclick="imprimirReporteCorte()" title="Hoja para hacer el conteo físico a mano">🖨️ Reporte corte</button>
+                 <button type="button" class="btn" style="background:#10B981; padding: 6px 12px; font-size:11px;" onclick="exportarActivasExcel()">📥 Excel</button>
+               </div>
             </div>
 
             <!-- el filtro por área se usa desde los chips; el select queda oculto para el resto del código -->
@@ -526,7 +528,6 @@
         <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
           <label>Corte (mes):</label><select id="ctMes" onchange="cargarConteosMes()"></select>
           <label>Año:</label><input type="number" id="ctAnio" min="2020" max="2100" style="width:90px" onchange="cargarConteosMes()">
-          <button type="button" class="btn" style="background:var(--success)" onclick="exportarConteosMes()">⬇️ Exportar Excel</button>
         </div>
       </div>
       <p style="font-size:12.5px; color:var(--text-muted); margin:8px 0;" id="ctNota">Discos de zirconia por área: <b>Sistema</b> = existencia neta del Dashboard al último día del mes ·
@@ -1695,9 +1696,10 @@ function descargarCSV(contenido, prefijo) {
 }
 
 function imprimirReporteCorte() {
-  var fDesde = document.getElementById("filtroFechaDesdeActivas").value;
+  // Hoja para el conteo físico: lo que dice el sistema por área y orden, con espacios para escribir a mano
   var fHasta = document.getElementById("filtroFechaHastaActivas").value;
-  var fechaCorte = (fDesde || fHasta) ? `${fDesde || '...'} a ${fHasta || '...'}` : "Sin filtro de fecha";
+  var hoy = new Date();
+  var corte = fHasta ? fHasta.split('-').reverse().join('/') : hoy.toLocaleDateString('es-CO') + ' (hoy)';
   var textoBuscado = document.getElementById("inputOrdenActivas").value.toUpperCase().trim();
   var areaBuscada = document.getElementById("filtroAreaActivas").value.toUpperCase();
 
@@ -1711,68 +1713,67 @@ function imprimirReporteCorte() {
     }
     return true;
   });
+  if (filtrados.length === 0) return alert("No hay órdenes para imprimir en este corte.");
 
-  if (filtrados.length === 0) return alert("No hay datos de órdenes activas para imprimir en este corte.");
-
-  var grupos = {}; var granTotal = 0;
+  var grupos = {}, granTotal = 0;
   filtrados.forEach(function(o) {
-    if (!grupos[o.ubicacion]) { grupos[o.ubicacion] = { ordenes: [], total: 0 }; }
-    grupos[o.ubicacion].ordenes.push(o);
-    grupos[o.ubicacion].total += o.cantidad;
-    granTotal += o.cantidad;
+    var g = grupos[o.ubicacion] || (grupos[o.ubicacion] = {ordenes: [], total: 0});
+    g.ordenes.push(o); g.total += o.cantidad; granTotal += o.cantidad;
   });
-
-  Object.keys(grupos).forEach(k => {
-     grupos[k].ordenes.sort((a,b) => a.orden.localeCompare(b.orden, undefined, { numeric: true }));
+  Object.keys(grupos).forEach(function(k) {
+    grupos[k].ordenes.sort(function(a, b) { return a.orden.localeCompare(b.orden, undefined, {numeric: true}); });
   });
+  var n = function(v) { return v.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+  var logo = document.querySelector('nav .marca img');
 
-  var hoyStr = new Date().toLocaleString();
+  var css = '@page { size: letter portrait; margin: 9mm 10mm 11mm; }' +
+    'body { font-family: Arial, Helvetica, sans-serif; color: #0F172A; font-size: 10px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+    'table { width: 100%; border-collapse: collapse; }' +
+    '.enc td { border: 1px solid #94A3B8; padding: 4px 8px; vertical-align: middle; }' +
+    '.enc .logo { width: 22%; text-align: center; } .enc .logo img { max-height: 34px; }' +
+    '.enc .tit { text-align: center; } .enc .tit b { display: block; font-size: 13px; color: #1A365D; } .enc .tit span { font-size: 9.5px; color: #475569; }' +
+    '.enc .meta { width: 26%; font-size: 9.5px; } .enc .meta b { color: #1A365D; }' +
+    '.datos { margin: 6px 0 8px; } .datos td { font-size: 10px; padding: 3px 0; } .datos .linea { border-bottom: 1px solid #0F172A; width: 30%; }' +
+    '.area { margin-bottom: 7px; page-break-inside: avoid; }' +
+    '.area-cab { background: #1A365D; color: #fff; font-weight: 700; font-size: 10.5px; padding: 3px 8px; display: flex; justify-content: space-between; }' +
+    '.t th { background: #E2E8F0; font-size: 9px; font-weight: 700; padding: 3px 5px; border: 1px solid #94A3B8; text-transform: uppercase; }' +
+    '.t td { border: 1px solid #94A3B8; padding: 0 6px; height: 19px; font-size: 10.5px; }' +
+    '.t .num { text-align: right; font-weight: 700; } .t .ord { font-weight: 700; } .t .i { text-align: center; color: #64748B; width: 5%; }' +
+    '.t .neg { color: #DC2626; } .t tr.tot td { background: #F1F5F9; font-weight: 700; }' +
+    '.resumen { margin-top: 8px; border: 1px solid #94A3B8; } .resumen td { padding: 4px 8px; font-size: 10.5px; border: 1px solid #94A3B8; }' +
+    '.firmas { margin-top: 26px; page-break-inside: avoid; } .firmas td { width: 33%; text-align: center; padding: 0 14px; font-size: 9.5px; vertical-align: bottom; }' +
+    '.firmas .l { border-top: 1px solid #0F172A; padding-top: 3px; font-weight: 700; }';
 
-  var htmlPrint = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #0F172A;">
-      <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #1A365D; padding-bottom: 15px;">
-         <h2 style="margin:0; color:#1A365D; font-weight: 900;">Nuvia Smiles Colombia S.A.S.</h2>
-         <h3 style="margin:8px 0 5px 0;">Inventario en proceso (cantidades)</h3>
-         <p style="margin:0; font-size:12px; color:#475569;">Corte a fecha: <b>${fechaCorte}</b> | Impreso: ${hoyStr}</p>
-      </div>
-  `;
+  var html = '<style>' + css + '</style>' +
+    '<table class="enc"><tr><td class="logo" rowspan="2">' + (logo ? '<img src="' + logo.src + '">' : '<b>NUVIA</b>') + '</td>' +
+    '<td class="tit" rowspan="2"><b>CONTEO FÍSICO · INVENTARIO EN PROCESO</b><span>Cambio de custodia · Producción · discos por área y orden</span></td>' +
+    '<td class="meta">Corte del sistema: <b>' + esc(corte) + '</b></td></tr>' +
+    '<tr><td class="meta">Impreso: ' + esc(hoy.toLocaleString('es-CO')) + '</td></tr></table>' +
+    '<table class="datos"><tr><td style="width:14%">Fecha del conteo:</td><td class="linea"></td><td style="width:6%"></td>' +
+    '<td style="width:12%">Hora inicio / fin:</td><td class="linea"></td></tr></table>';
 
   Object.keys(grupos).sort().forEach(function(area) {
-    var dataArea = grupos[area];
-    htmlPrint += `
-      <div style="margin-bottom: 20px; page-break-inside: avoid;">
-        <div style="background-color: #1A365D; color: white; padding: 6px 12px; font-weight: bold; font-size: 13px; border: 1px solid #1A365D;">
-          📍 ${esc(area)} | Total: ${dataArea.total.toFixed(2)} Discos
-        </div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #CBD5E1;">
-          <thead>
-            <tr style="background-color: #F8FAFC; border-bottom: 2px solid #CBD5E1;">
-              <th style="padding: 6px; text-align: left; border-right: 1px solid #CBD5E1; width: 50%;">Número de orden</th>
-              <th style="padding: 6px; text-align: right; width: 50%;">Cantidad</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    dataArea.ordenes.forEach(function(item) {
-      htmlPrint += `
-        <tr style="border-bottom: 1px solid #E2E8F0;">
-          <td style="padding: 6px; border-right: 1px solid #E2E8F0; font-weight: bold;">${esc(item.orden)}</td>
-          <td style="padding: 6px; text-align: right; font-weight: bold; color: ${item.cantidad < 0 ? '#DC2626' : '#10B981'};">${item.cantidad.toFixed(2)}</td>
-        </tr>
-      `;
+    var g = grupos[area];
+    html += '<div class="area"><div class="area-cab"><span>📍 ' + esc(area) + '</span><span>' + g.ordenes.length + (g.ordenes.length === 1 ? ' orden' : ' órdenes') +
+      ' · Sistema: ' + n(g.total) + ' discos</span></div>' +
+      '<table class="t"><thead><tr><th class="i">#</th><th style="width:20%; text-align:left">Orden</th><th style="width:13%">Sistema</th>' +
+      '<th style="width:14%">Conteo físico</th><th style="width:12%">Diferencia</th><th style="text-align:left">Observación</th></tr></thead><tbody>';
+    g.ordenes.forEach(function(o, i) {
+      html += '<tr><td class="i">' + (i + 1) + '</td><td class="ord">' + esc(o.orden) + '</td><td class="num' + (o.cantidad < 0 ? ' neg' : '') + '">' + n(o.cantidad) +
+        '</td><td></td><td></td><td></td></tr>';
     });
-    htmlPrint += `</tbody></table></div>`;
+    // Filas en blanco para órdenes encontradas que no aparecen en el sistema
+    html += '<tr><td class="i">+</td><td></td><td></td><td></td><td></td><td></td></tr>' +
+      '<tr class="tot"><td></td><td>Total ' + esc(area) + '</td><td class="num">' + n(g.total) + '</td><td></td><td></td><td></td></tr></tbody></table></div>';
   });
 
-  htmlPrint += `
-      <div style="margin-top: 30px; text-align: right; padding: 12px; background-color: #F1F5F9; border-radius: 8px; border: 1px solid #CBD5E1;">
-         <h3 style="margin: 0; color: #1A365D;">Gran total discos: ${granTotal.toFixed(2)}</h3>
-         <p style="margin: 5px 0 0 0; font-size: 11px; font-weight: bold; color: #475569;">Total órdenes: ${filtrados.length}</p>
-      </div>
-    </div>
-  `;
+  html += '<table class="resumen"><tr><td style="width:40%"><b>TOTAL DISCOS</b> · ' + Object.keys(grupos).length + ' áreas · ' + filtrados.length + ' órdenes</td>' +
+    '<td style="width:20%">Sistema: <b>' + n(granTotal) + '</b></td><td style="width:20%">Conteo físico: ______</td><td>Diferencia: ______</td></tr></table>' +
+    '<table class="firmas"><tr><td><div style="height:30px"></div><div class="l">Contado por (manager del área)</div>Nombre y firma</td>' +
+    '<td><div style="height:30px"></div><div class="l">Área contable (acompaña el conteo)</div>Nombre y firma</td>' +
+    '<td><div style="height:30px"></div><div class="l">Director de Producción</div>Nombre y firma</td></tr></table>';
 
-  imprimirHtmlEnIframe(htmlPrint);
+  imprimirHtmlEnIframe(html);
 }
 
 function imprimirReporteMatriz() {
@@ -2677,8 +2678,7 @@ function enviarAlServidor(arregloDatos, resumenExtra) {
 
 // ---------------- Conteos mensuales (solo consulta): discos de zirconia, sistema vs conteo por área ----------------
 var CT_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var CT_ESTADO = {VALIDADO: '✅ En firme', ENVIADO: '⏳ Esperando firmas', SIN_ENVIAR: '— Sin enviar', DANADOS: 'Dañados reportados'};
-var ctFilas = [];  // para exportar
+var CT_ESTADO = {VALIDADO: '✅ En firme', ENVIADO: '⏳ Esperando firmas', SIN_ENVIAR: '— Sin enviar', DANADOS: 'Dañados reportados', DANADOS_SIN: '— Sin conteos enviados'};
 function ctNum(v) { return v === null || v === undefined ? '—' : Number(v).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 function cargarConteosMes() {
   var selMes = document.getElementById('ctMes'), anio = document.getElementById('ctAnio');
@@ -2691,29 +2691,20 @@ function cargarConteosMes() {
   custodiaApi('/custodia/api/conteos?anio=' + anio.value + '&mes=' + selMes.value).then(function(c) {
     document.getElementById('ctTitulo').innerText = '· Discos de zirconia · corte ' + c.corte;
     var cab = ['Área', 'Sistema (Dashboard)', 'Conteo', 'Diferencia', 'Estado del conteo'];
-    ctFilas = [cab];
     var tSis = 0, tCon = 0;
     var html = '<thead><tr>' + cab.map(function(t, i) { return '<th' + (i === 0 ? ' style="text-align:left"' : '') + '>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
     c.filas.forEach(function(f) {
       if (f.conteo !== null) { tSis += f.sistema; tCon += f.conteo; }  // el total compara solo las áreas con conteo
       var dif = f.diferencia, color = dif === null ? 'var(--text-muted)' : (Math.abs(dif) < 0.005 ? 'var(--success)' : 'var(--danger)');
-      ctFilas.push([nombrePropio(f.area) + (f.area === 'DAMAGE' ? ' (dañados)' : ''), f.sistema, f.conteo === null ? '' : f.conteo, dif === null ? '' : dif, CT_ESTADO[f.estado] || f.estado]);
       html += '<tr' + (f.area === 'DAMAGE' ? ' style="background:#fff7ed"' : '') + '><td style="text-align:left; font-weight:700">' + esc(nombrePropio(f.area)) + (f.area === 'DAMAGE' ? ' <small>(dañados)</small>' : '') +
         '</td><td>' + ctNum(f.sistema) + '</td><td style="font-weight:700">' + ctNum(f.conteo) + '</td><td style="font-weight:800; color:' + color + '">' +
         (dif === null ? '—' : (dif > 0 ? '+' : '') + ctNum(dif)) + '</td><td>' + esc(CT_ESTADO[f.estado] || f.estado) + '</td></tr>';
     });
     var tDif = Math.round((tCon - tSis) * 100) / 100;
-    ctFilas.push(['TOTAL (áreas con conteo)', tSis, tCon, tDif, '']);
     html += '</tbody><tbody><tr style="background:#f1f5f9; font-weight:800"><td style="text-align:left">TOTAL <small style="font-weight:600">(áreas con conteo)</small></td><td>' + ctNum(tSis) + '</td><td>' + ctNum(tCon) +
       '</td><td style="color:' + (Math.abs(tDif) < 0.005 ? 'var(--success)' : 'var(--danger)') + '">' + (tDif > 0 ? '+' : '') + ctNum(tDif) + '</td><td></td></tr></tbody>';
     tabla.innerHTML = html;
   }).catch(function(e) { tabla.innerHTML = '<tbody><tr><td style="color:var(--danger); padding:20px">' + esc(e.message) + '</td></tr></tbody>'; });
-}
-function exportarConteosMes() {
-  if (ctFilas.length < 2) { alert('No hay datos para exportar.'); return; }
-  var csv = String.fromCharCode(0xFEFF) + ctFilas.map(function(f) { return f.map(function(v) { return typeof v === 'number' ? String(v).replace('.', ',') : '"' + String(v).replace(/"/g, '""') + '"'; }).join(';'); }).join(String.fromCharCode(13, 10));
-  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
-  a.download = 'conteos_' + document.getElementById('ctAnio').value + '_' + String(document.getElementById('ctMes').value).padStart(2, '0') + '.csv'; a.click();
 }
 </script>
 {% endblock %}
