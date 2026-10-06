@@ -193,7 +193,9 @@
 
   /* ===== Diseño compacto: menos márgenes, bordes y sombras para dar más espacio a la información ===== */
   #custodia-app .content-section { padding: 12px 14px; }
-  #custodia-app .main-container { box-shadow: none; border-radius: 10px; }
+  #custodia-app .main-container { box-shadow: none; border: none; border-radius: 0; background: transparent; }
+  #custodia-app .content-section { padding: 2px 0; }
+  #custodia-app .consulta-tabla-wrapper { max-height: calc(100vh - 210px); background: var(--bg-surface); }
   #custodia-app .consulta-filtros { padding: 8px 12px; margin-bottom: 10px; gap: 10px; border-radius: 10px; box-shadow: none; }
   #custodia-app .consulta-filtros h4 { font-size: 14px !important; }
   #custodia-app .consulta-filtros label { font-size: 12px; }

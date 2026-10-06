@@ -151,3 +151,12 @@
 #caja-app .cm-adjunto.pend img { opacity: .6; outline: 2px solid #f59e0b; }
 #caja-app .cm-adjunto .x { position: absolute; top: -6px; right: -6px; background: #dc2626; color: #fff; border: none; border-radius: 50%;
   width: 20px; height: 20px; font-size: 11px; cursor: pointer; padding: 0; }
+
+/* ===== Diseño de aplicación a pantalla completa y compacto (igual que Producción) ===== */
+#caja-app .cm-main { padding: 12px 14px; box-shadow: none; border: none; border-radius: 0; min-height: calc(100vh - 110px); }
+#caja-app .cm-barra { margin-bottom: 10px; }
+#caja-app .cm-filtros { padding: 8px 12px; margin-bottom: 10px; gap: 10px; border-radius: 10px; box-shadow: none; }
+#caja-app .cm-tabla-wrap { max-height: calc(100vh - 230px); box-shadow: none; border-radius: 8px; }
+#caja-app .cm-tabla td { padding: 6px 10px; }
+#caja-app table.cm-form { margin-bottom: 12px; }
+#caja-app .btn { padding: 7px 14px; }

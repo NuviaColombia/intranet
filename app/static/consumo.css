@@ -157,7 +157,8 @@
 @media (max-width: 760px) { #consumo-app .cs-form, #consumo-app .cm-kpis.cinco { grid-template-columns: 1fr 1fr; } }
 
 /* ===== Diseño compacto (Producción): menos márgenes, bordes y sombras ===== */
-#consumo-app .cm-main { padding: 14px 16px; box-shadow: none; border-radius: 10px; }
+#consumo-app .cm-main { padding: 12px 14px; box-shadow: none; border: none; border-radius: 0; min-height: calc(100vh - 110px); }
+#consumo-app .cm-tabla-wrap { max-height: calc(100vh - 230px); box-shadow: none; border-radius: 8px; }
 #consumo-app .cm-barra { margin-bottom: 10px; }
 #consumo-app .cm-filtros { padding: 8px 12px; margin-bottom: 10px; gap: 10px; border-radius: 10px; box-shadow: none; }
 #consumo-app .cm-tabla td { padding: 6px 10px; }

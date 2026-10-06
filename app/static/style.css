@@ -104,3 +104,6 @@ label { font-size:13px; color:var(--gris); font-weight:600; }
 .login-caja { max-width:380px; margin:90px auto; text-align:center; }
 .logos-login { display:flex; justify-content:center; align-items:center; gap:20px; flex-wrap:wrap; margin-bottom:20px; }
 .logos-login img { max-height:100px; max-width:450px; }
+
+/* Producción (y sus submódulos) y Caja menor: la aplicación ocupa toda la pantalla, sin margen alrededor */
+main.app-completa { max-width: 100%; margin: 0; padding: 10px 14px; }
