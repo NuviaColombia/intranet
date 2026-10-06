@@ -1528,7 +1528,7 @@ function filtrarTablaActivas() {
           ${esc(o.orden)}
           <button class="btn btn-ver" style="margin-left: 8px; padding: 4px 8px; font-size: 11px;" data-orden="${esc(o.orden)}" onclick="abrirModalTimeline(this.dataset.orden)">🛤️ Viaje</button>
         </td>
-        <td style="font-weight:800; color:var(--success);">${o.cantidad.toFixed(2)}</td>
+        <td style="font-weight:800; color:${o.negativo ? 'var(--danger)' : 'var(--success)'};"${o.negativo ? ' title="Saldo negativo: salió más de lo que entró a esta área (falta registrar o firmar un traslado)"' : ''}>${o.negativo ? '⚠️ ' : ''}${o.cantidad.toFixed(2)}</td>
         <td>${calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion)} <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${o.fechaStr}</div></td>
       `;
       tbody1.appendChild(tr);
@@ -1700,7 +1700,7 @@ function imprimirReporteCorte() {
       htmlPrint += `
         <tr style="border-bottom: 1px solid #E2E8F0;">
           <td style="padding: 6px; border-right: 1px solid #E2E8F0; font-weight: bold;">${esc(item.orden)}</td>
-          <td style="padding: 6px; text-align: right; font-weight: bold; color: #10B981;">${item.cantidad.toFixed(2)}</td>
+          <td style="padding: 6px; text-align: right; font-weight: bold; color: ${item.cantidad < 0 ? '#DC2626' : '#10B981'};">${item.cantidad.toFixed(2)}</td>
         </tr>
       `;
     });

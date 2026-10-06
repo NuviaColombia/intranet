@@ -74,7 +74,7 @@ def alertas_por_area(db: Session) -> dict[str, dict]:
 def ordenes_incompletas(db: Session) -> list[dict]:
     """Órdenes con saldo positivo en alguna área ahora mismo (aún no llegan a un
     estado terminal) -- para el selector de "Número de Orden" al continuar un traslado."""
-    return estado_ordenes(db, None)["data"]
+    return [u for u in estado_ordenes(db, None)["data"] if u["cantidad"] > 0]
 
 
 def verificar_orden_existente(db: Session, numero_orden_raw: str) -> bool:
@@ -576,56 +576,65 @@ def _fecha_dt(f: date) -> datetime:
 
 
 def estado_ordenes(db: Session, fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
-    """Ubicación actual (neto > 0 por orden y área) y matriz Ent/Sal/Neto por orden.
+    """Ubicación al corte (neto por orden y área) y matriz Ent/Sal/Neto por orden.
 
-    La base de datos suma los movimientos agrupados por (orden, área); Python solo arma la
-    respuesta. Mismas reglas que antes: se excluyen áreas de legado/no inventario, y un traslado
-    anulado sigue contando si fue anulado después de la fecha de corte (fecha_hasta)."""
+    Mismas reglas que el Balance de inventario (Dashboard), para que ambos cuadren por área:
+    - un traslado anulado no cuenta nunca (fue un error: los discos no se movieron);
+    - la ubicación es acumulada desde el inicio hasta la fecha de corte (fecha_hasta); fecha_desde
+      solo limita la matriz Ent/Sal (movimientos dentro del rango);
+    - se incluyen los saldos negativos (aviso de que falta registrar o firmar algo).
+    La base de datos suma los movimientos agrupados por (orden, área); se excluyen áreas de legado/no inventario."""
     areas_base = areas_disponibles(db)
     areas_excl = areas_excluidas(db)
     T, L = CustodiaTraslado, CustodiaOrdenLinea
-
-    vigente = T.anulado.is_(False)
-    if fecha_hasta:
-        vigente = or_(vigente, T.anulado_en >= datetime.combine(fecha_hasta + timedelta(days=1), time.min))
-    filtros = [vigente]
-    if fecha_desde:
-        filtros.append(T.fecha >= fecha_desde)
-    if fecha_hasta:
-        filtros.append(T.fecha <= fecha_hasta)
-
     momento = cast(T.fecha, String) + literal(" ") + func.coalesce(cast(T.hora, String), literal("00:00"))
     cantidad = func.coalesce(L.cantidad_discos, 0.0)
 
-    def movimientos(columna_area, es_entrada: bool):
-        # En la salida descuenta la orden de origen (ej. STOCK) si la línea se asignó desde Stock
-        orden = L.numero_orden if es_entrada else func.coalesce(L.orden_origen, L.numero_orden)
-        return (select(orden.label("orden"), columna_area.label("area"),
-                       (cantidad if es_entrada else literal(0.0)).label("ent"),
-                       (literal(0.0) if es_entrada else cantidad).label("sal"),
-                       momento.label("momento"))
-                .join(T, L.traslado_id == T.id)
-                .where(and_(*filtros), columna_area.isnot(None), columna_area != ""))
+    def sumar(desde: date | None):
+        filtros = [T.anulado.is_(False)]
+        if desde:
+            filtros.append(T.fecha >= desde)
+        if fecha_hasta:
+            filtros.append(T.fecha <= fecha_hasta)
 
-    # Orden nueva desde DIR Producción: además de la salida, cuenta la entrada en DIR Producción (neto 0 allí)
-    ingreso = (select(L.numero_orden.label("orden"), T.area_salida.label("area"), cantidad.label("ent"),
-                      literal(0.0).label("sal"), momento.label("momento"))
-               .join(T, L.traslado_id == T.id).where(and_(*filtros), L.ingreso_directo.is_(True)))
-    mov = union_all(movimientos(T.area_entrada, True), movimientos(T.area_salida, False), ingreso).subquery()
-    filas = db.execute(select(mov.c.orden, mov.c.area, func.sum(mov.c.ent), func.sum(mov.c.sal), func.max(mov.c.momento))
-                       .group_by(mov.c.orden, mov.c.area)).all()
+        def movimientos(columna_area, es_entrada: bool):
+            # En la salida descuenta la orden de origen (ej. STOCK) si la línea se asignó desde Stock
+            orden = L.numero_orden if es_entrada else func.coalesce(L.orden_origen, L.numero_orden)
+            return (select(orden.label("orden"), columna_area.label("area"),
+                           (cantidad if es_entrada else literal(0.0)).label("ent"),
+                           (literal(0.0) if es_entrada else cantidad).label("sal"),
+                           momento.label("momento"))
+                    .join(T, L.traslado_id == T.id)
+                    .where(and_(*filtros), columna_area.isnot(None), columna_area != ""))
 
-    resultado, matrix, areas_extra = [], {}, set()
-    for orden, area, ent, sal, ultimo in filas:
+        # Orden nueva desde DIR Producción: además de la salida, cuenta la entrada en DIR Producción (neto 0 allí)
+        ingreso = (select(L.numero_orden.label("orden"), T.area_salida.label("area"), cantidad.label("ent"),
+                          literal(0.0).label("sal"), momento.label("momento"))
+                   .join(T, L.traslado_id == T.id).where(and_(*filtros), L.ingreso_directo.is_(True)))
+        mov = union_all(movimientos(T.area_entrada, True), movimientos(T.area_salida, False), ingreso).subquery()
+        return db.execute(select(mov.c.orden, mov.c.area, func.sum(mov.c.ent), func.sum(mov.c.sal), func.max(mov.c.momento))
+                          .group_by(mov.c.orden, mov.c.area)).all()
+
+    acumulado = sumar(None)
+    filas = sumar(fecha_desde) if fecha_desde else acumulado
+
+    resultado = []
+    for orden, area, ent, sal, ultimo in acumulado:  # ubicación al corte (desde el inicio)
+        if area in areas_excl:
+            continue
+        neto = float(ent or 0) - float(sal or 0)
+        ultimo = (ultimo or "")[:16]
+        f_iso, h_iso = (ultimo[:10], ultimo[11:16] or "00:00") if ultimo else ("", "00:00")
+        if round(neto, 3) != 0:
+            resultado.append({"orden": orden, "ubicacion": area, "cantidad": round(neto, 3), "negativo": neto < 0,
+                              "fechaStr": f"{f_iso} {h_iso}", "fIso": f_iso, "hIso": h_iso})
+
+    matrix, areas_extra = {}, set()
+    for orden, area, ent, sal, ultimo in filas:  # matriz: movimientos del rango
         if area in areas_excl:
             continue
         ent, sal = float(ent or 0), float(sal or 0)
         neto = ent - sal
-        ultimo = (ultimo or "")[:16]
-        f_iso, h_iso = (ultimo[:10], ultimo[11:16] or "00:00") if ultimo else ("", "00:00")
-        if round(neto, 3) > 0:
-            resultado.append({"orden": orden, "ubicacion": area, "cantidad": round(neto, 3),
-                              "fechaStr": f"{f_iso} {h_iso}", "fIso": f_iso, "hIso": h_iso})
         matrix.setdefault(orden, {})[area] = {"ent": ent, "sal": sal, "net": neto}
         if area not in areas_base:
             areas_extra.add(area)
