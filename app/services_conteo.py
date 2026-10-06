@@ -308,9 +308,60 @@ def ve_pendientes(db: Session, user: Empleado) -> bool:
 
 
 def ve_consulta(db: Session, user: Empleado) -> bool:
-    """Pestaña «Consulta» (conteos firmados): el Director de Producción y los administradores."""
+    """Pestaña «Consulta» (conteos firmados): el Director de Producción, el área contable y los administradores."""
     d = director_produccion(db)
-    return es_admin(user) or bool(d and d.id == user.id)
+    return es_admin(user) or bool(d and d.id == user.id) or puede_cargar_contable(db, user)
+
+
+def puede_cargar_contable(db: Session, user: Empleado) -> bool:
+    """Cargan la existencia contable del mes: las personas del área contable (Parámetros) y los administradores."""
+    return es_admin(user) or user.id in {t.id for t in testigos(db)}
+
+
+def contable_del_mes(db: Session, anio: int, mes: int) -> dict:
+    """{"bodega:material" o "bodega:danados": {cantidad, por, en}} de la existencia contable cargada."""
+    from .models_conteo import ConteoContable
+    salida = {}
+    for c in db.query(ConteoContable).filter_by(anio=anio, mes=mes):
+        clave = f"{c.bodega_id}:{c.material_id if c.material_id else 'danados'}"
+        salida[clave] = {"cantidad": c.cantidad, "en": _hora(c.actualizado_en),
+                         "por": nombre_propio(c.actualizado_por.nombre_completo) if c.actualizado_por else ""}
+    return salida
+
+
+def guardar_contable(db: Session, user: Empleado, anio: int, mes: int, clave: str, valor) -> str | None:
+    """Guarda (o borra, si viene vacío) la existencia contable de un material en una bodega."""
+    from .models_conteo import ConteoContable
+    if not puede_cargar_contable(db, user):
+        return "Solo el área contable (o un administrador) carga la existencia contable."
+    try:
+        bodega, mat = clave.split(":")
+        bodega_id = int(bodega)
+        material_id = None if mat == "danados" else int(mat)
+    except (ValueError, AttributeError):
+        return "Material o bodega no válidos."
+    if not db.get(ConteoBodega, bodega_id) or (material_id and not db.get(ConteoMaterial, material_id)):
+        return "Material o bodega no válidos."
+    texto = str(valor if valor is not None else "").strip().replace(",", ".")
+    fila = (db.query(ConteoContable).filter_by(anio=anio, mes=mes, bodega_id=bodega_id)
+            .filter(ConteoContable.material_id.is_(None) if material_id is None else ConteoContable.material_id == material_id).first())
+    if texto == "":
+        if fila:
+            db.delete(fila)
+            db.commit()
+        return None
+    try:
+        cantidad = round(float(texto), 2)
+    except ValueError:
+        return "La existencia contable debe ser un número (se aceptan decimales, ej. 12.5)."
+    if cantidad < 0:
+        return "La existencia contable no puede ser negativa."
+    if not fila:
+        fila = ConteoContable(anio=anio, mes=mes, bodega_id=bodega_id, material_id=material_id)
+        db.add(fila)
+    fila.cantidad, fila.actualizado_por_id, fila.actualizado_en = cantidad, user.id, datetime.utcnow()
+    db.commit()
+    return None
 
 
 def corregir_responsables(db: Session) -> list[int]:
@@ -615,6 +666,7 @@ def consolidado(db: Session, anio: int, mes: int, areas_config: list[str], user:
         "bodegas": [{"id": b.id, "codigo": b.codigo, "nombre": b.nombre, "prefijo": b.prefijo} for b in bodegas_activas(db)],
         "materiales": [{"id": m.id, "codigo": m.codigo, "descripcion": m.descripcion} for m in materiales_activos(db)],
         "reportes": visibles, "totales": totales,
+        "contable": contable_del_mes(db, anio, mes), "puedeCargarContable": bool(user and puede_cargar_contable(db, user)),
         "pendientes": [a for a in areas_config if a not in enviadas],
         "enFirme": sum(1 for r in reportes if r.estado == EN_FIRME),
     }

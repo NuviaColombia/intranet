@@ -49,6 +49,7 @@
   #consumo-app .ct-area-meta { font-size:12px; color:#475569; flex:1; min-width:260px; }
   #consumo-app .ct-matriz tr.dan td { background:#fff7ed; }
   @media print { .no-print, nav { display:none !important; } }
+  #consumo-app input.ct-contable { width:120px !important; text-align:right; padding:4px 8px; font-weight:700; }
 </style>
 <div id="consumo-app">
  <div class="cm-main">
@@ -445,12 +446,42 @@ function cargarConsolidado() {
     // Total del mes (todas las áreas enviadas)
     var visibles = c.reportes.filter(function(r) { return !r.oculto; });
     document.getElementById('rTotal').innerHTML = !visibles.length ? '' : '<h3 class="cs-h3">🧮 Total del mes (' + visibles.length + ' área' + (visibles.length > 1 ? 's' : '') + ')</h3>' +
+      '<p class="ct-nota">Total contado (áreas en firme) vs <b>existencia contable</b>: la carga el área contable según la información contable' +
+      (c.puedeCargarContable ? ' (escribe la cifra y se guarda sola).' : '.') + ' Diferencia = contado − contable.</p>' +
       c.bodegas.map(function(b) {
-        return '<div class="cm-tabla-wrap"><table class="cm-tabla ct-matriz"><thead><tr><th>' + esc(b.nombre) + ' - Bodega ' + esc(b.codigo) + '</th><th class="n">Total</th></tr></thead><tbody>' +
-          c.materiales.map(function(m) { return '<tr><td class="izq">' + esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion) + '</td><td class="n"><b>' + num(c.totales[b.id + ':' + m.id]) + '</b></td></tr>'; }).join('') +
-          '<tr class="dan"><td class="izq">Disco de zirconia - DAÑADOS</td><td class="n"><b>' + num(c.totales[b.id + ':danados']) + '</b></td></tr></tbody></table></div>';
+        var fila = function(etq, k, dan) {
+          var tot = Number(c.totales[k] || 0), ct = (c.contable || {})[k], tieneCt = ct && ct.cantidad !== null && ct.cantidad !== undefined;
+          var celda = c.puedeCargarContable
+            ? '<input class="ct-contable" data-clave="' + k + '" inputmode="decimal" placeholder="—" value="' + (tieneCt ? ct.cantidad : '') +
+              '" oninput="limpiarNum(this)" onchange="guardarContable(this)" title="' + (tieneCt ? 'Cargado por ' + esc(ct.por) + ' · ' + esc(ct.en) : 'Existencia según la información contable') + '">'
+            : (tieneCt ? '<span title="Cargado por ' + esc(ct.por) + ' · ' + esc(ct.en) + '">' + num(ct.cantidad) + '</span>' : '—');
+          return '<tr class="' + (dan ? 'dan' : '') + '"><td class="izq">' + etq + '</td><td class="n"><b>' + num(tot) + '</b></td><td class="n">' + celda +
+            '</td><td class="n ct-dif" data-clave="' + k + '">' + difContable(tot, tieneCt ? ct.cantidad : null) + '</td></tr>';
+        };
+        return '<div class="cm-tabla-wrap"><table class="cm-tabla ct-matriz"><thead><tr><th>' + esc(b.nombre) + ' - Bodega ' + esc(b.codigo) +
+          '</th><th class="n">Total contado</th><th class="n">Existencia contable</th><th class="n">Diferencia</th></tr></thead><tbody>' +
+          c.materiales.map(function(m) { return fila(esc(b.prefijo + '-' + m.codigo + '-' + m.descripcion), b.id + ':' + m.id); }).join('') +
+          fila('Disco de zirconia - DAÑADOS', b.id + ':danados', true) + '</tbody></table></div>';
       }).join('');
+    window._totalesMes = c.totales;
   }).catch(function(e) { alert(e.message); });
+}
+// Existencia contable (área contable): diferencia = contado − contable
+function difContable(tot, ct) {
+  if (ct === null || ct === undefined || ct === '') return '—';
+  var d = Math.round((Number(tot) - Number(ct)) * 100) / 100;
+  return '<b style="color:' + (d ? '#b91c1c' : '#15803d') + '">' + (d > 0 ? '+' : '') + num(d) + '</b>';
+}
+function guardarContable(inp) {
+  var clave = inp.dataset.clave, valor = inp.value.trim(), celda = document.querySelector('.ct-dif[data-clave="' + clave + '"]');
+  if (valor && !numValido(valor)) { alert('Escribe un número (se aceptan decimales, ej. 12.5).'); return; }
+  inp.style.outline = '2px solid #f59e0b';
+  postJSON('/conteo/api/contable', {anio: +document.getElementById('rAnio').value, mes: +document.getElementById('rMes').value, clave: clave, cantidad: valor})
+    .then(function(r) {
+      inp.style.outline = '2px solid #16a34a'; setTimeout(function() { inp.style.outline = ''; }, 1200);
+      if (r.contable) inp.title = 'Cargado por ' + r.contable.por + ' · ' + r.contable.en;
+      celda.innerHTML = difContable((window._totalesMes || {})[clave] || 0, valor === '' ? null : leerNum(valor));
+    }).catch(function(e) { inp.style.outline = '2px solid #dc2626'; alert(e.message); });
 }
 function verEvidencias(i) {
   var r = window._reportesMes[i], mats = {0: 'Disco de zirconia - DAÑADOS'}, destino = document.getElementById('rEvid-' + i);

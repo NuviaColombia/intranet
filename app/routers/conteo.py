@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db, engine
 from ..models import Empleado
 from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea,
-                             ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO)
+                             ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO, ConteoContable)
 from ..models_custodia import CustodiaArea
 from ..auth import require_admin, get_current_user
 from ..acceso_produccion import require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
@@ -41,7 +41,7 @@ COLUMNAS_NUEVAS = {  # por si la tabla ya existía de una versión anterior
 @router.on_event("startup")
 def _tablas_conteo() -> None:
     from sqlalchemy import inspect, text
-    for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo):
+    for modelo in (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea, ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ConteoContable):
         try:
             modelo.__table__.create(bind=engine, checkfirst=True)
         except Exception as e:  # otro proceso la acaba de crear
@@ -73,6 +73,10 @@ def _tablas_conteo() -> None:
         corregidos = sc.corregir_responsables(db)  # antes que lo del segundo conteo: usa el responsable correcto
         if corregidos:
             print(f"Conteo: responsable corregido a quien envió el conteo en #{', #'.join(map(str, corregidos))}.")
+        for t in db.query(ConteoTestigo).all():  # el área contable ya registrada también entra al submódulo
+            if t.empleado and t.empleado.activo:
+                _dar_modulo(db, t.empleado)
+        db.commit()
         ids = sc.invalidar_segundos_del_responsable(db)
         if ids:
             print(f"Conteo: segundo conteo hecho por quien cargó el conteo, sin efecto en #{', #'.join(map(str, ids))}.")
@@ -347,6 +351,7 @@ def agregar_testigo(user: Empleado = Depends(require_admin), db: Session = Depen
         return _volver("n_director", "No se guardó: elige una persona de la lista.")
     if not db.query(ConteoTestigo).filter_by(empleado_id=e.id).first():
         db.add(ConteoTestigo(empleado_id=e.id))
+    _dar_modulo(db, e)  # el área contable entra al submódulo (Pendientes por validar y Consulta)
     db.commit()
     return _volver("n_director", f"{nombre_propio(e.nombre_completo)} puede firmar como área contable (acompaña el conteo).")
 
@@ -456,6 +461,23 @@ def api_ver_evidencia(evidencia_id: int, user: Empleado = Depends(get_current_us
         _exigir(db, user, "nuevo", "reportes")
     return Response(e.datos, media_type=e.tipo_mime,
                     headers={"Content-Disposition": f'inline; filename="{e.nombre}"', "Cache-Control": "private, max-age=3600"})
+
+
+class ContableIn(BaseModel):
+    anio: int
+    mes: int
+    clave: str            # "bodega:material" o "bodega:danados"
+    cantidad: str = ""    # vacío = borrar
+
+
+@router.post("/conteo/api/contable")
+def api_contable(payload: ContableIn, user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
+    """El área contable carga la existencia según la información contable (Consulta › Total del mes)."""
+    _exigir(db, user, "reportes")
+    error = sc.guardar_contable(db, user, payload.anio, payload.mes, payload.clave, payload.cantidad)
+    if error:
+        raise HTTPException(403 if "Solo" in error else 400, error)
+    return {"ok": True, "contable": sc.contable_del_mes(db, payload.anio, payload.mes).get(payload.clave)}
 
 
 @router.get("/conteo/api/consolidado")
