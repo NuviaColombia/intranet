@@ -123,7 +123,7 @@
   <div class="nav-sub">
     {% set aprob_txt = 'Aprobaciones/Firmas' ~ ((' <span class="badge-alertas">' ~ custodia_pendientes ~ '</span>') if custodia_pendientes else '') %}
     {{ pestanas([[('nueva-orden', 'Nueva orden'), ('registro', 'Nuevo registro')], [('aprobaciones', aprob_txt)],
-                 [('existencias', 'Dashboard'), ('activas', 'Estado órdenes'), ('consulta', 'Consulta traslado')]],
+                 [('existencias', 'Dashboard'), ('activas', 'Estado órdenes'), ('consulta', 'Consulta traslado'), ('conteos', '📋 Conteos mensuales')]],
                 'custodia-tab', '/custodia', sec_permitidas,
                 ('' if en_parametros else (('registro' if 'registro' in sec_permitidas else sec_permitidas[0]) if sec_permitidas else 'registro'))) }}
   </div>

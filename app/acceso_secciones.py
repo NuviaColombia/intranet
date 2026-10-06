@@ -14,7 +14,7 @@ from .models import Empleado
 # Secciones de cada submódulo, en el orden de la barra: (slug de la pestaña, nombre)
 SECCIONES = {
     "custodia": [("nueva-orden", "Nueva orden"), ("registro", "Nuevo registro"), ("aprobaciones", "Aprobaciones/Firmas"),
-                 ("existencias", "Dashboard"), ("activas", "Estado órdenes"), ("consulta", "Consulta traslado")],
+                 ("existencias", "Dashboard"), ("activas", "Estado órdenes"), ("consulta", "Consulta traslado"), ("conteos", "Conteos mensuales")],
     "consumo": [("entrega", "Entrega de insumos"), ("consulta", "Consulta"), ("jornada", "Jornada diaria"),
                 ("reportes", "Reportes")],
     "conteo": [("nuevo", "Conteo del mes"), ("validacion", "Pendientes por validar"), ("reportes", "Consulta (firmados)")],
