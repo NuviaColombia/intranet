@@ -865,7 +865,7 @@ window.dsPdfjs = function() {
     <div class="cmt-col">
       <div class="cmt-section"><h4>General information</h4>
         <div class="cmt-grid c2">
-          <div class="cmt-field"><label for="cmt_b4">Patient</label><input id="cmt_b4" placeholder="Nombre del paciente"></div>
+          <div class="cmt-field"><label for="cmt_b4">Patient</label><input id="cmt_b4" placeholder="Nombre del paciente" autocomplete="off"></div>
           <div class="cmt-field"><label for="cmt_j4">Order #</label><input id="cmt_j4" placeholder="155273"></div>
         </div>
       </div>
@@ -877,7 +877,7 @@ window.dsPdfjs = function() {
       </div>
       <div class="cmt-section"><h4>Design details</h4>
         <div class="cmt-grid c3">
-          <div class="cmt-field"><label for="cmt_b11">Bar adapt</label><input id="cmt_b11" placeholder="0,1mm"></div>
+          <div class="cmt-field"><label for="cmt_b11">Bar adapt</label><select id="cmt_b11"><option value="">—</option></select></div>
           <div class="cmt-field"><label for="cmt_d11">Arch size</label><select id="cmt_d11"></select></div>
           <div class="cmt-field"><label for="cmt_f11">TC Custom</label><select id="cmt_f11"></select></div>
           <div class="cmt-field"><label for="cmt_h11">VDO lab</label><input id="cmt_h11" placeholder="-1"></div>
@@ -3752,7 +3752,15 @@ window.DS_PANELS.dashboard = function() {
       .catch(function(e) { alert('No se guardó en el historial, así que no se borró el formulario: ' + e.message); });
   };
   function cmtCargarDesdeHistorial(campos) {
-    CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = campos[k] || ""; });
+    CMT_FIELDS.forEach(function(k) {
+      var el = document.getElementById("cmt_"+k); if (!el) return;
+      var v = campos[k] || "";
+      // una lista con un valor que ya no está (p. ej. Bar adapt escrito a mano antes) lo agrega para no perderlo
+      if (el.tagName === 'SELECT' && v && !Array.prototype.some.call(el.options, function(o) { return o.value === v; })) {
+        var o = document.createElement('option'); o.value = o.text = v; el.insertBefore(o, el.querySelector('option[value="__nueva__"]'));
+      }
+      el.value = v; if (k === 'b11') el._antes = v;
+    });
     cmtRecalcular();
   }
   // "Hoy 14:05", "Ayer 09:30" o "03/10 16:20", en la hora del computador (el servidor guarda UTC).
@@ -3802,6 +3810,19 @@ window.DS_PANELS.dashboard = function() {
     document.getElementById('cmt_l26').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
     document.getElementById('cmt_l27').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
     document.getElementById('cmtProdList').innerHTML = CMT_PRODUCTS_DEFAULTS.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
+    // Sin sugerencias del navegador ("último uso" de pacientes y órdenes anteriores): el historial ya las guarda.
+    document.querySelectorAll('#cmtPanelN3 input').forEach(function(i) { i.setAttribute('autocomplete', 'off'); });
+    cmtBarAdaptCargar();
+    document.getElementById('cmt_b11').addEventListener('change', function() {
+      if (this.value !== '__nueva__') { this._antes = this.value; return; }
+      var sel = this, antes = sel._antes || '';
+      var v = prompt('Nueva opción de Bar adapt (quedará en la lista para todos):', '');
+      v = (v || '').replace(/\s+/g, ' ').trim();
+      if (!v) { sel.value = antes; cmtRecalcular(); return; }
+      postJSON('/design/api/comentarios/bar-adapt', {valor: v}).then(function(r) {
+        return cmtBarAdaptCargar().then(function() { sel.value = r.valor; sel._antes = r.valor; sel.classList.remove('cmt-missing'); cmtRecalcular(); });
+      }).catch(function(e) { alert('No se pudo agregar: ' + e.message); sel.value = antes; cmtRecalcular(); });
+    });
     window.dsAreas().then(function(areas) {
       var n3 = areas.find(function(a) { return a.nombre === 'N3 Prosthetic'; });
       if (!n3) return;
@@ -3821,6 +3842,17 @@ window.DS_PANELS.dashboard = function() {
     setTimeout(cmtRecalcular, 0);  // con el panel ya visible, para que las cajas tomen su alto
     cmtCargarHistorial();
     cmtCargarPlantillas();
+  }
+  // Bar adapt: las 4 fijas + las que agregue el equipo; la última opción permite agregar otra.
+  function cmtBarAdaptPintar(lista) {
+    var sel = document.getElementById('cmt_b11'), actual = sel.value === '__nueva__' ? (sel._antes || '') : sel.value;
+    sel.innerHTML = '<option value="">—</option>' + lista.map(function(v) { return '<option>' + cmtEscHtml(v) + '</option>'; }).join('') +
+      (actual && lista.indexOf(actual) < 0 ? '<option>' + cmtEscHtml(actual) + '</option>' : '') + '<option value="__nueva__">➕ Agregar otra opción…</option>';
+    sel.value = actual; sel._antes = actual;
+  }
+  function cmtBarAdaptCargar() {
+    cmtBarAdaptPintar(window.CMT_BAR_ADAPT || ['0.1mm', '1mm', '0.1mm on Upper and 1mm on lower', '1mm on Upper and 0.1mm on lower']);
+    return api('/design/api/comentarios/bar-adapt').then(function(l) { if (Array.isArray(l)) { window.CMT_BAR_ADAPT = l; cmtBarAdaptPintar(l); } }).catch(function() {});
   }
   window.cmtCopiarPlantilla = function(i, boton) {
     var f = cmtLeer();

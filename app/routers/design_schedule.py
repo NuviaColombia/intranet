@@ -1223,6 +1223,47 @@ def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_c
     return {"mensaje": "Eliminado."}
 
 
+# ---------- API: Comments N3 (opciones de Bar adapt) ----------
+# Las 4 fijas más las que agreguen (catálogo de N3 Prosthetic, tipo "cmt_bar_adapt"; no aparece en Parámetros).
+BAR_ADAPT_FIJAS = ["0.1mm", "1mm", "0.1mm on Upper and 1mm on lower", "1mm on Upper and 0.1mm on lower"]
+
+
+def _area_n3(db: Session) -> DesignArea:
+    a = db.query(DesignArea).filter(DesignArea.nombre == "N3 Prosthetic").first()
+    if not a:
+        raise HTTPException(404, "No existe el área N3 Prosthetic.")
+    return a
+
+
+@router.get("/design/api/comentarios/bar-adapt")
+def api_bar_adapt(user: Empleado = Depends(require_comments("n3")), db: Session = Depends(get_db)):
+    extra = [v for v in sd.catalogo(db, _area_n3(db).id, "cmt_bar_adapt") if v not in BAR_ADAPT_FIJAS]
+    return BAR_ADAPT_FIJAS + extra
+
+
+class BarAdaptIn(BaseModel):
+    valor: str = Field(..., max_length=150)
+
+
+@router.post("/design/api/comentarios/bar-adapt")
+def api_bar_adapt_agregar(payload: BarAdaptIn, user: Empleado = Depends(require_comments("n3")), db: Session = Depends(get_db)):
+    valor = " ".join(payload.valor.split())
+    if not valor:
+        raise HTTPException(400, "Escribe la opción.")
+    if valor not in BAR_ADAPT_FIJAS:
+        area = _area_n3(db)
+        if valor not in sd.catalogo(db, area.id, "cmt_bar_adapt"):
+            n = db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "cmt_bar_adapt").count()
+            existe = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "cmt_bar_adapt",
+                                                      DesignCatalogo.valor == valor).first())
+            if existe:
+                existe.activo = 1
+            else:
+                db.add(DesignCatalogo(area_id=area.id, tipo="cmt_bar_adapt", valor=valor, orden=n + 1, activo=1))
+            db.commit()
+    return {"valor": valor}
+
+
 # ---------- API: Comments N3 (plantillas de notas personalizadas) ----------
 
 @router.get("/design/api/comentarios/templates")
