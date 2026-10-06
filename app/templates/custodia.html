@@ -158,7 +158,9 @@
   .eo-fila .ord { font-weight: 800; color: var(--brand-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .eo-fila .cant { font-weight: 800; color: var(--success); text-align: right; min-width: 52px; }
   .eo-fila .cant.neg { color: var(--danger); }
-  .eo-fila .viaje { border: none; background: transparent; cursor: pointer; font-size: 15px; padding: 2px 4px; }
+  .eo-fila .viaje { border: 1px solid var(--border-soft); background: var(--bg-surface); color: var(--brand-main); cursor: pointer; font-size: 11px;
+    font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .eo-fila .viaje:hover { background: var(--brand-main); color: #fff; }
   .eo-fila .badge { font-size: 10.5px; padding: 3px 8px; }
   .split-panel { background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); }
   .split-panel h4 { margin-top: 0; margin-bottom: 15px; color: var(--brand-main); font-size: 14px; font-weight: 800; border-bottom: 2px solid var(--brand-light); padding-bottom: 10px;}
@@ -491,7 +493,6 @@
 
             <!-- el filtro por área se usa desde los chips; el select queda oculto para el resto del código -->
             <select id="filtroAreaActivas" onchange="filtrarTablaActivas()" style="display:none"><option value="TODAS">-- Todas las áreas --</option></select>
-            <div id="eoKpis" class="eo-kpis"></div>
             <div id="eoChips" class="eo-chips"></div>
             <div id="bodyTablaActivas" class="eo-grid"><p style="padding:40px; color:var(--text-muted); font-weight:600;">Cargando...</p></div>
           </div>
@@ -677,7 +678,7 @@
   <div id="modalTimeline" class="modal">
     <div class="modal-content" style="max-width: 600px; padding: 30px;">
       <h3 style="color:var(--brand-main); margin-top:0; border-bottom:2px solid var(--brand-light); padding-bottom:15px; font-weight:800;">
-         🛤️ Línea de tiempo: orden <span id="lblTimelineOrden" style="color:var(--accent);"></span>
+         🕒 Línea de tiempo: orden <span id="lblTimelineOrden" style="color:var(--accent);"></span>
       </h3>
       <div class="timeline-container" id="containerTimelineModal" style="max-height: 55vh; overflow-y: auto;">
          <p style="font-size:13px; color:var(--text-muted);">Cargando historial completo...</p>
@@ -1556,18 +1557,7 @@ function filtrarTablaActivas() {
   if (areaBuscada !== "TODAS" && !porArea[areaBuscada]) { areaBuscada = "TODAS"; sel.value = "TODAS"; }
   var suma = function(lista) { return lista.reduce(function(s, o) { return s + o.cantidad; }, 0); };
 
-  // Indicadores
   var totalDiscos = suma(base);
-  var criticas = base.filter(function(o) { return nivelAlerta(o) === 2; }).length;
-  var advert = base.filter(function(o) { return nivelAlerta(o) === 1; }).length;
-  var negativos = base.filter(function(o) { return o.negativo || o.cantidad < 0; }).length;
-  var kpi = function(t, v, color) { return '<div class="eo-kpi" style="border-left-color:' + color + '"><small>' + t + '</small><b style="color:' + color + '">' + v + '</b></div>'; };
-  document.getElementById("eoKpis").innerHTML =
-    kpi(filtroEstadoOrdenActivas === 'completadas' ? 'Discos terminados' : 'Discos en proceso', totalDiscos.toFixed(2), 'var(--brand-main)') +
-    kpi('Órdenes', base.length, 'var(--brand-main)') + kpi('Áreas con discos', areas.length, 'var(--brand-main)') +
-    kpi('Alerta crítica', criticas, criticas ? 'var(--danger)' : 'var(--success)') +
-    kpi('En advertencia', advert, advert ? 'var(--warning)' : 'var(--success)') +
-    (negativos ? kpi('Saldos negativos', negativos, 'var(--danger)') : '');
 
   // Chips de área (reemplazan el desplegable)
   var chip = function(valor, texto, detalle) {
@@ -1598,7 +1588,7 @@ function filtrarTablaActivas() {
         return '<div class="eo-fila" title="Último movimiento: ' + esc(o.fechaStr) + '"><span class="ord">' + esc(o.orden) + '</span>' +
           '<span class="cant' + (neg ? ' neg' : '') + '"' + (neg ? ' title="Saldo negativo: salió más de lo que entró (falta registrar o firmar un traslado)"' : '') + '>' +
           (neg ? '⚠️ ' : '') + o.cantidad.toFixed(2) + '</span>' + calcularTiempoRetencion(o.fIso, o.hIso, o.ubicacion) +
-          '<button type="button" class="viaje" title="Ver el viaje de la orden" data-orden="' + esc(o.orden) + '" onclick="abrirModalTimeline(this.dataset.orden)">🛤️</button></div>';
+          '<button type="button" class="viaje" title="Ver la línea de tiempo de la orden" data-orden="' + esc(o.orden) + '" onclick="abrirModalTimeline(this.dataset.orden)">🕒 Línea de tiempo</button></div>';
       }).join('') + '</div></div>';
   }).join('');
 }
