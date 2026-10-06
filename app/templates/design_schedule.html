@@ -229,7 +229,7 @@ window.dsPdfjs = function() {
   .dd-filtros div { display:flex; flex-direction:column; gap:4px; }
   .dd-filtros label { font-size:11px; color:#4b5563; }
   .dd-filtros input, .dd-filtros select { padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; }
-  .dd-kpis { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .dd-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(118px, 1fr)); gap:10px; margin-bottom:16px; }
   .dd-kpi { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:10px 16px; min-width:110px; }
   .dd-kpi b { display:block; font-size:20px; }
   .dd-panel { background:#fff; border:1px solid #d8dde3; border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
@@ -243,6 +243,28 @@ window.dsPdfjs = function() {
   .dd-bar-fill { background:#1d4ed8; height:100%; }
   .dd-search { display:flex; gap:8px; margin-bottom:16px; }
   .dd-search input { flex:1; padding:8px 10px; border:1px solid #d8dde3; border-radius:8px; }
+  .dd-filtros .dd-rapidos { flex-direction:row; gap:4px; }
+  .dd-rapidos button { padding:5px 9px; border:1px solid #d8dde3; background:#fff; border-radius:6px; font-size:12px; cursor:pointer; }
+  .dd-rapidos button:hover, .dd-rapidos button.on { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; }
+  .dd-kpi span { font-size:11.5px; color:#4b5563; }
+  .dd-kpi small { display:block; font-size:11px; color:#6b7280; margin-top:2px; }
+  .dd-kpi.alerta b { color:#b91c1c; }
+  .dd-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(380px, 1fr)); gap:18px; }
+  .dd-grid .dd-panel { margin-bottom:0; }
+  .dd-panel-cab { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .dd-panel-cab h3 { margin:0; }
+  table.dd-tabla td.dd-izq, table.dd-tabla th.dd-izq { text-align:left; }
+  table.dd-tabla tbody tr.dd-clic { cursor:pointer; }
+  table.dd-tabla tbody tr:hover td { background:#e0f2fe; }
+  table.dd-tabla tbody tr.dd-sel td { background:#dbeafe; font-weight:600; }
+  .dd-bar-label { width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dd-bar-val { min-width:90px; text-align:right; color:#374151; }
+  .dd-dias { display:flex; align-items:flex-end; gap:3px; height:130px; padding-top:8px; overflow-x:auto; }
+  .dd-dia { flex:1 0 14px; max-width:38px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; font-size:10px; color:#4b5563; }
+  .dd-dia i { display:block; width:100%; background:#1d4ed8; border-radius:3px 3px 0 0; min-height:2px; }
+  .dd-dia i:hover { background:#3b82f6; }
+  .dd-filtro-activo { font-size:12.5px; color:#1d4ed8; margin:-8px 0 12px; }
+  .dd-filtro-activo button { border:none; background:none; color:#b91c1c; cursor:pointer; font-size:12.5px; }
 
 
   .cmt-tabs { display:flex; gap:8px; margin-bottom:14px; }
@@ -1044,44 +1066,71 @@ window.dsPdfjs = function() {
 
 <div class="dd-filtros">
   <div><label for="ddArea">Área</label>
-    <select id="ddArea" onchange="ddCambioArea()">
+    <select id="ddArea" onchange="ddCambioArea(); ddCargar()">
       <option value="">{{ '-- Todas --' if dash_teams is none else '-- Mis áreas --' }}</option>
       {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
     </select>
   </div>
-  <div><label for="ddTeam">Equipo</label><select id="ddTeam"><option value="">-- Todos --</option></select></div>
-  <div><label for="ddProducto">Producto</label><input type="text" id="ddProducto" placeholder="Ej: N3 - Screw Retained"></div>
-  <div><label for="ddEstado">Estado</label><input type="text" id="ddEstado" placeholder="Ej: Approved"></div>
+  <div><label for="ddTeam">Equipo</label><select id="ddTeam" onchange="ddCargar()"><option value="">-- Todos --</option></select></div>
+  <div><label for="ddDesigner">Diseñador</label>
+    <select id="ddDesigner" onchange="ddCargar()" style="min-width:190px"><option value="">-- Todos --</option></select></div>
+  <div><label for="ddDesignerTxt">Buscar diseñador por nombre</label>
+    <input type="search" id="ddDesignerTxt" placeholder="Ej: Laura" oninput="ddCargarPronto()" style="width:160px"></div>
+  <div><label for="ddProducto">Producto</label><select id="ddProducto" onchange="ddCargar()" style="max-width:220px"><option value="">-- Todos --</option></select></div>
+  <div><label for="ddEstado">Estado</label><select id="ddEstado" onchange="ddCargar()"><option value="">-- Todos --</option></select></div>
   <div><label for="ddQc">QC</label>
-    <select id="ddQc"><option value="">-- Todos --</option><option value="si">Con QC</option><option value="no">Sin QC</option></select>
+    <select id="ddQc" onchange="ddCargar()"><option value="">-- Todos --</option><option value="si">Con QC</option><option value="no">Sin QC</option><option value="hallazgos">QC con hallazgos</option></select>
   </div>
-  <div><label for="ddDesde">Desde</label><input type="date" id="ddDesde"></div>
-  <div><label for="ddHasta">Hasta</label><input type="date" id="ddHasta"></div>
-  <div><button type="button" class="btn" onclick="ddCargar()">Filtrar</button></div>
+  <div><label for="ddDesde">Desde</label><input type="date" id="ddDesde" onchange="ddRapido(null)"></div>
+  <div><label for="ddHasta">Hasta</label><input type="date" id="ddHasta" onchange="ddRapido(null)"></div>
+  <div><label>Rango rápido</label><span class="dd-rapidos">
+    <button type="button" data-r="hoy" onclick="ddRapido('hoy')">Hoy</button><button type="button" data-r="semana" onclick="ddRapido('semana')">Semana</button>
+    <button type="button" data-r="mes" onclick="ddRapido('mes')">Mes</button><button type="button" data-r="mesAnt" onclick="ddRapido('mesAnt')">Mes anterior</button>
+    <button type="button" data-r="todo" onclick="ddRapido('todo')">Todo</button></span></div>
+  <div style="flex-direction:row;gap:6px"><button type="button" class="btn gris" onclick="ddLimpiar()">Limpiar</button>
+    <button type="button" class="btn" onclick="ddDescargar()" title="Descarga las tablas del dashboard con los filtros actuales (se abre en Excel)">Descargar Excel</button></div>
 </div>
+<div class="dd-filtro-activo" id="ddFiltroActivo"></div>
 
 <div class="dd-kpis" id="ddKpis"></div>
 
 <div class="dd-panel">
-  <h3>Producción por diseñador</h3>
-  <table class="dd-tabla"><thead><tr><th>Diseñador</th><th>Casos</th><th>Duración total</th></tr></thead>
+  <div class="dd-panel-cab"><h3>Producción por diseñador</h3><span style="font-size:12px;color:#4b5563">Clic en un diseñador para ver solo sus casos. El tiempo no cuenta canceladas ni skipped.</span></div>
+  <table class="dd-tabla"><thead><tr><th class="dd-izq">Diseñador</th><th>Equipo</th><th>Casos</th><th>Aprobadas</th><th>Tiempo total</th><th>Promedio por caso</th><th>Tiempo en Hold</th><th>Con QC</th><th>QC con hallazgos</th></tr></thead>
     <tbody id="ddProduccion"></tbody></table>
 </div>
 
+<div class="dd-grid">
+  <div class="dd-panel">
+    <h3>Por equipo</h3>
+    <table class="dd-tabla"><thead><tr><th class="dd-izq">Equipo</th><th>Área</th><th>Casos</th><th>Aprobadas</th><th>Promedio por caso</th><th>QC con hallazgos</th></tr></thead>
+      <tbody id="ddEquipos"></tbody></table>
+  </div>
+  <div class="dd-panel">
+    <h3>Estados</h3>
+    <div id="ddEstados"></div>
+  </div>
+</div>
+<div style="height:18px"></div>
 <div class="dd-panel">
-  <h3>Mezcla de productos (cuellos de botella)</h3>
+  <h3>Casos por día</h3>
+  <div class="dd-dias" id="ddDias"></div>
+</div>
+
+<div class="dd-panel">
+  <div class="dd-panel-cab"><h3>Mezcla de productos (cuellos de botella)</h3><span style="font-size:12px;color:#4b5563">Casos y tiempo promedio por producto</span></div>
   <div id="ddProductoMix"></div>
 </div>
 
 <div class="dd-panel">
-  <h3>Reportes de QC</h3>
-  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Diseñador</th><th>Reporte</th></tr></thead>
+  <div class="dd-panel-cab"><h3>Reportes de QC</h3><span style="font-size:12px;color:#4b5563">Hallazgo que escribe el aprobador al marcar el QC</span></div>
+  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Diseñador</th><th class="dd-izq">Hallazgo de QC</th></tr></thead>
     <tbody id="ddQcReportes"></tbody></table>
 </div>
 
 <div class="dd-panel">
   <h3>Aprobadas sin QC</h3>
-  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Estado</th><th>Diseñador</th></tr></thead>
+  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Estado</th><th>Diseñador</th></tr></thead>
     <tbody id="ddSinQc"></tbody></table>
 </div></div></div>
 {% endif %}
@@ -3030,10 +3079,46 @@ function ddCambioArea() {
   });
 }
 
+var DD_ULTIMO = null;
+function ddIso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function ddRapido(r) {
+  document.querySelectorAll('.dd-rapidos button').forEach(function(b) { b.classList.toggle('on', b.dataset.r === r); });
+  if (r) {
+    var hoy = new Date(), desde = new Date(hoy), hasta = new Date(hoy);
+    if (r === 'semana') { var dw = (hoy.getDay() + 6) % 7; desde.setDate(hoy.getDate() - dw); }
+    if (r === 'mes') desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    if (r === 'mesAnt') { desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 0); }
+    document.getElementById('ddDesde').value = r === 'todo' ? '' : ddIso(desde);
+    document.getElementById('ddHasta').value = r === 'todo' ? '' : ddIso(hasta);
+  }
+  ddCargar();
+}
+function ddLimpiar() {
+  ['ddTeam', 'ddDesigner', 'ddProducto', 'ddEstado', 'ddQc'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('ddDesignerTxt').value = '';
+  if (document.getElementById('ddArea').value) { document.getElementById('ddArea').value = ''; ddCambioArea(); }
+  ddRapido('mes');
+}
+function ddCargarPronto() { clearTimeout(ddCargarPronto.t); ddCargarPronto.t = setTimeout(ddCargar, 350); }
+function ddLlenarSelect(id, lista, valor, texto, todos) {
+  var sel = document.getElementById(id), actual = sel.value;
+  sel.innerHTML = '<option value="">' + (todos || '-- Todos --') + '</option>';
+  lista.forEach(function(x) { var o = document.createElement('option'); o.value = valor(x); o.text = texto(x); sel.appendChild(o); });
+  if (actual && !Array.prototype.some.call(sel.options, function(o) { return o.value === actual; })) {
+    var o = document.createElement('option'); o.value = actual; o.text = actual.indexOf('libre:') === 0 ? actual.slice(6) : actual; sel.appendChild(o);
+  }
+  sel.value = actual;
+}
+function ddTiempo(m) { return m ? ddMin(m) : '—'; }
+function ddPct(a, b) { return b ? Math.round(a * 100 / b) + '%' : '—'; }
+
 function ddCargar() {
   var params = new URLSearchParams();
   var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
   if (team) params.set('team_id', team); else if (area) params.set('area_id', area);
+  var dsg = document.getElementById('ddDesigner').value;
+  if (dsg) { if (dsg.indexOf('libre:') === 0) params.set('designer_nombre', dsg.slice(6)); else params.set('designer_id', dsg); }
+  var txt = document.getElementById('ddDesignerTxt').value.trim(); if (txt && !params.get('designer_nombre')) params.set('designer_nombre', txt);
   var producto = document.getElementById('ddProducto').value; if (producto) params.set('producto', producto);
   var estado = document.getElementById('ddEstado').value; if (estado) params.set('estado', estado);
   var qc = document.getElementById('ddQc').value; if (qc) params.set('qc', qc);
@@ -3050,34 +3135,93 @@ function ddCargar() {
     return null;
   }).then(function(data) {
     if (!data || tok !== ddCargar.tok) return;
+    DD_ULTIMO = data;
+    var k = data.kpis, total = data.totalCasos;
     document.getElementById('ddKpis').style.opacity = '';
+    ddLlenarSelect('ddDesigner', data.opciones.disenadores, function(d) { return d.clave; }, function(d) { return d.nombre; });
+    ddLlenarSelect('ddProducto', data.opciones.productos, function(p) { return p; }, function(p) { return p; });
+    ddLlenarSelect('ddEstado', data.opciones.estados, function(p) { return p; }, function(p) { return p; });
+    var nomSel = document.getElementById('ddDesigner'), fa = document.getElementById('ddFiltroActivo');
+    var quien = nomSel.value ? nomSel.options[nomSel.selectedIndex].text : txt;
+    fa.innerHTML = quien ? 'Mostrando solo: <b></b> <button type="button" onclick="document.getElementById(\'ddDesigner\').value=\'\';document.getElementById(\'ddDesignerTxt\').value=\'\';ddCargar()">✕ quitar</button>' : '';
+    if (quien) fa.querySelector('b').textContent = quien;
+    var kpi = function(v, t, sub, alerta) { return '<div class="dd-kpi' + (alerta ? ' alerta' : '') + '"><b>' + v + '</b><span>' + t + '</span>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; };
     document.getElementById('ddKpis').innerHTML =
-      '<div class="dd-kpi"><b>' + data.totalCasos + '</b>Casos totales</div>' +
-      '<div class="dd-kpi"><b>' + data.qcReportes.length + '</b>Con reporte QC</div>' +
-      '<div class="dd-kpi"><b>' + data.sinQc.length + '</b>Aprobadas sin QC</div>';
+      kpi(total, 'Casos totales') +
+      kpi(k.aprobadas, 'Aprobadas', ddPct(k.aprobadas, total) + ' de los casos') +
+      kpi(k.enProceso, 'En proceso') +
+      kpi(k.canceladas, 'Canceladas / Skipped') +
+      kpi(ddTiempo(k.duracionMin), 'Tiempo total de diseño') +
+      kpi(ddTiempo(k.promedioMin), 'Promedio por caso', k.conTiempo + ' casos con tiempo') +
+      kpi(k.conHold, 'Casos con Hold', k.holdMin ? ddMin(k.holdMin) + ' en Hold' : 'sin Hold') +
+      kpi(k.conQc, 'Con QC', ddPct(k.conQc, total) + ' de los casos') +
+      kpi(k.qcHallazgos, 'QC con hallazgos', ddPct(k.qcHallazgos, k.conQc) + ' de los QC', k.qcHallazgos > 0) +
+      kpi(data.sinQc.length, 'Aprobadas sin QC', '', data.sinQc.length > 0);
 
+    var selClave = nomSel.value;
     document.getElementById('ddProduccion').innerHTML = data.porDesigner.map(function(d) {
-      return '<tr><td>' + ddEsc(d.nombre) + '</td><td>' + d.casos + '</td><td>' + ddMin(d.duracionMin) + '</td></tr>';
-    }).join('') || '<tr><td colspan="3" style="color:#4b5563">Sin datos.</td></tr>';
+      return '<tr class="dd-clic' + (selClave === d.clave ? ' dd-sel' : '') + '" data-clave="' + ddEsc(d.clave).replace(/"/g, '&quot;') + '" title="Ver solo los casos de ' + ddEsc(d.nombre).replace(/"/g, '&quot;') + '">' +
+        '<td class="dd-izq">' + ddEsc(d.nombre) + '</td><td>' + ddEsc(d.equipos.join(', ')) + '</td><td>' + d.casos + '</td><td>' + d.aprobadas + '</td>' +
+        '<td>' + ddTiempo(d.duracionMin) + '</td><td>' + ddTiempo(d.promedioMin) + '</td><td>' + ddTiempo(d.holdMin) + '</td>' +
+        '<td>' + d.conQc + '</td><td>' + d.qcHallazgos + '</td></tr>';
+    }).join('') || '<tr><td colspan="9" style="color:#4b5563">Sin datos.</td></tr>';
+    document.querySelectorAll('#ddProduccion tr[data-clave]').forEach(function(tr) {
+      tr.onclick = function() { var s = document.getElementById('ddDesigner'); s.value = s.value === tr.dataset.clave ? '' : tr.dataset.clave; document.getElementById('ddDesignerTxt').value = ''; ddCargar(); };
+    });
 
-    var maxCasos = Math.max.apply(null, data.porProducto.map(function(p) { return p.casos; }).concat([1]));
-    document.getElementById('ddProductoMix').innerHTML = data.porProducto.map(function(p) {
-      var pct = Math.round((p.casos / maxCasos) * 100);
-      return '<div class="dd-bar-row"><span class="dd-bar-label">' + ddEsc(p.producto) + '</span>' +
-             '<div class="dd-bar-track"><div class="dd-bar-fill" style="width:' + pct + '%"></div></div>' +
-             '<span>' + p.casos + '</span></div>';
+    document.getElementById('ddEquipos').innerHTML = data.porEquipo.map(function(e) {
+      return '<tr><td class="dd-izq">' + ddEsc(e.equipo) + '</td><td>' + ddEsc(e.area) + '</td><td>' + e.casos + '</td><td>' + e.aprobadas + '</td><td>' + ddTiempo(e.promedioMin) + '</td><td>' + e.qcHallazgos + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" style="color:#4b5563">Sin datos.</td></tr>';
+
+    var barras = function(lista, nombre, valor, extra) {
+      var max = Math.max.apply(null, lista.map(valor).concat([1]));
+      return lista.map(function(x) {
+        return '<div class="dd-bar-row"><span class="dd-bar-label" title="' + ddEsc(nombre(x)).replace(/"/g, '&quot;') + '">' + ddEsc(nombre(x)) + '</span>' +
+               '<div class="dd-bar-track"><div class="dd-bar-fill" style="width:' + Math.round(valor(x) / max * 100) + '%"></div></div>' +
+               '<span class="dd-bar-val">' + valor(x) + (extra ? extra(x) : '') + '</span></div>';
+      }).join('') || '<p style="color:#4b5563">Sin datos.</p>';
+    };
+    document.getElementById('ddEstados').innerHTML = barras(data.porEstado, function(e) { return e.estado; }, function(e) { return e.casos; });
+    document.getElementById('ddProductoMix').innerHTML = barras(data.porProducto, function(p) { return p.producto; }, function(p) { return p.casos; },
+      function(p) { return p.promedioMin ? ' · ' + ddMin(p.promedioMin) : ''; });
+
+    var maxDia = Math.max.apply(null, data.porDia.map(function(d) { return d.casos; }).concat([1]));
+    document.getElementById('ddDias').innerHTML = data.porDia.map(function(d) {
+      var p = d.fecha.split('-');
+      return '<div class="dd-dia" title="' + p[2] + '/' + p[1] + '/' + p[0] + ': ' + d.casos + ' casos"><span>' + d.casos + '</span><i style="height:' + Math.round(d.casos / maxDia * 100) + '%"></i><span>' + p[2] + '/' + p[1] + '</span></div>';
     }).join('') || '<p style="color:#4b5563">Sin datos.</p>';
 
     document.getElementById('ddQcReportes').innerHTML = data.qcReportes.map(function(r) {
-      return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td>' +
-             '<td>' + ddEsc(r.designerNombre) + '</td><td>' + ddEsc(r.qcReporte) + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" style="color:#4b5563">Sin datos.</td></tr>';
+      return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td><td>' + ddEsc(r.equipo) + '</td><td>' + ddEsc(r.producto) + '</td>' +
+             '<td>' + ddEsc(r.designerNombre) + '</td><td class="dd-izq" style="white-space:pre-wrap">' + ddEsc(r.qcReporte) + '</td></tr>';
+    }).join('') || '<tr><td colspan="7" style="color:#4b5563">Sin hallazgos de QC.</td></tr>';
 
     document.getElementById('ddSinQc').innerHTML = data.sinQc.map(function(r) {
-      return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td>' +
+      return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td><td>' + ddEsc(r.equipo) + '</td><td>' + ddEsc(r.producto) + '</td>' +
              '<td>' + ddEsc(r.estado) + '</td><td>' + ddEsc(r.designerNombre) + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" style="color:#4b5563">Sin datos.</td></tr>';
+    }).join('') || '<tr><td colspan="7" style="color:#4b5563">Sin datos.</td></tr>';
   });
+}
+
+// Descarga lo que se ve (con los filtros actuales) en un archivo que abre Excel (CSV con separador ;).
+function ddDescargar() {
+  var d = DD_ULTIMO; if (!d) return;
+  var c = function(v) { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  var h = function(m) { return m ? (m / 60).toFixed(2).replace('.', ',') : ''; };
+  var filas = [['Dashboard Design', 'Desde', document.getElementById('ddDesde').value || 'inicio', 'Hasta', document.getElementById('ddHasta').value || 'hoy'], [],
+    ['PRODUCCIÓN POR DISEÑADOR'], ['Diseñador', 'Equipo', 'Casos', 'Aprobadas', 'Canceladas/Skipped', 'Horas totales', 'Promedio por caso (min)', 'Horas en Hold', 'Con QC', 'QC con hallazgos']];
+  d.porDesigner.forEach(function(x) { filas.push([x.nombre, x.equipos.join(', '), x.casos, x.aprobadas, x.canceladas, h(x.duracionMin), String(x.promedioMin).replace('.', ','), h(x.holdMin), x.conQc, x.qcHallazgos]); });
+  filas.push([], ['POR EQUIPO'], ['Equipo', 'Área', 'Casos', 'Aprobadas', 'Promedio por caso (min)', 'QC con hallazgos']);
+  d.porEquipo.forEach(function(x) { filas.push([x.equipo, x.area, x.casos, x.aprobadas, String(x.promedioMin).replace('.', ','), x.qcHallazgos]); });
+  filas.push([], ['PRODUCTOS'], ['Producto', 'Casos', 'Promedio por caso (min)']);
+  d.porProducto.forEach(function(x) { filas.push([x.producto, x.casos, String(x.promedioMin).replace('.', ',')]); });
+  filas.push([], ['REPORTES DE QC'], ['Orden', 'Paciente', 'Fecha', 'Equipo', 'Producto', 'Diseñador', 'Hallazgo de QC']);
+  d.qcReportes.forEach(function(x) { filas.push([x.orden, x.paciente, x.fecha, x.equipo, x.producto, x.designerNombre, x.qcReporte]); });
+  filas.push([], ['APROBADAS SIN QC'], ['Orden', 'Paciente', 'Fecha', 'Equipo', 'Producto', 'Estado', 'Diseñador']);
+  d.sinQc.forEach(function(x) { filas.push([x.orden, x.paciente, x.fecha, x.equipo, x.producto, x.estado, x.designerNombre]); });
+  var csv = '\ufeff' + filas.map(function(f) { return f.map(c).join(';'); }).join('\r\n');
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+  a.download = 'Dashboard Design ' + ddIso(new Date()) + '.csv'; document.body.appendChild(a); a.click(); a.remove();
 }
 
 function ddBuscar() {
@@ -3094,7 +3238,10 @@ function ddBuscar() {
   });
 }
 
-window.DS_PANELS.dashboard = ddCargar;
+window.DS_PANELS.dashboard = function() {
+  if (!ddCargar.listo) { ddCargar.listo = true; if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) { ddRapido('mes'); return; } }
+  ddCargar();
+};
 
 </script>
 

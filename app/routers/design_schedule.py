@@ -1151,11 +1151,11 @@ def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_modulo(
 @router.get("/design/api/dashboard")
 def api_dashboard(area_id: int | None = None, team_id: int | None = None, designer_id: int | None = None,
                         producto: str = "", estado: str = "", qc: str = "",
-                        fecha_desde: str = "", fecha_hasta: str = "",
+                        fecha_desde: str = "", fecha_hasta: str = "", designer_nombre: str = "",
                         user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     fd = _fecha(fecha_desde) if fecha_desde else None
     fh = _fecha(fecha_hasta) if fecha_hasta else None
-    return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user)
+    return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user, designer_nombre)
 
 
 @router.get("/design/api/buscar")

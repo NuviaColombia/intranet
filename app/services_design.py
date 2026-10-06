@@ -758,10 +758,27 @@ def version_dia(db: Session, team: DesignTeam, fecha: date, empleado_id: int | N
 
 # ---------- Dashboard ----------
 
+def _es_aprobada(estado: str) -> bool:
+    return "approv" in (estado or "").lower()
+
+
+def _es_cancelada(estado: str) -> bool:
+    e = (estado or "").lower()
+    return "cancel" in e or "skip" in e
+
+
+def _hold_min(o: DesignOrden) -> float:
+    """Tiempo en Hold de la orden: Hold acumulado más el Hold con inicio y fin (S. Hold → F. Hold / Re-initiated)."""
+    return (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
+
+
 def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None = None,
                     designer_id: int | None = None, producto: str = "", estado: str = "",
                     qc: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None,
-                    user: Empleado | None = None) -> dict:
+                    user: Empleado | None = None, designer_nombre: str = "") -> dict:
+    """Dashboard de Design. Los filtros de diseñador, producto, estado y QC se aplican después de armar las listas
+    de opciones (así cada lista muestra lo que hay en el área, el equipo y las fechas elegidas).
+    El reporte de QC es el hallazgo que escribe el aprobador al marcar el QC (qc_reporte); las Notas no salen."""
     trasladar_holds(db)
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer),
                                        joinedload(DesignOrden.team).joinedload(DesignTeam.area))
@@ -774,51 +791,136 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:
         q = q.join(DesignTeam, DesignOrden.team_id == DesignTeam.id).filter(DesignTeam.area_id == area_id)
-    if designer_id:
-        q = q.filter(DesignOrden.designer_id == designer_id)
-    if producto:
-        q = q.filter(DesignOrden.producto == producto)
-    if estado:
-        q = q.filter(DesignOrden.estado == estado)
-    if qc == "si":
-        q = q.filter(DesignOrden.qc.is_(True))
-    elif qc == "no":
-        q = q.filter(DesignOrden.qc.is_(False))
     if fecha_desde:
         q = q.filter(DesignOrden.fecha >= fecha_desde)
     if fecha_hasta:
         q = q.filter(DesignOrden.fecha <= fecha_hasta)
-    filas = q.order_by(DesignOrden.fecha.desc()).all()
+    todas = q.order_by(DesignOrden.fecha.desc(), DesignOrden.id.desc()).all()
 
-    por_designer: dict[int, dict] = {}
-    por_producto: dict[str, int] = {}
+    def nombre_de(f):
+        return f.designer.nombre_completo if f.designer else (f.designer_prestado or "Sin asignar")
+
+    # Opciones de los filtros (antes de filtrar por diseñador, producto, estado y QC)
+    disenadores: dict[str, str] = {}
+    for f in todas:
+        disenadores.setdefault(str(f.designer_id) if f.designer_id else "libre:" + nombre_de(f), nombre_de(f))
+    sel_area = area_id or (db.get(DesignTeam, team_id).area_id if team_id and db.get(DesignTeam, team_id) else None)
+    productos, estados = [], []
+    if sel_area:
+        cat = catalogos_de_area(db, sel_area)
+        productos, estados = list(cat.get("producto", [])), list(cat.get("estado", []))
+    for f in todas:
+        if f.producto and f.producto not in productos:
+            productos.append(f.producto)
+        if f.estado and f.estado not in estados:
+            estados.append(f.estado)
+    if not sel_area:
+        productos.sort(key=lambda x: x.lower())
+        estados.sort(key=lambda x: x.lower())
+
+    nombre_q = _normalizar_texto(designer_nombre or "")
+    filas = []
+    for f in todas:
+        if designer_id and f.designer_id != designer_id:
+            continue
+        if nombre_q and nombre_q not in _normalizar_texto(nombre_de(f)):
+            continue
+        if producto and f.producto != producto:
+            continue
+        if estado and f.estado != estado:
+            continue
+        if qc == "si" and not f.qc:
+            continue
+        if qc == "no" and f.qc:
+            continue
+        if qc == "hallazgos" and not (f.qc and (f.qc_reporte or "").strip()):
+            continue
+        filas.append(f)
+
+    por_designer: dict[str, dict] = {}
+    por_producto: dict[str, dict] = {}
+    por_equipo: dict[int, dict] = {}
+    por_estado: dict[str, int] = {}
+    por_dia: dict[str, int] = {}
     qc_reportes, sin_qc = [], []
+    k = {"aprobadas": 0, "canceladas": 0, "conQc": 0, "qcHallazgos": 0, "duracionMin": 0.0, "conTiempo": 0,
+         "holdMin": 0.0, "conHold": 0}
     for f in filas:
-        nombre_d = f.designer.nombre_completo if f.designer else (f.designer_prestado or "Sin asignar")
-        clave = f.designer_id or f"libre:{nombre_d}"
-        if clave not in por_designer:
-            por_designer[clave] = {"designerId": f.designer_id, "nombre": nombre_d, "casos": 0, "duracionMin": 0}
-        por_designer[clave]["casos"] += 1
-        por_designer[clave]["duracionMin"] += duracion_orden_min(f, f.team.area.formato)
+        nombre_d = nombre_de(f)
+        formato = f.team.area.formato
+        cancelada = _es_cancelada(f.estado)
+        dur = 0 if cancelada else duracion_orden_min(f, formato)
+        hold = 0 if cancelada else _hold_min(f)
+        aprobada = _es_aprobada(f.estado)
+        hallazgo = (f.qc_reporte or "").strip() if f.qc else ""
+        clave = str(f.designer_id) if f.designer_id else "libre:" + nombre_d
+        d = por_designer.setdefault(clave, {"clave": clave, "designerId": f.designer_id, "nombre": nombre_d, "equipos": [],
+                                            "casos": 0, "aprobadas": 0, "canceladas": 0, "duracionMin": 0, "conTiempo": 0,
+                                            "holdMin": 0, "conQc": 0, "qcHallazgos": 0})
+        if f.team.nombre not in d["equipos"]:
+            d["equipos"].append(f.team.nombre)
+        d["casos"] += 1
+        d["aprobadas"] += aprobada
+        d["canceladas"] += cancelada
+        d["duracionMin"] += dur
+        d["conTiempo"] += dur > 0
+        d["holdMin"] += hold
+        d["conQc"] += bool(f.qc)
+        d["qcHallazgos"] += bool(hallazgo)
 
-        if f.producto:
-            por_producto[f.producto] = por_producto.get(f.producto, 0) + 1
+        p = por_producto.setdefault(f.producto, {"producto": f.producto, "casos": 0, "duracionMin": 0, "conTiempo": 0})
+        p["casos"] += 1
+        p["duracionMin"] += dur
+        p["conTiempo"] += dur > 0
 
-        # Reporte de QC = hallazgos anotados al marcar QC; solo cuenta si el QC sigue marcado.
-        if f.qc and (f.qc_reporte or "").strip():
-            qc_reportes.append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente,
-                               "fecha": f.fecha.isoformat(), "qcReporte": f.qc_reporte, "designerNombre": nombre_d})
-        if not f.qc and "approv" in (f.estado or "").lower():
-            sin_qc.append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente,
-                          "fecha": f.fecha.isoformat(), "estado": f.estado, "designerNombre": nombre_d})
+        e = por_equipo.setdefault(f.team_id, {"equipo": f.team.nombre, "area": f.team.area.nombre, "casos": 0,
+                                              "aprobadas": 0, "duracionMin": 0, "conTiempo": 0, "qcHallazgos": 0})
+        e["casos"] += 1
+        e["aprobadas"] += aprobada
+        e["duracionMin"] += dur
+        e["conTiempo"] += dur > 0
+        e["qcHallazgos"] += bool(hallazgo)
 
+        por_estado[f.estado or "(sin estado)"] = por_estado.get(f.estado or "(sin estado)", 0) + 1
+        por_dia[f.fecha.isoformat()] = por_dia.get(f.fecha.isoformat(), 0) + 1
+
+        k["aprobadas"] += aprobada
+        k["canceladas"] += cancelada
+        k["conQc"] += bool(f.qc)
+        k["qcHallazgos"] += bool(hallazgo)
+        k["duracionMin"] += dur
+        k["conTiempo"] += dur > 0
+        k["holdMin"] += hold
+        k["conHold"] += hold > 0
+
+        if hallazgo:
+            qc_reportes.append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
+                                "equipo": f.team.nombre, "producto": f.producto, "estado": f.estado,
+                                "qcReporte": hallazgo, "designerNombre": nombre_d})
+        if aprobada and not f.qc:
+            sin_qc.append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
+                           "equipo": f.team.nombre, "producto": f.producto, "estado": f.estado, "designerNombre": nombre_d})
+
+    prom = lambda x: round(x["duracionMin"] / x["conTiempo"], 1) if x["conTiempo"] else 0
+    for lista in (por_designer.values(), por_producto.values(), por_equipo.values()):
+        for x in lista:
+            x["promedioMin"] = prom(x)
+            x["duracionMin"] = round(x["duracionMin"], 1)
+            if "holdMin" in x:
+                x["holdMin"] = round(x["holdMin"], 1)
     return {
         "totalCasos": len(filas),
-        "porDesigner": sorted(por_designer.values(), key=lambda d: -d["casos"]),
-        "porProducto": sorted([{"producto": p, "casos": c} for p, c in por_producto.items()],
-                              key=lambda d: -d["casos"]),
+        "kpis": {**k, "duracionMin": round(k["duracionMin"], 1), "holdMin": round(k["holdMin"], 1),
+                 "promedioMin": prom(k), "enProceso": len(filas) - k["aprobadas"] - k["canceladas"]},
+        "porDesigner": sorted(por_designer.values(), key=lambda d: (-d["casos"], d["nombre"])),
+        "porProducto": sorted(por_producto.values(), key=lambda d: -d["casos"]),
+        "porEquipo": sorted(por_equipo.values(), key=lambda d: (d["area"], d["equipo"])),
+        "porEstado": sorted([{"estado": e, "casos": c} for e, c in por_estado.items()], key=lambda d: -d["casos"]),
+        "porDia": [{"fecha": f, "casos": por_dia[f]} for f in sorted(por_dia)],
         "qcReportes": qc_reportes,
         "sinQc": sin_qc,
+        "opciones": {"disenadores": sorted([{"clave": c, "nombre": n} for c, n in disenadores.items()], key=lambda d: d["nombre"].lower()),
+                     "productos": productos, "estados": estados},
     }
 
 
