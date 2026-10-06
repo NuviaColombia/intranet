@@ -117,6 +117,12 @@ window.dsPdfjs = function() {
   table.ds-tabla td.ds-qc-pend { box-shadow:inset 0 0 0 2px #0d9488; animation:dsBrillo 1.6s ease-in-out infinite; }
   table.ds-tabla td.ds-qc-pend-rojo { box-shadow:inset 0 0 0 2px #dc2626; animation:dsBrillo 1.6s ease-in-out infinite; }
   @keyframes dsBrillo { 50% { box-shadow:inset 0 0 0 4px transparent; } }
+  /* QC ya marcado: al pasar el mouse muestra si tuvo hallazgos y cuáles (esquina naranja = con hallazgos) */
+  table.ds-tabla td.ds-qc-hallazgo { position:relative; }
+  table.ds-tabla td.ds-qc-hallazgo::after { content:''; position:absolute; top:0; right:0; border-style:solid; border-width:0 9px 9px 0; border-color:transparent #f97316 transparent transparent; pointer-events:none; }
+  .ds-qc-tip { position:fixed; z-index:10000; max-width:420px; background:#111827; color:#fff; font-size:12.5px; line-height:1.45; padding:8px 11px; border-radius:7px; box-shadow:0 6px 18px rgba(0,0,0,.25); white-space:pre-wrap; pointer-events:none; text-align:left; }
+  .ds-qc-tip b { display:block; margin-bottom:3px; color:#fdba74; }
+  .ds-qc-tip.sin b { color:#86efac; margin:0; }
   @media (prefers-reduced-motion: reduce) { table.ds-tabla input.ds-falta, table.ds-tabla td.ds-qc-pend, table.ds-tabla td.ds-qc-pend-rojo { animation:none; } }
   table.ds-tabla td.ds-thold, table.ds-tabla td.ds-total { color:#374151; white-space:nowrap; }
   table.ds-tabla tr.ds-resaltada td { background:#dbeafe; transition:background .4s; }
@@ -1123,8 +1129,9 @@ window.dsPdfjs = function() {
 </div>
 
 <div class="dd-panel">
-  <div class="dd-panel-cab"><h3>Reportes de QC</h3><span style="font-size:12px;color:#4b5563">Hallazgo que escribe el aprobador al marcar el QC</span></div>
-  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Diseñador</th><th class="dd-izq">Hallazgo de QC</th></tr></thead>
+  <div class="dd-panel-cab"><h3>Reportes de QC</h3><span style="font-size:12px;color:#4b5563">Hallazgo que escribe el aprobador al marcar el QC
+    {% if dash_teams is none %}<button type="button" class="btn rojo mini" id="ddQcBorrarTodo" onclick="ddQcBorrar(null)" style="margin-left:10px;display:none">Borrar los hallazgos filtrados</button>{% endif %}</span></div>
+  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Diseñador</th><th class="dd-izq">Hallazgo de QC</th>{% if dash_teams is none %}<th></th>{% endif %}</tr></thead>
     <tbody id="ddQcReportes"></tbody></table>
 </div>
 
@@ -1709,8 +1716,34 @@ window.addEventListener('unhandledrejection', function(ev) {
       td.classList.toggle('ds-qc-pend', pend && !falta);
       td.classList.toggle('ds-qc-pend-rojo', pend && falta);
       if (pend) td.title = falta ? 'Orden aprobada: faltan horas y marcar el QC' : 'Orden aprobada: falta marcar el QC'; else td.removeAttribute('title');
+      var rep = String(f.qcReporte || '').trim();
+      td.classList.toggle('ds-qc-hallazgo', !!f.qc && !!rep);
+      if (f.qc) td.dataset.qcTip = rep ? 'si' : 'no'; else delete td.dataset.qcTip;
+      td._qcTexto = rep;
     }
   }
+
+  // Tooltip del QC marcado (también sobre el checkbox deshabilitado: se escucha en la celda).
+  (function() {
+    var tip = null;
+    var quitar = function() { if (tip) { tip.remove(); tip = null; } };
+    document.addEventListener('mouseover', function(e) {
+      var td = e.target.closest && e.target.closest('table.ds-tabla td[data-qc-tip]');
+      if (!td) { quitar(); return; }
+      if (tip && tip._td === td) return;
+      quitar();
+      tip = document.createElement('div'); tip._td = td;
+      if (td.dataset.qcTip === 'si') { tip.className = 'ds-qc-tip'; tip.innerHTML = '<b>QC con hallazgos</b><span></span>'; tip.querySelector('span').textContent = td._qcTexto || ''; }
+      else { tip.className = 'ds-qc-tip sin'; tip.innerHTML = '<b>QC sin hallazgos</b>'; }
+      document.body.appendChild(tip);
+      var r = td.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+      var x = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2));
+      var y = r.top - h - 8; if (y < 8) y = r.bottom + 8;
+      tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    });
+    document.addEventListener('scroll', quitar, true);
+    document.addEventListener('mousedown', quitar, true);
+  })();
 
   // ---------- Tabla de órdenes ----------
   // Siempre hay una fila vacía lista para llenar ("fila nueva"): existe solo en pantalla y se guarda en la BD
@@ -3193,14 +3226,46 @@ function ddCargar() {
 
     document.getElementById('ddQcReportes').innerHTML = data.qcReportes.map(function(r) {
       return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td><td>' + ddEsc(r.equipo) + '</td><td>' + ddEsc(r.producto) + '</td>' +
-             '<td>' + ddEsc(r.designerNombre) + '</td><td class="dd-izq" style="white-space:pre-wrap">' + ddEsc(r.qcReporte) + '</td></tr>';
-    }).join('') || '<tr><td colspan="7" style="color:#4b5563">Sin hallazgos de QC.</td></tr>';
+             '<td>' + ddEsc(r.designerNombre) + '</td><td class="dd-izq" style="white-space:pre-wrap">' + ddEsc(r.qcReporte) + '</td>' +
+             (DD_ADMIN ? '<td><button type="button" class="btn rojo mini" title="Borrar este hallazgo (el QC sigue marcado, queda sin hallazgos)" onclick="ddQcBorrar([' + r.ordenId + '])">Borrar</button></td>' : '') + '</tr>';
+    }).join('') || '<tr><td colspan="8" style="color:#4b5563">Sin hallazgos de QC.</td></tr>';
+    var bt = document.getElementById('ddQcBorrarTodo');
+    if (bt) { bt.style.display = data.qcReportes.length > 1 ? '' : 'none'; bt.textContent = 'Borrar los ' + data.qcReportes.length + ' hallazgos filtrados'; }
 
     document.getElementById('ddSinQc').innerHTML = data.sinQc.map(function(r) {
       return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td><td>' + ddEsc(r.equipo) + '</td><td>' + ddEsc(r.producto) + '</td>' +
              '<td>' + ddEsc(r.estado) + '</td><td>' + ddEsc(r.designerNombre) + '</td></tr>';
     }).join('') || '<tr><td colspan="7" style="color:#4b5563">Sin datos.</td></tr>';
   });
+}
+
+// Admins: borrar hallazgos de QC (uno o todos los que muestra el filtro). El QC sigue marcado y la orden queda
+// "Sin hallazgos"; las Notas no cambian. Se puede deshacer desde el aviso.
+var DD_ADMIN = DD_PROPIOS === null;
+function ddQcBorrar(ids) {
+  var lista = ids || (DD_ULTIMO ? DD_ULTIMO.qcReportes.map(function(r) { return r.ordenId; }) : []);
+  if (!lista.length) return;
+  var uno = lista.length === 1 && DD_ULTIMO ? DD_ULTIMO.qcReportes.find(function(r) { return r.ordenId === lista[0]; }) : null;
+  var msg = uno ? '¿Borrar el hallazgo de QC de la orden ' + uno.orden + '?\n\n"' + uno.qcReporte.slice(0, 300) + '"\n\nEl QC sigue marcado y la orden queda "Sin hallazgos". Las Notas no cambian.'
+                : '¿Borrar los ' + lista.length + ' hallazgos de QC que muestra el filtro actual?\n\nEl QC sigue marcado y esas órdenes quedan "Sin hallazgos". Las Notas no cambian.';
+  if (!confirm(msg)) return;
+  window.dsPostJSON('/design/api/dashboard/qc-hallazgos/borrar', {ids: lista}).then(function(r) {
+    var borrados = r.borrados || {}, n = Object.keys(borrados).length;
+    ddCargar();
+    ddAvisoDeshacer(n === 1 ? 'Se borró 1 hallazgo de QC.' : 'Se borraron ' + n + ' hallazgos de QC.', function() {
+      window.dsPostJSON('/design/api/dashboard/qc-hallazgos/borrar', {ids: [], restaurar: borrados}).then(function() { ddCargar(); dsToast('Hallazgos restaurados.'); })
+        .catch(function(e) { alert('No se pudo deshacer: ' + e.message); });
+    });
+  }).catch(function(e) { alert('No se pudo borrar: ' + e.message); });
+}
+function ddAvisoDeshacer(texto, deshacer) {
+  var v = document.getElementById('ddAviso'); if (v) v.remove();
+  v = document.createElement('div'); v.id = 'ddAviso'; v.className = 'ds-toast'; v.style.display = '';
+  v.innerHTML = '<span></span> <button type="button" style="margin-left:10px;background:#fff;color:#1d4ed8;border:none;border-radius:5px;padding:3px 10px;cursor:pointer;font-weight:600">Deshacer</button>';
+  v.querySelector('span').textContent = texto;
+  v.querySelector('button').onclick = function() { v.remove(); deshacer(); };
+  document.body.appendChild(v);
+  setTimeout(function() { if (v.isConnected) v.remove(); }, 12000);
 }
 
 // Descarga lo que se ve (con los filtros actuales) en un archivo que abre Excel (CSV con separador ;).

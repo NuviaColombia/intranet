@@ -1158,6 +1158,35 @@ def api_dashboard(area_id: int | None = None, team_id: int | None = None, design
     return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user, designer_nombre)
 
 
+class QcHallazgosIn(BaseModel):
+    ids: list[int] = Field(default_factory=list, max_length=5000)
+    # Deshacer: {id: texto} vuelve a poner el hallazgo que se borró
+    restaurar: dict[int, str] | None = None
+
+
+@router.post("/design/api/dashboard/qc-hallazgos/borrar")
+def api_qc_hallazgos_borrar(payload: QcHallazgosIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Solo admins: borra el hallazgo de QC (el texto de "Con hallazgos") de las órdenes indicadas. El QC sigue
+    marcado y la orden queda "Sin hallazgos"; las Notas y el resto de la orden no cambian. Sirve también en días
+    cerrados (es una corrección del admin). Devuelve los textos borrados para poder deshacer."""
+    if payload.restaurar:
+        n = 0
+        for oid, texto in payload.restaurar.items():
+            o = db.get(DesignOrden, int(oid))
+            if o is not None:
+                o.qc_reporte = texto or ""
+                n += 1
+        db.commit()
+        return {"restaurados": n}
+    borrados: dict[int, str] = {}
+    for o in db.query(DesignOrden).filter(DesignOrden.id.in_(payload.ids or [-1])).all():
+        if (o.qc_reporte or "").strip():
+            borrados[o.id] = o.qc_reporte
+            o.qc_reporte = ""
+    db.commit()
+    return {"borrados": borrados}
+
+
 @router.get("/design/api/buscar")
 def api_buscar(q: str, user: Empleado = Depends(require_modulo("design_schedule")),
                      db: Session = Depends(get_db)):
