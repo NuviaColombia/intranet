@@ -4,10 +4,8 @@ import csv
 import io
 from pathlib import Path
 from datetime import date
-import asyncio
 from fastapi import APIRouter, Request, Depends, HTTPException, Form, BackgroundTasks, UploadFile, File
 from ..concurrencia import RutaGeneral
-from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, StreamingResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -941,19 +939,8 @@ async def guardar_supervisor(empleado_id: int, request: Request, user: Empleado 
     return RedirectResponse("/caja-menor/parametros?msg=Supervisiones guardadas.&tab=supervisan", status_code=303)
 
 
-@router.on_event("startup")
-async def iniciar_recordatorios() -> None:
-    """Cada hora revisa las firmas pendientes y manda recordatorio por Cliq a las que llevan más de 24 horas."""
-    async def ciclo():
-        while True:
-            await asyncio.sleep(3600)
-            try:
-                enviados = await run_in_threadpool(sc.enviar_recordatorios)
-                if enviados:
-                    print(f"Caja menor: {enviados} recordatorio(s) de firma enviados por Cliq.")
-            except Exception as e:  # un fallo nunca debe detener la intranet
-                print(f"Caja menor: error enviando recordatorios: {e}")
-    asyncio.create_task(ciclo())
+# Los recordatorios de firmas pendientes ya no se mandan uno por documento: van en el mensaje único cada 2 horas
+# (app/routers/recordatorio_firmas.py), junto con lo pendiente de Producción.
 
 
 ARCHIVO_INICIAL = Path(__file__).resolve().parent.parent / "seed_data" / "caja_menor_inicial.xlsx"
