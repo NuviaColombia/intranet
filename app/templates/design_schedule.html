@@ -111,6 +111,30 @@ window.dsPdfjs = function() {
   table.ds-tabla tr.ds-fila-cancelada input, table.ds-tabla tr.ds-fila-cancelada select {
     color:#6b7280; -webkit-text-fill-color:#6b7280; text-decoration:line-through; }
   table.ds-tabla tr.ds-fila-hold td { background:#fef3c7; }
+  table.ds-tabla tr.ds-fila-ready td { background:#edbfab; }
+  table.ds-tabla tr.ds-fila-html td { background:#f5c9d7; }
+  table.ds-tabla tr.ds-fila-aprobada td { background:#d6f5b8; }
+  /* Interruptor "Ocultar QC" (aprobadores) en la fila de Mostrar ocultas */
+  .ds-auto-oc { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#374151; margin-right:6px; cursor:pointer; user-select:none; }
+  .ds-auto-oc input { position:absolute; opacity:0; width:1px; height:1px; }
+  .ds-auto-oc .sw { width:34px; height:19px; border-radius:10px; background:#cbd5e1; position:relative; transition:background .15s; flex:none; }
+  .ds-auto-oc .sw::after { content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3); transition:left .15s; }
+  .ds-auto-oc input:checked + .sw { background:#1d4ed8; }
+  .ds-auto-oc input:checked + .sw::after { left:17px; }
+  .ds-auto-oc input:focus-visible + .sw { outline:2px solid #93c5fd; outline-offset:2px; }
+  /* Producción del día (junto a Dejar a cargo) */
+  .ds-prod-btn { height:34px; padding:0 12px; font-size:13px; margin:0; flex:none; }
+  .ds-prod-btn.ds-fuera { display:none; }
+  .ds-prod-pop { position:fixed; z-index:330; width:320px; max-height:70vh; overflow:auto; background:#fff; border:1px solid #d8dde3; border-radius:10px;
+    box-shadow:0 10px 28px rgba(0,0,0,.18); padding:12px 14px; }
+  .ds-prod-pop h4 { margin:0 0 2px; font-size:14px; }
+  .ds-prod-pop .sub { font-size:12px; color:#6b7280; margin-bottom:8px; }
+  .ds-prod-pop table { width:100%; border-collapse:collapse; font-size:13px; }
+  .ds-prod-pop th, .ds-prod-pop td { padding:6px 8px; border-bottom:1px solid #eef1f6; }
+  .ds-prod-pop th { text-align:left; font-size:11.5px; color:#4b5563; background:#f8fafc; }
+  .ds-prod-pop td.n, .ds-prod-pop th.n { text-align:center; width:70px; }
+  .ds-prod-pop tr.total td { font-weight:700; border-top:2px solid #d8dde3; border-bottom:none; }
+  .ds-prod-pop tr.cero td { color:#9ca3af; }
   /* Orden aprobada: hora faltante parpadea en rojo; el QC pendiente brilla (verde azulado si está completa, rojo si faltan horas) */
   table.ds-tabla input.ds-falta { border-color:#dc2626; box-shadow:0 0 0 2px rgba(220,38,38,.35); animation:dsParpadeo 1s steps(2, start) infinite; }
   @keyframes dsParpadeo { 50% { background:#fecaca; } }
@@ -810,6 +834,7 @@ window.dsPdfjs = function() {
   <div class="ds-cabecera">
     <h1 style="margin:0">Design Schedule<span id="dsTituloEquipo"></span></h1>
     <div class="ds-cabecera-der">
+      <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsProdBtn" title="Casos asignados a cada diseñador en el día elegido" aria-haspopup="dialog">Producción</button>
       <div id="dsACargo" class="ds-acargo" hidden></div>
       <div class="ds-buscar" role="search">
         <input type="search" id="dsBuscarInput" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente"
@@ -855,7 +880,7 @@ window.dsPdfjs = function() {
           <h3 id="dsTituloPrincipal">Órdenes</h3>
           <span id="dsCandado" class="ds-candado" style="display:none" tabindex="0">🔒</span>
         </div>
-        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
+        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Encendido: las órdenes con QC se ocultan solas (en el día activo). Apagado: se ven todas."><input type="checkbox" class="ds-auto-oc-chk" role="switch"><span class="sw"></span>Ocultar QC</label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal', event)">+ Agregar orden</button></span>
       </div>
       <div id="dsTablaPrincipal"></div>
@@ -864,7 +889,7 @@ window.dsPdfjs = function() {
     <div class="ds-panel" id="dsPanelNightguard" style="display:none">
       <div class="ds-panel-h">
         <h3>Nightguards / TC</h3>
-        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_nightguard" style="display:none" onclick="dsVerOcultas()"></button>
+        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Encendido: las órdenes con QC se ocultan solas (en el día activo). Apagado: se ven todas."><input type="checkbox" class="ds-auto-oc-chk" role="switch"><span class="sw"></span>Ocultar QC</label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_nightguard" style="display:none" onclick="dsVerOcultas()"></button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard', event)">+ Agregar orden</button></span>
       </div>
       <div id="dsTablaNightguard"></div>
@@ -1326,6 +1351,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     document.getElementById('dsSemanaCtrl').style.display = (DS.teamId || (chk && chk.checked)) ? '' : 'none';
     // "Dejar a cargo" está junto al buscador: solo se ve con un equipo abierto (no en todas las áreas)
     document.getElementById('dsACargo').classList.toggle('ds-fuera', !DS.teamId || !!(chk && chk.checked));
+    // "Producción" (managers, aprobadores y admins): mismo lugar y misma regla
+    document.getElementById('dsProdBtn').classList.toggle('ds-fuera', !window.DS_GESTION || !DS.teamId || !!(chk && chk.checked));
   }
 
   function dsLunesDe(d) {
@@ -1749,6 +1776,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!f) return;
     tr.classList.toggle('ds-fila-cancelada', f.estado === 'Canceled');
     tr.classList.toggle('ds-fila-hold', f.estado === 'Hold');
+    var est = String(f.estado || '').trim().toLowerCase();
+    tr.classList.toggle('ds-fila-ready', est === 'ready to design');
+    tr.classList.toggle('ds-fila-html', est === 'html');
+    tr.classList.toggle('ds-fila-aprobada', est === 'approved');
     var formato = tabla === 'prestadas' ? f.formato : DS.areaFormato, tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
     var aprobada = f.estado === 'Approved', falta = false;
     var ngNuevo = tablaReal === 'nightguard' && dsNgNuevo(formato, tabla === 'prestadas' ? f : null);
@@ -2017,12 +2048,14 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsOcultasLeer() { try { return JSON.parse(localStorage.getItem(DS_OCULTAS_KEY) || '{}') || {}; } catch (e) { return {}; } }
   function dsOcultasGuardar(o) { try { localStorage.setItem(DS_OCULTAS_KEY, JSON.stringify(o)); } catch (e) {} }
   // estado manual: {id: 'oculta' | 'visible'}
+  // Interruptor "Ocultar QC" (por persona, en este navegador): apagado = las órdenes con QC no se ocultan solas
+  function dsAutoOcultar() { try { return localStorage.getItem('dsAutoOcultarQc') !== 'no'; } catch (e) { return true; } }
   function dsEstaOculta(f, man) {
     if (dsDiaCerrado()) return false;  // ocultar aplica solo al día activo: un día cerrado muestra todas sus órdenes
     var m = man[f.id];
     if (m === 'oculta') return true;
     if (m === 'visible') return false;
-    if (!f.qc) return false;
+    if (!f.qc || !dsAutoOcultar()) return false;
     var g = DS.qcGracia[f.id];
     return !(g && Date.now() - g < 30000);
   }
@@ -2031,6 +2064,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsAplicarOcultas(tabla) {
     var btn = document.getElementById('dsOcultas_' + tabla);
+    var sw = btn && btn.parentNode.querySelector('.ds-auto-oc');
+    if (sw) { sw.style.display = window.DS_GESTION && DS.diaData && !dsDiaCerrado() ? '' : 'none'; sw.querySelector('input').checked = dsAutoOcultar(); }
     if (!window.DS_GESTION || !DS.diaData || (tabla !== 'principal' && tabla !== 'nightguard')) { if (btn) btn.style.display = 'none'; return; }
     var man = dsOcultasLeer(), n = 0, cambio = false;
     (DS.diaData[tabla] || []).forEach(function(f) {
@@ -2052,6 +2087,13 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     if (cambio && DS.sel) { DS.sel = null; dsPintarSel(); }  // cambiaron las filas visibles: la selección ya no aplica
   }
+  document.querySelectorAll('.ds-auto-oc-chk').forEach(function(c) {
+    c.addEventListener('change', function() {
+      try { localStorage.setItem('dsAutoOcultarQc', c.checked ? 'si' : 'no'); } catch (e) {}
+      dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard');
+      if (window.dsToast) window.dsToast(c.checked ? 'Las órdenes con QC se ocultarán solas (día activo).' : 'Las órdenes con QC ya no se ocultan solas.');
+    });
+  });
   window.dsVerOcultas = function() { DS.verOcultas = !DS.verOcultas; dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard'); };
   window.dsOjoFila = function(id) {
     var man = dsOcultasLeer(), f = null;
@@ -2585,6 +2627,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     {uno: 'Cancelada', varios: 'Canceladas', cuenta: function(f) { return f.estado === 'Canceled'; }},
   ];
   function dsRenderKpis(dia) {
+    dsPintarProduccion();  // la ventana de Producción (si está abierta) sigue los cambios
     var todas = dia.principal.concat(dia.nightguard || []).filter(dsOrdenCompleta);
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
     DS_KPIS.forEach(function(k) {
@@ -2708,6 +2751,43 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_MESES_C = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   function dsACargoFecha(iso) { var p = iso.split('-'); return parseInt(p[2], 10) + ' ' + DS_MESES_C[parseInt(p[1], 10) - 1]; }
   function dsRangoTxt(a) { return a.desde === a.hasta ? 'el ' + dsACargoFecha(a.desde) : 'del ' + dsACargoFecha(a.desde) + ' al ' + dsACargoFecha(a.hasta); }
+  // ---------- Producción del día: casos asignados a cada diseñador en el día elegido (para repartir los casos) ----------
+  function dsProduccionDia(dia) {
+    var cuenta = {}, nombres = {}, orden = [];
+    (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.nombre; orden.push(k); });
+    (dia.principal || []).concat(dia.nightguard || []).forEach(function(f) {
+      var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
+      if (!k) return;
+      if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
+      cuenta[k]++;
+    });
+    return orden.map(function(k) { return {nombre: nombres[k], casos: cuenta[k]}; });
+  }
+  function dsPintarProduccion() {
+    var pop = document.getElementById('dsProdPop'); if (!pop || !DS.diaData) return;
+    var filas = dsProduccionDia(DS.diaData), total = filas.reduce(function(a, x) { return a + x.casos; }, 0);
+    var f = dsFechaSeleccionada();
+    pop.innerHTML = '<h4>Producción del día</h4><div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
+      ' · casos asignados a cada diseñador</div>' +
+      (filas.length ? '<table><thead><tr><th>Diseñador</th><th class="n">Casos</th></tr></thead><tbody>' +
+        filas.map(function(x) { return '<tr' + (x.casos ? '' : ' class="cero"') + '><td>' + dsEsc(x.nombre) + '</td><td class="n">' + x.casos + '</td></tr>'; }).join('') +
+        '<tr class="total"><td>Total</td><td class="n">' + total + '</td></tr></tbody></table>'
+       : '<p class="ds-prest-vacio">Este equipo no tiene diseñadores.</p>');
+  }
+  function dsCerrarProduccion() {
+    var pop = document.getElementById('dsProdPop'); if (pop) pop.remove();
+    document.removeEventListener('mousedown', dsProdFuera, true); document.removeEventListener('keydown', dsProdEsc, true);
+  }
+  function dsProdFuera(e) { var pop = document.getElementById('dsProdPop'); if (pop && !pop.contains(e.target) && e.target.id !== 'dsProdBtn') dsCerrarProduccion(); }
+  function dsProdEsc(e) { if (e.key === 'Escape') dsCerrarProduccion(); }
+  document.getElementById('dsProdBtn').addEventListener('click', function() {
+    if (document.getElementById('dsProdPop')) { dsCerrarProduccion(); return; }
+    var pop = document.createElement('div'); pop.className = 'ds-prod-pop'; pop.id = 'dsProdPop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Producción del día');
+    document.body.appendChild(pop); dsPintarProduccion();
+    var r = this.getBoundingClientRect();
+    pop.style.top = (r.bottom + 6) + 'px'; pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.right - pop.offsetWidth)) + 'px';
+    document.addEventListener('mousedown', dsProdFuera, true); document.addEventListener('keydown', dsProdEsc, true);
+  });
   function dsRenderACargo(dia) {
     var cont = document.getElementById('dsACargo'); if (!cont) return;
     var a = dia && dia.aCargo;
@@ -2769,6 +2849,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     DS.diaVersion = dia.version || null;  // huella del día (Schedule en vivo)
     DS.diaVersionClave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
     dsRenderACargo(dia);
+    dsPintarProduccion();
     dsRenderTabla('principal');
     if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
     dsRenderPrestadas();
