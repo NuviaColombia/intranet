@@ -47,6 +47,11 @@ async def zoho_get_email(code: str) -> str:
         email = ui.json().get("email", "").lower()
         if not email:
             raise HTTPException(400, "No se pudo obtener el correo desde Zoho.")
+        try:  # Design: foto de perfil de Zoho de sus empleados (si algo falla, el login sigue igual)
+            from .services_design import foto_design_al_iniciar
+            await foto_design_al_iniciar(client, tokens["access_token"], ui.json(), email)
+        except Exception:  # noqa: BLE001
+            pass
         return email
 
 

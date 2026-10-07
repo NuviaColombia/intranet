@@ -483,6 +483,26 @@ def _resp(r: dict) -> dict:
     return r
 
 
+@router.get("/design/api/foto/{empleado_id}")
+def api_foto_perfil(empleado_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Foto de perfil de Zoho de un empleado de Design (404 si no hay: se muestran las iniciales)."""
+    f = db.get(sd.DesignFotoPerfil, empleado_id)
+    if not f or not f.datos:
+        raise HTTPException(404, "Sin foto.")
+    return Response(f.datos, media_type=f.tipo or "image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+
+
+@router.get("/design/api/parametros/fotos")
+def api_fotos_estado(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: qué fotos de perfil se guardaron y, si no, por qué (para revisar la conexión con Zoho)."""
+    out = []
+    for f in db.query(sd.DesignFotoPerfil).order_by(sd.DesignFotoPerfil.actualizado_en.desc()).all():
+        e = db.get(Empleado, f.empleado_id)
+        out.append({"empleado": e.nombre_completo if e else f.empleado_id, "tieneFoto": bool(f.origen),
+                    "origen": f.origen, "error": f.error, "actualizado": f.actualizado_en.isoformat() if f.actualizado_en else ""})
+    return out
+
+
 class IdsIn(BaseModel):
     ids: list[int] = Field(default_factory=list, max_length=5000)
 

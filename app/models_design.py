@@ -456,6 +456,19 @@ class DesignProtocoloArchivo(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignFotoPerfil(Base):
+    """Foto de perfil de Zoho de un empleado de Design (se toma al iniciar sesión; solo para quien tiene el
+    módulo Design Schedule). Se muestra junto al nombre en la barra superior de Design."""
+    __tablename__ = "design_fotos_perfil"
+
+    empleado_id: Mapped[int] = mapped_column(Integer, primary_key=True)  # sin llave foránea: tabla aparte
+    tipo: Mapped[str] = mapped_column(String(40), default="")
+    datos: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    origen: Mapped[str] = mapped_column(String(300), default="")
+    error: Mapped[str] = mapped_column(Text, default="")
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignProtocoloMiniatura(Base):
     """Imagen pequeña de la primera diapositiva de un PDF de Protocols, para las tarjetas (así no se abre el
     PDF para cada tarjeta). La genera el navegador la primera vez que alguien ve el protocolo.

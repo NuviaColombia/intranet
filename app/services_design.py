@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload, defer
 from sqlalchemy import func, and_, or_, text
 from .models import Empleado, Solicitud, TipoPermiso
 from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE, FORMATO_DUAL
-from .models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
+from .models_design import (DesignFotoPerfil, DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
                             DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
@@ -1244,6 +1244,49 @@ def eliminar_historial_comentario(db: Session, historial_id: int) -> bool:
     db.delete(h)
     db.commit()
     return True
+
+
+# ---------- Foto de perfil de Zoho (solo Design) ----------
+
+FOTO_MAX_BYTES = 2_000_000
+
+
+async def foto_design_al_iniciar(client, access_token: str, info: dict, email: str) -> None:
+    """Al iniciar sesión con Zoho: si la persona tiene el módulo Design, se guarda su foto de perfil.
+    Prueba la foto del perfil de Zoho (userinfo "picture", el API de perfil y la de contactos). Nunca falla el login:
+    si no se consigue, queda anotado el motivo (Parámetros › /design/api/parametros/fotos)."""
+    from .database import SessionLocal
+    from .config import ZOHO_REGION
+    from .models_design import DesignFotoPerfil
+    db = SessionLocal()
+    try:
+        user = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()
+        if not user or not user.tiene_modulo("design_schedule"):
+            return
+        zuid = str(info.get("sub") or info.get("ZUID") or "")
+        urls = [u for u in [info.get("picture"), f"https://profile.zoho.{ZOHO_REGION}/api/v1/user/self/photo",
+                            f"https://contacts.zoho.{ZOHO_REGION}/file?ID={zuid}&fs=thumb" if zuid else None] if u]
+        notas, foto = [], None
+        for u in urls:
+            try:
+                r = await client.get(u, headers={"Authorization": f"Zoho-oauthtoken {access_token}"}, follow_redirects=True, timeout=10)
+                tipo = (r.headers.get("content-type") or "").split(";")[0].strip().lower()
+                if r.status_code == 200 and tipo.startswith("image/") and 200 < len(r.content) <= FOTO_MAX_BYTES:
+                    foto = (r.content, tipo, u.split("?")[0])
+                    break
+                notas.append(f"{u.split('?')[0]} → {r.status_code} {tipo} {len(r.content)} B")
+            except Exception as e:  # noqa: BLE001
+                notas.append(f"{u.split('?')[0]} → {type(e).__name__}")
+        reg = db.get(DesignFotoPerfil, user.id) or DesignFotoPerfil(empleado_id=user.id)
+        if foto:
+            reg.datos, reg.tipo, reg.origen, reg.error = foto[0], foto[1], foto[2], ""
+        else:  # se conserva la foto anterior, si había
+            reg.error = ("campos de Zoho: " + ", ".join(sorted(info.keys())) + " | " + " | ".join(notas))[:2000]
+        reg.actualizado_en = datetime.utcnow()
+        db.add(reg)
+        db.commit()
+    finally:
+        db.close()
 
 
 # ---------- Comments N3: plantillas de notas personalizadas ----------
