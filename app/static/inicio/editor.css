@@ -159,3 +159,13 @@ body.nvi-arrastrando-mouse, body.nvi-arrastrando-mouse * { user-select:none !imp
 .nvi-ed-hist-f { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid #eef1f6; }
 .nvi-ed-hist-f span { display:flex; flex-direction:column; } .nvi-ed-hist-f small { color:#64748b; } .nvi-ed-hist-f em { color:#16a34a; font-style:normal; font-size:12px; }
 @media (max-width: 1100px) { .nvi-ed { grid-template-columns:190px 1fr 270px; } }
+
+/* En vivo: otros admins editando */
+.nvi-ed-otros { display:inline-flex; align-items:center; gap:3px; }
+.nvi-ed-otro-chip { width:26px; height:26px; border-radius:50%; color:#fff; font-size:11px; font-weight:700; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 0 0 1px #d8dde3; }
+.nvi-ed-otro-txt { font-size:12px; color:#475569; margin-left:4px; }
+.nvi-ed-vivo-cambio { font-size:12px; color:#059669; font-weight:600; opacity:0; transition:opacity .3s; }
+.nvi-ed-vivo-cambio.on { opacity:1; }
+.nvi-ed-otro { outline:2px solid var(--otro, #db2777) !important; outline-offset:3px; }
+.nvi-ed-otro::after { content:attr(data-otro); position:absolute; left:-2px; top:-24px; background:var(--otro, #db2777); color:#fff; font:600 11px system-ui, sans-serif; padding:2px 8px; border-radius:6px 6px 6px 0; z-index:35; pointer-events:none; }
+.nvi-sec.nvi-ed-otro::after { top:4px; left:auto; right:6px; border-radius:6px; }

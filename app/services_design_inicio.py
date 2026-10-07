@@ -63,14 +63,20 @@ def _validar(contenido: dict) -> str:
 
 
 def guardar_borrador(db: Session, user: Empleado, contenido: dict, version: int, forzar: bool = False) -> DesignInicioPagina:
+    """Guarda solo si nadie guardó antes (la versión se compara y se sube en una sola operación: dos admins que
+    guardan al mismo tiempo no se pisan; el segundo recibe Conflicto y su editor combina los cambios)."""
     p = _pagina(db)
-    if not forzar and version != p.version:
-        raise Conflicto(p)
-    p.borrador = _validar(contenido)
-    p.version += 1
-    p.actualizado_en = datetime.utcnow()
-    p.actualizado_por = user.nombre_completo
+    txt = _validar(contenido)
+    q = db.query(DesignInicioPagina).filter(DesignInicioPagina.id == p.id)
+    if not forzar:
+        q = q.filter(DesignInicioPagina.version == version)
+    n = q.update({DesignInicioPagina.borrador: txt, DesignInicioPagina.version: DesignInicioPagina.version + 1,
+                  DesignInicioPagina.actualizado_en: datetime.utcnow(), DesignInicioPagina.actualizado_por: user.nombre_completo},
+                 synchronize_session=False)
     db.commit()
+    db.refresh(p)
+    if not n:
+        raise Conflicto(p)
     return p
 
 
@@ -203,3 +209,32 @@ def muro_eliminar(db: Session, post_id: int) -> bool:
     x.activo = 0
     db.commit()
     return True
+
+
+# ---------- En vivo ----------
+# Quién está en el editor (en memoria: el servidor corre en un solo proceso). {empleado_id: {...}}
+_presencia: dict[int, dict] = {}
+PRESENCIA_SEG = 15
+
+
+def vivo(db: Session) -> dict:
+    """Huellas para que la página abierta se actualice sola: lo publicado y el muro."""
+    from sqlalchemy import func
+    p = _pagina(db)
+    m = db.query(func.count(DesignInicioMuro.id), func.max(DesignInicioMuro.id), func.max(DesignInicioMuro.editado_en)).filter(DesignInicioMuro.activo == 1).one()
+    return {"pub": p.publicado_en.isoformat() if p.publicado_en else "", "muro": f"{m[0]}-{m[1]}-{m[2]}"}
+
+
+def presencia(db: Session, user: Empleado, seleccion: str = "") -> dict:
+    ahora = datetime.utcnow()
+    _presencia[user.id] = {"id": user.id, "nombre": " ".join((user.nombres or "").split()[:1] + (user.apellidos or "").split()[:1]) or user.nombre_completo,
+                           "sel": (seleccion or "")[:60], "visto": ahora}
+    for k in [k for k, v in _presencia.items() if (ahora - v["visto"]).total_seconds() > PRESENCIA_SEG]:
+        _presencia.pop(k, None)
+    p = _pagina(db)
+    return {"version": p.version, "actualizadoPor": p.actualizado_por,
+            "editores": [{"id": v["id"], "nombre": v["nombre"], "sel": v["sel"]} for v in _presencia.values() if v["id"] != user.id]}
+
+
+def salir_editor(user: Empleado) -> None:
+    _presencia.pop(user.id, None)

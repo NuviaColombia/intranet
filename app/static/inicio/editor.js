@@ -53,12 +53,17 @@
     if (!E.sinGuardar && !forzar) return Promise.resolve();
     if (E.guardando) { E.pendiente = true; return Promise.resolve(); }
     E.guardando = true; E.sinGuardar = false; estado('Guardando…');
-    return api('/design/api/inicio/borrador', {contenido: E.limpiarTemp(E.pag), version: E.version, forzar: forzar === 'forzar'}).then(function(r) {
-      E.version = r.version; estado('Borrador guardado · cambios sin publicar'); E.hayCambios = true; pintarPublicar();
+    var enviado = E.limpiarTemp(E.pag);
+    return api('/design/api/inicio/borrador', {contenido: enviado, version: E.version, forzar: forzar === 'forzar'}).then(function(r) {
+      E.version = r.version; E.base = JSON.stringify(enviado); E.reintentos = 0;
+      estado('Borrador guardado · cambios sin publicar'); E.hayCambios = true; pintarPublicar();
     }).catch(function(e) {
       E.sinGuardar = true;
       if (e.status === 409) {
-        E.version = e.datos.version;
+        // Otro admin guardó antes: se combinan los cambios (sección por sección) y se vuelve a guardar solo
+        E.reintentos = (E.reintentos || 0) + 1;
+        if (E.reintentos <= 3) return api('/design/api/inicio/borrador').then(function(d) { combinarCon(d); E.guardando = false; return E.guardar(); });
+        E.reintentos = 0;
         return dialogo('Otra persona guardó cambios', '<p>' + esc(e.message) + '</p><p>¿Qué quieres hacer?</p>', [{t: 'Guardar mi versión', v: 'mia', p: true}, {t: 'Cargar la otra versión', v: 'otra'}]).then(function(v) {
           E.guardando = false;
           if (v === 'mia') return E.guardar('forzar');
@@ -67,6 +72,74 @@
       }
       estado('No se guardó: ' + e.message); aviso('No se guardó: ' + e.message, true);
     }).then(function() { E.guardando = false; if (E.pendiente) { E.pendiente = false; if (E.sinGuardar) E.guardar(); } });
+  };
+
+  // ---------- Edición en vivo entre admins ----------
+  // Combinar: base = lo último que se sincronizó, mio = lo que tengo, suyo = lo que guardó otro admin.
+  // Por sección: si solo uno la cambió gana ese cambio; si ambos, gana el mío. Igual con el estilo de la página.
+  function combinar(base, mio, suyo) {
+    var J = JSON.stringify, mapa = function(p) { var m = {}; ((p && p.secciones) || []).forEach(function(x) { m[x.id] = x; }); return m; };
+    var B = mapa(base), M = mapa(mio), T = mapa(suyo), res = {};
+    Object.keys(M).concat(Object.keys(T)).forEach(function(id) {
+      if (id in res) return;
+      var b = B[id], m = M[id], t = T[id];
+      if (m && t) res[id] = b && J(m) !== J(b) ? m : t;
+      else if (m) { if (!b || J(m) !== J(b)) res[id] = m; }      // la agregué yo, o él la borró pero yo la cambié
+      else if (t) { if (!b || J(t) !== J(b)) res[id] = t; }      // la agregó él, o yo la borré pero él la cambió
+    });
+    var ids = function(p) { return ((p && p.secciones) || []).map(function(x) { return x.id; }); };
+    var oB = ids(base), oM = ids(mio), oT = ids(suyo);
+    var mioMovio = J(oM.filter(function(i) { return oB.indexOf(i) >= 0; })) !== J(oB.filter(function(i) { return oM.indexOf(i) >= 0; }));
+    var prim = mioMovio ? oM : oT, seg = mioMovio ? oT : oM, orden = prim.filter(function(i) { return res[i]; });
+    seg.forEach(function(i, k) { if (!res[i] || orden.indexOf(i) >= 0) return; var antes = seg.slice(0, k).reverse().filter(function(x) { return orden.indexOf(x) >= 0; })[0]; orden.splice(antes ? orden.indexOf(antes) + 1 : 0, 0, i); });
+    return {tema: base && J(mio.tema) !== J(base.tema) ? mio.tema : (suyo.tema || mio.tema), secciones: orden.map(function(i) { return res[i]; })};
+  }
+  function combinarCon(d) {
+    var suyo = d.contenido || NVI.PLANTILLA_VACIA(), base = E.base ? JSON.parse(E.base) : null;
+    var mio = E.limpiarTemp(E.pag), hayMio = !base || JSON.stringify(mio) !== E.base;
+    E.pag = hayMio && base ? combinar(base, mio, suyo) : suyo;
+    E.version = d.version; E.base = JSON.stringify(suyo); E.hayCambios = d.hayCambios; E.publicadoEn = d.publicadoEn;
+    if (E.sel && E.sel.tipo === 'bloque' && !blkPor(E.sel.id)) E.sel = null;
+    if (E.sel && E.sel.tipo === 'seccion' && !secPor(E.sel.id)) E.sel = null;
+    registrar(); E.pintar(); pintarPublicar();
+    if (d.actualizadoPor) destello(d.actualizadoPor);
+    return hayMio;
+  }
+  function destello(quien) {
+    var e = document.getElementById('nviVivoCambio'); if (!e) return;
+    e.textContent = '↻ Cambios de ' + quien.split(' ')[0]; e.classList.add('on'); clearTimeout(e._t); e._t = setTimeout(function() { e.classList.remove('on'); }, 3500);
+  }
+  function ocupado() {
+    var a = document.activeElement;
+    return E.editando || E.guardando || E.sinGuardar || document.body.classList.contains('nvi-arrastrando') || document.body.classList.contains('nvi-arrastrando-mouse') ||
+      document.querySelector('.nvi-dlg-bg, #nviMenu') || (a && a.closest && a.closest('#nviProps') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+  }
+  var vivoAndando = false;
+  function vivoTick() {
+    if (vivoAndando || document.hidden || !E.pag) return;
+    vivoAndando = true;
+    var sel = E.sel && (E.sel.tipo === 'bloque' || E.sel.tipo === 'seccion') ? E.sel.id : '';
+    api('/design/api/inicio/presencia', {sel: sel}).then(function(r) {
+      E.otros = r.editores || []; pintarOtros();
+      if (r.version !== E.version && !ocupado()) return api('/design/api/inicio/borrador').then(function(d) { if (!ocupado() && d.version !== E.version) combinarCon(d); });
+    }).catch(function() {}).then(function() { vivoAndando = false; });
+  }
+  var COLORES_OTROS = ['#db2777', '#059669', '#d97706', '#7c3aed', '#0891b2'];
+  function pintarOtros() {
+    var cont = document.getElementById('nviOtros'); if (!cont) return;
+    cont.innerHTML = (E.otros || []).map(function(o, i) { return '<span class="nvi-ed-otro-chip" style="background:' + COLORES_OTROS[i % 5] + '" title="' + esc(o.nombre) + ' también está editando">' + esc(o.nombre.split(' ').map(function(x) { return x.charAt(0); }).join('').slice(0, 2).toUpperCase()) + '</span>'; }).join('') +
+      ((E.otros || []).length ? '<span class="nvi-ed-otro-txt">' + esc(E.otros.map(function(o) { return o.nombre.split(' ')[0]; }).join(', ')) + ' también ' + (E.otros.length > 1 ? 'están' : 'está') + ' editando</span>' : '');
+    document.querySelectorAll('#nviLienzo .nvi-ed-otro').forEach(function(x) { x.classList.remove('nvi-ed-otro'); x.removeAttribute('data-otro'); x.style.removeProperty('--otro'); });
+    (E.otros || []).forEach(function(o, i) {
+      if (!o.sel) return;
+      var el = document.querySelector('#nviLienzo [data-blk="' + o.sel + '"], #nviLienzo [data-sec="' + o.sel + '"]');
+      if (el) { el.classList.add('nvi-ed-otro'); el.setAttribute('data-otro', o.nombre.split(' ')[0]); el.style.setProperty('--otro', COLORES_OTROS[i % 5]); }
+    });
+  }
+  E.vivo = function() {
+    setInterval(vivoTick, 3000);
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) vivoTick(); });
+    window.addEventListener('pagehide', function() { try { fetch('/design/api/inicio/presencia', {method: 'POST', credentials: 'same-origin', keepalive: true, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({salir: true})}); } catch (e) {} });
   };
   window.addEventListener('beforeunload', function(e) { if (E.sinGuardar) { E.guardar(); e.preventDefault(); e.returnValue = ''; } });
 
@@ -100,7 +173,7 @@
           '<button type="button" data-ac="plantillas">▦ Plantillas</button><button type="button" data-ac="tema">🎨 Estilo de la página</button><button type="button" data-ac="medios">🖼 Medios</button></div>' +
         '<div class="nvi-ed-grupo"><button type="button" id="nviUndo" data-ac="deshacer" title="Deshacer (Ctrl+Z)">↶</button><button type="button" id="nviRedo" data-ac="rehacer" title="Rehacer (Ctrl+Y)">↷</button>' +
           '<span class="nvi-ed-disp"><button type="button" data-disp="escritorio" class="on" title="Computador">🖥</button><button type="button" data-disp="tablet" title="Tablet">▭</button><button type="button" data-disp="movil" title="Celular">📱</button></span></div>' +
-        '<div class="nvi-ed-grupo der"><span class="nvi-ed-estado" id="nviEstado">Cargando…</span><button type="button" data-ac="historial">🕘 Historial</button>' +
+        '<div class="nvi-ed-grupo der"><span class="nvi-ed-otros" id="nviOtros"></span><span class="nvi-ed-vivo-cambio" id="nviVivoCambio"></span><span class="nvi-ed-estado" id="nviEstado">Cargando…</span><button type="button" data-ac="historial">🕘 Historial</button>' +
           '<button type="button" data-ac="descartar" id="nviDescartar" title="Volver a lo que está publicado">Descartar cambios</button>' +
           '<button type="button" data-ac="previa" id="nviPrevia">👁 Vista previa</button><button type="button" data-ac="publicar" class="nvi-ed-publicar" id="nviPublicar">Publicar</button>' +
           '<button type="button" data-ac="salir" title="Salir del editor">✕</button></div>' +
@@ -131,14 +204,14 @@
     lienzo.addEventListener('drop', soltarLienzo);
     lienzo.addEventListener('mousedown', mouseLibre);
     document.addEventListener('keydown', teclado);
-    cargar();
+    cargar().then(function() { E.vivo(); });
   };
   function posicionar() { var nav = document.querySelector('body > nav'), e = document.getElementById('nviEd'); if (e) e.style.top = (nav ? nav.getBoundingClientRect().bottom : 0) + 'px'; }
   function cargar() {
     estado('Cargando…');
     return api('/design/api/inicio/borrador').then(function(d) {
       E.version = d.version; E.hayCambios = d.hayCambios; E.publicadoEn = d.publicadoEn;
-      E.pag = d.contenido || null;
+      E.pag = d.contenido || null; E.base = d.contenido ? JSON.stringify(d.contenido) : null;
       E.hist = []; E.histI = -1;
       if (!E.pag) { E.pag = NVI.PLANTILLA_VACIA(); registrar(); E.pintar(); estado('Página nueva'); abrirPlantillas(true); }
       else { registrar(); E.pintar(); estado(d.hayCambios ? 'Borrador con cambios sin publicar' : 'Igual a lo publicado'); }
@@ -181,7 +254,7 @@
     if (E.editando) return;  // no redibujar mientras se escribe en un texto
     var y = document.getElementById('nviCentro').scrollTop;
     NVI.render(E.pag, lienzo, {modo: E.previa ? 'ver' : 'editar'});
-    if (!E.previa) decorar(lienzo);
+    if (!E.previa) { decorar(lienzo); pintarOtros(); }
     document.getElementById('nviCentro').scrollTop = y;
     if (!E.previa) pintarProps();
   };

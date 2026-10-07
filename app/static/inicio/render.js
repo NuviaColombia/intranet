@@ -262,6 +262,7 @@
       w.appendChild(cab); var cont = h('div', 'nvi-muro-lista nvi-muro-' + (p.estilo || 'tarjetas')); cont.style.setProperty('--cols', p.columnas || 2); w.appendChild(cont);
       cont.innerHTML = '<div class="nvi-muro-vacio">Cargando publicaciones…</div>';
       NVI.cargarMuro(p, cont, cab, ctx);
+      NVI._muros.push({p: p, cont: cont, cab: cab, ctx: ctx});
       return w;
     }};
   D.embed = {n: 'Página incrustada', ic: '⧉', g: 'Interactivo',
@@ -385,6 +386,36 @@
 
   // ---------- Muro ----------
   function fecha(iso) { var d = new Date(/Z|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z'); return isNaN(d) ? '' : d.toLocaleDateString('es-CO', {day: 'numeric', month: 'long', year: 'numeric'}); }
+  NVI._muros = [];
+  // En vivo: vuelve a cargar los muros que están en pantalla (cuando hay publicaciones nuevas)
+  NVI.refrescarMuros = function() {
+    NVI._muros = NVI._muros.filter(function(m) { return m.cont.isConnected; });
+    NVI._muros.forEach(function(m) { NVI.cargarMuro(m.p, m.cont, m.cab, m.ctx); });
+  };
+  // Página publicada abierta: cada 5 s pregunta si se publicó otra versión o cambió el muro, y se actualiza sola
+  NVI.vivoVer = function(cont, huella) {
+    var actual = huella || {}, andando = false;
+    var tick = function() {
+      if (andando || document.hidden || document.querySelector('.nvi-dlg-bg, .nvi-lb')) return;
+      andando = true;
+      fetch('/design/api/inicio/vivo', {credentials: 'same-origin'}).then(function(r) { return r.ok ? r.json() : null; }).then(function(v) {
+        if (!v) return;
+        if (v.pub !== actual.pub) return fetch('/design/api/inicio/publicada', {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(d) {
+          var y = window.scrollY; actual = {pub: d.pub, muro: d.muro};
+          var vacia = document.querySelector('.nvi-vacia'); if (vacia && d.contenido) vacia.remove();
+          NVI._muros = []; if (d.contenido) NVI.render(d.contenido, cont, {modo: 'ver'}); window.scrollTo(0, y);
+          NVI.avisoVivo('La página se actualizó');
+        });
+        if (v.muro !== actual.muro) { actual.muro = v.muro; NVI.refrescarMuros(); }
+      }).catch(function() {}).then(function() { andando = false; });
+    };
+    setInterval(tick, 5000);
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) tick(); });
+  };
+  NVI.avisoVivo = function(txt) {
+    var a = h('div', 'nvi-vivo-aviso', '↻ ' + NVI.esc(txt)); document.body.appendChild(a);
+    setTimeout(function() { a.classList.add('on'); }, 20); setTimeout(function() { a.classList.remove('on'); setTimeout(function() { a.remove(); }, 400); }, 3500);
+  };
   NVI.cargarMuro = function(p, cont, cab, ctx) {
     fetch('/design/api/inicio/muro?limite=' + (p.cantidad || 6), {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(d) {
       var lista = d.publicaciones || [];

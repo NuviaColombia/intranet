@@ -37,6 +37,7 @@
   {% else %}
   var pag = {{ pagina | tojson }};
   if (pag) NVI.render(pag, document.getElementById('nviPagina'), {modo: 'ver'});
+  NVI.vivoVer(document.getElementById('nviPagina'), {{ vivo | tojson }});  // se actualiza sola al publicar o con el muro
   {% endif %}
 })();
 </script>

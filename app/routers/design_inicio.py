@@ -31,7 +31,7 @@ def pagina_inicio(request: Request, user: Empleado = Depends(require_modulo("des
     """Página principal de Design (tarjeta de Módulos y logo). Los admins la editan con ?editar=1."""
     editor = si.es_editor(user)
     return templates.TemplateResponse(request, "design_inicio.html", {
-        "user": user, "es_design": True, "pagina": si.publicada(db), "editor": editor,
+        "user": user, "es_design": True, "pagina": si.publicada(db), "editor": editor, "vivo": si.vivo(db),
         "modo_editar": editor and request.query_params.get("editar") == "1", "version": _version_estaticos()})
 
 
@@ -87,6 +87,33 @@ def api_version_restaurar(version_id: int, user: Empleado = Depends(require_admi
     except KeyError:
         raise HTTPException(404, "Esa versión no existe.")
     return si.estado(db)
+
+
+# ---------- En vivo ----------
+
+@router.get("/design/api/inicio/vivo")
+def api_vivo(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """La página abierta pregunta cada pocos segundos si cambió lo publicado o el muro."""
+    return si.vivo(db)
+
+
+@router.get("/design/api/inicio/publicada")
+def api_publicada(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    return {"contenido": si.publicada(db), **si.vivo(db)}
+
+
+class PresenciaIn(BaseModel):
+    sel: str = Field("", max_length=60)
+    salir: bool = False
+
+
+@router.post("/design/api/inicio/presencia")
+def api_presencia(payload: PresenciaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Editor: avisa que sigue editando (y qué tiene elegido) y recibe la versión del borrador y los otros editores."""
+    if payload.salir:
+        si.salir_editor(user)
+        return {"ok": True}
+    return si.presencia(db, user, payload.sel)
 
 
 # ---------- Medios ----------
