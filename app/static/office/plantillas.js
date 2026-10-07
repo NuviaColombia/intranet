@@ -6,8 +6,21 @@
   var T = NV.plantillas = {lista: [], admin: false, cargada: false};
 
   T.cargarLista = function() {
-    return NV.api('/design/api/office/plantillas').then(function(r) { T.lista = r.plantillas || []; T.admin = !!r.puedeAdministrar; T.cargada = true; return T.lista; });
+    return NV.api('/design/api/office/plantillas').then(function(r) { T.lista = r.plantillas || []; T.admin = !!r.puedeAdministrar; T.cargada = true; T.huella = r.huella; return T.lista; });
   };
+  // En vivo: las galerías que están en pantalla se actualizan solas cuando un admin crea, cambia o borra una plantilla
+  T._galerias = [];
+  function refrescarGalerias() {
+    T._galerias = T._galerias.filter(function(g) { return g.cont.isConnected; });
+    T._galerias.forEach(function(g) { g.pintar(); });
+  }
+  setInterval(function() {
+    T._galerias = T._galerias.filter(function(g) { return g.cont.isConnected; });
+    if (!T._galerias.length || document.hidden || !T.cargada || document.querySelector('.nv-menu')) return;
+    NV.api('/design/api/office/plantillas/huella').then(function(r) {
+      if (r.huella && r.huella !== T.huella) return T.cargarLista().then(refrescarGalerias);
+    }).catch(function() {});
+  }, 6000);
   // Galería de plantillas (para Nuevo / Inicio). tipo: 'word' | 'ppt' | null (todas)
   T.galeria = function(cont, tipo) {
     var pintar = function() {
@@ -19,7 +32,10 @@
           (p.miniatura ? '<img src="' + p.miniatura + '" alt="" style="width:100%;height:100%;object-fit:cover">' : '<span style="color:' + (ancha ? '#c43e1c' : '#185abd') + ';font-weight:700;font-size:28px">' + (ancha ? 'P' : 'W') + '</span>') +
           '<span class="nv-pl-tipo" style="background:' + (ancha ? '#c43e1c' : '#185abd') + '">' + (ancha ? 'P' : 'W') + '</span>' +
           (T.admin ? '<button type="button" class="nv-pl-menu" data-plmenu="' + p.id + '" aria-label="Opciones de la plantilla ' + esc(p.titulo) + '" title="Opciones">⋯</button>' : '') +
-          '</div><div class="nom">' + esc(p.titulo) + '</div></div>';
+          '</div><div class="nom">' + esc(p.titulo) + '</div>' +
+          (T.admin ? '<div class="nv-pl-acc"><button type="button" data-pledit="' + p.id + '" title="Abrir la plantilla para cambiarla">✎ Editar</button>' +
+            '<button type="button" data-plren="' + p.id + '" title="Cambiar nombre y descripción">Nombre</button>' +
+            '<button type="button" class="rojo" data-plborrar="' + p.id + '" title="Eliminar la plantilla">🗑</button></div>' : '') + '</div>';
       });
       if (T.admin) h += '<button type="button" class="nv-plantilla nueva-pl' + (tipo === 'ppt' ? ' ancha' : '') + '" data-plcargar="1" title="Cargar una plantilla (.docx, .dotx, .pptx, .potx)"><div class="hoja" style="border-style:dashed;flex-direction:column;gap:6px;color:#605e5c">' +
         I('add_circle', 'g') + '<span style="font-size:12px">Cargar plantilla</span></div><div class="nom">Cargar plantilla…</div></button>';
@@ -27,12 +43,18 @@
       cont.innerHTML = h + '</div>';
     };
     cont.onclick = function(e) {
+      var refrescar = function() { T.cargarLista().then(pintar); };
+      var pe = e.target.closest('[data-pledit]'); if (pe) { e.stopPropagation(); NV.backstage.cerrar(); T.editar(+pe.dataset.pledit); return; }
+      var pr = e.target.closest('[data-plren]'); if (pr) { e.stopPropagation(); var x = T.lista.filter(function(q) { return q.id === +pr.dataset.plren; })[0]; if (x) renombrar(x, refrescar); return; }
+      var pb = e.target.closest('[data-plborrar]'); if (pb) { e.stopPropagation(); var y = T.lista.filter(function(q) { return q.id === +pb.dataset.plborrar; })[0]; if (y) eliminar(y, refrescar); return; }
       var m = e.target.closest('[data-plmenu]'); if (m) { e.stopPropagation(); menu(m, +m.dataset.plmenu, function() { T.cargarLista().then(pintar); }); return; }
       if (e.target.closest('[data-plcargar]')) { T.cargar().then(function(ok) { if (ok) T.cargarLista().then(pintar); }); return; }
       var c = e.target.closest('[data-pl]'); if (c) T.usar(+c.dataset.pl);
     };
     cont.onkeydown = function(e) { if (e.key === 'Enter' && e.target.matches('[data-pl]')) e.target.click(); };
-    if (T.cargada) pintar(); else { cont.innerHTML = '<p class="nv-vacio">Cargando plantillas…</p>'; T.cargarLista().then(pintar).catch(function(er) { cont.innerHTML = '<p class="nv-vacio">' + esc(er.message) + '</p>'; }); }
+    T._galerias = T._galerias.filter(function(g) { return g.cont !== cont; }); T._galerias.push({cont: cont, pintar: pintar});
+    // si ya se cargó, se muestra lo que hay y se trae lo último
+    if (T.cargada) { pintar(); T.cargarLista().then(pintar).catch(function() {}); } else { cont.innerHTML = '<p class="nv-vacio">Cargando plantillas…</p>'; T.cargarLista().then(pintar).catch(function(er) { cont.innerHTML = '<p class="nv-vacio">' + esc(er.message) + '</p>'; }); }
   };
   function menu(b, id, refrescar) {
     var p = T.lista.filter(function(x) { return x.id === id; })[0]; if (!p) return;
@@ -40,11 +62,12 @@
       {sep: true}, {texto: 'Editar plantilla', icono: 'edit', accion: function() { NV.backstage.cerrar(); T.editar(id); }},
       {texto: 'Cambiar nombre y descripción', icono: 'rename', accion: function() { renombrar(p, refrescar); }},
       {texto: 'Descargar (' + (p.tipo === 'ppt' ? '.pptx' : '.docx') + ')', icono: 'arrow_download', accion: function() { descargar(id); }},
-      {sep: true}, {texto: 'Eliminar plantilla', icono: 'delete', accion: function() {
-        NV.confirmar('Eliminar plantilla', '¿Eliminar la plantilla "' + p.titulo + '"? Los documentos que ya se crearon con ella no cambian.', 'Eliminar').then(function(ok) {
-          if (ok) NV.api('/design/api/office/plantillas/' + id + '/eliminar', {json: {}}).then(function() { NV.toast('Plantilla eliminada.'); refrescar(); }).catch(function(e) { NV.toast(e.message, true); });
-        });
-      }}], {ancho: 280});
+      {sep: true}, {texto: 'Eliminar plantilla', icono: 'delete', accion: function() { eliminar(p, refrescar); }}], {ancho: 280});
+  }
+  function eliminar(p, refrescar) {
+    NV.confirmar('Eliminar plantilla', '¿Eliminar la plantilla "' + p.titulo + '"? Deja de aparecer para todos. Los documentos que ya se crearon con ella no cambian.', 'Eliminar').then(function(ok) {
+      if (ok) NV.api('/design/api/office/plantillas/' + p.id + '/eliminar', {json: {}}).then(function() { NV.toast('Plantilla eliminada.'); refrescar(); }).catch(function(e) { NV.toast(e.message, true); });
+    });
   }
   function renombrar(p, refrescar) {
     NV.dialogo({titulo: 'Plantilla', ancho: 440, html: '<div class="nv-campo"><label for="plN">Nombre</label><input type="text" id="plN" value="' + esc(p.titulo) + '" maxlength="255"></div>' +
@@ -84,12 +107,15 @@
       var f = fs[0]; if (!f) return false;
       var ext = NV.extension(f.name), esPpt = /^p/.test(ext), titulo = NV.sinExtension(f.name);
       NV.cargando('Leyendo la plantilla…');
+      var bufT = null;
       return NV.leerArchivo(f).then(function(buf) {
+        bufT = buf;
         return esPpt ? P.pptx.importar(buf, function(x, t) { NV.cargando('Leyendo la plantilla… ' + t, x); }).then(function(pres) { return {tipo: 'ppt', pres: pres}; })
                      : NV.docx.importar(buf).then(function(r) { return {tipo: 'word', html: r.html, ajustes: r.ajustes}; });
       }).then(function(r) {
         NV.cargando(false);
-        return elegirFechas(r).then(function() {
+        // primero se avisa lo que no se pudo cargar igual (para reportarlo), luego se eligen las fechas
+        return NV.reporte.revisar(bufT, ext, f.name).then(function() { return elegirFechas(r); }).then(function() {
           return NV.dialogo({titulo: 'Nueva plantilla', ancho: 440, html: '<div class="nv-campo"><label for="plN">Nombre de la plantilla</label><input type="text" id="plN" value="' + esc(titulo) + '" maxlength="255"></div>' +
             '<div class="nv-campo"><label for="plD">Descripción (opcional)</label><textarea id="plD" maxlength="500" placeholder="Para qué sirve esta plantilla"></textarea></div>',
             botones: [{texto: 'Guardar plantilla', prim: true, accion: function(d) { return {t: d.querySelector('#plN').value.trim() || titulo, d: d.querySelector('#plD').value}; }}, {texto: 'Cancelar', valor: null}]});

@@ -541,6 +541,7 @@
     wedgeRectCallout: 'llamada', wedgeRoundRectCallout: 'llamada', cloud: 'nube', cloudCallout: 'nube', heart: 'corazon', lightningBolt: 'rayo', plus: 'cruz', frame: 'marco', can: 'cilindro',
     chevron: 'chevron', ribbon2: 'pergamino', ribbon: 'pergamino', circularArrow: 'circuloFlecha', flowChartProcess: 'rect', flowChartAlternateProcess: 'redondeado', flowChartDecision: 'rombo',
     flowChartConnector: 'elipse', parallelogram: 'rect', trapezoid: 'rect', octagon: 'hexagono', donut: 'elipse', round2SameRect: 'redondeado', round1Rect: 'redondeado'};
+  X.GEOM = GEOM;  // el reporte de importación avisa de las formas que no están aquí
   function forma(ctx, sp, rl, op, grupo) {
     var nv = camino(sp, 'p:nvSpPr/p:nvPr'), ph = nv && hijo(nv, 'p', 'ph');
     if (op.soloAdornos && ph) return Promise.resolve(null);  // en patrón/diseño los marcadores no son adornos

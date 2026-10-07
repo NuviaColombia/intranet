@@ -97,21 +97,23 @@
     if (ext === 'ppt' || ext === 'pps') { NV.alerta('Formato antiguo', 'Los archivos .ppt (PowerPoint 97-2003) no se pueden abrir. Ábrelo en PowerPoint y guárdalo como .pptx.'); return Promise.resolve(); }
     if (/^(pptx|potx|ppsx|pptm)$/.test(ext)) {
       NV.cargando('Abriendo ' + f.name + '…');
-      return NV.leerArchivo(f).then(function(b) { return P.pptx.importar(b, function(x, t) { NV.cargando('Leyendo presentación… ' + t, x); }); })
+      var bufP = null;
+      return NV.leerArchivo(f).then(function(b) { bufP = b; return P.pptx.importar(b, function(x, t) { NV.cargando('Leyendo presentación… ' + t, x); }); })
         .then(function(pres) { NV.cargando('Guardando en Nuvia Office…'); return NV.crearPresentacionDesde(titulo, pres); })
-        .then(function() { NV.cargando(false); NV.backstage.cerrar(); })
+        .then(function() { NV.cargando(false); NV.backstage.cerrar(); return NV.reporte.revisar(bufP, ext, f.name); })
         .catch(function(e) { NV.cargando(false); NV.toast('No se pudo abrir la presentación: ' + (e.message || e), true); });
     }
     NV.cargando('Abriendo ' + f.name + '…');
     var p;
-    if (ext === 'docx' || ext === 'docm' || ext === 'dotx') p = NV.leerArchivo(f).then(function(b) { return NV.docx.importar(b); });
+    var bufW = null;
+    if (ext === 'docx' || ext === 'docm' || ext === 'dotx') p = NV.leerArchivo(f).then(function(b) { bufW = b; return NV.docx.importar(b); });
     else if (ext === 'pdf') p = NV.leerArchivo(f).then(function(b) { return NV.pdf.aDocumento(b, {imagenes: true}, function(x, t) { NV.cargando('Convirtiendo PDF… ' + t, x); }); });
     else if (ext === 'txt' || ext === 'csv' || ext === 'md') p = NV.leerArchivo(f, 'texto').then(function(t) { return {html: t.split(/\r?\n/).map(function(l) { return '<p>' + (esc(l) || '<br>') + '</p>'; }).join('')}; });
     else if (ext === 'html' || ext === 'htm') p = NV.leerArchivo(f, 'texto').then(function(t) { var d = new DOMParser().parseFromString(t, 'text/html'); NV.$$('script,style,link,meta', d).forEach(function(x) { x.remove(); }); return {html: d.body.innerHTML}; });
     else if (/^(png|jpe?g|gif|webp|bmp)$/.test(ext)) p = NV.imagenADataUrl(f).then(function(u) { return {html: '<p style="text-align:center"><img src="' + u + '" alt="' + esc(titulo) + '" style="max-width:100%"></p><p><br></p>'}; });
     else { NV.cargando(false); NV.toast('Formato no compatible. Abre archivos .docx, .pptx, .pdf, .txt, .html o imágenes.', true); return Promise.resolve(); }
     return p.then(function(r) { NV.cargando('Guardando en Nuvia Office…'); return NV.crearDesdeHtml(titulo, r.html, r.ajustes); })
-      .then(function() { NV.cargando(false); NV.backstage.cerrar(); })
+      .then(function() { NV.cargando(false); NV.backstage.cerrar(); if (bufW) return NV.reporte.revisar(bufW, ext, f.name); })
       .catch(function(e) { NV.cargando(false); NV.toast(e.message || String(e), true); });
   };
   var ACEPTA = '.docx,.docm,.dotx,.pptx,.potx,.ppsx,.pdf,.txt,.csv,.md,.html,.htm,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.ppt';

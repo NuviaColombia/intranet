@@ -378,3 +378,11 @@ svg.nv-ic.p { width: 16px; height: 16px; }
 .nvp-mod-acc { display: flex; gap: 8px; }
 .nvp-mod-acc button { flex: 1; height: 38px; border: 0; border-radius: 6px; background: #3a3a3a; color: #fff; cursor: pointer; font: inherit; }
 .nvp-mod-acc button:hover { background: #4a4a4a; }
+
+/* Plantillas de la organización: acciones de admin a la vista */
+.nv-pl-acc { display:flex; justify-content:center; gap:4px; margin-top:5px; }
+.nv-pl-acc button { border:1px solid #d1d1d1; background:#fff; border-radius:4px; padding:2px 7px; font:inherit; font-size:11.5px; cursor:pointer; color:#323130; }
+.nv-pl-acc button:hover { background:#f3f2f1; border-color:#8a8886; }
+.nv-pl-acc button.rojo { color:#a4262c; }
+.nv-pl-acc button.rojo:hover { background:#fde7e9; border-color:#a4262c; }
+.nv-plantilla.ancha .nv-pl-acc { justify-content:center; }

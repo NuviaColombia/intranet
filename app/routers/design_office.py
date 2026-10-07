@@ -159,7 +159,13 @@ class PlantillaGuardarIn(BaseModel):
 
 @router.get("/design/api/office/plantillas")
 def api_plantillas(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    return {"plantillas": so.plantillas_listar(db), "puedeAdministrar": so.puede_administrar_plantillas(user)}
+    return {"plantillas": so.plantillas_listar(db), "puedeAdministrar": so.puede_administrar_plantillas(user), "huella": so.plantillas_huella(db)}
+
+
+@router.get("/design/api/office/plantillas/huella")
+def api_plantillas_huella(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Las galerías abiertas preguntan cada pocos segundos si alguien creó, cambió o borró una plantilla."""
+    return {"huella": so.plantillas_huella(db)}
 
 
 @router.get("/design/api/office/plantillas/{pid}")

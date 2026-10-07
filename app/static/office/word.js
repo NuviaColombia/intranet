@@ -245,14 +245,17 @@
   function dibujarHojas(cont, n, H, P) {
     var d = ed.getDoc(), b = ed.getBody(), a = W.aj, dm = W.dim();
     var csb = ed.getWin().getComputedStyle(b);  // el cuerpo está centrado con margin:auto (offsetLeft del body vale 0)
-    var left = parseFloat(csb.marginLeft) || 0, top0 = parseFloat(csb.marginTop) || 0, Wd = b.offsetWidth;
+    var top0 = parseFloat(csb.marginTop) || 0, Wd = b.offsetWidth;
+    // Centradas con la misma regla que el cuerpo (margin:auto): así al mover el zoom la hoja y el texto se mueven
+    // juntos en cada cuadro (antes la posición se calculaba en píxeles y se atrasaba hasta soltar el control).
+    var left = 'max(0px, calc(50% - ' + (Wd / 2) + 'px))';
     var ml = NV.cmAPx(dm.m.izq), mr = NV.cmAPx(dm.m.der), mt = NV.cmAPx(dm.m.sup), mb = NV.cmAPx(dm.m.inf);
     var de = NV.cmAPx(a.distEnc || 1.25), dp = NV.cmAPx(a.distPie || 1.25);
     var bp = a.bordePagina, ma = a.marcaAgua;
     var h = '';
     for (var i = 0; i < n; i++) {
       var y = top0 + i * P, primera = i === 0 && a.primeraDistinta;
-      h += '<div class="nv-hoja" style="left:' + left + 'px;top:' + y + 'px;width:' + Wd + 'px;height:' + H + 'px;' + (a.colorPagina ? 'background:' + a.colorPagina + ';' : '') + '">';
+      h += '<div class="nv-hoja" style="left:' + left + ';top:' + y + 'px;width:' + Wd + 'px;height:' + H + 'px;' + (a.colorPagina ? 'background:' + a.colorPagina + ';' : '') + '">';
       if (bp && bp.estilo && bp.estilo !== 'none') h += '<div class="nv-hoja-borde" style="border:' + (bp.grosor || 1) + 'pt ' + bp.estilo + ' ' + (bp.color || '#000') + '"></div>';
       if (ma && ma.texto) {
         var fs = Math.min(Wd, H) / Math.max(4, ma.texto.length) * 1.25;
@@ -260,9 +263,9 @@
       }
       h += '</div>';
       var enc = primera ? (a.encabezadoPrimera || '') : a.encabezado, pie = primera ? (a.piePrimera || '') : a.pie;
-      h += '<div class="nv-zona" data-zona="encabezado" title="Doble clic para editar el encabezado" style="left:' + (left + ml) + 'px;top:' + (y + de) + 'px;width:' + (Wd - ml - mr) + 'px;max-height:' + Math.max(16, mt - de) + 'px;">' +
+      h += '<div class="nv-zona" data-zona="encabezado" title="Doble clic para editar el encabezado" style="left:calc(' + left + ' + ' + ml + 'px);top:' + (y + de) + 'px;width:' + (Wd - ml - mr) + 'px;max-height:' + Math.max(16, mt - de) + 'px;">' +
            W.camposHtml(enc, i + 1, n) + '</div>';
-      h += '<div class="nv-zona" data-zona="pie" title="Doble clic para editar el pie de página" style="left:' + (left + ml) + 'px;bottom:auto;top:' + (y + H - dp) + 'px;width:' + (Wd - ml - mr) + 'px;transform:translateY(-100%);max-height:' + Math.max(16, mb - dp) + 'px;">' +
+      h += '<div class="nv-zona" data-zona="pie" title="Doble clic para editar el pie de página" style="left:calc(' + left + ' + ' + ml + 'px);bottom:auto;top:' + (y + H - dp) + 'px;width:' + (Wd - ml - mr) + 'px;transform:translateY(-100%);max-height:' + Math.max(16, mb - dp) + 'px;">' +
            W.camposHtml(pie, i + 1, n) + '</div>';
     }
     cont.innerHTML = h;

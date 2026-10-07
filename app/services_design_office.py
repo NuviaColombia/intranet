@@ -225,6 +225,14 @@ def plantillas_listar(db: Session) -> list[dict]:
     return [plantilla_resumen(p) for p in q]
 
 
+def plantillas_huella(db: Session) -> str:
+    """Huella liviana de las plantillas (sin miniaturas): si cambia, las galerías abiertas vuelven a pedir la lista."""
+    import hashlib
+    filas = db.query(DesignOfficePlantilla.id, DesignOfficePlantilla.version, DesignOfficePlantilla.titulo,
+                     DesignOfficePlantilla.descripcion, DesignOfficePlantilla.actualizado_en).order_by(DesignOfficePlantilla.id).all()
+    return hashlib.md5(repr([tuple(f) for f in filas]).encode()).hexdigest()[:16]
+
+
 def plantilla_obtener(db: Session, pid: int) -> DesignOfficePlantilla:
     p = (db.query(DesignOfficePlantilla).options(undefer(DesignOfficePlantilla.contenido), undefer(DesignOfficePlantilla.ajustes),
                                                  undefer(DesignOfficePlantilla.miniatura))
