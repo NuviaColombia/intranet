@@ -26,6 +26,7 @@
   {% if editor %}<a class="nvi-editar-flotante" href="/design/inicio?editar=1" title="Editar la página de Inicio (solo admins)">✎ Editar página</a>{% endif %}
 {% endif %}
 <script src="/static/inicio/render.js?v={{ v }}"></script>
+<script src="/static/inicio/fx.js?v={{ v }}"></script>
 {% if editor %}
 <script src="/static/inicio/plantillas.js?v={{ v }}"></script>
 <script src="/static/inicio/editor.js?v={{ v }}"></script>
@@ -37,6 +38,7 @@
   {% else %}
   var pag = {{ pagina | tojson }};
   if (pag) NVI.render(pag, document.getElementById('nviPagina'), {modo: 'ver'});
+  if (pag && pag.tema && pag.tema.alAbrir) NVI.celebrarAlAbrir(pag.tema.alAbrir);   // celebración una vez por sesión
   NVI.vivoVer(document.getElementById('nviPagina'), {{ vivo | tojson }});  // se actualiza sola al publicar o con el muro
   {% endif %}
 })();

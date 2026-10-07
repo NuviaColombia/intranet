@@ -232,7 +232,7 @@
     if (ac === 'plantillas') abrirPlantillas(false);
     if (ac === 'tema') { E.sel = {tipo: 'tema'}; pintarProps(); E.pintar(); }
     if (ac === 'medios') E.biblioteca(null, null);
-    if (ac === 'previa') { E.previa = !E.previa; document.body.classList.toggle('nvi-previa', E.previa); b.textContent = E.previa ? '✎ Volver a editar' : '👁 Vista previa'; E.pintar(); }
+    if (ac === 'previa') { E.previa = !E.previa; document.body.classList.toggle('nvi-previa', E.previa); b.textContent = E.previa ? '✎ Volver a editar' : '👁 Vista previa'; E.pintar(); if (E.previa && E.pag.tema && E.pag.tema.alAbrir) NVI.celebrarAlAbrir(E.pag.tema.alAbrir, true); }
     if (ac === 'historial') abrirHistorial();
     if (ac === 'descartar') dialogo('Descartar cambios', '<p>El borrador vuelve a quedar igual a lo que está publicado. Los cambios sin publicar se pierden.</p>', [{t: 'Descartar', v: 1, p: true}]).then(function(v) {
       if (!v) return; clearTimeout(tGuardar); E.sinGuardar = false; api('/design/api/inicio/descartar', {}).then(function() { cargar(); aviso('Se descartaron los cambios.'); });
@@ -509,7 +509,9 @@
       cuerpo.appendChild(h('p', 'nvi-ed-ayuda', 'Colores y letras de toda la página. Los bloques pueden tener su propio color.'));
       formulario(cuerpo, [{tipo: 'select', k: 'fuenteTitulos', l: 'Letra de los títulos', ops: NVI.FUENTES.map(function(f) { return [f, f]; })}, {tipo: 'select', k: 'fuenteTexto', l: 'Letra del texto', ops: NVI.FUENTES.map(function(f) { return [f, f]; })},
         {tipo: 'color', k: 'primario', l: 'Color principal (botones, enlaces)'}, {tipo: 'color', k: 'secundario', l: 'Color secundario'}, {tipo: 'color', k: 'acento', l: 'Color de acento'},
-        {tipo: 'color', k: 'fondo', l: 'Fondo de la página'}, {tipo: 'color', k: 'texto', l: 'Color del texto'}, {tipo: 'numero', k: 'radio', l: 'Redondeo de esquinas (px)', min: 0, max: 40}], E.pag.tema);
+        {tipo: 'color', k: 'fondo', l: 'Fondo de la página'}, {tipo: 'color', k: 'texto', l: 'Color del texto'}, {tipo: 'numero', k: 'radio', l: 'Redondeo de esquinas (px)', min: 0, max: 40},
+        {tipo: 'select', k: 'alAbrir', l: 'Celebración al abrir la página', ops: [['', 'Ninguna'], ['confeti', '🎉 Lluvia de confeti'], ['globos', '🎈 Globos que suben'], ['fuegos', '🎆 Fuegos artificiales'], ['fiesta', '✨ Fiesta: confeti y globos']]},
+        {tipo: 'nota', l: 'Cada persona la ve una vez al entrar (por sesión). Pruébala con Vista previa.'}], E.pag.tema);
     } else if (sel && sel.tipo === 'bloque' && blkPor(sel.id)) {
       var r = blkPor(sel.id), def = D[r.blk.tipo];
       cuerpo.appendChild(h('h3', '', '<span class="nvi-ed-ic">' + def.ic + '</span> ' + esc(def.n)));
@@ -586,7 +588,7 @@
     } else if (c.tipo === 'fecha') {
       w.innerHTML = lbl() + '<input type="datetime-local" id="' + id + '">'; var f = w.querySelector('input'); f.value = v || ''; f.onchange = function() { obj[c.k] = f.value; cambio(); };
     } else if (c.tipo === 'medio') {
-      w.innerHTML = lbl() + '<div class="nvi-ed-medio"><div class="nvi-ed-medio-prev"></div><div class="nvi-ed-medio-acc"><button type="button" class="nvi-b2" data-m="elegir">Elegir…</button><button type="button" class="nvi-b2" data-m="quitar">Quitar</button></div></div>' +
+      w.innerHTML = lbl() + '<div class="nvi-ed-medio"><div class="nvi-ed-medio-prev"></div><div class="nvi-ed-medio-acc"><button type="button" class="nvi-b2" data-m="elegir">Elegir…</button>' + (c.encuadre ? '<button type="button" class="nvi-b2" data-m="ajustar" title="Elige qué parte de la foto se ve y cuánto se acerca">✥ Ajustar</button>' : '') + '<button type="button" class="nvi-b2" data-m="quitar">Quitar</button></div></div>' +
         (c.permiteUrl || c.acepta === 'imagen' ? '<input type="text" class="nvi-ed-medio-url" placeholder="' + (c.acepta === 'video' ? 'o pega el enlace (YouTube, Vimeo, WorkDrive…)' : 'o pega la dirección https de la imagen') + '">' : '');
       var prev = w.querySelector('.nvi-ed-medio-prev'), uin = w.querySelector('.nvi-ed-medio-url');
       var pintar = function() {
@@ -596,10 +598,12 @@
         else if (c.acepta === 'video') prev.innerHTML = '<span>🎬 Video subido</span>';
         else prev.innerHTML = '<img src="' + esc(src || val) + '" alt="">';
         if (uin) uin.value = /^(medio:|data:)/.test(val) ? '' : val;
+        var aj = w.querySelector('[data-m=ajustar]'); if (aj) aj.hidden = !val;
       };
       pintar();
-      w.querySelector('[data-m=elegir]').onclick = function() { E.biblioteca(c.acepta, function(val) { obj[c.k] = val; pintar(); cambio(); }); };
-      w.querySelector('[data-m=quitar]').onclick = function() { obj[c.k] = ''; pintar(); cambio(); };
+      w.querySelector('[data-m=elegir]').onclick = function() { E.biblioteca(c.acepta, function(val) { obj[c.k] = val; delete obj[c.k + 'Enc']; pintar(); cambio(); }); };
+      w.querySelector('[data-m=quitar]').onclick = function() { obj[c.k] = ''; delete obj[c.k + 'Enc']; pintar(); cambio(); };
+      if (c.encuadre) w.querySelector('[data-m=ajustar]').onclick = function() { ajustarFoto(obj, c.k, cambio); };
       if (uin) uin.onchange = function() { var u = uin.value.trim(); if (u && !/^https:\/\//.test(u) && !/youtu|vimeo/.test(u)) { aviso('La dirección debe empezar por https://', true); return; } obj[c.k] = u; pintar(); cambio(); };
     } else if (c.tipo === 'lista') {
       var lista = obj[c.k] = obj[c.k] || [];
@@ -669,6 +673,77 @@
     bg.addEventListener('mousedown', function(e) { if (e.target === bg) bg.remove(); });
     document.body.appendChild(bg); cargarL();
   };
+
+
+  // ---------- Ajustar foto: qué parte se ve dentro de su marco y cuánto se acerca ----------
+  // Busca en la página el marco donde se ve esa foto (para usar su misma forma en la ventana)
+  function marcoDeFoto(obj, k) {
+    var lz = document.getElementById('nviLienzo'), sel = E.sel; if (!lz || !sel) return null;
+    if (sel.tipo === 'seccion') { var s = secPor(sel.id); return s && s.estilo === obj ? lz.querySelector('[data-sec="' + sel.id + '"]') : null; }
+    var r = blkPor(sel.id); if (!r) return null;
+    var p = r.blk.p, ruta = obj === p ? k : null;
+    if (!ruta) Object.keys(p).forEach(function(key) { var i = Array.isArray(p[key]) ? p[key].indexOf(obj) : -1; if (i >= 0) ruta = key + '.' + i + '.' + k; });
+    return ruta ? lz.querySelector('[data-blk="' + sel.id + '"] [data-enc="' + ruta + '"]') : null;
+  }
+  function ajustarFoto(obj, k, cambio) {
+    var src = NVI.src(obj[k]) || obj[k]; if (!src) return;
+    var marco = marcoDeFoto(obj, k), r = E.sel && E.sel.tipo === 'bloque' ? blkPor(E.sel.id) : null;
+    var esImagen = r && r.blk.tipo === 'imagen' && obj === r.blk.p, original = obj[k + 'Enc'] ? NVI.clon(obj[k + 'Enc']) : null, forma0 = esImagen ? obj.proporcion : null;
+    var q = NVI.enc(obj[k + 'Enc']), nat = 0;
+    // todo lo que se haga en esta ventana queda como un solo paso de deshacer
+    clearTimeout(tHist); registrar(); var h0 = E.histI;
+    var unPaso = function() { E.hist = E.hist.slice(0, h0 + 1); E.histI = h0; };
+    var bg = h('div', 'nvi-dlg-bg'), d = h('div', 'nvi-dlg nvi-ed-ajus'); bg.appendChild(d);
+    d.innerHTML = '<h3>Ajustar foto</h3><p class="nvi-ed-ayuda">Arrastra la foto para elegir qué parte se ve. Usa el deslizador o la rueda del mouse para acercarla.</p>' +
+      (esImagen ? '<div class="nvi-ed-ajus-formas">Forma: ' + [['', 'Original'], ['16/9', '16:9'], ['4/3', '4:3'], ['1/1', 'Cuadrada'], ['3/4', '3:4'], ['9/16', '9:16']].map(function(f) { return '<button type="button" data-forma="' + f[0] + '">' + f[1] + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="nvi-ed-ajus-zona"><div class="nvi-ed-ajus-marco"><img alt="" draggable="false"></div></div>' +
+      '<p class="nvi-ed-ajus-nota" hidden>Con la forma original se ve la foto completa: acércala o elige otra forma para recortarla.</p>' +
+      '<div class="nvi-ed-ajus-zoom"><span>🔍 Acercar</span><input type="range" min="1" max="4" step="0.05"><b></b></div>' +
+      '<div class="nvi-dlg-bot"><button type="button" class="nvi-b2" data-a="centrar">Centrar</button><span style="flex:1"></span><button type="button" class="nvi-b2" data-a="cancelar">Cancelar</button><button type="button" class="nvi-b1" data-a="listo">Listo</button></div>';
+    var mEl = d.querySelector('.nvi-ed-ajus-marco'), img = mEl.querySelector('img'), rng = d.querySelector('input[type=range]'), zb = d.querySelector('.nvi-ed-ajus-zoom b'), nota = d.querySelector('.nvi-ed-ajus-nota');
+    var proporcion = function() {
+      // la página se vuelve a dibujar con cada cambio: se busca el marco de nuevo para medir el que está en pantalla
+      var m2 = marcoDeFoto(obj, k); if (m2 && m2.isConnected) marco = m2;
+      if (esImagen) { if (+obj.alto && marco) return marco.offsetWidth / Math.max(1, marco.offsetHeight); if (obj.proporcion) { var a = obj.proporcion.split('/'); return +a[0] / +a[1]; } return nat || 16 / 9; }
+      return marco && marco.offsetHeight ? marco.offsetWidth / marco.offsetHeight : 16 / 9;
+    };
+    var pintar = function() {
+      var ar = proporcion(), maxW = Math.min(640, window.innerWidth - 80), maxH = window.innerHeight * 0.5, w = maxW, hh = w / ar;
+      if (hh > maxH) { hh = maxH; w = hh * ar; }
+      mEl.style.width = Math.round(w) + 'px'; mEl.style.height = Math.round(hh) + 'px';
+      img.style.objectPosition = q.pos; img.style.transformOrigin = q.pos; img.style.transform = 'scale(' + q.z + ')';
+      rng.value = q.z; zb.textContent = Math.round(q.z * 100) + '%';
+      d.querySelectorAll('[data-forma]').forEach(function(b) { b.classList.toggle('on', (obj.proporcion || '') === b.dataset.forma); });
+      nota.hidden = !(esImagen && !obj.proporcion && !+obj.alto && q.z === 1);
+    };
+    var guardar = function() { obj[k + 'Enc'] = {x: Math.round(q.x * 10) / 10, y: Math.round(q.y * 10) / 10, z: Math.round(q.z * 100) / 100}; if (q.x === 50 && q.y === 50 && q.z === 1) delete obj[k + 'Enc']; cambio(); };
+    var fijar = function(x, y, z) { q = NVI.enc({x: x, y: y, z: z}); pintar(); };
+    img.onload = function() { nat = img.naturalWidth / Math.max(1, img.naturalHeight); pintar(); };
+    img.src = src;
+    // arrastrar la foto: se mueve con el mouse (o el dedo) dentro del marco
+    var ini = null;
+    mEl.addEventListener('pointerdown', function(e) { e.preventDefault(); mEl.setPointerCapture(e.pointerId); ini = {x: e.clientX, y: e.clientY, qx: q.x, qy: q.y}; mEl.classList.add('moviendo'); });
+    mEl.addEventListener('pointermove', function(e) {
+      if (!ini) return;
+      var W = mEl.clientWidth, H = mEl.clientHeight, a = nat || W / H;
+      var dw = Math.max(W, H * a), dh = Math.max(H, W / a);           // tamaño de la foto cubriendo el marco
+      var ox = dw - W + W * (q.z - 1), oy = dh - H + H * (q.z - 1);  // cuánto sobra para mover
+      fijar(ox > 0.5 ? ini.qx - (e.clientX - ini.x) / ox * 100 : q.x, oy > 0.5 ? ini.qy - (e.clientY - ini.y) / oy * 100 : q.y, q.z);
+    });
+    var soltar = function() { if (!ini) return; ini = null; mEl.classList.remove('moviendo'); guardar(); };
+    mEl.addEventListener('pointerup', soltar); mEl.addEventListener('pointercancel', soltar);
+    var tRueda = null;
+    mEl.addEventListener('wheel', function(e) { e.preventDefault(); fijar(q.x, q.y, q.z - e.deltaY * 0.0015); clearTimeout(tRueda); tRueda = setTimeout(guardar, 300); }, {passive: false});
+    rng.oninput = function() { fijar(q.x, q.y, +rng.value); }; rng.onchange = guardar;
+    d.onclick = function(e) {
+      var f = e.target.closest('[data-forma]'); if (f) { obj.proporcion = f.dataset.forma; if (+obj.alto) obj.alto = 0; pintar(); cambio(); return; }
+      var b = e.target.closest('[data-a]'); if (!b) return;
+      if (b.dataset.a === 'centrar') { fijar(50, 50, 1); guardar(); }
+      if (b.dataset.a === 'cancelar') { if (original) obj[k + 'Enc'] = original; else delete obj[k + 'Enc']; if (esImagen) obj.proporcion = forma0; unPaso(); bg.remove(); cambio(); botonesHist(); }
+      if (b.dataset.a === 'listo') { unPaso(); registrar(); bg.remove(); pintarProps(); }
+    };
+    document.body.appendChild(bg); pintar();
+  }
 
   // ---------- Plantillas ----------
   function abrirPlantillas(inicial) {

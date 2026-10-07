@@ -169,3 +169,18 @@ body.nvi-arrastrando-mouse, body.nvi-arrastrando-mouse * { user-select:none !imp
 .nvi-ed-otro { outline:2px solid var(--otro, #db2777) !important; outline-offset:3px; }
 .nvi-ed-otro::after { content:attr(data-otro); position:absolute; left:-2px; top:-24px; background:var(--otro, #db2777); color:#fff; font:600 11px system-ui, sans-serif; padding:2px 8px; border-radius:6px 6px 6px 0; z-index:35; pointer-events:none; }
 .nvi-sec.nvi-ed-otro::after { top:4px; left:auto; right:6px; border-radius:6px; }
+
+/* ---------- Ajustar foto ---------- */
+.nvi-ed-ajus { width:min(720px, 100%) !important; }
+.nvi-ed-ajus-zona { display:grid; place-items:center; background:repeating-conic-gradient(#e2e8f0 0 25%, #f8fafc 0 50%) 0 0 / 18px 18px; border-radius:12px; padding:18px; margin:6px 0 10px; }
+.nvi-ed-ajus-marco { position:relative; overflow:hidden; border-radius:10px; cursor:grab; touch-action:none; box-shadow:0 0 0 2px #2f98d5, 0 10px 30px rgba(15,23,42,.25); background:#0f172a; }
+.nvi-ed-ajus-marco.moviendo { cursor:grabbing; }
+.nvi-ed-ajus-marco img { width:100%; height:100%; object-fit:cover; display:block; user-select:none; -webkit-user-drag:none; pointer-events:none; }
+.nvi-ed-ajus-zoom { display:flex; align-items:center; gap:10px; font-size:13px; color:#334155; }
+.nvi-ed-ajus-zoom input { flex:1; }
+.nvi-ed-ajus-zoom b { width:48px; text-align:right; font-variant-numeric:tabular-nums; }
+.nvi-ed-ajus-formas { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; color:#334155; margin-bottom:6px; }
+.nvi-ed-ajus-formas button { border:1px solid #cbd5e1; background:#fff; border-radius:7px; padding:4px 10px; font-size:12.5px; cursor:pointer; }
+.nvi-ed-ajus-formas button.on { background:#252772; border-color:#252772; color:#fff; }
+.nvi-ed-ajus-nota { font-size:12.5px; color:#b45309; margin:0 0 8px; }
+.nvi-ed-medio-acc .nvi-b2[hidden] { display:none; }

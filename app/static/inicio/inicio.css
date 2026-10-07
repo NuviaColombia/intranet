@@ -232,7 +232,7 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 .nvi-img-lento img { animation:nviKenBurns 18s ease-in-out infinite alternate; }
 .nvi-img-brillo::after { content:''; position:absolute; top:0; bottom:0; left:-60%; width:40%; background:linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); transform:skewX(-18deg); pointer-events:none; }
 .nvi-img-brillo:hover::after { animation:nviDestello .9s ease; }
-.nvi-car-fondo { position:absolute; inset:0; background-position:center; background-repeat:no-repeat; animation:nviKenBurns 16s ease-in-out infinite alternate; }
+.nvi-car-fondo { position:absolute; inset:0; background-position:center; background-repeat:no-repeat; }
 .nvi-car-slide .nvi-car-capa, .nvi-car-slide .nvi-car-txt { z-index:1; }
 @keyframes nviKenBurns { from { transform:scale(1) translate(0, 0); } to { transform:scale(1.12) translate(-2%, -1.5%); } }
 @keyframes nviDestello { from { left:-60%; } to { left:130%; } }
@@ -249,3 +249,25 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 @keyframes nviVolar { 0% { transform:translate(0, 0); } 25% { transform:translate(30vw, -26px); } 50% { transform:translate(60vw, 18px); } 75% { transform:translate(90vw, -20px); } 100% { transform:translate(125vw, 0); } }
 @keyframes nviVolar2 { 0% { transform:translate(0, 0) scale(.8); } 30% { transform:translate(35vw, 30px) scale(.8); } 65% { transform:translate(75vw, -24px) scale(.8); } 100% { transform:translate(125vw, 10px) scale(.8); } }
 @media (prefers-reduced-motion: reduce) { .nvi-deco { display:none; } .nvi-img-lento img, .nvi-car-fondo { animation:none; } }
+
+/* ---------- Encuadre de fotos (qué parte se ve y cuánto se acerca) ---------- */
+.nvi-enc { transform:scale(var(--nvi-z, 1)); transform-origin:var(--nvi-o, center); }
+.nvi-galeria figure:hover img.nvi-enc, .nvi-img-zoom:hover img.nvi-enc { transform:scale(calc(var(--nvi-z, 1) * 1.06)); }
+.nvi-car-fondo.nvi-enc { transform:scale(var(--nvi-z, 1)); }
+.nvi-car-fondo.lento { animation:nviKenBurnsEnc 16s ease-in-out infinite alternate; }
+.nvi-img-lento img.nvi-enc { animation:nviKenBurnsEnc 18s ease-in-out infinite alternate; }
+@keyframes nviKenBurnsEnc { from { transform:scale(var(--nvi-z, 1)); } to { transform:scale(calc(var(--nvi-z, 1) * 1.12)); } }
+.nvi-tj-marco { height:170px; overflow:hidden; flex:none; }
+.nvi-tj-marco .nvi-tj-img { height:100%; display:block; }
+.nvi-sec-img { position:absolute; inset:0; z-index:0; background-size:cover; background-repeat:no-repeat; pointer-events:none; }
+@media (prefers-reduced-motion: reduce) { .nvi-car-fondo.lento, .nvi-img-lento img.nvi-enc { animation:none; } }
+
+/* ---------- Efectos de celebración (fx.js) ---------- */
+.nvi-fx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+.nvi-fx-pantalla { position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; z-index:3000; transition:opacity .25s linear; }
+.nvi-img-fx { position:relative; display:inline-block; vertical-align:middle; }
+.nvi-img-fx > img, .nvi-img-fx > .nvi-img-mv, .nvi-img-fx > a { position:relative; z-index:1; display:block; }
+.nvi-fx-foto { position:absolute; pointer-events:none; z-index:2; left:-30%; width:160%; top:-70%; height:170%; }
+.nvi-fx-foto-globos { z-index:0; top:-110%; height:210%; }
+.nvi-fx-foto-brillos { left:-8%; width:116%; top:-10%; height:120%; }
+@media (prefers-reduced-motion: reduce) { .nvi-fx, .nvi-fx-foto, .nvi-fx-pantalla { display:none; } }

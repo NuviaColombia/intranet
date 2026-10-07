@@ -82,6 +82,18 @@
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   };
 
+  // Encuadre de una foto: qué parte se ve (x, y en %) y cuánto se acerca (z). Se guarda junto a la foto como <campo>Enc.
+  NVI.enc = function(e) {
+    e = e || {}; var x = isFinite(+e.x) && e.x !== '' && e.x != null ? Math.max(0, Math.min(100, +e.x)) : 50, y = isFinite(+e.y) && e.y !== '' && e.y != null ? Math.max(0, Math.min(100, +e.y)) : 50;
+    return {x: x, y: y, z: Math.max(1, Math.min(4, +e.z || 1)), pos: x + '% ' + y + '%'};
+  };
+  NVI.aplicarEnc = function(el, e, fondo) {
+    var q = NVI.enc(e);
+    if (fondo) el.style.backgroundPosition = q.pos; else el.style.objectPosition = q.pos;
+    el.classList.add('nvi-enc'); el.style.setProperty('--nvi-z', q.z); el.style.setProperty('--nvi-o', q.pos);
+    return q;
+  };
+
   // ---------- Bloques ----------
   // Cada bloque: n (nombre), ic (ícono), d() (valores por defecto), campos (para el panel del editor), r(p, ctx) → elemento
   var D = NVI.BLOQUES = {};
@@ -97,22 +109,30 @@
     campos: [{tipo: 'numero', k: 'tamano', l: 'Tamaño (px, 0 = automático)', min: 0, max: 60}, {tipo: 'numero', k: 'interlineado', l: 'Interlineado', min: 1, max: 3, paso: 0.1}, {tipo: 'color', k: 'color', l: 'Color'}, ALINEAR],
     r: function(p) { var e = h('div', 'nvi-texto nvi-rich', NVI.limpiar(p.html)); e.style.textAlign = p.alinear; if (p.color) e.style.color = p.color; if (+p.tamano) e.style.fontSize = p.tamano + 'px'; e.style.lineHeight = p.interlineado || 1.6; return e; }};
   D.imagen = {n: 'Imagen', ic: '🖼', g: 'Medios',
-    d: function() { return {src: NVI.placeholder('Tu imagen'), alt: '', ancho: 100, alto: 0, ajuste: 'cover', radio: 12, sombra: false, enlace: '', pie: '', alinear: 'center', ampliar: true}; },
-    campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen'}, {tipo: 'texto', k: 'alt', l: 'Descripción (accesibilidad)'}, {tipo: 'rango', k: 'ancho', l: 'Ancho (%)', min: 10, max: 100},
+    d: function() { return {src: NVI.placeholder('Tu imagen'), alt: '', ancho: 100, alto: 0, proporcion: '', ajuste: 'cover', radio: 12, sombra: false, enlace: '', pie: '', alinear: 'center', ampliar: true}; },
+    campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'alt', l: 'Descripción (accesibilidad)'}, {tipo: 'rango', k: 'ancho', l: 'Ancho (%)', min: 10, max: 100},
+      {tipo: 'select', k: 'proporcion', l: 'Forma', ops: [['', 'Original'], ['16/9', 'Horizontal 16:9'], ['4/3', 'Horizontal 4:3'], ['1/1', 'Cuadrada'], ['3/4', 'Vertical 3:4'], ['9/16', 'Vertical 9:16']]},
       {tipo: 'numero', k: 'alto', l: 'Alto (px, 0 = automático)', min: 0, max: 1200}, {tipo: 'select', k: 'ajuste', l: 'Ajuste', ops: [['cover', 'Rellenar (recorta)'], ['contain', 'Completa']]},
       {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 200}, {tipo: 'check', k: 'sombra', l: 'Sombra'}, {tipo: 'texto', k: 'pie', l: 'Pie de foto'},
-      {tipo: 'select', k: 'efecto', l: 'Efecto de la foto', ops: [['', 'Ninguno'], ['zoom', 'Acercar al pasar el mouse'], ['lento', 'Zoom lento continuo'], ['brillo', 'Destello al pasar el mouse']]},
+      {tipo: 'select', k: 'efecto', l: 'Efecto de la foto', ops: [['', 'Ninguno'], ['zoom', 'Acercar al pasar el mouse'], ['lento', 'Zoom lento continuo'], ['brillo', 'Destello al pasar el mouse'],
+        ['confeti', '🎉 Confeti que sale de la foto'], ['globos', '🎈 Globos que salen de detrás'], ['brillos', '✨ Brillos dorados alrededor']]},
       {tipo: 'url', k: 'enlace', l: 'Enlace al hacer clic (opcional)'}, {tipo: 'check', k: 'ampliar', l: 'Ampliar al hacer clic (si no tiene enlace)'}, ALINEAR],
     r: function(p, ctx) {
       var f = h('figure', 'nvi-imagen'); f.style.textAlign = p.alinear;
       var img = h('img'); img.src = NVI.src(p.src) || NVI.placeholder(); img.alt = p.alt || ''; img.loading = 'lazy';
-      img.style.width = (p.ancho || 100) + '%'; img.style.borderRadius = (p.radio || 0) + 'px'; if (+p.alto) { img.style.height = p.alto + 'px'; img.style.objectFit = p.ajuste || 'cover'; }
+      img.style.width = (p.ancho || 100) + '%'; img.style.borderRadius = (p.radio || 0) + 'px'; img.setAttribute('data-enc', 'src');
+      if (+p.alto) { img.style.height = p.alto + 'px'; img.style.objectFit = p.ajuste || 'cover'; }
+      else if (p.proporcion) { img.style.aspectRatio = p.proporcion; img.style.objectFit = p.ajuste || 'cover'; }
+      var q = NVI.aplicarEnc(img, p.srcEnc);
       if (p.sombra) img.style.boxShadow = '0 12px 30px rgba(15,23,42,.18)';
       // con efecto, la foto va dentro de un marco que recorta el zoom
-      if (p.efecto) { var mv = h('span', 'nvi-img-mv nvi-img-' + p.efecto); mv.style.width = img.style.width; mv.style.borderRadius = img.style.borderRadius; mv.style.boxShadow = img.style.boxShadow; img.style.width = '100%'; img.style.boxShadow = ''; mv.appendChild(img); }
+      var FIESTA = {confeti: 1, globos: 1, brillos: 1}, fiesta = FIESTA[p.efecto];
+      if ((p.efecto && !fiesta) || q.z > 1) { var mv = h('span', 'nvi-img-mv' + (p.efecto && !fiesta ? ' nvi-img-' + p.efecto : '')); mv.style.width = img.style.width; mv.style.borderRadius = img.style.borderRadius; mv.style.boxShadow = img.style.boxShadow; img.style.width = '100%'; img.style.boxShadow = ''; mv.appendChild(img); }
       var nodo = mv || img;
       if (p.enlace && ctx.modo !== 'editar') { var a = h('a'); a.href = NVI.url(p.enlace); if (!/^\//.test(a.getAttribute('href'))) { a.target = '_blank'; a.rel = 'noopener'; } a.appendChild(nodo); nodo = a; }
       else if (p.ampliar && ctx.modo !== 'editar') { img.style.cursor = 'zoom-in'; img.onclick = function() { NVI.lightbox([{src: img.src, titulo: p.pie}], 0); }; }
+      // celebración: la foto va en un contenedor que deja salir el confeti o los globos por fuera
+      if (fiesta) { var fx = h('span', 'nvi-img-fx'); fx.style.width = (mv || img).style.width; (mv || img).style.width = '100%'; fx.appendChild(nodo); nodo = fx; if (ctx.modo !== 'editar' && NVI.fx) NVI.fx.foto(fx, p.efecto); }
       f.appendChild(nodo);
       if (p.pie) f.appendChild(h('figcaption', '', NVI.esc(p.pie)));
       return f;
@@ -146,7 +166,7 @@
       {src: NVI.placeholder('Diapositiva 2', '#252772', '#1a1449'), titulo: 'Logros del equipo', texto: '', enlace: ''}, {src: NVI.placeholder('Diapositiva 3', '#2f98d5', '#252772'), titulo: 'Novedades', texto: '', enlace: ''}],
       alto: 420, intervalo: 5, efecto: 'deslizar', flechas: true, puntos: true, oscurecer: 35, radio: 16, ajuste: 'cover'}; },
     campos: [{tipo: 'lista', k: 'items', l: 'Diapositivas', titulo: 'titulo', nuevo: {src: '', titulo: 'Nueva diapositiva', texto: '', enlace: ''},
-      campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen'}, {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'area', k: 'texto', l: 'Texto'}, {tipo: 'url', k: 'enlace', l: 'Enlace (opcional)'}]},
+      campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'area', k: 'texto', l: 'Texto'}, {tipo: 'url', k: 'enlace', l: 'Enlace (opcional)'}]},
       {tipo: 'numero', k: 'alto', l: 'Alto (px)', min: 150, max: 1000}, {tipo: 'numero', k: 'intervalo', l: 'Cambiar cada (segundos, 0 = manual)', min: 0, max: 30},
       {tipo: 'select', k: 'efecto', l: 'Efecto', ops: [['deslizar', 'Deslizar'], ['fundido', 'Fundido']]}, {tipo: 'rango', k: 'oscurecer', l: 'Oscurecer la imagen (%) para leer el texto', min: 0, max: 80},
       {tipo: 'select', k: 'ajuste', l: 'Ajuste', ops: [['cover', 'Rellenar (recorta)'], ['contain', 'Completa']]}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 60},
@@ -157,7 +177,8 @@
       var pista = h('div', 'nvi-car-pista'); w.appendChild(pista);
       items.forEach(function(it, i) {
         var s = h('div', 'nvi-car-slide' + (i ? '' : ' on')), fo = s;
-        if (p.zoomLento) { fo = h('div', 'nvi-car-fondo'); s.appendChild(fo); }
+        if (p.zoomLento || NVI.enc(it.srcEnc).z > 1) { fo = h('div', 'nvi-car-fondo' + (p.zoomLento ? ' lento' : '')); s.appendChild(fo); }
+        NVI.aplicarEnc(fo, it.srcEnc, true); s.setAttribute('data-enc', 'items.' + i + '.src');
         fo.style.backgroundImage = 'url("' + (NVI.src(it.src) || NVI.placeholder()).replace(/"/g, '%22') + '")'; fo.style.backgroundSize = p.ajuste || 'cover';
         var capa = h('div', 'nvi-car-capa'); capa.style.background = 'linear-gradient(0deg, rgba(0,0,0,' + ((p.oscurecer || 0) / 100 + 0.15) + '), rgba(0,0,0,' + ((p.oscurecer || 0) / 200) + '))'; s.appendChild(capa);
         if (it.titulo || it.texto) { var t = h('div', 'nvi-car-txt'); if (it.titulo) t.appendChild(h('h3', '', NVI.esc(it.titulo))); if (it.texto) t.appendChild(h('p', '', NVI.esc(it.texto))); s.appendChild(t); }
@@ -177,13 +198,13 @@
     }};
   D.galeria = {n: 'Galería', ic: '▦', g: 'Medios',
     d: function() { return {items: [1, 2, 3, 4, 5, 6].map(function(i) { return {src: NVI.placeholder('Foto ' + i, ['#2f98d5', '#252772', '#1a1449', '#2f98d5', '#252772', '#1a1449'][i - 1], ['#252772', '#1a1449', '#2f98d5', '#1a1449', '#2f98d5', '#252772'][i - 1]), titulo: ''}; }), columnas: 3, espacio: 10, radio: 12, alto: 200}; },
-    campos: [{tipo: 'lista', k: 'items', l: 'Fotos', titulo: 'titulo', nuevo: {src: '', titulo: ''}, campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen'}, {tipo: 'texto', k: 'titulo', l: 'Título (opcional)'}]},
+    campos: [{tipo: 'lista', k: 'items', l: 'Fotos', titulo: 'titulo', nuevo: {src: '', titulo: ''}, campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'titulo', l: 'Título (opcional)'}]},
       {tipo: 'numero', k: 'columnas', l: 'Columnas', min: 1, max: 6}, {tipo: 'numero', k: 'alto', l: 'Alto de cada foto (px)', min: 80, max: 600}, {tipo: 'numero', k: 'espacio', l: 'Espacio entre fotos (px)', min: 0, max: 40}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 60},
       {tipo: 'select', k: 'entrada', l: 'Las fotos aparecen', ops: [['', 'Todas a la vez'], ['zoom', 'Una a una, acercándose'], ['subir', 'Una a una, subiendo']]}],
     r: function(p, ctx) {
       var w = h('div', 'nvi-galeria'); w.style.gridTemplateColumns = 'repeat(' + (p.columnas || 3) + ', 1fr)'; w.style.gap = (p.espacio || 0) + 'px';
-      var lista = (p.items || []).map(function(it) { return {src: NVI.src(it.src) || NVI.placeholder(), titulo: it.titulo}; });
-      lista.forEach(function(it, i) { var f = h('figure'); var img = h('img'); img.src = it.src; img.alt = it.titulo || ''; img.loading = 'lazy'; img.style.height = (p.alto || 200) + 'px'; img.style.borderRadius = (p.radio || 0) + 'px'; f.appendChild(img); if (it.titulo) f.appendChild(h('figcaption', '', NVI.esc(it.titulo))); if (ctx.modo !== 'editar') { f.onclick = function() { NVI.lightbox(lista, i); }; if (p.entrada) { f.classList.add('nvi-anim', 'nvi-anim-' + p.entrada); f.style.transitionDelay = (i % 12) * 90 + 'ms'; NVI.observarAnim(f); } } w.appendChild(f); });
+      var lista = (p.items || []).map(function(it) { return {src: NVI.src(it.src) || NVI.placeholder(), titulo: it.titulo, enc: it.srcEnc}; });
+      lista.forEach(function(it, i) { var f = h('figure'); var img = h('img'); img.src = it.src; img.alt = it.titulo || ''; img.loading = 'lazy'; img.style.height = (p.alto || 200) + 'px'; img.style.borderRadius = (p.radio || 0) + 'px'; NVI.aplicarEnc(img, it.enc); img.setAttribute('data-enc', 'items.' + i + '.src'); f.style.borderRadius = img.style.borderRadius; f.appendChild(img); if (it.titulo) f.appendChild(h('figcaption', '', NVI.esc(it.titulo))); if (ctx.modo !== 'editar') { f.onclick = function() { NVI.lightbox(lista, i); }; if (p.entrada) { f.classList.add('nvi-anim', 'nvi-anim-' + p.entrada); f.style.transitionDelay = (i % 12) * 90 + 'ms'; NVI.observarAnim(f); } } w.appendChild(f); });
       return w;
     }};
   D.tarjetas = {n: 'Tarjetas', ic: '▤', g: 'Diseño',
@@ -191,15 +212,15 @@
       {icono: '📋', imagen: '', titulo: 'Protocols', texto: 'Consulta los protocolos de cada área.', enlace: '/design?panel=protocols', textoEnlace: 'Ver'},
       {icono: '💬', imagen: '', titulo: 'Comments', texto: 'Genera los comentarios de cada caso.', enlace: '/design?panel=comments', textoEnlace: 'Ir'}], columnas: 3, estilo: 'sombra', alinear: 'left', colorIcono: ''}; },
     campos: [{tipo: 'lista', k: 'items', l: 'Tarjetas', titulo: 'titulo', nuevo: {icono: '⭐', imagen: '', titulo: 'Nueva tarjeta', texto: '', enlace: '', textoEnlace: ''},
-      campos: [{tipo: 'texto', k: 'icono', l: 'Ícono (emoji)'}, {tipo: 'medio', k: 'imagen', l: 'O una imagen', acepta: 'imagen'}, {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'area', k: 'texto', l: 'Texto'},
+      campos: [{tipo: 'texto', k: 'icono', l: 'Ícono (emoji)'}, {tipo: 'medio', k: 'imagen', l: 'O una imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'area', k: 'texto', l: 'Texto'},
         {tipo: 'url', k: 'enlace', l: 'Enlace'}, {tipo: 'texto', k: 'textoEnlace', l: 'Texto del enlace'}]},
       {tipo: 'numero', k: 'columnas', l: 'Columnas', min: 1, max: 4}, {tipo: 'select', k: 'estilo', l: 'Estilo', ops: [['sombra', 'Con sombra'], ['borde', 'Con borde'], ['plano', 'Plano'], ['color', 'De color'], ['vidrio', 'Vidrio (sobre fondos)']]}, ALINEAR],
     r: function(p, ctx) {
       var w = h('div', 'nvi-tarjetas nvi-tj-' + (p.estilo || 'sombra')); w.style.gridTemplateColumns = 'repeat(' + (p.columnas || 3) + ', 1fr)';
-      (p.items || []).forEach(function(it) {
+      (p.items || []).forEach(function(it, i) {
         var c = h(it.enlace && ctx.modo !== 'editar' ? 'a' : 'div', 'nvi-tarjeta'); c.style.textAlign = p.alinear;
         if (it.enlace && ctx.modo !== 'editar') { c.href = NVI.url(it.enlace); if (!/^\//.test(c.getAttribute('href'))) { c.target = '_blank'; c.rel = 'noopener'; } }
-        if (it.imagen) { var im = h('img', 'nvi-tj-img'); im.src = NVI.src(it.imagen); im.alt = ''; im.loading = 'lazy'; c.appendChild(im); } else if (it.icono) c.appendChild(h('div', 'nvi-tj-ico', NVI.esc(it.icono)));
+        if (it.imagen) { var mc = h('div', 'nvi-tj-marco'), im = h('img', 'nvi-tj-img'); im.src = NVI.src(it.imagen); im.alt = ''; im.loading = 'lazy'; NVI.aplicarEnc(im, it.imagenEnc); mc.setAttribute('data-enc', 'items.' + i + '.imagen'); mc.appendChild(im); c.appendChild(mc); } else if (it.icono) c.appendChild(h('div', 'nvi-tj-ico', NVI.esc(it.icono)));
         var b = h('div', 'nvi-tj-cuerpo'); if (it.titulo) b.appendChild(h('h3', '', NVI.esc(it.titulo))); if (it.texto) b.appendChild(h('p', '', NVI.esc(it.texto)));
         if (it.enlace && it.textoEnlace) b.appendChild(h('span', 'nvi-tj-link', NVI.esc(it.textoEnlace) + ' →'));
         c.appendChild(b); w.appendChild(c);
@@ -326,14 +347,15 @@
     {tipo: 'color', k: 'fondo', l: 'Color de fondo', si: ['fondoTipo', ['color', 'degradado']]}, {tipo: 'color', k: 'fondo2', l: 'Segundo color', si: ['fondoTipo', ['degradado']]},
     {tipo: 'numero', k: 'angulo', l: 'Ángulo del degradado (°)', min: 0, max: 360, si: ['fondoTipo', ['degradado']]},
     {tipo: 'check', k: 'animarFondo', l: 'Degradado en movimiento', si: ['fondoTipo', ['degradado']]},
-    {tipo: 'medio', k: 'imagen', l: 'Imagen de fondo', acepta: 'imagen', si: ['fondoTipo', ['imagen']]}, {tipo: 'medio', k: 'video', l: 'Video de fondo', acepta: 'video', si: ['fondoTipo', ['video']]},
+    {tipo: 'medio', k: 'imagen', l: 'Imagen de fondo', acepta: 'imagen', encuadre: true, si: ['fondoTipo', ['imagen']]}, {tipo: 'medio', k: 'video', l: 'Video de fondo', acepta: 'video', si: ['fondoTipo', ['video']]},
     {tipo: 'rango', k: 'oscurecer', l: 'Oscurecer el fondo (%)', min: 0, max: 85, si: ['fondoTipo', ['imagen', 'video']]}, {tipo: 'check', k: 'fijo', l: 'Efecto paralaje (imagen fija)', si: ['fondoTipo', ['imagen']]},
     {tipo: 'color', k: 'colorTexto', l: 'Color del texto'}, {tipo: 'select', k: 'ancho', l: 'Ancho del contenido', ops: [['normal', 'Normal (1200 px)'], ['estrecho', 'Estrecho (860 px)'], ['ancho', 'Ancho (1500 px)'], ['completo', 'Toda la pantalla']]},
     {tipo: 'numero', k: 'padArriba', l: 'Espacio arriba (px)', min: 0, max: 300}, {tipo: 'numero', k: 'padAbajo', l: 'Espacio abajo (px)', min: 0, max: 300},
     {tipo: 'numero', k: 'alto', l: 'Alto mínimo (px, 0 = según el contenido)', min: 0, max: 1400}, {tipo: 'numero', k: 'espacio', l: 'Espacio entre columnas (px)', min: 0, max: 80},
     {tipo: 'select', k: 'alinearV', l: 'Alinear el contenido', ops: [['start', 'Arriba'], ['center', 'Al centro'], ['end', 'Abajo']]},
     {tipo: 'select', k: 'forma', l: 'Borde inferior decorativo', ops: [['', 'Recto'], ['ola', 'Ola'], ['diagonal', 'Diagonal'], ['curva', 'Curva']]},
-    {tipo: 'select', k: 'decoracion', l: 'Decoración animada', ops: [['', 'Ninguna'], ['murcielagos', 'Murciélagos 🦇'], ['calabazas', 'Calabazas y hojas 🎃'], ['fantasmas', 'Fantasmas 👻'], ['nieve', 'Nieve ❄'], ['navidad', 'Estrellas y regalos 🎄'], ['confeti', 'Confeti 🎉']]},
+    {tipo: 'select', k: 'decoracion', l: 'Decoración animada', ops: [['', 'Ninguna'], ['murcielagos', 'Murciélagos 🦇'], ['calabazas', 'Calabazas y hojas 🎃'], ['fantasmas', 'Fantasmas 👻'], ['nieve', 'Nieve ❄'], ['navidad', 'Estrellas y regalos 🎄'], ['confeti', 'Confeti 🎉'],
+      ['confeti3d', '✨ Confeti en el aire (3D)'], ['globos', '✨ Globos que suben'], ['fuegos', '✨ Fuegos artificiales'], ['brillos', '✨ Brillos dorados'], ['fiesta', '✨ Fiesta: confeti y globos']]},
     {tipo: 'check', k: 'ocultarMovil', l: 'Ocultar en celulares'}];
   // figuras de cada decoración y cómo se mueven (caer, volar o subir)
   NVI.DECORACION = {murcielagos: {f: ['🦇'], mov: 'volar', n: 9}, calabazas: {f: ['🎃', '🍂', '🍁', '🍂'], mov: 'caer', n: 14}, fantasmas: {f: ['👻', '🕸', '👻', '🕯'], mov: 'subir', n: 10},
@@ -358,10 +380,18 @@
     var sec = h('section', 'nvi-sec nvi-sec-' + (s.tipo || 'columnas') + (e.ocultarMovil ? ' nvi-ocultar-movil' : '')); sec.setAttribute('data-sec', s.id);
     if (e.fondoTipo === 'color') sec.style.background = e.fondo;
     if (e.fondoTipo === 'degradado') { sec.style.background = 'linear-gradient(' + (e.angulo || 135) + 'deg,' + e.fondo + ',' + e.fondo2 + (e.animarFondo ? ',' + e.fondo : '') + ')'; if (e.animarFondo) sec.classList.add('nvi-fondo-mov'); }
-    if (e.fondoTipo === 'imagen' && e.imagen) { sec.style.backgroundImage = 'url("' + NVI.src(e.imagen).replace(/"/g, '%22') + '")'; sec.style.backgroundSize = 'cover'; sec.style.backgroundPosition = 'center'; if (e.fijo) sec.style.backgroundAttachment = 'fixed'; }
+    if (e.fondoTipo === 'imagen' && e.imagen) {
+      var urlF = 'url("' + NVI.src(e.imagen).replace(/"/g, '%22') + '")', qf = NVI.enc(e.imagenEnc);
+      // acercada: va en una capa aparte para poder agrandarla sin agrandar la sección (con paralaje no se puede acercar)
+      if (qf.z > 1 && !e.fijo) { var capaF = h('div', 'nvi-sec-img'); capaF.style.backgroundImage = urlF; NVI.aplicarEnc(capaF, e.imagenEnc, true); sec.appendChild(capaF); }
+      else { sec.style.backgroundImage = urlF; sec.style.backgroundSize = 'cover'; sec.style.backgroundPosition = qf.pos; if (e.fijo) sec.style.backgroundAttachment = 'fixed'; }
+    }
     if (e.fondoTipo === 'video' && e.video) { var v = h('video', 'nvi-sec-video'); v.src = NVI.src(e.video); v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = ctx.modo !== 'editar'; sec.appendChild(v); }
     if ((e.fondoTipo === 'imagen' || e.fondoTipo === 'video') && +e.oscurecer) { var cp = h('div', 'nvi-sec-capa'); cp.style.background = 'rgba(0,0,0,' + (e.oscurecer / 100) + ')'; sec.appendChild(cp); }
-    if (e.decoracion) { var dc = NVI.decoracion(e.decoracion); if (dc) sec.appendChild(dc); }
+    if (e.decoracion) {
+      var fxT = NVI.fx && NVI.fx.TIPOS_SECCION[e.decoracion];
+      var dc = fxT ? NVI.fx.capa(fxT) : NVI.decoracion(e.decoracion); if (dc) sec.appendChild(dc);
+    }
     if (e.colorTexto) { sec.style.color = e.colorTexto; sec.style.setProperty('--nvi-texto-sec', e.colorTexto); }
     sec.style.paddingTop = (e.padArriba || 0) + 'px'; sec.style.paddingBottom = (e.padAbajo || 0) + (e.forma ? 50 : 0) + 'px';
     if (+e.alto) sec.style.minHeight = e.alto + 'px';
@@ -402,6 +432,14 @@
     ((pag && pag.secciones) || []).forEach(function(s) { raiz.appendChild(NVI.seccion(s, ctx, tema)); });
     cont.appendChild(raiz);
     return raiz;
+  };
+
+  // Celebración al abrir la página: una vez por sesión de cada persona
+  NVI.celebrarAlAbrir = function(tipo, siempre) {
+    if (!tipo || !NVI.fx) return;
+    var k = 'nvi-celebrado-' + tipo;
+    if (!siempre) { try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1'); } catch (e) {} }
+    setTimeout(function() { NVI.fx.celebrar(tipo); }, 500);
   };
 
   // ---------- Ampliar imágenes ----------
