@@ -456,6 +456,62 @@ class DesignProtocoloArchivo(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignInicioPagina(Base):
+    """Página de Inicio de Design (/design/inicio) armada con el editor (solo admins). Una sola fila:
+    `borrador` es lo que se está editando y `publicado` lo que ven todos. Ambos en JSON (secciones y bloques)."""
+    __tablename__ = "design_inicio_pagina"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    borrador: Mapped[str] = mapped_column(Text, default="")
+    publicado: Mapped[str] = mapped_column(Text, default="")
+    version: Mapped[int] = mapped_column(Integer, default=1)  # del borrador (dos editores a la vez no se pisan)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+    publicado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    publicado_por: Mapped[str] = mapped_column(String(150), default="")
+
+
+class DesignInicioVersion(Base):
+    """Cada publicación de la página de Inicio (para volver a una anterior)."""
+    __tablename__ = "design_inicio_versiones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contenido: Mapped[str] = mapped_column(Text, deferred=True)
+    publicado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    publicado_por: Mapped[str] = mapped_column(String(150), default="")
+
+
+class DesignInicioMedio(Base):
+    """Imágenes y videos cortos (mp4) subidos para la página de Inicio."""
+    __tablename__ = "design_inicio_medios"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(10), default="imagen")  # imagen | video
+    nombre: Mapped[str] = mapped_column(String(255), default="")
+    mime: Mapped[str] = mapped_column(String(60), default="")
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    ancho: Mapped[int] = mapped_column(Integer, default=0)
+    alto: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignInicioMuro(Base):
+    """Publicaciones del muro interno de la página de Inicio (anuncios, logros, cumpleaños…). Las hacen los admins."""
+    __tablename__ = "design_inicio_muro"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(200), default="")
+    texto: Mapped[str] = mapped_column(Text, default="")
+    imagen: Mapped[str] = mapped_column(String(300), default="")  # "medio:ID" o dirección https
+    fijado: Mapped[int] = mapped_column(Integer, default=0)
+    activo: Mapped[int] = mapped_column(Integer, default=1)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    editado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class DesignFotoPerfil(Base):
     """Foto de perfil de Zoho de un empleado de Design (se toma al iniciar sesión; solo para quien tiene el
     módulo Design Schedule). Se muestra junto al nombre en la barra superior de Design."""

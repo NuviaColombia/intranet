@@ -204,10 +204,7 @@ def api_rol_design(payload: RolDesignIn, user: Empleado = Depends(require_admin)
             "detalle": f"{obj.nombre_completo}: en Design es {efectivo}" + (" (igual que en People)." if efectivo == rol_people else ".")}
 
 
-@router.get("/design/inicio")
-def pagina_inicio(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
-    """Página principal de Design: se abre desde la tarjeta de Módulos y con el logo (por ahora vacía)."""
-    return templates.TemplateResponse(request, "design_inicio.html", {"user": user, "es_design": True})
+# /design/inicio (página principal con editor): rutas en routers/design_inicio.py
 
 
 @router.get("/design")
@@ -2403,3 +2400,8 @@ def api_canvas_deshacer(trash_id: int, user: Empleado = Depends(require_modulo("
 # ---------- Nuvia Office (Herramientas): rutas en routers/design_office.py ----------
 from .design_office import router as _office_router  # noqa: E402  (importa require_design_manager de aquí)
 router.include_router(_office_router)
+
+
+# ---------- Página de Inicio de Design (editor, medios y muro): rutas en routers/design_inicio.py ----------
+from .design_inicio import router as _inicio_router  # noqa: E402
+router.include_router(_inicio_router)

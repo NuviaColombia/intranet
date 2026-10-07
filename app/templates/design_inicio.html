@@ -2,5 +2,42 @@
 {% block titulo %}Design{% endblock %}
 {% block contenido %}
 {% include "_design_simulacion.html" %}
-<h1>Design</h1>
+{% set v = version or '1' %}
+<link rel="stylesheet" href="/static/inicio/inicio.css?v={{ v }}">
+{% if editor %}<link rel="stylesheet" href="/static/inicio/editor.css?v={{ v }}">{% endif %}
+<style>
+  /* La página de Inicio ocupa todo el ancho (sin el margen del contenido) */
+  main:has(#nviPagina) { padding:0 !important; max-width:none !important; }
+</style>
+<div id="nviPagina" class="nvi-raiz"></div>
+{% if not modo_editar %}
+  {% if not pagina %}
+  <div class="nvi-vacia">
+    <h1>Design</h1>
+    {% if editor %}
+    <p>La página de Inicio todavía no tiene contenido. Créala con el editor: elige una plantilla y cámbiala a tu gusto (textos, imágenes, videos, carruseles y más).</p>
+    <p><a class="nvi-b1" style="display:inline-block;text-decoration:none;padding:12px 22px" href="/design/inicio?editar=1">✎ Crear la página</a></p>
+    {% else %}
+    <p>Muy pronto encontrarás aquí las novedades y accesos del equipo de Design.</p>
+    <p><a href="/design" style="color:#1d4ed8;font-weight:600">Ir a Design Schedule →</a></p>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if editor %}<a class="nvi-editar-flotante" href="/design/inicio?editar=1" title="Editar la página de Inicio (solo admins)">✎ Editar página</a>{% endif %}
+{% endif %}
+<script src="/static/inicio/render.js?v={{ v }}"></script>
+{% if editor %}
+<script src="/static/inicio/plantillas.js?v={{ v }}"></script>
+<script src="/static/inicio/editor.js?v={{ v }}"></script>
+{% endif %}
+<script>
+(function() {
+  {% if modo_editar %}
+  NVI.ed.iniciar();
+  {% else %}
+  var pag = {{ pagina | tojson }};
+  if (pag) NVI.render(pag, document.getElementById('nviPagina'), {modo: 'ver'});
+  {% endif %}
+})();
+</script>
 {% endblock %}

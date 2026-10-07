@@ -1,0 +1,641 @@
+/* Editor de la página de Inicio de Design (solo admins): bloques y secciones arrastrables, posición libre,
+   edición de texto en el lugar, panel de propiedades, plantillas, biblioteca de medios, deshacer/rehacer,
+   vista previa por dispositivo, guardado automático del borrador, historial y publicar. */
+(function() {
+  'use strict';
+  var NVI = window.NVI, h = NVI.h, esc = NVI.esc, D = NVI.BLOQUES;
+  var E = NVI.ed = {pag: null, version: 0, sel: null, hist: [], histI: -1, previa: false, disp: 'escritorio', editando: null, guardando: false, pendiente: false};
+
+  function api(url, body) {
+    var o = {credentials: 'same-origin', headers: {}};
+    if (body !== undefined) { o.method = 'POST'; o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(body); }
+    return fetch(url, o).then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) { if (!r.ok) { var e = new Error(d.detail || ('Error ' + r.status)); e.status = r.status; e.datos = d; throw e; } return d; }); });
+  }
+  function aviso(txt, error) {
+    var t = document.getElementById('nviAviso'); if (!t) { t = h('div', 'nvi-ed-aviso'); t.id = 'nviAviso'; document.body.appendChild(t); }
+    t.textContent = txt; t.classList.toggle('error', !!error); t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(function() { t.classList.remove('on'); }, 3200);
+  }
+  E.aviso = aviso;
+
+  // ---------- Búsquedas en la página ----------
+  function secPor(id) { return (E.pag.secciones || []).filter(function(s) { return s.id === id; })[0]; }
+  function colPor(id) { var r = null; E.pag.secciones.forEach(function(s) { (s.columnas || []).forEach(function(c) { if (c.id === id) r = {sec: s, col: c}; }); }); return r; }
+  function blkPor(id) {
+    var r = null;
+    E.pag.secciones.forEach(function(s) {
+      (s.columnas || []).forEach(function(c) { (c.bloques || []).forEach(function(b, i) { if (b.id === id) r = {sec: s, col: c, blk: b, lista: c.bloques, i: i}; }); });
+      (s.elementos || []).forEach(function(el, i) { if (el.bloque.id === id) r = {sec: s, el: el, blk: el.bloque, lista: s.elementos, i: i}; });
+    });
+    return r;
+  }
+  function nuevosIds(o) {  // al duplicar
+    if (Array.isArray(o)) { o.forEach(nuevosIds); return o; }
+    if (o && typeof o === 'object') { if (o.id) o.id = NVI.uid(o.id.charAt(0)); Object.keys(o).forEach(function(k) { if (k !== 'id') nuevosIds(o[k]); }); }
+    return o;
+  }
+
+  // ---------- Historial (deshacer / rehacer) y guardado automático ----------
+  var tHist = null, tGuardar = null, tPintar = null;
+  E.cambio = function(sinRepintar) {
+    if (!sinRepintar) { clearTimeout(tPintar); tPintar = setTimeout(function() { E.pintar(); }, 120); }
+    clearTimeout(tHist); tHist = setTimeout(registrar, 500);
+    marcarSinGuardar(); clearTimeout(tGuardar); tGuardar = setTimeout(E.guardar, 1400);
+  };
+  function registrar() { var f = JSON.stringify(E.pag); if (E.hist[E.histI] === f) return; E.hist = E.hist.slice(0, E.histI + 1); E.hist.push(f); if (E.hist.length > 80) E.hist.shift(); E.histI = E.hist.length - 1; botonesHist(); }
+  function restaurar(f) { E.pag = JSON.parse(f); E.sel = null; E.pintar(); marcarSinGuardar(); clearTimeout(tGuardar); tGuardar = setTimeout(E.guardar, 800); botonesHist(); }
+  E.deshacer = function() { registrar(); if (E.histI > 0) { E.histI--; restaurar(E.hist[E.histI]); } };
+  E.rehacer = function() { if (E.histI < E.hist.length - 1) { E.histI++; restaurar(E.hist[E.histI]); } };
+  function botonesHist() { var u = document.getElementById('nviUndo'), r = document.getElementById('nviRedo'); if (u) u.disabled = E.histI <= 0; if (r) r.disabled = E.histI >= E.hist.length - 1; }
+  function marcarSinGuardar() { E.sinGuardar = true; estado('Guardando…'); }
+  function estado(t) { var e = document.getElementById('nviEstado'); if (e) e.textContent = t; }
+  E.guardar = function(forzar) {
+    clearTimeout(tGuardar);
+    if (!E.sinGuardar && !forzar) return Promise.resolve();
+    if (E.guardando) { E.pendiente = true; return Promise.resolve(); }
+    E.guardando = true; E.sinGuardar = false; estado('Guardando…');
+    return api('/design/api/inicio/borrador', {contenido: E.limpiarTemp(E.pag), version: E.version, forzar: forzar === 'forzar'}).then(function(r) {
+      E.version = r.version; estado('Borrador guardado · cambios sin publicar'); E.hayCambios = true; pintarPublicar();
+    }).catch(function(e) {
+      E.sinGuardar = true;
+      if (e.status === 409) {
+        E.version = e.datos.version;
+        return dialogo('Otra persona guardó cambios', '<p>' + esc(e.message) + '</p><p>¿Qué quieres hacer?</p>', [{t: 'Guardar mi versión', v: 'mia', p: true}, {t: 'Cargar la otra versión', v: 'otra'}]).then(function(v) {
+          E.guardando = false;
+          if (v === 'mia') return E.guardar('forzar');
+          if (v === 'otra') return cargar();
+        });
+      }
+      estado('No se guardó: ' + e.message); aviso('No se guardó: ' + e.message, true);
+    }).then(function() { E.guardando = false; if (E.pendiente) { E.pendiente = false; if (E.sinGuardar) E.guardar(); } });
+  };
+  window.addEventListener('beforeunload', function(e) { if (E.sinGuardar) { E.guardar(); e.preventDefault(); e.returnValue = ''; } });
+
+  // ---------- Ventanas ----------
+  function dialogo(titulo, html, botones, ancho) {
+    return new Promise(function(ok) {
+      var bg = h('div', 'nvi-dlg-bg'), d = h('div', 'nvi-dlg'); if (ancho) d.style.width = 'min(' + ancho + 'px, 100%)';
+      d.innerHTML = '<h3>' + esc(titulo) + '</h3><div class="nvi-dlg-c">' + html + '</div><div class="nvi-dlg-bot"></div>';
+      var bot = d.querySelector('.nvi-dlg-bot');
+      (botones || [{t: 'Aceptar', v: true, p: true}]).concat([{t: 'Cancelar', v: null}]).forEach(function(b) {
+        if (b.v === null && botones && botones.some(function(x) { return x.v === null; })) return;
+        var x = h('button', b.p ? 'nvi-b1' : 'nvi-b2', esc(b.t)); x.type = 'button'; x.onclick = function() { bg.remove(); ok(b.v); }; bot.appendChild(x);
+      });
+      bg.appendChild(d); bg.addEventListener('mousedown', function(e) { if (e.target === bg) { bg.remove(); ok(null); } });
+      document.body.appendChild(bg); var p = bot.querySelector('.nvi-b1'); if (p) p.focus();
+      ok.dlg = d;
+    });
+  }
+  E.dialogo = dialogo;
+
+  // ---------- Interfaz ----------
+  var BLOQUES_ORDEN = ['titulo', 'texto', 'botones', 'imagen', 'video', 'carrusel', 'galeria', 'tarjetas', 'cifras', 'cita', 'acordeon', 'cuenta', 'muro', 'embed', 'separador', 'espacio'];
+  var SECCIONES = [['c1', 'Una columna', [12]], ['c2', 'Dos columnas', [6, 6]], ['c3', 'Tres columnas', [4, 4, 4]], ['c4', 'Cuatro columnas', [3, 3, 3, 3]],
+    ['c13', 'Angosta + ancha', [4, 8]], ['c31', 'Ancha + angosta', [8, 4]], ['c121', 'Centro ancho', [3, 6, 3]], ['libre', 'Posición libre', null]];
+  E.iniciar = function() {
+    document.body.classList.add('nvi-editando');
+    var raiz = h('div', 'nvi-ed'); raiz.id = 'nviEd';
+    raiz.innerHTML =
+      '<header class="nvi-ed-barra">' +
+        '<div class="nvi-ed-grupo"><span class="nvi-ed-marca">✎ Editor de Inicio</span>' +
+          '<button type="button" data-ac="plantillas">▦ Plantillas</button><button type="button" data-ac="tema">🎨 Estilo de la página</button><button type="button" data-ac="medios">🖼 Medios</button></div>' +
+        '<div class="nvi-ed-grupo"><button type="button" id="nviUndo" data-ac="deshacer" title="Deshacer (Ctrl+Z)">↶</button><button type="button" id="nviRedo" data-ac="rehacer" title="Rehacer (Ctrl+Y)">↷</button>' +
+          '<span class="nvi-ed-disp"><button type="button" data-disp="escritorio" class="on" title="Computador">🖥</button><button type="button" data-disp="tablet" title="Tablet">▭</button><button type="button" data-disp="movil" title="Celular">📱</button></span></div>' +
+        '<div class="nvi-ed-grupo der"><span class="nvi-ed-estado" id="nviEstado">Cargando…</span><button type="button" data-ac="historial">🕘 Historial</button>' +
+          '<button type="button" data-ac="descartar" id="nviDescartar" title="Volver a lo que está publicado">Descartar cambios</button>' +
+          '<button type="button" data-ac="previa" id="nviPrevia">👁 Vista previa</button><button type="button" data-ac="publicar" class="nvi-ed-publicar" id="nviPublicar">Publicar</button>' +
+          '<button type="button" data-ac="salir" title="Salir del editor">✕</button></div>' +
+      '</header>' +
+      '<aside class="nvi-ed-izq"><div class="nvi-ed-tabs"><button type="button" data-tab="bloques" class="on">Bloques</button><button type="button" data-tab="secciones">Secciones</button></div>' +
+        '<div class="nvi-ed-pal" data-pal="bloques">' + BLOQUES_ORDEN.map(function(k) { return '<div class="nvi-ed-item" draggable="true" data-nuevo="' + k + '" title="Arrastra a la página o haz clic para agregarlo"><span>' + D[k].ic + '</span>' + esc(D[k].n) + '</div>'; }).join('') + '</div>' +
+        '<div class="nvi-ed-pal" data-pal="secciones" hidden>' + SECCIONES.map(function(s) {
+          return '<div class="nvi-ed-item sec" data-nueva-sec="' + s[0] + '" title="Clic para agregarla al final (o usa el + entre secciones)"><span class="nvi-ed-mini">' +
+            (s[2] ? s[2].map(function(a) { return '<i style="flex:' + a + '"></i>'; }).join('') : '<i class="libre"></i>') + '</span>' + esc(s[1]) + '</div>';
+        }).join('') + '<p class="nvi-ed-ayuda">En "Posición libre" mueves cada elemento con el mouse donde quieras y le cambias el tamaño desde la esquina.</p></div>' +
+        '<p class="nvi-ed-ayuda">Clic en cualquier elemento de la página para cambiarlo a la derecha. Doble clic en un texto para escribir.</p></aside>' +
+      '<main class="nvi-ed-centro" id="nviCentro"><div class="nvi-ed-marco" id="nviMarco"><div id="nviLienzo"></div></div></main>' +
+      '<aside class="nvi-ed-der" id="nviProps"></aside>';
+    document.body.appendChild(raiz);
+    posicionar(); window.addEventListener('resize', posicionar);
+    raiz.querySelector('.nvi-ed-barra').addEventListener('click', accionBarra);
+    raiz.querySelectorAll('.nvi-ed-tabs button').forEach(function(b) { b.onclick = function() { raiz.querySelectorAll('.nvi-ed-tabs button').forEach(function(x) { x.classList.toggle('on', x === b); }); raiz.querySelectorAll('[data-pal]').forEach(function(p) { p.hidden = p.dataset.pal !== b.dataset.tab; }); }; });
+    raiz.querySelectorAll('[data-nuevo]').forEach(function(it) {
+      it.addEventListener('dragstart', function(e) { e.dataTransfer.setData('text/nvi-nuevo', it.dataset.nuevo); e.dataTransfer.effectAllowed = 'copy'; document.body.classList.add('nvi-arrastrando'); });
+      it.addEventListener('dragend', finArrastre);
+      it.addEventListener('click', function() { agregarBloqueClic(it.dataset.nuevo); });
+    });
+    raiz.querySelectorAll('[data-nueva-sec]').forEach(function(it) { it.onclick = function() { agregarSeccion(it.dataset.nuevaSec, E.pag.secciones.length); }; });
+    var lienzo = document.getElementById('nviLienzo');
+    lienzo.addEventListener('click', clicLienzo);
+    lienzo.addEventListener('dblclick', dobleClic);
+    lienzo.addEventListener('dragover', sobreLienzo);
+    lienzo.addEventListener('drop', soltarLienzo);
+    lienzo.addEventListener('mousedown', mouseLibre);
+    document.addEventListener('keydown', teclado);
+    cargar();
+  };
+  function posicionar() { var nav = document.querySelector('body > nav'), e = document.getElementById('nviEd'); if (e) e.style.top = (nav ? nav.getBoundingClientRect().bottom : 0) + 'px'; }
+  function cargar() {
+    estado('Cargando…');
+    return api('/design/api/inicio/borrador').then(function(d) {
+      E.version = d.version; E.hayCambios = d.hayCambios; E.publicadoEn = d.publicadoEn;
+      E.pag = d.contenido || null;
+      E.hist = []; E.histI = -1;
+      if (!E.pag) { E.pag = NVI.PLANTILLA_VACIA(); registrar(); E.pintar(); estado('Página nueva'); abrirPlantillas(true); }
+      else { registrar(); E.pintar(); estado(d.hayCambios ? 'Borrador con cambios sin publicar' : 'Igual a lo publicado'); }
+      pintarPublicar();
+    }).catch(function(e) { estado('No se pudo cargar'); aviso(e.message, true); });
+  }
+  function pintarPublicar() { var d = document.getElementById('nviDescartar'); if (d) d.style.display = E.hayCambios && E.publicadoEn ? '' : 'none'; }
+
+  function accionBarra(e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.disp) { E.disp = b.dataset.disp; document.querySelectorAll('.nvi-ed-disp button').forEach(function(x) { x.classList.toggle('on', x === b); }); document.getElementById('nviMarco').className = 'nvi-ed-marco disp-' + E.disp; return; }
+    var ac = b.dataset.ac;
+    if (ac === 'deshacer') E.deshacer();
+    if (ac === 'rehacer') E.rehacer();
+    if (ac === 'plantillas') abrirPlantillas(false);
+    if (ac === 'tema') { E.sel = {tipo: 'tema'}; pintarProps(); E.pintar(); }
+    if (ac === 'medios') E.biblioteca(null, null);
+    if (ac === 'previa') { E.previa = !E.previa; document.body.classList.toggle('nvi-previa', E.previa); b.textContent = E.previa ? '✎ Volver a editar' : '👁 Vista previa'; E.pintar(); }
+    if (ac === 'historial') abrirHistorial();
+    if (ac === 'descartar') dialogo('Descartar cambios', '<p>El borrador vuelve a quedar igual a lo que está publicado. Los cambios sin publicar se pierden.</p>', [{t: 'Descartar', v: 1, p: true}]).then(function(v) {
+      if (!v) return; clearTimeout(tGuardar); E.sinGuardar = false; api('/design/api/inicio/descartar', {}).then(function() { cargar(); aviso('Se descartaron los cambios.'); });
+    });
+    if (ac === 'publicar') publicar();
+    if (ac === 'salir') E.guardar().then(function() { location.href = '/design/inicio'; });
+  }
+  function publicar() {
+    dialogo('Publicar la página', '<p>Todos los que entran a Design verán esta versión de la página de Inicio.</p><p style="color:#64748b;font-size:13px">La versión anterior queda en el Historial por si necesitas volver a ella.</p>', [{t: 'Publicar', v: 1, p: true}]).then(function(v) {
+      if (!v) return;
+      var b = document.getElementById('nviPublicar'); b.disabled = true; b.textContent = 'Publicando…';
+      E.guardar(true).then(function() { return api('/design/api/inicio/publicar', {}); }).then(function(r) {
+        E.hayCambios = false; E.publicadoEn = r.publicadoEn; pintarPublicar(); estado('Publicada');
+        dialogo('¡Página publicada!', '<p>La página de Inicio ya está actualizada para todos.</p>', [{t: 'Ver la página', v: 'ver', p: true}, {t: 'Seguir editando', v: 'seguir'}]).then(function(x) { if (x === 'ver') location.href = '/design/inicio'; });
+      }).catch(function(e) { aviso('No se publicó: ' + e.message, true); }).then(function() { b.disabled = false; b.textContent = 'Publicar'; });
+    });
+  }
+
+  // ---------- Dibujar en modo edición ----------
+  E.pintar = function() {
+    var lienzo = document.getElementById('nviLienzo'); if (!lienzo || !E.pag) return;
+    if (E.editando) return;  // no redibujar mientras se escribe en un texto
+    var y = document.getElementById('nviCentro').scrollTop;
+    NVI.render(E.pag, lienzo, {modo: E.previa ? 'ver' : 'editar'});
+    if (!E.previa) decorar(lienzo);
+    document.getElementById('nviCentro').scrollTop = y;
+    if (!E.previa) pintarProps();
+  };
+  function botonera(acciones) { return '<span class="nvi-ed-bot">' + acciones.map(function(a) { return '<button type="button" data-hacer="' + a[0] + '" title="' + esc(a[2]) + '">' + a[1] + '</button>'; }).join('') + '</span>'; }
+  function decorar(lienzo) {
+    var pag = lienzo.querySelector('.nvi-pagina');
+    if (!E.pag.secciones.length) { var v = h('div', 'nvi-ed-vacio', '<p>La página está vacía.</p><button type="button" class="nvi-b1" data-mas-sec="0">+ Agregar sección</button> <button type="button" class="nvi-b2" data-plantillas="1">Usar una plantilla</button>'); pag.appendChild(v); }
+    pag.querySelectorAll('.nvi-sec').forEach(function(secEl, i) {
+      var s = secPor(secEl.dataset.sec); if (!s) return;
+      secEl.classList.add('nvi-ed-sec'); if (E.sel && E.sel.tipo === 'seccion' && E.sel.id === s.id) secEl.classList.add('sel');
+      var bar = h('div', 'nvi-ed-secbar', '<b>' + (s.tipo === 'libre' ? 'Sección libre' : 'Sección') + '</b>' + botonera([['subir', '↑', 'Subir la sección'], ['bajar', '↓', 'Bajar la sección'], ['dupsec', '⧉', 'Duplicar la sección'], ['ajustes', '⚙', 'Ajustes de la sección'], ['borrarsec', '🗑', 'Eliminar la sección']]));
+      bar.setAttribute('data-sec-bar', s.id); secEl.appendChild(bar);
+      var mas = h('button', 'nvi-ed-mas', '+'); mas.type = 'button'; mas.title = 'Agregar una sección aquí'; mas.setAttribute('data-mas-sec', i + 1); secEl.appendChild(mas);
+      if (i === 0) { var mas0 = h('button', 'nvi-ed-mas arriba', '+'); mas0.type = 'button'; mas0.title = 'Agregar una sección arriba'; mas0.setAttribute('data-mas-sec', 0); secEl.appendChild(mas0); }
+      if (s.tipo === 'libre') {
+        var inner = secEl.querySelector('.nvi-libre'); inner.classList.add('nvi-ed-libre'); inner.setAttribute('data-libre', s.id);
+        var asa = h('div', 'nvi-ed-alto', '⇕'); asa.title = 'Arrastra para cambiar el alto de la sección'; asa.setAttribute('data-alto', s.id); inner.appendChild(asa);
+      }
+    });
+    pag.querySelectorAll('.nvi-col').forEach(function(c) {
+      c.classList.add('nvi-ed-col');
+      if (!c.querySelector('.nvi-blk')) { var z = h('div', 'nvi-ed-zona', '<span>+</span>Arrastra un bloque aquí o haz clic'); z.setAttribute('data-zona', c.dataset.col); c.appendChild(z); }
+    });
+    pag.querySelectorAll('.nvi-blk').forEach(function(bEl) {
+      var r = blkPor(bEl.dataset.blk); if (!r) return;
+      bEl.classList.add('nvi-ed-blk'); if (E.sel && E.sel.tipo === 'bloque' && E.sel.id === r.blk.id) bEl.classList.add('sel');
+      var acc = r.el ? [['frente', '⬆', 'Traer al frente'], ['atras', '⬇', 'Enviar atrás'], ['dup', '⧉', 'Duplicar'], ['borrar', '🗑', 'Eliminar']]
+                     : [['mover', '✥', 'Arrastra para moverlo'], ['dup', '⧉', 'Duplicar'], ['borrar', '🗑', 'Eliminar']];
+      var bar = h('div', 'nvi-ed-blkbar', '<b>' + esc((D[r.blk.tipo] || {}).n || r.blk.tipo) + '</b>' + botonera(acc));
+      bEl.appendChild(bar);
+      var mv = bar.querySelector('[data-hacer="mover"]');
+      if (mv) {
+        bEl.setAttribute('draggable', 'false');
+        mv.setAttribute('draggable', 'true');
+        mv.addEventListener('dragstart', function(e) { e.dataTransfer.setData('text/nvi-mover', r.blk.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setDragImage(bEl, 20, 20); document.body.classList.add('nvi-arrastrando'); bEl.classList.add('moviendo'); });
+        mv.addEventListener('dragend', function() { bEl.classList.remove('moviendo'); finArrastre(); });
+      }
+      if (r.el) { var rs = h('span', 'nvi-ed-rsz'); rs.title = 'Arrastra para cambiar el tamaño'; bEl.parentNode.appendChild(rs); bEl.parentNode.classList.add('nvi-ed-el'); if (E.sel && E.sel.id === r.blk.id) bEl.parentNode.classList.add('sel'); }
+    });
+  }
+
+  // ---------- Clics en la página ----------
+  function clicLienzo(e) {
+    if (E.previa) return;
+    var t = e.target;
+    var bot = t.closest('[data-hacer]');
+    if (bot) { e.preventDefault(); e.stopPropagation(); hacer(bot.dataset.hacer, bot); return; }
+    if (t.closest('[data-mas-sec]')) { menuSecciones(t.closest('[data-mas-sec]'), +t.closest('[data-mas-sec]').dataset.masSec); return; }
+    if (t.closest('[data-plantillas]')) { abrirPlantillas(false); return; }
+    var z = t.closest('[data-zona]'); if (z) { menuBloques(z, function(tipo) { var c = colPor(z.dataset.zona); var b = NVI.nuevoBloque(tipo); c.col.bloques.push(b); E.sel = {tipo: 'bloque', id: b.id}; E.cambio(); }); return; }
+    if (t.closest('a')) e.preventDefault();
+    if (E.editando && t.closest('[contenteditable=true]')) return;
+    var b = t.closest('[data-blk]');
+    if (b) { seleccionar({tipo: 'bloque', id: b.dataset.blk}); return; }
+    var s = t.closest('[data-sec]');
+    if (s) { seleccionar({tipo: 'seccion', id: s.dataset.sec}); return; }
+    seleccionar(null);
+  }
+  function seleccionar(sel) {
+    E.sel = sel;
+    document.querySelectorAll('#nviLienzo .sel').forEach(function(x) { x.classList.remove('sel'); });
+    if (sel && sel.tipo === 'bloque') { var b = document.querySelector('#nviLienzo [data-blk="' + sel.id + '"]'); if (b) { b.classList.add('sel'); if (b.parentNode.classList.contains('nvi-ed-el')) b.parentNode.classList.add('sel'); } }
+    if (sel && sel.tipo === 'seccion') { var s = document.querySelector('#nviLienzo [data-sec="' + sel.id + '"]'); if (s) s.classList.add('sel'); }
+    pintarProps();
+  }
+  function hacer(ac, bot) {
+    var secId = bot.closest('[data-sec-bar]') ? bot.closest('[data-sec-bar]').dataset.secBar : null;
+    if (secId) {
+      var i = E.pag.secciones.findIndex(function(s) { return s.id === secId; }), lista = E.pag.secciones;
+      if (ac === 'subir' && i > 0) { lista.splice(i - 1, 0, lista.splice(i, 1)[0]); E.cambio(); }
+      if (ac === 'bajar' && i < lista.length - 1) { lista.splice(i + 1, 0, lista.splice(i, 1)[0]); E.cambio(); }
+      if (ac === 'dupsec') { var c = nuevosIds(NVI.clon(lista[i])); lista.splice(i + 1, 0, c); E.sel = {tipo: 'seccion', id: c.id}; E.cambio(); }
+      if (ac === 'ajustes') seleccionar({tipo: 'seccion', id: secId});
+      if (ac === 'borrarsec') dialogo('Eliminar sección', '<p>¿Eliminar esta sección y todo lo que tiene? (Puedes deshacer con Ctrl+Z.)</p>', [{t: 'Eliminar', v: 1, p: true}]).then(function(v) { if (v) { lista.splice(i, 1); E.sel = null; E.cambio(); } });
+      return;
+    }
+    var bEl = bot.closest('[data-blk]'), r = bEl && blkPor(bEl.dataset.blk); if (!r) return;
+    if (ac === 'dup') { var cp = nuevosIds(NVI.clon(r.el || r.blk)); if (r.el) { cp.x = Math.min(90, cp.x + 3); cp.y += 24; } r.lista.splice(r.i + 1, 0, cp); E.sel = {tipo: 'bloque', id: (cp.bloque || cp).id}; E.cambio(); }
+    if (ac === 'borrar') { r.lista.splice(r.i, 1); E.sel = null; E.cambio(); }
+    if (ac === 'frente' && r.el) { r.el.z = Math.max.apply(null, r.sec.elementos.map(function(x) { return x.z || 1; })) + 1; E.cambio(); }
+    if (ac === 'atras' && r.el) { r.sec.elementos.forEach(function(x) { x.z = (x.z || 1) + 1; }); r.el.z = 1; E.cambio(); }
+  }
+  function menuFlotante(ancla, html, alClic) {
+    cerrarMenu();
+    var m = h('div', 'nvi-ed-menu', html); m.id = 'nviMenu'; document.body.appendChild(m);
+    var r = ancla.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(window.innerWidth - m.offsetWidth - 8, r.left + r.width / 2 - m.offsetWidth / 2)) + 'px';
+    m.style.top = (r.bottom + 6 + m.offsetHeight > window.innerHeight ? Math.max(8, r.top - m.offsetHeight - 6) : r.bottom + 6) + 'px';
+    m.onclick = function(e) { var x = e.target.closest('[data-v]'); if (x) { cerrarMenu(); alClic(x.dataset.v); } };
+    setTimeout(function() { document.addEventListener('mousedown', fueraMenu, true); }, 0);
+  }
+  function fueraMenu(e) { var m = document.getElementById('nviMenu'); if (m && !m.contains(e.target)) cerrarMenu(); }
+  function cerrarMenu() { var m = document.getElementById('nviMenu'); if (m) m.remove(); document.removeEventListener('mousedown', fueraMenu, true); }
+  function menuBloques(ancla, alElegir) {
+    menuFlotante(ancla, '<div class="nvi-ed-menu-tit">Agregar bloque</div><div class="nvi-ed-menu-g">' + BLOQUES_ORDEN.map(function(k) { return '<button type="button" data-v="' + k + '"><span>' + D[k].ic + '</span>' + esc(D[k].n) + '</button>'; }).join('') + '</div>', alElegir);
+  }
+  function menuSecciones(ancla, pos) {
+    menuFlotante(ancla, '<div class="nvi-ed-menu-tit">Agregar sección</div><div class="nvi-ed-menu-g sec">' + SECCIONES.map(function(s) {
+      return '<button type="button" data-v="' + s[0] + '"><span class="nvi-ed-mini">' + (s[2] ? s[2].map(function(a) { return '<i style="flex:' + a + '"></i>'; }).join('') : '<i class="libre"></i>') + '</span>' + esc(s[1]) + '</button>';
+    }).join('') + '</div>', function(v) { agregarSeccion(v, pos); });
+  }
+  function agregarSeccion(tipo, pos) { var s = NVI.nuevaSeccion(tipo); E.pag.secciones.splice(pos, 0, s); E.sel = {tipo: 'seccion', id: s.id}; E.cambio(); setTimeout(function() { var el = document.querySelector('#nviLienzo [data-sec="' + s.id + '"]'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 200); }
+  function agregarBloqueClic(tipo) {
+    // en la columna del bloque/sección elegido; si no, en la última sección de columnas (o en una nueva)
+    var b = NVI.nuevoBloque(tipo), dest = null;
+    if (E.sel && E.sel.tipo === 'bloque') { var r = blkPor(E.sel.id); if (r && r.col) { r.lista.splice(r.i + 1, 0, b); dest = 1; } else if (r && r.el) { r.sec.elementos.push({id: NVI.uid('e'), x: 5, y: 20, w: 40, h: 0, z: 5, bloque: b}); dest = 1; } }
+    if (!dest && E.sel && E.sel.tipo === 'seccion') { var s = secPor(E.sel.id); if (s && s.tipo === 'libre') { s.elementos.push({id: NVI.uid('e'), x: 5, y: 20, w: 40, h: 0, z: 5, bloque: b}); dest = 1; } else if (s) { s.columnas[0].bloques.push(b); dest = 1; } }
+    if (!dest) { var ult = E.pag.secciones.filter(function(x) { return x.tipo !== 'libre'; }).pop(); if (!ult) { ult = NVI.nuevaSeccion('c1'); E.pag.secciones.push(ult); } ult.columnas[ult.columnas.length - 1].bloques.push(b); }
+    E.sel = {tipo: 'bloque', id: b.id}; E.cambio();
+    setTimeout(function() { var el = document.querySelector('#nviLienzo [data-blk="' + b.id + '"]'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 200);
+  }
+
+  // ---------- Arrastrar y soltar bloques ----------
+  var ind = null;
+  function finArrastre() { document.body.classList.remove('nvi-arrastrando'); if (ind) { ind.remove(); ind = null; } document.querySelectorAll('.nvi-ed-col.sobre, .nvi-ed-libre.sobre').forEach(function(x) { x.classList.remove('sobre'); }); }
+  function posicionEnColumna(colEl, y) {
+    var hijos = Array.prototype.filter.call(colEl.children, function(x) { return x.classList.contains('nvi-blk'); }), i = hijos.length;
+    for (var k = 0; k < hijos.length; k++) { var r = hijos[k].getBoundingClientRect(); if (y < r.top + r.height / 2) { i = k; break; } }
+    return {i: i, hijos: hijos};
+  }
+  function sobreLienzo(e) {
+    var tipos = e.dataTransfer.types; if (tipos.indexOf('text/nvi-nuevo') < 0 && tipos.indexOf('text/nvi-mover') < 0) return;
+    var colEl = e.target.closest('.nvi-ed-col'), libreEl = e.target.closest('.nvi-ed-libre');
+    document.querySelectorAll('.nvi-ed-col.sobre, .nvi-ed-libre.sobre').forEach(function(x) { if (x !== colEl && x !== libreEl) x.classList.remove('sobre'); });
+    if (libreEl && tipos.indexOf('text/nvi-nuevo') >= 0) { e.preventDefault(); libreEl.classList.add('sobre'); if (ind) { ind.remove(); ind = null; } return; }
+    if (!colEl) { if (ind) { ind.remove(); ind = null; } return; }
+    e.preventDefault(); colEl.classList.add('sobre');
+    var p = posicionEnColumna(colEl, e.clientY);
+    if (!ind) { ind = h('div', 'nvi-ed-ind'); }
+    if (p.i < p.hijos.length) colEl.insertBefore(ind, p.hijos[p.i]); else colEl.appendChild(ind);
+  }
+  function soltarLienzo(e) {
+    var nuevo = e.dataTransfer.getData('text/nvi-nuevo'), mover = e.dataTransfer.getData('text/nvi-mover');
+    if (!nuevo && !mover) return;
+    e.preventDefault();
+    var libreEl = e.target.closest('.nvi-ed-libre');
+    if (libreEl && nuevo) {
+      var s = secPor(libreEl.dataset.libre), r = libreEl.getBoundingClientRect(), b = NVI.nuevoBloque(nuevo);
+      s.elementos.push({id: NVI.uid('e'), x: Math.max(0, Math.min(80, Math.round((e.clientX - r.left) / r.width * 1000) / 10)), y: Math.max(0, Math.round(e.clientY - r.top)), w: 35, h: 0, z: 10, bloque: b});
+      E.sel = {tipo: 'bloque', id: b.id}; finArrastre(); E.cambio(); return;
+    }
+    var colEl = e.target.closest('.nvi-ed-col'); if (!colEl) { finArrastre(); return; }
+    var c = colPor(colEl.dataset.col), p = posicionEnColumna(colEl, e.clientY), idx = p.i;
+    if (nuevo) { var nb = NVI.nuevoBloque(nuevo); c.col.bloques.splice(idx, 0, nb); E.sel = {tipo: 'bloque', id: nb.id}; }
+    else {
+      var o = blkPor(mover); if (!o || !o.col) { finArrastre(); return; }
+      if (o.col === c.col && o.i < idx) idx--;
+      o.lista.splice(o.i, 1); c.col.bloques.splice(idx, 0, o.blk); E.sel = {tipo: 'bloque', id: o.blk.id};
+    }
+    finArrastre(); E.cambio();
+  }
+
+  // ---------- Posición libre: mover, cambiar tamaño y alto de la sección ----------
+  function mouseLibre(e) {
+    if (E.previa || e.button !== 0) return;
+    var alto = e.target.closest('[data-alto]');
+    if (alto) {
+      e.preventDefault(); var s = secPor(alto.dataset.alto), inner = alto.parentNode, y0 = e.clientY, a0 = inner.offsetHeight;
+      arrastre(function(ev) { var v = Math.max(120, Math.round(a0 + ev.clientY - y0)); inner.style.height = v + 'px'; s.estilo.alto = v; }, function() { E.cambio(); });
+      return;
+    }
+    var elEl = e.target.closest('.nvi-ed-el'); if (!elEl) return;
+    if (e.target.closest('.nvi-ed-blkbar') || (E.editando && e.target.closest('[contenteditable=true]'))) return;
+    var r = blkPor(elEl.querySelector('[data-blk]').dataset.blk); if (!r || !r.el) return;
+    var inner = elEl.parentNode, R = inner.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY, o = Object.assign({}, r.el), rsz = e.target.closest('.nvi-ed-rsz');
+    if (!rsz && e.detail > 1) return;  // doble clic: editar texto
+    e.preventDefault();
+    if (!(E.sel && E.sel.id === r.blk.id)) seleccionar({tipo: 'bloque', id: r.blk.id});
+    var movio = false;
+    arrastre(function(ev) {
+      var dx = ev.clientX - x0, dy = ev.clientY - y0; if (!movio && Math.abs(dx) + Math.abs(dy) < 3) return; movio = true;
+      if (rsz) {
+        r.el.w = Math.max(4, Math.min(100 - r.el.x, Math.round((o.w + dx / R.width * 100) * 2) / 2));
+        r.el.h = Math.max(0, Math.round((o.h || elEl.offsetHeight) + dy));
+        elEl.style.width = r.el.w + '%'; elEl.style.height = r.el.h + 'px';
+      } else {
+        r.el.x = Math.max(-10, Math.min(100 - Math.min(r.el.w, 20), Math.round((o.x + dx / R.width * 100) * 2) / 2));
+        r.el.y = Math.max(-40, Math.round(o.y + dy));
+        elEl.style.left = r.el.x + '%'; elEl.style.top = r.el.y + 'px';
+      }
+    }, function() { if (movio) E.cambio(); });
+  }
+  function arrastre(mover, soltar) {
+    var up = function() { document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', up); document.body.classList.remove('nvi-arrastrando-mouse'); soltar(); };
+    document.body.classList.add('nvi-arrastrando-mouse');
+    document.addEventListener('mousemove', mover); document.addEventListener('mouseup', up);
+  }
+
+  // ---------- Escribir texto en el lugar ----------
+  function dobleClic(e) {
+    if (E.previa) return;
+    var rich = e.target.closest('.nvi-rich'); if (!rich) return;
+    var bEl = rich.closest('[data-blk]'), r = blkPor(bEl.dataset.blk); if (!r || (r.blk.tipo !== 'titulo' && r.blk.tipo !== 'texto')) return;
+    e.preventDefault();
+    E.editando = r.blk.id; seleccionar({tipo: 'bloque', id: r.blk.id});
+    rich.contentEditable = 'true'; rich.classList.add('nvi-ed-escribiendo'); rich.focus();
+    var rg = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+    if (rg && rich.contains(rg.startContainer)) { var s = getSelection(); s.removeAllRanges(); s.addRange(rg); }
+    var barra = barraTexto(rich);
+    var terminar = function() {
+      rich.removeEventListener('blur', alSalir); barra.remove(); rich.contentEditable = 'false';
+      var nuevo = NVI.limpiar(rich.innerHTML);
+      E.editando = null;
+      if (nuevo !== r.blk.p.html) { r.blk.p.html = nuevo; E.cambio(); } else E.pintar();
+    };
+    var alSalir = function() { setTimeout(function() { if (document.activeElement && barra.contains(document.activeElement)) return; if (E.editando === r.blk.id) terminar(); }, 120); };
+    rich.addEventListener('blur', alSalir);
+    rich.addEventListener('keydown', function(ev) { if (ev.key === 'Escape') { ev.preventDefault(); rich.blur(); } });
+  }
+  function barraTexto(rich) {
+    var b = h('div', 'nvi-ed-tbar');
+    b.innerHTML = [['bold', '<b>N</b>', 'Negrita (Ctrl+B)'], ['italic', '<i>K</i>', 'Cursiva (Ctrl+I)'], ['underline', '<u>S</u>', 'Subrayado'], ['strikeThrough', '<s>T</s>', 'Tachado'],
+      ['insertUnorderedList', '•≡', 'Viñetas'], ['insertOrderedList', '1≡', 'Numeración'], ['link', '🔗', 'Enlace'], ['color', '<span style="border-bottom:3px solid #e11d48">A</span>', 'Color del texto'],
+      ['mas', 'A+', 'Texto más grande'], ['menos', 'A−', 'Texto más pequeño'], ['removeFormat', '⌫', 'Quitar formato'], ['listo', 'Listo', 'Terminar de escribir']].map(function(x) {
+        return '<button type="button" data-cmd="' + x[0] + '" title="' + x[2] + '">' + x[1] + '</button>';
+      }).join('') + '<input type="color" data-color hidden>';
+    document.body.appendChild(b);
+    var r = rich.getBoundingClientRect(); b.style.left = Math.max(8, Math.min(window.innerWidth - b.offsetWidth - 8, r.left)) + 'px'; b.style.top = Math.max(60, r.top - b.offsetHeight - 8) + 'px';
+    var guardada = null;
+    b.addEventListener('mousedown', function(e) { var s = getSelection(); if (s.rangeCount) guardada = s.getRangeAt(0).cloneRange(); if (!e.target.closest('input')) e.preventDefault(); });
+    var volver = function() { rich.focus(); if (guardada) { var s = getSelection(); s.removeAllRanges(); s.addRange(guardada); } };
+    var tam = function(k) { volver(); document.execCommand('styleWithCSS', false, true); var s = getSelection(); if (!s.rangeCount || s.isCollapsed) return; var px = parseFloat(getComputedStyle(s.anchorNode.nodeType === 3 ? s.anchorNode.parentNode : s.anchorNode).fontSize) || 16;
+      document.execCommand('fontSize', false, '7'); rich.querySelectorAll('font[size="7"]').forEach(function(f) { var sp = document.createElement('span'); sp.style.fontSize = Math.round(px * k) + 'px'; sp.innerHTML = f.innerHTML; f.replaceWith(sp); }); };
+    b.onclick = function(e) {
+      var x = e.target.closest('[data-cmd]'); if (!x) return; var c = x.dataset.cmd;
+      if (c === 'listo') { rich.blur(); return; }
+      if (c === 'link') { var u = prompt('Dirección del enlace (https://… o /design…):', 'https://'); volver(); if (u) document.execCommand('createLink', false, NVI.url(u)); return; }
+      if (c === 'color') { var ci = b.querySelector('[data-color]'); ci.onchange = function() { volver(); document.execCommand('styleWithCSS', false, true); document.execCommand('foreColor', false, ci.value); }; ci.click(); return; }
+      if (c === 'mas') return tam(1.2);
+      if (c === 'menos') return tam(0.84);
+      volver(); document.execCommand(c, false, null);
+    };
+    return b;
+  }
+
+  // ---------- Panel de propiedades ----------
+  function pintarProps() {
+    var p = document.getElementById('nviProps'); if (!p) return;
+    var sel = E.sel, cuerpo = h('div', 'nvi-ed-props');
+    if (sel && sel.tipo === 'tema') {
+      E.pag.tema = Object.assign({}, NVI.TEMA_BASE, E.pag.tema || {});
+      cuerpo.appendChild(h('h3', '', 'Estilo de la página'));
+      cuerpo.appendChild(h('p', 'nvi-ed-ayuda', 'Colores y letras de toda la página. Los bloques pueden tener su propio color.'));
+      formulario(cuerpo, [{tipo: 'select', k: 'fuenteTitulos', l: 'Letra de los títulos', ops: NVI.FUENTES.map(function(f) { return [f, f]; })}, {tipo: 'select', k: 'fuenteTexto', l: 'Letra del texto', ops: NVI.FUENTES.map(function(f) { return [f, f]; })},
+        {tipo: 'color', k: 'primario', l: 'Color principal (botones, enlaces)'}, {tipo: 'color', k: 'secundario', l: 'Color secundario'}, {tipo: 'color', k: 'acento', l: 'Color de acento'},
+        {tipo: 'color', k: 'fondo', l: 'Fondo de la página'}, {tipo: 'color', k: 'texto', l: 'Color del texto'}, {tipo: 'numero', k: 'radio', l: 'Redondeo de esquinas (px)', min: 0, max: 40}], E.pag.tema);
+    } else if (sel && sel.tipo === 'bloque' && blkPor(sel.id)) {
+      var r = blkPor(sel.id), def = D[r.blk.tipo];
+      cuerpo.appendChild(h('h3', '', '<span class="nvi-ed-ic">' + def.ic + '</span> ' + esc(def.n)));
+      if (r.blk.tipo === 'titulo' || r.blk.tipo === 'texto') cuerpo.appendChild(h('p', 'nvi-ed-ayuda', 'Doble clic en el texto de la página para escribir y darle formato.'));
+      formulario(cuerpo, def.campos, r.blk.p);
+      if (r.el) {
+        var pos = h('details', 'nvi-ed-det'); pos.open = true; pos.innerHTML = '<summary>Posición y tamaño</summary>'; cuerpo.appendChild(pos);
+        formulario(pos, [{tipo: 'numero', k: 'x', l: 'Desde la izquierda (%)', min: -10, max: 100, paso: 0.5}, {tipo: 'numero', k: 'y', l: 'Desde arriba (px)', min: -40, max: 3000}, {tipo: 'numero', k: 'w', l: 'Ancho (%)', min: 4, max: 100, paso: 0.5}, {tipo: 'numero', k: 'h', l: 'Alto (px, 0 = automático)', min: 0, max: 3000}, {tipo: 'numero', k: 'z', l: 'Capa (más alto = adelante)', min: 1, max: 99}], r.el);
+      }
+      var caja = h('details', 'nvi-ed-det'); caja.innerHTML = '<summary>Caja y animación</summary>'; cuerpo.appendChild(caja);
+      r.blk.estilo = r.blk.estilo || {}; formulario(caja, NVI.CAMPOS_CAJA, r.blk.estilo);
+      var acc = h('div', 'nvi-ed-acc', '<button type="button" class="nvi-b2" data-p="dup">⧉ Duplicar</button><button type="button" class="nvi-b2 rojo" data-p="borrar">🗑 Eliminar</button>');
+      acc.onclick = function(e) { var x = e.target.closest('[data-p]'); if (!x) return; if (x.dataset.p === 'borrar') { r.lista.splice(r.i, 1); E.sel = null; E.cambio(); } else { var cp = nuevosIds(NVI.clon(r.el || r.blk)); if (r.el) { cp.x = Math.min(90, cp.x + 3); cp.y += 24; } r.lista.splice(r.i + 1, 0, cp); E.sel = {tipo: 'bloque', id: (cp.bloque || cp).id}; E.cambio(); } };
+      cuerpo.appendChild(acc);
+    } else if (sel && sel.tipo === 'seccion' && secPor(sel.id)) {
+      var s = secPor(sel.id); s.estilo = Object.assign(NVI.estiloSeccion(), s.estilo || {});
+      cuerpo.appendChild(h('h3', '', s.tipo === 'libre' ? '▢ Sección libre' : '▤ Sección'));
+      if (s.tipo !== 'libre') {
+        var cols = h('div', 'nvi-ed-cols'); cols.innerHTML = '<label class="nvi-ed-l">Columnas</label><div class="nvi-ed-presets">' + SECCIONES.filter(function(x) { return x[2]; }).map(function(x) {
+          return '<button type="button" data-preset="' + x[2].join(',') + '" title="' + esc(x[1]) + '" class="' + (x[2].join(',') === s.columnas.map(function(c) { return c.ancho; }).join(',') ? 'on' : '') + '"><span class="nvi-ed-mini">' + x[2].map(function(a) { return '<i style="flex:' + a + '"></i>'; }).join('') + '</span></button>';
+        }).join('') + '</div><p class="nvi-ed-ayuda">Ancho de cada columna (de 12):</p>' + s.columnas.map(function(c, i) {
+          return '<div class="nvi-ed-colfila">Columna ' + (i + 1) + ' <input type="number" min="1" max="12" value="' + c.ancho + '" data-ancho="' + i + '"> <button type="button" class="nvi-b2" data-quitar-col="' + i + '" title="Quitar columna (sus bloques pasan a la anterior)"' + (s.columnas.length < 2 ? ' disabled' : '') + '>✕</button></div>';
+        }).join('') + '<button type="button" class="nvi-b2" data-add-col="1"' + (s.columnas.length >= 6 ? ' disabled' : '') + '>+ Agregar columna</button>';
+        cols.onclick = function(e) {
+          var pr = e.target.closest('[data-preset]');
+          if (pr) { var an = pr.dataset.preset.split(',').map(Number); while (s.columnas.length < an.length) s.columnas.push({id: NVI.uid('c'), ancho: 12, bloques: []}); while (s.columnas.length > an.length) { var q = s.columnas.pop(); s.columnas[s.columnas.length - 1].bloques = s.columnas[s.columnas.length - 1].bloques.concat(q.bloques); } s.columnas.forEach(function(c, i) { c.ancho = an[i]; }); E.cambio(); }
+          var qc = e.target.closest('[data-quitar-col]'); if (qc && s.columnas.length > 1) { var i = +qc.dataset.quitarCol, ql = s.columnas.splice(i, 1)[0]; s.columnas[Math.max(0, i - 1)].bloques = s.columnas[Math.max(0, i - 1)].bloques.concat(ql.bloques); E.cambio(); }
+          if (e.target.closest('[data-add-col]')) { s.columnas.push({id: NVI.uid('c'), ancho: Math.max(1, Math.floor(12 / (s.columnas.length + 1))), bloques: []}); E.cambio(); }
+        };
+        cols.onchange = function(e) { var a = e.target.closest('[data-ancho]'); if (a) { s.columnas[+a.dataset.ancho].ancho = Math.max(1, Math.min(12, +a.value || 12)); E.cambio(); } };
+        cuerpo.appendChild(cols);
+      } else cuerpo.appendChild(h('p', 'nvi-ed-ayuda', 'Arrastra los elementos con el mouse; la esquina de abajo a la derecha cambia su tamaño. El alto de la sección se cambia con la manija ⇕ de abajo. Arrastra bloques desde la izquierda para agregarlos donde los sueltes.'));
+      formulario(cuerpo, NVI.CAMPOS_SECCION.filter(function(c) { return !(s.tipo === 'libre' && (c.k === 'espacio' || c.k === 'alinearV')); }).map(function(c) { return c.k === 'alto' && s.tipo === 'libre' ? Object.assign({}, c, {l: 'Alto de la sección (px)', min: 120}) : c; }), s.estilo);
+    } else {
+      cuerpo.appendChild(h('h3', '', 'Inicio de Design'));
+      cuerpo.appendChild(h('div', 'nvi-ed-ayuda', '<p><b>Cómo funciona</b></p><ol><li>Arrastra bloques desde la izquierda a cualquier columna (o haz clic para agregarlos).</li><li>Haz clic en un elemento para cambiarlo aquí.</li><li>Doble clic en títulos y textos para escribir.</li><li>Con <b>+</b> entre secciones agregas otra sección.</li><li>Todo se guarda solo como borrador; nadie lo ve hasta que le das <b>Publicar</b>.</li></ol>'));
+      var bt = h('button', 'nvi-b2', '🎨 Estilo de la página'); bt.type = 'button'; bt.onclick = function() { E.sel = {tipo: 'tema'}; pintarProps(); }; cuerpo.appendChild(bt);
+    }
+    var y = p.scrollTop; p.innerHTML = ''; p.appendChild(cuerpo); p.scrollTop = y;
+  }
+  function formulario(cont, campos, obj) {
+    (campos || []).forEach(function(c) {
+      if (c.si && c.si[1].indexOf(obj[c.si[0]]) < 0) return;
+      cont.appendChild(campo(c, obj, function(redibujarPanel) { E.cambio(); if (redibujarPanel) setTimeout(pintarProps, 0); }));
+    });
+  }
+  function campo(c, obj, cambio) {
+    var w = h('div', 'nvi-ed-campo nvi-ed-c-' + c.tipo), id = NVI.uid('f');
+    var lbl = function() { return '<label class="nvi-ed-l" for="' + id + '">' + esc(c.l) + '</label>'; };
+    var v = obj[c.k];
+    var dependen = NVI.CAMPOS_SECCION.some(function(x) { return x.si && x.si[0] === c.k; });
+    if (c.tipo === 'nota') { w.innerHTML = '<p class="nvi-ed-ayuda">' + esc(c.l) + '</p>'; return w; }
+    if (c.tipo === 'texto' || c.tipo === 'url') {
+      w.innerHTML = lbl() + '<input type="text" id="' + id + '"' + (c.tipo === 'url' ? ' placeholder="https://… o /design…"' : '') + '>'; var i = w.querySelector('input'); i.value = v == null ? '' : v;
+      i.oninput = function() { obj[c.k] = i.value; cambio(); };
+    } else if (c.tipo === 'area') {
+      w.innerHTML = lbl() + '<textarea id="' + id + '" rows="3"></textarea>'; var ta = w.querySelector('textarea'); ta.value = v || ''; ta.oninput = function() { obj[c.k] = ta.value; cambio(); };
+    } else if (c.tipo === 'numero') {
+      w.innerHTML = lbl() + '<input type="number" id="' + id + '"' + (c.min != null ? ' min="' + c.min + '"' : '') + (c.max != null ? ' max="' + c.max + '"' : '') + ' step="' + (c.paso || 1) + '">'; var n = w.querySelector('input'); n.value = v == null ? '' : v;
+      n.oninput = function() { var x = parseFloat(n.value); obj[c.k] = isNaN(x) ? 0 : x; cambio(); };
+    } else if (c.tipo === 'rango') {
+      w.innerHTML = lbl() + '<div class="nvi-ed-rango"><input type="range" id="' + id + '" min="' + c.min + '" max="' + c.max + '"><span></span></div>'; var rg = w.querySelector('input'), sp = w.querySelector('span');
+      rg.value = v == null ? c.min : v; sp.textContent = rg.value; rg.oninput = function() { obj[c.k] = +rg.value; sp.textContent = rg.value; cambio(); };
+    } else if (c.tipo === 'select') {
+      w.innerHTML = lbl() + '<select id="' + id + '">' + c.ops.map(function(o) { return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>'; }).join('') + '</select>'; var s = w.querySelector('select'); s.value = v == null ? c.ops[0][0] : v;
+      s.onchange = function() { obj[c.k] = s.value; cambio(dependen || c.k === 'fondoTipo'); };
+    } else if (c.tipo === 'check') {
+      w.innerHTML = '<label class="nvi-ed-chk"><input type="checkbox" id="' + id + '"> ' + esc(c.l) + '</label>'; var k = w.querySelector('input'); k.checked = !!v; k.onchange = function() { obj[c.k] = k.checked; cambio(); };
+    } else if (c.tipo === 'color') {
+      w.innerHTML = lbl() + '<div class="nvi-ed-color"><input type="color" id="' + id + '"><input type="text" maxlength="30" placeholder="automático"><button type="button" title="Quitar el color (automático)">✕</button></div>';
+      var ci = w.querySelector('input[type=color]'), ct = w.querySelector('input[type=text]'), cx = w.querySelector('button');
+      var pon = function(x) { ct.value = x || ''; if (/^#[0-9a-f]{6}$/i.test(x || '')) ci.value = x; };
+      pon(v); ci.oninput = function() { obj[c.k] = ci.value; ct.value = ci.value; cambio(); }; ct.onchange = function() { obj[c.k] = ct.value.trim(); pon(obj[c.k]); cambio(); }; cx.onclick = function() { obj[c.k] = ''; pon(''); cambio(); };
+    } else if (c.tipo === 'fecha') {
+      w.innerHTML = lbl() + '<input type="datetime-local" id="' + id + '">'; var f = w.querySelector('input'); f.value = v || ''; f.onchange = function() { obj[c.k] = f.value; cambio(); };
+    } else if (c.tipo === 'medio') {
+      w.innerHTML = lbl() + '<div class="nvi-ed-medio"><div class="nvi-ed-medio-prev"></div><div class="nvi-ed-medio-acc"><button type="button" class="nvi-b2" data-m="elegir">Elegir…</button><button type="button" class="nvi-b2" data-m="quitar">Quitar</button></div></div>' +
+        (c.permiteUrl || c.acepta === 'imagen' ? '<input type="text" class="nvi-ed-medio-url" placeholder="' + (c.acepta === 'video' ? 'o pega el enlace (YouTube, Vimeo, WorkDrive…)' : 'o pega la dirección https de la imagen') + '">' : '');
+      var prev = w.querySelector('.nvi-ed-medio-prev'), uin = w.querySelector('.nvi-ed-medio-url');
+      var pintar = function() {
+        var val = obj[c.k] || '', src = NVI.src(val);
+        if (!val) prev.innerHTML = '<span>Sin ' + (c.acepta === 'video' ? 'video' : 'imagen') + '</span>';
+        else if (c.acepta === 'video' && !/^medio:/.test(val)) prev.innerHTML = '<span>🔗 ' + esc(val.slice(0, 40)) + '</span>';
+        else if (c.acepta === 'video') prev.innerHTML = '<span>🎬 Video subido</span>';
+        else prev.innerHTML = '<img src="' + esc(src || val) + '" alt="">';
+        if (uin) uin.value = /^(medio:|data:)/.test(val) ? '' : val;
+      };
+      pintar();
+      w.querySelector('[data-m=elegir]').onclick = function() { E.biblioteca(c.acepta, function(val) { obj[c.k] = val; pintar(); cambio(); }); };
+      w.querySelector('[data-m=quitar]').onclick = function() { obj[c.k] = ''; pintar(); cambio(); };
+      if (uin) uin.onchange = function() { var u = uin.value.trim(); if (u && !/^https:\/\//.test(u) && !/youtu|vimeo/.test(u)) { aviso('La dirección debe empezar por https://', true); return; } obj[c.k] = u; pintar(); cambio(); };
+    } else if (c.tipo === 'lista') {
+      var lista = obj[c.k] = obj[c.k] || [];
+      w.innerHTML = '<label class="nvi-ed-l">' + esc(c.l) + ' (' + lista.length + ')</label>';
+      lista.forEach(function(it, i) {
+        var d = h('details', 'nvi-ed-item-lista'); d.open = !!it._abierto;
+        var tit = it[c.titulo] || (c.l.replace(/s$/, '') + ' ' + (i + 1));
+        d.innerHTML = '<summary><span>' + esc(String(tit).slice(0, 40)) + '</span><span class="nvi-ed-mini-acc"><button type="button" data-l="arriba" title="Subir">↑</button><button type="button" data-l="abajo" title="Bajar">↓</button><button type="button" data-l="dup" title="Duplicar">⧉</button><button type="button" data-l="borrar" title="Eliminar">✕</button></span></summary>';
+        d.addEventListener('toggle', function() { if (d.open) it._abierto = true; else delete it._abierto; });
+        var cuerpoI = h('div', 'nvi-ed-item-c'); d.appendChild(cuerpoI);
+        (c.campos || []).forEach(function(sc) { cuerpoI.appendChild(campo(sc, it, function(redib) { if (sc.k === c.titulo) d.querySelector('summary span').textContent = String(it[c.titulo] || '').slice(0, 40); cambio(redib); })); });
+        d.querySelector('.nvi-ed-mini-acc').onclick = function(e) {
+          var x = e.target.closest('[data-l]'); if (!x) return; e.preventDefault();
+          if (x.dataset.l === 'arriba' && i > 0) lista.splice(i - 1, 0, lista.splice(i, 1)[0]);
+          if (x.dataset.l === 'abajo' && i < lista.length - 1) lista.splice(i + 1, 0, lista.splice(i, 1)[0]);
+          if (x.dataset.l === 'dup') lista.splice(i + 1, 0, NVI.clon(it));
+          if (x.dataset.l === 'borrar') lista.splice(i, 1);
+          cambio(true);
+        };
+        w.appendChild(d);
+      });
+      var add = h('button', 'nvi-b2 nvi-ed-add', '+ Agregar'); add.type = 'button'; add.onclick = function() { var n = NVI.clon(c.nuevo || {}); n._abierto = true; lista.push(n); cambio(true); }; w.appendChild(add);
+    }
+    return w;
+  }
+  // _abierto solo sirve en el panel: no se guarda
+  var guardarOrig = JSON.stringify;
+  E.limpiarTemp = function(o) { return JSON.parse(guardarOrig(o, function(k, v) { return k === '_abierto' ? undefined : v; })); };
+
+  // ---------- Biblioteca de medios ----------
+  E.biblioteca = function(acepta, alElegir) {
+    var bg = h('div', 'nvi-dlg-bg'), d = h('div', 'nvi-dlg nvi-ed-bib'); bg.appendChild(d);
+    d.innerHTML = '<h3>Biblioteca de medios</h3><div class="nvi-ed-bib-barra"><button type="button" class="nvi-b1" data-b="subir">⬆ Subir ' + (acepta === 'video' ? 'video (mp4, hasta 50 MB)' : acepta === 'imagen' ? 'imágenes' : 'imágenes o videos') + '</button>' +
+      '<span class="nvi-ed-bib-prog"></span><span style="flex:1"></span><button type="button" class="nvi-b2" data-b="cerrar">Cerrar</button></div><p class="nvi-ed-ayuda">' + (alElegir ? 'Haz clic en un archivo para usarlo.' : 'Aquí quedan las imágenes y videos que subes para la página.') + ' Las imágenes grandes se reducen solas para que la página cargue rápido.</p><div class="nvi-ed-bib-grid">Cargando…</div>';
+    var grid = d.querySelector('.nvi-ed-bib-grid'), prog = d.querySelector('.nvi-ed-bib-prog');
+    var cargarL = function() {
+      api('/design/api/inicio/medios').then(function(l) {
+        l = l.filter(function(m) { return !acepta || acepta === 'ambos' || m.tipo === acepta; });
+        grid.innerHTML = l.length ? '' : '<p class="nvi-ed-ayuda">Todavía no hay archivos. Sube el primero.</p>';
+        l.forEach(function(m) {
+          var c = h('div', 'nvi-ed-bib-item'); c.title = m.nombre;
+          c.innerHTML = (m.tipo === 'video' ? '<video src="' + m.url + '#t=0.5" muted preload="metadata"></video><span class="tipo">🎬</span>' : '<img src="' + m.url + '" alt="" loading="lazy">') +
+            '<div class="nom">' + esc(m.nombre) + '<small>' + (m.tamano / 1048576).toFixed(1) + ' MB</small></div><button type="button" class="borrar" title="Eliminar de la biblioteca">🗑</button>';
+          c.querySelector('.borrar').onclick = function(e) { e.stopPropagation(); if (!confirm('¿Eliminar "' + m.nombre + '" de la biblioteca? Si la página lo usa, dejará de verse.')) return; api('/design/api/inicio/medios/' + m.id + '/eliminar', {}).then(cargarL).catch(function(er) { aviso(er.message, true); }); };
+          c.onclick = function() { if (alElegir) { bg.remove(); alElegir('medio:' + m.id); } else NVI.lightbox([{src: m.url, titulo: m.nombre}], 0); };
+          grid.appendChild(c);
+        });
+      }).catch(function(e) { grid.textContent = 'No se pudo cargar: ' + e.message; });
+    };
+    d.onclick = function(e) {
+      var b = e.target.closest('[data-b]'); if (!b) return;
+      if (b.dataset.b === 'cerrar') bg.remove();
+      if (b.dataset.b === 'subir') {
+        var i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.accept = acepta === 'video' ? 'video/mp4,video/webm' : acepta === 'imagen' ? 'image/*' : 'image/*,video/mp4,video/webm';
+        i.onchange = function() {
+          var fs = Array.prototype.slice.call(i.files), hechos = 0, ultimo = null;
+          var sig = function() {
+            if (!fs.length) { prog.textContent = hechos ? '✓ ' + hechos + ' archivo(s) subidos' : ''; cargarL(); if (alElegir && ultimo && hechos === 1) { bg.remove(); alElegir('medio:' + ultimo.id); } return; }
+            var f = fs.shift(); prog.textContent = 'Subiendo ' + f.name + '…';
+            NVI.subirMedio(f, function(x) { prog.textContent = 'Subiendo ' + f.name + '… ' + Math.round(x * 100) + '%'; }).then(function(m) { hechos++; ultimo = m; sig(); }).catch(function(er) { aviso(f.name + ': ' + er.message, true); sig(); });
+          };
+          sig();
+        };
+        i.click();
+      }
+    };
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) bg.remove(); });
+    document.body.appendChild(bg); cargarL();
+  };
+
+  // ---------- Plantillas ----------
+  function abrirPlantillas(inicial) {
+    var bg = h('div', 'nvi-dlg-bg'), d = h('div', 'nvi-dlg nvi-ed-pl'); bg.appendChild(d);
+    d.innerHTML = '<h3>Plantillas</h3><p class="nvi-ed-ayuda">' + (inicial ? 'Empieza con una plantilla y cámbiala a tu gusto (textos, imágenes, colores y orden).' : 'Usar una plantilla reemplaza la página del borrador (puedes deshacer con Ctrl+Z). También puedes agregar solo sus secciones al final.') + '</p><div class="nvi-ed-pl-grid"></div><div class="nvi-dlg-bot"><button type="button" class="nvi-b2" data-cerrar>' + (inicial ? 'Empezar en blanco' : 'Cerrar') + '</button></div>';
+    var grid = d.querySelector('.nvi-ed-pl-grid');
+    NVI.PLANTILLAS.forEach(function(pl) {
+      var c = h('div', 'nvi-ed-pl-item'), mini = h('div', 'nvi-ed-pl-mini'), escena = h('div', 'nvi-ed-pl-escena');
+      mini.appendChild(escena); c.appendChild(mini);
+      c.appendChild(h('div', 'nvi-ed-pl-info', '<b>' + esc(pl.nombre) + '</b><p>' + esc(pl.descripcion) + '</p><div><button type="button" class="nvi-b1" data-usar>Usar plantilla</button>' + (inicial ? '' : ' <button type="button" class="nvi-b2" data-agregar>Agregar sus secciones</button>') + '</div>'));
+      NVI.render(pl.crear(), escena, {modo: 'editar'});
+      c.querySelector('[data-usar]').onclick = function() { E.pag = pl.crear(); E.sel = null; bg.remove(); E.cambio(); aviso('Plantilla "' + pl.nombre + '" lista. Ahora cámbiala a tu gusto.'); };
+      var ag = c.querySelector('[data-agregar]'); if (ag) ag.onclick = function() { E.pag.secciones = E.pag.secciones.concat(pl.crear().secciones); bg.remove(); E.cambio(); aviso('Se agregaron las secciones al final.'); };
+      grid.appendChild(c);
+    });
+    d.querySelector('[data-cerrar]').onclick = function() { bg.remove(); };
+    document.body.appendChild(bg);
+  }
+
+  // ---------- Historial de publicaciones ----------
+  function abrirHistorial() {
+    api('/design/api/inicio/versiones').then(function(l) {
+      var html = l.length ? '<div class="nvi-ed-hist">' + l.map(function(v, i) {
+        var f = new Date(v.publicadoEn + (/Z|[+-]\d\d:\d\d$/.test(v.publicadoEn) ? '' : 'Z'));
+        return '<div class="nvi-ed-hist-f"><span><b>' + f.toLocaleString('es-CO', {dateStyle: 'medium', timeStyle: 'short'}) + '</b>' + (i === 0 ? ' <em>(publicada ahora)</em>' : '') + '<small>' + esc(v.publicadoPor) + '</small></span><button type="button" class="nvi-b2" data-v="' + v.id + '">Cargar en el borrador</button></div>';
+      }).join('') + '</div>' : '<p class="nvi-ed-ayuda">Todavía no se ha publicado ninguna versión.</p>';
+      var bg = h('div', 'nvi-dlg-bg'), d = h('div', 'nvi-dlg'); bg.appendChild(d);
+      d.innerHTML = '<h3>Historial de publicaciones</h3><p class="nvi-ed-ayuda">Carga una versión anterior en el borrador para revisarla; se ve en la página cuando la publiques.</p>' + html + '<div class="nvi-dlg-bot"><button type="button" class="nvi-b2" data-cerrar>Cerrar</button></div>';
+      d.onclick = function(e) {
+        if (e.target.closest('[data-cerrar]')) bg.remove();
+        var b = e.target.closest('[data-v]'); if (!b) return;
+        E.guardar().then(function() { return api('/design/api/inicio/versiones/' + b.dataset.v + '/restaurar', {}); }).then(function() { bg.remove(); return cargar(); }).then(function() { aviso('Versión cargada en el borrador. Publica para que la vean todos.'); }).catch(function(er) { aviso(er.message, true); });
+      };
+      document.body.appendChild(bg);
+    }).catch(function(e) { aviso(e.message, true); });
+  }
+
+  // ---------- Teclado ----------
+  function teclado(e) {
+    if (document.querySelector('.nvi-dlg-bg') || E.editando) return;
+    var enCampo = e.target.closest && e.target.closest('input, textarea, select, [contenteditable=true]');
+    var c = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+    if (c && k === 'z' && !e.shiftKey && !enCampo) { e.preventDefault(); E.deshacer(); }
+    else if (c && (k === 'y' || (k === 'z' && e.shiftKey)) && !enCampo) { e.preventDefault(); E.rehacer(); }
+    else if (c && k === 's') { e.preventDefault(); E.guardar(true).then(function() { aviso('Borrador guardado.'); }); }
+    else if (enCampo) return;
+    else if ((e.key === 'Delete' || e.key === 'Backspace') && E.sel && E.sel.tipo === 'bloque') { var r = blkPor(E.sel.id); if (r) { e.preventDefault(); r.lista.splice(r.i, 1); E.sel = null; E.cambio(); } }
+    else if (c && k === 'd' && E.sel && E.sel.tipo === 'bloque') { e.preventDefault(); var r2 = blkPor(E.sel.id); if (r2) { var cp = nuevosIds(NVI.clon(r2.el || r2.blk)); r2.lista.splice(r2.i + 1, 0, cp); E.sel = {tipo: 'bloque', id: (cp.bloque || cp).id}; E.cambio(); } }
+    else if (e.key === 'Escape') seleccionar(null);
+    else if (/^Arrow/.test(e.key) && E.sel && E.sel.tipo === 'bloque') { var r3 = blkPor(E.sel.id); if (r3 && r3.el) { e.preventDefault(); var paso = e.shiftKey ? 10 : 1; if (e.key === 'ArrowLeft') r3.el.x -= paso / 2; if (e.key === 'ArrowRight') r3.el.x += paso / 2; if (e.key === 'ArrowUp') r3.el.y -= paso; if (e.key === 'ArrowDown') r3.el.y += paso; E.cambio(); } }
+  }
+
+})();
