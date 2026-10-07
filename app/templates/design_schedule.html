@@ -2100,10 +2100,14 @@ window.addEventListener('unhandledrejection', function(ev) {
     var m = man[f.id];
     if (m === 'oculta') return true;
     if (m === 'visible') return false;
+    // Canceladas: también se ocultan solas, 30 s después de quedar en Canceled (las que ya estaban, de una vez)
+    if (dsEsCancelada(f)) { var gc = DS.cancelGracia[f.id]; return !(gc && Date.now() - gc < 30000); }
     if (!f.qc) return false;
     var g = DS.qcGracia[f.id];
     return !(g && Date.now() - g < 30000);
   }
+  function dsEsCancelada(f) { return String(f.estado || '').trim().toLowerCase() === 'canceled'; }
+  DS.cancelGracia = {}; DS.estadoVisto = {};
   function dsBtnOjo(id) {
     return '<button type="button" class="ds-btn-ojo" data-ojo="' + id + '" title="Ocultar esta fila" aria-label="Ocultar o mostrar esta fila" onclick="dsOjoFila(' + id + ')">👁</button>';
   }
@@ -2114,6 +2118,14 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!window.DS_GESTION || !DS.diaData || (tabla !== 'principal' && tabla !== 'nightguard')) { if (btn) btn.style.display = 'none'; return; }
     var man = dsOcultasLeer(), n = 0, cambio = false;
     (DS.diaData[tabla] || []).forEach(function(f) {
+      // una orden que acaba de pasar a Canceled (aquí o por otra persona) se ve 30 s y luego se oculta
+      var antes = DS.estadoVisto[f.id], ahora = dsEsCancelada(f);
+      if (antes === false && ahora && !DS.cancelGracia[f.id]) {
+        DS.cancelGracia[f.id] = Date.now();
+        setTimeout(function() { dsAplicarOcultas(tabla); }, 30500);
+      }
+      if (!ahora) delete DS.cancelGracia[f.id];
+      DS.estadoVisto[f.id] = ahora;
       var tr = document.querySelector('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' tr[data-id="' + f.id + '"]');
       var oc = dsEstaOculta(f, man);
       if (oc) n++;
@@ -2128,7 +2140,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (btn) {
       btn.style.display = !n && !DS.verOcultas ? 'none' : '';  // (.btn pisa el atributo hidden)
       btn.textContent = DS.verOcultas ? 'Ocultar (' + n + ')' : 'Mostrar ocultas (' + n + ')';
-      btn.title = DS.verOcultas ? 'Vuelve a ocultar las órdenes con QC y las que ocultaste' : 'Muestra las órdenes con QC y las que ocultaste (atenuadas)';
+      btn.title = DS.verOcultas ? 'Vuelve a ocultar las órdenes con QC, las canceladas y las que ocultaste' : 'Muestra las órdenes con QC, las canceladas y las que ocultaste (atenuadas)';
     }
     if (cambio && DS.sel) { DS.sel = null; dsPintarSel(); }  // cambiaron las filas visibles: la selección ya no aplica
   }
@@ -2144,7 +2156,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var man = dsOcultasLeer(), f = null;
     ['principal', 'nightguard'].forEach(function(t) { f = f || (DS.diaData[t] || []).find(function(x) { return x.id === id; }); });
     if (!f) return;
-    if (dsEstaOculta(f, man)) man[id] = f.qc ? 'visible' : undefined; else man[id] = 'oculta';
+    if (dsEstaOculta(f, man)) man[id] = (f.qc || dsEsCancelada(f)) ? 'visible' : undefined; else man[id] = 'oculta';
     if (man[id] === undefined) delete man[id];
     dsOcultasGuardar(man);
     dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard');
