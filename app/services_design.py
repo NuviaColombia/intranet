@@ -264,9 +264,73 @@ def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = 
 
 def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     ordenar_estados_n3_n6_una_vez(db)
-    return [c.valor for c in db.query(DesignCatalogo)
+    productos_n6_igual_n3_una_vez(db)
+    vals = [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
+    return _orden_productos_n6(db, area_id, tipo, vals)
+
+
+# N6: los productos que empiezan por "N6" van primero y debajo los demás (los de N3), en su orden (pedido por Rosember
+# el 7-oct-2026). Se aplica al mostrar la lista, así también los productos que se agreguen después quedan en su lugar.
+AREA_N6 = "N6 Material Changes"
+
+
+def _orden_productos_n6(db: Session, area_id: int, tipo: str, vals: list[str]) -> list[str]:
+    if tipo != "producto":
+        return vals
+    a = db.get(DesignArea, area_id)
+    if not a or a.nombre != AREA_N6:
+        return vals
+    return sorted(vals, key=lambda v: not _normalizar_texto(v).startswith("n6"))  # estable: conserva el orden dentro de cada grupo
+
+
+_productos_n6 = {"ok": False}
+
+
+def productos_n6_igual_n3_una_vez(db: Session) -> None:
+    """Una sola vez (7-oct-2026): N6 tiene todos los productos activos de N3 (los que le falten se agregan o se
+    reactivan) y su catálogo queda ordenado: primero los N6, luego los de N3 en el orden de N3 y al final los demás.
+    Lo agregado queda anotado en design_conexion_reglas (tipo sistema, clave productos_n6_igual_n3)."""
+    from .models_design import DesignConexionRegla
+    if _productos_n6["ok"]:
+        return
+    marca = "productos_n6_igual_n3"
+    try:
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            _productos_n6["ok"] = True
+            return
+        n3 = db.query(DesignArea).filter(DesignArea.nombre == "N3 Prosthetic").first()
+        n6 = db.query(DesignArea).filter(DesignArea.nombre == AREA_N6).first()
+        if not n3 or not n6:
+            return
+        q = lambda area: (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "producto")
+                          .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+        de_n3 = [c for c in q(n3) if c.activo]
+        de_n6 = q(n6)
+        por_nombre = {_normalizar_texto(c.valor): c for c in de_n6}
+        agregados, reactivados = [], []
+        for c in de_n3:
+            x = por_nombre.get(_normalizar_texto(c.valor))
+            if not x:
+                x = DesignCatalogo(area_id=n6.id, tipo="producto", valor=c.valor, activo=1)
+                db.add(x); de_n6.append(x); por_nombre[_normalizar_texto(c.valor)] = x; agregados.append(c.valor)
+            elif not x.activo:
+                x.activo = 1; reactivados.append(c.valor)
+        orden_n3 = {_normalizar_texto(c.valor): i for i, c in enumerate(de_n3)}
+        def clave(x):
+            n = _normalizar_texto(x.valor)
+            if n.startswith("n6"):
+                return (0, de_n6.index(x))
+            return (1, orden_n3.get(n, 10_000 + de_n6.index(x)))
+        for i, x in enumerate(sorted(de_n6, key=clave), start=1):
+            x.orden = i
+        db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema",
+                                   valor=json.dumps({"agregados": agregados, "reactivados": reactivados}, ensure_ascii=False)))
+        db.commit()
+        _productos_n6["ok"] = True
+    except Exception:
+        db.rollback()
 
 
 # Orden de los estados en N3 y N6 (pedido por Rosember el 2-oct-2026). Los que falten se crean; los demás estados
@@ -309,10 +373,13 @@ def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
 
 def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     ordenar_estados_n3_n6_una_vez(db)
+    productos_n6_igual_n3_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
         out.setdefault(c.tipo, []).append(c.valor)
+    if "producto" in out:
+        out["producto"] = _orden_productos_n6(db, area_id, "producto", out["producto"])
     return out
 
 
