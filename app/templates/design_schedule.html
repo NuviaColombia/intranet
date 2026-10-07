@@ -402,6 +402,8 @@ window.dsPdfjs = function() {
   /* N3: todas las secciones igual que Plantillas (panel gris, campos y cajas en blanco) */
   #cmtPanelN3 .cmt-section, #cmtPanelN3 .cmt-outbox { background:#f4f6fa; }
   #cmtPanelN3 input, #cmtPanelN3 select, #cmtPanelN3 textarea { background:#fff; border-color:#e2e6ef; }
+  /* Cajas de texto de Comments N3: sin la esquina para estirar; crecen solas con el texto (el tamaño actual es el mínimo) */
+  #cmtPanelN3 textarea { resize:none; overflow:hidden; }
   #cmtPanelN3 .cmt-field input.ro { background:#fff; color:#4b5563; cursor:not-allowed; }
   #cmtPanelN3 .cmt-toggle-row { border-bottom-color:#e2e6ef; }
   #cmtPanelN3 .cmt-hist-item { background:#fff; border-color:#e2e6ef; }
@@ -4078,7 +4080,7 @@ window.DS_PANELS.dashboard = function() {
     cmtAvisoMovidos("cmt_L19", f.b19, f.f19, f.j19, L19);
     document.getElementById("cmtOut1").value = cmtGenReadyToMill(f);
     document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
-    cmtAutoGrow(document.getElementById("cmtOut1")); cmtAutoGrow(document.getElementById("cmtOut2"));
+    cmtAutoGrow(document.getElementById("cmtOut1")); cmtAutoGrow(document.getElementById("cmtOut2")); cmtAutoGrow(document.getElementById("cmt_b30"));
     cmtRenderPlantillas();
     cmtGuardarBorrador(f);
   }
