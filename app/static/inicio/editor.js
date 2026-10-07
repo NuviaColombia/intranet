@@ -38,7 +38,10 @@
   var tHist = null, tGuardar = null, tPintar = null;
   E.cambio = function(sinRepintar) {
     if (!sinRepintar) { clearTimeout(tPintar); tPintar = setTimeout(function() { E.pintar(); }, 120); }
-    clearTimeout(tHist); tHist = setTimeout(registrar, 500);
+    // lo que se escribe en un campo o en el texto se agrupa en un solo paso; borrar, duplicar, mover, etc. es un paso cada uno
+    clearTimeout(tHist);
+    var a = document.activeElement;
+    if (E.editando || (a && a.closest && a.closest('#nviProps') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) tHist = setTimeout(registrar, 500); else registrar();
     marcarSinGuardar(); clearTimeout(tGuardar); tGuardar = setTimeout(E.guardar, 1400);
   };
   function registrar() { var f = JSON.stringify(E.pag); if (E.hist[E.histI] === f) return; E.hist = E.hist.slice(0, E.histI + 1); E.hist.push(f); if (E.hist.length > 80) E.hist.shift(); E.histI = E.hist.length - 1; botonesHist(); }
@@ -256,8 +259,13 @@
     NVI.render(E.pag, lienzo, {modo: E.previa ? 'ver' : 'editar'});
     if (!E.previa) { decorar(lienzo); pintarOtros(); }
     document.getElementById('nviCentro').scrollTop = y;
-    if (!E.previa) pintarProps();
+    // si la persona está escribiendo en el panel de la derecha no se redibuja (perdería el cursor a la primera letra)
+    if (!E.previa && !escribiendoEnPanel()) pintarProps();
   };
+  function escribiendoEnPanel() {
+    var a = document.activeElement;
+    return !!(a && a.closest && a.closest('#nviProps') && /^(INPUT|TEXTAREA)$/.test(a.tagName) && !/^(checkbox|radio|range|color|file)$/.test(a.type || ''));
+  }
   function botonera(acciones) { return '<span class="nvi-ed-bot">' + acciones.map(function(a) { return '<button type="button" data-hacer="' + a[0] + '" title="' + esc(a[2]) + '">' + a[1] + '</button>'; }).join('') + '</span>'; }
   function decorar(lienzo) {
     var pag = lienzo.querySelector('.nvi-pagina');
@@ -289,8 +297,10 @@
       if (mv) {
         bEl.setAttribute('draggable', 'false');
         mv.setAttribute('draggable', 'true');
-        mv.addEventListener('dragstart', function(e) { e.dataTransfer.setData('text/nvi-mover', r.blk.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setDragImage(bEl, 20, 20); document.body.classList.add('nvi-arrastrando'); bEl.classList.add('moviendo'); });
-        mv.addEventListener('dragend', function() { bEl.classList.remove('moviendo'); finArrastre(); });
+        mv.addEventListener('dragstart', function(e) { e.dataTransfer.setData('text/nvi-mover', r.blk.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setDragImage(bEl, 20, 20);
+          // la barra con la manija se oculta un instante después: si desaparece en el mismo dragstart, Chrome cancela el arrastre
+          mv._t = setTimeout(function() { document.body.classList.add('nvi-arrastrando'); bEl.classList.add('moviendo'); }, 0); });
+        mv.addEventListener('dragend', function() { clearTimeout(mv._t); bEl.classList.remove('moviendo'); finArrastre(); });
       }
       if (r.el) { var rs = h('span', 'nvi-ed-rsz'); rs.title = 'Arrastra para cambiar el tamaño'; bEl.parentNode.appendChild(rs); bEl.parentNode.classList.add('nvi-ed-el'); if (E.sel && E.sel.id === r.blk.id) bEl.parentNode.classList.add('sel'); }
     });
@@ -622,7 +632,7 @@
   // ---------- Biblioteca de medios ----------
   E.biblioteca = function(acepta, alElegir) {
     var bg = h('div', 'nvi-dlg-bg'), d = h('div', 'nvi-dlg nvi-ed-bib'); bg.appendChild(d);
-    d.innerHTML = '<h3>Biblioteca de medios</h3><div class="nvi-ed-bib-barra"><button type="button" class="nvi-b1" data-b="subir">⬆ Subir ' + (acepta === 'video' ? 'video (mp4, hasta 50 MB)' : acepta === 'imagen' ? 'imágenes' : 'imágenes o videos') + '</button>' +
+    d.innerHTML = '<h3>Biblioteca de medios</h3><div class="nvi-ed-bib-barra"><button type="button" class="nvi-b1" data-b="subir">⬆ Subir ' + (acepta === 'video' ? 'video (MP4, WEBM, MOV u OGG, hasta 100 MB)' : acepta === 'imagen' ? 'imágenes' : 'imágenes o videos') + '</button>' +
       '<span class="nvi-ed-bib-prog"></span><span style="flex:1"></span><button type="button" class="nvi-b2" data-b="cerrar">Cerrar</button></div><p class="nvi-ed-ayuda">' + (alElegir ? 'Haz clic en un archivo para usarlo.' : 'Aquí quedan las imágenes y videos que subes para la página.') + ' Las imágenes grandes se reducen solas para que la página cargue rápido.</p><div class="nvi-ed-bib-grid">Cargando…</div>';
     var grid = d.querySelector('.nvi-ed-bib-grid'), prog = d.querySelector('.nvi-ed-bib-prog');
     var cargarL = function() {
@@ -643,7 +653,7 @@
       var b = e.target.closest('[data-b]'); if (!b) return;
       if (b.dataset.b === 'cerrar') bg.remove();
       if (b.dataset.b === 'subir') {
-        var i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.accept = acepta === 'video' ? 'video/mp4,video/webm' : acepta === 'imagen' ? 'image/*' : 'image/*,video/mp4,video/webm';
+        var i = document.createElement('input'); i.type = 'file'; i.multiple = true; var VID = 'video/mp4,video/webm,video/quicktime,video/ogg,.mp4,.m4v,.webm,.mov,.ogv'; i.accept = acepta === 'video' ? VID : acepta === 'imagen' ? 'image/*' : 'image/*,' + VID;
         i.onchange = function() {
           var fs = Array.prototype.slice.call(i.files), hechos = 0, ultimo = null;
           var sig = function() {
@@ -701,6 +711,7 @@
     if (document.querySelector('.nvi-dlg-bg') || E.editando) return;
     var enCampo = e.target.closest && e.target.closest('input, textarea, select, [contenteditable=true]');
     var c = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+    if (E.previa) { if (c && k === 's') e.preventDefault(); return; }   // en vista previa el teclado no edita la página
     if (c && k === 'z' && !e.shiftKey && !enCampo) { e.preventDefault(); E.deshacer(); }
     else if (c && (k === 'y' || (k === 'z' && e.shiftKey)) && !enCampo) { e.preventDefault(); E.rehacer(); }
     else if (c && k === 's') { e.preventDefault(); E.guardar(true).then(function() { aviso('Borrador guardado.'); }); }

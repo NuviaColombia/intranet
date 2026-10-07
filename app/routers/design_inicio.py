@@ -6,7 +6,8 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session, undefer
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
 from ..models_design import DesignInicioMedio
@@ -141,26 +142,34 @@ def api_medio_eliminar(medio_id: int, user: Empleado = Depends(require_admin), d
     return {"ok": True}
 
 
+TROZO_VIDEO = 4 * 1024 * 1024
+
+
 @router.get("/design/inicio/medio/{medio_id}")
 def medio(medio_id: int, request: Request, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """Imagen o video de la página de Inicio. Los videos responden por partes (Range) para poder adelantarlos."""
-    m = db.query(DesignInicioMedio).options(undefer(DesignInicioMedio.datos)).filter(DesignInicioMedio.id == medio_id).first()
+    m = db.query(DesignInicioMedio).filter(DesignInicioMedio.id == medio_id).first()   # sin el archivo: se lee abajo solo lo necesario
     if not m:
         raise HTTPException(404, "No existe.")
-    total, cab = len(m.datos), {"Cache-Control": "private, max-age=31536000, immutable", "Accept-Ranges": "bytes"}
+    total = m.tamano or db.query(func.length(DesignInicioMedio.datos)).filter(DesignInicioMedio.id == medio_id).scalar() or 0
+    cab = {"Cache-Control": "private, max-age=31536000, immutable", "Accept-Ranges": "bytes"}
     if m.mime == "image/svg+xml":
         cab["Content-Security-Policy"] = "script-src 'none'"
+    # los .mov (H.264) se entregan como mp4 para que Chrome, Edge y Firefox los reproduzcan
+    mime = "video/mp4" if m.mime == "video/quicktime" else m.mime
     rango = request.headers.get("range", "")
     mt = re.match(r"bytes=(\d*)-(\d*)$", rango.strip())
     if mt and total:
         ini = int(mt.group(1)) if mt.group(1) else max(0, total - int(mt.group(2) or 0))
         fin = int(mt.group(2)) if mt.group(1) and mt.group(2) else total - 1
-        fin = min(fin, total - 1)
+        fin = min(fin, total - 1, ini + TROZO_VIDEO - 1)   # por partes: un video de 100 MB no se carga entero en memoria
         if ini > fin:
             return Response(status_code=416, headers={"Content-Range": f"bytes */{total}"})
-        cab["Content-Range"] = f"bytes {ini}-{fin}/{total}"
-        return Response(m.datos[ini:fin + 1], status_code=206, media_type=m.mime, headers=cab)
-    return Response(m.datos, media_type=m.mime, headers=cab)
+        parte = db.query(func.substr(DesignInicioMedio.datos, ini + 1, fin - ini + 1)).filter(DesignInicioMedio.id == medio_id).scalar() or b""
+        cab["Content-Range"] = f"bytes {ini}-{ini + len(parte) - 1}/{total}"
+        return Response(bytes(parte), status_code=206, media_type=mime, headers=cab)
+    datos = db.query(DesignInicioMedio.datos).filter(DesignInicioMedio.id == medio_id).scalar() or b""
+    return Response(bytes(datos), media_type=mime, headers=cab)
 
 
 # ---------- Muro ----------

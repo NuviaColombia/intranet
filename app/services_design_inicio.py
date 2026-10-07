@@ -1,5 +1,6 @@
 """Página de Inicio de Design (/design/inicio): editor tipo WordPress para admins (borrador, publicar, historial),
 biblioteca de medios (imágenes y videos cortos) y muro interno de publicaciones."""
+import os
 import json
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -8,10 +9,13 @@ from .models_design import DesignInicioPagina, DesignInicioVersion, DesignInicio
 
 MAX_VERSIONES = 30
 MAX_IMAGEN = 10 * 1024 * 1024
-MAX_VIDEO = 50 * 1024 * 1024
+MAX_VIDEO = 100 * 1024 * 1024
 MAX_CONTENIDO = 5 * 1024 * 1024  # el JSON de la página (las imágenes van aparte, como medios)
 TIPOS_IMAGEN = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"}
-TIPOS_VIDEO = {"video/mp4", "video/webm"}
+TIPOS_VIDEO = {"video/mp4", "video/webm", "video/quicktime", "video/ogg"}  # los que Chrome y Edge reproducen sin convertir
+# algunos equipos envían el video sin tipo (o como "octet-stream"): se reconoce por la extensión
+EXT_VIDEO = {".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".ogv": "video/ogg", ".ogg": "video/ogg"}
+VIDEO_NO_VISIBLE = (".avi", ".wmv", ".mkv", ".flv", ".3gp", ".mpg", ".mpeg")
 
 
 class Conflicto(Exception):
@@ -139,12 +143,17 @@ def medios(db: Session) -> list[dict]:
 
 def medio_crear(db: Session, user: Empleado, nombre: str, mime: str, datos: bytes, ancho: int = 0, alto: int = 0) -> DesignInicioMedio:
     mime = (mime or "").lower().split(";")[0].strip()
+    ext = os.path.splitext((nombre or "").lower())[1]
+    if ext in VIDEO_NO_VISIBLE:
+        raise ValueError(f"Los videos {ext.upper()[1:]} no se pueden ver en el navegador. Conviértelo a MP4 o pega el enlace de YouTube, Vimeo o WorkDrive.")
+    if mime not in TIPOS_IMAGEN and mime not in TIPOS_VIDEO and ext in EXT_VIDEO:
+        mime = EXT_VIDEO[ext]
     if mime in TIPOS_IMAGEN:
         tipo, limite = "imagen", MAX_IMAGEN
     elif mime in TIPOS_VIDEO:
         tipo, limite = "video", MAX_VIDEO
     else:
-        raise ValueError("Formato no admitido. Imágenes: JPG, PNG, WEBP, GIF o SVG. Videos: MP4 o WEBM.")
+        raise ValueError("Formato no admitido. Imágenes: JPG, PNG, WEBP, GIF o SVG. Videos: MP4, WEBM, MOV u OGG.")
     if not datos:
         raise ValueError("El archivo está vacío.")
     if len(datos) > limite:

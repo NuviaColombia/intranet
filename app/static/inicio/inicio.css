@@ -224,3 +224,28 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 .nvi-anim-flotar.visto { animation:nviFlotar 6s ease-in-out infinite; }
 @keyframes nviFlotar { 0%, 100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
 @media (prefers-reduced-motion: reduce) { .nvi-fondo-mov, .nvi-anim-flotar.visto { animation:none; } }
+
+/* ---------- Efectos de fotos ---------- */
+.nvi-img-mv { display:inline-block; overflow:hidden; vertical-align:middle; position:relative; }
+.nvi-img-mv img { display:block; transition:transform .6s cubic-bezier(.2,.7,.2,1); }
+.nvi-img-zoom:hover img { transform:scale(1.08); }
+.nvi-img-lento img { animation:nviKenBurns 18s ease-in-out infinite alternate; }
+.nvi-img-brillo::after { content:''; position:absolute; top:0; bottom:0; left:-60%; width:40%; background:linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); transform:skewX(-18deg); pointer-events:none; }
+.nvi-img-brillo:hover::after { animation:nviDestello .9s ease; }
+.nvi-car-fondo { position:absolute; inset:0; background-position:center; background-repeat:no-repeat; animation:nviKenBurns 16s ease-in-out infinite alternate; }
+.nvi-car-slide .nvi-car-capa, .nvi-car-slide .nvi-car-txt { z-index:1; }
+@keyframes nviKenBurns { from { transform:scale(1) translate(0, 0); } to { transform:scale(1.12) translate(-2%, -1.5%); } }
+@keyframes nviDestello { from { left:-60%; } to { left:130%; } }
+
+/* ---------- Decoración animada de las secciones (murciélagos, nieve, confeti…) ---------- */
+.nvi-deco { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.nvi-deco span { position:absolute; line-height:1; will-change:transform; user-select:none; }
+.nvi-deco-caer span { top:-40px; animation:nviCaer linear infinite; }
+.nvi-deco-subir span { bottom:-50px; animation:nviSubir ease-in-out infinite; }
+.nvi-deco-volar span { left:-60px !important; animation:nviVolar linear infinite; }
+.nvi-deco-volar span:nth-child(odd) { animation-name:nviVolar2; }
+@keyframes nviCaer { from { transform:translate(0, 0) rotate(0); } 50% { transform:translate(22px, 55vh) rotate(160deg); } to { transform:translate(-14px, 115vh) rotate(320deg); } }
+@keyframes nviSubir { 0% { transform:translate(0, 0); opacity:0; } 15% { opacity:.85; } 50% { transform:translate(26px, -50vh); } 85% { opacity:.6; } 100% { transform:translate(-10px, -105vh); opacity:0; } }
+@keyframes nviVolar { 0% { transform:translate(0, 0); } 25% { transform:translate(30vw, -26px); } 50% { transform:translate(60vw, 18px); } 75% { transform:translate(90vw, -20px); } 100% { transform:translate(125vw, 0); } }
+@keyframes nviVolar2 { 0% { transform:translate(0, 0) scale(.8); } 30% { transform:translate(35vw, 30px) scale(.8); } 65% { transform:translate(75vw, -24px) scale(.8); } 100% { transform:translate(125vw, 10px) scale(.8); } }
+@media (prefers-reduced-motion: reduce) { .nvi-deco { display:none; } .nvi-img-lento img, .nvi-car-fondo { animation:none; } }

@@ -35,7 +35,7 @@ body.nvi-editando { overflow:hidden; }
 .nvi-ed-centro { overflow:auto; padding:18px; margin:0 !important; max-width:none !important; width:auto !important; min-width:0; }  /* el <main> general de la plataforma va centrado: aquí no */
 .nvi-ed-marco { margin:0 auto; background:#fff; box-shadow:0 4px 24px rgba(15,23,42,.12); min-height:100%; transition:max-width .25s; max-width:100%; }
 .nvi-ed-marco.disp-tablet { max-width:820px; } .nvi-ed-marco.disp-movil { max-width:390px; }
-body.nvi-previa .nvi-ed { grid-template-columns:0 1fr 0; } body.nvi-previa .nvi-ed-izq, body.nvi-previa .nvi-ed-der { display:none; }
+body.nvi-previa .nvi-ed { grid-template-columns:minmax(0, 1fr); } body.nvi-previa .nvi-ed-izq, body.nvi-previa .nvi-ed-der { display:none; }
 
 /* Marcas sobre la página */
 .nvi-ed-sec { outline:1px dashed transparent; outline-offset:-1px; }
