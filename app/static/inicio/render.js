@@ -164,19 +164,25 @@
   D.carrusel = {n: 'Carrusel', ic: '⇆', g: 'Medios',
     d: function() { return {items: [{src: NVI.placeholder('Diapositiva 1', '#2f98d5', '#1a1449'), titulo: 'Bienvenidos a Design', texto: 'Escribe un mensaje para esta imagen', enlace: ''},
       {src: NVI.placeholder('Diapositiva 2', '#252772', '#1a1449'), titulo: 'Logros del equipo', texto: '', enlace: ''}, {src: NVI.placeholder('Diapositiva 3', '#2f98d5', '#252772'), titulo: 'Novedades', texto: '', enlace: ''}],
-      alto: 420, intervalo: 5, efecto: 'deslizar', flechas: true, puntos: true, oscurecer: 35, radio: 16, ajuste: 'cover'}; },
-    campos: [{tipo: 'lista', k: 'items', l: 'Diapositivas', titulo: 'titulo', nuevo: {src: '', titulo: 'Nueva diapositiva', texto: '', enlace: ''},
+      estilo: '', visibles: 1, velocidad: 'normal', alto: 420, intervalo: 5, efecto: 'deslizar', flechas: true, puntos: true, oscurecer: 35, radio: 16, ajuste: 'cover'}; },
+    campos: [{tipo: 'lista', k: 'items', l: 'Diapositivas', titulo: 'titulo', masivo: 'src', nuevo: {src: '', titulo: '', texto: '', enlace: ''},
       campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'area', k: 'texto', l: 'Texto'}, {tipo: 'url', k: 'enlace', l: 'Enlace (opcional)'}]},
-      {tipo: 'numero', k: 'alto', l: 'Alto (px)', min: 150, max: 1000}, {tipo: 'numero', k: 'intervalo', l: 'Cambiar cada (segundos, 0 = manual)', min: 0, max: 30},
-      {tipo: 'select', k: 'efecto', l: 'Efecto', ops: [['deslizar', 'Deslizar'], ['fundido', 'Fundido']]}, {tipo: 'rango', k: 'oscurecer', l: 'Oscurecer la imagen (%) para leer el texto', min: 0, max: 80},
-      {tipo: 'select', k: 'ajuste', l: 'Ajuste', ops: [['cover', 'Rellenar (recorta)'], ['contain', 'Completa']]}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 60},
-      {tipo: 'check', k: 'flechas', l: 'Flechas'}, {tipo: 'check', k: 'puntos', l: 'Puntos'}, {tipo: 'check', k: 'zoomLento', l: 'Zoom lento en las fotos'}],
+      {tipo: 'select', k: 'estilo', l: 'Estilo del carrusel', ops: [['', 'Clásico'], ['coverflow', 'Cover Flow 3D (Apple)'], ['tira', 'Foto grande + tira de miniaturas'], ['fluye', 'Fila que fluye (efecto Dock)']]},
+      {tipo: 'numero', k: 'visibles', l: 'Fotos visibles a la vez', min: 1, max: 8, si: ['estilo', ['', 'fluye']]},
+      {tipo: 'select', k: 'velocidad', l: 'Velocidad', ops: [['lenta', 'Lenta'], ['normal', 'Normal'], ['rapida', 'Rápida']], si: ['estilo', ['fluye']]},
+      {tipo: 'numero', k: 'alto', l: 'Alto (px)', min: 150, max: 1000}, {tipo: 'numero', k: 'intervalo', l: 'Cambiar cada (segundos, 0 = manual)', min: 0, max: 30, si: ['estilo', ['', 'coverflow', 'tira']]},
+      {tipo: 'select', k: 'efecto', l: 'Efecto', ops: [['deslizar', 'Deslizar'], ['fundido', 'Fundido']], si: ['estilo', ['']]}, {tipo: 'rango', k: 'oscurecer', l: 'Oscurecer la imagen (%) para leer el texto', min: 0, max: 80, si: ['estilo', ['', 'tira']]},
+      {tipo: 'select', k: 'ajuste', l: 'Ajuste', ops: [['cover', 'Rellenar (recorta)'], ['contain', 'Completa']], si: ['estilo', ['']]}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 60},
+      {tipo: 'check', k: 'flechas', l: 'Flechas', si: ['estilo', ['', 'coverflow']]}, {tipo: 'check', k: 'puntos', l: 'Puntos', si: ['estilo', ['', 'coverflow']]}, {tipo: 'check', k: 'zoomLento', l: 'Zoom lento en las fotos', si: ['estilo', ['', 'tira']]}],
     r: function(p, ctx) {
+      if (p.estilo && NVI.CARRUSELES && NVI.CARRUSELES[p.estilo]) return NVI.CARRUSELES[p.estilo](p, ctx);
       var items = p.items && p.items.length ? p.items : [{src: NVI.placeholder('Agrega diapositivas')}];
-      var w = h('div', 'nvi-carrusel nvi-ef-' + (p.efecto || 'deslizar')); w.style.height = (p.alto || 420) + 'px'; w.style.borderRadius = (p.radio || 0) + 'px';
+      // varias fotos a la vez (solo al deslizar): cada una ocupa su parte del ancho
+      var vis = p.efecto === 'fundido' ? 1 : Math.max(1, Math.min(8, items.length, +p.visibles || 1)), GAP = 12;
+      var w = h('div', 'nvi-carrusel nvi-ef-' + (p.efecto || 'deslizar') + (vis > 1 ? ' nvi-car-varias' : '')); w.style.height = (p.alto || 420) + 'px'; w.style.borderRadius = (p.radio || 0) + 'px';
       var pista = h('div', 'nvi-car-pista'); w.appendChild(pista);
       items.forEach(function(it, i) {
-        var s = h('div', 'nvi-car-slide' + (i ? '' : ' on')), fo = s;
+        var s = h('div', 'nvi-car-slide' + (i ? '' : ' on')), fo = s; if (vis > 1) { s.style.width = 'calc((100% - ' + (vis - 1) * GAP + 'px) / ' + vis + ')'; s.style.borderRadius = Math.min(14, p.radio || 0) + 'px'; s.style.overflow = 'hidden'; }
         if (p.zoomLento || NVI.enc(it.srcEnc).z > 1) { fo = h('div', 'nvi-car-fondo' + (p.zoomLento ? ' lento' : '')); s.appendChild(fo); }
         NVI.aplicarEnc(fo, it.srcEnc, true); s.setAttribute('data-enc', 'items.' + i + '.src');
         fo.style.backgroundImage = 'url("' + (NVI.src(it.src) || NVI.placeholder()).replace(/"/g, '%22') + '")'; fo.style.backgroundSize = p.ajuste || 'cover';
@@ -185,12 +191,17 @@
         if (it.enlace && ctx.modo !== 'editar') { s.style.cursor = 'pointer'; s.onclick = function() { var u = NVI.url(it.enlace); if (/^\//.test(u)) location.href = u; else window.open(u, '_blank', 'noopener'); }; }
         pista.appendChild(s);
       });
-      var actual = 0, n = items.length, puntos = [];
-      var ir = function(i) { actual = (i + n) % n; Array.prototype.forEach.call(pista.children, function(s, k) { s.classList.toggle('on', k === actual); s.style.transform = p.efecto === 'fundido' ? '' : 'translateX(' + ((k - actual) * 100) + '%)'; }); puntos.forEach(function(d, k) { d.classList.toggle('on', k === actual); }); };
-      if (n > 1 && p.flechas !== false) { var a1 = h('button', 'nvi-car-flecha izq', '‹'), a2 = h('button', 'nvi-car-flecha der', '›'); a1.type = a2.type = 'button'; a1.setAttribute('aria-label', 'Anterior'); a2.setAttribute('aria-label', 'Siguiente'); a1.onclick = function(e) { e.stopPropagation(); ir(actual - 1); }; a2.onclick = function(e) { e.stopPropagation(); ir(actual + 1); }; w.appendChild(a1); w.appendChild(a2); }
-      if (n > 1 && p.puntos !== false) { var ds = h('div', 'nvi-car-puntos'); items.forEach(function(it, i) { var d = h('button'); d.type = 'button'; d.setAttribute('aria-label', 'Diapositiva ' + (i + 1)); d.onclick = function(e) { e.stopPropagation(); ir(i); }; puntos.push(d); ds.appendChild(d); }); w.appendChild(ds); }
+      var actual = 0, n = items.length, puntos = [], pasos = n - vis + 1;
+      var ir = function(i) {
+        actual = i >= pasos ? 0 : i < 0 ? pasos - 1 : i;
+        Array.prototype.forEach.call(pista.children, function(s, k) { s.classList.toggle('on', vis > 1 ? k >= actual && k < actual + vis : k === actual);
+          s.style.transform = p.efecto === 'fundido' ? '' : vis > 1 ? 'translateX(calc(' + (k - actual) + ' * (100% + ' + GAP + 'px)))' : 'translateX(' + ((k - actual) * 100) + '%)'; });
+        puntos.forEach(function(d, k) { d.classList.toggle('on', k === actual); });
+      };
+      if (pasos > 1 && p.flechas !== false) { var a1 = h('button', 'nvi-car-flecha izq', '‹'), a2 = h('button', 'nvi-car-flecha der', '›'); a1.type = a2.type = 'button'; a1.setAttribute('aria-label', 'Anterior'); a2.setAttribute('aria-label', 'Siguiente'); a1.onclick = function(e) { e.stopPropagation(); ir(actual - 1); }; a2.onclick = function(e) { e.stopPropagation(); ir(actual + 1); }; w.appendChild(a1); w.appendChild(a2); }
+      if (pasos > 1 && p.puntos !== false) { var ds = h('div', 'nvi-car-puntos'); items.slice(0, pasos).forEach(function(it, i) { var d = h('button'); d.type = 'button'; d.setAttribute('aria-label', 'Diapositiva ' + (i + 1)); d.onclick = function(e) { e.stopPropagation(); ir(i); }; puntos.push(d); ds.appendChild(d); }); w.appendChild(ds); }
       ir(0);
-      if (n > 1 && +p.intervalo > 0 && ctx.modo !== 'editar') {
+      if (pasos > 1 && +p.intervalo > 0 && ctx.modo !== 'editar') {
         var pausa = false; w.addEventListener('mouseenter', function() { pausa = true; }); w.addEventListener('mouseleave', function() { pausa = false; });
         var t = setInterval(function() { if (!w.isConnected) { clearInterval(t); return; } if (!pausa && !document.hidden) ir(actual + 1); }, p.intervalo * 1000);
       }
@@ -198,7 +209,7 @@
     }};
   D.galeria = {n: 'Galería', ic: '▦', g: 'Medios',
     d: function() { return {items: [1, 2, 3, 4, 5, 6].map(function(i) { return {src: NVI.placeholder('Foto ' + i, ['#2f98d5', '#252772', '#1a1449', '#2f98d5', '#252772', '#1a1449'][i - 1], ['#252772', '#1a1449', '#2f98d5', '#1a1449', '#2f98d5', '#252772'][i - 1]), titulo: ''}; }), columnas: 3, espacio: 10, radio: 12, alto: 200}; },
-    campos: [{tipo: 'lista', k: 'items', l: 'Fotos', titulo: 'titulo', nuevo: {src: '', titulo: ''}, campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'titulo', l: 'Título (opcional)'}]},
+    campos: [{tipo: 'lista', k: 'items', l: 'Fotos', titulo: 'titulo', masivo: 'src', nuevo: {src: '', titulo: ''}, campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'titulo', l: 'Título (opcional)'}]},
       {tipo: 'numero', k: 'columnas', l: 'Columnas', min: 1, max: 6}, {tipo: 'numero', k: 'alto', l: 'Alto de cada foto (px)', min: 80, max: 600}, {tipo: 'numero', k: 'espacio', l: 'Espacio entre fotos (px)', min: 0, max: 40}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 60},
       {tipo: 'select', k: 'entrada', l: 'Las fotos aparecen', ops: [['', 'Todas a la vez'], ['zoom', 'Una a una, acercándose'], ['subir', 'Una a una, subiendo']]}],
     r: function(p, ctx) {
@@ -318,15 +329,34 @@
   // Estilo común de cualquier bloque (caja)
   NVI.CAMPOS_CAJA = [{tipo: 'color', k: 'fondo', l: 'Fondo de la caja'}, {tipo: 'numero', k: 'relleno', l: 'Relleno interior (px)', min: 0, max: 120}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 80},
     {tipo: 'check', k: 'sombra', l: 'Sombra'}, {tipo: 'numero', k: 'margenAbajo', l: 'Espacio debajo (px)', min: 0, max: 200},
+    {tipo: 'rango', k: 'ancho', l: 'Ancho de la caja (%)', min: 10, max: 100}, {tipo: 'select', k: 'alinearCaja', l: 'Ubicación de la caja', ops: [['center', 'Centro'], ['left', 'Izquierda'], ['right', 'Derecha']]},
+    {tipo: 'numero', k: 'alto', l: 'Alto mínimo de la caja (px, 0 = automático)', min: 0, max: 2000},
     {tipo: 'select', k: 'animacion', l: 'Animación al aparecer', ops: [['', 'Ninguna'], ['subir', 'Subir'], ['aparecer', 'Aparecer'], ['zoom', 'Acercar'], ['izq', 'Desde la izquierda'], ['der', 'Desde la derecha'], ['flotar', 'Aparecer y flotar']]},
     {tipo: 'numero', k: 'retraso', l: 'Retraso de la animación (ms)', min: 0, max: 3000, paso: 100},
     {tipo: 'check', k: 'ocultarMovil', l: 'Ocultar en celulares'}];
 
+  // w: ancho en % (o null si no cambió); hh: alto en px (o null); ref: medidas al empezar (para la galería)
+  NVI.ALTO_PROPIO = {carrusel: 1, embed: 1, imagen: 1, galeria: 1, espacio: 1, video: 1};
+  NVI.tamanoBloque = function(b, w, hh, ref) {
+    var p = b.p = b.p || {}, e = b.estilo = b.estilo || {}, t = b.tipo;
+    if (w != null) {
+      if (t === 'imagen' || t === 'separador') p.ancho = w;
+      else if (t !== 'espacio') { if (w >= 100) delete e.ancho; else e.ancho = w; }
+    }
+    if (hh != null) {
+      if (t === 'imagen') { p.alto = hh; p.proporcion = ''; }
+      else if (t === 'carrusel' || t === 'embed' || t === 'espacio') p.alto = hh;
+      else if (t === 'galeria') p.alto = Math.max(60, Math.round((ref && ref.galAlto || p.alto || 200) * hh / Math.max(1, ref && ref.h || hh)));
+      else if (t !== 'video' && t !== 'separador') e.alto = hh;   // el video sigue su proporción
+    }
+  };
   NVI.bloque = function(b, ctx) {
     var def = D[b.tipo];
     var caja = h('div', 'nvi-blk nvi-b-' + b.tipo); caja.setAttribute('data-blk', b.id);
     var e = b.estilo || {};
     if (e.fondo) caja.style.background = e.fondo; if (+e.relleno) caja.style.padding = e.relleno + 'px'; if (+e.radio) caja.style.borderRadius = e.radio + 'px';
+    if (+e.ancho && +e.ancho < 100) { caja.style.width = e.ancho + '%'; caja.style.marginLeft = e.alinearCaja === 'left' ? '0' : 'auto'; caja.style.marginRight = e.alinearCaja === 'right' ? '0' : 'auto'; }
+    if (+e.alto) caja.style.minHeight = e.alto + 'px';
     if (e.sombra) caja.style.boxShadow = '0 10px 30px rgba(15,23,42,.12)'; caja.style.marginBottom = (e.margenAbajo != null && e.margenAbajo !== '' ? e.margenAbajo : 16) + 'px';
     if (e.ocultarMovil) caja.classList.add('nvi-ocultar-movil');
     if (e.animacion && ctx.modo !== 'editar') { caja.classList.add('nvi-anim', 'nvi-anim-' + e.animacion); if (+e.retraso) caja.style.transitionDelay = e.retraso + 'ms'; NVI.observarAnim(caja); }

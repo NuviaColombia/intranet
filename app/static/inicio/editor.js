@@ -36,6 +36,7 @@
 
   // ---------- Historial (deshacer / rehacer) y guardado automático ----------
   var tHist = null, tGuardar = null, tPintar = null;
+  var ABIERTOS = typeof WeakSet === 'function' ? new WeakSet() : {has: function() { return false; }, add: function() {}, delete: function() {}};   // filas abiertas del panel
   E.cambio = function(sinRepintar) {
     if (!sinRepintar) { clearTimeout(tPintar); tPintar = setTimeout(function() { E.pintar(); }, 120); }
     // lo que se escribe en un campo o en el texto se agrupa en un solo paso; borrar, duplicar, mover, etc. es un paso cada uno
@@ -302,6 +303,7 @@
           mv._t = setTimeout(function() { document.body.classList.add('nvi-arrastrando'); bEl.classList.add('moviendo'); }, 0); });
         mv.addEventListener('dragend', function() { clearTimeout(mv._t); bEl.classList.remove('moviendo'); finArrastre(); });
       }
+      if (!r.el) { var rc = h('span', 'nvi-ed-rsz nvi-ed-rsz-col'); rc.title = 'Arrastra para cambiar el ancho y el alto'; bEl.appendChild(rc); }
       if (r.el) { var rs = h('span', 'nvi-ed-rsz'); rs.title = 'Arrastra para cambiar el tamaño'; bEl.parentNode.appendChild(rs); bEl.parentNode.classList.add('nvi-ed-el'); if (E.sel && E.sel.id === r.blk.id) bEl.parentNode.classList.add('sel'); }
     });
   }
@@ -417,8 +419,31 @@
   }
 
   // ---------- Posición libre: mover, cambiar tamaño y alto de la sección ----------
+  // Tamaño de un bloque en columnas: se arrastra la esquina de abajo a la derecha
+  function refrescarBloque(bEl, blk) {
+    var nb = NVI.bloque(blk, {modo: 'editar'}), viejo = null;
+    Array.prototype.forEach.call(bEl.children, function(x) { if (!viejo && !x.classList.contains('nvi-ed-blkbar') && !x.classList.contains('nvi-ed-rsz') && !x.classList.contains('nvi-ed-medida')) viejo = x; });
+    var clases = bEl.className; bEl.style.cssText = nb.style.cssText; bEl.className = clases;
+    if (viejo && nb.firstElementChild) bEl.replaceChild(nb.firstElementChild, viejo);
+  }
+  function medida(bEl, txt) { var m = bEl.querySelector('.nvi-ed-medida'); if (!m) { m = h('span', 'nvi-ed-medida'); bEl.appendChild(m); } m.textContent = txt; }
+  function tamanoCol(e, rz) {
+    e.preventDefault(); e.stopPropagation();
+    var bEl = rz.closest('[data-blk]'), r = bEl && blkPor(bEl.dataset.blk); if (!r) return;
+    if (!(E.sel && E.sel.id === r.blk.id)) { E.sel = {tipo: 'bloque', id: r.blk.id}; document.querySelectorAll('#nviLienzo .nvi-ed-blk.sel').forEach(function(x) { x.classList.remove('sel'); }); bEl.classList.add('sel'); pintarProps(); }
+    var col = bEl.parentNode, cw = col.getBoundingClientRect().width || 1, R = bEl.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+    var p = r.blk.p || {}, h0 = (r.blk.tipo === 'carrusel' || r.blk.tipo === 'embed' || r.blk.tipo === 'espacio') ? (+p.alto || R.height) : r.blk.tipo === 'imagen' ? ((bEl.querySelector('img') || bEl).getBoundingClientRect().height) : R.height;
+    var w0 = r.blk.tipo === 'imagen' ? (+p.ancho || 100) : R.width / cw * 100, ref = {h: h0, galAlto: +p.alto || 200}, movio = false, raf = 0;
+    arrastre(function(ev) {
+      var dx = ev.clientX - x0, dy = ev.clientY - y0; if (!movio && Math.abs(dx) + Math.abs(dy) < 3) return; movio = true;
+      var w = Math.abs(dx) > 3 ? Math.max(10, Math.min(100, Math.round(w0 + dx / cw * 100))) : null, hh = Math.abs(dy) > 3 ? Math.max(40, Math.round(h0 + dy)) : null;
+      NVI.tamanoBloque(r.blk, w, hh, ref);
+      if (!raf) raf = requestAnimationFrame(function() { raf = 0; refrescarBloque(bEl, r.blk); medida(bEl, (w != null ? w : Math.round(w0)) + '% × ' + (hh != null ? hh : Math.round(h0)) + ' px'); });
+    }, function() { if (movio) E.cambio(); });
+  }
   function mouseLibre(e) {
     if (E.previa || e.button !== 0) return;
+    var rzc = e.target.closest('.nvi-ed-rsz-col'); if (rzc) { tamanoCol(e, rzc); return; }
     var alto = e.target.closest('[data-alto]');
     if (alto) {
       e.preventDefault(); var s = secPor(alto.dataset.alto), inner = alto.parentNode, y0 = e.clientY, a0 = inner.offsetHeight;
@@ -437,8 +462,15 @@
       var dx = ev.clientX - x0, dy = ev.clientY - y0; if (!movio && Math.abs(dx) + Math.abs(dy) < 3) return; movio = true;
       if (rsz) {
         r.el.w = Math.max(4, Math.min(100 - r.el.x, Math.round((o.w + dx / R.width * 100) * 2) / 2));
-        r.el.h = Math.max(0, Math.round((o.h || elEl.offsetHeight) + dy));
-        elEl.style.width = r.el.w + '%'; elEl.style.height = r.el.h + 'px';
+        if (o.h0 == null) o.h0 = o.h || elEl.offsetHeight;   // alto al empezar (se mide una vez: el bloque cambia mientras se arrastra)
+        var nh = Math.max(40, Math.round(o.h0 + dy));
+        elEl.style.width = r.el.w + '%';
+        if (NVI.ALTO_PROPIO[r.blk.tipo]) {   // el alto lo lleva el propio bloque (así el carrusel o la foto crecen de verdad)
+          if (r.blk.tipo === 'imagen') r.blk.p.ancho = 100;
+          if (Math.abs(dy) > 3) NVI.tamanoBloque(r.blk, null, nh, {h: o.h0, galAlto: o.galAlto || (o.galAlto = +r.blk.p.alto || 200)});
+          r.el.h = 0; elEl.style.height = '';
+          var bk = elEl.querySelector('[data-blk]'); if (bk) refrescarBloque(bk, r.blk);
+        } else { r.el.h = nh; elEl.style.height = r.el.h + 'px'; }
       } else {
         r.el.x = Math.max(-10, Math.min(100 - Math.min(r.el.w, 20), Math.round((o.x + dx / R.width * 100) * 2) / 2));
         r.el.y = Math.max(-40, Math.round(o.y + dy));
@@ -554,7 +586,7 @@
   }
   function formulario(cont, campos, obj) {
     (campos || []).forEach(function(c) {
-      if (c.si && c.si[1].indexOf(obj[c.si[0]]) < 0) return;
+      if (c.si && c.si[1].indexOf(obj[c.si[0]] == null ? '' : obj[c.si[0]]) < 0) return;
       cont.appendChild(campo(c, obj, function(redibujarPanel) { E.cambio(); if (redibujarPanel) setTimeout(pintarProps, 0); }));
     });
   }
@@ -609,10 +641,10 @@
       var lista = obj[c.k] = obj[c.k] || [];
       w.innerHTML = '<label class="nvi-ed-l">' + esc(c.l) + ' (' + lista.length + ')</label>';
       lista.forEach(function(it, i) {
-        var d = h('details', 'nvi-ed-item-lista'); d.open = !!it._abierto;
+        var d = h('details', 'nvi-ed-item-lista'); d.open = ABIERTOS.has(it) || !!it._abierto; delete it._abierto;
         var tit = it[c.titulo] || (c.l.replace(/s$/, '') + ' ' + (i + 1));
         d.innerHTML = '<summary><span>' + esc(String(tit).slice(0, 40)) + '</span><span class="nvi-ed-mini-acc"><button type="button" data-l="arriba" title="Subir">↑</button><button type="button" data-l="abajo" title="Bajar">↓</button><button type="button" data-l="dup" title="Duplicar">⧉</button><button type="button" data-l="borrar" title="Eliminar">✕</button></span></summary>';
-        d.addEventListener('toggle', function() { if (d.open) it._abierto = true; else delete it._abierto; });
+        d.addEventListener('toggle', function() { if (d.open) ABIERTOS.add(it); else ABIERTOS.delete(it); });
         var cuerpoI = h('div', 'nvi-ed-item-c'); d.appendChild(cuerpoI);
         (c.campos || []).forEach(function(sc) { cuerpoI.appendChild(campo(sc, it, function(redib) { if (sc.k === c.titulo) d.querySelector('summary span').textContent = String(it[c.titulo] || '').slice(0, 40); cambio(redib); })); });
         d.querySelector('.nvi-ed-mini-acc').onclick = function(e) {
@@ -625,7 +657,11 @@
         };
         w.appendChild(d);
       });
-      var add = h('button', 'nvi-b2 nvi-ed-add', '+ Agregar'); add.type = 'button'; add.onclick = function() { var n = NVI.clon(c.nuevo || {}); n._abierto = true; lista.push(n); cambio(true); }; w.appendChild(add);
+      var add = h('button', 'nvi-b2 nvi-ed-add', '+ Agregar'); add.type = 'button'; add.onclick = function() { var n = NVI.clon(c.nuevo || {}); ABIERTOS.add(n); lista.push(n); cambio(true); }; w.appendChild(add);
+      // varias fotos de una vez (carrusel y galería): se marcan en la biblioteca o se suben juntas
+      if (c.masivo) { var addV = h('button', 'nvi-b2 nvi-ed-add nvi-ed-add-varias', '🖼 Agregar varias fotos'); addV.type = 'button';
+        addV.onclick = function() { E.biblioteca('imagen', function(vals) { (vals || []).forEach(function(v) { var n = NVI.clon(c.nuevo || {}); n[c.masivo] = v; lista.push(n); }); if (vals && vals.length) { cambio(true); aviso(vals.length === 1 ? 'Se agregó 1 foto.' : 'Se agregaron ' + vals.length + ' fotos.'); } }, {varios: true}); };
+        w.appendChild(addV); }
     }
     return w;
   }
@@ -634,11 +670,18 @@
   E.limpiarTemp = function(o) { return JSON.parse(guardarOrig(o, function(k, v) { return k === '_abierto' ? undefined : v; })); };
 
   // ---------- Biblioteca de medios ----------
-  E.biblioteca = function(acepta, alElegir) {
+  E.biblioteca = function(acepta, alElegir, opc) {
+    opc = opc || {}; var varios = !!(opc.varios && alElegir), marcadas = [];
     var bg = h('div', 'nvi-dlg-bg'), d = h('div', 'nvi-dlg nvi-ed-bib'); bg.appendChild(d);
     d.innerHTML = '<h3>Biblioteca de medios</h3><div class="nvi-ed-bib-barra"><button type="button" class="nvi-b1" data-b="subir">⬆ Subir ' + (acepta === 'video' ? 'video (MP4, WEBM, MOV u OGG, hasta 100 MB)' : acepta === 'imagen' ? 'imágenes' : 'imágenes o videos') + '</button>' +
-      '<span class="nvi-ed-bib-prog"></span><span style="flex:1"></span><button type="button" class="nvi-b2" data-b="cerrar">Cerrar</button></div><p class="nvi-ed-ayuda">' + (alElegir ? 'Haz clic en un archivo para usarlo.' : 'Aquí quedan las imágenes y videos que subes para la página.') + ' Las imágenes grandes se reducen solas para que la página cargue rápido.</p><div class="nvi-ed-bib-grid">Cargando…</div>';
+      '<span class="nvi-ed-bib-prog"></span><span style="flex:1"></span>' + (varios ? '<button type="button" class="nvi-b1" data-b="usar" disabled>Agregar las marcadas</button>' : '') + '<button type="button" class="nvi-b2" data-b="cerrar">Cerrar</button></div><p class="nvi-ed-ayuda">' + (varios ? 'Haz clic en las fotos para marcarlas (en el orden que quieras) o sube varias juntas; luego pulsa Agregar.' : alElegir ? 'Haz clic en un archivo para usarlo.' : 'Aquí quedan las imágenes y videos que subes para la página.') + ' Las imágenes grandes se reducen solas para que la página cargue rápido.</p><div class="nvi-ed-bib-grid">Cargando…</div>';
     var grid = d.querySelector('.nvi-ed-bib-grid'), prog = d.querySelector('.nvi-ed-bib-prog');
+    // número de orden sobre cada foto marcada
+    var pintarMarcas = function() {
+      if (!varios) return;
+      grid.querySelectorAll('.nvi-ed-bib-item').forEach(function(c) { var k = marcadas.indexOf(+c.getAttribute('data-id')); c.classList.toggle('marcada', k >= 0); var b = c.querySelector('.marca'); if (!b) { b = h('span', 'marca'); c.appendChild(b); } b.textContent = k >= 0 ? k + 1 : ''; });
+      var u = d.querySelector('[data-b=usar]'); u.disabled = !marcadas.length; u.textContent = marcadas.length ? 'Agregar ' + marcadas.length + (marcadas.length === 1 ? ' foto' : ' fotos') : 'Agregar las marcadas';
+    };
     var cargarL = function() {
       api('/design/api/inicio/medios').then(function(l) {
         l = l.filter(function(m) { return !acepta || acepta === 'ambos' || m.tipo === acepta; });
@@ -648,22 +691,25 @@
           c.innerHTML = (m.tipo === 'video' ? '<video src="' + m.url + '#t=0.5" muted preload="metadata"></video><span class="tipo">🎬</span>' : '<img src="' + m.url + '" alt="" loading="lazy">') +
             '<div class="nom">' + esc(m.nombre) + '<small>' + (m.tamano / 1048576).toFixed(1) + ' MB</small></div><button type="button" class="borrar" title="Eliminar de la biblioteca">🗑</button>';
           c.querySelector('.borrar').onclick = function(e) { e.stopPropagation(); if (!confirm('¿Eliminar "' + m.nombre + '" de la biblioteca? Si la página lo usa, dejará de verse.')) return; api('/design/api/inicio/medios/' + m.id + '/eliminar', {}).then(cargarL).catch(function(er) { aviso(er.message, true); }); };
-          c.onclick = function() { if (alElegir) { bg.remove(); alElegir('medio:' + m.id); } else NVI.lightbox([{src: m.url, titulo: m.nombre}], 0); };
+          c.setAttribute('data-id', m.id);
+          c.onclick = function() { if (varios) { var k = marcadas.indexOf(m.id); if (k >= 0) marcadas.splice(k, 1); else marcadas.push(m.id); pintarMarcas(); } else if (alElegir) { bg.remove(); alElegir('medio:' + m.id); } else NVI.lightbox([{src: m.url, titulo: m.nombre}], 0); };
           grid.appendChild(c);
         });
+        pintarMarcas();
       }).catch(function(e) { grid.textContent = 'No se pudo cargar: ' + e.message; });
     };
     d.onclick = function(e) {
       var b = e.target.closest('[data-b]'); if (!b) return;
       if (b.dataset.b === 'cerrar') bg.remove();
+      if (b.dataset.b === 'usar' && marcadas.length) { bg.remove(); alElegir(marcadas.map(function(id) { return 'medio:' + id; })); }
       if (b.dataset.b === 'subir') {
         var i = document.createElement('input'); i.type = 'file'; i.multiple = true; var VID = 'video/mp4,video/webm,video/quicktime,video/ogg,.mp4,.m4v,.webm,.mov,.ogv'; i.accept = acepta === 'video' ? VID : acepta === 'imagen' ? 'image/*' : 'image/*,' + VID;
         i.onchange = function() {
           var fs = Array.prototype.slice.call(i.files), hechos = 0, ultimo = null;
           var sig = function() {
-            if (!fs.length) { prog.textContent = hechos ? '✓ ' + hechos + ' archivo(s) subidos' : ''; cargarL(); if (alElegir && ultimo && hechos === 1) { bg.remove(); alElegir('medio:' + ultimo.id); } return; }
+            if (!fs.length) { prog.textContent = hechos ? '✓ ' + hechos + ' archivo(s) subidos' : ''; cargarL(); if (!varios && alElegir && ultimo && hechos === 1) { bg.remove(); alElegir('medio:' + ultimo.id); } return; }
             var f = fs.shift(); prog.textContent = 'Subiendo ' + f.name + '…';
-            NVI.subirMedio(f, function(x) { prog.textContent = 'Subiendo ' + f.name + '… ' + Math.round(x * 100) + '%'; }).then(function(m) { hechos++; ultimo = m; sig(); }).catch(function(er) { aviso(f.name + ': ' + er.message, true); sig(); });
+            NVI.subirMedio(f, function(x) { prog.textContent = 'Subiendo ' + f.name + '… ' + Math.round(x * 100) + '%'; }).then(function(m) { hechos++; ultimo = m; if (varios) marcadas.push(m.id); sig(); }).catch(function(er) { aviso(f.name + ': ' + er.message, true); sig(); });
           };
           sig();
         };
