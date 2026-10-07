@@ -68,11 +68,13 @@
     l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(f).replace(/%20/g, '+') + ':ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&display=swap';
     document.head.appendChild(l);
   };
-  NVI.TEMA_BASE = {fuenteTitulos: 'Poppins', fuenteTexto: 'Inter', primario: '#1d4ed8', secundario: '#0f172a', acento: '#f59e0b', fondo: '#ffffff', texto: '#1f2937', radio: 14};
+  // Paleta de Nuvia: azul noche #1a1449, índigo #252772 y azul claro #2f98d5
+  NVI.PALETA = {noche: '#1a1449', indigo: '#252772', azul: '#2f98d5', azulSuave: '#e8f4fb', indigoSuave: '#eef0fa'};
+  NVI.TEMA_BASE = {fuenteTitulos: 'Poppins', fuenteTexto: 'Inter', primario: '#252772', secundario: '#1a1449', acento: '#2f98d5', fondo: '#ffffff', texto: '#1a1449', radio: 14};
   function h(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
   NVI.h = h;
   NVI.placeholder = function(texto, c1, c2) {
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + (c1 || '#93c5fd') + '"/><stop offset="1" stop-color="' + (c2 || '#1d4ed8') + '"/></linearGradient></defs>' +
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + (c1 || '#2f98d5') + '"/><stop offset="1" stop-color="' + (c2 || '#252772') + '"/></linearGradient></defs>' +
       '<rect width="1200" height="700" fill="url(#g)"/><g fill="#fff" opacity=".9"><circle cx="460" cy="290" r="46"/><path d="M300 520l170-170 120 120 90-90 220 140z"/></g>' +
       '<text x="600" y="610" font-family="Arial" font-size="40" fill="#fff" text-anchor="middle" opacity=".95">' + NVI.esc(texto || 'Imagen de ejemplo') + '</text></svg>';
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
@@ -135,8 +137,8 @@
       return w;
     }};
   D.carrusel = {n: 'Carrusel', ic: '⇆', g: 'Medios',
-    d: function() { return {items: [{src: NVI.placeholder('Diapositiva 1', '#60a5fa', '#1e3a8a'), titulo: 'Bienvenidos a Design', texto: 'Escribe un mensaje para esta imagen', enlace: ''},
-      {src: NVI.placeholder('Diapositiva 2', '#f9a8d4', '#9d174d'), titulo: 'Logros del equipo', texto: '', enlace: ''}, {src: NVI.placeholder('Diapositiva 3', '#86efac', '#166534'), titulo: 'Novedades', texto: '', enlace: ''}],
+    d: function() { return {items: [{src: NVI.placeholder('Diapositiva 1', '#2f98d5', '#1a1449'), titulo: 'Bienvenidos a Design', texto: 'Escribe un mensaje para esta imagen', enlace: ''},
+      {src: NVI.placeholder('Diapositiva 2', '#252772', '#1a1449'), titulo: 'Logros del equipo', texto: '', enlace: ''}, {src: NVI.placeholder('Diapositiva 3', '#2f98d5', '#252772'), titulo: 'Novedades', texto: '', enlace: ''}],
       alto: 420, intervalo: 5, efecto: 'deslizar', flechas: true, puntos: true, oscurecer: 35, radio: 16, ajuste: 'cover'}; },
     campos: [{tipo: 'lista', k: 'items', l: 'Diapositivas', titulo: 'titulo', nuevo: {src: '', titulo: 'Nueva diapositiva', texto: '', enlace: ''},
       campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen'}, {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'area', k: 'texto', l: 'Texto'}, {tipo: 'url', k: 'enlace', l: 'Enlace (opcional)'}]},
@@ -167,7 +169,7 @@
       return w;
     }};
   D.galeria = {n: 'Galería', ic: '▦', g: 'Medios',
-    d: function() { return {items: [1, 2, 3, 4, 5, 6].map(function(i) { return {src: NVI.placeholder('Foto ' + i, ['#93c5fd', '#fca5a5', '#86efac', '#fde68a', '#c4b5fd', '#67e8f9'][i - 1], '#334155'), titulo: ''}; }), columnas: 3, espacio: 10, radio: 12, alto: 200}; },
+    d: function() { return {items: [1, 2, 3, 4, 5, 6].map(function(i) { return {src: NVI.placeholder('Foto ' + i, ['#2f98d5', '#252772', '#1a1449', '#2f98d5', '#252772', '#1a1449'][i - 1], ['#252772', '#1a1449', '#2f98d5', '#1a1449', '#2f98d5', '#252772'][i - 1]), titulo: ''}; }), columnas: 3, espacio: 10, radio: 12, alto: 200}; },
     campos: [{tipo: 'lista', k: 'items', l: 'Fotos', titulo: 'titulo', nuevo: {src: '', titulo: ''}, campos: [{tipo: 'medio', k: 'src', l: 'Imagen', acepta: 'imagen'}, {tipo: 'texto', k: 'titulo', l: 'Título (opcional)'}]},
       {tipo: 'numero', k: 'columnas', l: 'Columnas', min: 1, max: 6}, {tipo: 'numero', k: 'alto', l: 'Alto de cada foto (px)', min: 80, max: 600}, {tipo: 'numero', k: 'espacio', l: 'Espacio entre fotos (px)', min: 0, max: 40}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 60}],
     r: function(p, ctx) {
@@ -278,7 +280,7 @@
       return w;
     }};
   D.separador = {n: 'Separador', ic: '—', g: 'Diseño',
-    d: function() { return {estilo: 'solid', color: '#e5e7eb', grosor: 2, ancho: 100, alinear: 'center'}; },
+    d: function() { return {estilo: 'solid', color: '#2f98d5', grosor: 2, ancho: 100, alinear: 'center'}; },
     campos: [{tipo: 'select', k: 'estilo', l: 'Estilo', ops: [['solid', 'Línea'], ['dashed', 'Guiones'], ['dotted', 'Puntos'], ['double', 'Doble']]}, {tipo: 'color', k: 'color', l: 'Color'}, {tipo: 'numero', k: 'grosor', l: 'Grosor (px)', min: 1, max: 12}, {tipo: 'rango', k: 'ancho', l: 'Ancho (%)', min: 5, max: 100}, ALINEAR],
     r: function(p) { var w = h('div', 'nvi-sep'); w.style.justifyContent = {left: 'flex-start', center: 'center', right: 'flex-end'}[p.alinear] || 'center'; var l = h('hr'); l.style.borderTop = (p.grosor || 2) + 'px ' + (p.estilo || 'solid') + ' ' + (p.color || '#e5e7eb'); l.style.width = (p.ancho || 100) + '%'; w.appendChild(l); return w; }};
   D.espacio = {n: 'Espacio', ic: '↕', g: 'Diseño', d: function() { return {alto: 40}; }, campos: [{tipo: 'numero', k: 'alto', l: 'Alto (px)', min: 4, max: 400}],
@@ -287,7 +289,8 @@
   // Estilo común de cualquier bloque (caja)
   NVI.CAMPOS_CAJA = [{tipo: 'color', k: 'fondo', l: 'Fondo de la caja'}, {tipo: 'numero', k: 'relleno', l: 'Relleno interior (px)', min: 0, max: 120}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 80},
     {tipo: 'check', k: 'sombra', l: 'Sombra'}, {tipo: 'numero', k: 'margenAbajo', l: 'Espacio debajo (px)', min: 0, max: 200},
-    {tipo: 'select', k: 'animacion', l: 'Animación al aparecer', ops: [['', 'Ninguna'], ['subir', 'Subir'], ['aparecer', 'Aparecer'], ['zoom', 'Acercar'], ['izq', 'Desde la izquierda'], ['der', 'Desde la derecha']]},
+    {tipo: 'select', k: 'animacion', l: 'Animación al aparecer', ops: [['', 'Ninguna'], ['subir', 'Subir'], ['aparecer', 'Aparecer'], ['zoom', 'Acercar'], ['izq', 'Desde la izquierda'], ['der', 'Desde la derecha'], ['flotar', 'Aparecer y flotar']]},
+    {tipo: 'numero', k: 'retraso', l: 'Retraso de la animación (ms)', min: 0, max: 3000, paso: 100},
     {tipo: 'check', k: 'ocultarMovil', l: 'Ocultar en celulares'}];
 
   NVI.bloque = function(b, ctx) {
@@ -297,7 +300,7 @@
     if (e.fondo) caja.style.background = e.fondo; if (+e.relleno) caja.style.padding = e.relleno + 'px'; if (+e.radio) caja.style.borderRadius = e.radio + 'px';
     if (e.sombra) caja.style.boxShadow = '0 10px 30px rgba(15,23,42,.12)'; caja.style.marginBottom = (e.margenAbajo != null && e.margenAbajo !== '' ? e.margenAbajo : 16) + 'px';
     if (e.ocultarMovil) caja.classList.add('nvi-ocultar-movil');
-    if (e.animacion && ctx.modo !== 'editar') { caja.classList.add('nvi-anim', 'nvi-anim-' + e.animacion); NVI.observarAnim(caja); }
+    if (e.animacion && ctx.modo !== 'editar') { caja.classList.add('nvi-anim', 'nvi-anim-' + e.animacion); if (+e.retraso) caja.style.transitionDelay = e.retraso + 'ms'; NVI.observarAnim(caja); }
     try { caja.appendChild(def ? def.r(b.p || {}, ctx) : h('div', 'nvi-desconocido', 'Bloque no disponible')); }
     catch (err) { caja.appendChild(h('div', 'nvi-desconocido', 'No se pudo mostrar este bloque')); }
     return caja;
@@ -314,6 +317,7 @@
     {tipo: 'select', k: 'fondoTipo', l: 'Fondo', ops: [['ninguno', 'Sin fondo'], ['color', 'Color'], ['degradado', 'Degradado'], ['imagen', 'Imagen'], ['video', 'Video mp4 (de fondo)']]},
     {tipo: 'color', k: 'fondo', l: 'Color de fondo', si: ['fondoTipo', ['color', 'degradado']]}, {tipo: 'color', k: 'fondo2', l: 'Segundo color', si: ['fondoTipo', ['degradado']]},
     {tipo: 'numero', k: 'angulo', l: 'Ángulo del degradado (°)', min: 0, max: 360, si: ['fondoTipo', ['degradado']]},
+    {tipo: 'check', k: 'animarFondo', l: 'Degradado en movimiento', si: ['fondoTipo', ['degradado']]},
     {tipo: 'medio', k: 'imagen', l: 'Imagen de fondo', acepta: 'imagen', si: ['fondoTipo', ['imagen']]}, {tipo: 'medio', k: 'video', l: 'Video de fondo (mp4)', acepta: 'video', si: ['fondoTipo', ['video']]},
     {tipo: 'rango', k: 'oscurecer', l: 'Oscurecer el fondo (%)', min: 0, max: 85, si: ['fondoTipo', ['imagen', 'video']]}, {tipo: 'check', k: 'fijo', l: 'Efecto paralaje (imagen fija)', si: ['fondoTipo', ['imagen']]},
     {tipo: 'color', k: 'colorTexto', l: 'Color del texto'}, {tipo: 'select', k: 'ancho', l: 'Ancho del contenido', ops: [['normal', 'Normal (1200 px)'], ['estrecho', 'Estrecho (860 px)'], ['ancho', 'Ancho (1500 px)'], ['completo', 'Toda la pantalla']]},
@@ -322,12 +326,12 @@
     {tipo: 'select', k: 'alinearV', l: 'Alinear el contenido', ops: [['start', 'Arriba'], ['center', 'Al centro'], ['end', 'Abajo']]},
     {tipo: 'select', k: 'forma', l: 'Borde inferior decorativo', ops: [['', 'Recto'], ['ola', 'Ola'], ['diagonal', 'Diagonal'], ['curva', 'Curva']]},
     {tipo: 'check', k: 'ocultarMovil', l: 'Ocultar en celulares'}];
-  NVI.estiloSeccion = function() { return {fondoTipo: 'ninguno', fondo: '#ffffff', fondo2: '#1d4ed8', angulo: 135, imagen: '', video: '', oscurecer: 40, fijo: false, colorTexto: '', ancho: 'normal', padArriba: 56, padAbajo: 56, alto: 0, espacio: 28, alinearV: 'start', forma: '', ocultarMovil: false}; };
+  NVI.estiloSeccion = function() { return {fondoTipo: 'ninguno', fondo: '#ffffff', fondo2: '#252772', angulo: 135, imagen: '', video: '', oscurecer: 40, fijo: false, colorTexto: '', ancho: 'normal', padArriba: 56, padAbajo: 56, alto: 0, espacio: 28, alinearV: 'start', forma: '', ocultarMovil: false}; };
   NVI.seccion = function(s, ctx, tema) {
     var e = Object.assign(NVI.estiloSeccion(), s.estilo || {});
     var sec = h('section', 'nvi-sec nvi-sec-' + (s.tipo || 'columnas') + (e.ocultarMovil ? ' nvi-ocultar-movil' : '')); sec.setAttribute('data-sec', s.id);
     if (e.fondoTipo === 'color') sec.style.background = e.fondo;
-    if (e.fondoTipo === 'degradado') sec.style.background = 'linear-gradient(' + (e.angulo || 135) + 'deg,' + e.fondo + ',' + e.fondo2 + ')';
+    if (e.fondoTipo === 'degradado') { sec.style.background = 'linear-gradient(' + (e.angulo || 135) + 'deg,' + e.fondo + ',' + e.fondo2 + (e.animarFondo ? ',' + e.fondo : '') + ')'; if (e.animarFondo) sec.classList.add('nvi-fondo-mov'); }
     if (e.fondoTipo === 'imagen' && e.imagen) { sec.style.backgroundImage = 'url("' + NVI.src(e.imagen).replace(/"/g, '%22') + '")'; sec.style.backgroundSize = 'cover'; sec.style.backgroundPosition = 'center'; if (e.fijo) sec.style.backgroundAttachment = 'fixed'; }
     if (e.fondoTipo === 'video' && e.video) { var v = h('video', 'nvi-sec-video'); v.src = NVI.src(e.video); v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = ctx.modo !== 'editar'; sec.appendChild(v); }
     if ((e.fondoTipo === 'imagen' || e.fondoTipo === 'video') && +e.oscurecer) { var cp = h('div', 'nvi-sec-capa'); cp.style.background = 'rgba(0,0,0,' + (e.oscurecer / 100) + ')'; sec.appendChild(cp); }

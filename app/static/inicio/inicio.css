@@ -216,3 +216,11 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 .nvi-vivo-aviso { position:fixed; left:50%; top:90px; transform:translate(-50%, -12px); opacity:0; z-index:12500; background:#0f172a; color:#fff; padding:9px 18px; border-radius:20px;
   font:600 13.5px system-ui, sans-serif; box-shadow:0 10px 30px rgba(0,0,0,.25); transition:all .3s; pointer-events:none; }
 .nvi-vivo-aviso.on { opacity:1; transform:translate(-50%, 0); }
+
+/* Degradado en movimiento (fondo de sección) */
+.nvi-fondo-mov { background-size:300% 300% !important; animation:nviFondoMov 14s ease-in-out infinite; }
+@keyframes nviFondoMov { 0% { background-position:0% 50%; } 50% { background-position:100% 50%; } 100% { background-position:0% 50%; } }
+/* Elementos que flotan suavemente (clase usada por las plantillas animadas) */
+.nvi-anim-flotar.visto { animation:nviFlotar 6s ease-in-out infinite; }
+@keyframes nviFlotar { 0%, 100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { .nvi-fondo-mov, .nvi-anim-flotar.visto { animation:none; } }
