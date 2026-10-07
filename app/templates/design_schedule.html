@@ -114,6 +114,27 @@ window.dsPdfjs = function() {
   table.ds-tabla tr.ds-fila-ready td { background:#fef3c7; }
   table.ds-tabla tr.ds-fila-html td { background:#f5c9d7; }
   table.ds-tabla tr.ds-fila-aprobada td { background:#d6f5b8; }
+  /* Todas las áreas: pestañas por equipo */
+  .ds-tq-area { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .ds-tq { border:1px solid #e2e6ef; border-radius:9px; margin-bottom:8px; background:#fff; }
+  .ds-tq-cab { display:flex; align-items:center; gap:10px; padding:7px 10px; flex-wrap:wrap; }
+  .ds-tq-btn { display:inline-flex; align-items:center; gap:8px; border:none; background:none; cursor:pointer; padding:2px 4px; font-size:13.5px; color:#1d4ed8; border-radius:6px; }
+  .ds-tq-btn:hover { background:#eff6ff; }
+  .ds-tq-flecha { display:inline-block; transition:transform .15s; color:#64748b; }
+  .ds-tq.abierta .ds-tq-flecha { transform:rotate(90deg); }
+  .ds-tq-total { background:#1d4ed8; color:#fff; border-radius:10px; padding:1px 8px; font-size:12px; font-weight:600; }
+  .ds-tq-chips { display:flex; gap:5px; flex-wrap:wrap; flex:1; }
+  .ds-tq-chip { font-size:11.5px; padding:2px 8px; border-radius:10px; background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; }
+  .ds-tq-chip.ds-fila-hold { background:#edbfab; } .ds-tq-chip.ds-fila-ready { background:#fef3c7; } .ds-tq-chip.ds-fila-html { background:#f5c9d7; }
+  .ds-tq-chip.ds-fila-aprobada { background:#d6f5b8; } .ds-tq-chip.ds-fila-cancelada { background:#f3f4f6; color:#6b7280; text-decoration:line-through; }
+  .ds-tq-diss { display:flex; gap:6px 14px; flex-wrap:wrap; padding:0 12px 8px 34px; font-size:12px; color:#4b5563; }
+  .ds-tq-diss b { color:#111827; }
+  .ds-tq-cuerpo { padding:0 10px 4px; }
+  .ds-tq-filtros { display:flex; gap:8px; flex-wrap:wrap; align-items:center; background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:10px 12px; margin-bottom:14px; }
+  .ds-tq-filtros input, .ds-tq-filtros select { height:32px; border:1px solid #d8dde3; border-radius:7px; padding:0 9px; font-size:13px; margin:0; max-width:230px; }
+  .ds-tq-filtros input { width:210px; }
+  .ds-tq-filtros select.on { border-color:#1d4ed8; background:#eff6ff; color:#1d4ed8; font-weight:600; }
+  .ds-tq-nota { font-size:11.5px; color:#6b7280; margin-left:auto; }
   /* Interruptor de colores apagado: el color del estado solo en la columna Estado */
   body.ds-color-solo-estado table.ds-tabla tr.ds-fila-hold td, body.ds-color-solo-estado table.ds-tabla tr.ds-fila-ready td,
   body.ds-color-solo-estado table.ds-tabla tr.ds-fila-html td, body.ds-color-solo-estado table.ds-tabla tr.ds-fila-aprobada td,
@@ -919,6 +940,15 @@ window.dsPdfjs = function() {
 
   <div id="dsVistaTodasAreas" style="display:none">
     <div class="ds-fila-kpis"><div></div><div id="dsDiaTabsTodas" class="ds-tabs"></div></div>
+    <div class="ds-tq-filtros" id="dsTodasFiltros">
+      <input type="search" data-tf="q" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente">
+      <select data-tf="centro" aria-label="Filtrar por centro"><option value="">Centro: todos</option></select>
+      <select data-tf="producto" aria-label="Filtrar por producto"><option value="">Producto: todos</option></select>
+      <select data-tf="designerNombre" aria-label="Filtrar por diseñador"><option value="">Diseñador: todos</option></select>
+      <select data-tf="estado" aria-label="Filtrar por estado"><option value="">Estado: todos</option></select>
+      <button type="button" class="btn gris mini" id="dsTodasLimpiar">Quitar filtros</button>
+      <span class="ds-tq-nota">Clic en el título de una columna para ordenar (A→Z, Z→A)</span>
+    </div>
     <div id="dsTodasAreasCont"></div>
   </div>
 </div>
@@ -1345,6 +1375,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     DS.lunes = dsLunesDe(hoy);
     DS.diaSel = (hoy.getDay() + 6) % 7;
   }
+  dsIrAHoy();  // al entrar (también para Todas las áreas sin equipo abierto) el día es hoy, no el lunes
   window.dsCambiarSemana = function(delta) {
     DS.lunes.setDate(DS.lunes.getDate() + delta);
     dsRefrescarSemana();
@@ -3337,15 +3368,41 @@ window.addEventListener('unhandledrejection', function(ev) {
     {k:'orden', l:'Orden'}, {k:'paciente', l:'Paciente'}, {k:'centro', l:'Centro'},
     {k:'producto', l:'Producto'}, {k:'designerNombre', l:'Diseñador'}, {k:'estado', l:'Estado'},
   ];
+  // Clase de color de la fila según el estado (mismos colores que el horario del equipo)
+  function dsClaseEstado(estado) {
+    var e = String(estado || '').trim().toLowerCase();
+    return {'hold': 'ds-fila-hold', 'ready to design': 'ds-fila-ready', 'html': 'ds-fila-html', 'approved': 'ds-fila-aprobada', 'canceled': 'ds-fila-cancelada'}[e] || '';
+  }
   function dsRenderResumenTabla(filas) {
     if (!filas.length) return '<p style="color:#4b5563;font-size:12px;margin:4px 0 14px">Sin órdenes este día.</p>';
-    var html = '<table class="ds-tabla" style="margin-bottom:14px"><thead><tr>';
-    COLS_RESUMEN.forEach(function(c) { html += '<th>' + c.l + '</th>'; });
+    var s = DS.todasSort, html = '<table class="ds-tabla" style="margin-bottom:14px"><thead><tr>';
+    COLS_RESUMEN.forEach(function(c) {
+      var on = s && s.k === c.k;
+      html += '<th class="ds-th-sort' + (on ? ' on' : '') + '" data-tsort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
+              '<span class="ds-sort-ind">' + (on ? (s.dir === 1 ? '▲' : '▼') : '↕') + '</span></th>';
+    });
     html += '</tr></thead><tbody>';
     filas.forEach(function(f) {
-      html += '<tr>' + COLS_RESUMEN.map(function(c) { return '<td>' + dsEsc(f[c.k] || '—') + '</td>'; }).join('') + '</tr>';
+      html += '<tr class="' + dsClaseEstado(f.estado) + '">' + COLS_RESUMEN.map(function(c) {
+        var v = dsEsc(f[c.k] || '—');
+        return '<td>' + (c.k === 'estado' ? '<span data-campo="estado">' + v + '</span>' : v) + '</td>';
+      }).join('') + '</tr>';
     });
     return html + '</tbody></table>';
+  }
+  // Resumen de un equipo para la pestaña cerrada: total del día, por estado y por diseñador (sin canceladas)
+  function dsResumenEquipo(ordenes) {
+    var activas = ordenes.filter(function(f) { return String(f.estado || '').trim().toLowerCase() !== 'canceled'; });
+    var est = {}, dis = {};
+    ordenes.forEach(function(f) { var k = f.estado || 'Sin estado'; est[k] = (est[k] || 0) + 1; });
+    activas.forEach(function(f) { var k = f.designerNombre || 'Sin asignar'; dis[k] = (dis[k] || 0) + 1; });
+    var chips = Object.keys(est).sort(function(a, b) { return est[b] - est[a]; }).map(function(k) {
+      return '<span class="ds-tq-chip ' + dsClaseEstado(k) + '">' + dsEsc(k) + ' <b>' + est[k] + '</b></span>';
+    }).join('');
+    var disenadores = Object.keys(dis).sort(function(a, b) { return dis[b] - dis[a] || a.localeCompare(b); }).map(function(k) {
+      return '<span class="ds-tq-dis">' + dsEsc(k) + ' <b>' + dis[k] + '</b></span>';
+    }).join('');
+    return {total: activas.length, chips: chips, disenadores: disenadores};
   }
   // Una sola petición trae áreas, equipos y órdenes del día (antes: 1 por área + 1 por equipo).
   // vivo = refresco en vivo (cada 5 s, como el horario del equipo): sin "Cargando…" y solo redibuja si algo cambió
@@ -3361,30 +3418,105 @@ window.addEventListener('unhandledrejection', function(ev) {
     }).then(function(areas) {
       if (!areas || DS.todasFecha !== fecha) return; // cambió el día/semana mientras cargaba
       var j = JSON.stringify(areas); if (vivo && j === DS.todasJson) return; DS.todasJson = j;
+      DS.todasDatos = areas;
+      dsPintarTodas();
+    });
+  }
+  // Filtros (para todos los equipos a la vez) y orden por columna; se conservan con el refresco en vivo.
+  DS.todasFiltro = {}; DS.todasSort = null;
+  function dsTodasFiltrar(lista) {
+    var fl = DS.todasFiltro, q = String(fl.q || '').trim().toLowerCase();
+    var out = lista.filter(function(f) {
+      if (q && (String(f.orden || '') + ' ' + String(f.paciente || '')).toLowerCase().indexOf(q) < 0) return false;
+      return ['centro', 'producto', 'designerNombre', 'estado'].every(function(k) { return !fl[k] || String(f[k] || '') === fl[k]; });
+    });
+    var s = DS.todasSort;
+    if (s) out = out.slice().sort(function(a, b) { return s.dir * String(a[s.k] || '').localeCompare(String(b[s.k] || ''), 'es', {numeric: true, sensitivity: 'base'}); });
+    return out;
+  }
+  function dsTodasOpciones(areas) {
+    var vals = {centro: {}, producto: {}, designerNombre: {}, estado: {}};
+    areas.forEach(function(a) { a.teams.forEach(function(t) { t.ordenes.forEach(function(f) { Object.keys(vals).forEach(function(k) { if (f[k]) vals[k][f[k]] = 1; }); }); }); });
+    document.querySelectorAll('#dsTodasFiltros select[data-tf]').forEach(function(sel) {
+      var k = sel.dataset.tf, actual = DS.todasFiltro[k] || '', primero = sel.options[0].outerHTML;
+      var lista = Object.keys(vals[k]); if (actual && lista.indexOf(actual) < 0) lista.push(actual);
+      lista.sort(function(a, b) { return a.localeCompare(b, 'es', {numeric: true, sensitivity: 'base'}); });
+      sel.innerHTML = primero + lista.map(function(v) { return '<option>' + dsEsc(v) + '</option>'; }).join('');
+      sel.value = actual; sel.classList.toggle('on', !!actual);
+    });
+  }
+  (function() {
+    var bar = document.getElementById('dsTodasFiltros'); if (!bar) return;
+    bar.querySelectorAll('[data-tf]').forEach(function(el) {
+      el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', function() {
+        DS.todasFiltro[el.dataset.tf] = el.value; if (el.tagName === 'SELECT') el.classList.toggle('on', !!el.value); dsPintarTodas();
+      });
+    });
+    document.getElementById('dsTodasLimpiar').onclick = function() {
+      DS.todasFiltro = {}; DS.todasSort = null; bar.querySelectorAll('[data-tf]').forEach(function(el) { el.value = ''; el.classList.remove('on'); }); dsPintarTodas();
+    };
+  })();
+  function dsPintarTodas() {
+    var cont = document.getElementById('dsTodasAreasCont'), areas = DS.todasDatos; if (!areas) return;
+    dsTodasOpciones(areas);
+    var filtrando = Object.keys(DS.todasFiltro).some(function(k) { return DS.todasFiltro[k]; });
+    {
       var conEquipos = areas.filter(function(a) { return a.teams.length; });
       if (!conEquipos.length) { cont.innerHTML = '<p style="color:#4b5563">No hay equipos configurados en ninguna área todavía.</p>'; return; }
+      // Pestañas por equipo: cerradas por defecto (se ve el resumen de producción); se recuerda cuáles se abrieron
+      // mientras la página siga abierta, también con el refresco en vivo.
+      DS.todasAbiertas = DS.todasAbiertas || {};
       var html = '';
       conEquipos.forEach(function(a) {
-        html += '<div class="ds-panel"><h3 style="font-size:16px;color:#111827">' + dsEsc(a.nombre) + '</h3>';
-        a.teams.forEach(function(t) {
-          html += '<div style="margin-bottom:10px">' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-              '<b style="color:#1d4ed8;font-size:13px">' + dsEsc(t.nombre) + '</b>' +
+        var totalArea = 0;
+        var equipos = a.teams.map(function(t) {
+          var filas = dsTodasFiltrar(t.ordenes);
+          if (filtrando && !filas.length) return '';  // con filtro, solo los equipos que tienen coincidencias
+          var r = dsResumenEquipo(filas), abierta = !!DS.todasAbiertas[t.id];
+          totalArea += r.total;
+          return '<div class="ds-tq' + (abierta ? ' abierta' : '') + '" data-tq="' + t.id + '">' +
+            '<div class="ds-tq-cab">' +
+              '<button type="button" class="ds-tq-btn" aria-expanded="' + abierta + '" title="' + (abierta ? 'Ocultar' : 'Mostrar') + ' las órdenes del equipo">' +
+                '<span class="ds-tq-flecha">▸</span><b>' + dsEsc(t.nombre) + '</b><span class="ds-tq-total">' + r.total + ' caso' + (r.total === 1 ? '' : 's') + '</span></button>' +
+              '<span class="ds-tq-chips">' + r.chips + '</span>' +
               '<button type="button" class="btn gris mini" data-ir-equipo="' + a.id + ':' + a.formato + ':' + t.id + '">Ver equipo →</button>' +
             '</div>' +
-            '<div>' + dsRenderResumenTabla(t.ordenes) + '</div>' +
+            (r.disenadores ? '<div class="ds-tq-diss">' + r.disenadores + '</div>' : '') +
+            '<div class="ds-tq-cuerpo"' + (abierta ? '' : ' hidden') + '>' + dsRenderResumenTabla(filas) + '</div>' +
           '</div>';
-        });
-        html += '</div>';
+        }).join('');
+        if (filtrando && !equipos) return;
+        html += '<div class="ds-panel"><div class="ds-tq-area"><h3 style="font-size:16px;color:#111827;margin:0">' + dsEsc(a.nombre) +
+          ' <span style="font-weight:500;color:#6b7280;font-size:13px">· ' + totalArea + ' casos</span></h3>' +
+          '<span><button type="button" class="btn gris mini" data-tq-todos="1">Mostrar todos</button> <button type="button" class="btn gris mini" data-tq-todos="0">Ocultar todos</button></span></div>' +
+          equipos + '</div>';
       });
-      cont.innerHTML = html;
+      cont.innerHTML = html || '<p style="color:#4b5563">Ninguna orden coincide con los filtros.</p>';
+      cont.querySelectorAll('th[data-tsort]').forEach(function(th) {
+        th.addEventListener('click', function() {  // A→Z, Z→A, orden original (como el horario del equipo)
+          var k = th.dataset.tsort, act = DS.todasSort;
+          DS.todasSort = (!act || act.k !== k) ? {k: k, dir: 1} : (act.dir === 1 ? {k: k, dir: -1} : null);
+          dsPintarTodas();
+        });
+      });
+      var abrir = function(caja, on) {
+        caja.classList.toggle('abierta', on); caja.querySelector('.ds-tq-cuerpo').hidden = !on;
+        var b = caja.querySelector('.ds-tq-btn'); b.setAttribute('aria-expanded', on); b.title = (on ? 'Ocultar' : 'Mostrar') + ' las órdenes del equipo';
+        if (on) DS.todasAbiertas[caja.dataset.tq] = true; else delete DS.todasAbiertas[caja.dataset.tq];
+      };
+      cont.querySelectorAll('.ds-tq-btn').forEach(function(b) {
+        b.addEventListener('click', function() { var caja = b.closest('.ds-tq'); abrir(caja, !caja.classList.contains('abierta')); });
+      });
+      cont.querySelectorAll('[data-tq-todos]').forEach(function(b) {
+        b.addEventListener('click', function() { var on = b.dataset.tqTodos === '1'; b.closest('.ds-panel').querySelectorAll('.ds-tq').forEach(function(c) { abrir(c, on); }); });
+      });
       cont.querySelectorAll('[data-ir-equipo]').forEach(function(btn) {
         btn.addEventListener('click', function() {
           var partes = btn.dataset.irEquipo.split(':');
           dsIrAEquipo({id: parseInt(partes[0]), formato: partes[1]}, parseInt(partes[2]));
         });
       });
-    });
+    }
   }
   function dsMostrarVista(todasAreas) {
     document.getElementById('dsVistaNormal').style.display = todasAreas ? 'none' : '';
