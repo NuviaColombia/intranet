@@ -1249,7 +1249,29 @@ def eliminar_historial_comentario(db: Session, historial_id: int) -> bool:
 # ---------- Comments N3: plantillas de notas personalizadas ----------
 
 def cmt_templates_listar(db: Session) -> list[DesignComentarioTemplate]:
+    cmt_ng_con_paciente_una_vez(db)
     return db.query(DesignComentarioTemplate).order_by(DesignComentarioTemplate.orden).all()
+
+
+_cmt_ng_ok = {"ok": False}
+
+
+def cmt_ng_con_paciente_una_vez(db: Session) -> None:
+    """Una sola vez (7-oct-2026): "NG Design Ready to print" empieza con el paciente y la orden, como las demás.
+    Solo si sigue con el texto original (si alguien ya la editó, no se toca)."""
+    from .models_design import DesignConexionRegla
+    if _cmt_ng_ok["ok"]:
+        return
+    marca = "cmt_ng_con_paciente"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            for t in db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.texto == "NG Design Ready to print").all():
+                t.texto = "{PO}\nNG Design Ready to print"
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        _cmt_ng_ok["ok"] = True
+    except Exception:
+        db.rollback()
 
 
 def cmt_template_crear(db: Session, nombre: str, texto: str, creado_por: str = "") -> DesignComentarioTemplate:
@@ -1264,7 +1286,7 @@ def cmt_template_crear(db: Session, nombre: str, texto: str, creado_por: str = "
 
 def cmt_template_editar(db: Session, template_id: int, nombre: str, texto: str) -> DesignComentarioTemplate | None:
     t = db.get(DesignComentarioTemplate, template_id)
-    if not t or t.es_fija:
+    if not t:  # todas se pueden editar (también las 11 del formato original); las fijas no se borran
         return None
     if (nombre.strip() or t.nombre) != t.nombre or texto != t.texto:
         _trash_registrar(db, "cmt-template", f'Versión anterior de la plantilla "{t.nombre}"',

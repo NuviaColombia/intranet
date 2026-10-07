@@ -3950,7 +3950,7 @@ window.DS_PANELS.dashboard = function() {
     {n:"Midline hacia la derecha", t:"{PO}\ntenemos una medida de mm digitalmente en la midline hacia la derecha, el doctor pidio mm right. Continuamos con la marca de la demo?"},
     {n:"Midline hacia la izquierda", t:"{PO}\ntenemos una medida de mm digitalmente en la midline hacia la izquierda, el doctor pidio mm left. Continuamos con la marca de la demo?"},
     {n:"Hold — implants moved (upper)", t:"{PO} Hold\nIn the upper, we have X of Y implants moved with respect to the pick-up. According to the protocol, we need a new pick-up if possible, or if we continue with the alignment omitting two implants and leaving the comment about the third moved implant, we await the doctor's authorization to continue. @manager"},
-    {n:"NG Design Ready to print", t:"NG Design Ready to print"},
+    {n:"NG Design Ready to print", t:"{PO}\nNG Design Ready to print"},
     {n:"Master articulation warning", t:"The master articulation will probably not be usable due to the number of moved implants, and the case may be delivered in the digital articulation."},
     {n:"Manager aprobó angulación", t:"The laboratory manager approved continuing with the angulation of the implants."},
     {n:"Delay — alignment attempts", t:"We will have a delay because we must make different alignment attempts, as these attempts will increase the time in the design of the product."}
@@ -4115,9 +4115,10 @@ window.DS_PANELS.dashboard = function() {
     var fav = tpl.id != null && CMT_FAVS[tpl.id];
     var star = tpl.id == null ? '' :
       '<button type="button" class="cmt-tpl-ico cmt-tpl-star' + (fav ? ' on' : '') + '" title="' + (fav ? 'Quitar de favoritos' : 'Marcar como favorito') + '" onclick="cmtFavToggle(' + tpl.id + ')">' + (fav ? '★' : '☆') + '</button>';
-    var edit = (tpl.id == null || tpl.fija) ? '' :
+    // Todas se pueden editar; las 11 del formato original no se borran
+    var edit = tpl.id == null ? '' :
       '<button type="button" class="cmt-tpl-ico" title="Editar nota" onclick="cmtNotaAbrir(' + tpl.id + ')">✎</button>' +
-      '<button type="button" class="cmt-tpl-ico" title="Eliminar nota (va a la Papelera)" onclick="cmtNotaEliminar(' + tpl.id + ')">🗑</button>';
+      (tpl.fija ? '' : '<button type="button" class="cmt-tpl-ico" title="Eliminar nota (va a la Papelera)" onclick="cmtNotaEliminar(' + tpl.id + ')">🗑</button>');
     return '<div class="cmt-tpl-item"><div class="cmt-tpl-head">' + star + '<span class="cmt-tpl-name">' + cmtEscHtml(tpl.n) + '</span>' +
            '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ', this)">Copiar</button></span></div>' +
            '<div class="cmt-tpl-text">' + cmtEscHtml(cmtTplText(tpl, f)) + '</div></div>';
@@ -4143,7 +4144,8 @@ window.DS_PANELS.dashboard = function() {
     if (document.getElementById('cmtNota')) return;
     var tpl = id != null ? CMT_TPL.find(function(t) { return t.id === id; }) : null;
     var texto = tpl ? tpl.t : '', conPo = tpl ? /^\{PO\}/.test(texto) : true;
-    if (conPo) texto = texto.replace(/^\{PO\}\n?/, '');
+    var sepPo = /^\{PO\} /.test(texto) ? ' ' : '\n';  // "{PO} Hold..." conserva el espacio al guardar
+    if (conPo) texto = texto.replace(/^\{PO\}[ \n]?/, '');
     var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'cmtNota';
     bg.innerHTML = '<div class="ds-qc cmt-nota" role="dialog" aria-modal="true" aria-labelledby="cmtNotaTit" style="width:520px">' +
       '<h4 id="cmtNotaTit">' + (tpl ? 'Editar nota' : 'Nueva nota') + '</h4>' +
@@ -4165,7 +4167,7 @@ window.DS_PANELS.dashboard = function() {
       var n = nom.value.trim(), t = txt.value.replace(/\s+$/, '');
       if (!n) { err.innerText = 'Escribe un nombre para la nota.'; nom.focus(); return; }
       if (!t.trim()) { err.innerText = 'Escribe el texto de la nota.'; txt.focus(); return; }
-      if (bg.querySelector('#cmtNotaPo').checked) t = '{PO}\n' + t;
+      if (bg.querySelector('#cmtNotaPo').checked) t = '{PO}' + sepPo + t;
       btnSi.disabled = true;
       postJSON('/design/api/comentarios/templates' + (tpl ? '/' + tpl.id : ''), {nombre: n, texto: t}).then(function(r) {
         if (!r || !r.id) throw new Error((r && r.detail) || 'No se pudo guardar.');
