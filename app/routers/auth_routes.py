@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import RedirectResponse
+from fastapi import HTTPException
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
-from ..auth import zoho_login_url, zoho_get_email
+from ..auth import zoho_login_url, zoho_get_email, get_current_user
 from ..main_templates import templates
 
 router = APIRouter()
@@ -47,3 +48,13 @@ async def auth_callback(request: Request, code: str = "", db: Session = Depends(
 def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/login")
+
+
+@router.get("/mi-foto")
+def mi_foto(user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Foto de perfil de Zoho de la persona con sesión (barra de arriba). 404 si no hay: se muestran sus iniciales."""
+    from ..models_design import DesignFotoPerfil
+    f = db.get(DesignFotoPerfil, user.id)
+    if not f or not f.datos:
+        raise HTTPException(404, "Sin foto.")
+    return Response(f.datos, media_type=f.tipo or "image/jpeg", headers={"Cache-Control": "private, max-age=3600"})

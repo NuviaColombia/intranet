@@ -335,8 +335,15 @@
     {tipo: 'check', k: 'sombra', l: 'Sombra'}, {tipo: 'numero', k: 'margenAbajo', l: 'Espacio debajo (px)', min: 0, max: 200},
     {tipo: 'rango', k: 'ancho', l: 'Ancho de la caja (%)', min: 10, max: 100}, {tipo: 'select', k: 'alinearCaja', l: 'Ubicación de la caja', ops: [['center', 'Centro'], ['left', 'Izquierda'], ['right', 'Derecha']]},
     {tipo: 'numero', k: 'alto', l: 'Alto mínimo de la caja (px, 0 = automático)', min: 0, max: 2000},
-    {tipo: 'select', k: 'animacion', l: 'Animación al aparecer', ops: [['', 'Ninguna'], ['subir', 'Subir'], ['aparecer', 'Aparecer'], ['zoom', 'Acercar'], ['izq', 'Desde la izquierda'], ['der', 'Desde la derecha'], ['flotar', 'Aparecer y flotar']]},
+    {tipo: 'select', k: 'animacion', l: 'Animación al aparecer', ops: [['', 'Ninguna'], ['subir', 'Subir'], ['aparecer', 'Aparecer'], ['zoom', 'Acercar'], ['izq', 'Desde la izquierda'], ['der', 'Desde la derecha'], ['flotar', 'Aparecer y flotar'],
+      ['rebote', 'Rebote'], ['voltear', 'Voltear (3D)'], ['desenfoque', 'De borroso a nítido'], ['girar', 'Girar al entrar'], ['escala', 'Encoger al entrar']]},
     {tipo: 'numero', k: 'retraso', l: 'Retraso de la animación (ms)', min: 0, max: 3000, paso: 100},
+    {tipo: 'select', k: 'continuo', l: 'Movimiento continuo', ops: [['', 'Ninguno'], ['latido', 'Latido'], ['balanceo', 'Balanceo'], ['respirar', 'Respirar (crece y vuelve)'], ['brillo', 'Brillo pulsante']]},
+    {tipo: 'select', k: 'alPasar', l: 'Al pasar el mouse', ops: [['', 'Nada'], ['elevar', 'Elevar'], ['crecer', 'Crecer'], ['inclinar', 'Inclinar en 3D'], ['destello', 'Destello']]},
+    {tipo: 'select', k: 'marco', l: 'Marco', ops: [['', 'Ninguno'], ['polaroid', 'Polaroid'], ['neon', 'Neón'], ['degradado', 'Borde degradado en movimiento'], ['doble', 'Doble línea'], ['punteado', 'Punteado'],
+      ['esquinas', 'Esquinas decorativas'], ['sombraColor', 'Sombra de color'], ['vidrio', 'Vidrio esmerilado'], ['cinta', 'Cinta con texto']]},
+    {tipo: 'color', k: 'colorMarco', l: 'Color del marco', si: ['marco', ['neon', 'degradado', 'doble', 'punteado', 'esquinas', 'sombraColor', 'cinta']]},
+    {tipo: 'texto', k: 'cinta', l: 'Texto de la cinta', si: ['marco', ['cinta']]},
     {tipo: 'check', k: 'ocultarMovil', l: 'Ocultar en celulares'}];
 
   // w: ancho en % (o null si no cambió); hh: alto en px (o null); ref: medidas al empezar (para la galería)
@@ -358,14 +365,24 @@
     var def = D[b.tipo];
     var caja = h('div', 'nvi-blk nvi-b-' + b.tipo); caja.setAttribute('data-blk', b.id);
     var e = b.estilo || {};
-    if (e.fondo) caja.style.background = e.fondo; if (+e.relleno) caja.style.padding = e.relleno + 'px'; if (+e.radio) caja.style.borderRadius = e.radio + 'px';
+    // marcos que dibujan el borde con el fondo (degradado, esquinas): el color de la caja va en una variable
+    var marcoFondo = e.marco === 'degradado' || e.marco === 'esquinas';
+    if (e.fondo && !marcoFondo) caja.style.background = e.fondo; if (+e.relleno) caja.style.padding = e.relleno + 'px'; if (+e.radio) caja.style.borderRadius = e.radio + 'px';
+    if (e.marco) {
+      caja.classList.add('nvi-marco', 'nvi-marco-' + e.marco);
+      caja.style.setProperty('--nvi-mc', e.colorMarco || 'var(--nvi-acento, #2f98d5)'); caja.style.setProperty('--nvi-caja-fondo', e.fondo || (e.marco === 'esquinas' ? 'transparent' : '#ffffff'));
+      if (e.marco === 'cinta') caja.setAttribute('data-cinta', e.cinta || 'Nuevo');
+    }
+    if (e.alPasar && ctx.modo !== 'editar') caja.classList.add('nvi-alpasar-' + e.alPasar);
     if (+e.ancho && +e.ancho < 100) { caja.style.width = e.ancho + '%'; caja.style.marginLeft = e.alinearCaja === 'left' ? '0' : 'auto'; caja.style.marginRight = e.alinearCaja === 'right' ? '0' : 'auto'; }
     if (+e.alto) caja.style.minHeight = e.alto + 'px';
     if (e.sombra) caja.style.boxShadow = '0 10px 30px rgba(15,23,42,.12)'; caja.style.marginBottom = (e.margenAbajo != null && e.margenAbajo !== '' ? e.margenAbajo : 16) + 'px';
     if (e.ocultarMovil) caja.classList.add('nvi-ocultar-movil');
-    if (e.animacion && ctx.modo !== 'editar') { caja.classList.add('nvi-anim', 'nvi-anim-' + e.animacion); if (+e.retraso) caja.style.transitionDelay = e.retraso + 'ms'; NVI.observarAnim(caja); }
+    if (e.animacion && ctx.modo !== 'editar') { caja.classList.add('nvi-anim', 'nvi-anim-' + e.animacion); if (+e.retraso) { caja.style.transitionDelay = e.retraso + 'ms'; caja.style.animationDelay = e.retraso + 'ms'; } NVI.observarAnim(caja); }
     try { caja.appendChild(def ? def.r(b.p || {}, ctx) : h('div', 'nvi-desconocido', 'Bloque no disponible')); }
     catch (err) { caja.appendChild(h('div', 'nvi-desconocido', 'No se pudo mostrar este bloque')); }
+    // el movimiento continuo va en el contenido (así no choca con la animación de entrada ni con el marco)
+    if (e.continuo && caja.firstElementChild) caja.firstElementChild.classList.add('nvi-cont', 'nvi-cont-' + e.continuo);
     return caja;
   };
   var ioAnim = null;

@@ -1848,6 +1848,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (f.qc) td.dataset.qcTip = rep ? 'si' : 'no'; else delete td.dataset.qcTip;
       td._qcTexto = rep;
     }
+    tr._dsFila = {tabla: tabla, f: f};   // para actualizar sus accesos sin volver a dibujar la fila
     dsAccesosFila(tr, tabla, f);
   }
 
@@ -1855,7 +1856,6 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Orden (N3, orden completa con paciente): botón a Comments N3; la primera vez llena Patient, Order # y Product.
   // Centro elegido: botón con la miniatura del Pre-Approved de sus doctores; clic abre una ventana flotante en vivo.
   function dsAreaNombre() { return (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre || ''; }
-  function dsCmtUsadas() { try { return JSON.parse(localStorage.getItem('dsCmtUsadasV1') || '{}') || {}; } catch (e) { return {}; } }
   function dsAccesosFila(tr, tabla, f) {
     if (tabla !== 'principal' && tabla !== 'nightguard') return;
     var tdO = (tr.querySelector('[data-campo="orden"]') || {}).parentNode, tdC = (tr.querySelector('[data-campo="centro"]') || {}).parentNode;
@@ -1869,25 +1869,27 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (extra) extra(b);
     };
     var completa = dsOrdenCompleta(f) && String(f.orden || '').trim() && String(f.paciente || '').trim();
-    var usada = !!dsCmtUsadas()[f.id];
+    var trabajo = window.cmtTrabajoDeOrden ? window.cmtTrabajoDeOrden(f.orden) : null, usada = !!trabajo;
     poner(tdO, 'ds-acc-cmt', perm && dsAreaNombre() === 'N3 Prosthetic' && completa,
-          usada ? 'Abrir Comments N3' : 'Abrir Comments N3 con esta orden (llena Patient, Order # y Product)',
+          usada ? 'Abrir Comments N3 con lo que trabajaste en esta orden (guardado ' + dsHaceCuanto(trabajo.t) + '; se borra a los 2 días)' : 'Abrir Comments N3 con esta orden (llena Patient, Order # y Product)',
           function() { dsIrAComments(f, tr, tabla); }, function(b) { b.textContent = '💬'; b.classList.toggle('usado', usada); });
     poner(tdC, 'ds-acc-pa', !!String(f.centro || '').trim(), 'Pre-Approved de los doctores de ' + f.centro + ' (clic para abrir en ventana)',
           function() { dsPaVentana(f.centro); }, function(b) { b.textContent = '📋'; b.dataset.centro = f.centro; });
   }
   function dsIrAComments(f, tr, tabla) {
     var actual = (DS.diaData[tabla] || []).find(function(x) { return x.id === f.id; }) || f;
-    var usadas = dsCmtUsadas(), primera = !usadas[actual.id];
-    if (primera) {
-      usadas[actual.id] = Date.now();
-      var claves = Object.keys(usadas); if (claves.length > 2000) claves.sort(function(a, b) { return usadas[a] - usadas[b]; }).slice(0, claves.length - 2000).forEach(function(k) { delete usadas[k]; });
-      try { localStorage.setItem('dsCmtUsadasV1', JSON.stringify(usadas)); } catch (e) {}
-      dsAccesosFila(tr, tabla, actual);
-    }
     window.dsAbrirPanel('comments');
-    if (primera && window.cmtDesdeSchedule) window.cmtDesdeSchedule({orden: actual.orden, paciente: actual.paciente, producto: actual.producto});
+    if (window.cmtDesdeSchedule) window.cmtDesdeSchedule({orden: actual.orden, paciente: actual.paciente, producto: actual.producto});
+    dsAccesosFila(tr, tabla, actual);
   }
+  function dsHaceCuanto(t) { var m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'hace un momento' : m < 60 ? 'hace ' + m + ' min' : m < 1440 ? 'hace ' + Math.round(m / 60) + ' h' : 'hace ' + Math.round(m / 1440) + ' días'; }
+  // cuando se guarda trabajo de una orden nueva, los 💬 del día se actualizan (quedan marcados)
+  window.dsRefrescarAccesosCmt = function() {
+    document.querySelectorAll('tr').forEach(function(tr) {
+      var b = tr.querySelector('.ds-acc-cmt'); if (!b || !tr._dsFila) return;
+      dsAccesosFila(tr, tr._dsFila.tabla, tr._dsFila.f);
+    });
+  };
 
   // Miniatura al pasar el mouse por el botón del centro
   var DS_PA_CACHE = {};
@@ -4087,12 +4089,34 @@ window.DS_PANELS.dashboard = function() {
   // Borrador: lo escrito en Comments N3 se guarda en este navegador (por persona) con cada cambio, así al
   // actualizar la página o cerrarla por error no se pierde. "Limpiar" lo vacía (y guarda el caso en el historial).
   var CMT_BORRADOR_KEY = 'cmtBorradorV1:{{ user.id }}', cmtBorradorListo = false;
+  // Trabajo por orden: cada número de orden guarda lo que se trabajó en Comments (en este navegador, de cada persona).
+  // Así, si una cirugía queda en Hold y el diseñador abre otra orden (ej. una TC), al volver a la primera recupera todo.
+  // Se borra solo 2 días después del último cambio.
+  var CMT_ORDENES_KEY = 'cmtOrdenesV1:{{ user.id }}', CMT_ORDEN_DIAS = 2;
+  function cmtClaveOrden(o) { return String(o || '').trim().toUpperCase(); }
+  function cmtOrdenes() {
+    var m = {}; try { m = JSON.parse(localStorage.getItem(CMT_ORDENES_KEY) || '{}') || {}; } catch (e) {}
+    var lim = Date.now() - CMT_ORDEN_DIAS * 864e5, cambio = false;
+    Object.keys(m).forEach(function(k) { if (!m[k] || !(m[k].t > lim)) { delete m[k]; cambio = true; } });
+    if (cambio) try { localStorage.setItem(CMT_ORDENES_KEY, JSON.stringify(m)); } catch (e) {}
+    return m;
+  }
+  window.cmtTrabajoDeOrden = function(orden) { return cmtOrdenes()[cmtClaveOrden(orden)] || null; };
+  function cmtGuardarOrden(f) {
+    var k = cmtClaveOrden(f.j4); if (!k || !CMT_FIELDS.some(function(x) { return cmtNe(f[x]); })) return;
+    var m = cmtOrdenes(), antes = m[k];
+    m[k] = {t: Date.now(), campos: f};
+    var claves = Object.keys(m); if (claves.length > 300) claves.sort(function(a, b) { return m[a].t - m[b].t; }).slice(0, claves.length - 300).forEach(function(x) { delete m[x]; });
+    try { localStorage.setItem(CMT_ORDENES_KEY, JSON.stringify(m)); } catch (e) {}
+    if (!antes && window.dsRefrescarAccesosCmt) window.dsRefrescarAccesosCmt();   // el 💬 de esa orden queda marcado
+  }
   function cmtGuardarBorrador(f) {
     if (!cmtBorradorListo) return;
     try {
       if (CMT_FIELDS.some(function(k) { return cmtNe(f[k]); })) localStorage.setItem(CMT_BORRADOR_KEY, JSON.stringify({t: Date.now(), campos: f}));
       else localStorage.removeItem(CMT_BORRADOR_KEY);
     } catch (e) {}
+    cmtGuardarOrden(f);
   }
   function cmtRestaurarBorrador() {
     var b = null; try { b = JSON.parse(localStorage.getItem(CMT_BORRADOR_KEY) || 'null'); } catch (e) {}
@@ -4320,18 +4344,19 @@ window.DS_PANELS.dashboard = function() {
   window.cmtDesdeSchedule = function(o) {
     if (!CMT_PERM.n3) return;
     var f = cmtLeer();
-    var llenar = function() {
-      var pon = function(id, v) { var el = document.getElementById(id); if (el) { el.value = v || ''; el.classList.remove('cmt-missing'); } };
+    if (cmtClaveOrden(f.j4) === cmtClaveOrden(o.orden)) return;   // ya está abierta esa orden
+    cmtGuardarOrden(f);   // lo que había en el formulario queda guardado en su orden
+    var guardado = cmtOrdenes()[cmtClaveOrden(o.orden)];
+    CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) { el.value = ""; el.classList.remove('cmt-missing'); } });
+    if (guardado && guardado.campos) {
+      cmtCargarDesdeHistorial(guardado.campos);
+      if (window.dsToast) window.dsToast('Se recuperó lo que trabajaste en la orden ' + o.orden + '.');
+    } else {
+      var pon = function(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; };
       pon('cmt_b4', o.paciente); pon('cmt_j4', o.orden); pon('cmt_b7', o.producto);
       cmtRecalcular();
-    };
-    var mismo = String(f.j4 || '').trim().toUpperCase() === String(o.orden || '').trim().toUpperCase();
-    if (mismo || !CMT_FIELDS.some(function(k) { return cmtNe(f[k]); })) { if (!mismo) llenar(); return; }
-    postJSON('/design/api/comentarios/historial', {paciente: f.b4, orden: f.j4, campos: f}).then(function() {
-      CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = ""; });
-      llenar(); cmtCargarHistorial();
-      if (window.dsToast) window.dsToast('El caso anterior (' + (f.b4 || f.j4 || 'sin nombre') + ') se guardó en el historial.');
-    }).catch(function(e) { alert('No se guardó el caso anterior en el historial, así que no se reemplazó: ' + e.message); });
+    }
+    if (cmtNe(f.j4) && f.j4 !== o.orden && window.dsToast && !guardado) window.dsToast('Lo de la orden ' + f.j4 + ' quedó guardado: vuelve a tocar su 💬 para seguir.');
   };
   // Bar adapt: las 4 fijas + las que agregue el equipo; la última opción permite agregar otra.
   function cmtBarAdaptPintar(lista) {

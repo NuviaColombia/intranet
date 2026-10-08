@@ -1319,7 +1319,7 @@ FOTO_MAX_BYTES = 2_000_000
 
 
 async def foto_design_al_iniciar(client, access_token: str, info: dict, email: str) -> None:
-    """Al iniciar sesión con Zoho: si la persona tiene el módulo Design, se guarda su foto de perfil.
+    """Al iniciar sesión con Zoho se guarda la foto de perfil de la persona (todos los módulos la muestran en la barra).
     Prueba la foto del perfil de Zoho (userinfo "picture", el API de perfil y la de contactos). Nunca falla el login:
     si no se consigue, queda anotado el motivo (Parámetros › /design/api/parametros/fotos)."""
     from .database import SessionLocal
@@ -1328,7 +1328,7 @@ async def foto_design_al_iniciar(client, access_token: str, info: dict, email: s
     db = SessionLocal()
     try:
         user = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()
-        if not user or not user.tiene_modulo("design_schedule"):
+        if not user:
             return
         zuid = str(info.get("sub") or info.get("ZUID") or "")
         urls = [u for u in [info.get("picture"), f"https://profile.zoho.{ZOHO_REGION}/api/v1/user/self/photo",

@@ -352,3 +352,58 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 .nvi-rk-pie { text-align:center; font-size:12px; opacity:.7; margin-top:10px; }
 @container nvi (max-width: 820px) { .nvi-rk-fila { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 @container nvi (max-width: 480px) { .nvi-rk-fila { grid-template-columns:1fr; } }
+
+/* ---------- Animaciones de entrada nuevas ---------- */
+.nvi-anim-voltear:not(.visto) { transform:perspective(900px) rotateX(70deg); transform-origin:center top; }
+.nvi-anim-desenfoque { transition:opacity .9s ease, filter .9s ease, transform .9s ease; }
+.nvi-anim-desenfoque:not(.visto) { filter:blur(14px); transform:scale(1.04); }
+.nvi-anim-girar:not(.visto) { transform:rotate(-10deg) scale(.85); }
+.nvi-anim-escala:not(.visto) { transform:scale(1.18); }
+.nvi-anim-rebote:not(.visto) { transform:scale(.55); }
+.nvi-anim-rebote.visto { animation:nviRebote .9s cubic-bezier(.28,.84,.42,1) both; }
+@keyframes nviRebote { 0% { transform:scale(.55); opacity:0; } 55% { transform:scale(1.08); opacity:1; } 75% { transform:scale(.96); } 100% { transform:scale(1); } }
+
+/* ---------- Movimiento continuo ---------- */
+.nvi-cont-latido { animation:nviLatido 1.8s ease-in-out infinite; }
+.nvi-cont-balanceo { animation:nviBalanceo 3.2s ease-in-out infinite; transform-origin:center bottom; }
+.nvi-cont-respirar { animation:nviRespirar 4s ease-in-out infinite; }
+.nvi-cont-brillo { animation:nviBrilloPulso 2.4s ease-in-out infinite; }
+@keyframes nviLatido { 0%, 40%, 100% { transform:scale(1); } 15% { transform:scale(1.06); } 28% { transform:scale(.98); } }
+@keyframes nviBalanceo { 0%, 100% { transform:rotate(-2deg); } 50% { transform:rotate(2deg); } }
+@keyframes nviRespirar { 0%, 100% { transform:scale(1); } 50% { transform:scale(1.035); } }
+@keyframes nviBrilloPulso { 0%, 100% { filter:drop-shadow(0 0 0 rgba(47,152,213,0)); } 50% { filter:drop-shadow(0 0 14px rgba(47,152,213,.75)); } }
+
+/* ---------- Al pasar el mouse ---------- */
+.nvi-blk[class*="nvi-alpasar-"] { transition:transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s; }
+.nvi-alpasar-elevar:hover { transform:translateY(-8px); box-shadow:0 22px 40px -18px rgba(15,23,42,.45) !important; }
+.nvi-alpasar-crecer:hover { transform:scale(1.04); }
+.nvi-alpasar-inclinar:hover { transform:perspective(900px) rotateX(5deg) rotateY(-7deg) scale(1.02); box-shadow:12px 18px 40px -18px rgba(15,23,42,.45) !important; }
+.nvi-alpasar-destello { position:relative; overflow:hidden; }
+.nvi-alpasar-destello::after { content:''; position:absolute; top:0; bottom:0; left:-60%; width:40%; background:linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform:skewX(-18deg); pointer-events:none; }
+.nvi-alpasar-destello:hover::after { animation:nviDestello .9s ease; }
+
+/* ---------- Marcos ---------- */
+.nvi-marco { position:relative; }
+.nvi-marco:not([style*="padding"]) { padding:14px; }
+.nvi-marco-polaroid { background:#fff; padding:12px 12px 42px !important; box-shadow:0 14px 30px -12px rgba(15,23,42,.4); transform:rotate(-1.5deg); border-radius:4px; color:#1a1449; }
+.nvi-marco-neon { border:2px solid var(--nvi-mc); box-shadow:0 0 6px var(--nvi-mc), 0 0 18px var(--nvi-mc), inset 0 0 10px color-mix(in srgb, var(--nvi-mc) 45%, transparent); border-radius:14px; animation:nviNeon 3s ease-in-out infinite; }
+@keyframes nviNeon { 0%, 100% { box-shadow:0 0 6px var(--nvi-mc), 0 0 18px var(--nvi-mc), inset 0 0 10px color-mix(in srgb, var(--nvi-mc) 45%, transparent); } 50% { box-shadow:0 0 10px var(--nvi-mc), 0 0 30px var(--nvi-mc), inset 0 0 16px color-mix(in srgb, var(--nvi-mc) 55%, transparent); } }
+.nvi-marco-degradado { border:3px solid transparent; border-radius:16px;
+  background:linear-gradient(var(--nvi-caja-fondo), var(--nvi-caja-fondo)) padding-box, linear-gradient(90deg, var(--nvi-mc), #a855f7, #e8b64c, var(--nvi-mc)) border-box;
+  background-size:100% 100%, 300% 100%; animation:nviBordeMov 4s linear infinite; }
+@keyframes nviBordeMov { from { background-position:0 0, 0% 0; } to { background-position:0 0, 300% 0; } }
+.nvi-marco-doble { border:5px double var(--nvi-mc); border-radius:12px; }
+.nvi-marco-punteado { border:2px dashed var(--nvi-mc); border-radius:14px; }
+.nvi-marco-esquinas { --e:38px; --g:4px;
+  background:linear-gradient(var(--nvi-mc), var(--nvi-mc)) top left / var(--e) var(--g), linear-gradient(var(--nvi-mc), var(--nvi-mc)) top left / var(--g) var(--e),
+    linear-gradient(var(--nvi-mc), var(--nvi-mc)) top right / var(--e) var(--g), linear-gradient(var(--nvi-mc), var(--nvi-mc)) top right / var(--g) var(--e),
+    linear-gradient(var(--nvi-mc), var(--nvi-mc)) bottom left / var(--e) var(--g), linear-gradient(var(--nvi-mc), var(--nvi-mc)) bottom left / var(--g) var(--e),
+    linear-gradient(var(--nvi-mc), var(--nvi-mc)) bottom right / var(--e) var(--g), linear-gradient(var(--nvi-mc), var(--nvi-mc)) bottom right / var(--g) var(--e),
+    linear-gradient(var(--nvi-caja-fondo), var(--nvi-caja-fondo));
+  background-repeat:no-repeat; padding:18px; }
+.nvi-marco-sombraColor { border:2px solid var(--nvi-mc); box-shadow:10px 10px 0 var(--nvi-mc); border-radius:10px; background:#fff; }
+.nvi-marco-vidrio { background:rgba(255,255,255,.18) !important; border:1px solid rgba(255,255,255,.4); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); border-radius:18px; box-shadow:0 10px 30px -12px rgba(15,23,42,.3); }
+.nvi-marco-cinta::before { content:attr(data-cinta); position:absolute; top:14px; right:-10px; z-index:3; background:var(--nvi-mc); color:#fff; font:800 12px/1 var(--nvi-f-txt); letter-spacing:.06em; text-transform:uppercase;
+  padding:7px 14px; border-radius:4px 0 0 4px; box-shadow:0 4px 10px -4px rgba(0,0,0,.4); }
+.nvi-marco-cinta::after { content:''; position:absolute; top:39px; right:-10px; border-width:5px 10px 5px 0; border-style:solid; border-color:color-mix(in srgb, var(--nvi-mc) 60%, #000) transparent transparent transparent; z-index:2; }
+@media (prefers-reduced-motion: reduce) { .nvi-cont, .nvi-marco-neon, .nvi-marco-degradado { animation:none !important; } .nvi-anim-rebote.visto { animation:none; } }

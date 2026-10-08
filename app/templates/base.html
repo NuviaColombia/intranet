@@ -162,12 +162,17 @@
   {% endif %}
   {% endif %}
   <a href="/">Módulos</a>
-  {% if en_inventario %}
-  {# En Producción el usuario se muestra como un círculo con sus iniciales; al pasar el mouse se despliega su perfil #}
+  {# Todos los módulos: foto de Zoho (o iniciales), primer nombre y primer apellido, y el cargo debajo #}
   {% set primeros = (user.nombres or '').split()[:1] + (user.apellidos or '').split()[:1] %}
+  {% set yo %}
+    <span class="ds-yo-foto"><img src="/mi-foto" alt="" onerror="this.remove()"><span>{{ primeros|map('first')|join('')|upper }}</span></span>
+    <span class="ds-yo-txt"><b title="{{ user.nombre_completo|nombre_propio }}">{{ primeros|join(' ')|nombre_propio }}</b>{% if user.cargo %}<small>{{ user.cargo|nombre_propio(true) }}</small>{% endif %}</span>
+  {% endset %}
+  {% if en_inventario %}
+  {# En Producción, al pasar el mouse se despliega su perfil (correo, rol y empresa) #}
   {% set nombres_rol = {'empleado': 'Empleado', 'aprobador': 'Aprobador', 'admin': 'Administrador', 'superadmin': 'Superadministrador'} %}
-  <div class="perfil" tabindex="0">
-    <span class="perfil-avatar" title="{{ user.nombre_completo|nombre_propio }}">{{ primeros|map('first')|join('')|upper }}</span>
+  <div class="perfil ds-yo-perfil" tabindex="0">
+    <span class="ds-yo">{{ yo }}</span>
     <div class="perfil-menu">
       <div class="perfil-cabecera">
         <div class="perfil-nombre">{{ user.nombre_completo|nombre_propio }}</div>
@@ -180,15 +185,12 @@
       </div>
     </div>
   </div>
-  {% elif es_design %}
-  {# Design: foto de Zoho (o iniciales), primer nombre y primer apellido, y el cargo debajo #}
-  {% set primeros = (user.nombres or '').split()[:1] + (user.apellidos or '').split()[:1] %}
-  <span class="ds-yo">
-    <span class="ds-yo-foto"><img src="/design/api/foto/{{ user.id }}" alt="" onerror="this.remove()"><span>{{ primeros|map('first')|join('')|upper }}</span></span>
-    <span class="ds-yo-txt"><b title="{{ user.nombre_completo|nombre_propio }}">{{ primeros|join(' ')|nombre_propio }}</b>{% if user.cargo %}<small>{{ user.cargo|nombre_propio(true) }}</small>{% endif %}</span>
-    <a href="/logout" class="ds-yo-salir">Salir</a>
-  </span>
+  {% else %}
+  <span class="ds-yo">{{ yo }}<a href="/logout" class="ds-yo-salir">Salir</a></span>
+  {% endif %}
   <style>
+    nav .ds-yo-perfil { margin-left:auto; display:flex; align-items:center; }
+    nav .ds-yo-perfil .ds-yo { margin-left:0; cursor:pointer; }
     nav .ds-yo { margin-left:auto; display:flex; align-items:center; gap:10px; color:#e5e7eb; }
     nav .ds-yo-foto { position:relative; width:38px; height:38px; border-radius:50%; overflow:hidden; background:#2563eb; color:#fff; font-weight:700;
       font-size:14px; display:grid; place-items:center; flex:none; border:2px solid rgba(255,255,255,.25); }
@@ -199,9 +201,6 @@
     nav .ds-yo-salir { font-size:12.5px; color:#9ca3af; margin-left:4px; }
     nav .ds-yo-salir:hover { color:#fff; }
   </style>
-  {% else %}
-  <span class="usuario">{{ user.nombre_completo }} · <a href="/logout">Salir</a></span>
-  {% endif %}
 </nav>
 {% endif %}
 <main{% if not es_portal %} style="max-width:100%"{% endif %}{% if user and (es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_conteo) %} class="app-completa"{% endif %}>{% block contenido %}{% endblock %}</main>
