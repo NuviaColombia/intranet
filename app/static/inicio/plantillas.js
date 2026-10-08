@@ -304,7 +304,9 @@
   ];
   NVI.PLANTILLA_VACIA = function() { return {tema: NVI.clon(NVI.TEMA_BASE), secciones: [sec({}, [col(12, [T('Inicio de Design', 'h1'), P(P1)])])]}; };
   NVI.nuevaSeccion = function(tipo) {
-    if (tipo === 'libre') return libre({alto: 480}, [el(5, 40, 40, 0, T('Arrástrame', 'h2'), 1)]);
+    if (tipo === 'libre') return libre({alto: 480}, []);
+    if (tipo === 'libre-baja') return libre({alto: 240}, []);
+    if (tipo === 'libre-alta') return libre({alto: 760}, []);
     var anchos = {c1: [12], c2: [6, 6], c3: [4, 4, 4], c4: [3, 3, 3, 3], c13: [4, 8], c31: [8, 4], c121: [3, 6, 3]}[tipo] || [12];
     return sec({}, anchos.map(function(a) { return col(a, []); }));
   };

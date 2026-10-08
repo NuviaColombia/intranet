@@ -195,3 +195,15 @@ body.nvi-arrastrando-mouse .nvi-ed-blk > .nvi-ed-blkbar { display:none !importan
 .nvi-ed-bib-item.marcada { border-color:#1d4ed8; box-shadow:0 0 0 3px #1d4ed8; }
 .nvi-ed-bib-item.marcada .marca { background:#1d4ed8; }
 .nvi-ed-add-varias { margin-top:6px; }
+
+/* ocho agarraderas para cambiar el tamaño */
+.nvi-ed-rsz[data-dir] { right:auto; bottom:auto; width:12px; height:12px; }
+.nvi-ed-rsz[data-dir="nw"] { left:-7px; top:-7px; cursor:nwse-resize; } .nvi-ed-rsz[data-dir="se"] { right:-7px; bottom:-7px; left:auto; top:auto; cursor:nwse-resize; }
+.nvi-ed-rsz[data-dir="ne"] { right:-7px; top:-7px; left:auto; cursor:nesw-resize; } .nvi-ed-rsz[data-dir="sw"] { left:-7px; bottom:-7px; top:auto; cursor:nesw-resize; }
+.nvi-ed-rsz[data-dir="n"] { left:calc(50% - 6px); top:-7px; cursor:ns-resize; } .nvi-ed-rsz[data-dir="s"] { left:calc(50% - 6px); bottom:-7px; top:auto; cursor:ns-resize; }
+.nvi-ed-rsz[data-dir="e"] { right:-7px; top:calc(50% - 6px); left:auto; cursor:ew-resize; } .nvi-ed-rsz[data-dir="w"] { left:-7px; top:calc(50% - 6px); cursor:ew-resize; }
+.nvi-ed-rsz[data-dir="n"], .nvi-ed-rsz[data-dir="s"], .nvi-ed-rsz[data-dir="e"], .nvi-ed-rsz[data-dir="w"] { border-radius:50%; }
+.nvi-libre-el > .nvi-ed-medida { right:6px; bottom:6px; }
+/* mientras se mueve un elemento puede salir de su sección para pasarlo a otra */
+.nvi-sec.nvi-ed-fuera { overflow:visible; z-index:40; }
+.nvi-sec.nvi-ed-fuera .nvi-sec-in, .nvi-sec.nvi-ed-fuera .nvi-libre { overflow:visible; }

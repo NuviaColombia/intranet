@@ -4,7 +4,7 @@
 (function() {
   'use strict';
   var NVI = window.NVI, h = NVI.h, esc = NVI.esc, D = NVI.BLOQUES;
-  var E = NVI.ed = {pag: null, version: 0, sel: null, hist: [], histI: -1, previa: false, disp: 'escritorio', editando: null, guardando: false, pendiente: false};
+  var E = NVI.ed = {convertidas: {}, pag: null, version: 0, sel: null, hist: [], histI: -1, previa: false, disp: 'escritorio', editando: null, guardando: false, pendiente: false};
 
   function api(url, body) {
     var o = {credentials: 'same-origin', headers: {}};
@@ -81,14 +81,18 @@
   // ---------- Edición en vivo entre admins ----------
   // Combinar: base = lo último que se sincronizó, mio = lo que tengo, suyo = lo que guardó otro admin.
   // Por sección: si solo uno la cambió gana ese cambio; si ambos, gana el mío. Igual con el estilo de la página.
+  // Una sección que solo pasé de columnas a libre (sin tocarla) no cuenta como cambio mío al combinar con otro admin.
+  // Se compara sin el alto anotado (hd), que cada editor mide por su lado.
+  var sinHd = function(x) { return JSON.stringify(x, function(k, v) { return k === 'hd' ? undefined : v; }); };
+  function cambioMio(m, b, id) { var jm = sinHd(m); return jm !== sinHd(b) && jm !== E.convertidas[id]; }
   function combinar(base, mio, suyo) {
     var J = JSON.stringify, mapa = function(p) { var m = {}; ((p && p.secciones) || []).forEach(function(x) { m[x.id] = x; }); return m; };
     var B = mapa(base), M = mapa(mio), T = mapa(suyo), res = {};
     Object.keys(M).concat(Object.keys(T)).forEach(function(id) {
       if (id in res) return;
       var b = B[id], m = M[id], t = T[id];
-      if (m && t) res[id] = b && J(m) !== J(b) ? m : t;
-      else if (m) { if (!b || J(m) !== J(b)) res[id] = m; }      // la agregué yo, o él la borró pero yo la cambié
+      if (m && t) res[id] = b && cambioMio(m, b, id) ? m : t;
+      else if (m) { if (!b || cambioMio(m, b, id)) res[id] = m; }      // la agregué yo, o él la borró pero yo la cambié
       else if (t) { if (!b || J(t) !== J(b)) res[id] = t; }      // la agregó él, o yo la borré pero él la cambió
     });
     var ids = function(p) { return ((p && p.secciones) || []).map(function(x) { return x.id; }); };
@@ -166,8 +170,7 @@
 
   // ---------- Interfaz ----------
   var BLOQUES_ORDEN = ['titulo', 'texto', 'botones', 'imagen', 'video', 'carrusel', 'galeria', 'tarjetas', 'cifras', 'cita', 'acordeon', 'cuenta', 'muro', 'embed', 'separador', 'espacio'];
-  var SECCIONES = [['c1', 'Una columna', [12]], ['c2', 'Dos columnas', [6, 6]], ['c3', 'Tres columnas', [4, 4, 4]], ['c4', 'Cuatro columnas', [3, 3, 3, 3]],
-    ['c13', 'Angosta + ancha', [4, 8]], ['c31', 'Ancha + angosta', [8, 4]], ['c121', 'Centro ancho', [3, 6, 3]], ['libre', 'Posición libre', null]];
+  var SECCIONES = [['libre', 'Sección en blanco'], ['libre-baja', 'Sección baja'], ['libre-alta', 'Sección alta']];
   E.iniciar = function() {
     document.body.classList.add('nvi-editando');
     var raiz = h('div', 'nvi-ed'); raiz.id = 'nviEd';
@@ -258,11 +261,57 @@
     if (E.editando) return;  // no redibujar mientras se escribe en un texto
     var y = document.getElementById('nviCentro').scrollTop;
     NVI.render(E.pag, lienzo, {modo: E.previa ? 'ver' : 'editar'});
+    // todas las secciones son de posición libre: las que vienen en columnas (plantillas, páginas anteriores) se convierten aquí
+    if (!E.previa && pasarALibre(lienzo)) NVI.render(E.pag, lienzo, {modo: 'editar'});
     if (!E.previa) { decorar(lienzo); pintarOtros(); }
     document.getElementById('nviCentro').scrollTop = y;
     // si la persona está escribiendo en el panel de la derecha no se redibuja (perdería el cursor a la primera letra)
     if (!E.previa && !escribiendoEnPanel()) pintarProps();
   };
+  // Mide dónde quedó cada bloque y lo pasa a posición libre en el mismo lugar. Se mide con la página a su ancho de diseño.
+  var esperaFotos = 0;
+  function pasarALibre(lienzo) {
+    var pend = (E.pag.secciones || []).filter(function(s) { return s.tipo !== 'libre'; });
+    if (!pend.length) { esperaFotos = 0; return false; }
+    var pagEl = lienzo.querySelector('.nvi-pagina'); if (!pagEl) return false;
+    // las fotos sin cargar todavía no tienen su alto: se espera un momento (máx. 3 s)
+    var faltan = pend.some(function(s) { var se = pagEl.querySelector('[data-sec="' + s.id + '"]'); return se && Array.prototype.some.call(se.querySelectorAll('img'), function(i) { return !i.complete; }); });
+    if (faltan && esperaFotos < 20) { esperaFotos++; setTimeout(E.pintar, 150); return false; }
+    esperaFotos = 0;
+    var ancho0 = pagEl.style.width;
+    pend.forEach(function(s) {
+      var e = s.estilo || {}, WD = NVI.anchoLibre(e.ancho);
+      pagEl.style.width = (e.ancho === 'completo' ? WD : WD + 56) + 'px';
+      var secEl = pagEl.querySelector('[data-sec="' + s.id + '"]'); if (!secEl) return;
+      var inner = secEl.querySelector('.nvi-sec-in'), cs = getComputedStyle(inner), cse = getComputedStyle(secEl), R = inner.getBoundingClientRect(), RS = secEl.getBoundingClientRect();
+      var left0 = R.left + parseFloat(cs.paddingLeft), ancho = R.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), top0 = RS.top + parseFloat(cse.paddingTop);
+      var alto = RS.height - parseFloat(cse.paddingTop) - parseFloat(cse.paddingBottom), els = [];
+      (s.columnas || []).forEach(function(c) { (c.bloques || []).forEach(function(b) {
+        var bEl = secEl.querySelector('[data-blk="' + b.id + '"]'); if (!bEl) return;
+        var r = bEl.getBoundingClientRect();
+        if (b.estilo) { delete b.estilo.ancho; delete b.estilo.alinearCaja; }   // el ancho ahora lo da el elemento
+        els.push({id: 'e' + b.id, x: Math.round((r.left - left0) / ancho * 1000) / 10, y: Math.round(r.top - top0), w: Math.round(r.width / ancho * 1000) / 10, h: 0, hd: Math.round(r.height), z: 1, bloque: b});
+      }); });
+      s.tipo = 'libre'; s.elementos = els; delete s.columnas;
+      e.alto = Math.max(els.length ? 60 : 300, Math.round(alto)); s.estilo = e;
+      E.convertidas[s.id] = sinHd(s);   // así quedó al convertirla (para combinar con otro admin)
+    });
+    pagEl.style.width = ancho0;
+    // no es un cambio de la persona: se reemplaza el último paso del historial en vez de agregar uno
+    if (E.histI >= 0) E.hist[E.histI] = JSON.stringify(E.pag);
+    marcarSinGuardar(); clearTimeout(tGuardar); tGuardar = setTimeout(E.guardar, 1400);
+    return true;
+  }
+  function anotarAltos(s, inner) {
+    var poner = function() {
+      var cambio = false;
+      (s.elementos || []).forEach(function(el) { if (+el.h) return; var c = inner.querySelector('[data-el="' + el.id + '"]'); if (!c || !c.isConnected) return; var v = c.offsetHeight; if (v && Math.abs((+el.hd || 0) - v) > 1) { el.hd = v; cambio = true; } });
+      // no es un cambio de la persona: se actualiza el último paso del historial y se guarda con el borrador
+      if (cambio) { if (E.histI >= 0) E.hist[E.histI] = JSON.stringify(E.pag); E.sinGuardar = true; clearTimeout(tGuardar); tGuardar = setTimeout(E.guardar, 1400); }
+    };
+    requestAnimationFrame(poner);
+    if ('ResizeObserver' in window) { var t = 0, ro = new ResizeObserver(function() { clearTimeout(t); t = setTimeout(function() { if (inner.isConnected) poner(); else ro.disconnect(); }, 300); }); Array.prototype.forEach.call(inner.querySelectorAll('.nvi-libre-el'), function(c) { ro.observe(c); }); }
+  }
   function escribiendoEnPanel() {
     var a = document.activeElement;
     return !!(a && a.closest && a.closest('#nviProps') && /^(INPUT|TEXTAREA)$/.test(a.tagName) && !/^(checkbox|radio|range|color|file)$/.test(a.type || ''));
@@ -274,12 +323,13 @@
     pag.querySelectorAll('.nvi-sec').forEach(function(secEl, i) {
       var s = secPor(secEl.dataset.sec); if (!s) return;
       secEl.classList.add('nvi-ed-sec'); if (E.sel && E.sel.tipo === 'seccion' && E.sel.id === s.id) secEl.classList.add('sel');
-      var bar = h('div', 'nvi-ed-secbar', '<b>' + (s.tipo === 'libre' ? 'Sección libre' : 'Sección') + '</b>' + botonera([['subir', '↑', 'Subir la sección'], ['bajar', '↓', 'Bajar la sección'], ['dupsec', '⧉', 'Duplicar la sección'], ['ajustes', '⚙', 'Ajustes de la sección'], ['borrarsec', '🗑', 'Eliminar la sección']]));
+      var bar = h('div', 'nvi-ed-secbar', '<b>' + 'Sección' + '</b>' + botonera([['subir', '↑', 'Subir la sección'], ['bajar', '↓', 'Bajar la sección'], ['dupsec', '⧉', 'Duplicar la sección'], ['ajustes', '⚙', 'Ajustes de la sección'], ['borrarsec', '🗑', 'Eliminar la sección']]));
       bar.setAttribute('data-sec-bar', s.id); secEl.appendChild(bar);
       var mas = h('button', 'nvi-ed-mas', '+'); mas.type = 'button'; mas.title = 'Agregar una sección aquí'; mas.setAttribute('data-mas-sec', i + 1); secEl.appendChild(mas);
       if (i === 0) { var mas0 = h('button', 'nvi-ed-mas arriba', '+'); mas0.type = 'button'; mas0.title = 'Agregar una sección arriba'; mas0.setAttribute('data-mas-sec', 0); secEl.appendChild(mas0); }
       if (s.tipo === 'libre') {
         var inner = secEl.querySelector('.nvi-libre'); inner.classList.add('nvi-ed-libre'); inner.setAttribute('data-libre', s.id);
+        anotarAltos(s, inner);
         var asa = h('div', 'nvi-ed-alto', '⇕'); asa.title = 'Arrastra para cambiar el alto de la sección'; asa.setAttribute('data-alto', s.id); inner.appendChild(asa);
       }
     });
@@ -304,7 +354,7 @@
         mv.addEventListener('dragend', function() { clearTimeout(mv._t); bEl.classList.remove('moviendo'); finArrastre(); });
       }
       if (!r.el) { var rc = h('span', 'nvi-ed-rsz nvi-ed-rsz-col'); rc.title = 'Arrastra para cambiar el ancho y el alto'; bEl.appendChild(rc); }
-      if (r.el) { var rs = h('span', 'nvi-ed-rsz'); rs.title = 'Arrastra para cambiar el tamaño'; bEl.parentNode.appendChild(rs); bEl.parentNode.classList.add('nvi-ed-el'); if (E.sel && E.sel.id === r.blk.id) bEl.parentNode.classList.add('sel'); }
+      if (r.el) { ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach(function(dd) { var rs = h('span', 'nvi-ed-rsz'); rs.setAttribute('data-dir', dd); rs.title = 'Arrastra para cambiar el tamaño' + (dd.length === 2 ? ' (Shift: mantiene la proporción)' : ''); bEl.parentNode.appendChild(rs); }); bEl.parentNode.classList.add('nvi-ed-el'); if (E.sel && E.sel.id === r.blk.id) bEl.parentNode.classList.add('sel'); }
     });
   }
 
@@ -370,10 +420,16 @@
   function agregarSeccion(tipo, pos) { var s = NVI.nuevaSeccion(tipo); E.pag.secciones.splice(pos, 0, s); E.sel = {tipo: 'seccion', id: s.id}; E.cambio(); setTimeout(function() { var el = document.querySelector('#nviLienzo [data-sec="' + s.id + '"]'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 200); }
   function agregarBloqueClic(tipo) {
     // en la columna del bloque/sección elegido; si no, en la última sección de columnas (o en una nueva)
-    var b = NVI.nuevoBloque(tipo), dest = null;
-    if (E.sel && E.sel.tipo === 'bloque') { var r = blkPor(E.sel.id); if (r && r.col) { r.lista.splice(r.i + 1, 0, b); dest = 1; } else if (r && r.el) { r.sec.elementos.push({id: NVI.uid('e'), x: 5, y: 20, w: 40, h: 0, z: 5, bloque: b}); dest = 1; } }
-    if (!dest && E.sel && E.sel.tipo === 'seccion') { var s = secPor(E.sel.id); if (s && s.tipo === 'libre') { s.elementos.push({id: NVI.uid('e'), x: 5, y: 20, w: 40, h: 0, z: 5, bloque: b}); dest = 1; } else if (s) { s.columnas[0].bloques.push(b); dest = 1; } }
-    if (!dest) { var ult = E.pag.secciones.filter(function(x) { return x.tipo !== 'libre'; }).pop(); if (!ult) { ult = NVI.nuevaSeccion('c1'); E.pag.secciones.push(ult); } ult.columnas[ult.columnas.length - 1].bloques.push(b); }
+    var b = NVI.nuevoBloque(tipo), sec = null;
+    if (E.sel && E.sel.tipo === 'bloque') { var r = blkPor(E.sel.id); if (r) sec = r.sec || null; }
+    if (!sec && E.sel && E.sel.tipo === 'seccion') sec = secPor(E.sel.id) || null;
+    if (!sec || sec.tipo !== 'libre') sec = E.pag.secciones.filter(function(x) { return x.tipo === 'libre'; }).pop();
+    if (!sec) { sec = NVI.nuevaSeccion('libre'); sec.elementos = []; E.pag.secciones.push(sec); }
+    // queda debajo del último elemento de la sección, y la sección crece si hace falta
+    var inner = document.querySelector('#nviLienzo [data-libre="' + sec.id + '"]'), fondo = 0;
+    (sec.elementos || []).forEach(function(el) { var c = inner && inner.querySelector('[data-el="' + el.id + '"]'); fondo = Math.max(fondo, (el.y || 0) + (c ? c.offsetHeight : (+el.h || 60))); });
+    sec.elementos.push({id: NVI.uid('e'), x: 5, y: Math.round(fondo ? fondo + 24 : 30), w: tipo === 'titulo' || tipo === 'texto' ? 60 : 50, h: 0, z: 5, bloque: b});
+    sec.estilo.alto = Math.max(+sec.estilo.alto || 480, Math.round((fondo ? fondo + 24 : 30) + 320));
     E.sel = {tipo: 'bloque', id: b.id}; E.cambio();
     setTimeout(function() { var el = document.querySelector('#nviLienzo [data-blk="' + b.id + '"]'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 200);
   }
@@ -404,7 +460,8 @@
     var libreEl = e.target.closest('.nvi-ed-libre');
     if (libreEl && nuevo) {
       var s = secPor(libreEl.dataset.libre), r = libreEl.getBoundingClientRect(), b = NVI.nuevoBloque(nuevo);
-      s.elementos.push({id: NVI.uid('e'), x: Math.max(0, Math.min(80, Math.round((e.clientX - r.left) / r.width * 1000) / 10)), y: Math.max(0, Math.round(e.clientY - r.top)), w: 35, h: 0, z: 10, bloque: b});
+      s.elementos.push({id: NVI.uid('e'), x: Math.max(0, Math.min(80, Math.round((e.clientX - r.left) / r.width * 1000) / 10)), y: Math.max(0, Math.round((e.clientY - r.top) / escalaDe(libreEl))), w: 35, h: 0, z: 10, bloque: b});
+      crecerSeccion(s, libreEl);
       E.sel = {tipo: 'bloque', id: b.id}; finArrastre(); E.cambio(); return;
     }
     var colEl = e.target.closest('.nvi-ed-col'); if (!colEl) { finArrastre(); return; }
@@ -418,7 +475,6 @@
     finArrastre(); E.cambio();
   }
 
-  // ---------- Posición libre: mover, cambiar tamaño y alto de la sección ----------
   // Tamaño de un bloque en columnas: se arrastra la esquina de abajo a la derecha
   function refrescarBloque(bEl, blk) {
     var nb = NVI.bloque(blk, {modo: 'editar'}), viejo = null;
@@ -441,47 +497,102 @@
       if (!raf) raf = requestAnimationFrame(function() { raf = 0; refrescarBloque(bEl, r.blk); medida(bEl, (w != null ? w : Math.round(w0)) + '% × ' + (hh != null ? hh : Math.round(h0)) + ' px'); });
     }, function() { if (movio) E.cambio(); });
   }
+  // ---------- Posición libre: mover, cambiar tamaño (8 agarraderas) y alto de la sección ----------
+  // La sección libre se diseña a un ancho fijo y se reduce en pantallas más chicas: escala = ancho en pantalla / ancho real
+  function escalaDe(inner) { var w = inner.offsetWidth; return w ? inner.getBoundingClientRect().width / w : 1; }
+  // si un elemento queda más abajo que el borde de su sección, la sección crece
+  function crecerSeccion(s, inner) {
+    var fondo = 0;
+    (s.elementos || []).forEach(function(el) { var c = inner && inner.querySelector('[data-el="' + el.id + '"]'); fondo = Math.max(fondo, (el.y || 0) + (c ? c.offsetHeight : (+el.h || 60))); });
+    if (fondo + 24 > (+s.estilo.alto || 480)) s.estilo.alto = Math.round(fondo + 24);
+  }
   function mouseLibre(e) {
     if (E.previa || e.button !== 0) return;
     var rzc = e.target.closest('.nvi-ed-rsz-col'); if (rzc) { tamanoCol(e, rzc); return; }
     var alto = e.target.closest('[data-alto]');
     if (alto) {
-      e.preventDefault(); var s = secPor(alto.dataset.alto), inner = alto.parentNode, y0 = e.clientY, a0 = inner.offsetHeight;
-      arrastre(function(ev) { var v = Math.max(120, Math.round(a0 + ev.clientY - y0)); inner.style.height = v + 'px'; s.estilo.alto = v; }, function() { E.cambio(); });
+      e.preventDefault(); var s = secPor(alto.dataset.alto), inner = alto.parentNode, y0 = e.clientY, a0 = inner.offsetHeight, k = escalaDe(inner), cen = document.getElementById('nviCentro'), sc0 = cen.scrollTop;
+      arrastre(function(ev) { var v = Math.max(120, Math.round(a0 + (ev.clientY - y0 + cen.scrollTop - sc0) / k)); inner.style.height = v + 'px'; s.estilo.alto = v; NVI.ajustarLibre(inner); }, function() { E.cambio(); });
       return;
     }
     var elEl = e.target.closest('.nvi-ed-el'); if (!elEl) return;
     if (e.target.closest('.nvi-ed-blkbar') || (E.editando && e.target.closest('[contenteditable=true]'))) return;
     var r = blkPor(elEl.querySelector('[data-blk]').dataset.blk); if (!r || !r.el) return;
-    var inner = elEl.parentNode, R = inner.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY, o = Object.assign({}, r.el), rsz = e.target.closest('.nvi-ed-rsz');
+    var inner = elEl.parentNode, R = inner.getBoundingClientRect(), k = escalaDe(inner), Wi = inner.offsetWidth || 1;
+    var x0 = e.clientX, y0 = e.clientY, o = Object.assign({}, r.el), rsz = e.target.closest('.nvi-ed-rsz'), dir = rsz ? (rsz.getAttribute('data-dir') || 'se') : '';
     if (!rsz && e.detail > 1) return;  // doble clic: editar texto
     e.preventDefault();
-    if (!(E.sel && E.sel.id === r.blk.id)) seleccionar({tipo: 'bloque', id: r.blk.id});
-    var movio = false;
+    if (!(E.sel && E.sel.id === r.blk.id)) { E.sel = {tipo: 'bloque', id: r.blk.id}; document.querySelectorAll('#nviLienzo .nvi-ed-el.sel, #nviLienzo .nvi-ed-blk.sel').forEach(function(x) { x.classList.remove('sel'); }); elEl.classList.add('sel'); var bk0 = elEl.querySelector('.nvi-ed-blk'); if (bk0) bk0.classList.add('sel'); pintarProps(); }
+    var centro = document.getElementById('nviCentro'), sc0 = centro.scrollTop;
+    var movio = false, h0 = o.h || elEl.offsetHeight, wpx0 = o.w / 100 * Wi, prop = wpx0 / Math.max(1, h0), ref = {h: h0, galAlto: +(r.blk.p || {}).alto || 200}, secEl = elEl.closest('.nvi-sec'), raf = 0;
+    if (!rsz) secEl.classList.add('nvi-ed-fuera');   // mientras se mueve puede salir de su sección (para pasarlo a otra)
     arrastre(function(ev) {
-      var dx = ev.clientX - x0, dy = ev.clientY - y0; if (!movio && Math.abs(dx) + Math.abs(dy) < 3) return; movio = true;
+      var dx = ev.clientX - x0, dy = ev.clientY - y0 + (centro.scrollTop - sc0); if (!movio && Math.abs(dx) + Math.abs(dy) < 3) return; movio = true;
+      var dxp = dx / R.width * 100, dyp = dy / k;   // horizontal en %, vertical en px reales
       if (rsz) {
-        r.el.w = Math.max(4, Math.min(100 - r.el.x, Math.round((o.w + dx / R.width * 100) * 2) / 2));
-        if (o.h0 == null) o.h0 = o.h || elEl.offsetHeight;   // alto al empezar (se mide una vez: el bloque cambia mientras se arrastra)
-        var nh = Math.max(40, Math.round(o.h0 + dy));
-        elEl.style.width = r.el.w + '%';
+        var x = o.x, y = o.y, w = o.w, hh = h0;
+        if (dir.indexOf('e') >= 0) w = o.w + dxp;
+        if (dir.indexOf('w') >= 0) { w = o.w - dxp; x = o.x + dxp; }
+        if (dir.indexOf('s') >= 0) hh = h0 + dyp;
+        if (dir.indexOf('n') >= 0) { hh = h0 - dyp; y = o.y + dyp; }
+        // Shift en una esquina: mantiene la proporción
+        if (ev.shiftKey && dir.length === 2) { var nh = w / 100 * Wi / prop; if (dir.indexOf('n') >= 0) y = o.y + (h0 - nh); hh = nh; }
+        if (w < 4) { if (dir.indexOf('w') >= 0) x -= 4 - w; w = 4; }
+        if (hh < 30) { if (dir.indexOf('n') >= 0) y -= 30 - hh; hh = 30; }
+        r.el.x = Math.round(x * 2) / 2; r.el.w = Math.round(w * 2) / 2; r.el.y = Math.round(y);
+        elEl.style.left = r.el.x + '%'; elEl.style.width = r.el.w + '%'; elEl.style.top = r.el.y + 'px';
+        // en una esquina el alto solo cambia si de verdad se movió hacia arriba o abajo (si no, queda automático)
+        var cambiaAlto = (dir.length === 1 ? (dir === 'n' || dir === 's') : Math.abs(dyp) > 3) || (ev.shiftKey && dir.length === 2);
         if (NVI.ALTO_PROPIO[r.blk.tipo]) {   // el alto lo lleva el propio bloque (así el carrusel o la foto crecen de verdad)
           if (r.blk.tipo === 'imagen') r.blk.p.ancho = 100;
-          if (Math.abs(dy) > 3) NVI.tamanoBloque(r.blk, null, nh, {h: o.h0, galAlto: o.galAlto || (o.galAlto = +r.blk.p.alto || 200)});
+          if (cambiaAlto) NVI.tamanoBloque(r.blk, null, Math.round(hh), ref);
           r.el.h = 0; elEl.style.height = '';
-          var bk = elEl.querySelector('[data-blk]'); if (bk) refrescarBloque(bk, r.blk);
-        } else { r.el.h = nh; elEl.style.height = r.el.h + 'px'; }
+          if (!raf) raf = requestAnimationFrame(function() { raf = 0; var bk = elEl.querySelector('[data-blk]'); if (bk) refrescarBloque(bk, r.blk); });
+        } else if (cambiaAlto) { r.el.h = Math.round(hh); elEl.style.height = r.el.h + 'px'; }
+        medida(elEl, Math.round(r.el.w / 100 * Wi) + ' × ' + Math.round(cambiaAlto ? hh : elEl.offsetHeight) + ' px');
       } else {
-        r.el.x = Math.max(-10, Math.min(100 - Math.min(r.el.w, 20), Math.round((o.x + dx / R.width * 100) * 2) / 2));
-        r.el.y = Math.max(-40, Math.round(o.y + dy));
+        // movimiento libre: solo se evita que se pierda del todo por los lados
+        r.el.x = Math.max(-o.w + 5, Math.min(95, Math.round((o.x + dxp) * 2) / 2));
+        r.el.y = Math.max(-60, Math.round(o.y + dyp));
         elEl.style.left = r.el.x + '%'; elEl.style.top = r.el.y + 'px';
       }
-    }, function() { if (movio) E.cambio(); });
+    }, function(ev) {
+      secEl.classList.remove('nvi-ed-fuera');
+      if (!movio) return;
+      if (!rsz && ev) pasarASeccion(r, elEl, ev, x0, y0);
+      var s2 = blkPor(r.blk.id); if (s2 && s2.sec) crecerSeccion(s2.sec, document.querySelector('#nviLienzo [data-libre="' + s2.sec.id + '"]'));
+      E.cambio();
+    });
   }
+  // Soltar un elemento sobre otra sección: se muda a esa sección en el punto donde se soltó
+  function pasarASeccion(r, elEl, ev, x0, y0) {
+    var destino = null;
+    (document.elementsFromPoint ? document.elementsFromPoint(ev.clientX, ev.clientY) : []).some(function(x) { var l = x.closest && x.closest('.nvi-ed-libre'); if (l && l !== elEl.parentNode && !elEl.contains(l)) { destino = l; return true; } return false; });
+    if (!destino) return;
+    var s2 = secPor(destino.dataset.libre); if (!s2 || s2 === r.sec) return;
+    var R2 = destino.getBoundingClientRect(), k2 = escalaDe(destino), er = elEl.getBoundingClientRect();
+    var i = r.sec.elementos.indexOf(r.el); if (i < 0) return;
+    r.sec.elementos.splice(i, 1);
+    r.el.x = Math.max(-r.el.w + 5, Math.min(95, Math.round((er.left - R2.left) / R2.width * 200) / 2));
+    r.el.y = Math.max(0, Math.round((er.top - R2.top) / k2));
+    s2.elementos = s2.elementos || []; s2.elementos.push(r.el);
+    crecerSeccion(s2, destino);
+  }
+  // Arrastre con el mouse. Si el puntero se acerca al borde de arriba o de abajo del lienzo, este se desplaza solo
+  // (así se puede llevar un elemento a una sección que no se ve) y el elemento sigue al mouse.
   function arrastre(mover, soltar) {
-    var up = function() { document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', up); document.body.classList.remove('nvi-arrastrando-mouse'); soltar(); };
+    var centro = document.getElementById('nviCentro'), ultimo = null;
+    var mov = function(ev) { ultimo = ev; mover(ev); };
+    var t = setInterval(function() {
+      if (!ultimo || !centro) return;
+      var r = centro.getBoundingClientRect(), v = 0, m = 60;
+      if (ultimo.clientY > r.bottom - m) v = Math.min(m, ultimo.clientY - (r.bottom - m)); else if (ultimo.clientY < r.top + m) v = -Math.min(m, (r.top + m) - ultimo.clientY);
+      if (!v) return;
+      var antes = centro.scrollTop; centro.scrollTop += Math.round(v / 2.5); if (centro.scrollTop !== antes) mover(ultimo);
+    }, 16);
+    var up = function(ev) { clearInterval(t); document.removeEventListener('mousemove', mov); document.removeEventListener('mouseup', up); document.body.classList.remove('nvi-arrastrando-mouse'); soltar(ev); };
     document.body.classList.add('nvi-arrastrando-mouse');
-    document.addEventListener('mousemove', mover); document.addEventListener('mouseup', up);
+    document.addEventListener('mousemove', mov); document.addEventListener('mouseup', up);
   }
 
   // ---------- Escribir texto en el lugar ----------
@@ -575,11 +686,11 @@
         };
         cols.onchange = function(e) { var a = e.target.closest('[data-ancho]'); if (a) { s.columnas[+a.dataset.ancho].ancho = Math.max(1, Math.min(12, +a.value || 12)); E.cambio(); } };
         cuerpo.appendChild(cols);
-      } else cuerpo.appendChild(h('p', 'nvi-ed-ayuda', 'Arrastra los elementos con el mouse; la esquina de abajo a la derecha cambia su tamaño. El alto de la sección se cambia con la manija ⇕ de abajo. Arrastra bloques desde la izquierda para agregarlos donde los sueltes.'));
+      } else cuerpo.appendChild(h('p', 'nvi-ed-ayuda', 'Arrastra los elementos con el mouse a donde quieras, incluso a otra sección. Las esquinas y los lados cambian su tamaño (con Shift en una esquina se mantiene la proporción). El alto de la sección se cambia con la manija ⇕ de abajo; también crece sola si bajas un elemento. En celulares los elementos se acomodan uno debajo del otro.'));
       formulario(cuerpo, NVI.CAMPOS_SECCION.filter(function(c) { return !(s.tipo === 'libre' && (c.k === 'espacio' || c.k === 'alinearV')); }).map(function(c) { return c.k === 'alto' && s.tipo === 'libre' ? Object.assign({}, c, {l: 'Alto de la sección (px)', min: 120}) : c; }), s.estilo);
     } else {
       cuerpo.appendChild(h('h3', '', 'Inicio de Design'));
-      cuerpo.appendChild(h('div', 'nvi-ed-ayuda', '<p><b>Cómo funciona</b></p><ol><li>Arrastra bloques desde la izquierda a cualquier columna (o haz clic para agregarlos).</li><li>Haz clic en un elemento para cambiarlo aquí.</li><li>Doble clic en títulos y textos para escribir.</li><li>Con <b>+</b> entre secciones agregas otra sección.</li><li>Todo se guarda solo como borrador; nadie lo ve hasta que le das <b>Publicar</b>.</li></ol>'));
+      cuerpo.appendChild(h('div', 'nvi-ed-ayuda', '<p><b>Cómo funciona</b></p><ol><li>Arrastra bloques desde la izquierda y suéltalos donde quieras (o haz clic para agregarlos).</li><li>Mueve cualquier elemento arrastrándolo, incluso a otra sección. Cambia su tamaño desde las esquinas o los lados (con Shift mantiene la proporción).</li><li>Haz clic en un elemento para cambiarlo aquí.</li><li>Doble clic en títulos y textos para escribir.</li><li>Con <b>+</b> entre secciones agregas otra sección.</li><li>Todo se guarda solo como borrador; nadie lo ve hasta que le das <b>Publicar</b>.</li></ol>'));
       var bt = h('button', 'nvi-b2', '🎨 Estilo de la página'); bt.type = 'button'; bt.onclick = function() { E.sel = {tipo: 'tema'}; pintarProps(); }; cuerpo.appendChild(bt);
     }
     var y = p.scrollTop; p.innerHTML = ''; p.appendChild(cuerpo); p.scrollTop = y;

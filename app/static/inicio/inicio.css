@@ -168,6 +168,9 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
   .nvi-galeria { grid-template-columns:repeat(2, 1fr) !important; }
   .nvi-cifras { grid-template-columns:repeat(2, 1fr) !important; }
   .nvi-sec-in { padding:0 18px; }
+  /* posición libre: en tablets y celulares los elementos van uno debajo del otro */
+  .nvi-libre { width:auto !important; height:auto !important; transform:none !important; margin:0 !important; display:flex; flex-direction:column; gap:14px; }
+  .nvi-libre-el { position:static !important; width:auto !important; height:auto !important; }
 }
 @container nvi (max-width: 560px) {
   .nvi-tarjetas, .nvi-muro-tarjetas, .nvi-muro-destacado { grid-template-columns:1fr !important; }
@@ -175,8 +178,6 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
   .nvi-muro-lista:not(.nvi-muro-tarjetas):not(.nvi-muro-destacado) .nvi-post img { width:100%; }
   .nvi-ocultar-movil { display:none !important; }
   /* posición libre: en celular los elementos van uno debajo del otro */
-  .nvi-libre { height:auto !important; display:flex; flex-direction:column; gap:14px; }
-  .nvi-libre-el { position:static !important; width:auto !important; height:auto !important; }
   .nvi-car-txt { padding:22px 22px 44px; }
 }
 

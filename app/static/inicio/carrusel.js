@@ -130,7 +130,7 @@
     medir(); if ('ResizeObserver' in window) new ResizeObserver(medir).observe(w);
     if (ctx.modo === 'editar' || reducido()) pista.classList.add('quieta');
     // efecto Dock: cada foto crece según qué tan cerca esté del mouse; las vecinas se apartan
-    var centros = null, raf = 0, mx = 0, M = 1.85, off = 0;
+    var centros = null, raf = 0, mx = 0, M = 1.85, off = 0, esc = 1;
     var aplicar = function() {
       raf = 0; if (!centros) return;
       var sig = base * 1.05, mejor = null, mejorS = 0;
@@ -138,17 +138,18 @@
       items.forEach(function(c) { c.classList.toggle('foco', c === mejor && mejorS > 1.5); });
       var it = mejor && mejorS > 1.5 ? mejor._it : null;
       etiqueta.textContent = it && it.titulo ? it.titulo : ''; etiqueta.classList.toggle('on', !!(it && it.titulo));
-      if (it) { var r = mejor.getBoundingClientRect(), r0 = w.getBoundingClientRect(); etiqueta.style.left = (r.left - r0.left + r.width / 2) + 'px'; etiqueta.style.bottom = (r0.bottom - r.bottom + 12) + 'px'; }   // sobre la foto que creció
+      if (it) { var r = mejor.getBoundingClientRect(), r0 = w.getBoundingClientRect(); etiqueta.style.left = (r.left - r0.left + r.width / 2) / esc + 'px'; etiqueta.style.bottom = (r0.bottom - r.bottom) / esc + 12 + 'px'; }   // sobre la foto que creció
     };
     w.addEventListener('mouseenter', function() {
       if (ctx.modo === 'editar' || reducido()) return;
       // se congela en píxeles (no en %), así al agrandar las fotos la fila no salta
       try { off = new DOMMatrixReadOnly(getComputedStyle(pista).transform).m41; } catch (e) { off = 0; }
       pista.style.animation = 'none'; pista.style.transform = 'translateX(' + off + 'px)';
-      var r0 = w.getBoundingClientRect();
-      centros = items.map(function(c) { var r = c.getBoundingClientRect(); return r.left - r0.left + r.width / 2; });
+      // en una sección reducida (escala < 1) se mide en píxeles reales, igual que el tamaño de las fotos
+      var r0 = w.getBoundingClientRect(); esc = r0.width / (w.offsetWidth || r0.width) || 1;
+      centros = items.map(function(c) { var r = c.getBoundingClientRect(); return (r.left - r0.left + r.width / 2) / esc; });
     });
-    w.addEventListener('mousemove', function(e) { if (!centros) return; mx = e.clientX - w.getBoundingClientRect().left; if (!raf) raf = requestAnimationFrame(aplicar); });
+    w.addEventListener('mousemove', function(e) { if (!centros) return; mx = (e.clientX - w.getBoundingClientRect().left) / esc; if (!raf) raf = requestAnimationFrame(aplicar); });
     w.addEventListener('mouseleave', function() {
       centros = null; items.forEach(function(c) { c.style.width = ''; c.style.height = ''; c.classList.remove('foco'); }); etiqueta.classList.remove('on');
       // sigue desde donde quedó

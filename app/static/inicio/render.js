@@ -405,6 +405,38 @@
     return w;
   };
   NVI.estiloSeccion = function() { return {fondoTipo: 'ninguno', fondo: '#ffffff', fondo2: '#252772', angulo: 135, imagen: '', video: '', oscurecer: 40, fijo: false, colorTexto: '', ancho: 'normal', padArriba: 56, padAbajo: 56, alto: 0, espacio: 28, alinearV: 'start', forma: '', ocultarMovil: false}; };
+  // Ancho de diseño de una sección libre (el contenido de cada ancho, sin los márgenes de los lados)
+  NVI.anchoLibre = function(ancho) { return {estrecho: 804, ancho: 1444, completo: 1440}[ancho] || 1144; };
+  // La sección libre se ve igual en cualquier pantalla: se dibuja a su ancho de diseño y se reduce en proporción.
+  // En tablets y celulares (página de 820 px o menos) los elementos van uno debajo del otro.
+  NVI.ajustarLibre = function(lib) {
+    var cont = lib.parentNode, pag = lib.closest('.nvi-pagina'); if (!cont || !pag) return;
+    var WD = +lib.getAttribute('data-wd') || 1144, alto = parseFloat(lib.style.height) || 0;
+    if (pag.clientWidth <= 820) { lib.style.transform = ''; lib.style.marginBottom = ''; lib.style.marginRight = ''; return; }
+    var cs = getComputedStyle(cont), disp = cont.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), k = Math.min(1, disp / WD);
+    lib.style.transform = k < 0.999 ? 'scale(' + k + ')' : ''; lib.style.transformOrigin = '0 0';
+    lib.style.marginBottom = k < 0.999 ? -(alto * (1 - k)) + 'px' : ''; lib.style.marginRight = k < 0.999 ? -(WD * (1 - k)) + 'px' : '';
+  };
+  // Empuje hacia abajo en secciones libres: compara el alto de cada bloque con el que tenía al diseñarlo (hd)
+  NVI.flujoLibre = function(lib, els, alto) {
+    var calc = function() {
+      var pag = lib.closest('.nvi-pagina'); if (!pag) return;
+      var L = els.map(function(el) { var c = lib.querySelector('[data-el="' + el.id + '"]'); return c ? {el: el, c: c, y: +el.y || 0, x0: +el.x || 0, x1: (+el.x || 0) + (+el.w || 30), hd: +el.h || +el.hd || 0, ha: c.offsetHeight, mov: 0} : null; }).filter(Boolean);
+      if (pag.clientWidth <= 820) { L.forEach(function(a) { a.c.style.top = a.y + 'px'; }); lib.style.height = alto + 'px'; return; }
+      L.sort(function(a, b) { return a.y - b.y; });
+      L.forEach(function(a, i) {
+        var crece = a.hd ? Math.max(0, a.ha - a.hd) : 0, base = a.y + (a.hd || a.ha);
+        if (!crece && !a.mov) return;
+        for (var j = i + 1; j < L.length; j++) { var b = L[j]; if (b.y >= base - 2 && b.x0 < a.x1 - 0.5 && a.x0 < b.x1 - 0.5) b.mov = Math.max(b.mov, a.mov + crece); }
+      });
+      var extra = 0;
+      L.forEach(function(a) { a.c.style.top = (a.y + a.mov) + 'px'; extra = Math.max(extra, a.mov + Math.max(0, a.ha - (a.hd || a.ha))); });
+      var nuevo = alto + extra + 'px'; if (lib.style.height !== nuevo) { lib.style.height = nuevo; NVI.ajustarLibre(lib); }
+    };
+    var t = 0, pedir = function() { cancelAnimationFrame(t); t = requestAnimationFrame(calc); };
+    if ('ResizeObserver' in window) { var ro = new ResizeObserver(pedir); requestAnimationFrame(function() { Array.prototype.forEach.call(lib.children, function(c) { ro.observe(c); }); }); }
+    pedir();
+  };
   NVI.seccion = function(s, ctx, tema) {
     var e = Object.assign(NVI.estiloSeccion(), s.estilo || {});
     var sec = h('section', 'nvi-sec nvi-sec-' + (s.tipo || 'columnas') + (e.ocultarMovil ? ' nvi-ocultar-movil' : '')); sec.setAttribute('data-sec', s.id);
@@ -428,11 +460,19 @@
     var int = h('div', 'nvi-sec-in nvi-w-' + (e.ancho || 'normal')); sec.appendChild(int);
     if (s.tipo === 'libre') {
       int.classList.add('nvi-libre'); int.style.height = (+e.alto || 480) + 'px'; sec.style.minHeight = '';
-      (s.elementos || []).forEach(function(el) {
+      var lib = int, WD = NVI.anchoLibre(e.ancho);
+      // el contenido va en una capa de ancho fijo (el de diseño) que se reduce en pantallas más chicas
+      lib = h('div', 'nvi-libre nvi-libre-capa'); lib.style.width = WD + 'px'; lib.style.height = int.style.height; lib.setAttribute('data-wd', WD); int.classList.remove('nvi-libre'); int.style.height = ''; int.appendChild(lib);
+      if ('ResizeObserver' in window) new ResizeObserver(function() { NVI.ajustarLibre(lib); }).observe(int);
+      requestAnimationFrame(function() { NVI.ajustarLibre(lib); });
+      // en celular se apilan en orden de arriba hacia abajo
+      (s.elementos || []).slice().sort(function(a, b) { return (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0); }).forEach(function(el) {
         var c = h('div', 'nvi-libre-el'); c.setAttribute('data-el', el.id);
         c.style.left = (el.x || 0) + '%'; c.style.top = (el.y || 0) + 'px'; c.style.width = (el.w || 30) + '%'; if (+el.h) c.style.height = el.h + 'px'; c.style.zIndex = el.z || 1;
-        c.appendChild(NVI.bloque(el.bloque, ctx)); int.appendChild(c);
+        c.appendChild(NVI.bloque(el.bloque, ctx)); lib.appendChild(c);
       });
+      // en la página: si un bloque crece (muro con más publicaciones, acordeón abierto...) empuja hacia abajo lo que tiene debajo
+      if (ctx.modo !== 'editar') NVI.flujoLibre(lib, s.elementos || [], +e.alto || 480);
     } else {
       var fila = h('div', 'nvi-fila'); fila.style.gap = (e.espacio != null ? e.espacio : 28) + 'px'; fila.style.alignItems = e.alinearV === 'center' ? 'center' : e.alinearV === 'end' ? 'end' : 'start';
       if (e.alinearV && e.alinearV !== 'start' && +e.alto) int.style.alignSelf = 'stretch';
