@@ -369,7 +369,8 @@
     var z = t.closest('[data-zona]'); if (z) { menuBloques(z, function(tipo) { var c = colPor(z.dataset.zona); var b = NVI.nuevoBloque(tipo); c.col.bloques.push(b); E.sel = {tipo: 'bloque', id: b.id}; E.cambio(); }); return; }
     if (t.closest('a')) e.preventDefault();
     if (E.editando && t.closest('[contenteditable=true]')) return;
-    var b = t.closest('[data-blk]');
+    // un clic en un elemento libre (también en sus agarraderas o su borde) elige su bloque, no la sección
+    var el = t.closest('.nvi-libre-el'), b = t.closest('[data-blk]') || (el && el.querySelector('[data-blk]'));
     if (b) { seleccionar({tipo: 'bloque', id: b.dataset.blk}); return; }
     var s = t.closest('[data-sec]');
     if (s) { seleccionar({tipo: 'seccion', id: s.dataset.sec}); return; }
@@ -508,6 +509,7 @@
   }
   function mouseLibre(e) {
     if (E.previa || e.button !== 0) return;
+    var act = document.activeElement; if (act && act.closest && act.closest('#nviProps') && act.blur) act.blur();
     var rzc = e.target.closest('.nvi-ed-rsz-col'); if (rzc) { tamanoCol(e, rzc); return; }
     var alto = e.target.closest('[data-alto]');
     if (alto) {
@@ -548,7 +550,10 @@
           if (cambiaAlto) NVI.tamanoBloque(r.blk, null, Math.round(hh), ref);
           r.el.h = 0; elEl.style.height = '';
           if (!raf) raf = requestAnimationFrame(function() { raf = 0; var bk = elEl.querySelector('[data-blk]'); if (bk) refrescarBloque(bk, r.blk); });
-        } else if (cambiaAlto) { r.el.h = Math.round(hh); elEl.style.height = r.el.h + 'px'; }
+        } else if (cambiaAlto) {
+          r.el.h = Math.round(hh); elEl.style.height = r.el.h + 'px';
+          if (r.blk.estilo && +r.blk.estilo.alto) { delete r.blk.estilo.alto; var bk2 = elEl.querySelector('[data-blk]'); if (bk2) bk2.style.minHeight = ''; }
+        }
         medida(elEl, Math.round(r.el.w / 100 * Wi) + ' × ' + Math.round(cambiaAlto ? hh : elEl.offsetHeight) + ' px');
       } else {
         // movimiento libre: solo se evita que se pierda del todo por los lados
@@ -561,7 +566,7 @@
       if (!movio) return;
       if (!rsz && ev) pasarASeccion(r, elEl, ev, x0, y0);
       var s2 = blkPor(r.blk.id); if (s2 && s2.sec) crecerSeccion(s2.sec, document.querySelector('#nviLienzo [data-libre="' + s2.sec.id + '"]'));
-      E.cambio();
+      E.cambio(); pintarProps();
     });
   }
   // Soltar un elemento sobre otra sección: se muda a esa sección en el punto donde se soltó

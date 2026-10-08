@@ -331,3 +331,58 @@ def presencia(db: Session, user: Empleado, seleccion: str = "") -> dict:
 
 def salir_editor(user: Empleado) -> None:
     _presencia.pop(user.id, None)
+
+
+# ---------- Ranking de equipos (bloque Cifras: "Equipos con más casos aprobados del mes") ----------
+# Solo lee del Schedule (design_ordenes y design_teams); no escribe nada.
+# Cuenta: estado "Approved" en el mes en curso, Cirugías y Nightguards, orden completa (centro, producto y diseñador).
+# No cuenta: canceladas (no son Approved) ni productos de cambios (el nombre dice "Change", ej. "Full Mouth Changes").
+RANKING_AREAS = [("N2 Demodenture", "N2", 3), ("N3 Prosthetic", "N3", 3), ("Face Design", "Face Design", 1), ("N6 Material Changes", "N6", 1)]
+_MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+_ranking_cache: dict = {}
+
+
+def _nombre_corto(e) -> str:
+    if not e:
+        return ""
+    return " ".join((e.nombres or "").split()[:1] + (e.apellidos or "").split()[:1]) or (e.nombre_completo or "")
+
+
+def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False) -> dict:
+    """Equipos con más casos aprobados en el mes, por área. Se recalcula como máximo cada hora
+    (y siempre que cambia el mes: el ranking empieza de cero)."""
+    import time
+    from collections import Counter
+    from datetime import date
+    from .services_design import ahora_colombia, filtro_orden_completa
+    from .models_design import DesignOrden, DesignTeam, DesignArea
+    ahora = ahora or ahora_colombia()
+    clave = (ahora.year, ahora.month)
+    c = _ranking_cache.get("r")
+    if not forzar and c and c["clave"] == clave and time.time() - c["t"] < 3600:
+        return c["datos"]
+    ini = date(ahora.year, ahora.month, 1)
+    fin = date(ahora.year + (ahora.month == 12), ahora.month % 12 + 1, 1)
+    filas = db.query(DesignOrden.team_id, DesignOrden.estado, DesignOrden.producto).filter(
+        DesignOrden.fecha >= ini, DesignOrden.fecha < fin, filtro_orden_completa()).all()
+    cuenta = Counter(f.team_id for f in filas
+                     if (f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower())
+    areas = []
+    for nombre_area, etiqueta, puestos in RANKING_AREAS:
+        area = db.query(DesignArea).filter(DesignArea.nombre == nombre_area).first()
+        equipos = []
+        if area:
+            for t in db.query(DesignTeam).filter(DesignTeam.area_id == area.id).all():
+                n = cuenta.get(t.id, 0)
+                if n:
+                    equipos.append({"equipo": t.nombre, "manager": _nombre_corto(t.manager), "managerId": t.manager_id,
+                                    "foto": f"/design/api/foto/{t.manager_id}" if t.manager_id else "", "casos": n})
+        equipos.sort(key=lambda x: (-x["casos"], x["equipo"]))
+        if puestos == 1 and equipos:   # solo el ganador; si hay empate, todos los empatados
+            equipos = [x for x in equipos if x["casos"] == equipos[0]["casos"]]
+        else:
+            equipos = equipos[:puestos]
+        areas.append({"area": nombre_area, "etiqueta": etiqueta, "modo": "podio" if puestos > 1 else "ganador", "equipos": equipos})
+    datos = {"mes": f"{_MESES[ahora.month - 1]} de {ahora.year}", "actualizado": ahora.strftime("%H:%M"), "areas": areas}
+    _ranking_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
+    return datos

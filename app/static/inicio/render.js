@@ -239,11 +239,15 @@
       return w;
     }};
   D.cifras = {n: 'Cifras', ic: '#', g: 'Diseño',
-    d: function() { return {items: [{numero: 120, prefijo: '', sufijo: '+', etiqueta: 'Casos diarios'}, {numero: 5, prefijo: '', sufijo: '', etiqueta: 'Áreas'}, {numero: 98, prefijo: '', sufijo: '%', etiqueta: 'Aprobados con QC'}], color: '', animar: true}; },
-    campos: [{tipo: 'lista', k: 'items', l: 'Cifras', titulo: 'etiqueta', nuevo: {numero: 0, prefijo: '', sufijo: '', etiqueta: 'Nueva cifra'},
+    d: function() { return {fuente: '', items: [{numero: 120, prefijo: '', sufijo: '+', etiqueta: 'Casos diarios'}, {numero: 5, prefijo: '', sufijo: '', etiqueta: 'Áreas'}, {numero: 98, prefijo: '', sufijo: '%', etiqueta: 'Aprobados con QC'}], color: '', animar: true}; },
+    campos: [{tipo: 'select', k: 'fuente', l: 'Qué mostrar', ops: [['', 'Números escritos a mano'], ['ranking', '🏆 Equipos con más casos aprobados del mes']]},
+      {tipo: 'nota', l: 'N2 y N3: podio de 3. Face Design y N6: el equipo ganador. Cuenta los casos Approved del mes (Cirugías y Nightguards); no cuenta cancelados ni productos de cambios (Changes). Se actualiza cada hora y empieza de cero cada mes.', si: ['fuente', ['ranking']]},
+      {tipo: 'texto', k: 'tituloRanking', l: 'Título (opcional)', si: ['fuente', ['ranking']]},
+      {tipo: 'lista', k: 'items', l: 'Cifras', si: ['fuente', ['']], titulo: 'etiqueta', nuevo: {numero: 0, prefijo: '', sufijo: '', etiqueta: 'Nueva cifra'},
       campos: [{tipo: 'numero', k: 'numero', l: 'Número'}, {tipo: 'texto', k: 'prefijo', l: 'Antes del número (ej. $)'}, {tipo: 'texto', k: 'sufijo', l: 'Después (ej. %, +)'}, {tipo: 'texto', k: 'etiqueta', l: 'Etiqueta'}]},
       {tipo: 'color', k: 'color', l: 'Color de los números'}, {tipo: 'check', k: 'animar', l: 'Contar al aparecer'}],
     r: function(p, ctx) {
+      if (p.fuente === 'ranking') return NVI.rankingEquipos(p, ctx);
       var w = h('div', 'nvi-cifras'); w.style.gridTemplateColumns = 'repeat(' + Math.max(1, Math.min(6, (p.items || []).length)) + ', 1fr)';
       (p.items || []).forEach(function(it) {
         var c = h('div', 'nvi-cifra'), n = h('b'); if (p.color) n.style.color = p.color;
@@ -371,6 +375,81 @@
     ioAnim.observe(el);
   };
 
+  // ---------- Ranking: equipos con más casos aprobados del mes ----------
+  // Una sola consulta compartida por todos los bloques de la página; se vuelve a pedir cada hora.
+  var rank = {datos: null, t: 0, pend: null, bloques: []};
+  NVI.cargarRanking = function(forzar) {
+    if (!forzar && rank.datos && Date.now() - rank.t < 3600e3) return Promise.resolve(rank.datos);
+    if (rank.pend) return rank.pend;
+    rank.pend = fetch('/design/api/inicio/ranking', {credentials: 'same-origin'}).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(d) { rank.datos = d; rank.t = Date.now(); rank.pend = null; return d; }, function(e) { rank.pend = null; throw e; });
+    return rank.pend;
+  };
+  setInterval(function() {
+    rank.bloques = rank.bloques.filter(function(b) { return b.w.isConnected; });
+    if (rank.bloques.length && !document.hidden) NVI.cargarRanking(true).then(function(d) { rank.bloques.forEach(function(b) { b.pintar(d); }); }).catch(function() {});
+  }, 3600e3);
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden || !rank.datos || Date.now() - rank.t < 3600e3) return;
+    NVI.cargarRanking(true).then(function(d) { rank.bloques.forEach(function(b) { if (b.w.isConnected) b.pintar(d); }); }).catch(function() {});
+  });
+  function iniciales(n) { return (n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(function(x) { return x[0].toUpperCase(); }).join(''); }
+  function fotoEquipo(x, cls) {
+    var f = h('div', 'nvi-rk-foto ' + (cls || '')), ini = h('span', 'nvi-rk-ini', NVI.esc(iniciales(x.manager || x.equipo))); f.appendChild(ini);
+    // si el manager tiene foto, reemplaza las iniciales (la medalla se queda)
+    if (x.foto) { var im = new Image(); im.alt = ''; im.onload = function() { if (ini.parentNode) f.replaceChild(im, ini); }; im.src = x.foto; }
+    return f;
+  }
+  function contar(el, fin, animar) {
+    if (!animar || !('IntersectionObserver' in window)) { el.textContent = fin; return; }
+    el.textContent = '0';
+    var io = new IntersectionObserver(function(es) { if (!es[0].isIntersecting) return; io.disconnect(); var t0 = performance.now(); (function paso(t) { var k = Math.min(1, (t - t0) / 1300); el.textContent = Math.round(fin * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); })(t0); });
+    io.observe(el);
+  }
+  NVI.rankingEquipos = function(p, ctx) {
+    var w = h('div', 'nvi-rk'), animar = p.animar !== false && ctx.modo !== 'editar';
+    if (p.tituloRanking) w.appendChild(h('div', 'nvi-rk-tit', NVI.esc(p.tituloRanking)));
+    var fila = h('div', 'nvi-rk-fila'), pie = h('div', 'nvi-rk-pie'); w.appendChild(fila); w.appendChild(pie);
+    fila.innerHTML = '<div class="nvi-rk-cargando">Cargando el ranking del mes…</div>';
+    var color = p.color || '';
+    var pintar = function(d) {
+      fila.innerHTML = '';
+      (d.areas || []).forEach(function(a) {
+        var c = h('div', 'nvi-rk-area nvi-rk-' + a.modo); c.appendChild(h('div', 'nvi-rk-etq', NVI.esc(a.etiqueta)));
+        var eq = a.equipos || [];
+        if (!eq.length) { c.appendChild(h('div', 'nvi-rk-vacio', 'Aún no hay casos aprobados este mes')); fila.appendChild(c); return; }
+        var primeros = a.modo === 'ganador' ? eq : eq.slice(0, 1);
+        var top = h('div', 'nvi-rk-top' + (primeros.length > 1 ? ' empate' : ''));
+        primeros.forEach(function(x) {
+          var u = h('div', 'nvi-rk-uno');
+          var fo = fotoEquipo(x, 'grande'); fo.appendChild(h('span', 'nvi-rk-medalla', a.modo === 'ganador' ? '👑' : '🥇')); u.appendChild(fo);
+          u.appendChild(h('b', 'nvi-rk-equipo', NVI.esc(x.equipo)));
+          if (x.manager) u.appendChild(h('span', 'nvi-rk-manager', NVI.esc(x.manager)));
+          var n = h('div', 'nvi-rk-num'); if (color) n.style.color = color; contar(n, x.casos, animar); u.appendChild(n);
+          u.appendChild(h('span', 'nvi-rk-casos', x.casos === 1 ? 'caso aprobado' : 'casos aprobados'));
+          top.appendChild(u);
+        });
+        if (primeros.length > 1) top.appendChild(h('span', 'nvi-rk-empate', 'Empate'));
+        c.appendChild(top);
+        if (a.modo === 'podio' && eq.length > 1) {
+          var resto = h('div', 'nvi-rk-resto');
+          eq.slice(1, 3).forEach(function(x, i) {
+            var r = h('div', 'nvi-rk-fila2'); r.appendChild(h('span', 'nvi-rk-pos', i ? '🥉' : '🥈')); r.appendChild(fotoEquipo(x, 'chica'));
+            var t = h('div', 'nvi-rk-txt'); t.appendChild(h('b', '', NVI.esc(x.equipo))); if (x.manager) t.appendChild(h('span', '', NVI.esc(x.manager))); r.appendChild(t);
+            var n2 = h('strong', 'nvi-rk-n2'); if (color) n2.style.color = color; contar(n2, x.casos, animar); r.appendChild(n2);
+            resto.appendChild(r);
+          });
+          c.appendChild(resto);
+        }
+        fila.appendChild(c);
+      });
+      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza cada hora (última: ' + (d.actualizado || '') + ')';
+    };
+    rank.bloques.push({w: w, pintar: pintar});
+    NVI.cargarRanking().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo en la próxima hora.</div>'; });
+    return w;
+  };
+
   // ---------- Secciones ----------
   NVI.CAMPOS_SECCION = [
     {tipo: 'select', k: 'fondoTipo', l: 'Fondo', ops: [['ninguno', 'Sin fondo'], ['color', 'Color'], ['degradado', 'Degradado'], ['imagen', 'Imagen'], ['video', 'Video (de fondo)']]},
@@ -469,7 +548,8 @@
       (s.elementos || []).slice().sort(function(a, b) { return (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0); }).forEach(function(el) {
         var c = h('div', 'nvi-libre-el'); c.setAttribute('data-el', el.id);
         c.style.left = (el.x || 0) + '%'; c.style.top = (el.y || 0) + 'px'; c.style.width = (el.w || 30) + '%'; if (+el.h) c.style.height = el.h + 'px'; c.style.zIndex = el.z || 1;
-        c.appendChild(NVI.bloque(el.bloque, ctx)); lib.appendChild(c);
+        var bq = NVI.bloque(el.bloque, ctx); if (+el.h) bq.style.minHeight = '';   // con alto fijo manda el alto del elemento
+        c.appendChild(bq); lib.appendChild(c);
       });
       // en la página: si un bloque crece (muro con más publicaciones, acordeón abierto...) empuja hacia abajo lo que tiene debajo
       if (ctx.modo !== 'editar') NVI.flujoLibre(lib, s.elementos || [], +e.alto || 480);

@@ -225,6 +225,14 @@ def medio(medio_id: int, request: Request, user: Empleado = Depends(require_modu
     return Response(bytes(datos), media_type=mime, headers=cab)
 
 
+# ---------- Ranking de equipos del mes ----------
+
+@router.get("/design/api/inicio/ranking")
+def api_ranking(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Equipos con más casos aprobados del mes (para el bloque Cifras). Se recalcula como máximo cada hora."""
+    return si.ranking_mes(db)
+
+
 # ---------- Muro ----------
 
 class MuroIn(BaseModel):
