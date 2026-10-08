@@ -160,3 +160,7 @@
 #caja-app .cm-tabla td { padding: 6px 10px; }
 #caja-app table.cm-form { margin-bottom: 12px; }
 #caja-app .btn { padding: 7px 14px; }
+
+/* Imprimir varios recibos */
+.cm-varios { border: 1px solid #93C5FD; background: #EFF6FF; border-radius: 10px; padding: 10px 14px; margin: 0 0 10px; }
+

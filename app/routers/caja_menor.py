@@ -156,6 +156,34 @@ def firmar_recibido(recibo_id: int, user: Empleado = Depends(get_current_user), 
     return RedirectResponse(f"/caja-menor/recibido/{r.id}?msg={quote(msg)}", status_code=303)
 
 
+# ---- Firma de recibido desde el enlace de Cliq, sin iniciar sesión (colaboradores de People sin acceso a la caja) ----
+def _recibo_por_enlace(db: Session, recibo_id: int, token: str) -> CajaRecibo:
+    r = db.get(CajaRecibo, recibo_id)
+    if not r or not sc.token_recibido_valido(r, token):
+        raise HTTPException(404, "Este enlace no es válido o ya no corresponde a este recibo.")
+    return r
+
+
+@router.get("/caja-menor/firmar-recibido/{recibo_id}/{token}")
+def pagina_firma_enlace(recibo_id: int, token: str, request: Request, db: Session = Depends(get_db)):
+    """Detalle del recibo y botón para firmar el recibido. No requiere iniciar sesión: el enlace es personal y firmado."""
+    r = _recibo_por_enlace(db, recibo_id, token)
+    return templates.TemplateResponse(request, "caja_recibido_enlace.html", {
+        "r": sc.serializar_recibo(r), "token": token, "msg": request.query_params.get("msg", ""),
+        "quien": nombre_propio(r.recibido_por.nombre_completo) if r.recibido_por else "",
+        "correo": r.recibido_por.email if r.recibido_por else "",
+        "logo": "/static/logos/nuvia-smiles.png"})
+
+
+@router.post("/caja-menor/firmar-recibido/{recibo_id}/{token}")
+def firmar_por_enlace(recibo_id: int, token: str, request: Request, db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    r = _recibo_por_enlace(db, recibo_id, token)
+    msg = sc.firmar_recibido_enlace(db, r, request.client.host if request.client else "")
+    msg = msg or "✅ Listo: firmaste el recibido. Gracias."
+    return RedirectResponse(f"/caja-menor/firmar-recibido/{r.id}/{token}?msg={quote(msg)}", status_code=303)
+
+
 @router.get("/caja-menor/{caja_id}")
 def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                 db: Session = Depends(get_db)):
@@ -973,7 +1001,8 @@ def cargar_datos_iniciales() -> None:
                  "reembolsado_por_id": "INTEGER REFERENCES empleados(id)", "aviso_ok": "INTEGER", "aviso_en": "TIMESTAMP"}
     nuevas.update({"aviso_ok": "INTEGER", "aviso_en": "TIMESTAMP",
                    "recibido_por_id": "INTEGER REFERENCES empleados(id)", "recibido_email": "VARCHAR(150)",
-                   "recibido_en": "TIMESTAMP", "recibido_aviso_ok": "INTEGER", "recibido_aviso_en": "TIMESTAMP"})
+                   "recibido_en": "TIMESTAMP", "recibido_aviso_ok": "INTEGER", "recibido_aviso_en": "TIMESTAMP",
+                   "recibido_via": "VARCHAR(20)"})
     columnas_cajas = {c["name"] for c in inspect(engine).get_columns("caja_menor_cajas")}
     with engine.begin() as conn:
         for nombre, tipo in nuevas.items():

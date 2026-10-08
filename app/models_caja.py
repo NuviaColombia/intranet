@@ -135,6 +135,7 @@ class CajaRecibo(Base):
     recibido_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)   # UTC
     recibido_aviso_ok: Mapped[int | None] = mapped_column(Integer, nullable=True)   # último aviso por Cliq: 1 enviado, 0 falló
     recibido_aviso_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    recibido_via: Mapped[str | None] = mapped_column(String(20), nullable=True)  # "intranet" o "cliq" (enlace sin iniciar sesión)
     estado: Mapped[str] = mapped_column(String(20), default="ACTIVO")      # ACTIVO | LEGALIZADO | ANULADO
     fm_id: Mapped[int | None] = mapped_column(ForeignKey("caja_menor_fms.id"), nullable=True, index=True)
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)

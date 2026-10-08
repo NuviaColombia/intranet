@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Caja menor{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/caja_menor.css?v=11">
+<link rel="stylesheet" href="/static/caja_menor.css?v=12">
 {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 <div id="caja-app" data-caja="{{ caja.id }}">
  <div class="cm-main">
@@ -86,7 +86,19 @@
   <div id="sec-consulta" class="cm-seccion">
     <div class="cm-barra">
       <div><h2 class="cm-titulo">🔍 Consulta de recibos</h2><p class="cm-sub" style="margin:0;">Todos los recibos de la caja, del más reciente al más antiguo.</p></div>
-      <a class="btn verde" href="/caja-menor/api/{{ caja.id }}/exportar">📥 Exportar Excel</a>
+      <div class="cm-acciones" style="margin:0">
+        <button type="button" class="btn" onclick="abrirImprimirVarios()">🖨️ Imprimir varios</button>
+        <a class="btn verde" href="/caja-menor/api/{{ caja.id }}/exportar">📥 Exportar Excel</a></div>
+    </div>
+    <div id="panelVarios" class="cm-varios" style="display:none">
+      <b>🖨️ Imprimir varios recibos</b> <small>(del consecutivo inicial al final; los <b>anulados no se imprimen</b>; salen 2 recibos por hoja carta)</small>
+      <div class="cm-filtros" style="margin:8px 0 0">
+        <label>Desde N.º:</label><input type="number" id="vDesde" min="1" style="width:110px" oninput="contarVarios()">
+        <label>Hasta N.º:</label><input type="number" id="vHasta" min="1" style="width:110px" oninput="contarVarios()">
+        <span id="vResumen" class="cm-sub" style="margin:0"></span>
+        <button type="button" class="btn verde mini" id="btnVarios" onclick="imprimirVarios()">🖨️ Imprimir</button>
+        <button type="button" class="btn gris mini" onclick="panelVarios.style.display = 'none'">Cerrar</button>
+      </div>
     </div>
     <div class="cm-filtros">
       <input type="text" id="cTexto" placeholder="No. recibo, pagado a, concepto, factura…" oninput="filtrarConsulta()">
@@ -1015,6 +1027,9 @@ function fechaDMY(iso) { var p = String(iso || '').split('-'); return p.length =
 
 function imprimirRecibo(r) {
   if (!r) return;
+  imprimirHtml(htmlRecibo(r), CSS_RECIBO);
+}
+function htmlRecibo(r) {
   function campo(etq, valor) { return '<div class="rc-c"><label>' + etq + '</label><div>' + (valor || '&nbsp;') + '</div></div>'; }
   var cuerpo = '<div class="rc">' +
     '<div class="rc-enc"><div>' + (LOGO ? '<img src="' + LOGO + '">' : '<b>NUVIA</b>') + '</div>' +
@@ -1038,7 +1053,38 @@ function imprimirRecibo(r) {
     '</div>' +
     '<div class="rc-pie"><span>Registrado por ' + esc(r.creadoPor) + (r.creadoEn ? ' · ' + esc(r.creadoEn) : '') + '</span><span>Nuvia Smiles Colombia S.A.S.</span></div>' +
     '</div><div class="rc-corte"></div>';
-  imprimirHtml(cuerpo, CSS_RECIBO);
+  return cuerpo;
+}
+
+// ---------------- imprimir varios (rango de consecutivos, sin anulados) ----------------
+function recibosEnRango() {
+  var de = parseInt(vDesde.value, 10), ha = parseInt(vHasta.value, 10);
+  if (!de || !ha) return {lista: [], anulados: 0};
+  if (de > ha) { var t = de; de = ha; ha = t; }
+  var en = recibosConsulta.filter(function(r) { return r.consecutivo >= de && r.consecutivo <= ha; });
+  return {lista: en.filter(function(r) { return r.estado !== 'ANULADO'; }).sort(function(a, b) { return a.consecutivo - b.consecutivo; }),
+          anulados: en.filter(function(r) { return r.estado === 'ANULADO'; }).length, de: de, ha: ha};
+}
+function abrirImprimirVarios() {
+  panelVarios.style.display = '';
+  if (recibosConsulta.length && !vDesde.value) {
+    var nums = recibosConsulta.map(function(r) { return r.consecutivo; });
+    vDesde.value = Math.min.apply(null, nums); vHasta.value = Math.max.apply(null, nums);
+  }
+  contarVarios(); vDesde.focus();
+}
+function contarVarios() {
+  var r = recibosEnRango(), n = r.lista.length;
+  vResumen.innerHTML = !vDesde.value || !vHasta.value ? 'Escribe el rango.' :
+    '<b>' + n + '</b> recibo' + (n === 1 ? '' : 's') + ' para imprimir' + (r.anulados ? ' · ' + r.anulados + ' anulado' + (r.anulados === 1 ? '' : 's') + ' omitido' + (r.anulados === 1 ? '' : 's') : '') +
+    (n ? ' · ' + Math.ceil(n / 2) + ' hoja' + (Math.ceil(n / 2) === 1 ? '' : 's') : '');
+  btnVarios.disabled = !n;
+}
+function imprimirVarios() {
+  var r = recibosEnRango();
+  if (!r.lista.length) return alert('No hay recibos (sin anular) en ese rango.');
+  var cuerpo = r.lista.map(function(x, i) { return '<div class="rc-bloque' + (i % 2 === 1 && i < r.lista.length - 1 ? ' salto' : '') + '">' + htmlRecibo(x) + '</div>'; }).join('');
+  imprimirHtml(cuerpo, CSS_RECIBO + ".rc{height:118mm} .rc-bloque{page-break-inside:avoid;break-inside:avoid} .rc-bloque.salto{page-break-after:always;break-after:page}");
 }
 
 // Formato del FM: mismo estilo que el recibo (una sola fuente, tamaños uniformes, columnas fijas)
