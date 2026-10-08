@@ -61,6 +61,28 @@ async def cabeceras_seguridad(request: Request, call_next):
         response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
+
+# Compresión gzip de las respuestas (páginas, JSON, CSS y JS pesan 70-80 % menos). No se comprimen videos, imágenes,
+# PDF, Office ni descargas: ya vienen comprimidos y además se piden por partes (adelantar un video o saltar páginas).
+# Nivel 6: casi la misma compresión que 9 con bastante menos CPU (hay un solo proceso). Si la versión de Starlette
+# instalada no permite excluir tipos, no se activa (todo sigue como antes, nunca impide que la intranet arranque).
+def _activar_gzip() -> None:
+    import inspect
+    from starlette.middleware.gzip import GZipMiddleware
+    params = inspect.signature(GZipMiddleware.__init__).parameters
+    if "exclude_content_types" not in params:
+        return
+    from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES
+    no_comprimir = tuple(DEFAULT_EXCLUDED_CONTENT_TYPES) + (
+        "application/pdf", "application/octet-stream", "application/msword", "application/vnd.ms-excel",
+        "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation", "image/*", "audio/*", "video/*")
+    app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6, exclude_content_types=no_comprimir)
+
+
+_activar_gzip()
+
 app.include_router(auth_routes.router)
 app.include_router(portal.router)
 app.include_router(dashboard.router)
