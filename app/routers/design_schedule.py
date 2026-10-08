@@ -230,7 +230,27 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
         areas = [a for a in areas if a.id in {t.area_id for t in propios}]
     return templates.TemplateResponse(request, "design_schedule.html",
                                       {"user": user, "es_design": True, "ds_inicio": inicio, "areas": areas,
-                                       "dash_teams": dash_teams})
+                                       "dash_teams": dash_teams, "dsv": _version_estaticos()})
+
+
+_dsv_cache: dict = {}
+
+
+def _version_estaticos() -> str:
+    """Marca de versión del código y los estilos del Schedule (static/design): cambia con su contenido, así el
+    navegador los guarda en caché y descarga los nuevos apenas se publica una versión."""
+    if "v" not in _dsv_cache:
+        import hashlib
+        from pathlib import Path
+        base = Path(__file__).resolve().parent.parent / "static" / "design"
+        h = hashlib.md5()
+        for n in ("schedule.js", "schedule.css"):
+            try:
+                h.update((base / n).read_bytes())
+            except OSError:
+                pass
+        _dsv_cache["v"] = h.hexdigest()[:10]
+    return _dsv_cache["v"]
 
 
 def _redirigir_a_panel(request: Request, panel: str) -> RedirectResponse:
@@ -930,6 +950,12 @@ def api_delegacion_guardar(team_id: int, payload: DelegacionIn, user: Empleado =
 def api_delegacion_quitar(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     sd.quitar_delegacion(db, _equipo_delegable(db, user, team_id))
     return {"ok": True}
+
+
+@router.get("/design/api/todas-areas/version")
+def api_todas_areas_version(fecha: str, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Huella de la vista "todas las áreas": si no cambió, la pantalla no vuelve a pedir los datos."""
+    return {"v": sd.version_todas_areas(db, _fecha(fecha))}
 
 
 @router.get("/design/api/todas-areas")

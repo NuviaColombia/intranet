@@ -46,7 +46,8 @@ PROTEGIDOS = [
 # Líneas que deben seguir existiendo tal cual (las conexiones)
 CONEXIONES = [
     ("app/services_design.py", 'salida["centros"] = centros_de_equipo(db, team)'),
-    ("app/templates/design_schedule.html", "if (tipo === 'centro' && DS.diaData && Array.isArray(DS.diaData.centros)) return Promise.resolve(DS.diaData.centros);"),
+    # el código del Schedule pasó de la plantilla a static/design/schedule.js (8-oct-2026, aprobado por Rosember)
+    ("app/static/design/schedule.js", "if (tipo === 'centro' && DS.diaData && Array.isArray(DS.diaData.centros)) return Promise.resolve(DS.diaData.centros);"),
     ("app/routers/design_schedule.py", "from .. import services_design_origenes as so"),
 ]
 

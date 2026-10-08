@@ -626,7 +626,7 @@
     NVI._muros = NVI._muros.filter(function(m) { return m.cont.isConnected; });
     NVI._muros.forEach(function(m) { NVI.cargarMuro(m.p, m.cont, m.cab, m.ctx); });
   };
-  // Página publicada abierta: cada 5 s pregunta si se publicó otra versión o cambió el muro, y se actualiza sola
+  // Página publicada abierta: cada 20 s pregunta si se publicó otra versión o cambió el muro, y se actualiza sola
   NVI.vivoVer = function(cont, huella) {
     var actual = huella || {}, andando = false;
     var tick = function() {
@@ -643,7 +643,7 @@
         if (v.muro !== actual.muro) { actual.muro = v.muro; NVI.refrescarMuros(); }
       }).catch(function() {}).then(function() { andando = false; });
     };
-    setInterval(tick, 5000);
+    setInterval(tick, 20000);   // se publica pocas veces al día: 20 s basta (al volver a la pestaña pregunta de inmediato)
     document.addEventListener('visibilitychange', function() { if (!document.hidden) tick(); });
   };
   NVI.avisoVivo = function(txt) {

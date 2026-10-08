@@ -752,6 +752,19 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
             for a in areas]
 
 
+def version_todas_areas(db: Session, fecha: date) -> str:
+    """Huella corta de la vista "todas las áreas" en `fecha` (órdenes del día y equipos). La pantalla la pide cada
+    5 s y solo vuelve a pedir todos los datos si cambió (antes los pedía completos cada 5 s)."""
+    import hashlib
+    partes = [tuple(x) for x in (db.query(DesignOrden.id, DesignOrden.team_id, DesignOrden.tabla, DesignOrden.orden_visual,
+                                          DesignOrden.actualizado_en, DesignOrden.designer_id)
+                                 .filter(DesignOrden.fecha == fecha, DesignOrden.tabla.in_(["principal", "nightguard"]))
+                                 .order_by(DesignOrden.id).all())]
+    partes += [tuple(x) for x in db.query(DesignTeam.id, DesignTeam.nombre, DesignTeam.activo, DesignTeam.area_id, DesignTeam.orden)
+               .order_by(DesignTeam.id).all()]
+    return hashlib.md5(repr(partes).encode()).hexdigest()[:16]
+
+
 def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: str, datos: dict) -> DesignOrden:
     max_visual = (db.query(DesignOrden.orden_visual)
                  .filter(DesignOrden.team_id == team_id, DesignOrden.fecha == fecha, DesignOrden.tabla == tabla)
@@ -893,14 +906,17 @@ def version_dia(db: Session, team: DesignTeam, fecha: date, empleado_id: int | N
     """Huella corta de lo que se ve en el día de un equipo (órdenes, también las prestadas a esa persona, y tiempos
     libres). Si cambia, la pantalla vuelve a pedir el día. Son pocas filas, así que se calcula directo."""
     import hashlib
-    q = db.query(DesignOrden).filter(DesignOrden.fecha == fecha)
+    # Solo las columnas de la huella (la pantalla la pide cada 5 s por pestaña abierta: tiene que ser liviana).
+    q = (db.query(DesignOrden.id, DesignOrden.team_id, DesignOrden.tabla, DesignOrden.orden_visual, DesignOrden.actualizado_en)
+         .filter(DesignOrden.fecha == fecha))
     q = q.filter(or_(DesignOrden.team_id == team.id, DesignOrden.designer_id == empleado_id) if empleado_id
                  else DesignOrden.team_id == team.id)
     partes = [(o.id, o.team_id, o.tabla, o.orden_visual, o.actualizado_en.isoformat() if o.actualizado_en else "")
               for o in q.order_by(DesignOrden.id).all()]
-    for b in db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha).order_by(DesignBreak.id).all():
-        partes.append((b.id, b.empleado_id, b.tipo_ausencia, b.almuerzo_inicio, b.almuerzo_fin, b.break1_inicio,
-                       b.break1_fin, b.break2_inicio, b.break2_fin))
+    for b in (db.query(DesignBreak.id, DesignBreak.empleado_id, DesignBreak.tipo_ausencia, DesignBreak.almuerzo_inicio, DesignBreak.almuerzo_fin,
+                       DesignBreak.break1_inicio, DesignBreak.break1_fin, DesignBreak.break2_inicio, DesignBreak.break2_fin)
+              .filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha).order_by(DesignBreak.id).all()):
+        partes.append(tuple(b))
     partes.append(("deleg", delegaciones_activas(db).get(team.id)))
     return hashlib.md5(repr(partes).encode()).hexdigest()[:16]
 
