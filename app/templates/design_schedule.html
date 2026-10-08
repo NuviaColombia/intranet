@@ -2723,6 +2723,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dia.designers.forEach(function(d) {
         var b = dia.breaks.find(function(x) { return x.empleadoId === d.id; }) || {};
         var card = document.createElement('div'); card.className = 'ds-tl-card'; card.dataset.empleadoId = d.id;
+        card.dataset.fecha = dia._fecha || dsFechaISO(dsFechaSeleccionada()); card.dataset.team = dia._team || DS.teamId;   // su día y su equipo
         var fila = function(lbl, ini, fin, conCheck) {
           return '<div class="ds-tl-fila"><span class="ds-tl-lbl">' + lbl + '</span>' +
             (conCheck ? '<input type="checkbox" data-descanso="' + conCheck + '" title="Registrar descanso de ' + DS_DESCANSO_MIN + ' min desde ahora" aria-label="Registrar ' + lbl + ' de ' + dsEsc(d.nombre) + '">' : '<span></span>') +
@@ -2791,12 +2792,15 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsDatosBreak(row) {
-    var datos = {teamId: DS.teamId, empleadoId: parseInt(row.dataset.empleadoId), fecha: dsFechaISO(dsFechaSeleccionada())};
+    // se guarda siempre en el día y el equipo de la tarjeta (no en el que esté elegido en ese momento)
+    var datos = {teamId: parseInt(row.dataset.team) || DS.teamId, empleadoId: parseInt(row.dataset.empleadoId), fecha: row.dataset.fecha || dsFechaISO(dsFechaSeleccionada())};
     row.querySelectorAll('[data-campo]').forEach(function(input) { datos[input.dataset.campo] = input.value; });
     return datos;
   }
   function dsGuardarBreak(row) {
     if (!row.isConnected) return;
+    // una tarjeta de otro día que quedó en pantalla (cambio de día o carga fallida) no se guarda
+    if (row.dataset.fecha && row.dataset.fecha !== dsFechaISO(dsFechaSeleccionada())) { dsToast('Los tiempos libres en pantalla eran de otro día; se volvieron a cargar.'); dsCargarDia(); return; }
     var datos = dsDatosBreak(row);
     var antes = row._guardado;
     dsSeguir(postJSON('/design/api/breaks', datos)).then(function() {
@@ -2959,11 +2963,12 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (r.v === DS.diaVersion || dsOcupado()) return;  // sin cambios, o se espera al próximo turno
       return api(url).then(function(dia) {
         if (DS.diaUrl !== url || dsOcupado()) return;
+        dia._fecha = fecha; dia._team = parseInt(clave);
         var antes = {};
         ['principal', 'nightguard', 'prestadas'].forEach(function(t) {
           (DS.diaData[t] || []).forEach(function(f) { antes[f.id] = dsHuellaFila(f); });
         });
-        var sinV = function(d) { var c = Object.assign({}, d); delete c.version; return JSON.stringify(c); };
+        var sinV = function(d) { var c = Object.assign({}, d); delete c.version; delete c._fecha; delete c._team; return JSON.stringify(c); };
         var mismo = sinV(dia) === sinV(DS.diaData);
         var y = window.scrollY;
         if (mismo) { DS.diaVersion = r.v; DS.diaData.version = r.v; return; }  // fue un cambio propio: ya se ve
@@ -2993,12 +2998,21 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsCargarDia(soloOrdenes) {
     if (!DS.teamId) return;
-    var url = '/design/api/dia?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada());
+    var fechaPedida = dsFechaISO(dsFechaSeleccionada()), teamPedido = DS.teamId;
+    var url = '/design/api/dia?team_id=' + DS.teamId + '&fecha=' + fechaPedida;
     DS.diaUrl = url;
-    // Mientras llega el día nuevo, la tabla del día anterior no se puede editar (se guardaría con otra fecha).
+    // Mientras llega el día nuevo, la tabla y los tiempos libres del día anterior no se pueden editar (se guardarían con otra fecha).
     document.body.classList.add('ds-cargando-dia');
-    api(url).then(function(dia) {
+    // Si falla por un corte de conexión o un error momentáneo del servidor, se reintenta solo antes de avisar.
+    var pedir = function(n) {
+      return api(url).catch(function(e) {
+        if (n < 2 && DS.diaUrl === url && (!e.status || e.status >= 500)) return new Promise(function(r) { setTimeout(r, 1200 * (n + 1)); }).then(function() { return pedir(n + 1); });
+        throw e;
+      });
+    };
+    pedir(0).then(function(dia) {
       if (DS.diaUrl !== url) return; // llegó tarde: ya se pidió otro día/equipo
+      dia._fecha = fechaPedida; dia._team = teamPedido;
       document.body.classList.remove('ds-cargando-dia');
       dsAplicarDia(dia, soloOrdenes);
       if (DS.resaltar) { // viene de la búsqueda: marca la orden encontrada
@@ -3016,6 +3030,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsRenderACargo(null);
       dsRenderPrestadas();
       ['dsTablaPrincipal', 'dsTablaNightguard'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
+      var tl = document.getElementById('dsBreaks'); if (tl) tl.innerHTML = '<p style="color:#4b5563">Los tiempos libres se muestran cuando cargue el día.</p>';   // no quedan los del día anterior
       var cont = document.getElementById('dsTablaPrincipal');
       cont.innerHTML = '<p class="ds-err-carga">No se pudo cargar el día: <span></span> <button type="button" class="btn mini">Reintentar</button></p>';
       cont.querySelector('span').textContent = e.message;

@@ -649,7 +649,8 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     salida = {
         "principal": principal, "nightguard": nightguard,
         "breaks": breaks_out,
-        "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers],
+        # un diseñador cuyo empleado ya no existe se omite (antes hacía fallar la carga del día de su equipo)
+        "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers if d.empleado],
         "cerrado": dia_cerrado(fecha), "qcEditable": qc_editable(fecha),
         "qcEditableHasta": qc_editable_hasta(fecha).isoformat(),
         "soloPropias": solo_empleado_id is not None,
@@ -1279,7 +1280,7 @@ def equipos_prestables(db: Session, team: DesignTeam) -> list[dict]:
     """Otros equipos activos de la misma área, con sus diseñadores, para elegir un diseñador prestado."""
     teams = [t for t in equipos_de_area(db, team.area_id) if t.id != team.id]
     return [{"id": t.id, "nombre": t.nombre,
-             "designers": sorted(({"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in t.designers),
+             "designers": sorted(({"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in t.designers if d.empleado),
                                  key=lambda x: x["nombre"].lower()),
              "manager": _manager_elegible(t, {d.empleado_id for d in t.designers})}
             for t in teams]
