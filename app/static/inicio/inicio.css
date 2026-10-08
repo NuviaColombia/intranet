@@ -331,7 +331,6 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 .nvi-rk-area::before { content:''; position:absolute; left:0; right:0; top:0; height:5px; background:linear-gradient(90deg, #2f98d5, #252772); }
 .nvi-rk-etq { font:800 12px/1 var(--nvi-f-txt); letter-spacing:.14em; text-transform:uppercase; color:#2f98d5; margin:4px 0 12px; }
 .nvi-rk-top { display:flex; gap:12px; justify-content:center; width:100%; position:relative; }
-.nvi-rk-top.empate .nvi-rk-foto.grande { width:64px; height:64px; font-size:20px; }
 .nvi-rk-uno { display:flex; flex-direction:column; align-items:center; min-width:0; }
 .nvi-rk-foto { position:relative; border-radius:50%; background:linear-gradient(135deg, #2f98d5, #252772); color:#fff; display:grid; place-items:center; font-weight:700; flex:none; }
 .nvi-rk-foto img { width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; }
@@ -342,7 +341,6 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 .nvi-rk-manager { font-size:12.5px; color:#64748b; }
 .nvi-rk-num { font-family:var(--nvi-f-tit); font-weight:800; font-size:clamp(30px, 3.6cqw, 42px); line-height:1.1; margin-top:6px; color:var(--nvi-primario, #252772); font-variant-numeric:tabular-nums; }
 .nvi-rk-casos { font-size:12px; color:#64748b; }
-.nvi-rk-empate { position:absolute; top:-8px; left:50%; transform:translateX(-50%); background:#e8b64c; color:#1a1449; font:700 10.5px/1 var(--nvi-f-txt); padding:3px 8px; border-radius:10px; }
 .nvi-rk-resto { width:100%; margin-top:14px; border-top:1px solid #eef0fa; padding-top:10px; display:flex; flex-direction:column; gap:8px; }
 .nvi-rk-fila2 { display:flex; align-items:center; gap:8px; text-align:left; }
 .nvi-rk-pos { font-size:18px; width:22px; flex:none; }

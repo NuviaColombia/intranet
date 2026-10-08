@@ -418,28 +418,26 @@
         var c = h('div', 'nvi-rk-area nvi-rk-' + a.modo); c.appendChild(h('div', 'nvi-rk-etq', NVI.esc(a.etiqueta)));
         var eq = a.equipos || [];
         if (!eq.length) { c.appendChild(h('div', 'nvi-rk-vacio', 'Aún no hay casos aprobados este mes')); fila.appendChild(c); return; }
-        var primeros = a.modo === 'ganador' ? eq : eq.slice(0, 1);
-        var top = h('div', 'nvi-rk-top' + (primeros.length > 1 ? ' empate' : ''));
-        primeros.forEach(function(x) {
-          var u = h('div', 'nvi-rk-uno');
-          var fo = fotoEquipo(x, 'grande'); fo.appendChild(h('span', 'nvi-rk-medalla', a.modo === 'ganador' ? '👑' : '🥇')); u.appendChild(fo);
-          u.appendChild(h('b', 'nvi-rk-equipo', NVI.esc(x.equipo)));
-          if (x.manager) u.appendChild(h('span', 'nvi-rk-manager', NVI.esc(x.manager)));
-          var n = h('div', 'nvi-rk-num'); if (color) n.style.color = color; contar(n, x.casos, animar); u.appendChild(n);
-          u.appendChild(h('span', 'nvi-rk-casos', x.casos === 1 ? 'caso aprobado' : 'casos aprobados'));
-          top.appendChild(u);
-        });
-        if (primeros.length > 1) top.appendChild(h('span', 'nvi-rk-empate', 'Empate'));
-        c.appendChild(top);
-        if (a.modo === 'podio' && eq.length > 1) {
-          var resto = h('div', 'nvi-rk-resto');
-          eq.slice(1, 3).forEach(function(x, i) {
-            var r = h('div', 'nvi-rk-fila2'); r.appendChild(h('span', 'nvi-rk-pos', i ? '🥉' : '🥈')); r.appendChild(fotoEquipo(x, 'chica'));
+        // mismo formato en todas las áreas: el 1.º grande con la foto y la medalla; los demás en filas debajo.
+        // La medalla depende del número de casos (empates: misma medalla). En Face Design y N6 solo van los empatados en el 1.º.
+        var MED = ['🥇', '🥈', '🥉'], medalla = function(x) { return MED[eq.filter(function(y) { return y.casos > x.casos; }).length] || ''; };
+        var x0 = eq[0], u = h('div', 'nvi-rk-uno');
+        var fo = fotoEquipo(x0, 'grande'); fo.appendChild(h('span', 'nvi-rk-medalla', '🥇')); u.appendChild(fo);
+        u.appendChild(h('b', 'nvi-rk-equipo', NVI.esc(x0.equipo)));
+        if (x0.manager) u.appendChild(h('span', 'nvi-rk-manager', NVI.esc(x0.manager)));
+        var n = h('div', 'nvi-rk-num'); if (color) n.style.color = color; contar(n, x0.casos, animar); u.appendChild(n);
+        u.appendChild(h('span', 'nvi-rk-casos', (x0.casos === 1 ? 'caso aprobado' : 'casos aprobados') + (eq[1] && eq[1].casos === x0.casos ? ' · empate' : '')));
+        var top = h('div', 'nvi-rk-top'); top.appendChild(u); c.appendChild(top);
+        var resto = a.modo === 'ganador' ? eq.slice(1) : eq.slice(1, 3);
+        if (resto.length) {
+          var lista = h('div', 'nvi-rk-resto');
+          resto.forEach(function(x) {
+            var r = h('div', 'nvi-rk-fila2'); r.appendChild(h('span', 'nvi-rk-pos', medalla(x))); r.appendChild(fotoEquipo(x, 'chica'));
             var t = h('div', 'nvi-rk-txt'); t.appendChild(h('b', '', NVI.esc(x.equipo))); if (x.manager) t.appendChild(h('span', '', NVI.esc(x.manager))); r.appendChild(t);
             var n2 = h('strong', 'nvi-rk-n2'); if (color) n2.style.color = color; contar(n2, x.casos, animar); r.appendChild(n2);
-            resto.appendChild(r);
+            lista.appendChild(r);
           });
-          c.appendChild(resto);
+          c.appendChild(lista);
         }
         fila.appendChild(c);
       });
