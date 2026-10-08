@@ -216,7 +216,7 @@ def serializar_recibo(r: CajaRecibo) -> dict:
         "avisoOk": r.aviso_ok, "avisoEn": hora_colombia(r.aviso_en),
         "recibidoPorId": r.recibido_por_id,
         "recibidoPor": nombre_propio(r.recibido_por.nombre_completo) if r.recibido_por else "",
-        "recibidoEmail": r.recibido_email or "", "recibidoEn": hora_colombia(r.recibido_en),
+        "recibidoEmail": r.recibido_email or "", "recibidoEn": hora_colombia(r.recibido_en), "recibidoVia": r.recibido_via or "",
         "recibidoAvisoOk": r.recibido_aviso_ok, "recibidoAvisoEn": hora_colombia(r.recibido_aviso_en),
         "observaciones": _serializar_observaciones(r.observaciones)[0],
         "observacionPendiente": _serializar_observaciones(r.observaciones)[1],
@@ -669,6 +669,39 @@ def necesita_aviso_recibido(r: CajaRecibo) -> bool:
     return bool(r.recibido_por_id and not r.recibido_en and r.estado != "ANULADO")
 
 
+def token_recibido(r: CajaRecibo) -> str:
+    """Enlace personal para firmar el recibido sin iniciar sesión: depende del recibo y de quien recibe."""
+    import hashlib
+    import hmac
+    from . import config
+    return hmac.new(config.SECRET_KEY.encode(), f"caja-recibido:{r.id}:{r.recibido_por_id}".encode(), hashlib.sha256).hexdigest()[:40]
+
+
+def token_recibido_valido(r: CajaRecibo, token: str) -> bool:
+    import hmac
+    return bool(r.recibido_por_id) and hmac.compare_digest(token_recibido(r), str(token or ""))
+
+
+def enlace_firma_recibido(r: CajaRecibo) -> str:
+    from . import config
+    return f"{config.BASE_URL}/caja-menor/firmar-recibido/{r.id}/{token_recibido(r)}"
+
+
+def firmar_recibido_enlace(db: Session, r: CajaRecibo, ip: str = "") -> str | None:
+    """Firma desde el enlace personal de Cliq: queda el nombre y el correo de Zoho de quien recibe (People), fecha y hora."""
+    if r.estado == "ANULADO":
+        return "El recibo está anulado."
+    if r.recibido_en:
+        return "Ya firmaste el recibido de este recibo."
+    quien = r.recibido_por
+    if not quien or not quien.activo:
+        return "Este recibo ya no está a nombre de un colaborador activo."
+    r.recibido_email, r.recibido_en, r.recibido_via = quien.email, datetime.utcnow(), "cliq"
+    db.commit()
+    print(f"[Caja menor] Recibido firmado por enlace de Cliq: recibo #{r.id} · {quien.email} · IP {ip}")
+    return None
+
+
 def firmar_recibido(db: Session, r: CajaRecibo, user: Empleado) -> str | None:
     """Firma de recibido del colaborador: queda su correo Zoho (el de la sesión) y la fecha y hora."""
     if r.recibido_por_id != user.id:
@@ -677,7 +710,7 @@ def firmar_recibido(db: Session, r: CajaRecibo, user: Empleado) -> str | None:
         return "El recibo está anulado."
     if r.recibido_en:
         return "Ya firmaste el recibido de este recibo."
-    r.recibido_email, r.recibido_en = user.email, datetime.utcnow()
+    r.recibido_email, r.recibido_en, r.recibido_via = user.email, datetime.utcnow(), "intranet"
     db.commit()
     return None
 
@@ -693,11 +726,11 @@ def notificar_recibido_pendiente(recibo_id: int, recordatorio: bool = False) -> 
         if not r or not necesita_aviso_recibido(r):
             return
         quien = db.get(Empleado, r.recibido_por_id)
-        enlace = f"{config.BASE_URL}/caja-menor/recibido/{r.id}"
+        enlace = enlace_firma_recibido(r)  # no pide iniciar sesión: la persona confirma con su C.C.
         texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}🧾 *Firma de recibido pendiente*\n"
                  f"{_texto_recibo(r)}\n"
-                 f"Fecha: {r.fecha.strftime('%d/%m/%Y') if r.fecha else ''} · C.C. {r.identificacion}\n"
-                 f"Confirma que recibiste este dinero: {enlace}")
+                 f"Fecha: {r.fecha.strftime('%d/%m/%Y') if r.fecha else ''}\n"
+                 f"Toca *✍️ Firmar recibido*: verás el detalle del recibo y lo firmas con un clic (no necesitas entrar a la intranet).")
         r.recibido_aviso_ok = 1 if _avisar([quien.email if quien else ""], texto, [boton_enlace("✍️ Firmar recibido", enlace)]) else 0
         r.recibido_aviso_en = datetime.utcnow()
         db.commit()
