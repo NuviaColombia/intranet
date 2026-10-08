@@ -585,8 +585,14 @@
   NVI.subirMedio = function(archivo, progreso) {
     var ext = ((archivo.name || '').match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
     if (/^\.(avi|wmv|mkv|flv|3gp|mpe?g)$/.test(ext)) return Promise.reject(new Error('Los videos ' + ext.slice(1).toUpperCase() + ' no se pueden ver en el navegador. Conviértelo a MP4 o pega el enlace de YouTube, Vimeo o WorkDrive.'));
-    if ((/^video\//.test(archivo.type) || /^\.(mp4|m4v|webm|mov|ogv|ogg)$/.test(ext)) && archivo.size > NVI.MAX_VIDEO_MB * 1024 * 1024)
+    var esVideo = /^video\//.test(archivo.type) || /^\.(mp4|m4v|webm|mov|ogv|ogg)$/.test(ext), lim = NVI.MAX_VIDEO_MB * 1024 * 1024;
+    if (esVideo && archivo.size > lim) {
+      // más pesado que el límite: se ofrece recortarlo (el tramo queda limitado a lo que cabe)
+      if (NVI.recortarVideo) return NVI.recortarVideo(archivo, lim).then(function(f) { return NVI.subirVideoPorPartes(f, progreso); });
       return Promise.reject(new Error('"' + archivo.name + '" pesa ' + Math.round(archivo.size / 1048576) + ' MB; el máximo es ' + NVI.MAX_VIDEO_MB + ' MB. Para videos largos pega el enlace de YouTube, Vimeo o WorkDrive.'));
+    }
+    // los videos se suben por partes de 4 MB: el servidor nunca tiene el video entero en memoria
+    if (esVideo && NVI.subirVideoPorPartes) return NVI.subirVideoPorPartes(archivo, progreso);
     return NVI.prepararImagen(archivo).then(function(r) {
       var fd = new FormData(); fd.append('archivo', r.archivo, r.archivo.name); fd.append('ancho', r.ancho || 0); fd.append('alto', r.alto || 0);
       return new Promise(function(ok, mal) {

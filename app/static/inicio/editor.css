@@ -207,3 +207,21 @@ body.nvi-arrastrando-mouse .nvi-ed-blk > .nvi-ed-blkbar { display:none !importan
 /* mientras se mueve un elemento puede salir de su sección para pasarlo a otra */
 .nvi-sec.nvi-ed-fuera { overflow:visible; z-index:40; }
 .nvi-sec.nvi-ed-fuera .nvi-sec-in, .nvi-sec.nvi-ed-fuera .nvi-libre { overflow:visible; }
+
+/* ---------- Recortar video ---------- */
+.nvi-ed-rec { width:min(820px, 100%) !important; }
+.nvi-rec-vista { position:relative; background:#0f172a; border-radius:12px; overflow:hidden; aspect-ratio:16/9; max-height:46vh; margin:8px auto 12px; display:grid; place-items:center; }
+.nvi-rec-vista video { width:100%; height:100%; object-fit:contain; display:block; }
+.nvi-rec-cargando { position:absolute; color:#cbd5e1; font-size:14px; }
+.nvi-rec-linea { position:relative; height:62px; border-radius:10px; background:#1e293b; overflow:hidden; cursor:pointer; user-select:none; touch-action:none; }
+.nvi-rec-fotos { position:absolute; inset:0; display:flex; opacity:.85; }
+.nvi-rec-fotos > div { flex:1; background-size:cover; background-position:center; border-right:1px solid rgba(0,0,0,.25); }
+.nvi-rec-tramo { position:absolute; top:0; bottom:0; background:rgba(47,152,213,.28); border:3px solid #2f98d5; border-radius:8px; cursor:grab; box-shadow:0 0 0 9999px rgba(15,23,42,.55); }
+.nvi-rec-tramo i { position:absolute; top:-3px; bottom:-3px; width:14px; background:#2f98d5; cursor:ew-resize; }
+.nvi-rec-tramo i[data-b="ini"] { left:-10px; border-radius:7px 0 0 7px; } .nvi-rec-tramo i[data-b="fin"] { right:-10px; border-radius:0 7px 7px 0; }
+.nvi-rec-tramo i::after { content:''; position:absolute; left:5px; top:35%; bottom:35%; width:2px; background:#fff; border-radius:1px; }
+.nvi-rec-cabezal { position:absolute; top:0; bottom:0; width:2px; background:#fff; box-shadow:0 0 4px rgba(0,0,0,.6); pointer-events:none; }
+.nvi-rec-info { display:flex; justify-content:space-between; gap:10px; font-size:13px; color:#334155; margin-top:8px; flex-wrap:wrap; }
+.nvi-rec-max { color:#64748b; }
+.nvi-rec-estado { margin-top:10px; padding:8px 12px; border-radius:8px; background:#eef6fc; color:#1d4ed8; font-size:13px; }
+.nvi-rec-estado.error { background:#fef2f2; color:#b91c1c; }

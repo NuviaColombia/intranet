@@ -643,6 +643,14 @@
   }
 
   // ---------- Panel de propiedades ----------
+  // Secciones plegables del panel: recuerdan si estaban abiertas (el panel se vuelve a dibujar al cambiar un valor)
+  var PLEGADOS = {};
+  function plegable(titulo, abierto) {
+    var d = h('details', 'nvi-ed-det'); d.innerHTML = '<summary>' + esc(titulo) + '</summary>';
+    d.open = titulo in PLEGADOS ? PLEGADOS[titulo] : abierto;
+    d.addEventListener('toggle', function() { PLEGADOS[titulo] = d.open; });
+    return d;
+  }
   function pintarProps() {
     var p = document.getElementById('nviProps'); if (!p) return;
     var sel = E.sel, cuerpo = h('div', 'nvi-ed-props');
@@ -661,10 +669,10 @@
       if (r.blk.tipo === 'titulo' || r.blk.tipo === 'texto') cuerpo.appendChild(h('p', 'nvi-ed-ayuda', 'Doble clic en el texto de la página para escribir y darle formato.'));
       formulario(cuerpo, def.campos, r.blk.p);
       if (r.el) {
-        var pos = h('details', 'nvi-ed-det'); pos.open = true; pos.innerHTML = '<summary>Posición y tamaño</summary>'; cuerpo.appendChild(pos);
+        var pos = plegable('Posición y tamaño', true); cuerpo.appendChild(pos);
         formulario(pos, [{tipo: 'numero', k: 'x', l: 'Desde la izquierda (%)', min: -10, max: 100, paso: 0.5}, {tipo: 'numero', k: 'y', l: 'Desde arriba (px)', min: -40, max: 3000}, {tipo: 'numero', k: 'w', l: 'Ancho (%)', min: 4, max: 100, paso: 0.5}, {tipo: 'numero', k: 'h', l: 'Alto (px, 0 = automático)', min: 0, max: 3000}, {tipo: 'numero', k: 'z', l: 'Capa (más alto = adelante)', min: 1, max: 99}], r.el);
       }
-      var caja = h('details', 'nvi-ed-det'); caja.innerHTML = '<summary>Caja y animación</summary>'; cuerpo.appendChild(caja);
+      var caja = plegable('Caja y animación', false); cuerpo.appendChild(caja);
       r.blk.estilo = r.blk.estilo || {}; formulario(caja, NVI.CAMPOS_CAJA, r.blk.estilo);
       var acc = h('div', 'nvi-ed-acc', '<button type="button" class="nvi-b2" data-p="dup">⧉ Duplicar</button><button type="button" class="nvi-b2 rojo" data-p="borrar">🗑 Eliminar</button>');
       acc.onclick = function(e) { var x = e.target.closest('[data-p]'); if (!x) return; if (x.dataset.p === 'borrar') { r.lista.splice(r.i, 1); E.sel = null; E.cambio(); } else { var cp = nuevosIds(NVI.clon(r.el || r.blk)); if (r.el) { cp.x = Math.min(90, cp.x + 3); cp.y += 24; } r.lista.splice(r.i + 1, 0, cp); E.sel = {tipo: 'bloque', id: (cp.bloque || cp).id}; E.cambio(); } };

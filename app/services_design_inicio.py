@@ -5,11 +5,15 @@ import json
 from datetime import datetime
 from sqlalchemy.orm import Session
 from .models import Empleado
-from .models_design import DesignInicioPagina, DesignInicioVersion, DesignInicioMedio, DesignInicioMuro
+import secrets
+from datetime import timedelta
+from .models_design import DesignInicioPagina, DesignInicioVersion, DesignInicioMedio, DesignInicioMedioParte, DesignInicioMuro
 
 MAX_VERSIONES = 30
 MAX_IMAGEN = 10 * 1024 * 1024
 MAX_VIDEO = 100 * 1024 * 1024
+PARTE = 4 * 1024 * 1024          # los videos se suben y se guardan en pedazos de este tamaño
+MAX_ENVIO_DIRECTO = 8 * 1024 * 1024   # subida de un solo envío (imágenes y videos muy cortos): más grande va por partes
 MAX_CONTENIDO = 5 * 1024 * 1024  # el JSON de la página (las imágenes van aparte, como medios)
 TIPOS_IMAGEN = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"}
 TIPOS_VIDEO = {"video/mp4", "video/webm", "video/quicktime", "video/ogg"}  # los que Chrome y Edge reproducen sin convertir
@@ -158,6 +162,8 @@ def medio_crear(db: Session, user: Empleado, nombre: str, mime: str, datos: byte
         raise ValueError("El archivo está vacío.")
     if len(datos) > limite:
         raise ValueError(f"El archivo supera {limite // (1024 * 1024)} MB. Para videos largos pega el enlace de YouTube, Vimeo o WorkDrive.")
+    if tipo == "video" and len(datos) > MAX_ENVIO_DIRECTO:
+        raise ValueError("Los videos de más de 8 MB se suben por partes (vuelve a cargar la página e inténtalo de nuevo).")
     m = DesignInicioMedio(tipo=tipo, nombre=(nombre or "archivo")[:255], mime=mime, tamano=len(datos), datos=datos,
                           ancho=max(0, int(ancho or 0)), alto=max(0, int(alto or 0)), creado_por=user.nombre_completo)
     db.add(m)
@@ -170,9 +176,87 @@ def medio_eliminar(db: Session, medio_id: int) -> bool:
     m = db.get(DesignInicioMedio, medio_id)
     if not m:
         return False
+    db.query(DesignInicioMedioParte).filter(DesignInicioMedioParte.medio_id == medio_id).delete(synchronize_session=False)
     db.delete(m)
     db.commit()
     return True
+
+
+# ---------- Videos por partes ----------
+
+def _tipo_video(nombre: str, mime: str) -> str:
+    mime = (mime or "").lower().split(";")[0].strip()
+    ext = os.path.splitext((nombre or "").lower())[1]
+    if ext in VIDEO_NO_VISIBLE:
+        raise ValueError(f"Los videos {ext.upper()[1:]} no se pueden ver en el navegador. Conviértelo a MP4 o pega el enlace de YouTube, Vimeo o WorkDrive.")
+    if mime not in TIPOS_VIDEO and ext in EXT_VIDEO:
+        mime = EXT_VIDEO[ext]
+    if mime not in TIPOS_VIDEO:
+        raise ValueError("Formato no admitido. Videos: MP4, WEBM, MOV u OGG.")
+    return mime
+
+
+def subida_iniciar(db: Session, nombre: str, mime: str, tamano: int) -> dict:
+    """Empieza la subida de un video por partes. Devuelve la clave de la subida y el tamaño de cada parte."""
+    _tipo_video(nombre, mime)
+    if tamano <= 0:
+        raise ValueError("El archivo está vacío.")
+    if tamano > MAX_VIDEO:
+        raise ValueError(f"El video supera {MAX_VIDEO // (1024 * 1024)} MB. Recórtalo o pega el enlace de YouTube, Vimeo o WorkDrive.")
+    # subidas que quedaron a medias hace más de un día: se borran
+    viejo = datetime.utcnow() - timedelta(days=1)
+    db.query(DesignInicioMedioParte).filter(DesignInicioMedioParte.medio_id.is_(None), DesignInicioMedioParte.creado_en < viejo).delete(synchronize_session=False)
+    db.commit()
+    return {"subida": secrets.token_hex(16), "parte": PARTE, "partes": -(-tamano // PARTE)}
+
+
+def subida_parte(db: Session, subida: str, n: int, datos: bytes) -> None:
+    if not subida or len(subida) > 40 or n < 0 or n * PARTE >= MAX_VIDEO:
+        raise ValueError("Parte no válida.")
+    if not datos or len(datos) > PARTE:
+        raise ValueError("Parte no válida.")
+    # si la parte se reenvía (reintento), reemplaza la anterior
+    db.query(DesignInicioMedioParte).filter(DesignInicioMedioParte.subida == subida, DesignInicioMedioParte.medio_id.is_(None), DesignInicioMedioParte.n == n).delete(synchronize_session=False)
+    db.add(DesignInicioMedioParte(subida=subida, n=n, tamano=len(datos), datos=datos))
+    db.commit()
+
+
+def subida_fin(db: Session, user: Empleado, subida: str, nombre: str, mime: str, ancho: int = 0, alto: int = 0) -> DesignInicioMedio:
+    mime = _tipo_video(nombre, mime)
+    partes = db.query(DesignInicioMedioParte.id, DesignInicioMedioParte.n, DesignInicioMedioParte.tamano).filter(
+        DesignInicioMedioParte.subida == subida, DesignInicioMedioParte.medio_id.is_(None)).order_by(DesignInicioMedioParte.n).all()
+    if not partes:
+        raise ValueError("No llegó ninguna parte del video.")
+    if [p.n for p in partes] != list(range(len(partes))):
+        raise ValueError("Faltan partes del video; vuelve a subirlo.")
+    if any(p.tamano != PARTE for p in partes[:-1]):
+        raise ValueError("Las partes del video no están completas; vuelve a subirlo.")
+    total = sum(p.tamano for p in partes)
+    if total > MAX_VIDEO:
+        raise ValueError(f"El video supera {MAX_VIDEO // (1024 * 1024)} MB.")
+    m = DesignInicioMedio(tipo="video", nombre=(nombre or "video")[:255], mime=mime, tamano=total, datos=b"",
+                          ancho=max(0, int(ancho or 0)), alto=max(0, int(alto or 0)), creado_por=user.nombre_completo)
+    db.add(m)
+    db.flush()
+    db.query(DesignInicioMedioParte).filter(DesignInicioMedioParte.subida == subida, DesignInicioMedioParte.medio_id.is_(None)).update({"medio_id": m.id}, synchronize_session=False)
+    db.commit()
+    db.refresh(m)
+    return m
+
+
+def medio_por_partes(db: Session, medio_id: int) -> bool:
+    return db.query(DesignInicioMedioParte.id).filter(DesignInicioMedioParte.medio_id == medio_id).first() is not None
+
+
+def medio_leer(db: Session, medio_id: int, ini: int, fin: int) -> bytes:
+    """Bytes [ini, fin] de un video guardado por partes: solo se leen las partes que hacen falta."""
+    n0, n1 = ini // PARTE, fin // PARTE
+    out = []
+    for p in db.query(DesignInicioMedioParte.n, DesignInicioMedioParte.datos).filter(
+            DesignInicioMedioParte.medio_id == medio_id, DesignInicioMedioParte.n >= n0, DesignInicioMedioParte.n <= n1).order_by(DesignInicioMedioParte.n):
+        d = bytes(p.datos); base = p.n * PARTE
+        out.append(d[max(0, ini - base):max(0, fin - base + 1)])
+    return b"".join(out)
 
 
 # ---------- Muro ----------

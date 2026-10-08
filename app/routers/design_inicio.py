@@ -4,7 +4,7 @@ Se incluye desde routers/design_schedule.py (mismo router, mismo cupo de concurr
 import re
 from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -127,12 +127,55 @@ def api_medios(user: Empleado = Depends(require_admin), db: Session = Depends(ge
 @router.post("/design/api/inicio/medios")
 async def api_medio_subir(archivo: UploadFile = File(...), ancho: int = Form(0), alto: int = Form(0),
                           user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    datos = await archivo.read(si.MAX_VIDEO + 1)
+    datos = await archivo.read(si.MAX_ENVIO_DIRECTO + 1 if (archivo.content_type or '').startswith('video') else si.MAX_IMAGEN + 1)
     try:
         m = si.medio_crear(db, user, archivo.filename or "archivo", archivo.content_type or "", datos, ancho, alto)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return si.medio_resumen(m)
+
+
+class SubidaIn(BaseModel):
+    nombre: str = Field("", max_length=255)
+    mime: str = Field("", max_length=60)
+    tamano: int = 0
+    ancho: int = 0
+    alto: int = 0
+
+
+@router.post("/design/api/inicio/medios/subida")
+def api_subida_iniciar(payload: SubidaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Videos por partes (paso 1 de 3): el navegador avisa el nombre, el tipo y el tamaño."""
+    try:
+        return si.subida_iniciar(db, payload.nombre, payload.mime, payload.tamano)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/design/api/inicio/medios/subida/{subida}/parte/{n}")
+async def api_subida_parte(subida: str, n: int, request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Paso 2: cada pedazo de 4 MB, uno por uno (así el servidor nunca tiene el video entero en memoria)."""
+    if int(request.headers.get("content-length") or 0) > si.PARTE:
+        raise HTTPException(413, "Parte demasiado grande.")
+    datos = b""
+    async for trozo in request.stream():
+        datos += trozo
+        if len(datos) > si.PARTE:
+            raise HTTPException(413, "Parte demasiado grande.")
+    try:
+        si.subida_parte(db, subida, n, datos)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
+@router.post("/design/api/inicio/medios/subida/{subida}/fin")
+def api_subida_fin(subida: str, payload: SubidaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Paso 3: se revisa que llegaron todas las partes y queda en la biblioteca."""
+    try:
+        return si.medio_resumen(si.subida_fin(db, user, subida, payload.nombre, payload.mime, payload.ancho, payload.alto))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.post("/design/api/inicio/medios/{medio_id}/eliminar")
@@ -159,15 +202,25 @@ def medio(medio_id: int, request: Request, user: Empleado = Depends(require_modu
     mime = "video/mp4" if m.mime == "video/quicktime" else m.mime
     rango = request.headers.get("range", "")
     mt = re.match(r"bytes=(\d*)-(\d*)$", rango.strip())
+    por_partes = m.tipo == "video" and si.medio_por_partes(db, medio_id)
     if mt and total:
         ini = int(mt.group(1)) if mt.group(1) else max(0, total - int(mt.group(2) or 0))
         fin = int(mt.group(2)) if mt.group(1) and mt.group(2) else total - 1
         fin = min(fin, total - 1, ini + TROZO_VIDEO - 1)   # por partes: un video de 100 MB no se carga entero en memoria
         if ini > fin:
             return Response(status_code=416, headers={"Content-Range": f"bytes */{total}"})
-        parte = db.query(func.substr(DesignInicioMedio.datos, ini + 1, fin - ini + 1)).filter(DesignInicioMedio.id == medio_id).scalar() or b""
+        if por_partes:
+            parte = si.medio_leer(db, medio_id, ini, fin)
+        else:
+            parte = db.query(func.substr(DesignInicioMedio.datos, ini + 1, fin - ini + 1)).filter(DesignInicioMedio.id == medio_id).scalar() or b""
         cab["Content-Range"] = f"bytes {ini}-{ini + len(parte) - 1}/{total}"
         return Response(bytes(parte), status_code=206, media_type=mime, headers=cab)
+    if por_partes:
+        # sin Range: se entrega pedazo por pedazo (nunca el video entero en memoria)
+        def trozos():
+            for k in range(0, total, si.PARTE):
+                yield si.medio_leer(db, medio_id, k, min(total, k + si.PARTE) - 1)
+        return StreamingResponse(trozos(), media_type=mime, headers={**cab, "Content-Length": str(total)})
     datos = db.query(DesignInicioMedio.datos).filter(DesignInicioMedio.id == medio_id).scalar() or b""
     return Response(bytes(datos), media_type=mime, headers=cab)
 

@@ -497,6 +497,20 @@ class DesignInicioMedio(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignInicioMedioParte(Base):
+    """Pedazos (4 MB) de los videos de la página de Inicio. Se suben y se leen por partes para no cargar
+    el video entero en la memoria del servidor. Mientras se sube, medio_id está vacío (solo tiene la clave de la subida)."""
+    __tablename__ = "design_inicio_medio_partes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    subida: Mapped[str] = mapped_column(String(40), index=True)
+    medio_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    n: Mapped[int] = mapped_column(Integer, default=0)
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignInicioMuro(Base):
     """Publicaciones del muro interno de la página de Inicio (anuncios, logros, cumpleaños…). Las hacen los admins."""
     __tablename__ = "design_inicio_muro"
