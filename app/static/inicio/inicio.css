@@ -333,7 +333,7 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
 .nvi-rk-top { display:flex; gap:12px; justify-content:center; width:100%; position:relative; }
 .nvi-rk-uno { display:flex; flex-direction:column; align-items:center; min-width:0; }
 .nvi-rk-foto { position:relative; border-radius:50%; background:linear-gradient(135deg, #2f98d5, #252772); color:#fff; display:grid; place-items:center; font-weight:700; flex:none; }
-.nvi-rk-foto img { width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; }
+.nvi-rk-foto img { position:absolute; inset:0; width:100%; height:100%; border-radius:50%; object-fit:cover; object-position:center 30%; display:block; }   /* fotos verticales u horizontales: siempre recortadas en el círculo */
 .nvi-rk-foto.grande { width:86px; height:86px; font-size:26px; box-shadow:0 0 0 4px #fff, 0 0 0 7px #e8b64c, 0 10px 22px -6px rgba(15,23,42,.45); margin-bottom:12px; }
 .nvi-rk-foto.chica { width:36px; height:36px; font-size:13px; }
 .nvi-rk-medalla { position:absolute; right:-6px; bottom:-6px; font-size:24px; line-height:1; filter:drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
