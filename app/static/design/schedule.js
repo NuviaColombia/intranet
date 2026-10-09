@@ -81,8 +81,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     document.getElementById('dsSemanaCtrl').style.display = (DS.teamId || (chk && chk.checked)) ? '' : 'none';
     // "Dejar a cargo" está junto al buscador: solo se ve con un equipo abierto (no en todas las áreas)
     document.getElementById('dsACargo').classList.toggle('ds-fuera', !DS.teamId || !!(chk && chk.checked));
-    // "Producción" (managers, aprobadores y admins): mismo lugar y misma regla
-    document.getElementById('dsProdBtn').classList.toggle('ds-fuera', !window.DS_GESTION || !DS.teamId || !!(chk && chk.checked));
+    // "Producción" (managers, aprobadores y admins): mismo lugar y misma regla; no se usa en Support
+    document.getElementById('dsProdBtn').classList.toggle('ds-fuera', !window.DS_GESTION || !DS.teamId || !!(chk && chk.checked) || DS.areaFormato === 'support');
   }
 
   function dsLunesDe(d) {
