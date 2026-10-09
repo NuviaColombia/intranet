@@ -218,6 +218,13 @@ window.addEventListener('unhandledrejection', function(ev) {
       var teamId = mio ? mio.teamId : DS.deepLinkTeamId;
       DS.deepLinkAreaId = DS.deepLinkTeamId = null;
       if (area && teamId) dsIrAEquipo(area, teamId);
+      // Venir con ESC desde Módulos (?esc=1): los admins abren la vista donde están todos los schedules; los demás ya
+      // entran a su propio equipo (arriba).
+      if (URL_PARAMS.get('esc') === '1') {
+        try { var u = new URL(location.href); u.searchParams.delete('esc'); history.replaceState(null, '', u); } catch (x) {}
+        var chkTodas = document.getElementById('dsTodasAreasChk');
+        if (chkTodas && !chkTodas.checked && !(area && teamId) && window.DS_CFG && window.DS_CFG.esAdmin) { chkTodas.checked = true; dsMostrarVista(true); }
+      }
     }).catch(function(e) {
       var cont = document.getElementById('dsAreaTabs');
       cont.innerHTML = '<span class="ds-err-carga">No se pudieron cargar las áreas. <button type="button" class="btn mini">Reintentar</button></span>';

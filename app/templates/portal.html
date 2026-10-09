@@ -76,4 +76,16 @@
   </div>
   {% endif %}
 </div>
+{% if user.tiene_modulo('design_schedule') %}
+<script>
+// ESC en Módulos lleva al Schedule de Design: cada persona a su propio equipo y los admins a la vista de todas las áreas
+// (Design decide el destino según su rol dentro de Design).
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape' || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
+  var t = e.target, tag = t && t.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+  location.href = '/design?esc=1';
+});
+</script>
+{% endif %}
 {% endblock %}
