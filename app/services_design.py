@@ -982,9 +982,31 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
     def nombre_de(f):
         return f.designer.nombre_completo if f.designer else (f.designer_prestado or "Sin asignar")
 
+    # Los diseñadores del Dashboard son los del equipo de cada orden: un diseñador prestado (de otro equipo o escrito a
+    # mano) no sale en la tabla de Producción ni en el filtro de Diseñador (pedido por Rosember el 9-oct-2026).
+    miembros: dict[int, set[int] | None] = {}
+    equipos_ids = {f.team_id for f in todas}
+    for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id.in_(equipos_ids or [-1])):
+        miembros.setdefault(tid, set()).add(eid)
+    for f in todas:
+        t = f.team
+        miembros.setdefault(t.id, set())
+        if t.manager_id:
+            miembros[t.id].add(t.manager_id)  # el manager que diseña casos cuenta como del equipo
+        if t.area.formato == FORMATO_SUPPORT:
+            miembros[t.id] = None  # Support: el diseñador es el del caso, no un prestado
+
+    def es_prestado(f) -> bool:
+        propios = miembros.get(f.team_id)
+        if propios is None:
+            return False
+        return bool((f.designer_prestado or "").strip()) or bool(f.designer_id and f.designer_id not in propios)
+
     # Opciones de los filtros (antes de filtrar por diseñador, producto, estado y QC)
     disenadores: dict[str, str] = {}
     for f in todas:
+        if es_prestado(f):
+            continue
         disenadores.setdefault(str(f.designer_id) if f.designer_id else "libre:" + nombre_de(f), nombre_de(f))
     sel_area = area_id or (db.get(DesignTeam, team_id).area_id if team_id and db.get(DesignTeam, team_id) else None)
     productos, estados = [], []
@@ -1035,20 +1057,21 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
         hold = 0 if cancelada else _hold_min(f)
         aprobada = _es_aprobada(f.estado)
         hallazgo = (f.qc_reporte or "").strip() if f.qc else ""
-        clave = str(f.designer_id) if f.designer_id else "libre:" + nombre_d
-        d = por_designer.setdefault(clave, {"clave": clave, "designerId": f.designer_id, "nombre": nombre_d, "equipos": [],
-                                            "casos": 0, "aprobadas": 0, "canceladas": 0, "duracionMin": 0, "conTiempo": 0,
-                                            "holdMin": 0, "conQc": 0, "qcHallazgos": 0})
-        if f.team.nombre not in d["equipos"]:
-            d["equipos"].append(f.team.nombre)
-        d["casos"] += 1
-        d["aprobadas"] += aprobada
-        d["canceladas"] += cancelada
-        d["duracionMin"] += dur
-        d["conTiempo"] += dur > 0
-        d["holdMin"] += hold
-        d["conQc"] += bool(f.qc)
-        d["qcHallazgos"] += bool(hallazgo)
+        if not es_prestado(f):
+            clave = str(f.designer_id) if f.designer_id else "libre:" + nombre_d
+            d = por_designer.setdefault(clave, {"clave": clave, "designerId": f.designer_id, "nombre": nombre_d, "equipos": [],
+                                                "casos": 0, "aprobadas": 0, "canceladas": 0, "duracionMin": 0, "conTiempo": 0,
+                                                "holdMin": 0, "conQc": 0, "qcHallazgos": 0})
+            if f.team.nombre not in d["equipos"]:
+                d["equipos"].append(f.team.nombre)
+            d["casos"] += 1
+            d["aprobadas"] += aprobada
+            d["canceladas"] += cancelada
+            d["duracionMin"] += dur
+            d["conTiempo"] += dur > 0
+            d["holdMin"] += hold
+            d["conQc"] += bool(f.qc)
+            d["qcHallazgos"] += bool(hallazgo)
 
         p = por_producto.setdefault(f.producto, {"producto": f.producto, "casos": 0, "duracionMin": 0, "conTiempo": 0, "lista": []})
         p["lista"].append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
