@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .models import Empleado
 import secrets
 from datetime import timedelta
-from .models_design import DesignInicioPagina, DesignInicioVersion, DesignInicioMedio, DesignInicioMedioParte, DesignInicioMuro, DesignInicioReaccion
+from .models_design import DesignInicioPagina, DesignInicioVersion, DesignInicioMedio, DesignInicioMedioParte, DesignInicioMuro, DesignInicioReaccion, DesignInicioMuroBloque
 
 MAX_VERSIONES = 30
 MAX_IMAGEN = 10 * 1024 * 1024
@@ -32,7 +32,7 @@ def es_editor(user: Empleado) -> bool:
 
 
 # Además de los admins, estas personas publican en el muro de Novedades (pedido por Rosember el 9-oct-2026).
-PUBLICADORES_MURO = {"paul.andion@nuviasmiles.com", "luis.bleschke@nuviasmiles.com"}
+PUBLICADORES_MURO = {"paul.andion@nuviasmiles.com", "luisblaschke@nuviasmiles.com"}
 
 
 def es_publicador(user: Empleado) -> bool:
@@ -314,9 +314,38 @@ def muro_resumen(x: DesignInicioMuro) -> dict:
             "creadoPor": x.creado_por, "creadoEn": x.creado_en.isoformat(), "editadoEn": x.editado_en.isoformat() if x.editado_en else None}
 
 
-def muro(db: Session, limite: int = 50, user: Empleado | None = None) -> list[dict]:
-    q = (db.query(DesignInicioMuro).filter(DesignInicioMuro.activo == 1)
-         .order_by(DesignInicioMuro.fijado.desc(), DesignInicioMuro.creado_en.desc()).limit(max(1, min(limite, 200))))
+def _bloques_muro(contenido) -> list[str]:
+    """Ids de los bloques de Novedades de la página, en el orden en que aparecen (de arriba hacia abajo)."""
+    out: list[str] = []
+
+    def ir(o):
+        if isinstance(o, dict):
+            if o.get("tipo") == "muro" and isinstance(o.get("id"), str):
+                out.append(o["id"])
+            for v in o.values():
+                ir(v)
+        elif isinstance(o, list):
+            for v in o:
+                ir(v)
+    ir(contenido)
+    return out
+
+
+def primer_bloque_muro(db: Session) -> str:
+    b = _bloques_muro(publicada(db))
+    return b[0] if b else ""
+
+
+def muro(db: Session, limite: int = 50, user: Empleado | None = None, bloque: str = "") -> list[dict]:
+    """Publicaciones de un bloque de Novedades. Las que no tienen bloque (anteriores) salen en el primero de la página."""
+    q = (db.query(DesignInicioMuro).outerjoin(DesignInicioMuroBloque, DesignInicioMuroBloque.post_id == DesignInicioMuro.id)
+         .filter(DesignInicioMuro.activo == 1))
+    if bloque:
+        cond = DesignInicioMuroBloque.bloque_id == bloque
+        if bloque == primer_bloque_muro(db):
+            cond = cond | DesignInicioMuroBloque.post_id.is_(None)
+        q = q.filter(cond)
+    q = q.order_by(DesignInicioMuro.fijado.desc(), DesignInicioMuro.creado_en.desc()).limit(max(1, min(limite, 200)))
     posts = q.all()
     reac = _reacciones(db, [x.id for x in posts], user)
     return [{**muro_resumen(x), "reacciones": reac[x.id]["cuentas"], "misReacciones": reac[x.id]["mias"],
@@ -330,7 +359,7 @@ def _imagen_valida(v: str) -> str:
     raise ValueError("La imagen debe ser de la biblioteca o una dirección https.")
 
 
-def muro_guardar(db: Session, user: Empleado, datos: dict, post_id: int | None = None) -> DesignInicioMuro:
+def muro_guardar(db: Session, user: Empleado, datos: dict, post_id: int | None = None, bloque: str = "") -> DesignInicioMuro:
     titulo, texto = (datos.get("titulo") or "").strip()[:200], (datos.get("texto") or "").strip()
     if not titulo and not texto:
         raise ValueError("Escribe un título o un texto.")
@@ -341,6 +370,9 @@ def muro_guardar(db: Session, user: Empleado, datos: dict, post_id: int | None =
     if post_id:
         x.editado_en = datetime.utcnow()
     db.add(x)
+    db.flush()
+    if not post_id and bloque:  # publicación nueva: queda en el bloque donde se hizo
+        db.add(DesignInicioMuroBloque(post_id=x.id, bloque_id=bloque[:40]))
     db.commit()
     db.refresh(x)
     return x

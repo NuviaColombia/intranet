@@ -302,10 +302,11 @@
     campos: [{tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'numero', k: 'cantidad', l: 'Publicaciones a mostrar', min: 1, max: 50},
       {tipo: 'select', k: 'estilo', l: 'Estilo', ops: [['tarjetas', 'Tarjetas'], ['lista', 'Lista'], ['destacado', 'Destacado (la primera grande)']]}, {tipo: 'numero', k: 'columnas', l: 'Columnas (tarjetas)', min: 1, max: 4},
       {tipo: 'check', k: 'mostrarAutor', l: 'Mostrar autor y fecha'}, {tipo: 'nota', l: 'Las publicaciones se agregan desde la página publicada (botón "Nueva publicación" que ven los admins), sin tener que volver a publicar la página.'}],
-    r: function(p, ctx) {
+    r: function(p, ctx, blq) {
       var w = h('div', 'nvi-muro'), cab = h('div', 'nvi-muro-cab');
       if (p.titulo) cab.appendChild(h('h3', '', NVI.esc(p.titulo)));
       w.appendChild(cab); var cont = h('div', 'nvi-muro-lista nvi-muro-' + (p.estilo || 'tarjetas')); cont.style.setProperty('--cols', p.columnas || 2); w.appendChild(cont);
+      cont.dataset.bloque = (blq && blq.id) || '';  // cada bloque de Novedades muestra y recibe solo sus publicaciones
       cont.innerHTML = '<div class="nvi-muro-vacio">Cargando publicaciones…</div>';
       NVI.cargarMuro(p, cont, cab, ctx);
       NVI._muros.push({p: p, cont: cont, cab: cab, ctx: ctx});
@@ -379,7 +380,7 @@
     if (e.sombra) caja.style.boxShadow = '0 10px 30px rgba(15,23,42,.12)'; caja.style.marginBottom = (e.margenAbajo != null && e.margenAbajo !== '' ? e.margenAbajo : 16) + 'px';
     if (e.ocultarMovil) caja.classList.add('nvi-ocultar-movil');
     if (e.animacion && ctx.modo !== 'editar') { caja.classList.add('nvi-anim', 'nvi-anim-' + e.animacion); if (+e.retraso) { caja.style.transitionDelay = e.retraso + 'ms'; caja.style.animationDelay = e.retraso + 'ms'; } NVI.observarAnim(caja); }
-    try { caja.appendChild(def ? def.r(b.p || {}, ctx) : h('div', 'nvi-desconocido', 'Bloque no disponible')); }
+    try { caja.appendChild(def ? def.r(b.p || {}, ctx, b) : h('div', 'nvi-desconocido', 'Bloque no disponible')); }
     catch (err) { caja.appendChild(h('div', 'nvi-desconocido', 'No se pudo mostrar este bloque')); }
     // el movimiento continuo va en el contenido (así no choca con la animación de entrada ni con el marco)
     if (e.continuo && caja.firstElementChild) caja.firstElementChild.classList.add('nvi-cont', 'nvi-cont-' + e.continuo);
@@ -651,10 +652,10 @@
     setTimeout(function() { a.classList.add('on'); }, 20); setTimeout(function() { a.classList.remove('on'); setTimeout(function() { a.remove(); }, 400); }, 3500);
   };
   NVI.cargarMuro = function(p, cont, cab, ctx) {
-    fetch('/design/api/inicio/muro?limite=' + (p.cantidad || 6), {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(d) {
+    fetch('/design/api/inicio/muro?limite=' + (p.cantidad || 6) + '&bloque=' + encodeURIComponent(cont.dataset.bloque || ''), {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(d) {
       var lista = d.publicaciones || [];
       if (d.puedePublicar && ctx.modo !== 'editar' && !cab.querySelector('.nvi-muro-nueva')) {
-        var bn = h('button', 'nvi-muro-nueva', '+ Nueva publicación'); bn.type = 'button'; bn.onclick = function() { NVI.dialogoMuro(null, function() { NVI.cargarMuro(p, cont, cab, ctx); }); }; cab.appendChild(bn);
+        var bn = h('button', 'nvi-muro-nueva', '+ Nueva publicación'); bn.type = 'button'; bn.onclick = function() { NVI.dialogoMuro(null, function() { NVI.cargarMuro(p, cont, cab, ctx); }, cont.dataset.bloque || ''); }; cab.appendChild(bn);
       }
       if (!lista.length) { cont.innerHTML = '<div class="nvi-muro-vacio">' + (ctx.modo === 'editar' ? 'Aquí saldrán las publicaciones del muro (se agregan desde la página publicada).' : 'Todavía no hay publicaciones.') + '</div>'; return; }
       cont.innerHTML = '';
@@ -733,7 +734,7 @@
       img.src = u;
     });
   };
-  NVI.dialogoMuro = function(x, alGuardar) {
+  NVI.dialogoMuro = function(x, alGuardar, bloque) {
     var bg = h('div', 'nvi-dlg-bg'), img = x ? x.imagen : '';
     bg.innerHTML = '<div class="nvi-dlg" role="dialog" aria-modal="true" aria-label="Publicación del muro"><h3>' + (x ? 'Editar publicación' : 'Nueva publicación') + '</h3>' +
       '<label>Título<input type="text" maxlength="200" data-c="titulo"></label><label>Texto<textarea rows="6" data-c="texto"></textarea></label>' +
@@ -752,7 +753,7 @@
       if (a.dataset.a === 'guardar') {
         a.disabled = true;
         fetch('/design/api/inicio/muro' + (x ? '/' + x.id : ''), {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({titulo: q('[data-c=titulo]').value, texto: q('[data-c=texto]').value, imagen: img, fijado: q('[data-c=fijado]').checked})})
+          body: JSON.stringify({titulo: q('[data-c=titulo]').value, texto: q('[data-c=texto]').value, imagen: img, fijado: q('[data-c=fijado]').checked, bloque: x ? '' : (bloque || '')})})
           .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo publicar.'); return d; }); })
           .then(function() { bg.remove(); alGuardar && alGuardar(); }).catch(function(er) { q('.nvi-dlg-err').textContent = er.message; a.disabled = false; });
       }

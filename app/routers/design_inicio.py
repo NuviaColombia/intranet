@@ -247,17 +247,19 @@ class MuroIn(BaseModel):
     texto: str = Field("", max_length=20000)
     imagen: str = Field("", max_length=300)
     fijado: bool = False
+    bloque: str = Field("", max_length=40, pattern=r"^[A-Za-z0-9_-]*$")  # bloque de Novedades donde se publica
 
 
 @router.get("/design/api/inicio/muro")
-def api_muro(limite: int = 50, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    return {"publicaciones": si.muro(db, limite, user), "puedePublicar": si.es_publicador(user), "emojis": si.EMOJIS_MURO}
+def api_muro(limite: int = 50, bloque: str = "", user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    return {"publicaciones": si.muro(db, limite, user, bloque[:40]), "puedePublicar": si.es_publicador(user), "emojis": si.EMOJIS_MURO}
 
 
 @router.post("/design/api/inicio/muro")
 def api_muro_crear(payload: MuroIn, user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
     try:
-        return si.muro_resumen(si.muro_guardar(db, user, payload.model_dump()))
+        datos = payload.model_dump()
+        return si.muro_resumen(si.muro_guardar(db, user, datos, bloque=datos.pop("bloque", "")))
     except ValueError as e:
         raise HTTPException(400, str(e))
 

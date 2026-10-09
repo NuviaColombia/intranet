@@ -526,6 +526,15 @@ class DesignInicioMuro(Base):
     editado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class DesignInicioMuroBloque(Base):
+    """En qué bloque de Novedades (id del bloque en la página de Inicio) se hizo cada publicación del muro: cada bloque
+    muestra solo las suyas. Las publicaciones sin fila (anteriores a esto) salen en el primer bloque de la página."""
+    __tablename__ = "design_inicio_muro_bloque"
+
+    post_id: Mapped[int] = mapped_column(ForeignKey("design_inicio_muro.id"), primary_key=True)
+    bloque_id: Mapped[str] = mapped_column(String(40), index=True)
+
+
 class DesignInicioReaccion(Base):
     """Reacción con emoji de una persona a una publicación del muro (una fila por persona y emoji; reaccionar otra vez la quita)."""
     __tablename__ = "design_inicio_reacciones"
