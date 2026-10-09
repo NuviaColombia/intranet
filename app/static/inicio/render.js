@@ -312,6 +312,47 @@
       NVI._muros.push({p: p, cont: cont, cab: cab, ctx: ctx});
       return w;
     }};
+  // Support Time: quién está en cada turno de Support (foto, horario, próximo cambio y coberturas), calculado solo
+  D.support = {n: 'Support Time', ic: '🎧', g: 'Interactivo',
+    d: function() { return {titulo: 'Support Time', mostrarProximos: true}; },
+    campos: [{tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'check', k: 'mostrarProximos', l: 'Mostrar los próximos cambios de turno'},
+      {tipo: 'nota', l: 'Los turnos, las personas y las fechas de cambio se configuran en Parámetros › Support Time. La rotación se aplica sola.'}],
+    r: function(p, ctx) {
+      var w = h('div', 'nvi-st'), cab = h('div', 'nvi-st-cab'), cuerpo = h('div', 'nvi-st-cuerpo');
+      if (p.titulo) cab.appendChild(h('h3', '', NVI.esc(p.titulo)));
+      w.appendChild(cab); w.appendChild(cuerpo);
+      cuerpo.innerHTML = '<div class="nvi-muro-vacio">Cargando turnos…</div>';
+      var pintar = function() {
+        fetch('/design/api/support-time', {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(st) {
+          cab.querySelectorAll('.nvi-st-sub').forEach(function(x) { x.remove(); });
+          if (!st.listo) { cuerpo.innerHTML = '<div class="nvi-muro-vacio">Los turnos de Support todavía no están configurados (Parámetros › Support Time).</div>'; return; }
+          cab.appendChild(h('span', 'nvi-st-sub', 'Próximo cambio de turno: <b>' + NVI.esc(st.proximoCambioTxt) + '</b> · rota cada ' + st.semanas + ' semanas'));
+          cuerpo.innerHTML = '';
+          var fila = h('div', 'nvi-st-fila');
+          st.personas.forEach(function(x) {
+            var t = x.turnoActual, tarj = h('div', 'nvi-st-pers t' + t.n);
+            var foto = h('div', 'nvi-st-foto'); foto.appendChild(h('span', '', NVI.esc((x.nombre || '?').charAt(0))));
+            var im = h('img'); im.src = x.foto; im.alt = ''; im.onerror = function() { im.remove(); }; foto.appendChild(im);
+            var info = h('div', 'nvi-st-info');
+            info.appendChild(h('div', 'nvi-st-nom', NVI.esc(x.nombre)));
+            info.appendChild(h('span', 'nvi-st-turno t' + t.n, NVI.esc(t.nombre)));
+            info.appendChild(h('div', 'nvi-st-hor', '🕒 ' + NVI.esc(t.horaTxt) + ' · ' + NVI.esc(st.diasTxt)));
+            info.appendChild(h('div', 'nvi-st-prox', 'El ' + NVI.esc(x.cambiaElTxt) + ' pasa a turno ' + NVI.esc(x.turnoSiguiente.nombre.toLowerCase()) + ' (' + NVI.esc(x.turnoSiguiente.horaTxt) + ')'));
+            if (x.cubierto) info.appendChild(h('div', 'nvi-st-cub', 'Cubre ' + NVI.esc(x.cubierto.nombre) + ' hasta el ' + x.cubierto.hasta.slice(8, 10) + '/' + x.cubierto.hasta.slice(5, 7)));
+            tarj.appendChild(foto); tarj.appendChild(info); fila.appendChild(tarj);
+          });
+          cuerpo.appendChild(fila);
+          if (p.mostrarProximos !== false && st.proximos && st.proximos.length) {
+            var tb = '<table class="nvi-st-tabla"><thead><tr><th>Cambio</th><th>' + NVI.esc(st.turnos[0].nombre) + '</th><th>' + NVI.esc(st.turnos[1].nombre) + '</th></tr></thead><tbody>';
+            st.proximos.slice(0, 3).forEach(function(x) { tb += '<tr><td>' + NVI.esc(x.fechaTxt) + '</td><td>' + NVI.esc(x.turno1) + '</td><td>' + NVI.esc(x.turno2) + '</td></tr>'; });
+            cuerpo.appendChild(h('div', 'nvi-st-proximos', '<div class="nvi-st-ptit">Próximos cambios</div>' + tb + '</tbody></table>'));
+          }
+        }).catch(function() { cuerpo.innerHTML = '<div class="nvi-muro-vacio">No se pudieron cargar los turnos.</div>'; });
+      };
+      pintar();
+      var t = setInterval(function() { if (!w.isConnected) clearInterval(t); else pintar(); }, 120000);
+      return w;
+    }};
   D.embed = {n: 'Página incrustada', ic: '⧉', g: 'Interactivo',
     d: function() { return {url: '', alto: 520, borde: true, radio: 12}; },
     campos: [{tipo: 'url', k: 'url', l: 'Dirección (https://…) de la página o formulario'}, {tipo: 'numero', k: 'alto', l: 'Alto (px)', min: 100, max: 2000}, {tipo: 'check', k: 'borde', l: 'Borde'}, {tipo: 'numero', k: 'radio', l: 'Esquinas redondeadas (px)', min: 0, max: 40},

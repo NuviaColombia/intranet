@@ -180,6 +180,30 @@
   .op-tabla th, .op-tabla td, .op-tabla thead th { text-align:center; }
   .eq-dis, .eq-acc, .eq-add, .op-th { justify-content:center; }
   .eq-tabla select, .sim-tabla select { text-align:center; text-align-last:center; }
+
+  /* Support Time */
+  .st-ahora { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin:4px 0 14px; }
+  .st-pers { display:flex; gap:14px; align-items:center; border:1px solid #dbe3ee; border-radius:14px; padding:14px 16px; background:linear-gradient(135deg, #f8fbff, #fff); }
+  .st-foto { width:64px; height:64px; border-radius:50%; flex:none; background:#dbeafe; color:#1d4ed8; font-weight:700; font-size:22px; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+  .st-foto img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .st-nom { font-weight:700; font-size:15px; color:#0f172a; }
+  .st-turno { display:inline-block; margin-top:3px; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+  .st-turno.t1 { background:#fef3c7; color:#92400e; } .st-turno.t2 { background:#e0e7ff; color:#3730a3; }
+  .st-hor { font-size:13px; color:#334155; margin-top:4px; } .st-sub { font-size:12px; color:#64748b; margin-top:2px; }
+  .st-cub { margin-top:6px; font-size:12px; background:#ecfdf5; color:#047857; border-radius:8px; padding:3px 8px; display:inline-block; }
+  .st-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px; }
+  .st-caja { border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px; }
+  .st-caja h3 { margin:0 0 8px; font-size:13.5px; color:#1d4ed8; }
+  .st-fila { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:8px; }
+  .st-fila > div { display:flex; flex-direction:column; gap:3px; flex:1; min-width:110px; }
+  .st-fila label, .st-caja > label { font-size:12px; color:#64748b; }
+  .st-dias { display:flex; gap:6px; flex-wrap:wrap; }
+  .st-dias label { display:inline-flex; align-items:center; gap:4px; border:1px solid #cbd5e1; border-radius:999px; padding:3px 10px; font-size:12.5px; cursor:pointer; color:#334155; }
+  .st-dias label:has(input:checked) { background:#dbeafe; border-color:#93b4f5; color:#1d4ed8; font-weight:600; }
+  .st-dias input { width:auto; margin:0; }
+  .st-prox { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px; }
+  .st-prox th, .st-prox td { padding:5px 8px; border-bottom:1px solid #eef2f7; text-align:left; }
+  .st-prox th { color:#64748b; font-weight:600; font-size:11.5px; }
 </style>
 {# Aprobadores (solo_openings): solo la tarjeta Openings; el resto de Parámetros es de admins #}
 {% if not solo_openings %}
@@ -415,6 +439,98 @@
       </span>
       {% else %}<span class="cat-sin">Ningún tipo de ausencia creado todavía.</span>{% endfor %}
     </div>
+  </div>
+</div>
+
+{% set st = support_time %}
+<div class="tarjeta aud-tarjeta" id="stTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Support Time</h2>
+      <span class="aud-sub">{% if st.listo %}{{ st.personas[0].nombre }} y {{ st.personas[1].nombre }} · rotan cada {{ st.semanas }} semanas · próximo cambio {{ st.proximoCambioTxt }}{% else %}turnos rotativos de Support: falta configurarlos{% endif %}</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Aquí registras los turnos de las dos personas de Support. Eliges la fecha del primer cambio y cada cuántas semanas rotan: el sistema calcula solo quién está en cada turno cada semana y los cambios se aplican automáticamente. Esto se muestra en la página de Inicio (bloque Support Time). Las coberturas se dejan desde el Schedule de Support con 'Dejar a cargo'.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="stSwitch" role="switch" aria-controls="stContenido">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="stSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="stContenido" hidden style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px">
+    {% if st.listo %}
+    <div class="st-ahora">
+      {% for p in st.personas %}
+      <div class="st-pers">
+        <div class="st-foto"><span>{{ p.nombre[:1] }}</span><img src="{{ p.foto }}" alt="" onerror="this.remove()"></div>
+        <div>
+          <div class="st-nom">{{ p.nombre }}</div>
+          <span class="st-turno t{{ p.turnoActual.n }}">{{ p.turnoActual.nombre }}</span>
+          <div class="st-hor">{{ p.turnoActual.horaTxt }} · {{ st.diasTxt }}</div>
+          <div class="st-sub">El {{ p.cambiaElTxt }} pasa al turno {{ p.turnoSiguiente.nombre|lower }} ({{ p.turnoSiguiente.horaTxt }})</div>
+          {% if p.cubierto %}<div class="st-cub">Cubre {{ p.cubierto.nombre }} hasta el {{ p.cubierto.hasta[8:10] }}/{{ p.cubierto.hasta[5:7] }}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <form method="post" action="/design/parametros/support-time" id="stForm">
+      <div class="st-grid">
+        <div class="st-caja">
+          <h3>1. Las dos personas de Support</h3>
+          <div class="st-fila">
+            <div><label for="stA">Persona 1</label>
+              <select name="persona_a" id="stA" required><option value="">Elegir…</option>
+                {% for e in candidatos_az %}<option value="{{ e.id }}"{{ ' selected' if st.personaA == e.id else '' }}>{{ e.nombre_completo }}</option>{% endfor %}</select></div>
+            <div><label for="stB">Persona 2</label>
+              <select name="persona_b" id="stB" required><option value="">Elegir…</option>
+                {% for e in candidatos_az %}<option value="{{ e.id }}"{{ ' selected' if st.personaB == e.id else '' }}>{{ e.nombre_completo }}</option>{% endfor %}</select></div>
+          </div>
+        </div>
+        <div class="st-caja">
+          <h3>2. Turnos y horarios</h3>
+          {% for t in st.turnos %}
+          <div class="st-fila">
+            <div style="flex:1.4"><label for="stN{{ t.n }}">Turno {{ t.n }}</label><input name="turno{{ t.n }}_nombre" id="stN{{ t.n }}" maxlength="40" value="{{ t.nombre }}" required></div>
+            <div><label for="stI{{ t.n }}">Inicia</label><input type="time" name="turno{{ t.n }}_inicio" id="stI{{ t.n }}" value="{{ t.inicio }}"></div>
+            <div><label for="stF{{ t.n }}">Termina</label><input type="time" name="turno{{ t.n }}_fin" id="stF{{ t.n }}" value="{{ t.fin }}"></div>
+          </div>
+          {% endfor %}
+          <label>Días de la semana</label>
+          <div class="st-dias">
+            {% for d in range(7) %}<label><input type="checkbox" name="dias" value="{{ d }}"{{ ' checked' if d in st.dias else '' }}>{{ ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][d] }}</label>{% endfor %}
+          </div>
+        </div>
+        <div class="st-caja">
+          <h3>3. Rotación</h3>
+          <div class="st-fila">
+            <div><label for="stRef">Fecha del cambio</label><input type="date" name="ref_fecha" id="stRef" value="{{ st.refFecha }}" required></div>
+            <div><label for="stSem">Rota cada (semanas)</label><input type="number" name="semanas" id="stSem" min="1" max="26" value="{{ st.semanas }}" required></div>
+          </div>
+          <div class="st-fila">
+            <div><label for="stRefT1">Desde esa fecha, en el turno 1 queda</label>
+              <select name="ref_turno1" id="stRefT1">
+                <option value="a"{{ ' selected' if st.refTurno1 != 'b' else '' }}>La persona 1</option>
+                <option value="b"{{ ' selected' if st.refTurno1 == 'b' else '' }}>La persona 2</option></select></div>
+          </div>
+          <div class="aud-sub">Ese día intercambian y se repite cada rotación. No hay que registrar cada cambio.</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn">Guardar Support Time</button>
+        {% if st.actualizadoPor %}<span class="aud-sub">Última actualización: {{ st.actualizadoPor }}</span>{% endif %}
+      </div>
+    </form>
+    {% if st.listo %}
+    <h3 style="margin:16px 0 4px;font-size:13.5px;color:#1d4ed8">Próximos cambios</h3>
+    <table class="st-prox"><thead><tr><th>Fecha</th><th>{{ st.turnos[0].nombre }} ({{ st.turnos[0].horaTxt }})</th><th>{{ st.turnos[1].nombre }} ({{ st.turnos[1].horaTxt }})</th></tr></thead>
+      <tbody>{% for x in st.proximos %}<tr><td>{{ x.fechaTxt }}</td><td>{{ x.turno1 }}</td><td>{{ x.turno2 }}</td></tr>{% endfor %}</tbody></table>
+    {% endif %}
+    {% if st.coberturas %}
+    <h3 style="margin:16px 0 4px;font-size:13.5px;color:#1d4ed8">Coberturas de turno</h3>
+    <table class="st-prox"><thead><tr><th>Cubre</th><th>Turno</th><th>Desde</th><th>Hasta</th><th>Lo dejó</th></tr></thead>
+      <tbody>{% for x in st.coberturas %}<tr><td>{{ x.nombre }}</td><td>{{ st.turnos[x.turno - 1].nombre }}</td><td>{{ x.desde[8:10] }}/{{ x.desde[5:7] }}</td><td>{{ x.hasta[8:10] }}/{{ x.hasta[5:7] }}</td><td>{{ x.asignadoPor }}</td></tr>{% endfor %}</tbody></table>
+    {% endif %}
   </div>
 </div>
 
@@ -994,6 +1110,15 @@
       if (!e.target.closest('.fest-guarda')) return;
       try { sessionStorage.setItem(KEY, JSON.stringify({on: true, y: window.scrollY})); } catch (x) {}
     });
+  })();
+
+  // ---------- Support Time: interruptor ----------
+  (function() {
+    var sw = document.getElementById('stSwitch'), txt = document.getElementById('stSwitchTxt'), cont = document.getElementById('stContenido');
+    if (!sw) return;
+    function mostrar(on) { sw.checked = on; cont.hidden = !on; txt.innerText = on ? 'Ocultar' : 'Revisar'; }
+    sw.addEventListener('change', function() { mostrar(sw.checked); });
+    if (/[?&]st=1/.test(location.search)) { mostrar(true); document.getElementById('stTarjeta').scrollIntoView({block: 'start'}); }
   })();
 
   // ---------- Simulación: interruptor, filtros y rol solo de Design ----------

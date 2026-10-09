@@ -232,6 +232,8 @@
   .ds-qc textarea:disabled { background:#f4f6f8; }
   .ds-qc-err { color:#dc2626; font-size:12px; min-height:16px; margin-bottom:8px; }
   .ds-qc-btns { display:flex; justify-content:flex-end; gap:8px; }
+  .ds-cob-lista { border-top:1px solid #e5e7eb; margin-top:8px; }
+  .ds-cob-fila { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 0; font-size:12.5px; }
   .ds-qc.ds-qc-ancho { width:560px; max-height:calc(100vh - 140px); display:flex; flex-direction:column; }
   .ds-qc-lista { overflow-y:auto; min-height:0; margin-bottom:8px; border:1px solid #e2e6ea; border-radius:8px; }
   .ds-qc-tit { border-bottom:1px solid #e2e6ea; }

@@ -169,7 +169,7 @@
   E.dialogo = dialogo;
 
   // ---------- Interfaz ----------
-  var BLOQUES_ORDEN = ['titulo', 'texto', 'botones', 'imagen', 'video', 'carrusel', 'galeria', 'tarjetas', 'cifras', 'cita', 'acordeon', 'cuenta', 'muro', 'embed', 'separador', 'espacio'];
+  var BLOQUES_ORDEN = ['titulo', 'texto', 'botones', 'imagen', 'video', 'carrusel', 'galeria', 'tarjetas', 'cifras', 'cita', 'acordeon', 'cuenta', 'muro', 'support', 'embed', 'separador', 'espacio'];
   var SECCIONES = [['libre', 'Sección en blanco'], ['libre-baja', 'Sección baja'], ['libre-alta', 'Sección alta']];
   E.iniciar = function() {
     document.body.classList.add('nvi-editando');

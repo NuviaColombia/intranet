@@ -1788,8 +1788,74 @@ window.addEventListener('unhandledrejection', function(ev) {
     pop.style.top = (r.bottom + 6) + 'px'; pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.right - pop.offsetWidth)) + 'px';
     document.addEventListener('mousedown', dsProdFuera, true); document.addEventListener('keydown', dsProdEsc, true);
   });
+  // ---------- Support: "Dejar a cargo" = cubrir el turno de una persona de Support (Support Time) ----------
+  function dsFechaIsoCorta(iso) { var p = iso.split('-'); return parseInt(p[2], 10) + ' ' + DS_MESES_C[parseInt(p[1], 10) - 1]; }
+  function dsRenderACargoSupport(cont) {
+    window.dsFetchJSON('/design/api/support-time').then(function(st) {
+      if (DS.areaFormato !== 'support') return;
+      cont.innerHTML = '';
+      var cobs = st.coberturas || [];
+      cobs.forEach(function(c) {
+        var tn = (st.turnos[c.turno - 1] || {}).nombre || ('turno ' + c.turno);
+        var chip = document.createElement('span'); chip.className = 'ds-acargo-chip' + (c.activa ? '' : ' prog');
+        chip.textContent = (c.activa ? 'Cubre el turno ' : 'Programado: cubre el turno ') + tn.toLowerCase() + ': ' + c.nombre + ' · ' + dsFechaIsoCorta(c.desde) + ' al ' + dsFechaIsoCorta(c.hasta);
+        chip.title = 'Lo dejó: ' + (c.asignadoPor || '—');
+        cont.appendChild(chip);
+      });
+      if (st.puedeCubrir) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'btn gris'; b.id = 'dsACargoEditar'; b.textContent = 'Dejar a cargo';
+        b.title = 'Deja a alguien cubriendo el turno de una persona de Support entre dos fechas';
+        b.onclick = function() { dsModalCobertura(st); };
+        cont.appendChild(b);
+      }
+      cont.hidden = !cont.children.length;
+    }).catch(function() { cont.hidden = true; });
+  }
+  function dsModalCobertura(st) {
+    var hoy = dsFechaISO(new Date());
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
+    var quien = function(n) { var p = (st.personas || []).find(function(x) { return x.turnoActual.n === n; }); return p ? p.nombre : ''; };
+    var turnosOps = (st.turnos || []).map(function(t) { return '<option value="' + t.n + '">' + dsEsc(t.nombre) + ' · ' + dsEsc(t.horaTxt) + (quien(t.n) ? ' (hoy: ' + dsEsc(quien(t.n)) + ')' : '') + '</option>'; }).join('');
+    var lista = (st.coberturas || []).map(function(c) {
+      return '<div class="ds-cob-fila"><span>' + dsEsc(c.nombre) + ' · ' + dsEsc((st.turnos[c.turno - 1] || {}).nombre || '') + ' · ' + dsFechaIsoCorta(c.desde) + ' al ' + dsFechaIsoCorta(c.hasta) +
+             '</span><button type="button" class="btn rojo mini" data-quitar="' + c.id + '">Quitar</button></div>'; }).join('');
+    bg.innerHTML = '<div class="ds-qc ds-acargo-form" role="dialog" aria-modal="true" aria-labelledby="dsCobTit" style="width:460px">' +
+      '<h4 id="dsCobTit">Dejar a cargo un turno de Support</h4>' +
+      '<div class="ds-qc-sub">Elige quién cubre el turno y las fechas. Mientras tanto edita el Schedule de Support y el turno aparece cubierto por esa persona en la página de Inicio. Se apaga solo al terminar las fechas.</div>' +
+      '<label for="dsCobTurno">Turno que cubre</label><select id="dsCobTurno">' + turnosOps + '</select>' +
+      '<label for="dsCobQuien">Quién lo cubre</label><select id="dsCobQuien"><option value="">Cargando…</option></select>' +
+      '<div class="ds-acargo-fechas"><div><label for="dsCobDesde">Desde</label><input type="date" id="dsCobDesde" min="' + hoy + '" value="' + hoy + '"></div>' +
+      '<div><label for="dsCobHasta">Hasta</label><input type="date" id="dsCobHasta" min="' + hoy + '" value="' + hoy + '"></div></div>' +
+      (lista ? '<div class="ds-cob-lista"><div class="ds-qc-sub" style="margin:8px 0 4px">Coberturas vigentes o programadas</div>' + lista + '</div>' : '') +
+      '<div class="ds-qc-err" id="dsCobErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-cob="cancelar">Cerrar</button><button type="button" class="btn" data-cob="guardar">Guardar</button></div></div>';
+    document.body.appendChild(bg);
+    var teclas = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
+    var err = bg.querySelector('#dsCobErr');
+    var listo = function(msg) { cerrar(); dsToast(msg); dsRenderACargoSupport(document.getElementById('dsACargo')); };
+    window.dsFetchJSON('/design/api/support-time/candidatos').then(function(l) {
+      bg.querySelector('#dsCobQuien').innerHTML = '<option value="">Elegir…</option>' + l.map(function(p) { return '<option value="' + p.id + '">' + dsEsc(p.nombre) + '</option>'; }).join('');
+    }).catch(function(e) { err.textContent = e.message; });
+    bg.addEventListener('click', function(e) {
+      var q = e.target.closest('[data-quitar]');
+      if (q) { postJSON('/design/api/support-time/cobertura/' + q.dataset.quitar + '/quitar', {}).then(function() { listo('Se quitó la cobertura.'); }, function(x) { err.textContent = x.message; }); return; }
+      var b = e.target.closest('[data-cob]'); if (!b) return;
+      if (b.dataset.cob === 'cancelar') { cerrar(); return; }
+      var turno = parseInt(bg.querySelector('#dsCobTurno').value, 10), quien2 = bg.querySelector('#dsCobQuien'), de = bg.querySelector('#dsCobDesde').value, ha = bg.querySelector('#dsCobHasta').value;
+      if (!quien2.value) { err.textContent = 'Elige quién cubre el turno.'; return; }
+      if (!de || !ha) { err.textContent = 'Elige las fechas.'; return; }
+      if (ha < de) { err.textContent = 'La fecha final no puede ser antes de la inicial.'; return; }
+      postJSON('/design/api/support-time/cobertura', {turno: turno, empleadoId: parseInt(quien2.value, 10), desde: de, hasta: ha}).then(function() {
+        listo(quien2.options[quien2.selectedIndex].text + ' cubre el turno ' + dsRangoTxt({desde: de, hasta: ha}) + '.');
+      }, function(x) { err.textContent = x.message; });
+    });
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    document.addEventListener('keydown', teclas, true);
+  }
   function dsRenderACargo(dia) {
     var cont = document.getElementById('dsACargo'); if (!cont) return;
+    if (DS.areaFormato === 'support') { dsRenderACargoSupport(cont); return; }
     var a = dia && dia.aCargo;
     cont.innerHTML = '';
     cont.hidden = !(dia && (dia.puedeDelegar || (a && a.esYo)));

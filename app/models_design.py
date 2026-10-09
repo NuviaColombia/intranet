@@ -550,6 +550,45 @@ class DesignQcCatalogo(Base):
     activo: Mapped[int] = mapped_column(Integer, default=1)
 
 
+class DesignSupportConfig(Base):
+    """Turnos rotativos de las dos personas de Support (Parámetros › Support Time). Una sola fila (id 1). Desde la
+    fecha de referencia, la persona `ref_turno1` ("a" o "b") está en el turno 1 y la otra en el 2; cada `semanas`
+    semanas intercambian. Horas en formato 24 h ("07:00")."""
+    __tablename__ = "design_support_config"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    turno1_nombre: Mapped[str] = mapped_column(String(40), default="Diurno")
+    turno1_inicio: Mapped[str] = mapped_column(String(5), default="07:00")
+    turno1_fin: Mapped[str] = mapped_column(String(5), default="16:40")
+    turno2_nombre: Mapped[str] = mapped_column(String(40), default="Nocturno")
+    turno2_inicio: Mapped[str] = mapped_column(String(5), default="21:00")
+    turno2_fin: Mapped[str] = mapped_column(String(5), default="07:00")
+    dias: Mapped[str] = mapped_column(String(20), default="0,1,2,3,4")   # días de la semana (0 = lunes)
+    persona_a_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    persona_b_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    ref_fecha: Mapped[date | None] = mapped_column(Date, nullable=True)
+    ref_turno1: Mapped[str] = mapped_column(String(1), default="a")
+    semanas: Mapped[int] = mapped_column(Integer, default=4)
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+    actualizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class DesignSupportCobertura(Base):
+    """Alguien (de cualquier equipo de Design) que cubre un turno de Support entre dos fechas ("Dejar a cargo" en el
+    Schedule de Support). Mientras dure, edita el Schedule de Support y el turno aparece cubierto por esa persona."""
+    __tablename__ = "design_support_coberturas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    turno: Mapped[int] = mapped_column(Integer)   # 1 o 2
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    desde: Mapped[date] = mapped_column(Date)
+    hasta: Mapped[date] = mapped_column(Date)
+    asignado_por: Mapped[str] = mapped_column(String(150), default="")
+    asignado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    empleado = relationship("Empleado")
+
+
 class DesignInicioReaccion(Base):
     """Reacción con emoji de una persona a una publicación del muro (una fila por persona y emoji; reaccionar otra vez la quita)."""
     __tablename__ = "design_inicio_reacciones"

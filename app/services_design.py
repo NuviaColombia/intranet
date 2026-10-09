@@ -71,6 +71,10 @@ def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
         return True
     from sqlalchemy.orm import object_session
     db = object_session(team)
+    if db and team.area.formato == FORMATO_SUPPORT:  # quien cubre un turno de Support (Support Time) edita su Schedule
+        from .services_design_support import empleados_cubriendo
+        if user.id in empleados_cubriendo(db, ahora_colombia().date()):
+            return True
     return bool(db) and delegaciones_activas(db).get(team.id) == user.id
 
 

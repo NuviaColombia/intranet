@@ -412,3 +412,25 @@ a.nvi-tarjeta:hover { transform:translateY(-4px); }
   padding:7px 14px; border-radius:4px 0 0 4px; box-shadow:0 4px 10px -4px rgba(0,0,0,.4); }
 .nvi-marco-cinta::after { content:''; position:absolute; top:39px; right:-10px; border-width:5px 10px 5px 0; border-style:solid; border-color:color-mix(in srgb, var(--nvi-mc) 60%, #000) transparent transparent transparent; z-index:2; }
 @media (prefers-reduced-motion: reduce) { .nvi-cont, .nvi-marco-neon, .nvi-marco-degradado { animation:none !important; } .nvi-anim-rebote.visto { animation:none; } }
+
+/* Support Time */
+.nvi-st-cab { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.nvi-st-cab h3 { margin:0; }
+.nvi-st-sub { font-size:13px; opacity:.75; }
+.nvi-st-fila { display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:16px; }
+.nvi-st-pers { display:flex; gap:16px; align-items:center; padding:18px 20px; border-radius:var(--nvi-radio, 14px); background:color-mix(in srgb, currentColor 5%, transparent); border:1px solid color-mix(in srgb, currentColor 14%, transparent); border-left-width:5px; }
+.nvi-st-pers.t1 { border-left-color:#f59e0b; } .nvi-st-pers.t2 { border-left-color:#6366f1; }
+.nvi-st-foto { width:84px; height:84px; border-radius:50%; flex:none; position:relative; overflow:hidden; background:#dbeafe; color:#1d4ed8; font-size:32px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.18); }
+.nvi-st-foto img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.nvi-st-nom { font-size:18px; font-weight:700; line-height:1.2; }
+.nvi-st-turno { display:inline-block; margin:6px 0 4px; padding:3px 12px; border-radius:999px; font-size:12.5px; font-weight:700; }
+.nvi-st-turno.t1 { background:#fef3c7; color:#92400e; } .nvi-st-turno.t2 { background:#e0e7ff; color:#3730a3; }
+.nvi-st-hor { font-size:14px; font-weight:600; margin-top:2px; }
+.nvi-st-prox { font-size:12.5px; opacity:.7; margin-top:6px; }
+.nvi-st-cub { margin-top:8px; display:inline-block; font-size:12.5px; font-weight:600; background:#d1fae5; color:#065f46; padding:3px 10px; border-radius:8px; }
+.nvi-st-proximos { margin-top:16px; }
+.nvi-st-ptit { font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; opacity:.6; margin-bottom:4px; }
+.nvi-st-tabla { width:100%; border-collapse:collapse; font-size:13.5px; }
+.nvi-st-tabla th, .nvi-st-tabla td { text-align:left; padding:6px 8px; border-bottom:1px solid color-mix(in srgb, currentColor 12%, transparent); }
+.nvi-st-tabla th { font-size:12px; opacity:.65; font-weight:600; }
+@media (max-width: 520px) { .nvi-st-foto { width:64px; height:64px; font-size:24px; } }
