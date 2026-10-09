@@ -55,6 +55,8 @@ SEMILLAS = {
             "Nombre equivocado en recortes de TC", "Cortes no siguen el protocolo", "El peso de los archivos es incorrecto"]),
     ]),
 }
+# N6 Material Changes usa los mismos hallazgos que N3 (pedido por Rosember el 9-oct-2026); cada área tiene su propia copia.
+SEMILLAS["N6 Material Changes"] = ("qc_catalogo_n6", SEMILLAS["N3 Prosthetic"][1])
 MAX_TEXTO = 300
 
 
