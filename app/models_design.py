@@ -567,7 +567,8 @@ class DesignProtocoloPagina(Base):
 # Canvas: hojas de trabajo con marcos de foto (plantillas de arcos dentales,
 # angulación de implantes) + capa de anotaciones (formas, flechas, texto,
 # lápiz, resaltador). Cada hoja es de un área (compartida por el equipo que
-# la usa), no personal — igual que Pre-Approved. Las imágenes se guardan como
+# la usa), no personal — igual que Pre-Approved. [Desde el 9-oct-2026 cada hoja
+# es de su dueño (empleado_id): cada persona ve y edita solo las suyas.] Las imágenes se guardan como
 # data-URL embebidas en el JSON de "frames" (igual que hacía la herramienta
 # original en localStorage; aquí no hay límite de 5-10MB del navegador).
 # ---------------------------------------------------------------------------
@@ -577,6 +578,8 @@ class DesignCanvasDoc(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
+    # Dueño de la hoja: cada diseñador trabaja la suya. NULL = hojas compartidas de antes (ya no se listan).
+    empleado_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
     nombre: Mapped[str] = mapped_column(String(150), default="Hoja")
     template_id: Mapped[str] = mapped_column(String(30), default="")
     titulo: Mapped[str] = mapped_column(String(150), default="")

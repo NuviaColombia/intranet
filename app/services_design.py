@@ -2566,8 +2566,10 @@ def _trash_restaurar_cv_doc(db: Session, payload: dict) -> bool:
     doc = payload.get("doc") or {}
     if not area_id or not db.get(DesignArea, area_id) or not doc:
         return False
-    orden = payload.get("orden") or (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id).count() + 1)
-    db.add(DesignCanvasDoc(area_id=area_id, nombre=doc.get("nombre", "Hoja"), template_id=doc.get("templateId", ""),
+    dueno_id = payload.get("dueno_id")  # hojas borradas antes de que tuvieran dueño: quedan sin dueño (no se listan)
+    orden = payload.get("orden") or (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id,
+                                                                      DesignCanvasDoc.empleado_id == dueno_id).count() + 1)
+    db.add(DesignCanvasDoc(area_id=area_id, empleado_id=dueno_id, nombre=doc.get("nombre", "Hoja"), template_id=doc.get("templateId", ""),
                            titulo=doc.get("titulo", ""), titulo_color=doc.get("tituloColor") or "#d10a11",
                            w=doc.get("w") or 1080, h=doc.get("h") or 1080,
                            frames=json.dumps(doc.get("frames", []), ensure_ascii=False),
@@ -3109,23 +3111,70 @@ def canvas_serializar(d: DesignCanvasDoc) -> dict:
     }
 
 
-def canvas_docs(db: Session, area_id: int) -> list[dict]:
-    docs = (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id)
-           .order_by(DesignCanvasDoc.orden).all())
-    return [canvas_serializar(d) for d in docs]
+# Cada persona tiene sus propias hojas de Canvas por área (desde el 9-oct-2026): nadie edita las de otra.
+# Las hojas compartidas de antes (empleado_id NULL) se dejan como estaban, sin listarse. Los managers ven las hojas
+# de los diseñadores de sus equipos y los admins las de todos (solo verlas: editar es del dueño).
+
+def canvas_personas_visibles(db: Session, user: Empleado, area_id: int) -> list[dict]:
+    """Personas del área cuyas hojas de Canvas puede ver `user` además de las suyas."""
+    q = (db.query(DesignTeam).options(joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado))
+         .filter(DesignTeam.area_id == area_id, DesignTeam.activo == 1))
+    if not es_admin(user):
+        q = q.filter(DesignTeam.manager_id == user.id)
+    vistos: dict[int, str] = {}
+    for t in q.all():
+        for d in t.designers:
+            if d.empleado_id != user.id:
+                vistos.setdefault(d.empleado_id, d.empleado.nombre_completo)
+    return sorted(({"id": i, "nombre": n} for i, n in vistos.items()), key=lambda x: x["nombre"])
 
 
-def canvas_doc(db: Session, doc_id: int) -> dict | None:
+def canvas_puede_ver(db: Session, user: Empleado, dueno_id: int | None, area_id: int) -> bool:
+    if dueno_id is None:
+        return False
+    return dueno_id == user.id or any(p["id"] == dueno_id for p in canvas_personas_visibles(db, user, area_id))
+
+
+def _canvas_sembrar(db: Session, area_id: int, empleado_id: int) -> None:
+    """Primera vez de una persona en un área: recibe las hojas base con su formato inicial (sin fotos)."""
+    from .main import CANVAS_TEMPLATES  # import tardío: main importa este módulo
+    for i, tpl in enumerate(CANVAS_TEMPLATES, start=1):
+        db.add(DesignCanvasDoc(area_id=area_id, empleado_id=empleado_id, nombre=tpl["nombre"], template_id=tpl["id"],
+                               titulo=tpl["titulo"], orden=i,
+                               frames=json.dumps([{"id": f"f{j}", **f, "img": None} for j, f in enumerate(tpl["frames"])],
+                                                 ensure_ascii=False)))
+    db.commit()
+
+
+def canvas_docs(db: Session, area_id: int, user: Empleado, ver_de: int | None = None) -> list[dict] | None:
+    """Hojas de `user` en el área, o las de `ver_de` si `user` puede verlas (None = no autorizado)."""
+    dueno = ver_de or user.id
+    if dueno != user.id and not canvas_puede_ver(db, user, dueno, area_id):
+        return None
+    q = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id, DesignCanvasDoc.empleado_id == dueno)
+    if dueno == user.id and q.count() == 0:
+        _canvas_sembrar(db, area_id, dueno)
+    return [canvas_serializar(d) for d in q.order_by(DesignCanvasDoc.orden).all()]
+
+
+def canvas_doc(db: Session, doc_id: int, user: Empleado) -> dict | None:
     d = db.get(DesignCanvasDoc, doc_id)
-    return canvas_serializar(d) if d else None
+    return canvas_serializar(d) if d and canvas_puede_ver(db, user, d.empleado_id, d.area_id) else None
+
+
+def canvas_doc_propio(db: Session, doc_id: int, user: Empleado) -> DesignCanvasDoc | None:
+    """La hoja solo si es de `user`: guardar, renombrar, duplicar, mover y eliminar son del dueño."""
+    d = db.get(DesignCanvasDoc, doc_id)
+    return d if d and d.empleado_id == user.id else None
 
 
 def canvas_crear_doc(db: Session, area_id: int, nombre: str, template_id: str, titulo: str,
-                     frames: list, creado_por: str = "") -> DesignCanvasDoc:
-    orden = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id).count() + 1
-    d = DesignCanvasDoc(area_id=area_id, nombre=nombre or "Hoja", template_id=template_id or "",
+                     frames: list, user: Empleado) -> DesignCanvasDoc:
+    orden = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area_id,
+                                             DesignCanvasDoc.empleado_id == user.id).count() + 1
+    d = DesignCanvasDoc(area_id=area_id, empleado_id=user.id, nombre=nombre or "Hoja", template_id=template_id or "",
                        titulo=titulo or "", frames=json.dumps(frames or [], ensure_ascii=False),
-                       orden=orden, creado_por=creado_por)
+                       orden=orden, creado_por=user.nombre_completo)
     db.add(d)
     db.commit()
     db.refresh(d)
@@ -3172,8 +3221,8 @@ def _cv_limpiar(obj: dict) -> dict:
     return o
 
 
-def canvas_guardar_doc(db: Session, doc_id: int, datos: dict) -> DesignCanvasDoc | None:
-    d = db.get(DesignCanvasDoc, doc_id)
+def canvas_guardar_doc(db: Session, doc_id: int, datos: dict, user: Empleado) -> DesignCanvasDoc | None:
+    d = canvas_doc_propio(db, doc_id, user)
     if not d:
         return None
     if "tituloColor" in datos and not (isinstance(datos["tituloColor"], str) and _CV_COLOR.match(datos["tituloColor"] or "")):
@@ -3200,8 +3249,8 @@ def canvas_guardar_doc(db: Session, doc_id: int, datos: dict) -> DesignCanvasDoc
     return d
 
 
-def canvas_renombrar_doc(db: Session, doc_id: int, nombre: str) -> bool:
-    d = db.get(DesignCanvasDoc, doc_id)
+def canvas_renombrar_doc(db: Session, doc_id: int, nombre: str, user: Empleado) -> bool:
+    d = canvas_doc_propio(db, doc_id, user)
     if not d:
         return False
     d.nombre = nombre.strip() or d.nombre
@@ -3209,12 +3258,13 @@ def canvas_renombrar_doc(db: Session, doc_id: int, nombre: str) -> bool:
     return True
 
 
-def canvas_duplicar_doc(db: Session, doc_id: int) -> DesignCanvasDoc | None:
-    d = db.get(DesignCanvasDoc, doc_id)
+def canvas_duplicar_doc(db: Session, doc_id: int, user: Empleado) -> DesignCanvasDoc | None:
+    d = canvas_doc_propio(db, doc_id, user)
     if not d:
         return None
-    orden = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id).count() + 1
-    copia = DesignCanvasDoc(area_id=d.area_id, nombre=d.nombre + " (copia)", template_id=d.template_id,
+    orden = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id,
+                                             DesignCanvasDoc.empleado_id == user.id).count() + 1
+    copia = DesignCanvasDoc(area_id=d.area_id, empleado_id=user.id, nombre=d.nombre + " (copia)", template_id=d.template_id,
                             titulo=d.titulo, titulo_color=d.titulo_color, w=d.w, h=d.h,
                             frames=d.frames, elements=d.elements, orden=orden, creado_por=d.creado_por)
     db.add(copia)
@@ -3223,12 +3273,12 @@ def canvas_duplicar_doc(db: Session, doc_id: int) -> DesignCanvasDoc | None:
     return copia
 
 
-def canvas_mover_doc(db: Session, doc_id: int, target_id: int) -> bool:
-    d = db.get(DesignCanvasDoc, doc_id)
-    t = db.get(DesignCanvasDoc, target_id)
+def canvas_mover_doc(db: Session, doc_id: int, target_id: int, user: Empleado) -> bool:
+    d = canvas_doc_propio(db, doc_id, user)
+    t = canvas_doc_propio(db, target_id, user)
     if not d or not t or d.area_id != t.area_id:
         return False
-    docs = (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id)
+    docs = (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id, DesignCanvasDoc.empleado_id == user.id)
            .order_by(DesignCanvasDoc.orden).all())
     docs = [x for x in docs if x.id != d.id]
     idx = next((i for i, x in enumerate(docs) if x.id == t.id), len(docs))
@@ -3239,12 +3289,14 @@ def canvas_mover_doc(db: Session, doc_id: int, target_id: int) -> bool:
     return True
 
 
-def canvas_eliminar_doc(db: Session, doc_id: int, eliminado_por: str = "", empleado_id: int | None = None) -> int | None:
-    """Envía la hoja a la Papelera y devuelve el id de esa entrada (para "Deshacer"), o None si no existe."""
-    d = db.get(DesignCanvasDoc, doc_id)
+def canvas_eliminar_doc(db: Session, doc_id: int, user: Empleado) -> int | None:
+    """Envía la hoja a la Papelera y devuelve el id de esa entrada (para "Deshacer"), o None si no existe o no es suya."""
+    d = canvas_doc_propio(db, doc_id, user)
     if not d:
         return None
-    payload = {"area_id": d.area_id, "orden": d.orden, "doc": canvas_serializar(d), "eliminado_por_id": empleado_id}
+    eliminado_por, empleado_id = user.nombre_completo, user.id
+    payload = {"area_id": d.area_id, "orden": d.orden, "doc": canvas_serializar(d), "eliminado_por_id": empleado_id,
+               "dueno_id": d.empleado_id}
     t = _trash_registrar(db, "cv-doc", f'Hoja de Canvas "{d.nombre}"', payload, eliminado_por)
     db.delete(d)
     db.commit()
