@@ -1120,6 +1120,9 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
     return creadas
 
 
+# Horas que un diseñador no cambia a mano cuando el estado las llena solas (services_design.horas_por_estado).
+CAMPOS_HORAS = ("hora_inicio", "hora_inicio_diseno", "hora_fin", "s_hold", "f_hold", "hold_minutos")
+
 # Columnas de la orden que un diseñador (sin gestionar el equipo) no puede cambiar.
 CAMPOS_SOLO_MANAGER = ("orden", "paciente", "centro", "producto")
 
@@ -1155,6 +1158,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if ("orden" in datos and datos["orden"] != (orden_existente.orden or "").strip().upper()
             and sd.orden_repetida(db, orden_existente.team_id, orden_existente.fecha, datos["orden"], orden_id)):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
+    if solo_propia and sd.horas_por_estado(team.area.formato, orden_existente.fecha, orden_existente.tabla):
+        # Un diseñador no escribe las horas a mano: se registran solas con el estado (Initiated, Hold, Approved).
+        # Si hay que corregir una hora, la cambia el manager.
+        for c in CAMPOS_HORAS:
+            datos.pop(c, None)
     if ("hora_inicio_diseno" in datos and orden_existente.tabla == "principal"
             and sd.es_face_nuevo(team.area.formato, orden_existente.fecha)):
         # Página abierta desde antes del formato nuevo: su "Inicio diseño" llega en el campo viejo → va a Inicio diseño (hora_inicio)

@@ -1075,6 +1075,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dsSoloPropias()) {
       // Vista del diseñador: edita sus órdenes pero no las reasigna.
       dsBloquearCamposManager(cont);
+      dsBloquearHoras(cont, DS.areaFormato, tabla, dsFechaISO(dsFechaSeleccionada()));
     }
     cont.querySelectorAll('th[data-sort]').forEach(function(th) {
       th.addEventListener('click', function() {
@@ -1090,6 +1091,23 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // Vista del diseñador: solo edita horas, estado, notas y (N3/N6) esferas y crítico; el resto de la orden es del manager.
   var DS_CAMPOS_MANAGER = ['orden', 'paciente', 'centro', 'producto', 'designerId'];
+  // Las horas las llena el estado (Initiated, Hold, Approved): el diseñador no las escribe a mano. Solo donde el estado ya
+  // las llena (mismas fechas que horas_por_estado en services_design.py); antes de esas fechas siguen editables.
+  var DS_HORAS_CAMPOS = ['horaInicio', 'horaInicioDiseno', 'horaFin', 'sHold', 'fHold', 'holdMinutos'];
+  function dsHorasPorEstado(formato, tabla, fechaISO) {
+    if (formato === 'n2') return fechaISO >= '2026-10-09';
+    if (formato === 'dual') return tabla === 'nightguard' ? fechaISO >= DS_NG_NUEVO_DESDE : fechaISO >= DS_DUAL_NUEVO_DESDE;
+    if (formato === 'single') return fechaISO >= DS_FACE_NUEVO_DESDE;
+    return false;
+  }
+  function dsBloquearHoras(scope, formato, tabla, fechaISO) {
+    if (!dsHorasPorEstado(formato, tabla, fechaISO)) return;
+    scope.querySelectorAll('[data-campo]').forEach(function(el) {
+      if (DS_HORAS_CAMPOS.indexOf(el.dataset.campo) < 0) return;
+      el.disabled = true;
+      el.title = 'La hora se registra sola con el estado (Initiated, Hold, Approved)';
+    });
+  }
   function dsBloquearCamposManager(cont) {
     cont.querySelectorAll('[data-campo]').forEach(function(el) {
       if (DS_CAMPOS_MANAGER.indexOf(el.dataset.campo) < 0) return;
@@ -1127,6 +1145,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (dsDiaCerrado()) el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable);
     });
     dsBloquearCamposManager(cont);
+    grupos.forEach(function(g) {
+      var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]'), fch = String((g.filas[0] || {}).fecha || '').slice(0, 10) || dsFechaISO(dsFechaSeleccionada());
+      if (tb) dsBloquearHoras(tb, g.formato, g.tabla, fch);
+    });
     grupos.forEach(function(g) {
       dsPoblarCatalogos(cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]'), dsSpec(g.tabla, g.formato, g.area), g.tabla);
     });
