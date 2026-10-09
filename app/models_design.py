@@ -526,6 +526,18 @@ class DesignInicioMuro(Base):
     editado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class DesignInicioReaccion(Base):
+    """Reacción con emoji de una persona a una publicación del muro (una fila por persona y emoji; reaccionar otra vez la quita)."""
+    __tablename__ = "design_inicio_reacciones"
+    __table_args__ = (UniqueConstraint("post_id", "empleado_id", "emoji", name="uq_design_inicio_reaccion"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("design_inicio_muro.id"), index=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    emoji: Mapped[str] = mapped_column(String(16))
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignFotoPerfil(Base):
     """Foto de perfil de Zoho de un empleado de Design (se toma al iniciar sesión; solo para quien tiene el
     módulo Design Schedule). Se muestra junto al nombre en la barra superior de Design."""

@@ -666,7 +666,8 @@
         if (x.titulo) b.appendChild(h('h4', '', NVI.esc(x.titulo)));
         if (x.texto) b.appendChild(h('p', '', NVI.esc(x.texto).replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')));
         if (p.mostrarAutor !== false) b.appendChild(h('small', 'nvi-post-meta', NVI.esc(x.creadoPor) + ' · ' + fecha(x.creadoEn)));
-        if (d.puedePublicar && ctx.modo !== 'editar') {
+        if (ctx.modo !== 'editar') b.appendChild(NVI.reaccionesMuro(x, d.emojis || ['👍', '❤️', '😍', '👏', '😊']));
+        if (x.puedeModificar && ctx.modo !== 'editar') {
           var acc = h('div', 'nvi-post-acc'), be = h('button', '', 'Editar'), bb = h('button', '', 'Eliminar'); be.type = bb.type = 'button';
           be.onclick = function() { NVI.dialogoMuro(x, function() { NVI.cargarMuro(p, cont, cab, ctx); }); };
           bb.onclick = function() { if (!confirm('¿Eliminar la publicación "' + (x.titulo || 'sin título') + '"?')) return; fetch('/design/api/inicio/muro/' + x.id + '/eliminar', {method: 'POST', credentials: 'same-origin'}).then(function() { NVI.cargarMuro(p, cont, cab, ctx); }); };
@@ -675,6 +676,24 @@
         a.appendChild(b); cont.appendChild(a);
       });
     }).catch(function() { cont.innerHTML = '<div class="nvi-muro-vacio">No se pudo cargar el muro.</div>'; });
+  };
+  // Reacciones con emoji de una publicación: un clic pone la tuya y otro clic la quita
+  NVI.reaccionesMuro = function(x, emojis) {
+    var fila = h('div', 'nvi-reac'), cuentas = x.reacciones || {}, mias = x.misReacciones || [];
+    emojis.forEach(function(e) {
+      var n = cuentas[e] || 0, b = h('button', 'nvi-reac-b' + (mias.indexOf(e) >= 0 ? ' mia' : ''));
+      b.type = 'button'; b.innerHTML = e + (n ? ' <span>' + n + '</span>' : ''); b.title = 'Reaccionar ' + e;
+      b.onclick = function() {
+        b.disabled = true;
+        fetch('/design/api/inicio/muro/' + x.id + '/reaccion', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({emoji: e})})
+          .then(function(r) { return r.ok ? r.json() : null; }).then(function(r) {
+            if (!r) { b.disabled = false; return; }
+            x.reacciones = r.cuentas; x.misReacciones = r.mias; fila.replaceWith(NVI.reaccionesMuro(x, emojis));
+          }).catch(function() { b.disabled = false; });
+      };
+      fila.appendChild(b);
+    });
+    return fila;
   };
   NVI.MAX_VIDEO_MB = 100;
   NVI.subirMedio = function(archivo, progreso) {

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .models import Empleado
 import secrets
 from datetime import timedelta
-from .models_design import DesignInicioPagina, DesignInicioVersion, DesignInicioMedio, DesignInicioMedioParte, DesignInicioMuro
+from .models_design import DesignInicioPagina, DesignInicioVersion, DesignInicioMedio, DesignInicioMedioParte, DesignInicioMuro, DesignInicioReaccion
 
 MAX_VERSIONES = 30
 MAX_IMAGEN = 10 * 1024 * 1024
@@ -29,6 +29,20 @@ class Conflicto(Exception):
 
 def es_editor(user: Empleado) -> bool:
     return user.rol in ("admin", "superadmin")
+
+
+# Además de los admins, estas personas publican en el muro de Novedades (pedido por Rosember el 9-oct-2026).
+PUBLICADORES_MURO = {"paul.andion@nuviasmiles.com", "luis.bleschke@nuviasmiles.com"}
+
+
+def es_publicador(user: Empleado) -> bool:
+    """Publica en el muro (y sube las imágenes de sus publicaciones): admins y las personas de PUBLICADORES_MURO."""
+    return es_editor(user) or (user.email or "").strip().lower() in PUBLICADORES_MURO
+
+
+def puede_modificar_post(user: Empleado, x: DesignInicioMuro) -> bool:
+    """Editar o eliminar una publicación: los admins cualquiera; los demás publicadores solo las suyas."""
+    return es_editor(user) or (es_publicador(user) and x.creado_por == user.nombre_completo)
 
 
 def _pagina(db: Session) -> DesignInicioPagina:
@@ -261,15 +275,52 @@ def medio_leer(db: Session, medio_id: int, ini: int, fin: int) -> bytes:
 
 # ---------- Muro ----------
 
+# Reacciones del muro: solo estos 5 emojis básicos (de agrado)
+EMOJIS_MURO = ["👍", "❤️", "😍", "👏", "😊"]
+
+
+def _reacciones(db: Session, ids: list[int], user: Empleado | None) -> dict[int, dict]:
+    """{post_id: {"cuentas": {emoji: n}, "mias": [emoji]}} para las publicaciones `ids`."""
+    out: dict[int, dict] = {i: {"cuentas": {}, "mias": []} for i in ids}
+    if not ids:
+        return out
+    for r in db.query(DesignInicioReaccion).filter(DesignInicioReaccion.post_id.in_(ids)).all():
+        d = out[r.post_id]
+        d["cuentas"][r.emoji] = d["cuentas"].get(r.emoji, 0) + 1
+        if user is not None and r.empleado_id == user.id:
+            d["mias"].append(r.emoji)
+    return out
+
+
+def muro_reaccionar(db: Session, user: Empleado, post_id: int, emoji: str) -> dict:
+    """Pone la reacción de `user`; si ya la tenía, la quita. Devuelve las reacciones de la publicación."""
+    if emoji not in EMOJIS_MURO:
+        raise ValueError("Emoji no permitido.")
+    x = db.get(DesignInicioMuro, post_id)
+    if not x or not x.activo:
+        raise KeyError(post_id)
+    q = db.query(DesignInicioReaccion).filter(DesignInicioReaccion.post_id == post_id,
+                                              DesignInicioReaccion.empleado_id == user.id, DesignInicioReaccion.emoji == emoji)
+    if q.first():
+        q.delete(synchronize_session=False)
+    else:
+        db.add(DesignInicioReaccion(post_id=post_id, empleado_id=user.id, emoji=emoji))
+    db.commit()
+    return _reacciones(db, [post_id], user)[post_id]
+
+
 def muro_resumen(x: DesignInicioMuro) -> dict:
     return {"id": x.id, "titulo": x.titulo, "texto": x.texto, "imagen": x.imagen, "fijado": bool(x.fijado),
             "creadoPor": x.creado_por, "creadoEn": x.creado_en.isoformat(), "editadoEn": x.editado_en.isoformat() if x.editado_en else None}
 
 
-def muro(db: Session, limite: int = 50) -> list[dict]:
+def muro(db: Session, limite: int = 50, user: Empleado | None = None) -> list[dict]:
     q = (db.query(DesignInicioMuro).filter(DesignInicioMuro.activo == 1)
          .order_by(DesignInicioMuro.fijado.desc(), DesignInicioMuro.creado_en.desc()).limit(max(1, min(limite, 200))))
-    return [muro_resumen(x) for x in q.all()]
+    posts = q.all()
+    reac = _reacciones(db, [x.id for x in posts], user)
+    return [{**muro_resumen(x), "reacciones": reac[x.id]["cuentas"], "misReacciones": reac[x.id]["mias"],
+             "puedeModificar": bool(user and puede_modificar_post(user, x))} for x in posts]
 
 
 def _imagen_valida(v: str) -> str:
@@ -315,7 +366,8 @@ def vivo(db: Session) -> dict:
     from sqlalchemy import func
     p = _pagina(db)
     m = db.query(func.count(DesignInicioMuro.id), func.max(DesignInicioMuro.id), func.max(DesignInicioMuro.editado_en)).filter(DesignInicioMuro.activo == 1).one()
-    return {"pub": p.publicado_en.isoformat() if p.publicado_en else "", "muro": f"{m[0]}-{m[1]}-{m[2]}"}
+    r = db.query(func.count(DesignInicioReaccion.id), func.max(DesignInicioReaccion.id)).one()
+    return {"pub": p.publicado_en.isoformat() if p.publicado_en else "", "muro": f"{m[0]}-{m[1]}-{m[2]}-{r[0]}-{r[1]}"}
 
 
 def presencia(db: Session, user: Empleado, seleccion: str = "") -> dict:

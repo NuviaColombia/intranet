@@ -10,12 +10,19 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
-from ..models_design import DesignInicioMedio
+from ..models_design import DesignInicioMedio, DesignInicioMuro
 from ..main_templates import templates
 from .. import services_design_inicio as si
 from .design_schedule import require_modulo, require_admin, _RutaDesign
 
 router = APIRouter(route_class=_RutaDesign)
+
+
+def require_publicador(user: Empleado = Depends(require_modulo("design_schedule"))) -> Empleado:
+    """Admins y las personas autorizadas a publicar en el muro (si.PUBLICADORES_MURO)."""
+    if not si.es_publicador(user):
+        raise HTTPException(403, "No tienes permiso para publicar en el muro.")
+    return user
 
 _ESTATICOS = Path(__file__).resolve().parent.parent / "static" / "inicio"
 
@@ -126,7 +133,7 @@ def api_medios(user: Empleado = Depends(require_admin), db: Session = Depends(ge
 
 @router.post("/design/api/inicio/medios")
 async def api_medio_subir(archivo: UploadFile = File(...), ancho: int = Form(0), alto: int = Form(0),
-                          user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+                          user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
     datos = await archivo.read(si.MAX_ENVIO_DIRECTO + 1 if (archivo.content_type or '').startswith('video') else si.MAX_IMAGEN + 1)
     try:
         m = si.medio_crear(db, user, archivo.filename or "archivo", archivo.content_type or "", datos, ancho, alto)
@@ -144,7 +151,7 @@ class SubidaIn(BaseModel):
 
 
 @router.post("/design/api/inicio/medios/subida")
-def api_subida_iniciar(payload: SubidaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_subida_iniciar(payload: SubidaIn, user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
     """Videos por partes (paso 1 de 3): el navegador avisa el nombre, el tipo y el tamaño."""
     try:
         return si.subida_iniciar(db, payload.nombre, payload.mime, payload.tamano)
@@ -153,7 +160,7 @@ def api_subida_iniciar(payload: SubidaIn, user: Empleado = Depends(require_admin
 
 
 @router.post("/design/api/inicio/medios/subida/{subida}/parte/{n}")
-async def api_subida_parte(subida: str, n: int, request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+async def api_subida_parte(subida: str, n: int, request: Request, user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
     """Paso 2: cada pedazo de 4 MB, uno por uno (así el servidor nunca tiene el video entero en memoria)."""
     if int(request.headers.get("content-length") or 0) > si.PARTE:
         raise HTTPException(413, "Parte demasiado grande.")
@@ -170,7 +177,7 @@ async def api_subida_parte(subida: str, n: int, request: Request, user: Empleado
 
 
 @router.post("/design/api/inicio/medios/subida/{subida}/fin")
-def api_subida_fin(subida: str, payload: SubidaIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_subida_fin(subida: str, payload: SubidaIn, user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
     """Paso 3: se revisa que llegaron todas las partes y queda en la biblioteca."""
     try:
         return si.medio_resumen(si.subida_fin(db, user, subida, payload.nombre, payload.mime, payload.ancho, payload.alto))
@@ -244,19 +251,29 @@ class MuroIn(BaseModel):
 
 @router.get("/design/api/inicio/muro")
 def api_muro(limite: int = 50, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    return {"publicaciones": si.muro(db, limite), "puedePublicar": si.es_editor(user)}
+    return {"publicaciones": si.muro(db, limite, user), "puedePublicar": si.es_publicador(user), "emojis": si.EMOJIS_MURO}
 
 
 @router.post("/design/api/inicio/muro")
-def api_muro_crear(payload: MuroIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_muro_crear(payload: MuroIn, user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
     try:
         return si.muro_resumen(si.muro_guardar(db, user, payload.model_dump()))
     except ValueError as e:
         raise HTTPException(400, str(e))
 
 
+def _post_modificable(db: Session, user: Empleado, post_id: int):
+    x = db.get(DesignInicioMuro, post_id)
+    if not x or not x.activo:
+        raise HTTPException(404, "La publicación no existe.")
+    if not si.puede_modificar_post(user, x):
+        raise HTTPException(403, "Solo puedes modificar tus propias publicaciones.")
+    return x
+
+
 @router.post("/design/api/inicio/muro/{post_id}")
-def api_muro_editar(post_id: int, payload: MuroIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_muro_editar(post_id: int, payload: MuroIn, user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
+    _post_modificable(db, user, post_id)
     try:
         return si.muro_resumen(si.muro_guardar(db, user, payload.model_dump(), post_id))
     except KeyError:
@@ -266,7 +283,24 @@ def api_muro_editar(post_id: int, payload: MuroIn, user: Empleado = Depends(requ
 
 
 @router.post("/design/api/inicio/muro/{post_id}/eliminar")
-def api_muro_eliminar(post_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_muro_eliminar(post_id: int, user: Empleado = Depends(require_publicador), db: Session = Depends(get_db)):
+    _post_modificable(db, user, post_id)
     if not si.muro_eliminar(db, post_id):
         raise HTTPException(404, "La publicación no existe.")
     return {"ok": True}
+
+
+class ReaccionIn(BaseModel):
+    emoji: str = Field(max_length=16)
+
+
+@router.post("/design/api/inicio/muro/{post_id}/reaccion")
+def api_muro_reaccionar(post_id: int, payload: ReaccionIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                        db: Session = Depends(get_db)):
+    """Cualquiera con Design reacciona (o quita su reacción) con uno de los 5 emojis del muro."""
+    try:
+        return si.muro_reaccionar(db, user, post_id, payload.emoji)
+    except KeyError:
+        raise HTTPException(404, "La publicación no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
