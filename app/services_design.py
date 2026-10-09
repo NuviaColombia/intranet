@@ -1119,8 +1119,16 @@ DUAL_NUEVO_DESDE = date(2026, 10, 5)
 NG_NUEVO_DESDE = date(2026, 10, 6)
 
 
+# N2 Demodenture con las horas llenadas por el estado como N3 (pedido por Rosember el 9-oct-2026): Initiated → Inicio
+# (y Re-initiated si venía de Hold), Hold → S.Hold, Approved → Fin. Varios Hold en el mismo caso se acumulan en
+# hold_minutos y T. Hold es el total. Conserva sus columnas Inicio · S.Hold · F.Hold · T. Hold · Fin.
+N2_NUEVO_DESDE = date(2026, 10, 9)
+
+
 def horas_por_estado(formato: str, fecha: date, tabla: str) -> bool:
     """¿Esta orden usa el formato Inicio diseño · Start hold · Re-initiated · Fin (el estado llena las horas)?"""
+    if formato == FORMATO_N2:
+        return fecha >= N2_NUEVO_DESDE
     if tabla == "nightguard":
         return formato == FORMATO_DUAL and fecha >= NG_NUEVO_DESDE
     return es_face_nuevo(formato, fecha)
@@ -1188,7 +1196,7 @@ def face_convertir_una_vez(db: Session) -> None:
 def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     """Duración de una orden, igual que en el horario (dsDuracionFila en design_schedule.html):
     - N3/N6 (Cirugías) y Face: Fin − Inicio diseño − Hold (min).
-    - N2: Fin − Inicio − T. Hold, con T. Hold = F.Hold − S.Hold.
+    - N2: Fin − Inicio − T. Hold, con T. Hold = Hold anteriores (hold_minutos) + F.Hold − S.Hold.
     - Nightguards / TC: Fin − Inicio.  - Support: no lleva horas."""
     if formato == FORMATO_SUPPORT:
         return 0
@@ -1197,7 +1205,7 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     if formato == FORMATO_N2:
         if not o.hora_inicio or not o.hora_fin:
             return 0
-        return max(0, _entre(o.hora_inicio, o.hora_fin) - _entre(o.s_hold, o.f_hold))
+        return max(0, _entre(o.hora_inicio, o.hora_fin) - (o.hold_minutos or 0) - _entre(o.s_hold, o.f_hold))
     if horas_por_estado(formato, o.fecha, o.tabla):
         if not o.hora_inicio or not o.hora_fin:
             return 0

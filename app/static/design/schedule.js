@@ -445,10 +445,13 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsMinDe(h) { if (!h) return null; var p = String(h).split(':'); var m = parseInt(p[0]) * 60 + parseInt(p[1]); return isNaN(m) ? null : m; }
   function dsEntre(a, b) { var x = dsMinDe(a), y = dsMinDe(b); if (x === null || y === null) return null; var d = y - x; return d < 0 ? d + 1440 : d; }
   function dsFmtMin(m) { if (m === null || m === undefined || isNaN(m)) return ''; m = Math.max(0, Math.round(m)); return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
+  // N2: T. Hold = Hold anteriores del caso (holdMinutos) + F.Hold − S.Hold (como el servidor)
+  function dsTHoldMin(f) { return (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0); }
+  function dsTHoldTxt(f) { return dsTHoldMin(f) || (f.sHold && f.fHold) ? dsFmtMin(dsTHoldMin(f)) : ''; }
   function dsDuracionMin(f, tabla, formato) {
     if (formato === 'support') return null;
     if (tabla === 'nightguard' && !dsNgNuevo(formato, f)) return dsEntre(f.horaInicio, f.horaFin);
-    if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : Math.max(0, t - (dsEntre(f.sHold, f.fHold) || 0)); }
+    if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : Math.max(0, t - dsTHoldMin(f)); }
     if (dsFaceNuevo(formato) || (tabla === 'nightguard' && dsNgNuevo(formato, f))) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
       var tf = dsEntre(f.horaInicio, f.horaFin); if (tf === null) return null;
       var hold = (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0);
@@ -766,7 +769,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
     spec.forEach(function(c, i) {
       html += '<td data-col="' + i + '">' + dsCeldaInput(c, f) + '</td>';
-      if (c.k === 'fHold' && !c.sinTHold) html += '<td class="ds-thold">' + dsFmtMin(dsEntre(f.sHold, f.fHold)) + '</td>';
+      if (c.k === 'fHold' && !c.sinTHold) html += '<td class="ds-thold">' + dsTHoldTxt(f) + '</td>';
     });
     html += '<td class="ds-total">' + dsDuracionFila(f, tabla) + '</td>';
     html += '<td class="ds-acc">' + (!nueva && tabla !== 'prestadas' && window.DS_GESTION ? dsBtnOjo(f.id) : '') +
@@ -1290,7 +1293,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsPonerValores(tr, o);
     if (tabla !== 'prestadas') setTimeout(function() { dsAplicarOcultas(tabla); }, 0);
     tr.querySelector('.ds-total').innerText = dsDuracionFila(o, tabla);
-    var tdTHold = tr.querySelector('.ds-thold'); if (tdTHold) tdTHold.innerText = dsFmtMin(dsEntre(o.sHold, o.fHold));
+    var tdTHold = tr.querySelector('.ds-thold'); if (tdTHold) tdTHold.innerText = dsTHoldTxt(o);
     var selD = tr.querySelector('[data-campo="designerId"]'); if (selD) selD.dataset.previo = o.designerId || '';
     dsMarcarFila(tr, tabla, o);
     dsRenderKpis(DS.diaData);
