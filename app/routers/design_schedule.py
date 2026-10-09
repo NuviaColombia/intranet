@@ -2329,15 +2329,25 @@ def pagina_canvas(request: Request, user: Empleado = Depends(require_modulo("des
 
 
 @router.get("/design/api/canvas/docs")
-def api_canvas_docs(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_canvas_docs(area_id: int, ver_de: int | None = None, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
-    return sd.canvas_docs(db, area_id)
+    docs = sd.canvas_docs(db, area_id, user, ver_de)
+    if docs is None:
+        raise HTTPException(403, "No puedes ver las hojas de esa persona.")
+    return docs
+
+
+@router.get("/design/api/canvas/personas")
+def api_canvas_personas(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                              db: Session = Depends(get_db)):
+    """Personas del área cuyas hojas puede ver quien consulta (managers: sus equipos; admins: todas)."""
+    return sd.canvas_personas_visibles(db, user, area_id)
 
 
 @router.get("/design/api/canvas/docs/{doc_id}")
 def api_canvas_doc(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                          db: Session = Depends(get_db)):
-    d = sd.canvas_doc(db, doc_id)
+    d = sd.canvas_doc(db, doc_id, user)
     if not d:
         raise HTTPException(404, "No encontrada.")
     return d
@@ -2355,7 +2365,7 @@ class CanvasCrearIn(BaseModel):
 def api_canvas_crear(payload: CanvasCrearIn, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
     d = sd.canvas_crear_doc(db, payload.areaId, payload.nombre, payload.templateId, payload.titulo,
-                            payload.frames, user.nombre_completo)
+                            payload.frames, user)
     return sd.canvas_serializar(d)
 
 
@@ -2373,7 +2383,7 @@ class CanvasGuardarIn(BaseModel):
 def api_canvas_guardar(doc_id: int, payload: CanvasGuardarIn,
                              user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     datos = {k: v for k, v in payload.model_dump().items() if v is not None}
-    d = sd.canvas_guardar_doc(db, doc_id, datos)
+    d = sd.canvas_guardar_doc(db, doc_id, datos, user)
     if not d:
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Guardado."}
@@ -2382,7 +2392,7 @@ def api_canvas_guardar(doc_id: int, payload: CanvasGuardarIn,
 @router.post("/design/api/canvas/docs/{doc_id}/renombrar")
 def api_canvas_renombrar(doc_id: int, payload: NombreIn, user: Empleado = Depends(require_modulo("design_schedule")),
                                db: Session = Depends(get_db)):
-    if not sd.canvas_renombrar_doc(db, doc_id, payload.nombre):
+    if not sd.canvas_renombrar_doc(db, doc_id, payload.nombre, user):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Renombrada."}
 
@@ -2390,7 +2400,7 @@ def api_canvas_renombrar(doc_id: int, payload: NombreIn, user: Empleado = Depend
 @router.post("/design/api/canvas/docs/{doc_id}/duplicar")
 def api_canvas_duplicar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
-    d = sd.canvas_duplicar_doc(db, doc_id)
+    d = sd.canvas_duplicar_doc(db, doc_id, user)
     if not d:
         raise HTTPException(404, "No encontrada.")
     return sd.canvas_serializar(d)
@@ -2403,7 +2413,7 @@ class CanvasMoverIn(BaseModel):
 @router.post("/design/api/canvas/docs/{doc_id}/mover")
 def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
-    if not sd.canvas_mover_doc(db, doc_id, payload.targetId):
+    if not sd.canvas_mover_doc(db, doc_id, payload.targetId, user):
         raise HTTPException(400, "No se pudo mover.")
     return {"mensaje": "Movida."}
 
@@ -2411,7 +2421,7 @@ def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depen
 @router.post("/design/api/canvas/docs/{doc_id}/eliminar")
 def api_canvas_eliminar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):
-    trash_id = sd.canvas_eliminar_doc(db, doc_id, user.nombre_completo, user.id)
+    trash_id = sd.canvas_eliminar_doc(db, doc_id, user)
     if not trash_id:
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada.", "papeleraId": trash_id}

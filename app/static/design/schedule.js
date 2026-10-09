@@ -3874,7 +3874,7 @@ window.DS_PANELS.dashboard = function() {
   function postJSON(url, body) { return window.dsPostJSON(url, body); }
   function Date_nowSafe() { try { return Date.now(); } catch (e) { return 0; } }
 
-  var CV = { areas: [], areaId: null };
+  var CV = { areas: [], areaId: null, verDe: null, personas: [] }; // verDe: id de la persona cuyas hojas ve un manager/admin (solo vista)
   var CANVAS = { docs: [], activeId: null, view: "home", selFrame: null, scale: 1, railCollapsed: false };
   var cvSaveTimers = {}, cvGuardando = {};
 
@@ -3895,7 +3895,11 @@ window.DS_PANELS.dashboard = function() {
     });
   }
   function cvSeleccionarArea(areaId) {
-    CV.areaId = areaId;
+    CV.areaId = areaId; CV.verDe = null; CV.personas = [];
+    // Managers y admins: personas cuyas hojas pueden ver (solo vista). Si falla, queda solo "Mis hojas".
+    api('/design/api/canvas/personas?area_id=' + areaId).then(function(ps) {
+      if (areaId === CV.areaId) { CV.personas = ps || []; if (CANVAS.view === "home") cvRender(); }
+    }, function() {});
     document.querySelectorAll('#cvAreaTabs .cv-area-tab').forEach(function(b, i) { b.classList.toggle('activo', CV.areas[i].id === areaId); });
     CANVAS.view = "home"; CANVAS.activeId = null; CANVAS.selFrame = null; CANVAS.selEl = null;
     cvLoadPrefs();
@@ -3929,7 +3933,7 @@ window.DS_PANELS.dashboard = function() {
              w: Number(d.w) || 1080, h: Number(d.h) || 1080, frames: (d.frames || []).map(cvSanear), elements: (d.elements || []).map(cvSanear), updated: Date_nowSafe() };
   }
   function cvLoadDocs(areaId) {
-    return api('/design/api/canvas/docs?area_id=' + areaId).then(function(docs) {
+    return api('/design/api/canvas/docs?area_id=' + areaId + (CV.verDe ? '&ver_de=' + CV.verDe : '')).then(function(docs) {
       if (areaId !== CV.areaId) throw {viejo: true}; // el usuario ya cambió de área
       CANVAS.docs = docs.map(cvFromServer);
     });
@@ -4114,7 +4118,13 @@ window.DS_PANELS.dashboard = function() {
         '<button class="cv-view-pick" data-cvview="' + v.id + '">' + (CV_VIEW_ICON[v.id] || '') + '<span>' + v.label + '</span></button>' +
       '</div>';
     }).join('');
-    return '<div class="cv-home-head"><h3 class="cv-h">Hojas de trabajo</h3>' +
+    var verDe = '';
+    if (CV.personas.length) {
+      verDe = '<label class="cv-verde">Ver hojas de: <select data-cvverde><option value="">Mis hojas</option>' +
+        CV.personas.map(function(p) { return '<option value="' + p.id + '"' + (CV.verDe === p.id ? ' selected' : '') + '>' + esc(p.nombre) + '</option>'; }).join('') +
+        '</select></label>';
+    }
+    return '<div class="cv-home-head"><h3 class="cv-h">Hojas de trabajo</h3>' + verDe +
       '<div class="cv-view-wrap" id="cvViewWrap">' +
         '<button class="cv-mini-btn" data-cvviewtoggle>' + (CV_VIEW_ICON[cur] || '') + ' Vista: ' + esc(curLabel) + ' ▾</button>' +
         '<div class="cv-view-menu"><div class="cv-view-menu-h">Vista de la galería</div>' + items + '</div>' +
@@ -4122,7 +4132,7 @@ window.DS_PANELS.dashboard = function() {
   }
   function cvRenderHome() {
     var home = document.getElementById("canvasHome");
-    var addCard = '<button class="cv-tpl-card cv-new-card" data-newsheet title="Crear una hoja en blanco"><div class="cv-new-plus">＋</div><div class="cv-tpl-name">Nueva hoja personalizada</div><div class="cv-tpl-sub">En blanco, tú la armas</div></button>';
+    var addCard = CV.verDe ? '' : '<button class="cv-tpl-card cv-new-card" data-newsheet title="Crear una hoja en blanco"><div class="cv-new-plus">＋</div><div class="cv-tpl-name">Nueva hoja personalizada</div><div class="cv-tpl-sub">En blanco, tú la armas</div></button>';
     if (CANVAS.homeMode === "board") {
       var tiles = CANVAS.docs.map(function(d) {
         var filled = d.frames.filter(function(f) { return f.img; }).length;
@@ -4142,11 +4152,11 @@ window.DS_PANELS.dashboard = function() {
           '<div class="cv-tpl-name">' + esc(d.name || d.title || "Hoja") + '</div>' +
           '<div class="cv-tpl-sub">' + d.frames.length + ' marco' + (d.frames.length === 1 ? "" : "s") + (filled ? (" · " + filled + " con foto") : "") + '</div>' +
         '</button>' +
-        '<div class="cv-sheet-acts">' +
+        (CV.verDe ? '' : '<div class="cv-sheet-acts">' +
           '<button class="cv-mini-btn" data-dup="' + d.id + '" title="Duplicar">⧉</button>' +
           '<button class="cv-mini-btn" data-ren="' + d.id + '" title="Renombrar">✎</button>' +
           '<button class="cv-mini-btn cv-danger" data-del="' + d.id + '" title="Eliminar">🗑️</button>' +
-        '</div></div>';
+        '</div>') + '</div>';
     }).join('');
     home.innerHTML = cvHomeHeader() + '<div class="cv-tpl-grid">' + cards + addCard + '</div>';
   }
@@ -5095,9 +5105,11 @@ window.DS_PANELS.dashboard = function() {
     var t = e.target;
     if (t.closest("[data-cvrailtoggle]")) { e.stopPropagation(); cvToggleRail(); return; }
     var rdel = t.closest("[data-cvraildel]"); if (rdel) { e.stopPropagation(); cvRailDelete(rdel.dataset.cvraildel); return; }
+    if (t.closest("[data-cvverde]")) return; // el selector se atiende en su evento change
     if (t.closest("[data-cvviewtoggle]")) { e.stopPropagation(); var w = document.getElementById("cvViewWrap"); if (w) w.classList.toggle("open"); return; }
     var vpick = t.closest("[data-cvview]"); if (vpick) { cvSetView(vpick.dataset.cvview, false); return; }
     var bframe = t.closest("[data-bframe]"); if (bframe) { e.stopPropagation(); cvBoardFrameClick(bframe.dataset.bdoc, bframe.dataset.bframe); return; }
+    if (CV.verDe && t.closest("[data-newsheet], [data-open], [data-ren], [data-dup], [data-del]")) return; // solo vista
     if (t.closest("[data-newsheet]")) { cvNewCustomSheet(); return; }
     var open = t.closest("[data-open]"); if (open) { cvOpenDoc(parseInt(open.dataset.open)); return; }
     var ren = t.closest("[data-ren]"); if (ren) { cvRenameDoc(parseInt(ren.dataset.ren)); return; }
@@ -6423,3 +6435,10 @@ window.DS_PANELS.dashboard = function() {
   var initialPanel = new URLSearchParams(location.search).get('panel');
   if (initialPanel) dsAbrirPanel(initialPanel);
 })();
+
+// Managers y admins: elegir de quién ver las hojas de Canvas (solo vista).
+document.addEventListener('change', function(e) {
+  var sel = e.target && e.target.closest && e.target.closest('[data-cvverde]');
+  if (!sel) return;
+  var cv = window.dsCanvasVerDe; if (cv) cv(sel.value ? parseInt(sel.value, 10) : null);
+});

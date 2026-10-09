@@ -298,6 +298,10 @@ def init_db():
         with engine.begin() as conn:
             conn.execute(text(
                 "ALTER TABLE design_favoritos ADD COLUMN cmt_template_id INTEGER REFERENCES design_comentario_templates(id)"))
+    # Design Schedule · Canvas: cada hoja tiene dueño (empleado_id). Solo agrega la columna; no toca datos.
+    if "empleado_id" not in {c["name"] for c in inspect(engine).get_columns("design_canvas_docs")}:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_canvas_docs ADD COLUMN empleado_id INTEGER REFERENCES empleados(id)"))
     # Design Schedule · Comments N2 / Face: filas por hoja (+ columnas propias) y "Situación" sin
     # límite de 200 caracteres (hay textos más largos). Solo agrega/amplía; no borra datos.
     columnas_design_faq = {c["name"]: c for c in inspect(engine).get_columns("design_faq")}
@@ -514,15 +518,8 @@ def init_db():
                                                         puntaje=str(puntaje), nota=nota))
         # Canvas: siembra las 8 plantillas base por área (idempotente por área, no globalmente,
         # para que un área agregada después de este deploy también reciba sus plantillas).
-        for area in db.query(DesignArea).all():
-            if db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == area.id).count() == 0:
-                for i, tpl in enumerate(CANVAS_TEMPLATES, start=1):
-                    db.add(DesignCanvasDoc(area_id=area.id, nombre=tpl["nombre"], template_id=tpl["id"],
-                                           titulo=tpl["titulo"],
-                                           frames=json.dumps([{"id": f"f{j}", **f, "img": None}
-                                                              for j, f in enumerate(tpl["frames"])],
-                                                             ensure_ascii=False),
-                                           orden=i))
+        # (Desde el 9-oct-2026 no se siembran hojas compartidas: cada persona recibe su copia al abrir su Canvas,
+        # ver sd.canvas_docs.)
         # Comments (N3): siembra las 11 plantillas de notas fijas del formato original.
         for i, (nombre, texto) in enumerate(CMT_TEMPLATES_FIJAS, start=1):
             if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre).first():
