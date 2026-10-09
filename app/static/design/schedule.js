@@ -1071,7 +1071,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     if (dsSoloPropias()) {
       // Vista del diseñador: edita sus órdenes pero no las reasigna.
-      cont.querySelectorAll('[data-campo="designerId"]').forEach(function(el) { el.disabled = true; el.title = 'Solo el manager puede reasignar la orden'; });
+      dsBloquearCamposManager(cont);
     }
     cont.querySelectorAll('th[data-sort]').forEach(function(th) {
       th.addEventListener('click', function() {
@@ -1083,6 +1083,16 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     dsPoblarCatalogos(cont, spec, tabla);
     dsAplicarOcultas(tabla);
+  }
+
+  // Vista del diseñador: solo edita horas, estado, notas y (N3/N6) esferas y crítico; el resto de la orden es del manager.
+  var DS_CAMPOS_MANAGER = ['orden', 'paciente', 'centro', 'producto', 'designerId'];
+  function dsBloquearCamposManager(cont) {
+    cont.querySelectorAll('[data-campo]').forEach(function(el) {
+      if (DS_CAMPOS_MANAGER.indexOf(el.dataset.campo) < 0) return;
+      el.disabled = true;
+      el.title = el.dataset.campo === 'designerId' ? 'Solo el manager puede reasignar la orden' : 'Solo el manager puede editar este dato';
+    });
   }
 
   // Órdenes de otros equipos asignadas a este diseñador como prestado (solo en la vista del diseñador).
@@ -1112,8 +1122,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, 'prestadas'); dsMarcarFila(tr, 'prestadas'); });
     cont.querySelectorAll('[data-campo]').forEach(function(el) {
       if (dsDiaCerrado()) el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable);
-      if (el.dataset.campo === 'designerId') { el.disabled = true; el.title = 'Solo el manager puede reasignar la orden'; }
     });
+    dsBloquearCamposManager(cont);
     grupos.forEach(function(g) {
       dsPoblarCatalogos(cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]'), dsSpec(g.tabla, g.formato, g.area), g.tabla);
     });
