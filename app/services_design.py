@@ -558,7 +558,23 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
     ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
     libres = festivos(db) if ordenes else set()
+    miembros: dict[int, set[int]] = {}  # team_id -> diseñadores del equipo (para reconocer al prestado)
+    if ordenes:
+        equipos = {o.team_id for o in ordenes}
+        for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id.in_(equipos)):
+            miembros.setdefault(tid, set()).add(eid)
+        for t in db.query(DesignTeam).filter(DesignTeam.id.in_(equipos)).options(joinedload(DesignTeam.area)):
+            if t.manager_id:
+                miembros.setdefault(t.id, set()).add(t.manager_id)
+            if t.area.formato == FORMATO_SUPPORT:  # en Support el diseñador es el del caso, no un prestado
+                miembros[t.id] = None
     for o in ordenes:
+        # El prestado vale solo para el día en que se pidió: al pasar el caso al día siguiente vuelve sin diseñador
+        # (pedido por Rosember el 9-oct-2026), así el prestado no sigue saliendo en Producción los días siguientes.
+        propios = miembros.get(o.team_id, set())
+        if propios is not None and ((o.designer_id and o.designer_id not in propios) or (o.designer_prestado or "").strip()):
+            o.designer_id = None
+            o.designer_prestado = ""
         destino = siguiente_dia_habil(o.fecha, libres)  # se saltan sábados, domingos y festivos de la empresa
         while destino <= cerrado_hasta:  # si nadie abrió el horario varios días, llega al primer día abierto
             destino = siguiente_dia_habil(destino, libres)
