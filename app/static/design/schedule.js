@@ -484,6 +484,16 @@ window.addEventListener('unhandledrejection', function(ev) {
     var fm = formato || DS.areaFormato;
     var base = !dsFaceNuevo(fm) ? COLSPEC[fm] : (fm === 'dual' ? {principal: COLSPEC.dualNuevo.principal, nightguard: dsNgNuevo(fm) ? COLSPEC.dualNuevo.nightguard : COLSPEC.dual.nightguard} : COLSPEC.faceNuevo);
     var spec = base[tabla] || [];
+    if (area === 'N6 Material Changes') {
+      // N6 con las columnas de N2 (pedido por Rosember el 9-oct-2026): Inicio · S.Hold · F.Hold · T. Hold · Fin.
+      // Las horas se registran igual que en N3 (con el estado); solo cambian los nombres y aparece T. Hold.
+      spec = spec.map(function(c) {
+        if (c.k === 'horaInicio' && c.l === 'Inicio diseño') return Object.assign({}, c, {l: 'Inicio'});
+        if (c.k === 'sHold') return Object.assign({}, c, {l: 'S.Hold'});
+        if (c.k === 'fHold') return Object.assign({}, c, {l: 'F.Hold', sinTHold: false});
+        return c;
+      });
+    }
     return area === 'N3 Prosthetic' ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
   }
   function dsEncabezadoExtra(c) { return c.k === 'fHold' && !c.sinTHold ? '<th>T. Hold</th>' : ''; } // N2: T. Hold calculado
