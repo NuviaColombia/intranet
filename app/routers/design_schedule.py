@@ -1118,6 +1118,10 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
     return creadas
 
 
+# Columnas de la orden que un diseñador (sin gestionar el equipo) no puede cambiar.
+CAMPOS_SOLO_MANAGER = ("orden", "paciente", "centro", "producto")
+
+
 @router.post("/design/api/ordenes/{orden_id}")
 def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
@@ -1160,7 +1164,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         # Face: el estado llena solo las horas (Initiated → Inicio diseño / Re-initiated, Hold → Start hold, Approved → Fin)
         actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")}
         datos.update(sd.face_horas_por_estado(actual, datos["estado"]))
-    if solo_propia:  # un diseñador edita su fila pero no la reasigna
+    if solo_propia:  # un diseñador edita horas, estado, notas, esferas y crítico; lo demás de la fila es del manager
+        for c in CAMPOS_SOLO_MANAGER:
+            datos.pop(c, None)
         datos["designer_id"] = orden_existente.designer_id
         datos["designer_prestado"] = orden_existente.designer_prestado
     o = sd.actualizar_orden(db, orden_id, datos)
