@@ -19,6 +19,7 @@ from ..auth import get_current_user
 from ..main_templates import templates
 from .. import services_design as sd
 from .. import services_design_support as ss
+from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
@@ -301,6 +302,7 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
                                        "festivos": festivos, "hoy": sd.ahora_colombia().date(),
                                        "support_time": ss.estado(db, sd.ahora_colombia().date()),
+                                       "cliq": {"configurado": sc.configurado(), "canal": sc.canal_support(), "bot": sc.bot()},
                                        "sim_personas": _personas_simulacion(db, user), "sim_abrir": request.query_params.get("sim") == "1",
                                        "msg": request.query_params.get("msg")})
 

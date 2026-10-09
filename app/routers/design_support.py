@@ -9,6 +9,7 @@ from ..database import get_db
 from ..models import Empleado
 from .. import services_design as sd
 from .. import services_design_support as ss
+from .. import services_design_cliq as sc
 from .design_schedule import require_modulo, require_admin, _RutaDesign
 
 router = APIRouter(route_class=_RutaDesign)
@@ -22,7 +23,12 @@ def _puede_cubrir(user: Empleado) -> bool:
 @router.get("/design/api/support-time")
 def api_support_time(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """Quién está en cada turno hoy, su horario, el próximo cambio y las coberturas (para la página de Inicio y el Schedule)."""
-    return {**ss.estado(db, sd.ahora_colombia().date()), "puedeCubrir": _puede_cubrir(user)}
+    hoy = sd.ahora_colombia().date()
+    try:
+        sc.avisar_cambio_si_corresponde(db, hoy)   # el día del cambio de turno avisa una sola vez en Cliq
+    except Exception:  # noqa: BLE001  un fallo de Cliq no debe afectar la página
+        pass
+    return {**ss.estado(db, hoy), "puedeCubrir": _puede_cubrir(user)}
 
 
 @router.post("/design/parametros/support-time")
@@ -34,6 +40,13 @@ async def guardar_support_time(request: Request, user: Empleado = Depends(requir
     err = ss.guardar_config(db, datos, user.nombre_completo)
     msg = err or "Support Time guardado: la rotación se aplica sola."
     return RedirectResponse(f"/design/parametros?msg={msg}&st=1", status_code=303)
+
+
+@router.post("/design/api/support-time/probar-cliq")
+def api_probar_cliq(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: manda un mensaje de prueba al canal de Support con el bot "Anuncios Design" y devuelve lo que respondió Cliq."""
+    ok, detalle = sc.enviar_canal(sc.canal_support(), "✅ Mensaje de prueba de la plataforma (Anuncios Design). Si lo ves, la conexión con Cliq funciona.")
+    return {"ok": ok, "detalle": detalle}
 
 
 class CoberturaIn(BaseModel):

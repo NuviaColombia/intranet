@@ -13,6 +13,8 @@ from ..models import Empleado
 from ..models_design import DesignInicioMedio, DesignInicioMuro
 from ..main_templates import templates
 from .. import services_design_inicio as si
+from .. import services_design_cliq as sc
+from .. import services_design as sd
 from .design_schedule import require_modulo, require_admin, _RutaDesign
 
 router = APIRouter(route_class=_RutaDesign)
@@ -38,6 +40,10 @@ def _version_estaticos() -> str:
 def pagina_inicio(request: Request, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """Página principal de Design (tarjeta de Módulos y logo). Los admins la editan con ?editar=1."""
     editor = si.es_editor(user)
+    try:
+        sc.avisar_cambio_si_corresponde(db, sd.ahora_colombia().date())   # cambio de turno de Support → aviso en Cliq (una vez)
+    except Exception:  # noqa: BLE001
+        pass
     return templates.TemplateResponse(request, "design_inicio.html", {
         "user": user, "es_design": True, "pagina": si.publicada(db), "editor": editor, "vivo": si.vivo(db),
         "modo_editar": editor and request.query_params.get("editar") == "1", "version": _version_estaticos()})

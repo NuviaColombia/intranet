@@ -521,6 +521,13 @@
         {% if st.actualizadoPor %}<span class="aud-sub">Última actualización: {{ st.actualizadoPor }}</span>{% endif %}
       </div>
     </form>
+    <div class="st-caja" style="margin-top:14px">
+      <h3>Avisos en Cliq</h3>
+      <div class="aud-sub" style="margin-bottom:8px">El día del cambio de turno, el bot <b>{{ cliq.bot }}</b> avisa una sola vez en el canal <b>{{ cliq.canal }}</b> quién queda en cada turno.
+        {% if cliq.configurado %}<span style="color:#047857;font-weight:600">Conexión configurada.</span>{% else %}<span style="color:#b91c1c;font-weight:600">Falta el token de Cliq en Render (DESIGN_CLIQ_WEBHOOK_TOKEN o DESIGN_CLIQ_REFRESH_TOKEN).</span>{% endif %}</div>
+      <button type="button" class="btn gris" id="stProbarCliq">Enviar mensaje de prueba</button>
+      <span id="stProbarRes" class="aud-sub" style="margin-left:8px"></span>
+    </div>
     {% if st.listo %}
     <h3 style="margin:16px 0 4px;font-size:13.5px;color:#1d4ed8">Próximos cambios</h3>
     <table class="st-prox"><thead><tr><th>Fecha</th><th>{{ st.turnos[0].nombre }} ({{ st.turnos[0].horaTxt }})</th><th>{{ st.turnos[1].nombre }} ({{ st.turnos[1].horaTxt }})</th></tr></thead>
@@ -1119,6 +1126,13 @@
     function mostrar(on) { sw.checked = on; cont.hidden = !on; txt.innerText = on ? 'Ocultar' : 'Revisar'; }
     sw.addEventListener('change', function() { mostrar(sw.checked); });
     if (/[?&]st=1/.test(location.search)) { mostrar(true); document.getElementById('stTarjeta').scrollIntoView({block: 'start'}); }
+    var pb = document.getElementById('stProbarCliq'), res = document.getElementById('stProbarRes');
+    if (pb) pb.addEventListener('click', function() {
+      pb.disabled = true; res.style.color = ''; res.textContent = 'Enviando…';
+      fetch('/design/api/support-time/probar-cliq', {method: 'POST', credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(d) {
+        res.style.color = d.ok ? '#047857' : '#b91c1c'; res.textContent = (d.ok ? '✔ ' : '✘ ') + d.detalle;
+      }).catch(function() { res.style.color = '#b91c1c'; res.textContent = '✘ No se pudo enviar.'; }).then(function() { pb.disabled = false; });
+    });
   })();
 
   // ---------- Simulación: interruptor, filtros y rol solo de Design ----------
