@@ -535,6 +535,21 @@ class DesignInicioMuroBloque(Base):
     bloque_id: Mapped[str] = mapped_column(String(40), index=True)
 
 
+class DesignQcCatalogo(Base):
+    """Lista de hallazgos de QC de un área: títulos generales con hallazgos preestablecidos. Una fila con `hallazgo`
+    vacío es un título sin hallazgos todavía. Borrar un hallazgo lo desactiva (no cambia los reportes ya guardados)."""
+    __tablename__ = "design_qc_catalogo"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"), index=True)
+    titulo: Mapped[str] = mapped_column(String(200))
+    hallazgo: Mapped[str] = mapped_column(String(300), default="")
+    tabla: Mapped[str] = mapped_column(String(20), default="")            # "" = todas | principal | nightguard
+    producto_clave: Mapped[str] = mapped_column(String(30), default="")   # "" = cualquiera | nightguard | tc (según el producto de la fila)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    activo: Mapped[int] = mapped_column(Integer, default=1)
+
+
 class DesignInicioReaccion(Base):
     """Reacción con emoji de una persona a una publicación del muro (una fila por persona y emoji; reaccionar otra vez la quita)."""
     __tablename__ = "design_inicio_reacciones"

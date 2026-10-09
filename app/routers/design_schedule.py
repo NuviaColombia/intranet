@@ -18,6 +18,7 @@ from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignC
 from ..auth import get_current_user
 from ..main_templates import templates
 from .. import services_design as sd
+from .. import services_design_qc as sq
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
 
@@ -1122,6 +1123,58 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
 
 # Horas que un diseñador no cambia a mano cuando el estado las llena solas (services_design.horas_por_estado).
 CAMPOS_HORAS = ("hora_inicio", "hora_inicio_diseno", "hora_fin", "s_hold", "f_hold", "hold_minutos")
+
+# ---------- Catálogo de hallazgos de QC (títulos y hallazgos preestablecidos por área) ----------
+
+class QcTituloIn(BaseModel):
+    areaId: int
+    titulo: str = Field(max_length=300)
+    tabla: str = ""
+    producto: str = ""
+
+
+class QcHallazgoIn(QcTituloIn):
+    texto: str = Field(max_length=300)
+
+
+@router.get("/design/api/qc-catalogo")
+def api_qc_catalogo(area_id: int, tabla: str = "", producto: str = "", user: Empleado = Depends(require_modulo("design_schedule")),
+                    db: Session = Depends(get_db)):
+    return {"titulos": sq.catalogo(db, area_id, tabla, producto), "puedeAgregar": sq.puede_agregar(user), "puedeBorrar": sq.puede_borrar(user)}
+
+
+@router.post("/design/api/qc-catalogo/titulo")
+def api_qc_titulo(payload: QcTituloIn, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    if not sq.puede_agregar(user):
+        raise HTTPException(403, "Solo aprobadores y admins agregan títulos.")
+    try:
+        sq.agregar_titulo(db, payload.areaId, payload.titulo, payload.tabla)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"titulos": sq.catalogo(db, payload.areaId, payload.tabla, payload.producto)}
+
+
+@router.post("/design/api/qc-catalogo/hallazgo")
+def api_qc_hallazgo(payload: QcHallazgoIn, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    if not sq.puede_agregar(user):
+        raise HTTPException(403, "Solo aprobadores y admins agregan hallazgos.")
+    try:
+        sq.agregar_hallazgo(db, payload.areaId, payload.titulo, payload.texto)
+    except KeyError:
+        raise HTTPException(404, "El título no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"titulos": sq.catalogo(db, payload.areaId, payload.tabla, payload.producto)}
+
+
+@router.post("/design/api/qc-catalogo/{item_id}/eliminar")
+def api_qc_eliminar(item_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    if not sq.puede_borrar(user):
+        raise HTTPException(403, "Solo los admins borran hallazgos de la lista.")
+    if not sq.eliminar(db, item_id):
+        raise HTTPException(404, "El hallazgo no existe.")
+    return {"ok": True}
+
 
 # Columnas de la orden que un diseñador (sin gestionar el equipo) no puede cambiar.
 CAMPOS_SOLO_MANAGER = ("orden", "paciente", "centro", "producto")

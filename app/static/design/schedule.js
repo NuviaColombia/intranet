@@ -974,9 +974,219 @@ window.addEventListener('unhandledrejection', function(ev) {
     }, function() { dsGuardarFila(tr, tabla); });
   }
 
-  // Recuadro de QC: "¿Hallazgos?" Sí/No + comentario (obligatorio si hubo hallazgos).
-  // Se guarda en el reporte de QC de la orden: vacío = sin hallazgos. Cancelar deja el QC sin marcar.
+  // Tras guardar el QC (de cualquiera de los dos recuadros): marca la casilla, guarda la fila y, a los aprobadores, les
+  // oculta la fila a los 30 s.
+  function dsQcGuardado(tr, tabla, chk, reporte) {
+    tr._qcReporte = reporte;
+    chk.checked = true;
+    dsGuardarFila(tr, tabla);
+    var idQc = parseInt(tr.dataset.id);
+    if (window.DS_GESTION && idQc) {  // se oculta a los 30 s (aprobadores)
+      var man = dsOcultasLeer(); if (man[idQc] === 'visible') { delete man[idQc]; dsOcultasGuardar(man); }
+      DS.qcGracia[idQc] = Date.now();
+      setTimeout(function() { dsAplicarOcultas(tabla); }, 30500);
+    }
+  }
+
+  // QC con lista de hallazgos: títulos generales que se despliegan con los hallazgos preestablecidos del área (N2, Face...).
+  // Se guarda como texto en el reporte de QC: una línea por título ("TÍTULO: hallazgo; hallazgo").
+  // Los aprobadores y admins agregan títulos y hallazgos nuevos (quedan para toda el área); los admins también los borran.
+  var DS_QC_ESPEC = /\(Especificar[^)]*\)/i;
+  var DS_QC_OPCIONES = ['Upper', 'Lower', 'Ambos'];
   function dsAbrirQc(tr, tabla, chk) {
+    if (tabla === 'prestadas' || !DS.areaId) { dsAbrirQcLibre(tr, tabla, chk); return; }
+    // El catálogo depende del área, de la tabla (Cirugías / Nightguards y TC) y del producto de la fila (NG o TC)
+    var prod = (tr.querySelector('[data-campo="producto"]') || {}).value || '';
+    var url = '/design/api/qc-catalogo?area_id=' + DS.areaId + '&tabla=' + encodeURIComponent(tabla) + '&producto=' + encodeURIComponent(prod);
+    window.dsFetchJSON(url).then(function(cat) {
+      if (cat && cat.titulos && cat.titulos.length) dsAbrirQcLista(tr, tabla, chk, cat, url); else dsAbrirQcLibre(tr, tabla, chk);
+    }).catch(function() { dsAbrirQcLibre(tr, tabla, chk); });
+  }
+  function dsAbrirQcLista(tr, tabla, chk, cat, urlCatalogo) {
+    var id = parseInt(tr.dataset.id);
+    var local = (DS.diaData[tabla] || []).find(function(x) { return x.id === id; }) || {};
+    var previo = local.qcReporte || '';
+    var ordenTxt = (tr.querySelector('[data-campo="orden"]') || {}).value || '';
+    var titulos = cat.titulos, puedeAgregar = !!cat.puedeAgregar, puedeBorrar = !!cat.puedeBorrar;
+    var sel = {}, resto = [], abiertos = {}, conHallazgos = !!previo;   // sel[texto del hallazgo] = {on, op}
+
+    // Lo que ya estaba guardado vuelve a quedar marcado; lo que no está en la lista se conserva como "anterior".
+    var base = function(t) { return t.replace(DS_QC_ESPEC, '').replace(/\s+/g, ' ').trim(); };
+    var coincide = function(seg) {
+      for (var a = 0; a < titulos.length; a++) for (var b = 0; b < titulos[a].items.length; b++) {
+        var tx = titulos[a].items[b].texto;
+        if (seg === tx) return {texto: tx, op: ''};
+        if (DS_QC_ESPEC.test(tx)) { var bs = base(tx) + ' ('; if (seg.indexOf(bs) === 0 && seg.slice(-1) === ')') return {texto: tx, op: seg.slice(bs.length, -1)}; }
+      }
+      return null;
+    };
+    previo.split('\n').forEach(function(linea) {
+      linea = linea.trim(); if (!linea) return;
+      var k = linea.indexOf(': '), tit = k > 0 ? linea.slice(0, k) : '', cuerpo = k > 0 ? linea.slice(k + 2) : linea;
+      cuerpo.split('; ').forEach(function(seg) {
+        seg = seg.trim(); if (!seg) return;
+        var c = coincide(seg);
+        if (c) sel[c.texto] = {on: true, op: c.op}; else resto.push({titulo: tit, seg: seg});
+      });
+    });
+
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'dsQc';
+    bg.innerHTML = '<div class="ds-qc ds-qc-ancho" role="dialog" aria-modal="true" aria-labelledby="dsQcTit">' +
+      '<h4 id="dsQcTit"></h4><div class="ds-qc-sub">¿Encontraste algo al revisar esta orden?</div>' +
+      '<div class="ds-qc-opciones">' +
+        '<label><input type="radio" name="dsQcHallazgo" value="no"' + (previo ? '' : ' checked') + '> Sin hallazgos</label>' +
+        '<label><input type="radio" name="dsQcHallazgo" value="si"' + (previo ? ' checked' : '') + '> Con hallazgos</label></div>' +
+      '<div class="ds-qc-lista" id="dsQcLista"></div>' +
+      '<div class="ds-qc-err" id="dsQcErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-qc="no">Cancelar</button>' +
+      '<button type="button" class="btn" data-qc="si">Guardar QC</button></div></div>';
+    document.body.appendChild(bg);
+    bg.querySelector('#dsQcTit').textContent = 'Control de calidad' + (ordenTxt ? ' — ' + ordenTxt : '');
+    var lista = bg.querySelector('#dsQcLista'), err = bg.querySelector('#dsQcErr');
+    var el = function(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+    var mensaje = function(t) { err.textContent = t || ''; };
+
+    var textoFinal = function() {   // el reporte: una línea por título, con los hallazgos marcados
+      var lineas = [];
+      titulos.forEach(function(t) {
+        var partes = [];
+        t.items.forEach(function(it) {
+          var s = sel[it.texto]; if (!s || !s.on) return;
+          partes.push(DS_QC_ESPEC.test(it.texto) ? it.texto.replace(DS_QC_ESPEC, '(' + s.op + ')') : it.texto);
+        });
+        resto.forEach(function(r) { if (r.titulo === t.titulo) partes.push(r.seg); });
+        if (partes.length) lineas.push(t.titulo + ': ' + partes.join('; '));
+      });
+      var otros = {};
+      resto.forEach(function(r) { if (!titulos.some(function(t) { return t.titulo === r.titulo; })) (otros[r.titulo] = otros[r.titulo] || []).push(r.seg); });
+      Object.keys(otros).forEach(function(k) { lineas.push((k ? k + ': ' : '') + otros[k].join('; ')); });
+      return lineas.join('\n');
+    };
+    var cuentaTitulo = function(t) {
+      return t.items.filter(function(it) { return sel[it.texto] && sel[it.texto].on; }).length + resto.filter(function(r) { return r.titulo === t.titulo; }).length;
+    };
+    var recargar = function(datos) { titulos = datos.titulos || titulos; pintar(); };
+    var llamar = function(url, cuerpo) {   // agrega o quita y vuelve a pedir la lista de esta tabla y producto
+      mensaje('');
+      return window.dsPostJSON(url, cuerpo).then(function() { return window.dsFetchJSON(urlCatalogo); }).then(recargar)
+        .catch(function(e) { mensaje(e.message || 'No se pudo guardar.'); });
+    };
+    // Campo para agregar (título o hallazgo): aparece donde se pulsa y se confirma con Enter o con el botón
+    var campoAgregar = function(rotulo, placeholder, alAgregar) {
+      var fila = el('div', 'ds-qc-add'), inp = el('input'); inp.type = 'text'; inp.maxLength = 300; inp.placeholder = placeholder;
+      var ok = el('button', 'btn mini', 'Agregar'), no = el('button', 'btn gris mini', 'Cancelar'); ok.type = no.type = 'button';
+      var hecho = function() { var v = inp.value.trim(); if (!v) { inp.focus(); return; } alAgregar(v); };
+      ok.onclick = hecho; no.onclick = function() { pintar(); };
+      inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); hecho(); } });
+      fila.appendChild(inp); fila.appendChild(ok); fila.appendChild(no);
+      setTimeout(function() { inp.focus(); }, 0);
+      return fila;
+    };
+
+    var pintar = function() {
+      lista.innerHTML = '';
+      lista.style.display = conHallazgos ? '' : 'none';
+      if (!conHallazgos) return;
+      titulos.forEach(function(t) {
+        var d = el('details', 'ds-qc-tit'); d.open = !!abiertos[t.titulo]; d.dataset.titulo = t.titulo;
+        d.addEventListener('toggle', function() { abiertos[t.titulo] = d.open; });
+        var sm = el('summary'); sm.appendChild(el('span', 'ds-qc-tit-n', t.titulo));
+        var n = cuentaTitulo(t); if (n) sm.appendChild(el('span', 'ds-qc-cnt', String(n)));
+        d.appendChild(sm);
+        var cuerpo = el('div', 'ds-qc-items');
+        t.items.forEach(function(it) {
+          var fila = el('label', 'ds-qc-item'), cb = el('input'); cb.type = 'checkbox'; cb.checked = !!(sel[it.texto] && sel[it.texto].on);
+          fila.appendChild(cb);
+          var espec = DS_QC_ESPEC.test(it.texto);
+          fila.appendChild(el('span', 'ds-qc-it-t', espec ? base(it.texto) : it.texto));
+          var op = null;
+          if (espec) {
+            op = el('select', 'ds-qc-op'); op.appendChild(new Option('¿Cuál?', ''));
+            DS_QC_OPCIONES.forEach(function(o) { op.appendChild(new Option(o, o)); });
+            op.value = (sel[it.texto] && sel[it.texto].op) || ''; op.style.display = cb.checked ? '' : 'none';
+            op.onchange = function() { (sel[it.texto] = sel[it.texto] || {on: true}).op = op.value; mensaje(''); };
+            fila.appendChild(op);
+          }
+          cb.onchange = function() {
+            sel[it.texto] = {on: cb.checked, op: (sel[it.texto] && sel[it.texto].op) || ''};
+            if (op) op.style.display = cb.checked ? '' : 'none';
+            var c = cuentaTitulo(t), tag = d.querySelector('.ds-qc-cnt');
+            if (c && !tag) sm.appendChild(el('span', 'ds-qc-cnt', String(c))); else if (tag) { if (c) tag.textContent = String(c); else tag.remove(); }
+            mensaje('');
+          };
+          if (puedeBorrar) {
+            var x = el('button', 'ds-qc-x', '🗑'); x.type = 'button'; x.title = 'Quitar este hallazgo de la lista (los reportes ya guardados no cambian)';
+            x.onclick = function(e) {
+              e.preventDefault();
+              if (!confirm('¿Quitar "' + it.texto + '" de la lista de hallazgos?')) return;
+              delete sel[it.texto]; llamar('/design/api/qc-catalogo/' + it.id + '/eliminar', {});
+            };
+            fila.appendChild(x);
+          }
+          cuerpo.appendChild(fila);
+        });
+        resto.forEach(function(r, i) {
+          if (r.titulo !== t.titulo) return;
+          var fila = el('div', 'ds-qc-item ds-qc-previo'); fila.appendChild(el('span', 'ds-qc-it-t', r.seg + '  (guardado antes)'));
+          var q = el('button', 'ds-qc-x', '✕'); q.type = 'button'; q.title = 'Quitar'; q.onclick = function() { resto.splice(i, 1); pintar(); };
+          fila.appendChild(q); cuerpo.appendChild(fila);
+        });
+        if (puedeAgregar) {
+          var mas = el('button', 'ds-qc-mas', '+ Agregar hallazgo a ' + t.titulo); mas.type = 'button';
+          mas.onclick = function() {
+            var campo = campoAgregar('', 'Escribe el hallazgo nuevo…', function(v) { abiertos[t.titulo] = true; llamar('/design/api/qc-catalogo/hallazgo', {areaId: DS.areaId, titulo: t.titulo, texto: v, tabla: tabla}); });
+            mas.replaceWith(campo);
+          };
+          cuerpo.appendChild(mas);
+        }
+        d.appendChild(cuerpo); lista.appendChild(d);
+      });
+      var sueltos = resto.filter(function(r) { return !titulos.some(function(t) { return t.titulo === r.titulo; }); });
+      if (sueltos.length) {
+        var bloque = el('div', 'ds-qc-sueltos'); bloque.appendChild(el('div', 'ds-qc-sub', 'Guardado antes (no está en la lista):'));
+        sueltos.forEach(function(r) {
+          var fila = el('div', 'ds-qc-item ds-qc-previo'); fila.appendChild(el('span', 'ds-qc-it-t', (r.titulo ? r.titulo + ': ' : '') + r.seg));
+          var q = el('button', 'ds-qc-x', '✕'); q.type = 'button'; q.onclick = function() { resto.splice(resto.indexOf(r), 1); pintar(); };
+          fila.appendChild(q); bloque.appendChild(fila);
+        });
+        lista.appendChild(bloque);
+      }
+      if (puedeAgregar) {
+        var nuevo = el('button', 'ds-qc-mas ds-qc-nuevo', '+ Nuevo título'); nuevo.type = 'button';
+        nuevo.onclick = function() {
+          nuevo.replaceWith(campoAgregar('', 'Nombre del título nuevo…', function(v) { llamar('/design/api/qc-catalogo/titulo', {areaId: DS.areaId, titulo: v, tabla: tabla}); }));
+        };
+        lista.appendChild(nuevo);
+      }
+    };
+    bg.querySelectorAll('input[name="dsQcHallazgo"]').forEach(function(r) {
+      r.addEventListener('change', function() { conHallazgos = bg.querySelector('input[name="dsQcHallazgo"]:checked').value === 'si'; mensaje(''); pintar(); });
+    });
+    pintar();
+
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); chk.focus(); };
+    var guardar = function() {
+      if (!conHallazgos) { cerrar(); dsQcGuardado(tr, tabla, chk, ''); return; }
+      var falta = null;
+      titulos.forEach(function(t) { t.items.forEach(function(it) { var s = sel[it.texto]; if (s && s.on && DS_QC_ESPEC.test(it.texto) && !s.op) falta = falta || it; }); });
+      if (falta) { mensaje('Elige si es Upper, Lower o Ambos en "' + base(falta.texto) + '".'); abiertos[titulos.filter(function(t) { return t.items.indexOf(falta) >= 0; })[0].titulo] = true; pintar(); return; }
+      var reporte = textoFinal().trim();
+      if (!reporte) { mensaje('Elige al menos un hallazgo o marca "Sin hallazgos".'); return; }
+      cerrar(); dsQcGuardado(tr, tabla, chk, reporte);
+    };
+    var teclas = function(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
+      else if (e.key === 'Enter' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'SUMMARY') { e.preventDefault(); e.stopPropagation(); guardar(); }
+    };
+    document.addEventListener('keydown', teclas, true);
+    bg.querySelector('[data-qc="si"]').onclick = guardar;
+    bg.querySelector('[data-qc="no"]').onclick = cerrar;
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+  }
+
+  // Recuadro de QC sin lista: "¿Hallazgos?" Sí/No + comentario (obligatorio si hubo hallazgos). Se usa donde el área
+  // todavía no tiene lista de hallazgos. Se guarda en el reporte de QC de la orden: vacío = sin hallazgos.
+  function dsAbrirQcLibre(tr, tabla, chk) {
     var id = parseInt(tr.dataset.id);
     var local = (DS.diaData[tabla] || []).find(function(x) { return x.id === id; }) || {};
     var previo = local.qcReporte || '';
@@ -1005,16 +1215,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     var guardar = function() {
       var reporte = conHallazgos() ? txt.value.trim() : '';
       if (conHallazgos() && !reporte) { bg.querySelector('#dsQcErr').innerText = 'Describe el hallazgo o elige "Sin hallazgos".'; txt.focus(); return; }
-      tr._qcReporte = reporte;
-      chk.checked = true;
       cerrar();
-      dsGuardarFila(tr, tabla);
-      var idQc = parseInt(tr.dataset.id);
-      if (window.DS_GESTION && idQc) {  // se oculta a los 30 s (aprobadores)
-        var man = dsOcultasLeer(); if (man[idQc] === 'visible') { delete man[idQc]; dsOcultasGuardar(man); }
-        DS.qcGracia[idQc] = Date.now();
-        setTimeout(function() { dsAplicarOcultas(tabla); }, 30500);
-      }
+      dsQcGuardado(tr, tabla, chk, reporte);
     };
     var teclas = function(e) {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
