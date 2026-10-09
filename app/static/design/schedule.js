@@ -2295,8 +2295,8 @@ function ddCambioArea() {
   var areaId = document.getElementById('ddArea').value;
   var sel = document.getElementById('ddTeam'); sel.innerHTML = '<option value="">-- Todos --</option>';
   var tok = ddCambioArea.tok = (ddCambioArea.tok || 0) + 1; // dos cambios rápidos ya no mezclan equipos
-  if (!areaId) return;
-  ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
+  if (!areaId) return Promise.resolve();
+  return ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
     if (tok !== ddCambioArea.tok) return;
     sel.innerHTML = '<option value="">' + (DD_PROPIOS ? '-- Mis equipos --' : '-- Todos --') + '</option>';
     teams.filter(function(t) { return !DD_PROPIOS || DD_PROPIOS.indexOf(t.id) >= 0; })
@@ -2318,11 +2318,17 @@ function ddRapido(r) {
   }
   ddCargar();
 }
+// Un aprobador con un solo equipo abre el Dashboard con su área y su equipo ya elegidos.
+function ddAplicarInicial() {
+  var ini = window.DS_CFG.dashInicial; if (!ini) return Promise.resolve();
+  document.getElementById('ddArea').value = ini.areaId;
+  return ddCambioArea().then(function() { document.getElementById('ddTeam').value = ini.teamId; });
+}
 function ddLimpiar() {
   ['ddTeam', 'ddDesigner', 'ddProducto', 'ddEstado', 'ddQc'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.getElementById('ddDesignerTxt').value = '';
   if (document.getElementById('ddArea').value) { document.getElementById('ddArea').value = ''; ddCambioArea(); }
-  ddRapido('mes');
+  ddAplicarInicial().then(function() { ddRapido('mes'); });
 }
 function ddCargarPronto() { clearTimeout(ddCargarPronto.t); ddCargarPronto.t = setTimeout(ddCargar, 350); }
 function ddLlenarSelect(id, lista, valor, texto, todos) {
@@ -2413,6 +2419,10 @@ function ddCargar() {
   }).then(function(data) {
     if (!data || tok !== ddCargar.tok) return;
     DD_ULTIMO = data;
+    // Título: Dashboard + el manager (si lo que se ve es de un solo manager). El aprobador siempre ve su nombre.
+    var mgrs = []; data.porEquipo.forEach(function(e) { if (e.manager && mgrs.indexOf(e.manager) < 0) mgrs.push(e.manager); });
+    var nombreTit = mgrs.length === 1 ? mgrs[0] : (!mgrs.length && window.DS_CFG.dashNombre) || '';
+    document.getElementById('ddTitulo').textContent = 'Dashboard' + (nombreTit ? ' — ' + nombreTit : '');
     var k = data.kpis, total = data.totalCasos;
     document.getElementById('ddKpis').style.opacity = '';
     ddLlenarSelect('ddDesigner', data.opciones.disenadores, function(d) { return d.clave; }, function(d) { return d.nombre; });
@@ -2555,7 +2565,13 @@ function ddBuscar() {
 }
 
 window.DS_PANELS.dashboard = function() {
-  if (!ddCargar.listo) { ddCargar.listo = true; if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) { ddRapido('mes'); return; } }
+  if (!ddCargar.listo) {
+    ddCargar.listo = true;
+    if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) {
+      ddAplicarInicial().then(function() { ddRapido('mes'); }); return;
+    }
+    ddAplicarInicial().then(ddCargar); return;
+  }
   ddCargar();
 };
 ;

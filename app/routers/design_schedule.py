@@ -228,9 +228,11 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
         propios = [t for t in db.query(DesignTeam).filter(DesignTeam.manager_id == user.id, DesignTeam.activo == 1).all()]
         dash_teams = [t.id for t in propios]
         areas = [a for a in areas if a.id in {t.area_id for t in propios}]
+    # Un aprobador con un solo equipo abre el Dashboard directo con su equipo (área y equipo ya elegidos).
+    dash_inicial = {"areaId": propios[0].area_id, "teamId": propios[0].id} if dash_teams and len(dash_teams) == 1 else None
     return templates.TemplateResponse(request, "design_schedule.html",
                                       {"user": user, "es_design": True, "ds_inicio": inicio, "areas": areas,
-                                       "dash_teams": dash_teams, "dsv": _version_estaticos()})
+                                       "dash_teams": dash_teams, "dash_inicial": dash_inicial, "dsv": _version_estaticos()})
 
 
 _dsv_cache: dict = {}

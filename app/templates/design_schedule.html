@@ -322,7 +322,7 @@ window.dsPdfjs = function() {
 </div>
 </div></div>
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
-<div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Dashboard — Design Schedule</h1>
+<div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
 
 <div class="dd-search">
   <input type="text" id="ddBuscar" aria-label="Buscar orden o paciente" onkeydown="if (event.key === 'Enter') ddBuscar()" placeholder="Buscar por número de orden o paciente en {{ 'todos los equipos' if user.rol in ('admin', 'superadmin') else 'tus equipos' }}...">
@@ -360,6 +360,7 @@ window.dsPdfjs = function() {
 
 <div class="dd-kpis" id="ddKpis"></div>
 
+<div class="dd-layout"><div class="dd-col">
 <div class="dd-panel">
   <div class="dd-panel-cab"><h3>Producción por diseñador</h3><span style="font-size:12px;color:#4b5563">Clic en un diseñador para ver solo sus casos. El tiempo no cuenta canceladas ni skipped.</span></div>
   <table class="dd-tabla"><thead><tr><th class="dd-izq">Diseñador</th><th>Equipo</th><th>Casos</th><th>Aprobadas</th><th>Tiempo total</th><th>Promedio por caso</th><th>Tiempo en Hold</th><th>Con QC</th><th>QC con hallazgos</th></tr></thead>
@@ -371,6 +372,7 @@ window.dsPdfjs = function() {
   <div id="ddProductoTablas"></div>
 </div>
 
+</div><div class="dd-col">
 <div class="dd-grid">
   <div class="dd-panel">
     <h3>Por equipo</h3>
@@ -382,7 +384,6 @@ window.dsPdfjs = function() {
     <div id="ddEstados"></div>
   </div>
 </div>
-<div style="height:18px"></div>
 <div class="dd-panel">
   <h3>Casos por día</h3>
   <div class="dd-dias" id="ddDias"></div>
@@ -393,6 +394,8 @@ window.dsPdfjs = function() {
   <div id="ddProductoMix"></div>
 </div>
 
+</div></div>
+<div class="dd-layout dd-layout-qc">
 <div class="dd-panel">
   <div class="dd-panel-cab"><h3>Reportes de QC</h3><span style="font-size:12px;color:#4b5563">Hallazgo que escribe el aprobador al marcar el QC
     {% if dash_teams is none %}<button type="button" class="btn rojo mini" id="ddQcBorrarTodo" onclick="ddQcBorrar(null)" style="margin-left:10px;display:none">Borrar los hallazgos filtrados</button>{% endif %}</span></div>
@@ -404,6 +407,7 @@ window.dsPdfjs = function() {
   <h3>Aprobadas sin QC</h3>
   <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Estado</th><th>Diseñador</th></tr></thead>
     <tbody id="ddSinQc"></tbody></table>
+</div>
 </div></div></div>
 {% endif %}
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
@@ -496,7 +500,7 @@ document.addEventListener('keydown', function(e) {
 <script>
 // Datos de la persona para el código del Schedule (static/design/schedule.js)
 window.DS_CFG = {userId: {{ user.id }}, esAprobador: {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }},
-                 esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}};
+                 esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
 </script>
 <script src="/static/design/schedule.js?v={{ dsv }}"></script>
 {% endblock %}

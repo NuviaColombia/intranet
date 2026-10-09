@@ -962,7 +962,8 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
     El reporte de QC es el hallazgo que escribe el aprobador al marcar el QC (qc_reporte); las Notas no salen."""
     trasladar_holds(db)
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer),
-                                       joinedload(DesignOrden.team).joinedload(DesignTeam.area))
+                                       joinedload(DesignOrden.team).joinedload(DesignTeam.area),
+                                       joinedload(DesignOrden.team).joinedload(DesignTeam.manager))
          .filter(filtro_orden_completa()))
     if user is not None and not es_admin(user):
         # Un aprobador ve el Dashboard solo de los equipos que maneja.
@@ -1056,7 +1057,8 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
         p["duracionMin"] += dur
         p["conTiempo"] += dur > 0
 
-        e = por_equipo.setdefault(f.team_id, {"equipo": f.team.nombre, "area": f.team.area.nombre, "casos": 0,
+        e = por_equipo.setdefault(f.team_id, {"equipo": f.team.nombre, "area": f.team.area.nombre,
+                                              "manager": f.team.manager.nombre_completo if f.team.manager else "", "casos": 0,
                                               "aprobadas": 0, "duracionMin": 0, "conTiempo": 0, "qcHallazgos": 0})
         e["casos"] += 1
         e["aprobadas"] += aprobada
