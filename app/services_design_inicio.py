@@ -470,3 +470,59 @@ def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False
     datos = {"mes": f"{_MESES[ahora.month - 1]} de {ahora.year}", "actualizado": ahora.strftime("%H:%M"), "areas": areas}
     _ranking_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
     return datos
+
+
+# ---------- Podio de diseñadores por área (bloque Cifras: "Diseñadores con más casos aprobados del mes") ----------
+# Mismas reglas que el ranking de equipos (Approved del mes, Cirugías y Nightguards, orden completa, sin productos de
+# cambios), contadas por diseñador. Solo cuentan los casos de un diseñador en su propio equipo: el prestado a otro equipo
+# no suma allí. Podio de 3 por área (N2, N3, Face y N6); Support no tiene podio.
+PODIO_AREAS = [("N2 Demodenture", "N2"), ("N3 Prosthetic", "N3"), ("Face Design", "Face Design"), ("N6 Material Changes", "N6")]
+_podio_cache: dict = {}
+
+
+def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: bool = False) -> dict:
+    """Los 3 diseñadores con más casos aprobados del mes en cada área. Se recalcula como máximo cada hora."""
+    import time
+    from collections import Counter
+    from datetime import date
+    from .services_design import ahora_colombia, filtro_orden_completa
+    from .models_design import DesignOrden, DesignTeam, DesignArea, DesignTeamDesigner
+    ahora = ahora or ahora_colombia()
+    clave = (ahora.year, ahora.month)
+    c = _podio_cache.get("r")
+    if not forzar and c and c["clave"] == clave and time.time() - c["t"] < 3600:
+        return c["datos"]
+    ini = date(ahora.year, ahora.month, 1)
+    fin = date(ahora.year + (ahora.month == 12), ahora.month % 12 + 1, 1)
+    equipos = {t.id: t for t in db.query(DesignTeam).all()}
+    miembros: dict[int, set[int]] = {}
+    for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).all():
+        miembros.setdefault(tid, set()).add(eid)
+    for t in equipos.values():
+        if t.manager_id:
+            miembros.setdefault(t.id, set()).add(t.manager_id)
+    filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.estado, DesignOrden.producto).filter(
+        DesignOrden.fecha >= ini, DesignOrden.fecha < fin, DesignOrden.designer_id.isnot(None), filtro_orden_completa()).all()
+    cuenta: dict[int, Counter] = {}   # area_id -> {designer_id: casos}
+    for f in filas:
+        t = equipos.get(f.team_id)
+        if not t or f.designer_id not in miembros.get(t.id, set()):
+            continue
+        if (f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower():
+            cuenta.setdefault(t.area_id, Counter())[f.designer_id] += 1
+    areas = []
+    for nombre_area, etiqueta in PODIO_AREAS:
+        area = db.query(DesignArea).filter(DesignArea.nombre == nombre_area).first()
+        lista = []
+        if area:
+            for did, n in cuenta.get(area.id, Counter()).items():
+                e = db.get(Empleado, did)
+                if e:
+                    lista.append({"id": did, "nombre": _nombre_corto(e), "foto": f"/design/api/foto/{did}", "casos": n})
+        lista.sort(key=lambda x: (-x["casos"], x["nombre"]))
+        for x in lista:   # empates: mismo puesto
+            x["puesto"] = 1 + sum(1 for y in lista if y["casos"] > x["casos"])
+        areas.append({"area": nombre_area, "etiqueta": etiqueta, "podio": [x for x in lista if x["puesto"] <= 3][:3]})
+    datos = {"mes": f"{_MESES[ahora.month - 1]} de {ahora.year}", "actualizado": ahora.strftime("%H:%M"), "areas": areas}
+    _podio_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
+    return datos

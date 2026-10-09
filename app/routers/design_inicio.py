@@ -240,6 +240,12 @@ def api_ranking(user: Empleado = Depends(require_modulo("design_schedule")), db:
     return si.ranking_mes(db)
 
 
+@router.get("/design/api/inicio/ranking-disenadores")
+def api_ranking_disenadores(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Podio de diseñadores con más casos aprobados del mes, por área (bloque Cifras). Se recalcula como máximo cada hora."""
+    return si.ranking_disenadores_mes(db)
+
+
 # ---------- Muro ----------
 
 class MuroIn(BaseModel):

@@ -240,14 +240,16 @@
     }};
   D.cifras = {n: 'Cifras', ic: '#', g: 'Diseño',
     d: function() { return {fuente: '', items: [{numero: 120, prefijo: '', sufijo: '+', etiqueta: 'Casos diarios'}, {numero: 5, prefijo: '', sufijo: '', etiqueta: 'Áreas'}, {numero: 98, prefijo: '', sufijo: '%', etiqueta: 'Aprobados con QC'}], color: '', animar: true}; },
-    campos: [{tipo: 'select', k: 'fuente', l: 'Qué mostrar', ops: [['', 'Números escritos a mano'], ['ranking', '🏆 Equipos con más casos aprobados del mes']]},
+    campos: [{tipo: 'select', k: 'fuente', l: 'Qué mostrar', ops: [['', 'Números escritos a mano'], ['ranking', '🏆 Equipos con más casos aprobados del mes'], ['rankingDisenadores', '🏅 Diseñadores con más casos aprobados del mes (podio por área)']]},
       {tipo: 'nota', l: 'N2 y N3: podio de 3. Face Design y N6: el equipo ganador. Cuenta los casos Approved del mes (Cirugías y Nightguards); no cuenta cancelados ni productos de cambios (Changes). Se actualiza cada hora y empieza de cero cada mes.', si: ['fuente', ['ranking']]},
-      {tipo: 'texto', k: 'tituloRanking', l: 'Título (opcional)', si: ['fuente', ['ranking']]},
+      {tipo: 'nota', l: 'Podio de 3 por área (N2, N3, Face Design y N6). Mismas reglas que el ranking de equipos, contadas por diseñador. Solo cuentan los casos de un diseñador en su propio equipo (el prestado no suma). Se actualiza cada hora y empieza de cero cada mes.', si: ['fuente', ['rankingDisenadores']]},
+      {tipo: 'texto', k: 'tituloRanking', l: 'Título (opcional)', si: ['fuente', ['ranking', 'rankingDisenadores']]},
       {tipo: 'lista', k: 'items', l: 'Cifras', si: ['fuente', ['']], titulo: 'etiqueta', nuevo: {numero: 0, prefijo: '', sufijo: '', etiqueta: 'Nueva cifra'},
       campos: [{tipo: 'numero', k: 'numero', l: 'Número'}, {tipo: 'texto', k: 'prefijo', l: 'Antes del número (ej. $)'}, {tipo: 'texto', k: 'sufijo', l: 'Después (ej. %, +)'}, {tipo: 'texto', k: 'etiqueta', l: 'Etiqueta'}]},
       {tipo: 'color', k: 'color', l: 'Color de los números'}, {tipo: 'check', k: 'animar', l: 'Contar al aparecer'}],
     r: function(p, ctx) {
       if (p.fuente === 'ranking') return NVI.rankingEquipos(p, ctx);
+      if (p.fuente === 'rankingDisenadores') return NVI.rankingDisenadores(p, ctx);
       var w = h('div', 'nvi-cifras'); w.style.gridTemplateColumns = 'repeat(' + Math.max(1, Math.min(6, (p.items || []).length)) + ', 1fr)';
       (p.items || []).forEach(function(it) {
         var c = h('div', 'nvi-cifra'), n = h('b'); if (p.color) n.style.color = p.color;
@@ -504,6 +506,63 @@
     };
     rank.bloques.push({w: w, pintar: pintar});
     NVI.cargarRanking().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo en la próxima hora.</div>'; });
+    return w;
+  };
+
+
+  // ---------- Podio de diseñadores por área (bloque Cifras) ----------
+  var podioRank = {datos: null, t: 0, pend: null, bloques: []};
+  NVI.cargarPodio = function(forzar) {
+    if (!forzar && podioRank.datos && Date.now() - podioRank.t < 3600e3) return Promise.resolve(podioRank.datos);
+    if (podioRank.pend) return podioRank.pend;
+    podioRank.pend = fetch('/design/api/inicio/ranking-disenadores', {credentials: 'same-origin'}).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(d) { podioRank.datos = d; podioRank.t = Date.now(); podioRank.pend = null; return d; }, function(e) { podioRank.pend = null; throw e; });
+    return podioRank.pend;
+  };
+  setInterval(function() {
+    podioRank.bloques = podioRank.bloques.filter(function(b) { return b.w.isConnected; });
+    if (podioRank.bloques.length && !document.hidden) NVI.cargarPodio(true).then(function(d) { podioRank.bloques.forEach(function(b) { b.pintar(d); }); }).catch(function() {});
+  }, 3600e3);
+  NVI.rankingDisenadores = function(p, ctx) {
+    var w = h('div', 'nvi-pd'), animar = p.animar !== false && ctx.modo !== 'editar';
+    if (p.tituloRanking) w.appendChild(h('div', 'nvi-rk-tit', NVI.esc(p.tituloRanking)));
+    var fila = h('div', 'nvi-pd-fila'), pie = h('div', 'nvi-rk-pie'); w.appendChild(fila); w.appendChild(pie);
+    fila.innerHTML = '<div class="nvi-rk-cargando">Cargando el podio del mes…</div>';
+    var color = p.color || '', MED = ['🥇', '🥈', '🥉'];
+    var persona = function(x, grande) {   // foto (o iniciales) con la medalla, nombre y casos
+      var c = h('div', 'nvi-pd-pers' + (grande ? ' uno' : ''));
+      var f = h('div', 'nvi-rk-foto ' + (grande ? 'grande' : 'media')), ini = h('span', 'nvi-rk-ini', NVI.esc(iniciales(x.nombre))); f.appendChild(ini);
+      if (x.foto) { var im = new Image(); im.alt = ''; im.onload = function() { if (ini.parentNode) f.replaceChild(im, ini); }; im.src = x.foto; }
+      f.appendChild(h('span', 'nvi-rk-medalla', MED[x.puesto - 1] || '')); c.appendChild(f);
+      c.appendChild(h('b', 'nvi-pd-nom', NVI.esc(x.nombre)));
+      return c;
+    };
+    var pintar = function(d) {
+      fila.innerHTML = '';
+      (d.areas || []).forEach(function(a) {
+        var c = h('div', 'nvi-rk-area nvi-pd-area'); c.appendChild(h('div', 'nvi-rk-etq', NVI.esc(a.etiqueta)));
+        var pod = a.podio || [];
+        if (!pod.length) { c.appendChild(h('div', 'nvi-rk-vacio', 'Aún no hay casos aprobados este mes')); fila.appendChild(c); return; }
+        // podio clásico: el 2.º a la izquierda, el 1.º al centro (más alto) y el 3.º a la derecha; con empates, el orden de la lista
+        var orden = [pod.find(function(x) { return x.puesto === 2; }), pod.find(function(x) { return x.puesto === 1; }), pod.find(function(x) { return x.puesto === 3; })];
+        var primeros = pod.filter(function(x) { return x.puesto === 1; });
+        if (primeros.length > 1) orden = [primeros[1], primeros[0], pod.filter(function(x) { return x.puesto !== 1; })[0] || null];
+        var po = h('div', 'nvi-pd-podio');
+        orden.forEach(function(x, i) {
+          var col = h('div', 'nvi-pd-col' + (i === 1 ? ' centro' : ''));
+          if (!x) { col.classList.add('vacia'); po.appendChild(col); return; }
+          col.appendChild(persona(x, i === 1));
+          var base = h('div', 'nvi-pd-base p' + x.puesto);
+          var n = h('div', 'nvi-pd-num'); contar(n, x.casos, animar); base.appendChild(n);
+          base.appendChild(h('span', 'nvi-pd-cs', x.casos === 1 ? 'caso' : 'casos'));
+          col.appendChild(base); po.appendChild(col);
+        });
+        c.appendChild(po); fila.appendChild(c);
+      });
+      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza cada hora (última: ' + (d.actualizado || '') + ')';
+    };
+    podioRank.bloques.push({w: w, pintar: pintar});
+    NVI.cargarPodio().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el podio. Se intentará de nuevo en la próxima hora.</div>'; });
     return w;
   };
 
