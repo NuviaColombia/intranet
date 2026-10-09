@@ -1033,7 +1033,9 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
         d["conQc"] += bool(f.qc)
         d["qcHallazgos"] += bool(hallazgo)
 
-        p = por_producto.setdefault(f.producto, {"producto": f.producto, "casos": 0, "duracionMin": 0, "conTiempo": 0})
+        p = por_producto.setdefault(f.producto, {"producto": f.producto, "casos": 0, "duracionMin": 0, "conTiempo": 0, "lista": []})
+        p["lista"].append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
+                           "equipo": f.team.nombre, "designerNombre": nombre_d, "estado": f.estado, "duracionMin": round(dur, 1)})
         p["casos"] += 1
         p["duracionMin"] += dur
         p["conTiempo"] += dur > 0

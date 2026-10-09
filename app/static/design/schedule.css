@@ -310,6 +310,16 @@
   table.dd-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
   table.dd-tabla th, table.dd-tabla td { border:1px solid #e2e6ea; padding:6px 8px; text-align:center; }
   table.dd-tabla th { background:#f4f6f8; }
+  .dd-prod { border:1px solid #e2e6ea; border-radius:8px; margin-bottom:10px; background:#fff; }
+  .dd-prod > summary { cursor:pointer; padding:9px 12px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-weight:600; }
+  .dd-prod-meta { font-weight:400; font-size:12.5px; color:#4b5563; }
+  .dd-prod-obj { display:inline-flex; align-items:center; gap:5px; font-weight:400; font-size:12.5px; margin-left:auto; }
+  .dd-prod-obj input { width:78px; padding:3px 6px; border:1px solid #cbd5e1; border-radius:6px; text-align:center; }
+  .dd-prod-res { font-weight:600; font-size:12.5px; }
+  .dd-prod-res .si { color:#15803d; } .dd-prod-res .no { color:#b91c1c; }
+  .dd-prod-cuerpo { padding:0 12px 12px; overflow-x:auto; }
+  table.dd-tabla tr.dd-cumple td.dd-res { color:#15803d; font-weight:600; background:#f0fdf4; }
+  table.dd-tabla tr.dd-nocumple td.dd-res { color:#b91c1c; font-weight:600; background:#fef2f2; }
   .dd-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:12.5px; }
   .dd-bar-label { width:220px; }
   .dd-bar-track { flex:1; background:#eff6ff; border-radius:4px; height:14px; overflow:hidden; }

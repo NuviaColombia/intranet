@@ -2337,6 +2337,58 @@ function ddLlenarSelect(id, lista, valor, texto, todos) {
 function ddTiempo(m) { return m ? ddMin(m) : '—'; }
 function ddPct(a, b) { return b ? Math.round(a * 100 / b) + '%' : '—'; }
 
+// ---------- Casos por producto: una tabla por producto con su tiempo objetivo (manual) ----------
+// El tiempo lo escribe el aprobador o admin según lo que esté mirando (puede variar); no se guarda: solo se recuerda
+// mientras la página siga abierta, para que no se pierda al cambiar de filtro.
+var DD_OBJETIVOS = {};
+function ddParseObjetivo(t) {
+  t = String(t || '').trim().replace(',', '.'); if (!t) return null;
+  var m = t.match(/^(\d+):(\d{1,2})$/); if (m) return parseInt(m[1]) * 60 + parseInt(m[2]);
+  var n = parseFloat(t); return isNaN(n) || n <= 0 ? null : n;
+}
+function ddCumple(c, obj) {  // true cumplió · false no cumplió · null sin dato (sin tiempo registrado o sin objetivo)
+  if (obj === null || !c.duracionMin) return null;
+  return c.duracionMin <= obj;
+}
+function ddResumenProducto(p, obj) {
+  if (obj === null) return '';
+  var si = 0, no = 0, sin = 0;
+  p.lista.forEach(function(c) { var r = ddCumple(c, obj); if (r === null) sin++; else if (r) si++; else no++; });
+  return '<span class="si">✔ ' + si + ' cumplieron</span> · <span class="no">✘ ' + no + ' no cumplieron</span>' + (sin ? ' · ' + sin + ' sin tiempo' : '');
+}
+function ddFilasProducto(p, obj) {
+  return p.lista.map(function(c) {
+    var r = ddCumple(c, obj), dif = (r === null) ? '' : ((c.duracionMin - obj) > 0 ? '+' : '') + Math.round(c.duracionMin - obj) + ' min';
+    return '<tr class="' + (r === null ? '' : r ? 'dd-cumple' : 'dd-nocumple') + '"><td>' + ddEsc(c.orden) + '</td><td class="dd-izq">' + ddEsc(c.paciente) + '</td><td>' + c.fecha + '</td>' +
+      '<td>' + ddEsc(c.equipo) + '</td><td>' + ddEsc(c.designerNombre) + '</td><td>' + ddEsc(c.estado) + '</td><td>' + ddTiempo(c.duracionMin) + '</td>' +
+      '<td class="dd-res">' + (r === null ? '—' : r ? '✔ Cumplió' : '✘ No cumplió') + '</td><td>' + dif + '</td></tr>';
+  }).join('');
+}
+function ddRenderProductos() {
+  var cont = document.getElementById('ddProductoTablas'); if (!cont || !DD_ULTIMO) return;
+  var lista = DD_ULTIMO.porProducto;
+  if (!lista.length) { cont.innerHTML = '<p style="color:#4b5563">Sin datos.</p>'; return; }
+  var abiertos = {}; cont.querySelectorAll('details.dd-prod').forEach(function(d) { abiertos[d.dataset.prod] = d.open; });
+  cont.innerHTML = '';
+  lista.forEach(function(p) {
+    var det = document.createElement('details'); det.className = 'dd-prod'; det.dataset.prod = p.producto;
+    det.open = abiertos.hasOwnProperty(p.producto) ? abiertos[p.producto] : true;
+    var obj = ddParseObjetivo(DD_OBJETIVOS[p.producto]);
+    det.innerHTML = '<summary><span class="dd-prod-nombre"></span><span class="dd-prod-meta">' + p.casos + ' casos · promedio ' + ddTiempo(p.promedioMin) + '</span>' +
+      '<span class="dd-prod-res"></span><label class="dd-prod-obj" onclick="event.stopPropagation()">Tiempo del producto <input type="text" inputmode="decimal" placeholder="min" aria-label="Tiempo del producto en minutos"> min</label></summary>' +
+      '<div class="dd-prod-cuerpo"><table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Diseñador</th><th>Estado</th><th>Tiempo de diseño</th><th>Resultado</th><th>Diferencia</th></tr></thead><tbody></tbody></table></div>';
+    det.querySelector('.dd-prod-nombre').textContent = p.producto || '(sin producto)';
+    var inp = det.querySelector('input'), res = det.querySelector('.dd-prod-res'), tb = det.querySelector('tbody');
+    inp.value = DD_OBJETIVOS[p.producto] || '';
+    var pintar = function() { var o = ddParseObjetivo(inp.value); res.innerHTML = ddResumenProducto(p, o); tb.innerHTML = ddFilasProducto(p, o); };
+    inp.oninput = function() { DD_OBJETIVOS[p.producto] = inp.value; pintar(); };
+    inp.onclick = function(e) { e.stopPropagation(); };
+    inp.onkeydown = function(e) { e.stopPropagation(); };
+    pintar();
+    cont.appendChild(det);
+  });
+}
+
 function ddCargar() {
   var params = new URLSearchParams();
   var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
@@ -2393,6 +2445,8 @@ function ddCargar() {
     document.querySelectorAll('#ddProduccion tr[data-clave]').forEach(function(tr) {
       tr.onclick = function() { var s = document.getElementById('ddDesigner'); s.value = s.value === tr.dataset.clave ? '' : tr.dataset.clave; document.getElementById('ddDesignerTxt').value = ''; ddCargar(); };
     });
+
+    ddRenderProductos();
 
     document.getElementById('ddEquipos').innerHTML = data.porEquipo.map(function(e) {
       return '<tr><td class="dd-izq">' + ddEsc(e.equipo) + '</td><td>' + ddEsc(e.area) + '</td><td>' + e.casos + '</td><td>' + e.aprobadas + '</td><td>' + ddTiempo(e.promedioMin) + '</td><td>' + e.qcHallazgos + '</td></tr>';
@@ -2472,6 +2526,11 @@ function ddDescargar() {
   d.porEquipo.forEach(function(x) { filas.push([x.equipo, x.area, x.casos, x.aprobadas, String(x.promedioMin).replace('.', ','), x.qcHallazgos]); });
   filas.push([], ['PRODUCTOS'], ['Producto', 'Casos', 'Promedio por caso (min)']);
   d.porProducto.forEach(function(x) { filas.push([x.producto, x.casos, String(x.promedioMin).replace('.', ',')]); });
+  filas.push([], ['CASOS POR PRODUCTO'], ['Producto', 'Tiempo del producto (min)', 'Orden', 'Paciente', 'Fecha', 'Equipo', 'Diseñador', 'Estado', 'Tiempo de diseño (min)', 'Resultado']);
+  d.porProducto.forEach(function(p) {
+    var o = ddParseObjetivo(DD_OBJETIVOS[p.producto]);
+    p.lista.forEach(function(x) { var r = ddCumple(x, o); filas.push([p.producto, o === null ? '' : String(o).replace('.', ','), x.orden, x.paciente, x.fecha, x.equipo, x.designerNombre, x.estado, x.duracionMin ? String(x.duracionMin).replace('.', ',') : '', r === null ? '' : r ? 'Cumplió' : 'No cumplió']); });
+  });
   filas.push([], ['REPORTES DE QC'], ['Orden', 'Paciente', 'Fecha', 'Equipo', 'Producto', 'Diseñador', 'Hallazgo de QC']);
   d.qcReportes.forEach(function(x) { filas.push([x.orden, x.paciente, x.fecha, x.equipo, x.producto, x.designerNombre, x.qcReporte]); });
   filas.push([], ['APROBADAS SIN QC'], ['Orden', 'Paciente', 'Fecha', 'Equipo', 'Producto', 'Estado', 'Diseñador']);
