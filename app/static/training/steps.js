@@ -1,5 +1,5 @@
 // Training: renderizadores de cada tipo de paso. Cada uno devuelve { el, destroy? }.
-import { h, t, ui, md, toast, S, CFG } from './lib.js';
+import { h, t, ui, md, toast, S, CFG, AREAS, tarjetaLider } from './lib.js';
 import { crearQuiz } from './quiz.js';
 
 const tarjetaTitulo = (p) => (p.titulo ? h('h2', { class: 'tr-paso-tit' }, t(p.titulo)) : null);
@@ -79,12 +79,31 @@ function resumen(p) {
 }
 
 function enlace(p) {
+  if (p.lecc) {   // enlace a una lección de la biblioteca de referencia
+    return { el: h('div', { class: 'tr-paso' }, h('div', { class: 'tr-enlace' }, h('div', { class: 'tr-enlace-ico' }, '📚'),
+      h('div', { class: 'tr-enlace-txt' }, h('h3', null, t(p.titulo)), md(p.texto, { maxTerminos: 2 })),
+      h('a', { class: 'tr-btn tr-btn-primario', href: '#/l/' + p.lecc }, ui('abrirLeccion') + ' →'))) };
+  }
   const buscar = p.protocolo;
   const url = '/design?panel=protocols&q=' + encodeURIComponent(buscar);
   const copiar = h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: async () => { try { await navigator.clipboard.writeText(buscar); toast(ui('copiado')); } catch (e) { /* sin portapapeles */ } } }, '⧉');
   return { el: h('div', { class: 'tr-paso' }, h('div', { class: 'tr-enlace' }, h('div', { class: 'tr-enlace-ico' }, '📋'),
     h('div', { class: 'tr-enlace-txt' }, h('h3', null, t(p.titulo)), md(p.texto, { maxTerminos: 2 }), h('div', { class: 'tr-enlace-busca' }, ui('buscaEn') + ': ', h('code', null, buscar), copiar)),
     h('a', { class: 'tr-btn tr-btn-primario', href: url, target: '_blank', rel: 'noopener' }, ui('protocoloOficial') + ' ↗'))) };
+}
+
+function lider(p) {
+  if (p.area === 'todas') return { el: h('div', { class: 'tr-paso' }, h('h2', { class: 'tr-paso-tit' }, '👥 ' + ui('areaManager') + 's'), h('div', { class: 'tr-lideres-grid' }, Object.keys(AREAS).map((a) => tarjetaLider(a)))) };
+  return { el: h('div', { class: 'tr-paso tr-paso-lider' }, tarjetaLider(p.area, { texto: p.texto })) };
+}
+
+function caso(p) {
+  const lista = h('ol', { class: 'tr-caso-linea' }, p.etapas.map((e, i) => h('li', { class: 'tr-caso-et' },
+    h('span', { class: 'tr-caso-n' }, i + 1),
+    h('div', { class: 'tr-caso-cuerpo' }, h('b', null, t(e.titulo)), md(e.texto, { maxTerminos: 2 }),
+      (e.tiempo || e.quien) ? h('div', { class: 'tr-caso-meta' }, e.tiempo ? h('span', { class: 'tr-caso-tiempo' }, '⏱ ' + t(e.tiempo)) : null, e.quien ? h('span', { class: 'tr-caso-quien' }, '👤 ' + t(e.quien)) : null) : null))));
+  return { el: h('div', { class: 'tr-paso tr-caso' }, h('span', { class: 'tr-caso-sello' }, '🧪 ' + ui('casoEjemplo')), h('h2', { class: 'tr-paso-tit' }, t(p.titulo)), md(p.contexto, { maxTerminos: 3 }), lista,
+    p.resultado ? h('div', { class: 'tr-caso-res' }, h('b', null, '✅ ' + ui('resultado') + ': '), md(p.resultado, { sinGlosario: true })) : null) };
 }
 
 function quiz(p, ctx) {
@@ -112,6 +131,9 @@ export function renderPaso(p, ctx) {
     case 'resumen': return resumen(p);
     case 'enlace': return enlace(p);
     case 'quiz': return quiz(p, ctx);
+    case 'lider': return lider(p);
+    case 'caso': return caso(p);
+    case 'visor': return diferido(() => import('./sim.js').then((m) => m.crearVisorPaso), p);
     case 'calculadora': return diferido(() => import('./widgets.js').then((m) => m.crearWidget), p);
     case 'simulador': return diferido(() => import('./sim.js').then((m) => m.crearSimuladorPaso), p);
     case 'tour': return diferido(() => import('./sim.js').then((m) => m.crearTourPaso), p);

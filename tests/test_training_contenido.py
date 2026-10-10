@@ -25,13 +25,33 @@ class ContenidoTraining(unittest.TestCase):
                 glos.add(g["id"])
             for l in d["lecciones"]:
                 for p in l["pasos"]:
-                    if p["t"] == "modelo3d":
+                    if p["t"] in ("modelo3d", "visor"):
                         self.assertNotIn(p["slot"], slots, f"espacio de modelo repetido: {p['slot']}")
                         slots.add(p["slot"])
 
+    def test_enlaces_internos_apuntan_a_lecciones_que_existen(self):
+        import json
+        lecciones, enlaces = set(), []
+        for a in sorted(v.DATOS.glob("*.json")):
+            d = json.loads(a.read_text(encoding="utf-8"))
+            for l in d["lecciones"]:
+                lecciones.add(l["id"])
+                enlaces += [(a.name, l["id"], p["lecc"]) for p in l["pasos"] if p["t"] == "enlace" and p.get("lecc")]
+        for archivo, lec, destino in enlaces:
+            self.assertIn(destino, lecciones, f"{archivo} {lec}: enlace a una lección que no existe ({destino})")
+
+    def test_areas_completas(self):
+        import json
+        areas = set()
+        for a in sorted(v.DATOS.glob("*.json")):
+            d = json.loads(a.read_text(encoding="utf-8"))
+            if d.get("seccion") == "area":
+                areas.add(d["area"])
+        self.assertEqual(areas, v.AREAS, "faltan módulos de área")
+
     def test_textos_de_interfaz_en_los_dos_idiomas(self):
         lib = (RAIZ / "lib.js").read_text(encoding="utf-8")
-        claves = lambda b: set(re.findall(r"\b([a-zA-Z0-9]+):\s*['\"`]", b))
+        claves = lambda b: set(re.findall(r"(?:^|[{,])\s*([a-zA-Z0-9]+):\s*['\"`]", b, re.M))
         es = claves(lib[lib.index("  es: {"):lib.index("  en: {")])
         en = claves(lib[lib.index("  en: {"):lib.index("export function ui")])
         self.assertEqual(es, en, "faltan textos de interfaz en un idioma")

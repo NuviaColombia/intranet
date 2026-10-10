@@ -1,57 +1,46 @@
 {
   "id": "m0-bienvenida",
   "orden": 1,
-  "icono": "👋",
+  "icono": "🏢",
+  "seccion": "intro",
   "titulo": {
-    "es": "Bienvenida a Nuvia Design",
-    "en": "Welcome to Nuvia Design"
+    "es": "Cómo funciona el departamento Nuvia Design",
+    "en": "How the Nuvia Design department works"
   },
   "resumen": {
-    "es": "Qué hacemos, cómo viaja un caso de la clínica al laboratorio, por qué existen los protocolos y cómo se organiza el trabajo.",
-    "en": "What we do, how a case travels from the clinic to the lab, why protocols exist and how the work is organized."
+    "es": "Qué hace el departamento, sus 5 áreas, cómo viaja un caso, tiempos, cómo coordinar con cada área y cómo usar este curso.",
+    "en": "What the department does, its 5 areas, how a case travels, timing, how to coordinate with each area and how to use this course."
   },
   "nivel": "basico",
   "lecciones": [
     {
       "id": "m0-l1",
       "titulo": {
-        "es": "Qué hace Nuvia Design y por qué importa",
-        "en": "What Nuvia Design does and why it matters"
+        "es": "El departamento de un vistazo",
+        "en": "The department at a glance"
       },
-      "minutos": 5,
+      "minutos": 8,
       "pasos": [
         {
           "t": "texto",
           "titulo": {
-            "es": "Se diseña antes de fabricar",
-            "en": "We design before we manufacture"
+            "es": "Qué hace Nuvia Design y por qué te importa",
+            "en": "What Nuvia Design does and why it matters to you"
           },
           "cuerpo": {
-            "es": "Nuvia Design es el departamento que diseña, en computadora, **prótesis dentales que se atornillan sobre implantes**. La clínica nos envía escaneos de la boca, fotos y tomografías del paciente; nosotros los convertimos en un diseño 3D que el laboratorio puede fresar o imprimir.\n\nNo necesitas saber odontología para empezar: en este módulo te explicamos cada palabra la primera vez que aparece.",
-            "en": "Nuvia Design is the department that designs **dental prostheses that screw onto implants**, on the computer. The clinic sends us scans of the mouth, photos and CT scans of the patient; we turn them into a 3D design that the lab can mill or print.\n\nYou do not need to know dentistry to get started: this module explains every word the first time it appears."
+            "es": "**Nuvia Design** es el departamento (con base en Colombia) que diseña en computadora las **prótesis dentales fijas que se atornillan sobre implantes** de los pacientes de tu red. Tu clínica o laboratorio nos envía escaneos, fotos, una tomografía y el registro de posición de los implantes; nosotros los convertimos en archivos 3D que el laboratorio de fabricación fresa o imprime.\n\nTú no diseñas ni intervienes en el diseño, pero lo que envías y lo que respondes decide cuánto tarda un caso y si sale bien.",
+            "en": "**Nuvia Design** is the department (based in Colombia) that designs, on the computer, the **fixed dental prostheses that screw onto implants** for the patients in your network. Your clinic or lab sends us scans, photos, a CT scan and the implant position record; we turn them into 3D files that the manufacturing lab mills or prints.\n\nYou do not design or step into the design, but what you send and how you respond decides how long a case takes and whether it comes out right."
           },
           "porque": {
-            "es": "Una prótesis sobre implantes tiene que encajar con mucha precisión en la boca de una persona concreta. Diseñarla primero en digital permite revisar medidas, mordida y estética antes de fabricar nada.",
-            "en": "A prosthesis on implants has to fit very precisely in one specific person's mouth. Designing it digitally first lets us check measurements, bite and aesthetics before anything is manufactured."
+            "es": "Una prótesis sobre implantes debe encajar con mucha precisión en la boca de una persona concreta. Diseñarla primero en digital permite revisar medidas, mordida y estética antes de fabricar nada; corregir en el diseño es mucho más barato que corregir en boca.",
+            "en": "A prosthesis on implants has to fit one specific person's mouth very precisely. Designing it digitally first lets us check measurements, bite and aesthetics before anything is manufactured; fixing things in the design is far cheaper than fixing them in the mouth."
           }
-        },
-        {
-          "t": "texto",
-          "titulo": {
-            "es": "Una analogía para empezar",
-            "en": "An analogy to start"
-          },
-          "cuerpo": {
-            "es": "Piensa en un arquitecto: antes de construir una casa dibuja los planos y los revisa con el cliente. Nosotros hacemos lo mismo con la sonrisa: el paciente y el doctor ven y aprueban el diseño, y recién después el laboratorio fabrica.\n\nEl paciente puede haber perdido todos sus dientes (se le llama *edéntulo*), y la prótesis fija sobre implantes le devuelve una sonrisa y la capacidad de masticar.",
-            "en": "Think of an architect: before building a house they draw the plans and review them with the client. We do the same with the smile: the patient and the doctor see and approve the design, and only then does the lab manufacture.\n\nThe patient may have lost all their teeth (called *edentulous*), and a fixed prosthesis on implants gives back a smile and the ability to chew."
-          },
-          "general": true
         },
         {
           "t": "tarjetas",
           "titulo": {
-            "es": "Lo que entra y lo que sale",
-            "en": "What comes in and what goes out"
+            "es": "Lo que entra, lo que sale y lo que pasa en tu laboratorio",
+            "en": "What comes in, what goes out and what it means for your lab"
           },
           "items": [
             {
@@ -61,8 +50,8 @@
                 "en": "In: clinic records"
               },
               "texto": {
-                "es": "Escaneos intraorales (IOS), fotografías, tomografía (CBCT) y el registro de posición de los implantes (pickup, ICAM o Micron), más la receta del doctor (RX).",
-                "en": "Intraoral scans (IOS), photographs, CT scan (CBCT) and the implant position record (pickup, ICAM or Micron), plus the doctor's prescription (RX)."
+                "es": "Escaneos intraorales (**IOS**), fotos del paciente, tomografía (**CBCT**), el registro de posición de los implantes (pickup, **ICAM** o **Micron**) y la receta del doctor (**RX**).",
+                "en": "Intraoral scans (**IOS**), patient photos, CT scan (**CBCT**), the implant position record (pickup, **ICAM** or **Micron**) and the doctor's prescription (**RX**)."
               }
             },
             {
@@ -72,8 +61,8 @@
                 "en": "Here: the 3D design"
               },
               "texto": {
-                "es": "Alineamos todo en un programa 3D, aplicamos los cambios pedidos por el doctor y verificamos medidas mínimas.",
-                "en": "We align everything in 3D software, apply the changes the doctor requested and verify minimum measurements."
+                "es": "Alineamos los registros, aplicamos los cambios que pidió el doctor y verificamos que la prótesis cumpla las medidas mínimas.",
+                "en": "We align the records, apply the changes the doctor requested and verify that the prosthesis meets the minimum measurements."
               }
             },
             {
@@ -83,36 +72,185 @@
                 "en": "Out: files to manufacture"
               },
               "texto": {
-                "es": "Una carpeta To Mill / To Print con lo que el laboratorio necesita (por ejemplo barra, cubierta de dientes, guía), más evidencias y visores HTML.",
-                "en": "A To Mill / To Print folder with what the lab needs (for example bar, tooth cover, guide), plus evidence and HTML viewers."
+                "es": "Una carpeta **To Mill / To Print** con lo que el laboratorio de fabricación necesita, más evidencias y visores HTML.",
+                "en": "A **To Mill / To Print** folder with what the manufacturing lab needs, plus evidence and HTML viewers."
               }
             },
             {
-              "icono": "🎯",
+              "icono": "🤝",
               "titulo": {
-                "es": "Por qué importa",
-                "en": "Why it matters"
+                "es": "Para tu laboratorio",
+                "en": "For your lab"
               },
               "texto": {
-                "es": "Un error pequeño en el diseño puede significar una prótesis que no atornilla, que se fractura o que se ve mal. Detectarlo aquí es mucho más barato que en boca.",
-                "en": "A small error in the design can mean a prosthesis that does not screw in, that fractures or that looks wrong. Catching it here is far cheaper than in the mouth."
+                "es": "Eres el puente con el doctor: entregas registros completos, recibes avisos del departamento y los llevas a la clínica a tiempo.",
+                "en": "You are the bridge to the doctor: you deliver complete records, receive notices from the department and take them to the clinic on time."
               }
             }
           ]
         },
         {
+          "t": "tabla",
+          "titulo": {
+            "es": "Las 5 áreas: qué hace cada una",
+            "en": "The 5 areas: what each one does"
+          },
+          "cabeceras": [
+            {
+              "es": "Área",
+              "en": "Area"
+            },
+            {
+              "es": "Qué hace",
+              "en": "What it does"
+            },
+            {
+              "es": "Qué recibe",
+              "en": "What it receives"
+            },
+            {
+              "es": "Qué entrega",
+              "en": "What it delivers"
+            },
+            {
+              "es": "Quién la lidera",
+              "en": "Who leads it"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Face Design",
+                "en": "Face Design"
+              },
+              {
+                "es": "Une escaneos, tomografía y fotos del rostro en una sola escena 3D para saber dónde está realmente la sonrisa.",
+                "en": "Combines scans, CT and face photos into one 3D scene to know where the smile really is."
+              },
+              {
+                "es": "IOS, foto de sonrisa natural y CBCT de la clínica",
+                "en": "IOS, natural smile photo and CBCT from the clinic"
+              },
+              {
+                "es": "La escena alineada, revisada por el manager, para el diseño del bite",
+                "en": "The aligned scene, reviewed by the manager, for the bite design"
+              },
+              {
+                "es": "Manager de Face Design",
+                "en": "Face Design manager"
+              }
+            ],
+            [
+              {
+                "es": "N2 Demodenture",
+                "en": "N2 Demodenture"
+              },
+              {
+                "es": "Diseña el bite y la nueva forma de los dientes de la **Demodenture**, la prótesis de demostración que el paciente se prueba antes de la cirugía.",
+                "en": "Designs the bite and the new tooth shape of the **Demodenture**, the demonstration prosthesis the patient tries on before surgery."
+              },
+              {
+                "es": "La escena de Face Design y la receta (RX) del doctor",
+                "en": "The Face Design scene and the doctor's prescription (RX)"
+              },
+              {
+                "es": "El diseño del bite y de la Demodenture, archivos para imprimir y el tamaño de arco para la cirugía",
+                "en": "The bite and Demodenture design, files to print and the arch size for surgery"
+              },
+              {
+                "es": "Manager de N2",
+                "en": "N2 manager"
+              }
+            ],
+            [
+              {
+                "es": "N3 Prosthetic",
+                "en": "N3 Prosthetic"
+              },
+              {
+                "es": "Es la etapa de la cirugía: verifica la posición real de los implantes y diseña la prótesis atornillada (barra, cubierta de dientes **TC** y guía).",
+                "en": "The surgery stage: verifies the real implant positions and designs the screw-retained prosthesis (bar, tooth cover **TC** and guide)."
+              },
+              {
+                "es": "El diseño de N2, el registro de implantes tomado en cirugía y la mordida",
+                "en": "The N2 design, the implant record taken at surgery and the bite"
+              },
+              {
+                "es": "Carpeta To Mill / To Print, evidencias y visores HTML",
+                "en": "To Mill / To Print folder, evidence and HTML viewers"
+              },
+              {
+                "es": "Manager de N3",
+                "en": "N3 manager"
+              }
+            ],
+            [
+              {
+                "es": "N6 Material Change",
+                "en": "N6 Material Change"
+              },
+              {
+                "es": "Rediseña la prótesis cuando la encía ya sanó, para cambiar de material; también cambios estéticos o reparaciones.",
+                "en": "Redesigns the prosthesis once the gums have healed, to change the material; also aesthetic changes or repairs."
+              },
+              {
+                "es": "Los registros del caso, el registro de implantes y la receta; a veces la prótesis ya fresada, para rehacerla",
+                "en": "The case records, the implant record and the prescription; sometimes the already-milled prosthesis, to redo it"
+              },
+              {
+                "es": "Archivos To Mill / To Print del nuevo diseño",
+                "en": "To Mill / To Print files for the new design"
+              },
+              {
+                "es": "Manager de N6",
+                "en": "N6 manager"
+              }
+            ],
+            [
+              {
+                "es": "Support",
+                "en": "Support"
+              },
+              {
+                "es": "Área especial y transversal: equipos que apoyan al diseño en cualquier etapa (por ejemplo CAM Tech Support, sobre el fresado).",
+                "en": "A special, cross-cutting area: teams that support design at any stage (for example CAM Tech Support, on milling)."
+              },
+              {
+                "es": "Consultas y solicitudes de las áreas y de los managers",
+                "en": "Questions and requests from the areas and managers"
+              },
+              {
+                "es": "Respuestas y apoyo técnico",
+                "en": "Answers and technical support"
+              },
+              {
+                "es": "Líder de Support",
+                "en": "Support lead"
+              }
+            ]
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
-            "es": "Cuánto trabajo es un caso",
-            "en": "How much work is a case"
+            "es": "Dudas por confirmar",
+            "en": "Points to confirm"
           },
           "cuerpo": {
-            "es": "Diseñar un caso lleva desde menos de una hora hasta más de tres horas de trabajo del diseñador, según el producto. Por eso un caso con muchos cambios o detenido esperando información retrasa a todo el equipo.",
-            "en": "Designing a case takes from under one hour to over three hours of the designer's work, depending on the product. That is why a case with many changes, or one stuck waiting for information, delays the whole team."
+            "es": "Las fuentes no describen en detalle qué incluye el área **Support**. Tampoco dejan claro con qué material exacto sale el paciente de la cirugía en N3 (algunos textos hablan de zirconia y otros de un puente provisional en G-CAM, una resina fresada).",
+            "en": "The sources do not describe in detail what the **Support** area includes. They also do not make clear which exact material the patient leaves surgery with in N3 (some texts mention zirconia and others a provisional bridge in G-CAM, a milled resin)."
           },
-          "dato": {
-            "es": "Son tiempos de referencia de trabajo (de 45 minutos a unas 3 horas 20 minutos según el producto), no plazos de entrega ni garantías.",
-            "en": "These are reference working times (from 45 minutes to about 3 hours 20 minutes depending on the product), not delivery deadlines or guarantees."
+          "alerta": {
+            "es": "Confirmar con el manager.",
+            "en": "Confirm with the manager."
+          }
+        },
+        {
+          "t": "lider",
+          "area": "todas",
+          "texto": {
+            "es": "Estas son las personas con quienes coordinas según el tema. Cada área tiene su manager; la lección 4 explica a quién acudir para qué.",
+            "en": "These are the people you coordinate with depending on the topic. Each area has its own manager; lesson 4 explains who to go to for what."
           }
         },
         {
@@ -123,20 +261,20 @@
           },
           "puntos": [
             {
-              "es": "Diseñamos prótesis sobre implantes en digital, antes de que se fabriquen.",
-              "en": "We design prostheses on implants digitally, before they are manufactured."
+              "es": "Nuvia Design diseña en digital las prótesis sobre implantes y entrega archivos para fabricar.",
+              "en": "Nuvia Design digitally designs prostheses on implants and delivers files for manufacturing."
             },
             {
-              "es": "La clínica nos envía escaneos, fotos, tomografía y el registro de los implantes.",
-              "en": "The clinic sends us scans, photos, CT and the implant record."
+              "es": "Son 5 áreas: Face Design, N2 Demodenture, N3 Prosthetic, N6 Material Change y Support.",
+              "en": "There are 5 areas: Face Design, N2 Demodenture, N3 Prosthetic, N6 Material Change and Support."
             },
             {
-              "es": "Entregamos archivos listos para fresar o imprimir.",
-              "en": "We deliver files ready to mill or print."
+              "es": "Cada área recibe lo que dejó la anterior y tiene su propio manager.",
+              "en": "Each area receives what the previous one left and has its own manager."
             },
             {
-              "es": "Corregir en el diseño es más barato que corregir en boca.",
-              "en": "Fixing things in the design is cheaper than fixing them in the mouth."
+              "es": "Support es transversal: apoya a las demás, no es una etapa más del recorrido.",
+              "en": "Support is cross-cutting: it backs up the others, it is not one more step in the journey."
             }
           ]
         },
@@ -146,85 +284,98 @@
             {
               "tipo": "una",
               "enunciado": {
-                "es": "¿Por qué se diseña la prótesis en digital antes de fabricarla?",
-                "en": "Why is the prosthesis designed digitally before it is manufactured?"
+                "es": "¿Qué entrega el departamento al laboratorio de fabricación?",
+                "en": "What does the department hand to the manufacturing lab?"
               },
               "opciones": [
                 {
                   "texto": {
-                    "es": "Para revisar medidas, mordida y estética antes de fabricar algo que debe encajar con precisión.",
-                    "en": "To check measurements, bite and aesthetics before manufacturing something that must fit precisely."
+                    "es": "Archivos de diseño listos para fresar o imprimir.",
+                    "en": "Design files ready to mill or print."
                   },
                   "ok": true
                 },
                 {
                   "texto": {
-                    "es": "Porque así el laboratorio ya no tiene que fabricar nada.",
-                    "en": "Because that way the lab no longer has to manufacture anything."
+                    "es": "La prótesis ya fabricada.",
+                    "en": "The finished, manufactured prosthesis."
                   }
                 },
                 {
                   "texto": {
-                    "es": "Porque el paciente nunca ve el resultado antes de la cirugía.",
-                    "en": "Because the patient never sees the result before surgery."
+                    "es": "Solo los escaneos originales de la clínica.",
+                    "en": "Only the clinic's original scans."
                   }
                 }
               ],
               "explicacion": {
-                "es": "El diseño digital permite detectar y corregir problemas antes de fabricar; el laboratorio sí fabrica, pero a partir de nuestros archivos.",
-                "en": "The digital design lets us detect and fix problems before manufacturing; the lab still manufactures, but from our files."
+                "es": "El departamento diseña; la fabricación la hace el laboratorio a partir de nuestros archivos.",
+                "en": "The department designs; the lab manufactures from our files."
               }
             },
             {
-              "tipo": "varias",
+              "tipo": "parejas",
               "enunciado": {
-                "es": "¿Cuáles de estos son registros que la clínica envía al departamento?",
-                "en": "Which of these are records the clinic sends to the department?"
+                "es": "Une cada área con su trabajo.",
+                "en": "Match each area with its job."
               },
-              "opciones": [
+              "pares": [
                 {
-                  "texto": {
-                    "es": "Escaneos intraorales (IOS)",
-                    "en": "Intraoral scans (IOS)"
+                  "a": {
+                    "es": "Face Design",
+                    "en": "Face Design"
                   },
-                  "ok": true
-                },
-                {
-                  "texto": {
-                    "es": "Fotografías del paciente",
-                    "en": "Patient photographs"
-                  },
-                  "ok": true
-                },
-                {
-                  "texto": {
-                    "es": "Los archivos de diseño y fresado que genera el propio departamento",
-                    "en": "The design and milling files the department itself generates"
+                  "b": {
+                    "es": "Alinea escaneos, CBCT y fotos en una escena 3D",
+                    "en": "Aligns scans, CBCT and photos in a 3D scene"
                   }
                 },
                 {
-                  "texto": {
-                    "es": "Tomografía (CBCT)",
-                    "en": "CT scan (CBCT)"
+                  "a": {
+                    "es": "N2 Demodenture",
+                    "en": "N2 Demodenture"
                   },
-                  "ok": true
+                  "b": {
+                    "es": "Diseña la prótesis de demostración antes de la cirugía",
+                    "en": "Designs the demonstration prosthesis before surgery"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "N3 Prosthetic",
+                    "en": "N3 Prosthetic"
+                  },
+                  "b": {
+                    "es": "Diseña la prótesis atornillada en la etapa de cirugía",
+                    "en": "Designs the screw-retained prosthesis at the surgery stage"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "N6 Material Change",
+                    "en": "N6 Material Change"
+                  },
+                  "b": {
+                    "es": "Cambia el material cuando la encía ya sanó",
+                    "en": "Changes the material once the gums have healed"
+                  }
                 }
               ],
               "explicacion": {
-                "es": "Lo que la clínica envía son los registros: escaneos, fotos, tomografía y registro de implantes. Los archivos de diseño y de fresado los genera el departamento. (En algunos casos de N6 también llega una prótesis ya fresada para rehacerla, pero no es el registro habitual de entrada.)",
-                "en": "What the clinic sends are the records: scans, photos, CT and implant records. The design and milling files are generated by the department. (In some N6 cases a milled prosthesis also arrives to be redone, but it is not the usual input record.)"
+                "es": "Cada área tiene un trabajo distinto y depende de lo que dejó la anterior.",
+                "en": "Each area has a different job and depends on what the previous one left."
               }
             },
             {
               "tipo": "vf",
               "enunciado": {
-                "es": "Los tiempos de diseño por producto son garantías de entrega al paciente.",
-                "en": "Design times per product are delivery guarantees to the patient."
+                "es": "Support es la última etapa por la que pasa todo caso, después de N6.",
+                "en": "Support is the last stage every case goes through, after N6."
               },
               "ok": false,
               "explicacion": {
-                "es": "Son tiempos de referencia del trabajo del diseñador; los plazos de calendario son otra cosa.",
-                "en": "They are reference times for the designer's work; calendar deadlines are a different thing."
+                "es": "Support es un área especial y transversal: apoya a las demás en cualquier momento, no es una etapa más.",
+                "en": "Support is a special, cross-cutting area: it backs up the others at any time; it is not another stage."
               }
             }
           ]
@@ -234,10 +385,10 @@
     {
       "id": "m0-l2",
       "titulo": {
-        "es": "Cómo fluye un caso",
-        "en": "How a case flows"
+        "es": "Cómo viaja un caso",
+        "en": "How a case travels"
       },
-      "minutos": 7,
+      "minutos": 9,
       "pasos": [
         {
           "t": "texto",
@@ -246,12 +397,12 @@
             "en": "A relay race"
           },
           "cuerpo": {
-            "es": "Un caso pasa por varias manos, como en una carrera de relevos: cada área recibe el trabajo del área anterior y lo deja listo para la siguiente. Si alguien entrega algo mal alineado, el error se arrastra hasta el final.\n\nPor eso cada etapa tiene su control de calidad y sus reglas escritas.",
-            "en": "A case passes through several hands, like a relay race: each area receives the work of the previous one and leaves it ready for the next. If someone hands off something misaligned, the error is carried all the way to the end.\n\nThat is why every stage has its own quality control and written rules."
+            "es": "Un caso pasa de un área a otra como un testigo en una carrera de relevos: cada área recibe el trabajo de la anterior y lo deja listo para la siguiente. Si alguien entrega algo mal alineado o incompleto, el error se arrastra hasta el final.\n\nPor eso cada etapa tiene su control de calidad (**QC**: una revisión antes de pasar a la siguiente) y sus reglas escritas, llamadas **protocolos**.",
+            "en": "A case moves from one area to the next like the baton in a relay race: each area receives the previous one's work and leaves it ready for the next. If someone hands off something misaligned or incomplete, the error is carried all the way to the end.\n\nThat is why every stage has its own quality control (**QC**: a review before moving on) and written rules, called **protocols**."
           },
           "porque": {
-            "es": "En Face Design se dice expresamente que una alineación errónea se arrastra a Bite Design, al diseño y a la fabricación; es más barato detectarla en la etapa donde ocurre.",
-            "en": "Face Design explicitly states that a wrong alignment is carried into Bite Design, design and manufacturing; it is cheaper to catch it at the stage where it happens."
+            "es": "Face Design lo dice expresamente: una alineación errónea se arrastra al diseño del bite, al diseño final y a la fabricación. Es más barato detectarla en la etapa donde ocurre.",
+            "en": "Face Design states it explicitly: a wrong alignment is carried into the bite design, the final design and manufacturing. It is cheaper to catch it in the stage where it happens."
           }
         },
         {
@@ -263,12 +414,12 @@
           "pasos": [
             {
               "titulo": {
-                "es": "La clínica envía registros",
-                "en": "The clinic sends records"
+                "es": "Tu clínica envía los registros",
+                "en": "Your clinic sends the records"
               },
               "texto": {
-                "es": "Fotos, escaneos de la boca (IOS), tomografía (CBCT) y la receta (RX).",
-                "en": "Photos, mouth scans (IOS), CT scan (CBCT) and the prescription (RX)."
+                "es": "Escaneos de la boca (IOS), foto de sonrisa natural, tomografía (CBCT) y la receta (RX).",
+                "en": "Mouth scans (IOS), natural smile photo, CT scan (CBCT) and the prescription (RX)."
               }
             },
             {
@@ -277,58 +428,58 @@
                 "en": "Face Design"
               },
               "texto": {
-                "es": "Alinea escaneos, CBCT y fotos de la cara en una sola escena 3D, para saber dónde está realmente la sonrisa.",
-                "en": "Aligns scans, CBCT and face photos in a single 3D scene, to know where the smile really is."
+                "es": "Alinea todo en una escena 3D. El manager revisa antes de pasar a la siguiente etapa.",
+                "en": "Aligns everything in one 3D scene. The manager reviews before it moves to the next stage."
               }
             },
             {
               "titulo": {
-                "es": "N2: bite y Demodenture",
-                "en": "N2: bite and Demodenture"
+                "es": "N2 Demodenture",
+                "en": "N2 Demodenture"
               },
               "texto": {
-                "es": "Se diseña la nueva morfología y la oclusión de una prótesis de demostración que el paciente se prueba.",
-                "en": "The new morphology and occlusion of a demonstration prosthesis the patient tries on are designed."
+                "es": "Diseña el bite y la Demodenture que el paciente se prueba antes de la cirugía.",
+                "en": "Designs the bite and the Demodenture the patient tries on before surgery."
               }
             },
             {
               "titulo": {
-                "es": "Cirugía",
-                "en": "Surgery"
+                "es": "Cirugía en la clínica",
+                "en": "Surgery at the clinic"
               },
               "texto": {
-                "es": "La clínica coloca los implantes y toma el registro de su posición (pickup y/o ICAM o Micron).",
-                "en": "The clinic places the implants and records their position (pickup and/or ICAM or Micron)."
+                "es": "Se colocan los implantes y se toma el registro de su posición (pickup y/o ICAM o Micron).",
+                "en": "The implants are placed and their position is recorded (pickup and/or ICAM or Micron)."
               }
             },
             {
               "titulo": {
-                "es": "N3: prótesis sobre los implantes",
-                "en": "N3: prosthesis on the implants"
+                "es": "N3 Prosthetic",
+                "en": "N3 Prosthetic"
               },
               "texto": {
-                "es": "Se verifica la posición de los implantes, se monta la mordida y se diseñan la barra, la cubierta de dientes (TC) y la guía de articulación.",
-                "en": "Implant positions are verified, the bite is mounted, and the bar, the tooth cover (TC) and the articulation guide are designed."
+                "es": "Verifica los implantes, monta la mordida y diseña barra, TC y guía.",
+                "en": "Verifies the implants, mounts the bite and designs the bar, TC and guide."
               }
             },
             {
               "titulo": {
-                "es": "N6: cambio de material",
-                "en": "N6: material change"
+                "es": "N6 Material Change",
+                "en": "N6 Material Change"
               },
               "texto": {
-                "es": "Cuando la encía ya sanó, el paciente vuelve para cambiar la prótesis a otro material.",
-                "en": "Once the gums have healed, the patient returns to change the prosthesis to another material."
+                "es": "Cuando la encía ya sanó, rediseña para cambiar de material, si el caso lo requiere.",
+                "en": "Once the gums have healed, redesigns to change the material, if the case needs it."
               }
             },
             {
               "titulo": {
-                "es": "Laboratorio y entrega",
-                "en": "Lab and delivery"
+                "es": "Support, en paralelo",
+                "en": "Support, in parallel"
               },
               "texto": {
-                "es": "El laboratorio fresa o imprime y suelda; la entrega al paciente es la cita N4.",
-                "en": "The lab mills or prints and welds; delivery to the patient is the N4 appointment."
+                "es": "Apoya a cualquiera de las áreas anteriores cuando hace falta.",
+                "en": "Backs up any of the areas above whenever needed."
               }
             }
           ]
@@ -336,21 +487,10 @@
         {
           "t": "tarjetas",
           "titulo": {
-            "es": "Las áreas, de un vistazo",
-            "en": "The areas at a glance"
+            "es": "Qué entra desde tu lado en cada etapa",
+            "en": "What comes in from your side at each stage"
           },
           "items": [
-            {
-              "icono": "📸",
-              "titulo": {
-                "es": "Fotografía y escaneos",
-                "en": "Photography and scans"
-              },
-              "texto": {
-                "es": "No los hacemos nosotros: llegan de la clínica. Se revisan con protocolos de aceptación o rechazo (por ejemplo, la foto debe ser recta y con las orejas visibles).",
-                "en": "We do not take them: they come from the clinic. They are checked against accept/reject protocols (for example, the photo must be straight with ears visible)."
-              }
-            },
             {
               "icono": "🙂",
               "titulo": {
@@ -358,8 +498,8 @@
                 "en": "Face Design"
               },
               "texto": {
-                "es": "Une IOS, CBCT y fotos del rostro para que las etapas siguientes sepan dónde están la sonrisa, la línea media y el soporte del labio.",
-                "en": "Joins IOS, CBCT and face photos so later stages know where the smile, midline and lip support are."
+                "es": "IOS completos, foto de sonrisa natural con dientes visibles (si hay removible, parcial o bite blocks, la versión con bite blocks) y CBCT.",
+                "en": "Complete IOS, a natural smile photo with teeth visible (if there is a removable, partial or bite blocks, the bite blocks version) and the CBCT."
               }
             },
             {
@@ -369,8 +509,8 @@
                 "en": "N2"
               },
               "texto": {
-                "es": "Diseña la Demodenture, la prótesis de demostración con la nueva morfología, antes de la cirugía.",
-                "en": "Designs the Demodenture, the demonstration prosthesis with the new morphology, before surgery."
+                "es": "La receta (RX) y los comentarios del doctor: qué cambios quiere, o si el diseño debe seguir la posición de la demo actual.",
+                "en": "The prescription (RX) and the doctor's comments: which changes they want, or whether the design should follow the current demo position."
               }
             },
             {
@@ -380,8 +520,8 @@
                 "en": "N3"
               },
               "texto": {
-                "es": "Diseña la prótesis atornillada sobre los implantes (barra, TC, guía) a partir del registro de implantes y la mordida.",
-                "en": "Designs the prosthesis screwed onto the implants (bar, TC, guide) from the implant record and the bite."
+                "es": "El registro de implantes (ICAM o Micron), el pickup con sus stumps, el plato y los escaneos de la mordida. Sin ICAM o Micron no hay caso.",
+                "en": "The implant record (ICAM or Micron), the pickup with its stumps, the plate and the bite scans. Without ICAM or Micron there is no case."
               }
             },
             {
@@ -391,22 +531,138 @@
                 "en": "N6"
               },
               "texto": {
-                "es": "Cambio de material cuando la encía ya sanó; también puede haber cambios estéticos o reparaciones.",
-                "en": "Material change once the gums have healed; there can also be aesthetic changes or repairs."
-              }
-            },
-            {
-              "icono": "🛟",
-              "titulo": {
-                "es": "Support",
-                "en": "Support"
-              },
-              "texto": {
-                "es": "Equipos de apoyo al diseño; por ejemplo, CAM Tech Support, que se comunica con los managers de diseño sobre el fresado.",
-                "en": "Teams that support design; for example, CAM Tech Support, which communicates with design managers about milling."
+                "es": "Los registros del paciente ya sanado y la receta; en algunos casos, la prótesis ya fresada para rehacerla.",
+                "en": "The records of the healed patient and the prescription; in some cases, the already-milled prosthesis, to redo it."
               }
             }
           ]
+        },
+        {
+          "t": "caso",
+          "titulo": {
+            "es": "Ejemplo ilustrativo: Case A, ambos arcos",
+            "en": "Illustrative example: Case A, both arches"
+          },
+          "contexto": {
+            "es": "Ejemplo ilustrativo construido con lo que dicen los protocolos (no es un paciente real): un paciente con implantes en ambos arcos, producto Full Mouth 24Z. Los tiempos que ves son horas de trabajo del diseñador, no plazos de entrega.",
+            "en": "Illustrative example built from what the protocols say (not a real patient): a patient with implants in both arches, Full Mouth 24Z product. The times you see are the designer's working hours, not delivery deadlines."
+          },
+          "etapas": [
+            {
+              "titulo": {
+                "es": "La clínica envía los registros",
+                "en": "The clinic sends the records"
+              },
+              "texto": {
+                "es": "IOS, foto de sonrisa natural, CBCT y receta. El manager de tu laboratorio confirma que estén completos.",
+                "en": "IOS, natural smile photo, CBCT and prescription. Your lab manager confirms they are complete."
+              },
+              "quien": {
+                "es": "Clínica y tu laboratorio",
+                "en": "Clinic and your lab"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Face Design",
+                "en": "Face Design"
+              },
+              "texto": {
+                "es": "Se alinea todo en una escena 3D y el manager revisa el trabajo antes de pasar a N2.",
+                "en": "Everything is aligned in one 3D scene and the manager reviews the work before it moves to N2."
+              },
+              "tiempo": {
+                "es": "≈1 h de trabajo",
+                "en": "≈1 h of work"
+              },
+              "quien": {
+                "es": "Diseñador y manager de Face Design",
+                "en": "Face Design designer and manager"
+              }
+            },
+            {
+              "titulo": {
+                "es": "N2: bite y Demodenture",
+                "en": "N2: bite and Demodenture"
+              },
+              "texto": {
+                "es": "Se diseña el bite y la Demodenture; el doctor tiene 24 h para aprobar. Si no responde, el diseño se aprueba automáticamente y los cambios se pueden pedir en N3.",
+                "en": "The bite and Demodenture are designed; the doctor has 24 h to approve. If there is no answer, the design is approved automatically and changes can be requested in N3."
+              },
+              "tiempo": {
+                "es": "≈1 h 50 min de trabajo",
+                "en": "≈1 h 50 min of work"
+              },
+              "quien": {
+                "es": "Diseñador de N2",
+                "en": "N2 designer"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Cirugía",
+                "en": "Surgery"
+              },
+              "texto": {
+                "es": "La clínica coloca los implantes y toma el pickup y el ICAM o Micron.",
+                "en": "The clinic places the implants and takes the pickup and the ICAM or Micron."
+              },
+              "quien": {
+                "es": "Clínica",
+                "en": "Clinic"
+              }
+            },
+            {
+              "titulo": {
+                "es": "N3: verificar y diseñar",
+                "en": "N3: verify and design"
+              },
+              "texto": {
+                "es": "Se comparan los implantes del ICAM o Micron contra el pickup, se monta la mordida y se diseñan barra y guía. Si falta o no coincide algún registro, el caso queda en Hold hasta recibirlo.",
+                "en": "The ICAM or Micron implants are compared against the pickup, the bite is mounted and the bar and guide are designed. If a record is missing or does not match, the case goes on Hold until it arrives."
+              },
+              "tiempo": {
+                "es": "≈1 h 40 min de trabajo",
+                "en": "≈1 h 40 min of work"
+              },
+              "quien": {
+                "es": "Diseñador y manager de N3",
+                "en": "N3 designer and manager"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Entrega de archivos y fabricación",
+                "en": "File handoff and manufacturing"
+              },
+              "texto": {
+                "es": "Se sube la carpeta To Mill / To Print; el laboratorio fresa y suelda, y la entrega al paciente es la cita N4.",
+                "en": "The To Mill / To Print folder is uploaded; the lab mills and welds, and delivery to the patient is the N4 appointment."
+              },
+              "quien": {
+                "es": "Laboratorio de fabricación",
+                "en": "Manufacturing lab"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Más adelante, si hace falta: N6",
+                "en": "Later, if needed: N6"
+              },
+              "texto": {
+                "es": "Con la encía ya sanada se puede rediseñar para cambiar de material.",
+                "en": "Once the gums have healed, the prosthesis can be redesigned to change the material."
+              },
+              "quien": {
+                "es": "Diseñador de N6",
+                "en": "N6 designer"
+              }
+            }
+          ],
+          "resultado": {
+            "es": "Cada área recibió lo que dejó la anterior. Si en cualquier punto falta un registro, el caso se detiene en Hold en vez de diseñarse con datos incompletos.",
+            "en": "Each area received what the previous one left. If a record is missing at any point, the case is put on Hold rather than being designed with incomplete data."
+          }
         },
         {
           "t": "texto",
@@ -415,12 +671,12 @@
             "en": "The Traveling case"
           },
           "cuerpo": {
-            "es": "Un paciente *Traveling* viaja a la clínica y se opera a los pocos días. Como tiene una fecha de cirugía fija, su caso es prioritario y **salta etapas**: no hay Lab Check-In, no hay Face Design (se alinea directo con la foto de sonrisa natural) y no hay Doctor Authorization después de Demo Design.",
-            "en": "A *Traveling* patient travels to the clinic and has surgery within a few days. Because the surgery date is fixed, the case is a priority and **skips stages**: there is no Lab Check-In, no Face Design (alignment is done directly with the natural smile photo) and no Doctor Authorization after Demo Design."
+            "es": "Un paciente **Traveling** viaja a la clínica y se opera a los pocos días. Como la fecha de cirugía es fija, su caso es prioritario y **salta etapas**: no hay Face Design (se alinea directo con la foto de sonrisa natural) ni autorización del doctor después del diseño de la Demodenture.",
+            "en": "A **Traveling** patient travels to the clinic and has surgery within a few days. Because the surgery date is fixed, the case is a priority and **skips stages**: there is no Face Design (alignment is done directly with the natural smile photo) and no doctor authorization after the Demodenture design."
           },
           "dato": {
-            "es": "La orden debe aprobarse antes de las 12:00 pm del centro (con tolerancia de unos 30 minutos si lo autoriza el manager).",
-            "en": "The order must be approved before 12:00 pm at the center (with about 30 minutes of tolerance if the manager authorizes it)."
+            "es": "La orden debe aprobarse antes de las 12:00 pm hora del centro (con unos 30 minutos de tolerancia si el manager lo autoriza).",
+            "en": "The order must be approved before 12:00 pm center time (with about 30 minutes of tolerance if the manager authorizes it)."
           },
           "alerta": {
             "es": "Si el doctor quiere revisar un caso Traveling, avisa al manager.",
@@ -428,18 +684,391 @@
           }
         },
         {
+          "t": "enlace",
+          "titulo": {
+            "es": "Para saber más: el caso Traveling",
+            "en": "To learn more: the Traveling case"
+          },
+          "texto": {
+            "es": "Si quieres ver el detalle técnico de la Demodenture y el caso Traveling, está en la biblioteca de referencia.",
+            "en": "If you want the technical detail on the Demodenture and the Traveling case, it is in the reference library."
+          },
+          "lecc": "m6a-l5"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "El orden general es: registros de la clínica, Face Design, N2, cirugía, N3 y, después, N6.",
+              "en": "The general order is: clinic records, Face Design, N2, surgery, N3 and, later, N6."
+            },
+            {
+              "es": "Cada área necesita lo que dejó la anterior; un error temprano se arrastra al final.",
+              "en": "Each area needs what the previous one left; an early error is carried to the end."
+            },
+            {
+              "es": "Sin ICAM o Micron no hay caso en N3: el registro de implantes es indispensable.",
+              "en": "Without ICAM or Micron there is no N3 case: the implant record is essential."
+            },
+            {
+              "es": "Los casos Traveling saltan etapas por su fecha de cirugía fija.",
+              "en": "Traveling cases skip stages because of their fixed surgery date."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "orden",
+              "enunciado": {
+                "es": "Ordena las áreas según el recorrido general de un caso.",
+                "en": "Put the areas in the general order of a case."
+              },
+              "items": [
+                {
+                  "es": "Face Design",
+                  "en": "Face Design"
+                },
+                {
+                  "es": "N2 Demodenture",
+                  "en": "N2 Demodenture"
+                },
+                {
+                  "es": "N3 Prosthetic",
+                  "en": "N3 Prosthetic"
+                },
+                {
+                  "es": "N6 Material Change",
+                  "en": "N6 Material Change"
+                }
+              ],
+              "explicacion": {
+                "es": "Cada área necesita lo que dejó la anterior: no se puede diseñar sobre los implantes sin saber dónde quedaron tras la cirugía.",
+                "en": "Each area needs what the previous one left: you cannot design on the implants without knowing where they ended up after surgery."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué importa que Face Design entregue una alineación correcta?",
+                "en": "Why does it matter that Face Design hands off a correct alignment?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Porque un error de alineación se arrastra a las etapas siguientes y a la fabricación.",
+                    "en": "Because an alignment error is carried into later stages and manufacturing."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque Face Design fabrica la prótesis final.",
+                    "en": "Because Face Design manufactures the final prosthesis."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque así N6 ya no hace falta.",
+                    "en": "Because that way N6 is no longer needed."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Cada etapa hereda lo de la anterior; por eso se revisa (QC) donde ocurre.",
+                "en": "Each stage inherits from the previous one; that is why it is reviewed (QC) where it happens."
+              }
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿Cuáles de estos son registros que llegan desde la clínica?",
+                "en": "Which of these are records that come from the clinic?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Escaneos intraorales (IOS)",
+                    "en": "Intraoral scans (IOS)"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Foto de sonrisa natural",
+                    "en": "Natural smile photo"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Tomografía (CBCT)",
+                    "en": "CT scan (CBCT)"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "La carpeta To Mill / To Print",
+                    "en": "The To Mill / To Print folder"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "La carpeta To Mill / To Print la genera el departamento al final del diseño; los otros tres son registros de entrada.",
+                "en": "The To Mill / To Print folder is generated by the department at the end of the design; the other three are input records."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Un caso Traveling salta etapas como Face Design porque tiene una fecha de cirugía fija.",
+                "en": "A Traveling case skips stages such as Face Design because it has a fixed surgery date."
+              },
+              "ok": true,
+              "explicacion": {
+                "es": "Es prioritario y se saltan etapas para ganar tiempo.",
+                "en": "It is a priority and stages are skipped to save time."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m0-l3",
+      "titulo": {
+        "es": "Tiempos y expectativas",
+        "en": "Timing and expectations"
+      },
+      "minutos": 8,
+      "pasos": [
+        {
           "t": "texto",
           "titulo": {
-            "es": "Dudas por confirmar",
-            "en": "Points to confirm"
+            "es": "Dos relojes distintos",
+            "en": "Two different clocks"
           },
           "cuerpo": {
-            "es": "Los documentos no definen del todo el área *Support* ni el material exacto con que sale el paciente de la cirugía en N3 (algunos textos hablan de zirconia y otros de un puente provisional en G-CAM).",
-            "en": "The documents do not fully define the *Support* area, nor the exact material the patient leaves surgery with in N3 (some texts mention zirconia and others a provisional G-CAM bridge)."
+            "es": "Cuando alguien pregunta \"¿cuánto tarda un caso?\" puede referirse a dos cosas muy distintas: las **horas de trabajo del diseñador** (cuánto tiempo efectivo lleva diseñarlo) o el **plazo de calendario** de la Guía de producto (en qué tiempo se debe responder, aprobar o entregar). Una hora de trabajo no equivale a una hora en el calendario: entre medias hay colas, aprobaciones del doctor y, a veces, esperas por información.",
+            "en": "When someone asks \"how long does a case take?\" they can mean two very different things: the **designer's working hours** (the actual time it takes to design it) or the **calendar deadline** in the Product Guide (the time within which something must be answered, approved or delivered). A working hour is not a calendar hour: in between there are queues, doctor approvals and sometimes waiting for information."
           },
           "alerta": {
-            "es": "Confirmar con el manager.",
-            "en": "Confirm with the manager."
+            "es": "No mezcles las dos cosas al hablar con el doctor o la clínica.",
+            "en": "Do not mix the two when talking to the doctor or the clinic."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Horas de trabajo vs plazos de calendario",
+            "en": "Working hours vs calendar deadlines"
+          },
+          "cabeceras": [
+            {
+              "es": "Producto",
+              "en": "Product"
+            },
+            {
+              "es": "Horas de trabajo del diseñador (referencia)",
+              "en": "Designer working hours (reference)"
+            },
+            {
+              "es": "Plazos de calendario de la Guía de producto",
+              "en": "Product Guide calendar deadlines"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Face Design",
+                "en": "Face Design"
+              },
+              {
+                "es": "≈1 h (alineación 15 min + diseño 45 min)",
+                "en": "≈1 h (alignment 15 min + design 45 min)"
+              },
+              {
+                "es": "Sin plazo propio en las fuentes revisadas",
+                "en": "No separate deadline in the sources reviewed"
+              }
+            ],
+            [
+              {
+                "es": "N2 Full Mouth / U-L",
+                "en": "N2 Full Mouth / U-L"
+              },
+              {
+                "es": "≈1 h 50 min",
+                "en": "≈1 h 50 min"
+              },
+              {
+                "es": "El doctor tiene 24 h para aprobar; el laboratorio necesita 3 días hábiles",
+                "en": "The doctor has 24 h to approve; the lab needs 3 business days"
+              }
+            ],
+            [
+              {
+                "es": "N2 Single 24z",
+                "en": "N2 Single 24z"
+              },
+              {
+                "es": "≈2 h 15 min (incluye barra)",
+                "en": "≈2 h 15 min (includes bar)"
+              },
+              {
+                "es": "El doctor tiene 36 h para aprobar; el laboratorio necesita 8 días",
+                "en": "The doctor has 36 h to approve; the lab needs 8 days"
+              }
+            ],
+            [
+              {
+                "es": "N3 Full Mouth 24z",
+                "en": "N3 Full Mouth 24z"
+              },
+              {
+                "es": "≈1 h 40 min",
+                "en": "≈1 h 40 min"
+              },
+              {
+                "es": "Flujo de 24 h; 30 minutos para resolver aprobaciones del doctor",
+                "en": "24 h workflow; 30 minutes to resolve doctor approvals"
+              }
+            ],
+            [
+              {
+                "es": "N3 Single 24z",
+                "en": "N3 Single 24z"
+              },
+              {
+                "es": "≈1 h 20 min",
+                "en": "≈1 h 20 min"
+              },
+              {
+                "es": "30 minutos para aprobaciones del doctor (en un Redo Single 24z, el doctor tiene 48 h y la producción lleva 8 días)",
+                "en": "30 minutes for doctor approvals (in a Redo Single 24z, the doctor has 48 h and production takes 8 days)"
+              }
+            ],
+            [
+              {
+                "es": "N6 Material Change",
+                "en": "N6 Material Change"
+              },
+              {
+                "es": "Desde ≈2 h 10 min hasta ≈3 h 20 min según el producto",
+                "en": "From ≈2 h 10 min to ≈3 h 20 min depending on the product"
+              },
+              {
+                "es": "Entrega a 3 semanas desde la aprobación",
+                "en": "Delivery 3 weeks from approval"
+              }
+            ]
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Ojo con las cifras",
+            "en": "Mind the numbers"
+          },
+          "cuerpo": {
+            "es": "Las horas de trabajo son tiempos **de referencia**, no garantías, y salen de una hoja de cálculo del departamento cuya lectura conviene verificar. Los plazos de la Guía de producto cambian según el producto: N2 Full Mouth habla de 24 h y 3 días hábiles; N2 Single, de 36 h y 8 días.",
+            "en": "Working hours are **reference** times, not guarantees, and come from a department spreadsheet whose reading should be verified. Product Guide deadlines change by product: N2 Full Mouth speaks of 24 h and 3 business days; N2 Single, of 36 h and 8 days."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager antes de comunicar un plazo a un doctor.",
+            "en": "Confirm with the manager before quoting a deadline to a doctor."
+          }
+        },
+        {
+          "t": "calculadora",
+          "id": "tiempos",
+          "titulo": {
+            "es": "Tiempos de diseño por producto",
+            "en": "Design times per product"
+          },
+          "guia": {
+            "es": "Explora cuánto tarda el trabajo del diseñador en cada producto. Son horas de trabajo, no plazos de calendario.",
+            "en": "Explore how long the designer's work takes for each product. These are working hours, not calendar deadlines."
+          }
+        },
+        {
+          "t": "acordeon",
+          "titulo": {
+            "es": "Qué puede retrasar un caso",
+            "en": "What can delay a case"
+          },
+          "items": [
+            {
+              "titulo": {
+                "es": "Hold: el caso se detiene",
+                "en": "Hold: the case stops"
+              },
+              "texto": {
+                "es": "Un caso en **Hold** está detenido a la espera de información o aprobación, por ejemplo un escaneo con datos faltantes o un archivo de implantes vacío. No se diseña con información incompleta porque el resultado podría no encajar y habría que rehacerlo.",
+                "en": "A case on **Hold** is stopped waiting for information or approval, for example a scan with missing data or an empty implant file. We do not design with incomplete information because the result might not fit and would have to be redone."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Faltan registros o no coinciden",
+                "en": "Records are missing or do not match"
+              },
+              "texto": {
+                "es": "Si el número de implantes de la receta, del ICAM o Micron y de los stumps no coincide, puede haber un implante de más o de menos que cambia el diseño; se consulta antes de seguir. Un escaneo con exceso de spray o con material faltante también obliga a pedir uno nuevo.",
+                "en": "If the number of implants in the prescription, the ICAM or Micron and the stumps does not match, there may be an extra or missing implant that changes the design; this is checked before going on. A scan with too much spray or missing material also means asking for a new one."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Implantes que no coinciden con el pickup",
+                "en": "Implants that do not match the pickup"
+              },
+              "texto": {
+                "es": "Si el ICAM o Micron muestra que dos o más implantes del pickup parecen movidos, se pide un nuevo pickup; esa verificación está pensada para tomar como máximo 20 minutos con el paciente presente en la clínica.",
+                "en": "If the ICAM or Micron shows that two or more implants in the pickup look moved, a new pickup is requested; this check is designed to take 20 minutes at most with the patient present at the clinic."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Cambios que piden los doctores",
+                "en": "Changes the doctors request"
+              },
+              "texto": {
+                "es": "Cada cambio sobre la demo tiene reglas. Algunos no se pueden hacer en digital sin invalidar la articulación física (Master). En Single 24z solo se permiten cambios de VDO y borde incisal; cualquier otro cambio obliga a procesarlo como G-CAM, otro producto.",
+                "en": "Each change to the demo has rules. Some cannot be done digitally without invalidating the physical articulation (Master). In Single 24z only VDO and incisal edge changes are allowed; any other change means processing it as G-CAM, a different product."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Esperar al doctor",
+                "en": "Waiting for the doctor"
+              },
+              "texto": {
+                "es": "Si un doctor no responde a una aprobación, el caso espera. En N3 la espera es corta: pasado ese tiempo, el manager y el regional eligen la opción que el doctor suele elegir para no frenar la producción.",
+                "en": "If a doctor does not answer an approval, the case waits. In N3 the wait is short: after that time, the manager and the regional choose the option the doctor usually picks so production is not held up."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Cuándo esperar noticias",
+            "en": "When to expect news"
+          },
+          "cuerpo": {
+            "es": "En un caso N3 Full Mouth hay una ventana de **45 minutos** desde que el diseñador inicia el caso para reportar problemas que ameriten Hold (medidas, ICAM, orificios de acceso); si no hay problema, se envía un mensaje de confirmación antes de cumplirse ese tiempo. Es decir: pronto se sabe si el caso sigue o si hace falta algo de tu lado.",
+            "en": "In an N3 Full Mouth case there is a **45-minute** window from the moment the designer starts the case to report problems that call for a Hold (measurements, ICAM, access holes); if there is no problem, a confirmation message is sent before that time is up. In other words: you learn early whether the case continues or whether something is needed from your side."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager si este aviso aplica igual a tu laboratorio y a otros productos.",
+            "en": "Confirm with the manager whether this notice applies the same way to your lab and to other products."
           }
         },
         {
@@ -450,20 +1079,20 @@
           },
           "puntos": [
             {
-              "es": "Un caso pasa por varias áreas, como una carrera de relevos.",
-              "en": "A case passes through several areas, like a relay race."
+              "es": "Hay dos relojes: horas de trabajo del diseñador y plazos de calendario; no se mezclan.",
+              "en": "There are two clocks: the designer's working hours and calendar deadlines; they are not mixed."
             },
             {
-              "es": "Orden general: registros de la clínica, Face Design, N2, cirugía, N3 y, después, N6.",
-              "en": "General order: clinic records, Face Design, N2, surgery, N3 and, later, N6."
+              "es": "Las horas son tiempos de referencia, no garantías de entrega.",
+              "en": "The hours are reference times, not delivery guarantees."
             },
             {
-              "es": "Face Design une escaneos, CBCT y fotos para ubicar la sonrisa.",
-              "en": "Face Design joins scans, CBCT and photos to locate the smile."
+              "es": "Hold, registros faltantes, implantes que no coinciden, cambios y esperas del doctor son las causas típicas de retraso.",
+              "en": "Hold, missing records, implants that do not match, changes and doctor waits are the typical causes of delay."
             },
             {
-              "es": "Los casos Traveling son prioritarios y saltan etapas por la fecha fija de cirugía.",
-              "en": "Traveling cases are a priority and skip stages because of the fixed surgery date."
+              "es": "Entregar registros completos a la primera es lo que más acorta un caso.",
+              "en": "Delivering complete records the first time is what shortens a case most."
             }
           ]
         },
@@ -471,121 +1100,119 @@
           "t": "quiz",
           "preguntas": [
             {
-              "tipo": "orden",
-              "enunciado": {
-                "es": "Ordena el recorrido general de un caso con implantes.",
-                "en": "Put the general journey of a case with implants in order."
-              },
-              "items": [
-                {
-                  "es": "Registros de la clínica",
-                  "en": "Clinic records"
-                },
-                {
-                  "es": "Face Design",
-                  "en": "Face Design"
-                },
-                {
-                  "es": "N2 (Demodenture)",
-                  "en": "N2 (Demodenture)"
-                },
-                {
-                  "es": "Cirugía y registro de implantes",
-                  "en": "Surgery and implant record"
-                },
-                {
-                  "es": "N3 (prótesis sobre implantes)",
-                  "en": "N3 (prosthesis on implants)"
-                }
-              ],
-              "explicacion": {
-                "es": "Cada área necesita lo que dejó la anterior: no se puede diseñar la prótesis sobre los implantes sin conocer su posición real tras la cirugía.",
-                "en": "Each area needs what the previous one left: you cannot design the prosthesis on the implants without knowing their real position after surgery."
-              }
-            },
-            {
-              "tipo": "parejas",
-              "enunciado": {
-                "es": "Une cada área con su función.",
-                "en": "Match each area with its role."
-              },
-              "pares": [
-                {
-                  "a": {
-                    "es": "Face Design",
-                    "en": "Face Design"
-                  },
-                  "b": {
-                    "es": "Une IOS, CBCT y fotos en una escena 3D",
-                    "en": "Joins IOS, CBCT and photos in one 3D scene"
-                  }
-                },
-                {
-                  "a": {
-                    "es": "N2",
-                    "en": "N2"
-                  },
-                  "b": {
-                    "es": "Diseña la Demodenture antes de la cirugía",
-                    "en": "Designs the Demodenture before surgery"
-                  }
-                },
-                {
-                  "a": {
-                    "es": "N3",
-                    "en": "N3"
-                  },
-                  "b": {
-                    "es": "Diseña la prótesis sobre los implantes",
-                    "en": "Designs the prosthesis on the implants"
-                  }
-                },
-                {
-                  "a": {
-                    "es": "N6",
-                    "en": "N6"
-                  },
-                  "b": {
-                    "es": "Cambio de material tras la sanación de la encía",
-                    "en": "Material change after the gums heal"
-                  }
-                }
-              ],
-              "explicacion": {
-                "es": "Cada área tiene un trabajo distinto y depende de lo que dejó la anterior.",
-                "en": "Each area has a different job and depends on what the previous one left."
-              }
-            },
-            {
               "tipo": "una",
               "enunciado": {
-                "es": "¿Por qué un caso Traveling salta etapas como Face Design?",
-                "en": "Why does a Traveling case skip stages such as Face Design?"
+                "es": "Un producto aparece con 1 h 40 min en la tabla de tiempos. ¿Qué significa?",
+                "en": "A product shows 1 h 40 min in the times table. What does that mean?"
               },
               "opciones": [
                 {
                   "texto": {
-                    "es": "Porque el paciente tiene fecha de cirugía fija y hay que ahorrar tiempo.",
-                    "en": "Because the patient has a fixed surgery date and time must be saved."
+                    "es": "Es una referencia de horas de trabajo del diseñador, no un plazo de entrega.",
+                    "en": "It is a reference for the designer's working hours, not a delivery deadline."
                   },
                   "ok": true
                 },
                 {
                   "texto": {
-                    "es": "Porque esas etapas ya no sirven.",
-                    "en": "Because those stages are no longer useful."
+                    "es": "Es el plazo con el que se compromete la entrega al paciente.",
+                    "en": "It is the deadline the delivery to the patient is committed to."
                   }
                 },
                 {
                   "texto": {
-                    "es": "Porque el doctor siempre revisa el caso en persona.",
-                    "en": "Because the doctor always reviews the case in person."
+                    "es": "Es el tiempo que tiene el doctor para aprobar.",
+                    "en": "It is the time the doctor has to approve."
                   }
                 }
               ],
               "explicacion": {
-                "es": "El caso Traveling es prioritario por su fecha de cirugía; se saltan etapas para ganar tiempo.",
-                "en": "The Traveling case is a priority because of its surgery date; stages are skipped to save time."
+                "es": "Las horas son trabajo efectivo del diseñador; los plazos de calendario están en la Guía de producto y son otra cosa.",
+                "en": "The hours are the designer's actual working time; calendar deadlines are in the Product Guide and are a different thing."
+              }
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿Cuáles de estas situaciones pueden retrasar un caso?",
+                "en": "Which of these situations can delay a case?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Un archivo de implantes vacío",
+                    "en": "An empty implant file"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Un número de implantes que no coincide con la receta",
+                    "en": "An implant count that does not match the prescription"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Un doctor que tarda en aprobar",
+                    "en": "A doctor who is slow to approve"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Recibir los registros completos desde el inicio",
+                    "en": "Receiving the complete records from the start"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Lo que falta, no coincide o espera respuesta detiene el caso; recibir todo completo lo agiliza.",
+                "en": "What is missing, does not match or is waiting for an answer stops the case; receiving everything complete speeds it up."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Si falta un archivo, el diseñador estima el dato que falta para no perder tiempo.",
+                "en": "If a file is missing, the designer estimates the missing data to avoid losing time."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "No se diseña con información incompleta: se pone el caso en Hold y se pide lo que falta, porque un diseño estimado podría no encajar.",
+                "en": "We do not design with incomplete information: the case goes on Hold and what is missing is requested, because an estimated design might not fit."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué conviene no mezclar horas de trabajo con plazos de calendario?",
+                "en": "Why is it best not to mix working hours with calendar deadlines?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Porque en el calendario hay esperas (aprobaciones, información) que las horas de trabajo no incluyen.",
+                    "en": "Because the calendar includes waits (approvals, information) that working hours do not."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque las horas de trabajo siempre son mayores que los plazos.",
+                    "en": "Because working hours are always longer than the deadlines."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque los plazos solo aplican a N6.",
+                    "en": "Because deadlines only apply to N6."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Un caso puede llevar poco trabajo y aun así demorar en el calendario por esperas.",
+                "en": "A case can involve little work and still take longer on the calendar because of waits."
               }
             }
           ]
@@ -593,87 +1220,156 @@
       ]
     },
     {
-      "id": "m0-l3",
+      "id": "m0-l4",
       "titulo": {
-        "es": "Protocolos y organización del trabajo",
-        "en": "Protocols and how work is organized"
+        "es": "Cómo coordinar con el departamento",
+        "en": "How to coordinate with the department"
       },
-      "minutos": 7,
+      "minutos": 9,
       "pasos": [
         {
           "t": "texto",
           "titulo": {
-            "es": "Qué es un protocolo",
-            "en": "What a protocol is"
+            "es": "Una puerta para cada tema",
+            "en": "One door for each topic"
           },
           "cuerpo": {
-            "es": "Un **protocolo** es un documento que explica, paso a paso, cómo hacer una tarea y **por qué** se hace así: qué revisar, qué medidas respetar y cuándo avisar. Es parecido a la lista de verificación de un piloto antes de despegar: no sirve para limitar, sino para que todos hagan lo mismo y nada importante se olvide.",
-            "en": "A **protocol** is a document that explains, step by step, how to do a task and **why** it is done that way: what to check, which measurements to respect and when to raise a flag. It is like a pilot's pre-flight checklist: it is not there to restrict, but so everyone does the same thing and nothing important is forgotten."
+            "es": "Coordinar bien es saber **a quién** acudir, **qué** enviarle y **por dónde**. El manager de diseño asignado a tu centro es tu contacto del día a día: ve el caso, decide si se resuelve o se pone en Hold y avisa al laboratorio o al doctor. Lo que él no puede resolver sube por una escalera de decisión.",
+            "en": "Coordinating well means knowing **who** to go to, **what** to send and **through which channel**. The design manager assigned to your center is your day-to-day contact: they see the case, decide whether it can be resolved or put on Hold, and inform the lab or the doctor. What they cannot resolve goes up a decision ladder."
           },
           "porque": {
-            "es": "Sin reglas escritas, cada diseñador resolvería a su manera y los resultados cambiarían de un caso a otro. Los protocolos reúnen la experiencia del equipo y dejan trazabilidad.",
-            "en": "Without written rules each designer would solve things their own way and results would vary from case to case. Protocols gather the team's experience and leave traceability."
-          },
-          "alerta": {
-            "es": "Cada protocolo lleva una versión en el nombre del archivo. Verifica siempre que usas la vigente.",
-            "en": "Each protocol carries a version in its file name. Always check that you are using the current one."
+            "es": "Si cada persona resolviera por su cuenta y por chats privados, no quedaría rastro de por qué se tomó cada decisión. Por eso todo se documenta en la plataforma y se comunica por los canales del centro.",
+            "en": "If everyone solved things alone and through private chats, there would be no trail of why each decision was made. That is why everything is documented in the platform and communicated through the center's channels."
           }
         },
         {
-          "t": "acordeon",
+          "t": "tabla",
           "titulo": {
-            "es": "Cómo se organiza el trabajo",
-            "en": "How the work is organized"
+            "es": "A quién hablar y para qué",
+            "en": "Who to talk to and for what"
+          },
+          "cabeceras": [
+            {
+              "es": "Si necesitas...",
+              "en": "If you need..."
+            },
+            {
+              "es": "Habla con...",
+              "en": "Talk to..."
+            },
+            {
+              "es": "Para qué",
+              "en": "What for"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Estado de un caso, registros faltantes, Hold",
+                "en": "Case status, missing records, Hold"
+              },
+              {
+                "es": "El manager de diseño de tu centro",
+                "en": "Your center's design manager"
+              },
+              {
+                "es": "Es quien decide si se resuelve o se detiene y avisa al laboratorio o al doctor.",
+                "en": "They decide whether it is resolved or stopped and inform the lab or the doctor."
+              }
+            ],
+            [
+              {
+                "es": "Un caso especial, por ejemplo medidas por debajo del mínimo",
+                "en": "A special case, for example measurements below the minimum"
+              },
+              {
+                "es": "El regional (a través del manager)",
+                "en": "The regional (through the manager)"
+              },
+              {
+                "es": "Autoriza casos especiales.",
+                "en": "Authorizes special cases."
+              }
+            ],
+            [
+              {
+                "es": "Algo que no cubre ninguna regla",
+                "en": "Something no rule covers"
+              },
+              {
+                "es": "El liderazgo de diseño (a través del regional)",
+                "en": "Design leadership (through the regional)"
+              },
+              {
+                "es": "Decide los casos sin regla.",
+                "en": "Decides the cases with no rule."
+              }
+            ],
+            [
+              {
+                "es": "Dudas de fresado",
+                "en": "Milling questions"
+              },
+              {
+                "es": "CAM Tech Support, que se comunica con los managers de diseño",
+                "en": "CAM Tech Support, which communicates with the design managers"
+              },
+              {
+                "es": "Los demás siguen el conducto regular.",
+                "en": "Everyone else follows the regular channel."
+              }
+            ]
+          ]
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Qué enviar para no frenar un caso",
+            "en": "What to send so a case is not held up"
           },
           "items": [
             {
+              "icono": "🔍",
               "titulo": {
-                "es": "Schedule",
-                "en": "Schedule"
+                "es": "Escaneos completos",
+                "en": "Complete scans"
               },
               "texto": {
-                "es": "Es el registro donde se anotan y siguen los casos que entran al departamento. Por ejemplo, un caso de Maxillar Print se registra en el Excel del Schedule, y para las dentaduras removibles el manager llena a diario su Schedule específico.",
-                "en": "It is the log where the cases entering the department are recorded and tracked. For example, a Maxillar Print case is recorded in the Schedule Excel, and for removable dentures the manager fills in a dedicated Schedule daily."
+                "es": "Con paladar, borde inferior, sin huecos ni burbujas, alineados con las fotos. Los stumps, sin exceso de spray.",
+                "en": "With palate, lower border, no gaps or bubbles, aligned with the photos. Stumps without excess spray."
               }
             },
             {
+              "icono": "📸",
               "titulo": {
-                "es": "Estados de una orden",
-                "en": "Order statuses"
+                "es": "Foto correcta",
+                "en": "Correct photo"
               },
               "texto": {
-                "es": "En la plataforma, la orden avanza por estados: empieza como NEW, pasa a Initiated cuando el diseñador la comienza y termina en Approved. Cada etapa (stage) de la plataforma corresponde a una fase del trabajo.",
-                "en": "In the platform the order moves through statuses: it starts as NEW, becomes Initiated when the designer begins it and ends as Approved. Each platform stage corresponds to a phase of the work."
+                "es": "Cabeza recta, orejas visibles, sonrisa natural con dientes visibles y tomada con cámara, no con iPad.",
+                "en": "Straight head, ears visible, natural smile with teeth visible, taken with a camera, not an iPad."
               }
             },
             {
+              "icono": "🔩",
               "titulo": {
-                "es": "QC (control de calidad)",
-                "en": "QC (quality control)"
+                "es": "Registro de implantes",
+                "en": "Implant record"
               },
               "texto": {
-                "es": "Antes de pasar a la etapa siguiente, el trabajo se revisa. Por ejemplo, tras alinear en Face Design se avisa al manager, quien revisa y autoriza el paso a Bite Design.",
-                "en": "Before moving to the next stage the work is reviewed. For example, after aligning in Face Design the manager is notified, reviews it and authorizes the move to Bite Design."
+                "es": "ICAM o Micron con el mismo número de implantes que la receta; un archivo vacío no sirve y se debe pedir de nuevo.",
+                "en": "ICAM or Micron with the same number of implants as the prescription; an empty file is useless and has to be requested again."
               }
             },
             {
+              "icono": "📝",
               "titulo": {
-                "es": "Hold",
-                "en": "Hold"
+                "es": "Receta clara",
+                "en": "A clear prescription"
               },
               "texto": {
-                "es": "Un caso en Hold está detenido a la espera de información o aprobación: por ejemplo, un escaneo con datos faltantes o un archivo de implantes vacío. No se diseña con información incompleta.",
-                "en": "A case on Hold is stopped waiting for information or approval: for example, a scan with missing data or an empty implant file. We do not design with incomplete information."
-              }
-            },
-            {
-              "titulo": {
-                "es": "Escalamiento",
-                "en": "Escalation"
-              },
-              "texto": {
-                "es": "Cuando algo no se puede resolver solo, sube por una escalera: diseñador, manager, regional y liderazgo. Todo se documenta en la plataforma con comentarios.",
-                "en": "When something cannot be solved alone it goes up a ladder: designer, manager, regional and leadership. Everything is documented in the platform with comments."
+                "es": "Cada cambio con movimiento, dirección y milímetros; \"No change\" significa seguir la posición de la demo actual. Marcas con Sharpie fino y oscuro.",
+                "en": "Each change with movement, direction and millimeters; \"No change\" means following the current demo position. Marks with a thin, dark Sharpie."
               }
             }
           ]
@@ -697,8 +1393,8 @@
             },
             {
               "titulo": {
-                "es": "Manager",
-                "en": "Manager"
+                "es": "Manager de diseño",
+                "en": "Design manager"
               },
               "texto": {
                 "es": "Decide si se puede resolver o se pone en Hold; avisa al laboratorio o al doctor.",
@@ -711,8 +1407,8 @@
                 "en": "Regional"
               },
               "texto": {
-                "es": "Autoriza casos especiales, por ejemplo medidas bajo el mínimo.",
-                "en": "Authorizes special cases, for example measurements below the minimum."
+                "es": "Autoriza casos especiales.",
+                "en": "Authorizes special cases."
               }
             },
             {
@@ -721,38 +1417,122 @@
                 "en": "Leadership"
               },
               "texto": {
-                "es": "Decide los casos que no cubre ninguna regla.",
-                "en": "Decides the cases that no rule covers."
+                "es": "Decide lo que ninguna regla cubre.",
+                "en": "Decides what no rule covers."
               }
             }
           ]
         },
         {
-          "t": "calculadora",
-          "id": "tiempos",
+          "t": "acordeon",
           "titulo": {
-            "es": "Tiempos de diseño por producto",
-            "en": "Design times per product"
+            "es": "Cuándo se avisa al doctor",
+            "en": "When the doctor is notified"
           },
-          "guia": {
-            "es": "Explora cuánto tarda el trabajo del diseñador en cada producto. Son horas de trabajo, no plazos de calendario.",
-            "en": "Explore how long the designer's work takes for each product. These are working hours, not calendar deadlines."
-          }
+          "items": [
+            {
+              "titulo": {
+                "es": "Faltan registros o la foto no sirve",
+                "en": "Records are missing or the photo is unusable"
+              },
+              "texto": {
+                "es": "Si la sonrisa natural no es visible por una condición médica, el doctor debe anotarlo y autorizar continuar sin foto. Si los escaneos vienen rotos o distintos, se piden nuevos o el doctor autoriza seguir.",
+                "en": "If the natural smile is not visible because of a medical condition, the doctor must note it and authorize continuing without a photo. If the scans arrive broken or inconsistent, new ones are requested or the doctor authorizes proceeding."
+              }
+            },
+            {
+              "titulo": {
+                "es": "No se puede cumplir un cambio",
+                "en": "A change cannot be met"
+              },
+              "texto": {
+                "es": "El laboratorio intenta cumplir cada cambio de la receta, pero ve límites que el doctor no ve, como poco espacio o la posición de los implantes. Si no se puede, se envía una alerta al doctor para conversarlo; cuando falta espacio, se protegen primero el borde incisal y la línea media.",
+                "en": "The lab tries to meet each change in the prescription, but sees limits the doctor does not, such as little space or implant position. If it cannot be done, an alert goes to the doctor to discuss it; when space is short, the incisal edge and midline are protected first."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Implantes movidos",
+                "en": "Moved implants"
+              },
+              "texto": {
+                "es": "Si dos o más implantes del pickup parecen movidos, se pide un nuevo pickup. Con tres o más movidos, se detiene y se consulta al doctor; si autoriza seguir, se anota que la articulación Master probablemente no sea utilizable y que el caso podría entregarse en articulación digital.",
+                "en": "If two or more implants in the pickup look moved, a new pickup is requested. With three or more moved, the case stops and the doctor is consulted; if they authorize going on, it is noted that the Master articulation will probably not be usable and that the case could be delivered in digital articulation."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Cambios que rompen el producto",
+                "en": "Changes that break the product"
+              },
+              "texto": {
+                "es": "Algunos cambios cambian el producto: por ejemplo, mover solo el arco inferior en un caso U/L de N2 ya no es 24z sino G-CAM, y el manager informa al doctor.",
+                "en": "Some changes change the product: for example, moving only the lower arch in an N2 U/L case is no longer 24z but G-CAM, and the manager informs the doctor."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Reunión de validación",
+                "en": "Validation meeting"
+              },
+              "texto": {
+                "es": "Si el cambio que pide el doctor difiere en más de 1 mm del diseño de N2 en aspectos visibles o funcionales, puede agendarse una reunión con el doctor, siempre validada antes por el manager. Las diferencias menores se resuelven internamente.",
+                "en": "If the change the doctor asks for differs by more than 1 mm from the N2 design in visible or functional aspects, a meeting with the doctor can be scheduled, always validated first by the manager. Smaller differences are resolved internally."
+              }
+            }
+          ]
         },
         {
           "t": "texto",
           "titulo": {
-            "es": "Reglas de oro",
-            "en": "Golden rules"
+            "es": "Canales y reglas de oro",
+            "en": "Channels and golden rules"
           },
           "cuerpo": {
-            "es": "El laboratorio **no improvisa**: no hace ajustes manuales, no hace cambios digitales que invaliden una articulación sin avisar y no propone reducir el tejido del paciente. Los comentarios de la plataforma se escriben en inglés y la comunicación va por los canales del centro, no por chats privados.",
-            "en": "The lab **does not improvise**: it makes no manual adjustments, makes no digital changes that invalidate an articulation without notice, and does not propose reducing the patient's tissue. Platform comments are written in English and communication goes through the center's channels, not private chats."
-          },
-          "porque": {
-            "es": "Así todos tienen la misma información y queda un rastro de por qué se tomó cada decisión.",
-            "en": "That way everyone has the same information and there is a trail of why each decision was made."
+            "es": "La comunicación va por el **canal de Zoho Cliq de tu centro**, no por chats privados, y los comentarios en la plataforma se escriben en inglés. Las reuniones con el doctor se agendan por Google Calendar con el título \"CENTER - DESIGN MEETING\", con el doctor, el manager del laboratorio y el regional, y se graban.\n\nEl departamento **no improvisa**: no hace ajustes manuales y no propone reducir el tejido del paciente; eso solo puede pedirlo el doctor.",
+            "en": "Communication goes through **your center's Zoho Cliq channel**, not private chats, and platform comments are written in English. Meetings with the doctor are scheduled through Google Calendar titled \"CENTER - DESIGN MEETING\", with the doctor, the lab manager and the regional, and are recorded.\n\nThe department **does not improvise**: it makes no manual adjustments and does not propose reducing the patient's tissue; only the doctor can request that."
           }
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Preguntas que conviene hacer",
+            "en": "Questions worth asking"
+          },
+          "items": [
+            {
+              "es": "¿Los registros que enviamos están completos y coinciden en número de implantes con la receta?",
+              "en": "Are the records we sent complete, and do they match the prescription's implant count?"
+            },
+            {
+              "es": "¿El caso está en Hold? ¿Qué falta exactamente y quién debe enviarlo?",
+              "en": "Is the case on Hold? What exactly is missing and who needs to send it?"
+            },
+            {
+              "es": "¿Hay algo que deba avisar al doctor antes de que llegue a la cirugía?",
+              "en": "Is there anything I should tell the doctor before surgery?"
+            },
+            {
+              "es": "¿Este cambio se puede hacer sin cambiar el producto o invalidar la articulación?",
+              "en": "Can this change be made without changing the product or invalidating the articulation?"
+            },
+            {
+              "es": "¿Está documentado en la plataforma y comunicado en el canal del centro?",
+              "en": "Is it documented in the platform and communicated in the center's channel?"
+            }
+          ]
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Para saber más: avisar y preguntar bien",
+            "en": "To learn more: notifying and asking well"
+          },
+          "texto": {
+            "es": "La biblioteca explica cómo se redactan los avisos y las consultas para que se entiendan a la primera.",
+            "en": "The library explains how notices and questions are written so they are understood the first time."
+          },
+          "lecc": "q-l2"
         },
         {
           "t": "resumen",
@@ -762,20 +1542,323 @@
           },
           "puntos": [
             {
-              "es": "Un protocolo explica cómo hacer una tarea y por qué.",
-              "en": "A protocol explains how to do a task and why."
+              "es": "Tu contacto diario es el manager de diseño de tu centro; lo que no resuelve sube al regional y al liderazgo.",
+              "en": "Your daily contact is your center's design manager; what they cannot resolve goes up to the regional and leadership."
             },
             {
-              "es": "La orden avanza por estados (NEW, Initiated, Approved) y por etapas con QC.",
-              "en": "The order moves through statuses (NEW, Initiated, Approved) and stages with QC."
+              "es": "Registros completos, receta clara y números que coinciden evitan la mayoría de los Hold.",
+              "en": "Complete records, a clear prescription and matching numbers prevent most Holds."
             },
             {
-              "es": "Hold significa detenido a la espera de información: no se diseña con datos incompletos.",
-              "en": "Hold means stopped waiting for information: we do not design with incomplete data."
+              "es": "Al doctor se le avisa cuando faltan registros, no se puede cumplir un cambio o los implantes no coinciden.",
+              "en": "The doctor is notified when records are missing, a change cannot be met or the implants do not match."
             },
             {
-              "es": "Lo que no puedes resolver sube: diseñador, manager, regional, liderazgo.",
-              "en": "What you cannot resolve goes up: designer, manager, regional, leadership."
+              "es": "Todo se documenta en la plataforma y se comunica por el canal del centro, no por chats privados.",
+              "en": "Everything is documented in the platform and communicated through the center's channel, not private chats."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "parejas",
+              "enunciado": {
+                "es": "Une cada necesidad con la persona a la que acudes.",
+                "en": "Match each need with the person you go to."
+              },
+              "pares": [
+                {
+                  "a": {
+                    "es": "Un registro falta y el caso está en Hold",
+                    "en": "A record is missing and the case is on Hold"
+                  },
+                  "b": {
+                    "es": "El manager de diseño de tu centro",
+                    "en": "Your center's design manager"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Medidas por debajo del mínimo (caso especial)",
+                    "en": "Measurements below the minimum (special case)"
+                  },
+                  "b": {
+                    "es": "El regional",
+                    "en": "The regional"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Algo que ninguna regla cubre",
+                    "en": "Something no rule covers"
+                  },
+                  "b": {
+                    "es": "El liderazgo de diseño",
+                    "en": "Design leadership"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Una duda de fresado",
+                    "en": "A milling question"
+                  },
+                  "b": {
+                    "es": "CAM Tech Support",
+                    "en": "CAM Tech Support"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Cada nivel resuelve lo suyo; lo que no puede resolver sube al siguiente.",
+                "en": "Each level resolves its own matters; what it cannot resolve goes up to the next."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "El departamento puede proponer por su cuenta reducir la encía del paciente para ganar espacio.",
+                "en": "The department can propose on its own to reduce the patient's gum to gain space."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Reducir tejido modifica tejido real: solo puede pedirlo el doctor.",
+                "en": "Reducing tissue modifies real tissue: only the doctor can request it."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "El número de implantes de la receta no coincide con el archivo ICAM. ¿Qué haces?",
+                "en": "The implant count in the prescription does not match the ICAM file. What do you do?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Avisas al manager de diseño de tu centro por el canal del centro y se resuelve antes de seguir.",
+                    "en": "You tell your center's design manager through the center's channel and it is resolved before going on."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Pides que el diseñador estime el implante faltante.",
+                    "en": "You ask the designer to estimate the missing implant."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Esperas a que aparezca el problema en la cirugía.",
+                    "en": "You wait for the problem to appear at surgery."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Un implante de más o de menos cambia el diseño; se aclara antes para no fabricar algo que no encaje.",
+                "en": "An extra or missing implant changes the design; it is clarified beforehand so nothing that will not fit gets manufactured."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m0-l5",
+      "titulo": {
+        "es": "Cómo usar este curso",
+        "en": "How to use this course"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Una ruta por áreas",
+            "en": "A route by areas"
+          },
+          "cuerpo": {
+            "es": "Este curso está organizado en **tres bloques**. La **introducción** (este módulo) te da la visión general. Luego hay un **módulo por área**: Face Design, N2 Demodenture, N3 Prosthetic, N6 Material Change y Support, con los productos, un caso de principio a fin, los tiempos y cómo coordinar con cada área. Por último, la **biblioteca de referencia** reúne el detalle técnico, por si quieres profundizar.\n\nPuedes seguir el orden del recorrido de un caso o empezar por el área con la que más coordinas.",
+            "en": "This course is organized in **three blocks**. The **introduction** (this module) gives you the overview. Then there is **one module per area**: Face Design, N2 Demodenture, N3 Prosthetic, N6 Material Change and Support, with the products, an end-to-end case, timing and how to coordinate with each area. Finally, the **reference library** gathers the technical detail, in case you want to go deeper.\n\nYou can follow the order of a case's journey or start with the area you coordinate with most."
+          }
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Lo que vas a encontrar",
+            "en": "What you will find"
+          },
+          "items": [
+            {
+              "icono": "🧭",
+              "titulo": {
+                "es": "Módulos por área",
+                "en": "Area modules"
+              },
+              "texto": {
+                "es": "Qué hace cada área, qué recibe y entrega, y cómo coordinas con ella.",
+                "en": "What each area does, what it receives and delivers, and how you coordinate with it."
+              }
+            },
+            {
+              "icono": "📚",
+              "titulo": {
+                "es": "Biblioteca de referencia",
+                "en": "Reference library"
+              },
+              "texto": {
+                "es": "Detalle técnico (lenguaje de modificación, protocolos de N2, N3 y N6, calidad). Se abre con enlaces desde los módulos.",
+                "en": "Technical detail (modification language, N2, N3 and N6 protocols, quality). Opened through links from the modules."
+              }
+            },
+            {
+              "icono": "📖",
+              "titulo": {
+                "es": "Glosario",
+                "en": "Glossary"
+              },
+              "texto": {
+                "es": "Cada término tiene su definición; consúltalo cuando aparezca una palabra nueva.",
+                "en": "Every term has a definition; look it up whenever a new word appears."
+              }
+            },
+            {
+              "icono": "🧪",
+              "titulo": {
+                "es": "Laboratorio 3D",
+                "en": "3D lab"
+              },
+              "texto": {
+                "es": "Mueves deslizadores y ves el efecto en un modelo; no necesitas diseñar nada.",
+                "en": "You move sliders and see the effect on a model; you do not need to design anything."
+              }
+            },
+            {
+              "icono": "📝",
+              "titulo": {
+                "es": "Examen",
+                "en": "Exam"
+              },
+              "texto": {
+                "es": "Un examen final para comprobar que entiendes cómo funciona el departamento.",
+                "en": "A final exam to check that you understand how the department works."
+              }
+            },
+            {
+              "icono": "🎓",
+              "titulo": {
+                "es": "Diploma",
+                "en": "Diploma"
+              },
+              "texto": {
+                "es": "Al completar el curso y aprobar el examen puedes obtener tu diploma.",
+                "en": "Once you complete the course and pass the exam, you can earn your diploma."
+              }
+            }
+          ]
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Biblioteca: la prótesis fija sobre implantes",
+            "en": "Library: the fixed prosthesis on implants"
+          },
+          "texto": {
+            "es": "Una introducción a la prótesis fija sobre implantes y la Demodenture. Útil si el vocabulario clínico te resulta nuevo.",
+            "en": "An introduction to the fixed prosthesis on implants and the Demodenture. Useful if the clinical vocabulary is new to you."
+          },
+          "lecc": "m1-l2"
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Biblioteca: mapa de productos N3 y N6",
+            "en": "Library: N3 and N6 product map"
+          },
+          "texto": {
+            "es": "El mapa de los productos de N3 y N6 y de las piezas que se reutilizan en casi todos ellos.",
+            "en": "The map of the N3 and N6 products and the pieces reused in almost all of them."
+          },
+          "lecc": "m6b-l1"
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Biblioteca: control de calidad y hallazgos",
+            "en": "Library: QC and findings"
+          },
+          "texto": {
+            "es": "Qué revisa el departamento antes de pasar un caso a la etapa siguiente.",
+            "en": "What the department checks before moving a case on to the next stage."
+          },
+          "lecc": "q-l1"
+        },
+        {
+          "t": "simulador",
+          "titulo": {
+            "es": "Prueba el laboratorio 3D",
+            "en": "Try the 3D lab"
+          },
+          "guia": {
+            "es": "Mueve el deslizador del borde incisal y observa cómo cambia la posición del arco superior. No es un reto: es solo para que veas cómo se ve un cambio de la receta en el modelo.",
+            "en": "Move the incisal edge slider and watch how the upper arch position changes. It is not a challenge: it is just so you can see what a prescription change looks like on the model."
+          },
+          "foco": [
+            "incisal"
+          ],
+          "vista": "frontal"
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Tu plan para este curso",
+            "en": "Your plan for this course"
+          },
+          "items": [
+            {
+              "es": "Completar este módulo y hacer el quiz de cada lección.",
+              "en": "Complete this module and take each lesson's quiz."
+            },
+            {
+              "es": "Recorrer el módulo de cada área, empezando por la que más coordinas.",
+              "en": "Go through each area's module, starting with the one you coordinate with most."
+            },
+            {
+              "es": "Consultar el glosario cuando aparezca una palabra nueva.",
+              "en": "Check the glossary when a new word appears."
+            },
+            {
+              "es": "Abrir la biblioteca solo cuando quieras más detalle técnico.",
+              "en": "Open the library only when you want more technical detail."
+            },
+            {
+              "es": "Hacer el examen final y recibir el diploma.",
+              "en": "Take the final exam and receive the diploma."
+            }
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Introducción, módulos por área y biblioteca de referencia: tres bloques.",
+              "en": "Introduction, area modules and reference library: three blocks."
+            },
+            {
+              "es": "Los módulos de área te dicen cómo coordinar; la biblioteca explica el detalle técnico.",
+              "en": "The area modules tell you how to coordinate; the library explains the technical detail."
+            },
+            {
+              "es": "El glosario y el laboratorio 3D están disponibles para consultar y experimentar.",
+              "en": "The glossary and the 3D lab are available to look things up and experiment."
+            },
+            {
+              "es": "El examen final y el diploma cierran el curso.",
+              "en": "The final exam and the diploma close the course."
             }
           ]
         },
@@ -785,40 +1868,209 @@
             {
               "tipo": "una",
               "enunciado": {
-                "es": "Llega un caso con un archivo de implantes vacío. ¿Qué corresponde?",
-                "en": "A case arrives with an empty implant file. What is the right action?"
+                "es": "¿Dónde encuentras el detalle técnico de los protocolos si quieres profundizar?",
+                "en": "Where do you find the technical detail of the protocols if you want to go deeper?"
               },
               "opciones": [
                 {
                   "texto": {
-                    "es": "Detenerlo (Hold) y pedir el archivo correcto a través del manager.",
-                    "en": "Put it on Hold and request the correct file through the manager."
+                    "es": "En la biblioteca de referencia, enlazada desde los módulos.",
+                    "en": "In the reference library, linked from the modules."
                   },
                   "ok": true
                 },
                 {
                   "texto": {
-                    "es": "Diseñarlo estimando la posición de los implantes.",
-                    "en": "Design it by estimating the implant positions."
+                    "es": "Solo en el glosario.",
+                    "en": "Only in the glossary."
                   }
                 },
                 {
                   "texto": {
-                    "es": "Borrar el caso de la plataforma.",
-                    "en": "Delete the case from the platform."
+                    "es": "En el examen final.",
+                    "en": "In the final exam."
                   }
                 }
               ],
               "explicacion": {
-                "es": "Sin coordenadas no se puede ubicar el implante; no se diseña con información incompleta, se pide de nuevo.",
-                "en": "Without coordinates the implant cannot be located; we do not design with incomplete information, we ask for it again."
+                "es": "Los módulos explican el funcionamiento y la coordinación; la biblioteca guarda el detalle técnico.",
+                "en": "The modules explain how things work and how to coordinate; the library holds the technical detail."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Para usar el laboratorio 3D necesitas saber diseñar prótesis.",
+                "en": "To use the 3D lab you need to know how to design prostheses."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Es un espacio para ver el efecto de un cambio moviendo deslizadores; no hay que diseñar nada.",
+                "en": "It is a space to see the effect of a change by moving sliders; there is nothing to design."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m0-l6",
+      "titulo": {
+        "es": "Wrap-up: cómo funciona el departamento",
+        "en": "Wrap-up: how the department works"
+      },
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Nuvia Design diseña en digital prótesis sobre implantes y entrega archivos para fabricar.",
+              "en": "Nuvia Design digitally designs prostheses on implants and delivers files for manufacturing."
+            },
+            {
+              "es": "Cinco áreas: Face Design, N2 Demodenture, N3 Prosthetic, N6 Material Change y Support (transversal).",
+              "en": "Five areas: Face Design, N2 Demodenture, N3 Prosthetic, N6 Material Change and Support (cross-cutting)."
+            },
+            {
+              "es": "Un caso viaja de un área a otra; un error temprano se arrastra, por eso hay QC y Hold.",
+              "en": "A case travels from one area to the next; an early error is carried forward, which is why QC and Hold exist."
+            },
+            {
+              "es": "Horas de trabajo y plazos de calendario son cosas distintas.",
+              "en": "Working hours and calendar deadlines are different things."
+            },
+            {
+              "es": "Coordinas con el manager de tu centro, documentas en la plataforma y usas el canal del centro.",
+              "en": "You coordinate with your center's manager, document in the platform and use the center's channel."
+            }
+          ]
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Antes de salir: autoevaluación",
+            "en": "Before you go: self-check"
+          },
+          "items": [
+            {
+              "es": "Puedo explicar qué hace cada una de las 5 áreas.",
+              "en": "I can explain what each of the 5 areas does."
+            },
+            {
+              "es": "Sé qué registros debo asegurar que lleguen completos.",
+              "en": "I know which records I must make sure arrive complete."
+            },
+            {
+              "es": "Distingo horas de trabajo de plazos de calendario.",
+              "en": "I can tell working hours apart from calendar deadlines."
+            },
+            {
+              "es": "Sé a quién acudir según el tema y por qué canal.",
+              "en": "I know who to go to depending on the topic and through which channel."
+            },
+            {
+              "es": "Sé cuándo se avisa al doctor.",
+              "en": "I know when the doctor is notified."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué se diseña la prótesis en digital antes de fabricarla?",
+                "en": "Why is the prosthesis designed digitally before it is manufactured?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Para revisar medidas, mordida y estética antes de fabricar algo que debe encajar con precisión.",
+                    "en": "To check measurements, bite and aesthetics before manufacturing something that must fit precisely."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Para que el laboratorio ya no tenga que fabricar.",
+                    "en": "So the lab no longer has to manufacture."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Para que el doctor no tenga que aprobar nada.",
+                    "en": "So the doctor does not have to approve anything."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Corregir en el diseño es mucho más barato que corregir en boca; el laboratorio sí fabrica, pero a partir de nuestros archivos.",
+                "en": "Fixing things in the design is far cheaper than fixing them in the mouth; the lab still manufactures, but from our files."
+              }
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿Cuáles afirmaciones sobre los tiempos son correctas?",
+                "en": "Which statements about timing are correct?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Las horas de trabajo del diseñador son tiempos de referencia.",
+                    "en": "The designer's working hours are reference times."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Los plazos de la Guía de producto son de calendario.",
+                    "en": "The Product Guide deadlines are calendar-based."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Las horas de trabajo son una garantía de entrega.",
+                    "en": "Working hours are a delivery guarantee."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Un caso en Hold no avanza hasta recibir lo que falta.",
+                    "en": "A case on Hold does not move forward until what is missing is received."
+                  },
+                  "ok": true
+                }
+              ],
+              "explicacion": {
+                "es": "Referencia y calendario son cosas distintas, y Hold detiene el caso hasta tener la información.",
+                "en": "Reference and calendar are different things, and Hold stops the case until the information is in."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Support es una etapa por la que pasan todos los casos, después de N6.",
+                "en": "Support is a stage every case goes through, after N6."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Support es un área especial y transversal que apoya a las demás.",
+                "en": "Support is a special, cross-cutting area that backs up the others."
               }
             },
             {
               "tipo": "orden",
               "enunciado": {
                 "es": "Ordena la escalera de escalamiento, de quien detecta el problema a quien decide al final.",
-                "en": "Order the escalation ladder, from the person who spots the problem to the one who decides last."
+                "en": "Order the escalation ladder, from who spots the problem to who decides last."
               },
               "items": [
                 {
@@ -826,8 +2078,8 @@
                   "en": "Designer"
                 },
                 {
-                  "es": "Manager",
-                  "en": "Manager"
+                  "es": "Manager de diseño",
+                  "en": "Design manager"
                 },
                 {
                   "es": "Regional",
@@ -839,259 +2091,93 @@
                 }
               ],
               "explicacion": {
-                "es": "Los problemas suben por niveles; casi todo se escala así y se documenta en la plataforma.",
-                "en": "Problems go up by levels; almost everything is escalated this way and documented in the platform."
+                "es": "Los problemas suben por niveles y todo se documenta en la plataforma.",
+                "en": "Problems go up by levels and everything is documented in the platform."
               }
             },
             {
-              "tipo": "vf",
+              "tipo": "parejas",
               "enunciado": {
-                "es": "El laboratorio puede proponer por su cuenta reducir la encía del paciente para ganar espacio.",
-                "en": "The lab may propose on its own to reduce the patient's gum to gain space."
+                "es": "Une cada término con su significado.",
+                "en": "Match each term with its meaning."
               },
-              "ok": false,
+              "pares": [
+                {
+                  "a": {
+                    "es": "Hold",
+                    "en": "Hold"
+                  },
+                  "b": {
+                    "es": "Caso detenido a la espera de información o aprobación",
+                    "en": "Case stopped waiting for information or approval"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "QC",
+                    "en": "QC"
+                  },
+                  "b": {
+                    "es": "Revisión del trabajo antes de pasar a la etapa siguiente",
+                    "en": "Review of the work before moving to the next stage"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "To Mill / To Print",
+                    "en": "To Mill / To Print"
+                  },
+                  "b": {
+                    "es": "Carpeta con los archivos que el laboratorio fresa o imprime",
+                    "en": "Folder with the files the lab mills or prints"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Demodenture",
+                    "en": "Demodenture"
+                  },
+                  "b": {
+                    "es": "Prótesis de demostración que se prueba antes de la cirugía",
+                    "en": "Demonstration prosthesis tried on before surgery"
+                  }
+                }
+              ],
               "explicacion": {
-                "es": "Reducir tejido es modificar el tejido real: solo lo puede pedir el doctor, nunca lo propone el laboratorio.",
-                "en": "Reducing tissue modifies real tissue: only the doctor can request it, the lab never proposes it."
+                "es": "Son términos que verás en todas las áreas.",
+                "en": "These are terms you will see in every area."
               }
             },
             {
               "tipo": "una",
               "enunciado": {
-                "es": "¿Para qué sirve el QC entre etapas?",
-                "en": "What is QC between stages for?"
+                "es": "Una orden de N3 se detiene porque faltan registros del implante. ¿Qué hace el departamento?",
+                "en": "An N3 order stops because implant records are missing. What does the department do?"
               },
               "opciones": [
                 {
                   "texto": {
-                    "es": "Para detectar errores donde ocurren, antes de que se arrastren a las etapas siguientes.",
-                    "en": "To detect errors where they happen, before they are carried into later stages."
+                    "es": "Pone el caso en Hold y pide lo que falta; no diseña con información incompleta.",
+                    "en": "Puts the case on Hold and asks for what is missing; it does not design with incomplete information."
                   },
                   "ok": true
                 },
                 {
                   "texto": {
-                    "es": "Para que el diseñador trabaje más lento.",
-                    "en": "To make the designer work more slowly."
+                    "es": "Diseña con una posición estimada de los implantes.",
+                    "en": "Designs with an estimated implant position."
                   }
                 },
                 {
                   "texto": {
-                    "es": "Para reemplazar al protocolo.",
-                    "en": "To replace the protocol."
+                    "es": "Cancela el caso sin avisar.",
+                    "en": "Cancels the case without notice."
                   }
                 }
               ],
               "explicacion": {
-                "es": "Una alineación errónea se arrastra hasta la fabricación; es más barato detectarla en su etapa.",
-                "en": "A wrong alignment is carried through to manufacturing; it is cheaper to catch it in its own stage."
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "m0-l4",
-      "titulo": {
-        "es": "Cómo usar esta plataforma",
-        "en": "How to use this platform"
-      },
-      "minutos": 4,
-      "pasos": [
-        {
-          "t": "texto",
-          "titulo": {
-            "es": "Aprender haciendo",
-            "en": "Learning by doing"
-          },
-          "cuerpo": {
-            "es": "Training está organizada en **módulos**, cada módulo en **lecciones** de pocos minutos y cada lección en pasos cortos. Siempre te explicamos el **porqué** de las reglas, no cómo hacer clics en un programa. Cada lección termina con un resumen y un quiz.",
-            "en": "Training is organized into **modules**, each module into **lessons** of a few minutes and each lesson into short steps. We always explain the **why** behind the rules, not how to click in a program. Every lesson ends with a summary and a quiz."
-          }
-        },
-        {
-          "t": "tarjetas",
-          "titulo": {
-            "es": "Lo que vas a encontrar",
-            "en": "What you will find"
-          },
-          "items": [
-            {
-              "icono": "🃏",
-              "titulo": {
-                "es": "Tarjetas y acordeones",
-                "en": "Cards and accordions"
-              },
-              "texto": {
-                "es": "Voltea o abre cada elemento para descubrir su contenido.",
-                "en": "Flip or open each item to reveal its content."
-              }
-            },
-            {
-              "icono": "🧪",
-              "titulo": {
-                "es": "Simulador 3D",
-                "en": "3D simulator"
-              },
-              "texto": {
-                "es": "Un laboratorio donde mueves deslizadores y ves el efecto en un modelo; algunos tienen un reto.",
-                "en": "A lab where you move sliders and see the effect on a model; some have a challenge."
-              }
-            },
-            {
-              "icono": "🎬",
-              "titulo": {
-                "es": "Animaciones guiadas",
-                "en": "Guided animations"
-              },
-              "texto": {
-                "es": "Escenas automáticas que explican un movimiento con subtítulos.",
-                "en": "Automatic scenes that explain a movement with subtitles."
-              }
-            },
-            {
-              "icono": "🧮",
-              "titulo": {
-                "es": "Calculadoras",
-                "en": "Calculators"
-              },
-              "texto": {
-                "es": "Herramientas interactivas, como la de tiempos de diseño.",
-                "en": "Interactive tools, such as the design times one."
-              }
-            },
-            {
-              "icono": "📖",
-              "titulo": {
-                "es": "Glosario",
-                "en": "Glossary"
-              },
-              "texto": {
-                "es": "Cada término técnico tiene su definición; consúltalo cuando lo necesites.",
-                "en": "Every technical term has a definition; look it up whenever you need it."
-              }
-            },
-            {
-              "icono": "🔗",
-              "titulo": {
-                "es": "Enlaces a Protocols",
-                "en": "Links to Protocols"
-              },
-              "texto": {
-                "es": "Botones que abren el protocolo oficial. Training explica; el protocolo manda.",
-                "en": "Buttons that open the official protocol. Training explains; the protocol rules."
-              }
-            }
-          ]
-        },
-        {
-          "t": "checklist",
-          "titulo": {
-            "es": "Tu plan para empezar",
-            "en": "Your plan to get started"
-          },
-          "items": [
-            {
-              "es": "Completar los módulos en orden, empezando por este.",
-              "en": "Complete the modules in order, starting with this one."
-            },
-            {
-              "es": "Hacer el quiz de cada lección hasta entender el porqué de cada respuesta.",
-              "en": "Take each lesson's quiz until you understand the why behind each answer."
-            },
-            {
-              "es": "Consultar el glosario cuando aparezca una palabra nueva.",
-              "en": "Check the glossary when a new word appears."
-            },
-            {
-              "es": "Abrir el protocolo oficial antes de trabajar un caso real.",
-              "en": "Open the official protocol before working on a real case."
-            }
-          ]
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolos oficiales",
-            "en": "Official protocols"
-          },
-          "texto": {
-            "es": "Abre el protocolo de Full Mouth para ver cómo es un documento real. No hace falta entenderlo todo todavía.",
-            "en": "Open the Full Mouth protocol to see what a real document looks like. You do not need to understand it all yet."
-          },
-          "protocolo": "Full Mouth"
-        },
-        {
-          "t": "resumen",
-          "titulo": {
-            "es": "Ideas clave",
-            "en": "Key ideas"
-          },
-          "puntos": [
-            {
-              "es": "Módulos, lecciones y pasos cortos con resumen y quiz al final.",
-              "en": "Modules, lessons and short steps with a summary and quiz at the end."
-            },
-            {
-              "es": "Siempre se explica el porqué de las reglas.",
-              "en": "The why behind the rules is always explained."
-            },
-            {
-              "es": "El glosario y los enlaces a Protocols están a un clic.",
-              "en": "The glossary and links to Protocols are one click away."
-            },
-            {
-              "es": "El protocolo oficial es la autoridad final.",
-              "en": "The official protocol is the final authority."
-            }
-          ]
-        },
-        {
-          "t": "quiz",
-          "preguntas": [
-            {
-              "tipo": "vf",
-              "enunciado": {
-                "es": "Si Training y el protocolo oficial dicen algo distinto, se sigue el protocolo oficial.",
-                "en": "If Training and the official protocol say different things, the official protocol is followed."
-              },
-              "ok": true,
-              "explicacion": {
-                "es": "Training explica y enseña; el protocolo vigente es la regla.",
-                "en": "Training explains and teaches; the current protocol is the rule."
-              }
-            },
-            {
-              "tipo": "una",
-              "enunciado": {
-                "es": "¿Qué encontrarás al final de cada lección?",
-                "en": "What will you find at the end of each lesson?"
-              },
-              "opciones": [
-                {
-                  "texto": {
-                    "es": "Un resumen y un quiz.",
-                    "en": "A summary and a quiz."
-                  },
-                  "ok": true
-                },
-                {
-                  "texto": {
-                    "es": "Un caso real para diseñar.",
-                    "en": "A real case to design."
-                  }
-                },
-                {
-                  "texto": {
-                    "es": "Solo una lista de comandos del software.",
-                    "en": "Only a list of software commands."
-                  }
-                }
-              ],
-              "explicacion": {
-                "es": "Cada lección cierra con resumen y quiz; aquí se enseña el porqué, no los clics.",
-                "en": "Every lesson closes with a summary and a quiz; here we teach the why, not the clicks."
+                "es": "Sin el registro no se puede ubicar el implante; seguir sin él arriesga una prótesis que no atornille.",
+                "en": "Without the record the implant cannot be located; going on without it risks a prosthesis that will not screw in."
               }
             }
           ]
@@ -1111,6 +2197,78 @@
         "en": "Department that digitally designs dental prostheses on implants from the records sent by the clinic."
       },
       "cat": "general"
+    },
+    {
+      "id": "m0-face-design",
+      "termino": {
+        "es": "Face Design",
+        "en": "Face Design"
+      },
+      "def": {
+        "es": "Área que alinea IOS, CBCT y fotos del rostro en una escena 3D para ubicar la sonrisa.",
+        "en": "Area that aligns IOS, CBCT and face photos in a 3D scene to locate the smile."
+      },
+      "cat": "áreas"
+    },
+    {
+      "id": "m0-n2",
+      "termino": {
+        "es": "N2 Demodenture",
+        "en": "N2 Demodenture"
+      },
+      "def": {
+        "es": "Área que diseña el bite y la Demodenture antes de la cirugía.",
+        "en": "Area that designs the bite and the Demodenture before surgery."
+      },
+      "cat": "áreas"
+    },
+    {
+      "id": "m0-n3",
+      "termino": {
+        "es": "N3 Prosthetic",
+        "en": "N3 Prosthetic"
+      },
+      "def": {
+        "es": "Área de la etapa de cirugía: diseña la prótesis atornillada sobre los implantes.",
+        "en": "Surgery-stage area: designs the screw-retained prosthesis on the implants."
+      },
+      "cat": "áreas"
+    },
+    {
+      "id": "m0-n6",
+      "termino": {
+        "es": "N6 Material Change",
+        "en": "N6 Material Change"
+      },
+      "def": {
+        "es": "Área que rediseña la prótesis para cambiar de material cuando la encía ya sanó.",
+        "en": "Area that redesigns the prosthesis to change the material once the gums have healed."
+      },
+      "cat": "áreas"
+    },
+    {
+      "id": "m0-support",
+      "termino": {
+        "es": "Support",
+        "en": "Support"
+      },
+      "def": {
+        "es": "Área especial y transversal con equipos que apoyan al diseño, como CAM Tech Support.",
+        "en": "Special, cross-cutting area with teams that support design, such as CAM Tech Support."
+      },
+      "cat": "áreas"
+    },
+    {
+      "id": "m0-demodenture",
+      "termino": {
+        "es": "Demodenture",
+        "en": "Demodenture"
+      },
+      "def": {
+        "es": "Prótesis de demostración con la nueva forma de los dientes, que el paciente se prueba antes de la definitiva.",
+        "en": "Demonstration prosthesis with the new tooth shape, tried on by the patient before the final one."
+      },
+      "cat": "prótesis"
     },
     {
       "id": "m0-ios",
@@ -1149,110 +2307,62 @@
       "cat": "flujo"
     },
     {
-      "id": "m0-demodenture",
+      "id": "m0-pickup",
       "termino": {
-        "es": "Demodenture",
-        "en": "Demodenture"
+        "es": "Pickup",
+        "en": "Pickup"
       },
       "def": {
-        "es": "Prótesis de demostración con la nueva morfología de dientes, que se prueba antes de fabricar la definitiva.",
-        "en": "Demonstration prosthesis with the new tooth morphology, tried on before the final one is manufactured."
+        "es": "Registro físico que transfiere la posición de los implantes a un modelo de yeso con stumps.",
+        "en": "Physical record that transfers the implant positions to a plaster model with stumps."
+      },
+      "cat": "registros"
+    },
+    {
+      "id": "m0-icam-micron",
+      "termino": {
+        "es": "ICAM / Micron",
+        "en": "ICAM / Micron"
+      },
+      "def": {
+        "es": "Registros de posición de los implantes tomados en boca por fotogrametría; sin ellos no hay caso en N3.",
+        "en": "Implant position records taken in the mouth by photogrammetry; without them there is no N3 case."
+      },
+      "cat": "registros"
+    },
+    {
+      "id": "m0-tc",
+      "termino": {
+        "es": "TC",
+        "en": "TC"
+      },
+      "def": {
+        "es": "Cubierta de dientes que se cementa sobre la barra.",
+        "en": "Tooth cover that is cemented over the bar."
       },
       "cat": "prótesis"
     },
     {
-      "id": "m0-n2",
+      "id": "m0-gcam",
       "termino": {
-        "es": "N2",
-        "en": "N2"
+        "es": "G-CAM",
+        "en": "G-CAM"
       },
       "def": {
-        "es": "Área que diseña la Demodenture (bite y morfología) antes de la cirugía.",
-        "en": "Area that designs the Demodenture (bite and morphology) before surgery."
+        "es": "Resina fresada usada en puentes provisionales; también el producto al que pasa un caso cuando no se cumple 24z.",
+        "en": "Milled resin used in provisional bridges; also the product a case moves to when 24z cannot be met."
       },
-      "cat": "flujo"
+      "cat": "prótesis"
     },
     {
-      "id": "m0-n3",
+      "id": "m0-hold",
       "termino": {
-        "es": "N3",
-        "en": "N3"
+        "es": "Hold",
+        "en": "Hold"
       },
       "def": {
-        "es": "Área que diseña la prótesis atornillada sobre los implantes tras la cirugía.",
-        "en": "Area that designs the prosthesis screwed onto the implants after surgery."
-      },
-      "cat": "flujo"
-    },
-    {
-      "id": "m0-n6",
-      "termino": {
-        "es": "N6",
-        "en": "N6"
-      },
-      "def": {
-        "es": "Área de cambio de material, cuando la encía ya sanó.",
-        "en": "Material change area, once the gums have healed."
-      },
-      "cat": "flujo"
-    },
-    {
-      "id": "m0-face-design",
-      "termino": {
-        "es": "Face Design",
-        "en": "Face Design"
-      },
-      "def": {
-        "es": "Etapa que alinea IOS, CBCT y fotos del rostro en una escena 3D.",
-        "en": "Stage that aligns IOS, CBCT and face photos in a 3D scene."
-      },
-      "cat": "flujo"
-    },
-    {
-      "id": "m0-traveling",
-      "termino": {
-        "es": "Traveling",
-        "en": "Traveling"
-      },
-      "def": {
-        "es": "Paciente que viaja y se opera en pocos días; su caso es prioritario y salta etapas.",
-        "en": "A patient who travels and has surgery within a few days; their case is a priority and skips stages."
-      },
-      "cat": "flujo"
-    },
-    {
-      "id": "m0-protocolo",
-      "termino": {
-        "es": "Protocolo",
-        "en": "Protocol"
-      },
-      "def": {
-        "es": "Documento que explica paso a paso cómo hacer una tarea y por qué.",
-        "en": "A document that explains step by step how to do a task and why."
-      },
-      "cat": "flujo"
-    },
-    {
-      "id": "m0-schedule",
-      "termino": {
-        "es": "Schedule",
-        "en": "Schedule"
-      },
-      "def": {
-        "es": "Registro donde se anotan y siguen los casos que entran al departamento.",
-        "en": "Log where cases entering the department are recorded and tracked."
-      },
-      "cat": "flujo"
-    },
-    {
-      "id": "m0-stage",
-      "termino": {
-        "es": "Stage (etapa)",
-        "en": "Stage"
-      },
-      "def": {
-        "es": "Etapa del flujo de trabajo en la plataforma.",
-        "en": "A step of the workflow in the platform."
+        "es": "Caso detenido a la espera de información o aprobación.",
+        "en": "Case stopped waiting for information or approval."
       },
       "cat": "flujo"
     },
@@ -1269,14 +2379,38 @@
       "cat": "flujo"
     },
     {
-      "id": "m0-hold",
+      "id": "m0-to-mill",
       "termino": {
-        "es": "Hold",
-        "en": "Hold"
+        "es": "To Mill / To Print",
+        "en": "To Mill / To Print"
       },
       "def": {
-        "es": "Caso detenido a la espera de información o aprobación.",
-        "en": "Case stopped waiting for information or approval."
+        "es": "Carpeta con los archivos que el laboratorio fresa o imprime.",
+        "en": "Folder with the files the lab mills or prints."
+      },
+      "cat": "flujo"
+    },
+    {
+      "id": "m0-traveling",
+      "termino": {
+        "es": "Traveling",
+        "en": "Traveling"
+      },
+      "def": {
+        "es": "Paciente que viaja y se opera en pocos días; su caso es prioritario y salta etapas.",
+        "en": "A patient who travels and has surgery within a few days; the case is a priority and skips stages."
+      },
+      "cat": "flujo"
+    },
+    {
+      "id": "m0-protocolo",
+      "termino": {
+        "es": "Protocolo",
+        "en": "Protocol"
+      },
+      "def": {
+        "es": "Documento que explica paso a paso cómo hacer una tarea y por qué.",
+        "en": "A document that explains step by step how to do a task and why."
       },
       "cat": "flujo"
     },
@@ -1293,51 +2427,26 @@
       "cat": "flujo"
     },
     {
-      "id": "m0-icam-micron",
+      "id": "m0-regional",
       "termino": {
-        "es": "ICAM / Micron",
-        "en": "ICAM / Micron"
+        "es": "Regional",
+        "en": "Regional"
       },
       "def": {
-        "es": "Registros de posición de los implantes tomados en boca por fotogrametría.",
-        "en": "Implant position records taken in the mouth by photogrammetry."
+        "es": "Nivel de decisión por encima del manager que autoriza casos especiales.",
+        "en": "Decision level above the manager that authorizes special cases."
       },
-      "cat": "registros"
+      "cat": "flujo"
     },
     {
-      "id": "m0-pickup",
+      "id": "m0-cliq",
       "termino": {
-        "es": "Pickup",
-        "en": "Pickup"
+        "es": "Zoho Cliq",
+        "en": "Zoho Cliq"
       },
       "def": {
-        "es": "Registro físico que transfiere la posición de los implantes a un modelo de yeso.",
-        "en": "Physical record that transfers the implant positions to a plaster model."
-      },
-      "cat": "registros"
-    },
-    {
-      "id": "m0-edentulo",
-      "termino": {
-        "es": "Edéntulo",
-        "en": "Edentulous"
-      },
-      "def": {
-        "es": "Persona sin dientes (total o parcialmente).",
-        "en": "A person without teeth (fully or partially)."
-      },
-      "cat": "general",
-      "general": true
-    },
-    {
-      "id": "m0-to-mill",
-      "termino": {
-        "es": "To Mill / To Print",
-        "en": "To Mill / To Print"
-      },
-      "def": {
-        "es": "Carpeta con los archivos que el laboratorio fresa o imprime.",
-        "en": "Folder with the files the lab mills or prints."
+        "es": "Canal de mensajería del centro por donde se comunica el equipo; no se usan chats privados.",
+        "en": "The center's messaging channel through which the team communicates; private chats are not used."
       },
       "cat": "flujo"
     }

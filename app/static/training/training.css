@@ -321,3 +321,41 @@ main:has(#trRaiz) { margin-top:0 !important; }
   body * { visibility:hidden; } .tr-diploma, .tr-diploma * { visibility:visible; } .tr-diploma { position:absolute; left:0; top:0; width:100%; } .tr-noprint { display:none !important; }
   @page { size:landscape; margin:12mm; }
 }
+
+/* ---- Áreas del departamento: tarjeta del manager, casos de ejemplo, portada por secciones ---- */
+.tr-avatar { position:relative; flex:none; border-radius:50%; background:linear-gradient(135deg, var(--ac, #2f98d5), #252772); color:#fff; font-weight:800; display:grid; place-items:center; overflow:hidden; box-shadow:0 6px 16px -6px rgba(15,23,42,.45); }
+.tr-avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 25%; }
+.tr-lider { display:flex; gap:18px; align-items:center; padding:18px 22px; border-radius:18px; background:linear-gradient(135deg, color-mix(in srgb, var(--ac) 9%, #fff), #fff); border:1px solid color-mix(in srgb, var(--ac) 30%, #e1e7f1); border-left:6px solid var(--ac); margin:14px 0; }
+.tr-lider .tr-avatar { --ac:inherit; }
+.tr-lider-txt { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.tr-lider-rot { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--ac); }
+.tr-lider-txt > b { font-size:19px; color:var(--tr-navy); line-height:1.2; } .tr-lider-pend { color:var(--tr-sub) !important; font-weight:600; }
+.tr-lider-cargo { color:var(--tr-sub); font-size:14px; }
+.tr-lider-hablar { margin-top:6px; font-size:14px; display:flex; gap:6px; flex-wrap:wrap; } .tr-lider-hablar span { font-weight:700; color:var(--tr-navy); } .tr-lider-hablar .tr-md { display:inline; } .tr-lider-hablar .tr-md p { display:inline; margin:0; }
+.tr-lider.compacta { padding:10px 14px; gap:12px; margin:0; }
+.tr-lideres-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:14px; } .tr-lideres-grid .tr-lider { margin:0; }
+.tr-paso-lider { padding:10px 14px; }
+.tr-caso { position:relative; border-top:5px solid var(--tr-azul); }
+.tr-caso-sello { display:inline-block; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; font-size:12px; font-weight:800; padding:3px 12px; border-radius:999px; margin-bottom:10px; }
+.tr-caso-linea { list-style:none; margin:18px 0 6px; padding:0; position:relative; }
+.tr-caso-linea::before { content:''; position:absolute; left:17px; top:8px; bottom:8px; width:3px; background:linear-gradient(#9fd0f0, #d6e0f2); border-radius:3px; }
+.tr-caso-et { display:flex; gap:16px; align-items:flex-start; position:relative; padding:8px 0 14px; }
+.tr-caso-n { flex:none; width:36px; height:36px; border-radius:50%; background:var(--tr-azul); color:#fff; font-weight:800; display:grid; place-items:center; position:relative; z-index:1; box-shadow:0 0 0 5px #fff; }
+.tr-caso-cuerpo { flex:1; min-width:0; background:#f6f9fe; border:1px solid #dfe8f6; border-radius:14px; padding:12px 16px; } .tr-caso-cuerpo b { color:var(--tr-navy); } .tr-caso-cuerpo .tr-md p { margin:.3em 0 0; }
+.tr-caso-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; } .tr-caso-tiempo, .tr-caso-quien { font-size:12.5px; font-weight:700; background:#fff; border:1px solid #d6e2f3; border-radius:999px; padding:2px 10px; color:var(--tr-sub); }
+.tr-caso-tiempo { color:#9a3412; background:#fff7ed; border-color:#fed7aa; }
+.tr-caso-res { margin-top:8px; background:#ecfdf3; border:1px solid #86efac; border-radius:14px; padding:12px 18px; color:#14532d; } .tr-caso-res .tr-md { display:inline; } .tr-caso-res .tr-md p { display:inline; margin:0; }
+.tr-grid-mod.uno { grid-template-columns:1fr; } .tr-grid-mod.chica { grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); }
+.tr-grid-mod.chica .tr-mod-card { padding:14px 16px; gap:5px; } .tr-grid-mod.chica .tr-mod-card p { display:none; } .tr-grid-mod.chica .tr-mod-ico { width:38px; height:38px; font-size:20px; border-radius:11px; } .tr-grid-mod.chica h3 { font-size:15px; margin:4px 0 0; }
+.tr-mod-card.grande { flex-direction:row; flex-wrap:wrap; align-items:center; gap:14px 20px; padding:24px 28px; } .tr-mod-card.grande h3 { font-size:22px; } .tr-mod-card.grande p { flex:1 1 320px; font-size:15.5px; } .tr-mod-card.grande .tr-barra, .tr-mod-card.grande .tr-mod-meta { flex:1 1 200px; }
+.tr-mod-card.de-area { border-top:5px solid var(--ac); } .tr-mod-card.de-area .tr-mod-ico { background:color-mix(in srgb, var(--ac) 14%, #fff); }
+.tr-mod-lider { display:flex; align-items:center; gap:9px; font-size:13.5px; color:var(--tr-txt); font-weight:600; } .tr-mod-lider .tr-avatar { --ac:inherit; }
+.tr-m-mod[style*="--ac"] { border-left:4px solid var(--ac); }
+.tr-lideres-admin { display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:16px; margin-top:14px; }
+.tr-lider-adm { display:flex; flex-direction:column; gap:10px; background:#fff; border:1px solid var(--tr-borde); border-top:5px solid var(--ac); border-radius:16px; padding:16px 18px; } .tr-lider-adm h3 { margin:0; }
+.tr-lider-adm .tr-in { width:100%; padding:9px 12px; border:1px solid #cdd7ea; border-radius:10px; background:#fff; }
+.tr-partes { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; margin-top:10px; padding:10px 14px; background:#f6f9fe; border:1px solid #dfe8f6; border-radius:12px; font-size:13.5px; }
+.tr-parte { display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
+.tr-visor-w { margin-top:12px; border:1px solid #1b2140; border-radius:16px; overflow:hidden; background:#12151c; height:clamp(460px, 72vh, 760px); }
+.tr-visor-frame { width:100%; height:100%; border:0; display:block; background:#12151c; }
+@media (max-width: 640px) { .tr-lider { flex-direction:column; text-align:center; } .tr-caso-linea::before { left:17px; } .tr-visor-w { height:70vh; } }

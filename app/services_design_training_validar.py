@@ -7,13 +7,15 @@ import sys
 from pathlib import Path
 
 DATOS = Path(__file__).resolve().parent / "static" / "training" / "data"
-TIPOS = {"texto", "tarjetas", "flujo", "acordeon", "tabla", "quiz", "simulador", "tour", "modelo3d", "calculadora", "checklist", "enlace", "resumen"}
+TIPOS = {"texto", "tarjetas", "flujo", "acordeon", "tabla", "quiz", "simulador", "tour", "modelo3d", "calculadora", "checklist", "enlace", "resumen", "lider", "caso", "visor"}
 FOCOS = {"vdo", "incisal", "midline", "cant", "plano", "rotacion", "labio", "tamano", "grado", "todo"}
 CALCS = {"espesor24z", "tamanos", "articulador", "tiempos"}
 VISTAS = {"frontal", "perfil", "oclusal", "libre"}
 RESALTAR = {"fantasma", "estatico", "oclusion"}
 PARAMS = {"vdo", "incisal", "midline", "cant", "plano", "rotacion", "labio", "tamano", "grado"}
 MODOS = {"fijo", "sigue"}
+SECCIONES = {"intro", "area", "biblioteca"}
+AREAS = {"face", "n2", "n3", "n6", "support"}
 RE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
@@ -159,12 +161,35 @@ class _V:
         elif t == "enlace":
             T(p.get("titulo"), r + ".titulo")
             T(p.get("texto"), r + ".texto")
-            if not (p.get("protocolo") or "").strip():
-                self.e(r, "falta 'protocolo'")
+            if not (p.get("protocolo") or "").strip() and not (p.get("lecc") or "").strip():
+                self.e(r, "falta 'protocolo' (texto a buscar en Protocols) o 'lecc' (id de una lección de la biblioteca)")
         elif t == "resumen":
             T(p.get("titulo"), r + ".titulo")
             for i, x in enumerate(p.get("puntos") or []):
                 T(x, f"{r}.puntos[{i}]")
+        elif t == "visor":
+            if not re.fullmatch(r"[a-z0-9][a-z0-9-]{2,58}", p.get("slot") or ""):
+                self.e(r, "slot inválido")
+            for k in ("titulo", "descripcion", "pendiente"):
+                T(p.get(k), f"{r}.{k}")
+            if p.get("pestana") and p["pestana"] not in ("rx", "changes"):
+                self.e(r, "pestana debe ser rx o changes")
+        elif t == "lider":
+            if p.get("area") not in AREAS | {"todas"}:
+                self.e(r, f"área inválida: {p.get('area')}")
+            T(p.get("texto"), r + ".texto", False)
+        elif t == "caso":
+            T(p.get("titulo"), r + ".titulo")
+            T(p.get("contexto"), r + ".contexto")
+            et = p.get("etapas") or []
+            if len(et) < 3:
+                self.e(r, "el caso necesita 3+ etapas")
+            for i, x in enumerate(et):
+                T(x.get("titulo"), f"{r}.etapas[{i}].titulo")
+                T(x.get("texto"), f"{r}.etapas[{i}].texto")
+                T(x.get("tiempo"), f"{r}.etapas[{i}].tiempo", False)
+                T(x.get("quien"), f"{r}.etapas[{i}].quien", False)
+            T(p.get("resultado"), r + ".resultado", False)
 
 
 def validar_modulo(d: dict) -> list[str]:
@@ -176,6 +201,10 @@ def validar_modulo(d: dict) -> list[str]:
     v.T(d.get("resumen"), "resumen")
     if not isinstance(d.get("orden"), int):
         v.e("modulo", "orden entero requerido")
+    if d.get("seccion") not in SECCIONES:
+        v.e("modulo", f"seccion debe ser una de {sorted(SECCIONES)}")
+    if d.get("seccion") == "area" and d.get("area") not in AREAS:
+        v.e("modulo", f"un módulo de área necesita 'area' en {sorted(AREAS)}")
     ids = set()
     for i, l in enumerate(d.get("lecciones") or []):
         r = f"lecciones[{i}]"

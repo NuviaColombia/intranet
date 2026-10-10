@@ -1,0 +1,744 @@
+{
+  "id": "a-n3",
+  "orden": 4,
+  "icono": "🔷",
+  "seccion": "area",
+  "area": "n3",
+  "nivel": "intermedio",
+  "titulo": {"es": "N3 Prosthetic", "en": "N3 Prosthetic"},
+  "resumen": {
+    "es": "El área que diseña la prótesis del día de la cirugía sobre los implantes (barra, guía, TC, Nightguard, removible). Qué hace, qué recibe de N2 y de tu laboratorio, cuánto tarda, qué puede salir mal y cómo coordinar.",
+    "en": "The area that designs the surgery-day prosthesis on top of the implants (bar, articulation guide, TC, Nightguard, removable). What it does, what it receives from N2 and from your lab, how long it takes, what can go wrong and how to coordinate."
+  },
+  "lecciones": [
+    {
+      "id": "a-n3-l1",
+      "titulo": {"es": "Qué hace N3 y dónde encaja", "en": "What N3 does and where it fits"},
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "La prótesis del día de la cirugía", "en": "The surgery-day prosthesis"},
+          "cuerpo": {
+            "es": "**N3 es la etapa de la cirugía**: el día en que el paciente recibe sus implantes y sale con la prótesis. En la plataforma de Schedule, esa etapa aparece con el nombre **N3 Prosthetic**; son lo mismo.\nImagina un puente que debe encajar sobre pilares ya clavados en el hueso: nadie puede mover los pilares, así que el puente se diseña a la medida de donde quedaron. Eso hace N3: toma la posición real de los implantes y diseña lo que va encima (barra, guía de articulación, TC).",
+            "en": "**N3 is the surgery stage**: the day the patient gets implants and leaves with a prosthesis. In the Schedule platform this stage is listed as **N3 Prosthetic**; they are the same thing.\nThink of a bridge that has to fit over pillars already set in the ground: nobody can move the pillars, so the bridge is designed around where they ended up. That is N3: it takes the real implant positions and designs what goes on top (bar, articulation guide, TC)."
+          },
+          "porque": {
+            "es": "Como el caso es del día de la cirugía, el reloj corre: hay una ventana corta para detectar problemas y un paciente esperando. Por eso N3 depende tanto de que lo que llega esté completo y limpio.",
+            "en": "Because the case is on surgery day, the clock is running: there is a short window to catch problems and a patient waiting. That is why N3 depends so much on receiving complete, clean inputs."
+          }
+        },
+        {
+          "t": "flujo",
+          "titulo": {"es": "Dónde encaja N3 en el camino del paciente", "en": "Where N3 sits in the patient journey"},
+          "pasos": [
+            {"titulo": {"es": "Face Design", "en": "Face Design"}, "texto": {"es": "Se planea la sonrisa sobre la cara del paciente (cuando aplica).", "en": "The smile is planned on the patient's face (when applicable)."}},
+            {"titulo": {"es": "N2 Demodenture", "en": "N2 Demodenture"}, "texto": {"es": "Se diseña la oclusión (cómo encajan los dientes) y la demodenture, la prótesis provisional que el paciente prueba.", "en": "The occlusion (how the teeth meet) and the demodenture, the provisional prosthesis the patient tries, are designed."}},
+            {"titulo": {"es": "N3 Prosthetic (cirugía)", "en": "N3 Prosthetic (surgery)"}, "texto": {"es": "Con los implantes ya colocados, se diseña la prótesis final de la cirugía sobre su posición real.", "en": "With the implants placed, the surgery prosthesis is designed on their real position."}},
+            {"titulo": {"es": "Fresado en tu laboratorio", "en": "Milling at your lab"}, "texto": {"es": "Tu laboratorio recibe los archivos y fabrica.", "en": "Your lab receives the files and fabricates."}},
+            {"titulo": {"es": "N4 Delivery", "en": "N4 Delivery"}, "texto": {"es": "La prótesis se entrega al paciente en la cita de entrega.", "en": "The prosthesis is delivered to the patient at the delivery appointment."}},
+            {"titulo": {"es": "N6 Material Changes", "en": "N6 Material Changes"}, "texto": {"es": "Más adelante, si hace falta cambiar el material, N6 reutiliza la oclusión guardada en N3.", "en": "Later, if the material needs to change, N6 reuses the occlusion saved in N3."}}
+          ]
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "Qué recibe y qué entrega N3", "en": "What N3 receives and delivers"},
+          "items": [
+            {"icono": "📥", "titulo": {"es": "De N2", "en": "From N2"}, "texto": {"es": "La oclusión aprobada. En Single 24z llega ya diseñada (waxup, barra y TC) y N3 la mantiene; en Full Mouth se parte de la morfología de stock.", "en": "The approved occlusion. In Single 24z it arrives already designed (waxup, bar and TC) and N3 keeps it; in Full Mouth the starting point is the stock morphology."}},
+            {"icono": "🧪", "titulo": {"es": "De tu laboratorio", "en": "From your lab"}, "texto": {"es": "Scans de plato, stumps y tissue, y el registro de los implantes (ICAM o Micron, que llega con la RX desde la clínica).", "en": "Plate, stumps and tissue scans, plus the implant records (ICAM or Micron, which arrive with the RX from the clinic)."}},
+            {"icono": "📝", "titulo": {"es": "De la clínica", "en": "From the clinic"}, "texto": {"es": "La RX con los cambios que pide el doctor (o 'No Change') y su prescripción.", "en": "The RX with the changes the doctor requests (or 'No Change') and the prescription."}},
+            {"icono": "📤", "titulo": {"es": "Lo que entrega", "en": "What it delivers"}, "texto": {"es": "Archivos para fresar (barra, guía, TC según el producto), páginas HTML de revisión, evidencias y comentarios en inglés en la plataforma.", "en": "Files for milling (bar, guide, TC depending on the product), review HTML pages, evidence and comments in English on the platform."}}
+          ]
+        },
+        {
+          "t": "lider",
+          "area": "n3",
+          "texto": {"es": "Habla con esta persona para casos en hold, cambios de producto, tolerancias de medidas y cualquier duda de coordinación del día de cirugía.", "en": "Talk to this person about cases on hold, product changes, measurement tolerances and any surgery-day coordination question."}
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Qué significa para tu laboratorio", "en": "What this means for your lab"},
+          "cuerpo": {
+            "es": "Tu laboratorio no diseña, pero es la fuente de gran parte de lo que N3 usa: modelos, scans y la articulación. Y es quien recibe lo que N3 entrega y lo fresa. Lo que tu equipo hace bien al preparar los modelos se nota en el diseño; lo que llega incompleto se convierte en una pausa (hold) o en un scan nuevo.",
+            "en": "Your lab does not design, but it is the source of much of what N3 works with: models, scans and the articulation. It is also the one that receives what N3 delivers and mills it. What your team does well when preparing models shows up in the design; what arrives incomplete turns into a pause (hold) or a new scan."
+          },
+          "dato": {"es": "Un 'Full Mouth' (dos arcos) tiene un tiempo objetivo de diseño de 1 h 30 min sin retrasos, dentro de un flujo de 24 horas.", "en": "A 'Full Mouth' (two arches) has a design time target of 1 h 30 min without delays, within a 24-hour workflow."}
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "N3 es la etapa de la cirugía; en el Schedule se llama N3 Prosthetic.", "en": "N3 is the surgery stage; in the Schedule it is called N3 Prosthetic."},
+            {"es": "Diseña la prótesis sobre la posición real de los implantes.", "en": "It designs the prosthesis on the real position of the implants."},
+            {"es": "Recibe la oclusión de N2 y los scans/registros de tu laboratorio y la clínica.", "en": "It receives the occlusion from N2 and the scans/records from your lab and the clinic."},
+            {"es": "Entrega archivos de fresado que tu laboratorio fabrica.", "en": "It delivers milling files that your lab fabricates."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Qué es N3 Prosthetic?", "en": "What is N3 Prosthetic?"},
+              "opciones": [
+                {"texto": {"es": "La etapa de la cirugía: diseño de la prótesis del día de la cirugía sobre los implantes", "en": "The surgery stage: designing the surgery-day prosthesis on the implants"}, "ok": true},
+                {"texto": {"es": "El área que planea la sonrisa sobre la cara", "en": "The area that plans the smile on the face"}},
+                {"texto": {"es": "La etapa de cambio de material posterior a la entrega", "en": "The post-delivery material change stage"}}
+              ],
+              "explicacion": {"es": "N3 trabaja el día de la cirugía; la sonrisa es Face Design y el cambio de material es N6.", "en": "N3 works on surgery day; the smile is Face Design and the material change is N6."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "N3 diseña sobre la posición real en que quedaron los implantes, no sobre una posición ideal.", "en": "N3 designs on the real position where the implants ended up, not on an ideal position."},
+              "ok": true,
+              "explicacion": {"es": "Los implantes ya están en el hueso, por eso se parte de su registro real (ICAM o Micron).", "en": "The implants are already in the bone, so the design starts from their real record (ICAM or Micron)."}
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {"es": "¿Qué aporta tu laboratorio a N3?", "en": "What does your lab contribute to N3?"},
+              "opciones": [
+                {"texto": {"es": "Modelos y scans (plato, stumps, tissue)", "en": "Models and scans (plate, stumps, tissue)"}, "ok": true},
+                {"texto": {"es": "El fresado de lo que N3 entrega", "en": "Milling what N3 delivers"}, "ok": true},
+                {"texto": {"es": "El diseño de la barra", "en": "Designing the bar"}}
+              ],
+              "explicacion": {"es": "El laboratorio prepara los insumos físicos y fabrica; el diseño de la barra lo hace N3.", "en": "The lab prepares the physical inputs and fabricates; N3 designs the bar."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-n3-l2",
+      "titulo": {"es": "Productos de N3 y qué significan", "en": "N3 products and what they mean"},
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Una orden, un producto", "en": "One order, one product"},
+          "cuerpo": {
+            "es": "Cada orden N3 lleva un producto, y de él depende todo: cuántos arcos, qué medidas mínimas se exigen, qué archivos se entregan. Un producto equivocado en la orden cambia el diseño completo. El diseñador no valida si el producto de la orden es el correcto: si hay duda, pregunta al manager. Por eso conviene que tu equipo confirme el producto desde la orden.",
+            "en": "Every N3 order carries one product, and everything depends on it: how many arches, which minimum measurements apply, which files are delivered. A wrong product on the order changes the whole design. The designer is not responsible for validating whether the product on the order is right: if in doubt, they ask the manager. That is why your team should confirm the product when the order is placed."
+          }
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "Los productos principales", "en": "The main products"},
+          "items": [
+            {"icono": "🦷", "titulo": {"es": "Full Mouth 24z", "en": "Full Mouth 24z"}, "texto": {"es": "Dos arcos (Upper y Lower). Se retiran los dientes naturales y el paciente sale con una prótesis total de zirconia 24 horas después. Illustrative example: Case A, paciente con ambos arcos y morfología de stock (12 dientes por arco, mordida clase 1).", "en": "Two arches (Upper and Lower). The natural teeth are removed and the patient leaves with a full zirconia prosthesis 24 hours later. Illustrative example: Case A, a patient with both arches and stock morphology (12 teeth per arch, class 1 bite)."}},
+            {"icono": "1️⃣", "titulo": {"es": "Single 24z", "en": "Single 24z"}, "texto": {"es": "Un solo arco. La oclusión ya fue diseñada y aprobada en N2 contra el antagonista natural, y el TC ya está fresado en el laboratorio el día de la cirugía. N3 mantiene ese diseño y hace la barra y la guía.", "en": "A single arch. The occlusion was already designed and approved in N2 against the natural opposing arch, and the TC is already milled at the lab on surgery day. N3 keeps that design and makes the bar and the guide."}},
+            {"icono": "🧩", "titulo": {"es": "Removable denture / G-cam", "en": "Removable denture / G-cam"}, "texto": {"es": "Entrega barra, guía y además una dentadura removible. G-cam es un material tipo disco de resina/composite que permite ajustar la oclusión al pickup real.", "en": "Delivers bar, guide and also a removable denture. G-cam is a resin/composite disc-type material that allows the occlusion to be adjusted to the real pickup."}}  ,
+            {"icono": "🔩", "titulo": {"es": "Single G-cam / Ti bar", "en": "Single G-cam / Ti bar"}, "texto": {"es": "Un arco con G-cam (o barra de titanio): incluye bite, ICAM, barra, guía y TC. Es el producto al que se pasa un Single 24z cuando no se cumplen sus requisitos.", "en": "One arch in G-cam (or titanium bar): includes bite, ICAM, bar, guide and TC. It is the product a Single 24z moves to when its requirements are not met."}},
+            {"icono": "🛏️", "titulo": {"es": "Single Rev denture", "en": "Single Rev denture"}, "texto": {"es": "Producto de un arco que, según la hoja de tiempos, entrega bite con la morfología sin cambios, la removible y el TC.", "en": "A single-arch product that, per the timing sheet, delivers a bite with unchanged morphology, the removable and the TC."}},
+            {"icono": "🧱", "titulo": {"es": "TC design", "en": "TC design"}, "texto": {"es": "TC es la cubierta de dientes que se cementa sobre la barra. Se diseña con espacio de cementación y se corta en sectores para fresar.", "en": "TC is the tooth cover that is cemented onto the bar. It is designed with cementation space and cut into sectors for milling."}},
+            {"icono": "🌙", "titulo": {"es": "Nightguard (NG)", "en": "Nightguard (NG)"}, "texto": {"es": "Férula nocturna que se diseña sobre la prótesis ya terminada para protegerla del bruxismo. Hay dos versiones: con VDO e IOS (con escáner intraoral).", "en": "A night splint designed over the finished prosthesis to protect it from bruxism. There are two versions: with VDO and IOS (with an intraoral scanner)."}}
+          ]
+        },
+        {
+          "t": "tabla",
+          "titulo": {"es": "Qué sale de cada producto (hoja de tiempos)", "en": "What comes out of each product (timing sheet)"},
+          "cabeceras": [{"es": "Producto", "en": "Product"}, {"es": "Resultado", "en": "Output"}],
+          "filas": [
+            [{"es": "N3 Full Mouth 24z", "en": "N3 Full Mouth 24z"}, {"es": "Bite + ICAM + barra + guía", "en": "Bite + ICAM + bar + guide"}],
+            [{"es": "N3 Single 24z", "en": "N3 Single 24z"}, {"es": "Bite + ICAM + barra + guía", "en": "Bite + ICAM + bar + guide"}],
+            [{"es": "N3 Removable denture / G-cam", "en": "N3 Removable denture / G-cam"}, {"es": "Bite + ICAM + barra + guía + removible", "en": "Bite + ICAM + bar + guide + removable"}],
+            [{"es": "N3 Single G-cam / Ti bar", "en": "N3 Single G-cam / Ti bar"}, {"es": "Bite + ICAM + barra + guía + TC", "en": "Bite + ICAM + bar + guide + TC"}],
+            [{"es": "N3 Single Rev denture", "en": "N3 Single Rev denture"}, {"es": "Bite con morfología sin cambios + removible + TC", "en": "Bite with unchanged morphology + removable + TC"}],
+            [{"es": "TC design", "en": "TC design"}, {"es": "Bite alineado + TC", "en": "Aligned bite + TC"}],
+            [{"es": "Nightguard", "en": "Nightguard"}, {"es": "Bite alineado + NG + medidas", "en": "Aligned bite + NG + measurements"}]
+          ]
+        },
+        {
+          "t": "modelo3d",
+          "slot": "n3a-barra-con-tc",
+          "titulo": {"es": "Barra, guía y TC sobre implantes", "en": "Bar, guide and TC over implants"},
+          "descripcion": {"es": "Mira: 1) cómo la barra une los implantes; 2) la barra 'pasándose' al tissue; 3) los orificios de acceso de los tornillos; 4) el TC encima de la barra; 5) la guía de articulación.", "en": "Look at: 1) how the bar joins the implants; 2) the bar 'running into' the tissue; 3) the screw access holes; 4) the TC over the bar; 5) the articulation guide."},
+          "pendiente": {"es": "Aquí irá el modelo 3D real de una barra con TC.", "en": "The real 3D model of a bar with TC will go here."}
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Un producto que cambia de camino", "en": "A product that changes path"},
+          "cuerpo": {
+            "es": "El producto puede cambiar durante el caso. Por ejemplo, un Single 24z pasa a G-cam si el paciente recibió tratamiento que cambió el contacto oclusal, si el doctor pide cambios distintos de VDO e incisal edge, o si no se cumplen las medidas mínimas. Es una forma de proteger la oclusión y la resistencia en vez de forzar algo que no va a funcionar.",
+            "en": "The product can change during the case. For example, a Single 24z moves to G-cam if the patient had treatment that changed the occlusal contact, if the doctor asks for changes other than VDO and incisal edge, or if the minimum measurements are not met. It is a way to protect the occlusion and strength instead of forcing something that will not work."
+          },
+          "alerta": {"es": "Confirmar con el manager: los protocolos que revisé no detallan en qué consiste exactamente 'Single Rev denture'.", "en": "Confirm with the manager: the protocols I reviewed do not detail exactly what 'Single Rev denture' involves."}
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Cada producto define arcos, medidas mínimas y archivos entregados.", "en": "Each product defines arches, minimum measurements and delivered files."},
+            {"es": "Full Mouth = dos arcos; Single 24z = un arco con oclusión ya aprobada en N2.", "en": "Full Mouth = two arches; Single 24z = one arch with occlusion already approved in N2."},
+            {"es": "G-cam permite ajustar la oclusión cuando 24z no es posible.", "en": "G-cam allows the occlusion to be adjusted when 24z is not possible."},
+            {"es": "TC y Nightguard son productos propios dentro de N3.", "en": "TC and Nightguard are products of their own within N3."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "parejas",
+              "enunciado": {"es": "Une el producto con su descripción.", "en": "Match the product with its description."},
+              "pares": [
+                {"a": {"es": "Full Mouth 24z", "en": "Full Mouth 24z"}, "b": {"es": "Dos arcos, zirconia 24 h después", "en": "Two arches, zirconia 24 h later"}},
+                {"a": {"es": "Single 24z", "en": "Single 24z"}, "b": {"es": "Un arco, oclusión ya aprobada en N2", "en": "One arch, occlusion already approved in N2"}},
+                {"a": {"es": "TC", "en": "TC"}, "b": {"es": "Cubierta de dientes cementada sobre la barra", "en": "Tooth cover cemented onto the bar"}},
+                {"a": {"es": "Nightguard", "en": "Nightguard"}, "b": {"es": "Férula nocturna sobre la prótesis terminada", "en": "Night splint over the finished prosthesis"}}
+              ],
+              "explicacion": {"es": "Cada producto resuelve una necesidad distinta, y de ahí salen sus reglas y sus archivos.", "en": "Each product solves a different need, and that is where its rules and files come from."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué un Single 24z puede pasar a G-cam?", "en": "Why can a Single 24z move to G-cam?"},
+              "opciones": [
+                {"texto": {"es": "Porque G-cam permite ajustar la oclusión cuando el diseño aprobado en N2 ya no sirve", "en": "Because G-cam allows the occlusion to be adjusted when the design approved in N2 no longer works"}, "ok": true},
+                {"texto": {"es": "Porque es más barato", "en": "Because it is cheaper"}},
+                {"texto": {"es": "Porque el laboratorio lo prefiere", "en": "Because the lab prefers it"}}
+              ],
+              "explicacion": {"es": "En Single 24z la zirconia ya está preparada y no se puede rehacer en 24 h; si algo cambia, G-cam permite reajustar.", "en": "In Single 24z the zirconia is already prepared and cannot be redone in 24 h; if something changes, G-cam allows readjusting."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "El diseñador N3 es responsable de validar que el producto de la orden sea el correcto.", "en": "The N3 designer is responsible for validating that the product on the order is correct."},
+              "ok": false,
+              "explicacion": {"es": "No lo es: si hay duda, pregunta al manager. Conviene confirmar el producto al crear la orden.", "en": "They are not: if in doubt they ask the manager. The product should be confirmed when the order is created."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-n3-l3",
+      "titulo": {"es": "Un caso de principio a fin", "en": "A case from start to finish"},
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Seguir un caso paso a paso", "en": "Following a case step by step"},
+          "cuerpo": {
+            "es": "Ver una cadena completa ayuda más que una lista de reglas. A continuación sigues un caso ilustrativo de Full Mouth, y luego una variante de Single 24z donde el diseño debe decidir si sigue o cambia de producto. Los casos están construidos con lo que describen los protocolos; no corresponden a pacientes reales.",
+            "en": "Seeing a full chain helps more than a list of rules. Below you follow an illustrative Full Mouth case, and then a Single 24z variant where the design has to decide whether to continue or change product. The cases are built from what the protocols describe; they are not real patients."
+          }
+        },
+        {
+          "t": "caso",
+          "titulo": {"es": "Illustrative example: Case A, Full Mouth 24z", "en": "Illustrative example: Case A, Full Mouth 24z"},
+          "contexto": {"es": "Un paciente con dos arcos recibe implantes. La orden llega con RX, comentarios del doctor y los registros de implantes. El flujo de la orden es de 24 horas.", "en": "A patient with two arches receives implants. The order arrives with the RX, the doctor's comments and the implant records. The order runs on a 24-hour workflow."},
+          "etapas": [
+            {"titulo": {"es": "Preparación y revisión de archivos", "en": "Preparation and file review"}, "texto": {"es": "El diseñador lee la orden y la RX, descarga los scans e ICAM/Micron y revisa que el número de implantes coincida entre RX, ICAM y stumps. Se inicia el caso en la plataforma y se avisa en el canal del centro.", "en": "The designer reads the order and RX, downloads the scans and ICAM/Micron and checks that the number of implants matches across the RX, ICAM and stumps. The case is started in the platform and the center channel is notified."}, "tiempo": {"es": "Inicio del reloj", "en": "Clock starts"}, "quien": {"es": "N3 designer", "en": "N3 designer"}},
+            {"titulo": {"es": "Ventana de 45 minutos", "en": "45-minute window"}, "texto": {"es": "Desde que se inicia el caso, el diseño tiene 45 minutos para reportar problemas que ameriten hold (medidas, ICAM, orificio de acceso). Si no hay, envía un mensaje de confirmación antes de que se cumplan.", "en": "From the moment the case is started, design has 45 minutes to report problems that warrant a hold (measurements, ICAM, access hole). If there are none, it sends a confirmation message before the window ends."}, "tiempo": {"es": "45 min", "en": "45 min"}, "quien": {"es": "N3 designer + manager", "en": "N3 designer + manager"}},
+            {"titulo": {"es": "Bite, pickup y cambios del doctor", "en": "Bite, pickup and doctor changes"}, "texto": {"es": "Se montan y alinean los scans, se verifica el pickup, y se aplican los cambios de la RX con el Lenguaje de Modificación.", "en": "The scans are mounted and aligned, the pickup is verified, and the RX changes are applied using the Modification Language."}, "quien": {"es": "N3 designer", "en": "N3 designer"}},
+            {"titulo": {"es": "Medidas, barra y guía", "en": "Measurements, bar and guide"}, "texto": {"es": "Se revisan medidas mínimas de zirconia, cantilever y orificios de acceso; luego se diseñan la barra de titanio y la guía de articulación de cada arco.", "en": "Minimum zirconia measurements, cantilever and access holes are checked; then the titanium bar and articulation guide of each arch are designed."}, "quien": {"es": "N3 designer", "en": "N3 designer"}},
+            {"titulo": {"es": "Evidencias y aprobación", "en": "Evidence and approval"}, "texto": {"es": "Se suben la carpeta Tomill (guías, barras, TC), las páginas HTML y el formulario Final Prosthetic Design, y se aprueba el stage.", "en": "The Tomill folder (guides, bars, TC), the HTML pages and the Final Prosthetic Design form are uploaded, and the stage is approved."}, "tiempo": {"es": "≈1 h 30 min en total (objetivo sin retrasos)", "en": "≈1 h 30 min total (target without delays)"}, "quien": {"es": "N3 designer", "en": "N3 designer"}},
+            {"titulo": {"es": "Fresado en tu laboratorio", "en": "Milling at your lab"}, "texto": {"es": "Tu laboratorio recibe lo aprobado y fabrica barra, guía y TC.", "en": "Your lab receives what was approved and fabricates the bar, guide and TC."}, "quien": {"es": "Your lab", "en": "Your lab"}}
+          ],
+          "resultado": {"es": "Los archivos llegan a fresado dentro de la ventana de 24 horas del caso. Si en la etapa 2 hubiera aparecido un problema, el caso pasaría a hold y se avisaría con la causa, la solución propuesta y fotos.", "en": "The files reach milling within the case's 24-hour window. If a problem had appeared in stage 2, the case would go on hold and a message with the cause, the proposed solution and photos would be sent."}
+        },
+        {
+          "t": "flujo",
+          "titulo": {"es": "Las etapas, en una línea", "en": "The stages in one line"},
+          "pasos": [
+            {"titulo": {"es": "Revisar archivos", "en": "Review files"}, "texto": {"es": "Scans completos, implantes que coinciden con la RX.", "en": "Complete scans, implants that match the RX."}},
+            {"titulo": {"es": "Montar el bite", "en": "Set up the bite"}, "texto": {"es": "Alinear plato, stumps, tissue y oclusión.", "en": "Align plate, stumps, tissue and occlusion."}},
+            {"titulo": {"es": "Aplicar cambios", "en": "Apply changes"}, "texto": {"es": "Los de la RX, con su lenguaje estándar.", "en": "The RX ones, in their standard language."}},
+            {"titulo": {"es": "Chequear medidas", "en": "Check measurements"}, "texto": {"es": "Zirconia mínima, cantilever, accesos.", "en": "Minimum zirconia, cantilever, access holes."}},
+            {"titulo": {"es": "Diseñar barra y guía", "en": "Design bar and guide"}, "texto": {"es": "Sobre la posición real de los implantes.", "en": "On the real implant position."}},
+            {"titulo": {"es": "Entregar y aprobar", "en": "Deliver and approve"}, "texto": {"es": "Archivos, HTML, formulario, stage.", "en": "Files, HTML, form, stage."}}
+          ]
+        },
+        {
+          "t": "acordeon",
+          "titulo": {"es": "Illustrative example: Case B, Single 24z con la demodenture colocada distinto", "en": "Illustrative example: Case B, Single 24z with the demodenture seated differently"},
+          "items": [
+            {"titulo": {"es": "Situación 1: todo igual que en N2", "en": "Situation 1: same as in N2"}, "texto": {"es": "El waxup coincide con la posición de la demodenture y no hay cambios pedidos: el caso continúa con el diseño de N2.", "en": "The waxup matches the demodenture position and no changes are requested: the case continues with the N2 design."}},
+            {"titulo": {"es": "Situación 2: la ubicación cambió y no hay cambios pedidos", "en": "Situation 2: the position changed and no changes are requested"}, "texto": {"es": "Se avisa al manager y se ofrecen dos opciones al doctor: seguir el diseño de N2, o cambiar a G-cam y ajustar la oclusión al pickup real.", "en": "The manager is notified and two options are offered to the doctor: follow the N2 design, or change to G-cam and adjust the occlusion to the real pickup."}},
+            {"titulo": {"es": "Situación 3: misma ubicación, pero cambios distintos de VDO/incisal edge", "en": "Situation 3: same position, but changes other than VDO/incisal edge"}, "texto": {"es": "El producto cambia a Single G-cam y se ajusta la oclusión con esos cambios, porque solo G-cam permite reajustarla.", "en": "The product changes to Single G-cam and the occlusion is adjusted with those changes, because only G-cam allows readjusting it."}}
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "El caso arranca con una revisión de archivos y una ventana corta para detectar problemas.", "en": "The case starts with a file review and a short window to detect problems."},
+            {"es": "Después se alinea, se aplican cambios, se miden restricciones y se diseña.", "en": "Then it is aligned, changes are applied, constraints are measured and it is designed."},
+            {"es": "En Single 24z, comparar la demodenture con el diseño N2 decide si se sigue o se pasa a G-cam.", "en": "In Single 24z, comparing the demodenture with the N2 design decides whether to continue or move to G-cam."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "orden",
+              "enunciado": {"es": "Ordena las etapas de un caso Full Mouth.", "en": "Put the stages of a Full Mouth case in order."},
+              "items": [
+                {"es": "Revisar archivos", "en": "Review files"},
+                {"es": "Montar el bite", "en": "Set up the bite"},
+                {"es": "Chequear medidas", "en": "Check measurements"},
+                {"es": "Diseñar barra y guía", "en": "Design bar and guide"},
+                {"es": "Entregar y aprobar", "en": "Deliver and approve"}
+              ],
+              "explicacion": {"es": "Se revisa primero lo que entra; se mide antes de diseñar para no rehacer; se entrega al final.", "en": "Inputs are reviewed first; measurements come before design to avoid rework; delivery is last."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "En un Single 24z, la demodenture quedó colocada distinto al diseño N2 y el doctor no pidió cambios. ¿Qué se hace?", "en": "In a Single 24z, the demodenture was seated differently from the N2 design and the doctor did not request changes. What happens?"},
+              "opciones": [
+                {"texto": {"es": "Se avisa al manager y se ofrecen al doctor dos opciones: seguir N2 o pasar a G-cam", "en": "The manager is notified and the doctor is offered two options: follow N2 or move to G-cam"}, "ok": true},
+                {"texto": {"es": "El diseñador decide solo y sigue", "en": "The designer decides alone and continues"}},
+                {"texto": {"es": "Se cancela la orden", "en": "The order is cancelled"}}
+              ],
+              "explicacion": {"es": "La decisión cambia la oclusión y el producto, por eso se avisa al manager y la elige el doctor.", "en": "The decision changes the occlusion and the product, so the manager is notified and the doctor chooses."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Si no se detecta ningún problema en la ventana inicial, el diseño envía un mensaje de confirmación.", "en": "If no problem is detected in the initial window, design sends a confirmation message."},
+              "ok": true,
+              "explicacion": {"es": "Así el centro sabe que el caso sigue sin hold y todos tienen la misma información.", "en": "That way the center knows the case continues without a hold and everyone has the same information."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-n3-l4",
+      "titulo": {"es": "Reglas que importan y por qué", "en": "Rules that matter and why"},
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Reglas con razón de ser", "en": "Rules with a reason"},
+          "cuerpo": {
+            "es": "Las reglas de N3 no son burocracia: cada una evita que una prótesis se rompa, no atornille o se vea mal. Como manager no las aplicas tú, pero entenderlas te permite explicar una pausa o un cambio de producto sin que parezca arbitrario. La tabla siguiente resume las principales y su porqué.",
+            "en": "N3 rules are not bureaucracy: each one prevents a prosthesis from breaking, not seating or looking wrong. As a manager you do not apply them yourself, but understanding them lets you explain a pause or a product change without it seeming arbitrary. The table below summarizes the main ones and their reason."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {"es": "Reglas clave y su porqué", "en": "Key rules and why"},
+          "cabeceras": [{"es": "Regla", "en": "Rule"}, {"es": "Por qué existe", "en": "Why it exists"}],
+          "filas": [
+            [{"es": "Sin ICAM/Micron no hay caso; su número de implantes debe coincidir con la RX", "en": "No ICAM/Micron, no case; its implant count must match the RX"}, {"es": "Un implante de más o de menos cambia el cantilever y los accesos; el registro es la referencia más fiel de dónde están.", "en": "An implant too many or too few changes the cantilever and access holes; the record is the most faithful reference for where they are."}],
+            [{"es": "Scans completos y limpios (plato con línea media, stumps, tissue)", "en": "Complete, clean scans (plate with midline, stumps, tissue)"}, {"es": "El programa alinea comparando formas; con poca información o capas dobles la alineación es imprecisa y se pide scan nuevo.", "en": "The software aligns by comparing shapes; with little information or double layers the alignment is imprecise and a new scan is requested."}],
+            [{"es": "Medidas mínimas de zirconia por tamaño de arco", "en": "Minimum zirconia measurements by arch size"}, {"es": "Una zirconia más delgada corre riesgo de romperse en boca; con menos masa no hay garantía 24-Z.", "en": "Thinner zirconia risks breaking in the mouth; with less mass the 24-Z warranty does not apply."}],
+            [{"es": "Cantilever máximo de 15 mm", "en": "Maximum cantilever of 15 mm"}, {"es": "Un voladizo muy largo (parte de la prótesis más allá del último implante) debilita la prótesis; si se supera se sugiere un arco corto o más soporte labial.", "en": "A very long overhang (the part of the prosthesis beyond the last implant) weakens the prosthesis; if exceeded, a short bridge or more lip support is suggested."}],
+            [{"es": "Orificios de acceso por oclusal, sin romper el vestibular", "en": "Access holes through the occlusal, without breaking the buccal"}, {"es": "Los que salen por vestibular dañan la estética y, en zonas delgadas, la zirconia puede fracturarse al fresar.", "en": "Those exiting buccally harm esthetics and, in thin areas, the zirconia can fracture during milling."}],
+            [{"es": "Pickup verificado contra el ICAM/Micron", "en": "Pickup verified against ICAM/Micron"}, {"es": "Un implante que no atornilla en el Master o en boca arruina el caso; el pickup tiene más margen de error que el registro tomado en boca.", "en": "An implant that does not seat on the Master or in the mouth ruins the case; the pickup has more error margin than the record taken in the mouth."}],
+            [{"es": "En Single 24z solo se permiten cambios de VDO e incisal edge", "en": "In Single 24z only VDO and incisal edge changes are allowed"}, {"es": "Cualquier otro cambio rompe la oclusión ya aprobada en N2 y la zirconia preparada.", "en": "Any other change breaks the occlusion already approved in N2 and the prepared zirconia."}],
+            [{"es": "Reducción de tissue solo a pedido del doctor", "en": "Tissue reduction only when the doctor requests it"}, {"es": "Es una modificación del tejido real; el laboratorio no la propone (salvo que esté preaprobada).", "en": "It modifies the real tissue; the lab does not propose it (unless pre-approved)."}],
+            [{"es": "Implantes DIO: alineación con su propia librería", "en": "DIO implants: alignment with their own library"}, {"es": "Cada marca de implante tiene geometría propia; con otra librería quedaría mal posicionado.", "en": "Each implant brand has its own geometry; with another library it would be mispositioned."}]
+          ]
+        },
+        {
+          "t": "calculadora",
+          "id": "espesor24z",
+          "titulo": {"es": "Explora las medidas mínimas 24-Z", "en": "Explore the 24-Z minimum measurements"},
+          "guia": {"es": "Elige un tamaño de arco y mira el espesor mínimo posterior y anterior, el voladizo y el ancho bucal-lingual. Es una forma de ver por qué algunos casos no cumplen.", "en": "Pick an arch size and see the minimum posterior and anterior thickness, the cantilever and the buccal-lingual width. A way to see why some cases do not qualify."}
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Cifras que dependen de la fuente", "en": "Figures that depend on the source"},
+          "cuerpo": {
+            "es": "Hay valores que los textos en español e inglés dan distintos: la tolerancia del movimiento horizontal de los modelos al cambiar el VDO, el máximo de reducción de tissue que puede pedir el doctor, y la altura máxima de los orificios de acceso de la guía. Hasta que se aclaren, no los uses como regla firme con tu equipo.",
+            "en": "Some values appear differently in the Spanish and English texts: the tolerance for horizontal model movement when changing the VDO, the maximum tissue reduction the doctor can request, and the maximum height of the guide's access holes. Until clarified, do not use them as a firm rule with your team."
+          },
+          "alerta": {"es": "Confirmar con el manager: tolerancia VDO (0.5 vs 1 mm), reducción de tissue (1 vs 1.5 mm) y accesos de la guía (16-17 vs 18-19 mm).", "en": "Confirm with the manager: VDO tolerance (0.5 vs 1 mm), tissue reduction (1 vs 1.5 mm) and guide access holes (16-17 vs 18-19 mm)."}
+        },
+        {
+          "t": "enlace",
+          "titulo": {"es": "Garantía 24-Z", "en": "24-Z warranty"},
+          "texto": {"es": "Si quieres entender mejor por qué existen las medidas mínimas y qué pasa si un ajuste las compromete.", "en": "To understand better why the minimum measurements exist and what happens if an adjustment compromises them."},
+          "lecc": "m5-l1"
+        },
+        {
+          "t": "enlace",
+          "titulo": {"es": "VDO e incisal edge en Single 24z", "en": "VDO and incisal edge in Single 24z"},
+          "texto": {"es": "Para ver con figuras por qué en Single 24z el borde incisal se liga al VDO.", "en": "To see with figures why in Single 24z the incisal edge is tied to the VDO."},
+          "lecc": "m4-l1"
+        },
+        {
+          "t": "enlace",
+          "titulo": {"es": "ICAM, Micron y DIO", "en": "ICAM, Micron and DIO"},
+          "texto": {"es": "Detalle de cómo se compara el pickup con el registro de implantes y cuándo se pide un pickup nuevo.", "en": "Detail on how the pickup is compared with the implant record and when a new pickup is requested."},
+          "lecc": "m6b-l7"
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Cada regla evita que la prótesis se rompa, no atornille o se vea mal.", "en": "Each rule prevents the prosthesis from breaking, not seating or looking wrong."},
+            {"es": "Medidas mínimas y cantilever protegen la resistencia de la zirconia y la garantía.", "en": "Minimum measurements and cantilever protect zirconia strength and the warranty."},
+            {"es": "El registro de implantes y el pickup se comparan porque un implante movido puede arruinar el ajuste.", "en": "The implant record and the pickup are compared because a moved implant can ruin the fit."},
+            {"es": "Hay cifras en disputa entre idiomas: se confirman con el manager.", "en": "Some figures conflict across languages: confirm them with the manager."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué se verifica el pickup contra el ICAM/Micron?", "en": "Why is the pickup verified against the ICAM/Micron?"},
+              "opciones": [
+                {"texto": {"es": "Porque el pickup tiene más margen de error y un implante movido puede no atornillar", "en": "Because the pickup has a larger error margin and a moved implant may not seat"}, "ok": true},
+                {"texto": {"es": "Porque el ICAM es más barato", "en": "Because the ICAM is cheaper"}},
+                {"texto": {"es": "Por costumbre del laboratorio", "en": "Out of lab habit"}}
+              ],
+              "explicacion": {"es": "El registro tomado en boca es la referencia más fiel; el pickup puede haberse movido al tomarlo o al articular.", "en": "The record taken in the mouth is the most faithful reference; the pickup may have moved when it was taken or articulated."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "El laboratorio puede proponer por su cuenta reducir el tissue para ganar altura.", "en": "The lab can on its own propose reducing the tissue to gain height."},
+              "ok": false,
+              "explicacion": {"es": "La reducción de tissue modifica el tejido real: debe pedirla el doctor (salvo que esté preaprobada).", "en": "Tissue reduction modifies the real tissue: the doctor must request it (unless pre-approved)."}
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {"es": "¿Qué problemas puede causar un orificio de acceso que sale por vestibular?", "en": "What problems can an access hole exiting buccally cause?"},
+              "opciones": [
+                {"texto": {"es": "Daña la estética", "en": "It harms esthetics"}, "ok": true},
+                {"texto": {"es": "En zonas delgadas, la zirconia puede fracturarse al fresar", "en": "In thin areas, the zirconia may fracture during milling"}, "ok": true},
+                {"texto": {"es": "Hace que el paciente no tolere el material", "en": "It makes the patient intolerant to the material"}}
+              ],
+              "explicacion": {"es": "Los dos primeros son las razones que da el protocolo; avisar pronto ahorra tiempo en diseño y laboratorio.", "en": "The first two are the protocol's reasons; warning early saves time in design and lab."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-n3-l5",
+      "titulo": {"es": "Tiempos, calidad y qué puede salir mal", "en": "Timing, quality and what can go wrong"},
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Horas de trabajo no son plazos de calendario", "en": "Work hours are not calendar deadlines"},
+          "cuerpo": {
+            "es": "La hoja de tiempos indica **cuánto trabaja el diseñador** en un producto, y son tiempos de referencia, no garantías. Los plazos (cuánto tiene el doctor para aprobar, cuánto necesita el laboratorio) son tiempo de calendario. Mezclar ambos genera expectativas equivocadas con la clínica.",
+            "en": "The timing sheet shows **how long the designer works** on a product, and these are reference times, not guarantees. Deadlines (how long the doctor has to approve, how long the lab needs) are calendar time. Mixing the two creates wrong expectations with the clinic."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {"es": "Tiempos de diseño N3 (hoja de tiempos)", "en": "N3 design times (timing sheet)"},
+          "cabeceras": [{"es": "Producto", "en": "Product"}, {"es": "Diseño + extra", "en": "Design + extra"}, {"es": "Total", "en": "Total"}],
+          "filas": [
+            [{"es": "TC design", "en": "TC design"}, {"es": "30 min", "en": "30 min"}, {"es": "30 min", "en": "30 min"}],
+            [{"es": "Nightguard", "en": "Nightguard"}, {"es": "45 min", "en": "45 min"}, {"es": "45 min", "en": "45 min"}],
+            [{"es": "Full Mouth 24z", "en": "Full Mouth 24z"}, {"es": "1 h 30 + 10 min", "en": "1 h 30 + 10 min"}, {"es": "1 h 40", "en": "1 h 40"}],
+            [{"es": "Removable denture / G-cam", "en": "Removable denture / G-cam"}, {"es": "1 h 30 + 10 min", "en": "1 h 30 + 10 min"}, {"es": "1 h 40", "en": "1 h 40"}],
+            [{"es": "Single 24z", "en": "Single 24z"}, {"es": "1 h 20", "en": "1 h 20"}, {"es": "1 h 20", "en": "1 h 20"}],
+            [{"es": "Single G-cam / Ti bar", "en": "Single G-cam / Ti bar"}, {"es": "2 h + 30 min", "en": "2 h + 30 min"}, {"es": "2 h 30", "en": "2 h 30"}],
+            [{"es": "Single Rev denture", "en": "Single Rev denture"}, {"es": "1 h + 30 min", "en": "1 h + 30 min"}, {"es": "1 h 30", "en": "1 h 30"}]
+          ]
+        },
+        {
+          "t": "calculadora",
+          "id": "tiempos",
+          "titulo": {"es": "Explora los tiempos de diseño", "en": "Explore the design times"},
+          "guia": {"es": "Compara productos y mira por qué un caso con muchos cambios o un hold se siente más largo en el día a día.", "en": "Compare products and see why a case with many changes or a hold feels longer in day-to-day work."}
+        },
+        {
+          "t": "acordeon",
+          "titulo": {"es": "Plazos y esperas que sí conviene conocer", "en": "Deadlines and waits worth knowing"},
+          "items": [
+            {"titulo": {"es": "Flujo de 24 horas", "en": "24-hour workflow"}, "texto": {"es": "Todo N3 va con flujo de 24 h. Si el stage dice 'Bite Design' en vez de 'Design', el workflow es incorrecto y se abre un ticket para ponerlo en 24H.", "en": "All N3 runs on a 24-hour workflow. If the stage says 'Bite Design' instead of 'Design', the workflow is wrong and a ticket is opened to set it to 24H."}},
+            {"titulo": {"es": "Ventana de 45 minutos", "en": "45-minute window"}, "texto": {"es": "Tiempo desde iniciar el caso para reportar problemas que ameriten hold.", "en": "Time from starting the case to report problems that warrant a hold."}},
+            {"titulo": {"es": "Esperas del doctor", "en": "Doctor waits"}, "texto": {"es": "Para aprobaciones del día de cirugía se esperan 30 minutos. Si el doctor no responde, el manager y el regional eligen la opción que el doctor suele elegir (el regional autoriza).", "en": "For surgery-day approvals, 30 minutes are allowed. If the doctor does not respond, the manager and regional choose the option the doctor usually chooses (the regional authorizes)."}},
+            {"titulo": {"es": "Nuevo pickup", "en": "New pickup"}, "texto": {"es": "Si hace falta repetirlo con el paciente presente, la verificación se limita a un máximo de 20 minutos.", "en": "If it has to be repeated with the patient present, the verification is limited to a maximum of 20 minutes."}},
+            {"titulo": {"es": "TC design", "en": "TC design"}, "texto": {"es": "El stage TC DESIGN debe aprobarse en máximo 12 horas.", "en": "The TC DESIGN stage must be approved within a maximum of 12 hours."}}
+          ]
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "Hallazgos típicos de QC", "en": "Typical QC findings"},
+          "items": [
+            {"icono": "🧾", "titulo": {"es": "SURGERIES (revisión de archivos y diseño)", "en": "SURGERIES (file and design review)"}, "texto": {"es": "Faltan archivos o el link del ICAM no aparece; implantes distintos entre RX, ICAM y stumps; scans con material interno, exceso de spray o tissue con doble capa; barra sin contacto con el implante o sin pasarse al tissue; cúspides de la barra modificadas; olvidar reubicar la guía NG tras un cambio.", "en": "Files missing or the ICAM link does not appear; different implant counts across RX, ICAM and stumps; scans with material inside, excess spray or double-layer tissue; bar not touching the implant or not running into the tissue; bar cusps modified; forgetting to reposition the NG guide after a change."}},
+            {"icono": "🌙", "titulo": {"es": "NG", "en": "NG"}, "texto": {"es": "Llega con guía de articulación (se pone en hold y se pide escaneo de la prótesis), scan con exceso de material o spray, modelos movidos horizontalmente, VDO inadecuado, carpeta equivocada o ZIP vacío.", "en": "Arrives with an articulation guide (placed on hold and a scan of the prosthesis is requested), scan with excess material or spray, horizontally moved models, inadequate VDO, wrong folder or empty ZIP."}},
+            {"icono": "🧱", "titulo": {"es": "TC", "en": "TC"}, "texto": {"es": "Exportar a la carpeta equivocada, archivos que pesan más del límite, modificar el tamaño del diente, TC que sobrepasa al antagonista, ZIP vacío o cortes imprecisos.", "en": "Exporting to the wrong folder, files heavier than the limit, changing the tooth size, a TC that overshoots the antagonist, empty ZIP or imprecise cuts."}}
+          ]
+        },
+        {
+          "t": "acordeon",
+          "titulo": {"es": "Hold y cuándo se avisa al doctor", "en": "Hold and when the doctor is notified"},
+          "items": [
+            {"titulo": {"es": "Causas de hold", "en": "Causes of hold"}, "texto": {"es": "Orificio de acceso mal ubicado, medidas insuficientes, cantilever excesivo, housings problemáticos vistos en la guía, o falta de archivos. Se avisa con la causa, la solución propuesta y fotos.", "en": "Misplaced access hole, insufficient measurements, excessive cantilever, problematic housings seen in the guide, or missing files. The notice includes the cause, the proposed solution and photos."}},
+            {"titulo": {"es": "Sin hold pero con aviso", "en": "No hold but with notice"}, "texto": {"es": "Si los implantes del intaglio parecen levemente sueltos frente a los stumps, se avisa al manager del laboratorio en el canal pero no se pone hold: puede indicar que el modelo no siguió el protocolo.", "en": "If the implants in the intaglio seem slightly loose compared with the stumps, the lab manager is notified in the channel but no hold is placed: it may indicate that the model did not follow protocol."}},
+            {"titulo": {"es": "Cuándo se contacta al doctor", "en": "When the doctor is contacted"}, "texto": {"es": "Cuando las reglas de pickup no alcanzan (se notifica con una imagen de cuánto se ve movido), cuando hay que elegir entre seguir el diseño de N2 o pasar a G-cam, o cuando un cambio pedido no se puede cumplir por poco espacio o por la posición de los implantes.", "en": "When the pickup rules are not enough (notified with an image of how much it looks moved), when a choice must be made between following the N2 design or moving to G-cam, or when a requested change cannot be met due to limited space or implant position."}},
+            {"titulo": {"es": "Reunión con el doctor (N3/N6)", "en": "Doctor meeting (N3/N6)"}, "texto": {"es": "Solo si la diferencia entre lo pedido y el diseño N2 es mayor a 1 mm y afecta, por ejemplo, plano oclusal, línea media o soporte labial; se valida primero con el manager, se agenda con título 'CENTER - DESIGN MEETING', se graba y dura mínimo 10 minutos. Lo menor se resuelve internamente.", "en": "Only if the difference between what is requested and the N2 design is greater than 1 mm and affects, for example, occlusal plane, midline or lip support; it is validated first with the manager, scheduled with the title 'CENTER - DESIGN MEETING', recorded and lasts at least 10 minutes. Minor items are resolved internally."}}
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Una cifra para confirmar", "en": "A figure to confirm"},
+          "cuerpo": {
+            "es": "Para el Nightguard, el protocolo indica unos 30 minutos de diseño (máximo un día), mientras que la hoja de tiempos muestra 45 minutos. Para ordenar expectativas con tu equipo conviene saber cuál usar como referencia.",
+            "en": "For the Nightguard, the protocol indicates about 30 minutes of design (maximum one day), while the timing sheet shows 45 minutes. To set expectations with your team it helps to know which one to use as a reference."
+          },
+          "alerta": {"es": "Confirmar con el manager: tiempo de referencia del Nightguard (30 vs 45 min).", "en": "Confirm with the manager: Nightguard reference time (30 vs 45 min)."}
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Los tiempos de la hoja son horas de trabajo, no plazos de calendario.", "en": "The sheet times are work hours, not calendar deadlines."},
+            {"es": "El caso tiene una ventana corta para reportar problemas y esperas acotadas del doctor.", "en": "The case has a short window to report problems and limited waits for the doctor."},
+            {"es": "El hold se usa para problemas reales; algunos hallazgos solo requieren aviso.", "en": "A hold is used for real problems; some findings only require notice."},
+            {"es": "Al doctor se le avisa cuando hay que decidir o no se puede cumplir lo pedido.", "en": "The doctor is notified when a decision is needed or the request cannot be met."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "Los implantes del intaglio parecen levemente sueltos frente a los stumps. ¿Qué se hace?", "en": "The implants in the intaglio seem slightly loose compared with the stumps. What is done?"},
+              "opciones": [
+                {"texto": {"es": "Se avisa al manager del laboratorio sin poner hold", "en": "The lab manager is notified without placing a hold"}, "ok": true},
+                {"texto": {"es": "Se pone hold inmediatamente", "en": "A hold is placed immediately"}},
+                {"texto": {"es": "No se dice nada", "en": "Nothing is said"}}
+              ],
+              "explicacion": {"es": "Puede indicar que el modelo no siguió el protocolo; el aviso permite corregir sin detener el caso.", "en": "It may indicate that the model did not follow protocol; the notice allows correction without stopping the case."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Los tiempos de la hoja de diseño equivalen al plazo de calendario que tiene el laboratorio para entregar.", "en": "The design sheet times are equivalent to the calendar deadline the lab has to deliver."},
+              "ok": false,
+              "explicacion": {"es": "Son horas de trabajo del diseñador de referencia; los plazos son tiempo de calendario y no deben mezclarse.", "en": "They are reference designer work hours; deadlines are calendar time and must not be mixed."}
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {"es": "¿Cuáles son causas típicas de hold?", "en": "Which are typical causes of hold?"},
+              "opciones": [
+                {"texto": {"es": "Orificio de acceso mal ubicado", "en": "Misplaced access hole"}, "ok": true},
+                {"texto": {"es": "Cantilever excesivo", "en": "Excessive cantilever"}, "ok": true},
+                {"texto": {"es": "Que el paciente cambie de peinado", "en": "The patient changing hairstyle"}}
+              ],
+              "explicacion": {"es": "Son problemas que afectan la fabricación o la resistencia y requieren decisión antes de seguir.", "en": "They are problems that affect fabrication or strength and require a decision before continuing."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-n3-l6",
+      "titulo": {"es": "Cómo coordinas con N3", "en": "How you coordinate with N3"},
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Coordinar es evitar sorpresas", "en": "Coordinating is avoiding surprises"},
+          "cuerpo": {
+            "es": "Con N3 el reloj corre desde que se inicia el caso, así que coordinar bien significa que lo que llega sea completo, que la información no se contradiga, y que cuando hay un problema todos lo vean en el mismo lugar. La comunicación va por los canales de Zoho Cliq del centro (no chats privados) y los comentarios de plataforma van en inglés, para que haya trazabilidad.",
+            "en": "With N3 the clock runs from the moment the case starts, so coordinating well means what arrives is complete, the information does not contradict itself, and when there is a problem everyone sees it in the same place. Communication goes through the center's Zoho Cliq channels (not private chats) and platform comments are in English, to keep a record."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {"es": "Qué enviar y qué pedir", "en": "What to send and what to ask for"},
+          "cabeceras": [{"es": "Tema", "en": "Topic"}, {"es": "Qué hace tu laboratorio", "en": "What your lab does"}, {"es": "Por qué", "en": "Why"}],
+          "filas": [
+            [{"es": "Scans", "en": "Scans"}, {"es": "Enviar plato con línea media visible, stumps sin exceso de spray ni material interno, tissue completo y sin doble capa.", "en": "Send a plate with the midline visible, stumps without excess spray or internal material, and a complete tissue without a double layer."}, {"es": "Es lo que el programa necesita para alinear; si no, se pide scan nuevo.", "en": "It is what the software needs to align; otherwise a new scan is requested."}],
+            [{"es": "Registro de implantes", "en": "Implant record"}, {"es": "Asegurar el ICAM/Micron con el proyecto correcto y archivos no vacíos, con el mismo número de implantes que la RX.", "en": "Make sure the ICAM/Micron has the correct project and non-empty files, with the same implant count as the RX."}, {"es": "Sin él no hay caso; si falta, el caso pasa a hold.", "en": "Without it there is no case; if it is missing, the case goes on hold."}],
+            [{"es": "Producto en la orden", "en": "Product on the order"}, {"es": "Confirmar que el producto sea el correcto antes de empezar.", "en": "Confirm the product is correct before starting."}, {"es": "Cambiarlo después de aprobado el stage requiere ticket a plataforma.", "en": "Changing it after the stage is approved requires a platform ticket."}],
+            [{"es": "Tras el diseño", "en": "After the design"}, {"es": "Pedir las páginas HTML y confirmar que los archivos de fresado correspondan al producto.", "en": "Request the HTML pages and confirm the milling files match the product."}, {"es": "Es el respaldo para revisar cuando ya no hay acceso a la escena.", "en": "It is the backup for review when the scene is no longer accessible."}],
+            [{"es": "Fresado", "en": "Milling"}, {"es": "Avisar el grosor máximo de disco disponible y consultar si hay accesos al límite.", "en": "Report the maximum disc thickness available and ask whether any access holes are at the limit."}, {"es": "Si se supera, no se puede fresar; se usa Nesting o se analiza imprimir.", "en": "If it is exceeded, it cannot be milled; nesting is used or printing is considered."}]
+          ]
+        },
+        {
+          "t": "checklist",
+          "titulo": {"es": "Questions to ask", "en": "Questions to ask"},
+          "items": [
+            {"es": "¿El producto de la orden es el correcto?", "en": "Is the product on the order correct?"},
+            {"es": "¿El número de implantes coincide entre RX, ICAM/Micron y stumps?", "en": "Does the implant count match across the RX, ICAM/Micron and stumps?"},
+            {"es": "¿El plato muestra la línea media y los scans están completos?", "en": "Does the plate show the midline and are the scans complete?"},
+            {"es": "¿Hay cambios de la RX que podrían no caber por poco espacio o por la posición de implantes?", "en": "Are there RX changes that might not fit due to limited space or implant position?"},
+            {"es": "¿Algún acceso o altura está al límite de lo que fresa nuestro laboratorio?", "en": "Is any access hole or height at the limit of what our lab can mill?"},
+            {"es": "Si es Single 24z, ¿cambió algo en el paciente desde N2 (tratamiento dental, colocación de la demodenture)?", "en": "If it is a Single 24z, has anything changed in the patient since N2 (dental treatment, demodenture placement)?"}
+          ]
+        },
+        {
+          "t": "acordeon",
+          "titulo": {"es": "Señales de alerta", "en": "Warning signs"},
+          "items": [
+            {"titulo": {"es": "Información contradictoria", "en": "Contradictory information"}, "texto": {"es": "Si plataforma y Cliq dicen cosas distintas, hay consultas y retrasos. Conviene alinearlas antes de que corra el reloj.", "en": "If the platform and Cliq say different things, there are queries and delays. Align them before the clock runs."}},
+            {"titulo": {"es": "Stage aprobado con un error", "en": "Stage approved with an error"}, "texto": {"es": "Después de aprobar el stage no se puede cambiar el producto ni borrar un adjunto: se necesita ticket a soporte de plataforma.", "en": "After the stage is approved the product cannot be changed nor an attachment deleted: a ticket to platform support is needed."}},
+            {"titulo": {"es": "Un cambio de último momento", "en": "A last-minute change"}, "texto": {"es": "Si hace falta cambiar el producto pasadas las 9 pm, se pide al Designer Support de la noche.", "en": "If the product needs to change after 9 pm, it is requested from the night Designer Support."}},
+            {"titulo": {"es": "Implantes angulados o guía más gruesa que el disco", "en": "Angled implants or a guide thicker than the disc"}, "texto": {"es": "Se habla con el manager y el regional: puede que convenga imprimir la guía.", "en": "Talk to the manager and regional: it may be better to print the guide."}}
+          ]
+        },
+        {
+          "t": "flujo",
+          "titulo": {"es": "Escalamiento", "en": "Escalation"},
+          "pasos": [
+            {"titulo": {"es": "N3 designer", "en": "N3 designer"}, "texto": {"es": "Detecta el problema y avisa en el canal del centro.", "en": "Detects the problem and notifies the center channel."}},
+            {"titulo": {"es": "Manager de N3", "en": "N3 manager"}, "texto": {"es": "Decide sobre tolerancias, cambios de producto y pausas.", "en": "Decides on tolerances, product changes and pauses."}},
+            {"titulo": {"es": "Regional", "en": "Regional"}, "texto": {"es": "Autoriza casos especiales y decisiones con el doctor.", "en": "Authorizes special cases and decisions with the doctor."}},
+            {"titulo": {"es": "Liderazgo", "en": "Leadership"}, "texto": {"es": "Para decisiones que exceden lo anterior, como reducciones de tissue mayores al límite.", "en": "For decisions beyond the above, such as tissue reductions larger than the limit."}}
+          ]
+        },
+        {
+          "t": "lider",
+          "area": "n3",
+          "texto": {"es": "Contacta a esta persona cuando el caso necesite una decisión de producto o un permiso fuera de lo habitual.", "en": "Contact this person when a case needs a product decision or an exception beyond the usual."}
+        },
+        {
+          "t": "enlace",
+          "titulo": {"es": "Mapa de productos N3 y N6", "en": "N3 and N6 product map"},
+          "texto": {"es": "Si quieres ver cómo se conectan pickup, ICAM/Micron, barra y TC en un solo mapa.", "en": "If you want to see how pickup, ICAM/Micron, bar and TC connect on a single map."},
+          "lecc": "m6b-l1"
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Enviar completo y limpio evita pausas y scans nuevos.", "en": "Sending complete and clean inputs avoids pauses and new scans."},
+            {"es": "Todo se comunica en los canales del centro y se documenta en la plataforma, en inglés.", "en": "Everything is communicated in the center channels and documented on the platform, in English."},
+            {"es": "El escalamiento sube del diseñador al manager, al regional y al liderazgo.", "en": "Escalation goes from the designer to the manager, the regional and leadership."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por dónde se comunican los problemas de un caso?", "en": "Where are problems with a case communicated?"},
+              "opciones": [
+                {"texto": {"es": "En los canales de Zoho Cliq del centro y en la plataforma", "en": "In the center's Zoho Cliq channels and on the platform"}, "ok": true},
+                {"texto": {"es": "En chats privados", "en": "In private chats"}},
+                {"texto": {"es": "Solo de palabra", "en": "Only verbally"}}
+              ],
+              "explicacion": {"es": "Así todos ven la misma información y queda un registro del caso.", "en": "That way everyone sees the same information and there is a record of the case."}
+            },
+            {
+              "tipo": "orden",
+              "enunciado": {"es": "Ordena el escalamiento.", "en": "Put the escalation in order."},
+              "items": [
+                {"es": "N3 designer", "en": "N3 designer"},
+                {"es": "Manager de N3", "en": "N3 manager"},
+                {"es": "Regional", "en": "Regional"},
+                {"es": "Liderazgo", "en": "Leadership"}
+              ],
+              "explicacion": {"es": "Cada nivel resuelve lo que le corresponde y escala lo que lo supera.", "en": "Each level resolves what is within its scope and escalates what exceeds it."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Una vez aprobado el stage se puede cambiar el producto sin trámite.", "en": "Once the stage is approved the product can be changed without any process."},
+              "ok": false,
+              "explicacion": {"es": "Después de aprobar el stage se necesita un ticket a soporte de plataforma.", "en": "After the stage is approved a ticket to platform support is needed."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-n3-l7",
+      "titulo": {"es": "Wrap-up: N3 Prosthetic", "en": "Wrap-up: N3 Prosthetic"},
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "resumen",
+          "titulo": {"es": "Lo esencial de N3", "en": "N3 essentials"},
+          "puntos": [
+            {"es": "N3 es la etapa de la cirugía: diseña la prótesis sobre la posición real de los implantes (en el Schedule, N3 Prosthetic).", "en": "N3 is the surgery stage: it designs the prosthesis on the real implant position (in the Schedule, N3 Prosthetic)."},
+            {"es": "Recibe la oclusión de N2 y los scans y registros de tu laboratorio; entrega archivos de fresado.", "en": "It receives the occlusion from N2 and the scans and records from your lab; it delivers milling files."},
+            {"es": "Las reglas protegen la resistencia, el ajuste y la estética.", "en": "The rules protect strength, fit and esthetics."},
+            {"es": "Hay una ventana corta para reportar problemas; el hold se usa para problemas reales.", "en": "There is a short window to report problems; a hold is used for real problems."},
+            {"es": "Coordinas enviando completo y limpio, y comunicando en los canales del centro.", "en": "You coordinate by sending complete, clean inputs and communicating in the center channels."}
+          ]
+        },
+        {
+          "t": "checklist",
+          "titulo": {"es": "Autoevaluación del manager", "en": "Manager self-check"},
+          "items": [
+            {"es": "Puedo explicar qué es N3 y por qué aparece como N3 Prosthetic en el Schedule.", "en": "I can explain what N3 is and why it appears as N3 Prosthetic in the Schedule."},
+            {"es": "Sé qué productos hay y cuál es la diferencia entre Full Mouth y Single 24z.", "en": "I know what products exist and the difference between Full Mouth and Single 24z."},
+            {"es": "Sé qué debe enviar mi laboratorio y qué revisar antes.", "en": "I know what my lab must send and what to check beforehand."},
+            {"es": "Sé distinguir horas de trabajo de plazos de calendario.", "en": "I can tell work hours from calendar deadlines."},
+            {"es": "Sé cuándo se pone hold y cuándo basta con avisar.", "en": "I know when a hold is placed and when a notice is enough."},
+            {"es": "Sé a quién escalar y por qué canal.", "en": "I know whom to escalate to and through which channel."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Qué recibe N3 de N2 en un Single 24z?", "en": "What does N3 receive from N2 in a Single 24z?"},
+              "opciones": [
+                {"texto": {"es": "Una oclusión ya aprobada (waxup, barra y TC) que N3 mantiene", "en": "An already approved occlusion (waxup, bar and TC) that N3 keeps"}, "ok": true},
+                {"texto": {"es": "Nada; N3 diseña la oclusión desde cero", "en": "Nothing; N3 designs the occlusion from scratch"}},
+                {"texto": {"es": "Solo las fotos de la cara", "en": "Only the face photos"}}
+              ],
+              "explicacion": {"es": "En Single 24z el TC ya está fresado y la oclusión aprobada; N3 hace la barra y la guía sobre ella.", "en": "In Single 24z the TC is already milled and the occlusion approved; N3 makes the bar and guide on top of it."}
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {"es": "¿Qué razones justifican un cambio de Single 24z a G-cam?", "en": "Which reasons justify moving from Single 24z to G-cam?"},
+              "opciones": [
+                {"texto": {"es": "El doctor pide cambios distintos de VDO e incisal edge", "en": "The doctor asks for changes other than VDO and incisal edge"}, "ok": true},
+                {"texto": {"es": "No se cumplen los requisitos de medidas para 24z", "en": "The measurement requirements for 24z are not met"}, "ok": true},
+                {"texto": {"es": "El laboratorio prefiere otro material", "en": "The lab prefers another material"}}
+              ],
+              "explicacion": {"es": "Solo G-cam permite reajustar la oclusión y compensar medidas que no alcanzan para 24z.", "en": "Only G-cam allows readjusting the occlusion and compensating for measurements that do not reach 24z."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Un implante que parece movido entre el pickup y el ICAM/Micron debe ignorarse porque el pickup es más fiable.", "en": "An implant that looks moved between the pickup and the ICAM/Micron should be ignored because the pickup is more reliable."},
+              "ok": false,
+              "explicacion": {"es": "Es al revés: el registro tomado en boca es la referencia más fiable y el pickup tiene más margen de error.", "en": "It is the other way around: the record taken in the mouth is the more reliable reference and the pickup has a larger error margin."}
+            },
+            {
+              "tipo": "orden",
+              "enunciado": {"es": "Ordena el recorrido del paciente.", "en": "Put the patient journey in order."},
+              "items": [
+                {"es": "N2 Demodenture", "en": "N2 Demodenture"},
+                {"es": "N3 Prosthetic (cirugía)", "en": "N3 Prosthetic (surgery)"},
+                {"es": "Fresado en el laboratorio", "en": "Milling at the lab"},
+                {"es": "N4 Delivery", "en": "N4 Delivery"}
+              ],
+              "explicacion": {"es": "N2 prepara la oclusión, N3 diseña sobre los implantes, el laboratorio fabrica y N4 entrega al paciente.", "en": "N2 prepares the occlusion, N3 designs on the implants, the lab fabricates and N4 delivers to the patient."}
+            },
+            {
+              "tipo": "parejas",
+              "enunciado": {"es": "Une cada situación con la acción.", "en": "Match each situation with the action."},
+              "pares": [
+                {"a": {"es": "Archivo de implantes vacío o sin proyecto", "en": "Empty implant file or missing project"}, "b": {"es": "Se piden archivos nuevos a la clínica", "en": "New files are requested from the clinic"}},
+                {"a": {"es": "Stump con exceso de spray", "en": "Stump with excess spray"}, "b": {"es": "Se pide un modelo o scan nuevo", "en": "A new model or scan is requested"}},
+                {"a": {"es": "Orificio de acceso mal ubicado", "en": "Misplaced access hole"}, "b": {"es": "Hold y aviso con causa, solución y fotos", "en": "Hold and notice with cause, solution and photos"}},
+                {"a": {"es": "Implantes levemente sueltos en el pickup", "en": "Slightly loose implants in the pickup"}, "b": {"es": "Aviso al manager del laboratorio sin hold", "en": "Notice to the lab manager without a hold"}}
+              ],
+              "explicacion": {"es": "Cada hallazgo tiene una respuesta distinta según su impacto en el diseño.", "en": "Each finding has a different response depending on its impact on the design."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Una reunión con el doctor se agenda para cualquier preferencia estética menor.", "en": "A meeting with the doctor is scheduled for any minor esthetic preference."},
+              "ok": false,
+              "explicacion": {"es": "Solo se agenda si la diferencia es claramente perceptible y se valida primero con el manager; lo menor se resuelve internamente.", "en": "It is only scheduled if the difference is clearly noticeable and validated first with the manager; minor items are resolved internally."}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "glosario": [
+    {"id": "n3a-n3", "termino": {"es": "N3 Prosthetic", "en": "N3 Prosthetic"}, "def": {"es": "Etapa de la cirugía: diseño de la prótesis del día de la cirugía sobre los implantes. En el Schedule aparece como N3 Prosthetic.", "en": "The surgery stage: design of the surgery-day prosthesis on the implants. In the Schedule it appears as N3 Prosthetic."}, "cat": "n3"},
+    {"id": "n3a-24z", "termino": {"es": "24z", "en": "24z"}, "def": {"es": "Prótesis total de zirconia entregada 24 horas después de la cirugía.", "en": "Full zirconia prosthesis delivered 24 hours after surgery."}, "cat": "n3"},
+    {"id": "n3a-full-mouth", "termino": {"es": "Full Mouth", "en": "Full Mouth"}, "def": {"es": "Producto de dos arcos (Upper y Lower).", "en": "Two-arch product (Upper and Lower)."}, "cat": "n3"},
+    {"id": "n3a-single-24z", "termino": {"es": "Single 24z", "en": "Single 24z"}, "def": {"es": "Producto de un arco con oclusión ya aprobada en N2 contra el antagonista natural.", "en": "One-arch product with occlusion already approved in N2 against the natural antagonist."}, "cat": "n3"},
+    {"id": "n3a-g-cam", "termino": {"es": "G-cam", "en": "G-cam"}, "def": {"es": "Material tipo disco de resina/composite que permite ajustar la oclusión al pickup real.", "en": "Resin/composite disc-type material that allows the occlusion to be adjusted to the real pickup."}, "cat": "n3"},
+    {"id": "n3a-demodenture", "termino": {"es": "Demodenture", "en": "Demodenture"}, "def": {"es": "Prótesis provisional que el paciente prueba y que sirve de referencia para el pickup.", "en": "Provisional prosthesis the patient tries and that serves as the reference for the pickup."}, "cat": "n3"},
+    {"id": "n3a-pickup", "termino": {"es": "Pickup", "en": "Pickup"}, "def": {"es": "Registro que transfiere la posición de los implantes de la boca a un modelo.", "en": "Record that transfers the implant positions from the mouth to a model."}, "cat": "n3"},
+    {"id": "n3a-stumps", "termino": {"es": "Stumps", "en": "Stumps"}, "def": {"es": "Modelo de yeso con cilindros que copian los implantes; se escanea.", "en": "Plaster model with cylinders that copy the implants; it is scanned."}, "cat": "n3"},
+    {"id": "n3a-tissue", "termino": {"es": "Tissue", "en": "Tissue"}, "def": {"es": "Registro de la encía del paciente.", "en": "Record of the patient's gum."}, "cat": "n3"},
+    {"id": "n3a-icam", "termino": {"es": "ICAM / Micron", "en": "ICAM / Micron"}, "def": {"es": "Registros de la posición real de los implantes tomados en boca por fotogrametría.", "en": "Records of the real implant position taken in the mouth by photogrammetry."}, "cat": "n3"},
+    {"id": "n3a-master", "termino": {"es": "Master", "en": "Master"}, "def": {"es": "Modelo de yeso articulado que representa la boca, donde se prueban barra y guía.", "en": "Articulated plaster model that represents the mouth, where the bar and guide are tested."}, "cat": "n3"},
+    {"id": "n3a-bar", "termino": {"es": "Barra", "en": "Bar"}, "def": {"es": "Estructura que une los implantes y sostiene la prótesis.", "en": "Structure that joins the implants and supports the prosthesis."}, "cat": "n3"},
+    {"id": "n3a-guia", "termino": {"es": "Guía de articulación", "en": "Articulation guide"}, "def": {"es": "Pieza de verificación que se coloca en el articulador para comprobar la mordida y el ajuste.", "en": "Verification piece placed in the articulator to check the bite and fit."}, "cat": "n3"},
+    {"id": "n3a-tc", "termino": {"es": "TC", "en": "TC"}, "def": {"es": "Cubierta de dientes que se cementa sobre la barra.", "en": "Tooth cover that is cemented onto the bar."}, "cat": "n3"},
+    {"id": "n3a-ng", "termino": {"es": "Nightguard (NG)", "en": "Nightguard (NG)"}, "def": {"es": "Férula nocturna diseñada sobre la prótesis terminada para protegerla.", "en": "Night splint designed over the finished prosthesis to protect it."}, "cat": "n3"},
+    {"id": "n3a-cantilever", "termino": {"es": "Cantilever", "en": "Cantilever"}, "def": {"es": "Voladizo: parte de la prótesis que se extiende más allá del último implante.", "en": "Overhang: the part of the prosthesis that extends beyond the last implant."}, "cat": "n3"},
+    {"id": "n3a-vdo", "termino": {"es": "VDO", "en": "VDO"}, "def": {"es": "Dimensión vertical de oclusión: cuánto está abierta la mordida.", "en": "Vertical dimension of occlusion: how open the bite is."}, "cat": "n3"},
+    {"id": "n3a-hold", "termino": {"es": "Hold", "en": "Hold"}, "def": {"es": "Caso detenido con aviso al centro mientras se resuelve un problema.", "en": "Case paused with a notice to the center while a problem is resolved."}, "cat": "n3"},
+    {"id": "n3a-nesting", "termino": {"es": "Nesting", "en": "Nesting"}, "def": {"es": "Acomodo de piezas en el disco de fresado para confirmar que caben.", "en": "Arrangement of pieces in the milling disc to confirm they fit."}, "cat": "n3"}
+  ]
+}

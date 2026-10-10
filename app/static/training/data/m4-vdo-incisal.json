@@ -1,6 +1,6 @@
 {
   "id": "m4-vdo-incisal",
-  "orden": 5,
+  "orden": 23,
   "icono": "📐",
   "titulo": {
     "es": "Cambio de VDO y borde incisal en casos Single 24z",
@@ -1359,5 +1359,6 @@
       },
       "cat": "estetica"
     }
-  ]
+  ],
+  "seccion": "biblioteca"
 }

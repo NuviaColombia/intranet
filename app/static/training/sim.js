@@ -5,6 +5,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { h, t, ui, md, S, CFG, api, toast, vaciar } from './lib.js';
 
+// nombre de una pieza del modelo: "Español|English" (exportado así desde Blender) o un nombre simple
+const nombreParte = (n) => { const [es, en] = n.replace(/_+/g, ' ').split('|'); return t({ es, en: en || es }); };
+
 // ---------- Parámetros del lenguaje de modificación ----------
 const PARAMS = {
   vdo:      { min: -5, max: 5, paso: 0.5, nombre: { es: 'VDO (dimensión vertical)', en: 'VDO (vertical dimension)' }, ayuda: { es: '+ abre la mordida (el arco inferior baja)', en: '+ opens the bite (the lower arch moves down)' } },
@@ -464,7 +467,13 @@ class Visor {
     this.escena.add(obj); this.obj = obj; this.meshes = [];
     obj.traverse((x) => { if (x.isMesh) { this.meshes.push(x); x.material = [].concat(x.material).map((m) => { m = m.clone(); m.clippingPlanes = [this.plano]; m.side = THREE.DoubleSide; return m; }); if (x.material.length === 1) x.material = x.material[0]; } });
     this.alturaMax = new THREE.Box3().setFromObject(obj).max.y; this.alturaMin = new THREE.Box3().setFromObject(obj).min.y;
-    this.cam.position.set(0, 20, 170); this.controles.target.set(0, 0, 0); this.cam.lookAt(0, 0, 0); this.vistaInicial = { pos: this.cam.position.clone(), tgt: new THREE.Vector3() };
+    // un modelo plano (p. ej. varios arcos lado a lado) se entiende mejor desde arriba; el resto, de frente
+    if (tam.y * esc < 35) this.cam.position.set(0, 150, 80); else this.cam.position.set(0, 20, 170);
+    this.controles.target.set(0, 0, 0); this.cam.lookAt(0, 0, 0); this.vistaInicial = { pos: this.cam.position.clone(), tgt: new THREE.Vector3() };
+    // un modelo con varias piezas con nombre (p. ej. los 6 tamaños de arco) deja encender y apagar cada una
+    this.partes = (obj.children || []).filter((c) => c.name && !/^(scene|root|sketchfab)/i.test(c.name));
+    // las piezas marcadas "oculto" al exportar (p. ej. los stents) arrancan apagadas; el usuario las enciende
+    this.partes.forEach((pt) => { if (pt.userData && pt.userData.oculto) pt.visible = false; });
     this.pintarPines(); this.dirty = true;
   }
   redim() { const w = this.cont.clientWidth, hh = this.cont.clientHeight; if (!w || !hh) return; this.renderer.setSize(w, hh); this.cam.aspect = w / hh; this.cam.updateProjectionMatrix(); this.dirty = true; }
@@ -565,6 +574,10 @@ export function crearModeloPaso(p) {
       const corte = h('input', { type: 'range', min: 0, max: 100, step: 1, value: 0, 'aria-label': ui('corte'), oninput: (e) => v.setCorte(+e.target.value) });
       const btnPin = h('button', { type: 'button', class: 'tr-btn tr-btn-chico', hidden: !CFG.esAdmin, onclick: () => { v.modoPin = !v.modoPin; cont.classList.toggle('colocando', v.modoPin); btnPin.classList.toggle('on', v.modoPin); if (v.modoPin) toast(ui('clicModelo')); } }, '📍 ' + ui('agregarPin'));
       v.alModoPin = (on) => btnPin.classList.toggle('on', on);
+      if (v.partes && v.partes.length > 1) {
+        cuerpo.append(h('div', { class: 'tr-partes' }, h('b', null, ui('piezas') + ': '), v.partes.map((pt) => h('label', { class: 'tr-parte' }, h('input', { type: 'checkbox', checked: pt.visible !== false,
+          onchange: (e) => { pt.visible = e.target.checked; v.dirty = true; } }), nombreParte(pt.name)))));
+      }
       barra.append(
         h('label', null, h('input', { type: 'checkbox', onchange: (e) => v.setAlambre(e.target.checked) }), ui('alambre')),
         h('label', null, h('input', { type: 'checkbox', onchange: (e) => v.setFondo(e.target.checked) }), ui('fondo') + ' ◐'),
@@ -577,6 +590,39 @@ export function crearModeloPaso(p) {
   }
   pintar();
   return { el: raiz, destroy: () => { destruido = true; if (visor) visor.destroy(); } };
+}
+
+// Visor de caso: un HTML exportado del Nuvia Design Viewer que sube un admin; se muestra aislado (iframe sandbox) y se abre en la pestaña RX o Changes
+export function crearVisorPaso(p) {
+  const raiz = h('div', { class: 'tr-modelo' }), cuerpo = h('div', { class: 'tr-modelo-cuerpo' });
+  raiz.append(h('div', { class: 'tr-modelo-cab' }, h('h2', { class: 'tr-paso-tit' }, '🖥 ' + t(p.titulo)), md(p.descripcion, { maxTerminos: 3 })), cuerpo);
+  let tab = p.pestana || 'rx';
+  function subir(rot) {
+    const f = h('input', { type: 'file', accept: '.html,.htm', hidden: true, onchange: async () => {
+      const arch = f.files[0]; if (!arch) return; const fd = new FormData(); fd.append('slot', p.slot); fd.append('archivo', arch);
+      toast(ui('subiendo'));
+      try { await api.subir('/design/api/training/modelos', fd); toast(ui('subidoOk'), 'ok'); await refrescarModelos(); pintar(); } catch (e) { toast(e.message || ui('errorGenerico'), 'error'); }
+    } });
+    return h('span', null, f, h('button', { type: 'button', class: 'tr-btn tr-btn-primario', onclick: () => f.click() }, '⬆ ' + rot));
+  }
+  function pintar() {
+    vaciar(cuerpo); const m = (S.modelos || {})[p.slot];
+    if (!m || m.formato !== 'html') {
+      cuerpo.append(h('div', { class: 'tr-modelo-vacio' }, h('div', { class: 'tr-modelo-ico' }, '🖥'), h('h3', null, ui('visorPend')), md(p.pendiente, { sinGlosario: true }),
+        CFG.esAdmin ? subir(ui('subirVisor')) : null, CFG.esAdmin ? h('div', { class: 'tr-sub' }, ui('formatosVisor')) : null));
+      return;
+    }
+    const base = m.url.split('#')[0];
+    const frame = h('iframe', { class: 'tr-visor-frame', src: base + '#' + tab, sandbox: 'allow-scripts allow-downloads allow-modals', loading: 'lazy', title: t(p.titulo), allow: 'fullscreen' });
+    const pest = h('div', { class: 'tr-seg tr-seg-vistas', role: 'group', 'aria-label': ui('pestana') }, ['rx', 'changes'].map((k) => h('button', { type: 'button', class: 'tr-seg-b' + (k === tab ? ' on' : ''), onclick: (e) => {
+      tab = k; frame.src = base + '#' + k; pest.querySelectorAll('.tr-seg-b').forEach((b) => b.classList.toggle('on', b === e.currentTarget)); } }, k === 'rx' ? 'RX' : 'Changes')));
+    cuerpo.append(h('div', { class: 'tr-sim-barra tr-visor-barra' }, pest, h('a', { class: 'tr-btn tr-btn-chico', href: base + '#' + tab, target: '_blank', rel: 'noopener' }, '⤢ ' + ui('abrirVisor')),
+      CFG.esAdmin && !m.incluido ? subir(ui('reemplazar')) : null,
+      CFG.esAdmin && !m.incluido ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-peligro', onclick: async () => { if (!confirm(ui('quitar') + '?')) return; try { await api.post('/design/api/training/modelos/' + p.slot + '/eliminar', {}); await refrescarModelos(); pintar(); } catch (e) { toast(e.message, 'error'); } } }, ui('quitar')) : null),
+      h('div', { class: 'tr-visor-w' }, frame));
+  }
+  pintar();
+  return { el: raiz };
 }
 
 export async function refrescarModelos() {

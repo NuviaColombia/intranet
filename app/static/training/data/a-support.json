@@ -1,0 +1,2041 @@
+{
+  "id": "a-support",
+  "orden": 6,
+  "icono": "🎧",
+  "titulo": {
+    "es": "Support",
+    "en": "Support"
+  },
+  "resumen": {
+    "es": "El área especial y transversal que atiende solicitudes y problemas de producción: qué pide y cómo se sigue un ticket, turnos, qué enviar y cómo coordinar con las demás áreas.",
+    "en": "The special, cross-cutting area that handles production requests and problems: what it takes and how a ticket is followed, shifts, what to send and how to coordinate with the other areas."
+  },
+  "nivel": "basico",
+  "lecciones": [
+    {
+      "id": "a-support-l1",
+      "titulo": {
+        "es": "Qué es Support y dónde encaja",
+        "en": "What Support is and where it fits"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "El área que no diseña, pero te saca de apuros",
+            "en": "The area that does not design, but gets you unstuck"
+          },
+          "cuerpo": {
+            "es": "Piensa en un aeropuerto: unos equipos preparan el vuelo y otros lo despegan, pero hay un **centro de control** que atiende lo que sale del plan (un retraso, un dato mal escrito). **Support** cumple ese papel en Nuvia Design: no diseña la prótesis. Atiende **solicitudes y problemas de producción** de los casos que ya están en marcha.\n\nPara tu laboratorio, es la puerta de entrada cuando algo del caso no avanza como debería.",
+            "en": "Think of an airport: some crews prepare the flight and others fly it, but a **control center** handles whatever falls outside the plan (a delay, a mistyped detail). **Support** plays that role in Nuvia Design: it does not design the prosthesis. It handles **requests and production problems** for cases already in motion.\n\nFor your lab, it is the front door when something about a case is not moving the way it should."
+          },
+          "porque": {
+            "es": "Si cada área tuviera que resolver también las incidencias de las demás, el diseño se frenaría. Una área transversal concentra esas incidencias y las deja registradas.",
+            "en": "If every area had to resolve the others' issues too, design would slow down. A cross-cutting area concentrates those issues and keeps a record of them."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Support frente a las otras áreas",
+            "en": "Support compared with the other areas"
+          },
+          "cabeceras": [
+            {
+              "es": "Aspecto",
+              "en": "Aspect"
+            },
+            {
+              "es": "Áreas de diseño (Face, N2, N3, N6)",
+              "en": "Design areas (Face, N2, N3, N6)"
+            },
+            {
+              "es": "Support",
+              "en": "Support"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Qué produce",
+                "en": "What it produces"
+              },
+              {
+                "es": "Un diseño de la prótesis",
+                "en": "A prosthesis design"
+              },
+              {
+                "es": "La solución a una solicitud o problema",
+                "en": "The resolution of a request or problem"
+              }
+            ],
+            [
+              {
+                "es": "Dónde está en el flujo",
+                "en": "Where it sits in the flow"
+              },
+              {
+                "es": "Una etapa concreta, una detrás de otra",
+                "en": "One specific stage, one after the other"
+              },
+              {
+                "es": "Transversal: puede intervenir en cualquier etapa",
+                "en": "Cross-cutting: can step in at any stage"
+              }
+            ],
+            [
+              {
+                "es": "Qué es su Schedule",
+                "en": "What its Schedule is"
+              },
+              {
+                "es": "Órdenes de diseño por producto",
+                "en": "Design orders by product"
+              },
+              {
+                "es": "Una tabla de tickets",
+                "en": "A table of tickets"
+              }
+            ],
+            [
+              {
+                "es": "Quién lo edita",
+                "en": "Who can edit it"
+              },
+              {
+                "es": "Según el rol en el equipo",
+                "en": "Depends on the team role"
+              },
+              {
+                "es": "Todos los miembros del equipo de Support",
+                "en": "All members of the Support team"
+              }
+            ]
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Dónde encaja en la producción",
+            "en": "Where it fits in production"
+          },
+          "cuerpo": {
+            "es": "Los tickets de Support pueden referirse a etapas **antes y después del diseño**: por ejemplo Bite Design, Doctor Authorization, Lab check out, Manager Verification, Milling, Processing, Final Qc Zn o Delivery From Col. Es decir, Support acompaña el caso a lo largo de **toda la producción**, no solo mientras se diseña.\n\nEso explica por qué tu laboratorio puede acudir a Support incluso cuando el caso ya salió de diseño.",
+            "en": "Support tickets can refer to stages **before and after design**: for example Bite Design, Doctor Authorization, Lab check out, Manager Verification, Milling, Processing, Final Qc Zn or Delivery From Col. In other words, Support follows the case through **the whole production line**, not only while it is being designed.\n\nThat is why your lab may turn to Support even after the case has left design."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager: esta descripción sale del software interno (lista de etapas del Schedule de Support), no de un protocolo escrito. El líder del área puede ajustarla.",
+            "en": "Confirm with the manager: this description comes from the internal software (the Support Schedule's stage list), not from a written protocol. The area leader may refine it."
+          }
+        },
+        {
+          "t": "lider",
+          "area": "support",
+          "texto": {
+            "es": "Habla con esta persona para saber cómo trabaja Support con tu laboratorio, qué canal usar y cómo escalar un caso.",
+            "en": "Talk to this person to learn how Support works with your lab, which channel to use and how to escalate a case."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Support no diseña: atiende solicitudes y problemas de producción.",
+              "en": "Support does not design: it handles production requests and problems."
+            },
+            {
+              "es": "Es transversal: puede intervenir en cualquier etapa del caso, también después del diseño.",
+              "en": "It is cross-cutting: it can step in at any stage of the case, including after design."
+            },
+            {
+              "es": "Su Schedule es una tabla de tickets, no de órdenes de diseño.",
+              "en": "Its Schedule is a table of tickets, not design orders."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Qué diferencia principal tiene Support frente a N3 Prosthetic?",
+                "en": "What is the main difference between Support and N3 Prosthetic?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Support atiende solicitudes y problemas de producción; no diseña la prótesis",
+                    "en": "Support handles production requests and problems; it does not design the prosthesis"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Support diseña solo las prótesis más difíciles",
+                    "en": "Support designs only the hardest prostheses"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Support reemplaza al manager del laboratorio",
+                    "en": "Support replaces the lab manager"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Support es un área transversal de atención, no una etapa de diseño.",
+                "en": "Support is a cross-cutting service area, not a design stage."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Support solo puede ayudar mientras el caso está en la etapa de diseño.",
+                "en": "Support can only help while the case is in the design stage."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Sus tickets pueden referirse a etapas posteriores, como Milling o Final Qc Zn.",
+                "en": "Its tickets can refer to later stages such as Milling or Final Qc Zn."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué conviene tener un área transversal para incidencias?",
+                "en": "Why is it useful to have a cross-cutting area for issues?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Para que las áreas de diseño no frenen su trabajo y las incidencias queden registradas",
+                    "en": "So design areas do not slow down and issues are on record"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Para que el doctor no tenga que responder",
+                    "en": "So the doctor does not have to answer"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Para evitar usar la plataforma",
+                    "en": "To avoid using the platform"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Concentrar y registrar las incidencias protege el ritmo de diseño.",
+                "en": "Concentrating and recording issues protects the pace of design."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-support-l2",
+      "titulo": {
+        "es": "Qué tipos de solicitud atiende",
+        "en": "What kinds of requests it handles"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Un ticket es un caso dentro del caso",
+            "en": "A ticket is a case within the case"
+          },
+          "cuerpo": {
+            "es": "Un **ticket** es el registro de una solicitud o problema ligado a una orden. En el Schedule de Support se anota **qué pasó** (la *Situación*) y **qué se hizo** (la *Solución*), y el ticket se clasifica; hoy la clasificación disponible es \"Soporte\".\n\nLos ejemplos de esta lección son **ilustrativos**: construidos con lo que dicen los protocolos y el software, no casos reales.",
+            "en": "A **ticket** is the record of a request or problem tied to an order. In the Support Schedule, what happened (the *Situation*) and what was done (the *Solution*) are written down, and the ticket is classified; today the available classification is \"Soporte\".\n\nThe examples in this lesson are **illustrative**: built from what the protocols and the software say, not real cases."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager: los tipos de solicitud siguientes se infieren de los protocolos y del software; el líder de Support puede completarlos o corregirlos.",
+            "en": "Confirm with the manager: the request types below are inferred from the protocols and the software; the Support leader may complete or correct them."
+          }
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Tipos de solicitud (ejemplos ilustrativos)",
+            "en": "Request types (illustrative examples)"
+          },
+          "items": [
+            {
+              "icono": "🔄",
+              "titulo": {
+                "es": "Cambio de producto",
+                "en": "Product change"
+              },
+              "texto": {
+                "es": "Illustrative example: el doctor decide pasar de un producto a otro. Los protocolos piden un ticket, y el de producto antes de aprobar Bite Design.",
+                "en": "Illustrative example: the doctor decides to switch from one product to another. The protocols call for a ticket, and the product one before Bite Design is approved."
+              }
+            },
+            {
+              "icono": "🧭",
+              "titulo": {
+                "es": "Workflow mal nombrado",
+                "en": "Wrongly named workflow"
+              },
+              "texto": {
+                "es": "Illustrative example: la orden aparece con un nombre de workflow que no corresponde. Se pide corregirlo con un ticket.",
+                "en": "Illustrative example: the order shows a workflow name that does not match. A ticket is used to fix it."
+              }
+            },
+            {
+              "icono": "⏸️",
+              "titulo": {
+                "es": "Caso detenido por falta de información",
+                "en": "Case stalled for missing information"
+              },
+              "texto": {
+                "es": "Illustrative example: falta un registro o una aprobación y el caso queda en espera. Support ayuda a ubicar qué falta y con quién.",
+                "en": "Illustrative example: a record or approval is missing and the case sits on hold. Support helps pinpoint what is missing and who has it."
+              }
+            },
+            {
+              "icono": "🏭",
+              "titulo": {
+                "es": "Incidencia en producción",
+                "en": "Production incident"
+              },
+              "texto": {
+                "es": "Illustrative example: algo se detecta tras el diseño (fresado, procesado, QC final). Support registra la situación y la solución.",
+                "en": "Illustrative example: something is detected after design (milling, processing, final QC). Support records the situation and the solution."
+              }
+            },
+            {
+              "icono": "🖥️",
+              "titulo": {
+                "es": "Problema de la plataforma",
+                "en": "Platform problem"
+              },
+              "texto": {
+                "es": "Illustrative example: un dato no aparece o un estado no cambia. Existen canales de soporte dedicados a la plataforma.",
+                "en": "Illustrative example: a field does not show or a status will not change. Dedicated support channels exist for the platform."
+              }
+            }
+          ]
+        },
+        {
+          "t": "acordeon",
+          "titulo": {
+            "es": "Qué no es Support",
+            "en": "What Support is not"
+          },
+          "items": [
+            {
+              "titulo": {
+                "es": "No es el diseñador del caso",
+                "en": "It is not the case designer"
+              },
+              "texto": {
+                "es": "En el ticket aparece el diseñador del caso, que pertenece a otra área. Quien atiende es la persona de Support, un rol distinto.",
+                "en": "The ticket shows the case designer, who belongs to another area. The person who handles it is the Support person, a different role."
+              }
+            },
+            {
+              "titulo": {
+                "es": "No decide por el doctor",
+                "en": "It does not decide for the doctor"
+              },
+              "texto": {
+                "es": "Los cambios que necesitan al doctor (por ejemplo, un cambio de receta) pasan por el aviso al doctor y la escalera habitual, no por Support por sí solo.",
+                "en": "Changes that need the doctor (for example a prescription change) go through the doctor notice and the usual escalation ladder, not through Support alone."
+              }
+            },
+            {
+              "titulo": {
+                "es": "No sustituye al QC",
+                "en": "It does not replace QC"
+              },
+              "texto": {
+                "es": "El QC revisa el diseño terminado. Support atiende lo que se sale del plan; son dos redes de seguridad distintas.",
+                "en": "QC reviews the finished design. Support handles what falls outside the plan; they are two different safety nets."
+              }
+            }
+          ]
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Más sobre avisos al doctor",
+            "en": "More on doctor notices"
+          },
+          "texto": {
+            "es": "En la biblioteca encuentras cuándo y por qué se avisa al doctor y la escalera de escalamiento.",
+            "en": "The library explains when and why the doctor is notified and the escalation ladder."
+          },
+          "lecc": "q-l2"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Un ticket registra qué pasó y qué se hizo en una orden.",
+              "en": "A ticket records what happened and what was done on an order."
+            },
+            {
+              "es": "Cambios de producto y workflows mal nombrados se piden por ticket.",
+              "en": "Product changes and wrongly named workflows are requested by ticket."
+            },
+            {
+              "es": "Support no reemplaza al doctor, al diseñador ni al QC.",
+              "en": "Support does not replace the doctor, the designer or QC."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "parejas",
+              "enunciado": {
+                "es": "Une cada situación con la vía más natural.",
+                "en": "Match each situation with the most natural route."
+              },
+              "pares": [
+                {
+                  "a": {
+                    "es": "Cambio de producto",
+                    "en": "Product change"
+                  },
+                  "b": {
+                    "es": "Ticket antes de aprobar Bite Design",
+                    "en": "Ticket before approving Bite Design"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Workflow mal nombrado",
+                    "en": "Wrongly named workflow"
+                  },
+                  "b": {
+                    "es": "Ticket a Support",
+                    "en": "Ticket to Support"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "El diseño terminado tiene un archivo faltante",
+                    "en": "The finished design has a missing file"
+                  },
+                  "b": {
+                    "es": "Hallazgo de QC",
+                    "en": "QC finding"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Cada vía cubre un tipo de problema distinto.",
+                "en": "Each route covers a different type of problem."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "En el ticket, el Diseñador es la persona de Support que atiende.",
+                "en": "In the ticket, the Designer is the Support person who handles it."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Es el diseñador del caso (otra área); quien atiende figura como Soporte.",
+                "en": "It is the case designer (another area); the person handling it appears as Support."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "El doctor quiere cambiar la receta y el lab no puede cumplirlo por espacio. ¿Qué camino sigue?",
+                "en": "The doctor wants to change the prescription and the lab cannot comply due to space. Which path applies?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Alerta al doctor y escalera de escalamiento",
+                    "en": "Doctor alert and escalation ladder"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Cerrar un ticket de Support y no avisar",
+                    "en": "Close a Support ticket and not notify"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Ignorar la solicitud",
+                    "en": "Ignore the request"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Los límites de espacio, material e implantes se comunican al doctor.",
+                "en": "Space, material and implant limits are communicated to the doctor."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-support-l3",
+      "titulo": {
+        "es": "Cómo se abre y se sigue un ticket",
+        "en": "How a ticket is opened and followed"
+      },
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Qué contiene un ticket",
+            "en": "What a ticket contains"
+          },
+          "cuerpo": {
+            "es": "Al escribir el **número de orden**, la plataforma completa sola el paciente, el centro, el producto y el diseñador del caso, tomándolos del horario donde la orden ya existe. Eso evita errores de copia. Luego se anotan la situación, la solución, quién solicitó y quién atiende.",
+            "en": "When the **order number** is typed, the platform fills in the patient, center, product and case designer by itself, taking them from the schedule where the order already exists. That avoids copy errors. Then the situation, the solution, who requested and who handles it are recorded."
+          },
+          "porque": {
+            "es": "Con el número de orden como llave, todos hablan del mismo caso y no de uno parecido.",
+            "en": "With the order number as the key, everyone talks about the same case and not a similar one."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Las columnas del Schedule de Support",
+            "en": "The Support Schedule columns"
+          },
+          "cabeceras": [
+            {
+              "es": "Columna",
+              "en": "Column"
+            },
+            {
+              "es": "Qué significa",
+              "en": "What it means"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Orden, Paciente, Centro, Producto",
+                "en": "Order, Patient, Center, Product"
+              },
+              {
+                "es": "Identifican el caso (se completan desde la orden).",
+                "en": "Identify the case (filled in from the order)."
+              }
+            ],
+            [
+              {
+                "es": "Etapa",
+                "en": "Stage"
+              },
+              {
+                "es": "La etapa de producción a la que se refiere el ticket.",
+                "en": "The production stage the ticket refers to."
+              }
+            ],
+            [
+              {
+                "es": "Diseñador",
+                "en": "Designer"
+              },
+              {
+                "es": "El diseñador del caso (de otra área), no quien atiende.",
+                "en": "The case designer (from another area), not who handles it."
+              }
+            ],
+            [
+              {
+                "es": "Solicitado por",
+                "en": "Requested by"
+              },
+              {
+                "es": "Quién pidió ayuda.",
+                "en": "Who asked for help."
+              }
+            ],
+            [
+              {
+                "es": "Situación / Solución",
+                "en": "Situation / Solution"
+              },
+              {
+                "es": "Qué pasó y qué se hizo.",
+                "en": "What happened and what was done."
+              }
+            ],
+            [
+              {
+                "es": "Clasificación / Soporte",
+                "en": "Classification / Support"
+              },
+              {
+                "es": "El tipo de ticket (hoy \"Soporte\") y la persona de Support que atiende.",
+                "en": "The ticket type (today \"Soporte\") and the Support person handling it."
+              }
+            ]
+          ]
+        },
+        {
+          "t": "caso",
+          "titulo": {
+            "es": "Caso ilustrativo: un workflow mal nombrado",
+            "en": "Illustrative case: a wrongly named workflow"
+          },
+          "contexto": {
+            "es": "Illustrative example, no es un caso real. El Case A llega con un workflow que no coincide con lo que pidió el doctor. El manager del laboratorio nota la diferencia antes de que avance.",
+            "en": "Illustrative example, not a real case. Case A arrives with a workflow that does not match what the doctor requested. The lab manager notices the difference before it moves on."
+          },
+          "etapas": [
+            {
+              "titulo": {
+                "es": "El manager detecta la diferencia",
+                "en": "The manager spots the mismatch"
+              },
+              "texto": {
+                "es": "Compara la orden con la receta y confirma que el nombre del workflow no corresponde.",
+                "en": "Compares the order with the prescription and confirms the workflow name does not match."
+              },
+              "quien": {
+                "es": "Lab manager",
+                "en": "Lab manager"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Contacta a Support",
+                "en": "Contacts Support"
+              },
+              "texto": {
+                "es": "Envía el número de orden, qué esperaba y qué ve, por el canal que Support indique.",
+                "en": "Sends the order number, what was expected and what is shown, through the channel Support indicates."
+              },
+              "quien": {
+                "es": "Lab manager",
+                "en": "Lab manager"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Support abre el ticket",
+                "en": "Support opens the ticket"
+              },
+              "texto": {
+                "es": "Escribe el número de orden; la plataforma completa paciente, centro, producto y diseñador. Se anota la Situación y la Etapa.",
+                "en": "Types the order number; the platform fills in patient, center, product and designer. The Situation and Stage are noted."
+              },
+              "quien": {
+                "es": "Support",
+                "en": "Support"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Se corrige y se registra",
+                "en": "Fixed and recorded"
+              },
+              "texto": {
+                "es": "Se corrige el workflow según el protocolo y se anota la Solución en el ticket.",
+                "en": "The workflow is corrected following the protocol and the Solution is noted on the ticket."
+              },
+              "quien": {
+                "es": "Support",
+                "en": "Support"
+              }
+            },
+            {
+              "titulo": {
+                "es": "El caso sigue su flujo",
+                "en": "The case continues"
+              },
+              "texto": {
+                "es": "El diseñador del caso continúa con el nombre correcto y el manager confirma el cambio.",
+                "en": "The case designer continues with the correct name and the manager confirms the change."
+              },
+              "quien": {
+                "es": "Diseñador del caso",
+                "en": "Case designer"
+              }
+            }
+          ],
+          "resultado": {
+            "es": "Sin tiempos inventados: la duración real de cada paso depende del caso y del turno de Support.",
+            "en": "No times invented: the real duration of each step depends on the case and the Support shift."
+          }
+        },
+        {
+          "t": "flujo",
+          "titulo": {
+            "es": "Ticket de principio a fin",
+            "en": "A ticket from start to finish"
+          },
+          "pasos": [
+            {
+              "titulo": {
+                "es": "Detectar",
+                "en": "Detect"
+              },
+              "texto": {
+                "es": "Alguien nota algo que no cuadra.",
+                "en": "Someone notices something that does not add up."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Reportar",
+                "en": "Report"
+              },
+              "texto": {
+                "es": "Se envía a Support con los datos del caso.",
+                "en": "It is sent to Support with the case data."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Registrar",
+                "en": "Record"
+              },
+              "texto": {
+                "es": "Support abre el ticket con el número de orden.",
+                "en": "Support opens the ticket with the order number."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Resolver",
+                "en": "Resolve"
+              },
+              "texto": {
+                "es": "Se aplica la solución, a veces con el doctor o con otra área.",
+                "en": "The solution is applied, sometimes with the doctor or another area."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Cerrar",
+                "en": "Close"
+              },
+              "texto": {
+                "es": "Se anota la Solución y el caso sigue.",
+                "en": "The Solution is noted and the case moves on."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Cómo se sigue",
+            "en": "How it is followed"
+          },
+          "cuerpo": {
+            "es": "Cada ticket deja visibles la situación y la solución en el Schedule de Support, donde todos los miembros del equipo pueden editar. Así, quien tome el relevo de un turno entiende qué pasó sin tener que preguntar de nuevo.",
+            "en": "Each ticket leaves the situation and solution visible in the Support Schedule, where all team members can edit. That way, whoever picks up from a shift understands what happened without asking again."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager: cómo se avisa al manager del laboratorio que un ticket quedó resuelto (canal, mensaje) y si el laboratorio puede ver el Schedule de Support.",
+            "en": "Confirm with the manager: how the lab manager is told that a ticket was resolved (channel, message) and whether the lab can see the Support Schedule."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "El número de orden es la llave: completa los datos del caso.",
+              "en": "The order number is the key: it fills in the case data."
+            },
+            {
+              "es": "Cada ticket deja Situación, Solución y quién atiende.",
+              "en": "Each ticket leaves Situation, Solution and who handles it."
+            },
+            {
+              "es": "El flujo es detectar, reportar, registrar, resolver y cerrar.",
+              "en": "The flow is detect, report, record, resolve and close."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "orden",
+              "enunciado": {
+                "es": "Ordena la vida de un ticket.",
+                "en": "Order the life of a ticket."
+              },
+              "items": [
+                {
+                  "es": "Detectar el problema",
+                  "en": "Detect the problem"
+                },
+                {
+                  "es": "Reportar a Support",
+                  "en": "Report to Support"
+                },
+                {
+                  "es": "Registrar el ticket",
+                  "en": "Record the ticket"
+                },
+                {
+                  "es": "Anotar la solución",
+                  "en": "Note the solution"
+                }
+              ],
+              "explicacion": {
+                "es": "Primero se detecta, luego se reporta y se registra, y al final se documenta la solución.",
+                "en": "First detect, then report and record, and finally document the solution."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Para qué sirve escribir el número de orden al abrir un ticket?",
+                "en": "What is typing the order number for when opening a ticket?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Para que la plataforma complete paciente, centro, producto y diseñador del caso",
+                    "en": "So the platform fills in patient, center, product and designer"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Para borrar la orden",
+                    "en": "To delete the order"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Para cambiar el producto automáticamente",
+                    "en": "To change the product automatically"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Es la llave que evita errores de copia.",
+                "en": "It is the key that avoids copy errors."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "La columna Diseñador del ticket indica quién atiende el ticket.",
+                "en": "The ticket's Designer column shows who handles the ticket."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Indica el diseñador del caso; quien atiende está en la columna Soporte.",
+                "en": "It shows the case designer; the person handling it is in the Support column."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué conviene anotar la Solución en el ticket?",
+                "en": "Why is it useful to note the Solution on the ticket?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Para que otros entiendan qué se hizo sin preguntar de nuevo",
+                    "en": "So others understand what was done without asking again"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Para que el ticket no se pueda abrir",
+                    "en": "So the ticket cannot be opened"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque el doctor lo exige siempre",
+                    "en": "Because the doctor always requires it"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El registro permite el relevo de turnos.",
+                "en": "The record makes shift handover possible."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-support-l4",
+      "titulo": {
+        "es": "Turnos y disponibilidad",
+        "en": "Shifts and availability"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Dos especialistas, dos turnos",
+            "en": "Two specialists, two shifts"
+          },
+          "cuerpo": {
+            "es": "Según el software, Support cuenta con **dos especialistas** en turnos rotativos: uno **diurno** y uno **nocturno**. Cada 4 semanas intercambian turno. Los horarios configurados son diurno de 7:00 am a 4:40 pm entre semana y nocturno de 9:00 pm a 7:00 am.\n\nLa página de inicio de Design muestra quién está en cada turno y cuándo es el próximo cambio.",
+            "en": "According to the software, Support has **two specialists** on rotating shifts: one **day** and one **night**. Every 4 weeks they swap shifts. The configured hours are day 7:00 am to 4:40 pm on weekdays and night 9:00 pm to 7:00 am.\n\nThe Design home page shows who is on each shift and when the next switch is."
+          },
+          "porque": {
+            "es": "Rotar los turnos reparte entre los dos especialistas la carga de horarios menos cómodos.",
+            "en": "Rotating shifts shares the less convenient hours between the two specialists."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager: el horario nocturno está marcado como por confirmar, y cada laboratorio debe preguntar qué ventana cubre su zona horaria.",
+            "en": "Confirm with the manager: the night schedule is marked as to be confirmed, and each lab should ask which window covers its time zone."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Turnos configurados",
+            "en": "Configured shifts"
+          },
+          "cabeceras": [
+            {
+              "es": "Turno",
+              "en": "Shift"
+            },
+            {
+              "es": "Horario",
+              "en": "Hours"
+            },
+            {
+              "es": "Estado",
+              "en": "Status"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Diurno",
+                "en": "Day"
+              },
+              {
+                "es": "7:00 am a 4:40 pm, entre semana",
+                "en": "7:00 am to 4:40 pm, weekdays"
+              },
+              {
+                "es": "Configurado",
+                "en": "Configured"
+              }
+            ],
+            [
+              {
+                "es": "Nocturno",
+                "en": "Night"
+              },
+              {
+                "es": "9:00 pm a 7:00 am",
+                "en": "9:00 pm to 7:00 am"
+              },
+              {
+                "es": "Por confirmar",
+                "en": "To be confirmed"
+              }
+            ]
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Cuando alguien falta: Dejar a cargo",
+            "en": "When someone is out: Dejar a cargo"
+          },
+          "cuerpo": {
+            "es": "Si un especialista falta, un **diseñador de otro equipo** puede cubrir su turno con la función **\"Dejar a cargo\"**, que define la cobertura por fechas. Así el turno no queda sin atención.\n\nPara ti como manager: el especialista que te atiende puede cambiar con el turno o con una cobertura. Pregunta siempre a quién escribir hoy.",
+            "en": "If a specialist is absent, a **designer from another team** can cover the shift with the **\"Dejar a cargo\"** function, which sets coverage by dates. That way the shift is not left unattended.\n\nFor you as a manager: the specialist who helps you can change with the shift or with a cover. Always ask whom to write to today."
+          }
+        },
+        {
+          "t": "flujo",
+          "titulo": {
+            "es": "Un día con dos turnos (ilustrativo)",
+            "en": "A day with two shifts (illustrative)"
+          },
+          "pasos": [
+            {
+              "titulo": {
+                "es": "Turno diurno",
+                "en": "Day shift"
+              },
+              "texto": {
+                "es": "Atiende los tickets de la jornada y deja anotada la Situación y la Solución.",
+                "en": "Handles the day's tickets and notes the Situation and Solution."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Relevo",
+                "en": "Handover"
+              },
+              "texto": {
+                "es": "Lo pendiente queda registrado en el ticket para quien siga.",
+                "en": "Pending items are recorded on the ticket for whoever is next."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Turno nocturno",
+                "en": "Night shift"
+              },
+              "texto": {
+                "es": "Continúa con lo pendiente y lo nuevo.",
+                "en": "Continues with the pending and the new."
+              }
+            }
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Hay dos especialistas, diurno y nocturno, que rotan cada 4 semanas.",
+              "en": "There are two specialists, day and night, who rotate every 4 weeks."
+            },
+            {
+              "es": "\"Dejar a cargo\" permite que alguien de otro equipo cubra un turno.",
+              "en": "\"Dejar a cargo\" lets someone from another team cover a shift."
+            },
+            {
+              "es": "Confirma con Support la ventana horaria que corresponde a tu zona.",
+              "en": "Confirm with Support which time window applies to your zone."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué se anota todo en el ticket y no solo se conversa?",
+                "en": "Why is everything written on the ticket instead of just discussed?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Porque el relevo entre turnos depende de ese registro",
+                    "en": "Because shift handover depends on that record"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque Support no habla con nadie",
+                    "en": "Because Support talks to nobody"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque el Schedule no se puede editar",
+                    "en": "Because the Schedule cannot be edited"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Dos turnos y coberturas obligan a dejar todo por escrito.",
+                "en": "Two shifts and covers make written records essential."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Cuando un especialista falta, el turno queda sin cobertura.",
+                "en": "When a specialist is absent, the shift has no cover."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Un diseñador de otro equipo puede cubrirlo con \"Dejar a cargo\".",
+                "en": "A designer from another team can cover it with \"Dejar a cargo\"."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "El horario nocturno está ya confirmado definitivamente.",
+                "en": "The night schedule is already definitively confirmed."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Está marcado como por confirmar.",
+                "en": "It is marked as to be confirmed."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-support-l5",
+      "titulo": {
+        "es": "Qué enviar para resolver rápido",
+        "en": "What to send to get it resolved quickly"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Un buen reporte ahorra preguntas",
+            "en": "A good report saves questions"
+          },
+          "cuerpo": {
+            "es": "Support atiende tickets de muchas órdenes. Cuanto más completo llegue tu mensaje, menos idas y vueltas habrá. La idea es que alguien que no conoce el caso lo entienda de una lectura: **qué orden, qué etapa, qué pasó y qué necesitas**.",
+            "en": "Support handles tickets for many orders. The more complete your message, the fewer back-and-forths. The idea is that someone who does not know the case can understand it in one read: **which order, which stage, what happened and what you need**."
+          },
+          "porque": {
+            "es": "Cada dato que falta es una pregunta de ida y vuelta, y una pregunta es tiempo que el caso no avanza.",
+            "en": "Each missing detail is a round-trip question, and a question is time the case does not move."
+          }
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Antes de escribir a Support",
+            "en": "Before writing to Support"
+          },
+          "items": [
+            {
+              "es": "Número de orden correcto, copiado de la plataforma.",
+              "en": "Correct order number, copied from the platform."
+            },
+            {
+              "es": "Etapa del caso a la que se refiere el problema.",
+              "en": "Stage of the case the problem refers to."
+            },
+            {
+              "es": "Qué pasó, en pocas frases y con hechos.",
+              "en": "What happened, in a few sentences and with facts."
+            },
+            {
+              "es": "Qué esperabas que pasara (la receta o el protocolo).",
+              "en": "What you expected to happen (the prescription or protocol)."
+            },
+            {
+              "es": "Evidencia: captura, foto o archivo si ayuda.",
+              "en": "Evidence: screenshot, photo or file if it helps."
+            },
+            {
+              "es": "Qué necesitas de Support y si hay un doctor esperando.",
+              "en": "What you need from Support and whether a doctor is waiting."
+            },
+            {
+              "es": "Quién eres y cómo contactarte.",
+              "en": "Who you are and how to reach you."
+            }
+          ]
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Mal mensaje frente a buen mensaje (ilustrativo)",
+            "en": "Poor message versus good message (illustrative)"
+          },
+          "items": [
+            {
+              "icono": "❌",
+              "titulo": {
+                "es": "Poco claro",
+                "en": "Unclear"
+              },
+              "texto": {
+                "es": "\"El caso de ayer tiene un problema, ¿pueden mirarlo?\" Falta orden, etapa y qué se necesita.",
+                "en": "\"Yesterday's case has a problem, can you look?\" Missing order, stage and what is needed."
+              }
+            },
+            {
+              "icono": "✅",
+              "titulo": {
+                "es": "Claro",
+                "en": "Clear"
+              },
+              "texto": {
+                "es": "\"Order [número], etapa Doctor Authorization: el producto no coincide con la receta. Necesito corregirlo antes de aprobar. Captura adjunta.\"",
+                "en": "\"Order [number], Doctor Authorization stage: the product does not match the prescription. I need it fixed before approving. Screenshot attached.\""
+              }
+            },
+            {
+              "icono": "📎",
+              "titulo": {
+                "es": "Adjunta lo que ayuda",
+                "en": "Attach what helps"
+              },
+              "texto": {
+                "es": "Una captura o un archivo que muestre el problema ahorra una ronda de preguntas.",
+                "en": "A screenshot or file showing the problem saves a round of questions."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Tiempos de respuesta",
+            "en": "Response times"
+          },
+          "cuerpo": {
+            "es": "Los protocolos dan un tiempo que sí aplica al doctor: **30 minutos** para resolver aprobaciones en N3; si no responde, se escala a manager y regional para no frenar la producción. **No hay en las fuentes un tiempo de respuesta de Support**, así que no se prometerá ninguno aquí.",
+            "en": "The protocols give one time that does apply to the doctor: **30 minutes** to resolve approvals in N3; if the doctor does not answer, it is escalated to manager and regional so production does not stall. **The sources give no Support response time**, so none is promised here."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager: cuánto tarda Support en responder y cómo se priorizan los tickets; pregunta este acuerdo al iniciar la relación con Support.",
+            "en": "Confirm with the manager: how long Support takes to respond and how tickets are prioritized; ask for this agreement when starting to work with Support."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Un reporte completo lleva orden, etapa, qué pasó, qué esperabas y qué necesitas.",
+              "en": "A complete report carries order, stage, what happened, what you expected and what you need."
+            },
+            {
+              "es": "La espera de 30 minutos es del doctor en N3, no un tiempo de Support.",
+              "en": "The 30-minute wait is the doctor's in N3, not a Support time."
+            },
+            {
+              "es": "Acuerda con Support los tiempos de respuesta; no los supongas.",
+              "en": "Agree response times with Support; do not assume them."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿Qué debe incluir un reporte útil a Support?",
+                "en": "What should a useful report to Support include?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Número de orden",
+                    "en": "Order number"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Etapa a la que se refiere",
+                    "en": "Stage it refers to"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Qué pasó y qué necesitas",
+                    "en": "What happened and what you need"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Solo \"es urgente\"",
+                    "en": "Just \"it is urgent\""
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Con esos datos alguien ajeno al caso lo entiende rápido.",
+                "en": "With that data someone outside the case understands it fast."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Las fuentes fijan un tiempo de respuesta de Support de 30 minutos.",
+                "en": "The sources set a 30-minute Support response time."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Los 30 minutos son la espera de la aprobación del doctor en N3; el tiempo de Support no está definido.",
+                "en": "The 30 minutes are the wait for the doctor's approval in N3; Support's time is not defined."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "El doctor no responde. ¿Qué se hace?",
+                "en": "The doctor does not answer. What is done?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Se escala a manager y regional para no frenar la producción",
+                    "en": "It is escalated to manager and regional so production does not stall"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Se deja el caso esperando sin avisar",
+                    "en": "The case is left waiting without notice"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Se hace el cambio sin aprobación",
+                    "en": "The change is made without approval"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Dejar el caso parado afecta la producción.",
+                "en": "Leaving the case idle affects production."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-support-l6",
+      "titulo": {
+        "es": "Support, las otras áreas y el QC",
+        "en": "Support, the other areas and QC"
+      },
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Un hilo que cruza todo el flujo",
+            "en": "A thread that runs through the whole flow"
+          },
+          "cuerpo": {
+            "es": "Cada área tiene su momento: Face Design, N2, N3 y N6 se pasan el caso una a otra. Support no está entre ellas: **cruza a todas**. Si un ticket nace en N3 pero la causa viene de N2, Support ayuda a ubicar el problema y a poner en contacto a las áreas implicadas.",
+            "en": "Each area has its moment: Face Design, N2, N3 and N6 hand the case from one to the next. Support is not between them: it **crosses all of them**. If a ticket starts in N3 but the cause comes from N2, Support helps locate the problem and connect the areas involved."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Support frente a QC",
+            "en": "Support versus QC"
+          },
+          "cabeceras": [
+            {
+              "es": "Aspecto",
+              "en": "Aspect"
+            },
+            {
+              "es": "QC",
+              "en": "QC"
+            },
+            {
+              "es": "Support",
+              "en": "Support"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Cuándo actúa",
+                "en": "When it acts"
+              },
+              {
+                "es": "Revisa un diseño ya terminado",
+                "en": "Reviews a finished design"
+              },
+              {
+                "es": "Cuando algo se sale del plan, en cualquier etapa",
+                "en": "When something falls outside the plan, at any stage"
+              }
+            ],
+            [
+              {
+                "es": "Qué deja",
+                "en": "What it leaves"
+              },
+              {
+                "es": "Hallazgos de una lista común",
+                "en": "Findings from a shared list"
+              },
+              {
+                "es": "Un ticket con Situación y Solución",
+                "en": "A ticket with Situation and Solution"
+              }
+            ],
+            [
+              {
+                "es": "Qué evita",
+                "en": "What it prevents"
+              },
+              {
+                "es": "Que salga un archivo mal",
+                "en": "A bad file going out"
+              },
+              {
+                "es": "Que un problema frene el caso",
+                "en": "A problem stalling the case"
+              }
+            ]
+          ]
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Biblioteca: QC y hallazgos",
+            "en": "Library: QC and findings"
+          },
+          "texto": {
+            "es": "Para ver qué revisa el QC y cómo se registran los hallazgos.",
+            "en": "To see what QC reviews and how findings are recorded."
+          },
+          "lecc": "q-l1"
+        },
+        {
+          "t": "flujo",
+          "titulo": {
+            "es": "Escalera cuando un problema no se resuelve",
+            "en": "Ladder when a problem is not resolved"
+          },
+          "pasos": [
+            {
+              "titulo": {
+                "es": "Diseñador / Support",
+                "en": "Designer / Support"
+              },
+              "texto": {
+                "es": "Detecta y documenta en la plataforma.",
+                "en": "Detects and documents on the platform."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Manager",
+                "en": "Manager"
+              },
+              "texto": {
+                "es": "Decide o informa al doctor.",
+                "en": "Decides or informs the doctor."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Regional",
+                "en": "Regional"
+              },
+              "texto": {
+                "es": "Autoriza casos especiales.",
+                "en": "Authorizes special cases."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Liderazgo",
+                "en": "Leadership"
+              },
+              "texto": {
+                "es": "Resuelve lo que está fuera de las reglas aprobadas.",
+                "en": "Resolves what is outside the approved rules."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Buenas prácticas de comunicación",
+            "en": "Communication good practices"
+          },
+          "cuerpo": {
+            "es": "- Escribe en la plataforma: lo que solo se dijo de palabra no deja rastro.\n- Avisa en el canal que Support te indique, para que el equipo vea qué se está atendiendo.\n- Usa un ticket para cambios de producto o de workflow.\n- No dejes un caso parado: si el doctor no responde en 30 minutos, escala.\n- Cierra el ciclo: confirma cuando la solución funcionó.",
+            "en": "- Write on the platform: what was only said aloud leaves no trace.\n- Notify in the channel Support tells you to use, so the team sees what is being handled.\n- Use a ticket for product or workflow changes.\n- Do not leave a case idle: if the doctor does not answer in 30 minutes, escalate.\n- Close the loop: confirm when the solution worked."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager: existen canales de Cliq para el equipo de Support, reportes de diseño, plataforma, fresado y CAM, entre otros. Cada laboratorio debe preguntar a Support cuál usar; no se dan nombres exactos aquí.",
+            "en": "Confirm with the manager: Cliq channels exist for the Support team, design reports, platform, milling and CAM, among others. Each lab should ask Support which one to use; exact names are not given here."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Support cruza todas las áreas; el QC revisa el diseño terminado.",
+              "en": "Support crosses all areas; QC reviews the finished design."
+            },
+            {
+              "es": "Si el ticket no se resuelve, se escala: manager, regional, liderazgo.",
+              "en": "If a ticket is not resolved, it is escalated: manager, regional, leadership."
+            },
+            {
+              "es": "Documenta en la plataforma y confirma con Support el canal a usar.",
+              "en": "Document on the platform and confirm with Support which channel to use."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Cuál es la diferencia entre QC y Support?",
+                "en": "What is the difference between QC and Support?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "QC revisa el diseño terminado; Support atiende lo que se sale del plan",
+                    "en": "QC reviews the finished design; Support handles what falls outside the plan"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "QC diseña y Support aprueba",
+                    "en": "QC designs and Support approves"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Son lo mismo con distinto nombre",
+                    "en": "They are the same with a different name"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Son dos redes de seguridad distintas.",
+                "en": "They are two different safety nets."
+              }
+            },
+            {
+              "tipo": "orden",
+              "enunciado": {
+                "es": "Ordena la escalera de escalamiento.",
+                "en": "Order the escalation ladder."
+              },
+              "items": [
+                {
+                  "es": "Diseñador / Support",
+                  "en": "Designer / Support"
+                },
+                {
+                  "es": "Manager",
+                  "en": "Manager"
+                },
+                {
+                  "es": "Regional",
+                  "en": "Regional"
+                },
+                {
+                  "es": "Liderazgo",
+                  "en": "Leadership"
+                }
+              ],
+              "explicacion": {
+                "es": "Cada nivel resuelve lo que el anterior no puede autorizar.",
+                "en": "Each level resolves what the previous one cannot authorize."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Cada laboratorio debe confirmar con Support qué canal de Cliq usar.",
+                "en": "Each lab should confirm with Support which Cliq channel to use."
+              },
+              "ok": true,
+              "explicacion": {
+                "es": "Hay varios canales y no se dan nombres exactos en este curso.",
+                "en": "There are several channels and exact names are not given in this course."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué es mejor escribir en la plataforma que solo hablar?",
+                "en": "Why is writing on the platform better than only talking?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Porque lo hablado no deja rastro para el resto del equipo",
+                    "en": "Because what is spoken leaves no trace for the rest of the team"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque hablar está prohibido",
+                    "en": "Because talking is forbidden"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque así se evita el QC",
+                    "en": "Because it avoids QC"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El registro permite relevo y seguimiento.",
+                "en": "The record enables handover and follow-up."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-support-l7",
+      "titulo": {
+        "es": "Wrap-up: Support",
+        "en": "Wrap-up: Support"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Support no diseña: atiende solicitudes y problemas en toda la producción.",
+              "en": "Support does not design: it handles requests and problems across the whole production."
+            },
+            {
+              "es": "Su Schedule es una tabla de tickets con Situación y Solución; el número de orden completa los datos del caso.",
+              "en": "Its Schedule is a ticket table with Situation and Solution; the order number fills in the case data."
+            },
+            {
+              "es": "Dos especialistas, diurno y nocturno, rotan cada 4 semanas; \"Dejar a cargo\" cubre ausencias.",
+              "en": "Two specialists, day and night, rotate every 4 weeks; \"Dejar a cargo\" covers absences."
+            },
+            {
+              "es": "Un buen reporte lleva orden, etapa, qué pasó, qué esperabas y qué necesitas.",
+              "en": "A good report carries order, stage, what happened, what you expected and what you need."
+            },
+            {
+              "es": "Tiempos de respuesta y canales se acuerdan con Support; no se suponen.",
+              "en": "Response times and channels are agreed with Support; they are not assumed."
+            }
+          ]
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Preguntas para Support (questions to ask)",
+            "en": "Questions to ask Support"
+          },
+          "items": [
+            {
+              "es": "¿Qué canal debo usar para avisar y reportar?",
+              "en": "Which channel should I use to notify and report?"
+            },
+            {
+              "es": "¿Qué ventana horaria cubre mi zona y quién está en turno?",
+              "en": "Which time window covers my zone and who is on shift?"
+            },
+            {
+              "es": "¿Cuánto tarda normalmente en responder un ticket?",
+              "en": "How long does a ticket normally take to answer?"
+            },
+            {
+              "es": "¿Cómo me avisan cuando un ticket queda resuelto?",
+              "en": "How will I be told when a ticket is resolved?"
+            },
+            {
+              "es": "¿Qué debo enviar siempre para evitar preguntas?",
+              "en": "What should I always send to avoid questions?"
+            },
+            {
+              "es": "¿A quién escalo si el ticket no avanza?",
+              "en": "Whom do I escalate to if the ticket does not move?"
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Qué es Support?",
+                "en": "What is Support?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Un área transversal que atiende solicitudes y problemas de producción",
+                    "en": "A cross-cutting area that handles production requests and problems"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Un área que diseña barras",
+                    "en": "An area that designs bars"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Un canal exclusivo del doctor",
+                    "en": "A channel exclusive to the doctor"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "No diseña la prótesis; atiende lo que se sale del plan.",
+                "en": "It does not design the prosthesis; it handles what falls outside the plan."
+              }
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿Qué datos completa la plataforma al escribir el número de orden?",
+                "en": "Which data does the platform fill in when the order number is typed?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Paciente",
+                    "en": "Patient"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Centro",
+                    "en": "Center"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Producto",
+                    "en": "Product"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "La Solución",
+                    "en": "The Solution"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "La Solución la anota quien atiende.",
+                "en": "The Solution is written by whoever handles the ticket."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Support solo interviene en la etapa de diseño.",
+                "en": "Support only steps in during the design stage."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Sus tickets cubren etapas como Milling o Final Qc Zn.",
+                "en": "Its tickets cover stages such as Milling or Final Qc Zn."
+              }
+            },
+            {
+              "tipo": "orden",
+              "enunciado": {
+                "es": "Ordena la vida de un ticket.",
+                "en": "Order the life of a ticket."
+              },
+              "items": [
+                {
+                  "es": "Detectar",
+                  "en": "Detect"
+                },
+                {
+                  "es": "Reportar",
+                  "en": "Report"
+                },
+                {
+                  "es": "Registrar",
+                  "en": "Record"
+                },
+                {
+                  "es": "Resolver y anotar la solución",
+                  "en": "Resolve and note the solution"
+                }
+              ],
+              "explicacion": {
+                "es": "Primero se detecta y al final se documenta.",
+                "en": "First detect, finally document."
+              }
+            },
+            {
+              "tipo": "parejas",
+              "enunciado": {
+                "es": "Une cada elemento con su función.",
+                "en": "Match each item with its role."
+              },
+              "pares": [
+                {
+                  "a": {
+                    "es": "Número de orden",
+                    "en": "Order number"
+                  },
+                  "b": {
+                    "es": "Llave que completa los datos del caso",
+                    "en": "Key that fills in the case data"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Dejar a cargo",
+                    "en": "Dejar a cargo"
+                  },
+                  "b": {
+                    "es": "Cobertura de turno por fechas",
+                    "en": "Shift cover by dates"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Situación",
+                    "en": "Situation"
+                  },
+                  "b": {
+                    "es": "Qué pasó",
+                    "en": "What happened"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Cada elemento resuelve una necesidad concreta.",
+                "en": "Each item serves a specific need."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "El doctor no responde una aprobación. ¿Qué se hace?",
+                "en": "The doctor does not answer an approval. What is done?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Se escala a manager y regional",
+                    "en": "It is escalated to manager and regional"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Se espera sin avisar",
+                    "en": "We wait without notice"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Se aprueba por él",
+                    "en": "It is approved for them"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Dejar el caso parado frena la producción.",
+                "en": "Leaving the case idle stalls production."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "glosario": [
+    {
+      "id": "sup-support",
+      "termino": {
+        "es": "Support",
+        "en": "Support"
+      },
+      "def": {
+        "es": "Área transversal que atiende solicitudes y problemas de producción de los casos; no diseña la prótesis.",
+        "en": "Cross-cutting area that handles production requests and problems on cases; it does not design the prosthesis."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-ticket",
+      "termino": {
+        "es": "Ticket",
+        "en": "Ticket"
+      },
+      "def": {
+        "es": "Registro de una solicitud o problema ligado a una orden, con situación y solución.",
+        "en": "Record of a request or problem tied to an order, with situation and solution."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-situacion",
+      "termino": {
+        "es": "Situación",
+        "en": "Situation"
+      },
+      "def": {
+        "es": "Qué pasó, tal como se anota en el ticket.",
+        "en": "What happened, as noted on the ticket."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-solucion",
+      "termino": {
+        "es": "Solución",
+        "en": "Solution"
+      },
+      "def": {
+        "es": "Qué se hizo para resolver el ticket.",
+        "en": "What was done to resolve the ticket."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-etapa",
+      "termino": {
+        "es": "Etapa",
+        "en": "Stage"
+      },
+      "def": {
+        "es": "Etapa de producción a la que se refiere el ticket (por ejemplo Milling).",
+        "en": "Production stage the ticket refers to (for example Milling)."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-clasificacion",
+      "termino": {
+        "es": "Clasificación",
+        "en": "Classification"
+      },
+      "def": {
+        "es": "Tipo de ticket; hoy la disponible es \"Soporte\".",
+        "en": "Ticket type; today the available one is \"Soporte\"."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-disenador-caso",
+      "termino": {
+        "es": "Diseñador del caso",
+        "en": "Case designer"
+      },
+      "def": {
+        "es": "Diseñador de otra área asignado a la orden; no es quien atiende el ticket.",
+        "en": "Designer from another area assigned to the order; not the person handling the ticket."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-turnos",
+      "termino": {
+        "es": "Turnos de Support",
+        "en": "Support shifts"
+      },
+      "def": {
+        "es": "Dos especialistas, diurno y nocturno, que rotan cada 4 semanas.",
+        "en": "Two specialists, day and night, who rotate every 4 weeks."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-dejar-a-cargo",
+      "termino": {
+        "es": "Dejar a cargo",
+        "en": "Dejar a cargo"
+      },
+      "def": {
+        "es": "Función para que otra persona cubra un turno por fechas.",
+        "en": "Function that lets another person cover a shift for set dates."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-escalar",
+      "termino": {
+        "es": "Escalar",
+        "en": "Escalate"
+      },
+      "def": {
+        "es": "Subir un caso al siguiente nivel: manager, regional, liderazgo.",
+        "en": "Take a case to the next level: manager, regional, leadership."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-cliq",
+      "termino": {
+        "es": "Canal de Cliq",
+        "en": "Cliq channel"
+      },
+      "def": {
+        "es": "Canal de mensajería; cada laboratorio confirma con Support cuál usar.",
+        "en": "Messaging channel; each lab confirms with Support which to use."
+      },
+      "cat": "support"
+    },
+    {
+      "id": "sup-qc",
+      "termino": {
+        "es": "QC",
+        "en": "QC"
+      },
+      "def": {
+        "es": "Revisión independiente del diseño terminado; distinta de Support.",
+        "en": "Independent review of the finished design; distinct from Support."
+      },
+      "cat": "support"
+    }
+  ],
+  "seccion": "area",
+  "area": "support"
+}

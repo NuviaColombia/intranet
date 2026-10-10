@@ -11,7 +11,7 @@ const UI = {
   es: {
     inicio: 'Inicio', ruta: 'Ruta de aprendizaje', glosario: 'Glosario', examen: 'Examen final', admin: 'Administrar', diploma: 'Diploma',
     laboratorio: 'Laboratorio 3D', buscar: 'Buscar lecciones y términos…', sinResultados: 'Sin resultados', salir: 'Salir',
-    hola: 'Hola, {n}', bienvenida: 'Bienvenido a Nuvia Training', subBienvenida: 'Aprende por qué hacemos las cosas como las hacemos: el lenguaje, los protocolos y las razones detrás de cada decisión. Sin conocimientos previos.',
+    hola: 'Hola, {n}', bienvenida: 'Bienvenido a Nuvia Training', subBienvenida: 'Entiende cómo funciona el departamento Nuvia Design, área por área: qué hace cada una, cuánto tarda y cómo coordinar con ella. Sin conocimientos previos.',
     continuar: 'Continuar', empezar: 'Empezar', repasar: 'Repasar', completado: 'Completado', enCurso: 'En curso', nuevo: 'Nuevo',
     lecciones: 'lecciones', leccion: 'lección', min: 'min', progresoTotal: 'Tu progreso', de: 'de', modulos: 'Módulos', verModulo: 'Ver módulo',
     ultima: 'Continúa donde te quedaste', herramientas: 'Herramientas', labDesc: 'Mueve cada parte de la prótesis y mira el efecto en 3D, con el lenguaje oficial de Nuvia.',
@@ -35,20 +35,29 @@ const UI = {
     posteriores: 'Grosor posterior', anteriores: 'Grosor anterior', cantilever: 'Cantilever', bucalLingPost: 'Bucal-lingual posterior', bucalLingAnt: 'Bucal-lingual anterior',
     cmpA: 'Comparar', con: 'con', iguales: 'mismos dientes, arco más ancho', mas10: '≈10% más grande en todas las dimensiones', masAncho: '4–5 mm más ancho',
     glosBuscar: 'Buscar en el glosario…', glosTodos: 'Todos', glosVer: 'Ver en el glosario', glosCat: 'Categoría', terminos: 'términos',
-    exTitulo: 'Examen final', exIntro: '20 preguntas tomadas de todas las lecciones. Necesitas 80% para aprobar. Puedes repetirlo las veces que quieras.', exEmpezar: 'Empezar examen', exMejor: 'Tu mejor puntaje',
-    exAprobado: 'Examen aprobado', verDiploma: 'Ver mi diploma', imprimir: 'Imprimir / Guardar PDF', diplomaTit: 'Certificado de finalización', diplomaTxt: 'ha completado la capacitación', diplomaSub: 'sobre el lenguaje y los protocolos de diseño de Nuvia',
+    exTitulo: 'Examen final', exIntro: '20 preguntas que mezclan las cinco áreas. Necesitas 80% para aprobar. Puedes repetirlo las veces que quieras.', exEmpezar: 'Empezar examen', exMejor: 'Tu mejor puntaje',
+    exAprobado: 'Examen aprobado', verDiploma: 'Ver mi diploma', imprimir: 'Imprimir / Guardar PDF', diplomaTit: 'Certificado de finalización', diplomaTxt: 'ha completado la capacitación', diplomaSub: 'sobre cómo funciona el departamento Nuvia Design',
     fecha: 'Fecha', sinDiploma: 'Aprueba el examen final para obtener tu diploma', modelos3d: 'Modelos 3D', equipo: 'Avance del equipo', persona: 'Persona', avance: 'Avance', promedio: 'Promedio quizzes', examenCol: 'Examen', ultimaCol: 'Última actividad',
     espacio: 'Espacio', estado: 'Estado', subido: 'Subido', pendiente: 'Pendiente', acciones: 'Acciones', lecc: 'Lección', formatos: 'Formatos: GLB, STL, OBJ, PLY (máx. 60 MB)', subiendo: 'Subiendo…', subidoOk: 'Modelo subido',
     errorGenerico: 'Algo salió mal. Inténtalo de nuevo.', sinContenido: 'Todavía no hay contenido cargado.', cargando: 'Cargando…', idioma: 'Idioma', menu: 'Menú', progresoGuardado: 'Avance guardado', errorProgreso: 'No se pudo guardar el avance',
     checklist: 'Lista de verificación', tocaMarcar: 'Marca cada punto', esencial: 'Lo esencial', quiz: 'Comprueba lo aprendido', nivel: 'Nivel', basico: 'Básico', intermedio: 'Intermedio', avanzado: 'Avanzado',
     atajos: 'Atajos: ← → para moverte · Esc para salir', pasoDe: 'Paso {a} de {b}', completaLeccion: '¡Lección completada!', necesitas70: 'Necesitas al menos 70% en el quiz para completar la lección.',
     buscarMas: 'más resultados', enLeccion: 'Lección', enGlosario: 'Glosario', vistaDe: 'Vista', sinModelos: 'Aún no hay espacios de modelos', porcentaje: '{n}% completado', soloLectura: 'Solo lectura',
-    labTitulo: 'Laboratorio de movimientos', labSub: 'Explora libremente cada movimiento del Lenguaje de Modificación.', pdf: 'PDF', verLeccion: 'Ver lección',
+    areaManager: 'Manager del área', porAnunciar: 'Manager por anunciar', configurarLider: 'Configúralo en Administrar', hablarCon: 'Habla con esta persona para:',
+    casoEjemplo: 'Caso de ejemplo (ilustrativo)', etapaN: 'Etapa {n}', resultado: 'Resultado', quien: 'Quién', tiempo: 'Tiempo',
+    secIntro: 'Empieza aquí', secAreas: 'Las áreas del departamento', secBiblio: 'Biblioteca de referencia', biblioDesc: 'Para profundizar: el lenguaje que usamos con los doctores, las garantías, los protocolos en detalle y los fundamentos. Cada área te enlaza lo que necesitas.',
+    areasDesc: 'Un módulo por área: qué hace, qué recibe y entrega, cuánto tarda, qué puede salir mal y cómo coordinar con ella.', managerDe: 'Manager de {a}',
+    lideres: 'Líderes de área', liderAsignar: 'Asignar', liderCargoEs: 'Cargo (español)', liderCargoEn: 'Cargo (inglés)', liderSinAsignar: 'Sin asignar', liderQuitado: 'Líder quitado', liderGuardado: 'Líder guardado',
+    liderAyuda: 'Elige a la persona que lidera cada área. Su foto y nombre salen en la tarjeta de cada módulo.', verBiblioteca: 'Ver biblioteca', miniQuiz: 'Mini quiz del área',
+    areaCompleta: 'Área completada', empiezaPor: 'Empieza por', rutaSugerida: 'Ruta sugerida',
+    visorCaso: 'Visor de caso', visorPend: 'Visor de caso pendiente', subirVisor: 'Subir visor (HTML)', formatosVisor: 'Un solo archivo HTML exportado del Nuvia Design Viewer (máx. 60 MB). Usa un caso sin datos del paciente.', abrirVisor: 'Abrir en pantalla completa',
+    pestana: 'Pestaña', piezas: 'Piezas', incluido: 'Incluido',
+    labTitulo: 'Laboratorio de movimientos', labSub: 'Explora libremente cada movimiento del Lenguaje de Modificación.', pdf: 'PDF', verLeccion: 'Ver lección', abrirLeccion: 'Abrir la lección',
   },
   en: {
     inicio: 'Home', ruta: 'Learning path', glosario: 'Glossary', examen: 'Final exam', admin: 'Manage', diploma: 'Diploma',
     laboratorio: '3D Lab', buscar: 'Search lessons and terms…', sinResultados: 'No results', salir: 'Exit',
-    hola: 'Hi, {n}', bienvenida: 'Welcome to Nuvia Training', subBienvenida: 'Learn why we do things the way we do: the language, the protocols and the reasons behind every decision. No prior knowledge needed.',
+    hola: 'Hi, {n}', bienvenida: 'Welcome to Nuvia Training', subBienvenida: 'Understand how the Nuvia Design department works, area by area: what each one does, how long it takes and how to coordinate with it. No prior knowledge needed.',
     continuar: 'Continue', empezar: 'Start', repasar: 'Review', completado: 'Completed', enCurso: 'In progress', nuevo: 'New',
     lecciones: 'lessons', leccion: 'lesson', min: 'min', progresoTotal: 'Your progress', de: 'of', modulos: 'Modules', verModulo: 'View module',
     ultima: 'Pick up where you left off', herramientas: 'Tools', labDesc: 'Move each part of the prosthesis and see the effect in 3D, using Nuvia’s official language.',
@@ -72,15 +81,24 @@ const UI = {
     posteriores: 'Posterior thickness', anteriores: 'Anterior thickness', cantilever: 'Cantilever', bucalLingPost: 'Buccal-lingual posterior', bucalLingAnt: 'Buccal-lingual anterior',
     cmpA: 'Compare', con: 'with', iguales: 'same teeth, wider arch', mas10: '≈10% bigger in all dimensions', masAncho: '4–5 mm wider',
     glosBuscar: 'Search the glossary…', glosTodos: 'All', glosVer: 'See in glossary', glosCat: 'Category', terminos: 'terms',
-    exTitulo: 'Final exam', exIntro: '20 questions taken from every lesson. You need 80% to pass. You can retake it as many times as you like.', exEmpezar: 'Start exam', exMejor: 'Your best score',
-    exAprobado: 'Exam passed', verDiploma: 'See my diploma', imprimir: 'Print / Save as PDF', diplomaTit: 'Certificate of completion', diplomaTxt: 'has completed the training', diplomaSub: 'on Nuvia’s design language and protocols',
+    exTitulo: 'Final exam', exIntro: '20 questions that mix the five areas. You need 80% to pass. You can retake it as many times as you like.', exEmpezar: 'Start exam', exMejor: 'Your best score',
+    exAprobado: 'Exam passed', verDiploma: 'See my diploma', imprimir: 'Print / Save as PDF', diplomaTit: 'Certificate of completion', diplomaTxt: 'has completed the training', diplomaSub: 'on how the Nuvia Design department works',
     fecha: 'Date', sinDiploma: 'Pass the final exam to get your diploma', modelos3d: '3D models', equipo: 'Team progress', persona: 'Person', avance: 'Progress', promedio: 'Quiz average', examenCol: 'Exam', ultimaCol: 'Last activity',
     espacio: 'Slot', estado: 'Status', subido: 'Uploaded', pendiente: 'Pending', acciones: 'Actions', lecc: 'Lesson', formatos: 'Formats: GLB, STL, OBJ, PLY (max. 60 MB)', subiendo: 'Uploading…', subidoOk: 'Model uploaded',
     errorGenerico: 'Something went wrong. Please try again.', sinContenido: 'There is no content yet.', cargando: 'Loading…', idioma: 'Language', menu: 'Menu', progresoGuardado: 'Progress saved', errorProgreso: 'Progress could not be saved',
     checklist: 'Checklist', tocaMarcar: 'Check each item', esencial: 'The essentials', quiz: 'Check what you learned', nivel: 'Level', basico: 'Basic', intermedio: 'Intermediate', avanzado: 'Advanced',
     atajos: 'Shortcuts: ← → to move · Esc to exit', pasoDe: 'Step {a} of {b}', completaLeccion: 'Lesson completed!', necesitas70: 'You need at least 70% on the quiz to complete the lesson.',
     buscarMas: 'more results', enLeccion: 'Lesson', enGlosario: 'Glossary', vistaDe: 'View', sinModelos: 'There are no model slots yet', porcentaje: '{n}% completed', soloLectura: 'Read only',
-    labTitulo: 'Movement lab', labSub: 'Freely explore each movement of the Modification Language.', pdf: 'PDF', verLeccion: 'View lesson',
+    areaManager: 'Area manager', porAnunciar: 'Area manager to be announced', configurarLider: 'Set it up in Manage', hablarCon: 'Talk to this person about:',
+    casoEjemplo: 'Illustrative example', etapaN: 'Stage {n}', resultado: 'Outcome', quien: 'Who', tiempo: 'Time',
+    secIntro: 'Start here', secAreas: 'The department’s areas', secBiblio: 'Reference library', biblioDesc: 'To go deeper: the language we use with doctors, warranties, protocols in detail and the fundamentals. Each area links to what you need.',
+    areasDesc: 'One module per area: what it does, what it receives and delivers, how long it takes, what can go wrong and how to coordinate with it.', managerDe: '{a} manager',
+    lideres: 'Area leaders', liderAsignar: 'Assign', liderCargoEs: 'Title (Spanish)', liderCargoEn: 'Title (English)', liderSinAsignar: 'Unassigned', liderQuitado: 'Leader removed', liderGuardado: 'Leader saved',
+    liderAyuda: 'Choose the person who leads each area. Their photo and name appear on the card in each module.', verBiblioteca: 'View library', miniQuiz: 'Area mini quiz',
+    areaCompleta: 'Area completed', empiezaPor: 'Start with', rutaSugerida: 'Suggested path',
+    visorCaso: 'Case viewer', visorPend: 'Case viewer pending', subirVisor: 'Upload viewer (HTML)', formatosVisor: 'A single HTML file exported from the Nuvia Design Viewer (max. 60 MB). Use a case with no patient data.', abrirVisor: 'Open full screen',
+    pestana: 'Tab', piezas: 'Parts', incluido: 'Included',
+    labTitulo: 'Movement lab', labSub: 'Freely explore each movement of the Modification Language.', pdf: 'PDF', verLeccion: 'View lesson', abrirLeccion: 'Open the lesson',
   },
 };
 
@@ -257,3 +275,28 @@ export function anillo(pct, tam, grosor) {
   return svg;
 }
 export const barra = (pct) => h('div', { class: 'tr-barra', role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('i', { style: { width: pct + '%' } }));
+
+// ---------- Áreas del departamento y tarjeta del manager ----------
+export const AREAS = {
+  face: { nombre: 'Face Design', color: '#d63384', ico: '🙂' }, n2: { nombre: 'N2 Demodenture', color: '#2f98d5', ico: '🦷' },
+  n3: { nombre: 'N3 Prosthetic', color: '#3b3f9e', ico: '🔷' }, n6: { nombre: 'N6 Material Changes', color: '#e8812a', ico: '🔶' }, support: { nombre: 'Support', color: '#16a34a', ico: '🎧' },
+};
+export function avatar(persona, tam) {
+  const ini = (persona.nombre || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0].toUpperCase()).join('');
+  const el = h('div', { class: 'tr-avatar', style: { width: tam + 'px', height: tam + 'px', fontSize: Math.round(tam / 2.8) + 'px' } }, h('span', null, ini));
+  if (persona.foto) { const im = new Image(); im.alt = ''; im.onload = () => { el.replaceChildren(im); }; im.src = persona.foto; }
+  return el;
+}
+// Tarjeta con la persona que lidera un área (la configuran los admins en Administrar)
+export function tarjetaLider(area, opts) {
+  const o = opts || {}, a = AREAS[area], lider = (S.lideres || {})[area];
+  const caja = h('div', { class: 'tr-lider' + (o.compacta ? ' compacta' : ''), style: { '--ac': a.color } });
+  const hablar = o.texto ? h('div', { class: 'tr-lider-hablar' }, h('span', null, ui('hablarCon') + ' '), md(o.texto, { sinGlosario: true })) : null;
+  if (lider) {
+    caja.append(avatar(lider, o.compacta ? 44 : 76), h('div', { class: 'tr-lider-txt' }, h('div', { class: 'tr-lider-rot' }, ui('managerDe', { a: a.nombre })), h('b', null, lider.nombre), t(lider.cargo) ? h('div', { class: 'tr-lider-cargo' }, t(lider.cargo)) : null, hablar));
+  } else {
+    caja.append(avatar({ nombre: a.nombre }, o.compacta ? 44 : 76), h('div', { class: 'tr-lider-txt' }, h('div', { class: 'tr-lider-rot' }, ui('managerDe', { a: a.nombre })), h('b', { class: 'tr-lider-pend' }, ui('porAnunciar')),
+      CFG.esAdmin ? h('a', { href: '#/admin', class: 'tr-sub' }, ui('configurarLider') + ' →') : null, hablar));
+  }
+  return caja;
+}

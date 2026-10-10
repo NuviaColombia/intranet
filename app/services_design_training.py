@@ -10,14 +10,15 @@ from pathlib import Path
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from .models import Empleado
-from .models_design import DesignTrainingProgreso, DesignTrainingModelo
+from .models_design import DesignTrainingProgreso, DesignTrainingModelo, DesignConexionRegla
 
 # Mientras se revisa, Training lo ven solo los admins. Para abrirlo a todos los de Design: True aquí y quitar la
 # condición de admin en el enlace del menú (templates/base.html).
 ABIERTO_A_TODOS = False
 
 DATOS = Path(__file__).resolve().parent / "static" / "training" / "data"
-FORMATOS = {"glb": "model/gltf-binary", "stl": "model/stl", "obj": "text/plain", "ply": "application/octet-stream"}
+FORMATOS = {"glb": "model/gltf-binary", "stl": "model/stl", "obj": "text/plain", "ply": "application/octet-stream", "html": "text/html; charset=utf-8"}
+MODELOS_BASE = Path(__file__).resolve().parent / "static" / "training" / "models"   # modelos que viajan con la aplicación (se pueden reemplazar subiendo otro)
 MAX_MODELO = 60 * 1024 * 1024
 RE_SLOT = re.compile(r"^[a-z0-9][a-z0-9-]{2,58}$")
 _cache: dict = {"firma": None, "datos": None}
@@ -69,9 +70,9 @@ def slots_del_contenido() -> list[dict]:
     for m in contenido()["modulos"]:
         for l in m.get("lecciones", []):
             for p in l.get("pasos", []):
-                if p.get("t") == "modelo3d" and p.get("slot") not in vistos:
+                if p.get("t") in ("modelo3d", "visor") and p.get("slot") not in vistos:
                     vistos.add(p["slot"])
-                    out.append({"slot": p["slot"], "titulo": p.get("titulo"), "modulo": m.get("id"), "moduloTitulo": m.get("titulo"),
+                    out.append({"slot": p["slot"], "tipo": p["t"], "titulo": p.get("titulo"), "modulo": m.get("id"), "moduloTitulo": m.get("titulo"),
                                 "leccion": l.get("id"), "leccionTitulo": l.get("titulo")})
     return out
 
@@ -125,6 +126,55 @@ def resumen_equipo(db: Session) -> list[dict]:
     return out
 
 
+# ---------- Líderes de área (tarjeta del manager en cada módulo) ----------
+# Se guardan en design_conexion_reglas (tipo "training_lider", clave = área, valor = JSON): sin tabla nueva.
+AREAS_LIDER = ["face", "n2", "n3", "n6", "support"]
+TIPO_LIDER = "training_lider"
+
+
+def lideres(db: Session) -> dict:
+    """{área: {empleadoId, nombre, foto, cargo: {es, en}} | None} con la persona que lidera cada área."""
+    filas = {r.clave: r for r in db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == TIPO_LIDER).all()}
+    out = {}
+    for a in AREAS_LIDER:
+        r, d = filas.get(a), None
+        if r:
+            try:
+                d = json.loads(r.valor or "{}")
+            except ValueError:
+                d = None
+        e = db.get(Empleado, d.get("empleadoId")) if d and d.get("empleadoId") else None
+        out[a] = ({"empleadoId": e.id, "nombre": e.nombre_completo, "foto": f"/design/api/foto/{e.id}",
+                   "cargo": {"es": str((d.get("cargo") or {}).get("es", ""))[:80], "en": str((d.get("cargo") or {}).get("en", ""))[:80]}} if e else None)
+    return out
+
+
+def lider_guardar(db: Session, user: Empleado, area: str, empleado_id: int, cargo_es: str, cargo_en: str) -> None:
+    if area not in AREAS_LIDER:
+        raise ValueError("Área no válida.")
+    if not db.get(Empleado, empleado_id):
+        raise ValueError("La persona no existe.")
+    valor = json.dumps({"empleadoId": empleado_id, "cargo": {"es": (cargo_es or "").strip()[:80], "en": (cargo_en or "").strip()[:80]}}, ensure_ascii=False)
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == TIPO_LIDER, DesignConexionRegla.clave == area).first()
+    if r:
+        r.valor, r.creado_por = valor, user.nombre_completo
+    else:
+        db.add(DesignConexionRegla(tipo=TIPO_LIDER, clave=area, valor=valor, creado_por=user.nombre_completo))
+    db.commit()
+
+
+def lider_quitar(db: Session, area: str) -> bool:
+    n = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == TIPO_LIDER, DesignConexionRegla.clave == area).delete()
+    db.commit()
+    return bool(n)
+
+
+def candidatos_lider(db: Session) -> list[dict]:
+    """Personas de Design que se pueden elegir como líder de un área (empleados activos con el módulo)."""
+    return sorted(({"id": e.id, "nombre": e.nombre_completo} for e in db.query(Empleado).filter(Empleado.activo == 1).all() if e.tiene_modulo("design_schedule")),
+                  key=lambda x: x["nombre"].lower())
+
+
 # ---------- Modelos 3D ----------
 
 def modelos(db: Session) -> list[dict]:
@@ -138,6 +188,19 @@ def modelos(db: Session) -> list[dict]:
             anot = []
         out.append({"slot": s, "nombre": n, "formato": f, "tamano": t, "anotaciones": anot, "subidoPor": por or "",
                     "creadoEn": en.isoformat() if en else "", "url": f"/design/training/modelo/{s}?v={int(en.timestamp()) if en else 0}"})
+    # modelos incluidos en la aplicación (static/training/models/<espacio>.glb) que nadie ha reemplazado
+    if MODELOS_BASE.exists():
+        for a in sorted(MODELOS_BASE.glob("*.glb")):
+            if a.stem not in {m["slot"] for m in out}:
+                anot = []
+                lado = a.with_suffix(".json")
+                if lado.exists():
+                    try:
+                        anot = json.loads(lado.read_text(encoding="utf-8"))
+                    except ValueError:
+                        anot = []
+                out.append({"slot": a.stem, "nombre": a.name, "formato": "glb", "tamano": a.stat().st_size, "anotaciones": anot, "subidoPor": "Nuvia",
+                            "creadoEn": "", "url": f"/static/training/models/{a.name}?v={int(a.stat().st_mtime)}", "incluido": True})
     return out
 
 
@@ -146,7 +209,7 @@ def modelo_guardar(db: Session, user: Empleado, slot: str, nombre: str, datos: b
         raise ValueError("El espacio del modelo no es válido.")
     ext = (nombre.rsplit(".", 1)[-1] if "." in nombre else "").lower()
     if ext not in FORMATOS:
-        raise ValueError("Formato no admitido. Usa GLB, STL, OBJ o PLY (un solo archivo).")
+        raise ValueError("Formato no admitido. Usa GLB, STL, OBJ, PLY o HTML (un solo archivo).")
     if not datos:
         raise ValueError("El archivo está vacío.")
     if len(datos) > MAX_MODELO:

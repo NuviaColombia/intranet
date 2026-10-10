@@ -59,6 +59,32 @@ def api_progreso_guardar(payload: ProgresoIn, user: Empleado = Depends(_visible)
         raise HTTPException(400, str(e))
 
 
+@router.get("/design/api/training/lideres")
+def api_lideres(user: Empleado = Depends(_visible), db: Session = Depends(get_db)):
+    return st.lideres(db)
+
+
+class LiderIn(BaseModel):
+    empleadoId: int
+    cargoEs: str = Field("", max_length=80)
+    cargoEn: str = Field("", max_length=80)
+
+
+@router.post("/design/api/training/lideres/{area}")
+def api_lider_guardar(area: str, payload: LiderIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        st.lider_guardar(db, user, area, payload.empleadoId, payload.cargoEs, payload.cargoEn)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return st.lideres(db)
+
+
+@router.post("/design/api/training/lideres/{area}/quitar")
+def api_lider_quitar(area: str, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    st.lider_quitar(db, area)
+    return st.lideres(db)
+
+
 @router.get("/design/api/training/modelos")
 def api_modelos(user: Empleado = Depends(_visible), db: Session = Depends(get_db)):
     return st.modelos(db)
@@ -69,6 +95,15 @@ def api_modelo(slot: str, user: Empleado = Depends(_visible), db: Session = Depe
     m = st.modelo_datos(db, slot)
     if not m:
         raise HTTPException(404, "Ese espacio todavía no tiene modelo.")
+    if m[1].startswith("text/html"):
+        # Visor de caso exportado (HTML autónomo): se aísla (sandbox) y se le agrega la selección de pestaña por #rx / #changes
+        cuerpo = m[0]
+        i = cuerpo.rfind(b"</body>")
+        extra = (b"<script>(function(){function go(){var c=(location.hash||'').slice(1);if(!c)return;var b=document.querySelector('button[data-context=\"'+c+'\"]');"
+                 b"if(b)b.click();}window.addEventListener('load',function(){setTimeout(go,900);});window.addEventListener('hashchange',go);})();</script>")
+        cuerpo = cuerpo[:i] + extra + cuerpo[i:] if i >= 0 else cuerpo + extra
+        return Response(cuerpo, media_type=m[1], headers={"Cache-Control": "private, max-age=3600",
+                                                          "Content-Security-Policy": "sandbox allow-scripts allow-downloads allow-modals"})
     return Response(m[0], media_type=m[1], headers={"Cache-Control": "private, max-age=86400"})
 
 
@@ -77,7 +112,7 @@ def api_admin(user: Empleado = Depends(require_admin), db: Session = Depends(get
     """Admins: espacios de modelos que piden las lecciones (con su estado) y el avance de cada persona."""
     subidos = {m["slot"]: m for m in st.modelos(db)}
     slots = [{**s, "modelo": subidos.get(s["slot"])} for s in st.slots_del_contenido()]
-    return {"slots": slots, "equipo": st.resumen_equipo(db)}
+    return {"slots": slots, "equipo": st.resumen_equipo(db), "lideres": st.lideres(db), "candidatos": st.candidatos_lider(db)}
 
 
 @router.post("/design/api/training/modelos")

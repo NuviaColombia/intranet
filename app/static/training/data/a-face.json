@@ -1,0 +1,2608 @@
+{
+  "id": "a-face",
+  "orden": 2,
+  "icono": "🙂",
+  "titulo": {
+    "es": "Face Design",
+    "en": "Face Design"
+  },
+  "resumen": {
+    "es": "Cómo Face Design alinea fotos, escaneos y tomografía para ubicar la sonrisa real: qué necesita de tu laboratorio, cuánto tarda, qué puede salir mal y cómo coordinarte con el área.",
+    "en": "How Face Design aligns photos, scans and tomography to locate the real smile: what it needs from your lab, how long it takes, what can go wrong and how to coordinate with the area."
+  },
+  "nivel": "basico",
+  "seccion": "area",
+  "area": "face",
+  "lecciones": [
+    {
+      "id": "a-face-l1",
+      "titulo": {
+        "es": "Qué hace Face Design y dónde encaja",
+        "en": "What Face Design does and where it fits"
+      },
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Un gemelo digital de la sonrisa",
+            "en": "A digital twin of the smile"
+          },
+          "cuerpo": {
+            "es": "Antes de diseñar una prótesis de demostración hay que saber **dónde está realmente la sonrisa del paciente**. **Face Design** (el área de alineación facial y diseño de la sonrisa) arma, en el programa 3D Blender, un \"gemelo digital\": junta en una sola escena los escaneos de la boca (**IOS**, escáner intraoral), la tomografía (**CBCT**) y las fotos de la cara.\nPiensa en superponer una radiografía, un molde y una foto hasta que coincidan: así todos miran el mismo punto.",
+            "en": "Before designing a demonstration prosthesis, the team needs to know **where the patient's smile really sits**. **Face Design** (the facial alignment and smile design area) builds a \"digital twin\" in the 3D program Blender: it brings the mouth scans (**IOS**, intraoral scans), the tomography (**CBCT**) and the face photos into a single scene.\nThink of lining up an X-ray, a mold and a photo until they match, so everyone downstream is looking at the same thing."
+          },
+          "porque": {
+            "es": "Si la alineación sale mal, el error se arrastra a Bite Design, al diseño y a la fabricación. Es mucho más barato detectarlo aquí.",
+            "en": "If the alignment is wrong, the error carries into Bite Design, the design and manufacturing. It is far cheaper to catch it here."
+          }
+        },
+        {
+          "t": "flujo",
+          "titulo": {
+            "es": "Dónde encaja en el recorrido de un caso",
+            "en": "Where it fits in a case's journey"
+          },
+          "pasos": [
+            {
+              "titulo": {
+                "es": "Tu laboratorio envía registros",
+                "en": "Your lab sends records"
+              },
+              "texto": {
+                "es": "Fotos de la cara, escaneos IOS y la tomografía (CBCT) del paciente, subidos a la plataforma.",
+                "en": "Photos of the face, IOS scans and the patient's tomography (CBCT), uploaded to the platform."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Face Design",
+                "en": "Face Design"
+              },
+              "texto": {
+                "es": "Alinea todo en una escena 3D y deja la sonrisa, la línea media y el soporte labial ubicados.",
+                "en": "Aligns everything in one 3D scene and places the smile, midline and lip support."
+              }
+            },
+            {
+              "titulo": {
+                "es": "QC del manager de Face",
+                "en": "Face manager QC"
+              },
+              "texto": {
+                "es": "El manager del área revisa y autoriza el paso siguiente.",
+                "en": "The area manager reviews and authorizes the next step."
+              }
+            },
+            {
+              "titulo": {
+                "es": "N2 Demodenture",
+                "en": "N2 Demodenture"
+              },
+              "texto": {
+                "es": "Recibe la escena alineada (Bite Design y diseño de la Demodenture, la prótesis de demostración).",
+                "en": "Receives the aligned scene (Bite Design and design of the Demodenture, the demonstration prosthesis)."
+              }
+            }
+          ]
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Qué recibe y qué entrega",
+            "en": "What it receives and what it delivers"
+          },
+          "items": [
+            {
+              "icono": "📥",
+              "titulo": {
+                "es": "Recibe: fotos",
+                "en": "Receives: photos"
+              },
+              "texto": {
+                "es": "Las fotos de la cara del paciente, tomadas con la calidad que pide el protocolo.",
+                "en": "Photos of the patient's face, taken to the quality the protocol requires."
+              }
+            },
+            {
+              "icono": "📥",
+              "titulo": {
+                "es": "Recibe: escaneos IOS",
+                "en": "Receives: IOS scans"
+              },
+              "texto": {
+                "es": "Arcada superior, inferior y registros de mordida de la boca.",
+                "en": "Upper and lower arches and bite records from the mouth."
+              }
+            },
+            {
+              "icono": "📥",
+              "titulo": {
+                "es": "Recibe: CBCT",
+                "en": "Receives: CBCT"
+              },
+              "texto": {
+                "es": "La tomografía con huesos y dientes. Si falta o está en mal estado, el área la segmenta con otro programa (BlueSky).",
+                "en": "The tomography showing bone and teeth. If it is missing or in poor condition, the area segments it with another program (BlueSky)."
+              }
+            },
+            {
+              "icono": "📤",
+              "titulo": {
+                "es": "Entrega: escena alineada",
+                "en": "Delivers: aligned scene"
+              },
+              "texto": {
+                "es": "Una escena 3D con todo en su sitio, con nombres exactos, y comentarios para las etapas siguientes.",
+                "en": "A 3D scene with everything in place, with exact names, plus comments for the next stages."
+              }
+            },
+            {
+              "icono": "➡️",
+              "titulo": {
+                "es": "A quién: N2",
+                "en": "To whom: N2"
+              },
+              "texto": {
+                "es": "A **N2 Demodenture**, la etapa que diseña la mordida (Bite Design) y la prótesis de demostración.",
+                "en": "To **N2 Demodenture**, the stage that designs the bite (Bite Design) and the demonstration prosthesis."
+              }
+            }
+          ]
+        },
+        {
+          "t": "lider",
+          "area": "face",
+          "texto": {
+            "es": "Habla con esta persona para dudas sobre fotos, escaneos o el estado de la alineación de un caso.",
+            "en": "Talk to this person about questions on photos, scans or the alignment status of a case."
+          }
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Qué significa para tu laboratorio",
+            "en": "What it means for your lab"
+          },
+          "cuerpo": {
+            "es": "Face Design no diseña la prótesis, pero **depende de lo que tú envías**. Fotos torcidas, escaneos incompletos o una tomografía equivocada no se pueden \"arreglar\" en pantalla: hay que pedirlos de nuevo, y eso detiene el caso.\nTu papel como manager es asegurar que los registros lleguen completos y con calidad desde el primer envío, y saber a quién preguntar cuando algo se frena.",
+            "en": "Face Design does not design the prosthesis, but it **depends on what you send**. Tilted photos, incomplete scans or the wrong tomography cannot be \"fixed\" on screen: they have to be requested again, and that holds the case.\nYour role as a manager is to make sure records arrive complete and in good quality the first time, and to know whom to ask when something stalls."
+          }
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Quieres ver cómo se hace (opcional)",
+            "en": "Want to see how it is done (optional)"
+          },
+          "texto": {
+            "es": "La lección de la biblioteca muestra el flujo técnico de Face Design en Blender.",
+            "en": "The library lesson shows the technical Face Design flow in Blender."
+          },
+          "lecc": "m6a-l1"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Face Design junta IOS, CBCT y fotos en una escena 3D para ubicar la sonrisa real del paciente.",
+              "en": "Face Design merges IOS, CBCT and photos into one 3D scene to locate the patient's real smile."
+            },
+            {
+              "es": "Recibe los registros de tu laboratorio y entrega la escena alineada a N2 Demodenture.",
+              "en": "It receives your lab's records and delivers the aligned scene to N2 Demodenture."
+            },
+            {
+              "es": "Un error de alineación se arrastra a todas las etapas siguientes, por eso hay QC del manager.",
+              "en": "An alignment error carries into every later stage, which is why there is manager QC."
+            },
+            {
+              "es": "Lo que llega mal desde el laboratorio no se corrige en pantalla: se pide de nuevo.",
+              "en": "What arrives wrong from the lab is not fixed on screen: it is requested again."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Qué hace Face Design?",
+                "en": "What does Face Design do?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Alinea escaneos, tomografía y fotos de la cara en una escena 3D.",
+                    "en": "It aligns scans, tomography and face photos in one 3D scene."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Fabrica la prótesis definitiva.",
+                    "en": "It manufactures the final prosthesis."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Toma las fotos y escaneos en la clínica.",
+                    "en": "It takes the photos and scans at the clinic."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Es el paso que ubica la sonrisa real antes de diseñar; no fabrica ni toma registros.",
+                "en": "It is the step that locates the real smile before designing; it neither manufactures nor captures records."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿A qué área le entrega Face Design?",
+                "en": "Which area does Face Design deliver to?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "N2 Demodenture",
+                    "en": "N2 Demodenture"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "N6 Material Changes",
+                    "en": "N6 Material Changes"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Directamente al doctor",
+                    "en": "Directly to the doctor"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "N2 usa la escena alineada para el Bite Design y la Demodenture.",
+                "en": "N2 uses the aligned scene for Bite Design and the Demodenture."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Si una foto llega torcida, Face Design la corrige en pantalla sin problema.",
+                "en": "If a photo arrives tilted, Face Design simply fixes it on screen."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "La foto no sirve y hay que pedir otra: rotarla distorsionaría la perspectiva y el diseño saldría torcido.",
+                "en": "The photo is not usable and another must be requested: rotating it would distort perspective and the design would come out crooked."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-face-l2",
+      "titulo": {
+        "es": "Qué debe enviar tu laboratorio y con qué calidad",
+        "en": "What your lab must send and in what quality"
+      },
+      "minutos": 9,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Dos registros que Face necesita: fotos e IOS",
+            "en": "Two records Face needs: photos and IOS"
+          },
+          "cuerpo": {
+            "es": "Face alinea tres cosas: fotos, escaneos IOS y tomografía. De las dos primeras depende tu laboratorio, y cada requisito de calidad tiene una razón concreta: **sin ver los dientes con claridad, con la cabeza recta y con una mordida que coincida entre foto y escaneo, no hay forma fiable de alinear**.\nAbajo está cada requisito y su porqué.",
+            "en": "Face aligns three things: photos, IOS scans and tomography. Your lab is responsible for the first two, and every quality requirement has a concrete reason: **without clear teeth, a straight head and a bite that matches between photo and scan, there is no reliable way to align**.\nBelow is each requirement and its why."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Fotografía: qué se rechaza y por qué",
+            "en": "Photography: what gets rejected and why"
+          },
+          "cabeceras": [
+            {
+              "es": "Problema en la foto",
+              "en": "Photo problem"
+            },
+            {
+              "es": "Por qué no sirve",
+              "en": "Why it fails"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Cabeza inclinada (orejas por debajo de la línea entre las pupilas)",
+                "en": "Tilted head (ears below the line between the pupils)"
+              },
+              {
+                "es": "La sonrisa se percibe mal y el diseño saldría torcido.",
+                "en": "The smile is misperceived and the design would come out crooked."
+              }
+            ],
+            [
+              {
+                "es": "Cabeza girada a un lado",
+                "en": "Head turned to one side"
+              },
+              {
+                "es": "Da una mala impresión de la sonrisa. Ambas orejas deben verse iguales.",
+                "en": "It gives a poor impression of the smile. Both ears should look equal."
+              }
+            ],
+            [
+              {
+                "es": "Orejas tapadas por el pelo",
+                "en": "Ears covered by hair"
+              },
+              {
+                "es": "El rostro completo, con orejas, es la referencia de inclinación.",
+                "en": "The full face, ears included, is the tilt reference."
+              }
+            ],
+            [
+              {
+                "es": "Desenfocada o mal iluminada",
+                "en": "Out of focus or poorly lit"
+              },
+              {
+                "es": "No se ven los dientes con claridad y no se pueden alinear con la cara.",
+                "en": "Teeth cannot be seen clearly and cannot be aligned with the face."
+              }
+            ],
+            [
+              {
+                "es": "Con espuma azul (blue mousse) sobre dientes o mordida",
+                "en": "With blue mousse over teeth or bite"
+              },
+              {
+                "es": "Tapa dientes y mordida; en pacientes sin dientes los bite blocks son la única referencia.",
+                "en": "It covers teeth and bite; in patients without teeth the bite blocks are the only reference."
+              }
+            ],
+            [
+              {
+                "es": "Tomada con iPad u otro dispositivo",
+                "en": "Taken with an iPad or another device"
+              },
+              {
+                "es": "Otros dispositivos tienden a deformar las proporciones del rostro; el protocolo pide cámara.",
+                "en": "Other devices tend to distort facial proportions; the protocol asks for a camera."
+              }
+            ],
+            [
+              {
+                "es": "Mordida distinta al escaneo o sonrisa muy abierta",
+                "en": "Bite different from the scan, or a very wide-open smile"
+              },
+              {
+                "es": "Foto y escaneo describirían situaciones distintas; una sonrisa excesivamente abierta da mala percepción al diseñar.",
+                "en": "Photo and scan would describe different situations; an excessively open smile gives a poor perception when designing."
+              }
+            ]
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "La pegatina y las 9 fotos",
+            "en": "The sticker and the 9 photos"
+          },
+          "cuerpo": {
+            "es": "El protocolo pide **9 fotos estándar** (o las versiones para pacientes sin dientes) y una **pegatina en una zona plana de la frente, entre las cejas**. La pegatina da una escala real de la cara: sin una medida conocida, el tamaño de los dientes sería una suposición.\nCada vista (frontal, perfiles, oclusiones, vista desde abajo) aporta una referencia distinta; si falta una, esa parte de la alineación queda sin información.",
+            "en": "The protocol asks for **9 standard photos** (or the versions for patients without teeth) and a **sticker on a flat area of the forehead, between the eyebrows**. The sticker gives the face a real-world scale: without a known measurement, tooth size would be a guess.\nEach view (frontal, profiles, occlusions, view from below) adds a different reference; if one is missing, that part of the alignment has no information."
+          },
+          "alerta": {
+            "es": "El texto del protocolo no da la lista completa de las 9 fotos ni aclara si un teléfono (no iPad) es válido. Confirmar con el manager.",
+            "en": "The protocol text does not give the full list of the 9 photos nor clarify whether a phone (not an iPad) is acceptable. Confirm with the manager."
+          }
+        },
+        {
+          "t": "acordeon",
+          "titulo": {
+            "es": "IOS: qué debe llegar y por qué",
+            "en": "IOS: what must arrive and why"
+          },
+          "items": [
+            {
+              "titulo": {
+                "es": "Base: Upper, Lower y 3 bites",
+                "en": "Base: Upper, Lower and 3 bites"
+              },
+              "texto": {
+                "es": "Escaneo superior, inferior y tres escaneos de mordida (derecha, izquierda y frente). Al alinear los bites a Upper y Lower se obtiene la mordida clínica tal como se registró en la clínica.",
+                "en": "Upper scan, lower scan and three bite scans (right, left and front). Aligning the bites to Upper and Lower yields the clinical bite exactly as it was recorded at the clinic."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Bites mal alineados",
+                "en": "Misaligned bites"
+              },
+              "texto": {
+                "es": "Si los laterales no quedan bien alineados se pide un nuevo escaneo: una mordida desalineada produce una prótesis con la relación entre arcadas equivocada.",
+                "en": "If the lateral bites are not well aligned, a new scan is requested: a misaligned bite produces a prosthesis with the wrong relationship between arches."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Encía y paladar completos",
+                "en": "Complete gum and palate"
+              },
+              "texto": {
+                "es": "La encía clara y amplia es la base de la prótesis de demostración y define sus límites. Sin paladar en el superior se pide re-escaneo: es fundamental para un diseño preciso.",
+                "en": "Clear, wide gum tissue is the base of the demonstration prosthesis and defines its limits. With no palate in the upper scan a re-scan is requested: it is fundamental for an accurate design."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Pacientes sin dientes",
+                "en": "Patients without teeth"
+              },
+              "texto": {
+                "es": "Con bite blocks o dentadura, el escaneo debe ser de 360 grados del objeto, incluida su cara interna (intaglio): es el registro directo de encía y paladar.",
+                "en": "With bite blocks or a denture, the scan must be 360 degrees around the object, including its inner surface (intaglio): it is the direct record of gum and palate."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Prótesis parcial",
+                "en": "Partial prosthesis"
+              },
+              "texto": {
+                "es": "La parcial no se alinea manualmente porque puede cambiar la percepción de la mordida. Con menos de 4 anteriores superiores se piden escaneos de tejido y paladar sin la parcial, además de los de bite block o parcial.",
+                "en": "A partial is not aligned manually because it can change how the bite is perceived. With fewer than 4 upper anterior teeth, scans of tissue and palate without the partial are requested, plus the bite block or partial scans."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Duplicados",
+                "en": "Duplicates"
+              },
+              "texto": {
+                "es": "Información duplicada puede impedir que la alineación se complete; se avisa al manager del área.",
+                "en": "Duplicated information can stop the alignment from completing; the area manager is notified."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Cuándo hacen falta bite blocks",
+            "en": "When bite blocks are needed"
+          },
+          "cuerpo": {
+            "es": "Con **menos de 4 dientes anteriores superiores** (caninos incluidos) hacen falta **bite blocks** (bloques que registran la mordida cuando faltan dientes): sin ellos no hay información suficiente para alinear los escaneos con la cara, y la mordida de las fotos debe coincidir con ellos.\nCon 3 anteriores completos y 1 preparado o fracturado se puede continuar dejando un comentario, aunque genera discrepancias en el plano oclusal.",
+            "en": "With **fewer than 4 upper anterior teeth** (canines included), **bite blocks** (blocks that record the bite when teeth are missing) are needed: without them there is not enough information to align the scans to the face, and the bite in the photos must match them.\nWith 3 complete anteriors and 1 prepped or fractured, the case can continue with a comment, although it creates discrepancies in the occlusal plane."
+          },
+          "alerta": {
+            "es": "Una nota de la guía de producto menciona 4 escaneos para un paciente con dientes y buenos topes, mientras el protocolo de IOS habla de 3 bites. Confirmar con el manager cuántos bites se esperan en cada caso.",
+            "en": "A product-guide note mentions 4 scans for a patient with teeth and good stops, while the IOS protocol speaks of 3 bites. Confirm with the manager how many bites are expected in each case."
+          }
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Revisión rápida antes de enviar los registros",
+            "en": "Quick check before sending records"
+          },
+          "items": [
+            {
+              "es": "Foto con cámara (no iPad), enfocada y bien iluminada.",
+              "en": "Photo with a camera (not an iPad), in focus and well lit."
+            },
+            {
+              "es": "Cabeza recta, sin giro; ambas orejas visibles e iguales.",
+              "en": "Head straight, not turned; both ears visible and equal."
+            },
+            {
+              "es": "Pegatina en la frente, entre las cejas.",
+              "en": "Sticker on the forehead, between the eyebrows."
+            },
+            {
+              "es": "Sin espuma azul sobre dientes ni mordida.",
+              "en": "No blue mousse over teeth or bite."
+            },
+            {
+              "es": "Sonrisa natural con los dientes visibles y mordida igual a la del escaneo.",
+              "en": "Natural smile with teeth visible, and bite matching the scan."
+            },
+            {
+              "es": "IOS: superior, inferior y bites; paladar y encía completos; sin duplicados.",
+              "en": "IOS: upper, lower and bites; palate and gum complete; no duplicates."
+            },
+            {
+              "es": "Pacientes sin dientes o con menos de 4 anteriores superiores: bite blocks y escaneo 360 con intaglio.",
+              "en": "Patients without teeth or with fewer than 4 upper anteriors: bite blocks and 360 scan with intaglio."
+            }
+          ]
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Protocolo oficial de fotografía",
+            "en": "Official photography protocol"
+          },
+          "texto": {
+            "es": "Abre el protocolo para ver ejemplos de foto correcta e incorrecta.",
+            "en": "Open the protocol to see examples of correct and incorrect photos."
+          },
+          "protocolo": "Photography"
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Más detalle sobre escaneos IOS",
+            "en": "More on IOS scans"
+          },
+          "texto": {
+            "es": "Lección de la biblioteca con el porqué de cada regla de escaneo.",
+            "en": "Library lesson with the reason behind each scanning rule."
+          },
+          "lecc": "m6a-l3"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Sin dientes visibles, cabeza recta y mordida coincidente entre foto y escaneo no hay alineación fiable.",
+              "en": "Without visible teeth, a straight head and a bite that matches between photo and scan, there is no reliable alignment."
+            },
+            {
+              "es": "La pegatina de la frente da la escala real de la cara.",
+              "en": "The forehead sticker gives the face its real-world scale."
+            },
+            {
+              "es": "IOS base: Upper, Lower y bites; paladar, encía e intaglio completos.",
+              "en": "Base IOS set: Upper, Lower and bites; palate, gum and intaglio complete."
+            },
+            {
+              "es": "Menos de 4 anteriores superiores: bite blocks.",
+              "en": "Fewer than 4 upper anteriors: bite blocks."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "Una foto muestra las orejas por debajo de la línea entre las pupilas. ¿Qué indica?",
+                "en": "A photo shows the ears below the line between the pupils. What does that indicate?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Cabeza inclinada: la foto no sirve, hay que repetirla.",
+                    "en": "Tilted head: the photo is not usable and must be retaken."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Foto correcta.",
+                    "en": "A correct photo."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Que el paciente tiene orejas pequeñas.",
+                    "en": "That the patient has small ears."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Una buena foto tiene la cabeza recta y las orejas por encima de esa línea; si no, el diseño saldría torcido.",
+                "en": "A good photo has a straight head and ears above that line; otherwise the design would come out crooked."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Para qué sirve la pegatina en la frente?",
+                "en": "What is the forehead sticker for?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Da una escala real de la cara para alinearla con los escaneos.",
+                    "en": "It gives the face a real-world scale to align it with the scans."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Identifica al paciente.",
+                    "en": "It identifies the patient."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Reduce los reflejos de la cámara.",
+                    "en": "It reduces camera glare."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Sin una medida conocida, el tamaño de los dientes sería adivinado.",
+                "en": "Without a known measurement, tooth size would be guessed."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Un escaneo duplicado no es problema porque más información siempre ayuda.",
+                "en": "A duplicate scan is not a problem because more information always helps."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "La información duplicada puede impedir que la alineación se complete; se avisa al manager del área.",
+                "en": "Duplicated information can stop the alignment from completing; the area manager is notified."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "Un paciente tiene solo 3 dientes anteriores superiores. ¿Qué pide el protocolo?",
+                "en": "A patient has only 3 upper anterior teeth. What does the protocol ask for?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Bite blocks, porque no hay información suficiente para alinear con la cara.",
+                    "en": "Bite blocks, because there is not enough information to align with the face."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Nada especial.",
+                    "en": "Nothing special."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Solo una foto más.",
+                    "en": "Just one more photo."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Con menos de 4 anteriores superiores faltan referencias y el protocolo pide bite blocks.",
+                "en": "With fewer than 4 upper anteriors references are missing and the protocol asks for bite blocks."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-face-l3",
+      "titulo": {
+        "es": "Productos y casos con y sin Face Design",
+        "en": "Products and cases with and without Face Design"
+      },
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Face Design no es un producto aparte",
+            "en": "Face Design is not a standalone product"
+          },
+          "cuerpo": {
+            "es": "Face Design es una **etapa** dentro de los productos de N2 Demodenture. En la plataforma, el manager asigna el caso y quien lo trabaja verifica **paciente, producto y centro** antes de empezar, e identifica si es **Full Mouth 24Z** (ambas arcadas) o **Demo Denture Single 24Z** (un solo arco).\nPor eso, para ti, \"hacer Face\" significa que el caso de N2 ya tiene su escena alineada y puede pasar al diseño.",
+            "en": "Face Design is a **stage** inside the N2 Demodenture products. In the platform, the manager assigns the case and the person working it verifies **patient, product and center** before starting, and identifies whether it is **Full Mouth 24Z** (both arches) or **Demo Denture Single 24Z** (a single arch).\nSo, for you, \"doing Face\" means the N2 case already has its aligned scene and can move on to design."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Productos y casos: con o sin Face Design",
+            "en": "Products and cases: with or without Face Design"
+          },
+          "cabeceras": [
+            {
+              "es": "Situación",
+              "en": "Situation"
+            },
+            {
+              "es": "Qué pasa con Face Design",
+              "en": "What happens with Face Design"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Full Mouth 24Z (ambas arcadas)",
+                "en": "Full Mouth 24Z (both arches)"
+              },
+              {
+                "es": "Pasa por Face Design: se alinean IOS, CBCT y fotos.",
+                "en": "Goes through Face Design: IOS, CBCT and photos are aligned."
+              }
+            ],
+            [
+              {
+                "es": "Demo Denture Single 24Z (un arco)",
+                "en": "Demo Denture Single 24Z (one arch)"
+              },
+              {
+                "es": "Pasa por Face Design. La guía de producto lo marca como obligatorio en N2 Single.",
+                "en": "Goes through Face Design. The product guide marks it as mandatory for N2 Single."
+              }
+            ],
+            [
+              {
+                "es": "Paciente Traveling (viaja y se opera en pocos días)",
+                "en": "Traveling patient (travels and is operated within days)"
+              },
+              {
+                "es": "No hay Face Design: la alineación se hace directo con la foto Natural Smile en la etapa Traveling Design N2, para ganar tiempo.",
+                "en": "There is no Face Design: alignment is done directly with the Natural Smile photo in the Traveling Design N2 stage, to save time."
+              }
+            ],
+            [
+              {
+                "es": "Single 24Z con excepción",
+                "en": "Single 24Z with an exception"
+              },
+              {
+                "es": "Es posible diseñar sin Face Design en pacientes que no pueden sonreír amplio o a quienes no se les pueden tomar fotos. Se analiza caso a caso y leadership lo aprueba; no aplica a todos los casos.",
+                "en": "Designing without Face Design is possible for patients who cannot smile widely or cannot be photographed. It is analyzed case by case and leadership approves it; it does not apply to every case."
+              }
+            ],
+            [
+              {
+                "es": "Se pide continuar sin Face Design y el doctor no ha aprobado",
+                "en": "Continuing without Face Design is requested and the doctor has not approved"
+              },
+              {
+                "es": "Se informa al manager y el caso continúa para evitar demoras en productos en hold; el doctor decide entre seguir sin Face Design o enviar nuevos registros.",
+                "en": "The manager is informed and the case continues to avoid delays on products on hold; the doctor decides between continuing without Face Design or sending new records."
+              }
+            ]
+          ]
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Entre los registros de Face: cuatro protocolos",
+            "en": "Within Face: four entry protocols"
+          },
+          "items": [
+            {
+              "icono": "🧊",
+              "titulo": {
+                "es": "Face Design (Blender)",
+                "en": "Face Design (Blender)"
+              },
+              "texto": {
+                "es": "Alinea IOS, CBCT y fotos en una escena 3D para ubicar la sonrisa real.",
+                "en": "Aligns IOS, CBCT and photos in a 3D scene to locate the real smile."
+              }
+            },
+            {
+              "icono": "📷",
+              "titulo": {
+                "es": "Fotografía",
+                "en": "Photography"
+              },
+              "texto": {
+                "es": "Define qué fotos debe enviar la clínica y con qué calidad; es el checklist para aceptar o rechazar un caso.",
+                "en": "Defines which photos the clinic must send and in what quality; it is the checklist for accepting or rejecting a case."
+              }
+            },
+            {
+              "icono": "🦷",
+              "titulo": {
+                "es": "Escaneos IOS",
+                "en": "IOS scans"
+              },
+              "texto": {
+                "es": "Define qué escaneos deben llegar y cuándo se exige re-escaneo.",
+                "en": "Defines which scans must arrive and when a re-scan is required."
+              }
+            },
+            {
+              "icono": "🖨️",
+              "titulo": {
+                "es": "Maxillar Print",
+                "en": "Maxillar Print"
+              },
+              "texto": {
+                "es": "A partir del CT, produce un modelo físico del maxilar superior (hueso) en dos mitades para imprimir en 3D, como apoyo para la cirugía y la planificación.",
+                "en": "From the CT, produces a physical model of the upper jaw (bone) in two halves for 3D printing, as support for surgery and planning."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Maxillar Print, en una mirada",
+            "en": "Maxillar Print at a glance"
+          },
+          "cuerpo": {
+            "es": "Maxillar Print parte del CT del paciente. Lo primero es comprobar que haya archivos DICOM (el formato estándar de la tomografía) y que **el nombre del CT coincida con el del paciente en la plataforma**: así no se imprime el modelo de otra persona. Luego se aísla el maxilar, se divide en dos mitades, se marcan las iniciales del paciente y se sube a la plataforma con una captura como evidencia.",
+            "en": "Maxillar Print starts from the patient's CT. The first step is to confirm that DICOM files exist (the standard tomography format) and that **the CT name matches the patient in the platform**, so another person's model is never printed. Then the upper jaw is isolated, split into two halves, the patient's initials are added, and it is uploaded to the platform with a screenshot as evidence."
+          },
+          "alerta": {
+            "es": "El protocolo no explica por qué el modelo se divide en dos mitades ni indica cuándo escalar. Confirmar con el manager.",
+            "en": "The protocol does not explain why the model is split in two halves nor when to escalate. Confirm with the manager."
+          }
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Protocolo oficial de Maxillar Print",
+            "en": "Official Maxillar Print protocol"
+          },
+          "texto": {
+            "es": "Abre el protocolo con las figuras de los cortes.",
+            "en": "Open the protocol with the cut figures."
+          },
+          "protocolo": "Maxillar Print"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Face Design es una etapa de los productos N2: Full Mouth 24Z y Demo Denture Single 24Z.",
+              "en": "Face Design is a stage of the N2 products: Full Mouth 24Z and Demo Denture Single 24Z."
+            },
+            {
+              "es": "Los casos Traveling no pasan por Face Design: se alinean con la foto Natural Smile para ganar tiempo.",
+              "en": "Traveling cases do not go through Face Design: they are aligned with the Natural Smile photo to save time."
+            },
+            {
+              "es": "Diseñar un Single 24Z sin Face Design es una excepción que leadership aprueba.",
+              "en": "Designing a Single 24Z without Face Design is an exception that leadership approves."
+            },
+            {
+              "es": "Maxillar Print produce un modelo físico del maxilar superior en dos mitades a partir del CT.",
+              "en": "Maxillar Print produces a physical upper-jaw model in two halves from the CT."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Qué ocurre con Face Design en un caso Traveling?",
+                "en": "What happens with Face Design in a Traveling case?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "No hay Face Design; se alinea directo con la foto Natural Smile para ganar tiempo.",
+                    "en": "There is no Face Design; it is aligned directly with the Natural Smile photo to save time."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Se hace igual que en cualquier otro caso.",
+                    "en": "It is done like in any other case."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Se hace después de la cirugía.",
+                    "en": "It is done after surgery."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El paciente tiene una fecha de cirugía fija; el caso es prioritario y salta etapas.",
+                "en": "The patient has a fixed surgery date; the case is a priority and skips stages."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "Un Single 24Z se diseña sin Face Design porque el paciente no puede sonreír amplio. ¿Qué es esto?",
+                "en": "A Single 24Z is designed without Face Design because the patient cannot smile widely. What is this?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Una excepción que se analiza y que leadership aprueba.",
+                    "en": "An exception that is analyzed and that leadership approves."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "La regla general para todos los Single.",
+                    "en": "The general rule for every Single."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Una decisión del laboratorio sin aprobación.",
+                    "en": "A decision made by the lab without approval."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El protocolo general se mantiene; esto aplica solo a casos excepcionales.",
+                "en": "The general protocol stands; this applies only to exceptional cases."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Para qué se comprueba que el nombre del CT coincida con el paciente en Maxillar Print?",
+                "en": "Why is it checked that the CT name matches the patient in Maxillar Print?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Para no imprimir el modelo de otra persona.",
+                    "en": "So that another person's model is not printed."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Para que el archivo pese menos.",
+                    "en": "So the file weighs less."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque el programa lo exige para abrir el archivo.",
+                    "en": "Because the program requires it to open the file."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Es un control de identidad: un modelo físico equivocado no se puede corregir después.",
+                "en": "It is an identity check: a wrong physical model cannot be corrected afterwards."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-face-l4",
+      "titulo": {
+        "es": "Un caso de principio a fin y las reglas que importan",
+        "en": "A case from start to finish and the rules that matter"
+      },
+      "minutos": 10,
+      "pasos": [
+        {
+          "t": "caso",
+          "titulo": {
+            "es": "Case A: Full Mouth 24Z (ejemplo ilustrativo)",
+            "en": "Case A: Full Mouth 24Z (illustrative example)"
+          },
+          "contexto": {
+            "es": "Ejemplo ilustrativo construido con lo que dicen los protocolos. Un paciente dentado, sin prótesis parcial, con fotos y escaneos completos que llegaron bien desde el laboratorio.",
+            "en": "Illustrative example built from what the protocols say. A dentate patient, with no partial prosthesis, whose photos and scans arrived complete and in good shape from the lab."
+          },
+          "etapas": [
+            {
+              "titulo": {
+                "es": "Asignar y verificar",
+                "en": "Assign and verify"
+              },
+              "texto": {
+                "es": "El manager de Face asigna el caso. Quien lo trabaja confirma paciente, producto (Full Mouth 24Z) y centro.",
+                "en": "The Face manager assigns the case. The person working it confirms patient, product (Full Mouth 24Z) and center."
+              },
+              "quien": {
+                "es": "Manager y diseñador de Face",
+                "en": "Face manager and designer"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Preparar archivos y verificar IOS",
+                "en": "Prepare files and verify IOS"
+              },
+              "texto": {
+                "es": "Se prepara la carpeta del paciente, se trae la tomografía y se revisa que los escaneos sean del paciente correcto y estén completos.",
+                "en": "The patient folder is prepared, the tomography is brought in, and the scans are checked to be the right patient and complete."
+              },
+              "quien": {
+                "es": "Diseñador de Face",
+                "en": "Face designer"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Preparar las fotos",
+                "en": "Prepare the photos"
+              },
+              "texto": {
+                "es": "Se endereza la línea entre las pupilas, se encuadra la cara y se marca la zona dentro de los labios, que es la que se reemplazará por la nueva sonrisa.",
+                "en": "The line between the pupils is leveled, the face is framed, and the area inside the lips is marked, since that is what the new smile will replace."
+              },
+              "quien": {
+                "es": "Diseñador de Face",
+                "en": "Face designer"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Alinear",
+                "en": "Align"
+              },
+              "texto": {
+                "es": "Se alinea el escaneo superior con la foto, luego la tomografía (maxilar y mandíbula por separado) y la guía del articulador (Mounting) por borde incisal, línea media y soporte labial.",
+                "en": "The upper scan is aligned to the photo, then the tomography (upper and lower jaw separately) and the articulator guide (Mounting) by incisal edge, midline and lip support."
+              },
+              "tiempo": {
+                "es": "Face Align + Face Design ≈ 1 h de trabajo (hoja de tiempos)",
+                "en": "Face Align + Face Design ≈ 1 h of work (time sheet)"
+              },
+              "quien": {
+                "es": "Diseñador de Face",
+                "en": "Face designer"
+              }
+            },
+            {
+              "titulo": {
+                "es": "QC del manager",
+                "en": "Manager QC"
+              },
+              "texto": {
+                "es": "Se avisa al manager del área. Él revisa y autoriza pasar a Bite Design; sin ese visto bueno el caso no avanza.",
+                "en": "The area manager is notified. He or she reviews and authorizes the move to Bite Design; without that sign-off the case does not advance."
+              },
+              "quien": {
+                "es": "Manager de Face",
+                "en": "Face manager"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Exportar y aprobar",
+                "en": "Export and approve"
+              },
+              "texto": {
+                "es": "Se exporta con nombres y colecciones correctos, se aprueba el caso en la plataforma, se dejan comentarios para las etapas siguientes y se guarda el reporte.",
+                "en": "It is exported with correct names and collections, the case is approved in the platform, comments are left for later stages and the report is saved."
+              },
+              "quien": {
+                "es": "Diseñador de Face",
+                "en": "Face designer"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Entrega a N2",
+                "en": "Handoff to N2"
+              },
+              "texto": {
+                "es": "La escena alineada pasa a N2 Demodenture para el Bite Design y el diseño de la prótesis de demostración.",
+                "en": "The aligned scene goes to N2 Demodenture for Bite Design and design of the demonstration prosthesis."
+              },
+              "quien": {
+                "es": "N2 Demodenture",
+                "en": "N2 Demodenture"
+              }
+            }
+          ],
+          "resultado": {
+            "es": "El 1 h es tiempo de trabajo, no el plazo de calendario: el tiempo real depende de la cola del área y de que los registros lleguen completos.",
+            "en": "The 1 h is working time, not the calendar deadline: actual elapsed time depends on the area's queue and on records arriving complete."
+          }
+        },
+        {
+          "t": "visor",
+          "slot": "caso-face-alineado",
+          "pestana": "rx",
+          "titulo": {
+            "es": "Míralo en un caso real: la alineación facial",
+            "en": "See it in a real case: facial alignment"
+          },
+          "descripcion": {
+            "es": "Este es el visor que recibe el doctor. En la pestaña **RX** ves la radiografía del caso; gira el modelo y fíjate en:\n- cómo la sonrisa se alinea con la cara (línea entre las pupilas y línea media)\n- qué registros se usaron (fotos, escaneos, tomografía)\n- por qué un registro mal tomado mueve todo el diseño",
+            "en": "This is the viewer the doctor receives. The **RX** tab shows the case X-ray; rotate the model and notice:\n- how the smile lines up with the face (interpupillary line and midline)\n- which records were used (photos, scans, CT)\n- why one poorly taken record shifts the whole design"
+          },
+          "pendiente": {
+            "es": "Aquí irá el visor de un caso real (sin datos del paciente) abierto en la pestaña RX.",
+            "en": "A real case viewer (with no patient data) will go here, opened on the RX tab."
+          }
+        },
+        {
+          "t": "acordeon",
+          "titulo": {
+            "es": "Las reglas clave y su porqué",
+            "en": "The key rules and their why"
+          },
+          "items": [
+            {
+              "titulo": {
+                "es": "Foto \"Natural Smile (Bite Blocks)\"",
+                "en": "\"Natural Smile (Bite Blocks)\" photo"
+              },
+              "texto": {
+                "es": "Con prótesis removible, parcial o bite blocks se usa esta foto: es la que muestra la mordida real coincidiendo con el escaneo de la prótesis. Con la sonrisa sin ella no habría referencia dental.",
+                "en": "With a removable prosthesis, partial or bite blocks this photo is used: it shows the real bite matching the prosthesis scan. A bare smile would have no dental reference."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Escaneos del paciente correcto y completos",
+                "en": "Scans of the right patient and complete"
+              },
+              "texto": {
+                "es": "Trabajar con un escaneo de otro paciente o incompleto contamina todas las etapas siguientes. Por eso se verifican antes de empezar.",
+                "en": "Working with another patient's scan, or an incomplete one, contaminates every later stage. That is why they are checked before starting."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Bite scans con prótesis y dientes",
+                "en": "Bite scans with prosthesis and teeth"
+              },
+              "texto": {
+                "es": "En casos con dentadura o bite block parcial, el escaneo de mordida debe mostrar la prótesis y los dientes; sin ambos no hay cómo alinear el bite con las arcadas.",
+                "en": "In cases with a denture or partial bite block, the bite scan must show the prosthesis and the teeth; without both there is no way to align the bite to the arches."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Línea entre las pupilas nivelada",
+                "en": "Pupil line leveled"
+              },
+              "texto": {
+                "es": "Se endereza en la foto para que la cara se vea recta y el plano de la sonrisa no quede inclinado artificialmente al diseñar.",
+                "en": "It is leveled on the photo so the face looks straight and the smile plane is not artificially tilted when designing."
+              }
+            },
+            {
+              "titulo": {
+                "es": "La foto no se rota y el escaneo no se escala",
+                "en": "The photo is not rotated and the scan is not scaled"
+              },
+              "texto": {
+                "es": "La foto lleva la escala real (por eso la pegatina) y el escaneo ya tiene medidas reales. Rotar la foto distorsionaría la perspectiva; escalar un escaneo falsearía el tamaño de los dientes.",
+                "en": "The photo carries the real scale (hence the sticker) and the scan already has real measurements. Rotating the photo would distort perspective; scaling a scan would falsify tooth size."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Los escaneos se mueven juntos",
+                "en": "Scans move together"
+              },
+              "texto": {
+                "es": "Todos los escaneos se unen al superior para moverse como un bloque; si uno se mueve suelto se pierde la relación de mordida.",
+                "en": "All scans are linked to the upper so they move as one block; if one is moved alone the bite relationship is lost."
+              }
+            },
+            {
+              "titulo": {
+                "es": "El hueso no debe solaparse con el tejido",
+                "en": "Bone must not overlap tissue"
+              },
+              "texto": {
+                "es": "Cada diente de la tomografía debe encajar con el escaneo. Si el hueso queda mal ubicado, la Demodenture se diseñaría sobre un hueso incorrecto.",
+                "en": "Each tooth in the tomography must fit the scan. If the bone is misplaced, the Demodenture would be designed on incorrect bone."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Maxilar y mandíbula se alinean por separado",
+                "en": "Upper and lower jaw are aligned separately"
+              },
+              "texto": {
+                "es": "La mandíbula se mueve respecto al maxilar; la relación entre ambos viene de la mordida registrada, no de la tomografía.",
+                "en": "The lower jaw moves relative to the upper; the relationship between them comes from the recorded bite, not from the tomography."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Mounting: solo se mueve",
+                "en": "Mounting: only moved"
+              },
+              "texto": {
+                "es": "Es una referencia del articulador con posición fija; rotarla o escalarla rompería la relación con el articulador real.",
+                "en": "It is an articulator reference with a fixed position; rotating or scaling it would break the relationship with the real articulator."
+              }
+            },
+            {
+              "titulo": {
+                "es": "QC del manager antes de seguir",
+                "en": "Manager QC before moving on"
+              },
+              "texto": {
+                "es": "Una alineación errónea se arrastra a Bite Design, al diseño y a la fabricación; es más barato detectarla aquí.",
+                "en": "A wrong alignment carries into Bite Design, design and manufacturing; it is cheaper to catch it here."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Puntos del protocolo que no están claros",
+            "en": "Protocol points that are unclear"
+          },
+          "cuerpo": {
+            "es": "El protocolo de Face Design deja zonas sin precisar: cuándo exactamente se unen los escaneos al superior de forma manual (la exportación de las fotos ya los une), y qué hay que rehacer de la línea media después del QC, porque antes ya se había centrado. Son detalles del trabajo interno del área, pero conviene saber que existen.",
+            "en": "The Face Design protocol leaves some points unspecified: exactly when scans are linked to the upper manually (the photo export already links them), and what must be redone for the midline after QC, since it had already been centered earlier. They are internal details of the area's work, but it is worth knowing they exist."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager.",
+            "en": "Confirm with the manager."
+          }
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Detalle técnico (opcional)",
+            "en": "Technical detail (optional)"
+          },
+          "texto": {
+            "es": "Lección de la biblioteca sobre Blender, Meshmixer y BlueSky.",
+            "en": "Library lesson on Blender, Meshmixer and BlueSky."
+          },
+          "lecc": "m2-l3"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Un caso pasa por asignar, preparar y verificar, alinear, QC del manager, exportar y entregar a N2.",
+              "en": "A case goes through assign, prepare and verify, align, manager QC, export and handoff to N2."
+            },
+            {
+              "es": "Cada regla existe para proteger la relación de mordida, la escala real o la identidad del paciente.",
+              "en": "Every rule exists to protect the bite relationship, the real-world scale or the patient's identity."
+            },
+            {
+              "es": "Nada pasa a Bite Design sin el visto bueno del manager del área.",
+              "en": "Nothing moves to Bite Design without the area manager's sign-off."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué la foto no se rota para \"enderezarla\" al alinear?",
+                "en": "Why is the photo not rotated to \"straighten\" it when aligning?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Rotarla distorsionaría la perspectiva; la foto lleva la escala real.",
+                    "en": "Rotating it would distort perspective; the photo carries the real scale."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque el programa no lo permite.",
+                    "en": "Because the program does not allow it."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque es más rápido no hacerlo.",
+                    "en": "Because it is faster not to."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Por eso la foto debe llegar con la cabeza ya recta desde el laboratorio.",
+                "en": "That is why the photo must arrive with the head already straight from the lab."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué se alinean el maxilar y la mandíbula de la tomografía por separado?",
+                "en": "Why are the tomography's upper and lower jaws aligned separately?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "La mandíbula se mueve respecto al maxilar; su relación viene de la mordida registrada.",
+                    "en": "The lower jaw moves relative to the upper; their relationship comes from the recorded bite."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque el programa no abre ambos a la vez.",
+                    "en": "Because the program cannot open both at once."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Para ahorrar tiempo.",
+                    "en": "To save time."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "La tomografía no define la mordida; la define el registro de mordida de los escaneos.",
+                "en": "The tomography does not define the bite; the recorded bite scans do."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Después de alinear, el caso pasa directo a Bite Design sin más revisión.",
+                "en": "After aligning, the case goes straight to Bite Design with no further review."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "Primero se avisa al manager del área, que revisa y autoriza; así un error no se arrastra a las etapas siguientes.",
+                "en": "First the area manager is notified, who reviews and authorizes; that way an error does not carry into later stages."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-face-l5",
+      "titulo": {
+        "es": "Tiempos, calidad y qué puede salir mal",
+        "en": "Timing, quality and what can go wrong"
+      },
+      "minutos": 9,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Dos relojes distintos: horas de trabajo y plazos",
+            "en": "Two different clocks: working time and deadlines"
+          },
+          "cuerpo": {
+            "es": "La hoja de tiempos mide **cuánto trabaja un diseñador** en una etapa. Los **plazos** (por ejemplo, cuántos días tiene el laboratorio o el doctor) son **tiempo de calendario**. No se suman ni se mezclan: un caso de 1 hora de trabajo puede tardar más días de calendario si espera en cola o tiene un hold.\nLos tiempos de la hoja son de referencia, no garantías.",
+            "en": "The time sheet measures **how long a designer works** on a stage. **Deadlines** (for example, how many days the lab or the doctor has) are **calendar time**. They are not added together or mixed: a case with 1 hour of work can take more calendar days if it waits in a queue or is on hold.\nSheet times are a reference, not guarantees."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Tiempos de la hoja para Face (horas de trabajo)",
+            "en": "Time-sheet figures for Face (working time)"
+          },
+          "cabeceras": [
+            {
+              "es": "Etapa",
+              "en": "Stage"
+            },
+            {
+              "es": "Tiempo",
+              "en": "Time"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "Face Align (alinear los escaneos con la cara)",
+                "en": "Face Align (aligning the scans with the face)"
+              },
+              {
+                "es": "15 min",
+                "en": "15 min"
+              }
+            ],
+            [
+              {
+                "es": "Face Design (diseño de la sonrisa en la cara)",
+                "en": "Face Design (smile design on the face)"
+              },
+              {
+                "es": "45 min",
+                "en": "45 min"
+              }
+            ],
+            [
+              {
+                "es": "Total de Face",
+                "en": "Face total"
+              },
+              {
+                "es": "1 h",
+                "en": "1 h"
+              }
+            ]
+          ]
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Plazos de calendario de N2 (no son horas de trabajo)",
+            "en": "N2 calendar deadlines (not working time)"
+          },
+          "cabeceras": [
+            {
+              "es": "Producto",
+              "en": "Product"
+            },
+            {
+              "es": "Plazos que dice la guía de producto",
+              "en": "Deadlines in the product guide"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "N2 Full Mouth",
+                "en": "N2 Full Mouth"
+              },
+              {
+                "es": "El doctor tiene 24 h para aprobar el diseño (si no, se aprueba automático y puede pedir cambios en N3). El laboratorio necesita 3 días hábiles; si no hay tiempo, se usan demodentures de stock.",
+                "en": "The doctor has 24 h to approve the design (if not, it is auto-approved and changes can be requested at N3). The lab needs 3 business days; if there is no time, stock demodentures are used."
+              }
+            ],
+            [
+              {
+                "es": "N2 Single",
+                "en": "N2 Single"
+              },
+              {
+                "es": "El doctor tiene 36 h; si no aprueba, se aprueba automático y el material cambia a G-CAM. El laboratorio necesita 8 días para un Single 24z; la cirugía debe ser al menos 1 semana después del check-in del laboratorio. Face Design es obligatorio.",
+                "en": "The doctor has 36 h; if not approved, it is auto-approved and the material changes to G-CAM. The lab needs 8 days for a Single 24z; surgery must be at least 1 week after the lab's check-in. Face Design is mandatory."
+              }
+            ],
+            [
+              {
+                "es": "Paciente Traveling",
+                "en": "Traveling patient"
+              },
+              {
+                "es": "La clínica envía los registros hasta las 12:00 PM hora local; la demo personalizada llega al día siguiente, sin Face Design.",
+                "en": "The clinic sends the records by 12:00 PM local time; the customized demo arrives the next day, with no Face Design."
+              }
+            ]
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Falta un plazo propio de Face",
+            "en": "Face has no deadline of its own in the sources"
+          },
+          "cuerpo": {
+            "es": "Las fuentes dan la hora de trabajo de Face (1 h) y los plazos de N2, pero **no dan un plazo de calendario específico solo para Face Design**, ni dicen si el tiempo de Face está dentro de los 3 o los 8 días del laboratorio. Por eso, no prometas una fecha de Face a tu clínica sin consultarlo.",
+            "en": "The sources give Face's working time (1 h) and the N2 deadlines, but **no calendar deadline specific to Face Design alone**, nor whether Face's time falls within the lab's 3 or 8 days. So do not promise your clinic a Face date without checking."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager el plazo de Face dentro de cada producto.",
+            "en": "Confirm with the manager the Face deadline within each product."
+          }
+        },
+        {
+          "t": "calculadora",
+          "id": "tiempos",
+          "titulo": {
+            "es": "Explora la tabla de tiempos por producto",
+            "en": "Explore the time table by product"
+          },
+          "guia": {
+            "es": "Mira cuánto trabajo hay por producto en N2 y N3 para dimensionar por qué un caso con cambios o en hold se retrasa.",
+            "en": "See how much work each product involves in N2 and N3 to understand why a case with changes or on hold runs late."
+          }
+        },
+        {
+          "t": "acordeon",
+          "titulo": {
+            "es": "QC y hallazgos típicos",
+            "en": "QC and typical findings"
+          },
+          "items": [
+            {
+              "titulo": {
+                "es": "Línea media mal centrada",
+                "en": "Midline off-center"
+              },
+              "texto": {
+                "es": "La línea media es la referencia vertical de la sonrisa; se alinea con la foto. Si está desviada, la sonrisa diseñada saldría descentrada, por eso el QC la revisa.",
+                "en": "The midline is the smile's vertical reference; it is aligned to the photo. If it is off, the designed smile would come out off-center, so QC checks it."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Mounting mal alineado",
+                "en": "Mounting misaligned"
+              },
+              "texto": {
+                "es": "Debe coincidir con el borde incisal, la línea media y el soporte labial. Como es una referencia fija del articulador, solo se mueve: no se rota ni se escala.",
+                "en": "It must match the incisal edge, midline and lip support. Since it is a fixed articulator reference, it is only moved: not rotated or scaled."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Escaneos desalineados entre sí o con el hueso",
+                "en": "Scans misaligned with each other or with the bone"
+              },
+              "texto": {
+                "es": "Si el hueso de la tomografía atraviesa el tejido del escaneo o los dientes no encajan, se realinea antes de seguir: de lo contrario la Demodenture se diseñaría sobre hueso mal ubicado.",
+                "en": "If the tomography bone crosses the scan's tissue or the teeth do not fit, it is realigned before continuing: otherwise the Demodenture would be designed on misplaced bone."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Bite scans sin información de dientes",
+                "en": "Bite scans lacking tooth information"
+              },
+              "texto": {
+                "es": "Los bites de una parcial o bite block que no muestran los dientes no sirven para alinear; hace falta información de ambos.",
+                "en": "Bite scans of a partial or bite block that do not show the teeth cannot be used for alignment; information from both is needed."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Paciente, producto o centro mal asignados",
+                "en": "Patient, product or center wrongly assigned"
+              },
+              "texto": {
+                "es": "Se verifica antes de empezar: trabajar sobre el caso equivocado contamina todo el flujo.",
+                "en": "It is verified before starting: working on the wrong case contaminates the whole flow."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Nombres o colecciones incorrectos al exportar",
+                "en": "Wrong names or collections on export"
+              },
+              "texto": {
+                "es": "Las etapas siguientes buscan los objetos por nombre; con otro nombre no los encuentran o los clasifican mal.",
+                "en": "Later stages look up objects by name; with another name they cannot find them or classify them wrongly."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Falta de reporte o comentarios en la plataforma",
+                "en": "Missing report or comments in the platform"
+              },
+              "texto": {
+                "es": "Al terminar se aprueba el caso, se dejan comentarios para las etapas siguientes y se guarda el reporte. Si falta, quien sigue repite dudas y se pierde trazabilidad.",
+                "en": "On finishing, the case is approved, comments are left for the next stages and the report is saved. If missing, the next person repeats questions and traceability is lost."
+              }
+            }
+          ]
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Cuándo interviene el doctor",
+            "en": "When the doctor gets involved"
+          },
+          "cabeceras": [
+            {
+              "es": "Situación",
+              "en": "Situation"
+            },
+            {
+              "es": "Qué dice el protocolo",
+              "en": "What the protocol says"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "La sonrisa no es visible por una condición médica",
+                "en": "The smile is not visible due to a medical condition"
+              },
+              {
+                "es": "El doctor debe anotarlo y autorizar continuar sin fotos.",
+                "en": "The doctor must note it and authorize continuing without photos."
+              }
+            ],
+            [
+              {
+                "es": "Escaneos rotos o distintos a la foto",
+                "en": "Broken scans or scans that differ from the photo"
+              },
+              {
+                "es": "Se envían nuevos escaneos, o el doctor autoriza continuar sin fotos.",
+                "en": "New scans are sent, or the doctor authorizes continuing without photos."
+              }
+            ],
+            [
+              {
+                "es": "Se pide continuar sin Face Design sin aprobación del doctor",
+                "en": "Continuing without Face Design is requested with no doctor approval"
+              },
+              {
+                "es": "Se informa al manager; el doctor decide entre seguir sin Face Design o enviar nuevos registros.",
+                "en": "The manager is informed; the doctor decides between continuing without Face Design or sending new records."
+              }
+            ],
+            [
+              {
+                "es": "Fotos que no cumplen (inclinadas, desenfocadas, mordida distinta)",
+                "en": "Photos that do not comply (tilted, out of focus, different bite)"
+              },
+              {
+                "es": "Se piden fotos nuevas.",
+                "en": "New photos are requested."
+              }
+            ]
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Face Align 15 min + Face Design 45 min = 1 h de trabajo; no es un plazo de calendario.",
+              "en": "Face Align 15 min + Face Design 45 min = 1 h of work; it is not a calendar deadline."
+            },
+            {
+              "es": "Los plazos de N2 (24 h, 36 h, 3 días hábiles, 8 días) son de calendario y de otras partes del proceso.",
+              "en": "N2 deadlines (24 h, 36 h, 3 business days, 8 days) are calendar time and belong to other parts of the process."
+            },
+            {
+              "es": "El QC revisa línea media, Mounting, alineación de escaneos y hueso, y nombres.",
+              "en": "QC checks midline, Mounting, scan and bone alignment, and names."
+            },
+            {
+              "es": "Cuando la foto o el escaneo no sirve, se piden nuevos o el doctor autoriza continuar sin fotos.",
+              "en": "When the photo or scan is not usable, new ones are requested or the doctor authorizes continuing without photos."
+            }
+          ]
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "QC y hallazgos en la biblioteca",
+            "en": "QC and findings in the library"
+          },
+          "texto": {
+            "es": "Más sobre cómo se revisan los casos y qué se reporta.",
+            "en": "More on how cases are reviewed and what gets reported."
+          },
+          "lecc": "q-l1"
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Qué representa el 1 h de Face (15 min + 45 min) en la hoja de tiempos?",
+                "en": "What does Face's 1 h (15 min + 45 min) in the time sheet represent?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Horas de trabajo del diseñador, no un plazo de calendario.",
+                    "en": "Designer working time, not a calendar deadline."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "El plazo máximo para entregar al doctor.",
+                    "en": "The maximum deadline to deliver to the doctor."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "El tiempo que el laboratorio espera la respuesta.",
+                    "en": "The time the lab waits for the answer."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Un caso de 1 h de trabajo puede tardar más días si espera en cola o tiene un hold.",
+                "en": "A case with 1 h of work can take more days if it waits in a queue or is on hold."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "El hueso de la tomografía atraviesa el tejido del escaneo. ¿Qué corresponde?",
+                "en": "The tomography bone crosses the scan's tissue. What is right?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Realinear antes de seguir, porque si no la Demodenture se diseñaría sobre hueso mal ubicado.",
+                    "en": "Realign before continuing, otherwise the Demodenture would be designed on misplaced bone."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Seguir y corregirlo en N2.",
+                    "en": "Continue and fix it at N2."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Escalar el escaneo.",
+                    "en": "Scale the scan."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Es mejor detectar el error aquí que arrastrarlo al diseño y la fabricación.",
+                "en": "It is better to catch the error here than to carry it into design and manufacturing."
+              }
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿En qué situaciones interviene el doctor, según los protocolos?",
+                "en": "In which situations does the doctor get involved, according to the protocols?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "La sonrisa no es visible por una condición médica.",
+                    "en": "The smile is not visible due to a medical condition."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Los escaneos están rotos o no coinciden con la foto.",
+                    "en": "The scans are broken or do not match the photo."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "El nombre del archivo tiene una mayúscula de más.",
+                    "en": "A file name has an extra capital letter."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "La alineación tardó 20 minutos más.",
+                    "en": "The alignment took 20 minutes longer."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El doctor debe anotar y autorizar continuar sin fotos, o se envían nuevos escaneos. Detalles internos de nombres o de tiempos no requieren al doctor.",
+                "en": "The doctor must note it and authorize continuing without photos, or new scans are sent. Internal details such as file names or timing do not need the doctor."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-face-l6",
+      "titulo": {
+        "es": "Cómo coordinas con Face Design",
+        "en": "How you coordinate with Face Design"
+      },
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Tu papel: que el caso llegue bien a la primera",
+            "en": "Your role: get the case right the first time"
+          },
+          "cuerpo": {
+            "es": "Como manager de laboratorio no trabajas dentro de Face, pero **tu trabajo más valioso es prevenir**: que los registros lleguen completos y con calidad antes de que el caso entre en la cola. Si algo no cumple, el área lo devuelve o lo pone en espera mientras pide nuevos registros, y el tiempo de calendario sube.\nLa plataforma es el lugar donde queda todo escrito: los comentarios del caso evitan repetir preguntas.",
+            "en": "As a lab manager you do not work inside Face, but **your most valuable job is prevention**: records must arrive complete and in good quality before the case enters the queue. If something does not meet the standard, the area returns it or holds it while new records are requested, and calendar time grows.\nThe platform is where everything is written down: case comments prevent repeated questions."
+          }
+        },
+        {
+          "t": "lider",
+          "area": "face",
+          "texto": {
+            "es": "Para dudas de un caso en Face, escalamientos o cómo preparar mejor los registros de tu laboratorio.",
+            "en": "For case questions in Face, escalations or how to better prepare your lab's records."
+          }
+        },
+        {
+          "t": "flujo",
+          "titulo": {
+            "es": "Qué enviar y qué esperar",
+            "en": "What to send and what to expect"
+          },
+          "pasos": [
+            {
+              "titulo": {
+                "es": "Envía registros completos",
+                "en": "Send complete records"
+              },
+              "texto": {
+                "es": "Fotos con la calidad del protocolo, IOS completos y la tomografía enlazada en la orden.",
+                "en": "Photos to protocol quality, complete IOS and the tomography linked in the order."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Revisa antes de subir",
+                "en": "Check before uploading"
+              },
+              "texto": {
+                "es": "Usa el checklist de la lección anterior para evitar devoluciones.",
+                "en": "Use the checklist from the previous lesson to avoid returns."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Deja comentarios útiles",
+                "en": "Leave useful comments"
+              },
+              "texto": {
+                "es": "Indica casos especiales: prótesis parcial, bite blocks, condición que impide sonreír, necesidad de continuar sin fotos.",
+                "en": "Flag special cases: partial prosthesis, bite blocks, a condition that prevents smiling, a need to continue without photos."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Espera el QC",
+                "en": "Expect the QC"
+              },
+              "texto": {
+                "es": "El manager de Face revisa antes de pasar a N2; si pide nuevos registros, respóndele rápido.",
+                "en": "The Face manager reviews before moving to N2; if new records are requested, respond quickly."
+              }
+            }
+          ]
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Preguntas para hacerle al área (questions to ask)",
+            "en": "Questions to ask the area"
+          },
+          "items": [
+            {
+              "es": "¿Los registros de este caso están completos o falta algo (fotos, bites, paladar, intaglio)?",
+              "en": "Are this case's records complete, or is something missing (photos, bites, palate, intaglio)?"
+            },
+            {
+              "es": "¿Este producto pasa por Face Design o es una excepción (Traveling, Single sin Face)?",
+              "en": "Does this product go through Face Design, or is it an exception (Traveling, Single without Face)?"
+            },
+            {
+              "es": "¿Hay algún bloqueo o hold en el caso y qué hace falta para destrabarlo?",
+              "en": "Is there any block or hold on the case, and what is needed to clear it?"
+            },
+            {
+              "es": "¿Puede el doctor autorizar continuar sin fotos en este paciente, y cómo queda registrado?",
+              "en": "Can the doctor authorize continuing without photos for this patient, and how is it recorded?"
+            },
+            {
+              "es": "¿Qué plazo de Face debo comunicar a la clínica para este producto?",
+              "en": "What Face deadline should I communicate to the clinic for this product?"
+            }
+          ]
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Señales de alerta",
+            "en": "Warning signs"
+          },
+          "items": [
+            {
+              "icono": "🚩",
+              "titulo": {
+                "es": "Fotos con problemas repetidos",
+                "en": "Repeated photo problems"
+              },
+              "texto": {
+                "es": "Si varias fotos de una misma clínica llegan inclinadas, giradas o con espuma azul, el problema está en cómo se toman: corrige el origen.",
+                "en": "If several photos from the same clinic arrive tilted, turned or with blue mousse, the problem is how they are taken: fix the source."
+              }
+            },
+            {
+              "icono": "🚩",
+              "titulo": {
+                "es": "Escaneos incompletos",
+                "en": "Incomplete scans"
+              },
+              "texto": {
+                "es": "Sin paladar, sin intaglio, con duplicados o con prótesis que tapan: son devoluciones frecuentes según el protocolo de IOS.",
+                "en": "No palate, no intaglio, duplicates or covering prostheses: these are standard return reasons in the IOS protocol."
+              }
+            },
+            {
+              "icono": "🚩",
+              "titulo": {
+                "es": "Caso detenido",
+                "en": "Stalled case"
+              },
+              "texto": {
+                "es": "Un caso esperando nuevos registros o una autorización del doctor no avanza hasta que llegue; sigue la respuesta.",
+                "en": "A case waiting for new records or a doctor's authorization does not advance until it arrives; follow up on the answer."
+              }
+            },
+            {
+              "icono": "🚩",
+              "titulo": {
+                "es": "Caso con fecha de cirugía cercana",
+                "en": "Case with a near surgery date"
+              },
+              "texto": {
+                "es": "Los pacientes que viajan tienen fecha fija: cualquier devolución los afecta de inmediato.",
+                "en": "Traveling patients have a fixed date: any return affects them immediately."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Escalamiento",
+            "en": "Escalation"
+          },
+          "cuerpo": {
+            "es": "Los protocolos de Design describen un patrón general: **se escala del diseñador al manager y, si hace falta, al regional y al liderazgo**, y todo se documenta en la plataforma. En Face, el primer punto de contacto es el manager del área. Evita decidir tú mismo continuar sin registros o aceptar algo fuera del protocolo: esas decisiones requieren al manager o al doctor.",
+            "en": "The Design protocols describe a general pattern: **escalate from the designer to the manager and, if needed, to the regional manager and leadership**, and everything is documented in the platform. In Face, the first contact point is the area manager. Avoid deciding on your own to continue without records or to accept anything outside the protocol: those decisions need the manager or the doctor."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager el canal preferido (plataforma, mensajería interna) y quién es hoy el contacto regional.",
+            "en": "Confirm with the manager the preferred channel (platform, internal messaging) and who the current regional contact is."
+          }
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Cómo avisar y preguntar bien",
+            "en": "How to notify and ask well"
+          },
+          "texto": {
+            "es": "Lección de la biblioteca sobre comunicar problemas y dudas.",
+            "en": "Library lesson on communicating problems and questions."
+          },
+          "lecc": "q-l2"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Previene: registros completos y con calidad antes de entrar a la cola de Face.",
+              "en": "Prevent: complete, good-quality records before they enter Face's queue."
+            },
+            {
+              "es": "Deja comentarios en la plataforma sobre casos especiales.",
+              "en": "Leave comments in the platform about special cases."
+            },
+            {
+              "es": "El primer contacto es el manager de Face; después, regional y liderazgo si hace falta.",
+              "en": "The first contact is the Face manager; then regional and leadership if needed."
+            },
+            {
+              "es": "No decidas por tu cuenta continuar sin registros: lo autoriza el manager o el doctor.",
+              "en": "Do not decide on your own to continue without records: the manager or the doctor authorizes it."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Cuál es el aporte más valioso del manager de laboratorio para Face Design?",
+                "en": "What is the lab manager's most valuable contribution to Face Design?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Prevenir: que los registros lleguen completos y con calidad la primera vez.",
+                    "en": "Prevention: records arriving complete and in good quality the first time."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Alinear los escaneos él mismo.",
+                    "en": "Aligning the scans himself or herself."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Aprobar el QC de Face.",
+                    "en": "Approving the Face QC."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El QC lo hace el manager de Face; el laboratorio evita devoluciones y esperas con buenos registros.",
+                "en": "QC is done by the Face manager; the lab avoids returns and waits with good records."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "Varias fotos de una misma clínica llegan inclinadas. ¿Qué haces?",
+                "en": "Several photos from the same clinic arrive tilted. What do you do?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Corriges el origen: cómo se toman las fotos en esa clínica.",
+                    "en": "Fix the source: how photos are taken at that clinic."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Esperas a que Face las enderece en pantalla.",
+                    "en": "Wait for Face to straighten them on screen."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Las subes igual.",
+                    "en": "Upload them anyway."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Una foto inclinada se rechaza; repetirla en la clínica es lo que evita el retraso.",
+                "en": "A tilted photo is rejected; getting it retaken at the clinic is what avoids the delay."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Si un paciente no puede sonreír, el laboratorio puede decidir continuar sin fotos.",
+                "en": "If a patient cannot smile, the lab can decide to continue without photos."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "El doctor debe anotar la condición y autorizar continuar sin fotos; el laboratorio no lo decide solo.",
+                "en": "The doctor must note the condition and authorize continuing without photos; the lab does not decide alone."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-face-l7",
+      "titulo": {
+        "es": "Wrap-up: Face Design",
+        "en": "Wrap-up: Face Design"
+      },
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Lo esencial",
+            "en": "The essentials"
+          },
+          "puntos": [
+            {
+              "es": "Face Design alinea IOS, CBCT y fotos de la cara en una escena 3D y la entrega a N2 Demodenture.",
+              "en": "Face Design aligns IOS, CBCT and face photos into one 3D scene and delivers it to N2 Demodenture."
+            },
+            {
+              "es": "La calidad mínima de fotos e IOS existe para poder alinear: dientes visibles, cabeza recta, mordida coincidente, paladar e intaglio completos.",
+              "en": "The minimum quality for photos and IOS exists so alignment is possible: visible teeth, straight head, matching bite, complete palate and intaglio."
+            },
+            {
+              "es": "Traveling no pasa por Face Design; en Single 24Z sin Face es una excepción aprobada por leadership.",
+              "en": "Traveling does not go through Face Design; in Single 24Z, going without Face is an exception approved by leadership."
+            },
+            {
+              "es": "Face Align + Face Design = 1 h de trabajo; los plazos de N2 son de calendario y no se mezclan.",
+              "en": "Face Align + Face Design = 1 h of working time; N2 deadlines are calendar time and must not be mixed."
+            },
+            {
+              "es": "El manager de Face hace QC antes de pasar a Bite Design; el doctor interviene cuando faltan fotos o escaneos válidos.",
+              "en": "The Face manager does QC before Bite Design; the doctor gets involved when valid photos or scans are missing."
+            }
+          ]
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Autoevaluación: ¿puedes hacer esto?",
+            "en": "Self-check: can you do this?"
+          },
+          "items": [
+            {
+              "es": "Explicar con tus palabras qué entrega Face y a quién.",
+              "en": "Explain in your own words what Face delivers and to whom."
+            },
+            {
+              "es": "Reconocer una foto que se rechaza y decir por qué.",
+              "en": "Recognize a photo that gets rejected and say why."
+            },
+            {
+              "es": "Decir qué escaneos IOS debe tener un caso y cuándo se pide bite blocks.",
+              "en": "Say which IOS scans a case must have and when bite blocks are requested."
+            },
+            {
+              "es": "Distinguir horas de trabajo de plazos de calendario.",
+              "en": "Tell working time apart from calendar deadlines."
+            },
+            {
+              "es": "Saber cuándo se involucra al doctor y a quién avisas primero.",
+              "en": "Know when the doctor is involved and whom you notify first."
+            }
+          ]
+        },
+        {
+          "t": "enlace",
+          "titulo": {
+            "es": "Para profundizar",
+            "en": "Go deeper"
+          },
+          "texto": {
+            "es": "Los protocolos de N2 y Face en detalle, en la biblioteca.",
+            "en": "The N2 and Face protocols in detail, in the library."
+          },
+          "lecc": "m6a-l2"
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿A qué área entrega su resultado Face Design?",
+                "en": "Which area receives Face Design's output?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "N2 Demodenture",
+                    "en": "N2 Demodenture"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "N6 Material Changes",
+                    "en": "N6 Material Changes"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Support",
+                    "en": "Support"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "N2 usa la escena alineada para el Bite Design y la Demodenture.",
+                "en": "N2 uses the aligned scene for Bite Design and the Demodenture."
+              }
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿Cuáles de estos motivos hacen que una foto se rechace?",
+                "en": "Which of these reasons make a photo get rejected?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Cabeza inclinada o girada.",
+                    "en": "Tilted or turned head."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Tomada con iPad.",
+                    "en": "Taken with an iPad."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Espuma azul sobre dientes o mordida.",
+                    "en": "Blue mousse over teeth or bite."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Tener la pegatina en la frente.",
+                    "en": "Having the sticker on the forehead."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "La pegatina es un requisito (da la escala real). Los otros tres afectan la alineación o deforman la cara.",
+                "en": "The sticker is a requirement (it provides the real-world scale). The other three affect alignment or distort the face."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Un paciente Traveling pasa por Face Design como cualquier otro.",
+                "en": "A Traveling patient goes through Face Design like any other."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "En los casos Traveling se alinea directo con la foto Natural Smile para ganar tiempo; no hay Face Design.",
+                "en": "Traveling cases are aligned directly with the Natural Smile photo to save time; there is no Face Design."
+              }
+            },
+            {
+              "tipo": "orden",
+              "enunciado": {
+                "es": "Ordena el recorrido de un caso en Face Design.",
+                "en": "Put a case's journey through Face Design in order."
+              },
+              "items": [
+                {
+                  "es": "Asignar y verificar paciente, producto y centro",
+                  "en": "Assign and verify patient, product and center"
+                },
+                {
+                  "es": "Preparar archivos y verificar IOS",
+                  "en": "Prepare files and verify IOS"
+                },
+                {
+                  "es": "Alinear escaneos, tomografía y Mounting con las fotos",
+                  "en": "Align scans, tomography and Mounting with the photos"
+                },
+                {
+                  "es": "QC del manager de Face",
+                  "en": "Face manager QC"
+                },
+                {
+                  "es": "Exportar, aprobar y dejar el reporte",
+                  "en": "Export, approve and leave the report"
+                }
+              ],
+              "explicacion": {
+                "es": "Cada etapa protege a la siguiente; el QC va antes de pasar a Bite Design.",
+                "en": "Each stage protects the next; QC comes before moving to Bite Design."
+              }
+            },
+            {
+              "tipo": "parejas",
+              "enunciado": {
+                "es": "Une cada situación con lo que corresponde.",
+                "en": "Match each situation with the right action."
+              },
+              "pares": [
+                {
+                  "a": {
+                    "es": "Foto con cabeza inclinada",
+                    "en": "Photo with a tilted head"
+                  },
+                  "b": {
+                    "es": "Pedir una foto nueva",
+                    "en": "Request a new photo"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Paladar faltante en el escaneo superior",
+                    "en": "Palate missing in the upper scan"
+                  },
+                  "b": {
+                    "es": "Pedir re-escaneo",
+                    "en": "Request a re-scan"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Menos de 4 anteriores superiores",
+                    "en": "Fewer than 4 upper anteriors"
+                  },
+                  "b": {
+                    "es": "Bite blocks",
+                    "en": "Bite blocks"
+                  }
+                },
+                {
+                  "a": {
+                    "es": "Sonrisa no visible por condición médica",
+                    "en": "Smile not visible due to a medical condition"
+                  },
+                  "b": {
+                    "es": "El doctor anota y autoriza continuar sin fotos",
+                    "en": "The doctor notes it and authorizes continuing without photos"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Cada situación tiene su acción en los protocolos de fotografía e IOS.",
+                "en": "Each situation has its action in the photography and IOS protocols."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Qué son los 15 min de Face Align y los 45 min de Face Design en la hoja?",
+                "en": "What are the 15 min of Face Align and the 45 min of Face Design in the sheet?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Tiempo de trabajo del diseñador, no plazos de calendario.",
+                    "en": "Designer working time, not calendar deadlines."
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Plazos que el laboratorio debe prometer a la clínica.",
+                    "en": "Deadlines the lab must promise the clinic."
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Tiempo máximo que el doctor tiene para aprobar.",
+                    "en": "Maximum time the doctor has to approve."
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Los plazos (24 h, 36 h, 3 días hábiles, 8 días) son de calendario y pertenecen a otras partes de N2.",
+                "en": "Deadlines (24 h, 36 h, 3 business days, 8 days) are calendar time and belong to other parts of N2."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "glosario": [
+    {
+      "id": "face-design",
+      "termino": {
+        "es": "Face Design",
+        "en": "Face Design"
+      },
+      "def": {
+        "es": "Área que alinea escaneos, tomografía y fotos de la cara en una escena 3D (en Blender) para ubicar la sonrisa real antes de diseñar.",
+        "en": "Area that aligns scans, tomography and face photos in a 3D scene (in Blender) to locate the real smile before designing."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-align",
+      "termino": {
+        "es": "Face Align",
+        "en": "Face Align"
+      },
+      "def": {
+        "es": "Parte de Face que alinea los escaneos con la cara; en la hoja de tiempos son 15 min.",
+        "en": "The part of Face that aligns the scans with the face; 15 min in the time sheet."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-ios",
+      "termino": {
+        "es": "IOS (escaneo intraoral)",
+        "en": "IOS (intraoral scan)"
+      },
+      "def": {
+        "es": "Escaneo digital de la boca hecho con un escáner intraoral.",
+        "en": "A digital scan of the mouth made with an intraoral scanner."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-cbct",
+      "termino": {
+        "es": "CBCT",
+        "en": "CBCT"
+      },
+      "def": {
+        "es": "Tomografía de haz cónico: imagen 3D de huesos y dientes.",
+        "en": "Cone-beam tomography: a 3D image of bone and teeth."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-blender",
+      "termino": {
+        "es": "Blender",
+        "en": "Blender"
+      },
+      "def": {
+        "es": "Programa 3D de uso general que Face usa para juntar escaneos, tomografía y fotos en una escena.",
+        "en": "A general-purpose 3D program Face uses to combine scans, tomography and photos in one scene."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-bite-scans",
+      "termino": {
+        "es": "Escaneos de mordida (Bite)",
+        "en": "Bite scans"
+      },
+      "def": {
+        "es": "Escaneos que registran cómo encajan los dientes (derecha, izquierda y frente); dan la mordida clínica real.",
+        "en": "Scans that record how the teeth fit together (right, left and front); they give the real clinical bite."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-bite-blocks",
+      "termino": {
+        "es": "Bite blocks",
+        "en": "Bite blocks"
+      },
+      "def": {
+        "es": "Bloques que registran la mordida cuando faltan dientes; hacen falta con menos de 4 anteriores superiores.",
+        "en": "Blocks that record the bite when teeth are missing; needed with fewer than 4 upper anteriors."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-intaglio",
+      "termino": {
+        "es": "Intaglio",
+        "en": "Intaglio"
+      },
+      "def": {
+        "es": "Superficie interna de una prótesis que apoya en la encía; registra directamente encía y paladar.",
+        "en": "The inner surface of a prosthesis that rests on the gum; it directly records gum and palate."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-natural-smile",
+      "termino": {
+        "es": "Natural Smile",
+        "en": "Natural Smile"
+      },
+      "def": {
+        "es": "Foto de sonrisa natural con dientes visibles; es la referencia para alinear los escaneos con el rostro.",
+        "en": "Natural smile photo with teeth visible; it is the reference to align scans with the face."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-bipupilar",
+      "termino": {
+        "es": "Línea entre las pupilas",
+        "en": "Pupil line"
+      },
+      "def": {
+        "es": "Línea imaginaria que une las pupilas; en una buena foto es horizontal y las orejas quedan por encima.",
+        "en": "Imaginary line joining the pupils; in a good photo it is level and the ears sit above it."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-midline",
+      "termino": {
+        "es": "Midline (línea media)",
+        "en": "Midline"
+      },
+      "def": {
+        "es": "Línea vertical que divide la cara y la sonrisa en dos mitades; se centra con la foto.",
+        "en": "Vertical line dividing the face and smile in two halves; it is centered with the photo."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-mounting",
+      "termino": {
+        "es": "Mounting",
+        "en": "Mounting"
+      },
+      "def": {
+        "es": "Referencia de la posición del modelo en el articulador; se alinea con borde incisal, línea media y soporte labial, y solo se mueve.",
+        "en": "Reference of the model's position in the articulator; aligned with incisal edge, midline and lip support, and only moved."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-soporte-labial",
+      "termino": {
+        "es": "Lip support (soporte labial)",
+        "en": "Lip support"
+      },
+      "def": {
+        "es": "Cuánto empuja el diente o la prótesis al labio hacia adelante.",
+        "en": "How much the tooth or prosthesis pushes the lip forward."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-blue-mousse",
+      "termino": {
+        "es": "Blue mousse (espuma azul)",
+        "en": "Blue mousse"
+      },
+      "def": {
+        "es": "Material azul de registro de mordida; no se acepta en las fotos porque tapa dientes y mordida.",
+        "en": "Blue bite-registration material; not accepted in photos because it covers teeth and bite."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-qc",
+      "termino": {
+        "es": "QC (control de calidad)",
+        "en": "QC (quality control)"
+      },
+      "def": {
+        "es": "Revisión que hace el manager del área antes de pasar de Face a Bite Design.",
+        "en": "Review the area manager does before a case moves from Face to Bite Design."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-maxillar-print",
+      "termino": {
+        "es": "Maxillar Print",
+        "en": "Maxillar Print"
+      },
+      "def": {
+        "es": "Modelo físico del maxilar superior (hueso) en dos mitades, hecho a partir del CT para imprimir en 3D.",
+        "en": "A physical model of the upper jaw (bone) in two halves, made from the CT for 3D printing."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-edentulo",
+      "termino": {
+        "es": "Edéntulo",
+        "en": "Edentulous"
+      },
+      "def": {
+        "es": "Paciente sin dientes (totalmente o en un arco).",
+        "en": "A patient without teeth (fully or in one arch)."
+      },
+      "cat": "face"
+    },
+    {
+      "id": "face-traveling",
+      "termino": {
+        "es": "Traveling",
+        "en": "Traveling"
+      },
+      "def": {
+        "es": "Paciente que viaja a la clínica y se opera en pocos días; caso prioritario sin Face Design.",
+        "en": "A patient who travels to the clinic and is operated within days; a priority case without Face Design."
+      },
+      "cat": "face"
+    }
+  ]
+}

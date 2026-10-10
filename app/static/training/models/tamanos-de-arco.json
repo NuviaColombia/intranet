@@ -1,0 +1,92 @@
+[
+ {
+  "p": [
+   -38.846,
+   4.704,
+   -16.753
+  ],
+  "titulo": {
+   "es": "Tamaño A",
+   "en": "Size A"
+  },
+  "texto": {
+   "es": "A: el tamaño más pequeño de la biblioteca.",
+   "en": "A: the smallest size in the library."
+  }
+ },
+ {
+  "p": [
+   -1.428,
+   5.947,
+   -16.753
+  ],
+  "titulo": {
+   "es": "Tamaño B",
+   "en": "Size B"
+  },
+  "texto": {
+   "es": "B: aproximadamente 10% más grande que A en todas las dimensiones.",
+   "en": "B: roughly 10% bigger than A in all dimensions."
+  }
+ },
+ {
+  "p": [
+   35.991,
+   5.895,
+   -16.753
+  ],
+  "titulo": {
+   "es": "Tamaño C",
+   "en": "Size C"
+  },
+  "texto": {
+   "es": "C: aproximadamente 10% más grande que BW en todas las dimensiones.",
+   "en": "C: roughly 10% bigger than BW in all dimensions."
+  }
+ },
+ {
+  "p": [
+   -38.846,
+   4.607,
+   16.727
+  ],
+  "titulo": {
+   "es": "Tamaño AW",
+   "en": "Size AW"
+  },
+  "texto": {
+   "es": "AW: los mismos dientes que A, pero el arco es 4–5 mm más ancho.",
+   "en": "AW: the same teeth as A, but the arch is 4–5 mm wider."
+  }
+ },
+ {
+  "p": [
+   -1.428,
+   5.923,
+   16.727
+  ],
+  "titulo": {
+   "es": "Tamaño BW",
+   "en": "Size BW"
+  },
+  "texto": {
+   "es": "BW: los mismos dientes y proporciones que B; el arco es 4–5 mm más ancho.",
+   "en": "BW: the same teeth and proportions as B; the arch is 4–5 mm wider."
+  }
+ },
+ {
+  "p": [
+   35.991,
+   5.651,
+   16.727
+  ],
+  "titulo": {
+   "es": "Tamaño CW",
+   "en": "Size CW"
+  },
+  "texto": {
+   "es": "CW: los mismos dientes que C; el arco es 4–5 mm más ancho.",
+   "en": "CW: the same teeth as C; the arch is 4–5 mm wider."
+  }
+ }
+]
