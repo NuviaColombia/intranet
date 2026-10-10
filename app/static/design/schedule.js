@@ -6144,7 +6144,20 @@ window.DS_PANELS.dashboard = function() {
       .catch(function(e) { alert(e.message); });
   }
 
-  window.DS_PANELS.protocols = cargarAreas;
+  window.DS_PANELS.protocols = function() {
+    cargarAreas();
+    // Enlaces desde Training (?panel=protocols&q=texto): se abre el panel con esa búsqueda ya hecha
+    var q = new URLSearchParams(location.search).get('q');
+    if (!q) return;
+    try { var u = new URL(location.href); u.searchParams.delete('q'); history.replaceState(null, '', u); } catch (e) {}
+    var intentos = 0, espera = setInterval(function() {
+      intentos++;
+      if (PR.areaId || intentos > 40) {
+        clearInterval(espera);
+        if (PR.areaId) { var el = document.getElementById('prSearch'); el.value = q; el.dispatchEvent(new Event('input')); }
+      }
+    }, 150);
+  };
 
 })();
 ;

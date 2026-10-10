@@ -1,0 +1,3682 @@
+{
+ "id": "m3-lenguaje",
+ "orden": 4,
+ "icono": "🗣️",
+ "titulo": {
+  "es": "Lenguaje de Modificación",
+  "en": "Modification Language"
+ },
+ "resumen": {
+  "es": "El vocabulario único (NADMIN-007) con el que Nuvia y los doctores se comunican los cambios del diseño: nombre, dirección, milímetros y punto estático. Con simuladores, tours y examen práctico.",
+  "en": "The single vocabulary (NADMIN-007) Nuvia and doctors use to communicate design changes: name, direction, millimeters and static point. With simulators, tours and a practical exam."
+ },
+ "nivel": "basico",
+ "lecciones": [
+  {
+   "id": "m3-l1",
+   "titulo": {
+    "es": "Por qué existe un lenguaje común",
+    "en": "Why a common language exists"
+   },
+   "minutos": 6,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Un idioma para cambiar el diseño",
+      "en": "One language for design changes"
+     },
+     "cuerpo": {
+      "es": "Imagina que un doctor quiere que la sonrisa de su paciente se vea \"un poquito más abajo\". ¿Cuánto es un poquito? ¿Se mueve un diente o todos? Cada persona lo entendería distinto. Por eso Nuvia y los doctores usan el **Lenguaje de Modificación** (NADMIN-007): cada cambio tiene un nombre, una dirección, un paso en milímetros y un punto que no se mueve (el *punto estático*).",
+      "en": "Imagine a doctor wants the patient's smile to sit \"a little lower\". How much is a little? One tooth or all of them? Everyone would read it differently. That is why Nuvia and doctors share the **Modification Language** (NADMIN-007): every change has a name, a direction, a step in millimeters and a point that does not move (the *static point*)."
+     },
+     "porque": {
+      "es": "Así el diseñador sabe EXACTAMENTE qué mover, cuánto y alrededor de qué, sin adivinar ni ir y venir con el doctor.",
+      "en": "That way the designer knows EXACTLY what to move, how much and around what, with no guessing and no back-and-forth with the doctor."
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Todo parte de la demodenture",
+      "en": "Everything starts from the demodenture"
+     },
+     "cuerpo": {
+      "es": "La **demodenture** es una prótesis de demostración que el doctor prueba en la boca del paciente. Es la referencia: casi todas las opciones de la receta (RX) incluyen \"No changes: el lab seguirá la posición de la demodenture\". Lo que se pide es siempre un cambio **relativo** a ella: \"1 mm más abajo que como está ahora\".\n\nTodos los cambios se hacen sobre el **arco superior (maxilar)**, porque es la referencia de estética. El inferior se diseña para ocluir con el superior y \"sigue en sincronía\".",
+      "en": "The **demodenture** is a trial prosthesis the doctor tries in the patient's mouth. It is the reference: almost every option in the prescription (RX) includes \"No changes: the lab will follow the demodenture position\". What is requested is always a change **relative** to it: \"1 mm lower than it is now\".\n\nAll changes are made on the **upper arch (maxilla)**, because it is the esthetic reference. The lower arch is designed to occlude with the upper one and \"follows in sync\"."
+     },
+     "dato": {
+      "es": "Izquierda y derecha siempre significan izquierda y derecha DEL PACIENTE, no de quien mira la pantalla.",
+      "en": "Left and right always mean the PATIENT's left and right, not the viewer's."
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "El laboratorio ve lo que el doctor no ve",
+      "en": "The lab sees what the doctor cannot"
+     },
+     "cuerpo": {
+      "es": "El doctor ve la boca; el laboratorio ve el **espacio y el material** disponibles y la **posición de los implantes**. A veces un cambio pedido simplemente no cabe: la prótesis quedaría demasiado delgada o chocaría con un implante.\n\nEl laboratorio intenta cumplir cada instrucción. Si no se puede, **no improvisa: envía una alerta al doctor** para conversar y decidir juntos.",
+      "en": "The doctor sees the mouth; the lab sees the available **space and material** and the **implant positions**. Sometimes a requested change simply does not fit: the prosthesis would be too thin or would collide with an implant.\n\nThe lab tries to fulfill every instruction. If it cannot, **it does not improvise: it sends an alert to the doctor** to talk it through and decide together."
+     },
+     "alerta": {
+      "es": "Principio clave: si no se puede, se avisa. Nunca se hace en silencio una versión distinta de lo pedido.",
+      "en": "Key principle: if it cannot be done, tell. Never quietly deliver something different from what was requested."
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Qué se protege primero",
+      "en": "What gets protected first"
+     },
+     "cuerpo": {
+      "es": "Cuando falta espacio hay que sacrificar algo. La regla es: primero se protege la posición del **borde incisal del maxilar** y la **midline** (línea media), y lo primero que se sacrifica es el **occlusal plane** (plano oclusal).",
+      "en": "When space runs short, something has to give. The rule: first protect the **upper incisal edge** position and the **midline**, and the first thing sacrificed is the **occlusal plane**."
+     },
+     "porque": {
+      "es": "Borde incisal y línea media son lo que más se nota en la sonrisa y en la cara; el plano oclusal tolera más ajuste sin que se vea.",
+      "en": "Incisal edge and midline are what shows most in the smile and face; the occlusal plane tolerates more adjustment without it being noticed."
+     }
+    },
+    {
+     "t": "tarjetas",
+     "titulo": {
+      "es": "El mapa de los 9 cambios",
+      "en": "The map of the 9 changes"
+     },
+     "items": [
+      {
+       "icono": "🎨",
+       "titulo": {
+        "es": "Shade & Shape",
+        "en": "Shade & Shape"
+       },
+       "texto": {
+        "es": "Color y forma de partida: Round, Square o Natural.",
+        "en": "Starting color and shape: Round, Square or Natural."
+       }
+      },
+      {
+       "icono": "📏",
+       "titulo": {
+        "es": "VDO",
+        "en": "VDO"
+       },
+       "texto": {
+        "es": "La altura de la mordida. Se cambia en el articulador.",
+        "en": "Bite height. Changed on the articulator."
+       }
+      },
+      {
+       "icono": "↕️",
+       "titulo": {
+        "es": "Incisal Edge",
+        "en": "Incisal Edge"
+       },
+       "texto": {
+        "es": "Sube o baja todo el arco superior.",
+        "en": "Raises or lowers the entire upper arch."
+       }
+      },
+      {
+       "icono": "🎯",
+       "titulo": {
+        "es": "Midline",
+        "en": "Midline"
+       },
+       "texto": {
+        "es": "Gira los dientes a izquierda o derecha.",
+        "en": "Rotates the teeth left or right."
+       }
+      },
+      {
+       "icono": "⚖️",
+       "titulo": {
+        "es": "Occlusal Cant",
+        "en": "Occlusal Cant"
+       },
+       "texto": {
+        "es": "Balancín visto de frente.",
+        "en": "Seesaw seen from the front."
+       }
+      },
+      {
+       "icono": "📐",
+       "titulo": {
+        "es": "Occlusal Plane",
+        "en": "Occlusal Plane"
+       },
+       "texto": {
+        "es": "Inclinación vista de perfil.",
+        "en": "Tilt seen in profile."
+       }
+      },
+      {
+       "icono": "🔄",
+       "titulo": {
+        "es": "Arch Rotation",
+        "en": "Arch Rotation"
+       },
+       "texto": {
+        "es": "Giro visto desde arriba.",
+        "en": "Swing seen from above."
+       }
+      },
+      {
+       "icono": "👄",
+       "titulo": {
+        "es": "Lip Support",
+        "en": "Lip Support"
+       },
+       "texto": {
+        "es": "Adelante o atrás, hacia el labio.",
+        "en": "Forward or back, toward the lip."
+       }
+      }
+     ]
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Un lenguaje fijo evita malentendidos: nombre, dirección, mm y punto estático.",
+       "en": "A fixed language avoids misunderstandings: name, direction, mm and static point."
+      },
+      {
+       "es": "Todo es relativo a la demodenture y se aplica al arco superior.",
+       "en": "Everything is relative to the demodenture and applied to the upper arch."
+      },
+      {
+       "es": "Izquierda/derecha = del paciente.",
+       "en": "Left/right = the patient's."
+      },
+      {
+       "es": "Si el lab no puede cumplir algo (espacio, implantes), avisa al doctor.",
+       "en": "If the lab cannot comply (space, implants), it alerts the doctor."
+      },
+      {
+       "es": "Con poco espacio se protege borde incisal y midline; se sacrifica el plano oclusal.",
+       "en": "With little space, incisal edge and midline are protected; the occlusal plane is sacrificed."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "El laboratorio no puede cumplir un cambio porque el material quedaría muy delgado. ¿Qué hace?",
+        "en": "The lab cannot do a change because the material would be too thin. What does it do?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Envía una alerta al doctor para conversarlo",
+          "en": "Sends an alert to the doctor to discuss it"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Entrega una versión parecida sin decir nada",
+          "en": "Delivers a similar version without saying anything"
+         }
+        },
+        {
+         "texto": {
+          "es": "Ignora la instrucción",
+          "en": "Ignores the instruction"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El laboratorio ve restricciones que el doctor no ve; si no se puede, se avisa en vez de improvisar.",
+        "en": "The lab sees constraints the doctor cannot; if it cannot be done, it tells instead of improvising."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Sobre qué arco se piden los cambios del lenguaje?",
+        "en": "On which arch are language changes requested?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "El inferior",
+          "en": "The lower one"
+         }
+        },
+        {
+         "texto": {
+          "es": "El arco superior (maxilar)",
+          "en": "The upper arch (maxilla)"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Ambos por separado",
+          "en": "Both separately"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El superior es la referencia de estética; el inferior se diseña para ocluir con él.",
+        "en": "The upper is the esthetic reference; the lower is designed to occlude with it."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "Si falta espacio, ¿qué se sacrifica primero?",
+        "en": "If space is limited, what is sacrificed first?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "El borde incisal",
+          "en": "The incisal edge"
+         }
+        },
+        {
+         "texto": {
+          "es": "La midline",
+          "en": "The midline"
+         }
+        },
+        {
+         "texto": {
+          "es": "El occlusal plane",
+          "en": "The occlusal plane"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "Se protegen borde incisal y midline porque son lo más visible.",
+        "en": "Incisal edge and midline are protected because they are the most visible."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l2",
+   "titulo": {
+    "es": "Shade y Shape: el punto de partida",
+    "en": "Shade and Shape: the starting point"
+   },
+   "minutos": 4,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Antes de mover, elegir el molde",
+      "en": "Before moving, choose the mold"
+     },
+     "cuerpo": {
+      "es": "Lo primero es confirmar el **color (shade)** del diente y la **forma (shape)** planeada. Es como elegir los moldes de dientes en una dentadura tradicional: define cómo empieza el diseño. Esta elección **no mueve nada**; solo fija el punto de partida sobre el que luego se aplican los demás cambios.",
+      "en": "First, confirm the tooth **color (shade)** and the planned **shape**. It is like choosing tooth molds for a traditional denture: it defines how the design begins. This choice **moves nothing**; it only sets the starting point on which all other changes are applied."
+     },
+     "porque": {
+      "es": "Si cambiaras la forma después de ajustar posiciones, todos los milímetros pedidos perderían sentido.",
+      "en": "If the shape changed after positions were adjusted, every requested millimeter would lose its meaning."
+     }
+    },
+    {
+     "t": "tarjetas",
+     "titulo": {
+      "es": "Las 3 plantillas de morfología",
+      "en": "The 3 morphology templates"
+     },
+     "items": [
+      {
+       "icono": "⚪",
+       "titulo": {
+        "es": "Round",
+        "en": "Round"
+       },
+       "texto": {
+        "es": "Forma redonda, bordes suaves.",
+        "en": "Rounded form, soft edges."
+       }
+      },
+      {
+       "icono": "⬜",
+       "titulo": {
+        "es": "Square",
+        "en": "Square"
+       },
+       "texto": {
+        "es": "Forma cuadrada, más angular.",
+        "en": "Square form, more angular."
+       }
+      },
+      {
+       "icono": "🌿",
+       "titulo": {
+        "es": "Natural",
+        "en": "Natural"
+       },
+       "texto": {
+        "es": "Forma más variada, de aspecto natural.",
+        "en": "More varied form with a natural look."
+       }
+      }
+     ]
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Shade y Shape no son Arch Size",
+      "en": "Shade and Shape are not Arch Size"
+     },
+     "cuerpo": {
+      "es": "Round, Square y Natural describen la **forma de los dientes**. El tamaño del arco (A, AW, B, BW, C, CW) es otra cosa: describe qué tan grande y ancha es la plantilla completa. Los verás más adelante en el módulo.",
+      "en": "Round, Square and Natural describe the **tooth form**. Arch size (A, AW, B, BW, C, CW) is something else: it describes how large and wide the whole template is. You will see it later in this module."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Shade = color; Shape = forma.",
+       "en": "Shade = color; Shape = form."
+      },
+      {
+       "es": "Hay 3 plantillas: Round, Square y Natural.",
+       "en": "There are 3 templates: Round, Square and Natural."
+      },
+      {
+       "es": "No mueve nada: solo define el molde inicial.",
+       "en": "It moves nothing: it only sets the initial mold."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué hace la elección de Shade y Shape?",
+        "en": "What does choosing Shade and Shape do?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Define el molde inicial sin mover nada",
+          "en": "Sets the initial mold without moving anything"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Sube el borde incisal",
+          "en": "Raises the incisal edge"
+         }
+        },
+        {
+         "texto": {
+          "es": "Abre el VDO",
+          "en": "Opens the VDO"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Es el punto de partida; los movimientos vienen después.",
+        "en": "It is the starting point; movements come afterward."
+       }
+      },
+      {
+       "tipo": "parejas",
+       "enunciado": {
+        "es": "Une cada término con su significado.",
+        "en": "Match each term with its meaning."
+       },
+       "pares": [
+        {
+         "a": {
+          "es": "Shade",
+          "en": "Shade"
+         },
+         "b": {
+          "es": "Color del diente",
+          "en": "Tooth color"
+         }
+        },
+        {
+         "a": {
+          "es": "Shape",
+          "en": "Shape"
+         },
+         "b": {
+          "es": "Forma del diente",
+          "en": "Tooth form"
+         }
+        },
+        {
+         "a": {
+          "es": "Round / Square / Natural",
+          "en": "Round / Square / Natural"
+         },
+         "b": {
+          "es": "Plantillas de morfología",
+          "en": "Morphology templates"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Shade y Shape fijan color y forma; las tres plantillas son las morfologías disponibles.",
+        "en": "Shade and Shape fix color and form; the three templates are the available morphologies."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l3",
+   "titulo": {
+    "es": "VDO: la base",
+    "en": "VDO: the foundation"
+   },
+   "minutos": 8,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Qué es el VDO",
+      "en": "What is VDO"
+     },
+     "cuerpo": {
+      "es": "**VDO** (Vertical Dimension of Occlusion) es cuánto está abierta la mordida: la distancia vertical entre el maxilar y la mandíbula. Es \"la base\" de todo el diseño. Cambiar el VDO **mueve la mandíbula (arco inferior)**; el arco superior no se mueve. Al abrir, la mandíbula baja tanto como se abra.\n\nOpciones de la receta: No change, +1 a +5 y -1 a -5 (pasos de 1; los ejemplos hablan de mm).",
+      "en": "**VDO** (Vertical Dimension of Occlusion) is how open the bite is: the vertical distance between upper and lower jaw. It is \"the foundation\" of the whole design. Changing VDO **moves the mandible (lower arch)**; the upper arch does not move. When opened, the jaw drops by as much as you open.\n\nRX options: No change, +1 to +5 and -1 to -5 (steps of 1; examples are in mm)."
+     },
+     "dato": {
+      "es": "En el simulador, VDO + = abrir (el inferior baja).",
+      "en": "In the simulator, VDO + = open (the lower arch goes down)."
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Por qué NUNCA solo en digital",
+      "en": "Why NEVER digital only"
+     },
+     "cuerpo": {
+      "es": "El VDO se cambia en un **articulador Panadent** físico: el laboratorio monta los modelos de la demodenture y ajusta el **pasador (pin)** del articulador. Después esa nueva relación se digitaliza al escanear los modelos. Hacerlo solo en pantalla no es preciso.\n\nAdemás, casi siempre hay un espacio mínimo necesario para la prótesis; si el caso empieza con poco espacio, hay que pedir abrir el VDO o el equipo de diseño lo sugerirá.",
+      "en": "VDO is changed on a physical **Panadent articulator**: the lab mounts the demodenture models and adjusts the articulator **pin**. That new relationship is then digitized by scanning the models. Doing it only on screen is not precise.\n\nAlso, there is almost always a minimum space the prosthesis needs; if the case starts with little space, VDO must be opened or the design team will suggest it."
+     },
+     "porque": {
+      "es": "Un articulador es como una bisagra real de la mandíbula: ahí la mordida se comporta como en la vida real.",
+      "en": "An articulator is like the jaw's real hinge: there the bite behaves as it does in real life."
+     }
+    },
+    {
+     "t": "calculadora",
+     "id": "articulador",
+     "titulo": {
+      "es": "Explora el articulador",
+      "en": "Explore the articulator"
+     },
+     "guia": {
+      "es": "Mueve el pin y observa cómo baja o sube la mandíbula mientras el maxilar queda fijo.",
+      "en": "Move the pin and watch the lower jaw go down or up while the maxilla stays fixed."
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "VDO: abrir la mordida",
+      "en": "VDO: opening the bite"
+     },
+     "escenas": [
+      {
+       "p": {
+        "vdo": 0
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "Punto de partida: la demodenture tal como se probó en boca.",
+        "en": "Starting point: the demodenture as tried in the mouth."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 3
+      },
+      {
+       "p": {
+        "vdo": 3
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "Con VDO +3 se abre el pin del articulador: la mandíbula baja 3 mm.",
+        "en": "With VDO +3 the articulator pin opens: the lower jaw drops 3 mm."
+       },
+       "resaltar": [
+        "fantasma",
+        "oclusion"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "vdo": 3
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "El arco superior no se movió. Solo cambió la relación entre ambos arcos.",
+        "en": "The upper arch did not move. Only the relationship between both arches changed."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 4
+      }
+     ]
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Practica el VDO",
+      "en": "Practice VDO"
+     },
+     "guia": {
+      "es": "Mueve el deslizador de VDO. Observa que solo el inferior se mueve.",
+      "en": "Move the VDO slider. Notice that only the lower arch moves."
+     },
+     "foco": [
+      "vdo"
+     ],
+     "vista": "perfil",
+     "reto": {
+      "enunciado": {
+       "es": "Abre la mordida 2 mm (VDO +2).",
+       "en": "Open the bite 2 mm (VDO +2)."
+      },
+      "objetivo": {
+       "vdo": 2
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Caso 1: borde incisal 1.5 mm incisally",
+      "en": "Case 1: incisal edge 1.5 mm incisally"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "frontal",
+       "texto": {
+        "es": "La demo quedó igual que en N2. El doctor pide bajar el borde incisal 1.5 mm y no pide VDO.",
+        "en": "The demo sits exactly as in N2. The doctor asks to lower the incisal edge 1.5 mm and requests no VDO."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "incisal": -1.5
+       },
+       "cam": "frontal",
+       "texto": {
+        "es": "Si solo bajamos el puente, las cúspides superiores atraviesan al inferior: no hay clase I.",
+        "en": "If we only lower the bridge, the upper cusps cut through the lower arch: no Class I."
+       },
+       "resaltar": [
+        "fantasma",
+        "oclusion"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "incisal": -1.5,
+        "vdo": 1.5
+       },
+       "cam": "frontal",
+       "texto": {
+        "es": "Solución: abrir el VDO 1.5 mm. El inferior baja, todo vuelve a tener contacto. Ojo: puede aparecer sonrisa gingival.",
+        "en": "Solution: open VDO 1.5 mm. The lower arch drops and everything contacts again. Careful: a gummy smile may appear."
+       },
+       "resaltar": [
+        "fantasma",
+        "oclusion"
+       ],
+       "seg": 6
+      }
+     ]
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Casos 2 y 3 en breve",
+      "en": "Cases 2 and 3 in brief"
+     },
+     "cuerpo": {
+      "es": "En **Single 24z** solo se permiten cambios de VDO y borde incisal en N3 (cualquier otro pasa a G-CAM); decide el equipo de diseño, que ve en digital si las cúspides atraviesan al antagonista.\n- **Caso 3:** la demo quedó 1 mm más abajo que en N2 y no se pide nada. Para conservar el mismo borde incisal se pide **VDO abierto 1 mm**: la mandíbula baja 1 mm y ocluye con el antagonista.\n- **Caso 2:** la demo no está igual que en N2 y el doctor pide VDO +3 sin mover el borde incisal. Es una solicitud difícil: el equipo ofrece (a) VDO +3 con el borde incisal bajando 3 mm, o (b) VDO 0 manteniendo el mismo borde incisal.",
+      "en": "In **Single 24z**, only VDO and incisal edge changes are allowed in N3 (anything else becomes G-CAM); the design team decides, since it sees digitally whether cusps cut through the opposing model.\n- **Case 3:** the demo sits 1 mm lower than in N2 and nothing is requested. To keep the same incisal edge, request **VDO opened 1 mm**: the jaw drops 1 mm and occludes with the opposing model.\n- **Case 2:** the demo is not as in N2 and the doctor asks VDO +3 without moving the incisal edge. It is a hard request: the team offers (a) VDO +3 with the incisal edge dropping 3 mm, or (b) VDO 0 keeping the same incisal edge."
+     },
+     "dato": {
+      "es": "El VDO afecta al borde incisal; lo que se puede hacer depende de cómo el doctor colocó la demodenture.",
+      "en": "VDO affects the incisal edge; what can be done depends on how the doctor placed the demodenture."
+     },
+     "alerta": {
+      "es": "Confirmar con el manager: en el Caso 2 el documento no deja claro quién decide entre las opciones ni por qué el protocolo no permite cambios adicionales.",
+      "en": "Confirm with the manager: in Case 2 the document does not make clear who chooses between options or why the protocol does not allow additional changes."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "VDO = altura de la mordida; mueve la mandíbula, no el maxilar.",
+       "en": "VDO = bite height; it moves the lower jaw, not the maxilla."
+      },
+      {
+       "es": "Se cambia en articulador Panadent con el pin, nunca solo en digital.",
+       "en": "It is changed on a Panadent articulator with the pin, never digital only."
+      },
+      {
+       "es": "En Single 24z, bajar el borde incisal suele ligarse a abrir el VDO igual.",
+       "en": "In Single 24z, lowering the incisal edge is usually tied to opening VDO by the same amount."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Por qué el VDO no se cambia solo en digital?",
+        "en": "Why is VDO not changed digitally only?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Porque el software no tiene deslizador de VDO",
+          "en": "Because the software has no VDO slider"
+         }
+        },
+        {
+         "texto": {
+          "es": "Porque en digital no es preciso; se ajusta el pin en un articulador Panadent",
+          "en": "Because digital is not precise; the pin is adjusted on a Panadent articulator"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Porque el doctor lo prefiere",
+          "en": "Because the doctor prefers it"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El articulador reproduce la mordida real y luego se escanea.",
+        "en": "The articulator reproduces the real bite and is then scanned."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "Al abrir el VDO, ¿qué se mueve?",
+        "en": "When VDO opens, what moves?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "El arco superior",
+          "en": "The upper arch"
+         }
+        },
+        {
+         "texto": {
+          "es": "Los dos arcos juntos",
+          "en": "Both arches together"
+         }
+        },
+        {
+         "texto": {
+          "es": "La mandíbula (arco inferior)",
+          "en": "The mandible (lower arch)"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "El VDO cambia la relación entre arcos moviendo el inferior.",
+        "en": "VDO changes the relationship between arches by moving the lower one."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "Single 24z, demo igual que en N2: el doctor pide borde incisal 1.5 mm incisally sin VDO. ¿Qué se hace?",
+        "en": "Single 24z, demo as in N2: the doctor asks incisal edge 1.5 mm incisally with no VDO. What happens?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Se liga a un VDO +1.5 para conservar la clase I",
+          "en": "It is tied to VDO +1.5 to keep Class I"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Solo se baja el puente 1.5 mm",
+          "en": "Only the bridge is lowered 1.5 mm"
+         }
+        },
+        {
+         "texto": {
+          "es": "Se cambia el arch size",
+          "en": "The arch size is changed"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Si solo se baja el puente, las cúspides atraviesan al inferior y no hay clase I.",
+        "en": "If only the bridge is lowered, cusps cut through the lower arch and there is no Class I."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l4",
+   "titulo": {
+    "es": "Incisal Edge Position",
+    "en": "Incisal Edge Position"
+   },
+   "minutos": 7,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Subir o bajar toda la sonrisa",
+      "en": "Raise or lower the whole smile"
+     },
+     "cuerpo": {
+      "es": "El **Incisal Edge Position** es un movimiento **vertical, corporal**: todo el arco superior sube o baja como un bloque. Controla dónde queda el borde de los incisivos centrales (dientes 8 y 9), es decir, cuánto diente se ve al sonreír. La posición adelante-atrás y de lado del arco **se respeta y no cambia**, y el arco inferior no se mueve.",
+      "en": "**Incisal Edge Position** is a **vertical, bodily** movement: the entire upper arch goes up or down as a block. It controls where the edge of the central incisors (teeth 8 and 9) ends up, i.e. how much tooth shows when smiling. The front-back and side position of the arch **is respected and does not change**, and the lower arch does not move."
+     },
+     "dato": {
+      "es": "No hay punto estático: es una traslación vertical pura.",
+      "en": "There is no static point: it is a pure vertical translation."
+     }
+    },
+    {
+     "t": "tarjetas",
+     "titulo": {
+      "es": "Dos palabras, dos direcciones",
+      "en": "Two words, two directions"
+     },
+     "items": [
+      {
+       "icono": "⬇️",
+       "titulo": {
+        "es": "Incisally",
+        "en": "Incisally"
+       },
+       "texto": {
+        "es": "Hacia el borde incisal = hacia ABAJO.",
+        "en": "Toward the incisal edge = DOWN."
+       }
+      },
+      {
+       "icono": "⬆️",
+       "titulo": {
+        "es": "Apically",
+        "en": "Apically"
+       },
+       "texto": {
+        "es": "Hacia el ápice (la raíz) = hacia ARRIBA.",
+        "en": "Toward the apex (root) = UP."
+       }
+      }
+     ]
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Incisal Edge: de abajo a arriba",
+      "en": "Incisal Edge: down and up"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "frontal",
+       "texto": {
+        "es": "Posición inicial: la demodenture como está en boca (silueta fantasma).",
+        "en": "Initial position: the demodenture as it is in the mouth (ghost outline)."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 3
+      },
+      {
+       "p": {
+        "incisal": 2
+       },
+       "cam": "frontal",
+       "texto": {
+        "es": "\"Incisal edge up 2 mm\" = apically 2 mm: todo el arco superior sube como un bloque.",
+        "en": "\"Incisal edge up 2 mm\" = apically 2 mm: the whole upper arch rises as a block."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "incisal": -2
+       },
+       "cam": "frontal",
+       "texto": {
+        "es": "Al revés, incisally 2 mm: todo el arco baja. No hay pivote: ningún punto queda fijo.",
+        "en": "The other way, incisally 2 mm: the whole arch lowers. There is no pivot: no point stays fixed."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 5
+      }
+     ]
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Mueve el borde incisal",
+      "en": "Move the incisal edge"
+     },
+     "guia": {
+      "es": "Mueve el deslizador y mira que todo el arco superior se desplaza junto. Paso de 0.5 mm.",
+      "en": "Move the slider and see the whole upper arch shift together. Step of 0.5 mm."
+     },
+     "foco": [
+      "incisal"
+     ],
+     "vista": "frontal",
+     "reto": {
+      "enunciado": {
+       "es": "Baja el borde incisal 1.5 mm (incisally).",
+       "en": "Lower the incisal edge 1.5 mm (incisally)."
+      },
+      "objetivo": {
+       "incisal": -1.5
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Rango, marca y límites",
+      "en": "Range, marking and limits"
+     },
+     "cuerpo": {
+      "es": "El rango es de **0.5 mm hasta 5 mm** en pasos de 0.5, en ambos sentidos. Se marca el borde incisal en la demodenture con un marcador permanente de **punta ultrafina** y se indica la cantidad en el menú de la receta. Por defecto: \"No changes\".\n\nSi no hay espacio o material, el laboratorio alerta al doctor. El borde incisal tiene **prioridad** sobre el plano oclusal.",
+      "en": "The range is **0.5 mm up to 5 mm** in steps of 0.5, in both directions. The incisal edge is marked on the demodenture with an **ultrafine-tip** permanent marker and the amount is set in the RX menu. Default: \"No changes\".\n\nIf space or material is lacking, the lab alerts the doctor. The incisal edge has **priority** over the occlusal plane."
+     },
+     "alerta": {
+      "es": "Es el movimiento con mayor rango (5 mm); los demás llegan a 3 mm. El documento no explica por qué.",
+      "en": "It has the widest range (5 mm); the others reach 3 mm. The document does not explain why."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Mueve TODO el arco superior en vertical, como un bloque.",
+       "en": "Moves the WHOLE upper arch vertically, as a block."
+      },
+      {
+       "es": "Incisally = abajo; apically = arriba.",
+       "en": "Incisally = down; apically = up."
+      },
+      {
+       "es": "Sin punto estático; no cambia posición adelante-atrás ni lateral.",
+       "en": "No static point; front-back and lateral position do not change."
+      },
+      {
+       "es": "0.5 a 5 mm en pasos de 0.5.",
+       "en": "0.5 to 5 mm in steps of 0.5."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué mueve el Incisal Edge Position?",
+        "en": "What does Incisal Edge Position move?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Solo los incisivos 8 y 9",
+          "en": "Only incisors 8 and 9"
+         }
+        },
+        {
+         "texto": {
+          "es": "El arco inferior",
+          "en": "The lower arch"
+         }
+        },
+        {
+         "texto": {
+          "es": "Solo los molares",
+          "en": "Only the molars"
+         }
+        },
+        {
+         "texto": {
+          "es": "Todo el arco superior, en vertical, como bloque",
+          "en": "The entire upper arch, vertically, as a block"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "Es una traslación vertical del arco superior completo; controla dónde cae el borde 8/9.",
+        "en": "It is a vertical translation of the whole upper arch; it controls where the 8/9 edge falls."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué significan incisally y apically?",
+        "en": "What do incisally and apically mean?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Incisally = arriba; apically = abajo",
+          "en": "Incisally = up; apically = down"
+         }
+        },
+        {
+         "texto": {
+          "es": "Incisally = adelante; apically = atrás",
+          "en": "Incisally = forward; apically = back"
+         }
+        },
+        {
+         "texto": {
+          "es": "Incisally = abajo; apically = arriba",
+          "en": "Incisally = down; apically = up"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "Incisally va hacia el borde cortante (abajo); apically hacia el ápice (arriba).",
+        "en": "Incisally goes toward the cutting edge (down); apically toward the apex (up)."
+       }
+      },
+      {
+       "tipo": "vf",
+       "enunciado": {
+        "es": "El Incisal Edge Position tiene un punto estático en el centro del paladar.",
+        "en": "Incisal Edge Position has a static point in the middle of the palate."
+       },
+       "ok": false,
+       "explicacion": {
+        "es": "Es traslación pura; no hay pivote. El centro del paladar es el pivote de la midline.",
+        "en": "It is a pure translation; there is no pivot. The middle of the palate is the midline's pivot."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l5",
+   "titulo": {
+    "es": "Midline: la línea media",
+    "en": "Midline"
+   },
+   "minutos": 8,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Una rotación, no un desplazamiento",
+      "en": "A rotation, not a shift"
+     },
+     "cuerpo": {
+      "es": "La **midline** es la línea entre los incisivos centrales (8 y 9). Pedir mover la midline a la izquierda o derecha del paciente es un movimiento **ROTACIONAL** con **punto estático en el centro del paladar**: los dientes rotan y siguen sobre el arco. **No** es un desplazamiento corporal de todo el maxilar (el documento insiste en esto).",
+      "en": "The **midline** is the line between the central incisors (8 and 9). Requesting the midline to move left or right of the patient is a **ROTATIONAL** movement with a **static point in the middle of the palate**: the teeth rotate and stay over the arch. It is **not** a bodily shift of the entire maxilla (the document insists on this)."
+     },
+     "porque": {
+      "es": "La midline es una referencia estética clave de la cara. Una vez colocada, los diseñadores la BLOQUEAN: ya no cambia con los movimientos siguientes.",
+      "en": "The midline is a key facial esthetic reference. Once placed, designers LOCK it: it no longer changes with later movements."
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Midline: girar sobre el paladar",
+      "en": "Midline: rotating around the palate"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "oclusal",
+       "texto": {
+        "es": "Vista desde arriba. El pin marca el punto estático: el centro del paladar.",
+        "en": "View from above. The pin marks the static point: the middle of the palate."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "midline": 1
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "\"Move right 1 mm\": los dientes giran alrededor de ese punto; la línea media se va 1 mm a la derecha del paciente.",
+        "en": "\"Move right 1 mm\": the teeth swing around that point; the midline goes 1 mm to the patient's right."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "midline": 1
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "Resultado: los dientes siguen sobre el arco. Desde aquí la midline queda bloqueada.",
+        "en": "Result: the teeth stay over the arch. From here the midline is locked."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 4
+      }
+     ]
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Mueve la midline",
+      "en": "Move the midline"
+     },
+     "guia": {
+      "es": "Usa la vista oclusal para ver la rotación. Positivo = derecha del paciente, negativo = izquierda.",
+      "en": "Use the occlusal view to see the rotation. Positive = patient's right, negative = left."
+     },
+     "foco": [
+      "midline"
+     ],
+     "vista": "oclusal",
+     "reto": {
+      "enunciado": {
+       "es": "Mueve la línea media 1 mm a la derecha de la paciente.",
+       "en": "Move the midline 1 mm to the patient's right."
+      },
+      "objetivo": {
+       "midline": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Rango, vocabulario y marca",
+      "en": "Range, vocabulary and marking"
+     },
+     "cuerpo": {
+      "es": "Vocabulario: **left / right** del paciente, de **0.5 a 3 mm** en pasos de 0.5. Se **marca la demodenture superior** con un marcador permanente oscuro de **punta ultrafina** (líneas finas, no gruesas) y además se indica la cantidad en el menú desplegable de la receta.",
+      "en": "Vocabulary: patient's **left / right**, **0.5 to 3 mm** in steps of 0.5. The **upper demodenture is marked** with a dark **ultrafine-tip** permanent marker (thin lines, not thick) and the amount is also set in the RX dropdown."
+     },
+     "alerta": {
+      "es": "Si el espacio es limitado, la midline es de lo primero que se protege (junto al borde incisal).",
+      "en": "If space is limited, the midline is among the first things protected (along with the incisal edge)."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Midline = rotación, no desplazamiento del maxilar.",
+       "en": "Midline = rotation, not a shift of the maxilla."
+      },
+      {
+       "es": "Punto estático: centro del paladar.",
+       "en": "Static point: middle of the palate."
+      },
+      {
+       "es": "0.5 a 3 mm, left/right del paciente; se marca la demodenture superior.",
+       "en": "0.5 to 3 mm, patient's left/right; the upper demodenture is marked."
+      },
+      {
+       "es": "Una vez colocada se bloquea.",
+       "en": "Once placed it is locked."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Cuál es el punto estático de la midline?",
+        "en": "What is the midline's static point?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "El centro del paladar",
+          "en": "The middle of the palate"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "El borde incisal 8/9",
+          "en": "The 8/9 incisal edge"
+         }
+        },
+        {
+         "texto": {
+          "es": "El último molar",
+          "en": "The last molar"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Los dientes rotan alrededor del centro del paladar y siguen sobre el arco.",
+        "en": "The teeth rotate around the middle of the palate and stay over the arch."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué ocurre con la midline una vez colocada?",
+        "en": "What happens to the midline once placed?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Se recalcula al final",
+          "en": "It is recalculated at the end"
+         }
+        },
+        {
+         "texto": {
+          "es": "Los diseñadores la bloquean",
+          "en": "Designers lock it"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Cambia con el cant",
+          "en": "It changes with the cant"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Se bloquea para que los movimientos siguientes no la alteren.",
+        "en": "It is locked so later movements do not alter it."
+       }
+      },
+      {
+       "tipo": "vf",
+       "enunciado": {
+        "es": "Mover la midline desplaza todo el maxilar lateralmente como un bloque.",
+        "en": "Moving the midline shifts the whole maxilla sideways as a block."
+       },
+       "ok": false,
+       "explicacion": {
+        "es": "Es una rotación; los dientes giran y siguen sobre el arco.",
+        "en": "It is a rotation; the teeth swing and stay over the arch."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l6",
+   "titulo": {
+    "es": "Occlusal Cant: el balancín",
+    "en": "Occlusal Cant: the seesaw"
+   },
+   "minutos": 8,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Un lado más alto que el otro",
+      "en": "One side higher than the other"
+     },
+     "cuerpo": {
+      "es": "El **Occlusal Cant** es la inclinación del plano oclusal **visto de frente**: un lado queda más alto que el otro. Se corrige cuando la inclinación se nota al sonreír y al masticar.\n\nEs un **balancín**: el punto estático es la **midline en el borde incisal de 8/9**. El movimiento se mide en la **punta del canino (cúspide)** izquierdo o derecho. Un movimiento *apical* de un lado provoca un movimiento *oclusal* del lado opuesto.",
+      "en": "**Occlusal Cant** is the tilt of the occlusal plane **seen from the front**: one side sits higher than the other. It is corrected when the tilt shows when smiling and chewing.\n\nIt is a **seesaw**: the static point is the **midline at the incisal edge of 8/9**. The movement is measured at the **canine cusp tip**, left or right. An *apical* movement on one side causes an *occlusal* movement on the opposite side."
+     },
+     "porque": {
+      "es": "Se hace con la midline ya bloqueada: el diseñador protege la midline mientras el plano se inclina.",
+      "en": "It is done with the midline already locked: the designer protects the midline while the plane tilts."
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Cant: el balancín frontal",
+      "en": "Cant: the frontal seesaw"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "frontal",
+       "texto": {
+        "es": "Vista frontal. El pivote del balancín es la midline en el borde incisal de 8/9.",
+        "en": "Frontal view. The seesaw pivot is the midline at the incisal edge of 8/9."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "cant": 1
+       },
+       "cam": "frontal",
+       "texto": {
+        "es": "El canino izquierdo del paciente sube 1 mm (apically)...",
+        "en": "The patient's left canine rises 1 mm (apically)..."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "cant": 1
+       },
+       "cam": "frontal",
+       "texto": {
+        "es": "...y por el balancín el lado derecho baja (occlusally). La midline no se movió.",
+        "en": "...and by the seesaw the right side goes down (occlusally). The midline did not move."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 4
+      }
+     ]
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Inclina el plano",
+      "en": "Tilt the plane"
+     },
+     "guia": {
+      "es": "Positivo = canino izquierdo sube (apically); negativo = baja (occlusally). Mira el lado opuesto.",
+      "en": "Positive = left canine up (apically); negative = down (occlusally). Watch the opposite side."
+     },
+     "foco": [
+      "cant"
+     ],
+     "vista": "frontal",
+     "reto": {
+      "enunciado": {
+       "es": "Sube el canino izquierdo 1 mm (apically).",
+       "en": "Raise the left canine 1 mm (apically)."
+      },
+      "objetivo": {
+       "cant": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Vocabulario, rango y marca",
+      "en": "Vocabulary, range and marking"
+     },
+     "cuerpo": {
+      "es": "Se dice **\"left\"** refiriéndose al canino/cúspide izquierdo del paciente, y los movimientos son **\"apically\"** (arriba) u **\"occlusally\"** (abajo), de **0.5 a 3 mm** en pasos de 0.5. Se marcan los caninos superiores en la demodenture superior.",
+      "en": "You say **\"left\"** referring to the patient's left canine/cusp, and the movements are **\"apically\"** (up) or **\"occlusally\"** (down), **0.5 to 3 mm** in steps of 0.5. The upper canines are marked on the upper demodenture."
+     },
+     "alerta": {
+      "es": "Confirmar con el manager: las opciones de la receta solo se escriben para el lado izquierdo y el texto mezcla \"premolar\" y \"canino\". Cómo pedir el lado derecho no queda explícito.",
+      "en": "Confirm with the manager: the RX options are only written for the left side and the text mixes \"premolar\" and \"canine\". How to request the right side is not explicit."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Cant = inclinación del plano visto de FRENTE.",
+       "en": "Cant = tilt of the plane seen from the FRONT."
+      },
+      {
+       "es": "Punto estático: midline en el borde incisal de 8/9; se mide en el canino.",
+       "en": "Static point: midline at the incisal edge of 8/9; measured at the canine."
+      },
+      {
+       "es": "Balancín: si un lado sube, el opuesto baja.",
+       "en": "Seesaw: if one side rises, the opposite one drops."
+      },
+      {
+       "es": "0.5 a 3 mm; apically / occlusally.",
+       "en": "0.5 to 3 mm; apically / occlusally."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "Si el lado izquierdo del cant sube (apically), ¿qué pasa con el lado derecho?",
+        "en": "If the left side of the cant rises (apically), what happens on the right side?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Sube igual",
+          "en": "It rises equally"
+         }
+        },
+        {
+         "texto": {
+          "es": "No cambia",
+          "en": "It does not change"
+         }
+        },
+        {
+         "texto": {
+          "es": "Baja (occlusally), como un balancín",
+          "en": "It goes down (occlusally), like a seesaw"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "El pivote está en la midline, así que un lado sube mientras el otro baja.",
+        "en": "The pivot is at the midline, so one side rises while the other drops."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Con qué vista se piensa el Occlusal Cant?",
+        "en": "Which view is used for Occlusal Cant?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Vista frontal",
+          "en": "Frontal view"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Vista de perfil",
+          "en": "Profile view"
+         }
+        },
+        {
+         "texto": {
+          "es": "Vista desde arriba",
+          "en": "View from above"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El cant es la inclinación lateral, que solo se aprecia de frente.",
+        "en": "Cant is the lateral tilt, which is only visible from the front."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Dónde queda fijo el punto estático del cant?",
+        "en": "Where is the cant's static point?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "En el centro del paladar",
+          "en": "In the middle of the palate"
+         }
+        },
+        {
+         "texto": {
+          "es": "En la midline, en el borde incisal de 8/9",
+          "en": "At the midline, at the incisal edge of 8/9"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "En el molar izquierdo",
+          "en": "On the left molar"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Por eso la midline queda protegida durante el cant.",
+        "en": "That is why the midline stays protected during the cant."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l7",
+   "titulo": {
+    "es": "Occlusal Plane: vista de perfil",
+    "en": "Occlusal Plane: profile view"
+   },
+   "minutos": 8,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Girar el arco visto de lado",
+      "en": "Rotating the arch seen from the side"
+     },
+     "cuerpo": {
+      "es": "Si el cant es el plano visto de frente, el **Occlusal Plane** es el plano visto de **perfil (sagital)**. Es una rotación del arco superior alrededor de un **punto estático en el borde incisal, en la midline de 8 y 9**. La cantidad se aplica a las **cúspides bucales de los molares superiores**. Permite **aumentar o disminuir la curva de Spee**, la curvatura de los dientes posteriores vista de perfil.",
+      "en": "If cant is the plane seen from the front, **Occlusal Plane** is the plane seen in **profile (sagittal)**. It is a rotation of the upper arch around a **static point at the incisal edge, at the midline of 8 and 9**. The amount is applied to the **buccal cusps of the upper molars**. It lets you **increase or decrease the curve of Spee**, the curvature of the posterior teeth seen in profile."
+     },
+     "porque": {
+      "es": "Es relativo al borde incisal: mover el borde incisal también desplaza los molares, por eso el plano oclusal se mide DESPUÉS de ese cambio.",
+      "en": "It is relative to the incisal edge: moving the incisal edge also displaces the molars, so occlusal plane is measured AFTER that change."
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Plane: pivote en 8/9",
+      "en": "Plane: pivot at 8/9"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "perfil",
+       "texto": {
+        "es": "Vista de perfil. El punto estático está en el borde incisal de 8/9.",
+        "en": "Profile view. The static point is at the incisal edge of 8/9."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "plano": 1
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "\"Up 1 mm\": los molares suben 1 mm (apically) girando alrededor de ese punto.",
+        "en": "\"Up 1 mm\": the molars rise 1 mm (apically), swinging around that point."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "plano": -1
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "En sentido contrario, los molares bajan (occlusally). El borde incisal nunca se mueve.",
+        "en": "In the opposite direction, the molars go down (occlusally). The incisal edge never moves."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 5
+      }
+     ]
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Mueve los molares",
+      "en": "Move the molars"
+     },
+     "guia": {
+      "es": "Positivo = molares apically (arriba); negativo = occlusally (abajo). Observa el pivote en el frente.",
+      "en": "Positive = molars apically (up); negative = occlusally (down). Watch the pivot at the front."
+     },
+     "foco": [
+      "plano"
+     ],
+     "vista": "perfil",
+     "reto": {
+      "enunciado": {
+       "es": "Sube los molares 1 mm (apically).",
+       "en": "Raise the molars 1 mm (apically)."
+      },
+      "objetivo": {
+       "plano": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Marca, rango y límite",
+      "en": "Marking, range and limit"
+     },
+     "cuerpo": {
+      "es": "Se marcan los **molares superiores** en la demodenture. Vocabulario: **occlusally** (abajo) y **apically** (arriba), de **0.5 a 3 mm** en pasos de 0.5. No mueve ni el borde incisal (el pivote) ni la midline.\n\nEl equipo avisa al doctor si se exceden los límites del material. Es lo **primero que se sacrifica** si falta espacio.",
+      "en": "The **upper molars** are marked on the demodenture. Vocabulary: **occlusally** (down) and **apically** (up), **0.5 to 3 mm** in steps of 0.5. It moves neither the incisal edge (the pivot) nor the midline.\n\nThe team alerts the doctor if material limits are exceeded. It is **the first thing sacrificed** when space is short."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Occlusal Plane = rotación vista de perfil; cambia la curva de Spee.",
+       "en": "Occlusal Plane = rotation seen in profile; changes the curve of Spee."
+      },
+      {
+       "es": "Punto estático: borde incisal en la midline de 8/9.",
+       "en": "Static point: incisal edge at the midline of 8/9."
+      },
+      {
+       "es": "El ajuste se aplica a las cúspides bucales de los molares.",
+       "en": "The adjustment is applied to the buccal cusps of the molars."
+      },
+      {
+       "es": "Se hace después del borde incisal y es lo primero que se sacrifica.",
+       "en": "It is done after the incisal edge and is the first thing sacrificed."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Para qué sirve el Occlusal Plane?",
+        "en": "What is Occlusal Plane for?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Mover la midline",
+          "en": "Moving the midline"
+         }
+        },
+        {
+         "texto": {
+          "es": "Abrir el VDO",
+          "en": "Opening the VDO"
+         }
+        },
+        {
+         "texto": {
+          "es": "Aumentar o disminuir la curva de Spee",
+          "en": "Increasing or decreasing the curve of Spee"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "Rota el arco de perfil y cambia la curvatura de los posteriores.",
+        "en": "It rotates the arch in profile and changes the curvature of the posteriors."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Por qué se hace después de mover el borde incisal?",
+        "en": "Why is it done after moving the incisal edge?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Porque es relativo al borde incisal, y moverlo también desplaza los molares",
+          "en": "Because it is relative to the incisal edge, and moving it also displaces the molars"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Por orden alfabético",
+          "en": "Alphabetical order"
+         }
+        },
+        {
+         "texto": {
+          "es": "Porque fija la midline",
+          "en": "Because it fixes the midline"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Hay que contar con la nueva posición de los molares.",
+        "en": "The molars' new position must be taken into account."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Dónde se aplica la cantidad del ajuste?",
+        "en": "Where is the adjustment amount applied?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "En los caninos",
+          "en": "On the canines"
+         }
+        },
+        {
+         "texto": {
+          "es": "En las cúspides bucales de los molares superiores",
+          "en": "On the buccal cusps of the upper molars"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "En el arco inferior",
+          "en": "On the lower arch"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El borde incisal es el pivote; el efecto se mide en los molares.",
+        "en": "The incisal edge is the pivot; the effect is measured at the molars."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l8",
+   "titulo": {
+    "es": "Arch Rotation: el giro",
+    "en": "Arch Rotation: the swing"
+   },
+   "minutos": 8,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Un giro sutil visto desde arriba",
+      "en": "A subtle swing seen from above"
+     },
+     "cuerpo": {
+      "es": "La **Arch Rotation** (\"yaw\") es un giro horizontal del arco visto desde arriba. El **punto estático** es el **borde incisal de la línea media de 8 y 9**, y lo que se mueve son los **molares superiores** hacia la izquierda o derecha del paciente. Permite balanceos sutiles; la rotación mueve de lado los contornos de los dientes posteriores.",
+      "en": "**Arch Rotation** (\"yaw\") is a horizontal swing of the arch seen from above. The **static point** is the **incisal edge at the midline of 8 and 9**, and what moves are the **upper molars** toward the patient's left or right. It allows subtle swings; the rotation shifts the contours of the posterior teeth sideways."
+     },
+     "porque": {
+      "es": "Es uno de los movimientos más limitados porque el reborde alveolar y la posición de los implantes deben respetarse.",
+      "en": "It is one of the most limited movements because the alveolar ridge and implant positions must be respected."
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Arch Rotation vs Midline",
+      "en": "Arch Rotation vs Midline"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "oclusal",
+       "texto": {
+        "es": "Midline: el pivote está en el centro del paladar y giran los dientes.",
+        "en": "Midline: the pivot is in the middle of the palate and the teeth swing."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "rotacion": 2
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "Arch Rotation: ahora el pivote está en el borde incisal de 8/9. Los molares barren hacia la derecha del paciente (2 mm Pt right).",
+        "en": "Arch Rotation: now the pivot is at the incisal edge of 8/9. The molars sweep to the patient's right (2 mm Pt right)."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 6
+      },
+      {
+       "p": {
+        "rotacion": -2
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "Hacia la izquierda es el mismo giro invertido. Los incisivos casi no se mueven.",
+        "en": "To the left it is the same swing reversed. The incisors barely move."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 5
+      }
+     ]
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Barre los molares",
+      "en": "Sweep the molars"
+     },
+     "guia": {
+      "es": "Positivo = molares a la derecha del paciente; negativo = izquierda. Compara con el simulador de midline.",
+      "en": "Positive = molars to the patient's right; negative = left. Compare with the midline simulator."
+     },
+     "foco": [
+      "rotacion"
+     ],
+     "vista": "oclusal",
+     "reto": {
+      "enunciado": {
+       "es": "Gira el arco para que los molares vayan 1 mm a la derecha del paciente.",
+       "en": "Swing the arch so the molars go 1 mm to the patient's right."
+      },
+      "objetivo": {
+       "rotacion": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "tabla",
+     "titulo": {
+      "es": "Midline vs Arch Rotation",
+      "en": "Midline vs Arch Rotation"
+     },
+     "cabeceras": [
+      {
+       "es": "Aspecto",
+       "en": "Aspect"
+      },
+      {
+       "es": "Midline",
+       "en": "Midline"
+      },
+      {
+       "es": "Arch Rotation",
+       "en": "Arch Rotation"
+      }
+     ],
+     "filas": [
+      [
+       {
+        "es": "Punto estático",
+        "en": "Static point"
+       },
+       {
+        "es": "Centro del paladar",
+        "en": "Middle of the palate"
+       },
+       {
+        "es": "Borde incisal de 8/9",
+        "en": "Incisal edge of 8/9"
+       }
+      ],
+      [
+       {
+        "es": "Qué se nota",
+        "en": "What is noticed"
+       },
+       {
+        "es": "Dónde queda la línea media",
+        "en": "Where the midline sits"
+       },
+       {
+        "es": "Hacia dónde van los molares",
+        "en": "Where the molars go"
+       }
+      ],
+      [
+       {
+        "es": "Rango",
+        "en": "Range"
+       },
+       {
+        "es": "0.5 a 3 mm",
+        "en": "0.5 to 3 mm"
+       },
+       {
+        "es": "0.5 a 3 mm",
+        "en": "0.5 to 3 mm"
+       }
+      ]
+     ]
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Arch Rotation = giro horizontal (yaw); mueve los molares.",
+       "en": "Arch Rotation = horizontal swing (yaw); moves the molars."
+      },
+      {
+       "es": "Punto estático: borde incisal de 8/9 (no el paladar).",
+       "en": "Static point: incisal edge of 8/9 (not the palate)."
+      },
+      {
+       "es": "Left/right = molares hacia la izquierda/derecha del paciente; 0.5 a 3 mm.",
+       "en": "Left/right = molars toward the patient's left/right; 0.5 to 3 mm."
+      },
+      {
+       "es": "Muy limitado por el reborde y los implantes.",
+       "en": "Very limited by the ridge and implants."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué diferencia a Arch Rotation de Midline?",
+        "en": "What distinguishes Arch Rotation from Midline?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Son lo mismo con otro nombre",
+          "en": "They are the same with a different name"
+         }
+        },
+        {
+         "texto": {
+          "es": "Arch Rotation es vertical",
+          "en": "Arch Rotation is vertical"
+         }
+        },
+        {
+         "texto": {
+          "es": "Midline gira sobre el centro del paladar; Arch Rotation sobre el borde incisal 8/9 y mueve los molares",
+          "en": "Midline rotates about the middle of the palate; Arch Rotation about the 8/9 incisal edge and moves the molars"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "Cambia el punto estático y lo que se aprecia: línea media vs molares.",
+        "en": "The static point and what is noticed differ: midline vs molars."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Por qué Arch Rotation es de los movimientos más limitados?",
+        "en": "Why is Arch Rotation among the most limited movements?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Hay que respetar el reborde alveolar y la posición de los implantes",
+          "en": "The alveolar ridge and implant positions must be respected"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Porque el articulador no lo permite",
+          "en": "Because the articulator does not allow it"
+         }
+        },
+        {
+         "texto": {
+          "es": "Porque no se ve en el diseño",
+          "en": "Because it is not visible in the design"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El hueso y los implantes marcan hasta dónde se puede girar.",
+        "en": "Bone and implants set how far it can swing."
+       }
+      },
+      {
+       "tipo": "vf",
+       "enunciado": {
+        "es": "En Arch Rotation lo que se mueve hacia izquierda/derecha son los molares superiores.",
+        "en": "In Arch Rotation, what moves left/right are the upper molars."
+       },
+       "ok": true,
+       "explicacion": {
+        "es": "Es un giro con pivote en 8/9, así que el efecto mayor está en los molares.",
+        "en": "It is a swing pivoting at 8/9, so the greatest effect is at the molars."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l9",
+   "titulo": {
+    "es": "Lip Support: soporte labial",
+    "en": "Lip Support"
+   },
+   "minutos": 7,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Más o menos soporte para el labio",
+      "en": "More or less support for the lip"
+     },
+     "cuerpo": {
+      "es": "El **Lip Support** es un movimiento **anterior-posterior** de la prótesis visto de perfil: ajusta dónde quedan los bordes incisales respecto al labio superior. Más hacia delante da más soporte al labio; más hacia atrás, menos.\n\nVocabulario: **facially** (hacia delante, hacia el labio) y **palatally** (hacia atrás, hacia el paladar).",
+      "en": "**Lip Support** is an **anterior-posterior** movement of the prosthesis seen in profile: it adjusts where the incisal edges sit relative to the upper lip. Further forward gives the lip more support; further back, less.\n\nVocabulary: **facially** (forward, toward the lip) and **palatally** (back, toward the palate)."
+     },
+     "alerta": {
+      "es": "Confirmar con el manager: el documento no indica el punto estático del Lip Support ni si mueve todo el arco o solo los incisivos.",
+      "en": "Confirm with the manager: the document does not state Lip Support's static point nor whether it moves the whole arch or only the incisors."
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Lip Support: facially",
+      "en": "Lip Support: facially"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "perfil",
+       "texto": {
+        "es": "Vista de perfil: posición inicial de la prótesis respecto al labio.",
+        "en": "Profile view: initial prosthesis position relative to the lip."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "labio": 1
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "\"Bring facially 1 mm\": la prótesis avanza 1 mm hacia el labio; el labio gana soporte.",
+        "en": "\"Bring facially 1 mm\": the prosthesis advances 1 mm toward the lip; the lip gains support."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "labio": -1
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "Palatally 1 mm: se retrae hacia el paladar y el labio pierde soporte.",
+        "en": "Palatally 1 mm: it retracts toward the palate and the lip loses support."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 5
+      }
+     ]
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Adelante y atrás",
+      "en": "Forward and back"
+     },
+     "guia": {
+      "es": "Positivo = facially (adelante); negativo = palatally (atrás). Mira el perfil.",
+      "en": "Positive = facially (forward); negative = palatally (back). Look at the profile."
+     },
+     "foco": [
+      "labio"
+     ],
+     "vista": "perfil",
+     "reto": {
+      "enunciado": {
+       "es": "Lleva la prótesis 1 mm facially.",
+       "en": "Bring the prosthesis 1 mm facially."
+      },
+      "objetivo": {
+       "labio": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Rango y límites",
+      "en": "Range and limits"
+     },
+     "cuerpo": {
+      "es": "El rango es de **0.5 a 3 mm** en pasos de 0.5, en ambos sentidos. El límite lo ponen el **espesor del material** y la **posición de los implantes**: si no cabe, el laboratorio alerta al doctor.",
+      "en": "The range is **0.5 to 3 mm** in steps of 0.5, in both directions. The limit is set by **material thickness** and **implant position**: if it does not fit, the lab alerts the doctor."
+     },
+     "porque": {
+      "es": "Mover la prótesis adelante la hace más delgada o la acerca a implantes; por eso hay límites.",
+      "en": "Moving the prosthesis can make it thinner or bring it near implants; hence the limits."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "Lip Support = adelante/atrás visto de perfil.",
+       "en": "Lip Support = forward/back seen in profile."
+      },
+      {
+       "es": "Facially = hacia el labio; palatally = hacia el paladar.",
+       "en": "Facially = toward the lip; palatally = toward the palate."
+      },
+      {
+       "es": "0.5 a 3 mm; límite por material e implantes.",
+       "en": "0.5 to 3 mm; limited by material and implants."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué significa facially en Lip Support?",
+        "en": "What does facially mean in Lip Support?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Hacia arriba",
+          "en": "Up"
+         }
+        },
+        {
+         "texto": {
+          "es": "Hacia el paladar",
+          "en": "Toward the palate"
+         }
+        },
+        {
+         "texto": {
+          "es": "A la izquierda del paciente",
+          "en": "To the patient's left"
+         }
+        },
+        {
+         "texto": {
+          "es": "Mover la prótesis hacia delante, hacia el labio",
+          "en": "Moving the prosthesis forward, toward the lip"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "Facially es anterior; palatally es posterior.",
+        "en": "Facially is anterior; palatally is posterior."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué limita un Lip Support pedido?",
+        "en": "What limits a requested Lip Support?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "El color elegido",
+          "en": "The chosen shade"
+         }
+        },
+        {
+         "texto": {
+          "es": "El tamaño de la foto",
+          "en": "The photo size"
+         }
+        },
+        {
+         "texto": {
+          "es": "El espesor del material y la posición de los implantes",
+          "en": "Material thickness and implant position"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "Si no cabe, se alerta al doctor.",
+        "en": "If it does not fit, the doctor is alerted."
+       }
+      },
+      {
+       "tipo": "vf",
+       "enunciado": {
+        "es": "Lip Support mueve la prótesis arriba y abajo.",
+        "en": "Lip Support moves the prosthesis up and down."
+       },
+       "ok": false,
+       "explicacion": {
+        "es": "Es anterior-posterior (adelante/atrás); lo vertical es el borde incisal.",
+        "en": "It is anterior-posterior (forward/back); vertical is the incisal edge."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l10",
+   "titulo": {
+    "es": "Arch Size y Degree",
+    "en": "Arch Size and Degree"
+   },
+   "minutos": 9,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Plantillas de biblioteca",
+      "en": "Library templates"
+     },
+     "cuerpo": {
+      "es": "El **Arch Size** es el tamaño de una plantilla de biblioteca del arco dental: como elegir moldes prehechos, mejora la eficiencia clínica y de fabricación. En N2 el laboratorio elige el mejor tamaño según el paciente y sus registros; en N3 el doctor puede pedir un cambio.\n\nHay **6 plantillas: A, AW, B, BW, C, CW**. La **W** significa **wider (más ancho)**.",
+      "en": "**Arch Size** is the size of a library template of the dental arch: like choosing premade molds, it improves clinical and manufacturing efficiency. In N2 the lab chooses the best size for the patient and records; in N3 the doctor may request a change.\n\nThere are **6 templates: A, AW, B, BW, C, CW**. **W** means **wider**."
+     },
+     "dato": {
+      "es": "En la receta: No changes / One size bigger / One size smaller (un paso en la lista A, AW, B, BW, C, CW). No se marca en la demodenture.",
+      "en": "In the RX: No changes / One size bigger / One size smaller (one step in the list A, AW, B, BW, C, CW). It is not marked on the demodenture."
+     }
+    },
+    {
+     "t": "tabla",
+     "titulo": {
+      "es": "Relaciones entre tamaños",
+      "en": "Relationships between sizes"
+     },
+     "cabeceras": [
+      {
+       "es": "Tamaño",
+       "en": "Size"
+      },
+      {
+       "es": "Relación",
+       "en": "Relationship"
+      }
+     ],
+     "filas": [
+      [
+       {
+        "es": "A",
+        "en": "A"
+       },
+       {
+        "es": "La más pequeña",
+        "en": "The smallest"
+       }
+      ],
+      [
+       {
+        "es": "AW",
+        "en": "AW"
+       },
+       {
+        "es": "4-5 mm más ancho que A (2-2.5 mm por lado)",
+        "en": "4-5 mm wider than A (2-2.5 mm per side)"
+       }
+      ],
+      [
+       {
+        "es": "B",
+        "en": "B"
+       },
+       {
+        "es": "~10% más grande que A en todas las dimensiones",
+        "en": "~10% larger than A in all dimensions"
+       }
+      ],
+      [
+       {
+        "es": "BW",
+        "en": "BW"
+       },
+       {
+        "es": "Mismos dientes y proporciones que B; 4-5 mm más ancho",
+        "en": "Same teeth and proportions as B; 4-5 mm wider"
+       }
+      ],
+      [
+       {
+        "es": "C",
+        "en": "C"
+       },
+       {
+        "es": "~10% más grande que BW",
+        "en": "~10% larger than BW"
+       }
+      ],
+      [
+       {
+        "es": "CW",
+        "en": "CW"
+       },
+       {
+        "es": "Mismos dientes que C; 4-5 mm más ancho",
+        "en": "Same teeth as C; 4-5 mm wider"
+       }
+      ]
+     ]
+    },
+    {
+     "t": "calculadora",
+     "id": "tamanos",
+     "titulo": {
+      "es": "Explorador de tamaños",
+      "en": "Size explorer"
+     },
+     "guia": {
+      "es": "Recorre A, AW, B, BW, C y CW y compara anchos y diferencias.",
+      "en": "Step through A, AW, B, BW, C and CW and compare widths and differences."
+     }
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Efecto de cada tamaño",
+      "en": "Effect of each size"
+     },
+     "escenas": [
+      {
+       "p": {
+        "tamano": 0
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "Tamaño A: la plantilla más pequeña, punto de partida.",
+        "en": "Size A: the smallest template, the starting point."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "tamano": 1
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "AW: los mismos dientes pero el arco es 4-5 mm más ancho.",
+        "en": "AW: the same teeth but the arch is 4-5 mm wider."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "tamano": 2
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "B: ~10% más grande que A en todas las dimensiones.",
+        "en": "B: ~10% larger than A in all dimensions."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "tamano": 5
+       },
+       "cam": "oclusal",
+       "texto": {
+        "es": "CW: el más grande y ancho de la biblioteca.",
+        "en": "CW: the largest and widest in the library."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 5
+      }
+     ]
+    },
+    {
+     "t": "modelo3d",
+     "slot": "tamanos-de-arco",
+     "titulo": {
+      "es": "Los 6 tamaños de arco",
+      "en": "The 6 arch sizes"
+     },
+     "descripcion": {
+      "es": "- Compara A con AW: ¿mismos dientes, más ancho?\n- Compara B con BW y C con CW.\n- Observa el salto de ~10% de A a B y de BW a C.\n- Mira cómo cambia el espacio para la barra.",
+      "en": "- Compare A with AW: same teeth, wider?\n- Compare B with BW and C with CW.\n- Notice the ~10% jump from A to B and from BW to C.\n- See how room for the bar changes."
+     },
+     "pendiente": {
+      "es": "Aquí irá el modelo de los tamaños de arco A, AW, B, BW, C y CW.",
+      "en": "The model of arch sizes A, AW, B, BW, C and CW will go here."
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Degree: la inclinación de los incisivos",
+      "en": "Degree: incisor inclination"
+     },
+     "cuerpo": {
+      "es": "El **Degree** es la inclinación de los incisivos de la plantilla: **5° o 10°**. En N2 el doctor elige para la demodenture; en N3 puede pedir un cambio. La diferencia **solo se ve en los incisivos** (centrales y laterales). Entre 5° y 10° el cambio es sutil y crece un poco con el tamaño: A-AW ≈ 0.6 mm, B-BW ≈ 0.7 mm, C-CW ≈ 0.8 mm.",
+      "en": "**Degree** is the inclination of the template's incisors: **5° or 10°**. In N2 the doctor chooses for the demodenture; in N3 may request a change. The difference **is only seen on the incisors** (centrals and laterals). Between 5° and 10° the change is subtle and grows slightly with size: A-AW ≈ 0.6 mm, B-BW ≈ 0.7 mm, C-CW ≈ 0.8 mm."
+     },
+     "alerta": {
+      "es": "Confirmar con el manager: los colores de los tamaños y de \"one size bigger/smaller\" aparecen invertidos entre inglés y español en el documento (rojo/verde); no los uses para identificar tamaños.",
+      "en": "Confirm with the manager: the colors of the sizes and of \"one size bigger/smaller\" appear swapped between English and Spanish in the document (red/green); do not rely on them to identify sizes."
+     }
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Tamaño y grado",
+      "en": "Size and degree"
+     },
+     "guia": {
+      "es": "Índice de tamaño: 0=A, 1=AW, 2=B, 3=BW, 4=C, 5=CW. Elige también 5° o 10°.",
+      "en": "Size index: 0=A, 1=AW, 2=B, 3=BW, 4=C, 5=CW. Also pick 5° or 10°."
+     },
+     "foco": [
+      "tamano",
+      "grado"
+     ],
+     "vista": "oclusal",
+     "reto": {
+      "enunciado": {
+       "es": "Elige la plantilla B con 10° de grado.",
+       "en": "Pick template B with 10° degree."
+      },
+      "objetivo": {
+       "tamano": 2,
+       "grado": 10
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "6 plantillas: A, AW, B, BW, C, CW; W = wider (4-5 mm más ancho, mismos dientes).",
+       "en": "6 templates: A, AW, B, BW, C, CW; W = wider (4-5 mm wider, same teeth)."
+      },
+      {
+       "es": "De A a B y de BW a C hay ~10% de aumento.",
+       "en": "From A to B and BW to C there is a ~10% increase."
+      },
+      {
+       "es": "Degree 5° o 10°: solo cambian los incisivos.",
+       "en": "Degree 5° or 10°: only the incisors change."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué significa la W en AW, BW y CW?",
+        "en": "What does the W in AW, BW and CW mean?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Wider: más ancho con los mismos dientes",
+          "en": "Wider: wider with the same teeth"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Weight (peso)",
+          "en": "Weight"
+         }
+        },
+        {
+         "texto": {
+          "es": "Dientes más grandes",
+          "en": "Larger teeth"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "La W agrega 4-5 mm de ancho sin cambiar los dientes.",
+        "en": "W adds 4-5 mm width without changing the teeth."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Dónde se ve el cambio de Degree 5° a 10°?",
+        "en": "Where is the change from Degree 5° to 10° seen?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "En los molares",
+          "en": "On the molars"
+         }
+        },
+        {
+         "texto": {
+          "es": "Solo en los incisivos centrales y laterales",
+          "en": "Only on the central and lateral incisors"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "En todo el arco",
+          "en": "On the whole arch"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El grado inclina solo los incisivos de la plantilla.",
+        "en": "Degree tilts only the template's incisors."
+       }
+      },
+      {
+       "tipo": "parejas",
+       "enunciado": {
+        "es": "Une cada tamaño con su relación.",
+        "en": "Match each size with its relationship."
+       },
+       "pares": [
+        {
+         "a": {
+          "es": "A",
+          "en": "A"
+         },
+         "b": {
+          "es": "La más pequeña",
+          "en": "The smallest"
+         }
+        },
+        {
+         "a": {
+          "es": "BW",
+          "en": "BW"
+         },
+         "b": {
+          "es": "Mismos dientes que B, 4-5 mm más ancho",
+          "en": "Same teeth as B, 4-5 mm wider"
+         }
+        },
+        {
+         "a": {
+          "es": "C",
+          "en": "C"
+         },
+         "b": {
+          "es": "~10% más grande que BW",
+          "en": "~10% larger than BW"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "La serie crece ~10% entre letras; la W solo ensancha.",
+        "en": "The series grows ~10% between letters; W only widens."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l11",
+   "titulo": {
+    "es": "Combinar cambios y límites",
+    "en": "Combining changes and limits"
+   },
+   "minutos": 9,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "¿Importa el orden?",
+      "en": "Does order matter?"
+     },
+     "cuerpo": {
+      "es": "El documento numera los cambios (1 VDO, 2 Incisal Edge, 3 Midline, 4 Cant, 5 Plane, 6 Rotation, 7 Lip Support, 8 Arch Size, 9 Degree) y dice que **la numeración no es el orden de ejecución y que el orden no afecta el diseño final**. Sin embargo, varias fichas crean dependencias: sirve pensar en una secuencia lógica.",
+      "en": "The document numbers the changes (1 VDO, 2 Incisal Edge, 3 Midline, 4 Cant, 5 Plane, 6 Rotation, 7 Lip Support, 8 Arch Size, 9 Degree) and says **numbering is not execution order and order does not affect the final design**. Still, several sheets create dependencies: it helps to think in a logical sequence."
+     },
+     "alerta": {
+      "es": "Confirmar con el manager: el documento dice que el orden no importa, pero las fichas exigen midline bloqueada, cant después de midline y plano oclusal después del borde incisal.",
+      "en": "Confirm with the manager: the document says order does not matter, but the sheets require a locked midline, cant after midline, and occlusal plane after incisal edge."
+     }
+    },
+    {
+     "t": "flujo",
+     "titulo": {
+      "es": "Secuencia lógica sugerida",
+      "en": "Suggested logical sequence"
+     },
+     "pasos": [
+      {
+       "titulo": {
+        "es": "Shade y Shape",
+        "en": "Shade and Shape"
+       },
+       "texto": {
+        "es": "Se confirman al inicio: el molde de partida.",
+        "en": "Confirmed at the start: the starting mold."
+       }
+      },
+      {
+       "titulo": {
+        "es": "VDO",
+        "en": "VDO"
+       },
+       "texto": {
+        "es": "La base; en el articulador.",
+        "en": "The foundation; on the articulator."
+       }
+      },
+      {
+       "titulo": {
+        "es": "Incisal Edge",
+        "en": "Incisal Edge"
+       },
+       "texto": {
+        "es": "Sube o baja todo el arco superior.",
+        "en": "Raises or lowers the whole upper arch."
+       }
+      },
+      {
+       "titulo": {
+        "es": "Midline",
+        "en": "Midline"
+       },
+       "texto": {
+        "es": "Se coloca y se bloquea.",
+        "en": "Placed and locked."
+       }
+      },
+      {
+       "titulo": {
+        "es": "Occlusal Cant",
+        "en": "Occlusal Cant"
+       },
+       "texto": {
+        "es": "Con la midline protegida.",
+        "en": "With the midline protected."
+       }
+      },
+      {
+       "titulo": {
+        "es": "Occlusal Plane",
+        "en": "Occlusal Plane"
+       },
+       "texto": {
+        "es": "Después del borde incisal, contando con los molares.",
+        "en": "After the incisal edge, accounting for the molars."
+       }
+      },
+      {
+       "titulo": {
+        "es": "Arch Rotation y Lip Support",
+        "en": "Arch Rotation and Lip Support"
+       },
+       "texto": {
+        "es": "Giros y traslaciones sutiles.",
+        "en": "Subtle swings and translations."
+       }
+      },
+      {
+       "titulo": {
+        "es": "Arch Size y Degree",
+        "en": "Arch Size and Degree"
+       },
+       "texto": {
+        "es": "Plantillas de biblioteca, elegidas antes de diseñar.",
+        "en": "Library templates, chosen before designing."
+       }
+      }
+     ]
+    },
+    {
+     "t": "tour",
+     "titulo": {
+      "es": "Un caso combinado",
+      "en": "A combined case"
+     },
+     "escenas": [
+      {
+       "p": {},
+       "cam": "frontal",
+       "texto": {
+        "es": "Caso: incisally 1 mm, midline 1 mm right y plano oclusal up 1 mm. Partimos de la demodenture.",
+        "en": "Case: incisally 1 mm, midline 1 mm right and occlusal plane up 1 mm. We start from the demodenture."
+       },
+       "resaltar": [
+        "fantasma"
+       ],
+       "seg": 4
+      },
+      {
+       "p": {
+        "incisal": -1,
+        "midline": 1
+       },
+       "cam": "frontal",
+       "texto": {
+        "es": "Primero el borde incisal baja todo el arco; luego la midline rota 1 mm y se bloquea.",
+        "en": "First the incisal edge lowers the whole arch; then the midline rotates 1 mm and is locked."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 5
+      },
+      {
+       "p": {
+        "incisal": -1,
+        "midline": 1,
+        "plano": 1
+       },
+       "cam": "perfil",
+       "texto": {
+        "es": "Al final el plano oclusal sube los molares 1 mm, midiendo sobre el borde incisal ya movido.",
+        "en": "Finally the occlusal plane raises the molars 1 mm, measured on the already-moved incisal edge."
+       },
+       "resaltar": [
+        "fantasma",
+        "estatico"
+       ],
+       "seg": 6
+      }
+     ]
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Cómo se marca la demodenture",
+      "en": "How the demodenture is marked"
+     },
+     "cuerpo": {
+      "es": "Las marcas se hacen con un **marcador permanente de punta ultrafina, color oscuro**, con **líneas delgadas** (\"thin sharpie, no thick lines\"): las líneas gruesas restan precisión. Se marcan: borde incisal, midline (demodenture superior), caninos (cant) y molares superiores (plano oclusal). Además de la marca, el doctor indica los milímetros en el menú desplegable de la receta. El VDO y el Arch Size no se marcan: solo menú.",
+      "en": "Marks are made with a **dark, ultrafine-tip permanent marker**, using **thin lines** (\"thin sharpie, no thick lines\"): thick lines reduce precision. Marked are: incisal edge, midline (upper demodenture), canines (cant) and upper molars (occlusal plane). Besides the mark, the doctor sets the millimeters in the RX dropdown. VDO and Arch Size are not marked: menu only."
+     },
+     "porque": {
+      "es": "La marca dice DÓNDE; el menú dice CUÁNTO. Con ambos no hay ambigüedad.",
+      "en": "The mark says WHERE; the menu says HOW MUCH. With both there is no ambiguity."
+     }
+    },
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Límites de material",
+      "en": "Material limits"
+     },
+     "cuerpo": {
+      "es": "Los cambios pueden chocar con el material. La garantía **24-Z** exige espesor mínimo: en arcos A, AW, B, BW, **10 mm** posterior y **12 mm** anterior; en C y CW, **12 mm** posterior y **14 mm** anterior. El voladizo máximo es de **15 mm**. Si un cambio lo rebasa, el laboratorio alerta al doctor.",
+      "en": "Changes can collide with the material. The **24-Z** warranty requires minimum thickness: in arches A, AW, B, BW, **10 mm** posterior and **12 mm** anterior; in C and CW, **12 mm** posterior and **14 mm** anterior. Maximum cantilever is **15 mm**. If a change exceeds it, the lab alerts the doctor."
+     },
+     "alerta": {
+      "es": "En la versión en español, el punto 2 repite por error A, AW, B, BW; el inglés dice C, CW. Confirmar con el manager.",
+      "en": "In the Spanish version, point 2 mistakenly repeats A, AW, B, BW; the English says C, CW. Confirm with the manager."
+     }
+    },
+    {
+     "t": "calculadora",
+     "id": "espesor24z",
+     "titulo": {
+      "es": "Calculadora de espesor 24z",
+      "en": "24z thickness calculator"
+     },
+     "guia": {
+      "es": "Elige un tamaño y mira los mínimos que debe respetar cualquier cambio.",
+      "en": "Pick a size and see the minimums any change must respect."
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Lo esencial",
+      "en": "Key takeaways"
+     },
+     "puntos": [
+      {
+       "es": "El orden numérico no es el de ejecución, pero hay dependencias.",
+       "en": "Numeric order is not execution order, but dependencies exist."
+      },
+      {
+       "es": "Midline se bloquea; plano oclusal se mide tras mover el borde incisal.",
+       "en": "Midline is locked; occlusal plane is measured after moving the incisal edge."
+      },
+      {
+       "es": "Marcador ultrafino, líneas delgadas; la marca dice dónde y el menú cuánto.",
+       "en": "Ultrafine marker, thin lines; the mark says where and the menu how much."
+      },
+      {
+       "es": "Los límites de material mandan: si no cabe, se avisa.",
+       "en": "Material limits rule: if it does not fit, tell."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "orden",
+       "enunciado": {
+        "es": "Ordena una secuencia lógica de cambios.",
+        "en": "Order a logical sequence of changes."
+       },
+       "items": [
+        {
+         "es": "VDO",
+         "en": "VDO"
+        },
+        {
+         "es": "Incisal Edge",
+         "en": "Incisal Edge"
+        },
+        {
+         "es": "Midline (se bloquea)",
+         "en": "Midline (gets locked)"
+        },
+        {
+         "es": "Occlusal Plane",
+         "en": "Occlusal Plane"
+        }
+       ],
+       "explicacion": {
+        "es": "El VDO es la base; la midline se bloquea y el plano oclusal se mide tras mover el borde incisal.",
+        "en": "VDO is the foundation; the midline is locked and the occlusal plane is measured after moving the incisal edge."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué marcador se usa en la demodenture y por qué?",
+        "en": "Which marker is used on the demodenture and why?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Marcador grueso rojo",
+          "en": "Thick red marker"
+         }
+        },
+        {
+         "texto": {
+          "es": "Lápiz de grafito",
+          "en": "Graphite pencil"
+         }
+        },
+        {
+         "texto": {
+          "es": "Permanente ultrafino oscuro, líneas delgadas: las gruesas restan precisión",
+          "en": "Dark ultrafine permanent marker, thin lines: thick ones reduce precision"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "La precisión de la marca depende de que la línea sea fina.",
+        "en": "Mark precision depends on the line being thin."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "Se excede el espesor mínimo con un cambio pedido. ¿Qué hace el laboratorio?",
+        "en": "A requested change exceeds minimum thickness. What does the lab do?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Alerta al doctor",
+          "en": "Alerts the doctor"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Lo hace igual",
+          "en": "Does it anyway"
+         }
+        },
+        {
+         "texto": {
+          "es": "Lo ignora en silencio",
+          "en": "Silently ignores it"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El lab ve el material; si no se puede, avisa.",
+        "en": "The lab sees the material; if it cannot, it tells."
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "m3-l12",
+   "titulo": {
+    "es": "Examen práctico del lenguaje",
+    "en": "Language practical exam"
+   },
+   "minutos": 10,
+   "pasos": [
+    {
+     "t": "texto",
+     "titulo": {
+      "es": "Pon todo en práctica",
+      "en": "Put it all into practice"
+     },
+     "cuerpo": {
+      "es": "Ahora vas a traducir peticiones de doctores al lenguaje de Nuvia. Recuerda: izquierda/derecha del paciente, signos del simulador (midline + = right; incisal + = apically; plano + = molares apically; rotacion + = molares a la derecha; labio + = facially) y que la midline se bloquea.",
+      "en": "Now you will translate doctors' requests into Nuvia's language. Remember: patient's left/right, simulator signs (midline + = right; incisal + = apically; plane + = molars apically; rotation + = molars to the right; lip + = facially) and that the midline gets locked."
+     }
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Reto 1: sonrisa más baja y centrada",
+      "en": "Challenge 1: lower and centered smile"
+     },
+     "guia": {
+      "es": "Aplica ambos cambios en el orden lógico.",
+      "en": "Apply both changes in the logical order."
+     },
+     "foco": [
+      "incisal",
+      "midline"
+     ],
+     "vista": "frontal",
+     "reto": {
+      "enunciado": {
+       "es": "Baja el borde incisal 1 mm (incisally) y mueve la midline 1 mm a la derecha de la paciente.",
+       "en": "Lower the incisal edge 1 mm (incisally) and move the midline 1 mm to the patient's right."
+      },
+      "objetivo": {
+       "incisal": -1,
+       "midline": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Reto 2: inclinación y molares",
+      "en": "Challenge 2: tilt and molars"
+     },
+     "guia": {
+      "es": "Cant y plano oclusal combinados. Pivote del cant y del plano: la zona de 8/9.",
+      "en": "Cant and occlusal plane combined. Pivot for cant and plane: the 8/9 area."
+     },
+     "foco": [
+      "cant",
+      "plano"
+     ],
+     "vista": "frontal",
+     "reto": {
+      "enunciado": {
+       "es": "Sube el canino izquierdo 1 mm (apically) y los molares 1 mm (apically).",
+       "en": "Raise the left canine 1 mm (apically) and the molars 1 mm (apically)."
+      },
+      "objetivo": {
+       "cant": 1,
+       "plano": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Reto 3: apertura y soporte",
+      "en": "Challenge 3: opening and support"
+     },
+     "guia": {
+      "es": "VDO se cambia en articulador; aquí solo practicamos la dirección.",
+      "en": "VDO is changed on the articulator; here we only practice direction."
+     },
+     "foco": [
+      "vdo",
+      "labio"
+     ],
+     "vista": "perfil",
+     "reto": {
+      "enunciado": {
+       "es": "Abre el VDO 2 mm y lleva la prótesis 1 mm facially.",
+       "en": "Open VDO 2 mm and bring the prosthesis 1 mm facially."
+      },
+      "objetivo": {
+       "vdo": 2,
+       "labio": 1
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "simulador",
+     "titulo": {
+      "es": "Reto 4: rotación y tamaño",
+      "en": "Challenge 4: rotation and size"
+     },
+     "guia": {
+      "es": "Rotación de molares a la izquierda y plantilla BW con 5°.",
+      "en": "Molar rotation to the left and BW template with 5°."
+     },
+     "foco": [
+      "rotacion",
+      "tamano",
+      "grado"
+     ],
+     "vista": "oclusal",
+     "reto": {
+      "enunciado": {
+       "es": "Gira los molares 1 mm a la izquierda del paciente; elige BW con 5°.",
+       "en": "Swing the molars 1 mm to the patient's left; pick BW with 5°."
+      },
+      "objetivo": {
+       "rotacion": -1,
+       "tamano": 3,
+       "grado": 5
+      },
+      "tolerancia": 0.25
+     }
+    },
+    {
+     "t": "resumen",
+     "titulo": {
+      "es": "Antes del examen",
+      "en": "Before the exam"
+     },
+     "puntos": [
+      {
+       "es": "Cada movimiento tiene punto estático propio: midline = paladar; cant, plano y rotación = borde incisal 8/9.",
+       "en": "Each movement has its own static point: midline = palate; cant, plane and rotation = 8/9 incisal edge."
+      },
+      {
+       "es": "Incisal edge es traslación vertical sin pivote; el VDO mueve la mandíbula.",
+       "en": "Incisal edge is a vertical translation with no pivot; VDO moves the lower jaw."
+      },
+      {
+       "es": "Si no se puede, se avisa.",
+       "en": "If it cannot be done, tell."
+      }
+     ]
+    },
+    {
+     "t": "quiz",
+     "preguntas": [
+      {
+       "tipo": "parejas",
+       "enunciado": {
+        "es": "Une cada movimiento con su punto estático.",
+        "en": "Match each movement with its static point."
+       },
+       "pares": [
+        {
+         "a": {
+          "es": "Midline",
+          "en": "Midline"
+         },
+         "b": {
+          "es": "Centro del paladar",
+          "en": "Middle of the palate"
+         }
+        },
+        {
+         "a": {
+          "es": "Occlusal Cant",
+          "en": "Occlusal Cant"
+         },
+         "b": {
+          "es": "Midline en el borde incisal 8/9",
+          "en": "Midline at the 8/9 incisal edge"
+         }
+        },
+        {
+         "a": {
+          "es": "Occlusal Plane",
+          "en": "Occlusal Plane"
+         },
+         "b": {
+          "es": "Borde incisal en la midline de 8/9",
+          "en": "Incisal edge at the 8/9 midline"
+         }
+        },
+        {
+         "a": {
+          "es": "Incisal Edge",
+          "en": "Incisal Edge"
+         },
+         "b": {
+          "es": "Ninguno (traslación vertical)",
+          "en": "None (vertical translation)"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Midline rota sobre el paladar; cant y plano usan 8/9; el borde incisal es traslación pura.",
+        "en": "Midline rotates on the palate; cant and plane use 8/9; the incisal edge is a pure translation."
+       }
+      },
+      {
+       "tipo": "orden",
+       "enunciado": {
+        "es": "Ordena de más protegido a primero sacrificado cuando falta espacio.",
+        "en": "Order from most protected to first sacrificed when space is short."
+       },
+       "items": [
+        {
+         "es": "Borde incisal",
+         "en": "Incisal edge"
+        },
+        {
+         "es": "Midline",
+         "en": "Midline"
+        },
+        {
+         "es": "Plano oclusal",
+         "en": "Occlusal plane"
+        }
+       ],
+       "explicacion": {
+        "es": "Se protegen borde incisal y midline; el plano oclusal se sacrifica primero.",
+        "en": "Incisal edge and midline are protected; the occlusal plane is sacrificed first."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "El doctor quiere que los molares vayan a la derecha del paciente sin cambiar la línea media. ¿Qué pide?",
+        "en": "The doctor wants the molars to go to the patient's right without changing the midline. What to request?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Midline right",
+          "en": "Midline right"
+         }
+        },
+        {
+         "texto": {
+          "es": "Arch Rotation right",
+          "en": "Arch Rotation right"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Lip Support facially",
+          "en": "Lip Support facially"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "Arch Rotation mueve los molares con pivote en 8/9; la midline giraría sobre el paladar.",
+        "en": "Arch Rotation moves the molars pivoting at 8/9; the midline would rotate about the palate."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "En Single 24z con demo igual que en N2, el doctor pide el borde incisal 1.5 mm incisally. ¿Qué evita la clase I rota?",
+        "en": "In Single 24z with demo as in N2, the doctor asks incisal edge 1.5 mm incisally. What avoids a broken Class I?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Cambiar el arch size",
+          "en": "Changing the arch size"
+         }
+        },
+        {
+         "texto": {
+          "es": "Pedir un cant",
+          "en": "Requesting a cant"
+         }
+        },
+        {
+         "texto": {
+          "es": "Abrir el VDO 1.5 mm",
+          "en": "Opening VDO 1.5 mm"
+         },
+         "ok": true
+        }
+       ],
+       "explicacion": {
+        "es": "El inferior baja con el VDO y vuelve a ocluir.",
+        "en": "The lower arch drops with the VDO and occludes again."
+       }
+      },
+      {
+       "tipo": "vf",
+       "enunciado": {
+        "es": "Mover la midline desplaza todo el maxilar como un bloque.",
+        "en": "Moving the midline shifts the whole maxilla as a block."
+       },
+       "ok": false,
+       "explicacion": {
+        "es": "Es una rotación sobre el centro del paladar.",
+        "en": "It is a rotation about the middle of the palate."
+       }
+      },
+      {
+       "tipo": "una",
+       "enunciado": {
+        "es": "¿Qué hace el laboratorio si un cambio no cabe por espacio o implantes?",
+        "en": "What does the lab do if a change does not fit due to space or implants?"
+       },
+       "opciones": [
+        {
+         "texto": {
+          "es": "Alerta al doctor",
+          "en": "Alerts the doctor"
+         },
+         "ok": true
+        },
+        {
+         "texto": {
+          "es": "Lo omite en silencio",
+          "en": "Silently omits it"
+         }
+        },
+        {
+         "texto": {
+          "es": "Cambia el producto sin decir",
+          "en": "Changes the product without telling"
+         }
+        }
+       ],
+       "explicacion": {
+        "es": "El principio es: si no se puede, se avisa.",
+        "en": "The principle is: if it cannot be done, tell."
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "glosario": [
+  {
+   "id": "vdo",
+   "termino": {
+    "es": "VDO",
+    "en": "VDO"
+   },
+   "def": {
+    "es": "Vertical Dimension of Occlusion: cuánto está abierta la mordida. Se cambia en el articulador con el pin y mueve la mandíbula.",
+    "en": "Vertical Dimension of Occlusion: how open the bite is. Changed on the articulator with the pin; it moves the lower jaw."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "articulador",
+   "termino": {
+    "es": "Articulador (Panadent)",
+    "en": "Articulator (Panadent)"
+   },
+   "def": {
+    "es": "Aparato físico donde se montan los modelos y se ajusta el VDO.",
+    "en": "Physical device where models are mounted and VDO is adjusted."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "pin",
+   "termino": {
+    "es": "Pin del articulador",
+    "en": "Articulator pin"
+   },
+   "def": {
+    "es": "Pasador que se gradúa para abrir o cerrar el VDO.",
+    "en": "Pin adjusted to open or close the VDO."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "demodenture",
+   "termino": {
+    "es": "Demodenture",
+    "en": "Demodenture"
+   },
+   "def": {
+    "es": "Prótesis de demostración probada en boca; referencia de todos los cambios.",
+    "en": "Trial prosthesis tried in the mouth; the reference for all changes."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "rx",
+   "termino": {
+    "es": "RX (receta)",
+    "en": "RX (prescription)"
+   },
+   "def": {
+    "es": "Formulario donde el doctor indica los cambios con su menú desplegable.",
+    "en": "Form where the doctor specifies changes through its dropdown menu."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "static-point",
+   "termino": {
+    "es": "Punto estático",
+    "en": "Static point"
+   },
+   "def": {
+    "es": "Punto que no se mueve durante una rotación.",
+    "en": "Point that does not move during a rotation."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "incisal-edge",
+   "termino": {
+    "es": "Incisal Edge Position",
+    "en": "Incisal Edge Position"
+   },
+   "def": {
+    "es": "Movimiento vertical de todo el arco superior como bloque; controla el borde de 8 y 9.",
+    "en": "Vertical movement of the whole upper arch as a block; controls the edge of 8 and 9."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "apically",
+   "termino": {
+    "es": "Apically",
+    "en": "Apically"
+   },
+   "def": {
+    "es": "Hacia el ápice: hacia ARRIBA.",
+    "en": "Toward the apex: UP."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "incisally",
+   "termino": {
+    "es": "Incisally",
+    "en": "Incisally"
+   },
+   "def": {
+    "es": "Hacia el borde incisal: hacia ABAJO.",
+    "en": "Toward the incisal edge: DOWN."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "occlusally",
+   "termino": {
+    "es": "Occlusally",
+    "en": "Occlusally"
+   },
+   "def": {
+    "es": "Hacia la oclusión: hacia abajo (en cant y plano oclusal).",
+    "en": "Toward the occlusion: down (in cant and occlusal plane)."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "midline",
+   "termino": {
+    "es": "Midline",
+    "en": "Midline"
+   },
+   "def": {
+    "es": "Línea media entre los incisivos 8 y 9; se mueve con una rotación sobre el centro del paladar y luego se bloquea.",
+    "en": "Line between incisors 8 and 9; moved by a rotation about the middle of the palate, then locked."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "occlusal-cant",
+   "termino": {
+    "es": "Occlusal Cant",
+    "en": "Occlusal Cant"
+   },
+   "def": {
+    "es": "Inclinación del plano oclusal visto de frente; balancín con pivote en la midline.",
+    "en": "Tilt of the occlusal plane seen from the front; a seesaw pivoting at the midline."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "occlusal-plane",
+   "termino": {
+    "es": "Occlusal Plane",
+    "en": "Occlusal Plane"
+   },
+   "def": {
+    "es": "Rotación del arco visto de perfil con pivote en el borde incisal 8/9; cambia la curva de Spee.",
+    "en": "Rotation of the arch seen in profile pivoting at the 8/9 incisal edge; changes the curve of Spee."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "curva-spee",
+   "termino": {
+    "es": "Curva de Spee",
+    "en": "Curve of Spee"
+   },
+   "def": {
+    "es": "Curvatura de los dientes posteriores vista de perfil.",
+    "en": "Curvature of the posterior teeth seen in profile."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "arch-rotation",
+   "termino": {
+    "es": "Arch Rotation",
+    "en": "Arch Rotation"
+   },
+   "def": {
+    "es": "Giro horizontal (yaw) del arco; mueve los molares, con pivote en 8/9.",
+    "en": "Horizontal swing (yaw) of the arch; moves the molars, pivoting at 8/9."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "lip-support",
+   "termino": {
+    "es": "Lip Support",
+    "en": "Lip Support"
+   },
+   "def": {
+    "es": "Movimiento adelante-atrás de la prótesis respecto al labio.",
+    "en": "Forward-back movement of the prosthesis relative to the lip."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "facially",
+   "termino": {
+    "es": "Facially",
+    "en": "Facially"
+   },
+   "def": {
+    "es": "Hacia delante, hacia el labio.",
+    "en": "Forward, toward the lip."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "palatally",
+   "termino": {
+    "es": "Palatally",
+    "en": "Palatally"
+   },
+   "def": {
+    "es": "Hacia atrás, hacia el paladar.",
+    "en": "Back, toward the palate."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "arch-size",
+   "termino": {
+    "es": "Arch Size",
+    "en": "Arch Size"
+   },
+   "def": {
+    "es": "Tamaño de la plantilla de biblioteca del arco: A, AW, B, BW, C, CW.",
+    "en": "Size of the arch library template: A, AW, B, BW, C, CW."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "wider",
+   "termino": {
+    "es": "W (Wider)",
+    "en": "W (Wider)"
+   },
+   "def": {
+    "es": "Sufijo de AW, BW y CW: 4-5 mm más ancho con los mismos dientes.",
+    "en": "Suffix of AW, BW and CW: 4-5 mm wider with the same teeth."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "degree",
+   "termino": {
+    "es": "Degree",
+    "en": "Degree"
+   },
+   "def": {
+    "es": "Inclinación de los incisivos de la plantilla: 5° o 10°.",
+    "en": "Inclination of the template's incisors: 5° or 10°."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "shade",
+   "termino": {
+    "es": "Shade",
+    "en": "Shade"
+   },
+   "def": {
+    "es": "Color del diente.",
+    "en": "Tooth color."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "shape",
+   "termino": {
+    "es": "Shape",
+    "en": "Shape"
+   },
+   "def": {
+    "es": "Forma planeada del diente: Round, Square o Natural.",
+    "en": "Planned tooth form: Round, Square or Natural."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "single-24z",
+   "termino": {
+    "es": "Single 24z",
+    "en": "Single 24z"
+   },
+   "def": {
+    "es": "Producto de un arco en zirconia; en N3 solo admite cambios de VDO y borde incisal.",
+    "en": "One-arch zirconia product; in N3 only VDO and incisal edge changes are allowed."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "g-cam",
+   "termino": {
+    "es": "G-CAM",
+    "en": "G-CAM"
+   },
+   "def": {
+    "es": "Producto alternativo cuando no se puede cumplir 24z (oclusión o medidas).",
+    "en": "Alternative product when 24z cannot be met (occlusion or measurements)."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "clase-i",
+   "termino": {
+    "es": "Clase I",
+    "en": "Class I"
+   },
+   "def": {
+    "es": "Oclusión aprobada en N2 que se conserva en N3 Single 24z.",
+    "en": "Occlusion approved in N2 that is kept in N3 Single 24z."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "cantilever",
+   "termino": {
+    "es": "Cantilever (voladizo)",
+    "en": "Cantilever"
+   },
+   "def": {
+    "es": "Parte del puente más allá del último implante; máximo 15 mm en garantía 24-Z.",
+    "en": "Part of the bridge beyond the last implant; maximum 15 mm under the 24-Z warranty."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "ultrafine",
+   "termino": {
+    "es": "Marcador ultrafino",
+    "en": "Ultrafine marker"
+   },
+   "def": {
+    "es": "Permanente de punta ultrafina, oscuro, con líneas delgadas para marcar la demodenture.",
+    "en": "Ultrafine-tip dark permanent marker, thin lines, used to mark the demodenture."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "lock",
+   "termino": {
+    "es": "Bloqueo de la midline",
+    "en": "Midline lock"
+   },
+   "def": {
+    "es": "Una vez colocada, los diseñadores la fijan y no cambia con los demás movimientos.",
+    "en": "Once placed, designers fix it and it does not change with other movements."
+   },
+   "cat": "lenguaje"
+  },
+  {
+   "id": "sagital",
+   "termino": {
+    "es": "Vista sagital (perfil)",
+    "en": "Sagittal view (profile)"
+   },
+   "def": {
+    "es": "Vista de lado; se usa para plano oclusal y lip support.",
+    "en": "Side view; used for occlusal plane and lip support."
+   },
+   "cat": "lenguaje"
+  }
+ ]
+}

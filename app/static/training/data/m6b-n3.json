@@ -1,0 +1,598 @@
+{
+  "id": "m6b-n3",
+  "orden": 8,
+  "icono": "🔷",
+  "titulo": {"es": "N3: prótesis definitivas y protocolos comunes", "en": "N3: definitive prostheses and shared protocols"},
+  "resumen": {"es": "Cómo se diseña la prótesis definitiva sobre implantes (Full Mouth, Single 24z, barras, TC, Nightguard, removible) y los protocolos que comparten N3 y N6, explicados por su porqué.", "en": "How the definitive implant prosthesis is designed (Full Mouth, Single 24z, bars, TC, Nightguard, removable) and the protocols N3 and N6 share, explained by their why."},
+  "nivel": "avanzado",
+  "lecciones": [
+    {
+      "id": "m6b-l1",
+      "titulo": {"es": "Mapa de productos N3 y N6", "en": "N3 and N6 product map"},
+      "minutos": 8,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "El problema que resuelve N3", "en": "The problem N3 solves"},
+          "cuerpo": {"es": "Imagina que a un paciente le quitan todos los dientes y le colocan implantes (tornillos de titanio en el hueso). Al día siguiente debe salir con dientes fijos y definitivos. Alguien tiene que diseñar, en computadora, la pieza que se atornilla sobre esos implantes y que encaje exacta en la boca. Ese es el trabajo de **N3**. **N6** diseña después los cambios de material sobre el mismo diseño, y comparte con N3 los protocolos comunes.", "en": "Imagine a patient has all their teeth removed and receives implants (titanium screws in the bone). The next day they must leave with fixed, definitive teeth. Someone has to design, on a computer, the piece that screws onto those implants and fits the mouth exactly. That is the job of **N3**. **N6** later designs material changes on top of the same design, and shares the common protocols with N3."},
+          "porque": {"es": "Los protocolos comunes se reutilizan en casi todos los productos: así todos miden, alinean y documentan igual, y un caso puede pasar de un diseñador a otro sin sorpresas.", "en": "Common protocols are reused across almost every product: everyone measures, aligns and documents the same way, so a case can move between designers without surprises."}},
+        {"t": "flujo", "titulo": {"es": "La línea de un caso con implantes", "en": "The timeline of an implant case"},
+          "pasos": [
+            {"titulo": {"es": "N2: sonrisa y oclusión", "en": "N2: smile and occlusion"}, "texto": {"es": "Diseña la morfología (waxup) y cómo encajan los dientes en la dentadura provisional (demo).", "en": "Designs the morphology (waxup) and how the teeth fit together in the provisional denture (demo)."}},
+            {"titulo": {"es": "Cirugía y registro", "en": "Surgery and record"}, "texto": {"es": "La clínica coloca implantes y registra su posición real (pickup y/o ICAM/Micron).", "en": "The clinic places the implants and records their real position (pickup and/or ICAM/Micron)."}},
+            {"titulo": {"es": "N3/N6: escena de la mordida", "en": "N3/N6: bite scene"}, "texto": {"es": "Se alinean los archivos, se verifica que los implantes coincidan y se decide si hay que omitir alguno (skip).", "en": "Files are aligned, implants are checked for agreement, and a decision is made on whether any must be skipped."}},
+            {"titulo": {"es": "Diseño de piezas", "en": "Piece design"}, "texto": {"es": "Guía de articulación, barra, TC y, si aplica, cortes de barra, Nightguard o removible.", "en": "Articulation guide, bar, TC and, if applicable, bar cuts, Nightguard or removable."}},
+            {"titulo": {"es": "Laboratorio y cita N4", "en": "Lab and N4 appointment"}, "texto": {"es": "El laboratorio fresa o imprime y la prótesis se entrega al paciente.", "en": "The lab mills or prints and the prosthesis is delivered to the patient."}}
+          ]},
+        {"t": "tarjetas", "titulo": {"es": "Quién es quién", "en": "Who is who"},
+          "items": [
+            {"icono": "📍", "titulo": {"es": "Pickup", "en": "Pickup"}, "texto": {"es": "Registro físico en yeso (stumps) que copia dónde están los implantes.", "en": "Physical plaster record (stumps) that copies where the implants are."}},
+            {"icono": "📸", "titulo": {"es": "ICAM / Micron", "en": "ICAM / Micron"}, "texto": {"es": "Posición de implantes medida en boca por fotogrametría; el registro más preciso.", "en": "Implant position measured in the mouth by photogrammetry; the most precise record."}},
+            {"icono": "🔩", "titulo": {"es": "Barra", "en": "Bar"}, "texto": {"es": "Estructura que une los implantes y sostiene los dientes.", "en": "Structure that connects the implants and holds the teeth."}},
+            {"icono": "🦷", "titulo": {"es": "TC", "en": "TC"}, "texto": {"es": "Cubierta de dientes que se cementa sobre la barra.", "en": "Tooth cover that is cemented over the bar."}},
+            {"icono": "🌙", "titulo": {"es": "Nightguard (NG)", "en": "Nightguard (NG)"}, "texto": {"es": "Férula nocturna que protege la prótesis final.", "en": "Night splint that protects the final prosthesis."}},
+            {"icono": "🛡️", "titulo": {"es": "Removable", "en": "Removable"}, "texto": {"es": "Dentadura removible acrílica diseñada desde la barra y el tissue del N3.", "en": "Removable acrylic denture designed from the N3 bar and tissue."}}
+          ]},
+        {"t": "calculadora", "id": "tiempos", "titulo": {"es": "Tiempos de diseño por producto", "en": "Design times per product"},
+          "guia": {"es": "Explora cuánto tarda cada producto. Son horas de trabajo del diseñador, no plazos de calendario.", "en": "Explore how long each product takes. These are designer working hours, not calendar deadlines."}},
+        {"t": "texto", "titulo": {"es": "Tiempos: úsalos con cuidado", "en": "Times: use with care"},
+          "cuerpo": {"es": "Los tiempos de referencia son para planificar, no garantías. Los plazos de calendario (por ejemplo cuánto tiene el laboratorio) son otra cosa y no se mezclan con las horas de diseño.", "en": "Reference times are for planning, not guarantees. Calendar deadlines (for example how long the lab has) are a different thing and are not mixed with design hours."},
+          "alerta": {"es": "Confirmar con el manager: la hoja de tiempos muestra Nightguard en 0:45 h, pero el protocolo de Nightguard dice 30 minutos (máximo 1 día). Además hay sumas que no cuadran en N6. Tómalas como orientativas.", "en": "Confirm with the manager: the times sheet shows Nightguard at 0:45 h, but the Nightguard protocol says 30 minutes (maximum 1 day). Some N6 sums also do not add up. Treat them as indicative."}},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "N3 diseña la prótesis definitiva sobre implantes; N6 comparte sus protocolos comunes.", "en": "N3 designs the definitive implant prosthesis; N6 shares its common protocols."},
+            {"es": "El registro de implantes (pickup, ICAM/Micron) es la base de todo lo demás.", "en": "The implant record (pickup, ICAM/Micron) is the foundation for everything else."},
+            {"es": "Meeting y oclusión son satélites: aseguran que el diseño coincida con lo que el doctor espera.", "en": "Meetings and occlusion are satellites: they ensure the design matches what the doctor expects."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "orden", "enunciado": {"es": "Ordena el recorrido de un caso con implantes.", "en": "Order the journey of an implant case."},
+            "items": [{"es": "N2 diseña sonrisa y oclusión", "en": "N2 designs smile and occlusion"}, {"es": "Cirugía y registro de implantes", "en": "Surgery and implant record"}, {"es": "N3/N6 monta la mordida y diseña piezas", "en": "N3/N6 builds the bite and designs pieces"}, {"es": "Laboratorio fresa y se entrega", "en": "Lab mills and prosthesis is delivered"}],
+            "explicacion": {"es": "Cada etapa depende de la anterior: sin oclusión y registro no hay base para diseñar.", "en": "Each stage depends on the previous one: without occlusion and record there is no basis to design."}},
+          {"tipo": "parejas", "enunciado": {"es": "Relaciona cada término con su función.", "en": "Match each term to its function."},
+            "pares": [{"a": {"es": "Pickup", "en": "Pickup"}, "b": {"es": "Yeso con stumps que copia los implantes", "en": "Plaster with stumps copying the implants"}}, {"a": {"es": "ICAM", "en": "ICAM"}, "b": {"es": "Posición de implantes medida en boca", "en": "Implant position measured in the mouth"}}, {"a": {"es": "TC", "en": "TC"}, "b": {"es": "Cubierta de dientes sobre la barra", "en": "Tooth cover over the bar"}}, {"a": {"es": "Nightguard", "en": "Nightguard"}, "b": {"es": "Férula que protege la prótesis", "en": "Splint that protects the prosthesis"}}],
+            "explicacion": {"es": "Cada pieza tiene un papel distinto en la cadena de diseño.", "en": "Each piece has a different role in the design chain."}},
+          {"tipo": "vf", "enunciado": {"es": "Las horas de la tabla de tiempos son lo mismo que el plazo de calendario que tiene el laboratorio.", "en": "The hours in the times table are the same as the calendar deadline the lab has."}, "ok": false,
+            "explicacion": {"es": "Son horas de trabajo del diseñador; los plazos de calendario son otra medida y no se mezclan.", "en": "They are designer working hours; calendar deadlines are a different measure and are not mixed."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l2",
+      "titulo": {"es": "Full Mouth 24Z: preparar y revisar archivos", "en": "Full Mouth 24Z: prepare and review files"},
+      "minutos": 9,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "Qué es un Full Mouth 24Z", "en": "What a Full Mouth 24Z is"},
+          "cuerpo": {"es": "Es el producto en el que se quitan todos los dientes naturales de **dos arcos** (Upper y Lower) y el paciente sale 24 horas después con una prótesis total de zirconia, fija y permanente. La prótesis de stock tiene 12 dientes por arco y una mordida estándar clase 1. El protocolo guía al diseñador desde que recibe la orden hasta entregar los archivos al laboratorio para fresar (milling).", "en": "This is the product where all natural teeth in **two arches** (Upper and Lower) are removed and the patient leaves 24 hours later with a fixed, permanent full zirconia prosthesis. The stock prosthesis has 12 teeth per arch and a standard class 1 bite. The protocol guides the designer from receiving the order to delivering the files to the lab for milling."},
+          "dato": {"es": "Tiempo objetivo sin retrasos: 1 h 30 min. El flujo (WF) debe ser 24 H.", "en": "Target time without delays: 1 h 30 min. The workflow (WF) must be 24 H."}},
+        {"t": "flujo", "titulo": {"es": "Las etapas del Full Mouth", "en": "Full Mouth stages"},
+          "pasos": [
+            {"titulo": {"es": "Preparación", "en": "Preparation"}, "texto": {"es": "Leer orden, comentarios del doctor y RX; descargar scans e ICAM/Micron.", "en": "Read the order, doctor comments and RX; download scans and ICAM/Micron."}},
+            {"titulo": {"es": "Revisión de archivos (QC)", "en": "File review (QC)"}, "texto": {"es": "Scans completos y mismo número de implantes en RX, ICAM y stumps.", "en": "Complete scans and the same number of implants in RX, ICAM and stumps."}},
+            {"titulo": {"es": "Iniciar y avisar", "en": "Start and notify"}, "texto": {"es": "Estado Initiated en plataforma y aviso en el canal del centro.", "en": "Initiated status on the platform and a notice in the center channel."}},
+            {"titulo": {"es": "Montaje del bite", "en": "Bite assembly"}, "texto": {"es": "Proyecto de 2 arcos y alineación de plato, stumps, tissue y oclusión.", "en": "2-arch project and alignment of plate, stumps, tissue and occlusion."}},
+            {"titulo": {"es": "Verificaciones y cambios", "en": "Checks and changes"}, "texto": {"es": "Pickup, VDO, cambios de la RX, morfología, medidas y access holes.", "en": "Pickup, VDO, RX changes, morphology, measurements and access holes."}},
+            {"titulo": {"es": "Barra, guía y entrega", "en": "Bar, guide and delivery"}, "texto": {"es": "Diseño de barra y guía, evidencias, carpeta Tomill, aprobación.", "en": "Bar and guide design, evidence, Tomill folder, approval."}}
+          ]},
+        {"t": "acordeon", "titulo": {"es": "Por qué se revisa así", "en": "Why we review this way"},
+          "items": [
+            {"titulo": {"es": "Leer la RX y los comentarios antes de empezar", "en": "Read the RX and comments before starting"}, "texto": {"es": "Ahí están los cambios que quiere el doctor. Empezar sin leerlos obliga a rehacer trabajo. Ojo: «No Change (Lab will follow current position)» significa que el doctor NO quiere ese cambio.", "en": "The changes the doctor wants are there. Starting without reading them forces rework. Note: 'No Change (Lab will follow current position)' means the doctor does NOT want that change."}},
+            {"titulo": {"es": "Cortar al descargar, copiar al extraer", "en": "Cut on download, copy on extract"}, "texto": {"es": "Al descargar a la carpeta Surgery se corta para no llenar el disco. Al extraer a Bite Scene se copia, para conservar un original sin editar al que volver.", "en": "When downloading to the Surgery folder you cut, to avoid filling the disk. When extracting to Bite Scene you copy, to keep an unedited original to go back to."}},
+            {"titulo": {"es": "Mismo número de implantes en RX, ICAM y stumps", "en": "Same number of implants in RX, ICAM and stumps"}, "texto": {"es": "Si no coincide hay un implante fantasma u omitido, que cambia el cantilever y los access holes. Se consulta al manager o al laboratorio.", "en": "If they differ there is a ghost or omitted implant, which changes the cantilever and access holes. Ask the manager or lab."}},
+            {"titulo": {"es": "ICAM con proyecto y numeración correctos", "en": "ICAM with correct project and numbering"}, "texto": {"es": "El programa asocia coordenadas a números de implante (13, 16, 23, 26, 33, 43, 46). Con proyecto equivocado o archivo vacío la alineación falla y se piden archivos nuevos a la clínica.", "en": "The program links coordinates to implant numbers (13, 16, 23, 26, 33, 43, 46). With the wrong project or an empty file the alignment fails and new files are requested from the clinic."}},
+            {"titulo": {"es": "El diseño no valida el producto de la orden", "en": "Design does not validate the ordered product"}, "texto": {"es": "Cada tipo de N3 tiene medidas y requisitos distintos, pero decidir si el producto es el correcto no es trabajo del diseño. Si hay dudas, se pregunta al manager.", "en": "Each N3 type has different measurements and requirements, but deciding whether the product is correct is not design's job. If in doubt, ask the manager."}}
+          ]},
+        {"t": "tabla", "titulo": {"es": "Archivos defectuosos: qué significa y qué se hace", "en": "Defective files: what it means and what to do"},
+          "cabeceras": [{"es": "Problema", "en": "Problem"}, {"es": "Por qué importa", "en": "Why it matters"}, {"es": "Acción", "en": "Action"}],
+          "filas": [
+            [{"es": "Plato sin línea media visible", "en": "Plate without visible midline"}, {"es": "Es la prueba de que el caso se articuló bien", "en": "It proves the case was articulated correctly"}, {"es": "Pedir scans nuevos", "en": "Request new scans"}],
+            [{"es": "Stump con material dentro o spray en exceso", "en": "Stump with material inside or excess spray"}, {"es": "Alineaciones erráticas; el spray crea textura irregular", "en": "Erratic alignments; spray creates irregular texture"}, {"es": "Scan o modelo nuevo", "en": "New scan or model"}],
+            [{"es": "Tissue con doble capa", "en": "Tissue with double layer"}, {"es": "No se sabe cuál capa es la correcta", "en": "It is unknown which layer is correct"}, {"es": "Scan nuevo", "en": "New scan"}],
+            [{"es": "ICAM vacío o sin proyecto Exocad", "en": "Empty ICAM or no Exocad project"}, {"es": "Sin coordenadas no se ubica el implante", "en": "Without coordinates the implant cannot be located"}, {"es": "Pedir a la clínica", "en": "Request from the clinic"}]
+          ]},
+        {"t": "checklist", "titulo": {"es": "Autoevaluación: antes de montar el bite", "en": "Self-check: before building the bite"},
+          "items": [
+            {"es": "Leí la orden, la RX y los comentarios del doctor", "en": "I read the order, RX and doctor comments"},
+            {"es": "El stage se llama Design y el WF es 24H", "en": "The stage is named Design and the WF is 24H"},
+            {"es": "Implantes iguales en RX, ICAM y stumps", "en": "Same implants in RX, ICAM and stumps"},
+            {"es": "Scans completos, plato con línea media visible", "en": "Scans complete, plate with visible midline"},
+            {"es": "Avisé en el canal del centro (no en chat privado)", "en": "I notified in the center channel (not private chat)"}
+          ]},
+        {"t": "texto", "titulo": {"es": "La ventana de 45 minutos", "en": "The 45-minute window"},
+          "cuerpo": {"es": "Desde que inicias el caso tienes 45 minutos para reportar problemas que ameriten Hold (medidas, ICAM, access hole). Si no hay problemas, se envía un mensaje de confirmación antes de cumplirse ese tiempo. Avisar pronto ahorra mucho tiempo a diseño y a laboratorio, porque el paciente tiene cirugía con reloj de 24 horas.", "en": "From the moment you start the case you have 45 minutes to report problems that justify a Hold (measurements, ICAM, access hole). If there are none, a confirmation message is sent before that time is up. Reporting early saves design and the lab a lot of time, because the patient is on a 24-hour clock."},
+          "dato": {"es": "Si el doctor debe decidir, se esperan 30 minutos; después manager y regional eligen la opción que el doctor suele escoger.", "en": "If the doctor must decide, wait 30 minutes; then the manager and regional choose the option the doctor usually picks."}},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Lee el protocolo completo de Full Mouth en la página Protocols.", "en": "Read the full Full Mouth protocol on the Protocols page."}, "protocolo": "Full Mouth"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Full Mouth = dos arcos, zirconia, 24 horas, 1 h 30 min objetivo.", "en": "Full Mouth = two arches, zirconia, 24 hours, 1 h 30 min target."},
+            {"es": "La revisión de archivos evita diseñar sobre información falsa.", "en": "File review prevents designing on false information."},
+            {"es": "Se avisa pronto y en el canal del centro, con ventana de 45 min.", "en": "Report early and in the center channel, with a 45-min window."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué debe coincidir el número de implantes de la RX, el ICAM y los stumps?", "en": "Why must the number of implants in the RX, ICAM and stumps match?"},
+            "opciones": [{"texto": {"es": "Una diferencia indica un implante omitido o fantasma que cambia cantilever y access holes", "en": "A difference indicates an omitted or ghost implant that changes cantilever and access holes"}, "ok": true}, {"texto": {"es": "Porque el programa no abre archivos de distinto tamaño", "en": "Because the program does not open files of different size"}}, {"texto": {"es": "Porque el doctor lo exige por estética", "en": "Because the doctor demands it for aesthetics"}}],
+            "explicacion": {"es": "Un implante de más o de menos altera las medidas críticas del diseño.", "en": "An extra or missing implant alters the critical design measurements."}},
+          {"tipo": "una", "enunciado": {"es": "Un tissue tiene doble capa a distinta altura. ¿Qué haces?", "en": "A tissue has a double layer at different heights. What do you do?"},
+            "opciones": [{"texto": {"es": "Trabajar con la capa más alta", "en": "Work with the higher layer"}}, {"texto": {"es": "Pedir un scan nuevo", "en": "Request a new scan"}, "ok": true}, {"texto": {"es": "Suavizarlo hasta que quede una sola capa", "en": "Smooth it until only one layer remains"}}],
+            "explicacion": {"es": "No se sabe cuál capa es la correcta; se trabajaría sobre un registro impreciso.", "en": "It is unknown which layer is correct; you would work on an inaccurate record."}},
+          {"tipo": "vf", "enunciado": {"es": "Al extraer los archivos a Bite Scene se copian (no se cortan) para conservar un original sin editar.", "en": "When extracting files to Bite Scene you copy (not cut) to keep an unedited original."}, "ok": true,
+            "explicacion": {"es": "Así siempre se puede volver atrás.", "en": "That way you can always go back."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l3",
+      "titulo": {"es": "Full Mouth 24Z: bite, pickup y cambios", "en": "Full Mouth 24Z: bite, pickup and changes"},
+      "minutos": 9,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "Montar el bite sin inventar", "en": "Building the bite without inventing"},
+          "cuerpo": {"es": "Montar el bite es como armar un rompecabezas de varias piezas escaneadas (plato, stumps, tissue, oclusión) para que queden en la misma posición que en la boca. El programa alinea comparando formas, por eso los scans deben estar completos: con pocos polígonos la alineación sale mala. Todo parte del plato, que es la referencia física del plano oclusal.", "en": "Building the bite is like assembling a puzzle of several scanned pieces (plate, stumps, tissue, occlusion) so they sit in the same position as in the mouth. The program aligns by comparing shapes, so scans must be complete: with few polygons the alignment turns out poor. Everything starts from the plate, the physical reference of the occlusal plane."},
+          "porque": {"es": "La alineación automática solo se usa entre scans de área igual o muy parecida (mismo modelo de yeso) y en la misma orientación. Se afina con Best Fit Matching.", "en": "Automatic alignment is only used between scans of equal or very similar area (same plaster model) and in the same orientation. It is refined with Best Fit Matching."}},
+        {"t": "tabla", "titulo": {"es": "Cómo leer los colores de similitud", "en": "How to read similarity colors"},
+          "cabeceras": [{"es": "Color", "en": "Color"}, {"es": "Significado", "en": "Meaning"}],
+          "filas": [
+            [{"es": "Azul", "en": "Blue"}, {"es": "Alineación exitosa", "en": "Successful alignment"}],
+            [{"es": "Verde / amarillo", "en": "Green / yellow"}, {"es": "Diferencia pequeña, cercana a 0.05 mm", "en": "Small difference, close to 0.05 mm"}],
+            [{"es": "Rosado", "en": "Pink"}, {"es": "Zonas que no coinciden", "en": "Areas that do not match"}]
+          ]},
+        {"t": "tarjetas", "titulo": {"es": "Verificaciones antes de aplicar cambios", "en": "Checks before applying changes"},
+          "items": [
+            {"icono": "🎯", "titulo": {"es": "Pickup", "en": "Pickup"}, "texto": {"es": "Compara los stumps con los implantes del intaglio. Si el implante se ve levemente desplazado, el laboratorio quizá no siguió su protocolo al hacer los modelos. Se avisa SIEMPRE, pero sin Hold.", "en": "Compares the stumps with the intaglio implants. If the implant looks slightly displaced, the lab may not have followed its protocol making the models. Always report it, but without Hold."}},
+            {"icono": "➖", "titulo": {"es": "Línea media", "en": "Midline"}, "texto": {"es": "La del plato debe ser visible y coincidir con la de la demodenture: demuestra que se articuló bien. Sin ella no hay precisión.", "en": "The plate's midline must be visible and match the demodenture's: it shows the case was articulated well. Without it there is no precision."}},
+            {"icono": "⛰️", "titulo": {"es": "Cúspides e incisal", "en": "Cusps and incisal"}, "texto": {"es": "Las cúspides de molares del waxup nuevo deben coincidir con las de la demodenture y el borde incisal anterior debe tocar el plato.", "en": "The molar cusps of the new waxup must match the demodenture and the anterior incisal edge must touch the plate."}},
+            {"icono": "📏", "titulo": {"es": "VDO", "en": "VDO"}, "texto": {"es": "El scan de VDO solo existe si el doctor pidió ese cambio. Se mide con dos puntos en los modelos inferiores.", "en": "The VDO scan only exists if the doctor requested that change. It is measured with two points on the lower models."}}
+          ]},
+        {"t": "texto", "titulo": {"es": "Si el borde incisal está despegado del plato", "en": "If the incisal edge is lifted from the plate"},
+          "cuerpo": {"es": "En el Upper Jaw puede ocurrir que el borde incisal quede despegado del plato. En ese caso se mantiene SIEMPRE el mismo borde incisal, para no inventar un cambio de posición que nadie pidió. El plato de cambio de cant (Plate Up / Down / No Cant) se toma de Dropbox según lo pedido en la RX.", "en": "In the Upper Jaw the incisal edge may end up lifted from the plate. In that case you ALWAYS keep the same incisal edge, so you do not invent a position change nobody requested. The cant change plate (Plate Up / Down / No Cant) is taken from Dropbox according to what the RX requests."}},
+        {"t": "texto", "titulo": {"es": "Tolerancias al cambiar VDO", "en": "Tolerances when changing VDO"},
+          "cuerpo": {"es": "Cuando el doctor pide cambiar el VDO (cuánto se abre o cierra la mordida), los modelos inferiores se mueven, pero no deben desplazarse horizontalmente más de lo tolerado, o la mordida cambiaría de forma falsa. El cambio de VDO medido se tolera hasta 1 mm; si se excede, se pide un nuevo scan de VDO y bite. Si persiste, se avisa al manager de que afectará el diseño.", "en": "When the doctor asks to change the VDO (how far the bite opens or closes), the lower models move, but they must not shift horizontally beyond tolerance, or the bite would change falsely. The measured VDO change is tolerated up to 1 mm; if exceeded, a new VDO and bite scan is requested. If it persists, the manager is told it will affect the design."},
+          "alerta": {"es": "Confirmar con el manager: la tolerancia del movimiento horizontal de modelos dice 1 mm en la versión en español y 0.5 mm en la versión en inglés (el Single 24Z dice 0.5 mm en ambos idiomas).", "en": "Confirm with the manager: the horizontal model movement tolerance says 1 mm in the Spanish version and 0.5 mm in the English version (Single 24Z says 0.5 mm in both languages)."}},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Scans completos permiten alineaciones fiables; azul = bien, rosado = no coincide.", "en": "Complete scans allow reliable alignments; blue = good, pink = mismatch."},
+            {"es": "La línea media del plato prueba que el caso se articuló bien.", "en": "The plate midline proves the case was articulated well."},
+            {"es": "Pickup suelto: se avisa siempre, sin Hold.", "en": "Loose pickup: always report, no Hold."},
+            {"es": "No se inventan cambios: el borde incisal despegado se mantiene igual.", "en": "No invented changes: a lifted incisal edge stays the same."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "Los implantes del intaglio se ven levemente sueltos respecto a los stumps. ¿Qué haces?", "en": "The intaglio implants look slightly loose relative to the stumps. What do you do?"},
+            "opciones": [{"texto": {"es": "Poner Hold y esperar al doctor", "en": "Put on Hold and wait for the doctor"}}, {"texto": {"es": "Avisar al manager del laboratorio en el canal, sin Hold", "en": "Report to the lab manager in the channel, without Hold"}, "ok": true}, {"texto": {"es": "Ignorarlo porque es pequeño", "en": "Ignore it because it is small"}}],
+            "explicacion": {"es": "Puede indicar que el laboratorio no siguió su protocolo al hacer los modelos; se avisa siempre, pero el caso no se detiene.", "en": "It may mean the lab did not follow its protocol when making the models; it is always reported, but the case is not stopped."}},
+          {"tipo": "una", "enunciado": {"es": "¿Por qué se mantiene el mismo borde incisal si está despegado del plato en el Upper Jaw?", "en": "Why is the same incisal edge kept if it is lifted from the plate in the Upper Jaw?"},
+            "opciones": [{"texto": {"es": "Para no inventar un cambio de posición no pedido", "en": "To avoid inventing a position change nobody requested"}, "ok": true}, {"texto": {"es": "Porque el plato no se puede mover", "en": "Because the plate cannot be moved"}}, {"texto": {"es": "Porque ahorra tiempo de diseño", "en": "Because it saves design time"}}],
+            "explicacion": {"es": "Cualquier cambio no solicitado altera lo que el doctor aprobó.", "en": "Any unrequested change alters what the doctor approved."}},
+          {"tipo": "vf", "enunciado": {"es": "Un scan de plato sin línea media visible se acepta y se trabaja igual.", "en": "A plate scan without a visible midline is accepted and worked on anyway."}, "ok": false,
+            "explicacion": {"es": "Sin la línea media no hay certeza de la articulación; se piden scans nuevos.", "en": "Without the midline there is no certainty about the articulation; new scans are requested."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l4",
+      "titulo": {"es": "Full Mouth 24Z: medidas, barra y guía", "en": "Full Mouth 24Z: measurements, bar and guide"},
+      "minutos": 10,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "Por qué importan los espesores", "en": "Why thicknesses matter"},
+          "cuerpo": {"es": "La zirconia es dura pero frágil si es muy delgada. Si queda por debajo del mínimo de su talla de arco (A, AW, B, BW, C, CW), corre riesgo de romperse en la boca del paciente. Por eso el diseño debe garantizar esos espesores mínimos antes de aprobar, y los problemas se avisan con Hold: un mensaje con la causa, la solución propuesta y fotos.", "en": "Zirconia is hard but brittle when too thin. If it falls below the minimum for its arch size (A, AW, B, BW, C, CW), it risks breaking in the patient's mouth. That is why design must guarantee those minimum thicknesses before approving, and problems are raised with a Hold: a message with the cause, the proposed solution and photos."},
+          "dato": {"es": "Existe una tolerancia de 0.5 mm sobre el mínimo, solo con aprobación del manager de diseño. El arco superior NO tiene tolerancia en anteriores (estética y fractura en zona visible), solo en posteriores.", "en": "There is a 0.5 mm tolerance on the minimum, only with design manager approval. The upper arch has NO tolerance in anteriors (aesthetics and fracture in the visible zone), only in posteriors."}},
+        {"t": "texto", "titulo": {"es": "Reducción de tissue", "en": "Tissue reduction"},
+          "cuerpo": {"es": "Bajar o suavizar la encía escaneada da más altura a la prótesis, lo que permite usar zirconia. Pero es modificar el tejido real, así que la debe pedir el doctor y nunca proponerla el laboratorio (salvo que esté preaprobada). Después se sube una imagen que compara tissue original (generic) y reducido (Gingiva) para que lab y diseño tengan la misma información.", "en": "Lowering or smoothing the scanned gum gives the prosthesis more height, which allows zirconia. But it modifies real tissue, so the doctor must request it and the lab must never propose it (unless pre-approved). Afterward an image is uploaded comparing the original tissue (generic) and the reduced one (Gingiva) so lab and design have the same information."},
+          "alerta": {"es": "Confirmar con el manager: el límite aparece como máximo 1 mm en una frase y hasta 1.5 mm en otra. Más de ese valor pasa por manager, regional y autorización superior.", "en": "Confirm with the manager: the limit appears as a maximum of 1 mm in one sentence and up to 1.5 mm in another. Beyond that value it goes through manager, regional and higher authorization."}},
+        {"t": "acordeon", "titulo": {"es": "Cantilever y medición del puente", "en": "Cantilever and bridge measurement"},
+          "items": [
+            {"titulo": {"es": "Qué es el cantilever", "en": "What cantilever is"}, "texto": {"es": "Es el voladizo: la distancia desde la parte posterior del último implante hasta la zona retromolar. Como un trampolín: cuanto más largo, más palanca y más riesgo de fractura. El valor oficial es 15 mm, salvo preaprobación del doctor.", "en": "It is the overhang: the distance from the back of the last implant to the retromolar zone. Like a diving board: the longer it is, the more leverage and fracture risk. The official value is 15 mm, unless pre-approved by the doctor."}},
+            {"titulo": {"es": "Si supera el límite", "en": "If it exceeds the limit"}, "texto": {"es": "Se sugiere un short bridge (arco corto) donde se supera, o soporte labial hacia adelante. Se avisa con Hold, causa, solución y fotos.", "en": "A short bridge (shorter arch) where it is exceeded, or lip support pushed forward, is suggested. Raised with Hold, cause, solution and photos."}},
+            {"titulo": {"es": "Cómo se mide", "en": "How it is measured"}, "texto": {"es": "Con Distance solo si el implante está centrado en el puente; si no, la línea sale inclinada y el error puede pasar de 1 mm, y se usa Plane Distance. Se mide desde los STL de los implantes, no desde los stumps, que pueden variar un poco de posición.", "en": "With Distance only if the implant is centered in the bridge; otherwise the line comes out tilted and the error can exceed 1 mm, and Plane Distance is used. It is measured from the implant STLs, not the stumps, which can vary slightly in position."}},
+            {"titulo": {"es": "Altura del puente", "en": "Bridge height"}, "texto": {"es": "El punto inicial va en la fosa (o borde incisal en anteriores) y el final sobre el ridge donde quedará la barra. Fuera del ridge o inclinado, el resultado sale mayor que la altura real; por eso se usa End Point y Distance To Custom Plane (línea recta).", "en": "The start point goes on the fossa (or incisal edge in anteriors) and the end point on the ridge where the bar will sit. Off the ridge or tilted, the result is larger than the real height; that is why End Point and Distance To Custom Plane (straight line) are used."}}
+          ]},
+        {"t": "texto", "titulo": {"es": "Access holes: por dónde sale el tornillo", "en": "Access holes: where the screw exits"},
+          "cuerpo": {"es": "Los orificios de acceso deben salir por oclusal, sin romper el vestibular y sin zonas que comprometan la zirconia. Los que salen por vestibular dañan la estética, y en zonas delgadas pueden fracturar la zirconia al fresar. Si hay más implantes en el ICAM/Micron que en los stumps hay que hacer el ICAM, porque el implante extra puede cambiar el cantilever real o romper el vestibular.", "en": "Access holes must exit through the occlusal surface, without breaking the buccal and without zones that compromise the zirconia. Holes exiting buccally damage aesthetics, and in thin zones they can fracture the zirconia when milling. If there are more implants in the ICAM/Micron than in the stumps the ICAM must be done, because the extra implant can change the real cantilever or break the buccal."},
+          "alerta": {"es": "Confirmar con el manager: altura máxima de los access holes de barra (16-17 mm) y de guía (18-19 mm). La versión en inglés repite 16-17 mm para la guía y la llama titanium disc, que es incorrecto (es disco G-CAM).", "en": "Confirm with the manager: maximum access hole height for the bar (16-17 mm) and the guide (18-19 mm). The English version repeats 16-17 mm for the guide and calls it a titanium disc, which is incorrect (it is a G-CAM disc)."}},
+        {"t": "tabla", "titulo": {"es": "Barra frente a guía", "en": "Bar versus guide"},
+          "cabeceras": [{"es": "Aspecto", "en": "Aspect"}, {"es": "Barra (titanio)", "en": "Bar (titanium)"}, {"es": "Guía de articulación", "en": "Articulation guide"}],
+          "filas": [
+            [{"es": "Para qué sirve", "en": "Purpose"}, {"es": "Soportar la zirconia sobre los implantes", "en": "Supports the zirconia on the implants"}, {"es": "Llevar la posición de implantes al articulador", "en": "Carries implant position to the articulator"}],
+            [{"es": "Disco de fresado", "en": "Milling disc"}, {"es": "Titanio, máx. 30 mm de alto", "en": "Titanium, max 30 mm high"}, {"es": "G-CAM, máx. 30 mm de alto", "en": "G-CAM, max 30 mm high"}],
+            [{"es": "Contacto con implante", "en": "Implant contact"}, {"es": "El implante dentro de la barra; la barra se pasa al tissue para que Adapt (Basal 0.1 mm) copie su forma", "en": "Implant inside the bar; the bar passes through the tissue so Adapt (Basal 0.1 mm) copies its shape"}, {"es": "Cubrir implantes con volumen: mínimo 2 mm hasta el borde; radio de Abutment Bottoms 0.6 mm", "en": "Cover implants with volume: minimum 2 mm to the edge; Abutment Bottoms radius 0.6 mm"}],
+            [{"es": "No tocar", "en": "Do not touch"}, {"es": "Las cúspides de la barra: ahí encaja el TC", "en": "The bar cusps: the TC fits there"}, {"es": "La superficie oclusal de los dientes", "en": "The occlusal surface of the teeth"}]
+          ]},
+        {"t": "modelo3d", "slot": "barra-fullmouth-adapt", "titulo": {"es": "Barra, implantes y tissue", "en": "Bar, implants and tissue"},
+          "descripcion": {"es": "Mira que el implante quede dentro de la barra; que la barra se pase al tissue; que se vean al menos los 2 últimos anillos del implante; y que los bordes estén suavizados.", "en": "Check that the implant sits inside the bar; that the bar passes through the tissue; that at least the last 2 rings of the implant are visible; and that edges are smoothed."},
+          "pendiente": {"es": "Aquí irá el modelo de una barra Full Mouth con implantes y tissue.", "en": "A Full Mouth bar model with implants and tissue will go here."}},
+        {"t": "checklist", "titulo": {"es": "Lista de revisión antes de aprobar", "en": "Review list before approving"},
+          "items": [
+            {"es": "Espesores de zirconia en el mínimo de su talla", "en": "Zirconia thicknesses at the minimum for their size"},
+            {"es": "Cantilever dentro del límite (o aviso hecho)", "en": "Cantilever within the limit (or notice sent)"},
+            {"es": "Access holes por oclusal, sin romper vestibular", "en": "Access holes through the occlusal, not breaking buccal"},
+            {"es": "Implantes dentro de la barra y 2 anillos visibles", "en": "Implants inside the bar and 2 rings visible"},
+            {"es": "Cúspides de la barra sin modificar", "en": "Bar cusps unmodified"},
+            {"es": "Barra y guía no superan 30 mm de altura", "en": "Bar and guide do not exceed 30 mm height"},
+            {"es": "Cada producto con su color y 3 HTML (DR, CAM, DESIGN)", "en": "Each product with its own color and 3 HTMLs (DR, CAM, DESIGN)"}
+          ]},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Revisa las medidas y las figuras en el protocolo Full Mouth.", "en": "Review the measurements and figures in the Full Mouth protocol."}, "protocolo": "Full Mouth"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Zirconia más delgada que el mínimo se rompe en boca: los espesores se garantizan antes de aprobar.", "en": "Zirconia thinner than the minimum breaks in the mouth: thicknesses are guaranteed before approving."},
+            {"es": "Cantilever oficial de 15 mm: más largo = más palanca y fractura.", "en": "Official cantilever of 15 mm: longer = more leverage and fracture."},
+            {"es": "La reducción de tissue la pide solo el doctor.", "en": "Tissue reduction is requested only by the doctor."},
+            {"es": "La guía debe cubrir los implantes con volumen; la barra debe adaptarse al tissue.", "en": "The guide must cover implants with volume; the bar must adapt to the tissue."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué se mide el cantilever desde los STL de los implantes y no desde los stumps?", "en": "Why is the cantilever measured from the implant STLs and not the stumps?"},
+            "opciones": [{"texto": {"es": "Porque los stumps pueden tener pequeñas variaciones de posición", "en": "Because stumps can have small position variations"}, "ok": true}, {"texto": {"es": "Porque los STL son más fáciles de abrir", "en": "Because STLs are easier to open"}}, {"texto": {"es": "Porque los stumps no existen en Full Mouth", "en": "Because stumps do not exist in Full Mouth"}}],
+            "explicacion": {"es": "Los STL de implantes son la referencia más fiel de dónde están realmente los implantes.", "en": "The implant STLs are the most faithful reference of where the implants really are."}},
+          {"tipo": "una", "enunciado": {"es": "¿Quién puede proponer la reducción de tissue?", "en": "Who can propose tissue reduction?"},
+            "opciones": [{"texto": {"es": "El laboratorio, si falta altura", "en": "The lab, if height is lacking"}}, {"texto": {"es": "Solo el doctor la pide (salvo que esté preaprobada)", "en": "Only the doctor requests it (unless pre-approved)"}, "ok": true}, {"texto": {"es": "El diseñador, por criterio propio", "en": "The designer, on their own judgment"}}],
+            "explicacion": {"es": "Modifica el tejido real, así que la decisión es clínica.", "en": "It modifies real tissue, so the decision is clinical."}},
+          {"tipo": "varias", "enunciado": {"es": "¿Qué se debe evitar al diseñar la barra?", "en": "What should be avoided when designing the bar?"},
+            "opciones": [{"texto": {"es": "Modificar las cúspides de la barra", "en": "Modifying the bar cusps"}, "ok": true}, {"texto": {"es": "Dejar la barra sin pasarse al tissue", "en": "Leaving the bar without passing through the tissue"}, "ok": true}, {"texto": {"es": "Dejar visibles los 2 últimos anillos del implante", "en": "Leaving the last 2 rings of the implant visible"}}],
+            "explicacion": {"es": "Las cúspides sostienen el TC y sin pasarse al tissue Adapt no puede copiar la forma de la encía; los anillos visibles son lo correcto.", "en": "The cusps hold the TC and without passing through the tissue Adapt cannot copy the gum shape; visible rings are correct."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l5",
+      "titulo": {"es": "Single arch 24z", "en": "Single arch 24z"},
+      "minutos": 8,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "El problema: un solo arco con antagonista natural", "en": "The problem: one arch with a natural antagonist"},
+          "cuerpo": {"es": "En un Single 24z solo se reemplaza un arco (Upper o Lower). Los dientes del arco contrario son naturales, así que no hay una mordida estándar clase 1: la oclusión se define según ese antagonista. Ya fue diseñada por N2 días antes y el TC ya está fresado en el laboratorio el día de la cirugía, por lo que la mordida no se puede modificar. N3 mantiene ese diseño y diseña la barra y la guía.", "en": "In a Single 24z only one arch (Upper or Lower) is replaced. The opposite arch has natural teeth, so there is no standard class 1 bite: occlusion is defined by that antagonist. N2 designed it days earlier and the TC is already milled at the lab on the surgery day, so the bite cannot be modified. N3 keeps that design and designs the bar and guide."},
+          "dato": {"es": "Tiempo objetivo sin retrasos: 1 h 20 min. Misma ventana de 45 min para avisar problemas.", "en": "Target time without delays: 1 h 20 min. Same 45-min window to report problems."}},
+        {"t": "checklist", "titulo": {"es": "Los 6 requisitos para seguir como 24z", "en": "The 6 requirements to continue as 24z"},
+          "items": [
+            {"es": "No hubo tratamiento dental que cambie el contacto oclusal entre la cita N2 y la cirugía", "en": "No dental treatment changed the occlusal contact between the N2 visit and surgery"},
+            {"es": "Si la demodenture se colocó igual que en N2, solo se piden cambios de VDO e incisal edge", "en": "If the demodenture was placed the same as in N2, only VDO and incisal edge changes are requested"},
+            {"es": "Se cumplen las medidas mínimas por talla", "en": "Minimum measurements per size are met"},
+            {"es": "El laboratorio tiene la zirconia física", "en": "The lab has the physical zirconia"},
+            {"es": "La articulación Master usa el mismo modelo antagonista impreso en N2", "en": "The Master articulation uses the same antagonist model printed in N2"},
+            {"es": "Se sigue el diseño de N2", "en": "The N2 design is followed"}
+          ]},
+        {"t": "texto", "titulo": {"es": "Por qué estos requisitos", "en": "Why these requirements"},
+          "cuerpo": {"es": "El diseño de oclusión de N2 es exacto sobre la boca tal como estaba; si algo cambió, ya no encaja. Cualquier cambio distinto de VDO e incisal edge rompe el diseño pre-fresado. Y para un single hay una sola zirconia fresada: no se puede rehacer en 24 h. Si falla un requisito, el producto cambia a G-CAM, un material alterno que permite ajustar la oclusión al pickup real.", "en": "N2's occlusion design is exact on the mouth as it was; if anything changed, it no longer fits. Any change other than VDO and incisal edge breaks the pre-milled design. And for a single there is only one milled zirconia: it cannot be redone in 24 h. If a requirement fails, the product changes to G-CAM, an alternative material that allows the occlusion to be adjusted to the real pickup."},
+          "porque": {"es": "El plato debe quedar en 0 (No Cant) y el cant en No Change: en singles no se cambia la inclinación porque la oclusión es fija contra el antagonista natural.", "en": "The plate must be at 0 (No Cant) and cant at No Change: in singles the inclination is not changed because the occlusion is fixed against the natural antagonist."}},
+        {"t": "tabla", "titulo": {"es": "Verificación general: tres escenarios", "en": "General verification: three scenarios"},
+          "cabeceras": [{"es": "Situación", "en": "Situation"}, {"es": "Qué se hace", "en": "What to do"}],
+          "filas": [
+            [{"es": "Waxup igual a la posición de la demodenture y sin cambios", "en": "Waxup matches the demodenture position, no changes"}, {"es": "Se continúa con el diseño N2", "en": "Continue with the N2 design"}],
+            [{"es": "La ubicación cambió y el doctor no pidió cambios", "en": "Location changed and doctor requested no changes"}, {"es": "Avisar al manager; ofrecer al doctor seguir N2 o pasar a G-CAM", "en": "Notify the manager; offer the doctor to follow N2 or switch to G-CAM"}],
+            [{"es": "Ubicación igual, pero pidió cambios distintos a VDO e incisal edge", "en": "Same location, but requested changes other than VDO and incisal edge"}, {"es": "Cambiar el producto a Single G-CAM y ajustar la oclusión", "en": "Change the product to Single G-CAM and adjust occlusion"}]
+          ]},
+        {"t": "acordeon", "titulo": {"es": "Carpetas obligatorias y su porqué", "en": "Mandatory folders and their why"},
+          "items": [
+            {"titulo": {"es": "G-CAM ONLY EMERGENCY TC", "en": "G-CAM ONLY EMERGENCY TC"}, "texto": {"es": "El laboratorio tiene una sola zirconia; si la posición de los implantes compromete su grosor o forma, hace falta un respaldo. Se copia el producto completo. Si los implantes afectan gravemente el TC G-CAM, se diseña un TC custom recubriéndolos.", "en": "The lab has a single zirconia; if the implant position compromises its thickness or shape, a backup is needed. The complete product is copied. If implants badly affect the G-CAM TC, a custom TC covering them is designed."}},
+            {"titulo": {"es": "Occlusion", "en": "Occlusion"}, "texto": {"es": "Un STL con barra y waxup sin perforaciones, antagonista y TC completo. Es un respaldo para productos futuros (Redo y N6), que necesitan esa información.", "en": "An STL with bar and waxup without perforations, antagonist and complete TC. It is a backup for future products (Redo and N6), which need that information."}},
+            {"titulo": {"es": "Bite Rim de N2", "en": "N2 Bite Rim"}, "texto": {"es": "Se genera desde la escena del TC y sirve para alinear el waxup de N2 al antagonista recibido, con todos los modelos en la misma posición.", "en": "It is generated from the TC scene and is used to align the N2 waxup to the received antagonist, with all models in the same position."}}
+          ]},
+        {"t": "texto", "titulo": {"es": "Casos especiales", "en": "Special cases"},
+          "cuerpo": {"es": "Con implantes angulados se habla con el manager para decidir si se imprime la guía, porque los orificios angulados complican el fresado. Si la guía necesita más grosor que un disco G-CAM disponible, se confirma con el CAM el máximo (usualmente 30 mm) y, si se supera, se analiza imprimir con el regional. Si un access hole es mayor que la fresa, se desgasta la anatomía de forma pareja alrededor.", "en": "With angled implants, talk to the manager to decide whether the guide is printed, because angled holes complicate milling. If the guide needs more thickness than an available G-CAM disc, confirm the maximum with CAM (usually 30 mm) and, if exceeded, printing is considered with the regional. If an access hole is larger than the bur, the anatomy around it is evenly worn down."},
+          "alerta": {"es": "Confirmar con el manager: cuántas subcarpetas lleva To mill (el español dice 4, el inglés dice tres adicionales) y la altura de access holes de la guía (16-17 vs 18-19 mm).", "en": "Confirm with the manager: how many subfolders To mill has (Spanish says 4, English says three additional) and the guide access hole height (16-17 vs 18-19 mm)."}},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Consulta el protocolo de Single arch 24z.", "en": "Consult the Single arch 24z protocol."}, "protocolo": "Single"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "El single respeta el diseño de N2: solo VDO e incisal edge pueden cambiar.", "en": "The single respects the N2 design: only VDO and incisal edge may change."},
+            {"es": "Cualquier otro cambio o requisito incumplido lleva a G-CAM.", "en": "Any other change or unmet requirement leads to G-CAM."},
+            {"es": "Carpetas Emergency TC y Occlusion son obligatorias en todo single.", "en": "Emergency TC and Occlusion folders are mandatory in every single."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "El doctor pide un cambio de oclusión distinto de VDO e incisal edge en un single. ¿Qué pasa?", "en": "The doctor requests an occlusion change other than VDO and incisal edge in a single. What happens?"},
+            "opciones": [{"texto": {"es": "Se hace igual sobre la zirconia fresada", "en": "It is done anyway on the milled zirconia"}}, {"texto": {"es": "El producto cambia a Single G-CAM y se ajusta la oclusión", "en": "The product changes to Single G-CAM and the occlusion is adjusted"}, "ok": true}, {"texto": {"es": "Se rechaza el caso", "en": "The case is rejected"}}],
+            "explicacion": {"es": "Solo G-CAM permite reajustar la oclusión; la zirconia pre-fresada no se puede rehacer en 24 h.", "en": "Only G-CAM allows readjusting the occlusion; the pre-milled zirconia cannot be redone in 24 h."}},
+          {"tipo": "una", "enunciado": {"es": "¿Para qué sirve la carpeta Occlusion?", "en": "What is the Occlusion folder for?"},
+            "opciones": [{"texto": {"es": "Es respaldo para productos futuros como Redo y N6", "en": "It is a backup for future products such as Redo and N6"}, "ok": true}, {"texto": {"es": "Para enviar fotos al paciente", "en": "To send photos to the patient"}}, {"texto": {"es": "Reemplaza el HTML del doctor", "en": "It replaces the doctor's HTML"}}],
+            "explicacion": {"es": "Esos productos necesitan la oclusión guardada para trabajar.", "en": "Those products need the saved occlusion to work."}},
+          {"tipo": "vf", "enunciado": {"es": "En un single, la línea media del plato debe coincidir siempre con la de la demodenture, aun sin cambios.", "en": "In a single, the plate midline must always match the demodenture's, even with no changes."}, "ok": true,
+            "explicacion": {"es": "Si no coincide, se articuló mal y se piden scans nuevos.", "en": "If it does not match, it was articulated wrongly and new scans are requested."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l6",
+      "titulo": {"es": "Barra custom, TC sobre barra y TC N3", "en": "Custom bar, TC over bar and TC N3"},
+      "minutos": 9,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "Cuando falta altura", "en": "When height is lacking"},
+          "cuerpo": {"es": "La zirconia necesita unos 6 mm de altura de prótesis para no romperse. En casos de un solo arco donde esa altura no existe, se diseña una **barra custom de puntos** (point bar): como falta altura de prótesis, el cuerpo de la barra se hace más regular y más grueso para compensar. Sobre esa barra se cementa después un **TC**, la cubierta de dientes.", "en": "Zirconia needs about 6 mm of prosthesis height so it does not break. In single-arch cases where that height does not exist, a **custom point bar** is designed: since prosthesis height is lacking, the bar body is made more regular and thicker to compensate. A **TC**, the tooth cover, is cemented over that bar afterwards."},
+          "dato": {"es": "Altura mínima de prótesis para zirconia: 6 mm. Perfil propio de Nuvia: Jose Bar.", "en": "Minimum prosthesis height for zirconia: 6 mm. Nuvia's own profile: Jose Bar."}},
+        {"t": "flujo", "titulo": {"es": "Barra custom: etapas", "en": "Custom bar: stages"},
+          "pasos": [
+            {"titulo": {"es": "Proyecto", "en": "Project"}, "texto": {"es": "Bar pillar sobre cada implante y Bar segment entre ellos; se nombra con el ICAM.", "en": "Bar pillar over each implant and Bar segment between them; named after the ICAM."}},
+            {"titulo": {"es": "Posiciones actualizadas", "en": "Updated positions"}, "texto": {"es": "Se verifica que los archivos de implantes se actualizaron con el ICAM/Micron.", "en": "Verify implant files were updated with the ICAM/Micron."}},
+            {"titulo": {"es": "Perfil y puntos", "en": "Profile and points"}, "texto": {"es": "Perfil Jose Bar, Rounded, pilares reducidos hasta el implante, puntos en cada interproximal.", "en": "Jose Bar profile, Rounded, pillars reduced down to the implant, points at each interproximal."}},
+            {"titulo": {"es": "Forma", "en": "Shape"}, "texto": {"es": "Altura paralela al borde incisal, triangular en anteriores, inclinación y grosor lingual.", "en": "Height parallel to the incisal edge, triangular in anteriors, inclination and lingual thickness."}},
+            {"titulo": {"es": "Acabado", "en": "Finishing"}, "texto": {"es": "Suavizar, quitar trampas de comida, cerrar espacios con el tissue y guardar en la carpeta TC.", "en": "Smooth, remove food traps, close gaps with the tissue and save in the TC folder."}}
+          ]},
+        {"t": "acordeon", "titulo": {"es": "El porqué de cada decisión de forma", "en": "The why of each shape decision"},
+          "items": [
+            {"titulo": {"es": "Triangular en anteriores", "en": "Triangular in anteriors"}, "texto": {"es": "Con forma cuadrada la barra se pasa por lingual e invade el espacio de la lengua. La forma triangular evita eso.", "en": "With a square shape the bar goes too far lingually and invades the tongue space. A triangular shape avoids that."}},
+            {"titulo": {"es": "Línea roja", "en": "Red line"}, "texto": {"es": "El sistema dibuja una línea roja que marca el grosor mínimo del TC. Si se ve, la barra se pasó del pre-op por lingual y deja menos espacio al TC: se mueve hacia lingual hasta que desaparezca.", "en": "The system draws a red line marking the TC minimum thickness. If it shows, the bar went past the pre-op lingually and leaves less space for the TC: move it lingually until it disappears."}},
+            {"titulo": {"es": "Sin función Adapt", "en": "No Adapt function"}, "texto": {"es": "Esta barra no tiene Adapt, así que se agrega material hasta pasarse del tissue y luego se remueve con Add/Remove (Shift). Un espacio con el tissue acumula placa; un exceso presiona la encía.", "en": "This bar has no Adapt, so material is added until it passes the tissue and then removed with Add/Remove (Shift). A gap with the tissue accumulates plaque; an excess presses on the gum."}},
+            {"titulo": {"es": "Trampas de comida", "en": "Food traps"}, "texto": {"es": "Se suavizan por lingual y vestibular por higiene; por vestibular se guía con el pre-op para no quitar material entre cuellos y borde incisal.", "en": "They are smoothed lingually and buccally for hygiene; buccally the pre-op guides so material between necks and incisal edge is not removed."}}
+          ]},
+        {"t": "modelo3d", "slot": "barra-custom", "titulo": {"es": "Barra custom de puntos", "en": "Custom point bar"},
+          "descripcion": {"es": "Observa la forma triangular en anteriores, la altura paralela al borde incisal, la línea roja de grosor mínimo del TC y que no haya espacios con el tissue.", "en": "Observe the triangular shape in anteriors, height parallel to the incisal edge, the red minimum-thickness line of the TC, and no gaps with the tissue."},
+          "pendiente": {"es": "Aquí irá el modelo de una barra custom de puntos.", "en": "A custom point bar model will go here."}},
+        {"t": "tabla", "titulo": {"es": "TC sobre barra frente a TC N3", "en": "TC over bar versus TC N3"},
+          "cabeceras": [{"es": "Aspecto", "en": "Aspect"}, {"es": "TC sobre barra de puntos", "en": "TC over point bar"}, {"es": "TC N3 (24Z, G-CAM, custom)", "en": "TC N3 (24Z, G-CAM, custom types)"}],
+          "filas": [
+            [{"es": "Margen", "en": "Margin"}, {"es": "1 mm sobre el cuello de los dientes", "en": "1 mm above the tooth necks"}, {"es": "TC custom: 1 mm del cuello a la línea verde", "en": "Custom TC: 1 mm from the neck to the green line"}],
+            [{"es": "Espacio de cementación", "en": "Cementation space"}, {"es": "Gap 0, From Margin 0, espacio adicional 0.2 mm", "en": "Gap 0, From Margin 0, Additional spacing 0.2 mm"}, {"es": "Gap 0, From Margin 0, espacio adicional 0.25 mm", "en": "Gap 0, From Margin 0, Additional spacing 0.25 mm"}],
+            [{"es": "Resultado", "en": "Result"}, {"es": "TC limpio, sin hilos que molesten al fresado", "en": "Clean TC, no threads disturbing milling"}, {"es": "Cortado en sectores U.C., U.L., U.R.", "en": "Cut into sectors U.C., U.L., U.R."}],
+            [{"es": "Tiempo", "en": "Time"}, {"es": "No se indica", "en": "Not stated"}, {"es": "30 min de diseño; stage aprobado en máx. 12 h", "en": "30 min design; stage approved within 12 h max"}]
+          ]},
+        {"t": "texto", "titulo": {"es": "Por qué cada regla del TC", "en": "Why each TC rule"},
+          "cuerpo": {"es": "El modelo no debe verse en rojo al orientarlo: el rojo indica undercuts (zonas retentivas) que impedirían asentar o fresar. El espacio de cementación deja sitio al cemento sin dejar el TC flojo. Se usa el antagonista del To Print porque N2 lo ajustó digitalmente. Se corta en sectores porque cada uno se fabrica por separado, y se revisa que la barra no sobrepase el TC: indicaría un error de alineación. El peso de cada recorte debe ser de máximo 10 000 KB.", "en": "The model must not look red when oriented: red indicates undercuts (retentive zones) that would prevent seating or milling. The cementation space leaves room for cement without making the TC loose. The To Print antagonist is used because N2 adjusted it digitally. It is cut into sectors because each is made separately, and you check the bar does not go past the TC: that would indicate an alignment error. Each cut file must weigh a maximum of 10,000 KB."},
+          "alerta": {"es": "Confirmar con el manager: los textos en inglés traducen TC como «CT scan», pero por contexto es una cubierta de dientes. Tampoco queda claro si el material final del TC sobre barra es G-CAM o zirconia.", "en": "Confirm with the manager: the English texts translate TC as 'CT scan', but by context it is a tooth cover. It is also unclear whether the final material of the TC over bar is G-CAM or zirconia."}},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Abre el protocolo de barra custom y TC.", "en": "Open the custom bar and TC protocol."}, "protocolo": "custom bar"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Barra custom = solución cuando no hay 6 mm de altura para zirconia.", "en": "Custom bar = solution when there are not 6 mm of height for zirconia."},
+            {"es": "Línea roja visible = grosor mínimo del TC comprometido.", "en": "Visible red line = TC minimum thickness compromised."},
+            {"es": "Sin undercuts ni hilos: el TC debe poder asentarse y fresarse.", "en": "No undercuts or threads: the TC must be able to seat and be milled."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué la barra anterior se hace triangular?", "en": "Why is the anterior bar made triangular?"},
+            "opciones": [{"texto": {"es": "Para que no se pase por lingual ni invada la lengua", "en": "So it does not go lingually or invade the tongue"}, "ok": true}, {"texto": {"es": "Porque es más fácil de fresar", "en": "Because it is easier to mill"}}, {"texto": {"es": "Para ahorrar titanio", "en": "To save titanium"}}],
+            "explicacion": {"es": "La forma cuadrada se pasa por lingual; la triangular conserva el espacio de la lengua.", "en": "A square shape goes lingually; a triangular one keeps the tongue space."}},
+          {"tipo": "una", "enunciado": {"es": "Ves la línea roja en la barra. ¿Qué significa?", "en": "You see the red line on the bar. What does it mean?"},
+            "opciones": [{"texto": {"es": "La barra está lista para guardar", "en": "The bar is ready to save"}}, {"texto": {"es": "La barra deja menos espacio al TC que el grosor mínimo", "en": "The bar leaves less space for the TC than the minimum thickness"}, "ok": true}, {"texto": {"es": "Hay un implante omitido", "en": "An implant is omitted"}}],
+            "explicacion": {"es": "La línea marca el grosor mínimo del TC; se mueve la barra hacia lingual hasta que desaparezca.", "en": "The line marks the TC minimum thickness; move the bar lingually until it disappears."}},
+          {"tipo": "vf", "enunciado": {"es": "Si la barra sobrepasa el TC, probablemente hay un error de alineación entre waxup y barra.", "en": "If the bar goes past the TC, there is probably an alignment error between waxup and bar."}, "ok": true,
+            "explicacion": {"es": "Las dos piezas deberían encajar; si no, se revisa la alineación.", "en": "The two pieces should fit; if not, check the alignment."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l7",
+      "titulo": {"es": "ICAM, Micron y su comparación; DIO", "en": "ICAM, Micron and their comparison; DIO"},
+      "minutos": 10,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "El problema: dos fuentes que no coinciden", "en": "The problem: two sources that disagree"},
+          "cuerpo": {"es": "La posición de los implantes se conoce por dos vías: el **pickup** (yeso físico, con más margen de error porque un implante puede moverse al tomarlo o articularlo) y el **ICAM / Micron** (medido directo en boca por fotogrametría). Si un implante del pickup aparece movido, se sigue al ICAM/Micron para ese implante: se llama **skip** u omitir. Un implante movido tiene alto riesgo de no atornillar en la Master y, en casos extremos, en boca.", "en": "Implant position is known in two ways: the **pickup** (physical plaster, with more error margin because an implant can move when taken or articulated) and the **ICAM / Micron** (measured directly in the mouth by photogrammetry). If a pickup implant appears moved, the ICAM/Micron is followed for that implant: this is called a **skip**. A moved implant has a high risk of not screwing in on the Master and, in extreme cases, in the mouth."}},
+        {"t": "tabla", "titulo": {"es": "ICAM frente a Micron", "en": "ICAM versus Micron"},
+          "cabeceras": [{"es": "Aspecto", "en": "Aspect"}, {"es": "ICAM", "en": "ICAM"}, {"es": "Micron", "en": "Micron"}],
+          "filas": [
+            [{"es": "Programa", "en": "Software"}, {"es": "iScan3D / IMetric", "en": "iScan3D / IMetric"}, {"es": "Exocad, con STL", "en": "Exocad, with STL"}],
+            [{"es": "Archivos", "en": "Files"}, {"es": "DentalProject + un IMPLANTPOSITION por implante", "en": "DentalProject + one IMPLANTPOSITION per implant"}, {"es": "Un STL por arco", "en": "One STL per arch"}],
+            [{"es": "Cómo se detecta un implante movido", "en": "How a moved implant is detected"}, {"es": "Tabla Compute Transformation (ningún valor igual o mayor a 0.1000 mm) más revisión visual lateral y superior", "en": "Compute Transformation table (no value equal to or above 0.1000 mm) plus lateral and top visual review"}, {"es": "Mapa de colores: azul ideal, hasta amarillo tolerable, fucsia = posible movido; tolerancia 0.1 y luego 0.2", "en": "Color map: blue ideal, up to yellow tolerable, fuchsia = possibly moved; tolerance 0.1 then 0.2"}],
+            [{"es": "Mínimo", "en": "Minimum"}, {"es": "4 implantes por arco", "en": "4 implants per arch"}, {"es": "4 implantes por arco", "en": "4 implants per arch"}]
+          ]},
+        {"t": "acordeon", "titulo": {"es": "Por qué se revisa así", "en": "Why it is reviewed this way"},
+          "items": [
+            {"titulo": {"es": "Numeración estándar y archivos intactos", "en": "Standard numbering and intact files"}, "texto": {"es": "El programa reconoce cada implante por su número (FDI). Si no coincide con el proyecto, el implante no aparece en el producto. Un IMPLANTPOSITION editado o vacío no se puede leer.", "en": "The program recognizes each implant by its number (FDI). If it does not match the project, the implant does not appear in the product. An edited or empty IMPLANTPOSITION cannot be read."}},
+            {"titulo": {"es": "Upper con Upper, molar con molar", "en": "Upper with Upper, molar with molar"}, "texto": {"es": "El programa asocia por número; cruzar dientes o arcos produce una transformación imposible. Se hace clic en la zona verde del cilindro, la superficie fiable.", "en": "The program associates by number; crossing teeth or arches produces an impossible transformation. Click on the green zone of the cylinder, the reliable surface."}},
+            {"titulo": {"es": "No confiar solo en la tabla", "en": "Do not rely only on the table"}, "texto": {"es": "La tabla de mm no es 100% confiable, por eso hay revisión visual: de perfil el disco blanco no debe estar más alto, inclinado ni hundido; desde arriba debe estar centrado en el cilindro.", "en": "The mm table is not 100% reliable, so there is visual review: from the side the white disc must not be higher, tilted or sunken; from above it must be centered in the cylinder."}},
+            {"titulo": {"es": "Omitir es último recurso", "en": "Skipping is a last resort"}, "texto": {"es": "Cada implante omitido quita puntos de apoyo y reduce la estabilidad de la mordida. Omitir tampoco elimina el orificio de acceso del implante.", "en": "Each skipped implant removes support points and reduces bite stability. Skipping also does not remove the implant's access hole."}}
+          ]},
+        {"t": "tabla", "titulo": {"es": "Cuántos se pueden omitir", "en": "How many can be skipped"},
+          "cabeceras": [{"es": "Implantes en el arco", "en": "Implants in the arch"}, {"es": "Máximo a omitir", "en": "Maximum to skip"}, {"es": "Si hay más movidos", "en": "If more are moved"}],
+          "filas": [
+            [{"es": "4", "en": "4"}, {"es": "2", "en": "2"}, {"es": "Detener y avisar al manager", "en": "Stop and notify the manager"}],
+            [{"es": "5 o más", "en": "5 or more"}, {"es": "3", "en": "3"}, {"es": "Detener y consultar", "en": "Stop and consult"}]
+          ]},
+        {"t": "modelo3d", "slot": "icam-comparacion", "titulo": {"es": "ICAM frente a pickup", "en": "ICAM versus pickup"},
+          "descripcion": {"es": "Mira el cilindro amarillo (pickup) y el disco blanco con flecha azul (ICAM); compara vista lateral y superior para detectar inclinación o descentrado; observa cómo cambia el mapa de colores al omitir un implante.", "en": "Look at the yellow cylinder (pickup) and the white disc with a blue arrow (ICAM); compare lateral and top views to detect tilt or off-center; watch how the color map changes when skipping an implant."},
+          "pendiente": {"es": "Aquí irá el modelo de la comparación ICAM contra pickup.", "en": "The ICAM versus pickup comparison model will go here."}},
+        {"t": "texto", "titulo": {"es": "Nuevo pickup, comparación de ICAM y DIO", "en": "New pickup, ICAM comparison and DIO"},
+          "cuerpo": {"es": "Con 2 o más implantes movidos en un arco (o 3 o más omitidos) la referencia deja de ser fiable y se pide un nuevo pickup, con un proceso de máximo 20 minutos con el paciente presente. La **comparación de ICAM** superpone el ICAM con falla y el nuevo, usando cilindros negros de referencia exportados a STL, para ver cuánto afectó el movimiento a los demás implantes. Los **DIO** son una marca especial: se recorta el stump y se alinea cada implante con la librería propia, porque su geometría es distinta.", "en": "With 2 or more moved implants in an arch (or 3 or more skipped) the reference is no longer reliable and a new pickup is requested, in a process of maximum 20 minutes with the patient present. The **ICAM comparison** overlays the faulty ICAM and the new one, using black reference cylinders exported to STL, to see how much the movement affected the other implants. **DIO** is a special brand: the stump is cropped and each implant is aligned with its own library, because its geometry is different."},
+          "alerta": {"es": "Confirmar con el manager: cuántos implantes mínimos se aceptan en el pickup (3 con pterigoides, o con prótesis previa) y el color del círculo de «moved» (rojo o azul según el protocolo).", "en": "Confirm with the manager: how many minimum implants are accepted in the pickup (3 with pterygoids, or with prior prosthesis) and the circle color for 'moved' (red or blue depending on the protocol)."}},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Abre el protocolo ICAM con sus reglas de skip.", "en": "Open the ICAM protocol with its skip rules."}, "protocolo": "ICAM"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "El ICAM/Micron se mide en boca; el pickup tiene más margen de error.", "en": "ICAM/Micron is measured in the mouth; the pickup has more error margin."},
+            {"es": "Omitir es último recurso y tiene límites (2 con 4 implantes, 3 con 5 o más).", "en": "Skipping is a last resort with limits (2 with 4 implants, 3 with 5 or more)."},
+            {"es": "Tabla y vista siempre juntas: la tabla sola engaña.", "en": "Table and view always together: the table alone misleads."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué se sigue al ICAM y no al pickup para un implante movido?", "en": "Why is the ICAM followed instead of the pickup for a moved implant?"},
+            "opciones": [{"texto": {"es": "El pickup tiene más margen de error y el ICAM se toma directo en boca", "en": "The pickup has more error margin and the ICAM is taken directly in the mouth"}, "ok": true}, {"texto": {"es": "El ICAM es más barato", "en": "The ICAM is cheaper"}}, {"texto": {"es": "El pickup no se puede escanear", "en": "The pickup cannot be scanned"}}],
+            "explicacion": {"es": "Un implante puede moverse al tomar o articular el pickup.", "en": "An implant can move when the pickup is taken or articulated."}},
+          {"tipo": "una", "enunciado": {"es": "Con 4 implantes en el arco, ¿cuántos se pueden omitir como máximo?", "en": "With 4 implants in the arch, how many can be skipped at most?"},
+            "opciones": [{"texto": {"es": "1", "en": "1"}}, {"texto": {"es": "2", "en": "2"}, "ok": true}, {"texto": {"es": "3", "en": "3"}}],
+            "explicacion": {"es": "Cada omitido quita apoyo y estabilidad; con 4 el límite es 2.", "en": "Each skip removes support and stability; with 4 the limit is 2."}},
+          {"tipo": "vf", "enunciado": {"es": "Basta con la tabla de mm de Compute Transformation para decidir si un implante está movido.", "en": "The Compute Transformation mm table alone is enough to decide if an implant is moved."}, "ok": false,
+            "explicacion": {"es": "La tabla no es 100% confiable; siempre se complementa con la revisión visual lateral y superior.", "en": "The table is not 100% reliable; it is always complemented by lateral and top visual review."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l8",
+      "titulo": {"es": "Nightguard y el nuevo IOS NG", "en": "Nightguard and the new IOS NG"},
+      "minutos": 8,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "El problema: el bruxismo", "en": "The problem: bruxism"},
+          "cuerpo": {"es": "Mucha gente aprieta o rechina los dientes de noche (bruxismo). Una prótesis nueva de zirconia sufriría ese desgaste. La **Nightguard (NG)** es una férula oclusal nocturna que se fabrica sobre la prótesis ya terminada para protegerla, y también al antagonista. Se diseña en Exocad con el módulo Bite splint, copiando la morfología de la prótesis y adaptándola al antagonista.", "en": "Many people clench or grind their teeth at night (bruxism). A new zirconia prosthesis would suffer that wear. The **Nightguard (NG)** is a night occlusal splint made over the finished prosthesis to protect it, and the antagonist too. It is designed in Exocad with the Bite splint module, copying the prosthesis morphology and adapting it to the antagonist."},
+          "dato": {"es": "Tiempo: 30 minutos, máximo 1 día.", "en": "Time: 30 minutes, maximum 1 day."}},
+        {"t": "flujo", "titulo": {"es": "Etapas de la NG con VDO", "en": "Stages of the NG with VDO"},
+          "pasos": [
+            {"titulo": {"es": "Iniciar y recibir", "en": "Start and receive"}, "texto": {"es": "Orden Initiated, aviso al centro, ZIP Scan Nightguard (oclusión, upper, lower, VDO abierto, todo STL).", "en": "Order Initiated, notice to the center, Scan Nightguard ZIP (occlusion, upper, lower, open VDO, all STL)."}},
+            {"titulo": {"es": "Verificación general", "en": "General verification"}, "texto": {"es": "Scan limpio, sin guías de articulación, VDO correcto, modelos sin movimiento horizontal.", "en": "Clean scan, no articulation guides, correct VDO, models without horizontal movement."}},
+            {"titulo": {"es": "Alinear", "en": "Align"}, "texto": {"es": "Alinear scans con los colores y modelar el plano sobre el antagonista.", "en": "Align scans using colors and model the plane over the antagonist."}},
+            {"titulo": {"es": "Diseñar", "en": "Design"}, "texto": {"es": "Línea de contorno, agregar material y adaptar con Cut Intersections (min thickness).", "en": "Contour line, add material and adapt with Cut Intersections (min thickness)."}},
+            {"titulo": {"es": "Medir y entregar", "en": "Measure and deliver"}, "texto": {"es": "Prosthetic Measurements, carpeta To mill/To print en ZIP, aprobar.", "en": "Prosthetic Measurements, To mill/To print folder in ZIP, approve."}}
+          ]},
+        {"t": "acordeon", "titulo": {"es": "El porqué de las reglas", "en": "The why of the rules"},
+          "items": [
+            {"titulo": {"es": "Sin guías de articulación", "en": "No articulation guides"}, "texto": {"es": "Sus dimensiones difieren de la prótesis final y la información no es precisa. Si llega una NG con guía de articulación, la orden va en HOLD y se solicita el escaneo de la prótesis.", "en": "Their dimensions differ from the final prosthesis and the information is not precise. If an NG arrives with an articulation guide, the order goes on HOLD and a scan of the prosthesis is requested."}},
+            {"titulo": {"es": "Scan limpio", "en": "Clean scan"}, "texto": {"es": "El ajuste entre NG y prótesis es muy fino (0.01 o 0.03 mm según el centro). Si hay exceso de material o spray y se suaviza, se altera la información y la NG queda floja: mejor pedir un scan nuevo.", "en": "The fit between NG and prosthesis is very fine (0.01 or 0.03 mm depending on the center). If there is excess material or spray and it is smoothed, the information is altered and the NG ends up loose: better to request a new scan."}},
+            {"titulo": {"es": "VDO adecuado", "en": "Suitable VDO"}, "texto": {"es": "El VDO debe permitir una NG de 0.5 a 2 mm de grosor. Muy poco espacio da una NG delgada que se fractura (mínimo 0.5 mm); demasiado la hace voluminosa o afecta al antagonista.", "en": "The VDO must allow an NG of 0.5 to 2 mm thick. Too little space gives a thin NG that fractures (minimum 0.5 mm); too much makes it bulky or affects the antagonist."}},
+            {"titulo": {"es": "Valores estándar", "en": "Standard values"}, "texto": {"es": "Los valores del diseño no se cambian: así todas las NG salen con los mismos parámetros validados.", "en": "Design values are not changed: this way all NGs come out with the same validated parameters."}},
+            {"titulo": {"es": "ZIP disponible sin conexión", "en": "ZIP available offline"}, "texto": {"es": "Si se comprime una carpeta que está solo en la nube de Dropbox, al descargarla el ZIP aparece vacío.", "en": "If a folder that is only in the Dropbox cloud is compressed, the ZIP appears empty when downloaded."}}
+          ]},
+        {"t": "tabla", "titulo": {"es": "NG con VDO frente a IOS NG", "en": "NG with VDO versus IOS NG"},
+          "cabeceras": [{"es": "Aspecto", "en": "Aspect"}, {"es": "NG con VDO", "en": "NG with VDO"}, {"es": "IOS NG (nuevo)", "en": "IOS NG (new)"}],
+          "filas": [
+            [{"es": "Origen de la mordida", "en": "Bite origin"}, {"es": "VDO abierto según talla de arco o calculado en Master", "en": "Open VDO by arch size or calculated on Master"}, {"es": "Escáner intraoral: total scans tomados en boca", "en": "Intraoral scanner: total scans taken in the mouth"}],
+            [{"es": "Dónde están los archivos", "en": "Where the files are"}, {"es": "Stage SCAN NIGHTGUARD", "en": "SCAN NIGHTGUARD stage"}, {"es": "Stage ORDER ENTERED", "en": "ORDER ENTERED stage"}],
+            [{"es": "Se sube a Exocad como", "en": "Uploaded to Exocad as"}, {"es": "VDO +5 como bite rim; VDO 0 como bite alignment scan", "en": "VDO +5 as bite rim; VDO 0 as bite alignment scan"}, {"es": "Total scans como bite rim", "en": "Total scans as bite rim"}],
+            [{"es": "Apertura", "en": "Opening"}, {"es": "Estándar por talla", "en": "Standard by size"}, {"es": "La que eligió el doctor; el min thickness varía entre 1 y 0.5 mm", "en": "The one the doctor chose; min thickness varies between 1 and 0.5 mm"}]
+          ]},
+        {"t": "modelo3d", "slot": "nightguard", "titulo": {"es": "Nightguard sobre prótesis", "en": "Nightguard over prosthesis"},
+          "descripcion": {"es": "Observa el corte transversal con la prótesis, la NG y el antagonista; el grosor entre 0.5 y 2 mm; la línea de contorno en el tercio medio; y los orificios de acceso cubiertos.", "en": "Observe the cross-section with the prosthesis, the NG and the antagonist; the thickness between 0.5 and 2 mm; the contour line at the middle third; and the covered access holes."},
+          "pendiente": {"es": "Aquí irá el modelo de una Nightguard sobre la prótesis.", "en": "A Nightguard model over the prosthesis will go here."}},
+        {"t": "texto", "titulo": {"es": "Las medidas de evidencia", "en": "Evidence measurements"},
+          "cuerpo": {"es": "Se llena el reporte Prosthetic Measurements con: grosor de puente anterior, cantilever anterior, cantilever posterior y grosor en posteriores. En posteriores el cantilever se mide desde el extremo distal del acceso del tornillo hasta la cresta marginal distal (no donde termina la prótesis), y el grosor no se mide sobre los housings. Si el desplazamiento horizontal entre modelos pasa de 0.5 mm, se pide nuevo scan VDO y bite, y si persiste se avisa al manager.", "en": "The Prosthetic Measurements report is filled with: anterior bridge thickness, anterior cantilever, posterior cantilever and thickness in posteriors. In posteriors the cantilever is measured from the distal end of the screw access to the distal marginal ridge (not where the prosthesis ends), and thickness is not measured over the housings. If horizontal displacement between models exceeds 0.5 mm, a new VDO and bite scan is requested, and if it persists the manager is notified."},
+          "alerta": {"es": "Confirmar con el manager: cuándo usar el offset 0.01 o 0.03 mm (depende del centro) y la fecha de versión del protocolo, que figura con formato dudoso.", "en": "Confirm with the manager: when to use the 0.01 or 0.03 mm offset (depends on the center) and the protocol version date, which has a dubious format."}},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Lee el protocolo de Nightguard.", "en": "Read the Nightguard protocol."}, "protocolo": "Nightguard"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "La NG protege la prótesis final del bruxismo.", "en": "The NG protects the final prosthesis from bruxism."},
+            {"es": "Nunca se diseña sobre guías de articulación: HOLD y pedir el escaneo de la prótesis.", "en": "It is never designed over articulation guides: HOLD and request the prosthesis scan."},
+            {"es": "El grosor ideal es de 0.5 a 2 mm; menos de 0.5 se fractura.", "en": "Ideal thickness is 0.5 to 2 mm; below 0.5 it fractures."},
+            {"es": "IOS NG usa total scans del doctor en lugar de VDO estándar.", "en": "IOS NG uses the doctor's total scans instead of standard VDO."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "Llega una Nightguard con articulation guide en el escaneo. ¿Qué haces?", "en": "A Nightguard arrives with an articulation guide in the scan. What do you do?"},
+            "opciones": [{"texto": {"es": "Diseñar igual y compensar", "en": "Design anyway and compensate"}}, {"texto": {"es": "Poner la orden en HOLD y pedir el escaneo de la prótesis", "en": "Put the order on HOLD and request the prosthesis scan"}, "ok": true}, {"texto": {"es": "Quitar la guía digitalmente", "en": "Remove the guide digitally"}}],
+            "explicacion": {"es": "Las dimensiones de la guía difieren de la prótesis final y la información no es precisa.", "en": "The guide's dimensions differ from the final prosthesis and the information is not precise."}},
+          {"tipo": "una", "enunciado": {"es": "¿Por qué se necesita que el VDO permita un grosor mínimo de NG?", "en": "Why must the VDO allow a minimum NG thickness?"},
+            "opciones": [{"texto": {"es": "Una NG muy fina se fractura en fresado o impresión", "en": "A very thin NG fractures during milling or printing"}, "ok": true}, {"texto": {"es": "Para que el paciente no note la férula", "en": "So the patient does not notice the splint"}}, {"texto": {"es": "Porque el laboratorio cobra por grosor", "en": "Because the lab charges by thickness"}}],
+            "explicacion": {"es": "El mínimo de 0.5 mm evita fracturas en el siguiente proceso.", "en": "The 0.5 mm minimum prevents fractures in the next process."}},
+          {"tipo": "vf", "enunciado": {"es": "En el IOS NG la mordida se toma de los total scans que el doctor tomó con escáner intraoral.", "en": "In the IOS NG the bite comes from the total scans the doctor took with an intraoral scanner."}, "ok": true,
+            "explicacion": {"es": "Reflejan la apertura elegida por el doctor, no un VDO estándar.", "en": "They reflect the opening the doctor chose, not a standard VDO."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l9",
+      "titulo": {"es": "Removable denture y cortes de barra", "en": "Removable denture and bar cuts"},
+      "minutos": 9,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "El problema: pacientes con arco removible", "en": "The problem: patients with a removable arch"},
+          "cuerpo": {"es": "Algunos pacientes necesitan una dentadura **removible** de acrílico (PMMA) en lugar de una fija. Dos personas colaboran: el diseñador N3 prepara la planificación y mide, y el Removable designer diseña la base de la dentadura sobre la barra y el tissue del N3. El protocolo busca menos errores, coordinación clara y resultados predecibles.", "en": "Some patients need a **removable** acrylic (PMMA) denture instead of a fixed one. Two people collaborate: the N3 designer prepares the planning and measures, and the Removable designer designs the denture base over the N3 bar and tissue. The protocol aims for fewer errors, clear coordination and predictable results."}},
+        {"t": "tarjetas", "titulo": {"es": "Reglas y su porqué", "en": "Rules and their why"},
+          "items": [
+            {"icono": "🧱", "titulo": {"es": "Base mínima de 1.5 mm", "en": "Minimum base of 1.5 mm"}, "texto": {"es": "Menos no se puede procesar: se rompería o no se podría fabricar.", "en": "Less cannot be processed: it would break or could not be manufactured."}},
+            {"icono": "🔒", "titulo": {"es": "El tissue no se toca", "en": "Tissue is not touched"}, "texto": {"es": "Es la referencia exacta de la boca; si se altera o suaviza, la dentadura no ajusta.", "en": "It is the exact reference of the mouth; if altered or smoothed, the denture will not fit."}},
+            {"icono": "↔️", "titulo": {"es": "Sin undercuts", "en": "No undercuts"}, "texto": {"es": "El tissue se orienta sin undercuts, o la prótesis no se podría insertar y retirar.", "en": "Tissue is oriented without undercuts, or the prosthesis could not be inserted and removed."}},
+            {"icono": "📐", "titulo": {"es": "Adapt a 0.005 mm", "en": "Adapt at 0.005 mm"}, "texto": {"es": "La base copia el tissue con ajuste muy fino.", "en": "The base copies the tissue with a very fine fit."}},
+            {"icono": "🏷️", "titulo": {"es": "No pasar la marca del doctor", "en": "Do not exceed the doctor's mark"}, "texto": {"es": "Elevar el contorno más allá puede maltratar la boca.", "en": "Raising the contour beyond it can hurt the mouth."}},
+            {"icono": "🪢", "titulo": {"es": "Pestañas de TC de 1 a 2 mm", "en": "TC tabs of 1 to 2 mm"}, "texto": {"es": "Envuelven la barra y dan retención.", "en": "They wrap the bar and give retention."}}
+          ]},
+        {"t": "tabla", "titulo": {"es": "Espacio disponible en posteriores", "en": "Available space in posteriors"},
+          "cabeceras": [{"es": "Situación", "en": "Situation"}, {"es": "Medida desde la fosa más baja hasta el tissue", "en": "Measurement from lowest fossa to tissue"}, {"es": "Quién autoriza", "en": "Who authorizes"}],
+          "filas": [
+            [{"es": "Ideal", "en": "Ideal"}, {"es": "7 mm", "en": "7 mm"}, {"es": "Sin trámite especial", "en": "No special process"}],
+            [{"es": "Caso especial", "en": "Special case"}, {"es": "Mínimo de 3.5 mm", "en": "Minimum of 3.5 mm"}, {"es": "Manager y regional", "en": "Manager and regional"}]
+          ]},
+        {"t": "texto", "titulo": {"es": "Por qué se mide en posteriores y anteriores de forma distinta", "en": "Why posteriors and anteriors are measured differently"},
+          "cuerpo": {"es": "En posteriores se mide el espacio donde caben barra y base. En anteriores se analiza el tamaño del diente final y no el grosor de la barra, porque el diente anterior define la estética. Si la barra queda muy baja, se puede reducir la cubeta hasta 1.5 mm alrededor de la unión o elevar cúspides 1 mm para facilitar la cementación, sin dejar la distancia fosa-base por debajo de 1 mm para no afectar el TC.", "en": "In posteriors the space where bar and base fit is measured. In anteriors the final tooth size is analyzed, not the bar thickness, because the anterior tooth defines aesthetics. If the bar is too low, the tray can be reduced up to 1.5 mm around the junction or cusps raised 1 mm to ease cementation, without leaving the fossa-base distance below 1 mm so the TC is not affected."},
+          "alerta": {"es": "Confirmar con el manager: el mínimo de posteriores aparece como 3.5 mm en una sección y 5 mm en la del TC, con casos aprobados de 3 mm. La tabla de medidas mínimas de anteriores solo está en imágenes.", "en": "Confirm with the manager: the posterior minimum appears as 3.5 mm in one section and 5 mm in the TC section, with approved cases at 3 mm. The anterior minimum table is only in images."}},
+        {"t": "modelo3d", "slot": "removible", "titulo": {"es": "Dentadura removible", "en": "Removable denture"},
+          "descripcion": {"es": "Mira la barra, la base acrílica y el tissue en corte; el grosor de la base; la pestaña del TC; y que las cúspides queden hacia arriba.", "en": "Look at the bar, acrylic base and tissue in cross-section; the base thickness; the TC tab; and that cusps face upward."},
+          "pendiente": {"es": "Aquí irá el modelo de una dentadura removible con su barra.", "en": "A removable denture model with its bar will go here."}},
+        {"t": "tabla", "titulo": {"es": "Corte de barra horizontal frente a vertical", "en": "Horizontal versus vertical bar cut"},
+          "cabeceras": [{"es": "Aspecto", "en": "Aspect"}, {"es": "Horizontal", "en": "Horizontal"}, {"es": "Vertical", "en": "Vertical"}],
+          "filas": [
+            [{"es": "Qué hace", "en": "What it does"}, {"es": "Divide en parte superior e inferior, con pines de alineación; se fresan y se sueldan", "en": "Divides into top and bottom, with alignment pins; milled separately and welded"}, {"es": "Divide en 2 piezas con una herramienta entre dos cúspides, cerca del implante angulado", "en": "Divides into 2 pieces with a tool between two cusps, near the angled implant"}],
+            [{"es": "Pines", "en": "Pins"}, {"es": "3 pines; copia con offset 0.02 mm para dar holgura", "en": "3 pins; copy with 0.02 mm offset to give clearance"}, {"es": "No lleva", "en": "None"}],
+            [{"es": "No se debe", "en": "Do not"}, {"es": "Cerrar los orificios de acceso de la parte inferior", "en": "Close the access holes of the bottom part"}, {"es": "Tocar housings ni orificios de acceso", "en": "Touch housings or access holes"}],
+            [{"es": "Construction Info", "en": "Construction Info"}, {"es": "No se genera", "en": "Not generated"}, {"es": "No se genera", "en": "Not generated"}]
+          ]},
+        {"t": "texto", "titulo": {"es": "Por qué en ambos cortes no hay Construction Info", "en": "Why neither cut has Construction Info"},
+          "cuerpo": {"es": "Las piezas cortadas ya no son una barra estándar, así que no existe un Construction Info. En su lugar se añaden los dos cortes a la carpeta To mill/To print y al HTML Design, para que el laboratorio sepa qué ensamblar. En el corte vertical se numeran «1» y «2» y se desmarca Auto-Reduce para que el programa no simplifique la malla; se usa Separate Shells para obtener dos piezas independientes. En el horizontal, el Boolean difference no usa Auto reduce para no tapar los orificios creados.", "en": "The cut pieces are no longer a standard bar, so there is no Construction Info. Instead the two cuts are added to the To mill/To print folder and the HTML Design, so the lab knows what to assemble. In the vertical cut they are numbered '1' and '2' and Auto-Reduce is unchecked so the program does not simplify the mesh; Separate Shells is used to get two independent pieces. In the horizontal, the Boolean difference does not use Auto reduce so the created holes are not covered."},
+          "alerta": {"es": "Confirmar con el manager: los protocolos no dicen cuándo se usa corte horizontal o vertical, ni por qué se corta (la razón de fabricación es una deducción). «Soft 650 mm» del offset de pines parece un error tipográfico.", "en": "Confirm with the manager: the protocols do not say when horizontal or vertical cut is used, nor why it is cut (the manufacturing reason is an inference). 'Soft 650 mm' in the pin offset looks like a typo."}},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Consulta el protocolo de Removable denture.", "en": "Consult the Removable denture protocol."}, "protocolo": "Removable"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "El tissue es la referencia exacta: no se modifica ni se suaviza.", "en": "The tissue is the exact reference: it is not modified or smoothed."},
+            {"es": "Base mínima de 1.5 mm; casos por debajo de lo ideal necesitan aprobación.", "en": "Minimum base of 1.5 mm; cases below ideal need approval."},
+            {"es": "Los cortes de barra generan piezas nuevas que se documentan en To mill y HTML Design.", "en": "Bar cuts generate new pieces that are documented in To mill and HTML Design."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué no se modifica ni suaviza el tissue en la dentadura removible?", "en": "Why is the tissue not modified or smoothed in the removable denture?"},
+            "opciones": [{"texto": {"es": "Es la referencia exacta de la boca; si se altera, la dentadura no ajusta", "en": "It is the exact reference of the mouth; if altered, the denture will not fit"}, "ok": true}, {"texto": {"es": "Porque el programa lo bloquea", "en": "Because the program blocks it"}}, {"texto": {"es": "Porque el doctor ya lo suavizó", "en": "Because the doctor already smoothed it"}}],
+            "explicacion": {"es": "La dentadura copia el tissue; cualquier cambio se traduce en mal ajuste.", "en": "The denture copies the tissue; any change translates into poor fit."}},
+          {"tipo": "una", "enunciado": {"es": "En el corte horizontal, ¿por qué la copia de los pines tiene un offset de 0.02 mm?", "en": "In the horizontal cut, why does the pin copy have a 0.02 mm offset?"},
+            "opciones": [{"texto": {"es": "Para dar una holgura y que los pines entren en la parte superior", "en": "To give clearance so the pins fit into the top part"}, "ok": true}, {"texto": {"es": "Para aumentar el grosor de la barra", "en": "To increase the bar thickness"}}, {"texto": {"es": "Para cerrar los orificios de acceso", "en": "To close the access holes"}}],
+            "explicacion": {"es": "La holgura permite ensamblar ambas mitades antes de soldarlas.", "en": "The clearance allows both halves to be assembled before welding."}},
+          {"tipo": "vf", "enunciado": {"es": "En el corte horizontal se deben cerrar los orificios de acceso de la parte inferior.", "en": "In the horizontal cut the access holes of the bottom part must be closed."}, "ok": false,
+            "explicacion": {"es": "Son los canales de tornillos; cerrarlos impediría atornillar.", "en": "They are the screw channels; closing them would prevent screwing."}}
+        ]}
+      ]
+    },
+    {
+      "id": "m6b-l10",
+      "titulo": {"es": "Oclusión y reuniones N3/N6", "en": "Occlusion and N3/N6 meetings"},
+      "minutos": 8,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "El problema: que todo encaje y que el doctor lo apruebe", "en": "The problem: everything must fit and the doctor must approve"},
+          "cuerpo": {"es": "Si los dientes no encajan bien al morder hay dolor, desgaste, fracturas y chasquidos. La **oclusión** es ese encaje, y aunque su protocolo es de N2, N3 necesita entenderlo porque todo lo que diseña depende de ella. Las **reuniones** (meetings) son el otro satélite: validan con el doctor los cambios que se alejan de lo diseñado por N2, antes de gastar tiempo en rehacer.", "en": "If teeth do not fit well when biting there is pain, wear, fractures and clicking. **Occlusion** is that fit, and although its protocol belongs to N2, N3 needs to understand it because everything it designs depends on it. **Meetings** are the other satellite: they validate with the doctor changes that depart from what N2 designed, before spending time redoing work."}},
+        {"t": "acordeon", "titulo": {"es": "Oclusión: reglas y su porqué", "en": "Occlusion: rules and their why"},
+          "items": [
+            {"titulo": {"es": "Adaptarse al antagonista", "en": "Adapt to the antagonist"}, "texto": {"es": "La forma final del arco (cuadrada, triangular, redonda) depende del antagonista; lo ideal es adaptarse a él salvo instrucción distinta. Los requerimientos especiales del doctor tienen prioridad.", "en": "The final arch shape (square, triangular, round) depends on the antagonist; ideally it adapts to it unless instructed otherwise. The doctor's special requirements take priority."}},
+            {"titulo": {"es": "Corregir cant y línea media primero", "en": "Fix cant and midline first"}, "texto": {"es": "Y poner el plano oclusal cerca del antagonista antes de ocluir: así se mueven menos dientes después.", "en": "And place the occlusal plane close to the antagonist before occluding: this way fewer teeth need moving later."}},
+            {"titulo": {"es": "Anteriores en horizontal y simétricos", "en": "Anteriors horizontal and symmetric"}, "texto": {"es": "Los movimientos verticales dañan la estética de la sonrisa. En posteriores manda la función: se puede sacrificar simetría, cuidando la continuidad entre dientes.", "en": "Vertical movements damage the smile aesthetics. In posteriors function rules: symmetry can be sacrificed, taking care of continuity between teeth."}},
+            {"titulo": {"es": "Seleccionar por interproximales", "en": "Select through interproximals"}, "texto": {"es": "Con Lasso pasando por los espacios entre dientes: tocar la anatomía deformaría el diente. Y se guarda a medida que se avanza, porque Meshmixer puede cerrarse y perder movimientos.", "en": "With Lasso passing through the spaces between teeth: touching the anatomy would deform the tooth. And you save as you go, because Meshmixer can close and lose movements."}}
+          ]},
+        {"t": "tabla", "titulo": {"es": "Clases de mordida", "en": "Bite classes"},
+          "cabeceras": [{"es": "Clase", "en": "Class"}, {"es": "Molar superior", "en": "Upper molar"}, {"es": "Canino superior", "en": "Upper canine"}],
+          "filas": [
+            [{"es": "I", "en": "I"}, {"es": "Cúspide mesiovestibular sobre el surco vestibular del primer molar inferior", "en": "Mesiobuccal cusp over the buccal groove of the lower first molar"}, {"es": "En la unión del canino inferior y el primer premolar inferior", "en": "At the junction of the lower canine and lower first premolar"}],
+            [{"es": "II", "en": "II"}, {"es": "Por delante de la posición de clase I", "en": "Ahead of the class I position"}, {"es": "Delante de esa unión", "en": "Ahead of that junction"}],
+            [{"es": "III", "en": "III"}, {"es": "Sobre el espacio entre primer y segundo molar inferior", "en": "Over the space between lower first and second molar"}, {"es": "Detrás de esa unión", "en": "Behind that junction"}]
+          ]},
+        {"t": "flujo", "titulo": {"es": "Reuniones N3/N6: ¿agendo o resuelvo?", "en": "N3/N6 meetings: schedule or resolve?"},
+          "pasos": [
+            {"titulo": {"es": "Validar con el manager", "en": "Validate with the manager"}, "texto": {"es": "Primero se valida con el manager (Lab o Regional): evita escalar casos que no lo requieren.", "en": "First validate with the manager (Lab or Regional): it avoids escalating cases that do not need it."}},
+            {"titulo": {"es": "¿Cambio perceptible?", "en": "Noticeable change?"}, "texto": {"es": "Solo si la diferencia es mayor a 1 mm respecto al diseño N2 en plano oclusal, línea media, longitud incisal, soporte labial, occlusal cant, rotación del arco o relación oclusal funcional.", "en": "Only if the difference is greater than 1 mm from the N2 design in occlusal plane, midline, incisal length, lip support, occlusal cant, arch rotation or functional occlusal relationship."}},
+            {"titulo": {"es": "Agendar y notificar", "en": "Schedule and notify"}, "texto": {"es": "Por Google Calendar con título «CENTER - DESIGN MEETING», doctor más Lab Manager y Regional; aviso en el canal del centro.", "en": "Via Google Calendar titled 'CENTER - DESIGN MEETING', doctor plus Lab Manager and Regional; notice in the center channel."}},
+            {"titulo": {"es": "Reunión grabada", "en": "Recorded meeting"}, "texto": {"es": "Se graba desde el inicio compartiendo pantalla de Exocad; el speaker dirige y la reunión dura mínimo 10 minutos.", "en": "It is recorded from the start sharing the Exocad screen; the speaker leads and the meeting lasts at least 10 minutes."}},
+            {"titulo": {"es": "Después", "en": "Afterward"}, "texto": {"es": "Se entrega la información al Design Manager y la grabación se sube a Zoho.", "en": "Information is given to the Design Manager and the recording is uploaded to Zoho."}}
+          ]},
+        {"t": "texto", "titulo": {"es": "Por qué estas reglas de reunión", "en": "Why these meeting rules"},
+          "cuerpo": {"es": "Los factores del umbral son los que el paciente nota o los que afectan la función. Las diferencias menores o estéticas leves se resuelven internamente para no gastar el tiempo del doctor en preferencias. La grabación da trazabilidad y respaldo. El orden de revisión va de lo que más condiciona a lo que menos: cambios en la RX, oclusión posterior, espacio para el material y luego requerimientos del doctor.", "en": "The threshold factors are those the patient notices or that affect function. Minor or slight aesthetic differences are resolved internally so the doctor's time is not spent on preferences. Recording gives traceability and backup. The review order goes from what constrains most to least: RX changes, posterior occlusion, space for material and then doctor requirements."},
+          "alerta": {"es": "Cuándo avisar: agendar sin validación, no grabar, no notificar en el canal o no etiquetar a Manager y Regional son errores típicos. Confirmar con el manager: «Click group» y «Cliq» aparecen mezclados en el protocolo.", "en": "When to notify: scheduling without validation, not recording, not notifying in the channel or not tagging Manager and Regional are typical errors. Confirm with the manager: 'Click group' and 'Cliq' appear mixed in the protocol."}},
+        {"t": "enlace", "titulo": {"es": "Protocolo oficial", "en": "Official protocol"}, "texto": {"es": "Abre el protocolo de reuniones N3/N6.", "en": "Open the N3/N6 meetings protocol."}, "protocolo": "Meetings"},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "La oclusión se diseña para adaptarse al antagonista y proteger función y estética.", "en": "Occlusion is designed to adapt to the antagonist and protect function and aesthetics."},
+            {"es": "Reunión solo si la diferencia visible con N2 supera 1 mm y el manager la valida.", "en": "Meeting only if the visible difference from N2 exceeds 1 mm and the manager validates it."},
+            {"es": "Toda reunión se graba desde el inicio y se notifica en el canal.", "en": "Every meeting is recorded from the start and notified in the channel."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "Un doctor pide un cambio estético leve. ¿Qué se hace?", "en": "A doctor requests a slight aesthetic change. What is done?"},
+            "opciones": [{"texto": {"es": "Se agenda una reunión con el doctor", "en": "A meeting with the doctor is scheduled"}}, {"texto": {"es": "Se resuelve internamente, sin reunión", "en": "It is resolved internally, with no meeting"}, "ok": true}, {"texto": {"es": "Se rechaza el caso", "en": "The case is rejected"}}],
+            "explicacion": {"es": "Las diferencias menores no justifican gastar el tiempo del doctor.", "en": "Minor differences do not justify spending the doctor's time."}},
+          {"tipo": "una", "enunciado": {"es": "¿Por qué los anteriores se mueven solo en horizontal y de forma simétrica en oclusión?", "en": "Why are anteriors moved only horizontally and symmetrically in occlusion?"},
+            "opciones": [{"texto": {"es": "Los movimientos verticales dañan la estética de la sonrisa", "en": "Vertical movements damage smile aesthetics"}, "ok": true}, {"texto": {"es": "Porque el programa no permite vertical", "en": "Because the program does not allow vertical"}}, {"texto": {"es": "Porque los posteriores no importan", "en": "Because posteriors do not matter"}}],
+            "explicacion": {"es": "Los anteriores definen la sonrisa; los posteriores priorizan función.", "en": "Anteriors define the smile; posteriors prioritize function."}},
+          {"tipo": "orden", "enunciado": {"es": "Ordena el flujo de una reunión de validación.", "en": "Order the flow of a validation meeting."},
+            "items": [{"es": "Validar con el manager", "en": "Validate with the manager"}, {"es": "Agendar por Google Calendar y notificar en el canal", "en": "Schedule via Google Calendar and notify in the channel"}, {"es": "Reunión grabada con pantalla de Exocad", "en": "Recorded meeting with Exocad screen"}, {"es": "Entregar información y subir la grabación", "en": "Deliver information and upload the recording"}],
+            "explicacion": {"es": "Cada paso asegura que la reunión sea necesaria, visible y trazable.", "en": "Each step ensures the meeting is necessary, visible and traceable."}}
+        ]}
+      ]
+    }
+  ],
+  "glosario": [
+    {"id": "n3-n3", "termino": {"es": "N3", "en": "N3"}, "def": {"es": "Departamento que diseña la prótesis definitiva atornillada sobre implantes.", "en": "Department that designs the definitive screw-retained prosthesis over implants."}, "cat": "n3"},
+    {"id": "n3-n6", "termino": {"es": "N6", "en": "N6"}, "def": {"es": "Producto posterior de cambio de material; comparte protocolos con N3 y usa la oclusión guardada.", "en": "Later material-change product; shares protocols with N3 and uses the saved occlusion."}, "cat": "n3"},
+    {"id": "n3-24z", "termino": {"es": "24Z", "en": "24Z"}, "def": {"es": "Prótesis total de zirconia entregada 24 horas después de la cirugía.", "en": "Full zirconia prosthesis delivered 24 hours after surgery."}, "cat": "n3"},
+    {"id": "n3-full-mouth", "termino": {"es": "Full Mouth", "en": "Full Mouth"}, "def": {"es": "Versión de dos arcos (Upper y Lower) del N3 24Z.", "en": "Two-arch (Upper and Lower) version of N3 24Z."}, "cat": "n3"},
+    {"id": "n3-single", "termino": {"es": "Single 24z", "en": "Single 24z"}, "def": {"es": "Producto de un solo arco con antagonista natural y oclusión ya diseñada por N2.", "en": "Single-arch product with a natural antagonist and occlusion already designed by N2."}, "cat": "n3"},
+    {"id": "n3-g-cam", "termino": {"es": "G-CAM", "en": "G-CAM"}, "def": {"es": "Material alterno tipo disco de fresado que permite ajustar la oclusión al pickup real.", "en": "Alternative milling-disc material that allows adjusting occlusion to the real pickup."}, "cat": "n3"},
+    {"id": "n3-demodenture", "termino": {"es": "Demodenture", "en": "Demodenture"}, "def": {"es": "Prótesis provisoria atornillada en boca para el pickup y el registro de bite.", "en": "Provisional prosthesis screwed in the mouth for the pickup and bite record."}, "cat": "n3"},
+    {"id": "n3-pickup", "termino": {"es": "Pickup", "en": "Pickup"}, "def": {"es": "Registro físico en yeso que transfiere la posición de los implantes de la boca.", "en": "Physical plaster record that transfers the implant positions from the mouth."}, "cat": "n3"},
+    {"id": "n3-stumps", "termino": {"es": "Stumps", "en": "Stumps"}, "def": {"es": "Modelo de yeso con cilindros que copian los implantes; se escanea.", "en": "Plaster model with cylinders copying the implants; it is scanned."}, "cat": "n3"},
+    {"id": "n3-tissue", "termino": {"es": "Tissue", "en": "Tissue"}, "def": {"es": "Scan de la encía del paciente, referencia del tejido blando.", "en": "Scan of the patient's gum, the soft tissue reference."}, "cat": "n3"},
+    {"id": "n3-intaglio", "termino": {"es": "Intaglio", "en": "Intaglio"}, "def": {"es": "Cara interna de la prótesis o guía que toca la encía.", "en": "Inner face of the prosthesis or guide that touches the gum."}, "cat": "n3"},
+    {"id": "n3-icam", "termino": {"es": "ICAM", "en": "ICAM"}, "def": {"es": "Registro por fotogrametría de la posición real de los implantes, entregado con DentalProject e IMPLANTPOSITION.", "en": "Photogrammetry record of the real implant position, delivered with a DentalProject and IMPLANTPOSITION files."}, "cat": "n3"},
+    {"id": "n3-micron", "termino": {"es": "Micron", "en": "Micron"}, "def": {"es": "Equivalente del ICAM en Exocad: un STL por arco con los implantes.", "en": "Exocad equivalent of ICAM: one STL per arch with the implants."}, "cat": "n3"},
+    {"id": "n3-skip", "termino": {"es": "Skip", "en": "Skip"}, "def": {"es": "Omitir el pickup para un implante movido y seguir al ICAM/Micron.", "en": "Ignoring the pickup for a moved implant and following the ICAM/Micron."}, "cat": "n3"},
+    {"id": "n3-master", "termino": {"es": "Master", "en": "Master"}, "def": {"es": "Modelo de yeso articulado que representa la boca, donde se prueban barra y guía.", "en": "Articulated plaster model representing the mouth, where bar and guide are tested."}, "cat": "n3"},
+    {"id": "n3-guia", "termino": {"es": "Guía de articulación", "en": "Articulation guide"}, "def": {"es": "Pieza que lleva la posición de los implantes al articulador.", "en": "Piece that carries the implant position to the articulator."}, "cat": "n3"},
+    {"id": "n3-barra", "termino": {"es": "Barra (bar)", "en": "Bar"}, "def": {"es": "Estructura de titanio que une los implantes y soporta la zirconia o el TC.", "en": "Titanium structure that connects the implants and supports the zirconia or TC."}, "cat": "n3"},
+    {"id": "n3-tc", "termino": {"es": "TC", "en": "TC"}, "def": {"es": "Cubierta de dientes que se cementa sobre la barra.", "en": "Tooth cover cemented over the bar."}, "cat": "n3"},
+    {"id": "n3-housing", "termino": {"es": "Housing / access hole", "en": "Housing / access hole"}, "def": {"es": "Alojamiento del tornillo y orificio por donde sale.", "en": "Screw seat and the hole through which it exits."}, "cat": "n3"},
+    {"id": "n3-cantilever", "termino": {"es": "Cantilever", "en": "Cantilever"}, "def": {"es": "Voladizo: distancia desde la parte posterior del último implante a la zona retromolar.", "en": "Overhang: distance from the back of the last implant to the retromolar zone."}, "cat": "n3"},
+    {"id": "n3-adapt", "termino": {"es": "Adapt", "en": "Adapt"}, "def": {"es": "Función que copia la forma del tissue en el intaglio de la barra.", "en": "Function that copies the tissue shape into the bar intaglio."}, "cat": "n3"},
+    {"id": "n3-reduccion-tissue", "termino": {"es": "Reducción de tissue", "en": "Tissue reduction"}, "def": {"es": "Bajar o suavizar la encía escaneada para ganar altura; solo a pedido del doctor.", "en": "Lowering or smoothing the scanned gum to gain height; only on the doctor's request."}, "cat": "n3"},
+    {"id": "n3-nesting", "termino": {"es": "Nesting", "en": "Nesting"}, "def": {"es": "Acomodo de piezas en el disco de fresado para confirmar que caben.", "en": "Arranging pieces on the milling disc to confirm they fit."}, "cat": "n3"},
+    {"id": "n3-hold", "termino": {"es": "Hold", "en": "Hold"}, "def": {"es": "Caso detenido con un mensaje al centro mientras se resuelve un problema.", "en": "Case stopped with a message to the center while a problem is resolved."}, "cat": "n3"},
+    {"id": "n3-ng", "termino": {"es": "Nightguard (NG)", "en": "Nightguard (NG)"}, "def": {"es": "Férula oclusal nocturna fabricada sobre la prótesis final para protegerla.", "en": "Night occlusal splint made over the final prosthesis to protect it."}, "cat": "n3"},
+    {"id": "n3-ios", "termino": {"es": "IOS", "en": "IOS"}, "def": {"es": "Escáner intraoral; en el IOS NG aporta los total scans de la mordida.", "en": "Intraoral scanner; in the IOS NG it provides the total scans of the bite."}, "cat": "n3"},
+    {"id": "n3-vdo", "termino": {"es": "VDO", "en": "VDO"}, "def": {"es": "Dimensión vertical de oclusión: cuánto está abierta la mordida.", "en": "Vertical dimension of occlusion: how open the bite is."}, "cat": "n3"},
+    {"id": "n3-removable", "termino": {"es": "Removable denture", "en": "Removable denture"}, "def": {"es": "Dentadura removible acrílica (PMMA) diseñada desde la barra y el tissue del N3.", "en": "Removable acrylic (PMMA) denture designed from the N3 bar and tissue."}, "cat": "n3"},
+    {"id": "n3-undercut", "termino": {"es": "Undercut", "en": "Undercut"}, "def": {"es": "Zona retentiva que impide asentar, insertar o fresar una pieza.", "en": "Retentive zone that prevents seating, inserting or milling a piece."}, "cat": "n3"},
+    {"id": "n3-corte-barra", "termino": {"es": "Corte de barra", "en": "Bar cut"}, "def": {"es": "División de la barra en dos piezas (horizontal con pines, o vertical entre cúspides).", "en": "Splitting the bar into two pieces (horizontal with pins, or vertical between cusps)."}, "cat": "n3"},
+    {"id": "n3-oclusion", "termino": {"es": "Oclusión", "en": "Occlusion"}, "def": {"es": "Cómo encajan los dientes superiores e inferiores al morder.", "en": "How upper and lower teeth fit together when biting."}, "cat": "n3"},
+    {"id": "n3-dio", "termino": {"es": "DIO", "en": "DIO"}, "def": {"es": "Marca de implantes especial que requiere alinear con su propia librería.", "en": "Special implant brand that requires alignment with its own library."}, "cat": "n3"},
+    {"id": "n3-meeting", "termino": {"es": "Meeting N3/N6", "en": "N3/N6 meeting"}, "def": {"es": "Reunión grabada con el doctor para validar cambios mayores de 1 mm respecto al diseño N2.", "en": "Recorded meeting with the doctor to validate changes greater than 1 mm from the N2 design."}, "cat": "n3"},
+    {"id": "n3-tomill", "termino": {"es": "Tomill / To mill", "en": "Tomill / To mill"}, "def": {"es": "Carpeta de archivos finales que se entrega al laboratorio para fresar.", "en": "Folder of final files delivered to the lab for milling."}, "cat": "n3"}
+  ]
+}

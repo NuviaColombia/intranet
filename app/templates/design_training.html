@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}Training{% endblock %}
+{% block contenido %}
+{% set v = version or '1' %}
+<link rel="stylesheet" href="/static/training/training.css?v={{ v }}">
+<style>
+  /* Training ocupa todo el ancho de la pantalla */
+  main:has(#trRaiz) { padding:0 !important; max-width:none !important; }
+</style>
+<div id="trRaiz" class="tr-raiz" data-v="{{ v }}">
+  <div class="tr-cargando"><div class="tr-spinner"></div><p>Cargando Training…</p></div>
+  <noscript><p style="padding:24px">Training necesita JavaScript activado.</p></noscript>
+</div>
+<script>
+window.TR_CFG = {userId: {{ user.id }}, nombre: {{ (user.nombres or user.nombre_completo) | tojson }}, nombreCompleto: {{ user.nombre_completo | tojson }}, esAdmin: {{ 'true' if es_admin else 'false' }}, v: {{ v | tojson }}};
+</script>
+<script type="importmap">
+{"imports": {"three": "/static/training/vendor/three/three.module.js", "three/addons/": "/static/training/vendor/three/addons/"{% for f in ['lib', 'quiz', 'steps', 'sim', 'widgets'] %},
+  "/static/training/{{ f }}.js": "/static/training/{{ f }}.js?v={{ v }}"{% endfor %}}}
+</script>
+<script type="module" src="/static/training/training.js?v={{ v }}"></script>
+{% endblock %}

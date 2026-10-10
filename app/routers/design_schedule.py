@@ -2518,3 +2518,7 @@ router.include_router(_inicio_router)
 # ---------- Support Time (turnos rotativos de Support y coberturas): rutas en routers/design_support.py ----------
 from .design_support import router as _support_router  # noqa: E402
 router.include_router(_support_router)
+
+# ---------- Training (aprendizaje interactivo bilingüe): rutas en routers/design_training.py ----------
+from .design_training import router as _training_router  # noqa: E402
+router.include_router(_training_router)

@@ -1,0 +1,312 @@
+{
+  "id": "m5-garantia-24z",
+  "orden": 6,
+  "icono": "🛡️",
+  "titulo": {"es": "Garantía del puente 24-Z", "en": "24-Z Bridge Warranty"},
+  "resumen": {
+    "es": "Las medidas mínimas que protegen la resistencia del puente de zirconia y la garantía: espesores por tamaño de arco, cantilever, bucal-lingual y las pruebas que se piden al reclamar.",
+    "en": "The minimum measurements that protect the zirconia bridge's strength and the warranty: thickness by arch size, cantilever, buccal-lingual and the evidence required to claim."
+  },
+  "nivel": "intermedio",
+  "lecciones": [
+    {
+      "id": "m5-l1",
+      "titulo": {"es": "Por qué existen las medidas mínimas", "en": "Why minimum measurements exist"},
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Una viga necesita su grosor", "en": "A beam needs its thickness"},
+          "cuerpo": {
+            "es": "Piensa en una regla de plástico: delgada se dobla y se rompe; gruesa aguanta. El puente de **zirconia 24Z** funciona igual. Necesita una **masa mínima** para no fracturarse al masticar.\n\nPor eso existe la **Garantía 24-Z (24-Z Bridge Warranty)**: Nuvia responde por el puente siempre que se hayan respetado unas medidas mínimas de espesor y otras reglas. Si el puente queda más delgado, no hay garantía.",
+            "en": "Think of a plastic ruler: thin, it bends and breaks; thick, it holds. A **24Z zirconia** bridge works the same way. It needs a **minimum mass** so it does not fracture when chewing.\n\nThat is why the **24-Z Bridge Warranty** exists: Nuvia stands behind the bridge as long as certain minimum thickness measurements and other rules were respected. If the bridge ends up thinner, there is no warranty."
+          },
+          "porque": {
+            "es": "Si la zirconia se rebaja más allá del mínimo, puede romperse en boca. Las medidas protegen al paciente, al doctor y a Nuvia.",
+            "en": "If the zirconia is reduced below the minimum, it can break in the mouth. The measurements protect the patient, the doctor and Nuvia."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {"es": "Espesores mínimos por tamaño de arco", "en": "Minimum thickness by arch size"},
+          "cabeceras": [
+            {"es": "Tamaños de arco", "en": "Arch sizes"},
+            {"es": "Posteriores (a cada lado del puente)", "en": "Posteriors (each side of the bridge)"},
+            {"es": "Anteriores", "en": "Anteriors"}
+          ],
+          "filas": [
+            [{"es": "A, AW, B, BW", "en": "A, AW, B, BW"}, {"es": "10 mm", "en": "10 mm"}, {"es": "12 mm", "en": "12 mm"}],
+            [{"es": "C, CW", "en": "C, CW"}, {"es": "12 mm", "en": "12 mm"}, {"es": "14 mm", "en": "14 mm"}]
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Ojo con la ficha en español", "en": "Watch out for the Spanish sheet"},
+          "cuerpo": {
+            "es": "En la versión en español de la ficha, el segundo punto repite \"A, AW, B, BW\" cuando debería decir **C, CW**. El inglés sí dice C, CW. Los valores correctos son los de la tabla anterior: A/AW/B/BW 10 mm posteriores y 12 mm anteriores; C/CW 12 mm posteriores y 14 mm anteriores.",
+            "en": "In the Spanish version of the sheet, the second point repeats \"A, AW, B, BW\" when it should say **C, CW**. The English version does say C, CW. The correct values are the ones in the table above: A/AW/B/BW 10 mm posterior and 12 mm anterior; C/CW 12 mm posterior and 14 mm anterior."
+          },
+          "alerta": {"es": "Confirmar con el manager si algo en una ficha o protocolo no cuadra con estas cifras.", "en": "Confirm with the manager if anything in a sheet or protocol does not match these figures."}
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "Las otras medidas de la garantía", "en": "The other warranty measures"},
+          "items": [
+            {"icono": "📐", "titulo": {"es": "Cantilever 15 mm", "en": "15 mm cantilever"}, "texto": {"es": "El cantilever (voladizo) es la parte del puente que sobresale más allá del último implante. El máximo es 15 mm.", "en": "The cantilever is the part of the bridge that extends beyond the last implant. The maximum is 15 mm."}},
+            {"icono": "↔️", "titulo": {"es": "Bucal-lingual posteriores: 10 mm", "en": "Buccal-lingual posteriors: 10 mm"}, "texto": {"es": "El ancho de los dientes posteriores, de la mejilla a la lengua, debe ser de al menos 10 mm.", "en": "The width of the posterior teeth, from cheek to tongue, must be at least 10 mm."}},
+            {"icono": "↔️", "titulo": {"es": "Bucal-lingual anteriores: 8 mm", "en": "Buccal-lingual anteriors: 8 mm"}, "texto": {"es": "El ancho de los dientes anteriores, de labio a lengua, debe ser de al menos 8 mm.", "en": "The width of the anterior teeth, from lip to tongue, must be at least 8 mm."}}
+          ]
+        },
+        {
+          "t": "calculadora",
+          "id": "espesor24z",
+          "titulo": {"es": "Calculadora de espesor 24Z", "en": "24Z thickness calculator"},
+          "guia": {"es": "Elige el tamaño de arco y mira el espesor mínimo posterior/anterior, el cantilever y las medidas bucal-lingual. Cambia de tamaño y observa qué cambia.", "en": "Pick the arch size and see the posterior/anterior minimum thickness, the cantilever and the buccal-lingual measures. Switch sizes and see what changes."}
+        },
+        {
+          "t": "modelo3d",
+          "slot": "espesor-minimo-24z",
+          "titulo": {"es": "Espesor mínimo en un puente 24Z", "en": "Minimum thickness in a 24Z bridge"},
+          "descripcion": {
+            "es": "- Observa el espesor del puente en la zona posterior y anterior.\n- Identifica el cantilever más allá del último implante.\n- Mira el ancho bucal-lingual de un diente posterior y uno anterior.\n- Busca zonas donde un ajuste excesivo dejaría el puente demasiado delgado.",
+            "en": "- Look at the bridge thickness in the posterior and anterior areas.\n- Identify the cantilever beyond the last implant.\n- Check the buccal-lingual width of a posterior and an anterior tooth.\n- Look for areas where over-adjustment would leave the bridge too thin."
+          },
+          "pendiente": {"es": "Aquí irá el modelo 3D de un puente 24Z con sus medidas mínimas.", "en": "The 3D model of a 24Z bridge with its minimum measurements will go here."}
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "La zirconia 24Z necesita masa mínima para no fracturarse.", "en": "24Z zirconia needs minimum mass so it does not fracture."},
+            {"es": "Los espesores mínimos dependen del tamaño de arco: A/AW/B/BW y C/CW.", "en": "Minimum thickness depends on arch size: A/AW/B/BW and C/CW."},
+            {"es": "También hay límites de cantilever y de bucal-lingual.", "en": "There are also cantilever and buccal-lingual limits."},
+            {"es": "Si se rebasa el mínimo, no hay garantía.", "en": "If the minimum is not met, there is no warranty."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué existen los espesores mínimos de la garantía 24-Z?", "en": "Why do the 24-Z warranty minimum thicknesses exist?"},
+              "opciones": [
+                {"texto": {"es": "Porque la zirconia necesita masa mínima para no fracturarse en boca", "en": "Because zirconia needs minimum mass so it does not fracture in the mouth"}, "ok": true},
+                {"texto": {"es": "Para que el puente se vea más bonito", "en": "So the bridge looks nicer"}},
+                {"texto": {"es": "Para reducir el tiempo de fresado", "en": "To reduce milling time"}}
+              ],
+              "explicacion": {"es": "Un puente más delgado que el mínimo corre riesgo de romperse; por eso se fija un mínimo.", "en": "A bridge thinner than the minimum risks breaking; that is why a minimum is set."}
+            },
+            {
+              "tipo": "parejas",
+              "enunciado": {"es": "Relaciona el tamaño de arco con el espesor mínimo posterior.", "en": "Match the arch size with the posterior minimum thickness."},
+              "pares": [
+                {"a": {"es": "A / AW", "en": "A / AW"}, "b": {"es": "10 mm", "en": "10 mm"}},
+                {"a": {"es": "B / BW", "en": "B / BW"}, "b": {"es": "10 mm", "en": "10 mm"}},
+                {"a": {"es": "C / CW", "en": "C / CW"}, "b": {"es": "12 mm", "en": "12 mm"}}
+              ],
+              "explicacion": {"es": "Los arcos más grandes (C, CW) piden más espesor mínimo: 12 mm posterior frente a 10 mm.", "en": "The larger arches (C, CW) require more minimum thickness: 12 mm posterior versus 10 mm."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "La ficha en español, al repetir \"A, AW, B, BW\" en el segundo punto, es la correcta para los arcos C y CW.", "en": "The Spanish sheet, by repeating \"A, AW, B, BW\" in the second point, is correct for arches C and CW."},
+              "ok": false,
+              "explicacion": {"es": "Es una errata: el segundo punto debe decir C, CW, como en inglés.", "en": "It is a typo: the second point must say C, CW, as in English."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m5-l2",
+      "titulo": {"es": "Pruebas y fotos para reclamar la garantía", "en": "Evidence and photos for a warranty claim"},
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Sin prueba, no hay reclamo", "en": "No evidence, no claim"},
+          "cuerpo": {
+            "es": "Cuando algo le pasa al puente, la primera pregunta es: ¿cómo llegó? Para poder responderlo, la garantía exige **imágenes de cómo se entregó el puente**: fotos o escaneo de los dientes desde la entrega y escaneo o CT del puente entregado.\n\nEs como un recibo: sin él, no se puede comprobar el estado original.",
+            "en": "When something happens to the bridge, the first question is: how did it arrive? To answer it, the warranty requires **images of how the bridge was delivered**: pictures or scans of the teeth from delivery and a scan or CT of the delivered bridge.\n\nIt is like a receipt: without it, the original condition cannot be verified."
+          },
+          "dato": {"es": "Se piden imágenes de escaneo/CT del puente entregado: captura de pantalla (screenshot), NO foto de la pantalla.", "en": "Scan/CT images of the delivered bridge are requested: a screenshot, NOT a picture of the screen."}
+        },
+        {
+          "t": "flujo",
+          "titulo": {"es": "Qué se reúne para un reclamo", "en": "What is gathered for a claim"},
+          "pasos": [
+            {"titulo": {"es": "Fotos de entrega", "en": "Delivery pictures"}, "texto": {"es": "Imágenes de escaneo de los dientes desde la entrega.", "en": "Scan images of the teeth from delivery."}},
+            {"titulo": {"es": "CT del puente", "en": "Bridge CT"}, "texto": {"es": "Imágenes del escaneo o CT del puente entregado.", "en": "Images of the scan or CT of the delivered bridge."}},
+            {"titulo": {"es": "Formato correcto", "en": "Right format"}, "texto": {"es": "Captura de pantalla (screenshot); nunca una foto tomada a la pantalla.", "en": "A screenshot; never a picture taken of the screen."}}
+          ]
+        },
+        {
+          "t": "acordeon",
+          "titulo": {"es": "Cuándo NO aplica la garantía", "en": "When the warranty does NOT apply"},
+          "items": [
+            {"titulo": {"es": "Ajuste excesivo", "en": "Over-adjustment"}, "texto": {"es": "En dientes donde se hizo un ajuste excesivo que comprometió la resistencia y la forma.", "en": "On teeth where excessive adjustment compromised strength and shape."}},
+            {"titulo": {"es": "Canal de tornillo sobre-abierto", "en": "Over-opened screw channel"}, "texto": {"es": "Cuando el canal del tornillo (access hole) fue agrandado de más.", "en": "When the screw channel (access hole) was enlarged too much."}},
+            {"titulo": {"es": "Medidas por debajo del mínimo", "en": "Measurements below the minimum"}, "texto": {"es": "Si el espesor queda por debajo del mínimo para su tamaño de arco, la zirconia deja de estar protegida.", "en": "If thickness falls below the minimum for its arch size, the zirconia is no longer protected."}}
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Para reclamar se piden imágenes de cómo se entregó el puente.", "en": "To claim, images of how the bridge was delivered are required."},
+            {"es": "Se acepta captura de pantalla, no foto de la pantalla.", "en": "A screenshot is accepted, not a picture of the screen."},
+            {"es": "No aplica con ajuste excesivo ni con canal de tornillo sobre-abierto.", "en": "It does not apply with over-adjustment or an over-opened screw channel."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "Para una prueba de CT del puente entregado, ¿qué formato se pide?", "en": "For CT evidence of the delivered bridge, what format is requested?"},
+              "opciones": [
+                {"texto": {"es": "Captura de pantalla, no una foto de la pantalla", "en": "A screenshot, not a picture of the screen"}, "ok": true},
+                {"texto": {"es": "Una foto con el celular a la pantalla", "en": "A phone picture of the screen"}},
+                {"texto": {"es": "Solo una descripción por escrito", "en": "Only a written description"}}
+              ],
+              "explicacion": {"es": "La captura es una imagen fiel del escaneo; una foto a la pantalla pierde calidad y fiabilidad.", "en": "A screenshot is a faithful image of the scan; a picture of the screen loses quality and reliability."}
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {"es": "¿En qué casos no aplica la garantía?", "en": "In which cases does the warranty not apply?"},
+              "opciones": [
+                {"texto": {"es": "Ajuste excesivo que comprometió la resistencia", "en": "Over-adjustment that compromised strength"}, "ok": true},
+                {"texto": {"es": "Canal de tornillo sobre-abierto", "en": "Over-opened screw channel"}, "ok": true},
+                {"texto": {"es": "Cuando se entregan las fotos de entrega", "en": "When the delivery pictures are provided"}}
+              ],
+              "explicacion": {"es": "Esas dos situaciones debilitan la zirconia; las fotos de entrega, al contrario, son lo que se necesita para reclamar.", "en": "Those two situations weaken the zirconia; delivery pictures, on the contrary, are what is needed to claim."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Las imágenes de entrega sirven para comprobar cómo llegó el puente.", "en": "Delivery images serve to verify how the bridge arrived."},
+              "ok": true,
+              "explicacion": {"es": "Son la prueba del estado original del puente.", "en": "They are the proof of the bridge's original condition."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m5-l3",
+      "titulo": {"es": "Cuando un cambio compromete la resistencia", "en": "When a change compromises strength"},
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Querer complacer no basta", "en": "Wanting to please is not enough"},
+          "cuerpo": {
+            "es": "Un doctor puede pedir un cambio que, sumado a los demás, deje el puente por debajo del mínimo. El equipo de diseño ve el espacio y los límites de material que el doctor no siempre percibe.\n\nLa clave es **no seguir adelante en silencio**: se avisa antes de comprometer la resistencia del puente, porque un puente por debajo del mínimo pierde la garantía y puede romperse.",
+            "en": "A doctor can ask for a change that, added to the others, leaves the bridge below the minimum. The design team sees the space and material limits the doctor does not always notice.\n\nThe key is **not to go ahead silently**: the doctor is alerted before the bridge's strength is compromised, because a bridge below the minimum loses the warranty and may break."
+          },
+          "porque": {
+            "es": "Evitar sobre-ajustar los dientes protege la resistencia de la zirconia, que es justo lo que la garantía cubre.",
+            "en": "Avoiding over-adjusting the teeth protects the zirconia's strength, which is exactly what the warranty covers."
+          }
+        },
+        {
+          "t": "flujo",
+          "titulo": {"es": "Qué hacer si las medidas no se cumplen", "en": "What to do if the measurements are not met"},
+          "pasos": [
+            {"titulo": {"es": "Detectar", "en": "Detect"}, "texto": {"es": "Notar que espesor, cantilever o access hole quedan fuera de las medidas mínimas.", "en": "Notice that thickness, cantilever or access hole fall outside the minimum measurements."}},
+            {"titulo": {"es": "Hold + avisar", "en": "Hold + alert"}, "texto": {"es": "Se detiene el caso y se avisa con la causa, la solución propuesta y fotos.", "en": "The case is put on hold and an alert is sent with the cause, the proposed solution and pictures."}},
+            {"titulo": {"es": "Tolerancias: autoriza el manager", "en": "Tolerances: the manager authorizes"}, "texto": {"es": "Las tolerancias las autoriza el manager de diseño.", "en": "Tolerances are authorized by the design manager."}},
+            {"titulo": {"es": "Si no cumple 24Z", "en": "If it does not meet 24Z"}, "texto": {"es": "El caso pasa a G-CAM; si tampoco hay medidas para G-CAM, se escala a Dr. Heimer.", "en": "The case moves to G-CAM; if there are no measurements for G-CAM either, it is escalated to Dr. Heimer."}}
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "El cantilever excedido", "en": "An exceeded cantilever"},
+          "cuerpo": {
+            "es": "El cantilever oficial es de **15 mm**. En el protocolo de Full Mouth, si se supera tras alinear, se sugiere un **short bridge** (arco corto) donde se supera, o llevar el soporte labial hacia adelante. También existen **cambios preaprobados** por cada doctor, que evitan detener el caso al límite de las 24 horas.",
+            "en": "The official cantilever is **15 mm**. In the Full Mouth protocol, if it is exceeded after alignment, a **short bridge** is suggested where it is exceeded, or lip support is brought forward. There are also **pre-approved changes** per doctor, which avoid stopping the case at the 24-hour limit."
+          },
+          "alerta": {
+            "es": "La guía de producto dice que, con voladizo, el caso continúa con el cantilever y el material elegido; el protocolo Full Mouth sugiere short bridge o soporte labial. Confirmar con el manager cuál aplica.",
+            "en": "The product guide says that with a cantilever the case continues with the cantilever and the chosen material; the Full Mouth protocol suggests a short bridge or lip support. Confirm with the manager which one applies."
+          }
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "Escenarios para decidir", "en": "Scenarios to decide"},
+          "items": [
+            {"icono": "⚠️", "titulo": {"es": "Cambio deja el puente más delgado", "en": "Change leaves the bridge thinner"}, "texto": {"es": "Se avisa antes de aplicarlo: puede perderse la garantía.", "en": "Alert before applying it: the warranty may be lost."}},
+            {"icono": "🕳️", "titulo": {"es": "Access hole muy grande", "en": "Oversized access hole"}, "texto": {"es": "Un canal de tornillo sobre-abierto anula la garantía; se avisa y se busca otra solución.", "en": "An over-opened screw channel voids the warranty; alert and look for another solution."}},
+            {"icono": "📏", "titulo": {"es": "Cantilever mayor de 15 mm", "en": "Cantilever above 15 mm"}, "texto": {"es": "Se avisa con causa, propuesta y fotos; el manager decide.", "en": "Alert with cause, proposal and pictures; the manager decides."}}
+          ]
+        },
+        {
+          "t": "checklist",
+          "titulo": {"es": "Antes de entregar un puente 24Z", "en": "Before delivering a 24Z bridge"},
+          "items": [
+            {"es": "Espesor posterior y anterior cumple el mínimo del tamaño de arco", "en": "Posterior and anterior thickness meet the arch size minimum"},
+            {"es": "Cantilever dentro de 15 mm", "en": "Cantilever within 15 mm"},
+            {"es": "Bucal-lingual: 10 mm posteriores, 8 mm anteriores", "en": "Buccal-lingual: 10 mm posterior, 8 mm anterior"},
+            {"es": "Access holes sin sobre-abrir", "en": "Access holes not over-opened"},
+            {"es": "Fotos/capturas de entrega guardadas (screenshot, no foto de pantalla)", "en": "Delivery pictures/screenshots saved (screenshot, not picture of the screen)"}
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Si un cambio compromete la resistencia, no se sigue en silencio: Hold + avisar.", "en": "If a change compromises strength, do not proceed silently: Hold + alert."},
+            {"es": "Las tolerancias las autoriza el manager de diseño.", "en": "Tolerances are authorized by the design manager."},
+            {"es": "Si no cumple medidas 24Z, el caso pasa a G-CAM.", "en": "If 24Z measurements are not met, the case goes to G-CAM."},
+            {"es": "Los cambios preaprobados por el doctor evitan detener el caso.", "en": "Doctor pre-approved changes avoid stopping the case."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "Un cambio pedido dejaría el puente por debajo del espesor mínimo. ¿Qué haces?", "en": "A requested change would leave the bridge below the minimum thickness. What do you do?"},
+              "opciones": [
+                {"texto": {"es": "Hold y avisar con causa, solución propuesta y fotos", "en": "Hold and alert with cause, proposed solution and pictures"}, "ok": true},
+                {"texto": {"es": "Aplicarlo sin decir nada para cumplir con el doctor", "en": "Apply it silently to please the doctor"}},
+                {"texto": {"es": "Entregar y esperar que no se rompa", "en": "Deliver it and hope it does not break"}}
+              ],
+              "explicacion": {"es": "Un puente por debajo del mínimo pierde la garantía y puede fracturarse; por eso se detiene y se avisa.", "en": "A bridge below the minimum loses the warranty and may fracture; that is why it is held and an alert is sent."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Quién autoriza las tolerancias de medidas?", "en": "Who authorizes measurement tolerances?"},
+              "opciones": [
+                {"texto": {"es": "El manager de diseño", "en": "The design manager"}, "ok": true},
+                {"texto": {"es": "Cada diseñador por su cuenta", "en": "Each designer on their own"}},
+                {"texto": {"es": "El paciente", "en": "The patient"}}
+              ],
+              "explicacion": {"es": "Es una decisión que protege la garantía, por eso la toma el manager.", "en": "It is a decision that protects the warranty, so the manager makes it."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Si no se cumplen las medidas para 24Z según la receta, el caso pasa a G-CAM.", "en": "If the 24Z measurements are not met per the prescription, the case moves to G-CAM."},
+              "ok": true,
+              "explicacion": {"es": "Así se evita entregar un 24Z por debajo de la resistencia mínima.", "en": "This avoids delivering a 24Z below the minimum strength."}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "glosario": [
+    {"id": "g5-garantia", "termino": {"es": "24-Z Bridge Warranty", "en": "24-Z Bridge Warranty"}, "def": {"es": "Garantía de Nuvia sobre el puente de zirconia 24Z, vigente si se respetan las medidas mínimas.", "en": "Nuvia's warranty on the 24Z zirconia bridge, valid if the minimum measurements are respected."}, "cat": "garantia"},
+    {"id": "g5-zirconia", "termino": {"es": "Zirconia", "en": "Zirconia"}, "def": {"es": "Material cerámico del puente 24Z; necesita masa mínima para no fracturarse.", "en": "Ceramic material of the 24Z bridge; it needs minimum mass so it does not fracture."}, "cat": "garantia"},
+    {"id": "g5-espesor", "termino": {"es": "Espesor mínimo", "en": "Minimum thickness"}, "def": {"es": "Grosor mínimo de zirconia exigido según el tamaño de arco.", "en": "Minimum zirconia thickness required according to arch size."}, "cat": "garantia"},
+    {"id": "g5-posteriores", "termino": {"es": "Posteriores", "en": "Posteriors"}, "def": {"es": "Los dientes de atrás del puente (molares y premolares).", "en": "The back teeth of the bridge (molars and premolars)."}, "cat": "garantia"},
+    {"id": "g5-anteriores", "termino": {"es": "Anteriores", "en": "Anteriors"}, "def": {"es": "Los dientes de adelante del puente.", "en": "The front teeth of the bridge."}, "cat": "garantia"},
+    {"id": "g5-cantilever", "termino": {"es": "Cantilever", "en": "Cantilever"}, "def": {"es": "Parte del puente que sobresale más allá del último implante. Máximo 15 mm.", "en": "Part of the bridge extending beyond the last implant. Maximum 15 mm."}, "cat": "garantia"},
+    {"id": "g5-bucal-lingual", "termino": {"es": "Bucal-lingual", "en": "Buccal-lingual"}, "def": {"es": "Ancho del diente de la mejilla a la lengua. 10 mm en posteriores, 8 mm en anteriores.", "en": "Tooth width from cheek to tongue. 10 mm in posteriors, 8 mm in anteriors."}, "cat": "garantia"},
+    {"id": "g5-arch-size", "termino": {"es": "Arch size", "en": "Arch size"}, "def": {"es": "Tamaño de la plantilla del arco: A, AW, B, BW, C, CW. La W significa más ancho.", "en": "Size of the arch template: A, AW, B, BW, C, CW. W means wider."}, "cat": "garantia"},
+    {"id": "g5-access-hole", "termino": {"es": "Access hole", "en": "Access hole"}, "def": {"es": "Canal por donde se atornilla el puente al implante; si se sobre-abre, no hay garantía.", "en": "Channel through which the bridge is screwed to the implant; if over-opened, there is no warranty."}, "cat": "garantia"},
+    {"id": "g5-sobreajuste", "termino": {"es": "Ajuste excesivo", "en": "Over-adjustment"}, "def": {"es": "Reducir un diente más allá de lo seguro, comprometiendo su resistencia y forma.", "en": "Reducing a tooth beyond what is safe, compromising its strength and shape."}, "cat": "garantia"},
+    {"id": "g5-ct", "termino": {"es": "CT scan", "en": "CT scan"}, "def": {"es": "Escaneo en tres dimensiones del puente entregado, usado como prueba.", "en": "Three-dimensional scan of the delivered bridge, used as evidence."}, "cat": "pruebas"},
+    {"id": "g5-screenshot", "termino": {"es": "Screenshot", "en": "Screenshot"}, "def": {"es": "Captura de pantalla; es lo que se acepta como prueba, no una foto de la pantalla.", "en": "A screen capture; it is what is accepted as evidence, not a picture of the screen."}, "cat": "pruebas"},
+    {"id": "g5-gcam", "termino": {"es": "G-CAM", "en": "G-CAM"}, "def": {"es": "Producto al que pasa el caso si no se cumplen las medidas para 24Z.", "en": "Product the case moves to if the 24Z measurements are not met."}, "cat": "producto"},
+    {"id": "g5-short-bridge", "termino": {"es": "Short bridge", "en": "Short bridge"}, "def": {"es": "Arco corto: opción para reducir un cantilever excedido.", "en": "Shorter arch: an option to reduce an exceeded cantilever."}, "cat": "garantia"}
+  ]
+}

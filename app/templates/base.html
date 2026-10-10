@@ -161,6 +161,7 @@
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>
   {% endif %}
   {% endif %}
+  {% if es_design and user.rol in ('admin', 'superadmin') %}<a href="/design/training">🎓 Training</a>{% endif %}
   <a href="/">Módulos</a>
   {# Todos los módulos: foto de Zoho (o iniciales), primer nombre y primer apellido, y el cargo debajo #}
   {% set primeros = (user.nombres or '').split()[:1] + (user.apellidos or '').split()[:1] %}

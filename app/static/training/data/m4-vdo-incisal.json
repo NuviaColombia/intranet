@@ -1,0 +1,1363 @@
+{
+  "id": "m4-vdo-incisal",
+  "orden": 5,
+  "icono": "📐",
+  "titulo": {
+    "es": "Cambio de VDO y borde incisal en casos Single 24z",
+    "en": "VDO and incisal edge changes in Single 24z cases"
+  },
+  "resumen": {
+    "es": "Por qué en un Single 24z no se puede mover el borde incisal \"a ojo\": la oclusión ya fue aprobada en N2 y el N3 debe respetarla. Aprende los 3 casos típicos y cómo se ligan VDO e incisal edge.",
+    "en": "Why in a Single 24z you can't just move the incisal edge on its own: the occlusion was already approved in N2 and N3 must respect it. Learn the 3 typical cases and how VDO and incisal edge are linked."
+  },
+  "nivel": "intermedio",
+  "lecciones": [
+    {
+      "id": "m4-l1",
+      "titulo": {
+        "es": "Una oclusión que ya está aprobada",
+        "en": "An occlusion that is already approved"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Un rompecabezas que ya encajó",
+            "en": "A puzzle that already fit"
+          },
+          "cuerpo": {
+            "es": "Imagina que armas un rompecabezas y alguien lo da por terminado y aprobado. Después te piden cambiar una pieza de arriba sin tocar las de abajo: todo deja de encajar.\n\nEso es un **Single 24z** en la etapa N3. Un Single 24z es una prótesis de zirconia para **un solo arco**. En la etapa anterior (N2) ya se diseñó y se aprobó cómo muerden los dientes de arriba contra los de abajo. El N3 no empieza de cero: **usa esa misma oclusión**.",
+            "en": "Imagine you finish a jigsaw puzzle and it gets approved. Then someone asks you to change one piece on top without touching the ones below: nothing fits anymore.\n\nThat is a **Single 24z** at the N3 stage. A Single 24z is a zirconia prosthesis for **one arch only**. In the earlier stage (N2) the way the upper teeth bite against the lower ones was already designed and approved. N3 does not start from scratch: it **uses that same occlusion**."
+          },
+          "porque": {
+            "es": "La oclusión aprobada en N2 es la referencia de que el puente va a cerrar bien. Si el N3 la cambia, se pierde la garantía de que el paciente va a morder correctamente.",
+            "en": "The occlusion approved in N2 is the proof that the bridge will close properly. If N3 changes it, we lose that assurance that the patient will bite correctly."
+          }
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Vocabulario para entender el módulo",
+            "en": "Vocabulary for this module"
+          },
+          "items": [
+            {
+              "icono": "🦷",
+              "titulo": {
+                "es": "Demodenture",
+                "en": "Demodenture"
+              },
+              "texto": {
+                "es": "Prótesis de prueba que el doctor coloca en la boca del paciente. Sirve para ver dónde quedaría el puente final.",
+                "en": "Trial prosthesis the doctor places in the patient's mouth. It shows where the final bridge would sit."
+              }
+            },
+            {
+              "icono": "📏",
+              "titulo": {
+                "es": "VDO",
+                "en": "VDO"
+              },
+              "texto": {
+                "es": "Vertical Dimension of Occlusion: cuánto está abierta la mordida. Al abrir el VDO, la mandíbula (arco inferior) baja; el arco superior no se mueve.",
+                "en": "Vertical Dimension of Occlusion: how open the bite is. When VDO opens, the jaw (lower arch) moves down; the upper arch does not move."
+              }
+            },
+            {
+              "icono": "🔝",
+              "titulo": {
+                "es": "Incisal edge",
+                "en": "Incisal edge"
+              },
+              "texto": {
+                "es": "El borde de los dientes frontales superiores. Moverlo sube o baja todo el arco superior como un bloque.",
+                "en": "The edge of the upper front teeth. Moving it raises or lowers the whole upper arch as one block."
+              }
+            },
+            {
+              "icono": "✅",
+              "titulo": {
+                "es": "Clase I",
+                "en": "Class I"
+              },
+              "texto": {
+                "es": "La mordida ideal aprobada en N2: todos los dientes hacen contacto de forma armónica.",
+                "en": "The ideal bite approved in N2: all teeth make harmonious contact."
+              }
+            },
+            {
+              "icono": "🔀",
+              "titulo": {
+                "es": "G-CAM",
+                "en": "G-CAM"
+              },
+              "texto": {
+                "es": "Otro producto al que pasa el caso cuando se piden cambios que el Single 24z no permite.",
+                "en": "Another product the case moves to when changes are requested that Single 24z does not allow."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Qué se puede cambiar en N3-Single",
+            "en": "What can change in N3-Single"
+          },
+          "cuerpo": {
+            "es": "En el N3 de un Single 24z **solo se permiten dos cambios: VDO y borde incisal**. Cualquier otro cambio obliga a procesar el caso como **G-CAM**.\n\nEl motivo es sencillo: VDO e incisal edge son los dos movimientos que se pueden compensar entre sí sin romper la oclusión aprobada. Los demás cambios la alterarían.",
+            "en": "In the N3 of a Single 24z **only two changes are allowed: VDO and incisal edge**. Any other change forces the case to be processed as **G-CAM**.\n\nThe reason is simple: VDO and incisal edge are the two movements that can compensate each other without breaking the approved occlusion. Any other change would alter it."
+          },
+          "dato": {
+            "es": "N3-Single 24z: solo VDO e incisal edge. Todo lo demás pasa a G-CAM.",
+            "en": "N3-Single 24z: only VDO and incisal edge. Everything else goes to G-CAM."
+          }
+        },
+        {
+          "t": "flujo",
+          "titulo": {
+            "es": "Cómo compara el equipo",
+            "en": "How the team compares"
+          },
+          "pasos": [
+            {
+              "titulo": {
+                "es": "Mirar la demodenture en boca",
+                "en": "Look at the Demodenture in the mouth"
+              },
+              "texto": {
+                "es": "El equipo revisa dónde colocó el doctor la demodenture, según los registros escaneados.",
+                "en": "The team checks where the doctor placed the Demodenture, based on the scanned records."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Compararla con el diseño de N2",
+                "en": "Compare it with the N2 design"
+              },
+              "texto": {
+                "es": "Se compara con cómo fue diseñada y aprobada en N2: ¿quedó en la misma posición o no?",
+                "en": "It is compared with how it was designed and approved in N2: is it in the same position or not?"
+              }
+            },
+            {
+              "titulo": {
+                "es": "Alinear con los registros",
+                "en": "Align with the records"
+              },
+              "texto": {
+                "es": "Se alinea la oclusión de N2 con los registros recibidos.",
+                "en": "The N2 occlusion is aligned with the received records."
+              }
+            },
+            {
+              "titulo": {
+                "es": "Validar el cambio pedido",
+                "en": "Validate the requested change"
+              },
+              "texto": {
+                "es": "Se revisa si lo que pide el doctor se puede hacer sin romper la clase I.",
+                "en": "The team checks whether the doctor's request can be done without breaking Class I."
+              }
+            }
+          ]
+        },
+        {
+          "t": "modelo3d",
+          "slot": "single-24z-oclusion",
+          "titulo": {
+            "es": "Oclusión aprobada de un Single 24z",
+            "en": "Approved occlusion of a Single 24z"
+          },
+          "descripcion": {
+            "es": "- Observa el puente superior y el modelo antagonista (inferior) impreso en N2.\n- Fíjate que todos los dientes hacen contacto: eso es clase I.\n- Busca el espacio entre el puente y el modelo de maxilar (blanco).\n- Imagina qué pasaría si bajas el puente sin abrir el VDO.",
+            "en": "- Look at the upper bridge and the antagonist (lower) model printed in N2.\n- Notice that all teeth make contact: that is Class I.\n- Look for the space between the bridge and the maxilla model (white).\n- Imagine what would happen if you lowered the bridge without opening VDO."
+          },
+          "pendiente": {
+            "es": "Aquí irá el modelo 3D de la oclusión aprobada de un Single 24z.",
+            "en": "The 3D model of an approved Single 24z occlusion will go here."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "En un Single 24z ya existe una oclusión aprobada en N2.",
+              "en": "A Single 24z already has an occlusion approved in N2."
+            },
+            {
+              "es": "El N3 usa esa misma oclusión y debe respetarla.",
+              "en": "N3 uses that same occlusion and must respect it."
+            },
+            {
+              "es": "Solo se permiten cambios de VDO y borde incisal; lo demás pasa a G-CAM.",
+              "en": "Only VDO and incisal edge changes are allowed; anything else goes to G-CAM."
+            },
+            {
+              "es": "El equipo compara dónde puso el doctor la demodenture con el diseño aprobado en N2.",
+              "en": "The team compares where the doctor placed the Demodenture with the design approved in N2."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Por qué el N3 de un Single 24z debe respetar la oclusión de N2?",
+                "en": "Why must the N3 of a Single 24z respect the N2 occlusion?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Porque ya fue diseñada y aprobada, y es la referencia de que el puente cierra bien",
+                    "en": "Because it was already designed and approved, and it is the reference that the bridge closes properly"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque el N3 no tiene software para diseñar la oclusión",
+                    "en": "Because N3 has no software to design occlusion"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque el doctor nunca puede pedir cambios",
+                    "en": "Because the doctor can never request changes"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "La oclusión aprobada en N2 es lo que garantiza una mordida correcta; cambiarla la rompería.",
+                "en": "The occlusion approved in N2 is what ensures a correct bite; changing it would break it."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "En N3-Single 24z, cualquier cambio distinto de VDO o borde incisal obliga a procesar el caso como G-CAM.",
+                "en": "In N3-Single 24z, any change other than VDO or incisal edge forces the case to be processed as G-CAM."
+              },
+              "ok": true,
+              "explicacion": {
+                "es": "Solo VDO e incisal edge se pueden compensar entre sí sin romper la oclusión aprobada.",
+                "en": "Only VDO and incisal edge can compensate each other without breaking the approved occlusion."
+              }
+            },
+            {
+              "tipo": "orden",
+              "enunciado": {
+                "es": "Ordena cómo compara el equipo.",
+                "en": "Put the team's comparison in order."
+              },
+              "items": [
+                {
+                  "es": "Mirar dónde puso el doctor la demodenture",
+                  "en": "Look at where the doctor placed the Demodenture"
+                },
+                {
+                  "es": "Compararla con el diseño aprobado en N2",
+                  "en": "Compare it with the design approved in N2"
+                },
+                {
+                  "es": "Alinear con los registros escaneados",
+                  "en": "Align with the scanned records"
+                },
+                {
+                  "es": "Validar si el cambio se puede hacer sin perder clase I",
+                  "en": "Validate whether the change can be done without losing Class I"
+                }
+              ],
+              "explicacion": {
+                "es": "Primero se observa y se compara, luego se alinea y finalmente se decide si el cambio es posible.",
+                "en": "First observe and compare, then align, and finally decide whether the change is possible."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4-l2",
+      "titulo": {
+        "es": "Caso 1: bajar el borde incisal sin pedir VDO",
+        "en": "Case 1: lowering the incisal edge without asking for VDO"
+      },
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "El pedido del doctor",
+            "en": "The doctor's request"
+          },
+          "cuerpo": {
+            "es": "La demodenture está colocada **igual que en el diseño de N2**. El doctor pide mover el borde incisal **1.5 mm incisally** (hacia abajo, hacia el borde de los dientes) y **no pide cambiar el VDO**.\n\nParece un cambio simple: bajar el puente 1.5 mm. Pero el equipo lo valida primero contra la oclusión aprobada, y ahí aparece el problema.",
+            "en": "The Demodenture is placed **exactly as in the N2 design**. The doctor asks to move the incisal edge **1.5 mm incisally** (down, toward the tooth edge) and **does not ask for any VDO change**.\n\nIt looks like a simple change: lower the bridge 1.5 mm. But the team first validates it against the approved occlusion, and that is where the problem shows up."
+          }
+        },
+        {
+          "t": "tour",
+          "titulo": {
+            "es": "Caso 1 en movimiento",
+            "en": "Case 1 in motion"
+          },
+          "escenas": [
+            {
+              "p": {
+                "vdo": 0,
+                "incisal": 0
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "Punto de partida: la oclusión aprobada en N2. Todos los dientes hacen contacto.",
+                "en": "Starting point: the occlusion approved in N2. All teeth make contact."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 4
+            },
+            {
+              "p": {
+                "vdo": 0,
+                "incisal": -1.5
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "Bajamos el borde incisal 1.5 mm sin abrir VDO: las cúspides superiores atraviesan el modelo inferior. No se logra clase I.",
+                "en": "We lower the incisal edge 1.5 mm without opening VDO: the upper cusps pass through the lower model. Class I is lost."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 6
+            },
+            {
+              "p": {
+                "vdo": 1.5,
+                "incisal": -1.5
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "Con VDO abierto 1.5 mm la mandíbula baja lo mismo: todos los dientes vuelven a hacer contacto.",
+                "en": "With VDO opened 1.5 mm the jaw moves down by the same amount: all teeth are back in contact."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 6
+            }
+          ],
+          "modo": "fijo"
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Por qué atraviesan las cúspides",
+            "en": "Why the cusps cross through"
+          },
+          "cuerpo": {
+            "es": "Piensa en una tapa y una caja. Si bajas la tapa 1.5 mm pero la caja no se mueve, la tapa choca y se encaja dentro. Digitalmente las cúspides superiores **atraviesan el modelo inferior**; al articularlo en físico **no se alcanza clase I**.\n\nLa solución es **abrir el VDO 1.5 mm**: la mandíbula baja lo mismo que bajó el puente. Además no hace falta mover el puente superior: el maxilar de modelo \"sube\" y queda un espacio de 1.5 mm.",
+            "en": "Think of a lid and a box. If you lower the lid 1.5 mm but the box does not move, the lid crashes into it. Digitally the upper cusps **pass through the lower model**; when articulated physically **Class I is not reached**.\n\nThe fix is to **open VDO 1.5 mm**: the jaw moves down as much as the bridge did. There is also no need to move the upper bridge: the model maxilla \"rises\" and leaves a 1.5 mm gap."
+          },
+          "dato": {
+            "es": "Si la demo está igual que en N2: 1.5 mm de borde incisal = 1.5 mm de VDO.",
+            "en": "If the Demodenture matches N2: 1.5 mm of incisal edge = 1.5 mm of VDO."
+          }
+        },
+        {
+          "t": "simulador",
+          "titulo": {
+            "es": "Reto del Caso 1",
+            "en": "Case 1 challenge"
+          },
+          "guia": {
+            "es": "Mueve el borde incisal a 1.5 mm incisally (incisal = -1.5) y mira el indicador: verás Interferencia. Luego abre el VDO lo necesario para volver a Contacto. Signos: VDO + abre; incisal + sube, - baja.",
+            "en": "Move the incisal edge 1.5 mm incisally (incisal = -1.5) and watch the indicator: you will see Interference. Then open VDO just enough to get back to Contact. Signs: VDO + opens; incisal + goes up, - goes down."
+          },
+          "foco": [
+            "vdo",
+            "incisal"
+          ],
+          "reto": {
+            "enunciado": {
+              "es": "Deja el borde incisal 1.5 mm hacia abajo y consigue Contacto con el VDO correcto.",
+              "en": "Leave the incisal edge 1.5 mm down and get Contact with the right VDO."
+            },
+            "objetivo": {
+              "vdo": 1.5,
+              "incisal": -1.5
+            },
+            "tolerancia": 0.25
+          },
+          "vista": "frontal",
+          "modo": "fijo"
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Bajar el borde incisal sin abrir VDO hace que las cúspides atraviesen el modelo inferior.",
+              "en": "Lowering the incisal edge without opening VDO makes the cusps pass through the lower model."
+            },
+            {
+              "es": "Así se pierde la clase I al articular.",
+              "en": "Class I is then lost when articulating."
+            },
+            {
+              "es": "La solución es ligar el cambio: incisal 1.5 mm = VDO abierto 1.5 mm.",
+              "en": "The solution is to link the change: incisal 1.5 mm = VDO opened 1.5 mm."
+            },
+            {
+              "es": "No hace falta mover el puente superior.",
+              "en": "The upper bridge does not need to move."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "En el Caso 1, ¿qué pasa si solo se baja el borde incisal sin abrir VDO?",
+                "en": "In Case 1, what happens if only the incisal edge is lowered without opening VDO?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Las cúspides superiores atraviesan el modelo inferior y no se logra clase I",
+                    "en": "The upper cusps pass through the lower model and Class I is not reached"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Todo queda igual, el cambio es inofensivo",
+                    "en": "Nothing changes, the change is harmless"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "El puente se abre hacia atrás",
+                    "en": "The bridge opens toward the back"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El puente baja pero el antagonista no se mueve, así que se invaden mutuamente.",
+                "en": "The bridge goes down but the antagonist does not move, so they overlap."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Cómo se resuelve?",
+                "en": "How is it solved?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Abriendo el VDO lo mismo que se bajó el borde incisal",
+                    "en": "Opening VDO by the same amount the incisal edge went down"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Moviendo la línea media",
+                    "en": "Moving the midline"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Cambiando la talla del arco",
+                    "en": "Changing the arch size"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Abrir VDO baja la mandíbula lo mismo que el puente, de modo que vuelven a tocarse sin mover el puente superior.",
+                "en": "Opening VDO lowers the jaw by the same amount as the bridge, so they touch again without moving the upper bridge."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Al abrir el VDO se mueve el arco superior.",
+                "en": "Opening VDO moves the upper arch."
+              },
+              "ok": false,
+              "explicacion": {
+                "es": "El VDO mueve la mandíbula (arco inferior); el arco superior no se mueve.",
+                "en": "VDO moves the jaw (lower arch); the upper arch does not move."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4-l3",
+      "titulo": {
+        "es": "Casos 2 y 3: cuando la demo no está como en N2",
+        "en": "Cases 2 and 3: when the Demodenture is not as in N2"
+      },
+      "minutos": 9,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Todo depende de dónde quedó la demo",
+            "en": "It all depends on where the Demodenture sits"
+          },
+          "cuerpo": {
+            "es": "En el Caso 1 la demodenture estaba igual que en N2. En los Casos 2 y 3 **no** lo está: el doctor la colocó en otra posición respecto al diseño aprobado.\n\nEso cambia la respuesta. Un mismo pedido puede ser fácil o difícil según cómo esté colocada la demo, y por eso el equipo siempre compara primero antes de decidir.",
+            "en": "In Case 1 the Demodenture matched N2. In Cases 2 and 3 it **does not**: the doctor placed it in a different position from the approved design.\n\nThat changes the answer. The same request can be easy or hard depending on how the Demodenture is placed, which is why the team always compares first before deciding."
+          }
+        },
+        {
+          "t": "tour",
+          "titulo": {
+            "es": "Caso 2: VDO +3 mm sin mover el borde incisal",
+            "en": "Case 2: VDO +3 mm without moving the incisal edge"
+          },
+          "escenas": [
+            {
+              "p": {
+                "vdo": 0,
+                "incisal": 0
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "La demo no está como en N2 y el doctor pide VDO +3 mm sin mover el borde incisal.",
+                "en": "The Demodenture is not as in N2 and the doctor asks for VDO +3 mm without moving the incisal edge."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 4
+            },
+            {
+              "p": {
+                "vdo": 3,
+                "incisal": 0
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "La mandíbula baja 3 mm y el puente no: la oclusión queda abierta, sin ocluir. No hay clase I.",
+                "en": "The jaw goes down 3 mm and the bridge does not: the occlusion stays open, unoccluded. No Class I."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 6
+            },
+            {
+              "p": {
+                "vdo": 3,
+                "incisal": -3
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "Opción 1: VDO 3 mm pero el borde incisal baja 3 mm. Vuelve el contacto.",
+                "en": "Option 1: VDO 3 mm but the incisal edge goes down 3 mm. Contact is back."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 6
+            },
+            {
+              "p": {
+                "vdo": 0,
+                "incisal": 0
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "Opción 2: VDO 0 y mantener el mismo borde incisal. También hay contacto.",
+                "en": "Option 2: VDO 0 and keep the same incisal edge. There is contact too."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 5
+            }
+          ],
+          "modo": "fijo"
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Por qué el Caso 2 es una solicitud difícil",
+            "en": "Why Case 2 is a difficult request"
+          },
+          "cuerpo": {
+            "es": "Abrir el VDO baja la mandíbula, pero el puente superior se queda donde está. Sin mover el borde incisal, los dientes ya no se tocan.\n\nPor eso el equipo ofrece **dos opciones**: (1) VDO +3 mm con el borde incisal 3 mm hacia abajo, o (2) VDO 0 manteniendo el mismo borde incisal. Pedir VDO sin mover el borde incisal es una solicitud difícil.",
+            "en": "Opening VDO lowers the jaw, but the upper bridge stays where it is. Without moving the incisal edge, the teeth no longer touch.\n\nThat is why the team offers **two options**: (1) VDO +3 mm with the incisal edge 3 mm down, or (2) VDO 0 keeping the same incisal edge. Asking for VDO without moving the incisal edge is a difficult request."
+          },
+          "alerta": {
+            "es": "En este caso el diseño de N2 tenía el lado izquierdo más bajo que el derecho. El protocolo no permite cambios extra de ese tipo: se cambia el producto a G-CAM o se sigue con el lado izquierdo 1 mm más abajo.",
+            "en": "In this case the N2 design had the left side lower than the right. The protocol does not allow extra changes of that kind: the product is changed to G-CAM or the case continues with the left side 1 mm lower."
+          }
+        },
+        {
+          "t": "tour",
+          "titulo": {
+            "es": "Caso 3: la demo quedó 1 mm más abajo y no se pidió nada",
+            "en": "Case 3: the Demodenture sits 1 mm lower and nothing was requested"
+          },
+          "escenas": [
+            {
+              "p": {
+                "vdo": 0,
+                "incisal": -1
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "Comparada con el diseño de N2, la demo está 1 mm más abajo y el doctor no pide cambios.",
+                "en": "Compared with the approved N2 design, the Demodenture is 1 mm lower and the doctor requests no changes."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 5
+            },
+            {
+              "p": {
+                "vdo": 1,
+                "incisal": -1
+              },
+              "cam": "frontal",
+              "texto": {
+                "es": "Se pide VDO abierto 1 mm: la mandíbula baja 1 mm, ocluye con el antagonista y se conserva el borde incisal de la demo.",
+                "en": "VDO opened 1 mm is requested: the jaw goes down 1 mm, occludes with the antagonist and the Demodenture's incisal edge is kept."
+              },
+              "resaltar": [
+                "fantasma",
+                "oclusion"
+              ],
+              "seg": 6
+            }
+          ],
+          "modo": "fijo"
+        },
+        {
+          "t": "simulador",
+          "titulo": {
+            "es": "Reto del Caso 2, opción 1",
+            "en": "Case 2 challenge, option 1"
+          },
+          "guia": {
+            "es": "Abre VDO 3 mm y observa que queda Sin ocluir. Ahora baja el borde incisal lo necesario para recuperar el Contacto (esta es la opción 1 que ofrece el equipo).",
+            "en": "Open VDO 3 mm and see that it reads Unoccluded. Now lower the incisal edge as needed to recover Contact (this is option 1 offered by the team)."
+          },
+          "foco": [
+            "vdo",
+            "incisal"
+          ],
+          "reto": {
+            "enunciado": {
+              "es": "Deja VDO +3 mm y baja el borde incisal para lograr Contacto.",
+              "en": "Keep VDO +3 mm and lower the incisal edge to get Contact."
+            },
+            "objetivo": {
+              "vdo": 3,
+              "incisal": -3
+            },
+            "tolerancia": 0.25
+          },
+          "vista": "frontal",
+          "modo": "fijo"
+        },
+        {
+          "t": "simulador",
+          "titulo": {
+            "es": "Reto del Caso 3",
+            "en": "Case 3 challenge"
+          },
+          "guia": {
+            "es": "Aquí el borde incisal en -1 representa que la demo quedó 1 mm más abajo que el diseño de N2. Encuentra el VDO que devuelve el Contacto sin pedir ningún otro cambio.",
+            "en": "Here the incisal edge at -1 represents that the Demodenture sits 1 mm lower than the N2 design. Find the VDO that brings back Contact without requesting any other change."
+          },
+          "foco": [
+            "vdo",
+            "incisal"
+          ],
+          "reto": {
+            "enunciado": {
+              "es": "Con la demo 1 mm más abajo (incisal -1), consigue Contacto con el VDO correcto.",
+              "en": "With the Demodenture 1 mm lower (incisal -1), get Contact with the right VDO."
+            },
+            "objetivo": {
+              "vdo": 1,
+              "incisal": -1
+            },
+            "tolerancia": 0.25
+          },
+          "vista": "frontal",
+          "modo": "fijo"
+        },
+        {
+          "t": "tabla",
+          "titulo": {
+            "es": "Los 3 casos de un vistazo",
+            "en": "The 3 cases at a glance"
+          },
+          "cabeceras": [
+            {
+              "es": "Caso",
+              "en": "Case"
+            },
+            {
+              "es": "Demo vs N2",
+              "en": "Demodenture vs N2"
+            },
+            {
+              "es": "Pedido",
+              "en": "Request"
+            },
+            {
+              "es": "Qué se hace",
+              "en": "What is done"
+            }
+          ],
+          "filas": [
+            [
+              {
+                "es": "1",
+                "en": "1"
+              },
+              {
+                "es": "Igual",
+                "en": "Same"
+              },
+              {
+                "es": "Borde incisal 1.5 mm incisally, sin VDO",
+                "en": "Incisal edge 1.5 mm incisally, no VDO"
+              },
+              {
+                "es": "Ligar a VDO +1.5 mm",
+                "en": "Link to VDO +1.5 mm"
+              }
+            ],
+            [
+              {
+                "es": "2",
+                "en": "2"
+              },
+              {
+                "es": "Diferente",
+                "en": "Different"
+              },
+              {
+                "es": "VDO +3 mm, sin mover el borde incisal",
+                "en": "VDO +3 mm, no incisal edge move"
+              },
+              {
+                "es": "VDO 3 + borde 3 abajo, o VDO 0 con el mismo borde",
+                "en": "VDO 3 + edge 3 down, or VDO 0 with the same edge"
+              }
+            ],
+            [
+              {
+                "es": "3",
+                "en": "3"
+              },
+              {
+                "es": "1 mm más abajo",
+                "en": "1 mm lower"
+              },
+              {
+                "es": "Ninguno",
+                "en": "None"
+              },
+              {
+                "es": "Pedir VDO abierto 1 mm",
+                "en": "Request VDO opened 1 mm"
+              }
+            ]
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Qué cambios se pueden hacer depende de cómo colocó el doctor la demodenture.",
+              "en": "Which changes are possible depends on how the doctor placed the Demodenture."
+            },
+            {
+              "es": "VDO sin mover el borde incisal deja la oclusión abierta: es una solicitud difícil.",
+              "en": "VDO without moving the incisal edge leaves the occlusion open: a difficult request."
+            },
+            {
+              "es": "Caso 2: VDO 3 y borde 3 abajo, o VDO 0 y mismo borde.",
+              "en": "Case 2: VDO 3 and edge 3 down, or VDO 0 and the same edge."
+            },
+            {
+              "es": "Caso 3: con la demo 1 mm abajo, se pide VDO 1 mm.",
+              "en": "Case 3: with the Demodenture 1 mm lower, VDO 1 mm is requested."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "En el Caso 2, ¿por qué VDO +3 mm sin mover el borde incisal es un pedido difícil?",
+                "en": "In Case 2, why is VDO +3 mm without moving the incisal edge a difficult request?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "La mandíbula baja 3 mm pero el puente no, así que la oclusión queda abierta y no hay clase I",
+                    "en": "The jaw goes down 3 mm but the bridge does not, so the occlusion stays open and there is no Class I"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Porque el VDO no se puede cambiar nunca en un Single 24z",
+                    "en": "Because VDO can never be changed in a Single 24z"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Porque el arco superior sube 3 mm",
+                    "en": "Because the upper arch goes up 3 mm"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El VDO solo mueve la mandíbula; si el borde incisal no acompaña, los dientes dejan de tocarse.",
+                "en": "VDO only moves the jaw; if the incisal edge does not follow, the teeth stop touching."
+              }
+            },
+            {
+              "tipo": "varias",
+              "enunciado": {
+                "es": "¿Qué opciones ofrece el equipo en el Caso 2?",
+                "en": "Which options does the team offer in Case 2?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "VDO +3 mm con el borde incisal bajando 3 mm",
+                    "en": "VDO +3 mm with the incisal edge going down 3 mm"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "VDO 0 y mantener el mismo borde incisal",
+                    "en": "VDO 0 and keep the same incisal edge"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Ignorar el pedido de VDO sin avisar",
+                    "en": "Ignore the VDO request without telling anyone"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Ambas opciones mantienen la oclusión cerrada; ignorar el pedido no es una opción del protocolo.",
+                "en": "Both options keep the occlusion closed; ignoring the request is not a protocol option."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "Caso 3: la demo está 1 mm más abajo que en N2 y el doctor no pide cambios. ¿Qué se pide para mantener el borde incisal?",
+                "en": "Case 3: the Demodenture is 1 mm lower than in N2 and the doctor requests no changes. What is requested to keep the incisal edge?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "VDO abierto 1 mm",
+                    "en": "VDO opened 1 mm"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Mover el borde incisal 1 mm apically",
+                    "en": "Move the incisal edge 1 mm apically"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Cambiar a otra talla de arco",
+                    "en": "Change to another arch size"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Al abrir 1 mm, la mandíbula baja y ocluye con el antagonista conservando el borde incisal de la demo.",
+                "en": "By opening 1 mm, the jaw goes down and occludes with the antagonist, keeping the Demodenture's incisal edge."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4-l4",
+      "titulo": {
+        "es": "Efecto en el labio, regla de oro y cuándo avisar",
+        "en": "Lip effect, golden rule and when to alert"
+      },
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Lo que se ve al sonreír",
+            "en": "What shows when smiling"
+          },
+          "cuerpo": {
+            "es": "Cambiar el VDO y el borde incisal no solo afecta la mordida: también cambia la **relación entre el labio y el puente**. En el Caso 1, donde el borde incisal baja 1.5 mm ligado a VDO +1.5 mm, ese cambio **probablemente genere sonrisa gingival** (gummy smile): al sonreír se ve más encía.\n\nPor eso el doctor debe saber que su pedido puede cambiar el aspecto de la sonrisa, no solo la mordida.",
+            "en": "Changing VDO and incisal edge does not only affect the bite: it also changes the **relationship between the lip and the bridge**. In Case 1, where the incisal edge goes down 1.5 mm linked to VDO +1.5 mm, this change will **most likely create a gummy smile**: more gum shows when smiling.\n\nThat is why the doctor should know their request can change the look of the smile, not only the bite."
+          },
+          "porque": {
+            "es": "El puente superior queda en otra posición respecto al labio. Aunque la oclusión sea correcta, la estética puede cambiar.",
+            "en": "The upper bridge ends up in a different position relative to the lip. Even if the occlusion is correct, the esthetics can change."
+          }
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {
+            "es": "Quién ve qué",
+            "en": "Who sees what"
+          },
+          "items": [
+            {
+              "icono": "👨‍⚕️",
+              "titulo": {
+                "es": "El doctor",
+                "en": "The doctor"
+              },
+              "texto": {
+                "es": "Ve la boca del paciente, la estética y cómo quedó colocada la demodenture.",
+                "en": "Sees the patient's mouth, the esthetics and how the Demodenture sits."
+              }
+            },
+            {
+              "icono": "💻",
+              "titulo": {
+                "es": "El equipo de diseño",
+                "en": "The design team"
+              },
+              "texto": {
+                "es": "Ve en digital si las cúspides atraviesan al antagonista y si se mantiene la clase I. Por eso decide cómo ligar VDO e incisal edge.",
+                "en": "Sees digitally whether cusps cross the antagonist and whether Class I is kept. That is why it decides how to link VDO and incisal edge."
+              }
+            },
+            {
+              "icono": "🧩",
+              "titulo": {
+                "es": "La oclusión de N2",
+                "en": "The N2 occlusion"
+              },
+              "texto": {
+                "es": "Es la referencia aprobada contra la que se compara todo.",
+                "en": "It is the approved reference everything is compared against."
+              }
+            }
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "La regla de oro",
+            "en": "The golden rule"
+          },
+          "cuerpo": {
+            "es": "En un Single 24z, **los cambios de borde incisal se ligan a los de VDO** para respetar la oclusión aprobada en N2. Si el doctor colocó la demodenture igual que en N2, 1.5 mm de borde incisal piden 1.5 mm de VDO.\n\nSi no está igual, el equipo analiza cada caso: el cambio de VDO afecta el borde incisal, y lo que se puede hacer depende de cómo colocó el doctor la demo.",
+            "en": "In a Single 24z, **incisal edge changes are linked to VDO changes** to respect the occlusion approved in N2. If the doctor placed the Demodenture exactly as in N2, 1.5 mm of incisal edge calls for 1.5 mm of VDO.\n\nIf it is not the same, the team analyzes each case: a VDO change affects the incisal edge, and what can be done depends on how the doctor placed the Demodenture."
+          },
+          "dato": {
+            "es": "VDO e incisal edge son los únicos cambios en N3-Single 24z; se ligan entre sí.",
+            "en": "VDO and incisal edge are the only changes in N3-Single 24z; they are linked to each other."
+          }
+        },
+        {
+          "t": "simulador",
+          "titulo": {
+            "es": "Explora libremente",
+            "en": "Explore freely"
+          },
+          "guia": {
+            "es": "Mueve VDO e incisal edge a gusto. Observa en qué combinaciones aparece Contacto, Interferencia o Sin ocluir, y cómo cambia la posición del puente respecto al labio.",
+            "en": "Move VDO and incisal edge freely. See which combinations show Contact, Interference or Unoccluded, and how the bridge position changes relative to the lip."
+          },
+          "foco": [
+            "vdo",
+            "incisal"
+          ],
+          "vista": "frontal",
+          "modo": "fijo"
+        },
+        {
+          "t": "texto",
+          "titulo": {
+            "es": "Cuándo se avisa al doctor",
+            "en": "When the doctor is alerted"
+          },
+          "cuerpo": {
+            "es": "El equipo hace todo lo posible por cumplir lo que pide el doctor, pero ve restricciones de espacio e implantes que el doctor no siempre percibe. Si no se puede cumplir el pedido, **se avisa al doctor para conversarlo**.\n\nEn los Casos 2 y 3, la forma de proceder (opciones de VDO e incisal edge, o cambio a G-CAM) se explica al doctor en vez de aplicarla en silencio.",
+            "en": "The team does everything it can to follow the doctor's instructions, but it sees space and implant restrictions the doctor does not always notice. If a request cannot be carried out, **the doctor is alerted to have a conversation**.\n\nIn Cases 2 and 3, the way forward (VDO and incisal edge options, or a switch to G-CAM) is explained to the doctor rather than applied silently."
+          },
+          "alerta": {
+            "es": "Si dudas de qué opción ofrecer o si un caso debe pasar a G-CAM, confirma con el manager. Confirmar con el manager.",
+            "en": "If you are unsure which option to offer or whether a case should move to G-CAM, check with the manager. Confirm with the manager."
+          }
+        },
+        {
+          "t": "checklist",
+          "titulo": {
+            "es": "Antes de aceptar un pedido de VDO o incisal edge",
+            "en": "Before accepting a VDO or incisal edge request"
+          },
+          "items": [
+            {
+              "es": "¿Comparé dónde puso el doctor la demodenture con el diseño aprobado en N2?",
+              "en": "Did I compare where the doctor placed the Demodenture with the design approved in N2?"
+            },
+            {
+              "es": "¿El cambio de borde incisal está ligado a un cambio de VDO?",
+              "en": "Is the incisal edge change linked to a VDO change?"
+            },
+            {
+              "es": "¿Se mantiene la clase I (sin cúspides que atraviesen el antagonista)?",
+              "en": "Is Class I kept (no cusps crossing the antagonist)?"
+            },
+            {
+              "es": "¿Pensé en el efecto en el labio (posible sonrisa gingival)?",
+              "en": "Did I think about the effect on the lip (possible gummy smile)?"
+            },
+            {
+              "es": "¿El pedido incluye solo VDO e incisal edge? Si no, es G-CAM.",
+              "en": "Does the request include only VDO and incisal edge? If not, it is G-CAM."
+            }
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {
+            "es": "Ideas clave",
+            "en": "Key ideas"
+          },
+          "puntos": [
+            {
+              "es": "Bajar el borde incisal ligado a VDO puede crear sonrisa gingival.",
+              "en": "Lowering the incisal edge linked to VDO can create a gummy smile."
+            },
+            {
+              "es": "Regla de oro: los cambios de borde incisal se ligan a los de VDO.",
+              "en": "Golden rule: incisal edge changes are linked to VDO changes."
+            },
+            {
+              "es": "El equipo de diseño decide porque ve en digital la oclusión.",
+              "en": "The design team decides because it sees the occlusion digitally."
+            },
+            {
+              "es": "Si un pedido no se puede cumplir, se avisa al doctor.",
+              "en": "If a request cannot be fulfilled, the doctor is alerted."
+            }
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "¿Qué efecto estético probable tiene bajar el borde incisal ligado a abrir VDO (Caso 1)?",
+                "en": "What esthetic effect is likely when lowering the incisal edge linked to opening VDO (Case 1)?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "Cambia la relación labio-puente y probablemente aparece sonrisa gingival",
+                    "en": "The lip-bridge relationship changes and a gummy smile likely appears"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Cambia el color de los dientes",
+                    "en": "The tooth shade changes"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Se mueve la línea media",
+                    "en": "The midline moves"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "El puente queda en otra posición respecto al labio, y puede verse más encía al sonreír.",
+                "en": "The bridge sits differently relative to the lip, and more gum may show when smiling."
+              }
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {
+                "es": "Es el equipo de diseño quien decide cómo ligar VDO e incisal edge, porque ve en digital si se mantiene la clase I.",
+                "en": "The design team decides how to link VDO and incisal edge, because it sees digitally whether Class I is kept."
+              },
+              "ok": true,
+              "explicacion": {
+                "es": "El doctor ve la boca; el diseñador ve el espacio y la oclusión aprobada.",
+                "en": "The doctor sees the mouth; the designer sees the space and the approved occlusion."
+              }
+            },
+            {
+              "tipo": "una",
+              "enunciado": {
+                "es": "Un doctor pide, en un N3-Single 24z, mover la línea media además del borde incisal. ¿Qué corresponde?",
+                "en": "In an N3-Single 24z, a doctor asks to move the midline in addition to the incisal edge. What applies?"
+              },
+              "opciones": [
+                {
+                  "texto": {
+                    "es": "El caso se procesa como G-CAM, porque solo se permiten VDO e incisal edge",
+                    "en": "The case is processed as G-CAM, because only VDO and incisal edge are allowed"
+                  },
+                  "ok": true
+                },
+                {
+                  "texto": {
+                    "es": "Se hace igual y no se dice nada",
+                    "en": "It is done anyway and nothing is said"
+                  }
+                },
+                {
+                  "texto": {
+                    "es": "Se ignora el cambio de borde incisal",
+                    "en": "The incisal edge change is ignored"
+                  }
+                }
+              ],
+              "explicacion": {
+                "es": "Cualquier cambio distinto de VDO o borde incisal obliga a procesar como G-CAM.",
+                "en": "Any change other than VDO or incisal edge forces G-CAM processing."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "glosario": [
+    {
+      "id": "g4-single-24z",
+      "termino": {
+        "es": "Single 24z",
+        "en": "Single 24z"
+      },
+      "def": {
+        "es": "Prótesis de zirconia de un solo arco, entregada 24 horas después de la cirugía.",
+        "en": "Single-arch zirconia prosthesis delivered 24 hours after surgery."
+      },
+      "cat": "producto"
+    },
+    {
+      "id": "g4-n2",
+      "termino": {
+        "es": "N2",
+        "en": "N2"
+      },
+      "def": {
+        "es": "Etapa previa donde se diseña y aprueba la oclusión que luego usa el N3.",
+        "en": "Earlier stage where the occlusion is designed and approved, later used by N3."
+      },
+      "cat": "producto"
+    },
+    {
+      "id": "g4-n3",
+      "termino": {
+        "es": "N3",
+        "en": "N3"
+      },
+      "def": {
+        "es": "Etapa donde se diseña la prótesis final respetando la oclusión aprobada en N2.",
+        "en": "Stage where the final prosthesis is designed respecting the occlusion approved in N2."
+      },
+      "cat": "producto"
+    },
+    {
+      "id": "g4-demodenture",
+      "termino": {
+        "es": "Demodenture",
+        "en": "Demodenture"
+      },
+      "def": {
+        "es": "Prótesis de prueba que el doctor coloca en boca para ver dónde quedaría el puente final.",
+        "en": "Trial prosthesis the doctor places in the mouth to see where the final bridge would sit."
+      },
+      "cat": "lenguaje"
+    },
+    {
+      "id": "g4-vdo",
+      "termino": {
+        "es": "VDO",
+        "en": "VDO"
+      },
+      "def": {
+        "es": "Vertical Dimension of Occlusion: cuánto está abierta la mordida. Al abrirlo baja la mandíbula.",
+        "en": "Vertical Dimension of Occlusion: how open the bite is. Opening it moves the jaw down."
+      },
+      "cat": "lenguaje"
+    },
+    {
+      "id": "g4-incisal-edge",
+      "termino": {
+        "es": "Incisal edge",
+        "en": "Incisal edge"
+      },
+      "def": {
+        "es": "Borde de los dientes frontales superiores; moverlo sube o baja todo el arco superior.",
+        "en": "Edge of the upper front teeth; moving it raises or lowers the whole upper arch."
+      },
+      "cat": "lenguaje"
+    },
+    {
+      "id": "g4-incisally",
+      "termino": {
+        "es": "Incisally",
+        "en": "Incisally"
+      },
+      "def": {
+        "es": "Hacia el borde incisal, es decir, hacia abajo.",
+        "en": "Toward the incisal edge, meaning downward."
+      },
+      "cat": "lenguaje"
+    },
+    {
+      "id": "g4-apically",
+      "termino": {
+        "es": "Apically",
+        "en": "Apically"
+      },
+      "def": {
+        "es": "Hacia el ápice, es decir, hacia arriba.",
+        "en": "Toward the apex, meaning upward."
+      },
+      "cat": "lenguaje"
+    },
+    {
+      "id": "g4-clase-i",
+      "termino": {
+        "es": "Clase I",
+        "en": "Class I"
+      },
+      "def": {
+        "es": "Mordida ideal aprobada en N2, con todos los dientes en contacto armónico.",
+        "en": "Ideal bite approved in N2, with all teeth in harmonious contact."
+      },
+      "cat": "oclusion"
+    },
+    {
+      "id": "g4-oclusion",
+      "termino": {
+        "es": "Oclusión",
+        "en": "Occlusion"
+      },
+      "def": {
+        "es": "Cómo se tocan los dientes superiores e inferiores al cerrar la boca.",
+        "en": "How the upper and lower teeth touch when the mouth closes."
+      },
+      "cat": "oclusion"
+    },
+    {
+      "id": "g4-cuspide",
+      "termino": {
+        "es": "Cúspide",
+        "en": "Cusp"
+      },
+      "def": {
+        "es": "Punta elevada en la superficie de masticación de un diente.",
+        "en": "Raised point on a tooth's chewing surface."
+      },
+      "cat": "oclusion"
+    },
+    {
+      "id": "g4-antagonista",
+      "termino": {
+        "es": "Antagonista",
+        "en": "Antagonist"
+      },
+      "def": {
+        "es": "El arco o modelo contra el que muerde el puente (el inferior).",
+        "en": "The arch or model the bridge bites against (the lower one)."
+      },
+      "cat": "oclusion"
+    },
+    {
+      "id": "g4-gcam",
+      "termino": {
+        "es": "G-CAM",
+        "en": "G-CAM"
+      },
+      "def": {
+        "es": "Producto al que pasa el caso cuando se piden cambios que el Single 24z no permite.",
+        "en": "Product the case moves to when changes are requested that Single 24z does not allow."
+      },
+      "cat": "producto"
+    },
+    {
+      "id": "g4-gummy",
+      "termino": {
+        "es": "Sonrisa gingival",
+        "en": "Gummy smile"
+      },
+      "def": {
+        "es": "Sonrisa en la que se ve más encía de lo normal.",
+        "en": "A smile where more gum shows than usual."
+      },
+      "cat": "estetica"
+    },
+    {
+      "id": "g4-relacion-labio",
+      "termino": {
+        "es": "Relación labio-puente",
+        "en": "Lip-bridge relationship"
+      },
+      "def": {
+        "es": "Posición del puente respecto al labio superior al sonreír y hablar.",
+        "en": "Position of the bridge relative to the upper lip when smiling and speaking."
+      },
+      "cat": "estetica"
+    }
+  ]
+}

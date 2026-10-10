@@ -1,0 +1,640 @@
+{
+  "id": "m1-fundamentos",
+  "orden": 2,
+  "icono": "🦷",
+  "titulo": {"es": "Fundamentos de odontología digital", "en": "Digital dentistry fundamentals"},
+  "resumen": {
+    "es": "Lo mínimo que necesitas saber de la boca, los implantes, las prótesis, la oclusión, el articulador y los registros para entender nuestro trabajo.",
+    "en": "The minimum you need to know about the mouth, implants, prostheses, occlusion, the articulator and records to understand our work."
+  },
+  "nivel": "basico",
+  "lecciones": [
+    {
+      "id": "m1-l1",
+      "titulo": {"es": "La boca: arcadas, implantes y pilares", "en": "The mouth: arches, implants and abutments"},
+      "minutos": 6,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Dos arcadas que se encuentran", "en": "Two arches that meet"},
+          "cuerpo": {
+            "es": "La boca tiene dos **arcadas** o arcos de dientes: la **superior**, apoyada en el maxilar (Maxilla), y la **inferior**, apoyada en la mandíbula (Mandible). La mandíbula es la que se mueve al abrir y cerrar. Cuando las dos arcadas se cierran, los dientes se tocan: eso es la mordida.",
+            "en": "The mouth has two **arches** of teeth: the **upper**, supported by the maxilla, and the **lower**, supported by the mandible. The mandible is the one that moves when opening and closing. When the two arches close, the teeth touch: that is the bite."
+          },
+          "porque": {
+            "es": "En el diseño casi todos los cambios se piden en el arco superior, y el inferior se diseña para ocluir con él. Entender cuál es cuál evita confundir qué se mueve.",
+            "en": "In design almost every change is requested on the upper arch, and the lower arch is designed to occlude with it. Knowing which is which avoids confusion about what moves."
+          },
+          "general": true
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "Piezas del rompecabezas", "en": "Pieces of the puzzle"},
+          "items": [
+            {"icono": "🔝", "titulo": {"es": "Maxilla (arcada superior)", "en": "Maxilla (upper arch)"}, "texto": {"es": "Hueso superior fijo. Es la referencia de estética y función del diseño.", "en": "The fixed upper bone. It is the aesthetic and functional reference of the design."}},
+            {"icono": "🔻", "titulo": {"es": "Mandible (arcada inferior)", "en": "Mandible (lower arch)"}, "texto": {"es": "Hueso inferior móvil. Se mueve respecto al maxilar; la relación entre ambos viene de la mordida.", "en": "The mobile lower bone. It moves relative to the maxilla; the relationship between the two comes from the bite."}},
+            {"icono": "🔩", "titulo": {"es": "Implante", "en": "Implant"}, "texto": {"es": "Tornillo que se coloca en el hueso y sustituye la raíz de un diente. Sobre él se atornilla la prótesis.", "en": "A screw placed in the bone that replaces a tooth root. The prosthesis is screwed onto it."}},
+            {"icono": "🧷", "titulo": {"es": "Pilar y housing", "en": "Abutment and housing"}, "texto": {"es": "El pilar conecta el implante con la prótesis. El housing es el alojamiento donde se fija el pilar dentro de la prótesis.", "en": "The abutment connects the implant to the prosthesis. The housing is the socket where the abutment is fixed inside the prosthesis."}},
+            {"icono": "🧴", "titulo": {"es": "Tissue (encía)", "en": "Tissue (gum)"}, "texto": {"es": "La encía y el paladar. Su forma se escanea porque la prótesis debe asentar sobre ella.", "en": "The gum and palate. Its shape is scanned because the prosthesis must sit on it."}},
+            {"icono": "🫥", "titulo": {"es": "Edéntulo", "en": "Edentulous"}, "texto": {"es": "Sin dientes, total o parcialmente. Es el paciente típico de una prótesis sobre implantes.", "en": "Without teeth, fully or partially. It is the typical patient for a prosthesis on implants."}}
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Cómo sabemos dónde están los implantes", "en": "How we know where the implants are"},
+          "cuerpo": {
+            "es": "Tras la cirugía, la posición de cada implante se registra de dos formas. El **pickup** copia los implantes a un modelo de yeso con cilindros llamados **stumps**. El **ICAM** o **Micron** los mide directamente en boca por fotogrametría y suele ser el registro más preciso. Se comparan entre sí: si un implante aparece movido, se decide si se omite o se pide un nuevo registro.",
+            "en": "After surgery, the position of each implant is recorded in two ways. The **pickup** copies the implants onto a plaster model with cylinders called **stumps**. The **ICAM** or **Micron** measures them directly in the mouth by photogrammetry and is usually the most precise record. They are compared with each other: if an implant appears moved, we decide whether to skip it or request a new record."
+          },
+          "porque": {
+            "es": "La prótesis se atornilla: si la posición de un implante en el diseño no coincide con la real, no atornillará en el modelo ni en la boca. Se sigue al ICAM o Micron porque el pickup tiene más margen de error.",
+            "en": "The prosthesis is screwed on: if an implant's position in the design does not match the real one, it will not screw onto the model or into the mouth. We follow the ICAM or Micron because the pickup has more margin for error."
+          },
+          "dato": {
+            "es": "Se exige un mínimo de 4 implantes por arco para poder verificar el registro; con menos es un caso especial que se escala.",
+            "en": "A minimum of 4 implants per arch is required to verify the record; fewer is a special case that gets escalated."
+          }
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Los números de los dientes", "en": "Tooth numbers"},
+          "cuerpo": {
+            "es": "Los dientes y los implantes se nombran con dos dígitos: el primero es el **cuadrante** (cada una de las 4 zonas de la boca: 1 superior derecho, 2 superior izquierdo, etc.) y el segundo es el diente. Por ejemplo, 13 es el canino superior derecho y 26 un molar superior izquierdo.",
+            "en": "Teeth and implants are named with two digits: the first is the **quadrant** (each of the 4 zones of the mouth: 1 upper right, 2 upper left, etc.) and the second is the tooth. For example, 13 is the upper right canine and 26 an upper left molar."
+          },
+          "alerta": {
+            "es": "El programa reconoce cada implante por su número: si no coincide con el del proyecto, el implante no aparece en el producto final.",
+            "en": "The software recognizes each implant by its number: if it does not match the project's, the implant does not appear in the final product."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Hay dos arcadas: la superior (maxilar) es la referencia y la inferior (mandíbula) se mueve.", "en": "There are two arches: the upper (maxilla) is the reference and the lower (mandible) moves."},
+            {"es": "El implante es el tornillo en el hueso; la prótesis se atornilla sobre él.", "en": "The implant is the screw in the bone; the prosthesis is screwed onto it."},
+            {"es": "La posición de los implantes se registra con pickup (yeso, stumps) e ICAM o Micron (en boca).", "en": "Implant position is recorded with pickup (plaster, stumps) and ICAM or Micron (in the mouth)."},
+            {"es": "Si la posición no coincide, la prótesis no atornilla.", "en": "If the position does not match, the prosthesis will not screw in."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué importa tanto que la posición de los implantes en el diseño sea exacta?", "en": "Why does it matter so much that the implant positions in the design are exact?"},
+              "opciones": [
+                {"texto": {"es": "Porque la prótesis se atornilla y, si no coincide, no asentará en el modelo ni en la boca.", "en": "Because the prosthesis is screwed on and, if it does not match, it will not seat on the model or in the mouth."}, "ok": true},
+                {"texto": {"es": "Porque cambia el color de los dientes.", "en": "Because it changes the color of the teeth."}},
+                {"texto": {"es": "Porque define cuántas fotos se toman.", "en": "Because it defines how many photos are taken."}}
+              ],
+              "explicacion": {"es": "Un implante desplazado o inclinado puede impedir que la prótesis atornille.", "en": "A displaced or tilted implant can prevent the prosthesis from screwing in."}
+            },
+            {
+              "tipo": "parejas",
+              "enunciado": {"es": "Une cada término con su descripción.", "en": "Match each term with its description."},
+              "pares": [
+                {"a": {"es": "Stumps", "en": "Stumps"}, "b": {"es": "Cilindros del modelo de yeso que copian los implantes", "en": "Cylinders on the plaster model that copy the implants"}},
+                {"a": {"es": "ICAM / Micron", "en": "ICAM / Micron"}, "b": {"es": "Registro de implantes tomado en boca por fotogrametría", "en": "Implant record taken in the mouth by photogrammetry"}},
+                {"a": {"es": "Mandible", "en": "Mandible"}, "b": {"es": "Hueso inferior que se mueve", "en": "Lower bone that moves"}},
+                {"a": {"es": "Tissue", "en": "Tissue"}, "b": {"es": "Encía y paladar sobre los que asienta la prótesis", "en": "Gum and palate the prosthesis sits on"}}
+              ],
+              "explicacion": {"es": "Cada término cumple un rol distinto en el registro y el diseño.", "en": "Each term plays a different role in the record and the design."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Se sigue al pickup antes que al ICAM o Micron porque el pickup es más preciso.", "en": "The pickup is followed before the ICAM or Micron because the pickup is more precise."},
+              "ok": false,
+              "explicacion": {"es": "El pickup tiene más margen de error (un implante puede moverse al tomarlo o al articular); el ICAM o Micron se toma directo en boca.", "en": "The pickup has more margin for error (an implant can move when taken or when articulated); the ICAM or Micron is taken directly in the mouth."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m1-l2",
+      "titulo": {"es": "Prótesis fija sobre implantes y Demodenture", "en": "Fixed prosthesis on implants and Demodenture"},
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Una prótesis que no se quita", "en": "A prosthesis that does not come off"},
+          "cuerpo": {
+            "es": "Una **prótesis fija** sobre implantes es un puente de dientes que se **atornilla** a los implantes y el paciente no se quita. Sustituye todos los dientes de un arco. Se distingue de la dentadura **removible**, que sí se puede sacar de la boca.\n\nA veces se la llama también *híbrida* cuando combina una estructura y dientes de otro material.",
+            "en": "A **fixed prosthesis** on implants is a bridge of teeth that is **screwed** onto the implants and that the patient does not remove. It replaces all the teeth of an arch. It differs from the **removable** denture, which can be taken out of the mouth.\n\nIt is sometimes also called *hybrid* when it combines a framework and teeth of another material."
+          },
+          "general": true
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "Las partes de lo que diseñamos", "en": "The parts of what we design"},
+          "items": [
+            {"icono": "🏗️", "titulo": {"es": "Barra (custom bar)", "en": "Custom bar"}, "texto": {"es": "Estructura que une los implantes y sostiene los dientes. Lleva los housings de los tornillos.", "en": "Structure that joins the implants and holds the teeth. It carries the screw housings."}},
+            {"icono": "🦷", "titulo": {"es": "TC (cubierta de dientes)", "en": "TC (tooth cover)"}, "texto": {"es": "Cubierta de dientes que se cementa sobre la barra, con un espacio de cementación de 0,25 mm.", "en": "Tooth cover cemented over the bar, with a 0.25 mm cementation gap."}},
+            {"icono": "📏", "titulo": {"es": "Guía de articulación", "en": "Articulation guide"}, "texto": {"es": "Pieza de prueba que verifica la mordida y el ajuste sobre el modelo Master.", "en": "A test piece that verifies the bite and the fit on the Master model."}},
+            {"icono": "🌙", "titulo": {"es": "Nightguard (NG)", "en": "Nightguard (NG)"}, "texto": {"es": "Férula nocturna que se hace sobre la prótesis terminada para protegerla.", "en": "Night splint made over the finished prosthesis to protect it."}},
+            {"icono": "🧩", "titulo": {"es": "Removable denture", "en": "Removable denture"}, "texto": {"es": "Dentadura removible de acrílico (PMMA), diseñada a partir de la barra y el tissue del N3.", "en": "Removable acrylic (PMMA) denture, designed from the N3 bar and tissue."}}
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Qué es la Demodenture y por qué se prueba antes", "en": "What the Demodenture is and why it is tried first"},
+          "cuerpo": {
+            "es": "La **Demodenture** es una prótesis de demostración: lleva la **nueva morfología** de dientes (el *waxup*) sobre la forma del hueso sin dientes. El paciente se la prueba antes de la cirugía. Con ella, doctor y paciente ven la estética, la mordida y la apertura, y pueden pedir ajustes antes de fabricar lo definitivo.",
+            "en": "The **Demodenture** is a demonstration prosthesis: it carries the **new morphology** of teeth (the *waxup*) on the shape of the bone without teeth. The patient tries it on before surgery. With it, doctor and patient see the aesthetics, bite and opening, and can request adjustments before the final piece is manufactured."
+          },
+          "porque": {
+            "es": "Los cambios se piden siempre relativos a la Demodenture: casi todas las opciones de la receta incluyen 'No changes: el lab seguirá la posición de la demodenture'. Es la referencia común entre doctor y diseñador.",
+            "en": "Changes are always requested relative to the Demodenture: almost every prescription option includes 'No changes: the lab will follow the demodenture position'. It is the shared reference between doctor and designer."
+          },
+          "dato": {
+            "es": "La Demodenture lleva orificios de retención (holes), un stent para ubicar implantes y la letra del size del arco, con la que el doctor pide el arco correcto el día de la cirugía.",
+            "en": "The Demodenture carries retention holes, a stent to locate implants and the arch size letter, which the doctor uses to request the correct arch on the day of surgery."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {"es": "Materiales que verás", "en": "Materials you will see"},
+          "cabeceras": [
+            {"es": "Material", "en": "Material"},
+            {"es": "Qué es en nuestro trabajo", "en": "What it is in our work"}
+          ],
+          "filas": [
+            [{"es": "Zirconia (24Z)", "en": "Zirconia (24Z)"}, {"es": "Material de la prótesis 24Z; necesita un espesor mínimo (según el size del arco) o se fractura. Por eso hay medidas mínimas y garantía.", "en": "Material of the 24Z prosthesis; it needs a minimum thickness (depending on the arch size) or it fractures. That is why minimum measurements and a warranty exist."}],
+            [{"es": "Composite", "en": "Composite"}, {"es": "Zirconia Composite significa barra y dientes (TC) en piezas separadas.", "en": "Zirconia Composite means bar and teeth (TC) as separate pieces."}],
+            [{"es": "Titanio", "en": "Titanium"}, {"es": "Material de la barra; se fresa de un disco de titanio de 30 mm de altura máxima.", "en": "Material of the bar; it is milled from a titanium disc with a maximum height of 30 mm."}],
+            [{"es": "G-CAM (resina / PMMA)", "en": "G-CAM (resin / PMMA)"}, {"es": "Resina fresada. También es el producto al que pasa un caso cuando no se cumplen las condiciones de 24Z.", "en": "Milled resin. It is also the product a case switches to when 24Z conditions are not met."}],
+            [{"es": "Acrílico (PMMA)", "en": "Acrylic (PMMA)"}, {"es": "Material de la dentadura removible.", "en": "Material of the removable denture."}]
+          ]
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Punto por confirmar", "en": "Point to confirm"},
+          "cuerpo": {
+            "es": "Los protocolos describen de forma distinta qué prótesis recibe el paciente tras la cirugía en N3: algunos hablan de zirconia 24Z y otros de un puente provisional en G-CAM que luego se cambia en N6. En este módulo solo usamos lo que es común a ambos.",
+            "en": "Protocols describe differently which prosthesis the patient receives after surgery in N3: some mention 24Z zirconia and others a provisional G-CAM bridge that is later changed in N6. In this module we only use what is common to both."
+          },
+          "alerta": {
+            "es": "Confirmar con el manager.",
+            "en": "Confirm with the manager."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Una prótesis fija se atornilla a los implantes; la removible se puede sacar.", "en": "A fixed prosthesis is screwed onto the implants; the removable one can be taken out."},
+            {"es": "Barra, TC y guía de articulación son las piezas que más diseñamos.", "en": "Bar, TC and articulation guide are the pieces we design most."},
+            {"es": "La Demodenture se prueba antes para validar estética, mordida y apertura sin fabricar lo definitivo.", "en": "The Demodenture is tried first to validate aesthetics, bite and opening without manufacturing the final piece."},
+            {"es": "La zirconia necesita espesor mínimo para no fracturarse.", "en": "Zirconia needs a minimum thickness so it does not fracture."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué se prueba la Demodenture antes de fabricar la prótesis definitiva?", "en": "Why is the Demodenture tried on before the final prosthesis is manufactured?"},
+              "opciones": [
+                {"texto": {"es": "Para que doctor y paciente validen estética, mordida y apertura, y se pidan ajustes antes de fabricar.", "en": "So doctor and patient validate aesthetics, bite and opening, and adjustments are requested before manufacturing."}, "ok": true},
+                {"texto": {"es": "Para que el laboratorio no tenga que fresar nada.", "en": "So the lab does not have to mill anything."}},
+                {"texto": {"es": "Para reemplazar la cirugía de implantes.", "en": "To replace the implant surgery."}}
+              ],
+              "explicacion": {"es": "Es una prueba en boca: los cambios se piden relativos a ella y se corrige antes de fabricar lo definitivo.", "en": "It is a try-in in the mouth: changes are requested relative to it and corrections are made before manufacturing the final piece."}
+            },
+            {
+              "tipo": "parejas",
+              "enunciado": {"es": "Une cada pieza con su función.", "en": "Match each piece with its role."},
+              "pares": [
+                {"a": {"es": "Barra", "en": "Bar"}, "b": {"es": "Une los implantes y sostiene los dientes", "en": "Joins the implants and holds the teeth"}},
+                {"a": {"es": "TC", "en": "TC"}, "b": {"es": "Cubierta de dientes que se cementa sobre la barra", "en": "Tooth cover cemented over the bar"}},
+                {"a": {"es": "Guía de articulación", "en": "Articulation guide"}, "b": {"es": "Verifica mordida y ajuste sobre el Master", "en": "Verifies bite and fit on the Master"}},
+                {"a": {"es": "Nightguard", "en": "Nightguard"}, "b": {"es": "Férula nocturna que protege la prótesis", "en": "Night splint that protects the prosthesis"}}
+              ],
+              "explicacion": {"es": "Cada pieza tiene una función distinta dentro de la prótesis o de su verificación.", "en": "Each piece has a different function within the prosthesis or its verification."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Una zirconia más delgada que el mínimo establecido no supone riesgo mientras el diseño se vea bien.", "en": "A zirconia thinner than the established minimum is no risk as long as the design looks fine."},
+              "ok": false,
+              "explicacion": {"es": "Por debajo del mínimo la zirconia puede romperse en boca; por eso se verifican las medidas antes de aprobar.", "en": "Below the minimum the zirconia can break in the mouth; that is why measurements are verified before approving."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m1-l3",
+      "titulo": {"es": "Oclusión: cómo encajan los dientes", "en": "Occlusion: how teeth fit together"},
+      "minutos": 7,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Por qué importa cerrar bien", "en": "Why closing well matters"},
+          "cuerpo": {
+            "es": "La **oclusión** es la forma en que los dientes superiores e inferiores encajan al cerrar la boca. Una mordida mal alineada produce dolor de mandíbula o cabeza, desgaste o fractura de dientes, dificultad para masticar y chasquidos. Por eso diseñamos la oclusión con tanto cuidado.",
+            "en": "**Occlusion** is the way the upper and lower teeth fit together when the mouth closes. A misaligned bite causes jaw or head pain, tooth wear or fracture, difficulty chewing and clicking. That is why we design occlusion so carefully."
+          },
+          "porque": {
+            "es": "El arco que diseñamos se adapta al arco opuesto (el antagonista): debe encajar con él, salvo que se pidan cambios específicos.",
+            "en": "The arch we design adapts to the opposite arch (the antagonist): it must fit with it, unless specific changes are requested."
+          }
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Clase I: el encaje de referencia", "en": "Class I: the reference fit"},
+          "cuerpo": {
+            "es": "Existen tres clases (1, 2 y 3) que describen la relación entre molares y caninos de ambas arcadas. La **Clase I** es nuestra referencia: la cúspide mesiovestibular del primer molar superior cae sobre el surco vestibular del primer molar inferior, y el canino superior ocluye en la unión entre el canino inferior y el primer premolar inferior.\n\nEn Clase I el *overbite* y el *overjet* son de 1 a 2 mm.",
+            "en": "There are three classes (1, 2 and 3) describing the relationship between molars and canines of both arches. **Class I** is our reference: the mesiobuccal cusp of the upper first molar sits on the buccal groove of the lower first molar, and the upper canine occludes at the junction between the lower canine and the lower first premolar.\n\nIn Class I the *overbite* and *overjet* are 1 to 2 mm."
+          },
+          "alerta": {
+            "es": "La descripción de las Clases 2 y 3 en el protocolo es ambigua: confirmar con el manager antes de enseñarla.",
+            "en": "The description of Classes 2 and 3 in the protocol is ambiguous: confirm with the manager before teaching it."
+          }
+        },
+        {
+          "t": "tarjetas",
+          "titulo": {"es": "El vocabulario de la mordida", "en": "Bite vocabulary"},
+          "items": [
+            {"icono": "🤝", "titulo": {"es": "Contacto", "en": "Contact"}, "texto": {"es": "Punto donde un diente superior toca a uno inferior. Buscamos contacto sin que el diente atraviese al antagonista.", "en": "A point where an upper tooth touches a lower one. We aim for contact without the tooth passing through the antagonist."}},
+            {"icono": "⬇️", "titulo": {"es": "Overbite", "en": "Overbite"}, "texto": {"es": "Cuánto cubre verticalmente el diente superior al inferior.", "en": "How much the upper tooth vertically covers the lower one."}},
+            {"icono": "➡️", "titulo": {"es": "Overjet", "en": "Overjet"}, "texto": {"es": "Distancia horizontal entre los bordes superior e inferior.", "en": "Horizontal distance between the upper and lower edges."}},
+            {"icono": "📐", "titulo": {"es": "Occlusal plane", "en": "Occlusal plane"}, "texto": {"es": "Plano imaginario donde contactan los dientes, visto de perfil; se relaciona con la curva de Spee.", "en": "Imaginary plane where the teeth contact, seen from the side; related to the curve of Spee."}},
+            {"icono": "⚖️", "titulo": {"es": "Occlusal cant", "en": "Occlusal cant"}, "texto": {"es": "Inclinación del plano oclusal visto de frente: un lado más alto que el otro, como un balancín.", "en": "Tilt of the occlusal plane seen from the front: one side higher than the other, like a seesaw."}},
+            {"icono": "🔷", "titulo": {"es": "Forma del antagonista", "en": "Antagonist shape"}, "texto": {"es": "El arco opuesto puede ser cuadrado, triangular o redondo, y el arco diseñado debe encajar con esa forma.", "en": "The opposite arch can be square, triangular or round, and the designed arch must fit that shape."}}
+          ]
+        },
+        {
+          "t": "modelo3d",
+          "slot": "oclusion-clase-1",
+          "titulo": {"es": "Oclusión Clase I en 3D", "en": "Class I occlusion in 3D"},
+          "descripcion": {
+            "es": "Mira: 1) dónde cae la cúspide mesiovestibular del primer molar superior; 2) dónde ocluye el canino superior; 3) el overbite y el overjet de frente y de perfil; 4) qué dientes contactan con el antagonista.",
+            "en": "Look at: 1) where the mesiobuccal cusp of the upper first molar sits; 2) where the upper canine occludes; 3) overbite and overjet from the front and the side; 4) which teeth contact the antagonist."
+          },
+          "pendiente": {
+            "es": "Aquí irá el modelo 3D de una oclusión Clase I.",
+            "en": "The 3D model of a Class I occlusion will go here."
+          }
+        },
+        {
+          "t": "simulador",
+          "titulo": {"es": "Plano oclusal y cant", "en": "Occlusal plane and cant"},
+          "guia": {
+            "es": "Mueve el deslizador de plano para subir o bajar los molares con pivote en el borde incisal, y el de cant para ver el balancín frontal. Mira el indicador de contacto.",
+            "en": "Move the plane slider to raise or lower the molars pivoting at the incisal edge, and the cant slider to see the frontal seesaw. Watch the contact indicator."
+          },
+          "foco": ["plano", "cant"],
+          "reto": {
+            "enunciado": {"es": "Sube los molares 1 mm (occlusal plane apically 1 mm), sin tocar el cant.", "en": "Raise the molars 1 mm (occlusal plane apically 1 mm), without touching the cant."},
+            "objetivo": {"plano": 1, "cant": 0},
+            "tolerancia": 0.25
+          },
+          "vista": "libre"
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "Una mala oclusión causa dolor, desgaste, fracturas y chasquidos.", "en": "Poor occlusion causes pain, wear, fractures and clicking."},
+            {"es": "Clase I es la referencia: overbite y overjet de 1 a 2 mm.", "en": "Class I is the reference: overbite and overjet of 1 to 2 mm."},
+            {"es": "El arco diseñado se adapta al antagonista.", "en": "The designed arch adapts to the antagonist."},
+            {"es": "El plano oclusal se ve de perfil y el cant de frente.", "en": "The occlusal plane is seen from the side and the cant from the front."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué la oclusión es crítica en una prótesis nueva?", "en": "Why is occlusion critical in a new prosthesis?"},
+              "opciones": [
+                {"texto": {"es": "Porque una mordida mal alineada produce dolor, desgaste o fractura de dientes y dificultad para masticar.", "en": "Because a misaligned bite causes pain, tooth wear or fracture and difficulty chewing."}, "ok": true},
+                {"texto": {"es": "Porque define el color de la prótesis.", "en": "Because it defines the color of the prosthesis."}},
+                {"texto": {"es": "Porque solo importa para las fotos.", "en": "Because it only matters for photos."}}
+              ],
+              "explicacion": {"es": "La oclusión es función: de ella depende que el paciente mastique sin dolor ni daño.", "en": "Occlusion is function: the patient's ability to chew without pain or damage depends on it."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "El occlusal cant se ve de perfil y el occlusal plane se ve de frente.", "en": "The occlusal cant is seen from the side and the occlusal plane from the front."},
+              "ok": false,
+              "explicacion": {"es": "Es al revés: el cant es la inclinación vista de frente y el plano oclusal se ve de perfil.", "en": "It is the opposite: the cant is the tilt seen from the front and the occlusal plane is seen from the side."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "Si el arco opuesto tiene forma triangular, ¿qué debe hacer el diseño?", "en": "If the opposite arch is triangular, what should the design do?"},
+              "opciones": [
+                {"texto": {"es": "Adaptarse a ese arco para encajar con él, salvo que se pidan cambios específicos.", "en": "Adapt to that arch to fit with it, unless specific changes are requested."}, "ok": true},
+                {"texto": {"es": "Ignorar al antagonista.", "en": "Ignore the antagonist."}},
+                {"texto": {"es": "Siempre usar un arco redondo.", "en": "Always use a round arch."}}
+              ],
+              "explicacion": {"es": "El arco debe encajar con el opuesto; la forma del antagonista guía los movimientos.", "en": "The arch must fit the opposite one; the antagonist's shape guides the movements."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m1-l4",
+      "titulo": {"es": "Articulador Panadent y VDO", "en": "Panadent articulator and VDO"},
+      "minutos": 9,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Qué es el VDO y qué es un articulador", "en": "What VDO is and what an articulator is"},
+          "cuerpo": {
+            "es": "El **VDO** (Vertical Dimension of Occlusion) es cuánto está abierta la mordida: la distancia vertical entre maxilar y mandíbula. Un **articulador** es un aparato mecánico que reproduce el movimiento de la mandíbula; en él se montan los modelos de la boca para trabajar la relación entre arcadas fuera del paciente. El nuestro es el **Panadent**.",
+            "en": "**VDO** (Vertical Dimension of Occlusion) is how open the bite is: the vertical distance between maxilla and mandible. An **articulator** is a mechanical device that reproduces the movement of the jaw; the models of the mouth are mounted on it to work on the relationship between arches outside the patient. Ours is the **Panadent**."
+          },
+          "general": true
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Por qué el VDO se cambia con el pin", "en": "Why VDO is changed with the pin"},
+          "cuerpo": {
+            "es": "El VDO **nunca se cambia solo en digital**, porque no es preciso. El laboratorio monta los modelos de la Demodenture en el articulador Panadent y **ajusta el pin (pasador)**. Esa nueva relación se digitaliza al escanear los modelos. Se mueve la mandíbula (arco inferior) respecto al superior; el arco superior no cambia.",
+            "en": "VDO is **never changed only digitally**, because it is not precise. The lab mounts the Demodenture models on the Panadent articulator and **adjusts the pin**. That new relationship is digitized by scanning the models. The mandible (lower arch) moves relative to the upper one; the upper arch does not change."
+          },
+          "porque": {
+            "es": "El pin del articulador fija una apertura real y medible sobre los modelos físicos; moverla solo en la pantalla no garantiza que la mordida resultante sea la correcta.",
+            "en": "The articulator pin sets a real, measurable opening on the physical models; moving it only on screen does not guarantee that the resulting bite is correct."
+          },
+          "dato": {
+            "es": "Las opciones de VDO en la receta van de -5 a +5 mm en pasos de 1 (o No change). Con + se abre la mordida y el inferior baja.",
+            "en": "The VDO options in the prescription go from -5 to +5 mm in steps of 1 (or No change). With + the bite opens and the lower arch goes down."
+          }
+        },
+        {
+          "t": "calculadora",
+          "id": "articulador",
+          "titulo": {"es": "El articulador y el pin de VDO", "en": "The articulator and the VDO pin"},
+          "guia": {
+            "es": "Mueve el pin y observa cómo se abre o cierra la mordida. Fíjate en que el arco superior queda quieto y la mandíbula es la que se desplaza.",
+            "en": "Move the pin and watch the bite open or close. Notice that the upper arch stays still and the mandible is what moves."
+          }
+        },
+        {
+          "t": "modelo3d",
+          "slot": "articulador-panadent",
+          "titulo": {"es": "Articulador Panadent real", "en": "Real Panadent articulator"},
+          "descripcion": {
+            "es": "Mira: 1) dónde se montan los modelos superior e inferior; 2) dónde está el pin de VDO; 3) cómo cambia la separación entre arcadas al mover el pin; 4) el plato que fija el cant.",
+            "en": "Look at: 1) where the upper and lower models are mounted; 2) where the VDO pin is; 3) how the separation between arches changes when the pin moves; 4) the plate that sets the cant."
+          },
+          "pendiente": {
+            "es": "Aquí irá el modelo 3D de un articulador Panadent con modelos montados.",
+            "en": "The 3D model of a Panadent articulator with mounted models will go here."
+          }
+        },
+        {
+          "t": "tour",
+          "titulo": {"es": "VDO y borde incisal en Single 24z", "en": "VDO and incisal edge in Single 24z"},
+          "escenas": [
+            {"p": {}, "cam": "frontal", "texto": {"es": "En Single 24z la oclusión ya fue aprobada en N2 (Clase I). Esta es la posición de partida.", "en": "In Single 24z the occlusion was already approved in N2 (Class I). This is the starting position."}, "resaltar": ["fantasma"], "seg": 4},
+            {"p": {"incisal": -1.5}, "cam": "frontal", "texto": {"es": "Si solo bajamos el puente 1,5 mm (incisally), las cúspides superiores atraviesan al inferior y no hay Clase I.", "en": "If we only lower the bridge 1.5 mm (incisally), the upper cusps pass through the lower arch and there is no Class I."}, "resaltar": ["fantasma", "oclusion"], "seg": 6},
+            {"p": {"incisal": -1.5, "vdo": 1.5}, "cam": "frontal", "texto": {"es": "Al abrir VDO 1,5 mm baja la mandíbula igual que el borde incisal y los dientes vuelven a contactar.", "en": "Opening VDO 1.5 mm lowers the mandible as much as the incisal edge and the teeth contact again."}, "resaltar": ["fantasma", "oclusion"], "seg": 6},
+            {"p": {"vdo": 1}, "cam": "frontal", "texto": {"es": "Otro caso: si la demo quedó 1 mm más abajo, abrir VDO 1 mm conserva el mismo borde incisal.", "en": "Another case: if the demo ended up 1 mm lower, opening VDO 1 mm keeps the same incisal edge."}, "resaltar": ["fantasma", "estatico", "oclusion"], "seg": 6}
+          ]
+        },
+        {
+          "t": "simulador",
+          "titulo": {"es": "Reto: borde incisal 1,5 mm más abajo", "en": "Challenge: incisal edge 1.5 mm lower"},
+          "guia": {
+            "es": "El doctor pidió bajar el borde incisal 1,5 mm (incisally) y conservar la Clase I. Combina VDO e incisal para lograrlo y observa el indicador de contacto.",
+            "en": "The doctor asked to lower the incisal edge 1.5 mm (incisally) and keep Class I. Combine VDO and incisal to achieve it and watch the contact indicator."
+          },
+          "foco": ["vdo", "incisal"],
+          "reto": {
+            "enunciado": {"es": "Deja incisal en -1,5 mm y VDO en +1,5 mm.", "en": "Leave incisal at -1.5 mm and VDO at +1.5 mm."},
+            "objetivo": {"vdo": 1.5, "incisal": -1.5},
+            "tolerancia": 0.25
+          },
+          "vista": "frontal"
+        },
+        {
+          "t": "texto",
+          "titulo": {"es": "Quién decide y qué se puede cambiar", "en": "Who decides and what can be changed"},
+          "cuerpo": {
+            "es": "En N3-Single 24z solo se permiten cambios de **VDO** y de **borde incisal**; cualquier otro cambio obliga a procesarlo como G-CAM. Decide el equipo de diseño, porque es quien ve en digital si las cúspides atraviesan al antagonista y si se mantiene la Clase I.",
+            "en": "In N3-Single 24z only **VDO** and **incisal edge** changes are allowed; any other change requires processing it as G-CAM. The design team decides, because it is the one that sees digitally whether the cusps pass through the antagonist and whether Class I is kept."
+          },
+          "alerta": {
+            "es": "Pedir VDO sin mover el borde incisal es una solicitud difícil: abrir el VDO baja la mandíbula y afecta el borde incisal.",
+            "en": "Requesting VDO without moving the incisal edge is a difficult request: opening VDO lowers the mandible and affects the incisal edge."
+          }
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "VDO es cuánto está abierta la mordida.", "en": "VDO is how open the bite is."},
+            {"es": "Se cambia en el articulador Panadent con el pin, no solo en digital, porque en digital no es preciso.", "en": "It is changed on the Panadent articulator with the pin, not only digitally, because digitally it is not precise."},
+            {"es": "Al abrir el VDO baja la mandíbula; el arco superior no se mueve.", "en": "Opening VDO lowers the mandible; the upper arch does not move."},
+            {"es": "En Single 24z, cambiar el borde incisal suele ligarse a un cambio de VDO.", "en": "In Single 24z, changing the incisal edge is often tied to a VDO change."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué el VDO no se cambia solo en digital?", "en": "Why is VDO not changed only digitally?"},
+              "opciones": [
+                {"texto": {"es": "Porque no es preciso; se monta en el articulador Panadent, se ajusta el pin y se escanea de nuevo.", "en": "Because it is not precise; it is mounted on the Panadent articulator, the pin is adjusted and it is scanned again."}, "ok": true},
+                {"texto": {"es": "Porque el software no tiene botón para eso.", "en": "Because the software has no button for it."}},
+                {"texto": {"es": "Porque el VDO solo lo cambia el paciente.", "en": "Because only the patient changes the VDO."}}
+              ],
+              "explicacion": {"es": "El pin fija una apertura real sobre modelos físicos; esa relación se digitaliza al escanear.", "en": "The pin sets a real opening on physical models; that relationship is digitized when scanned."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "Al abrir el VDO, ¿qué se mueve?", "en": "When opening VDO, what moves?"},
+              "opciones": [
+                {"texto": {"es": "La mandíbula (arco inferior); el arco superior no cambia.", "en": "The mandible (lower arch); the upper arch does not change."}, "ok": true},
+                {"texto": {"es": "El arco superior completo.", "en": "The entire upper arch."}},
+                {"texto": {"es": "Solo los molares.", "en": "Only the molars."}}
+              ],
+              "explicacion": {"es": "El VDO describe la relación entre arcadas: baja la mandíbula respecto al maxilar.", "en": "VDO describes the relationship between arches: the mandible goes down relative to the maxilla."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "Single 24z: la demo está igual que en N2 y el doctor pide bajar el borde incisal 1,5 mm sin pedir VDO. ¿Qué se hace?", "en": "Single 24z: the demo is the same as in N2 and the doctor asks to lower the incisal edge 1.5 mm without requesting VDO. What is done?"},
+              "opciones": [
+                {"texto": {"es": "Se liga a abrir el VDO 1,5 mm para conservar la Clase I.", "en": "It is tied to opening VDO 1.5 mm to keep Class I."}, "ok": true},
+                {"texto": {"es": "Se baja solo el puente 1,5 mm.", "en": "Only the bridge is lowered 1.5 mm."}},
+                {"texto": {"es": "Se cambia el arch size.", "en": "The arch size is changed."}}
+              ],
+              "explicacion": {"es": "Bajar solo el puente haría que las cúspides atraviesen al inferior; abrir el VDO lo evita.", "en": "Lowering only the bridge would make the cusps pass through the lower arch; opening VDO prevents that."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "En N3-Single 24z se puede pedir cualquier cambio de la receta sin cambiar de producto.", "en": "In N3-Single 24z any prescription change can be requested without changing product."},
+              "ok": false,
+              "explicacion": {"es": "Solo se permiten VDO y borde incisal; cualquier otro cambio pasa a G-CAM.", "en": "Only VDO and incisal edge are allowed; any other change goes to G-CAM."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m1-l5",
+      "titulo": {"es": "Registros: CBCT, escáner intraoral y fotografía", "en": "Records: CBCT, intraoral scanner and photography"},
+      "minutos": 8,
+      "pasos": [
+        {
+          "t": "texto",
+          "titulo": {"es": "Cada registro responde una pregunta", "en": "Each record answers a question"},
+          "cuerpo": {
+            "es": "Ningún registro basta por sí solo. El **escáner intraoral** nos dice cómo es la superficie de los dientes y la encía; el **CBCT** muestra el hueso y los dientes por dentro; la **fotografía** muestra cómo se ve la cara real del paciente. Face Design los une en una sola escena 3D, una especie de gemelo digital del paciente.",
+            "en": "No single record is enough on its own. The **intraoral scanner** tells us the shape of the teeth and gums' surface; the **CBCT** shows the bone and teeth inside; the **photograph** shows what the patient's real face looks like. Face Design joins them in a single 3D scene, a sort of digital twin of the patient."
+          },
+          "porque": {
+            "es": "Así las etapas siguientes saben dónde están realmente la sonrisa, la línea media y el soporte del labio, y diseñan la prótesis sobre hueso y encía reales.",
+            "en": "That way later stages know where the smile, midline and lip support really are, and design the prosthesis on real bone and gum."
+          }
+        },
+        {
+          "t": "tabla",
+          "titulo": {"es": "Para qué sirve cada registro", "en": "What each record is for"},
+          "cabeceras": [
+            {"es": "Registro", "en": "Record"},
+            {"es": "Para qué sirve", "en": "What it is for"},
+            {"es": "Qué debe llegar", "en": "What must arrive"}
+          ],
+          "filas": [
+            [{"es": "IOS (escáner intraoral)", "en": "IOS (intraoral scanner)"}, {"es": "Superficie de dientes, encía y paladar; la mordida real tal como se registró en la clínica.", "en": "Surface of teeth, gum and palate; the real bite as recorded at the clinic."}, {"es": "Upper, Lower y 3 escaneos de mordida (derecha, izquierda, frente). Completos, con paladar y encía.", "en": "Upper, Lower and 3 bite scans (right, left, front). Complete, with palate and gum."}],
+            [{"es": "CBCT (tomografía)", "en": "CBCT (CT scan)"}, {"es": "Hueso y dientes en 3D; se segmenta en Maxilla y Mandible para alinearlos con el IOS.", "en": "Bone and teeth in 3D; segmented into Maxilla and Mandible to align with the IOS."}, {"es": "Archivos DICOM del paciente correcto.", "en": "DICOM files of the correct patient."}],
+            [{"es": "Fotografía", "en": "Photography"}, {"es": "Cara real: sonrisa, línea media, plano oclusal y escala del rostro.", "en": "Real face: smile, midline, occlusal plane and face scale."}, {"es": "9 fotos estándar, con pegatina en la frente; foto con cámara, no con iPad.", "en": "9 standard photos, with a sticker on the forehead; photo taken with a camera, not an iPad."}],
+            [{"es": "Registro de implantes", "en": "Implant record"}, {"es": "Posición real de los implantes (pickup, ICAM o Micron).", "en": "Real position of the implants (pickup, ICAM or Micron)."}, {"es": "Mínimo 4 implantes por arco; número igual al de la RX.", "en": "Minimum 4 implants per arch; number matching the RX."}]
+          ]
+        },
+        {
+          "t": "flujo",
+          "titulo": {"es": "Cómo se unen en Face Design", "en": "How they are joined in Face Design"},
+          "pasos": [
+            {"titulo": {"es": "Revisar los IOS", "en": "Check the IOS"}, "texto": {"es": "Paciente correcto, archivos completos y bien capturados.", "en": "Correct patient, complete and well-captured files."}},
+            {"titulo": {"es": "Alinear el Upper con la foto", "en": "Align the Upper with the photo"}, "texto": {"es": "Se rota el modelo contra la foto, que lleva la escala real; la foto nunca se rota y el IOS nunca se escala.", "en": "The model is rotated against the photo, which carries the real scale; the photo is never rotated and the IOS is never scaled."}},
+            {"titulo": {"es": "Alinear el CBCT", "en": "Align the CBCT"}, "texto": {"es": "Maxilla con Existing Teeth Upper y Mandible con Existing Teeth Lower, por separado: la mandíbula se mueve respecto al maxilar.", "en": "Maxilla with Existing Teeth Upper and Mandible with Existing Teeth Lower, separately: the mandible moves relative to the maxilla."}},
+            {"titulo": {"es": "Alinear el Mounting y pasar QC", "en": "Align the Mounting and pass QC"}, "texto": {"es": "Se ubica la referencia del articulador y el manager revisa antes de pasar a Bite Design.", "en": "The articulator reference is positioned and the manager reviews before moving to Bite Design."}}
+          ]
+        },
+        {
+          "t": "modelo3d",
+          "slot": "cbct-sobre-ios",
+          "titulo": {"es": "CBCT alineado con el IOS", "en": "CBCT aligned with the IOS"},
+          "descripcion": {
+            "es": "Mira: 1) Maxilla y Mandible del CBCT; 2) los Existing Teeth encima; 3) que el hueso no se solape con el tejido del IOS; 4) cada diente del CBCT encajando con el IOS.",
+            "en": "Look at: 1) the CBCT Maxilla and Mandible; 2) the Existing Teeth on top; 3) that the bone does not overlap the IOS tissue; 4) each CBCT tooth fitting the IOS."
+          },
+          "pendiente": {
+            "es": "Aquí irá un modelo de CBCT alineado con el IOS.",
+            "en": "A model of a CBCT aligned with the IOS will go here."
+          }
+        },
+        {
+          "t": "checklist",
+          "titulo": {"es": "¿Es aceptable una fotografía?", "en": "Is a photograph acceptable?"},
+          "items": [
+            {"es": "Cabeza recta y en reposo, mirando a la cámara, sin inclinar ni girar.", "en": "Head straight and at rest, facing the camera, not tilted or turned."},
+            {"es": "Las dos orejas visibles e iguales, por encima de la línea bipupilar.", "en": "Both ears visible and equal, above the bipupillary line."},
+            {"es": "Pegatina en la frente entre las cejas, para dar escala real.", "en": "Sticker on the forehead between the eyebrows, to give real scale."},
+            {"es": "Bien enfocada y con sonrisa natural, dientes visibles, sin blue mousse.", "en": "In focus and with a natural smile, teeth visible, without blue mousse."},
+            {"es": "La mordida de la foto coincide con el bite escaneado.", "en": "The bite in the photo matches the scanned bite."},
+            {"es": "Tomada con cámara, no con iPad ni otro dispositivo que deforme las proporciones.", "en": "Taken with a camera, not an iPad or other device that distorts proportions."}
+          ]
+        },
+        {
+          "t": "acordeon",
+          "titulo": {"es": "Cuándo se pide de nuevo un escaneo", "en": "When a scan is requested again"},
+          "items": [
+            {"titulo": {"es": "Falta paladar o tejido", "en": "Missing palate or tissue"}, "texto": {"es": "El paladar y la encía dictan las dimensiones y el asiento de la prótesis; con información incompleta se compromete la precisión.", "en": "The palate and gum dictate the dimensions and seating of the prosthesis; with incomplete information precision is compromised."}},
+            {"titulo": {"es": "Bites mal alineados", "en": "Misaligned bites"}, "texto": {"es": "Una mordida mal alineada produce una prótesis con la relación maxilar-mandibular errónea.", "en": "A misaligned bite produces a prosthesis with the wrong maxillo-mandibular relationship."}},
+            {"titulo": {"es": "Duplicados", "en": "Duplicates"}, "texto": {"es": "La información duplicada puede impedir que la alineación se complete; se avisa al manager.", "en": "Duplicated information can prevent the alignment from completing; the manager is notified."}},
+            {"titulo": {"es": "Prótesis que tapan o sin intaglio", "en": "Prostheses that cover or lack intaglio"}, "texto": {"es": "El intaglio (cara interna de la prótesis) es el registro directo de encía y paladar; sin él se pide un re-escaneo de 360 grados.", "en": "The intaglio (inner surface of the prosthesis) is the direct record of gum and palate; without it a 360-degree re-scan is requested."}},
+            {"titulo": {"es": "Menos de 4 dientes anteriores superiores", "en": "Fewer than 4 upper front teeth"}, "texto": {"es": "Se necesitan bite blocks: sin esos dientes no hay referencia suficiente para alinear con la cara en 3D.", "en": "Bite blocks are needed: without those teeth there is not enough reference to align with the face in 3D."}}
+          ]
+        },
+        {
+          "t": "resumen",
+          "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "IOS da la superficie, CBCT el hueso y la fotografía la cara real.", "en": "IOS gives the surface, CBCT the bone and photography the real face."},
+            {"es": "Face Design los une para ubicar la sonrisa antes de diseñar.", "en": "Face Design joins them to locate the smile before designing."},
+            {"es": "La foto lleva la escala real: no se rota; el IOS no se escala.", "en": "The photo carries the real scale: it is not rotated; the IOS is not scaled."},
+            {"es": "Si un registro está incompleto o es dudoso, se pide de nuevo en lugar de diseñar con él.", "en": "If a record is incomplete or doubtful, it is requested again instead of designing with it."}
+          ]
+        },
+        {
+          "t": "quiz",
+          "preguntas": [
+            {
+              "tipo": "parejas",
+              "enunciado": {"es": "Une cada registro con lo que aporta.", "en": "Match each record with what it provides."},
+              "pares": [
+                {"a": {"es": "IOS", "en": "IOS"}, "b": {"es": "Superficie de dientes, encía y mordida", "en": "Surface of teeth, gum and bite"}},
+                {"a": {"es": "CBCT", "en": "CBCT"}, "b": {"es": "Hueso y dientes en 3D", "en": "Bone and teeth in 3D"}},
+                {"a": {"es": "Fotografía", "en": "Photography"}, "b": {"es": "Cara real, sonrisa y escala", "en": "Real face, smile and scale"}},
+                {"a": {"es": "ICAM / Micron", "en": "ICAM / Micron"}, "b": {"es": "Posición de los implantes", "en": "Implant position"}}
+              ],
+              "explicacion": {"es": "Cada registro responde una pregunta distinta; por eso se necesitan todos.", "en": "Each record answers a different question; that is why all are needed."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "¿Por qué la foto nunca se rota y el IOS nunca se escala en Face Design?", "en": "Why is the photo never rotated and the IOS never scaled in Face Design?"},
+              "opciones": [
+                {"texto": {"es": "La foto lleva la escala real y rotarla distorsionaría la perspectiva; escalar el IOS falsearía el tamaño de los dientes.", "en": "The photo carries the real scale and rotating it would distort the perspective; scaling the IOS would falsify tooth size."}, "ok": true},
+                {"texto": {"es": "Porque el programa no lo permite.", "en": "Because the software does not allow it."}},
+                {"texto": {"es": "Porque ahorra tiempo.", "en": "Because it saves time."}}
+              ],
+              "explicacion": {"es": "El IOS es un modelo con medidas reales y la foto es la referencia de escala y perspectiva.", "en": "The IOS is a model with real measurements and the photo is the reference for scale and perspective."}
+            },
+            {
+              "tipo": "una",
+              "enunciado": {"es": "En una foto con la cabeza inclinada, ¿qué ocurre y qué se hace?", "en": "In a photo with the head tilted, what happens and what is done?"},
+              "opciones": [
+                {"texto": {"es": "Se percibe mal la sonrisa y el diseño saldría torcido; se pide una foto nueva.", "en": "The smile is misperceived and the design would come out crooked; a new photo is requested."}, "ok": true},
+                {"texto": {"es": "No importa, se corrige girando la foto.", "en": "It does not matter, it is corrected by rotating the photo."}},
+                {"texto": {"es": "Se acepta siempre si hay pegatina.", "en": "It is always accepted if there is a sticker."}}
+              ],
+              "explicacion": {"es": "La inclinación distorsiona el plano de la sonrisa; la foto no se rota para compensar.", "en": "The tilt distorts the plane of the smile; the photo is not rotated to compensate."}
+            },
+            {
+              "tipo": "vf",
+              "enunciado": {"es": "Maxilla y Mandible del CBCT se alinean juntos porque se mueven como un bloque.", "en": "The CBCT Maxilla and Mandible are aligned together because they move as a block."},
+              "ok": false,
+              "explicacion": {"es": "Se alinean por separado: la mandíbula se mueve respecto al maxilar y su relación viene de la mordida, no del CBCT.", "en": "They are aligned separately: the mandible moves relative to the maxilla and their relationship comes from the bite, not the CBCT."}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "glosario": [
+    {"id": "m1-maxilla", "termino": {"es": "Maxilla (maxilar)", "en": "Maxilla"}, "def": {"es": "Hueso superior; su arcada es la referencia de estética y función.", "en": "Upper bone; its arch is the aesthetic and functional reference."}, "cat": "anatomía", "general": true},
+    {"id": "m1-mandible", "termino": {"es": "Mandible (mandíbula)", "en": "Mandible"}, "def": {"es": "Hueso inferior que se mueve respecto al maxilar.", "en": "Lower bone that moves relative to the maxilla."}, "cat": "anatomía", "general": true},
+    {"id": "m1-implante", "termino": {"es": "Implante", "en": "Implant"}, "def": {"es": "Tornillo colocado en el hueso que sustituye la raíz del diente y sostiene la prótesis.", "en": "A screw placed in the bone that replaces the tooth root and holds the prosthesis."}, "cat": "implantes", "general": true},
+    {"id": "m1-housing", "termino": {"es": "Housing", "en": "Housing"}, "def": {"es": "Alojamiento donde se fija el pilar dentro de la prótesis o la barra.", "en": "Socket where the abutment is fixed inside the prosthesis or bar."}, "cat": "implantes"},
+    {"id": "m1-scan-body", "termino": {"es": "Scan body", "en": "Scan body"}, "def": {"es": "Pieza que se atornilla al implante y se escanea para conocer su posición.", "en": "A piece screwed onto the implant and scanned to know its position."}, "cat": "implantes"},
+    {"id": "m1-stump", "termino": {"es": "Stump", "en": "Stump"}, "def": {"es": "Cilindro análogo en el modelo de yeso que representa un implante.", "en": "Analog cylinder on the plaster model that represents an implant."}, "cat": "implantes"},
+    {"id": "m1-tissue", "termino": {"es": "Tissue (encía)", "en": "Tissue"}, "def": {"es": "Escaneo de la encía y el tejido blando sobre el que asienta la prótesis.", "en": "Scan of the gum and soft tissue the prosthesis sits on."}, "cat": "anatomía"},
+    {"id": "m1-puente", "termino": {"es": "Prótesis fija / puente", "en": "Fixed prosthesis / bridge"}, "def": {"es": "Prótesis que se atornilla a los implantes y el paciente no se quita.", "en": "Prosthesis screwed onto the implants that the patient does not remove."}, "cat": "prótesis"},
+    {"id": "m1-demodenture", "termino": {"es": "Demodenture", "en": "Demodenture"}, "def": {"es": "Prótesis de demostración con la nueva morfología que se prueba antes de fabricar la definitiva.", "en": "Demonstration prosthesis with the new morphology tried on before the final one is made."}, "cat": "prótesis"},
+    {"id": "m1-waxup", "termino": {"es": "Waxup", "en": "Waxup"}, "def": {"es": "Modelo de la nueva morfología de dientes.", "en": "Model of the new tooth morphology."}, "cat": "prótesis"},
+    {"id": "m1-barra", "termino": {"es": "Barra (custom bar)", "en": "Custom bar"}, "def": {"es": "Estructura que une los implantes y sostiene los dientes.", "en": "Structure that joins the implants and holds the teeth."}, "cat": "prótesis"},
+    {"id": "m1-tc", "termino": {"es": "TC", "en": "TC"}, "def": {"es": "Cubierta de dientes que se cementa sobre la barra. La sigla no se expande en los protocolos.", "en": "Tooth cover cemented over the bar. The abbreviation is not expanded in the protocols."}, "cat": "prótesis"},
+    {"id": "m1-zirconia", "termino": {"es": "Zirconia (24Z)", "en": "Zirconia (24Z)"}, "def": {"es": "Material de la prótesis 24Z; requiere espesor mínimo para no fracturarse.", "en": "Material of the 24Z prosthesis; requires minimum thickness so it does not fracture."}, "cat": "materiales"},
+    {"id": "m1-gcam", "termino": {"es": "G-CAM", "en": "G-CAM"}, "def": {"es": "Resina fresada (PMMA); también el producto al que pasa un caso cuando no se cumple 24Z.", "en": "Milled resin (PMMA); also the product a case switches to when 24Z is not met."}, "cat": "materiales"},
+    {"id": "m1-oclusion", "termino": {"es": "Oclusión", "en": "Occlusion"}, "def": {"es": "Encaje de los dientes superiores e inferiores al cerrar.", "en": "Fit of the upper and lower teeth when closing."}, "cat": "oclusión"},
+    {"id": "m1-clase-1", "termino": {"es": "Clase I", "en": "Class I"}, "def": {"es": "Relación de referencia entre molares y caninos de ambas arcadas, con overbite y overjet de 1 a 2 mm.", "en": "Reference relationship between molars and canines of both arches, with overbite and overjet of 1 to 2 mm."}, "cat": "oclusión"},
+    {"id": "m1-antagonista", "termino": {"es": "Antagonista", "en": "Antagonist"}, "def": {"es": "Arcada opuesta a la que se diseña.", "en": "The arch opposite to the one being designed."}, "cat": "oclusión"},
+    {"id": "m1-occlusal-plane", "termino": {"es": "Occlusal plane", "en": "Occlusal plane"}, "def": {"es": "Plano donde contactan los dientes, visto de perfil.", "en": "Plane where the teeth contact, seen from the side."}, "cat": "oclusión"},
+    {"id": "m1-cant", "termino": {"es": "Occlusal cant", "en": "Occlusal cant"}, "def": {"es": "Inclinación del plano oclusal visto de frente.", "en": "Tilt of the occlusal plane seen from the front."}, "cat": "oclusión"},
+    {"id": "m1-articulador", "termino": {"es": "Articulador / Panadent", "en": "Articulator / Panadent"}, "def": {"es": "Aparato donde se montan los modelos y se ajusta el VDO; el nuestro es el Panadent.", "en": "Device where the models are mounted and VDO is adjusted; ours is the Panadent."}, "cat": "articulación"},
+    {"id": "m1-vdo", "termino": {"es": "VDO", "en": "VDO"}, "def": {"es": "Dimensión vertical de oclusión: cuánto está abierta la mordida.", "en": "Vertical dimension of occlusion: how open the bite is."}, "cat": "articulación"},
+    {"id": "m1-pin", "termino": {"es": "Pin del articulador", "en": "Articulator pin"}, "def": {"es": "Pasador que se gradúa para abrir o cerrar el VDO.", "en": "Pin that is adjusted to open or close the VDO."}, "cat": "articulación"},
+    {"id": "m1-ios", "termino": {"es": "IOS", "en": "IOS"}, "def": {"es": "Escaneo intraoral de la boca.", "en": "Intraoral scan of the mouth."}, "cat": "registros"},
+    {"id": "m1-cbct", "termino": {"es": "CBCT", "en": "CBCT"}, "def": {"es": "Tomografía de haz cónico: imagen 3D de huesos y dientes.", "en": "Cone-beam CT: 3D image of bones and teeth."}, "cat": "registros"},
+    {"id": "m1-bite-block", "termino": {"es": "Bite block", "en": "Bite block"}, "def": {"es": "Bloque que registra la mordida cuando faltan dientes.", "en": "Block that records the bite when teeth are missing."}, "cat": "registros"}
+  ]
+}

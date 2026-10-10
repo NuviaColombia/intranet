@@ -589,6 +589,35 @@ class DesignSupportCobertura(Base):
     empleado = relationship("Empleado")
 
 
+class DesignTrainingProgreso(Base):
+    """Avance de una persona en Training: una fila por lección (completada y mejor puntaje del quiz). Las claves
+    especiales "_ultima" (dónde se quedó, en `dato`) y "_examen" (mejor puntaje del examen final) usan la misma tabla."""
+    __tablename__ = "design_training_progreso"
+
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), primary_key=True)
+    leccion_id: Mapped[str] = mapped_column(String(60), primary_key=True)
+    completada: Mapped[int] = mapped_column(Integer, default=0)
+    puntaje: Mapped[int] = mapped_column(Integer, default=0)
+    dato: Mapped[str] = mapped_column(String(200), default="")
+    actualizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class DesignTrainingModelo(Base):
+    """Modelo 3D (GLB, STL, OBJ o PLY) que un admin sube a un espacio (slot) de una lección de Training. Uno por espacio.
+    `anotaciones` = pines con texto bilingüe sobre el modelo (JSON)."""
+    __tablename__ = "design_training_modelos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    slot: Mapped[str] = mapped_column(String(60), index=True)
+    nombre: Mapped[str] = mapped_column(String(200), default="")
+    formato: Mapped[str] = mapped_column(String(10), default="")
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    anotaciones: Mapped[str] = mapped_column(Text, default="[]")
+    subido_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignInicioReaccion(Base):
     """Reacción con emoji de una persona a una publicación del muro (una fila por persona y emoji; reaccionar otra vez la quita)."""
     __tablename__ = "design_inicio_reacciones"

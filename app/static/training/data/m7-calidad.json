@@ -1,0 +1,289 @@
+{
+  "id": "m7-calidad",
+  "orden": 10,
+  "icono": "✅",
+  "titulo": {"es": "Calidad y comunicación", "en": "Quality and communication"},
+  "resumen": {
+    "es": "Cómo nos aseguramos de que un diseño sale bien y cómo nos comunicamos cuando algo no cuadra: QC y hallazgos, avisos al doctor, Q&A de diseño, estados de las órdenes, tiempos de referencia y un examen final de repaso.",
+    "en": "How we make sure a design comes out right and how we communicate when something does not add up: QC and findings, doctor alerts, design Q&A, order statuses, reference times and a final review exam."
+  },
+  "nivel": "intermedio",
+  "lecciones": [
+    {
+      "id": "q-l1",
+      "titulo": {"es": "QC y hallazgos", "en": "QC and findings"},
+      "minutos": 7,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "Un segundo par de ojos", "en": "A second pair of eyes"},
+          "cuerpo": {"es": "Imagina que escribes un correo importante y alguien más lo lee antes de enviarlo: encontrará errores que tú ya no ves. El **QC** (control de calidad) es eso: una persona revisa el trabajo de diseño ya terminado y deja constancia de lo que encontró. Una prótesis que sale con un archivo faltante o mal guardado se paga caro: se detiene la producción y hay que rehacer.",
+                     "en": "Imagine writing an important email and having someone else read it before sending: they will find mistakes you no longer see. **QC** (quality control) is exactly that: a person reviews finished design work and records what they found. A prosthesis that leaves with a missing or badly saved file is expensive: production stops and work must be redone."},
+          "general": true,
+          "porque": {"es": "Al registrar los hallazgos con las mismas palabras cada vez, el equipo puede ver qué errores se repiten y corregirlos de raíz.", "en": "By recording findings with the same wording every time, the team can see which mistakes repeat and fix them at the root."}},
+        {"t": "texto", "titulo": {"es": "Cómo se registra un hallazgo", "en": "How a finding is recorded"},
+          "cuerpo": {"es": "En el Design Schedule, quien marca el QC no escribe libremente: **elige de una lista** organizada en **títulos generales** (por ejemplo HTML o TO PRINT), cada uno con **hallazgos predefinidos**. El hallazgo elegido queda guardado como texto en el reporte de QC de la orden. Cada área (N2 Demodenture, Face Design, N3 Prosthetic, N6 Material Changes) tiene su propia lista. Los aprobadores y admins pueden agregar títulos y hallazgos nuevos, que quedan para toda el área; solo los admins pueden borrarlos.",
+                     "en": "In the Design Schedule, whoever marks the QC does not type freely: they **choose from a list** organized in **general titles** (for example HTML or TO PRINT), each with **predefined findings**. The chosen finding is saved as text in the order's QC report. Each area (N2 Demodenture, Face Design, N3 Prosthetic, N6 Material Changes) has its own list. Approvers and admins can add new titles and findings, which then stay for the whole area; only admins can delete them."},
+          "porque": {"es": "Una lista común evita que el mismo error se describa de cinco maneras distintas y hace comparables los reportes.", "en": "A shared list prevents the same mistake from being described five different ways and makes reports comparable."}},
+        {"t": "tabla", "titulo": {"es": "Títulos de QC por área", "en": "QC titles by area"},
+          "cabeceras": [{"es": "Área", "en": "Area"}, {"es": "Títulos", "en": "Titles"}, {"es": "Ejemplo de hallazgo", "en": "Example finding"}],
+          "filas": [
+            [{"es": "N2 Demodenture", "en": "N2 Demodenture"}, {"es": "HTML, TO PRINT, PLATAFORMA y OTROS PROCESOS", "en": "HTML, TO PRINT, PLATAFORMA and OTROS PROCESOS"}, {"es": "No hay Red Midline; Holes mal posicionados; Stage no aprobado", "en": "No Red Midline; Holes badly positioned; Stage not approved"}],
+            [{"es": "Face Design", "en": "Face Design"}, {"es": "BLENDER, PLATFORM", "en": "BLENDER, PLATFORM"}, {"es": "Scan-Face desalineado; falta de reporte en plataforma", "en": "Scan-Face misaligned; missing report on the platform"}],
+            [{"es": "N3 Prosthetic", "en": "N3 Prosthetic"}, {"es": "SURGERIES, NG, TC", "en": "SURGERIES, NG, TC"}, {"es": "Archivo de construction ausente en to mill; nombre equivocado en recortes de TC", "en": "Construction file missing in to mill; wrong name on TC cuts"}],
+            [{"es": "N6 Material Changes", "en": "N6 Material Changes"}, {"es": "Los mismos que N3 (cada área con su propia copia)", "en": "Same as N3 (each area with its own copy)"}, {"es": "El peso de los archivos es incorrecto", "en": "File weight is incorrect"}]
+          ]},
+        {"t": "acordeon", "titulo": {"es": "Qué revisa cada título", "en": "What each title checks"},
+          "items": [
+            {"titulo": {"es": "HTML y TO PRINT", "en": "HTML and TO PRINT"}, "texto": {"es": "Que el visor HTML tenga todo (face design, waxup, denture, tissue, scans, RX) y que la carpeta To Print traiga los archivos correctos, la talla marcada, los holes y el stent bien ubicados. Es lo que recibe el siguiente eslabón.", "en": "That the HTML viewer contains everything (face design, waxup, denture, tissue, scans, RX) and the To Print folder has the right files, marked size, and well-placed holes and stent. It is what the next link in the chain receives."}},
+            {"titulo": {"es": "PLATAFORMA", "en": "PLATAFORMA"}, "texto": {"es": "Que los comentarios, aprobaciones y fotos en la plataforma estén completos y en el stage correcto. Si no quedó escrito, para el resto del equipo no ocurrió.", "en": "That comments, approvals and photos on the platform are complete and in the right stage. If it was not written down, for the rest of the team it did not happen."}},
+            {"titulo": {"es": "SURGERIES, NG y TC (N3 y N6)", "en": "SURGERIES, NG and TC (N3 and N6)"}, "texto": {"es": "En cirugías: HTML completo y archivo de construction en To Mill. En NG: medidas diligenciadas y fotos que coincidan con el canva. En TC: nombres correctos, cortes según el protocolo y peso de archivos adecuado.", "en": "On surgeries: complete HTML and construction file in To Mill. On NG: measurements filled in and photos matching the canva. On TC: correct names, cuts following the protocol and proper file weight."}}
+          ]},
+        {"t": "checklist", "titulo": {"es": "Antes de pedir el QC de mi trabajo", "en": "Before asking for the QC of my work"},
+          "items": [
+            {"es": "Todos los archivos están guardados en su carpeta y con el nombre correcto.", "en": "All files are saved in their folder with the correct name."},
+            {"es": "El HTML está completo y abre sin errores.", "en": "The HTML is complete and opens without errors."},
+            {"es": "Dejé en la plataforma los comentarios que explican decisiones o incidencias.", "en": "I left on the platform the comments explaining decisions or incidents."},
+            {"es": "Revisé que el estado de la orden corresponde a lo que hice.", "en": "I checked that the order status matches what I did."}
+          ]},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "El QC es una revisión independiente del trabajo terminado.", "en": "QC is an independent review of finished work."},
+            {"es": "Los hallazgos se eligen de una lista por título y área, no se escriben libres.", "en": "Findings are chosen from a list by title and area, not typed freely."},
+            {"es": "Aprobadores y admins agregan hallazgos; solo admins los borran.", "en": "Approvers and admins add findings; only admins delete them."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué los hallazgos del QC se eligen de una lista predefinida?", "en": "Why are QC findings chosen from a predefined list?"},
+            "opciones": [
+              {"texto": {"es": "Para describir cada error siempre igual y poder comparar reportes", "en": "To describe each mistake the same way and be able to compare reports"}, "ok": true},
+              {"texto": {"es": "Para que nadie pueda hacer QC", "en": "So nobody can do QC"}},
+              {"texto": {"es": "Porque el software no acepta texto", "en": "Because the software does not accept text"}}],
+            "explicacion": {"es": "La lista común muestra qué errores se repiten y facilita corregirlos.", "en": "The shared list shows which mistakes repeat and makes them easier to correct."}},
+          {"tipo": "vf", "enunciado": {"es": "Cada área tiene su propia lista de títulos y hallazgos de QC.", "en": "Each area has its own list of QC titles and findings."}, "ok": true,
+            "explicacion": {"es": "Incluso N6 usa los mismos hallazgos que N3, pero con su propia copia.", "en": "Even N6 uses the same findings as N3, but with its own copy."}},
+          {"tipo": "una", "enunciado": {"es": "¿Quién puede borrar un hallazgo de la lista?", "en": "Who can delete a finding from the list?"},
+            "opciones": [
+              {"texto": {"es": "Solo los admins", "en": "Only admins"}, "ok": true},
+              {"texto": {"es": "Cualquier diseñador", "en": "Any designer"}},
+              {"texto": {"es": "Solo el doctor", "en": "Only the doctor"}}],
+            "explicacion": {"es": "Agregar lo pueden hacer aprobadores y admins; borrar, solo admins.", "en": "Approvers and admins can add; only admins can delete."}}
+        ]}
+      ]
+    },
+    {
+      "id": "q-l2",
+      "titulo": {"es": "Avisar y preguntar bien", "en": "Notifying and asking well"},
+      "minutos": 9,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "Lo que el doctor no ve", "en": "What the doctor cannot see"},
+          "cuerpo": {"es": "El doctor pide cambios en la receta (RX), pero el laboratorio ve limitaciones que él no ve: **poco espacio o material** y **la posición de los implantes**. El laboratorio intenta cumplir cada instrucción; cuando no se puede, **se envía una alerta al doctor** para conversar. Y si falta espacio, hay una prioridad clara: se protege primero el **borde incisal del maxilar** y la **línea media (midline)**, y se sacrifica el **plano oclusal**.",
+                     "en": "The doctor requests changes on the prescription (RX), but the lab sees limitations the doctor cannot: **little space or material** and **implant position**. The lab tries to fulfil every instruction; when it cannot, **an alert is sent to the doctor** to talk it through. And if space is lacking there is a clear priority: the **incisal edge of the maxilla** and the **midline** are protected first, and the **occlusal plane** is sacrificed."},
+          "porque": {"es": "Borde incisal y línea media son lo que más se nota al sonreír; el plano oclusal se puede ajustar con menos impacto estético.", "en": "Incisal edge and midline are the most visible when smiling; the occlusal plane can be adjusted with less esthetic impact."}},
+        {"t": "tarjetas", "titulo": {"es": "Tres alertas típicas", "en": "Three typical alerts"},
+          "items": [
+            {"icono": "📏", "titulo": {"es": "Espacio", "en": "Space"}, "texto": {"es": "No hay altura para cumplir el cambio pedido o los mínimos del producto. En el Single 24z, pedir VDO sin mover el borde incisal es una solicitud difícil y el equipo ofrece opciones.", "en": "There is no height to fulfil the requested change or the product minimums. In Single 24z, requesting VDO without moving the incisal edge is a difficult request and the team offers options."}},
+            {"icono": "🧱", "titulo": {"es": "Material", "en": "Material"}, "texto": {"es": "Se exceden los límites del material, por ejemplo espesores de zirconia. Si no se cumplen las medidas de 24Z, el caso puede pasar a G-CAM.", "en": "Material limits are exceeded, for example zirconia thicknesses. If 24Z measurements are not met, the case may move to G-CAM."}},
+            {"icono": "🔩", "titulo": {"es": "Implantes", "en": "Implants"}, "texto": {"es": "Posición o angulación que impide un acceso correcto o sentar el pickup. Se informa al manager antes de cortar o cambiar nada.", "en": "Position or angulation that prevents a correct access hole or seating the pickup. The manager is informed before cutting or changing anything."}}
+          ]},
+        {"t": "flujo", "titulo": {"es": "La escalera de escalamiento", "en": "The escalation ladder"},
+          "pasos": [
+            {"titulo": {"es": "Diseñador", "en": "Designer"}, "texto": {"es": "Detecta el problema y lo deja escrito en la plataforma.", "en": "Spots the problem and writes it down on the platform."}},
+            {"titulo": {"es": "Manager", "en": "Manager"}, "texto": {"es": "Decide o informa al doctor.", "en": "Decides or informs the doctor."}},
+            {"titulo": {"es": "Regional", "en": "Regional"}, "texto": {"es": "Autoriza casos especiales, por ejemplo un cambio de cant en N2.", "en": "Authorizes special cases, for example a cant change in N2."}},
+            {"titulo": {"es": "Liderazgo", "en": "Leadership"}, "texto": {"es": "Resuelve lo que está fuera de las reglas aprobadas.", "en": "Resolves what is outside the approved rules."}}
+          ]},
+        {"t": "acordeon", "titulo": {"es": "El Q&A de diseño, por grupos", "en": "The design Q&A, by group"},
+          "items": [
+            {"titulo": {"es": "Face Design", "en": "Face Design"}, "texto": {"es": "- Si se sigue sin face design sin aprobación del doctor, se informa al manager: así no se demoran los productos en hold y el doctor decide si seguir o enviar nuevos récords.\n- Un Single 24z sin face design es una excepción que aprueba el liderazgo.", "en": "- If the case continues without face design without the doctor's approval, the manager is informed: this avoids delaying products on hold and lets the doctor decide to continue or send new records.\n- A Single 24z without face design is an exception approved by leadership."}},
+            {"titulo": {"es": "N2 Demodenture", "en": "N2 Demodenture"}, "texto": {"es": "- Cambiar el cant en N2 puede romper el diseño aprobado: contactar manager y regional; sin autorización no se hace.\n- Mover solo el lower en un U/L deja de ser 24z y pasa a G-cam, porque la oclusión deja de ser clase I.", "en": "- Changing the cant in N2 can break the approved design: contact manager and regional; without authorization it is not done.\n- Moving only the lower in a U/L stops being 24z and becomes G-cam, because the occlusion is no longer class I."}},
+            {"titulo": {"es": "N3 Prosthetic", "en": "N3 Prosthetic"}, "texto": {"es": "- Un cambio de cant fuera de los pasos del protocolo sin plato solo se puede hacer digital, y eso invalida la articulación master: se informa al doctor.\n- El modelo antagonista de Single 24z o G-cam no se crea de nuevo: se usa el impreso en N2.\n- La reducción de tejido en cirugía la pide solo el doctor, hasta 1,5 mm; jamás la propone el lab.\n- Con dos registros Micron de un mismo arco hace falta un solo STL con todos los implantes, o el caso queda en HOLD.\n- La demodenture con material extra la ajusta el doctor, no el lab.", "en": "- A cant change outside the protocol steps without a plate can only be done digitally, and that invalidates the master articulation: the doctor is informed.\n- The antagonist model for Single 24z or G-cam is not created again: the one printed in N2 is used.\n- Tissue reduction at surgery is requested only by the doctor, up to 1.5 mm; the lab never proposes it.\n- With two Micron records of the same arch a single STL with all implants is needed, or the case goes on HOLD.\n- A demodenture with extra material is adjusted by the doctor, not the lab."}},
+            {"titulo": {"es": "N6 Material Change", "en": "N6 Material Change"}, "texto": {"es": "- Un cambio de cant en N6 sin puentes en el lab exige una nueva articulación con su plato: nunca se hace digital.\n- Un Dummy sin medidas en talla C/CW necesita autorización de manager y regional para una medida menor; el mínimo en esos casos especiales es 6 mm.\n- Los molares extras en N6 no se aprueban: quedan fuera de las morfologías aprobadas.", "en": "- A cant change in N6 without bridges at the lab requires a new articulation with its plate: it is never done digitally.\n- A Dummy without measurements in size C/CW needs manager and regional authorization for a smaller measurement; the minimum in those special cases is 6 mm.\n- Extra molars in N6 are not approved: they fall outside the approved morphologies."}},
+            {"titulo": {"es": "Patrones que se repiten", "en": "Recurring patterns"}, "texto": {"es": "- Casi todo se escala: diseñador, manager, regional, liderazgo.\n- Todo se documenta en la plataforma.\n- El lab no improvisa: no hace ajustes manuales ni cambios digitales que invaliden la articulación master sin avisar.\n- Los cambios que rompen la clase I del N2 pasan a G-cam.", "en": "- Almost everything is escalated: designer, manager, regional, leadership.\n- Everything is documented on the platform.\n- The lab does not improvise: no manual adjustments or digital changes that invalidate the master articulation without notice.\n- Changes that break the class I of N2 move to G-cam."}}
+          ]},
+        {"t": "texto", "titulo": {"es": "Respuestas que aún están por confirmar", "en": "Answers still to be confirmed"},
+          "cuerpo": {"es": "El Q&A es la mejor guía para casos raros, pero su versión es de abril de 2025 y algunas respuestas mencionan límites distintos a los del protocolo oficial. Si tu caso toca una de ellas, no decidas solo: consulta.",
+                     "en": "The Q&A is the best guide for unusual cases, but its version dates from April 2025 and some answers mention limits different from the official protocol. If your case touches one of them, do not decide alone: ask."},
+          "alerta": {"es": "Confirmar con el manager: el Q&A dice que no se aprueba una barra que pase de 16,5 mm de acceso para fresar, mientras el protocolo da un rango de 16-17 mm. También conviene confirmar las personas de escalamiento nombradas en el Q&A antes de contactarlas.", "en": "Confirm with the manager: the Q&A says a bar whose access exceeds 16.5 mm is not approved for milling, while the protocol gives a 16-17 mm range. It is also worth confirming the escalation contacts named in the Q&A before reaching out to them."}},
+        {"t": "tarjetas", "titulo": {"es": "Comunicarse bien con Support y con el equipo", "en": "Communicating well with Support and the team"},
+          "items": [
+            {"icono": "📝", "titulo": {"es": "Escribe en la plataforma", "en": "Write on the platform"}, "texto": {"es": "Comentarios, aprobaciones y evidencias van en la orden. Lo que solo se dijo de palabra no deja rastro.", "en": "Comments, approvals and evidence go on the order. What was only said aloud leaves no trace."}},
+            {"icono": "📣", "titulo": {"es": "Avisa en el canal del centro", "en": "Notify in the center channel"}, "texto": {"es": "Al iniciar una orden se deja el mensaje de inicio en el canal del centro, para que el equipo sepa quién trabaja en qué.", "en": "When starting an order, the start message is left in the center channel so the team knows who works on what."}},
+            {"icono": "🎫", "titulo": {"es": "Tickets para cambios de producto o workflow", "en": "Tickets for product or workflow changes"}, "texto": {"es": "Un cambio de producto o un workflow mal nombrado se pide con ticket, y el de producto antes de aprobar Bite Design.", "en": "A product change or a wrongly named workflow is requested by ticket, and the product one before approving Bite Design."}},
+            {"icono": "⏱️", "titulo": {"es": "No frenes la producción", "en": "Do not stall production"}, "texto": {"es": "Si el doctor no responde en 30 minutos, se escala a manager y regional; no se deja el caso esperando.", "en": "If the doctor does not answer in 30 minutes, escalate to manager and regional; do not leave the case waiting."}}
+          ]},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "El lab ve espacio, material e implantes; si algo no se puede cumplir, se avisa al doctor.", "en": "The lab sees space, material and implants; if something cannot be fulfilled, the doctor is notified."},
+            {"es": "Con poco espacio se protege el borde incisal y la midline antes que el plano oclusal.", "en": "With little space, incisal edge and midline are protected before the occlusal plane."},
+            {"es": "Casi todo se escala por niveles y se documenta en la plataforma.", "en": "Almost everything is escalated by levels and documented on the platform."},
+            {"es": "El lab no improvisa ni hace cambios digitales que invaliden la articulación master sin avisar.", "en": "The lab does not improvise or make digital changes that invalidate the master articulation without notice."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "Falta espacio para cumplir todos los cambios pedidos. ¿Qué se sacrifica primero?", "en": "There is not enough space to fulfil all requested changes. What is sacrificed first?"},
+            "opciones": [
+              {"texto": {"es": "El plano oclusal", "en": "The occlusal plane"}, "ok": true},
+              {"texto": {"es": "La línea media", "en": "The midline"}},
+              {"texto": {"es": "El borde incisal del maxilar", "en": "The incisal edge of the maxilla"}}],
+            "explicacion": {"es": "Borde incisal y línea media son lo más visible al sonreír; se protegen primero.", "en": "Incisal edge and midline are the most visible when smiling; they are protected first."}},
+          {"tipo": "una", "enunciado": {"es": "¿Por qué un cambio de cant digital invalida la articulación master?", "en": "Why does a digital cant change invalidate the master articulation?"},
+            "opciones": [
+              {"texto": {"es": "Porque la articulación física validada ya no coincide con el diseño digital", "en": "Because the validated physical articulation no longer matches the digital design"}, "ok": true},
+              {"texto": {"es": "Porque el doctor lo prohíbe por contrato", "en": "Because the doctor forbids it by contract"}},
+              {"texto": {"es": "Porque el software borra el modelo", "en": "Because the software deletes the model"}}],
+            "explicacion": {"es": "Por eso se informa al doctor y en N6 el cant nunca se cambia en digital.", "en": "That is why the doctor is informed and in N6 the cant is never changed digitally."}},
+          {"tipo": "vf", "enunciado": {"es": "Si el doctor no responde, el diseñador debe dejar el caso parado indefinidamente.", "en": "If the doctor does not answer, the designer must leave the case idle indefinitely."}, "ok": false,
+            "explicacion": {"es": "Se escala a manager y regional para no frenar la producción.", "en": "It is escalated to manager and regional so production does not stall."}},
+          {"tipo": "orden", "enunciado": {"es": "Ordena la escalera de escalamiento.", "en": "Order the escalation ladder."},
+            "items": [
+              {"es": "Diseñador", "en": "Designer"},
+              {"es": "Manager", "en": "Manager"},
+              {"es": "Regional", "en": "Regional"},
+              {"es": "Liderazgo", "en": "Leadership"}],
+            "explicacion": {"es": "Cada nivel resuelve lo que el anterior no puede autorizar.", "en": "Each level resolves what the previous one cannot authorize."}}
+        ]}
+      ]
+    },
+    {
+      "id": "q-l3",
+      "titulo": {"es": "Estados, horas y tiempos", "en": "Statuses, hours and times"},
+      "minutos": 8,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "El estado cuenta la historia del caso", "en": "The status tells the story of the case"},
+          "cuerpo": {"es": "Cada orden tiene un **estado** que indica en qué punto está. En N3 y N6 los estados son: Order Entered, Pickup received, **Ready to design**, **Initiated**, **Hold**, Bite ready, **Approved**, Skipped y Canceled. En Face Design aparecen también Pending approval y otros. Cambiar el estado a tiempo es parte del trabajo: de él dependen las horas, los reportes y lo que ve el manager.",
+                     "en": "Each order has a **status** that shows where it stands. In N3 and N6 the statuses are: Order Entered, Pickup received, **Ready to design**, **Initiated**, **Hold**, Bite ready, **Approved**, Skipped and Canceled. Face Design also has Pending approval and others. Changing the status on time is part of the job: hours, reports and what the manager sees depend on it."}},
+        {"t": "tabla", "titulo": {"es": "Estados clave", "en": "Key statuses"},
+          "cabeceras": [{"es": "Estado", "en": "Status"}, {"es": "Qué significa", "en": "What it means"}, {"es": "Qué registra", "en": "What it records"}],
+          "filas": [
+            [{"es": "Ready to design", "en": "Ready to design"}, {"es": "Lista para empezar a diseñar", "en": "Ready to start designing"}, {"es": "Nada todavía", "en": "Nothing yet"}],
+            [{"es": "Initiated", "en": "Initiated"}, {"es": "El diseño empezó", "en": "Design has started"}, {"es": "Inicio diseño (o Re-initiated si venía de Hold)", "en": "Design start (or Re-initiated if coming from Hold)"}],
+            [{"es": "Hold", "en": "Hold"}, {"es": "Pausa a la espera de información o aprobación", "en": "Paused awaiting information or approval"}, {"es": "Start hold", "en": "Start hold"}],
+            [{"es": "Approved", "en": "Approved"}, {"es": "Diseño terminado y aprobado", "en": "Design finished and approved"}, {"es": "Fin", "en": "End"}]
+          ]},
+        {"t": "flujo", "titulo": {"es": "Un caso con una pausa", "en": "A case with a pause"},
+          "pasos": [
+            {"titulo": {"es": "Initiated", "en": "Initiated"}, "texto": {"es": "Se llena solo la hora de Inicio diseño.", "en": "The Design start time fills in automatically."}},
+            {"titulo": {"es": "Hold", "en": "Hold"}, "texto": {"es": "Falta información: se marca Hold y empieza a contar la pausa.", "en": "Information is missing: Hold is set and the pause starts counting."}},
+            {"titulo": {"es": "Initiated otra vez", "en": "Initiated again"}, "texto": {"es": "Se cierra la pausa y queda como Re-initiated.", "en": "The pause closes and it is recorded as Re-initiated."}},
+            {"titulo": {"es": "Approved", "en": "Approved"}, "texto": {"es": "Se registra la hora de Fin.", "en": "The End time is recorded."}}
+          ]},
+        {"t": "texto", "titulo": {"es": "Por qué las horas se registran con el estado", "en": "Why hours are recorded with the status"},
+          "cuerpo": {"es": "En el Design Schedule un diseñador **no escribe las horas a mano**: se registran solas al cambiar el estado (Initiated, Hold, Approved). Si hay que corregir una hora, la cambia el manager. Si un mismo caso tiene varios Hold, se suman. Al cierre del día, las órdenes en Hold o Ready to design pasan al siguiente día hábil del mismo equipo.",
+                     "en": "In the Design Schedule a designer **does not type hours by hand**: they are recorded automatically when the status changes (Initiated, Hold, Approved). If an hour must be corrected, the manager changes it. If a case has several Holds, they add up. At the end of the day, orders in Hold or Ready to design move to the next business day of the same team."},
+          "porque": {"es": "Así las horas reflejan lo que realmente pasó, sin olvidos ni redondeos, y el tiempo de espera de un Hold no se confunde con tiempo de diseño.", "en": "This way the hours reflect what really happened, with no omissions or rounding, and Hold waiting time is not confused with design time."},
+          "dato": {"es": "Si te equivocas de estado, avisa al manager: es quien puede corregir las horas.", "en": "If you pick the wrong status, tell the manager: they are the one who can correct the hours."}},
+        {"t": "calculadora", "id": "tiempos", "titulo": {"es": "Tiempos de diseño por producto", "en": "Design times by product"},
+          "guia": {"es": "Explora cuánto tarda un diseñador en cada producto. Compara, por ejemplo, un Single 24z de N2 con un Demo UL, o un Zn composite de una arcada con uno de dos.", "en": "Explore how long a designer takes on each product. Compare, for example, an N2 Single 24z with a Demo UL, or a one-arch Zn composite with a two-arch one."}},
+        {"t": "texto", "titulo": {"es": "Cómo leer los tiempos", "en": "How to read the times"},
+          "cuerpo": {"es": "Son **horas de trabajo del diseñador**, de referencia, no garantías. No se deben mezclar con los **plazos de calendario** (por ejemplo, N6 Material Change se entrega 3 semanas desde la aprobación). Sirven para dimensionar el día: por qué un caso con muchos cambios o con Hold retrasa la entrega.",
+                     "en": "They are **designer working hours**, for reference, not guarantees. They must not be mixed with **calendar deadlines** (for example, N6 Material Change is delivered 3 weeks after approval). They help size the day: why a case with many changes or with Hold delays delivery."},
+          "alerta": {"es": "Confirmar con el manager: la hoja de tiempos llegó desordenada y dos cifras no cuadran (Zn over Ti bar Single suma 2:20 pero el total dice 2:30; y la celda de 10 min de N6 Nightguard no suma con su total de 0:45). Usa las cifras como orientación hasta verificarlas con el Excel original.", "en": "Confirm with the manager: the times sheet arrived jumbled and two figures do not add up (Zn over Ti bar Single sums to 2:20 but the total says 2:30; and the 10 min cell for N6 Nightguard does not add up with its 0:45 total). Use the figures as guidance until verified against the original spreadsheet."}},
+        {"t": "resumen", "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+          "puntos": [
+            {"es": "El estado de la orden determina las horas, los reportes y lo que ve el manager.", "en": "The order status determines hours, reports and what the manager sees."},
+            {"es": "Initiated, Hold y Approved registran las horas solas; el diseñador no las escribe.", "en": "Initiated, Hold and Approved record the hours automatically; the designer does not type them."},
+            {"es": "Los tiempos por producto son horas de trabajo de referencia, no plazos de calendario.", "en": "Times by product are reference working hours, not calendar deadlines."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué las horas se registran con el cambio de estado y no a mano?", "en": "Why are hours recorded with the status change and not by hand?"},
+            "opciones": [
+              {"texto": {"es": "Para que reflejen lo que realmente pasó y separen el tiempo de Hold del de diseño", "en": "So they reflect what really happened and separate Hold time from design time"}, "ok": true},
+              {"texto": {"es": "Para que el diseñador trabaje menos", "en": "So the designer works less"}},
+              {"texto": {"es": "Porque el reloj del equipo es más bonito", "en": "Because the team clock looks nicer"}}],
+            "explicacion": {"es": "El estado deja un registro objetivo; las correcciones las hace el manager.", "en": "The status leaves an objective record; corrections are made by the manager."}},
+          {"tipo": "parejas", "enunciado": {"es": "Une cada estado con lo que registra.", "en": "Match each status with what it records."},
+            "pares": [
+              {"a": {"es": "Initiated (primera vez)", "en": "Initiated (first time)"}, "b": {"es": "Inicio diseño", "en": "Design start"}},
+              {"a": {"es": "Hold", "en": "Hold"}, "b": {"es": "Start hold", "en": "Start hold"}},
+              {"a": {"es": "Approved", "en": "Approved"}, "b": {"es": "Fin", "en": "End"}}],
+            "explicacion": {"es": "Cada cambio de estado llena la hora que le corresponde.", "en": "Each status change fills in its corresponding time."}},
+          {"tipo": "vf", "enunciado": {"es": "Los tiempos de diseño de la tabla son plazos de entrega al doctor.", "en": "The design times in the table are delivery deadlines to the doctor."}, "ok": false,
+            "explicacion": {"es": "Son horas de trabajo del diseñador; los plazos de calendario son otra cosa.", "en": "They are designer working hours; calendar deadlines are something else."}}
+        ]}
+      ]
+    },
+    {
+      "id": "q-l4",
+      "titulo": {"es": "Examen final: ¿listo para empezar?", "en": "Final exam: ready to start?"},
+      "minutos": 8,
+      "pasos": [
+        {"t": "texto", "titulo": {"es": "Antes de empezar a trabajar", "en": "Before you start working"},
+          "cuerpo": {"es": "Llegaste al final. Este examen repasa lo más importante: el VDO y su articulador, qué proteger cuando falta espacio, el cambio de material N6, la calidad y cuándo avisar. No busca que memorices cifras, sino que entiendas el **porqué**: si entiendes por qué, sabrás qué hacer cuando aparezca un caso nuevo.",
+                     "en": "You reached the end. This exam reviews what matters most: VDO and its articulator, what to protect when space is lacking, the N6 material change, quality and when to notify. It does not ask you to memorize figures, but to understand the **why**: if you understand why, you will know what to do when a new case shows up."}},
+        {"t": "checklist", "titulo": {"es": "Autoevaluación rápida", "en": "Quick self-check"},
+          "items": [
+            {"es": "Puedo explicar qué cambia entre N3 (provisional en G-CAM) y N6 (cambio de material).", "en": "I can explain what changes between N3 (G-CAM temporary) and N6 (material change)."},
+            {"es": "Sé por qué el VDO se ajusta en el articulador y no solo en digital.", "en": "I know why VDO is adjusted on the articulator and not only digitally."},
+            {"es": "Sé qué se protege primero cuando falta espacio.", "en": "I know what is protected first when space is lacking."},
+            {"es": "Sé cuándo se avisa al doctor y a quién se escala.", "en": "I know when the doctor is notified and who it is escalated to."},
+            {"es": "Entiendo por qué las horas se registran con el estado.", "en": "I understand why hours are recorded with the status."}
+          ]},
+        {"t": "resumen", "titulo": {"es": "Lo esencial del módulo", "en": "The essentials of the module"},
+          "puntos": [
+            {"es": "Calidad: se revisa con QC y se registra con hallazgos de una lista común.", "en": "Quality: reviewed with QC and recorded with findings from a shared list."},
+            {"es": "Comunicación: avisa al doctor cuando falta espacio, material o hay problema de implantes.", "en": "Communication: notify the doctor when space, material or implants are a problem."},
+            {"es": "Orden y tiempo: el estado llena las horas; los tiempos son referencias.", "en": "Order and time: the status fills in the hours; times are references."},
+            {"es": "N6: cambio de material con reglas propias por producto.", "en": "N6: material change with its own rules for each product."}
+          ]},
+        {"t": "quiz", "preguntas": [
+          {"tipo": "una", "enunciado": {"es": "¿Por qué el VDO se ajusta en el articulador Panadent y no solo en digital?", "en": "Why is VDO adjusted on the Panadent articulator and not only digitally?"},
+            "opciones": [
+              {"texto": {"es": "Porque en digital no es preciso; se ajusta el pin y luego se digitaliza", "en": "Because digitally it is not precise; the pin is adjusted and then digitized"}, "ok": true},
+              {"texto": {"es": "Porque el articulador es más barato", "en": "Because the articulator is cheaper"}},
+              {"texto": {"es": "Porque así lo prefiere el paciente", "en": "Because the patient prefers it"}}],
+            "explicacion": {"es": "El VDO es la base de todo el diseño; una nueva relación física se digitaliza al escanear los modelos.", "en": "VDO is the base of the whole design; a new physical relationship is digitized by scanning the models."}},
+          {"tipo": "una", "enunciado": {"es": "Hay poco espacio y no caben todos los cambios. ¿Qué se protege primero?", "en": "Space is tight and not all changes fit. What is protected first?"},
+            "opciones": [
+              {"texto": {"es": "Borde incisal del maxilar y línea media", "en": "Maxillary incisal edge and midline"}, "ok": true},
+              {"texto": {"es": "El plano oclusal", "en": "The occlusal plane"}},
+              {"texto": {"es": "El tamaño del arco", "en": "The arch size"}}],
+            "explicacion": {"es": "Son lo más visible al sonreír; el plano oclusal se sacrifica primero.", "en": "They are the most visible when smiling; the occlusal plane is sacrificed first."}},
+          {"tipo": "una", "enunciado": {"es": "¿Por qué un N6 de zirconia exige un diseño más preciso que el provisional de N3?", "en": "Why does a zirconia N6 require a more precise design than the N3 temporary?"},
+            "opciones": [
+              {"texto": {"es": "La encía ya sanó y la zirconia se fractura si es muy delgada", "en": "The gums healed and zirconia fractures if too thin"}, "ok": true},
+              {"texto": {"es": "Porque hay más implantes", "en": "Because there are more implants"}},
+              {"texto": {"es": "Porque no hay doctor involucrado", "en": "Because no doctor is involved"}}],
+            "explicacion": {"es": "El diseño es definitivo y los espesores mínimos son más exigentes.", "en": "The design is definitive and minimum thicknesses are stricter."}},
+          {"tipo": "vf", "enunciado": {"es": "El TC de prueba de Over Ti-Bar es el definitivo que se entrega al paciente.", "en": "The Over Ti-Bar trial TC is the definitive one delivered to the patient."}, "ok": false,
+            "explicacion": {"es": "El TC final se diseña sobre la barra ya fresada y escaneada, porque las tolerancias reales difieren.", "en": "The final TC is designed over the bar already milled and scanned, because real tolerances differ."}},
+          {"tipo": "una", "enunciado": {"es": "Encuentras un error en un archivo ya entregado. ¿Cómo queda mejor registrado?", "en": "You find a mistake in an already delivered file. How is it best recorded?"},
+            "opciones": [
+              {"texto": {"es": "Como un hallazgo elegido de la lista del área, para poder compararlo", "en": "As a finding chosen from the area list, so it can be compared"}, "ok": true},
+              {"texto": {"es": "En una nota personal que nadie más ve", "en": "In a personal note nobody else sees"}},
+              {"texto": {"es": "No se registra si es pequeño", "en": "It is not recorded if it is small"}}],
+            "explicacion": {"es": "La lista común permite ver qué errores se repiten y corregirlos.", "en": "The shared list shows which mistakes repeat so they can be fixed."}},
+          {"tipo": "orden", "enunciado": {"es": "Un caso se pausa y luego se termina. Ordena los estados.", "en": "A case is paused and then finished. Order the statuses."},
+            "items": [
+              {"es": "Ready to design", "en": "Ready to design"},
+              {"es": "Initiated", "en": "Initiated"},
+              {"es": "Hold", "en": "Hold"},
+              {"es": "Approved", "en": "Approved"}],
+            "explicacion": {"es": "Cada paso llena su hora: inicio, pausa y fin.", "en": "Each step fills its time: start, pause and end."}}
+        ]}
+      ]
+    }
+  ],
+  "glosario": [
+    {"id": "q-qc", "termino": {"es": "QC", "en": "QC"}, "def": {"es": "Control de calidad: revisión independiente de un diseño ya terminado.", "en": "Quality control: independent review of a finished design."}, "cat": "calidad"},
+    {"id": "q-hallazgo", "termino": {"es": "Hallazgo", "en": "Finding"}, "def": {"es": "Error o falta que el QC registra, elegido de una lista predefinida.", "en": "A mistake or omission recorded by QC, chosen from a predefined list."}, "cat": "calidad"},
+    {"id": "q-titulo-qc", "termino": {"es": "Título de QC", "en": "QC title"}, "def": {"es": "Grupo general de hallazgos, por ejemplo HTML, TO PRINT o PLATAFORMA.", "en": "General group of findings, for example HTML, TO PRINT or PLATAFORMA."}, "cat": "calidad"},
+    {"id": "q-html", "termino": {"es": "HTML", "en": "HTML"}, "def": {"es": "Visor del diseño que se entrega para ver la escena completa.", "en": "Design viewer delivered to see the full scene."}, "cat": "calidad"},
+    {"id": "q-toprint", "termino": {"es": "To Print", "en": "To Print"}, "def": {"es": "Carpeta con los archivos que se imprimen (talla, holes, stent).", "en": "Folder with the files to be printed (size, holes, stent)."}, "cat": "calidad"},
+    {"id": "q-alerta", "termino": {"es": "Alerta al doctor", "en": "Doctor alert"}, "def": {"es": "Aviso cuando no se puede cumplir un cambio por espacio, material o implantes.", "en": "Notice sent when a change cannot be fulfilled due to space, material or implants."}, "cat": "calidad"},
+    {"id": "q-rx", "termino": {"es": "RX", "en": "RX"}, "def": {"es": "Receta o prescripción del doctor con los cambios pedidos.", "en": "The doctor's prescription with the requested changes."}, "cat": "calidad"},
+    {"id": "q-escalar", "termino": {"es": "Escalar", "en": "Escalate"}, "def": {"es": "Subir un caso al siguiente nivel: manager, regional, liderazgo.", "en": "Take a case to the next level: manager, regional, leadership."}, "cat": "calidad"},
+    {"id": "q-regional", "termino": {"es": "Regional", "en": "Regional"}, "def": {"es": "Nivel de escalamiento por encima del manager que autoriza casos especiales.", "en": "Escalation level above the manager that authorizes special cases."}, "cat": "calidad"},
+    {"id": "q-master", "termino": {"es": "Articulación master", "en": "Master articulation"}, "def": {"es": "Articulación física validada; un cambio digital la invalida.", "en": "Validated physical articulation; a digital change invalidates it."}, "cat": "calidad"},
+    {"id": "q-vdo", "termino": {"es": "VDO", "en": "VDO"}, "def": {"es": "Dimensión vertical de oclusión: cuánto está abierta la mordida.", "en": "Vertical dimension of occlusion: how open the bite is."}, "cat": "calidad"},
+    {"id": "q-panadent", "termino": {"es": "Panadent", "en": "Panadent"}, "def": {"es": "Articulador físico donde se monta el modelo y se ajusta el VDO con un pin.", "en": "Physical articulator where the model is mounted and VDO is set with a pin."}, "cat": "calidad"},
+    {"id": "q-ready", "termino": {"es": "Ready to design", "en": "Ready to design"}, "def": {"es": "Estado de una orden lista para empezar a diseñarse.", "en": "Order status: ready to start being designed."}, "cat": "calidad"},
+    {"id": "q-initiated", "termino": {"es": "Initiated", "en": "Initiated"}, "def": {"es": "Estado que indica que el diseño empezó y registra la hora de inicio.", "en": "Status showing that design has started and recording the start time."}, "cat": "calidad"},
+    {"id": "q-hold", "termino": {"es": "Hold", "en": "Hold"}, "def": {"es": "Pausa de la orden a la espera de información o aprobación.", "en": "Order paused while waiting for information or approval."}, "cat": "calidad"},
+    {"id": "q-reinitiated", "termino": {"es": "Re-initiated", "en": "Re-initiated"}, "def": {"es": "Reinicio del diseño cuando una orden vuelve a Initiated desde Hold.", "en": "Design restart when an order returns to Initiated from Hold."}, "cat": "calidad"},
+    {"id": "q-approved", "termino": {"es": "Approved", "en": "Approved"}, "def": {"es": "Estado de diseño terminado y aprobado; registra la hora de fin.", "en": "Status of finished and approved design; records the end time."}, "cat": "calidad"},
+    {"id": "q-pickup", "termino": {"es": "Pickup received", "en": "Pickup received"}, "def": {"es": "Estado: ya llegó el registro de la posición de implantes.", "en": "Status: the implant position record has arrived."}, "cat": "calidad"},
+    {"id": "q-biteready", "termino": {"es": "Bite ready", "en": "Bite ready"}, "def": {"es": "Estado en N3/N6: la escena del bite quedó lista.", "en": "N3/N6 status: the bite scene is ready."}, "cat": "calidad"},
+    {"id": "q-tiempos", "termino": {"es": "Tiempo de diseño", "en": "Design time"}, "def": {"es": "Horas de trabajo de referencia del diseñador por producto, no un plazo de entrega.", "en": "Reference working hours of the designer per product, not a delivery deadline."}, "cat": "calidad"},
+    {"id": "q-g-cam", "termino": {"es": "G-cam", "en": "G-cam"}, "def": {"es": "Material alternativo cuando no se puede cumplir 24z.", "en": "Alternative material when 24z cannot be met."}, "cat": "calidad"},
+    {"id": "q-cant", "termino": {"es": "Cant", "en": "Cant"}, "def": {"es": "Inclinación del plano oclusal visto de frente.", "en": "Tilt of the occlusal plane seen from the front."}, "cat": "calidad"},
+    {"id": "q-support", "termino": {"es": "Support (ticket)", "en": "Support (ticket)"}, "def": {"es": "Vía para pedir cambios de producto o corregir un workflow mal nombrado.", "en": "Channel to request product changes or fix a wrongly named workflow."}, "cat": "calidad"},
+    {"id": "q-cliq", "termino": {"es": "Canal del centro", "en": "Center channel"}, "def": {"es": "Canal de mensajería donde se avisa el inicio y novedades de una orden.", "en": "Messaging channel where the start and updates of an order are announced."}, "cat": "calidad"}
+  ]
+}

@@ -1,0 +1,518 @@
+{
+  "id": "m6a-n2-face",
+  "orden": 7,
+  "icono": "🧭",
+  "titulo": {"es": "N2 y Face Design: el porqué", "en": "N2 and Face Design: the why"},
+  "resumen": {
+    "es": "Los protocolos de Face Design y N2 (fotos, escaneos IOS, Maxillar Print, Traveling Demodenture, Single G-CAM y oclusión) explicados por la razón de cada regla.",
+    "en": "The Face Design and N2 protocols (photos, IOS scans, Maxillar Print, Traveling Demodenture, Single G-CAM and occlusion) explained through the reason behind each rule."
+  },
+  "nivel": "intermedio",
+  "lecciones": [
+    {
+      "id": "m6a-l1",
+      "titulo": {"es": "1. Face Design en Blender", "en": "1. Face Design in Blender"},
+      "minutos": 9,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Un gemelo digital del paciente", "en": "A digital twin of the patient"},
+         "cuerpo": {"es": "N2 trabaja con pacientes que van a recibir una prótesis de demostración (**Demodenture**) antes de la cirugía de implantes. **Face Design** es la etapa que arma un \"gemelo digital\": alinea en una sola escena de Blender los escaneos de la boca (IOS), la tomografía (CBCT) y las fotos de la cara.\nSirve para que las etapas siguientes (Bite Design, Demodenture) sepan dónde está realmente la sonrisa, la línea media y el soporte labial del paciente.",
+                  "en": "N2 works with patients who will receive a demonstration prosthesis (**Demodenture**) before implant surgery. **Face Design** is the stage that builds a \"digital twin\": it aligns in a single Blender scene the mouth scans (IOS), the tomography (CBCT) and the face photos.\nIt lets later stages (Bite Design, Demodenture) know where the smile, midline and lip support really are on the patient."}},
+        {"t": "flujo",
+         "titulo": {"es": "Flujo en etapas", "en": "Flow by stages"},
+         "pasos": [
+           {"titulo": {"es": "Asignar y verificar", "en": "Assign and verify"}, "texto": {"es": "Paciente, producto y centro; identificar si es Full Mouth 24Z o Single 24Z.", "en": "Patient, product and center; identify if it is Full Mouth 24Z or Single 24Z."}},
+           {"titulo": {"es": "Preparar archivos", "en": "Prepare files"}, "texto": {"es": "CBCT desde \"DICOM files\", carpeta del paciente desde la plantilla, IOS y foto Natural Smile.", "en": "CBCT from \"DICOM files\", patient folder from the template, IOS and Natural Smile photo."}},
+           {"titulo": {"es": "Verificar IOS en Meshmixer", "en": "Verify IOS in Meshmixer"}, "texto": {"es": "Paciente correcto, completos, bien capturados.", "en": "Right patient, complete, well captured."}},
+           {"titulo": {"es": "Importar y preparar fotos", "en": "Import and prepare photos"}, "texto": {"es": "Renombrar Bite L/R/F, alinear pupilas, marcar la boca.", "en": "Rename Bite L/R/F, align pupils, mark the mouth."}},
+           {"titulo": {"es": "Alinear", "en": "Align"}, "texto": {"es": "Upper con la foto, luego CBCT (Maxilla y Mandible por separado) y Mounting.", "en": "Upper with the photo, then CBCT (Maxilla and Mandible separately) and Mounting."}},
+           {"titulo": {"es": "QC del manager", "en": "Manager QC"}, "texto": {"es": "Se avisa; sin su visto bueno no se pasa a Bite Design.", "en": "He or she is notified; without sign-off it does not move to Bite Design."}},
+           {"titulo": {"es": "Exportar y aprobar", "en": "Export and approve"}, "texto": {"es": "Nombres y colecciones correctos, comentarios, Approved y Save Report.", "en": "Correct names and collections, comments, Approved and Save Report."}}
+         ]},
+        {"t": "acordeon",
+         "titulo": {"es": "Las reglas y su porqué", "en": "The rules and their why"},
+         "items": [
+           {"titulo": {"es": "Foto Natural Smile (Bite Blocks)", "en": "Natural Smile (Bite Blocks) photo"}, "texto": {"es": "Con prótesis removible, parcial o bite blocks se usa esa foto: es en la que la mordida real coincide con el escaneo de la prótesis. Con la sonrisa \"pelada\" no habría referencia dental.", "en": "With a removable prosthesis, partial or bite blocks that photo is used: it is where the real bite matches the prosthesis scan. With a bare smile there would be no dental reference."}},
+           {"titulo": {"es": "Fotos nunca se rotan, IOS nunca se escalan", "en": "Photos never rotated, IOS never scaled"}, "texto": {"es": "La foto lleva la escala real y el IOS tiene medidas reales. Rotar la foto distorsiona la perspectiva; escalar un IOS falsea el tamaño de los dientes.", "en": "The photo carries real scale and the IOS has real measurements. Rotating the photo distorts perspective; scaling an IOS falsifies tooth size."}},
+           {"titulo": {"es": "Pupilas niveladas", "en": "Level pupils"}, "texto": {"es": "Se endereza la línea bipupilar para que la cara se vea recta y el plano de la sonrisa no quede inclinado artificialmente.", "en": "The bipupillary line is leveled so the face looks straight and the smile plane is not artificially tilted."}},
+           {"titulo": {"es": "Parentar los IOS al Upper", "en": "Parent IOS to the Upper"}, "texto": {"es": "Así todos los escaneos se mueven juntos como bloque; si se mueve uno suelto, se pierde la relación de mordida.", "en": "This way all scans move together as a block; if one is moved alone, the bite relationship is lost."}},
+           {"titulo": {"es": "Modelos 1 cm detrás de la foto", "en": "Models 1 cm behind the photo"}, "texto": {"es": "Evita que el modelo atraviese o se mezcle visualmente con la imagen y mantiene una referencia de profundidad consistente.", "en": "Prevents the model from crossing or visually mixing with the image and keeps a consistent depth reference."}},
+           {"titulo": {"es": "Maxilla y Mandible por separado", "en": "Maxilla and Mandible separately"}, "texto": {"es": "La mandíbula se mueve respecto al maxilar; la relación entre ambos viene de la mordida, no del CBCT.", "en": "The mandible moves relative to the maxilla; the relationship between both comes from the bite, not from the CBCT."}},
+           {"titulo": {"es": "Mounting solo se mueve", "en": "Mounting is only moved"}, "texto": {"es": "Es una referencia del articulador con posición fija; rotarla o escalarla rompe la relación con el articulador real. Se alinea con borde incisal, línea media y soporte labial.", "en": "It is an articulator reference with a fixed position; rotating or scaling it breaks the relationship with the real articulator. It is aligned using incisal edge, midline and lip support."}}
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "Hueso que no debe solaparse", "en": "Bone must not overlap"},
+         "cuerpo": {"es": "Al alinear el CBCT, el hueso no debe solaparse con el tejido del IOS y cada diente del CBCT debe encajar con el IOS. Es el chequeo clave: si el hueso queda mal posicionado, la Demodenture se diseñará sobre un hueso incorrecto.\nSi el CBCT falta o está mal, se segmenta en BlueSky con maxilar superior, mandíbula y \"Combinar dientes con mandíbula\" activados, y las vías aéreas desactivadas: solo hacen falta hueso y dientes.",
+                  "en": "When aligning the CBCT, bone must not overlap the IOS tissue and each CBCT tooth must fit the IOS. This is the key check: if bone is misplaced, the Demodenture would be designed on incorrect bone.\nIf the CBCT is missing or bad, it is segmented in BlueSky with upper jaw, mandible and \"Combine teeth with mandible\" on, and airways off: only bone and teeth are needed."},
+         "alerta": {"es": "Cuándo avisar: paciente, producto o centro mal asignados; bite scans de prótesis parcial o bite block sin información de dientes (no sirven para alinear); hueso que atraviesa el tejido; CBCT ausente o en mal estado. Al terminar la alineación, avisa al manager para el QC: una alineación errónea se arrastra a Bite Design, diseño y fabricación.", "en": "When to notify: patient, product or center wrongly assigned; bite scans of a partial prosthesis or bite block lacking tooth information (not usable for alignment); bone crossing tissue; CBCT missing or in bad condition. When alignment is done, notify the manager for QC: a wrong alignment carries into Bite Design, design and manufacturing."}},
+        {"t": "texto",
+         "titulo": {"es": "Zonas dudosas del protocolo", "en": "Doubtful areas of the protocol"},
+         "cuerpo": {"es": "Hay detalles del protocolo que no están claros en el texto: cuándo exactamente emparentar los IOS manualmente (la exportación de fotos ya los empareja), y qué hay que rehacer de la línea media tras el QC.",
+                  "en": "Some protocol details are not clear in the text: exactly when to parent IOS manually (the photo export already parents them), and what must be redone for the midline after QC."},
+         "alerta": {"es": "Confirmar con el manager.", "en": "Confirm with the manager."}},
+        {"t": "enlace",
+         "titulo": {"es": "Protocolo oficial", "en": "Official protocol"},
+         "texto": {"es": "Abre el protocolo Face Design (Blender) para ver las figuras y los pasos exactos.", "en": "Open the Face Design (Blender) protocol to see figures and exact steps."},
+         "protocolo": "Face Design"},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "Face Design une IOS, CBCT y fotos en una escena para saber dónde está la sonrisa real.", "en": "Face Design merges IOS, CBCT and photos in one scene to know where the real smile is."},
+           {"es": "Fotos no se rotan; IOS no se escalan; nombres exactos.", "en": "Photos are not rotated; IOS are not scaled; exact names."},
+           {"es": "El hueso del CBCT no debe solaparse con el tejido.", "en": "CBCT bone must not overlap tissue."},
+           {"es": "El manager hace QC antes de pasar a Bite Design.", "en": "The manager does QC before moving to Bite Design."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué se parentan todos los IOS al Existing Teeth Upper?", "en": "Why are all IOS parented to Existing Teeth Upper?"},
+            "opciones": [
+              {"texto": {"es": "Para que se muevan como un bloque y no se pierda la relación de mordida.", "en": "So they move as a block and the bite relationship is not lost."}, "ok": true},
+              {"texto": {"es": "Para que el archivo pese menos.", "en": "So the file weighs less."}},
+              {"texto": {"es": "Para cambiar su tamaño a la vez.", "en": "To resize them at once."}}
+            ],
+            "explicacion": {"es": "Mover un escaneo suelto rompería la mordida registrada.", "en": "Moving one scan alone would break the recorded bite."}},
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué Maxilla y Mandible se alinean por separado?", "en": "Why are Maxilla and Mandible aligned separately?"},
+            "opciones": [
+              {"texto": {"es": "Porque la mandíbula se mueve respecto al maxilar y su relación viene de la mordida.", "en": "Because the mandible moves relative to the maxilla and their relationship comes from the bite."}, "ok": true},
+              {"texto": {"es": "Porque Blender no abre ambos juntos.", "en": "Because Blender cannot open both together."}},
+              {"texto": {"es": "Porque así es más rápido.", "en": "Because it is faster."}}
+            ],
+            "explicacion": {"es": "El CBCT no define la mordida; esta viene de los escaneos de bite.", "en": "The CBCT does not define the bite; that comes from the bite scans."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "Si el Mounting no queda bien, se puede rotar o escalar para ajustarlo.", "en": "If the Mounting does not fit, it can be rotated or scaled to adjust."},
+            "ok": false,
+            "explicacion": {"es": "Solo se mueve: es una referencia fija del articulador y alterarla rompe la relación con el articulador real.", "en": "It is only moved: it is a fixed articulator reference and altering it breaks the relationship with the real articulator."}},
+           {"tipo": "una",
+            "enunciado": {"es": "¿Qué pasa tras terminar la alineación?", "en": "What happens after finishing alignment?"},
+            "opciones": [
+              {"texto": {"es": "Se avisa al manager, que revisa y autoriza pasar a Bite Design.", "en": "The manager is notified, reviews and authorizes moving to Bite Design."}, "ok": true},
+              {"texto": {"es": "Se pasa directo a Bite Design.", "en": "It goes straight to Bite Design."}},
+              {"texto": {"es": "Se espera al doctor.", "en": "Wait for the doctor."}}
+            ],
+            "explicacion": {"es": "Es más barato detectar un error de alineación aquí que después de la fabricación.", "en": "It is cheaper to catch an alignment error here than after manufacturing."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m6a-l2",
+      "titulo": {"es": "1.1 Fotografía", "en": "1.1 Photography"},
+      "minutos": 7,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Un checklist de aceptar o rechazar", "en": "An accept-or-reject checklist"},
+         "cuerpo": {"es": "El protocolo de fotografía dice qué fotos debe enviar la clínica y con qué calidad para que Face pueda alinear los escaneos con el rostro en 3D. Es importante leerlo antes de presentar un caso. Se piden **9 fotos estándar** (o las de paciente edéntulo, sin dientes).\nLa pegatina en la frente, entre las cejas, da la escala real de la cara.",
+                  "en": "The photography protocol says which photos the clinic must send and with what quality so Face can align scans with the face in 3D. It is important to read it before presenting a case. **9 standard photos** are required (or the edentulous ones, for patients without teeth).\nThe sticker on the forehead, between the eyebrows, gives the real scale of the face."}},
+        {"t": "tabla",
+         "titulo": {"es": "Foto buena vs. foto que se rechaza", "en": "Good photo vs. rejected photo"},
+         "cabeceras": [{"es": "Problema", "en": "Problem"}, {"es": "Por qué no sirve", "en": "Why it fails"}],
+         "filas": [
+           [{"es": "Cabeza inclinada (orejas bajo la línea bipupilar)", "en": "Tilted head (ears below the bipupillary line)"}, {"es": "Se percibe mal la sonrisa y el diseño saldría torcido.", "en": "The smile is misperceived and the design would come out crooked."}],
+           [{"es": "Cabeza girada", "en": "Turned head"}, {"es": "Da mala impresión de la sonrisa; ambas orejas deben verse iguales.", "en": "Gives a bad impression of the smile; both ears must look equal."}],
+           [{"es": "Orejas tapadas", "en": "Ears covered"}, {"es": "El rostro completo, incluidas orejas, es la referencia de inclinación.", "en": "The full face, including ears, is the tilt reference."}],
+           [{"es": "Desenfocada", "en": "Out of focus"}, {"es": "No se ven los dientes con claridad.", "en": "Teeth cannot be seen clearly."}],
+           [{"es": "Blue mousse", "en": "Blue mousse"}, {"es": "Tapa dientes y mordida; en edéntulos los bite blocks son la única referencia.", "en": "Covers teeth and bite; in edentulous patients bite blocks are the only reference."}],
+           [{"es": "Tomada con iPad", "en": "Taken with an iPad"}, {"es": "Otros dispositivos tienden a deformar las proporciones del rostro; se pide cámara.", "en": "Other devices tend to deform facial proportions; a camera is required."}],
+           [{"es": "Mordida distinta al bite escaneado o sonrisa muy abierta", "en": "Bite different from the scanned bite or very wide-open smile"}, {"es": "Fotos y escaneos describirían situaciones diferentes; una sonrisa excesivamente abierta da mala percepción al diseñar.", "en": "Photos and scans would describe different situations; an excessively open smile gives a bad perception when designing."}]
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "Casos especiales y cuándo avisar al doctor", "en": "Special cases and when to notify the doctor"},
+         "cuerpo": {"es": "Con **menos de 4 dientes anteriores superiores** (incluidos caninos) hacen falta bite blocks: sin ellos no hay información para alinear los escaneos con la cara. Con **3 anteriores completos + 1 preparado o fracturado** se puede continuar, dejando un comentario.\nSi la sonrisa no es visible por una condición médica, el doctor debe anotarlo y autorizar continuar sin fotos. Si los escaneos están rotos o no coinciden con la foto, se envían nuevos escaneos o el doctor autoriza continuar sin fotos.",
+                  "en": "With **fewer than 4 upper anterior teeth** (canines included) bite blocks are needed: without them there is not enough information to align scans with the face. With **3 complete anteriors + 1 prepped or fractured** you can continue, leaving a comment.\nIf the smile is not visible due to a medical condition, the doctor must note it and authorize continuing without photos. If scans are broken or do not match the photo, new scans are sent or the doctor authorizes continuing without photos."},
+         "alerta": {"es": "El protocolo no aclara si un teléfono u otra cámara distinta a una cámara fotográfica es válida, ni da la lista completa de las 9 fotos en el texto. Confirmar con el manager.", "en": "The protocol does not clarify whether a phone or other non-camera device is valid, nor does the text give the full list of the 9 photos. Confirm with the manager."}},
+        {"t": "enlace",
+         "titulo": {"es": "Protocolo oficial", "en": "Official protocol"},
+         "texto": {"es": "Abre el protocolo de fotografía para ver los ejemplos de foto correcta e incorrecta.", "en": "Open the photography protocol to see correct and incorrect photo examples."},
+         "protocolo": "Photography"},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "Sin escala, enfoque y cabeza recta, no se pueden alinear escaneos con la cara.", "en": "Without scale, focus and a straight head, scans cannot be aligned with the face."},
+           {"es": "La mordida de la foto debe coincidir con el bite escaneado.", "en": "The photo's bite must match the scanned bite."},
+           {"es": "Menos de 4 anteriores: bite blocks.", "en": "Fewer than 4 anteriors: bite blocks."},
+           {"es": "Si la sonrisa no se ve o los escaneos no coinciden, el doctor decide.", "en": "If the smile is not visible or scans do not match, the doctor decides."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "Una foto muestra las orejas por debajo de la línea bipupilar. ¿Qué significa?", "en": "A photo shows the ears below the bipupillary line. What does it mean?"},
+            "opciones": [
+              {"texto": {"es": "La cabeza está inclinada: la foto no sirve.", "en": "The head is tilted: the photo is not usable."}, "ok": true},
+              {"texto": {"es": "Está perfecta.", "en": "It is perfect."}},
+              {"texto": {"es": "El paciente tiene orejas pequeñas.", "en": "The patient has small ears."}}
+            ],
+            "explicacion": {"es": "Una buena foto tiene orejas por encima de la línea bipupilar y cabeza recta; si no, el diseño saldría torcido.", "en": "A good photo has ears above the bipupillary line and a straight head; otherwise the design would come out crooked."}},
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué no se acepta una foto con blue mousse en edéntulos?", "en": "Why is a photo with blue mousse not accepted in edentulous patients?"},
+            "opciones": [
+              {"texto": {"es": "Tapa los bite blocks y la mordida, que son la única referencia; la línea media y el plano oclusal deben verse.", "en": "It covers bite blocks and bite, the only reference; midline and occlusal plane must be visible."}, "ok": true},
+              {"texto": {"es": "Mancha la cámara.", "en": "It stains the camera."}},
+              {"texto": {"es": "Es un material prohibido.", "en": "It is a banned material."}}
+            ],
+            "explicacion": {"es": "Sin ver la referencia no hay base fiable para alinear.", "en": "Without seeing the reference there is no reliable basis for alignment."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "Con 3 anteriores completos y 1 preparado se puede seguir, dejando un comentario.", "en": "With 3 complete anteriors and 1 prepped you can continue, leaving a comment."},
+            "ok": true,
+            "explicacion": {"es": "Genera discrepancias en el plano oclusal, pero el protocolo permite seguir con comentario.", "en": "It creates discrepancies in the occlusal plane, but the protocol allows continuing with a comment."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m6a-l3",
+      "titulo": {"es": "1.2 Escáneres IOS", "en": "1.2 IOS scans"},
+      "minutos": 7,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Qué escaneos deben llegar", "en": "Which scans must arrive"},
+         "cuerpo": {"es": "El protocolo de IOS define qué escaneos intraorales deben llegar y cuándo se exige re-escaneo. La base es **Scan Upper, Scan Lower y 3 escaneos de mordida** (derecha, izquierda y frente). El objetivo es que la mordida real y el tejido estén bien capturados, porque son la base de la prótesis de demostración.",
+                  "en": "The IOS protocol defines which intraoral scans must arrive and when a re-scan is required. The basis is **Scan Upper, Scan Lower and 3 bite scans** (right, left and front). The goal is that the real bite and tissue are well captured, as they are the basis of the demonstration prosthesis."}},
+        {"t": "flujo",
+         "titulo": {"es": "Flujo de revisión", "en": "Review flow"},
+         "pasos": [
+           {"titulo": {"es": "Tipo de paciente", "en": "Patient type"}, "texto": {"es": "Dentado, edéntulo total, edéntulo de un arco o parcial con menos de 4 anteriores.", "en": "Dentate, total edentulous, single-arch edentulous or partial with fewer than 4 anteriors."}},
+           {"titulo": {"es": "Verificar lo requerido", "en": "Verify what is required"}, "texto": {"es": "Que llegue todo lo que ese tipo de paciente exige.", "en": "That everything required for that patient type arrives."}},
+           {"titulo": {"es": "Control de calidad", "en": "Quality control"}, "texto": {"es": "Duplicados, falta de paladar o tejido, prótesis que tapan, falta de intaglio.", "en": "Duplicates, missing palate or tissue, covering prostheses, missing intaglio."}},
+           {"titulo": {"es": "Avisar", "en": "Report"}, "texto": {"es": "Si hay problema: avisar al manager o solicitar re-escaneo.", "en": "If there is a problem: notify the manager or request a re-scan."}}
+         ]},
+        {"t": "acordeon",
+         "titulo": {"es": "Cada regla y su razón", "en": "Each rule and its reason"},
+         "items": [
+           {"titulo": {"es": "Bites desalineados", "en": "Misaligned bites"}, "texto": {"es": "Si los laterales no están perfectamente alineados, nuevo escaneo: una mordida mal alineada produce una prótesis con la relación maxilar-mandibular errónea.", "en": "If laterals are not perfectly aligned, new scan: a misaligned bite produces a prosthesis with the wrong upper-lower relationship."}},
+           {"titulo": {"es": "Encía clara y amplia", "en": "Clear, wide gum"}, "texto": {"es": "Es la base estructural de la demo; define sus límites exactos y su relación con el tejido real.", "en": "It is the structural basis of the demo; it defines its exact limits and its relationship with the real tissue."}},
+           {"titulo": {"es": "Edéntulo con biteblocks o dentadura", "en": "Edentulous with biteblocks or denture"}, "texto": {"es": "Escaneo de 360 grados de la prótesis, incluida su cara interna.", "en": "360-degree scan of the prosthesis, including its inner face."}},
+           {"titulo": {"es": "Parcial", "en": "Partial"}, "texto": {"es": "No se alinea manualmente: puede cambiar la percepción de la mordida y afectar la dentadura final.", "en": "It is not aligned manually: it may change the bite perception and affect the final denture."}},
+           {"titulo": {"es": "Parcial con menos de 4 anteriores", "en": "Partial with fewer than 4 anteriors"}, "texto": {"es": "Se piden escaneos de tejido y paladar con dientes naturales sin la parcial, más los de biteblock/parcial: así se separa la anatomía real de la prótesis.", "en": "Scans of tissue and palate with natural teeth without the partial are requested, plus biteblock/partial scans: this separates real anatomy from the prosthesis."}},
+           {"titulo": {"es": "Duplicados", "en": "Duplicates"}, "texto": {"es": "La información duplicada puede impedir que la alineación se complete: se avisa al manager.", "en": "Duplicated information can prevent alignment from completing: the manager is notified."}},
+           {"titulo": {"es": "Sin paladar, sin intaglio, prótesis que tapan", "en": "No palate, no intaglio, covering prostheses"}, "texto": {"es": "El paladar es fundamental; el intaglio es el registro directo de encía y paladar; una prótesis fija que oculta tejido impide que la demodenture asiente bien. En todos: re-escaneo.", "en": "The palate is essential; the intaglio is the direct record of gum and palate; a fixed prosthesis hiding tissue prevents the demodenture from seating. In all: re-scan."}}
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "Exigir o recomendar", "en": "Require or recommend"},
+         "cuerpo": {"es": "El texto del protocolo usa \"se exigirá\" en algunos casos y \"se solicita\" en otros, sin una jerarquía clara entre exigir y recomendar el re-escaneo. Además mezcla \"dentadura removible\" con \"parcial\" en la recomendación final.",
+                  "en": "The protocol text uses \"will be required\" in some cases and \"is requested\" in others, without a clear hierarchy between requiring and recommending a re-scan. It also mixes \"removable denture\" with \"partial\" in the final recommendation."},
+         "alerta": {"es": "Confirmar con el manager cuándo el re-escaneo es obligatorio.", "en": "Confirm with the manager when a re-scan is mandatory."}},
+        {"t": "enlace",
+         "titulo": {"es": "Protocolo oficial", "en": "Official protocol"},
+         "texto": {"es": "Abre el protocolo IOS Scans para ver los esquemas por tipo de paciente.", "en": "Open the IOS Scans protocol to see the diagrams by patient type."},
+         "protocolo": "IOS Scans"},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "Base: Upper + Lower + 3 bites alineados a ellos.", "en": "Base: Upper + Lower + 3 bites aligned to them."},
+           {"es": "Paladar, tejido amplio e intaglio son esenciales.", "en": "Palate, wide tissue and intaglio are essential."},
+           {"es": "Las parciales no se alinean manualmente.", "en": "Partials are not aligned manually."},
+           {"es": "Duplicados: avisar al manager.", "en": "Duplicates: notify the manager."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué una parcial removible no se alinea manualmente?", "en": "Why is a removable partial not aligned manually?"},
+            "opciones": [
+              {"texto": {"es": "Porque puede cambiar la percepción de la mordida y afectar la dentadura final.", "en": "Because it can change the bite perception and affect the final denture."}, "ok": true},
+              {"texto": {"es": "Porque es muy pesada.", "en": "Because it is too heavy."}},
+              {"texto": {"es": "Porque no se escanea.", "en": "Because it is not scanned."}}
+            ],
+            "explicacion": {"es": "Una alineación manual podría falsear la relación de mordida real.", "en": "A manual alignment could falsify the real bite relationship."}},
+           {"tipo": "una",
+            "enunciado": {"es": "Llega una dentadura removible escaneada sin su cara interna. ¿Qué corresponde?", "en": "A removable denture arrives scanned without its inner face. What is right?"},
+            "opciones": [
+              {"texto": {"es": "Re-escaneo 360: el intaglio registra directamente encía y paladar.", "en": "360 re-scan: the intaglio directly records gum and palate."}, "ok": true},
+              {"texto": {"es": "Seguir sin él.", "en": "Continue without it."}},
+              {"texto": {"es": "Duplicar el escaneo exterior.", "en": "Duplicate the outer scan."}}
+            ],
+            "explicacion": {"es": "El intaglio es el registro directo del tejido; sin él se trabaja con información incompleta.", "en": "The intaglio is the direct tissue record; without it you work with incomplete information."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "Los escaneos duplicados no son problema porque más información siempre ayuda.", "en": "Duplicate scans are not a problem because more information always helps."},
+            "ok": false,
+            "explicacion": {"es": "La información duplicada puede impedir que la alineación se complete; hay que avisar al manager.", "en": "Duplicated information can prevent alignment from completing; the manager must be notified."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m6a-l4",
+      "titulo": {"es": "1.3 Maxillar Print", "en": "1.3 Maxillar Print"},
+      "minutos": 6,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Un maxilar para sostener en la mano", "en": "A maxilla to hold in your hand"},
+         "cuerpo": {"es": "**Maxillar Print** obtiene, a partir del CT del paciente, un modelo físico del maxilar superior (hueso) dividido en dos mitades para imprimir en 3D. Sirve como modelo de apoyo para la cirugía y la planificación.\nTodo empieza en un CT: por eso lo primero es comprobar que de verdad hay archivos DICOM y que el nombre del CT coincide con el paciente de la plataforma.",
+                  "en": "**Maxillar Print** produces, from the patient's CT, a physical model of the upper jaw (bone) split in two halves to 3D print. It serves as a support model for surgery and planning.\nEverything starts from a CT: that is why the first thing is to check there really are DICOM files and that the CT name matches the platform patient."},
+         "porque": {"es": "Verificar el nombre evita imprimir el modelo de otra persona.", "en": "Checking the name avoids printing another person's model."}},
+        {"t": "flujo",
+         "titulo": {"es": "Flujo", "en": "Flow"},
+         "pasos": [
+           {"titulo": {"es": "Plataforma y descarga", "en": "Platform and download"}, "texto": {"es": "Asignación, centro/producto, registro en el Excel del Schedule y CT desde el link de la orden.", "en": "Assignment, center/product, Schedule Excel entry and CT from the order link."}},
+           {"titulo": {"es": "Carpetas", "en": "Folders"}, "texto": {"es": "\"3. Maxillar Print\" y dentro \"To Print\".", "en": "\"3. Maxillar Print\" and inside \"To Print\"."}},
+           {"titulo": {"es": "BlueSky", "en": "BlueSky"}, "texto": {"es": "Importar, comprobar el nombre, segmentar el maxilar y exportar MODELO COMPLETO.", "en": "Import, check the name, segment the maxilla and export MODELO COMPLETO."}},
+           {"titulo": {"es": "Meshmixer", "en": "Meshmixer"}, "texto": {"es": "Quedarse solo con el maxilar, cortar atrás, dividir en 2 mitades y poner iniciales.", "en": "Keep only the maxilla, cut the back, split in 2 halves and add initials."}},
+           {"titulo": {"es": "Exportar y subir", "en": "Export and upload"}, "texto": {"es": "STL de PARTE 1 y 2, comprimir To Print, captura de evidencia y subir al stage CBCT Design (To mill/To print).", "en": "STL of PARTE 1 and 2, zip To Print, evidence screenshot and upload to the CBCT Design stage (To mill/To print)."}}
+         ]},
+        {"t": "acordeon",
+         "titulo": {"es": "Las razones de cada decisión", "en": "The reason for each decision"},
+         "items": [
+           {"titulo": {"es": "Revisar la segmentación", "en": "Review the segmentation"}, "texto": {"es": "La segmentación automática puede fallar; se revisa el modelo antes de exportar.", "en": "Automatic segmentation can fail; the model is reviewed before exporting."}},
+           {"titulo": {"es": "Separar cáscaras", "en": "Separate shells"}, "texto": {"es": "Quedan fragmentos sueltos que no son el maxilar; se eliminan, y deben quedar solo las 2 mitades.", "en": "Loose fragments that are not the maxilla remain; they are removed, leaving only the 2 halves."}},
+           {"titulo": {"es": "Corte trasero", "en": "Rear cut"}, "texto": {"es": "Se corta un poco más atrás del paladar para reducir volumen innecesario y dejarlo imprimible con el paladar completo.", "en": "It is cut slightly behind the palate to reduce unnecessary volume and keep it printable with the full palate."}},
+           {"titulo": {"es": "Iniciales y captura", "en": "Initials and screenshot"}, "texto": {"es": "Las iniciales identifican el modelo impreso; la captura es evidencia en plataforma de lo enviado.", "en": "Initials identify the printed model; the screenshot is evidence on the platform of what is sent."}},
+           {"titulo": {"es": "3 archivos en To Print", "en": "3 files in To Print"}, "texto": {"es": "MODELO COMPLETO, MODELO PARTE 1 y MODELO PARTE 2. El completo queda por si hay que rehacer cortes.", "en": "MODELO COMPLETO, MODELO PARTE 1 and MODELO PARTE 2. The complete one stays in case cuts must be redone."}}
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "Lo que el documento no explica", "en": "What the document does not explain"},
+         "cuerpo": {"es": "El protocolo no explica por qué se divide el modelo en dos mitades, ni el motivo exacto del corte trasero. Tampoco indica explícitamente cuándo escalar. Los nombres de archivo aparecen en español e inglés; se usan los de la carpeta real.",
+                  "en": "The protocol does not explain why the model is split in two halves, nor the exact reason for the rear cut. It also does not explicitly say when to escalate. File names appear in Spanish and English; the real folder ones are used."},
+         "alerta": {"es": "Confirmar con el manager. Si el nombre del CT no coincide con el paciente, no sigas y verifica.", "en": "Confirm with the manager. If the CT name does not match the patient, do not continue and verify."}},
+        {"t": "enlace",
+         "titulo": {"es": "Protocolo oficial", "en": "Official protocol"},
+         "texto": {"es": "Abre el protocolo Maxillar Print con las figuras de los cortes.", "en": "Open the Maxillar Print protocol with the cut figures."},
+         "protocolo": "Maxillar Print"},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "CT con DICOM y nombre igual al paciente antes de empezar.", "en": "CT with DICOM and name equal to the patient before starting."},
+           {"es": "BlueSky segmenta; Meshmixer limpia, corta y divide.", "en": "BlueSky segments; Meshmixer cleans, cuts and splits."},
+           {"es": "To Print lleva 3 archivos y se sube con captura de evidencia.", "en": "To Print holds 3 files and is uploaded with screenshot evidence."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué se verifica que el nombre del CT coincida con el paciente de la plataforma?", "en": "Why is it verified that the CT name matches the platform patient?"},
+            "opciones": [
+              {"texto": {"es": "Para no imprimir el modelo de otra persona.", "en": "So as not to print another person's model."}, "ok": true},
+              {"texto": {"es": "Para que el archivo pese menos.", "en": "So the file weighs less."}},
+              {"texto": {"es": "Porque BlueSky lo exige.", "en": "Because BlueSky requires it."}}
+            ],
+            "explicacion": {"es": "Es un control de identidad: un modelo físico equivocado no se puede corregir después.", "en": "It is an identity check: a wrong physical model cannot be corrected afterwards."}},
+           {"tipo": "una",
+            "enunciado": {"es": "¿Para qué sirve guardar también el MODELO COMPLETO?", "en": "What is saving the MODELO COMPLETO as well for?"},
+            "opciones": [
+              {"texto": {"es": "Es el original por si hay que rehacer los cortes.", "en": "It is the original in case the cuts must be redone."}, "ok": true},
+              {"texto": {"es": "Se imprime junto a las mitades.", "en": "It is printed with the halves."}},
+              {"texto": {"es": "Reemplaza las iniciales.", "en": "It replaces the initials."}}
+            ],
+            "explicacion": {"es": "Conservar el original evita volver a segmentar desde cero.", "en": "Keeping the original avoids segmenting again from scratch."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "La captura de las dos mitades es evidencia que se sube a la plataforma.", "en": "The screenshot of the two halves is evidence uploaded to the platform."},
+            "ok": true,
+            "explicacion": {"es": "Es la prueba de lo que se envía a imprimir.", "en": "It is proof of what is sent to print."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m6a-l5",
+      "titulo": {"es": "2 y 2.1 Traveling Demodenture (Full Mouth y Single G-CAM)", "en": "2 and 2.1 Traveling Demodenture (Full Mouth and Single G-CAM)"},
+      "minutos": 10,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Pacientes que viajan: tiempo contra reloj", "en": "Traveling patients: racing the clock"},
+         "cuerpo": {"es": "Un paciente **Traveling** viaja a la clínica y se opera en pocos días: tiene fecha de cirugía fija, así que el caso es prioritario y salta etapas. La Demodenture lleva la nueva morfología de dientes (waxup) sobre la forma del hueso sin dientes, con orificios de retención y un stent que ayuda a ubicar implantes.\n**Full Mouth** = ambas arcadas. **Single (G-CAM)** = un solo arco, trabajado con una barra y un antagonista (la arcada contraria).",
+                  "en": "A **Traveling** patient travels to the clinic and is operated on within days: they have a fixed surgery date, so the case is priority and skips stages. The Demodenture carries the new tooth morphology (waxup) over the shape of the bone without teeth, with retention holes and a stent that helps locate implants.\n**Full Mouth** = both arches. **Single (G-CAM)** = one arch, worked with a bar and an antagonist (the opposite arch)."}},
+        {"t": "tabla",
+         "titulo": {"es": "Qué se salta y por qué", "en": "What is skipped and why"},
+         "cabeceras": [{"es": "Regla", "en": "Rule"}, {"es": "Razón", "en": "Reason"}],
+         "filas": [
+           [{"es": "Order Enter aprobado antes de las 12:00 pm del centro", "en": "Order Enter approved before 12:00 pm of the center"}, {"es": "Para producir y llegar a tiempo antes de la cirugía (tolerancia ~30 min con autorización del manager).", "en": "To produce and arrive in time before surgery (~30 min tolerance with manager authorization)."}],
+           [{"es": "Sin Lab Check-In", "en": "No Lab Check-In"}, {"es": "Va directo a Bite Design para ahorrar tiempo.", "en": "Goes straight to Bite Design to save time."}],
+           [{"es": "Sin Face Design", "en": "No Face Design"}, {"es": "Se alinea directo con la foto Natural Smile en Traveling Design N2.", "en": "Aligned directly with the Natural Smile photo in Traveling Design N2."}],
+           [{"es": "Sin Doctor Authorization", "en": "No Doctor Authorization"}, {"es": "Tras Demo Design pasa directo a Printer para evitar retrasos; si el doctor quiere revisar, se avisa al manager.", "en": "After Demo Design it goes straight to Printer to avoid delays; if the doctor wants to review, the manager is notified."}]
+         ]},
+        {"t": "flujo",
+         "titulo": {"es": "Flujo resumido", "en": "Summarized flow"},
+         "pasos": [
+           {"titulo": {"es": "Leer y preparar", "en": "Read and prepare"}, "texto": {"es": "Comentarios del doctor, RX; status NEW a Initiated; descargar los OBJ y crear carpeta.", "en": "Doctor comments, RX; status NEW to Initiated; download OBJ files and create folder."}},
+           {"titulo": {"es": "Bite Design", "en": "Bite Design"}, "texto": {"es": "Importar Upper, Lower y Total Jaws, revisar calidad, cargar y posicionar la morfología según size y degree del RX.", "en": "Import Upper, Lower and Total Jaws, check quality, load and position the morphology according to the RX size and degree."}},
+           {"titulo": {"es": "Hueso sin dientes", "en": "Bone without teeth"}, "texto": {"es": "Sobre un duplicado, eliminar dientes y suavizar el hueso (no el paladar).", "en": "On a duplicate, remove teeth and smooth the bone (not the palate)."}},
+           {"titulo": {"es": "Cubeta en Meshmixer", "en": "Tray in Meshmixer"}, "texto": {"es": "Construir la base, restar el waxup que atraviesa, unir en un sólido y aligerar.", "en": "Build the base, subtract the waxup that goes through, merge into a solid and lighten."}},
+           {"titulo": {"es": "Acabado y verificación", "en": "Finish and verification"}, "texto": {"es": "Shrinkwrap contra el tejido, grosores, bordes y 5 capturas de evidencia.", "en": "Shrinkwrap against tissue, thicknesses, edges and 5 evidence screenshots."}},
+           {"titulo": {"es": "Holes, stent y entrega", "en": "Holes, stent and delivery"}, "texto": {"es": "Retenciones, letra del size, stent, HTML en exocad y carpeta To Mill.", "en": "Retentions, size letter, stent, HTML in exocad and To Mill folder."}}
+         ]},
+        {"t": "acordeon",
+         "titulo": {"es": "El porqué de las reglas de diseño", "en": "The why of the design rules"},
+         "items": [
+           {"titulo": {"es": "Suavizar hueso pero no paladar", "en": "Smooth bone but not palate"}, "texto": {"es": "En cirugía el hueso cambia (se reduce) y el paladar no.", "en": "In surgery bone changes (it is reduced) and the palate does not."}},
+           {"titulo": {"es": "~3 mm de espacio", "en": "~3 mm of space"}, "texto": {"es": "Desde las fosas de la nueva morfología queda material suficiente para la demodenture; si no hay, se consulta al doctor o al manager.", "en": "From the fossae of the new morphology there is enough material for the demodenture; if not, the doctor or manager is consulted."}},
+           {"titulo": {"es": "Shrinkwrap contra el tissue", "en": "Shrinkwrap against tissue"}, "texto": {"es": "Da la separación correcta del tejido y evita que sobrepase la encía.", "en": "It gives the correct separation from the tissue and prevents it from crossing the gum."}},
+           {"titulo": {"es": "Grosores y anchos mínimos", "en": "Minimum thicknesses and widths"}, "texto": {"es": "Upper hacia atrás ~10 mm para que no quede delgada y se parta; lower con mínimo 12 mm de ancho (13 mm en size C) para poder hacer los orificios de implantes sin que se parta; grosor mínimo 1.5 mm para evitar fracturas.", "en": "Upper ~10 mm backwards so it is not thin and does not break; lower with at least 12 mm width (13 mm for size C) so implant holes can be made without it breaking; minimum thickness 1.5 mm to prevent fractures."}},
+           {"titulo": {"es": "Letra del size", "en": "Size letter"}, "texto": {"es": "El doctor la usa para pedir el arco correcto el día de la cirugía; por eso se comenta el size al aprobar.", "en": "The doctor uses it to request the correct arch on surgery day; that is why the size is commented on approval."}},
+           {"titulo": {"es": "Stent con Tool Fat", "en": "Stent with Tool Fat"}, "texto": {"es": "Balanceado y lo más grueso posible: ayuda a ubicar implantes y debe ser resistente. Smooth antes del corte para evitar errores de Boolean.", "en": "Balanced and as thick as possible: it helps locate implants and must be resistant. Smooth before the cut to avoid Boolean errors."}},
+           {"titulo": {"es": "Paquete To Mill", "en": "To Mill package"}, "texto": {"es": "El laboratorio no tiene acceso a la carpeta de diseño: recibe solo lo necesario. En Dropbox online, comprimir solo tras \"Make available offline\" o el zip llega vacío.", "en": "The lab has no access to the design folder: it receives only what is needed. In Dropbox online, zip only after \"Make available offline\" or the zip arrives empty."}}
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "Lo propio del Single (G-CAM)", "en": "What is specific to Single (G-CAM)"},
+         "cuerpo": {"es": "En Single, la **barra** se hace del mismo tamaño que el waxup, sin reducción, y se une a él: es la que usará N3 para el TC, así que ambas deben coincidir. La barra se guarda sin suavizar, como una Single 24z. Se mantienen el mismo borde incisal y lip support del RX, buscando que la mayoría de dientes toquen el antagonista, para modificar lo menos posible la morfología.\nLa **anotación de línea media** debe indicar si se sigue el superior o el inferior (sin cambio), o derecha/izquierda y mm (con cambio). Al final se crea el modelo antagonista \"to print\".",
+                  "en": "In Single, the **bar** is made the same size as the waxup, without reduction, and joined to it: it is the one N3 will use for the TC, so both must match. The bar is saved unsmoothed, like a Single 24z. The same incisal edge and lip support as the RX are kept, seeking that most teeth touch the antagonist, to modify the morphology as little as possible.\nThe **midline annotation** must say whether the upper or lower is followed (no change), or right/left and mm (with change). At the end the antagonist model \"to print\" is created."},
+         "alerta": {"es": "Cuándo avisar: escaneo con información faltante (ver Templates N2; posible hold y re-escaneo); falta de 3 mm de espacio; RX sin cambios pero el paciente los necesita (revisar template y pre-autorizaciones, si no, hold y consultar al manager); Boolean en rojo; demodenture que pasa el tissue o con material en el hueso. Deja comentarios por cambios no previstos y por cualquier hold.", "en": "When to notify: scan with missing information (see Templates N2; possible hold and re-scan); lack of 3 mm of space; RX without changes but the patient needs them (check the template and pre-authorizations, otherwise hold and consult the manager); red Boolean; demodenture crossing the tissue or with material on the bone. Leave comments for unforeseen changes and for any hold."}},
+        {"t": "texto",
+         "titulo": {"es": "Puntos por confirmar", "en": "Points to confirm"},
+         "cuerpo": {"es": "El protocolo tiene lagunas: la numeración de pasos salta y repite, no define qué es exactamente \"TC\" ni el rol \"Designer Holes\", no aclara qué proyecto de exocad usar \"para cada tipo de caso\", y la carpeta To Mill varía entre Full Mouth y Single. Tampoco indica la zona horaria de las 12:00 pm ni la figura de las flechas de 12 mm del lower.",
+                  "en": "The protocol has gaps: step numbering jumps and repeats, it does not define exactly what \"TC\" is nor the \"Designer Holes\" role, it does not clarify which exocad project to use \"for each case type\", and the To Mill folder varies between Full Mouth and Single. It also gives no time zone for 12:00 pm nor the figure for the lower 12 mm arrows."},
+         "alerta": {"es": "Confirmar con el manager.", "en": "Confirm with the manager."}},
+        {"t": "enlace",
+         "titulo": {"es": "Protocolo oficial (Full Mouth)", "en": "Official protocol (Full Mouth)"},
+         "texto": {"es": "Abre el protocolo Traveling Demodenture Full Mouth.", "en": "Open the Traveling Demodenture Full Mouth protocol."},
+         "protocolo": "Traveling Demodenture"},
+        {"t": "enlace",
+         "titulo": {"es": "Protocolo oficial (Single G-CAM)", "en": "Official protocol (Single G-CAM)"},
+         "texto": {"es": "Abre el protocolo Single G-CAM.", "en": "Open the Single G-CAM protocol."},
+         "protocolo": "Single G-CAM"},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "Traveling = fecha de cirugía fija: sin Lab Check-In, sin Face Design, sin Doctor Authorization.", "en": "Traveling = fixed surgery date: no Lab Check-In, no Face Design, no Doctor Authorization."},
+           {"es": "Hueso suavizado, paladar intacto; ~3 mm de espacio.", "en": "Smoothed bone, intact palate; ~3 mm of space."},
+           {"es": "Grosores y anchos mínimos evitan que se parta; el size se comenta al aprobar.", "en": "Minimum thicknesses and widths prevent breaking; the size is commented on approval."},
+           {"es": "Single: barra igual al waxup para el TC de N3; anotar línea media.", "en": "Single: bar equal to the waxup for N3's TC; annotate the midline."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué un caso Traveling no pasa por Face Design ni por Doctor Authorization?", "en": "Why does a Traveling case not go through Face Design or Doctor Authorization?"},
+            "opciones": [
+              {"texto": {"es": "Porque el paciente tiene fecha de cirugía fija y se salta etapas para ganar tiempo.", "en": "Because the patient has a fixed surgery date and stages are skipped to save time."}, "ok": true},
+              {"texto": {"es": "Porque son etapas opcionales en todos los casos.", "en": "Because they are optional in all cases."}},
+              {"texto": {"es": "Porque el doctor no puede revisarlos.", "en": "Because the doctor cannot review them."}}
+            ],
+            "explicacion": {"es": "El tiempo es el criterio. Aun así, si el doctor quiere revisar, se avisa al manager.", "en": "Time is the criterion. Even so, if the doctor wants to review, the manager is notified."}},
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué se suaviza el hueso pero NO el paladar?", "en": "Why is the bone smoothed but NOT the palate?"},
+            "opciones": [
+              {"texto": {"es": "Porque en cirugía el hueso cambia (se reduce) y el paladar no.", "en": "Because in surgery bone changes (is reduced) and the palate does not."}, "ok": true},
+              {"texto": {"es": "Porque el paladar es más difícil de suavizar.", "en": "Because the palate is harder to smooth."}},
+              {"texto": {"es": "Porque el paladar se imprime aparte.", "en": "Because the palate is printed separately."}}
+            ],
+            "explicacion": {"es": "La demodenture debe reflejar el hueso que quedará tras la cirugía; el paladar sirve de referencia estable.", "en": "The demodenture must reflect the bone that will remain after surgery; the palate serves as a stable reference."}},
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué el laboratorio recibe una carpeta To Mill y no la carpeta de diseño?", "en": "Why does the lab receive a To Mill folder and not the design folder?"},
+            "opciones": [
+              {"texto": {"es": "Porque no tiene acceso a la carpeta de diseño: se le entrega un paquete con solo lo necesario.", "en": "Because it has no access to the design folder: it is given a package with only what is needed."}, "ok": true},
+              {"texto": {"es": "Porque la carpeta de diseño pesa demasiado.", "en": "Because the design folder is too heavy."}},
+              {"texto": {"es": "Porque el laboratorio diseña de nuevo.", "en": "Because the lab designs again."}}
+            ],
+            "explicacion": {"es": "Por eso el contenido y los nombres del paquete deben ser exactos.", "en": "That is why the package contents and names must be exact."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "En Single, la barra se hace del mismo tamaño que el waxup para que coincida con el TC que hará N3.", "en": "In Single, the bar is made the same size as the waxup so it matches the TC N3 will make."},
+            "ok": true,
+            "explicacion": {"es": "La barra se usará para el TC en N3, así que ambas piezas deben coincidir.", "en": "The bar will be used for the TC in N3, so both pieces must match."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m6a-l6",
+      "titulo": {"es": "2.3 Oclusión", "en": "2.3 Occlusion"},
+      "minutos": 9,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Por qué importa la oclusión", "en": "Why occlusion matters"},
+         "cuerpo": {"es": "**Oclusión** es la forma en que los dientes superiores e inferiores encajan al cerrar. Una mordida mal alineada puede producir dolor de mandíbula o de cabeza, desgaste o fractura de dientes, dificultad para masticar y chasquidos.\nPor eso, al diseñar un arco en N2, el **antagonista** (la arcada contraria) es la referencia: el arco final debe encajar con el opuesto, salvo que se pidan cambios específicos.",
+                  "en": "**Occlusion** is how the upper and lower teeth fit together when closing. A misaligned bite can cause jaw or head pain, tooth wear or fracture, difficulty chewing and clicking.\nThat is why, when designing an arch in N2, the **antagonist** (the opposite arch) is the reference: the final arch must fit the opposite one, unless specific changes are requested."}},
+        {"t": "tarjetas",
+         "titulo": {"es": "Forma del antagonista, estrategia distinta", "en": "Antagonist shape, different strategy"},
+         "items": [
+           {"icono": "⬜", "titulo": {"es": "Cuadrada", "en": "Square"}, "texto": {"es": "Anteriores poco arqueados: se rotan hacia afuera los laterales por el distal.", "en": "Slightly arched anteriors: laterals are rotated outward by the distal."}},
+           {"icono": "🔺", "titulo": {"es": "Triangular", "en": "Triangular"}, "texto": {"es": "Arco en \"V\": movimientos desde los laterales o incluso centrales.", "en": "\"V\" arch: movements from the laterals or even centrals."}},
+           {"icono": "⚪", "titulo": {"es": "Redonda", "en": "Round"}, "texto": {"es": "Sigue más fielmente el diseño inicial porque el antagonista es más equilibrado.", "en": "Follows the initial design more faithfully because the antagonist is more balanced."}}
+         ]},
+        {"t": "flujo",
+         "titulo": {"es": "Flujo de oclusión", "en": "Occlusion flow"},
+         "pasos": [
+           {"titulo": {"es": "Elegir morfología y size", "en": "Choose morphology and size"}, "texto": {"es": "Según RX, dientes naturales, ridge, relación con el antagonista y face design o fotos.", "en": "According to RX, natural teeth, ridge, antagonist relation and face design or photos."}},
+           {"titulo": {"es": "Cargar referencias", "en": "Load references"}, "texto": {"es": "Bite rim, pre-op (barra, en Single) y waxup scan.", "en": "Bite rim, pre-op (bar, in Single) and waxup scan."}},
+           {"titulo": {"es": "Posicionar", "en": "Position"}, "texto": {"es": "Corregir occlusal cant, línea media, plano oclusal, overbite y overjet.", "en": "Correct occlusal cant, midline, occlusal plane, overbite and overjet."}},
+           {"titulo": {"es": "Alinear y guardar", "en": "Align and save"}, "texto": {"es": "Bite rim al waxup y barra al bite rim (best fit); guardar STL.", "en": "Bite rim to waxup and bar to bite rim (best fit); save STL."}},
+           {"titulo": {"es": "Mover dientes en Meshmixer", "en": "Move teeth in Meshmixer"}, "texto": {"es": "Primero anteriores, luego posteriores, hasta contactar con el antagonista.", "en": "Anteriors first, then posteriors, until contacting the antagonist."}},
+           {"titulo": {"es": "Acabado y verificación", "en": "Finish and verification"}, "texto": {"es": "Suavizar, añadir o quitar material para contactos; revisar la barra.", "en": "Smooth, add or remove material for contacts; check the bar."}}
+         ]},
+        {"t": "acordeon",
+         "titulo": {"es": "Reglas con su razón", "en": "Rules with their reason"},
+         "items": [
+           {"titulo": {"es": "Lasso por los interproximales", "en": "Lasso through the interproximals"}, "texto": {"es": "Si el lasso toca la anatomía del diente, el diente se deforma al moverlo.", "en": "If the lasso touches the tooth anatomy, the tooth deforms when moved."}},
+           {"titulo": {"es": "Anteriores solo en horizontal", "en": "Anteriors only horizontally"}, "texto": {"es": "Moverlos en vertical compromete la estética de la sonrisa. Se mueve un lado y se espeja el movimiento para conservar simetría.", "en": "Moving them vertically compromises smile aesthetics. One side is moved and mirrored to keep symmetry."}},
+           {"titulo": {"es": "Posteriores más libres", "en": "Freer posteriors"}, "texto": {"es": "Se mueven en horizontal y vertical, priorizando la función; se puede sacrificar la simetría cuidando la continuidad distal-mesial.", "en": "They move horizontally and vertically, prioritizing function; symmetry may be sacrificed while keeping distal-mesial continuity."}},
+           {"titulo": {"es": "Plano oclusal bien ubicado", "en": "Well-placed occlusal plane"}, "texto": {"es": "Que los posteriores no queden ni muy separados ni muy superpuestos reduce el movimiento necesario y, con él, la deformación de la morfología.", "en": "Posteriors neither too far apart nor too overlapped reduces the movement needed and thus morphology deformation."}},
+           {"titulo": {"es": "Requerimientos del doctor primero", "en": "Doctor's requirements first"}, "texto": {"es": "Las indicaciones especiales del doctor del centro tienen prioridad.", "en": "The center doctor's special requirements take priority."}},
+           {"titulo": {"es": "Barra", "en": "Bar"}, "texto": {"es": "No dañar cúspides ni suavizar en exceso; la mayoría de casos no requiere quitar material de la barra, solo si compromete la forma de un diente.", "en": "Do not damage cusps or over-smooth; most cases do not require removing bar material, only if it compromises a tooth's shape."}},
+           {"titulo": {"es": "Guardar sobre la marcha", "en": "Save as you go"}, "texto": {"es": "Evita perder movimientos si el programa se cierra.", "en": "Avoids losing movements if the program closes."}}
+         ]},
+        {"t": "modelo3d",
+         "slot": "oclusion-clase1-ejemplo",
+         "titulo": {"es": "Oclusión Clase I", "en": "Class I occlusion"},
+         "descripcion": {"es": "Mira: 1) cómo encajan molares y caninos; 2) qué dientes tocan al antagonista en vista oclusal; 3) overbite y overjet; 4) la distancia entre la barra y la cara palatina.", "en": "Look at: 1) how molars and canines fit; 2) which teeth touch the antagonist in occlusal view; 3) overbite and overjet; 4) the distance between the bar and the palatal face."},
+         "pendiente": {"es": "Aquí irá el modelo de dos arcos en oclusión.", "en": "A model of two arches in occlusion will go here."}},
+        {"t": "texto",
+         "titulo": {"es": "Criterios numéricos con cautela", "en": "Numeric criteria with caution"},
+         "cuerpo": {"es": "El protocolo da referencias: overbite y overjet de 1 a 2 mm en clase 1, y un central superior que abarca alrededor de un diente y medio de los inferiores, para que los arcos encajen. Para la barra, sus cúspides deben estar al menos a 0.95 mm de la cara palatina de cada diente, y se comprueba con extrusiones de 0.95 y 0.85 mm.",
+                  "en": "The protocol gives references: overbite and overjet of 1 to 2 mm in class 1, and an upper central that spans about one and a half lower teeth, so the arches fit. For the bar, its cusps must be at least 0.95 mm from the palatal face of each tooth, checked with extrusions of 0.95 and 0.85 mm."},
+         "alerta": {"es": "Dudas: la descripción de la relación molar de Clase 2 se escribe igual que la de Clase 1 (revisar la imagen original antes de enseñarla); no está claro cuál criterio (0.95 o 0.85 mm) corresponde a cuál comprobación; y no se aclara en qué programa (exocad o Meshmixer) se hace cada paso. Confirmar con el manager.", "en": "Doubts: the Class 2 molar relation description is written the same as Class 1 (check the original image before teaching it); it is unclear which criterion (0.95 or 0.85 mm) belongs to which check; and it is not clear in which program (exocad or Meshmixer) each step is done. Confirm with the manager."}},
+        {"t": "enlace",
+         "titulo": {"es": "Protocolo oficial", "en": "Official protocol"},
+         "texto": {"es": "Abre el protocolo de oclusión con los esquemas de clases 1, 2 y 3.", "en": "Open the occlusion protocol with the class 1, 2 and 3 diagrams."},
+         "protocolo": "Occlusion"},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "El antagonista es la referencia: el arco debe encajar con el opuesto.", "en": "The antagonist is the reference: the arch must fit the opposite one."},
+           {"es": "Anteriores solo en horizontal y espejados; posteriores libres.", "en": "Anteriors only horizontal and mirrored; posteriors free."},
+           {"es": "Lasso por interproximales para no deformar la anatomía.", "en": "Lasso through interproximals so anatomy is not deformed."},
+           {"es": "Lo que pide el doctor del centro tiene prioridad.", "en": "What the center doctor requests takes priority."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué los anteriores se mueven solo en horizontal?", "en": "Why are anteriors moved only horizontally?"},
+            "opciones": [
+              {"texto": {"es": "Porque moverlos en vertical compromete la estética de la sonrisa.", "en": "Because moving them vertically compromises smile aesthetics."}, "ok": true},
+              {"texto": {"es": "Porque el programa no permite vertical.", "en": "Because the program does not allow vertical."}},
+              {"texto": {"es": "Porque los posteriores lo exigen.", "en": "Because the posteriors require it."}}
+            ],
+            "explicacion": {"es": "Los anteriores definen la sonrisa; los posteriores tienen más libertad porque priman la función.", "en": "Anteriors define the smile; posteriors have more freedom because function prevails."}},
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué el lasso debe pasar por los interproximales y no por la anatomía?", "en": "Why must the lasso pass through the interproximals and not the anatomy?"},
+            "opciones": [
+              {"texto": {"es": "Porque si toca la anatomía, el diente se deforma al moverlo.", "en": "Because if it touches the anatomy, the tooth deforms when moved."}, "ok": true},
+              {"texto": {"es": "Porque es más rápido.", "en": "Because it is faster."}},
+              {"texto": {"es": "Porque así se ven los contactos.", "en": "Because that shows the contacts."}}
+            ],
+            "explicacion": {"es": "La selección define qué se mueve como un bloque; incluir anatomía arrastra parte del diente.", "en": "The selection defines what moves as a block; including anatomy drags part of the tooth."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "Si el doctor del centro tiene un requerimiento especial, este tiene prioridad sobre las reglas generales.", "en": "If the center's doctor has a special requirement, it takes priority over general rules."},
+            "ok": true,
+            "explicacion": {"es": "El protocolo lo indica: la salida es seguir el requerimiento del doctor.", "en": "The protocol states it: the way forward is to follow the doctor's requirement."}},
+           {"tipo": "varias",
+            "enunciado": {"es": "¿Qué consecuencias puede tener una mordida mal alineada?", "en": "What can a misaligned bite cause?"},
+            "opciones": [
+              {"texto": {"es": "Dolor de mandíbula o cabeza", "en": "Jaw or head pain"}, "ok": true},
+              {"texto": {"es": "Desgaste o fractura de dientes", "en": "Tooth wear or fracture"}, "ok": true},
+              {"texto": {"es": "Cambio de color de los dientes", "en": "Change in tooth color"}}
+            ],
+            "explicacion": {"es": "Una oclusión inadecuada afecta función y salud, no el color.", "en": "Poor occlusion affects function and health, not color."}}
+         ]}
+      ]
+    }
+  ],
+  "glosario": [
+    {"id": "n2-facedesign", "termino": {"es": "Face Design", "en": "Face Design"}, "def": {"es": "Etapa que alinea IOS, CBCT y fotos del rostro en una escena 3D.", "en": "Stage that aligns IOS, CBCT and face photos in a 3D scene."}, "cat": "n2"},
+    {"id": "n2-demodenture", "termino": {"es": "Demodenture", "en": "Demodenture"}, "def": {"es": "Prótesis de demostración con la nueva morfología sobre el hueso sin dientes.", "en": "Demonstration prosthesis with the new morphology over the toothless bone."}, "cat": "n2"},
+    {"id": "n2-traveling", "termino": {"es": "Traveling", "en": "Traveling"}, "def": {"es": "Paciente que viaja y se opera en pocos días; caso prioritario sin algunas etapas.", "en": "Patient who travels and is operated within days; priority case with some stages skipped."}, "cat": "n2"},
+    {"id": "n2-gcam", "termino": {"es": "Single G-CAM", "en": "Single G-CAM"}, "def": {"es": "Demodenture de un solo arco, trabajada con barra y antagonista.", "en": "Single-arch demodenture, worked with a bar and antagonist."}, "cat": "n2"},
+    {"id": "n2-fullmouth", "termino": {"es": "Full Mouth 24Z", "en": "Full Mouth 24Z"}, "def": {"es": "Demodenture para ambas arcadas.", "en": "Demodenture for both arches."}, "cat": "n2"},
+    {"id": "n2-bite", "termino": {"es": "Bite F / L / R", "en": "Bite F / L / R"}, "def": {"es": "Escaneos de mordida frontal, izquierda y derecha.", "en": "Front, left and right bite scans."}, "cat": "n2"},
+    {"id": "n2-existingteeth", "termino": {"es": "Existing Teeth", "en": "Existing Teeth"}, "def": {"es": "Escaneos de los dientes actuales del paciente (Upper / Lower).", "en": "Scans of the patient's current teeth (Upper / Lower)."}, "cat": "n2"},
+    {"id": "n2-mounting", "termino": {"es": "Mounting", "en": "Mounting"}, "def": {"es": "Referencia de la posición del modelo en el articulador; solo se mueve.", "en": "Reference for the model's position in the articulator; only moved."}, "cat": "n2"},
+    {"id": "n2-bipupilar", "termino": {"es": "Línea bipupilar", "en": "Bipupillary line"}, "def": {"es": "Línea imaginaria que une las pupilas.", "en": "Imaginary line joining the pupils."}, "cat": "fotografia"},
+    {"id": "n2-naturalsmile", "termino": {"es": "Natural Smile", "en": "Natural Smile"}, "def": {"es": "Foto de sonrisa espontánea, referencia de alineación.", "en": "Photo of a spontaneous smile, alignment reference."}, "cat": "fotografia"},
+    {"id": "n2-soportelabial", "termino": {"es": "Lip support", "en": "Lip support"}, "def": {"es": "Cuánto empuja el diente o prótesis al labio hacia adelante.", "en": "How far the tooth or prosthesis pushes the lip forward."}, "cat": "n2"},
+    {"id": "n2-waxup", "termino": {"es": "Waxup", "en": "Waxup"}, "def": {"es": "Modelo de la nueva morfología de dientes.", "en": "Model of the new tooth morphology."}, "cat": "n2"},
+    {"id": "n2-tissue", "termino": {"es": "Tissue", "en": "Tissue"}, "def": {"es": "Modelo de la encía y el hueso sin dientes.", "en": "Model of the gum and toothless bone."}, "cat": "n2"},
+    {"id": "n2-cubeta", "termino": {"es": "Cubeta", "en": "Tray (bucket)"}, "def": {"es": "Base de la demodenture, construida en Meshmixer.", "en": "Base of the demodenture, built in Meshmixer."}, "cat": "n2"},
+    {"id": "n2-shrinkwrap", "termino": {"es": "Shrinkwrap", "en": "Shrinkwrap"}, "def": {"es": "Modificador que ajusta una superficie a otra con separación.", "en": "Modifier that fits one surface to another with separation."}, "cat": "n2"},
+    {"id": "n2-boolean", "termino": {"es": "Boolean difference", "en": "Boolean difference"}, "def": {"es": "Operación que resta un objeto de otro.", "en": "Operation that subtracts one object from another."}, "cat": "n2"},
+    {"id": "n2-holes", "termino": {"es": "Holes", "en": "Holes"}, "def": {"es": "Orificios de retención (cervicales, linguales, palatinos).", "en": "Retention holes (cervical, lingual, palatal)."}, "cat": "n2"},
+    {"id": "n2-stent", "termino": {"es": "Stent", "en": "Stent"}, "def": {"es": "Guía que ayuda al doctor a ubicar implantes.", "en": "Guide that helps the doctor locate implants."}, "cat": "n2"},
+    {"id": "n2-hold", "termino": {"es": "Hold", "en": "Hold"}, "def": {"es": "Caso detenido a la espera de información.", "en": "Case on pause awaiting information."}, "cat": "n2"},
+    {"id": "n2-antagonista", "termino": {"es": "Antagonista", "en": "Antagonist"}, "def": {"es": "Arcada contraria a la que se diseña.", "en": "The arch opposite to the one being designed."}, "cat": "oclusion"},
+    {"id": "n2-oclusion", "termino": {"es": "Oclusión", "en": "Occlusion"}, "def": {"es": "Encaje de los dientes superiores e inferiores al cerrar.", "en": "How upper and lower teeth fit when closing."}, "cat": "oclusion"},
+    {"id": "n2-overbite", "termino": {"es": "Overbite / Overjet", "en": "Overbite / Overjet"}, "def": {"es": "Cobertura vertical y distancia horizontal entre dientes superiores e inferiores.", "en": "Vertical overlap and horizontal distance between upper and lower teeth."}, "cat": "oclusion"},
+    {"id": "n2-interproximal", "termino": {"es": "Interproximal", "en": "Interproximal"}, "def": {"es": "Espacio entre dientes vecinos.", "en": "Space between neighboring teeth."}, "cat": "oclusion"},
+    {"id": "n2-biterim", "termino": {"es": "Bite rim", "en": "Bite rim"}, "def": {"es": "Registro de oclusión usado como referencia.", "en": "Occlusion record used as reference."}, "cat": "oclusion"},
+    {"id": "n2-maxillarprint", "termino": {"es": "Maxillar Print", "en": "Maxillar Print"}, "def": {"es": "Modelo impreso del maxilar superior en dos mitades, a partir del CT.", "en": "Printed model of the upper jaw in two halves, from the CT."}, "cat": "n2"}
+  ]
+}

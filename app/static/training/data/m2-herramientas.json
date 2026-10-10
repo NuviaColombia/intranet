@@ -1,0 +1,369 @@
+{
+  "id": "m2-herramientas",
+  "orden": 3,
+  "icono": "🧰",
+  "titulo": {"es": "Herramientas y registros", "en": "Tools and records"},
+  "resumen": {
+    "es": "Con qué software y con qué archivos trabajamos (exocad, Blender, IOS, CBCT, fotos), qué formatos existen, cómo se nombran y guardan, y cómo comprobar que todo está completo antes de seguir.",
+    "en": "The software and files we work with (exocad, Blender, IOS, CBCT, photos), the file formats involved, how files are named and stored, and how to check everything is complete before moving on."
+  },
+  "nivel": "basico",
+  "lecciones": [
+    {
+      "id": "m2-l1",
+      "titulo": {"es": "El mapa: de la boca al diseño", "en": "The map: from the mouth to the design"},
+      "minutos": 6,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Diseñamos con datos, no con la boca", "en": "We design from data, not from the mouth"},
+         "cuerpo": {"es": "En Nuvia Design nunca vemos al paciente en persona. Todo lo que sabemos de él llega como **archivos**: escaneos de su boca, una tomografía de sus huesos y fotos de su cara. Con eso diseñamos prótesis sobre implantes (los tornillos de titanio que sustituyen la raíz de un diente).\nPiensa en un arquitecto que construye una casa sin visitar el terreno: solo tiene planos y fotos. Si el plano es de otro terreno, o está incompleto, la casa sale mal.", "en": "At Nuvia Design we never see the patient in person. Everything we know about them arrives as **files**: scans of their mouth, a tomography of their bones and photos of their face. From that we design prostheses on implants (the titanium screws that replace a tooth root).\nThink of an architect building a house without visiting the land: only plans and photos. If the plan belongs to another plot, or is incomplete, the house comes out wrong."},
+         "porque": {"es": "Como el archivo es nuestra única ventana al paciente, la calidad, el nombre y la integridad de los archivos importan tanto como el diseño en sí.", "en": "Because the file is our only window to the patient, file quality, naming and completeness matter as much as the design itself."}},
+        {"t": "tarjetas",
+         "titulo": {"es": "Los 5 insumos de un caso", "en": "The 5 inputs of a case"},
+         "items": [
+           {"icono": "🦷", "titulo": {"es": "IOS", "en": "IOS"}, "texto": {"es": "Escaneo intraoral: un modelo 3D de dientes y encía hecho con un escáner en la boca.", "en": "Intraoral scan: a 3D model of teeth and gum made with a scanner in the mouth."}},
+           {"icono": "🩻", "titulo": {"es": "CBCT", "en": "CBCT"}, "texto": {"es": "Tomografía 3D de huesos y dientes. Muestra lo que está debajo de la encía.", "en": "3D tomography of bone and teeth. Shows what lies under the gum."}},
+           {"icono": "📷", "titulo": {"es": "Fotos clínicas", "en": "Clinical photos"}, "texto": {"es": "Muestran la cara, la sonrisa y la mordida real. Dan la escala y el contexto estético.", "en": "Show the face, the smile and the real bite. They give scale and aesthetic context."}},
+           {"icono": "📝", "titulo": {"es": "RX (prescripción)", "en": "RX (prescription)"}, "texto": {"es": "La orden del doctor: qué producto, qué talla de arco y qué cambios quiere.", "en": "The doctor's order: which product, which arch size and which changes they want."}},
+           {"icono": "💬", "titulo": {"es": "Comentarios", "en": "Comments"}, "texto": {"es": "Notas en la plataforma. Las etapas siguientes las leen para no repetir dudas.", "en": "Notes on the platform. Later stages read them so doubts are not repeated."}}
+         ]},
+        {"t": "flujo",
+         "titulo": {"es": "Del archivo a la prótesis", "en": "From file to prosthesis"},
+         "pasos": [
+           {"titulo": {"es": "Llegan los registros", "en": "Records arrive"}, "texto": {"es": "La clínica sube escaneos, CBCT y fotos a la plataforma.", "en": "The clinic uploads scans, CBCT and photos to the platform."}},
+           {"titulo": {"es": "Se revisan", "en": "They are checked"}, "texto": {"es": "Paciente correcto y archivos completos antes de abrir ningún programa de diseño.", "en": "Right patient and complete files before opening any design program."}},
+           {"titulo": {"es": "Se alinean", "en": "They are aligned"}, "texto": {"es": "En Blender se unen IOS, CBCT y fotos en una sola escena (Face Design).", "en": "In Blender, IOS, CBCT and photos are merged into one scene (Face Design)."}},
+           {"titulo": {"es": "Se diseña", "en": "It is designed"}, "texto": {"es": "En Blender, Meshmixer y exocad se crea la morfología, la barra o la demodenture.", "en": "In Blender, Meshmixer and exocad the morphology, bar or demodenture is created."}},
+           {"titulo": {"es": "Se entrega al laboratorio", "en": "Delivered to the lab"}, "texto": {"es": "Se sube un paquete con nombres exactos (To Mill / To Print) y evidencias.", "en": "A package with exact names (To Mill / To Print) and evidence is uploaded."}}
+         ]},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "Trabajamos solo con archivos: son nuestra única vista del paciente.", "en": "We work only with files: they are our only view of the patient."},
+           {"es": "Los insumos son IOS, CBCT, fotos, RX y comentarios.", "en": "The inputs are IOS, CBCT, photos, RX and comments."},
+           {"es": "Primero se revisa, luego se alinea, luego se diseña.", "en": "First check, then align, then design."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué la calidad de los archivos es tan importante en Nuvia Design?", "en": "Why is file quality so important at Nuvia Design?"},
+            "opciones": [
+              {"texto": {"es": "Porque son lo único que tenemos del paciente: un error en ellos se arrastra a todo el diseño.", "en": "Because they are all we have of the patient: an error in them carries into the whole design."}, "ok": true},
+              {"texto": {"es": "Porque ocupan mucho espacio en disco.", "en": "Because they take a lot of disk space."}},
+              {"texto": {"es": "Porque el doctor los revisa uno por uno.", "en": "Because the doctor reviews them one by one."}}
+            ],
+            "explicacion": {"es": "No vemos al paciente: el archivo es nuestra única referencia, y un error aquí contamina todas las etapas siguientes.", "en": "We do not see the patient: the file is our only reference, and an error here contaminates all later stages."}},
+           {"tipo": "orden",
+            "enunciado": {"es": "Ordena el recorrido de un caso.", "en": "Put the journey of a case in order."},
+            "items": [
+              {"es": "Llegan los registros", "en": "Records arrive"},
+              {"es": "Se revisan", "en": "They are checked"},
+              {"es": "Se alinean", "en": "They are aligned"},
+              {"es": "Se diseña", "en": "It is designed"}
+            ],
+            "explicacion": {"es": "Se revisa antes de alinear y se alinea antes de diseñar para no construir sobre datos malos.", "en": "We check before aligning and align before designing so we do not build on bad data."}},
+           {"tipo": "parejas",
+            "enunciado": {"es": "Une cada insumo con lo que aporta.", "en": "Match each input with what it provides."},
+            "pares": [
+              {"a": {"es": "IOS", "en": "IOS"}, "b": {"es": "Forma de dientes y encía", "en": "Shape of teeth and gum"}},
+              {"a": {"es": "CBCT", "en": "CBCT"}, "b": {"es": "Hueso y dientes en 3D", "en": "Bone and teeth in 3D"}},
+              {"a": {"es": "Fotos", "en": "Photos"}, "b": {"es": "Cara, sonrisa y escala", "en": "Face, smile and scale"}},
+              {"a": {"es": "RX", "en": "RX"}, "b": {"es": "Lo que pidió el doctor", "en": "What the doctor asked for"}}
+            ],
+            "explicacion": {"es": "Cada insumo cubre una parte distinta de la información; ninguno sustituye a otro.", "en": "Each input covers a different part of the information; none replaces another."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m2-l2",
+      "titulo": {"es": "exocad: el taller digital", "en": "exocad: the digital workshop"},
+      "minutos": 7,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Qué es exocad", "en": "What exocad is"},
+         "cuerpo": {"es": "exocad es un programa especializado en **diseño dental asistido por computadora (CAD)**. Piensa en él como un taller donde se cargan los escaneos del paciente y se diseña la pieza que se va a fabricar (una barra, una corona, un puente, una férula).\nEl programa produce archivos que el laboratorio usa para **fresar** (tallar en un bloque de material) o imprimir la pieza.",
+                  "en": "exocad is software specialized in **computer-aided dental design (CAD)**. Think of it as a workshop where the patient's scans are loaded and the piece to be manufactured (a bar, a crown, a bridge, a splint) is designed.\nThe program outputs files that the lab uses to **mill** (carve from a block of material) or print the piece."},
+         "general": true,
+         "dato": {"es": "En nuestros protocolos exocad aparece en alineación de implantes (Micron, ICAM), barra, TC, Nightguard, removibles y en el HTML final que ven doctor y laboratorio.", "en": "In our protocols exocad appears in implant alignment (Micron, ICAM), bar, TC, Nightguard, removables and in the final HTML that the doctor and lab view."}},
+        {"t": "texto",
+         "titulo": {"es": "Escáneres y STL: la materia prima", "en": "Scans and STL: the raw material"},
+         "cuerpo": {"es": "Un **escaneo** es una superficie 3D hecha de miles de triángulos pequeños, como una cáscara digital. Se guarda casi siempre como **STL**. exocad no inventa la boca: parte de esas cáscaras y construye el diseño encima.\nPor eso en un proyecto se cargan varias mallas (modelo de tejido, escaneo de los implantes, la cera de diseño) y cada una tiene un *tipo* que le dice a exocad cómo usarla.",
+                  "en": "A **scan** is a 3D surface made of thousands of tiny triangles, like a digital shell. It is almost always saved as **STL**. exocad does not invent the mouth: it starts from those shells and builds the design on top.\nThat is why a project loads several meshes (tissue model, implant scan, design wax) and each has a *type* that tells exocad how to use it."},
+         "general": true},
+        {"t": "texto",
+         "titulo": {"es": "Qué es una librería de dientes", "en": "What a tooth library is"},
+         "cuerpo": {"es": "Una **librería** es un catálogo de formas ya diseñadas que exocad usa como punto de partida: dientes de distintas tallas, y también las geometrías exactas de los componentes de implantes (por ejemplo los *scan bodies*, las piezas que se atornillan al implante para que el escáner sepa dónde está).\nElegir la librería correcta es elegir el \"molde\" correcto. Con una distinta, la pieza o el implante quedaría con otra geometría.",
+                  "en": "A **library** is a catalog of pre-designed shapes that exocad uses as a starting point: teeth in different sizes, and also the exact geometries of implant components (for example *scan bodies*, the parts screwed onto the implant so the scanner knows where it is).\nChoosing the right library is choosing the right \"mold\". With a different one, the piece or implant would end up with different geometry."},
+         "general": true,
+         "porque": {"es": "En el protocolo de implantes DIO esto es explícito: cada implante/escáner tiene geometría propia y con otra librería el implante quedaría mal posicionado.", "en": "In the DIO implant protocol this is explicit: each implant/scanner has its own geometry and with another library the implant would end up misplaced."}},
+        {"t": "flujo",
+         "titulo": {"es": "Flujo conceptual de un diseño en exocad", "en": "Conceptual flow of a design in exocad"},
+         "pasos": [
+           {"titulo": {"es": "Crear el proyecto", "en": "Create the project"}, "texto": {"es": "Se declara qué se va a diseñar (tipo de trabajo, material, implantes).", "en": "You declare what will be designed (job type, material, implants)."}},
+           {"titulo": {"es": "Cargar los escaneos", "en": "Load the scans"}, "texto": {"es": "Tejido, escaneo de implantes y waxup entran como mallas.", "en": "Tissue, implant scan and waxup come in as meshes."}},
+           {"titulo": {"es": "Alinear", "en": "Align"}, "texto": {"es": "Se hace coincidir cada malla con la realidad usando puntos y ajuste automático (best fit).", "en": "Each mesh is matched to reality using points and automatic fitting (best fit)."}},
+           {"titulo": {"es": "Diseñar la pieza", "en": "Design the piece"}, "texto": {"es": "El programa propone una forma desde la librería y el diseñador la ajusta.", "en": "The program proposes a shape from the library and the designer adjusts it."}},
+           {"titulo": {"es": "Exportar", "en": "Export"}, "texto": {"es": "Se generan los archivos de fabricación y el visor HTML.", "en": "Manufacturing files and the HTML viewer are generated."}}
+         ],
+         "general": true},
+        {"t": "modelo3d",
+         "slot": "exocad-diseno-ejemplo",
+         "titulo": {"es": "Un diseño de exocad", "en": "An exocad design"},
+         "descripcion": {"es": "Mira: 1) el escaneo del tejido debajo; 2) la pieza diseñada encima; 3) cómo la pieza se apoya sin atravesar el tejido; 4) los canales de los implantes.", "en": "Look at: 1) the tissue scan underneath; 2) the designed piece on top; 3) how the piece rests without going through the tissue; 4) the implant channels."},
+         "pendiente": {"es": "Aquí irá el modelo de un diseño terminado en exocad.", "en": "A finished exocad design model will go here."}},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "exocad es el taller CAD donde se diseña la pieza que el laboratorio fabrica.", "en": "exocad is the CAD workshop where the piece the lab manufactures is designed."},
+           {"es": "Parte de escaneos (STL): no inventa la boca, construye sobre ella.", "en": "It starts from scans (STL): it does not invent the mouth, it builds on it."},
+           {"es": "La librería es el catálogo de formas; elegir la correcta es crítico.", "en": "The library is the catalog of shapes; choosing the right one is critical."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Qué es una librería en exocad?", "en": "What is a library in exocad?"},
+            "opciones": [
+              {"texto": {"es": "Un catálogo de formas predefinidas (dientes, geometrías de implantes) que sirve de punto de partida.", "en": "A catalog of predefined shapes (teeth, implant geometries) that serves as a starting point."}, "ok": true},
+              {"texto": {"es": "Una carpeta con los casos antiguos.", "en": "A folder with old cases."}},
+              {"texto": {"es": "El manual de usuario del programa.", "en": "The program's user manual."}}
+            ],
+            "explicacion": {"es": "Es el \"molde\" de partida; por eso usar la librería equivocada produce una geometría equivocada.", "en": "It is the starting \"mold\"; that is why using the wrong library produces the wrong geometry."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "exocad crea la anatomía del paciente desde cero, sin necesidad de escaneos.", "en": "exocad creates the patient's anatomy from scratch, without needing scans."},
+            "ok": false,
+            "explicacion": {"es": "Falso: construye el diseño sobre los escaneos cargados, que describen la realidad del paciente.", "en": "False: it builds the design on top of the loaded scans, which describe the patient's reality."}},
+           {"tipo": "orden",
+            "enunciado": {"es": "Ordena el flujo conceptual en exocad.", "en": "Order the conceptual flow in exocad."},
+            "items": [
+              {"es": "Crear el proyecto", "en": "Create the project"},
+              {"es": "Cargar escaneos", "en": "Load scans"},
+              {"es": "Alinear", "en": "Align"},
+              {"es": "Diseñar y exportar", "en": "Design and export"}
+            ],
+            "explicacion": {"es": "No se puede diseñar sobre algo que aún no está cargado ni alineado con la realidad.", "en": "You cannot design on something not yet loaded or aligned with reality."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m2-l3",
+      "titulo": {"es": "Blender, Meshmixer y BlueSky", "en": "Blender, Meshmixer and BlueSky"},
+      "minutos": 7,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "Por qué Blender en Face Design y N2", "en": "Why Blender in Face Design and N2"},
+         "cuerpo": {"es": "Blender es un programa de modelado 3D de uso general, muy flexible. Para dental se usa con un complemento (\"Blender for Dental\" / B4D). Lo usamos en **Face Design** porque ahí hay que juntar en una sola escena objetos muy distintos: escaneos, tomografía y fotos de la cara. También se usa en N2 para diseñar la Demodenture.\nSu ventaja es el control libre: mover, rotar, esconder y comparar capas.",
+                  "en": "Blender is a general-purpose 3D modeling program, very flexible. For dental it is used with an add-on (\"Blender for Dental\" / B4D). We use it in **Face Design** because there you must merge very different objects into one scene: scans, tomography and face photos. It is also used in N2 to design the Demodenture.\nIts strength is free control: move, rotate, hide and compare layers."},
+         "general": true,
+         "dato": {"es": "La Demodenture es una prótesis de demostración con la nueva morfología de dientes sobre la forma del hueso ya sin dientes.", "en": "The Demodenture is a demonstration prosthesis with the new tooth morphology over the shape of the bone with no teeth."}},
+        {"t": "tabla",
+         "titulo": {"es": "Cada herramienta, su trabajo", "en": "Each tool, its job"},
+         "cabeceras": [{"es": "Herramienta", "en": "Tool"}, {"es": "Para qué la usamos", "en": "What we use it for"}],
+         "filas": [
+           [{"es": "Blender (B4D)", "en": "Blender (B4D)"}, {"es": "Alinear IOS, CBCT y fotos; diseñar la Demodenture.", "en": "Align IOS, CBCT and photos; design the Demodenture."}],
+           [{"es": "Meshmixer", "en": "Meshmixer"}, {"es": "Revisar escaneos, editar y cortar mallas, construir la cubeta, separar piezas.", "en": "Check scans, edit and cut meshes, build the tray, separate pieces."}],
+           [{"es": "BlueSky", "en": "BlueSky"}, {"es": "Ver el CBCT y segmentarlo (separar hueso y dientes).", "en": "View the CBCT and segment it (separate bone and teeth)."}],
+           [{"es": "exocad", "en": "exocad"}, {"es": "Diseño de la pieza final y visor HTML.", "en": "Final piece design and HTML viewer."}]
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "Una escena, varias capas", "en": "One scene, several layers"},
+         "cuerpo": {"es": "En Face Design todo vive en una escena de Blender organizada en **colecciones** con nombres fijos: CBCT (Mandible, Maxilla), FACE (Existing Teeth, Face), ORIGINAL SCAN (Bite L, R, F), UPPER y LOWER. Los escaneos se *emparentan* al Existing Teeth Upper, es decir, se unen para moverse como un bloque.\nDos reglas de oro: **las fotos nunca se rotan y los IOS nunca se escalan**.",
+                  "en": "In Face Design everything lives in one Blender scene organized in **collections** with fixed names: CBCT (Mandible, Maxilla), FACE (Existing Teeth, Face), ORIGINAL SCAN (Bite L, R, F), UPPER and LOWER. Scans are *parented* to Existing Teeth Upper, meaning they are tied to move as one block.\nTwo golden rules: **photos are never rotated and IOS are never scaled**."},
+         "porque": {"es": "La foto lleva la escala real y el IOS tiene medidas reales: rotar la foto distorsiona la perspectiva y escalar un IOS falsea el tamaño de los dientes. Los nombres exactos importan porque el complemento y las etapas siguientes buscan los objetos por nombre.", "en": "The photo carries the real scale and the IOS has real measurements: rotating the photo distorts perspective and scaling an IOS falsifies tooth size. Exact names matter because the add-on and later stages look objects up by name."}},
+        {"t": "acordeon",
+         "titulo": {"es": "Los \"ayudantes\" de Face Design", "en": "Face Design's \"helpers\""},
+         "items": [
+           {"titulo": {"es": "Meshmixer", "en": "Meshmixer"}, "texto": {"es": "Se usa para verificar los IOS antes de empezar: paciente correcto, archivos completos y bien capturados.", "en": "Used to verify the IOS before starting: right patient, complete and well-captured files."}},
+           {"titulo": {"es": "BlueSky", "en": "BlueSky"}, "texto": {"es": "Si falta el CBCT o está en mal estado, se segmenta aquí (maxilar, mandíbula y dientes) y se lleva a Blender. Las vías aéreas se dejan desactivadas: solo hacen falta hueso y dientes.", "en": "If the CBCT is missing or in bad shape, it is segmented here (maxilla, mandible and teeth) and brought into Blender. Airways are left off: only bone and teeth are needed."}},
+           {"titulo": {"es": "ICP", "en": "ICP"}, "texto": {"es": "Algoritmo que alinea dos mallas por las zonas que comparten. Se pintan solo las zonas coincidentes, porque si se le dan zonas distintas alinea mal.", "en": "An algorithm that aligns two meshes by the areas they share. Only matching areas are painted, because given different areas it misaligns."}}
+         ]},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "Blender reúne IOS, CBCT y fotos en una escena (Face Design) y se usa también en N2.", "en": "Blender brings IOS, CBCT and photos into one scene (Face Design) and is also used in N2."},
+           {"es": "Meshmixer revisa y edita mallas; BlueSky segmenta el CBCT.", "en": "Meshmixer checks and edits meshes; BlueSky segments the CBCT."},
+           {"es": "Fotos: nunca se rotan. IOS: nunca se escalan. Los nombres deben ser exactos.", "en": "Photos: never rotated. IOS: never scaled. Names must be exact."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué nunca se escala un IOS?", "en": "Why is an IOS never scaled?"},
+            "opciones": [
+              {"texto": {"es": "Porque es un modelo con medidas reales: escalarlo falsearía el tamaño de los dientes.", "en": "Because it is a model with real measurements: scaling it would falsify tooth size."}, "ok": true},
+              {"texto": {"es": "Porque Blender no permite escalar mallas.", "en": "Because Blender does not allow scaling meshes."}},
+              {"texto": {"es": "Porque es más lento.", "en": "Because it is slower."}}
+            ],
+            "explicacion": {"es": "En cambio se escala la foto, que es la que se ajusta al modelo real.", "en": "Instead the photo is scaled, as it is the one adjusted to the real model."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "Los nombres de objetos como Bite L o Existing Teeth Upper pueden escribirse libremente.", "en": "Object names such as Bite L or Existing Teeth Upper can be typed freely."},
+            "ok": false,
+            "explicacion": {"es": "Deben ser exactos: el complemento y las etapas siguientes buscan los objetos por nombre y con otro no los encuentran o los clasifican mal.", "en": "They must be exact: the add-on and later stages look objects up by name; with another name they cannot find or misclassify them."}},
+           {"tipo": "parejas",
+            "enunciado": {"es": "Une cada programa con su rol.", "en": "Match each program with its role."},
+            "pares": [
+              {"a": {"es": "Blender", "en": "Blender"}, "b": {"es": "Escena que une IOS, CBCT y fotos", "en": "Scene merging IOS, CBCT and photos"}},
+              {"a": {"es": "BlueSky", "en": "BlueSky"}, "b": {"es": "Segmentar el CBCT", "en": "Segment the CBCT"}},
+              {"a": {"es": "Meshmixer", "en": "Meshmixer"}, "b": {"es": "Verificar y editar mallas", "en": "Check and edit meshes"}},
+              {"a": {"es": "exocad", "en": "exocad"}, "b": {"es": "Diseño final y visor HTML", "en": "Final design and HTML viewer"}}
+            ],
+            "explicacion": {"es": "Cada programa tiene una especialidad; se combinan a lo largo del flujo.", "en": "Each program has a specialty; they are combined along the flow."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m2-l4",
+      "titulo": {"es": "IOS, CBCT y fotos clínicas", "en": "IOS, CBCT and clinical photos"},
+      "minutos": 8,
+      "pasos": [
+        {"t": "texto",
+         "titulo": {"es": "IOS: la boca hecha malla 3D", "en": "IOS: the mouth as a 3D mesh"},
+         "cuerpo": {"es": "El **IOS** (escáner intraoral) es una cámara que recorre la boca y arma un modelo 3D. Un caso normal requiere **Scan Upper, Scan Lower y 3 escaneos de mordida** (derecha, izquierda y frente). Al alinear los bites con el Upper y el Lower se obtiene la mordida clínica exacta tal como se registró en la clínica.\nSi los laterales no quedan perfectamente alineados, se pide un nuevo escaneo.",
+                  "en": "The **IOS** (intraoral scanner) is a camera that sweeps the mouth and builds a 3D model. A normal case requires **Scan Upper, Scan Lower and 3 bite scans** (right, left and front). Aligning the bites to the Upper and Lower gives the exact clinical bite as it was registered at the clinic.\nIf the lateral ones are not perfectly aligned, a new scan is requested."},
+         "porque": {"es": "Una mordida mal alineada produce una prótesis con la relación maxilar-mandibular errónea.", "en": "A misaligned bite produces a prosthesis with the wrong upper-lower jaw relationship."}},
+        {"t": "modelo3d",
+         "slot": "escaneo-ios-ejemplo",
+         "titulo": {"es": "Un escaneo IOS completo", "en": "A complete IOS scan"},
+         "descripcion": {"es": "Mira: 1) que el paladar esté completo; 2) que haya encía amplia y clara; 3) que no haya zonas faltantes o duplicadas; 4) la zona de contacto en el bite.", "en": "Look at: 1) that the palate is complete; 2) that there is wide, clear gum; 3) that there are no missing or duplicated areas; 4) the contact area in the bite."},
+         "pendiente": {"es": "Aquí irá un modelo de escaneo intraoral de ejemplo.", "en": "A sample intraoral scan model will go here."}},
+        {"t": "acordeon",
+         "titulo": {"es": "Cuándo el escaneo no sirve", "en": "When a scan is not usable"},
+         "items": [
+           {"titulo": {"es": "Falta paladar o tejido", "en": "Missing palate or tissue"}, "texto": {"es": "El paladar es fundamental y el tejido dicta las dimensiones de la demo y su relación con la encía real. Se pide re-escaneo.", "en": "The palate is essential and the tissue dictates the demo's dimensions and relation to the real gum. A re-scan is requested."}},
+           {"titulo": {"es": "Scans duplicados", "en": "Duplicate scans"}, "texto": {"es": "La información duplicada puede impedir que la alineación se complete. Se avisa al manager.", "en": "Duplicated information can prevent the alignment from completing. The manager is notified."}},
+           {"titulo": {"es": "Dentadura sin intaglio", "en": "Denture without intaglio"}, "texto": {"es": "El intaglio es la cara interna de la prótesis, el registro directo de encía y paladar. Sin él se pide re-escaneo 360.", "en": "The intaglio is the inner face of the prosthesis, the direct record of gum and palate. Without it, a 360 re-scan is requested."}},
+           {"titulo": {"es": "Parcial removible", "en": "Removable partial"}, "texto": {"es": "No se alinea manualmente porque puede cambiar la percepción de la mordida y afectar la dentadura final.", "en": "It is not aligned manually because it can change the perception of the bite and affect the final denture."}}
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "CBCT y DICOM: ver el hueso", "en": "CBCT and DICOM: seeing the bone"},
+         "cuerpo": {"es": "El **CBCT** (tomografía de haz cónico) es una radiografía en 3D de huesos y dientes. Su formato nativo es **DICOM**, el estándar de imágenes médicas. Sirve para **planificar**: ver dónde hay hueso para los implantes y alinear el hueso con la sonrisa.\nEn BlueSky se **segmenta**: el programa separa maxilar, mandíbula y dientes. Si el CBCT ya está en la carpeta \"DICOM files\", no se descarga otra vez para evitar duplicar archivos pesados y versiones distintas.",
+                  "en": "The **CBCT** (cone beam tomography) is a 3D X-ray of bone and teeth. Its native format is **DICOM**, the medical imaging standard. It is used for **planning**: seeing where there is bone for the implants and aligning bone with the smile.\nIn BlueSky it is **segmented**: the program separates maxilla, mandible and teeth. If the CBCT is already in the \"DICOM files\" folder, it is not downloaded again to avoid duplicating heavy files and different versions."},
+         "alerta": {"es": "Si al descomprimir un CT no hay archivos DICOM, no hay datos para segmentar: no sigas y verifica. Si el nombre del CT no coincide con el paciente de la plataforma, tampoco.", "en": "If a CT has no DICOM files after unzipping, there is no data to segment: do not continue and verify. If the CT name does not match the platform patient, same."}},
+        {"t": "texto",
+         "titulo": {"es": "Fotografía clínica: escala y contexto", "en": "Clinical photography: scale and context"},
+         "cuerpo": {"es": "Las fotos muestran la cara real. Se piden **9 fotos estándar** (o las de edéntulo, paciente sin dientes). Se coloca una pegatina en una zona plana de la frente, entre las cejas, que da **escala real**. La cabeza debe estar recta y las orejas visibles. Debe ser foto de cámara, no iPad, porque otros dispositivos deforman las proporciones. Sin espuma azul (blue mousse) que tape dientes.",
+                  "en": "Photos show the real face. **9 standard photos** are required (or the edentulous ones, for a patient without teeth). A sticker is placed on a flat area of the forehead, between the eyebrows, giving **real scale**. The head must be straight with ears visible. It must be a camera photo, not an iPad, because other devices deform proportions. No blue mousse covering teeth."},
+         "porque": {"es": "Sin escala conocida el tamaño de los dientes sería adivinado; sin cabeza recta el plano de la sonrisa saldría torcido.", "en": "Without known scale, tooth size would be guessed; without a straight head the smile plane would come out crooked."}},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "IOS: Upper + Lower + 3 bites; paladar, tejido e intaglio completos.", "en": "IOS: Upper + Lower + 3 bites; complete palate, tissue and intaglio."},
+           {"es": "CBCT en DICOM: sirve para planificar; BlueSky separa hueso y dientes.", "en": "CBCT in DICOM: used for planning; BlueSky separates bone and teeth."},
+           {"es": "Fotos: pegatina para escala, cabeza recta, cámara real y sin blue mousse.", "en": "Photos: sticker for scale, straight head, real camera and no blue mousse."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Para qué sirve la pegatina en la frente del paciente en las fotos?", "en": "What is the sticker on the patient's forehead for in the photos?"},
+            "opciones": [
+              {"texto": {"es": "Da una escala real de la cara al alinearla con los escaneos.", "en": "It gives a real scale of the face when aligning it with the scans."}, "ok": true},
+              {"texto": {"es": "Identifica al paciente.", "en": "It identifies the patient."}},
+              {"texto": {"es": "Mejora la iluminación.", "en": "It improves lighting."}}
+            ],
+            "explicacion": {"es": "Sin una medida conocida, el tamaño de los dientes sería adivinado.", "en": "Without a known measurement, tooth size would be guessed."}},
+           {"tipo": "una",
+            "enunciado": {"es": "Un escaneo del upper llega sin paladar. ¿Qué corresponde?", "en": "An upper scan arrives without a palate. What is right?"},
+            "opciones": [
+              {"texto": {"es": "Pedir re-escaneo: el paladar es fundamental para un diseño preciso.", "en": "Request a re-scan: the palate is essential for an accurate design."}, "ok": true},
+              {"texto": {"es": "Seguir y completar el paladar a ojo.", "en": "Continue and fill in the palate by eye."}},
+              {"texto": {"es": "Ignorarlo, el paladar no importa.", "en": "Ignore it, the palate does not matter."}}
+            ],
+            "explicacion": {"es": "Trabajar con información incompleta compromete la precisión de todo el diseño.", "en": "Working with incomplete information compromises the precision of the whole design."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "DICOM es el formato estándar en el que viene un CBCT.", "en": "DICOM is the standard format a CBCT comes in."},
+            "ok": true,
+            "explicacion": {"es": "DICOM es el estándar de imágenes médicas; de él se segmenta el hueso.", "en": "DICOM is the medical imaging standard; bone is segmented from it."}}
+         ]}
+      ]
+    },
+    {
+      "id": "m2-l5",
+      "titulo": {"es": "Formatos, nombres y revisión", "en": "Formats, names and review"},
+      "minutos": 7,
+      "pasos": [
+        {"t": "tabla",
+         "titulo": {"es": "Formatos de archivo", "en": "File formats"},
+         "cabeceras": [{"es": "Formato", "en": "Format"}, {"es": "Qué contiene", "en": "What it holds"}, {"es": "Dónde aparece", "en": "Where it appears"}],
+         "filas": [
+           [{"es": "STL", "en": "STL"}, {"es": "Malla 3D de una superficie (triángulos)", "en": "3D mesh of a surface (triangles)"}, {"es": "Micron, Maxillar Print, Nightguard, exportes para laboratorio", "en": "Micron, Maxillar Print, Nightguard, lab exports"}],
+           [{"es": "OBJ", "en": "OBJ"}, {"es": "Otro formato de modelo 3D", "en": "Another 3D model format"}, {"es": "Escaneos intraorales en el flujo Traveling", "en": "Intraoral scans in the Traveling flow"}],
+           [{"es": "DICOM", "en": "DICOM"}, {"es": "Imágenes médicas en capas (tomografía)", "en": "Layered medical images (tomography)"}, {"es": "CBCT / CT", "en": "CBCT / CT"}],
+           [{"es": "JPG / PNG", "en": "JPG / PNG"}, {"es": "Imágenes (fotos y capturas)", "en": "Images (photos and screenshots)"}, {"es": "Fotos clínicas y evidencias", "en": "Clinical photos and evidence"}],
+           [{"es": "ZIP", "en": "ZIP"}, {"es": "Paquete comprimido de archivos", "en": "Compressed package of files"}, {"es": "To Mill / To Print", "en": "To Mill / To Print"}]
+         ]},
+        {"t": "texto",
+         "titulo": {"es": "Nombres exactos: por qué", "en": "Exact names: why"},
+         "cuerpo": {"es": "En Nuvia los archivos y objetos se nombran con reglas fijas: Bite L / R / F, Existing Teeth Upper / Lower, CBCT, Maxilla / Mandible; en N2, Uppertissue, Lowertissue, el waxup con su talla (ejemplo BW5), CT y Bite; para el laboratorio, U.C. / U.L. / U.R. + nombre del paciente. Los nombres de carpeta también son fijos, como \"3. Maxillar Print\" > \"To Print\".\nLa consistencia permite que cualquiera —y el propio software— encuentre cada cosa sin preguntar.",
+                  "en": "At Nuvia files and objects are named with fixed rules: Bite L / R / F, Existing Teeth Upper / Lower, CBCT, Maxilla / Mandible; in N2, Uppertissue, Lowertissue, the waxup with its size (example BW5), CT and Bite; for the lab, U.C. / U.L. / U.R. + patient name. Folder names are also fixed, such as \"3. Maxillar Print\" > \"To Print\".\nConsistency lets anyone — and the software itself — find each thing without asking."},
+         "porque": {"es": "Trazabilidad: el nombre dice de quién es el archivo y en qué estado está. Además el laboratorio no tiene acceso a la carpeta de diseño, así que solo ve lo que se le entrega con nombres claros; y poner las iniciales o el nombre del paciente evita confundir modelos.", "en": "Traceability: the name says whose file it is and what state it is in. Also the lab has no access to the design folder, so it only sees what is delivered with clear names; and adding initials or the patient name avoids mixing up models."}},
+        {"t": "texto",
+         "titulo": {"es": "Dropbox: cuidado con el zip vacío", "en": "Dropbox: beware the empty zip"},
+         "cuerpo": {"es": "Guardamos los casos en Dropbox y a menudo se comprime una carpeta para subirla a la plataforma. Hay una trampa: si la carpeta está solo \"en la nube\" y se comprime, el zip llega **vacío**. La solución es marcarla primero como \"disponible sin conexión\" (Make available offline) y luego comprimir.",
+                  "en": "We store cases in Dropbox and often zip a folder to upload to the platform. There is a trap: if the folder is only \"in the cloud\" and gets zipped, the zip arrives **empty**. The fix is to first mark it \"available offline\" (Make available offline) and then zip."},
+         "alerta": {"es": "Antes de subir un zip, ábrelo y comprueba que tiene archivos dentro.", "en": "Before uploading a zip, open it and check there are files inside."}},
+        {"t": "checklist",
+         "titulo": {"es": "Revisión antes de seguir", "en": "Review before moving on"},
+         "items": [
+           {"es": "Paciente, producto y centro coinciden con la plataforma.", "en": "Patient, product and center match the platform."},
+           {"es": "El nombre del CT coincide con el del paciente y hay archivos DICOM.", "en": "The CT name matches the patient and DICOM files exist."},
+           {"es": "IOS completo: Upper, Lower y los 3 bites, sin duplicados.", "en": "IOS complete: Upper, Lower and the 3 bites, no duplicates."},
+           {"es": "Hay paladar, tejido amplio e intaglio cuando aplica.", "en": "Palate, wide tissue and intaglio are present when applicable."},
+           {"es": "Fotos completas, nítidas, con cabeza recta y orejas visibles.", "en": "Photos complete, sharp, with straight head and ears visible."},
+           {"es": "Nombres de objetos y carpetas exactos.", "en": "Object and folder names exact."},
+           {"es": "Si falta algo, dejé comentario o avisé al manager.", "en": "If something is missing, I left a comment or told the manager."}
+         ]},
+        {"t": "resumen",
+         "titulo": {"es": "Ideas clave", "en": "Key ideas"},
+         "puntos": [
+           {"es": "STL/OBJ son mallas 3D, DICOM es la tomografía, ZIP el paquete de entrega.", "en": "STL/OBJ are 3D meshes, DICOM is the tomography, ZIP the delivery package."},
+           {"es": "Nombres fijos = trazabilidad y que el software encuentre los objetos.", "en": "Fixed names = traceability and the software finding objects."},
+           {"es": "Revisa que todo esté completo antes de diseñar; si no, avisa.", "en": "Check everything is complete before designing; if not, report it."}
+         ]},
+        {"t": "quiz",
+         "preguntas": [
+           {"tipo": "una",
+            "enunciado": {"es": "¿Por qué usamos nombres de archivo y carpeta estandarizados?", "en": "Why do we use standardized file and folder names?"},
+            "opciones": [
+              {"texto": {"es": "Para que personas y programas encuentren cada cosa y se pueda rastrear el caso.", "en": "So people and programs find each thing and the case can be traced."}, "ok": true},
+              {"texto": {"es": "Porque es más bonito.", "en": "Because it looks nicer."}},
+              {"texto": {"es": "Para ocupar menos espacio.", "en": "To take less space."}}
+            ],
+            "explicacion": {"es": "La consistencia es la base de la trazabilidad y de que las etapas siguientes y el laboratorio localicen lo que necesitan.", "en": "Consistency is the basis of traceability and of later stages and the lab locating what they need."}},
+           {"tipo": "vf",
+            "enunciado": {"es": "Si comprimes una carpeta que solo está en la nube de Dropbox, el zip saldrá bien.", "en": "If you zip a folder that is only in the Dropbox cloud, the zip will come out fine."},
+            "ok": false,
+            "explicacion": {"es": "Llega vacío: hay que marcarla \"disponible sin conexión\" antes de comprimir.", "en": "It arrives empty: you must mark it \"available offline\" before zipping."}},
+           {"tipo": "varias",
+            "enunciado": {"es": "¿Qué se verifica antes de seguir con un caso?", "en": "What is verified before moving on with a case?"},
+            "opciones": [
+              {"texto": {"es": "Que el paciente del archivo sea el de la plataforma", "en": "That the file's patient is the platform's patient"}, "ok": true},
+              {"texto": {"es": "Que los escaneos estén completos", "en": "That scans are complete"}, "ok": true},
+              {"texto": {"es": "Que el color del fondo de pantalla sea claro", "en": "That the desktop background is light"}}
+            ],
+            "explicacion": {"es": "Trabajar con el paciente equivocado o con datos incompletos contamina todas las etapas.", "en": "Working with the wrong patient or incomplete data contaminates every stage."}}
+         ]}
+      ]
+    }
+  ],
+  "glosario": [
+    {"id": "m2-ios", "termino": {"es": "IOS", "en": "IOS"}, "def": {"es": "Intraoral Scan: modelo 3D de la boca hecho con un escáner intraoral.", "en": "Intraoral Scan: 3D model of the mouth made with an intraoral scanner."}, "cat": "herramientas"},
+    {"id": "m2-cbct", "termino": {"es": "CBCT / CT", "en": "CBCT / CT"}, "def": {"es": "Tomografía de haz cónico: imagen 3D de huesos y dientes.", "en": "Cone beam tomography: 3D image of bone and teeth."}, "cat": "herramientas"},
+    {"id": "m2-dicom", "termino": {"es": "DICOM", "en": "DICOM"}, "def": {"es": "Formato estándar de imágenes médicas, en el que viene el CBCT.", "en": "Standard medical imaging format the CBCT comes in."}, "cat": "formatos"},
+    {"id": "m2-stl", "termino": {"es": "STL", "en": "STL"}, "def": {"es": "Formato de malla 3D (triángulos) usado para escaneos y fabricación.", "en": "3D mesh format (triangles) used for scans and manufacturing."}, "cat": "formatos"},
+    {"id": "m2-obj", "termino": {"es": "OBJ", "en": "OBJ"}, "def": {"es": "Otro formato de modelo 3D, usado en algunos escaneos.", "en": "Another 3D model format, used for some scans."}, "cat": "formatos"},
+    {"id": "m2-malla", "termino": {"es": "Malla (mesh)", "en": "Mesh"}, "def": {"es": "Superficie 3D formada por miles de triángulos pequeños.", "en": "3D surface made of thousands of tiny triangles."}, "cat": "formatos"},
+    {"id": "m2-exocad", "termino": {"es": "exocad", "en": "exocad"}, "def": {"es": "Software CAD dental donde se diseña la pieza final.", "en": "Dental CAD software where the final piece is designed."}, "cat": "herramientas"},
+    {"id": "m2-libreria", "termino": {"es": "Librería", "en": "Library"}, "def": {"es": "Catálogo de formas predefinidas (dientes, geometrías de implantes).", "en": "Catalog of predefined shapes (teeth, implant geometries)."}, "cat": "herramientas"},
+    {"id": "m2-blender", "termino": {"es": "Blender (B4D)", "en": "Blender (B4D)"}, "def": {"es": "Programa de modelado 3D con el complemento Blender for Dental.", "en": "3D modeling program with the Blender for Dental add-on."}, "cat": "herramientas"},
+    {"id": "m2-meshmixer", "termino": {"es": "Meshmixer", "en": "Meshmixer"}, "def": {"es": "Programa para revisar, editar y cortar mallas 3D.", "en": "Program to check, edit and cut 3D meshes."}, "cat": "herramientas"},
+    {"id": "m2-bluesky", "termino": {"es": "BlueSky", "en": "BlueSky"}, "def": {"es": "Programa para ver y segmentar el CBCT.", "en": "Program to view and segment the CBCT."}, "cat": "herramientas"},
+    {"id": "m2-segmentacion", "termino": {"es": "Segmentación", "en": "Segmentation"}, "def": {"es": "Separar maxilar, mandíbula y dientes dentro del CBCT.", "en": "Separating maxilla, mandible and teeth inside the CBCT."}, "cat": "herramientas"},
+    {"id": "m2-icp", "termino": {"es": "ICP", "en": "ICP"}, "def": {"es": "Iterative Closest Point: algoritmo que alinea dos mallas por zonas coincidentes.", "en": "Iterative Closest Point: algorithm that aligns two meshes by matching areas."}, "cat": "herramientas"},
+    {"id": "m2-parentear", "termino": {"es": "Parentear", "en": "Parenting"}, "def": {"es": "Unir objetos para que se muevan juntos como un bloque.", "en": "Tying objects so they move together as a block."}, "cat": "herramientas"},
+    {"id": "m2-intaglio", "termino": {"es": "Intaglio", "en": "Intaglio"}, "def": {"es": "Cara interna de una prótesis, la que apoya en la encía.", "en": "Inner face of a prosthesis, the one resting on the gum."}, "cat": "registros"},
+    {"id": "m2-biteblock", "termino": {"es": "Bite blocks", "en": "Bite blocks"}, "def": {"es": "Bloques que registran la mordida cuando faltan dientes.", "en": "Blocks that record the bite when teeth are missing."}, "cat": "registros"},
+    {"id": "m2-edentulo", "termino": {"es": "Edéntulo", "en": "Edentulous"}, "def": {"es": "Paciente sin dientes (total o parcial).", "en": "Patient without teeth (total or partial)."}, "cat": "registros"},
+    {"id": "m2-mousse", "termino": {"es": "Blue mousse", "en": "Blue mousse"}, "def": {"es": "Espuma azul de registro de mordida; no debe tapar dientes en las fotos.", "en": "Blue bite-registration foam; must not cover teeth in photos."}, "cat": "registros"},
+    {"id": "m2-dropbox", "termino": {"es": "Disponible sin conexión", "en": "Available offline"}, "def": {"es": "Opción de Dropbox que baja la carpeta al equipo; necesaria antes de comprimir.", "en": "Dropbox option that downloads the folder locally; required before zipping."}, "cat": "archivos"},
+    {"id": "m2-tomill", "termino": {"es": "To Mill / To Print", "en": "To Mill / To Print"}, "def": {"es": "Paquete que se entrega al laboratorio para fresar o imprimir.", "en": "Package delivered to the lab to mill or print."}, "cat": "archivos"},
+    {"id": "m2-rx", "termino": {"es": "RX", "en": "RX"}, "def": {"es": "Prescripción del doctor con producto, talla y cambios.", "en": "Doctor's prescription with product, size and changes."}, "cat": "registros"}
+  ]
+}
