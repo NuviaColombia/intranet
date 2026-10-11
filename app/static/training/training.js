@@ -1,5 +1,5 @@
 // Training de Design: aplicación principal (rutas y vistas). Contenido en /static/training/data/*.json (vía /design/api/training/contenido).
-import { CFG, S, h, t, ui, md, api, toast, vaciar, setLang, iniciarGlosarioPop, estadoLeccion, resumenModulo, resumenGeneral, guardarProgreso, todasLasLecciones, anillo, barra, AREAS, tarjetaLider, avatar } from './lib.js';
+import { CFG, S, h, t, ui, md, api, toast, vaciar, setLang, iniciarGlosarioPop, estadoLeccion, resumenModulo, resumenGeneral, guardarProgreso, todasLasLecciones, anillo, barra, AREAS, tarjetaLider, avatar, T, U, ED as EDL, aplicarTema, temaActual } from './lib.js';
 import { renderPaso } from './steps.js';
 import { crearQuiz, mezclar } from './quiz.js';
 
@@ -16,16 +16,17 @@ async function cargarContenido() {
 async function cargarEditor() {
   if (!S.editando || ED) return;
   ED = await import('./editor.js');
-  ED.iniciar({ raiz, vista, ir, ruta: () => ruta(), pintarMenu: () => pintarMenu(), recargar, salirEdicion, esLeccion: () => /^#\/l\//.test(location.hash), get destruir() { return destruir; } });
+  ED.iniciar({ raiz, vista, ir, ruta: () => ruta(), pintarMenu: () => pintarMenu(), recargar, salirEdicion, modActual: () => modDeRuta(), esLeccion: () => /^#\/l\//.test(location.hash), get destruir() { return destruir; } });
+  ED.activarEnLugar();
 }
 async function recargar() { await cargarContenido(); if (ED) ED.olvidar(); armarMarco(); ruta(); }
 async function entrarEdicion() {
   S.editando = true; S.vistaAlumno = false; try { sessionStorage.setItem('tr_editar', '1'); } catch (e) { /* sin almacenamiento */ }
-  try { await cargarContenido(); await cargarEditor(); } catch (e) { toast(e.message, 'error'); }
+  try { await cargarContenido(); await cargarEditor(); if (ED) ED.activarEnLugar(); } catch (e) { toast(e.message, 'error'); }
   armarMarco(); ruta();
 }
 async function salirEdicion() {
-  if (ED) ED.cerrarPanel();
+  if (ED) { ED.cerrarPanel(); ED.desactivarEnLugar(); }
   S.editando = false; S.vistaAlumno = false; try { sessionStorage.removeItem('tr_editar'); } catch (e) { /* sin almacenamiento */ }
   await cargarContenido(); armarMarco(); ruta();
 }
@@ -50,6 +51,8 @@ function armarMarco() {
     h('div', { class: 'tr-buscar-w' }, h('span', { class: 'tr-buscar-ico', 'aria-hidden': 'true' }, '⌕'), buscador, resultados),
     h('div', { class: 'tr-top-der' }, CFG.esAdmin ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-editar' + (S.editando ? ' on' : ''), 'aria-pressed': !!S.editando, title: ui('editarAyuda'),
       onclick: () => (S.editando ? salirEdicion() : entrarEdicion()) }, S.editando ? '✓ ' + ui('salirEdicion') : '✏️ ' + ui('editar')) : null,
+      h('button', { type: 'button', class: 'tr-tema-btn', title: temaActual() === 'oscuro' ? ui('temaClaro') : ui('temaOscuro'), 'aria-label': temaActual() === 'oscuro' ? ui('temaClaro') : ui('temaOscuro'),
+        onclick: () => { aplicarTema(temaActual() === 'oscuro' ? 'claro' : 'oscuro'); armarMarco(); ruta(); } }, temaActual() === 'oscuro' ? '☀️' : '🌙'),
       h('a', { href: '#/', class: 'tr-mini-anillo', title: ui('progresoTotal'), 'aria-label': ui('progresoTotal') + ' ' + pct + '%' }, anillo(pct, 34, 5), h('span', null, pct + '%')), idioma));
   menu = h('div', { class: 'tr-menu', role: 'navigation', 'aria-label': ui('ruta') });
   cuerpo = h('div', { class: 'tr-cuerpo', id: 'trMain', role: 'region', 'aria-label': 'Training', tabindex: '-1' });
@@ -120,6 +123,14 @@ function primeraPendiente() {
   return l ? { id: l.id, paso: 0 } : null;
 }
 
+// ---------- Bloques que el admin ordena u oculta (sitio[clave] = { orden, ocultos }) ----------
+const sitio = () => S.contenido.sitio || {};
+function ordenar(clave, bloques, opciones) {
+  if (S.editando && ED) return ED.ordenarBloques(clave, bloques, opciones);
+  const conf = sitio()[clave] || {}, orden = conf.orden || [], ocultos = new Set(conf.ocultos || []);
+  return bloques.filter((b) => !ocultos.has(b[0])).sort((a, b) => { const ia = orden.indexOf(a[0]), ib = orden.indexOf(b[0]); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); }).map((b) => b[1]);
+}
+
 // ---------- Inicio ----------
 function tarjetaModulo(m, n, grande) {
   const rs = resumenModulo(m), a = m.area && AREAS[m.area], lider = a && (S.lideres || {})[m.area];
@@ -130,24 +141,34 @@ function tarjetaModulo(m, n, grande) {
     barra(rs.pct), h('div', { class: 'tr-mod-meta' }, `${rs.total} ${ui('lecciones')} · ≈${rs.minutos} ${ui('min')}`));
 }
 function vistaInicio() {
-  const g = resumenGeneral(), sig = primeraPendiente(), info = sig && leccion(sig.id);
-  const hero = h('section', { class: 'tr-hero' },
-    h('div', { class: 'tr-hero-txt' }, h('div', { class: 'tr-eyebrow' }, ui('hola', { n: CFG.nombre || '' }) + ' 👋'), h('h1', null, ui('bienvenida')), h('p', null, ui('subBienvenida')),
+  const g = resumenGeneral(), sig = primeraPendiente(), info = sig && leccion(sig.id), portada = (sitio().portada || {}).src;
+  const hero = h('section', { class: 'tr-hero' + (portada ? ' con-portada' : '') }, portada ? h('img', { class: 'tr-hero-img', src: portada, alt: '' }) : null,
+    h('div', { class: 'tr-hero-txt' }, h('div', { class: 'tr-eyebrow' }, ui('hola', { n: CFG.nombre || '' }) + ' 👋'), U('h1', null, 'bienvenida'), U('p', null, 'subBienvenida'),
       sig && info ? h('div', { class: 'tr-hero-cta' }, h('a', { class: 'tr-btn tr-btn-primario tr-btn-grande', href: '#/l/' + sig.id + (sig.paso ? '/' + sig.paso : '') }, (sig.retoma || g.hechas ? ui('continuar') : ui('empezar')) + ' →'),
         h('span', { class: 'tr-sub' }, (sig.retoma ? ui('ultima') + ': ' : '') + t(info.l.titulo))) : h('div', { class: 'tr-hero-cta' }, h('span', { class: 'tr-chip-estado hecho' }, '🎉 ' + ui('completado')))),
     h('div', { class: 'tr-hero-prog' }, h('div', { class: 'tr-anillo-w' }, anillo(g.pct, 150, 14), h('div', { class: 'tr-anillo-n' }, h('b', null, g.pct + '%'), h('span', null, `${g.hechas} ${ui('de')} ${g.total}`))), h('div', { class: 'tr-sub' }, ui('progresoTotal') + ' · ' + ui('lecciones'))));
   const grupo = (sec) => S.contenido.modulos.filter((m) => seccionDe(m) === sec);
-  const secciones = [];
+  const editar = S.editando && ED;
+  const rejilla = (sec, cls, lista, tarjeta) => {
+    const grid = h('div', { class: 'tr-grid-mod ' + cls }, lista.map((m, i) => { const c = tarjeta(m, i); if (editar) ED.moduloArrastrable(c, m, sec); return c; }));
+    if (editar) { ED.zonaModulos(grid, sec); if (!lista.length) grid.append(h('div', { class: 'tr-vacio tr-ed-soltar' }, 'Arrastra aquí un módulo')); }
+    return grid;
+  };
   const intro = grupo('intro'), areas = grupo('area'), biblio = grupo('biblioteca');
-  if (intro.length) secciones.push(h('section', { class: 'tr-seccion' }, h('h2', null, ui('secIntro')), h('div', { class: 'tr-grid-mod uno' }, intro.map((m) => tarjetaModulo(m, 1, true)))));
-  if (areas.length) secciones.push(h('section', { class: 'tr-seccion' }, h('h2', null, ui('secAreas')), h('p', { class: 'tr-sub' }, ui('areasDesc')), h('div', { class: 'tr-grid-mod' }, areas.map((m, i) => tarjetaModulo(m, i + 1)))));
-  if (biblio.length) secciones.push(h('section', { class: 'tr-seccion' }, h('h2', null, '📚 ' + ui('secBiblio')), h('p', { class: 'tr-sub' }, ui('biblioDesc')), h('div', { class: 'tr-grid-mod chica' }, biblio.map((m) => tarjetaModulo(m)))));
-  const herr = h('section', { class: 'tr-seccion' }, h('h2', null, ui('herramientas')), h('div', { class: 'tr-grid-herr' },
-    [['#/laboratorio', '🧪', ui('laboratorio'), ui('labDesc')], ['#/glosario', '📖', ui('glosario'), ui('glosarioDesc')], ['#/examen', '📝', ui('examen'), ui('examenDesc')], ...(CFG.esAdmin ? [['#/admin', '⚙️', ui('admin'), ui('adminDesc')]] : [])]
-      .map(([hr, ico, tit, desc]) => h('a', { class: 'tr-herr', href: hr }, h('span', { class: 'tr-herr-ico' }, ico), h('div', null, h('b', null, tit), h('p', null, desc))))));
-  const pag = h('div', { class: 'tr-pagina' }, hero, ...secciones, herr);
+  const bloques = [['hero', hero, 'Portada']];
+  if (intro.length || editar) bloques.push(['intro', h('section', { class: 'tr-seccion' }, U('h2', null, 'secIntro'), rejilla('intro', 'uno', intro, (m) => tarjetaModulo(m, 1, true))), 'Empieza aquí']);
+  if (areas.length || editar) bloques.push(['areas', h('section', { class: 'tr-seccion' }, U('h2', null, 'secAreas'), U('p', { class: 'tr-sub' }, 'areasDesc'), rejilla('area', '', areas, (m, i) => tarjetaModulo(m, i + 1))), 'Las áreas']);
+  if (biblio.length || editar) bloques.push(['biblioteca', h('section', { class: 'tr-seccion' }, U('h2', null, 'secBiblio', '📚 '), U('p', { class: 'tr-sub' }, 'biblioDesc'), rejilla('biblioteca', 'chica', biblio, (m) => tarjetaModulo(m))), 'Biblioteca de referencia']);
+  const herr = h('section', { class: 'tr-seccion' }, U('h2', null, 'herramientas'), h('div', { class: 'tr-grid-herr' },
+    [['#/laboratorio', '🧪', 'laboratorio', 'labDesc'], ['#/glosario', '📖', 'glosario', 'glosarioDesc'], ['#/examen', '📝', 'examen', 'examenDesc'], ...(CFG.esAdmin ? [['#/admin', '⚙️', 'admin', 'adminDesc']] : [])]
+      .map(([hr, ico, tit, desc]) => h(editar ? 'div' : 'a', { class: 'tr-herr', href: editar ? null : hr }, h('span', { class: 'tr-herr-ico' }, ico), h('div', null, U('b', null, tit), U('p', null, desc)), editar ? h('a', { class: 'tr-btn tr-btn-chico', href: hr }, 'Abrir →') : null))));
+  bloques.push(['herramientas', herr, 'Herramientas']);
+  const extra = (k) => (k === 'hero' && editar ? h('span', { class: 'tr-acc' },
+    h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: async () => { const l = await ED.elegirImagen(false); if (l && l[0]) { ED.sitio().portada = { src: l[0].src }; ED.cambioSitio(); ruta(); } } }, portada ? '🔄 Cambiar imagen de portada' : '🖼 Imagen de portada'),
+    portada ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-peligro', onclick: () => { delete ED.sitio().portada; ED.cambioSitio(); ruta(); } }, 'Quitar imagen') : null) : null);
+  const pag = h('div', { class: 'tr-pagina' }, ...ordenar('inicio', bloques, { extra }));
   vista(pag, ui('inicio'));
-  if (S.editando && ED) ED.decorarInicio(pag);
+  if (editar) ED.decorarInicio(pag);
 }
 
 // ---------- Módulo ----------
@@ -163,7 +184,7 @@ function vistaModulo(id) {
   }));
   const sig = (m.lecciones || []).find((l) => !estadoLeccion(l.id).completada) || (m.lecciones || [])[0];
   vista(h('div', { class: 'tr-pagina' }, h('div', { class: 'tr-migas', role: 'navigation' }, h('a', { href: '#/' }, ui('inicio')), ' › ', t(m.titulo)),
-    h('section', { class: 'tr-mod-head' }, h('span', { class: 'tr-mod-ico grande' }, m.icono || '📘'), h('div', null, h('h1', null, t(m.titulo)), h('p', null, t(m.resumen)), h('div', { class: 'tr-sub' }, `${rs.total} ${ui('lecciones')} · ≈${rs.minutos} ${ui('min')} · ${ui('porcentaje', { n: rs.pct })}`), barra(rs.pct))),
+    h('section', { class: 'tr-mod-head' }, h('span', { class: 'tr-mod-ico grande' }, m.icono || '📘'), h('div', null, T('h1', null, m.titulo), T('p', null, m.resumen), h('div', { class: 'tr-sub' }, `${rs.total} ${ui('lecciones')} · ≈${rs.minutos} ${ui('min')} · ${ui('porcentaje', { n: rs.pct })}`), barra(rs.pct))),
     m.area && AREAS[m.area] ? tarjetaLider(m.area) : null,
     sig ? h('a', { class: 'tr-btn tr-btn-primario', href: '#/l/' + sig.id }, (rs.hechas ? ui('continuar') : ui('empezar')) + ' →') : null, lista), t(m.titulo));
   if (S.editando && ED) ED.decorarModulo(cuerpo.querySelector('.tr-pagina'), m).catch((e) => toast(e.message, 'error'));
@@ -179,7 +200,7 @@ function vistaLeccion(id, pasoIni) {
   const btnAnt = h('button', { type: 'button', class: 'tr-btn', onclick: () => mover(-1) }, '← ' + ui('anterior')), btnSig = h('button', { type: 'button', class: 'tr-btn tr-btn-primario', onclick: () => avanzar() });
   const progresoTxt = h('span', { class: 'tr-sub' });
   const cab = h('div', { class: 'tr-leccion-cab' }, h('div', { class: 'tr-migas', role: 'navigation' }, h('a', { href: '#/' }, ui('inicio')), ' › ', h('a', { href: '#/m/' + m.id }, t(m.titulo))),
-    h('h1', null, t(l.titulo)), h('div', { class: 'tr-sub' }, `${minutosLeccion(l)} ${ui('min')} · ${ui('atajos')}`));
+    T('h1', null, l.titulo), h('div', { class: 'tr-sub' }, `${minutosLeccion(l)} ${ui('min')} · ${ui('atajos')}`));
   const marco = h('div', { class: 'tr-pagina tr-leccion' }, cab, h('div', { class: 'tr-leccion-prog' }, puntos, progresoTxt), lienzo, h('div', { class: 'tr-leccion-nav' }, btnAnt, btnSig));
   vista(marco, t(l.titulo));
   const ctx = { onQuiz: async (pct) => {
@@ -217,7 +238,7 @@ function vistaLeccion(id, pasoIni) {
   function final() {
     const sig = todasLasLecciones().find((x) => !estadoLeccion(x.id).completada && x.id !== l.id), sigMismo = (m.lecciones || [])[(m.lecciones || []).findIndex((x) => x.id === l.id) + 1];
     const e = estadoLeccion(l.id), rs = resumenModulo(m);
-    vaciar(lienzo).append(h('div', { class: 'tr-fin tr-entra' }, h('div', { class: 'tr-fin-ico' }, '🎉'), h('h2', null, ui('completaLeccion')), h('p', null, `${ui('puntaje')}: ${e.puntaje || 100}%`), h('div', { class: 'tr-sub' }, `${t(m.titulo)} · ${ui('porcentaje', { n: rs.pct })}`), barra(rs.pct),
+    vaciar(lienzo).append(h('div', { class: 'tr-fin tr-entra' }, h('div', { class: 'tr-fin-ico' }, '🎉'), U('h2', null, 'completaLeccion'), h('p', null, `${ui('puntaje')}: ${e.puntaje || 100}%`), h('div', { class: 'tr-sub' }, `${t(m.titulo)} · ${ui('porcentaje', { n: rs.pct })}`), barra(rs.pct),
       h('div', { class: 'tr-fin-acc' }, sigMismo ? h('a', { class: 'tr-btn tr-btn-primario', href: '#/l/' + sigMismo.id }, ui('leccionSig') + ' →') : (sig ? h('a', { class: 'tr-btn tr-btn-primario', href: '#/l/' + sig.id }, ui('moduloSig') + ' →') : h('a', { class: 'tr-btn tr-btn-primario', href: '#/examen' }, ui('examen') + ' →')),
         h('a', { class: 'tr-btn', href: '#/m/' + m.id }, ui('volver')))));
     document.querySelector('.tr-leccion-nav').hidden = true; actual = null; pintarMenu();
@@ -260,7 +281,7 @@ function vistaGlosario(resaltar) {
     }));
     if (!filas.length) out.append(h('div', { class: 'tr-vacio' }, ui('sinResultados')));
   }
-  vista(h('div', { class: 'tr-pagina' }, h('h1', null, '📖 ' + ui('glosario')), h('p', { class: 'tr-sub' }, ui('glosarioDesc')), ent, chips, cuenta, out), ui('glosario'));
+  vista(h('div', { class: 'tr-pagina' }, U('h1', null, 'glosario', '📖 '), U('p', { class: 'tr-sub' }, 'glosarioDesc'), ent, chips, cuenta, out), ui('glosario'));
   pintar();
   if (resaltar) setTimeout(() => { const e = document.getElementById('g-' + resaltar); if (e) e.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
 }
@@ -282,23 +303,43 @@ const LAB_GUIA = {
 };
 function vistaLab() {
   let tab = 'rx';
+  const editar = S.editando && ED, st = sitio();
+  if (editar && !st.labGuia) ED.sitio().labGuia = JSON.parse(JSON.stringify(LAB_GUIA_OBJ()));
+  if (editar && !st.labVisor) ED.sitio().labVisor = JSON.parse(JSON.stringify(LAB_VISOR));
+  const guiaDe = (k) => ((sitio().labGuia || LAB_GUIA_OBJ())[k] || []);
   const guia = h('div', { class: 'tr-lab-guia' });
-  const pintarGuia = () => guia.replaceChildren(h('h3', null, tab === 'rx' ? ui('labGuiaRx') : ui('labGuiaChanges')), ...LAB_GUIA[tab].map(([ico, tit, txt]) => h('div', { class: 'tr-lab-g' }, h('span', { class: 'tr-lab-g-ico' }, ico), h('div', null, h('b', null, t(tit)), h('p', null, t(txt))))));
+  const pintarGuia = () => {
+    const items = guiaDe(tab);
+    guia.replaceChildren(U('h3', null, tab === 'rx' ? 'labGuiaRx' : 'labGuiaChanges'), ...items.map((it, i) => h('div', { class: 'tr-lab-g' },
+      h(editar ? 'button' : 'span', { class: 'tr-lab-g-ico', type: editar ? 'button' : null, title: editar ? 'Cambiar icono' : null, onclick: editar ? () => { const v = prompt('Icono (emoji):', it.ico); if (v) { it.ico = v; ED.cambioSitio(); pintarGuia(); } } : null }, it.ico),
+      h('div', null, T('b', null, it.titulo), T('p', null, it.texto)),
+      editar ? h('div', { class: 'tr-lab-g-acc' },
+        h('button', { type: 'button', class: 'tr-ed-ib', title: 'Subir', disabled: !i, onclick: () => { items.splice(i - 1, 0, items.splice(i, 1)[0]); ED.cambioSitio(); pintarGuia(); } }, '↑'),
+        h('button', { type: 'button', class: 'tr-ed-ib peligro', title: 'Quitar', onclick: () => { items.splice(i, 1); ED.cambioSitio(); pintarGuia(); } }, '✕')) : null)),
+      editar ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { items.push({ ico: '💡', titulo: { es: 'Nuevo punto', en: 'New point' }, texto: { es: 'Qué mirar y por qué.', en: 'What to look at and why.' } }); ED.cambioSitio(); pintarGuia(); } }, '＋ Agregar punto') : null);
+  };
   const visorZona = h('div', { class: 'tr-lab-visor' }, h('div', { class: 'tr-cargando-mini' }, h('div', { class: 'tr-spinner' }), ui('cargando')));
   const simZona = h('div');
-  const cont = h('div', { class: 'tr-pagina tr-pagina-ancha' }, h('h1', null, '🧪 ' + ui('labTitulo')), h('p', { class: 'tr-sub' }, ui('labIntro')),
-    h('section', { class: 'tr-seccion' }, h('h2', null, '🖥 ' + ui('labVisorTit')), h('p', { class: 'tr-sub' }, ui('labVisorSub')), h('div', { class: 'tr-lab-dos' }, visorZona, guia)),
-    h('section', { class: 'tr-seccion' }, h('h2', null, '🎛 ' + ui('labSimTit')), h('p', { class: 'tr-sub' }, ui('labSub')), simZona));
+  const lado = (sitio().lab || {}).guiaLado || 'der';
+  const bloques = [
+    ['visor', h('section', { class: 'tr-seccion' }, U('h2', null, 'labVisorTit', '🖥 '), U('p', { class: 'tr-sub' }, 'labVisorSub'), h('div', { class: 'tr-lab-dos' + (lado === 'izq' ? ' guia-izq' : '') }, visorZona, guia)), 'Visor del caso real'],
+    ['sim', h('section', { class: 'tr-seccion' }, U('h2', null, 'labSimTit', '🎛 '), U('p', { class: 'tr-sub' }, 'labSub'), simZona), 'Simulador de movimientos'],
+  ];
+  const extra = (k) => (k === 'visor' && editar ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { const x = ED.sitio(); x.lab = { ...(x.lab || {}), guiaLado: lado === 'izq' ? 'der' : 'izq' }; ED.cambioSitio(); ruta(); } }, '⇄ Guía a la ' + (lado === 'izq' ? 'derecha' : 'izquierda')) : null);
+  const cont = h('div', { class: 'tr-pagina tr-pagina-ancha' }, U('h1', null, 'labTitulo', '🧪 '), U('p', { class: 'tr-sub' }, 'labIntro'), ...ordenar('lab', bloques, { extra }));
   vista(cont, ui('laboratorio'));
   pintarGuia();
   import('./sim.js').then((m) => {
-    const paso = { t: 'visor', slot: 'laboratorio-visor', pestana: 'rx', titulo: { es: 'Caso real aprobado', en: 'Approved real case' },
-      descripcion: { es: 'Gira con el mouse, acerca con la rueda y usa las pestañas **RX** y **Changes**. A la derecha tienes qué mirar en cada una.', en: 'Rotate with the mouse, zoom with the wheel and use the **RX** and **Changes** tabs. On the right you have what to look at in each one.' },
-      pendiente: { es: 'Sube aquí el visor HTML de un caso (Nuvia Design Viewer).', en: 'Upload a case HTML viewer here (Nuvia Design Viewer).' }, alCambiarPestana: (k) => { tab = k; pintarGuia(); } };
+    const tx = sitio().labVisor || LAB_VISOR;
+    const paso = { t: 'visor', slot: 'laboratorio-visor', pestana: 'rx', titulo: tx.titulo, descripcion: tx.descripcion, pendiente: tx.pendiente || LAB_VISOR.pendiente, alCambiarPestana: (k) => { tab = k; pintarGuia(); } };
     const v = m.crearVisorPaso(paso); visorZona.replaceChildren(v.el);
-    const s = m.crearLaboratorio(); simZona.append(s.el); destruir.push(s.destroy);
+    const s2 = m.crearLaboratorio(); simZona.append(s2.el); destruir.push(s2.destroy);
   }).catch((e) => { console.error(e); cont.append(h('div', { class: 'tr-error' }, ui('errorGenerico'))); });
 }
+const LAB_VISOR = { titulo: { es: 'Caso real aprobado', en: 'Approved real case' },
+  descripcion: { es: 'Gira con el mouse, acerca con la rueda y usa las pestañas **RX** y **Changes**. Al lado tienes qué mirar en cada una.', en: 'Rotate with the mouse, zoom with the wheel and use the **RX** and **Changes** tabs. Next to it you have what to look at in each one.' },
+  pendiente: { es: 'Sube aquí el visor HTML de un caso (Nuvia Design Viewer).', en: 'Upload a case HTML viewer here (Nuvia Design Viewer).' } };
+const LAB_GUIA_OBJ = () => Object.fromEntries(Object.entries(LAB_GUIA).map(([k, l]) => [k, l.map(([ico, titulo, texto]) => ({ ico, titulo, texto }))]));
 
 // ---------- Examen final ----------
 function preguntasExamen() {
@@ -311,7 +352,7 @@ function preguntasExamen() {
 }
 function vistaExamen() {
   const e = estadoLeccion('_examen'), aprobado = e.puntaje >= 80;
-  const caja = h('div', { class: 'tr-pagina' }, h('h1', null, '📝 ' + ui('exTitulo')), h('p', null, ui('exIntro')));
+  const caja = h('div', { class: 'tr-pagina' }, U('h1', null, 'exTitulo', '📝 '), U('p', null, 'exIntro'));
   const resumen = h('div', { class: 'tr-ex-info' }, e.puntaje ? h('div', { class: 'tr-ex-mejor' }, ui('exMejor') + ': ', h('b', null, e.puntaje + '%'), aprobado ? h('span', { class: 'tr-chip-estado hecho' }, '✓ ' + ui('exAprobado')) : null) : null,
     aprobado ? h('a', { class: 'tr-btn', href: '#/diploma' }, '🎓 ' + ui('verDiploma')) : null);
   const zona = h('div', { class: 'tr-ex-zona' });
@@ -327,17 +368,17 @@ function vistaExamen() {
 // ---------- Diploma ----------
 function vistaDiploma() {
   const e = estadoLeccion('_examen');
-  if (e.puntaje < 80) return vista(h('div', { class: 'tr-pagina' }, h('h1', null, '🎓 ' + ui('diploma')), h('p', null, ui('sinDiploma')), h('a', { class: 'tr-btn tr-btn-primario', href: '#/examen' }, ui('examen') + ' →')), ui('diploma'));
+  if (e.puntaje < 80) return vista(h('div', { class: 'tr-pagina' }, U('h1', null, 'diploma', '🎓 '), U('p', null, 'sinDiploma'), h('a', { class: 'tr-btn tr-btn-primario', href: '#/examen' }, ui('examen') + ' →')), ui('diploma'));
   const fecha = new Date((e.actualizado && new Date(e.actualizado).getTime()) || Date.now()).toLocaleDateString(S.lang === 'es' ? 'es-CO' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  vista(h('div', { class: 'tr-pagina' }, h('div', { class: 'tr-diploma' }, h('div', { class: 'tr-dip-borde' }, h('div', { class: 'tr-dip-sello' }, '🎓'), h('div', { class: 'tr-dip-sup' }, 'Nuvia Design'), h('h1', null, ui('diplomaTit')),
-    h('div', { class: 'tr-dip-nombre' }, CFG.nombreCompleto || CFG.nombre), h('p', null, ui('diplomaTxt')), h('p', { class: 'tr-dip-sub' }, ui('diplomaSub')), h('div', { class: 'tr-dip-pie' }, h('span', null, `${ui('fecha')}: ${fecha}`), h('span', null, `${ui('puntaje')}: ${e.puntaje}%`)))),
+  vista(h('div', { class: 'tr-pagina' }, h('div', { class: 'tr-diploma' }, h('div', { class: 'tr-dip-borde' }, h('div', { class: 'tr-dip-sello' }, '🎓'), h('div', { class: 'tr-dip-sup' }, 'Nuvia Design'), U('h1', null, 'diplomaTit'),
+    h('div', { class: 'tr-dip-nombre' }, CFG.nombreCompleto || CFG.nombre), U('p', null, 'diplomaTxt'), U('p', { class: 'tr-dip-sub' }, 'diplomaSub'), h('div', { class: 'tr-dip-pie' }, h('span', null, `${ui('fecha')}: ${fecha}`), h('span', null, `${ui('puntaje')}: ${e.puntaje}%`)))),
     h('div', { class: 'tr-fin-acc tr-noprint' }, h('button', { type: 'button', class: 'tr-btn tr-btn-primario', onclick: () => window.print() }, '🖨 ' + ui('imprimir')), h('a', { class: 'tr-btn', href: '#/' }, ui('volver')))), ui('diploma'));
 }
 
 // ---------- Administración ----------
 async function vistaAdmin() {
   if (!CFG.esAdmin) return ir('#/');
-  const cont = h('div', { class: 'tr-pagina tr-pagina-ancha' }, h('h1', null, '⚙️ ' + ui('admin')), h('div', { class: 'tr-cargando-mini' }, h('div', { class: 'tr-spinner' }), ui('cargando')));
+  const cont = h('div', { class: 'tr-pagina tr-pagina-ancha' }, U('h1', null, 'admin', '⚙️ '), h('div', { class: 'tr-cargando-mini' }, h('div', { class: 'tr-spinner' }), ui('cargando')));
   vista(cont, ui('admin'));
   let datos;
   try { datos = await api.get('/design/api/training/admin'); } catch (e) { cont.append(h('div', { class: 'tr-error' }, e.message)); return; }
@@ -347,7 +388,7 @@ async function vistaAdmin() {
   const pintar = () => {
     tabs.replaceChildren(...[['modelos', '🧩 ' + ui('modelos3d')], ['lideres', '🧑‍💼 ' + ui('lideres')], ['equipo', '👥 ' + ui('equipo')]].map(([k, rot]) => h('button', { type: 'button', class: 'tr-seg-b' + (tab === k ? ' on' : ''), onclick: () => { tab = k; pintar(); } }, rot)));
     if (tab === 'modelos') {
-      panel.replaceChildren(h('p', { class: 'tr-sub' }, ui('formatos')), datos.slots.length ? h('div', { class: 'tr-tabla-w' }, h('table', { class: 'tr-tabla' }, h('thead', null, h('tr', null, [ui('espacio'), ui('lecc'), ui('estado'), ui('acciones')].map((x) => h('th', null, x)))),
+      panel.replaceChildren(U('p', { class: 'tr-sub' }, 'formatos'), datos.slots.length ? h('div', { class: 'tr-tabla-w' }, h('table', { class: 'tr-tabla' }, h('thead', null, h('tr', null, [ui('espacio'), ui('lecc'), ui('estado'), ui('acciones')].map((x) => h('th', null, x)))),
         h('tbody', null, datos.slots.map((s) => {
           const f = h('input', { type: 'file', accept: s.tipo === 'visor' ? '.html,.htm' : '.glb,.stl,.obj,.ply', hidden: true, onchange: async () => { const a = f.files[0]; if (!a) return; const fd = new FormData(); fd.append('slot', s.slot); fd.append('archivo', a); toast(ui('subiendo')); try { await api.subir('/design/api/training/modelos', fd); toast(ui('subidoOk'), 'ok'); datos = await api.get('/design/api/training/admin'); pintar(); } catch (e) { toast(e.message, 'error'); } } });
           return h('tr', null, h('th', { scope: 'row' }, h('code', null, s.slot), h('div', { class: 'tr-sub' }, t(s.titulo))), h('td', null, h('a', { href: s.leccion ? '#/l/' + s.leccion : '#/laboratorio' }, t(s.leccionTitulo))),
@@ -356,7 +397,7 @@ async function vistaAdmin() {
               h('a', { class: 'tr-btn tr-btn-chico', href: s.leccion ? '#/l/' + s.leccion : '#/laboratorio' }, ui('verLeccion'))));
         })))) : h('div', { class: 'tr-vacio' }, ui('sinModelos')));
     } else if (tab === 'lideres') {
-      panel.replaceChildren(h('p', { class: 'tr-sub' }, ui('liderAyuda')), h('div', { class: 'tr-lideres-admin' }, Object.keys(AREAS).map((a) => {
+      panel.replaceChildren(U('p', { class: 'tr-sub' }, 'liderAyuda'), h('div', { class: 'tr-lideres-admin' }, Object.keys(AREAS).map((a) => {
         const act = (datos.lideres || {})[a], sel = h('select', { class: 'tr-in', 'aria-label': AREAS[a].nombre }, h('option', { value: '' }, ui('liderSinAsignar')), ...datos.candidatos.map((c) => h('option', { value: c.id, selected: !!act && act.empleadoId === c.id }, c.nombre)));
         const ces = h('input', { class: 'tr-in', placeholder: ui('liderCargoEs'), maxlength: 80, value: act ? act.cargo.es : '' }), cen = h('input', { class: 'tr-in', placeholder: ui('liderCargoEn'), maxlength: 80, value: act ? act.cargo.en : '' });
         return h('div', { class: 'tr-lider-adm', style: { '--ac': AREAS[a].color } }, h('h3', null, AREAS[a].ico + ' ' + AREAS[a].nombre), sel, ces, cen,
@@ -377,10 +418,10 @@ async function vistaAdmin() {
 // ---------- Rutas ----------
 function ruta() {
   limpiar(); raiz.classList.remove('menu-abierto');
-  if (ED) ED.cerrarPanel();
+  if (ED) { ED.cerrarPanel(); ED.alCambiarVista(); }
   const r = (location.hash || '#/').replace(/^#/, '').split('/').filter(Boolean);
   try {
-    if (!S.contenido.modulos.length) { vista(h('div', { class: 'tr-pagina' }, h('h1', null, 'Training'), h('p', null, ui('sinContenido'))), 'Training'); pintarMenu(); return; }
+    if (!S.contenido.modulos.length) { vista(h('div', { class: 'tr-pagina' }, h('h1', null, 'Training'), U('p', null, 'sinContenido')), 'Training'); pintarMenu(); return; }
     switch (r[0]) {
       case 'm': vistaModulo(r[1]); break;
       case 'l': vistaLeccion(r[1], parseInt(r[2], 10) || 0); break;
@@ -396,7 +437,7 @@ function ruta() {
 }
 
 async function arrancar() {
-  setLang(S.lang);
+  setLang(S.lang); aplicarTema();
   try {
     const [, p, m, l] = await Promise.all([cargarContenido(), api.get('/design/api/training/progreso').catch(() => ({})), api.get('/design/api/training/modelos').catch(() => []), api.get('/design/api/training/lideres').catch(() => ({}))]);
     S.lideres = l || {}; S.progreso = p || {}; S.modelos = Object.fromEntries((m || []).map((x) => [x.slot, x]));

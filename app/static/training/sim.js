@@ -3,7 +3,7 @@
 // +z = hacia adelante (facial). Los signos de los parámetros siguen el formato de Training (ver README del contenido).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { h, t, ui, md, S, CFG, api, toast, vaciar } from './lib.js';
+import { h, t, ui, md, S, CFG, api, toast, vaciar, T } from './lib.js';
 
 // nombre de una pieza del modelo: "Español|English" (exportado así desde Blender) o un nombre simple
 const nombreParte = (n) => { const [es, en] = n.replace(/_+/g, ' ').split('|'); return t({ es, en: en || es }); };
@@ -374,7 +374,7 @@ export function crearSimulador(opts) {
     h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { lab.reiniciar(); } }, '↺ ' + ui('reiniciar')));
   const barra = h('div', { class: 'tr-sim-barra' }, vistas, opciones);
   const el = h('div', { class: 'tr-sim' },
-    o.titulo ? h('h2', { class: 'tr-paso-tit' }, t(o.titulo)) : null, o.guia ? h('div', { class: 'tr-sim-guia' }, md(o.guia, { maxTerminos: 3 })) : null,
+    o.titulo ? T('h2', { class: 'tr-paso-tit' }, o.titulo) : null, o.guia ? h('div', { class: 'tr-sim-guia' }, md(o.guia, { maxTerminos: 3 })) : null,
     h('div', { class: 'tr-sim-cuerpo' }, h('div', { class: 'tr-sim-izq' }, lienzo, barra, h('div', { class: 'tr-sub tr-sim-ayuda' }, ui('girar'))), h('div', { class: 'tr-sim-der' }, retoCaja, panel, rx)));
   setTimeout(refrescar, 0);
   return { el, lab, destroy: () => lab.destroy() };
@@ -418,7 +418,7 @@ export function crearTourPaso(p) {
   const barra = h('div', { class: 'tr-tour-barra' },
     h('button', { type: 'button', class: 'tr-btn tr-btn-chico', 'aria-label': ui('anterior'), onclick: () => { parar(); ir(idx - 1); } }, '⏮'), btnPlay,
     h('button', { type: 'button', class: 'tr-btn tr-btn-chico', 'aria-label': ui('siguiente'), onclick: () => { parar(); ir(idx + 1); } }, '⏭'), puntos, vel);
-  const el = h('div', { class: 'tr-sim tr-tour' }, h('h2', { class: 'tr-paso-tit' }, '🎬 ' + t(p.titulo)), h('div', { class: 'tr-lienzo-w' }, lienzo, sub), rxLinea, barra);
+  const el = h('div', { class: 'tr-sim tr-tour' }, T('h2', { class: 'tr-paso-tit' }, p.titulo, '🎬 '), h('div', { class: 'tr-lienzo-w' }, lienzo, sub), rxLinea, barra);
   lab.mostrarFantasma = false; setTimeout(() => ir(0), 80); pintarPuntos();
   return { el, destroy: () => { vivo = false; clearTimeout(temporizador); lab.destroy(); } };
 }
@@ -544,7 +544,7 @@ class Visor {
 export function crearModeloPaso(p) {
   const raiz = h('div', { class: 'tr-modelo' }), contenedor = h('div', { class: 'tr-lienzo' });
   let visor = null, destruido = false;
-  const cab = h('div', { class: 'tr-modelo-cab' }, h('h2', { class: 'tr-paso-tit' }, '🧩 ' + t(p.titulo)), md(p.descripcion, { maxTerminos: 3 }));
+  const cab = h('div', { class: 'tr-modelo-cab' }, T('h2', { class: 'tr-paso-tit' }, p.titulo, '🧩 '), md(p.descripcion, { maxTerminos: 3 }));
   raiz.append(cab);
   const info = (S.modelos || {})[p.slot];
   const subirBtn = (rot) => {
@@ -593,7 +593,8 @@ export function crearModeloPaso(p) {
 }
 
 // El visor se descarga una vez por sesión y se muestra desde una copia local (blob): la intranet no deja mostrar sus páginas
-// dentro de un iframe (X-Frame-Options), y así el caso no se vuelve a bajar al cambiar de lección.
+// dentro de un iframe (X-Frame-Options), y así el caso no se vuelve a bajar al cambiar de lección. El iframe lleva
+// allow-same-origin porque sin él Chrome no carga las texturas internas del modelo (foto de la cara); los visores solo los suben admins.
 const VISORES = new Map();   // url -> Promise<blob url>
 function cargarVisor(url, alAvanzar) {
   if (!VISORES.has(url)) {
@@ -611,7 +612,7 @@ function cargarVisor(url, alAvanzar) {
 // Visor de caso: un HTML exportado del Nuvia Design Viewer que sube un admin; se muestra aislado (iframe sandbox) y se abre en la pestaña RX o Changes
 export function crearVisorPaso(p) {
   const raiz = h('div', { class: 'tr-modelo' }), cuerpo = h('div', { class: 'tr-modelo-cuerpo' });
-  raiz.append(h('div', { class: 'tr-modelo-cab' }, h('h2', { class: 'tr-paso-tit' }, '🖥 ' + t(p.titulo)), md(p.descripcion, { maxTerminos: 3 })), cuerpo);
+  raiz.append(h('div', { class: 'tr-modelo-cab' }, T('h2', { class: 'tr-paso-tit' }, p.titulo, '🖥 '), md(p.descripcion, { maxTerminos: 3 })), cuerpo);
   let tab = p.pestana || 'rx';
   function subir(rot) {
     const f = h('input', { type: 'file', accept: '.html,.htm', hidden: true, onchange: async () => {
@@ -630,7 +631,7 @@ export function crearVisorPaso(p) {
     }
     const base = m.url.split('#')[0];
     let local = null;
-    const frame = h('iframe', { class: 'tr-visor-frame', sandbox: 'allow-scripts allow-downloads allow-modals', title: t(p.titulo), allow: 'fullscreen', hidden: true });
+    const frame = h('iframe', { class: 'tr-visor-frame', sandbox: 'allow-scripts allow-same-origin allow-downloads allow-modals', title: t(p.titulo), allow: 'fullscreen', hidden: true });
     const avance = h('span', null, ''), cargando = h('div', { class: 'tr-visor-carga' }, h('div', { class: 'tr-spinner' }), h('div', null, h('b', null, ui('visorCargando')), h('div', { class: 'tr-sub' }, avance)));
     cargarVisor(base, (n) => { avance.textContent = (n / 1048576).toFixed(0) + ' MB'; })
       .then((u) => { local = u; frame.src = u + '#' + tab; frame.hidden = false; cargando.remove(); })

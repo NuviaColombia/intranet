@@ -56,7 +56,7 @@ const UI = {
     labIntro: 'Aquí ves un caso real tal como lo recibe el doctor y practicas los movimientos que se piden en una receta.',
     labVisorTit: 'Un caso real, por dentro', labVisorSub: 'Visor de un caso aprobado (sin datos del paciente). Cambia de pestaña y sigue la guía de la derecha.',
     labSimTit: 'Simulador de movimientos', labGuiaRx: 'Qué mirar en la pestaña RX', labGuiaChanges: 'Qué mirar en la pestaña Changes',
-    editar: 'Editar contenido', visorCargando: 'Cargando el caso…', salirEdicion: 'Salir de edición', editarAyuda: 'Edita textos, lecciones, imágenes y quizzes; se publican cuando tú decidas', ampliar: 'Ver en grande', pdf: 'PDF', verLeccion: 'Ver lección', abrirLeccion: 'Abrir la lección',
+    editar: 'Editar contenido', temaOscuro: 'Modo oscuro', temaClaro: 'Modo claro', visorCargando: 'Cargando el caso…', salirEdicion: 'Salir de edición', editarAyuda: 'Edita textos, lecciones, imágenes y quizzes; se publican cuando tú decidas', ampliar: 'Ver en grande', pdf: 'PDF', verLeccion: 'Ver lección', abrirLeccion: 'Abrir la lección',
   },
   en: {
     inicio: 'Home', ruta: 'Learning path', glosario: 'Glossary', examen: 'Final exam', admin: 'Manage', diploma: 'Diploma',
@@ -106,12 +106,14 @@ const UI = {
     labIntro: 'Here you see a real case just as the doctor receives it, and you practice the movements requested on a prescription.',
     labVisorTit: 'A real case, inside', labVisorSub: 'Viewer of an approved case (no patient data). Switch tabs and follow the guide on the right.',
     labSimTit: 'Movement simulator', labGuiaRx: 'What to look at in the RX tab', labGuiaChanges: 'What to look at in the Changes tab',
-    editar: 'Edit content', visorCargando: 'Loading the case…', salirEdicion: 'Exit editing', editarAyuda: 'Edit texts, lessons, images and quizzes; they go live when you publish', ampliar: 'View larger', pdf: 'PDF', verLeccion: 'View lesson', abrirLeccion: 'Open the lesson',
+    editar: 'Edit content', temaOscuro: 'Dark mode', temaClaro: 'Light mode', visorCargando: 'Loading the case…', salirEdicion: 'Exit editing', editarAyuda: 'Edit texts, lessons, images and quizzes; they go live when you publish', ampliar: 'View larger', pdf: 'PDF', verLeccion: 'View lesson', abrirLeccion: 'Open the lesson',
   },
 };
 
+export const UI_BASE = UI;
 export function ui(clave, vars) {
-  let s = (UI[S.lang] && UI[S.lang][clave]) ?? UI.es[clave];
+  const propio = (((S.contenido && S.contenido.sitio) || {}).ui || {})[S.lang];
+  let s = (propio && propio[clave]) || ((UI[S.lang] && UI[S.lang][clave]) ?? UI.es[clave]);
   if (s === undefined) { console.warn('[training] falta el texto de interfaz:', clave); s = clave; }
   if (vars) for (const k in vars) s = s.replaceAll('{' + k + '}', vars[k]);
   return s;
@@ -228,7 +230,68 @@ export function md(texto, opts) {
     }
   }
   if (!o.sinGlosario) enlazarTerminos(raiz, o.maxTerminos || 5, o.vistos || new Set());
+  if (ED.activo && !o.sinEditar && texto && typeof texto === 'object') {
+    editable(raiz, { multi: true, get: () => texto[S.lang] ?? '', set: (v) => { texto[S.lang] = v; ED.texto && ED.texto(texto); },
+      pintar: () => raiz.replaceChildren(...md(texto, { ...o, sinEditar: true }).childNodes) });
+  }
   return raiz;
+}
+
+// ---------- Edición en el lugar (modo edición de los admins) ----------
+// ED.texto(obj) = un texto {es, en} cambió (lo guarda el editor); ED.ui(clave, valor) = un texto de la plataforma cambió.
+export const ED = { activo: false, texto: null, ui: null, imagenes: null };
+export function editable(el, o) {
+  if (!ED.activo) return el;
+  el.classList.add('tr-editable');
+  el.setAttribute('data-ed-ayuda', 'Doble clic para editar');
+  el.addEventListener('click', (e) => { if (el.isContentEditable) e.stopPropagation(); });
+  el.addEventListener('dblclick', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (el.isContentEditable) return;
+    const antes = el.innerHTML, valor = o.get();
+    el.textContent = valor;
+    try { el.contentEditable = 'plaintext-only'; } catch (err) { el.contentEditable = 'true'; }
+    if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
+    el.classList.add('editando'); el.focus();
+    const sel = window.getSelection(), r = document.createRange(); r.selectNodeContents(el); sel.removeAllRanges(); sel.addRange(r);
+    const fin = (guardar) => {
+      el.removeEventListener('keydown', tecla, true); el.removeEventListener('blur', alSalir);
+      el.contentEditable = 'false'; el.classList.remove('editando');
+      const nuevo = el.innerText.replace(/\u00a0/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+      if (guardar && nuevo !== valor) { o.set(nuevo); if (o.pintar) o.pintar(); else el.textContent = nuevo; } else el.innerHTML = antes;
+    };
+    const alSalir = () => fin(true);
+    const tecla = (ev) => {
+      ev.stopPropagation();
+      if (ev.key === 'Escape') { ev.preventDefault(); fin(false); }
+      else if (ev.key === 'Enter' && (!o.multi || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); el.blur(); }
+    };
+    el.addEventListener('keydown', tecla, true); el.addEventListener('blur', alSalir);
+  });
+  return el;
+}
+// Elemento con un texto bilingüe del contenido (editable en el lugar)
+export function T(tag, attrs, o, prefijo) {
+  const sp = h('span', { class: 'tr-t' }, t(o));
+  if (o && typeof o === 'object') editable(sp, { get: () => o[S.lang] ?? '', set: (v) => { o[S.lang] = v; ED.texto && ED.texto(o); }, pintar: () => { sp.textContent = t(o); } });
+  return h(tag, attrs, prefijo || null, sp);
+}
+// Elemento con un texto de la plataforma (editable en el lugar; se guarda en los textos de la plataforma)
+export function U(tag, attrs, clave, prefijo) {
+  const sp = h('span', { class: 'tr-t' }, ui(clave));
+  editable(sp, { get: () => ui(clave), set: (v) => { ED.ui && ED.ui(clave, v); }, pintar: () => { sp.textContent = ui(clave); } });
+  return h(tag, attrs, prefijo || null, sp);
+}
+
+// ---------- Modo claro / oscuro ----------
+export function temaGuardado() { try { return localStorage.getItem('tr_tema') || ''; } catch (e) { return ''; } }
+export function temaActual() { const g = temaGuardado(); return g || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro'); }
+export function aplicarTema(tema) {
+  if (tema) { try { localStorage.setItem('tr_tema', tema); } catch (e) { /* sin almacenamiento */ } }
+  const v = temaActual();
+  document.documentElement.setAttribute('data-tr-tema', v);
+  const r = document.getElementById('trRaiz'); if (r) r.setAttribute('data-tema', v);
+  return v;
 }
 
 // Ventanita con la definición de un término (clic en cualquier término subrayado)

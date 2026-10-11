@@ -1,7 +1,7 @@
 // Training: editor de contenido para admins (como el editor de la página de Inicio). Todo se guarda solo como borrador;
 // nadie lo ve hasta que se publica el módulo. Se edita sobre la misma página: barra de edición arriba, panel del módulo,
 // lección con todos sus pasos (arrastrables), panel lateral con el formulario de cada paso y biblioteca de imágenes.
-import { S, h, t, md, api, toast, vaciar } from './lib.js';
+import { S, h, t, md, api, toast, vaciar, ED, UI_BASE, ui } from './lib.js';
 import { renderPaso } from './steps.js';
 
 let X = null;                     // funciones de training.js: vista, ir, ruta, pintarMenu, recargar, raiz, destruir
@@ -62,34 +62,63 @@ function pasoNuevo(tipo) {
 }
 
 // ---------- Cargar y guardar ----------
-async function asegurar(mid) {
-  if (est[mid] && est[mid].cargado) return modPor(mid);
+const SITIO = 'sitio';   // textos de la plataforma, orden de secciones y paneles
+const objeto = (mid) => (mid === SITIO ? S.contenido.sitio : modPor(mid));
+// Carga el módulo para editarlo. Lo que ya está en pantalla (borrador) se conserva: solo se le agrega el glosario, que la vista
+// no trae. reemplazar=true (otra persona guardó encima) toma la versión del servidor.
+async function asegurar(mid, reemplazar) {
+  if (est[mid] && est[mid].cargado && !reemplazar) return objeto(mid);
   const r = await api.get('/design/api/training/editor/' + mid);
   est[mid] = { ...(est[mid] || {}), version: r.version, cargado: true };
+  if (mid === SITIO) {
+    if (reemplazar || !S.contenido.sitio || !Object.keys(S.contenido.sitio).length) S.contenido.sitio = r.contenido || {};
+    return S.contenido.sitio;
+  }
   const i = mods().findIndex((m) => m.id === mid);
+  if (i >= 0 && !reemplazar) { mods()[i].glosario = r.contenido.glosario || []; return mods()[i]; }
   if (i >= 0) mods()[i] = r.contenido; else mods().push(r.contenido);
   return r.contenido;
 }
 
 function cambio(mid) {
+  if (!mid) return;
   const e = est[mid] || (est[mid] = {});
   e.pendiente = true; pintarBarra();
   clearTimeout(e.timer); e.timer = setTimeout(() => guardar(mid), 700);
 }
+export function sitio() { const x = S.contenido.sitio || (S.contenido.sitio = {}); return x; }
+export function cambioSitio() { asegurar(SITIO).then(() => cambio(SITIO)); }
+
+// ---------- Edición en el lugar (doble clic en cualquier texto, imágenes con controles) ----------
+let refrescar = null;   // repinta la vista actual después de un cambio de estructura (la pone cada vista)
+const midActual = () => X.modActual() || SITIO;
+export function activarEnLugar() {
+  ED.activo = true;
+  ED.texto = () => { const mid = midActual(); asegurar(mid).then(() => cambio(mid)); if (panelAbierto && panelAbierto.repintar) panelAbierto.repintar(); };
+  ED.estructura = () => { const mid = midActual(); asegurar(mid).then(() => cambio(mid)); if (refrescar) refrescar(); else X.ruta(); };
+  ED.imagenes = (multiple) => elegirImagenes(multiple);
+  ED.ui = (clave, valor) => {
+    const st = sitio(); st.ui = st.ui || {}; st.ui[S.lang] = st.ui[S.lang] || {};
+    st.ui[S.lang][clave] = valor; cambioSitio();
+  };
+}
+export function desactivarEnLugar() { ED.activo = false; ED.texto = ED.estructura = ED.imagenes = ED.ui = null; refrescar = null; }
+export function alCambiarVista() { refrescar = null; }
 
 async function guardar(mid, forzar) {
   const e = est[mid]; if (!e) return;
   if (e.guardando) { clearTimeout(e.timer); e.timer = setTimeout(() => guardar(mid), 500); return; }
   e.guardando = true; e.pendiente = false; pintarBarra();
   try {
-    const r = await api.post('/design/api/training/editor/' + mid, { contenido: modPor(mid), version: e.version, forzar: !!forzar });
+    if (!e.cargado) await asegurar(mid);
+    const r = await api.post('/design/api/training/editor/' + mid, { contenido: objeto(mid), version: e.version, forzar: !!forzar });
     e.version = r.version; e.error = '';
     S.editor[mid] = { ...info(mid), hayCambios: true, actualizadoEn: r.actualizadoEn, actualizadoPor: 'tú' };
   } catch (err) {
     e.error = err.message;
     if (/después de que lo abriste/.test(err.message)) {
       if (confirm(err.message + '\n\n¿Guardar tus cambios encima de los suyos? (Cancelar = cargar la versión de la otra persona)')) { e.guardando = false; return guardar(mid, true); }
-      e.cargado = false; await asegurar(mid); X.ruta();
+      await asegurar(mid, true); X.ruta();
     } else toast('No se guardó: ' + err.message, 'error');
   } finally { e.guardando = false; pintarBarra(); }
 }
@@ -106,6 +135,7 @@ export function barra(mid) {
 function pintarBarra() {
   if (!barraEl) return;
   const mid = barraMod, m = mid && modPor(mid), i = mid ? info(mid) : null, e = mid ? est[mid] || {} : {};
+  const iS = info(SITIO), eS = est[SITIO] || {};
   const pendientes = Object.entries(S.editor || {}).filter(([, v]) => v.hayCambios || v.eliminarPendiente);
   let estado;
   if (mid) {
@@ -116,18 +146,21 @@ function pintarBarra() {
   } else estado = h('span', { class: 'tr-ed-est ' + (pendientes.length ? 'borrador' : 'ok') }, pendientes.length ? `● ${pendientes.length} módulo(s) con cambios sin publicar` : '✓ Todo publicado');
   barraEl.replaceChildren(...[
     h('span', { class: 'tr-ed-marca' }, '✏️ Modo edición'), m ? h('b', { class: 'tr-ed-mod' }, t(m.titulo)) : null, estado,
+    (iS.hayCambios || eS.pendiente || eS.guardando) ? h('span', { class: 'tr-ed-est borrador', title: 'Textos de la plataforma, orden de secciones y paneles' }, eS.guardando || eS.pendiente ? '⏳ Diseño…' : '● Diseño sin publicar') : null,
+    h('span', { class: 'tr-ed-ayuda-dc' }, 'Doble clic en cualquier texto para editarlo'),
     h('span', { class: 'tr-ed-esp' }),
     mid && X.esLeccion() ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { S.vistaAlumno = !S.vistaAlumno; X.ruta(); } }, S.vistaAlumno ? '✏️ Volver a editar' : '👁 Ver como alumno') : null,
+    h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => panelTextos() }, '🔤 Textos de la plataforma'),
     mid ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => historial(mid) }, '🕘 Historial') : null,
     mid && i.hayCambios ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => descartar(mid) }, 'Descartar cambios') : null,
-    mid ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-primario', disabled: !i.hayCambios && !e.pendiente, onclick: () => publicar([mid]) }, '🚀 Publicar') : null,
+    mid ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-primario', disabled: !i.hayCambios && !e.pendiente && !iS.hayCambios && !eS.pendiente, onclick: () => publicar([mid, ...(iS.hayCambios || eS.pendiente ? [SITIO] : [])].filter((x) => x === SITIO || info(x).hayCambios || (est[x] || {}).pendiente)) }, '🚀 Publicar') : null,
     !mid && pendientes.length ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-primario', onclick: () => publicar(pendientes.map(([k]) => k)) }, '🚀 Publicar todo') : null,
     h('button', { type: 'button', class: 'tr-btn tr-btn-chico', title: 'Salir del modo edición', onclick: () => X.salirEdicion() }, 'Salir')].filter(Boolean));
 }
 
 async function publicar(ids) {
   for (const id of ids) await esperarGuardado(id);
-  const nombres = ids.map((id) => (modPor(id) ? t(modPor(id).titulo) : id));
+  const nombres = ids.map((id) => (id === SITIO ? 'Textos de la plataforma, orden de secciones y paneles' : (modPor(id) ? t(modPor(id).titulo) : id)));
   if (!await dialogo('Publicar', h('div', null, h('p', null, 'Todos los que entran a Training verán esta versión de:'), h('ul', null, nombres.map((n) => h('li', null, n))), h('p', { class: 'tr-sub' }, 'La versión anterior queda en el Historial por si necesitas volver a ella.')), 'Publicar')) return;
   const fallos = [];
   for (const id of ids) {
@@ -400,7 +433,7 @@ function abrirPanel(titulo, construir, alCerrar) {
   };
   const tecla = (e) => { if (e.key === 'Escape' && !document.querySelector('.tr-modal-fondo, .tr-lightbox')) { e.stopPropagation(); cerrarPanel(); } };
   document.addEventListener('keydown', tecla, true);
-  panelAbierto = { el: panel, cerrar: () => { document.removeEventListener('keydown', tecla, true); panel.remove(); raizEd().classList.remove('con-panel'); if (alCerrar) alCerrar(); } };
+  panelAbierto = { el: panel, repintar: () => { if (!panel.contains(document.activeElement)) pintar(); }, cerrar: () => { document.removeEventListener('keydown', tecla, true); panel.remove(); raizEd().classList.remove('con-panel'); if (alCerrar) alCerrar(); } };
   raizEd().append(panel); raizEd().classList.add('con-panel');
   pintar();
   return panelAbierto;
@@ -423,7 +456,7 @@ export function decorarInicio(pagina) {
     pend.length ? h('div', { class: 'tr-ed-quitar' }, h('b', null, 'Módulos que se quitarán al publicar:'), pend.map(([id]) => h('div', { class: 'tr-ed-quitar-it' }, h('code', null, id),
       h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: async () => { await api.post('/design/api/training/editor/' + id + '/descartar', {}); await X.recargar(); } }, 'No quitarlo'),
       h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-peligro', onclick: () => publicar([id]) }, 'Quitar ya')))) : null);
-  pagina.querySelector('.tr-hero')?.after(caja);
+  pagina.prepend(caja);
   pagina.querySelectorAll('a.tr-mod-card').forEach((a) => {
     const id = (a.getAttribute('href') || '').replace('#/m/', ''), i = info(id);
     if (i.hayCambios) a.querySelector('.tr-mod-top')?.append(h('span', { class: 'tr-chip-ed' }, i.publicado ? '✏️ Sin publicar' : '🆕 Borrador'));
@@ -467,11 +500,24 @@ export async function decorarModulo(pagina, m0) {
     } else {
       cuerpo = h('div', { class: 'tr-ed-form' }, fLista(m.lecciones, 'Lecciones', () => ({ id: idUnico(m.id), titulo: T('Nueva lección', 'New lesson'), minutos: 5, pasos: [pasoNuevo('texto'), pasoNuevo('quiz')] }),
         (l) => h('div', { class: 'tr-ed-lec' }, fT(l, 'titulo', 'Título', {}, () => { c(); X.pintarMenu(); }), h('div', { class: 'tr-ed-fila' }, fTxt(l, 'minutos', 'Minutos', { numero: true }, c),
-          h('div', { class: 'tr-ed-lec-acc' }, h('span', { class: 'tr-sub' }, `${(l.pasos || []).length} pasos`), h('a', { class: 'tr-btn tr-btn-chico tr-btn-primario', href: '#/l/' + l.id }, '✏️ Editar pasos →')))),
+          h('div', { class: 'tr-ed-lec-acc' }, h('span', { class: 'tr-sub' }, `${(l.pasos || []).length} pasos`),
+            h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => moverLeccion(l) }, '↗ Mover a otro módulo'),
+            h('a', { class: 'tr-btn tr-btn-chico tr-btn-primario', href: '#/l/' + l.id }, '✏️ Editar pasos →')))),
         () => { c(); X.pintarMenu(); }, { nombre: 'Lección', agregar: 'Nueva lección', min: 1, resumen: (l) => t(l.titulo), ayuda: 'Arrastra ⠿ para cambiar el orden. Quitar una lección no borra el avance guardado.' }));
     }
     panel.replaceChildren(h('div', { class: 'tr-ed-modulo-cab' }, h('h2', null, '✏️ Editar módulo'), tabs), cuerpo);
   };
+  async function moverLeccion(l) {
+    const d = { destino: '' };
+    const opciones = mods().filter((x) => x.id !== m.id).map((x) => [x.id, t(x.titulo)]);
+    d.destino = opciones[0] ? opciones[0][0] : '';
+    if (!await dialogo('Mover la lección a otro módulo', h('div', { class: 'tr-ed-form' }, h('p', null, `"${t(l.titulo)}" quedará al final del módulo elegido. El avance de las personas se conserva.`), fTxt(d, 'destino', 'Módulo de destino', { opciones }, () => {})), 'Mover')) return;
+    if (m.lecciones.length <= 1) return toast('El módulo debe quedar con al menos una lección', 'error');
+    const m2 = await asegurar(d.destino);
+    m.lecciones.splice(m.lecciones.indexOf(l), 1); (m2.lecciones = m2.lecciones || []).push(l);
+    c(); cambio(m2.id); X.pintarMenu(); pintar();
+    toast('Lección movida a "' + t(m2.titulo) + '"');
+  }
   pintar();
   const ref = pagina.querySelector('.tr-mod-head');
   if (ref) ref.after(panel); else pagina.prepend(panel);
@@ -536,6 +582,7 @@ export async function vistaLeccion(l0, m0) {
         h('button', { type: 'button', class: 'tr-ed-ib', title: 'Subir', disabled: i === 0, onclick: () => mover(i, i - 1) }, '↑'),
         h('button', { type: 'button', class: 'tr-ed-ib', title: 'Bajar', disabled: i === l.pasos.length - 1, onclick: () => mover(i, i + 1) }, '↓'),
         h('button', { type: 'button', class: 'tr-ed-ib', title: 'Duplicar', onclick: () => { const x = clonar(p); if (x.slot) x.slot = slotNuevo(); l.pasos.splice(i + 1, 0, x); c(); pintar(); } }, '⧉'),
+        h('button', { type: 'button', class: 'tr-ed-ib', title: 'Mover a otra lección', onclick: () => moverPaso(i) }, '↗'),
         h('button', { type: 'button', class: 'tr-ed-ib peligro', title: 'Eliminar', onclick: async () => { if (!await dialogo('Eliminar paso', h('p', null, `¿Eliminar el paso ${i + 1} (${(NOMBRE_TIPO[p.t] || ['', p.t])[1]})?`), 'Eliminar', true)) return; l.pasos.splice(i, 1); cerrarPanel(); c(); pintar(); } }, '🗑')),
       prev);
     card.addEventListener('dragstart', (e) => { arrastrando = i; e.dataTransfer.effectAllowed = 'move'; card.classList.add('arrastrando'); lista.classList.add('moviendo'); });
@@ -543,6 +590,20 @@ export async function vistaLeccion(l0, m0) {
     vistaPrevia(p, prev);
     tarjetas[i] = { card, prev };
     return card;
+  }
+  async function moverPaso(i) {
+    const d = { destino: '', donde: 'fin' };
+    const opciones = mods().flatMap((mm) => (mm.lecciones || []).filter((x) => x !== l).map((x) => [mm.id + '|' + x.id, t(mm.titulo) + ' › ' + t(x.titulo)]));
+    d.destino = opciones[0] ? opciones[0][0] : '';
+    const cuerpo = h('div', { class: 'tr-ed-form' }, fTxt(d, 'destino', 'Lección de destino', { opciones }, () => {}), fTxt(d, 'donde', 'Dónde', { opciones: [['fin', 'Al final'], ['inicio', 'Al principio']] }, () => {}));
+    if (!await dialogo('Mover el paso a otra lección', cuerpo, 'Mover')) return;
+    const [mid2, lid2] = d.destino.split('|');
+    const m2 = await asegurar(mid2), l2 = (m2.lecciones || []).find((x) => x.id === lid2);
+    if (!l2) return;
+    const x = l.pasos.splice(i, 1)[0]; l2.pasos = l2.pasos || [];
+    if (d.donde === 'inicio') l2.pasos.unshift(x); else l2.pasos.push(x);
+    c(); if (mid2 !== m.id) cambio(mid2); cerrarPanel(); pintar();
+    toast('Paso movido a "' + t(l2.titulo) + '"');
   }
   function mover(de, a) { if (a < 0 || a >= l.pasos.length) return; l.pasos.splice(a, 0, l.pasos.splice(de, 1)[0]); c(); pintar(); }
   function pintar() {
@@ -567,4 +628,94 @@ export async function vistaLeccion(l0, m0) {
 
   X.vista(h('div', { class: 'tr-pagina tr-leccion tr-ed-leccion' }, barra(m.id), cab, lista), t(l.titulo));
   pintar();
+  refrescar = () => pintar();
+}
+
+
+// ---------- Textos de la plataforma: cualquier texto de la interfaz (botones, títulos, avisos), en ES y EN ----------
+export function panelTextos() {
+  asegurar(SITIO);
+  let filtro = '';
+  abrirPanel('Textos de la plataforma', {
+    form: (repintar) => {
+      const st = sitio(); st.ui = st.ui || {}; st.ui.es = st.ui.es || {}; st.ui.en = st.ui.en || {};
+      const buscar = h('input', { class: 'tr-in', type: 'search', placeholder: 'Buscar un texto…', value: filtro, oninput: (e) => { filtro = e.target.value; pintarLista(); } });
+      const lista = h('div', { class: 'tr-ed-textos' });
+      const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      function pintarLista() {
+        const q = norm(filtro);
+        const claves = Object.keys(UI_BASE.es).filter((k) => !q || norm(k + ' ' + UI_BASE.es[k] + ' ' + (UI_BASE.en[k] || '') + ' ' + (st.ui.es[k] || '') + ' ' + (st.ui.en[k] || '')).includes(q));
+        lista.replaceChildren(...claves.slice(0, 80).map((k) => {
+          const propio = st.ui.es[k] || st.ui.en[k];
+          const campo = (l) => h('label', { class: 'tr-ed-lang' }, h('span', { class: 'tr-ed-l' }, l.toUpperCase()),
+            h('textarea', { class: 'tr-in', rows: 1, placeholder: UI_BASE[l][k] || '', oninput: (e) => { if (e.target.value.trim()) st.ui[l][k] = e.target.value; else delete st.ui[l][k]; cambioSitio(); } }, st.ui[l][k] || ''));
+          return h('div', { class: 'tr-ed-texto' + (propio ? ' propio' : '') }, h('div', { class: 'tr-ed-etq' }, h('code', null, k), propio ? h('button', { type: 'button', class: 'tr-ed-ib', title: 'Volver al texto original', onclick: () => { delete st.ui.es[k]; delete st.ui.en[k]; cambioSitio(); pintarLista(); } }, '↺') : null),
+            h('div', { class: 'tr-ed-bi' }, campo('es'), campo('en')));
+        }), claves.length > 80 ? h('p', { class: 'tr-sub' }, `Mostrando 80 de ${claves.length}: escribe en el buscador para encontrar el resto.`) : null);
+        lista.querySelectorAll('textarea').forEach((x) => { if (!x.value) x.value = ''; });
+      }
+      pintarLista();
+      return [h('p', { class: 'tr-sub' }, 'Cambia cualquier texto de la plataforma. Vacío = texto original (en gris). Los cambios se ven al recargar la vista y se publican con el botón Publicar.'), buscar, lista];
+    },
+  }, () => X.ruta());
+}
+
+// ---------- Bloques movibles (secciones de Inicio, paneles del Laboratorio) ----------
+// Cada bloque es [clave, elemento, nombre]. Devuelve los elementos en el orden guardado (sitio[clave].orden); en modo edición
+// cada bloque lleva su barra: arrastrar, subir, bajar y ocultar/mostrar.
+export function ordenarBloques(clave, bloques, opciones = {}) {
+  const st = sitio(), conf = st[clave] || {}, orden = conf.orden || [], ocultos = new Set(conf.ocultos || []);
+  const lista = [...bloques].sort((a, b) => { const ia = orden.indexOf(a[0]), ib = orden.indexOf(b[0]); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+  const guardar = (nuevoOrden, nuevosOcultos) => { st[clave] = { ...(st[clave] || {}), orden: nuevoOrden, ocultos: [...nuevosOcultos] }; cambioSitio(); X.ruta(); };
+  let arrastrando = null;
+  return lista.map(([k, el, nombre], i) => {
+    const ids = lista.map((x) => x[0]);
+    const caja = h('div', { class: 'tr-bloque' + (ocultos.has(k) ? ' oculto' : ''), data: { bloque: k } },
+      h('div', { class: 'tr-bloque-barra' },
+        h('span', { class: 'tr-ed-asa', title: 'Arrastra para mover', onmousedown: () => { caja.draggable = true; }, onmouseup: () => { caja.draggable = false; } }, '⠿'),
+        h('b', null, nombre), ocultos.has(k) ? h('span', { class: 'tr-chip-ed' }, 'Oculto') : null, h('span', { class: 'tr-ed-esp' }),
+        opciones.extra ? opciones.extra(k) : null,
+        h('button', { type: 'button', class: 'tr-ed-ib', title: 'Subir', disabled: i === 0, onclick: () => { const o = [...ids]; o.splice(i - 1, 0, o.splice(i, 1)[0]); guardar(o, ocultos); } }, '↑'),
+        h('button', { type: 'button', class: 'tr-ed-ib', title: 'Bajar', disabled: i === ids.length - 1, onclick: () => { const o = [...ids]; o.splice(i + 1, 0, o.splice(i, 1)[0]); guardar(o, ocultos); } }, '↓'),
+        h('button', { type: 'button', class: 'tr-ed-ib', title: ocultos.has(k) ? 'Mostrar' : 'Ocultar', onclick: () => { const n = new Set(ocultos); if (n.has(k)) n.delete(k); else n.add(k); guardar(ids, n); } }, ocultos.has(k) ? '👁' : '🚫')),
+      el);
+    caja.addEventListener('dragstart', (e) => { arrastrando = i; e.dataTransfer.effectAllowed = 'move'; caja.classList.add('arrastrando'); });
+    caja.addEventListener('dragend', () => { caja.draggable = false; caja.classList.remove('arrastrando'); });
+    caja.addEventListener('dragover', (e) => { if (arrastrando === null) return; e.preventDefault(); caja.classList.add('sobre'); });
+    caja.addEventListener('dragleave', () => caja.classList.remove('sobre'));
+    caja.addEventListener('drop', (e) => { if (arrastrando === null) return; e.preventDefault(); const o = [...ids]; o.splice(i, 0, o.splice(arrastrando, 1)[0]); arrastrando = null; guardar(o, ocultos); });
+    return caja;
+  });
+}
+export const elegirImagen = (multiple) => elegirImagenes(multiple);
+
+// ---------- Inicio: mover módulos entre secciones arrastrando su tarjeta ----------
+export function moduloArrastrable(card, m, seccion) {
+  card.draggable = true;
+  card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/x-modulo', m.id); e.dataTransfer.effectAllowed = 'move'; card.classList.add('arrastrando'); });
+  card.addEventListener('dragend', () => card.classList.remove('arrastrando'));
+}
+export function zonaModulos(grid, seccion) {
+  grid.addEventListener('dragover', (e) => { if ([...e.dataTransfer.types].includes('text/x-modulo')) { e.preventDefault(); grid.classList.add('sobre'); } });
+  grid.addEventListener('dragleave', () => grid.classList.remove('sobre'));
+  grid.addEventListener('drop', async (e) => {
+    const id = e.dataTransfer.getData('text/x-modulo'); if (!id) return;
+    e.preventDefault(); grid.classList.remove('sobre');
+    const m = await asegurar(id);
+    if (seccion === 'area' && !m.area) {
+      const d = { area: 'face' };
+      if (!await dialogo('¿De qué área es?', fTxt(d, 'area', 'Área', { opciones: [['face', 'Face Design'], ['n2', 'N2 Demodenture'], ['n3', 'N3 Prosthetic'], ['n6', 'N6 Material Changes'], ['support', 'Support']] }, () => {}), 'Mover')) return;
+      m.area = d.area;
+    }
+    if (seccion !== 'area') delete m.area;
+    m.seccion = seccion;
+    // posición: antes de la tarjeta sobre la que se soltó (o al final)
+    const cards = [...grid.querySelectorAll('a.tr-mod-card')], destino = e.target.closest && e.target.closest('a.tr-mod-card');
+    const idsSec = cards.map((c) => (c.getAttribute('href') || '').replace('#/m/', '')).filter((x) => x !== id);
+    const pos = destino ? idsSec.indexOf((destino.getAttribute('href') || '').replace('#/m/', '')) : idsSec.length;
+    idsSec.splice(pos < 0 ? idsSec.length : pos, 0, id);
+    const base = { intro: 1, area: 10, biblioteca: 40 }[seccion] || 40;
+    for (const [k, mid] of idsSec.entries()) { const mm = await asegurar(mid); if (mm.orden !== base + k) { mm.orden = base + k; cambio(mid); } }
+    cambio(id); mods().sort((a, b) => (a.orden ?? 99) - (b.orden ?? 99)); X.pintarMenu(); X.ruta();
+  });
 }

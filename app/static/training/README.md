@@ -46,9 +46,21 @@ Botón **Editar contenido** arriba a la derecha (solo admins). Funciona como el 
 - Imágenes: paso `imagen` (1 a 6, de una, dos o tres por fila, con pie y fuente) o una imagen al lado de un `texto` (`imagen.lado` =
   izq/der/arriba/abajo). Se eligen de las **imágenes de los protocolos** (`img/`, pies en `img/pies.json`) o de la **biblioteca de medios**
   de Design (las que se suben quedan ahí; tabla `design_inicio_medios`).
+- **Edición en el lugar:** con el modo edición activo, *cualquier texto* se edita con **doble clic** (Enter guarda; en textos largos
+  Ctrl+Enter; Esc cancela). Las imágenes muestran sus controles al pasar el mouse: Reemplazar, Pie, Posición y Quitar; se arrastran para
+  reordenarlas o pasarlas a otra galería, y "＋ Agregar imagen" agrega más. Los pasos se mueven a otra lección (↗) y las lecciones a otro módulo.
+- **Diseño de la plataforma** (fila especial `sitio` en `design_training_modulos`, mismo borrador/publicar): textos de la interfaz
+  (`ui[idioma][clave]`, también desde "🔤 Textos de la plataforma"), orden y ocultos de las secciones de Inicio (`inicio`) y de los
+  paneles del Laboratorio (`lab`, con `guiaLado`), imagen de portada (`portada`), guía del Laboratorio (`labGuia`) y textos del visor
+  (`labVisor`). Las tarjetas de los módulos se arrastran entre secciones de Inicio (cambia `seccion` y `orden`).
 - Al publicar se valida el módulo con reglas flexibles (basta un idioma; una lección sin quiz se completa al llegar al final).
 - **Importante:** cuando un módulo se publica desde el editor, esa versión (en la base de datos) reemplaza al archivo `data/<módulo>.json`.
   Cambios posteriores a ese archivo en el código no se verán en ese módulo hasta que se descarte su versión del editor.
+
+## Modo oscuro
+Botón 🌙/☀️ arriba (se recuerda en el navegador). Todos los colores salen de variables en `:root` / `:root[data-tr-tema="oscuro"]`
+(`training.css`); no uses colores fijos para fondos o textos nuevos. La prueba de contraste (WCAG AA: 4.5:1, 3:1 en textos grandes)
+revisa todas las vistas en los dos modos.
 
 ## Laboratorio 3D
 Visor de un caso real aprobado (Nuvia Design Viewer, pestañas RX y Changes) con una guía de qué mirar, y el simulador de movimientos.

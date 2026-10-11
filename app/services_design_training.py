@@ -99,8 +99,11 @@ def contenido(db: Session | None = None, borrador: bool = False) -> dict:
     ck = ("b" if borrador else "p", clave)
     if not borrador and _cache.get("datos") is not None and _cache.get("clave") == ck:
         return _cache["datos"]
-    por_id = dict(base)
+    por_id, sitio = dict(base), {}
     for f in db.query(DesignTrainingModulo).all():
+        if f.modulo == SITIO:
+            sitio = (_cargar(f.borrador) if borrador and f.borrador else None) or _cargar(f.publicado) or {}
+            continue
         if borrador and f.borrador:
             d = _cargar(f.borrador)
             if d and d.get("_eliminado"):
@@ -116,7 +119,7 @@ def contenido(db: Session | None = None, borrador: bool = False) -> dict:
         if d:
             d["id"] = f.modulo
             por_id[f.modulo] = d
-    datos = _combinar(por_id)
+    datos = {**_combinar(por_id), "sitio": sitio}
     if not borrador:
         _cache["datos"], _cache["clave"] = datos, ck
     return datos
@@ -327,6 +330,7 @@ def anotaciones_guardar(db: Session, slot: str, lista: list) -> list:
 # ---------- Editor de contenido (como la página de Inicio: borrador, publicar e historial) ----------
 
 MAX_CONTENIDO = 4 * 1024 * 1024
+SITIO = "sitio"   # fila especial: textos de la plataforma, orden de las secciones y paneles (no es un módulo)
 MAX_VERSIONES = 30   # por módulo
 
 
@@ -370,6 +374,8 @@ def editor_modulo(db: Session, modulo: str) -> dict:
     d = None
     if f:
         d = _cargar(f.borrador) or (None if f.eliminado else _cargar(f.publicado))
+    if modulo == SITIO:
+        return {"contenido": d or {}, "version": f.version if f else 0}
     if d is None or d.get("_eliminado"):
         base = _archivos()
         d = json.loads(json.dumps(base[modulo])) if modulo in base else None
@@ -415,11 +421,13 @@ def editor_publicar(db: Session, user: Empleado, modulo: str) -> DesignTrainingM
     d = _cargar(f.borrador)
     if d is None:
         raise ValueError("El borrador está dañado; descártalo.")
-    if d.get("_eliminado"):
+    if modulo == SITIO:
+        f.eliminado, f.publicado = 0, f.borrador
+    elif d.get("_eliminado"):
         f.eliminado, f.publicado = 1, ""
     else:
         errores = validar_modulo({**d, "id": modulo}, editor=True)
-        otras = {l["id"]: m["id"] for m in contenido(db)["modulos"] if m["id"] != modulo for l in m.get("lecciones", [])}
+        otras = {l["id"]: m["id"] for m in contenido(db, borrador=True)["modulos"] if m["id"] != modulo for l in m.get("lecciones", [])}   # contra los borradores: una lección movida entre módulos no choca
         errores += [f"la lección {l.get('id')} ya existe en el módulo {otras[l.get('id')]}" for l in d.get("lecciones", []) if l.get("id") in otras]
         if errores:
             raise ValueError("Revisa antes de publicar: " + "; ".join(errores[:6]) + (f" (y {len(errores) - 6} más)" if len(errores) > 6 else ""))

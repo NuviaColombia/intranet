@@ -102,7 +102,7 @@ def api_modelo(slot: str, user: Empleado = Depends(_visible), db: Session = Depe
             # ya viene comprimido y con el script de pestañas; se entrega tal cual (el navegador lo descomprime)
             return FileResponse(incluido, media_type="text/html; charset=utf-8", headers={
                 "Content-Encoding": "gzip", "Cache-Control": "private, max-age=86400",
-                "Content-Security-Policy": "sandbox allow-scripts allow-downloads allow-modals"})
+                "Content-Security-Policy": "sandbox allow-scripts allow-same-origin allow-downloads allow-modals"})
         raise HTTPException(404, "Ese espacio todavía no tiene modelo.")
     if m[1].startswith("text/html"):
         # Visor de caso exportado (HTML autónomo): se aísla (sandbox) y se le agrega la selección de pestaña por #rx / #changes
@@ -112,7 +112,7 @@ def api_modelo(slot: str, user: Empleado = Depends(_visible), db: Session = Depe
                  b"if(b)b.click();}window.addEventListener('load',function(){setTimeout(go,900);});window.addEventListener('hashchange',go);})();</script>")
         cuerpo = cuerpo[:i] + extra + cuerpo[i:] if i >= 0 else cuerpo + extra
         return Response(cuerpo, media_type=m[1], headers={"Cache-Control": "private, max-age=3600",
-                                                          "Content-Security-Policy": "sandbox allow-scripts allow-downloads allow-modals"})
+                                                          "Content-Security-Policy": "sandbox allow-scripts allow-same-origin allow-downloads allow-modals"})
     return Response(m[0], media_type=m[1], headers={"Cache-Control": "private, max-age=86400"})
 
 

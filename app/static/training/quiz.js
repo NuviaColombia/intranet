@@ -1,5 +1,5 @@
 // Training: quizzes (una, varias, verdadero/falso, ordenar, parejas) usados en las lecciones y en el examen final.
-import { h, t, ui, md, anillo } from './lib.js';
+import { h, t, ui, md, anillo, T } from './lib.js';
 
 export const UMBRAL_LECCION = 70;
 
@@ -83,7 +83,7 @@ function crearPregunta(q, onResponder) {
       const s = h('select', { 'aria-label': t(p.a), onchange: () => { sel[k] = s.value === '' ? null : s.value; habilitar(q.pares.every((_, j) => sel[j] != null)); } },
         h('option', { value: '' }, ui('elige')), ...derecha.map((d) => h('option', { value: d }, d)));
       sel[k] = null;
-      tabla.append(h('div', { class: 'tr-par-fila' }, h('span', { class: 'tr-par-a' }, t(p.a)), s));
+      tabla.append(h('div', { class: 'tr-par-fila' }, T('span', { class: 'tr-par-a' }, p.a), s));
     });
     cuerpo.append(tabla);
     evaluar = () => { let ok = true; q.pares.forEach((_, k) => { const bien = sel[k] === t(q.pares[k].b); tabla.children[k].classList.add(bien ? 'es-ok' : 'es-mal'); if (!bien) { ok = false; tabla.children[k].append(h('span', { class: 'tr-par-sol' }, '→ ' + t(q.pares[k].b))); } }); return ok; };
