@@ -9,13 +9,17 @@ const tarjetaTitulo = (p) => (p.titulo ? T('h2', { class: 'tr-paso-tit' }, p.tit
 let arrastreImg = null;   // { lista, i } de la imagen que se está arrastrando
 export function figura(im, extra, ctl) {
   const pie = t(im.pie), ed = ED.activo && ctl;
-  let colocando = null;   // 'ok' | 'mal' mientras se elige dónde poner una marca
+  let colocando = null;   // 'ok' | 'mal' mientras se elige dónde poner un sticker
+  const poner = (tipo, cx, cy) => {
+    const r = marco.getBoundingClientRect(), x = ((cx - r.left) / r.width) * 100, y = ((cy - r.top) / r.height) * 100;
+    if (x < 0 || x > 100 || y < 0 || y > 100) return false;   // fuera de la foto
+    (im.marcas = im.marcas || []).push({ t: tipo, x: +x.toFixed(1), y: +y.toFixed(1) });
+    toast(tipo === 'mal' ? '✗ Sticker de "incorrecto" agregado' : '✓ Sticker de "correcto" agregado', 'ok');
+    ED.estructura && ED.estructura();
+    return true;
+  };
   const btn = h('button', { type: 'button', class: 'tr-fig-btn', 'aria-label': ui('ampliar'), onclick: (e) => {
-    if (colocando) {
-      const r = marco.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * 100, y = ((e.clientY - r.top) / r.height) * 100;
-      if (x < 0 || x > 100 || y < 0 || y > 100) return;   // clic fuera de la foto
-      (im.marcas = im.marcas || []).push({ t: colocando, x: +x.toFixed(1), y: +y.toFixed(1) }); colocando = null; ED.estructura && ED.estructura(); return;
-    }
+    if (colocando) { if (poner(colocando, e.clientX, e.clientY)) colocando = null; return; }
     ampliar(im);
   } });
   // el marco mide lo mismo que la foto: las marcas quedan en el mismo punto en cualquier tamaño
@@ -29,14 +33,30 @@ export function figura(im, extra, ctl) {
     ctl.lista ? h('span', { class: 'tr-fig-asa', title: 'Arrastra para mover la imagen' }, '⠿') : null,
     h('button', { type: 'button', title: 'Reemplazar imagen', onclick: async () => { const l = await ED.imagenes(false); if (l && l[0]) { im.src = l[0].src; if (l[0].pie && !im.pie) im.pie = l[0].pie; if (l[0].fuente) im.fuente = l[0].fuente; cambio(); } } }, '🔄 Reemplazar'),
     !im.pie ? h('button', { type: 'button', title: 'Agregar pie de imagen', onclick: () => { im.pie = { es: 'Escribe aquí qué mirar en la imagen.', en: 'Write here what to look at in the image.' }; cambio(); } }, '＋ Pie') : null,
-    h('button', { type: 'button', class: 'tr-chulo-ok', title: 'Poner un ✓ verde (correcto): luego haz clic en el punto de la foto', onclick: () => { colocando = 'ok'; fig.classList.add('colocando'); } }, '＋ ✓'),
-    h('button', { type: 'button', class: 'tr-chulo-mal', title: 'Poner una ✗ roja (incorrecto): luego haz clic en el punto de la foto', onclick: () => { colocando = 'mal'; fig.classList.add('colocando'); } }, '＋ ✗'),
     ctl.lado ? h('button', { type: 'button', title: 'Cambiar la posición de la imagen', onclick: ctl.lado }, '⇄ Posición') : null,
     ctl.quitar ? h('button', { type: 'button', class: 'peligro', title: 'Quitar imagen', onclick: () => { if (confirm('¿Quitar esta imagen?')) ctl.quitar(); } }, '✕') : null));
+  // stickers: se arrastran desde la bandeja y se sueltan sobre la foto (o se tocan y luego se hace clic en la foto)
+  const sticker = (tipo) => {
+    const st = h('button', { type: 'button', class: 'tr-sticker ' + tipo, draggable: 'true',
+      title: tipo === 'mal' ? 'Arrastra esta ✗ roja (incorrecto) a la foto' : 'Arrastra este ✓ verde (correcto) a la foto',
+      onclick: (e) => { e.stopPropagation(); colocando = tipo; fig.classList.add('colocando'); toast('Ahora haz clic en el punto de la foto donde va'); } }, tipo === 'mal' ? '✗' : '✓');
+    st.addEventListener('dragstart', (e) => { e.stopPropagation(); e.dataTransfer.setData('text/x-sticker', tipo); e.dataTransfer.effectAllowed = 'copy'; fig.classList.add('soltando'); });
+    st.addEventListener('dragend', () => fig.classList.remove('soltando'));
+    return st;
+  };
+  btn.after(h('div', { class: 'tr-stickers' }, h('span', null, 'Stickers:'), sticker('ok'), sticker('mal'), h('small', null, 'arrástralos a la foto o tócalos y haz clic en la foto')));
+  marco.addEventListener('dragover', (e) => { if ([...e.dataTransfer.types].includes('text/x-sticker')) { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; } });
+  marco.addEventListener('drop', (e) => {
+    const tipo = e.dataTransfer.getData('text/x-sticker'); if (!tipo) return;
+    e.preventDefault(); e.stopPropagation(); fig.classList.remove('soltando');
+    poner(tipo === 'mal' ? 'mal' : 'ok', e.clientX, e.clientY);
+  });
   if (ctl.lista) {
-    fig.draggable = true;
+    // la imagen se arrastra solo desde su manija ⠿ (así arrastrar sobre la foto mueve los stickers, no la imagen)
+    const asa = fig.querySelector('.tr-fig-asa');
+    if (asa) { asa.addEventListener('mousedown', () => { fig.draggable = true; }); asa.addEventListener('mouseup', () => { fig.draggable = false; }); }
     fig.addEventListener('dragstart', (e) => { arrastreImg = { lista: ctl.lista, i: ctl.i }; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'img'); fig.classList.add('arrastrando'); e.stopPropagation(); });
-    fig.addEventListener('dragend', () => { fig.classList.remove('arrastrando'); arrastreImg = null; });
+    fig.addEventListener('dragend', () => { fig.draggable = false; fig.classList.remove('arrastrando'); arrastreImg = null; });
     fig.addEventListener('dragover', (e) => { if (!arrastreImg) return; e.preventDefault(); e.stopPropagation(); fig.classList.add('sobre'); });
     fig.addEventListener('dragleave', () => fig.classList.remove('sobre'));
     fig.addEventListener('drop', (e) => {
@@ -57,13 +77,21 @@ function capaMarcas(im, editar) {
   if (!marcas.length) return null;
   const capa = h('span', { class: 'tr-chulos' + (editar ? ' editando' : ''), 'aria-hidden': editar ? null : 'true' });
   marcas.forEach((m, i) => {
-    const el = h('span', { class: 'tr-chulo ' + (m.t === 'mal' ? 'mal' : 'ok'), style: { left: m.x + '%', top: m.y + '%' }, title: editar ? 'Arrastra para mover · clic para cambiar ✓/✗' : (m.t === 'mal' ? 'Incorrecto' : 'Correcto') },
+    const tam = (d) => { m.s = +Math.max(0.5, Math.min(2.5, (m.s || 1) + d)).toFixed(2); if (m.s === 1) delete m.s; el.style.setProperty('--s', m.s || 1); };
+    const el = h('span', { class: 'tr-chulo ' + (m.t === 'mal' ? 'mal' : 'ok'), style: { left: m.x + '%', top: m.y + '%', '--s': m.s || 1 }, title: editar ? 'Arrastra para mover · clic para cambiar ✓/✗ · rueda del mouse o − + para el tamaño' : (m.t === 'mal' ? 'Incorrecto' : 'Correcto') },
       m.t === 'mal' ? '✗' : '✓',
-      editar ? h('span', { class: 'tr-chulo-x', title: 'Quitar marca', onclick: (e) => { e.stopPropagation(); e.preventDefault(); marcas.splice(i, 1); if (!marcas.length) delete im.marcas; ED.estructura && ED.estructura(); } }, '×') : null);
+      editar ? h('span', { class: 'tr-chulo-x', title: 'Quitar sticker', onclick: (e) => { e.stopPropagation(); e.preventDefault(); marcas.splice(i, 1); if (!marcas.length) delete im.marcas; ED.estructura && ED.estructura(); } }, '×') : null,
+      editar ? h('span', { class: 'tr-chulo-tam' },
+        h('span', { class: 'tr-chulo-tb', title: 'Más pequeño', onclick: (e) => { e.stopPropagation(); e.preventDefault(); tam(-0.25); ED.estructura && ED.estructura(); } }, '−'),
+        h('span', { class: 'tr-chulo-tb', title: 'Más grande', onclick: (e) => { e.stopPropagation(); e.preventDefault(); tam(0.25); ED.estructura && ED.estructura(); } }, '+')) : null);
+    if (editar) {
+      let tRueda = null;
+      el.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); tam(e.deltaY < 0 ? 0.1 : -0.1); clearTimeout(tRueda); tRueda = setTimeout(() => ED.estructura && ED.estructura(), 500); }, { passive: false });
+    }
     if (editar) {
       el.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); });
       el.addEventListener('pointerdown', (e) => {
-        if (e.target.classList.contains('tr-chulo-x')) return;
+        if (e.target.classList.contains('tr-chulo-x') || e.target.classList.contains('tr-chulo-tb')) return;
         e.preventDefault(); e.stopPropagation();
         const r = capa.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY; let movio = false;
         el.setPointerCapture(e.pointerId);

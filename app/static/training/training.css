@@ -625,16 +625,27 @@ h1.tr-el-campo, h2.tr-el-campo, h3.tr-el-campo { margin-bottom:.4em; }
 /* ---------- Marcas ✓ / ✗ sobre las fotos ---------- */
 .tr-fig-btn { position:relative; }
 .tr-chulos { position:absolute; inset:0; pointer-events:none; }
-.tr-chulo { position:absolute; transform:translate(-50%, -50%); width:clamp(26px, 8%, 58px); aspect-ratio:1; border-radius:50%; display:grid; place-items:center;
-  color:#fff; font-weight:900; font-size:clamp(14px, 2.2vw, 30px); line-height:1; border:3px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.45); }
+.tr-chulo { position:absolute; transform:translate(-50%, -50%); width:calc(clamp(26px, 8%, 58px) * var(--s, 1)); aspect-ratio:1; border-radius:50%; display:grid; place-items:center;
+  color:#fff; font-weight:900; font-size:calc(clamp(14px, 2.2vw, 30px) * var(--s, 1)); line-height:1; border:3px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.45); }
 .tr-chulo.ok { background:#15803d; } .tr-chulo.mal { background:#b91c1c; }
 .tr-chulos.editando { pointer-events:auto; } .tr-chulos.editando .tr-chulo { cursor:grab; touch-action:none; }
 .tr-chulo-x { position:absolute; top:-8px; right:-8px; width:18px; height:18px; border-radius:50%; background:#0f172a; color:#fff; font-size:13px; display:none; place-items:center; cursor:pointer; border:1px solid #fff; }
 .tr-chulos.editando .tr-chulo:hover .tr-chulo-x { display:grid; }
-.tr-fig-herr .tr-chulo-ok { background:rgba(21,128,61,.92); } .tr-fig-herr .tr-chulo-mal { background:rgba(185,28,28,.92); }
 .tr-fig-ed.colocando .tr-fig-btn { cursor:crosshair; box-shadow:0 0 0 3px #f59e0b; }
 .tr-fig-ed.colocando .tr-fig-herr { opacity:1; }
 .tr-lb-img { position:relative; display:inline-block; line-height:0; }
 .tr-lb-img .tr-chulo { width:clamp(30px, 6%, 64px); }
 
 .tr-raiz .tr-fig-btn .tr-chulo, .tr-lb-img .tr-chulo { color:#fff; }
+
+/* bandeja de stickers ✓ / ✗ (modo edición) */
+.tr-stickers { align-self:flex-start; display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:rgba(15,23,42,.82); color:#fff; font-size:12.5px; box-shadow:0 4px 14px rgba(0,0,0,.3); }
+.tr-stickers small { color:#cbd5e1; }
+.tr-sticker { width:36px; height:36px; border-radius:50%; border:3px solid #fff; color:#fff; font-weight:900; font-size:19px; line-height:1; cursor:grab; display:grid; place-items:center; box-shadow:0 2px 8px rgba(0,0,0,.4); transition:transform .12s; }
+.tr-sticker:hover { transform:scale(1.12); } .tr-sticker:active { cursor:grabbing; }
+.tr-sticker.ok { background:#15803d; } .tr-sticker.mal { background:#b91c1c; }
+.tr-fig-ed { padding-bottom:0; }
+.tr-fig-ed.soltando .tr-fig-marco, .tr-fig-ed.colocando .tr-fig-marco { outline:3px dashed #f59e0b; outline-offset:-3px; }
+.tr-chulo-tam { position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); display:none; gap:3px; }
+.tr-chulos.editando .tr-chulo:hover .tr-chulo-tam { display:flex; }
+.tr-chulo-tb { width:20px; height:20px; border-radius:50%; background:#0f172a; color:#fff; font-size:14px; font-weight:800; display:grid; place-items:center; cursor:pointer; border:1px solid #fff; }
