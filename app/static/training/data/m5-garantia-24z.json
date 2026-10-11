@@ -87,6 +87,32 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Las medidas mínimas, en imágenes",
+            "en": "The minimum measurements, in pictures"
+          },
+          "disposicion": "dos",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m5/minimum-measures-diagram.webp",
+              "pie": {
+                "es": "Medidas mínimas por tamaño de arco. Las azules no tienen tolerancia; las naranjas muestran la tolerancia de 0,5 mm, que nunca aplica a los anteriores superiores.",
+                "en": "Minimum measurements by arch size. The blue ones have no tolerance; the orange ones show the 0.5 mm tolerance, which never applies to the upper anteriors."
+              },
+              "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+            },
+            {
+              "src": "/static/training/img/m5/bridge-thickness.webp",
+              "pie": {
+                "es": "Grosor del puente visto de lado: 10 mm en posteriores y 12 mm en anteriores para los arcos A a BW; 12 y 14 mm para C y CW.",
+                "en": "Bridge thickness seen from the side: 10 mm on posteriors and 12 mm on anteriors for arches A to BW; 12 and 14 mm for C and CW."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
             "es": "Ojo con la ficha en español",
@@ -582,6 +608,24 @@
             "es": "La guía de producto dice que, con voladizo, el caso continúa con el cantilever y el material elegido; el protocolo Full Mouth sugiere short bridge o soporte labial. Confirmar con el manager cuál aplica.",
             "en": "The product guide says that with a cantilever the case continues with the cantilever and the chosen material; the Full Mouth protocol suggests a short bridge or lip support. Confirm with the manager which one applies."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Midiendo el cantilever",
+            "en": "Measuring the cantilever"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m5/cantilever-measure.webp",
+              "pie": {
+                "es": "A la izquierda el cantilever mide unos 14,5 mm y cumple; a la derecha pasa de 17 mm y supera el límite de 15 mm.",
+                "en": "On the left the cantilever measures about 14.5 mm and passes; on the right it is over 17 mm and exceeds the 15 mm limit."
+              },
+              "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+            }
+          ]
         },
         {
           "t": "tarjetas",

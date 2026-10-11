@@ -592,6 +592,22 @@ export function crearModeloPaso(p) {
   return { el: raiz, destroy: () => { destruido = true; if (visor) visor.destroy(); } };
 }
 
+// El visor se descarga una vez por sesión y se muestra desde una copia local (blob): la intranet no deja mostrar sus páginas
+// dentro de un iframe (X-Frame-Options), y así el caso no se vuelve a bajar al cambiar de lección.
+const VISORES = new Map();   // url -> Promise<blob url>
+function cargarVisor(url, alAvanzar) {
+  if (!VISORES.has(url)) {
+    VISORES.set(url, (async () => {
+      const r = await fetch(url, { credentials: 'same-origin' });
+      if (!r.ok) throw new Error(r.status + '');
+      const lector = r.body.getReader(), partes = []; let n = 0;
+      for (;;) { const { done, value } = await lector.read(); if (done) break; partes.push(value); n += value.length; alAvanzar(n); }
+      return URL.createObjectURL(new Blob(partes, { type: 'text/html' }));
+    })().catch((e) => { VISORES.delete(url); throw e; }));
+  }
+  return VISORES.get(url);
+}
+
 // Visor de caso: un HTML exportado del Nuvia Design Viewer que sube un admin; se muestra aislado (iframe sandbox) y se abre en la pestaña RX o Changes
 export function crearVisorPaso(p) {
   const raiz = h('div', { class: 'tr-modelo' }), cuerpo = h('div', { class: 'tr-modelo-cuerpo' });
@@ -613,13 +629,18 @@ export function crearVisorPaso(p) {
       return;
     }
     const base = m.url.split('#')[0];
-    const frame = h('iframe', { class: 'tr-visor-frame', src: base + '#' + tab, sandbox: 'allow-scripts allow-downloads allow-modals', loading: 'lazy', title: t(p.titulo), allow: 'fullscreen' });
+    let local = null;
+    const frame = h('iframe', { class: 'tr-visor-frame', sandbox: 'allow-scripts allow-downloads allow-modals', title: t(p.titulo), allow: 'fullscreen', hidden: true });
+    const avance = h('span', null, ''), cargando = h('div', { class: 'tr-visor-carga' }, h('div', { class: 'tr-spinner' }), h('div', null, h('b', null, ui('visorCargando')), h('div', { class: 'tr-sub' }, avance)));
+    cargarVisor(base, (n) => { avance.textContent = (n / 1048576).toFixed(0) + ' MB'; })
+      .then((u) => { local = u; frame.src = u + '#' + tab; frame.hidden = false; cargando.remove(); })
+      .catch(() => { cargando.replaceChildren(h('div', { class: 'tr-error' }, ui('errorGenerico'))); });
     const pest = h('div', { class: 'tr-seg tr-seg-vistas', role: 'group', 'aria-label': ui('pestana') }, ['rx', 'changes'].map((k) => h('button', { type: 'button', class: 'tr-seg-b' + (k === tab ? ' on' : ''), onclick: (e) => {
-      tab = k; frame.src = base + '#' + k; pest.querySelectorAll('.tr-seg-b').forEach((b) => b.classList.toggle('on', b === e.currentTarget)); } }, k === 'rx' ? 'RX' : 'Changes')));
+      tab = k; if (local) frame.src = local + '#' + k; pest.querySelectorAll('.tr-seg-b').forEach((b) => b.classList.toggle('on', b === e.currentTarget)); if (p.alCambiarPestana) p.alCambiarPestana(k); } }, k === 'rx' ? 'RX' : 'Changes')));
     cuerpo.append(h('div', { class: 'tr-sim-barra tr-visor-barra' }, pest, h('a', { class: 'tr-btn tr-btn-chico', href: base + '#' + tab, target: '_blank', rel: 'noopener' }, '⤢ ' + ui('abrirVisor')),
-      CFG.esAdmin && !m.incluido ? subir(ui('reemplazar')) : null,
+      CFG.esAdmin ? subir(ui('reemplazar')) : null,
       CFG.esAdmin && !m.incluido ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-peligro', onclick: async () => { if (!confirm(ui('quitar') + '?')) return; try { await api.post('/design/api/training/modelos/' + p.slot + '/eliminar', {}); await refrescarModelos(); pintar(); } catch (e) { toast(e.message, 'error'); } } }, ui('quitar')) : null),
-      h('div', { class: 'tr-visor-w' }, frame));
+      h('div', { class: 'tr-visor-w' }, cargando, frame));
   }
   pintar();
   return { el: raiz };

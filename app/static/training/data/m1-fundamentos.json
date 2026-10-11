@@ -146,6 +146,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Cuadrante y diente",
+            "en": "Quadrant and tooth"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m1/implant-numbering.webp",
+              "pie": {
+                "es": "El primer dígito indica el cuadrante de la boca y el segundo el diente aproximado. El implante 13 está en el cuadrante 1, a la altura del canino.",
+                "en": "The first digit gives the quadrant of the mouth and the second the approximate tooth. Implant 13 is in quadrant 1, at the canine."
+              },
+              "fuente": "Protocol ICAM V.01-04-2026"
+            }
+          ]
+        },
+        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -627,6 +645,24 @@
             "es": "La descripción de las Clases 2 y 3 en el protocolo es ambigua: confirmar con el manager antes de enseñarla.",
             "en": "The description of Classes 2 and 3 in the protocol is ambiguous: confirm with the manager before teaching it."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Clase I en una imagen",
+            "en": "Class I in one picture"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m1/occlusion-class-1.webp",
+              "pie": {
+                "es": "Las flechas azules marcan la cúspide del primer molar superior sobre el surco del molar inferior; las amarillas, el canino superior entre el canino inferior y el primer premolar.",
+                "en": "The blue arrows mark the upper first molar cusp over the groove of the lower molar; the yellow ones, the upper canine between the lower canine and the first premolar."
+              },
+              "fuente": "Protocolo Oclusión N3/N6 V.10-09-2026"
+            }
+          ]
         },
         {
           "t": "tarjetas",

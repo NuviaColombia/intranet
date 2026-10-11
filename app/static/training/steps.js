@@ -4,8 +4,32 @@ import { crearQuiz } from './quiz.js';
 
 const tarjetaTitulo = (p) => (p.titulo ? h('h2', { class: 'tr-paso-tit' }, t(p.titulo)) : null);
 
+// Imagen con pie; clic = verla en grande
+export function figura(im, extra) {
+  const pie = t(im.pie);
+  return h('figure', { class: 'tr-fig' + (extra ? ' ' + extra : '') },
+    h('button', { type: 'button', class: 'tr-fig-btn', 'aria-label': ui('ampliar'), onclick: () => ampliar(im) }, h('img', { src: im.src, alt: pie || '', loading: 'lazy' }), h('span', { class: 'tr-fig-lupa', 'aria-hidden': 'true' }, '⤢')),
+    pie ? h('figcaption', null, md(im.pie, { sinGlosario: true })) : null, im.fuente ? h('small', { class: 'tr-fig-fuente' }, '📄 ' + im.fuente) : null);
+}
+function ampliar(im) {
+  const cerrar = () => { fondo.remove(); document.removeEventListener('keydown', tecla, true); };
+  const tecla = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } };
+  const fondo = h('div', { class: 'tr-lightbox', role: 'dialog', 'aria-modal': 'true', onclick: (e) => { if (e.target === fondo || e.target.classList.contains('tr-lb-x')) cerrar(); } },
+    h('button', { type: 'button', class: 'tr-lb-x', 'aria-label': ui('cerrar') }, '✕'), h('img', { src: im.src, alt: t(im.pie) || '' }), t(im.pie) ? h('div', { class: 'tr-lb-pie' }, t(im.pie)) : null);
+  document.addEventListener('keydown', tecla, true);
+  document.body.append(fondo);
+}
+
+function imagen(p) {
+  const ims = p.imagenes || [];
+  return { el: h('div', { class: 'tr-paso tr-paso-imagen' }, tarjetaTitulo(p), h('div', { class: 'tr-galeria ' + (p.disposicion || (ims.length > 1 ? 'dos' : 'una')) }, ims.map((im) => figura(im)))) };
+}
+
 function texto(p) {
-  const el = h('div', { class: 'tr-paso tr-paso-texto' }, tarjetaTitulo(p), md(p.cuerpo, { maxTerminos: 6 }),
+  const cuerpo = md(p.cuerpo, { maxTerminos: 6 });
+  const im = p.imagen && p.imagen.src ? figura(p.imagen, 'tr-fig-lado') : null, lado = (p.imagen && p.imagen.lado) || 'der';
+  const el = h('div', { class: 'tr-paso tr-paso-texto' }, tarjetaTitulo(p),
+    im ? h('div', { class: 'tr-texto-img ' + lado }, im, cuerpo) : cuerpo,
     p.general ? h('span', { class: 'tr-chip-general' }, '🌐 ' + ui('general')) : null);
   const cal = (cls, icono, rotulo, txt) => txt ? h('aside', { class: 'tr-callout ' + cls }, h('div', { class: 'tr-callout-tit' }, h('span', null, icono), rotulo), md(txt, { maxTerminos: 2 })) : null;
   el.append(...[cal('porque', '💡', ui('porque'), p.porque), cal('dato', '📌', ui('dato'), p.dato), cal('alerta', '⚠️', ui('alerta'), p.alerta)].filter(Boolean));
@@ -123,6 +147,7 @@ function diferido(carga, ...args) {
 export function renderPaso(p, ctx) {
   switch (p.t) {
     case 'texto': return texto(p);
+    case 'imagen': return imagen(p);
     case 'tarjetas': return tarjetas(p);
     case 'flujo': return flujo(p);
     case 'acordeon': return acordeon(p);

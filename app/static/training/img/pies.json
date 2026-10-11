@@ -1,0 +1,324 @@
+{
+ "face/smile-outline-alignment.webp": {
+  "pie": {
+   "es": "Face Design ajusta el modelo 3D hasta que el contorno del borde incisal coincide con la foto de la sonrisa. Por eso las fotos nunca se rotan y los escaneos nunca se escalan.",
+   "en": "Face Design adjusts the 3D model until the incisal edge outline matches the smile photo. That is why photos are never rotated and scans are never scaled."
+  },
+  "fuente": "Protocol Face Design Blender V.21-09-2026"
+ },
+ "face/four-ios-scans.webp": {
+  "pie": {
+   "es": "Para un paciente con dientes llegan el arco superior, el inferior y las mordidas de cada lado. Si las mordidas no encajan con los arcos, se pide un nuevo escaneo.",
+   "en": "For a dentate patient, the upper arch, the lower arch and the bite scans from each side arrive. If the bites do not fit the arches, a new scan is requested."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "face/bite-block-scenarios.webp": {
+  "pie": {
+   "es": "Ejemplos reales con menos de 4 dientes anteriores superiores: en todos hacen falta bite blocks en el arco superior para registrar la mordida.",
+   "en": "Real examples with fewer than 4 upper anterior teeth: all of them need bite blocks on the upper arch to record the bite."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "face/maxillar-print-halves.webp": {
+  "pie": {
+   "es": "Así se ve la evidencia del Maxillar Print: el maxilar superior aislado del CT y dividido en dos mitades listas para imprimir.",
+   "en": "This is what the Maxillar Print evidence looks like: the upper maxilla isolated from the CT and split into two halves ready to print."
+  },
+  "fuente": "Protocol Maxillar Print V.14-11-2025"
+ },
+ "face/alignment-rules.webp": {
+  "pie": {
+   "es": "El escaneo superior se coloca con tres referencias: borde incisal, línea media y soporte labial. El modelo solo se mueve; nunca se rota ni se escala.",
+   "en": "The upper scan is positioned with three references: incisal edge, midline and lip support. The model is only moved; it is never rotated or scaled."
+  },
+  "fuente": "Protocol Face Design Blender V.21-09-2026"
+ },
+ "n2/demodenture-final-shape.webp": {
+  "pie": {
+   "es": "Demodenture (en azul) en Blender, con la forma final que se imprimirá para la prueba en boca. Cada doctor y cada centro pueden tener sus preferencias de acabado.",
+   "en": "Demodenture (in blue) in Blender, with the final shape that will be printed for the try-in. Each doctor and each center may have their own finishing preferences."
+  },
+  "fuente": "Protocol Traveling Demodenture Full Mouth N2 Blender V.14-11-2025"
+ },
+ "n2/rx-change-vs-no-change.webp": {
+  "pie": {
+   "es": "Una fila con dirección y milímetros (por ejemplo, «Move occlusally 1mm (Down)») es un cambio pedido. «No Changes (Lab will follow current position)» significa que el doctor no quiere ese cambio.",
+   "en": "A row with a direction and millimeters (for example, \"Move occlusally 1mm (Down)\") is a requested change. \"No Changes (Lab will follow current position)\" means the doctor does not want that change."
+  },
+  "fuente": "Protocol Traveling Demodenture Full Mouth N2 Blender V.14-11-2025"
+ },
+ "n2/intraoral-scan-quality.webp": {
+  "pie": {
+   "es": "Antes de montar la mordida, N2 revisa que cada escaneo tenga dientes, tejido y paladar completos. Escaneos recortados como estos pueden dejar el caso en hold hasta recibir uno nuevo.",
+   "en": "Before setting up the bite, N2 checks that each scan has complete teeth, tissue and palate. Cropped scans like these can put the case on hold until a new one arrives."
+  },
+  "fuente": "Protocol Traveling Demodenture Full Mouth N2 Blender V.14-11-2025"
+ },
+ "n3/full-mouth-product.webp": {
+  "pie": {
+   "es": "Arriba, las dos prótesis montadas en el articulador; abajo, las prótesis terminadas con los orificios de los tornillos. Es lo que N3 diseña para el día de la cirugía.",
+   "en": "Top, the two prostheses mounted on the articulator; bottom, the finished prostheses with their screw holes. This is what N3 designs for surgery day."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "n3/final-products-assembly.webp": {
+  "pie": {
+   "es": "Al final, guías, barras y TC se cargan juntos con colores muy distintos. Así se detecta a simple vista cualquier pieza que no coincida.",
+   "en": "At the end, guides, bars and TC are loaded together in very different colors. This makes any piece that does not match easy to spot."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "n3/bar-tissue-contact.webp": {
+  "pie": {
+   "es": "La parte inferior de la barra (intaglio) debe llegar al tejido en todo su recorrido, como a la izquierda. Si llega solo en parte o no llega, se corrige antes de aprobar.",
+   "en": "The underside of the bar (intaglio) must reach the tissue along its whole length, as on the left. If it reaches only partly or not at all, it is corrected before approval."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "n3/scan-plate.webp": {
+  "pie": {
+   "es": "Plato: el modelo superior sobre su plato de articulación. La línea media del plato debe verse, porque prueba que el caso se articuló bien.",
+   "en": "Plate: the upper model on its articulation plate. The plate midline must be visible, because it proves the case was articulated correctly."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "n3/scan-tissue.webp": {
+  "pie": {
+   "es": "Tissue: la impresión en silicona de la encía, colocada sobre el modelo de yeso. En casos de ambos arcos llegan dos, uno por arco.",
+   "en": "Tissue: the silicone impression of the gum, placed on the plaster model. In both-arch cases two arrive, one per arch."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "n3/scan-stumps.webp": {
+  "pie": {
+   "es": "Stumps: el modelo con los cilindros de alineación atornillados a los implantes, sin la silicona. Sirve para alinear los implantes con el ICAM.",
+   "en": "Stumps: the model with the alignment cylinders screwed onto the implants, without the silicone. It is used to align the implants with the ICAM."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "n6/screw-retained-final.webp": {
+  "pie": {
+   "es": "Resultado de un Screw Retained: la prótesis entre los modelos y, a los lados, las vistas con los orificios de acceso. Antes de aprobar se revisa que los orificios no tengan hilos y midan de 18 a 19 mm.",
+   "en": "Result of a Screw Retained: the prosthesis between the models and, at the sides, the views with the access holes. Before approval the holes are checked for threads and a size of 18 to 19 mm."
+  },
+  "fuente": "Protocol Screw Retained N6 V.20-04-2026"
+ },
+ "n6/bar-max-height.webp": {
+  "pie": {
+   "es": "Las barras se fresan en un disco de titanio de 30 mm de alto, así que una barra más alta no se puede fabricar. Los orificios de acceso no deben pasar de 16 a 17 mm.",
+   "en": "Bars are milled from a 30 mm titanium disc, so a taller bar cannot be made. Access holes must not exceed 16 to 17 mm."
+  },
+  "fuente": "Protocol Zirconia composite N6 V.20-04-2026"
+ },
+ "m1/implant-numbering.webp": {
+  "pie": {
+   "es": "El primer dígito indica el cuadrante de la boca y el segundo el diente aproximado. El implante 13 está en el cuadrante 1, a la altura del canino.",
+   "en": "The first digit gives the quadrant of the mouth and the second the approximate tooth. Implant 13 is in quadrant 1, at the canine."
+  },
+  "fuente": "Protocol ICAM V.01-04-2026"
+ },
+ "m1/occlusion-class-1.webp": {
+  "pie": {
+   "es": "Las flechas azules marcan la cúspide del primer molar superior sobre el surco del molar inferior; las amarillas, el canino superior entre el canino inferior y el primer premolar.",
+   "en": "The blue arrows mark the upper first molar cusp over the groove of the lower molar; the yellow ones, the upper canine between the lower canine and the first premolar."
+  },
+  "fuente": "Protocolo Oclusión N3/N6 V.10-09-2026"
+ },
+ "m2/ios-scans-to-repeat.webp": {
+  "pie": {
+   "es": "Tres escaneos rechazados: un arco incompleto, un paladar cortado y un modelo con un hueco y burbujas. Si llega uno así, se repite el escaneo.",
+   "en": "Three rejected scans: an incomplete arch, a cut-off palate and a model with a hole and bubbles. If one like this arrives, the scan is repeated."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/shade-shape-templates.webp": {
+  "pie": {
+   "es": "Las tres plantillas de morfología del laboratorio de Nuvia, una debajo de otra. Son el punto de partida antes de pedir cualquier cambio.",
+   "en": "The three morphology templates of the Nuvia lab, one below the other. They are the starting point before any change is requested."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/incisal-edge-up.webp": {
+  "pie": {
+   "es": "De izquierda a derecha: la demo en boca, la posición inicial (rojo) y la posición con el cambio (verde), aquí con el borde incisal 2 mm hacia arriba.",
+   "en": "From left to right: the demo in the mouth, the initial position (red) and the position with the change (green), here with the incisal edge 2 mm up."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/midline-rotation.webp": {
+  "pie": {
+   "es": "Ejemplo de pedido: mover la midline 1 mm a la derecha del paciente. El arco gira alrededor de un punto fijo en el paladar, por eso es una rotación.",
+   "en": "Example request: move the midline 1 mm to the patient's right. The arch turns around a fixed point on the palate, which is why it is a rotation."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/occlusal-cant.webp": {
+  "pie": {
+   "es": "Se marcan los molares superiores en la demo. El plano se inclina alrededor de un punto estático en el centro, como un balancín.",
+   "en": "The upper molars are marked on the demo. The plane tilts around a static point in the middle, like a seesaw."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/occlusal-plane.webp": {
+  "pie": {
+   "es": "Con los molares marcados en la demo, el plano gira alrededor de un punto estático en los dientes anteriores; aquí los molares suben 1 mm.",
+   "en": "With the molars marked on the demo, the plane turns around a static point at the front teeth; here the molars go up 1 mm."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/arch-rotation.webp": {
+  "pie": {
+   "es": "Ejemplo: girar el arco 2 mm a la derecha del paciente. El punto estático está en los incisivos y los molares se desplazan hacia un lado.",
+   "en": "Example: rotate the arch 2 mm to the patient's right. The static point is at the incisors and the molars shift to one side."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/lip-support.webp": {
+  "pie": {
+   "es": "Rojo es la posición inicial y verde la posición con el cambio: los dientes anteriores se llevan 1 mm hacia adelante (facially) para dar más soporte al labio.",
+   "en": "Red is the initial position and green the position with the change: the front teeth are brought 1 mm forward (facially) to give the lip more support."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m3/arch-sizes.webp": {
+  "pie": {
+   "es": "Las seis plantillas de la biblioteca superpuestas, cada una con un color: A beige, AW rojo, B verde, BW morado, C rosa y CW azul.",
+   "en": "The six library templates overlaid, each in its own color: A beige, AW red, B green, BW purple, C pink and CW blue."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m4/single24z-approved-occlusion.webp": {
+  "pie": {
+   "es": "En un Single 24z, la oclusión (verde) ya se diseñó y aprobó en N2 contra el antagonista natural del paciente (gris). N3 parte de ella y no la puede modificar.",
+   "en": "In a Single 24z, the occlusion (green) was already designed and approved in N2 against the patient's natural antagonist (gray). N3 starts from it and cannot modify it."
+  },
+  "fuente": "Protocol single arch 24z V.07-07-2026"
+ },
+ "m4/case2-vdo-open.webp": {
+  "pie": {
+   "es": "Si se abre el VDO 3 mm sin mover el borde incisal, los dientes quedan sin contacto y no hay clase I. Por eso el equipo ofrece dos opciones: abrir 3 mm bajando el borde incisal, o VDO 0 con el mismo borde.",
+   "en": "If the VDO is opened 3 mm without moving the incisal edge, the teeth lose contact and there is no class I. That is why the team offers two options: open 3 mm and lower the incisal edge, or VDO 0 with the same edge."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m4/case3-demo-in-mouth.webp": {
+  "pie": {
+   "es": "A la izquierda, la oclusión aprobada en N2; a la derecha, la demo en la boca del paciente. El equipo compara ambas para ver si la demo quedó más abajo de lo aprobado.",
+   "en": "On the left, the occlusion approved in N2; on the right, the demo in the patient's mouth. The team compares both to see whether the demo sits lower than approved."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m5/minimum-measures-diagram.webp": {
+  "pie": {
+   "es": "Medidas mínimas por tamaño de arco. Las azules no tienen tolerancia; las naranjas muestran la tolerancia de 0,5 mm, que nunca aplica a los anteriores superiores.",
+   "en": "Minimum measurements by arch size. The blue ones have no tolerance; the orange ones show the 0.5 mm tolerance, which never applies to the upper anteriors."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "m5/bridge-thickness.webp": {
+  "pie": {
+   "es": "Grosor del puente visto de lado: 10 mm en posteriores y 12 mm en anteriores para los arcos A a BW; 12 y 14 mm para C y CW.",
+   "en": "Bridge thickness seen from the side: 10 mm on posteriors and 12 mm on anteriors for arches A to BW; 12 and 14 mm for C and CW."
+  },
+  "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+ },
+ "m5/cantilever-measure.webp": {
+  "pie": {
+   "es": "A la izquierda el cantilever mide unos 14,5 mm y cumple; a la derecha pasa de 17 mm y supera el límite de 15 mm.",
+   "en": "On the left the cantilever measures about 14.5 mm and passes; on the right it is over 17 mm and exceeds the 15 mm limit."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "m6a/cbct-ios-overlap.webp": {
+  "pie": {
+   "es": "El hueso del CBCT con los escaneos IOS superior (verde) e inferior (rosa) encajados. El hueso no debe invadir el tejido y cada diente del CBCT debe coincidir con el IOS.",
+   "en": "The CBCT bone with the upper (green) and lower (pink) IOS scans fitted in. Bone must not overlap the tissue and each CBCT tooth must match the IOS."
+  },
+  "fuente": "Protocol Face Design Blender V.21-09-2026"
+ },
+ "m6a/nine-photos.webp": {
+  "pie": {
+   "es": "Sonrisa natural, en reposo, plano oclusal, dos perfiles, vista desde abajo, frontal y oclusión izquierda y derecha. Fíjate en la pegatina de la frente, que da la escala.",
+   "en": "Natural smile, at rest, occlusal plane, two profiles, view from below, frontal and left and right occlusion. Notice the forehead sticker, which gives the scale."
+  },
+  "fuente": "Photography protocol V08-06-2026"
+ },
+ "m6a/palate-missing.webp": {
+  "pie": {
+   "es": "A la izquierda, un escaneo superior al que le falta el paladar (círculo rojo); a la derecha, uno completo. Con poca información del paladar se exige re-escaneo.",
+   "en": "On the left, an upper scan missing the palate (red circle); on the right, a complete one. With too little palate information a re-scan is required."
+  },
+  "fuente": "IOS scans protocol V08-06-2026"
+ },
+ "m6b/plate-midline-check.webp": {
+  "pie": {
+   "es": "La línea media del plato debe verse siempre (izquierda). Si no se ve (derecha), no se puede confirmar la articulación y se piden scans nuevos.",
+   "en": "The plate midline must always be visible (left). If it is not (right), the articulation cannot be confirmed and new scans are requested."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "m6b/tissue-reduction.webp": {
+  "pie": {
+   "es": "Diseño baja o suaviza la encía escaneada (flechas y zona verde) para ganar altura. Se permite un máximo de 1 mm y solo con aprobación del doctor.",
+   "en": "Design lowers or smooths the scanned gum (arrows and green area) to gain height. A maximum of 1 mm is allowed, and only with the doctor's approval."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "m6b/access-holes-wrong.webp": {
+  "pie": {
+   "es": "Ejemplos de orificios que salen por vestibular o por zonas delgadas. Dañan la estética o pueden fracturar la zirconia al fresar.",
+   "en": "Examples of holes that exit through the buccal side or through thin areas. They damage aesthetics or can fracture the zirconia during milling."
+  },
+  "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+ },
+ "m6b/custom-dot-bar.webp": {
+  "pie": {
+   "es": "Ejemplos del protocolo de barra custom de puntos. Se usa en casos de un solo arco sin altura suficiente para zirconia, y por eso el cuerpo de la barra se hace más regular y grueso.",
+   "en": "Examples from the custom point bar protocol. It is used in single-arch cases without enough height for zirconia, which is why the bar body is made more regular and thicker."
+  },
+  "fuente": "Protocol custom bar V.29-06-2026"
+ },
+ "m6b/tc-over-custom-bar.webp": {
+  "pie": {
+   "es": "El TC se pone a media opacidad para revisar el espacio de cementación. La barra no debe sobresalir del TC; si lo hace, se revisa la alineación del waxup y de la barra.",
+   "en": "The TC is set to half opacity to check the cementation space. The bar must not stick out of the TC; if it does, the waxup and bar alignment are checked."
+  },
+  "fuente": "TC over custom bar V.14-11-2025"
+ },
+ "m6b/nightguard-reference.webp": {
+  "pie": {
+   "es": "Imagen de referencia de una Nightguard inferior (gris) entre la prótesis superior y el modelo inferior. Copia la forma de los dientes y se adapta al antagonista.",
+   "en": "Reference image of a lower Nightguard (gray) between the upper prosthesis and the lower model. It copies the tooth shapes and adapts to the antagonist."
+  },
+  "fuente": "Protocol Nightguard V.05-13-2026"
+ },
+ "m6b/removable-denture-zones.webp": {
+  "pie": {
+   "es": "Para diseñar una dentadura removible, el escaneo debe mostrar todas las zonas del tejido: vestíbulos, frenillos, tuberosidades y zona retromolar. Si falta alguna, el contorno no será correcto.",
+   "en": "To design a removable denture, the scan must show every tissue area: vestibules, frenula, tuberosities and the retromolar area. If any is missing, the outline will not be correct."
+  },
+  "fuente": "Removable denture V.10-09-2026"
+ },
+ "n6/tc-access-holes.webp": {
+  "pie": {
+   "es": "Una vez perforados, se revisa que todos los orificios de acceso del TC estén limpios, sin hilos ni material extra que los tape.",
+   "en": "Once drilled, all TC access holes are checked to be clean, with no threads or extra material covering them."
+  },
+  "fuente": "Protocol Zirconia composite N6 V.20-04-2026"
+ },
+ "n6/tibase-gcam.webp": {
+  "pie": {
+   "es": "Así se ve el implante Ti-base G-CAM del Screw Retained. El proyecto trae implantes Direct por defecto, así que hay que cambiarlo a mano.",
+   "en": "This is the Ti-base G-CAM implant used in the Screw Retained. The project comes with Direct implants by default, so it must be changed by hand."
+  },
+  "fuente": "Protocol Screw Retained N6 V.20-04-2026"
+ },
+ "n6/articulation-guide.webp": {
+  "pie": {
+   "es": "Resultado de una guía de articulación. Se revisa que los orificios no tengan hilos, que la guía no pase de 30 o 25 mm de alto según el disco del centro y que los accesos no superen 18 a 19 mm.",
+   "en": "Result of an articulation guide. Holes are checked for threads, the guide must not exceed 30 or 25 mm in height depending on the center's disc, and access holes must not exceed 18 to 19 mm."
+  },
+  "fuente": "Protocol Dummy N6 V.01-04-2026"
+ }
+}

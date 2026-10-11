@@ -205,6 +205,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "CBCT alineado con los escaneos",
+            "en": "CBCT aligned with the scans"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6a/cbct-ios-overlap.webp",
+              "pie": {
+                "es": "El hueso del CBCT con los escaneos IOS superior (verde) e inferior (rosa) encajados. El hueso no debe invadir el tejido y cada diente del CBCT debe coincidir con el IOS.",
+                "en": "The CBCT bone with the upper (green) and lower (pink) IOS scans fitted in. Bone must not overlap the tissue and each CBCT tooth must match the IOS."
+              },
+              "fuente": "Protocol Face Design Blender V.21-09-2026"
+            }
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
             "es": "Zonas dudosas del protocolo",
@@ -389,6 +407,24 @@
             "es": "El protocolo de fotografía dice qué fotos debe enviar la clínica y con qué calidad para que Face pueda alinear los escaneos con el rostro en 3D. Es importante leerlo antes de presentar un caso. Se piden **9 fotos estándar** (o las de paciente edéntulo, sin dientes).\nLa pegatina en la frente, entre las cejas, da la escala real de la cara.",
             "en": "The photography protocol says which photos the clinic must send and with what quality so Face can align scans with the face in 3D. It is important to read it before presenting a case. **9 standard photos** are required (or the edentulous ones, for patients without teeth).\nThe sticker on the forehead, between the eyebrows, gives the real scale of the face."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Las 9 fotos estándar",
+            "en": "The 9 standard photos"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6a/nine-photos.webp",
+              "pie": {
+                "es": "Sonrisa natural, en reposo, plano oclusal, dos perfiles, vista desde abajo, frontal y oclusión izquierda y derecha. Fíjate en la pegatina de la frente, que da la escala.",
+                "en": "Natural smile, at rest, occlusal plane, two profiles, view from below, frontal and left and right occlusion. Notice the forehead sticker, which gives the scale."
+              },
+              "fuente": "Photography protocol V08-06-2026"
+            }
+          ]
         },
         {
           "t": "tabla",
@@ -758,6 +794,24 @@
                 "es": "El paladar es fundamental; el intaglio es el registro directo de encía y paladar; una prótesis fija que oculta tejido impide que la demodenture asiente bien. En todos: re-escaneo.",
                 "en": "The palate is essential; the intaglio is the direct record of gum and palate; a fixed prosthesis hiding tissue prevents the demodenture from seating. In all: re-scan."
               }
+            }
+          ]
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Paladar incompleto",
+            "en": "Incomplete palate"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6a/palate-missing.webp",
+              "pie": {
+                "es": "A la izquierda, un escaneo superior al que le falta el paladar (círculo rojo); a la derecha, uno completo. Con poca información del paladar se exige re-escaneo.",
+                "en": "On the left, an upper scan missing the palate (red circle); on the right, a complete one. With too little palate information a re-scan is required."
+              },
+              "fuente": "IOS scans protocol V08-06-2026"
             }
           ]
         },

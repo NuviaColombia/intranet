@@ -470,6 +470,24 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Plato: línea media visible",
+            "en": "Plate: visible midline"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6b/plate-midline-check.webp",
+              "pie": {
+                "es": "La línea media del plato debe verse siempre (izquierda). Si no se ve (derecha), no se puede confirmar la articulación y se piden scans nuevos.",
+                "en": "The plate midline must always be visible (left). If it is not (right), the articulation cannot be confirmed and new scans are requested."
+              },
+              "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+            }
+          ]
+        },
+        {
           "t": "tabla",
           "titulo": {
             "es": "Archivos defectuosos: qué significa y qué se hace",
@@ -1006,6 +1024,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Reducción de tissue",
+            "en": "Tissue reduction"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6b/tissue-reduction.webp",
+              "pie": {
+                "es": "Diseño baja o suaviza la encía escaneada (flechas y zona verde) para ganar altura. Se permite un máximo de 1 mm y solo con aprobación del doctor.",
+                "en": "Design lowers or smooths the scanned gum (arrows and green area) to gain height. A maximum of 1 mm is allowed, and only with the doctor's approval."
+              },
+              "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+            }
+          ]
+        },
+        {
           "t": "acordeon",
           "titulo": {
             "es": "Cantilever y medición del puente",
@@ -1068,6 +1104,24 @@
             "es": "Confirmar con el manager: altura máxima de los access holes de barra (16-17 mm) y de guía (18-19 mm). La versión en inglés repite 16-17 mm para la guía y la llama titanium disc, que es incorrecto (es disco G-CAM).",
             "en": "Confirm with the manager: maximum access hole height for the bar (16-17 mm) and the guide (18-19 mm). The English version repeats 16-17 mm for the guide and calls it a titanium disc, which is incorrect (it is a G-CAM disc)."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Access holes mal ubicados",
+            "en": "Badly placed access holes"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6b/access-holes-wrong.webp",
+              "pie": {
+                "es": "Ejemplos de orificios que salen por vestibular o por zonas delgadas. Dañan la estética o pueden fracturar la zirconia al fresar.",
+                "en": "Examples of holes that exit through the buccal side or through thin areas. They damage aesthetics or can fracture the zirconia during milling."
+              },
+              "fuente": "Protocol Full Mouth N3 V.10-09-2026"
+            }
+          ]
         },
         {
           "t": "tabla",
@@ -1656,6 +1710,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Por qué una barra de puntos",
+            "en": "Why a point bar"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6b/custom-dot-bar.webp",
+              "pie": {
+                "es": "Ejemplos del protocolo de barra custom de puntos. Se usa en casos de un solo arco sin altura suficiente para zirconia, y por eso el cuerpo de la barra se hace más regular y grueso.",
+                "en": "Examples from the custom point bar protocol. It is used in single-arch cases without enough height for zirconia, which is why the bar body is made more regular and thicker."
+              },
+              "fuente": "Protocol custom bar V.29-06-2026"
+            }
+          ]
+        },
+        {
           "t": "flujo",
           "titulo": {
             "es": "Barra custom: etapas",
@@ -1856,6 +1928,24 @@
                 "en": "30 min design; stage approved within 12 h max"
               }
             ]
+          ]
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "TC sobre la barra",
+            "en": "TC over the bar"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6b/tc-over-custom-bar.webp",
+              "pie": {
+                "es": "El TC se pone a media opacidad para revisar el espacio de cementación. La barra no debe sobresalir del TC; si lo hace, se revisa la alineación del waxup y de la barra.",
+                "en": "The TC is set to half opacity to check the cementation space. The bar must not stick out of the TC; if it does, the waxup and bar alignment are checked."
+              },
+              "fuente": "TC over custom bar V.14-11-2025"
+            }
           ]
         },
         {
@@ -2358,6 +2448,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Una Nightguard inferior",
+            "en": "A lower Nightguard"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6b/nightguard-reference.webp",
+              "pie": {
+                "es": "Imagen de referencia de una Nightguard inferior (gris) entre la prótesis superior y el modelo inferior. Copia la forma de los dientes y se adapta al antagonista.",
+                "en": "Reference image of a lower Nightguard (gray) between the upper prosthesis and the lower model. It copies the tooth shapes and adapts to the antagonist."
+              },
+              "fuente": "Protocol Nightguard V.05-13-2026"
+            }
+          ]
+        },
+        {
           "t": "flujo",
           "titulo": {
             "es": "Etapas de la NG con VDO",
@@ -2723,6 +2831,24 @@
             "es": "Algunos pacientes necesitan una dentadura **removible** de acrílico (PMMA) en lugar de una fija. Dos personas colaboran: el diseñador N3 prepara la planificación y mide, y el Removable designer diseña la base de la dentadura sobre la barra y el tissue del N3. El protocolo busca menos errores, coordinación clara y resultados predecibles.",
             "en": "Some patients need a **removable** acrylic (PMMA) denture instead of a fixed one. Two people collaborate: the N3 designer prepares the planning and measures, and the Removable designer designs the denture base over the N3 bar and tissue. The protocol aims for fewer errors, clear coordination and predictable results."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Zonas que el escaneo debe mostrar",
+            "en": "Areas the scan must show"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m6b/removable-denture-zones.webp",
+              "pie": {
+                "es": "Para diseñar una dentadura removible, el escaneo debe mostrar todas las zonas del tejido: vestíbulos, frenillos, tuberosidades y zona retromolar. Si falta alguna, el contorno no será correcto.",
+                "en": "To design a removable denture, the scan must show every tissue area: vestibules, frenula, tuberosities and the retromolar area. If any is missing, the outline will not be correct."
+              },
+              "fuente": "Removable denture V.10-09-2026"
+            }
+          ]
         },
         {
           "t": "tarjetas",

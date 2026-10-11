@@ -480,6 +480,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Orificios del TC",
+            "en": "TC access holes"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n6/tc-access-holes.webp",
+              "pie": {
+                "es": "Una vez perforados, se revisa que todos los orificios de acceso del TC estén limpios, sin hilos ni material extra que los tape.",
+                "en": "Once drilled, all TC access holes are checked to be clean, with no threads or extra material covering them."
+              },
+              "fuente": "Protocol Zirconia composite N6 V.20-04-2026"
+            }
+          ]
+        },
+        {
           "t": "tarjetas",
           "titulo": {
             "es": "¿A quién aviso y qué pido?",
@@ -1141,6 +1159,24 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "El Ti-base G-CAM",
+            "en": "The Ti-base G-CAM"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n6/tibase-gcam.webp",
+              "pie": {
+                "es": "Así se ve el implante Ti-base G-CAM del Screw Retained. El proyecto trae implantes Direct por defecto, así que hay que cambiarlo a mano.",
+                "en": "This is the Ti-base G-CAM implant used in the Screw Retained. The project comes with Direct implants by default, so it must be changed by hand."
+              },
+              "fuente": "Protocol Screw Retained N6 V.20-04-2026"
+            }
+          ]
+        },
+        {
           "t": "flujo",
           "titulo": {
             "es": "Lo propio del diseño",
@@ -1475,6 +1511,24 @@
                 "en": "The position is already validated with that prosthesis"
               }
             ]
+          ]
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Una guía de articulación",
+            "en": "An articulation guide"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n6/articulation-guide.webp",
+              "pie": {
+                "es": "Resultado de una guía de articulación. Se revisa que los orificios no tengan hilos, que la guía no pase de 30 o 25 mm de alto según el disco del centro y que los accesos no superen 18 a 19 mm.",
+                "en": "Result of an articulation guide. Holes are checked for threads, the guide must not exceed 30 or 25 mm in height depending on the center's disc, and access holes must not exceed 18 to 19 mm."
+              },
+              "fuente": "Protocol Dummy N6 V.01-04-2026"
+            }
           ]
         },
         {

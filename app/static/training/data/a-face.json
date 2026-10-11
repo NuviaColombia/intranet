@@ -38,6 +38,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "La sonrisa como referencia",
+            "en": "The smile as a reference"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/face/smile-outline-alignment.webp",
+              "pie": {
+                "es": "Face Design ajusta el modelo 3D hasta que el contorno del borde incisal coincide con la foto de la sonrisa. Por eso las fotos nunca se rotan y los escaneos nunca se escalan.",
+                "en": "Face Design adjusts the 3D model until the incisal edge outline matches the smile photo. That is why photos are never rotated and scans are never scaled."
+              },
+              "fuente": "Protocol Face Design Blender V.21-09-2026"
+            }
+          ]
+        },
+        {
           "t": "flujo",
           "titulo": {
             "es": "Dónde encaja en el recorrido de un caso",
@@ -482,6 +500,24 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Los escaneos de un paciente con dientes",
+            "en": "Scans for a dentate patient"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/face/four-ios-scans.webp",
+              "pie": {
+                "es": "Para un paciente con dientes llegan el arco superior, el inferior y las mordidas de cada lado. Si las mordidas no encajan con los arcos, se pide un nuevo escaneo.",
+                "en": "For a dentate patient, the upper arch, the lower arch and the bite scans from each side arrive. If the bites do not fit the arches, a new scan is requested."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
             "es": "Cuándo hacen falta bite blocks",
@@ -495,6 +531,24 @@
             "es": "Una nota de la guía de producto menciona 4 escaneos para un paciente con dientes y buenos topes, mientras el protocolo de IOS habla de 3 bites. Confirmar con el manager cuántos bites se esperan en cada caso.",
             "en": "A product-guide note mentions 4 scans for a patient with teeth and good stops, while the IOS protocol speaks of 3 bites. Confirm with the manager how many bites are expected in each case."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Cuándo se necesitan bite blocks",
+            "en": "When bite blocks are needed"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/face/bite-block-scenarios.webp",
+              "pie": {
+                "es": "Ejemplos reales con menos de 4 dientes anteriores superiores: en todos hacen falta bite blocks en el arco superior para registrar la mordida.",
+                "en": "Real examples with fewer than 4 upper anterior teeth: all of them need bite blocks on the upper arch to record the bite."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
         },
         {
           "t": "checklist",
@@ -852,6 +906,24 @@
             "es": "El protocolo no explica por qué el modelo se divide en dos mitades ni indica cuándo escalar. Confirmar con el manager.",
             "en": "The protocol does not explain why the model is split in two halves nor when to escalate. Confirm with the manager."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "El maxilar en dos mitades",
+            "en": "The maxilla in two halves"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/face/maxillar-print-halves.webp",
+              "pie": {
+                "es": "Así se ve la evidencia del Maxillar Print: el maxilar superior aislado del CT y dividido en dos mitades listas para imprimir.",
+                "en": "This is what the Maxillar Print evidence looks like: the upper maxilla isolated from the CT and split into two halves ready to print."
+              },
+              "fuente": "Protocol Maxillar Print V.14-11-2025"
+            }
+          ]
         },
         {
           "t": "enlace",
@@ -1260,6 +1332,24 @@
             "es": "Confirmar con el manager.",
             "en": "Confirm with the manager."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Tres referencias para alinear",
+            "en": "Three references for alignment"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/face/alignment-rules.webp",
+              "pie": {
+                "es": "El escaneo superior se coloca con tres referencias: borde incisal, línea media y soporte labial. El modelo solo se mueve; nunca se rota ni se escala.",
+                "en": "The upper scan is positioned with three references: incisal edge, midline and lip support. The model is only moved; it is never rotated or scaled."
+              },
+              "fuente": "Protocol Face Design Blender V.21-09-2026"
+            }
+          ]
         },
         {
           "t": "enlace",

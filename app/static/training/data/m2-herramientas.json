@@ -880,6 +880,24 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Escaneos que se piden de nuevo",
+            "en": "Scans that are requested again"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m2/ios-scans-to-repeat.webp",
+              "pie": {
+                "es": "Tres escaneos rechazados: un arco incompleto, un paladar cortado y un modelo con un hueco y burbujas. Si llega uno así, se repite el escaneo.",
+                "en": "Three rejected scans: an incomplete arch, a cut-off palate and a model with a hole and bubbles. If one like this arrives, the scan is repeated."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
             "es": "CBCT y DICOM: ver el hueso",

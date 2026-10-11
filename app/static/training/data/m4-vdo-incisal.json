@@ -36,6 +36,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "La oclusión que llega desde N2",
+            "en": "The occlusion that comes from N2"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m4/single24z-approved-occlusion.webp",
+              "pie": {
+                "es": "En un Single 24z, la oclusión (verde) ya se diseñó y aprobó en N2 contra el antagonista natural del paciente (gris). N3 parte de ella y no la puede modificar.",
+                "en": "In a Single 24z, the occlusion (green) was already designed and approved in N2 against the patient's natural antagonist (gray). N3 starts from it and cannot modify it."
+              },
+              "fuente": "Protocol single arch 24z V.07-07-2026"
+            }
+          ]
+        },
+        {
           "t": "tarjetas",
           "titulo": {
             "es": "Vocabulario para entender el módulo",
@@ -606,6 +624,24 @@
           "modo": "fijo"
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Caso 2 en los modelos",
+            "en": "Case 2 on the models"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m4/case2-vdo-open.webp",
+              "pie": {
+                "es": "Si se abre el VDO 3 mm sin mover el borde incisal, los dientes quedan sin contacto y no hay clase I. Por eso el equipo ofrece dos opciones: abrir 3 mm bajando el borde incisal, o VDO 0 con el mismo borde.",
+                "en": "If the VDO is opened 3 mm without moving the incisal edge, the teeth lose contact and there is no class I. That is why the team offers two options: open 3 mm and lower the incisal edge, or VDO 0 with the same edge."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
             "es": "Por qué el Caso 2 es una solicitud difícil",
@@ -661,6 +697,24 @@
             }
           ],
           "modo": "fijo"
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Caso 3: comparar con lo aprobado",
+            "en": "Case 3: compare with what was approved"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m4/case3-demo-in-mouth.webp",
+              "pie": {
+                "es": "A la izquierda, la oclusión aprobada en N2; a la derecha, la demo en la boca del paciente. El equipo compara ambas para ver si la demo quedó más abajo de lo aprobado.",
+                "en": "On the left, the occlusion approved in N2; on the right, the demo in the patient's mouth. The team compares both to see whether the demo sits lower than approved."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
         },
         {
           "t": "simulador",

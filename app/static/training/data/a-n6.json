@@ -423,6 +423,24 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Un Screw Retained terminado",
+            "en": "A finished Screw Retained"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n6/screw-retained-final.webp",
+              "pie": {
+                "es": "Resultado de un Screw Retained: la prótesis entre los modelos y, a los lados, las vistas con los orificios de acceso. Antes de aprobar se revisa que los orificios no tengan hilos y midan de 18 a 19 mm.",
+                "en": "Result of a Screw Retained: the prosthesis between the models and, at the sides, the views with the access holes. Before approval the holes are checked for threads and a size of 18 to 19 mm."
+              },
+              "fuente": "Protocol Screw Retained N6 V.20-04-2026"
+            }
+          ]
+        },
+        {
           "t": "tabla",
           "titulo": {
             "es": "¿Qué producto para qué situación?",
@@ -1311,6 +1329,24 @@
                 "es": "Según el Q&A, los casos con molares extra quedan fuera de las morfologías aprobadas de Nuvia y no se aprueban.",
                 "en": "According to the Q&A, cases with extra molars fall outside Nuvia's approved morphologies and are not approved."
               }
+            }
+          ]
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Los límites del disco de titanio",
+            "en": "The limits of the titanium disc"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n6/bar-max-height.webp",
+              "pie": {
+                "es": "Las barras se fresan en un disco de titanio de 30 mm de alto, así que una barra más alta no se puede fabricar. Los orificios de acceso no deben pasar de 16 a 17 mm.",
+                "en": "Bars are milled from a 30 mm titanium disc, so a taller bar cannot be made. Access holes must not exceed 16 to 17 mm."
+              },
+              "fuente": "Protocol Zirconia composite N6 V.20-04-2026"
             }
           ]
         },

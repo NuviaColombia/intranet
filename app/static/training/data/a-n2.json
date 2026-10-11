@@ -38,6 +38,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Así se ve una Demodenture en diseño",
+            "en": "What a Demodenture looks like in design"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n2/demodenture-final-shape.webp",
+              "pie": {
+                "es": "Demodenture (en azul) en Blender, con la forma final que se imprimirá para la prueba en boca. Cada doctor y cada centro pueden tener sus preferencias de acabado.",
+                "en": "Demodenture (in blue) in Blender, with the final shape that will be printed for the try-in. Each doctor and each center may have their own finishing preferences."
+              },
+              "fuente": "Protocol Traveling Demodenture Full Mouth N2 Blender V.14-11-2025"
+            }
+          ]
+        },
+        {
           "t": "flujo",
           "titulo": {
             "es": "Dónde encaja N2 en la vida de un caso",
@@ -1236,6 +1254,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Cómo se lee un cambio en la RX",
+            "en": "How to read a change in the RX"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n2/rx-change-vs-no-change.webp",
+              "pie": {
+                "es": "Una fila con dirección y milímetros (por ejemplo, «Move occlusally 1mm (Down)») es un cambio pedido. «No Changes (Lab will follow current position)» significa que el doctor no quiere ese cambio.",
+                "en": "A row with a direction and millimeters (for example, \"Move occlusally 1mm (Down)\") is a requested change. \"No Changes (Lab will follow current position)\" means the doctor does not want that change."
+              },
+              "fuente": "Protocol Traveling Demodenture Full Mouth N2 Blender V.14-11-2025"
+            }
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
             "es": "La regla de oro del Single 24z",
@@ -2089,6 +2125,24 @@
                 "en": "To produce and arrive before surgery."
               }
             ]
+          ]
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Escaneos que no sirven",
+            "en": "Scans that cannot be used"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/n2/intraoral-scan-quality.webp",
+              "pie": {
+                "es": "Antes de montar la mordida, N2 revisa que cada escaneo tenga dientes, tejido y paladar completos. Escaneos recortados como estos pueden dejar el caso en hold hasta recibir uno nuevo.",
+                "en": "Before setting up the bite, N2 checks that each scan has complete teeth, tissue and palate. Cropped scans like these can put the case on hold until a new one arrives."
+              },
+              "fuente": "Protocol Traveling Demodenture Full Mouth N2 Blender V.14-11-2025"
+            }
           ]
         },
         {

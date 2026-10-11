@@ -375,6 +375,24 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Round, Square y Natural",
+            "en": "Round, Square and Natural"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/shade-shape-templates.webp",
+              "pie": {
+                "es": "Las tres plantillas de morfología del laboratorio de Nuvia, una debajo de otra. Son el punto de partida antes de pedir cualquier cambio.",
+                "en": "The three morphology templates of the Nuvia lab, one below the other. They are the starting point before any change is requested."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "texto",
           "titulo": {
             "es": "Shade y Shape no son Arch Size",
@@ -866,6 +884,24 @@
           ]
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Borde incisal 2 mm arriba",
+            "en": "Incisal edge 2 mm up"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/incisal-edge-up.webp",
+              "pie": {
+                "es": "De izquierda a derecha: la demo en boca, la posición inicial (rojo) y la posición con el cambio (verde), aquí con el borde incisal 2 mm hacia arriba.",
+                "en": "From left to right: the demo in the mouth, the initial position (red) and the position with the change (green), here with the incisal edge 2 mm up."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "tour",
           "titulo": {
             "es": "Incisal Edge: de abajo a arriba",
@@ -1092,6 +1128,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "La midline gira, no se desliza",
+            "en": "The midline rotates, it does not slide"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/midline-rotation.webp",
+              "pie": {
+                "es": "Ejemplo de pedido: mover la midline 1 mm a la derecha del paciente. El arco gira alrededor de un punto fijo en el paladar, por eso es una rotación.",
+                "en": "Example request: move the midline 1 mm to the patient's right. The arch turns around a fixed point on the palate, which is why it is a rotation."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "tour",
           "titulo": {
             "es": "Midline: girar sobre el paladar",
@@ -1313,6 +1367,24 @@
             "es": "Se hace con la midline ya bloqueada: el diseñador protege la midline mientras el plano se inclina.",
             "en": "It is done with the midline already locked: the designer protects the midline while the plane tilts."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Cant: un lado sube y el otro baja",
+            "en": "Cant: one side up, the other down"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/occlusal-cant.webp",
+              "pie": {
+                "es": "Se marcan los molares superiores en la demo. El plano se inclina alrededor de un punto estático en el centro, como un balancín.",
+                "en": "The upper molars are marked on the demo. The plane tilts around a static point in the middle, like a seesaw."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
         },
         {
           "t": "tour",
@@ -1558,6 +1630,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Plane: los molares suben o bajan",
+            "en": "Plane: the molars go up or down"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/occlusal-plane.webp",
+              "pie": {
+                "es": "Con los molares marcados en la demo, el plano gira alrededor de un punto estático en los dientes anteriores; aquí los molares suben 1 mm.",
+                "en": "With the molars marked on the demo, the plane turns around a static point at the front teeth; here the molars go up 1 mm."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "tour",
           "titulo": {
             "es": "Plane: pivote en 8/9",
@@ -1795,6 +1885,24 @@
             "es": "Es uno de los movimientos más limitados porque el reborde alveolar y la posición de los implantes deben respetarse.",
             "en": "It is one of the most limited movements because the alveolar ridge and implant positions must be respected."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Arch rotation vista desde arriba",
+            "en": "Arch rotation seen from above"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/arch-rotation.webp",
+              "pie": {
+                "es": "Ejemplo: girar el arco 2 mm a la derecha del paciente. El punto estático está en los incisivos y los molares se desplazan hacia un lado.",
+                "en": "Example: rotate the arch 2 mm to the patient's right. The static point is at the incisors and the molars shift to one side."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
         },
         {
           "t": "tour",
@@ -2070,6 +2178,24 @@
           }
         },
         {
+          "t": "imagen",
+          "titulo": {
+            "es": "Lip support visto de perfil",
+            "en": "Lip support in profile"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/lip-support.webp",
+              "pie": {
+                "es": "Rojo es la posición inicial y verde la posición con el cambio: los dientes anteriores se llevan 1 mm hacia adelante (facially) para dar más soporte al labio.",
+                "en": "Red is the initial position and green the position with the change: the front teeth are brought 1 mm forward (facially) to give the lip more support."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
+        },
+        {
           "t": "tour",
           "titulo": {
             "es": "Lip Support: facially",
@@ -2290,6 +2416,24 @@
             "es": "En la receta: No changes / One size bigger / One size smaller (un paso en la lista A, AW, B, BW, C, CW). No se marca en la demodenture.",
             "en": "In the RX: No changes / One size bigger / One size smaller (one step in the list A, AW, B, BW, C, CW). It is not marked on the demodenture."
           }
+        },
+        {
+          "t": "imagen",
+          "titulo": {
+            "es": "Los 6 tamaños superpuestos",
+            "en": "The 6 sizes overlaid"
+          },
+          "disposicion": "una",
+          "imagenes": [
+            {
+              "src": "/static/training/img/m3/arch-sizes.webp",
+              "pie": {
+                "es": "Las seis plantillas de la biblioteca superpuestas, cada una con un color: A beige, AW rojo, B verde, BW morado, C rosa y CW azul.",
+                "en": "The six library templates overlaid, each in its own color: A beige, AW red, B green, BW purple, C pink and CW blue."
+              },
+              "fuente": "Modification Language NADMIN-007 Rev.4 (Clinical Book)"
+            }
+          ]
         },
         {
           "t": "tabla",

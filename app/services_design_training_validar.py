@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 DATOS = Path(__file__).resolve().parent / "static" / "training" / "data"
-TIPOS = {"texto", "tarjetas", "flujo", "acordeon", "tabla", "quiz", "simulador", "tour", "modelo3d", "calculadora", "checklist", "enlace", "resumen", "lider", "caso", "visor"}
+TIPOS = {"texto", "tarjetas", "flujo", "acordeon", "tabla", "quiz", "simulador", "tour", "modelo3d", "calculadora", "checklist", "enlace", "resumen", "lider", "caso", "visor", "imagen"}
 FOCOS = {"vdo", "incisal", "midline", "cant", "plano", "rotacion", "labio", "tamano", "grado", "todo"}
 CALCS = {"espesor24z", "tamanos", "articulador", "tiempos"}
 VISTAS = {"frontal", "perfil", "oclusal", "libre"}
@@ -19,9 +19,15 @@ AREAS = {"face", "n2", "n3", "n6", "support"}
 RE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
+DISPOSICIONES = {"una", "dos", "tres"}
+LADOS = {"izq", "der", "arriba", "abajo"}
+RE_SRC = re.compile(r"^(/static/training/|/design/inicio/medio/\d+$|https://)")
+
+
 class _V:
-    def __init__(self):
+    def __init__(self, editor=False):
         self.errores = []
+        self.editor = editor   # lo que se publica desde el editor: basta con un idioma y no se exige la forma de lección del curso base
 
     def e(self, ruta, msg):
         self.errores.append(f"{ruta}: {msg}")
@@ -33,9 +39,20 @@ class _V:
             return
         if not isinstance(v, dict) or set(v) != {"es", "en"}:
             return self.e(ruta, 'debe ser {"es": ..., "en": ...}')
+        if not all(isinstance(v[k], str) for k in ("es", "en")):
+            return self.e(ruta, "el texto debe ser una cadena")
+        if self.editor:
+            if not (v["es"].strip() or v["en"].strip()):
+                self.e(ruta, "texto vacío (escríbelo al menos en un idioma)")
+            return
         for k in ("es", "en"):
-            if not isinstance(v[k], str) or not v[k].strip():
+            if not v[k].strip():
                 self.e(ruta, f"'{k}' vacío")
+
+    def img(self, x, r):
+        if not isinstance(x, dict) or not RE_SRC.match(x.get("src") or ""):
+            return self.e(r, "imagen sin dirección válida")
+        self.T(x.get("pie"), r + ".pie", False)
 
     def quiz(self, q, r):
         t = q.get("tipo")
@@ -81,6 +98,19 @@ class _V:
             T(p.get("cuerpo"), r + ".cuerpo")
             for k in ("porque", "dato", "alerta"):
                 T(p.get(k), f"{r}.{k}", False)
+            if p.get("imagen"):
+                self.img(p["imagen"], r + ".imagen")
+                if p["imagen"].get("lado", "der") not in LADOS:
+                    self.e(r, "imagen.lado inválido")
+        elif t == "imagen":
+            T(p.get("titulo"), r + ".titulo", False)
+            ims = p.get("imagenes") or []
+            if not 1 <= len(ims) <= 6:
+                self.e(r, "necesita 1 a 6 imágenes")
+            for i, x in enumerate(ims):
+                self.img(x, f"{r}.imagenes[{i}]")
+            if p.get("disposicion", "una") not in DISPOSICIONES:
+                self.e(r, "disposicion inválida")
         elif t in ("tarjetas", "acordeon"):
             T(p.get("titulo"), r + ".titulo")
             if len(p.get("items") or []) < 2:
@@ -192,9 +222,9 @@ class _V:
             T(p.get("resultado"), r + ".resultado", False)
 
 
-def validar_modulo(d: dict) -> list[str]:
-    """Lista de problemas de un módulo (vacía = válido)."""
-    v = _V()
+def validar_modulo(d: dict, editor: bool = False) -> list[str]:
+    """Lista de problemas de un módulo (vacía = válido). editor=True: reglas del editor de Training (más flexibles)."""
+    v = _V(editor)
     if not RE_ID.match(d.get("id") or ""):
         v.e("modulo", "id inválido")
     v.T(d.get("titulo"), "titulo")
@@ -213,11 +243,14 @@ def validar_modulo(d: dict) -> list[str]:
         ids.add(l.get("id"))
         v.T(l.get("titulo"), r + ".titulo")
         ps = l.get("pasos") or []
-        if not 3 <= len(ps) <= 12:
+        if editor:
+            if not ps:
+                v.e(r, "la lección no tiene pasos")
+        elif not 3 <= len(ps) <= 12:
             v.e(r, f"debe tener 4 a 9 pasos (tiene {len(ps)})")
-        if not ps or ps[-1].get("t") != "quiz":
+        if not editor and (not ps or ps[-1].get("t") != "quiz"):
             v.e(r, "el último paso debe ser un quiz")
-        if len({p.get("t") for p in ps}) < 3:
+        if not editor and len({p.get("t") for p in ps}) < 3:
             v.e(r, "usa al menos 3 tipos de paso distintos")
         for j, p in enumerate(ps):
             v.paso(p, f"{r}.pasos[{j}]")

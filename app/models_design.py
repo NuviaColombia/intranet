@@ -618,6 +618,35 @@ class DesignTrainingModelo(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignTrainingModulo(Base):
+    """Módulo de Training editado desde el editor (como la página de Inicio): `borrador` es lo que se está editando y
+    `publicado` lo que ven todos (JSON del módulo completo). Si no hay fila, vale el archivo de static/training/data/.
+    `eliminado` = el módulo se quitó del curso al publicar."""
+    __tablename__ = "design_training_modulos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    modulo: Mapped[str] = mapped_column(String(60), unique=True, index=True)
+    borrador: Mapped[str] = mapped_column(Text, default="")
+    publicado: Mapped[str] = mapped_column(Text, default="")
+    eliminado: Mapped[int] = mapped_column(Integer, default=0)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+    publicado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    publicado_por: Mapped[str] = mapped_column(String(150), default="")
+
+
+class DesignTrainingVersion(Base):
+    """Cada publicación de un módulo de Training (para volver a una anterior)."""
+    __tablename__ = "design_training_versiones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    modulo: Mapped[str] = mapped_column(String(60), index=True)
+    contenido: Mapped[str] = mapped_column(Text, deferred=True)
+    publicado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    publicado_por: Mapped[str] = mapped_column(String(150), default="")
+
+
 class DesignInicioReaccion(Base):
     """Reacción con emoji de una persona a una publicación del muro (una fila por persona y emoji; reaccionar otra vez la quita)."""
     __tablename__ = "design_inicio_reacciones"

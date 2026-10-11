@@ -6,6 +6,31 @@ import { crearQuiz, mezclar } from './quiz.js';
 const raiz = document.getElementById('trRaiz');
 let vistaActual = null, destruir = [];   // destruir: funciones que limpian la vista actual (WebGL, temporizadores)
 
+// ---------- Modo edición (admins): el contenido se edita en la misma página y se publica por módulo ----------
+let ED = null;   // módulo editor.js (se carga solo en modo edición)
+S.editando = CFG.esAdmin && (() => { try { return sessionStorage.getItem('tr_editar') === '1'; } catch (e) { return false; } })();
+async function cargarContenido() {
+  const c = await api.get('/design/api/training/contenido' + (S.editando ? '?borrador=1' : ''));
+  S.editor = c.editor || {}; delete c.editor; S.contenido = c; S.glosarioIdx = null; indice = null;
+}
+async function cargarEditor() {
+  if (!S.editando || ED) return;
+  ED = await import('./editor.js');
+  ED.iniciar({ raiz, vista, ir, ruta: () => ruta(), pintarMenu: () => pintarMenu(), recargar, salirEdicion, esLeccion: () => /^#\/l\//.test(location.hash), get destruir() { return destruir; } });
+}
+async function recargar() { await cargarContenido(); if (ED) ED.olvidar(); armarMarco(); ruta(); }
+async function entrarEdicion() {
+  S.editando = true; S.vistaAlumno = false; try { sessionStorage.setItem('tr_editar', '1'); } catch (e) { /* sin almacenamiento */ }
+  try { await cargarContenido(); await cargarEditor(); } catch (e) { toast(e.message, 'error'); }
+  armarMarco(); ruta();
+}
+async function salirEdicion() {
+  if (ED) ED.cerrarPanel();
+  S.editando = false; S.vistaAlumno = false; try { sessionStorage.removeItem('tr_editar'); } catch (e) { /* sin almacenamiento */ }
+  await cargarContenido(); armarMarco(); ruta();
+}
+const modDeRuta = () => { const r = location.hash || '#/'; const mm = r.match(/^#\/m\/([^/]+)/); if (mm) return mm[1]; const ll = r.match(/^#\/l\/([^/]+)/); return ll ? (leccion(ll[1]) || {}).m?.id : null; };
+
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const mod = (id) => S.contenido.modulos.find((m) => m.id === id);
 const leccion = (id) => { for (const m of S.contenido.modulos) { const l = (m.lecciones || []).find((x) => x.id === id); if (l) return { l, m }; } return null; };
@@ -21,9 +46,11 @@ function armarMarco() {
   resultados = h('div', { class: 'tr-resultados', hidden: true, role: 'listbox' });
   const idioma = h('div', { class: 'tr-idioma', role: 'group', 'aria-label': ui('idioma') }, ['es', 'en'].map((l) => h('button', { type: 'button', class: S.lang === l ? 'on' : '', 'aria-pressed': S.lang === l, onclick: () => { if (S.lang === l) return; setLang(l); armarMarco(); ruta(); } }, l.toUpperCase())));
   const pct = resumenGeneral().pct;
-  const top = h('header', { class: 'tr-top' }, btnMenu, h('a', { class: 'tr-marca', href: '#/' }, h('span', null, '🎓'), h('b', null, 'Nuvia Training')),
+  const top = h('header', { class: 'tr-top' }, btnMenu, h('a', { class: 'tr-marca', href: '#/' }, h('b', null, 'Nuvia Training')),
     h('div', { class: 'tr-buscar-w' }, h('span', { class: 'tr-buscar-ico', 'aria-hidden': 'true' }, '⌕'), buscador, resultados),
-    h('div', { class: 'tr-top-der' }, h('a', { href: '#/', class: 'tr-mini-anillo', title: ui('progresoTotal'), 'aria-label': ui('progresoTotal') + ' ' + pct + '%' }, anillo(pct, 34, 5), h('span', null, pct + '%')), idioma));
+    h('div', { class: 'tr-top-der' }, CFG.esAdmin ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-editar' + (S.editando ? ' on' : ''), 'aria-pressed': !!S.editando, title: ui('editarAyuda'),
+      onclick: () => (S.editando ? salirEdicion() : entrarEdicion()) }, S.editando ? '✓ ' + ui('salirEdicion') : '✏️ ' + ui('editar')) : null,
+      h('a', { href: '#/', class: 'tr-mini-anillo', title: ui('progresoTotal'), 'aria-label': ui('progresoTotal') + ' ' + pct + '%' }, anillo(pct, 34, 5), h('span', null, pct + '%')), idioma));
   menu = h('div', { class: 'tr-menu', role: 'navigation', 'aria-label': ui('ruta') });
   cuerpo = h('div', { class: 'tr-cuerpo', id: 'trMain', role: 'region', 'aria-label': 'Training', tabindex: '-1' });
   raiz.append(top, h('div', { class: 'tr-marco' }, menu, cuerpo), h('div', { class: 'tr-velo', onclick: () => raiz.classList.remove('menu-abierto') }));
@@ -80,7 +107,11 @@ document.addEventListener('click', (e) => { if (resultados && !e.target.closest(
 
 // ---------- Utilidades de vista ----------
 function limpiar() { destruir.forEach((f) => { try { f(); } catch (e) { console.error(e); } }); destruir = []; }
-function vista(nodo, titulo) { vaciar(cuerpo); cuerpo.append(nodo); document.title = (titulo ? titulo + ' · ' : '') + 'Training'; window.scrollTo({ top: 0 }); }
+function vista(nodo, titulo) {
+  vaciar(cuerpo);
+  if (S.editando && ED && !nodo.querySelector('.tr-ed-barra')) cuerpo.append(ED.barra(modDeRuta()));
+  cuerpo.append(nodo); document.title = (titulo ? titulo + ' · ' : '') + 'Training'; window.scrollTo({ top: 0 });
+}
 function chipEstado(estado) { return h('span', { class: 'tr-chip-estado ' + estado }, estado === 'hecho' ? '✓ ' + ui('completado') : (estado === 'curso' ? '● ' + ui('enCurso') : ui('nuevo'))); }
 function primeraPendiente() {
   const ult = (S.progreso._ultima || {}).dato;
@@ -114,7 +145,9 @@ function vistaInicio() {
   const herr = h('section', { class: 'tr-seccion' }, h('h2', null, ui('herramientas')), h('div', { class: 'tr-grid-herr' },
     [['#/laboratorio', '🧪', ui('laboratorio'), ui('labDesc')], ['#/glosario', '📖', ui('glosario'), ui('glosarioDesc')], ['#/examen', '📝', ui('examen'), ui('examenDesc')], ...(CFG.esAdmin ? [['#/admin', '⚙️', ui('admin'), ui('adminDesc')]] : [])]
       .map(([hr, ico, tit, desc]) => h('a', { class: 'tr-herr', href: hr }, h('span', { class: 'tr-herr-ico' }, ico), h('div', null, h('b', null, tit), h('p', null, desc))))));
-  vista(h('div', { class: 'tr-pagina' }, hero, ...secciones, herr), ui('inicio'));
+  const pag = h('div', { class: 'tr-pagina' }, hero, ...secciones, herr);
+  vista(pag, ui('inicio'));
+  if (S.editando && ED) ED.decorarInicio(pag);
 }
 
 // ---------- Módulo ----------
@@ -133,13 +166,15 @@ function vistaModulo(id) {
     h('section', { class: 'tr-mod-head' }, h('span', { class: 'tr-mod-ico grande' }, m.icono || '📘'), h('div', null, h('h1', null, t(m.titulo)), h('p', null, t(m.resumen)), h('div', { class: 'tr-sub' }, `${rs.total} ${ui('lecciones')} · ≈${rs.minutos} ${ui('min')} · ${ui('porcentaje', { n: rs.pct })}`), barra(rs.pct))),
     m.area && AREAS[m.area] ? tarjetaLider(m.area) : null,
     sig ? h('a', { class: 'tr-btn tr-btn-primario', href: '#/l/' + sig.id }, (rs.hechas ? ui('continuar') : ui('empezar')) + ' →') : null, lista), t(m.titulo));
+  if (S.editando && ED) ED.decorarModulo(cuerpo.querySelector('.tr-pagina'), m).catch((e) => toast(e.message, 'error'));
 }
 
 // ---------- Lección ----------
 function vistaLeccion(id, pasoIni) {
   const f = leccion(id); if (!f) return ir('#/');
+  if (S.editando && ED && !S.vistaAlumno) { ED.vistaLeccion(f.l, f.m).catch((e) => { console.error(e); toast(e.message, 'error'); }); return; }
   const { l, m } = f, pasos = l.pasos || [];
-  let idx = Math.max(0, Math.min(pasos.length - 1, pasoIni || 0)), actual = null, quizPasado = estadoLeccion(l.id).completada, guardarTimer = null;
+  let idx = Math.max(0, Math.min(pasos.length - 1, pasoIni || 0)), actual = null, quizPasado = estadoLeccion(l.id).completada || !pasos.some((p) => p.t === 'quiz'), guardarTimer = null;   // una lección sin quiz se completa al llegar al final
   const lienzo = h('div', { class: 'tr-leccion-paso' }), puntos = h('div', { class: 'tr-pasos-puntos', role: 'tablist' });
   const btnAnt = h('button', { type: 'button', class: 'tr-btn', onclick: () => mover(-1) }, '← ' + ui('anterior')), btnSig = h('button', { type: 'button', class: 'tr-btn tr-btn-primario', onclick: () => avanzar() });
   const progresoTxt = h('span', { class: 'tr-sub' });
@@ -231,10 +266,38 @@ function vistaGlosario(resaltar) {
 }
 
 // ---------- Laboratorio 3D ----------
+const LAB_GUIA = {
+  rx: [
+    ['🦴', { es: 'Maxilar y mandíbula', en: 'Maxilla and mandible' }, { es: 'Salen de la tomografía (CBCT). Son la base real del paciente: el diseño se apoya en el hueso, no solo en la encía.', en: 'They come from the CT scan (CBCT). They are the patient’s real foundation: the design rests on bone, not just on the gums.' }],
+    ['🙂', { es: 'Cara alineada', en: 'Aligned face' }, { es: 'El escaneo facial se alinea con la tomografía y los modelos. Así la sonrisa se diseña mirando la cara: línea media, línea entre las pupilas y labios.', en: 'The face scan is aligned with the CT and the models. That way the smile is designed looking at the face: midline, interpupillary line and lips.' }],
+    ['🦷', { es: 'Waxup y prótesis', en: 'Waxup and prosthesis' }, { es: 'El waxup (tamaño C5 en este caso) es la propuesta de dientes. Enciende y apaga cada objeto para ver cómo encaja con el hueso, la encía y la mordida.', en: 'The waxup (size C5 in this case) is the proposed teeth. Turn each object on and off to see how it fits the bone, gums and bite.' }],
+    ['⚠️', { es: 'Por qué importa', en: 'Why it matters' }, { es: 'Si un registro (foto, escaneo o tomografía) viene mal tomado, la alineación falla y el diseño se corre. Por eso Face Design revisa los registros antes de diseñar.', en: 'If a record (photo, scan or CT) is taken poorly, the alignment fails and the design shifts. That is why Face Design checks the records before designing.' }],
+  ],
+  changes: [
+    ['↕️', { es: 'Borde incisal', en: 'Incisal edge' }, { es: 'Sube o baja los dientes de adelante. El doctor lo pide en mm: “+1 apically” los sube 1 mm.', en: 'Moves the front teeth up or down. The doctor asks in mm: “+1 apically” moves them up 1 mm.' }],
+    ['↔️', { es: 'Línea media', en: 'Midline' }, { es: 'Mueve el centro de la sonrisa a la derecha o izquierda del paciente (no de quien mira).', en: 'Moves the center of the smile to the patient’s right or left (not the viewer’s).' }],
+    ['📐', { es: 'Inclinación (cant) y plano', en: 'Cant and plane' }, { es: 'Corrige una sonrisa torcida o un plano de mordida inclinado respecto a la cara.', en: 'Corrects a tilted smile or a bite plane that is slanted relative to the face.' }],
+    ['🔁', { es: 'Antes y después', en: 'Before and after' }, { es: 'Compara con la posición original: cada palabra de la receta corresponde a un movimiento concreto. En el simulador de abajo puedes practicar cada uno.', en: 'Compare with the original position: every word on the prescription maps to a specific movement. Practice each one in the simulator below.' }],
+  ],
+};
 function vistaLab() {
-  const cont = h('div', { class: 'tr-pagina tr-pagina-ancha' }, h('h1', null, '🧪 ' + ui('labTitulo')), h('p', { class: 'tr-sub' }, ui('labSub')));
+  let tab = 'rx';
+  const guia = h('div', { class: 'tr-lab-guia' });
+  const pintarGuia = () => guia.replaceChildren(h('h3', null, tab === 'rx' ? ui('labGuiaRx') : ui('labGuiaChanges')), ...LAB_GUIA[tab].map(([ico, tit, txt]) => h('div', { class: 'tr-lab-g' }, h('span', { class: 'tr-lab-g-ico' }, ico), h('div', null, h('b', null, t(tit)), h('p', null, t(txt))))));
+  const visorZona = h('div', { class: 'tr-lab-visor' }, h('div', { class: 'tr-cargando-mini' }, h('div', { class: 'tr-spinner' }), ui('cargando')));
+  const simZona = h('div');
+  const cont = h('div', { class: 'tr-pagina tr-pagina-ancha' }, h('h1', null, '🧪 ' + ui('labTitulo')), h('p', { class: 'tr-sub' }, ui('labIntro')),
+    h('section', { class: 'tr-seccion' }, h('h2', null, '🖥 ' + ui('labVisorTit')), h('p', { class: 'tr-sub' }, ui('labVisorSub')), h('div', { class: 'tr-lab-dos' }, visorZona, guia)),
+    h('section', { class: 'tr-seccion' }, h('h2', null, '🎛 ' + ui('labSimTit')), h('p', { class: 'tr-sub' }, ui('labSub')), simZona));
   vista(cont, ui('laboratorio'));
-  import('./sim.js').then((m) => { const s = m.crearLaboratorio(); cont.append(s.el); destruir.push(s.destroy); }).catch((e) => { console.error(e); cont.append(h('div', { class: 'tr-error' }, ui('errorGenerico'))); });
+  pintarGuia();
+  import('./sim.js').then((m) => {
+    const paso = { t: 'visor', slot: 'laboratorio-visor', pestana: 'rx', titulo: { es: 'Caso real aprobado', en: 'Approved real case' },
+      descripcion: { es: 'Gira con el mouse, acerca con la rueda y usa las pestañas **RX** y **Changes**. A la derecha tienes qué mirar en cada una.', en: 'Rotate with the mouse, zoom with the wheel and use the **RX** and **Changes** tabs. On the right you have what to look at in each one.' },
+      pendiente: { es: 'Sube aquí el visor HTML de un caso (Nuvia Design Viewer).', en: 'Upload a case HTML viewer here (Nuvia Design Viewer).' }, alCambiarPestana: (k) => { tab = k; pintarGuia(); } };
+    const v = m.crearVisorPaso(paso); visorZona.replaceChildren(v.el);
+    const s = m.crearLaboratorio(); simZona.append(s.el); destruir.push(s.destroy);
+  }).catch((e) => { console.error(e); cont.append(h('div', { class: 'tr-error' }, ui('errorGenerico'))); });
 }
 
 // ---------- Examen final ----------
@@ -287,10 +350,10 @@ async function vistaAdmin() {
       panel.replaceChildren(h('p', { class: 'tr-sub' }, ui('formatos')), datos.slots.length ? h('div', { class: 'tr-tabla-w' }, h('table', { class: 'tr-tabla' }, h('thead', null, h('tr', null, [ui('espacio'), ui('lecc'), ui('estado'), ui('acciones')].map((x) => h('th', null, x)))),
         h('tbody', null, datos.slots.map((s) => {
           const f = h('input', { type: 'file', accept: s.tipo === 'visor' ? '.html,.htm' : '.glb,.stl,.obj,.ply', hidden: true, onchange: async () => { const a = f.files[0]; if (!a) return; const fd = new FormData(); fd.append('slot', s.slot); fd.append('archivo', a); toast(ui('subiendo')); try { await api.subir('/design/api/training/modelos', fd); toast(ui('subidoOk'), 'ok'); datos = await api.get('/design/api/training/admin'); pintar(); } catch (e) { toast(e.message, 'error'); } } });
-          return h('tr', null, h('th', { scope: 'row' }, h('code', null, s.slot), h('div', { class: 'tr-sub' }, t(s.titulo))), h('td', null, h('a', { href: '#/l/' + s.leccion }, t(s.leccionTitulo))),
+          return h('tr', null, h('th', { scope: 'row' }, h('code', null, s.slot), h('div', { class: 'tr-sub' }, t(s.titulo))), h('td', null, h('a', { href: s.leccion ? '#/l/' + s.leccion : '#/laboratorio' }, t(s.leccionTitulo))),
             h('td', null, s.modelo ? h('span', { class: 'tr-chip-estado hecho' }, '✓ ' + (s.modelo.incluido ? ui('incluido') : ui('subido')) + ' · ' + (s.modelo.tamano / 1048576).toFixed(1) + ' MB') : h('span', { class: 'tr-chip-estado' }, ui('pendiente'))),
             h('td', { class: 'tr-acc' }, f, h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => f.click() }, '⬆ ' + (s.modelo ? ui('reemplazar') : ui('subirModelo'))),
-              h('a', { class: 'tr-btn tr-btn-chico', href: '#/l/' + s.leccion }, ui('verLeccion'))));
+              h('a', { class: 'tr-btn tr-btn-chico', href: s.leccion ? '#/l/' + s.leccion : '#/laboratorio' }, ui('verLeccion'))));
         })))) : h('div', { class: 'tr-vacio' }, ui('sinModelos')));
     } else if (tab === 'lideres') {
       panel.replaceChildren(h('p', { class: 'tr-sub' }, ui('liderAyuda')), h('div', { class: 'tr-lideres-admin' }, Object.keys(AREAS).map((a) => {
@@ -314,6 +377,7 @@ async function vistaAdmin() {
 // ---------- Rutas ----------
 function ruta() {
   limpiar(); raiz.classList.remove('menu-abierto');
+  if (ED) ED.cerrarPanel();
   const r = (location.hash || '#/').replace(/^#/, '').split('/').filter(Boolean);
   try {
     if (!S.contenido.modulos.length) { vista(h('div', { class: 'tr-pagina' }, h('h1', null, 'Training'), h('p', null, ui('sinContenido'))), 'Training'); pintarMenu(); return; }
@@ -334,8 +398,9 @@ function ruta() {
 async function arrancar() {
   setLang(S.lang);
   try {
-    const [c, p, m, l] = await Promise.all([api.get('/design/api/training/contenido'), api.get('/design/api/training/progreso').catch(() => ({})), api.get('/design/api/training/modelos').catch(() => []), api.get('/design/api/training/lideres').catch(() => ({}))]);
-    S.lideres = l || {}; S.contenido = c; S.progreso = p || {}; S.modelos = Object.fromEntries((m || []).map((x) => [x.slot, x]));
+    const [, p, m, l] = await Promise.all([cargarContenido(), api.get('/design/api/training/progreso').catch(() => ({})), api.get('/design/api/training/modelos').catch(() => []), api.get('/design/api/training/lideres').catch(() => ({}))]);
+    S.lideres = l || {}; S.progreso = p || {}; S.modelos = Object.fromEntries((m || []).map((x) => [x.slot, x]));
+    await cargarEditor();
   } catch (e) {
     vaciar(raiz).append(h('div', { class: 'tr-pagina' }, h('h1', null, 'Training'), h('div', { class: 'tr-error' }, ui('errorGenerico') + ' (' + e.message + ')'))); return;
   }

@@ -52,7 +52,11 @@ const UI = {
     areaCompleta: 'Área completada', empiezaPor: 'Empieza por', rutaSugerida: 'Ruta sugerida',
     visorCaso: 'Visor de caso', visorPend: 'Visor de caso pendiente', subirVisor: 'Subir visor (HTML)', formatosVisor: 'Un solo archivo HTML exportado del Nuvia Design Viewer (máx. 60 MB). Usa un caso sin datos del paciente.', abrirVisor: 'Abrir en pantalla completa',
     pestana: 'Pestaña', piezas: 'Piezas', incluido: 'Incluido',
-    labTitulo: 'Laboratorio de movimientos', labSub: 'Explora libremente cada movimiento del Lenguaje de Modificación.', pdf: 'PDF', verLeccion: 'Ver lección', abrirLeccion: 'Abrir la lección',
+    labTitulo: 'Laboratorio 3D', labSub: 'Explora libremente cada movimiento del Lenguaje de Modificación: mueve un control y mira el efecto en la prótesis.',
+    labIntro: 'Aquí ves un caso real tal como lo recibe el doctor y practicas los movimientos que se piden en una receta.',
+    labVisorTit: 'Un caso real, por dentro', labVisorSub: 'Visor de un caso aprobado (sin datos del paciente). Cambia de pestaña y sigue la guía de la derecha.',
+    labSimTit: 'Simulador de movimientos', labGuiaRx: 'Qué mirar en la pestaña RX', labGuiaChanges: 'Qué mirar en la pestaña Changes',
+    editar: 'Editar contenido', visorCargando: 'Cargando el caso…', salirEdicion: 'Salir de edición', editarAyuda: 'Edita textos, lecciones, imágenes y quizzes; se publican cuando tú decidas', ampliar: 'Ver en grande', pdf: 'PDF', verLeccion: 'Ver lección', abrirLeccion: 'Abrir la lección',
   },
   en: {
     inicio: 'Home', ruta: 'Learning path', glosario: 'Glossary', examen: 'Final exam', admin: 'Manage', diploma: 'Diploma',
@@ -98,7 +102,11 @@ const UI = {
     areaCompleta: 'Area completed', empiezaPor: 'Start with', rutaSugerida: 'Suggested path',
     visorCaso: 'Case viewer', visorPend: 'Case viewer pending', subirVisor: 'Upload viewer (HTML)', formatosVisor: 'A single HTML file exported from the Nuvia Design Viewer (max. 60 MB). Use a case with no patient data.', abrirVisor: 'Open full screen',
     pestana: 'Tab', piezas: 'Parts', incluido: 'Included',
-    labTitulo: 'Movement lab', labSub: 'Freely explore each movement of the Modification Language.', pdf: 'PDF', verLeccion: 'View lesson', abrirLeccion: 'Open the lesson',
+    labTitulo: '3D lab', labSub: 'Freely explore each movement of the Modification Language: move a control and see the effect on the prosthesis.',
+    labIntro: 'Here you see a real case just as the doctor receives it, and you practice the movements requested on a prescription.',
+    labVisorTit: 'A real case, inside', labVisorSub: 'Viewer of an approved case (no patient data). Switch tabs and follow the guide on the right.',
+    labSimTit: 'Movement simulator', labGuiaRx: 'What to look at in the RX tab', labGuiaChanges: 'What to look at in the Changes tab',
+    editar: 'Edit content', visorCargando: 'Loading the case…', salirEdicion: 'Exit editing', editarAyuda: 'Edit texts, lessons, images and quizzes; they go live when you publish', ampliar: 'View larger', pdf: 'PDF', verLeccion: 'View lesson', abrirLeccion: 'Open the lesson',
   },
 };
 
