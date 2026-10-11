@@ -15,7 +15,7 @@
 window.TR_CFG = {userId: {{ user.id }}, nombre: {{ (user.nombres or user.nombre_completo) | tojson }}, nombreCompleto: {{ user.nombre_completo | tojson }}, esAdmin: {{ 'true' if es_admin else 'false' }}, v: {{ v | tojson }}};
 </script>
 <script type="importmap">
-{"imports": {"three": "/static/training/vendor/three/three.module.js", "three/addons/": "/static/training/vendor/three/addons/"{% for f in ['lib', 'quiz', 'steps', 'sim', 'widgets', 'editor'] %},
+{"imports": {"three": "/static/training/vendor/three/three.module.js", "three/addons/": "/static/training/vendor/three/addons/"{% for f in ['lib', 'quiz', 'steps', 'sim', 'widgets', 'editor', 'enlinea'] %},
   "/static/training/{{ f }}.js": "/static/training/{{ f }}.js?v={{ v }}"{% endfor %}}}
 </script>
 <script type="module" src="/static/training/training.js?v={{ v }}"></script>

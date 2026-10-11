@@ -53,6 +53,9 @@ class _V:
         if not isinstance(x, dict) or not RE_SRC.match(x.get("src") or ""):
             return self.e(r, "imagen sin dirección válida")
         self.T(x.get("pie"), r + ".pie", False)
+        for i, m in enumerate(x.get("marcas") or []):   # ✓ / ✗ sobre la foto, en % de su tamaño
+            if not isinstance(m, dict) or m.get("t") not in ("ok", "mal") or not all(isinstance(m.get(k), (int, float)) and 0 <= m[k] <= 100 for k in ("x", "y")):
+                self.e(f"{r}.marcas[{i}]", "marca inválida (t ok/mal, x e y entre 0 y 100)")
 
     def quiz(self, q, r):
         t = q.get("tipo")

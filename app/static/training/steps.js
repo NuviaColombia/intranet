@@ -9,8 +9,19 @@ const tarjetaTitulo = (p) => (p.titulo ? T('h2', { class: 'tr-paso-tit' }, p.tit
 let arrastreImg = null;   // { lista, i } de la imagen que se está arrastrando
 export function figura(im, extra, ctl) {
   const pie = t(im.pie), ed = ED.activo && ctl;
-  const fig = h('figure', { class: 'tr-fig' + (extra ? ' ' + extra : '') + (ed ? ' tr-fig-ed' : '') },
-    h('button', { type: 'button', class: 'tr-fig-btn', 'aria-label': ui('ampliar'), onclick: () => ampliar(im) }, h('img', { src: im.src, alt: pie || '', loading: 'lazy' }), h('span', { class: 'tr-fig-lupa', 'aria-hidden': 'true' }, '⤢')),
+  let colocando = null;   // 'ok' | 'mal' mientras se elige dónde poner una marca
+  const btn = h('button', { type: 'button', class: 'tr-fig-btn', 'aria-label': ui('ampliar'), onclick: (e) => {
+    if (colocando) {
+      const r = marco.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * 100, y = ((e.clientY - r.top) / r.height) * 100;
+      if (x < 0 || x > 100 || y < 0 || y > 100) return;   // clic fuera de la foto
+      (im.marcas = im.marcas || []).push({ t: colocando, x: +x.toFixed(1), y: +y.toFixed(1) }); colocando = null; ED.estructura && ED.estructura(); return;
+    }
+    ampliar(im);
+  } });
+  // el marco mide lo mismo que la foto: las marcas quedan en el mismo punto en cualquier tamaño
+  const marco = h('span', { class: 'tr-fig-marco' }, h('img', { src: im.src, alt: pie || '', loading: 'lazy' }), capaMarcas(im, !!ed));
+  btn.append(marco, h('span', { class: 'tr-fig-lupa', 'aria-hidden': 'true' }, '⤢'));
+  const fig = h('figure', { class: 'tr-fig' + (extra ? ' ' + extra : '') + (ed ? ' tr-fig-ed' : '') }, btn,
     pie || (ed && im.pie) ? h('figcaption', null, md(im.pie, { sinGlosario: true })) : null, im.fuente ? h('small', { class: 'tr-fig-fuente' }, '📄 ' + im.fuente) : null);
   if (!ed) return fig;
   const cambio = () => ED.estructura && ED.estructura();
@@ -18,6 +29,8 @@ export function figura(im, extra, ctl) {
     ctl.lista ? h('span', { class: 'tr-fig-asa', title: 'Arrastra para mover la imagen' }, '⠿') : null,
     h('button', { type: 'button', title: 'Reemplazar imagen', onclick: async () => { const l = await ED.imagenes(false); if (l && l[0]) { im.src = l[0].src; if (l[0].pie && !im.pie) im.pie = l[0].pie; if (l[0].fuente) im.fuente = l[0].fuente; cambio(); } } }, '🔄 Reemplazar'),
     !im.pie ? h('button', { type: 'button', title: 'Agregar pie de imagen', onclick: () => { im.pie = { es: 'Escribe aquí qué mirar en la imagen.', en: 'Write here what to look at in the image.' }; cambio(); } }, '＋ Pie') : null,
+    h('button', { type: 'button', class: 'tr-chulo-ok', title: 'Poner un ✓ verde (correcto): luego haz clic en el punto de la foto', onclick: () => { colocando = 'ok'; fig.classList.add('colocando'); } }, '＋ ✓'),
+    h('button', { type: 'button', class: 'tr-chulo-mal', title: 'Poner una ✗ roja (incorrecto): luego haz clic en el punto de la foto', onclick: () => { colocando = 'mal'; fig.classList.add('colocando'); } }, '＋ ✗'),
     ctl.lado ? h('button', { type: 'button', title: 'Cambiar la posición de la imagen', onclick: ctl.lado }, '⇄ Posición') : null,
     ctl.quitar ? h('button', { type: 'button', class: 'peligro', title: 'Quitar imagen', onclick: () => { if (confirm('¿Quitar esta imagen?')) ctl.quitar(); } }, '✕') : null));
   if (ctl.lista) {
@@ -37,11 +50,46 @@ export function figura(im, extra, ctl) {
   }
   return fig;
 }
+// Marcas ✓ (correcto) y ✗ (incorrecto) sobre una foto, en % de su tamaño. En edición: arrastrar para mover, clic para cambiar
+// entre ✓ y ✗, botón ✕ para quitar.
+function capaMarcas(im, editar) {
+  const marcas = im.marcas || [];
+  if (!marcas.length) return null;
+  const capa = h('span', { class: 'tr-chulos' + (editar ? ' editando' : ''), 'aria-hidden': editar ? null : 'true' });
+  marcas.forEach((m, i) => {
+    const el = h('span', { class: 'tr-chulo ' + (m.t === 'mal' ? 'mal' : 'ok'), style: { left: m.x + '%', top: m.y + '%' }, title: editar ? 'Arrastra para mover · clic para cambiar ✓/✗' : (m.t === 'mal' ? 'Incorrecto' : 'Correcto') },
+      m.t === 'mal' ? '✗' : '✓',
+      editar ? h('span', { class: 'tr-chulo-x', title: 'Quitar marca', onclick: (e) => { e.stopPropagation(); e.preventDefault(); marcas.splice(i, 1); if (!marcas.length) delete im.marcas; ED.estructura && ED.estructura(); } }, '×') : null);
+    if (editar) {
+      el.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); });
+      el.addEventListener('pointerdown', (e) => {
+        if (e.target.classList.contains('tr-chulo-x')) return;
+        e.preventDefault(); e.stopPropagation();
+        const r = capa.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY; let movio = false;
+        el.setPointerCapture(e.pointerId);
+        const mover = (ev) => {
+          if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 3) movio = true;
+          m.x = +Math.max(0, Math.min(100, ((ev.clientX - r.left) / r.width) * 100)).toFixed(1);
+          m.y = +Math.max(0, Math.min(100, ((ev.clientY - r.top) / r.height) * 100)).toFixed(1);
+          el.style.left = m.x + '%'; el.style.top = m.y + '%';
+        };
+        const soltar = () => {
+          el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar);
+          if (!movio) m.t = m.t === 'mal' ? 'ok' : 'mal';
+          ED.estructura && ED.estructura();
+        };
+        el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar);
+      });
+    }
+    capa.append(el);
+  });
+  return capa;
+}
 function ampliar(im) {
   const cerrar = () => { fondo.remove(); document.removeEventListener('keydown', tecla, true); };
   const tecla = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } };
   const fondo = h('div', { class: 'tr-lightbox', role: 'dialog', 'aria-modal': 'true', onclick: (e) => { if (e.target === fondo || e.target.classList.contains('tr-lb-x')) cerrar(); } },
-    h('button', { type: 'button', class: 'tr-lb-x', 'aria-label': ui('cerrar') }, '✕'), h('img', { src: im.src, alt: t(im.pie) || '' }), t(im.pie) ? h('div', { class: 'tr-lb-pie' }, t(im.pie)) : null);
+    h('button', { type: 'button', class: 'tr-lb-x', 'aria-label': ui('cerrar') }, '✕'), h('span', { class: 'tr-lb-img' }, h('img', { src: im.src, alt: t(im.pie) || '' }), capaMarcas(im, false)), t(im.pie) ? h('div', { class: 'tr-lb-pie' }, t(im.pie)) : null);
   document.addEventListener('keydown', tecla, true);
   document.body.append(fondo);
 }

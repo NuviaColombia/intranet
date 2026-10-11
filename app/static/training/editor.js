@@ -3,6 +3,7 @@
 // lección con todos sus pasos (arrastrables), panel lateral con el formulario de cada paso y biblioteca de imágenes.
 import { S, h, t, md, api, toast, vaciar, ED, UI_BASE, ui } from './lib.js';
 import { renderPaso } from './steps.js';
+import { pasoEditable, campoDe, campoSimple, sel, boton, lista as listaEl } from './enlinea.js';
 
 let X = null;                     // funciones de training.js: vista, ir, ruta, pintarMenu, recargar, raiz, destruir
 const est = {};                   // por módulo: { version, timer, guardando, cargado, error }
@@ -36,7 +37,6 @@ const NOMBRE_TIPO = {
   simulador: ['🎛', 'Simulador', 'Simulador de movimientos (se edita en JSON).'],
   tour: ['🎬', 'Animación guiada', 'Animación de movimientos (se edita en JSON).'],
 };
-const PESADOS = new Set(['modelo3d', 'visor', 'simulador', 'tour', 'calculadora']);   // sin vista previa automática (WebGL)
 const T = (es, en) => ({ es, en: en ?? es });
 const idUnico = (base) => { const usados = new Set(mods().flatMap((m) => (m.lecciones || []).map((l) => l.id))); let n = 1, id; do { id = `${base}-l${n++}`; } while (usados.has(id)); return id; };
 const slotNuevo = () => 'c-' + Math.random().toString(36).slice(2, 8);
@@ -147,7 +147,7 @@ function pintarBarra() {
   barraEl.replaceChildren(...[
     h('span', { class: 'tr-ed-marca' }, '✏️ Modo edición'), m ? h('b', { class: 'tr-ed-mod' }, t(m.titulo)) : null, estado,
     (iS.hayCambios || eS.pendiente || eS.guardando) ? h('span', { class: 'tr-ed-est borrador', title: 'Textos de la plataforma, orden de secciones y paneles' }, eS.guardando || eS.pendiente ? '⏳ Diseño…' : '● Diseño sin publicar') : null,
-    h('span', { class: 'tr-ed-ayuda-dc' }, 'Doble clic en cualquier texto para editarlo'),
+    h('span', { class: 'tr-ed-ayuda-dc' }, 'Clic en cualquier texto para escribir'),
     h('span', { class: 'tr-ed-esp' }),
     mid && X.esLeccion() ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { S.vistaAlumno = !S.vistaAlumno; X.ruta(); } }, S.vistaAlumno ? '✏️ Volver a editar' : '👁 Ver como alumno') : null,
     h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => panelTextos() }, '🔤 Textos de la plataforma'),
@@ -202,21 +202,7 @@ function dialogo(titulo, cuerpo, aceptar, peligro) {
 }
 
 // ---------- Campos de formulario ----------
-function autoAlto(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(420, ta.scrollHeight + 2) + 'px'; }
 // Texto bilingüe: ES y EN lado a lado
-function fT(obj, clave, etiqueta, o = {}, alCambiar) {
-  const v = obj[clave] || { es: '', en: '' };
-  const mk = (l) => {
-    const props = { class: 'tr-in', value: v[l] || '', placeholder: l === 'es' ? 'Español' : 'English', 'aria-label': etiqueta + ' ' + l.toUpperCase(),
-      oninput: (e) => { if (o.multi) autoAlto(e.target); const n = { es: l === 'es' ? e.target.value : (obj[clave] || {}).es || '', en: l === 'en' ? e.target.value : (obj[clave] || {}).en || '' };
-        if (o.opcional && !n.es.trim() && !n.en.trim()) delete obj[clave]; else obj[clave] = n; alCambiar(); } };
-    const el = o.multi ? h('textarea', { ...props, rows: o.filas || 3 }) : h('input', props);
-    if (o.multi) { el.value = v[l] || ''; setTimeout(() => autoAlto(el), 0); }
-    return h('label', { class: 'tr-ed-lang' }, h('span', { class: 'tr-ed-l' }, l.toUpperCase()), el);
-  };
-  return h('div', { class: 'tr-ed-campo' }, h('div', { class: 'tr-ed-etq' }, etiqueta, o.opcional ? h('small', null, ' · opcional') : null, o.ayuda ? h('small', { class: 'tr-ed-ayuda' }, o.ayuda) : null),
-    h('div', { class: 'tr-ed-bi' }, mk('es'), mk('en')));
-}
 function fTxt(obj, clave, etiqueta, o = {}, alCambiar) {
   const set = (val) => { if (o.numero) val = val === '' ? undefined : Number(val); if (val === undefined || val === '') delete obj[clave]; else obj[clave] = val; alCambiar(); };
   const el = o.opciones
@@ -224,37 +210,6 @@ function fTxt(obj, clave, etiqueta, o = {}, alCambiar) {
     : h('input', { class: 'tr-in', type: o.numero ? 'number' : 'text', value: obj[clave] ?? '', placeholder: o.ph || '', oninput: (e) => set(e.target.value) });
   return h('label', { class: 'tr-ed-campo' }, h('span', { class: 'tr-ed-etq' }, etiqueta, o.ayuda ? h('small', { class: 'tr-ed-ayuda' }, o.ayuda) : null), el);
 }
-function fBool(obj, clave, etiqueta, alCambiar) {
-  return h('label', { class: 'tr-ed-check' }, h('input', { type: 'checkbox', checked: !!obj[clave], onchange: (e) => { obj[clave] = e.target.checked; alCambiar(); } }), etiqueta);
-}
-
-// Lista de elementos arrastrables (mover, eliminar, agregar)
-function fLista(arr, etiqueta, crear, dibujar, alCambiar, o = {}) {
-  const cont = h('div', { class: 'tr-ed-lista' });
-  let arrastrando = null;
-  const pintar = () => {
-    cont.replaceChildren(...arr.map((it, i) => {
-      const fila = h('div', { class: 'tr-ed-item', draggable: 'false' },
-        h('div', { class: 'tr-ed-item-cab' },
-          h('span', { class: 'tr-ed-asa', title: 'Arrastra para mover', onmousedown: () => { fila.draggable = true; }, onmouseup: () => { fila.draggable = false; } }, '⠿'),
-          h('b', null, (o.nombre || 'Elemento') + ' ' + (i + 1)), o.resumen ? h('span', { class: 'tr-ed-item-res' }, o.resumen(it)) : null, h('span', { class: 'tr-ed-esp' }),
-          h('button', { type: 'button', class: 'tr-ed-ib', title: 'Subir', disabled: i === 0, onclick: () => { arr.splice(i - 1, 0, arr.splice(i, 1)[0]); pintar(); alCambiar(); } }, '↑'),
-          h('button', { type: 'button', class: 'tr-ed-ib', title: 'Bajar', disabled: i === arr.length - 1, onclick: () => { arr.splice(i + 1, 0, arr.splice(i, 1)[0]); pintar(); alCambiar(); } }, '↓'),
-          h('button', { type: 'button', class: 'tr-ed-ib peligro', title: 'Eliminar', disabled: arr.length <= (o.min || 0), onclick: () => { arr.splice(i, 1); pintar(); alCambiar(); } }, '✕')),
-        h('div', { class: 'tr-ed-item-cuerpo' }, dibujar(it, i, (nuevo) => { arr[i] = nuevo; alCambiar(); })));
-      fila.addEventListener('dragstart', (e) => { arrastrando = i; e.dataTransfer.effectAllowed = 'move'; fila.classList.add('arrastrando'); });
-      fila.addEventListener('dragend', () => { fila.draggable = false; fila.classList.remove('arrastrando'); cont.querySelectorAll('.sobre').forEach((x) => x.classList.remove('sobre')); });
-      fila.addEventListener('dragover', (e) => { if (arrastrando === null) return; e.preventDefault(); fila.classList.add('sobre'); });
-      fila.addEventListener('dragleave', () => fila.classList.remove('sobre'));
-      fila.addEventListener('drop', (e) => { e.preventDefault(); if (arrastrando === null || arrastrando === i) return; const x = arr.splice(arrastrando, 1)[0]; arr.splice(i, 0, x); arrastrando = null; pintar(); alCambiar(); });
-      return fila;
-    }));
-  };
-  pintar();
-  return h('div', { class: 'tr-ed-campo' }, h('div', { class: 'tr-ed-etq' }, etiqueta, o.ayuda ? h('small', { class: 'tr-ed-ayuda' }, o.ayuda) : null), cont,
-    o.max && arr.length >= o.max ? null : h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-ed-agregar', onclick: async () => { const n = await crear(); if (n == null) return; arr.push(n); pintar(); alCambiar(); } }, '＋ ' + (o.agregar || 'Agregar')));
-}
-
 // ---------- Imágenes ----------
 async function subirImagen(archivo) {
   const fd = new FormData(); fd.append('archivo', archivo);
@@ -314,108 +269,7 @@ function elegirImagenes(multiple) {
   });
 }
 
-function miniatura(im, alCambiar, quitar) {
-  return h('div', { class: 'tr-ed-img' }, h('img', { src: im.src, alt: '' }),
-    h('div', { class: 'tr-ed-img-acc' }, h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: async () => { const l = await elegirImagenes(false); if (l && l[0]) { im.src = l[0].src; alCambiar(true); } } }, '🔄 Cambiar'),
-      quitar ? h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-peligro', onclick: quitar }, 'Quitar') : null));
-}
-
-// ---------- Formulario de cada tipo de paso ----------
-function formPaso(p, alCambiar, repintarForm) {
-  const c = alCambiar, f = [];
-  const tit = (opc) => fT(p, 'titulo', 'Título', { opcional: opc }, c);
-  const itemsTT = (arr, nombre, conIcono) => fLista(arr, nombre + 's', () => ({ titulo: T('Nuevo', 'New'), texto: T('Explicación.', 'Explanation.') }),
-    (it) => h('div', null, conIcono ? fTxt(it, 'icono', 'Icono (emoji)', { ph: '◆' }, c) : null, fT(it, 'titulo', 'Título', {}, c), fT(it, 'texto', 'Texto', { multi: true }, c)), c,
-    { nombre, agregar: 'Agregar ' + nombre.toLowerCase(), min: 1, resumen: (it) => t(it.titulo) });
-  switch (p.t) {
-    case 'texto': {
-      f.push(tit(), fT(p, 'cuerpo', 'Texto', { multi: true, filas: 6, ayuda: '**negrita**, *cursiva*, y listas empezando la línea con "- "' }, c),
-        fT(p, 'porque', '💡 Por qué importa', { multi: true, opcional: true }, c), fT(p, 'dato', '📌 Dato', { multi: true, opcional: true }, c), fT(p, 'alerta', '⚠️ Alerta', { multi: true, opcional: true }, c));
-      const zonaImg = h('div', { class: 'tr-ed-campo' }, h('div', { class: 'tr-ed-etq' }, 'Imagen al lado del texto', h('small', null, ' · opcional')));
-      if (p.imagen && p.imagen.src) {
-        zonaImg.append(miniatura(p.imagen, () => { c(); repintarForm(); }, () => { delete p.imagen; c(); repintarForm(); }),
-          fTxt(p.imagen, 'lado', 'Posición', { opciones: [['der', 'A la derecha del texto'], ['izq', 'A la izquierda del texto'], ['arriba', 'Arriba del texto'], ['abajo', 'Debajo del texto']], defecto: 'der' }, c),
-          fT(p.imagen, 'pie', 'Pie de imagen', { opcional: true, multi: true, filas: 2 }, c));
-      } else zonaImg.append(h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: async () => { const l = await elegirImagenes(false); if (l && l[0]) { p.imagen = { ...l[0], lado: 'der' }; c(); repintarForm(); } } }, '🖼 Agregar imagen'));
-      f.push(zonaImg);
-      break;
-    }
-    case 'imagen':
-      p.imagenes = p.imagenes || [];
-      f.push(tit(true), fTxt(p, 'disposicion', 'Cómo se acomodan', { opciones: [['una', 'Una debajo de otra (grandes)'], ['dos', 'Dos por fila'], ['tres', 'Tres por fila']], defecto: 'una' }, c),
-        fLista(p.imagenes, 'Imágenes', async () => { const l = await elegirImagenes(true); if (!l || !l.length) return null; l.slice(1).forEach((x) => p.imagenes.push(x)); setTimeout(repintarForm, 0); return l[0]; },
-          (im) => h('div', null, miniatura(im, () => { c(); repintarForm(); }), fT(im, 'pie', 'Pie de imagen (qué mirar y por qué)', { opcional: true, multi: true, filas: 2 }, c), fTxt(im, 'fuente', 'Fuente', { ph: 'Protocolo…' }, c)),
-          c, { nombre: 'Imagen', agregar: 'Agregar imágenes', max: 6, ayuda: 'Arrastra ⠿ para cambiar el orden.' }));
-      break;
-    case 'tarjetas': f.push(tit(), itemsTT(p.items, 'Tarjeta', true)); break;
-    case 'acordeon': f.push(tit(), itemsTT(p.items, 'Tema')); break;
-    case 'flujo': f.push(tit(), itemsTT(p.pasos, 'Etapa')); break;
-    case 'caso':
-      f.push(tit(), fT(p, 'contexto', 'Contexto', { multi: true }, c),
-        fLista(p.etapas, 'Etapas', () => ({ titulo: T('Etapa', 'Stage'), texto: T('Qué pasó.', 'What happened.') }), (it) => h('div', null, fT(it, 'titulo', 'Título', {}, c), fT(it, 'texto', 'Texto', { multi: true }, c), fT(it, 'tiempo', '⏱ Tiempo', { opcional: true }, c), fT(it, 'quien', '👤 Quién', { opcional: true }, c)), c, { nombre: 'Etapa', agregar: 'Agregar etapa', min: 1, resumen: (it) => t(it.titulo) }),
-        fT(p, 'resultado', '✅ Resultado', { multi: true, opcional: true }, c));
-      break;
-    case 'checklist': f.push(tit(), fLista(p.items, 'Puntos', () => T('Nuevo punto', 'New item'), (it, i, set) => bi(it, set), c, { nombre: 'Punto', min: 1 })); break;
-    case 'resumen': f.push(tit(true), fLista(p.puntos, 'Puntos', () => T('Nueva idea', 'New idea'), (it, i, set) => bi(it, set), c, { nombre: 'Punto', min: 1 })); break;
-    case 'tabla': f.push(tit(), formTabla(p, c, repintarForm)); break;
-    case 'quiz': f.push(fLista(p.preguntas, 'Preguntas', () => ({ tipo: 'una', enunciado: T('¿Pregunta?', 'Question?'), explicacion: T('Por qué.', 'Why.'), opciones: [0, 1, 2].map((i) => ({ texto: T(i ? 'Opción' : 'Correcta', i ? 'Option' : 'Correct'), ok: !i })) }),
-      (q) => formPregunta(q, c), c, { nombre: 'Pregunta', agregar: 'Agregar pregunta', min: 1, max: 6, resumen: (q) => t(q.enunciado) })); break;
-    case 'enlace':
-      f.push(tit(), fT(p, 'texto', 'Texto', { multi: true }, c),
-        fTxt(p, 'lecc', 'Lleva a la lección', { opciones: [['', '— Ninguna (usar protocolo) —'], ...mods().flatMap((m) => (m.lecciones || []).map((l) => [l.id, t(m.titulo) + ' › ' + t(l.titulo)]))] }, c),
-        fTxt(p, 'protocolo', 'O busca este protocolo en Protocols', { ph: 'Nombre del protocolo' }, c));
-      break;
-    case 'lider': f.push(fTxt(p, 'area', 'Área', { opciones: [['face', 'Face Design'], ['n2', 'N2 Demodenture'], ['n3', 'N3 Prosthetic'], ['n6', 'N6 Material Changes'], ['support', 'Support'], ['todas', 'Todas las áreas']] }, c), fT(p, 'texto', 'Texto', { multi: true, opcional: true }, c)); break;
-    case 'modelo3d': case 'visor':
-      f.push(tit(), fT(p, 'descripcion', 'Qué mirar', { multi: true }, c), fT(p, 'pendiente', 'Mensaje mientras no hay archivo', { multi: true }, c),
-        fTxt(p, 'slot', 'Espacio (identificador del archivo)', { ayuda: 'Minúsculas, números y guiones. El archivo se sube en este mismo paso o en Administrar › Modelos 3D.' }, c),
-        p.t === 'visor' ? fTxt(p, 'pestana', 'Abre en la pestaña', { opciones: [['rx', 'RX'], ['changes', 'Changes']], defecto: 'rx' }, c) : null);
-      break;
-    case 'calculadora': f.push(tit(), fTxt(p, 'id', 'Herramienta', { opciones: [['espesor24z', 'Espesor 24Z'], ['tamanos', 'Tamaños de arco'], ['articulador', 'Articulador'], ['tiempos', 'Tiempos de diseño']] }, c), fT(p, 'guia', 'Guía', { multi: true, opcional: true }, c)); break;
-    default: f.push(h('p', { class: 'tr-sub' }, 'Este tipo de paso se edita en la pestaña "Avanzado (JSON)".'));
-  }
-  return f.filter(Boolean);
-}
-// texto bilingüe suelto (elemento de lista que es directamente {es, en})
-function bi(it, set) { const caja = { v: it }; return fT(caja, 'v', 'Texto', { multi: true, filas: 2 }, () => set(caja.v || T(''))); }
-
-function formPregunta(q, c) {
-  const zona = h('div');
-  const pintar = () => {
-    const tipo = fTxt(q, 'tipo', 'Tipo de pregunta', { opciones: [['una', 'Una respuesta correcta'], ['varias', 'Varias respuestas correctas'], ['vf', 'Verdadero o falso'], ['orden', 'Ordenar'], ['parejas', 'Unir parejas']] }, () => { ajustar(); c(); pintar(); });
-    const partes = [tipo, fT(q, 'enunciado', 'Pregunta', { multi: true, filas: 2 }, c)];
-    if (q.tipo === 'una' || q.tipo === 'varias') partes.push(fLista(q.opciones, 'Opciones', () => ({ texto: T('Opción', 'Option'), ok: false }), (o) => h('div', null, fT(o, 'texto', 'Texto', {}, c), fBool(o, 'ok', '✓ Es correcta', c)), c, { nombre: 'Opción', min: 3, max: 5, agregar: 'Agregar opción', resumen: (o) => (o.ok ? '✓ ' : '') + t(o.texto) }));
-    if (q.tipo === 'vf') partes.push(fTxt(q, 'ok', 'Respuesta correcta', { opciones: [['true', 'Verdadero'], ['false', 'Falso']] }, () => { q.ok = q.ok === 'true' || q.ok === true; c(); }));
-    if (q.tipo === 'orden') partes.push(fLista(q.items, 'Elementos en el orden correcto', () => T('Elemento', 'Item'), (it, i, set) => bi(it, set), c, { nombre: 'Elemento', min: 3, max: 7, ayuda: 'Escríbelos en el orden correcto; se mezclan al mostrarlos.' }));
-    if (q.tipo === 'parejas') partes.push(fLista(q.pares, 'Parejas', () => ({ a: T('Concepto', 'Concept'), b: T('Pareja', 'Match') }), (pr) => h('div', null, fT(pr, 'a', 'Izquierda', {}, c), fT(pr, 'b', 'Derecha', {}, c)), c, { nombre: 'Pareja', min: 3, max: 6 }));
-    partes.push(fT(q, 'explicacion', 'Explicación (se muestra al responder)', { multi: true, filas: 2 }, c));
-    zona.replaceChildren(...partes);
-  };
-  const ajustar = () => {
-    if ((q.tipo === 'una' || q.tipo === 'varias') && !q.opciones) q.opciones = [0, 1, 2].map((i) => ({ texto: T('Opción ' + (i + 1), 'Option ' + (i + 1)), ok: !i }));
-    if (q.tipo === 'varias' && q.opciones.filter((o) => o.ok).length < 2) q.opciones.slice(0, 2).forEach((o) => { o.ok = true; });
-    if (q.tipo === 'vf' && typeof q.ok !== 'boolean') q.ok = true;
-    if (q.tipo === 'orden' && !q.items) q.items = [1, 2, 3].map((n) => T('Paso ' + n, 'Step ' + n));
-    if (q.tipo === 'parejas' && !q.pares) q.pares = [1, 2, 3].map((n) => ({ a: T('Concepto ' + n, 'Concept ' + n), b: T('Pareja ' + n, 'Match ' + n) }));
-  };
-  pintar();
-  return zona;
-}
-
-function formTabla(p, c, repintar) {
-  p.cabeceras = p.cabeceras || []; p.filas = p.filas || [];
-  const celda = (v, set) => h('div', { class: 'tr-ed-celda' }, h('input', { class: 'tr-in', value: v.es || '', placeholder: 'ES', oninput: (e) => { v.es = e.target.value; set(v); } }), h('input', { class: 'tr-in', value: v.en || '', placeholder: 'EN', oninput: (e) => { v.en = e.target.value; set(v); } }));
-  const tabla = h('table', { class: 'tr-ed-tabla' },
-    h('thead', null, h('tr', null, p.cabeceras.map((cb, j) => h('th', null, celda(cb, (v) => { p.cabeceras[j] = v; c(); }), h('button', { type: 'button', class: 'tr-ed-ib peligro', title: 'Quitar columna', disabled: p.cabeceras.length <= 1, onclick: () => { p.cabeceras.splice(j, 1); p.filas.forEach((f) => f.splice(j, 1)); c(); repintar(); } }, '✕'))), h('th'))),
-    h('tbody', null, p.filas.map((fila, i) => h('tr', null, fila.map((v, j) => h('td', null, celda(v, (x) => { fila[j] = x; c(); }))),
-      h('td', null, h('button', { type: 'button', class: 'tr-ed-ib', title: 'Subir', disabled: !i, onclick: () => { p.filas.splice(i - 1, 0, p.filas.splice(i, 1)[0]); c(); repintar(); } }, '↑'),
-        h('button', { type: 'button', class: 'tr-ed-ib peligro', title: 'Quitar fila', onclick: () => { p.filas.splice(i, 1); c(); repintar(); } }, '✕'))))));
-  return h('div', { class: 'tr-ed-campo' }, h('div', { class: 'tr-ed-etq' }, 'Tabla'), h('div', { class: 'tr-tabla-w' }, tabla),
-    h('div', { class: 'tr-acc' }, h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { p.filas.push(p.cabeceras.map(() => T(''))); c(); repintar(); } }, '＋ Fila'),
-      h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { p.cabeceras.push(T('Columna', 'Column')); p.filas.forEach((f) => f.push(T(''))); c(); repintar(); } }, '＋ Columna')));
-}
-
-// ---------- Panel lateral (editar un paso) ----------
+// ---------- Panel lateral (textos de la plataforma) ----------
 let panelAbierto = null;
 function abrirPanel(titulo, construir, alCerrar) {
   cerrarPanel();
@@ -472,41 +326,41 @@ async function nuevoModulo() {
   try { const r = await api.post('/design/api/training/editor-nuevo', d); await X.recargar(); X.ir('#/m/' + r.id); toast('Módulo creado como borrador'); } catch (e) { toast(e.message, 'error'); }
 }
 
-// ---------- Módulo: datos, lecciones y glosario ----------
+// ---------- Módulo: se edita en la misma página (icono, título, resumen, sección, lecciones y glosario) ----------
 export async function decorarModulo(pagina, m0) {
   const m = await asegurar(m0.id);
   const c = () => cambio(m.id);
-  const panel = h('section', { class: 'tr-ed-modulo' });
-  let tab = 'lecciones';
-  const pintar = () => {
-    const tabs = h('div', { class: 'tr-seg' }, [['lecciones', '📚 Lecciones'], ['datos', '🧾 Datos del módulo'], ['glosario', '📖 Glosario']].map(([k, r]) => h('button', { type: 'button', class: 'tr-seg-b' + (tab === k ? ' on' : ''), onclick: () => { tab = k; pintar(); } }, r)));
-    let cuerpo;
-    if (tab === 'datos') {
-      const area = fTxt(m, 'area', 'Área', { opciones: [['face', 'Face Design'], ['n2', 'N2 Demodenture'], ['n3', 'N3 Prosthetic'], ['n6', 'N6 Material Changes'], ['support', 'Support']] }, c);
-      area.hidden = m.seccion !== 'area';
-      cuerpo = h('div', { class: 'tr-ed-form' }, h('div', { class: 'tr-ed-fila' }, fTxt(m, 'icono', 'Icono (emoji)', { ph: '📘' }, () => { c(); X.pintarMenu(); }), fTxt(m, 'orden', 'Orden', { numero: true, ayuda: 'Menor = aparece antes' }, c)),
-        fT(m, 'titulo', 'Título', {}, () => { c(); X.pintarMenu(); }), fT(m, 'resumen', 'Resumen', { multi: true }, c),
-        h('div', { class: 'tr-ed-fila' }, fTxt(m, 'seccion', 'Sección', { opciones: [['intro', 'Empieza aquí'], ['area', 'Las áreas del departamento'], ['biblioteca', 'Biblioteca de referencia']] }, () => { if (m.seccion === 'area' && !m.area) m.area = 'face'; if (m.seccion !== 'area') delete m.area; c(); pintar(); }), area),
-        h('div', { class: 'tr-ed-peligro' }, h('b', null, 'Quitar este módulo del curso'), h('p', { class: 'tr-sub' }, 'Desaparece del curso cuando publiques. El avance de las personas no se borra.'),
-          h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-peligro', onclick: async () => {
-            if (!await dialogo('Quitar módulo', h('p', null, `"${t(m.titulo)}" se quitará del curso cuando publiques. Puedes deshacerlo desde Inicio mientras no publiques.`), 'Quitar', true)) return;
-            await esperarGuardado(m.id); await api.post('/design/api/training/editor/' + m.id + '/eliminar', {}); delete est[m.id]; await X.recargar(); X.ir('#/');
-          } }, '🗑 Quitar módulo')));
-    } else if (tab === 'glosario') {
-      m.glosario = m.glosario || [];
-      cuerpo = h('div', { class: 'tr-ed-form' }, fLista(m.glosario, 'Términos de este módulo', () => ({ id: m.id + '-' + Math.random().toString(36).slice(2, 7), termino: T('Término', 'Term'), def: T('Qué significa, en una línea.', 'What it means, in one line.'), cat: '' }),
-        (g) => h('div', null, fT(g, 'termino', 'Término', {}, c), fT(g, 'def', 'Definición', { multi: true, filas: 2 }, c), fTxt(g, 'cat', 'Categoría', { ph: 'p. ej. N3, exocad, calidad' }, c)), c,
-        { nombre: 'Término', agregar: 'Agregar término', resumen: (g) => t(g.termino), ayuda: 'Los términos aparecen subrayados en las lecciones y en el Glosario (se actualiza al publicar).' }));
-    } else {
-      cuerpo = h('div', { class: 'tr-ed-form' }, fLista(m.lecciones, 'Lecciones', () => ({ id: idUnico(m.id), titulo: T('Nueva lección', 'New lesson'), minutos: 5, pasos: [pasoNuevo('texto'), pasoNuevo('quiz')] }),
-        (l) => h('div', { class: 'tr-ed-lec' }, fT(l, 'titulo', 'Título', {}, () => { c(); X.pintarMenu(); }), h('div', { class: 'tr-ed-fila' }, fTxt(l, 'minutos', 'Minutos', { numero: true }, c),
-          h('div', { class: 'tr-ed-lec-acc' }, h('span', { class: 'tr-sub' }, `${(l.pasos || []).length} pasos`),
-            h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => moverLeccion(l) }, '↗ Mover a otro módulo'),
-            h('a', { class: 'tr-btn tr-btn-chico tr-btn-primario', href: '#/l/' + l.id }, '✏️ Editar pasos →')))),
-        () => { c(); X.pintarMenu(); }, { nombre: 'Lección', agregar: 'Nueva lección', min: 1, resumen: (l) => t(l.titulo), ayuda: 'Arrastra ⠿ para cambiar el orden. Quitar una lección no borra el avance guardado.' }));
-    }
-    panel.replaceChildren(h('div', { class: 'tr-ed-modulo-cab' }, h('h2', null, '✏️ Editar módulo'), tabs), cuerpo);
-  };
+  const ctx = { cambio: c, estructura: () => { c(); X.pintarMenu(); X.ruta(); } };
+  // icono
+  const ico = pagina.querySelector('.tr-mod-head .tr-mod-ico');
+  if (ico) ico.replaceWith(h('span', { class: 'tr-mod-ico grande' }, campoSimple(m, 'icono', () => { c(); X.pintarMenu(); }, { ph: '📘', titulo: 'Icono del módulo (emoji)' })));
+  // sección, área, orden y quitar
+  const AREAS_OP = [['face', 'Face Design'], ['n2', 'N2 Demodenture'], ['n3', 'N3 Prosthetic'], ['n6', 'N6 Material Changes'], ['support', 'Support']];
+  const ajustes = h('div', { class: 'tr-el-fila tr-ed-mod-ajustes' },
+    h('span', null, 'Sección: '), sel([['intro', 'Empieza aquí'], ['area', 'Las áreas del departamento'], ['biblioteca', 'Biblioteca de referencia']], m.seccion || 'biblioteca', (v) => { m.seccion = v; if (v === 'area' && !m.area) m.area = 'face'; if (v !== 'area') delete m.area; ctx.estructura(); }),
+    m.seccion === 'area' ? [h('span', null, ' Área: '), sel(AREAS_OP, m.area, (v) => { m.area = v; ctx.estructura(); })] : null,
+    h('span', null, ' Orden: '), h('input', { type: 'number', class: 'tr-el-num-in', value: m.orden ?? '', title: 'Menor = aparece antes', onchange: (e) => { m.orden = e.target.value === '' ? 99 : Number(e.target.value); ctx.estructura(); } }),
+    h('span', { class: 'tr-ed-esp' }),
+    boton('🗑 Quitar módulo', async () => {
+      if (!await dialogo('Quitar módulo', h('p', null, `"${t(m.titulo)}" se quitará del curso cuando publiques. Puedes deshacerlo desde Inicio mientras no publiques.`), 'Quitar', true)) return;
+      await esperarGuardado(m.id); await api.post('/design/api/training/editor/' + m.id + '/eliminar', {}); delete est[m.id]; await X.recargar(); X.ir('#/');
+    }, 'peligro'));
+  pagina.querySelector('.tr-mod-head')?.after(ajustes);
+  // lecciones: título en el lugar, minutos, mover, abrir
+  const lecs = pagina.querySelector('.tr-lecs');
+  const nueva = () => ({ id: idUnico(m.id), titulo: T('Nueva lección', 'New lesson'), minutos: 5, pasos: [pasoNuevo('texto'), pasoNuevo('quiz')] });
+  const listaLecs = listaEl(m.lecciones, (l, i) => h('div', { class: 'tr-lec-card tr-el-lec' }, h('span', { class: 'tr-lec-n' }, i + 1),
+    h('div', { class: 'tr-lec-txt' }, campoDe(l, 'titulo', () => { c(); X.pintarMenu(); }, { tag: 'b', ph: 'Título de la lección' }),
+      h('small', null, h('input', { type: 'number', class: 'tr-el-num-in', min: 1, value: l.minutos || 5, title: 'Minutos', onchange: (e) => { l.minutos = Number(e.target.value) || 5; c(); } }), ' min · ' + (l.pasos || []).length + ' pasos')),
+    boton('↗', () => moverLeccion(l), 'chico'), h('a', { class: 'tr-btn tr-btn-chico tr-btn-primario', href: '#/l/' + l.id }, 'Abrir →')),
+    nueva, ctx, { agregar: 'Nueva lección', min: 1 });
+  if (lecs) lecs.replaceWith(h('div', { class: 'tr-lecs' }, listaLecs));
+  // glosario del módulo
+  m.glosario = m.glosario || [];
+  pagina.append(h('section', { class: 'tr-seccion tr-el-glos' }, h('h2', null, '📖 Glosario de este módulo'), h('p', { class: 'tr-sub' }, 'Los términos aparecen subrayados en las lecciones y en el Glosario general.'),
+    listaEl(m.glosario, (g) => h('div', { class: 'tr-glos-it' }, campoDe(g, 'termino', c, { tag: 'h3', ph: 'Término' }), campoDe(g, 'def', c, { multi: true, ph: 'Qué significa, en una línea' }),
+      h('small', { class: 'tr-sub' }, 'Categoría: ', campoSimple(g, 'cat', c, { ph: 'p. ej. N3' }))),
+    () => ({ id: m.id + '-' + Math.random().toString(36).slice(2, 7), termino: T('Término', 'Term'), def: T('Qué significa.', 'What it means.'), cat: '' }), ctx, { agregar: 'Término' })));
   async function moverLeccion(l) {
     const d = { destino: '' };
     const opciones = mods().filter((x) => x.id !== m.id).map((x) => [x.id, t(x.titulo)]);
@@ -515,12 +369,9 @@ export async function decorarModulo(pagina, m0) {
     if (m.lecciones.length <= 1) return toast('El módulo debe quedar con al menos una lección', 'error');
     const m2 = await asegurar(d.destino);
     m.lecciones.splice(m.lecciones.indexOf(l), 1); (m2.lecciones = m2.lecciones || []).push(l);
-    c(); cambio(m2.id); X.pintarMenu(); pintar();
+    c(); cambio(m2.id); X.pintarMenu(); X.ruta();
     toast('Lección movida a "' + t(m2.titulo) + '"');
   }
-  pintar();
-  const ref = pagina.querySelector('.tr-mod-head');
-  if (ref) ref.after(panel); else pagina.prepend(panel);
 }
 
 // ---------- Lección: todos los pasos, arrastrables ----------
@@ -536,8 +387,10 @@ export async function vistaLeccion(l0, m0) {
   X.destruir.push(() => { previas.forEach((d) => d && d()); cerrarPanel(); });
 
   const cab = h('div', { class: 'tr-leccion-cab' }, h('div', { class: 'tr-migas', role: 'navigation' }, h('a', { href: '#/' }, 'Inicio'), ' › ', h('a', { href: '#/m/' + m.id }, t(m.titulo))),
-    h('div', { class: 'tr-ed-lec-tit' }, fT(l, 'titulo', 'Título de la lección', {}, () => { c(); X.pintarMenu(); }), fTxt(l, 'minutos', 'Minutos', { numero: true }, c)),
-    h('p', { class: 'tr-sub' }, 'Haz clic en ✏️ para cambiar un paso; arrastra ⠿ para moverlo; usa ＋ para agregar pasos o suelta imágenes desde tu computador sobre ＋. El último paso suele ser un quiz.'));
+    campoDe(l, 'titulo', () => { c(); X.pintarMenu(); }, { tag: 'h1', ph: 'Título de la lección' }),
+    h('div', { class: 'tr-sub' }, h('input', { type: 'number', class: 'tr-el-num-in', min: 1, value: l.minutos || 5, title: 'Minutos', onchange: (e) => { l.minutos = Number(e.target.value) || 5; c(); } }), ' ' + 'min'),
+    h('div', { class: 'tr-ed-guia' }, '✏️ Haz clic en cualquier texto y escribe. Estás escribiendo en ', h('b', null, S.lang === 'es' ? 'ESPAÑOL' : 'INGLÉS'),
+      ' — cambia a ', S.lang === 'es' ? 'EN' : 'ES', ' arriba para escribir la traducción (los textos sin traducir tienen una línea naranja). Arrastra ⠿ para mover; ＋ agrega pasos o suelta ahí imágenes de tu computador.'));
 
   function separador(pos) {
     const b = h('button', { type: 'button', class: 'tr-ed-sep-btn', onclick: () => menuTipos(pos) }, '＋ Agregar paso');
@@ -548,7 +401,7 @@ export async function vistaLeccion(l0, m0) {
       e.preventDefault(); sep.classList.remove('sobre');
       if (arrastrando !== null) { const de = arrastrando; arrastrando = null; const x = l.pasos.splice(de, 1)[0]; l.pasos.splice(pos > de ? pos - 1 : pos, 0, x); c(); pintar(); return; }
       const ims = await subirVarias(e.dataTransfer.files || []);
-      if (ims.length) { const p = pasoNuevo('imagen'); p.imagenes = ims; p.disposicion = ims.length >= 3 ? 'tres' : (ims.length === 2 ? 'dos' : 'una'); delete p.titulo; l.pasos.splice(pos, 0, p); c(); pintar(); editar(pos); }
+      if (ims.length) { const p = pasoNuevo('imagen'); p.imagenes = ims; p.disposicion = ims.length >= 3 ? 'tres' : (ims.length === 2 ? 'dos' : 'una'); delete p.titulo; l.pasos.splice(pos, 0, p); c(); pintar(); enfocar(pos); }
     });
     return sep;
   }
@@ -558,38 +411,51 @@ export async function vistaLeccion(l0, m0) {
       cerrarDialogo();
       const p = pasoNuevo(tp);
       if (tp === 'imagen') { const ims = await elegirImagenes(true); if (!ims || !ims.length) return; p.imagenes = ims; p.disposicion = ims.length >= 3 ? 'tres' : (ims.length === 2 ? 'dos' : 'una'); }
-      l.pasos.splice(pos, 0, p); c(); pintar(); editar(pos);
+      l.pasos.splice(pos, 0, p); c(); pintar(); enfocar(pos);
     } }, h('span', { class: 'tr-ed-tipo-ico' }, NOMBRE_TIPO[tp][0]), h('b', null, NOMBRE_TIPO[tp][1]), h('small', null, NOMBRE_TIPO[tp][2]))));
     dialogo('¿Qué quieres agregar?', cuerpo, null);
   }
-  function vistaPrevia(p, caja) {
-    if (PESADOS.has(p.t)) {
-      caja.replaceChildren(h('div', { class: 'tr-ed-pesado' }, h('span', null, NOMBRE_TIPO[p.t][0]), h('div', null, h('b', null, t(p.titulo) || NOMBRE_TIPO[p.t][1]), h('div', { class: 'tr-sub' }, p.slot ? 'Espacio: ' + p.slot : NOMBRE_TIPO[p.t][2])),
-        h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: () => { const r = renderPaso(p, {}); previas.push(r.destroy); caja.replaceChildren(r.el); } }, '▶ Ver vista previa')));
+  const modos = new WeakMap();   // paso -> 'ver' cuando se muestra como lo ve la persona
+  const ctxEd = { cambio: () => c(), estructura: () => { c(); pintar(); }, imagenes: (mult) => elegirImagenes(mult), destruir: (fn) => previas.push(fn),
+    lecciones: () => mods().flatMap((mm) => (mm.lecciones || []).map((x) => [x.id, t(mm.titulo) + ' › ' + t(x.titulo)])) };
+  function cuerpoPaso(p, caja) {
+    if (modos.get(p) === 'ver') {
+      try { const r = renderPaso(p, {}); previas.push(r.destroy); caja.replaceChildren(r.el); } catch (e) { caja.replaceChildren(h('div', { class: 'tr-error' }, 'Este paso tiene un error: ' + e.message)); }
       return;
     }
-    try { const r = renderPaso(p, {}); previas.push(r.destroy); caja.replaceChildren(r.el); } catch (e) { caja.replaceChildren(h('div', { class: 'tr-error' }, 'Este paso tiene un error: ' + e.message + ' (ábrelo para corregirlo)')); }
+    try { caja.replaceChildren(pasoEditable(p, ctxEd)); } catch (e) { console.error(e); caja.replaceChildren(h('div', { class: 'tr-error' }, 'No se pudo mostrar este paso para editar (' + e.message + '). Corrígelo con { } JSON.')); }
   }
   const tarjetas = [];
   function tarjeta(p, i) {
-    const prev = h('div', { class: 'tr-ed-prev' });
-    const card = h('div', { class: 'tr-ed-paso', data: { i } },
+    const cuerpo = h('div', { class: 'tr-ed-prev' });
+    const ver = modos.get(p) === 'ver';
+    const card = h('div', { class: 'tr-ed-paso' + (ver ? ' viendo' : ''), data: { i } },
       h('div', { class: 'tr-ed-paso-cab' },
         h('span', { class: 'tr-ed-asa', title: 'Arrastra para mover', onmousedown: () => { card.draggable = true; }, onmouseup: () => { card.draggable = false; } }, '⠿'),
         h('span', { class: 'tr-ed-paso-n' }, i + 1), h('span', { class: 'tr-ed-paso-tipo' }, (NOMBRE_TIPO[p.t] || ['•', p.t])[0] + ' ' + (NOMBRE_TIPO[p.t] || ['', p.t])[1]),
         h('span', { class: 'tr-ed-esp' }),
-        h('button', { type: 'button', class: 'tr-btn tr-btn-chico tr-btn-primario', onclick: () => editar(i) }, '✏️ Editar'),
+        h('button', { type: 'button', class: 'tr-btn tr-btn-chico' + (ver ? ' tr-btn-primario' : ''), title: ver ? 'Volver a editar este paso' : 'Ver este paso como lo ve la persona (con sus interacciones)', onclick: () => { if (ver) modos.delete(p); else modos.set(p, 'ver'); pintar(); } }, ver ? '✏️ Editar aquí' : '👁 Ver cómo queda'),
         h('button', { type: 'button', class: 'tr-ed-ib', title: 'Subir', disabled: i === 0, onclick: () => mover(i, i - 1) }, '↑'),
         h('button', { type: 'button', class: 'tr-ed-ib', title: 'Bajar', disabled: i === l.pasos.length - 1, onclick: () => mover(i, i + 1) }, '↓'),
         h('button', { type: 'button', class: 'tr-ed-ib', title: 'Duplicar', onclick: () => { const x = clonar(p); if (x.slot) x.slot = slotNuevo(); l.pasos.splice(i + 1, 0, x); c(); pintar(); } }, '⧉'),
         h('button', { type: 'button', class: 'tr-ed-ib', title: 'Mover a otra lección', onclick: () => moverPaso(i) }, '↗'),
-        h('button', { type: 'button', class: 'tr-ed-ib peligro', title: 'Eliminar', onclick: async () => { if (!await dialogo('Eliminar paso', h('p', null, `¿Eliminar el paso ${i + 1} (${(NOMBRE_TIPO[p.t] || ['', p.t])[1]})?`), 'Eliminar', true)) return; l.pasos.splice(i, 1); cerrarPanel(); c(); pintar(); } }, '🗑')),
-      prev);
-    card.addEventListener('dragstart', (e) => { arrastrando = i; e.dataTransfer.effectAllowed = 'move'; card.classList.add('arrastrando'); lista.classList.add('moviendo'); });
+        h('button', { type: 'button', class: 'tr-ed-ib', title: 'Edición avanzada (JSON)', onclick: () => json(p) }, '{ }'),
+        h('button', { type: 'button', class: 'tr-ed-ib peligro', title: 'Eliminar', onclick: async () => { if (!await dialogo('Eliminar paso', h('p', null, `¿Eliminar el paso ${i + 1} (${(NOMBRE_TIPO[p.t] || ['', p.t])[1]})?`), 'Eliminar', true)) return; l.pasos.splice(i, 1); c(); pintar(); } }, '🗑')),
+      cuerpo);
+    card.addEventListener('dragstart', (e) => { if (e.target !== card) return; arrastrando = i; e.dataTransfer.effectAllowed = 'move'; card.classList.add('arrastrando'); lista.classList.add('moviendo'); });
     card.addEventListener('dragend', () => { card.draggable = false; card.classList.remove('arrastrando'); lista.classList.remove('moviendo'); arrastrando = null; });
-    vistaPrevia(p, prev);
-    tarjetas[i] = { card, prev };
+    cuerpoPaso(p, cuerpo);
+    tarjetas[i] = { card, cuerpo };
     return card;
+  }
+  function json(p) {
+    dialogo('Edición avanzada (JSON)', h('div', { class: 'tr-ed-form' }, ...editorJSON(p, (v) => { Object.keys(p).forEach((k) => delete p[k]); Object.assign(p, v); c(); cerrarDialogo(); pintar(); })), null);
+  }
+  function enfocar(i) {
+    const tj = tarjetas[i]; if (!tj) return;
+    tj.card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    tj.card.classList.add('nuevo'); setTimeout(() => tj.card.classList.remove('nuevo'), 1600);
+    const primero = tj.card.querySelector('.tr-el-campo'); if (primero) setTimeout(() => primero.focus(), 350);
   }
   async function moverPaso(i) {
     const d = { destino: '', donde: 'fin' };
@@ -602,7 +468,7 @@ export async function vistaLeccion(l0, m0) {
     if (!l2) return;
     const x = l.pasos.splice(i, 1)[0]; l2.pasos = l2.pasos || [];
     if (d.donde === 'inicio') l2.pasos.unshift(x); else l2.pasos.push(x);
-    c(); if (mid2 !== m.id) cambio(mid2); cerrarPanel(); pintar();
+    c(); if (mid2 !== m.id) cambio(mid2); pintar();
     toast('Paso movido a "' + t(l2.titulo) + '"');
   }
   function mover(de, a) { if (a < 0 || a >= l.pasos.length) return; l.pasos.splice(a, 0, l.pasos.splice(de, 1)[0]); c(); pintar(); }
@@ -613,19 +479,6 @@ export async function vistaLeccion(l0, m0) {
     if (!l.pasos.length) nodos.push(h('div', { class: 'tr-vacio' }, 'Esta lección no tiene pasos. Usa ＋ para agregar el primero.'));
     lista.replaceChildren(...nodos);
   }
-  function editar(i) {
-    const p = l.pasos[i]; if (!p) return;
-    tarjetas.forEach((x, k) => x && x.card.classList.toggle('editando', k === i));
-    let tPrev = null;
-    const refrescar = () => { clearTimeout(tPrev); tPrev = setTimeout(() => { const tj = tarjetas[l.pasos.indexOf(p)]; if (tj) vistaPrevia(p, tj.prev); }, 250); };
-    const alCambiar = () => { c(); refrescar(); };
-    abrirPanel(`Paso ${i + 1} · ${(NOMBRE_TIPO[p.t] || ['', p.t])[1]}`, {
-      form: (repintar) => formPaso(p, alCambiar, repintar),
-      json: (repintar) => editorJSON(p, (v) => { Object.keys(p).forEach((k) => delete p[k]); Object.assign(p, v); alCambiar(); repintar(); }),
-    }, () => tarjetas.forEach((x) => x && x.card.classList.remove('editando')));
-    tarjetas[i]?.card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
-
   X.vista(h('div', { class: 'tr-pagina tr-leccion tr-ed-leccion' }, barra(m.id), cab, lista), t(l.titulo));
   pintar();
   refrescar = () => pintar();

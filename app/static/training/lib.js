@@ -243,11 +243,14 @@ export const ED = { activo: false, texto: null, ui: null, imagenes: null };
 export function editable(el, o) {
   if (!ED.activo) return el;
   el.classList.add('tr-editable');
-  el.setAttribute('data-ed-ayuda', 'Doble clic para editar');
-  el.addEventListener('click', (e) => { if (el.isContentEditable) e.stopPropagation(); });
-  el.addEventListener('dblclick', (e) => {
+  // un clic basta; dentro de botones o enlaces (tarjetas que se voltean, opciones de quiz) es doble clic para no estorbar su acción
+  const enControl = () => !!el.parentElement && !!el.parentElement.closest('button, a, label, summary, select');
+  el.title = enControl() ? 'Doble clic para editar' : 'Clic para editar';
+  el.addEventListener('click', (e) => { if (el.isContentEditable) { e.stopPropagation(); return; } if (!enControl()) empezar(e); });
+  el.addEventListener('dblclick', (e) => { if (enControl()) empezar(e); });
+  const empezar = (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (el.isContentEditable) return;
+    if (el.isContentEditable || (e.target.closest && e.target.closest('.tr-term'))) return;
     const antes = el.innerHTML, valor = o.get();
     el.textContent = valor;
     try { el.contentEditable = 'plaintext-only'; } catch (err) { el.contentEditable = 'true'; }
@@ -263,11 +266,10 @@ export function editable(el, o) {
     const alSalir = () => fin(true);
     const tecla = (ev) => {
       ev.stopPropagation();
-      if (ev.key === 'Escape') { ev.preventDefault(); fin(false); }
-      else if (ev.key === 'Enter' && (!o.multi || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); el.blur(); }
+      if (ev.key === 'Escape' || (ev.key === 'Enter' && (!o.multi || ev.ctrlKey || ev.metaKey))) { ev.preventDefault(); el.blur(); }   // Esc o clic afuera: termina y guarda
     };
     el.addEventListener('keydown', tecla, true); el.addEventListener('blur', alSalir);
-  });
+  };
   return el;
 }
 // Elemento con un texto bilingüe del contenido (editable en el lugar)

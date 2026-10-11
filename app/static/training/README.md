@@ -46,8 +46,14 @@ Botón **Editar contenido** arriba a la derecha (solo admins). Funciona como el 
 - Imágenes: paso `imagen` (1 a 6, de una, dos o tres por fila, con pie y fuente) o una imagen al lado de un `texto` (`imagen.lado` =
   izq/der/arriba/abajo). Se eligen de las **imágenes de los protocolos** (`img/`, pies en `img/pies.json`) o de la **biblioteca de medios**
   de Design (las que se suben quedan ahí; tabla `design_inicio_medios`).
-- **Edición en el lugar:** con el modo edición activo, *cualquier texto* se edita con **doble clic** (Enter guarda; en textos largos
-  Ctrl+Enter; Esc cancela). Las imágenes muestran sus controles al pasar el mouse: Reemplazar, Pie, Posición y Quitar; se arrastran para
+- **Edición directa (sin formularios):** con el modo edición activo, cada paso se muestra completo y editable donde se ve
+  (`enlinea.js`): tarjetas con sus dos caras, acordeón abierto, quiz con todas sus preguntas (✓ marca la correcta), tablas con ＋ fila /
+  ＋ columna. Un **clic** en cualquier texto y se escribe (doble clic si el texto está dentro de un botón o enlace); Esc o clic afuera
+  termina. Se escribe en el idioma que se está viendo; los textos sin traducir llevan una línea naranja. "👁 Ver cómo queda" muestra
+  el paso con sus interacciones y "{ }" abre su JSON. El módulo también se edita en su página (icono, título, sección, lecciones, glosario).
+- **Marcas sobre las fotos:** "＋ ✓" (verde, correcto) y "＋ ✗" (roja, incorrecto) y luego clic en el punto de la foto
+  (`imagen.marcas = [{t: "ok"|"mal", x, y}]` en % de la foto). Se arrastran, un clic cambia ✓/✗ y × las quita; se ven también en grande. 
+  Las imágenes muestran sus controles al pasar el mouse: Reemplazar, Pie, Posición y Quitar; se arrastran para
   reordenarlas o pasarlas a otra galería, y "＋ Agregar imagen" agrega más. Los pasos se mueven a otra lección (↗) y las lecciones a otro módulo.
 - **Diseño de la plataforma** (fila especial `sitio` en `design_training_modulos`, mismo borrador/publicar): textos de la interfaz
   (`ui[idioma][clave]`, también desde "🔤 Textos de la plataforma"), orden y ocultos de las secciones de Inicio (`inicio`) y de los
