@@ -135,7 +135,8 @@
   function cssEditor() {
     var d = W.dim(), m = d.m;
     return [
-      'html{background:#e8e6e4;min-height:100%;}',
+      // fondo alrededor de las páginas: gris claro, u oscuro en el modo oscuro de Design (la página sigue blanca)
+      'html{background:' + (document.documentElement.getAttribute('data-ds-tema') === 'oscuro' ? '#1c2637' : '#e8e6e4') + ';min-height:100%;}',
       'body{box-sizing:border-box;width:' + d.w + 'cm;min-height:' + d.h + 'cm;margin:24px auto 48px;padding:' + m.sup + 'cm ' + m.der + 'cm ' + m.inf + 'cm ' + m.izq + 'cm;' +
         'background:transparent;}',  // sin position: el editor ubica sus barras y agarraderas respecto al documento
       'html.nv-web{background:#fff;} html.nv-web body{width:auto;max-width:none;margin:0;padding:24px 56px;min-height:100%;}',
@@ -170,6 +171,7 @@
     W.paginarYa();
   }
   W.aplicarEstilos = aplicarEstilos;
+  document.addEventListener('ds:tema', function() { aplicarEstilos(); });
   W.cambiarAjustes = function(fn) {  // cambia ajustes, redibuja y marca para guardar
     if (W.est.soloLectura) return;
     fn(W.aj); aplicarEstilos(); W.marcarCambio(); if (W.regla) W.regla();

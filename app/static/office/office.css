@@ -392,3 +392,22 @@ svg.nv-ic.p { width: 16px; height: 16px; }
 .nvp-banda-protocolo { background: #eef2ff; color: #1e1b4b; border-bottom-color: #c7d2fe; flex-wrap: wrap; }
 .nvp-banda-protocolo span { flex: 1; min-width: 240px; }
 .nvp-banda-protocolo .nv-btn { text-decoration: none; }
+
+/* Modo oscuro de Design (data-ds-tema en <html>): los grises de Office pasan a oscuros. El "papel" (página de Word,
+   diapositiva, miniaturas) se queda como se diseñó. El resto sale de oscuro_office.css (generado). */
+:root[data-ds-tema="oscuro"] {
+  --nv-gris0: #0f172a; --nv-gris1: #111827; --nv-gris2: #1a2232; --nv-gris3: #222c3f; --nv-gris4: #2b3446;
+  --nv-gris5: #3c475c; --nv-gris6: #5b667c; --nv-gris7: #b6c0d3; --nv-texto: #e5e7eb; --nv-texto-fuerte: #f9fafb;
+  --nv-sel: #1e3a5f; --nv-hover: #1f2937; --nv-press: #273449; --nv-app-claro: #1e293b; color-scheme: dark;
+}
+:root[data-ds-tema="oscuro"] body { background: #0b1120; color: #e5e7eb; }
+/* Ajustes de la auditoría de contraste (modo oscuro) */
+:root[data-ds-tema="oscuro"] body .nv-app-ico, :root[data-ds-tema="oscuro"] body .nv-btn-compartir, :root[data-ds-tema="oscuro"] body .nv-avatar {
+  background: #e5e7eb !important; color: #111827 !important; }
+:root[data-ds-tema="oscuro"] body.nv-ppt .nv-app-ico, :root[data-ds-tema="oscuro"] body.nv-ppt .nv-btn-compartir,
+:root[data-ds-tema="oscuro"] body.nv-ppt .nv-avatar { color: #8a2a12 !important; }
+:root[data-ds-tema="oscuro"] body .nv-tab.activa, :root[data-ds-tema="oscuro"] body .nv-tab.archivo, :root[data-ds-tema="oscuro"] body .nv-tabs-lista button.on { color: #93c5fd; }
+:root[data-ds-tema="oscuro"] body.nv-ppt .nv-tab.activa, :root[data-ds-tema="oscuro"] body.nv-ppt .nv-tab.archivo { color: #fdba74; }
+:root[data-ds-tema="oscuro"] body .nv-buscar-cmd input { background: rgba(0,0,0,.28); color: #fff; }
+:root[data-ds-tema="oscuro"] body .nv-estilo-item { background: #fff; }   /* vista previa de los estilos: como en el papel */
+:root[data-ds-tema="oscuro"] body .nv-estilo-item .nombre { color: #605e5c; }

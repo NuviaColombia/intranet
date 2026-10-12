@@ -286,15 +286,17 @@ export function U(tag, attrs, clave, prefijo) {
 }
 
 // ---------- Modo claro / oscuro ----------
-export function temaGuardado() { try { return localStorage.getItem('tr_tema') || ''; } catch (e) { return ''; } }
-export function temaActual() { const g = temaGuardado(); return g || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro'); }
+// Training usa el modo oscuro de todo Design (suiche de la barra, guardado por persona; claro por defecto).
+export function temaGuardado() { return document.documentElement.getAttribute('data-ds-tema') || ''; }
+export function temaActual() { return temaGuardado() === 'oscuro' ? 'oscuro' : 'claro'; }
 export function aplicarTema(tema) {
-  if (tema) { try { localStorage.setItem('tr_tema', tema); } catch (e) { /* sin almacenamiento */ } }
+  if (tema) { if (window.dsTema) window.dsTema(tema); else document.documentElement.setAttribute('data-ds-tema', tema); }
   const v = temaActual();
   document.documentElement.setAttribute('data-tr-tema', v);
   const r = document.getElementById('trRaiz'); if (r) r.setAttribute('data-tema', v);
   return v;
 }
+document.addEventListener('ds:tema', () => aplicarTema());  // el suiche de la barra también cambia Training
 
 // Ventanita con la definición de un término (clic en cualquier término subrayado)
 let pop = null;

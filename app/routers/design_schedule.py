@@ -2191,6 +2191,23 @@ def api_seguimiento(fin: str = Query("17:00", max_length=5, pattern=r"^\d{1,2}:\
     return sd.seguimiento(db, fin_jornada=fin)
 
 
+class TemaIn(BaseModel):
+    tema: Literal["claro", "oscuro"]
+
+
+@router.post("/design/api/preferencias/tema")
+def api_preferencia_tema(payload: TemaIn, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Modo oscuro de Design: se guarda por persona (vale en cualquier computador)."""
+    from ..models_design import DesignPreferencia
+    p = db.get(DesignPreferencia, user.id)
+    if not p:
+        p = DesignPreferencia(empleado_id=user.id)
+        db.add(p)
+    p.tema, p.actualizado_en = payload.tema, datetime.utcnow()
+    db.commit()
+    return {"tema": p.tema}
+
+
 @router.get("/design/api/seguimiento/produccion")
 def api_seguimiento_produccion(fecha: str = "", user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     """N3/N2 Producción: el reporte diario de cada equipo (diseñadores en turno y casos nuevos por centro)."""

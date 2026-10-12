@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es"{% if es_design %} data-ds-tema="{{ tema_design(user) }}"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block titulo %}Nuvia{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css?v=17">
+{% if es_design %}<link rel="stylesheet" href="/static/design/oscuro_auto.css?v={{ ds_estaticos_v }}"><link rel="stylesheet" href="/static/design/oscuro.css?v={{ ds_estaticos_v }}">{% endif %}
 {% if es_design %}<link rel="manifest" href="/design/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="/static/design/push-icono.png">{% endif %}
 </head>
 <body>
@@ -165,6 +166,30 @@
   {% endif %}
   {% if es_design and user.rol in ('admin', 'superadmin') %}<a href="/design/training">Training</a>{% endif %}
   <a href="/">Módulos</a>
+  {% if es_design %}
+  {# Design: campana de notificaciones (la pone static/design/push.js aquí) y modo oscuro, antes de la foto #}
+  <span class="ds-nav-extras" id="dsNavExtras">
+    <label class="ds-tema-sw" title="Modo oscuro">
+      <input type="checkbox" id="dsTemaChk" role="switch" aria-label="Modo oscuro"{% if tema_design(user) == 'oscuro' %} checked{% endif %}>
+      <span class="ds-tema-pista" aria-hidden="true"><span class="ds-tema-perilla"></span></span>
+    </label>
+  </span>
+  <script>
+  (function() {  // modo oscuro de Design: se guarda por persona (claro por defecto)
+    var chk = document.getElementById('dsTemaChk');
+    window.dsTema = function(t) {
+      t = t === 'oscuro' ? 'oscuro' : 'claro';
+      document.documentElement.setAttribute('data-ds-tema', t);
+      if (chk) chk.checked = t === 'oscuro';
+      fetch('/design/api/preferencias/tema', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+                                              body: JSON.stringify({tema: t})}).catch(function() {});
+      document.dispatchEvent(new CustomEvent('ds:tema', {detail: t}));
+      return t;
+    };
+    if (chk) chk.addEventListener('change', function() { window.dsTema(chk.checked ? 'oscuro' : 'claro'); });
+  })();
+  </script>
+  {% endif %}
   {# Todos los módulos: foto de Zoho (o iniciales), primer nombre y primer apellido, y el cargo debajo #}
   {% set primeros = (user.nombres or '').split()[:1] + (user.apellidos or '').split()[:1] %}
   {% set yo %}

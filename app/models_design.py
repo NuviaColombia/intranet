@@ -394,6 +394,15 @@ class DesignRolUsuario(Base):
     asignado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignPreferencia(Base):
+    """Preferencias de cada persona en Design (por ahora el modo oscuro). Por defecto, claro."""
+    __tablename__ = "design_preferencias"
+
+    empleado_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tema: Mapped[str] = mapped_column(String(10), default="claro")  # claro | oscuro
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignConexionRegla(Base):
     """Decisiones de Parámetros › Conexión con los equipos que no son un dato de otra tabla:
     historico (persona que ya no es manager), aceptado_general (está en DESIGN MANAGERS sin ser manager),

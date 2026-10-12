@@ -1,0 +1,56 @@
+/* Modo oscuro de Design (pedido por Rosember el 12-oct-2026). Se activa con <html data-ds-tema="oscuro"> (preferencia de
+   cada persona, ver tema_design en main_templates.py). oscuro_auto.css trae la versión oscura generada de todas las
+   hojas de Design (scripts/generar_oscuro_design.py); aquí van la base y los ajustes a mano, que mandan sobre lo generado.
+   También están aquí la campana y el suiche de la barra (se cargan en todas las páginas de Design). */
+
+/* ---------- Barra: campana + suiche, antes de la foto ---------- */
+nav .ds-nav-extras { margin-left:auto; display:inline-flex; align-items:center; gap:10px; }
+nav .ds-nav-extras + .ds-yo { margin-left:6px; }
+nav .ds-nav-extras .ds-push { margin-left:0; }
+nav .ds-nav-extras .ds-push-pop { left:auto; right:-60px; transform:none; }
+.ds-tema-sw { display:inline-flex; align-items:center; cursor:pointer; position:relative; }
+.ds-tema-sw input { position:absolute; opacity:0; width:1px; height:1px; }
+.ds-tema-pista { width:46px; height:24px; border-radius:999px; background:#374151; border:1px solid rgba(255,255,255,.25); position:relative;
+  transition:background .2s; display:block; }
+.ds-tema-pista::before { content:'☀️'; position:absolute; left:6px; top:50%; transform:translateY(-50%); font-size:11px; opacity:.55; }
+.ds-tema-pista::after { content:'🌙'; position:absolute; right:5px; top:50%; transform:translateY(-50%); font-size:11px; opacity:.55; }
+.ds-tema-perilla { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#f9fafb; box-shadow:0 1px 3px rgba(0,0,0,.4);
+  transition:transform .2s; z-index:1; }
+.ds-tema-sw input:checked + .ds-tema-pista { background:#4338ca; }
+.ds-tema-sw input:checked + .ds-tema-pista .ds-tema-perilla { transform:translateX(22px); }
+.ds-tema-sw input:focus-visible + .ds-tema-pista { outline:2px solid #93c5fd; outline-offset:2px; }
+@media (prefers-reduced-motion: reduce) { .ds-tema-pista, .ds-tema-perilla { transition:none; } }
+
+/* ---------- Base ---------- */
+:root[data-ds-tema="oscuro"] { color-scheme:dark; --fondo:#0b1120; --borde:#2b3446; }
+:root[data-ds-tema="oscuro"] body { background:#0b1120; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] nav { background:#0f172a; border-bottom:1px solid #1e293b; }
+:root[data-ds-tema="oscuro"] nav .marca img { background:#fff; }   /* el logo siempre sobre blanco */
+:root[data-ds-tema="oscuro"] nav a.marca:hover img { box-shadow:0 0 0 2px rgba(255,255,255,.6); }
+:root[data-ds-tema="oscuro"] :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]), select, textarea) {
+  background-color:#0f172a; color:#e5e7eb; border-color:#334155; }
+:root[data-ds-tema="oscuro"] :is(input, select, textarea):disabled { color:#cbd5e1; -webkit-text-fill-color:#cbd5e1; }
+:root[data-ds-tema="oscuro"] ::placeholder { color:#8b95a7; opacity:1; }
+:root[data-ds-tema="oscuro"] option { background:#0f172a; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] main a:not([class]) { color:#93c5fd; }
+:root[data-ds-tema="oscuro"] hr { border-color:#334155; }
+:root[data-ds-tema="oscuro"] ::-webkit-scrollbar-thumb { background:#334155; }
+:root[data-ds-tema="oscuro"] ::-webkit-scrollbar-track { background:#0f172a; }
+/* imágenes y lienzos (fotos, miniaturas, PDF de protocolos): sin cambios; solo un marco tenue */
+:root[data-ds-tema="oscuro"] canvas { background-color:transparent; }
+
+/* ---------- Campana (los estilos están en push.js) ---------- */
+:root[data-ds-tema="oscuro"] .ds-push-pop { background:#111827; color:#e5e7eb; border:1px solid #334155; }
+:root[data-ds-tema="oscuro"] .ds-push-pop h4 { color:#f3f4f6; }
+:root[data-ds-tema="oscuro"] .ds-push-pop p { color:#cbd5e1; }
+:root[data-ds-tema="oscuro"] .ds-push-pop .b2 { background:#1f2937; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] .ds-push-pop .b2:hover { background:#273449; }
+:root[data-ds-tema="oscuro"] .ds-push-pop .ok { color:#6ee7b7; }
+:root[data-ds-tema="oscuro"] .ds-push-pop .mal { color:#fca5a5; }
+
+/* ---------- Ajustes que encontró la auditoría de contraste ---------- */
+:root[data-ds-tema="oscuro"] { --gris:#a3acbb; }
+/* Training: el botón "Empezar" del inicio va sobre el degradado: fondo de tarjeta con texto claro (como en modo claro) */
+:root[data-ds-tema="oscuro"] .tr-raiz .tr-hero-cta .tr-btn-primario { background:var(--tr-card); }
+/* Canvas: el título de cada hoja conserva su color, más claro para leerse sobre fondo oscuro */
+:root[data-ds-tema="oscuro"] .cv-thumb-title { filter:brightness(1.8) saturate(.8); }

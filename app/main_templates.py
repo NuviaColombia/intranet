@@ -32,4 +32,38 @@ def _resumen_aprobaciones(user):
 
 
 templates.env.globals["resumen_aprobaciones"] = _resumen_aprobaciones
+
+
+def _tema_design(user) -> str:
+    """Modo de Design de la persona: 'oscuro' o 'claro' (por defecto claro)."""
+    if not user:
+        return "claro"
+    from .models_design import DesignPreferencia
+    db = SessionLocal()
+    try:
+        p = db.get(DesignPreferencia, user.id)
+        return "oscuro" if p and p.tema == "oscuro" else "claro"
+    except Exception:
+        return "claro"
+    finally:
+        db.close()
+
+
+templates.env.globals["tema_design"] = _tema_design
+
+
+def _version_oscuro() -> str:
+    """Versión de las hojas del modo oscuro (cambia con su contenido: el navegador no usa una copia vieja)."""
+    import hashlib
+    from pathlib import Path
+    h = hashlib.md5()
+    for n in ("oscuro_auto.css", "oscuro.css"):
+        try:
+            h.update((Path(__file__).resolve().parent / "static" / "design" / n).read_bytes())
+        except OSError:
+            pass
+    return h.hexdigest()[:10]
+
+
+templates.env.globals["ds_estaticos_v"] = _version_oscuro()
 templates.env.globals["puede_sst"] = puede_sst

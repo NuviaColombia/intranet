@@ -1,0 +1,50 @@
+/* GENERADO por scripts/generar_oscuro_design.py, no editar a mano (ajustes al final de office.css). */
+:root[data-ds-tema="oscuro"] .nv-titulo .nv-app-ico { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-qat button:hover, :root[data-ds-tema="oscuro"] .nv-titulo-der button:hover { background:rgba(255,255,255,0.08); }
+:root[data-ds-tema="oscuro"] .nv-switch { border:1px solid #29303d; }
+:root[data-ds-tema="oscuro"] .nv-switch::after { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-switch.on { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-doc-titulo button:hover { border-color:rgba(41,48,61,0.5); }
+:root[data-ds-tema="oscuro"] .nv-buscar-cmd input { background:rgba(255,255,255,0.08); }
+:root[data-ds-tema="oscuro"] .nv-buscar-cmd input:focus { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-buscar-res { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-btn-compartir { background:#131925 !important; }
+:root[data-ds-tema="oscuro"] .nv-btn-compartir:hover { background:#192130 !important; }
+:root[data-ds-tema="oscuro"] .nv-avatar { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-b:active:not(:disabled), :root[data-ds-tema="oscuro"] .nv-b.on { border-color:#32465a; }
+:root[data-ds-tema="oscuro"] .nv-sel { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-combo button { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-galeria { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-galeria-mas button { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-estilo-item { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-panel-lateral { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-regla-c { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-editor-host .tox .tox-edit-area__iframe { background:#1c2637 !important; }
+:root[data-ds-tema="oscuro"] .nv-menu { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-cuadricula-g span { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-cuadricula-g span.on { background:#3d2814; }
+:root[data-ds-tema="oscuro"] .nv-dlg { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-btn { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-campo input[type=text], :root[data-ds-tema="oscuro"] .nv-campo input[type=number], :root[data-ds-tema="oscuro"] .nv-campo input[type=url], :root[data-ds-tema="oscuro"] .nv-campo select, :root[data-ds-tema="oscuro"] .nv-campo textarea { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-cargando { background:rgba(255,255,255,0.08); }
+:root[data-ds-tema="oscuro"] .nv-backstage { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-bs-nav button:hover { background:rgba(255,255,255,0.08); }
+:root[data-ds-tema="oscuro"] .nv-bs-nav button.on { background:rgba(255,255,255,0.08); }
+:root[data-ds-tema="oscuro"] .nv-bs-nav .sep { background:rgba(255,255,255,0.08); }
+:root[data-ds-tema="oscuro"] .nv-inicio { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-herr { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-img-item { background:#131925; }
+:root[data-ds-tema="oscuro"] .nv-simbolos button { background:#131925; }
+:root[data-ds-tema="oscuro"] .nvp-banda-plantilla { background:#403613; color:#f9e7b3; border-bottom:1px solid #64562f; }
+:root[data-ds-tema="oscuro"] .nv-pl-menu { background:rgba(255,255,255,0.08); }
+:root[data-ds-tema="oscuro"] .nvp-lienzo { background:#1c2637; }
+:root[data-ds-tema="oscuro"] .nvp-notas { background:#131925; }
+:root[data-ds-tema="oscuro"] .nvp-txt-in a { color:#87bef5; }
+:root[data-ds-tema="oscuro"] .nvp-prompt { color:#a7aebc; }
+:root[data-ds-tema="oscuro"] .nvp-img-vacia { border:1px dashed #444f66; color:#b8bdc9; }
+:root[data-ds-tema="oscuro"] .nvp-marquesina { background:rgba(255,255,255,0.06); }
+:root[data-ds-tema="oscuro"] .nv-pl-acc button { border:1px solid #363f51; background:#131925; color:#cfd3da; }
+:root[data-ds-tema="oscuro"] .nv-pl-acc button:hover { background:#18202e; }
+:root[data-ds-tema="oscuro"] .nv-pl-acc button.rojo { color:#e69498; }
+:root[data-ds-tema="oscuro"] .nv-pl-acc button.rojo:hover { background:#341316; }
+:root[data-ds-tema="oscuro"] .nvp-banda-protocolo { background:#0f1733; color:#c2bfe8; border-bottom-color:#222d57; }

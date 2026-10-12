@@ -438,6 +438,8 @@ function ruta() {
 
 async function arrancar() {
   setLang(S.lang); aplicarTema();
+  // el suiche de modo oscuro de la barra: se vuelve a pintar (el botón ☀️/🌙 de Training queda al día)
+  document.addEventListener('ds:tema', () => { if (document.getElementById('trRaiz')) { armarMarco(); ruta(); } });
   try {
     const [, p, m, l] = await Promise.all([cargarContenido(), api.get('/design/api/training/progreso').catch(() => ({})), api.get('/design/api/training/modelos').catch(() => []), api.get('/design/api/training/lideres').catch(() => ({}))]);
     S.lideres = l || {}; S.progreso = p || {}; S.modelos = Object.fromEntries((m || []).map((x) => [x.slot, x]));

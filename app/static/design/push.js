@@ -27,7 +27,8 @@
   var pop = document.createElement('div'); pop.className = 'ds-push-pop'; pop.hidden = true; pop.setAttribute('role', 'dialog');
   pop.style.display = 'none';
   caja.appendChild(btn); caja.appendChild(pop);
-  nav.parentNode.insertBefore(caja, nav.nextSibling);
+  var extras = document.getElementById('dsNavExtras');  // junto al modo oscuro, antes de la foto (base.html)
+  if (extras) extras.insertBefore(caja, extras.firstChild); else nav.parentNode.insertBefore(caja, nav.nextSibling);
 
   function b64aBytes(s) {
     var p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/'));
