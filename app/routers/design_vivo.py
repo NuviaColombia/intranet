@@ -17,6 +17,9 @@ VIDA_MAX_S = 30 * 60  # se reabre cada 30 min (el navegador reconecta solo): lim
 
 
 def _puede(email: str) -> bool:
+    from ..auth import correo_bloqueado
+    if correo_bloqueado(email):
+        return False
     db = SessionLocal()
     try:
         u = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()

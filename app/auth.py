@@ -9,6 +9,17 @@ from .models import Empleado
 AUTH_URL = f"{config.ZOHO_ACCOUNTS_URL}/oauth/v2/auth"
 TOKEN_URL = f"{config.ZOHO_ACCOUNTS_URL}/oauth/v2/token"
 USERINFO_URL = f"{config.ZOHO_ACCOUNTS_URL}/oauth/v2/userinfo"
+
+# Correos que no pueden entrar a la intranet aunque estén registrados (pedido por Rosember el 12-oct-2026).
+# Se suman los de la variable de entorno CORREOS_BLOQUEADOS (separados por coma) para bloquear sin cambiar código.
+import os as _os
+CORREOS_BLOQUEADOS = {"yeison.torres@nuvia.app"}
+
+
+def correo_bloqueado(email: str) -> bool:
+    e = (email or "").strip().lower()
+    extra = {x.strip().lower() for x in _os.environ.get("CORREOS_BLOQUEADOS", "").split(",") if x.strip()}
+    return bool(e) and (e in CORREOS_BLOQUEADOS or e in extra)
 SCOPES = "openid email profile"
 REDIRECT_URI = f"{config.BASE_URL}/auth/callback"
 
@@ -57,6 +68,9 @@ async def zoho_get_email(code: str) -> str:
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> Empleado:
     email = request.session.get("user_email")
+    if email and correo_bloqueado(email):   # bloqueado: se cierra su sesión en el siguiente clic
+        request.session.clear()
+        raise HTTPException(status_code=307, headers={"Location": "/login?error=bloqueado"})
     if not email:
         # Recuerda a qué página quería entrar (p. ej. el enlace de un aviso de Cliq) para volver ahí después del login
         if request.method == "GET" and "/api/" not in request.url.path:

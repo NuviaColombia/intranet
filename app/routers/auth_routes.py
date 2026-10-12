@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
-from ..auth import zoho_login_url, zoho_get_email, get_current_user
+from ..auth import zoho_login_url, zoho_get_email, get_current_user, correo_bloqueado
 from ..main_templates import templates
 
 router = APIRouter()
@@ -16,6 +16,7 @@ def login(request: Request):
     mensajes = {
         "no_registrado": "Tu correo de Zoho no está registrado como empleado. Contacta al administrador.",
         "zoho": "Error al autenticar con Zoho. Intenta de nuevo.",
+        "bloqueado": "Tu acceso a la intranet está bloqueado. Contacta al administrador.",
     }
     return templates.TemplateResponse(request, "login.html",
                                       {"error": mensajes.get(error), "user": None})
@@ -34,6 +35,9 @@ async def auth_callback(request: Request, code: str = "", db: Session = Depends(
         email = await zoho_get_email(code)
     except Exception:
         return RedirectResponse("/login?error=zoho")
+    if correo_bloqueado(email):
+        request.session.clear()
+        return RedirectResponse("/login?error=bloqueado")
     user = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()
     if not user:
         return RedirectResponse("/login?error=no_registrado")
