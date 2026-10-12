@@ -6,6 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>{% block titulo %}Nuvia{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css?v=17">
+{% if es_design %}<link rel="manifest" href="/design/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="/static/design/push-icono.png">{% endif %}
 </head>
 <body>
 {% macro pestanas(grupos, clase, href, sec, activa) %}
@@ -253,6 +254,6 @@
   if (sub) { try { new MutationObserver(actualizar).observe(sub, {subtree: true, attributes: true, attributeFilter: ['class']}); } catch (e) {} }
 })();
 </script>
-{% if es_design %}<script src="/static/design/asignaciones.js?v=20261012b" defer></script>{% endif %}
+{% if es_design %}<script src="/static/design/asignaciones.js?v=20261012b" defer></script><script src="/static/design/push.js?v=20261012" defer></script>{% endif %}
 </body>
 </html>

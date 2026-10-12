@@ -528,6 +528,12 @@
       <button type="button" class="btn gris" id="stProbarCliq">Enviar mensaje de prueba</button>
       <span id="stProbarRes" class="aud-sub" style="margin-left:8px"></span>
     </div>
+    <div class="st-caja" style="margin-top:14px" id="pushCaja">
+      <h3>Notificaciones push</h3>
+      <div class="aud-sub" style="margin-bottom:8px">Avisos del sistema (Windows, Mac, Android y iPhone con la intranet en la pantalla de inicio) aunque la intranet esté cerrada.
+        Cada persona las activa con la campana 🔔 junto a "Design Schedule". Por ahora no hay avisos automáticos: se irán agregando.</div>
+      <div id="pushEstado" class="aud-sub">Cargando…</div>
+    </div>
     {% if st.listo %}
     <h3 style="margin:16px 0 4px;font-size:13.5px;color:#1d4ed8">Próximos cambios</h3>
     <table class="st-prox"><thead><tr><th>Fecha</th><th>{{ st.turnos[0].nombre }} ({{ st.turnos[0].horaTxt }})</th><th>{{ st.turnos[1].nombre }} ({{ st.turnos[1].horaTxt }})</th></tr></thead>
@@ -1126,6 +1132,15 @@
     function mostrar(on) { sw.checked = on; cont.hidden = !on; txt.innerText = on ? 'Ocultar' : 'Revisar'; }
     sw.addEventListener('change', function() { mostrar(sw.checked); });
     if (/[?&]st=1/.test(location.search)) { mostrar(true); document.getElementById('stTarjeta').scrollIntoView({block: 'start'}); }
+    (function() {   // Notificaciones push: estado (cuántas personas y navegadores las tienen activas)
+      var el = document.getElementById('pushEstado'); if (!el) return;
+      fetch('/design/api/push/estado', {credentials: 'same-origin'}).then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); }).then(function(d) {
+        var esc = function(t) { return String(t).replace(/[&<>"]/g, function(c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); };
+        el.innerHTML = '<b style="color:#047857">Sistema activo.</b> ' + d.personas + (d.personas === 1 ? ' persona' : ' personas') + ' · ' + d.navegadores + (d.navegadores === 1 ? ' navegador' : ' navegadores') +
+          ' con notificaciones. Claves: ' + esc(d.origenClaves) + '.' +
+          (d.lista.length ? '<div style="margin-top:6px">' + d.lista.map(function(x) { return esc(x.nombre) + ' (' + x.navegadores + ')'; }).join(' · ') + '</div>' : '');
+      }).catch(function() { el.textContent = 'No se pudo consultar el estado.'; });
+    })();
     var pb = document.getElementById('stProbarCliq'), res = document.getElementById('stProbarRes');
     if (pb) pb.addEventListener('click', function() {
       pb.disabled = true; res.style.color = ''; res.textContent = 'Enviando…';

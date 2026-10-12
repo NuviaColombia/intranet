@@ -647,6 +647,22 @@ class DesignTrainingVersion(Base):
     publicado_por: Mapped[str] = mapped_column(String(150), default="")
 
 
+class DesignPushSuscripcion(Base):
+    """Navegador de una persona que aceptó recibir notificaciones push (Web Push). Una persona puede tener varias
+    (computador, celular...). Se borra sola cuando el servicio de push responde que ya no existe."""
+    __tablename__ = "design_push_suscripciones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), index=True)
+    endpoint: Mapped[str] = mapped_column(Text)
+    p256dh: Mapped[str] = mapped_column(String(200), default="")
+    auth: Mapped[str] = mapped_column(String(100), default="")
+    navegador: Mapped[str] = mapped_column(String(200), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ultimo_envio: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    fallos: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class DesignInicioReaccion(Base):
     """Reacción con emoji de una persona a una publicación del muro (una fila por persona y emoji; reaccionar otra vez la quita)."""
     __tablename__ = "design_inicio_reacciones"

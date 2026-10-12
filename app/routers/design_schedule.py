@@ -2538,3 +2538,7 @@ router.include_router(_support_router)
 # ---------- Training (aprendizaje interactivo bilingüe): rutas en routers/design_training.py ----------
 from .design_training import router as _training_router  # noqa: E402
 router.include_router(_training_router)
+
+# ---------- Notificaciones push (Web Push): rutas en routers/design_push.py ----------
+from .design_push import router as _push_router  # noqa: E402
+router.include_router(_push_router)
