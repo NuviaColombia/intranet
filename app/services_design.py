@@ -11,7 +11,7 @@ from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE, FORMATO_
 from .models_design import (DesignFotoPerfil, DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
                             DesignFaq, DesignPreApprovedSheet, DesignPreApprovedCentro,
-                            DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
+                            DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda, DesignPreApprovedFoto,
                             DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado, DesignPerfCelda,
                             DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
                             DesignTrash, DesignFavorito, DesignProtocolo, DesignCanvasDoc,
@@ -1383,9 +1383,11 @@ def preapproved_de_centro(db: Session, area_id: int, centro: str, areas_permitid
         for ce in (db.query(DesignPreApprovedCelda).join(DesignPreApprovedFila, DesignPreApprovedCelda.fila_id == DesignPreApprovedFila.id)
                    .filter(DesignPreApprovedFila.sheet_id == h.id, DesignPreApprovedCelda.doctor_id.in_(ids))):
             valores.setdefault(ce.fila_id, {})[ce.doctor_id] = ce.valor or ""
+        fotos = preapproved_fotos_de(db, h.filas, ids)
         out.append({"sheetId": h.id, "hoja": h.nombre, "titulo": h.titulo, "changesLabel": h.changes_label, "delEquipo": del_equipo(h),
                     "centro": c.nombre, "doctores": [d.nombre for d in grupo],
-                    "filas": [{"criterio": f.criterio, "valores": [valores.get(f.id, {}).get(d, "") for d in ids]} for f in h.filas]})
+                    "filas": [{"criterio": f.criterio, "valores": [valores.get(f.id, {}).get(d, "") for d in ids],
+                               "fotos": [[x["id"] for x in fotos.get(f"{f.id}-{d}", [])] for d in ids]} for f in h.filas]})
     return out
 
 
@@ -2323,7 +2325,64 @@ def preapproved_detalle(db: Session, sheet_id: int) -> dict | None:
         "filas": [{"id": f.id, "criterio": f.criterio,
                   "valores": {str(did): celdas_por_fila.get(f.id, {}).get(did, "") for did in [d.id for d in doctores]}}
                  for f in s.filas],
+        "fotos": preapproved_fotos_de(db, s.filas, [d.id for d in doctores]),
     }
+
+
+# ---------- Fotos en las celdas de Pre-Approved (pedido por Rosember el 12-oct-2026) ----------
+# Cada foto es de un doctor y un criterio (por su nombre, ver DesignPreApprovedFoto). Las agregan y quitan los mismos
+# roles que editan Pre-Approved; se ven en la tabla y en la ventana de Pre-Approved del Schedule.
+PA_FOTO_MAX = 8 * 1024 * 1024
+PA_FOTO_TIPOS = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+
+
+def pa_crit_clave(criterio: str) -> str:
+    """Mismo criterio aunque cambien espacios, mayúsculas o signos (igual que _crit_clave en services_design_origenes)."""
+    return re.sub(r"[^a-z0-9]", "", _normalizar_texto(criterio or ""))
+
+
+def preapproved_fotos_de(db: Session, filas, doctor_ids: list[int]) -> dict:
+    """{"<fila_id>-<doctor_id>": [{"id": foto_id}, ...]} de las celdas de estas filas y doctores."""
+    if not doctor_ids:
+        return {}
+    por_clave: dict[str, list] = {}
+    for f in filas:
+        por_clave.setdefault(pa_crit_clave(f.criterio), []).append(f.id)
+    out: dict[str, list] = {}
+    for x in (db.query(DesignPreApprovedFoto.id, DesignPreApprovedFoto.doctor_id, DesignPreApprovedFoto.criterio_clave)
+              .filter(DesignPreApprovedFoto.doctor_id.in_(doctor_ids))
+              .order_by(DesignPreApprovedFoto.orden, DesignPreApprovedFoto.id)):
+        for fid in por_clave.get(x.criterio_clave, [])[:1]:
+            out.setdefault(f"{fid}-{x.doctor_id}", []).append({"id": x.id})
+    return out
+
+
+def preapproved_agregar_foto(db: Session, fila_id: int, doctor_id: int, nombre: str, tipo: str, datos: bytes,
+                             por: str = "") -> DesignPreApprovedFoto | None:
+    """Agrega la foto a la celda (fila × doctor de la misma hoja). La misma foto en la misma celda no se repite."""
+    import hashlib
+    fila, doc = db.get(DesignPreApprovedFila, fila_id), db.get(DesignPreApprovedDoctor, doctor_id)
+    if not fila or not doc or fila.sheet_id != doc.sheet_id:
+        return None
+    clave, huella = pa_crit_clave(fila.criterio), hashlib.sha1(datos).hexdigest()
+    ya = (db.query(DesignPreApprovedFoto).filter(DesignPreApprovedFoto.doctor_id == doctor_id,
+                                                  DesignPreApprovedFoto.criterio_clave == clave,
+                                                  DesignPreApprovedFoto.huella == huella).first())
+    if ya:
+        return ya
+    orden = (db.query(func.max(DesignPreApprovedFoto.orden)).filter(DesignPreApprovedFoto.doctor_id == doctor_id,
+                                                                     DesignPreApprovedFoto.criterio_clave == clave).scalar() or 0) + 1
+    f = DesignPreApprovedFoto(doctor_id=doctor_id, criterio_clave=clave, nombre=(nombre or "foto")[:255], tipo=tipo,
+                              tamano=len(datos), huella=huella, orden=orden, datos=datos, creado_por=(por or "")[:150])
+    db.add(f)
+    db.flush()
+    return f
+
+
+def preapproved_hoja_de_foto(db: Session, foto_id: int) -> DesignPreApprovedSheet | None:
+    f = db.get(DesignPreApprovedFoto, foto_id)
+    d = db.get(DesignPreApprovedDoctor, f.doctor_id) if f else None
+    return db.get(DesignPreApprovedSheet, d.sheet_id) if d else None
 
 
 def crear_preapproved_sheet(db: Session, area_id: int, nombre: str) -> DesignPreApprovedSheet:
@@ -2473,6 +2532,12 @@ def preapproved_agregar_fila(db: Session, sheet_id: int, criterio: str = "") -> 
 def preapproved_renombrar_fila(db: Session, fila_id: int, criterio: str) -> None:
     f = db.get(DesignPreApprovedFila, fila_id)
     if f:
+        viejo, nuevo = pa_crit_clave(f.criterio), pa_crit_clave(criterio)
+        if viejo != nuevo:  # las fotos de la fila siguen al criterio con su nombre nuevo
+            ids = [d.id for d in db.query(DesignPreApprovedDoctor.id).filter(DesignPreApprovedDoctor.sheet_id == f.sheet_id)]
+            if ids:
+                (db.query(DesignPreApprovedFoto).filter(DesignPreApprovedFoto.doctor_id.in_(ids), DesignPreApprovedFoto.criterio_clave == viejo)
+                 .update({"criterio_clave": nuevo}, synchronize_session=False))
         f.criterio = criterio
         db.commit()
 
@@ -3187,7 +3252,17 @@ def _trash_restaurar_perf_emp(db: Session, payload: dict) -> bool:
     return True
 
 
+def _trash_restaurar_pa_valores(db: Session, payload: dict) -> bool:
+    """Valores de Pre-Approved reemplazados en lote (actualización desde el Excel): vuelven los de antes."""
+    n = 0
+    for c in payload.get("celdas", []):
+        if preapproved_guardar_celda(db, c.get("fila_id") or 0, c.get("doctor_id") or 0, c.get("valor", ""), commit=False):
+            n += 1
+    return n > 0
+
+
 _TRASH_RESTAURADORES = {
+    "pa-valores": _trash_restaurar_pa_valores,
     "perf-emp": _trash_restaurar_perf_emp,
     "pa-sheet": _trash_restaurar_pa_sheet,
     "pa-centro": _trash_restaurar_pa_centro,

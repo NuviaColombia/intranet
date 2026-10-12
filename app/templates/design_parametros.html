@@ -702,6 +702,23 @@
   <div id="syResultado" aria-live="polite"></div>
 </div>
 
+<div class="tarjeta aud-tarjeta" id="pxTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Pre-Approved N3 desde el Excel</h2>
+      <span class="aud-sub" id="pxSub">Pre-Approved changes Design N3 (12 oct 2026)</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Compara Pre-Approved N3 con el Excel 'Pre-Approved changes Design N3 Copy' y muestra qué cambiaría. Openings manda: cada centro se actualiza en la hoja de su Manager N3 (si el centro está repetido en el Excel, vale la versión de la hoja de ese manager y la copia en otra hoja se quita). En cada centro: los valores del Excel reemplazan los de aquí (una celda vacía en el Excel no borra nada), se agregan los doctores nuevos, se quitan los que no están en el Excel, se crean los criterios que falten y se cargan las fotos. No se tocan las hojas de Paula De la Torre, Dariana Ortega y Juliana Molinares. Lo reemplazado o quitado queda en la Papelera de Design.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="pxSwitch" role="switch" aria-controls="pxResultado">
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span id="pxSwitchTxt">Revisar</span>
+    </label>
+  </div>
+  <div id="pxResultado" aria-live="polite"></div>
+</div>
+
 <datalist id="paramPersonas"></datalist>
 {% endif %}
 <script>
@@ -1684,6 +1701,43 @@
     fetch('/design/api/parametros/pa-openings/aplicar', {method: 'POST'}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function(d) { ++syTok; syRender(d); paramToast('Pre-Approved quedó igual que Openings.'); })
       .catch(function(err) { alert('No se pudo aplicar: ' + err.message); b.disabled = false; });
+  });
+  // ---------- Pre-Approved N3 desde el Excel: vista previa por centro y aplicar ----------
+  var pxSw = document.getElementById('pxSwitch'), pxTxt = document.getElementById('pxSwitchTxt'), pxTok = 0;
+  function pxRender(d) {
+    var h = '';
+    if (d.aplicadas !== undefined) h += '<p class="aud-ok">Se aplicaron ' + d.aplicadas + ' cambios. Lo reemplazado o quitado está en la Papelera de Design.</p>';
+    else if (d.aplicado) h += '<p class="sy-estado auto">✓ Ya se aplicó una vez. Aquí ves si queda algo distinto del Excel.</p>';
+    if (d.excluidas && d.excluidas.length) h += '<p style="font-size:13px;color:#4b5563;margin:6px 0">No se tocan: ' + d.excluidas.map(esc).join(', ') + '.</p>';
+    if (!d.centros.length) h += '<p class="aud-ok">✓ Pre-Approved N3 está igual que el Excel.</p>';
+    d.centros.forEach(function(c) {
+      h += syLista(c.centro + ' · hoja ' + c.hoja + (c.excel.indexOf(c.hoja) < 0 ? ' (del Excel: ' + c.excel + ')' : ''), c.acciones, 'imp-pend', false);
+    });
+    h += syLista('Para revisar a mano (no se tocan)', d.pendientes || [], 'aud-cor', false);
+    if (d.total) h += '<div class="aud-cor-acc" style="padding:8px 0 0"><button type="button" class="btn" id="pxAplicar">Aplicar ' + d.total + ' cambios</button></div>';
+    document.getElementById('pxResultado').innerHTML = h;
+    document.getElementById('pxSub').textContent = d.total ? d.total + ' cambios en ' + d.centros.length + ' centros' : 'igual que el Excel';
+  }
+  function pxCargar() {
+    var t = ++pxTok;
+    pxSw.disabled = true; pxTxt.innerText = 'Cargando…';
+    return fetch('/design/api/parametros/pa-excel').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(d) { if (t === pxTok && pxSw.checked) pxRender(d); })
+      .catch(function(e) { if (t === pxTok) document.getElementById('pxResultado').innerHTML = AUD_ROJO('No se pudo cargar: ' + esc(e.message)); })
+      .then(function() { pxSw.disabled = false; pxTxt.innerText = pxSw.checked ? 'Ocultar' : 'Revisar'; });
+  }
+  pxSw.addEventListener('change', function() {
+    if (!pxSw.checked) { ++pxTok; document.getElementById('pxResultado').innerHTML = ''; pxTxt.innerText = 'Revisar'; return; }
+    pxCargar();
+  });
+  document.getElementById('pxResultado').addEventListener('click', function(e) {
+    var b = e.target.closest('#pxAplicar');
+    if (!b) return;
+    if (!confirm('¿Aplicar los cambios del Excel en Pre-Approved N3? Lo reemplazado o quitado queda en la Papelera de Design.')) return;
+    b.disabled = true; b.innerText = 'Aplicando…';
+    fetch('/design/api/parametros/pa-excel/aplicar', {method: 'POST'}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(d) { ++pxTok; pxRender(d); paramToast('Pre-Approved N3 quedó actualizado con el Excel.'); })
+      .catch(function(err) { alert('No se pudo aplicar: ' + err.message); b.disabled = false; b.innerText = 'Aplicar'; });
   });
   // un cambio en Openings que movió algo en Pre-Approved: se avisa y se refresca la revisión si está abierta
   window.paAvisoOpenings = function(lista) {

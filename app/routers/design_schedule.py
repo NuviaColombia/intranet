@@ -5,7 +5,7 @@ import os
 import re
 from datetime import date, datetime
 from typing import Literal
-from fastapi import APIRouter, Request, Depends, Form, HTTPException, Query
+from fastapi import APIRouter, Request, Depends, Form, HTTPException, Query, UploadFile, File
 from ..concurrencia import clase_con_cupo
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
@@ -22,6 +22,7 @@ from .. import services_design_accesos as sacc  # también activa el acceso auto
 from .. import services_design_support as ss
 from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
+from .. import services_design_pa_excel as spx  # Pre-Approved N3 desde el Excel (12-oct-2026)
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
 
@@ -386,6 +387,17 @@ def api_pa_openings_aplicar(user: Empleado = Depends(require_admin), db: Session
     despues = so.pa_sync_openings(db, aplicar=False)
     despues["aplicadas"] = hecho["total"]
     return despues
+
+
+# Pre-Approved N3 desde el Excel "Pre-Approved changes Design N3 Copy" (services_design_pa_excel): vista previa y aplicar.
+@router.get("/design/api/parametros/pa-excel")
+def api_pa_excel(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return spx.vista_previa(db)
+
+
+@router.post("/design/api/parametros/pa-excel/aplicar")
+def api_pa_excel_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return spx.aplicar(db, user.nombre_completo)
 
 
 @router.post("/design/api/openings/filas")
@@ -1903,6 +1915,55 @@ def api_guardar_celda(payload: CeldaIn, user: Empleado = Depends(require_modulo(
     _pa_de(db, user, sd.DesignPreApprovedDoctor, payload.doctorId)
     sd.preapproved_guardar_celda(db, payload.filaId, payload.doctorId, payload.valor)
     return {"mensaje": "Guardado."}
+
+
+# ---------- Fotos en las celdas de Pre-Approved ----------
+
+def _pa_foto_area(db: Session, user: Empleado, foto_id: int):
+    hoja = sd.preapproved_hoja_de_foto(db, foto_id)
+    if not hoja:
+        raise HTTPException(404, "Foto no encontrada.")
+    _pa_area(db, user, hoja.area_id)
+    return hoja
+
+
+@router.get("/design/api/preapproved/fotos/{foto_id}")
+def api_pa_foto(foto_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pa_foto_area(db, user, foto_id)
+    f = db.get(sd.DesignPreApprovedFoto, foto_id)
+    # una foto no cambia nunca (si se reemplaza, es otra con otro id): el navegador la guarda
+    return Response(f.datos, media_type=f.tipo, headers={"Cache-Control": "private, max-age=2592000, immutable",
+                                                         "X-Content-Type-Options": "nosniff"})
+
+
+@router.post("/design/api/preapproved/fotos")
+async def api_pa_subir_foto(filaId: int = Form(...), doctorId: int = Form(...), archivo: UploadFile = File(...),
+                            user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pa_editor(user)
+    _pa_de(db, user, sd.DesignPreApprovedFila, filaId)
+    _pa_de(db, user, sd.DesignPreApprovedDoctor, doctorId)
+    tipo = (archivo.content_type or "").lower()
+    if tipo not in sd.PA_FOTO_TIPOS:
+        raise HTTPException(400, "Solo se pueden subir imágenes (PNG, JPG, WEBP o GIF).")
+    datos = await archivo.read(sd.PA_FOTO_MAX + 1)
+    if len(datos) > sd.PA_FOTO_MAX:
+        raise HTTPException(400, "La foto pesa más de 8 MB.")
+    if not datos:
+        raise HTTPException(400, "El archivo está vacío.")
+    f = sd.preapproved_agregar_foto(db, filaId, doctorId, archivo.filename or "foto", tipo, datos, user.nombre_completo)
+    if not f:
+        raise HTTPException(404, "La celda ya no existe.")
+    db.commit()
+    return {"id": f.id}
+
+
+@router.post("/design/api/preapproved/fotos/{foto_id}/eliminar")
+def api_pa_eliminar_foto(foto_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pa_editor(user)
+    _pa_foto_area(db, user, foto_id)
+    db.delete(db.get(sd.DesignPreApprovedFoto, foto_id))
+    db.commit()
+    return {"mensaje": "Eliminada."}
 
 
 class AnchoIn(BaseModel):

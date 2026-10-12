@@ -17,13 +17,14 @@ from datetime import date
 from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 from .models_design import (DesignOrden, DesignBreak, DesignPreApprovedSheet, DesignPreApprovedCentro, DesignPreApprovedDoctor,
-                            DesignPreApprovedFila, DesignPreApprovedCelda, DesignInicioPagina, DesignInicioMuro, DesignInicioReaccion)
+                            DesignPreApprovedFila, DesignPreApprovedCelda, DesignPreApprovedFoto, DesignInicioPagina, DesignInicioMuro, DesignInicioReaccion)
 
 log = logging.getLogger(__name__)
 _subs: set = set()          # {(loop, cola)}
 _lock = threading.Lock()
 MAX_COLA = 300              # una pestaña que no lee (colgada) no acumula memoria: los avisos de más se descartan
-PRE_APPROVED = (DesignPreApprovedSheet, DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda)
+PRE_APPROVED = (DesignPreApprovedSheet, DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila, DesignPreApprovedCelda,
+                DesignPreApprovedFoto)
 
 
 def suscribir() -> asyncio.Queue:

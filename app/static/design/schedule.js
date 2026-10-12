@@ -704,8 +704,11 @@ window.addEventListener('unhandledrejection', function(ev) {
       '<tr class="pa-r-doctores"><th class="pa-fija">' + esc(hj.changesLabel || 'Changes') + '</th>' + idx.map(function(i) { return '<th>' + esc(hj.doctores[i]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       hj.filas.map(function(fl) {
         return '<tr><th class="pa-fija">' + esc(fl.criterio) + '</th>' + idx.map(function(i) {
-          var v = fl.valores[i];
-          return '<td' + (/^\s*always ask\.?\s*$/i.test(v || '') ? ' class="pa-ask"' : '') + '>' + esc(v || '') + '</td>';
+          var v = fl.valores[i], fotos = (fl.fotos || [])[i] || [];
+          return '<td' + (/^\s*always ask\.?\s*$/i.test(v || '') ? ' class="pa-ask"' : '') + '>' + esc(v || '') +
+                 (fotos.length ? '<div class="pa-fotos">' + fotos.map(function(id) {
+                   return '<span class="pa-foto"><img src="/design/api/preapproved/fotos/' + id + '" alt="Foto" loading="lazy" title="Ver la foto" onclick="paVerFoto(this.src)"></span>';
+                 }).join('') + '</div>' : '') + '</td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table>';
   }
@@ -4058,6 +4061,59 @@ window.DS_PANELS.dashboard = function() {
     return x;
   }
 
+  // ---------- Fotos en las celdas (pedido por Rosember el 12-oct-2026) ----------
+  // Miniaturas debajo del texto; clic = verla grande. Quien edita Pre-Approved agrega con 📷 (o pegando una imagen con
+  // Ctrl+V en la celda) y quita con ✕.
+  function paFotosCelda(td, fotos, filaId, docId) {
+    if (!fotos.length && !PA.edita) return;
+    var cont = document.createElement('div'); cont.className = 'pa-fotos';
+    fotos.forEach(function(f) {
+      var b = document.createElement('span'); b.className = 'pa-foto';
+      var img = document.createElement('img'); img.src = '/design/api/preapproved/fotos/' + f.id; img.alt = 'Foto'; img.loading = 'lazy';
+      img.title = 'Ver la foto'; img.onclick = function(e) { e.stopPropagation(); window.paVerFoto(img.src); };
+      b.appendChild(img);
+      if (PA.edita) b.appendChild(paBotonX('Quitar la foto', function() {
+        if (!confirm('¿Quitar esta foto de la celda? No se puede recuperar.')) return;
+        paPost('/design/api/preapproved/fotos/' + f.id + '/eliminar').then(cargarDetalle).catch(paError);
+      }));
+      cont.appendChild(b);
+    });
+    if (PA.edita) {
+      var lab = document.createElement('label'); lab.className = 'pa-foto-add'; lab.title = 'Agregar foto (también puedes pegarla con Ctrl+V en la celda)';
+      lab.textContent = '📷';
+      var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/gif'; inp.multiple = true; inp.hidden = true;
+      inp.onchange = function() { paSubirFotos(inp.files, filaId, docId); inp.value = ''; };
+      lab.appendChild(inp); cont.appendChild(lab);
+      td.addEventListener('paste', function(e) {
+        var archivos = Array.prototype.filter.call((e.clipboardData || {}).files || [], function(f) { return /^image\//.test(f.type); });
+        if (!archivos.length) return;
+        e.preventDefault(); paSubirFotos(archivos, filaId, docId);
+      });
+    }
+    td.appendChild(cont);
+  }
+  function paSubirFotos(archivos, filaId, docId) {
+    var lista = Array.prototype.slice.call(archivos || []);
+    if (!lista.length) return;
+    PA.enVuelo = (PA.enVuelo || 0) + 1;
+    Promise.all(lista.map(function(a) {
+      var fd = new FormData(); fd.append('filaId', filaId); fd.append('doctorId', docId); fd.append('archivo', a, a.name || 'foto.png');
+      return fetch('/design/api/preapproved/fotos', {method: 'POST', body: fd})
+        .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo subir la foto.'); return d; }); });
+    })).then(function() { PA.enVuelo--; cargarDetalle(); }, function(e) { PA.enVuelo--; paError(e); });
+  }
+  // Foto en grande (también la usa la ventana de Pre-Approved del Schedule)
+  window.paVerFoto = function(src) {
+    var bg = document.createElement('div'); bg.className = 'pa-foto-bg'; bg.setAttribute('role', 'dialog'); bg.setAttribute('aria-label', 'Foto');
+    var img = document.createElement('img'); img.src = src; img.alt = 'Foto';
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'pa-foto-cerrar'; x.textContent = '✕'; x.setAttribute('aria-label', 'Cerrar');
+    bg.appendChild(img); bg.appendChild(x); document.body.appendChild(bg); x.focus();
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', tecla, true); };
+    var tecla = function(e) { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } };
+    document.addEventListener('keydown', tecla, true);
+    bg.addEventListener('click', function(e) { if (e.target !== img) cerrar(); });
+  };
+
   var PA_ANCHO_CRIT = 170, PA_ANCHO_DOC = 230;
   function renderTabla(d) {
     var tabla = document.getElementById('paTabla'); tabla.innerHTML = '';
@@ -4161,6 +4217,7 @@ window.DS_PANELS.dashboard = function() {
           paPost('/design/api/preapproved/celdas', {filaId: fila.id, doctorId: doc.id, valor: v})
             .then(function() { fila.valores[String(doc.id)] = v; }).catch(paError);
         });
+        paFotosCelda(td, (d.fotos || {})[fila.id + '-' + doc.id] || [], fila.id, doc.id);
         tr.appendChild(td);
       });
       tbody.appendChild(tr);

@@ -297,6 +297,24 @@ class DesignPreApprovedCelda(Base):
     doctor = relationship("DesignPreApprovedDoctor")
 
 
+class DesignPreApprovedFoto(Base):
+    """Foto en una celda de Pre-Approved (doctor × criterio). Va por el NOMBRE del criterio (criterio_clave) y no por la
+    fila: así sigue al doctor cuando cambia de hoja (Openings / Cambios), igual que sus valores."""
+    __tablename__ = "design_preapproved_fotos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    doctor_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_doctores.id"), index=True)
+    criterio_clave: Mapped[str] = mapped_column(String(150), default="")
+    nombre: Mapped[str] = mapped_column(String(255), default="")
+    tipo: Mapped[str] = mapped_column(String(50), default="image/png")
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    huella: Mapped[str] = mapped_column(String(40), default="")  # sha1: la misma foto no se repite en una celda
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 # ---------------------------------------------------------------------------
 # Papelera: registro de borrados en paneles estructurales (Pre-Approved, y lo
 # que se sume después: Protocols, Canvas), con snapshot suficiente para
