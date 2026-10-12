@@ -269,6 +269,7 @@ def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = 
 def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     ordenar_estados_n3_n6_una_vez(db)
     productos_n6_igual_n3_una_vez(db)
+    productos_n6_primeros_una_vez(db)
     vals = [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
@@ -286,10 +287,60 @@ def _orden_productos_n6(db: Session, area_id: int, tipo: str, vals: list[str]) -
     a = db.get(DesignArea, area_id)
     if not a or a.nombre != AREA_N6:
         return vals
-    return sorted(vals, key=lambda v: not _normalizar_texto(v).startswith("n6"))  # estable: conserva el orden dentro de cada grupo
+    primeros = {_normalizar_texto(x) for x in PRODUCTOS_N6_PRIMEROS}
+    return sorted(vals, key=lambda v: not (_normalizar_texto(v).startswith("n6") or _normalizar_texto(v) in primeros))  # estable: conserva el orden dentro de cada grupo
 
 
 _productos_n6 = {"ok": False}
+
+# Productos de N6 que van de primeros en la lista, en este orden (pedido por Rosember el 12-oct-2026). "Screw Retained -
+# Dummy" no empieza por "N6" pero va con ellos. Se agregan una sola vez (productos_n6_primeros_una_vez); después se
+# administran en Parámetros como cualquier producto.
+PRODUCTOS_N6_PRIMEROS = [
+    "N6 - Material Change Full Mouth 24Z", "N6 - Material Change Single 24Z",
+    "N6 - Redo Material Change Full Mouth 24Z", "N6 - Redo Material Change Single 24Z",
+    "N6 - Single G-CAM Ti Bar Remake", "N6 - Dummy Set", "N6 - Aesthetic Dummy",
+    "N6 - Full Mouth Zirk - Over Ti-Bar (8mm or less)",
+    "N6 - Full Mouth G-CAM Remake", "Screw Retained - Dummy", "N6 - Single G-CAM Remake",
+]
+_productos_n6_primeros = {"ok": False}
+
+
+def productos_n6_primeros_una_vez(db: Session) -> None:
+    """Una sola vez (12-oct-2026): agrega a N6 los productos de PRODUCTOS_N6_PRIMEROS (o los reactiva si existían)
+    y los deja de primeros en la lista, en ese orden; los demás quedan después en su orden de antes. Lo agregado queda
+    anotado en design_conexion_reglas (tipo sistema, clave productos_n6_primeros_2026_10_12)."""
+    from .models_design import DesignConexionRegla
+    if _productos_n6_primeros["ok"]:
+        return
+    marca = "productos_n6_primeros_2026_10_12"
+    try:
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            _productos_n6_primeros["ok"] = True
+            return
+        n6 = db.query(DesignArea).filter(DesignArea.nombre == AREA_N6).first()
+        if not n6:
+            return
+        existentes = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == n6.id, DesignCatalogo.tipo == "producto")
+                      .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+        por_nombre = {_normalizar_texto(c.valor): c for c in existentes}
+        agregados, reactivados, primeros = [], [], []
+        for nombre in PRODUCTOS_N6_PRIMEROS:
+            c = por_nombre.get(_normalizar_texto(nombre))
+            if not c:
+                c = DesignCatalogo(area_id=n6.id, tipo="producto", valor=nombre, activo=1)
+                db.add(c); agregados.append(nombre)
+            elif not c.activo:
+                c.activo = 1; reactivados.append(nombre)
+            primeros.append(c)
+        for i, c in enumerate(primeros + [c for c in existentes if c not in primeros], start=1):
+            c.orden = i
+        db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema",
+                                   valor=json.dumps({"agregados": agregados, "reactivados": reactivados}, ensure_ascii=False)))
+        db.commit()
+        _productos_n6_primeros["ok"] = True
+    except Exception:
+        db.rollback()
 
 
 def productos_n6_igual_n3_una_vez(db: Session) -> None:
@@ -378,6 +429,7 @@ def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
 def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     ordenar_estados_n3_n6_una_vez(db)
     productos_n6_igual_n3_una_vez(db)
+    productos_n6_primeros_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
