@@ -754,14 +754,15 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // ---------- Tabla de órdenes ----------
   // Siempre hay una fila vacía lista para llenar ("fila nueva"): existe solo en pantalla y se guarda en la BD
-  // al escribir el primer dato. Cuando ya no quedan filas incompletas se agrega otra fila nueva.
+  // al escribir el primer dato; en ese momento aparece otra fila nueva debajo (pedido por Rosember el 12-oct-2026).
+  // Antes la fila nueva solo aparecía si TODAS las órdenes del día estaban completas, y cualquier fila que nunca se
+  // completa (Meeting/Practice en N2, canceladas, casos que pasan de otro día, una fila a medias) la bloqueaba.
   // Una orden "completa" (centro + producto + diseñador) es la única que cuentan los contadores;
   // mismo criterio que filtro_orden_completa() en services_design.py.
   function dsOrdenCompleta(f) { return !!(f.centro && f.producto && (f.designerId || f.designerPrestado)); }
-  // Los casos que pasan solos de un día anterior (Hold, Html, Ready to design; ver trasladar_holds) pueden llegar sin
-  // diseñador: aunque estén incompletos no frenan la fila nueva, así el lunes hay una orden en blanco para las de hoy.
-  var DS_ESTADOS_TRASLADO = ['hold', 'html', 'ready to design'];
-  function dsFrenaFilaNueva(f) { return !dsOrdenCompleta(f) && DS_ESTADOS_TRASLADO.indexOf(String(f.estado || '').trim().toLowerCase()) < 0; }
+  // ¿La fila está totalmente en blanco? (p. ej. las que crea "+ Agregar orden"): entonces ya hay dónde escribir.
+  var DS_CAMPOS_DATO = ['orden', 'paciente', 'centro', 'producto', 'designerId', 'designerPrestado', 'estado'];
+  function dsFrenaFilaNueva(f) { return !DS_CAMPOS_DATO.some(function(k) { return f[k] && String(f[k]).trim(); }); }
 
   var DS_SORTABLES = {centro: true, producto: true, designerId: true, estado: true};
   DS.sort = {principal: null, nightguard: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
