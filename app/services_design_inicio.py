@@ -421,7 +421,8 @@ def salir_editor(user: Empleado) -> None:
 # Solo lee del Schedule (design_ordenes y design_teams); no escribe nada.
 # Cuenta: estado "Approved" en el mes en curso, Cirugías y Nightguards, orden completa (centro, producto y diseñador).
 # No cuenta: canceladas (no son Approved) ni productos de cambios (el nombre dice "Change", ej. "Full Mouth Changes").
-RANKING_AREAS = [("N2 Demodenture", "N2", 3), ("N3 Prosthetic", "N3", 3), ("Face Design", "Face Design", 1), ("N6 Material Changes", "N6", 1)]
+# Face Design pasó a podio de 3 cuando tuvo dos equipos (Juliana y Nicole; pedido por Rosember el 12-oct-2026).
+RANKING_AREAS = [("N2 Demodenture", "N2", 3), ("N3 Prosthetic", "N3", 3), ("Face Design", "Face Design", 3), ("N6 Material Changes", "N6", 1)]
 _MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 _ranking_cache: dict = {}
 
@@ -458,7 +459,7 @@ def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False
         if area:
             for t in db.query(DesignTeam).filter(DesignTeam.area_id == area.id).all():
                 n = cuenta.get(t.id, 0)
-                if n:
+                if n or (t.activo and puestos > 1):   # en el podio también salen los equipos activos que van en 0
                     equipos.append({"equipo": t.nombre, "manager": _nombre_corto(t.manager), "managerId": t.manager_id,
                                     "foto": f"/design/api/foto/{t.manager_id}" if t.manager_id else "", "casos": n})
         equipos.sort(key=lambda x: (-x["casos"], x["equipo"]))
