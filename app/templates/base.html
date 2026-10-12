@@ -280,6 +280,6 @@
   if (sub) { try { new MutationObserver(actualizar).observe(sub, {subtree: true, attributes: true, attributeFilter: ['class']}); } catch (e) {} }
 })();
 </script>
-{% if es_design %}<script src="/static/design/vivo.js?v=20261012" defer></script><script src="/static/design/asignaciones.js?v=20261012c" defer></script><script src="/static/design/push.js?v=20261012" defer></script>{% endif %}
+{% if es_design %}<script src="/static/design/vivo.js?v={{ ds_estaticos_v }}" defer></script><script src="/static/design/asignaciones.js?v={{ ds_estaticos_v }}" defer></script><script src="/static/design/push.js?v={{ ds_estaticos_v }}" defer></script>{% endif %}
 </body>
 </html>
