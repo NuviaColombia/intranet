@@ -8,7 +8,9 @@
   if (!panel) return;
   var lista = document.getElementById('sgLista'), resumen = document.getElementById('sgResumen'), hora = document.getElementById('sgHora');
   var selArea = document.getElementById('sgArea'), buscar = document.getElementById('sgBuscar');
-  var datos = null, timer = null, filtroGrupo = '', vista = 'disenadores', filtroSem = '';
+  var datos = null, timer = null, filtroGrupo = '', vista = 'disenadores', filtroSem = '', modo = 'tablero';
+  try { modo = localStorage.getItem('sgModo') === 'lista' ? 'lista' : 'tablero'; } catch (e) {}
+  var tablero = document.getElementById('sgTablero'), listaW = document.getElementById('sgListaW');
   var finInput = document.getElementById('sgFin');
   try { var finGuardado = localStorage.getItem('sgFinJornada'); if (finGuardado) finInput.value = finGuardado; } catch (e) {}
   var SEMAFORO = {
@@ -72,6 +74,9 @@
       }).join('');
     resumen.querySelectorAll('[data-g]').forEach(function(b) { b.onclick = function() { filtroGrupo = b.dataset.g; pintar(); }; });
     if (filtroGrupo) filas = filas.filter(function(x) { return x.grupo === filtroGrupo; });
+    tablero.hidden = modo !== 'tablero'; listaW.hidden = modo !== 'lista';
+    panel.querySelectorAll('#sgModoW [data-modo]').forEach(function(b) { b.classList.toggle('on', b.dataset.modo === modo); });
+    if (modo === 'tablero') { pintarTablero(filas); return; }
     if (!filas.length) { lista.innerHTML = '<tr><td colspan="5" class="sg-vacio">No hay diseñadores con este filtro.</td></tr>'; return; }
     var previo = '';
     lista.innerHTML = filas.map(function(x) {
@@ -90,6 +95,30 @@
     });
   }
 
+  function avatar(x) { return '<span class="sg-av" data-id="' + x.id + '">' + esc(iniciales(x.nombre)) + '</span>'; }
+  function fotos(raiz) {
+    raiz.querySelectorAll('.sg-av[data-id]').forEach(function(av) {
+      var im = new Image(); im.alt = ''; im.onload = function() { av.textContent = ''; av.appendChild(im); }; im.src = '/design/api/foto/' + av.dataset.id;
+    });
+  }
+  // Tablero: una columna por estado (libres a la izquierda, ocupados y ausentes a la derecha), una tarjeta por diseñador
+  function pintarTablero(filas) {
+    var grupos = filtroGrupo ? [filtroGrupo] : Object.keys(GRUPOS);
+    tablero.style.setProperty('--sg-cols', grupos.length);
+    tablero.innerHTML = grupos.map(function(g) {
+      var de = filas.filter(function(x) { return x.grupo === g; });
+      return '<section class="sg-col sg-' + g + '"><header><span>' + GRUPOS[g].ico + ' ' + GRUPOS[g].rot + '</span><b>' + de.length + '</b></header>' +
+        '<p class="sg-col-desc">' + esc(GRUPOS[g].desc) + '</p>' +
+        (de.length ? de.map(function(x) {
+          return '<article class="sg-card sg-' + x.grupo + '">' +
+            '<div class="sg-card-cab">' + avatar(x) + '<div><b>' + esc(x.nombre) + '</b><div class="sg-sub">' + esc(x.equipos.join(', ')) + ' · ' + esc(x.areas.join(', ')) + '</div></div>' +
+            '<span class="sg-hechos" title="Casos terminados hoy">✔ ' + (x.terminadosHoy || 0) + '</span></div>' +
+            '<div class="sg-card-que">' + queHace(x) + '</div></article>';
+        }).join('') : '<div class="sg-col-vacia">Nadie</div>') + '</section>';
+    }).join('');
+    fotos(tablero);
+  }
+
   function horas(min) { min = Math.round(min || 0); var hh = Math.floor(min / 60), mm = min % 60; return hh ? hh + ' h' + (mm ? ' ' + mm + ' min' : '') : mm + ' min'; }
   function pintarEquipos() {
     var cont = document.getElementById('sgEquipos'), res = document.getElementById('sgResumenEq');
@@ -100,25 +129,28 @@
       ['no', 'justo', 'si', 'listo', 'sin_casos'].map(function(k) { return '<button type="button" class="sg-chip sg-sem-' + k + (filtroSem === k ? ' on' : '') + '" data-s="' + k + '" title="' + esc(SEMAFORO[k].desc) + '">' + SEMAFORO[k].ico + ' ' + SEMAFORO[k].rot + ' <b>' + (cuenta[k] || 0) + '</b></button>'; }).join('');
     res.querySelectorAll('[data-s]').forEach(function(b) { b.onclick = function() { filtroSem = b.dataset.s; pintarEquipos(); }; });
     if (filtroSem) filas = filas.filter(function(e) { return e.semaforo === filtroSem; });
-    if (!filas.length) { cont.innerHTML = '<tr><td colspan="6" class="sg-vacio">No hay equipos con este filtro.</td></tr>'; return; }
+    if (!filas.length) { cont.innerHTML = '<div class="sg-vacio">No hay equipos con este filtro.</div>'; return; }
     var ordenSem = {no: 0, justo: 1, si: 2, listo: 3, sin_casos: 4};
     filas = filas.slice().sort(function(a, b) { return ordenSem[a.semaforo] - ordenSem[b.semaforo] || a.area.localeCompare(b.area) || a.equipo.localeCompare(b.equipo); });
     cont.innerHTML = filas.map(function(e) {
       var pct = e.total ? Math.round(e.hechos * 100 / e.total) : 0, S = SEMAFORO[e.semaforo];
+      var n = e.enTurno.length + e.prestados.length + e.deOtrosEquipos;
       var progr = e.cirugias + (e.cirugias === 1 ? ' cirugía' : ' cirugías') + (e.nightguards ? ' · ' + e.nightguards + ' nightguard' + (e.nightguards === 1 ? '' : 's') : '');
       var gente = e.enTurno.map(function(p) { return '<span class="sg-p sg-' + p.grupo + '" title="' + esc(GRUPOS[p.grupo] ? GRUPOS[p.grupo].rot : '') + '"><i></i>' + esc(p.nombre.split(' ').slice(0, 2).join(' ')) + '</span>'; }).join('') +
-        e.prestados.map(function(n) { return '<span class="sg-p sg-prest" title="Prestado de otro equipo"><i></i>' + esc(n) + ' (prestado)</span>'; }).join('') +
+        e.prestados.map(function(nm) { return '<span class="sg-p sg-prest" title="Prestado de otro equipo"><i></i>' + esc(nm) + ' (prestado)</span>'; }).join('') +
         (e.deOtrosEquipos ? '<span class="sg-p sg-prest"><i></i>+' + e.deOtrosEquipos + ' de otros equipos</span>' : '');
       var detalle = e.semaforo === 'si' || e.semaforo === 'justo' || e.semaforo === 'no'
-        ? '<div class="sg-sub">Faltan ≈ ' + horas(e.pendienteMin) + ' de trabajo · quedan ' + horas(e.capacidadMin) + ' (' + (e.enTurno.length + e.prestados.length + e.deOtrosEquipos) + ' diseñador' + ((e.enTurno.length + e.prestados.length + e.deOtrosEquipos) === 1 ? '' : 'es') + ' × ' + horas(e.restanteMin) + ')</div>' : '';
-      return '<tr class="sg-eq-fila sg-sem-' + e.semaforo + '">' +
-        '<td><b>' + esc(e.equipo) + '</b><div class="sg-sub">' + esc(e.area) + (e.manager ? ' · ' + esc(e.manager) : '') + '</div></td>' +
-        '<td><b>' + progr + '</b><div class="sg-sub">' + e.total + ' en total</div></td>' +
-        '<td><div class="sg-barra" title="' + pct + '% terminado"><i style="width:' + pct + '%"></i></div><div class="sg-sub">✔ ' + e.hechos + ' terminados · ▶ ' + e.enProceso + ' en proceso · ⏳ ' + e.porHacer + ' por hacer' +
-          (e.sinDisenador ? ' · <span class="sg-alerta">' + e.sinDisenador + ' sin diseñador</span>' : '') + '</div></td>' +
-        '<td><div class="sg-gente">' + (gente || '<span class="sg-alerta">Nadie en turno</span>') + '</div>' + (e.ausentes.length ? '<div class="sg-sub">Ausentes: ' + esc(e.ausentes.join(', ')) + '</div>' : '') + '</td>' +
-        '<td>' + (e.casosPorDisenador != null ? '<b>' + e.casosPorDisenador + '</b><div class="sg-sub">casos por diseñador</div>' : '—') + '</td>' +
-        '<td><span class="sg-semaforo sg-sem-' + e.semaforo + '" title="' + esc(S.desc) + '">' + S.ico + ' ' + S.rot + '</span>' + detalle + '</td></tr>';
+        ? 'Faltan ≈ <b>' + horas(e.pendienteMin) + '</b> de trabajo · quedan <b>' + horas(e.capacidadMin) + '</b> (' + n + ' diseñador' + (n === 1 ? '' : 'es') + ' × ' + horas(e.restanteMin) + ')' : esc(S.desc);
+      return '<article class="sg-eq-card sg-sem-' + e.semaforo + '">' +
+        '<header><div><h3>' + esc(e.equipo) + '</h3><div class="sg-sub">' + esc(e.area) + (e.manager ? ' · ' + esc(e.manager) : '') + '</div></div>' +
+          '<span class="sg-semaforo sg-sem-' + e.semaforo + '" title="' + esc(S.desc) + '">' + S.ico + ' ' + S.rot + '</span></header>' +
+        '<div class="sg-eq-det">' + detalle + '</div>' +
+        '<div class="sg-eq-nums"><div><b>' + e.total + '</b><span>' + progr + '</span></div><div><b>' + e.hechos + '</b><span>terminados</span></div><div><b>' + e.enProceso + '</b><span>en proceso</span></div>' +
+          '<div><b>' + e.porHacer + '</b><span>por hacer</span></div><div' + (e.sinDisenador ? ' class="sg-alerta"' : '') + '><b>' + e.sinDisenador + '</b><span>sin diseñador</span></div>' +
+          '<div><b>' + (e.casosPorDisenador != null ? e.casosPorDisenador : '—') + '</b><span>casos por diseñador</span></div></div>' +
+        '<div class="sg-barra" title="' + pct + '% terminado"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="sg-eq-gente"><span class="sg-sub">En turno (' + n + '):</span> ' + (gente || '<span class="sg-alerta">Nadie en turno</span>') + '</div>' +
+        (e.ausentes.length ? '<div class="sg-sub">Ausentes: ' + esc(e.ausentes.join(', ')) + '</div>' : '') + '</article>';
     }).join('');
   }
 
@@ -128,6 +160,7 @@
     document.getElementById('sgVistaDis').hidden = v !== 'disenadores';
     document.getElementById('sgVistaEq').hidden = v !== 'equipos';
     document.getElementById('sgFinW').hidden = v !== 'equipos';
+    document.getElementById('sgModoW').hidden = v !== 'disenadores';
     buscar.placeholder = v === 'equipos' ? 'Buscar equipo, manager o diseñador…' : 'Buscar diseñador o equipo…';
     if (datos) { if (v === 'equipos') pintarEquipos(); else pintar(); }
   }
@@ -149,6 +182,7 @@
       .then(function() { timer = setTimeout(cargar, 20000); });
   }
   var repintar = function() { if (!datos) return; if (vista === 'equipos') pintarEquipos(); else pintar(); };
+  panel.querySelectorAll('#sgModoW [data-modo]').forEach(function(b) { b.addEventListener('click', function() { modo = b.dataset.modo; try { localStorage.setItem('sgModo', modo); } catch (e) {} repintar(); }); });
   selArea.addEventListener('change', repintar);
   buscar.addEventListener('input', repintar);
   document.getElementById('sgRefrescar').addEventListener('click', cargar);
