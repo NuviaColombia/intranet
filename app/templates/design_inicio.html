@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{# La página de Inicio (novedades) se ve siempre en modo claro (pedido por Rosember el 12-oct-2026) #}
+{% set sin_modo_oscuro = true %}
 {% block titulo %}Design{% endblock %}
 {% block contenido %}
 {% include "_design_simulacion.html" %}

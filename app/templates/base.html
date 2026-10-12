@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"{% if es_design %} data-ds-tema="{{ tema_design(user) }}"{% endif %}>
+<html lang="es"{% if es_design %} data-ds-tema="{{ 'claro' if sin_modo_oscuro else tema_design(user) }}"{% if sin_modo_oscuro %} data-ds-solo-claro{% endif %}{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -179,7 +179,8 @@
     var chk = document.getElementById('dsTemaChk');
     window.dsTema = function(t) {
       t = t === 'oscuro' ? 'oscuro' : 'claro';
-      document.documentElement.setAttribute('data-ds-tema', t);
+      // Inicio (novedades) y Nuvia Office se ven siempre en claro: ahí solo se guarda la preferencia
+      if (!document.documentElement.hasAttribute('data-ds-solo-claro')) document.documentElement.setAttribute('data-ds-tema', t);
       if (chk) chk.checked = t === 'oscuro';
       fetch('/design/api/preferencias/tema', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
                                               body: JSON.stringify({tema: t})}).catch(function() {});
