@@ -1315,6 +1315,14 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // Vista del diseñador: solo edita horas, estado, notas y (N3/N6) esferas y crítico; el resto de la orden es del manager.
   var DS_CAMPOS_MANAGER = ['orden', 'paciente', 'centro', 'producto', 'designerId'];
+  // En N3 y N6 el diseñador sí edita orden, paciente y producto (pedido por Rosember el 12-oct-2026); centro y diseñador
+  // siguen siendo del manager. Igual que AREAS_DISENADOR_EDITA en routers/design_schedule.py.
+  var DS_AREAS_DISENADOR_EDITA = ['N3 Prosthetic', 'N6 Material Changes'];
+  var DS_CAMPOS_DISENADOR_EDITA = ['orden', 'paciente', 'producto'];
+  function dsCamposManager(area) {
+    if (DS_AREAS_DISENADOR_EDITA.indexOf(area) < 0) return DS_CAMPOS_MANAGER;
+    return DS_CAMPOS_MANAGER.filter(function(k) { return DS_CAMPOS_DISENADOR_EDITA.indexOf(k) < 0; });
+  }
   // Las horas las llena el estado (Initiated, Hold, Approved): el diseñador no las escribe a mano. Solo donde el estado ya
   // las llena (mismas fechas que horas_por_estado en services_design.py); antes de esas fechas siguen editables.
   var DS_HORAS_CAMPOS = ['horaInicio', 'horaInicioDiseno', 'horaFin', 'sHold', 'fHold', 'holdMinutos'];
@@ -1332,9 +1340,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       el.title = 'La hora se registra sola con el estado (Initiated, Hold, Approved)';
     });
   }
-  function dsBloquearCamposManager(cont) {
+  function dsBloquearCamposManager(cont, area) {
+    var campos = dsCamposManager(area || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre);
     cont.querySelectorAll('[data-campo]').forEach(function(el) {
-      if (DS_CAMPOS_MANAGER.indexOf(el.dataset.campo) < 0) return;
+      if (campos.indexOf(el.dataset.campo) < 0) return;
       el.disabled = true;
       el.title = el.dataset.campo === 'designerId' ? 'Solo el manager puede reasignar la orden' : 'Solo el manager puede editar este dato';
     });
@@ -1368,7 +1377,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     cont.querySelectorAll('[data-campo]').forEach(function(el) {
       if (dsDiaCerrado()) el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable);
     });
-    dsBloquearCamposManager(cont);
+    grupos.forEach(function(g) {   // órdenes prestadas: cada tabla con la regla del área de su equipo
+      var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]');
+      if (tb) dsBloquearCamposManager(tb, g.area);
+    });
     grupos.forEach(function(g) {
       var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]'), fch = String((g.filas[0] || {}).fecha || '').slice(0, 10) || dsFechaISO(dsFechaSeleccionada());
       if (tb) dsBloquearHoras(tb, g.formato, g.tabla, fch);
