@@ -9,7 +9,7 @@
   var CLAVE = 'dsAsigVistos';   // casos que ya se avisaron (por pestaña), para no repetir el aviso
 
   var css = document.createElement('style');
-  css.textContent = '.ds-asig-badge{margin-left:2px;vertical-align:1px}.ds-asig-badge.pulso{animation:dsAsigPulso 1.2s ease-out 2}' +
+  css.textContent = '.ds-asig-badge{margin-left:6px;vertical-align:1px}.ds-asig-badge.pulso{animation:dsAsigPulso 1.2s ease-out 2}' +
     '@keyframes dsAsigPulso{0%{box-shadow:0 0 0 0 rgba(220,38,38,.7)}100%{box-shadow:0 0 0 10px rgba(220,38,38,0)}}' +
     '.ds-asig-aviso{position:fixed;right:18px;bottom:18px;z-index:10050;display:flex;align-items:center;gap:10px;max-width:min(460px,calc(100vw - 36px));' +
     'padding:12px 14px;border-radius:14px;background:#1b2140;color:#fff;font-size:14px;box-shadow:0 14px 34px -10px rgba(0,0,0,.55);animation:dsAsigEntra .25s ease-out;transition:opacity .5s,transform .5s}' +
@@ -20,8 +20,7 @@
 
   var badge = document.createElement('span');
   badge.className = 'badge-alertas ds-asig-badge';
-  badge.hidden = true;
-  enlace.appendChild(document.createTextNode(' '));
+  badge.style.display = 'none';   // (la clase badge-alertas fuerza display:inline-block; el atributo hidden no basta)
   enlace.appendChild(badge);
 
   // ¿Está viendo el Schedule? (página /design sin ningún panel encima: Comments, Pre-Approved, Canvas…)
@@ -31,8 +30,9 @@
 
   function pintar() {
     var n = datos ? datos.total : 0;
-    badge.hidden = !n || viendoSchedule();
-    if (badge.hidden) return;
+    var oculto = !n || viendoSchedule();
+    badge.style.display = oculto ? 'none' : '';
+    if (oculto) { enlace.removeAttribute('title'); enlace.removeAttribute('aria-label'); return; }
     badge.textContent = n > 99 ? '99+' : String(n);
     var partes = [];
     if (datos.ready) partes.push(datos.ready + ' en Ready to design');
