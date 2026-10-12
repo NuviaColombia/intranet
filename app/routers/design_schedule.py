@@ -18,6 +18,7 @@ from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignC
 from ..auth import get_current_user
 from ..main_templates import templates
 from .. import services_design as sd
+from .. import services_design_accesos as sacc  # también activa el acceso automático de los equipos
 from .. import services_design_support as ss
 from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
@@ -213,6 +214,7 @@ def api_rol_design(payload: RolDesignIn, user: Empleado = Depends(require_admin)
 @router.get("/design")
 def pagina(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
                  db: Session = Depends(get_db)):
+    sacc.revisar_una_vez(db)   # una sola vez: da el acceso que falte a los que ya están en equipos
     # Áreas y tipos de ausencia van dentro de la página: son 2 peticiones menos por persona al abrir el horario.
     areas = sd.areas_disponibles(db)
     inicio = {"areas": [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in areas],
@@ -279,6 +281,7 @@ def pagina_comments(request: Request, user: Empleado = Depends(require_modulo("d
 
 @router.get("/design/parametros")
 def parametros(request: Request, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    sacc.revisar_una_vez(db)
     if not sd.es_admin(user):
         # Aprobadores: solo la tarjeta Openings (la ven y la editan); el resto de Parámetros es de admins
         return templates.TemplateResponse(request, "design_parametros.html",
@@ -553,6 +556,19 @@ def api_ready_movidas_borrar(payload: IdsIn, user: Empleado = Depends(require_ad
 def api_parametros_personas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     personas = db.query(Empleado).filter(Empleado.activo == 1).all()
     return sorted(({"id": e.id, "nombre": e.nombre_completo} for e in personas), key=lambda x: sd._normalizar_texto(x["nombre"]))
+
+
+@router.get("/design/api/parametros/accesos-equipos")
+def api_accesos_equipos(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Acceso automático de los equipos: qué hizo la revisión inicial y quién sigue sin acceso."""
+    return sacc.estado(db)
+
+
+@router.post("/design/api/parametros/accesos-equipos/revisar")
+def api_accesos_equipos_revisar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Revisa ahora a todos los diseñadores y managers de los equipos activos y da el acceso que falte."""
+    res = sacc.revisar(db, user.nombre_completo)
+    return {**res, **sacc.estado(db)}
 
 
 @router.post("/design/api/parametros/quitar-fila")

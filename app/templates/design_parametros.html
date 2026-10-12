@@ -247,6 +247,8 @@
     <div class="aud-titulo">
       <h2>Equipos</h2>
       <span class="aud-sub">{{ teams|length }} equipos · {{ n_dis.v }} diseñadores</span>
+      <span class="aud-sub" id="accEstado" style="margin-left:8px"></span>
+      <button type="button" class="btn gris" id="accRevisar" style="margin-left:6px;padding:4px 10px;font-size:12.5px" title="Da el acceso a Design que le falte a cualquier diseñador o manager de los equipos activos">Revisar accesos</button>
       <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
             title="Cada equipo pertenece a un área y tiene un manager y una lista de diseñadores (empleados de Nuvia Design Colombia SAS). Haz clic en un área para desplegarla. Para mover a un diseñador a otro equipo, mantén presionado su nombre y suéltalo sobre la fila del otro equipo. Sus órdenes y breaks no cambian.">i</span>
     </div>
@@ -1140,6 +1142,29 @@
           ' con notificaciones. Claves: ' + esc(d.origenClaves) + '.' +
           (d.lista.length ? '<div style="margin-top:6px">' + d.lista.map(function(x) { return esc(x.nombre) + ' (' + x.navegadores + ')'; }).join(' · ') + '</div>' : '');
       }).catch(function() { el.textContent = 'No se pudo consultar el estado.'; });
+    })();
+    (function() {   // Acceso automático de los equipos a Design (services_design_accesos)
+      var el = document.getElementById('accEstado'), btn = document.getElementById('accRevisar'); if (!el) return;
+      var esc = function(t) { return String(t).replace(/[&<>"]/g, function(c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); };
+      function pintar(d, recien) {
+        var dados = (d.modulo || []).concat(d.aprobador || []);
+        var txt = d.sinAcceso && d.sinAcceso.length
+          ? '<span style="color:#b91c1c;font-weight:600">Sin acceso a Design: ' + esc(d.sinAcceso.join(', ')) + '</span>'
+          : '<span style="color:#047857;font-weight:600">✓ Todos los de los equipos tienen acceso a Design</span>';
+        if (recien) txt += dados.length ? ' · Se dio acceso a: ' + esc((d.modulo || []).join(', ') || '—') + ((d.aprobador || []).length ? '; rol aprobador a: ' + esc(d.aprobador.join(', ')) : '') : ' · No faltaba nada.';
+        else if (d.revisionInicial) {
+          var ri = d.revisionInicial;
+          if ((ri.modulo || []).length || (ri.aprobador || []).length)
+            txt += ' · Revisión inicial: acceso a ' + esc((ri.modulo || []).join(', ') || '—') + ((ri.aprobador || []).length ? '; aprobador a ' + esc(ri.aprobador.join(', ')) : '');
+        }
+        el.innerHTML = txt;
+      }
+      fetch('/design/api/parametros/accesos-equipos', {credentials: 'same-origin'}).then(function(r) { return r.ok ? r.json() : null; }).then(function(d) { if (d) pintar(d, false); });
+      btn.addEventListener('click', function() {
+        btn.disabled = true;
+        fetch('/design/api/parametros/accesos-equipos/revisar', {method: 'POST', credentials: 'same-origin'}).then(function(r) { return r.json(); })
+          .then(function(d) { pintar(d, true); }).catch(function() { el.textContent = 'No se pudo revisar.'; }).then(function() { btn.disabled = false; });
+      });
     })();
     var pb = document.getElementById('stProbarCliq'), res = document.getElementById('stProbarRes');
     if (pb) pb.addEventListener('click', function() {
