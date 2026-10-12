@@ -62,6 +62,25 @@ def equipos_como_designer(db: Session, user: Empleado) -> set[int]:
             .filter(DesignTeamDesigner.empleado_id == user.id).all()}
 
 
+# Personas que, sin ser manager, pueden CREAR órdenes de un solo producto en ciertos equipos (el producto queda fijo).
+# María José Lemus: Maxilar Print en los Schedules de Face de Juliana y de Nicole (pedido por Rosember el 12-oct-2026).
+# "persona" y "managers" se comparan por palabras, sin tildes ni mayúsculas.
+CREAN_PRODUCTO = [
+    {"persona": "maria jose lemus", "area": "Face Design", "managers": ["juliana", "nicole"], "producto": "Maxilar Print"},
+]
+
+
+def producto_que_crea(user: Empleado, team: DesignTeam) -> str | None:
+    """El producto con el que `user` puede crear órdenes en `team` sin ser su manager (o None)."""
+    nombre = set(_normalizar_texto(user.nombre_completo or "").split())
+    mgr = _normalizar_texto(team.manager.nombre_completo) if team and team.manager else ""
+    for r in CREAN_PRODUCTO:
+        if (set(r["persona"].split()) <= nombre and team.area and team.area.nombre == r["area"]
+                and any(m in mgr.split() for m in r["managers"])):
+            return r["producto"]
+    return None
+
+
 def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
     """Ve y edita todo el horario del equipo: admins/superadmins, el manager del equipo, el diseñador que el
     manager dejó a cargo (solo en sus fechas) y, en Support, todos sus miembros (allí 'Diseñador' es el del caso,

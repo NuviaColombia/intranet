@@ -880,6 +880,8 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsFilaHtml(spec, f, tabla) {
     var nueva = !f.id;
+    // fila en blanco de quien solo crea órdenes de un producto: el producto ya viene puesto
+    if (nueva && tabla === 'principal' && dsSoloPropias() && DS.diaData && DS.diaData.creaProducto) f = Object.assign({producto: DS.diaData.creaProducto}, f);
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
     spec.forEach(function(c, i) {
       var g = c.g ? 'ds-g-' + c.g + (c.g !== (spec[i - 1] || {}).g ? ' ds-g-ini' : '') : '';
@@ -1411,6 +1413,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       // Vista del diseñador: edita sus órdenes pero no las reasigna.
       dsBloquearCamposManager(cont);
       dsBloquearHoras(cont, DS.areaFormato, tabla, dsFechaISO(dsFechaSeleccionada()));
+      dsAjustarCreaProducto(cont);
       if (tabla === 'material') dsBloquearEtapa(cont);
     }
     cont.querySelectorAll('th[data-sort]').forEach(function(th) {
@@ -1455,6 +1458,18 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (DS_HORAS_CAMPOS.indexOf(el.dataset.campo) < 0) return;
       el.disabled = true;
       el.title = 'La hora se registra sola con el estado (Initiated, Hold, Approved)';
+    });
+  }
+  // Quien solo crea órdenes de un producto (DS.diaData.creaProducto, p. ej. Maxilar Print): en la fila en blanco y en sus
+  // órdenes de ese producto llena orden, paciente y centro; el producto y el diseñador quedan fijos.
+  function dsAjustarCreaProducto(scope) {
+    var prod = DS.diaData && DS.diaData.creaProducto;
+    if (!prod || !dsSoloPropias()) return;
+    scope.querySelectorAll('tbody tr').forEach(function(tr) {
+      var p = tr.querySelector('[data-campo="producto"]');
+      if (!(tr.dataset.id === 'nuevo' || (p && (p.dataset.valorActual || p.value) === prod))) return;
+      ['orden', 'paciente', 'centro'].forEach(function(k) { var el = tr.querySelector('[data-campo="' + k + '"]'); if (el) { el.disabled = false; el.removeAttribute('title'); } });
+      ['producto', 'designerId'].forEach(function(k) { var el = tr.querySelector('[data-campo="' + k + '"]'); if (el) { el.disabled = true; el.title = 'Queda fijo'; } });
     });
   }
   function dsBloquearCamposManager(cont, area) {
@@ -1599,7 +1614,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsSeguir(postJSON('/design/api/ordenes', datos)).then(function(o) {
         tr._creando = false;
         tr.dataset.id = o.id; tr.classList.remove('ds-fila-nueva');
-        tr.querySelector('.ds-acc').innerHTML = (window.DS_GESTION ? dsBtnOjo(o.id) : '') + dsBtnEliminar(o.id);
+        tr.querySelector('.ds-acc').innerHTML = (window.DS_GESTION ? dsBtnOjo(o.id) : '') + (dsSoloPropias() ? '' : dsBtnEliminar(o.id));
         filas.push(o);
         dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [], creadas: [{id: o.id, datos: dsClon(o)}], eliminadas: []});
         if (tr._pendiente) { tr._pendiente = false; dsGuardarFila(tr, tabla); return; }
@@ -1687,6 +1702,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       tbody.appendChild(nueva);
       dsConectarFila(nueva, tabla);
       dsPoblarCatalogos(nueva, spec, tabla);
+      dsAjustarCreaProducto(tbody);
     }
   }
 
@@ -1743,13 +1759,15 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsDiaCerrado() { return !!(DS.diaData && DS.diaData.cerrado); }
   // Vista de un diseñador: solo sus órdenes y sus tiempos libres; no crea, no borra ni reasigna órdenes.
   function dsSoloPropias() { return !!(DS.diaData && DS.diaData.soloPropias); }
-  function dsPuedeCrear() { return !dsDiaCerrado() && !dsSoloPropias(); }
+  // Un diseñador puede crear órdenes si tiene permiso para un producto (creaProducto, p. ej. Maxilar Print): solo en la fila en blanco
+  function dsPuedeCrear() { return !dsDiaCerrado() && (!dsSoloPropias() || !!(DS.diaData && DS.diaData.creaProducto)); }
+  function dsPuedeCrearVarias() { return !dsDiaCerrado() && !dsSoloPropias(); }  // + Agregar orden, pegar filas nuevas
 
   // Candado junto al título + botones "Agregar orden" según si el día ya se cerró (5:00 am del día siguiente, hora Colombia).
   function dsAplicarCierre() {
     var candado = document.getElementById('dsCandado');
     var cerrado = dsDiaCerrado();
-    document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = dsPuedeCrear() ? '' : 'none'; });
+    document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = dsPuedeCrearVarias() ? '' : 'none'; });
     if (!cerrado) { candado.style.display = 'none'; return; }
     var txt = '🔒 Este día ya se cerró y no se puede editar.';
     if (DS.diaData.qcEditable) {
@@ -2445,7 +2463,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!ediciones.length && !nuevas.length) return Promise.resolve();
     ediciones.forEach(function(e) { pasos.push(dsActualizarOrden(e.id, tabla, e.despues, e.campos).then(function(o) { e.despues = dsClon(o); })); });
     return Promise.all(pasos).then(function() {
-      return nuevas.length && dsPuedeCrear() ? dsCrearOrdenes(tabla, nuevas, false) : [];
+      return nuevas.length && dsPuedeCrearVarias() ? dsCrearOrdenes(tabla, nuevas, false) : [];
     }).then(function(creadas) {
       dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: ediciones,
                   creadas: (creadas || []).map(function(o) { return {id: o.id, datos: dsClon(o)}; }), eliminadas: []});
@@ -2514,7 +2532,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         });
         if (!tr && Object.keys(nueva).length) extras.push(nueva);
       });
-      if (extras.length && !dsPuedeCrear()) { bloqueados += extras.length; extras = []; }
+      if (extras.length && !dsPuedeCrearVarias()) { bloqueados += extras.length; extras = []; }
       DS.sel = {tabla: tabla, r1: r0, c1: c0, r2: r0 + bloque.length - 1, c2: c0 + Math.max.apply(null, bloque.map(function(f) { return f.length; })) - 1};
     }
     var avisos = [];

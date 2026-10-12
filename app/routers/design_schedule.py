@@ -960,6 +960,7 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dia["aCargo"] = dict(dg, esYo=dg["empleadoId"] == user.id) if dg and (dia["puedeDelegar"] or dg["empleadoId"] == user.id) else None
     dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id)  # huella para el Schedule en vivo
     dia["puedeQc"] = sd.puede_qc(user, team)  # el QC lo marcan aprobadores, admins y el diseñador a cargo
+    dia["creaProducto"] = None if sd.gestiona_equipo(user, team) else sd.producto_que_crea(user, team)  # p. ej. Maxilar Print
     return dia
 
 
@@ -1105,8 +1106,16 @@ def _verificar_qc(user: Empleado, team: DesignTeam, payload: "OrdenIn", existent
 @router.post("/design/api/ordenes")
 def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
-    if not sd.gestiona_equipo(user, _verificar_equipo(db, user, payload.teamId)):
-        raise HTTPException(403, SOLO_MANAGER)
+    equipo = _verificar_equipo(db, user, payload.teamId)
+    solo_producto = None
+    if not sd.gestiona_equipo(user, equipo):
+        # quien puede crear órdenes de un solo producto (sd.CREAN_PRODUCTO): el producto queda fijo y la orden es suya
+        solo_producto = sd.producto_que_crea(user, equipo)
+        if not solo_producto or payload.tabla != "principal":
+            raise HTTPException(403, SOLO_MANAGER)
+        payload.producto = solo_producto
+        if not payload.designerId and not payload.designerPrestado.strip():
+            payload.designerId = user.id
     if sd.dia_cerrado(_fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
     _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
@@ -1318,7 +1327,12 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                                                            "z_hora_fin", "z_hold_minutos")}
         datos.update(sd.horas_de_estado(orden_existente.tabla, actual, datos["estado"]))
     if solo_propia:  # un diseñador edita horas, estado, notas, esferas y crítico (y en N3/N6 orden, paciente y producto)
-        for c in campos_solo_manager(team):
+        bloqueados = campos_solo_manager(team)
+        prod = sd.producto_que_crea(user, team)
+        if prod and sd._normalizar_texto(orden_existente.producto or "") == sd._normalizar_texto(prod):
+            # sus órdenes del producto que puede crear (Maxilar Print): corrige orden, paciente y centro; el producto no
+            bloqueados = ("producto",)
+        for c in bloqueados:
             datos.pop(c, None)
         datos["designer_id"] = orden_existente.designer_id
         datos["designer_prestado"] = orden_existente.designer_prestado
