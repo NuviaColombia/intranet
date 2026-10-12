@@ -418,6 +418,15 @@ window.dsPdfjs = function() {
 <div class="pf-panel" id="pfPanel" style="display:none"></div></div></div>
 {% endif %}
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+<div class="ds-overlay" id="ov-seguimiento"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button>
+<div class="sg-cab"><h1>Seguimiento <span class="sg-vivo">● en vivo</span></h1><span class="sg-hora" id="sgHora"></span></div>
+<p style="color:#4b5563;font-size:13px;margin-top:-8px">Qué está haciendo cada diseñador ahora. Arriba los libres (sin casos por hacer y fuera de break o almuerzo, primero el que lleva más tiempo libre); abajo los ocupados. Se actualiza cada 20 segundos.</p>
+<div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button></div>
+<div class="sg-resumen" id="sgResumen"></div>
+<div class="sg-tabla-w"><table class="sg-tabla"><thead><tr><th>Diseñador</th><th>Equipo</th><th>Estado</th><th>Qué está haciendo</th><th title="Casos terminados hoy">Hechos hoy</th></tr></thead><tbody id="sgLista"></tbody></table></div>
+</div></div>
+{% endif %}
+{% if user.rol in ('aprobador', 'admin', 'superadmin') %}
 <div class="ds-overlay" id="ov-papelera"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><div class="tr-toolbar">
   <h1 style="margin:0">Papelera — Design Schedule</h1>
   {% if user.rol in ('admin', 'superadmin') %}<button type="button" class="btn gris" id="trVaciarBtn">Vaciar historial</button>{% endif %}
@@ -503,4 +512,5 @@ window.DS_CFG = {userId: {{ user.id }}, esAprobador: {{ 'true' if user.rol in ('
                  esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
 </script>
 <script src="/static/design/schedule.js?v={{ dsv }}"></script>
+{% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script>{% endif %}
 {% endblock %}

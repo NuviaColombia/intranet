@@ -2061,6 +2061,14 @@ def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSeleccionIn
     return {"mensaje": "Guardado."}
 
 
+# ---------- Seguimiento en tiempo real (Gestión) ----------
+
+@router.get("/design/api/seguimiento")
+def api_seguimiento(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Qué está haciendo cada diseñador ahora (libre, en pausa, con casos asignados, ocupado o ausente)."""
+    return sd.seguimiento(db)
+
+
 # ---------- Papelera ----------
 
 @router.get("/design/papelera")

@@ -6746,7 +6746,7 @@ window.DS_PANELS.dashboard = function() {
 (function() {
   window.DS_PANELS = window.DS_PANELS || {};
 
-  var DS_PANELES_GESTION = ['dashboard', 'perf', 'papelera'];
+  var DS_PANELES_GESTION = ['dashboard', 'perf', 'papelera', 'seguimiento'];
   function dsAbrirPanel(id) {
     if (DS_PANELES_GESTION.indexOf(id) >= 0 && !window.DS_GESTION) {
       // un enlace ?panel=dashboard|perf|papelera no abre nada para un empleado

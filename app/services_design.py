@@ -669,6 +669,103 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
     return {"total": len(lista), "ready": ready, "hold": len(lista) - ready, "ordenes": lista}
 
 
+# ---------- Seguimiento en tiempo real (Gestión › Seguimiento) ----------
+# Qué está haciendo cada diseñador ahora, para saber quién está libre (pedido por Rosember el 12-oct-2026).
+# Grupos, en este orden: libre (sin casos por hacer, fuera de break/almuerzo), pausa (en break o almuerzo según su
+# Schedule), asignado (casos sin iniciar), ocupado (trabajando un caso) y ausente (ausencia registrada hoy).
+SEG_TRABAJANDO = {"initiated", "re-initiated", "meeting", "practice", "training"}
+SEG_POR_HACER = {"ready to design", "hold", "order entered", "pickup received", "bite ready", "change ready"}
+SEG_GRUPOS = ["libre", "pausa", "asignado", "ocupado", "ausente"]
+SEG_MIN_ALMUERZO, SEG_MIN_BREAK = 60, 15   # si no tiene hora de fin
+
+
+def _seg_hora(hhmm: str) -> int | None:
+    try:
+        h, m = str(hhmm or "").strip().split(":")[:2]
+        return int(h) * 60 + int(m)
+    except (ValueError, TypeError):
+        return None
+
+
+def seguimiento(db: Session, ahora: datetime | None = None) -> dict:
+    from .models import Empleado as _E
+    trasladar_holds(db)
+    ahora = ahora or ahora_colombia()
+    hoy, minuto = ahora.date(), ahora.hour * 60 + ahora.minute
+    equipos = (db.query(DesignTeam).join(DesignArea).filter(DesignTeam.activo == 1, DesignArea.activo == 1)
+               .options(joinedload(DesignTeam.area), joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado)).all())
+    personas: dict[int, dict] = {}
+    for t in equipos:
+        for d in t.designers:
+            e = d.empleado
+            if not e or not getattr(e, "activo", 1):
+                continue
+            x = personas.setdefault(e.id, {"id": e.id, "nombre": e.nombre_completo, "equipos": [], "teamIds": [], "areas": []})
+            x["equipos"].append(t.nombre); x["teamIds"].append(t.id)
+            if t.area.nombre not in x["areas"]:
+                x["areas"].append(t.area.nombre)
+    ids = list(personas)
+    ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.team))
+               .filter(DesignOrden.fecha == hoy, DesignOrden.designer_id.in_(ids)).all()) if ids else []
+    pausas = db.query(DesignBreak).filter(DesignBreak.fecha == hoy, DesignBreak.empleado_id.in_(ids)).all() if ids else []
+    por_persona: dict[int, list] = {}
+    for o in ordenes:
+        por_persona.setdefault(o.designer_id, []).append(o)
+    out = []
+    for pid, x in personas.items():
+        mias = sorted(por_persona.get(pid, []), key=lambda o: (o.orden_visual or 0, o.id))
+        est = lambda o: (o.estado or "").strip().lower()
+        trabajando = [o for o in mias if est(o) in SEG_TRABAJANDO]
+        por_hacer = [o for o in mias if est(o) in SEG_POR_HACER]
+        terminados = [o for o in mias if est(o) not in SEG_TRABAJANDO | SEG_POR_HACER and (o.estado or "").strip()]
+        fines = [h for h in ((o.hora_fin or "").strip() for o in terminados) if _seg_hora(h) is not None]
+        x.update({"terminadosHoy": len(terminados), "ultimoFin": max(fines, key=_seg_hora) if fines else "",
+                  "pendientes": {"ready": sum(1 for o in por_hacer if est(o) == "ready to design"),
+                                 "hold": sum(1 for o in por_hacer if est(o) == "hold"),
+                                 "otros": sum(1 for o in por_hacer if est(o) not in ("ready to design", "hold"))},
+                  "porHacer": [{"orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": (o.estado or "").strip()} for o in por_hacer[:6]],
+                  "actual": None, "pausa": None, "ausencia": ""})
+        # ausencia y pausas (break / almuerzo) registradas en su Schedule hoy
+        for b in (b for b in pausas if b.empleado_id == pid):
+            if (b.tipo_ausencia or "").strip():
+                x["ausencia"] = b.tipo_ausencia.strip()
+            for tipo, ini, fin, largo in (("Almuerzo", b.almuerzo_inicio, b.almuerzo_fin, SEG_MIN_ALMUERZO),
+                                          ("Break", b.break1_inicio, b.break1_fin, SEG_MIN_BREAK),
+                                          ("Break", b.break2_inicio, b.break2_fin, SEG_MIN_BREAK)):
+                i = _seg_hora(ini)
+                if i is None:
+                    continue
+                f = _seg_hora(fin)
+                f = f if f is not None and f > i else i + largo
+                if i <= minuto < f:
+                    x["pausa"] = {"tipo": tipo, "desde": ini.strip(), "hasta": f"{f // 60:02d}:{f % 60:02d}"}
+        if trabajando:
+            o = trabajando[-1]
+            desde = next((h for h in ((o.f_hold or "").strip(), (o.hora_inicio_diseno or "").strip(), (o.hora_inicio or "").strip()) if h), "")
+            x["actual"] = {"orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": (o.estado or "").strip(),
+                           "desde": desde, "equipo": o.team.nombre if o.team else "", "otrosTrabajando": len(trabajando) - 1}
+        if x["ausencia"] and not trabajando:
+            x["grupo"] = "ausente"
+        elif x["pausa"]:
+            x["grupo"] = "pausa"
+        elif trabajando:
+            x["grupo"] = "ocupado"
+        elif por_hacer:
+            x["grupo"] = "asignado"
+        else:
+            x["grupo"] = "libre"
+        out.append(x)
+    def clave(x):
+        g = SEG_GRUPOS.index(x["grupo"])
+        if x["grupo"] == "libre":   # primero el que lleva más tiempo libre (terminó antes o no ha tenido casos)
+            return (g, _seg_hora(x["ultimoFin"]) if x["ultimoFin"] else -1, x["nombre"].lower())
+        return (g, 0, x["nombre"].lower())
+    out.sort(key=clave)
+    resumen = {g: sum(1 for x in out if x["grupo"] == g) for g in SEG_GRUPOS}
+    return {"fecha": hoy.isoformat(), "hora": ahora.strftime("%H:%M:%S"), "resumen": resumen, "disenadores": out,
+            "areas": sorted({a for x in out for a in x["areas"]})}
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
