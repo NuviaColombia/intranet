@@ -270,6 +270,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     ordenar_estados_n3_n6_una_vez(db)
     productos_n6_igual_n3_una_vez(db)
     productos_n6_primeros_una_vez(db)
+    estado_changes_ready_una_vez(db)
     vals = [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
@@ -395,6 +396,39 @@ ESTADOS_N3_N6 = ["Order Entered", "Pickup received", "Ready to design", "Initiat
 _estados_ordenados = {"ok": False}
 
 
+# Estado "Changes ready" para TC y Nightguards en N3 y N6 (pedido por Rosember el 12-oct-2026). Se agrega una sola vez al
+# catálogo de estados, antes de "Approved"; en el Schedule solo se ofrece en la tabla de Nightguards/TC y en filas con
+# producto TC o Nightguard (DS_ESTADOS_SOLO_NG en static/design/schedule.js).
+ESTADO_CHANGES_READY = "Changes ready"
+_changes_ready = {"ok": False}
+
+
+def estado_changes_ready_una_vez(db: Session) -> None:
+    from .models_design import DesignConexionRegla
+    if _changes_ready["ok"]:
+        return
+    marca = "estado_changes_ready_n3_n6_2026_10_12"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            for area in db.query(DesignArea).filter(DesignArea.nombre.in_(["N3 Prosthetic", "N6 Material Changes"])).all():
+                estados = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "estado")
+                           .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+                ya = next((c for c in estados if _normalizar_texto(c.valor) == _normalizar_texto(ESTADO_CHANGES_READY)), None)
+                if ya:
+                    ya.activo = 1
+                    continue
+                nuevo = DesignCatalogo(area_id=area.id, tipo="estado", valor=ESTADO_CHANGES_READY, activo=1)
+                db.add(nuevo)
+                pos = next((i for i, c in enumerate(estados) if _normalizar_texto(c.valor) == "approved"), len(estados))
+                for i, c in enumerate(estados[:pos] + [nuevo] + estados[pos:], start=1):
+                    c.orden = i
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        _changes_ready["ok"] = True
+    except Exception:
+        db.rollback()
+
+
 def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
     from .models_design import DesignConexionRegla
     if _estados_ordenados["ok"]:
@@ -430,6 +464,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     ordenar_estados_n3_n6_una_vez(db)
     productos_n6_igual_n3_una_vez(db)
     productos_n6_primeros_una_vez(db)
+    estado_changes_ready_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
@@ -674,7 +709,7 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
 # Grupos, en este orden: libre (sin casos por hacer, fuera de break/almuerzo), pausa (en break o almuerzo según su
 # Schedule), asignado (casos sin iniciar), ocupado (trabajando un caso) y ausente (ausencia registrada hoy).
 SEG_TRABAJANDO = {"initiated", "re-initiated", "meeting", "practice", "training"}
-SEG_POR_HACER = {"ready to design", "hold", "order entered", "pickup received", "bite ready", "change ready"}
+SEG_POR_HACER = {"ready to design", "hold", "order entered", "pickup received", "bite ready", "change ready", "changes ready"}
 SEG_GRUPOS = ["libre", "pausa", "asignado", "ocupado", "ausente"]
 SEG_MIN_ALMUERZO, SEG_MIN_BREAK = 60, 15   # si no tiene hora de fin
 

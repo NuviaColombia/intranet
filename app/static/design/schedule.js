@@ -1251,6 +1251,14 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   // Catálogos asíncronos (centro/producto/estado...) de las filas dentro de `root`.
+  // Estados que solo aplican a TC y Nightguards: se ofrecen en la tabla de Nightguards/TC y en filas con ese producto
+  // (pedido por Rosember el 12-oct-2026; ver estado_changes_ready_una_vez en services_design.py).
+  var DS_ESTADOS_SOLO_NG = ['changes ready'];
+  function dsFilaEsNG(sel, tabla) {
+    if (tabla === 'nightguard') return true;
+    var tr = sel.closest('tr'), p = tr && tr.querySelector('[data-campo="producto"]');
+    return !!p && dsEsProductoNG(p.dataset.valorActual || p.value || '');
+  }
   function dsPoblarCatalogos(root, spec, tabla) {
     spec.forEach(function(c) {
       if (c.t !== 'catalogo') return;
@@ -1259,6 +1267,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {
+            if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
             if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
             }
