@@ -135,7 +135,8 @@
     cont.innerHTML = filas.map(function(e) {
       var pct = e.total ? Math.round(e.hechos * 100 / e.total) : 0, S = SEMAFORO[e.semaforo];
       var n = e.enTurno.length + e.prestados.length + e.deOtrosEquipos;
-      var progr = e.cirugias + (e.cirugias === 1 ? ' cirugía' : ' cirugías') + (e.nightguards ? ' · ' + e.nightguards + ' nightguard' + (e.nightguards === 1 ? '' : 's') : '') +
+      var conCirugias = e.area === 'N3 Prosthetic' || e.area === 'N6 Material Changes';  // N2 y Face: órdenes
+      var progr = e.cirugias + (conCirugias ? (e.cirugias === 1 ? ' cirugía' : ' cirugías') : (e.cirugias === 1 ? ' orden' : ' órdenes')) + (e.nightguards ? ' · ' + e.nightguards + ' nightguard' + (e.nightguards === 1 ? '' : 's') : '') +
         (e.material ? ' · ' + e.material + ' material change' + (e.material === 1 ? '' : 's') : '');
       var gente = e.enTurno.map(function(p) { return '<span class="sg-p sg-' + p.grupo + '" title="' + esc(GRUPOS[p.grupo] ? GRUPOS[p.grupo].rot : '') + '"><i></i>' + esc(p.nombre.split(' ').slice(0, 2).join(' ')) + (p.manager ? ' (manager)' : '') + '</span>'; }).join('') +
         e.prestados.map(function(nm) { return '<span class="sg-p sg-prest" title="Prestado de otro equipo"><i></i>' + esc(nm) + ' (prestado)</span>'; }).join('') +
@@ -155,14 +156,57 @@
     }).join('');
   }
 
+  // ---------- N3/N2 Producción: reporte diario por equipo (services_design_produccion) ----------
+  var fechaInput = document.getElementById('sgFecha'), prod = null, prodTok = 0;
+  function hoyISO() { var d = new Date(new Date().toLocaleString('en-US', {timeZone: 'America/Bogota'})); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  fechaInput.value = hoyISO();
+  function cargarProd() {
+    var t = ++prodTok;
+    return fetch('/design/api/seguimiento/produccion?fecha=' + encodeURIComponent(fechaInput.value || hoyISO()), {credentials: 'same-origin'})
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(d) { if (t === prodTok) { prod = d; pintarProd(); } })
+      .catch(function() { if (t === prodTok) document.getElementById('sgProd').innerHTML = '<div class="sg-vacio">No se pudo cargar el reporte.</div>'; });
+  }
+  function prodFiltrados() {
+    if (!prod) return [];
+    var area = selArea.value, q = norm(buscar.value);
+    return prod.equipos.filter(function(e) { return (!area || e.area === area) && (!q || norm(e.equipo + ' ' + e.manager).indexOf(q) >= 0); });
+  }
+  function copiar(texto, boton) {
+    var listo = function() { var t0 = boton.textContent; boton.textContent = '✓ Copiado'; setTimeout(function() { boton.textContent = t0; }, 1500); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texto).then(listo, function() { prompt('Copia el texto:', texto); });
+    else { var ta = document.createElement('textarea'); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); listo(); } catch (e) { prompt('Copia el texto:', texto); } ta.remove(); }
+  }
+  function pintarProd() {
+    var cont = document.getElementById('sgProd'), filas = prodFiltrados();
+    if (!prod) { cont.innerHTML = '<div class="sg-vacio">Cargando…</div>'; return; }
+    if (!filas.length) { cont.innerHTML = '<div class="sg-vacio">No hay equipos de N3 o N2 con este filtro.</div>'; return; }
+    cont.innerHTML = filas.map(function(e, i) {
+      return '<article class="sg-eq-card sg-prod-card">' +
+        '<header><div><h3>' + esc(e.equipo) + '</h3><div class="sg-sub">' + esc(e.area) + (e.manager ? ' · ' + esc(e.manager) : '') + '</div></div>' +
+        '<button type="button" class="btn gris mini" data-copiar="' + i + '">Copiar</button></header>' +
+        '<pre class="sg-prod-txt">' + esc(e.texto) + '</pre>' +
+        (e.centros.some(function(c) { return c.fueraDeOpenings; }) ? '<div class="sg-sub">Algún centro no es de este manager en Openings: se muestra igual.</div>' : '') +
+        '</article>';
+    }).join('');
+    cont.querySelectorAll('[data-copiar]').forEach(function(b) { b.onclick = function() { copiar(filas[+b.dataset.copiar].texto, b); }; });
+  }
+  document.getElementById('sgProdCopiarTodo').addEventListener('click', function(ev) {
+    copiar(prodFiltrados().map(function(e) { return e.equipo + '\n' + e.texto; }).join('\n\n'), ev.currentTarget);
+  });
+  fechaInput.addEventListener('change', cargarProd);
+
   function cambiarVista(v) {
     vista = v;
     panel.querySelectorAll('.sg-vista').forEach(function(b) { b.classList.toggle('on', b.dataset.vista === v); b.setAttribute('aria-selected', b.dataset.vista === v); });
     document.getElementById('sgVistaDis').hidden = v !== 'disenadores';
     document.getElementById('sgVistaEq').hidden = v !== 'equipos';
+    document.getElementById('sgVistaProd').hidden = v !== 'produccion';
+    document.getElementById('sgFechaW').hidden = v !== 'produccion';
     document.getElementById('sgFinW').hidden = v !== 'equipos';
     document.getElementById('sgModoW').hidden = v !== 'disenadores';
     buscar.placeholder = v === 'equipos' ? 'Buscar equipo, manager o diseñador…' : 'Buscar diseñador o equipo…';
+    if (v === 'produccion') { pintarProd(); cargarProd(); return; }
     if (datos) { if (v === 'equipos') pintarEquipos(); else pintar(); }
   }
   panel.querySelectorAll('.sg-vista').forEach(function(b) { b.addEventListener('click', function() { cambiarVista(b.dataset.vista); }); });
@@ -177,12 +221,12 @@
         datos = d;
         var actual = selArea.value;
         selArea.innerHTML = '<option value="">Todas las áreas</option>' + d.areas.map(function(a) { return '<option' + (a === actual ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('');
-        if (vista === 'equipos') pintarEquipos(); else pintar();
+        if (vista === 'equipos') pintarEquipos(); else if (vista === 'produccion') cargarProd(); else pintar();
       })
       .catch(function() { hora.textContent = 'No se pudo actualizar; se reintenta en unos segundos'; })
       .then(function() { timer = setTimeout(cargar, (window.DSVivo && window.DSVivo.conectado) ? 60000 : 20000); });
   }
-  var repintar = function() { if (!datos) return; if (vista === 'equipos') pintarEquipos(); else pintar(); };
+  var repintar = function() { if (vista === 'produccion') { pintarProd(); return; } if (!datos) return; if (vista === 'equipos') pintarEquipos(); else pintar(); };
   panel.querySelectorAll('#sgModoW [data-modo]').forEach(function(b) { b.addEventListener('click', function() { modo = b.dataset.modo; try { localStorage.setItem('sgModo', modo); } catch (e) {} repintar(); }); });
   selArea.addEventListener('change', repintar);
   buscar.addEventListener('input', repintar);

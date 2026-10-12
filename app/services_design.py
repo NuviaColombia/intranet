@@ -907,9 +907,13 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
     por_persona: dict[int, list] = {}
     for o in ordenes:
         por_persona.setdefault(o.designer_id, []).append(o)
+    # Managers y aprobadores salen solo si tienen casos hoy: "libre / sin casos" no aplica para ellos (12-oct-2026)
+    roles = {e.id: e.rol for e in db.query(_E.id, _E.rol).filter(_E.id.in_(ids))} if ids else {}
     out = []
     for pid, x in personas.items():
         mias = sorted(por_persona.get(pid, []), key=lambda o: (o.orden_visual or 0, o.id))
+        if not mias and (x["manager"] or roles.get(pid) in ("aprobador", "admin", "superadmin")):
+            continue
         est = lambda o: (o.estado or "").strip().lower()
         trabajando = [o for o in mias if est(o) in SEG_TRABAJANDO]
         por_hacer = [o for o in mias if est(o) in SEG_POR_HACER]
@@ -1262,7 +1266,8 @@ def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: s
                  .filter(DesignOrden.team_id == team_id, DesignOrden.fecha == fecha, DesignOrden.tabla == tabla)
                  .order_by(DesignOrden.orden_visual.desc()).first())
     siguiente_visual = (max_visual[0] + 1) if max_visual else 1
-    o = DesignOrden(team_id=team_id, fecha=fecha, tabla=tabla, creado_por_id=user.id, orden_visual=siguiente_visual)
+    o = DesignOrden(team_id=team_id, fecha=fecha, tabla=tabla, creado_por_id=user.id, orden_visual=siguiente_visual,
+                    fecha_creada=fecha)
     for campo in CAMPOS_ORDEN:
         if campo in datos:
             setattr(o, campo, datos[campo])

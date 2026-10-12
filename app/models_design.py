@@ -133,6 +133,9 @@ class DesignOrden(Base):
     z_qc_reporte: Mapped[str] = mapped_column(Text, default="")
 
     orden_visual: Mapped[int] = mapped_column(Integer, default=0)
+    # Día para el que se creó la orden; no cambia cuando pasa al día siguiente (Hold, Ready to design). Así N3/N2
+    # Producción cuenta solo las órdenes nuevas del día (services_design_produccion).
+    fecha_creada: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

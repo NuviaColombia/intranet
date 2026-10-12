@@ -430,8 +430,8 @@ window.dsPdfjs = function() {
 <div class="ds-overlay" id="ov-seguimiento"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button>
 <div class="sg-cab"><h1>Seguimiento <span class="sg-vivo">● en vivo</span></h1><span class="sg-hora" id="sgHora"></span></div>
 <p style="color:#4b5563;font-size:13px;margin-top:-8px">Qué está haciendo cada diseñador ahora. Arriba los libres (sin casos por hacer y fuera de break o almuerzo, primero el que lleva más tiempo libre); abajo los ocupados. Se actualiza cada 20 segundos.</p>
-<div class="sg-vistas" role="tablist"><button type="button" class="sg-vista on" data-vista="disenadores" role="tab">👤 Diseñadores</button><button type="button" class="sg-vista" data-vista="equipos" role="tab">📋 Casos por equipo</button></div>
-<div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><label class="sg-fin" id="sgFinW" hidden>Fin de la jornada <input type="time" id="sgFin" value="17:00"></label><span class="sg-modo" id="sgModoW" role="group" aria-label="Forma de ver"><button type="button" data-modo="tablero" class="on" title="Una columna por estado">▦ Tablero</button><button type="button" data-modo="lista" title="Tabla">☰ Lista</button></span><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button></div>
+<div class="sg-vistas" role="tablist"><button type="button" class="sg-vista on" data-vista="disenadores" role="tab">👤 Diseñadores</button><button type="button" class="sg-vista" data-vista="equipos" role="tab">📋 Casos por equipo</button><button type="button" class="sg-vista" data-vista="produccion" role="tab">🧾 N3/N2 Producción</button></div>
+<div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><label class="sg-fin" id="sgFechaW" hidden>Día <input type="date" id="sgFecha"></label><label class="sg-fin" id="sgFinW" hidden>Fin de la jornada <input type="time" id="sgFin" value="17:00"></label><span class="sg-modo" id="sgModoW" role="group" aria-label="Forma de ver"><button type="button" data-modo="tablero" class="on" title="Una columna por estado">▦ Tablero</button><button type="button" data-modo="lista" title="Tabla">☰ Lista</button></span><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button></div>
 <div id="sgVistaDis">
 <div class="sg-resumen" id="sgResumen"></div>
 <div class="sg-tablero" id="sgTablero"></div>
@@ -441,6 +441,11 @@ window.dsPdfjs = function() {
 <p class="sg-nota">Casos que programó cada manager hoy y si el equipo alcanza a terminarlos antes del fin de la jornada. El tiempo de cada caso pendiente es el <b>promedio real de su producto en los últimos 30 días</b>; la capacidad son los diseñadores en turno (no ausentes, más los prestados que trabajan hoy para el equipo) por el tiempo que queda.</p>
 <div class="sg-resumen" id="sgResumenEq"></div>
 <div class="sg-eq-grid" id="sgEquipos"></div>
+</div>
+<div id="sgVistaProd" hidden>
+<p class="sg-nota">El reporte de producción de cada equipo de N3 y N2, armado con el Schedule del día: diseñadores en turno (las ausencias entre paréntesis), los centros que Openings le da al manager con sus casos <b>nuevos</b> del día y el total. No cuentan los casos que pasaron de otro día ni los cancelados. <b>Copiar</b> deja el texto listo para pegar.</p>
+<div class="sg-prod-acc"><button type="button" class="btn gris" id="sgProdCopiarTodo">Copiar todos</button></div>
+<div class="sg-eq-grid" id="sgProd"></div>
 </div>
 </div></div>
 {% endif %}

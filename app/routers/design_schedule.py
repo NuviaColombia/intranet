@@ -22,6 +22,7 @@ from .. import services_design_accesos as sacc  # también activa el acceso auto
 from .. import services_design_support as ss
 from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
+from .. import services_design_produccion as sprod  # Seguimiento › N3/N2 Producción
 from .. import services_design_pa_excel as spx  # Pre-Approved N3 desde el Excel (12-oct-2026)
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
@@ -2187,6 +2188,13 @@ def api_seguimiento(fin: str = Query("17:00", max_length=5, pattern=r"^\d{1,2}:\
     """Qué está haciendo cada diseñador ahora (libre, en pausa, con casos asignados, ocupado o ausente) y, por equipo,
     si alcanza a cumplir lo programado hoy antes de `fin` (fin de la jornada, HH:MM)."""
     return sd.seguimiento(db, fin_jornada=fin)
+
+
+@router.get("/design/api/seguimiento/produccion")
+def api_seguimiento_produccion(fecha: str = "", user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """N3/N2 Producción: el reporte diario de cada equipo (diseñadores en turno y casos nuevos por centro)."""
+    return {"fecha": (_fecha(fecha) if fecha else sd.ahora_colombia().date()).isoformat(),
+            "equipos": sprod.produccion(db, _fecha(fecha) if fecha else sd.ahora_colombia().date())}
 
 
 # ---------- Papelera ----------

@@ -1006,3 +1006,8 @@
   .pa-foto-bg { position:fixed; inset:0; background:rgba(15,23,42,.82); z-index:3000; display:flex; align-items:center; justify-content:center; padding:24px; cursor:zoom-out; }
   .pa-foto-bg img { max-width:100%; max-height:100%; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,.5); background:#fff; cursor:default; }
   .pa-foto-cerrar { position:absolute; top:14px; right:18px; background:#fff; border:0; border-radius:50%; width:34px; height:34px; font-size:16px; cursor:pointer; }
+
+  /* Seguimiento › N3/N2 Producción */
+  .sg-prod-acc { display:flex; justify-content:flex-end; margin:0 0 10px; }
+  .sg-prod-card header { align-items:flex-start; }
+  .sg-prod-txt { font-family:inherit; font-size:13.5px; line-height:1.5; white-space:pre-wrap; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; margin:8px 0 0; color:#111827; }
