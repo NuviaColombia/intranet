@@ -35,6 +35,10 @@ OPENINGS_COL_EQUIPO = {"N3 Prosthetic": "manager_n3", "N2 Demodenture": "manager
                        "Face Design": "manager_face", "N6 Material Changes": "manager_n6"}
 # Nombres de Pre-Approved que son el mismo centro de Openings con otra escritura.
 PA_CENTRO_ALIAS = {"stlouis": "saintlouis", "vegas": "lasvegas", "wetsbury": "westbury"}
+# "Limbo" (pedido por Rosember el 12-oct-2026): los centros que en Openings quedan sin manager (vacío, N/A, -) pasan con
+# sus doctores y valores a esta hoja de su área en vez de quedarse en la del manager anterior; no se borran. Cuando
+# Openings les asigna manager, la sincronización los lleva a su hoja. Se reconoce por el nombre.
+HOJA_LIMBO = {"N3 Prosthetic": "Sin asignar", "N2 Demodenture": "N2 Sin asignar"}
 MARCA_AUTO = "pa_openings_auto"  # existe desde que se aplicó la primera sincronización: después es automática
 SIN_MANAGER = {"", "n/a", "na", "-", "--"}
 
@@ -128,6 +132,25 @@ def _nombre_hoja_nueva(area_nombre: str, team) -> str:
     return (f"N2 {primero}" if area_nombre == "N2 Demodenture" else primero).strip()
 
 
+def hoja_limbo(hojas: list, area_nombre: str):
+    n = sd._normalizar_texto(HOJA_LIMBO.get(area_nombre, ""))
+    return next((s for s in hojas if n and sd._normalizar_texto(s.nombre) == n), None)
+
+
+def _crear_limbo(db: Session, area, hojas: list):
+    modelo = max(hojas, key=lambda s: len(s.filas), default=None)
+    s = DesignPreApprovedSheet(area_id=area.id, nombre=HOJA_LIMBO[area.nombre],
+                               orden=(max((x.orden or 0 for x in hojas), default=0)) + 1)
+    if modelo:
+        s.titulo, s.changes_label = modelo.titulo, modelo.changes_label
+    db.add(s)
+    db.flush()
+    for i, crit in enumerate(_criterios_plantilla(hojas), start=1):
+        db.add(DesignPreApprovedFila(sheet_id=s.id, criterio=crit, orden=i))
+    db.commit()
+    return s
+
+
 def _bloques(db: Session, sheet) -> list:
     """Bloques de la hoja en orden: {centro, clave, docs}. Doctores sobrantes (más que la suma de spans) quedan
     en un bloque 'suelto' al final que nunca se mueve."""
@@ -179,6 +202,17 @@ def pa_sync_openings(db: Session, aplicar: bool = False, por: str = "Sistema") -
                     creadas = True
         if creadas:
             reglas = sd.reglas_conexion(db)["pa_manager"]
+        # el limbo: solo si hay centros con bloque en Pre-Approved que Openings dejó sin manager
+        for area_nombre, col in PA_OPENINGS_COL.items():
+            area = areas.get(area_nombre)
+            if not area:
+                continue
+            hojas = sd.preapproved_sheets(db, area.id)
+            if hoja_limbo(hojas, area_nombre):
+                continue
+            sin = {centro_clave(f.get("centro") or "") for f in filas_op if _sin_manager(f.get(col, ""))} - {""}
+            if any(b["clave"] in sin for s in hojas for b in _bloques(db, s)):
+                _crear_limbo(db, area, hojas)
 
     papelera_hojas = []
     for area_nombre, col in PA_OPENINGS_COL.items():
@@ -191,6 +225,8 @@ def pa_sync_openings(db: Session, aplicar: bool = False, por: str = "Sistema") -
         etq_col = "Manager N3" if col == "manager_n3" else "Manager N2"
         bloques = {s.id: _bloques(db, s) for s in hojas}
         final = {s.id: list(bloques[s.id]) for s in hojas}
+        limbo = hoja_limbo(hojas, area_nombre)
+        orden_op = {}  # clave → posición en Openings (cada hoja queda con sus centros en ese orden)
 
         # destino de cada centro según Openings
         destino, nombre_op, vistos = {}, {}, set()
@@ -205,9 +241,13 @@ def pa_sync_openings(db: Session, aplicar: bool = False, por: str = "Sistema") -
                 continue
             vistos.add(k)
             nombre_op[k] = nombre
+            orden_op[k] = len(orden_op)
             mtxt = (f.get(col) or "").strip()
             if _sin_manager(mtxt):
-                destino[k] = None
+                # sin manager: al limbo (si aún no existe la hoja, en la vista previa se anuncia como hoja nueva)
+                destino[k] = limbo.id if limbo else ("nueva", "limbo")
+                if not limbo and "limbo" not in hojas_nuevas:
+                    hojas_nuevas["limbo"] = HOJA_LIMBO[area_nombre]
                 continue
             t, motivo = _equipo_de_texto(mtxt, teams)
             if not t:
@@ -239,6 +279,15 @@ def pa_sync_openings(db: Session, aplicar: bool = False, por: str = "Sistema") -
         fusiones, descartes = [], []  # (doctor que queda, doctor que se va) / (bloque, [doctores a la Papelera])
         for k, dst in destino.items():
             lst = por_clave.get(k, [])
+            al_limbo = (limbo is not None and dst == limbo.id) or dst == ("nueva", "limbo")
+            if al_limbo and not lst:
+                continue  # sin manager y sin bloque en Pre-Approved: no hay nada que guardar
+            if al_limbo and all(b["origen"] == dst for b in lst) and len(lst) == 1:
+                continue  # ya está en el limbo
+            if dst == ("nueva", "limbo"):
+                acciones.append(f"«{nombre_op[k]}» no tiene {etq_col} en Openings: pasa a la hoja «{HOJA_LIMBO[area_nombre]}» "
+                                f"con sus doctores (se crea la hoja) mientras lo asignan.")
+                continue
             if dst is None:
                 for b in lst:
                     pendientes.append(f"«{b['nombre']}» en {nombre_hoja[b['origen']]}: Openings no le da {etq_col}. No se toca.")
@@ -286,7 +335,8 @@ def pa_sync_openings(db: Session, aplicar: bool = False, por: str = "Sistema") -
             if not propios:
                 desde = ", ".join(dict.fromkeys(nombre_hoja[b["origen"]] for b in ajenos))
                 acciones.append(f"Mover «{nombre_op[k]}» de {desde} a {etiqueta(dst)} ({len(docs)} doctor{'es' if len(docs) != 1 else ''}"
-                                + (", en un solo bloque" if len(ajenos) > 1 else "") + ").")
+                                + (", en un solo bloque" if len(ajenos) > 1 else "") + ")"
+                                + (f": no tiene {etq_col} en Openings, queda ahí mientras lo asignan." if al_limbo else "."))
             elif len(propios) > 1:
                 acciones.append(f"Unir los {len(propios)} bloques de «{nombre_op[k]}» en {etiqueta(dst)} en uno solo ({len(docs)} doctores).")
             nuevo = {"centro": base["centro"], "nombre": nombre_op[k], "clave": k, "docs": docs, "origen": dst}
@@ -325,9 +375,22 @@ def pa_sync_openings(db: Session, aplicar: bool = False, por: str = "Sistema") -
         for sid, cs in faltan.items():
             acciones.append(f"Agregar a {etiqueta(sid)} los criterios que traen los doctores movidos: {', '.join(cs)}.")
 
-        # hojas que quedan sin centros y cuyo manager no está en Openings → Papelera
+        # cada hoja con sus centros en el orden de Openings (los que Openings no conoce, al final en su orden)
+        for sid, lista in final.items():
+            if isinstance(sid, tuple):
+                continue
+            con = [b for b in lista if not b.get("suelto")]
+            ordenados = sorted(con, key=lambda b: (orden_op.get(b["clave"], 10 ** 6), con.index(b)))
+            if [id(b) for b in ordenados] != [id(b) for b in con]:
+                final[sid] = ordenados + [b for b in lista if b.get("suelto")]
+                if [b["clave"] for b in ordenados] != [b["clave"] for b in con]:
+                    acciones.append(f"Ordenar los centros de {etiqueta(sid)} como en Openings.")
+
+        # hojas que quedan sin centros y cuyo manager no está en Openings → Papelera (el limbo se conserva)
         destinos = {d for d in destino.values() if d is not None}
         for s in hojas:
+            if limbo is not None and s.id == limbo.id:
+                continue
             if s.id not in destinos and not [b for b in final[s.id] if not b.get("suelto")] and bloques[s.id]:
                 acciones.append(f"La hoja «{s.nombre}» queda sin centros (su manager no tiene centros en Openings) → Papelera.")
                 papelera_hojas.append(s.id)
@@ -546,15 +609,17 @@ def openings_asignar_por_pa(db: Session, area_id: int, centros: list) -> list:
     filas = _filas_openings(db)
     datos = [json.loads(f.datos or "{}") for f in filas]
     cambios = []
+    limbo = hoja_limbo(hojas, area.nombre)
     for nombre, sheet_id in centros:
         sheet = next((s for s in hojas if s.id == sheet_id), None)
-        team = _equipo_de_hoja(sheet, teams, reglas) if sheet else None
+        a_limbo = sheet is not None and limbo is not None and sheet.id == limbo.id
+        team = _equipo_de_hoja(sheet, teams, reglas) if sheet and not a_limbo else None
         k = centro_clave(nombre)
-        if not team or not k:
+        if (not team and not a_limbo) or not k:
             continue
         for f, d in zip(filas, datos):
             if centro_clave(d.get("centro", "")) == k:
-                nuevo = _nombre_para_openings(team, col, datos)
+                nuevo = "" if a_limbo else _nombre_para_openings(team, col, datos)  # al limbo: sin manager
                 if d.get(col, "") != nuevo:
                     d[col] = nuevo
                     f.datos = json.dumps(d, ensure_ascii=False)

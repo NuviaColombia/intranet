@@ -52,7 +52,7 @@ CONEXIONES = [
 ]
 
 HUELLAS = {
-    "app/services_design_origenes.py:*": "d53cf0290f06dd3d",
+    "app/services_design_origenes.py:*": "d59f053cabbba382",
     "app/services_design.py:centros_de_equipo": "973cfef086be1c96",
     "app/services_design.py:_openings_filas_cache": "2eaebe0d6ecdb458",
     "app/routers/design_schedule.py:api_openings_celda": "39e97b0527c21fc6",
