@@ -423,7 +423,8 @@
     return pg.render({canvasContext: x, viewport: v2}).promise.then(function() { return c.toDataURL('image/jpeg', 0.85); });
   }
   // Recorre las operaciones de dibujo para ubicar las imágenes (con su matriz de transformación).
-  function extraerImagenes(pdfjs, pg, ops, vp) {
+  // conAlfa: las imágenes con transparencia salen en PNG (logos); si no, JPEG. También la usa Protocols (protocolo.js).
+  function extraerImagenes(pdfjs, pg, ops, vp, conAlfa) {
     var O = pdfjs.OPS, pila = [], ctm = [1, 0, 0, 1, 0, 0], res = [];
     res.vinetas = [];  // viñetas dibujadas (puntos o cuadritos rellenos pequeños)
     var RELLENOS = [O.fill, O.eoFill, O.fillStroke, O.eoFillStroke, O.closeFillStroke, O.closeEOFillStroke];
@@ -449,7 +450,7 @@
             var dibujar = function(img) {
               try {
                 if (!img) { ok(null); return; }
-                var c = document.createElement('canvas'), cx = c.getContext('2d');
+                var c = document.createElement('canvas'), cx = c.getContext('2d', {willReadFrequently: !!conAlfa});
                 if (img.bitmap) { c.width = img.bitmap.width; c.height = img.bitmap.height; cx.drawImage(img.bitmap, 0, 0); }
                 else if (img.data && img.width) {
                   c.width = img.width; c.height = img.height;
@@ -461,15 +462,25 @@
                   cx.putImageData(id, 0, 0);
                 } else { ok(null); return; }
                 if (c.width * c.height > 4e6) { var k2 = Math.sqrt(4e6 / (c.width * c.height)), c2 = document.createElement('canvas'); c2.width = Math.round(c.width * k2); c2.height = Math.round(c.height * k2); c2.getContext('2d').drawImage(c, 0, 0, c2.width, c2.height); c = c2; }
+                if (conAlfa) {
+                  var px2 = cx.getImageData(0, 0, c.width, c.height).data, alfa = false;
+                  for (var q2 = 3; q2 < px2.length; q2 += 4 * 7) { if (px2[q2] < 250) { alfa = true; break; } }
+                  if (alfa) { ok(c.toDataURL('image/png')); return; }
+                }
                 ok(c.toDataURL('image/jpeg', 0.88));
               } catch (e) { ok(null); }
             };
             if (inline) { dibujar(nombre); return; }
-            try { var o = pg.objs.get(nombre); dibujar(o); } catch (e) { pg.objs.get(nombre, dibujar); }
+            // Las imágenes que se repiten en varias páginas son objetos compartidos (g_…): están en commonObjs, no en objs
+            var almacen = String(nombre).indexOf('g_') === 0 ? pg.commonObjs : pg.objs, listo = false;
+            var una = function(img) { if (listo) return; listo = true; dibujar(img); };
+            setTimeout(function() { una(null); }, 8000);  // si la imagen no llega, se sigue sin ella
+            try { una(almacen.get(nombre)); } catch (e) { try { almacen.get(nombre, una); } catch (e2) { una(null); } }
           })});
         })(fn === O.paintInlineImageXObject ? args[0] : args[0], fn === O.paintInlineImageXObject, w, h, x, y);
       }
     }
     return res;
   }
+  PDF.extraerImagenes = extraerImagenes;
 })();

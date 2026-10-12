@@ -6386,7 +6386,7 @@ window.DS_PANELS.dashboard = function() {
       .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo abrir.'); return d; }); })
       .then(function(st) {
         var fuentes = '<div class="pr-ed-ops">' +
-          (p.tieneArchivo ? '<button type="button" class="pr-ed-op" data-d="pdf"><b>📄 Desde el PDF publicado</b><span>Cada página queda como una diapositiva (la página de fondo). Puedes agregar o cambiar textos, imágenes y formas encima, quitar, ordenar o agregar diapositivas.</span></button>' : '') +
+          (p.tieneArchivo ? '<button type="button" class="pr-ed-op" data-d="pdf"><b>📄 Desde el PDF publicado</b><span>Cada página queda como una diapositiva editable: los textos (con su tamaño y color) y las fotos quedan sueltos para cambiarlos, moverlos o borrarlos; las formas y colores quedan de fondo.</span></button>' : '') +
           '<button type="button" class="pr-ed-op" data-d="pptx"><b>📊 Desde el PowerPoint original (.pptx)</b><span>Si tienes el archivo de Zoho Show o PowerPoint: todo el texto queda editable.</span></button></div>';
         var html = '<h4>Editar contenido del protocolo</h4><div class="ds-qc-sub"></div>' +
           (st.docId ? '<p class="pr-ed-txt">Ya hay un borrador de este protocolo' + (st.actualizado ? ' (guardado el ' + esc(prFechaCorta(st.actualizado)) + (st.actualizadoPor ? ' por ' + esc(st.actualizadoPor) : '') + ')' : '') + '. Lo que cambies ahí no se ve hasta que lo publiques.</p>' +
