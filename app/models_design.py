@@ -359,6 +359,23 @@ class DesignOpeningsFila(Base):
     datos: Mapped[str] = mapped_column(Text, default="{}")
 
 
+class DesignOpeningsHistorial(Base):
+    """Historial de cambios de Openings: quién cambió qué celda, fila o columna y cuándo. No se borra nunca
+    (services_design_openings_historial: se registra solo, venga el cambio de donde venga)."""
+    __tablename__ = "design_openings_historial"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hoja_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fila_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    centro: Mapped[str] = mapped_column(String(150), default="")
+    columna: Mapped[str] = mapped_column(String(60), default="")   # clave de la columna
+    accion: Mapped[str] = mapped_column(String(30), default="celda")  # celda | fila_nueva | fila_eliminada | columna_*
+    antes: Mapped[str] = mapped_column(Text, default="")
+    despues: Mapped[str] = mapped_column(Text, default="")
+    por: Mapped[str] = mapped_column(String(150), default="")       # correo de quien lo hizo (o "Sistema")
+    fecha: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
 class DesignFestivo(Base):
     """Festivo de la empresa: las órdenes en Hold no pasan a este día (se saltan, como sábados y domingos)."""
     __tablename__ = "design_festivos"

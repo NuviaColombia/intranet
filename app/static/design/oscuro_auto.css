@@ -900,7 +900,7 @@
 /* ---- templates\design_schedule.html <style> (0 reglas) ---- */
 
 
-/* ---- templates\design_parametros.html <style> (106 reglas) ---- */
+/* ---- templates\design_parametros.html <style> (115 reglas) ---- */
 :root[data-ds-tema="oscuro"] .aud-sub { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .aud-info { border:1px solid #394149; color:#bbc0cb; }
 :root[data-ds-tema="oscuro"] .aud-switch { color:#bfcad9; }
@@ -1007,11 +1007,20 @@
 :root[data-ds-tema="oscuro"] .st-dias label:has(input:checked) { background:#12233a; border-color:#2d3f62; color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .st-prox th, :root[data-ds-tema="oscuro"] .st-prox td { border-bottom:1px solid #2e3640; }
 :root[data-ds-tema="oscuro"] .st-prox th { color:#aab2bf; }
+:root[data-ds-tema="oscuro"] .op-hist-bg { background:rgba(15,23,42,.45); }
+:root[data-ds-tema="oscuro"] .op-hist { background:#131925; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+:root[data-ds-tema="oscuro"] .op-hist-cab input { border:1px solid #343d4e; }
+:root[data-ds-tema="oscuro"] .op-hist-lista { border:1px solid #2f3747; }
+:root[data-ds-tema="oscuro"] .op-hist-lista th { background:#181f26; color:#c5cad3; border-bottom:1px solid #2f3747; }
+:root[data-ds-tema="oscuro"] .op-hist-lista td { border-bottom:1px solid #2d3740; }
+:root[data-ds-tema="oscuro"] .op-hist-lista .antes { color:#ed8888; }
+:root[data-ds-tema="oscuro"] .op-hist-lista .despues { color:#a6f8e0; }
+:root[data-ds-tema="oscuro"] .op-hist-lista .vacio { color:#abb2c0; }
 
 /* ---- templates\design_inicio.html <style> (0 reglas) ---- */
 
 
-/* ---- colores en style="" de plantillas y JS (39 reglas) ---- */
+/* ---- colores en style="" de plantillas y JS (40 reglas) ---- */
 :root[data-ds-tema="oscuro"] [style*="background:#fff"] { background-color:#131925 !important; }
 :root[data-ds-tema="oscuro"] [style*="background:#cbd5e1"] { background-color:#252c33 !important; }
 :root[data-ds-tema="oscuro"] [style*="background:#dbeafe"] { background-color:#12233a !important; }
@@ -1041,6 +1050,7 @@
 :root[data-ds-tema="oscuro"] [style*="color:#1e40af"]:not([style*="-color:#1e40af"]) { color:#8da3ec !important; }
 :root[data-ds-tema="oscuro"] [style*="color:#334155"]:not([style*="-color:#334155"]) { color:#bfcad9 !important; }
 :root[data-ds-tema="oscuro"] [style*="color:#3730a3"]:not([style*="-color:#3730a3"]) { color:#9b96e0 !important; }
+:root[data-ds-tema="oscuro"] [style*="color:#374151"]:not([style*="-color:#374151"]) { color:#c5cad3 !important; }
 :root[data-ds-tema="oscuro"] [style*="color:#475569"]:not([style*="-color:#475569"]) { color:#bbc0cb !important; }
 :root[data-ds-tema="oscuro"] [style*="color:#4b5563"]:not([style*="-color:#4b5563"]) { color:#bbc1cc !important; }
 :root[data-ds-tema="oscuro"] [style*="color:#5b21b6"]:not([style*="-color:#5b21b6"]) { color:#b08bea !important; }

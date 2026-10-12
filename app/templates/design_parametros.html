@@ -675,6 +675,7 @@
       <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
             title="Base de datos de la distribución de centros (cargada de la hoja 2026 del Excel 'Openings Distribucion 2026'). Todo se edita aquí: haz clic en una celda o en un título para cambiarlo (Enter guarda, Esc cancela). + Fila / + Columna agregan; × quita una fila (queda en la Papelera de Design). Las columnas Hoy y Desde (próximo cambio de hora) se calculan solas con la Zona horaria de cada centro (Este, Centro, Montaña, Arizona o Pacífico) comparada con la hora de Colombia. En cada columna, el ▾ de la esquina (o clic en el título) abre sus opciones: renombrar, ordenar la vista, moverla u ocultarla (ocultar es solo en tu vista; los datos no se borran; 'Mostrar ocultas' las trae de vuelta).">i</span>
     </div>
+    <button type="button" class="btn gris" id="opHistBtn" title="Quién cambió qué en Openings y cuándo (no se borra)">🕘 Historial</button>
     <label class="aud-switch">
       <input type="checkbox" id="opSwitch" role="switch" aria-controls="opContenido">
       <span class="aud-slider" aria-hidden="true"></span>
@@ -683,6 +684,31 @@
   </div>
   <div id="opContenido" hidden></div>
 </div>
+<div class="op-hist-bg" id="opHist" hidden role="dialog" aria-modal="true" aria-labelledby="opHistTit">
+  <div class="op-hist">
+    <div class="op-hist-cab"><h3 id="opHistTit">Historial de Openings</h3>
+      <input type="search" id="opHistQ" placeholder="Buscar centro, persona o valor…" aria-label="Buscar en el historial">
+      <button type="button" class="btn gris" id="opHistCerrar" aria-label="Cerrar">✕</button></div>
+    <p class="aud-sub" style="margin:0 0 8px">Cada cambio en Openings queda aquí con quién lo hizo y cuándo (también los que llegan de Pre-Approved o de Equipos). Este historial no se borra.</p>
+    <div class="op-hist-lista" id="opHistLista"></div>
+    <div style="text-align:center;padding:8px 0 0"><button type="button" class="btn gris" id="opHistMas" hidden>Ver más</button></div>
+  </div>
+</div>
+<style>
+  .op-hist-bg { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:3000; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; }
+  .op-hist-bg[hidden] { display:none; }
+  .op-hist { background:#fff; border-radius:12px; width:min(1000px, 100%); max-height:calc(100vh - 80px); display:flex; flex-direction:column; padding:16px 18px; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+  .op-hist-cab { display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .op-hist-cab h3 { margin:0; font-size:17px; flex:1; }
+  .op-hist-cab input { width:280px; max-width:100%; padding:7px 10px; border:1px solid #d1d5db; border-radius:8px; }
+  .op-hist-lista { overflow:auto; border:1px solid #e5e7eb; border-radius:8px; }
+  .op-hist-lista table { width:100%; border-collapse:collapse; font-size:13px; }
+  .op-hist-lista th { position:sticky; top:0; background:#f8fafc; text-align:left; padding:7px 9px; color:#374151; font-size:12px; border-bottom:1px solid #e5e7eb; }
+  .op-hist-lista td { padding:7px 9px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+  .op-hist-lista .antes { color:#b91c1c; text-decoration:line-through; }
+  .op-hist-lista .despues { color:#047857; }
+  .op-hist-lista .vacio { color:#6b7280; font-style:italic; }
+</style>
 
 {% if not solo_openings %}
 <div class="tarjeta aud-tarjeta" id="syTarjeta">
@@ -730,6 +756,43 @@
     var t = document.createElement('div'); t.className = 'param-toast' + (error ? ' error' : ''); t.setAttribute('role', 'status');
     t.innerText = msg; document.body.appendChild(t); setTimeout(function() { t.remove(); }, error ? 7000 : 4500);
   }
+  // ---------- Historial de Openings (no se borra) ----------
+  (function() {
+    var bg = document.getElementById('opHist'), lista = document.getElementById('opHistLista'), q = document.getElementById('opHistQ'),
+        mas = document.getElementById('opHistMas'), ultimo = null, tok = 0, tq = null;
+    var ACC = {celda: 'Cambió', fila_nueva: 'Agregó la fila', fila_eliminada: 'Quitó la fila', columna_nueva: 'Agregó la columna',
+               columna_renombrada: 'Renombró la columna', columna_eliminada: 'Quitó la columna'};
+    var val = function(v, clase) { return v ? '<span class="' + clase + '">' + esc(v.length > 160 ? v.slice(0, 160) + '…' : v) + '</span>' : '<span class="vacio">(vacío)</span>'; };
+    var resumenFila = function(t) { try { var d = JSON.parse(t || '{}'); return Object.keys(d).filter(function(k) { return d[k]; }).slice(0, 6).map(function(k) { return k + ': ' + d[k]; }).join(' · '); } catch (e) { return t; } };
+    function pintar(r, agregar) {
+      var filas = r.cambios.map(function(c) {
+        var f = new Date(c.fecha), cuando = f.toLocaleString('es-CO', {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'});
+        var que = c.accion === 'celda' ? val(c.antes, 'antes') + ' → ' + val(c.despues, 'despues')
+          : c.accion === 'fila_eliminada' ? val(resumenFila(c.antes), 'antes') : c.accion === 'fila_nueva' ? val(resumenFila(c.despues), 'despues')
+          : val(c.antes, 'antes') + (c.despues ? ' → ' + val(c.despues, 'despues') : '');
+        return '<tr><td style="white-space:nowrap">' + esc(cuando) + '</td><td>' + esc(c.por || 'Sistema') + '</td><td>' + esc(c.centro || '—') + '</td><td>' +
+               esc(ACC[c.accion] || c.accion) + (c.columna ? ' <b>' + esc(c.columna) + '</b>' : '') + '</td><td>' + que + '</td></tr>';
+      }).join('');
+      if (!agregar) lista.innerHTML = '<table><thead><tr><th>Fecha</th><th>Quién</th><th>Centro</th><th>Qué</th><th>Antes → después</th></tr></thead><tbody></tbody></table>';
+      lista.querySelector('tbody').insertAdjacentHTML('beforeend', filas || (agregar ? '' : '<tr><td colspan="5" class="vacio">No hay cambios registrados todavía.</td></tr>'));
+      ultimo = r.cambios.length ? r.cambios[r.cambios.length - 1].id : null; mas.hidden = !r.mas;
+    }
+    function cargar(agregar) {
+      var t = ++tok, u = '/design/api/openings/historial?q=' + encodeURIComponent(q.value.trim()) + (agregar && ultimo ? '&antes_de=' + ultimo : '');
+      if (!agregar) lista.innerHTML = '<p class="aud-sub" style="padding:10px">Cargando…</p>';
+      fetch(u, {credentials: 'same-origin'}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(r) { if (t === tok) pintar(r, agregar); })
+        .catch(function(e) { if (t === tok) lista.innerHTML = AUD_ROJO_OP('No se pudo cargar: ' + esc(e.message)); });
+    }
+    var AUD_ROJO_OP = function(t) { return '<p style="color:#b91c1c;padding:10px">' + t + '</p>'; };
+    var cerrar = function() { bg.hidden = true; document.getElementById('opHistBtn').focus(); };
+    document.getElementById('opHistBtn').addEventListener('click', function() { bg.hidden = false; q.value = ''; cargar(false); q.focus(); });
+    document.getElementById('opHistCerrar').addEventListener('click', cerrar);
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && !bg.hidden) cerrar(); });
+    q.addEventListener('input', function() { clearTimeout(tq); tq = setTimeout(function() { cargar(false); }, 300); });
+    mas.addEventListener('click', function() { cargar(true); });
+  })();
 {% if not solo_openings %}
   // ---------- Acciones compartidas por Conexión e Importar ----------
   var AUD_ROJO = function(t) { return '<span style="color:#b91c1c">' + t + '</span>'; };

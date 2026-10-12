@@ -3167,7 +3167,31 @@ def _trash_registrar(db: Session, modulo: str, etiqueta: str, payload: dict, eli
     return t
 
 
+# La Papelera se limpia sola: lo que entra se borra a los 15 días (pedido por Rosember el 12-oct-2026). El historial de
+# Openings (design_openings_historial) NO se borra. Se revisa como mucho una vez al día, al abrir Design o la Papelera.
+PAPELERA_DIAS = 15
+_purga_papelera = {"dia": None}
+
+
+def trash_purgar(db: Session, dias: int = PAPELERA_DIAS, forzar: bool = False) -> int:
+    hoy = ahora_colombia().date()
+    if _purga_papelera["dia"] == hoy and not forzar:
+        return 0
+    try:
+        limite = datetime.utcnow() - timedelta(days=dias)
+        n = db.query(DesignTrash).filter(DesignTrash.eliminado_en < limite).delete(synchronize_session=False)
+        if n:
+            pr_limpiar_archivos_huerfanos(db)  # los PDF de protocolos borrados que ya no están en la Papelera
+        db.commit()
+        _purga_papelera["dia"] = hoy
+        return n
+    except Exception:
+        db.rollback()
+        return 0
+
+
 def trash_listar(db: Session) -> list[DesignTrash]:
+    trash_purgar(db)
     return db.query(DesignTrash).options(defer(DesignTrash.payload)).order_by(DesignTrash.eliminado_en.desc()).all()
 
 

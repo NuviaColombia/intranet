@@ -53,3 +53,25 @@ nav .ds-nav-extras .ds-push-pop { left:auto; right:-70px; transform:none; }
 :root[data-ds-tema="oscuro"] .tr-raiz .tr-hero-cta .tr-btn-primario { background:var(--tr-card); }
 /* Canvas: el título de cada hoja conserva su color, más claro para leerse sobre fondo oscuro */
 :root[data-ds-tema="oscuro"] .cv-thumb-title { filter:brightness(1.8) saturate(.8); }
+
+/* ---------- Estados con la MISMA tonalidad que en modo claro (pedido por Rosember el 12-oct-2026) ----------
+   Hold / Dr authorization, Ready to design / Changes, Html, Approved y Canceled conservan su color claro; dentro de esas
+   filas (o solo en la celda de Estado si el suiche de colores está apagado) el texto y las listas van oscuros. */
+table.ds-tabla tr.ds-fila-hold { --ds-est:#edbfab; }
+table.ds-tabla tr.ds-fila-ready { --ds-est:#fef3c7; }
+table.ds-tabla tr.ds-fila-html { --ds-est:#f5c9d7; }
+table.ds-tabla tr.ds-fila-aprobada { --ds-est:#d6f5b8; }
+table.ds-tabla tr.ds-fila-cancelada { --ds-est:#f3f4f6; }
+:root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td,
+:root[data-ds-tema="oscuro"] body.ds-color-solo-estado table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td:has([data-campo="estado"]) {
+  background:var(--ds-est) !important; color:#111827; }
+:root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td :is(input, select, span, b),
+:root[data-ds-tema="oscuro"] body.ds-color-solo-estado table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td:has([data-campo="estado"]) :is(input, select) {
+  background:transparent !important; color:#111827 !important; -webkit-text-fill-color:#111827 !important; color-scheme:light; }
+:root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr.ds-fila-cancelada td :is(input, select) { color:#4b5563 !important; -webkit-text-fill-color:#4b5563 !important; }
+:root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td :is(.ds-btn-ojo, .ds-thold, .ds-total) { color:#374151 !important; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-hold { background:#edbfab; color:#111827; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-ready { background:#fef3c7; color:#111827; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-html { background:#f5c9d7; color:#111827; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-aprobada { background:#d6f5b8; color:#111827; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-cancelada { background:#f3f4f6; color:#4b5563; }

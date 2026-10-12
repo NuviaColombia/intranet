@@ -24,6 +24,7 @@ from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
 from .. import services_design_produccion as sprod  # Seguimiento › N3/N2 Producción
 from .. import services_design_pa_excel as spx
+from .. import services_design_openings_historial as soh  # historial de Openings (también instala el registro)
 from .. import services_design_protocolos_edicion as spe  # Protocols: editar en Nuvia Office y publicar  # Pre-Approved N3 desde el Excel (12-oct-2026)
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
@@ -120,7 +121,7 @@ DESIGN_CONCURRENCIA = max(1, int(os.getenv("DESIGN_CONCURRENCIA", "8")))
 _RutaDesign = clase_con_cupo(DESIGN_CONCURRENCIA)
 
 
-router = APIRouter(route_class=_RutaDesign)
+router = APIRouter(route_class=_RutaDesign, dependencies=[Depends(soh.marcar_quien)])  # quién: historial de Openings
 
 NUVIA_DESIGN = "Nuvia Design Colombia SAS"
 
@@ -218,6 +219,7 @@ def api_rol_design(payload: RolDesignIn, user: Empleado = Depends(require_admin)
 def pagina(request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
                  db: Session = Depends(get_db)):
     sacc.revisar_una_vez(db)   # una sola vez: da el acceso que falte a los que ya están en equipos
+    sd.trash_purgar(db)        # Papelera: lo de más de 15 días se borra (una vez al día)
     # Áreas y tipos de ausencia van dentro de la página: son 2 peticiones menos por persona al abrir el horario.
     areas = sd.areas_disponibles(db)
     inicio = {"areas": [{"id": a.id, "nombre": a.nombre, "formato": a.formato} for a in areas],
@@ -400,6 +402,13 @@ def api_pa_excel(user: Empleado = Depends(require_admin), db: Session = Depends(
 @router.post("/design/api/parametros/pa-excel/aplicar")
 def api_pa_excel_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return spx.aplicar(db, user.nombre_completo)
+
+
+@router.get("/design/api/openings/historial")
+def api_openings_historial(q: str = Query("", max_length=100), antes_de: int | None = None,
+                           user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Historial de cambios de Openings (no se borra): quién cambió qué y cuándo."""
+    return soh.listar(db, q, 300, antes_de)
 
 
 @router.post("/design/api/openings/filas")
