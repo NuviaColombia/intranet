@@ -1354,7 +1354,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     spec.forEach(function(c) {
       if (c.t !== 'catalogo') return;
       dsCatalogo(c.cat).then(function(valores) {
-        if (c.k === 'producto' && tabla === 'nightguard') valores = valores.filter(dsEsProductoNG);
+        // Nightguards / TC: sus productos y, al final, los de Material Change (pedido por Rosember el 12-oct-2026)
+        if (c.k === 'producto' && tabla === 'nightguard') {
+          valores = valores.filter(function(v) { return dsEsProductoNG(v) && !dsEsProductoMaterial(v); })
+            .concat(DS_PRODUCTOS_MATERIAL.map(function(m) { return valores.find(function(v) { return dsNorm(v) === m; }); }).filter(Boolean));
+        }
         // Material Change: solo sus productos, y esos productos ya no se eligen en Cirugías
         if (c.k === 'producto' && tabla === 'material') valores = valores.filter(dsEsProductoMaterial);
         if (c.k === 'producto' && tabla === 'principal') valores = valores.filter(function(v) { return !dsEsProductoMaterial(v); });
