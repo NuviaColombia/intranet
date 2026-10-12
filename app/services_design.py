@@ -274,6 +274,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
+    productos_al_final_una_vez(db)
     vals = [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
@@ -529,6 +530,38 @@ PRODUCTO_PROSTHETIC_SCAN = "Prosthetic Scan/Measurement"
 _prosthetic_scan = {"ok": False}
 
 
+# Productos que se agregan una sola vez al final de la lista de un área: (áreas, producto, marca en design_conexion_reglas).
+# Si ya existe, se reactiva y pasa al final. Para agregar otro, se suma una fila con una marca nueva.
+PRODUCTOS_AL_FINAL = [
+    (["Face Design"], "Maxilar Print", "producto_maxilar_print_face_2026_10_12"),  # pedido por Rosember el 12-oct-2026
+]
+_productos_al_final = {"ok": False}
+
+
+def productos_al_final_una_vez(db: Session) -> None:
+    from .models_design import DesignConexionRegla
+    if _productos_al_final["ok"]:
+        return
+    try:
+        hechas = {r[0] for r in db.query(DesignConexionRegla.clave).filter(DesignConexionRegla.tipo == "sistema")}
+        for areas, producto, marca in PRODUCTOS_AL_FINAL:
+            if marca in hechas:
+                continue
+            for area in db.query(DesignArea).filter(DesignArea.nombre.in_(areas)).all():
+                productos = db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "producto").all()
+                ult = max([c.orden or 0 for c in productos] or [0]) + 1
+                c = next((x for x in productos if _normalizar_texto(x.valor) == _normalizar_texto(producto)), None)
+                if c:
+                    c.activo, c.orden = 1, ult
+                else:
+                    db.add(DesignCatalogo(area_id=area.id, tipo="producto", valor=producto, activo=1, orden=ult))
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+        db.commit()
+        _productos_al_final["ok"] = True
+    except Exception:
+        db.rollback()
+
+
 def producto_prosthetic_scan_una_vez(db: Session) -> None:
     from .models_design import DesignConexionRegla
     if _prosthetic_scan["ok"]:
@@ -589,6 +622,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
+    productos_al_final_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
