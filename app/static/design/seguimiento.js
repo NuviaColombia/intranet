@@ -83,7 +83,7 @@
       var sep = '';
       if (x.grupo !== previo) { previo = x.grupo; sep = '<tr class="sg-sep sg-' + x.grupo + '"><td colspan="5">' + GRUPOS[x.grupo].ico + ' ' + GRUPOS[x.grupo].rot + ' <span>' + esc(GRUPOS[x.grupo].desc) + '</span></td></tr>'; }
       return sep + '<tr class="sg-fila sg-' + x.grupo + '">' +
-        '<td><div class="sg-persona"><span class="sg-av" data-id="' + x.id + '">' + esc(iniciales(x.nombre)) + '</span><b>' + esc(x.nombre) + '</b></div></td>' +
+        '<td><div class="sg-persona"><span class="sg-av" data-id="' + x.id + '">' + esc(iniciales(x.nombre)) + '</span><b>' + esc(x.nombre) + '</b>' + (x.manager ? ' <span class="sg-mgr">Manager</span>' : '') + '</div></td>' +
         '<td class="sg-eq">' + esc(x.equipos.join(', ')) + '<div class="sg-sub">' + esc(x.areas.join(', ')) + '</div></td>' +
         '<td><span class="sg-estado sg-' + x.grupo + '">' + GRUPOS[x.grupo].ico + ' ' + GRUPOS[x.grupo].rot + '</span></td>' +
         '<td class="sg-que">' + queHace(x) + '</td>' +
@@ -111,7 +111,7 @@
         '<p class="sg-col-desc">' + esc(GRUPOS[g].desc) + '</p>' +
         (de.length ? de.map(function(x) {
           return '<article class="sg-card sg-' + x.grupo + '">' +
-            '<div class="sg-card-cab">' + avatar(x) + '<div><b>' + esc(x.nombre) + '</b><div class="sg-sub">' + esc(x.equipos.join(', ')) + ' · ' + esc(x.areas.join(', ')) + '</div></div>' +
+            '<div class="sg-card-cab">' + avatar(x) + '<div><b>' + esc(x.nombre) + '</b>' + (x.manager ? ' <span class="sg-mgr">Manager</span>' : '') + '<div class="sg-sub">' + esc(x.equipos.join(', ')) + ' · ' + esc(x.areas.join(', ')) + '</div></div>' +
             '<span class="sg-hechos" title="Casos terminados hoy">✔ ' + (x.terminadosHoy || 0) + '</span></div>' +
             '<div class="sg-card-que">' + queHace(x) + '</div></article>';
         }).join('') : '<div class="sg-col-vacia">Nadie</div>') + '</section>';
@@ -136,7 +136,7 @@
       var pct = e.total ? Math.round(e.hechos * 100 / e.total) : 0, S = SEMAFORO[e.semaforo];
       var n = e.enTurno.length + e.prestados.length + e.deOtrosEquipos;
       var progr = e.cirugias + (e.cirugias === 1 ? ' cirugía' : ' cirugías') + (e.nightguards ? ' · ' + e.nightguards + ' nightguard' + (e.nightguards === 1 ? '' : 's') : '');
-      var gente = e.enTurno.map(function(p) { return '<span class="sg-p sg-' + p.grupo + '" title="' + esc(GRUPOS[p.grupo] ? GRUPOS[p.grupo].rot : '') + '"><i></i>' + esc(p.nombre.split(' ').slice(0, 2).join(' ')) + '</span>'; }).join('') +
+      var gente = e.enTurno.map(function(p) { return '<span class="sg-p sg-' + p.grupo + '" title="' + esc(GRUPOS[p.grupo] ? GRUPOS[p.grupo].rot : '') + '"><i></i>' + esc(p.nombre.split(' ').slice(0, 2).join(' ')) + (p.manager ? ' (manager)' : '') + '</span>'; }).join('') +
         e.prestados.map(function(nm) { return '<span class="sg-p sg-prest" title="Prestado de otro equipo"><i></i>' + esc(nm) + ' (prestado)</span>'; }).join('') +
         (e.deOtrosEquipos ? '<span class="sg-p sg-prest"><i></i>+' + e.deOtrosEquipos + ' de otros equipos</span>' : '');
       var detalle = e.semaforo === 'si' || e.semaforo === 'justo' || e.semaforo === 'no'

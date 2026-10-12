@@ -700,10 +700,40 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
             e = d.empleado
             if not e or not getattr(e, "activo", 1):
                 continue
-            x = personas.setdefault(e.id, {"id": e.id, "nombre": e.nombre_completo, "equipos": [], "teamIds": [], "areas": []})
+            x = personas.setdefault(e.id, {"id": e.id, "nombre": e.nombre_completo, "equipos": [], "teamIds": [], "areas": [], "manager": False})
             x["equipos"].append(t.nombre); x["teamIds"].append(t.id)
             if t.area.nombre not in x["areas"]:
                 x["areas"].append(t.area.nombre)
+    # Los managers también diseñan: cada equipo activo suma a su manager, aunque no esté en la lista de diseñadores
+    # (pedido por Rosember el 12-oct-2026: faltaban managers como Luisa Ortiz).
+    por_equipo = {t.id: t for t in equipos}
+    mgr_ids = {t.manager_id for t in equipos if t.manager_id}
+    mgrs = {e.id: e for e in db.query(_E).filter(_E.id.in_(mgr_ids))} if mgr_ids else {}
+    for t in equipos:
+        e = mgrs.get(t.manager_id)
+        if not e or not getattr(e, "activo", 1):
+            continue
+        x = personas.setdefault(e.id, {"id": e.id, "nombre": e.nombre_completo, "equipos": [], "teamIds": [], "areas": [], "manager": False})
+        x["manager"] = True
+        if t.id not in x["teamIds"]:
+            x["equipos"].append(t.nombre); x["teamIds"].append(t.id)
+        if t.area.nombre not in x["areas"]:
+            x["areas"].append(t.area.nombre)
+    # Y quien tenga casos hoy en un equipo activo sin estar en él (p. ej. lo quitaron del equipo pero sigue con casos)
+    sueltos = (db.query(DesignOrden.designer_id, DesignOrden.team_id)
+               .filter(DesignOrden.fecha == hoy, DesignOrden.designer_id.isnot(None), DesignOrden.team_id.in_(list(por_equipo)))
+               .distinct().all()) if por_equipo else []
+    faltan = {did for did, _ in sueltos if did not in personas}
+    for e in (db.query(_E).filter(_E.id.in_(faltan)).all() if faltan else []):
+        if not getattr(e, "activo", 1):
+            continue
+        x = personas.setdefault(e.id, {"id": e.id, "nombre": e.nombre_completo, "equipos": [], "teamIds": [], "areas": [], "manager": False})
+        for did, tid in sueltos:
+            t = por_equipo.get(tid)
+            if did == e.id and t and t.id not in x["teamIds"]:
+                x["equipos"].append(t.nombre); x["teamIds"].append(t.id)
+                if t.area.nombre not in x["areas"]:
+                    x["areas"].append(t.area.nombre)
     ids = list(personas)
     ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.team))
                .filter(DesignOrden.fecha == hoy, DesignOrden.designer_id.in_(ids)).all()) if ids else []
@@ -829,6 +859,11 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
             ini = _seg_hora(next((h for h in ((o.f_hold or "").strip(), (o.hora_inicio_diseno or "").strip(), (o.hora_inicio or "").strip()) if h), ""))
             pendiente_min += max(15, estimado(o) - (minuto - ini if ini is not None and ini <= minuto else 0))
         propios = [d.empleado for d in t.designers if d.empleado and getattr(d.empleado, "activo", 1)]
+        # el manager cuenta en su equipo cuando tiene casos propios hoy (también diseña)
+        if t.manager_id and t.manager_id not in {e.id for e in propios} and any(o.designer_id == t.manager_id for o in mias):
+            m_e = db.get(Empleado, t.manager_id)
+            if m_e and getattr(m_e, "activo", 1):
+                propios.append(m_e)
         en_turno = [e for e in propios if e.id not in ausentes]
         prestados = sorted({(o.designer_prestado or "").strip() for o in mias if (o.designer_prestado or "").strip()})
         de_otros = sorted({o.designer_id for o in mias if o.designer_id and o.designer_id not in {e.id for e in propios}})
@@ -845,7 +880,7 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
             semaforo = "no"
         def persona(e):
             x = estado_de.get(e.id) or {}
-            return {"id": e.id, "nombre": e.nombre_completo, "grupo": x.get("grupo", "libre")}
+            return {"id": e.id, "nombre": e.nombre_completo, "grupo": x.get("grupo", "libre"), "manager": e.id == t.manager_id}
         out.append({"teamId": t.id, "equipo": t.nombre, "area": t.area.nombre, "manager": mgr.get(t.manager_id, ""),
                     "cirugias": sum(1 for o in mias if o.tabla == "principal"), "nightguards": sum(1 for o in mias if o.tabla == "nightguard"),
                     "total": len(mias), "hechos": len(hechos), "enProceso": len(trabajando), "porHacer": len(por_hacer), "sinDisenador": len(sin_disenador),

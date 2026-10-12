@@ -974,3 +974,5 @@
 .sg-eq-card .sg-barra { max-width:none; }
 .sg-eq-gente { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 @media (max-width:700px) { .sg-eq-grid { grid-template-columns:1fr; } .sg-eq-nums { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+
+.sg-mgr { display:inline-block; margin-left:4px; padding:0 7px; border-radius:999px; background:#e0e7ff; color:#3730a3; font-size:11px; font-weight:800; vertical-align:1px; }
