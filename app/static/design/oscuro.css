@@ -3,11 +3,10 @@
    hojas de Design (scripts/generar_oscuro_design.py); aquí van la base y los ajustes a mano, que mandan sobre lo generado.
    También están aquí la campana y el suiche de la barra (se cargan en todas las páginas de Design). */
 
-/* ---------- Barra: campana + suiche, antes de la foto ---------- */
-nav .ds-nav-extras { margin-left:auto; display:inline-flex; align-items:center; gap:10px; }
-nav .ds-nav-extras + .ds-yo { margin-left:6px; }
+/* ---------- Barra: campana + suiche, entre el nombre y "Salir" ---------- */
+nav .ds-nav-extras { display:inline-flex; align-items:center; gap:10px; margin:0 4px 0 6px; }
 nav .ds-nav-extras .ds-push { margin-left:0; }
-nav .ds-nav-extras .ds-push-pop { left:auto; right:-60px; transform:none; }
+nav .ds-nav-extras .ds-push-pop { left:auto; right:-70px; transform:none; }
 .ds-tema-sw { display:inline-flex; align-items:center; cursor:pointer; position:relative; }
 .ds-tema-sw input { position:absolute; opacity:0; width:1px; height:1px; }
 .ds-tema-pista { width:46px; height:24px; border-radius:999px; background:#374151; border:1px solid rgba(255,255,255,.25); position:relative;

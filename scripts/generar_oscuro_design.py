@@ -109,14 +109,18 @@ def declaraciones(cuerpo: str) -> list:
             continue
         p, v = d.split(":", 1)
         t = tipo_de(p)
-        if not t or "var(" in v and not COLOR.search(v):
+        if not t:
+            continue
+        # Se copian TODAS las declaraciones de color (aunque no cambien: transparent, var(--x), colores intermedios…) para
+        # que en oscuro el orden de prioridad sea el mismo que en claro. Si no, p. ej. "solo la celda de Estado"
+        # (background:transparent) perdía contra el color de la fila completa generado en oscuro.
+        if not (COLOR.search(v) or "var(" in v or re.search(r"\b(transparent|inherit|currentcolor|initial|unset|none)\b", v, re.I)):
             continue
         if t == "sombra":   # sombras: claras → negras suaves (en oscuro una sombra blanca brilla)
             nv = COLOR.sub(lambda m: (lambda c: "rgba(0,0,0,.45)" if c and colorsys.rgb_to_hls(c[0] / 255, c[1] / 255, c[2] / 255)[1] > 0.7 else m.group(0))(a_rgb(m.group(0))), v)
         else:
             nv = COLOR.sub(lambda m: transformar(m.group(0), t), v)
-        if nv != v:
-            out.append(f"{p.strip()}:{nv.strip()}")
+        out.append(f"{p.strip()}:{nv.strip()}")
     return out
 
 
@@ -157,6 +161,8 @@ def procesar(css: str, excluir=None) -> list:
             pass  # @keyframes, @font-face…
         elif excluir is not None and excluir.search(sel):
             pass
+        elif "data-ds-tema" in sel:
+            pass  # ya es una regla del modo oscuro (ajustes a mano): no se vuelve a convertir
         else:
             ds = declaraciones(cuerpo)
             if ds and sel:
