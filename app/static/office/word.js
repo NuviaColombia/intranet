@@ -331,6 +331,10 @@
     if (W.est.guardando) { W.est.pendiente = true; return Promise.resolve(); }
     if (W.est.guardado && !forzar) return Promise.resolve();
     W.est.guardando = true; W.est.guardado = true; pintarGuardado();
+    var imagenes = ed.uploadImages ? ed.uploadImages().catch(function() {}) : Promise.resolve();  // blob: → data:
+    return imagenes.then(function() { return guardarYa(forzar); });
+  };
+  function guardarYa(forzar) {
     var cuerpo = {version: W.doc.version, titulo: W.doc.titulo, contenido: W.contenidoLimpio(), ajustes: W.aj};
     if (forzar === 'forzar') cuerpo.forzar = true;
     var plantilla = !!W.doc.esPlantilla, url = (plantilla ? '/design/api/office/plantillas/' : '/design/api/office/docs/') + W.doc.id;
@@ -418,8 +422,11 @@
           browser_spellcheck: true, contextmenu: false, object_resizing: 'img,table', resize_img_proportional: true,
           table_toolbar: '', table_resize_bars: true, table_default_attributes: {}, table_default_styles: {'border-collapse': 'collapse', width: '100%'},
           table_use_colgroups: false, table_sizing_mode: 'relative', table_header_type: 'section',
-          image_caption: false, image_advtab: true, paste_data_images: true, automatic_uploads: false,
-          images_dataimg_filter: function() { return false; },  // las imágenes quedan como datos (no como direcciones blob: temporales)
+          // Imágenes: TinyMCE 7 las deja como direcciones blob: temporales (ya no existe images_dataimg_filter). Con
+          // automatic_uploads, el "subidor" de abajo las convierte de inmediato en datos (data:) dentro del documento,
+          // así se guardan con él; W.guardar además convierte las que falten antes de guardar.
+          image_caption: false, image_advtab: true, paste_data_images: true, automatic_uploads: true,
+          images_reuse_filename: false,
           images_upload_handler: function(blob) {
             return new Promise(function(ok) { var r = new FileReader(); r.onload = function() { ok(r.result); }; r.readAsDataURL(blob.blob()); });
           },

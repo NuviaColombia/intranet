@@ -81,6 +81,7 @@
     var p = new URLSearchParams(location.search), id = parseInt(p.get('doc'), 10), pl = parseInt(p.get('plantilla'), 10);
     if (id) W.abrirPorId(id).then(function() { if (!W.doc && !NV.ppt.doc) NV.inicio.mostrar(); });
     else if (pl && NV.usuario.adminPlantillas) NV.plantillas.editar(pl);
+    else if (parseInt(p.get('protocolo'), 10)) NV.protocolo.iniciar(parseInt(p.get('protocolo'), 10), p.get('desde') || 'pdf', p.get('reemplazar') === '1');
     else if (p.get('nuevo') === 'word') NV.nuevoDocumento('blanco');
     else if (p.get('nuevo') === 'ppt') NV.nuevaPresentacion(p.get('tema') || 'office');
     else if (p.get('herramienta')) { NV.inicio.mostrar('pdf'); NV.herramienta(p.get('herramienta')); }

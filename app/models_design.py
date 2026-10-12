@@ -487,6 +487,32 @@ class DesignProtocoloArchivo(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignProtocoloVersion(Base):
+    """Historial de versiones publicadas de un protocolo (Publicar desde Nuvia Office, 12-oct-2026). Cada fila apunta al
+    PDF de esa versión; el PDF de la versión vigente es el que tiene protocolo_id = el protocolo (DesignProtocoloArchivo)
+    y los de versiones anteriores quedan con protocolo_id NULL pero no se borran mientras estén aquí."""
+    __tablename__ = "design_protocolo_versiones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    protocolo_id: Mapped[int] = mapped_column(Integer, index=True)  # sin llave foránea: sobrevive a la Papelera
+    version: Mapped[str] = mapped_column(String(20), default="")
+    archivo_id: Mapped[int] = mapped_column(Integer)
+    paginas: Mapped[str] = mapped_column(Text, default="[]", deferred=True)  # textos de cada página (JSON), para el buscador
+    nota: Mapped[str] = mapped_column(String(500), default="")
+    publicado_por: Mapped[str] = mapped_column(String(150), default="")
+    publicado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignProtocoloBorrador(Base):
+    """Borrador editable de un protocolo: una presentación de Nuvia Office (un borrador por protocolo)."""
+    __tablename__ = "design_protocolo_borradores"
+
+    protocolo_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    doc_id: Mapped[int] = mapped_column(Integer, index=True)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignInicioPagina(Base):
     """Página de Inicio de Design (/design/inicio) armada con el editor (solo admins). Una sola fila:
     `borrador` es lo que se está editando y `publicado` lo que ven todos. Ambos en JSON (secciones y bloques)."""

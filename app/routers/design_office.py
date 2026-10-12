@@ -63,7 +63,11 @@ def api_crear(payload: DocNuevoIn, user: Empleado = Depends(require_design_manag
 @router.get("/design/api/office/docs/{doc_id}")
 def api_obtener(doc_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     doc, p = _doc_o_error(lambda: so.obtener(db, doc_id, user))
-    return so.completo(db, doc, p)
+    d = so.completo(db, doc, p)
+    if doc.tipo == "ppt" and user.rol in ("admin", "superadmin"):  # borrador de un protocolo: banda con "Publicar"
+        from .. import services_design_protocolos_edicion as spe
+        d["protocolo"] = spe.protocolo_de_doc(db, doc.id)
+    return d
 
 
 class DocGuardarIn(BaseModel):

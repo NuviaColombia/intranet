@@ -3210,6 +3210,10 @@ def _trash_restaurar_protocolo(db: Session, payload: dict) -> bool:
     arch = db.get(DesignProtocoloArchivo, payload.get("archivo_id") or 0)
     if arch and arch.protocolo_id is None:
         arch.protocolo_id = nuevo.id
+    if payload.get("versiones"):  # el historial de versiones vuelve con el protocolo
+        from .models_design import DesignProtocoloVersion
+        (db.query(DesignProtocoloVersion).filter(DesignProtocoloVersion.id.in_(payload["versiones"]))
+         .update({"protocolo_id": nuevo.id}, synchronize_session=False))
     _pr_poner_paginas(db, nuevo.id, payload.get("paginas") or [])
     return True
 
@@ -3616,7 +3620,9 @@ def pr_archivo_largo(db: Session, archivo_id: int) -> int | None:
 def pr_subida_iniciar(db: Session, nombre: str, tamano: int) -> DesignProtocoloArchivo:
     # Limpia subidas abandonadas (sin protocolo, fuera de la Papelera y de más de un día).
     ayer = datetime.utcnow() - timedelta(days=1)
+    from .models_design import DesignProtocoloVersion
     en_papelera = {(_json(t.payload, {}).get("archivo_id")) for t in db.query(DesignTrash).filter(DesignTrash.modulo == "protocol")}
+    en_papelera |= {r[0] for r in db.query(DesignProtocoloVersion.archivo_id)}  # versiones anteriores (historial)
     viejas = db.query(DesignProtocoloArchivo).filter(DesignProtocoloArchivo.protocolo_id.is_(None),
                                                      DesignProtocoloArchivo.creado_en < ayer)
     for a in viejas:
@@ -3715,6 +3721,7 @@ def protocolo_crear(db: Session, area_id: int | None, titulo: str, descripcion: 
 
 
 def protocolo_eliminar(db: Session, protocolo_id: int, eliminado_por: str = "") -> bool:
+    from .models_design import DesignProtocoloVersion, DesignProtocoloBorrador
     p = db.get(DesignProtocolo, protocolo_id)
     if not p:
         return False
@@ -3724,7 +3731,9 @@ def protocolo_eliminar(db: Session, protocolo_id: int, eliminado_por: str = "") 
     payload = {"protocolo": {"area_id": p.area_id, "titulo": p.titulo, "descripcion": p.descripcion,
                              "contenido": p.contenido, "version": p.version, "creado_por": p.creado_por},
                "areas": _pr_areas_ids(db, p.id), "archivo_id": arch.id if arch else None,
-               "paginas": [x.texto for x in paginas]}
+               "paginas": [x.texto for x in paginas],
+               "versiones": [r[0] for r in db.query(DesignProtocoloVersion.id).filter(DesignProtocoloVersion.protocolo_id == p.id)]}
+    db.query(DesignProtocoloBorrador).filter(DesignProtocoloBorrador.protocolo_id == p.id).delete()
     _trash_registrar(db, "protocol", f'Protocolo: "{p.titulo}"', payload, eliminado_por)
     if arch:
         arch.protocolo_id = None  # el PDF se conserva mientras esté en la Papelera
@@ -3738,12 +3747,21 @@ def protocolo_eliminar(db: Session, protocolo_id: int, eliminado_por: str = "") 
 
 
 def pr_limpiar_archivos_huerfanos(db: Session) -> None:
-    """PDFs de protocolos borrados cuya entrada de Papelera ya no existe (vaciada o eliminada)."""
-    en_papelera = set()
+    """PDFs de protocolos borrados cuya entrada de Papelera ya no existe (vaciada o eliminada). Los PDFs de versiones
+    anteriores se conservan mientras su protocolo exista o esté en la Papelera."""
+    from .models_design import DesignProtocoloVersion
+    en_papelera, versiones_papelera = set(), set()
     for t in db.query(DesignTrash).filter(DesignTrash.modulo == "protocol"):
         aid = _json(t.payload, {}).get("archivo_id")
         if aid:
             en_papelera.add(aid)
+        versiones_papelera |= set(_json(t.payload, {}).get("versiones") or [])
+    vivos = {r[0] for r in db.query(DesignProtocolo.id)}
+    for v in db.query(DesignProtocoloVersion).all():  # historial de protocolos que ya no existen ni están en la Papelera
+        if v.protocolo_id not in vivos and v.id not in versiones_papelera:
+            db.delete(v)
+    db.flush()
+    en_papelera |= {r[0] for r in db.query(DesignProtocoloVersion.archivo_id)}
     q = db.query(DesignProtocoloArchivo).filter(DesignProtocoloArchivo.protocolo_id.is_(None))
     if en_papelera:
         q = q.filter(~DesignProtocoloArchivo.id.in_(en_papelera))

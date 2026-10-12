@@ -23,7 +23,8 @@ from .. import services_design_support as ss
 from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
 from .. import services_design_produccion as sprod  # Seguimiento › N3/N2 Producción
-from .. import services_design_pa_excel as spx  # Pre-Approved N3 desde el Excel (12-oct-2026)
+from .. import services_design_pa_excel as spx
+from .. import services_design_protocolos_edicion as spe  # Protocols: editar en Nuvia Office y publicar  # Pre-Approved N3 desde el Excel (12-oct-2026)
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
 
@@ -2519,6 +2520,112 @@ def api_protocolo_crear(payload: ProtocoloIn, user: Empleado = Depends(require_m
     p = sd.protocolo_crear(db, payload.areaId, payload.titulo, payload.descripcion, payload.contenido,
                            payload.version, user.nombre_completo, payload.areas)
     return {"id": p.id}
+
+
+# ---------- Protocols: editar en Nuvia Office, publicar versión nueva e historial ----------
+
+class PrBorradorIn(BaseModel):
+    contenido: str
+    reemplazar: bool = False
+
+
+@router.get("/design/api/protocolos/{protocolo_id}/borrador")
+def api_pr_borrador(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pr_editor(user)
+    try:
+        return spe.estado_borrador(db, protocolo_id, user)
+    except KeyError:
+        raise HTTPException(404, "El protocolo no existe.")
+
+
+@router.post("/design/api/protocolos/{protocolo_id}/borrador")
+def api_pr_borrador_crear(protocolo_id: int, payload: PrBorradorIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                          db: Session = Depends(get_db)):
+    _pr_editor(user)
+    try:
+        doc = spe.crear_borrador(db, protocolo_id, user, payload.contenido, payload.reemplazar)
+    except KeyError:
+        raise HTTPException(404, "El protocolo no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"docId": doc.id}
+
+
+class PrPublicarIn(BaseModel):
+    archivoId: int
+    paginas: list[str] = []
+    version: str = Field("", max_length=20)
+    nota: str = Field("", max_length=500)
+
+
+@router.post("/design/api/protocolos/{protocolo_id}/publicar")
+def api_pr_publicar(protocolo_id: int, payload: PrPublicarIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                    db: Session = Depends(get_db)):
+    _pr_editor(user)
+    try:
+        p = spe.publicar(db, protocolo_id, payload.archivoId, payload.paginas, payload.version, payload.nota, user.nombre_completo)
+    except KeyError:
+        raise HTTPException(404, "El protocolo no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sd.pr_resumen(db, p)
+
+
+@router.get("/design/api/protocolos/{protocolo_id}/versiones")
+def api_pr_versiones(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pr_protocolo_permitido(db, user, protocolo_id)
+    return {"versiones": spe.versiones(db, protocolo_id), "puedeEditar": user.rol in PROTOCOLOS_ROLES_EDITAN}
+
+
+@router.get("/design/api/protocolos/versiones/{version_id}/pdf")
+def api_pr_version_pdf(version_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    v, a = spe.version_archivo(db, version_id)
+    if not v or not a:
+        raise HTTPException(404, "Esa versión ya no está disponible.")
+    _pr_protocolo_permitido(db, user, v.protocolo_id)
+    nombre = re.sub(r"[^A-Za-z0-9 ._-]", "", (a.nombre or "protocolo.pdf").rsplit(".", 1)[0])[:120] or "protocolo"
+    total = int(a.tamano or 0)
+
+    def trozos():
+        from ..database import SessionLocal
+        s2 = SessionLocal()
+        try:
+            pos = 0
+            while pos < total:
+                d = sd.pr_archivo_trozo(s2, a.id, pos, 1024 * 1024)
+                if not d:
+                    break
+                yield d
+                pos += len(d)
+        finally:
+            s2.close()
+    return StreamingResponse(trozos(), media_type="application/pdf",
+                             headers={"Content-Length": str(total), "Cache-Control": "private, max-age=86400",
+                                      "Content-Disposition": f'inline; filename="{nombre} {v.version}.pdf"'})
+
+
+@router.post("/design/api/protocolos/versiones/{version_id}/eliminar")
+def api_pr_version_eliminar(version_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pr_editor(user)
+    try:
+        spe.borrar_version(db, version_id)
+    except KeyError:
+        raise HTTPException(404, "La versión no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
+@router.post("/design/api/protocolos/versiones/{version_id}/restaurar")
+def api_pr_version_restaurar(version_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    _pr_editor(user)
+    try:
+        p = spe.restaurar_version(db, version_id, user.nombre_completo)
+    except KeyError:
+        raise HTTPException(404, "La versión no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sd.pr_resumen(db, p)
 
 
 @router.post("/design/api/protocolos/{protocolo_id}/eliminar")

@@ -1,7 +1,8 @@
 /* Nuvia Office: aspecto de Microsoft 365 (barra de título de color, pestañas, cinta de opciones con grupos,
-   barra de estado). Colores: Word #185abd, PowerPoint #c43e1c. */
+   barra de estado). Colores: el azul oscuro de la barra de Design Schedule (#111827, pedido por Rosember el 12-oct-2026)
+   en el inicio y Word; PowerPoint #c43e1c. */
 :root {
-  --nv-app: #185abd; --nv-app-osc: #124a9c; --nv-app-claro: #e8f0fb;
+  --nv-app: #111827; --nv-app-osc: #030712; --nv-app-claro: #e5e7eb;
   --nv-gris0: #ffffff; --nv-gris1: #faf9f8; --nv-gris2: #f3f2f1; --nv-gris3: #edebe9; --nv-gris4: #e1dfdd;
   --nv-gris5: #c8c6c4; --nv-gris6: #a19f9d; --nv-gris7: #605e5c; --nv-texto: #323130; --nv-texto-fuerte: #201f1e;
   --nv-sel: #c7e0f4; --nv-hover: #f3f2f1; --nv-press: #edebe9; --nv-foco: #0078d4;
@@ -386,3 +387,8 @@ svg.nv-ic.p { width: 16px; height: 16px; }
 .nv-pl-acc button.rojo { color:#a4262c; }
 .nv-pl-acc button.rojo:hover { background:#fde7e9; border-color:#a4262c; }
 .nv-plantilla.ancha .nv-pl-acc { justify-content:center; }
+
+/* Borrador de un protocolo de Design (protocolo.js) */
+.nvp-banda-protocolo { background: #eef2ff; color: #1e1b4b; border-bottom-color: #c7d2fe; flex-wrap: wrap; }
+.nvp-banda-protocolo span { flex: 1; min-width: 240px; }
+.nvp-banda-protocolo .nv-btn { text-decoration: none; }

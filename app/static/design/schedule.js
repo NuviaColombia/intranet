@@ -5954,10 +5954,15 @@ window.DS_PANELS.dashboard = function() {
 
   // ---- PDF: se carga una vez por protocolo y se dibujan las diapositivas que se ven en pantalla ----
   function prDoc(id) {
-    if (!PR.docs[id]) PR.docs[id] = window.dsPdfjs().then(function() {
-      return pdfjsLib.getDocument({url: '/design/api/protocolos/' + id + '/pdf', isEvalSupported: false, disableStream: true, disableAutoFetch: true, rangeChunkSize: 262144}).promise;
-    })
-      .catch(function(e) { delete PR.docs[id]; throw e; });
+    var it = (PR.items || []).find(function(x) { return x.id === id; }), a = it && it.archivoId ? it.archivoId : '';
+    if (PR.docs[id] && PR.docs[id]._a !== a) delete PR.docs[id];  // se publicó otra versión: otro PDF
+    if (!PR.docs[id]) {
+      PR.docs[id] = window.dsPdfjs().then(function() {
+        return pdfjsLib.getDocument({url: '/design/api/protocolos/' + id + '/pdf' + (a ? '?a=' + a : ''), isEvalSupported: false, disableStream: true, disableAutoFetch: true, rangeChunkSize: 262144}).promise;
+      })
+        .catch(function(e) { delete PR.docs[id]; throw e; });
+      PR.docs[id]._a = a;
+    }
     return PR.docs[id];
   }
   // Resalta en la diapositiva las palabras buscadas (ubicación a partir del texto del PDF).
@@ -6080,9 +6085,11 @@ window.DS_PANELS.dashboard = function() {
       else th.innerHTML = '<span class="pr-texto-ico">📄</span>';
       if (PR.edita) {
         var acc = document.createElement('div'); acc.className = 'pr-acc';
-        acc.innerHTML = '<button type="button" title="Editar título y áreas">✎</button><button type="button" title="Eliminar (va a la Papelera)">🗑</button>';
-        acc.children[0].onclick = function(e) { e.stopPropagation(); prEditar(p); };
-        acc.children[1].onclick = function(e) { e.stopPropagation(); prEliminar(p); };
+        acc.innerHTML = '<button type="button" title="Editar el contenido en Nuvia Office y publicar una versión nueva">📝</button>' +
+          '<button type="button" title="Título, áreas, versión e historial">✎</button><button type="button" title="Eliminar (va a la Papelera)">🗑</button>';
+        acc.children[0].onclick = function(e) { e.stopPropagation(); prEditarOffice(p); };
+        acc.children[1].onclick = function(e) { e.stopPropagation(); prEditar(p); };
+        acc.children[2].onclick = function(e) { e.stopPropagation(); prEliminar(p); };
         card.appendChild(acc);
       }
       card.appendChild(prBotonEstrella(p));
@@ -6162,7 +6169,7 @@ window.DS_PANELS.dashboard = function() {
       if (busq) PV.coinc = busq.res.filter(function(x) { return x.protocoloId === id && x.pagina; });
       document.getElementById('prVisorTitulo').textContent = p.titulo;
       var dl = document.getElementById('prVisorDescargar');
-      dl.style.display = p.tieneArchivo ? '' : 'none'; dl.href = '/design/api/protocolos/' + id + '/pdf';
+      dl.style.display = p.tieneArchivo ? '' : 'none'; dl.href = '/design/api/protocolos/' + id + '/pdf' + (p.archivoId ? '?a=' + p.archivoId : '');
       document.getElementById('prVisor').classList.add('open');
       prVisorLista(); prVisorPintar();
     });
@@ -6351,8 +6358,12 @@ window.DS_PANELS.dashboard = function() {
       '<label class="pr-lbl" for="prEdTit">Título</label><input type="text" id="prEdTit" maxlength="255" style="width:100%;margin:0 0 10px;box-sizing:border-box">' +
       '<label class="pr-lbl">¿En qué áreas se verá?</label>' + prAreasHtml(p.areas.map(function(a) { return a.id; })) +
       '<label class="pr-lbl" for="prEdVer">Versión</label><input type="text" id="prEdVer" style="width:120px;margin:0 0 10px">' +
+      '<div class="pr-ver-h"><span class="pr-lbl" style="margin:0">Historial de versiones</span><button type="button" class="btn mini" data-b="office">📝 Editar contenido</button></div>' +
+      '<div class="pr-versiones" id="prVersiones"><span class="pr-ver-vacio">Cargando…</span></div>' +
       '<div class="ds-qc-err" id="prErr"></div>' +
       '<div class="ds-qc-btns"><button type="button" class="btn gris" data-b="no">Cancelar</button><button type="button" class="btn" data-b="si">Guardar</button></div>');
+    bg.querySelector('[data-b="office"]').onclick = function() { bg._cerrar(); prEditarOffice(p); };
+    prPintarVersiones(bg.querySelector('#prVersiones'), p, bg);
     bg.querySelector('.ds-qc-sub').textContent = p.tieneArchivo ? p.archivo + ' · ' + p.paginas + ' diapositivas' : 'Protocolo de texto';
     bg.querySelector('#prEdTit').value = p.titulo; bg.querySelector('#prEdVer').value = p.version || '';
     bg.querySelector('[data-b="no"]').onclick = bg._cerrar;
@@ -6364,6 +6375,69 @@ window.DS_PANELS.dashboard = function() {
         .then(function() { bg._cerrar(); cargarProtocolos(); })
         .catch(function(e) { bg.querySelector('#prErr').textContent = e.message; });
     };
+  }
+  // ---------- Editar el contenido en Nuvia Office y publicar (services_design_protocolos_edicion.py) ----------
+  function prFechaCorta(iso) { try { return new Date(iso).toLocaleString('es-CO', {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'}); } catch (e) { return ''; } }
+  function prAbrirOffice(p, desde, reemplazar) {
+    window.open('/design/office?protocolo=' + p.id + '&desde=' + desde + (reemplazar ? '&reemplazar=1' : ''), '_blank', 'noopener');
+  }
+  function prEditarOffice(p) {
+    fetch('/design/api/protocolos/' + p.id + '/borrador', {credentials: 'same-origin'})
+      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo abrir.'); return d; }); })
+      .then(function(st) {
+        var fuentes = '<div class="pr-ed-ops">' +
+          (p.tieneArchivo ? '<button type="button" class="pr-ed-op" data-d="pdf"><b>📄 Desde el PDF publicado</b><span>Cada página queda como una diapositiva (la página de fondo). Puedes agregar o cambiar textos, imágenes y formas encima, quitar, ordenar o agregar diapositivas.</span></button>' : '') +
+          '<button type="button" class="pr-ed-op" data-d="pptx"><b>📊 Desde el PowerPoint original (.pptx)</b><span>Si tienes el archivo de Zoho Show o PowerPoint: todo el texto queda editable.</span></button></div>';
+        var html = '<h4>Editar contenido del protocolo</h4><div class="ds-qc-sub"></div>' +
+          (st.docId ? '<p class="pr-ed-txt">Ya hay un borrador de este protocolo' + (st.actualizado ? ' (guardado el ' + esc(prFechaCorta(st.actualizado)) + (st.actualizadoPor ? ' por ' + esc(st.actualizadoPor) : '') + ')' : '') + '. Lo que cambies ahí no se ve hasta que lo publiques.</p>' +
+                      '<div class="ds-qc-btns" style="justify-content:flex-start;margin-bottom:12px"><button type="button" class="btn" data-b="abrir">Abrir el borrador</button></div>' +
+                      '<details class="pr-ed-nuevo"><summary>Empezar un borrador nuevo (el actual se descarta)</summary>' + fuentes + '</details>'
+                    : '<p class="pr-ed-txt">Se abre en Nuvia Office como presentación. Se guarda solo; los demás siguen viendo la versión publicada hasta que pulses <b>Publicar nueva versión</b>.</p>' + fuentes) +
+          '<div class="ds-qc-btns"><button type="button" class="btn gris" data-b="no">Cerrar</button></div>';
+        var bg = prModal(html);
+        bg.querySelector('.ds-qc-sub').textContent = p.titulo + ' · publicado ' + (p.version || '');
+        bg.querySelector('[data-b="no"]').onclick = bg._cerrar;
+        var abrir = bg.querySelector('[data-b="abrir"]');
+        if (abrir) abrir.onclick = function() { bg._cerrar(); prAbrirOffice(p, 'pdf', false); };
+        bg.querySelectorAll('.pr-ed-op').forEach(function(b) {
+          b.onclick = function() {
+            if (st.docId && !confirm('¿Empezar un borrador nuevo? El borrador actual deja de usarse (queda en Nuvia Office de quien lo creó).')) return;
+            bg._cerrar(); prAbrirOffice(p, b.dataset.d, !!st.docId);
+          };
+        });
+      }).catch(function(e) { alert(e.message); });
+  }
+  function prPintarVersiones(cont, p, bg) {
+    fetch('/design/api/protocolos/' + p.id + '/versiones', {credentials: 'same-origin'})
+      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo cargar.'); return d; }); })
+      .then(function(d) {
+        if (!d.versiones.length) { cont.innerHTML = '<span class="pr-ver-vacio">Todavía no se ha publicado ninguna versión desde Nuvia Office.</span>'; return; }
+        cont.innerHTML = d.versiones.map(function(v) {
+          return '<div class="pr-ver' + (v.vigente ? ' vigente' : '') + '"><div><b>' + esc(v.version) + '</b>' + (v.vigente ? ' <span class="pr-ver-tag">vigente</span>' : '') +
+            '<div class="pr-ver-sub">' + esc(prFechaCorta(v.publicadoEn)) + (v.publicadoPor ? ' · ' + esc(v.publicadoPor) : '') + (v.paginas ? ' · ' + v.paginas + ' diapositivas' : '') + '</div>' +
+            (v.nota ? '<div class="pr-ver-nota">' + esc(v.nota) + '</div>' : '') + '</div><div class="pr-ver-acc">' +
+            (v.disponible ? '<a class="btn gris mini" href="/design/api/protocolos/versiones/' + v.id + '/pdf" target="_blank" rel="noopener">Ver PDF</a>' : '') +
+            (v.disponible && !v.vigente && d.puedeEditar ? '<button type="button" class="btn gris mini" data-rest="' + v.id + '">Restaurar</button>' : '') +
+            (!v.vigente && d.puedeEditar ? '<button type="button" class="btn gris mini" data-borrar="' + v.id + '" title="Quitar del historial y borrar su PDF (libera espacio)">🗑</button>' : '') + '</div></div>';
+        }).join('');
+        cont.querySelectorAll('[data-borrar]').forEach(function(b) {
+          b.onclick = function() {
+            var v = d.versiones.find(function(x) { return String(x.id) === b.dataset.borrar; });
+            if (!confirm('¿Borrar la versión ' + v.version + ' del historial? Su PDF se elimina para liberar espacio y no se puede recuperar.')) return;
+            prPost('/design/api/protocolos/versiones/' + v.id + '/eliminar', {method: 'POST'})
+              .then(function() { prPintarVersiones(cont, p, bg); }).catch(function(e) { alert(e.message); });
+          };
+        });
+        cont.querySelectorAll('[data-rest]').forEach(function(b) {
+          b.onclick = function() {
+            var v = d.versiones.find(function(x) { return String(x.id) === b.dataset.rest; });
+            if (!confirm('¿Volver a publicar la versión ' + v.version + '? Queda como una versión nueva; la actual sigue en el historial.')) return;
+            prPost('/design/api/protocolos/versiones/' + v.id + '/restaurar', {method: 'POST'})
+              .then(function(r) { if (bg) bg._cerrar(); delete PR.docs[p.id]; cargarProtocolos(); window.dsToast('Restaurada: ahora es ' + (r && r.version ? r.version : 'la versión vigente') + '.'); })
+              .catch(function(e) { alert(e.message); });
+          };
+        });
+      }).catch(function(e) { cont.innerHTML = '<span class="pr-ver-vacio"></span>'; cont.firstChild.textContent = e.message; });
   }
   function prEliminar(p) {
     if (!confirm('¿Eliminar el protocolo "' + p.titulo + '"? Un líder puede restaurarlo desde la Papelera.')) return;
