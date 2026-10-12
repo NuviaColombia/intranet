@@ -421,9 +421,17 @@ window.dsPdfjs = function() {
 <div class="ds-overlay" id="ov-seguimiento"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button>
 <div class="sg-cab"><h1>Seguimiento <span class="sg-vivo">● en vivo</span></h1><span class="sg-hora" id="sgHora"></span></div>
 <p style="color:#4b5563;font-size:13px;margin-top:-8px">Qué está haciendo cada diseñador ahora. Arriba los libres (sin casos por hacer y fuera de break o almuerzo, primero el que lleva más tiempo libre); abajo los ocupados. Se actualiza cada 20 segundos.</p>
-<div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button></div>
+<div class="sg-vistas" role="tablist"><button type="button" class="sg-vista on" data-vista="disenadores" role="tab">👤 Diseñadores</button><button type="button" class="sg-vista" data-vista="equipos" role="tab">📋 Casos por equipo</button></div>
+<div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><label class="sg-fin" id="sgFinW" hidden>Fin de la jornada <input type="time" id="sgFin" value="17:00"></label><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button></div>
+<div id="sgVistaDis">
 <div class="sg-resumen" id="sgResumen"></div>
 <div class="sg-tabla-w"><table class="sg-tabla"><thead><tr><th>Diseñador</th><th>Equipo</th><th>Estado</th><th>Qué está haciendo</th><th title="Casos terminados hoy">Hechos hoy</th></tr></thead><tbody id="sgLista"></tbody></table></div>
+</div>
+<div id="sgVistaEq" hidden>
+<p class="sg-nota">Casos que programó cada manager hoy y si el equipo alcanza a terminarlos antes del fin de la jornada. El tiempo de cada caso pendiente es el <b>promedio real de su producto en los últimos 30 días</b>; la capacidad son los diseñadores en turno (no ausentes, más los prestados que trabajan hoy para el equipo) por el tiempo que queda.</p>
+<div class="sg-resumen" id="sgResumenEq"></div>
+<div class="sg-tabla-w"><table class="sg-tabla sg-tabla-eq"><thead><tr><th>Equipo</th><th>Programados hoy</th><th>Avance</th><th>Diseñadores en turno</th><th>Carga</th><th>¿Alcanza?</th></tr></thead><tbody id="sgEquipos"></tbody></table></div>
+</div>
 </div></div>
 {% endif %}
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}

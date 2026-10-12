@@ -8,7 +8,16 @@
   if (!panel) return;
   var lista = document.getElementById('sgLista'), resumen = document.getElementById('sgResumen'), hora = document.getElementById('sgHora');
   var selArea = document.getElementById('sgArea'), buscar = document.getElementById('sgBuscar');
-  var datos = null, timer = null, filtroGrupo = '';
+  var datos = null, timer = null, filtroGrupo = '', vista = 'disenadores', filtroSem = '';
+  var finInput = document.getElementById('sgFin');
+  try { var finGuardado = localStorage.getItem('sgFinJornada'); if (finGuardado) finInput.value = finGuardado; } catch (e) {}
+  var SEMAFORO = {
+    si: {ico: '✅', rot: 'Alcanza', desc: 'El trabajo pendiente cabe en el tiempo que queda (con margen)'},
+    justo: {ico: '⚠️', rot: 'Justo', desc: 'Cabe, pero sin margen: cualquier retraso lo deja por fuera'},
+    no: {ico: '❌', rot: 'No alcanza', desc: 'El trabajo pendiente es mayor que el tiempo que queda a los diseñadores en turno'},
+    listo: {ico: '🏁', rot: 'Terminado', desc: 'Todos los casos de hoy están terminados'},
+    sin_casos: {ico: '—', rot: 'Sin casos', desc: 'El manager no ha programado casos hoy'}
+  };
   var GRUPOS = {
     libre: {ico: '🟢', rot: 'Libre', desc: 'Sin casos por hacer y fuera de break o almuerzo'},
     pausa: {ico: '☕', rot: 'En pausa', desc: 'En break o almuerzo según su Schedule'},
@@ -81,22 +90,67 @@
     });
   }
 
+  function horas(min) { min = Math.round(min || 0); var hh = Math.floor(min / 60), mm = min % 60; return hh ? hh + ' h' + (mm ? ' ' + mm + ' min' : '') : mm + ' min'; }
+  function pintarEquipos() {
+    var cont = document.getElementById('sgEquipos'), res = document.getElementById('sgResumenEq');
+    var area = selArea.value, q = norm(buscar.value);
+    var filas = datos.equipos.filter(function(e) { return (!area || e.area === area) && (!q || norm(e.equipo + ' ' + e.manager + ' ' + e.enTurno.map(function(p) { return p.nombre; }).join(' ')).indexOf(q) >= 0); });
+    var cuenta = {}; filas.forEach(function(e) { cuenta[e.semaforo] = (cuenta[e.semaforo] || 0) + 1; });
+    res.innerHTML = '<button type="button" class="sg-chip' + (!filtroSem ? ' on' : '') + '" data-s="">Todos <b>' + filas.length + '</b></button>' +
+      ['no', 'justo', 'si', 'listo', 'sin_casos'].map(function(k) { return '<button type="button" class="sg-chip sg-sem-' + k + (filtroSem === k ? ' on' : '') + '" data-s="' + k + '" title="' + esc(SEMAFORO[k].desc) + '">' + SEMAFORO[k].ico + ' ' + SEMAFORO[k].rot + ' <b>' + (cuenta[k] || 0) + '</b></button>'; }).join('');
+    res.querySelectorAll('[data-s]').forEach(function(b) { b.onclick = function() { filtroSem = b.dataset.s; pintarEquipos(); }; });
+    if (filtroSem) filas = filas.filter(function(e) { return e.semaforo === filtroSem; });
+    if (!filas.length) { cont.innerHTML = '<tr><td colspan="6" class="sg-vacio">No hay equipos con este filtro.</td></tr>'; return; }
+    var ordenSem = {no: 0, justo: 1, si: 2, listo: 3, sin_casos: 4};
+    filas = filas.slice().sort(function(a, b) { return ordenSem[a.semaforo] - ordenSem[b.semaforo] || a.area.localeCompare(b.area) || a.equipo.localeCompare(b.equipo); });
+    cont.innerHTML = filas.map(function(e) {
+      var pct = e.total ? Math.round(e.hechos * 100 / e.total) : 0, S = SEMAFORO[e.semaforo];
+      var progr = e.cirugias + (e.cirugias === 1 ? ' cirugía' : ' cirugías') + (e.nightguards ? ' · ' + e.nightguards + ' nightguard' + (e.nightguards === 1 ? '' : 's') : '');
+      var gente = e.enTurno.map(function(p) { return '<span class="sg-p sg-' + p.grupo + '" title="' + esc(GRUPOS[p.grupo] ? GRUPOS[p.grupo].rot : '') + '"><i></i>' + esc(p.nombre.split(' ').slice(0, 2).join(' ')) + '</span>'; }).join('') +
+        e.prestados.map(function(n) { return '<span class="sg-p sg-prest" title="Prestado de otro equipo"><i></i>' + esc(n) + ' (prestado)</span>'; }).join('') +
+        (e.deOtrosEquipos ? '<span class="sg-p sg-prest"><i></i>+' + e.deOtrosEquipos + ' de otros equipos</span>' : '');
+      var detalle = e.semaforo === 'si' || e.semaforo === 'justo' || e.semaforo === 'no'
+        ? '<div class="sg-sub">Faltan ≈ ' + horas(e.pendienteMin) + ' de trabajo · quedan ' + horas(e.capacidadMin) + ' (' + (e.enTurno.length + e.prestados.length + e.deOtrosEquipos) + ' diseñador' + ((e.enTurno.length + e.prestados.length + e.deOtrosEquipos) === 1 ? '' : 'es') + ' × ' + horas(e.restanteMin) + ')</div>' : '';
+      return '<tr class="sg-eq-fila sg-sem-' + e.semaforo + '">' +
+        '<td><b>' + esc(e.equipo) + '</b><div class="sg-sub">' + esc(e.area) + (e.manager ? ' · ' + esc(e.manager) : '') + '</div></td>' +
+        '<td><b>' + progr + '</b><div class="sg-sub">' + e.total + ' en total</div></td>' +
+        '<td><div class="sg-barra" title="' + pct + '% terminado"><i style="width:' + pct + '%"></i></div><div class="sg-sub">✔ ' + e.hechos + ' terminados · ▶ ' + e.enProceso + ' en proceso · ⏳ ' + e.porHacer + ' por hacer' +
+          (e.sinDisenador ? ' · <span class="sg-alerta">' + e.sinDisenador + ' sin diseñador</span>' : '') + '</div></td>' +
+        '<td><div class="sg-gente">' + (gente || '<span class="sg-alerta">Nadie en turno</span>') + '</div>' + (e.ausentes.length ? '<div class="sg-sub">Ausentes: ' + esc(e.ausentes.join(', ')) + '</div>' : '') + '</td>' +
+        '<td>' + (e.casosPorDisenador != null ? '<b>' + e.casosPorDisenador + '</b><div class="sg-sub">casos por diseñador</div>' : '—') + '</td>' +
+        '<td><span class="sg-semaforo sg-sem-' + e.semaforo + '" title="' + esc(S.desc) + '">' + S.ico + ' ' + S.rot + '</span>' + detalle + '</td></tr>';
+    }).join('');
+  }
+
+  function cambiarVista(v) {
+    vista = v;
+    panel.querySelectorAll('.sg-vista').forEach(function(b) { b.classList.toggle('on', b.dataset.vista === v); b.setAttribute('aria-selected', b.dataset.vista === v); });
+    document.getElementById('sgVistaDis').hidden = v !== 'disenadores';
+    document.getElementById('sgVistaEq').hidden = v !== 'equipos';
+    document.getElementById('sgFinW').hidden = v !== 'equipos';
+    buscar.placeholder = v === 'equipos' ? 'Buscar equipo, manager o diseñador…' : 'Buscar diseñador o equipo…';
+    if (datos) { if (v === 'equipos') pintarEquipos(); else pintar(); }
+  }
+  panel.querySelectorAll('.sg-vista').forEach(function(b) { b.addEventListener('click', function() { cambiarVista(b.dataset.vista); }); });
+  finInput.addEventListener('change', function() { try { localStorage.setItem('sgFinJornada', finInput.value); } catch (e) {} cargar(); });
+
   function cargar() {
     clearTimeout(timer);
     if (!panel.classList.contains('open')) return;
-    fetch('/design/api/seguimiento', {credentials: 'same-origin'})
+    fetch('/design/api/seguimiento?fin=' + encodeURIComponent(finInput.value || '17:00'), {credentials: 'same-origin'})
       .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function(d) {
         datos = d;
         var actual = selArea.value;
         selArea.innerHTML = '<option value="">Todas las áreas</option>' + d.areas.map(function(a) { return '<option' + (a === actual ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('');
-        pintar();
+        if (vista === 'equipos') pintarEquipos(); else pintar();
       })
       .catch(function() { hora.textContent = 'No se pudo actualizar; se reintenta en unos segundos'; })
       .then(function() { timer = setTimeout(cargar, 20000); });
   }
-  selArea.addEventListener('change', pintar);
-  buscar.addEventListener('input', pintar);
+  var repintar = function() { if (!datos) return; if (vista === 'equipos') pintarEquipos(); else pintar(); };
+  selArea.addEventListener('change', repintar);
+  buscar.addEventListener('input', repintar);
   document.getElementById('sgRefrescar').addEventListener('click', cargar);
   document.addEventListener('visibilitychange', function() { if (!document.hidden && panel.classList.contains('open')) cargar(); });
   window.DS_PANELS.seguimiento = cargar;

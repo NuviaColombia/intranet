@@ -913,3 +913,22 @@
 .sg-estado.sg-asignado { background:#fef9c3; color:#854d0e; } .sg-estado.sg-ocupado { background:#fee2e2; color:#991b1b; } .sg-estado.sg-ausente { background:#f3f4f6; color:#4b5563; }
 .sg-num { text-align:center; font-weight:700; color:#374151; }
 .sg-vacio { text-align:center; color:#6b7280; padding:30px !important; }
+
+/* Seguimiento › Casos por equipo */
+.sg-vistas { display:inline-flex; gap:4px; padding:4px; border-radius:12px; background:#eef2f7; margin:4px 0 6px; }
+.sg-vista { border:0; background:none; padding:7px 16px; border-radius:9px; font:inherit; font-size:14px; cursor:pointer; color:#374151; }
+.sg-vista.on { background:#fff; color:#111827; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+.sg-fin { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; color:#374151; margin:0; font-weight:600; }
+.sg-fin input { padding:7px 10px; border:1px solid #d1d5db; border-radius:10px; font:inherit; width:auto; margin:0; }
+.sg-nota { color:#4b5563; font-size:13px; margin:0 0 10px; max-width:1000px; }
+.sg-barra { height:8px; border-radius:999px; background:#e5e7eb; overflow:hidden; max-width:220px; } .sg-barra i { display:block; height:100%; background:#16a34a; }
+.sg-alerta { color:#b91c1c; font-weight:700; }
+.sg-gente { display:flex; flex-wrap:wrap; gap:6px; max-width:360px; }
+.sg-p { display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:999px; background:#f3f4f6; font-size:12.5px; color:#1f2937; white-space:nowrap; }
+.sg-p i { width:8px; height:8px; border-radius:50%; background:#9ca3af; }
+.sg-p.sg-libre i { background:#16a34a; } .sg-p.sg-pausa i { background:#d97706; } .sg-p.sg-asignado i { background:#eab308; } .sg-p.sg-ocupado i { background:#dc2626; } .sg-p.sg-prest i { background:#6366f1; }
+.sg-semaforo { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:800; font-size:13px; white-space:nowrap; }
+.sg-semaforo.sg-sem-si { background:#dcfce7; color:#166534; } .sg-semaforo.sg-sem-justo { background:#fef3c7; color:#92400e; } .sg-semaforo.sg-sem-no { background:#fee2e2; color:#991b1b; }
+.sg-semaforo.sg-sem-listo { background:#e0e7ff; color:#3730a3; } .sg-semaforo.sg-sem-sin_casos { background:#f3f4f6; color:#4b5563; }
+.sg-eq-fila.sg-sem-no td:first-child { box-shadow:inset 4px 0 0 #dc2626; } .sg-eq-fila.sg-sem-justo td:first-child { box-shadow:inset 4px 0 0 #d97706; } .sg-eq-fila.sg-sem-si td:first-child { box-shadow:inset 4px 0 0 #16a34a; }
+.sg-chip.sg-sem-no:not(.on) { border-color:#fca5a5; background:#fef2f2; } .sg-chip.sg-sem-justo:not(.on) { border-color:#fcd34d; background:#fffbeb; } .sg-chip.sg-sem-si:not(.on) { border-color:#86efac; background:#f0fdf4; }

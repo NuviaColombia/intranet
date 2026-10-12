@@ -687,7 +687,7 @@ def _seg_hora(hhmm: str) -> int | None:
         return None
 
 
-def seguimiento(db: Session, ahora: datetime | None = None) -> dict:
+def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "17:00") -> dict:
     from .models import Empleado as _E
     trasladar_holds(db)
     ahora = ahora or ahora_colombia()
@@ -763,7 +763,98 @@ def seguimiento(db: Session, ahora: datetime | None = None) -> dict:
     out.sort(key=clave)
     resumen = {g: sum(1 for x in out if x["grupo"] == g) for g in SEG_GRUPOS}
     return {"fecha": hoy.isoformat(), "hora": ahora.strftime("%H:%M:%S"), "resumen": resumen, "disenadores": out,
-            "areas": sorted({a for x in out for a in x["areas"]})}
+            "areas": sorted({a for x in out for a in x["areas"]}),
+            "equipos": seguimiento_equipos(db, fin_jornada, ahora, out), "finJornada": fin_jornada}
+
+
+# ---------- Seguimiento › Casos por equipo: ¿alcanza el equipo a cumplir su producción de hoy? ----------
+# Por equipo: casos que programó el manager hoy, cómo van, diseñadores en turno y una estimación de si alcanzan
+# antes del fin de la jornada. El tiempo de cada caso pendiente es el promedio real de su producto (últimos 30 días);
+# la capacidad, los diseñadores en turno por los minutos que quedan hasta el fin de la jornada.
+# (Cuando se conecte GeoVictoria, "en turno" y el fin de cada turno saldrán de las marcaciones.)
+_promedios_cache = {"t": 0.0, "v": None}
+SEG_MIN_POR_DEFECTO = 90   # producto sin historial ni promedio del área
+
+
+def _promedios_producto(db: Session) -> dict:
+    """{(area_id, producto normalizado): minutos promedio, (area_id, None): promedio del área}, últimos 30 días."""
+    import time as _t
+    c = _promedios_cache
+    if c["v"] is not None and _t.monotonic() - c["t"] < 600:
+        return c["v"]
+    desde = ahora_colombia().date() - timedelta(days=30)
+    filas = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area))
+             .filter(DesignOrden.fecha >= desde, func.coalesce(DesignOrden.hora_fin, "") != "").all())
+    suma: dict = {}
+    for o in filas:
+        if not o.team or _es_cancelada(o.estado):
+            continue
+        d = duracion_orden_min(o, o.team.area.formato)
+        if not 5 <= d <= 600:   # descarta horas mal registradas
+            continue
+        for k in ((o.team.area_id, _normalizar_texto(o.producto)), (o.team.area_id, None)):
+            a = suma.setdefault(k, [0.0, 0]); a[0] += d; a[1] += 1
+    v = {k: a[0] / a[1] for k, a in suma.items() if a[1]}
+    c["t"], c["v"] = _t.monotonic(), v
+    return v
+
+
+def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime | None = None, personas: list | None = None) -> list[dict]:
+    ahora = ahora or ahora_colombia()
+    hoy, minuto = ahora.date(), ahora.hour * 60 + ahora.minute
+    fin = _seg_hora(fin_jornada)
+    fin = fin if fin is not None else 17 * 60
+    restante = max(0, fin - minuto)
+    promedios = _promedios_producto(db)
+    estado_de = {x["id"]: x for x in (personas or [])}   # lo que hace cada diseñador ahora (de seguimiento())
+    equipos = (db.query(DesignTeam).join(DesignArea).filter(DesignTeam.activo == 1, DesignArea.activo == 1, DesignArea.formato != FORMATO_SUPPORT)
+               .options(joinedload(DesignTeam.area), joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado))
+               .order_by(DesignArea.orden, DesignTeam.orden, DesignTeam.nombre).all())
+    ordenes = db.query(DesignOrden).filter(DesignOrden.fecha == hoy, DesignOrden.team_id.in_([t.id for t in equipos])).all() if equipos else []
+    ausentes = {b.empleado_id for b in db.query(DesignBreak).filter(DesignBreak.fecha == hoy, func.coalesce(DesignBreak.tipo_ausencia, "") != "")}
+    mgr = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_([t.manager_id for t in equipos if t.manager_id]))} if equipos else {}
+    out = []
+    for t in equipos:
+        mias = [o for o in ordenes if o.team_id == t.id and ((o.orden or "").strip() or (o.producto or "").strip() or (o.paciente or "").strip())]
+        mias = [o for o in mias if not _es_cancelada(o.estado)]
+        est = lambda o: (o.estado or "").strip().lower()
+        trabajando = [o for o in mias if est(o) in SEG_TRABAJANDO]
+        hechos = [o for o in mias if est(o) and est(o) not in SEG_TRABAJANDO | SEG_POR_HACER]
+        por_hacer = [o for o in mias if o not in trabajando and o not in hechos]
+        sin_disenador = [o for o in mias if o not in hechos and not o.designer_id and not (o.designer_prestado or "").strip()]
+        def estimado(o):
+            return promedios.get((t.area_id, _normalizar_texto(o.producto))) or promedios.get((t.area_id, None)) or SEG_MIN_POR_DEFECTO
+        pendiente_min = sum(estimado(o) for o in por_hacer)
+        for o in trabajando:   # lo que le falta al caso en proceso (mínimo 15 min)
+            ini = _seg_hora(next((h for h in ((o.f_hold or "").strip(), (o.hora_inicio_diseno or "").strip(), (o.hora_inicio or "").strip()) if h), ""))
+            pendiente_min += max(15, estimado(o) - (minuto - ini if ini is not None and ini <= minuto else 0))
+        propios = [d.empleado for d in t.designers if d.empleado and getattr(d.empleado, "activo", 1)]
+        en_turno = [e for e in propios if e.id not in ausentes]
+        prestados = sorted({(o.designer_prestado or "").strip() for o in mias if (o.designer_prestado or "").strip()})
+        de_otros = sorted({o.designer_id for o in mias if o.designer_id and o.designer_id not in {e.id for e in propios}})
+        capacidad = (len(en_turno) + len(prestados) + len(de_otros)) * restante
+        if not (por_hacer or trabajando):
+            semaforo = "listo" if hechos else "sin_casos"
+        elif not capacidad:
+            semaforo = "no"
+        elif pendiente_min <= capacidad * 0.85:
+            semaforo = "si"
+        elif pendiente_min <= capacidad:
+            semaforo = "justo"
+        else:
+            semaforo = "no"
+        def persona(e):
+            x = estado_de.get(e.id) or {}
+            return {"id": e.id, "nombre": e.nombre_completo, "grupo": x.get("grupo", "libre")}
+        out.append({"teamId": t.id, "equipo": t.nombre, "area": t.area.nombre, "manager": mgr.get(t.manager_id, ""),
+                    "cirugias": sum(1 for o in mias if o.tabla == "principal"), "nightguards": sum(1 for o in mias if o.tabla == "nightguard"),
+                    "total": len(mias), "hechos": len(hechos), "enProceso": len(trabajando), "porHacer": len(por_hacer), "sinDisenador": len(sin_disenador),
+                    "disenadores": len(propios), "enTurno": [persona(e) for e in en_turno],
+                    "ausentes": [e.nombre_completo for e in propios if e.id in ausentes], "prestados": prestados,
+                    "deOtrosEquipos": len(de_otros), "pendienteMin": round(pendiente_min), "capacidadMin": capacidad, "restanteMin": restante,
+                    "casosPorDisenador": round((len(por_hacer) + len(trabajando)) / len(en_turno), 1) if en_turno else None,
+                    "semaforo": semaforo})
+    return out
 
 
 def serializar_orden(o: DesignOrden) -> dict:
