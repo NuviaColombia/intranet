@@ -2617,7 +2617,48 @@ def perf_criterios(db: Session) -> list[DesignPerfCriterio]:
 
 
 def perf_sheets(db: Session) -> list[DesignPerfSheet]:
+    perf_quitar_una_vez(db)
     return db.query(DesignPerfSheet).order_by(DesignPerfSheet.orden).all()
+
+
+# Filas de Desempeño que se quitan una sola vez (pedido por Rosember). Cada una: el área cuyas hojas se revisan,
+# las palabras del nombre (todas las de "todas" y al menos una de "alguna", sin tildes ni mayúsculas) y el motivo.
+# La fila queda en la Papelera (se puede restaurar). Lo hecho queda anotado en design_conexion_reglas (tipo sistema).
+PERF_QUITAR_UNA_VEZ = [
+    {"marca": "perf_quitar_angelica_gallardo_n6_2026_10_12", "area": "N6 Material Changes",
+     "todas": {"gallardo"}, "alguna": {"angelica", "anyelica", "angelika"},
+     "motivo": "ya no pertenece a N6; ahora está en el equipo de Mauricio (12-oct-2026)"},
+]
+_perf_quitar = {"ok": False}
+
+
+def perf_quitar_una_vez(db: Session) -> None:
+    from .models_design import DesignConexionRegla
+    if _perf_quitar["ok"]:
+        return
+    try:
+        hechas = {r.clave for r in db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema",
+                                                                     DesignConexionRegla.clave.in_([x["marca"] for x in PERF_QUITAR_UNA_VEZ]))}
+        for x in PERF_QUITAR_UNA_VEZ:
+            if x["marca"] in hechas:
+                continue
+            hojas = [h for h in db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "eval").all()
+                     if (SHEET_MANAGER_MAP.get(h.nombre) or ("",))[0] == x["area"]
+                     or _normalizar_texto(h.nombre).startswith(_normalizar_texto(x["area"]).split()[0] + " ")]
+            quitadas = []
+            for h in hojas:
+                for e in list(h.empleados):
+                    pal = _palabras(e.nombre)
+                    if x["todas"] <= pal and pal & x["alguna"]:
+                        _trash_registrar(db, "perf-emp", f"Desempeño {h.nombre}: {e.nombre}", _snapshot_fila(e), "Sistema")
+                        quitadas.append(f"{h.nombre}: {e.nombre}")
+                        db.delete(e)
+            db.add(DesignConexionRegla(tipo="sistema", clave=x["marca"], creado_por="Sistema",
+                                       valor=json.dumps({"quitadas": quitadas, "motivo": x["motivo"]}, ensure_ascii=False)))
+            db.commit()
+        _perf_quitar["ok"] = True
+    except Exception:
+        db.rollback()
 
 
 # Porcentaje de cada nivel de calificación. Todos los criterios pesan igual y un criterio sin calificar
