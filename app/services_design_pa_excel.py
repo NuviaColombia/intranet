@@ -8,7 +8,8 @@ Parámetros › "Pre-Approved desde el Excel" muestra la vista previa y un admin
     otra hoja, esa copia se quita (Papelera).
   * Dentro del centro: los valores del Excel reemplazan los nuestros (un valor vacío en el Excel no borra nada), los
     doctores nuevos se agregan, los que no están en el Excel se quitan (Papelera) y los criterios que falten se crean.
-  * No se tocan las hojas de Paula De la Torre, Dariana Ortega y Juliana Molinares (Rosember confirmó que están bien).
+  * Todas las hojas se actualizan (al principio se dejaron por fuera Paula De la Torre, Dariana Ortega y Juliana Molinares;
+    el 12-oct-2026 Rosember pidió incluirlas para que todo quede igual que el Excel).
   * Las fotos del Excel quedan en su celda. Lo que se reemplaza o quita queda en la Papelera de Design.
 No cambia de dónde salen los datos (Openings y Equipos siguen siendo el origen); solo usa services_design_origenes para leer.
 """
@@ -29,7 +30,7 @@ DIR = os.path.join(os.path.dirname(__file__), "seed_data")
 ARCHIVO = os.path.join(DIR, "design_preapproved_n3_excel_2026_10_12.json")
 FOTOS = os.path.join(DIR, "pa_fotos")
 AREA = "N3 Prosthetic"
-HOJAS_QUE_NO_SE_TOCAN = ["Paula De la Torre", "Dariana Ortega", "Juliana Molinares"]
+HOJAS_QUE_NO_SE_TOCAN: list[str] = []  # nombres de managers cuyas hojas no se actualizan (hoy ninguna)
 MARCA = "pa_excel_n3_2026_10_12"
 VACIOS = {"", "dr", "dra"}
 
