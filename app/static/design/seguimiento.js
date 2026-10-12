@@ -179,7 +179,7 @@
         if (vista === 'equipos') pintarEquipos(); else pintar();
       })
       .catch(function() { hora.textContent = 'No se pudo actualizar; se reintenta en unos segundos'; })
-      .then(function() { timer = setTimeout(cargar, 20000); });
+      .then(function() { timer = setTimeout(cargar, (window.DSVivo && window.DSVivo.conectado) ? 60000 : 20000); });
   }
   var repintar = function() { if (!datos) return; if (vista === 'equipos') pintarEquipos(); else pintar(); };
   panel.querySelectorAll('#sgModoW [data-modo]').forEach(function(b) { b.addEventListener('click', function() { modo = b.dataset.modo; try { localStorage.setItem('sgModo', modo); } catch (e) {} repintar(); }); });
@@ -187,6 +187,15 @@
   buscar.addEventListener('input', repintar);
   document.getElementById('sgRefrescar').addEventListener('click', cargar);
   document.addEventListener('visibilitychange', function() { if (!document.hidden && panel.classList.contains('open')) cargar(); });
+  // Con la conexión en vivo: cualquier cambio en órdenes o tiempos libres actualiza el panel (como mucho una vez cada
+  // 5 s); además se refresca cada 60 s porque los minutos y los breaks avanzan solos. Sin conexión, cada 20 s.
+  var tVivo = null, ultVivo = 0;
+  document.addEventListener('ds:vivo', function(e) {
+    var a = e.detail || {};
+    if (!panel.classList.contains('open') || (a.t !== 'dia' && a.t !== 'reconectado')) return;
+    clearTimeout(tVivo);
+    tVivo = setTimeout(function() { ultVivo = Date.now(); cargar(); }, Math.max(300, 5000 - (Date.now() - ultVivo)));
+  });
   window.DS_PANELS.seguimiento = cargar;
   // el Schedule abre el panel del enlace (?panel=seguimiento) antes de que cargue este archivo
   if (panel.classList.contains('open')) cargar();

@@ -1981,7 +1981,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     api('/design/api/dia/version?team_id=' + DS.teamId + '&fecha=' + fecha).then(function(r) {
       if (!r || DS.diaUrl !== url) return;
       if (DS.diaVersion === null || DS.diaVersionClave !== clave) { DS.diaVersion = r.v; DS.diaVersionClave = clave; return; }
-      if (r.v === DS.diaVersion || dsOcupado()) return;  // sin cambios, o se espera al próximo turno
+      if (r.v === DS.diaVersion) return;  // sin cambios
+      if (dsOcupado()) { dsVivoPend = true; return; }  // está escribiendo: se aplica apenas termine
       return api(url).then(function(dia) {
         if (DS.diaUrl !== url || dsOcupado()) return;
         dia._fecha = fecha; dia._team = parseInt(clave);
@@ -2014,8 +2015,25 @@ window.addEventListener('unhandledrejection', function(ev) {
       });
     }).catch(function() {});
   }
-  setInterval(dsVivoTick, DS_VIVO_MS);
-  document.addEventListener('visibilitychange', function() { if (!document.hidden) dsVivoTick(); });
+  // Con la conexión en vivo (static/design/vivo.js) solo se revisa cuando llega un aviso de ESTE equipo y día (o de
+  // cualquier equipo de ese día en la vista de todas las áreas), más una revisión de seguridad cada 90 s. Sin
+  // conexión se vuelve a revisar cada 5 s como antes.
+  var dsVivoPend = false, dsVivoUlt = 0;
+  function dsVivoQuiza(forzar) {
+    var enVivo = window.DSVivo && window.DSVivo.conectado;
+    if (forzar || !enVivo || dsVivoPend || Date.now() - dsVivoUlt > 90000) { dsVivoUlt = Date.now(); dsVivoPend = false; dsVivoTick(); }
+  }
+  setInterval(function() { dsVivoQuiza(false); }, DS_VIVO_MS);
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) dsVivoQuiza(true); });
+  document.addEventListener('ds:vivo', function(e) {
+    var a = e.detail || {};
+    if (a.t === 'reconectado') { dsVivoPend = true; return; }
+    if (a.t !== 'dia' || !DS.lunes) return;
+    var chkTodas = document.getElementById('dsTodasAreasChk'), todas = chkTodas && chkTodas.checked;
+    var fecha = todas ? dsFechaISO(new Date(DS.lunes.getFullYear(), DS.lunes.getMonth(), DS.lunes.getDate() + DS.diaSel))
+                      : (DS.teamId ? dsFechaISO(dsFechaSeleccionada()) : null);
+    if (!a.team || (a.fecha === fecha && (todas || a.team === DS.teamId))) { dsVivoPend = true; setTimeout(function() { dsVivoQuiza(false); }, 200); }
+  });
 
   function dsCargarDia(soloOrdenes) {
     if (!DS.teamId) return;
@@ -3859,7 +3877,8 @@ window.DS_PANELS.dashboard = function() {
       if (!r || id !== PA.sheetId) return;
       if (r.v === null) { if (!paOcupado()) cargarHojas(); return; }  // la hoja ya no existe
       if (PA.version === null || PA.version === undefined) { PA.version = r.v; return; }
-      if (r.v === PA.version || paOcupado()) return;
+      if (r.v === PA.version) return;
+      if (paOcupado()) { paVivoPend = true; return; }
       var vAntes = PA.version;
       api('/design/api/preapproved/sheets?area_id=' + PA.areaId).then(function(sheets) {
         if (id !== PA.sheetId || paOcupado()) return;
@@ -3870,8 +3889,18 @@ window.DS_PANELS.dashboard = function() {
       });
     }).catch(function() {});
   }
-  setInterval(paVivoTick, 5000);
-  document.addEventListener('visibilitychange', function() { if (!document.hidden) paVivoTick(); });
+  // Con la conexión en vivo: se revisa al llegar un aviso de Pre-Approved (y cada 90 s por seguridad); sin ella, cada 5 s.
+  var paVivoPend = false, paVivoUlt = 0;
+  function paVivoQuiza(forzar) {
+    var enVivo = window.DSVivo && window.DSVivo.conectado;
+    if (forzar || !enVivo || paVivoPend || Date.now() - paVivoUlt > 90000) { paVivoUlt = Date.now(); paVivoPend = false; paVivoTick(); }
+  }
+  setInterval(function() { paVivoQuiza(false); }, 5000);
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) paVivoQuiza(true); });
+  document.addEventListener('ds:vivo', function(e) {
+    var a = e.detail || {};
+    if (a.t === 'reconectado' || a.t === 'pa') { paVivoPend = true; if (a.t === 'pa') setTimeout(function() { paVivoQuiza(false); }, 200); }
+  });
 
   // Celda/encabezado editable en su lugar (solo quien puede editar). Esc cancela.
   function paEditable(el, texto, alGuardar) {

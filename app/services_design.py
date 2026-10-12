@@ -666,7 +666,7 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
               "fecha": o.fecha.isoformat(), "teamId": o.team_id, "areaId": o.team.area_id if o.team else None,
               "equipo": o.team.nombre if o.team else ""} for o in ordenes]
     ready = sum(1 for x in lista if x["estado"].lower() == ESTADO_READY.lower())
-    return {"total": len(lista), "ready": ready, "hold": len(lista) - ready, "ordenes": lista}
+    return {"total": len(lista), "ready": ready, "hold": len(lista) - ready, "ordenes": lista, "yo": user.id}
 
 
 # ---------- Seguimiento en tiempo real (Gestión › Seguimiento) ----------

@@ -735,8 +735,19 @@
         if (v.muro !== actual.muro) { actual.muro = v.muro; NVI.refrescarMuros(); }
       }).catch(function() {}).then(function() { andando = false; });
     };
-    setInterval(tick, 20000);   // se publica pocas veces al día: 20 s basta (al volver a la pestaña pregunta de inmediato)
-    document.addEventListener('visibilitychange', function() { if (!document.hidden) tick(); });
+    // Con la conexión en vivo (static/design/vivo.js) solo se pregunta al llegar un aviso de Inicio (y cada 5 min por
+    // seguridad); sin ella, cada 20 s como antes. Al volver a la pestaña pregunta de inmediato.
+    var ult = 0, pend = false;
+    var quiza = function(forzar) {
+      var enVivo = window.DSVivo && window.DSVivo.conectado;
+      if (forzar || pend || !enVivo || Date.now() - ult > 300000) { ult = Date.now(); pend = false; tick(); }
+    };
+    setInterval(function() { quiza(false); }, 20000);
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) quiza(true); });
+    document.addEventListener('ds:vivo', function(e) {
+      var a = e.detail || {};
+      if (a.t === 'inicio') quiza(true); else if (a.t === 'reconectado') pend = true;
+    });
   };
   NVI.avisoVivo = function(txt) {
     var a = h('div', 'nvi-vivo-aviso', '↻ ' + NVI.esc(txt)); document.body.appendChild(a);

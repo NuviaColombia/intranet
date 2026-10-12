@@ -2542,3 +2542,7 @@ router.include_router(_training_router)
 # ---------- Notificaciones push (Web Push): rutas en routers/design_push.py ----------
 from .design_push import router as _push_router  # noqa: E402
 router.include_router(_push_router)
+
+# ---------- En vivo por aviso del servidor (Server-Sent Events): routers/design_vivo.py ----------
+from .design_vivo import router as _vivo_router  # noqa: E402
+router.include_router(_vivo_router)

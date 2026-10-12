@@ -84,7 +84,20 @@
   }
 
   cargar();
-  setInterval(cargar, CADA);
+  // Con la conexión en vivo (vivo.js) solo se cuenta al llegar un aviso de MIS casos (y cada 5 min por seguridad);
+  // sin ella, cada 45 s como antes.
+  var ultCarga = Date.now();
+  setInterval(function() {
+    var enVivo = window.DSVivo && window.DSVivo.conectado;
+    if (!enVivo || Date.now() - ultCarga > 300000) { ultCarga = Date.now(); cargar(); }
+  }, CADA);
+  var tAviso = null;
+  document.addEventListener('ds:vivo', function(e) {
+    var a = e.detail || {};
+    var mio = (a.t === 'asig' && (!a.id || (datos && a.id === datos.yo))) || (a.t === 'dia' && !a.team) || a.t === 'reconectado';
+    if (!mio) return;
+    clearTimeout(tAviso); tAviso = setTimeout(function() { ultCarga = Date.now(); cargar(); }, 400);   // varios cambios seguidos = una consulta
+  });
   setInterval(pintar, 1500);   // abre o cierra paneles del Schedule sin recargar la página
   document.addEventListener('visibilitychange', function() { if (!document.hidden) cargar(); });
   // si cierra un panel del Schedule o cambia de estado un caso, se vuelve a contar enseguida
