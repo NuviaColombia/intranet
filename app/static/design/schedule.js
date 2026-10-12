@@ -3051,7 +3051,105 @@ function ddBuscar() {
   });
 }
 
+// ---------- Dashboard › Productos: órdenes de cada producto por mes (pedido por Rosember el 12-oct-2026) ----------
+var DP = {datos: null, orden: 'total', dir: -1, tok: 0};
+var DP_MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+var DP_MESES_L = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+function dpNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function dpVista(v) {
+  document.querySelectorAll('.dd-vista').forEach(function(b) { var on = b.dataset.dv === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  document.getElementById('ddVistaResumen').hidden = v !== 'resumen';
+  document.getElementById('ddVistaProductos').hidden = v !== 'productos';
+  if (v === 'productos') dpCargar();
+}
+function dpCargar() {
+  var hoy = new Date(), anioSel = document.getElementById('dpAnio'), mesSel = document.getElementById('dpMes');
+  if (!mesSel.options.length) { mesSel.innerHTML = DP_MESES_L.map(function(m, i) { return '<option value="' + i + '">' + m.charAt(0).toUpperCase() + m.slice(1) + '</option>'; }).join(''); mesSel.value = hoy.getMonth(); }
+  var anio = anioSel.value || hoy.getFullYear(), area = document.getElementById('dpArea').value, team = document.getElementById('dpTeam').value;
+  var u = '/design/api/dashboard/productos?anio=' + anio + (team ? '&team_id=' + team : area ? '&area_id=' + area : ''), t = ++DP.tok;
+  document.getElementById('dpTabla').style.opacity = '.5';
+  ddApi(u).then(function(d) {
+    if (t !== DP.tok) return;
+    DP.datos = d;
+    var actual = String(d.anio);
+    anioSel.innerHTML = d.anios.map(function(a) { return '<option' + (String(a) === actual ? ' selected' : '') + '>' + a + '</option>'; }).join('');
+    dpPintar();
+  }).catch(function(e) { document.getElementById('dpTabla').innerHTML = '<tbody><tr><td>No se pudo cargar: ' + ddEsc(e.message) + '</td></tr></tbody>'; })
+    .then(function() { document.getElementById('dpTabla').style.opacity = ''; });
+}
+function dpFiltrados() {
+  var q = dpNorm(document.getElementById('dpBuscar').value.trim());
+  var lista = (DP.datos ? DP.datos.productos : []).filter(function(p) { return !q || dpNorm(p.producto).indexOf(q) >= 0; });
+  var k = DP.orden, dir = DP.dir;
+  return lista.slice().sort(function(a, b) {
+    var va = k === 'producto' ? a.producto.toLowerCase() : k === 'total' ? a.total : a.meses[+k], vb = k === 'producto' ? b.producto.toLowerCase() : k === 'total' ? b.total : b.meses[+k];
+    return (va < vb ? -1 : va > vb ? 1 : 0) * dir || b.total - a.total;
+  });
+}
+function dpPintar() {
+  if (!DP.datos) return;
+  var filas = dpFiltrados(), mes = +document.getElementById('dpMes').value, q = document.getElementById('dpBuscar').value.trim();
+  var tot = DP_MESES.map(function(m, i) { return filas.reduce(function(s, p) { return s + p.meses[i]; }, 0); }), total = tot.reduce(function(a, b) { return a + b; }, 0);
+  var conMes = filas.filter(function(p) { return p.meses[mes]; });
+  document.getElementById('dpKpis').innerHTML =
+    '<div class="dd-kpi"><b>' + tot[mes] + '</b>órdenes en ' + DP_MESES_L[mes] + (q ? ' · "' + ddEsc(q) + '"' : '') + '</div>' +
+    '<div class="dd-kpi"><b>' + total + '</b>órdenes en ' + DP.datos.anio + '</div>' +
+    '<div class="dd-kpi"><b>' + conMes.length + '</b>productos con órdenes en ' + DP_MESES_L[mes] + '</div>' +
+    '<div class="dd-kpi"><b>' + ddEsc(conMes.length ? conMes.slice().sort(function(a, b) { return b.meses[mes] - a.meses[mes]; })[0].producto : '—') + '</b>el más pedido en ' + DP_MESES_L[mes] + '</div>';
+  // los productos del mes, en barras
+  document.getElementById('dpTopTit').textContent = 'Productos de ' + DP_MESES_L[mes] + ' ' + DP.datos.anio;
+  var top = conMes.slice().sort(function(a, b) { return b.meses[mes] - a.meses[mes]; }), max = top.length ? top[0].meses[mes] : 1;
+  document.getElementById('dpTop').innerHTML = top.length ? top.slice(0, 15).map(function(p) {
+    return '<div class="dp-barra"><span class="n" title="' + ddEsc(p.producto) + '">' + ddEsc(p.producto) + '</span><span class="b"><i style="width:' + Math.max(2, p.meses[mes] * 100 / max) + '%"></i></span><b>' + p.meses[mes] + '</b></div>';
+  }).join('') + (top.length > 15 ? '<div class="dp-mas">y ' + (top.length - 15) + ' productos más en la tabla</div>' : '')
+    : '<p style="color:#4b5563;font-size:13px;margin:6px 0">No hay órdenes en ' + DP_MESES_L[mes] + (q ? ' con "' + ddEsc(q) + '"' : '') + '.</p>';
+  // tabla producto × mes
+  var flecha = function(k) { return DP.orden === k ? (DP.dir === 1 ? ' ▲' : ' ▼') : ''; };
+  var h = '<thead><tr><th class="dd-izq" data-o="producto">Producto' + flecha('producto') + '</th>' +
+    DP_MESES.map(function(m, i) { return '<th data-o="' + i + '"' + (i === mes ? ' class="dp-mes-on"' : '') + '>' + m + flecha(String(i)) + '</th>'; }).join('') +
+    '<th data-o="total">Total' + flecha('total') + '</th></tr></thead><tbody>';
+  h += filas.length ? filas.map(function(p) {
+    return '<tr><td class="dd-izq"><b>' + ddEsc(p.producto) + '</b><div class="dp-areas">' + ddEsc(p.areas.join(' · ')) + '</div></td>' +
+      p.meses.map(function(n, i) { return '<td' + (i === mes ? ' class="dp-mes-on"' : '') + '>' + (n || '<span class="dp-cero">·</span>') + '</td>'; }).join('') + '<td><b>' + p.total + '</b></td></tr>';
+  }).join('') : '<tr><td colspan="14" style="color:#4b5563">No hay productos con ese nombre en ' + DP.datos.anio + '.</td></tr>';
+  h += '</tbody><tfoot><tr><th class="dd-izq">Total' + (q ? ' "' + ddEsc(q) + '"' : '') + '</th>' + tot.map(function(n, i) { return '<th' + (i === mes ? ' class="dp-mes-on"' : '') + '>' + n + '</th>'; }).join('') + '<th>' + total + '</th></tr></tfoot>';
+  var tb = document.getElementById('dpTabla'); tb.innerHTML = h;
+  tb.querySelectorAll('thead th[data-o]').forEach(function(th) {
+    th.style.cursor = 'pointer';
+    th.onclick = function() { var k = th.dataset.o; DP.dir = DP.orden === k ? -DP.dir : (k === 'producto' ? 1 : -1); DP.orden = k; dpPintar(); };
+  });
+}
+function dpDescargar() {
+  if (!DP.datos) return;
+  var filas = dpFiltrados(), sep = ';', q = function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
+  var csv = [['Producto', 'Áreas'].concat(DP_MESES_L, ['Total']).map(q).join(sep)].concat(filas.map(function(p) {
+    return [q(p.producto), q(p.areas.join(', '))].concat(p.meses, [p.total]).join(sep);
+  }));
+  var b = new Blob(['\ufeff' + csv.join('\r\n')], {type: 'text/csv;charset=utf-8'}), a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = 'Productos por mes ' + DP.datos.anio + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 2000);
+}
+(function() {
+  var el = function(id) { return document.getElementById(id); };
+  if (!el('ddVistaProductos')) return;
+  document.querySelectorAll('.dd-vista').forEach(function(b) { b.addEventListener('click', function() { dpVista(b.dataset.dv); }); });
+  el('dpArea').addEventListener('change', function() {
+    var sel = el('dpTeam'), areaId = el('dpArea').value; sel.innerHTML = '<option value="">-- Todos --</option>';
+    if (!areaId) { dpCargar(); return; }
+    ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
+      teams.filter(function(t) { return !DD_PROPIOS || DD_PROPIOS.indexOf(t.id) >= 0; })
+           .forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
+    }).then(dpCargar);
+  });
+  el('dpTeam').addEventListener('change', dpCargar);
+  el('dpAnio').addEventListener('change', dpCargar);
+  el('dpMes').addEventListener('change', dpPintar);
+  var tb = null; el('dpBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(dpPintar, 200); });
+  el('dpDescargar').addEventListener('click', dpDescargar);
+})();
+
 window.DS_PANELS.dashboard = function() {
+  if (!document.getElementById('ddVistaProductos').hidden) { dpCargar(); return; }
   if (!ddCargar.listo) {
     ddCargar.listo = true;
     if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) {

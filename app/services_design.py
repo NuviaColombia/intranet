@@ -1540,6 +1540,35 @@ def _hold_min(o: DesignOrden) -> float:
     return (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
 
 
+def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | None = None, team_id: int | None = None) -> dict:
+    """Dashboard › Productos (pedido por Rosember el 12-oct-2026): cuántas órdenes de cada producto hay en cada mes del
+    año. Cuentan las órdenes completas (centro, producto y diseñador) que no están canceladas ni skipped, por su fecha
+    en el Schedule (una orden que pasó de un día a otro cuenta una sola vez, en su día actual). Un aprobador ve solo
+    los equipos que maneja, como en el resto del Dashboard. El mismo producto escrito distinto se junta."""
+    q = (db.query(DesignOrden.producto, DesignOrden.fecha, DesignOrden.estado, DesignTeam.area_id)
+         .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
+         .filter(filtro_orden_completa(), DesignOrden.fecha >= date(anio, 1, 1), DesignOrden.fecha <= date(anio, 12, 31)))
+    if not es_admin(user):
+        q = q.filter(DesignTeam.manager_id == user.id)
+    if team_id:
+        q = q.filter(DesignOrden.team_id == team_id)
+    elif area_id:
+        q = q.filter(DesignTeam.area_id == area_id)
+    areas = {a.id: a.nombre for a in db.query(DesignArea).all()}
+    por: dict[str, dict] = {}
+    for prod, fecha, estado, aid in q.all():
+        if _es_cancelada(estado):
+            continue
+        k = re.sub(r"\s+", " ", _normalizar_texto(prod or "")).strip()
+        p = por.setdefault(k, {"producto": re.sub(r"\s+", " ", (prod or "").strip()), "meses": [0] * 12, "areas": set()})
+        p["meses"][fecha.month - 1] += 1
+        p["areas"].add(areas.get(aid, ""))
+    filas = sorted(({"producto": p["producto"], "meses": p["meses"], "total": sum(p["meses"]), "areas": sorted(a for a in p["areas"] if a)}
+                    for p in por.values()), key=lambda x: (-x["total"], x["producto"].lower()))
+    anios = sorted({r[0].year for r in db.query(DesignOrden.fecha).filter(filtro_orden_completa()).distinct()} | {anio}, reverse=True)
+    return {"anio": anio, "anios": anios, "productos": filas, "totales": [sum(f["meses"][i] for f in filas) for i in range(12)]}
+
+
 def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None = None,
                     designer_id: int | None = None, producto: str = "", estado: str = "",
                     qc: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None,

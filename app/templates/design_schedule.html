@@ -332,6 +332,8 @@ window.dsPdfjs = function() {
 </div></div>
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
+<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button></div>
+<div id="ddVistaResumen">
 
 <div class="dd-search">
   <input type="text" id="ddBuscar" aria-label="Buscar orden o paciente" onkeydown="if (event.key === 'Enter') ddBuscar()" placeholder="Buscar por número de orden o paciente en {{ 'todos los equipos' if user.rol in ('admin', 'superadmin') else 'tus equipos' }}...">
@@ -416,6 +418,23 @@ window.dsPdfjs = function() {
   <h3>Aprobadas sin QC</h3>
   <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Estado</th><th>Diseñador</th></tr></thead>
     <tbody id="ddSinQc"></tbody></table>
+</div>
+</div>
+</div>
+<div id="ddVistaProductos" hidden>
+<p class="dd-p-nota">Cuántas órdenes de cada producto hay en cada mes del año (sin canceladas ni skipped; cada orden cuenta una vez, en su día del Schedule). Escribe parte del nombre (por ejemplo <b>TC</b>) para ver solo esos productos y su total.</p>
+<div class="dd-filtros">
+  <div><label for="dpArea">Área</label><select id="dpArea"><option value="">{{ '-- Todas --' if dash_teams is none else '-- Mis áreas --' }}</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
+  <div><label for="dpTeam">Equipo</label><select id="dpTeam"><option value="">-- Todos --</option></select></div>
+  <div><label for="dpAnio">Año</label><select id="dpAnio"></select></div>
+  <div><label for="dpMes">Mes a resaltar</label><select id="dpMes"></select></div>
+  <div><label for="dpBuscar">Producto</label><input type="search" id="dpBuscar" placeholder="Ej: TC, Nightguard, Full Mouth" style="width:220px"></div>
+  <div style="flex-direction:row;gap:6px;align-self:flex-end"><button type="button" class="btn" id="dpDescargar" title="Descarga la tabla con los filtros actuales (se abre en Excel)">Descargar Excel</button></div>
+</div>
+<div class="dd-kpis" id="dpKpis"></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3 id="dpTopTit">Productos del mes</h3><span style="font-size:12px;color:#4b5563">De más a menos órdenes</span></div><div id="dpTop"></div></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Órdenes por producto y mes</h3><span style="font-size:12px;color:#4b5563">Clic en un título para ordenar</span></div>
+  <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="dpTabla"></table></div></div>
 </div>
 </div></div></div>
 {% endif %}

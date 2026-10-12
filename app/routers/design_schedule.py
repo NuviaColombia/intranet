@@ -1396,6 +1396,16 @@ def api_dashboard(area_id: int | None = None, team_id: int | None = None, design
     return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user, designer_nombre)
 
 
+@router.get("/design/api/dashboard/productos")
+def api_dashboard_productos(anio: int = 0, area_id: int | None = None, team_id: int | None = None,
+                            user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Dashboard › Productos: órdenes de cada producto por mes del año."""
+    anio = anio or sd.ahora_colombia().year
+    if not 2000 <= anio <= 2100:
+        raise HTTPException(400, "Año inválido.")
+    return sd.dashboard_productos(db, user, anio, area_id, team_id)
+
+
 class QcHallazgosIn(BaseModel):
     ids: list[int] = Field(default_factory=list, max_length=5000)
     # Deshacer: {id: texto} vuelve a poner el hallazgo que se borró
