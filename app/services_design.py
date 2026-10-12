@@ -275,6 +275,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     material_change_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
     productos_al_final_una_vez(db)
+    productos_n2_a_face_una_vez(db)
     vals = [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
@@ -538,6 +539,53 @@ PRODUCTOS_AL_FINAL = [
 _productos_al_final = {"ok": False}
 
 
+_n2_a_face = {"ok": False}
+
+
+def productos_n2_a_face_una_vez(db: Session) -> None:
+    """Una sola vez (pedido por Rosember el 12-oct-2026): Face tiene todos los productos activos de N2. Los que Face ya
+    tiene (aunque estén escritos con otras mayúsculas o tildes) se ignoran; si estaban desactivados, se reactivan. Los
+    nuevos van al final, en el orden de N2. Lo agregado queda anotado en design_conexion_reglas."""
+    from .models_design import DesignConexionRegla
+    if _n2_a_face["ok"]:
+        return
+    marca = "productos_n2_a_face_2026_10_12"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            n2 = db.query(DesignArea).filter(DesignArea.nombre == "N2 Demodenture").first()
+            face = db.query(DesignArea).filter(DesignArea.nombre == "Face Design").first()
+            if not n2 or not face:
+                return
+            de_n2 = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == n2.id, DesignCatalogo.tipo == "producto", DesignCatalogo.activo == 1)
+                     .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+            de_face = db.query(DesignCatalogo).filter(DesignCatalogo.area_id == face.id, DesignCatalogo.tipo == "producto").all()
+            por_nombre = {_normalizar_texto(c.valor): c for c in de_face}
+            ult = max([c.orden or 0 for c in de_face] or [0])
+            agregados, reactivados = [], []
+            for c in de_n2:
+                k = _normalizar_texto(c.valor)
+                ya = por_nombre.get(k)
+                if ya:
+                    if not ya.activo:
+                        ya.activo = 1
+                        reactivados.append(ya.valor)
+                    continue
+                ult += 1
+                nuevo = DesignCatalogo(area_id=face.id, tipo="producto", valor=c.valor, activo=1, orden=ult)
+                db.add(nuevo)
+                por_nombre[k] = nuevo
+                agregados.append(c.valor)
+            mp = por_nombre.get(_normalizar_texto("Maxilar Print"))  # Maxilar Print sigue de último (pedido del mismo día)
+            if mp is not None:
+                mp.orden = ult + 1
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema",
+                                       valor=json.dumps({"agregados": agregados, "reactivados": reactivados}, ensure_ascii=False)))
+            db.commit()
+        _n2_a_face["ok"] = True
+    except Exception:
+        db.rollback()
+
+
 def productos_al_final_una_vez(db: Session) -> None:
     from .models_design import DesignConexionRegla
     if _productos_al_final["ok"]:
@@ -623,6 +671,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     material_change_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
     productos_al_final_una_vez(db)
+    productos_n2_a_face_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
