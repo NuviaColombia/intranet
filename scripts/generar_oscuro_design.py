@@ -22,6 +22,9 @@ FUENTES = [
 PLANTILLAS = [RAIZ / "templates/base.html", RAIZ / "templates/design_schedule.html", RAIZ / "templates/design_parametros.html",
               RAIZ / "templates/design_inicio.html"]
 SALIDA = RAIZ / "static/design/oscuro_auto.css"
+# Canvas: la hoja (miniaturas, escenario y lo que hay dentro) se queda blanca, como se diseñó (pedido por Rosember)
+DESIGN_PAPEL = re.compile(r"cv-canvas|cv-stage\b|cv-thumb|cv-frame|cv-text|cv-shape|cv-title|cv-el-|cv-sel\b|cv-f(move|resize|del)")
+NO_PAPEL = ':not(:is(.cv-canvas, .cv-thumb) *)'   # los colores escritos en style="" dentro de la hoja no se tocan
 # Nuvia Office: su propia salida; el "papel" (página de Word, diapositiva, miniaturas, presentación) queda como se diseñó
 OFFICE = RAIZ / "static/office/office.css"
 SALIDA_OFFICE = RAIZ / "static/office/oscuro_office.css"
@@ -190,7 +193,7 @@ def inline_reglas() -> list:
         nuevo = transformar(tok, tipo)
         if nuevo == tok:
             continue
-        sel = f'{PREFIJO} [style*="{escrito}"]'
+        sel = f'{PREFIJO} [style*="{escrito}"]{NO_PAPEL}'
         if prop == "color":
             sel += f':not([style*="-{escrito}"])'
         out.append(f"{sel} {{ {'color' if prop == 'color' else 'background-color'}:{nuevo} !important; }}")
@@ -200,11 +203,11 @@ def inline_reglas() -> list:
 def main():
     bloques = []
     for f in FUENTES:
-        r = procesar(f.read_text(encoding="utf-8"))
+        r = procesar(f.read_text(encoding="utf-8"), DESIGN_PAPEL)
         bloques.append(f"/* ---- {f.relative_to(RAIZ)} ({len(r)} reglas) ---- */\n" + "\n".join(r))
     for f in PLANTILLAS:
         estilos = re.findall(r"<style[^>]*>(.*?)</style>", f.read_text(encoding="utf-8"), flags=re.S)
-        r = procesar("\n".join(re.sub(r"\{\{.*?\}\}|\{%.*?%\}", "", e, flags=re.S) for e in estilos))
+        r = procesar("\n".join(re.sub(r"\{\{.*?\}\}|\{%.*?%\}", "", e, flags=re.S) for e in estilos), DESIGN_PAPEL)
         bloques.append(f"/* ---- {f.relative_to(RAIZ)} <style> ({len(r)} reglas) ---- */\n" + "\n".join(r))
     r = inline_reglas()
     bloques.append(f"/* ---- colores en style=\"\" de plantillas y JS ({len(r)} reglas) ---- */\n" + "\n".join(r))

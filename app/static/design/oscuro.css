@@ -51,8 +51,8 @@ nav .ds-nav-extras .ds-push-pop { left:auto; right:-70px; transform:none; }
 :root[data-ds-tema="oscuro"] { --gris:#a3acbb; }
 /* Training: el botón "Empezar" del inicio va sobre el degradado: fondo de tarjeta con texto claro (como en modo claro) */
 :root[data-ds-tema="oscuro"] .tr-raiz .tr-hero-cta .tr-btn-primario { background:var(--tr-card); }
-/* Canvas: el título de cada hoja conserva su color, más claro para leerse sobre fondo oscuro */
-:root[data-ds-tema="oscuro"] .cv-thumb-title { filter:brightness(1.8) saturate(.8); }
+/* Canvas: las hojas se quedan blancas, con los colores que se les pusieron (como el papel en Office) */
+:root[data-ds-tema="oscuro"] :is(.cv-canvas, .cv-thumb) { background:#fff; color:#111827; color-scheme:light; }
 
 /* ---------- Estados con la MISMA tonalidad que en modo claro (pedido por Rosember el 12-oct-2026) ----------
    Hold / Dr authorization, Ready to design / Changes, Html, Approved y Canceled conservan su color claro; dentro de esas
