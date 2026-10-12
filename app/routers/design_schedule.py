@@ -961,6 +961,8 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id)  # huella para el Schedule en vivo
     dia["puedeQc"] = sd.puede_qc(user, team)  # el QC lo marcan aprobadores, admins y el diseñador a cargo
     dia["creaProducto"] = None if sd.gestiona_equipo(user, team) else sd.producto_que_crea(user, team)  # p. ej. Maxilar Print
+    import time as _t
+    dia["ahoraMs"] = int(_t.time() * 1000)  # hora del servidor: el descanso se marca con la hora de Colombia, no la del computador
     return dia
 
 

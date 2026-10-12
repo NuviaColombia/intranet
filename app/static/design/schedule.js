@@ -1804,8 +1804,17 @@ window.addEventListener('unhandledrejection', function(ev) {
     var p = hhmm.split(':'); var t = (parseInt(p[0]) * 60 + parseInt(p[1]) + minutos) % (24 * 60);
     return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
   }
+  // Hora actual de Colombia (24 h) tomada del reloj del SERVIDOR: si el computador tiene la hora o la zona horaria mal
+  // (p. ej. 3:00 a. m. en vez de 3:00 p. m.), el descanso no queda mal registrado (reportado por Rosember el 12-oct-2026).
   function dsHoraActual() {
-    var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    var d = new Date(Date.now() + (DS.desfase || 0));
+    try {
+      var p = new Intl.DateTimeFormat('en-GB', {timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'}).formatToParts(d);
+      var h = (p.find(function(x) { return x.type === 'hour'; }) || {}).value, m = (p.find(function(x) { return x.type === 'minute'; }) || {}).value;
+      if (h && m) return (h === '24' ? '00' : h) + ':' + m;
+    } catch (e) {}
+    var u = new Date(d.getTime() - 5 * 3600000);  // Colombia = UTC-5 todo el año
+    return String(u.getUTCHours()).padStart(2, '0') + ':' + String(u.getUTCMinutes()).padStart(2, '0');
   }
 
   var dsAusenciasPromesa = null; // la lista de tipos de ausencia se pide una sola vez
@@ -2075,6 +2084,13 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsAplicarDia(dia, soloOrdenes) {
+    if (dia.ahoraMs) {  // diferencia entre el reloj del computador y el del servidor
+      DS.desfase = dia.ahoraMs - Date.now();
+      if (Math.abs(DS.desfase) > 5 * 60000 && !DS.avisoReloj) {
+        DS.avisoReloj = true;
+        dsToast('⚠️ La hora de este computador no está bien (' + Math.round(Math.abs(DS.desfase) / 60000) + ' min de diferencia). Los descansos se registran con la hora de Colombia igual; conviene ajustar el reloj.');
+      }
+    }
     DS.diaData = dia;
     DS.diaVersion = dia.version || null;  // huella del día (Schedule en vivo)
     DS.diaVersionClave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
@@ -2143,7 +2159,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
           (DS.diaData[t] || []).forEach(function(f) { antes[f.id] = dsHuellaFila(f); });
         });
-        var sinV = function(d) { var c = Object.assign({}, d); delete c.version; delete c._fecha; delete c._team; return JSON.stringify(c); };
+        var sinV = function(d) { var c = Object.assign({}, d); delete c.version; delete c._fecha; delete c._team; delete c.ahoraMs; return JSON.stringify(c); };
         var mismo = sinV(dia) === sinV(DS.diaData);
         var y = window.scrollY;
         if (mismo) { DS.diaVersion = r.v; DS.diaData.version = r.v; return; }  // fue un cambio propio: ya se ve
