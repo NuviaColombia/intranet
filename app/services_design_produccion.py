@@ -6,9 +6,9 @@ El reporte que los managers de N3 y N2 envían cada día, armado con lo que hay 
     Alpharetta: 3             (cada centro que Openings le da al manager, también los que van en 0)
     ...
     Total cirugías: 13        (N2: "Total órdenes")
-Solo cuentan las órdenes NUEVAS del día en Cirugías / Órdenes: no las que pasaron de otro día (Hold, Ready to design)
-ni las canceladas. Una orden es nueva si se creó para ese día (DesignOrden.fecha_creada; las anteriores a esa columna,
-por la fecha de creación en hora de Colombia). Solo lee Openings y Equipos (no cambia de dónde salen los datos).
+Cuentan TODAS las órdenes del día en la tabla Cirugías (N2: Órdenes), sin importar el estado (pedido por Rosember el
+12-oct-2026; antes solo contaban las nuevas y no las canceladas). Nightguards / TC y Material Change no cuentan. Una
+orden sin centro va en "Sin centro". Solo lee Openings y Equipos (no cambia de dónde salen los datos).
 """
 import json
 from datetime import date, timedelta
@@ -63,15 +63,15 @@ def produccion(db: Session, fecha: date) -> list[dict]:
             por_tipo: dict[str, int] = {}
             for tipo in ausencias.values():
                 por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
-            nuevas = [o for o in ordenes if o.team_id == t.id and (o.centro or "").strip()
-                      and not sd._es_cancelada(o.estado) and es_nueva(o)]
+            nuevas = [o for o in ordenes if o.team_id == t.id and ((o.centro or "").strip() or (o.orden or "").strip()
+                                                                    or (o.paciente or "").strip() or (o.producto or "").strip())]
             conteo: dict[str, int] = {}
             nombres = sorted(centros_de.get(t.id, []), key=lambda n: sd._normalizar_texto(n))
             clave_a_nombre = {so.centro_clave(n): n for n in nombres}
             for n in nombres:
                 conteo[n] = 0
             for o in nuevas:
-                n = clave_a_nombre.get(so.centro_clave(o.centro)) or o.centro.strip()
+                n = clave_a_nombre.get(so.centro_clave(o.centro or "")) or (o.centro or "").strip() or "Sin centro"
                 conteo[n] = conteo.get(n, 0) + 1
             en_turno = len(disenadores) - len(ausencias)
             linea_dis = f"Diseñadores: {en_turno}" + (
