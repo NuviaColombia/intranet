@@ -75,3 +75,13 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#f3f4f6; }
 :root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-html { background:#f5c9d7; color:#111827; }
 :root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-aprobada { background:#d6f5b8; color:#111827; }
 :root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-cancelada { background:#f3f4f6; color:#4b5563; }
+
+/* ---------- Desempeño: las celdas de nivel con los mismos colores que en modo claro (pedido por Rosember el 12-oct-2026) ---------- */
+:root[data-ds-tema="oscuro"] .pf-nivel-ALTO { background:#e6f6ea !important; }
+:root[data-ds-tema="oscuro"] .pf-nivel-SOBRESALIENTE { background:#e3f0fb !important; }
+:root[data-ds-tema="oscuro"] .pf-nivel-MEDIO { background:#fff8e1 !important; }
+:root[data-ds-tema="oscuro"] .pf-nivel-BAJO { background:#fdecea !important; }
+:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] { color:#111827 !important; }
+:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(select, input, textarea) {
+  background:#fff !important; color:#111827 !important; -webkit-text-fill-color:#111827 !important; border-color:#d1d5db !important; color-scheme:light; }
+:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(span, b) { color:#111827 !important; }
