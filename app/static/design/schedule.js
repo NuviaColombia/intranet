@@ -758,6 +758,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Una orden "completa" (centro + producto + diseñador) es la única que cuentan los contadores;
   // mismo criterio que filtro_orden_completa() en services_design.py.
   function dsOrdenCompleta(f) { return !!(f.centro && f.producto && (f.designerId || f.designerPrestado)); }
+  // Los casos que pasan solos de un día anterior (Hold, Html, Ready to design; ver trasladar_holds) pueden llegar sin
+  // diseñador: aunque estén incompletos no frenan la fila nueva, así el lunes hay una orden en blanco para las de hoy.
+  var DS_ESTADOS_TRASLADO = ['hold', 'html', 'ready to design'];
+  function dsFrenaFilaNueva(f) { return !dsOrdenCompleta(f) && DS_ESTADOS_TRASLADO.indexOf(String(f.estado || '').trim().toLowerCase()) < 0; }
 
   var DS_SORTABLES = {centro: true, producto: true, designerId: true, estado: true};
   DS.sort = {principal: null, nightguard: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
@@ -1280,7 +1284,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     html += '<th>Total</th><th></th></tr></thead><tbody>';
     filas.forEach(function(f) { html += dsFilaHtml(spec, f, tabla); });
-    if (dsPuedeCrear() && !filas.some(function(f) { return !dsOrdenCompleta(f); })) html += dsFilaHtml(spec, {}, tabla);
+    if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaHtml(spec, {}, tabla);
     html += '</tbody></table>';
     DS.renderizando = true; // si la celda con foco desaparece, su "blur" no debe guardar
     try { cont.innerHTML = html; } finally { DS.renderizando = false; }
@@ -1539,9 +1543,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsMarcarFila(tr, tabla, o);
     dsRenderKpis(DS.diaData);
     if (tabla === 'prestadas') return;
-    // Si ya no queda ninguna fila incompleta, se agrega una fila nueva vacía al final (sin redibujar: no se pierde el foco).
+    // Si ya no queda ninguna fila incompleta (sin contar los casos que pasaron de otro día), se agrega una fila nueva vacía
+    // al final (sin redibujar: no se pierde el foco).
     var tbody = tr.parentNode;
-    if (dsPuedeCrear() && !DS.diaData[tabla].some(function(f) { return !dsOrdenCompleta(f); }) && !tbody.querySelector('tr[data-id="nuevo"]')) {
+    if (dsPuedeCrear() && !DS.diaData[tabla].some(dsFrenaFilaNueva) && !tbody.querySelector('tr[data-id="nuevo"]')) {
       var spec = dsSpec(tabla);
       var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaHtml(spec, {}, tabla);
       var nueva = tmp.firstChild;
