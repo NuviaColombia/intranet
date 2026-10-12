@@ -298,6 +298,15 @@ def init_db():
         with engine.begin() as conn:
             conn.execute(text(
                 "ALTER TABLE design_favoritos ADD COLUMN cmt_template_id INTEGER REFERENCES design_comentario_templates(id)"))
+    # Design Schedule · N6 Material Change: horas y QC de la etapa Zirconia design. Solo agrega columnas; no toca datos.
+    columnas_design_ordenes = {c["name"] for c in inspect(engine).get_columns("design_ordenes")}
+    for col, tipo in (("z_hora_inicio", "VARCHAR(10) DEFAULT ''"), ("z_s_hold", "VARCHAR(10) DEFAULT ''"),
+                      ("z_f_hold", "VARCHAR(10) DEFAULT ''"), ("z_hold_minutos", "FLOAT DEFAULT 0"),
+                      ("z_hora_fin", "VARCHAR(10) DEFAULT ''"), ("z_qc", "BOOLEAN DEFAULT FALSE"),
+                      ("z_qc_reporte", "TEXT DEFAULT ''")):
+        if col not in columnas_design_ordenes:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))
     # Design Schedule · Canvas: cada hoja tiene dueño (empleado_id). Solo agrega la columna; no toca datos.
     if "empleado_id" not in {c["name"] for c in inspect(engine).get_columns("design_canvas_docs")}:
         with engine.begin() as conn:

@@ -998,7 +998,7 @@ def api_todas_areas(fecha: str, user: Empleado = Depends(require_modulo("design_
 class OrdenIn(BaseModel):
     teamId: int
     fecha: str
-    tabla: Literal["principal", "nightguard"] = "principal"
+    tabla: Literal["principal", "nightguard", "material"] = "principal"
     orden: str = ""
     paciente: str = ""
     centro: str = ""
@@ -1023,6 +1023,14 @@ class OrdenIn(BaseModel):
     qc: bool = False
     qcReporte: str = ""
     notas: str = ""
+    # N6 · Material Change: horas y QC de la etapa Zirconia design
+    zHoraInicio: str = ""
+    zSHold: str = ""
+    zFHold: str = ""
+    zHoldMinutos: float = 0
+    zHoraFin: str = ""
+    zQc: bool = False
+    zQcReporte: str = ""
 
 
 def _datos_desde_in(payload: OrdenIn) -> dict:
@@ -1037,6 +1045,9 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
         "etapa": payload.etapa, "solicitado_por": payload.solicitadoPor, "situacion": payload.situacion,
         "solucion": payload.solucion, "clasificacion": payload.clasificacion, "soporte": payload.soporte,
         "estado": payload.estado, "qc": payload.qc, "qc_reporte": payload.qcReporte, "notas": payload.notas,
+        "z_hora_inicio": payload.zHoraInicio, "z_s_hold": payload.zSHold, "z_f_hold": payload.zFHold,
+        "z_hold_minutos": payload.zHoldMinutos, "z_hora_fin": payload.zHoraFin, "z_qc": payload.zQc,
+        "z_qc_reporte": payload.zQcReporte,
     }
 
 
@@ -1048,7 +1059,9 @@ CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "
                  "esferas": "esferas", "critico": "critico", "sHold": "s_hold", "fHold": "f_hold", "etapa": "etapa",
                  "solicitadoPor": "solicitado_por", "situacion": "situacion", "solucion": "solucion",
                  "clasificacion": "clasificacion", "soporte": "soporte", "estado": "estado", "qc": "qc",
-                 "qcReporte": "qc_reporte", "notas": "notas"}
+                 "qcReporte": "qc_reporte", "notas": "notas",
+                 "zHoraInicio": "z_hora_inicio", "zSHold": "z_s_hold", "zFHold": "z_f_hold", "zHoldMinutos": "z_hold_minutos",
+                 "zHoraFin": "z_hora_fin", "zQc": "z_qc", "zQcReporte": "z_qc_reporte"}
 
 DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
 SOLO_QC = "Solo los aprobadores (o el diseñador a cargo del equipo) marcan el QC."
@@ -1058,8 +1071,10 @@ def _verificar_qc(user: Empleado, team: DesignTeam, payload: "OrdenIn", existent
     """Cambiar el QC (casilla o reporte) solo lo hacen aprobadores, admins y el diseñador a cargo."""
     if sd.puede_qc(user, team):
         return
-    cambia = (("qc" in payload.model_fields_set and bool(payload.qc) != bool(existente.qc if existente else False)) or
-              ("qcReporte" in payload.model_fields_set and (payload.qcReporte or "") != ((existente.qc_reporte if existente else "") or "")))
+    cambia = any(  # QC de Bite (o de la orden) y QC de Zirconia (Material Change)
+        (chk in payload.model_fields_set and bool(getattr(payload, chk)) != bool(getattr(existente, col_chk) if existente else False)) or
+        (rep in payload.model_fields_set and (getattr(payload, rep) or "") != ((getattr(existente, col_rep) if existente else "") or ""))
+        for chk, col_chk, rep, col_rep in (("qc", "qc", "qcReporte", "qc_reporte"), ("zQc", "z_qc", "zQcReporte", "z_qc_reporte")))
     if cambia:
         raise HTTPException(403, SOLO_QC)
 
@@ -1074,12 +1089,21 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
     _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
     datos = _datos_desde_in(payload)
     t_face = db.get(DesignTeam, payload.teamId)
+    _verificar_tabla(t_face, payload.tabla)
+    if payload.tabla == sd.TABLA_MATERIAL and not datos.get("etapa"):
+        datos["etapa"] = sd.ETAPA_BITE
     if datos.get("estado") and sd.horas_por_estado(t_face.area.formato, _fecha(payload.fecha), payload.tabla):
-        datos.update(sd.face_horas_por_estado(datos, datos["estado"]))
+        datos.update(sd.horas_de_estado(payload.tabla, datos, datos["estado"]))
     if sd.orden_repetida(db, payload.teamId, _fecha(payload.fecha), datos["orden"]):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
     o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla, datos)
     return sd.serializar_orden(o)
+
+
+def _verificar_tabla(team: DesignTeam, tabla: str) -> None:
+    """El panel Material Change existe solo en N6."""
+    if tabla == sd.TABLA_MATERIAL and not (team and team.area and team.area.nombre == sd.AREA_N6):
+        raise HTTPException(400, "Material Change solo existe en el Schedule de N6.")
 
 
 def _msg_repetida(orden: str) -> str:
@@ -1109,7 +1133,7 @@ def api_support_autocompletar(team_id: int, orden: str, user: Empleado = Depends
 class LoteIn(BaseModel):
     teamId: int
     fecha: str
-    tabla: Literal["principal", "nightguard"] = "principal"
+    tabla: Literal["principal", "nightguard", "material"] = "principal"
     filas: list[dict] = []  # cada fila con los mismos campos de OrdenIn (vacía = orden en blanco)
 
 
@@ -1127,6 +1151,7 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
     fecha = _fecha(payload.fecha)
     if sd.dia_cerrado(fecha):
         raise HTTPException(403, DIA_CERRADO)
+    _verificar_tabla(db.get(DesignTeam, payload.teamId), payload.tabla)
     if not 1 <= len(payload.filas) <= MAX_LOTE:
         raise HTTPException(400, f"Se pueden crear entre 1 y {MAX_LOTE} órdenes por vez.")
     try:
@@ -1148,7 +1173,8 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
 
 
 # Horas que un diseñador no cambia a mano cuando el estado las llena solas (services_design.horas_por_estado).
-CAMPOS_HORAS = ("hora_inicio", "hora_inicio_diseno", "hora_fin", "s_hold", "f_hold", "hold_minutos")
+CAMPOS_HORAS = ("hora_inicio", "hora_inicio_diseno", "hora_fin", "s_hold", "f_hold", "hold_minutos",
+                "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin")
 
 # ---------- Catálogo de hallazgos de QC (títulos y hallazgos preestablecidos por área) ----------
 
@@ -1238,7 +1264,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         if not sd.qc_editable(orden_existente.fecha):
             raise HTTPException(403, DIA_CERRADO)
         # solo lo que llegó: si no se envió el checkbox (no cambió), no se desmarca
-        qc = {c: v for k, c, v in (("qc", "qc", payload.qc), ("qcReporte", "qc_reporte", payload.qcReporte))
+        qc = {c: v for k, c, v in (("qc", "qc", payload.qc), ("qcReporte", "qc_reporte", payload.qcReporte),
+                                    ("zQc", "z_qc", payload.zQc), ("zQcReporte", "z_qc_reporte", payload.zQcReporte))
               if k in payload.model_fields_set}
         o = sd.actualizar_orden(db, orden_id, qc) if qc else orden_existente
         return sd.serializar_orden(o)
@@ -1252,6 +1279,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         # Si hay que corregir una hora, la cambia el manager.
         for c in CAMPOS_HORAS:
             datos.pop(c, None)
+    if solo_propia and orden_existente.tabla == sd.TABLA_MATERIAL:
+        datos.pop("etapa", None)  # la etapa cambia sola al aprobar Bite; corregirla a mano es del manager
     if ("hora_inicio_diseno" in datos and orden_existente.tabla == "principal"
             and sd.es_face_nuevo(team.area.formato, orden_existente.fecha)):
         # Página abierta desde antes del formato nuevo: su "Inicio diseño" llega en el campo viejo → va a Inicio diseño (hora_inicio)
@@ -1261,8 +1290,10 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if ("estado" in datos and datos["estado"] != (orden_existente.estado or "")
             and sd.horas_por_estado(team.area.formato, orden_existente.fecha, orden_existente.tabla)):
         # Face: el estado llena solo las horas (Initiated → Inicio diseño / Re-initiated, Hold → Start hold, Approved → Fin)
-        actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")}
-        datos.update(sd.face_horas_por_estado(actual, datos["estado"]))
+        actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos",
+                                                                           "etapa", "z_hora_inicio", "z_s_hold", "z_f_hold",
+                                                                           "z_hora_fin", "z_hold_minutos")}
+        datos.update(sd.horas_de_estado(orden_existente.tabla, actual, datos["estado"]))
     if solo_propia:  # un diseñador edita horas, estado, notas, esferas y crítico (y en N3/N6 orden, paciente y producto)
         for c in campos_solo_manager(team):
             datos.pop(c, None)

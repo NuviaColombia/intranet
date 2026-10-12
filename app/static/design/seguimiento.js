@@ -135,7 +135,8 @@
     cont.innerHTML = filas.map(function(e) {
       var pct = e.total ? Math.round(e.hechos * 100 / e.total) : 0, S = SEMAFORO[e.semaforo];
       var n = e.enTurno.length + e.prestados.length + e.deOtrosEquipos;
-      var progr = e.cirugias + (e.cirugias === 1 ? ' cirugía' : ' cirugías') + (e.nightguards ? ' · ' + e.nightguards + ' nightguard' + (e.nightguards === 1 ? '' : 's') : '');
+      var progr = e.cirugias + (e.cirugias === 1 ? ' cirugía' : ' cirugías') + (e.nightguards ? ' · ' + e.nightguards + ' nightguard' + (e.nightguards === 1 ? '' : 's') : '') +
+        (e.material ? ' · ' + e.material + ' material change' + (e.material === 1 ? '' : 's') : '');
       var gente = e.enTurno.map(function(p) { return '<span class="sg-p sg-' + p.grupo + '" title="' + esc(GRUPOS[p.grupo] ? GRUPOS[p.grupo].rot : '') + '"><i></i>' + esc(p.nombre.split(' ').slice(0, 2).join(' ')) + (p.manager ? ' (manager)' : '') + '</span>'; }).join('') +
         e.prestados.map(function(nm) { return '<span class="sg-p sg-prest" title="Prestado de otro equipo"><i></i>' + esc(nm) + ' (prestado)</span>'; }).join('') +
         (e.deOtrosEquipos ? '<span class="sg-p sg-prest"><i></i>+' + e.deOtrosEquipos + ' de otros equipos</span>' : '');

@@ -976,3 +976,20 @@
 @media (max-width:700px) { .sg-eq-grid { grid-template-columns:1fr; } .sg-eq-nums { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
 
 .sg-mgr { display:inline-block; margin-left:4px; padding:0 7px; border-radius:999px; background:#e0e7ff; color:#3730a3; font-size:11px; font-weight:800; vertical-align:1px; }
+
+  /* N6 · Material Change: bloques Bite design / Zirconia design */
+  table.ds-tabla tr.ds-tr-grupos th { font-size:11px; font-weight:700; letter-spacing:.02em; }
+  table.ds-tabla tr.ds-tr-grupos th.ds-gh-vacio { background:transparent; border-top-color:transparent; border-left-color:transparent; border-right-color:transparent; }
+  table.ds-tabla th.ds-g-b { background:#e0ecff; color:#1e3a8a; }
+  table.ds-tabla th.ds-g-z { background:#e6f6ef; color:#14532d; }
+  table.ds-tabla td.ds-g-ini, table.ds-tabla th.ds-gh { border-left:2px solid #94a3b8; }
+  table.ds-tabla td.ds-calc { color:#374151; white-space:nowrap; font-size:12px; }
+  /* Material Change tiene 25 columnas: se desplaza a lo ancho dentro del panel y las listas largas conservan un ancho legible */
+  table.ds-tabla-material th, table.ds-tabla-material td { padding:3px 3px; }
+  table.ds-tabla-material select[data-campo="producto"] { min-width:190px; }
+  table.ds-tabla-material select[data-campo="estado"] { min-width:125px; }
+  table.ds-tabla-material select[data-campo="designerId"] { min-width:120px; }
+  table.ds-tabla-material select[data-campo="etapa"] { min-width:118px; }
+  table.ds-tabla-material input[data-campo="orden"] { min-width:70px; }
+  table.ds-tabla-material input[data-campo="notas"] { min-width:140px; }
+  table.ds-tabla-material input[type=time] { min-width:84px; padding:0 2px; }

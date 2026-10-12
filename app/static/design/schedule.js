@@ -323,6 +323,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       b.classList.toggle('activo', DS.areas[i].id === area.id);
     });
     document.getElementById('dsPanelNightguard').style.display = (area.formato === 'dual') ? '' : 'none';
+    document.getElementById('dsPanelMaterial').style.display = (area.nombre === DS_AREA_MATERIAL) ? '' : 'none';
     document.getElementById('dsTituloPrincipal').innerText = (area.formato === 'dual') ? 'Cirugías' : 'Órdenes';
     document.getElementById('dsSinEquipo').style.display = 'none';
     document.getElementById('dsVistaEquipo').style.display = '';
@@ -409,6 +410,22 @@ window.addEventListener('unhandledrejection', function(ev) {
         {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
       ],
     },
+    // N6 · Material Change (pedido por Rosember el 12-oct-2026): dos etapas en la misma fila, cada una con sus horas,
+    // su QC y su total (g: 'b' = Bite design, 'z' = Zirconia design; extra = columnas calculadas después de esa celda).
+    material: [
+      {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
+      {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
+      {k:'designerId', l:'Diseñador', t:'designer'},
+      {k:'etapa', l:'Etapa', t:'select', opciones:['', 'Bite design', 'Zirconia design']},
+      {k:'horaInicio', l:'Inicio', t:'time', g:'b'}, {k:'sHold', l:'S.Hold', t:'time', g:'b'},
+      {k:'fHold', l:'F.Hold', t:'time', g:'b', sinTHold: true, extra: [{k:'bTHold', l:'T. Hold'}]},
+      {k:'horaFin', l:'Fin', t:'time', g:'b'}, {k:'qc', l:'QC', t:'checkbox', g:'b', extra: [{k:'bTotal', l:'Total'}]},
+      {k:'zHoraInicio', l:'Inicio', t:'time', g:'z'}, {k:'zSHold', l:'S.Hold', t:'time', g:'z'},
+      {k:'zFHold', l:'F.Hold', t:'time', g:'z', extra: [{k:'zTHold', l:'T. Hold'}]},
+      {k:'zHoraFin', l:'Fin', t:'time', g:'z'}, {k:'zQc', l:'QC', t:'checkbox', g:'z', extra: [{k:'zTotal', l:'Total'}]},
+      {k:'esferas', l:'Esferas', t:'select', opciones:['','Yes','No','N/A']},
+      {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'notas', l:'Notas', t:'text'},
+    ],
     n2: { principal: [
       {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
       {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
@@ -457,6 +474,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsTHoldTxt(f) { return dsTHoldMin(f) || (f.sHold && f.fHold) ? dsFmtMin(dsTHoldMin(f)) : ''; }
   function dsDuracionMin(f, tabla, formato) {
     if (formato === 'support') return null;
+    if (tabla === 'material') return dsMaterialMin(f).t;
     if (tabla === 'nightguard' && !dsNgNuevo(formato, f)) return dsEntre(f.horaInicio, f.horaFin);
     if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : Math.max(0, t - dsTHoldMin(f)); }
     if (dsFaceNuevo(formato) || (tabla === 'nightguard' && dsNgNuevo(formato, f))) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
@@ -487,6 +505,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     return (formato === 'single' && f >= DS_FACE_NUEVO_DESDE) || (formato === 'dual' && f >= DS_DUAL_NUEVO_DESDE);
   }
   function dsSpec(tabla, formato, areaNombre) {
+    if (tabla === 'material') return COLSPEC.material;
     var area = areaNombre || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre;
     var fm = formato || DS.areaFormato;
     var base = !dsFaceNuevo(fm) ? COLSPEC[fm] : (fm === 'dual' ? {principal: COLSPEC.dualNuevo.principal, nightguard: dsNgNuevo(fm) ? COLSPEC.dualNuevo.nightguard : COLSPEC.dual.nightguard} : COLSPEC.faceNuevo);
@@ -503,9 +522,72 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     return area === 'N3 Prosthetic' ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
   }
-  function dsEncabezadoExtra(c) { return c.k === 'fHold' && !c.sinTHold ? '<th>T. Hold</th>' : ''; } // N2: T. Hold calculado
+  function dsEncabezadoExtra(c) { // N2: T. Hold calculado; Material Change: T. Hold y Total de cada etapa
+    return (c.k === 'fHold' && !c.sinTHold ? '<th>T. Hold</th>' : '') +
+           (c.extra || []).map(function(x) { return '<th class="ds-g-' + c.g + '">' + x.l + '</th>'; }).join('');
+  }
 
   function dsEsProductoNG(v) { return /nightguard/i.test(v) || /\btc\b/i.test(v); }
+
+  // ---------- N6 · Material Change (pedido por Rosember el 12-oct-2026; ver TABLA_MATERIAL en services_design.py) ----------
+  // Panel arriba de Cirugías con sus propios productos (no salen en Cirugías) y estados ("Dr authorization" = Hold,
+  // "Changes" = Ready to design). Bite design usa las horas y el QC de siempre; Zirconia design, las columnas z*.
+  var DS_AREA_MATERIAL = 'N6 Material Changes';
+  function dsNorm(v) { return String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' '); }
+  var DS_PRODUCTOS_MATERIAL = ['N6 - Material Change Full Mouth 24Z', 'N6 - Material Change Single 24Z',
+    'N6 - Full Mouth Zirk - Over Ti-Bar (8mm or less)', 'N6 - Redo Material Change Full Mouth 24Z',
+    'N6 - Redo Material Change Single 24Z', 'N6 - Full Mouth 24Z Remake', 'N6 - Single 24Z Remake'].map(dsNorm);
+  function dsEsProductoMaterial(v) { return DS_PRODUCTOS_MATERIAL.indexOf(dsNorm(v)) >= 0; }
+  var DS_ESTADOS_SOLO_MATERIAL = ['dr authorization', 'changes'];
+  function dsEsHold(estado) { var e = dsNorm(estado); return e === 'hold' || e === 'dr authorization'; }
+  function dsEsReady(estado) { var e = dsNorm(estado); return e === 'ready to design' || e === 'changes'; }
+  function dsEsZirconia(f) { return dsNorm(f && f.etapa) === 'zirconia design'; }
+  function dsEsCampoQc(k) { return k === 'qc' || k === 'zQc'; }
+  function dsCampoReporte(chk) { return chk && chk.dataset.campo === 'zQc' ? 'zQcReporte' : 'qcReporte'; }
+  // QC que cierra la orden (Material Change: el de Zirconia)
+  function dsQcFinal(f) { return f.tabla === 'material' ? !!f.zQc : !!f.qc; }
+  function dsMinEtapa(ini, fin, s, fh, previos) {
+    var t = dsEntre(ini, fin); if (t === null) return null;
+    return Math.max(0, t - (parseFloat(previos) || 0) - (s && fh ? (dsEntre(s, fh) || 0) : 0));
+  }
+  // Minutos de Bite, de Zirconia y total (misma fórmula que material_minutos en services_design.py)
+  function dsMaterialMin(f) {
+    var b = dsMinEtapa(f.horaInicio, f.horaFin, f.sHold, f.fHold, f.holdMinutos);
+    var z = dsMinEtapa(f.zHoraInicio, f.zHoraFin, f.zSHold, f.zFHold, f.zHoldMinutos);
+    return {b: b, z: z, t: b === null && z === null ? null : (b || 0) + (z || 0)};
+  }
+  function dsCalcTxt(k, f) {
+    if (k === 'bTHold') return dsTHoldTxt(f);
+    if (k === 'zTHold') return dsTHoldTxt({holdMinutos: f.zHoldMinutos, sHold: f.zSHold, fHold: f.zFHold});
+    if (k === 'bTotal') return dsFmtMin(dsMaterialMin(f).b);
+    if (k === 'zTotal') return dsFmtMin(dsMaterialMin(f).z);
+    return '';
+  }
+  // Tablas del Schedule y su contenedor (Material Change primero, como en pantalla)
+  var DS_TABLAS = ['material', 'principal', 'nightguard'];
+  var DS_CONT = {material: 'dsTablaMaterial', principal: 'dsTablaPrincipal', nightguard: 'dsTablaNightguard'};
+  function dsSelTablas(sufijo) { return DS_TABLAS.map(function(t) { return '#' + DS_CONT[t] + (sufijo ? ' ' + sufijo : ''); }).join(', '); }
+  // Fila de encabezado con los bloques Bite design / Zirconia design (solo tablas con columnas agrupadas)
+  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design'};
+  function dsAnchoCol(c) { return 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0); }
+  function dsFilaGrupos(spec, alFinal) {
+    if (!spec.some(function(c) { return c.g; })) return '';
+    var html = '<tr class="ds-tr-grupos">', run = null;
+    var cerrar = function() { if (run) html += '<th colspan="' + run.n + '" class="' + (run.g ? 'ds-gh ds-g-' + run.g : 'ds-gh-vacio') + '">' + (run.g ? DS_GRUPOS[run.g] : '') + '</th>'; };
+    spec.forEach(function(c) {
+      var g = c.g || '';
+      if (run && run.g === g) run.n += dsAnchoCol(c); else { cerrar(); run = {g: g, n: dsAnchoCol(c)}; }
+    });
+    if (run && !run.g) run.n += alFinal; else { cerrar(); run = {g: '', n: alFinal}; }
+    cerrar();
+    return html + '</tr>';
+  }
+  // ¿Esta lista de estados es de una fila de Material Change?
+  function dsFilaEsMaterial(sel, tabla) {
+    if (tabla === 'material') return true;
+    var tr = sel.closest('tr');
+    return !!(tr && tr._dsFila && tr._dsFila.f && tr._dsFila.f.tabla === 'material');
+  }
 
   // ¿Ya hay otra orden con ese número hoy en este equipo? (el servidor valida también las que no se ven)
   // Un número puede estar hasta 5 veces en el día del equipo (MAX_REPETICIONES_ORDEN en services_design.py)
@@ -513,7 +595,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsOrdenRepetida(orden, idActual) {
     var n = String(orden || '').trim().toUpperCase();
     if (!n || !DS.diaData) return false;
-    return (DS.diaData.principal || []).concat(DS.diaData.nightguard || []).filter(function(f) {
+    return (DS.diaData.principal || []).concat(DS.diaData.nightguard || [], DS.diaData.material || []).filter(function(f) {
       return String(f.id) !== String(idActual) && String(f.orden || '').trim().toUpperCase() === n;
     }).length >= DS_MAX_REPETIDAS;
   }
@@ -527,9 +609,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     f = f || (DS.diaData[tabla] || []).find(function(x) { return x.id === parseInt(tr.dataset.id); });
     if (!f) return;
     tr.classList.toggle('ds-fila-cancelada', f.estado === 'Canceled');
-    tr.classList.toggle('ds-fila-hold', f.estado === 'Hold');
+    tr.classList.toggle('ds-fila-hold', dsEsHold(f.estado));  // Material Change: también "Dr authorization"
     var est = String(f.estado || '').trim().toLowerCase();
-    tr.classList.toggle('ds-fila-ready', est === 'ready to design');
+    tr.classList.toggle('ds-fila-ready', dsEsReady(f.estado));  // Material Change: también "Changes"
     tr.classList.toggle('ds-fila-html', est === 'html');
     tr.classList.toggle('ds-fila-aprobada', est === 'approved');
     var formato = tabla === 'prestadas' ? f.formato : DS.areaFormato, tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
@@ -538,24 +620,31 @@ window.addEventListener('unhandledrejection', function(ev) {
     var req = formato === 'support' ? [] : ((tablaReal === 'nightguard' && !ngNuevo) || formato === 'n2') ? ['horaInicio', 'horaFin']
             : (dsFaceNuevo(formato) || ngNuevo) ? (f.sHold ? ['horaInicio', 'fHold', 'horaFin'] : ['horaInicio', 'horaFin'])
             : ['horaInicio', 'horaInicioDiseno', 'horaFin'];
-    req.forEach(function(k) {
-      var el = tr.querySelector('[data-campo="' + k + '"]'), miss = aprobada && !f[k];
+    // [campo, ¿ya debería tener hora?]. Material Change: Bite al pasar a Zirconia; Zirconia al aprobar la orden.
+    var esMat = tablaReal === 'material', biteHecha = esMat && dsEsZirconia(f), zHecha = biteHecha && aprobada;
+    var reqs = !esMat ? req.map(function(k) { return [k, aprobada]; })
+      : (f.sHold ? ['horaInicio', 'fHold', 'horaFin'] : ['horaInicio', 'horaFin']).map(function(k) { return [k, biteHecha]; })
+          .concat((f.zSHold ? ['zHoraInicio', 'zFHold', 'zHoraFin'] : ['zHoraInicio', 'zHoraFin']).map(function(k) { return [k, zHecha]; }));
+    reqs.forEach(function(par) {
+      var k = par[0], el = tr.querySelector('[data-campo="' + k + '"]'), miss = par[1] && !f[k];
       if (miss) falta = true;
       if (!el) return;
       el.classList.toggle('ds-falta', miss);
       if (miss) el.title = 'Falta esta hora y la orden ya está aprobada'; else el.removeAttribute('title');
     });
-    var qc = tr.querySelector('[data-campo="qc"]'), td = qc && qc.closest('td');
-    if (td) {
-      var pend = aprobada && !f.qc;
+    // QC (Material Change: uno por etapa)
+    [['qc', 'qcReporte', esMat ? biteHecha : aprobada], ['zQc', 'zQcReporte', zHecha]].forEach(function(q) {
+      var qc = tr.querySelector('[data-campo="' + q[0] + '"]'), td = qc && qc.closest('td');
+      if (!td) return;
+      var pend = q[2] && !f[q[0]], etapaTxt = esMat ? (q[0] === 'zQc' ? 'Zirconia aprobada' : 'Bite aprobado') : 'Orden aprobada';
       td.classList.toggle('ds-qc-pend', pend && !falta);
       td.classList.toggle('ds-qc-pend-rojo', pend && falta);
-      if (pend) td.title = falta ? 'Orden aprobada: faltan horas y marcar el QC' : 'Orden aprobada: falta marcar el QC'; else td.removeAttribute('title');
-      var rep = String(f.qcReporte || '').trim();
-      td.classList.toggle('ds-qc-hallazgo', !!f.qc && !!rep);
-      if (f.qc) td.dataset.qcTip = rep ? 'si' : 'no'; else delete td.dataset.qcTip;
+      if (pend) td.title = etapaTxt + (falta ? ': faltan horas y marcar el QC' : ': falta marcar el QC'); else td.removeAttribute('title');
+      var rep = String(f[q[1]] || '').trim();
+      td.classList.toggle('ds-qc-hallazgo', !!f[q[0]] && !!rep);
+      if (f[q[0]]) td.dataset.qcTip = rep ? 'si' : 'no'; else delete td.dataset.qcTip;
       td._qcTexto = rep;
-    }
+    });
     tr._dsFila = {tabla: tabla, f: f};   // para actualizar sus accesos sin volver a dibujar la fila
     dsAccesosFila(tr, tabla, f);
   }
@@ -565,7 +654,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Centro elegido: botón con la miniatura del Pre-Approved de sus doctores; clic abre una ventana flotante en vivo.
   function dsAreaNombre() { return (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre || ''; }
   function dsAccesosFila(tr, tabla, f) {
-    if (tabla !== 'principal' && tabla !== 'nightguard') return;
+    if (tabla !== 'principal' && tabla !== 'nightguard' && tabla !== 'material') return;
     var tdO = (tr.querySelector('[data-campo="orden"]') || {}).parentNode, tdC = (tr.querySelector('[data-campo="centro"]') || {}).parentNode;
     var perm = window.DS_INICIO && window.DS_INICIO.comments ? window.DS_INICIO.comments.n3 !== false : true;
     var poner = function(td, clase, mostrar, titulo, alClic, extra) {
@@ -765,7 +854,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsFrenaFilaNueva(f) { return !DS_CAMPOS_DATO.some(function(k) { return f[k] && String(f[k]).trim(); }); }
 
   var DS_SORTABLES = {centro: true, producto: true, designerId: true, estado: true};
-  DS.sort = {principal: null, nightguard: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
+  DS.sort = {principal: null, nightguard: null, material: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
 
   function dsTextoOrden(f, k) {
     if (k !== 'designerId') return f[k] || '';
@@ -790,8 +879,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     var nueva = !f.id;
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
     spec.forEach(function(c, i) {
-      html += '<td data-col="' + i + '">' + dsCeldaInput(c, f) + '</td>';
+      var g = c.g ? 'ds-g-' + c.g + (c.g !== (spec[i - 1] || {}).g ? ' ds-g-ini' : '') : '';
+      html += '<td data-col="' + i + '"' + (g ? ' class="' + g + '"' : '') + '>' + dsCeldaInput(c, f) + '</td>';
       if (c.k === 'fHold' && !c.sinTHold) html += '<td class="ds-thold">' + dsTHoldTxt(f) + '</td>';
+      (c.extra || []).forEach(function(x) { html += '<td class="ds-calc ds-g-' + c.g + '" data-calc="' + x.k + '">' + dsCalcTxt(x.k, f) + '</td>'; });
     });
     html += '<td class="ds-total">' + dsDuracionFila(f, tabla) + '</td>';
     html += '<td class="ds-acc">' + (!nueva && tabla !== 'prestadas' && window.DS_GESTION ? dsBtnOjo(f.id) : '') +
@@ -819,7 +910,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (m === 'visible') return false;
     // Canceladas: también se ocultan solas, 30 s después de quedar en Canceled (las que ya estaban, de una vez)
     if (dsEsCancelada(f)) { var gc = DS.cancelGracia[f.id]; return !(gc && Date.now() - gc < 30000); }
-    if (!f.qc) return false;
+    if (!dsQcFinal(f)) return false;  // Material Change: se oculta con el QC de Zirconia
     var g = DS.qcGracia[f.id];
     return !(g && Date.now() - g < 30000);
   }
@@ -832,7 +923,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var btn = document.getElementById('dsOcultas_' + tabla);
     var sw = btn && btn.parentNode.querySelector('.ds-auto-oc');
     if (sw) { sw.style.display = DS.diaData ? '' : 'none'; sw.querySelector('input').checked = dsColoresFila(); }
-    if (!window.DS_GESTION || !DS.diaData || (tabla !== 'principal' && tabla !== 'nightguard')) { if (btn) btn.style.display = 'none'; return; }
+    if (!window.DS_GESTION || !DS.diaData || !DS_CONT[tabla]) { if (btn) btn.style.display = 'none'; return; }
     var man = dsOcultasLeer(), n = 0, cambio = false;
     (DS.diaData[tabla] || []).forEach(function(f) {
       // una orden que acaba de pasar a Canceled (aquí o por otra persona) se ve 30 s y luego se oculta
@@ -843,7 +934,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       }
       if (!ahora) delete DS.cancelGracia[f.id];
       DS.estadoVisto[f.id] = ahora;
-      var tr = document.querySelector('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' tr[data-id="' + f.id + '"]');
+      var tr = document.querySelector('#' + DS_CONT[tabla] + ' tr[data-id="' + f.id + '"]');
       var oc = dsEstaOculta(f, man);
       if (oc) n++;
       if (!tr) return;
@@ -868,15 +959,15 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsAplicarColores();
     });
   });
-  window.dsVerOcultas = function() { DS.verOcultas = !DS.verOcultas; dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard'); };
+  window.dsVerOcultas = function() { DS.verOcultas = !DS.verOcultas; DS_TABLAS.forEach(dsAplicarOcultas); };
   window.dsOjoFila = function(id) {
     var man = dsOcultasLeer(), f = null;
-    ['principal', 'nightguard'].forEach(function(t) { f = f || (DS.diaData[t] || []).find(function(x) { return x.id === id; }); });
+    DS_TABLAS.forEach(function(t) { f = f || (DS.diaData[t] || []).find(function(x) { return x.id === id; }); });
     if (!f) return;
-    if (dsEstaOculta(f, man)) man[id] = (f.qc || dsEsCancelada(f)) ? 'visible' : undefined; else man[id] = 'oculta';
+    if (dsEstaOculta(f, man)) man[id] = (dsQcFinal(f) || dsEsCancelada(f)) ? 'visible' : undefined; else man[id] = 'oculta';
     if (man[id] === undefined) delete man[id];
     dsOcultasGuardar(man);
-    dsAplicarOcultas('principal'); dsAplicarOcultas('nightguard');
+    DS_TABLAS.forEach(dsAplicarOcultas);
   };
 
   function dsBtnEliminar(id) {
@@ -885,7 +976,7 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsConectarFila(tr, tabla) {
     tr.querySelectorAll('[data-campo]').forEach(function(input) {
-      if (input.dataset.campo === 'qc') {
+      if (dsEsCampoQc(input.dataset.campo)) {
         // Marcar QC exige llenar el recuadro de hallazgos; desmarcar guarda de inmediato (el reporte se conserva).
         input.addEventListener('change', function() {
           if (!input.checked) { dsGuardarFila(tr, tabla); return; }
@@ -999,7 +1090,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Tras guardar el QC (de cualquiera de los dos recuadros): marca la casilla, guarda la fila y, a los aprobadores, les
   // oculta la fila a los 30 s.
   function dsQcGuardado(tr, tabla, chk, reporte) {
-    tr._qcReporte = reporte;
+    tr._qcReporte = reporte; tr._qcCampoRep = dsCampoReporte(chk);  // Material Change: reporte de Bite o de Zirconia
     chk.checked = true;
     dsGuardarFila(tr, tabla);
     var idQc = parseInt(tr.dataset.id);
@@ -1027,7 +1118,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsAbrirQcLista(tr, tabla, chk, cat, urlCatalogo) {
     var id = parseInt(tr.dataset.id);
     var local = (DS.diaData[tabla] || []).find(function(x) { return x.id === id; }) || {};
-    var previo = local.qcReporte || '';
+    var previo = local[dsCampoReporte(chk)] || '';
     var ordenTxt = (tr.querySelector('[data-campo="orden"]') || {}).value || '';
     var titulos = cat.titulos, puedeAgregar = !!cat.puedeAgregar, puedeBorrar = !!cat.puedeBorrar;
     var sel = {}, resto = [], abiertos = {}, conHallazgos = !!previo;   // sel[texto del hallazgo] = {on, op}
@@ -1211,7 +1302,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsAbrirQcLibre(tr, tabla, chk) {
     var id = parseInt(tr.dataset.id);
     var local = (DS.diaData[tabla] || []).find(function(x) { return x.id === id; }) || {};
-    var previo = local.qcReporte || '';
+    var previo = local[dsCampoReporte(chk)] || '';
     var ordenTxt = (tr.querySelector('[data-campo="orden"]') || {}).value || '';
     var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'dsQc';
     bg.innerHTML = '<div class="ds-qc" role="dialog" aria-modal="true" aria-labelledby="dsQcTit">' +
@@ -1264,10 +1355,14 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (c.t !== 'catalogo') return;
       dsCatalogo(c.cat).then(function(valores) {
         if (c.k === 'producto' && tabla === 'nightguard') valores = valores.filter(dsEsProductoNG);
+        // Material Change: solo sus productos, y esos productos ya no se eligen en Cirugías
+        if (c.k === 'producto' && tabla === 'material') valores = valores.filter(dsEsProductoMaterial);
+        if (c.k === 'producto' && tabla === 'principal') valores = valores.filter(function(v) { return !dsEsProductoMaterial(v); });
         root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {
             if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
+            if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_MATERIAL.indexOf(dsNorm(v)) >= 0 && !dsFilaEsMaterial(sel, tabla)) return;
             if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
             }
@@ -1280,19 +1375,19 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsRenderTabla(tabla) {
     var spec = dsSpec(tabla);
-    var cont = document.getElementById(tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard');
+    var cont = document.getElementById(DS_CONT[tabla]);
     var filas = dsFilasOrdenadas(tabla);
     var s = DS.sort[tabla];
-    var html = '<table class="ds-tabla"><thead><tr>';
+    var html = '<table class="ds-tabla' + (tabla === 'material' ? ' ds-tabla-material' : '') + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
     spec.forEach(function(c) {
       if (DS_SORTABLES[c.k]) {
         var on = s && s.k === c.k;
         html += '<th class="ds-th-sort' + (on ? ' on' : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
                 '<span class="ds-sort-ind">' + (on ? (s.dir === 1 ? '▲' : '▼') : '↕') + '</span></th>';
-      } else html += '<th>' + c.l + '</th>';
+      } else html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>';
       html += dsEncabezadoExtra(c);
     });
-    html += '<th>Total</th><th></th></tr></thead><tbody>';
+    html += '<th>' + (tabla === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
     filas.forEach(function(f) { html += dsFilaHtml(spec, f, tabla); });
     if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaHtml(spec, {}, tabla);
     html += '</tbody></table>';
@@ -1302,13 +1397,14 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dsDiaCerrado()) {
       // Día cerrado: todo en solo lectura; el QC sigue editable hasta las 5:00 am de D+2.
       cont.querySelectorAll('[data-campo]').forEach(function(el) {
-        el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable && DS.diaData.puedeQc !== false);
+        el.disabled = !(dsEsCampoQc(el.dataset.campo) && DS.diaData.qcEditable && DS.diaData.puedeQc !== false);
       });
     }
     if (dsSoloPropias()) {
       // Vista del diseñador: edita sus órdenes pero no las reasigna.
       dsBloquearCamposManager(cont);
       dsBloquearHoras(cont, DS.areaFormato, tabla, dsFechaISO(dsFechaSeleccionada()));
+      if (tabla === 'material') dsBloquearEtapa(cont);
     }
     cont.querySelectorAll('th[data-sort]').forEach(function(th) {
       th.addEventListener('click', function() {
@@ -1334,7 +1430,12 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   // Las horas las llena el estado (Initiated, Hold, Approved): el diseñador no las escribe a mano. Solo donde el estado ya
   // las llena (mismas fechas que horas_por_estado en services_design.py); antes de esas fechas siguen editables.
-  var DS_HORAS_CAMPOS = ['horaInicio', 'horaInicioDiseno', 'horaFin', 'sHold', 'fHold', 'holdMinutos'];
+  var DS_HORAS_CAMPOS = ['horaInicio', 'horaInicioDiseno', 'horaFin', 'sHold', 'fHold', 'holdMinutos',
+                         'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin'];
+  // Material Change: la etapa cambia sola al aprobar Bite; corregirla es del manager (igual en el servidor)
+  function dsBloquearEtapa(scope) {
+    scope.querySelectorAll('[data-campo="etapa"]').forEach(function(el) { el.disabled = true; el.title = 'La etapa cambia sola al aprobar Bite design'; });
+  }
   function dsHorasPorEstado(formato, tabla, fechaISO) {
     if (formato === 'n2') return fechaISO >= '2026-10-09';
     if (formato === 'dual') return tabla === 'nightguard' ? fechaISO >= DS_NG_NUEVO_DESDE : fechaISO >= DS_DUAL_NUEVO_DESDE;
@@ -1373,10 +1474,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     var html = '';
     grupos.forEach(function(g) {
       var spec = dsSpec(g.tabla, g.formato, g.area);
-      html += '<h4 class="ds-prest-h">' + dsEsc(g.equipo) + (g.tabla === 'nightguard' ? ' — Nightguards / TC' : '') + '</h4>' +
-              '<table class="ds-tabla" data-grupo="' + g.teamId + '-' + g.tabla + '"><thead><tr>';
-      spec.forEach(function(c) { html += '<th>' + c.l + '</th>' + dsEncabezadoExtra(c); });
-      html += '<th>Total</th><th></th></tr></thead><tbody>';
+      html += '<h4 class="ds-prest-h">' + dsEsc(g.equipo) + (g.tabla === 'nightguard' ? ' — Nightguards / TC' : g.tabla === 'material' ? ' — Material Change' : '') + '</h4>' +
+              '<table class="ds-tabla" data-grupo="' + g.teamId + '-' + g.tabla + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
+      spec.forEach(function(c) { html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>' + dsEncabezadoExtra(c); });
+      html += '<th>' + (g.tabla === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
       g.filas.forEach(function(f) { html += dsFilaHtml(spec, f, 'prestadas'); });
       html += '</tbody></table>';
     });
@@ -1384,11 +1485,12 @@ window.addEventListener('unhandledrejection', function(ev) {
     try { cont.innerHTML = html; } finally { DS.renderizando = false; }
     cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, 'prestadas'); dsMarcarFila(tr, 'prestadas'); });
     cont.querySelectorAll('[data-campo]').forEach(function(el) {
-      if (dsDiaCerrado()) el.disabled = !(el.dataset.campo === 'qc' && DS.diaData.qcEditable);
+      if (dsDiaCerrado()) el.disabled = !(dsEsCampoQc(el.dataset.campo) && DS.diaData.qcEditable);
     });
     grupos.forEach(function(g) {   // órdenes prestadas: cada tabla con la regla del área de su equipo
       var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]');
       if (tb) dsBloquearCamposManager(tb, g.area);
+      if (tb && g.tabla === 'material') dsBloquearEtapa(tb);
     });
     grupos.forEach(function(g) {
       var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]'), fch = String((g.filas[0] || {}).fecha || '').slice(0, 10) || dsFechaISO(dsFechaSeleccionada());
@@ -1405,7 +1507,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || 0) + '">';
     if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
     if (c.t === 'checkbox') {
-      var bloq = c.k === 'qc' && DS.diaData && DS.diaData.puedeQc === false;  // el QC lo marcan aprobadores y el diseñador a cargo
+      var bloq = dsEsCampoQc(c.k) && DS.diaData && DS.diaData.puedeQc === false;  // el QC lo marcan aprobadores y el diseñador a cargo
       return '<input type="checkbox" data-campo="' + c.k + '"' + al + ' ' + (val ? 'checked' : '') +
              (bloq ? ' disabled title="Solo los aprobadores marcan el QC"' : '') + '>';
     }
@@ -1483,7 +1585,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       return;
     }
     if (tr.dataset.id === 'nuevo') {
-      if (tr._qcReporte !== undefined) datos.qcReporte = tr._qcReporte;
+      if (tr._qcReporte !== undefined) datos[tr._qcCampoRep || 'qcReporte'] = tr._qcReporte;
       if (!dsTieneDatos(datos)) return;
       if (tr._creando) { tr._pendiente = true; return; } // se vuelve a guardar cuando termine de crearse
       tr._creando = true;
@@ -1509,9 +1611,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (local) {
       DS_CAMPOS.forEach(function(k) { if (datos[k] === undefined && local[k] !== undefined && local[k] !== null) datos[k] = local[k]; });
       datos.designerPrestado = local.designerPrestado || '';
-      datos.qcReporte = tr._qcReporte !== undefined ? tr._qcReporte : (local.qcReporte || '');
+      datos.qcReporte = local.qcReporte || '';
+      if (local.zQcReporte !== undefined) datos.zQcReporte = local.zQcReporte || '';
+      if (tr._qcReporte !== undefined) datos[tr._qcCampoRep || 'qcReporte'] = tr._qcReporte;
     }
-    delete tr._qcReporte;
+    delete tr._qcReporte; delete tr._qcCampoRep;
     // Solo se envían los campos que cambiaron: si otra persona editó otro campo de esta orden, no se pisa.
     var envio = {teamId: datos.teamId, fecha: datos.fecha, tabla: datos.tabla};
     if (antes) {
@@ -1561,6 +1665,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (tabla !== 'prestadas') setTimeout(function() { dsAplicarOcultas(tabla); }, 0);
     tr.querySelector('.ds-total').innerText = dsDuracionFila(o, tabla);
     var tdTHold = tr.querySelector('.ds-thold'); if (tdTHold) tdTHold.innerText = dsTHoldTxt(o);
+    tr.querySelectorAll('[data-calc]').forEach(function(td) { td.innerText = dsCalcTxt(td.dataset.calc, o); });
     var selD = tr.querySelector('[data-campo="designerId"]'); if (selD) selD.dataset.previo = o.designerId || '';
     dsMarcarFila(tr, tabla, o);
     dsRenderKpis(DS.diaData);
@@ -1617,7 +1722,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   window.dsEliminarFila = function(id) {
     if (!confirm('¿Eliminar esta orden?')) return;
     var tabla = null, datos = null;
-    ['principal', 'nightguard'].forEach(function(t) {
+    DS_TABLAS.forEach(function(t) {
       var f = (DS.diaData[t] || []).find(function(x) { return x.id === id; });
       if (f) { tabla = t; datos = dsClon(f); }
     });
@@ -1652,13 +1757,13 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_KPIS = [
     {uno: 'Orden', varios: 'Órdenes', cuenta: function(f) { return true; }},
     {uno: 'En proceso', varios: 'En proceso', cuenta: function(f) { return f.estado === 'Initiated'; }},
-    {uno: 'En espera', varios: 'En espera', cuenta: function(f) { return f.estado === 'Hold'; }},
-    {uno: 'Aprobada', varios: 'Aprobadas', cuenta: function(f) { return f.estado === 'Approved' && f.qc; }},
+    {uno: 'En espera', varios: 'En espera', cuenta: function(f) { return dsEsHold(f.estado); }},
+    {uno: 'Aprobada', varios: 'Aprobadas', cuenta: function(f) { return f.estado === 'Approved' && dsQcFinal(f); }},
     {uno: 'Cancelada', varios: 'Canceladas', cuenta: function(f) { return f.estado === 'Canceled'; }},
   ];
   function dsRenderKpis(dia) {
     dsPintarProduccion();  // la ventana de Producción (si está abierta) sigue los cambios
-    var todas = dia.principal.concat(dia.nightguard || []).filter(dsOrdenCompleta);
+    var todas = dia.principal.concat(dia.nightguard || [], dia.material || []).filter(dsOrdenCompleta);
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
     DS_KPIS.forEach(function(k) {
       var n = todas.filter(k.cuenta).length;
@@ -1789,7 +1894,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsProduccionDia(dia) {
     var cuenta = {}, nombres = {}, orden = [];
     (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.nombre; orden.push(k); });
-    (dia.principal || []).concat(dia.nightguard || []).forEach(function(f) {
+    (dia.principal || []).concat(dia.nightguard || [], dia.material || []).forEach(function(f) {
       var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
       if (!k || String(f.estado || '').trim().toLowerCase() === 'canceled') return;  // las canceladas no cuentan
       if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
@@ -1950,6 +2055,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     DS.diaVersionClave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
     dsRenderACargo(dia);
     dsPintarProduccion();
+    if (dsAreaNombre() === DS_AREA_MATERIAL) dsRenderTabla('material');
     dsRenderTabla('principal');
     if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
     dsRenderPrestadas();
@@ -2009,7 +2115,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         if (DS.diaUrl !== url || dsOcupado()) return;
         dia._fecha = fecha; dia._team = parseInt(clave);
         var antes = {};
-        ['principal', 'nightguard', 'prestadas'].forEach(function(t) {
+        ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
           (DS.diaData[t] || []).forEach(function(f) { antes[f.id] = dsHuellaFila(f); });
         });
         var sinV = function(d) { var c = Object.assign({}, d); delete c.version; delete c._fecha; delete c._team; return JSON.stringify(c); };
@@ -2027,7 +2133,7 @@ window.addEventListener('unhandledrejection', function(ev) {
           if (el) el.focus({preventScroll: true});
         }
         window.scrollTo(0, y);
-        ['principal', 'nightguard', 'prestadas'].forEach(function(t) {
+        ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
           (dia[t] || []).forEach(function(f) {
             if (antes[f.id] === dsHuellaFila(f)) return;
             var tr = document.querySelector('#dsVistaEquipo tr[data-id="' + f.id + '"]');
@@ -2090,7 +2196,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       DS.diaData = null;
       dsRenderACargo(null);
       dsRenderPrestadas();
-      ['dsTablaPrincipal', 'dsTablaNightguard'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
+      ['dsTablaMaterial', 'dsTablaPrincipal', 'dsTablaNightguard'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
       var tl = document.getElementById('dsBreaks'); if (tl) tl.innerHTML = '<p style="color:#4b5563">Los tiempos libres se muestran cuando cargue el día.</p>';   // no quedan los del día anterior
       var cont = document.getElementById('dsTablaPrincipal');
       cont.innerHTML = '<p class="ds-err-carga">No se pudo cargar el día: <span></span> <button type="button" class="btn mini">Reintentar</button></p>';
@@ -2106,7 +2212,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   // =====================================================================================
   var DS_CAMPOS = ['orden', 'paciente', 'centro', 'producto', 'designerId', 'designerPrestado', 'horaInicio',
                    'horaInicioDiseno', 'horaFin', 'holdMinutos', 'esferas', 'critico', 'sHold', 'fHold', 'etapa',
-                   'solicitadoPor', 'situacion', 'solucion', 'clasificacion', 'soporte', 'estado', 'qc', 'qcReporte', 'notas'];
+                   'solicitadoPor', 'situacion', 'solucion', 'clasificacion', 'soporte', 'estado', 'qc', 'qcReporte', 'notas',
+                   'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin', 'zQc', 'zQcReporte'];
   function dsClon(o) { return JSON.parse(JSON.stringify(o)); }
   function dsMismaOrden(a, b) { return DS_CAMPOS.every(function(k) { return (a[k] == null ? '' : a[k]) === (b[k] == null ? '' : b[k]); }); }
   function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
@@ -2200,9 +2307,12 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // ---------- Selección de celdas ----------
   DS.sel = null; // {tabla, r1, c1, r2, c2} (filas/columnas visibles de la tabla)
-  function dsTablaDe(el) { var cont = el.closest('#dsTablaPrincipal, #dsTablaNightguard'); return cont ? (cont.id === 'dsTablaPrincipal' ? 'principal' : 'nightguard') : null; }
+  function dsTablaDe(el) {
+    var cont = el.closest(dsSelTablas());
+    return cont ? DS_TABLAS.filter(function(t) { return DS_CONT[t] === cont.id; })[0] : null;
+  }
   // Solo las filas visibles (las ocultas no entran en la selección, copiar ni pegar)
-  function dsFilasDom(tabla) { return Array.prototype.slice.call(document.querySelectorAll('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' tbody tr:not(.ds-oculta)')); }
+  function dsFilasDom(tabla) { return Array.prototype.slice.call(document.querySelectorAll('#' + DS_CONT[tabla] + ' tbody tr:not(.ds-oculta)')); }
   function dsCoord(td) { var tr = td.parentNode; return {r: dsFilasDom(dsTablaDe(td)).indexOf(tr), c: parseInt(td.dataset.col)}; }
   function dsPintarSel() {
     document.querySelectorAll('.ds-tabla td.ds-sel, .ds-tabla td.ds-sel-activa').forEach(function(td) { td.classList.remove('ds-sel', 'ds-sel-activa'); });
@@ -2234,8 +2344,8 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   var dsArrastre = null;
   document.addEventListener('mousedown', function(e) {
-    var td = e.target.closest && e.target.closest('#dsTablaPrincipal td[data-col], #dsTablaNightguard td[data-col]');
-    if (!td) { if (!e.target.closest('#dsTablaPrincipal .ds-tabla, #dsTablaNightguard .ds-tabla')) { DS.sel = null; dsPintarSel(); } return; }
+    var td = e.target.closest && e.target.closest(dsSelTablas('td[data-col]'));
+    if (!td) { if (!e.target.closest(dsSelTablas('.ds-tabla'))) { DS.sel = null; dsPintarSel(); } return; }
     var tabla = dsTablaDe(td), k = dsCoord(td);
     // Listas: el primer clic solo selecciona la celda (como Excel) para poder copiar/pegar/Supr;
     // el segundo clic sobre la celda ya seleccionada abre la lista.
@@ -2248,10 +2358,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   });
   document.addEventListener('mouseover', function(e) {
     if (!dsArrastre || !(e.buttons & 1)) return;
-    var td = e.target.closest && e.target.closest('#dsTablaPrincipal td[data-col], #dsTablaNightguard td[data-col]');
+    var td = e.target.closest && e.target.closest(dsSelTablas('td[data-col]'));
     if (!td || td === dsArrastre.td || dsTablaDe(td) !== dsArrastre.tabla) return;
     var k = dsCoord(td); DS.sel.r2 = k.r; DS.sel.c2 = k.c;
-    td.closest('#dsTablaPrincipal .ds-tabla, #dsTablaNightguard .ds-tabla').classList.add('ds-arrastrando');
+    td.closest(dsSelTablas('.ds-tabla')).classList.add('ds-arrastrando');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     dsPintarSel();
   });
@@ -2263,7 +2373,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   document.addEventListener('focusin', function(e) {
     var el = e.target;
     if (el.matches && el.matches('.ds-tabla [data-campo], .ds-tl-card [data-campo]')) el._alEnfocar = el.value;
-    var td = el.closest && el.closest('#dsTablaPrincipal td[data-col], #dsTablaNightguard td[data-col]');
+    var td = el.closest && el.closest(dsSelTablas('td[data-col]'));
     if (td && !dsArrastre) {
       var k = dsCoord(td), tabla = dsTablaDe(td);
       var s = DS.sel;
@@ -2309,7 +2419,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Aplica valores a varias celdas: [{tr, spec, valor}] + filas nuevas (arreglo de {campo: valor}).
   // Todo en una sola operación de historial; al final se redibujan las tablas.
   function dsAplicarLote(tabla, cambios, extras) {
-    if (DS.diaData && DS.diaData.puedeQc === false) cambios = cambios.filter(function(x) { return x.spec.k !== 'qc'; });
+    if (DS.diaData && DS.diaData.puedeQc === false) cambios = cambios.filter(function(x) { return !dsEsCampoQc(x.spec.k); });
     var filas = DS.diaData[tabla] || [], porFila = new Map();
     cambios.forEach(function(x) {
       if (!porFila.has(x.tr)) porFila.set(x.tr, {});
@@ -2352,7 +2462,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var multi = celdas.length > 1;
     // Texto parcialmente seleccionado dentro de una celda: copia normal del navegador.
     if (!multi && dsEsTexto(el) && el.selectionStart !== el.selectionEnd && !(el.selectionStart === 0 && el.selectionEnd === el.value.length)) return;
-    if (!multi && !(el && el.closest && el.closest('#dsTablaPrincipal .ds-tabla, #dsTablaNightguard .ds-tabla'))) return;
+    if (!multi && !(el && el.closest && el.closest(dsSelTablas('.ds-tabla')))) return;
     var filas = [];
     celdas.forEach(function(x) { (filas[x.fila] = filas[x.fila] || [])[x.col] = dsTextoCelda(x.el, x.spec); });
     e.clipboardData.setData('text/plain', filas.map(function(f) { return f.join('\t'); }).join('\n'));
@@ -2369,8 +2479,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     var unValor = bloque.length === 1 && bloque[0].length === 1;
     var celdasSel = dsCeldasSel();
     // Un solo valor escrito dentro de una celda de texto: pegado normal (se guarda al salir de la celda).
-    if (unValor && celdasSel.length <= 1 && dsEsTexto(el) && el.closest('#dsTablaPrincipal .ds-tabla, #dsTablaNightguard .ds-tabla')) return;
-    if (!(el && el.closest && el.closest('#dsTablaPrincipal .ds-tabla, #dsTablaNightguard .ds-tabla')) && celdasSel.length <= 1) return;
+    if (unValor && celdasSel.length <= 1 && dsEsTexto(el) && el.closest(dsSelTablas('.ds-tabla'))) return;
+    if (!(el && el.closest && el.closest(dsSelTablas('.ds-tabla'))) && celdasSel.length <= 1) return;
     e.preventDefault();
     var s = DS.sel, tabla = s.tabla, spec = dsSpec(tabla);
     var trs = dsFilasDom(tabla), r0 = Math.min(s.r1, s.r2), c0 = Math.min(s.c1, s.c2);
@@ -2379,10 +2489,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       var cs = spec[c]; if (!cs) return;
       var celda = tr ? tr.querySelector('td[data-col="' + c + '"] [data-campo]') : null;
       if (celda && celda.disabled) { bloqueados++; return; }
-      var ref = celda || document.querySelector('#' + (tabla === 'principal' ? 'dsTablaPrincipal' : 'dsTablaNightguard') + ' td[data-col="' + c + '"] [data-campo]');
+      var ref = celda || document.querySelector('#' + DS_CONT[tabla] + ' td[data-col="' + c + '"] [data-campo]');
       var v = dsValorPegado(ref, cs, texto);
       if (v === undefined) { omitidos++; return; }
-      if (cs.k === 'qc' && v === true) { qcOmitidos++; return; } // el QC se marca con su recuadro de hallazgos
+      if (dsEsCampoQc(cs.k) && v === true) { qcOmitidos++; return; } // el QC se marca con su recuadro de hallazgos
       return {spec: cs, valor: v};
     };
     if (unValor && celdasSel.length > 1) {
@@ -2412,7 +2522,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   document.addEventListener('keydown', function(e) {
     if (!dsEnHorario()) return;
     var el = document.activeElement;
-    var enTabla = el && el.closest && el.closest('#dsTablaPrincipal .ds-tabla, #dsTablaNightguard .ds-tabla');
+    var enTabla = el && el.closest && el.closest(dsSelTablas('.ds-tabla'));
     var enTarjeta = el && el.closest && el.closest('.ds-tl-card');
     var ctrl = e.ctrlKey || e.metaKey, k = (e.key || '').toLowerCase();
 
@@ -2463,7 +2573,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Clase de color de la fila según el estado (mismos colores que el horario del equipo)
   function dsClaseEstado(estado) {
     var e = String(estado || '').trim().toLowerCase();
-    return {'hold': 'ds-fila-hold', 'ready to design': 'ds-fila-ready', 'html': 'ds-fila-html', 'approved': 'ds-fila-aprobada', 'canceled': 'ds-fila-cancelada'}[e] || '';
+    return {'hold': 'ds-fila-hold', 'dr authorization': 'ds-fila-hold', 'ready to design': 'ds-fila-ready', 'changes': 'ds-fila-ready', 'html': 'ds-fila-html', 'approved': 'ds-fila-aprobada', 'canceled': 'ds-fila-cancelada'}[e] || '';
   }
   function dsRenderResumenTabla(filas) {
     if (!filas.length) return '<p style="color:#4b5563;font-size:12px;margin:4px 0 14px">Sin órdenes este día.</p>';

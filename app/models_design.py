@@ -90,7 +90,7 @@ class DesignOrden(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id"))
     fecha: Mapped[date] = mapped_column(Date)
-    tabla: Mapped[str] = mapped_column(String(20), default="principal")  # principal | nightguard
+    tabla: Mapped[str] = mapped_column(String(20), default="principal")  # principal | nightguard | material (N6)
 
     orden: Mapped[str] = mapped_column(String(50), default="")
     paciente: Mapped[str] = mapped_column(String(150), default="")
@@ -121,6 +121,16 @@ class DesignOrden(Base):
     qc: Mapped[bool] = mapped_column(Boolean, default=False)
     qc_reporte: Mapped[str] = mapped_column(Text, default="")
     notas: Mapped[str] = mapped_column(Text, default="")
+
+    # N6 · Material Change (tabla "material"): dos etapas en la misma fila. Bite design usa las horas y el QC de arriba;
+    # Zirconia design usa estas. La etapa activa va en `etapa`.
+    z_hora_inicio: Mapped[str] = mapped_column(String(10), default="")
+    z_s_hold: Mapped[str] = mapped_column(String(10), default="")
+    z_f_hold: Mapped[str] = mapped_column(String(10), default="")
+    z_hold_minutos: Mapped[float] = mapped_column(Float, default=0)
+    z_hora_fin: Mapped[str] = mapped_column(String(10), default="")
+    z_qc: Mapped[bool] = mapped_column(Boolean, default=False)
+    z_qc_reporte: Mapped[str] = mapped_column(Text, default="")
 
     orden_visual: Mapped[int] = mapped_column(Integer, default=0)
 

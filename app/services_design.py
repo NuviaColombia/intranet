@@ -24,6 +24,7 @@ CAMPOS_ORDEN = [
     "esferas", "critico", "s_hold", "f_hold",
     "etapa", "solicitado_por", "situacion", "solucion", "clasificacion", "soporte",
     "estado", "qc", "qc_reporte", "notas",
+    "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin", "z_qc", "z_qc_reporte",
 ]
 
 
@@ -271,6 +272,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     productos_n6_igual_n3_una_vez(db)
     productos_n6_primeros_una_vez(db)
     estado_changes_ready_una_vez(db)
+    material_change_una_vez(db)
     vals = [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
@@ -429,6 +431,97 @@ def estado_changes_ready_una_vez(db: Session) -> None:
         db.rollback()
 
 
+# ---------- N6 · Material Change (pedido por Rosember el 12-oct-2026) ----------
+# Panel propio en el Schedule de N6, arriba de Cirugías y Nightguards / TC (tabla "material"). Cada orden pasa por dos
+# etapas en la misma fila: Bite design (horas y QC de siempre) y Zirconia design (columnas z_*). El estado llena las
+# horas de la etapa activa; al aprobar Bite se llena su Fin y la orden pasa sola a Zirconia design en Ready to design.
+# Estados propios: "Dr authorization" (igual que Hold: color, pausa el tiempo y pasa al día siguiente) y "Changes"
+# (igual que Ready to design: color y pasa al día siguiente). Sus productos solo se eligen en este panel.
+TABLA_MATERIAL = "material"
+ETAPA_BITE = "Bite design"
+ETAPA_ZIRCONIA = "Zirconia design"
+ESTADO_DR_AUT = "Dr authorization"
+ESTADO_CHANGES = "Changes"
+TRASLADO_MATERIAL_DESDE = date(2026, 10, 12)
+PRODUCTOS_MATERIAL = [
+    "N6 - Material Change Full Mouth 24Z", "N6 - Material Change Single 24Z",
+    "N6 - Full Mouth Zirk - Over Ti-Bar (8mm or less)",
+    "N6 - Redo Material Change Full Mouth 24Z", "N6 - Redo Material Change Single 24Z",
+    "N6 - Full Mouth 24Z Remake", "N6 - Single 24Z Remake",
+]
+_material_change = {"ok": False}
+
+
+def es_etapa_zirconia(etapa: str | None) -> bool:
+    return _normalizar_texto(etapa or "") == _normalizar_texto(ETAPA_ZIRCONIA)
+
+
+def material_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
+    """Como face_horas_por_estado, pero en la etapa activa de la orden (Bite: columnas de siempre; Zirconia: z_*).
+    "Dr authorization" cuenta como Hold. Aprobar Bite llena su Fin y deja la orden en Zirconia design, Ready to design."""
+    p = "z_" if es_etapa_zirconia(actual.get("etapa")) else ""
+    est = ESTADO_HOLD if _normalizar_texto(estado_nuevo) == _normalizar_texto(ESTADO_DR_AUT) else estado_nuevo
+    base = {k: actual.get(p + k) for k in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")}
+    cambios = {p + k: v for k, v in face_horas_por_estado(base, est).items()}
+    if not p and estado_nuevo == "Approved":
+        cambios.update({"etapa": ETAPA_ZIRCONIA, "estado": ESTADO_READY})
+    return cambios
+
+
+def horas_de_estado(tabla: str, actual: dict, estado_nuevo: str) -> dict:
+    """Horas que llena el estado: Material Change por etapa; las demás tablas, igual que Face."""
+    if tabla == TABLA_MATERIAL:
+        return material_horas_por_estado(actual, estado_nuevo)
+    return face_horas_por_estado(actual, estado_nuevo)
+
+
+def material_change_una_vez(db: Session) -> None:
+    """Una sola vez: N6 tiene los estados "Dr authorization" (después de Hold) y "Changes" (después de Ready to design)
+    y los productos de PRODUCTOS_MATERIAL (los que falten se agregan o se reactivan)."""
+    from .models_design import DesignConexionRegla
+    if _material_change["ok"]:
+        return
+    marca = "material_change_n6_2026_10_12"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            n6 = db.query(DesignArea).filter(DesignArea.nombre == AREA_N6).first()
+            if not n6:
+                return
+            estados = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == n6.id, DesignCatalogo.tipo == "estado")
+                       .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+            for nuevo_valor, despues_de in ((ESTADO_DR_AUT, ESTADO_HOLD), (ESTADO_CHANGES, ESTADO_READY)):
+                ya = next((c for c in estados if _normalizar_texto(c.valor) == _normalizar_texto(nuevo_valor)), None)
+                if ya:
+                    ya.activo = 1
+                    continue
+                nuevo = DesignCatalogo(area_id=n6.id, tipo="estado", valor=nuevo_valor, activo=1)
+                db.add(nuevo)
+                pos = next((i + 1 for i, c in enumerate(estados) if _normalizar_texto(c.valor) == _normalizar_texto(despues_de)), len(estados))
+                estados.insert(pos, nuevo)
+            for i, c in enumerate(estados, start=1):
+                c.orden = i
+            productos = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == n6.id, DesignCatalogo.tipo == "producto")
+                         .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+            por_nombre = {_normalizar_texto(c.valor): c for c in productos}
+            agregados = []
+            sig = max([c.orden or 0 for c in productos] or [0])
+            for nombre in PRODUCTOS_MATERIAL:
+                c = por_nombre.get(_normalizar_texto(nombre))
+                if not c:
+                    sig += 1
+                    db.add(DesignCatalogo(area_id=n6.id, tipo="producto", valor=nombre, activo=1, orden=sig))
+                    agregados.append(nombre)
+                elif not c.activo:
+                    c.activo = 1
+                    agregados.append(nombre)
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema",
+                                       valor=json.dumps({"productos": agregados}, ensure_ascii=False)))
+            db.commit()
+        _material_change["ok"] = True
+    except Exception:
+        db.rollback()
+
+
 def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
     from .models_design import DesignConexionRegla
     if _estados_ordenados["ok"]:
@@ -465,6 +558,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     productos_n6_igual_n3_una_vez(db)
     productos_n6_primeros_una_vez(db)
     estado_changes_ready_una_vez(db)
+    material_change_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
@@ -647,6 +741,12 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                 .filter(func.lower(DesignOrden.estado) == ESTADO_READY.lower(),
                         DesignOrden.fecha >= TRASLADO_READY_DESDE, DesignOrden.fecha <= cerrado_hasta)
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    # Material Change (N6): "Dr authorization" pasa como Hold y "Changes" como Ready to design
+    ordenes += (db.query(DesignOrden)
+                .filter(DesignOrden.tabla == TABLA_MATERIAL,
+                        func.lower(DesignOrden.estado).in_([ESTADO_DR_AUT.lower(), ESTADO_CHANGES.lower()]),
+                        DesignOrden.fecha >= TRASLADO_MATERIAL_DESDE, DesignOrden.fecha <= cerrado_hasta)
+                .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
     ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
     libres = festivos(db) if ordenes else set()
     miembros: dict[int, set[int]] = {}  # team_id -> diseñadores del equipo (para reconocer al prestado)
@@ -683,7 +783,7 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
 # ---------- Contador de casos asignados sin iniciar (número junto a "Design Schedule" en la barra) ----------
 # Cuenta los casos de la persona en "Ready to design" o "Hold" en los días abiertos (los de días cerrados ya pasaron
 # solos al día abierto). Initiated, Approved y los demás estados no cuentan (pedido por Rosember el 12-oct-2026).
-ESTADOS_ASIGNADOS = (ESTADO_READY, ESTADO_HOLD)
+ESTADOS_ASIGNADOS = (ESTADO_READY, ESTADO_HOLD, "Changes", "Dr authorization")  # Material Change (N6): como Ready y Hold
 
 
 def mis_asignaciones(db: Session, user: Empleado) -> dict:
@@ -700,7 +800,7 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
     lista = [{"id": o.id, "orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": o.estado.strip(),
               "fecha": o.fecha.isoformat(), "teamId": o.team_id, "areaId": o.team.area_id if o.team else None,
               "equipo": o.team.nombre if o.team else ""} for o in ordenes]
-    ready = sum(1 for x in lista if x["estado"].lower() == ESTADO_READY.lower())
+    ready = sum(1 for x in lista if x["estado"].lower() in (ESTADO_READY.lower(), "changes"))
     return {"total": len(lista), "ready": ready, "hold": len(lista) - ready, "ordenes": lista, "yo": user.id}
 
 
@@ -709,7 +809,8 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
 # Grupos, en este orden: libre (sin casos por hacer, fuera de break/almuerzo), pausa (en break o almuerzo según su
 # Schedule), asignado (casos sin iniciar), ocupado (trabajando un caso) y ausente (ausencia registrada hoy).
 SEG_TRABAJANDO = {"initiated", "re-initiated", "meeting", "practice", "training"}
-SEG_POR_HACER = {"ready to design", "hold", "order entered", "pickup received", "bite ready", "change ready", "changes ready"}
+SEG_POR_HACER = {"ready to design", "hold", "order entered", "pickup received", "bite ready", "change ready", "changes ready",
+                 "dr authorization", "changes"}
 SEG_GRUPOS = ["libre", "pausa", "asignado", "ocupado", "ausente"]
 SEG_MIN_ALMUERZO, SEG_MIN_BREAK = 60, 15   # si no tiene hora de fin
 
@@ -918,6 +1019,7 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
             return {"id": e.id, "nombre": e.nombre_completo, "grupo": x.get("grupo", "libre"), "manager": e.id == t.manager_id}
         out.append({"teamId": t.id, "equipo": t.nombre, "area": t.area.nombre, "manager": mgr.get(t.manager_id, ""),
                     "cirugias": sum(1 for o in mias if o.tabla == "principal"), "nightguards": sum(1 for o in mias if o.tabla == "nightguard"),
+                    "material": sum(1 for o in mias if o.tabla == TABLA_MATERIAL),
                     "total": len(mias), "hechos": len(hechos), "enProceso": len(trabajando), "porHacer": len(por_hacer), "sinDisenador": len(sin_disenador),
                     "disenadores": len(propios), "enTurno": [persona(e) for e in en_turno],
                     "ausentes": [e.nombre_completo for e in propios if e.id in ausentes], "prestados": prestados,
@@ -939,6 +1041,9 @@ def serializar_orden(o: DesignOrden) -> dict:
         "etapa": o.etapa, "solicitadoPor": o.solicitado_por, "situacion": o.situacion,
         "solucion": o.solucion, "clasificacion": o.clasificacion, "soporte": o.soporte,
         "estado": o.estado, "qc": o.qc, "qcReporte": o.qc_reporte, "notas": o.notas,
+        "zHoraInicio": o.z_hora_inicio or "", "zSHold": o.z_s_hold or "", "zFHold": o.z_f_hold or "",
+        "zHoldMinutos": o.z_hold_minutos or 0, "zHoraFin": o.z_hora_fin or "", "zQc": bool(o.z_qc),
+        "zQcReporte": o.z_qc_reporte or "",
         "ordenVisual": o.orden_visual,
     }
 
@@ -978,6 +1083,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     breaks = qb.all()
     principal = [serializar_orden(o) for o in ordenes if o.tabla == "principal"]
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]
+    material = [serializar_orden(o) for o in ordenes if o.tabla == TABLA_MATERIAL]
     # Diseñadores con su empleado en una sola consulta (team.designers haría una consulta por diseñador).
     designers = qd.order_by(DesignTeamDesigner.orden).all()
 
@@ -1001,7 +1107,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         })
 
     salida = {
-        "principal": principal, "nightguard": nightguard,
+        "principal": principal, "nightguard": nightguard, "material": material,
         "breaks": breaks_out,
         # un diseñador cuyo empleado ya no existe se omite (antes hacía fallar la carga del día de su equipo)
         "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers if d.empleado],
@@ -1087,7 +1193,7 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
     if teams:
         ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
                    .filter(DesignOrden.team_id.in_([t.id for t in teams]), DesignOrden.fecha == fecha,
-                           DesignOrden.tabla.in_(["principal", "nightguard"]), filtro_orden_completa())
+                           DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]), filtro_orden_completa())
                    .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
         # En los equipos donde solo es diseñador, únicamente sus órdenes.
         ordenes = [o for o in ordenes if o.team_id in gestionados or o.designer_id == user.id]
@@ -1096,9 +1202,11 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
         por_team.setdefault(o.team_id, []).append(o)
 
     def ordenes_de(team_id: int) -> list[dict]:
-        # Mismo orden que la vista de equipo: primero "principal", luego "nightguard".
+        # Mismo orden que la vista de equipo: Material Change (N6), Cirugías y Nightguards.
         lista = por_team.get(team_id, [])
-        return [serializar_orden(o) for o in lista if o.tabla == "principal"] +                [serializar_orden(o) for o in lista if o.tabla == "nightguard"]
+        return ([serializar_orden(o) for o in lista if o.tabla == TABLA_MATERIAL] +
+                [serializar_orden(o) for o in lista if o.tabla == "principal"] +
+                [serializar_orden(o) for o in lista if o.tabla == "nightguard"])
 
     return [{"id": a.id, "nombre": a.nombre, "formato": a.formato,
              "teams": [{"id": t.id, "nombre": t.nombre, "ordenes": ordenes_de(t.id)}
@@ -1112,7 +1220,7 @@ def version_todas_areas(db: Session, fecha: date) -> str:
     import hashlib
     partes = [tuple(x) for x in (db.query(DesignOrden.id, DesignOrden.team_id, DesignOrden.tabla, DesignOrden.orden_visual,
                                           DesignOrden.actualizado_en, DesignOrden.designer_id)
-                                 .filter(DesignOrden.fecha == fecha, DesignOrden.tabla.in_(["principal", "nightguard"]))
+                                 .filter(DesignOrden.fecha == fecha, DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]))
                                  .order_by(DesignOrden.id).all())]
     partes += [tuple(x) for x in db.query(DesignTeam.id, DesignTeam.nombre, DesignTeam.activo, DesignTeam.area_id, DesignTeam.orden)
                .order_by(DesignTeam.id).all()]
@@ -1128,6 +1236,8 @@ def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: s
     for campo in CAMPOS_ORDEN:
         if campo in datos:
             setattr(o, campo, datos[campo])
+    if tabla == TABLA_MATERIAL and not (o.etapa or "").strip():
+        o.etapa = ETAPA_BITE  # Material Change empieza en Bite design
     db.add(o)
     db.commit()
     db.refresh(o)
@@ -1574,6 +1684,17 @@ def face_convertir_una_vez(db: Session) -> None:
     _face_convertido["ok"] = True
 
 
+def material_minutos(o: DesignOrden) -> tuple[float, float, float]:
+    """Material Change: (Bite, Zirconia, total) en minutos; una etapa sin Inicio o sin Fin cuenta 0."""
+    def etapa(ini, fin, s, f, previos):
+        if not ini or not fin:
+            return 0
+        return max(0, _entre(ini, fin) - (previos or 0) - (_entre(s, f) if s and f else 0))
+    b = etapa(o.hora_inicio, o.hora_fin, o.s_hold, o.f_hold, o.hold_minutos)
+    z = etapa(o.z_hora_inicio, o.z_hora_fin, o.z_s_hold, o.z_f_hold, o.z_hold_minutos)
+    return b, z, b + z
+
+
 def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     """Duración de una orden, igual que en el horario (dsDuracionFila en design_schedule.html):
     - N3/N6 (Cirugías) y Face: Fin − Inicio diseño − Hold (min).
@@ -1581,6 +1702,8 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     - Nightguards / TC: Fin − Inicio.  - Support: no lleva horas."""
     if formato == FORMATO_SUPPORT:
         return 0
+    if o.tabla == TABLA_MATERIAL:  # Material Change: Bite + Zirconia, cada etapa Fin − Inicio − tiempo en Hold
+        return material_minutos(o)[2]
     if o.tabla == "nightguard" and not horas_por_estado(formato, o.fecha, o.tabla):
         return _entre(o.hora_inicio, o.hora_fin)
     if formato == FORMATO_N2:
