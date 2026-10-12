@@ -252,5 +252,6 @@
   if (sub) { try { new MutationObserver(actualizar).observe(sub, {subtree: true, attributes: true, attributeFilter: ['class']}); } catch (e) {} }
 })();
 </script>
+{% if es_design %}<script src="/static/design/asignaciones.js?v=20261012" defer></script>{% endif %}
 </body>
 </html>

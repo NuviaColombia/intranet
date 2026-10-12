@@ -6764,6 +6764,7 @@ window.DS_PANELS.dashboard = function() {
     document.body.classList.add('ds-locked');
     var cerrar = panel.querySelector('.ds-overlay-close'); if (cerrar) cerrar.focus({preventScroll: true});
     if (window.DS_PANELS[id]) window.DS_PANELS[id]();
+    document.dispatchEvent(new Event('ds:asignaciones'));   // número de casos asignados en la barra (asignaciones.js)
     try {
       var url = new URL(location.href);
       url.searchParams.set('panel', id);

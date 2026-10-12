@@ -645,6 +645,30 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
     return len(ordenes)
 
 
+# ---------- Contador de casos asignados sin iniciar (número junto a "Design Schedule" en la barra) ----------
+# Cuenta los casos de la persona en "Ready to design" o "Hold" en los días abiertos (los de días cerrados ya pasaron
+# solos al día abierto). Initiated, Approved y los demás estados no cuentan (pedido por Rosember el 12-oct-2026).
+ESTADOS_ASIGNADOS = (ESTADO_READY, ESTADO_HOLD)
+
+
+def mis_asignaciones(db: Session, user: Empleado) -> dict:
+    trasladar_holds(db)
+    desde = ultimo_dia_cerrado() + timedelta(days=1)
+    estados = [e.lower() for e in ESTADOS_ASIGNADOS]
+    q = (db.query(DesignOrden).options(joinedload(DesignOrden.team))
+         .filter(DesignOrden.fecha >= desde, func.lower(func.trim(DesignOrden.estado)).in_(estados)))
+    nombre = _normalizar_texto(user.nombre_completo)
+    # el diseñador prestado se guarda por nombre: se reconoce comparando el nombre completo
+    ordenes = [o for o in q.filter(or_(DesignOrden.designer_id == user.id, func.coalesce(DesignOrden.designer_prestado, "") != "")).all()
+               if o.designer_id == user.id or (nombre and _normalizar_texto(o.designer_prestado) == nombre)]
+    ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
+    lista = [{"id": o.id, "orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": o.estado.strip(),
+              "fecha": o.fecha.isoformat(), "teamId": o.team_id, "areaId": o.team.area_id if o.team else None,
+              "equipo": o.team.nombre if o.team else ""} for o in ordenes]
+    ready = sum(1 for x in lista if x["estado"].lower() == ESTADO_READY.lower())
+    return {"total": len(lista), "ready": ready, "hold": len(lista) - ready, "ordenes": lista}
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,

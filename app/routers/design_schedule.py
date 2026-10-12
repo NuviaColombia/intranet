@@ -904,6 +904,12 @@ def _fecha(texto: str) -> date:
         raise HTTPException(400, "Fecha inválida.")
 
 
+@router.get("/design/api/mis-asignaciones")
+def api_mis_asignaciones(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Casos de la persona en Ready to design o Hold (número junto a "Design Schedule" en la barra)."""
+    return sd.mis_asignaciones(db, user)
+
+
 @router.get("/design/api/dia")
 def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                   db: Session = Depends(get_db)):
