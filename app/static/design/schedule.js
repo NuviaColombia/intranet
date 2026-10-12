@@ -1361,7 +1361,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         }
         // Material Change: solo sus productos, y esos productos ya no se eligen en Cirugías
         if (c.k === 'producto' && tabla === 'material') valores = valores.filter(dsEsProductoMaterial);
-        if (c.k === 'producto' && tabla === 'principal') valores = valores.filter(function(v) { return !dsEsProductoMaterial(v); });
+        if (c.k === 'producto' && tabla === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL) valores = valores.filter(function(v) { return !dsEsProductoMaterial(v); });
         root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {

@@ -273,6 +273,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     productos_n6_primeros_una_vez(db)
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
+    producto_prosthetic_scan_una_vez(db)
     vals = [c.valor for c in db.query(DesignCatalogo)
             .filter(DesignCatalogo.area_id == area_id, DesignCatalogo.tipo == tipo, DesignCatalogo.activo == 1)
             .order_by(DesignCatalogo.orden).all()]
@@ -522,6 +523,34 @@ def material_change_una_vez(db: Session) -> None:
         db.rollback()
 
 
+# "Prosthetic Scan/Measurement" al final de los productos de N3 y N6 (pedido por Rosember el 12-oct-2026). Una sola vez:
+# si ya existe se reactiva y pasa al final. En N6 no empieza por "N6", así que queda en el último grupo (_orden_productos_n6).
+PRODUCTO_PROSTHETIC_SCAN = "Prosthetic Scan/Measurement"
+_prosthetic_scan = {"ok": False}
+
+
+def producto_prosthetic_scan_una_vez(db: Session) -> None:
+    from .models_design import DesignConexionRegla
+    if _prosthetic_scan["ok"]:
+        return
+    marca = "producto_prosthetic_scan_n3_n6_2026_10_12"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            for area in db.query(DesignArea).filter(DesignArea.nombre.in_(["N3 Prosthetic", AREA_N6])).all():
+                productos = db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "producto").all()
+                ult = max([c.orden or 0 for c in productos] or [0]) + 1
+                c = next((x for x in productos if _normalizar_texto(x.valor) == _normalizar_texto(PRODUCTO_PROSTHETIC_SCAN)), None)
+                if c:
+                    c.activo, c.orden = 1, ult
+                else:
+                    db.add(DesignCatalogo(area_id=area.id, tipo="producto", valor=PRODUCTO_PROSTHETIC_SCAN, activo=1, orden=ult))
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        _prosthetic_scan["ok"] = True
+    except Exception:
+        db.rollback()
+
+
 def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
     from .models_design import DesignConexionRegla
     if _estados_ordenados["ok"]:
@@ -559,6 +588,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     productos_n6_primeros_una_vez(db)
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
+    producto_prosthetic_scan_una_vez(db)
     out: dict[str, list[str]] = {}
     for c in (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area_id, DesignCatalogo.activo == 1)
               .order_by(DesignCatalogo.tipo, DesignCatalogo.orden).all()):
