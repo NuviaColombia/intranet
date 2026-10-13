@@ -152,6 +152,43 @@
   .op-tabla { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:12px; margin:0; }
   .op-tabla th, .op-tabla td { border-bottom:1px solid #eef2f7; border-right:1px solid #eef2f7; padding:4px 7px; white-space:nowrap; vertical-align:middle; }
   .op-tabla thead th { position:sticky; top:0; z-index:2; background:#f8fafc; font-weight:700; color:#1e293b; text-align:left; }
+  .op-asig { border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; margin-bottom:8px; background:#fff; }
+  .op-asig-barra { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  .op-asig-barra .op-tab { border:1px solid #cbd5e1; background:#fff; color:#0f172a; border-radius:999px; padding:4px 12px; font-size:12.5px; cursor:pointer; }
+  .op-asig-barra .op-tab.on { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+  .op-asig-nota { font-size:12px; color:#475569; margin-left:auto; }
+  .op-as-area { border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px; background:#f8fafc; }
+  .op-as-area > summary { cursor:pointer; padding:9px 12px; font-weight:700; font-size:14px; color:#0f172a; list-style:none; display:flex; align-items:center; gap:8px; }
+  .op-as-area > summary::-webkit-details-marker { display:none; }
+  .op-as-area > summary::before { content:'▸'; color:#64748b; transition:transform .15s; }
+  .op-as-area[open] > summary::before { transform:rotate(90deg); }
+  .op-as-area > summary small { font-weight:500; color:#475569; font-size:12px; }
+  .op-as-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px; padding:4px 12px 12px; }
+  .op-as-card { background:#fff; border:1px solid #dbe3ee; border-radius:10px; padding:8px 10px; min-height:84px; transition:border-color .12s, background .12s; }
+  .op-as-card.sobre { border-color:#1d4ed8; background:#eff6ff; box-shadow:0 0 0 2px rgba(29,78,216,.18); }
+  .op-as-card.sin { border-style:dashed; background:#fffbeb; }
+  .op-as-cab { display:flex; justify-content:space-between; gap:6px; align-items:baseline; margin-bottom:6px; }
+  .op-as-cab b { font-size:13px; color:#0f172a; } .op-as-cab span { font-size:11.5px; color:#475569; white-space:nowrap; }
+  .op-as-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .op-as-vacio { font-size:11.5px; color:#64748b; }
+  .op-as-chip { display:inline-flex; align-items:center; gap:5px; background:#dbeafe; color:#1e3a8a; border-radius:999px; padding:2px 4px 2px 9px; font-size:12px; cursor:grab; user-select:none; }
+  .op-as-chip small { color:#3b5998; font-size:10.5px; } .op-as-chip.arrastrando { opacity:.4; } .op-as-chip:active { cursor:grabbing; }
+  .op-as-chip button { border:0; background:rgba(255,255,255,.7); color:#1e3a8a; border-radius:50%; width:18px; height:18px; line-height:1; font-size:11px; cursor:pointer; padding:0; }
+  .op-as-chip button:hover { background:#fff; }
+  .op-as-mover { font-size:12px; margin-left:4px; }
+  .op-rg { border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px; background:#f8fafc; }
+  .op-rg > summary { cursor:pointer; padding:9px 12px; font-weight:700; font-size:14px; color:#0f172a; }
+  .op-rg > summary { display:flex; align-items:center; gap:10px; }
+  .op-rg-av { position:relative; width:40px; height:40px; border-radius:50%; flex:none; display:grid; place-items:center; background:linear-gradient(135deg, #2f98d5, #252772);
+              color:#fff; font-weight:800; font-size:14px; overflow:hidden; box-shadow:0 0 0 2px #fff, 0 2px 8px rgba(15,23,42,.25); }
+  .op-rg-av img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 25%; }
+  .op-rg > summary small { font-weight:500; color:#475569; font-size:12px; margin-left:6px; }
+  .op-rg-cuerpo { padding:2px 12px 10px; display:grid; gap:6px; }
+  .op-rg-fila { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:baseline; font-size:12.5px; padding:5px 0; border-top:1px solid #e2e8f0; }
+  .op-rg-fila:first-child { border-top:0; }
+  .op-rg-tag { background:#e0e7ff; color:#312e81; border-radius:6px; padding:1px 7px; font-size:11px; font-weight:700; min-width:42px; text-align:center; }
+  .op-rg-mgr { display:inline-flex; gap:5px; align-items:baseline; background:#fff; border:1px solid #dbe3ee; border-radius:8px; padding:2px 8px; }
+  .op-rg-mgr b { color:#0f172a; } .op-rg-mgr span { color:#475569; }
   .op-tabla .op-acc-col { position:sticky; right:0; background:#fff; z-index:1; }
   .op-tabla thead .op-acc-col { z-index:3; background:#f8fafc; }
   .op-th { display:flex; align-items:center; gap:4px; }
@@ -1369,6 +1406,161 @@
       return out;
     }
     function visibles() { return todasLasColumnas().filter(function(c) { return ocultas.indexOf(c.clave) < 0; }); }
+    // ---------- Asignaciones (pedido por Rosember el 13-oct-2026): centros de cada manager por área y por regional ----------
+    // Se leen y se guardan en la misma tabla de Openings (columna del manager de cada área): mover un centro aquí es igual a
+    // cambiar su celda en la tabla (misma ruta, misma sincronización con Pre-Approved y mismo historial).
+    var ASIG_AREAS = [{n: 'N3 Prosthetic', c: 'manager_n3', t: 'N3'}, {n: 'N6 Material Changes', c: 'manager_n6', t: 'N6'},
+                      {n: 'N2 Demodenture', c: 'manager_n2', t: 'N2'}, {n: 'Face Design', c: 'manager_face', t: 'Face'}];
+    var ASIG_EQUIPOS = {{ (op_managers or [])|tojson }};   // [área, manager] de los equipos activos (para ofrecer managers sin centros)
+    var asigOn = false, asigVista = 'area', asigAbiertas = {}, asigDrag = null;   // por defecto todas las áreas ocultas
+    function asigNorm(t) { return String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    function asigPal(t) { return asigNorm(t).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(function(w) { return w.length > 1; }); }
+    function asigMismo(a, b) {   // "Julio E. Hernandez" = "Julio Enrique Hernandez Florez": las palabras de uno están en el otro
+      var x = asigPal(a), y = asigPal(b); if (!x.length || !y.length) return false;
+      var sub = function(p, q) { return p.every(function(w) { return q.indexOf(w) >= 0; }); };
+      return sub(x, y) || sub(y, x);
+    }
+    function asigSin(v) { var n = asigNorm(v).trim(); return !n || n === 'n/a' || n === 'na' || n === '-' || n === '--'; }
+    function asigCentros() { return OP.filas.filter(function(f) { return (f.datos.centro || '').trim(); }); }
+    function asigArea(a) {
+      if (!OP.columnas.some(function(c) { return c.clave === a.c; })) return null;
+      var por = {}, orden = [], sin = [];
+      asigCentros().forEach(function(f) {
+        var m = (f.datos[a.c] || '').trim(), item = {id: f.id, centro: f.datos.centro.trim(), regional: (f.datos.regional || '').trim()};
+        if (asigSin(m)) { sin.push(item); return; }
+        var k = asigNorm(m).replace(/\s+/g, ' ');
+        if (!por[k]) { por[k] = {nombre: m, centros: []}; orden.push(k); }
+        por[k].centros.push(item);
+      });
+      var mgrs = orden.map(function(k) { return por[k]; });
+      ASIG_EQUIPOS.forEach(function(p) {   // manager de un equipo que todavía no tiene centros en esta columna
+        if (p[0] === a.n && !mgrs.some(function(m) { return asigMismo(m.nombre, p[1]); })) mgrs.push({nombre: p[1], centros: []});
+      });
+      mgrs.sort(function(x, y) { return x.nombre.localeCompare(y.nombre, 'es', {sensitivity: 'base'}); });
+      mgrs.forEach(function(m) { m.centros.sort(function(x, y) { return x.centro.localeCompare(y.centro, 'es', {sensitivity: 'base'}); }); });
+      sin.sort(function(x, y) { return x.centro.localeCompare(y.centro, 'es', {sensitivity: 'base'}); });
+      return {a: a, managers: mgrs, sin: sin, total: asigCentros().length};
+    }
+    function asigChip(c, i) {
+      return '<span class="op-as-chip" draggable="true" data-fila="' + c.id + '" data-area="' + i + '" title="Arrastra el centro a otro manager"><b>' + esc(c.centro) + '</b>' +
+        (c.regional ? '<small>' + esc(c.regional) + '</small>' : '') + '<button type="button" data-asig-mover="' + c.id + '" data-area="' + i + '" aria-label="Mover ' + esc(c.centro) + ' a otro manager" title="Mover a otro manager">⇄</button></span>';
+    }
+    function asigPintarArea() {
+      return ASIG_AREAS.map(function(a, i) {
+        var d = asigArea(a); if (!d) return '';
+        var tarjetas = d.managers.map(function(m) {
+          return '<div class="op-as-card" data-area="' + i + '" data-mgr="' + esc(m.nombre) + '"><div class="op-as-cab"><b>' + esc(m.nombre) + '</b><span>' + m.centros.length + ' centro' + (m.centros.length === 1 ? '' : 's') + '</span></div>' +
+            '<div class="op-as-chips">' + (m.centros.length ? m.centros.map(function(c) { return asigChip(c, i); }).join('') : '<span class="op-as-vacio">Suelta aquí un centro</span>') + '</div></div>';
+        }).join('');
+        tarjetas += '<div class="op-as-card sin" data-area="' + i + '" data-mgr="" data-sin="1"><div class="op-as-cab"><b>Sin asignar</b><span>' + d.sin.length + '</span></div>' +
+          '<div class="op-as-chips">' + (d.sin.length ? d.sin.map(function(c) { return asigChip(c, i); }).join('') : '<span class="op-as-vacio">Suelta aquí para dejar un centro sin manager</span>') + '</div></div>';
+        var asignados = d.total - d.sin.length;
+        return '<details class="op-as-area" data-i="' + i + '"' + (asigAbiertas[i] ? ' open' : '') + '><summary>' + esc(a.n) + '<small>' + d.managers.filter(function(m) { return m.centros.length; }).length + ' managers · ' +
+          asignados + ' centros' + (d.sin.length ? ' · ' + d.sin.length + ' sin asignar' : '') + '</small></summary><div class="op-as-grid">' + tarjetas + '</div></details>';
+      }).join('') || '<p class="cat-sin">Las columnas de manager de Openings no están en la tabla.</p>';
+    }
+    function asigPintarRegional() {
+      var regs = {}, orden = [];
+      asigCentros().forEach(function(f) {
+        var r = (f.datos.regional || '').trim() || 'Sin regional';
+        if (!regs[r]) { regs[r] = []; orden.push(r); }
+        regs[r].push(f);
+      });
+      orden.sort(function(x, y) { return x === 'Sin regional' ? 1 : y === 'Sin regional' ? -1 : x.localeCompare(y, 'es', {sensitivity: 'base'}); });
+      return orden.map(function(r) {
+        var filas = regs[r], cuerpo = ASIG_AREAS.map(function(a) {
+          if (!OP.columnas.some(function(c) { return c.clave === a.c; })) return '';
+          var por = {}, nombres = [];
+          filas.forEach(function(f) {
+            var m = (f.datos[a.c] || '').trim(); if (asigSin(m)) m = 'Sin asignar';
+            var k = asigNorm(m); if (!por[k]) { por[k] = {m: m, c: []}; nombres.push(k); }
+            por[k].c.push(f.datos.centro.trim());
+          });
+          nombres.sort(function(x, y) { return por[x].m.localeCompare(por[y].m, 'es', {sensitivity: 'base'}); });
+          return '<div class="op-rg-fila"><span class="op-rg-tag">' + a.t + '</span>' + nombres.map(function(k) {
+            var g = por[k]; g.c.sort(function(x, y) { return x.localeCompare(y, 'es', {sensitivity: 'base'}); });
+            return '<span class="op-rg-mgr"><b>' + esc(g.m) + '</b><span>' + g.c.length + ': ' + g.c.map(esc).join(', ') + '</span></span>';
+          }).join('') + '</div>';
+        }).join('');
+        var slug = asigNorm(r).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), ini = r.split(/\s+/).map(function(w) { return w.charAt(0); }).join('').slice(0, 2).toUpperCase();
+        // Foto del regional: static/design/regionales/<nombre>.jpg (si no existe, quedan sus iniciales)
+        var av = '<span class="op-rg-av"><i style="font-style:normal">' + esc(ini) + '</i><img src="/static/design/regionales/' + slug + '.jpg" alt="" loading="lazy" onerror="this.remove()"></span>';
+        return '<details class="op-rg" open><summary>' + av + '<span>' + esc(r) + '<small>' + filas.length + ' centro' + (filas.length === 1 ? '' : 's') + '</small></span></summary><div class="op-rg-cuerpo">' + cuerpo + '</div></details>';
+      }).join('') || '<p class="cat-sin">No hay centros en Openings.</p>';
+    }
+    function asigPintar() {
+      var p = document.getElementById('opAsig'); if (!p || !OP) return;
+      var y = window.scrollY;
+      p.innerHTML = '<div class="op-asig-barra"><button type="button" class="op-tab' + (asigVista === 'area' ? ' on' : '') + '" data-asig-vista="area">Por área</button>' +
+        '<button type="button" class="op-tab' + (asigVista === 'regional' ? ' on' : '') + '" data-asig-vista="regional">Por regional</button>' +
+        (asigVista === 'area' ? '<button type="button" class="btn gris" data-asig-todas="1">Mostrar todas</button><button type="button" class="btn gris" data-asig-todas="0">Ocultar todas</button>' +
+          '<span class="op-asig-nota">Arrastra un centro y suéltalo sobre otro manager: se guarda en Openings al instante.</span>' :
+          '<span class="op-asig-nota">Managers de cada área por regional y los centros que llevan (solo lectura).</span>') + '</div>' +
+        (asigVista === 'area' ? asigPintarArea() : asigPintarRegional());
+      window.scrollTo(window.scrollX, y);
+    }
+    function asigAlternar() {
+      if (!OP) return;
+      asigOn = !asigOn;
+      var p = document.getElementById('opAsig'), w = cont.querySelector('.op-wrap'), bq = document.getElementById('opBuscar'), btn = document.getElementById('opAsigBtn');
+      p.hidden = !asigOn; if (w) w.hidden = asigOn; if (bq) bq.hidden = asigOn;
+      btn.textContent = asigOn ? 'Volver a la tabla' : 'Asignaciones'; btn.classList.toggle('on', asigOn);
+      if (asigOn) asigPintar();
+    }
+    function asigToast(html, deshacer) {
+      document.querySelectorAll('.eq-toast.op-as-toast').forEach(function(x) { x.remove(); });
+      var t = document.createElement('div'); t.className = 'eq-toast op-as-toast'; t.setAttribute('role', 'status'); t.innerHTML = '<span>' + html + '</span>';
+      if (deshacer) { var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Deshacer'; b.addEventListener('click', function() { t.remove(); deshacer(); }); t.appendChild(b); }
+      document.body.appendChild(t); setTimeout(function() { t.remove(); }, 9000);
+    }
+    // Mueve un centro: cambia la celda del manager de esa área en Openings (valor '' = como estaba vacío)
+    function asigMover(filaId, i, nombre, esDeshacer) {
+      var a = ASIG_AREAS[i], f = OP.filas.find(function(x) { return x.id === filaId; }); if (!f) return;
+      var antes = (f.datos[a.c] || ''), nuevo = nombre;
+      if (asigNorm(antes).trim() === asigNorm(nuevo).trim()) return;
+      post('/design/api/openings/celda', {filaId: filaId, clave: a.c, valor: nuevo}).then(function(res) {
+        f.datos[a.c] = nuevo;
+        if (res && res.pa && window.paAvisoOpenings) window.paAvisoOpenings(res.pa);
+        pintar();
+        if (!esDeshacer) asigToast('<b>' + esc(f.datos.centro) + '</b> (' + a.t + '): de ' + esc(antes || 'sin asignar') + ' a <b>' + esc(nuevo || 'sin asignar') + '</b>', function() { asigMover(filaId, i, antes, true); });
+      }).catch(function(e) { paramToast('No se pudo mover: ' + e.message, true); });
+    }
+    cont.addEventListener('click', function(e) {
+      var v = e.target.closest('[data-asig-vista]'), t = e.target.closest('[data-asig-todas]'), m = e.target.closest('[data-asig-mover]');
+      if (v) { asigVista = v.dataset.asigVista; asigPintar(); return; }
+      if (t) { ASIG_AREAS.forEach(function(a, i) { asigAbiertas[i] = t.dataset.asigTodas === '1'; }); asigPintar(); return; }
+      if (m) {   // alternativa sin arrastrar: lista de managers de esa área
+        var i = parseInt(m.dataset.area), d = asigArea(ASIG_AREAS[i]), chip = m.closest('.op-as-chip');
+        var prev = chip.querySelector('.op-as-mover'); if (prev) { prev.remove(); return; }
+        var sel = document.createElement('select'); sel.className = 'op-as-mover'; sel.setAttribute('aria-label', 'Mover a');
+        sel.innerHTML = '<option value="">Mover a…</option>' + d.managers.map(function(x) { return '<option value="m:' + esc(x.nombre) + '">' + esc(x.nombre) + '</option>'; }).join('') + '<option value="sin">Sin asignar</option>';
+        sel.addEventListener('change', function() { if (sel.value) asigMover(parseInt(chip.dataset.fila), i, sel.value === 'sin' ? 'N/A' : sel.value.slice(2)); });
+        sel.addEventListener('blur', function() { setTimeout(function() { sel.remove(); }, 150); });
+        chip.appendChild(sel); sel.focus();
+      }
+    });
+    cont.addEventListener('toggle', function(e) { var d = e.target; if (d.classList && d.classList.contains('op-as-area')) asigAbiertas[d.dataset.i] = d.open; }, true);
+    cont.addEventListener('dragstart', function(e) {
+      var c = e.target.closest && e.target.closest('.op-as-chip'); if (!c) return;
+      asigDrag = {fila: parseInt(c.dataset.fila), area: parseInt(c.dataset.area)}; c.classList.add('arrastrando');
+      e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', c.dataset.fila); } catch (x) {}
+    });
+    cont.addEventListener('dragend', function(e) {
+      var c = e.target.closest && e.target.closest('.op-as-chip'); if (c) c.classList.remove('arrastrando');
+      cont.querySelectorAll('.op-as-card.sobre').forEach(function(x) { x.classList.remove('sobre'); }); asigDrag = null;
+    });
+    cont.addEventListener('dragover', function(e) {
+      var k = e.target.closest && e.target.closest('.op-as-card');
+      if (!asigDrag || !k || parseInt(k.dataset.area) !== asigDrag.area) return;   // solo dentro de la misma área
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      if (!k.classList.contains('sobre')) { cont.querySelectorAll('.op-as-card.sobre').forEach(function(x) { x.classList.remove('sobre'); }); k.classList.add('sobre'); }
+    });
+    cont.addEventListener('drop', function(e) {
+      var k = e.target.closest && e.target.closest('.op-as-card');
+      if (!asigDrag || !k || parseInt(k.dataset.area) !== asigDrag.area) return;
+      e.preventDefault(); var g = asigDrag; asigDrag = null;
+      asigMover(g.fila, g.area, k.dataset.sin ? 'N/A' : k.dataset.mgr);
+    });
     var enVuelo = 0;  // guardados en curso: mientras haya, no se refresca la tabla
     function post(url, body) {
       enVuelo++;
@@ -1419,7 +1611,9 @@
           '<span class="op-sub op-edit" data-op-hoja="subtitulo" title="Clic para editar"></span></div>' +
           '<div class="op-barra"><input type="search" id="opBuscar" placeholder="Buscar centro, manager, diseñador…" aria-label="Buscar en Openings">' +
           '<button type="button" class="btn" data-op="fila">+ Fila</button><button type="button" class="btn gris" data-op="columna">+ Columna</button>' +
+          '<button type="button" class="btn gris" data-op="asig" id="opAsigBtn" title="Centros de cada manager por área y por regional: arrástralos para cambiarlos de manager">Asignaciones</button>' +
           '<button type="button" class="btn gris" data-op="mostrar" style="display:none"></button><span class="cat-sin" id="opCuenta"></span></div>' +
+          '<div class="op-asig" id="opAsig" hidden></div>' +
           '<div class="op-wrap"><table class="op-tabla"><thead></thead><tbody></tbody></table></div>';
         cont.querySelector('[data-op-hoja="titulo"]').textContent = OP.titulo || 'Sin título';
         cont.querySelector('[data-op-hoja="subtitulo"]').textContent = OP.subtitulo || '—';
@@ -1429,6 +1623,7 @@
       tb.innerHTML = filasOrdenadas().map(filaHtml).join('');
       resumen();
       filtrar();
+      if (asigOn) asigPintar();
     }
     function resumen() {
       var ocu = todasLasColumnas().length - visibles().length;
@@ -1566,6 +1761,7 @@
       if (!b) return;
       var op = b.dataset.op, tr = b.closest('tr'), filaId = tr && tr.dataset.fila ? parseInt(tr.dataset.fila) : null;
       if (op === 'menu') { abrirMenu(b); return; }
+      if (op === 'asig') { asigAlternar(); return; }
       if (op === 'renombrar') {
         cerrarMenu();
         var cid = parseInt(b.dataset.col), cc = OP.columnas.find(function(x) { return x.id === cid; });

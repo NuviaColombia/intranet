@@ -308,6 +308,7 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
                                                    DesignCatalogo.orden).all())
     return templates.TemplateResponse(request, "design_parametros.html",
                                       {"user": user, "areas": areas, "teams": teams, "candidatos": candidatos, "inhabilitados": inhabilitados,
+                                       "op_managers": [[t.area.nombre, t.manager.nombre_completo] for t in teams if t.activo and t.manager and t.area],
                                        "candidatos_az": sorted(candidatos, key=lambda e: sd._normalizar_texto(e.nombre_completo)),
                                        "con_ordenes": {tid for (tid,) in db.query(DesignOrden.team_id).distinct()},
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
