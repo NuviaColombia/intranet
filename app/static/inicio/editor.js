@@ -145,7 +145,7 @@
     });
   }
   E.vivo = function() {
-    setInterval(vivoTick, 3000);
+    setInterval(vivoTick, 10000);   // presencia: cada 10 s (antes 3 s)
     document.addEventListener('visibilitychange', function() { if (!document.hidden) vivoTick(); });
     window.addEventListener('pagehide', function() { try { fetch('/design/api/inicio/presencia', {method: 'POST', credentials: 'same-origin', keepalive: true, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({salir: true})}); } catch (e) {} });
   };

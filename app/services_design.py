@@ -1,5 +1,6 @@
 """Lógica de negocio del módulo Design Schedule."""
 import json
+import logging
 import re
 import unicodedata
 from datetime import date, datetime, time, timedelta, timezone
@@ -27,6 +28,8 @@ CAMPOS_ORDEN = [
     "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin", "z_qc", "z_qc_reporte",
     "art_start", "art_rtd",
 ]
+
+log = logging.getLogger(__name__)
 
 
 
@@ -371,6 +374,7 @@ def productos_n6_primeros_una_vez(db: Session) -> None:
         db.commit()
         _productos_n6_primeros["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -416,6 +420,7 @@ def productos_n6_igual_n3_una_vez(db: Session) -> None:
         db.commit()
         _productos_n6["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -456,6 +461,7 @@ def estado_changes_ready_una_vez(db: Session) -> None:
             db.commit()
         _changes_ready["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -547,6 +553,7 @@ def material_change_una_vez(db: Session) -> None:
             db.commit()
         _material_change["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -608,6 +615,7 @@ def productos_n2_a_face_una_vez(db: Session) -> None:
             db.commit()
         _n2_a_face["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -632,6 +640,7 @@ def productos_al_final_una_vez(db: Session) -> None:
         db.commit()
         _productos_al_final["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -654,6 +663,7 @@ def producto_prosthetic_scan_una_vez(db: Session) -> None:
             db.commit()
         _prosthetic_scan["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -685,6 +695,7 @@ def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
         db.commit()
         _estados_ordenados["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -831,6 +842,7 @@ def festivos(db: Session) -> set[date]:
             db.add(DesignConexionRegla(tipo="sistema", clave="festivos_iniciales", creado_por="Sistema"))
             db.commit()
         except Exception:
+            log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
             db.rollback()  # otro proceso los llenó al mismo tiempo
     v = {f.fecha for f in db.query(DesignFestivo).all()}
     c["t"], c["v"] = _t.monotonic(), v
@@ -1941,6 +1953,7 @@ def face_convertir_una_vez(db: Session) -> None:
             db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
             db.commit()
         except Exception:
+            log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
             db.rollback()
             return
     _face_convertido["ok"] = True
@@ -2036,17 +2049,24 @@ def ready_movidas_a_mano(db: Session, hoy: date | None = None) -> list[dict]:
               .filter(func.lower(DesignOrden.estado) == ESTADO_READY.lower(), DesignOrden.fecha < hoy,
                       func.coalesce(DesignOrden.orden, "") != "")
               .order_by(DesignOrden.fecha, DesignOrden.team_id, DesignOrden.id).all())
+    if not viejas:
+        return []
+    # Una sola consulta para todas las copias posteriores (antes: una consulta por orden vieja)
+    copias: dict = {}
+    for team_id, fecha, estado, num in (db.query(DesignOrden.team_id, DesignOrden.fecha, DesignOrden.estado, DesignOrden.orden)
+                                        .filter(DesignOrden.team_id.in_({o.team_id for o in viejas}),
+                                                DesignOrden.fecha > min(o.fecha for o in viejas),
+                                                func.coalesce(DesignOrden.orden, "") != "")
+                                        .order_by(DesignOrden.fecha).all()):
+        copias.setdefault((team_id, (num or "").strip().upper()), []).append((fecha, estado or ""))
     out = []
     for o in viejas:
-        n = (o.orden or "").strip().upper()
-        despues = (db.query(DesignOrden).filter(DesignOrden.team_id == o.team_id, DesignOrden.fecha > o.fecha,
-                                                func.upper(func.trim(DesignOrden.orden)) == n)
-                   .order_by(DesignOrden.fecha).first())
+        despues = next(((f, e) for f, e in copias.get((o.team_id, (o.orden or "").strip().upper()), []) if f > o.fecha), None)
         if not despues:
             continue
         out.append({"id": o.id, "orden": o.orden, "paciente": o.paciente, "fecha": o.fecha.isoformat(), "area": o.team.area.nombre,
                     "equipo": o.team.nombre, "disenador": o.designer.nombre_completo if o.designer else (o.designer_prestado or ""),
-                    "despuesFecha": despues.fecha.isoformat(), "despuesEstado": despues.estado or ""})
+                    "despuesFecha": despues[0].isoformat(), "despuesEstado": despues[1]})
     return out
 
 
@@ -2172,6 +2192,7 @@ def cmt_ng_con_paciente_una_vez(db: Session) -> None:
             db.commit()
         _cmt_ng_ok["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -3178,6 +3199,7 @@ def perf_quitar_una_vez(db: Session) -> None:
             db.commit()
         _perf_quitar["ok"] = True
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -3365,6 +3387,7 @@ def trash_purgar(db: Session, dias: int = PAPELERA_DIAS, forzar: bool = False) -
         _purga_papelera["dia"] = hoy
         return n
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
         return 0
 
@@ -3583,6 +3606,7 @@ def trash_restaurar(db: Session, trash_id: int) -> bool:
     try:
         ok = restaurador(db, payload)
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
         return False
     if ok:
@@ -4491,6 +4515,7 @@ def reglas_conexion(db: Session) -> dict:
                 db.add(DesignConexionRegla(tipo="aceptado_general", clave=n, valor=m, creado_por="Sistema"))
             db.commit()
         except Exception:
+            log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
             db.rollback()  # otro proceso la llenó al mismo tiempo
         filas = db.query(DesignConexionRegla).all()
     v = {"historico": [], "aceptado_general": {}, "hoja_manager": {}, "pa_manager": {},
@@ -5089,6 +5114,7 @@ def _openings_ordenar_por_numero_una_vez(db: Session, h) -> None:
         db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
         db.commit()
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()  # otra petición lo hizo al mismo tiempo
 
 
@@ -5133,6 +5159,7 @@ def _openings_zonas_una_vez(db: Session, h) -> None:
         db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
         db.commit()
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
 
 
@@ -5156,6 +5183,7 @@ def openings_hoja(db: Session):
             db.add(Fi(hoja_id=h.id, orden=i, datos=json.dumps(f, ensure_ascii=False)))
         db.commit()
     except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()  # otra petición la creó al mismo tiempo
     h = db.query(H).order_by(H.id).first()
     _openings_ordenar_por_numero_una_vez(db, h)

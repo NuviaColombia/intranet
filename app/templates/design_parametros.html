@@ -1909,7 +1909,7 @@
         if (huella(d) !== huella(OP)) { OP = d; pintar(); paramToast('Openings se actualizó con cambios de otro aprobador.'); }
       }).catch(function() {});
     }
-    setInterval(refrescarEnVivo, 15000);   // respaldo si la conexión en vivo no está
+    setInterval(function() { if (!(window.DSVivo && window.DSVivo.conectado)) refrescarEnVivo(); }, 15000);   // respaldo solo si la conexión en vivo no está
     document.addEventListener('ds:vivo', function(e) {   // aviso inmediato cuando otro aprobador guarda
       var t = e.detail && e.detail.t; if (t === 'op' || t === 'reconectado') setTimeout(refrescarEnVivo, 400);
     });

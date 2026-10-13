@@ -429,7 +429,7 @@ async def api_evidencia(reporte_id: int, tareas: BackgroundTasks, archivo: Uploa
                         user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     _exigir(db, user, "nuevo")
     r = _reporte(db, reporte_id)
-    datos = await archivo.read()
+    datos = await archivo.read(sc.MAX_EVIDENCIA + 1)   # no carga archivos enteros antes de revisar el tamaño
     e = sc.agregar_evidencia(db, user, r, material_id or None, archivo.filename or "evidencia",
                              (archivo.content_type or "").lower(), datos)
     if isinstance(e, str):
@@ -502,7 +502,7 @@ async def api_contable_soporte(archivo: UploadFile = File(...), anio: int = Form
                                user: Empleado = Depends(require_submodulo(SUB)), db: Session = Depends(get_db)):
     """Pantallazo (pegado con Ctrl+V) o archivo de la información contable del mes."""
     _exigir(db, user, "reportes")
-    datos = await archivo.read()
+    datos = await archivo.read(sc.MAX_EVIDENCIA + 1)   # no carga archivos enteros antes de revisar el tamaño
     error = sc.agregar_soporte_contable(db, user, anio, mes, archivo.filename or "pantallazo.png", (archivo.content_type or "").lower(), datos)
     if error:
         raise HTTPException(403 if "Solo" in error else 400, error)

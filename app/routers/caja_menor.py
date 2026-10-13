@@ -301,7 +301,7 @@ async def api_subir_adjunto(caja_id: int, recibo_id: int, archivo: UploadFile = 
     r = db.get(CajaRecibo, recibo_id)
     if not r or r.caja_id != caja.id:
         raise HTTPException(404, "Recibo no encontrado.")
-    datos = await archivo.read()
+    datos = await archivo.read(sc.MAX_ADJUNTO + 1)   # no carga archivos enteros antes de revisar el tamaño
     a = sc.agregar_adjunto(db, user, r, archivo.filename or "adjunto", (archivo.content_type or "").lower(), datos)
     if isinstance(a, str):
         raise HTTPException(400, a)

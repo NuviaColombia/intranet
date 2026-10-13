@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado, Solicitud, TipoPermiso
 from ..auth import get_current_user
-from ..services import (crear_solicitud, saldo_disponible, auditar, config_actual, HORAS_SEMANA,
+from ..services import (MAX_SOPORTE, crear_solicitud, saldo_disponible, auditar, config_actual, HORAS_SEMANA,
                         subir_soporte, es_aprobador_soporte)
 from ..main_templates import templates
 
@@ -59,7 +59,7 @@ async def api_subir_soporte(sol_id: int, archivo: UploadFile = File(...),
     sol = db.get(Solicitud, sol_id)
     if not sol:
         return RedirectResponse("/solicitudes?msg=Solicitud no encontrada.", status_code=303)
-    datos = await archivo.read()
+    datos = await archivo.read(MAX_SOPORTE + 1)   # no carga archivos enteros antes de revisar el tamaño
     error = subir_soporte(db, sol, user, archivo.filename or "soporte", (archivo.content_type or "").lower(), datos)
     msg = error or "Soporte anexado. Queda pendiente de validación de People."
     return RedirectResponse(f"/solicitudes?msg={msg}", status_code=303)
