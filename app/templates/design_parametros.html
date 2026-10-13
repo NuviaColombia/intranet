@@ -157,6 +157,7 @@
   .op-asig-barra .op-tab { border:1px solid #cbd5e1; background:#fff; color:#0f172a; border-radius:999px; padding:4px 12px; font-size:12.5px; cursor:pointer; }
   .op-asig-barra .op-tab.on { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
   .op-asig-nota { font-size:12px; color:#475569; margin-left:auto; }
+  .op-asig-filtros { display:flex; gap:6px; flex-wrap:wrap; }
   .op-as-area { border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px; background:#f8fafc; }
   .op-as-area > summary { cursor:pointer; padding:9px 12px; font-weight:700; font-size:14px; color:#0f172a; list-style:none; display:flex; align-items:center; gap:8px; }
   .op-as-area > summary::-webkit-details-marker { display:none; }
@@ -1412,7 +1413,7 @@
     var ASIG_AREAS = [{n: 'N3 Prosthetic', c: 'manager_n3', t: 'N3'}, {n: 'N6 Material Changes', c: 'manager_n6', t: 'N6'},
                       {n: 'N2 Demodenture', c: 'manager_n2', t: 'N2'}, {n: 'Face Design', c: 'manager_face', t: 'Face'}];
     var ASIG_EQUIPOS = {{ (op_managers or [])|tojson }};   // [área, manager] de los equipos activos (para ofrecer managers sin centros)
-    var asigOn = false, asigVista = 'area', asigAbiertas = {}, asigDrag = null;   // por defecto todas las áreas ocultas
+    var asigOn = false, asigVista = 'area', asigAbiertas = {}, asigDrag = null, asigFiltro = '';   // filtro de la vista por regional: '' = todas las áreas
     function asigNorm(t) { return String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
     function asigPal(t) { return asigNorm(t).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(function(w) { return w.length > 1; }); }
     function asigMismo(a, b) {   // "Julio E. Hernandez" = "Julio Enrique Hernandez Florez": las palabras de uno están en el otro
@@ -1469,6 +1470,7 @@
       orden.sort(function(x, y) { return x === 'Sin regional' ? 1 : y === 'Sin regional' ? -1 : x.localeCompare(y, 'es', {sensitivity: 'base'}); });
       return orden.map(function(r) {
         var filas = regs[r], cuerpo = ASIG_AREAS.map(function(a) {
+          if (asigFiltro && a.n !== asigFiltro) return '';
           if (!OP.columnas.some(function(c) { return c.clave === a.c; })) return '';
           var por = {}, nombres = [];
           filas.forEach(function(f) {
@@ -1495,7 +1497,9 @@
         '<button type="button" class="op-tab' + (asigVista === 'regional' ? ' on' : '') + '" data-asig-vista="regional">Por regional</button>' +
         (asigVista === 'area' ? '<button type="button" class="btn gris" data-asig-todas="1">Mostrar todas</button><button type="button" class="btn gris" data-asig-todas="0">Ocultar todas</button>' +
           '<span class="op-asig-nota">Arrastra un centro y suéltalo sobre otro manager: se guarda en Openings al instante.</span>' :
-          '<span class="op-asig-nota">Managers de cada área por regional y los centros que llevan (solo lectura).</span>') + '</div>' +
+          '<span class="op-asig-filtros">' + [''].concat(ASIG_AREAS.map(function(a) { return a.n; })).map(function(n) {
+            return '<button type="button" class="op-tab' + (asigFiltro === n ? ' on' : '') + '" data-asig-filtro="' + esc(n) + '">' + (n ? (ASIG_AREAS.find(function(a) { return a.n === n; }) || {}).t : 'Todas') + '</button>';
+          }).join('') + '</span><span class="op-asig-nota">Solo lectura</span>') + '</div>' +
         (asigVista === 'area' ? asigPintarArea() : asigPintarRegional());
       window.scrollTo(window.scrollX, y);
     }
@@ -1528,6 +1532,7 @@
     cont.addEventListener('click', function(e) {
       var v = e.target.closest('[data-asig-vista]'), t = e.target.closest('[data-asig-todas]'), m = e.target.closest('[data-asig-mover]');
       if (v) { asigVista = v.dataset.asigVista; asigPintar(); return; }
+      var fl = e.target.closest('[data-asig-filtro]'); if (fl) { asigFiltro = fl.dataset.asigFiltro; asigPintar(); return; }
       if (t) { ASIG_AREAS.forEach(function(a, i) { asigAbiertas[i] = t.dataset.asigTodas === '1'; }); asigPintar(); return; }
       if (m) {   // alternativa sin arrastrar: lista de managers de esa área
         var i = parseInt(m.dataset.area), d = asigArea(ASIG_AREAS[i]), chip = m.closest('.op-as-chip');
