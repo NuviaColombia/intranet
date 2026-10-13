@@ -1393,6 +1393,15 @@ def api_orden_a_training(orden_id: int, user: Empleado = Depends(require_modulo(
     return {"ok": True, "equipo": destino.nombre}
 
 
+def _con_copia_n2(db: Session, user: Empleado, o: DesignOrden, qc_antes: bool, datos: dict) -> dict:
+    """Face: al marcar el QC de una orden de mañana, su número, paciente y centro pasan a N2 (ver copiar_face_a_n2)."""
+    if not qc_antes and o.qc:
+        aviso = sd.copiar_face_a_n2(db, o, user)
+        if aviso is not None:
+            datos["copiaN2"] = aviso
+    return datos
+
+
 @router.post("/design/api/ordenes/{orden_id}")
 def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
@@ -1401,6 +1410,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if not orden_existente:
         raise HTTPException(404, "Orden no encontrada.")
     team = db.get(DesignTeam, orden_existente.team_id)
+    qc_antes = bool(orden_existente.qc)   # para saber si ahora se marcó el QC (copia a N2, abajo)
     solo_propia = not sd.gestiona_equipo(user, team)
     if solo_propia:
         # Un diseñador edita sus órdenes: las de su equipo y las de otro equipo que se lo pidió prestado.
@@ -1419,7 +1429,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                     ("zQc", "z_qc", payload.zQc), ("zQcReporte", "z_qc_reporte", payload.zQcReporte))
               if k in payload.model_fields_set}
         o = sd.actualizar_orden(db, orden_id, qc) if qc else orden_existente
-        return sd.serializar_orden(o)
+        return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
     enviados = {CAMPO_COLUMNA[k] for k in payload.model_fields_set if k in CAMPO_COLUMNA}
     datos = {k: v for k, v in _datos_desde_in(payload).items() if k in enviados}
     if ("orden" in datos and datos["orden"] != (orden_existente.orden or "").strip().upper()
@@ -1456,7 +1466,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         datos["designer_id"] = orden_existente.designer_id
         datos["designer_prestado"] = orden_existente.designer_prestado
     o = sd.actualizar_orden(db, orden_id, datos)
-    return sd.serializar_orden(o)
+    return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
 
 
 @router.post("/design/api/ordenes/{orden_id}/eliminar")

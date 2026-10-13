@@ -1219,6 +1219,51 @@ def mover_a_training(db: Session, o: DesignOrden, user: Empleado) -> DesignTeam:
     return destino
 
 
+def _pal_manager(t: str) -> set:
+    return {w for w in re.sub(r"[^a-z0-9 ]", " ", _normalizar_texto(t or "")).split() if len(w) > 1}
+
+
+def manager_n2_de_centro(db: Session, centro: str) -> str:
+    """Manager de N2 que dice Openings para ese centro ("" si no hay)."""
+    k = _normalizar_texto(centro or "")
+    for f in _openings_filas_cache(db):
+        if k and _normalizar_texto(f.get("centro", "")) == k:
+            return (f.get("manager_n2", "") or "").strip()
+    return ""
+
+
+def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | None:
+    """Face (13-oct-2026): al marcar el QC de una orden de MAÑANA, su número de orden, paciente y centro se copian en una
+    orden nueva del equipo de N2 cuyo manager es el que dice Openings para ese centro. No se copia dos veces (si ya
+    existe esa orden en ese equipo y día, solo avisa). Devuelve None si no aplica; si no se pudo, {ok: False, motivo}."""
+    if not orden.team or not orden.team.area or orden.team.area.nombre != "Face Design":
+        return None
+    manana = ahora_colombia().date() + timedelta(days=1)
+    if orden.fecha != manana:
+        return None
+    numero = (orden.orden or "").strip().upper()
+    if not numero or not (orden.centro or "").strip():
+        return {"ok": False, "motivo": "La orden no tiene número o centro: no se copió a N2."}
+    mgr = manager_n2_de_centro(db, orden.centro)
+    if not mgr:
+        return {"ok": False, "motivo": f"Openings no tiene manager de N2 para {orden.centro}: no se copió a N2."}
+    p = _pal_manager(mgr)
+    equipos = [t for t in db.query(DesignTeam).join(DesignArea, DesignTeam.area_id == DesignArea.id)
+               .filter(DesignArea.nombre == "N2 Demodenture", DesignTeam.activo == 1).all()
+               if t.manager and p and p <= _pal_manager(t.manager.nombre_completo)]
+    if len(equipos) != 1:
+        motivo = "no hay un equipo de N2 para" if not equipos else "hay más de un equipo de N2 para"
+        return {"ok": False, "motivo": f"{motivo} {mgr}: no se copió a N2."}
+    equipo = equipos[0]
+    ya = (db.query(DesignOrden).filter(DesignOrden.team_id == equipo.id, DesignOrden.fecha == manana,
+                                       func.upper(func.trim(DesignOrden.orden)) == numero).first())
+    if ya:
+        return {"ok": True, "ya": True, "equipo": equipo.nombre, "manager": mgr}
+    crear_orden(db, user, equipo.id, manana, "principal",
+                {"orden": numero, "paciente": orden.paciente or "", "centro": orden.centro.strip()})
+    return {"ok": True, "ya": False, "equipo": equipo.nombre, "manager": mgr}
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
