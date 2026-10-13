@@ -4928,6 +4928,7 @@ window.DS_PANELS.dashboard = function() {
               '<button class="cv-frame-btn" data-fflip="' + f.id + '" title="Voltear horizontal">⇋</button>' +
               '<button class="cv-frame-btn" data-fadj="' + f.id + '" title="Brillo / contraste">☀</button>' : '') +
             '<button class="cv-frame-btn" data-replace="' + f.id + '" title="Reemplazar">⤢</button>' +
+            '<button class="cv-frame-btn" data-fdl="' + f.id + '" title="Descargar solo este marco (PNG, con sus anotaciones)">⬇</button>' +
             '<button class="cv-frame-btn" data-clear="' + f.id + '" title="Quitar imagen">✕</button>' +
           '</div>';
       } else {
@@ -5248,6 +5249,21 @@ window.DS_PANELS.dashboard = function() {
     var cv = await cvSheetToCanvas(doc);
     var a = document.createElement("a");
     a.href = cv.toDataURL("image/png"); a.download = cvSheetFileName(doc) + ".png";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  // Descargar un solo marco (foto) con las anotaciones que caen sobre él, sin el resto de la hoja ni el título
+  // (pedido por Rosember el 12-oct-2026: en los casos single no se necesita la hoja completa).
+  async function cvExportFrame(frameId) {
+    var doc = cvActiveDoc(); if (!doc) return;
+    var f = doc.frames.find(function(x) { return x.id === frameId; }); if (!f) return;
+    var full = await cvSheetToCanvas(Object.assign({}, doc, {title: ""}));   // sin el título de la hoja
+    var x = Math.max(0, Math.round(f.x)), y = Math.max(0, Math.round(f.y));
+    var w = Math.min(full.width - x, Math.round(f.w)), h = Math.min(full.height - y, Math.round(f.h));
+    var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    cv.getContext("2d").drawImage(full, x, y, w, h, 0, 0, w, h);
+    var n = doc.frames.indexOf(f) + 1;
+    var a = document.createElement("a");
+    a.href = cv.toDataURL("image/png"); a.download = cvSheetFileName(doc) + " - marco " + n + ".png";
     document.body.appendChild(a); a.click(); a.remove();
   }
   async function cvCopySheet(btn) {
@@ -5889,6 +5905,7 @@ window.DS_PANELS.dashboard = function() {
     var ffl = t.closest("[data-fflip]"); if (ffl) { e.stopPropagation(); cvBakeTransform(ffl.dataset.fflip, "flip"); return; }
     var fad = t.closest("[data-fadj]"); if (fad) { e.stopPropagation(); cvOpenAdjust(fad.dataset.fadj, fad); return; }
     var rep = t.closest("[data-replace]"); if (rep) { e.stopPropagation(); cvPickImage(rep.dataset.replace); return; }
+    var fdl = t.closest("[data-fdl]"); if (fdl) { e.stopPropagation(); cvExportFrame(fdl.dataset.fdl); return; }
     var clr = t.closest("[data-clear]"); if (clr) { e.stopPropagation(); cvClearFrame(clr.dataset.clear); return; }
     var fr = t.closest("[data-frame]");
     if (fr) {
