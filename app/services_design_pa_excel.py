@@ -18,11 +18,9 @@ import os
 import re
 from functools import lru_cache
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .models_design import (DesignArea, DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
-                            DesignPreApprovedCelda, DesignConexionRegla)
+from .models_design import (DesignArea, DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedCelda, DesignConexionRegla)
 from . import services_design as sd
 from . import services_design_origenes as so
 

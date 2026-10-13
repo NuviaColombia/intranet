@@ -12,7 +12,6 @@ from ..database import get_db
 from ..models import Empleado
 from ..models_consumo import (ConsumoMateria, ConsumoTipo, ConsumoTecnico, ConsumoManager, ConsumoEntrega, ConsumoJornada,
                               ConsumoFrasco, ConsumoTraslado, ConsumoApertura)
-from ..auth import require_admin
 from ..acceso_produccion import require_admin_produccion, require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
 from ..formato import nombre_propio
 from ..main_templates import templates

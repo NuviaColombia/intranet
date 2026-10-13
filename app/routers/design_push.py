@@ -1,7 +1,7 @@
 """Notificaciones push de Design: service worker, claves, suscribirse / desuscribirse, prueba y estado (Parámetros).
 Se incluye desde routers/design_schedule.py (mismo router). El envío está en services_design_push.enviar."""
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session

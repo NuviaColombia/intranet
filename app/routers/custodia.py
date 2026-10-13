@@ -7,7 +7,6 @@ from sqlalchemy import func
 from ..database import get_db
 from ..models import Empleado
 from ..models_custodia import CustodiaTraslado, CustodiaArea, CustodiaMotivo
-from ..auth import require_modulo
 from ..acceso_produccion import require_submodulo
 from ..main_templates import templates
 from ..formato import nombre_propio

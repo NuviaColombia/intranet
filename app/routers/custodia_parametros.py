@@ -12,7 +12,6 @@ from ..auth import require_admin
 from ..database import SessionLocal, engine
 from ..acceso_produccion import (require_admin_produccion, ProduccionAcceso, ProduccionAdmin, asegurar_tabla_y_migrar,
                                  MODULO_PRODUCCION)
-from ..produccion import SUBMODULOS_PRODUCCION
 from ..main_templates import templates
 from ..formato import nombre_propio
 from .. import services_custodia as sc

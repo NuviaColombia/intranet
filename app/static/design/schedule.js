@@ -2942,7 +2942,8 @@ function ddRenderProductos() {
     var inp = det.querySelector('input'), res = det.querySelector('.dd-prod-res'), tb = det.querySelector('tbody');
     inp.value = DD_OBJETIVOS[p.producto] || '';
     var pintar = function() { var o = ddParseObjetivo(inp.value); res.innerHTML = ddResumenProducto(p, o); tb.innerHTML = ddFilasProducto(p, o); };
-    inp.oninput = function() { DD_OBJETIVOS[p.producto] = inp.value; pintar(); };
+    var pendiente = null;   // espera a que termine de escribir: no redibuja la tabla en cada tecla
+    inp.oninput = function() { DD_OBJETIVOS[p.producto] = inp.value; clearTimeout(pendiente); pendiente = setTimeout(pintar, 180); };
     inp.onclick = function(e) { e.stopPropagation(); };
     inp.onkeydown = function(e) { e.stopPropagation(); };
     pintar();

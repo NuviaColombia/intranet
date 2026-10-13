@@ -5,7 +5,7 @@ persona se configura en Producción › Parámetros (tabla produccion_accesos). 
 entran a todos."""
 from datetime import datetime
 from fastapi import Depends, HTTPException
-from sqlalchemy import String, Integer, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, Session
 from .database import Base, get_db
 from .models import Empleado

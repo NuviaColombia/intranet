@@ -5,7 +5,6 @@ from openpyxl.utils.exceptions import InvalidFileException
 from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
 from ..database import get_db
 from ..models import (Empleado, Solicitud, TipoPermiso, Auditoria, Empresa, Area, Configuracion,
                       MODULOS_DISPONIBLES, MODULOS_VALIDOS)

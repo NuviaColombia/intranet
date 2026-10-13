@@ -16,7 +16,7 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
                             DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
                             DesignPreApprovedCelda, DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado,
                             DesignPerfCelda, DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
-                            DesignCanvasDoc, DesignComentarioTemplate, DesignTeam,
+                            DesignComentarioTemplate, DesignTeam,
                             FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule, inventario,
@@ -490,7 +490,7 @@ def init_db():
         _seed_preapproved_area("N3 Prosthetic", "design_preapproved_n3.json")
         _seed_preapproved_area("N2 Demodenture", "design_preapproved_n2.json")
         # Desempeño: evaluaciones mensuales reales + selección de empleado del mes,
-        # extraídas del HTML original. Solo administradores ven este módulo.
+        # extraídas del HTML original. Los administradores ven todo; los aprobadores solo califican a su equipo (ver services_design).
         seed_perf_path = Path(__file__).resolve().parent / "seed_data" / "design_perf.json"
         if seed_perf_path.exists():
             with open(seed_perf_path, encoding="utf-8") as f:

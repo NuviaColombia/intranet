@@ -8,7 +8,6 @@ import re
 import unicodedata
 from datetime import datetime
 from pathlib import Path
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_design import DesignTrainingProgreso, DesignTrainingModelo, DesignConexionRegla, DesignTrainingModulo, DesignTrainingVersion

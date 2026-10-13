@@ -2568,15 +2568,16 @@ def preapproved_detalle(db: Session, sheet_id: int) -> dict | None:
     for c in (db.query(DesignPreApprovedCelda).join(DesignPreApprovedFila, DesignPreApprovedCelda.fila_id == DesignPreApprovedFila.id)
               .filter(DesignPreApprovedFila.sheet_id == s.id)):
         celdas_por_fila.setdefault(c.fila_id, {})[c.doctor_id] = c.valor
+    ids_doctores = [d.id for d in doctores]   # una sola vez (antes se rehacía por cada fila)
     return {
         "id": s.id, "nombre": s.nombre, "titulo": s.titulo, "changesLabel": s.changes_label,
         "anchos": _json(s.anchos, {}),
         "centros": [{"id": c.id, "nombre": c.nombre, "span": c.span} for c in s.centros],
         "doctores": [{"id": d.id, "nombre": d.nombre} for d in doctores],
         "filas": [{"id": f.id, "criterio": f.criterio,
-                  "valores": {str(did): celdas_por_fila.get(f.id, {}).get(did, "") for did in [d.id for d in doctores]}}
+                  "valores": {str(did): celdas_por_fila.get(f.id, {}).get(did, "") for did in ids_doctores}}
                  for f in s.filas],
-        "fotos": preapproved_fotos_de(db, s.filas, [d.id for d in doctores]),
+        "fotos": preapproved_fotos_de(db, s.filas, ids_doctores),
     }
 
 

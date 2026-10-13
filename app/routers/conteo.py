@@ -15,7 +15,7 @@ from ..models import Empleado
 from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea,
                              ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO, ConteoContable, ConteoContableSoporte)
 from ..models_custodia import CustodiaArea
-from ..auth import require_admin, get_current_user
+from ..auth import get_current_user
 from ..acceso_produccion import require_admin_produccion, require_submodulo, ProduccionAcceso, MODULO_PRODUCCION
 from ..formato import nombre_propio
 from ..main_templates import templates
