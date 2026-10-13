@@ -1369,11 +1369,26 @@
       return out;
     }
     function visibles() { return todasLasColumnas().filter(function(c) { return ocultas.indexOf(c.clave) < 0; }); }
+    var enVuelo = 0;  // guardados en curso: mientras haya, no se refresca la tabla
     function post(url, body) {
+      enVuelo++;
       return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})})
         .then(function(r) { return r.json().catch(function() { return {}; }).then(function(x) {
-          if (!r.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + r.status); return x; }); });
+          if (!r.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + r.status); return x; }); })
+        .then(function(x) { enVuelo--; return x; }, function(e) { enVuelo--; throw e; });
     }
+    // Varios aprobadores editan Openings a la vez: la tabla se actualiza sola con lo que cambian los demás
+    // (cada 15 s con la pestaña a la vista, y al volver a ella). Nunca pisa una celda que se esté editando.
+    function refrescarEnVivo() {
+      if (!OP || cont.hidden || document.hidden || enVuelo || menuBtn || cont.querySelector('[contenteditable="true"]')) return;
+      fetch('/design/api/openings', {cache: 'no-store'}).then(function(r) { return r.ok ? r.json() : null; }).then(function(d) {
+        if (!d || !OP || enVuelo || menuBtn || cont.querySelector('[contenteditable="true"]')) return;
+        var huella = function(x) { return JSON.stringify([x.titulo, x.subtitulo, x.columnas, x.filas]); };
+        if (huella(d) !== huella(OP)) { OP = d; pintar(); paramToast('Openings se actualizó con cambios de otro aprobador.'); }
+      }).catch(function() {});
+    }
+    setInterval(refrescarEnVivo, 15000);
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) refrescarEnVivo(); });
     function cargar() {
       if (!OP) cont.innerHTML = '<p class="cat-sin">Cargando…</p>';
       return fetch('/design/api/openings').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
