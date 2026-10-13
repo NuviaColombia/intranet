@@ -32,7 +32,12 @@ CAMPOS_ORDEN = [
 
 # Orden de presentación de las áreas en toda la UI de Design Schedule. Se aplica en código
 # (no en la columna `orden` de la BD); áreas que no estén aquí van al final por su `orden`.
-ORDEN_AREAS_UI = ["Face Design", "N2 Demodenture", "N3 Prosthetic", "N6 Material Changes", "Support"]
+ORDEN_AREAS_UI = ["Face Design", "N2 Demodenture", "N3 Prosthetic", "N6 Material Changes", "Training", "Support"]
+AREA_TRAINING = "Training"   # Schedule de entrenamiento (13-oct-2026): igual al de N3; los casos llegan desde N3 y todos lo ven
+
+
+def es_training(team) -> bool:
+    return bool(team is not None and team.area is not None and team.area.nombre == AREA_TRAINING)
 
 
 def ordenar_areas(areas: list[DesignArea]) -> list[DesignArea]:
@@ -284,7 +289,7 @@ def equipo_por_defecto(db: Session, user: Empleado) -> dict | None:
 def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = frozenset()) -> bool:
     """Admins ven todos los equipos; un manager, los suyos; un diseñador, los equipos en los que está
     asignado (y dentro de ellos solo sus propias órdenes y tiempos libres: ver gestiona_equipo)."""
-    return gestiona_equipo(user, team) or team.id in ids_designer
+    return gestiona_equipo(user, team) or team.id in ids_designer or es_training(team)   # Training lo ve todo el mundo
 
 
 def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
@@ -1184,6 +1189,30 @@ def _designer_inhabilitado(o: DesignOrden) -> bool:
     return bool(db and o.designer_id in sacc.ids_inhabilitados(db))
 
 
+def mover_a_training(db: Session, o: DesignOrden, user: Empleado) -> DesignTeam:
+    """Pasa un caso de N3 › Cirugías al Schedule de Training (el manager lo hace con la opción "Training" del diseñador).
+    Se mueve la misma orden (conserva horas, estado y notas); queda sin diseñador para que la entrenadora lo asigne."""
+    team = db.get(DesignTeam, o.team_id)
+    if not gestiona_equipo(user, team):
+        raise PermissionError("Solo el manager del equipo o un administrador puede pasar casos a Training.")
+    if not team.area or team.area.nombre != "N3 Prosthetic" or o.tabla != "principal":
+        raise ValueError("Solo se pasan a Training los casos de N3 › Cirugías.")
+    faltan = [n for n, v in (("el número de orden", o.orden), ("el nombre del paciente", o.paciente), ("el centro", o.centro)) if not (v or "").strip()]
+    if faltan:
+        raise ValueError("Falta " + ", ".join(faltan) + " para pasar el caso a Training.")
+    if dia_cerrado(o.fecha):
+        raise PermissionError("Este día ya se cerró y no se puede editar.")
+    destino = (db.query(DesignTeam).join(DesignArea, DesignTeam.area_id == DesignArea.id)
+               .filter(DesignArea.nombre == AREA_TRAINING, DesignTeam.activo == 1).order_by(DesignTeam.orden, DesignTeam.id).first())
+    if not destino:
+        raise ValueError("Todavía no hay un equipo en el área Training.")
+    ultimo = db.query(func.max(DesignOrden.orden_visual)).filter(DesignOrden.team_id == destino.id, DesignOrden.fecha == o.fecha).scalar() or 0
+    o.origen_equipo = (team.manager.nombre_completo if team.manager else team.nombre)[:150]
+    o.team_id, o.designer_id, o.designer_prestado, o.orden_visual = destino.id, None, "", ultimo + 1
+    db.commit()
+    return destino
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
@@ -1196,7 +1225,7 @@ def serializar_orden(o: DesignOrden) -> dict:
         "etapa": o.etapa, "solicitadoPor": o.solicitado_por, "situacion": o.situacion,
         "solucion": o.solucion, "clasificacion": o.clasificacion, "soporte": o.soporte,
         "estado": o.estado, "qc": o.qc, "qcReporte": o.qc_reporte, "notas": o.notas,
-        "artStart": o.art_start or "", "artRtd": o.art_rtd or "",
+        "artStart": o.art_start or "", "artRtd": o.art_rtd or "", "origenEquipo": o.origen_equipo or "",
         "zHoraInicio": o.z_hora_inicio or "", "zSHold": o.z_s_hold or "", "zFHold": o.z_f_hold or "",
         "zHoldMinutos": o.z_hold_minutos or 0, "zHoraFin": o.z_hora_fin or "", "zQc": bool(o.z_qc),
         "zQcReporte": o.z_qc_reporte or "",
@@ -1352,7 +1381,8 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
                            DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]), filtro_orden_completa())
                    .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
         # En los equipos donde solo es diseñador, únicamente sus órdenes.
-        ordenes = [o for o in ordenes if o.team_id in gestionados or o.designer_id == user.id]
+        abiertos = {t.id for t in teams if es_training(t)}   # Training: todos ven todos sus casos
+        ordenes = [o for o in ordenes if o.team_id in gestionados or o.team_id in abiertos or o.designer_id == user.id]
     por_team: dict[int, list[DesignOrden]] = {}
     for o in ordenes:
         por_team.setdefault(o.team_id, []).append(o)

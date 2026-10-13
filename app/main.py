@@ -16,7 +16,7 @@ from .models_design import (DesignArea, DesignCatalogo, DesignAusenciaTipo, Desi
                             DesignPreApprovedCentro, DesignPreApprovedDoctor, DesignPreApprovedFila,
                             DesignPreApprovedCelda, DesignPerfCriterio, DesignPerfSheet, DesignPerfEmpleado,
                             DesignPerfCelda, DesignPerfGanador, DesignPerfSeleccionFila, DesignPerfSeleccionCelda,
-                            DesignCanvasDoc, DesignComentarioTemplate,
+                            DesignCanvasDoc, DesignComentarioTemplate, DesignTeam,
                             FORMATO_DUAL, FORMATO_SINGLE, FORMATO_N2, FORMATO_SUPPORT)
 from .routers import (auth_routes, solicitudes, aprobaciones, admin, dashboard, certificaciones, horas_extra,
                       portal, custodia, mis_aprobaciones, custodia_parametros, design_schedule, inventario,
@@ -304,7 +304,8 @@ def init_db():
                       ("z_f_hold", "VARCHAR(10) DEFAULT ''"), ("z_hold_minutos", "FLOAT DEFAULT 0"),
                       ("z_hora_fin", "VARCHAR(10) DEFAULT ''"), ("z_qc", "BOOLEAN DEFAULT FALSE"),
                       ("z_qc_reporte", "TEXT DEFAULT ''"), ("fecha_creada", "DATE"),
-                      ("art_start", "VARCHAR(10) DEFAULT ''"), ("art_rtd", "VARCHAR(10) DEFAULT ''")):
+                      ("art_start", "VARCHAR(10) DEFAULT ''"), ("art_rtd", "VARCHAR(10) DEFAULT ''"),
+                      ("origen_equipo", "VARCHAR(150) DEFAULT ''")):
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))
@@ -409,6 +410,11 @@ def init_db():
             for i, (nombre, formato) in enumerate(DESIGN_AREAS_INICIALES, start=1):
                 db.add(DesignArea(nombre=nombre, formato=formato, orden=i))
             db.flush()
+        # Área Training (13-oct-2026): Schedule de entrenamiento, igual al de N3. Se crea una sola vez en las bases que ya existen.
+        if not db.query(DesignArea).filter(DesignArea.nombre == "Training").first():
+            db.add(DesignArea(nombre="Training", formato=FORMATO_DUAL,
+                              orden=(max([a.orden or 0 for a in db.query(DesignArea).all()] or [0]) + 1)))
+            db.flush()
         # Backfill idempotente de catálogos por (área, tipo) -- corre siempre, así que también
         # completa instalaciones que ya tenían las áreas creadas pero catálogos parciales/vacíos.
         for area in db.query(DesignArea).all():
@@ -424,6 +430,18 @@ def init_db():
                                                    DesignCatalogo.tipo == tipo).count() == 0:
                     for j, valor in enumerate(valores, start=1):
                         db.add(DesignCatalogo(area_id=area.id, tipo=tipo, valor=valor, orden=j))
+        # Training: mismos productos, estados y centros que N3 (copia de los de N3 la primera vez) y el equipo de la entrenadora.
+        _tr = db.query(DesignArea).filter(DesignArea.nombre == "Training").first()
+        _n3 = db.query(DesignArea).filter(DesignArea.nombre == "N3 Prosthetic").first()
+        if _tr and _n3:
+            for _tipo in ("centro", "producto", "estado"):
+                if db.query(DesignCatalogo).filter(DesignCatalogo.area_id == _tr.id, DesignCatalogo.tipo == _tipo).count() == 0:
+                    for _c in db.query(DesignCatalogo).filter(DesignCatalogo.area_id == _n3.id, DesignCatalogo.tipo == _tipo).order_by(DesignCatalogo.orden).all():
+                        db.add(DesignCatalogo(area_id=_tr.id, tipo=_tipo, valor=_c.valor, orden=_c.orden, activo=_c.activo))
+        if _tr and db.query(DesignTeam).filter(DesignTeam.area_id == _tr.id).count() == 0:
+            _est = (db.query(Empleado).filter(Empleado.activo == 1, (Empleado.nombres + " " + Empleado.apellidos).ilike("%Estefan%Hernandez%")).first())
+            if _est:   # la entrenadora; los diseñadores en entrenamiento los agrega el admin en Parámetros › Equipos
+                db.add(DesignTeam(area_id=_tr.id, nombre="Estefania Hernandez", manager_id=_est.id, orden=1, activo=1))
         for nombre in DESIGN_AUSENCIAS_INICIALES:
             if not db.query(DesignAusenciaTipo).filter(DesignAusenciaTipo.nombre == nombre).first():
                 orden = db.query(DesignAusenciaTipo).count() + 1

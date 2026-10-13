@@ -520,12 +520,22 @@ window.addEventListener('unhandledrejection', function(ev) {
         return c;
       });
     }
-    if (area === 'N3 Prosthetic' && tabla === 'principal' && fm === 'dual') {  // Articulation va antes de los tiempos de siempre
+    var comoN3 = area === 'N3 Prosthetic' || area === DS_AREA_TRAINING;   // Training se ve igual que N3
+    if (comoN3 && tabla === 'principal' && fm === 'dual') {
+      // Articulation va antes de los tiempos de siempre, y estos se marcan como "Design" (otro color)
       var i0 = spec.findIndex(function(c) { return c.k === 'horaInicio'; });
-      if (i0 >= 0) spec = spec.slice(0, i0).concat([{k:'artStart', l:'START', t:'time', g:'a'},
-        {k:'artRtd', l:'RTD', t:'time', g:'a', extra: [{k:'artTotal', l:'TOTAL'}]}], spec.slice(i0));
+      if (i0 >= 0) {
+        var DES = {horaInicio: 1, sHold: 1, fHold: 1, horaFin: 1};
+        spec = spec.map(function(c) { return DES[c.k] ? Object.assign({}, c, {g: 'd'}) : c; });
+        var art = [{k:'artStart', l:'START', t:'time', g:'a'}, {k:'artRtd', l:'RTD', t:'time', g:'a', extra: [{k:'artTotal', l:'TOTAL'}]}];
+        spec = spec.slice(0, i0).concat(art, spec.slice(i0));
+      }
+      if (area === DS_AREA_TRAINING) {   // de qué equipo (manager) llegó el caso
+        var id0 = spec.findIndex(function(c) { return c.k === 'designerId'; });
+        spec = spec.slice(0, id0 + 1).concat([{k:'origenEquipo', l:'Equipo de origen', t:'ro'}], spec.slice(id0 + 1));
+      }
     }
-    return area === 'N3 Prosthetic' ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
+    return comoN3 ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
   }
   function dsEncabezadoExtra(c) { // N2: T. Hold calculado; Material Change: T. Hold y Total de cada etapa
     return (c.k === 'fHold' && !c.sinTHold ? '<th>T. Hold</th>' : '') +
@@ -538,6 +548,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Panel arriba de Cirugías con sus propios productos (no salen en Cirugías) y estados ("Dr authorization" = Hold,
   // "Changes" = Ready to design). Bite design usa las horas y el QC de siempre; Zirconia design, las columnas z*.
   var DS_AREA_MATERIAL = 'N6 Material Changes';
+  var DS_AREA_TRAINING = 'Training';   // Schedule de entrenamiento: igual al de N3; los casos llegan desde N3 con la opción "Training" del diseñador
   function dsNorm(v) { return String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' '); }
   var DS_PRODUCTOS_MATERIAL = ['N6 - Material Change Full Mouth 24Z', 'N6 - Material Change Single 24Z',
     'N6 - Full Mouth Zirk - Over Ti-Bar (8mm or less)', 'N6 - Redo Material Change Full Mouth 24Z',
@@ -577,7 +588,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_CONT = {material: 'dsTablaMaterial', principal: 'dsTablaPrincipal', nightguard: 'dsTablaNightguard'};
   function dsSelTablas(sufijo) { return DS_TABLAS.map(function(t) { return '#' + DS_CONT[t] + (sufijo ? ' ' + sufijo : ''); }).join(', '); }
   // Fila de encabezado con los bloques Bite design / Zirconia design (solo tablas con columnas agrupadas)
-  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', a: 'Articulation'};
+  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', a: 'Articulation', d: 'Design'};
   function dsAnchoCol(c) { return 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0); }
   function dsFilaGrupos(spec, alFinal) {
     if (!spec.some(function(c) { return c.g; })) return '';
@@ -1003,6 +1014,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       input.addEventListener(ev, function() {
         if (ev === 'blur' && dsSinCambio(tr, tabla, input)) return; // no cambió (p. ej. pasar con Tab)
         if (input.dataset.campo === 'designerId' && input.value === '__otro') { dsElegirPrestado(tr, tabla, input); return; }
+        if (input.dataset.campo === 'designerId' && input.value === '__training') { dsMoverATraining(tr, tabla, input); return; }
         if (input.dataset.campo === 'orden' && DS.areaFormato === 'support' && tabla !== 'prestadas' && input.value.trim()) {
           dsAutocompletarSupport(tr, tabla, input); return;
         }
@@ -1418,6 +1430,13 @@ window.addEventListener('unhandledrejection', function(ev) {
         el.disabled = !(dsEsCampoQc(el.dataset.campo) && DS.diaData.qcEditable && DS.diaData.puedeQc !== false);
       });
     }
+    if (dsSoloLectura() || (DS.diaData && DS.diaData.soloEditaPropias)) {
+      // Training: todos ven todos los casos; quien no es de ese equipo no edita nada y cada entrenado solo edita los suyos
+      cont.querySelectorAll('tbody tr').forEach(function(tr) {
+        var fila = (DS.diaData[tabla] || []).find(function(x) { return String(x.id) === tr.dataset.id; });
+        if (dsSoloLectura() || !fila || fila.designerId !== DS.diaData.miId) tr.querySelectorAll('[data-campo]').forEach(function(el) { el.disabled = true; });
+      });
+    }
     if (dsSoloPropias()) {
       // Vista del diseñador: edita sus órdenes pero no las reasigna.
       dsBloquearCamposManager(cont);
@@ -1441,7 +1460,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_CAMPOS_MANAGER = ['orden', 'paciente', 'centro', 'producto', 'designerId'];
   // En N3 y N6 el diseñador sí edita orden, paciente y producto (pedido por Rosember el 12-oct-2026); centro y diseñador
   // siguen siendo del manager. Igual que AREAS_DISENADOR_EDITA en routers/design_schedule.py.
-  var DS_AREAS_DISENADOR_EDITA = ['N3 Prosthetic', 'N6 Material Changes'];
+  var DS_AREAS_DISENADOR_EDITA = ['N3 Prosthetic', 'N6 Material Changes', 'Training'];
   var DS_CAMPOS_DISENADOR_EDITA = ['orden', 'paciente', 'producto'];
   function dsCamposManager(area) {
     if (DS_AREAS_DISENADOR_EDITA.indexOf(area) < 0) return DS_CAMPOS_MANAGER;
@@ -1532,8 +1551,26 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
   }
 
+  function dsTrainingListo(f) { return !!(String(f.orden || '').trim() && String(f.paciente || '').trim() && String(f.centro || '').trim()); }
+  function dsOpcionTraining(f) {
+    var ok = dsTrainingListo(f);
+    return '<option value="__training"' + (ok ? '' : ' disabled') + '>➜ Training' + (ok ? '' : ' (falta orden, paciente o centro)') + '</option>';
+  }
+  // Training: el caso sale de este Schedule y pasa al de Training (misma orden, queda sin diseñador para la entrenadora)
+  function dsMoverATraining(tr, tabla, sel) {
+    sel.value = sel.dataset.previo || '';
+    var f = (DS.diaData && DS.diaData[tabla] || []).find(function(x) { return x.id === parseInt(tr.dataset.id); });
+    if (!f || !dsTrainingListo(f)) return;
+    if (!confirm('¿Pasar la orden ' + f.orden + ' (' + f.paciente + ') al Schedule de Training?\n\nSaldrá de este Schedule y la verás en Training.')) return;
+    sel.disabled = true;
+    fetch('/design/api/ordenes/' + f.id + '/training', {method: 'POST'}).then(function(r) {
+      return r.json().catch(function() { return {}; }).then(function(x) { if (!r.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + r.status); return x; });
+    }).then(function() { dsCargarDia(); })
+      .catch(function(e) { sel.disabled = false; alert('No se pudo pasar a Training: ' + e.message); });
+  }
   function dsCeldaInput(c, f) {
     var val = f[c.k], al = ' aria-label="' + dsEsc(c.l || c.k) + '"';
+    if (c.t === 'ro') return '<span class="ds-ro">' + dsEsc(val || '') + '</span>';
     if (c.t === 'text') return '<input type="text" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
     if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || 0) + '">';
     if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
@@ -1562,6 +1599,9 @@ window.addEventListener('unhandledrejection', function(ev) {
         html += '<option value="' + dsEsc(val) + '" selected>' + dsEsc((f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : ' (prestado)')) + '</option>';
       }
       if (DS.diaData && !DS.diaData.designersCaso && !dsSoloPropias()) html += '<option value="__otro">Others (prestado)…</option>';
+      if (f.id && f.tabla === 'principal' && dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado()) {
+        html += dsOpcionTraining(f);   // pasa el caso al Schedule de Training (se habilita con orden, paciente y centro)
+      }
       return html + '</select>';
     }
     return '';
@@ -1698,6 +1738,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     var tdTHold = tr.querySelector('.ds-thold'); if (tdTHold) tdTHold.innerText = dsTHoldTxt(o);
     tr.querySelectorAll('[data-calc]').forEach(function(td) { td.innerText = dsCalcTxt(td.dataset.calc, o); });
     var selD = tr.querySelector('[data-campo="designerId"]'); if (selD) selD.dataset.previo = o.designerId || '';
+    var opT = tr.querySelector('option[value="__training"]');
+    if (opT) { var okT = dsTrainingListo(o); opT.disabled = !okT; opT.text = '➜ Training' + (okT ? '' : ' (falta orden, paciente o centro)'); }
     dsMarcarFila(tr, tabla, o);
     dsRenderKpis(DS.diaData);
     if (tabla === 'prestadas') return;
@@ -1769,8 +1811,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Vista de un diseñador: solo sus órdenes y sus tiempos libres; no crea, no borra ni reasigna órdenes.
   function dsSoloPropias() { return !!(DS.diaData && DS.diaData.soloPropias); }
   // Un diseñador puede crear órdenes si tiene permiso para un producto (creaProducto, p. ej. Maxilar Print): solo en la fila en blanco
-  function dsPuedeCrear() { return !dsDiaCerrado() && (!dsSoloPropias() || !!(DS.diaData && DS.diaData.creaProducto)); }
-  function dsPuedeCrearVarias() { return !dsDiaCerrado() && !dsSoloPropias(); }  // + Agregar orden, pegar filas nuevas
+  function dsSoloLectura() { return !!(DS.diaData && DS.diaData.soloLectura); }   // Schedule de Training visto por alguien que no es de ese equipo
+  function dsPuedeCrear() { return !dsDiaCerrado() && !dsSoloLectura() && (!dsSoloPropias() || !!(DS.diaData && DS.diaData.creaProducto)); }
+  function dsPuedeCrearVarias() { return !dsDiaCerrado() && !dsSoloLectura() && !dsSoloPropias(); }  // + Agregar orden, pegar filas nuevas
 
   // Candado junto al título + botones "Agregar orden" según si el día ya se cerró (5:00 am del día siguiente, hora Colombia).
   function dsAplicarCierre() {

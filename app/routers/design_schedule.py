@@ -928,6 +928,14 @@ def _verificar_equipo(db: Session, user: Empleado, team_id: int) -> DesignTeam:
     return team
 
 
+def _verificar_equipo_ver(db: Session, user: Empleado, team_id: int) -> DesignTeam:
+    """Para VER un día: igual que _verificar_equipo, pero el Schedule de Training lo ve todo el mundo."""
+    team = db.get(DesignTeam, team_id)
+    if team and sd.es_training(team):
+        return team
+    return _verificar_equipo(db, user, team_id)
+
+
 SOLO_MANAGER = "Solo el manager del equipo o un administrador puede crear o eliminar órdenes."
 
 
@@ -947,7 +955,7 @@ def api_teams(area_id: int, user: Empleado = Depends(require_modulo("design_sche
     equipos = [t for t in sd.equipos_de_area(db, area_id) if sd.puede_ver_equipo(user, t, ids_designer)]
 
     def designers(t):
-        ds = t.designers if sd.gestiona_equipo(user, t) else [d for d in t.designers if d.empleado_id == user.id]
+        ds = t.designers if (sd.gestiona_equipo(user, t) or sd.es_training(t)) else [d for d in t.designers if d.empleado_id == user.id]
         return [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in ds]
     return [{"id": t.id, "nombre": t.nombre, "manager": t.manager.nombre_completo if t.manager else "",
             "designers": designers(t)} for t in equipos]
@@ -987,8 +995,15 @@ def api_mis_asignaciones(user: Empleado = Depends(require_modulo("design_schedul
 @router.get("/design/api/dia")
 def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                   db: Session = Depends(get_db)):
-    team = _verificar_equipo(db, user, team_id)
-    dia = sd.datos_dia(db, team, _fecha(fecha), None if sd.gestiona_equipo(user, team) else user.id)
+    team = _verificar_equipo_ver(db, user, team_id)
+    gest, es_tr = sd.gestiona_equipo(user, team), sd.es_training(team)
+    miembro = team.id in sd.equipos_como_designer(db, user)
+    dia = sd.datos_dia(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
+    dia["miId"] = user.id
+    if es_tr and not gest:   # Training: todos ven todos los casos; solo edita la entrenadora, los admins y cada entrenado lo suyo
+        dia["soloLectura"] = not miembro
+        dia["soloPropias"] = miembro
+        dia["soloEditaPropias"] = miembro
     # Diseñador a cargo: el manager lo ve y lo cambia; el que está a cargo ve hasta cuándo.
     dg = sd.delegacion_de(db, team)
     dia["puedeDelegar"] = sd.puede_delegar(user, team) and team.area.formato != sd.FORMATO_SUPPORT
@@ -1005,7 +1020,7 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
 def api_dia_version(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                     db: Session = Depends(get_db)):
     """Huella del día: la pantalla la consulta cada pocos segundos y, si cambió, vuelve a pedir el día (en vivo)."""
-    team = _verificar_equipo(db, user, team_id)
+    team = _verificar_equipo_ver(db, user, team_id)
     return {"v": sd.version_dia(db, team, _fecha(fecha), user.id)}
 
 
@@ -1305,7 +1320,7 @@ def api_qc_eliminar(item_id: int, user: Empleado = Depends(require_modulo("desig
 CAMPOS_SOLO_MANAGER = ("orden", "paciente", "centro", "producto")
 # En N3 y N6 el diseñador sí edita orden, paciente y producto de sus órdenes (pedido por Rosember el 12-oct-2026);
 # centro y diseñador siguen siendo del manager. Igual que DS_AREAS_DISENADOR_EDITA en static/design/schedule.js.
-AREAS_DISENADOR_EDITA = {"N3 Prosthetic", "N6 Material Changes"}
+AREAS_DISENADOR_EDITA = {"N3 Prosthetic", "N6 Material Changes", "Training"}
 CAMPOS_DISENADOR_EDITA = ("orden", "paciente", "producto")
 
 
@@ -1313,6 +1328,21 @@ def campos_solo_manager(team: DesignTeam) -> tuple:
     if team.area and team.area.nombre in AREAS_DISENADOR_EDITA:
         return tuple(c for c in CAMPOS_SOLO_MANAGER if c not in CAMPOS_DISENADOR_EDITA)
     return CAMPOS_SOLO_MANAGER
+
+
+@router.post("/design/api/ordenes/{orden_id}/training")
+def api_orden_a_training(orden_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Pasa un caso de N3 › Cirugías al Schedule de Training (opción "Training" en el diseñador)."""
+    o = db.get(DesignOrden, orden_id)
+    if not o:
+        raise HTTPException(404, "Orden no encontrada.")
+    try:
+        destino = sd.mover_a_training(db, o, user)
+    except PermissionError as ex:
+        raise HTTPException(403, str(ex))
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    return {"ok": True, "equipo": destino.nombre}
 
 
 @router.post("/design/api/ordenes/{orden_id}")

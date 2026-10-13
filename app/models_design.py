@@ -136,6 +136,8 @@ class DesignOrden(Base):
     # total (RTD − START) se calcula en pantalla. Pasadas las 2 h se cuenta en el Dashboard › Articulación.
     art_start: Mapped[str] = mapped_column(String(10), default="")
     art_rtd: Mapped[str] = mapped_column(String(10), default="")
+    # Área Training: de qué equipo (manager) vino el caso cuando lo pasaron desde N3 (solo informativo)
+    origen_equipo: Mapped[str] = mapped_column(String(150), default="")
 
     orden_visual: Mapped[int] = mapped_column(Integer, default=0)
     # Día para el que se creó la orden; no cambia cuando pasa al día siguiente (Hold, Ready to design). Así N3/N2
