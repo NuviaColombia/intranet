@@ -59,6 +59,64 @@ SEMILLAS = {
 SEMILLAS["N6 Material Changes"] = ("qc_catalogo_n6", SEMILLAS["N3 Prosthetic"][1])
 MAX_TEXTO = 300
 
+# Hallazgos que se agregan a una lista que ya existe (una sola vez, con su marca). Si un hallazgo ya está (mismo texto, sin
+# importar mayúsculas ni tildes) se reemplaza: queda con el texto y el título de esta lista, sin duplicarse.
+# Lista de N6 dada por Rosember el 13-oct-2026 (títulos para todas las tablas del área).
+CARGAS = [
+    ("qc_n6_lista_13oct", "N6 Material Changes", [
+        ("REPORTES QC PLATAFORMA", [
+            "Html design mal cargado", "Html Dr mal cargado", "No se dejo foto del implant angulation",
+            "Falto foto del cilindro del implante omitido", "No se dejo la nota del size",
+            "No se dejo nota de porque no se diseño la guia COL", "Se cargaron las fotos de otro paciente",
+            "No se dejaron las fotos del TC", "No se actualizo la foto de medidas", "No se dejo la nota del adapted",
+            "Se diseño el la NG con los file de otro paciente", "Falta de información importante del caso"]),
+        ("TO MIL/ TO PRINT", [
+            "Se cargo la carpeta incorrecta", "Html design completo, incompleto", "Html del CAM incorrecto",
+            "Falto el STL de oclusión", "No se hizo la corrección que le mande hacer en el QC de diseño",
+            "No se cargo el constructioninfo", "No se cargo la guia COL"]),
+        ("OTROS PROCESOS", [
+            "Archivos incorrectos", "No se hizo el cambio de size", "Se diseño con el degree incorrecto",
+            "Corregir estetica de las barras", "Corregir estetica de las guias de verificacion",
+            "No se tomaron las medidas correctamente", "No verifico que tocaba pedir un nuevo scan del stump",
+            "No verifico que tocaba pedir un nuevo scan del tissue", "Bite mal alineado",
+            "Se encontro una mejor alineacion ICAM/MICRON"]),
+    ]),
+]
+
+
+def _clave_texto(t: str) -> str:
+    import unicodedata
+    t = unicodedata.normalize("NFD", t or "")
+    return re.sub(r"[^a-z0-9]+", " ", "".join(c for c in t if unicodedata.category(c) != "Mn").lower()).strip()
+
+
+def _cargar_listas(db: Session) -> None:
+    for marca, nombre_area, titulos in CARGAS:
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            continue
+        area = db.query(DesignArea).filter(DesignArea.nombre == nombre_area).first()
+        if not area:
+            continue
+        try:
+            filas = db.query(DesignQcCatalogo).filter(DesignQcCatalogo.area_id == area.id).all()
+            orden = _siguiente_orden(db, area.id)
+            for titulo, items in titulos:
+                for texto in items:
+                    k = _clave_texto(texto)
+                    previas = [f for f in filas if f.hallazgo and _clave_texto(f.hallazgo) == k]
+                    if previas:   # repetido: se reemplaza el que estaba (texto y título nuevos, activo)
+                        f = previas[0]
+                        f.titulo, f.hallazgo, f.tabla, f.producto_clave, f.activo = titulo, texto, "", "", 1
+                        for extra in previas[1:]:
+                            extra.activo = 0
+                    else:
+                        db.add(DesignQcCatalogo(area_id=area.id, titulo=titulo, hallazgo=texto, tabla="", producto_clave="", orden=orden))
+                        orden += 1
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        except Exception:
+            db.rollback()  # otro proceso la cargó al mismo tiempo
+
 
 def puede_agregar(user: Empleado) -> bool:
     return user.rol in ("aprobador", "admin", "superadmin")
@@ -86,6 +144,7 @@ def _sembrar(db: Session) -> None:
             db.commit()
         except Exception:
             db.rollback()  # otro proceso la cargó al mismo tiempo
+    _cargar_listas(db)
 
 
 def _producto_es(clave: str, producto: str) -> bool:
