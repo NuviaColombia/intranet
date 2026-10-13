@@ -621,7 +621,9 @@
       w.appendChild(cab);
       var ref = +p.anio || new Date().getFullYear(), hoy = new Date();
       var items = (p.items || []).map(function(it, i) { return {it: it, i: i, f: anFecha(it.fecha)}; });
-      if (p.ordenar !== false) items.sort(function(a, b) { var ka = a.f ? a.f.m * 100 + a.f.d : 9999, kb = b.f ? b.f.m * 100 + b.f.d : 9999; return ka - kb || a.i - b.i; });
+      var anAnios = function(o) { return +o.it.anios > 0 ? +o.it.anios : (o.f ? Math.max(0, ref - o.f.y) : 0); };
+      // Siempre de más años a menos (3 años, luego 2, luego 1); a igual antigüedad, por día del mes
+      if (p.ordenar !== false) items.sort(function(a, b) { var ka = a.f ? a.f.m * 100 + a.f.d : 9999, kb = b.f ? b.f.m * 100 + b.f.d : 9999; return anAnios(b) - anAnios(a) || ka - kb || a.i - b.i; });
       var grid = h('div', 'nvi-an-grid'); w.appendChild(grid);
       if (!items.length) grid.appendChild(h('div', 'nvi-an-vacio', 'Agrega personas en el panel del bloque.'));
       var cols = [p.colA, p.colB, p.colC];
