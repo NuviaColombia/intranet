@@ -2,6 +2,7 @@
 biblioteca de medios (imágenes y videos cortos) y muro interno de publicaciones."""
 import os
 import json
+import re
 from datetime import datetime
 from sqlalchemy.orm import Session
 from .models import Empleado
@@ -471,6 +472,26 @@ def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False
     datos = {"mes": f"{_MESES[ahora.month - 1]} de {ahora.year}", "actualizado": ahora.strftime("%H:%M"), "areas": areas}
     _ranking_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
     return datos
+
+
+# ---------- Aniversarios laborales: foto de Zoho/Cliq por nombre (bloque 🎂) ----------
+def fotos_por_nombre(db: Session, nombres: list[str]) -> dict:
+    """{nombre escrito en el bloque: "/design/api/foto/<id>" | ""}. Une el nombre con un empleado activo que tenga foto
+    guardada (la de Zoho/Cliq, que se guarda cuando la persona entra con su cuenta): todas las palabras del nombre más
+    corto deben estar en el más largo (sin tildes ni mayúsculas); si hay más de un empleado posible, no se adivina."""
+    from sqlalchemy import select
+    from .models import Empleado
+    from .models_design import DesignFotoPerfil
+    from .services_design import _normalizar_texto
+    pal = lambda t: {w for w in re.sub(r"[^a-z0-9 ]", " ", _normalizar_texto(t or "")).split() if len(w) > 1}
+    con_foto = {r[0] for r in db.execute(select(DesignFotoPerfil.empleado_id).where(DesignFotoPerfil.datos.isnot(None)))}
+    gente = [(e.id, pal(f"{e.nombres} {e.apellidos}")) for e in db.query(Empleado).filter(Empleado.activo == 1).all() if e.id in con_foto]
+    out = {}
+    for n in nombres[:60]:
+        w = pal(n)
+        cands = [i for i, p in gente if len(w) >= 2 and (w <= p or (len(p) >= 2 and p <= w))] if w else []
+        out[n] = f"/design/api/foto/{cands[0]}" if len(cands) == 1 else ""
+    return out
 
 
 # ---------- Podio de diseñadores por área (bloque Cifras: "Diseñadores con más casos aprobados del mes") ----------

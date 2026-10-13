@@ -3,7 +3,7 @@ publicar, historial, plantillas), biblioteca de medios y muro interno. La ven to
 Se incluye desde routers/design_schedule.py (mismo router, mismo cupo de concurrencia)."""
 import re
 from pathlib import Path
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func
@@ -244,6 +244,13 @@ def medio(medio_id: int, request: Request, user: Empleado = Depends(require_modu
 def api_ranking(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """Equipos con más casos aprobados del mes (para el bloque Cifras). Se recalcula como máximo cada hora."""
     return si.ranking_mes(db)
+
+
+@router.get("/design/api/inicio/fotos-nombres")
+def api_fotos_nombres(n: list[str] = Query(default=[], max_length=60), user: Empleado = Depends(require_modulo("design_schedule")),
+                      db: Session = Depends(get_db)):
+    """Aniversarios laborales: foto de Zoho/Cliq de cada nombre escrito en el bloque (vacío si no hay una sola coincidencia)."""
+    return si.fotos_por_nombre(db, [x.strip()[:150] for x in n if x.strip()])
 
 
 @router.get("/design/api/inicio/ranking-disenadores")

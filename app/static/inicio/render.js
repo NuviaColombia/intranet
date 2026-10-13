@@ -557,6 +557,140 @@
     return w;
   };
 
+  // ---------- Aniversarios laborales (pedido por Rosember el 13-oct-2026) ----------
+  // Quienes cumplen un año más en la empresa: tarjetas con foto (la de Zoho/Cliq, o la que se suba), años cumplidos que
+  // se cuentan al aparecer, confeti, y su producción por año con barras que crecen. Todo se edita en el panel del bloque.
+  var MESES_AN = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var ANIV_EJEMPLO = [
+    {nombre: 'Carlos Bolivar Villanueva', fecha: '2023-10-11', cargo: '', a: 0, b: 3, c: 29},
+    {nombre: 'Néstor Rojas Martelo', fecha: '2023-10-11', cargo: '', a: 483, b: 831, c: 394},
+    {nombre: 'Jean Pierre Acuña Caceres', fecha: '2024-10-07', cargo: '', a: 2, b: 20, c: 749},
+    {nombre: 'David Abraham De Marchena Diaz', fecha: '2024-10-17', cargo: '', a: 64, b: 680, c: 685},
+    {nombre: 'Edward Martinez Orejarena', fecha: '2024-10-21', cargo: '', a: 94, b: 721, c: 561},
+    {nombre: 'Nelson Navarro Suarez', fecha: '2025-10-01', cargo: '', a: 0, b: 0, c: 0},
+    {nombre: 'Miller Andres Tejada Monterroza', fecha: '2025-10-01', cargo: '', a: 0, b: 75, c: 726},
+    {nombre: 'Nahomy Carolina Charry Torres', fecha: '2025-10-16', cargo: '', a: 0, b: 104, c: 1029}
+  ];
+  // como contar(), pero con separador de miles (1.708)
+  function anContar(el, fin, animar) {
+    var fmt = function(v) { return Math.round(v).toLocaleString('es-CO'); };
+    if (!animar || !('IntersectionObserver' in window)) { el.textContent = fmt(fin); return; }
+    el.textContent = '0';
+    var io = new IntersectionObserver(function(es) { if (!es[0].isIntersecting) return; io.disconnect(); var t0 = performance.now(); (function paso(t) { var k = Math.min(1, (t - t0) / 1300); el.textContent = fmt(fin * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); })(t0); });
+    io.observe(el);
+  }
+  function anFecha(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim()); return m ? {y: +m[1], m: +m[2], d: +m[3]} : null; }
+  var anFotos = {};   // nombre → promesa de la foto (una consulta por tanda de nombres)
+  function anCargarFotos(nombres) {
+    var pend = nombres.filter(function(n) { return n && !(n in anFotos); });
+    if (pend.length) {
+      var q = pend.map(function(n) { return 'n=' + encodeURIComponent(n); }).join('&');
+      var pr = fetch('/design/api/inicio/fotos-nombres?' + q, {credentials: 'same-origin'}).then(function(r) { return r.ok ? r.json() : {}; }).catch(function() { return {}; });
+      pend.forEach(function(n) { anFotos[n] = pr.then(function(m) { return (m && m[n]) || ''; }); });
+    }
+    return nombres.map(function(n) { return anFotos[n] || Promise.resolve(''); });
+  }
+  D.aniversarios = {n: 'Aniversarios laborales', ic: '🎂', g: 'Interactivo',
+    d: function() {
+      return {titulo: '¡Un año más juntos!', subtitulo: 'Celebramos a quienes cumplen un año más en Nuvia Design en octubre', anio: 2026, color: '#252772', columnas: 4,
+              colA: '2024', colB: '2025', colC: '2026', etiquetaTotal: 'casos diseñados desde que ingresó', fotosAuto: true, ordenar: true, globos: true, confeti: true, animar: true,
+              items: ANIV_EJEMPLO.map(function(x) { return Object.assign({mensaje: '', foto: '', anios: 0}, x); })};
+    },
+    campos: [
+      {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'texto', k: 'subtitulo', l: 'Subtítulo'},
+      {tipo: 'numero', k: 'anio', l: 'Año de la celebración (los años cumplidos se calculan con este año)', min: 2000, max: 2100},
+      {tipo: 'lista', k: 'items', l: 'Personas', titulo: 'nombre', nuevo: {nombre: 'Nuevo nombre', fecha: '', cargo: '', mensaje: '', foto: '', anios: 0, a: 0, b: 0, c: 0},
+        campos: [{tipo: 'texto', k: 'nombre', l: 'Nombre completo'}, {tipo: 'texto', k: 'fecha', l: 'Fecha de ingreso (AAAA-MM-DD, ej. 2024-10-07)'},
+          {tipo: 'texto', k: 'cargo', l: 'Cargo o equipo (opcional)'}, {tipo: 'area', k: 'mensaje', l: 'Mensaje (opcional)'},
+          {tipo: 'medio', k: 'foto', l: 'Foto (si la dejas vacía se usa la de Zoho/Cliq)', acepta: 'imagen', encuadre: true},
+          {tipo: 'numero', k: 'anios', l: 'Años cumplidos (0 = calcular con la fecha)', min: 0, max: 60},
+          {tipo: 'numero', k: 'a', l: 'Casos del 1.er período'}, {tipo: 'numero', k: 'b', l: 'Casos del 2.º período'}, {tipo: 'numero', k: 'c', l: 'Casos del 3.er período'}]},
+      {tipo: 'texto', k: 'colA', l: 'Nombre del 1.er período (ej. 2024)'}, {tipo: 'texto', k: 'colB', l: 'Nombre del 2.º período (ej. 2025)'}, {tipo: 'texto', k: 'colC', l: 'Nombre del 3.er período (ej. 2026)'},
+      {tipo: 'texto', k: 'etiquetaTotal', l: 'Texto bajo el total'},
+      {tipo: 'numero', k: 'columnas', l: 'Tarjetas por fila', min: 1, max: 4}, {tipo: 'color', k: 'color', l: 'Color principal'},
+      {tipo: 'check', k: 'fotosAuto', l: 'Buscar la foto de Zoho/Cliq por el nombre'}, {tipo: 'check', k: 'ordenar', l: 'Ordenar por fecha de ingreso (día del mes)'},
+      {tipo: 'check', k: 'globos', l: 'Globos de fondo'}, {tipo: 'check', k: 'confeti', l: 'Confeti al aparecer y al pasar el mouse por la foto'}, {tipo: 'check', k: 'animar', l: 'Contar los números y subir las barras al aparecer'}],
+    r: function(p, ctx) {
+      var editar = ctx.modo === 'editar', anim = p.animar !== false && !editar, FX = NVI.fx;
+      var w = h('div', 'nvi-an'); w.style.setProperty('--an', p.color || '#252772'); w.style.setProperty('--an-cols', Math.max(1, Math.min(4, +p.columnas || 4)));
+      if (p.globos !== false && !editar && FX && FX.capa) w.appendChild(FX.capa('globos'));
+      var cab = h('div', 'nvi-an-cab');
+      cab.appendChild(h('div', 'nvi-an-pastel', '<span>🎂</span><i class="v1">✨</i><i class="v2">🎈</i><i class="v3">🎉</i>'));
+      if (p.titulo) cab.appendChild(h('h2', 'nvi-an-tit', NVI.esc(p.titulo)));
+      if (p.subtitulo) cab.appendChild(h('p', 'nvi-an-sub', NVI.esc(p.subtitulo)));
+      w.appendChild(cab);
+      var ref = +p.anio || new Date().getFullYear(), hoy = new Date();
+      var items = (p.items || []).map(function(it, i) { return {it: it, i: i, f: anFecha(it.fecha)}; });
+      if (p.ordenar !== false) items.sort(function(a, b) { var ka = a.f ? a.f.m * 100 + a.f.d : 9999, kb = b.f ? b.f.m * 100 + b.f.d : 9999; return ka - kb || a.i - b.i; });
+      var grid = h('div', 'nvi-an-grid'); w.appendChild(grid);
+      if (!items.length) grid.appendChild(h('div', 'nvi-an-vacio', 'Agrega personas en el panel del bloque.'));
+      var cols = [p.colA, p.colB, p.colC];
+      items.forEach(function(o, idx) {
+        var it = o.it, f = o.f, anios = +it.anios > 0 ? +it.anios : (f ? Math.max(0, ref - f.y) : 0);
+        var card = h('article', 'nvi-an-card'); card.style.setProperty('--n', idx);
+        // estado de la fecha (del año de la celebración)
+        var chip = '';
+        if (f) {
+          var dia = new Date(ref, f.m - 1, f.d), esHoy = hoy.getFullYear() === ref && hoy.getMonth() === f.m - 1 && hoy.getDate() === f.d, falta = Math.round((dia - new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 864e5);
+          if (hoy.getFullYear() === ref && esHoy) { chip = '<span class="nvi-an-chip hoy">🎉 ¡Hoy es su aniversario!</span>'; card.classList.add('hoy'); }
+          else if (hoy.getFullYear() === ref && falta > 0 && falta <= 30) chip = '<span class="nvi-an-chip pronto">⏳ Falta' + (falta === 1 ? '' : 'n') + ' ' + falta + ' día' + (falta === 1 ? '' : 's') + '</span>';
+          else chip = '<span class="nvi-an-chip">🗓 ' + f.d + ' de ' + MESES_AN[f.m - 1] + '</span>';
+        }
+        // foto con anillo que gira, burbuja de pastel y vela con los años
+        var marco = h('div', 'nvi-an-foto'), ini = h('span', 'nvi-an-ini', NVI.esc(iniciales(it.nombre)));
+        marco.appendChild(ini); marco.appendChild(h('span', 'nvi-an-pastelito', '🎂'));
+        var ponerFoto = function(src) { if (!src) return; var im = new Image(); im.alt = ''; im.onload = function() { if (ini.parentNode) marco.replaceChild(im, ini); NVI.aplicarEnc(im, it.fotoEnc); }; im.src = src; };
+        if (it.foto && NVI.src(it.foto)) ponerFoto(NVI.src(it.foto));
+        else if (p.fotosAuto !== false && it.nombre) anCargarFotos([it.nombre])[0].then(ponerFoto);
+        var vela = h('div', 'nvi-an-vela'), num = h('b', '', ''); vela.appendChild(num); vela.appendChild(h('span', '', anios === 1 ? 'año' : 'años'));
+        var arriba = h('div', 'nvi-an-arriba'); arriba.appendChild(marco); arriba.appendChild(vela); card.appendChild(arriba);
+        card.appendChild(h('h3', 'nvi-an-nom', NVI.esc(it.nombre || '')));
+        if (it.cargo) card.appendChild(h('div', 'nvi-an-cargo', NVI.esc(it.cargo)));
+        if (chip) card.appendChild(h('div', 'nvi-an-fila', chip));
+        if (it.mensaje) card.appendChild(h('p', 'nvi-an-msg', NVI.esc(it.mensaje)));
+        // producción por período
+        var vals = [+it.a || 0, +it.b || 0, +it.c || 0], total = vals[0] + vals[1] + vals[2];
+        if (total > 0) {
+          var prod = h('div', 'nvi-an-prod'), barras = h('div', 'nvi-an-barras'), mx = Math.max.apply(null, vals) || 1;
+          vals.forEach(function(v, k) {
+            if (!cols[k] && !v) return;
+            var b = h('div', 'nvi-an-barra'); b.style.setProperty('--h', Math.max(v ? 8 : 3, Math.round(v * 100 / mx)) + '%');
+            b.innerHTML = '<span class="v">' + v.toLocaleString('es-CO') + '</span><i></i><span class="e">' + NVI.esc(cols[k] || '') + '</span>'; barras.appendChild(b);
+          });
+          prod.appendChild(barras);
+          var tot = h('div', 'nvi-an-total'), nt = h('b', '', ''); tot.appendChild(nt); tot.appendChild(h('span', '', NVI.esc(p.etiquetaTotal || 'casos')));
+          prod.appendChild(tot); card.appendChild(prod);
+          card._total = {el: nt, fin: total};
+        } else card.appendChild(h('div', 'nvi-an-prod nvi-an-sinprod', '🌱 Su producción aparecerá aquí'));
+        card._anios = {el: num, fin: anios};
+        if (!anim) { num.textContent = anios; if (card._total) card._total.el.textContent = card._total.fin.toLocaleString('es-CO'); card.classList.add('on'); }
+        grid.appendChild(card);
+        // al aparecer: entra la tarjeta, cuentan los números y suben las barras
+        if (anim && 'IntersectionObserver' in window) {
+          num.textContent = '0'; if (card._total) card._total.el.textContent = '0';
+          var io = new IntersectionObserver(function(es) {
+            if (!es[0].isIntersecting) return; io.disconnect();
+            setTimeout(function() {
+              card.classList.add('on');
+              contar(num, anios, true); if (card._total) anContar(card._total.el, card._total.fin, true);
+            }, Math.min(idx, 7) * 120);
+          }, {threshold: 0.25}); io.observe(card);
+        } else if (anim) { num.textContent = anios; if (card._total) card._total.el.textContent = card._total.fin.toLocaleString('es-CO'); card.classList.add('on'); }
+        // confeti que sale de la foto (al aparecer y al pasar el mouse); en los aniversarios de hoy, además brillos
+        if (!editar && p.confeti !== false && FX && FX.foto) { FX.foto(marco, 'confeti'); if (card.classList.contains('hoy')) FX.foto(marco, 'brillos'); }
+        else if (!editar && p.confeti !== false && FX === undefined) { /* fx.js todavía no cargó: sin confeti */ }
+      });
+      // celebración de bienvenida (una vez por visita) cuando el bloque entra en pantalla
+      if (!editar && p.confeti !== false && FX && FX.celebrar && 'IntersectionObserver' in window) {
+        var ioC = new IntersectionObserver(function(es) {
+          if (!es[0].isIntersecting) return; ioC.disconnect();
+          try { if (sessionStorage.getItem('nviAnivFiesta')) return; sessionStorage.setItem('nviAnivFiesta', '1'); } catch (e) {}
+          FX.celebrar('confeti');
+        }, {threshold: 0.4}); ioC.observe(w);
+      }
+      return w;
+    }};
+
   // ---------- Secciones ----------
   NVI.CAMPOS_SECCION = [
     {tipo: 'select', k: 'fondoTipo', l: 'Fondo', ops: [['ninguno', 'Sin fondo'], ['color', 'Color'], ['degradado', 'Degradado'], ['imagen', 'Imagen'], ['video', 'Video (de fondo)']]},

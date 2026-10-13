@@ -169,7 +169,7 @@
   E.dialogo = dialogo;
 
   // ---------- Interfaz ----------
-  var BLOQUES_ORDEN = ['titulo', 'texto', 'botones', 'imagen', 'video', 'carrusel', 'galeria', 'tarjetas', 'cifras', 'cita', 'acordeon', 'cuenta', 'muro', 'support', 'embed', 'separador', 'espacio'];
+  var BLOQUES_ORDEN = ['titulo', 'texto', 'botones', 'imagen', 'video', 'carrusel', 'galeria', 'tarjetas', 'cifras', 'cita', 'acordeon', 'cuenta', 'muro', 'support', 'aniversarios', 'embed', 'separador', 'espacio'];
   var SECCIONES = [['libre', 'Sección en blanco'], ['libre-baja', 'Sección baja'], ['libre-alta', 'Sección alta']];
   E.iniciar = function() {
     document.body.classList.add('nvi-editando');
@@ -429,7 +429,7 @@
     // queda debajo del último elemento de la sección, y la sección crece si hace falta
     var inner = document.querySelector('#nviLienzo [data-libre="' + sec.id + '"]'), fondo = 0;
     (sec.elementos || []).forEach(function(el) { var c = inner && inner.querySelector('[data-el="' + el.id + '"]'); fondo = Math.max(fondo, (el.y || 0) + (c ? c.offsetHeight : (+el.h || 60))); });
-    sec.elementos.push({id: NVI.uid('e'), x: 5, y: Math.round(fondo ? fondo + 24 : 30), w: tipo === 'titulo' || tipo === 'texto' ? 60 : 50, h: 0, z: 5, bloque: b});
+    sec.elementos.push({id: NVI.uid('e'), x: 5, y: Math.round(fondo ? fondo + 24 : 30), w: tipo === 'aniversarios' ? 90 : tipo === 'titulo' || tipo === 'texto' ? 60 : 50, h: 0, z: 5, bloque: b});
     sec.estilo.alto = Math.max(+sec.estilo.alto || 480, Math.round((fondo ? fondo + 24 : 30) + 320));
     E.sel = {tipo: 'bloque', id: b.id}; E.cambio();
     setTimeout(function() { var el = document.querySelector('#nviLienzo [data-blk="' + b.id + '"]'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 200);
