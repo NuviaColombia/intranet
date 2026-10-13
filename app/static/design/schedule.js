@@ -3016,7 +3016,22 @@ function ddCargar() {
     return null;
   }).then(function(data) {
     if (!data || tok !== ddCargar.tok) return;
+    ddMostrar = {};   // datos nuevos: cada lista vuelve a mostrar sus primeras filas
     DD_ULTIMO = data;
+    ddPintarResultado(data);
+  });
+}
+// M19/B10 (13-oct-2026): las tablas largas muestran 50 filas y un botón "Mostrar más" (no se dibujan todas de golpe).
+var DD_TOPE = 50, ddMostrar = {};
+function ddVerMas(id) { ddMostrar[id] = (ddMostrar[id] || DD_TOPE) + DD_TOPE; ddPintarResultado(DD_ULTIMO); }
+function ddFilas(id, lista, fila, colspan, vacio) {
+  var n = ddMostrar[id] || DD_TOPE;
+  var html = lista.slice(0, n).map(fila).join('');
+  if (lista.length > n) html += '<tr class="dd-mas"><td colspan="' + colspan + '"><button type="button" class="btn gris mini" onclick="ddVerMas(\'' + id + '\')">Mostrar más (' + (lista.length - n) + ' restantes)</button></td></tr>';
+  return html || '<tr><td colspan="' + colspan + '" style="color:#4b5563">' + vacio + '</td></tr>';
+}
+function ddPintarResultado(data) {
+  {
     // Título: Dashboard + el manager (si lo que se ve es de un solo manager). El aprobador siempre ve su nombre.
     var mgrs = []; data.porEquipo.forEach(function(e) { if (e.manager && mgrs.indexOf(e.manager) < 0) mgrs.push(e.manager); });
     var nombreTit = mgrs.length === 1 ? mgrs[0] : (!mgrs.length && window.DS_CFG.dashNombre) || '';
@@ -3027,7 +3042,7 @@ function ddCargar() {
     ddLlenarSelect('ddProducto', data.opciones.productos, function(p) { return p; }, function(p) { return p; });
     ddLlenarSelect('ddEstado', data.opciones.estados, function(p) { return p; }, function(p) { return p; });
     var nomSel = document.getElementById('ddDesigner'), fa = document.getElementById('ddFiltroActivo');
-    var quien = nomSel.value ? nomSel.options[nomSel.selectedIndex].text : txt;
+    var quien = nomSel.value ? nomSel.options[nomSel.selectedIndex].text : document.getElementById('ddDesignerTxt').value.trim();
     fa.innerHTML = quien ? 'Mostrando solo: <b></b> <button type="button" onclick="document.getElementById(\'ddDesigner\').value=\'\';document.getElementById(\'ddDesignerTxt\').value=\'\';ddCargar()">✕ quitar</button>' : '';
     if (quien) fa.querySelector('b').textContent = quien;
     var kpi = function(v, t, sub, alerta) { return '<div class="dd-kpi' + (alerta ? ' alerta' : '') + '"><b>' + v + '</b><span>' + t + '</span>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; };
@@ -3044,21 +3059,21 @@ function ddCargar() {
       kpi(data.sinQc.length, 'Aprobadas sin QC', '', data.sinQc.length > 0);
 
     var selClave = nomSel.value;
-    document.getElementById('ddProduccion').innerHTML = data.porDesigner.map(function(d) {
+    document.getElementById('ddProduccion').innerHTML = ddFilas('produccion', data.porDesigner, function(d) {
       return '<tr class="dd-clic' + (selClave === d.clave ? ' dd-sel' : '') + '" data-clave="' + ddEsc(d.clave).replace(/"/g, '&quot;') + '" title="Ver solo los casos de ' + ddEsc(d.nombre).replace(/"/g, '&quot;') + '">' +
         '<td class="dd-izq">' + ddEsc(d.nombre) + '</td><td>' + ddEsc(d.equipos.join(', ')) + '</td><td>' + d.casos + '</td><td>' + d.aprobadas + '</td>' +
         '<td>' + ddTiempo(d.duracionMin) + '</td><td>' + ddTiempo(d.promedioMin) + '</td><td>' + ddTiempo(d.holdMin) + '</td>' +
         '<td>' + d.conQc + '</td><td>' + d.qcHallazgos + '</td></tr>';
-    }).join('') || '<tr><td colspan="9" style="color:#4b5563">Sin datos.</td></tr>';
+    }, 9, 'Sin datos.');
     document.querySelectorAll('#ddProduccion tr[data-clave]').forEach(function(tr) {
       tr.onclick = function() { var s = document.getElementById('ddDesigner'); s.value = s.value === tr.dataset.clave ? '' : tr.dataset.clave; document.getElementById('ddDesignerTxt').value = ''; ddCargar(); };
     });
 
     ddRenderProductos();
 
-    document.getElementById('ddEquipos').innerHTML = data.porEquipo.map(function(e) {
+    document.getElementById('ddEquipos').innerHTML = ddFilas('equipos', data.porEquipo, function(e) {
       return '<tr><td class="dd-izq">' + ddEsc(e.equipo) + '</td><td>' + ddEsc(e.area) + '</td><td>' + e.casos + '</td><td>' + e.aprobadas + '</td><td>' + ddTiempo(e.promedioMin) + '</td><td>' + e.qcHallazgos + '</td></tr>';
-    }).join('') || '<tr><td colspan="6" style="color:#4b5563">Sin datos.</td></tr>';
+    }, 6, 'Sin datos.');
 
     var barras = function(lista, nombre, valor, extra) {
       var max = Math.max.apply(null, lista.map(valor).concat([1]));
@@ -3078,19 +3093,19 @@ function ddCargar() {
       return '<div class="dd-dia" title="' + p[2] + '/' + p[1] + '/' + p[0] + ': ' + d.casos + ' casos"><span>' + d.casos + '</span><i style="height:' + Math.round(d.casos / maxDia * 100) + '%"></i><span>' + p[2] + '/' + p[1] + '</span></div>';
     }).join('') || '<p style="color:#4b5563">Sin datos.</p>';
 
-    document.getElementById('ddQcReportes').innerHTML = data.qcReportes.map(function(r) {
+    document.getElementById('ddQcReportes').innerHTML = ddFilas('qcReportes', data.qcReportes, function(r) {
       return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td><td>' + ddEsc(r.equipo) + '</td><td>' + ddEsc(r.producto) + '</td>' +
              '<td>' + ddEsc(r.designerNombre) + '</td><td class="dd-izq" style="white-space:pre-wrap">' + ddEsc(r.qcReporte) + '</td>' +
              (DD_ADMIN ? '<td><button type="button" class="btn rojo mini" title="Borrar este hallazgo (el QC sigue marcado, queda sin hallazgos)" onclick="ddQcBorrar([' + r.ordenId + '])">Borrar</button></td>' : '') + '</tr>';
-    }).join('') || '<tr><td colspan="8" style="color:#4b5563">Sin hallazgos de QC.</td></tr>';
+    }, 8, 'Sin hallazgos de QC.');
     var bt = document.getElementById('ddQcBorrarTodo');
     if (bt) { bt.style.display = data.qcReportes.length > 1 ? '' : 'none'; bt.textContent = 'Borrar los ' + data.qcReportes.length + ' hallazgos filtrados'; }
 
-    document.getElementById('ddSinQc').innerHTML = data.sinQc.map(function(r) {
+    document.getElementById('ddSinQc').innerHTML = ddFilas('sinQc', data.sinQc, function(r) {
       return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td><td>' + ddEsc(r.equipo) + '</td><td>' + ddEsc(r.producto) + '</td>' +
              '<td>' + ddEsc(r.estado) + '</td><td>' + ddEsc(r.designerNombre) + '</td></tr>';
-    }).join('') || '<tr><td colspan="7" style="color:#4b5563">Sin datos.</td></tr>';
-  });
+    }, 7, 'Sin datos.');
+  }
 }
 
 // Admins: borrar hallazgos de QC (uno o todos los que muestra el filtro). El QC sigue marcado y la orden queda
