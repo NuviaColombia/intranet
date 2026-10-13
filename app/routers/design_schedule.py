@@ -1297,11 +1297,15 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
         if n and sd.orden_repetida(db, payload.teamId, fecha, n, mas=vistos.get(n, 0)):
             raise HTTPException(400, _msg_repetida(n))
         vistos[n] = vistos.get(n, 0) + 1
-    creadas = []
-    for datos in validadas:
-        creadas.append(sd.serializar_orden(sd.crear_orden(db, user, payload.teamId, fecha, payload.tabla,
-                                                         _datos_desde_in(datos))))
-    return creadas
+    # M9 (13-oct-2026): todo o nada. Se guardan todas en una sola operación; si una falla, no se guarda ninguna.
+    try:
+        nuevas = [sd.crear_orden(db, user, payload.teamId, fecha, payload.tabla, _datos_desde_in(datos), guardar=False)
+                  for datos in validadas]
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return [sd.serializar_orden(o) for o in nuevas]
 
 
 # Horas que un diseñador no cambia a mano cuando el estado las llena solas (services_design.horas_por_estado).

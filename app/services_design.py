@@ -1419,7 +1419,8 @@ def version_todas_areas(db: Session, fecha: date) -> str:
     return hashlib.md5(repr(partes).encode()).hexdigest()[:16]
 
 
-def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: str, datos: dict) -> DesignOrden:
+def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: str, datos: dict, guardar: bool = True) -> DesignOrden:
+    """`guardar=False`: solo agrega a la sesión (el lote guarda todo junto al final, M9)."""
     max_visual = (db.query(DesignOrden.orden_visual)
                  .filter(DesignOrden.team_id == team_id, DesignOrden.fecha == fecha, DesignOrden.tabla == tabla)
                  .order_by(DesignOrden.orden_visual.desc()).first())
@@ -1432,6 +1433,9 @@ def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: s
     if tabla == TABLA_MATERIAL and not (o.etapa or "").strip():
         o.etapa = ETAPA_BITE  # Material Change empieza en Bite design
     db.add(o)
+    if not guardar:
+        db.flush()   # la siguiente orden del lote ve esta en su número de orden visual
+        return o
     db.commit()
     db.refresh(o)
     return o
