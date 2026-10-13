@@ -332,7 +332,7 @@ window.dsPdfjs = function() {
 </div></div>
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
-<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button></div>
+<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button></div>
 <div id="ddVistaResumen">
 
 <div class="dd-search">
@@ -435,6 +435,22 @@ window.dsPdfjs = function() {
 <div class="dd-panel"><div class="dd-panel-cab"><h3 id="dpTopTit">Productos del mes</h3><span style="font-size:12px;color:#4b5563">De más a menos órdenes</span></div><div id="dpTop"></div></div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Órdenes por producto y mes</h3><span style="font-size:12px;color:#4b5563">Clic en un título para ordenar</span></div>
   <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="dpTabla"></table></div></div>
+</div>
+<div id="ddVistaArticulacion" hidden>
+<p class="dd-p-nota">Tiempo que tardó el articulador en entregar cada caso de N3 › Cirugías (RTD − START). Lo normal son <b>2 horas</b>: aquí se cuentan los casos que pasaron de ese tiempo, por centro, para hacerles seguimiento. Solo cuentan las órdenes completas con START y RTD (sin canceladas ni skipped).</p>
+<div class="dd-filtros">
+  <div><label for="daArea">Área</label><select id="daArea"><option value="">{{ '-- Todas --' if dash_teams is none else '-- Mis áreas --' }}</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
+  <div><label for="daTeam">Equipo</label><select id="daTeam"><option value="">-- Todos --</option></select></div>
+  <div><label for="daDesde">Desde</label><input type="date" id="daDesde"></div>
+  <div><label for="daHasta">Hasta</label><input type="date" id="daHasta"></div>
+  <div><label for="daBuscar">Centro</label><input type="search" id="daBuscar" placeholder="Buscar centro" style="width:200px"></div>
+  <div style="flex-direction:row;gap:6px;align-self:flex-end"><button type="button" class="btn" id="daDescargar" title="Descarga las tablas con los filtros actuales (se abre en Excel)">Descargar Excel</button></div>
+</div>
+<div class="dd-kpis" id="daKpis"></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Centros que más pasan de 2 horas</h3><span style="font-size:12px;color:#4b5563">De más a menos casos pasados · clic en un título para ordenar</span></div>
+  <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="daCentros"></table></div></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Casos que pasaron de 2 horas</h3><span style="font-size:12px;color:#4b5563" id="daCasosSub"></span></div>
+  <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="daCasos"></table></div></div>
 </div>
 </div></div></div>
 {% endif %}

@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (571 reglas) ---- */
+/* ---- static\design\schedule.css (572 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -591,6 +591,7 @@
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-tr-grupos th.ds-gh-vacio { background:transparent; border-top-color:transparent; border-left-color:transparent; border-right-color:transparent; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-g-b { background:#102039; color:#9fb3ea; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-g-z { background:#1c2f27; color:#b9eece; }
+:root[data-ds-tema="oscuro"] table.ds-tabla th.ds-g-a { background:#181134; color:#ba9aeb; }
 :root[data-ds-tema="oscuro"] table.ds-tabla td.ds-g-ini, :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-gh { border-left:2px solid #424d63; }
 :root[data-ds-tema="oscuro"] table.ds-tabla td.ds-calc { color:#c5cad3; }
 :root[data-ds-tema="oscuro"] .pa-foto img { border:1px solid #343d4e; background:#171e2d; }

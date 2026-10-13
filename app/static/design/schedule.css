@@ -982,6 +982,7 @@
   table.ds-tabla tr.ds-tr-grupos th.ds-gh-vacio { background:transparent; border-top-color:transparent; border-left-color:transparent; border-right-color:transparent; }
   table.ds-tabla th.ds-g-b { background:#e0ecff; color:#1e3a8a; }
   table.ds-tabla th.ds-g-z { background:#e6f6ef; color:#14532d; }
+  table.ds-tabla th.ds-g-a { background:#ede9fe; color:#4c1d95; }
   table.ds-tabla td.ds-g-ini, table.ds-tabla th.ds-gh { border-left:2px solid #94a3b8; }
   table.ds-tabla td.ds-calc { color:#374151; white-space:nowrap; font-size:12px; }
   /* Material Change tiene 25 columnas: se desplaza a lo ancho dentro del panel y las listas largas conservan un ancho legible */

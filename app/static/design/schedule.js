@@ -520,6 +520,11 @@ window.addEventListener('unhandledrejection', function(ev) {
         return c;
       });
     }
+    if (area === 'N3 Prosthetic' && tabla === 'principal' && fm === 'dual') {  // Articulation va antes de los tiempos de siempre
+      var i0 = spec.findIndex(function(c) { return c.k === 'horaInicio'; });
+      if (i0 >= 0) spec = spec.slice(0, i0).concat([{k:'artStart', l:'START', t:'time', g:'a'},
+        {k:'artRtd', l:'RTD', t:'time', g:'a', extra: [{k:'artTotal', l:'TOTAL'}]}], spec.slice(i0));
+    }
     return area === 'N3 Prosthetic' ? spec : spec.filter(function(c) { return c.k !== 'critico'; });
   }
   function dsEncabezadoExtra(c) { // N2: T. Hold calculado; Material Change: T. Hold y Total de cada etapa
@@ -556,11 +561,15 @@ window.addEventListener('unhandledrejection', function(ev) {
     var z = dsMinEtapa(f.zHoraInicio, f.zHoraFin, f.zSHold, f.zFHold, f.zHoldMinutos);
     return {b: b, z: z, t: b === null && z === null ? null : (b || 0) + (z || 0)};
   }
+  // N3 · Cirugías: tiempo de articulación = RTD − START (minutos; si cruza la medianoche se suma un día, como las demás horas)
+  var DS_ART_LIMITE_MIN = 120;  // lo normal son 2 h; pasadas se cuenta en Dashboard › Articulación (art_min en services_design.py)
+  function dsArtMin(f) { return dsEntre(f.artStart, f.artRtd); }
   function dsCalcTxt(k, f) {
     if (k === 'bTHold') return dsTHoldTxt(f);
     if (k === 'zTHold') return dsTHoldTxt({holdMinutos: f.zHoldMinutos, sHold: f.zSHold, fHold: f.zFHold});
     if (k === 'bTotal') return dsFmtMin(dsMaterialMin(f).b);
     if (k === 'zTotal') return dsFmtMin(dsMaterialMin(f).z);
+    if (k === 'artTotal') return dsFmtMin(dsArtMin(f));
     return '';
   }
   // Tablas del Schedule y su contenedor (Material Change primero, como en pantalla)
@@ -568,7 +577,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_CONT = {material: 'dsTablaMaterial', principal: 'dsTablaPrincipal', nightguard: 'dsTablaNightguard'};
   function dsSelTablas(sufijo) { return DS_TABLAS.map(function(t) { return '#' + DS_CONT[t] + (sufijo ? ' ' + sufijo : ''); }).join(', '); }
   // Fila de encabezado con los bloques Bite design / Zirconia design (solo tablas con columnas agrupadas)
-  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design'};
+  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', a: 'Articulation'};
   function dsAnchoCol(c) { return 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0); }
   function dsFilaGrupos(spec, alFinal) {
     if (!spec.some(function(c) { return c.g; })) return '';
@@ -2254,7 +2263,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_CAMPOS = ['orden', 'paciente', 'centro', 'producto', 'designerId', 'designerPrestado', 'horaInicio',
                    'horaInicioDiseno', 'horaFin', 'holdMinutos', 'esferas', 'critico', 'sHold', 'fHold', 'etapa',
                    'solicitadoPor', 'situacion', 'solucion', 'clasificacion', 'soporte', 'estado', 'qc', 'qcReporte', 'notas',
-                   'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin', 'zQc', 'zQcReporte'];
+                   'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin', 'zQc', 'zQcReporte', 'artStart', 'artRtd'];
   function dsClon(o) { return JSON.parse(JSON.stringify(o)); }
   function dsMismaOrden(a, b) { return DS_CAMPOS.every(function(k) { return (a[k] == null ? '' : a[k]) === (b[k] == null ? '' : b[k]); }); }
   function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
@@ -3076,7 +3085,9 @@ function dpVista(v) {
   document.querySelectorAll('.dd-vista').forEach(function(b) { var on = b.dataset.dv === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   document.getElementById('ddVistaResumen').hidden = v !== 'resumen';
   document.getElementById('ddVistaProductos').hidden = v !== 'productos';
+  document.getElementById('ddVistaArticulacion').hidden = v !== 'articulacion';
   if (v === 'productos') dpCargar();
+  if (v === 'articulacion') daCargar();
 }
 function dpCargar() {
   var hoy = new Date(), anioSel = document.getElementById('dpAnio'), mesSel = document.getElementById('dpMes');
@@ -3164,7 +3175,90 @@ function dpDescargar() {
   el('dpDescargar').addEventListener('click', dpDescargar);
 })();
 
+// ---------- Dashboard › Articulación: casos de N3 › Cirugías que pasan de 2 h entre START y RTD (pedido por Rosember el 13-oct-2026) ----------
+var DA = {datos: null, orden: 'pasadas', dir: -1, tok: 0};
+function daFmt(m) { return m === null || m === undefined ? '' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
+function daISO(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function daCargar() {
+  var hoy = new Date(), ds = document.getElementById('daDesde'), hs = document.getElementById('daHasta');
+  if (!ds.value) ds.value = daISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  if (!hs.value) hs.value = daISO(hoy);
+  var area = document.getElementById('daArea').value, team = document.getElementById('daTeam').value, t = ++DA.tok;
+  var u = '/design/api/dashboard/articulacion?desde=' + ds.value + '&hasta=' + hs.value + (team ? '&team_id=' + team : area ? '&area_id=' + area : '');
+  document.getElementById('daCentros').style.opacity = '.5';
+  ddApi(u).then(function(d) { if (t !== DA.tok) return; DA.datos = d; daPintar(); })
+    .catch(function(e) { document.getElementById('daCentros').innerHTML = '<tbody><tr><td>No se pudo cargar: ' + ddEsc(e.message) + '</td></tr></tbody>'; })
+    .then(function() { document.getElementById('daCentros').style.opacity = ''; });
+}
+function daFiltrar() {
+  var q = dpNorm(document.getElementById('daBuscar').value.trim()), d = DA.datos;
+  if (!d) return {centros: [], casos: []};
+  var cs = d.centros.filter(function(c) { return !q || dpNorm(c.centro).indexOf(q) >= 0; });
+  var k = DA.orden, dir = DA.dir;
+  cs = cs.slice().sort(function(a, b) {
+    var va = k === 'centro' ? a.centro.toLowerCase() : a[k], vb = k === 'centro' ? b.centro.toLowerCase() : b[k];
+    return (va < vb ? -1 : va > vb ? 1 : 0) * dir || b.pasadas - a.pasadas || a.centro.localeCompare(b.centro);
+  });
+  return {centros: cs, casos: d.casos.filter(function(c) { return !q || dpNorm(c.centro).indexOf(q) >= 0; })};
+}
+function daPintar() {
+  if (!DA.datos) return;
+  var f = daFiltrar(), d = DA.datos, q = document.getElementById('daBuscar').value.trim();
+  var med = f.centros.reduce(function(s, c) { return s + c.casos; }, 0), pas = f.centros.reduce(function(s, c) { return s + c.pasadas; }, 0);
+  var prom = med ? Math.round(f.centros.reduce(function(s, c) { return s + c.promedio * c.casos; }, 0) / med) : 0;
+  document.getElementById('daKpis').innerHTML =
+    '<div class="dd-kpi"><b>' + med + '</b>casos medidos' + (q ? ' · "' + ddEsc(q) + '"' : '') + '</div>' +
+    '<div class="dd-kpi"><b>' + pas + '</b>pasaron de ' + (d.limiteMin / 60) + ' horas</div>' +
+    '<div class="dd-kpi"><b>' + (med ? Math.round(pas * 100 / med) : 0) + '%</b>de los casos medidos</div>' +
+    '<div class="dd-kpi"><b>' + (med ? daFmt(prom) : '—') + '</b>tiempo promedio de articulación</div>';
+  var flecha = function(k) { return DA.orden === k ? (DA.dir === 1 ? ' ▲' : ' ▼') : ''; };
+  var th = function(k, t, izq) { return '<th' + (izq ? ' class="dd-izq"' : '') + ' data-o="' + k + '">' + t + flecha(k) + '</th>'; };
+  var h = '<thead><tr>' + th('centro', 'Centro', true) + th('casos', 'Casos medidos') + th('pasadas', 'Pasaron de 2 h') + th('pct', '% que pasó') + th('promedio', 'Promedio') + th('max', 'El más largo') + '</tr></thead><tbody>';
+  h += f.centros.length ? f.centros.map(function(c) {
+    return '<tr><td class="dd-izq"><b>' + ddEsc(c.centro) + '</b></td><td>' + c.casos + '</td><td>' + (c.pasadas ? '<b style="color:#b91c1c">' + c.pasadas + '</b>' : '<span class="dp-cero">·</span>') +
+      '</td><td>' + c.pct + '%</td><td>' + daFmt(c.promedio) + '</td><td>' + daFmt(c.max) + '</td></tr>';
+  }).join('') : '<tr><td colspan="6" style="color:#4b5563">No hay casos con START y RTD en este rango' + (q ? ' para "' + ddEsc(q) + '"' : '') + '.</td></tr>';
+  var tb = document.getElementById('daCentros'); tb.innerHTML = h + '</tbody>';
+  tb.querySelectorAll('thead th[data-o]').forEach(function(x) {
+    x.style.cursor = 'pointer';
+    x.onclick = function() { var k = x.dataset.o; DA.dir = DA.orden === k ? -DA.dir : (k === 'centro' ? 1 : -1); DA.orden = k; daPintar(); };
+  });
+  document.getElementById('daCasosSub').textContent = f.casos.length + ' caso' + (f.casos.length === 1 ? '' : 's') + ' · de más a menos tiempo';
+  document.getElementById('daCasos').innerHTML = '<thead><tr><th>Fecha</th><th>Orden</th><th>Paciente</th><th class="dd-izq">Centro</th><th>Equipo</th><th>Diseñador</th><th>START</th><th>RTD</th><th>Tiempo</th></tr></thead><tbody>' +
+    (f.casos.length ? f.casos.map(function(c) {
+      return '<tr><td>' + ddEsc(c.fecha) + '</td><td>' + ddEsc(c.orden) + '</td><td>' + ddEsc(c.paciente) + '</td><td class="dd-izq">' + ddEsc(c.centro) + '</td><td>' + ddEsc(c.equipo) +
+        '</td><td>' + ddEsc(c.designer) + '</td><td>' + ddEsc(c.start) + '</td><td>' + ddEsc(c.rtd) + '</td><td><b>' + daFmt(c.min) + '</b></td></tr>';
+    }).join('') : '<tr><td colspan="9" style="color:#4b5563">Ningún caso pasó de 2 horas en este rango.</td></tr>') + '</tbody>';
+}
+function daDescargar() {
+  if (!DA.datos) return;
+  var f = daFiltrar(), sep = ';', q = function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
+  var a1 = [['Centro', 'Casos medidos', 'Pasaron de 2 h', '% que pasó', 'Promedio (min)', 'El más largo (min)'].map(q).join(sep)].concat(f.centros.map(function(c) {
+    return [q(c.centro), c.casos, c.pasadas, c.pct, c.promedio, c.max].join(sep); }));
+  var a2 = [['Fecha', 'Orden', 'Paciente', 'Centro', 'Equipo', 'Diseñador', 'START', 'RTD', 'Minutos'].map(q).join(sep)].concat(f.casos.map(function(c) {
+    return [c.fecha, q(c.orden), q(c.paciente), q(c.centro), q(c.equipo), q(c.designer), q(c.start), q(c.rtd), c.min].join(sep); }));
+  var b = new Blob(['﻿' + a1.concat(['', q('Casos que pasaron de 2 horas')], a2).join('\r\n')], {type: 'text/csv;charset=utf-8'}), a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = 'Articulacion ' + document.getElementById('daDesde').value + ' a ' + document.getElementById('daHasta').value + '.csv';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(function() { URL.revokeObjectURL(a.href); }, 2000);
+}
+(function() {
+  var el = function(id) { return document.getElementById(id); };
+  if (!el('ddVistaArticulacion')) return;
+  el('daArea').addEventListener('change', function() {
+    var sel = el('daTeam'), areaId = el('daArea').value; sel.innerHTML = '<option value="">-- Todos --</option>';
+    if (!areaId) { daCargar(); return; }
+    ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
+      teams.filter(function(t) { return !DD_PROPIOS || DD_PROPIOS.indexOf(t.id) >= 0; })
+           .forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
+    }).then(daCargar);
+  });
+  ['daTeam', 'daDesde', 'daHasta'].forEach(function(id) { el(id).addEventListener('change', daCargar); });
+  var tb = null; el('daBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(daPintar, 200); });
+  el('daDescargar').addEventListener('click', daDescargar);
+})();
+
 window.DS_PANELS.dashboard = function() {
+  if (!document.getElementById('ddVistaArticulacion').hidden) { daCargar(); return; }
   if (!document.getElementById('ddVistaProductos').hidden) { dpCargar(); return; }
   if (!ddCargar.listo) {
     ddCargar.listo = true;

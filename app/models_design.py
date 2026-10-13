@@ -132,6 +132,11 @@ class DesignOrden(Base):
     z_qc: Mapped[bool] = mapped_column(Boolean, default=False)
     z_qc_reporte: Mapped[str] = mapped_column(Text, default="")
 
+    # N3 · Cirugías (pedido por Rosember el 13-oct-2026): tiempo de articulación. Las dos horas se escriben a mano; el
+    # total (RTD − START) se calcula en pantalla. Pasadas las 2 h se cuenta en el Dashboard › Articulación.
+    art_start: Mapped[str] = mapped_column(String(10), default="")
+    art_rtd: Mapped[str] = mapped_column(String(10), default="")
+
     orden_visual: Mapped[int] = mapped_column(Integer, default=0)
     # Día para el que se creó la orden; no cambia cuando pasa al día siguiente (Hold, Ready to design). Así N3/N2
     # Producción cuenta solo las órdenes nuevas del día (services_design_produccion).

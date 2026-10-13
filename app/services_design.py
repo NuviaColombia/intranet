@@ -25,6 +25,7 @@ CAMPOS_ORDEN = [
     "etapa", "solicitado_por", "situacion", "solucion", "clasificacion", "soporte",
     "estado", "qc", "qc_reporte", "notas",
     "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin", "z_qc", "z_qc_reporte",
+    "art_start", "art_rtd",
 ]
 
 
@@ -1195,6 +1196,7 @@ def serializar_orden(o: DesignOrden) -> dict:
         "etapa": o.etapa, "solicitadoPor": o.solicitado_por, "situacion": o.situacion,
         "solucion": o.solucion, "clasificacion": o.clasificacion, "soporte": o.soporte,
         "estado": o.estado, "qc": o.qc, "qcReporte": o.qc_reporte, "notas": o.notas,
+        "artStart": o.art_start or "", "artRtd": o.art_rtd or "",
         "zHoraInicio": o.z_hora_inicio or "", "zSHold": o.z_s_hold or "", "zFHold": o.z_f_hold or "",
         "zHoldMinutos": o.z_hold_minutos or 0, "zHoraFin": o.z_hora_fin or "", "zQc": bool(o.z_qc),
         "zQcReporte": o.z_qc_reporte or "",
@@ -1585,6 +1587,50 @@ def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | N
                     for p in por.values()), key=lambda x: (-x["total"], x["producto"].lower()))
     anios = sorted({r[0].year for r in db.query(DesignOrden.fecha).filter(filtro_orden_completa()).distinct()} | {anio}, reverse=True)
     return {"anio": anio, "anios": anios, "productos": filas, "totales": [sum(f["meses"][i] for f in filas) for i in range(12)]}
+
+
+ART_LIMITE_MIN = 120   # lo normal es articular en 2 horas; pasado ese tiempo el caso cuenta como "tardó más"
+
+
+def dashboard_articulacion(db: Session, user: Empleado, desde: date, hasta: date, area_id: int | None = None,
+                           team_id: int | None = None) -> dict:
+    """Dashboard › Articulación (pedido por Rosember el 13-oct-2026): tiempo que tardó el articulador en entregar cada caso
+    de N3 › Cirugías (RTD − START). Se mide a las órdenes completas con START y RTD, sin canceladas ni skipped. Por
+    centro: casos medidos, cuántos pasaron de 2 horas, % y promedio, para hacer seguimiento a los que más tardan."""
+    q = (db.query(DesignOrden, DesignTeam)
+         .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
+         .filter(filtro_orden_completa(), DesignOrden.tabla == "principal", DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta,
+                 func.coalesce(DesignOrden.art_start, "") != "", func.coalesce(DesignOrden.art_rtd, "") != ""))
+    if not es_admin(user):
+        q = q.filter(DesignTeam.manager_id == user.id)
+    if team_id:
+        q = q.filter(DesignOrden.team_id == team_id)
+    elif area_id:
+        q = q.filter(DesignTeam.area_id == area_id)
+    centros: dict[str, dict] = {}
+    casos = []
+    for o, t in q.order_by(DesignOrden.fecha.desc(), DesignOrden.id.desc()).all():
+        if _es_cancelada(o.estado):
+            continue
+        m = _entre(o.art_start, o.art_rtd)
+        k = re.sub(r"\s+", " ", _normalizar_texto(o.centro or "")).strip()
+        c = centros.setdefault(k, {"centro": re.sub(r"\s+", " ", (o.centro or "").strip()), "casos": 0, "pasadas": 0, "suma": 0.0, "max": 0.0})
+        c["casos"] += 1
+        c["suma"] += m
+        c["max"] = max(c["max"], m)
+        if m > ART_LIMITE_MIN:
+            c["pasadas"] += 1
+            casos.append({"id": o.id, "orden": o.orden, "paciente": o.paciente, "fecha": o.fecha.isoformat(), "centro": o.centro,
+                          "equipo": t.nombre, "designer": o.designer.nombre_completo if o.designer else (o.designer_prestado or ""),
+                          "start": o.art_start, "rtd": o.art_rtd, "min": round(m)})
+    filas = sorted(({"centro": c["centro"], "casos": c["casos"], "pasadas": c["pasadas"],
+                     "pct": round(c["pasadas"] * 100 / c["casos"]), "promedio": round(c["suma"] / c["casos"]), "max": round(c["max"])}
+                    for c in centros.values()), key=lambda x: (-x["pasadas"], -x["pct"], x["centro"].lower()))
+    medidos = sum(c["casos"] for c in centros.values())
+    pasadas = sum(c["pasadas"] for c in centros.values())
+    return {"limiteMin": ART_LIMITE_MIN, "medidos": medidos, "pasadas": pasadas, "pct": round(pasadas * 100 / medidos) if medidos else 0,
+            "promedio": round(sum(c["suma"] for c in centros.values()) / medidos) if medidos else 0,
+            "centros": filas, "casos": sorted(casos, key=lambda x: -x["min"])[:500]}
 
 
 def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None = None,

@@ -1092,6 +1092,9 @@ class OrdenIn(BaseModel):
     zHoraFin: str = ""
     zQc: bool = False
     zQcReporte: str = ""
+    # N3 · Cirugías: tiempo de articulación
+    artStart: str = ""
+    artRtd: str = ""
 
 
 def _datos_desde_in(payload: OrdenIn) -> dict:
@@ -1108,7 +1111,7 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
         "estado": payload.estado, "qc": payload.qc, "qc_reporte": payload.qcReporte, "notas": payload.notas,
         "z_hora_inicio": payload.zHoraInicio, "z_s_hold": payload.zSHold, "z_f_hold": payload.zFHold,
         "z_hold_minutos": payload.zHoldMinutos, "z_hora_fin": payload.zHoraFin, "z_qc": payload.zQc,
-        "z_qc_reporte": payload.zQcReporte,
+        "z_qc_reporte": payload.zQcReporte, "art_start": payload.artStart, "art_rtd": payload.artRtd,
     }
 
 
@@ -1122,7 +1125,8 @@ CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "
                  "clasificacion": "clasificacion", "soporte": "soporte", "estado": "estado", "qc": "qc",
                  "qcReporte": "qc_reporte", "notas": "notas",
                  "zHoraInicio": "z_hora_inicio", "zSHold": "z_s_hold", "zFHold": "z_f_hold", "zHoldMinutos": "z_hold_minutos",
-                 "zHoraFin": "z_hora_fin", "zQc": "z_qc", "zQcReporte": "z_qc_reporte"}
+                 "zHoraFin": "z_hora_fin", "zQc": "z_qc", "zQcReporte": "z_qc_reporte",
+                 "artStart": "art_start", "artRtd": "art_rtd"}
 
 DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
 SOLO_QC = "Solo los aprobadores (o el diseñador a cargo del equipo) marcan el QC."
@@ -1441,6 +1445,21 @@ def api_dashboard_productos(anio: int = 0, area_id: int | None = None, team_id: 
     if not 2000 <= anio <= 2100:
         raise HTTPException(400, "Año inválido.")
     return sd.dashboard_productos(db, user, anio, area_id, team_id)
+
+
+@router.get("/design/api/dashboard/articulacion")
+def api_dashboard_articulacion(desde: str = "", hasta: str = "", area_id: int | None = None, team_id: int | None = None,
+                               user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Dashboard › Articulación: tiempo de articulación (RTD − START) de N3 › Cirugías por centro; los que pasan de 2 h."""
+    hoy = sd.ahora_colombia().date()
+    try:
+        d = date.fromisoformat(desde) if desde else hoy.replace(day=1)
+        h = date.fromisoformat(hasta) if hasta else hoy
+    except ValueError:
+        raise HTTPException(400, "Fecha inválida.")
+    if d > h:
+        d, h = h, d
+    return sd.dashboard_articulacion(db, user, d, h, area_id, team_id)
 
 
 class QcHallazgosIn(BaseModel):
