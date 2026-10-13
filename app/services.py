@@ -143,6 +143,10 @@ def crear_solicitud(db: Session, empleado: Empleado, tipo: TipoPermiso,
 def resolver_aprobacion(db: Session, aprobacion: Aprobacion, decision: str,
                         comentario: str = "", actor: str = "") -> str:
     """Aplica una decisión ('aprobada'/'rechazada'). Devuelve mensaje para el usuario."""
+    # Bloquea la fila: si el enlace del correo y el botón de la app llegan a la vez, solo una decisión pasa.
+    # (En SQLite no hace nada; en Postgres sí serializa las dos peticiones.)
+    db.query(Aprobacion.id).filter(Aprobacion.id == aprobacion.id).with_for_update().first()
+    db.refresh(aprobacion)
     sol = aprobacion.solicitud
     if aprobacion.decision != "pendiente":
         return "Esta aprobación ya fue resuelta anteriormente."

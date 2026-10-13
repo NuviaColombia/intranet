@@ -909,7 +909,7 @@
         if (x.puedeModificar && ctx.modo !== 'editar') {
           var acc = h('div', 'nvi-post-acc'), be = h('button', '', 'Editar'), bb = h('button', '', 'Eliminar'); be.type = bb.type = 'button';
           be.onclick = function() { NVI.dialogoMuro(x, function() { NVI.cargarMuro(p, cont, cab, ctx); }); };
-          bb.onclick = function() { if (!confirm('¿Eliminar la publicación "' + (x.titulo || 'sin título') + '"?')) return; fetch('/design/api/inicio/muro/' + x.id + '/eliminar', {method: 'POST', credentials: 'same-origin'}).then(function() { NVI.cargarMuro(p, cont, cab, ctx); }); };
+          bb.onclick = function() { if (!confirm('¿Eliminar la publicación "' + (x.titulo || 'sin título') + '"?')) return; fetch('/design/api/inicio/muro/' + x.id + '/eliminar', {method: 'POST', credentials: 'same-origin'}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); NVI.cargarMuro(p, cont, cab, ctx); }).catch(function() { alert('No se pudo eliminar la publicación. Intenta de nuevo.'); }); };
           acc.appendChild(be); acc.appendChild(bb); b.appendChild(acc);
         }
         a.appendChild(b); cont.appendChild(a);
