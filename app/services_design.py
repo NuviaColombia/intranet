@@ -2307,6 +2307,18 @@ async def foto_design_al_iniciar(client, access_token: str, info: dict, email: s
         db.close()
 
 
+def respuesta_foto(request, datos: bytes, tipo: str):
+    """Foto de perfil con ETag (13-oct-2026): el navegador siempre pregunta si cambió y solo recibe la foto nueva.
+    Antes se guardaba una hora y, al iniciar sesión, la foto actualizada de Zoho tardaba en verse."""
+    import hashlib
+    from fastapi import Response
+    etag = '"' + hashlib.sha1(datos).hexdigest()[:20] + '"'
+    cabeceras = {"Cache-Control": "private, no-cache", "ETag": etag}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=cabeceras)
+    return Response(datos, media_type=tipo or "image/jpeg", headers=cabeceras)
+
+
 # ---------- Comments N3: plantillas de notas personalizadas ----------
 
 def cmt_templates_listar(db: Session) -> list[DesignComentarioTemplate]:

@@ -60,10 +60,11 @@ def logout(request: Request):
 
 
 @router.get("/mi-foto")
-def mi_foto(user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+def mi_foto(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
     """Foto de perfil de Zoho de la persona con sesión (barra de arriba). 404 si no hay: se muestran sus iniciales."""
     from ..models_design import DesignFotoPerfil
+    from ..services_design import respuesta_foto
     f = db.get(DesignFotoPerfil, user.id)
     if not f or not f.datos:
         raise HTTPException(404, "Sin foto.")
-    return Response(f.datos, media_type=f.tipo or "image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+    return respuesta_foto(request, f.datos, f.tipo)

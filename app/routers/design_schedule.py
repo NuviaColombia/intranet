@@ -582,12 +582,12 @@ def _resp(r: dict) -> dict:
 
 
 @router.get("/design/api/foto/{empleado_id}")
-def api_foto_perfil(empleado_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_foto_perfil(empleado_id: int, request: Request, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """Foto de perfil de Zoho de un empleado de Design (404 si no hay: se muestran las iniciales)."""
     f = db.get(sd.DesignFotoPerfil, empleado_id)
     if not f or not f.datos:
         raise HTTPException(404, "Sin foto.")
-    return Response(f.datos, media_type=f.tipo or "image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+    return sd.respuesta_foto(request, f.datos, f.tipo)
 
 
 @router.get("/design/api/parametros/fotos")
