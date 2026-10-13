@@ -1699,6 +1699,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (local) Object.assign(local, datos); // refleja el cambio de inmediato (orden A→Z, contadores)
     dsSeguir(postJSON('/design/api/ordenes/' + id, envio)).then(function(o) {
       if (o.copiaN2) dsAvisoN2(o.copiaN2);   // Face: QC de una orden de mañana → copia a N2
+      if (o.copiaN2Pendiente) dsToast('Se desmarcó el QC: ' + o.copiaN2Pendiente + ' orden(es) copiada(s) a N2 esperan la decisión de su manager.');
       var i = filas.findIndex(function(x) { return x.id === id; });
       if (i >= 0) filas[i] = tabla === 'prestadas' ? Object.assign({}, filas[i], o) : o; // prestadas conserva equipo/formato
       if (tabla === 'prestadas' && i >= 0) o = filas[i];
@@ -2148,6 +2149,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     DS.diaVersion = dia.version || null;  // huella del día (Schedule en vivo)
     DS.diaVersionClave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
     dsRenderACargo(dia);
+    dsRenderCopias(dia);
     dsPintarProduccion();
     if (dsAreaNombre() === DS_AREA_MATERIAL) dsRenderTabla('material');
     dsRenderTabla('principal');
@@ -2313,6 +2315,30 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
 
   window.dsToast = function(m) { dsToast(m); };
+  // N2 (13-oct-2026): órdenes copiadas desde Face cuyo QC se desmarcó. El manager de N2 decide con Face: borrar o mantener.
+  function dsRenderCopias(dia) {
+    var c = document.getElementById('dsCopiasPend'); if (!c) return;
+    var lista = dia.copiasPendientes || [];
+    if (!lista.length) { c.innerHTML = ''; return; }
+    var puede = !dsSoloPropias();
+    c.innerHTML = lista.map(function(x) {
+      return '<div class="ds-copia-pend" role="alert"><div><b>⚠️ La orden ' + dsEsc(x.orden) + ' (' + dsEsc(x.paciente) + ', ' + dsEsc(x.centro) + ') se desmarcó el QC en ' + dsEsc(x.faceEquipo) + '</b>' +
+        (x.desmarcadaEn ? ' · ' + new Date(x.desmarcadaEn).toLocaleString('es-CO', {timeZone: 'America/Bogota'}) : '') +
+        '<br><span>Habla con el manager de Face: si Face aprueba el cambio, borra la orden; si la mantienen, se queda.</span></div>' +
+        (puede ? '<div class="ds-copia-acc"><button type="button" class="btn rojo mini" data-copia="' + x.ordenId + '" data-accion="borrar">Borrar la orden</button>' +
+          '<button type="button" class="btn gris mini" data-copia="' + x.ordenId + '" data-accion="mantener">Mantener</button></div>' : '') + '</div>';
+    }).join('');
+    c.querySelectorAll('[data-copia]').forEach(function(b) {
+      b.onclick = function() { dsDecidirCopia(b.dataset.copia, b.dataset.accion); };
+    });
+  }
+  function dsDecidirCopia(id, accion) {
+    if (accion === 'borrar' && !confirm('¿Borrar la orden copiada desde Face? Confirma que Face aprobó el cambio.')) return;
+    postJSON('/design/api/copias-face/' + id + '/decidir', {accion: accion}).then(function() {
+      dsToast(accion === 'borrar' ? 'Orden borrada.' : 'Orden mantenida.');
+      dsCargarDia();
+    }).catch(function(e) { dsToast('⚠️ ' + e.message); });
+  }
   // Face → N2 (13-oct-2026): aviso de la copia que se hace al marcar el QC de una orden de mañana
   function dsAvisoN2(c) {
     if (!c.ok) return dsToast('⚠️ ' + c.motivo);

@@ -1257,13 +1257,76 @@ def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | 
         motivo = "no hay un equipo de N2 para" if not equipos else "hay más de un equipo de N2 para"
         return {"ok": False, "motivo": f"{motivo} {mgr}: no se copió a N2."}
     equipo = equipos[0]
+    from .models_design import DesignCopiaFace
     ya = (db.query(DesignOrden).filter(DesignOrden.team_id == equipo.id, DesignOrden.fecha == manana,
                                        func.upper(func.trim(DesignOrden.orden)) == numero).first())
     if ya:
+        reg = db.get(DesignCopiaFace, ya.id)
+        if reg and reg.estado in ("pendiente", "borrada") and reg.face_orden_id == orden.id:
+            reg.estado, reg.desmarcada_en = "activa", None   # volvieron a marcar el QC en Face: se conserva
+            db.commit()
         return {"ok": True, "ya": True, "equipo": equipo.nombre, "manager": mgr}
-    crear_orden(db, user, equipo.id, manana, "principal",
-                {"orden": numero, "paciente": orden.paciente or "", "centro": orden.centro.strip()})
+    nueva = crear_orden(db, user, equipo.id, manana, "principal",
+                        {"orden": numero, "paciente": orden.paciente or "", "centro": orden.centro.strip(),
+                         "producto": (orden.producto or "").strip()})
+    db.add(DesignCopiaFace(n2_orden_id=nueva.id, face_orden_id=orden.id, estado="activa", face_equipo=orden.team.nombre))
+    db.commit()
     return {"ok": True, "ya": False, "equipo": equipo.nombre, "manager": mgr}
+
+
+def copia_face_desmarcada(db: Session, orden: DesignOrden) -> int:
+    """Se desmarcó el QC en Face: las copias en N2 de esa orden quedan pendientes (no se borran solas). Aunque el
+    manager de N2 ya la hubiera mantenido, se vuelve a preguntar."""
+    from .models_design import DesignCopiaFace
+    regs = db.query(DesignCopiaFace).filter(DesignCopiaFace.face_orden_id == orden.id,
+                                            DesignCopiaFace.estado.in_(("activa", "pendiente", "mantenida"))).all()
+    for r in regs:
+        r.estado, r.desmarcada_en = "pendiente", datetime.utcnow()
+    if regs:
+        db.commit()
+    return len(regs)
+
+
+def copias_pendientes_dia(db: Session, team: DesignTeam, fecha: date) -> list[dict]:
+    """Órdenes de N2 de este equipo y día cuyo QC en Face se desmarcó: esperan la decisión del manager de N2."""
+    from .models_design import DesignCopiaFace
+    filas = (db.query(DesignCopiaFace, DesignOrden)
+             .join(DesignOrden, DesignOrden.id == DesignCopiaFace.n2_orden_id)
+             .filter(DesignCopiaFace.estado == "pendiente", DesignOrden.team_id == team.id, DesignOrden.fecha == fecha).all())
+    return [{"ordenId": o.id, "orden": o.orden, "paciente": o.paciente, "centro": o.centro, "producto": o.producto,
+             "faceEquipo": r.face_equipo,
+             "desmarcadaEn": (r.desmarcada_en.isoformat() + "Z") if r.desmarcada_en else ""} for r, o in filas]
+
+
+def decidir_copia_face(db: Session, n2_orden_id: int, accion: str, user: Empleado) -> dict:
+    """El manager de N2 decide: "borrar" quita la orden de N2; "mantener" la conserva."""
+    from .models_design import DesignCopiaFace
+    reg = db.get(DesignCopiaFace, n2_orden_id)
+    if not reg or reg.estado != "pendiente":
+        raise ValueError("Esa orden no está esperando decisión.")
+    if accion not in ("borrar", "mantener"):
+        raise ValueError("Acción inválida.")
+    if accion == "borrar":
+        eliminar_orden(db, n2_orden_id)
+        reg.estado = "borrada"
+    else:
+        reg.estado = "mantenida"
+    reg.decidida_por = user.nombre_completo[:150]
+    db.commit()
+    return {"ok": True, "accion": accion}
+
+
+def equipos_dash_ids(db: Session, user: Empleado) -> set[int]:
+    """Equipos que ve el Dashboard de esta persona: los que maneja y el que tiene a cargo hoy (13-oct-2026: quien
+    está a cargo ve el Dashboard como si fuera el aprobador)."""
+    ids = {tid for (tid,) in db.query(DesignTeam.id).filter(DesignTeam.manager_id == user.id).all()}
+    ids |= {tid for tid, eid in delegaciones_activas(db).items() if eid == user.id}
+    return ids
+
+
+def es_gestor_efectivo(db: Session, user: Empleado) -> bool:
+    """Aprobadores, admins y quien está a cargo hoy ven el Dashboard y las pantallas de aprobador."""
+    return user.rol in ("aprobador", "admin", "superadmin") or any(eid == user.id for eid in delegaciones_activas(db).values())
 
 
 def serializar_orden(o: DesignOrden) -> dict:
@@ -1653,7 +1716,7 @@ def dashboard_tendencia(db: Session, user: Empleado, area_id: int | None, team_i
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
          .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta))
     if not es_admin(user):
-        q = q.filter(DesignTeam.manager_id == user.id)
+        q = q.filter(DesignTeam.id.in_(equipos_dash_ids(db, user)))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:
@@ -1689,7 +1752,7 @@ def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | N
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
          .filter(filtro_orden_completa(), DesignOrden.fecha >= date(anio, 1, 1), DesignOrden.fecha <= date(anio, 12, 31)))
     if not es_admin(user):
-        q = q.filter(DesignTeam.manager_id == user.id)
+        q = q.filter(DesignTeam.id.in_(equipos_dash_ids(db, user)))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:
@@ -1722,7 +1785,7 @@ def dashboard_articulacion(db: Session, user: Empleado, desde: date, hasta: date
          .filter(filtro_orden_completa(), DesignOrden.tabla == "principal", DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta,
                  func.coalesce(DesignOrden.art_start, "") != "", func.coalesce(DesignOrden.art_rtd, "") != ""))
     if not es_admin(user):
-        q = q.filter(DesignTeam.manager_id == user.id)
+        q = q.filter(DesignTeam.id.in_(equipos_dash_ids(db, user)))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:
@@ -1767,8 +1830,7 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
          .filter(filtro_orden_completa()))
     if user is not None and not es_admin(user):
         # Un aprobador ve el Dashboard solo de los equipos que maneja.
-        propios = db.query(DesignTeam.id).filter(DesignTeam.manager_id == user.id)
-        q = q.filter(DesignOrden.team_id.in_(propios))
+        q = q.filter(DesignOrden.team_id.in_(equipos_dash_ids(db, user)))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:

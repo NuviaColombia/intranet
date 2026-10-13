@@ -113,7 +113,7 @@ def require_design_manager(request: Request, user: Empleado = Depends(get_curren
     if not u.tiene_modulo("design_schedule"):
         _sin_acceso_simulando(request, u)
         raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
-    if u.rol not in ("aprobador", "admin", "superadmin"):
+    if not sd.es_gestor_efectivo(db, u):   # quien está a cargo hoy del equipo cuenta como aprobador (13-oct-2026)
         raise HTTPException(403, "Requiere rol de aprobador o administrador.")
     return u
 
@@ -239,14 +239,15 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
     # Un aprobador solo filtra sus equipos (los que maneja): mismas áreas y equipos que el servidor le deja ver.
     dash_teams = None
     if not sd.es_admin(user):
-        propios = [t for t in db.query(DesignTeam).filter(DesignTeam.manager_id == user.id, DesignTeam.activo == 1).all()]
+        propios = [t for t in db.query(DesignTeam).filter(DesignTeam.id.in_(sd.equipos_dash_ids(db, user)), DesignTeam.activo == 1).all()]
         dash_teams = [t.id for t in propios]
         areas = [a for a in areas if a.id in {t.area_id for t in propios}]
     # Un aprobador con un solo equipo abre el Dashboard directo con su equipo (área y equipo ya elegidos).
     dash_inicial = {"areaId": propios[0].area_id, "teamId": propios[0].id} if dash_teams and len(dash_teams) == 1 else None
     return templates.TemplateResponse(request, "design_schedule.html",
                                       {"user": user, "es_design": True, "ds_inicio": inicio, "areas": areas,
-                                       "dash_teams": dash_teams, "dash_inicial": dash_inicial, "dsv": _version_estaticos()})
+                                       "dash_teams": dash_teams, "dash_inicial": dash_inicial, "dsv": _version_estaticos(),
+                                       "ver_dashboard": sd.es_gestor_efectivo(db, user)})
 
 
 _dsv_cache: dict = {}
@@ -1055,6 +1056,7 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id)  # huella para el Schedule en vivo
     dia["puedeQc"] = sd.puede_qc(user, team)  # el QC lo marcan aprobadores, admins y el diseñador a cargo
     dia["creaProducto"] = None if sd.gestiona_equipo(user, team) else sd.producto_que_crea(user, team)  # p. ej. Maxilar Print
+    dia["copiasPendientes"] = sd.copias_pendientes_dia(db, team, _fecha(fecha))  # N2: QC desmarcado en Face, esperando decisión
     import time as _t
     dia["ahoraMs"] = int(_t.time() * 1000)  # hora del servidor: el descanso se marca con la hora de Colombia, no la del computador
     return dia
@@ -1394,12 +1396,36 @@ def api_orden_a_training(orden_id: int, user: Empleado = Depends(require_modulo(
 
 
 def _con_copia_n2(db: Session, user: Empleado, o: DesignOrden, qc_antes: bool, datos: dict) -> dict:
-    """Face: al marcar el QC de una orden de mañana, su número, paciente y centro pasan a N2 (ver copiar_face_a_n2)."""
+    """Face: al marcar el QC de una orden de mañana, su número, paciente, centro y producto pasan a N2
+    (copiar_face_a_n2). Si después se desmarca, las copias quedan pendientes de decisión del manager de N2."""
     if not qc_antes and o.qc:
         aviso = sd.copiar_face_a_n2(db, o, user)
         if aviso is not None:
             datos["copiaN2"] = aviso
+    elif qc_antes and not o.qc:
+        pendientes = sd.copia_face_desmarcada(db, o)
+        if pendientes:
+            datos["copiaN2Pendiente"] = pendientes
     return datos
+
+
+class CopiaDecisionIn(BaseModel):
+    accion: Literal["borrar", "mantener"]
+
+
+@router.post("/design/api/copias-face/{n2_orden_id}/decidir")
+def api_copia_face_decidir(n2_orden_id: int, payload: CopiaDecisionIn,
+                           user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """El manager de N2 (o un admin) decide qué pasa con una orden copiada desde Face cuyo QC se desmarcó."""
+    o = db.get(DesignOrden, n2_orden_id)
+    if not o:
+        raise HTTPException(404, "Orden no encontrada.")
+    if not sd.gestiona_equipo(user, _verificar_equipo(db, user, o.team_id)):
+        raise HTTPException(403, SOLO_MANAGER)
+    try:
+        return sd.decidir_copia_face(db, n2_orden_id, payload.accion, user)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
 
 
 @router.post("/design/api/ordenes/{orden_id}")

@@ -445,6 +445,20 @@ class DesignPlanificacion(Base):
     actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignCopiaFace(Base):
+    """Orden de N2 copiada desde Face al marcar su QC (13-oct-2026). Si después se desmarca el QC en Face, queda
+    "pendiente" hasta que el manager de N2 decida: "borrada" (se borra la orden de N2) o "mantenida"."""
+    __tablename__ = "design_copias_face"
+
+    n2_orden_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    face_orden_id: Mapped[int] = mapped_column(Integer, index=True)
+    estado: Mapped[str] = mapped_column(String(20), default="activa")   # activa | pendiente | mantenida | borrada
+    face_equipo: Mapped[str] = mapped_column(String(150), default="")
+    desmarcada_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    decidida_por: Mapped[str] = mapped_column(String(150), default="")
+    creada_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignPreferencia(Base):
     """Preferencias de cada persona en Design (por ahora el modo oscuro). Por defecto, claro."""
     __tablename__ = "design_preferencias"

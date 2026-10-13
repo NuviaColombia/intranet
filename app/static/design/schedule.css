@@ -1059,3 +1059,8 @@
   .sg-p.sg-hold i { background:#f97316; }
   .sg-col.sg-hold { background:#fff7ed; border-color:#fed7aa; } .sg-col.sg-hold header { color:#9a3412; }
   .sg-card.sg-hold { border-left:4px solid #f97316; }
+
+/* N2: órdenes copiadas desde Face cuyo QC se desmarcó (esperan decisión del manager de N2) */
+.ds-copia-pend { display:flex; gap:12px; justify-content:space-between; align-items:center; flex-wrap:wrap; background:#fff7ed; border:1px solid #fb923c; border-radius:10px; padding:8px 12px; margin:8px 0; font-size:13px; color:#7c2d12; }
+.ds-copia-pend span { color:#9a3412; }
+.ds-copia-acc { display:flex; gap:6px; }

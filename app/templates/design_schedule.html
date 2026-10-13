@@ -83,6 +83,7 @@ window.dsPdfjs = function() {
         <span class="ds-panel-acc"><label class="ds-auto-oc" title="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><span class="sw"></span></label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal', event)">+ Agregar orden</button></span>
       </div>
+      <div id="dsCopiasPend"></div>
       <div id="dsTablaPrincipal"></div>
     </div>
 
@@ -330,7 +331,7 @@ window.dsPdfjs = function() {
   </div>
 </div>
 </div></div>
-{% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+{% if ver_dashboard %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
 <div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button></div>
 <div id="ddVistaResumen">
