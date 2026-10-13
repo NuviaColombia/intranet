@@ -12,10 +12,11 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import Integer, DateTime, ForeignKey, update
 from sqlalchemy.orm import Mapped, mapped_column, Session
 from ..database import Base, SessionLocal, engine
+from ..concurrencia import RutaGeneral
 from ..models import Empleado
 from ..formato import nombre_propio
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 HORAS_ENTRE_RECORDATORIOS = 2
 HORARIO = (7, 17)          # se envía de 7:00 a. m. a 5:00 p. m. (hora Colombia)

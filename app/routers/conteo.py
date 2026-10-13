@@ -10,6 +10,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db, engine
+from ..concurrencia import RutaGeneral
 from ..models import Empleado
 from ..models_conteo import (ConteoBodega, ConteoMaterial, ConteoMaterialArea, ConteoConfig, ConteoReporte, ConteoLinea,
                              ConteoEvidencia, ConteoAviso, ConteoDocumento, ConteoTestigo, ENVIADO, ConteoContable, ConteoContableSoporte)
@@ -21,7 +22,7 @@ from ..main_templates import templates
 from .. import services_conteo as sc
 from .. import acceso_secciones as acs
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 SUB = "conteo"
 ESTADOS = {"BORRADOR": "Borrador", "ENVIADO": "Esperando firmas", "DEVUELTO": "Devuelto", "VALIDADO": "En firme",
            "ANULADO": "Anulado"}

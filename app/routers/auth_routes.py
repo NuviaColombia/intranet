@@ -3,11 +3,12 @@ from fastapi import HTTPException
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 from ..database import get_db
+from ..concurrencia import RutaGeneral
 from ..models import Empleado
 from ..auth import zoho_login_url, zoho_get_email, get_current_user, correo_bloqueado
 from ..main_templates import templates
 
-router = APIRouter()
+router = APIRouter(route_class=RutaGeneral)  # tope de concurrencia: app/concurrencia.py
 
 
 @router.get("/login")

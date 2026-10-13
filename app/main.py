@@ -309,6 +309,13 @@ def init_db():
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))
+    # Design Schedule · índices de órdenes (13-oct-2026): el horario, el Dashboard y las pantallas en vivo buscan por día,
+    # equipo y diseñador. Sin índice, la base revisaba toda la tabla en cada consulta. IF NOT EXISTS: solo se crean una vez.
+    with engine.begin() as conn:
+        for nombre, columnas in (("ix_design_ordenes_fecha", "(fecha)"),
+                                 ("ix_design_ordenes_equipo_fecha", "(team_id, fecha, tabla)"),
+                                 ("ix_design_ordenes_designer_fecha", "(designer_id, fecha)")):
+            conn.execute(text(f"CREATE INDEX IF NOT EXISTS {nombre} ON design_ordenes {columnas}"))
     # Design Schedule · Canvas: cada hoja tiene dueño (empleado_id). Solo agrega la columna; no toca datos.
     if "empleado_id" not in {c["name"] for c in inspect(engine).get_columns("design_canvas_docs")}:
         with engine.begin() as conn:

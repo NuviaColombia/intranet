@@ -1,11 +1,22 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from .config import DATABASE_URL
 
+# Pool: los valores por defecto siguen siendo 5 + 10. Si el plan de la base permite más conexiones, se puede subir con
+# DB_POOL_SIZE y DB_MAX_OVERFLOW. pool_recycle: una conexión que lleva 30 min sin usarse se renueva (evita errores tras
+# un rato de inactividad).
+_POOL = {"pool_recycle": 1800, "pool_pre_ping": True}
+if not DATABASE_URL.startswith("sqlite"):
+    if os.getenv("DB_POOL_SIZE"):
+        _POOL["pool_size"] = int(os.getenv("DB_POOL_SIZE"))
+    if os.getenv("DB_MAX_OVERFLOW"):
+        _POOL["max_overflow"] = int(os.getenv("DB_MAX_OVERFLOW"))
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
-    pool_pre_ping=True,
+    **_POOL,
 )
 if DATABASE_URL.startswith("sqlite"):
     # SQLite no revisa las llaves foráneas si no se le pide; Postgres (producción) sí. Así un error de ese tipo
