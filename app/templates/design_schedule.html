@@ -569,6 +569,6 @@ document.addEventListener('keydown', function(e) {
 window.DS_CFG = {userId: {{ user.id }}, esAprobador: {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }},
                  esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
 </script>
-<script src="/static/design/schedule.js?v={{ dsv }}"></script>
+<script src="/static/design/schedule.min.js?v={{ dsv }}"></script>   <!-- generado por scripts/minificar_design.py desde schedule.js -->
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script>{% endif %}
 {% endblock %}
