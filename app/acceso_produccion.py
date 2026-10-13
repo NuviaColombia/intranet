@@ -80,10 +80,6 @@ def tiene_submodulo(db: Session, user: Empleado, slug: str) -> bool:
         ProduccionAcceso.empleado_id == user.id, ProduccionAcceso.submodulo == slug).first() is not None
 
 
-def ids_con_submodulo(db: Session, slug: str) -> set[int]:
-    return {a.empleado_id for a in db.query(ProduccionAcceso).filter(ProduccionAcceso.submodulo == slug)}
-
-
 def require_submodulo(slug: str):
     """Dependencia: módulo Producción + acceso al submódulo (Producción › Parámetros)."""
     def checker(user: Empleado = Depends(require_modulo(MODULO_PRODUCCION)), db: Session = Depends(get_db)) -> Empleado:

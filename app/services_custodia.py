@@ -571,10 +571,6 @@ def pendientes_entrada(db: Session) -> list[CustodiaTraslado]:
             .order_by(CustodiaTraslado.id.desc()).all())
 
 
-def _fecha_dt(f: date) -> datetime:
-    return datetime.combine(f, datetime.min.time())
-
-
 def estado_ordenes(db: Session, fecha_desde: date | None = None, fecha_hasta: date | None = None) -> dict:
     """Ubicación al corte (neto por orden y área) y matriz Ent/Sal/Neto por orden.
 

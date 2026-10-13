@@ -41,10 +41,6 @@ def desuscribir(cola: asyncio.Queue) -> None:
             _subs.discard(x)
 
 
-def conectados() -> int:
-    return len(_subs)
-
-
 def _poner(cola: asyncio.Queue, datos: str) -> None:
     try:
         cola.put_nowait(datos)

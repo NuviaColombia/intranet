@@ -283,12 +283,6 @@ def mis_equipos(db: Session, user: Empleado) -> list[dict]:
     return [{"areaId": t.area_id, "teamId": t.id, "nombre": t.nombre, "area": nombre_area[t.area_id]} for t in propios]
 
 
-def equipo_por_defecto(db: Session, user: Empleado) -> dict | None:
-    """Equipo que se abre solo al entrar al Schedule (el primero de mis_equipos). Los admins eligen (ven todos)."""
-    m = mis_equipos(db, user)
-    return {"areaId": m[0]["areaId"], "teamId": m[0]["teamId"]} if m else None
-
-
 def puede_ver_equipo(user: Empleado, team: DesignTeam, ids_designer: set[int] = frozenset()) -> bool:
     """Admins ven todos los equipos; un manager, los suyos; un diseñador, los equipos en los que está
     asignado (y dentro de ellos solo sus propias órdenes y tiempos libres: ver gestiona_equipo)."""
@@ -1558,11 +1552,6 @@ def preapproved_de_centro(db: Session, area_id: int, centro: str, areas_permitid
                     "filas": [{"criterio": f.criterio, "valores": [valores.get(f.id, {}).get(d, "") for d in ids],
                                "fotos": [[x["id"] for x in fotos.get(f"{f.id}-{d}", [])] for d in ids]} for f in h.filas]})
     return out
-
-
-def version_hojas_pa(db: Session, area_id: int) -> str:
-    import hashlib
-    return hashlib.md5(repr([(h.id, h.nombre, h.orden) for h in preapproved_sheets(db, area_id)]).encode()).hexdigest()[:16]
 
 
 # ---------- Schedule en vivo: huella del día para saber si alguien cambió algo ----------

@@ -22,12 +22,6 @@ from . import services_design_origenes as so
 AREAS = {"N3 Prosthetic": ("manager_n3", "cirugías"), "N2 Demodenture": ("manager_n2", "órdenes")}
 
 
-def es_nueva(o: DesignOrden) -> bool:
-    if o.fecha_creada:
-        return o.fecha_creada == o.fecha
-    return bool(o.creado_en) and (o.creado_en - timedelta(hours=5)).date() == o.fecha  # creado_en está en UTC
-
-
 def produccion(db: Session, fecha: date) -> list[dict]:
     areas = {a.nombre: a for a in db.query(DesignArea).filter(DesignArea.nombre.in_(list(AREAS)), DesignArea.activo == 1)}
     filas_op = [json.loads(f.datos or "{}") for f in so._filas_openings(db)]

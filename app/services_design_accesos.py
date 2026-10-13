@@ -139,14 +139,6 @@ def ids_inhabilitados(db: Session) -> frozenset:
     return _CACHE_INH["ids"]
 
 
-def inhabilitados_ids(db: Session, ids) -> set[int]:
-    from .models_design import DesignInhabilitado
-    ids = [i for i in set(ids) if i]
-    if not ids:
-        return set()
-    return {r[0] for r in db.query(DesignInhabilitado.empleado_id).filter(DesignInhabilitado.empleado_id.in_(ids), DesignInhabilitado.activo == 1)}
-
-
 def resumen_baja(db: Session, empleado_id: int) -> dict:
     """Lo que pasaría al inhabilitar a esta persona (para mostrarlo antes de confirmar)."""
     from datetime import date
