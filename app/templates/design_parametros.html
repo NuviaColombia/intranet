@@ -158,6 +158,59 @@
   .op-asig-barra .op-tab.on { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
   .op-asig-nota { font-size:12px; color:#475569; margin-left:auto; }
   .op-asig-filtros { display:flex; gap:6px; flex-wrap:wrap; }
+  /* Planificación (Openings › Asignaciones › Planificación): borrador, no cambia Openings hasta publicar */
+  .pl-wrap { display:grid; gap:10px; }
+  .pl-cab { font-size:14px; color:#0f172a; }
+  .pl-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; }
+  .pl-kpis > div { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; text-align:center; }
+  .pl-kpis b { display:block; font-size:20px; color:#0f172a; line-height:1.1; }
+  .pl-kpis span { font-size:11.5px; color:#475569; }
+  .pl-kpis .pl-malo { border-color:#fca5a5; background:#fef2f2; } .pl-kpis .pl-malo b { color:#b91c1c; }
+  .pl-kpis .pl-cam { border-color:#fcd34d; background:#fffbeb; } .pl-kpis .pl-cam b { color:#92400e; }
+  .pl-barra { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:space-between; }
+  .pl-areas { display:flex; gap:6px; flex-wrap:wrap; }
+  .pl-area { border:1px solid #cbd5e1; background:#fff; color:#0f172a; border-radius:8px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .pl-area.on { background:#0f172a; border-color:#0f172a; color:#fff; }
+  .pl-area i { font-style:normal; background:#fde68a; color:#78350f; border-radius:999px; padding:0 6px; font-size:11px; margin-left:4px; }
+  .pl-filtros { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .pl-filtros select, .pl-filtros input[type=search] { margin:0; padding:5px 8px; font-size:12.5px; width:auto; }
+  .pl-filtros input[type=search] { width:220px; }
+  .pl-solo { display:inline-flex; gap:4px; align-items:center; font-size:12.5px; color:#334155; }
+  .pl-acc { display:flex; gap:6px; }
+  .pl-estado { font-size:12.5px; color:#475569; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:6px 10px; }
+  .pl-estado-on { background:#fffbeb; border:1px solid #fcd34d; color:#78350f; }
+  .pl-tablero { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; align-items:flex-start; }
+  .pl-col { flex:0 0 250px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; display:flex; flex-direction:column; max-height:560px; transition:border-color .12s, background .12s; }
+  .pl-col.pl-sobre { border-color:#1d4ed8; background:#eff6ff; box-shadow:0 0 0 2px rgba(29,78,216,.18); }
+  .pl-col.pl-sin { background:#fffbeb; border-style:dashed; }
+  .pl-col-cab { display:flex; justify-content:space-between; align-items:center; gap:6px; padding:9px 10px 4px; }
+  .pl-col-cab b { font-size:13.5px; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pl-col-cab span { background:#0f172a; color:#fff; border-radius:999px; padding:1px 8px; font-size:11.5px; font-weight:700; }
+  .pl-col-sub { font-size:11.5px; color:#64748b; padding:0 10px; }
+  .pl-regs, .pl-zonas { display:flex; gap:4px; flex-wrap:wrap; padding:4px 10px 0; }
+  .pl-regs span, .pl-zonas span { font-size:11px; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:1px 6px; color:#334155; }
+  .pl-regs b { color:#0f172a; }
+  .pl-zonas span { color:#64748b; }
+  .pl-avisos { display:flex; gap:4px; flex-wrap:wrap; padding:6px 10px 0; }
+  .pl-aviso { font-size:11px; background:#fef3c7; color:#92400e; border-radius:6px; padding:1px 6px; }
+  .pl-col-body { padding:8px; display:grid; gap:6px; overflow-y:auto; min-height:70px; }
+  .pl-vacio { font-size:12px; color:#94a3b8; text-align:center; padding:14px 6px; border:1px dashed #cbd5e1; border-radius:8px; }
+  .pl-row { position:relative; background:#fff; border:1px solid #dbe3ee; border-radius:9px; padding:6px 30px 6px 8px; cursor:grab; }
+  .pl-row:active { cursor:grabbing; }
+  .pl-row.pl-arr { opacity:.4; }
+  .pl-row.pl-cambio { border-color:#f59e0b; background:#fffdf5; box-shadow:inset 3px 0 0 #f59e0b; }
+  .pl-row-t { display:flex; gap:4px; flex-wrap:wrap; align-items:center; font-size:12.5px; color:#0f172a; }
+  .pl-tag { font-size:10.5px; background:#e0e7ff; color:#312e81; border-radius:5px; padding:0 5px; }
+  .pl-tag.pl-z { background:#ecfeff; color:#155e75; }
+  .pl-antes { font-size:11px; color:#92400e; margin-top:3px; }
+  .pl-antes button { border:0; background:transparent; color:#1d4ed8; cursor:pointer; font-size:11px; padding:0; text-decoration:underline; }
+  .pl-mv { position:absolute; right:4px; top:4px; border:0; background:transparent; color:#64748b; cursor:pointer; font-size:13px; border-radius:6px; padding:0 4px; }
+  .pl-mv:hover { background:#e2e8f0; color:#0f172a; }
+  .pl-lista { max-height:320px; overflow:auto; border:1px solid #e2e8f0; border-radius:8px; margin:8px 0; }
+  .pl-lista table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .pl-lista th, .pl-lista td { padding:5px 7px; border-bottom:1px solid #eef2f7; text-align:left; }
+  .pl-lista th { position:sticky; top:0; background:#f8fafc; }
+  @media (max-width:760px) { .pl-col { flex-basis:220px; } .pl-filtros input[type=search] { width:100%; } }
   .op-as-area { border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px; background:#f8fafc; }
   .op-as-area > summary { cursor:pointer; padding:9px 12px; font-weight:700; font-size:14px; color:#0f172a; list-style:none; display:flex; align-items:center; gap:8px; }
   .op-as-area > summary::-webkit-details-marker { display:none; }
@@ -1493,23 +1546,204 @@
     function asigPintar() {
       var p = document.getElementById('opAsig'); if (!p || !OP) return;
       var y = window.scrollY;
-      p.innerHTML = '<div class="op-asig-barra"><button type="button" class="op-tab' + (asigVista === 'area' ? ' on' : '') + '" data-asig-vista="area">Por área</button>' +
-        '<button type="button" class="op-tab' + (asigVista === 'regional' ? ' on' : '') + '" data-asig-vista="regional">Por regional</button>' +
-        (asigVista === 'area' ? '<button type="button" class="btn gris" data-asig-todas="1">Mostrar todas</button><button type="button" class="btn gris" data-asig-todas="0">Ocultar todas</button>' +
-          '<span class="op-asig-nota">Arrastra un centro y suéltalo sobre otro manager: se guarda en Openings al instante.</span>' :
-          '<span class="op-asig-filtros">' + [''].concat(ASIG_AREAS.map(function(a) { return a.n; })).map(function(n) {
-            return '<button type="button" class="op-tab' + (asigFiltro === n ? ' on' : '') + '" data-asig-filtro="' + esc(n) + '">' + (n ? (ASIG_AREAS.find(function(a) { return a.n === n; }) || {}).t : 'Todas') + '</button>';
-          }).join('') + '</span><span class="op-asig-nota">Solo lectura</span>') + '</div>' +
-        (asigVista === 'area' ? asigPintarArea() : asigPintarRegional());
+      var tab = function(v, t) { return '<button type="button" class="op-tab' + (asigVista === v ? ' on' : '') + '" data-asig-vista="' + v + '">' + t + '</button>'; };
+      var derecha = '', cuerpo;
+      if (asigVista === 'area') {
+        derecha = '<button type="button" class="btn gris" data-asig-todas="1">Mostrar todas</button><button type="button" class="btn gris" data-asig-todas="0">Ocultar todas</button>' +
+          '<span class="op-asig-nota">Arrastra un centro y suéltalo sobre otro manager: se guarda en Openings al instante.</span>';
+        cuerpo = asigPintarArea();
+      } else if (asigVista === 'regional') {
+        derecha = '<span class="op-asig-filtros">' + [''].concat(ASIG_AREAS.map(function(a) { return a.n; })).map(function(n) {
+          return '<button type="button" class="op-tab' + (asigFiltro === n ? ' on' : '') + '" data-asig-filtro="' + esc(n) + '">' + (n ? (ASIG_AREAS.find(function(a) { return a.n === n; }) || {}).t : 'Todas') + '</button>';
+        }).join('') + '</span><span class="op-asig-nota">Solo lectura</span>';
+        cuerpo = asigPintarRegional();
+      } else {
+        cuerpo = plPanel(PL.area);
+      }
+      p.innerHTML = '<div class="op-asig-barra">' + tab('area', 'Por área') + tab('regional', 'Por regional') +
+        (PL_ADMIN ? tab('planificacion', 'Planificación') : '') + derecha + '</div>' + cuerpo;
       window.scrollTo(window.scrollX, y);
     }
+    // ---------- Planificación (pedido por Rosember el 13-oct-2026) ----------
+    // Borrador por área: arrastra un centro a otro manager y revisa cargas, regionales y zonas horarias. No cambia Openings
+    // hasta "Publicar" (con confirmación). El borrador vive en el servidor (lo ven todos los admins).
+    var PL_ADMIN = {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }};
+    var SIN = 'N/A';   // así se escribe "sin manager" en Openings
+    var PL = {cambios: {}, area: 0, reg: '', buscar: '', solo: false, mover: null};
+    var PL_CARGA_ALTA = 12, PL_REGIONES_MUCHAS = 3;   // avisos para decidir: más de 12 centros o más de 3 regionales por manager
+    var plDrag = null;
+    function plValor(f, clave) { var c = PL.cambios[f.id]; return c && c[clave] ? c[clave].nuevo : (f.datos[clave] || ''); }
+    function plCambiado(f, clave) { return !!(PL.cambios[f.id] && PL.cambios[f.id][clave]); }
+    function plContar(clave) { var n = 0; Object.keys(PL.cambios).forEach(function(k) { if (clave ? PL.cambios[k][clave] : true) n += Object.keys(PL.cambios[k]).length; }); return n; }
+    function plCargar() {
+      if (!PL_ADMIN) return Promise.resolve();
+      return fetch('/design/api/planificacion', {cache: 'no-store'}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(d) { PL.cambios = d.cambios || {}; }).catch(function() {});
+    }
+    function plAplicarRespuesta(d) { PL.cambios = d.cambios || {}; }
+    function plFilaCentros(i) {
+      var a = ASIG_AREAS[i];
+      return OP.filas.filter(function(f) { return (f.datos.centro || '').trim() && OP.columnas.some(function(c) { return c.clave === a.c; }); });
+    }
+    // managers del área con su lista de centros (según el borrador), y los "sin asignar"
+    function plArea(i) {
+      var a = ASIG_AREAS[i], por = {}, orden = [], sin = [];
+      plFilaCentros(i).forEach(function(f) {
+        var m = plValor(f, a.c);
+        if (asigSin(m)) { sin.push(f); return; }
+        var k = asigNorm(m).replace(/\s+/g, ' ');
+        if (!por[k]) { por[k] = {nombre: m.trim(), centros: []}; orden.push(k); }
+        por[k].centros.push(f);
+      });
+      var mgrs = orden.map(function(k) { return por[k]; });
+      ASIG_EQUIPOS.forEach(function(p) {   // managers de equipos activos que aún no tienen centros
+        if (p[0] === a.n && !mgrs.some(function(m) { return asigMismo(m.nombre, p[1]); })) mgrs.push({nombre: p[1], centros: []});
+      });
+      var cen = function(f) { return (f.datos.centro || '').trim(); };
+      mgrs.forEach(function(m) { m.centros.sort(function(x, y) { return cen(x).localeCompare(cen(y), 'es', {sensitivity: 'base'}); }); });
+      mgrs.sort(function(x, y) { return x.nombre.localeCompare(y.nombre, 'es', {sensitivity: 'base'}); });
+      sin.sort(function(x, y) { return cen(x).localeCompare(cen(y), 'es', {sensitivity: 'base'}); });
+      return {a: a, managers: mgrs, sin: sin, total: plFilaCentros(i).length};
+    }
+    function plRegion(f) { return (f.datos.regional || '').trim() || 'Sin regional'; }
+    function plZona(f) { return (f.datos.zona_horaria || '').trim(); }
+    function plResumen(lista) {   // conteo por regional y por zona horaria
+      var reg = {}, zona = {};
+      lista.forEach(function(f) { reg[plRegion(f)] = (reg[plRegion(f)] || 0) + 1; var z = plZona(f) || 'Sin zona'; zona[z] = (zona[z] || 0) + 1; });
+      return {reg: reg, zona: zona, nReg: Object.keys(reg).length};
+    }
+    function plPasa(f, i) {   // filtros de regional, búsqueda y "solo cambios"
+      var t = asigNorm((f.datos.centro || '') + ' ' + plRegion(f) + ' ' + plZona(f));
+      if (PL.reg && plRegion(f) !== PL.reg) return false;
+      if (PL.buscar && t.indexOf(asigNorm(PL.buscar)) < 0) return false;
+      if (PL.solo && !plCambiado(f, ASIG_AREAS[i].c)) return false;
+      return true;
+    }
+    function plFila(f, i, clave) {
+      var a = ASIG_AREAS[i], antes = (PL.cambios[f.id] && PL.cambios[f.id][clave]) ? PL.cambios[f.id][clave].antes : '';
+      var ch = plCambiado(f, clave);
+      return '<div class="pl-row' + (ch ? ' pl-cambio' : '') + '" draggable="true" data-pl-fila="' + f.id + '" data-i="' + i + '">' +
+        '<div class="pl-row-t"><b>' + esc((f.datos.centro || '').trim()) + '</b>' +
+        '<span class="pl-tag">' + esc(plRegion(f)) + '</span>' + (plZona(f) ? '<span class="pl-tag pl-z">' + esc(plZona(f)) + '</span>' : '') + '</div>' +
+        (ch ? '<div class="pl-antes">antes: ' + esc(antes || 'sin asignar') + ' <button type="button" data-pl="deshacer" data-fila="' + f.id + '" data-clave="' + a.c + '" title="Volver a como está en Openings">↺ deshacer</button></div>' : '') +
+        '<button type="button" class="pl-mv" data-pl="mover" data-fila="' + f.id + '" data-i="' + i + '" aria-label="Mover ' + esc(f.datos.centro) + ' a otro manager" title="Mover a…">⇄</button></div>';
+    }
+    function plColumna(i, grupo, titulo, subt, filas, sinAsig) {
+      var r = plResumen(filas), regs = Object.keys(r.reg).sort(function(x, y) { return r.reg[y] - r.reg[x] || x.localeCompare(y, 'es'); });
+      var zs = Object.keys(r.zona).sort(function(x, y) { return r.zona[y] - r.zona[x]; }).slice(0, 2);
+      var avisos = [];
+      if (!sinAsig && !filas.length) avisos.push('<span class="pl-aviso">Sin centros</span>');
+      if (!sinAsig && filas.length > PL_CARGA_ALTA) avisos.push('<span class="pl-aviso">Carga alta: ' + filas.length + ' centros</span>');
+      if (!sinAsig && r.nReg > PL_REGIONES_MUCHAS) avisos.push('<span class="pl-aviso">Atiende ' + r.nReg + ' regionales</span>');
+      var cuerpo = filas.length ? filas.map(function(f) { return plFila(f, i, ASIG_AREAS[i].c); }).join('') : '<div class="pl-vacio">' + (sinAsig ? 'Sin centros sin asignar' : 'Suelta un centro aquí') + '</div>';
+      return '<div class="pl-col' + (sinAsig ? ' pl-sin' : '') + '" data-pl-col="' + i + '" data-mgr="' + esc(sinAsig ? '' : grupo) + '">' +
+        '<div class="pl-col-cab"><b>' + esc(titulo) + '</b><span>' + filas.length + '</span></div>' +
+        (subt ? '<div class="pl-col-sub">' + subt + '</div>' : '') +
+        (r.nReg ? '<div class="pl-regs">' + regs.map(function(k) { return '<span>' + esc(k) + ' <b>' + r.reg[k] + '</b></span>'; }).join('') + '</div>' : '') +
+        (zs.length ? '<div class="pl-zonas">' + zs.map(function(k) { return '<span>' + esc(k) + ' · ' + r.zona[k] + '</span>'; }).join('') + '</div>' : '') +
+        (avisos.length ? '<div class="pl-avisos">' + avisos.join('') + '</div>' : '') +
+        '<div class="pl-col-body">' + cuerpo + '</div></div>';
+    }
+    function plTablero(i) {
+      var d = plArea(i), filtrado = function(lista) { return lista.filter(function(f) { return plPasa(f, i); }); };
+      var cols = d.managers.map(function(m) {
+        var vis = filtrado(m.centros);
+        return plColumna(i, m.nombre, m.nombre, m.centros.length + ' centro' + (m.centros.length === 1 ? '' : 's') + ' en total' + (vis.length !== m.centros.length ? ' · ' + vis.length + ' con el filtro' : ''), vis, false);
+      });
+      cols.push(plColumna(i, '', 'Sin asignar', '', filtrado(d.sin), true));
+      return '<div class="pl-tablero">' + cols.join('') + '</div>';
+    }
+    function plPanel(i) {
+      var d = plArea(i), todas = plResumen(d.managers.reduce(function(s, m) { return s.concat(m.centros); }, []).concat(d.sin));
+      var conCentros = d.managers.filter(function(m) { return m.centros.length; }).length;
+      var cambiosArea = plContar(ASIG_AREAS[i].c), totalCambios = plContar();
+      var regs = Object.keys(todas.reg).sort();
+      var kpis = '<div class="pl-kpis">' +
+        '<div><b>' + d.total + '</b><span>centros</span></div>' +
+        '<div><b>' + conCentros + '</b><span>managers con centros</span></div>' +
+        '<div class="' + (d.sin.length ? 'pl-malo' : '') + '"><b>' + d.sin.length + '</b><span>sin asignar</span></div>' +
+        '<div><b>' + todas.nReg + '</b><span>regionales</span></div>' +
+        '<div class="' + (cambiosArea ? 'pl-cam' : '') + '"><b>' + cambiosArea + '</b><span>cambios en ' + esc(ASIG_AREAS[i].t) + '</span></div></div>';
+      var barra = '<div class="pl-barra">' +
+        '<div class="pl-areas" role="tablist">' + ASIG_AREAS.map(function(a, k) {
+          var n = plContar(a.c);
+          return '<button type="button" class="pl-area' + (k === i ? ' on' : '') + '" data-pl="area" data-i="' + k + '">' + esc(a.t) + (n ? ' <i>' + n + '</i>' : '') + '</button>';
+        }).join('') + '</div>' +
+        '<div class="pl-filtros"><select id="plReg" aria-label="Filtrar por regional"><option value="">Todas las regionales</option>' +
+        regs.map(function(r) { return '<option' + (PL.reg === r ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select>' +
+        '<input type="search" id="plBuscar" placeholder="Buscar centro, regional o zona" value="' + esc(PL.buscar) + '" aria-label="Buscar en la planificación">' +
+        '<label class="pl-solo"><input type="checkbox" id="plSolo"' + (PL.solo ? ' checked' : '') + '> Solo cambios</label></div>' +
+        '<div class="pl-acc">' + (PL_ADMIN ? '<button type="button" class="btn gris" data-pl="descartar"' + (totalCambios ? '' : ' disabled') + '>Descartar</button>' +
+        '<button type="button" class="btn" data-pl="publicar"' + (totalCambios ? '' : ' disabled') + '>Publicar' + (totalCambios ? ' (' + totalCambios + ')' : '') + '</button>' : '') + '</div></div>';
+      var estado = totalCambios ? '<div class="pl-estado pl-estado-on">Borrador: <b>' + totalCambios + '</b> cambio' + (totalCambios === 1 ? '' : 's') + ' sin publicar. Openings todavía no cambia.</div>'
+        : '<div class="pl-estado">Sin cambios pendientes. Arrastra un centro a otro manager para planear; Openings no cambia hasta que publiques.</div>';
+      return '<div class="pl-wrap"><div class="pl-cab"><b>Planificación · ' + esc(ASIG_AREAS[i].n) + '</b></div>' + kpis + barra + estado +
+        '<div id="plTablero">' + plTablero(i) + '</div></div>';
+    }
+    function plPublicarDialogo() {
+      var lista = [];
+      Object.keys(PL.cambios).forEach(function(fid) {
+        var f = OP.filas.find(function(x) { return String(x.id) === fid; }) || {datos: {}};
+        Object.keys(PL.cambios[fid]).forEach(function(clave) {
+          var a = ASIG_AREAS.find(function(x) { return x.c === clave; }) || {t: clave};
+          lista.push({centro: f.datos.centro || '', area: a.t, regional: f.datos.regional || '', antes: PL.cambios[fid][clave].antes || 'sin asignar', nuevo: PL.cambios[fid][clave].nuevo});
+        });
+      });
+      lista.sort(function(x, y) { return x.area.localeCompare(y.area) || x.centro.localeCompare(y.centro, 'es', {sensitivity: 'base'}); });
+      var h = '<h3>Publicar la planificación</h3><p style="font-size:14px;margin:0 0 8px">Estos <b>' + lista.length + '</b> cambios se guardan en Openings. ' +
+        'Desde ahí se actualizan solos el Schedule, Pre-Approved, el historial y las asignaciones.</p>' +
+        '<div class="pl-lista"><table><tr><th>Centro</th><th>Área</th><th>Regional</th><th>De</th><th>A</th></tr>' +
+        lista.map(function(x) { return '<tr><td>' + esc(x.centro) + '</td><td>' + esc(x.area) + '</td><td>' + esc(x.regional) + '</td><td>' + esc(x.antes) + '</td><td><b>' + esc(x.nuevo) + '</b></td></tr>'; }).join('') +
+        '</table></div><p class="eq-aviso" style="font-size:12.5px">Si un centro cambió en Openings mientras planeabas, ese cambio no se pisa: se queda en el borrador y te lo mostramos.</p>';
+      plModal(h, function(f) {
+        fetch('/design/api/planificacion/publicar', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({confirmar: true})})
+          .then(function(r) { return r.json().catch(function() { return {}; }).then(function(x) { if (!r.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + r.status); return x; }); })
+          .then(function(d) {
+            f.remove();
+            var msg = 'Publicados ' + d.aplicados.length + ' cambio' + (d.aplicados.length === 1 ? '' : 's') + ' en Openings.' +
+              (d.conflictos.length ? ' ' + d.conflictos.length + ' no se aplicaron (siguen en el borrador).' : '');
+            return cargar().then(function() { return plCargar(); }).then(function() { pintar(); asigPintar(); paramToast(msg, d.conflictos.length > 0); });
+          })
+          .catch(function(er) { f.remove(); paramToast('No se pudo publicar: ' + er.message, true); });
+      }, 'Sí, publicar');
+    }
+    function plMoverDialogo(filaId, i, origen) {
+      var d = plArea(i), f = OP.filas.find(function(x) { return x.id === filaId; }); if (!f) return;
+      var opts = d.managers.filter(function(m) { return asigNorm(m.nombre) !== asigNorm(origen); }).map(function(m) {
+        return '<option value="' + esc(m.nombre) + '">' + esc(m.nombre) + '</option>'; }).join('');
+      var h = '<h3>Mover ' + esc((f.datos.centro || '').trim()) + '</h3><p style="font-size:13px;margin:0 0 8px">Regional ' + esc(plRegion(f)) + ' · ' + esc(ASIG_AREAS[i].t) + ' · hoy: ' + esc(origen || 'sin asignar') + '</p>' +
+        '<label style="font-size:13px">Nuevo manager</label><select id="plDestino" style="width:100%;margin:6px 0 10px"><option value="">Elige…</option>' + opts + '<option value="' + SIN + '">Sin asignar</option></select>';
+      plModal(h, function(m) {
+        var v = m.querySelector('#plDestino').value; if (!v) { m.querySelector('#plDestino').focus(); return; }
+        m.remove(); plMover(filaId, i, v);
+      }, 'Mover en el borrador');
+    }
+    function plMover(filaId, i, valor) {
+      post('/design/api/planificacion/mover', {filaId: filaId, clave: ASIG_AREAS[i].c, valor: valor}).then(function(d) {
+        plAplicarRespuesta(d); plPintarTablero(i);
+      }).catch(function(e) { paramToast('No se pudo planear: ' + e.message, true); });
+    }
+    function plPintarTablero(i) {
+      var t = document.getElementById('plTablero'); if (!t) { asigPintar(); return; }
+      t.innerHTML = plTablero(i);
+      asigPintarBarraPl(i);
+    }
+    function asigPintarBarraPl(i) {
+      var p = document.getElementById('opAsig'); if (!p) return;
+      var n = plContar(), b = p.querySelector('[data-pl="publicar"]'), d = p.querySelector('[data-pl="descartar"]');
+      if (b) { b.disabled = !n; b.textContent = n ? 'Publicar (' + n + ')' : 'Publicar'; }
+      if (d) d.disabled = !n;
+      var e = p.querySelector('.pl-estado'); if (e) { e.className = 'pl-estado' + (n ? ' pl-estado-on' : ''); e.innerHTML = n ? 'Borrador: <b>' + n + '</b> cambio' + (n === 1 ? '' : 's') + ' sin publicar. Openings todavía no cambia.' : 'Sin cambios pendientes. Arrastra un centro a otro manager para planear; Openings no cambia hasta que publiques.'; }
+      p.querySelectorAll('.pl-area').forEach(function(x) { var k = parseInt(x.dataset.i), c = plContar(ASIG_AREAS[k].c); x.classList.toggle('on', k === i); x.innerHTML = esc(ASIG_AREAS[k].t) + (c ? ' <i>' + c + '</i>' : ''); });
+    }
+
     function asigAlternar() {
       if (!OP) return;
       asigOn = !asigOn;
       var p = document.getElementById('opAsig'), w = cont.querySelector('.op-wrap'), bq = document.getElementById('opBuscar'), btn = document.getElementById('opAsigBtn');
       p.hidden = !asigOn; if (w) w.hidden = asigOn; if (bq) bq.hidden = asigOn;
       btn.textContent = asigOn ? 'Volver a la tabla' : 'Asignaciones'; btn.classList.toggle('on', asigOn);
-      if (asigOn) asigPintar();
+      if (asigOn) { asigPintar(); plCargar().then(asigPintar); }
     }
     function asigToast(html, deshacer) {
       document.querySelectorAll('.eq-toast.op-as-toast').forEach(function(x) { x.remove(); });
@@ -1565,6 +1799,73 @@
       if (!asigDrag || !k || parseInt(k.dataset.area) !== asigDrag.area) return;
       e.preventDefault(); var g = asigDrag; asigDrag = null;
       asigMover(g.fila, g.area, k.dataset.sin ? 'N/A' : k.dataset.mgr);
+    });
+    // Planificación: eventos (pestaña, áreas, filtros, arrastrar, mover, deshacer, publicar y descartar)
+    function plModal(html, aceptar, etiqueta) {
+      var f = document.createElement('div'); f.className = 'eq-modal-fondo';
+      f.innerHTML = '<div class="eq-modal" role="dialog" aria-modal="true">' + html + '<div class="eq-modal-acc"><button type="button" class="btn gris" data-m="no">Cancelar</button>' +
+        (aceptar ? '<button type="button" class="btn" data-m="si">' + esc(etiqueta) + '</button>' : '') + '</div></div>';
+      document.body.appendChild(f);
+      f.addEventListener('click', function(e) {
+        if (e.target === f || e.target.dataset.m === 'no') f.remove();
+        else if (e.target.dataset.m === 'si') { e.target.disabled = true; aceptar(f); }
+      });
+      return f;
+    }
+    function plDeshacer(filaId, clave) {
+      var c = PL.cambios[filaId] && PL.cambios[filaId][clave]; if (!c) return;
+      var i = ASIG_AREAS.findIndex(function(a) { return a.c === clave; });
+      post('/design/api/planificacion/mover', {filaId: filaId, clave: clave, valor: c.antes || SIN}).then(function(d) { plAplicarRespuesta(d); plPintarTablero(i); })
+        .catch(function(e) { paramToast('No se pudo deshacer: ' + e.message, true); });
+    }
+    function plDescartar() {
+      var n = plContar();
+      plModal('<h3>Descartar la planificación</h3><p style="font-size:14px;margin:0">Se quitan los <b>' + n + '</b> cambio' + (n === 1 ? '' : 's') + ' del borrador. Openings no cambia.</p>', function(f) {
+        post('/design/api/planificacion/descartar').then(function(d) { plAplicarRespuesta(d); f.remove(); asigPintar(); })
+          .catch(function(e) { f.remove(); paramToast('No se pudo descartar: ' + e.message, true); });
+      }, 'Descartar cambios');
+    }
+    cont.addEventListener('click', function(e) {
+      var t = e.target.closest('[data-asig-vista="planificacion"]');
+      if (t) { plCargar().then(asigPintar); return; }
+      var b = e.target.closest('[data-pl]'); if (!b || !asigOn) return;
+      var acc = b.dataset.pl;
+      if (acc === 'area') { PL.area = parseInt(b.dataset.i); asigPintar(); }
+      else if (acc === 'publicar') { if (plContar()) plPublicarDialogo(); }
+      else if (acc === 'descartar') { if (plContar()) plDescartar(); }
+      else if (acc === 'deshacer') plDeshacer(parseInt(b.dataset.fila), b.dataset.clave);
+      else if (acc === 'mover') {
+        var fid = parseInt(b.dataset.fila), i = parseInt(b.dataset.i), f = OP.filas.find(function(x) { return x.id === fid; });
+        if (f) plMoverDialogo(fid, i, plValor(f, ASIG_AREAS[i].c));
+      }
+    });
+    cont.addEventListener('input', function(e) {
+      if (e.target.id === 'plBuscar') { PL.buscar = e.target.value; plPintarTablero(PL.area); }
+    });
+    cont.addEventListener('change', function(e) {
+      if (e.target.id === 'plReg') { PL.reg = e.target.value; plPintarTablero(PL.area); }
+      else if (e.target.id === 'plSolo') { PL.solo = e.target.checked; plPintarTablero(PL.area); }
+    });
+    cont.addEventListener('dragstart', function(e) {
+      var r = e.target.closest && e.target.closest('.pl-row'); if (!r) return;
+      plDrag = {fila: parseInt(r.dataset.plFila), i: parseInt(r.dataset.i)}; r.classList.add('pl-arr');
+      e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', r.dataset.plFila); } catch (x) {}
+    });
+    cont.addEventListener('dragend', function(e) {
+      var r = e.target.closest && e.target.closest('.pl-row'); if (r) r.classList.remove('pl-arr');
+      cont.querySelectorAll('.pl-col.pl-sobre').forEach(function(x) { x.classList.remove('pl-sobre'); }); plDrag = null;
+    });
+    cont.addEventListener('dragover', function(e) {
+      var c = e.target.closest && e.target.closest('.pl-col');
+      if (!plDrag || !c || parseInt(c.dataset.plCol) !== plDrag.i) return;   // solo dentro de la misma área
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      if (!c.classList.contains('pl-sobre')) { cont.querySelectorAll('.pl-col.pl-sobre').forEach(function(x) { x.classList.remove('pl-sobre'); }); c.classList.add('pl-sobre'); }
+    });
+    cont.addEventListener('drop', function(e) {
+      var c = e.target.closest && e.target.closest('.pl-col');
+      if (!plDrag || !c || parseInt(c.dataset.plCol) !== plDrag.i) return;
+      e.preventDefault(); var g = plDrag; plDrag = null;
+      plMover(g.fila, g.i, c.dataset.mgr === '' ? SIN : c.dataset.mgr);
     });
     var enVuelo = 0;  // guardados en curso: mientras haya, no se refresca la tabla
     function post(url, body) {

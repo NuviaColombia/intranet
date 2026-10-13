@@ -434,6 +434,17 @@ class DesignInhabilitado(Base):
     reactivado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class DesignPlanificacion(Base):
+    """Borrador de Parámetros › Openings › Planificación: solo los cambios planeados (no toca Openings hasta publicar).
+    Una sola fila (id=1). `cambios` = {"<fila_id>": {"<columna>": {"antes": str, "nuevo": str}}}."""
+    __tablename__ = "design_planificacion"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cambios: Mapped[str] = mapped_column(Text, default="{}")
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignPreferencia(Base):
     """Preferencias de cada persona en Design (por ahora el modo oscuro). Por defecto, claro."""
     __tablename__ = "design_preferencias"

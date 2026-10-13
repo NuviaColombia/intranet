@@ -19,6 +19,7 @@ from ..auth import get_current_user
 from ..main_templates import templates
 from .. import services_design as sd
 from .. import services_design_accesos as sacc  # también activa el acceso automático de los equipos
+from .. import services_design_planificacion as spl
 from .. import services_design_support as ss
 from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
@@ -406,6 +407,45 @@ def api_pa_excel(user: Empleado = Depends(require_admin), db: Session = Depends(
 @router.post("/design/api/parametros/pa-excel/aplicar")
 def api_pa_excel_aplicar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return spx.aplicar(db, user.nombre_completo)
+
+
+class PlanMoverIn(BaseModel):
+    filaId: int
+    clave: str = Field(max_length=40)
+    valor: str = Field(default="", max_length=600)
+
+
+class PlanPublicarIn(BaseModel):
+    confirmar: bool = False
+
+
+@router.get("/design/api/planificacion")
+def api_plan_leer(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Borrador de la planificación: {fila: {columna: {antes, nuevo}}}."""
+    return {"cambios": spl.leer(db)}
+
+
+@router.post("/design/api/planificacion/mover")
+def api_plan_mover(payload: PlanMoverIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        return {"cambios": spl.mover(db, payload.filaId, payload.clave, payload.valor, user.nombre_completo)}
+    except KeyError:
+        raise HTTPException(404, "No se encontró el centro.")
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+
+
+@router.post("/design/api/planificacion/descartar")
+def api_plan_descartar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    return {"cambios": spl.descartar(db, user.nombre_completo)}
+
+
+@router.post("/design/api/planificacion/publicar")
+def api_plan_publicar(payload: PlanPublicarIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Publica el borrador en Openings (solo si la persona confirmó en pantalla)."""
+    if not payload.confirmar:
+        raise HTTPException(400, "Confirma la publicación para aplicar los cambios.")
+    return spl.publicar(db, user.nombre_completo)
 
 
 @router.get("/design/api/openings/historial")
