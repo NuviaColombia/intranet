@@ -112,3 +112,104 @@ def estado(db: Session) -> dict:
             if e and e.activo and not e.tiene_modulo(MODULO):
                 faltan.add(e.nombre_completo)
     return {"revisionInicial": inicial, "fechaRevision": fila.creado_en.isoformat() if fila else None, "sinAcceso": sorted(faltan)}
+
+from datetime import datetime  # noqa: E402
+
+# ---------- Inhabilitar el acceso a la plataforma (pedido por Rosember el 13-oct-2026) ----------
+# Una persona que se va (p. ej. renunció un diseñador): sale de sus equipos y ya no puede entrar a la plataforma, pero
+# NO se borra nada: su nombre sigue en las órdenes, el Dashboard y los registros del Schedule. Se puede reactivar.
+def esta_inhabilitado(db: Session, empleado_id: int | None) -> bool:
+    if not empleado_id:
+        return False
+    from .models_design import DesignInhabilitado
+    r = db.get(DesignInhabilitado, empleado_id)
+    return bool(r and r.activo)
+
+
+_CACHE_INH = {"t": 0.0, "ids": frozenset()}
+
+
+def ids_inhabilitados(db: Session) -> frozenset:
+    """Todos los inhabilitados, con caché de 30 s (se usa al armar cada orden del Schedule)."""
+    import time
+    from .models_design import DesignInhabilitado
+    if time.time() - _CACHE_INH["t"] > 30:
+        _CACHE_INH["ids"] = frozenset(r[0] for r in db.query(DesignInhabilitado.empleado_id).filter(DesignInhabilitado.activo == 1))
+        _CACHE_INH["t"] = time.time()
+    return _CACHE_INH["ids"]
+
+
+def inhabilitados_ids(db: Session, ids) -> set[int]:
+    from .models_design import DesignInhabilitado
+    ids = [i for i in set(ids) if i]
+    if not ids:
+        return set()
+    return {r[0] for r in db.query(DesignInhabilitado.empleado_id).filter(DesignInhabilitado.empleado_id.in_(ids), DesignInhabilitado.activo == 1)}
+
+
+def resumen_baja(db: Session, empleado_id: int) -> dict:
+    """Lo que pasaría al inhabilitar a esta persona (para mostrarlo antes de confirmar)."""
+    from datetime import date
+    from .models import Empleado
+    from .models_design import DesignTeam, DesignTeamDesigner, DesignOrden, DesignSupportConfig
+    from . import services_design as sd
+    e = db.get(Empleado, empleado_id)
+    if not e:
+        raise KeyError(empleado_id)
+    equipos = [t.nombre for t in db.query(DesignTeam).join(DesignTeamDesigner, DesignTeamDesigner.team_id == DesignTeam.id)
+               .filter(DesignTeamDesigner.empleado_id == empleado_id)]
+    manager_de = [t.nombre for t in db.query(DesignTeam).filter(DesignTeam.manager_id == empleado_id, DesignTeam.activo == 1)]
+    c = db.query(DesignSupportConfig).first()
+    en_support = bool(c and empleado_id in (c.persona_a_id, c.persona_b_id))
+    hoy = sd.ahora_colombia().date()
+    abiertos = (db.query(DesignOrden).filter(DesignOrden.designer_id == empleado_id, DesignOrden.fecha >= hoy)
+                .filter(sd.func.lower(sd.func.trim(DesignOrden.estado)).in_(["ready to design", "hold", "dr authorization", "changes", "initiated", "re-initiated",
+                                                                              "order entered", "pickup received", "bite ready", "changes ready"])).count())
+    return {"id": e.id, "nombre": e.nombre_completo, "email": e.email, "rol": e.rol, "equipos": equipos, "managerDe": manager_de,
+            "enSupport": en_support, "casosAbiertos": abiertos, "yaInhabilitado": esta_inhabilitado(db, empleado_id)}
+
+
+def inhabilitar(db: Session, empleado_id: int, por: str, motivo: str = "") -> dict:
+    """Lo saca de todos sus equipos y bloquea su acceso. Devuelve el resumen. Lanza ValueError si no se puede."""
+    from .models_design import DesignInhabilitado, DesignTeamDesigner, DesignPushSuscripcion
+    r = resumen_baja(db, empleado_id)
+    if r["rol"] in ("admin", "superadmin"):
+        raise ValueError("Un administrador no se inhabilita desde aquí.")
+    if r["managerDe"]:
+        raise ValueError(f"Es manager de {', '.join(r['managerDe'])}: cambia el manager del equipo antes de inhabilitarlo.")
+    if r["enSupport"]:
+        raise ValueError("Es una de las personas de Support Time: cámbiala en Parámetros › Support Time antes de inhabilitarlo.")
+    h = db.get(DesignInhabilitado, empleado_id)
+    if not h:
+        h = DesignInhabilitado(empleado_id=empleado_id)
+        db.add(h)
+    h.activo, h.motivo, h.equipos, h.por, h.fecha = 1, (motivo or "").strip()[:1000], ", ".join(r["equipos"]), por, datetime.utcnow()
+    h.reactivado_por, h.reactivado_en = "", None
+    db.query(DesignTeamDesigner).filter(DesignTeamDesigner.empleado_id == empleado_id).delete(synchronize_session=False)
+    db.query(DesignPushSuscripcion).filter(DesignPushSuscripcion.empleado_id == empleado_id).delete(synchronize_session=False)
+    db.commit()
+    _CACHE_INH["t"] = 0.0
+    return r
+
+
+def reactivar(db: Session, empleado_id: int, por: str) -> bool:
+    """Le devuelve el acceso (no lo vuelve a poner en ningún equipo: eso se hace en Equipos)."""
+    from .models_design import DesignInhabilitado
+    h = db.get(DesignInhabilitado, empleado_id)
+    if not h or not h.activo:
+        return False
+    h.activo, h.reactivado_por, h.reactivado_en = 0, por, datetime.utcnow()
+    db.commit()
+    _CACHE_INH["t"] = 0.0
+    return True
+
+
+def listar_inhabilitados(db: Session) -> list[dict]:
+    from .models import Empleado
+    from .models_design import DesignInhabilitado
+    out = []
+    for h in db.query(DesignInhabilitado).filter(DesignInhabilitado.activo == 1).order_by(DesignInhabilitado.fecha.desc()).all():
+        e = db.get(Empleado, h.empleado_id)
+        out.append({"id": h.empleado_id, "nombre": e.nombre_completo if e else f"#{h.empleado_id}", "email": e.email if e else "",
+                    "motivo": h.motivo, "equipos": h.equipos, "por": h.por, "fecha": h.fecha.isoformat() + "Z"})
+    return out

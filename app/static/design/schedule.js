@@ -1550,7 +1550,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + (d.esManager ? ' (manager)' : '') + '</option>';
       });
       if (val && !lista.some(function(d) { return d.id === val; })) {
-        html += '<option value="' + dsEsc(val) + '" selected>' + dsEsc((f.designerNombre || 'Diseñador') + ' (prestado)') + '</option>';
+        html += '<option value="' + dsEsc(val) + '" selected>' + dsEsc((f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : ' (prestado)')) + '</option>';
       }
       if (DS.diaData && !DS.diaData.designersCaso && !dsSoloPropias()) html += '<option value="__otro">Others (prestado)…</option>';
       return html + '</select>';

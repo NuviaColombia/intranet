@@ -20,6 +20,18 @@ def correo_bloqueado(email: str) -> bool:
     e = (email or "").strip().lower()
     extra = {x.strip().lower() for x in _os.environ.get("CORREOS_BLOQUEADOS", "").split(",") if x.strip()}
     return bool(e) and (e in CORREOS_BLOQUEADOS or e in extra)
+
+
+def acceso_inhabilitado(db, empleado_id: int) -> bool:
+    """¿Se le inhabilitó el acceso desde Design (Parámetros › Equipos)? Falla en abierto: un error aquí no deja a todos afuera."""
+    try:
+        from .models_design import DesignInhabilitado
+        h = db.get(DesignInhabilitado, empleado_id)
+        return bool(h and h.activo)
+    except Exception:
+        return False
+
+
 SCOPES = "openid email profile"
 REDIRECT_URI = f"{config.BASE_URL}/auth/callback"
 
@@ -80,6 +92,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Emplead
     if not user:
         request.session.clear()
         raise HTTPException(status_code=307, headers={"Location": "/login?error=no_registrado"})
+    if acceso_inhabilitado(db, user.id):   # inhabilitado desde Design › Parámetros › Equipos (p. ej. renunció)
+        request.session.clear()
+        raise HTTPException(status_code=307, headers={"Location": "/login?error=bloqueado"})
     return user
 
 

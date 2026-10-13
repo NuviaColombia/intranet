@@ -41,6 +41,10 @@ async def auth_callback(request: Request, code: str = "", db: Session = Depends(
     user = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()
     if not user:
         return RedirectResponse("/login?error=no_registrado")
+    from ..auth import acceso_inhabilitado
+    if acceso_inhabilitado(db, user.id):
+        request.session.clear()
+        return RedirectResponse("/login?error=bloqueado")
     request.session["user_email"] = email
     volver_a = request.session.pop("volver_a", "") or "/"
     if not volver_a.startswith("/") or volver_a.startswith("//") or "\\" in volver_a:

@@ -89,6 +89,15 @@
   .eq-chip form { display:inline; margin:0; }
   .eq-chip button { border:0; background:transparent; color:#991b1b; cursor:pointer; font-size:13px; line-height:1; padding:0 3px; border-radius:50%; }
   .eq-chip button:hover { background:#fecaca; }
+  .eq-chip .eq-inhab { font-size:11px; opacity:.55; } .eq-chip .eq-inhab:hover { opacity:1; }
+  .eq-inh-lista { margin:14px 0 4px; padding:10px 12px; border:1px dashed #cbd5e1; border-radius:12px; background:#f8fafc; }
+  .eq-inh-lista h3 { margin:0 0 6px; font-size:14px; color:#334155; }
+  .eq-inh-fila { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 0; border-top:1px solid #e2e8f0; font-size:13px; }
+  .eq-inh-fila:first-of-type { border-top:0; } .eq-inh-fila b { color:#0f172a; } .eq-inh-fila small { color:#64748b; flex:1 1 240px; }
+  .eq-modal-fondo { position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:1000; display:grid; place-items:center; padding:16px; }
+  .eq-modal { background:#fff; color:#0f172a; border-radius:16px; max-width:460px; width:100%; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.35); }
+  .eq-modal h3 { margin:0 0 8px; } .eq-modal ul { margin:6px 0 10px 18px; padding:0; font-size:14px; } .eq-modal textarea { width:100%; min-height:60px; box-sizing:border-box; margin:6px 0 12px; }
+  .eq-modal .eq-modal-acc { display:flex; justify-content:flex-end; gap:8px; } .eq-modal .eq-aviso { color:#991b1b; font-size:13px; }
   .eq-vacio { color:#64748b; font-size:11.5px; }
   .eq-add { display:flex; gap:4px; margin:0; align-items:center; }
   .eq-add .btn { padding:4px 10px; }
@@ -291,8 +300,10 @@
               <span class="eq-chip" draggable="true" data-registro="{{ d.id }}" data-nombre="{{ d.empleado.nombre_completo }}"
                     title="Arrástralo a otro equipo para moverlo">{{ d.empleado.nombre_completo }}
                 <form method="post" action="/design/parametros/designers/{{ d.id }}/quitar" class="eq-guarda">
-                  <button aria-label="Quitar a {{ d.empleado.nombre_completo }} de {{ t.nombre }}">×</button>
+                  <button aria-label="Quitar a {{ d.empleado.nombre_completo }} de {{ t.nombre }}" title="Quitar de este equipo">×</button>
                 </form>
+                <button type="button" class="eq-inhab" data-inhab="{{ d.empleado_id }}" data-nombre="{{ d.empleado.nombre_completo }}"
+                        aria-label="Inhabilitar el acceso de {{ d.empleado.nombre_completo }}" title="Inhabilitar acceso a la plataforma (se conservan sus datos)">⛔</button>
               </span>
               {% else %}<span class="eq-vacio">Sin diseñadores (suelta aquí para agregar)</span>{% endfor %}
             </div></td>
@@ -337,6 +348,14 @@
       </div>
     </details>
     {% endfor %}
+    <div class="eq-inh-lista" id="eqInhLista"{{ '' if inhabilitados else ' hidden' }}>
+      <h3>Inhabilitados ({{ inhabilitados|length }})</h3>
+      {% for h in inhabilitados %}
+      <div class="eq-inh-fila"><b>{{ h.nombre }}</b>
+        <small>{{ 'Salió de: ' ~ h.equipos ~ '. ' if h.equipos }}{{ h.motivo ~ '. ' if h.motivo }}Por {{ h.por or '—' }} · {{ h.fecha[:10] }} · sus datos del Schedule se conservan</small>
+        <button type="button" class="btn gris mini" data-reactivar="{{ h.id }}" data-nombre="{{ h.nombre }}">Reactivar acceso</button></div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 
@@ -1686,6 +1705,47 @@
       location.href = '/design/parametros';
     }).catch(function(err) { alert('No se pudo mover: ' + err.message); });
   }
+  function eqModal(html, aceptar, etiqueta) {
+    var f = document.createElement('div'); f.className = 'eq-modal-fondo';
+    f.innerHTML = '<div class="eq-modal" role="dialog" aria-modal="true">' + html + '<div class="eq-modal-acc"><button type="button" class="btn gris" data-m="no">Cancelar</button>' +
+      (aceptar ? '<button type="button" class="btn" data-m="si">' + esc(etiqueta) + '</button>' : '') + '</div></div>';
+    document.body.appendChild(f);
+    f.addEventListener('click', function(e) {
+      if (e.target === f || e.target.dataset.m === 'no') f.remove();
+      else if (e.target.dataset.m === 'si') { e.target.disabled = true; aceptar(f); }
+    });
+    return f;
+  }
+  function eqErr(r) { return r.json().catch(function() { return {}; }).then(function(j) { throw new Error(j.detail || ('HTTP ' + r.status)); }); }
+  eqCont.addEventListener('click', function(e) {
+    var b = e.target.closest('[data-inhab]'), re = e.target.closest('[data-reactivar]');
+    if (b) {
+      e.preventDefault(); var id = b.dataset.inhab;
+      fetch('/design/api/parametros/personas/' + id + '/inhabilitar-resumen').then(function(r) { return r.ok ? r.json() : eqErr(r); }).then(function(r) {
+        var li = function(a) { return a.map(function(x) { return '<li>' + esc(x) + '</li>'; }).join(''); };
+        var bloq = r.managerDe.length ? 'Es manager de ' + r.managerDe.join(', ') + ': cambia el manager del equipo antes de inhabilitarlo.' :
+                   r.enSupport ? 'Es una de las personas de Support Time: cámbiala en Support Time antes de inhabilitarlo.' : '';
+        var h = '<h3>Inhabilitar a ' + esc(r.nombre) + '</h3><p style="margin:0 0 6px;font-size:14px">Ya no podrá entrar a la plataforma y saldrá de sus equipos. ' +
+          '<b>Su nombre y todo lo que hizo en el Schedule se conserva</b> como registro. Puedes reactivarla cuando quieras.</p>' +
+          (r.equipos.length ? '<div style="font-size:13px">Saldrá de:</div><ul>' + li(r.equipos) + '</ul>' : '') +
+          (r.casosAbiertos ? '<p class="eq-aviso">Tiene ' + r.casosAbiertos + ' caso(s) abiertos asignados de hoy en adelante; reasígnalos en el Schedule.</p>' : '') +
+          (bloq ? '<p class="eq-aviso">' + esc(bloq) + '</p>' : '<label style="font-size:13px">Motivo (opcional)</label><textarea id="eqInhMotivo" placeholder="Ej: renunció el 12 de octubre"></textarea>');
+        eqModal(h, bloq ? null : function(f) {
+          fetch('/design/api/parametros/personas/' + id + '/inhabilitar', {method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({motivo: f.querySelector('#eqInhMotivo').value})}).then(function(x) { return x.ok ? x.json() : eqErr(x); })
+            .then(function() { location.href = '/design/parametros?msg=' + encodeURIComponent(r.nombre + ' ya no tiene acceso. Sus datos se conservan.'); })
+            .catch(function(er) { f.remove(); alert('No se pudo inhabilitar: ' + er.message); });
+        }, 'Inhabilitar acceso');
+      }).catch(function(er) { alert('No se pudo: ' + er.message); });
+    }
+    if (re) {
+      eqModal('<h3>Reactivar a ' + esc(re.dataset.nombre) + '</h3><p style="font-size:14px">Recupera el acceso a la plataforma. No vuelve a ningún equipo: agrégala en Equipos.</p>', function(f) {
+        fetch('/design/api/parametros/personas/' + re.dataset.reactivar + '/reactivar', {method: 'POST'}).then(function(x) { return x.ok ? x.json() : eqErr(x); })
+          .then(function() { location.href = '/design/parametros?msg=' + encodeURIComponent('Acceso reactivado.'); })
+          .catch(function(er) { f.remove(); alert('No se pudo: ' + er.message); });
+      }, 'Reactivar');
+    }
+  });
   var eqArrastre = null;
   eqCont.addEventListener('dragstart', function(e) {
     var c = e.target.closest && e.target.closest('.eq-chip');

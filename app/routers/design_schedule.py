@@ -296,6 +296,9 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
     teams = (db.query(DesignTeam).order_by(DesignTeam.orden).all())
     candidatos = (db.query(Empleado).filter(Empleado.empresa == NUVIA_DESIGN, Empleado.activo == 1)
                  .order_by(Empleado.apellidos).all())
+    inhabilitados = sacc.listar_inhabilitados(db)
+    _ids_inh = {i["id"] for i in inhabilitados}
+    candidatos = [c for c in candidatos if c.id not in _ids_inh]   # quien ya no está no se ofrece en los desplegables
     ausencias = db.query(DesignAusenciaTipo).order_by(DesignAusenciaTipo.orden).all()
     sd.festivos(db)  # asegura los festivos iniciales
     sd.ordenar_estados_n3_n6_una_vez(db)
@@ -304,7 +307,7 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
     catalogos = (db.query(DesignCatalogo).order_by(DesignCatalogo.area_id, DesignCatalogo.tipo,
                                                    DesignCatalogo.orden).all())
     return templates.TemplateResponse(request, "design_parametros.html",
-                                      {"user": user, "areas": areas, "teams": teams, "candidatos": candidatos,
+                                      {"user": user, "areas": areas, "teams": teams, "candidatos": candidatos, "inhabilitados": inhabilitados,
                                        "candidatos_az": sorted(candidatos, key=lambda e: sd._normalizar_texto(e.nombre_completo)),
                                        "con_ordenes": {tid for (tid,) in db.query(DesignOrden.team_id).distinct()},
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
@@ -700,6 +703,8 @@ def agregar_designer(team_id: int, user: Empleado = Depends(require_admin), db: 
                            empleado_id: int = Form(...)):
     if not db.get(DesignTeam, team_id) or not db.get(Empleado, empleado_id):
         return _param_invalido("El equipo o la persona elegida no existe.")
+    if sacc.esta_inhabilitado(db, empleado_id):
+        return _param_invalido("Esa persona tiene el acceso inhabilitado: reactívala primero en «Inhabilitados».")
     ya_existe = (db.query(DesignTeamDesigner)
                 .filter(DesignTeamDesigner.team_id == team_id, DesignTeamDesigner.empleado_id == empleado_id)
                 .first())
@@ -776,6 +781,36 @@ def api_mover_designer(registro_id: int, payload: MoverDesignerIn, user: Emplead
     db.commit()
     return {"ok": True, "registroId": nuevo.id, "origenId": origen.id, "origen": origen.nombre, "destino": destino.nombre,
             "nombre": nombre}
+
+
+class InhabIn(BaseModel):
+    motivo: str = ""
+
+
+@router.get("/design/api/parametros/personas/{empleado_id}/inhabilitar-resumen")
+def api_inhab_resumen(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        return sacc.resumen_baja(db, empleado_id)
+    except KeyError:
+        raise HTTPException(404, "La persona no existe.")
+
+
+@router.post("/design/api/parametros/personas/{empleado_id}/inhabilitar")
+def api_inhabilitar(empleado_id: int, payload: InhabIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        r = sacc.inhabilitar(db, empleado_id, user.nombre_completo, payload.motivo)
+    except KeyError:
+        raise HTTPException(404, "La persona no existe.")
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    return {"ok": True, "nombre": r["nombre"], "equipos": r["equipos"]}
+
+
+@router.post("/design/api/parametros/personas/{empleado_id}/reactivar")
+def api_reactivar(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    if not sacc.reactivar(db, empleado_id, user.nombre_completo):
+        raise HTTPException(404, "Esa persona no está inhabilitada.")
+    return {"ok": True}
 
 
 @router.post("/design/parametros/designers/{registro_id}/quitar")

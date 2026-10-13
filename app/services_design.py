@@ -1173,12 +1173,22 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
     return out
 
 
+def _designer_inhabilitado(o: DesignOrden) -> bool:
+    """El diseñador de la orden ya no tiene acceso (p. ej. renunció): su nombre se conserva como registro."""
+    if not o.designer_id:
+        return False
+    from sqlalchemy.orm import object_session
+    from . import services_design_accesos as sacc
+    db = object_session(o)
+    return bool(db and o.designer_id in sacc.ids_inhabilitados(db))
+
+
 def serializar_orden(o: DesignOrden) -> dict:
     return {
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
         "centro": o.centro, "producto": o.producto,
         "designerId": o.designer_id, "designerNombre": o.designer.nombre_completo if o.designer else "",
-        "designerPrestado": o.designer_prestado,
+        "designerPrestado": o.designer_prestado, "designerInhabilitado": _designer_inhabilitado(o),
         "horaInicio": o.hora_inicio, "horaInicioDiseno": o.hora_inicio_diseno, "horaFin": o.hora_fin,
         "holdMinutos": o.hold_minutos, "esferas": o.esferas, "critico": o.critico,
         "sHold": o.s_hold, "fHold": o.f_hold,

@@ -411,6 +411,22 @@ class DesignRolUsuario(Base):
     asignado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignInhabilitado(Base):
+    """Personas a las que se les inhabilitó el acceso a la plataforma desde Parámetros › Equipos (p. ej. renunció un diseñador).
+    No se borra nada: la persona sigue existiendo (su nombre queda en las órdenes, el Dashboard y los registros del
+    Schedule) pero no puede entrar. `activo` = 1 mientras esté inhabilitada; al reactivarla queda en 0 con quién y cuándo."""
+    __tablename__ = "design_inhabilitados"
+
+    empleado_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    activo: Mapped[int] = mapped_column(Integer, default=1)
+    motivo: Mapped[str] = mapped_column(Text, default="")
+    equipos: Mapped[str] = mapped_column(Text, default="")   # equipos de los que salió (texto, para el registro)
+    por: Mapped[str] = mapped_column(String(150), default="")
+    fecha: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    reactivado_por: Mapped[str] = mapped_column(String(150), default="")
+    reactivado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class DesignPreferencia(Base):
     """Preferencias de cada persona en Design (por ahora el modo oscuro). Por defecto, claro."""
     __tablename__ = "design_preferencias"
