@@ -943,7 +943,10 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
 SEG_TRABAJANDO = {"initiated", "re-initiated", "meeting", "practice", "training"}
 SEG_POR_HACER = {"ready to design", "hold", "order entered", "pickup received", "bite ready", "change ready", "changes ready",
                  "dr authorization", "changes"}
-SEG_GRUPOS = ["libre", "pausa", "asignado", "ocupado", "ausente"]
+# Hold (y "Dr authorization", que cuenta como Hold) va aparte de los casos asignados sin iniciar: el caso espera al doctor
+# (pedido por Rosember el 13-oct-2026). Un diseñador cuyos pendientes son solo Hold sale en el grupo "hold".
+SEG_HOLD = {"hold", "dr authorization"}
+SEG_GRUPOS = ["libre", "pausa", "asignado", "hold", "ocupado", "ausente"]
 SEG_MIN_ALMUERZO, SEG_MIN_BREAK = 60, 15   # si no tiene hora de fin
 
 
@@ -1018,14 +1021,16 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
             continue
         est = lambda o: (o.estado or "").strip().lower()
         trabajando = [o for o in mias if est(o) in SEG_TRABAJANDO]
-        por_hacer = [o for o in mias if est(o) in SEG_POR_HACER]
-        terminados = [o for o in mias if est(o) not in SEG_TRABAJANDO | SEG_POR_HACER and (o.estado or "").strip()]
+        por_hacer = [o for o in mias if est(o) in SEG_POR_HACER and est(o) not in SEG_HOLD]   # sin iniciar (sin Hold)
+        en_hold = [o for o in mias if est(o) in SEG_HOLD]
+        terminados = [o for o in mias if est(o) not in SEG_TRABAJANDO | SEG_POR_HACER | SEG_HOLD and (o.estado or "").strip()]
         fines = [h for h in ((o.hora_fin or "").strip() for o in terminados) if _seg_hora(h) is not None]
         x.update({"terminadosHoy": len(terminados), "ultimoFin": max(fines, key=_seg_hora) if fines else "",
                   "pendientes": {"ready": sum(1 for o in por_hacer if est(o) == "ready to design"),
-                                 "hold": sum(1 for o in por_hacer if est(o) == "hold"),
-                                 "otros": sum(1 for o in por_hacer if est(o) not in ("ready to design", "hold"))},
+                                 "hold": len(en_hold),
+                                 "otros": sum(1 for o in por_hacer if est(o) != "ready to design")},
                   "porHacer": [{"orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": (o.estado or "").strip()} for o in por_hacer[:6]],
+                  "enHold": [{"orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": (o.estado or "").strip()} for o in en_hold[:6]],
                   "actual": None, "pausa": None, "ausencia": ""})
         # ausencia y pausas (break / almuerzo) registradas en su Schedule hoy
         for b in (b for b in pausas if b.empleado_id == pid):
@@ -1054,6 +1059,8 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
             x["grupo"] = "ocupado"
         elif por_hacer:
             x["grupo"] = "asignado"
+        elif en_hold:
+            x["grupo"] = "hold"
         else:
             x["grupo"] = "libre"
         out.append(x)
@@ -1123,6 +1130,7 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
         trabajando = [o for o in mias if est(o) in SEG_TRABAJANDO]
         hechos = [o for o in mias if est(o) and est(o) not in SEG_TRABAJANDO | SEG_POR_HACER]
         por_hacer = [o for o in mias if o not in trabajando and o not in hechos]
+        holds = [o for o in por_hacer if est(o) in SEG_HOLD]   # se muestran aparte de "por hacer" (el tiempo estimado los sigue contando)
         sin_disenador = [o for o in mias if o not in hechos and not o.designer_id and not (o.designer_prestado or "").strip()]
         def estimado(o):
             return promedios.get((t.area_id, _normalizar_texto(o.producto))) or promedios.get((t.area_id, None)) or SEG_MIN_POR_DEFECTO
@@ -1156,7 +1164,7 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
         out.append({"teamId": t.id, "equipo": t.nombre, "area": t.area.nombre, "manager": mgr.get(t.manager_id, ""),
                     "cirugias": sum(1 for o in mias if o.tabla == "principal"), "nightguards": sum(1 for o in mias if o.tabla == "nightguard"),
                     "material": sum(1 for o in mias if o.tabla == TABLA_MATERIAL),
-                    "total": len(mias), "hechos": len(hechos), "enProceso": len(trabajando), "porHacer": len(por_hacer), "sinDisenador": len(sin_disenador),
+                    "total": len(mias), "hechos": len(hechos), "enProceso": len(trabajando), "porHacer": len(por_hacer) - len(holds), "enHold": len(holds), "sinDisenador": len(sin_disenador),
                     "disenadores": len(propios), "enTurno": [persona(e) for e in en_turno],
                     "ausentes": [e.nombre_completo for e in propios if e.id in ausentes], "prestados": prestados,
                     "deOtrosEquipos": len(de_otros), "pendienteMin": round(pendiente_min), "capacidadMin": capacidad, "restanteMin": restante,

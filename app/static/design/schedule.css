@@ -967,7 +967,7 @@
 .sg-eq-card h3 { margin:0; font-size:17px; }
 .sg-eq-card .sg-semaforo { font-size:15px; padding:6px 14px; }
 .sg-eq-det { font-size:13.5px; color:#374151; }
-.sg-eq-nums { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:6px; }
+.sg-eq-nums { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:6px; }
 .sg-eq-nums > div { background:#f8fafc; border-radius:10px; padding:6px 4px; text-align:center; }
 .sg-eq-nums b { display:block; font-size:19px; color:#111827; } .sg-eq-nums span { font-size:11px; color:#6b7280; line-height:1.2; display:block; }
 .sg-eq-nums .sg-alerta b { color:#b91c1c; } .sg-eq-nums .sg-alerta { background:#fef2f2; }
@@ -1048,3 +1048,11 @@
   .dp-barra .b i { display:block; height:100%; background:#1d4ed8; border-radius:6px; }
   .dp-barra b { text-align:right; }
   .dp-mas { font-size:12px; color:#4b5563; margin-top:6px; }
+
+  /* Seguimiento: grupo "En Hold" (aparte de los asignados sin iniciar) */
+  .sg-chip.sg-hold:not(.on) { border-color:#fdba74; background:#fff7ed; }
+  .sg-sep.sg-hold td { background:#fff7ed; color:#9a3412; }
+  .sg-estado.sg-hold { background:#ffedd5; color:#9a3412; }
+  .sg-p.sg-hold i { background:#f97316; }
+  .sg-col.sg-hold { background:#fff7ed; border-color:#fed7aa; } .sg-col.sg-hold header { color:#9a3412; }
+  .sg-card.sg-hold { border-left:4px solid #f97316; }

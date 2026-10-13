@@ -23,7 +23,8 @@
   var GRUPOS = {
     libre: {ico: '🟢', rot: 'Libre', desc: 'Sin casos por hacer y fuera de break o almuerzo'},
     pausa: {ico: '☕', rot: 'En pausa', desc: 'En break o almuerzo según su Schedule'},
-    asignado: {ico: '🟡', rot: 'Asignado sin iniciar', desc: 'Tiene casos en Ready to design o Hold'},
+    asignado: {ico: '🟡', rot: 'Asignado sin iniciar', desc: 'Tiene casos por empezar (Ready to design, Changes…), sin contar Hold'},
+    hold: {ico: '⏸️', rot: 'En Hold', desc: 'Solo tiene casos en Hold o Dr authorization: esperan respuesta del doctor'},
     ocupado: {ico: '🔴', rot: 'Ocupado', desc: 'Trabajando un caso ahora'},
     ausente: {ico: '⚪', rot: 'Ausente', desc: 'Tiene una ausencia registrada hoy'}
   };
@@ -41,9 +42,9 @@
   function queHace(x) {
     var p = x.pendientes, pend = [];
     if (p.ready) pend.push(p.ready + ' Ready to design');
-    if (p.hold) pend.push(p.hold + ' Hold');
     if (p.otros) pend.push(p.otros + ' por hacer');
-    var pendTxt = pend.length ? '<div class="sg-pend">Pendientes: ' + esc(pend.join(' · ')) + '</div>' : '';
+    var holdTxt = p.hold ? p.hold + ' en Hold' : '';
+    var pendTxt = (pend.length || holdTxt) ? '<div class="sg-pend">Pendientes: ' + esc(pend.concat(holdTxt ? [holdTxt] : []).join(' · ')) + '</div>' : '';
     if (x.grupo === 'ausente') return '<b>' + esc(x.ausencia) + '</b>';
     if (x.grupo === 'pausa') return '<b>' + esc(x.pausa.tipo) + '</b> desde ' + esc(x.pausa.desde) + ' hasta ' + esc(x.pausa.hasta) +
       (x.actual ? '<div class="sg-pend">Al volver: ' + esc(x.actual.estado) + ' ' + esc(x.actual.orden) + '</div>' : '') + pendTxt;
@@ -53,7 +54,11 @@
         '<div class="sg-sub">' + esc(a.producto || '') + (a.desde ? ' · desde ' + esc(a.desde) + (t ? ' (' + t + ')' : '') : '') + (a.otrosTrabajando ? ' · +' + a.otrosTrabajando + ' iniciado(s)' : '') + '</div>' + pendTxt;
     }
     if (x.grupo === 'asignado') {
-      return '<b>' + esc(pend.join(' · ')) + '</b><div class="sg-sub">' + x.porHacer.map(function(o) { return esc(o.orden || 'sin número') + ' (' + esc(o.estado) + ')'; }).join(', ') + '</div>';
+      return '<b>' + esc(pend.join(' · ')) + '</b><div class="sg-sub">' + x.porHacer.map(function(o) { return esc(o.orden || 'sin número') + ' (' + esc(o.estado) + ')'; }).join(', ') + '</div>' +
+        (holdTxt ? '<div class="sg-pend">Además: ' + esc(holdTxt) + '</div>' : '');
+    }
+    if (x.grupo === 'hold') {
+      return '<b>' + esc(holdTxt) + '</b><div class="sg-sub">' + (x.enHold || []).map(function(o) { return esc(o.orden || 'sin número') + ' (' + esc(o.estado) + ')'; }).join(', ') + '</div>';
     }
     var libre = x.ultimoFin ? 'Libre desde ' + esc(x.ultimoFin) + (minutosDesde(x.ultimoFin) != null ? ' (' + duracion(minutosDesde(x.ultimoFin)) + ')' : '') : 'Sin casos hoy';
     return '<b>' + libre + '</b>';
@@ -148,7 +153,7 @@
           '<span class="sg-semaforo sg-sem-' + e.semaforo + '" title="' + esc(S.desc) + '">' + S.ico + ' ' + S.rot + '</span></header>' +
         '<div class="sg-eq-det">' + detalle + '</div>' +
         '<div class="sg-eq-nums"><div><b>' + e.total + '</b><span>' + progr + '</span></div><div><b>' + e.hechos + '</b><span>terminados</span></div><div><b>' + e.enProceso + '</b><span>en proceso</span></div>' +
-          '<div><b>' + e.porHacer + '</b><span>por hacer</span></div><div' + (e.sinDisenador ? ' class="sg-alerta"' : '') + '><b>' + e.sinDisenador + '</b><span>sin diseñador</span></div>' +
+          '<div><b>' + e.porHacer + '</b><span>por hacer</span></div><div><b>' + (e.enHold || 0) + '</b><span>en Hold</span></div><div' + (e.sinDisenador ? ' class="sg-alerta"' : '') + '><b>' + e.sinDisenador + '</b><span>sin diseñador</span></div>' +
           '<div><b>' + (e.casosPorDisenador != null ? e.casosPorDisenador : '—') + '</b><span>casos por diseñador</span></div></div>' +
         '<div class="sg-barra" title="' + pct + '% terminado"><i style="width:' + pct + '%"></i></div>' +
         '<div class="sg-eq-gente"><span class="sg-sub">En turno (' + n + '):</span> ' + (gente || '<span class="sg-alerta">Nadie en turno</span>') + '</div>' +

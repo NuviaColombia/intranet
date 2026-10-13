@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (564 reglas) ---- */
+/* ---- static\design\schedule.css (571 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -622,6 +622,13 @@
 :root[data-ds-tema="oscuro"] .dp-barra .b { background:#1a2229; }
 :root[data-ds-tema="oscuro"] .dp-barra .b i { background:#1d4ed8; }
 :root[data-ds-tema="oscuro"] .dp-mas { color:#bbc1cc; }
+:root[data-ds-tema="oscuro"] .sg-chip.sg-hold:not(.on) { border-color:#6d4c2b; background:#33230f; }
+:root[data-ds-tema="oscuro"] .sg-sep.sg-hold td { background:#33230f; color:#f3ad95; }
+:root[data-ds-tema="oscuro"] .sg-estado.sg-hold { background:#3d2b12; color:#f3ad95; }
+:root[data-ds-tema="oscuro"] .sg-p.sg-hold i { background:#f97316; }
+:root[data-ds-tema="oscuro"] .sg-col.sg-hold { background:#33230f; border-color:#5f4425; }
+:root[data-ds-tema="oscuro"] .sg-col.sg-hold header { color:#f3ad95; }
+:root[data-ds-tema="oscuro"] .sg-card.sg-hold { border-left:4px solid #f97316; }
 
 /* ---- static\inicio\inicio.css (129 reglas) ---- */
 :root[data-ds-tema="oscuro"] .nvi-pagina { background:var(--nvi-fondo); color:var(--nvi-texto); }
