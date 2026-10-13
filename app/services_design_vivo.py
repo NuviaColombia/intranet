@@ -17,7 +17,8 @@ from datetime import date
 from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 from .models_design import (DesignOrden, DesignBreak, DesignPreApprovedSheet, DesignPreApprovedCentro, DesignPreApprovedDoctor,
-                            DesignPreApprovedFila, DesignPreApprovedCelda, DesignPreApprovedFoto, DesignInicioPagina, DesignInicioMuro, DesignInicioReaccion)
+                            DesignPreApprovedFila, DesignPreApprovedCelda, DesignPreApprovedFoto, DesignInicioPagina, DesignInicioMuro, DesignInicioReaccion,
+                            DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila)
 
 log = logging.getLogger(__name__)
 _subs: set = set()          # {(loop, cola)}
@@ -96,6 +97,8 @@ def _anotar(session: Session, obj, borrado: bool) -> None:
                 avisos.add(("asig", 0, ""))   # prestado por nombre: cada pestaña revisa la suya
     elif isinstance(obj, PRE_APPROVED):
         avisos.add(("pa", 0, ""))
+    elif isinstance(obj, (DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila)):
+        avisos.add(("op", 0, ""))
     elif isinstance(obj, DesignInicioPagina):
         avisos.add(("inicio", 0, "pub"))
     elif isinstance(obj, (DesignInicioMuro, DesignInicioReaccion)):
@@ -126,6 +129,8 @@ def _al_ejecutar(estado):
         for m in estado.all_mappers:
             if m.class_ in PRE_APPROVED:
                 avisos.add(("pa", 0, ""))
+            elif m.class_ in (DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila):
+                avisos.add(("op", 0, ""))
             elif m.class_ in (DesignOrden, DesignBreak):
                 avisos.add(("dia", 0, ""))   # sin equipo ni fecha: todas las pantallas del Schedule revisan
                 avisos.add(("asig", 0, ""))
@@ -150,6 +155,8 @@ def _al_commit(session):
             out.append({"t": "asig", "id": num})
         elif tipo == "pa":
             out.append({"t": "pa"})
+        elif tipo == "op":
+            out.append({"t": "op"})
         elif tipo == "inicio":
             out.append({"t": "inicio", "que": texto})
     publicar(out)

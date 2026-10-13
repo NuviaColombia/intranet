@@ -2,7 +2,7 @@
    cambia, el servidor manda un aviso corto y aquí se reparte como evento 'ds:vivo' del documento:
      {t:'dia', team, fecha}  órdenes o tiempos libres de un equipo y día (team 0 = cualquiera)
      {t:'asig', id}          casos de una persona (id 0 = revisar todos)
-     {t:'pa'}                Pre-Approved      {t:'inicio', que:'pub'|'muro'}   página de Inicio
+     {t:'op'}                Openings (Parámetros)   {t:'pa'}   Pre-Approved      {t:'inicio', que:'pub'|'muro'}   página de Inicio
      {t:'reconectado'}       se (re)abrió la conexión: cada pantalla revisa una vez por si se perdió algo
    Cada pantalla decide si el aviso le toca. window.DSVivo.conectado dice si hay conexión: si no la hay, las
    pantallas vuelven a consultar cada pocos segundos como antes. Una pestaña oculta más de 1 min cierra la conexión. */
