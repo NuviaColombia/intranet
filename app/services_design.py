@@ -278,8 +278,10 @@ def mis_equipos(db: Session, user: Empleado) -> list[dict]:
     activos = [t for t in db.query(DesignTeam).filter(DesignTeam.activo == 1).all() if t.area_id in pos]
     clave = lambda t: (pos[t.area_id], t.orden or 0, t.id)
     ids = equipos_como_designer(db, user)
+    # Diseñador a cargo hoy (13-oct-2026): ve su equipo igual que el manager, así que también aparece en su lista
+    a_cargo = {tid for tid, eid in delegaciones_activas(db).items() if eid == user.id}
     propios = sorted((t for t in activos if t.manager_id == user.id), key=clave)
-    propios += [t for t in sorted((t for t in activos if t.id in ids), key=clave) if t not in propios]
+    propios += [t for t in sorted((t for t in activos if t.id in ids or t.id in a_cargo), key=clave) if t not in propios]
     return [{"areaId": t.area_id, "teamId": t.id, "nombre": t.nombre, "area": nombre_area[t.area_id]} for t in propios]
 
 
