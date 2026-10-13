@@ -1728,10 +1728,12 @@ def dashboard_tendencia(db: Session, user: Empleado, area_id: int | None, team_i
     else:
         clave = lambda f: f - timedelta(days=f.weekday())
         etiqueta = lambda f: "Sem " + f.strftime("%d/%m")
-    tramos = sorted({clave(desde + timedelta(days=i)) for i in range(dias)})
+    # Sábados y domingos no cuentan (13-oct-2026): no son días de trabajo del horario.
+    tramos = sorted({clave(desde + timedelta(days=i)) for i in range(dias)
+                     if (desde + timedelta(days=i)).weekday() < 5})
     equipos: dict[int, dict] = {}
     for tid, fecha, estado, nombre in q.all():
-        if _es_cancelada(estado):
+        if _es_cancelada(estado) or fecha.weekday() >= 5:
             continue
         e = equipos.setdefault(tid, {"id": tid, "nombre": nombre, "valores": {}})
         k = clave(fecha)

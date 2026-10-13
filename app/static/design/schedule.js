@@ -2986,37 +2986,98 @@ function ddRenderProductos() {
 // A8 (13-oct-2026): el Dashboard se mira por área y por periodo (un año como máximo); ya no hay "Todo".
 function ddCargarTendencia() {
   var box = document.getElementById('ddTendencia'), body = document.getElementById('ddTendenciaBody');
+  DDT.ocultos = {};
   var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
   var desde = document.getElementById('ddDesde').value, hasta = document.getElementById('ddHasta').value;
   if ((!area && !team) || !desde || !hasta) { box.hidden = true; return; }
   var u = '/design/api/dashboard/tendencia?desde=' + desde + '&hasta=' + hasta + (team ? '&team_id=' + team : '&area_id=' + area);
   ddApi(u).then(function(d) { ddPintarTendencia(d, body, box); }).catch(function(e) { box.hidden = false; body.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; body.firstChild.textContent = 'No se pudo cargar la tendencia: ' + e.message; });
 }
+var DDT = {d: null, ocultos: {}};
+var DDT_COL = ['#1d4ed8', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#334155', '#ea580c'];
+// Techo "redondo" para el eje Y (1, 2, 5, 10, 20, 50, ...)
+function ddTecho(max) {
+  var pasos = [1, 2, 5], m = 1;
+  while (true) { for (var k = 0; k < pasos.length; k++) { if (pasos[k] * m >= max) return pasos[k] * m; } m *= 10; }
+}
 function ddPintarTendencia(d, body, box) {
   box.hidden = false;
-  if (!d.series.length || !d.tramos.length) { body.innerHTML = '<p class="dd-p-nota">No hay casos completos en este periodo.</p>'; return; }
-  var W = 900, H = 280, P = 40, n = d.tramos.length, max = 1;
-  d.series.forEach(function(s) { s.valores.forEach(function(v) { if (v > max) max = v; }); });
-  var x = function(i) { return n <= 1 ? W / 2 : P + i * (W - 2 * P) / (n - 1); };
-  var y = function(v) { return H - P - v * (H - 2 * P) / max; };
-  var col = ['#1d4ed8', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#334155', '#ea580c'];
-  var ejes = '<line x1="' + P + '" y1="' + (H - P) + '" x2="' + (W - P) + '" y2="' + (H - P) + '" stroke="#cbd5e1"/>' +
-             '<line x1="' + P + '" y1="' + P + '" x2="' + P + '" y2="' + (H - P) + '" stroke="#cbd5e1"/>' +
-             '<text x="' + (P - 6) + '" y="' + (y(max) + 4) + '" text-anchor="end" font-size="11" fill="#64748b">' + max + '</text>' +
-             '<text x="' + (P - 6) + '" y="' + (H - P + 4) + '" text-anchor="end" font-size="11" fill="#64748b">0</text>';
-  var paso = Math.ceil(n / 14), etiquetas = d.tramos.map(function(t, i) {
-    return i % paso ? '' : '<text x="' + x(i) + '" y="' + (H - P + 16) + '" text-anchor="middle" font-size="10.5" fill="#475569">' + ddEsc(t) + '</text>';
+  DDT.d = d;
+  ddDibujarTendencia(body);
+}
+// Gráfica de casos por equipo: pasa el mouse para ver el detalle de cada día o semana; haz clic en un equipo para
+// mostrar u ocultar su línea. Sábados y domingos no se cuentan (ya vienen fuera desde el servidor).
+function ddDibujarTendencia(body) {
+  var d = DDT.d;
+  if (!d.series.length || !d.tramos.length) {
+    body.innerHTML = '<p class="dd-p-nota">No hay casos completos en este periodo.</p>'; return;
+  }
+  var lista = d.series.map(function(s, k) { return {s: s, c: DDT_COL[k % DDT_COL.length]}; });
+  var activos = lista.filter(function(x) { return !DDT.ocultos[x.s.nombre]; });
+  var W = 900, H = 340, PL = 48, PR = 18, PT = 16, PB = 58, n = d.tramos.length;
+  var max = 1;
+  activos.forEach(function(x) { x.s.valores.forEach(function(v) { if (v > max) max = v; }); });
+  var techo = ddTecho(max), iw = W - PL - PR, ih = H - PT - PB;
+  var x = function(i) { return PL + (n <= 1 ? iw / 2 : i * iw / (n - 1)); };
+  var y = function(v) { return PT + ih - v * ih / techo; };
+  var anchoZona = n <= 1 ? iw : iw / (n - 1);
+
+  var rejilla = '';
+  for (var g = 0; g <= 4; g++) {
+    var val = techo * g / 4, yy = y(val);
+    rejilla += '<line x1="' + PL + '" x2="' + (W - PR) + '" y1="' + yy + '" y2="' + yy + '" stroke="#e2e8f0"/>' +
+               '<text x="' + (PL - 8) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="11" fill="#64748b">' + Math.round(val) + '</text>';
+  }
+  var paso = Math.max(1, Math.ceil(n / 12));
+  var etiquetas = d.tramos.map(function(t, i) {
+    return i % paso ? '' : '<text x="' + x(i) + '" y="' + (H - PB + 18) + '" text-anchor="middle" font-size="11" fill="#475569">' + ddEsc(t) + '</text>';
   }).join('');
-  var lineas = d.series.map(function(s, k) {
-    var c = col[k % col.length], pts = s.valores.map(function(v, i) { return x(i) + ',' + y(v); }).join(' ');
-    return '<polyline fill="none" stroke="' + c + '" stroke-width="2.2" points="' + pts + '"/>' + s.valores.map(function(v, i) {
-      return '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3.2" fill="' + c + '"><title>' + ddEsc(s.nombre) + ' · ' + ddEsc(d.tramos[i]) + ': ' + v + '</title></circle>';
-    }).join('');
+  var lineas = activos.map(function(a) {
+    var pts = a.s.valores.map(function(v, i) { return x(i) + ',' + y(v); }).join(' ');
+    return '<polyline fill="none" stroke="' + a.c + '" stroke-width="2.4" stroke-linejoin="round" points="' + pts + '"/>' +
+      a.s.valores.map(function(v, i) { return '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3.4" fill="#fff" stroke="' + a.c + '" stroke-width="2"/>'; }).join('');
   }).join('');
-  var leyenda = d.series.map(function(s, k) {
-    return '<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0;font-size:12.5px"><i style="width:12px;height:12px;border-radius:3px;background:' + col[k % col.length] + '"></i>' + ddEsc(s.nombre) + ' <b>' + s.total + '</b></span>';
+  var zonas = d.tramos.map(function(t, i) {
+    return '<rect class="dd-zona" data-i="' + i + '" x="' + (x(i) - anchoZona / 2) + '" y="' + PT + '" width="' + anchoZona + '" height="' + ih + '" fill="transparent"/>';
   }).join('');
-  body.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Casos por equipo en el periodo">' + ejes + etiquetas + lineas + '</svg><div>' + leyenda + '</div>';
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Casos por equipo en el periodo">' +
+    rejilla +
+    '<line x1="' + PL + '" x2="' + (W - PR) + '" y1="' + (PT + ih) + '" y2="' + (PT + ih) + '" stroke="#94a3b8"/>' +
+    etiquetas +
+    '<line class="dd-guia" x1="0" x2="0" y1="' + PT + '" y2="' + (PT + ih) + '" stroke="#334155" stroke-dasharray="4 3" opacity="0"/>' +
+    lineas + '<g class="dd-puntos"></g>' + zonas + '</svg>';
+
+  var leyenda = lista.map(function(x) {
+    var oculto = !!DDT.ocultos[x.s.nombre];
+    return '<button type="button" class="dd-leg' + (oculto ? ' off' : '') + '" data-nombre="' + ddEsc(x.s.nombre).replace(/"/g, '&quot;') + '" aria-pressed="' + (!oculto) + '">' +
+      '<i style="background:' + x.c + '"></i>' + ddEsc(x.s.nombre) + ' <b>' + x.s.total + '</b></button>';
+  }).join('');
+  var resumen = activos.reduce(function(s, a) { return s + a.s.total; }, 0);
+  body.innerHTML = '<div class="dd-tend-cab"><span><b>' + resumen + '</b> casos en ' + n + ' ' + (d.tramos[0] && d.tramos[0].indexOf('Sem') === 0 ? 'semanas' : 'días laborables') + '</span>' +
+    '<span class="dd-p-nota">Pasa el mouse para ver el detalle · clic en un equipo para mostrar u ocultar su línea</span></div>' +
+    '<div class="dd-tend">' + svg + '<div class="dd-tip" hidden></div></div>' +
+    '<div class="dd-leyenda">' + leyenda + '</div>';
+
+  var tip = body.querySelector('.dd-tip'), guia = body.querySelector('.dd-guia'), puntos = body.querySelector('.dd-puntos');
+  var svgEl = body.querySelector('svg');
+  body.querySelectorAll('.dd-zona').forEach(function(z) {
+    z.addEventListener('mouseenter', function() {
+      var i = +z.dataset.i;
+      guia.setAttribute('x1', x(i)); guia.setAttribute('x2', x(i)); guia.setAttribute('opacity', 1);
+      puntos.innerHTML = activos.map(function(a) { return '<circle cx="' + x(i) + '" cy="' + y(a.s.valores[i]) + '" r="6" fill="' + a.c + '" stroke="#fff" stroke-width="2"/>'; }).join('');
+      var filas = activos.map(function(a) {
+        return '<div class="dd-tip-f"><span><i style="background:' + a.c + '"></i>' + ddEsc(a.s.nombre) + '</span><b>' + a.s.valores[i] + '</b></div>';
+      }).join('') || '<div>Sin equipos seleccionados</div>';
+      tip.innerHTML = '<div class="dd-tip-t">' + ddEsc(d.tramos[i]) + '</div>' + filas;
+      tip.hidden = false;
+      var pct = (x(i) / W) * 100;
+      tip.style.left = Math.min(Math.max(pct, 12), 70) + '%';
+    });
+  });
+  svgEl.addEventListener('mouseleave', function() { guia.setAttribute('opacity', 0); puntos.innerHTML = ''; tip.hidden = true; });
+  body.querySelectorAll('.dd-leg').forEach(function(b) {
+    b.addEventListener('click', function() { var nm = b.dataset.nombre; DDT.ocultos[nm] = !DDT.ocultos[nm]; ddDibujarTendencia(body); });
+  });
 }
 function ddCargar() {
   var params = new URLSearchParams();
@@ -3344,6 +3405,13 @@ function daPintar() {
     '<div class="dd-kpi"><b>' + pas + '</b>pasaron de ' + (d.limiteMin / 60) + ' horas</div>' +
     '<div class="dd-kpi"><b>' + (med ? Math.round(pas * 100 / med) : 0) + '%</b>de los casos medidos</div>' +
     '<div class="dd-kpi"><b>' + (med ? daFmt(prom) : '—') + '</b>tiempo promedio de articulación</div>';
+  var top = f.centros.filter(function(c) { return c.casos && c.promedio; }).slice().sort(function(x, y) { return y.promedio - x.promedio; }).slice(0, 15);
+  var topMax = top.length ? top[0].promedio : 1;
+  document.getElementById('daTop').innerHTML = top.length ? top.map(function(c) {
+    return '<div class="da-barra" title="' + ddEsc(c.centro) + ': promedio ' + daFmt(c.promedio) + ', el más largo ' + daFmt(c.max) + '"><span class="n">' + ddEsc(c.centro) + '</span>' +
+      '<span class="b"><i style="width:' + Math.max(2, c.promedio * 100 / topMax) + '%"></i></span>' +
+      '<b>' + daFmt(c.promedio) + ' <small>· ' + c.casos + ' casos</small></b></div>';
+  }).join('') : '<p class="dd-p-nota">No hay casos con START y RTD en este periodo.</p>';
   var flecha = function(k) { return DA.orden === k ? (DA.dir === 1 ? ' ▲' : ' ▼') : ''; };
   var th = function(k, t, izq) { return '<th' + (izq ? ' class="dd-izq"' : '') + ' data-o="' + k + '">' + t + flecha(k) + '</th>'; };
   var h = '<thead><tr>' + th('centro', 'Centro', true) + th('casos', 'Casos medidos') + th('pasadas', 'Pasaron de 2 h') + th('pct', '% que pasó') + th('promedio', 'Promedio') + th('max', 'El más largo') + '</tr></thead><tbody>';
