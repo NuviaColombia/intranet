@@ -250,6 +250,10 @@
   .op-rg-tag { background:#e0e7ff; color:#312e81; border-radius:6px; padding:1px 7px; font-size:11px; font-weight:700; min-width:42px; text-align:center; }
   .op-rg-mgr { display:inline-flex; gap:5px; align-items:baseline; background:#fff; border:1px solid #dbe3ee; border-radius:8px; padding:2px 8px; }
   .op-rg-mgr b { color:#0f172a; } .op-rg-mgr span { color:#475569; }
+  /* Openings: fila y columna bajo el mouse (para leer el dato completo sin perderse) */
+  .op-tabla td.op-hl-fila, .op-tabla th.op-hl-fila { background:#eff6ff; }
+  .op-tabla td.op-hl-col, .op-tabla th.op-hl-col { background:#e0f2fe; }
+  .op-tabla td.op-hl-cruce { background:#bfdbfe; box-shadow:inset 0 0 0 1px #1d4ed8; }
   .op-tabla .op-acc-col { position:sticky; right:0; background:#fff; z-index:1; }
   .op-tabla thead .op-acc-col { z-index:3; background:#f8fafc; }
   .op-th { display:flex; align-items:center; gap:4px; }
@@ -2059,6 +2063,31 @@
       else if (e.key === 'ArrowUp') { e.preventDefault(); (items[k - 1] || items[items.length - 1]).focus(); }
     });
     document.addEventListener('scroll', function(e) { if (menuBtn && !(e.target.closest && e.target.closest('#opMenu'))) cerrarMenu(); }, true);
+    // Fila y columna bajo el mouse: se marcan para seguir el dato completo de la fila y de la columna
+    (function() {
+      var tabla = null, ultFila = null, ultCol = -1;
+      function limpiar() {
+        if (!tabla) return;
+        tabla.querySelectorAll('.op-hl-fila, .op-hl-col, .op-hl-cruce').forEach(function(c) { c.classList.remove('op-hl-fila', 'op-hl-col', 'op-hl-cruce'); });
+        ultFila = null; ultCol = -1;
+      }
+      cont.addEventListener('mouseover', function(e) {
+        var td = e.target.closest && e.target.closest('.op-tabla td, .op-tabla th');
+        if (!td) return;
+        var tr = td.parentNode;
+        if (tr === ultFila && td.cellIndex === ultCol) return;
+        limpiar();
+        tabla = td.closest('.op-tabla');
+        ultFila = tr; ultCol = td.cellIndex;
+        Array.prototype.forEach.call(tr.children, function(c) { c.classList.add('op-hl-fila'); });
+        Array.prototype.forEach.call(tabla.rows, function(r) {
+          var c = r.children[ultCol];
+          if (c && r !== tr) c.classList.add('op-hl-col');
+        });
+        td.classList.remove('op-hl-fila', 'op-hl-col'); td.classList.add('op-hl-cruce');
+      });
+      cont.addEventListener('mouseleave', limpiar, true);
+    })();
     cont.addEventListener('input', function(e) { if (e.target.id === 'opBuscar') filtrar(); });
     cont.addEventListener('click', function(e) {
       var celda = e.target.closest('.op-celda');
