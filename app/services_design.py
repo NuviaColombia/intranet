@@ -2822,6 +2822,35 @@ def _pac_destino_invalido(db: Session, sheet_src_id: int, sheet_dst_id: int, cen
     return None
 
 
+def _pac_mover_doctor_mismo_manager(db: Session, doctor: DesignPreApprovedDoctor, centro_dst_id: int | None) -> dict:
+    """Pasa un doctor de un centro a otro de la MISMA hoja (pedido por Rosember el 13-oct-2026: Dariana mueve doctores entre
+    sus propios centros). Los valores y las fotos no cambian: es la misma hoja y los mismos criterios."""
+    if not centro_dst_id:
+        return {"error": "Elige el centro al que quieres pasar al doctor."}
+    centro_origen = _pac_centro_de_doctor(db, doctor.sheet_id, doctor.id)
+    if centro_origen and centro_origen.id == centro_dst_id:
+        return {"error": "Ese doctor ya está en ese centro."}
+    if centro_origen:
+        centro_origen.span -= 1
+        if centro_origen.span <= 0:
+            db.delete(centro_origen)
+        db.flush()
+    _pac_insertar_doctor(db, doctor, doctor.sheet_id, centro_dst_id, "")
+    db.commit()
+    return {"unmatched": 0}
+
+
+def _pac_intercambiar_fotos(db: Session, a_id: int, b_id: int) -> None:
+    """Al intercambiar dos doctores se cambian el nombre y los valores; sus fotos también van con la persona."""
+    from .models_design import DesignPreApprovedFoto as F
+    ids_a = [r[0] for r in db.query(F.id).filter(F.doctor_id == a_id)]
+    ids_b = [r[0] for r in db.query(F.id).filter(F.doctor_id == b_id)]
+    if ids_a:
+        db.query(F).filter(F.id.in_(ids_a)).update({"doctor_id": b_id}, synchronize_session=False)
+    if ids_b:
+        db.query(F).filter(F.id.in_(ids_b)).update({"doctor_id": a_id}, synchronize_session=False)
+
+
 def pac_mover_doctor(db: Session, doctor_id: int, sheet_dst_id: int, centro_dst_id: int | None) -> dict:
     doctor = db.get(DesignPreApprovedDoctor, doctor_id)
     if not doctor:
@@ -2831,7 +2860,7 @@ def pac_mover_doctor(db: Session, doctor_id: int, sheet_dst_id: int, centro_dst_
         return {"error": err}
     sheet_src_id = doctor.sheet_id
     if sheet_src_id == sheet_dst_id:
-        return {"error": "Elige un manager de destino distinto."}
+        return _pac_mover_doctor_mismo_manager(db, doctor, centro_dst_id)
     if db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id == sheet_src_id).count() <= 1:
         return {"error": "El manager origen no puede quedar sin doctores."}
 
@@ -2916,8 +2945,12 @@ def pac_intercambiar_doctor(db: Session, doctor_a_id: int, doctor_b_id: int) -> 
     b = db.get(DesignPreApprovedDoctor, doctor_b_id)
     if not a or not b:
         return {"error": "Doctor no encontrado."}
-    if a.sheet_id == b.sheet_id:
-        return {"error": "Para intercambiar elige dos managers distintos."}
+    if a.id == b.id:
+        return {"error": "Elige dos doctores distintos."}
+    if a.sheet_id == b.sheet_id:   # dentro del mismo manager: tienen que estar en centros distintos
+        ca, cb = _pac_centro_de_doctor(db, a.sheet_id, a.id), _pac_centro_de_doctor(db, b.sheet_id, b.id)
+        if ca and cb and ca.id == cb.id:
+            return {"error": "Esos dos doctores ya están en el mismo centro."}
     err = _pac_destino_invalido(db, a.sheet_id, b.sheet_id, None)
     if err:
         return {"error": err}
@@ -2933,6 +2966,7 @@ def pac_intercambiar_doctor(db: Session, doctor_a_id: int, doctor_b_id: int) -> 
 
     unmatched = _pac_aplicar_valores(db, doctor_a_id, sheet_a_id, valores_b)
     unmatched += _pac_aplicar_valores(db, doctor_b_id, sheet_b_id, valores_a)
+    _pac_intercambiar_fotos(db, doctor_a_id, doctor_b_id)
     db.commit()
     return {"unmatched": unmatched}
 
@@ -2993,6 +3027,9 @@ def pac_intercambiar_centro(db: Session, centro_a_id: int, centro_b_id: int) -> 
         unmatched += _pac_aplicar_valores(db, d.id, sheet_a_id, valores)
     for d, valores in zip(nuevos_en_b, valores_a):
         unmatched += _pac_aplicar_valores(db, d.id, sheet_b_id, valores)
+    from .models_design import DesignPreApprovedFoto as F   # las fotos siguen a cada doctor (los doctores se recrean)
+    for viejo, nuevo in list(zip(doctores_a, nuevos_en_b)) + list(zip(doctores_b, nuevos_en_a)):
+        db.query(F).filter(F.doctor_id == viejo.id).update({"doctor_id": nuevo.id}, synchronize_session=False)
     db.commit()
     return {"unmatched": unmatched}
 

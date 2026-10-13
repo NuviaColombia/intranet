@@ -4506,29 +4506,41 @@ window.DS_PANELS.dashboard = function() {
     if (!PAC.srcDetalle || !PAC.dstDetalle) return;
     btn.innerText = PAC.mode === 'move' ? 'Mover →' : 'Intercambiar ⇄';
 
+    // Mismo manager en los dos lados: se mueve un doctor de un centro a otro de la misma hoja (el destino es siempre un centro)
+    var mismo = PAC.srcSheetId === PAC.dstSheetId;
+    var centroDe = function(det, docId) {
+      var i = 0, k = det.doctores.findIndex(function(d) { return d.id === docId; }), acum = 0;
+      if (k < 0) return null;
+      for (i = 0; i < det.centros.length; i++) { acum += det.centros[i].span; if (k < acum) return det.centros[i]; }
+      return null;
+    };
     var showTC = PAC.mode === 'move' && PAC.srcSel;
     tcBlock.style.display = showTC ? '' : 'none';
     if (showTC) {
-      var opts = '<option value="__new__">+ Nuevo centro</option>';
-      PAC.dstDetalle.centros.forEach(function(c) {
-        opts += '<option value="' + c.id + '"' + (String(c.id) === String(PAC.targetCentro) ? ' selected' : '') + '>Fusionar en «' + esc(c.nombre || 'Sin centro') + '»</option>';
+      var origen = mismo && PAC.srcSel.tipo === 'doctor' ? centroDe(PAC.dstDetalle, PAC.srcSel.id) : null;
+      var libres = PAC.dstDetalle.centros.filter(function(c) { return !origen || c.id !== origen.id; });
+      var opts = mismo ? '' : '<option value="__new__">+ Nuevo centro</option>';
+      libres.forEach(function(c) {
+        opts += '<option value="' + c.id + '"' + (String(c.id) === String(PAC.targetCentro) ? ' selected' : '') + '>' + (mismo ? 'Pasar a «' : 'Fusionar en «') + esc(c.nombre || 'Sin centro') + '»</option>';
       });
       tcSel.innerHTML = opts;
-      if (PAC.targetCentro !== '__new__' && !PAC.dstDetalle.centros.some(function(c) { return String(c.id) === String(PAC.targetCentro); })) PAC.targetCentro = '__new__';
+      if (!libres.some(function(c) { return String(c.id) === String(PAC.targetCentro); })) PAC.targetCentro = mismo ? (libres[0] ? String(libres[0].id) : '__new__') : '__new__';
       tcSel.value = PAC.targetCentro;
     }
 
     var ok = false, msg = '';
     if (PAC.mode === 'move') {
       if (!PAC.srcSel) msg = 'Elige un doctor o centro en Origen.';
-      else if (PAC.srcSheetId === PAC.dstSheetId) msg = 'Elige un manager de destino distinto.';
-      else { ok = true; msg = 'Mover ' + (PAC.srcSel.tipo === 'doctor' ? 'el doctor' : 'el centro') + ' seleccionado a este manager.'; }
+      else if (mismo && PAC.srcSel.tipo !== 'doctor') msg = 'Para mover un centro elige un manager de destino distinto (dentro de un mismo manager solo se mueven doctores).';
+      else if (mismo && PAC.targetCentro === '__new__') msg = 'Este manager no tiene otro centro al que pasar al doctor.';
+      else { ok = true; msg = mismo ? 'Pasar el doctor al centro elegido (mismo manager).' : 'Mover ' + (PAC.srcSel.tipo === 'doctor' ? 'el doctor' : 'el centro') + ' seleccionado a este manager.'; }
     } else {
       if (!PAC.srcSel) msg = 'Elige un ítem en Origen.';
       else if (!PAC.dstSel) msg = 'Elige un ítem en Destino.';
-      else if (PAC.srcSheetId === PAC.dstSheetId) msg = 'Elige dos managers distintos.';
       else if (PAC.srcSel.tipo !== PAC.dstSel.tipo) msg = 'Deben ser del mismo tipo (doctor↔doctor o centro↔centro).';
-      else { ok = true; msg = 'Intercambiar ambos elementos seleccionados.'; }
+      else if (mismo && PAC.srcSel.tipo !== 'doctor') msg = 'Para intercambiar centros elige dos managers distintos (dentro de un mismo manager solo se intercambian doctores).';
+      else if (mismo && PAC.srcSel.id === PAC.dstSel.id) msg = 'Elige dos doctores distintos.';
+      else { ok = true; msg = mismo ? 'Intercambiar los dos doctores (mismo manager, centros distintos).' : 'Intercambiar ambos elementos seleccionados.'; }
     }
     btn.disabled = !ok;
     summary.textContent = msg;
