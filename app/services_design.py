@@ -1591,6 +1591,44 @@ def _hold_min(o: DesignOrden) -> float:
     return (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
 
 
+DASH_RANGO_MAX_DIAS = 366   # A8 (13-oct-2026): el Dashboard se mira por área y por periodo de hasta un año; no hay "Todo"
+
+
+def dashboard_tendencia(db: Session, user: Empleado, area_id: int | None, team_id: int | None, desde: date, hasta: date) -> dict:
+    """Gráfica comparativa por equipos (A8, 13-oct-2026): casos completos de cada equipo en cada tramo del periodo.
+    Tramos de días si el periodo es de un mes o menos; si no, semanas (desde el lunes). Solo cuentan las órdenes
+    completas y no canceladas, igual que el resto del Dashboard. Un aprobador ve solo los equipos que maneja."""
+    q = (db.query(DesignOrden.team_id, DesignOrden.fecha, DesignOrden.estado, DesignTeam.nombre)
+         .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
+         .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta))
+    if not es_admin(user):
+        q = q.filter(DesignTeam.manager_id == user.id)
+    if team_id:
+        q = q.filter(DesignOrden.team_id == team_id)
+    elif area_id:
+        q = q.filter(DesignTeam.area_id == area_id)
+    dias = (hasta - desde).days + 1
+    if dias <= 31:
+        clave = lambda f: f
+        etiqueta = lambda f: f.strftime("%d/%m")
+    else:
+        clave = lambda f: f - timedelta(days=f.weekday())
+        etiqueta = lambda f: "Sem " + f.strftime("%d/%m")
+    tramos = sorted({clave(desde + timedelta(days=i)) for i in range(dias)})
+    equipos: dict[int, dict] = {}
+    for tid, fecha, estado, nombre in q.all():
+        if _es_cancelada(estado):
+            continue
+        e = equipos.setdefault(tid, {"id": tid, "nombre": nombre, "valores": {}})
+        k = clave(fecha)
+        e["valores"][k] = e["valores"].get(k, 0) + 1
+    series = []
+    for e in sorted(equipos.values(), key=lambda x: (-sum(x["valores"].values()), x["nombre"].lower())):
+        series.append({"id": e["id"], "nombre": e["nombre"], "total": sum(e["valores"].values()),
+                       "valores": [e["valores"].get(t, 0) for t in tramos]})
+    return {"desde": desde.isoformat(), "hasta": hasta.isoformat(), "tramos": [etiqueta(t) for t in tramos], "series": series}
+
+
 def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | None = None, team_id: int | None = None) -> dict:
     """Dashboard › Productos (pedido por Rosember el 12-oct-2026): cuántas órdenes de cada producto hay en cada mes del
     año. Cuentan las órdenes completas (centro, producto y diseñador) que no están canceladas ni skipped, por su fecha

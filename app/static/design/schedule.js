@@ -2868,8 +2868,8 @@ function ddRapido(r) {
     if (r === 'semana') { var dw = (hoy.getDay() + 6) % 7; desde.setDate(hoy.getDate() - dw); }
     if (r === 'mes') desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     if (r === 'mesAnt') { desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 0); }
-    document.getElementById('ddDesde').value = r === 'todo' ? '' : ddIso(desde);
-    document.getElementById('ddHasta').value = r === 'todo' ? '' : ddIso(hasta);
+    document.getElementById('ddDesde').value = ddIso(desde);
+    document.getElementById('ddHasta').value = ddIso(hasta);
   }
   ddCargar();
 }
@@ -2951,9 +2951,51 @@ function ddRenderProductos() {
   });
 }
 
+// A8 (13-oct-2026): el Dashboard se mira por área y por periodo (un año como máximo); ya no hay "Todo".
+function ddCargarTendencia() {
+  var box = document.getElementById('ddTendencia'), body = document.getElementById('ddTendenciaBody');
+  var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
+  var desde = document.getElementById('ddDesde').value, hasta = document.getElementById('ddHasta').value;
+  if ((!area && !team) || !desde || !hasta) { box.hidden = true; return; }
+  var u = '/design/api/dashboard/tendencia?desde=' + desde + '&hasta=' + hasta + (team ? '&team_id=' + team : '&area_id=' + area);
+  ddApi(u).then(function(d) { ddPintarTendencia(d, body, box); }).catch(function(e) { box.hidden = false; body.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; body.firstChild.textContent = 'No se pudo cargar la tendencia: ' + e.message; });
+}
+function ddPintarTendencia(d, body, box) {
+  box.hidden = false;
+  if (!d.series.length || !d.tramos.length) { body.innerHTML = '<p class="dd-p-nota">No hay casos completos en este periodo.</p>'; return; }
+  var W = 900, H = 280, P = 40, n = d.tramos.length, max = 1;
+  d.series.forEach(function(s) { s.valores.forEach(function(v) { if (v > max) max = v; }); });
+  var x = function(i) { return n <= 1 ? W / 2 : P + i * (W - 2 * P) / (n - 1); };
+  var y = function(v) { return H - P - v * (H - 2 * P) / max; };
+  var col = ['#1d4ed8', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#334155', '#ea580c'];
+  var ejes = '<line x1="' + P + '" y1="' + (H - P) + '" x2="' + (W - P) + '" y2="' + (H - P) + '" stroke="#cbd5e1"/>' +
+             '<line x1="' + P + '" y1="' + P + '" x2="' + P + '" y2="' + (H - P) + '" stroke="#cbd5e1"/>' +
+             '<text x="' + (P - 6) + '" y="' + (y(max) + 4) + '" text-anchor="end" font-size="11" fill="#64748b">' + max + '</text>' +
+             '<text x="' + (P - 6) + '" y="' + (H - P + 4) + '" text-anchor="end" font-size="11" fill="#64748b">0</text>';
+  var paso = Math.ceil(n / 14), etiquetas = d.tramos.map(function(t, i) {
+    return i % paso ? '' : '<text x="' + x(i) + '" y="' + (H - P + 16) + '" text-anchor="middle" font-size="10.5" fill="#475569">' + ddEsc(t) + '</text>';
+  }).join('');
+  var lineas = d.series.map(function(s, k) {
+    var c = col[k % col.length], pts = s.valores.map(function(v, i) { return x(i) + ',' + y(v); }).join(' ');
+    return '<polyline fill="none" stroke="' + c + '" stroke-width="2.2" points="' + pts + '"/>' + s.valores.map(function(v, i) {
+      return '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3.2" fill="' + c + '"><title>' + ddEsc(s.nombre) + ' · ' + ddEsc(d.tramos[i]) + ': ' + v + '</title></circle>';
+    }).join('');
+  }).join('');
+  var leyenda = d.series.map(function(s, k) {
+    return '<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0;font-size:12.5px"><i style="width:12px;height:12px;border-radius:3px;background:' + col[k % col.length] + '"></i>' + ddEsc(s.nombre) + ' <b>' + s.total + '</b></span>';
+  }).join('');
+  body.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Casos por equipo en el periodo">' + ejes + etiquetas + lineas + '</svg><div>' + leyenda + '</div>';
+}
 function ddCargar() {
   var params = new URLSearchParams();
   var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
+  if (!area && !team) {
+    document.getElementById('ddKpis').innerHTML = '<p class="dd-p-nota" style="padding:10px">Elige un área para ver el Dashboard.</p>';
+    document.getElementById('ddTendencia').hidden = true;
+    return;
+  }
+  if (!document.getElementById('ddDesde').value || !document.getElementById('ddHasta').value) { ddRapido('mes'); return; }
+  ddCargarTendencia();
   if (team) params.set('team_id', team); else if (area) params.set('area_id', area);
   var dsg = document.getElementById('ddDesigner').value;
   if (dsg) { if (dsg.indexOf('libre:') === 0) params.set('designer_nombre', dsg.slice(6)); else params.set('designer_id', dsg); }

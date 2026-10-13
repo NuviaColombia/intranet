@@ -1506,9 +1506,26 @@ def api_dashboard(area_id: int | None = None, team_id: int | None = None, design
                         producto: str = "", estado: str = "", qc: str = "",
                         fecha_desde: str = "", fecha_hasta: str = "", designer_nombre: str = "",
                         user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    fd = _fecha(fecha_desde) if fecha_desde else None
-    fh = _fecha(fecha_hasta) if fecha_hasta else None
+    if not area_id and not team_id:
+        raise HTTPException(400, "Elige un área para ver el Dashboard.")
+    if not fecha_desde or not fecha_hasta:
+        raise HTTPException(400, "Indica el periodo (desde y hasta).")
+    fd, fh = _fecha(fecha_desde), _fecha(fecha_hasta)
+    if fh < fd or (fh - fd).days >= sd.DASH_RANGO_MAX_DIAS:
+        raise HTTPException(400, f"El periodo debe ser de un año o menos (desde {fd:%d/%m/%Y} hasta {fh:%d/%m/%Y}).")
     return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user, designer_nombre)
+
+
+@router.get("/design/api/dashboard/tendencia")
+def api_dashboard_tendencia(desde: str, hasta: str, area_id: int | None = None, team_id: int | None = None,
+                            user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Gráfica comparativa por equipos en el periodo elegido (A8)."""
+    if not area_id and not team_id:
+        raise HTTPException(400, "Elige un área para ver la tendencia.")
+    fd, fh = _fecha(desde), _fecha(hasta)
+    if fh < fd or (fh - fd).days >= sd.DASH_RANGO_MAX_DIAS:
+        raise HTTPException(400, "El periodo debe ser de un año o menos.")
+    return sd.dashboard_tendencia(db, user, area_id, team_id, fd, fh)
 
 
 @router.get("/design/api/dashboard/productos")

@@ -362,14 +362,14 @@ window.dsPdfjs = function() {
   <div><label for="ddHasta">Hasta</label><input type="date" id="ddHasta" onchange="ddRapido(null)"></div>
   <div><label>Rango rápido</label><span class="dd-rapidos">
     <button type="button" data-r="hoy" onclick="ddRapido('hoy')">Hoy</button><button type="button" data-r="semana" onclick="ddRapido('semana')">Semana</button>
-    <button type="button" data-r="mes" onclick="ddRapido('mes')">Mes</button><button type="button" data-r="mesAnt" onclick="ddRapido('mesAnt')">Mes anterior</button>
-    <button type="button" data-r="todo" onclick="ddRapido('todo')">Todo</button></span></div>
+    <button type="button" data-r="mes" onclick="ddRapido('mes')">Mes</button><button type="button" data-r="mesAnt" onclick="ddRapido('mesAnt')">Mes anterior</button></span></div>
   <div style="flex-direction:row;gap:6px"><button type="button" class="btn gris" onclick="ddLimpiar()">Limpiar</button>
     <button type="button" class="btn" onclick="ddDescargar()" title="Descarga las tablas del dashboard con los filtros actuales (se abre en Excel)">Descargar Excel</button></div>
 </div>
 <div class="dd-filtro-activo" id="ddFiltroActivo"></div>
 
 <div class="dd-kpis" id="ddKpis"></div>
+<div class="dd-panel" id="ddTendencia" hidden><div class="dd-panel-cab"><h3>Tendencia por equipo</h3><span style="font-size:12px;color:#4b5563">Casos completos de cada equipo en el periodo elegido (un año como máximo)</span></div><div id="ddTendenciaBody"></div></div>
 
 <div class="dd-layout"><div class="dd-col">
 <div class="dd-panel">
