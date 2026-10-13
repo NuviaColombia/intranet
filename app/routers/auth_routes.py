@@ -42,7 +42,7 @@ async def auth_callback(request: Request, code: str = "", db: Session = Depends(
     if not user:
         return RedirectResponse("/login?error=no_registrado")
     from ..auth import acceso_inhabilitado
-    if acceso_inhabilitado(db, user.id):
+    if acceso_inhabilitado(db, user.id, user.rol):
         request.session.clear()
         return RedirectResponse("/login?error=bloqueado")
     request.session["user_email"] = email

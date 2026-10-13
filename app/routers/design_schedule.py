@@ -1,5 +1,6 @@
 """Rutas del módulo Design Schedule: horario del equipo de diseño y su administración."""
 import json
+from urllib.parse import quote
 import logging
 import os
 import re
@@ -75,7 +76,7 @@ def _usuario_efectivo(request: Request, user: Empleado, db: Session) -> Empleado
 def _sin_acceso_simulando(request: Request, sim: Empleado):
     if getattr(request.state, "design_real", None):  # simulando: volver a elegir, no salir de Design
         raise HTTPException(status_code=307, headers={
-            "Location": f"/design/simulacion?msg={sim.nombre_completo} no tiene el módulo Design Schedule."})
+            "Location": "/design/simulacion?msg=" + quote(f"{sim.nombre_completo} no tiene el módulo Design Schedule.")})
 
 
 def require_modulo(modulo: str):
@@ -147,6 +148,8 @@ def iniciar_simulacion(request: Request, user: Empleado = Depends(get_current_us
     if p.id == user.id:
         request.session.pop(SIM_KEY, None)
         return RedirectResponse("/design", status_code=303)
+    if not p.tiene_modulo("design_schedule") or sacc.esta_inhabilitado(db, p.id):
+        return RedirectResponse("/design/parametros?sim=1&msg=" + quote(f"{p.nombre_completo} no tiene acceso a Design Schedule."), status_code=303)
     request.session[SIM_KEY] = p.id
     _log_sim.warning("SIMULACION inicia %s (%s) como %s (%s)", user.email, user.id, p.email, p.id)
     return RedirectResponse("/design", status_code=303)

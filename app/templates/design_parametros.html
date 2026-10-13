@@ -773,7 +773,7 @@
           {% if p.motivoRol and p.id != user.id %}<div class="sim-sub">{{ p.motivoRol }}</div>{% endif %}
           {% endif %}
         </td>
-        <td class="sim-sub">{% if not p.design %}<span class="sim-no">Sin acceso a Design</span>{% elif p.lugar %}{{ p.lugar|join('<br>'|safe) }}{% else %}Sin equipo{% endif %}</td>
+        <td class="sim-sub">{% if not p.design %}<span class="sim-no">Sin acceso a Design</span>{% elif p.lugar %}{% for l in p.lugar %}{{ l }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}Sin equipo{% endif %}</td>
         <td>{% if p.id != user.id %}<form method="post" action="/design/simulacion/iniciar"><input type="hidden" name="empleado_id" value="{{ p.id }}">
           <button class="btn mini"{% if not p.design %} disabled title="No tiene acceso a Design"{% endif %}>Simular</button></form>{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
       </tr>

@@ -24,7 +24,7 @@ def _puede(email: str) -> bool:
     try:
         u = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()
         from ..auth import acceso_inhabilitado
-        return bool(u and u.tiene_modulo("design_schedule") and not acceso_inhabilitado(db, u.id))
+        return bool(u and u.tiene_modulo("design_schedule") and not acceso_inhabilitado(db, u.id, u.rol))
     finally:
         db.close()
 

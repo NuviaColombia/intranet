@@ -1,10 +1,13 @@
 """Login con Zoho OAuth (OpenID Connect) y manejo de sesión."""
+import logging
 import httpx
 from fastapi import Request, HTTPException, Depends
 from sqlalchemy.orm import Session
 from . import config
 from .database import get_db
 from .models import Empleado
+
+log = logging.getLogger(__name__)
 
 AUTH_URL = f"{config.ZOHO_ACCOUNTS_URL}/oauth/v2/auth"
 TOKEN_URL = f"{config.ZOHO_ACCOUNTS_URL}/oauth/v2/token"
@@ -22,14 +25,16 @@ def correo_bloqueado(email: str) -> bool:
     return bool(e) and (e in CORREOS_BLOQUEADOS or e in extra)
 
 
-def acceso_inhabilitado(db, empleado_id: int) -> bool:
-    """¿Se le inhabilitó el acceso desde Design (Parámetros › Equipos)? Falla en abierto: un error aquí no deja a todos afuera."""
+def acceso_inhabilitado(db, empleado_id: int, rol: str = "") -> bool:
+    """¿Se le inhabilitó el acceso desde Design (Parámetros › Equipos)? Si la consulta falla, se bloquea a todos menos a
+    administradores (así una falla de la base no deja entrar a alguien que ya no trabaja con nosotros) y queda registrado."""
     try:
         from .models_design import DesignInhabilitado
         h = db.get(DesignInhabilitado, empleado_id)
         return bool(h and h.activo)
     except Exception:
-        return False
+        log.exception("No se pudo revisar si la persona %s está inhabilitada en Design", empleado_id)
+        return rol not in ("admin", "superadmin")
 
 
 SCOPES = "openid email profile"
@@ -92,7 +97,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Emplead
     if not user:
         request.session.clear()
         raise HTTPException(status_code=307, headers={"Location": "/login?error=no_registrado"})
-    if acceso_inhabilitado(db, user.id):   # inhabilitado desde Design › Parámetros › Equipos (p. ej. renunció)
+    if acceso_inhabilitado(db, user.id, user.rol):   # inhabilitado desde Design › Parámetros › Equipos (p. ej. renunció)
         request.session.clear()
         raise HTTPException(status_code=307, headers={"Location": "/login?error=bloqueado"})
     return user
