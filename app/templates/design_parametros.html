@@ -14,6 +14,10 @@
   .aud-sub { font-size:12.5px; color:var(--gris); }
   .aud-info { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%;
               border:1px solid #cbd5e1; color:#475569; font-size:11px; font-weight:700; cursor:help; }
+  .aud-switch { display:none !important; }   /* el suiche se quitó: la fila completa despliega y oculta */
+  .aud-fila.aud-clic { cursor:pointer; border-radius:8px; }
+  .aud-fila.aud-clic:hover { background:#f8fafc; }
+  .aud-fila.aud-clic:focus-visible { outline:2px solid #1d4ed8; outline-offset:2px; }
   .aud-switch { display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600; color:#334155; user-select:none; }
   .aud-switch input { position:absolute; opacity:0; width:1px; height:1px; }
   .aud-slider { position:relative; width:38px; height:22px; border-radius:11px; background:#cbd5e1; transition:background .2s; flex:none; }
@@ -857,6 +861,23 @@
 
 <datalist id="paramPersonas"></datalist>
 {% endif %}
+<script>
+// Parámetros: cualquier parte de la fila despliega u oculta la sección (sin suiche). Los botones, campos y el ícono de ayuda no cuentan.
+(function() {
+  var NO_CUENTA = 'button, a, input, select, textarea, label, [contenteditable="true"], .aud-info, [data-no-toggle]';
+  document.querySelectorAll('.aud-fila').forEach(function(fila) {
+    var sw = fila.querySelector('.aud-switch input[type="checkbox"]');
+    if (!sw) return;
+    fila.classList.add('aud-clic');
+    fila.tabIndex = 0;
+    var alternar = function() { sw.checked = !sw.checked; sw.dispatchEvent(new Event('change')); };
+    fila.addEventListener('click', function(e) { if (!e.target.closest(NO_CUENTA)) alternar(); });
+    fila.addEventListener('keydown', function(e) {
+      if (e.target === fila && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); alternar(); }
+    });
+  });
+})();
+</script>
 <script>
 (function() {
   var P_AREAS = [{% for a in areas %}{id: {{ a.id }}, nombre: {{ a.nombre|tojson }}}{{ ',' if not loop.last }}{% endfor %}];
