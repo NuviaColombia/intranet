@@ -25,6 +25,10 @@
     document.body.appendChild(el); setTimeout(function() { el.remove(); }, 3200);
   }
 
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function fechaCorta(iso) { var d = new Date(iso); return d.getDate() + ' ' + MESES[d.getMonth()] + ' ' + d.getFullYear(); }
+  function fechaLarga(iso) { return new Date(iso).toLocaleDateString('es-CO', {day: 'numeric', month: 'long', year: 'numeric'}); }
+
   // Inclinación, velocidad y tipo de sujeción "al azar" pero estables para cada aviso (dependen de su id).
   function azar(id, n) { var x = Math.sin(id * 9301 + n * 49297) * 233280; return x - Math.floor(x); }
 
@@ -46,7 +50,12 @@
       } else {
         ['izq', 'der'].forEach(function(l) { var c = document.createElement('span'); c.className = 'mu-cinta ' + l; card.appendChild(c); });
       }
+      // La primera semana lleva la cinta NUEVO; después queda la fecha en que se publicó.
       if (a.nuevo) { var n = document.createElement('span'); n.className = 'mu-nuevo'; n.textContent = 'NUEVO'; card.appendChild(n); }
+      else if (a.publicado && a.publicadoEn) {
+        var fe = document.createElement('span'); fe.className = 'mu-fecha'; fe.textContent = fechaCorta(a.publicadoEn);
+        fe.title = 'Publicado el ' + fechaLarga(a.publicadoEn); card.appendChild(fe);
+      }
       if (!a.publicado) { var b = document.createElement('span'); b.className = 'mu-borr'; b.textContent = 'Borrador'; card.appendChild(b); }
       var papel = document.createElement('button');
       papel.type = 'button'; papel.className = 'mu-papel';
@@ -205,7 +214,7 @@
     Z.i = i; reiniciar();
     vImg.src = a.full; vImg.alt = a.titulo;
     document.getElementById('muVTit').textContent = a.titulo;
-    document.getElementById('muVCont').textContent = (i + 1) + ' / ' + M.items.length;
+    document.getElementById('muVCont').textContent = (a.publicadoEn ? 'Publicado el ' + fechaLarga(a.publicadoEn) + ' · ' : '') + (i + 1) + ' / ' + M.items.length;
     document.getElementById('muVOrig').href = a.full;
     var unico = M.items.length < 2;
     document.getElementById('muVPrev').hidden = unico; document.getElementById('muVNext').hidden = unico;
