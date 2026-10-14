@@ -1082,3 +1082,18 @@
 .da-barra .b i { display: block; height: 100%; background: #b45309; border-radius: 6px; }
 .da-barra b { text-align: right; white-space: nowrap; }
 .da-barra b small { color: #64748b; font-weight: 400; }
+
+/* Cambios digitales */
+.dc-tabla td.dc-editable { cursor: text; }
+.dc-tabla td.dc-editable:hover { background: #eff6ff; }
+.dc-tabla td textarea, .dc-tabla td input, .dc-tabla td select { font-size: 12.5px; }
+.dc-origen { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
+.dc-DOC { background: #e0e7ff; color: #312e81; }
+.dc-LAB { background: #dcfce7; color: #14532d; }
+
+/* Ventana de alta de cambios (Dashboard) */
+.eq-modal-fondo { position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 1000; display: grid; place-items: center; padding: 16px; }
+.eq-modal { background: #fff; color: #0f172a; border-radius: 16px; max-width: 560px; width: 100%; padding: 20px; box-shadow: 0 24px 60px rgba(0,0,0,.35); max-height: 90vh; overflow: auto; }
+.eq-modal h3 { margin: 0 0 8px; }
+.eq-modal-acc { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.eq-modal input, .eq-modal select, .eq-modal textarea { font-size: 13px; }

@@ -3280,6 +3280,8 @@ function dpVista(v) {
   document.getElementById('ddVistaResumen').hidden = v !== 'resumen';
   document.getElementById('ddVistaProductos').hidden = v !== 'productos';
   document.getElementById('ddVistaArticulacion').hidden = v !== 'articulacion';
+  document.getElementById('ddVistaCambios').hidden = v !== 'cambios';
+  if (v === 'cambios') dcCargar(true);
   if (v === 'productos') dpCargar();
   if (v === 'articulacion') daCargar();
 }
@@ -3458,9 +3460,190 @@ function daDescargar() {
   el('daDescargar').addEventListener('click', daDescargar);
 })();
 
+
+// ---------- Dashboard › Cambios digitales (13-oct-2026) ----------
+// Registro de los cambios que piden el doctor o el laboratorio. Buscar, filtrar, ordenar, editar en la celda, agregar,
+// quitar (solo admin), importar el Excel y descargar. Mismo estilo que las demás tablas del Dashboard.
+var DC = {items: [], total: 0, orden: 'fecha', dir: 'desc', limite: 50, tok: 0, ediciones: 0, tipos: [], centros: []};
+var DC_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['doctor', 'Doctor'],
+               ['producto', 'Producto'], ['tipo_cambio', 'Cambio'], ['detalle', 'Detalle'], ['origen', 'Origen']];
+function dcEsc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function dcFiltros() {
+  var v = function(id) { return document.getElementById(id).value; };
+  return {q: v('dcBuscar').trim(), origen: v('dcOrigen'), tipo: v('dcTipo'), centro: v('dcCentro'), desde: v('dcDesde'), hasta: v('dcHasta'),
+          orden: DC.orden, dir: DC.dir};
+}
+function dcUrl(extra) {
+  var f = dcFiltros(), p = new URLSearchParams();
+  Object.keys(f).forEach(function(k) { if (f[k]) p.set(k, f[k]); });
+  if (extra) Object.keys(extra).forEach(function(k) { p.set(k, extra[k]); });
+  return p.toString();
+}
+function dcCargar(reiniciar) {
+  var tok = DC.tok = DC.tok + 1;
+  var offset = reiniciar ? 0 : DC.items.length;
+  if (reiniciar) { DC.items = []; }
+  var url = '/design/api/cambios-digitales?' + dcUrl({limite: DC.limite, offset: offset});
+  document.getElementById('dcTabla').style.opacity = '.5';
+  ddApi(url).then(function(d) {
+    if (tok !== DC.tok) return;
+    DC.items = DC.items.concat(d.items); DC.total = d.total;
+    if (reiniciar || !DC.tipos.length || d.tipos.length) { DC.tipos = d.tipos; DC.centros = d.centros; dcLlenarFiltros(d); }
+    dcKpis(d.kpis);
+    dcPintar();
+  }).catch(function(e) {
+    document.getElementById('dcTabla').innerHTML = '<tbody><tr><td style="color:#b91c1c">No se pudo cargar: ' + dcEsc(e.message) + '</td></tr></tbody>';
+  }).then(function() { document.getElementById('dcTabla').style.opacity = ''; });
+}
+function dcLlenarFiltros(d) {
+  var poner = function(id, lista, todos) {
+    var sel = document.getElementById(id), actual = sel.value;
+    sel.innerHTML = '<option value="">' + todos + '</option>' + lista.map(function(x) { return '<option value="' + dcEsc(x) + '">' + dcEsc(x) + '</option>'; }).join('');
+    sel.value = actual;
+  };
+  poner('dcTipo', d.tipos, 'Todos'); poner('dcCentro', d.centros, 'Todos');
+}
+function dcKpis(k) {
+  document.getElementById('dcKpis').innerHTML =
+    '<div class="dd-kpi"><b>' + k.total + '</b><span>cambios registrados</span></div>' +
+    '<div class="dd-kpi"><b>' + k.doc + '</b><span>pedidos por el doctor (DOC)</span></div>' +
+    '<div class="dd-kpi"><b>' + k.lab + '</b><span>pedidos por el laboratorio (LAB)</span></div>' +
+    '<div class="dd-kpi"><b>' + k.centros + '</b><span>centros con cambios</span></div>';
+}
+function dcCabecera() {
+  return '<thead><tr>' + DC_COLS.map(function(c) {
+    var key = c[0], sort = key !== 'detalle', flecha = DC.orden === key ? (DC.dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return '<th' + (sort ? ' data-o="' + key + '" style="cursor:pointer"' : '') + '>' + c[1] + flecha + '</th>';
+  }).join('') + (DD_ADMIN ? '<th></th>' : '') + '</tr></thead>';
+}
+function dcCelda(f, campo) {
+  var v = f[campo] || '';
+  var clase = campo === 'detalle' ? ' style="white-space:pre-wrap;min-width:260px;max-width:420px;text-align:left"' : '';
+  if (campo === 'origen') v = v ? '<span class="dc-origen dc-' + dcEsc(v) + '">' + dcEsc(v) + '</span>' : '';
+  else v = dcEsc(v);
+  return '<td data-campo="' + campo + '" data-id="' + f.id + '" class="dc-editable"' + clase + ' title="Clic para editar">' + v + '</td>';
+}
+function dcPintar() {
+  var t = document.getElementById('dcTabla');
+  var filas = DC.items.map(function(f) {
+    return '<tr data-id="' + f.id + '">' + DC_COLS.map(function(c) { return dcCelda(f, c[0]); }).join('') +
+      (DD_ADMIN ? '<td><button type="button" class="btn rojo mini" data-dc-borrar="' + f.id + '" aria-label="Quitar este cambio">Quitar</button></td>' : '') + '</tr>';
+  }).join('');
+  t.innerHTML = dcCabecera() + '<tbody>' + (filas || '<tr><td colspan="' + (DD_ADMIN ? 10 : 9) + '" style="color:#4b5563">No hay cambios con estos filtros.</td></tr>') + '</tbody>';
+  document.getElementById('dcCuenta').textContent = 'Mostrando ' + DC.items.length + ' de ' + DC.total;
+  var mas = document.getElementById('dcMas');
+  mas.innerHTML = DC.items.length < DC.total ? '<button type="button" class="btn gris mini" id="dcVerMas">Mostrar más (' + (DC.total - DC.items.length) + ' restantes)</button>' : '';
+  var vm = document.getElementById('dcVerMas'); if (vm) vm.onclick = function() { dcCargar(false); };
+  t.querySelectorAll('thead th[data-o]').forEach(function(th) {
+    th.onclick = function() {
+      var k = th.dataset.o;
+      DC.dir = DC.orden === k ? (DC.dir === 'asc' ? 'desc' : 'asc') : (k === 'fecha' ? 'desc' : 'asc');
+      DC.orden = k; dcCargar(true);
+    };
+  });
+  t.querySelectorAll('[data-dc-borrar]').forEach(function(b) { b.onclick = function() { dcBorrar(b.dataset.dcBorrar); }; });
+  t.querySelectorAll('td.dc-editable').forEach(function(td) { td.onclick = function() { dcEditar(td); }; });
+}
+// Edición en la celda: Enter guarda (en Detalle, Shift+Enter hace salto de línea), Esc cancela, salir de la celda guarda.
+function dcEditar(td) {
+  if (td.querySelector('input, select, textarea')) return;
+  var campo = td.dataset.campo, id = +td.dataset.id, f = DC.items.find(function(x) { return x.id === id; });
+  if (!f) return;
+  var antes = f[campo] || '', el;
+  if (campo === 'origen') { el = document.createElement('select'); el.innerHTML = '<option value="">—</option><option value="DOC">DOC</option><option value="LAB">LAB</option>'; el.value = antes; }
+  else if (campo === 'fecha') { el = document.createElement('input'); el.type = 'date'; el.value = antes; }
+  else if (campo === 'detalle') { el = document.createElement('textarea'); el.rows = 3; el.value = antes; el.style.width = '100%'; }
+  else { el = document.createElement('input'); el.type = 'text'; el.value = antes; el.style.width = '100%'; }
+  el.setAttribute('aria-label', 'Editar ' + campo);
+  td.innerHTML = ''; td.appendChild(el); el.focus();
+  if (el.select && el.tagName === 'INPUT' && el.type === 'text') el.select();
+  var fin = function(guardar) {
+    el.removeEventListener('blur', alSalir);
+    if (!guardar || el.value === antes) { dcPintarFila(id); return; }
+    var nuevo = el.value;
+    window.dsPostJSON('/design/api/cambios-digitales/' + id, {campo: campo, valor: nuevo})
+      .then(function(r) { var i = DC.items.findIndex(function(x) { return x.id === id; }); if (i >= 0) DC.items[i] = r; dcPintarFila(id); if (campo !== 'tipo_cambio' && campo !== 'centro') return; dcCargar(true); })
+      .catch(function(e) { dcPintarFila(id); dsToast('⚠️ ' + e.message); });
+  };
+  var alSalir = function() { fin(true); };
+  el.addEventListener('blur', alSalir);
+  el.addEventListener('keydown', function(e) {
+    e.stopPropagation();   // Esc aquí solo cancela la celda: no debe cerrar el Dashboard
+    if (e.key === 'Escape') { e.preventDefault(); fin(false); }
+    else if (e.key === 'Enter' && !(campo === 'detalle' && e.shiftKey)) { e.preventDefault(); fin(true); }
+  });
+}
+function dcPintarFila(id) {
+  var f = DC.items.find(function(x) { return x.id === id; }); var tr = document.querySelector('#dcTabla tr[data-id="' + id + '"]');
+  if (!f || !tr) return dcPintar();
+  var tmp = document.createElement('tr'); tmp.dataset.id = id;
+  tmp.innerHTML = DC_COLS.map(function(c) { return dcCelda(f, c[0]); }).join('') + (DD_ADMIN ? '<td><button type="button" class="btn rojo mini" data-dc-borrar="' + f.id + '">Quitar</button></td>' : '');
+  tr.innerHTML = tmp.innerHTML;
+  tr.querySelectorAll('td.dc-editable').forEach(function(td) { td.onclick = function() { dcEditar(td); }; });
+  var b = tr.querySelector('[data-dc-borrar]'); if (b) b.onclick = function() { dcBorrar(id); };
+}
+function dcBorrar(id) {
+  if (!confirm('¿Quitar este cambio del registro?')) return;
+  window.dsPostJSON('/design/api/cambios-digitales/' + id + '/eliminar', {})
+    .then(function() { DC.items = DC.items.filter(function(x) { return x.id !== id; }); DC.total -= 1; dsToast('Cambio quitado.'); dcCargar(true); })
+    .catch(function(e) { dsToast('⚠️ ' + e.message); });
+}
+// Ventana propia de esta pantalla (la del Dashboard no comparte la de Parámetros)
+function dcModal(html, aceptar, etiqueta) {
+  var f = document.createElement('div'); f.className = 'eq-modal-fondo';
+  f.innerHTML = '<div class="eq-modal" role="dialog" aria-modal="true">' + html + '<div class="eq-modal-acc"><button type="button" class="btn gris" data-m="no">Cancelar</button>' +
+    '<button type="button" class="btn" data-m="si">' + dcEsc(etiqueta) + '</button></div></div>';
+  document.body.appendChild(f);
+  f.addEventListener('click', function(e) {
+    if (e.target === f || e.target.dataset.m === 'no') f.remove();
+    else if (e.target.dataset.m === 'si') { e.target.disabled = true; aceptar(f); }
+  });
+  return f;
+}
+// Alta: formulario con los campos del reporte
+function dcAgregarForm() {
+  var campos = [['fecha', 'Fecha', 'date'], ['orden', 'Orden', 'text'], ['paciente', 'Paciente', 'text'], ['centro', 'Centro', 'text'],
+                ['doctor', 'Doctor', 'text'], ['producto', 'Producto', 'text'], ['tipo_cambio', 'Cambio', 'text'], ['origen', 'Origen', 'sel'], ['detalle', 'Detalle', 'area']];
+  var html = '<h3>Agregar cambio digital</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px">' + campos.map(function(c) {
+    var ancho = c[2] === 'area' ? 'grid-column:1/-1;' : '';
+    var campo = c[2] === 'sel' ? '<select id="dcf_' + c[0] + '"><option value="">—</option><option value="DOC">DOC</option><option value="LAB">LAB</option></select>' :
+                c[2] === 'area' ? '<textarea id="dcf_' + c[0] + '" rows="3" style="width:100%"></textarea>' :
+                '<input id="dcf_' + c[0] + '" type="' + c[2] + '" style="width:100%">';
+    return '<label style="' + ancho + 'font-size:13px">' + c[1] + campo + '</label>';
+  }).join('') + '</div><p class="eq-aviso" style="font-size:12.5px;margin-top:8px">Escribe al menos el número de orden o el paciente.</p>';
+  dcModal(html, function(f) {
+    var datos = {}; campos.forEach(function(c) { datos[c[0]] = f.querySelector('#dcf_' + c[0]).value; });
+    window.dsPostJSON('/design/api/cambios-digitales', datos)
+      .then(function() { f.remove(); dsToast('Cambio agregado.'); dcCargar(true); })
+      .catch(function(e) { f.querySelector('.eq-modal').insertAdjacentHTML('beforeend', '<p style="color:#b91c1c;font-size:13px">' + dcEsc(e.message) + '</p>'); f.querySelector('[data-m=si]').disabled = false; });
+  }, 'Guardar');
+}
+function dcImportarArchivo(file) {
+  var fd = new FormData(); fd.append('archivo', file);
+  dsToast('Importando ' + file.name + '…');
+  fetch('/design/api/cambios-digitales/importar', {method: 'POST', body: fd, credentials: 'same-origin'}).then(function(r) {
+    return r.json().catch(function() { return {}; }).then(function(x) { if (!r.ok) throw new Error(typeof x.detail === 'string' ? x.detail : 'HTTP ' + r.status); return x; });
+  }).then(function(x) {
+    var msg = x.agregados + ' cambio(s) agregado(s)' + (x.repetidos ? ', ' + x.repetidos + ' ya estaban' : '') + (x.errores.length ? '. Revisa: ' + x.errores.slice(0, 3).join(' · ') : '.');
+    alert(msg); dcCargar(true);
+  }).catch(function(e) { alert('No se pudo importar: ' + e.message); });
+}
+(function() {
+  var el = function(id) { return document.getElementById(id); };
+  if (!el('ddVistaCambios')) return;
+  var tb = null;
+  el('dcBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(function() { dcCargar(true); }, 250); });
+  ['dcOrigen', 'dcTipo', 'dcCentro', 'dcDesde', 'dcHasta'].forEach(function(id) { el(id).addEventListener('change', function() { dcCargar(true); }); });
+  el('dcAgregar').addEventListener('click', dcAgregarForm);
+  el('dcImportar').addEventListener('click', function() { el('dcArchivo').click(); });
+  el('dcArchivo').addEventListener('change', function() { if (this.files[0]) dcImportarArchivo(this.files[0]); this.value = ''; });
+  el('dcCsv').addEventListener('click', function() { window.location = '/design/api/cambios-digitales/csv?' + dcUrl(); });
+})();
+
 window.DS_PANELS.dashboard = function() {
   if (!document.getElementById('ddVistaArticulacion').hidden) { daCargar(); return; }
   if (!document.getElementById('ddVistaProductos').hidden) { dpCargar(); return; }
+  if (!document.getElementById('ddVistaCambios').hidden) { dcCargar(true); return; }
   if (!ddCargar.listo) {
     ddCargar.listo = true;
     if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) {

@@ -333,7 +333,7 @@ window.dsPdfjs = function() {
 </div></div>
 {% if ver_dashboard %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
-<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button></div>
+<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button></div>
 <div id="ddVistaResumen">
 
 <div class="dd-search">
@@ -436,6 +436,22 @@ window.dsPdfjs = function() {
 <div class="dd-panel"><div class="dd-panel-cab"><h3 id="dpTopTit">Productos del mes</h3><span style="font-size:12px;color:#4b5563">De más a menos órdenes</span></div><div id="dpTop"></div></div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Órdenes por producto y mes</h3><span style="font-size:12px;color:#4b5563">Clic en un título para ordenar</span></div>
   <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="dpTabla"></table></div></div>
+</div>
+<div id="ddVistaCambios" hidden>
+<p class="dd-p-nota">Cambios que piden el doctor (DOC) o el laboratorio (LAB) sobre cada caso. Haz clic en una celda para editarla; los encabezados ordenan. Tiene sus propios filtros: no depende del periodo del Dashboard.</p>
+<div class="dd-kpis" id="dcKpis"></div>
+<div class="dd-filtros">
+  <div><label for="dcBuscar">Buscar</label><input type="search" id="dcBuscar" placeholder="Orden, paciente, doctor, detalle…" style="width:240px"></div>
+  <div><label for="dcOrigen">Origen</label><select id="dcOrigen"><option value="">Todos</option><option value="DOC">Doctor (DOC)</option><option value="LAB">Laboratorio (LAB)</option></select></div>
+  <div><label for="dcTipo">Tipo de cambio</label><select id="dcTipo"><option value="">Todos</option></select></div>
+  <div><label for="dcCentro">Centro</label><select id="dcCentro"><option value="">Todos</option></select></div>
+  <div><label for="dcDesde">Desde</label><input type="date" id="dcDesde"></div>
+  <div><label for="dcHasta">Hasta</label><input type="date" id="dcHasta"></div>
+  <div style="flex-direction:row;gap:6px;align-self:flex-end;flex-wrap:wrap"><button type="button" class="btn" id="dcAgregar">+ Agregar cambio</button><button type="button" class="btn gris" id="dcImportar">Importar Excel</button><input type="file" id="dcArchivo" accept=".xlsx" hidden><button type="button" class="btn gris" id="dcCsv">Descargar Excel</button></div>
+</div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Cambios digitales</h3><span style="font-size:12px;color:#4b5563" id="dcCuenta"></span></div>
+  <div class="dp-tabla-w"><table class="dd-tabla dc-tabla" id="dcTabla"></table></div>
+  <div id="dcMas" style="margin-top:8px"></div></div>
 </div>
 <div id="ddVistaArticulacion" hidden>
 <p class="dd-p-nota">Tiempo que tardó el articulador en entregar cada caso de N3 › Cirugías (RTD − START). Lo normal son <b>2 horas</b>: aquí se cuentan los casos que pasaron de ese tiempo, por centro, para hacerles seguimiento. Solo cuentan las órdenes completas con START y RTD (sin canceladas ni skipped).</p>

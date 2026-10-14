@@ -1556,6 +1556,84 @@ def api_dashboard(area_id: int | None = None, team_id: int | None = None, design
     return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user, designer_nombre)
 
 
+# ---------- Dashboard › Cambios digitales (13-oct-2026) ----------
+from ..services_design_cambios import (listar as cd_listar, crear as cd_crear, actualizar as cd_actualizar,
+                                       eliminar as cd_eliminar, importar_xlsx as cd_importar, exportar_csv as cd_csv, CAMPOS as CD_CAMPOS)
+
+
+class CambioCampoIn(BaseModel):
+    campo: str = Field(max_length=20)
+    valor: str | None = Field(default="", max_length=4000)
+
+
+def _cd_fila(r) -> dict:
+    return {"id": r.id, "fecha": r.fecha.isoformat() if r.fecha else "", "orden": r.orden or "", "paciente": r.paciente or "",
+            "centro": r.centro or "", "doctor": r.doctor or "", "producto": r.producto or "", "tipo_cambio": r.tipo_cambio or "",
+            "detalle": r.detalle or "", "origen": r.origen or ""}
+
+
+def _cd_fecha(texto: str):
+    return _fecha(texto) if texto else None
+
+
+@router.get("/design/api/cambios-digitales")
+def api_cambios_listar(q: str = Query("", max_length=200), desde: str = "", hasta: str = "", origen: str = "", tipo: str = "",
+                       centro: str = "", orden: str = Query("fecha", max_length=20), dir: str = Query("desc", max_length=4),
+                       limite: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
+                       user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    return cd_listar(db, q=q, desde=_cd_fecha(desde), hasta=_cd_fecha(hasta), origen=origen, tipo=tipo, centro=centro,
+                     orden=orden, dir_=dir, limite=limite, offset=offset)
+
+
+@router.post("/design/api/cambios-digitales")
+def api_cambios_crear(payload: dict, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    datos = {c: payload.get(c, "") for c in CD_CAMPOS}
+    try:
+        return _cd_fila(cd_crear(db, datos, user.nombre_completo))
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+
+
+@router.post("/design/api/cambios-digitales/{id_:int}")
+def api_cambios_editar(id_: int, payload: CambioCampoIn, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    if payload.campo not in CD_CAMPOS:
+        raise HTTPException(400, "Ese campo no se puede editar.")
+    try:
+        r = cd_actualizar(db, id_, payload.campo, payload.valor)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    if not r:
+        raise HTTPException(404, "El cambio no existe.")
+    return _cd_fila(r)
+
+
+@router.post("/design/api/cambios-digitales/{id_:int}/eliminar")
+def api_cambios_eliminar(id_: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    if not cd_eliminar(db, id_):
+        raise HTTPException(404, "El cambio no existe.")
+    return {"ok": True}
+
+
+@router.post("/design/api/cambios-digitales/importar")
+async def api_cambios_importar(archivo: UploadFile = File(...), user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    datos = await archivo.read(10 * 1024 * 1024 + 1)
+    if len(datos) > 10 * 1024 * 1024:
+        raise HTTPException(400, "El Excel pesa más de 10 MB.")
+    try:
+        return cd_importar(db, datos, user.nombre_completo)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+
+
+@router.get("/design/api/cambios-digitales/csv")
+def api_cambios_csv(q: str = Query("", max_length=200), desde: str = "", hasta: str = "", origen: str = "", tipo: str = "",
+                    centro: str = "", orden: str = Query("fecha", max_length=20), dir: str = Query("desc", max_length=4),
+                    user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    texto = cd_csv(db, q=q, desde=_cd_fecha(desde), hasta=_cd_fecha(hasta), origen=origen, tipo=tipo, centro=centro, orden=orden, dir_=dir)
+    return Response(texto.encode("utf-8"), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="cambios_digitales.csv"'})
+
+
 @router.get("/design/api/dashboard/tendencia")
 def api_dashboard_tendencia(desde: str, hasta: str, area_id: int | None = None, team_id: int | None = None,
                             user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):

@@ -459,6 +459,25 @@ class DesignCopiaFace(Base):
     creada_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class DesignCambioDigital(Base):
+    """Cambio que pide el doctor (DOC) o el laboratorio (LAB) sobre un caso: Dashboard › Cambios digitales (13-oct-2026)."""
+    __tablename__ = "design_cambios_digitales"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fecha: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    orden: Mapped[str] = mapped_column(String(40), default="", index=True)
+    paciente: Mapped[str] = mapped_column(String(200), default="")
+    centro: Mapped[str] = mapped_column(String(120), default="", index=True)
+    doctor: Mapped[str] = mapped_column(String(200), default="")
+    producto: Mapped[str] = mapped_column(String(200), default="")
+    tipo_cambio: Mapped[str] = mapped_column(String(120), default="", index=True)
+    detalle: Mapped[str] = mapped_column(Text, default="")
+    origen: Mapped[str] = mapped_column(String(10), default="")   # DOC | LAB
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DesignPreferencia(Base):
     """Preferencias de cada persona en Design (por ahora el modo oscuro). Por defecto, claro."""
     __tablename__ = "design_preferencias"
