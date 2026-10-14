@@ -66,6 +66,35 @@ def ve_mural(user: Empleado | None) -> bool:
 _sembrado = False
 
 
+def _manifiesto() -> list[dict]:
+    man = _SEMILLA / "avisos.json"
+    return json.loads(man.read_text(encoding="utf-8")) if man.exists() else []
+
+
+def _fecha_fija(semilla: str) -> datetime | None:
+    """Fecha de publicación pedida para un aviso de la carga inicial (p. ej. el de morfologías: 7-sep-2026, el día
+    en que se compartió). Se guarda a mediodía UTC para que en Colombia se vea ese mismo día."""
+    if not semilla:
+        return None
+    for a in _manifiesto():
+        if a["clave"] == semilla and a.get("publicadoEn"):
+            return datetime.fromisoformat(a["publicadoEn"]).replace(hour=12)
+    return None
+
+
+def _ajustar_semillas(db: Session) -> None:
+    """Cambios pedidos después de la carga inicial: título nuevo (solo si nadie lo cambió a mano) y fecha fija."""
+    man = {a["clave"]: a for a in _manifiesto()}
+    for av in db.query(DesignMuralAviso).filter(DesignMuralAviso.semilla.in_(list(man)), DesignMuralAviso.eliminado.is_(False)):
+        a = man[av.semilla]
+        if av.titulo in a.get("titulo_antes", []):
+            av.titulo = a["titulo"]
+        f = _fecha_fija(av.semilla)
+        if f and av.publicado and av.publicado_en != f:
+            av.publicado_en = f
+    db.commit()
+
+
 def sembrar_una_vez(db: Session) -> None:
     global _sembrado
     if _sembrado:
@@ -73,19 +102,18 @@ def sembrar_una_vez(db: Session) -> None:
     with _lock:
         if _sembrado:
             return
-        man = _SEMILLA / "avisos.json"
-        if man.exists():
-            ya = {s for (s,) in db.query(DesignMuralAviso.semilla).filter(DesignMuralAviso.semilla != "").all()}
-            orden = (db.query(func.max(DesignMuralAviso.orden)).scalar() or 0)
-            for a in json.loads(man.read_text(encoding="utf-8")):
-                if a["clave"] in ya:
-                    continue
-                orden += 1
-                full = (_SEMILLA / f"{a['clave']}.webp").read_bytes()
-                db.add(DesignMuralAviso(titulo=a["titulo"], ancho=a["ancho"], alto=a["alto"], tamano=len(full),
-                                        datos=full, miniatura=(_SEMILLA / f"{a['clave']}_mini.webp").read_bytes(),
-                                        orden=orden, semilla=a["clave"]))
-            db.commit()
+        ya = {s for (s,) in db.query(DesignMuralAviso.semilla).filter(DesignMuralAviso.semilla != "").all()}
+        orden = (db.query(func.max(DesignMuralAviso.orden)).scalar() or 0)
+        for a in _manifiesto():
+            if a["clave"] in ya:
+                continue
+            orden += 1
+            full = (_SEMILLA / f"{a['clave']}.webp").read_bytes()
+            db.add(DesignMuralAviso(titulo=a["titulo"], ancho=a["ancho"], alto=a["alto"], tamano=len(full),
+                                    datos=full, miniatura=(_SEMILLA / f"{a['clave']}_mini.webp").read_bytes(),
+                                    orden=orden, semilla=a["clave"]))
+        db.commit()
+        _ajustar_semillas(db)
         _sembrado = True
 
 
@@ -158,7 +186,7 @@ def editar(db: Session, aviso_id: int, titulo: str | None = None, publicado: boo
         a.titulo = titulo.strip()[:200] or a.titulo
     if publicado is not None and bool(publicado) != bool(a.publicado):
         a.publicado = bool(publicado)
-        a.publicado_en = datetime.utcnow() if publicado else None
+        a.publicado_en = (_fecha_fija(a.semilla) or datetime.utcnow()) if publicado else None
     db.commit()
     _invalidar()
     return _json(a, datetime.utcnow())
@@ -168,7 +196,7 @@ def publicar_borradores(db: Session) -> int:
     ahora = datetime.utcnow()
     n = 0
     for a in db.query(DesignMuralAviso).filter(DesignMuralAviso.eliminado.is_(False), DesignMuralAviso.publicado.is_(False)):
-        a.publicado, a.publicado_en = True, ahora
+        a.publicado, a.publicado_en = True, _fecha_fija(a.semilla) or ahora
         n += 1
     db.commit()
     _invalidar()
