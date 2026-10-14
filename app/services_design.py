@@ -1208,7 +1208,8 @@ def mover_a_training(db: Session, o: DesignOrden, user: Empleado) -> DesignTeam:
     faltan = [n for n, v in (("el número de orden", o.orden), ("el nombre del paciente", o.paciente), ("el centro", o.centro)) if not (v or "").strip()]
     if faltan:
         raise ValueError("Falta " + ", ".join(faltan) + " para pasar el caso a Training.")
-    if dia_cerrado(o.fecha):
+    from .services_design_permisos import dia_cerrado_para
+    if dia_cerrado_para(db, user, o.fecha):
         raise PermissionError("Este día ya se cerró y no se puede editar.")
     destino = (db.query(DesignTeam).join(DesignArea, DesignTeam.area_id == DesignArea.id)
                .filter(DesignArea.nombre == AREA_TRAINING, DesignTeam.activo == 1).order_by(DesignTeam.orden, DesignTeam.id).first())

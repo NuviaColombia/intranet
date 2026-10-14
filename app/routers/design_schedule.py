@@ -18,6 +18,7 @@ from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignC
                              DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila, FORMATO_SUPPORT)
 from ..auth import get_current_user
 from ..main_templates import templates
+from .. import services_design_permisos as sperm
 from .. import services_design as sd
 from .. import services_design_accesos as sacc  # también activa el acceso automático de los equipos
 from .. import services_design_planificacion as spl
@@ -320,6 +321,7 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
                                                    DesignCatalogo.orden).all())
     return templates.TemplateResponse(request, "design_parametros.html",
                                       {"user": user, "areas": areas, "teams": teams, "candidatos": candidatos, "inhabilitados": inhabilitados,
+                                       "permisos_edicion": sperm.listar(db),
                                        "op_managers": [[t.area.nombre, t.manager.nombre_completo] for t in teams if t.activo and t.manager and t.area],
                                        "candidatos_az": sorted(candidatos, key=lambda e: sd._normalizar_texto(e.nombre_completo)),
                                        "con_ordenes": {tid for (tid,) in db.query(DesignOrden.team_id).distinct()},
@@ -858,6 +860,33 @@ def api_inhabilitar(empleado_id: int, payload: InhabIn, user: Empleado = Depends
     return {"ok": True, "nombre": r["nombre"], "equipos": r["equipos"]}
 
 
+class PermisoEdicionIn(BaseModel):
+    empleadoId: int
+    desde: str
+    hasta: str
+    venceEn: str
+    motivo: str = ""
+
+
+@router.post("/design/api/parametros/permisos-edicion")
+def api_permiso_edicion(payload: PermisoEdicionIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Abre a una persona días ya cerrados de su Schedule por un tiempo (Parámetros › Equipos)."""
+    try:
+        vence = datetime.fromisoformat(payload.venceEn)
+        r = sperm.crear(db, payload.empleadoId, _fecha(payload.desde), _fecha(payload.hasta), vence.replace(tzinfo=None),
+                        user.nombre_completo, payload.motivo)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex) if "Invalid isoformat" not in str(ex) else "Revisa las fechas.")
+    return r
+
+
+@router.post("/design/api/parametros/permisos-edicion/{permiso_id}/quitar")
+def api_permiso_edicion_quitar(permiso_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    if not sperm.quitar(db, permiso_id):
+        raise HTTPException(404, "Ese permiso ya no está vigente.")
+    return {"ok": True}
+
+
 @router.post("/design/api/parametros/personas/{empleado_id}/reactivar")
 def api_reactivar(empleado_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     if not sacc.reactivar(db, empleado_id, user.nombre_completo):
@@ -1052,6 +1081,11 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     miembro = team.id in sd.equipos_como_designer(db, user)
     dia = sd.datos_dia(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
     dia["miId"] = user.id
+    # Permiso para editar días cerrados (Parámetros › Equipos): ese día se abre solo para esta persona
+    if dia["cerrado"]:
+        hasta = sperm.permiso_para(db, user, _fecha(fecha))
+        if hasta:
+            dia["cerrado"], dia["permisoEdicionHasta"] = False, hasta.isoformat(timespec="minutes")
     if es_tr and not gest:   # Training: todos ven todos los casos; solo edita la entrenadora, los admins y cada entrenado lo suyo
         dia["soloLectura"] = not miembro
         dia["soloPropias"] = miembro
@@ -1225,7 +1259,7 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         payload.producto = solo_producto
         if not payload.designerId and not payload.designerPrestado.strip():
             payload.designerId = user.id
-    if sd.dia_cerrado(_fecha(payload.fecha)):
+    if sperm.dia_cerrado_para(db, user, _fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
     _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
     datos = _datos_desde_in(payload)
@@ -1290,7 +1324,7 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
     if not sd.gestiona_equipo(user, _verificar_equipo(db, user, payload.teamId)):
         raise HTTPException(403, SOLO_MANAGER)
     fecha = _fecha(payload.fecha)
-    if sd.dia_cerrado(fecha):
+    if sperm.dia_cerrado_para(db, user, fecha):
         raise HTTPException(403, DIA_CERRADO)
     _verificar_tabla(db.get(DesignTeam, payload.teamId), payload.tabla)
     if not 1 <= len(payload.filas) <= MAX_LOTE:
@@ -1452,8 +1486,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         if not propia:
             raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
     _verificar_qc(user, team, payload, orden_existente)
-    if sd.dia_cerrado(orden_existente.fecha):
-        # Día cerrado: solo el QC (checkbox + reporte de hallazgos), y solo hasta las 5:00 am de D+2.
+    if sperm.dia_cerrado_para(db, user, orden_existente.fecha):
+        # Día cerrado (y sin permiso para editarlo): solo el QC (checkbox + reporte de hallazgos), y solo hasta las 5:00 am de D+2.
         # El resto de campos se ignora.
         if not sd.qc_editable(orden_existente.fecha):
             raise HTTPException(403, DIA_CERRADO)
@@ -1510,7 +1544,7 @@ def api_eliminar_orden(orden_id: int, user: Empleado = Depends(require_modulo("d
         raise HTTPException(404, "Orden no encontrada.")
     if not sd.gestiona_equipo(user, _verificar_equipo(db, user, orden_existente.team_id)):
         raise HTTPException(403, SOLO_MANAGER)
-    if sd.dia_cerrado(orden_existente.fecha):
+    if sperm.dia_cerrado_para(db, user, orden_existente.fecha):
         raise HTTPException(403, DIA_CERRADO)
     sd.eliminar_orden(db, orden_id)
     return {"mensaje": "Eliminada."}
@@ -1535,7 +1569,7 @@ def api_guardar_break(payload: BreakIn, user: Empleado = Depends(require_modulo(
     team = _verificar_equipo(db, user, payload.teamId)
     if not sd.gestiona_equipo(user, team) and payload.empleadoId != user.id:
         raise HTTPException(403, "Solo puedes registrar tus propios tiempos libres.")
-    if sd.dia_cerrado(_fecha(payload.fecha)):
+    if sperm.dia_cerrado_para(db, user, _fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
     b = sd.guardar_break(db, payload.teamId, payload.empleadoId, _fecha(payload.fecha), {
         "tipo_ausencia": payload.tipoAusencia,

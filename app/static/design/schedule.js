@@ -1822,7 +1822,19 @@ window.addEventListener('unhandledrejection', function(ev) {
     var candado = document.getElementById('dsCandado');
     var cerrado = dsDiaCerrado();
     document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = dsPuedeCrearVarias() ? '' : 'none'; });
-    if (!cerrado) { candado.style.display = 'none'; return; }
+    if (!cerrado) {
+      var perm = DS.diaData && DS.diaData.permisoEdicionHasta;
+      if (!perm) { candado.textContent = '🔒'; candado.style.display = 'none'; return; }
+      // Día ya cerrado que esta persona puede editar por un permiso temporal (Parámetros › Equipos)
+      var v = new Date(perm);
+      candado.textContent = '🔓';
+      candado.title = 'Este día ya se cerró, pero tienes permiso para editarlo hasta el ' +
+        v.toLocaleDateString('es-CO', {day: 'numeric', month: 'long'}) + ' a las ' +
+        v.toLocaleTimeString('es-CO', {hour: 'numeric', minute: '2-digit'}) + '.';
+      candado.setAttribute('aria-label', candado.title); candado.style.display = '';
+      return;
+    }
+    candado.textContent = '🔒';
     var txt = '🔒 Este día ya se cerró y no se puede editar.';
     if (DS.diaData.qcEditable) {
       var h = new Date(DS.diaData.qcEditableHasta);

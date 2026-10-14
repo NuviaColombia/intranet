@@ -1088,3 +1088,22 @@ class DesignMuralAviso(Base):
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DesignPermisoEdicion(Base):
+    """Permiso temporal para que una persona edite días ya cerrados de su Schedule (13-oct-2026, Parámetros › Equipos).
+    Abre los días entre `desde` y `hasta` solo para esa persona, hasta `vence_en` (hora de Colombia, sin zona).
+    Al quitarlo se marca `revocado` (queda como registro de quién lo dio)."""
+    __tablename__ = "design_permisos_edicion"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), index=True)
+    desde: Mapped[date] = mapped_column(Date)
+    hasta: Mapped[date] = mapped_column(Date)
+    vence_en: Mapped[datetime] = mapped_column(DateTime)
+    motivo: Mapped[str] = mapped_column(String(200), default="")
+    revocado: Mapped[bool] = mapped_column(Boolean, default=False)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    empleado = relationship("Empleado")

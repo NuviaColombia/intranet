@@ -97,6 +97,14 @@
   .eq-inh-lista { margin:14px 0 4px; padding:10px 12px; border:1px dashed #cbd5e1; border-radius:12px; background:#f8fafc; }
   .eq-inh-lista h3 { margin:0 0 6px; font-size:14px; color:#334155; }
   .eq-inh-fila { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 0; border-top:1px solid #e2e8f0; font-size:13px; }
+  .eq-perm { background:#f0f9ff; border-color:#7dd3fc; }
+  .eq-perm-ayuda { margin:0 0 8px; font-size:12.5px; color:#475569; }
+  .eq-perm-form { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:flex-end; margin-bottom:6px; }
+  .eq-perm-form > div { display:flex; flex-direction:column; gap:3px; flex:1 1 150px; font-size:12.5px; }
+  .eq-perm-form .eq-perm-mot { flex:2 1 220px; } .eq-perm-form .eq-perm-btn { flex:0 0 auto; }
+  .eq-perm-form label { color:#334155; font-weight:600; }
+  .eq-perm.resaltar { animation:eqPermLuz 1.6s ease; }
+  @keyframes eqPermLuz { 0%,100% { box-shadow:none; } 30% { box-shadow:0 0 0 4px rgba(14,165,233,.45); } }
   .eq-inh-fila:first-of-type { border-top:0; } .eq-inh-fila b { color:#0f172a; } .eq-inh-fila small { color:#64748b; flex:1 1 240px; }
   .eq-modal-fondo { position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:1000; display:grid; place-items:center; padding:16px; }
   .eq-modal { background:#fff; color:#0f172a; border-radius:16px; max-width:460px; width:100%; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.35); }
@@ -404,6 +412,8 @@
                 <form method="post" action="/design/parametros/designers/{{ d.id }}/quitar" class="eq-guarda">
                   <button aria-label="Quitar a {{ d.empleado.nombre_completo }} de {{ t.nombre }}" title="Quitar de este equipo">×</button>
                 </form>
+                <button type="button" class="eq-inhab eq-perm-chip" data-perm-para="{{ d.empleado_id }}"
+                        aria-label="Permitir a {{ d.empleado.nombre_completo }} editar días anteriores" title="Permitir editar días anteriores por un tiempo">🔓</button>
                 <button type="button" class="eq-inhab" data-inhab="{{ d.empleado_id }}" data-nombre="{{ d.empleado.nombre_completo }}"
                         aria-label="Inhabilitar el acceso de {{ d.empleado.nombre_completo }}" title="Inhabilitar acceso a la plataforma (se conservan sus datos)">⛔</button>
               </span>
@@ -456,6 +466,26 @@
       <div class="eq-inh-fila"><b>{{ h.nombre }}</b>
         <small>{{ 'Salió de: ' ~ h.equipos ~ '. ' if h.equipos }}{{ h.motivo ~ '. ' if h.motivo }}Por {{ h.por or '—' }} · {{ h.fecha[:10] }} · sus datos del Schedule se conservan</small>
         <button type="button" class="btn gris mini" data-reactivar="{{ h.id }}" data-nombre="{{ h.nombre }}">Reactivar acceso</button></div>
+      {% endfor %}
+    </div>
+    {# Permisos temporales para editar días ya cerrados del Schedule (services_design_permisos) #}
+    <div class="eq-inh-lista eq-perm" id="eqPerm">
+      <h3>🔓 Permisos para editar días anteriores{% if permisos_edicion %} ({{ permisos_edicion|length }}){% endif %}</h3>
+      <p class="eq-perm-ayuda">Cada día se cierra a las 5:00 am del día siguiente. Aquí puedes abrirle a una persona días ya cerrados de su Schedule por un tiempo; los demás los siguen viendo cerrados. Al vencer, se cierran solos.</p>
+      <form class="eq-perm-form" id="eqPermForm">
+        <div><label for="eqPermPersona">Persona</label>
+          <select id="eqPermPersona" required><option value="">-- ELIGE --</option>
+            {% for c in candidatos_az %}<option value="{{ c.id }}">{{ c.nombre_completo }}</option>{% endfor %}</select></div>
+        <div><label for="eqPermDesde">Desde el día</label><input type="date" id="eqPermDesde" required></div>
+        <div><label for="eqPermHasta">Hasta el día</label><input type="date" id="eqPermHasta" required></div>
+        <div><label for="eqPermVence">Puede editar hasta</label><input type="datetime-local" id="eqPermVence" required></div>
+        <div class="eq-perm-mot"><label for="eqPermMotivo">Motivo (opcional)</label><input id="eqPermMotivo" maxlength="200" placeholder="Ej: completar horas de esta semana"></div>
+        <div class="eq-perm-btn"><button class="btn">Dar permiso</button></div>
+      </form>
+      {% for p in permisos_edicion %}
+      <div class="eq-inh-fila"><b>{{ p.nombre }}</b>
+        <small>Días del <span data-fecha="{{ p.desde }}">{{ p.desde }}</span> al <span data-fecha="{{ p.hasta }}">{{ p.hasta }}</span> · puede editar hasta el <span data-vence="{{ p.venceEn }}">{{ p.venceEn }}</span>{{ ' · ' ~ p.motivo if p.motivo }} · dado por {{ p.por or '—' }}</small>
+        <button type="button" class="btn gris mini" data-perm-quitar="{{ p.id }}" data-nombre="{{ p.nombre }}">Quitar permiso</button></div>
       {% endfor %}
     </div>
   </div>
@@ -2290,7 +2320,48 @@
     return f;
   }
   function eqErr(r) { return r.json().catch(function() { return {}; }).then(function(j) { throw new Error(j.detail || ('HTTP ' + r.status)); }); }
+  // Permisos para editar días anteriores: por defecto, del lunes de esta semana a ayer, hasta hoy a las 11:59 pm.
+  (function() {
+    var f = document.getElementById('eqPermForm'); if (!f) return;
+    var iso = function(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    var hoy = new Date(), ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+    var lunes = new Date(hoy); lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
+    if (iso(lunes) === iso(hoy)) lunes.setDate(lunes.getDate() - 7);   // hoy es lunes: la semana pasada
+    var de = f.querySelector('#eqPermDesde'), ha = f.querySelector('#eqPermHasta'), ve = f.querySelector('#eqPermVence');
+    de.value = iso(lunes); ha.value = iso(ayer); de.max = ha.max = iso(ayer);
+    ve.value = iso(hoy) + 'T23:59'; ve.min = iso(hoy) + 'T00:00';
+    var corta = function(s) { return new Date(s + 'T12:00').toLocaleDateString('es-CO', {weekday: 'short', day: 'numeric', month: 'short'}); };
+    document.querySelectorAll('#eqPerm [data-fecha]').forEach(function(el) { el.textContent = corta(el.dataset.fecha); });
+    document.querySelectorAll('#eqPerm [data-vence]').forEach(function(el) {
+      var v = new Date(el.dataset.vence);
+      el.textContent = v.toLocaleDateString('es-CO', {day: 'numeric', month: 'short'}) + ' a las ' + v.toLocaleTimeString('es-CO', {hour: 'numeric', minute: '2-digit'});
+    });
+    f.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var sel = f.querySelector('#eqPermPersona'), btn = f.querySelector('button'); btn.disabled = true;
+      fetch('/design/api/parametros/permisos-edicion', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
+        empleadoId: +sel.value, desde: de.value, hasta: ha.value, venceEn: ve.value, motivo: f.querySelector('#eqPermMotivo').value})})
+        .then(function(r) { return r.ok ? r.json() : eqErr(r); })
+        .then(function(r) { location.href = '/design/parametros?msg=' + encodeURIComponent(r.nombre + ' ya puede editar esos días.') + '#eqPerm'; })
+        .catch(function(er) { btn.disabled = false; alert('No se pudo dar el permiso: ' + er.message); });
+    });
+  })();
   eqCont.addEventListener('click', function(e) {
+    var pp = e.target.closest('[data-perm-para]'), pq = e.target.closest('[data-perm-quitar]');
+    if (pp) {   // 🔓 en el diseñador: lo elige en el formulario de permisos
+      e.preventDefault();
+      var caja = document.getElementById('eqPerm'); document.getElementById('eqPermPersona').value = pp.dataset.permPara;
+      caja.scrollIntoView({behavior: 'smooth', block: 'center'}); caja.classList.remove('resaltar'); void caja.offsetWidth; caja.classList.add('resaltar');
+      return;
+    }
+    if (pq) {
+      if (!confirm('¿Quitar el permiso de ' + pq.dataset.nombre + '? Esos días se cierran de nuevo para esa persona.')) return;
+      fetch('/design/api/parametros/permisos-edicion/' + pq.dataset.permQuitar + '/quitar', {method: 'POST'})
+        .then(function(r) { return r.ok ? r.json() : eqErr(r); })
+        .then(function() { location.href = '/design/parametros?msg=' + encodeURIComponent('Permiso quitado.') + '#eqPerm'; })
+        .catch(function(er) { alert('No se pudo: ' + er.message); });
+      return;
+    }
     var b = e.target.closest('[data-inhab]'), re = e.target.closest('[data-reactivar]');
     if (b) {
       e.preventDefault(); var id = b.dataset.inhab;
