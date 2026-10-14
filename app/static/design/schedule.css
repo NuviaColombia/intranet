@@ -1101,5 +1101,7 @@
 /* Cambio digital: botón de Quitar en gris claro con × y formulario tipo tabla */
 .dc-x { border: 0; background: #e5e7eb; color: #475569; width: 24px; height: 24px; border-radius: 50%; font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; }
 .dc-x:hover { background: #cbd5e1; color: #0f172a; }
-.dcd-tabla th, .dcd-tabla td { border-bottom: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; }
+.dcd-tabla th, .dcd-tabla td { border-bottom: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; vertical-align: middle; }
+.dcd-tabla input, .dcd-tabla select, .dcd-tabla textarea { text-align: center; text-align-last: center; }
+.dcd-tabla textarea { resize: vertical; }
 .dcd-auto { color: #0f172a; font-weight: 600; }

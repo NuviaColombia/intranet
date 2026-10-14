@@ -3629,7 +3629,7 @@ function dcdAbrir() {
       '<div id="dcd_tipo_nuevo_w" hidden style="margin-top:6px"><input id="dcd_tipo_nuevo" type="text" placeholder="Escribe el nuevo tipo de cambio" style="width:100%"></div>';
     else if (c[0] === 'detalle') campo = '<textarea id="dcd_detalle" rows="3" placeholder="Qué se cambió y por qué" style="width:100%"></textarea>';
     else campo = '<select id="dcd_origen" style="width:100%"><option value="">— elige —</option><option value="DOC">DOC · lo pidió el doctor</option><option value="LAB">LAB · lo pidió el laboratorio</option></select>';
-    return '<tr><th style="width:34%;text-align:left">' + c[1] + (c[0] === 'orden' || c[0] === 'doctor' || c[0] === 'tipo_cambio' || c[0] === 'detalle' || c[0] === 'origen' ? ' <span style="color:#b91c1c">*</span>' : '') + '</th><td>' + campo + '</td></tr>';
+    return '<tr><th style="width:34%;text-align:center">' + c[1] + (c[0] === 'orden' || c[0] === 'doctor' || c[0] === 'tipo_cambio' || c[0] === 'detalle' || c[0] === 'origen' ? ' <span style="color:#b91c1c">*</span>' : '') + '</th><td>' + campo + '</td></tr>';
   }).join('');
   var html = '<h3>Cambio digital</h3><p class="dd-p-nota" style="margin:0 0 8px">Escribe el número de orden: fecha, paciente, centro y producto salen del Schedule. Lo marcado con * es obligatorio.</p>' +
     '<table class="dd-tabla dcd-tabla" style="width:100%"><tbody>' + filas + '</tbody></table><p id="dcd_aviso" class="dd-p-nota" style="min-height:18px;margin:6px 0 0"></p>';
