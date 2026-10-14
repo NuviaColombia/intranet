@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Diagnóstico Face → N2{% endblock %}
+{% block contenido %}
+<style>
+  .fd { max-width:900px; margin:0 auto; }
+  .fd form { display:flex; gap:8px; margin:6px 0 18px; }
+  .fd input { flex:1; max-width:260px; }
+  .fd-orden { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:14px; }
+  .fd-orden h3 { margin:0 0 8px; font-size:15px; }
+  .fd-paso { display:flex; gap:8px; padding:5px 0; border-top:1px solid #f1f5f9; font-size:14px; }
+  .fd-paso:first-of-type { border-top:0; }
+  .fd-paso b { width:22px; flex:0 0 22px; text-align:center; }
+  .fd-mal { color:#b91c1c; }
+  .fd-nota { color:#475569; font-size:13px; }
+</style>
+<div class="fd">
+  <h1>Diagnóstico de la copia Face → N2</h1>
+  <p class="fd-nota">Escribe el número de orden: se revisa cada paso de la copia automática (QC, centro en Openings, equipo de N2, copia y notificaciones) sin cambiar nada.</p>
+  <form method="get"><input name="orden" value="{{ orden }}" placeholder="Número de orden, ej. 241658" required autofocus><button class="btn">Revisar</button></form>
+  {% if d %}
+    {% if not d.ordenesFace %}<p class="fd-mal">No hay ninguna orden {{ d.numero }} en el área Face Design.</p>{% endif %}
+    {% for o in d.ordenesFace %}
+    <div class="fd-orden">
+      <h3>Orden {{ d.numero }} · {{ o.equipo }} · {{ o.fecha }} · {{ o.centro or 'sin centro' }}{{ ' · ' ~ o.producto if o.producto }}</h3>
+      {% for p in o.pasos %}<div class="fd-paso{{ '' if p.ok else ' fd-mal' }}"><b>{{ '✅' if p.ok else '❌' }}</b><span>{{ p.texto }}</span></div>{% endfor %}
+    </div>
+    {% endfor %}
+    <p class="fd-nota">En N2 hay {{ d.enN2|length }} orden(es) con ese número{% if d.enN2 %}:
+      {% for x in d.enN2 %}{{ x.equipo }} ({{ x.fecha }}, creada {{ x.creadaEn }}){{ ', ' if not loop.last }}{% endfor %}{% endif %}.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1497,6 +1497,15 @@ def api_copia_face_decidir(n2_orden_id: int, payload: CopiaDecisionIn,
         raise HTTPException(400, str(ex))
 
 
+@router.get("/design/diagnostico/face-n2")
+def diagnostico_face_n2(request: Request, orden: str = Query("", max_length=50), user: Empleado = Depends(require_admin),
+                        db: Session = Depends(get_db)):
+    """Admins: revisa paso a paso por qué una orden de Face se copió (o no) a N2 y si se pudo avisar por push."""
+    from .. import services_design_face_diag as sfd
+    d = sfd.diagnosticar(db, orden) if orden.strip() else None
+    return templates.TemplateResponse(request, "design_diag_face_n2.html", {"user": user, "es_design": True, "d": d, "orden": orden})
+
+
 @router.post("/design/api/ordenes/{orden_id}")
 def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
