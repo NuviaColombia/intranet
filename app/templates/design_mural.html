@@ -1,18 +1,44 @@
 {% extends "base.html" %}
 {% block titulo %}Mural{% endblock %}
 {% block contenido %}
-<style>
-  /* Mural ocupa toda la pantalla bajo la barra. Fondo: concreto industrial generado por computador (capas de mortero con borde de llana, sombra en hendiduras y fisuras)
-     (static/design/mural/fondo.webp, 4096×4096, se repite sin costuras). Se muestra a 2048 px para que cada píxel
-     de la imagen caiga en un píxel real en pantallas retina/4K: se ve nítido a cualquier tamaño. */
-  main:has(#muRaiz) { padding:0 !important; max-width:none !important; }
-  body:has(#muRaiz) { background:#c6c7c9 url("/static/design/mural/fondo.webp") 0 0 / 2048px 2048px repeat; }
-  .mu-raiz { min-height:calc(100vh - 60px); padding:48px 16px; text-align:center; }
-  .mu-raiz h1 { margin:0 0 8px; color:#374151; }
-  .mu-raiz p { margin:0; color:#4b5563; }
-</style>
-<div id="muRaiz" class="mu-raiz">
-  <h1>Mural</h1>
-  <p>En construcción. Por ahora solo tú puedes ver esta sección.</p>
+<link rel="stylesheet" href="/static/design/mural/mural.css?v={{ mural_v }}">
+<div id="muRaiz" class="mu-raiz" data-editor="{{ '1' if mural_editor else '0' }}">
+  <div class="mu-cab">
+    <div class="mu-titulo">
+      <h1>Mural</h1>
+      <p>Avisos importantes del equipo. Toca un aviso para leerlo en grande.</p>
+    </div>
+    {% if mural_editor %}
+    <div class="mu-acc">
+      <input type="file" id="muArchivo" accept="image/png,image/jpeg,image/webp" multiple hidden>
+      <button type="button" class="mu-btn" id="muSubir" title="También puedes arrastrar las imágenes sobre la pared">＋ Subir avisos</button>
+      <button type="button" class="mu-btn" id="muEditar" aria-pressed="false">Editar</button>
+      <button type="button" class="mu-btn prim" id="muPublicar" disabled>Publicar</button>
+    </div>
+    {% endif %}
+  </div>
+  <div class="mu-vacio" id="muVacio" hidden>
+    {% if mural_editor %}Todavía no hay avisos. Usa <b>＋ Subir avisos</b> o arrastra las imágenes aquí.{% else %}Por ahora no hay avisos publicados.{% endif %}
+  </div>
+  <div class="mu-pared" id="muPared" aria-live="polite"></div>
 </div>
+
+<div class="mu-visor" id="muVisor" role="dialog" aria-modal="true" aria-labelledby="muVTit">
+  <div class="mu-v-sup">
+    <div class="mu-v-tit" id="muVTit"></div>
+    <span class="mu-v-cont" id="muVCont"></span>
+    <a class="mu-v-b" id="muVOrig" href="#" target="_blank" rel="noopener" title="Abrir la imagen original en otra pestaña" aria-label="Abrir original">⤢</a>
+    <button type="button" class="mu-v-b" id="muVCerrar" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="mu-v-lienzo" id="muVLienzo"><img class="mu-v-img" id="muVImg" alt="" draggable="false"></div>
+  <button type="button" class="mu-v-b mu-v-prev" id="muVPrev" title="Anterior (←)" aria-label="Aviso anterior">‹</button>
+  <button type="button" class="mu-v-b mu-v-next" id="muVNext" title="Siguiente (→)" aria-label="Aviso siguiente">›</button>
+  <div class="mu-v-inf">
+    <button type="button" class="mu-v-b" id="muVMenos" title="Alejar (−)" aria-label="Alejar">−</button>
+    <button type="button" class="mu-v-b" id="muVAjustar" title="Ver completo" aria-label="Ver completo">⟲</button>
+    <button type="button" class="mu-v-b" id="muVMas" title="Acercar (+)" aria-label="Acercar">＋</button>
+  </div>
+  <div class="mu-v-pista" id="muVPista">Clic para acercar · rueda del mouse o pellizco para zoom · arrastra para moverte</div>
+</div>
+<script src="/static/design/mural/mural.js?v={{ mural_v }}" defer></script>
 {% endblock %}

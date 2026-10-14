@@ -1063,3 +1063,28 @@ for _cls in list(globals().values()):
     if isinstance(_cls, type) and issubclass(_cls, Base) and _cls is not Base and _cls.__module__ == __name__ \
             and hasattr(_cls, "__table__"):
         _instalar_limpieza(_cls)
+
+
+class DesignMuralAviso(Base):
+    """Mural (13-oct-2026): avisos importantes (posters) pegados en la pared de concreto. Se suben como borrador y al
+    publicarlos los ve todo el que tiene Design. Las imágenes llegan ya comprimidas en WebP desde el navegador:
+    `datos` (tamaño completo, para leer) y `miniatura` (≈640 px, para la pared). Al eliminar se vacían los datos y la
+    fila queda marcada (así un aviso de la carga inicial, `semilla`, no vuelve a aparecer)."""
+    __tablename__ = "design_mural_avisos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(200), default="")
+    mime: Mapped[str] = mapped_column(String(40), default="image/webp")
+    ancho: Mapped[int] = mapped_column(Integer, default=0)
+    alto: Mapped[int] = mapped_column(Integer, default=0)
+    tamano: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True, nullable=True)
+    miniatura: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True, nullable=True)
+    publicado: Mapped[bool] = mapped_column(Boolean, default=False)
+    publicado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    eliminado: Mapped[bool] = mapped_column(Boolean, default=False)
+    semilla: Mapped[str] = mapped_column(String(40), default="")
+    creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
