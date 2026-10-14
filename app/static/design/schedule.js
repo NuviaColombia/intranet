@@ -7311,7 +7311,7 @@ window.DS_PANELS.dashboard = function() {
       }).catch(function(e) { cont.innerHTML = '<span class="pr-ver-vacio"></span>'; cont.firstChild.textContent = e.message; });
   }
   function prEliminar(p) {
-    if (!confirm('¿Eliminar el protocolo "' + p.titulo + '"? Un líder puede restaurarlo desde la Papelera.')) return;
+    if (!confirm('¿Eliminar el protocolo "' + p.titulo + '"? Un admin puede restaurarlo desde la Papelera.')) return;
     prPost('/design/api/protocolos/' + p.id + '/eliminar', {method: 'POST'}).then(function() { delete PR.docs[p.id]; cargarProtocolos(); })
       .catch(function(e) { alert(e.message); });
   }
@@ -7393,7 +7393,7 @@ window.DS_PANELS.dashboard = function() {
     });
   }
 
-  // El botón solo existe para managers/admins (el panel Papelera no se dibuja para otros roles).
+  // El botón solo existe para admins (el panel Papelera no se dibuja para otros roles).
   var trVaciarBtn = document.getElementById('trVaciarBtn');
   if (trVaciarBtn) trVaciarBtn.addEventListener('click', function() {
     if (!confirm('¿Vaciar todo el historial de la papelera? Esta acción no se puede deshacer.')) return;

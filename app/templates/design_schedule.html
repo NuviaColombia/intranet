@@ -522,7 +522,7 @@ window.dsPdfjs = function() {
 </div>
 </div></div>
 {% endif %}
-{% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+{% if user.rol in ('admin', 'superadmin') %}{# Papelera: solo admins #}
 <div class="ds-overlay" id="ov-papelera"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><div class="tr-toolbar">
   <h1 style="margin:0">Papelera — Design Schedule</h1>
   {% if user.rol in ('admin', 'superadmin') %}<button type="button" class="btn gris" id="trVaciarBtn">Vaciar historial</button>{% endif %}

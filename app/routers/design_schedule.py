@@ -111,7 +111,7 @@ def require_admin(request: Request, user: Empleado = Depends(get_current_user), 
 
 
 def require_design_manager(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
-    """Dashboard y Papelera: aprobadores y admins (igual que app.auth.require_design_manager)."""
+    """Dashboard: aprobadores y admins (igual que app.auth.require_design_manager)."""
     u = _usuario_efectivo(request, user, db)
     if not u.tiene_modulo("design_schedule"):
         _sin_acceso_simulando(request, u)
@@ -2574,12 +2574,12 @@ def api_seguimiento_produccion(fecha: str = "", user: Empleado = Depends(require
 # ---------- Papelera ----------
 
 @router.get("/design/papelera")
-def pagina_papelera(request: Request, user: Empleado = Depends(require_design_manager)):
+def pagina_papelera(request: Request, user: Empleado = Depends(require_admin)):   # Papelera: solo admins (13-oct-2026)
     return _redirigir_a_panel(request, "papelera")
 
 
 @router.get("/design/api/papelera")
-def api_papelera_listar(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+def api_papelera_listar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return [{"id": t.id, "modulo": t.modulo, "etiqueta": t.etiqueta, "eliminado_por": t.eliminado_por,
             "eliminado_en": t.eliminado_en.strftime("%d/%m/%Y %H:%M")} for t in sd.trash_listar(db)]
 
@@ -2589,7 +2589,7 @@ PAPELERA_SOLO_ADMIN = ("protocol", "openings-fila", "openings-col")
 
 
 @router.post("/design/api/papelera/{trash_id}/restaurar")
-def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_design_manager),
+def api_papelera_restaurar(trash_id: int, user: Empleado = Depends(require_admin),
                                  db: Session = Depends(get_db)):
     t = db.get(sd.DesignTrash, trash_id)
     if t and t.modulo in PAPELERA_SOLO_ADMIN and user.rol not in ("admin", "superadmin"):

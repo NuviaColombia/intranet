@@ -156,7 +156,7 @@
       <a href="/design?panel=dashboard">📊 Dashboard</a>
       <a href="/design?panel=perf">📈 Desempeño</a>
       <a href="/design?panel=seguimiento">👀 Seguimiento</a>
-      <a href="/design?panel=papelera">🗑️ Papelera</a>
+      {% if user.rol in ('admin', 'superadmin') %}<a href="/design?panel=papelera">🗑️ Papelera</a>{% endif %}
     </div>
   </div>
   {% endif %}
