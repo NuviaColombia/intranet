@@ -26,6 +26,7 @@ window.dsPdfjs = function() {
     <h1 style="margin:0">Design Schedule<span id="dsTituloEquipo"></span></h1>
     <div class="ds-cabecera-der">
       <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsProdBtn" title="Casos asignados a cada diseñador en el día elegido" aria-haspopup="dialog">Producción</button>
+      {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digital</button>{% endif %}
       <div id="dsACargo" class="ds-acargo" hidden></div>
       <div class="ds-buscar" role="search">
         <input type="search" id="dsBuscarInput" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente"
@@ -447,6 +448,7 @@ window.dsPdfjs = function() {
   <div><label for="dcCentro">Centro</label><select id="dcCentro"><option value="">Todos</option></select></div>
   <div><label for="dcDesde">Desde</label><input type="date" id="dcDesde"></div>
   <div><label for="dcHasta">Hasta</label><input type="date" id="dcHasta"></div>
+  <div class="dc-sem" style="flex-direction:row;gap:6px;align-self:flex-end;align-items:center;flex-wrap:wrap"><button type="button" class="btn gris mini" id="dcSemAnt" aria-label="Semestre anterior">◀ Anterior</button><b id="dcSemLabel" style="min-width:110px;text-align:center"></b><button type="button" class="btn gris mini" id="dcSemSig" aria-label="Semestre siguiente">Siguiente ▶</button></div>
   <div style="flex-direction:row;gap:6px;align-self:flex-end;flex-wrap:wrap"><button type="button" class="btn" id="dcAgregar">+ Agregar cambio</button><button type="button" class="btn gris" id="dcImportar">Importar Excel</button><input type="file" id="dcArchivo" accept=".xlsx" hidden><button type="button" class="btn gris" id="dcCsv">Descargar Excel</button></div>
 </div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Cambios digitales</h3><span style="font-size:12px;color:#4b5563" id="dcCuenta"></span></div>

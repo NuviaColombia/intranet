@@ -1097,3 +1097,9 @@
 .eq-modal h3 { margin: 0 0 8px; }
 .eq-modal-acc { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .eq-modal input, .eq-modal select, .eq-modal textarea { font-size: 13px; }
+
+/* Cambio digital: botón de Quitar en gris claro con × y formulario tipo tabla */
+.dc-x { border: 0; background: #e5e7eb; color: #475569; width: 24px; height: 24px; border-radius: 50%; font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; }
+.dc-x:hover { background: #cbd5e1; color: #0f172a; }
+.dcd-tabla th, .dcd-tabla td { border-bottom: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; }
+.dcd-auto { color: #0f172a; font-weight: 600; }

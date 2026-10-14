@@ -1557,7 +1557,7 @@ def api_dashboard(area_id: int | None = None, team_id: int | None = None, design
 
 
 # ---------- Dashboard › Cambios digitales (13-oct-2026) ----------
-from ..services_design_cambios import (listar as cd_listar, crear as cd_crear, actualizar as cd_actualizar,
+from ..services_design_cambios import (traduccion_detalle, listar as cd_listar, crear as cd_crear, actualizar as cd_actualizar,
                                        eliminar as cd_eliminar, importar_xlsx as cd_importar, exportar_csv as cd_csv, CAMPOS as CD_CAMPOS)
 
 
@@ -1569,7 +1569,7 @@ class CambioCampoIn(BaseModel):
 def _cd_fila(r) -> dict:
     return {"id": r.id, "fecha": r.fecha.isoformat() if r.fecha else "", "orden": r.orden or "", "paciente": r.paciente or "",
             "centro": r.centro or "", "doctor": r.doctor or "", "producto": r.producto or "", "tipo_cambio": r.tipo_cambio or "",
-            "detalle": r.detalle or "", "origen": r.origen or ""}
+            "detalle": r.detalle or "", "detalleEs": traduccion_detalle(r.detalle), "origen": r.origen or ""}
 
 
 def _cd_fecha(texto: str):
@@ -1612,6 +1612,40 @@ def api_cambios_eliminar(id_: int, user: Empleado = Depends(require_admin), db: 
     if not cd_eliminar(db, id_):
         raise HTTPException(404, "El cambio no existe.")
     return {"ok": True}
+
+
+def _equipos_visibles(db: Session, user: Empleado) -> set[int] | None:
+    """None = todos los equipos (admins); si no, los que el Dashboard de la persona ve (los que maneja o tiene a cargo)."""
+    return None if sd.es_admin(user) else sd.equipos_dash_ids(db, user)
+
+
+@router.get("/design/api/cambios-digitales/buscar-orden")
+def api_cambios_buscar_orden(orden: str = Query("", max_length=40), user: Empleado = Depends(require_design_manager),
+                             db: Session = Depends(get_db)):
+    """Datos de la orden del Schedule para el formulario de Cambio digital (13-oct-2026)."""
+    from ..services_design_cambios import buscar_orden
+    return buscar_orden(db, orden, _equipos_visibles(db, user))
+
+
+class CambioDesdeOrdenIn(BaseModel):
+    orden: str = Field(max_length=40)
+    doctor: str = Field(default="", max_length=200)
+    tipo_cambio: str = Field(default="", max_length=120)
+    detalle: str = Field(default="", max_length=4000)
+    origen: str = Field(default="", max_length=10)
+
+
+@router.post("/design/api/cambios-digitales/desde-orden")
+def api_cambios_desde_orden(payload: CambioDesdeOrdenIn, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Guarda un cambio digital: el número de orden trae fecha, paciente, centro y producto del Schedule."""
+    from ..services_design_cambios import crear_desde_orden, _fila_a_dict
+    if payload.origen.strip().upper() not in ("DOC", "LAB"):
+        raise HTTPException(400, "El origen debe ser DOC (doctor) o LAB (laboratorio).")
+    try:
+        r = crear_desde_orden(db, payload.orden, payload.model_dump(), _equipos_visibles(db, user), user.nombre_completo)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    return _cd_fila(r)
 
 
 @router.post("/design/api/cambios-digitales/importar")

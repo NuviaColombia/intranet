@@ -3281,7 +3281,7 @@ function dpVista(v) {
   document.getElementById('ddVistaProductos').hidden = v !== 'productos';
   document.getElementById('ddVistaArticulacion').hidden = v !== 'articulacion';
   document.getElementById('ddVistaCambios').hidden = v !== 'cambios';
-  if (v === 'cambios') dcCargar(true);
+  if (v === 'cambios') { dcSemestreInicial(); dcCargar(true); }
   if (v === 'productos') dpCargar();
   if (v === 'articulacion') daCargar();
 }
@@ -3482,6 +3482,7 @@ function dcUrl(extra) {
 function dcCargar(reiniciar) {
   var tok = DC.tok = DC.tok + 1;
   var offset = reiniciar ? 0 : DC.items.length;
+  dcMostrarSemestre();
   if (reiniciar) { DC.items = []; }
   var url = '/design/api/cambios-digitales?' + dcUrl({limite: DC.limite, offset: offset});
   document.getElementById('dcTabla').style.opacity = '.5';
@@ -3521,13 +3522,14 @@ function dcCelda(f, campo) {
   var clase = campo === 'detalle' ? ' style="white-space:pre-wrap;min-width:260px;max-width:420px;text-align:left"' : '';
   if (campo === 'origen') v = v ? '<span class="dc-origen dc-' + dcEsc(v) + '">' + dcEsc(v) + '</span>' : '';
   else v = dcEsc(v);
-  return '<td data-campo="' + campo + '" data-id="' + f.id + '" class="dc-editable"' + clase + ' title="Clic para editar">' + v + '</td>';
+  var titulo = campo === 'detalle' && f.detalleEs ? f.detalleEs : 'Clic para editar';   // detalle en inglés: tooltip con la traducción
+  return '<td data-campo="' + campo + '" data-id="' + f.id + '" class="dc-editable"' + clase + ' title="' + dcEsc(titulo) + '">' + v + '</td>';
 }
 function dcPintar() {
   var t = document.getElementById('dcTabla');
   var filas = DC.items.map(function(f) {
     return '<tr data-id="' + f.id + '">' + DC_COLS.map(function(c) { return dcCelda(f, c[0]); }).join('') +
-      (DD_ADMIN ? '<td><button type="button" class="btn rojo mini" data-dc-borrar="' + f.id + '" aria-label="Quitar este cambio">Quitar</button></td>' : '') + '</tr>';
+      (DD_ADMIN ? '<td><button type="button" class="dc-x" data-dc-borrar="' + f.id + '" aria-label="Quitar este cambio" title="Quitar">×</button></td>' : '') + '</tr>';
   }).join('');
   t.innerHTML = dcCabecera() + '<tbody>' + (filas || '<tr><td colspan="' + (DD_ADMIN ? 10 : 9) + '" style="color:#4b5563">No hay cambios con estos filtros.</td></tr>') + '</tbody>';
   document.getElementById('dcCuenta').textContent = 'Mostrando ' + DC.items.length + ' de ' + DC.total;
@@ -3577,7 +3579,7 @@ function dcPintarFila(id) {
   var f = DC.items.find(function(x) { return x.id === id; }); var tr = document.querySelector('#dcTabla tr[data-id="' + id + '"]');
   if (!f || !tr) return dcPintar();
   var tmp = document.createElement('tr'); tmp.dataset.id = id;
-  tmp.innerHTML = DC_COLS.map(function(c) { return dcCelda(f, c[0]); }).join('') + (DD_ADMIN ? '<td><button type="button" class="btn rojo mini" data-dc-borrar="' + f.id + '">Quitar</button></td>' : '');
+  tmp.innerHTML = DC_COLS.map(function(c) { return dcCelda(f, c[0]); }).join('') + (DD_ADMIN ? '<td><button type="button" class="dc-x" data-dc-borrar="' + f.id + '" aria-label="Quitar este cambio" title="Quitar">×</button></td>' : '');
   tr.innerHTML = tmp.innerHTML;
   tr.querySelectorAll('td.dc-editable').forEach(function(td) { td.onclick = function() { dcEditar(td); }; });
   var b = tr.querySelector('[data-dc-borrar]'); if (b) b.onclick = function() { dcBorrar(id); };
@@ -3588,6 +3590,102 @@ function dcBorrar(id) {
     .then(function() { DC.items = DC.items.filter(function(x) { return x.id !== id; }); DC.total -= 1; dsToast('Cambio quitado.'); dcCargar(true); })
     .catch(function(e) { dsToast('⚠️ ' + e.message); });
 }
+// Semestres (13-oct-2026): jun–dic y ene–jun. Por defecto, el semestre de hoy; las flechas pasan al siguiente o anterior.
+function dcSemestreDe(anio, mitad) {   // mitad 1 = jun–dic, 0 = ene–jun
+  return mitad ? {desde: anio + '-06-01', hasta: anio + '-12-31'} : {desde: anio + '-01-01', hasta: anio + '-06-30'};
+}
+function dcSemestreInicial() {
+  var d = document.getElementById('dcDesde'), h = document.getElementById('dcHasta');
+  if (d.value && h.value) return;
+  var hoy = new Date(), s = dcSemestreDe(hoy.getFullYear(), hoy.getMonth() >= 5 ? 1 : 0);
+  d.value = s.desde; h.value = s.hasta;
+}
+function dcSemestrePaso(delta) {
+  var d = document.getElementById('dcDesde').value || document.getElementById('dcHasta').value;
+  var base = d ? new Date(d + 'T12:00:00') : new Date();
+  var idx = base.getFullYear() * 2 + (base.getMonth() >= 5 ? 1 : 0) + delta;
+  var s = dcSemestreDe(Math.floor(idx / 2), idx % 2);
+  document.getElementById('dcDesde').value = s.desde; document.getElementById('dcHasta').value = s.hasta;
+  dcCargar(true);
+}
+function dcMostrarSemestre() {
+  var d = document.getElementById('dcDesde').value, h = document.getElementById('dcHasta').value, el = document.getElementById('dcSemLabel');
+  if (!el) return;
+  if (!d || !h) { el.textContent = 'Todo el registro'; return; }
+  var mesIni = +d.slice(5, 7), anio = d.slice(0, 4), esJunDic = mesIni === 6;
+  el.textContent = (esJunDic ? 'Jun – Dic ' : 'Ene – Jun ') + anio;
+}
+// Cambio digital (13-oct-2026): formulario tipo tabla desde Producción. El número de orden trae el resto del Schedule.
+function dcdAbrir() {
+  var campos = [['orden', 'Número de orden'], ['fecha', 'Fecha'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['producto', 'Producto'],
+                ['doctor', 'Doctor'], ['tipo_cambio', 'Tipo de cambio'], ['detalle', 'Detalle'], ['origen', 'Origen (quién lo pidió)']];
+  var filas = campos.map(function(c) {
+    var campo;
+    if (c[0] === 'orden') campo = '<input id="dcd_orden" type="text" autocomplete="off" placeholder="Ej: 240169" style="width:100%">';
+    else if (['fecha', 'paciente', 'centro', 'producto'].indexOf(c[0]) >= 0) campo = '<span id="dcd_' + c[0] + '" class="dcd-auto">—</span>';
+    else if (c[0] === 'doctor') campo = '<input id="dcd_doctor" type="text" placeholder="Nombre del doctor" style="width:100%">';
+    else if (c[0] === 'tipo_cambio') campo = '<input id="dcd_tipo" type="text" list="dcd_tipos" placeholder="Ej: Occlusal cant, Midline" style="width:100%"><datalist id="dcd_tipos"></datalist>';
+    else if (c[0] === 'detalle') campo = '<textarea id="dcd_detalle" rows="3" placeholder="Qué se cambió y por qué" style="width:100%"></textarea>';
+    else campo = '<select id="dcd_origen" style="width:100%"><option value="">— elige —</option><option value="DOC">DOC · lo pidió el doctor</option><option value="LAB">LAB · lo pidió el laboratorio</option></select>';
+    return '<tr><th style="width:34%;text-align:left">' + c[1] + (c[0] === 'orden' || c[0] === 'doctor' || c[0] === 'tipo_cambio' || c[0] === 'detalle' || c[0] === 'origen' ? ' <span style="color:#b91c1c">*</span>' : '') + '</th><td>' + campo + '</td></tr>';
+  }).join('');
+  var html = '<h3>Cambio digital</h3><p class="dd-p-nota" style="margin:0 0 8px">Escribe el número de orden: fecha, paciente, centro y producto salen del Schedule. Lo marcado con * es obligatorio.</p>' +
+    '<table class="dd-tabla dcd-tabla" style="width:100%"><tbody>' + filas + '</tbody></table><p id="dcd_aviso" class="dd-p-nota" style="min-height:18px;margin:6px 0 0"></p>';
+  var ov = dcModal(html, function(f) {
+    var datos = {orden: v('orden'), doctor: v('doctor'), tipo_cambio: v('tipo'), detalle: v('detalle'), origen: v('origen')};
+    window.dsPostJSON('/design/api/cambios-digitales/desde-orden', datos).then(function() {
+      f.remove(); dsToast('Cambio digital guardado en la tabla.'); dcCargar(true);
+    }).catch(function(e) { f.querySelector('[data-m=si]').disabled = false; alert(e.message); });
+  }, 'Guardar');
+  function v(id) { return (document.getElementById('dcd_' + id) || {value: ''}).value.trim(); }
+  var guardar = ov.querySelector('[data-m=si]');
+  var lista = document.getElementById('dcd_tipos');
+  ddApi('/design/api/cambios-digitales?limite=1').then(function(d) {
+    lista.innerHTML = (d.tipos || []).map(function(t) { return '<option value="' + dcEsc(t) + '">'; }).join('');
+  }).catch(function() {});
+  var encontrada = false, buscando = null, tok = 0;
+  function estado() {
+    var listo = encontrada && v('doctor') && v('tipo') && v('detalle') && v('origen');
+    guardar.disabled = !listo;
+    return listo;
+  }
+  function buscar() {
+    var num = v('orden'), t = ++tok;
+    encontrada = false;
+    ['fecha', 'paciente', 'centro', 'producto'].forEach(function(c) { document.getElementById('dcd_' + c).textContent = '—'; });
+    if (!num) { document.getElementById('dcd_aviso').textContent = ''; estado(); return; }
+    ddApi('/design/api/cambios-digitales/buscar-orden?orden=' + encodeURIComponent(num)).then(function(r) {
+      if (t !== tok) return;
+      if (!r.encontrada) { document.getElementById('dcd_aviso').textContent = r.motivo; }
+      else {
+        encontrada = true;
+        document.getElementById('dcd_fecha').textContent = r.fecha ? r.fecha.split('-').reverse().join('/') : '—';
+        document.getElementById('dcd_paciente').textContent = r.paciente || '—';
+        document.getElementById('dcd_centro').textContent = r.centro || '—';
+        document.getElementById('dcd_producto').textContent = r.producto || '—';
+        document.getElementById('dcd_aviso').textContent = r.coincidencias > 1
+          ? 'Hay ' + r.coincidencias + ' órdenes con ese número: se usa la más reciente (' + r.equipo + ').'
+          : 'Orden encontrada en ' + r.equipo + '.';
+      }
+      estado();
+    }).catch(function(e) { if (t === tok) { document.getElementById('dcd_aviso').textContent = e.message; estado(); } });
+  }
+  ['dcd_orden'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', function() { clearTimeout(buscando); buscando = setTimeout(buscar, 300); });
+  });
+  ['dcd_doctor', 'dcd_tipo', 'dcd_detalle', 'dcd_origen'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', estado); document.getElementById(id).addEventListener('change', estado);
+  });
+  estado();
+  document.getElementById('dcd_orden').focus();
+}
+(function() {
+  var b = document.getElementById('dsCambioDigBtn'); if (b) b.addEventListener('click', dcdAbrir);
+  var a = document.getElementById('dcSemAnt'), s = document.getElementById('dcSemSig');
+  if (a) a.addEventListener('click', function() { dcSemestrePaso(-1); });
+  if (s) s.addEventListener('click', function() { dcSemestrePaso(1); });
+})();
+
 // Ventana propia de esta pantalla (la del Dashboard no comparte la de Parámetros)
 function dcModal(html, aceptar, etiqueta) {
   var f = document.createElement('div'); f.className = 'eq-modal-fondo';
@@ -3643,7 +3741,7 @@ function dcImportarArchivo(file) {
 window.DS_PANELS.dashboard = function() {
   if (!document.getElementById('ddVistaArticulacion').hidden) { daCargar(); return; }
   if (!document.getElementById('ddVistaProductos').hidden) { dpCargar(); return; }
-  if (!document.getElementById('ddVistaCambios').hidden) { dcCargar(true); return; }
+  if (!document.getElementById('ddVistaCambios').hidden) { dcSemestreInicial(); dcCargar(true); return; }
   if (!ddCargar.listo) {
     ddCargar.listo = true;
     if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) {

@@ -60,10 +60,24 @@ def normalizar(campo: str, valor):
     return _texto(valor, campo)
 
 
+_TRADUCCIONES: dict | None = None
+
+
+def traduccion_detalle(texto: str) -> str:
+    """Traducción al español de un detalle escrito en inglés (seed_data/cambios_detalle_es.json). "" si no hay."""
+    global _TRADUCCIONES
+    if _TRADUCCIONES is None:
+        import json
+        from pathlib import Path
+        ruta = Path(__file__).resolve().parent / "seed_data" / "cambios_detalle_es.json"
+        _TRADUCCIONES = {" ".join(k.split()): v for k, v in json.loads(ruta.read_text(encoding="utf-8")).items()} if ruta.exists() else {}
+    return _TRADUCCIONES.get(" ".join((texto or "").split()), "")
+
+
 def _fila_a_dict(r: DesignCambioDigital) -> dict:
     return {"id": r.id, "fecha": r.fecha.isoformat() if r.fecha else "", "orden": r.orden or "", "paciente": r.paciente or "",
             "centro": r.centro or "", "doctor": r.doctor or "", "producto": r.producto or "", "tipo_cambio": r.tipo_cambio or "",
-            "detalle": r.detalle or "", "origen": r.origen or ""}
+            "detalle": r.detalle or "", "detalleEs": traduccion_detalle(r.detalle), "origen": r.origen or ""}
 
 
 def listar(db: Session, q: str = "", desde: date | None = None, hasta: date | None = None, origen: str = "",
@@ -118,6 +132,50 @@ def actualizar(db: Session, id_: int, campo: str, valor) -> DesignCambioDigital 
     r.actualizado_en = datetime.utcnow()
     db.commit()
     return r
+
+
+def buscar_orden(db: Session, numero: str, equipos: set[int] | None) -> dict:
+    """Busca la orden en el Schedule por su número (solo en los equipos que la persona ve; admins: todos).
+    Si hay varias con ese número, toma la más reciente y avisa cuántas hay."""
+    from .models_design import DesignOrden, DesignTeam
+    n = " ".join((numero or "").split()).upper()
+    if not n:
+        return {"encontrada": False, "motivo": "Escribe el número de orden."}
+    q = (db.query(DesignOrden, DesignTeam).join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
+         .filter(func.upper(func.trim(DesignOrden.orden)) == n))
+    if equipos is not None:
+        q = q.filter(DesignOrden.team_id.in_(equipos or [-1]))
+    filas = q.order_by(DesignOrden.fecha.desc(), DesignOrden.id.desc()).all()
+    if not filas:
+        return {"encontrada": False, "motivo": f"No encontré la orden {n} en los schedules que puedes ver."}
+    o, t = filas[0]
+    return {"encontrada": True, "orden": n, "fecha": o.fecha.isoformat() if o.fecha else "", "paciente": o.paciente or "",
+            "centro": o.centro or "", "producto": o.producto or "", "equipo": t.nombre,
+            "coincidencias": len(filas)}
+
+
+REQUERIDOS_FORM = ("doctor", "tipo_cambio", "detalle", "origen")
+
+
+def crear_desde_orden(db: Session, numero: str, datos: dict, equipos: set[int] | None, por: str) -> DesignCambioDigital:
+    """Guarda un cambio tomando los datos de la orden del Schedule. Todos los campos del formulario son obligatorios."""
+    from .models_design import DesignOrden, DesignTeam
+    for c in REQUERIDOS_FORM:
+        if not str(datos.get(c) or "").strip():
+            raise ValueError("Falta completar: " + {"doctor": "el doctor", "tipo_cambio": "el tipo de cambio",
+                                                   "detalle": "el detalle", "origen": "el origen (DOC o LAB)"}[c] + ".")
+    b = buscar_orden(db, numero, equipos)
+    if not b["encontrada"]:
+        raise ValueError(b["motivo"])
+    q = (db.query(DesignOrden).join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
+         .filter(func.upper(func.trim(DesignOrden.orden)) == b["orden"]))
+    if equipos is not None:
+        q = q.filter(DesignOrden.team_id.in_(equipos or [-1]))
+    o = q.order_by(DesignOrden.fecha.desc(), DesignOrden.id.desc()).first()
+    fila = {"fecha": o.fecha, "orden": b["orden"], "paciente": o.paciente or "", "centro": o.centro or "",
+            "producto": o.producto or "", "doctor": datos.get("doctor", ""), "tipo_cambio": datos.get("tipo_cambio", ""),
+            "detalle": datos.get("detalle", ""), "origen": datos.get("origen", "")}
+    return crear(db, fila, por)
 
 
 def eliminar(db: Session, id_: int) -> bool:
