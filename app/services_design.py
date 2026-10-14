@@ -1236,14 +1236,14 @@ def manager_n2_de_centro(db: Session, centro: str) -> str:
 
 
 def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | None:
-    """Face (13-oct-2026): al marcar el QC de una orden de MAÑANA, su número de orden, paciente y centro se copian en una
-    orden nueva del equipo de N2 cuyo manager es el que dice Openings para ese centro. No se copia dos veces (si ya
-    existe esa orden en ese equipo y día, solo avisa). Devuelve None si no aplica; si no se pudo, {ok: False, motivo}."""
+    """Face (13-oct-2026): al marcar el QC de una orden de Face, su número de orden, paciente, centro y producto se copian
+    en una orden nueva del equipo de N2 cuyo manager es el que dice Openings para ese centro. La copia queda en el día en
+    que se marca el QC (hoy), sea cual sea el día de la orden en Face (pedido por Rosember el 14-oct-2026; antes solo
+    copiaba las órdenes de mañana). No se copia dos veces (si ya existe esa orden en ese equipo y día, solo avisa).
+    Devuelve None si no aplica; si no se pudo, {ok: False, motivo}."""
     if not orden.team or not orden.team.area or orden.team.area.nombre != "Face Design":
         return None
-    manana = ahora_colombia().date() + timedelta(days=1)
-    if orden.fecha != manana:
-        return None
+    dia = ahora_colombia().date()
     numero = (orden.orden or "").strip().upper()
     if not numero or not (orden.centro or "").strip():
         return {"ok": False, "motivo": "La orden no tiene número o centro: no se copió a N2."}
@@ -1259,7 +1259,7 @@ def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | 
         return {"ok": False, "motivo": f"{motivo} {mgr}: no se copió a N2."}
     equipo = equipos[0]
     from .models_design import DesignCopiaFace
-    ya = (db.query(DesignOrden).filter(DesignOrden.team_id == equipo.id, DesignOrden.fecha == manana,
+    ya = (db.query(DesignOrden).filter(DesignOrden.team_id == equipo.id, DesignOrden.fecha == dia,
                                        func.upper(func.trim(DesignOrden.orden)) == numero).first())
     if ya:
         reg = db.get(DesignCopiaFace, ya.id)
@@ -1267,7 +1267,7 @@ def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | 
             reg.estado, reg.desmarcada_en = "activa", None   # volvieron a marcar el QC en Face: se conserva
             db.commit()
         return {"ok": True, "ya": True, "equipo": equipo.nombre, "manager": mgr}
-    nueva = crear_orden(db, user, equipo.id, manana, "principal",
+    nueva = crear_orden(db, user, equipo.id, dia, "principal",
                         {"orden": numero, "paciente": orden.paciente or "", "centro": orden.centro.strip(),
                          "producto": (orden.producto or "").strip()})
     db.add(DesignCopiaFace(n2_orden_id=nueva.id, face_orden_id=orden.id, estado="activa", face_equipo=orden.team.nombre))

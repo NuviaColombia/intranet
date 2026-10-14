@@ -1437,7 +1437,7 @@ def api_orden_a_training(orden_id: int, user: Empleado = Depends(require_modulo(
 
 
 def _con_copia_n2(db: Session, user: Empleado, o: DesignOrden, qc_antes: bool, datos: dict) -> dict:
-    """Face: al marcar el QC de una orden de mañana, su número, paciente, centro y producto pasan a N2
+    """Face: al marcar el QC de una orden, su número, paciente, centro y producto pasan a N2 (al día de hoy)
     (copiar_face_a_n2). Si después se desmarca, las copias quedan pendientes de decisión del manager de N2."""
     if not qc_antes and o.qc:
         aviso = sd.copiar_face_a_n2(db, o, user)

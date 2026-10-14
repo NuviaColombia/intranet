@@ -1698,7 +1698,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     } else envio = datos;
     if (local) Object.assign(local, datos); // refleja el cambio de inmediato (orden A→Z, contadores)
     dsSeguir(postJSON('/design/api/ordenes/' + id, envio)).then(function(o) {
-      if (o.copiaN2) dsAvisoN2(o.copiaN2);   // Face: QC de una orden de mañana → copia a N2
+      if (o.copiaN2) dsAvisoN2(o.copiaN2);   // Face: al marcar el QC → copia a N2 (en el día de hoy)
       if (o.copiaN2Pendiente) dsToast('Se desmarcó el QC: ' + o.copiaN2Pendiente + ' orden(es) copiada(s) a N2 esperan la decisión de su manager.');
       var i = filas.findIndex(function(x) { return x.id === id; });
       if (i >= 0) filas[i] = tabla === 'prestadas' ? Object.assign({}, filas[i], o) : o; // prestadas conserva equipo/formato
@@ -2351,10 +2351,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsCargarDia();
     }).catch(function(e) { dsToast('⚠️ ' + e.message); });
   }
-  // Face → N2 (13-oct-2026): aviso de la copia que se hace al marcar el QC de una orden de mañana
+  // Face → N2 (13-oct-2026): aviso de la copia que se hace al marcar el QC (queda en N2 el día en que se marca)
   function dsAvisoN2(c) {
     if (!c.ok) return dsToast('⚠️ ' + c.motivo);
-    dsToast(c.ya ? 'Esa orden ya estaba en N2 (' + c.equipo + ').' : 'Copiada a N2: ' + c.equipo + ' (manager ' + c.manager + ').');
+    dsToast(c.ya ? 'Esa orden ya estaba en N2 (' + c.equipo + ').' : 'Copiada a N2 para hoy: ' + c.equipo + ' (manager ' + c.manager + ').');
   }
   function dsToast(msg) {
     var t = document.getElementById('dsToast');
