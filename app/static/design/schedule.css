@@ -1105,3 +1105,9 @@
 .dcd-tabla input, .dcd-tabla select, .dcd-tabla textarea { text-align: center; text-align-last: center; }
 .dcd-tabla textarea { resize: vertical; }
 .dcd-auto { color: #0f172a; font-weight: 600; }
+
+/* Barra de filtros del Dashboard: todos los controles con la misma altura y alineados en la misma línea */
+.dd-filtros input, .dd-filtros select { height:34px; box-sizing:border-box; }
+.dd-filtros:not(.dd-filtros-x) { gap:8px; }
+.dd-rapidos button, .dd-filtros .btn { height:34px; box-sizing:border-box; padding:0 8px; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap; }
+.dd-filtros > div > label { min-height:14px; line-height:14px; }

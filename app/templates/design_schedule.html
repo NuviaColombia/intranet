@@ -352,10 +352,10 @@ window.dsPdfjs = function() {
   </div>
   <div><label for="ddTeam">Equipo</label><select id="ddTeam" onchange="ddCargar()"><option value="">-- Todos --</option></select></div>
   <div><label for="ddDesigner">Diseñador</label>
-    <select id="ddDesigner" onchange="ddCargar()" style="min-width:190px"><option value="">-- Todos --</option></select></div>
+    <select id="ddDesigner" onchange="ddCargar()" style="min-width:150px"><option value="">-- Todos --</option></select></div>
   <div><label for="ddDesignerTxt">Buscar diseñador por nombre</label>
-    <input type="search" id="ddDesignerTxt" placeholder="Ej: Laura" oninput="ddCargarPronto()" style="width:160px"></div>
-  <div><label for="ddProducto">Producto</label><select id="ddProducto" onchange="ddCargar()" style="max-width:220px"><option value="">-- Todos --</option></select></div>
+    <input type="search" id="ddDesignerTxt" placeholder="Ej: Laura" oninput="ddCargarPronto()" style="width:130px"></div>
+  <div><label for="ddProducto">Producto</label><select id="ddProducto" onchange="ddCargar()" style="max-width:170px"><option value="">-- Todos --</option></select></div>
   <div><label for="ddEstado">Estado</label><select id="ddEstado" onchange="ddCargar()"><option value="">-- Todos --</option></select></div>
   <div><label for="ddQc">QC</label>
     <select id="ddQc" onchange="ddCargar()"><option value="">-- Todos --</option><option value="si">Con QC</option><option value="no">Sin QC</option><option value="hallazgos">QC con hallazgos</option></select>
@@ -365,8 +365,8 @@ window.dsPdfjs = function() {
   <div><label>Rango rápido</label><span class="dd-rapidos">
     <button type="button" data-r="hoy" onclick="ddRapido('hoy')">Hoy</button><button type="button" data-r="semana" onclick="ddRapido('semana')">Semana</button>
     <button type="button" data-r="mes" onclick="ddRapido('mes')">Mes</button><button type="button" data-r="mesAnt" onclick="ddRapido('mesAnt')">Mes anterior</button></span></div>
-  <div style="flex-direction:row;gap:6px"><button type="button" class="btn gris" onclick="ddLimpiar()">Limpiar</button>
-    <button type="button" class="btn" onclick="ddDescargar()" title="Descarga las tablas del dashboard con los filtros actuales (se abre en Excel)">Descargar Excel</button></div>
+  <div><label>&nbsp;</label><div style="flex-direction:row;gap:6px"><button type="button" class="btn gris" onclick="ddLimpiar()">Limpiar</button>
+    <button type="button" class="btn" onclick="ddDescargar()" title="Descarga las tablas del dashboard con los filtros actuales (se abre en Excel)">Descargar Excel</button></div></div>
 </div>
 <div class="dd-filtro-activo" id="ddFiltroActivo"></div>
 
