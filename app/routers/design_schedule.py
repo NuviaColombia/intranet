@@ -1627,6 +1627,13 @@ def api_cambios_buscar_orden(orden: str = Query("", max_length=40), user: Emplea
     return buscar_orden(db, orden, _equipos_visibles(db, user))
 
 
+@router.get("/design/api/cambios-digitales/doctores")
+def api_cambios_doctores(centro: str = Query("", max_length=150), user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Doctores de Pre-Approved del centro, para elegir en el Cambio digital (13-oct-2026)."""
+    from ..services_design_cambios import doctores_de_centro
+    return {"doctores": doctores_de_centro(db, centro)}
+
+
 class CambioDesdeOrdenIn(BaseModel):
     orden: str = Field(max_length=40)
     doctor: str = Field(default="", max_length=200)

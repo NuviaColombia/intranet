@@ -3623,8 +3623,10 @@ function dcdAbrir() {
     var campo;
     if (c[0] === 'orden') campo = '<input id="dcd_orden" type="text" autocomplete="off" placeholder="Ej: 240169" style="width:100%">';
     else if (['fecha', 'paciente', 'centro', 'producto'].indexOf(c[0]) >= 0) campo = '<span id="dcd_' + c[0] + '" class="dcd-auto">—</span>';
-    else if (c[0] === 'doctor') campo = '<input id="dcd_doctor" type="text" placeholder="Nombre del doctor" style="width:100%">';
-    else if (c[0] === 'tipo_cambio') campo = '<input id="dcd_tipo" type="text" list="dcd_tipos" placeholder="Ej: Occlusal cant, Midline" style="width:100%"><datalist id="dcd_tipos"></datalist>';
+    else if (c[0] === 'doctor') campo = '<select id="dcd_doctor" style="width:100%"><option value="">— elige un doctor —</option></select>' +
+      '<div id="dcd_doctor_nuevo_w" hidden style="margin-top:6px"><input id="dcd_doctor_nuevo" type="text" placeholder="Escribe el nombre del doctor en turno" style="width:100%"></div>';
+    else if (c[0] === 'tipo_cambio') campo = '<select id="dcd_tipo" style="width:100%"><option value="">— elige un tipo —</option></select>' +
+      '<div id="dcd_tipo_nuevo_w" hidden style="margin-top:6px"><input id="dcd_tipo_nuevo" type="text" placeholder="Escribe el nuevo tipo de cambio" style="width:100%"></div>';
     else if (c[0] === 'detalle') campo = '<textarea id="dcd_detalle" rows="3" placeholder="Qué se cambió y por qué" style="width:100%"></textarea>';
     else campo = '<select id="dcd_origen" style="width:100%"><option value="">— elige —</option><option value="DOC">DOC · lo pidió el doctor</option><option value="LAB">LAB · lo pidió el laboratorio</option></select>';
     return '<tr><th style="width:34%;text-align:left">' + c[1] + (c[0] === 'orden' || c[0] === 'doctor' || c[0] === 'tipo_cambio' || c[0] === 'detalle' || c[0] === 'origen' ? ' <span style="color:#b91c1c">*</span>' : '') + '</th><td>' + campo + '</td></tr>';
@@ -3632,20 +3634,57 @@ function dcdAbrir() {
   var html = '<h3>Cambio digital</h3><p class="dd-p-nota" style="margin:0 0 8px">Escribe el número de orden: fecha, paciente, centro y producto salen del Schedule. Lo marcado con * es obligatorio.</p>' +
     '<table class="dd-tabla dcd-tabla" style="width:100%"><tbody>' + filas + '</tbody></table><p id="dcd_aviso" class="dd-p-nota" style="min-height:18px;margin:6px 0 0"></p>';
   var ov = dcModal(html, function(f) {
-    var datos = {orden: v('orden'), doctor: v('doctor'), tipo_cambio: v('tipo'), detalle: v('detalle'), origen: v('origen')};
+    var datos = {orden: v('orden'), doctor: doctorElegido(), tipo_cambio: tipoElegido(), detalle: v('detalle'), origen: v('origen')};
     window.dsPostJSON('/design/api/cambios-digitales/desde-orden', datos).then(function() {
       f.remove(); dsToast('Cambio digital guardado en la tabla.'); dcCargar(true);
     }).catch(function(e) { f.querySelector('[data-m=si]').disabled = false; alert(e.message); });
   }, 'Guardar');
   function v(id) { return (document.getElementById('dcd_' + id) || {value: ''}).value.trim(); }
   var guardar = ov.querySelector('[data-m=si]');
-  var lista = document.getElementById('dcd_tipos');
+  // Tipos de cambio: los que ya existen + "Agregar tipo de cambio…" para escribir uno nuevo
+  var selTipo = document.getElementById('dcd_tipo'), wNuevo = document.getElementById('dcd_tipo_nuevo_w');
+  function tipoElegido() {
+    if (selTipo.value !== '__nuevo__') return selTipo.value;
+    var escrito = document.getElementById('dcd_tipo_nuevo').value.trim().replace(/\s+/g, ' ');
+    var igual = Array.prototype.find.call(selTipo.options, function(o) { return o.value && o.value !== '__nuevo__' && o.value.toLowerCase() === escrito.toLowerCase(); });
+    return igual ? igual.value : escrito;   // si ya existe (sin importar mayúsculas), usa el mismo nombre
+  }
+  // Doctor: los de Pre-Approved del centro + "Otro doctor" para escribir el que está en turno
+  var selDoc = document.getElementById('dcd_doctor'), wDocNuevo = document.getElementById('dcd_doctor_nuevo_w');
+  function doctorElegido() {
+    if (selDoc.value !== '__nuevo__') return selDoc.value;
+    return document.getElementById('dcd_doctor_nuevo').value.trim().replace(/\s+/g, ' ');
+  }
+  function cargarDoctores(centro) {
+    ddApi('/design/api/cambios-digitales/doctores?centro=' + encodeURIComponent(centro)).then(function(r) {
+      var lista = r.doctores || [];
+      selDoc.innerHTML = '<option value="">— elige un doctor —</option>' + lista.map(function(n) { return '<option value="' + dcEsc(n) + '">' + dcEsc(n) + '</option>'; }).join('') +
+        '<option value="__nuevo__">+ Otro doctor (escribirlo)…</option>';
+      selDoc.value = '';
+      wDocNuevo.hidden = lista.length > 0;   // sin doctores en Pre-Approved: se escribe directamente
+      if (!lista.length) document.getElementById('dcd_doctor_nuevo').focus();
+      estado();
+    }).catch(function() { wDocNuevo.hidden = false; estado(); });
+  }
+  selDoc.addEventListener('change', function() {
+    wDocNuevo.hidden = selDoc.value !== '__nuevo__';
+    if (!wDocNuevo.hidden) document.getElementById('dcd_doctor_nuevo').focus();
+    estado();
+  });
+  document.getElementById('dcd_doctor_nuevo').addEventListener('input', estado);
   ddApi('/design/api/cambios-digitales?limite=1').then(function(d) {
-    lista.innerHTML = (d.tipos || []).map(function(t) { return '<option value="' + dcEsc(t) + '">'; }).join('');
+    selTipo.innerHTML = '<option value="">— elige un tipo —</option>' + (d.tipos || []).map(function(t) { return '<option value="' + dcEsc(t) + '">' + dcEsc(t) + '</option>'; }).join('') +
+      '<option value="__nuevo__">+ Agregar tipo de cambio…</option>';
   }).catch(function() {});
+  selTipo.addEventListener('change', function() {
+    wNuevo.hidden = selTipo.value !== '__nuevo__';
+    if (!wNuevo.hidden) document.getElementById('dcd_tipo_nuevo').focus();
+    estado();
+  });
+  document.getElementById('dcd_tipo_nuevo').addEventListener('input', estado);
   var encontrada = false, buscando = null, tok = 0;
   function estado() {
-    var listo = encontrada && v('doctor') && v('tipo') && v('detalle') && v('origen');
+    var listo = encontrada && doctorElegido() && tipoElegido() && v('detalle') && v('origen');
     guardar.disabled = !listo;
     return listo;
   }
@@ -3663,6 +3702,7 @@ function dcdAbrir() {
         document.getElementById('dcd_paciente').textContent = r.paciente || '—';
         document.getElementById('dcd_centro').textContent = r.centro || '—';
         document.getElementById('dcd_producto').textContent = r.producto || '—';
+        cargarDoctores(r.centro);
         document.getElementById('dcd_aviso').textContent = r.coincidencias > 1
           ? 'Hay ' + r.coincidencias + ' órdenes con ese número: se usa la más reciente (' + r.equipo + ').'
           : 'Orden encontrada en ' + r.equipo + '.';
@@ -3673,7 +3713,7 @@ function dcdAbrir() {
   ['dcd_orden'].forEach(function(id) {
     document.getElementById(id).addEventListener('input', function() { clearTimeout(buscando); buscando = setTimeout(buscar, 300); });
   });
-  ['dcd_doctor', 'dcd_tipo', 'dcd_detalle', 'dcd_origen'].forEach(function(id) {
+  ['dcd_detalle', 'dcd_origen'].forEach(function(id) {
     document.getElementById(id).addEventListener('input', estado); document.getElementById(id).addEventListener('change', estado);
   });
   estado();

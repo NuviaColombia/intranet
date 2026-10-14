@@ -134,6 +134,30 @@ def actualizar(db: Session, id_: int, campo: str, valor) -> DesignCambioDigital 
     return r
 
 
+def _clave_centro(t: str) -> str:
+    t = unicodedata.normalize("NFD", t or "")
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
+    return re.sub(r"[^a-z0-9]", "", t)
+
+
+def doctores_de_centro(db: Session, centro: str) -> list[str]:
+    """Doctores que están hoy en las hojas de Pre-Approved que llevan ese centro (los que se quitan de la hoja dejan de salir)."""
+    from .models_design import DesignPreApprovedCentro, DesignPreApprovedDoctor
+    k = _clave_centro(centro)
+    if not k:
+        return []
+    hojas = {c.sheet_id for c in db.query(DesignPreApprovedCentro).all() if _clave_centro(c.nombre) == k}
+    if not hojas:
+        return []
+    nombres, vistos = [], set()
+    for d in db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id.in_(hojas)).order_by(DesignPreApprovedDoctor.orden, DesignPreApprovedDoctor.id):
+        n = " ".join((d.nombre or "").split())
+        if n and n.lower() not in vistos:
+            vistos.add(n.lower())
+            nombres.append(n)
+    return nombres
+
+
 def buscar_orden(db: Session, numero: str, equipos: set[int] | None) -> dict:
     """Busca la orden en el Schedule por su número (solo en los equipos que la persona ve; admins: todos).
     Si hay varias con ese número, toma la más reciente y avisa cuántas hay."""
