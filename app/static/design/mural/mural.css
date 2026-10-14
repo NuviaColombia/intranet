@@ -1,8 +1,40 @@
 /* Mural de Design: avisos pegados en una pared de concreto (ver templates/design_mural.html y mural.js). */
 main:has(#muRaiz) { padding:0 !important; max-width:none !important; }
-/* Fondo: concreto industrial generado por computador (fondo.webp, 4096×4096, se repite sin costuras). Se muestra a
-   2048 px para que cada píxel de la imagen caiga en un píxel real en pantallas retina/4K. */
-body:has(#muRaiz) { background:#c6c7c9 url("/static/design/mural/fondo.webp") 0 0 / 2048px 2048px repeat; }
+/* Fondo: muro de concreto arquitectónico (béton brut) dibujado en vector, así se ve nítido en cualquier pantalla
+   (no es una foto ampliada). Capas, de arriba a abajo:
+   1) luz de galería desde arriba (tres "bañadores" de pared) y sombra suave abajo;
+   2) orificios de los amarres del encofrado (4 por panel) y juntas entre paneles (1 px oscuro + 1 px de luz = bisel);
+   3) concreto: tono general, moteado, poros (burbujas del vaciado) y grano fino de arena (ruidos SVG);
+   4) color base del cemento. Los ruidos SVG se repiten sin costura (stitchTiles) y en tamaños distintos a los paneles. */
+body:has(#muRaiz) {
+  --mu-panel-w:720px; --mu-panel-h:360px;
+  background-color:#b9b8b5;
+  background-image:
+    radial-gradient(ellipse 34% 340px at 16% -40px, rgba(255,252,245,.42), transparent 75%),
+    radial-gradient(ellipse 34% 340px at 50% -40px, rgba(255,252,245,.50), transparent 75%),
+    radial-gradient(ellipse 34% 340px at 84% -40px, rgba(255,252,245,.42), transparent 75%),
+    linear-gradient(180deg, transparent 55%, rgba(40,42,46,.10)),
+    radial-gradient(circle, rgba(38,40,44,.42) 0 3px, rgba(38,40,44,.14) 4px, rgba(255,255,255,.30) 5.2px, transparent 6.2px),
+    linear-gradient(90deg, rgba(40,42,46,.22) 0 1px, rgba(255,255,255,.30) 1px 2px, transparent 2px),
+    linear-gradient(180deg, rgba(40,42,46,.20) 0 1px, rgba(255,255,255,.28) 1px 2px, transparent 2px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .31 0 0 0 0 .3 0 0 0 0 .29 .9 0 0 0 -.38'/%3E%3C/filter%3E%3Crect width='1200' height='1200' filter='url%28%23f%29'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.016' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1.4 0 0 0 -.18 1.4 0 0 0 -.19 1.4 0 0 0 -.21 0 0 0 0 .14'/%3E%3C/filter%3E%3Crect width='640' height='640' filter='url%28%23f%29'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.28' numOctaves='1' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .22 0 0 0 0 .21 0 0 0 0 .2 7 0 0 0 -5.05'/%3E%3C/filter%3E%3Crect width='420' height='420' filter='url%28%23f%29'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .31 0 0 0 0 .33 0 0 0 -1 .5'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url%28%23f%29'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #c7c6c3, #b4b3b0);
+  background-size:
+    auto, auto, auto, auto,
+    calc(var(--mu-panel-w) / 3) calc(var(--mu-panel-h) / 2),
+    var(--mu-panel-w) 100%, 100% var(--mu-panel-h),
+    1200px 1200px, 640px 640px, 420px 420px, 260px 260px, auto;
+  background-position:
+    0 0, 0 0, 0 0, 0 0,
+    calc(var(--mu-panel-w) / 6) calc(var(--mu-panel-h) / 4),
+    -1px 0, 0 -1px,
+    0 0, 0 0, 0 0, 0 0, 0 0;
+  background-repeat:no-repeat, no-repeat, no-repeat, no-repeat, repeat, repeat-x, repeat-y, repeat, repeat, repeat, repeat, no-repeat;
+  background-attachment:local;
+}
 
 .mu-raiz { min-height:calc(100vh - 60px); padding:28px 16px 64px; box-sizing:border-box; }
 .mu-cab { max-width:1400px; margin:0 auto 18px; display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; }
