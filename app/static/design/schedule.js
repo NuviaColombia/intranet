@@ -3738,24 +3738,6 @@ function dcModal(html, aceptar, etiqueta) {
   });
   return f;
 }
-// Alta: formulario con los campos del reporte
-function dcAgregarForm() {
-  var campos = [['fecha', 'Fecha', 'date'], ['orden', 'Orden', 'text'], ['paciente', 'Paciente', 'text'], ['centro', 'Centro', 'text'],
-                ['doctor', 'Doctor', 'text'], ['producto', 'Producto', 'text'], ['tipo_cambio', 'Cambio', 'text'], ['origen', 'Origen', 'sel'], ['detalle', 'Detalle', 'area']];
-  var html = '<h3>Agregar cambio digital</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px">' + campos.map(function(c) {
-    var ancho = c[2] === 'area' ? 'grid-column:1/-1;' : '';
-    var campo = c[2] === 'sel' ? '<select id="dcf_' + c[0] + '"><option value="">—</option><option value="DOC">DOC</option><option value="LAB">LAB</option></select>' :
-                c[2] === 'area' ? '<textarea id="dcf_' + c[0] + '" rows="3" style="width:100%"></textarea>' :
-                '<input id="dcf_' + c[0] + '" type="' + c[2] + '" style="width:100%">';
-    return '<label style="' + ancho + 'font-size:13px">' + c[1] + campo + '</label>';
-  }).join('') + '</div><p class="eq-aviso" style="font-size:12.5px;margin-top:8px">Escribe al menos el número de orden o el paciente.</p>';
-  dcModal(html, function(f) {
-    var datos = {}; campos.forEach(function(c) { datos[c[0]] = f.querySelector('#dcf_' + c[0]).value; });
-    window.dsPostJSON('/design/api/cambios-digitales', datos)
-      .then(function() { f.remove(); dsToast('Cambio agregado.'); dcCargar(true); })
-      .catch(function(e) { f.querySelector('.eq-modal').insertAdjacentHTML('beforeend', '<p style="color:#b91c1c;font-size:13px">' + dcEsc(e.message) + '</p>'); f.querySelector('[data-m=si]').disabled = false; });
-  }, 'Guardar');
-}
 function dcImportarArchivo(file) {
   var fd = new FormData(); fd.append('archivo', file);
   dsToast('Importando ' + file.name + '…');
@@ -3772,7 +3754,7 @@ function dcImportarArchivo(file) {
   var tb = null;
   el('dcBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(function() { dcCargar(true); }, 250); });
   ['dcOrigen', 'dcTipo', 'dcCentro', 'dcDesde', 'dcHasta'].forEach(function(id) { el(id).addEventListener('change', function() { dcCargar(true); }); });
-  el('dcAgregar').addEventListener('click', dcAgregarForm);
+  el('dcAgregar').addEventListener('click', dcdAbrir);   // mismo formulario guiado que en Producción (orden → datos del Schedule)
   el('dcImportar').addEventListener('click', function() { el('dcArchivo').click(); });
   el('dcArchivo').addEventListener('change', function() { if (this.files[0]) dcImportarArchivo(this.files[0]); this.value = ''; });
   el('dcCsv').addEventListener('click', function() { window.location = '/design/api/cambios-digitales/csv?' + dcUrl(); });
