@@ -779,7 +779,7 @@
         </td>
         <td class="sim-sub">{% if not p.design %}<span class="sim-no">Sin acceso a Design</span>{% elif p.lugar %}{% for l in p.lugar %}{{ l }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}Sin equipo{% endif %}</td>
         <td>{% if p.id != user.id %}<form method="post" action="/design/simulacion/iniciar"><input type="hidden" name="empleado_id" value="{{ p.id }}">
-          <button class="btn mini"{% if not p.design %} title="No tiene Design: verás la intranet como esta persona (solo lectura)"{% endif %}>Simular</button></form>{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
+          <button class="btn mini"{% if p.rol == 'superadmin' and not p.puedeAdmin %} disabled title="Un admin no puede simular a un superadmin"{% elif not p.design %} title="No tiene Design: verás la intranet como esta persona (solo lectura)"{% endif %}>Simular</button></form>{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </table>

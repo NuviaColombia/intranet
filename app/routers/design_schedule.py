@@ -63,7 +63,9 @@ def _usuario_efectivo(request: Request, user: Empleado, db: Session) -> Empleado
     sid = request.session.get(SIM_KEY)
     if not sid:
         return user
-    sim = _aplicar_rol_design(db, db.get(Empleado, sid)) if user.rol in ("admin", "superadmin") else None
+    otro = db.get(Empleado, sid)
+    # Misma regla que en el resto de la intranet (auth.puede_simular_a): un admin no simula a un superadmin ni a otra empresa
+    sim = _aplicar_rol_design(db, otro) if user.rol in ("admin", "superadmin") and puede_simular_a(db, user, otro) else None
     if not sim or not sim.activo:
         request.session.pop(SIM_KEY, None)
         return user
@@ -152,7 +154,8 @@ def iniciar_simulacion(request: Request, user: Empleado = Depends(get_current_us
     if sacc.esta_inhabilitado(db, p.id):
         return RedirectResponse("/design/parametros?sim=1&msg=" + quote(f"{p.nombre_completo} tiene el acceso inhabilitado."), status_code=303)
     if not puede_simular_a(db, user, p):
-        return RedirectResponse("/design/parametros?sim=1&msg=" + quote("Solo puedes simular a personas de tu empresa."), status_code=303)
+        motivo = "No puedes simular a un superadmin." if p.rol == "superadmin" else "Solo puedes simular a personas de tu empresa."
+        return RedirectResponse("/design/parametros?sim=1&msg=" + quote(motivo), status_code=303)
     request.session[SIM_KEY] = p.id
     _log_sim.warning("SIMULACION inicia %s (%s) como %s (%s)", user.email, user.id, p.email, p.id)
     # Con Design entra a Design; sin Design, al portal: ve la intranet como esa persona (solo lectura fuera de Design)

@@ -102,10 +102,12 @@ def _es_admin_real(db, user: Empleado) -> bool:
 
 
 def puede_simular_a(db, real: Empleado, otro: Empleado) -> bool:
-    """El superadmin simula a cualquiera; un admin, solo a personas de su misma empresa."""
+    """El superadmin simula a cualquiera; un admin, solo a personas de su misma empresa y nunca a un superadmin."""
     if not _es_admin_real(db, real) or not otro or not otro.activo or otro.id == real.id:
         return False
-    return real.rol == "superadmin" or (otro.empresa or "") == (real.empresa or "")
+    if real.rol == "superadmin":
+        return True
+    return otro.rol != "superadmin" and (otro.empresa or "") == (real.empresa or "")
 
 
 def _simulado_fuera_de_design(request: Request, db, real: Empleado) -> Empleado | None:
