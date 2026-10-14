@@ -2,10 +2,11 @@
 {% block titulo %}Mural{% endblock %}
 {% block contenido %}
 <style>
-  /* Mural ocupa toda la pantalla bajo la barra, con fondo de concreto (static/design/mural/fondo.webp: 2416×3328,
-     ampliada 4× desde la original con nitidez) que cubre cualquier tamaño de pantalla sin repetirse. */
+  /* Mural ocupa toda la pantalla bajo la barra. Fondo: concreto industrial generado por computador
+     (static/design/mural/fondo.webp, 4096×4096, se repite sin costuras). Se muestra a 2048 px para que cada píxel
+     de la imagen caiga en un píxel real en pantallas retina/4K: se ve nítido a cualquier tamaño. */
   main:has(#muRaiz) { padding:0 !important; max-width:none !important; }
-  body:has(#muRaiz) { background:#c9c9c9 url("/static/design/mural/fondo.webp") center / cover fixed no-repeat; }
+  body:has(#muRaiz) { background:#c6c7c9 url("/static/design/mural/fondo.webp") 0 0 / 2048px 2048px repeat; }
   .mu-raiz { min-height:calc(100vh - 60px); padding:48px 16px; text-align:center; }
   .mu-raiz h1 { margin:0 0 8px; color:#374151; }
   .mu-raiz p { margin:0; color:#4b5563; }
