@@ -133,7 +133,9 @@ def listar(db: Session, user: Empleado) -> dict:
     if not editor:
         q = q.filter(DesignMuralAviso.publicado.is_(True))
     ahora = datetime.utcnow()
-    items = [_json(a, ahora) for a in q.order_by(DesignMuralAviso.orden, DesignMuralAviso.id).all()]
+    # Del más nuevo al más viejo según la fecha de publicación; los borradores (solo los ve quien edita) van primero.
+    avisos = sorted(q.all(), key=lambda a: (a.publicado, -(a.publicado_en or a.creado_en).timestamp(), a.id))
+    items = [_json(a, ahora) for a in avisos]
     return {"editor": editor, "items": items, "borradores": sum(1 for x in items if not x["publicado"])}
 
 

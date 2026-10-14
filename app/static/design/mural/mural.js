@@ -83,8 +83,6 @@
   }
   function controles(a, i) {
     var c = document.createElement('div'); c.className = 'mu-ctrl';
-    c.appendChild(boton('◀', '', 'Mover a la izquierda', function() { mover(i, -1); }));
-    c.appendChild(boton('▶', '', 'Mover a la derecha', function() { mover(i, 1); }));
     c.appendChild(boton('✎ Título', '', 'Cambiar el título', function() {
       var t = prompt('Título del aviso:', a.titulo);
       if (t === null || !t.trim()) return;
@@ -103,14 +101,6 @@
     post('/design/api/mural/' + a.id, {publicado: v}).then(function() { aviso(v ? 'Aviso publicado: ya lo ve todo Design.' : 'Aviso oculto.'); cargar(); })
       .catch(function(e) { alert(e.message); });
   }
-  function mover(i, d) {
-    var j = i + d;
-    if (j < 0 || j >= M.items.length) return;
-    var x = M.items[i]; M.items[i] = M.items[j]; M.items[j] = x;
-    pintar();
-    post('/design/api/mural/orden', {ids: M.items.map(function(a) { return a.id; })}).catch(function(e) { alert(e.message); cargar(); });
-  }
-
   function cargar() {
     return api('/design/api/mural').then(function(d) { M = d; pintar(); })
       .catch(function(e) { pared.textContent = ''; aviso('⚠️ ' + e.message); });
