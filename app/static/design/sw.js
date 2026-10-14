@@ -1,6 +1,7 @@
 /* Service worker de Nuvia Design: SOLO recibe notificaciones push y abre la página al hacer clic.
    No guarda páginas en caché ni intercepta peticiones (la intranet funciona exactamente igual con o sin él).
-   Se sirve en /design/sw.js (alcance: /design/). El aviso llega como JSON: {titulo, cuerpo, url, etiqueta}. */
+   Se sirve en /design/sw.js (alcance: /design/). El aviso llega como JSON: {titulo, cuerpo, url, etiqueta, fijo}.
+   `fijo`: el aviso se queda en pantalla hasta que la persona lo cierre con la X (o lo abra). */
 self.addEventListener('install', function() { self.skipWaiting(); });
 self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()); });
 
@@ -13,7 +14,8 @@ self.addEventListener('push', function(e) {
     badge: '/static/design/push-icono.png',
     data: {url: d.url || '/design/inicio'},
     tag: d.etiqueta || undefined,
-    renotify: !!d.etiqueta
+    renotify: !!d.etiqueta,
+    requireInteraction: !!d.fijo
   };
   e.waitUntil(self.registration.showNotification(d.titulo || 'Nuvia Design', opciones));
 });

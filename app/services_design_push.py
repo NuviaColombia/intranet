@@ -100,13 +100,15 @@ def _enviar_una(s: DesignPushSuscripcion, cuerpo: str, privada_pem: bytes) -> st
         return "error"
 
 
-def enviar(db: Session, empleado_ids: list[int], titulo: str, cuerpo: str = "", url: str = "/design/inicio", etiqueta: str = "") -> dict:
+def enviar(db: Session, empleado_ids: list[int], titulo: str, cuerpo: str = "", url: str = "/design/inicio", etiqueta: str = "",
+           fijo: bool = False) -> dict:
     """Envía un aviso a todos los navegadores suscritos de esas personas. Devuelve {enviados, fallidos, borrados, sinSuscripcion}.
+    `fijo`: el aviso se queda en pantalla hasta que la persona lo cierre (no se oculta solo a los segundos).
     Es síncrono: para avisos desde una petición normal usar enviar_en_segundo_plano."""
     ids = sorted({int(i) for i in empleado_ids if i})
     subs = db.query(DesignPushSuscripcion).filter(DesignPushSuscripcion.empleado_id.in_(ids), DesignPushSuscripcion.fallos < MAX_FALLOS).all() if ids else []
     datos = json.dumps({"titulo": (titulo or "Nuvia Design")[:120], "cuerpo": (cuerpo or "")[:300], "url": url if str(url).startswith("/") else "/design/inicio",
-                        "etiqueta": (etiqueta or "")[:60]}, ensure_ascii=False)
+                        "etiqueta": (etiqueta or "")[:60], "fijo": bool(fijo)}, ensure_ascii=False)
     privada = claves(db)["privada_pem"]
     res = {"enviados": 0, "fallidos": 0, "borrados": 0, "sinSuscripcion": len(set(ids) - {s.empleado_id for s in subs})}
     for s in subs:
@@ -124,14 +126,15 @@ def enviar(db: Session, empleado_ids: list[int], titulo: str, cuerpo: str = "", 
     return res
 
 
-def enviar_en_segundo_plano(empleado_ids: list[int], titulo: str, cuerpo: str = "", url: str = "/design/inicio", etiqueta: str = "") -> None:
+def enviar_en_segundo_plano(empleado_ids: list[int], titulo: str, cuerpo: str = "", url: str = "/design/inicio", etiqueta: str = "",
+                            fijo: bool = False) -> None:
     """Igual que enviar(), sin hacer esperar a quien provocó el aviso (hilo aparte con su propia sesión de BD)."""
     from .database import SessionLocal
 
     def correr():
         db = SessionLocal()
         try:
-            enviar(db, empleado_ids, titulo, cuerpo, url, etiqueta)
+            enviar(db, empleado_ids, titulo, cuerpo, url, etiqueta, fijo)
         except Exception:  # noqa: BLE001
             log.exception("push en segundo plano")
         finally:

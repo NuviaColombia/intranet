@@ -1266,13 +1266,13 @@ def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | 
         if reg and reg.estado in ("pendiente", "borrada") and reg.face_orden_id == orden.id:
             reg.estado, reg.desmarcada_en = "activa", None   # volvieron a marcar el QC en Face: se conserva
             db.commit()
-        return {"ok": True, "ya": True, "equipo": equipo.nombre, "manager": mgr}
+        return {"ok": True, "ya": True, "equipo": equipo.nombre, "manager": mgr, "equipoId": equipo.id}
     nueva = crear_orden(db, user, equipo.id, dia, "principal",
                         {"orden": numero, "paciente": orden.paciente or "", "centro": orden.centro.strip(),
                          "producto": (orden.producto or "").strip()})
     db.add(DesignCopiaFace(n2_orden_id=nueva.id, face_orden_id=orden.id, estado="activa", face_equipo=orden.team.nombre))
     db.commit()
-    return {"ok": True, "ya": False, "equipo": equipo.nombre, "manager": mgr}
+    return {"ok": True, "ya": False, "equipo": equipo.nombre, "manager": mgr, "equipoId": equipo.id, "n2OrdenId": nueva.id}
 
 
 def copia_face_desmarcada(db: Session, orden: DesignOrden) -> int:

@@ -19,6 +19,7 @@ from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignC
 from ..auth import get_current_user
 from ..main_templates import templates
 from .. import services_design_permisos as sperm
+from .. import services_design_push as spush
 from .. import services_design as sd
 from .. import services_design_accesos as sacc  # también activa el acceso automático de los equipos
 from .. import services_design_planificacion as spl
@@ -1436,6 +1437,31 @@ def api_orden_a_training(orden_id: int, user: Empleado = Depends(require_modulo(
     return {"ok": True, "equipo": destino.nombre}
 
 
+def _push_llego_a_n2(db: Session, o: DesignOrden, aviso: dict, user: Empleado) -> None:
+    """Aviso push (fijo hasta que lo cierren) al manager del equipo de N2 y a quien está a cargo hoy: llegó una orden
+    aprobada en Face. Si falla, no afecta el guardado de la orden."""
+    try:
+        team = db.get(DesignTeam, aviso["equipoId"])
+        if not team:
+            return
+        ids = {team.manager_id}
+        dg = sd.delegacion_de(db, team)
+        if dg and dg["activa"]:
+            ids.add(dg["empleadoId"])
+        ids.discard(None)
+        ids.discard(user.id)   # quien marcó el QC no necesita el aviso
+        if not ids:
+            return
+        cuerpo = " · ".join(x for x in ((o.orden or "").strip(), (o.paciente or "").strip(), (o.centro or "").strip(),
+                                        (o.producto or "").strip()) if x)
+        spush.enviar_en_segundo_plano(sorted(ids), "Nueva orden aprobada en Face",
+                                      f"{cuerpo}\nYa está en tu Schedule de N2 de hoy ({team.nombre}).",
+                                      url=f"/design?area_id={team.area_id}&team_id={team.id}",
+                                      etiqueta=f"face-n2-{aviso.get('n2OrdenId', o.id)}", fijo=True)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("design.face_n2").exception("Face → N2: no se pudo enviar el aviso push")
+
+
 def _con_copia_n2(db: Session, user: Empleado, o: DesignOrden, qc_antes: bool, datos: dict) -> dict:
     """Face: al marcar el QC de una orden, su número, paciente, centro y producto pasan a N2 (al día de hoy)
     (copiar_face_a_n2). Si después se desmarca, las copias quedan pendientes de decisión del manager de N2."""
@@ -1443,6 +1469,8 @@ def _con_copia_n2(db: Session, user: Empleado, o: DesignOrden, qc_antes: bool, d
         aviso = sd.copiar_face_a_n2(db, o, user)
         if aviso is not None:
             datos["copiaN2"] = aviso
+            if aviso.get("ok") and not aviso.get("ya"):
+                _push_llego_a_n2(db, o, aviso, user)
     elif qc_antes and not o.qc:
         pendientes = sd.copia_face_desmarcada(db, o)
         if pendientes:
