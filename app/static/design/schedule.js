@@ -3519,7 +3519,7 @@ function dcCabecera() {
 }
 function dcCelda(f, campo) {
   var v = f[campo] || '';
-  var clase = campo === 'detalle' ? ' style="white-space:pre-wrap;min-width:260px;max-width:420px;text-align:left"' : '';
+  var clase = campo === 'detalle' ? ' style="white-space:pre-wrap;min-width:260px;max-width:420px;text-align:center"' : '';
   if (campo === 'origen') v = v ? '<span class="dc-origen dc-' + dcEsc(v) + '">' + dcEsc(v) + '</span>' : '';
   else v = dcEsc(v);
   var titulo = campo === 'detalle' && f.detalleEs ? f.detalleEs : 'Clic para editar';   // detalle en inglés: tooltip con la traducción

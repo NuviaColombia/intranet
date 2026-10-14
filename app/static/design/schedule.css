@@ -1111,3 +1111,6 @@
 .dd-filtros:not(.dd-filtros-x) { gap:8px; }
 .dd-rapidos button, .dd-filtros .btn { height:34px; box-sizing:border-box; padding:0 8px; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap; }
 .dd-filtros > div > label { min-height:14px; line-height:14px; }
+
+/* Cambios digitales: todo el texto centrado en horizontal y vertical */
+.dc-tabla th, .dc-tabla td { text-align: center !important; vertical-align: middle !important; }
