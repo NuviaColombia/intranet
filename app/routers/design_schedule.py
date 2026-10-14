@@ -21,6 +21,7 @@ from ..main_templates import templates
 from .. import services_design as sd
 from .. import services_design_accesos as sacc  # también activa el acceso automático de los equipos
 from .. import services_design_planificacion as spl
+from .. import services_design_aprobacion as sap   # también registra la hora de aprobación y de QC de cada orden
 from .. import services_design_support as ss
 from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
@@ -1673,6 +1674,16 @@ def api_cambios_csv(q: str = Query("", max_length=200), desde: str = "", hasta: 
     texto = cd_csv(db, q=q, desde=_cd_fecha(desde), hasta=_cd_fecha(hasta), origen=origen, tipo=tipo, centro=centro, orden=orden, dir_=dir)
     return Response(texto.encode("utf-8"), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": 'attachment; filename="cambios_digitales.csv"'})
+
+
+@router.get("/design/api/dashboard/aprobaciones-lentas")
+def api_aprobaciones_lentas(desde: str, hasta: str, area_id: int | None = None, team_id: int | None = None,
+                            user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Solo admin: órdenes en las que el manager tardó más de 30 min entre Approved y marcar el QC (o siguen sin QC)."""
+    fd, fh = _fecha(desde), _fecha(hasta)
+    if fh < fd or (fh - fd).days >= sap.RANGO_MAX_DIAS:
+        raise HTTPException(400, f"El periodo debe ser de {sap.RANGO_MAX_DIAS} días o menos.")
+    return sap.lentas(db, fd, fh, area_id, team_id)
 
 
 @router.get("/design/api/dashboard/tendencia")

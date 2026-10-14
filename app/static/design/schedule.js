@@ -3281,6 +3281,7 @@ function dpVista(v) {
   document.getElementById('ddVistaProductos').hidden = v !== 'productos';
   document.getElementById('ddVistaArticulacion').hidden = v !== 'articulacion';
   document.getElementById('ddVistaCambios').hidden = v !== 'cambios';
+  var vl = document.getElementById('ddVistaLentas'); if (vl) { vl.hidden = v !== 'lentas'; if (v === 'lentas') dlIniciar(); }
   if (v === 'cambios') { dcSemestreInicial(); dcCargar(true); }
   if (v === 'productos') dpCargar();
   if (v === 'articulacion') daCargar();
@@ -3760,10 +3761,99 @@ function dcImportarArchivo(file) {
   el('dcCsv').addEventListener('click', function() { window.location = '/design/api/cambios-digitales/csv?' + dcUrl(); });
 })();
 
+
+// ---------- Dashboard › Aprobaciones lentas (solo admin, 13-oct-2026) ----------
+// Órdenes en las que el manager tardó más de 30 min entre Approved y marcar el QC (o siguen sin QC pasado ese tiempo).
+var DL = {items: [], orden: 'minutos', dir: 'desc', tope: 50, tok: 0};
+var DL_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['equipo', 'Equipo'], ['manager', 'Manager'],
+               ['disenador', 'Diseñador'], ['aprobadaEn', 'Aprobada'], ['qcEn', 'QC marcado'], ['minutos', 'Tiempo'], ['pendiente', 'Estado']];
+function dlHora(iso) {
+  return iso ? new Date(iso).toLocaleString('es-CO', {timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true}) : '—';
+}
+function dlIniciar() {
+  var d = document.getElementById('dlDesde'), h = document.getElementById('dlHasta');
+  if (!d.value || !h.value) {
+    var hoy = new Date(); d.value = daISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); h.value = daISO(hoy);
+  }
+  dlCargar();
+}
+function dlCargar() {
+  var area = document.getElementById('dlArea').value, team = document.getElementById('dlTeam').value;
+  var u = '/design/api/dashboard/aprobaciones-lentas?desde=' + document.getElementById('dlDesde').value + '&hasta=' + document.getElementById('dlHasta').value +
+          (team ? '&team_id=' + team : area ? '&area_id=' + area : '');
+  var tok = DL.tok = DL.tok + 1;
+  document.getElementById('dlTabla').style.opacity = '.5';
+  ddApi(u).then(function(d) {
+    if (tok !== DL.tok) return;
+    DL.items = d.items; DL.tope = 50; DL.kpis = d.kpis; dlKpis(d.kpis); dlPintar();
+  }).catch(function(e) {
+    document.getElementById('dlTabla').innerHTML = '<tbody><tr><td style="color:#b91c1c">No se pudo cargar: ' + dcEsc(e.message) + '</td></tr></tbody>';
+  }).then(function() { document.getElementById('dlTabla').style.opacity = ''; });
+}
+function dlKpis(k) {
+  document.getElementById('dlKpis').innerHTML =
+    '<div class="dd-kpi alerta"><b>' + k.total + '</b><span>órdenes con más de 30 min</span></div>' +
+    '<div class="dd-kpi"><b>' + k.pendientes + '</b><span>siguen sin QC</span></div>' +
+    '<div class="dd-kpi"><b>' + (k.total ? daFmt(k.promedio) : '—') + '</b><span>espera promedio</span></div>' +
+    '<div class="dd-kpi"><b>' + (k.total ? daFmt(k.maxima) : '—') + '</b><span>la espera más larga</span></div>';
+}
+function dlFiltradas() {
+  var q = dpNorm(document.getElementById('dlBuscar').value.trim());
+  var l = DL.items.filter(function(x) { return !q || dpNorm([x.orden, x.paciente, x.centro, x.equipo, x.manager, x.disenador].join(' ')).indexOf(q) >= 0; });
+  var k = DL.orden, dir = DL.dir === 'asc' ? 1 : -1;
+  return l.slice().sort(function(a, b) {
+    var va = a[k], vb = b[k]; if (typeof va === 'string') { va = va.toLowerCase(); vb = String(vb).toLowerCase(); }
+    return (va < vb ? -1 : va > vb ? 1 : 0) * dir || b.minutos - a.minutos;
+  });
+}
+function dlPintar() {
+  var l = dlFiltradas(), t = document.getElementById('dlTabla');
+  var cab = '<thead><tr>' + DL_COLS.map(function(c) {
+    var fl = DL.orden === c[0] ? (DL.dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return '<th data-o="' + c[0] + '" style="cursor:pointer">' + c[1] + fl + '</th>';
+  }).join('') + '</tr></thead>';
+  var filas = l.slice(0, DL.tope).map(function(x) {
+    return '<tr><td>' + dcEsc(x.fecha.split('-').reverse().join('/')) + '</td><td>' + dcEsc(x.orden) + '</td><td>' + dcEsc(x.paciente) + '</td><td>' + dcEsc(x.centro) + '</td><td>' + dcEsc(x.equipo) +
+      '</td><td>' + dcEsc(x.manager) + '</td><td>' + dcEsc(x.disenador) + '</td><td>' + dlHora(x.aprobadaEn) + '</td><td>' + dlHora(x.qcEn) + '</td><td><b>' + daFmt(x.minutos) + '</b></td>' +
+      '<td>' + (x.pendiente ? '<span class="dl-pend">Sin QC aún</span>' : '<span class="dl-ok">QC marcado</span>') + '</td></tr>';
+  }).join('');
+  t.innerHTML = cab + '<tbody>' + (filas || '<tr><td colspan="11" style="color:#4b5563">No hay órdenes con más de 30 minutos en este periodo.</td></tr>') + '</tbody>';
+  document.getElementById('dlCuenta').textContent = 'Mostrando ' + Math.min(DL.tope, l.length) + ' de ' + l.length;
+  var mas = document.getElementById('dlMas');
+  mas.innerHTML = l.length > DL.tope ? '<button type="button" class="btn gris mini" id="dlVerMas">Mostrar más (' + (l.length - DL.tope) + ' restantes)</button>' : '';
+  var vm = document.getElementById('dlVerMas'); if (vm) vm.onclick = function() { DL.tope += 50; dlPintar(); };
+  t.querySelectorAll('thead th[data-o]').forEach(function(th) {
+    th.onclick = function() { var k = th.dataset.o; DL.dir = DL.orden === k ? (DL.dir === 'asc' ? 'desc' : 'asc') : (k === 'minutos' ? 'desc' : 'asc'); DL.orden = k; dlPintar(); };
+  });
+}
+function dlDescargar() {
+  var l = dlFiltradas(), sep = ';', q = function(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+  var csv = [['Fecha', 'Orden', 'Paciente', 'Centro', 'Equipo', 'Manager', 'Diseñador', 'Aprobada', 'QC marcado', 'Minutos', 'Estado'].map(q).join(sep)].concat(l.map(function(x) {
+    return [x.fecha, x.orden, x.paciente, x.centro, x.equipo, x.manager, x.disenador, dlHora(x.aprobadaEn), dlHora(x.qcEn), x.minutos, x.pendiente ? 'Sin QC aún' : 'QC marcado'].map(q).join(sep); }));
+  var b = new Blob(['\ufeff' + csv.join('\r\n')], {type: 'text/csv;charset=utf-8'}), a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = 'Aprobaciones lentas ' + document.getElementById('dlDesde').value + ' a ' + document.getElementById('dlHasta').value + '.csv';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(function() { URL.revokeObjectURL(a.href); }, 2000);
+}
+(function() {
+  var el = function(id) { return document.getElementById(id); };
+  if (!el('ddVistaLentas')) return;
+  el('dlArea').addEventListener('change', function() {
+    var sel = el('dlTeam'), areaId = el('dlArea').value; sel.innerHTML = '<option value="">-- Todos --</option>';
+    if (!areaId) { dlCargar(); return; }
+    ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
+      teams.forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
+    }).then(dlCargar);
+  });
+  ['dlTeam', 'dlDesde', 'dlHasta'].forEach(function(id) { el(id).addEventListener('change', dlCargar); });
+  var tb = null; el('dlBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(function() { DL.tope = 50; dlPintar(); }, 200); });
+  el('dlCsv').addEventListener('click', dlDescargar);
+})();
+
 window.DS_PANELS.dashboard = function() {
   if (!document.getElementById('ddVistaArticulacion').hidden) { daCargar(); return; }
   if (!document.getElementById('ddVistaProductos').hidden) { dpCargar(); return; }
   if (!document.getElementById('ddVistaCambios').hidden) { dcSemestreInicial(); dcCargar(true); return; }
+  var vl2 = document.getElementById('ddVistaLentas'); if (vl2 && !vl2.hidden) { dlIniciar(); return; }
   if (!ddCargar.listo) {
     ddCargar.listo = true;
     if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) {

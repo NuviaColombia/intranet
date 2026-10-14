@@ -305,7 +305,8 @@ def init_db():
                       ("z_hora_fin", "VARCHAR(10) DEFAULT ''"), ("z_qc", "BOOLEAN DEFAULT FALSE"),
                       ("z_qc_reporte", "TEXT DEFAULT ''"), ("fecha_creada", "DATE"),
                       ("art_start", "VARCHAR(10) DEFAULT ''"), ("art_rtd", "VARCHAR(10) DEFAULT ''"),
-                      ("origen_equipo", "VARCHAR(150) DEFAULT ''")):
+                      ("origen_equipo", "VARCHAR(150) DEFAULT ''"),
+                      ("aprobada_en", "TIMESTAMP"), ("qc_en", "TIMESTAMP")):
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))

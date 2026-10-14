@@ -138,6 +138,10 @@ class DesignOrden(Base):
     art_rtd: Mapped[str] = mapped_column(String(10), default="")
     # Área Training: de qué equipo (manager) vino el caso cuando lo pasaron desde N3 (solo informativo)
     origen_equipo: Mapped[str] = mapped_column(String(150), default="")
+    # Aprobaciones lentas (13-oct-2026): hora (UTC) en que la orden pasó a Approved y hora en que se marcó su QC.
+    # Se anotan solas (services_design_aprobacion); las órdenes anteriores no las tienen.
+    aprobada_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    qc_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     orden_visual: Mapped[int] = mapped_column(Integer, default=0)
     # Día para el que se creó la orden; no cambia cuando pasa al día siguiente (Hold, Ready to design). Así N3/N2
