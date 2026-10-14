@@ -83,6 +83,46 @@ async def zoho_get_email(code: str) -> str:
         return email
 
 
+# Simulación (13-oct-2026): un admin ve la intranet como otra persona. Dentro de Design la maneja su propio router
+# (puede editar y queda registrado). Fuera de Design se ve todo como esa persona pero SOLO LECTURA.
+SIM_KEY = "design_simular_id"
+
+
+def _es_admin_real(db, user: Empleado) -> bool:
+    """¿Puede simular? Admin o superadmin en People, o admin en Design (rol solo de Design)."""
+    if user.rol in ("admin", "superadmin"):
+        return True
+    try:
+        from .models_design import DesignRolUsuario
+        r = db.get(DesignRolUsuario, user.id)
+        return bool(r and r.rol == "admin")
+    except Exception:
+        log.exception("No se pudo revisar el rol de Design de %s", user.id)
+        return False
+
+
+def puede_simular_a(db, real: Empleado, otro: Empleado) -> bool:
+    """El superadmin simula a cualquiera; un admin, solo a personas de su misma empresa."""
+    if not _es_admin_real(db, real) or not otro or not otro.activo or otro.id == real.id:
+        return False
+    return real.rol == "superadmin" or (otro.empresa or "") == (real.empresa or "")
+
+
+def _simulado_fuera_de_design(request: Request, db, real: Empleado) -> Empleado | None:
+    sid = request.session.get(SIM_KEY)
+    if not sid or request.url.path.startswith("/design"):
+        return None
+    otro = db.get(Empleado, sid)
+    if not puede_simular_a(db, real, otro) or acceso_inhabilitado(db, otro.id, otro.rol):
+        request.session.pop(SIM_KEY, None)
+        return None
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        raise HTTPException(403, f"Estás viendo la intranet como {otro.nombre_completo}: fuera de Design solo se puede ver. "
+                                 "Sal de la simulación para hacer cambios.")
+    request.state.sim_real = real
+    return otro
+
+
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> Empleado:
     email = request.session.get("user_email")
     if email and correo_bloqueado(email):   # bloqueado: se cierra su sesión en el siguiente clic
@@ -100,7 +140,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Emplead
     if acceso_inhabilitado(db, user.id, user.rol):   # inhabilitado desde Design › Parámetros › Equipos (p. ej. renunció)
         request.session.clear()
         raise HTTPException(status_code=307, headers={"Location": "/login?error=bloqueado"})
-    return user
+    return _simulado_fuera_de_design(request, db, user) or user
 
 
 def require_admin(user: Empleado = Depends(get_current_user)) -> Empleado:

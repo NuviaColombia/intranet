@@ -10,6 +10,12 @@
 {% if es_design %}<link rel="manifest" href="/design/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="/static/design/push-icono.png">{% endif %}
 </head>
 <body>
+{% if user and request is defined and request.session.get('design_simular_id') and not request.url.path.startswith('/design') %}
+<div role="status" style="position:sticky;top:0;z-index:2000;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;background:#fef3c7;color:#78350f;border-bottom:1px solid #f59e0b;padding:6px 12px;font-size:13px">
+  <span>👁 Estás viendo la intranet como <b>{{ user.nombre_completo }}</b> · fuera de Design solo puedes ver</span>
+  <form method="post" action="/design/simulacion/salir" style="margin:0"><button type="submit" style="border:1px solid #b45309;background:#fff;color:#78350f;border-radius:6px;padding:3px 10px;font-size:12.5px;cursor:pointer">Salir de la simulación</button></form>
+</div>
+{% endif %}
 {% macro pestanas(grupos, clase, href, sec, activa) %}
 {%- set ns = namespace(previo=false) -%}
 {%- for grupo in grupos -%}

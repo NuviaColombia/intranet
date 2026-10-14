@@ -36,7 +36,7 @@ from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = ori
 # El admin elige a alguien en /design/simulacion y, mientras dure, TODAS las rutas de Design lo tratan como esa
 # persona (lo que ve y lo que guarda queda a su nombre). Cada cambio hecho simulando queda en el log del servidor
 # con el admin real. Fuera de Design la intranet sigue igual: el inicio de sesión no cambia.
-SIM_KEY = "design_simular_id"
+from ..auth import SIM_KEY, puede_simular_a  # la misma simulación vale en toda la intranet (fuera de Design, solo lectura)
 _log_sim = logging.getLogger("design.simulacion")
 
 
@@ -75,9 +75,9 @@ def _usuario_efectivo(request: Request, user: Empleado, db: Session) -> Empleado
 
 
 def _sin_acceso_simulando(request: Request, sim: Empleado):
-    if getattr(request.state, "design_real", None):  # simulando: volver a elegir, no salir de Design
-        raise HTTPException(status_code=307, headers={
-            "Location": "/design/simulacion?msg=" + quote(f"{sim.nombre_completo} no tiene el módulo Design Schedule.")})
+    if getattr(request.state, "design_real", None):
+        # Simulando a alguien sin Design: se ve la intranet como esa persona (portal), sin entrar en bucle
+        raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
 
 
 def require_modulo(modulo: str):
@@ -149,11 +149,14 @@ def iniciar_simulacion(request: Request, user: Empleado = Depends(get_current_us
     if p.id == user.id:
         request.session.pop(SIM_KEY, None)
         return RedirectResponse("/design", status_code=303)
-    if not p.tiene_modulo("design_schedule") or sacc.esta_inhabilitado(db, p.id):
-        return RedirectResponse("/design/parametros?sim=1&msg=" + quote(f"{p.nombre_completo} no tiene acceso a Design Schedule."), status_code=303)
+    if sacc.esta_inhabilitado(db, p.id):
+        return RedirectResponse("/design/parametros?sim=1&msg=" + quote(f"{p.nombre_completo} tiene el acceso inhabilitado."), status_code=303)
+    if not puede_simular_a(db, user, p):
+        return RedirectResponse("/design/parametros?sim=1&msg=" + quote("Solo puedes simular a personas de tu empresa."), status_code=303)
     request.session[SIM_KEY] = p.id
     _log_sim.warning("SIMULACION inicia %s (%s) como %s (%s)", user.email, user.id, p.email, p.id)
-    return RedirectResponse("/design", status_code=303)
+    # Con Design entra a Design; sin Design, al portal: ve la intranet como esa persona (solo lectura fuera de Design)
+    return RedirectResponse("/design" if p.tiene_modulo("design_schedule") else "/", status_code=303)
 
 
 @router.post("/design/simulacion/salir")

@@ -734,7 +734,7 @@
       <h2>Simulación</h2>
       <span class="aud-sub">ver Design como otra persona · rol solo de Design</span>
       <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
-            title="Simular: entras a Design exactamente como esa persona (sus equipos, órdenes, Dashboard, Desempeño). Lo que guardes queda a su nombre y cada cambio queda registrado en el servidor con tu usuario. Fuera de Design sigues siendo tú. Rol en Design: cambia lo que la persona ve y hace solo dentro de Design; su rol de People y los demás módulos no cambian. Reglas como en People: un admin solo cambia personas de su empresa y no a otros admins; solo un superadmin da el rol admin.">i</span>
+            title="Simular: entras a Design exactamente como esa persona (sus equipos, órdenes, Dashboard, Desempeño). Dentro de Design lo que guardes queda a su nombre y cada cambio queda registrado en el servidor con tu usuario. Fuera de Design (People, Producción, SST, Caja menor…) ves todo como esa persona pero solo puedes mirar, no guardar. Un admin solo simula a personas de su empresa; el superadmin, a cualquiera. Rol en Design: cambia lo que la persona ve y hace solo dentro de Design; su rol de People y los demás módulos no cambian. Reglas como en People: un admin solo cambia personas de su empresa y no a otros admins; solo un superadmin da el rol admin.">i</span>
     </div>
     <label class="aud-switch">
       <input type="checkbox" id="simSwitch" role="switch" aria-controls="simContenido">
@@ -779,7 +779,7 @@
         </td>
         <td class="sim-sub">{% if not p.design %}<span class="sim-no">Sin acceso a Design</span>{% elif p.lugar %}{% for l in p.lugar %}{{ l }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}Sin equipo{% endif %}</td>
         <td>{% if p.id != user.id %}<form method="post" action="/design/simulacion/iniciar"><input type="hidden" name="empleado_id" value="{{ p.id }}">
-          <button class="btn mini"{% if not p.design %} disabled title="No tiene acceso a Design"{% endif %}>Simular</button></form>{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
+          <button class="btn mini"{% if not p.design %} title="No tiene Design: verás la intranet como esta persona (solo lectura)"{% endif %}>Simular</button></form>{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </table>
