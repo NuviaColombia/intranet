@@ -1114,3 +1114,7 @@
 
 /* Cambios digitales: todo el texto centrado en horizontal y vertical */
 .dc-tabla th, .dc-tabla td { text-align: center !important; vertical-align: middle !important; }
+
+/* Columnas de hora (START, RTD, Inicio diseño, Start hold, Re-initiated, Fin...): ajustadas al ancho de la hora, sin espacio muerto */
+table.ds-tabla td:has(> input[type=time]) { width: 1%; white-space: nowrap; }
+table.ds-tabla input[type=time] { width: 8.2em; min-width: 0; padding-left: 4px; padding-right: 4px; }
