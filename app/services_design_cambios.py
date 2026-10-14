@@ -141,20 +141,26 @@ def _clave_centro(t: str) -> str:
 
 
 def doctores_de_centro(db: Session, centro: str) -> list[str]:
-    """Doctores que están hoy en las hojas de Pre-Approved que llevan ese centro (los que se quitan de la hoja dejan de salir)."""
-    from .models_design import DesignPreApprovedCentro, DesignPreApprovedDoctor
+    """Doctores asignados a ESE centro en Pre-Approved. Cada centro de una hoja agrupa los `span` doctores que siguen
+    (igual que la pantalla de Pre-Approved y la ventana del Schedule); no se mezclan los de otros centros."""
+    from .models_design import DesignPreApprovedSheet
     k = _clave_centro(centro)
     if not k:
         return []
-    hojas = {c.sheet_id for c in db.query(DesignPreApprovedCentro).all() if _clave_centro(c.nombre) == k}
-    if not hojas:
-        return []
     nombres, vistos = [], set()
-    for d in db.query(DesignPreApprovedDoctor).filter(DesignPreApprovedDoctor.sheet_id.in_(hojas)).order_by(DesignPreApprovedDoctor.orden, DesignPreApprovedDoctor.id):
-        n = " ".join((d.nombre or "").split())
-        if n and n.lower() not in vistos:
-            vistos.add(n.lower())
-            nombres.append(n)
+    for h in db.query(DesignPreApprovedSheet).all():
+        docs, i = h.doctores, 0
+        for c in h.centros:
+            span = max(1, c.span or 1)
+            grupo = docs[i:i + span]
+            i += span
+            if _clave_centro(c.nombre) != k:
+                continue
+            for d in grupo:
+                n = " ".join((d.nombre or "").split())
+                if n and n.lower() not in vistos:
+                    vistos.add(n.lower())
+                    nombres.append(n)
     return nombres
 
 
