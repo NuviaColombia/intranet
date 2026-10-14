@@ -1,8 +1,17 @@
 {% extends "base.html" %}
 {% block titulo %}Mural{% endblock %}
 {% block contenido %}
-<div style="max-width:720px;margin:48px auto;padding:0 16px;text-align:center">
-  <h1 style="margin-bottom:8px">Mural</h1>
-  <p style="color:var(--gris,#6b7280)">En construcción. Por ahora solo tú puedes ver esta sección.</p>
+<style>
+  /* Mural ocupa toda la pantalla bajo la barra, con fondo de concreto (static/design/mural/fondo.webp: 2416×3328,
+     ampliada 4× desde la original con nitidez) que cubre cualquier tamaño de pantalla sin repetirse. */
+  main:has(#muRaiz) { padding:0 !important; max-width:none !important; }
+  body:has(#muRaiz) { background:#c9c9c9 url("/static/design/mural/fondo.webp") center / cover fixed no-repeat; }
+  .mu-raiz { min-height:calc(100vh - 60px); padding:48px 16px; text-align:center; }
+  .mu-raiz h1 { margin:0 0 8px; color:#374151; }
+  .mu-raiz p { margin:0; color:#4b5563; }
+</style>
+<div id="muRaiz" class="mu-raiz">
+  <h1>Mural</h1>
+  <p>En construcción. Por ahora solo tú puedes ver esta sección.</p>
 </div>
 {% endblock %}
