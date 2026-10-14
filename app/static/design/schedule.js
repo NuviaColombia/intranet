@@ -2911,6 +2911,10 @@ function ddRapido(r) {
     var hoy = new Date(), desde = new Date(hoy), hasta = new Date(hoy);
     if (r === 'semana') { var dw = (hoy.getDay() + 6) % 7; desde.setDate(hoy.getDate() - dw); }
     if (r === 'mes') desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    if (r === 'quincena') {   // predeterminado (14-oct-2026): del 1 al 15, o del 16 al último día del mes
+      if (hoy.getDate() <= 15) { desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1); hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 15); }
+      else { desde = new Date(hoy.getFullYear(), hoy.getMonth(), 16); hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); }
+    }
     if (r === 'mesAnt') { desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 0); }
     document.getElementById('ddDesde').value = ddIso(desde);
     document.getElementById('ddHasta').value = ddIso(hasta);
@@ -2927,7 +2931,7 @@ function ddLimpiar() {
   ['ddTeam', 'ddDesigner', 'ddProducto', 'ddEstado', 'ddQc'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.getElementById('ddDesignerTxt').value = '';
   if (document.getElementById('ddArea').value) { document.getElementById('ddArea').value = ''; ddCambioArea(); }
-  ddAplicarInicial().then(function() { ddRapido('mes'); });
+  ddAplicarInicial().then(function() { ddRapido('quincena'); });
 }
 function ddCargarPronto() { clearTimeout(ddCargarPronto.t); ddCargarPronto.t = setTimeout(ddCargar, 350); }
 function ddLlenarSelect(id, lista, valor, texto, todos) {
@@ -3137,7 +3141,7 @@ function ddCargar() {
     document.getElementById('ddTendencia').hidden = true;
     return;
   }
-  if (!document.getElementById('ddDesde').value || !document.getElementById('ddHasta').value) { ddRapido('mes'); return; }
+  if (!document.getElementById('ddDesde').value || !document.getElementById('ddHasta').value) { ddRapido('quincena'); return; }
   ddCargarTendencia();
   params = ddParams();
 
@@ -3928,7 +3932,7 @@ window.DS_PANELS.dashboard = function() {
   if (!ddCargar.listo) {
     ddCargar.listo = true;
     if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) {
-      ddAplicarInicial().then(function() { ddRapido('mes'); }); return;
+      ddAplicarInicial().then(function() { ddRapido('quincena'); }); return;
     }
     ddAplicarInicial().then(ddCargar); return;
   }

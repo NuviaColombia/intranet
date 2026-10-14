@@ -363,7 +363,7 @@ window.dsPdfjs = function() {
   <div><label for="ddDesde">Desde</label><input type="date" id="ddDesde" onchange="ddRapido(null)"></div>
   <div><label for="ddHasta">Hasta</label><input type="date" id="ddHasta" onchange="ddRapido(null)"></div>
   <div><label>Rango rápido</label><span class="dd-rapidos">
-    <button type="button" data-r="hoy" onclick="ddRapido('hoy')">Hoy</button><button type="button" data-r="semana" onclick="ddRapido('semana')">Semana</button>
+    <button type="button" data-r="quincena" onclick="ddRapido('quincena')" title="Del 1 al 15, o del 16 a fin de mes">Quincena</button><button type="button" data-r="hoy" onclick="ddRapido('hoy')">Hoy</button><button type="button" data-r="semana" onclick="ddRapido('semana')">Semana</button>
     <button type="button" data-r="mes" onclick="ddRapido('mes')">Mes</button><button type="button" data-r="mesAnt" onclick="ddRapido('mesAnt')">Mes anterior</button></span></div>
   <div><label>&nbsp;</label><div style="flex-direction:row;gap:6px"><button type="button" class="btn gris" onclick="ddLimpiar()">Limpiar</button>
     <button type="button" class="btn" onclick="ddDescargar()" title="Descarga las tablas del dashboard con los filtros actuales (se abre en Excel)">Descargar Excel</button></div></div>
