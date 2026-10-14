@@ -3762,7 +3762,7 @@ function dcImportarArchivo(file) {
 })();
 
 
-// ---------- Dashboard › Aprobaciones lentas (solo admin, 13-oct-2026) ----------
+// ---------- Dashboard › Aprobaciones (solo admin, 13-oct-2026): órdenes que tardaron más de 30 min en aprobarse ----------
 // Órdenes en las que el manager tardó más de 30 min entre Approved y marcar el QC (o siguen sin QC pasado ese tiempo).
 var DL = {items: [], orden: 'minutos', dir: 'desc', tope: 50, tok: 0};
 var DL_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['equipo', 'Equipo'], ['manager', 'Manager'],
@@ -3770,18 +3770,35 @@ var DL_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'],
 function dlHora(iso) {
   return iso ? new Date(iso).toLocaleString('es-CO', {timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true}) : '—';
 }
+// Por defecto, el semestre de hoy (jun–dic o ene–jun), igual que Cambios digitales; las flechas pasan de semestre.
 function dlIniciar() {
   var d = document.getElementById('dlDesde'), h = document.getElementById('dlHasta');
   if (!d.value || !h.value) {
-    var hoy = new Date(); d.value = daISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); h.value = daISO(hoy);
+    var hoy = new Date(), s = dcSemestreDe(hoy.getFullYear(), hoy.getMonth() >= 5 ? 1 : 0);
+    d.value = s.desde; h.value = s.hasta;
   }
   dlCargar();
+}
+function dlSemestrePaso(delta) {
+  var d = document.getElementById('dlDesde').value || document.getElementById('dlHasta').value;
+  var base = d ? new Date(d + 'T12:00:00') : new Date();
+  var idx = base.getFullYear() * 2 + (base.getMonth() >= 5 ? 1 : 0) + delta;
+  var s = dcSemestreDe(Math.floor(idx / 2), idx % 2);
+  document.getElementById('dlDesde').value = s.desde; document.getElementById('dlHasta').value = s.hasta;
+  dlCargar();
+}
+function dlMostrarSemestre() {
+  var d = document.getElementById('dlDesde').value, h = document.getElementById('dlHasta').value, el = document.getElementById('dlSemLabel');
+  if (!el) return;
+  var esSem = (d.slice(5) === '06-01' && h.slice(5) === '12-31') || (d.slice(5) === '01-01' && h.slice(5) === '06-30');
+  el.textContent = !d || !h ? '' : esSem ? (d.slice(5, 7) === '06' ? 'Jun – Dic ' : 'Ene – Jun ') + d.slice(0, 4) : 'Periodo personalizado';
 }
 function dlCargar() {
   var area = document.getElementById('dlArea').value, team = document.getElementById('dlTeam').value;
   var u = '/design/api/dashboard/aprobaciones-lentas?desde=' + document.getElementById('dlDesde').value + '&hasta=' + document.getElementById('dlHasta').value +
           (team ? '&team_id=' + team : area ? '&area_id=' + area : '');
   var tok = DL.tok = DL.tok + 1;
+  dlMostrarSemestre();
   document.getElementById('dlTabla').style.opacity = '.5';
   ddApi(u).then(function(d) {
     if (tok !== DL.tok) return;
@@ -3831,7 +3848,7 @@ function dlDescargar() {
   var csv = [['Fecha', 'Orden', 'Paciente', 'Centro', 'Equipo', 'Manager', 'Diseñador', 'Aprobada', 'QC marcado', 'Minutos', 'Estado'].map(q).join(sep)].concat(l.map(function(x) {
     return [x.fecha, x.orden, x.paciente, x.centro, x.equipo, x.manager, x.disenador, dlHora(x.aprobadaEn), dlHora(x.qcEn), x.minutos, x.pendiente ? 'Sin QC aún' : 'QC marcado'].map(q).join(sep); }));
   var b = new Blob(['\ufeff' + csv.join('\r\n')], {type: 'text/csv;charset=utf-8'}), a = document.createElement('a');
-  a.href = URL.createObjectURL(b); a.download = 'Aprobaciones lentas ' + document.getElementById('dlDesde').value + ' a ' + document.getElementById('dlHasta').value + '.csv';
+  a.href = URL.createObjectURL(b); a.download = 'Aprobaciones ' + document.getElementById('dlDesde').value + ' a ' + document.getElementById('dlHasta').value + '.csv';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(function() { URL.revokeObjectURL(a.href); }, 2000);
 }
 (function() {
@@ -3847,6 +3864,8 @@ function dlDescargar() {
   ['dlTeam', 'dlDesde', 'dlHasta'].forEach(function(id) { el(id).addEventListener('change', dlCargar); });
   var tb = null; el('dlBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(function() { DL.tope = 50; dlPintar(); }, 200); });
   el('dlCsv').addEventListener('click', dlDescargar);
+  el('dlSemAnt').addEventListener('click', function() { dlSemestrePaso(-1); });
+  el('dlSemSig').addEventListener('click', function() { dlSemestrePaso(1); });
 })();
 
 window.DS_PANELS.dashboard = function() {

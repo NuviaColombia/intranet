@@ -13,7 +13,7 @@ from sqlalchemy.orm.attributes import get_history
 from .models_design import DesignOrden, DesignTeam
 
 UMBRAL_MIN = 30
-RANGO_MAX_DIAS = 93
+RANGO_MAX_DIAS = 215   # un semestre completo: jun–dic son 214 días y ene–jun 181 (igual que Cambios digitales)
 
 
 def _es_approved(estado: str) -> bool:

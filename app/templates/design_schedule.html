@@ -334,7 +334,7 @@ window.dsPdfjs = function() {
 </div></div>
 {% if ver_dashboard %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
-<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones lentas</button>{% endif %}</div>
+<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button>{% endif %}</div>
 <div id="ddVistaResumen">
 
 <div class="dd-search">
@@ -447,10 +447,11 @@ window.dsPdfjs = function() {
   <div><label for="dlTeam">Equipo</label><select id="dlTeam"><option value="">-- Todos --</option></select></div>
   <div><label for="dlDesde">Desde</label><input type="date" id="dlDesde"></div>
   <div><label for="dlHasta">Hasta</label><input type="date" id="dlHasta"></div>
+  <div><label>Semestre</label><div style="flex-direction:row;gap:6px;align-items:center"><button type="button" class="btn gris mini" id="dlSemAnt" aria-label="Semestre anterior">◀ Anterior</button><b id="dlSemLabel" style="min-width:110px;text-align:center"></b><button type="button" class="btn gris mini" id="dlSemSig" aria-label="Semestre siguiente">Siguiente ▶</button></div></div>
   <div><label for="dlBuscar">Buscar</label><input type="search" id="dlBuscar" placeholder="Orden, paciente, manager…" style="width:200px"></div>
   <div><label>&nbsp;</label><button type="button" class="btn gris" id="dlCsv">Descargar Excel</button></div>
 </div>
-<div class="dd-panel"><div class="dd-panel-cab"><h3>Aprobaciones lentas</h3><span style="font-size:12px;color:#4b5563" id="dlCuenta"></span></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Aprobaciones</h3><span style="font-size:12px;color:#4b5563" id="dlCuenta"></span></div>
   <div class="dp-tabla-w"><table class="dd-tabla dc-tabla" id="dlTabla"></table></div>
   <div id="dlMas" style="margin-top:8px"></div></div>
 </div>
