@@ -5584,6 +5584,7 @@ window.DS_PANELS.dashboard = function() {
           '<div class="cv-thumb-wrap" data-open="' + d.id + '" tabindex="0" role="button" title="Abrir hoja para editar">' + cvSheetThumb(d, 300) + '</div>' +
           '<button class="cv-board-name" data-open="' + d.id + '">' + esc(d.name || d.title || "Hoja") + '</button>' +
           '<div class="cv-board-sub">' + d.frames.length + ' marco' + (d.frames.length === 1 ? "" : "s") + (filled ? (" · " + filled + " con foto") : "") + '</div>' +
+          '<button class="cv-mini-btn" data-dl="' + d.id + '" title="Descargar esta hoja (imagen PNG)">⬇ Descargar</button>' +
         '</div>';
       }).join('');
       home.innerHTML = cvHomeHeader() + '<div class="cv-board">' + tiles + addCard + '</div>';
@@ -5596,11 +5597,12 @@ window.DS_PANELS.dashboard = function() {
           '<div class="cv-tpl-name">' + esc(d.name || d.title || "Hoja") + '</div>' +
           '<div class="cv-tpl-sub">' + d.frames.length + ' marco' + (d.frames.length === 1 ? "" : "s") + (filled ? (" · " + filled + " con foto") : "") + '</div>' +
         '</button>' +
-        (CV.verDe ? '' : '<div class="cv-sheet-acts">' +
-          '<button class="cv-mini-btn" data-dup="' + d.id + '" title="Duplicar">⧉</button>' +
+        '<div class="cv-sheet-acts">' +
+          '<button class="cv-mini-btn" data-dl="' + d.id + '" title="Descargar esta hoja (imagen PNG)">⬇</button>' +
+          (CV.verDe ? '' : '<button class="cv-mini-btn" data-dup="' + d.id + '" title="Duplicar">⧉</button>' +
           '<button class="cv-mini-btn" data-ren="' + d.id + '" title="Renombrar">✎</button>' +
-          '<button class="cv-mini-btn cv-danger" data-del="' + d.id + '" title="Eliminar">🗑️</button>' +
-        '</div>') + '</div>';
+          '<button class="cv-mini-btn cv-danger" data-del="' + d.id + '" title="Eliminar">🗑️</button>') +
+        '</div></div>';
     }).join('');
     home.innerHTML = cvHomeHeader() + '<div class="cv-tpl-grid">' + cards + addCard + '</div>';
   }
@@ -6569,6 +6571,7 @@ window.DS_PANELS.dashboard = function() {
     if (t.closest("[data-cvviewtoggle]")) { e.stopPropagation(); var w = document.getElementById("cvViewWrap"); if (w) w.classList.toggle("open"); return; }
     var vpick = t.closest("[data-cvview]"); if (vpick) { cvSetView(vpick.dataset.cvview, false); return; }
     var bframe = t.closest("[data-bframe]"); if (bframe) { e.stopPropagation(); cvBoardFrameClick(bframe.dataset.bdoc, bframe.dataset.bframe); return; }
+    var dl = t.closest("[data-dl]"); if (dl) { e.stopPropagation(); cvExportPNG(parseInt(dl.dataset.dl)); return; }   // descargar una hoja desde el tablero o la cuadrícula
     if (CV.verDe && t.closest("[data-newsheet], [data-open], [data-ren], [data-dup], [data-del]")) return; // solo vista
     if (t.closest("[data-newsheet]")) { cvNewCustomSheet(); return; }
     var open = t.closest("[data-open]"); if (open) { cvOpenDoc(parseInt(open.dataset.open)); return; }
