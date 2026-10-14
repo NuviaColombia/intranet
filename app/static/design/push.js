@@ -95,11 +95,11 @@
   function accion(a, b) {
     if (ocupado) return; ocupado = true; if (b) b.disabled = true;
     var p;
-    if (a === 'activar') p = activar().then(function() { pintarBoton(); pintarPop({ok: true, texto: '¡Listo! Te enviamos una notificación de prueba.'}); return api('/design/api/push/prueba', {}); });
+    if (a === 'activar') p = activar().then(function() { guardar(APAGADAS, null); quitarInvitacion(); pintarBoton(); pintarPop({ok: true, texto: '¡Listo! Te enviamos una notificación de prueba.'}); return api('/design/api/push/prueba', {}); });
     else if (a === 'ejemplo') p = api('/design/api/push/ejemplo-face-n2', {}).then(function() { pintarPop({ok: true, texto: 'Enviado. Se queda en pantalla hasta que lo cierres con la X.'}); });
     else if (a === 'prueba') p = api('/design/api/push/prueba', {}).then(function(r) { pintarPop({ok: true, texto: 'Enviada a ' + r.enviados + ' navegador' + (r.enviados === 1 ? '' : 'es') + '. Debe aparecer en unos segundos.'}); });
     else p = (sub ? api('/design/api/push/desuscribir', {endpoint: sub.endpoint}).then(function() { return sub.unsubscribe(); }) : Promise.resolve())
-      .then(function() { sub = null; pintarBoton(); pintarPop({ok: true, texto: 'Desactivadas en este navegador.'}); });
+      .then(function() { sub = null; guardar(APAGADAS, '1'); pintarBoton(); pintarPop({ok: true, texto: 'Desactivadas en este navegador.'}); });
     p.catch(function(err) {
       var m = err && err.name === 'NotAllowedError' ? 'El navegador no permitió activarlas. Revisa que las notificaciones estén permitidas para la intranet (candado 🔒 junto a la dirección).'
         : err && err.name === 'AbortError' ? 'El servicio de notificaciones del navegador no respondió. Intenta de nuevo en un momento.'
@@ -113,6 +113,34 @@
   document.addEventListener('click', function(e) { if (!caja.contains(e.target)) cerrar(); });
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape') cerrar(); });
 
+  // ---------- Activadas por defecto (14-oct-2026) ----------
+  // El navegador exige que cada persona dé el permiso una vez; no se puede saltar. Por eso:
+  //  - si el permiso ya está dado, se activan solas, sin preguntar;
+  //  - si nunca se ha preguntado, aparece una invitación con un solo botón en cada sesión hasta que la acepten;
+  //  - si la persona las desactivó a mano en este navegador, se respeta (no se vuelven a activar solas).
+  var APAGADAS = 'ds_push_apagadas', NO_AHORA = 'ds_push_no_ahora';
+  function leer(k, ses) { try { return (ses ? sessionStorage : localStorage).getItem(k); } catch (e) { return null; } }
+  function guardar(k, v, ses) { try { var s = ses ? sessionStorage : localStorage; if (v === null) s.removeItem(k); else s.setItem(k, v); } catch (e) {} }
+  var simulando = !!document.querySelector('.sim-aviso');   // simulando a otra persona (_design_simulacion.html)
+  var invitacion = null;
+  function quitarInvitacion() { if (invitacion) { invitacion.remove(); invitacion = null; } }
+  function invitar() {
+    if (invitacion || leer(NO_AHORA, true)) return;
+    var c = document.createElement('style');
+    c.textContent = '.ds-push-inv{position:fixed;right:18px;bottom:18px;z-index:10050;width:330px;max-width:calc(100vw - 32px);background:#fff;color:#1f2937;border-radius:14px;' +
+      'box-shadow:0 18px 44px -12px rgba(0,0,0,.45);padding:14px 16px;font-size:13.5px;line-height:1.45;border-top:4px solid #1d4ed8;animation:dsPushIn .35s ease}' +
+      '.ds-push-inv h4{margin:0 0 4px;font-size:15px}.ds-push-inv p{margin:0 0 10px;color:#4b5563}.ds-push-inv .acc{display:flex;gap:8px}' +
+      '.ds-push-inv button{border:0;border-radius:9px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}.ds-push-inv .si{background:#1d4ed8;color:#fff}.ds-push-inv .no{background:#f1f5f9;color:#1f2937}' +
+      '@keyframes dsPushIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.ds-push-inv{animation:none}}';
+    document.head.appendChild(c);
+    invitacion = document.createElement('div'); invitacion.className = 'ds-push-inv'; invitacion.setAttribute('role', 'dialog'); invitacion.setAttribute('aria-label', 'Activar notificaciones');
+    invitacion.innerHTML = '<h4>🔔 Activa las notificaciones</h4><p>Así te avisamos al instante de lo importante de tu equipo (por ejemplo, órdenes que llegan a tu Schedule), aunque la intranet esté cerrada.</p>' +
+      '<div class="acc"><button type="button" class="si">Activar</button><button type="button" class="no">Ahora no</button></div>';
+    document.body.appendChild(invitacion);
+    invitacion.querySelector('.si').onclick = function() { accion('activar', this); };
+    invitacion.querySelector('.no').onclick = function() { guardar(NO_AHORA, '1', true); quitarInvitacion(); };
+  }
+
   pintarBoton();
   if (!soportado) return;
   // si ya las había activado: se recupera la suscripción y se confirma con el servidor (por si cambió)
@@ -121,6 +149,13 @@
     reg = r; return r.pushManager.getSubscription();
   }).then(function(s) {
     sub = s || null; pintarBoton();
-    if (s && Notification.permission === 'granted') api('/design/api/push/suscribir', {subscription: s.toJSON(), navegador: navegador()}).catch(function() {});
+    if (s && Notification.permission === 'granted') { api('/design/api/push/suscribir', {subscription: s.toJSON(), navegador: navegador()}).catch(function() {}); return; }
+    if (simulando || leer(APAGADAS)) return;
+    if (Notification.permission === 'granted') {
+      // permiso ya dado (p. ej. lo aceptó antes o en otra página): se activan solas, sin preguntar
+      activar().then(function() { pintarBoton(); }).catch(function() {});
+    } else if (Notification.permission === 'default') {
+      setTimeout(invitar, 1500);
+    }
   }).catch(function() {});
 })();

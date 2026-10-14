@@ -1,7 +1,7 @@
 """Notificaciones push de Design: service worker, claves, suscribirse / desuscribirse, prueba y estado (Parámetros).
 Se incluye desde routers/design_schedule.py (mismo router). El envío está en services_design_push.enviar."""
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -41,7 +41,11 @@ class SuscripcionIn(BaseModel):
 
 
 @router.post("/design/api/push/suscribir")
-def api_suscribir(payload: SuscripcionIn, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+def api_suscribir(payload: SuscripcionIn, request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
+                  db: Session = Depends(get_db)):
+    if getattr(request.state, "design_real", None):
+        # Simulando: este navegador es del admin; no se suscribe a nombre de la persona simulada
+        raise HTTPException(409, "Mientras simulas a otra persona no se activan notificaciones.")
     try:
         sp.suscribir(db, user, payload.subscription, payload.navegador)
     except ValueError as e:
