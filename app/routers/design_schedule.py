@@ -3145,6 +3145,10 @@ router.include_router(_support_router)
 from .design_training import router as _training_router  # noqa: E402
 router.include_router(_training_router)
 
+# ---------- Mural (en construcción, solo Rosember): rutas en routers/design_mural.py ----------
+from .design_mural import router as _mural_router  # noqa: E402
+router.include_router(_mural_router)
+
 # ---------- Notificaciones push (Web Push): rutas en routers/design_push.py ----------
 from .design_push import router as _push_router  # noqa: E402
 router.include_router(_push_router)

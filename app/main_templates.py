@@ -52,6 +52,14 @@ def _tema_design(user) -> str:
 templates.env.globals["tema_design"] = _tema_design
 
 
+def _ve_mural(user) -> bool:
+    from .routers.design_mural import ve_mural
+    return ve_mural(user)
+
+
+templates.env.globals["ve_mural"] = _ve_mural
+
+
 def _version_oscuro() -> str:
     """Versión de las hojas del modo oscuro (cambia con su contenido: el navegador no usa una copia vieja)."""
     import hashlib

@@ -172,6 +172,7 @@
   {% endif %}
   {% if es_design and user.rol in ('admin', 'superadmin') %}<a href="/design/training">Training</a>{% endif %}
   <a href="/">Módulos</a>
+  {% if es_design and ve_mural(user) %}<a href="/design/mural">Mural</a>{% endif %}
   {% set ds_extras %}{% if es_design %}
   {# Design: campana de notificaciones (la pone static/design/push.js aquí) y modo oscuro, entre el nombre y "Salir" #}
   <span class="ds-nav-extras" id="dsNavExtras">
