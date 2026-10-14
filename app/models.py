@@ -8,6 +8,9 @@ MODULOS_DISPONIBLES = [("people", "People"), ("compras", "Compras"), ("sst", "SS
 MODULOS_VALIDOS = {m for m, _ in MODULOS_DISPONIBLES}
 
 
+# El módulo Design Schedule solo lo ven las personas de esta empresa (y los superadmin).
+EMPRESA_DESIGN = "Nuvia Design Colombia SAS"
+
 class Empleado(Base):
     __tablename__ = "empleados"
 
@@ -52,6 +55,8 @@ class Empleado(Base):
         return [m for m in (self.modulos or "").split(",") if m]
 
     def tiene_modulo(self, modulo: str) -> bool:
+        if modulo == "design_schedule" and self.rol != "superadmin" and (self.empresa or "") != EMPRESA_DESIGN:
+            return False   # Design solo para la empresa Nuvia Design (13-oct-2026); el superadmin entra siempre
         return self.rol in ("admin", "superadmin") or modulo in self.modulos_lista
 
     @property

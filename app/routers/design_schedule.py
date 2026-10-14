@@ -13,7 +13,7 @@ from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Empleado
+from ..models import EMPRESA_DESIGN, Empleado
 from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignOrden,
                              DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila, FORMATO_SUPPORT)
 from ..auth import get_current_user
@@ -128,7 +128,7 @@ _RutaDesign = clase_con_cupo(DESIGN_CONCURRENCIA)
 
 router = APIRouter(route_class=_RutaDesign, dependencies=[Depends(soh.marcar_quien)])  # quién: historial de Openings
 
-NUVIA_DESIGN = "Nuvia Design Colombia SAS"
+NUVIA_DESIGN = EMPRESA_DESIGN
 
 
 # ---------- Páginas ----------

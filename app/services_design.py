@@ -7,7 +7,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session, joinedload, defer
 from sqlalchemy import func, and_, or_, text
-from .models import Empleado, Solicitud, TipoPermiso
+from .models import EMPRESA_DESIGN, Empleado, Solicitud, TipoPermiso
 from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE, FORMATO_DUAL
 from .models_design import (DesignFotoPerfil, DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
                             DesignAusenciaTipo, DesignOrden, DesignBreak, DesignComentarioHistorial,
@@ -5232,7 +5232,7 @@ def personas_para_simular(db: Session) -> list[dict]:
         efectivo = rd or rp
         out.append({"id": e.id, "nombre": e.nombre_completo, "rol": rp, "rolDesign": rd or "", "rolEfectivo": efectivo,
                     "empresa": e.empresa or "",
-                    "design": efectivo in ("admin", "superadmin") or "design_schedule" in e.modulos_lista,
+                    "design": rp == "superadmin" or ((e.empresa or "") == EMPRESA_DESIGN and (efectivo in ("admin", "superadmin") or "design_schedule" in e.modulos_lista)),
                     "lugar": lugar.get(e.id, []),
                     "esManager": any(x.startswith("Manager") for x in lugar.get(e.id, [])),
                     "esDisenador": any(x.startswith("Diseñador") for x in lugar.get(e.id, []))})
