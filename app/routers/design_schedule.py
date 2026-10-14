@@ -1622,7 +1622,36 @@ def api_dashboard(area_id: int | None = None, team_id: int | None = None, design
     fd, fh = _fecha(fecha_desde), _fecha(fecha_hasta)
     if fh < fd or (fh - fd).days >= sd.DASH_RANGO_MAX_DIAS:
         raise HTTPException(400, f"El periodo debe ser de un año o menos (desde {fd:%d/%m/%Y} hasta {fh:%d/%m/%Y}).")
-    return sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user, designer_nombre)
+    r = sd.dashboard_query(db, area_id, team_id, designer_id, producto, estado, qc, fd, fh, user, designer_nombre)
+    # Casos por producto (14-oct-2026): la lista de casos de cada producto ya no viaja aquí; se pide al abrir el
+    # producto (api_dashboard_producto_casos), así el Dashboard no carga miles de filas que nadie está mirando.
+    for p in r["porProducto"]:
+        p.pop("lista", None)
+    return r
+
+
+@router.get("/design/api/dashboard/producto-casos")
+def api_dashboard_producto_casos(prod: str = Query("", max_length=150), todos: int = 0,
+                                 area_id: int | None = None, team_id: int | None = None, designer_id: int | None = None,
+                                 producto: str = "", estado: str = "", qc: str = "",
+                                 fecha_desde: str = "", fecha_hasta: str = "", designer_nombre: str = "",
+                                 user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Casos de UN producto (o de todos con todos=1, para la descarga) con los mismos filtros del Dashboard."""
+    if not area_id and not team_id:
+        raise HTTPException(400, "Elige un área para ver el Dashboard.")
+    if not fecha_desde or not fecha_hasta:
+        raise HTTPException(400, "Indica el periodo (desde y hasta).")
+    fd, fh = _fecha(fecha_desde), _fecha(fecha_hasta)
+    if fh < fd or (fh - fd).days >= sd.DASH_RANGO_MAX_DIAS:
+        raise HTTPException(400, f"El periodo debe ser de un año o menos (desde {fd:%d/%m/%Y} hasta {fh:%d/%m/%Y}).")
+    if not todos and prod and producto and producto != prod:
+        return {"producto": prod, "lista": []}
+    filtro = producto if (todos or not prod) else prod   # un solo producto: la consulta se limita a ese producto
+    r = sd.dashboard_query(db, area_id, team_id, designer_id, filtro, estado, qc, fd, fh, user, designer_nombre)
+    if todos:
+        return {"productos": {p["producto"] or "": p["lista"] for p in r["porProducto"]}}
+    lista = next((p["lista"] for p in r["porProducto"] if (p["producto"] or "") == prod), [])
+    return {"producto": prod, "lista": lista}
 
 
 # ---------- Dashboard › Cambios digitales (13-oct-2026) ----------

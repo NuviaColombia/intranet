@@ -2956,42 +2956,64 @@ function ddCumple(c, obj) {  // true cumplió · false no cumplió · null sin d
   return c.duracionMin <= obj;
 }
 function ddResumenProducto(p, obj) {
-  if (obj === null) return '';
+  if (obj === null || !p.lista) return '';
   var si = 0, no = 0, sin = 0;
   p.lista.forEach(function(c) { var r = ddCumple(c, obj); if (r === null) sin++; else if (r) si++; else no++; });
   return '<span class="si">✔ ' + si + ' cumplieron</span> · <span class="no">✘ ' + no + ' no cumplieron</span>' + (sin ? ' · ' + sin + ' sin tiempo' : '');
 }
 function ddFilasProducto(p, obj) {
-  return p.lista.map(function(c) {
+  return (p.lista || []).map(function(c) {
     var r = ddCumple(c, obj), dif = (r === null) ? '' : ((c.duracionMin - obj) > 0 ? '+' : '') + Math.round(c.duracionMin - obj) + ' min';
     return '<tr class="' + (r === null ? '' : r ? 'dd-cumple' : 'dd-nocumple') + '"><td>' + ddEsc(c.orden) + '</td><td class="dd-izq">' + ddEsc(c.paciente) + '</td><td>' + c.fecha + '</td>' +
       '<td>' + ddEsc(c.equipo) + '</td><td>' + ddEsc(c.designerNombre) + '</td><td>' + ddEsc(c.estado) + '</td><td>' + ddTiempo(c.duracionMin) + '</td>' +
       '<td class="dd-res">' + (r === null ? '—' : r ? '✔ Cumplió' : '✘ No cumplió') + '</td><td>' + dif + '</td></tr>';
   }).join('');
 }
+// 14-oct-2026: cada producto sale cerrado; sus casos se piden al abrirlo (con los filtros y el periodo del Dashboard)
+// y solo puede haber uno abierto: al abrir otro, el anterior se cierra. Así no se cargan miles de filas de golpe.
+var DD_PROD_ABIERTO = null;
 function ddRenderProductos() {
   var cont = document.getElementById('ddProductoTablas'); if (!cont || !DD_ULTIMO) return;
   var lista = DD_ULTIMO.porProducto;
   if (!lista.length) { cont.innerHTML = '<p style="color:#4b5563">Sin datos.</p>'; return; }
-  var abiertos = {}; cont.querySelectorAll('details.dd-prod').forEach(function(d) { abiertos[d.dataset.prod] = d.open; });
   cont.innerHTML = '';
   lista.forEach(function(p) {
     var det = document.createElement('details'); det.className = 'dd-prod'; det.dataset.prod = p.producto;
-    det.open = abiertos.hasOwnProperty(p.producto) ? abiertos[p.producto] : true;
-    var obj = ddParseObjetivo(DD_OBJETIVOS[p.producto]);
     det.innerHTML = '<summary><span class="dd-prod-nombre"></span><span class="dd-prod-meta">' + p.casos + ' casos · promedio ' + ddTiempo(p.promedioMin) + '</span>' +
       '<span class="dd-prod-res"></span><label class="dd-prod-obj" onclick="event.stopPropagation()">Tiempo del producto <input type="text" inputmode="decimal" placeholder="min" aria-label="Tiempo del producto en minutos"> min</label></summary>' +
-      '<div class="dd-prod-cuerpo"><table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Diseñador</th><th>Estado</th><th>Tiempo de diseño</th><th>Resultado</th><th>Diferencia</th></tr></thead><tbody></tbody></table></div>';
+      '<div class="dd-prod-cuerpo"><p class="dd-p-nota">Cargando casos…</p></div>';
     det.querySelector('.dd-prod-nombre').textContent = p.producto || '(sin producto)';
-    var inp = det.querySelector('input'), res = det.querySelector('.dd-prod-res'), tb = det.querySelector('tbody');
+    var inp = det.querySelector('input'), res = det.querySelector('.dd-prod-res'), cuerpo = det.querySelector('.dd-prod-cuerpo');
     inp.value = DD_OBJETIVOS[p.producto] || '';
-    var pintar = function() { var o = ddParseObjetivo(inp.value); res.innerHTML = ddResumenProducto(p, o); tb.innerHTML = ddFilasProducto(p, o); };
+    var pintar = function() {
+      if (!p.lista) return;
+      var o = ddParseObjetivo(inp.value); res.innerHTML = ddResumenProducto(p, o);
+      var tb = cuerpo.querySelector('tbody'); if (tb) tb.innerHTML = ddFilasProducto(p, o);
+    };
     var pendiente = null;   // espera a que termine de escribir: no redibuja la tabla en cada tecla
     inp.oninput = function() { DD_OBJETIVOS[p.producto] = inp.value; clearTimeout(pendiente); pendiente = setTimeout(pintar, 180); };
     inp.onclick = function(e) { e.stopPropagation(); };
     inp.onkeydown = function(e) { e.stopPropagation(); };
-    pintar();
+    det.addEventListener('toggle', function() {
+      if (!det.open) { if (DD_PROD_ABIERTO === p.producto) DD_PROD_ABIERTO = null; return; }
+      DD_PROD_ABIERTO = p.producto;
+      cont.querySelectorAll('details.dd-prod[open]').forEach(function(o) { if (o !== det) o.open = false; });   // uno a la vez
+      if (p.lista) return;
+      var clave = DD_PARAMS;
+      var listo = function(l) {
+        if (clave !== DD_PARAMS) return;   // cambiaron los filtros mientras cargaba
+        p.lista = l; DD_LISTAS[p.producto] = l;
+        cuerpo.innerHTML = l.length ? '<table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Diseñador</th><th>Estado</th><th>Tiempo de diseño</th><th>Resultado</th><th>Diferencia</th></tr></thead><tbody></tbody></table>'
+                                    : '<p class="dd-p-nota">Sin casos en este periodo.</p>';
+        pintar();
+      };
+      if (DD_LISTAS.hasOwnProperty(p.producto)) { listo(DD_LISTAS[p.producto]); return; }
+      ddApi('/design/api/dashboard/producto-casos?' + clave + '&prod=' + encodeURIComponent(p.producto || ''))
+        .then(function(d) { listo(d.lista || []); })
+        .catch(function(e) { cuerpo.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; cuerpo.firstChild.textContent = 'No se pudieron cargar los casos: ' + e.message; });
+    });
     cont.appendChild(det);
+    if (DD_PROD_ABIERTO === p.producto) det.open = true;   // al cambiar de filtro, el que estaba abierto se recarga
   });
 }
 
@@ -3091,6 +3113,22 @@ function ddDibujarTendencia(body) {
     b.addEventListener('click', function() { var nm = b.dataset.nombre; DDT.ocultos[nm] = !DDT.ocultos[nm]; ddDibujarTendencia(body); });
   });
 }
+// Filtros actuales del Dashboard (área o equipo, diseñador, producto, estado, QC y periodo Desde–Hasta)
+function ddParams() {
+  var params = new URLSearchParams();
+  var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
+  if (team) params.set('team_id', team); else if (area) params.set('area_id', area);
+  var dsg = document.getElementById('ddDesigner').value;
+  if (dsg) { if (dsg.indexOf('libre:') === 0) params.set('designer_nombre', dsg.slice(6)); else params.set('designer_id', dsg); }
+  var txt = document.getElementById('ddDesignerTxt').value.trim(); if (txt && !params.get('designer_nombre')) params.set('designer_nombre', txt);
+  var producto = document.getElementById('ddProducto').value; if (producto) params.set('producto', producto);
+  var estado = document.getElementById('ddEstado').value; if (estado) params.set('estado', estado);
+  var qc = document.getElementById('ddQc').value; if (qc) params.set('qc', qc);
+  var desde = document.getElementById('ddDesde').value; if (desde) params.set('fecha_desde', desde);
+  var hasta = document.getElementById('ddHasta').value; if (hasta) params.set('fecha_hasta', hasta);
+  return params;
+}
+var DD_PARAMS = '', DD_LISTAS = {};
 function ddCargar() {
   var params = new URLSearchParams();
   var area = document.getElementById('ddArea').value, team = document.getElementById('ddTeam').value;
@@ -3101,15 +3139,7 @@ function ddCargar() {
   }
   if (!document.getElementById('ddDesde').value || !document.getElementById('ddHasta').value) { ddRapido('mes'); return; }
   ddCargarTendencia();
-  if (team) params.set('team_id', team); else if (area) params.set('area_id', area);
-  var dsg = document.getElementById('ddDesigner').value;
-  if (dsg) { if (dsg.indexOf('libre:') === 0) params.set('designer_nombre', dsg.slice(6)); else params.set('designer_id', dsg); }
-  var txt = document.getElementById('ddDesignerTxt').value.trim(); if (txt && !params.get('designer_nombre')) params.set('designer_nombre', txt);
-  var producto = document.getElementById('ddProducto').value; if (producto) params.set('producto', producto);
-  var estado = document.getElementById('ddEstado').value; if (estado) params.set('estado', estado);
-  var qc = document.getElementById('ddQc').value; if (qc) params.set('qc', qc);
-  var desde = document.getElementById('ddDesde').value; if (desde) params.set('fecha_desde', desde);
-  var hasta = document.getElementById('ddHasta').value; if (hasta) params.set('fecha_hasta', hasta);
+  params = ddParams();
 
   var tok = ddCargar.tok = (ddCargar.tok || 0) + 1;
   document.getElementById('ddKpis').style.opacity = '.5';
@@ -3123,6 +3153,7 @@ function ddCargar() {
     if (!data || tok !== ddCargar.tok) return;
     ddMostrar = {};   // datos nuevos: cada lista vuelve a mostrar sus primeras filas
     DD_ULTIMO = data;
+    DD_PARAMS = params.toString(); DD_LISTAS = {};   // los casos por producto se vuelven a pedir con estos filtros
     ddPintarResultado(data);
   });
 }
@@ -3245,6 +3276,15 @@ function ddAvisoDeshacer(texto, deshacer) {
 // Descarga lo que se ve (con los filtros actuales) en un archivo que abre Excel (CSV con separador ;).
 function ddDescargar() {
   var d = DD_ULTIMO; if (!d) return;
+  if (!d.listasCompletas) {   // los casos por producto no vienen con el Dashboard: se traen todos para el archivo
+    var clave = DD_PARAMS;
+    ddApi('/design/api/dashboard/producto-casos?' + clave + '&todos=1').then(function(r) {
+      if (clave !== DD_PARAMS || d !== DD_ULTIMO) return;
+      d.porProducto.forEach(function(p) { p.lista = (r.productos || {})[p.producto || ''] || []; DD_LISTAS[p.producto] = p.lista; });
+      d.listasCompletas = true; ddDescargar();
+    }).catch(function(e) { alert('No se pudo preparar la descarga: ' + e.message); });
+    return;
+  }
   var c = function(v) { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   var h = function(m) { return m ? (m / 60).toFixed(2).replace('.', ',') : ''; };
   var filas = [['Dashboard Design', 'Desde', document.getElementById('ddDesde').value || 'inicio', 'Hasta', document.getElementById('ddHasta').value || 'hoy'], [],
@@ -3257,7 +3297,7 @@ function ddDescargar() {
   filas.push([], ['CASOS POR PRODUCTO'], ['Producto', 'Tiempo del producto (min)', 'Orden', 'Paciente', 'Fecha', 'Equipo', 'Diseñador', 'Estado', 'Tiempo de diseño (min)', 'Resultado']);
   d.porProducto.forEach(function(p) {
     var o = ddParseObjetivo(DD_OBJETIVOS[p.producto]);
-    p.lista.forEach(function(x) { var r = ddCumple(x, o); filas.push([p.producto, o === null ? '' : String(o).replace('.', ','), x.orden, x.paciente, x.fecha, x.equipo, x.designerNombre, x.estado, x.duracionMin ? String(x.duracionMin).replace('.', ',') : '', r === null ? '' : r ? 'Cumplió' : 'No cumplió']); });
+    (p.lista || []).forEach(function(x) { var r = ddCumple(x, o); filas.push([p.producto, o === null ? '' : String(o).replace('.', ','), x.orden, x.paciente, x.fecha, x.equipo, x.designerNombre, x.estado, x.duracionMin ? String(x.duracionMin).replace('.', ',') : '', r === null ? '' : r ? 'Cumplió' : 'No cumplió']); });
   });
   filas.push([], ['REPORTES DE QC'], ['Orden', 'Paciente', 'Fecha', 'Equipo', 'Producto', 'Diseñador', 'Hallazgo de QC']);
   d.qcReportes.forEach(function(x) { filas.push([x.orden, x.paciente, x.fecha, x.equipo, x.producto, x.designerNombre, x.qcReporte]); });

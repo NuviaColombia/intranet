@@ -1886,6 +1886,7 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
     if not sel_area:
         productos.sort(key=lambda x: x.lower())
         estados.sort(key=lambda x: x.lower())
+    estados = [e for e in estados if not _es_cancelada(e)]   # 14-oct-2026: Canceled / Skipped no se ofrecen en el filtro
 
     nombre_q = _normalizar_texto(designer_nombre or "")
     filas = []
@@ -1938,12 +1939,13 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
             d["conQc"] += bool(f.qc)
             d["qcHallazgos"] += bool(hallazgo)
 
-        p = por_producto.setdefault(f.producto, {"producto": f.producto, "casos": 0, "duracionMin": 0, "conTiempo": 0, "lista": []})
-        p["lista"].append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
-                           "equipo": f.team.nombre, "designerNombre": nombre_d, "estado": f.estado, "duracionMin": round(dur, 1)})
-        p["casos"] += 1
-        p["duracionMin"] += dur
-        p["conTiempo"] += dur > 0
+        if not cancelada:   # Casos por producto: sin canceladas ni skipped (14-oct-2026)
+            p = por_producto.setdefault(f.producto, {"producto": f.producto, "casos": 0, "duracionMin": 0, "conTiempo": 0, "lista": []})
+            p["lista"].append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
+                               "equipo": f.team.nombre, "designerNombre": nombre_d, "estado": f.estado, "duracionMin": round(dur, 1)})
+            p["casos"] += 1
+            p["duracionMin"] += dur
+            p["conTiempo"] += dur > 0
 
         e = por_equipo.setdefault(f.team_id, {"equipo": f.team.nombre, "area": f.team.area.nombre,
                                               "manager": f.team.manager.nombre_completo if f.team.manager else "", "casos": 0,
