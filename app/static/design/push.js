@@ -52,6 +52,8 @@
   }
   function abrir(html) { pop.innerHTML = html; pop.hidden = false; pop.style.display = ''; }
   function cerrar() { pop.hidden = true; pop.style.display = 'none'; }
+  // Admins: botón para ver el aviso de "orden de Face → N2" tal como le llega al manager de N2
+  var esAdmin = !!(document.getElementById('dsNavExtras') && document.getElementById('dsNavExtras').dataset.admin);
   function pintarPop(msg) {
     var res = msg ? '<div class="res ' + (msg.ok ? 'ok' : 'mal') + '"></div>' : '';
     var html;
@@ -63,7 +65,8 @@
       html = '<h4>Notificaciones bloqueadas</h4><p>Las bloqueaste para la intranet. Para activarlas, toca el candado 🔒 junto a la dirección, cambia <b>Notificaciones</b> a <b>Permitir</b> y recarga la página.</p>';
     } else if (sub && Notification.permission === 'granted') {
       html = '<h4><span class="ok">✓</span> Notificaciones activas</h4><p>Este navegador recibirá los avisos de Nuvia Design aunque la intranet esté cerrada.</p>' +
-        '<div class="acc"><button type="button" class="b b1" data-a="prueba">Enviarme una prueba</button><button type="button" class="b b2" data-a="quitar">Desactivar</button></div>' + res;
+        '<div class="acc"><button type="button" class="b b1" data-a="prueba">Enviarme una prueba</button><button type="button" class="b b2" data-a="quitar">Desactivar</button></div>' +
+        (esAdmin ? '<div class="acc"><button type="button" class="b b2" data-a="ejemplo">Ejemplo: orden de Face → N2</button></div>' : '') + res;
     } else {
       html = '<h4>🔔 Notificaciones de Design</h4><p>Recibe avisos en este computador o celular aunque la intranet esté cerrada. Puedes desactivarlas cuando quieras.</p>' +
         '<div class="acc"><button type="button" class="b b1" data-a="activar">Activar notificaciones</button></div>' + res;
@@ -93,6 +96,7 @@
     if (ocupado) return; ocupado = true; if (b) b.disabled = true;
     var p;
     if (a === 'activar') p = activar().then(function() { pintarBoton(); pintarPop({ok: true, texto: '¡Listo! Te enviamos una notificación de prueba.'}); return api('/design/api/push/prueba', {}); });
+    else if (a === 'ejemplo') p = api('/design/api/push/ejemplo-face-n2', {}).then(function() { pintarPop({ok: true, texto: 'Enviado. Se queda en pantalla hasta que lo cierres con la X.'}); });
     else if (a === 'prueba') p = api('/design/api/push/prueba', {}).then(function(r) { pintarPop({ok: true, texto: 'Enviada a ' + r.enviados + ' navegador' + (r.enviados === 1 ? '' : 'es') + '. Debe aparecer en unos segundos.'}); });
     else p = (sub ? api('/design/api/push/desuscribir', {endpoint: sub.endpoint}).then(function() { return sub.unsubscribe(); }) : Promise.resolve())
       .then(function() { sub = null; pintarBoton(); pintarPop({ok: true, texto: 'Desactivadas en este navegador.'}); });

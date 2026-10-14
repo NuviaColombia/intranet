@@ -68,6 +68,18 @@ def api_prueba(user: Empleado = Depends(require_modulo("design_schedule")), db: 
     return r
 
 
+@router.post("/design/api/push/ejemplo-face-n2")
+def api_ejemplo_face_n2(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: se envían a sí mismos el aviso que recibe el manager de N2 cuando llega una orden aprobada en Face
+    (mismo texto y fijo hasta cerrarlo), para ver cómo se ve."""
+    r = sp.enviar(db, [user.id], "Nueva orden aprobada en Face",
+                  "12345 · Paciente de ejemplo · Oklahoma · Full Mouth\nYa está en tu Schedule de N2 de hoy (equipo de ejemplo).",
+                  "/design", "ejemplo-face-n2", fijo=True)
+    if not r["enviados"]:
+        raise HTTPException(400, "No se pudo entregar: " + ("este usuario no tiene notificaciones activadas." if r["sinSuscripcion"] else "el servicio de notificaciones del navegador no respondió."))
+    return r
+
+
 @router.get("/design/api/push/estado")
 def api_estado(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return sp.estado(db)

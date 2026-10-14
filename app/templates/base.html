@@ -175,7 +175,7 @@
   {% if es_design and ve_mural(user) %}<a href="/design/mural">Mural</a>{% endif %}
   {% set ds_extras %}{% if es_design %}
   {# Design: campana de notificaciones (la pone static/design/push.js aquí) y modo oscuro, entre el nombre y "Salir" #}
-  <span class="ds-nav-extras" id="dsNavExtras">
+  <span class="ds-nav-extras" id="dsNavExtras"{% if user.rol in ('admin', 'superadmin') %} data-admin="1"{% endif %}>
     <label class="ds-tema-sw" title="Modo oscuro">
       <input type="checkbox" id="dsTemaChk" role="switch" aria-label="Modo oscuro"{% if tema_design(user) == 'oscuro' %} checked{% endif %}>
       <span class="ds-tema-pista" aria-hidden="true"><span class="ds-tema-perilla"></span></span>
