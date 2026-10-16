@@ -106,12 +106,30 @@
       <option value="{{ co.nombre }}">{{ co.nombre }}</option>
       {% endfor %}
     </select>
+    <select id="empFiltroRol" style="max-width:200px">
+      <option value="">Todos los roles</option>
+      <option value="empleado">Empleado</option>
+      <option value="aprobador">Aprobador</option>
+      <option value="admin">Administrador</option>
+      <option value="superadmin">Superadmin</option>
+    </select>
+    <select id="empFiltroArea" style="max-width:220px">
+      <option value="">Todas las áreas</option>
+      {% for ar in areas %}
+      <option value="{{ ar.nombre }}">{{ ar.nombre }}</option>
+      {% endfor %}
+    </select>
   </div>
   <table id="tablaEmpleados">
     <tr><th>Nombre</th><th>Identificación</th><th>Correo</th><th>Empresa / Área / Cargo</th>
-        <th>Nacimiento</th><th>Vacaciones</th>{% if user.rol == 'superadmin' %}<th>Salario</th>{% endif %}<th>Rol</th><th>Módulos</th><th></th></tr>
+        <th>Nacimiento</th><th>Vacaciones</th>
+        {% if user.rol == 'superadmin' %}<th id="thSalario" style="cursor:pointer;user-select:none" title="Ordenar por salario">Salario ⇅</th>{% endif %}
+        <th>Rol</th><th>Módulos</th><th></th></tr>
+    <tbody id="cuerpoEmpleados">
     {% for e in empleados %}
-    <tr data-nombre="{{ e.nombre_completo|lower }}" data-empresa="{{ e.empresa }}" {% if not e.activo %}style="opacity:.45"{% endif %}>
+    <tr data-nombre="{{ e.nombre_completo|lower }}" data-empresa="{{ e.empresa }}" data-rol="{{ e.rol }}"
+        data-area="{{ e.area }}" {% if user.rol == 'superadmin' %}data-salario="{{ e.salario or 0 }}"{% endif %}
+        {% if not e.activo %}style="opacity:.45"{% endif %}>
       <td style="display:flex;align-items:center;gap:8px"><b>{{ e.nombre_completo }}</b><a class="btn mini" href="/empleados/{{ e.id }}/editar">Editar</a></td>
       <td>{{ e.identificacion }}</td>
       <td>{{ e.email }}</td>
@@ -124,6 +142,7 @@
           {% else %}{% for slug, nombre in modulos_disponibles %}{% if slug in e.modulos_lista %}<span class="badge aprobada">{{ nombre }}</span> {% endif %}{% endfor %}{% if not e.modulos_lista %}<small style="color:var(--gris)">—</small>{% endif %}{% endif %}</td>
     </tr>
     {% endfor %}
+    </tbody>
   </table>
   <p id="empSinResultados" style="display:none;color:var(--gris);padding:16px;text-align:center">Ningún empleado coincide con el filtro.</p>
 </div>
@@ -132,15 +151,20 @@
 (function() {
   var buscar = document.getElementById('empBuscar');
   var filtroEmpresa = document.getElementById('empFiltroEmpresa');
+  var filtroRol = document.getElementById('empFiltroRol');
+  var filtroArea = document.getElementById('empFiltroArea');
   var filas = document.querySelectorAll('#tablaEmpleados tr[data-nombre]');
   var sinResultados = document.getElementById('empSinResultados');
 
   function aplicarFiltro() {
     var q = buscar.value.trim().toLowerCase();
     var empresa = filtroEmpresa.value;
+    var rol = filtroRol.value;
+    var area = filtroArea.value;
     var visibles = 0;
     filas.forEach(function(tr) {
-      var coincide = (!q || tr.dataset.nombre.indexOf(q) >= 0) && (!empresa || tr.dataset.empresa === empresa);
+      var coincide = (!q || tr.dataset.nombre.indexOf(q) >= 0) && (!empresa || tr.dataset.empresa === empresa)
+        && (!rol || tr.dataset.rol === rol) && (!area || tr.dataset.area === area);
       tr.style.display = coincide ? '' : 'none';
       if (coincide) visibles++;
     });
@@ -149,6 +173,24 @@
 
   buscar.addEventListener('input', aplicarFiltro);
   filtroEmpresa.addEventListener('change', aplicarFiltro);
+  filtroRol.addEventListener('change', aplicarFiltro);
+  filtroArea.addEventListener('change', aplicarFiltro);
+
+  var thSalario = document.getElementById('thSalario');
+  if (thSalario) {
+    var ascendente = false;
+    thSalario.addEventListener('click', function() {
+      ascendente = !ascendente;
+      var cuerpo = document.getElementById('cuerpoEmpleados');
+      var filasOrden = Array.prototype.slice.call(cuerpo.querySelectorAll('tr[data-nombre]'));
+      filasOrden.sort(function(a, b) {
+        var diff = parseFloat(a.dataset.salario) - parseFloat(b.dataset.salario);
+        return ascendente ? diff : -diff;
+      });
+      filasOrden.forEach(function(tr) { cuerpo.appendChild(tr); });
+      thSalario.textContent = 'Salario ' + (ascendente ? '↑' : '↓');
+    });
+  }
 })();
 </script>
 {% endblock %}
