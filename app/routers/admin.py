@@ -43,7 +43,7 @@ def empleados(request: Request, user: Empleado = Depends(require_admin),
 
 @router.get("/empleados/plantilla")
 def plantilla(user: Empleado = Depends(require_admin)):
-    return Response(generar_plantilla(), media_type=XLSX,
+    return Response(generar_plantilla(incluir_salario=user.rol == "superadmin"), media_type=XLSX,
                     headers={"Content-Disposition": "attachment; filename=plantilla_empleados.xlsx"})
 
 
@@ -58,7 +58,8 @@ async def importar(request: Request, user: Empleado = Depends(require_admin),
     if len(contenido) > MAX_IMPORT_BYTES:
         return RedirectResponse("/empleados?msg=El archivo es demasiado grande (máximo 10 MB).", status_code=303)
     try:
-        resultado = importar_empleados(db, contenido, empresa_forzada=empresa_filtro(user))
+        resultado = importar_empleados(db, contenido, empresa_forzada=empresa_filtro(user),
+                                       incluir_salario=user.rol == "superadmin")
     except (zipfile.BadZipFile, InvalidFileException, OSError):  # no es un .xlsx (antes: error 500)
         db.rollback()
         return RedirectResponse("/empleados?msg=El archivo no es un Excel válido (.xlsx). Usa la plantilla.",
@@ -152,7 +153,7 @@ async def crear_empleado(user: Empleado = Depends(require_admin), db: Session = 
         rol=rol_final,
         aprobador1_id=aprobador1.id if aprobador1 else None,
         aprobador2_id=aprobador2.id if aprobador2 else None,
-        salario=salario_num,
+        salario=salario_num if user.rol == "superadmin" else None,  # solo superadmin ve/pone salario
         modulos=",".join(m for m in modulos if m in MODULOS_VALIDOS),
     )
     db.add(emp)
@@ -251,7 +252,8 @@ async def editar_empleado(emp_id: int, user: Empleado = Depends(require_admin),
     emp.identificacion = identificacion
     emp.email = email
     emp.dias_vacaciones = dias_vacaciones
-    emp.salario = salario_num
+    if user.rol == "superadmin":  # solo superadmin ve/cambia el salario -- un admin normal no lo toca ni sin querer
+        emp.salario = salario_num
     emp.rol = rol_final
     emp.num_aprobaciones = num_aprobaciones if num_aprobaciones in (1, 2) else 1
     emp.aprobador1_id = aprobador1.id if aprobador1 else None

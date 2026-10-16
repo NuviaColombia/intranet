@@ -39,7 +39,9 @@
       </select>
     </div>
     <div><label>Cargo</label><input type="text" name="cargo" required></div>
+    {% if user.rol == 'superadmin' %}
     <div><label>Salario</label><input type="number" step="0.01" min="0" name="salario" placeholder="Opcional"></div>
+    {% endif %}
     <div><label>Área</label>
       <select name="area" required>
         <option value="">—</option>
@@ -107,7 +109,7 @@
   </div>
   <table id="tablaEmpleados">
     <tr><th>Nombre</th><th>Identificación</th><th>Correo</th><th>Empresa / Área / Cargo</th>
-        <th>Nacimiento</th><th>Vacaciones</th><th>Salario</th><th>Rol</th><th>Módulos</th><th></th></tr>
+        <th>Nacimiento</th><th>Vacaciones</th>{% if user.rol == 'superadmin' %}<th>Salario</th>{% endif %}<th>Rol</th><th>Módulos</th><th></th></tr>
     {% for e in empleados %}
     <tr data-nombre="{{ e.nombre_completo|lower }}" data-empresa="{{ e.empresa }}" {% if not e.activo %}style="opacity:.45"{% endif %}>
       <td style="display:flex;align-items:center;gap:8px"><b>{{ e.nombre_completo }}</b><a class="btn mini" href="/empleados/{{ e.id }}/editar">Editar</a></td>
@@ -116,7 +118,7 @@
       <td>{{ e.empresa }}<br><small style="color:var(--gris)">{{ e.area }} · {{ e.cargo }}</small></td>
       <td>{{ e.fecha_nacimiento or '—' }}</td>
       <td>{{ e.dias_vacaciones }} días</td>
-      <td>{{ "${:,.0f}".format(e.salario) if e.salario else '—' }}</td>
+      {% if user.rol == 'superadmin' %}<td>{{ "${:,.0f}".format(e.salario) if e.salario else '—' }}</td>{% endif %}
       <td>{{ {'admin':'Administrador','aprobador':'Aprobador','superadmin':'Superadmin'}.get(e.rol, 'Empleado') }}{% if not e.activo %}<br><small style="color:var(--gris)">Inactivo</small>{% endif %}</td>
       <td>{% if e.rol in ('admin', 'superadmin') %}<small style="color:var(--gris)">Todos (admin)</small>
           {% else %}{% for slug, nombre in modulos_disponibles %}{% if slug in e.modulos_lista %}<span class="badge aprobada">{{ nombre }}</span> {% endif %}{% endfor %}{% if not e.modulos_lista %}<small style="color:var(--gris)">—</small>{% endif %}{% endif %}</td>
