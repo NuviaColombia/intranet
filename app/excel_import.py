@@ -31,11 +31,15 @@ def _fecha(valor) -> date | None:
     raise ValueError(f"Fecha inválida: {valor!r} (usa AAAA-MM-DD o DD/MM/AAAA)")
 
 
-def importar_empleados(db: Session, contenido: bytes, empresa_forzada: str | None = None) -> dict:
+def importar_empleados(db: Session, contenido: bytes, empresa_forzada: str | None = None,
+                       incluir_salario: bool = False) -> dict:
     """Importa/actualiza empleados desde un xlsx. Upsert por identificación.
 
     empresa_forzada: si se indica (admin no-superadmin), cualquier fila que cree o
-    actualice un empleado de OTRA empresa se rechaza con un error en vez de importarse."""
+    actualice un empleado de OTRA empresa se rechaza con un error en vez de importarse.
+
+    incluir_salario: solo un superadmin puede traer/cambiar el salario por este medio -- si es
+    False, la columna "salario" del archivo (si viene) se ignora por completo."""
     wb = load_workbook(BytesIO(contenido), data_only=True)
     ws = wb.active
     encabezados = [str(c.value).strip().lower() if c.value else "" for c in ws[1]]
@@ -125,11 +129,12 @@ def importar_empleados(db: Session, contenido: bytes, empresa_forzada: str | Non
             elif nuevo:
                 emp.dias_vacaciones = 0
 
-            salario_txt = val("salario")
-            if salario_txt:
-                emp.salario = float(salario_txt)
-            elif nuevo:
-                emp.salario = None
+            if incluir_salario:
+                salario_txt = val("salario")
+                if salario_txt:
+                    emp.salario = float(salario_txt)
+                elif nuevo:
+                    emp.salario = None
 
             modulos_txt = val("modulos")
             if modulos_txt:
@@ -179,17 +184,24 @@ def importar_empleados(db: Session, contenido: bytes, empresa_forzada: str | Non
     return {"creados": creados, "actualizados": actualizados, "errores": errores}
 
 
-def generar_plantilla() -> bytes:
+def generar_plantilla(incluir_salario: bool = False) -> bytes:
+    columnas = COLUMNAS if incluir_salario else [c for c in COLUMNAS if c != "salario"]
+    fila1 = ["Ana María", "Pérez Gómez", "1990-05-14", "2022-03-01", "Nuvia Smiles Colombia SAS", "Coordinadora",
+            "Admin", "1032456789", "ana.perez@empresa.com", "empleado", 1, 0, 2500000, "people", "si",
+            "jefe@empresa.com", ""]
+    fila2 = ["Carlos", "Ruiz López", "1985-11-02", "2020-07-15", "Nuvia Design Colombia SAS", "Gerente",
+            "Operativa", "79845123", "carlos.ruiz@empresa.com", "aprobador", 2, 15, 4500000, "people", "si",
+            "jefe@empresa.com", "direccion@empresa.com"]
+    if not incluir_salario:
+        i_salario = COLUMNAS.index("salario")
+        del fila1[i_salario]
+        del fila2[i_salario]
     wb = Workbook()
     ws = wb.active
     ws.title = "Empleados"
-    ws.append(COLUMNAS)
-    ws.append(["Ana María", "Pérez Gómez", "1990-05-14", "2022-03-01", "Nuvia Smiles Colombia SAS", "Coordinadora",
-               "Admin", "1032456789", "ana.perez@empresa.com", "empleado", 1, 0, 2500000, "people", "si",
-               "jefe@empresa.com", ""])
-    ws.append(["Carlos", "Ruiz López", "1985-11-02", "2020-07-15", "Nuvia Design Colombia SAS", "Gerente",
-               "Operativa", "79845123", "carlos.ruiz@empresa.com", "aprobador", 2, 15, 4500000, "people", "si",
-               "jefe@empresa.com", "direccion@empresa.com"])
+    ws.append(columnas)
+    ws.append(fila1)
+    ws.append(fila2)
     for col in ws.columns:
         ws.column_dimensions[col[0].column_letter].width = 20
     buf = BytesIO()
