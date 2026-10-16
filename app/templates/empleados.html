@@ -120,6 +120,7 @@
       {% endfor %}
     </select>
   </div>
+  <p id="empConteo" style="color:var(--gris);font-size:13px;margin:0 0 10px"></p>
   <table id="tablaEmpleados">
     <tr><th>Nombre</th><th>Identificación</th><th>Correo</th><th>Empresa / Área / Cargo</th>
         <th>Nacimiento</th><th>Vacaciones</th>
@@ -155,6 +156,8 @@
   var filtroArea = document.getElementById('empFiltroArea');
   var filas = document.querySelectorAll('#tablaEmpleados tr[data-nombre]');
   var sinResultados = document.getElementById('empSinResultados');
+  var conteo = document.getElementById('empConteo');
+  var total = filas.length;
 
   function aplicarFiltro() {
     var q = buscar.value.trim().toLowerCase();
@@ -169,8 +172,11 @@
       if (coincide) visibles++;
     });
     sinResultados.style.display = visibles === 0 ? '' : 'none';
+    conteo.textContent = visibles === total ? total + (total === 1 ? ' empleado' : ' empleados')
+      : 'Mostrando ' + visibles + ' de ' + total + ' empleados';
   }
 
+  aplicarFiltro();
   buscar.addEventListener('input', aplicarFiltro);
   filtroEmpresa.addEventListener('change', aplicarFiltro);
   filtroRol.addEventListener('change', aplicarFiltro);
