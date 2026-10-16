@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block titulo %}Empleados{% endblock %}
 {% block contenido %}
+<style>
+  .filtro-dd { position:relative; display:inline-block; }
+  .filtro-dd-btn { padding:8px; border:1px solid #d1d5db; border-radius:6px; background:#fff; cursor:pointer;
+    font-size:14px; min-width:200px; max-width:200px; text-align:left; }
+  .filtro-dd-menu { display:none; position:absolute; top:calc(100% + 4px); left:0; background:#fff;
+    border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.12); padding:8px; z-index:20;
+    min-width:200px; }
+  .filtro-dd-menu.open { display:block; }
+  .filtro-dd-menu label { display:flex; align-items:center; gap:6px; padding:6px 4px; font-weight:400;
+    cursor:pointer; white-space:nowrap; }
+  .filtro-dd-menu label input { width:auto; margin:0; }
+</style>
 <h1>Empleados</h1>
 {% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
 
@@ -106,13 +118,15 @@
       <option value="{{ co.nombre }}">{{ co.nombre }}</option>
       {% endfor %}
     </select>
-    <select id="empFiltroRol" style="max-width:200px">
-      <option value="">Todos los roles</option>
-      <option value="empleado">Empleado</option>
-      <option value="aprobador">Aprobador</option>
-      <option value="admin">Administrador</option>
-      <option value="superadmin">Superadmin</option>
-    </select>
+    <div class="filtro-dd" id="ddFiltroRol">
+      <button type="button" class="filtro-dd-btn" id="btnFiltroRol">Todos los roles</button>
+      <div class="filtro-dd-menu" id="menuFiltroRol">
+        <label><input type="checkbox" value="empleado"> Empleado</label>
+        <label><input type="checkbox" value="aprobador"> Aprobador</label>
+        <label><input type="checkbox" value="admin"> Administrador</label>
+        <label><input type="checkbox" value="superadmin"> Superadmin</label>
+      </div>
+    </div>
     <select id="empFiltroArea" style="max-width:220px">
       <option value="">Todas las áreas</option>
       {% for ar in areas %}
@@ -152,34 +166,53 @@
 (function() {
   var buscar = document.getElementById('empBuscar');
   var filtroEmpresa = document.getElementById('empFiltroEmpresa');
-  var filtroRol = document.getElementById('empFiltroRol');
   var filtroArea = document.getElementById('empFiltroArea');
   var filas = document.querySelectorAll('#tablaEmpleados tr[data-nombre]');
   var sinResultados = document.getElementById('empSinResultados');
   var conteo = document.getElementById('empConteo');
   var total = filas.length;
 
+  var btnFiltroRol = document.getElementById('btnFiltroRol');
+  var menuFiltroRol = document.getElementById('menuFiltroRol');
+  var checksRol = menuFiltroRol.querySelectorAll('input[type=checkbox]');
+  var etiquetasRol = {empleado: 'Empleado', aprobador: 'Aprobador', admin: 'Administrador', superadmin: 'Superadmin'};
+
+  btnFiltroRol.addEventListener('click', function(ev) {
+    ev.stopPropagation();
+    menuFiltroRol.classList.toggle('open');
+  });
+  document.addEventListener('click', function() { menuFiltroRol.classList.remove('open'); });
+  menuFiltroRol.addEventListener('click', function(ev) { ev.stopPropagation(); });
+
+  function rolesElegidos() {
+    return Array.prototype.filter.call(checksRol, function(c) { return c.checked; })
+      .map(function(c) { return c.value; });
+  }
+
   function aplicarFiltro() {
     var q = buscar.value.trim().toLowerCase();
     var empresa = filtroEmpresa.value;
-    var rol = filtroRol.value;
+    var roles = rolesElegidos();
     var area = filtroArea.value;
     var visibles = 0;
     filas.forEach(function(tr) {
       var coincide = (!q || tr.dataset.nombre.indexOf(q) >= 0) && (!empresa || tr.dataset.empresa === empresa)
-        && (!rol || tr.dataset.rol === rol) && (!area || tr.dataset.area === area);
+        && (roles.length === 0 || roles.indexOf(tr.dataset.rol) >= 0) && (!area || tr.dataset.area === area);
       tr.style.display = coincide ? '' : 'none';
       if (coincide) visibles++;
     });
     sinResultados.style.display = visibles === 0 ? '' : 'none';
     conteo.textContent = visibles === total ? total + (total === 1 ? ' empleado' : ' empleados')
       : 'Mostrando ' + visibles + ' de ' + total + ' empleados';
+    btnFiltroRol.textContent = roles.length === 0 ? 'Todos los roles'
+      : roles.length === 1 ? etiquetasRol[roles[0]]
+      : roles.length + ' roles elegidos';
   }
 
   aplicarFiltro();
   buscar.addEventListener('input', aplicarFiltro);
   filtroEmpresa.addEventListener('change', aplicarFiltro);
-  filtroRol.addEventListener('change', aplicarFiltro);
+  checksRol.forEach(function(c) { c.addEventListener('change', aplicarFiltro); });
   filtroArea.addEventListener('change', aplicarFiltro);
 
   var thSalario = document.getElementById('thSalario');
