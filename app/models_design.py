@@ -1151,3 +1151,104 @@ class DesignAyudaOferta(Base):
     sugerido_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     aprobador = relationship("Empleado", foreign_keys=[aprobador_id])
+
+
+# ---------- Calendario (19-oct-2026): integrado desde la app independiente «Calendario Colombia» ----------
+# Admin ve y edita todo; aprobadores, lo de sus equipos (crean y asignan); diseñadores solo ven lo de su equipo y
+# marcan como hechas sus tareas. team_id vacío = evento general (solo lo crea un admin; lo ve todo Design).
+# Ver services_design_calendario.py.
+
+class DesignCalEvento(Base):
+    __tablename__ = "design_cal_eventos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    team_id: Mapped[int | None] = mapped_column(ForeignKey("design_teams.id", ondelete="SET NULL"), nullable=True, index=True)
+    titulo: Mapped[str] = mapped_column(String(140))
+    descripcion: Mapped[str] = mapped_column(Text, default="")
+    ubicacion: Mapped[str] = mapped_column(String(200), default="")
+    fecha_inicio: Mapped[date] = mapped_column(Date, index=True)
+    fecha_fin: Mapped[date] = mapped_column(Date, index=True)
+    hora_inicio: Mapped[str | None] = mapped_column(String(5), nullable=True)   # HH:MM; vacío si es de todo el día
+    hora_fin: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    todo_el_dia: Mapped[bool] = mapped_column(Boolean, default=True)
+    repeticion: Mapped[str] = mapped_column(String(10), default="none")        # none | daily | weekly | monthly | yearly
+    repetir_hasta: Mapped[date | None] = mapped_column(Date, nullable=True)
+    excepciones: Mapped[str] = mapped_column(Text, default="[]")              # ocurrencias eliminadas de una serie (JSON)
+    estado: Mapped[str] = mapped_column(String(12), default="pending")         # pending | in_progress | done
+    prioridad: Mapped[str] = mapped_column(String(8), default="normal")        # low | normal | high
+    visibilidad: Mapped[str] = mapped_column(String(8), default="public")      # public | private
+    color: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    creado_por: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    team = relationship("DesignTeam")
+    etiquetas = relationship("DesignCalEventoEtiqueta", cascade="all, delete-orphan")
+    asignados = relationship("DesignCalAsignado", cascade="all, delete-orphan")
+    comentarios = relationship("DesignCalComentario", cascade="all, delete-orphan")
+
+
+class DesignCalEtiqueta(Base):
+    __tablename__ = "design_cal_etiquetas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(40), unique=True)
+    color: Mapped[str] = mapped_column(String(7))
+    creado_por: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignCalEventoEtiqueta(Base):
+    __tablename__ = "design_cal_evento_etiquetas"
+
+    evento_id: Mapped[int] = mapped_column(ForeignKey("design_cal_eventos.id", ondelete="CASCADE"), primary_key=True)
+    etiqueta_id: Mapped[int] = mapped_column(ForeignKey("design_cal_etiquetas.id", ondelete="CASCADE"), primary_key=True)
+
+
+class DesignCalAsignado(Base):
+    __tablename__ = "design_cal_asignados"
+
+    evento_id: Mapped[int] = mapped_column(ForeignKey("design_cal_eventos.id", ondelete="CASCADE"), primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), primary_key=True, index=True)
+
+
+class DesignCalComentario(Base):
+    __tablename__ = "design_cal_comentarios"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    evento_id: Mapped[int] = mapped_column(ForeignKey("design_cal_eventos.id", ondelete="CASCADE"), index=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    texto: Mapped[str] = mapped_column(Text)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignCalActividad(Base):
+    __tablename__ = "design_cal_actividad"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empleado_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    accion: Mapped[str] = mapped_column(String(40))
+    evento_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    team_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    titulo: Mapped[str] = mapped_column(String(140))
+    privado: Mapped[bool] = mapped_column(Boolean, default=False)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class DesignCalVacacionEstimada(Base):
+    """Vacaciones que el aprobador estima (aún sin aprobar en People). Se borran solas cuando People aprueba unas
+    vacaciones de esa persona que se cruzan con estas fechas. Un mes antes del inicio llega un push al manager para que
+    la persona envíe el formato de vacaciones a People."""
+    __tablename__ = "design_cal_vacaciones_estimadas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), index=True)
+    team_id: Mapped[int | None] = mapped_column(ForeignKey("design_teams.id", ondelete="SET NULL"), nullable=True)
+    fecha_inicio: Mapped[date] = mapped_column(Date)
+    fecha_fin: Mapped[date] = mapped_column(Date)
+    notas: Mapped[str] = mapped_column(String(300), default="")
+    creado_por: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    recordado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)   # cuándo se envió el push de 1 mes antes
+
+    empleado = relationship("Empleado", foreign_keys=[empleado_id])

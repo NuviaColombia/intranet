@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block titulo %}Calendario{% endblock %}
+{% block contenido %}
+<style>
+  /* Antes de calendario.css: la intranet (style.css) da a todos los campos ancho completo, margen, borde y relleno;
+     dentro del calendario se vuelve a lo del navegador y mandan las reglas propias del calendario. */
+  .calapp input, .calapp select, .calapp textarea { width: auto; margin: 0; padding: revert; border: revert; border-radius: revert; font-size: inherit; }
+  .calapp main.main { max-width: none; margin: 0; padding: 0; }   /* style.css limita todo <main> a 1100 px */
+</style>
+<link rel="stylesheet" href="/static/design/calendario/calendario.css?v={{ cal_v }}">
+<style>
+  /* La página del calendario ocupa todo el ancho bajo la barra de la intranet */
+  main:has(> .calapp) { max-width: 100%; margin: 0; padding: 0; }
+  .calapp { font-family: inherit; }
+  .calapp .app { grid-template-rows: var(--topbar-h) minmax(0, 1fr); }
+  .calapp .brand { font-weight: 700; font-size: 16px; white-space: nowrap; }
+  .calapp .solo-lectura { font-size: 12px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+  .calapp .achip.estimated, .calapp .tl-bar.estimated { border-style: dashed; }
+  .calapp .tl-bar.estimated { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 35%, transparent) 0 6px, color-mix(in srgb, var(--c) 12%, transparent) 6px 12px); }
+  .calapp .legend-sw.estimated { background: repeating-linear-gradient(135deg, #10b981 0 3px, transparent 3px 6px); border: 1px dashed #10b981; }
+  .calapp .tl-cell.puede-estimar { cursor: copy; }
+  .calapp .tl-cell.puede-estimar:hover { background: var(--primary-soft); }
+  .calapp .est-acciones { display: flex; gap: 8px; margin-top: 12px; }
+  .calapp .team-chip { font-size: 11px; color: var(--text-2); }
+</style>
+<div class="calapp" id="calapp">
+  <div id="app" class="app">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="menu-btn" aria-label="Abrir menú">☰</button>
+      <div class="brand hide-sm">📅 Calendario</div>
+      <div class="nav">
+        <button class="btn btn-ghost" id="today-btn" title="Ir a hoy (T)">Hoy</button>
+        <button class="icon-btn" id="prev-btn" aria-label="Anterior" title="Anterior (←)">‹</button>
+        <button class="icon-btn" id="next-btn" aria-label="Siguiente" title="Siguiente (→)">›</button>
+        <button class="period-title" id="period-title" title="Elegir mes y año"></button>
+      </div>
+      <div class="search">
+        <span class="search-icon">⌕</span>
+        <input id="search" type="search" placeholder="Buscar eventos…  ( / )" autocomplete="off" aria-label="Buscar eventos" />
+        <div class="search-results" id="search-results" hidden></div>
+      </div>
+      <div class="segmented view-switch" id="view-switch">
+        <button data-view="month" title="Mes (M)">Mes</button>
+        <button data-view="week" title="Semana (S)">Semana</button>
+        <button data-view="agenda" title="Agenda (A)">Agenda</button>
+        <button data-view="year" title="Año (Y)">Año</button>
+        <button data-view="team" title="Equipo: vacaciones y permisos (E)">Equipo</button>
+      </div>
+      <div class="top-actions">
+        <span class="solo-lectura" id="solo-lectura" hidden title="Ves los eventos de tu equipo; si te asignan una tarea puedes marcarla como hecha">👁 Solo lectura</span>
+        <button class="icon-btn" id="activity-btn" aria-label="Actividad" title="Actividad del equipo">🔔<span class="dot" id="activity-dot" hidden></span></button>
+        <button class="avatar-btn" id="user-btn" aria-label="Más opciones"></button>
+      </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+      <button class="btn btn-primary btn-block btn-create" id="create-btn">＋ Nuevo evento <kbd>N</kbd></button>
+
+      <div class="mini-cal" id="mini-cal"></div>
+
+      <section class="panel">
+        <h3>Vista</h3>
+        <label class="switch"><input type="checkbox" id="f-holidays" checked /><span></span>Festivos de Colombia</label>
+        <label class="switch"><input type="checkbox" id="f-mine" /><span></span>Solo mis eventos y asignaciones</label>
+        <label class="switch"><input type="checkbox" id="f-done" checked /><span></span>Mostrar completados</label>
+      </section>
+
+      <section class="panel">
+        <h3>Ausencias del equipo <span class="badge abs-count" id="out-today-count">0</span></h3>
+        <label class="switch"><input type="checkbox" id="f-absences" checked /><span></span>Mostrar vacaciones y permisos</label>
+        <select class="input team-select" id="f-team" aria-label="Filtrar por equipo"></select>
+        <ul class="out-list" id="out-today"></ul>
+        <div class="sync-status" id="sync-status"></div>
+      </section>
+
+      <section class="panel">
+        <h3>Mis asignaciones <span class="badge" id="tasks-count">0</span></h3>
+        <ul class="task-list" id="task-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h3>Etiquetas <button class="link-btn" id="manage-tags">Administrar</button></h3>
+        <ul class="filter-list" id="tag-filters"></ul>
+      </section>
+
+      <section class="panel">
+        <h3>Personas <span class="tiny muted" id="online-count"></span></h3>
+        <ul class="filter-list" id="people-filters"></ul>
+      </section>
+
+      <section class="panel">
+        <h3>Festivos <span id="holiday-year"></span></h3>
+        <ul class="holiday-list" id="holiday-list"></ul>
+      </section>
+    </aside>
+
+    <main class="main" id="main" tabindex="-1"></main>
+
+    <aside class="drawer" id="activity-drawer" hidden>
+      <div class="drawer-head">
+        <h3>Actividad del equipo</h3>
+        <button class="icon-btn" data-close-drawer aria-label="Cerrar">✕</button>
+      </div>
+      <ul class="activity-list" id="activity-list"></ul>
+    </aside>
+  </div>
+
+  <div class="backdrop" id="backdrop" hidden></div>
+  <div id="modal-root"></div>
+  <div class="popover" id="popover" hidden></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</div>
+<script>
+  // Alto de la barra de la intranet: el calendario ocupa el resto de la pantalla
+  (function() {
+    var nav = document.querySelector('nav');
+    function medir() { document.documentElement.style.setProperty('--ds-nav-h', (nav ? nav.offsetHeight : 0) + 'px'); }
+    medir(); window.addEventListener('resize', medir);
+  })();
+</script>
+<script type="module" src="/static/design/calendario/app.js?v={{ cal_v }}"></script>
+{% endblock %}

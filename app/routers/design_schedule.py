@@ -3292,3 +3292,7 @@ router.include_router(_push_router)
 # ---------- En vivo por aviso del servidor (Server-Sent Events): routers/design_vivo.py ----------
 from .design_vivo import router as _vivo_router  # noqa: E402
 router.include_router(_vivo_router)
+
+# ---------- Calendario (Gestión / Herramientas): rutas en routers/design_calendario.py ----------
+from .design_calendario import router as _calendario_router  # noqa: E402
+router.include_router(_calendario_router)

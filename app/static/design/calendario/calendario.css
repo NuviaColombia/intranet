@@ -1,0 +1,526 @@
+/* Calendario de Design: generado desde styles.css de «Calendario Colombia» (scratchpad css_calendario.py).
+   Todo vive bajo .calapp; el modo oscuro sigue al de Design. Los ajustes propios de la intranet van en templates/design_calendario.html. */
+.calapp {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-2: #f1f3f9;
+  --surface-3: #e8ebf3;
+  --border: #e3e6ef;
+  --text: #171a26;
+  --text-2: #5b6275;
+  --text-3: #8b91a3;
+  --primary: #4f46e5;
+  --primary-2: #6366f1;
+  --primary-soft: #eef0ff;
+  --holiday: #dc2626;
+  --holiday-soft: #fef1f1;
+  --today: #4f46e5;
+  --weekend: #fafbfd;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow: 0 4px 16px rgb(16 24 40 / 0.08);
+  --shadow-lg: 0 24px 60px rgb(16 24 40 / 0.18);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --topbar-h: 64px;
+  --sidebar-w: 288px;
+  --hour-h: 48px;
+  color-scheme: light;
+}
+:root[data-ds-tema="oscuro"] .calapp {
+  --bg: #0d0f17;
+  --surface: #151824;
+  --surface-2: #1c2030;
+  --surface-3: #262b3e;
+  --border: #272c3d;
+  --text: #eceef6;
+  --text-2: #a5abbd;
+  --text-3: #6f7689;
+  --primary: #818cf8;
+  --primary-2: #6366f1;
+  --primary-soft: #23264a;
+  --holiday: #f87171;
+  --holiday-soft: #2b1619;
+  --today: #818cf8;
+  --weekend: #121520;
+  --shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 24px 60px rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+.calapp *, .calapp *::before, .calapp *::after { box-sizing: border-box; }
+.calapp { height: 100%; }
+.calapp {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+.calapp [hidden] { display: none !important; }
+.calapp button, .calapp input, .calapp select, .calapp textarea { font: inherit; color: inherit; }
+.calapp button { cursor: pointer; }
+.calapp :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.calapp kbd {
+  font-family: inherit; font-size: 11px; padding: 1px 6px; border-radius: 5px;
+  background: rgb(255 255 255 / 0.2); margin-left: 6px;
+}
+.calapp .muted { color: var(--text-2); }
+.calapp .tiny { font-size: 12px; }
+.calapp .only-mobile { display: none; }
+.calapp .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 36px; padding: 0 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface); font-weight: 500;
+  transition: background .15s, border-color .15s, transform .05s, box-shadow .15s;
+}
+.calapp .btn:hover { background: var(--surface-2); }
+.calapp .btn:active { transform: translateY(1px); }
+.calapp .btn-primary { background: var(--primary-2); border-color: transparent; color: #fff; box-shadow: 0 2px 8px rgb(79 70 229 / .3); }
+.calapp .btn-primary:hover { background: #4338ca; }
+.calapp .btn-danger { color: var(--danger); }
+.calapp .btn-danger:hover { background: var(--holiday-soft); }
+.calapp .btn-ghost { background: transparent; }
+.calapp .btn-block { width: 100%; }
+.calapp .btn:disabled { opacity: .55; cursor: not-allowed; }
+.calapp .icon-btn {
+  position: relative; width: 36px; height: 36px; display: inline-grid; place-items: center;
+  border-radius: 50%; border: 0; background: transparent; font-size: 18px; color: var(--text-2);
+}
+.calapp .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.calapp .icon-btn .dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--holiday); }
+.calapp .link-btn { border: 0; background: none; color: var(--primary); font-size: 12px; font-weight: 600; padding: 0; }
+.calapp .link-btn:hover { text-decoration: underline; }
+.calapp .segmented { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
+.calapp .segmented button { border: 0; background: transparent; padding: 6px 12px; border-radius: 7px; font-weight: 500; color: var(--text-2); }
+.calapp .segmented button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+.calapp .field { display: grid; gap: 6px; margin-bottom: 12px; }
+.calapp .field > span { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.calapp .field input, .calapp .field select, .calapp .field textarea, .calapp .input {
+  width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface); transition: border-color .15s, box-shadow .15s;
+}
+.calapp .field textarea { height: auto; min-height: 84px; padding: 10px 12px; resize: vertical; }
+.calapp .field input:focus, .calapp .field select:focus, .calapp .field textarea:focus, .calapp .input:focus {
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.calapp .field input:disabled, .calapp .field select:disabled, .calapp .field textarea:disabled { background: var(--surface-2); color: var(--text-2); }
+.calapp .form-error { color: var(--danger); font-size: 13px; min-height: 18px; margin: 0 0 8px; }
+.calapp .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.calapp .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.calapp .switch { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; user-select: none; color: var(--text-2); }
+.calapp .switch input { position: absolute; opacity: 0; pointer-events: none; }
+.calapp .switch span { flex: none; width: 32px; height: 18px; border-radius: 99px; background: var(--surface-3); position: relative; transition: background .2s; }
+.calapp .switch span::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform .2s; }
+.calapp .switch input:checked + span { background: var(--primary-2); }
+.calapp .switch input:checked + span::after { transform: translateX(14px); }
+.calapp .switch input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.calapp .badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--primary-soft); color: var(--primary); font-size: 11px; font-weight: 700; }
+.calapp .auth {
+  min-height: 100%; display: grid; place-items: center; padding: 24px 16px;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgb(99 102 241 / .18), transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgb(252 209 22 / .16), transparent 60%),
+    var(--bg);
+}
+.calapp .auth-card { width: min(420px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; box-shadow: var(--shadow-lg); }
+.calapp .auth-card .segmented { width: 100%; margin: 18px 0 20px; }
+.calapp .auth-card .segmented button { flex: 1; }
+.calapp .brand { display: flex; align-items: center; gap: 10px; font-size: 17px; letter-spacing: -.01em; }
+.calapp .brand b { color: var(--primary); margin-left: 2px; }
+.calapp .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #fcd116 0 45%, #003893 45% 72%, #ce1126 72%); font-size: 17px; }
+.calapp .brand-lg { font-size: 22px; margin-bottom: 6px; }
+.calapp .app {
+  height: calc(100vh - var(--ds-nav-h, 85px)); display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-areas: 'top top' 'side main';
+}
+.calapp .topbar {
+  grid-area: top; display: flex; align-items: center; gap: 14px; padding: 0 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border); z-index: 20;
+}
+.calapp .topbar .brand { width: calc(var(--sidebar-w) - 32px); flex: none; }
+.calapp .nav { display: flex; align-items: center; gap: 4px; }
+.calapp .period-title { border: 0; background: none; font-size: 20px; font-weight: 600; letter-spacing: -.02em; padding: 4px 10px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.calapp .nav { min-width: 0; flex-shrink: 1; }
+.calapp .period-title:hover { background: var(--surface-2); }
+.calapp .search { position: relative; flex: 1; max-width: 380px; margin-left: auto; }
+.calapp .search input { width: 100%; height: 38px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface-2); padding: 0 14px 0 36px; }
+.calapp .search input:focus { outline: none; background: var(--surface); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.calapp .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-52%); color: var(--text-3); font-size: 17px; pointer-events: none; }
+.calapp .search-results { position: absolute; top: 44px; left: 0; right: 0; max-height: 420px; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 6px; z-index: 50; }
+.calapp .search-results button { display: flex; width: 100%; gap: 10px; align-items: center; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 8px; }
+.calapp .search-results button:hover, .calapp .search-results button.active { background: var(--surface-2); }
+.calapp .search-results .sr-date { font-size: 12px; color: var(--text-3); margin-left: auto; white-space: nowrap; }
+.calapp .top-actions { display: flex; align-items: center; gap: 4px; }
+.calapp .avatar-btn { border: 0; background: none; padding: 0; margin-left: 4px; }
+.calapp .sidebar { grid-area: side; overflow-y: auto; padding: 16px; border-right: 1px solid var(--border); background: var(--surface); scrollbar-width: thin; }
+.calapp .btn-create { height: 44px; font-size: 15px; border-radius: 12px; margin-bottom: 16px; }
+.calapp .panel { border-top: 1px solid var(--border); padding: 14px 0 10px; }
+.calapp .panel h3 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
+.calapp .main { grid-area: main; overflow: hidden; display: flex; flex-direction: column; min-width: 0; outline: none; }
+.calapp .avatar { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; position: relative; box-shadow: 0 0 0 2px var(--surface); }
+.calapp .avatar.sm { width: 20px; height: 20px; font-size: 9px; }
+.calapp .avatar.lg { width: 34px; height: 34px; font-size: 13px; }
+.calapp .avatar.online::after { content: ''; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 2px var(--surface); }
+.calapp .avatar-stack { display: inline-flex; }
+.calapp .avatar-stack .avatar + .avatar { margin-left: -6px; }
+.calapp .mini-cal { user-select: none; margin-bottom: 8px; }
+.calapp .mini-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.calapp .mini-head strong { font-size: 13px; }
+.calapp .mini-head .icon-btn { width: 28px; height: 28px; font-size: 15px; }
+.calapp .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.calapp .mini-grid .dow { font-size: 10px; font-weight: 600; color: var(--text-3); padding: 4px 0; }
+.calapp .mini-grid button { position: relative; aspect-ratio: 1; border: 0; background: none; border-radius: 50%; font-size: 12px; color: var(--text); padding: 0; }
+.calapp .mini-grid button:hover { background: var(--surface-2); }
+.calapp .mini-grid button.out { color: var(--text-3); }
+.calapp .mini-grid button.holiday { color: var(--holiday); font-weight: 700; }
+.calapp .mini-grid button.in-range { background: var(--primary-soft); border-radius: 0; }
+.calapp .mini-grid button.today { background: var(--primary-2); color: #fff; font-weight: 700; border-radius: 50%; }
+.calapp .mini-grid button.has-events::after { content: ''; position: absolute; bottom: 3px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--primary); }
+.calapp .mini-grid button.today.has-events::after { background: #fff; }
+.calapp .filter-list, .calapp .task-list, .calapp .holiday-list, .calapp .activity-list { list-style: none; margin: 0; padding: 0; }
+.calapp .filter-list li { display: flex; align-items: center; gap: 8px; padding: 4px 6px; margin: 0 -6px; border-radius: 8px; }
+.calapp .filter-list li:hover { background: var(--surface-2); }
+.calapp .filter-list label { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; cursor: pointer; }
+.calapp .filter-list .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calapp .filter-list .count { font-size: 11px; color: var(--text-3); }
+.calapp .check { appearance: none; flex: none; width: 16px; height: 16px; border-radius: 5px; border: 2px solid var(--c, var(--primary)); background: transparent; display: grid; place-items: center; margin: 0; cursor: pointer; }
+.calapp .check:checked { background: var(--c, var(--primary)); }
+.calapp .check:checked::after { content: ''; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px, -1px); }
+.calapp .only-btn { opacity: 0; border: 0; background: none; font-size: 11px; color: var(--primary); font-weight: 600; }
+.calapp .filter-list li:hover .only-btn { opacity: 1; }
+.calapp .task-list li { display: flex; align-items: flex-start; gap: 8px; padding: 6px; margin: 0 -6px; border-radius: 8px; cursor: pointer; }
+.calapp .task-list li:hover { background: var(--surface-2); }
+.calapp .task-list .t-title { font-weight: 500; line-height: 1.3; }
+.calapp .task-list .t-date { font-size: 11px; color: var(--text-3); }
+.calapp .task-list .t-date.overdue { color: var(--danger); font-weight: 600; }
+.calapp .task-list .empty, .calapp .holiday-list .empty { color: var(--text-3); font-size: 13px; cursor: default; }
+.calapp .task-list .empty:hover { background: none; }
+.calapp .holiday-list li { display: flex; gap: 10px; align-items: baseline; padding: 5px 6px; margin: 0 -6px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.calapp .holiday-list li:hover { background: var(--surface-2); }
+.calapp .holiday-list li.past { opacity: .5; }
+.calapp .holiday-list li.next { background: var(--holiday-soft); }
+.calapp .holiday-list .h-date { flex: none; width: 52px; font-weight: 600; color: var(--holiday); font-variant-numeric: tabular-nums; }
+.calapp .holiday-list .h-moved { font-size: 11px; color: var(--text-3); }
+.calapp .month { flex: 1; display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+.calapp .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); background: var(--surface); }
+.calapp .dow-row div { padding: 10px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
+.calapp .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); min-height: 0; }
+.calapp .day {
+  position: relative; min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface);
+  padding: 4px 4px 6px; cursor: cell; transition: background .12s;
+}
+.calapp .day:nth-child(7n) { border-right: 0; }
+.calapp .day.weekend { background: var(--weekend); }
+.calapp .day.out { background: var(--bg); }
+.calapp .day.out .day-num { color: var(--text-3); }
+.calapp .day.holiday { background: var(--holiday-soft); }
+.calapp .day:hover { background: var(--surface-2); }
+.calapp .day.drop-target { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary); }
+.calapp .day-head { display: flex; align-items: center; gap: 6px; padding: 2px 4px 4px; min-height: 30px; }
+.calapp .day-num { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px; border-radius: 99px; border: 0; background: none; font-weight: 600; font-size: 13px; }
+.calapp .day-num:hover { background: var(--surface-3); }
+.calapp .day.today .day-num { background: var(--today); color: #fff; }
+.calapp .day.holiday .day-num { color: var(--holiday); }
+.calapp .day.today.holiday .day-num { color: #fff; background: var(--holiday); }
+.calapp .holiday-name { font-size: 11px; font-weight: 600; color: var(--holiday); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calapp .day-events { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+.calapp .more-btn { border: 0; background: none; text-align: left; font-size: 12px; font-weight: 600; color: var(--text-2); padding: 1px 6px; border-radius: 6px; }
+.calapp .more-btn:hover { background: var(--surface-3); color: var(--text); }
+.calapp .chip {
+  --c: var(--primary-2);
+  display: flex; align-items: center; gap: 5px; min-width: 0; height: 22px; padding: 0 6px;
+  border: 0; border-radius: 6px; font-size: 12px; text-align: left; cursor: pointer;
+  background: color-mix(in srgb, var(--c) 16%, var(--surface)); color: var(--text);
+  border-left: 3px solid var(--c); transition: transform .1s, box-shadow .15s, filter .15s;
+}
+.calapp .chip:hover { filter: brightness(.97); box-shadow: var(--shadow-sm); }
+.calapp .chip.solid { background: var(--c); color: #fff; border-left-color: transparent; }
+.calapp .chip .c-time { font-weight: 600; font-variant-numeric: tabular-nums; flex: none; opacity: .8; }
+.calapp .chip .c-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.calapp .chip .c-meta { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: 10px; opacity: .8; }
+.calapp .chip.done .c-title { text-decoration: line-through; opacity: .6; }
+.calapp .chip.cont-left { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -5px; }
+.calapp .chip.cont-right { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -5px; }
+.calapp .chip.dragging { opacity: .4; }
+.calapp .chip.high::before { content: '!'; font-weight: 800; color: var(--danger); }
+.calapp .chip.private .c-title::before { content: '🔒 '; font-size: 10px; }
+.calapp .day { container-type: inline-size; }
+.calapp @container (max-width: 150px) {
+  .chip .c-meta { display: none; }
+  .chip { padding: 0 4px; gap: 3px; }
+}
+.calapp .week { flex: 1; display: grid; grid-template-rows: auto auto 1fr; min-height: 0; }
+.calapp .week-head, .calapp .week-allday { display: grid; grid-template-columns: 60px repeat(7, minmax(0, 1fr)); background: var(--surface); }
+.calapp .week-head { border-bottom: 1px solid var(--border); }
+.calapp .week-head .wh { padding: 8px 6px; text-align: center; border-left: 1px solid var(--border); cursor: pointer; }
+.calapp .week-head .wh:hover { background: var(--surface-2); }
+.calapp .week-head .wh .dname { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
+.calapp .week-head .wh .dnum { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; font-weight: 600; }
+.calapp .week-head .wh.today .dnum { background: var(--today); color: #fff; }
+.calapp .week-head .wh.holiday .dnum, .calapp .week-head .wh.holiday .dname { color: var(--holiday); }
+.calapp .week-head .wh.holiday.today .dnum { background: var(--holiday); color: #fff; }
+.calapp .week-head .wh .hname { font-size: 10px; color: var(--holiday); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calapp .week-allday { border-bottom: 1px solid var(--border); }
+.calapp .week-allday .label { font-size: 10px; color: var(--text-3); padding: 6px; text-align: right; align-self: center; }
+.calapp .week-allday .ad { display: flex; flex-direction: column; gap: 2px; padding: 4px; min-height: 34px; border-left: 1px solid var(--border); cursor: cell; }
+.calapp .week-allday .ad.holiday { background: var(--holiday-soft); }
+.calapp .week-allday .ad.drop-target { background: var(--primary-soft); }
+.calapp .week-body { overflow-y: auto; position: relative; min-height: 0; background: var(--surface); }
+.calapp .week-grid { display: grid; grid-template-columns: 60px repeat(7, minmax(0, 1fr)); position: relative; }
+.calapp .hours { position: relative; }
+.calapp .hours div { height: var(--hour-h); font-size: 11px; color: var(--text-3); text-align: right; padding-right: 8px; transform: translateY(-7px); font-variant-numeric: tabular-nums; }
+.calapp .hours div:first-child { visibility: hidden; }
+.calapp .wcol { position: relative; border-left: 1px solid var(--border); background-image: linear-gradient(var(--border) 1px, transparent 1px); background-size: 100% var(--hour-h); cursor: cell; }
+.calapp .wcol.weekend { background-color: var(--weekend); }
+.calapp .wcol.holiday { background-color: var(--holiday-soft); }
+.calapp .wcol.drop-target { background-color: var(--primary-soft); }
+.calapp .tevent {
+  --c: var(--primary-2);
+  position: absolute; left: 2px; right: 2px; overflow: hidden; border: 0; text-align: left;
+  border-radius: 7px; padding: 3px 6px; font-size: 12px; line-height: 1.25; cursor: pointer;
+  background: color-mix(in srgb, var(--c) 20%, var(--surface)); border-left: 3px solid var(--c); color: var(--text);
+  box-shadow: 0 0 0 1px var(--surface);
+}
+.calapp .tevent:hover { z-index: 3; box-shadow: var(--shadow); }
+.calapp .tevent .te-title { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calapp .tevent .te-time { font-size: 11px; opacity: .75; }
+.calapp .tevent.done .te-title { text-decoration: line-through; opacity: .6; }
+.calapp .now-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--holiday); z-index: 4; pointer-events: none; }
+.calapp .now-line::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--holiday); }
+.calapp .agenda { flex: 1; overflow-y: auto; padding: 16px 24px 40px; }
+.calapp .agenda-day { display: grid; grid-template-columns: 110px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.calapp .agenda-date { cursor: pointer; }
+.calapp .agenda-date .ad-num { font-size: 26px; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.calapp .agenda-date .ad-label { font-size: 12px; color: var(--text-2); }
+.calapp .agenda-day.today .ad-num { color: var(--today); }
+.calapp .agenda-day.holiday .ad-num { color: var(--holiday); }
+.calapp .agenda-items { display: grid; gap: 6px; }
+.calapp .agenda-item { display: grid; grid-template-columns: 90px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; text-align: left; border-left: 4px solid var(--c, var(--primary)); }
+.calapp .agenda-item:hover { box-shadow: var(--shadow); }
+.calapp .agenda-item .ai-time { font-size: 12px; color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.calapp .agenda-item .ai-title { font-weight: 600; }
+.calapp .agenda-item .ai-sub { font-size: 12px; color: var(--text-2); display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.calapp .agenda-item.done .ai-title { text-decoration: line-through; opacity: .6; }
+.calapp .agenda-holiday { padding: 8px 12px; border-radius: 10px; background: var(--holiday-soft); color: var(--holiday); font-weight: 600; font-size: 13px; }
+.calapp .agenda-empty { text-align: center; padding: 60px 20px; color: var(--text-2); }
+.calapp .agenda-empty .big { font-size: 42px; }
+.calapp .year { flex: 1; overflow-y: auto; padding: 20px 24px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; align-content: start; }
+.calapp .ymonth { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+.calapp .ymonth h4 { margin: 0 0 8px; font-size: 14px; cursor: pointer; }
+.calapp .ymonth h4:hover { color: var(--primary); }
+.calapp .ymonth .ycount { float: right; font-size: 11px; color: var(--holiday); font-weight: 600; }
+.calapp .pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 99px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--c) 15%, transparent); color: color-mix(in srgb, var(--c) 75%, var(--text)); }
+.calapp .pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+.calapp .status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+.calapp .status.pending { background: var(--surface-3); color: var(--text-2); }
+.calapp .status.in_progress { background: #fef3c7; color: #92400e; }
+.calapp .status.done { background: #dcfce7; color: #166534; }
+:root[data-ds-tema="oscuro"] .calapp .status.in_progress { background: #3a2a0a; color: #fbbf24; }
+:root[data-ds-tema="oscuro"] .calapp .status.done { background: #0f2e1a; color: #4ade80; }
+.calapp .backdrop { position: fixed; inset: 0; background: rgb(10 12 20 / .45); backdrop-filter: blur(2px); z-index: 60; animation: cal-fade .15s; }
+.calapp .modal {
+  position: fixed; z-index: 70; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-lg);
+  animation: cal-pop .18s cubic-bezier(.2, .9, .3, 1.2);
+}
+.calapp .modal.sm { width: min(440px, calc(100vw - 32px)); }
+.calapp .modal > form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.calapp .modal-head { display: flex; align-items: center; gap: 12px; padding: 18px 22px 0; }
+.calapp .modal-head h2 { margin: 0; font-size: 18px; letter-spacing: -.01em; flex: 1; }
+.calapp .modal-body { padding: 16px 22px; overflow-y: auto; }
+.calapp .modal-foot { display: flex; gap: 8px; padding: 14px 22px; border-top: 1px solid var(--border); align-items: center; }
+.calapp .modal-foot .spacer { flex: 1; }
+.calapp .title-input { width: 100%; border: 0; border-bottom: 2px solid var(--border); background: none; font-size: 22px; font-weight: 600; padding: 6px 0 8px; margin-bottom: 16px; letter-spacing: -.01em; }
+.calapp .title-input:focus { outline: none; border-color: var(--primary); }
+.calapp .title-input:disabled { color: var(--text); }
+.calapp .toggle-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.calapp .toggle-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 6px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 500; }
+.calapp .toggle-chip .sw { width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+.calapp .toggle-chip.on { border-color: var(--c, var(--primary)); background: color-mix(in srgb, var(--c, var(--primary)) 14%, var(--surface)); box-shadow: inset 0 0 0 1px var(--c, var(--primary)); }
+.calapp .toggle-chip:disabled { cursor: default; }
+.calapp .toggle-chip.add { border-style: dashed; color: var(--text-2); padding: 0 12px; }
+.calapp .inline-new { display: flex; gap: 6px; margin-top: 8px; }
+.calapp .inline-new input[type='color'] { width: 38px; height: 34px; padding: 2px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); }
+.calapp .inline-new .input { height: 34px; }
+.calapp .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.calapp .color-dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; background: var(--c); padding: 0; }
+.calapp .color-dot.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--c); }
+.calapp .color-dot.none { background: conic-gradient(#ef4444, #f59e0b, #10b981, #3b82f6, #8b5cf6, #ef4444); }
+.calapp .section-label { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 4px 0 8px; display: block; }
+.calapp .block { margin-bottom: 16px; }
+.calapp .meta-line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--text-2); margin-bottom: 14px; }
+.calapp .comments { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 14px; }
+.calapp .comment { display: flex; gap: 10px; margin-bottom: 12px; }
+.calapp .comment .c-body { background: var(--surface-2); border-radius: 4px 12px 12px 12px; padding: 8px 12px; flex: 1; white-space: pre-wrap; word-break: break-word; }
+.calapp .comment .c-head { font-size: 12px; margin-bottom: 2px; }
+.calapp .comment .c-head b { margin-right: 6px; }
+.calapp .comment-form { display: flex; gap: 8px; }
+.calapp .tag-row { display: grid; grid-template-columns: 38px 1fr auto auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+.calapp .tag-row input[type='color'] { width: 38px; height: 34px; padding: 2px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); }
+.calapp .tag-row .input { height: 34px; }
+.calapp .popover { position: fixed; z-index: 55; width: 280px; max-height: 380px; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 12px; animation: cal-pop .15s; }
+.calapp .popover h4 { margin: 0 0 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+.calapp .popover .day-events { gap: 4px; }
+.calapp .picker-years { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.calapp .picker-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.calapp .picker-months button { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 0; }
+.calapp .picker-months button:hover { background: var(--surface-2); }
+.calapp .picker-months button.on { background: var(--primary-2); color: #fff; border-color: transparent; }
+.calapp .menu-item { display: flex; width: 100%; align-items: center; gap: 10px; border: 0; background: none; padding: 8px 10px; border-radius: 8px; text-align: left; }
+.calapp .menu-item:hover { background: var(--surface-2); }
+.calapp .drawer { position: fixed; top: calc(var(--ds-nav-h, 85px) + var(--topbar-h)); right: 0; bottom: 0; width: min(360px, 100vw); z-index: 40; background: var(--surface); border-left: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; animation: cal-slide .2s; }
+.calapp .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.calapp .drawer-head h3 { margin: 0; font-size: 15px; }
+.calapp .activity-list { overflow-y: auto; padding: 8px 12px; }
+.calapp .activity-list li { display: flex; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.calapp .activity-list li:last-child { border: 0; }
+.calapp .activity-list .a-time { font-size: 11px; color: var(--text-3); }
+.calapp .activity-list .a-link { color: var(--primary); cursor: pointer; font-weight: 500; }
+.calapp .toasts { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: grid; gap: 8px; justify-items: center; pointer-events: none; }
+.calapp .toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: #1f2333; color: #fff; box-shadow: var(--shadow-lg); font-size: 13px; animation: cal-rise .2s; max-width: calc(100vw - 32px); }
+.calapp .toast.error { background: #b91c1c; }
+.calapp .toast.success { background: #15803d; }
+.calapp .toast button { border: 0; background: rgb(255 255 255 / .15); color: #fff; border-radius: 6px; padding: 3px 8px; font-weight: 600; }
+@keyframes cal-fade { from { opacity: 0; } }
+@keyframes cal-pop { from { opacity: 0; transform: translate(-50%, -48%) scale(.97); } }
+.calapp .popover { animation-name: cal-fade; }
+@keyframes cal-slide { from { transform: translateX(30px); opacity: 0; } }
+@keyframes cal-rise { from { transform: translateY(10px); opacity: 0; } }
+@media (max-width: 1180px) {
+.calapp { --sidebar-w: 256px; }
+.calapp .view-switch button { padding: 6px 9px; }
+.calapp .search { max-width: 220px; min-width: 110px; }
+.calapp .period-title { font-size: 18px; }
+.calapp .topbar { gap: 10px; }
+.calapp .topbar .brand { width: auto; }
+.calapp .topbar .brand .hide-sm { display: none; }
+}
+@media (max-width: 960px) {
+.calapp .app { grid-template-columns: 1fr; grid-template-areas: 'top' 'main'; }
+.calapp .only-mobile { display: inline-grid; }
+.calapp .sidebar { position: fixed; top: calc(var(--ds-nav-h, 85px) + var(--topbar-h)); bottom: 0; left: 0; width: min(320px, 88vw); z-index: 45; transform: translateX(-105%); transition: transform .25s; box-shadow: var(--shadow-lg); }
+.calapp .sidebar.open { transform: none; }
+.calapp .hide-sm { display: none; }
+.calapp .search { display: none; }
+.calapp .topbar { gap: 8px; padding: 0 10px; }
+.calapp .view-switch button { padding: 6px 7px; font-size: 13px; }
+.calapp .nav { flex: 1; }
+.calapp .period-title { font-size: 16px; }
+}
+@media (max-width: 640px) {
+.calapp { --topbar-h: 108px; }
+.calapp .topbar { flex-wrap: wrap; align-content: center; row-gap: 6px; }
+.calapp .topbar .brand, .calapp #theme-btn { display: none; }
+.calapp .topbar { gap: 4px; }
+.calapp .topbar .icon-btn { width: 32px; height: 32px; }
+.calapp .period-title { font-size: 15px; padding: 4px 6px; }
+.calapp .chip::before { display: none; }
+.calapp #today-btn { padding: 0 10px; height: 32px; }
+.calapp .view-switch { order: 10; width: 100%; }
+.calapp .view-switch button { flex: 1; }
+.calapp .top-actions { margin-left: auto; }
+.calapp .dow-row div { padding: 8px 4px; text-align: center; font-size: 10px; }
+.calapp .day { padding: 2px; }
+.calapp .day-head { justify-content: center; padding: 2px 0; min-height: 26px; }
+.calapp .holiday-name { display: none; }
+.calapp .chip { height: 6px; padding: 0; border-left: 0; background: var(--c); border-radius: 3px; }
+.calapp .chip > * { display: none; }
+.calapp .more-btn { font-size: 10px; padding: 0 2px; }
+.calapp .agenda { padding: 12px 16px 40px; }
+.calapp .agenda-day { grid-template-columns: 1fr; gap: 8px; }
+.calapp .agenda-item { grid-template-columns: 1fr; gap: 4px; }
+.calapp .year { padding: 16px; }
+.calapp .row, .calapp .row-3 { grid-template-columns: 1fr; }
+.calapp .modal { top: auto; bottom: 0; transform: translateX(-50%); width: 100vw; max-height: 92vh; border-radius: 18px 18px 0 0; }
+@keyframes cal-pop { from { opacity: 0; transform: translate(-50%, 20px); } }
+}
+.calapp { --tl-name: 210px; --hatch: repeating-linear-gradient(135deg, transparent 0 5px, rgb(255 255 255 / .45) 5px 9px); }
+.calapp .avatar.xs { width: 18px; height: 18px; font-size: 8px; box-shadow: 0 0 0 1.5px var(--surface); }
+.calapp .avatar.xs.online::after { width: 6px; height: 6px; }
+.calapp .abs-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; border: 0; background: none; padding: 2px 4px; border-radius: 99px; flex: none; }
+.calapp .abs-badge:hover { background: var(--surface-3); }
+.calapp .abs-badge .avatar-stack .avatar + .avatar { margin-left: -5px; }
+.calapp .abs-more { font-size: 10px; font-weight: 700; color: var(--text-2); }
+.calapp .day-head .holiday-name { min-width: 0; }
+.calapp .achip {
+  --c: #10b981;
+  display: flex; align-items: center; gap: 4px; min-width: 0; height: 20px; padding: 0 6px; border: 0; border-radius: 6px;
+  font-size: 11px; text-align: left; color: var(--text);
+  background: color-mix(in srgb, var(--c) 22%, var(--surface)); border: 1px dashed color-mix(in srgb, var(--c) 70%, transparent);
+}
+.calapp .achip .c-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.calapp .achip .c-time { font-size: 10px; opacity: .75; }
+.calapp .achip.pending { background-image: var(--hatch); }
+.calapp .agenda-out { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
+.calapp .agenda-out .achip { flex: none; }
+.calapp .team-select { height: 32px; margin: 6px 0 8px; font-size: 13px; }
+.calapp .out-list { list-style: none; margin: 0; padding: 0; }
+.calapp .out-list li { display: flex; align-items: flex-start; gap: 8px; padding: 6px; margin: 0 -6px; border-radius: 8px; cursor: pointer; }
+.calapp .out-list li:hover { background: var(--surface-2); }
+.calapp .out-list li.out-head { font-size: 11px; font-weight: 700; color: var(--text-3); cursor: default; padding-bottom: 0; }
+.calapp .out-list li.out-head:hover, .calapp .out-list li.empty:hover { background: none; }
+.calapp .out-list li.empty { color: var(--text-3); font-size: 13px; cursor: default; }
+.calapp .out-list .t-title { font-weight: 500; line-height: 1.3; }
+.calapp .out-list .t-date { font-size: 11px; color: var(--text-3); }
+.calapp .popover .out-list li { margin: 0; }
+.calapp .sync-status { font-size: 11px; color: var(--text-3); margin-top: 6px; line-height: 1.5; }
+.calapp .sync-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--success); vertical-align: 1px; }
+.calapp .sync-dot.bad { background: var(--danger); }
+.calapp .sync-err { color: var(--danger); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calapp .abs-line { font-size: 13px; padding: 3px 0; }
+.calapp .conflict-warning { margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; font-size: 13px; display: grid; gap: 3px;
+  background: color-mix(in srgb, var(--warning) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent); }
+.calapp .integration-help h4 { margin: 18px 0 6px; font-size: 14px; }
+.calapp .integration-help pre { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12px; overflow-x: auto; white-space: pre; }
+.calapp .integration-help code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+.calapp .team { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.calapp .team-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 12px; }
+.calapp .team-toolbar .spacer { flex: 1; }
+.calapp .legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
+.calapp .legend-sw { width: 14px; height: 10px; border-radius: 3px; background: var(--c); }
+.calapp .legend-sw.pending { background: var(--c) var(--hatch); }
+.calapp .timeline { flex: 1; overflow: auto; background: var(--surface); }
+.calapp .tl-row { display: grid; min-width: calc(var(--tl-name) + 31 * 28px + 64px); position: relative; }
+.calapp .tl-row > * { grid-row: 1; }
+.calapp .tl-name { grid-column: 1; position: sticky; left: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); min-width: 0; }
+.calapp .tl-name .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.calapp .tl-cell { border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); min-height: 40px; }
+.calapp .tl-cell.weekend { background: var(--surface-2); }
+.calapp .tl-cell.holiday, .calapp .tl-day.holiday { background: var(--holiday-soft); }
+.calapp .tl-cell.today { box-shadow: inset 2px 0 0 var(--today), inset -2px 0 0 var(--today); }
+.calapp .tl-sum { grid-column: -2 / -1; display: grid; place-items: center; font-size: 12px; font-weight: 600; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; right: 0; z-index: 3; }
+.calapp .tl-head { position: sticky; top: 0; z-index: 5; }
+.calapp .tl-head .tl-name, .calapp .tl-head .tl-sum { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); background: var(--surface); }
+.calapp .tl-day { display: grid; justify-items: center; padding: 6px 0; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); font-size: 10px; color: var(--text-3); }
+.calapp .tl-day b { font-size: 13px; color: var(--text); }
+.calapp .tl-day.weekend b { color: var(--text-3); }
+.calapp .tl-day.holiday b, .calapp .tl-day.holiday span { color: var(--holiday); }
+.calapp .tl-day.today b { background: var(--today); color: #fff; border-radius: 99px; padding: 0 6px; }
+.calapp .tl-cap .tl-name { justify-content: space-between; }
+.calapp .tl-capcell { display: grid; place-items: center; min-height: 30px; font-size: 11px; font-weight: 700; color: var(--text);
+  background-image: linear-gradient(color-mix(in srgb, var(--danger) calc(var(--r) * 60%), transparent), color-mix(in srgb, var(--danger) calc(var(--r) * 60%), transparent)); }
+.calapp .tl-team { position: sticky; left: 0; padding: 8px 12px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); background: var(--bg); border-bottom: 1px solid var(--border); width: max-content; min-width: 100%; }
+.calapp .tl-bar {
+  --c: #10b981;
+  align-self: center; z-index: 2; height: 26px; margin: 0 2px; display: flex; align-items: center; gap: 4px; padding: 0 6px; overflow: hidden;
+  border: 0; border-radius: 7px; color: #fff; font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap;
+  background: var(--c); box-shadow: var(--shadow-sm); transition: transform .1s, box-shadow .15s;
+}
+.calapp .tl-bar:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.calapp .tl-bar.pending { background: var(--c) var(--hatch); color: #fff; opacity: .85; }
+.calapp .tl-bar.cut-l { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; }
+.calapp .tl-bar.cut-r { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
+.calapp .tl-bar .c-title { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) {
+.calapp { --tl-name: 130px; }
+.calapp .tl-name .avatar { display: none; }
+.calapp .team-toolbar .tiny { display: none; }
+}

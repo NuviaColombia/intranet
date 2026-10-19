@@ -30,7 +30,8 @@ from .models_design import (DesignOrden, DesignBreak, DesignPreApprovedSheet, De
                             DesignPreApprovedFila, DesignPreApprovedCelda, DesignPreApprovedFoto, DesignInicioPagina, DesignInicioMuro, DesignInicioReaccion,
                             DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila, DesignCopiaFace, DesignDelegacion,
                             DesignPermisoEdicion, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignFestivo,
-                            DesignArea, DesignCambioDigital)
+                            DesignArea, DesignCambioDigital, DesignCalEvento, DesignCalVacacionEstimada)
+from .models import Solicitud
 
 log = logging.getLogger(__name__)
 MAX_COLA = 300              # una pestaña que no lee (colgada) no acumula memoria: los avisos de más se descartan
@@ -329,6 +330,9 @@ def _anotar(session: Session, obj, borrado: bool) -> None:
         info["perfiles_todos"] = True
     elif isinstance(obj, DesignCambioDigital):
         otros.add(("cambios", 0, ""))
+    elif isinstance(obj, (Solicitud, DesignCalEvento, DesignCalVacacionEstimada)):
+        # Calendario: una solicitud de People nueva, aprobada, rechazada o cancelada cambia las ausencias que se ven
+        otros.add(("cal", 0, ""))
 
 
 @event.listens_for(Session, "after_flush")
@@ -366,6 +370,8 @@ def _al_ejecutar(estado):
                 otros.add(("inicio", 0, "pub"))
             elif m.class_ in CONFIGURACION:
                 otros.add(("cfg", 0, ""))
+            elif m.class_ is Solicitud:
+                otros.add(("cal", 0, ""))
     except Exception:  # noqa: BLE001
         log.exception("vivo: no se pudo anotar el cambio en bloque")
 
@@ -384,7 +390,7 @@ def _al_commit(session):
                 publicar_a({num}, [{"t": "asig", "id": num}])   # el contador de casos de una persona solo lo necesita ella
             else:
                 out.append({"t": "asig", "id": 0})              # sin persona (prestado por nombre, cambios en bloque): todos revisan
-        elif tipo in ("pa", "op", "cfg", "cambios"):
+        elif tipo in ("pa", "op", "cfg", "cambios", "cal"):
             out.append({"t": tipo})
         elif tipo == "inicio":
             out.append({"t": "inicio", "que": texto})
