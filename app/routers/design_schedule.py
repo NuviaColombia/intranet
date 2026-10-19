@@ -18,6 +18,7 @@ from ..models_design import (DesignArea, DesignTeam, DesignTeamDesigner, DesignC
                              DesignPerfSheet, DesignPerfEmpleado, DesignPerfSeleccionFila, FORMATO_SUPPORT)
 from ..auth import get_current_user
 from ..main_templates import templates
+from .. import services_design_ayuda as say
 from .. import services_design_permisos as sperm
 from .. import services_design_push as spush
 from .. import services_design as sd
@@ -1082,6 +1083,7 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     miembro = team.id in sd.equipos_como_designer(db, user)
     dia = sd.datos_dia(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
     dia["miId"] = user.id
+    dia["ayudas"] = say.ayudas_del_equipo(db, team.id, _fecha(fecha))   # diseñadores enviados como ayuda a este equipo hoy
     # Permiso para editar días cerrados (Parámetros › Equipos): ese día se abre solo para esta persona
     if dia["cerrado"]:
         hasta = sperm.permiso_para(db, user, _fecha(fecha))
@@ -2643,8 +2645,9 @@ def api_perf_guardar_celda_seleccion(fila_id: int, payload: PerfCeldaSeleccionIn
 def api_seguimiento(fin: str = Query("17:00", max_length=5, pattern=r"^\d{1,2}:\d{2}$"), user: Empleado = Depends(require_design_manager),
                     db: Session = Depends(get_db)):
     """Qué está haciendo cada diseñador ahora (libre, en pausa, con casos asignados, ocupado o ausente) y, por equipo,
-    si alcanza a cumplir lo programado hoy antes de `fin` (fin de la jornada, HH:MM)."""
-    return sd.seguimiento(db, fin_jornada=fin)
+    si alcanza a cumplir lo programado hoy antes de `fin` (fin de la jornada, HH:MM). Los admins ven todas las áreas;
+    un aprobador, solo la suya."""
+    return sd.seguimiento_visible(db, user, fin_jornada=fin)   # un aprobador solo ve su área (19-oct-2026)
 
 
 class TemaIn(BaseModel):
@@ -3244,6 +3247,10 @@ router.include_router(_support_router)
 # ---------- Training (aprendizaje interactivo bilingüe): rutas en routers/design_training.py ----------
 from .design_training import router as _training_router  # noqa: E402
 router.include_router(_training_router)
+
+# ---------- Solicitar ayuda (aprobadores de N3): rutas en routers/design_ayuda.py ----------
+from .design_ayuda import router as _ayuda_router  # noqa: E402
+router.include_router(_ayuda_router)
 
 # ---------- Mural (en construcción, solo Rosember): rutas en routers/design_mural.py ----------
 from .design_mural import router as _mural_router  # noqa: E402

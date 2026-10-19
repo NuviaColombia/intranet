@@ -1606,7 +1606,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var lista = dsElegibles();
       var html = '<select data-campo="designerId"' + al + ' data-previo="' + dsEsc(val || '') + '"><option value="">—</option>';
       lista.forEach(function(d) {
-        html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + (d.esManager ? ' (manager)' : '') + '</option>';
+        html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + (d.esManager ? ' (manager)' : '') + (d.esAyuda ? ' (ayuda)' : '') + '</option>';
       });
       if (val && !lista.some(function(d) { return d.id === val; })) {
         html += '<option value="' + dsEsc(val) + '" selected>' + dsEsc((f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : ' (prestado)')) + '</option>';
@@ -1625,7 +1625,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsElegibles() {
     if (!DS.diaData) return [];
     if (DS.diaData.designersCaso) return DS.diaData.designersCaso;
-    return (DS.diaData.designers || []).concat(DS.diaData.manager ? [DS.diaData.manager] : []);
+    var base = (DS.diaData.designers || []).concat(DS.diaData.manager ? [DS.diaData.manager] : []);
+    // Ayuda del día (Seguimiento › Solicitar ayuda): el diseñador que otro aprobador envió a este equipo
+    (DS.diaData.ayudas || []).forEach(function(a) { if (!base.some(function(d) { return d.id === a.id; })) base.push(a); });
+    return base;
   }
 
   function dsEsc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -3351,6 +3354,7 @@ function dpVista(v) {
   document.getElementById('ddVistaArticulacion').hidden = v !== 'articulacion';
   document.getElementById('ddVistaCambios').hidden = v !== 'cambios';
   var vl = document.getElementById('ddVistaLentas'); if (vl) { vl.hidden = v !== 'lentas'; if (v === 'lentas') dlIniciar(); }
+  var vy = document.getElementById('ddVistaAyudas'); if (vy) { vy.hidden = v !== 'ayudas'; if (v === 'ayudas' && window.dyIniciar) window.dyIniciar(); }
   if (v === 'cambios') { dcSemestreInicial(); dcCargar(true); }
   if (v === 'productos') dpCargar();
   if (v === 'articulacion') daCargar();

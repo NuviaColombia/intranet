@@ -334,7 +334,7 @@ window.dsPdfjs = function() {
 </div></div>
 {% if ver_dashboard %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
-<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button>{% endif %}</div>
+<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button><button type="button" class="dd-vista" data-dv="ayudas" role="tab" aria-selected="false">🤝 Ayudas</button>{% endif %}</div>
 <div id="ddVistaResumen">
 
 <div class="dd-search">
@@ -456,6 +456,20 @@ window.dsPdfjs = function() {
   <div id="dlMas" style="margin-top:8px"></div></div>
 </div>
 {% endif %}
+{% if user.rol in ('admin', 'superadmin') %}
+<div id="ddVistaAyudas" hidden>
+<p class="dd-p-nota">Solicitudes de ayuda entre aprobadores de N3: a quién le llegaron, qué diseñador sugería el sistema (el que menos casos lleva en el mes), cuál eligió el aprobador y si siguió la sugerencia. «Sin disponibles» son las veces que nadie tenía un diseñador libre.</p>
+<div class="dd-kpis" id="dyKpis"></div>
+<div class="dd-filtros">
+  <div><label for="dyDesde">Desde</label><input type="date" id="dyDesde"></div>
+  <div><label for="dyHasta">Hasta</label><input type="date" id="dyHasta"></div>
+</div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Por aprobador</h3><span style="font-size:12px;color:#4b5563">Quién envía diseñadores y qué tanto sigue la sugerencia</span></div>
+  <div class="dp-tabla-w"><table class="dd-tabla" id="dyAprobadores"></table></div></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Solicitudes</h3></div>
+  <div class="dp-tabla-w"><table class="dd-tabla" id="dyTabla"></table></div></div>
+</div>
+{% endif %}
 <div id="ddVistaCambios" hidden>
 <p class="dd-p-nota">Cambios que piden el doctor (DOC) o el laboratorio (LAB) sobre cada caso. Haz clic en una celda para editarla; los encabezados ordenan. Tiene sus propios filtros: no depende del periodo del Dashboard.</p>
 <div class="dd-kpis" id="dcKpis"></div>
@@ -504,7 +518,8 @@ window.dsPdfjs = function() {
 <div class="sg-cab"><h1>Seguimiento <span class="sg-vivo">● en vivo</span></h1><span class="sg-hora" id="sgHora"></span></div>
 <p style="color:#4b5563;font-size:13px;margin-top:-8px">Qué está haciendo cada diseñador ahora. Arriba los libres (sin casos por hacer y fuera de break o almuerzo, primero el que lleva más tiempo libre); abajo los ocupados. Se actualiza cada 20 segundos.</p>
 <div class="sg-vistas" role="tablist"><button type="button" class="sg-vista on" data-vista="disenadores" role="tab">👤 Diseñadores</button><button type="button" class="sg-vista" data-vista="equipos" role="tab">📋 Casos por equipo</button><button type="button" class="sg-vista" data-vista="produccion" role="tab">🧾 N3/N2 Producción</button></div>
-<div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><label class="sg-fin" id="sgFechaW" hidden>Día <input type="date" id="sgFecha"></label><label class="sg-fin" id="sgFinW" hidden>Fin de la jornada <input type="time" id="sgFin" value="17:00"></label><span class="sg-modo" id="sgModoW" role="group" aria-label="Forma de ver"><button type="button" data-modo="tablero" class="on" title="Una columna por estado">▦ Tablero</button><button type="button" data-modo="lista" title="Tabla">☰ Lista</button></span><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button></div>
+<div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><label class="sg-fin" id="sgFechaW" hidden>Día <input type="date" id="sgFecha"></label><label class="sg-fin" id="sgFinW" hidden>Fin de la jornada <input type="time" id="sgFin" value="17:00"></label><span class="sg-modo" id="sgModoW" role="group" aria-label="Forma de ver"><button type="button" data-modo="tablero" class="on" title="Una columna por estado">▦ Tablero</button><button type="button" data-modo="lista" title="Tabla">☰ Lista</button></span><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button><button type="button" class="btn" id="sgAyuda" hidden>🤝 Solicitar ayuda</button></div>
+<div id="sgAyudaEstado" class="ay-estado" role="status" hidden></div>
 <div id="sgVistaDis">
 <div class="sg-resumen" id="sgResumen"></div>
 <div class="sg-tablero" id="sgTablero"></div>
@@ -608,5 +623,5 @@ window.DS_CFG = {userId: {{ user.id }}, esAprobador: {{ 'true' if user.rol in ('
                  esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
 </script>
 <script src="/static/design/schedule.min.js?v={{ dsv }}"></script>   <!-- generado por scripts/minificar_design.py desde schedule.js -->
-{% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script>{% endif %}
+{% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script><script src="/static/design/ayuda.js?v={{ dsv }}"></script>{% endif %}
 {% endblock %}

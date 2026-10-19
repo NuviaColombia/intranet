@@ -1123,3 +1123,19 @@ table.ds-tabla input[type=time] { width: 8.2em; min-width: 0; padding-left: 4px;
 /* Aprobaciones lentas */
 .dl-pend { display:inline-block; background:#fee2e2; color:#991b1b; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
 .dl-ok { display:inline-block; background:#dcfce7; color:#14532d; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
+
+
+/* Solicitar ayuda (Seguimiento › Diseñadores y aviso para los aprobadores) */
+.ay-estado { margin:8px 0; padding:8px 12px; border-radius:8px; font-size:13px; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.ay-estado[hidden] { display:none; }
+.ay-estado.ok { background:#f0fdf4; color:#14532d; border-color:#bbf7d0; }
+.ay-estado.mal { background:#fef2f2; color:#7f1d1d; border-color:#fecaca; }
+.ay-modal { max-width:460px; }
+.ay-op { display:flex !important; align-items:center; gap:8px; flex-wrap:wrap; text-align:left; border:2px solid transparent; }
+.ay-op.on { border-color:#1d4ed8; background:#eff6ff; }
+.ay-casos { margin-left:auto; font-size:12px; color:#475569; }
+.ay-sug { background:#dcfce7; color:#14532d; font-size:11px; font-weight:700; border-radius:999px; padding:1px 8px; }
+.ay-error { color:#b91c1c; font-size:13px; margin:6px 0 0; }
+.ay-pildora { position:fixed; left:18px; bottom:18px; z-index:2500; border:0; border-radius:999px; padding:10px 16px; background:#1d4ed8; color:#fff; font:inherit; font-weight:700; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.3); animation:ayLatir 1.8s ease-in-out infinite; }
+@keyframes ayLatir { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+@media (prefers-reduced-motion:reduce) { .ay-pildora { animation:none; } }

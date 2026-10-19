@@ -1107,3 +1107,45 @@ class DesignPermisoEdicion(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     empleado = relationship("Empleado")
+
+
+class DesignAyudaSolicitud(Base):
+    """Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3.
+    estado: abierta | atendida | sin_disponibles | cancelada | vencida. Una sola ayuda por solicitud: al elegir un
+    diseñador se cierra. `siguio_sugerencia` dice si quien respondió eligió al que el sistema sugería (menos casos en el mes)."""
+    __tablename__ = "design_ayuda_solicitudes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    solicitante_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), index=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id"))
+    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
+    fecha: Mapped[date] = mapped_column(Date, index=True)            # día de Colombia en que se pidió
+    creada_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    vence_en: Mapped[datetime] = mapped_column(DateTime)
+    estado: Mapped[str] = mapped_column(String(20), default="abierta")
+    n_aprobadores: Mapped[int] = mapped_column(Integer, default=0)   # a cuántos aprobadores se les avisó
+    n_libres: Mapped[int] = mapped_column(Integer, default=0)        # cuántos diseñadores libres había en total
+    elegido_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    elegido_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    elegido_team_id: Mapped[int | None] = mapped_column(Integer, nullable=True)   # equipo de donde salió el diseñador
+    sugerido_id: Mapped[int | None] = mapped_column(Integer, nullable=True)       # el sugerido a quien respondió
+    siguio_sugerencia: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    atendida_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    solicitante = relationship("Empleado", foreign_keys=[solicitante_id])
+    elegido = relationship("Empleado", foreign_keys=[elegido_id])
+    elegido_por = relationship("Empleado", foreign_keys=[elegido_por_id])
+    team = relationship("DesignTeam", foreign_keys=[team_id])
+
+
+class DesignAyudaOferta(Base):
+    """Lo que se le ofreció a cada aprobador en una solicitud: sus diseñadores libres (JSON) y el sugerido."""
+    __tablename__ = "design_ayuda_ofertas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    solicitud_id: Mapped[int] = mapped_column(ForeignKey("design_ayuda_solicitudes.id"), index=True)
+    aprobador_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"), index=True)
+    libres: Mapped[str] = mapped_column(Text, default="[]")   # [{id, nombre, casos, equipoId}] ordenado: el primero es el sugerido
+    sugerido_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    aprobador = relationship("Empleado", foreign_keys=[aprobador_id])

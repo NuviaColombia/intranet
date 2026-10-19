@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (594 reglas) ---- */
+/* ---- static\design\schedule.css (603 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -652,6 +652,15 @@
 :root[data-ds-tema="oscuro"] .dcd-auto { color:#ced7ee; }
 :root[data-ds-tema="oscuro"] .dl-pend { background:#371212; color:#ed9797; }
 :root[data-ds-tema="oscuro"] .dl-ok { background:#153821; color:#b9eece; }
+:root[data-ds-tema="oscuro"] .ay-estado { background:#0f1e32; color:#9fb3ea; border:1px solid #233b5a; }
+:root[data-ds-tema="oscuro"] .ay-estado.ok { background:#132e1b; color:#b9eece; border-color:#295739; }
+:root[data-ds-tema="oscuro"] .ay-estado.mal { background:#2f1111; color:#eaa5a5; border-color:#572222; }
+:root[data-ds-tema="oscuro"] .ay-op { border:2px solid transparent; }
+:root[data-ds-tema="oscuro"] .ay-op.on { border-color:#1d4ed8; background:#0f1e32; }
+:root[data-ds-tema="oscuro"] .ay-casos { color:#bbc0cb; }
+:root[data-ds-tema="oscuro"] .ay-sug { background:#153821; color:#b9eece; }
+:root[data-ds-tema="oscuro"] .ay-error { color:#ed8888; }
+:root[data-ds-tema="oscuro"] .ay-pildora { background:#1d4ed8; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.3); }
 
 /* ---- static\inicio\inicio.css (156 reglas) ---- */
 :root[data-ds-tema="oscuro"] .nvi-pagina { background:var(--nvi-fondo); color:var(--nvi-texto); }

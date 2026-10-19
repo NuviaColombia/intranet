@@ -225,6 +225,7 @@
       .then(function(d) {
         datos = d;
         var actual = selArea.value;
+        selArea.hidden = d.alcance === 'area' && d.areas.length <= 1;   // un aprobador solo ve su área (19-oct-2026): no hay nada que filtrar
         selArea.innerHTML = '<option value="">Todas las áreas</option>' + d.areas.map(function(a) { return '<option' + (a === actual ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('');
         if (vista === 'equipos') pintarEquipos(); else if (vista === 'produccion') cargarProd(); else pintar();
       })

@@ -1135,6 +1135,31 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
             "equipos": seguimiento_equipos(db, fin_jornada, ahora, out), "finJornada": fin_jornada}
 
 
+def areas_de_gestion(db: Session, user: Empleado) -> set[str] | None:
+    """Áreas que `user` puede ver en Seguimiento (19-oct-2026): None = todas (admins); un aprobador, solo las áreas de los
+    equipos que maneja (como manager o como diseñador a cargo hoy)."""
+    if es_admin(user):
+        return None
+    cargo = {tid for tid, eid in delegaciones_activas(db).items() if eid == user.id}
+    teams = db.query(DesignTeam).options(joinedload(DesignTeam.area)).filter(DesignTeam.activo == 1).all()
+    return {t.area.nombre for t in teams if t.area and (t.manager_id == user.id or t.id in cargo)}
+
+
+def seguimiento_visible(db: Session, user: Empleado, fin_jornada: str = "17:00") -> dict:
+    """Seguimiento recortado a lo que `user` puede ver: los admins todo (con el filtro por área); un aprobador, solo los
+    diseñadores y equipos de su área (Luisa Ortiz, de N3, no ve N2, Face ni N6)."""
+    d = seguimiento(db, fin_jornada=fin_jornada)
+    areas = areas_de_gestion(db, user)
+    d["alcance"] = "todas" if areas is None else "area"
+    if areas is None:
+        return d
+    d["disenadores"] = [dict(x, areas=[a for a in x["areas"] if a in areas]) for x in d["disenadores"] if any(a in areas for a in x["areas"])]
+    d["equipos"] = [e for e in d["equipos"] if e["area"] in areas]
+    d["areas"] = sorted(areas)
+    d["resumen"] = {g: sum(1 for x in d["disenadores"] if x["grupo"] == g) for g in SEG_GRUPOS}
+    return d
+
+
 # ---------- Seguimiento › Casos por equipo: ¿alcanza el equipo a cumplir su producción de hoy? ----------
 # Por equipo: casos que programó el manager hoy, cómo van, diseñadores en turno y una estimación de si alcanzan
 # antes del fin de la jornada. El tiempo de cada caso pendiente es el promedio real de su producto (últimos 30 días);
