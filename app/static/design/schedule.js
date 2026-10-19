@@ -1022,6 +1022,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       var ev = (input.tagName === 'SELECT' || input.type === 'checkbox') ? 'change' : 'blur';
       input.addEventListener(ev, function() {
         if (ev === 'blur' && dsSinCambio(tr, tabla, input)) return; // no cambió (p. ej. pasar con Tab)
+        if (input.value === '__colores') { dsAbrirColores(tr, tabla, input); return; }
+        if (input.dataset.campo === 'designerId' || input.dataset.campo === 'centro') dsPintarCelda(input);
         if (input.dataset.campo === 'designerId' && input.value === '__otro') { dsElegirPrestado(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__training') { dsMoverATraining(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__ayuda') { dsPedirAyuda(tr, input); return; }
@@ -1419,10 +1421,105 @@ window.addEventListener('unhandledrejection', function(ev) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
             }
           });
+          if (c.k === 'centro') {   // «Colores…» siempre al final de la lista
+            var oc = sel.querySelector('option[value="__colores"]');
+            if (oc) oc.remove();
+            sel.insertAdjacentHTML('beforeend', DS_OPCION_COLORES);
+          }
           if (actual) sel.value = actual;
+          if (c.k === 'centro') dsPintarCelda(sel);
         });
       });
     });
+  }
+
+  // ---------- Colores de diseñadores y centros (19-oct-2026) ----------
+  // Cada equipo pinta las casillas de Diseñador y Centro con el color que quiera, desde la opción «🎨 Colores…» al final de
+  // esas listas. Es una preferencia de cada PC: vive en el navegador (localStorage), por equipo; no va a la base de datos.
+  var DS_OPCION_COLORES = '<option value="__colores">🎨 Colores…</option>';
+  var DS_COLORES = [
+    {k: 'rojo', n: 'Rojo', c: '239,68,68'}, {k: 'naranja', n: 'Naranja', c: '249,115,22'}, {k: 'amarillo', n: 'Amarillo', c: '234,179,8'},
+    {k: 'lima', n: 'Lima', c: '132,204,22'}, {k: 'verde', n: 'Verde', c: '34,197,94'}, {k: 'turquesa', n: 'Turquesa', c: '20,184,166'},
+    {k: 'celeste', n: 'Celeste', c: '14,165,233'}, {k: 'azul', n: 'Azul', c: '59,130,246'}, {k: 'morado', n: 'Morado', c: '139,92,246'},
+    {k: 'rosado', n: 'Rosado', c: '236,72,153'}, {k: 'cafe', n: 'Café', c: '161,98,7'}, {k: 'gris', n: 'Gris', c: '107,114,128'}
+  ];
+  function dsColoresClave() { return 'dsColores:' + DS.teamId; }
+  function dsColoresLeer() {
+    try { var x = JSON.parse(localStorage.getItem(dsColoresClave()) || '{}'); return {d: x.d || {}, c: x.c || {}}; }
+    catch (e) { return {d: {}, c: {}}; }
+  }
+  function dsColoresGuardar(x) { try { localStorage.setItem(dsColoresClave(), JSON.stringify(x)); } catch (e) {} }
+  function dsColorRgb(k) { var c = DS_COLORES.find(function(x) { return x.k === k; }); return c ? c.c : null; }
+  // Pinta una casilla según su valor (diseñador por id, centro por nombre). Fondo suave + borde a la izquierda: se lee en claro y oscuro.
+  function dsPintarCelda(sel, colores) {
+    if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaPrincipal, #dsTablaNightguard')) return;   // las prestadas son de otro equipo
+    var x = colores || dsColoresLeer(), campo = sel.dataset.campo;
+    var v = campo === 'designerId' ? sel.value : (sel.value || sel.dataset.valorActual || '');
+    var rgb = dsColorRgb(campo === 'designerId' ? x.d[v] : x.c[v]);
+    // 'important': en modo oscuro las filas con color de estado vuelven transparentes sus casillas (oscuro.css)
+    if (rgb) sel.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else sel.style.removeProperty('background-color');
+    sel.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
+  }
+  function dsPintarColores(scope) {
+    var x = dsColoresLeer();
+    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"]').forEach(function(s) { dsPintarCelda(s, x); });
+  }
+  // La lista vuelve a lo que tenía (la opción «Colores…» nunca se guarda en la orden) y se abre la ventana de colores.
+  function dsAbrirColores(tr, tabla, sel) {
+    var f = (DS.diaData && DS.diaData[tabla] || []).find(function(o) { return String(o.id) === tr.dataset.id; });
+    var campo = sel.dataset.campo, previo = f ? f[campo] : (campo === 'designerId' ? sel.dataset.previo : sel.dataset.valorActual);
+    sel.value = previo == null ? '' : String(previo);
+    var nombres = [];
+    if (campo === 'designerId') {
+      Array.prototype.forEach.call(sel.options, function(o) {
+        if (o.value && o.value.indexOf('__') !== 0) nombres.push({id: o.value, nombre: o.text.replace(/ \((manager|ayuda|prestado|ya no está)\)$/, '')});
+      });
+    } else {
+      Array.prototype.forEach.call(sel.options, function(o) { if (o.value && o.value !== '__colores') nombres.push({id: o.value, nombre: o.value}); });
+      nombres.sort(function(a, b) { return a.nombre.localeCompare(b.nombre, 'es', {sensitivity: 'base'}); });
+    }
+    dsModalColores(campo === 'designerId' ? 'd' : 'c', nombres, sel.value);
+  }
+  function dsModalColores(tipo, nombres, actual) {
+    var x = dsColoresLeer(), mapa = x[tipo];
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'dsColores';
+    bg.innerHTML = '<div class="ds-qc ds-col-modal" role="dialog" aria-modal="true" aria-labelledby="dsColTit">' +
+      '<h4 id="dsColTit">Colores de ' + (tipo === 'd' ? 'diseñadores' : 'centros') + '</h4>' +
+      '<div class="ds-qc-sub">Elige un color para cada ' + (tipo === 'd' ? 'diseñador' : 'centro') + '. Solo se ve en este computador y en este equipo.</div>' +
+      '<div class="ds-col-lista"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-col="quitar">Quitar todos</button><button type="button" class="btn" data-col="listo">Listo</button></div></div>';
+    document.body.appendChild(bg);
+    var lista = bg.querySelector('.ds-col-lista');
+    nombres.forEach(function(n) {
+      var fila = document.createElement('div'); fila.className = 'ds-col-fila' + (n.id === actual ? ' ds-col-actual' : '');
+      var nom = document.createElement('span'); nom.className = 'ds-col-nombre'; nom.textContent = n.nombre;
+      var pal = document.createElement('div'); pal.className = 'ds-col-paleta';
+      var marcar = function() {
+        var rgb = dsColorRgb(mapa[n.id]);
+        nom.style.backgroundColor = rgb ? 'rgba(' + rgb + ',.22)' : ''; nom.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
+        pal.querySelectorAll('button').forEach(function(b) { b.setAttribute('aria-pressed', String((b.dataset.k || '') === (mapa[n.id] || ''))); });
+      };
+      [{k: '', n: 'Sin color'}].concat(DS_COLORES).forEach(function(c) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'ds-col-punto' + (c.k ? '' : ' ds-col-sin');
+        b.dataset.k = c.k; b.title = c.n; b.setAttribute('aria-label', n.nombre + ': ' + c.n);
+        if (c.c) b.style.background = 'rgb(' + c.c + ')';
+        b.onclick = function() { if (c.k) mapa[n.id] = c.k; else delete mapa[n.id]; dsColoresGuardar(x); marcar(); dsPintarColores(); };
+        pal.appendChild(b);
+      });
+      fila.appendChild(nom); fila.appendChild(pal); lista.appendChild(fila); marcar();
+    });
+    if (!nombres.length) lista.innerHTML = '<p class="ds-prest-vacio">No hay nombres en esta lista.</p>';
+    var teclas = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
+    bg.querySelector('[data-col="listo"]').onclick = cerrar;
+    bg.querySelector('[data-col="quitar"]').onclick = function() {
+      if (!confirm('¿Quitar todos los colores de ' + (tipo === 'd' ? 'diseñadores' : 'centros') + ' de este equipo?')) return;
+      Object.keys(mapa).forEach(function(k) { delete mapa[k]; }); dsColoresGuardar(x); dsPintarColores(); cerrar();
+    };
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    document.addEventListener('keydown', teclas, true);
+    var a = lista.querySelector('.ds-col-actual button[aria-pressed="true"]') || lista.querySelector('button'); if (a) a.focus();
+    var fa = lista.querySelector('.ds-col-actual'); if (fa) fa.scrollIntoView({block: 'nearest'});
   }
 
   function dsRenderTabla(tabla) {
@@ -1475,6 +1572,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       });
     });
     dsPoblarCatalogos(cont, spec, tabla);
+    dsPintarColores(cont);
     dsAplicarOcultas(tabla);
   }
 
@@ -1625,6 +1723,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         html += dsOpcionTraining(f);   // pasa el caso al Schedule de Training (se habilita con orden, paciente y centro)
       }
       // Pedir ayuda (19-oct-2026): al final de la lista, en las órdenes ya guardadas de hoy del aprobador de un equipo de N3
+      html += DS_OPCION_COLORES;   // colores de cada diseñador (preferencia de este PC); «Pedir ayuda…» sigue siendo la última
       if (f.id && DS.diaData && DS.diaData.puedeAyuda && !dsDiaCerrado()) html += '<option value="__ayuda">🤝 Pedir ayuda…</option>';
       return html + '</select>';
     }
