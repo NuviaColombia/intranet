@@ -27,8 +27,9 @@
   function hace(iso) { var m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)); return m < 1 ? 'ahora' : 'hace ' + m + ' min'; }
 
   // ---------- Estado ----------
+  var cargadoEn = 0;
   function cargar() {
-    var mio = ++tok;
+    var mio = ++tok; cargadoEn = Date.now();
     return api('/design/api/ayuda/estado').then(function(d) {
       if (mio !== tok) return;
       var antes = previas;
@@ -178,7 +179,11 @@
 
   // ---------- Arranque ----------
   window.DSAyuda = {solicitar: solicitar, recargar: cargar};
-  document.addEventListener('ds:vivo', function(e) { var a = e.detail || {}; if (a.t === 'ayuda' || a.t === 'reconectado') cargar(); });
+  document.addEventListener('ds:vivo', function(e) {
+    var a = e.detail || {};
+    if (a.t === 'reconectado' && a.primera && Date.now() - cargadoEn < 15000) return;   // recién cargado al abrir la página
+    if (a.t === 'ayuda' || a.t === 'reconectado') cargar();
+  });
   document.addEventListener('visibilitychange', function() { if (!document.hidden) cargar(); });
   function iniciar() {
     engancharSeguimiento();

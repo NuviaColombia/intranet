@@ -2439,7 +2439,13 @@ window.addEventListener('unhandledrejection', function(ev) {
   document.addEventListener('visibilitychange', function() { if (!document.hidden) dsVivoQuiza(true); });
   document.addEventListener('ds:vivo', function(e) {
     var a = e.detail || {};
-    if (a.t === 'reconectado') { dsVivoPend = true; return; }
+    if (a.t === 'reconectado') {
+      // Al abrir la página: si la conexión en vivo ya estaba lista cuando se pidió el día, no se perdió nada (simulación de
+      // 150 personas, 19-oct-2026: cada apertura pedía la huella del día dos veces sin necesidad)
+      var v = window.DSVivo;
+      if (a.primera && DS.diaPedidoEn && v && v.holaEn && v.holaEn <= DS.diaPedidoEn) return;
+      dsVivoPend = true; return;
+    }
     if (a.t === 'cfg') {   // cambiaron equipos, catálogos, festivos...: se vuelven a pedir con una espera al azar (para no pedir todos a la vez)
       clearTimeout(DS.tCfg);
       DS.tCfg = setTimeout(function() { catalogoCache = {}; DS.forzarRender = true; DS.diaVersion = '(cfg)'; dsVivoPend = true; dsVivoQuiza(false); }, 500 + Math.random() * 4000);
@@ -2462,7 +2468,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!DS.teamId) return;
     var fechaPedida = dsFechaISO(dsFechaSeleccionada()), teamPedido = DS.teamId;
     var url = '/design/api/dia?team_id=' + DS.teamId + '&fecha=' + fechaPedida;
-    DS.diaUrl = url;
+    DS.diaUrl = url; DS.diaPedidoEn = Date.now();
     // Mientras llega el día nuevo, la tabla y los tiempos libres del día anterior no se pueden editar (se guardarían con otra fecha).
     document.body.classList.add('ds-cargando-dia');
     // Si falla por un corte de conexión o un error momentáneo del servidor, se reintenta solo antes de avisar.
@@ -2477,6 +2483,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dia._fecha = fechaPedida; dia._team = teamPedido;
       document.body.classList.remove('ds-cargando-dia');
       dsAplicarDia(dia, soloOrdenes);
+      dsVivoUlt = Date.now();   // recién traído del servidor: la revisión de seguridad (90 s) cuenta desde aquí
       if (DS.resaltar) { // viene de la búsqueda: marca la orden encontrada
         var trR = document.querySelector('#dsVistaEquipo tr[data-id="' + DS.resaltar + '"]');
         DS.resaltar = null;

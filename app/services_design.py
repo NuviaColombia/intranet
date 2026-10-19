@@ -6,7 +6,7 @@ import unicodedata
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session, joinedload, defer
-from sqlalchemy import func, and_, or_, text
+from sqlalchemy import func, and_, or_, text, event
 from .models import EMPRESA_DESIGN, Empleado, Solicitud, TipoPermiso
 from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE, FORMATO_DUAL
 from .models_design import (DesignFotoPerfil, DesignArea, DesignTeam, DesignTeamDesigner, DesignCatalogo,
@@ -50,8 +50,24 @@ def ordenar_areas(areas: list[DesignArea]) -> list[DesignArea]:
     return sorted(areas, key=clave)
 
 
+def memo_sesion(db: Session, clave, calcular):
+    """Lo mismo consultado varias veces en UNA petición (la sesión de la base dura lo que dura la petición) se pide una
+    sola vez. Se olvida apenas la sesión guarda algo (ver _olvidar_memo), así nunca se usa un dato viejo.
+    Simulación de 150 personas (19-oct-2026): abrir el Schedule repetía mis_equipos 3 veces (24 consultas -> 14); con la
+    demora de red hacia la base cada consulta cuenta."""
+    m = db.info.setdefault("ds_memo", {})
+    if clave not in m:
+        m[clave] = calcular()
+    return m[clave]
+
+
+@event.listens_for(Session, "after_flush")
+def _olvidar_memo(session, _contexto):
+    session.info.pop("ds_memo", None)
+
+
 def areas_disponibles(db: Session) -> list[DesignArea]:
-    return ordenar_areas(db.query(DesignArea).filter(DesignArea.activo == 1).all())
+    return list(memo_sesion(db, "areas", lambda: ordenar_areas(db.query(DesignArea).filter(DesignArea.activo == 1).all())))
 
 
 def equipos_de_area(db: Session, area_id: int) -> list[DesignTeam]:
@@ -67,8 +83,8 @@ def es_admin(user: Empleado) -> bool:
 
 def equipos_como_designer(db: Session, user: Empleado) -> set[int]:
     """Ids de los equipos en los que `user` está asignado como diseñador."""
-    return {tid for (tid,) in db.query(DesignTeamDesigner.team_id)
-            .filter(DesignTeamDesigner.empleado_id == user.id).all()}
+    return set(memo_sesion(db, ("como_designer", user.id), lambda: {tid for (tid,) in db.query(DesignTeamDesigner.team_id)
+                                                                    .filter(DesignTeamDesigner.empleado_id == user.id).all()}))
 
 
 # Personas que, sin ser manager, pueden CREAR órdenes de un solo producto en ciertos equipos (el producto queda fijo).
@@ -272,6 +288,10 @@ def mis_equipos(db: Session, user: Empleado) -> list[dict]:
     está como diseñador, cada grupo según el orden de las áreas. El primero es el que se abre al entrar."""
     if es_admin(user):
         return []
+    return [dict(x) for x in memo_sesion(db, ("mis_equipos", user.id), lambda: _mis_equipos(db, user))]
+
+
+def _mis_equipos(db: Session, user: Empleado) -> list[dict]:
     areas = areas_disponibles(db)
     pos = {a.id: i for i, a in enumerate(areas)}
     nombre_area = {a.id: a.nombre for a in areas}

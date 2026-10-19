@@ -1518,6 +1518,13 @@ def diagnostico_face_n2(request: Request, orden: str = Query("", max_length=50),
     return templates.TemplateResponse(request, "design_diag_face_n2.html", {"user": user, "es_design": True, "d": d, "orden": orden})
 
 
+@router.get("/design/diagnostico/rendimiento")
+def diagnostico_rendimiento(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: demora real hacia la base, conexiones en vivo, pool, memoria y CPU (simulación de 150 personas, 19-oct-2026)."""
+    from .. import services_design_rendimiento as srend
+    return templates.TemplateResponse(request, "design_diag_rendimiento.html", {"user": user, "es_design": True, "d": srend.medir(db)})
+
+
 @router.post("/design/api/ordenes/{orden_id}")
 def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),

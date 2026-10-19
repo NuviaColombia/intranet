@@ -94,6 +94,7 @@
   var tAviso = null;
   document.addEventListener('ds:vivo', function(e) {
     var a = e.detail || {};
+    if (a.t === 'reconectado' && a.primera && Date.now() - ultCarga < 15000) return;   // recién cargado al abrir la página
     var mio = (a.t === 'asig' && (!a.id || (datos && a.id === datos.yo))) || (a.t === 'dia' && !a.team) || a.t === 'reconectado';
     if (!mio) return;
     clearTimeout(tAviso); tAviso = setTimeout(function() { ultCarga = Date.now(); cargar(); }, 400);   // varios cambios seguidos = una consulta
