@@ -453,7 +453,6 @@ async function loadAbsenceMeta() {
 const loadTags = async () => (state.tags = await api.get('/design/api/calendario/tags'));
 const loadUsers = async () => (state.users = await api.get('/design/api/calendario/users'));
 const loadTasks = async () => (state.tasks = await api.get('/design/api/calendario/my-tasks'));
-const loadActivity = async () => (state.activity = await api.get('/design/api/calendario/activity'));
 
 async function refresh() {
   renderAll(); // pinta inmediatamente con lo que haya (festivos, navegación)
@@ -496,7 +495,6 @@ function renderTopbar() {
   else title = c.slice(0, 4);
   $('#period-title').textContent = title;
   $$('#view-switch button').forEach((b) => b.classList.toggle('active', b.dataset.view === state.view));
-  $('#user-btn').innerHTML = avatar(state.me, 'lg');
   document.title = `${title} · Calendario`;
 }
 
@@ -1493,9 +1491,8 @@ function upsertLocal(ev) {
 
 const reloadSide = debounce(async () => {
   try {
-    await Promise.all([loadTasks(), loadActivity(), loadTags()]);
+    await Promise.all([loadTasks(), loadTags()]);
     renderSidebar();
-    if (!$('#activity-drawer').hidden) renderActivity();
   } catch (e) {
     handleError(e);
   }
@@ -1741,44 +1738,6 @@ function openShortcuts() {
   el.addEventListener('click', (e) => e.target.closest('[data-close]') && closeModal());
 }
 
-function renderActivity() {
-  const label = (a) => {
-    if (a.action === 'created') return 'creó';
-    if (a.action === 'updated') return 'actualizó';
-    if (a.action === 'deleted') return 'eliminó';
-    if (a.action === 'deleted_occurrence') return 'eliminó una ocurrencia de';
-    if (a.action === 'commented') return 'comentó en';
-    if (a.action === 'status:done') return 'completó';
-    if (a.action === 'status:in_progress') return 'empezó';
-    if (a.action === 'status:pending') return 'reabrió';
-    return a.action;
-  };
-  $('#activity-list').innerHTML = state.activity.length
-    ? state.activity
-        .map(
-          (a) => `<li>${avatar({ id: a.user_id, name: a.user_name || '?', color: a.user_color || '#94a3b8' })}
-          <div><div><b>${esc(a.user_name || 'Alguien')}</b> ${label(a)}
-          ${a.action === 'deleted' ? `<span>«${esc(a.title)}»</span>` : `<span class="a-link" data-open="${a.event_id}">«${esc(a.title)}»</span>`}</div>
-          <div class="a-time">${timeAgo(a.created_at)}</div></div></li>`,
-        )
-        .join('')
-    : '<li class="muted">Sin actividad todavía.</li>';
-}
-
-function openUserMenu(anchor) {
-  const pop = showPopover(
-    anchor,
-    `<div style="display:flex;gap:10px;align-items:center;padding:4px 6px 10px;border-bottom:1px solid var(--border);margin-bottom:6px">
-      ${avatar(state.me, 'lg')}<div><b>${esc(state.me.name)}</b><div class="tiny muted">${esc(state.me.email)}</div></div></div>
-     ${canCreate() ? '<button class="menu-item" data-menu="tags">🏷️ Administrar etiquetas</button>' : ''}
-     ${canCreate() ? '<button class="menu-item" data-menu="estimate">🌴 Vacaciones estimadas</button>' : ''}
-     <button class="menu-item" data-menu="ics">⬇️ Exportar calendario (.ics)</button>
-     <button class="menu-item" data-menu="keys">⌨️ Atajos de teclado</button>`,
-    { width: 260 },
-  );
-  pop.style.left = Math.max(8, anchor.getBoundingClientRect().right - 260) + 'px';
-}
-
 function openPeriodPicker(anchor) {
   let year = Number(state.cursor.slice(0, 4));
   const paint = () => {
@@ -1894,11 +1853,9 @@ const reloadEquipos = debounce(async () => {
 function connectStream() {
   const reload = debounce(async () => {
     try {
-      await Promise.all([loadEvents(), loadTasks(), loadActivity(), loadTags(), loadAbsences()]);
+      await Promise.all([loadEvents(), loadTasks(), loadTags(), loadAbsences()]);
       renderMain();
       renderSidebar();
-      if (!$('#activity-drawer').hidden) renderActivity();
-      else $('#activity-dot').hidden = false;
     } catch (e) {
       handleError(e);
     }
@@ -1923,27 +1880,11 @@ function setupEvents() {
     const b = e.target.closest('[data-view]');
     if (b) goTo(state.cursor, b.dataset.view);
   };
-  $('#user-btn').onclick = (e) => {
-    e.stopPropagation();
-    openUserMenu(e.currentTarget);
-  };
-  $('#activity-btn').onclick = async () => {
-    const d = $('#activity-drawer');
-    d.hidden = !d.hidden;
-    $('#activity-dot').hidden = true;
-    if (!d.hidden) {
-      renderActivity();
-      await loadActivity().catch(handleError);
-      renderActivity();
-    }
-  };
-  $('[data-close-drawer]').onclick = () => ($('#activity-drawer').hidden = true);
-  $('#activity-list').onclick = (e) => {
-    const l = e.target.closest('[data-open]');
-    if (l) openEventById(l.dataset.open);
-  };
   $('#menu-btn').onclick = () => $('#sidebar').classList.toggle('open');
   $('#manage-tags').onclick = openTagManager;
+  // Antes en el menú de la cuenta (se quitó: la cuenta y las notificaciones ya están en la barra de la intranet)
+  $('#cal-ics').onclick = () => (location.href = '/design/api/calendario/export.ics');
+  $('#cal-keys').onclick = openShortcuts;
 
   // Filtros
   $('#f-holidays').onchange = (e) => {
@@ -2125,7 +2066,7 @@ function setupEvents() {
 
   document.addEventListener('mousedown', (e) => {
     const pop = $('#popover');
-    if (!pop.hidden && !pop.contains(e.target) && !e.target.closest('#period-title, #user-btn, [data-more], [data-abs-id], [data-abs-day]')) hidePopover();
+    if (!pop.hidden && !pop.contains(e.target) && !e.target.closest('#period-title, [data-more], [data-abs-id], [data-abs-day]')) hidePopover();
   });
   $('#backdrop').onclick = closeModal;
 
@@ -2133,7 +2074,6 @@ function setupEvents() {
     if (e.key === 'Escape') {
       if (!$('#popover').hidden) return hidePopover();
       if (modalStack.length) return closeModal();
-      $('#activity-drawer').hidden = true;
       $('#sidebar').classList.remove('open');
       return;
     }
@@ -2210,7 +2150,7 @@ async function boot(me) {
   $('#solo-lectura').hidden = canCreate();
   $('#manage-tags').hidden = !canCreate();
   try {
-    await Promise.all([loadUsers(), loadTags(), loadTasks(), loadActivity(), loadAbsenceMeta()]);
+    await Promise.all([loadUsers(), loadTags(), loadTasks(), loadAbsenceMeta()]);
     await refresh();
     connectStream();
   } catch (e) {

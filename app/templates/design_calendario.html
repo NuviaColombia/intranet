@@ -22,6 +22,7 @@
   .calapp .tl-cell.puede-estimar:hover { background: var(--primary-soft); }
   .calapp .est-acciones { display: flex; gap: 8px; margin-top: 12px; }
   .calapp .team-chip { font-size: 11px; color: var(--text-2); }
+  .calapp .cal-mas { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 </style>
 <div class="calapp" id="calapp">
   <div id="app" class="app">
@@ -48,8 +49,6 @@
       </div>
       <div class="top-actions">
         <span class="solo-lectura" id="solo-lectura" hidden title="Ves los eventos de tu equipo; si te asignan una tarea puedes marcarla como hecha">👁 Solo lectura</span>
-        <button class="icon-btn" id="activity-btn" aria-label="Actividad" title="Actividad del equipo">🔔<span class="dot" id="activity-dot" hidden></span></button>
-        <button class="avatar-btn" id="user-btn" aria-label="Más opciones"></button>
       </div>
     </header>
 
@@ -92,17 +91,15 @@
         <h3>Festivos <span id="holiday-year"></span></h3>
         <ul class="holiday-list" id="holiday-list"></ul>
       </section>
+
+      <section class="panel cal-mas">
+        <button class="link-btn" id="cal-ics" title="Archivo para Google Calendar, Outlook o Apple Calendar">⬇️ Exportar calendario (.ics)</button>
+        <button class="link-btn" id="cal-keys">⌨️ Atajos de teclado</button>
+      </section>
     </aside>
 
     <main class="main" id="main" tabindex="-1"></main>
 
-    <aside class="drawer" id="activity-drawer" hidden>
-      <div class="drawer-head">
-        <h3>Actividad del equipo</h3>
-        <button class="icon-btn" data-close-drawer aria-label="Cerrar">✕</button>
-      </div>
-      <ul class="activity-list" id="activity-list"></ul>
-    </aside>
   </div>
 
   <div class="backdrop" id="backdrop" hidden></div>

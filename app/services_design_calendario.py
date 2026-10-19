@@ -342,6 +342,31 @@ def _actividad(db: Session, user: Empleado, accion: str, ev: DesignCalEvento) ->
                               privado=ev.visibilidad == "private"))
 
 
+def _push(ids, titulo: str, cuerpo: str, ev: DesignCalEvento, etiqueta: str) -> None:
+    """Notificación push (las mismas de Design: services_design_push). El calendario ya no tiene campana propia."""
+    ids = sorted({i for i in ids if i})
+    if not ids:
+        return
+    try:
+        from . import services_design_push as spush
+        spush.enviar_en_segundo_plano(ids, titulo, cuerpo, url=f"/design/calendario?fecha={ev.fecha_inicio.isoformat()}", etiqueta=etiqueta)
+    except Exception:  # noqa: BLE001  (un push que falla nunca impide guardar)
+        log.exception("calendario: no se pudo enviar el push")
+
+
+def _cuando(ev: DesignCalEvento) -> str:
+    dia = ev.fecha_inicio.strftime("%d/%m/%Y")
+    if not ev.todo_el_dia and ev.hora_inicio:
+        return f"{dia} · {ev.hora_inicio}"
+    return dia if ev.fecha_fin == ev.fecha_inicio else f"{dia} al {ev.fecha_fin:%d/%m/%Y}"
+
+
+def _push_asignados(ev: DesignCalEvento, antes: set[int], actor: Empleado) -> None:
+    """A quien acaban de asignar (no a quien asigna)."""
+    nuevos = {a.empleado_id for a in ev.asignados} - antes - {actor.id}
+    _push(nuevos, f"📅 Te asignaron: {ev.titulo}", f"{_cuando(ev)} · lo asignó {actor.nombre_completo}.", ev, f"cal-asig-{ev.id}")
+
+
 def avisar() -> None:
     try:
         from . import services_design_vivo as sv
@@ -362,6 +387,7 @@ def crear(db: Session, user: Empleado, datos: dict) -> dict:
     _actividad(db, user, "created", ev)
     db.commit()
     avisar()
+    _push_asignados(ev, set(), user)
     return serializar(db, p, [ev])[0]
 
 
@@ -369,6 +395,7 @@ def actualizar(db: Session, user: Empleado, evento_id: int, datos: dict) -> dict
     ev, p = evento(db, user, evento_id)
     editor = puede_editar(p, ev)
     asignado = any(a.empleado_id == user.id for a in ev.asignados)
+    antes, estado_antes = {a.empleado_id for a in ev.asignados}, ev.estado
     claves = set(datos)
     if not editor:
         # Las personas asignadas (diseñadores) solo cambian el estado de su tarea
@@ -389,6 +416,9 @@ def actualizar(db: Session, user: Empleado, evento_id: int, datos: dict) -> dict
     db.commit()
     avisar()
     db.refresh(ev)
+    _push_asignados(ev, antes, user)
+    if ev.estado == "done" and estado_antes != "done" and ev.creado_por != user.id:
+        _push([ev.creado_por], f"✅ {user.nombre_completo} completó «{ev.titulo}»", _cuando(ev), ev, f"cal-hecho-{ev.id}")
     return serializar(db, p, [ev])[0]
 
 
