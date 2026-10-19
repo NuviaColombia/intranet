@@ -298,6 +298,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
+    prosthetic_scan_unico_n3_una_vez(db)
     productos_al_final_una_vez(db)
     productos_n2_a_face_una_vez(db)
     vals = [c.valor for c in db.query(DesignCatalogo)
@@ -663,6 +664,49 @@ def producto_prosthetic_scan_una_vez(db: Session) -> None:
         db.rollback()
 
 
+def _es_scan_measurement(valor: str) -> bool:
+    """¿Es un producto de tipo Prosthetic Scan / Scan-Measurement? Compara sin mayúsculas, espacios ni signos."""
+    k = re.sub(r"[^a-z0-9]", "", _normalizar_texto(valor))
+    return "prostheticscan" in k or k in ("scanmeasurement", "scanmeasurements")
+
+
+_scan_unico = {"ok": False}
+
+
+def prosthetic_scan_unico_n3_una_vez(db: Session) -> None:
+    """Una sola vez (pedido por Rosember el 19-oct-2026): en el catálogo de N3 solo queda UN producto de Prosthetic Scan
+    ("Prosthetic Scan/Measurement"); los repetidos se desactivan (no se borran: las órdenes que ya los tienen los
+    conservan). El que queda solo se elige en Nightguards / TC (ver dsEsProductoSoloNG en schedule.js), no en Cirugías.
+    Lo desactivado queda anotado en design_conexion_reglas."""
+    from .models_design import DesignConexionRegla
+    if _scan_unico["ok"]:
+        return
+    marca = "prosthetic_scan_unico_n3_2026_10_19"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            n3 = db.query(DesignArea).filter(DesignArea.nombre == "N3 Prosthetic").first()
+            desactivados = []
+            if n3:
+                prods = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == n3.id, DesignCatalogo.tipo == "producto")
+                         .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+                cand = [c for c in prods if _es_scan_measurement(c.valor)]
+                if cand:
+                    canon = _normalizar_texto(PRODUCTO_PROSTHETIC_SCAN)
+                    quedan = next((c for c in cand if _normalizar_texto(c.valor) == canon), None) or next((c for c in cand if c.activo), cand[0])
+                    quedan.activo = 1
+                    for c in cand:
+                        if c is not quedan and c.activo:
+                            c.activo = 0
+                            desactivados.append(c.valor)
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema",
+                                       valor=json.dumps({"desactivados": desactivados}, ensure_ascii=False)))
+            db.commit()
+        _scan_unico["ok"] = True
+    except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
+        db.rollback()
+
+
 def ordenar_estados_n3_n6_una_vez(db: Session) -> None:
     from .models_design import DesignConexionRegla
     if _estados_ordenados["ok"]:
@@ -702,6 +746,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
+    prosthetic_scan_unico_n3_una_vez(db)
     productos_al_final_una_vez(db)
     productos_n2_a_face_una_vez(db)
     out: dict[str, list[str]] = {}

@@ -543,6 +543,14 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsEsProductoNG(v) { return /nightguard/i.test(v) || /\btc\b/i.test(v); }
+  // Productos que van solo en la tabla de Nightguards / TC (no en Cirugías) aunque su nombre no diga Nightguard ni TC
+  // (15-oct-2026: Scan/Measurements de N3). Se comparan sin mayúsculas, espacios ni signos ("Scan / Measurements" = "Scan/Measurements").
+  // 19-oct-2026: también "Prosthetic Scan/Measurement" (cualquier nombre que lleve "Prosthetic Scan"): queda un solo producto en N3 y va aquí.
+  var DS_PRODUCTOS_SOLO_NG = ['scanmeasurements', 'scanmeasurement'];
+  function dsEsProductoSoloNG(v) {
+    var k = String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+    return DS_PRODUCTOS_SOLO_NG.indexOf(k) >= 0 || k.indexOf('prostheticscan') >= 0;
+  }
 
   // ---------- N6 · Material Change (pedido por Rosember el 12-oct-2026; ver TABLA_MATERIAL en services_design.py) ----------
   // Panel arriba de Cirugías con sus propios productos (no salen en Cirugías) y estados ("Dr authorization" = Hold,
@@ -629,11 +637,12 @@ window.addEventListener('unhandledrejection', function(ev) {
     f = f || (DS.diaData[tabla] || []).find(function(x) { return x.id === parseInt(tr.dataset.id); });
     if (!f) return;
     tr.classList.toggle('ds-fila-cancelada', f.estado === 'Canceled');
-    tr.classList.toggle('ds-fila-hold', dsEsHold(f.estado));  // Material Change: también "Dr authorization"
     var est = String(f.estado || '').trim().toLowerCase();
+    // 19-oct-2026: "Dr authorization" (Material Change) se ve como Approved (color y chip), no como Hold; en lo demás sigue contando como Hold
+    tr.classList.toggle('ds-fila-hold', est === 'hold');
     tr.classList.toggle('ds-fila-ready', dsEsReady(f.estado));  // Material Change: también "Changes"
     tr.classList.toggle('ds-fila-html', est === 'html');
-    tr.classList.toggle('ds-fila-aprobada', est === 'approved');
+    tr.classList.toggle('ds-fila-aprobada', est === 'approved' || est === 'dr authorization');
     var formato = tabla === 'prestadas' ? f.formato : DS.areaFormato, tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
     var aprobada = f.estado === 'Approved', falta = false;
     var ngNuevo = tablaReal === 'nightguard' && dsNgNuevo(formato, tabla === 'prestadas' ? f : null);
@@ -1380,14 +1389,18 @@ window.addEventListener('unhandledrejection', function(ev) {
     spec.forEach(function(c) {
       if (c.t !== 'catalogo') return;
       dsCatalogo(c.cat).then(function(valores) {
-        // Nightguards / TC: sus productos y, al final, los de Material Change (pedido por Rosember el 12-oct-2026)
+        // Nightguards / TC: sus productos (TC, Nightguard y los de DS_PRODUCTOS_SOLO_NG) y, al final, los de Material Change
+        // (pedido por Rosember el 12-oct-2026)
         if (c.k === 'producto' && tabla === 'nightguard') {
-          valores = valores.filter(function(v) { return dsEsProductoNG(v) && !dsEsProductoMaterial(v); })
+          valores = valores.filter(function(v) { return (dsEsProductoNG(v) || dsEsProductoSoloNG(v)) && !dsEsProductoMaterial(v); })
             .concat(DS_PRODUCTOS_MATERIAL.map(function(m) { return valores.find(function(v) { return dsNorm(v) === m; }); }).filter(Boolean));
         }
         // Material Change: solo sus productos, y esos productos ya no se eligen en Cirugías
         if (c.k === 'producto' && tabla === 'material') valores = valores.filter(dsEsProductoMaterial);
         if (c.k === 'producto' && tabla === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL) valores = valores.filter(function(v) { return !dsEsProductoMaterial(v); });
+        // Los productos solo de Nightguards / TC (Scan/Measurements) no se eligen en Cirugías de las áreas que tienen las dos tablas;
+        // una orden que ya lo tenga lo sigue mostrando (la opción actual se conserva)
+        if (c.k === 'producto' && tabla === 'principal' && DS.areaFormato === 'dual') valores = valores.filter(function(v) { return !dsEsProductoSoloNG(v); });
         root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {
@@ -2710,7 +2723,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Clase de color de la fila según el estado (mismos colores que el horario del equipo)
   function dsClaseEstado(estado) {
     var e = String(estado || '').trim().toLowerCase();
-    return {'hold': 'ds-fila-hold', 'dr authorization': 'ds-fila-hold', 'ready to design': 'ds-fila-ready', 'changes': 'ds-fila-ready', 'html': 'ds-fila-html', 'approved': 'ds-fila-aprobada', 'canceled': 'ds-fila-cancelada'}[e] || '';
+    return {'hold': 'ds-fila-hold', 'dr authorization': 'ds-fila-aprobada', 'ready to design': 'ds-fila-ready', 'changes': 'ds-fila-ready', 'html': 'ds-fila-html', 'approved': 'ds-fila-aprobada', 'canceled': 'ds-fila-cancelada'}[e] || '';
   }
   function dsRenderResumenTabla(filas) {
     if (!filas.length) return '<p style="color:#4b5563;font-size:12px;margin:4px 0 14px">Sin órdenes este día.</p>';
