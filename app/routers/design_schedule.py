@@ -3347,3 +3347,7 @@ router.include_router(_calendario_router)
 # ---------- Training › Pizarrón: rutas en routers/design_pizarron.py ----------
 from .design_pizarron import router as _pizarron_router  # noqa: E402
 router.include_router(_pizarron_router)
+
+# ---------- Pizarrón › Reunión en vivo (cámara y micrófono entre PCs): rutas en routers/design_reunion.py ----------
+from .design_reunion import router as _reunion_router  # noqa: E402
+router.include_router(_reunion_router)

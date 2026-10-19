@@ -22,6 +22,7 @@ from .design_schedule import require_modulo, _RutaDesign
 
 router = APIRouter(route_class=_RutaDesign)
 ARCHIVO = Path(__file__).resolve().parent.parent / "design_pizarron" / "pizarron.html"
+REUNION_JS = Path(__file__).resolve().parent.parent / "static" / "design" / "pizarron" / "reunion.js"
 
 CSP = "; ".join([
     "default-src 'self'",
@@ -61,5 +62,10 @@ def _visible(user: Empleado = Depends(require_modulo("design_schedule"))) -> Emp
 def pagina_pizarron(user: Empleado = Depends(_visible)):
     html = ARCHIVO.read_text(encoding="utf-8")
     i = html.rfind("</body>")
-    html = html[:i] + VOLVER + html[i:] if i >= 0 else html + VOLVER
+    try:
+        v = str(int(REUNION_JS.stat().st_mtime))
+    except OSError:
+        v = "1"
+    extra = VOLVER + f'<script src="/static/design/pizarron/reunion.js?v={v}"></script>\n'   # Reunión en vivo (routers/design_reunion.py)
+    html = html[:i] + extra + html[i:] if i >= 0 else html + extra
     return HTMLResponse(html, headers={"Content-Security-Policy": CSP, "Cache-Control": "no-cache"})
