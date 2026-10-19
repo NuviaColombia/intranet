@@ -1421,7 +1421,7 @@ window.addEventListener('unhandledrejection', function(ev) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
             }
           });
-          var conColor = c.k === 'centro' || (c.k === 'producto' && dsColoresProductos());
+          var conColor = c.k === 'centro' || c.k === 'estado' || (c.k === 'producto' && dsColoresProductos());
           if (conColor) {   // «Colores…» siempre al final de la lista
             var oc = sel.querySelector('option[value="__colores"]');
             if (oc) oc.remove();
@@ -1440,12 +1440,12 @@ window.addEventListener('unhandledrejection', function(ev) {
   // el manager y los ven sus diseñadores y quien abra ese Schedule. Lo que cada manager tenía en su navegador se sube
   // solo la primera vez (dsColoresSubirLocales); el navegador queda como respaldo si el servidor aún no tiene colores.
   var DS_OPCION_COLORES = '<option value="__colores">🎨 Colores…</option>';
-  // Qué casillas se pueden pintar: d = diseñador (por id), c = centro, p = producto (solo N2: Rosember, 19-oct-2026)
-  var DS_COLOR_TIPO = {designerId: 'd', centro: 'c', producto: 'p'};
-  var DS_COLOR_NOMBRE = {d: ['diseñadores', 'diseñador'], c: ['centros', 'centro'], p: ['productos', 'producto']};
+  // Qué casillas se pueden pintar: d = diseñador (por id), c = centro, p = producto (solo N2), e = estado (Rosember, 19-oct-2026)
+  var DS_COLOR_TIPO = {designerId: 'd', centro: 'c', producto: 'p', estado: 'e'};
+  var DS_COLOR_NOMBRE = {d: ['diseñadores', 'diseñador'], c: ['centros', 'centro'], p: ['productos', 'producto'], e: ['estados', 'estado']};
   function dsColoresProductos() { return dsAreaNombre() === 'N2 Demodenture'; }
-  function dsColoresVacio(x) { return !Object.keys(x.d || {}).length && !Object.keys(x.c || {}).length && !Object.keys(x.p || {}).length; }
-  function dsColoresCopia(x) { return {d: Object.assign({}, (x && x.d) || {}), c: Object.assign({}, (x && x.c) || {}), p: Object.assign({}, (x && x.p) || {})}; }
+  function dsColoresVacio(x) { return ['d', 'c', 'p', 'e'].every(function(k) { return !Object.keys(x[k] || {}).length; }); }
+  function dsColoresCopia(x) { var r = {}; ['d', 'c', 'p', 'e'].forEach(function(k) { r[k] = Object.assign({}, (x && x[k]) || {}); }); return r; }
   var DS_COLORES = [
     {k: 'rojo', n: 'Rojo', c: '239,68,68'}, {k: 'naranja', n: 'Naranja', c: '249,115,22'}, {k: 'amarillo', n: 'Amarillo', c: '234,179,8'},
     {k: 'lima', n: 'Lima', c: '132,204,22'}, {k: 'verde', n: 'Verde', c: '34,197,94'}, {k: 'turquesa', n: 'Turquesa', c: '20,184,166'},
@@ -1466,7 +1466,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsColoresEnviar(x) {
     var team = DS.teamId;
     return fetch('/design/api/teams/' + team + '/colores', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({d: x.d, c: x.c, p: x.p || {}})}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); })
+      body: JSON.stringify({d: x.d, c: x.c, p: x.p || {}, e: x.e || {}})}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); })
       .catch(function() { dsToast('No se pudieron guardar los colores del equipo; se reintenta al volver a elegir.'); });
   }
   function dsColoresGuardar(x) {
@@ -1497,7 +1497,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsPintarColores(scope) {
     var x = dsColoresLeer();
-    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"], select[data-campo="producto"]').forEach(function(s) { dsPintarCelda(s, x); });
+    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"], select[data-campo="producto"], select[data-campo="estado"]').forEach(function(s) { dsPintarCelda(s, x); });
   }
   // La lista vuelve a lo que tenía (la opción «Colores…» nunca se guarda en la orden) y se abre la ventana de colores.
   function dsAbrirColores(tr, tabla, sel) {

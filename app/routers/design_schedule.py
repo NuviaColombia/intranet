@@ -1131,7 +1131,7 @@ def _colores_equipo(db: Session, team_id: int):
             datos = json.loads(c.datos or "{}")
         except ValueError:
             datos = {}
-        return ({"d": datos.get("d") or {}, "c": datos.get("c") or {}, "p": datos.get("p") or {}}, c.actualizado_en.isoformat() if c.actualizado_en else "1")
+        return ({"d": datos.get("d") or {}, "c": datos.get("c") or {}, "p": datos.get("p") or {}, "e": datos.get("e") or {}}, c.actualizado_en.isoformat() if c.actualizado_en else "1")
     return sd.memo_sesion(db, ("colores", team_id), leer)
 
 
@@ -1139,6 +1139,7 @@ class ColoresIn(BaseModel):
     d: dict[str, str] = {}   # diseñadores (por id)
     c: dict[str, str] = {}   # centros
     p: dict[str, str] = {}   # productos (N2)
+    e: dict[str, str] = {}   # estados
 
 
 @router.post("/design/api/teams/{team_id}/colores")
@@ -1151,7 +1152,7 @@ def api_colores_equipo(team_id: int, payload: ColoresIn, user: Empleado = Depend
         raise HTTPException(403, "Solo el manager del equipo puede cambiar sus colores.")
     validos = {"rojo", "naranja", "amarillo", "lima", "verde", "turquesa", "celeste", "azul", "morado", "rosado", "cafe", "gris"}
     limpio = lambda m: {str(k)[:150]: v for k, v in list(m.items())[:400] if v in validos}   # noqa: E731
-    datos = {"d": limpio(payload.d), "c": limpio(payload.c), "p": limpio(payload.p)}
+    datos = {"d": limpio(payload.d), "c": limpio(payload.c), "p": limpio(payload.p), "e": limpio(payload.e)}
     c = db.get(DesignTeamColores, team_id) or DesignTeamColores(team_id=team_id)
     c.datos, c.actualizado_por, c.actualizado_en = json.dumps(datos, ensure_ascii=False), user.nombre_completo, datetime.utcnow()
     db.add(c)
