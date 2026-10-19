@@ -92,13 +92,79 @@ def api_entrar(codigo: str, user: Empleado = Depends(_puede)):
         if len(s["peers"]) >= MAX_PERSONAS:
             raise HTTPException(409, f"La reunión está llena (máximo {MAX_PERSONAS} personas).")
         pid = secrets.token_urlsafe(9)
-        yo = {"uid": user.id, "nombre": user.nombre_completo, "cola": deque(maxlen=500), "visto": time.time()}
-        otros = [{"peer": k, "nombre": p["nombre"]} for k, p in s["peers"].items()]
+        yo = {"uid": user.id, "nombre": user.nombre_completo, "cola": deque(maxlen=500), "visto": time.time(),
+              "estado": {"mic": True, "cam": True, "mano": 0}}
+        es_anf = s["anfitrion"] == user.id
+        otros = [_publico(s, k, p) for k, p in s["peers"].items()]
         for p in s["peers"].values():
-            _enviar(p, {"t": "llego", "peer": pid, "nombre": yo["nombre"]})
+            _enviar(p, {"t": "llego", **_publico(s, pid, yo)})
         s["peers"][pid] = yo
     return {"peer": pid, "codigo": codigo.strip().upper(), "nombre": yo["nombre"], "otros": otros,
-            "anfitrion": s["anfitrion"] == user.id, "max": MAX_PERSONAS}
+            "anfitrion": es_anf, "max": MAX_PERSONAS}
+
+
+def _publico(s: dict, pid: str, p: dict) -> dict:
+    """Lo que los demás ven de una persona: nombre, si es quien organiza y su micrófono, cámara y mano."""
+    return {"peer": pid, "nombre": p["nombre"], "anfitrion": p["uid"] == s["anfitrion"], **p.get("estado", {})}
+
+
+class EstadoIn(BaseModel):
+    peer: str = Field(max_length=40)
+    mic: bool = True
+    cam: bool = True
+    mano: bool = False
+
+
+@router.post("/design/api/reunion/{codigo}/estado")
+def api_estado(codigo: str, payload: EstadoIn, user: Empleado = Depends(_puede)):
+    """Micrófono, cámara y mano levantada de esta persona: les llega a todos (iconos en su recuadro)."""
+    with _lock:
+        s = _sala(codigo, user)
+        p = _peer(s, payload.peer, user)
+        antes = p["estado"].get("mano") or 0
+        mano = (antes or time.time()) if payload.mano else 0   # se conserva la hora: el orden de las manos
+        p["estado"] = {"mic": payload.mic, "cam": payload.cam, "mano": mano}
+        for k, o in s["peers"].items():
+            if k != payload.peer:
+                _enviar(o, {"t": "estado", **_publico(s, payload.peer, p)})
+    return {"ok": True, "mano": mano}
+
+
+class ModerarIn(BaseModel):
+    peer: str = Field(max_length=40)
+    para: str = Field("", max_length=40)
+    accion: str = Field(max_length=20)   # silenciar | silenciar_todos | bajar_mano | sacar
+
+
+@router.post("/design/api/reunion/{codigo}/moderar")
+def api_moderar(codigo: str, payload: ModerarIn, user: Empleado = Depends(_puede)):
+    """Solo quien creó la reunión: silenciar a alguien o a todos, bajarle la mano o sacarlo. Como en Google Meet,
+    silenciar apaga el micrófono de la otra persona, pero activarlo de nuevo solo lo puede hacer ella."""
+    if payload.accion not in ("silenciar", "silenciar_todos", "bajar_mano", "sacar"):
+        raise HTTPException(400, "Acción inválida.")
+    with _lock:
+        s = _sala(codigo, user)
+        _peer(s, payload.peer, user)
+        if s["anfitrion"] != user.id:
+            raise HTTPException(403, "Solo quien organizó la reunión puede hacer esto.")
+        if payload.accion == "silenciar_todos":
+            destinos = [k for k in s["peers"] if k != payload.peer]
+        else:
+            if payload.para not in s["peers"] or payload.para == payload.peer:
+                raise HTTPException(404, "Esa persona ya no está en la reunión.")
+            destinos = [payload.para]
+        for k in destinos:
+            _enviar(s["peers"][k], {"t": "moderar", "accion": "silenciar" if payload.accion == "silenciar_todos" else payload.accion,
+                                    "por": s["peers"][payload.peer]["nombre"]})
+        if payload.accion == "sacar":
+            # se le avisa primero y luego sale (su conexión de mensajes alcanza a entregar el aviso)
+            threading.Timer(1.5, lambda: _sacar_seguro(s, payload.para)).start()
+    return {"ok": True, "personas": len(destinos)}
+
+
+def _sacar_seguro(s: dict, peer_id: str) -> None:
+    with _lock:
+        _sacar(s, peer_id)
 
 
 class SenalIn(BaseModel):
