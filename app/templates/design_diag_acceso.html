@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block titulo %}Diagnóstico de acceso{% endblock %}
+{% block contenido %}
+<style>
+  .da { max-width:900px; margin:0 auto; }
+  .da form { display:flex; gap:8px; margin:6px 0 18px; flex-wrap:wrap; }
+  .da input { flex:1; max-width:320px; }
+  .da-caja { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:14px; }
+  .da-caja h3 { margin:0 0 8px; font-size:15px; }
+  .da-paso { display:flex; gap:8px; padding:6px 0; border-top:1px solid #f1f5f9; font-size:14px; }
+  .da-paso:first-of-type { border-top:0; }
+  .da-paso b { width:22px; flex:0 0 22px; text-align:center; }
+  .da-mal { color:#b91c1c; }
+  .da-arreglo { display:block; color:#1e3a8a; font-size:13px; margin-top:2px; }
+  .da-nota { color:#475569; font-size:13px; }
+  .da-ve { font-size:15px; font-weight:600; margin:4px 0 0; }
+  .da-lista a { display:block; padding:4px 0; }
+</style>
+<div class="da">
+  <h1>Diagnóstico de acceso a Design</h1>
+  <p class="da-nota">Escribe el nombre o el correo: se revisa por qué la persona entra o no a Design y qué Schedules ve. No cambia nada.</p>
+  <form method="get"><input name="persona" value="{{ persona }}" placeholder="Nombre o correo, ej. Natalia" required autofocus><button class="btn">Revisar</button></form>
+  {% if candidatos %}
+    <div class="da-caja da-lista"><h3>Elige la persona</h3>
+      {% for c in candidatos %}<a href="?id={{ c.id }}&persona={{ persona|urlencode }}">{{ c.nombre_completo }} · {{ c.email }}{{ '' if c.activo else ' (inactivo)' }}</a>{% endfor %}
+    </div>
+  {% elif persona and not d %}<p class="da-mal">No se encontró a nadie con «{{ persona }}».</p>{% endif %}
+  {% if d %}
+    <div class="da-caja">
+      <h3>{{ d.persona }} · {{ d.email }}</h3>
+      {% for p in d.pasos %}<div class="da-paso{{ '' if p.ok else ' da-mal' }}"><b>{{ '✅' if p.ok else '❌' }}</b>
+        <span>{{ p.texto }}{% if p.arreglo %}<span class="da-arreglo">Cómo arreglarlo: {{ p.arreglo }}</span>{% endif %}</span></div>{% endfor %}
+    </div>
+    <div class="da-caja">
+      <h3>Qué ve hoy</h3>
+      <p class="da-ve">{{ d.ve }}</p>
+      {% if d.maneja %}<p class="da-nota">Manager de: {{ d.maneja|join(', ') }}</p>{% endif %}
+      {% if d.disena %}<p class="da-nota">Diseñadora/diseñador en: {{ d.disena|join(', ') }}</p>{% endif %}
+      {% if d.aCargo %}<p class="da-nota">A cargo hoy de: {{ d.aCargo|join(', ') }}</p>{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

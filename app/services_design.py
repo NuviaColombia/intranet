@@ -855,6 +855,10 @@ TRASLADO_HTML_DESDE = date(2026, 10, 6)
 # 6-oct-2026; las de días anteriores se quedan y las que ya se pasaron a mano se limpian en Parámetros).
 ESTADO_READY = "Ready to design"
 TRASLADO_READY_DESDE = date(2026, 10, 6)
+# Nightguards / TC: las órdenes en "Bite ready" también pasan al siguiente día hábil, como Hold (pedido por Rosember el
+# 19-oct-2026; las de días anteriores se quedan en su día).
+ESTADO_BITE_READY = "Bite ready"
+TRASLADO_BITE_NG_DESDE = date(2026, 10, 19)
 # Un mismo número de orden puede estar hasta 5 veces en el horario de un equipo el mismo día.
 MAX_REPETICIONES_ORDEN = 5
 
@@ -951,6 +955,10 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
     ordenes += (db.query(DesignOrden)
                 .filter(func.lower(DesignOrden.estado) == ESTADO_READY.lower(),
                         DesignOrden.fecha >= TRASLADO_READY_DESDE, DesignOrden.fecha <= cerrado_hasta)
+                .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    ordenes += (db.query(DesignOrden)
+                .filter(DesignOrden.tabla == "nightguard", func.lower(DesignOrden.estado) == ESTADO_BITE_READY.lower(),
+                        DesignOrden.fecha >= TRASLADO_BITE_NG_DESDE, DesignOrden.fecha <= cerrado_hasta)
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
     # Material Change (N6): "Dr authorization" pasa como Hold y "Changes" como Ready to design
     ordenes += (db.query(DesignOrden)

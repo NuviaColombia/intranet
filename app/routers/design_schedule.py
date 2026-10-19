@@ -1518,6 +1518,18 @@ def diagnostico_face_n2(request: Request, orden: str = Query("", max_length=50),
     return templates.TemplateResponse(request, "design_diag_face_n2.html", {"user": user, "es_design": True, "d": d, "orden": orden})
 
 
+@router.get("/design/diagnostico/acceso")
+def diagnostico_acceso(request: Request, persona: str = Query("", max_length=80), id: int | None = None,
+                       user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: por qué alguien entra o no a Design y qué Schedules ve (empresa, módulo, rol de People vs. rol de Design)."""
+    from .. import services_design_acceso_diag as sad
+    candidatos = sad.buscar(db, persona) if persona.strip() and not id else []
+    elegido = db.get(Empleado, id) if id else (candidatos[0] if len(candidatos) == 1 else None)
+    d = sad.diagnosticar(db, elegido) if elegido else None
+    return templates.TemplateResponse(request, "design_diag_acceso.html", {"user": user, "es_design": True, "d": d, "persona": persona,
+                                                                          "candidatos": candidatos if not d else []})
+
+
 @router.get("/design/diagnostico/rendimiento")
 def diagnostico_rendimiento(request: Request, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     """Admins: demora real hacia la base, conexiones en vivo, pool, memoria y CPU (simulación de 150 personas, 19-oct-2026)."""
