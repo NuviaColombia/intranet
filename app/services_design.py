@@ -1460,6 +1460,8 @@ def serializar_orden(o: DesignOrden) -> dict:
         "zHoldMinutos": o.z_hold_minutos or 0, "zHoraFin": o.z_hora_fin or "", "zQc": bool(o.z_qc),
         "zQcReporte": o.z_qc_reporte or "",
         "ordenVisual": o.orden_visual,
+        # días que lleva desde que se creó (para el Total de un caso que pasó varias noches en Hold: dsMenosHold)
+        "diasDesdeCreada": (o.fecha - o.fecha_creada).days if (o.fecha_creada and o.fecha) else 0,
     }
 
 
@@ -2245,6 +2247,17 @@ def material_minutos(o: DesignOrden) -> tuple[float, float, float]:
     return b, z, b + z
 
 
+def _menos_hold(o: DesignOrden, fin_menos_inicio: float, hold: float) -> float:
+    """Fin − Inicio − Hold. Las horas se guardan sin fecha: si el caso pasó varias noches en Hold, «Fin − Inicio» pierde
+    días enteros y el resultado sale negativo (0h 0m; orden 242472, 19-oct-2026). Se suman los días que hagan falta, sin
+    pasar de los que la orden lleva desde que se creó (fecha − fecha_creada); una orden del mismo día no cambia."""
+    dias_max = (o.fecha - o.fecha_creada).days if (o.fecha_creada and o.fecha) else 0
+    k = 0
+    while fin_menos_inicio + 1440 * k - hold < 0 and k < dias_max:
+        k += 1
+    return max(0, fin_menos_inicio + 1440 * k - hold)
+
+
 def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     """Duración de una orden, igual que en el horario (dsDuracionFila en design_schedule.html):
     - N3/N6 (Cirugías) y Face: Fin − Inicio diseño − Hold (min).
@@ -2259,12 +2272,12 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     if formato == FORMATO_N2:
         if not o.hora_inicio or not o.hora_fin:
             return 0
-        return max(0, _entre(o.hora_inicio, o.hora_fin) - (o.hold_minutos or 0) - _entre(o.s_hold, o.f_hold))
+        return _menos_hold(o, _entre(o.hora_inicio, o.hora_fin), (o.hold_minutos or 0) + _entre(o.s_hold, o.f_hold))
     if horas_por_estado(formato, o.fecha, o.tabla):
         if not o.hora_inicio or not o.hora_fin:
             return 0
         hold = (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
-        return max(0, _entre(o.hora_inicio, o.hora_fin) - hold)
+        return _menos_hold(o, _entre(o.hora_inicio, o.hora_fin), hold)
     if not o.hora_inicio_diseno or not o.hora_fin:
         return 0
     return max(0, _entre(o.hora_inicio_diseno, o.hora_fin) - (o.hold_minutos or 0))

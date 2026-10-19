@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block titulo %}Diagnóstico de orden{% endblock %}
+{% block contenido %}
+<style>
+  .do { max-width:960px; margin:0 auto; }
+  .do form { display:flex; gap:8px; margin:6px 0 18px; }
+  .do input { flex:1; max-width:260px; }
+  .do-caja { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:14px; }
+  .do-caja h3 { margin:0 0 8px; font-size:15px; }
+  .do table { border-collapse:collapse; width:100%; font-size:13px; }
+  .do td { padding:4px 8px; border-top:1px solid #f1f5f9; vertical-align:top; }
+  .do td:first-child { color:#475569; width:210px; }
+  .do-nota { color:#b91c1c; font-size:14px; margin:8px 0 0; }
+  .do-sub { color:#475569; font-size:13px; }
+</style>
+<div class="do">
+  <p style="margin:0 0 4px"><a href="/design/parametros?sim=1">‹ Parámetros</a></p>
+  <h1>Diagnóstico de orden</h1>
+  <p class="do-sub">Muestra los datos que el Schedule no enseña (tiempo en Hold acumulado, día en que se creó) y explica su Total. No cambia nada.</p>
+  <form method="get"><input name="orden" value="{{ d.numero if d else '' }}" placeholder="Número de orden, ej. 242472" required autofocus><button class="btn">Revisar</button></form>
+  {% if d %}
+    {% if not d.filas %}<p class="do-nota">No hay ninguna orden {{ d.numero }}.</p>{% endif %}
+    {% for f in d.filas %}
+    <div class="do-caja">
+      <h3>Orden {{ d.numero }} · {{ f.equipo }} ({{ f.area }}{{ ' · ' ~ f.manager if f.manager }}) · {{ f.fecha.strftime('%d/%m/%Y') }}</h3>
+      <table>
+        <tr><td>Paciente · centro · producto</td><td>{{ f.paciente }} · {{ f.centro }} · {{ f.producto }}</td></tr>
+        <tr><td>Diseñador · estado · tabla</td><td>{{ f.disenador or '—' }} · {{ f.estado or '—' }} · {{ f.tabla }}</td></tr>
+        <tr><td>Creada para el día</td><td>{{ f.fechaCreada.strftime('%d/%m/%Y') if f.fechaCreada else '—' }} (está el {{ f.fecha.strftime('%d/%m/%Y') }})</td></tr>
+        <tr><td>Inicio · Start hold · Re-initiated · Fin</td><td>{{ f.inicio or '—' }} · {{ f.sHold or '—' }} · {{ f.fHold or '—' }} · {{ f.fin or '—' }}</td></tr>
+        <tr><td>Fin − Inicio</td><td>{{ f.finMenosInicio }}</td></tr>
+        <tr><td>Hold anteriores (acumulado)</td><td>{{ f.holdAnteriores }}</td></tr>
+        <tr><td>Hold actual (Re-initiated − Start hold)</td><td>{{ f.holdActual }}</td></tr>
+        <tr><td>Hold total</td><td>{{ f.holdTotal }}</td></tr>
+        <tr><td><b>Total</b></td><td><b>{{ f.total }}</b></td></tr>
+        <tr><td>Aprobada · creada · último cambio (UTC)</td><td>{{ f.aprobadaEn.strftime('%d/%m %H:%M') if f.aprobadaEn else '—' }} · {{ f.creadaEn.strftime('%d/%m %H:%M') if f.creadaEn else '—' }} · {{ f.actualizadaEn.strftime('%d/%m %H:%M') if f.actualizadaEn else '—' }}</td></tr>
+      </table>
+      {% for n in f.notas %}<p class="do-nota">⚠️ {{ n }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

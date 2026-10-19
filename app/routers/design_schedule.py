@@ -1565,6 +1565,15 @@ def diagnostico_face_n2(request: Request, orden: str = Query("", max_length=50),
     return templates.TemplateResponse(request, "design_diag_face_n2.html", {"user": user, "es_design": True, "d": d, "orden": orden})
 
 
+@router.get("/design/diagnostico/orden")
+def diagnostico_orden(request: Request, orden: str = Query("", max_length=50), user: Empleado = Depends(require_admin),
+                      db: Session = Depends(get_db)):
+    """Admins: datos internos de una orden (Hold acumulado, día de creación) y cómo sale su Total."""
+    from .. import services_design_orden_diag as sod
+    d = sod.diagnosticar(db, orden) if orden.strip() else None
+    return templates.TemplateResponse(request, "design_diag_orden.html", {"user": user, "es_design": True, "d": d})
+
+
 @router.get("/design/diagnostico/acceso")
 def diagnostico_acceso(request: Request, persona: str = Query("", max_length=80), id: int | None = None,
                        user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):

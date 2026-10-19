@@ -473,15 +473,22 @@ window.addEventListener('unhandledrejection', function(ev) {
   // N2: T. Hold = Hold anteriores del caso (holdMinutos) + F.Hold − S.Hold (como el servidor)
   function dsTHoldMin(f) { return (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0); }
   function dsTHoldTxt(f) { return dsTHoldMin(f) || (f.sHold && f.fHold) ? dsFmtMin(dsTHoldMin(f)) : ''; }
+  // Fin − Inicio − Hold; si el caso pasó varias noches en Hold se suman los días que falten, sin pasar de los que lleva
+  // desde que se creó (misma regla que _menos_hold en services_design.py; orden 242472, 19-oct-2026)
+  function dsMenosHold(f, tf, hold) {
+    var max = parseInt(f.diasDesdeCreada) || 0, k = 0;
+    while (tf + 1440 * k - hold < 0 && k < max) k++;
+    return Math.max(0, tf + 1440 * k - hold);
+  }
   function dsDuracionMin(f, tabla, formato) {
     if (formato === 'support') return null;
     if (tabla === 'material') return dsMaterialMin(f).t;
     if (tabla === 'nightguard' && !dsNgNuevo(formato, f)) return dsEntre(f.horaInicio, f.horaFin);
-    if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : Math.max(0, t - dsTHoldMin(f)); }
+    if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : dsMenosHold(f, t, dsTHoldMin(f)); }
     if (dsFaceNuevo(formato) || (tabla === 'nightguard' && dsNgNuevo(formato, f))) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
       var tf = dsEntre(f.horaInicio, f.horaFin); if (tf === null) return null;
       var hold = (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0);
-      return Math.max(0, tf - hold);
+      return dsMenosHold(f, tf, hold);
     }
     var d = dsEntre(f.horaInicioDiseno, f.horaFin);
     return d === null ? null : Math.max(0, d - (parseFloat(f.holdMinutos) || 0));
