@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}Formatos Canva · Cumpleaños{% endblock %}
+{% block contenido %}
+{% set MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'] %}
+<style>
+  .fc { max-width:1200px; margin:0 auto; }
+  .fc-sub { color:#475569; font-size:13px; margin:2px 0 14px; }
+  .fc-barra { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+  .fc-barra h2 { margin:0 8px 0 0; font-size:18px; }
+  .fc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px; }
+  .fc-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .fc-card.hoy { border-color:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.25); }
+  .fc-card canvas { width:100%; aspect-ratio:4/5; border-radius:10px; background:#0b1630; display:block; }
+  .fc-sinfoto { aspect-ratio:4/5; border-radius:10px; background:#f1f5f9; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+    color:#7f1d1d; font-size:13px; padding:16px; gap:6px; }
+  .fc-nom { font-weight:700; font-size:14px; }
+  .fc-det { color:#475569; font-size:12.5px; }
+  .fc-acc { display:flex; gap:6px; flex-wrap:wrap; }
+  .fc-vacio { color:#475569; }
+</style>
+<div class="fc">
+  <p style="margin:0 0 4px"><a href="/design/parametros">‹ Parameters</a></p>
+  <h1>Formatos Canva › Cumpleaños</h1>
+  <p class="fc-sub">Las piezas se generan solas con el Calendario (fecha de nacimiento y cargo de People) y la foto de perfil de cada cuenta.
+    El día del cumpleaños, la primera vez que cada persona entra a la plataforma ve el anuncio animado. <b>Sin foto de perfil no hay anuncio.</b></p>
+  <div class="fc-barra">
+    <h2>{{ MESES[mes.month - 1]|capitalize }} {{ mes.year }}</h2>
+    <a class="btn mini gris" href="?mes={{ mes_ant }}">‹ Mes anterior</a>
+    <a class="btn mini gris" href="?mes={{ mes_sig }}">Mes siguiente ›</a>
+    <span style="flex:1"></span>
+    <button type="button" class="btn mini" id="fcPrueba" title="Muestra en tu cuenta el anuncio con el cumpleaños más próximo (no se le muestra a nadie más)">🎉 Probar el anuncio en mi cuenta</button>
+  </div>
+  {% if not personas %}<p class="fc-vacio">Nadie cumple años en este mes (o no tiene fecha de nacimiento en People).</p>{% endif %}
+  <div class="fc-grid">
+    {% for p in personas %}
+    <div class="fc-card{{ ' hoy' if p.fecha == hoy }}">
+      {% if p.tieneFoto %}
+      <canvas data-foto="{{ p.foto }}" data-nombre="{{ p.nombre }}" data-cargo="{{ p.cargo }}" role="img" aria-label="Pieza de cumpleaños de {{ p.nombre }}"></canvas>
+      {% else %}
+      <div class="fc-sinfoto"><b>📷 Sin foto de perfil</b>No se anunciará hasta que tenga foto (se toma de su cuenta al iniciar sesión).</div>
+      {% endif %}
+      <div class="fc-nom">{{ p.nombre }}</div>
+      <div class="fc-det">{{ p.fecha[8:10] }} de {{ MESES[p.fecha[5:7]|int - 1] }}{{ ' · ¡hoy!' if p.fecha == hoy }} · {{ p.cargo or 'sin cargo en People' }}</div>
+      {% if p.tieneFoto %}<div class="fc-acc"><button type="button" class="btn mini gris" data-descargar="{{ p.nombre }}">⬇ Descargar PNG</button></div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<script src="/static/design/cumple/cumple.js?v={{ v }}"></script>
+<script>
+(function () {
+  document.querySelectorAll('.fc-card canvas').forEach(function (cv) {
+    DSCumple.dibujar(cv, {foto: cv.dataset.foto, nombre: cv.dataset.nombre, cargo: cv.dataset.cargo}).catch(function () { cv.replaceWith(Object.assign(document.createElement('div'), {className: 'fc-sinfoto', textContent: 'No se pudo cargar la foto'})); });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-descargar]');
+    if (!b) return;
+    var cv = b.closest('.fc-card').querySelector('canvas');
+    var a = document.createElement('a');
+    a.download = 'Cumpleaños ' + b.dataset.descargar + '.png';
+    a.href = cv.toDataURL('image/png'); a.click();
+  });
+  document.getElementById('fcPrueba').onclick = function () {
+    fetch('/cumple/api/prueba', {credentials: 'same-origin'}).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.personas || !d.personas.length) { alert('No hay cumpleaños próximos de personas con foto de perfil.'); return; }
+      DSCumple.anunciar(d.personas, {titulo: '🧪 Prueba · próximo cumpleaños: ' + d.personas[0].fecha.split('-').reverse().join('/')});
+    });
+  };
+})();
+</script>
+{% endblock %}

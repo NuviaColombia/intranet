@@ -3360,3 +3360,7 @@ router.include_router(_pizarron_router)
 # ---------- Pizarrón › Reunión en vivo (cámara y micrófono entre PCs): rutas en routers/design_reunion.py ----------
 from .design_reunion import router as _reunion_router  # noqa: E402
 router.include_router(_reunion_router)
+
+# ---------- Cumpleaños (anuncio del día + Parameters › Formatos Canva): rutas en routers/design_cumple.py ----------
+from .design_cumple import router as _cumple_router  # noqa: E402
+router.include_router(_cumple_router)

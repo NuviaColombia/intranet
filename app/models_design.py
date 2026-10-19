@@ -1264,3 +1264,13 @@ class DesignTeamColores(Base):
     datos: Mapped[str] = mapped_column(Text, default="{}")
     actualizado_por: Mapped[str] = mapped_column(String(150), default="")
     actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignCumpleVisto(Base):
+    """Anuncio de cumpleaños del día (Rosember, 19-oct-2026): sale la primera vez que cada persona entra a la plataforma
+    ese día; esta fila dice que ya lo vio (así no vuelve a salir aunque entre desde otro computador)."""
+    __tablename__ = "design_cumple_vistos"
+
+    empleado_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fecha: Mapped[date] = mapped_column(Date, primary_key=True)
+    visto_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

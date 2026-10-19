@@ -84,3 +84,15 @@ def _version_oscuro() -> str:
 
 templates.env.globals["ds_estaticos_v"] = _version_oscuro()
 templates.env.globals["puede_sst"] = puede_sst
+
+
+def _cumple_pendiente(user) -> bool:
+    """Cumpleaños del día: ¿mostrarle el anuncio a esta persona en esta página? (services_design_cumple.hay_anuncio)"""
+    try:
+        from .services_design_cumple import hay_anuncio
+        return hay_anuncio(user)
+    except Exception:   # el anuncio nunca puede tumbar una página
+        return False
+
+
+templates.env.globals["cumple_pendiente"] = _cumple_pendiente
