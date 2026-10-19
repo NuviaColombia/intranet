@@ -141,7 +141,7 @@
   {% if es_design %}
   <a href="/design">Schedule</a>
   <div class="nav-drop">
-    <button type="button" class="nav-drop-btn">Herramientas ▾</button>
+    <button type="button" class="nav-drop-btn">Tools ▾</button>
     <div class="nav-drop-menu">
       <a href="/design?panel=comments">💬 Comments</a>
       <a href="/design?panel=preapproved">✅ Pre-Approved</a>
@@ -153,7 +153,7 @@
   </div>
   {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
   <div class="nav-drop">
-    <button type="button" class="nav-drop-btn">Gestión ▾</button>
+    <button type="button" class="nav-drop-btn">Management ▾</button>
     <div class="nav-drop-menu">
       <a href="/design?panel=dashboard">📊 Dashboard</a>
       <a href="/design?panel=perf">📈 Desempeño</a>
@@ -164,7 +164,7 @@
   </div>
   {% endif %}
   {% if user.rol in ('aprobador', 'admin', 'superadmin') %}{# aprobadores: solo Openings #}
-  <a href="/design/parametros">Parámetros</a>
+  <a href="/design/parametros">Parameters</a>
   {% endif %}
   {% endif %}
   {% if not es_custodia and not es_design and not es_caja and not es_caja_entrada and not es_consumo and not es_conteo %}
@@ -182,7 +182,7 @@
     </div>
   </div>
   {% endif %}
-  <a href="/">Módulos</a>
+  <a href="/">{{ 'Modules' if es_design else 'Módulos' }}</a>{# Design en inglés (Rosember, 19-oct-2026); los demás módulos siguen igual #}
   {% if es_design and ve_mural(user) %}<a href="/design/mural">Mural</a>{% endif %}
   {% set ds_extras %}{% if es_design %}
   {# Design: campana de notificaciones (la pone static/design/push.js aquí) y modo oscuro, entre el nombre y "Salir" #}
