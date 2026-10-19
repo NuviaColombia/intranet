@@ -1,13 +1,14 @@
 """Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3.
 
 Flujo:
-1. El aprobador presiona «Solicitar ayuda» en Seguimiento › Diseñadores (`solicitar`).
+1. El aprobador elige «🤝 Pedir ayuda…» al final de la lista de Diseñador de una orden de hoy (`solicitar`). Puede tener
+   una solicitud abierta por orden.
 2. Se buscan los diseñadores LIBRES de los otros equipos de N3 (`libres_n3`). Si no hay ninguno, no sale ninguna
    notificación y se le dice al solicitante que contacte al manager General.
 3. Cada aprobador con diseñadores libres recibe una notificación (push fijo + aviso en pantalla) con SUS libres; el
    sistema sugiere al que menos casos lleva en el mes (`ofrecer`).
-4. El primero que elige cierra la solicitud (`elegir`): el diseñador queda como ayuda del día en el equipo del solicitante
-   (aparece en su lista de diseñadores como «(ayuda)»; al asignarle una orden funciona como el diseñador prestado).
+4. El primero que elige cierra la solicitud (`elegir`): el diseñador queda puesto como Diseñador de esa orden (funciona como
+   el diseñador prestado: la orden también le sale en su Schedule) y como ayuda del día en la lista del solicitante («(ayuda)»).
 5. `reporte` (Dashboard › Ayudas, solo admins) dice si los aprobadores siguen la sugerencia.
 
 Libre (reglas de Rosember, 19-oct-2026): sin casos, o solo con casos sin iniciar (también Nightguard / TC sin iniciar) o en
@@ -176,24 +177,46 @@ def _avisar(ids: list[int], titulo: str, cuerpo: str, url: str, etiqueta: str, f
         log.exception("Solicitar ayuda: no se pudo avisar en vivo")
 
 
-def solicitar(db: Session, user: Empleado) -> dict:
-    """Crea la solicitud. Devuelve {ok, estado, mensaje, ...}."""
+def _datos_orden(o: DesignOrden | None) -> dict:
+    return {"orden": (o.orden or "").strip() if o else "", "producto": (o.producto or "").strip() if o else "",
+            "centro": (o.centro or "").strip() if o else "", "paciente": (o.paciente or "").strip() if o else ""}
+
+
+def puede_pedir_en_orden(db: Session, user: Empleado, team_id: int, fecha: date) -> bool:
+    """¿Se muestra «Pedir ayuda» en la lista de Diseñador de este equipo y día? Solo al aprobador de ese equipo de N3, hoy."""
+    if fecha != _hoy():
+        return False
+    t = equipo_de_solicitante(db, user)
+    return bool(t and t.id == team_id)
+
+
+def solicitar(db: Session, user: Empleado, orden_id: int) -> dict:
+    """Crea la solicitud de ayuda para una orden de hoy. Devuelve {ok, estado, mensaje, ...}."""
     _vencer_las_vencidas(db)
     team = equipo_de_solicitante(db, user)
     if not team:
         raise PermissionError("Solo un aprobador de un equipo de N3 puede solicitar ayuda.")
-    abierta = (db.query(DesignAyudaSolicitud).filter(DesignAyudaSolicitud.solicitante_id == user.id, DesignAyudaSolicitud.estado == "abierta").first())
+    hoy = _hoy()
+    o = db.get(DesignOrden, orden_id)
+    if not o or o.team_id != team.id:
+        raise PermissionError("Solo puedes pedir ayuda para órdenes de tu equipo.")
+    if o.tabla not in ("principal", "nightguard"):
+        raise ValueError("La ayuda se pide para órdenes de Cirugías o de Nightguards / TC.")
+    if o.fecha != hoy:
+        raise ValueError("La ayuda solo se pide para órdenes de hoy.")
+    if not (o.orden or "").strip() or not (o.centro or "").strip():
+        raise ValueError("Completa el número de orden y el centro antes de pedir ayuda.")
+    abierta = (db.query(DesignAyudaSolicitud).filter(DesignAyudaSolicitud.orden_id == o.id, DesignAyudaSolicitud.estado == "abierta").first())
     if abierta:
         return {"ok": True, "ya": True, "id": abierta.id, "estado": "abierta",
-                "mensaje": "Ya tienes una solicitud abierta: espera a que un aprobador responda o cancélala."}
-    hoy = _hoy()
+                "mensaje": "Ya pediste ayuda para esta orden: espera a que un aprobador responda o cancela la solicitud."}
     libres = libres_n3(db, excluir_equipo_id=team.id)
     # los managers a quienes les toca decidir: los de los equipos que tienen libres (menos el propio solicitante)
     por_aprobador: dict[int, list] = {}
     for x in libres:
         if x["aprobadorId"] and x["aprobadorId"] != user.id:
             por_aprobador.setdefault(x["aprobadorId"], []).append(x)
-    s = DesignAyudaSolicitud(solicitante_id=user.id, team_id=team.id, area_id=team.area_id, fecha=hoy,
+    s = DesignAyudaSolicitud(solicitante_id=user.id, team_id=team.id, area_id=team.area_id, fecha=hoy, orden_id=o.id,
                              vence_en=datetime.utcnow() + timedelta(minutes=VENCE_MIN),
                              n_aprobadores=len(por_aprobador), n_libres=sum(len(v) for v in por_aprobador.values()))
     if not por_aprobador:
@@ -209,8 +232,10 @@ def solicitar(db: Session, user: Empleado) -> dict:
                                  libres=json.dumps([{"id": x["id"], "nombre": x["nombre"], "casos": x["casos"], "equipoId": x["equipoId"]} for x in lista],
                                                    ensure_ascii=False)))
     db.commit()
+    info = _datos_orden(o)
+    detalle = " · ".join(x for x in (f"Orden {info['orden']}", info["producto"], info["centro"]) if x)
     _avisar(list(por_aprobador), f"Pedido de ayuda de {user.nombre_completo}",
-            f"Equipo {team.nombre}. Tienes diseñadores libres: elige a quién enviar.", f"/design?ayuda={s.id}", f"ayuda-{s.id}", True)
+            f"{detalle}. Tienes diseñadores libres: elige a quién enviar.", f"/design?ayuda={s.id}", f"ayuda-{s.id}", True)
     return {"ok": True, "id": s.id, "estado": "abierta", "aprobadores": len(por_aprobador),
             "mensaje": f"Solicitud enviada a {len(por_aprobador)} aprobador(es). Te avisamos cuando elijan a alguien."}
 
@@ -240,23 +265,28 @@ def estado(db: Session, user: Empleado) -> dict:
     _vencer_las_vencidas(db)
     hoy = _hoy()
     team = equipo_de_solicitante(db, user)
-    out = {"puedeSolicitar": team is not None, "equipo": team.nombre if team else "", "solicitud": None, "pendientes": [], "ayudaHoy": []}
+    out = {"puedeSolicitar": team is not None, "equipo": team.nombre if team else "", "solicitudes": [], "pendientes": [], "ayudaHoy": []}
     if team:
-        s = (db.query(DesignAyudaSolicitud).options(joinedload(DesignAyudaSolicitud.elegido))
-             .filter(DesignAyudaSolicitud.solicitante_id == user.id, DesignAyudaSolicitud.fecha == hoy)
-             .order_by(DesignAyudaSolicitud.id.desc()).first())
-        if s:
-            out["solicitud"] = {"id": s.id, "estado": s.estado, "creada": s.creada_en.isoformat() + "Z", "vence": s.vence_en.isoformat() + "Z",
-                                "elegido": s.elegido.nombre_completo if s.elegido else "", "mensaje": MSG_SIN_DISPONIBLES if s.estado == "sin_disponibles" else ""}
+        mias = (db.query(DesignAyudaSolicitud).options(joinedload(DesignAyudaSolicitud.elegido))
+                .filter(DesignAyudaSolicitud.solicitante_id == user.id, DesignAyudaSolicitud.fecha == hoy)
+                .order_by(DesignAyudaSolicitud.id.desc()).limit(8).all())
+        ords = {o.id: o for o in db.query(DesignOrden).filter(DesignOrden.id.in_([s.orden_id for s in mias if s.orden_id] or [0]))}
+        for s in mias:
+            out["solicitudes"].append({"id": s.id, "estado": s.estado, "creada": s.creada_en.isoformat() + "Z", "vence": s.vence_en.isoformat() + "Z",
+                                       "elegido": s.elegido.nombre_completo if s.elegido else "", "asignada": s.asignada,
+                                       "mensaje": MSG_SIN_DISPONIBLES if s.estado == "sin_disponibles" else "", **_datos_orden(ords.get(s.orden_id))})
         out["ayudaHoy"] = ayudas_del_equipo(db, team.id, hoy)
+    ords_p = {}
     ofertas = (db.query(DesignAyudaOferta, DesignAyudaSolicitud).join(DesignAyudaSolicitud, DesignAyudaSolicitud.id == DesignAyudaOferta.solicitud_id)
                .options(joinedload(DesignAyudaSolicitud.solicitante), joinedload(DesignAyudaSolicitud.team))
                .filter(DesignAyudaOferta.aprobador_id == user.id, DesignAyudaSolicitud.estado == "abierta").all())
+    if ofertas:
+        ords_p = {o.id: o for o in db.query(DesignOrden).filter(DesignOrden.id.in_([s.orden_id for _, s in ofertas if s.orden_id] or [0]))}
     for of, s in ofertas:
         libres = _libres_vigentes(db, of)
         if not libres:
             continue
-        out["pendientes"].append({"id": s.id, "solicitante": s.solicitante.nombre_completo if s.solicitante else "",
+        out["pendientes"].append({**_datos_orden(ords_p.get(s.orden_id)), "id": s.id, "solicitante": s.solicitante.nombre_completo if s.solicitante else "",
                                   "equipo": s.team.nombre if s.team else "", "creada": s.creada_en.isoformat() + "Z", "vence": s.vence_en.isoformat() + "Z",
                                   "sugeridoId": libres[0]["id"],   # la lista ya viene ordenada: el primero es el de menos casos en el mes
                                   "libres": [{"id": x["id"], "nombre": x["nombre"], "casos": x["casos"]} for x in libres]})
@@ -283,12 +313,20 @@ def elegir(db: Session, user: Empleado, solicitud_id: int, empleado_id: int) -> 
     s.sugerido_id, s.siguio_sugerencia, s.atendida_en = sugerido, empleado_id == sugerido, datetime.utcnow()
     otros = [o.aprobador_id for o in db.query(DesignAyudaOferta).filter(DesignAyudaOferta.solicitud_id == s.id, DesignAyudaOferta.aprobador_id != user.id)]
     solicitante_id, equipo_id = s.solicitante_id, s.team_id
+    # Se asigna solo: el diseñador queda como Diseñador de esa orden (si la orden sigue ahí, es de hoy y no se cerró el día).
+    orden = db.get(DesignOrden, s.orden_id) if s.orden_id else None
+    s.asignada = bool(orden and orden.team_id == equipo_id and orden.fecha == _hoy() and not sd.dia_cerrado(orden.fecha))
+    detalle = ""
+    if s.asignada:
+        orden.designer_id, orden.designer_prestado = empleado_id, ""
+        detalle = f" para la orden {(orden.orden or '').strip()}"
     db.commit()
-    _avisar([solicitante_id], "Ayuda en camino", f"{elegido['nombre']} fue enviado a tu equipo. Ya lo puedes asignar en tu Schedule de hoy.",
+    _avisar([solicitante_id], "Ayuda en camino",
+            (f"{elegido['nombre']} fue asignado{detalle}." if s.asignada else f"{elegido['nombre']} fue enviado a tu equipo: asígnalo en tu Schedule de hoy."),
             f"/design?area_id={s.area_id}&team_id={equipo_id}", f"ayuda-{s.id}-resp", True)
     if otros:   # reemplaza (misma etiqueta) el aviso que tenían pendiente
         _avisar(otros, "Pedido de ayuda atendido", f"{user.nombre_completo} ya envió a {elegido['nombre']}.", "/design", f"ayuda-{s.id}", False)
-    return {"ok": True, "nombre": elegido["nombre"], "siguioSugerencia": s.siguio_sugerencia}
+    return {"ok": True, "nombre": elegido["nombre"], "siguioSugerencia": s.siguio_sugerencia, "asignada": bool(s.asignada)}
 
 
 # ---------- La ayuda en el Schedule del solicitante ----------
@@ -310,12 +348,15 @@ def reporte(db: Session, desde: date, hasta: date) -> dict:
                                                 joinedload(DesignAyudaSolicitud.elegido_por), joinedload(DesignAyudaSolicitud.team))
          .filter(DesignAyudaSolicitud.fecha >= desde, DesignAyudaSolicitud.fecha <= hasta).order_by(DesignAyudaSolicitud.creada_en.desc()))
     filas, por_aprobador = [], {}
+    todas = q.all()
+    ords_r = {o.id: o for o in db.query(DesignOrden).filter(DesignOrden.id.in_([s.orden_id for s in todas if s.orden_id] or [0]))}
     nombres = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_(
         {i for (i,) in db.query(DesignAyudaSolicitud.sugerido_id).filter(DesignAyudaSolicitud.sugerido_id.isnot(None)).distinct()} or {0}))}
-    for s in q.all():
+    for s in todas:
         col = lambda dt: dt.replace(tzinfo=None) - timedelta(hours=5) if dt else None   # UTC guardado → hora de Colombia
         filas.append({"id": s.id, "fecha": s.fecha.isoformat(), "hora": col(s.creada_en).strftime("%H:%M"),
                       "solicitante": s.solicitante.nombre_completo if s.solicitante else "", "equipo": s.team.nombre if s.team else "",
+                      "orden": (ords_r[s.orden_id].orden or "").strip() if s.orden_id in ords_r else "", "producto": (ords_r[s.orden_id].producto or "").strip() if s.orden_id in ords_r else "",
                       "estado": s.estado, "aprobadores": s.n_aprobadores, "libres": s.n_libres,
                       "sugerido": nombres.get(s.sugerido_id, ""), "elegido": s.elegido.nombre_completo if s.elegido else "",
                       "elegidoPor": s.elegido_por.nombre_completo if s.elegido_por else "", "siguio": s.siguio_sugerencia,

@@ -310,6 +310,12 @@ def init_db():
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))
+    # Design Schedule · Solicitar ayuda desde la lista de Diseñador (19-oct-2026): la solicitud queda ligada a la orden.
+    columnas_ayuda = {c["name"] for c in inspect(engine).get_columns("design_ayuda_solicitudes")}
+    for col, tipo in (("orden_id", "INTEGER"), ("asignada", "BOOLEAN")):
+        if col not in columnas_ayuda:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE design_ayuda_solicitudes ADD COLUMN {col} {tipo}"))
     # Design Schedule · índices de órdenes (13-oct-2026): el horario, el Dashboard y las pantallas en vivo buscan por día,
     # equipo y diseñador. Sin índice, la base revisaba toda la tabla en cada consulta. IF NOT EXISTS: solo se crean una vez.
     with engine.begin() as conn:

@@ -1084,6 +1084,7 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dia = sd.datos_dia(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
     dia["miId"] = user.id
     dia["ayudas"] = say.ayudas_del_equipo(db, team.id, _fecha(fecha))   # diseñadores enviados como ayuda a este equipo hoy
+    dia["puedeAyuda"] = say.puede_pedir_en_orden(db, user, team.id, _fecha(fecha))   # «Pedir ayuda…» al final de la lista de Diseñador
     # Permiso para editar días cerrados (Parámetros › Equipos): ese día se abre solo para esta persona
     if dia["cerrado"]:
         hasta = sperm.permiso_para(db, user, _fecha(fecha))

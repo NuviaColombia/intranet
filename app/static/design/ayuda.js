@@ -1,13 +1,13 @@
 /* Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3.
    Aquí vive todo lo de pantalla:
-   - el botón «Solicitar ayuda» y el estado de la solicitud en Seguimiento › Diseñadores;
+   - «🤝 Pedir ayuda…» (opción al final de la lista de Diseñador del Schedule, ver schedule.js) y el estado de mis solicitudes en Seguimiento;
    - el aviso con la selección de diseñadores libres para el aprobador que debe responder (llega también por push);
    - Dashboard › Ayudas (solo admins): si los aprobadores siguen la sugerencia del sistema.
    Datos: /design/api/ayuda/* (services_design_ayuda). Se actualiza por el aviso en vivo {t:'ayuda'}. */
 (function() {
   'use strict';
   if (window.DSAyuda) return;
-  var est = null, tok = 0, vistos = {}, modal = null, urlId = null, previaSolicitud = null, timer = null;
+  var est = null, tok = 0, vistos = {}, modal = null, urlId = null, previas = null, timer = null;
   try { urlId = parseInt(new URLSearchParams(location.search).get('ayuda')) || null; } catch (e) {}
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]; }); }
@@ -31,54 +31,56 @@
     var mio = ++tok;
     return api('/design/api/ayuda/estado').then(function(d) {
       if (mio !== tok) return;
-      var antes = previaSolicitud;
-      est = d; previaSolicitud = d.solicitud ? {id: d.solicitud.id, estado: d.solicitud.estado} : null;
-      // el solicitante se entera de que ya eligieron a alguien
-      if (antes && d.solicitud && antes.id === d.solicitud.id && antes.estado === 'abierta' && d.solicitud.estado === 'atendida') {
-        aviso('✅ ' + d.solicitud.elegido + ' fue enviado a tu equipo. Ya lo puedes asignar en tu Schedule.');
-        document.dispatchEvent(new CustomEvent('ds:vivo', {detail: {t: 'dia', team: 0}}));   // el Schedule abierto recarga su lista de diseñadores
-      }
+      var antes = previas;
+      est = d; previas = {}; (d.solicitudes || []).forEach(function(s) { previas[s.id] = s.estado; });
+      // el solicitante se entera de que ya eligieron a alguien (la orden se actualiza sola por el aviso en vivo del día)
+      (d.solicitudes || []).forEach(function(s) {
+        if (antes && antes[s.id] === 'abierta' && s.estado === 'atendida') {
+          aviso('✅ ' + s.elegido + (s.asignada ? ' fue asignado a la orden ' + s.orden + '.' : ' fue enviado a tu equipo: asígnalo en tu Schedule.'));
+          document.dispatchEvent(new CustomEvent('ds:vivo', {detail: {t: 'dia', team: 0}}));   // el Schedule abierto recarga el día
+        }
+      });
       pintarSeguimiento(); revisarPendientes();
     }).catch(function() {}).then(function() {
       clearTimeout(timer); timer = setTimeout(cargar, (window.DSVivo && window.DSVivo.conectado) ? 90000 : 20000);
     });
   }
 
-  // ---------- Seguimiento: botón y estado de mi solicitud ----------
-  function panelSeg() { return document.getElementById('ov-seguimiento'); }
-  function enDisenadores() { var p = panelSeg(), b = p && p.querySelector('.sg-vista.on'); return !b || b.dataset.vista === 'disenadores'; }
-  function pintarSeguimiento() {
-    var btn = document.getElementById('sgAyuda'), caja = document.getElementById('sgAyudaEstado');
-    if (!btn || !caja) return;
-    var puede = !!(est && est.puedeSolicitar), s = est && est.solicitud, abierta = !!(s && s.estado === 'abierta');
-    btn.hidden = !puede || !enDisenadores();
-    btn.disabled = abierta; btn.title = abierta ? 'Ya tienes una solicitud abierta' : 'Pide un diseñador libre a los demás aprobadores de N3';
-    var txt = '', cls = '';
-    if (puede && enDisenadores() && s) {
-      if (s.estado === 'abierta') { txt = '⏳ Esperando respuesta de los aprobadores… vence a las ' + hora(s.vence) + ' <button type="button" class="btn gris mini" id="sgAyudaCancelar">Cancelar solicitud</button>'; cls = 'espera'; }
-      else if (s.estado === 'atendida') { txt = '✅ <b>' + esc(s.elegido) + '</b> fue enviado a tu equipo. Asígnalo en tu Schedule: aparece en Diseñador como «' + esc(s.elegido) + ' (ayuda)».'; cls = 'ok'; }
-      else if (s.estado === 'sin_disponibles') { txt = '⚠️ ' + esc(s.mensaje || 'No hay diseñadores disponibles. Contacta al manager General.'); cls = 'mal'; }
-      else if (s.estado === 'vencida') { txt = 'La solicitud venció sin respuesta. Puedes volver a pedir ayuda o contactar al manager General.'; cls = 'mal'; }
-    }
-    caja.hidden = !txt; caja.className = 'ay-estado ' + cls; caja.innerHTML = txt;
-    var c = document.getElementById('sgAyudaCancelar');
-    if (c) c.onclick = function() {
-      c.disabled = true;
-      api('/design/api/ayuda/' + s.id + '/cancelar', {}).then(function() { aviso('Solicitud cancelada.'); cargar(); }).catch(function(e) { aviso('⚠️ ' + e.message); cargar(); });
-    };
+  // ---------- Seguimiento: estado de mis solicitudes de hoy (se piden desde la lista de Diseñador del Schedule) ----------
+  function enDisenadores() { var p = document.getElementById('ov-seguimiento'), b = p && p.querySelector('.sg-vista.on'); return !b || b.dataset.vista === 'disenadores'; }
+  function lineaSolicitud(s) {
+    var o = '<b>Orden ' + esc(s.orden || '—') + '</b>' + (s.producto ? ' · ' + esc(s.producto) : '') + ': ';
+    if (s.estado === 'abierta') return '⏳ ' + o + 'esperando respuesta de los aprobadores… vence a las ' + hora(s.vence) + ' <button type="button" class="btn gris mini" data-ay-cancelar="' + s.id + '">Cancelar</button>';
+    if (s.estado === 'atendida') return '✅ ' + o + '<b>' + esc(s.elegido) + '</b> ' + (s.asignada ? 'fue asignado a la orden.' : 'fue enviado a tu equipo: asígnalo en tu Schedule.');
+    if (s.estado === 'sin_disponibles') return '⚠️ ' + o + esc(s.mensaje || 'No hay diseñadores disponibles. Contacta al manager General.');
+    if (s.estado === 'vencida') return '⌛ ' + o + 'venció sin respuesta. Puedes volver a pedir ayuda o contactar al manager General.';
+    return '';
   }
-  function solicitar() {
-    var btn = document.getElementById('sgAyuda'); if (btn) btn.disabled = true;
-    return api('/design/api/ayuda/solicitar', {}).then(function(r) {
+  function pintarSeguimiento() {
+    var caja = document.getElementById('sgAyudaEstado');
+    if (!caja) return;
+    var lista = ((est && est.puedeSolicitar && est.solicitudes) || []).filter(function(s) { return s.estado !== 'cancelada'; }).slice(0, 5);
+    var mostrar = enDisenadores() && lista.length;
+    caja.hidden = !mostrar;
+    caja.className = 'ay-estado' + (lista.some(function(s) { return s.estado === 'abierta'; }) ? ' espera' : lista.some(function(s) { return s.estado === 'sin_disponibles' || s.estado === 'vencida'; }) ? ' mal' : ' ok');
+    caja.innerHTML = mostrar ? '<div class="ay-lista"><b>🤝 Mis pedidos de ayuda de hoy</b>' + lista.map(function(s) { return '<div>' + lineaSolicitud(s) + '</div>'; }).join('') + '</div>' : '';
+    caja.querySelectorAll('[data-ay-cancelar]').forEach(function(c) {
+      c.onclick = function() {
+        c.disabled = true;
+        api('/design/api/ayuda/' + c.dataset.ayCancelar + '/cancelar', {}).then(function() { aviso('Solicitud cancelada.'); cargar(); }).catch(function(e) { aviso('⚠️ ' + e.message); cargar(); });
+      };
+    });
+  }
+  // Pedir ayuda para una orden (la llama la opción «🤝 Pedir ayuda…» de la lista de Diseñador)
+  function solicitar(ordenId) {
+    return api('/design/api/ayuda/solicitar', {ordenId: ordenId}).then(function(r) {
       aviso(r.sinDisponibles ? '⚠️ ' + r.mensaje : (r.ya ? r.mensaje : '🤝 ' + r.mensaje));
       return cargar();
     }).catch(function(e) { aviso('⚠️ ' + e.message); return cargar(); });
   }
   function engancharSeguimiento() {
-    var btn = document.getElementById('sgAyuda'); if (!btn) return;
-    btn.addEventListener('click', solicitar);
-    var p = panelSeg();
-    p.addEventListener('click', function(e) { if (e.target.closest('.sg-vista')) setTimeout(pintarSeguimiento, 0); });
+    var p = document.getElementById('ov-seguimiento');
+    if (p) p.addEventListener('click', function(e) { if (e.target.closest('.sg-vista')) setTimeout(pintarSeguimiento, 0); });
   }
 
   // ---------- Aprobador que responde: aviso con la selección ----------
@@ -113,7 +115,8 @@
         '<span class="ay-casos">' + x.casos + ' caso' + (x.casos === 1 ? '' : 's') + ' en el mes</span>' + (sug ? '<span class="ay-sug" title="El sistema sugiere al que menos casos lleva en el mes">Sugerido</span>' : '') + '</button>';
     }).join('');
     bg.innerHTML = '<div class="ds-qc ay-modal" role="dialog" aria-modal="true" aria-labelledby="ayTit"><h4 id="ayTit">🤝 ' + esc(s.solicitante) + ' pide ayuda</h4>' +
-      '<div class="ds-qc-sub">Equipo ' + esc(s.equipo) + ' · pedido ' + hace(s.creada) + ' · vence a las ' + hora(s.vence) + '<br>Elige cuál de tus diseñadores libres envías:</div>' +
+      '<div class="ds-qc-sub">' + (s.orden ? '<b>Orden ' + esc(s.orden) + '</b>' + (s.producto ? ' · ' + esc(s.producto) : '') + (s.centro ? ' · ' + esc(s.centro) : '') + '<br>' : '') +
+      'Equipo ' + esc(s.equipo) + ' · pedido ' + hace(s.creada) + ' · vence a las ' + hora(s.vence) + '<br>Elige cuál de tus diseñadores libres envías (se le asigna esa orden):</div>' +
       '<div class="ds-prest-lista" id="ayLista">' + libres + '</div><p class="ay-error" id="ayError" hidden></p>' +
       '<div class="ds-qc-btns"><button type="button" class="btn gris" id="ayAhoraNo">Ahora no</button><button type="button" class="btn" id="ayEnviar" disabled>Enviar</button></div></div>';
     document.body.appendChild(bg); document.addEventListener('keydown', teclas, true);
@@ -129,7 +132,7 @@
     enviar.onclick = function() {
       enviar.disabled = true; err.hidden = true;
       api('/design/api/ayuda/' + s.id + '/elegir', {empleadoId: sel}).then(function(r) {
-        cerrarModal(); aviso('✅ ' + r.nombre + ' fue enviado al equipo de ' + s.solicitante + '.'); cargar();
+        cerrarModal(); aviso('✅ ' + r.nombre + ' fue enviado a ' + s.solicitante + (r.asignada ? ' y quedó asignado a la orden ' + (s.orden || '') + '.' : '.')); cargar();
       }).catch(function(e) { err.textContent = e.message; err.hidden = false; enviar.disabled = false; cargar(); });
     };
     var primero = bg.querySelector('.ay-op'); if (primero) primero.focus();
@@ -162,12 +165,12 @@
         (r.porAprobador.length ? r.porAprobador.map(function(x) {
           return '<tr><td class="dd-izq"><b>' + esc(x.nombre) + '</b></td><td>' + x.atendidas + '</td><td>' + x.siguio + ' de ' + x.atendidas + '</td><td><b>' + x.pct + '%</b></td></tr>';
         }).join('') : '<tr><td colspan="4" style="color:#4b5563">Todavía no hay envíos en este periodo.</td></tr>') + '</tbody>';
-      t.innerHTML = '<thead><tr><th>Fecha</th><th>Hora</th><th>Solicitó</th><th>Equipo</th><th>Estado</th><th>Libres</th><th>Sugerido</th><th>Enviado</th><th>Lo envió</th><th>¿Siguió?</th><th>Respuesta</th></tr></thead><tbody>' +
+      t.innerHTML = '<thead><tr><th>Fecha</th><th>Hora</th><th>Solicitó</th><th>Orden</th><th>Equipo</th><th>Estado</th><th>Libres</th><th>Sugerido</th><th>Enviado</th><th>Lo envió</th><th>¿Siguió?</th><th>Respuesta</th></tr></thead><tbody>' +
         (r.items.length ? r.items.map(function(x) {
-          return '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.hora) + '</td><td class="dd-izq">' + esc(x.solicitante) + '</td><td>' + esc(x.equipo) + '</td><td>' + (ESTADOS[x.estado] || esc(x.estado)) + '</td>' +
+          return '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.hora) + '</td><td class="dd-izq">' + esc(x.solicitante) + '</td><td>' + esc(x.orden || '—') + '</td><td>' + esc(x.equipo) + '</td><td>' + (ESTADOS[x.estado] || esc(x.estado)) + '</td>' +
             '<td>' + x.libres + ' (' + x.aprobadores + ' aprob.)</td><td>' + esc(x.sugerido || '—') + '</td><td>' + esc(x.elegido || '—') + '</td><td>' + esc(x.elegidoPor || '—') + '</td>' +
             '<td>' + (x.siguio == null ? '—' : x.siguio ? '<b style="color:#15803d">✔ Sí</b>' : '<b style="color:#b91c1c">✘ No</b>') + '</td><td>' + (x.respuestaMin == null ? '—' : x.respuestaMin + ' min') + '</td></tr>';
-        }).join('') : '<tr><td colspan="11" style="color:#4b5563">No hay solicitudes en este periodo.</td></tr>') + '</tbody>';
+        }).join('') : '<tr><td colspan="12" style="color:#4b5563">No hay solicitudes en este periodo.</td></tr>') + '</tbody>';
     }).catch(function(e) { t.innerHTML = '<tbody><tr><td style="color:#b91c1c">No se pudo cargar: ' + esc(e.message) + '</td></tr></tbody>'; })
       .then(function() { t.style.opacity = ''; });
   }

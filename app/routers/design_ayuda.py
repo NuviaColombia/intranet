@@ -18,12 +18,19 @@ def api_ayuda_estado(user: Empleado = Depends(require_design_manager), db: Sessi
     return say.estado(db, user)
 
 
+class SolicitarIn(BaseModel):
+    ordenId: int
+
+
 @router.post("/design/api/ayuda/solicitar")
-def api_ayuda_solicitar(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+def api_ayuda_solicitar(payload: SolicitarIn, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Pide ayuda para una orden de hoy (opción «Pedir ayuda…» de la lista de Diseñador)."""
     try:
-        return say.solicitar(db, user)
+        return say.solicitar(db, user, payload.ordenId)
     except PermissionError as ex:
         raise HTTPException(403, str(ex))
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
 
 
 @router.post("/design/api/ayuda/{solicitud_id}/cancelar")

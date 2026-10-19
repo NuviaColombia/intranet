@@ -1131,6 +1131,8 @@ class DesignAyudaSolicitud(Base):
     sugerido_id: Mapped[int | None] = mapped_column(Integer, nullable=True)       # el sugerido a quien respondió
     siguio_sugerencia: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     atendida_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    orden_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)   # la orden para la que se pide ayuda (se le asigna el diseñador)
+    asignada: Mapped[bool | None] = mapped_column(Boolean, nullable=True)             # ¿se pudo poner al diseñador en esa orden?
 
     solicitante = relationship("Empleado", foreign_keys=[solicitante_id])
     elegido = relationship("Empleado", foreign_keys=[elegido_id])

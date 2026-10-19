@@ -1024,6 +1024,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         if (ev === 'blur' && dsSinCambio(tr, tabla, input)) return; // no cambió (p. ej. pasar con Tab)
         if (input.dataset.campo === 'designerId' && input.value === '__otro') { dsElegirPrestado(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__training') { dsMoverATraining(tr, tabla, input); return; }
+        if (input.dataset.campo === 'designerId' && input.value === '__ayuda') { dsPedirAyuda(tr, input); return; }
         if (input.dataset.campo === 'orden' && DS.areaFormato === 'support' && tabla !== 'prestadas' && input.value.trim()) {
           dsAutocompletarSupport(tr, tabla, input); return;
         }
@@ -1046,6 +1047,14 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // Diseñador prestado ("Others"): primero el equipo (de la misma área) y luego el diseñador. Se guarda la persona
   // real, así la orden también le aparece en su propio horario (bloque "Prestadas a otros equipos").
+  // Pedir ayuda (Solicitar ayuda): la orden queda ligada a la solicitud y, cuando otro aprobador elige a alguien, el
+  // diseñador se pone solo como Diseñador de esta orden (llega por el aviso en vivo). Ver static/design/ayuda.js.
+  function dsPedirAyuda(tr, sel) {
+    sel.value = sel.dataset.previo || '';   // la celda conserva lo que tenía mientras llega la respuesta
+    var id = parseInt(tr.dataset.id);
+    if (!id) { dsToast('Guarda primero la orden (número y centro) para pedir ayuda.'); return; }
+    if (window.DSAyuda) window.DSAyuda.solicitar(id);
+  }
   function dsElegirPrestado(tr, tabla, sel) {
     sel.value = sel.dataset.previo || ''; // mientras se elige, la celda conserva lo que tenía
     api('/design/api/prestables?team_id=' + DS.teamId).then(function(equipos) {
@@ -1615,6 +1624,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (f.id && f.tabla === 'principal' && dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado()) {
         html += dsOpcionTraining(f);   // pasa el caso al Schedule de Training (se habilita con orden, paciente y centro)
       }
+      // Pedir ayuda (19-oct-2026): al final de la lista, en las órdenes ya guardadas de hoy del aprobador de un equipo de N3
+      if (f.id && DS.diaData && DS.diaData.puedeAyuda && !dsDiaCerrado()) html += '<option value="__ayuda">🤝 Pedir ayuda…</option>';
       return html + '</select>';
     }
     return '';
