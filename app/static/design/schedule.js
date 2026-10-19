@@ -2019,20 +2019,23 @@ window.addEventListener('unhandledrejection', function(ev) {
     candado.title = txt.replace('🔒 ', ''); candado.setAttribute('aria-label', candado.title); candado.style.display = '';
   }
 
-  // Contadores fijos; solo cuentan órdenes completas (centro + producto + diseñador).
+  // Contadores fijos; solo cuentan órdenes completas (centro + producto + diseñador). Canceladas: cualquier orden con datos
+  // en Canceled, aunque no tenga diseñador (se cancelan muchas antes de asignarlas y el contador se quedaba en 0; 19-oct-2026).
+  function dsOrdenConDatos(f) { return !!(f.orden || f.paciente || f.centro || f.producto); }
   var DS_KPIS = [
     {uno: 'Orden', varios: 'Órdenes', cuenta: function(f) { return true; }},
     {uno: 'En proceso', varios: 'En proceso', cuenta: function(f) { return f.estado === 'Initiated'; }},
     {uno: 'En espera', varios: 'En espera', cuenta: function(f) { return dsEsHold(f.estado); }},
     {uno: 'Aprobada', varios: 'Aprobadas', cuenta: function(f) { return f.estado === 'Approved' && dsQcFinal(f); }},
-    {uno: 'Cancelada', varios: 'Canceladas', cuenta: function(f) { return f.estado === 'Canceled'; }},
+    {uno: 'Cancelada', varios: 'Canceladas', cuenta: dsEsCancelada, conDatos: true},
   ];
   function dsRenderKpis(dia) {
     dsPintarProduccion();  // la ventana de Producción (si está abierta) sigue los cambios
-    var todas = dia.principal.concat(dia.nightguard || [], dia.material || []).filter(dsOrdenCompleta);
+    var filas = dia.principal.concat(dia.nightguard || [], dia.material || []);
+    var todas = filas.filter(dsOrdenCompleta), conDatos = filas.filter(dsOrdenConDatos);
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
     DS_KPIS.forEach(function(k) {
-      var n = todas.filter(k.cuenta).length;
+      var n = (k.conDatos ? conDatos : todas).filter(k.cuenta).length;
       var el = document.createElement('div'); el.className = 'ds-kpi';
       el.innerHTML = '<b>' + n + '</b>' + (n === 1 ? k.uno : k.varios);
       cont.appendChild(el);
@@ -2128,8 +2131,17 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsSincronizarDescanso(card, clave);
       chk.addEventListener('change', function() {
         if (chk.checked) {
-          var ahora = dsHoraActual();
-          ini.value = ahora; fin.value = dsHoraMas(ahora, DS_DESCANSO_MIN);
+          var inicio = dsHoraActual();
+          // Descansos seguidos (19-oct-2026): si el otro descanso todavía está corriendo (p. ej. marcó el 1 a las 5:00 y a
+          // los pocos minutos marca el 2), este empieza cuando termina aquel: 5:00–5:15 y 5:15–5:30, sin cruzarse.
+          var otra = clave === 'break1' ? 'break2' : 'break1';
+          var oIni = card.querySelector('[data-campo="' + otra + 'Inicio"]').value, oFin = card.querySelector('[data-campo="' + otra + 'Fin"]').value;
+          if (oIni && oFin) {
+            var min = function(h) { var p = h.split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); };
+            var dur = (min(oFin) - min(oIni) + 1440) % 1440, pasados = (min(inicio) - min(oIni) + 1440) % 1440;
+            if (dur > 0 && pasados < dur) inicio = oFin;
+          }
+          ini.value = inicio; fin.value = dsHoraMas(inicio, DS_DESCANSO_MIN);
         } else {
           if (!DS_PUEDE_DESMARCAR || !confirm('¿Borrar el registro de este descanso?')) { chk.checked = true; return; }
           ini.value = ''; fin.value = '';
