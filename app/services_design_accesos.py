@@ -95,10 +95,35 @@ def revisar_una_vez(db: Session) -> None:
             res = revisar(db, "Revisión inicial")
             db.add(DesignConexionRegla(tipo="sistema", clave=MARCA, creado_por="Sistema", valor=json.dumps(res, ensure_ascii=False)))
             db.commit()
+        _rol_natalia_una_vez(db)
         _revisado["ok"] = True
     except Exception:  # noqa: BLE001
         db.rollback()
         log.exception("accesos de Design: falló la revisión inicial")
+
+
+MARCA_NATALIA = "rol_design_natalia_2026_10_19"
+
+
+def _rol_natalia_una_vez(db: Session) -> None:
+    """Pedido por Rosember el 19-oct-2026: Natalia Andrea Arena Rosales es admin en People, pero la revisión automática
+    del 12-oct le dejó «aprobador» en Design y por eso no veía ningún Schedule. Su rol de Design queda «igual que People»
+    (se borra la fila). Una sola vez: si después alguien le pone otro rol en Parámetros, se respeta."""
+    if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == MARCA_NATALIA).first():
+        return
+    from .services_design import _normalizar_texto
+    nat = next((e for e in db.query(Empleado).filter(Empleado.nombres.ilike("%natalia%")).all()
+                if {"natalia", "andrea", "arena", "rosales"} <= set(_normalizar_texto(e.nombre_completo).split())), None)
+    if nat is None:
+        return
+    r = db.get(DesignRolUsuario, nat.id)
+    quitado = r.rol if r else ""
+    if r:
+        db.delete(r)
+    db.add(DesignConexionRegla(tipo="sistema", clave=MARCA_NATALIA, creado_por="Sistema (pedido por Rosember)",
+                               valor=json.dumps({"empleado": nat.nombre_completo, "rolQuitado": quitado}, ensure_ascii=False)))
+    db.commit()
+    log.warning("ROL DESIGN: a %s (%s) se le quitó el rol de Design «%s»: queda igual que People (%s)", nat.nombre_completo, nat.id, quitado, nat.rol)
 
 
 def estado(db: Session) -> dict:
