@@ -240,9 +240,13 @@
   document.addEventListener('visibilitychange', function() { if (!document.hidden && panel.classList.contains('open')) cargar(); });
   // Con la conexión en vivo: cualquier cambio en órdenes o tiempos libres actualiza el panel (como mucho una vez cada
   // 5 s); además se refresca cada 60 s porque los minutos y los breaks avanzan solos. Sin conexión, cada 20 s.
-  var tVivo = null, ultVivo = 0;
+  var tVivo = null, ultVivo = 0, tProd = null;
   document.addEventListener('ds:vivo', function(e) {
     var a = e.detail || {};
+    // N3/N2 Producción: cambió una orden de cualquier equipo de N3 o N2 (aviso sin datos): se vuelve a pedir el reporte
+    if (a.t === 'prod' && panel.classList.contains('open') && vista === 'produccion' && (!a.fecha || a.fecha === (fechaInput.value || hoyISO()))) {
+      clearTimeout(tProd); tProd = setTimeout(cargarProd, 400 + Math.random() * 1200); return;
+    }
     if (!panel.classList.contains('open') || (a.t !== 'dia' && a.t !== 'reconectado')) return;
     clearTimeout(tVivo);
     tVivo = setTimeout(function() { ultVivo = Date.now(); cargar(); }, Math.max(300, 5000 - (Date.now() - ultVivo)));

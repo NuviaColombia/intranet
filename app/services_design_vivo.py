@@ -39,6 +39,7 @@ PRE_APPROVED = (DesignPreApprovedSheet, DesignPreApprovedCentro, DesignPreApprov
                 DesignPreApprovedFoto)
 CONFIGURACION = (DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignFestivo, DesignArea)
 LOTE_S = 0.12               # los guardados seguidos del mismo equipo y día se juntan en un solo aviso
+AREAS_PRODUCCION = ("N3 Prosthetic", "N2 Demodenture")   # las de Seguimiento › N3/N2 Producción
 
 
 class _Sub:
@@ -214,6 +215,9 @@ def _procesar_grupo(db: Session, team: int, fecha: str, g: dict) -> None:
     audiencia = set().union(*g["des"].values()) | g["brk"] if (g["des"] or g["brk"]) else set()
     t = db.query(DesignTeam).options(joinedload(DesignTeam.area)).filter(DesignTeam.id == team).first() if team else None
     training = bool(t and sd.es_training(t))
+    if t and t.area and t.area.nombre in AREAS_PRODUCCION and g["ids"]:
+        # Seguimiento › N3/N2 Producción muestra TODOS los equipos del área: aviso sin datos para todos (19-oct-2026)
+        publicar([{"t": "prod", "team": team, "fecha": fecha}])
     # copias, delegación, tiempos libres y cambios en bloque: no hay una orden que llevar, la pantalla vuelve a pedir el día
     if g["refrescar"] or fecha == "*" or not g["ids"]:
         publicar_dia(team, fecha, audiencia, training)
