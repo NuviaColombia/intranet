@@ -173,7 +173,15 @@
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>
   {% endif %}
   {% endif %}
-  {% if es_design and user.rol in ('admin', 'superadmin') %}<a href="/design/training">Training</a>{% endif %}
+  {% if es_design and user.rol in ('admin', 'superadmin') %}
+  <div class="nav-drop">
+    <button type="button" class="nav-drop-btn">Training ▾</button>
+    <div class="nav-drop-menu">
+      <a href="/design/training">🎓 Plataforma</a>
+      <a href="/design/pizarron">🖍️ Pizarrón</a>
+    </div>
+  </div>
+  {% endif %}
   <a href="/">Módulos</a>
   {% if es_design and ve_mural(user) %}<a href="/design/mural">Mural</a>{% endif %}
   {% set ds_extras %}{% if es_design %}

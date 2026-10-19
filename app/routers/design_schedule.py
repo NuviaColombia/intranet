@@ -3343,3 +3343,7 @@ router.include_router(_vivo_router)
 # ---------- Calendario (Gestión / Herramientas): rutas en routers/design_calendario.py ----------
 from .design_calendario import router as _calendario_router  # noqa: E402
 router.include_router(_calendario_router)
+
+# ---------- Training › Pizarrón: rutas en routers/design_pizarron.py ----------
+from .design_pizarron import router as _pizarron_router  # noqa: E402
+router.include_router(_pizarron_router)
