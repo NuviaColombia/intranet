@@ -3,7 +3,42 @@
 // admin todo · aprobadores sus equipos (crean y asignan) · diseñadores solo ven y marcan como hechas sus tareas.
 // En vivo con el bus de Design (evento 'ds:vivo' {t:'cal'}). Ausencias desde People + vacaciones estimadas.
 import { api, ApiError } from './api.js';
-import { getColombianHolidays, holidaysInRange, businessDays, toISO } from './holidays.js';
+import { getColombianHolidays as festivosColombia, holidaysInRange as festivosColombiaRango, toISO } from './holidays.js';
+
+// Festivos = los oficiales de Colombia + los de la empresa (Parámetros › Festivos), Rosember 19-oct-2026.
+// Mismos nombres que las funciones de holidays.js: todo el calendario (mes, semana, año, Equipo, días hábiles) los usa.
+const FESTIVOS_EMPRESA = new Map();   // 'AAAA-MM-DD' -> nombre
+function holidaysInRange(from, to) {
+  const m = festivosColombiaRango(from, to);
+  for (const [d, name] of FESTIVOS_EMPRESA) if (d >= from && d <= to && !m.has(d)) m.set(d, { date: d, name, empresa: true });
+  return new Map([...m.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+}
+function getColombianHolidays(year) {
+  const lista = festivosColombia(year);
+  const ya = new Set(lista.map((h) => h.date));
+  for (const [d, name] of FESTIVOS_EMPRESA) if (d.slice(0, 4) === String(year) && !ya.has(d)) lista.push({ date: d, name, empresa: true });
+  return lista.sort((a, b) => a.date.localeCompare(b.date));
+}
+/** Días hábiles entre dos fechas: sin sábados, domingos ni festivos (oficiales y de la empresa). */
+function businessDays(from, to) {
+  const hol = holidaysInRange(from, to);
+  let n = 0;
+  for (let d = from; d <= to; ) {
+    const [y, m, dd] = d.split('-').map(Number);
+    const dt = new Date(y, m - 1, dd);
+    if (dt.getDay() !== 0 && dt.getDay() !== 6 && !hol.has(d)) n++;
+    dt.setDate(dt.getDate() + 1);
+    d = toISO(dt);
+  }
+  return n;
+}
+async function loadFestivosEmpresa() {
+  try {
+    const lista = await api.get('/design/api/calendario/festivos');
+    FESTIVOS_EMPRESA.clear();
+    for (const f of lista) FESTIVOS_EMPRESA.set(f.date, f.name);
+  } catch { /* sin los de la empresa quedan los oficiales */ }
+}
 
 // ════════════════════════ Utilidades ════════════════════════
 
@@ -700,7 +735,7 @@ function renderSidebar() {
   $('#holiday-list').innerHTML = !list.length ? '<li class="empty">No hay festivos este mes</li>' : list
     .map(
       (h) => `<li data-goto-month="${h.date}" class="${h.date < state.today ? 'past' : ''} ${h === next ? 'next' : ''}"
-        title="${h.moved ? `Trasladado desde el ${fmt(h.originalDate, { day: 'numeric', month: 'long' })} (Ley Emiliani)` : 'Festivo fijo'}">
+        title="${h.empresa ? 'Festivo de la empresa (Parámetros › Festivos)' : h.moved ? `Trasladado desde el ${fmt(h.originalDate, { day: 'numeric', month: 'long' })} (Ley Emiliani)` : 'Festivo fijo'}">
         <span class="h-date">${fmt(h.date, { day: '2-digit', month: 'short' })}</span>
         <span>${esc(h.name)}${h.moved ? ' <span class="h-moved">↪ lunes</span>' : ''}</span></li>`,
     )
@@ -1922,7 +1957,7 @@ function setupSearch() {
 const reloadEquipos = debounce(async () => {
   try {
     state.me = await api.get('/design/api/calendario/me');
-    await Promise.all([loadUsers(), loadAbsenceMeta(), loadEvents(), loadAbsences()]);
+    await Promise.all([loadUsers(), loadAbsenceMeta(), loadEvents(), loadAbsences(), loadFestivosEmpresa()]);
     renderAll();
   } catch (e) {
     handleError(e);
@@ -2240,7 +2275,7 @@ async function boot(me) {
   $('#solo-lectura').hidden = canCreate();
   $('#manage-tags').hidden = !canCreate();
   try {
-    await Promise.all([loadUsers(), loadTags(), loadTasks(), loadAbsenceMeta()]);
+    await Promise.all([loadUsers(), loadTags(), loadTasks(), loadAbsenceMeta(), loadFestivosEmpresa()]);
     await refresh();
     celebrarHoy();
     connectStream();

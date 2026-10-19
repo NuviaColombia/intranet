@@ -184,3 +184,13 @@ def api_estimada_eliminar(estimada_id: int, user: Empleado = Depends(_usuario), 
 def api_ics(user: Empleado = Depends(_usuario), db: Session = Depends(get_db)):
     return Response(scal.ics(db, user), media_type="text/calendar; charset=utf-8",
                     headers={"Content-Disposition": 'attachment; filename="calendario-design.ics"'})
+
+
+@router.get(API + "/festivos")
+def api_festivos(user: Empleado = Depends(_usuario), db: Session = Depends(get_db)):
+    """Festivos de la empresa (Parámetros › Festivos): el calendario los suma a los oficiales de Colombia (19-oct-2026)."""
+    from ..models_design import DesignFestivo
+    from .. import services_design as sd
+    sd.festivos(db)   # la primera vez llena los festivos iniciales, como el Schedule
+    return [{"date": f.fecha.isoformat(), "name": f.nombre or "Festivo de la empresa"}
+            for f in db.query(DesignFestivo).order_by(DesignFestivo.fecha).all()]
