@@ -691,25 +691,13 @@ function renderSidebar() {
   $('#tag-filters').innerHTML =
     state.tags.map((t) => tagRow(t.id, t.name, t.color, t.usage)).join('') + tagRow(0, 'Sin etiqueta', '#94a3b8', null);
 
-  // Personas
-  $('#online-count').textContent = `${state.users.length}`;
-  $('#people-filters').innerHTML = state.users
-    .map(
-      (u) => `<li class="${state.personFocus === u.id ? 'focus' : ''}">
-        <label data-person="${u.id}" title="Ver solo eventos de ${esc(u.name)}">${avatar(u, 'sm')}
-        <span class="name">${esc(u.name)}${u.id === state.me.id ? ' <span class="muted">(tú)</span>' : ''}</span></label>
-        ${state.personFocus === u.id ? '<button class="only-btn" style="opacity:1" data-person="0">quitar</button>' : ''}
-      </li>`,
-    )
-    .join('');
-  $$('#people-filters li.focus').forEach((li) => (li.style.background = 'var(--primary-soft)'));
-
-  // Festivos del año en curso de la vista
+  // Festivos: solo los del mes que se está viendo (Rosember, 19-oct-2026; antes salían los 18 del año)
   const year = Number(state.cursor.slice(0, 4));
-  $('#holiday-year').textContent = year;
-  const list = getColombianHolidays(year);
+  const mes = state.cursor.slice(0, 7);
+  $('#holiday-year').textContent = `de ${MONTHS[parseISO(state.cursor).getMonth()].toLowerCase()}`;
+  const list = getColombianHolidays(year).filter((h) => h.date.slice(0, 7) === mes);
   const next = list.find((h) => h.date >= state.today);
-  $('#holiday-list').innerHTML = list
+  $('#holiday-list').innerHTML = !list.length ? '<li class="empty">No hay festivos este mes</li>' : list
     .map(
       (h) => `<li data-goto-month="${h.date}" class="${h.date < state.today ? 'past' : ''} ${h === next ? 'next' : ''}"
         title="${h.moved ? `Trasladado desde el ${fmt(h.originalDate, { day: 'numeric', month: 'long' })} (Ley Emiliani)` : 'Festivo fijo'}">

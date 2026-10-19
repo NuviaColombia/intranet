@@ -64,6 +64,14 @@
   @media (prefers-reduced-motion: reduce) {
     .calapp .chip.bday, .calapp .bday-cake, .calapp .bday-grande, .calapp .bday-banner { animation: none; }
   }
+  /* Etiquetas: lista plegable (cerrada al entrar; recuerda si la abriste) */
+  .calapp .cal-plegable > summary { list-style: none; cursor: pointer; }
+  .calapp .cal-plegable > summary::-webkit-details-marker { display: none; }
+  .calapp .cal-plegable > summary h3 { margin-bottom: 0; }
+  .calapp .cal-plegable[open] > summary h3 { margin-bottom: 8px; }
+  .calapp .cal-flecha { display: inline-block; transition: transform .2s; font-size: 13px; }
+  .calapp .cal-plegable[open] .cal-flecha { transform: rotate(90deg); }
+  .calapp .cal-plegable #manage-tags { margin: 0 0 6px; }
   .calapp .cal-mas { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 </style>
 <div class="calapp" id="calapp">
@@ -120,15 +128,12 @@
         <ul class="task-list" id="task-list"></ul>
       </section>
 
-      <section class="panel">
-        <h3>Etiquetas <button class="link-btn" id="manage-tags">Administrar</button></h3>
+      <details class="panel cal-plegable" id="tags-panel">
+        <summary><h3>Etiquetas <span class="cal-flecha" aria-hidden="true">▸</span></h3></summary>
+        <button class="link-btn" id="manage-tags">Administrar etiquetas</button>
         <ul class="filter-list" id="tag-filters"></ul>
-      </section>
+      </details>
 
-      <section class="panel">
-        <h3>Personas <span class="tiny muted" id="online-count"></span></h3>
-        <ul class="filter-list" id="people-filters"></ul>
-      </section>
 
       <section class="panel">
         <h3>Festivos <span id="holiday-year"></span></h3>
@@ -151,6 +156,12 @@
   <div class="toasts" id="toasts" aria-live="polite"></div>
 </div>
 <script>
+  // Etiquetas plegable: se recuerda en este PC si quedó abierta
+  (function() {
+    var d = document.getElementById('tags-panel');
+    try { d.open = localStorage.getItem('dsCal.etiquetasAbiertas') === '1'; } catch (e) {}
+    d.addEventListener('toggle', function() { try { localStorage.setItem('dsCal.etiquetasAbiertas', d.open ? '1' : '0'); } catch (e) {} });
+  })();
   // Alto de la barra de la intranet: el calendario ocupa el resto de la pantalla
   (function() {
     var nav = document.querySelector('nav');
