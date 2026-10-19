@@ -117,8 +117,13 @@ function hashColor(key = '') {
   return PALETTE[h % PALETTE.length];
 }
 const personColor = (a) => a.user_color || hashColor(a.person_key || a.person_name);
-const personAvatar = (a, cls = 'sm') =>
-  `<span class="avatar ${cls}${a.user_id && state.online.has(a.user_id) ? ' online' : ''}" style="background:${esc(personColor(a))}" title="${esc(a.person_name)}">${esc(initials(a.person_name))}</span>`;
+// Sin círculos con iniciales (Rosember, 19-oct-2026): las personas se muestran solo con su nombre
+const personAvatar = () => '';
+const firstName = (name = '') => String(name).trim().split(/\s+/)[0] || '';
+const namesOf = (ids, max = 3) => {
+  const n = ids.map((id) => firstName(userById(id)?.name)).filter(Boolean);
+  return n.length > max ? `${n.slice(0, max).join(', ')} +${n.length - max}` : n.join(', ');
+};
 function absRangeLabel(a) {
   if (a.start_time && a.start_date === a.end_date) return `${fmt(a.start_date, { day: 'numeric', month: 'short' })} · ${timeLong(a.start_time)} – ${timeLong(a.end_time)}`;
   if (a.start_date === a.end_date) return fmt(a.start_date, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -163,11 +168,7 @@ const canEdit = (ev) => !!ev.can_edit;   // lo decide el servidor: admin todo, a
 const canCreate = () => !!state.me?.puedeCrear;
 const eventColor = (ev) => ev.color || tagById(ev.tag_ids?.[0])?.color || userById(ev.created_by)?.color || '#4f46e5';
 
-function avatar(user, cls = '') {
-  if (!user) return '';
-  const online = state.online.has(user.id) ? ' online' : '';
-  return `<span class="avatar ${cls}${online}" style="background:${esc(user.color)}" title="${esc(user.name)}">${esc(initials(user.name))}</span>`;
-}
+const avatar = () => '';   // ver personAvatar
 
 // ════════════════════════ Equipos (intranet) ════════════════════════
 
@@ -383,9 +384,8 @@ function absChip(a) {
 
 function absBadge(day, list) {
   if (!list?.length) return '';
-  const shown = list.slice(0, 3);
   return `<button class="abs-badge" data-abs-day="${day}" title="${esc(list.map((a) => `${a.person_name} (${absMeta(a).label})`).join(', '))}">
-    <span class="avatar-stack">${shown.map((a) => personAvatar(a, 'xs')).join('')}</span>${list.length > 3 ? `<span class="abs-more">+${list.length - 3}</span>` : ''}</button>`;
+    <span class="abs-names">🌴 ${list.length === 1 ? esc(firstName(list[0].person_name)) : `${list.length} fuera`}</span></button>`;
 }
 
 // ════════════════════════ Rangos / navegación ════════════════════════
@@ -661,9 +661,18 @@ function renderMain() {
   if (state.view === 'week') afterWeekRender(prevScroll);
 }
 
+// ¿Ya pasó? (Rosember, 19-oct-2026: lo pasado se ve más apagado). Con hora: pasó cuando terminó.
+function isPast(ev, end) {
+  if (end < state.today) return true;
+  if (end > state.today || ev.all_day || !ev.end_time) return false;
+  const now = new Date();
+  return toMin(ev.end_time) <= now.getHours() * 60 + now.getMinutes();
+}
+
 function chipHtml(occ, day) {
   const ev = occ.ev;
   const cls = ['chip'];
+  if (isPast(ev, occ.end)) cls.push('past');
   if (ev.status === 'done') cls.push('done');
   if (ev.priority === 'high') cls.push('high');
   if (ev.visibility === 'private') cls.push('private');
@@ -789,12 +798,12 @@ function renderWeek() {
         .map(({ o, s, e, lane, lanes }) => {
           const ev = o.ev;
           const w = 100 / lanes;
-          return `<button class="tevent ${ev.status === 'done' ? 'done' : ''}" data-ev="${ev.id}" data-occ="${o.start}" ${canEdit(ev) ? 'draggable="true"' : ''}
+          return `<button class="tevent ${ev.status === 'done' ? 'done' : ''} ${isPast(ev, o.end) ? 'past' : ''}" data-ev="${ev.id}" data-occ="${o.start}" ${canEdit(ev) ? 'draggable="true"' : ''}
             style="--c:${esc(eventColor(ev))};top:${(s / 60) * hourH}px;height:${((e - s) / 60) * hourH - 2}px;left:calc(${lane * w}% + 2px);width:calc(${w}% - 4px);right:auto"
             title="${esc(ev.title)}">
             <span class="te-title">${ev.priority === 'high' ? '❗' : ''}${ev.visibility === 'private' ? '🔒 ' : ''}${esc(ev.title)}</span>
             <span class="te-time">${timeLong(ev.start_time)} – ${timeLong(ev.end_time)}</span>
-            ${ev.assignee_ids.length ? `<div class="avatar-stack" style="margin-top:3px">${ev.assignee_ids.slice(0, 3).map((id) => avatar(userById(id), 'sm')).join('')}</div>` : ''}
+            ${ev.assignee_ids.length ? `<span class="te-time">👤 ${esc(namesOf(ev.assignee_ids))}</span>` : ''}
           </button>`;
         })
         .join('');
@@ -842,13 +851,13 @@ function renderAgenda() {
           .map((o) => {
             const ev = o.ev;
             const time = ev.all_day ? (o.start !== o.end ? `Día ${diffDays(o.start, d) + 1}/${diffDays(o.start, o.end) + 1}` : 'Todo el día') : `${timeLong(ev.start_time)}`;
-            return `<button class="agenda-item ${ev.status === 'done' ? 'done' : ''}" style="--c:${esc(eventColor(ev))}" data-ev="${ev.id}" data-occ="${o.start}">
+            return `<button class="agenda-item ${ev.status === 'done' ? 'done' : ''} ${isPast(ev, o.end) ? 'past' : ''}" style="--c:${esc(eventColor(ev))}" data-ev="${ev.id}" data-occ="${o.start}">
               <span class="ai-time">${time}</span>
               <span><div class="ai-title">${ev.priority === 'high' ? '❗ ' : ''}${ev.visibility === 'private' ? '🔒 ' : ''}${esc(ev.title)}</div>
                 <div class="ai-sub">${ev.tag_ids.map((t) => tagById(t)).filter(Boolean).map((t) => `<span class="pill" style="--c:${esc(t.color)}">${esc(t.name)}</span>`).join('')}
                 ${ev.location ? `<span>📍 ${esc(ev.location)}</span>` : ''}${ev.recurrence !== 'none' ? `<span>↻ ${RECURRENCE[ev.recurrence]}</span>` : ''}</div></span>
               <span style="display:flex;gap:8px;align-items:center"><span class="status ${ev.status}">${STATUS[ev.status]}</span>
-                <span class="avatar-stack">${ev.assignee_ids.slice(0, 4).map((id) => avatar(userById(id), 'sm')).join('')}</span></span>
+                ${ev.assignee_ids.length ? `<span class="ai-names">👤 ${esc(namesOf(ev.assignee_ids, 4))}</span>` : ''}</span>
             </button>`;
           })
           .join('')}
@@ -894,7 +903,7 @@ function renderTeam() {
 
   const cols = `grid-template-columns: var(--tl-name) repeat(${days.length}, minmax(28px, 1fr)) 64px`;
   const dayCls = (d) => [isWeekend(d) && 'weekend', hol.has(d) && 'holiday', d === state.today && 'today'].filter(Boolean).join(' ');
-  const bg = (p) => days.map((d, i) => `<div class="tl-cell ${dayCls(d)}${p && canEstimate(p.user_id) ? ' puede-estimar' : ''}" style="grid-column:${i + 2}"${p && canEstimate(p.user_id) ? ` data-est-person="${p.user_id}" data-est-date="${d}" title="Clic para poner vacaciones estimadas"` : ''}></div>`).join('');
+  const bg = (p) => days.map((d, i) => `<div class="tl-cell ${dayCls(d)}${p && canEstimate(p.user_id) ? ' puede-estimar' : ''}" style="grid-column:${i + 2}"${p && canEstimate(p.user_id) ? ` data-est-person="${p.user_id}" data-est-date="${d}" title="Doble clic para poner vacaciones estimadas"` : ''}></div>`).join('');
 
   const head = `<div class="tl-row tl-head" style="${cols}"><div class="tl-name">Persona</div>
     ${days
@@ -1732,7 +1741,7 @@ function openShortcuts() {
   const el = openModal(
     `<div class="modal-head"><h2>Atajos de teclado</h2><button class="icon-btn" data-close>✕</button></div>
      <div class="modal-body">${keys.map(([k, v]) => `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span>${v}</span><kbd style="background:var(--surface-3)">${k}</kbd></div>`).join('')}
-     <p class="tiny muted">Consejo: arrastra los eventos para cambiarlos de día u hora. Haz clic en un espacio vacío para crear.</p></div>`,
+     <p class="tiny muted">Consejo: arrastra los eventos para cambiarlos de día u hora. Haz doble clic en un espacio vacío para crear.</p></div>`,
     { size: 'sm' },
   );
   el.addEventListener('click', (e) => e.target.closest('[data-close]') && closeModal());
@@ -2003,8 +2012,6 @@ function setupEvents() {
   $('#main').addEventListener('click', (e) => {
     if ($('#sidebar').classList.contains('open')) $('#sidebar').classList.remove('open');
     const t = e.target;
-    const est = t.closest('[data-est-person]');
-    if (est) return openEstimate({ empleado_id: Number(est.dataset.estPerson), date: est.dataset.estDate });
     if (t.closest('[data-estimate]')) return openEstimate({});
     const absId = t.closest('[data-abs-id]');
     if (absId) return showAbsenceDetail(absId, absId.dataset.absId);
@@ -2023,6 +2030,13 @@ function setupEvents() {
     if (g) return goTo(g.dataset.goto, 'month');
     const cr = t.closest('[data-create]');
     if (cr) return openCreate({ date: cr.dataset.create });
+  });
+  // Crear un evento: DOBLE clic en un espacio vacío (Rosember, 19-oct-2026: con un clic se abría sin querer)
+  $('#main').addEventListener('dblclick', (e) => {
+    const t = e.target;
+    const est = t.closest('[data-est-person]');   // vista Equipo: doble clic en la fila de una persona = vacaciones estimadas
+    if (est) return openEstimate({ empleado_id: Number(est.dataset.estPerson), date: est.dataset.estDate });
+    if (t.closest('[data-ev], [data-abs-id], [data-abs-day], [data-more], [data-week], [data-goto-month], [data-goto], button')) return;
     const col = t.closest('.wcol');
     if (col) {
       const min = Math.floor((((e.clientY - col.getBoundingClientRect().top) / 48) * 60) / 30) * 30;
