@@ -1372,3 +1372,14 @@ class DesignDevPostMarca(Base):
     empleado_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tipo: Mapped[str] = mapped_column(String(6), primary_key=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignDevApoyo(Base):
+    """Personas de apoyo de un proyecto (tipo 'p') o de un riesgo (tipo 'r'), además del responsable principal."""
+    __tablename__ = "design_dev_apoyos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(1))
+    ref_id: Mapped[int] = mapped_column(Integer, index=True)
+    empleado_id: Mapped[int] = mapped_column(Integer)
+    nombre: Mapped[str] = mapped_column(String(150), default="")

@@ -100,6 +100,37 @@ class Dev(unittest.TestCase):
         e = self.err(sdv.agregar_evidencias, self.db, self.yo, self.pid, muchas, meta * len(muchas))
         self.assertTrue(any("Máximo" in d for d in e.details))
 
+    def test_apoyo(self):
+        otra = Empleado(nombres="eva", apellidos="ruiz", email="eva@x.com", rol="empleado", activo=True,
+                        empresa=EMPRESA_DESIGN, cargo="x", area="x", identificacion="2")
+        fuera = Empleado(nombres="Ana", apellidos="Smiles", email="ana@x.com", rol="empleado", activo=True,
+                         empresa="Nuvia Smiles Colombia SAS", cargo="x", area="x", identificacion="3")
+        self.db.add_all([otra, fuera]); self.db.commit()
+        ids = [str(otra.id), str(otra.id), str(self.yo.id), str(fuera.id)]   # repetida, el principal y otra empresa: fuera
+        p = sdv.editar(self.db, self.yo, self.pid, {"supportIds": ids})
+        self.assertEqual(p["support"], [{"id": str(otra.id), "name": "Eva Ruiz"}])
+        self.assertIn("Apoyo: — → Eva Ruiz", p["log"][-1]["msg"])
+        e = self.err(sdv.editar, self.db, self.yo, self.pid, {"supportIds": [str(otra.id)] * 11})
+        self.assertIn("Máximo 10 personas de apoyo", e.details)
+        p = sdv.guardar_riesgo(self.db, self.yo, self.pid, {"title": "Caída", "prob": 2, "impact": 2, "status": "cerrado",
+                                                            "ownerId": str(self.yo.id), "supportIds": [str(otra.id)]})
+        self.assertEqual(p["risks"][0]["support"][0]["name"], "Eva Ruiz")
+        sdv.eliminar_riesgo(self.db, self.yo, self.pid, p["risks"][0]["id"])
+        sdv.eliminar(self.db, self.yo, self.pid)
+        self.assertEqual(self.db.query(models_design.DesignDevApoyo).count(), 0)
+
+    def test_ingles(self):
+        self.assertEqual(sdv.traducir("Datos inválidos"), "Invalid data")
+        self.assertEqual(sdv.traducir('No se puede pasar a "Lanzado": faltan controles'), 'Can\'t move to "Launched": checks missing')
+        self.assertEqual(sdv.traducir("En pruebas (QA): Code review aprobado"), "In testing (QA): Code review approved")
+        self.assertEqual(sdv.traducir("Imagen 3: supera 1 MB después de optimizar"), "Image 3: over 1 MB after optimizing")
+        self.assertEqual(sdv.traducir("Algo nuevo"), "Algo nuevo")
+        # todos los mensajes fijos del servicio tienen traducción
+        import inspect, re as _re
+        fuente = inspect.getsource(sdv)
+        fijos = set(_re.findall(r'(?:ErrorDev\(\d+, |errores\.append\()"([^"{]+)"', fuente))
+        self.assertEqual(sorted(m for m in fijos if sdv.traducir(m) == m), [])
+
     def test_eliminar_y_posts(self):
         post = sdv.guardar_post(self.db, self.yo, {"title": "Guía", "body": "Texto de más de diez", "category": "guia",
                                                    "projectId": self.pid, "links": [{"label": "", "url": "https://www.nuvia.com/x"}]})

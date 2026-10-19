@@ -1,0 +1,314 @@
+# Development en inglés (Rosember, 19-oct-2026). Lo usa scripts/integrar_development.py para generar domain.en.js y app.en.js.
+# Una pareja por línea: texto exacto en español ⟹ inglés. «⏎» es el salto de línea escrito en el código (\n).
+# Si el proyecto cambia y una pareja ya no se encuentra, el script avisa cuál revisar.
+[domain]
+label:'Propuesta'} ⟹ label:'Proposal'}
+label:'Aprobado'} ⟹ label:'Approved'}
+label:'En desarrollo'} ⟹ label:'In development'}
+label:'En pruebas (QA)'} ⟹ label:'In testing (QA)'}
+label:'Lanzado'} ⟹ label:'Launched'}
+label:'Pausado'} ⟹ label:'Paused'}
+'Idea registrada. Aún no se invierte tiempo de desarrollo.' ⟹ 'Idea logged. No development time invested yet.'
+'Objetivo, alcance y riesgos definidos; el sponsor dio el visto bueno.' ⟹ 'Goal, scope and risks defined; the sponsor signed off.'
+'Diseño y estimación validados; el equipo está construyendo.' ⟹ 'Design and estimate validated; the team is building.'
+'Código revisado y probado; validación en entorno de pruebas.' ⟹ 'Code reviewed and tested; validating in the test environment.'
+'En producción con rollback, backup y protocolo actualizados.' ⟹ 'Live in production with rollback, backup and protocol up to date.'
+'Detenido temporalmente. Requiere motivo.' ⟹ 'Temporarily on hold. Requires a reason.'
+{k:'critica',l:'Crítica'},{k:'alta',l:'Alta'},{k:'media',l:'Media'},{k:'baja',l:'Baja'} ⟹ {k:'critica',l:'Critical'},{k:'alta',l:'High'},{k:'media',l:'Medium'},{k:'baja',l:'Low'}
+{k:'abierto',l:'Abierto'},{k:'mitigando',l:'Mitigando'},{k:'cerrado',l:'Cerrado'} ⟹ {k:'abierto',l:'Open'},{k:'mitigando',l:'Mitigating'},{k:'cerrado',l:'Closed'}
+['','Muy baja','Baja','Media','Alta','Muy alta'] ⟹ ['','Very low','Low','Medium','High','Very high']
+['','Mínimo','Menor','Moderado','Mayor','Severo'] ⟹ ['','Minimal','Minor','Moderate','Major','Severe']
+l:'Guía', ⟹ l:'Guide',
+h:'Cómo hacemos las cosas aquí: procesos y flujos.' ⟹ h:'How we do things here: processes and workflows.'
+l:'Buenas prácticas' ⟹ l:'Best practices'
+h:'Recomendaciones técnicas para escribir mejor código.' ⟹ h:'Technical tips for writing better code.'
+l:'Recurso' ⟹ l:'Resource'
+h:'Material externo para estudiar: artículos, docs, cursos.' ⟹ h:'Outside material to study: articles, docs, courses.'
+l:'Anuncio' ⟹ l:'Announcement'
+h:'Cambios de reglas, fechas o decisiones del equipo.' ⟹ h:'Changes to rules, dates or team decisions.'
+t:'Objetivo y KPI de éxito definidos' ⟹ t:'Goal and success KPI defined'
+h:'Evita construir algo sin saber cómo medir si funcionó.' ⟹ h:'Avoids building something without knowing how to tell whether it worked.'
+t:'Alcance y criterios de aceptación escritos' ⟹ t:'Scope and acceptance criteria written'
+h:'Previene el crecimiento descontrolado del alcance: qué entra, qué no y cómo se acepta.' ⟹ h:'Prevents scope creep: what is in, what is out and how it gets signed off.'
+t:'Aprobación del solicitante / sponsor' ⟹ t:'Requester / sponsor approval'
+h:'Quien pidió el proyecto está de acuerdo antes de invertir tiempo.' ⟹ h:'Whoever asked for the project agrees before any time is invested.'
+t:'Al menos 1 riesgo identificado' ⟹ t:'At least 1 risk identified'
+h:'Se marca solo cuando registras un riesgo en la pestaña Riesgos.' ⟹ h:'Checks itself once you log a risk in the Risks tab.'
+t:'Diseño técnico revisado' ⟹ t:'Technical design reviewed'
+h:'Un segundo par de ojos sobre la arquitectura evita retrabajos costosos.' ⟹ h:'A second pair of eyes on the architecture avoids costly rework.'
+t:'Estimación validada por el equipo' ⟹ t:'Estimate validated by the team'
+h:'Fechas realistas acordadas con quien construye, no impuestas.' ⟹ h:'Realistic dates agreed with the people building it, not imposed.'
+t:'Dependencias e impactos identificados' ⟹ t:'Dependencies and impacts identified'
+h:'Qué otros módulos, equipos o protocolos se ven afectados.' ⟹ h:'Which other modules, teams or protocols are affected.'
+t:'Pruebas automatizadas pasando' ⟹ t:'Automated tests passing'
+h:'Atrapan regresiones antes de llegar a producción.⏎Requiere evidencia: captura del reporte de pruebas.' ⟹ h:'They catch regressions before they reach production.⏎Requires evidence: a screenshot of the test report.'
+t:'Code review aprobado' ⟹ t:'Code review approved'
+h:'Otro desarrollador revisó y aprobó el código.⏎Requiere evidencia: captura del PR aprobado.' ⟹ h:'Another developer reviewed and approved the code.⏎Requires evidence: a screenshot of the approved PR.'
+t:'Entorno de QA con datos de prueba' ⟹ t:'QA environment with test data'
+h:'Datos realistas (anonimizados) para probar casos reales.' ⟹ h:'Realistic (anonymized) data to test real cases.'
+t:'Plan de rollback documentado y probado' ⟹ t:'Rollback plan documented and tested'
+h:'Si algo falla en producción, cómo se revierte en minutos.⏎Requiere evidencia: captura o foto de la prueba de rollback.' ⟹ h:'If something breaks in production, how it gets rolled back in minutes.⏎Requires evidence: a screenshot or photo of the rollback test.'
+t:'Protocolo actualizado y aprobado' ⟹ t:'Protocol updated and approved'
+h:'El procedimiento operativo/clínico refleja el nuevo flujo.' ⟹ h:'The operating/clinical procedure reflects the new workflow.'
+t:'Backup / migración verificada' ⟹ t:'Backup / migration verified'
+h:'Respaldo comprobado antes de tocar datos productivos.⏎Requiere evidencia: captura de la verificación del backup.' ⟹ h:'Backup confirmed before touching production data.⏎Requires evidence: a screenshot of the backup check.'
+t:'Comunicación a usuarios afectados' ⟹ t:'Affected users notified'
+h:'Las personas afectadas saben qué cambia y cuándo.' ⟹ h:'The people affected know what changes and when.'
+t:'Sin riesgos críticos abiertos (puntaje ≥ 15)' ⟹ t:'No open critical risks (score ≥ 15)'
+h:'Se marca solo cuando no hay riesgos críticos abiertos o en mitigación.' ⟹ h:'Checks itself when no critical risk is open or being mitigated.'
+'es-CO' ⟹ 'en-US'
+d<=0?'hoy':d===1?'ayer':d<30?`hace ${d} días` ⟹ d<=0?'today':d===1?'yesterday':d<30?`${d} days ago`
+if(p.status==='lanzado') return 'Lanzado'; ⟹ if(p.status==='lanzado') return 'Launched';
+return d<0?`Vencido hace ${-d} d`: d===0?'Vence hoy': `Faltan ${d} d`; ⟹ return d<0?`Overdue by ${-d} d`: d===0?'Due today': `${d} d left`;
+label:'Cerrado', reasons:[] ⟹ label:'Closed', reasons:[]
+`Vencido hace ${-left} días`,'Reprograma la fecha o escala el bloqueo' ⟹ `Overdue by ${-left} days`,'Reschedule the date or escalate the blocker'
+`Vence en ${left} días con ${p.progress}% de avance`,'Revisa el alcance o pide apoyo' ⟹ `Due in ${left} days at ${p.progress}% progress`,'Review the scope or ask for help'
+`Atraso: ${p.progress}% real vs ${exp}% esperado`,'Actualiza el avance o ajusta el plan' ⟹ `Behind: ${p.progress}% actual vs ${exp}% expected`,'Update progress or adjust the plan'
+`Ligero atraso: ${p.progress}% real vs ${exp}% esperado`,'Actualiza el avance' ⟹ `Slightly behind: ${p.progress}% actual vs ${exp}% expected`,'Update progress'
+`Riesgo crítico sin mitigación: "${k.title}"`,'Define un plan de mitigación' ⟹ `Critical risk with no mitigation: "${k.title}"`,'Define a mitigation plan'
+`Riesgo crítico activo: "${k.title}"`,'Da seguimiento a la mitigación' ⟹ `Active critical risk: "${k.title}"`,'Follow up on the mitigation'
+`Riesgo moderado sin mitigación: "${k.title}"`,'Agrega un plan de mitigación' ⟹ `Moderate risk with no mitigation: "${k.title}"`,'Add a mitigation plan'
+'Sin análisis de riesgos registrado','Registra al menos un riesgo' ⟹ 'No risk analysis logged','Log at least one risk'
+`Sin actualización hace ${stale} días`,'Agrega una nota de seguimiento' ⟹ `No updates for ${stale} days`,'Add a follow-up note'
+`Control "${g.t}" marcado sin evidencia`,'Adjunta una captura o foto' ⟹ `Check "${g.t}" marked without evidence`,'Attach a screenshot or photo'
+`Faltan ${miss} controles para pasar a "${statusLabel(nx)}"`,'Completa los controles' ⟹ `${miss} checks left to move to "${statusLabel(nx)}"`,'Complete the checks'
+{ok:'Saludable',warn:'En observación',bad:'En riesgo'} ⟹ {ok:'Healthy',warn:'Watch',bad:'At risk'}
+[app]
+toast('Error inesperado','e') ⟹ toast('Unexpected error','e')
+okText='Confirmar' ⟹ okText='Confirm'
+'Escribe un motivo de al menos 5 caracteres.' ⟹ 'Write a reason of at least 5 characters.'
+`Tienes ${state.staged.length} ${state.staged.length>1?'imágenes':'imagen'} sin guardar como evidencia. ¿Quieres descartarla${state.staged.length>1?'s':''}?` ⟹ `You have ${state.staged.length} ${state.staged.length>1?'images':'image'} not saved as evidence. Discard ${state.staged.length>1?'them':'it'}?`
+'Tienes cambios en el formulario que no se han guardado. ¿Quieres descartarlos?' ⟹ 'You have unsaved changes in this form. Discard them?'
+title:'Cambios sin guardar',msg,okText:'Descartar' ⟹ title:'Unsaved changes',msg,okText:'Discard'
+if(h.label==='Cerrado') return 'Proyecto lanzado y cerrado.'; ⟹ if(h.label==='Closed') return 'Project launched and closed.';
+`Salud ${h.score}/100 · ${h.label}⏎≥75 saludable · 50–74 observación · <50 riesgo` ⟹ `Health ${h.score}/100 · ${h.label}⏎≥75 healthy · 50–74 watch · <50 at risk`
+'⏎⏎Sin alertas: va según lo planeado.' ⟹ '⏎⏎No alerts: on track.'
+data-tip="Avance reportado: ${v}%" ⟹ data-tip="Reported progress: ${v}%"
+`Probabilidad ${r.prob} (${PROB_LBL[r.prob]}) × Impacto ${r.impact} (${IMP_LBL[r.impact]}) = ${riskScore(r)}⏎≥15 crítico · 8–14 moderado · <8 bajo` ⟹ `Probability ${r.prob} (${PROB_LBL[r.prob]}) × Impact ${r.impact} (${IMP_LBL[r.impact]}) = ${riskScore(r)}⏎≥15 critical · 8–14 moderate · <8 low`
+<b>Cómo funciona</b><button class="btn sm" data-action="hide-help">Entendido, ocultar</button> ⟹ <b>How it works</b><button class="btn sm" data-action="hide-help">Got it, hide</button>
+<b>Crea el proyecto</b><br><span class="muted">Define responsable, fechas y el protocolo que impacta.</span> ⟹ <b>Create the project</b><br><span class="muted">Set the owner, dates and the protocol it affects.</span>
+<b>Identifica riesgos</b><br><span class="muted">Qué podría salir mal y cómo prevenirlo. Es obligatorio para aprobar.</span> ⟹ <b>Identify risks</b><br><span class="muted">What could go wrong and how to prevent it. Required for approval.</span>
+<b>Cumple los controles</b><br><span class="muted">Cada etapa tiene su lista; sin ella el sistema no deja avanzar.</span> ⟹ <b>Meet the checks</b><br><span class="muted">Each stage has its checklist; until it's done, the system won't let you move on.</span>
+<b>Aprende en Posts</b><br><span class="muted">Guías, buenas prácticas y recursos para el equipo.</span> ⟹ <b>Learn in Posts</b><br><span class="muted">Guides, best practices and resources for the team.</span>
+'Proyectos activos','Proyectos que aún no se lanzan (incluye pausados).' ⟹ 'Active projects','Projects not launched yet (paused ones included).'
+'Promedio del puntaje de salud de los proyectos activos.⏎Se calcula con: vencimiento, avance vs. tiempo, riesgos, inactividad y controles pendientes.⏎⏎Clic para ver el detalle.' ⟹ 'Average health score of active projects.⏎Based on: due dates, progress vs. time, risks, inactivity and pending checks.⏎⏎Click for details.'
+<div class="l">Salud promedio</div> ⟹ <div class="l">Average health</div>
+'Proyectos en riesgo','Proyectos con salud menor a 50. Requieren atención esta semana.' ⟹ 'Projects at risk','Projects with health below 50. They need attention this week.'
+'Vencidos','Proyectos activos cuya fecha objetivo ya pasó.' ⟹ 'Overdue','Active projects past their target date.'
+(${crit} críticos)</span>`,'Riesgos abiertos','Riesgos abiertos o en mitigación. Crítico = puntaje ≥ 15.' ⟹ (${crit} critical)</span>`,'Open risks','Risks that are open or being mitigated. Critical = score ≥ 15.'
+<h3>Alertas preventivas ${info('Problemas detectados automáticamente antes de que escalen. Haz clic en una alerta para ir directo a resolverla.')}</h3> ⟹ <h3>Early warnings ${info('Problems detected automatically before they escalate. Click an alert to go straight to fixing it.')}</h3>
+['','Todas', ⟹ ['','All',
+['alta','Alta',cnt('alta')],['media','Media',cnt('media')],['baja','Baja',cnt('baja')] ⟹ ['alta','High',cnt('alta')],['media','Medium',cnt('media')],['baja','Low',cnt('baja')]
+data-tip="Severidad ${a.sev}" ⟹ data-tip="${({alta:'High',media:'Medium',baja:'Low'})[a.sev]} severity"
+Sin alertas en esta categoría. Todo bajo control. ⟹ No alerts in this category. Everything is under control.
+<h3>Para leer ${info('Publicaciones que aún no has leído en la pestaña Posts.')} ⟹ <h3>To read ${info('Posts you haven’t read yet in the Posts tab.')}
+${unread.length} sin leer</span> ⟹ ${unread.length} unread</span>
+Ver todos los posts → ⟹ See all posts →
+Estás al día con todas las lecturas. ⟹ You’re all caught up on your reading.
+<h3>Matriz de riesgos abiertos ${info('Cada celda cuenta riesgos por probabilidad (filas) e impacto (columnas). Lo ideal es que todo quede abajo a la izquierda.')}</h3> ⟹ <h3>Open risk matrix ${info('Each cell counts risks by probability (rows) and impact (columns). Ideally, everything sits in the bottom left.')}</h3>
+<h3>Proyectos por etapa</h3> ⟹ <h3>Projects by stage</h3>
+t+'⏎⏎Clic para ver el detalle.' ⟹ t+'⏎⏎Click for details.'
+Probabilidad ${pr} (${PROB_LBL[pr]}) × Impacto ${im} (${IMP_LBL[im]}) = ${sc}⏎${n} riesgo(s) ⟹ Probability ${pr} (${PROB_LBL[pr]}) × Impact ${im} (${IMP_LBL[im]}) = ${sc}⏎${n} risk(s)
+Crítico ≥15</span> ⟹ Critical ≥15</span>
+Moderado 8–14</span> ⟹ Moderate 8–14</span>
+Bajo &lt;8</span><span>P = probabilidad · I = impacto</span> ⟹ Low &lt;8</span><span>P = probability · I = impact</span>
+placeholder="Buscar por código, nombre, responsable o protocolo…  ( / )" value="${esc(f.q)}" aria-label="Buscar" ⟹ placeholder="Search by code, name, owner or protocol…  ( / )" value="${esc(f.q)}" aria-label="Search"
+aria-label="Etapa"><option value="">Todas las etapas</option> ⟹ aria-label="Stage"><option value="">All stages</option>
+aria-label="Tipo"><option value="">Todos los tipos</option>${TYPES.map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`) ⟹ aria-label="Type"><option value="">All types</option>${TYPES.map(t=>`<option value="${t}" ${f.type===t?'selected':''}>${typeLabel(t)}</option>`)
+aria-label="Salud"><option value="">Toda salud</option>${[['ok','Saludable'],['warn','En observación'],['bad','En riesgo'],['overdue','Solo vencidos']] ⟹ aria-label="Health"><option value="">Any health</option>${[['ok','Healthy'],['warn','Watch'],['bad','At risk'],['overdue','Overdue only']]
+>Limpiar filtros< ⟹ >Clear filters<
+${rows.length} de ${state.projects.length} proyectos · clic en una columna para ordenar · clic en una fila para abrir ⟹ ${rows.length} of ${state.projects.length} projects · click a column to sort · click a row to open
+${th('code','Código')}${th('name','Proyecto')}${th('type','Tipo')}${th('status','Etapa')}${th('priority','Prioridad')}${th('owner','Responsable')}${th('progress','Avance')}${th('dueDate','Fecha objetivo')}${th('risks','Riesgos','Riesgos abiertos o en mitigación')}${th('health','Salud','Puntaje 0–100. Pasa el cursor sobre cada valor para ver el diagnóstico.')} ⟹ ${th('code','Code')}${th('name','Project')}${th('type','Type')}${th('status','Stage')}${th('priority','Priority')}${th('owner','Owner')}${th('progress','Progress')}${th('dueDate','Target date')}${th('risks','Risks','Risks that are open or being mitigated')}${th('health','Health','Score 0–100. Hover over a value to see the diagnosis.')}
+<td>${esc(p.type)}</td> ⟹ <td>${esc(typeLabel(p.type))}</td>
+ crítico${crit.length>1?'s':''}</span> ⟹  critical</span>
+No hay proyectos con esos filtros. ⟹ No projects match these filters.
+Arrastra una tarjeta para cambiar de etapa. Mientras arrastras, las columnas permitidas brillan en verde y las bloqueadas se atenúan. ⟹ Drag a card to change its stage. While you drag, allowed columns glow green and blocked ones fade out.
+${esc(p.code)} · ${esc(p.type)}${p.evidence.length?` · <span data-tip="Evidencias adjuntas"> ⟹ ${esc(p.code)} · ${esc(typeLabel(p.type))}${p.evidence.length?` · <span data-tip="Attached evidence">
+`Pendiente para pasar a ${statusLabel(nx)}:⏎` ⟹ `Still needed to move to ${statusLabel(nx)}:⏎`
+${miss.length} control${miss.length>1?'es':''} pendiente${miss.length>1?'s':''}</span> ⟹ ${miss.length} check${miss.length>1?'s':''} pending</span>
+Todos los controles listos. Puedes arrastrarlo a ${esc(statusLabel(nx))}. ⟹ All checks done. You can drag it to ${esc(statusLabel(nx))}.
+>Listo para ${esc(statusLabel(nx))}</span> ⟹ >Ready for ${esc(statusLabel(nx))}</span>
+padding:16px 0">Sin proyectos</div> ⟹ padding:16px 0">No projects</div>
+toast(`No se puede pasar a "${statusLabel(to)}": faltan controles`,'e',missing) ⟹ toast(`Can’t move to "${statusLabel(to)}": checks missing`,'e',missing)
+${to==='pausado'?'Pausar':'Regresar a "'+statusLabel(to)+'"'}: ${p.name} ⟹ ${to==='pausado'?'Pause':'Move back to "'+statusLabel(to)+'"'}: ${p.name}
+'Pausar detiene las alertas de fecha. Indica por qué se pausa y qué se necesita para reanudar.':'Retroceder de etapa es una señal importante; el motivo queda en la bitácora.' ⟹ 'Pausing stops date alerts. Say why it’s paused and what’s needed to resume.':'Moving back a stage is an important signal; the reason is saved in the log.'
+okText:to==='pausado'?'Pausar proyecto':'Retroceder' ⟹ okText:to==='pausado'?'Pause project':'Move back'
+`${p.code} ahora está en "${statusLabel(to)}"` ⟹ `${p.code} is now in "${statusLabel(to)}"`
+${all.length} riesgos · ordenados por estado y puntaje · clic en una fila para abrir el proyecto ⟹ ${all.length} risks · sorted by status and score · click a row to open the project
+<th data-tip="Probabilidad × Impacto (1–25)">Puntaje</th><th>Riesgo</th><th>Proyecto</th><th data-tip="Probabilidad (1–5)">P</th><th data-tip="Impacto (1–5)">I</th><th>Mitigación</th><th>Responsable</th><th>Estado</th> ⟹ <th data-tip="Probability × Impact (1–25)">Score</th><th>Risk</th><th>Project</th><th data-tip="Probability (1–5)">P</th><th data-tip="Impact (1–5)">I</th><th>Mitigation</th><th>Owner</th><th>Status</th>
+font-weight:600">Sin plan</span> ⟹ font-weight:600">No plan</span>
+Sin riesgos registrados ⟹ No risks logged
+data-tip="Publicación fijada: aparece primero">Fijado</span> ⟹ data-tip="Pinned post: it shows first">Pinned</span>
+data-tip="Sin leer" ⟹ data-tip="Unread"
+${open?'Ver menos ↑':'Leer más ↓'} ⟹ ${open?'Show less ↑':'Read more ↓'}
+'Abre en una pestaña nueva:⏎' ⟹ 'Opens in a new tab:⏎'
+data-tip="Abrir el proyecto vinculado" ⟹ data-tip="Open the linked project"
+${p.read?'Marcar como no leído':'Marca que ya lo leíste. Abrir un enlace también lo marca.'}">${p.read?'✓ Leído':'Marcar leído'} ⟹ ${p.read?'Mark as unread':'Mark it as read. Opening a link marks it too.'}">${p.read?'✓ Read':'Mark as read'}
+data-tip="Marca si te sirvió; ayuda a saber qué contenido funciona">Útil · ${p.useful} ⟹ data-tip="Mark it if it helped; it shows which content works">Useful · ${p.useful}
+data-tip="Editar publicación">Editar</button> ⟹ data-tip="Edit post">Edit</button>
+data-tip="Eliminar publicación">Eliminar</button> ⟹ data-tip="Delete post">Delete</button>
+data-tip="Comparte una guía, recurso o anuncio con el equipo">+ Nueva publicación</button> ⟹ data-tip="Share a guide, resource or announcement with the team">+ New post</button>
+<h3>Tu progreso de lectura ${info('Porcentaje de publicaciones que ya leíste. La meta es estar al 100% antes de cada etapa nueva.')}</h3> ⟹ <h3>Your reading progress ${info('Share of posts you’ve read. The goal is 100% before each new stage.')}</h3>
+${pct===100?'¡Al día!':`${all.length-read} pendiente${all.length-read>1?'s':''}`} ⟹ ${pct===100?'All caught up!':`${all.length-read} to read`}
+placeholder="Buscar en posts…  ( / )" ⟹ placeholder="Search posts…  ( / )"
+aria-label="Buscar posts" ⟹ aria-label="Search posts"
+data-pcat="">Todas <span> ⟹ data-pcat="">All <span>
+<label class="switch">Solo no leídos ⟹ <label class="switch">Unread only
+aria-label="Filtrar por proyecto"><option value="">Todos los proyectos</option> ⟹ aria-label="Filter by project"><option value="">All projects</option>
+${list.length} publicación${list.length===1?'':'es'} · las fijadas aparecen primero ⟹ ${list.length} post${list.length===1?'':'s'} · pinned posts show first
+No hay publicaciones con estos filtros. ⟹ No posts match these filters.
+${p?'Editando publicación':'Comparte conocimiento con el equipo'} ⟹ ${p?'Editing post':'Share knowledge with the team'}
+${p?esc(p.title):'Nueva publicación'} ⟹ ${p?esc(p.title):'New post'}
+aria-label="Cerrar" ⟹ aria-label="Close"
+<span class="lt">Título *</span> ⟹ <span class="lt">Title *</span>
+placeholder="Ej. Cómo escribir un buen plan de rollback" ⟹ placeholder="e.g. How to write a good rollback plan"
+<span class="lt">Categoría * ⟹ <span class="lt">Category *
+<span class="lt">Proyecto relacionado ${info('Opcional. Vincula la lectura a un proyecto: aparecerá en su ficha para que el equipo la encuentre.')}</span> ⟹ <span class="lt">Related project ${info('Optional. Link the post to a project: it shows up on the project page so the team can find it.')}</span>
+<option value="">Ninguno (general)</option> ⟹ <option value="">None (general)</option>
+<span class="lt">Contenido * ${info('Formato rápido:⏎**texto** → negrita⏎`código` → código⏎- al inicio de línea → lista⏎Línea en blanco → nuevo párrafo')}</span> ⟹ <span class="lt">Content * ${info('Quick formatting:⏎**text** → bold⏎`code` → code⏎- at the start of a line → list⏎Blank line → new paragraph')}</span>
+placeholder="Explica el tema con tus palabras. Usa - para listas y **negrita** para resaltar." ⟹ placeholder="Explain the topic in your own words. Use - for lists and **bold** to highlight."
+Enlaces ${info('Documentación, artículos o videos para profundizar. Deben empezar por http:// o https://. Si no pones título, se usa el dominio.')} ⟹ Links ${info('Docs, articles or videos to dig deeper. They must start with http:// or https://. With no title, the domain is used.')}
+data-action="add-link">+ Agregar enlace</button> ⟹ data-action="add-link">+ Add link</button>
+Fijar arriba ${info('Las publicaciones fijadas aparecen primero y con fondo oscuro. Úsalo para lo esencial.')} ⟹ Pin to top ${info('Pinned posts show first, on a dark background. Use it for the essentials.')}
+margin-bottom:6px">Vista previa</div> ⟹ margin-bottom:6px">Preview</div>
+>● Cambios sin guardar</span> ⟹ >● Unsaved changes</span>
+data-action="close-post">Cancelar</button><button class="btn primary">${p?'Guardar cambios':'Publicar'}</button> ⟹ data-action="close-post">Cancel</button><button class="btn primary">${p?'Save changes':'Publish'}</button>
+placeholder="Título del enlace" value="${esc(l.label)}" data-li="${i}" data-lf="label" aria-label="Título del enlace ${i+1}" ⟹ placeholder="Link title" value="${esc(l.label)}" data-li="${i}" data-lf="label" aria-label="Link title ${i+1}"
+aria-label="URL del enlace ${i+1}" ⟹ aria-label="Link URL ${i+1}"
+data-tip="Quitar enlace" ⟹ data-tip="Remove link"
+L('Nombre del proyecto *','Nombre corto y claro, por ejemplo "Recordatorios por WhatsApp".') ⟹ L('Project name *','Short and clear, for example "WhatsApp reminders".')
+placeholder="¿Qué se va a construir o mejorar?" ⟹ placeholder="What will be built or improved?"
+L('Tipo *','Desarrollo: funcionalidad nueva.⏎Mejora: optimiza algo existente.⏎Protocolo: cambia un procedimiento operativo o clínico (requiere protocolo vinculado).')}<select name="type">${TYPES.map(t=>`<option ${v.type===t?'selected':''}>${t}</option>`) ⟹ L('Type *','Development: new functionality.⏎Improvement: makes something existing better.⏎Protocol: changes an operating or clinical procedure (needs a linked protocol).')}<select name="type">${TYPES.map(t=>`<option value="${t}" ${v.type===t?'selected':''}>${typeLabel(t)}</option>`)
+L('Prioridad *','Crítica: afecta pacientes u operación hoy.⏎Alta: impacto de negocio este trimestre.⏎Media / Baja: deseable, sin urgencia.') ⟹ L('Priority *','Critical: affects patients or operations today.⏎High: business impact this quarter.⏎Medium / Low: nice to have, not urgent.')
+L('Responsable *','Persona principal que responde por el avance. Las demás van en «Apoyo».') ⟹ L('Owner *','The main person accountable for progress. Everyone else goes under "Support".')
+L('Protocolo vinculado','Código y nombre del protocolo que este proyecto crea o modifica. Obligatorio para tipo Protocolo.') ⟹ L('Linked protocol','Code and name of the protocol this project creates or changes. Required for Protocol projects.')
+placeholder="Ej. PR-AGD-02 Agendamiento" ⟹ placeholder="e.g. PR-AGD-02 Scheduling"
+L('Apoyo','Otras personas que trabajan en el proyecto con el responsable.') ⟹ L('Support','Other people working on the project with the owner.')
+L('Fecha de inicio *','Se usa para calcular el avance esperado a la fecha.') ⟹ L('Start date *','Used to work out the expected progress to date.')
+L('Fecha objetivo *','Fecha comprometida de lanzamiento. Si se vence, el proyecto pasa a alerta alta.') ⟹ L('Target date *','The committed launch date. If it passes, the project goes on high alert.')
+L('Avance (%)','Actualízalo al menos una vez por semana. Si se queda atrás del avance esperado, el sistema alerta.') ⟹ L('Progress (%)','Update it at least once a week. If it falls behind the expected progress, the system warns you.')
+L('Descripción / objetivo','¿Qué problema resuelve y cómo se medirá el éxito?') ⟹ L('Description / goal','What problem does it solve and how will success be measured?')
+placeholder="Problema, objetivo y KPI de éxito" ⟹ placeholder="Problem, goal and success KPI"
+data-tip="Solo se pueden eliminar proyectos en Propuesta o Pausado">Eliminar</button> ⟹ data-tip="Only projects in Proposal or Paused can be deleted">Delete</button>
+${p?'Cerrar':'Cancelar'}</button><button class="btn primary">${p?'Guardar cambios':'Crear y registrar riesgos →'} ⟹ ${p?'Close':'Cancel'}</button><button class="btn primary">${p?'Save changes':'Create and log risks →'}
+(n?n+' evidencia'+(n>1?'s':'')+' en esta etapa':'Sin evidencias en esta etapa') ⟹ (n?n+' evidence item'+(n>1?'s':'')+' in this stage':'No evidence in this stage')
+aria-label="Mover a otra etapa" ⟹ aria-label="Move to another stage"
+data-tip="Mover a cualquier etapa. Avanzar exige controles; retroceder o pausar exige motivo.">Mover</button> ⟹ data-tip="Move to any stage. Moving forward needs the checks; moving back or pausing needs a reason.">Move</button>
+<b>Proyecto lanzado.</b> Solo se puede retroceder con motivo. ⟹ <b>Project launched.</b> It can only move back with a reason.
+<b>Proyecto pausado.</b> Elige la etapa a la que vuelve para reanudarlo. ⟹ <b>Project paused.</b> Pick the stage it goes back to in order to resume it.
+<b>Siguiente paso:</b> todos los controles listos para pasar a <b>${statusLabel(nx)}</b>. ⟹ <b>Next step:</b> all checks are done to move to <b>${statusLabel(nx)}</b>.
+>Avanzar a ${statusLabel(nx)} →</button> ⟹ >Move to ${statusLabel(nx)} →</button>
+<b>Siguiente paso:</b> completa ${miss.length} control${miss.length>1?'es':''} para pasar a <b>${statusLabel(nx)}</b>. ⟹ <b>Next step:</b> complete ${miss.length} check${miss.length>1?'s':''} to move to <b>${statusLabel(nx)}</b>.
+data-subtab="gates">Ver controles pendientes</button> ⟹ data-subtab="gates">See pending checks</button>
+'Bloqueado. Falta:⏎' ⟹ 'Blocked. Missing:⏎'
+">Avanzar a ${statusLabel(nx)}</button> ⟹ ">Move to ${statusLabel(nx)}</button>
+Paso 1 de 2 · después registrarás los riesgos</div><h2>Nuevo proyecto</h2> ⟹ Step 1 of 2 · next you’ll log the risks</div><h2>New project</h2>
+['gates','Controles de calidad', ⟹ ['gates','Quality checks',
+`Riesgos (${openR.length})` ⟹ `Risks (${openR.length})`
+`Evidencias (${p.evidence.length})` ⟹ `Evidence (${p.evidence.length})`
+['bitacora','Bitácora',''] ⟹ ['bitacora','Log','']
+<b>Diagnóstico preventivo</b> ${info('Hallazgos automáticos. Cada uno tiene un acceso directo a la pestaña donde se resuelve.')} ⟹ <b>Early diagnosis</b> ${info('Automatic findings. Each one links straight to the tab where you fix it.')}
+Lecturas del proyecto ${info('Posts vinculados a este proyecto. Ideal para que quien se une al proyecto se ponga al día.')} ⟹ Project reading ${info('Posts linked to this project. Great for anyone joining to catch up.')}
+Aún no hay lecturas vinculadas. <button class="link" data-action="new-post-for" data-project="${p.id}">Crear una →</button> ⟹ No linked posts yet. <button class="link" data-action="new-post-for" data-project="${p.id}">Create one →</button>
+Cada etapa exige sus controles para poder entrar en ella. Pasa el cursor sobre un control para ver por qué importa. Los controles automáticos los calcula el sistema. ⟹ Each stage requires its checks before you can enter it. Hover over a check to see why it matters. Automatic checks are worked out by the system.
+<span>Para entrar a: ${statusLabel(stage)} ${isNext?'<span class="badge b-primary">Siguiente</span>':''}</span> ⟹ <span>To enter: ${statusLabel(stage)} ${isNext?'<span class="badge b-primary">Next</span>':''}</span>
+${passed?' · superada':''} ⟹ ${passed?' · passed':''}
+<span class="badge b-neutral">automático</span> ⟹ <span class="badge b-neutral">automatic</span>
+data-subtab="riesgos">Registrar riesgo →</button> ⟹ data-subtab="riesgos">Log a risk →</button>
+'⏎⏎Bloqueado: la etapa ya fue superada.' ⟹ '⏎⏎Locked: this stage has already been passed.'
+data-tip="Para marcar este control debes adjuntar al menos una evidencia vinculada a él.">Requiere evidencia</span> ⟹ data-tip="To check this, attach at least one piece of evidence linked to it.">Requires evidence</span>
+<th data-tip="Probabilidad × Impacto">Puntaje</th><th>Riesgo</th><th>Mitigación</th><th>Responsable</th><th>Estado</th> ⟹ <th data-tip="Probability × Impact">Score</th><th>Risk</th><th>Mitigation</th><th>Owner</th><th>Status</th>
+data-risk-edit="${r.id}">Editar</button> ⟹ data-risk-edit="${r.id}">Edit</button>
+${r.status==='cerrado'?'Eliminar este riesgo':'Solo se pueden eliminar riesgos cerrados. Edítalo y cámbialo a Cerrado.'}">Eliminar</button> ⟹ ${r.status==='cerrado'?'Delete this risk':'Only closed risks can be deleted. Edit it and set it to Closed.'}">Delete</button>
+Aún no hay riesgos. Registrar al menos uno es requisito para aprobar el proyecto.<br><span class="small">Piensa en: integraciones, datos, adopción del personal, proveedores, cumplimiento.</span> ⟹ No risks yet. Logging at least one is required to approve the project.<br><span class="small">Think about: integrations, data, staff adoption, vendors, compliance.</span>
+${er?'Editar riesgo':'Registrar riesgo'} ⟹ ${er?'Edit risk':'Log a risk'}
+<span class="lt">Descripción del riesgo * ${info('Escríbelo como "Si pasa X, entonces Y". Ej: "Si la API del CRM se cae, se pierden registros de llamadas".')}</span> ⟹ <span class="lt">Risk description * ${info('Write it as "If X happens, then Y". E.g. "If the CRM API goes down, call records are lost".')}</span>
+placeholder="¿Qué podría salir mal?" ⟹ placeholder="What could go wrong?"
+<span class="lt">Probabilidad * ${info('¿Qué tan probable es que ocurra durante el proyecto?')}</span> ⟹ <span class="lt">Probability * ${info('How likely is it to happen during the project?')}</span>
+<span class="lt">Impacto * ${info('Si ocurre, ¿qué tan grave es para pacientes, operación o negocio?')}</span> ⟹ <span class="lt">Impact * ${info('If it happens, how serious is it for patients, operations or the business?')}</span>
+<span class="lt">Responsable * ${info('Quién vigila este riesgo y ejecuta la mitigación.')}</span> ⟹ <span class="lt">Owner * ${info('Who keeps an eye on this risk and carries out the mitigation.')}</span>
+<span class="lt">Estado ${info('Abierto: identificado.⏎Mitigando: se está ejecutando el plan.⏎Cerrado: ya no aplica o fue controlado.')}</span> ⟹ <span class="lt">Status ${info('Open: identified.⏎Mitigating: the plan is underway.⏎Closed: no longer applies or is under control.')}</span>
+<span class="lt">Apoyo ${info('Otras personas que ayudan a vigilar o mitigar este riesgo.')}</span> ⟹ <span class="lt">Support ${info('Other people who help watch or mitigate this risk.')}</span>
+<span class="lt">Plan de mitigación / prevención ${info('Acción concreta que reduce la probabilidad o el impacto. Obligatorio si el puntaje es ≥ 15.')}</span> ⟹ <span class="lt">Mitigation / prevention plan ${info('A concrete action that lowers the probability or the impact. Required if the score is ≥ 15.')}</span>
+placeholder="Acción concreta para reducir probabilidad o impacto" ⟹ placeholder="A concrete action to lower probability or impact"
+data-action="risk-cancel">Cancelar edición</button> ⟹ data-action="risk-cancel">Cancel editing</button>
+${er?'Guardar riesgo':'Agregar riesgo'} ⟹ ${er?'Save risk':'Add risk'}
+const lbl={create:'Creación',evidence:'Evidencia',status:'Etapa',gate:'Control',risk:'Riesgo',edit:'Edición',note:'Nota',info:'Info'}; ⟹ const lbl={create:'Created',evidence:'Evidence',status:'Stage',gate:'Check',risk:'Risk',edit:'Edit',note:'Note',info:'Info'};
+placeholder="Registra una decisión, avance o bloqueo…" style="flex:1" aria-label="Nueva nota" ⟹ placeholder="Log a decision, progress update or blocker…" style="flex:1" aria-label="New note"
+data-tip="Agregar una nota también cuenta como actualización del proyecto">Agregar</button> ⟹ data-tip="Adding a note also counts as a project update">Add</button>
+<div>${esc(l.msg)}</div> ⟹ <div>${esc(trLog(l.msg))}</div>
+${esc(p.code)} · ${esc(p.type)} · ${pBadge(p.priority)} ⟹ ${esc(p.code)} · ${esc(typeLabel(p.type))} · ${pBadge(p.priority)}
+data-tip="Ver las evidencias de este control" ⟹ data-tip="See this check’s evidence"
+data-tip="Adjuntar screenshot o foto a este control">+ Evidencia</button> ⟹ data-tip="Attach a screenshot or photo to this check">+ Evidence</button>
+<option value="">Sin control específico</option> ⟹ <option value="">No specific check</option>
+${g.ev?' (requiere evidencia)':''} ⟹ ${g.ev?' (requires evidence)':''}
+<b>Controles marcados sin evidencia</b> ${info('Estos controles se marcaron antes de exigir evidencia. Adjunta una captura o foto para dejarlos respaldados.')} ⟹ <b>Checks marked without evidence</b> ${info('These checks were marked before evidence was required. Attach a screenshot or photo to back them up.')}
+>Adjuntar ahora →</button> ⟹ >Attach now →</button>
+aria-label="Agregar imágenes como evidencia" ⟹ aria-label="Add images as evidence"
+<b>Arrastra imágenes aquí, pégalas con Ctrl+V o haz clic</b> ⟹ <b>Drag images here, paste them with Ctrl+V or click</b>
+PNG, JPG, WEBP o GIF · se optimizan a máx. 1 MB y se elimina la metadata (ej. ubicación GPS) · hasta 20 por proyecto ⟹ PNG, JPG, WEBP or GIF · optimized to 1 MB max with metadata removed (e.g. GPS location) · up to 20 per project
+data-action="pick-ev">Elegir archivos</button> ⟹ data-action="pick-ev">Choose files</button>
+data-tip="En celular abre la cámara directamente">Tomar foto</button> ⟹ data-tip="On a phone it opens the camera right away">Take photo</button>
+Privacidad: no subas fotos donde se identifique a un paciente ni capturas con datos personales visibles. ⟹ Privacy: don’t upload photos where a patient can be identified or screenshots with personal data showing.
+<b>Por guardar (${state.staged.length})</b><span class="small muted">Describe qué demuestra cada imagen y asígnala a una etapa y, si aplica, al control.</span> ⟹ <b>To save (${state.staged.length})</b><span class="small muted">Describe what each image shows and assign it to a stage and, if it applies, to a check.</span>
+placeholder="¿Qué demuestra esta imagen? *" value="${esc(s.caption)}" aria-label="Descripción" ⟹ placeholder="What does this image show? *" value="${esc(s.caption)}" aria-label="Description"
+aria-label="Etapa" ⟹ aria-label="Stage"
+aria-label="Control" ⟹ aria-label="Check"
+data-tip="Quitar esta imagen" ⟹ data-tip="Remove this image"
+data-action="discard-staged">Descartar</button><button type="button" class="btn primary" data-action="save-staged">Guardar ${state.staged.length} evidencia${state.staged.length>1?'s':''}</button> ⟹ data-action="discard-staged">Discard</button><button type="button" class="btn primary" data-action="save-staged">Save ${state.staged.length} evidence item${state.staged.length>1?'s':''}</button>
+data-tip="Quitar filtro">Control: ⟹ data-tip="Remove filter">Check:
+${evs.length?'No hay evidencias con este filtro.':'Aún no hay evidencias. Sube capturas de pruebas, PRs aprobados o fotos de la operación y del protocolo aplicado.'} ⟹ ${evs.length?'No evidence matches this filter.':'No evidence yet. Upload screenshots of tests, approved PRs or photos of the operation and the protocol in use.'}
+'captura-pegada.png' ⟹ 'pasted-screenshot.png'
+`${name}: formato no permitido (usa PNG, JPG, WEBP o GIF)` ⟹ `${name}: format not allowed (use PNG, JPG, WEBP or GIF)`
+`${name}: supera 15 MB` ⟹ `${name}: over 15 MB`
+`${name}: no se pudo leer la imagen` ⟹ `${name}: the image couldn’t be read`
+`${name}: queda de más de 1 MB aun optimizada; recórtala o usa una captura más pequeña` ⟹ `${name}: still over 1 MB after optimizing; crop it or use a smaller screenshot`
+toast('Guarda el proyecto primero para poder adjuntar evidencias','e') ⟹ toast('Save the project first so you can attach evidence','e')
+toast('Algunas imágenes no se agregaron','e',errs) ⟹ toast('Some images weren’t added','e',errs)
+`${ok} ${ok>1?'imágenes':'imagen'} lista${ok>1?'s':''}: revisa la descripción y guarda` ⟹ `${ok} ${ok>1?'images':'image'} ready: check the description and save`
+aria-label="Anterior" data-tip="Anterior (←)" ⟹ aria-label="Previous" data-tip="Previous (←)"
+aria-label="Siguiente" data-tip="Siguiente (→)" ⟹ aria-label="Next" data-tip="Next (→)"
+· Evidencia</div> ⟹ · Evidence</div>
+<span class="muted">Etapa</span> ⟹ <span class="muted">Stage</span>
+<span class="muted">Control</span> ⟹ <span class="muted">Check</span>
+<span class="muted">Subida por</span> ⟹ <span class="muted">Uploaded by</span>
+<span class="muted">Fecha</span> ⟹ <span class="muted">Date</span>
+<span class="muted">Archivo</span> ⟹ <span class="muted">File</span>
+<span class="lt">Descripción</span> ⟹ <span class="lt">Description</span>
+<span class="lt">Etapa</span> ⟹ <span class="lt">Stage</span>
+<span class="lt">Control que demuestra</span> ⟹ <span class="lt">Check it proves</span>
+Guardar cambios ⟹ Save changes
+>Descargar</a><button class="btn sm danger" data-action="del-ev">Eliminar</button> ⟹ >Download</a><button class="btn sm danger" data-action="del-ev">Delete</button>
+Usa ← → para navegar · Esc para cerrar ⟹ Use ← → to browse · Esc to close
+Puntaje resultante: ⟹ Resulting score:
+${lv==='bad'?'Crítico':lv==='warn'?'Moderado':'Bajo'} ⟹ ${lv==='bad'?'Critical':lv==='warn'?'Moderate':'Low'}
+El plan de mitigación es obligatorio y bloquea el lanzamiento mientras siga abierto. ⟹ The mitigation plan is required, and it blocks the launch while the risk stays open.
+p.read?'Marcado como no leído':'Marcado como leído' ⟹ p.read?'Marked as unread':'Marked as read'
+toast('¡Estás al día con todas las lecturas!','s') ⟹ toast('You’re all caught up on your reading!','s')
+title:'Eliminar publicación',msg:`"${p.title}" se eliminará para todo el equipo.`,okText:'Eliminar' ⟹ title:'Delete post',msg:`"${p.title}" will be deleted for the whole team.`,okText:'Delete'
+'Publicación eliminada' ⟹ 'Post deleted'
+toast('Marcado como leído al abrir el enlace','s') ⟹ toast('Marked as read since you opened the link','s')
+toast('Máximo 10 enlaces por publicación','e') ⟹ toast('Up to 10 links per post','e')
+toast('Respaldo descargado','s') ⟹ toast('Backup downloaded','s')
+l.download=`proyectos-${isoDate(new Date())}.json` ⟹ l.download=`projects-${isoDate(new Date())}.json`
+title:`Eliminar ${p.code}`,msg:`"${p.name}" se eliminará de forma permanente junto con sus riesgos y bitácora.`,okText:'Eliminar' ⟹ title:`Delete ${p.code}`,msg:`"${p.name}" will be permanently deleted along with its risks and log.`,okText:'Delete'
+'Proyecto eliminado' ⟹ 'Project deleted'
+`${items.length} evidencia${items.length>1?'s':''} guardada${items.length>1?'s':''}` ⟹ `${items.length} evidence item${items.length>1?'s':''} saved`
+toast('Ya puedes marcar en Controles de calidad:','i',ready) ⟹ toast('You can now check these in Quality checks:','i',ready)
+title:'Eliminar evidencia',msg:`"${ev.caption}" se eliminará del proyecto. El cambio queda registrado en la bitácora.`,okText:'Eliminar' ⟹ title:'Delete evidence',msg:`"${ev.caption}" will be removed from the project. The change is recorded in the log.`,okText:'Delete'
+'Evidencia eliminada' ⟹ 'Evidence deleted'
+toast('Solo se pueden eliminar riesgos cerrados. Edítalo y cámbialo a "Cerrado" primero.','e') ⟹ toast('Only closed risks can be deleted. Edit it and set it to "Closed" first.','e')
+title:'Eliminar riesgo',msg:`"${r.title}"`,okText:'Eliminar' ⟹ title:'Delete risk',msg:`"${r.title}"`,okText:'Delete'
+'Riesgo eliminado' ⟹ 'Risk deleted'
+toast(id?'Cambios guardados':`Proyecto ${r.code} creado`,'s') ⟹ toast(id?'Changes saved':`Project ${r.code} created`,'s')
+toast('Paso 2: registra los riesgos del proyecto','i') ⟹ toast('Step 2: log the project’s risks','i')
+toast('Riesgo guardado','s') ⟹ toast('Risk saved','s')
+'Nota agregada' ⟹ 'Note added'
+toast('Evidencia actualizada','s') ⟹ toast('Evidence updated','s')
+toast(isNew?'Publicación compartida con el equipo':'Publicación actualizada','s') ⟹ toast(isNew?'Post shared with the team':'Post updated','s')
+toast('Para adjuntar imágenes, abre un proyecto y suéltalas en la pestaña Evidencias','i') ⟹ toast('To attach images, open a project and drop them in the Evidence tab','i')
+`<option value="">Elige una persona…</option>` ⟹ `<option value="">Choose a person…</option>`
+aria-label="Quitar ${esc(name)}" ⟹ aria-label="Remove ${esc(name)}"
+aria-label="Agregar persona de apoyo"><option value="">+ Agregar apoyo…</option> ⟹ aria-label="Add a support person"><option value="">+ Add support…</option>
+'Apoyo:⏎' ⟹ 'Support:⏎'
+'⏎Clic para ampliar' ⟹ '⏎Click to enlarge'

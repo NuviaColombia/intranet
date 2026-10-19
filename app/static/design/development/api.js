@@ -23,11 +23,11 @@ async function http(method, path, body, form){
   if(window.CP_AUTH_TOKEN) opt.headers.Authorization = 'Bearer ' + window.CP_AUTH_TOKEN;
   let res;
   try{ res = await fetch(API_BASE + path, opt); }
-  catch(e){ throw new ApiError(0, 'No hay conexión con el servidor. Revisa tu red e intenta de nuevo.'); }
+  catch(e){ throw new ApiError(0, (window.CP_EN?'No connection to the server. Check your network and try again.':'No hay conexión con el servidor. Revisa tu red e intenta de nuevo.')); }
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if(!res.ok){
     const details = (data && (data.details || data.missing_gates)) || [];
-    throw new ApiError(res.status, (data && data.message) || `Error del servidor (${res.status})`, details);
+    throw new ApiError(res.status, (data && data.message) || (window.CP_EN?`Server error (${res.status})`:`Error del servidor (${res.status})`), details);
   }
   return data;
 }

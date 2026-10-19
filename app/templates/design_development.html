@@ -2,30 +2,49 @@
 {% block titulo %}Development{% endblock %}
 {% block contenido %}
 {# Development (Rosember, 19-oct-2026): Control de Proyectos y Protocolos (Desktop\control-proyectos), integrado.
-   Los archivos de static/design/development se generan con scripts/integrar_development.py. #}
+   Los archivos de static/design/development se generan con scripts/integrar_development.py; en inglés (cookie cp_lang=en)
+   se cargan domain.en.js y app.en.js. #}
+{% set T = {
+  'sub': ('Developments · Improvements · Protocols, with quality checks, risk prevention and team learning' if en else 'Desarrollos · Mejoras · Protocolos, con controles de calidad, prevención de riesgos y aprendizaje del equipo'),
+  'titulo': ('Projects and protocols' if en else 'Proyectos y protocolos'),
+  'ayuda': ('Help' if en else 'Ayuda'), 'ayuda_t': ('Show the quick guide' if en else 'Muestra la guía rápida de uso'),
+  'exportar': ('Export' if en else 'Exportar'),
+  'exportar_t': ('Download projects and posts as a JSON file (backup, without images)' if en else 'Descarga proyectos y posts como archivo JSON (respaldo, sin las imágenes)'),
+  'nuevo': ('+ New' if en else '+ Nuevo'),
+  'nuevo_t': ('Create a project, or a post if you are in Posts (shortcut: N)' if en else 'Crear proyecto, o publicación si estás en Posts (atajo: N)'),
+  'resumen': ('Overview' if en else 'Resumen'), 'proyectos': ('Projects' if en else 'Proyectos'), 'tablero': ('Board' if en else 'Tablero'),
+  'riesgos': ('Risks' if en else 'Riesgos'), 'confirmar': ('Confirm' if en else 'Confirmar'), 'cancelar': ('Cancel' if en else 'Cancelar'),
+  'motivo': ('Reason (saved in the log)' if en else 'Motivo (queda registrado en la bitácora)'),
+  'idioma': ('Language' if en else 'Idioma'),
+} %}
 <link rel="stylesheet" href="/static/design/development/development.css?v={{ dev_v }}">
-<div class="cpapp">
+{% if en %}<style>.cpapp .preview .pbody:empty::before{content:"The preview shows up here as you type…"}</style>{% endif %}
+<div class="cpapp" lang="{{ 'en' if en else 'es' }}">
 <header class="hero">
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="hero-in">
-    <div class="brand"><div class="logo">D</div>
-      <div><h1><em>Development</em> · Proyectos y protocolos</h1>
-      <div class="sub">Desarrollos · Mejoras · Protocolos, con controles de calidad, prevención de riesgos y aprendizaje del equipo</div></div>
+    <div class="brand"><div class="logo"><img src="/static/logos/design-modulo.png" alt="Design"></div>
+      <div><h1><em>Development</em> · {{ T.titulo }}</h1>
+      <div class="sub">{{ T.sub }}</div></div>
     </div>
     <div class="actions">
-      <button class="btn ghost" data-action="help" data-tip="Muestra la guía rápida de uso">Ayuda</button>
-      <button class="btn ghost" data-action="export" data-tip="Descarga proyectos y posts como archivo JSON (respaldo, sin las imágenes)">Exportar</button>
-      <button class="btn lime" data-action="new" data-tip="Crear proyecto, o publicación si estás en Posts (atajo: N)">+ Nuevo</button>
+      <span class="lang" role="group" aria-label="{{ T.idioma }}">
+        <button type="button" data-cp-lang="es" class="{{ '' if en else 'on' }}" aria-pressed="{{ 'false' if en else 'true' }}" title="Español">ES</button>
+        <button type="button" data-cp-lang="en" class="{{ 'on' if en else '' }}" aria-pressed="{{ 'true' if en else 'false' }}" title="English">EN</button>
+      </span>
+      <button class="btn ghost" data-action="help" data-tip="{{ T.ayuda_t }}">{{ T.ayuda }}</button>
+      <button class="btn ghost" data-action="export" data-tip="{{ T.exportar_t }}">{{ T.exportar }}</button>
+      <button class="btn lime" data-action="new" data-tip="{{ T.nuevo_t }}">{{ T.nuevo }}</button>
     </div>
   </div>
 </header>
 <div class="navwrap">
   <nav class="navpill" id="tabs">
     <span class="ind" id="tabInd"></span>
-    <button data-view="resumen" class="active">Resumen</button>
-    <button data-view="proyectos">Proyectos</button>
-    <button data-view="kanban">Tablero</button>
-    <button data-view="riesgos">Riesgos</button>
+    <button data-view="resumen" class="active">{{ T.resumen }}</button>
+    <button data-view="proyectos">{{ T.proyectos }}</button>
+    <button data-view="kanban">{{ T.tablero }}</button>
+    <button data-view="riesgos">{{ T.riesgos }}</button>
     <button data-view="posts">Posts<span class="nbadge" id="unreadBadge"></span></button>
   </nav>
 </div>
@@ -36,16 +55,16 @@
 <dialog id="dlgImg"></dialog>
 <dialog id="dlgAsk">
   <form method="dialog" id="askForm">
-    <div class="dh"><h2 id="askTitle">Confirmar</h2></div>
+    <div class="dh"><h2 id="askTitle">{{ T.confirmar }}</h2></div>
     <div class="db">
       <p id="askMsg" class="muted" style="margin-top:0"></p>
-      <label class="f full" id="askInputWrap"><span class="lt">Motivo (queda registrado en la bitácora)</span>
+      <label class="f full" id="askInputWrap"><span class="lt">{{ T.motivo }}</span>
         <textarea id="askInput"></textarea>
       </label>
       <div class="err" id="askErr"></div>
       <div class="formfoot">
-        <button class="btn" value="cancel" formnovalidate>Cancelar</button>
-        <button class="btn primary" value="ok" id="askOk">Confirmar</button>
+        <button class="btn" value="cancel" formnovalidate>{{ T.cancelar }}</button>
+        <button class="btn primary" value="ok" id="askOk">{{ T.confirmar }}</button>
       </div>
     </div>
   </form>
@@ -54,8 +73,17 @@
 <script>
   window.CP_API_BASE = '/design/api/dev';
   window.CP_USER_NAME = {{ dev_usuario|tojson }};
+  window.CP_EN = {{ 'true' if en else 'false' }};
+  /* ES / EN: se guarda en una cookie (vale para este navegador) y la página se vuelve a cargar en ese idioma */
+  document.querySelectorAll('[data-cp-lang]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.classList.contains('on')) return;
+      document.cookie = 'cp_lang=' + b.dataset.cpLang + '; path=/design; max-age=31536000; SameSite=Lax';
+      location.reload();
+    });
+  });
 </script>
-<script src="/static/design/development/domain.js?v={{ dev_v }}"></script>
+<script src="/static/design/development/domain{{ dev_js }}.js?v={{ dev_v }}"></script>
 <script src="/static/design/development/api.js?v={{ dev_v }}"></script>
-<script src="/static/design/development/app.js?v={{ dev_v }}"></script>
+<script src="/static/design/development/app{{ dev_js }}.js?v={{ dev_v }}"></script>
 {% endblock %}

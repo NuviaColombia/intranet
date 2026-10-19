@@ -30,7 +30,7 @@ const CATS = [
   {k:'guia',l:'Guía',c:'var(--primary)',h:'Cómo hacemos las cosas aquí: procesos y flujos.'},
   {k:'practicas',l:'Buenas prácticas',c:'var(--ok)',h:'Recomendaciones técnicas para escribir mejor código.'},
   {k:'recurso',l:'Recurso',c:'var(--warn)',h:'Material externo para estudiar: artículos, docs, cursos.'},
-  {k:'anuncio',l:'Anuncio',c:'#d97706',h:'Cambios de reglas, fechas o decisiones del equipo.'}
+  {k:'anuncio',l:'Anuncio',c:'#2563eb',h:'Cambios de reglas, fechas o decisiones del equipo.'}
 ];
 const catLabel = k => (CATS.find(c=>c.k===k)||{}).l || k;
 

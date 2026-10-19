@@ -19,12 +19,20 @@ router = APIRouter(route_class=_RutaDesign)
 
 ve_development = sdv.tiene_acceso   # lo usa el menú (main_templates)
 _ESTATICOS = Path(__file__).resolve().parent.parent / "static" / "design" / "development"
-DEV_V = str(int(max((_ESTATICOS / f).stat().st_mtime for f in ("domain.js", "api.js", "app.js", "development.css"))))
+DEV_V = str(int(max((_ESTATICOS / f).stat().st_mtime for f in ("domain.js", "api.js", "app.js", "development.css",
+                                                                 "domain.en.js", "app.en.js"))))
 
 
-def _acceso(user: Empleado = Depends(get_current_user)) -> Empleado:
+def _ingles(request: Request) -> bool:
+    """Idioma de la página Development: cookie cp_lang que pone el botón ES / EN."""
+    return request.cookies.get("cp_lang") == "en"
+
+
+def _acceso(request: Request, user: Empleado = Depends(get_current_user)) -> Empleado:
     if not sdv.tiene_acceso(user):
-        raise HTTPException(403, "Development es solo para admins, Luis Felipe Blaschke y Paul Andion.")
+        msg = "Development es solo para admins, Luis Felipe Blaschke y Paul Andion."
+        raise HTTPException(403, sdv.traducir(msg) if _ingles(request) else msg)
+    user.cp_en = _ingles(request)   # atributo de esta petición (no es columna): _r traduce los mensajes
     return user
 
 
@@ -33,7 +41,9 @@ def _r(fn, *args):
     try:
         return fn(*args)
     except sdv.ErrorDev as e:
-        return JSONResponse({"message": e.message, "details": e.details}, status_code=e.status)
+        en = any(getattr(a, "cp_en", False) for a in args if isinstance(a, Empleado))
+        t = sdv.traducir if en else (lambda x: x)
+        return JSONResponse({"message": t(e.message), "details": [t(d) for d in e.details]}, status_code=e.status)
 
 
 async def _json(request: Request) -> dict:
@@ -50,8 +60,10 @@ async def _json(request: Request) -> dict:
 def pagina(request: Request, user: Empleado = Depends(get_current_user)):
     if not sdv.tiene_acceso(user):
         return Response(status_code=307, headers={"Location": "/design"})
+    en = _ingles(request)
     return templates.TemplateResponse(request, "design_development.html", {
-        "user": user, "es_design": True, "dev_v": DEV_V, "dev_usuario": sdv._nombre(user)})
+        "user": user, "es_design": True, "dev_v": DEV_V, "dev_usuario": sdv._nombre(user), "en": en,
+        "dev_js": ".en" if en else ""})
 
 
 @router.get("/design/api/dev/people")
@@ -131,7 +143,8 @@ async def api_evidencias(pid: str, files: list[UploadFile] = File(...), meta: st
     except ValueError:
         datos_meta = None
     if not isinstance(datos_meta, list) or not all(isinstance(m, dict) for m in datos_meta) or len(files) > 20:
-        return JSONResponse({"message": "Petición mal formada", "details": []}, status_code=400)
+        msg = "Petición mal formada"
+        return JSONResponse({"message": sdv.traducir(msg) if user.cp_en else msg, "details": []}, status_code=400)
     archivos = []
     for f in files:
         archivos.append(await f.read(sdv.MAX_EVIDENCIA + 1))
@@ -176,7 +189,7 @@ async def api_post_editar(post_id: str, request: Request, user: Empleado = Depen
 
 @router.delete("/design/api/dev/posts/{post_id}")
 def api_post_eliminar(post_id: str, user: Empleado = Depends(_acceso), db: Session = Depends(get_db)):
-    r = _r(sdv.eliminar_post, db, post_id)
+    r = _r(lambda _u: sdv.eliminar_post(db, post_id), user)
     return r if isinstance(r, JSONResponse) else Response(status_code=204)
 
 

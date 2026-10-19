@@ -5,6 +5,9 @@
    3. FRONTEND
    ========================================================= */
 const peopleOpts = sel => `<option value="">Elige una persona…</option>`+state.people.map(x=>`<option value="${esc(x.id)}" ${String(sel)===x.id?'selected':''}>${esc(x.name)}</option>`).join('');
+const supChip=(id,name)=>`<span class="supchip"><input type="hidden" name="supportIds" value="${esc(id)}">${esc(name)}<button type="button" data-sup-rm aria-label="Quitar ${esc(name)}">✕</button></span>`;
+const supportPicker=sel=>`<div class="sup">${(sel||[]).map(x=>supChip(x.id,x.name)).join('')}<select class="sup-add" data-sup-add aria-label="Agregar persona de apoyo"><option value="">+ Agregar apoyo…</option>${state.people.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></div>`;
+const who=o=>esc(o.owner)+((o.support||[]).length?`<span class="sup-n" data-tip="${esc('Apoyo:\n'+o.support.map(x=>'• '+x.name).join('\n'))}">+${o.support.length}</span>`:'');
 const state = {people:[],
   view:'resumen', projects:[], posts:[], help:true, alertSev:'', animate:true,
   filters:{q:'',status:'',type:'',health:''}, sort:{key:'health',dir:1},
@@ -69,7 +72,7 @@ document.addEventListener('pointermove',e=>{
 /* ---------- Confeti ---------- */
 function confetti(x,y,n=36){
   if(reduced()) return;
-  const host=topHost(); const colors=['#1d4ed8','#fbbf24','#15803d','#d97706','#3b82f6','#0f1b3d'];
+  const host=topHost(); const colors=['#1d4ed8','#93c5fd','#15803d','#60a5fa','#3b82f6','#0f1b3d'];
   for(let i=0;i<n;i++){
     const s=document.createElement('span'); s.className='confetti';
     s.style.background=colors[i%colors.length]; s.style.left=x+'px'; s.style.top=y+'px'; host.appendChild(s);
@@ -240,7 +243,7 @@ function heatmap(risks){
 function filtered(){
   const f=state.filters, q=f.q.toLowerCase();
   return state.projects.filter(p=>{
-    if(q && !(`${p.code} ${p.name} ${p.owner} ${p.protocol}`.toLowerCase().includes(q))) return false;
+    if(q && !(`${p.code} ${p.name} ${p.owner} ${(p.support||[]).map(x=>x.name).join(' ')} ${p.protocol}`.toLowerCase().includes(q))) return false;
     if(f.status && p.status!==f.status) return false;
     if(f.type && p.type!==f.type) return false;
     if(f.health==='overdue') return isOverdue(p);
@@ -283,7 +286,7 @@ function renderTable(){
       const crit=open.filter(r=>riskScore(r)>=15);
       return `<tr class="click rise" style="--i:${j+2}" data-open="${p.id}" tabindex="0">
         <td class="muted">${esc(p.code)}</td><td><b>${esc(p.name)}</b>${p.protocol?`<div class="small muted">${esc(p.protocol)}</div>`:''}</td>
-        <td>${esc(p.type)}</td><td>${sBadge(p.status)}</td><td>${pBadge(p.priority)}</td><td>${esc(p.owner)}</td>
+        <td>${esc(p.type)}</td><td>${sBadge(p.status)}</td><td>${pBadge(p.priority)}</td><td>${who(p)}</td>
         <td>${prog(p.progress)}<span class="small muted">${p.progress}%</span></td>
         <td style="${isOverdue(p)?'color:var(--bad);font-weight:600':''}">${fmtDate(p.dueDate)}<div class="small muted">${relDue(p)}</div></td>
         <td>${open.length}${crit.length?` <span class="badge b-bad" data-tip="${esc(crit.map(r=>'• '+r.title).join('\n'))}">${crit.length} crítico${crit.length>1?'s':''}</span>`:''}</td>
@@ -304,7 +307,7 @@ function renderKanban(){
             : `<span class="pend ready" data-tip="Todos los controles listos. Puedes arrastrarlo a ${esc(statusLabel(nx))}.">Listo para ${esc(statusLabel(nx))}</span>`; }
         return `<div class="kcard h-${h.level}" draggable="true" data-drag="${p.id}" data-open="${p.id}" tabindex="0">
         <div class="small muted">${esc(p.code)} · ${esc(p.type)}${p.evidence.length?` · <span data-tip="Evidencias adjuntas">${p.evidence.length} evid.</span>`:''}</div><div class="n">${esc(p.name)}</div>
-        ${prog(p.progress)}<div class="foot small"><span class="muted">${esc(p.owner)}</span>${hBadge(h)}</div>${pend}</div>`;}).join('') || '<div class="small muted" style="text-align:center;padding:16px 0">Sin proyectos</div>'}
+        ${prog(p.progress)}<div class="foot small"><span class="muted">${who(p)}</span>${hBadge(h)}</div>${pend}</div>`;}).join('') || '<div class="small muted" style="text-align:center;padding:16px 0">Sin proyectos</div>'}
     </div>`;}).join('')}</div>`;
   bindFilters();
   app.querySelectorAll('[data-drag]').forEach(el=>{
@@ -350,7 +353,7 @@ function renderRisks(){
       <td><span class="badge b-${riskLevel(sc)}" data-tip="${esc(riskTip(r))}">${sc}</span></td><td><b>${esc(r.title)}</b></td>
       <td class="small">${esc(r.p.code)} · ${esc(r.p.name)}</td><td data-tip="${PROB_LBL[r.prob]}">${r.prob}</td><td data-tip="${IMP_LBL[r.impact]}">${r.impact}</td>
       <td class="small">${r.mitigation?esc(r.mitigation):'<span style="color:var(--bad);font-weight:600">Sin plan</span>'}</td>
-      <td>${esc(r.owner)}</td><td><span class="badge ${r.status==='cerrado'?'b-ok':r.status==='mitigando'?'b-warn':'b-bad'}">${esc((RISK_STATUS.find(s=>s.k===r.status)||{}).l)}</span></td></tr>`;}).join('')
+      <td>${who(r)}</td><td><span class="badge ${r.status==='cerrado'?'b-ok':r.status==='mitigando'?'b-warn':'b-bad'}">${esc((RISK_STATUS.find(s=>s.k===r.status)||{}).l)}</span></td></tr>`;}).join('')
     :'<tr><td colspan="8" class="empty">Sin riesgos registrados</td></tr>'}</tbody></table></div>`;
 }
 
@@ -596,8 +599,9 @@ function projectForm(p){
     <label class="f full">${L('Nombre del proyecto *','Nombre corto y claro, por ejemplo "Recordatorios por WhatsApp".')}<input name="name" value="${esc(v.name)}" placeholder="¿Qué se va a construir o mejorar?"></label>
     <label class="f">${L('Tipo *','Desarrollo: funcionalidad nueva.\nMejora: optimiza algo existente.\nProtocolo: cambia un procedimiento operativo o clínico (requiere protocolo vinculado).')}<select name="type">${TYPES.map(t=>`<option ${v.type===t?'selected':''}>${t}</option>`).join('')}</select></label>
     <label class="f">${L('Prioridad *','Crítica: afecta pacientes u operación hoy.\nAlta: impacto de negocio este trimestre.\nMedia / Baja: deseable, sin urgencia.')}<select name="priority">${PRIORITIES.map(x=>`<option value="${x.k}" ${v.priority===x.k?'selected':''}>${x.l}</option>`).join('')}</select></label>
-    <label class="f">${L('Responsable *','Una sola persona que responde por el avance. Si son varias, nadie es responsable.')}<select name="ownerId">${peopleOpts(v.ownerId)}</select></label>
+    <label class="f">${L('Responsable *','Persona principal que responde por el avance. Las demás van en «Apoyo».')}<select name="ownerId">${peopleOpts(v.ownerId)}</select></label>
     <label class="f">${L('Protocolo vinculado','Código y nombre del protocolo que este proyecto crea o modifica. Obligatorio para tipo Protocolo.')}<input name="protocol" value="${esc(v.protocol)}" placeholder="Ej. PR-AGD-02 Agendamiento"></label>
+    <div class="f full">${L('Apoyo','Otras personas que trabajan en el proyecto con el responsable.')}${supportPicker(v.support)}</div>
     <label class="f">${L('Fecha de inicio *','Se usa para calcular el avance esperado a la fecha.')}<input type="date" name="startDate" value="${esc(v.startDate)}"></label>
     <label class="f">${L('Fecha objetivo *','Fecha comprometida de lanzamiento. Si se vence, el proyecto pasa a alerta alta.')}<input type="date" name="dueDate" value="${esc(v.dueDate)}"></label>
     ${p?`<label class="f">${L('Avance (%)','Actualízalo al menos una vez por semana. Si se queda atrás del avance esperado, el sistema alerta.')}<input type="number" name="progress" min="0" max="100" step="5" value="${v.progress}" ${p.status==='lanzado'?'disabled':''}></label>`:''}
@@ -670,7 +674,7 @@ function renderDetailInner(){
     const opt=(arr,sel)=>[1,2,3,4,5].map(n=>`<option value="${n}" ${sel===n?'selected':''}>${n} · ${arr[n]}</option>`).join('');
     body=`<div class="table-wrap" style="margin-bottom:14px"><table><thead><tr><th data-tip="Probabilidad × Impacto">Puntaje</th><th>Riesgo</th><th>Mitigación</th><th>Responsable</th><th>Estado</th><th></th></tr></thead><tbody>
       ${p.risks.length?p.risks.map(r=>{const sc=riskScore(r);return `<tr><td><span class="badge b-${riskLevel(sc)}" data-tip="${esc(riskTip(r))}">${sc}</span></td>
-        <td>${esc(r.title)}</td><td class="small">${r.mitigation?esc(r.mitigation):'<span style="color:var(--bad);font-weight:600">Sin plan</span>'}</td><td>${esc(r.owner)}</td>
+        <td>${esc(r.title)}</td><td class="small">${r.mitigation?esc(r.mitigation):'<span style="color:var(--bad);font-weight:600">Sin plan</span>'}</td><td>${who(r)}</td>
         <td>${esc((RISK_STATUS.find(s=>s.k===r.status)||{}).l)}</td>
         <td style="white-space:nowrap"><button class="btn sm" data-risk-edit="${r.id}">Editar</button> <button class="btn sm danger" data-risk-del="${r.id}" data-tip="${r.status==='cerrado'?'Eliminar este riesgo':'Solo se pueden eliminar riesgos cerrados. Edítalo y cámbialo a Cerrado.'}">Eliminar</button></td></tr>`;}).join('')
       :'<tr><td colspan="6" class="empty">Aún no hay riesgos. Registrar al menos uno es requisito para aprobar el proyecto.<br><span class="small">Piensa en: integraciones, datos, adopción del personal, proveedores, cumplimiento.</span></td></tr>'}</tbody></table></div>
@@ -681,6 +685,7 @@ function renderDetailInner(){
         <label class="f"><span class="lt">Impacto * ${info('Si ocurre, ¿qué tan grave es para pacientes, operación o negocio?')}</span><select name="impact">${opt(IMP_LBL,er?er.impact:3)}</select></label>
         <label class="f"><span class="lt">Responsable * ${info('Quién vigila este riesgo y ejecuta la mitigación.')}</span><select name="ownerId">${peopleOpts(er?er.ownerId:p.ownerId)}</select></label>
         <label class="f"><span class="lt">Estado ${info('Abierto: identificado.\nMitigando: se está ejecutando el plan.\nCerrado: ya no aplica o fue controlado.')}</span><select name="status">${RISK_STATUS.map(s=>`<option value="${s.k}" ${er&&er.status===s.k?'selected':''}>${s.l}</option>`).join('')}</select></label>
+        <div class="f full"><span class="lt">Apoyo ${info('Otras personas que ayudan a vigilar o mitigar este riesgo.')}</span>${supportPicker(er?er.support:[])}</div>
         <label class="f full"><span class="lt">Plan de mitigación / prevención ${info('Acción concreta que reduce la probabilidad o el impacto. Obligatorio si el puntaje es ≥ 15.')}</span><textarea name="mitigation" placeholder="Acción concreta para reducir probabilidad o impacto">${esc(er?er.mitigation:'')}</textarea></label>
       </div><div class="small" id="riskScore" style="margin-top:10px"></div><div class="err" id="riskErr" role="alert"></div>
       <div class="formfoot">${er?'<button type="button" class="btn" data-action="risk-cancel">Cancelar edición</button>':''}<button class="btn primary">${er?'Guardar riesgo':'Agregar riesgo'}</button></div></form></div>`;
@@ -694,7 +699,7 @@ function renderDetailInner(){
   }
   dlg.innerHTML=`<div class="dh">
       <div class="dh-top"><div style="position:relative;flex:none" data-tip="${esc(healthTip(h))}">${ring(h.score,58,lvlColor(h.level))}<b style="position:absolute;inset:0;display:grid;place-items:center;font:700 15px var(--display)">${h.score}</b></div>
-        <div><div class="small muted">${esc(p.code)} · ${esc(p.type)} · ${pBadge(p.priority)} · ${esc(p.owner)} · ${relDue(p)}</div><h2>${esc(p.name)}</h2>
+        <div><div class="small muted">${esc(p.code)} · ${esc(p.type)} · ${pBadge(p.priority)} · ${who(p)} · ${relDue(p)}</div><h2>${esc(p.name)}</h2>
         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${sBadge(p.status)} ${hBadge(h)}</div></div>
         <button class="x" data-action="close" aria-label="Cerrar">✕</button></div>
       ${stepper(p)}${nextBar(p)}
@@ -813,6 +818,8 @@ function newProject(){ state.detailId=null; state.dirty=false; renderDetail(); d
 /* ---------- Eventos (delegación) ---------- */
 document.addEventListener('click', async e=>{
   const t=e.target;
+  const suprm=t.closest('[data-sup-rm]'); if(suprm){ const fm=suprm.closest('form'); suprm.closest('.supchip').remove();
+    if(fm&&fm.id==='projectForm'){ state.dirty=true; const fl=$('#dirtyFlag'); if(fl) fl.classList.add('on'); } return; }
   const tab=t.closest('#tabs button'); if(tab){ if(tab.dataset.view!==state.view) go(tab.dataset.view); return; }
   const sv=t.closest('[data-sev]'); if(sv){ state.alertSev=sv.dataset.sev; render(); return; }
   const so=t.closest('[data-sort]'); if(so){ const k=so.dataset.sort; state.sort = state.sort.key===k?{key:k,dir:-state.sort.dir}:{key:k,dir:1}; render(); return; }
@@ -918,6 +925,9 @@ document.addEventListener('input', e=>{
   }
 });
 document.addEventListener('change', async e=>{
+  if(e.target.matches('[data-sup-add]')){ const s=e.target, id=s.value; s.value='';
+    const box=s.closest('.sup'); const x=state.people.find(q=>q.id===id);
+    if(x && ![...box.querySelectorAll('[name=supportIds]')].some(i=>i.value===id)) s.insertAdjacentHTML('beforebegin',supChip(x.id,x.name)); }
   if(e.target.id==='evFile'||e.target.id==='evCam'){ const fl=[...e.target.files]; e.target.value=''; handleFiles(fl); return; }
   if(e.target.dataset.stg!==undefined){ const s=state.staged[+e.target.dataset.stg], f=e.target.dataset.sf; s[f]=e.target.value; if(f==='stage'){ s.gate=''; renderDetail(); } return; }
   if(e.target.closest('#evEditForm') && e.target.name==='stage'){ e.target.form.gate.innerHTML=gateOpts(e.target.value,''); return; }
@@ -932,7 +942,7 @@ document.addEventListener('submit', async e=>{
   const showErr=(sel,err)=>{ const el=$(sel); el.innerHTML=''; requestAnimationFrame(()=>{ el.innerHTML=err.details.length?err.details.map(esc).join('<br>'):esc(err.message); }); };
   if(fid==='projectForm'){
     e.preventDefault();
-    const data=Object.fromEntries(new FormData(f));
+    const data=Object.fromEntries(new FormData(f)); data.supportIds=new FormData(f).getAll('supportIds');
     const id=f.dataset.id;
     if(id){ const p=state.projects.find(x=>x.id===id); if(!('progress' in data)) data.progress=p.progress; }
     else data.progress=0;
@@ -946,7 +956,7 @@ document.addEventListener('submit', async e=>{
   }
   if(fid==='riskForm'){
     e.preventDefault();
-    const data=Object.fromEntries(new FormData(f)); if(data.riskId) data.id=data.riskId; delete data.riskId;
+    const data=Object.fromEntries(new FormData(f)); data.supportIds=new FormData(f).getAll('supportIds'); if(data.riskId) data.id=data.riskId; delete data.riskId;
     try{ await api.saveRisk(state.detailId,data); state.editRiskId=null; toast('Riesgo guardado','s'); await refresh(); }
     catch(err){ if(err instanceof ApiError) showErr('#riskErr',err); else throw err; }
   }

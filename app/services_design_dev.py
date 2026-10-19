@@ -3,7 +3,9 @@
 - Quién: solo admins + Luis Felipe Blaschke y Paul Andion (DEV_ESPECIALES). Todos los que entran pueden editar.
 - Etapas: Propuesta → Aprobado → En desarrollo → En pruebas (QA) → Lanzado, más Pausado. Para entrar a una etapa hay que
   cumplir sus controles y los de las anteriores; retroceder o pausar pide motivo (queda en la bitácora).
-- Responsables (de proyectos y riesgos): personas activas de Nuvia Design.
+- Responsables (de proyectos y riesgos): personas activas de Nuvia Design; uno principal y, si se quiere, personas de
+  apoyo (DesignDevApoyo, máx. MAX_APOYO).
+- Idioma: la página puede verse en inglés (cookie cp_lang=en); los mensajes del servidor se traducen con traducir().
 - Evidencias: imágenes ya comprimidas en el navegador, ≤ 1 MB y máx. 20 por proyecto (la base de Supabase tiene 500 MB);
   tope total TOPE_TOTAL. Sin URLs firmadas: se sirven por la ruta del proyecto solo a quien tiene acceso.
 - El frontend (static/design/development) aplica las mismas reglas para avisar antes; aquí está la autoridad.
@@ -19,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from . import services_design as sd
 from .models import EMPRESA_DESIGN, Empleado
-from .models_design import (DesignDevEvento, DesignDevEvidencia, DesignDevPost, DesignDevPostMarca, DesignDevProyecto,
+from .models_design import (DesignDevApoyo, DesignDevEvento, DesignDevEvidencia, DesignDevPost, DesignDevPostMarca, DesignDevProyecto,
                             DesignDevRiesgo)
 
 DEV_ESPECIALES = {"luisblaschke@nuviasmiles.com", "paul.andion@nuviasmiles.com"}
@@ -53,6 +55,7 @@ CONTROL = {c[0]: {"t": c[1], "ev": c[2], "auto": c[3], "etapa": e} for e, lista 
 CAMPOS = {"name": "Nombre", "type": "Tipo", "owner": "Responsable", "priority": "Prioridad", "startDate": "Inicio",
           "dueDate": "Fecha objetivo", "progress": "Avance", "protocol": "Protocolo", "description": "Descripción"}
 
+MAX_APOYO = 10
 MAX_EVIDENCIA = 1024 * 1024            # 1 MB ya comprimida
 MAX_EVIDENCIAS_PROYECTO = 20
 TOPE_TOTAL = 150 * 1024 * 1024         # todas las evidencias juntas (la base completa tiene 500 MB)
@@ -106,9 +109,49 @@ def _persona(db: Session, pid) -> Empleado | None:
 
 # ---------- Serialización (mismo formato que usa el frontend) ----------
 
-def _riesgo_dict(r: DesignDevRiesgo) -> dict:
+def _riesgo_dict(r: DesignDevRiesgo, apoyo: dict) -> dict:
     return {"id": str(r.id), "title": r.titulo, "prob": r.probabilidad, "impact": r.impacto, "mitigation": r.mitigacion or "",
-            "owner": r.responsable, "ownerId": str(r.responsable_id or ""), "status": r.estado, "createdAt": _iso(r.creado_en)}
+            "owner": r.responsable, "ownerId": str(r.responsable_id or ""), "support": apoyo.get(("r", r.id), []),
+            "status": r.estado, "createdAt": _iso(r.creado_en)}
+
+
+def _apoyos(db: Session, tipo: str, ids: list[int]) -> dict:
+    out: dict = {}
+    if ids:
+        for a in (db.query(DesignDevApoyo).filter(DesignDevApoyo.tipo == tipo, DesignDevApoyo.ref_id.in_(ids))
+                  .order_by(DesignDevApoyo.id)):
+            out.setdefault((tipo, a.ref_id), []).append({"id": str(a.empleado_id), "name": a.nombre})
+    return out
+
+
+def _nombre_de(e: Empleado) -> str:
+    return " ".join(w.capitalize() for w in (e.nombre_completo or "").split())
+
+
+def _guardar_apoyo(db: Session, tipo: str, ref_id: int, ids, principal_id) -> tuple[list[str], list[str]]:
+    """Reemplaza las personas de apoyo. Devuelve (nombres antes, nombres después) para la bitácora."""
+    antes = [a.nombre for a in db.query(DesignDevApoyo).filter(DesignDevApoyo.tipo == tipo, DesignDevApoyo.ref_id == ref_id)
+             .order_by(DesignDevApoyo.id)]
+    vistos, nuevos = set(), []
+    for x in (ids or []):
+        e = _persona(db, x)
+        if e and e.id != principal_id and e.id not in vistos:
+            vistos.add(e.id)
+            nuevos.append(e)
+    nuevos = nuevos[:MAX_APOYO]
+    db.query(DesignDevApoyo).filter(DesignDevApoyo.tipo == tipo, DesignDevApoyo.ref_id == ref_id).delete(synchronize_session=False)
+    for e in nuevos:
+        db.add(DesignDevApoyo(tipo=tipo, ref_id=ref_id, empleado_id=e.id, nombre=_nombre_de(e)))
+    return antes, [_nombre_de(e) for e in nuevos]
+
+
+def _apoyo_valido(d: dict) -> list[str]:
+    ids = d.get("supportIds")
+    if ids is None:
+        return []
+    if not isinstance(ids, list):
+        return ["Personas de apoyo inválidas"]
+    return [f"Máximo {MAX_APOYO} personas de apoyo"] if len(ids) > MAX_APOYO else []
 
 
 def _evidencia_dict(e: DesignDevEvidencia) -> dict:
@@ -120,16 +163,20 @@ def _evidencia_dict(e: DesignDevEvidencia) -> dict:
 def _proyectos_dicts(db: Session, proyectos: list[DesignDevProyecto]) -> list[dict]:
     ids = [p.id for p in proyectos]
     riesgos, evid, log = {}, {}, {}
+    apoyo = _apoyos(db, "p", ids)
     if ids:
-        for r in db.query(DesignDevRiesgo).filter(DesignDevRiesgo.proyecto_id.in_(ids)).order_by(DesignDevRiesgo.id):
-            riesgos.setdefault(r.proyecto_id, []).append(_riesgo_dict(r))
+        filas = db.query(DesignDevRiesgo).filter(DesignDevRiesgo.proyecto_id.in_(ids)).order_by(DesignDevRiesgo.id).all()
+        apoyo.update(_apoyos(db, "r", [r.id for r in filas]))
+        for r in filas:
+            riesgos.setdefault(r.proyecto_id, []).append(_riesgo_dict(r, apoyo))
         for e in db.query(DesignDevEvidencia).filter(DesignDevEvidencia.proyecto_id.in_(ids)).order_by(DesignDevEvidencia.id):
             evid.setdefault(e.proyecto_id, []).append(_evidencia_dict(e))
         for v in db.query(DesignDevEvento).filter(DesignDevEvento.proyecto_id.in_(ids)).order_by(DesignDevEvento.id):
             log.setdefault(v.proyecto_id, []).append({"id": str(v.id), "ts": _iso(v.creado_en), "user": v.usuario,
                                                        "msg": v.mensaje, "kind": v.tipo})
     return [{"id": str(p.id), "code": _codigo(p.id), "name": p.nombre, "type": p.tipo, "owner": p.responsable,
-             "ownerId": str(p.responsable_id or ""), "priority": p.prioridad, "status": p.estado,
+             "ownerId": str(p.responsable_id or ""), "support": apoyo.get(("p", p.id), []),
+             "priority": p.prioridad, "status": p.estado,
              "startDate": p.inicio.isoformat(), "dueDate": p.objetivo.isoformat(), "progress": p.avance,
              "protocol": p.protocolo or "", "description": p.descripcion or "", "checklist": _controles(p),
              "risks": riesgos.get(p.id, []), "evidence": evid.get(p.id, []), "log": log.get(p.id, []),
@@ -272,12 +319,14 @@ def crear(db: Session, user: Empleado, d: dict) -> dict:
     base = {"name": "", "type": "", "ownerId": None, "owner": "", "priority": "", "startDate": "", "dueDate": "",
             "progress": 0, "protocol": "", "description": ""}
     v, errores = _limpiar_proyecto(db, {**d, "progress": 0}, base)
+    errores += _apoyo_valido(d)
     if errores:
         raise ErrorDev(422, "Datos inválidos", errores)
     p = DesignDevProyecto(estado="propuesta", controles="{}")
     _aplicar(p, v)
     db.add(p)
     db.flush()
+    _guardar_apoyo(db, "p", p.id, d.get("supportIds"), p.responsable_id)
     _evento(db, p, user, 'Proyecto creado en estado "Propuesta"', "create")
     db.commit()
     return uno(db, p.id)
@@ -289,9 +338,15 @@ def editar(db: Session, user: Empleado, pid, d: dict) -> dict:
     if p.estado == "lanzado":
         d = {k: x for k, x in d.items() if k != "progress"}
     v, errores = _limpiar_proyecto(db, d, antes)
+    errores += _apoyo_valido(d)
     if errores:
         raise ErrorDev(422, "Datos inválidos", errores)
     cambios = []
+    if "supportIds" in d or v.get("ownerId") != antes.get("ownerId"):
+        ids = d.get("supportIds") if "supportIds" in d else [a["id"] for a in _apoyos(db, "p", [p.id]).get(("p", p.id), [])]
+        ap_antes, ap_despues = _guardar_apoyo(db, "p", p.id, ids, v.get("ownerId"))
+        if ap_antes != ap_despues:
+            cambios.append(f"Apoyo: {', '.join(ap_antes) or '—'} → {', '.join(ap_despues) or '—'}")
     for k, etiqueta in CAMPOS.items():
         if str(antes.get(k)) != str(v.get(k)):
             fmt = (lambda x: PRIORIDADES.get(x, x)) if k == "priority" else (lambda x: f"{x}%") if k == "progress" else \
@@ -300,7 +355,7 @@ def editar(db: Session, user: Empleado, pid, d: dict) -> dict:
     if cambios:
         _aplicar(p, v)
         _evento(db, p, user, "Editado: " + " · ".join(cambios), "edit")
-        db.commit()
+    db.commit()
     return uno(db, p.id)
 
 
@@ -358,6 +413,10 @@ def eliminar(db: Session, user: Empleado, pid) -> dict:
     p = _buscar(db, pid)
     if p.estado not in ("propuesta", "pausado"):
         raise ErrorDev(409, "Solo se pueden eliminar proyectos en Propuesta o Pausado")
+    rids = [r.id for r in _riesgos(db, p)]
+    db.query(DesignDevApoyo).filter(DesignDevApoyo.tipo == "p", DesignDevApoyo.ref_id == p.id).delete(synchronize_session=False)
+    if rids:
+        db.query(DesignDevApoyo).filter(DesignDevApoyo.tipo == "r", DesignDevApoyo.ref_id.in_(rids)).delete(synchronize_session=False)
     for m in (DesignDevRiesgo, DesignDevEvidencia, DesignDevEvento):
         db.query(m).filter(m.proyecto_id == p.id).delete(synchronize_session=False)
     db.query(DesignDevPost).filter(DesignDevPost.proyecto_id == p.id).update({"proyecto_id": None}, synchronize_session=False)
@@ -392,6 +451,7 @@ def guardar_riesgo(db: Session, user: Empleado, pid, d: dict, riesgo_id=None) ->
         errores.append("Asigna un responsable al riesgo")
     if len(titulo) > 300 or len(mitig) > 3000:
         errores.append("Texto demasiado largo")
+    errores += _apoyo_valido(d)
     if errores:
         raise ErrorDev(422, "Riesgo inválido", errores)
     nombre = " ".join(w.capitalize() for w in (resp.nombre_completo or "").split())
@@ -401,10 +461,14 @@ def guardar_riesgo(db: Session, user: Empleado, pid, d: dict, riesgo_id=None) ->
             raise ErrorDev(404, "Riesgo no encontrado")
         r.titulo, r.probabilidad, r.impacto, r.mitigacion, r.estado = titulo, prob, imp, mitig, estado
         r.responsable_id, r.responsable = resp.id, nombre
+        _guardar_apoyo(db, "r", r.id, d.get("supportIds"), resp.id)
         _evento(db, p, user, f'Riesgo actualizado: "{titulo}" (P{prob}×I{imp}={prob * imp}, {estado})', "risk")
     else:
-        db.add(DesignDevRiesgo(proyecto_id=p.id, titulo=titulo, probabilidad=prob, impacto=imp, mitigacion=mitig,
-                               estado=estado, responsable_id=resp.id, responsable=nombre))
+        r = DesignDevRiesgo(proyecto_id=p.id, titulo=titulo, probabilidad=prob, impacto=imp, mitigacion=mitig,
+                            estado=estado, responsable_id=resp.id, responsable=nombre)
+        db.add(r)
+        db.flush()
+        _guardar_apoyo(db, "r", r.id, d.get("supportIds"), resp.id)
         _evento(db, p, user, f'Riesgo registrado: "{titulo}" (puntaje {prob * imp})', "risk")
     db.commit()
     return uno(db, p.id)
@@ -417,6 +481,7 @@ def eliminar_riesgo(db: Session, user: Empleado, pid, riesgo_id) -> dict:
         raise ErrorDev(404, "Riesgo no encontrado")
     if r.estado != "cerrado":
         raise ErrorDev(409, "Solo se pueden eliminar riesgos cerrados. Ciérralo primero para conservar la trazabilidad.")
+    db.query(DesignDevApoyo).filter(DesignDevApoyo.tipo == "r", DesignDevApoyo.ref_id == r.id).delete(synchronize_session=False)
     db.delete(r)
     _evento(db, p, user, f'Riesgo eliminado: "{r.titulo}"', "risk")
     db.commit()
@@ -638,3 +703,116 @@ def eliminar_post(db: Session, post_id) -> None:
 def exportar(db: Session, user: Empleado) -> dict:
     """Respaldo en JSON (sin las imágenes: solo sus datos)."""
     return {"version": 1, "exportedAt": _iso(None), "projects": listar(db), "posts": listar_posts(db, user)}
+
+
+# ---------- Inglés (cookie cp_lang=en): los mensajes del servidor se traducen al responder ----------
+EN_ESTADOS = {"Propuesta": "Proposal", "Aprobado": "Approved", "En desarrollo": "In development",
+              "En pruebas (QA)": "In testing (QA)", "Lanzado": "Launched", "Pausado": "Paused"}
+EN_CONTROLES = {
+    "Objetivo y KPI de éxito definidos": "Goal and success KPI defined",
+    "Alcance y criterios de aceptación escritos": "Scope and acceptance criteria written",
+    "Aprobación del solicitante / sponsor": "Requester / sponsor approval",
+    "Al menos 1 riesgo identificado": "At least 1 risk identified",
+    "Diseño técnico revisado": "Technical design reviewed",
+    "Estimación validada por el equipo": "Estimate validated by the team",
+    "Dependencias e impactos identificados": "Dependencies and impacts identified",
+    "Pruebas automatizadas pasando": "Automated tests passing",
+    "Code review aprobado": "Code review approved",
+    "Entorno de QA con datos de prueba": "QA environment with test data",
+    "Plan de rollback documentado y probado": "Rollback plan documented and tested",
+    "Protocolo actualizado y aprobado": "Protocol updated and approved",
+    "Backup / migración verificada": "Backup / migration verified",
+    "Comunicación a usuarios afectados": "Affected users notified",
+    "Sin riesgos críticos abiertos (puntaje ≥ 15)": "No open critical risks (score ≥ 15)",
+}
+EN_EXACTO = {
+    "Asigna un responsable al riesgo": "Assign an owner to the risk",
+    "Categoría inválida": "Invalid category",
+    "Control no editable": "This check can't be edited",
+    "Datos inválidos": "Invalid data",
+    "Describe el riesgo (mín. 3 caracteres)": "Describe the risk (at least 3 characters)",
+    "El avance debe estar entre 0 y 100": "Progress must be between 0 and 100",
+    "El contenido debe tener al menos 10 caracteres": "Content must be at least 10 characters",
+    "El control no pertenece a la etapa elegida": "That check doesn't belong to the selected stage",
+    "El nombre debe tener al menos 3 caracteres": "Name must be at least 3 characters",
+    "El proyecto vinculado no existe": "The linked project doesn't exist",
+    "El responsable es obligatorio (persona activa de Nuvia Design)": "An owner is required (an active Nuvia Design employee)",
+    "El título debe tener al menos 3 caracteres": "Title must be at least 3 characters",
+    "Estado de riesgo inválido": "Invalid risk status",
+    "Estado inválido": "Invalid status",
+    "Este cambio requiere un motivo (mín. 5 caracteres)": "This change needs a reason (at least 5 characters)",
+    "Etapa inválida": "Invalid stage",
+    "Evidencia no encontrada": "Evidence not found",
+    "Evidencias inválidas": "Invalid evidence",
+    "Fecha de inicio inválida": "Invalid start date",
+    "Fecha inválida": "Invalid date",
+    "Fecha objetivo inválida": "Invalid target date",
+    "Impacto entre 1 y 5": "Impact must be between 1 and 5",
+    "La descripción debe tener al menos 3 caracteres": "Description must be at least 3 characters",
+    "La fecha objetivo no puede ser anterior al inicio": "The target date can't be before the start date",
+    "La nota es muy corta": "The note is too short",
+    "Los riesgos críticos (≥15) requieren plan de mitigación": "Critical risks (≥15) require a mitigation plan",
+    "Máximo 10 enlaces por publicación": "Up to 10 links per post",
+    "No puedes desmarcar un control de una etapa ya superada. Regresa el proyecto de etapa primero.":
+        "You can't uncheck a check from a stage the project already passed. Move the project back first.",
+    "Personas de apoyo inválidas": "Invalid support people",
+    "Prioridad inválida": "Invalid priority",
+    "Probabilidad entre 1 y 5": "Probability must be between 1 and 5",
+    "Proyecto no encontrado": "Project not found",
+    "Publicación inválida": "Invalid post",
+    "Publicación no encontrada": "Post not found",
+    "Riesgo inválido": "Invalid risk",
+    "Riesgo no encontrado": "Risk not found",
+    "Se llenó el espacio para evidencias de Development. Elimina evidencias antiguas.":
+        "Development's evidence storage is full. Delete old evidence first.",
+    "Solo se pueden eliminar proyectos en Propuesta o Pausado": "Only projects in Proposal or Paused can be deleted",
+    "Solo se pueden eliminar riesgos cerrados. Ciérralo primero para conservar la trazabilidad.":
+        "Only closed risks can be deleted. Close it first to keep the audit trail.",
+    "Texto demasiado largo": "Text is too long",
+    "Tipo inválido": "Invalid type",
+    "Un proyecto tipo Protocolo debe indicar el protocolo vinculado": "A Protocol project must name the linked protocol",
+    "No hay imágenes para guardar": "There are no images to save",
+    "Petición mal formada": "Malformed request",
+    "Development es solo para admins, Luis Felipe Blaschke y Paul Andion.":
+        "Development is only for admins, Luis Felipe Blaschke and Paul Andion.",
+}
+_EN_REGEX = [
+    (re.compile(r"^Enlace (\d+): la URL debe empezar por http:// o https://$"), r"Link \1: the URL must start with http:// or https://"),
+    (re.compile(r"^Máximo (\d+) personas de apoyo$"), r"Up to \1 support people"),
+    (re.compile(r"^Máximo (\d+) evidencias por proyecto \(hay (\d+)\)$"), r"Up to \1 evidence items per project (there are \2)"),
+    (re.compile(r"^Imagen (\d+): archivo inválido \(PNG, JPG, WEBP o GIF\)$"), r"Image \1: invalid file (PNG, JPG, WEBP or GIF)"),
+    (re.compile(r"^Imagen (\d+): el control no pertenece a la etapa elegida$"), r"Image \1: that check doesn't belong to the selected stage"),
+    (re.compile(r"^Imagen (\d+): escribe una descripción de qué demuestra \(mín\. 3 caracteres\)$"),
+     r"Image \1: describe what it shows (at least 3 characters)"),
+    (re.compile(r"^Imagen (\d+): etapa inválida$"), r"Image \1: invalid stage"),
+    (re.compile(r"^Imagen (\d+): supera 1 MB después de optimizar$"), r"Image \1: over 1 MB after optimizing"),
+]
+
+
+def _en_control(t: str) -> str:
+    return EN_CONTROLES.get(t, t)
+
+
+def traducir(msg: str) -> str:
+    """Mensaje del servidor en inglés (si no se conoce, queda igual)."""
+    if msg in EN_EXACTO:
+        return EN_EXACTO[msg]
+    for rx, en in _EN_REGEX:
+        if rx.match(msg):
+            return rx.sub(en, msg)
+    m = re.match(r'^No se puede pasar a "(.+)": faltan controles$', msg)
+    if m:
+        return f'Can\'t move to "{EN_ESTADOS.get(m.group(1), m.group(1))}": checks missing'
+    m = re.match(r"^(" + "|".join(re.escape(k) for k in EN_ESTADOS) + r"): (.+)$", msg)
+    if m and m.group(2) in EN_CONTROLES:
+        return f"{EN_ESTADOS[m.group(1)]}: {EN_CONTROLES[m.group(2)]}"
+    m = re.match(r'^"(.+)" requiere evidencia\. Adjunta al menos un screenshot o foto vinculada a este control\.$', msg)
+    if m:
+        return f'"{_en_control(m.group(1))}" requires evidence. Attach at least one screenshot or photo linked to this check.'
+    m = re.match(r'^Es la única evidencia de "(.+)" \(control marcado\)\. Agrega otra antes de moverla\.$', msg)
+    if m:
+        return f'It\'s the only evidence for "{_en_control(m.group(1))}" (checked). Add another one before moving it.'
+    m = re.match(r'^No se puede eliminar: es la única evidencia de "(.+)", que ya está marcado\. Agrega otra evidencia primero\.$', msg)
+    if m:
+        return f'Can\'t delete: it\'s the only evidence for "{_en_control(m.group(1))}", which is already checked. Add another one first.'
+    return msg
