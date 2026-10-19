@@ -2293,7 +2293,15 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Un diseñador recibe solo las suyas; si una orden deja de ser suya (la reasignaron), se quita de su pantalla.
   var dsParches = [];
   function dsParchar(a) {
-    if (!DS.diaData || a.team !== DS.teamId || a.fecha !== dsFechaISO(dsFechaSeleccionada())) return;   // no es el día que se está viendo
+    if (!DS.diaData || a.fecha !== dsFechaISO(dsFechaSeleccionada())) return;   // no es el día que se está viendo
+    if (a.team !== DS.teamId) {
+      // Orden de otro equipo que me prestaron (o a la que me enviaron como ayuda): se vuelve a pedir el día para el panel «Prestadas»
+      var yo = DS.diaData.miId, mias = (DS.diaData.prestadas || []).map(function(p) { return p.id; });
+      var toca = (a.o || []).some(function(o) { return o.designerId === yo || mias.indexOf(o.id) >= 0; }) ||
+                 (a.x || []).some(function(id) { return mias.indexOf(id) >= 0; });
+      if (toca) { dsVivoPend = true; setTimeout(function() { dsVivoQuiza(false); }, 200); }
+      return;
+    }
     var vista = document.getElementById('dsVistaEquipo');
     if (!vista || vista.style.display === 'none') return;
     dsParches.push(a);
