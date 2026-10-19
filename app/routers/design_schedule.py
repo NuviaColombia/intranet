@@ -1098,7 +1098,8 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dg = sd.delegacion_de(db, team)
     dia["puedeDelegar"] = sd.puede_delegar(user, team) and team.area.formato != sd.FORMATO_SUPPORT
     dia["aCargo"] = dict(dg, esYo=dg["empleadoId"] == user.id) if dg and (dia["puedeDelegar"] or dg["empleadoId"] == user.id) else None
-    dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id)  # huella para el Schedule en vivo
+    dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id, solo_propias=not (gest or es_tr),
+                                    extra=_huella_extra(db, user, team, _fecha(fecha)))  # huella para el Schedule en vivo
     dia["puedeQc"] = sd.puede_qc(user, team)  # el QC lo marcan aprobadores, admins y el diseñador a cargo
     dia["creaProducto"] = None if sd.gestiona_equipo(user, team) else sd.producto_que_crea(user, team)  # p. ej. Maxilar Print
     dia["copiasPendientes"] = sd.copias_pendientes_dia(db, team, _fecha(fecha))  # N2: QC desmarcado en Face, esperando decisión
@@ -1107,12 +1108,20 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     return dia
 
 
+def _huella_extra(db: Session, user: Empleado, team: DesignTeam, fecha: date):
+    """Lo del día que depende de la persona y no son órdenes: el permiso para editar un día cerrado y las ayudas recibidas."""
+    permiso = sperm.permiso_para(db, user, fecha) if sd.dia_cerrado(fecha) else None
+    ayudas = tuple(a["id"] for a in say.ayudas_del_equipo(db, team.id, fecha))
+    return (permiso.isoformat() if permiso else "", ayudas) if (permiso or ayudas) else None
+
+
 @router.get("/design/api/dia/version")
 def api_dia_version(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                     db: Session = Depends(get_db)):
     """Huella del día: la pantalla la consulta cada pocos segundos y, si cambió, vuelve a pedir el día (en vivo)."""
     team = _verificar_equipo_ver(db, user, team_id)
-    return {"v": sd.version_dia(db, team, _fecha(fecha), user.id)}
+    solo = not (sd.gestiona_equipo(user, team) or sd.es_training(team))
+    return {"v": sd.version_dia(db, team, _fecha(fecha), user.id, solo_propias=solo, extra=_huella_extra(db, user, team, _fecha(fecha)))}
 
 
 class DelegacionIn(BaseModel):

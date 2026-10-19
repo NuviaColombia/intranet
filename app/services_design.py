@@ -1145,10 +1145,25 @@ def areas_de_gestion(db: Session, user: Empleado) -> set[str] | None:
     return {t.area.nombre for t in teams if t.area and (t.manager_id == user.id or t.id in cargo)}
 
 
+_SEG_CACHE = {"k": None, "t": 0.0, "v": None}
+SEG_CACHE_S = 4   # segundos que se comparte el cálculo entre quienes tienen Seguimiento abierto
+
+
+def seguimiento_compartido(db: Session, fin_jornada: str = "17:00") -> dict:
+    """El cálculo de Seguimiento es el mismo para todos (después se recorta por área), así que se hace una vez cada
+    SEG_CACHE_S segundos y se comparte: con 18 aprobadores mirándolo, cada uno recalculaba toda la plataforma (12 consultas
+    y ~140 KB) con cada cambio (auditoría 19-oct-2026). Devuelve una copia superficial: quien la recorta no daña la compartida."""
+    import time as _t
+    c = _SEG_CACHE
+    if c["v"] is None or c["k"] != fin_jornada or _t.monotonic() - c["t"] >= SEG_CACHE_S:
+        c["v"], c["k"], c["t"] = seguimiento(db, fin_jornada=fin_jornada), fin_jornada, _t.monotonic()
+    return dict(c["v"])
+
+
 def seguimiento_visible(db: Session, user: Empleado, fin_jornada: str = "17:00") -> dict:
     """Seguimiento recortado a lo que `user` puede ver: los admins todo (con el filtro por área); un aprobador, solo los
     diseñadores y equipos de su área (Luisa Ortiz, de N3, no ve N2, Face ni N6)."""
-    d = seguimiento(db, fin_jornada=fin_jornada)
+    d = seguimiento_compartido(db, fin_jornada)
     areas = areas_de_gestion(db, user)
     d["alcance"] = "todas" if areas is None else "area"
     if areas is None:
@@ -1741,22 +1756,39 @@ def preapproved_de_centro(db: Session, area_id: int, centro: str, areas_permitid
 
 # ---------- Schedule en vivo: huella del día para saber si alguien cambió algo ----------
 
-def version_dia(db: Session, team: DesignTeam, fecha: date, empleado_id: int | None = None) -> str:
-    """Huella corta de lo que se ve en el día de un equipo (órdenes, también las prestadas a esa persona, y tiempos
-    libres). Si cambia, la pantalla vuelve a pedir el día. Son pocas filas, así que se calcula directo."""
+def version_dia(db: Session, team: DesignTeam, fecha: date, empleado_id: int | None = None, solo_propias: bool = False,
+                extra=None) -> str:
+    """Huella corta de lo que VE esa persona en el día de un equipo. Si cambia, la pantalla vuelve a pedir el día.
+    - Manager / admin / a cargo: todas las órdenes y tiempos libres del equipo, la composición del equipo y las copias
+      Face → N2 pendientes.
+    - Diseñador (`solo_propias`): solo sus órdenes (también las que le prestaron de otros equipos) y sus tiempos libres;
+      así no recarga cuando un compañero cambia algo que él no ve (auditoría 19-oct-2026).
+    `extra`: lo que depende de la persona (permiso para editar días cerrados, ayudas recibidas).
+    Son pocas filas, así que se calcula directo."""
     import hashlib
+    from .models_design import DesignCopiaFace
     # Solo las columnas de la huella (la pantalla la pide cada 5 s por pestaña abierta: tiene que ser liviana).
     q = (db.query(DesignOrden.id, DesignOrden.team_id, DesignOrden.tabla, DesignOrden.orden_visual, DesignOrden.actualizado_en)
          .filter(DesignOrden.fecha == fecha))
-    q = q.filter(or_(DesignOrden.team_id == team.id, DesignOrden.designer_id == empleado_id) if empleado_id
-                 else DesignOrden.team_id == team.id)
+    q = q.filter(DesignOrden.designer_id == empleado_id) if (solo_propias and empleado_id) else q.filter(DesignOrden.team_id == team.id)
     partes = [(o.id, o.team_id, o.tabla, o.orden_visual, o.actualizado_en.isoformat() if o.actualizado_en else "")
               for o in q.order_by(DesignOrden.id).all()]
-    for b in (db.query(DesignBreak.id, DesignBreak.empleado_id, DesignBreak.tipo_ausencia, DesignBreak.almuerzo_inicio, DesignBreak.almuerzo_fin,
-                       DesignBreak.break1_inicio, DesignBreak.break1_fin, DesignBreak.break2_inicio, DesignBreak.break2_fin)
-              .filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha).order_by(DesignBreak.id).all()):
+    qb = (db.query(DesignBreak.id, DesignBreak.empleado_id, DesignBreak.tipo_ausencia, DesignBreak.almuerzo_inicio, DesignBreak.almuerzo_fin,
+                   DesignBreak.break1_inicio, DesignBreak.break1_fin, DesignBreak.break2_inicio, DesignBreak.break2_fin)
+          .filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha))
+    if solo_propias and empleado_id:
+        qb = qb.filter(DesignBreak.empleado_id == empleado_id)
+    for b in qb.order_by(DesignBreak.id).all():
         partes.append(tuple(b))
     partes.append(("deleg", delegaciones_activas(db).get(team.id)))
+    if not solo_propias:
+        partes.append(("equipo", team.manager_id, tuple(sorted(d.empleado_id for d in team.designers))))
+        partes.append(("copias", tuple((c, e) for c, e in (db.query(DesignCopiaFace.n2_orden_id, DesignCopiaFace.estado)
+                                                          .join(DesignOrden, DesignOrden.id == DesignCopiaFace.n2_orden_id)
+                                                          .filter(DesignOrden.team_id == team.id, DesignOrden.fecha == fecha,
+                                                                  DesignCopiaFace.estado == "pendiente").order_by(DesignCopiaFace.n2_orden_id).all()))))
+    if extra:
+        partes.append(("extra", extra))
     return hashlib.md5(repr(partes).encode()).hexdigest()[:16]
 
 

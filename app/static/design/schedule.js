@@ -2233,6 +2233,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       var fT = dsFechaISO(new Date(DS.lunes.getFullYear(), DS.lunes.getMonth(), DS.lunes.getDate() + DS.diaSel));
       api('/design/api/todas-areas/version?fecha=' + fT).then(function(r) {
         if (!r || (DS.todasV && DS.todasV.f === fT && DS.todasV.v === r.v)) return;
+        if (DS.todasUlt && Date.now() - DS.todasUlt < 8000) { dsVivoPend = true; return; }   // se vuelve a intentar en la próxima revisión
+        DS.todasUlt = Date.now();
         DS.todasV = {f: fT, v: r.v}; dsCargarTodasAreas(true);
       }).catch(function() {});
       return;
@@ -2249,40 +2251,80 @@ window.addEventListener('unhandledrejection', function(ev) {
       return api(url).then(function(dia) {
         if (DS.diaUrl !== url || dsOcupado()) return;
         dia._fecha = fecha; dia._team = parseInt(clave);
-        var antes = {};
-        ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
-          (DS.diaData[t] || []).forEach(function(f) { antes[f.id] = dsHuellaFila(f); });
-        });
-        var sinV = function(d) { var c = Object.assign({}, d); delete c.version; delete c._fecha; delete c._team; delete c.ahoraMs; return JSON.stringify(c); };
-        var mismo = sinV(dia) === sinV(DS.diaData);
-        var y = window.scrollY;
-        if (mismo) { DS.diaVersion = r.v; DS.diaData.version = r.v; return; }  // fue un cambio propio: ya se ve
-        var act = document.activeElement, foco = null;
-        if (act && act.dataset && act.dataset.campo) {
-          var trA = act.closest('tr[data-id]'), tbA = act.closest('[id^="dsTabla"]');
-          if (trA && tbA) foco = {tabla: tbA.id, id: trA.dataset.id, campo: act.dataset.campo};
-        }
-        dsAplicarDia(dia);
-        if (foco) {  // vuelve a la misma celda
-          var el = document.querySelector('#' + foco.tabla + ' tr[data-id="' + foco.id + '"] [data-campo="' + foco.campo + '"]');
-          if (el) el.focus({preventScroll: true});
-        }
-        window.scrollTo(0, y);
-        ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
-          (dia[t] || []).forEach(function(f) {
-            if (antes[f.id] === dsHuellaFila(f)) return;
-            var tr = document.querySelector('#dsVistaEquipo tr[data-id="' + f.id + '"]');
-            if (tr) { tr.classList.add('ds-vivo'); setTimeout(function() { tr.classList.remove('ds-vivo'); }, 2500); }
-          });
-        });
+        dsAplicarVivo(dia, r.v);
       });
     }).catch(function() {});
+  }
+  // Aplica un día ya armado (pedido al servidor o armado con el cambio de un aviso). Si no cambió nada de lo que se ve, no
+  // redibuja; si cambió, conserva el foco y el scroll y resalta un momento las filas que cambiaron.
+  function dsAplicarVivo(dia, nuevaVersion) {
+    var antes = {};
+    ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
+      (DS.diaData[t] || []).forEach(function(f) { antes[f.id] = dsHuellaFila(f); });
+    });
+    var sinV = function(d) { var c = Object.assign({}, d); delete c.version; delete c._fecha; delete c._team; delete c.ahoraMs; return JSON.stringify(c); };
+    var mismo = sinV(dia) === sinV(DS.diaData), forzar = DS.forzarRender;
+    DS.forzarRender = false;
+    var y = window.scrollY;
+    if (mismo && !forzar) { if (nuevaVersion) { DS.diaVersion = nuevaVersion; DS.diaData.version = nuevaVersion; } return; }  // fue un cambio propio: ya se ve
+    var act = document.activeElement, foco = null;
+    if (act && act.dataset && act.dataset.campo) {
+      var trA = act.closest('tr[data-id]'), tbA = act.closest('[id^="dsTabla"]');
+      if (trA && tbA) foco = {tabla: tbA.id, id: trA.dataset.id, campo: act.dataset.campo};
+    }
+    var versionPrevia = DS.diaVersion;
+    dsAplicarDia(dia);
+    if (!nuevaVersion) DS.diaVersion = versionPrevia;   // armado con un parche: la huella del servidor se revisa en la próxima revisión de seguridad
+    if (foco) {  // vuelve a la misma celda
+      var el = document.querySelector('#' + foco.tabla + ' tr[data-id="' + foco.id + '"] [data-campo="' + foco.campo + '"]');
+      if (el) el.focus({preventScroll: true});
+    }
+    window.scrollTo(0, y);
+    ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
+      (dia[t] || []).forEach(function(f) {
+        if (antes[f.id] === dsHuellaFila(f)) return;
+        var tr = document.querySelector('#dsVistaEquipo tr[data-id="' + f.id + '"]');
+        if (tr) { tr.classList.add('ds-vivo'); setTimeout(function() { tr.classList.remove('ds-vivo'); }, 2500); }
+      });
+    });
+  }
+  // El aviso trae las órdenes cambiadas ({t:'ord', team, fecha, o:[...], x:[ids]}): se actualizan solo esas filas, sin pedir
+  // el día al servidor (auditoría 19-oct-2026: antes cada guardado hacía que todos los compañeros pidieran el día completo).
+  // Un diseñador recibe solo las suyas; si una orden deja de ser suya (la reasignaron), se quita de su pantalla.
+  var dsParches = [];
+  function dsParchar(a) {
+    if (!DS.diaData || a.team !== DS.teamId || a.fecha !== dsFechaISO(dsFechaSeleccionada())) return;   // no es el día que se está viendo
+    var vista = document.getElementById('dsVistaEquipo');
+    if (!vista || vista.style.display === 'none') return;
+    dsParches.push(a);
+    dsVivoQuiza(false);
+  }
+  function dsAplicarParches() {
+    if (!dsParches.length || !DS.diaData || dsOcupado()) return;
+    var lista = dsParches.splice(0, dsParches.length);
+    var dia = Object.assign({}, DS.diaData), tablas = ['material', 'principal', 'nightguard'];
+    var solo = !!(DS.diaData.soloPropias && !DS.diaData.soloEditaPropias), yo = DS.diaData.miId;
+    var clave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
+    tablas.forEach(function(t) { dia[t] = (DS.diaData[t] || []).slice(); });
+    lista.forEach(function(a) {
+      if (a.team + ':' + a.fecha !== clave) return;
+      var quitar = function(id) { tablas.forEach(function(t) { dia[t] = dia[t].filter(function(f) { return f.id !== id; }); }); };
+      (a.x || []).forEach(quitar);
+      (a.o || []).forEach(function(o) {
+        quitar(o.id);
+        if (tablas.indexOf(o.tabla) < 0 || (solo && o.designerId !== yo)) return;
+        dia[o.tabla].push(o);
+      });
+    });
+    tablas.forEach(function(t) { dia[t].sort(function(x, y) { return (x.ordenVisual - y.ordenVisual) || (x.id - y.id); }); });
+    dsAplicarVivo(dia, null);
   }
   // Con la conexión en vivo (static/design/vivo.js) solo se revisa cuando llega un aviso de ESTE equipo y día (o de
   // cualquier equipo de ese día en la vista de todas las áreas), más una revisión de seguridad cada 90 s. Sin
   // conexión se vuelve a revisar cada 5 s como antes.
   var dsVivoPend = false, dsVivoUlt = 0;
   function dsVivoQuiza(forzar) {
+    dsAplicarParches();
     var enVivo = window.DSVivo && window.DSVivo.conectado;
     if (forzar || !enVivo || dsVivoPend || Date.now() - dsVivoUlt > 90000) { dsVivoUlt = Date.now(); dsVivoPend = false; dsVivoTick(); }
   }
@@ -2291,11 +2333,22 @@ window.addEventListener('unhandledrejection', function(ev) {
   document.addEventListener('ds:vivo', function(e) {
     var a = e.detail || {};
     if (a.t === 'reconectado') { dsVivoPend = true; return; }
+    if (a.t === 'cfg') {   // cambiaron equipos, catálogos, festivos...: se vuelven a pedir con una espera al azar (para no pedir todos a la vez)
+      clearTimeout(DS.tCfg);
+      DS.tCfg = setTimeout(function() { catalogoCache = {}; DS.forzarRender = true; DS.diaVersion = '(cfg)'; dsVivoPend = true; dsVivoQuiza(false); }, 500 + Math.random() * 4000);
+      return;
+    }
+    if (a.t === 'ord' && DS.lunes) {
+      var chkO = document.getElementById('dsTodasAreasChk');
+      if (chkO && chkO.checked) { dsVivoPend = true; setTimeout(function() { dsVivoQuiza(false); }, 200); return; }   // todas las áreas: se pide completo
+      dsParchar(a); return;
+    }
+    if (a.t === 'dia' && a.p) return;   // el cambio de las órdenes ya llegó con el aviso 'ord'
     if (a.t !== 'dia' || !DS.lunes) return;
     var chkTodas = document.getElementById('dsTodasAreasChk'), todas = chkTodas && chkTodas.checked;
     var fecha = todas ? dsFechaISO(new Date(DS.lunes.getFullYear(), DS.lunes.getMonth(), DS.lunes.getDate() + DS.diaSel))
                       : (DS.teamId ? dsFechaISO(dsFechaSeleccionada()) : null);
-    if (!a.team || (a.fecha === fecha && (todas || a.team === DS.teamId))) { dsVivoPend = true; setTimeout(function() { dsVivoQuiza(false); }, 200); }
+    if (!a.team || ((a.fecha === fecha || a.fecha === '*') && (todas || a.team === DS.teamId))) { dsVivoPend = true; setTimeout(function() { dsVivoQuiza(false); }, 200); }
   });
 
   function dsCargarDia(soloOrdenes) {
@@ -3564,6 +3617,14 @@ function dcUrl(extra) {
   if (extra) Object.keys(extra).forEach(function(k) { p.set(k, extra[k]); });
   return p.toString();
 }
+document.addEventListener('ds:vivo', function(e) {
+  var a = e.detail || {};
+  if (a.t !== 'cambios') return;
+  var v = document.getElementById('ddVistaCambios'), t = document.getElementById('dcTabla');
+  if (!v || v.hidden || !v.offsetParent) return;   // la vista no está abierta
+  if (t && document.activeElement && t.contains(document.activeElement) && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;   // está editando una celda
+  clearTimeout(DC.tViv); DC.tViv = setTimeout(function() { dcCargar(true); }, 600 + Math.random() * 1500);
+});
 function dcCargar(reiniciar) {
   var tok = DC.tok = DC.tok + 1;
   var offset = reiniciar ? 0 : DC.items.length;
