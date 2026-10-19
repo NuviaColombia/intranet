@@ -1274,3 +1274,101 @@ class DesignCumpleVisto(Base):
     empleado_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     fecha: Mapped[date] = mapped_column(Date, primary_key=True)
     visto_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ---------- Development (Rosember, 19-oct-2026): control de proyectos y protocolos (Desktop\control-proyectos) ----------
+# Solo admins + Luis Felipe Blaschke y Paul Andion. Reglas en services_design_dev.py. Sin llaves foráneas a empleados
+# (como el resto de Design): se guarda el id y el nombre del momento.
+
+class DesignDevProyecto(Base):
+    __tablename__ = "design_dev_proyectos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(200))
+    tipo: Mapped[str] = mapped_column(String(20))                 # Desarrollo | Mejora | Protocolo
+    responsable_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    responsable: Mapped[str] = mapped_column(String(150), default="")
+    prioridad: Mapped[str] = mapped_column(String(10))            # critica | alta | media | baja
+    estado: Mapped[str] = mapped_column(String(12), default="propuesta")
+    inicio: Mapped[date] = mapped_column(Date)
+    objetivo: Mapped[date] = mapped_column(Date)
+    avance: Mapped[int] = mapped_column(Integer, default=0)
+    protocolo: Mapped[str] = mapped_column(String(200), default="")
+    descripcion: Mapped[str] = mapped_column(Text, default="")
+    controles: Mapped[str] = mapped_column(Text, default="{}")   # JSON {clave: true}
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignDevRiesgo(Base):
+    __tablename__ = "design_dev_riesgos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    proyecto_id: Mapped[int] = mapped_column(Integer, index=True)
+    titulo: Mapped[str] = mapped_column(String(300))
+    probabilidad: Mapped[int] = mapped_column(Integer)
+    impacto: Mapped[int] = mapped_column(Integer)
+    mitigacion: Mapped[str] = mapped_column(Text, default="")
+    responsable_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    responsable: Mapped[str] = mapped_column(String(150), default="")
+    estado: Mapped[str] = mapped_column(String(12), default="abierto")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignDevEvidencia(Base):
+    """Screenshots y fotos ya comprimidas en el navegador (≤ 1 MB, máx. 20 por proyecto: la base tiene 500 MB)."""
+    __tablename__ = "design_dev_evidencias"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    proyecto_id: Mapped[int] = mapped_column(Integer, index=True)
+    etapa: Mapped[str] = mapped_column(String(12))
+    control: Mapped[str] = mapped_column(String(20), default="")
+    descripcion: Mapped[str] = mapped_column(String(200))
+    tipo: Mapped[str] = mapped_column(String(20))
+    datos: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    peso: Mapped[int] = mapped_column(Integer, default=0)      # bytes
+    ancho: Mapped[int] = mapped_column(Integer, default=0)
+    alto: Mapped[int] = mapped_column(Integer, default=0)
+    nombre_archivo: Mapped[str] = mapped_column(String(200), default="")
+    sha256: Mapped[str] = mapped_column(String(64), default="")
+    subido_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignDevEvento(Base):
+    """Bitácora: solo se agregan filas (nunca se editan ni se borran, salvo al eliminar el proyecto)."""
+    __tablename__ = "design_dev_eventos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    proyecto_id: Mapped[int] = mapped_column(Integer, index=True)
+    empleado_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    usuario: Mapped[str] = mapped_column(String(150), default="")
+    tipo: Mapped[str] = mapped_column(String(12))
+    mensaje: Mapped[str] = mapped_column(Text)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignDevPost(Base):
+    __tablename__ = "design_dev_posts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(200))
+    cuerpo: Mapped[str] = mapped_column(Text)
+    categoria: Mapped[str] = mapped_column(String(12))
+    proyecto_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fijado: Mapped[bool] = mapped_column(Boolean, default=False)
+    enlaces: Mapped[str] = mapped_column(Text, default="[]")     # JSON [{label, url}]
+    autor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    autor: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DesignDevPostMarca(Base):
+    """Leído / útil de cada persona en cada post (tipo = 'leido' | 'util')."""
+    __tablename__ = "design_dev_post_marcas"
+
+    post_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    empleado_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(6), primary_key=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

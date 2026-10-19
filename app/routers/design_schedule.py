@@ -3364,3 +3364,7 @@ router.include_router(_reunion_router)
 # ---------- Cumpleaños (anuncio del día + Parameters › Formatos Canva): rutas en routers/design_cumple.py ----------
 from .design_cumple import router as _cumple_router  # noqa: E402
 router.include_router(_cumple_router)
+
+# ---------- Development (proyectos y protocolos; admins + Luis Felipe y Paul): rutas en routers/design_dev.py ----------
+from .design_dev import router as _dev_router  # noqa: E402
+router.include_router(_dev_router)

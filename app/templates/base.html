@@ -184,6 +184,7 @@
   {% endif %}
   <a href="/">{{ 'Modules' if es_design else 'Módulos' }}</a>{# Design en inglés (Rosember, 19-oct-2026); los demás módulos siguen igual #}
   {% if es_design and ve_mural(user) %}<a href="/design/mural">Mural</a>{% endif %}
+  {% if es_design and ve_development(user) %}<a href="/design/development">Development</a>{% endif %}{# solo admins + Luis Felipe y Paul (services_design_dev) #}
   {% set ds_extras %}{% if es_design %}
   {# Design: campana de notificaciones (la pone static/design/push.js aquí) y modo oscuro, entre el nombre y "Salir" #}
   <span class="ds-nav-extras" id="dsNavExtras"{% if user.rol in ('admin', 'superadmin') %} data-admin="1"{% endif %}>

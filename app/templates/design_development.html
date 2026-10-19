@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block titulo %}Development{% endblock %}
+{% block contenido %}
+{# Development (Rosember, 19-oct-2026): Control de Proyectos y Protocolos (Desktop\control-proyectos), integrado.
+   Los archivos de static/design/development se generan con scripts/integrar_development.py. #}
+<link rel="stylesheet" href="/static/design/development/development.css?v={{ dev_v }}">
+<div class="cpapp">
+<header class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="hero-in">
+    <div class="brand"><div class="logo">D</div>
+      <div><h1><em>Development</em> · Proyectos y protocolos</h1>
+      <div class="sub">Desarrollos · Mejoras · Protocolos, con controles de calidad, prevención de riesgos y aprendizaje del equipo</div></div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" data-action="help" data-tip="Muestra la guía rápida de uso">Ayuda</button>
+      <button class="btn ghost" data-action="export" data-tip="Descarga proyectos y posts como archivo JSON (respaldo, sin las imágenes)">Exportar</button>
+      <button class="btn lime" data-action="new" data-tip="Crear proyecto, o publicación si estás en Posts (atajo: N)">+ Nuevo</button>
+    </div>
+  </div>
+</header>
+<div class="navwrap">
+  <nav class="navpill" id="tabs">
+    <span class="ind" id="tabInd"></span>
+    <button data-view="resumen" class="active">Resumen</button>
+    <button data-view="proyectos">Proyectos</button>
+    <button data-view="kanban">Tablero</button>
+    <button data-view="riesgos">Riesgos</button>
+    <button data-view="posts">Posts<span class="nbadge" id="unreadBadge"></span></button>
+  </nav>
+</div>
+<div id="app" class="cp-main"></div>
+
+<dialog id="dlg"></dialog>
+<dialog id="dlgPost"></dialog>
+<dialog id="dlgImg"></dialog>
+<dialog id="dlgAsk">
+  <form method="dialog" id="askForm">
+    <div class="dh"><h2 id="askTitle">Confirmar</h2></div>
+    <div class="db">
+      <p id="askMsg" class="muted" style="margin-top:0"></p>
+      <label class="f full" id="askInputWrap"><span class="lt">Motivo (queda registrado en la bitácora)</span>
+        <textarea id="askInput"></textarea>
+      </label>
+      <div class="err" id="askErr"></div>
+      <div class="formfoot">
+        <button class="btn" value="cancel" formnovalidate>Cancelar</button>
+        <button class="btn primary" value="ok" id="askOk">Confirmar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+</div>
+<script>
+  window.CP_API_BASE = '/design/api/dev';
+  window.CP_USER_NAME = {{ dev_usuario|tojson }};
+</script>
+<script src="/static/design/development/domain.js?v={{ dev_v }}"></script>
+<script src="/static/design/development/api.js?v={{ dev_v }}"></script>
+<script src="/static/design/development/app.js?v={{ dev_v }}"></script>
+{% endblock %}

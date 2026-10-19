@@ -60,6 +60,15 @@ def _ve_mural(user) -> bool:
 templates.env.globals["ve_mural"] = _ve_mural
 
 
+def _ve_development(user) -> bool:
+    """Botón Development del menú de Design: admins + Luis Felipe Blaschke y Paul Andion (Rosember, 19-oct-2026)."""
+    from .services_design_dev import tiene_acceso
+    return tiene_acceso(user)
+
+
+templates.env.globals["ve_development"] = _ve_development
+
+
 def _ve_calendario_people(user) -> bool:
     """People: Pamela Manzur y Nicol Ardila tienen el Calendario de Design en su menú (Rosember, 19-oct-2026)."""
     from .services_design_calendario import es_people_calendario
