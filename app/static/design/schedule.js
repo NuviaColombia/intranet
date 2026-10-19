@@ -324,7 +324,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     document.getElementById('dsPanelNightguard').style.display = (area.formato === 'dual') ? '' : 'none';
     document.getElementById('dsPanelMaterial').style.display = (area.nombre === DS_AREA_MATERIAL) ? '' : 'none';
-    document.getElementById('dsTituloPrincipal').innerText = (area.formato === 'dual') ? 'Cirugías' : 'Órdenes';
+    // N6: «Cirugías/Dummy» (Rosember, 19-oct-2026)
+    document.getElementById('dsTituloPrincipal').innerText = area.nombre === DS_AREA_MATERIAL ? 'Cirugías/Dummy' : (area.formato === 'dual') ? 'Cirugías' : 'Órdenes';
     document.getElementById('dsSinEquipo').style.display = 'none';
     document.getElementById('dsVistaEquipo').style.display = '';
     dsSeleccionarEquipo(teamId);
@@ -423,7 +424,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       {k:'zHoraInicio', l:'Inicio', t:'time', g:'z'}, {k:'zSHold', l:'S.Hold', t:'time', g:'z'},
       {k:'zFHold', l:'F.Hold', t:'time', g:'z', extra: [{k:'zTHold', l:'T. Hold'}]},
       {k:'zHoraFin', l:'Fin', t:'time', g:'z'}, {k:'zQc', l:'QC', t:'checkbox', g:'z', extra: [{k:'zTotal', l:'Total'}]},
-      {k:'esferas', l:'Esferas', t:'select', opciones:['','Yes','No','N/A']},
+      // sin Esferas: en N6 ya no se usa (Rosember, 19-oct-2026)
       {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'notas', l:'Notas', t:'text'},
     ],
     n2: { principal: [
@@ -513,7 +514,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (area === 'N6 Material Changes') {
       // N6 con las columnas de N2 (pedido por Rosember el 9-oct-2026): Inicio · S.Hold · F.Hold · T. Hold · Fin.
       // Las horas se registran igual que en N3 (con el estado); solo cambian los nombres y aparece T. Hold.
-      spec = spec.map(function(c) {
+      // Sin la columna Esferas (Rosember, 19-oct-2026)
+      spec = spec.filter(function(c) { return c.k !== 'esferas'; }).map(function(c) {
         if (c.k === 'horaInicio' && c.l === 'Inicio diseño') return Object.assign({}, c, {l: 'Inicio'});
         if (c.k === 'sHold') return Object.assign({}, c, {l: 'S.Hold'});
         if (c.k === 'fHold') return Object.assign({}, c, {l: 'F.Hold', sinTHold: false});
@@ -683,7 +685,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Centro elegido: botón con la miniatura del Pre-Approved de sus doctores; clic abre una ventana flotante en vivo.
   function dsAreaNombre() { return (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre || ''; }
   function dsAccesosFila(tr, tabla, f) {
-    if (tabla !== 'principal' && tabla !== 'nightguard' && tabla !== 'material') return;
+    // 'prestadas': órdenes de otro equipo asignadas a esta persona (prestada o enviada como ayuda): también llevan sus
+    // accesos, con el área de la orden y no la del equipo que se está viendo (Rosember, 19-oct-2026: Eliana no los tenía)
+    if (tabla !== 'principal' && tabla !== 'nightguard' && tabla !== 'material' && tabla !== 'prestadas') return;
+    var areaOrden = tabla === 'prestadas' ? (f.area || '') : dsAreaNombre();
     var tdO = (tr.querySelector('[data-campo="orden"]') || {}).parentNode, tdC = (tr.querySelector('[data-campo="centro"]') || {}).parentNode;
     var perm = window.DS_INICIO && window.DS_INICIO.comments ? window.DS_INICIO.comments.n3 !== false : true;
     var poner = function(td, clase, mostrar, titulo, alClic, extra) {
@@ -696,7 +701,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     };
     var completa = dsOrdenCompleta(f) && String(f.orden || '').trim() && String(f.paciente || '').trim();
     var trabajo = window.cmtTrabajoDeOrden ? window.cmtTrabajoDeOrden(f.orden) : null, usada = !!trabajo;
-    poner(tdO, 'ds-acc-cmt', perm && dsAreaNombre() === 'N3 Prosthetic' && completa,
+    poner(tdO, 'ds-acc-cmt', perm && areaOrden === 'N3 Prosthetic' && completa,
           usada ? 'Abrir Comments N3 con lo que trabajaste en esta orden (guardado ' + dsHaceCuanto(trabajo.t) + '; se borra a los 2 días)' : 'Abrir Comments N3 con esta orden (llena Patient, Order # y Product)',
           function() { dsIrAComments(f, tr, tabla); }, function(b) { b.textContent = '💬'; b.classList.toggle('usado', usada); });
     poner(tdC, 'ds-acc-pa', !!String(f.centro || '').trim(), 'Pre-Approved de los doctores de ' + f.centro + ' (clic para abrir en ventana)',
@@ -1416,7 +1421,9 @@ window.addEventListener('unhandledrejection', function(ev) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {
             if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
-            if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_MATERIAL.indexOf(dsNorm(v)) >= 0 && !dsFilaEsMaterial(sel, tabla)) return;
+            // «Changes» también en Cirugías/Dummy de N6 (Rosember, 19-oct-2026); «Dr authorization» sigue siendo solo de Material Change
+            var changesN6 = dsNorm(v) === 'changes' && tabla === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL;
+            if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_MATERIAL.indexOf(dsNorm(v)) >= 0 && !dsFilaEsMaterial(sel, tabla) && !changesN6) return;
             if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
             }
