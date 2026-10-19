@@ -638,8 +638,8 @@
 :root[data-ds-tema="oscuro"] .dd-tip { background:#0f172a; color:#fff; box-shadow:0 6px 18px rgba(15,23,42,.25); }
 :root[data-ds-tema="oscuro"] .dd-leg { border:1px solid #394149; background:#131925; color:#ced7ee; }
 :root[data-ds-tema="oscuro"] .dd-leg:hover { border-color:#64748b; }
-:root[data-ds-tema="oscuro"] .da-barra .b { background:#1a2229; }
-:root[data-ds-tema="oscuro"] .da-barra .b i { background:#b45309; }
+:root[data-ds-tema="oscuro"] .da-barra .b { background:#0f1e32; }
+:root[data-ds-tema="oscuro"] .da-barra .b i { background:#1d4ed8; }
 :root[data-ds-tema="oscuro"] .da-barra b small { color:#aab2bf; }
 :root[data-ds-tema="oscuro"] .dc-tabla td.dc-editable:hover { background:#0f1e32; }
 :root[data-ds-tema="oscuro"] .dc-DOC { background:#101a39; color:#a9a7e0; }

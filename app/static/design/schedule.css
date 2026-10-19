@@ -1078,8 +1078,9 @@
 .dd-leg.off { opacity: .45; text-decoration: line-through; }
 .da-barra { display: grid; grid-template-columns: minmax(150px, 28%) 1fr 190px; gap: 10px; align-items: center; padding: 4px 0; font-size: 13px; }
 .da-barra .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.da-barra .b { background: #f1f5f9; border-radius: 6px; height: 14px; overflow: hidden; }
-.da-barra .b i { display: block; height: 100%; background: #b45309; border-radius: 6px; }
+/* Mismas barras que Casos por producto (.dd-bar-track / .dd-bar-fill): riel #eff6ff, relleno azul #1d4ed8 (pedido el 19-oct-2026) */
+.da-barra .b { background: #eff6ff; border-radius: 4px; height: 14px; overflow: hidden; }
+.da-barra .b i { display: block; height: 100%; background: #1d4ed8; }
 .da-barra b { text-align: right; white-space: nowrap; }
 .da-barra b small { color: #64748b; font-weight: 400; }
 
