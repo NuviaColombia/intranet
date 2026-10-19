@@ -1,6 +1,6 @@
 """Aprobaciones lentas (Dashboard › Aprobaciones lentas, solo admin, 13-oct-2026).
 
-Mide cuánto tarda el manager en aprobar una orden: desde que queda en "Approved" (el diseñador terminó) hasta que se marca
+Mide cuánto tarda el manager en aprobar una orden (el QC debe quedar en 1 h 30 min): desde que queda en "Approved" (el diseñador terminó) hasta que se marca
 el QC. El sistema no guardaba esas horas, así que desde esta fecha se anotan solas en la orden (aprobada_en y qc_en, en UTC)
 con un solo punto de control que cubre cualquier forma de editarla. Las órdenes anteriores a esta fecha no tienen el dato.
 """
@@ -12,7 +12,7 @@ from sqlalchemy.orm.attributes import get_history
 
 from .models_design import DesignOrden, DesignTeam
 
-UMBRAL_MIN = 30
+UMBRAL_MIN = 90   # 1 h 30 min (pedido por Rosember el 19-oct-2026; antes 30 min)
 RANGO_MAX_DIAS = 215   # un semestre completo: jun–dic son 214 días y ene–jun 181 (igual que Cambios digitales)
 
 

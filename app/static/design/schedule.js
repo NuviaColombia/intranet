@@ -3831,8 +3831,8 @@ function dcImportarArchivo(file) {
 })();
 
 
-// ---------- Dashboard › Aprobaciones (solo admin, 13-oct-2026): órdenes que tardaron más de 30 min en aprobarse ----------
-// Órdenes en las que el manager tardó más de 30 min entre Approved y marcar el QC (o siguen sin QC pasado ese tiempo).
+// ---------- Dashboard › Aprobaciones (solo admin, 13-oct-2026): órdenes que tardaron más de 1 h 30 min en aprobarse ----------
+// Órdenes en las que el manager tardó más de 1 h 30 min entre Approved y marcar el QC (o siguen sin QC pasado ese tiempo).
 var DL = {items: [], orden: 'minutos', dir: 'desc', tope: 50, tok: 0};
 var DL_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['equipo', 'Equipo'], ['manager', 'Manager'],
                ['disenador', 'Diseñador'], ['aprobadaEn', 'Aprobada'], ['qcEn', 'QC marcado'], ['minutos', 'Tiempo'], ['pendiente', 'Estado']];
@@ -3878,7 +3878,7 @@ function dlCargar() {
 }
 function dlKpis(k) {
   document.getElementById('dlKpis').innerHTML =
-    '<div class="dd-kpi alerta"><b>' + k.total + '</b><span>órdenes con más de 30 min</span></div>' +
+    '<div class="dd-kpi alerta"><b>' + k.total + '</b><span>órdenes con más de 1 h 30 min</span></div>' +
     '<div class="dd-kpi"><b>' + k.pendientes + '</b><span>siguen sin QC</span></div>' +
     '<div class="dd-kpi"><b>' + (k.total ? daFmt(k.promedio) : '—') + '</b><span>espera promedio</span></div>' +
     '<div class="dd-kpi"><b>' + (k.total ? daFmt(k.maxima) : '—') + '</b><span>la espera más larga</span></div>';
@@ -3903,7 +3903,7 @@ function dlPintar() {
       '</td><td>' + dcEsc(x.manager) + '</td><td>' + dcEsc(x.disenador) + '</td><td>' + dlHora(x.aprobadaEn) + '</td><td>' + dlHora(x.qcEn) + '</td><td><b>' + daFmt(x.minutos) + '</b></td>' +
       '<td>' + (x.pendiente ? '<span class="dl-pend">Sin QC aún</span>' : '<span class="dl-ok">QC marcado</span>') + '</td></tr>';
   }).join('');
-  t.innerHTML = cab + '<tbody>' + (filas || '<tr><td colspan="11" style="color:#4b5563">No hay órdenes con más de 30 minutos en este periodo.</td></tr>') + '</tbody>';
+  t.innerHTML = cab + '<tbody>' + (filas || '<tr><td colspan="11" style="color:#4b5563">No hay órdenes con más de 1 h 30 min en este periodo.</td></tr>') + '</tbody>';
   document.getElementById('dlCuenta').textContent = 'Mostrando ' + Math.min(DL.tope, l.length) + ' de ' + l.length;
   var mas = document.getElementById('dlMas');
   mas.innerHTML = l.length > DL.tope ? '<button type="button" class="btn gris mini" id="dlVerMas">Mostrar más (' + (l.length - DL.tope) + ' restantes)</button>' : '';

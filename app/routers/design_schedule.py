@@ -1785,7 +1785,7 @@ def api_cambios_csv(q: str = Query("", max_length=200), desde: str = "", hasta: 
 @router.get("/design/api/dashboard/aprobaciones-lentas")
 def api_aprobaciones_lentas(desde: str, hasta: str, area_id: int | None = None, team_id: int | None = None,
                             user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    """Solo admin: órdenes en las que el manager tardó más de 30 min entre Approved y marcar el QC (o siguen sin QC)."""
+    """Solo admin: órdenes en las que el manager tardó más de 1 h 30 min entre Approved y marcar el QC (o siguen sin QC)."""
     fd, fh = _fecha(desde), _fecha(hasta)
     if fh < fd or (fh - fd).days >= sap.RANGO_MAX_DIAS:
         raise HTTPException(400, f"El periodo debe ser de {sap.RANGO_MAX_DIAS} días o menos.")

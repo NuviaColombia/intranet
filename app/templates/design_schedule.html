@@ -440,7 +440,7 @@ window.dsPdfjs = function() {
 </div>
 {% if user.rol in ('admin', 'superadmin') %}
 <div id="ddVistaLentas" hidden>
-<p class="dd-p-nota">Órdenes en las que el manager tardó <b>más de 30 minutos en aprobar</b>: desde que la orden quedó en Approved hasta que se marcó el QC. También salen las que siguen sin QC pasados 30 minutos. Solo cuentan las órdenes desde el 13 de octubre de 2026 (antes no se guardaba la hora).</p>
+<p class="dd-p-nota">Órdenes en las que el manager tardó <b>más de 1 hora y 30 minutos en aprobar</b>: desde que la orden quedó en Approved hasta que se marcó el QC. También salen las que siguen sin QC pasada 1 hora y 30 minutos. Solo cuentan las órdenes desde el 13 de octubre de 2026 (antes no se guardaba la hora).</p>
 <div class="dd-kpis" id="dlKpis"></div>
 <div class="dd-filtros">
   <div><label for="dlArea">Área</label><select id="dlArea"><option value="">-- Todas --</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
