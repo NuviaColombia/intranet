@@ -44,7 +44,8 @@ def _acceso(email: str) -> dict | None:
     try:
         u = db.query(Empleado).filter(Empleado.email == email, Empleado.activo == 1).first()
         from ..auth import acceso_inhabilitado
-        if not (u and u.tiene_modulo("design_schedule") and not acceso_inhabilitado(db, u.id, u.rol)):
+        from .. import services_design_calendario as scal
+        if not (u and (u.tiene_modulo("design_schedule") or scal.es_people_calendario(u)) and not acceso_inhabilitado(db, u.id, u.rol)):
             return None
         try:
             return perfil_de(db, u.id)

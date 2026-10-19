@@ -169,5 +169,6 @@
     medir(); window.addEventListener('resize', medir);
   })();
 </script>
+{% if not es_design %}<script src="/static/design/vivo.js?v={{ ds_estaticos_v }}" defer></script>{% endif %}{# People: en vivo también #}
 <script type="module" src="/static/design/calendario/app.js?v={{ cal_v }}"></script>
 {% endblock %}

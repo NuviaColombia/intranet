@@ -4,7 +4,7 @@ La lógica y los permisos están en services_design_calendario. Se incluye desde
 from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, Body, Depends, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,8 @@ from .. import services_design_calendario as scal
 from ..database import get_db
 from ..main_templates import templates
 from ..models import Empleado
-from .design_schedule import _RutaDesign, require_modulo
+from ..auth import get_current_user
+from .design_schedule import _RutaDesign, _sin_acceso_simulando, _usuario_efectivo
 
 router = APIRouter(route_class=_RutaDesign)
 API = "/design/api/calendario"
@@ -29,7 +30,15 @@ def _version() -> str:
 CAL_V = _version()
 scal.arrancar_recordatorios()   # push de 1 mes antes de unas vacaciones estimadas (hilo en segundo plano)
 
-_usuario = require_modulo("design_schedule")
+def _usuario(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
+    """Quien tiene Design, o las personas de People que ven el Calendario (Pamela Manzur y Nicol Ardila)."""
+    if scal.es_people_calendario(user):
+        return user
+    u = _usuario_efectivo(request, user, db)
+    if not u.tiene_modulo("design_schedule"):
+        _sin_acceso_simulando(request, u)
+        raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
+    return u
 
 
 def _r(fn):
@@ -49,7 +58,9 @@ def _fecha(v: str) -> date:
 
 @router.get("/design/calendario")
 def pagina(request: Request, user: Empleado = Depends(_usuario), db: Session = Depends(get_db)):
-    return templates.TemplateResponse(request, "design_calendario.html", {"user": user, "es_design": True, "cal_v": CAL_V})
+    # Desde People (sin Design) se ve con la barra de People; con Design, con la de Design
+    return templates.TemplateResponse(request, "design_calendario.html", {"user": user, "es_design": user.tiene_modulo("design_schedule"),
+                                                                          "cal_v": CAL_V})
 
 
 @router.get(API + "/me")

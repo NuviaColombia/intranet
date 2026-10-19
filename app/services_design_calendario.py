@@ -75,10 +75,24 @@ def _equipos_activos(db: Session) -> list[DesignTeam]:
                                                        .filter(DesignTeam.activo == 1).order_by(DesignTeam.orden).all()))
 
 
+# People (Rosember, 19-oct-2026): Pamela Manzur (Directora de People) y Nicol Ardila ven el Calendario desde People
+# con permisos de admin del Calendario (ven y editan todo, y el motivo de las ausencias). No cambia su acceso al resto de Design.
+CORREOS_PEOPLE = {"pamela.manzurroca@nuviasmiles.com"}
+
+
+def es_people_calendario(user: Empleado | None) -> bool:
+    if not user or not getattr(user, "activo", 1):
+        return False
+    if (user.email or "").strip().lower() in CORREOS_PEOPLE:
+        return True
+    palabras = set(_norm(user.nombre_completo or "").split())
+    return {"pamela", "manzur"} <= palabras or ("ardila" in palabras and any(w.startswith("nicol") for w in palabras))
+
+
 def perfil(db: Session, user: Empleado) -> dict:
     def calcular():
         equipos = _equipos_activos(db)
-        admin = sd.es_admin(user)
+        admin = sd.es_admin(user) or es_people_calendario(user)
         gest = {t.id for t in equipos if admin or sd.gestiona_equipo(user, t)}
         como_designer = sd.equipos_como_designer(db, user)
         ver = gest | {t.id for t in equipos if t.id in como_designer}

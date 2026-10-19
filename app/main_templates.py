@@ -60,6 +60,15 @@ def _ve_mural(user) -> bool:
 templates.env.globals["ve_mural"] = _ve_mural
 
 
+def _ve_calendario_people(user) -> bool:
+    """People: Pamela Manzur y Nicol Ardila tienen el Calendario de Design en su menú (Rosember, 19-oct-2026)."""
+    from .services_design_calendario import es_people_calendario
+    return es_people_calendario(user)
+
+
+templates.env.globals["ve_calendario_people"] = _ve_calendario_people
+
+
 def _version_oscuro() -> str:
     """Versión de las hojas del modo oscuro (cambia con su contenido: el navegador no usa una copia vieja)."""
     import hashlib
