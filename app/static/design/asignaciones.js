@@ -1,4 +1,4 @@
-/* Número de casos asignados sin iniciar junto a "Design Schedule" en la barra (todas las páginas de Design).
+/* Número de casos asignados sin iniciar junto a "Schedule" en la barra (todas las páginas de Design).
    Cuenta los casos de la persona en "Ready to design" o "Hold" (ver mis_asignaciones en services_design.py).
    No se muestra mientras la persona está viendo el Schedule; si llega un caso nuevo, avisa con un mensaje. */
 (function() {
@@ -38,7 +38,7 @@
     if (datos.ready) partes.push(datos.ready + ' en Ready to design');
     if (datos.hold) partes.push(datos.hold + ' en Hold');
     enlace.title = 'Tienes ' + n + (n === 1 ? ' caso asignado' : ' casos asignados') + ' sin iniciar (' + partes.join(', ') + ')';
-    enlace.setAttribute('aria-label', 'Design Schedule. ' + enlace.title);
+    enlace.setAttribute('aria-label', 'Schedule. ' + enlace.title);
   }
 
   function vistos() { try { return JSON.parse(sessionStorage.getItem(CLAVE) || '[]'); } catch (e) { return []; } }
