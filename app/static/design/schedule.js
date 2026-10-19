@@ -1023,7 +1023,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       input.addEventListener(ev, function() {
         if (ev === 'blur' && dsSinCambio(tr, tabla, input)) return; // no cambió (p. ej. pasar con Tab)
         if (input.value === '__colores') { dsAbrirColores(tr, tabla, input); return; }
-        if (input.dataset.campo === 'designerId' || input.dataset.campo === 'centro') dsPintarCelda(input);
+        if (DS_COLOR_TIPO[input.dataset.campo]) dsPintarCelda(input);
         if (input.dataset.campo === 'designerId' && input.value === '__otro') { dsElegirPrestado(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__training') { dsMoverATraining(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__ayuda') { dsPedirAyuda(tr, input); return; }
@@ -1421,13 +1421,14 @@ window.addEventListener('unhandledrejection', function(ev) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
             }
           });
-          if (c.k === 'centro') {   // «Colores…» siempre al final de la lista
+          var conColor = c.k === 'centro' || (c.k === 'producto' && dsColoresProductos());
+          if (conColor) {   // «Colores…» siempre al final de la lista
             var oc = sel.querySelector('option[value="__colores"]');
             if (oc) oc.remove();
             sel.insertAdjacentHTML('beforeend', DS_OPCION_COLORES);
           }
           if (actual) sel.value = actual;
-          if (c.k === 'centro') dsPintarCelda(sel);
+          if (conColor) dsPintarCelda(sel);
         });
       });
     });
@@ -1435,8 +1436,16 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // ---------- Colores de diseñadores y centros (19-oct-2026) ----------
   // Cada equipo pinta las casillas de Diseñador y Centro con el color que quiera, desde la opción «🎨 Colores…» al final de
-  // esas listas. Es una preferencia de cada PC: vive en el navegador (localStorage), por equipo; no va a la base de datos.
+  // esas listas. Desde el 19-oct-2026 los colores son DEL EQUIPO (base de datos, /design/api/teams/{id}/colores): los pone
+  // el manager y los ven sus diseñadores y quien abra ese Schedule. Lo que cada manager tenía en su navegador se sube
+  // solo la primera vez (dsColoresSubirLocales); el navegador queda como respaldo si el servidor aún no tiene colores.
   var DS_OPCION_COLORES = '<option value="__colores">🎨 Colores…</option>';
+  // Qué casillas se pueden pintar: d = diseñador (por id), c = centro, p = producto (solo N2: Rosember, 19-oct-2026)
+  var DS_COLOR_TIPO = {designerId: 'd', centro: 'c', producto: 'p'};
+  var DS_COLOR_NOMBRE = {d: ['diseñadores', 'diseñador'], c: ['centros', 'centro'], p: ['productos', 'producto']};
+  function dsColoresProductos() { return dsAreaNombre() === 'N2 Demodenture'; }
+  function dsColoresVacio(x) { return !Object.keys(x.d || {}).length && !Object.keys(x.c || {}).length && !Object.keys(x.p || {}).length; }
+  function dsColoresCopia(x) { return {d: Object.assign({}, (x && x.d) || {}), c: Object.assign({}, (x && x.c) || {}), p: Object.assign({}, (x && x.p) || {})}; }
   var DS_COLORES = [
     {k: 'rojo', n: 'Rojo', c: '239,68,68'}, {k: 'naranja', n: 'Naranja', c: '249,115,22'}, {k: 'amarillo', n: 'Amarillo', c: '234,179,8'},
     {k: 'lima', n: 'Lima', c: '132,204,22'}, {k: 'verde', n: 'Verde', c: '34,197,94'}, {k: 'turquesa', n: 'Turquesa', c: '20,184,166'},
@@ -1444,25 +1453,51 @@ window.addEventListener('unhandledrejection', function(ev) {
     {k: 'rosado', n: 'Rosado', c: '236,72,153'}, {k: 'cafe', n: 'Café', c: '161,98,7'}, {k: 'gris', n: 'Gris', c: '107,114,128'}
   ];
   function dsColoresClave() { return 'dsColores:' + DS.teamId; }
-  function dsColoresLeer() {
-    try { var x = JSON.parse(localStorage.getItem(dsColoresClave()) || '{}'); return {d: x.d || {}, c: x.c || {}}; }
-    catch (e) { return {d: {}, c: {}}; }
+  function dsColoresLocales() {
+    try { return dsColoresCopia(JSON.parse(localStorage.getItem(dsColoresClave()) || '{}')); }
+    catch (e) { return dsColoresCopia(null); }
   }
-  function dsColoresGuardar(x) { try { localStorage.setItem(dsColoresClave(), JSON.stringify(x)); } catch (e) {} }
+  function dsColoresLeer() {
+    var srv = DS.diaData && DS.diaData.colores;
+    if (srv) return dsColoresCopia(srv);
+    return dsColoresLocales();
+  }
+  var dsColoresT = null;
+  function dsColoresEnviar(x) {
+    var team = DS.teamId;
+    return fetch('/design/api/teams/' + team + '/colores', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({d: x.d, c: x.c, p: x.p || {}})}).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); })
+      .catch(function() { dsToast('No se pudieron guardar los colores del equipo; se reintenta al volver a elegir.'); });
+  }
+  function dsColoresGuardar(x) {
+    try { localStorage.setItem(dsColoresClave(), JSON.stringify(x)); } catch (e) {}
+    if (!(DS.diaData && DS.diaData.puedeColores)) return;
+    DS.diaData.colores = dsColoresCopia(x);   // se ve al instante; el servidor avisa a los demás
+    clearTimeout(dsColoresT); dsColoresT = setTimeout(function() { dsColoresEnviar(x); }, 500);
+  }
+  // Una sola vez por equipo: si el manager tenía colores en este PC y el equipo aún no tiene en el servidor, se suben
+  function dsColoresSubirLocales() {
+    if (!(DS.diaData && DS.diaData.puedeColores) || DS.diaData.colores) return;
+    var x = dsColoresLocales();
+    if (dsColoresVacio(x)) return;
+    DS.diaData.colores = x;
+    dsColoresEnviar(x);
+  }
   function dsColorRgb(k) { var c = DS_COLORES.find(function(x) { return x.k === k; }); return c ? c.c : null; }
   // Pinta una casilla según su valor (diseñador por id, centro por nombre). Fondo suave + borde a la izquierda: se lee en claro y oscuro.
   function dsPintarCelda(sel, colores) {
     if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaPrincipal, #dsTablaNightguard')) return;   // las prestadas son de otro equipo
-    var x = colores || dsColoresLeer(), campo = sel.dataset.campo;
+    var x = colores || dsColoresLeer(), campo = sel.dataset.campo, tipo = DS_COLOR_TIPO[campo];
+    if (tipo === 'p' && !dsColoresProductos()) return;
     var v = campo === 'designerId' ? sel.value : (sel.value || sel.dataset.valorActual || '');
-    var rgb = dsColorRgb(campo === 'designerId' ? x.d[v] : x.c[v]);
+    var rgb = dsColorRgb((x[tipo] || {})[v]);
     // 'important': en modo oscuro las filas con color de estado vuelven transparentes sus casillas (oscuro.css)
     if (rgb) sel.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else sel.style.removeProperty('background-color');
     sel.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
   }
   function dsPintarColores(scope) {
     var x = dsColoresLeer();
-    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"]').forEach(function(s) { dsPintarCelda(s, x); });
+    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"], select[data-campo="producto"]').forEach(function(s) { dsPintarCelda(s, x); });
   }
   // La lista vuelve a lo que tenía (la opción «Colores…» nunca se guarda en la orden) y se abre la ventana de colores.
   function dsAbrirColores(tr, tabla, sel) {
@@ -1478,14 +1513,14 @@ window.addEventListener('unhandledrejection', function(ev) {
       Array.prototype.forEach.call(sel.options, function(o) { if (o.value && o.value !== '__colores') nombres.push({id: o.value, nombre: o.value}); });
       nombres.sort(function(a, b) { return a.nombre.localeCompare(b.nombre, 'es', {sensitivity: 'base'}); });
     }
-    dsModalColores(campo === 'designerId' ? 'd' : 'c', nombres, sel.value);
+    dsModalColores(DS_COLOR_TIPO[campo], nombres, sel.value);
   }
   function dsModalColores(tipo, nombres, actual) {
     var x = dsColoresLeer(), mapa = x[tipo];
     var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'dsColores';
     bg.innerHTML = '<div class="ds-qc ds-col-modal" role="dialog" aria-modal="true" aria-labelledby="dsColTit">' +
-      '<h4 id="dsColTit">Colores de ' + (tipo === 'd' ? 'diseñadores' : 'centros') + '</h4>' +
-      '<div class="ds-qc-sub">Elige un color para cada ' + (tipo === 'd' ? 'diseñador' : 'centro') + '. Solo se ve en este computador y en este equipo.</div>' +
+      '<h4 id="dsColTit">Colores de ' + DS_COLOR_NOMBRE[tipo][0] + '</h4>' +
+      '<div class="ds-qc-sub">Elige un color para cada ' + DS_COLOR_NOMBRE[tipo][1] + '. ' + (DS.diaData && DS.diaData.puedeColores ? 'Los ve todo el equipo en este Schedule, también sus diseñadores.' : 'Solo se ve en este computador.') + '</div>' +
       '<div class="ds-col-lista"></div>' +
       '<div class="ds-qc-btns"><button type="button" class="btn gris" data-col="quitar">Quitar todos</button><button type="button" class="btn" data-col="listo">Listo</button></div></div>';
     document.body.appendChild(bg);
@@ -1513,7 +1548,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
     bg.querySelector('[data-col="listo"]').onclick = cerrar;
     bg.querySelector('[data-col="quitar"]').onclick = function() {
-      if (!confirm('¿Quitar todos los colores de ' + (tipo === 'd' ? 'diseñadores' : 'centros') + ' de este equipo?')) return;
+      if (!confirm('¿Quitar todos los colores de ' + DS_COLOR_NOMBRE[tipo][0] + ' de este equipo?')) return;
       Object.keys(mapa).forEach(function(k) { delete mapa[k]; }); dsColoresGuardar(x); dsPintarColores(); cerrar();
     };
     bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
@@ -2296,6 +2331,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsAplicarCierre();
     dsRenderKpis(dia);
     if (!soloOrdenes) dsRenderBreaks(dia);
+    dsColoresSubirLocales();   // colores que el manager tenía solo en su PC: pasan a ser del equipo
   }
 
   // ---------- Schedule en vivo ----------

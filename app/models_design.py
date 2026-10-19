@@ -1252,3 +1252,15 @@ class DesignCalVacacionEstimada(Base):
     recordado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)   # cuándo se envió el push de 1 mes antes
 
     empleado = relationship("Empleado", foreign_keys=[empleado_id])
+
+
+class DesignTeamColores(Base):
+    """Colores de diseñadores y centros de un equipo (Rosember, 19-oct-2026). Antes vivían solo en el navegador del
+    manager; ahora son del equipo: los ven sus diseñadores y quien abra ese Schedule, hasta que el manager los cambie.
+    datos = {"d": {empleado_id: color}, "c": {centro: color}, "p": {producto: color}} con las claves de color de schedule.js (DS_COLORES)."""
+    __tablename__ = "design_team_colores"
+
+    team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id", ondelete="CASCADE"), primary_key=True)
+    datos: Mapped[str] = mapped_column(Text, default="{}")
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

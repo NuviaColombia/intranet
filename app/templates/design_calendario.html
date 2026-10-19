@@ -23,11 +23,47 @@
   .calapp .est-acciones { display: flex; gap: 8px; margin-top: 12px; }
   .calapp .team-chip { font-size: 11px; color: var(--text-2); }
   /* Lo que ya pasó se ve más apagado (Rosember, 19-oct-2026) */
-  .calapp .chip.past, .calapp .tevent.past, .calapp .agenda-item.past { opacity: .5; filter: saturate(.55); }
-  .calapp .chip.past:hover, .calapp .tevent.past:hover, .calapp .agenda-item.past:hover { opacity: .85; }
+  .calapp .chip.past, .calapp .tevent.past, .calapp .agenda-item.past, .calapp .tl-bar.past { opacity: .5; filter: saturate(.55); }
+  /* Vista Equipo: los días que ya pasaron (encabezado, celdas y fila «Fuera») también se ven apagados */
+  .calapp .tl-day.past, .calapp .tl-capcell.past { opacity: .45; }
+  .calapp .tl-cell.past:not(.tl-capcell) { background-color: color-mix(in srgb, var(--text-3) 10%, transparent); }
+  .calapp .chip.past:hover, .calapp .tevent.past:hover, .calapp .agenda-item.past:hover, .calapp .tl-bar.past:hover { opacity: .85; }
   /* Solo nombres, sin círculos con iniciales */
   .calapp .abs-names { font-size: 11px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
   .calapp .ai-names { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+  /* Cumpleaños (salen de People): etiqueta con brillo que se mueve, torta que se mece y confeti */
+  .calapp .chip.bday { background: linear-gradient(110deg, #fce7f3 0%, #ede9fe 30%, #fef3c7 50%, #ede9fe 70%, #fce7f3 100%); background-size: 300% 100%;
+    color: #9d174d; border-left: 3px solid #ec4899; font-weight: 600; animation: cal-bday-brillo 5s linear infinite; }
+  .calapp .chip.bday.bday-hoy { box-shadow: 0 0 0 2px #f9a8d4, 0 0 12px rgb(236 72 153 / .45); animation-duration: 2.5s; }
+  :root[data-ds-tema="oscuro"] .calapp .chip.bday { background: linear-gradient(110deg, #4a1d3a 0%, #2e2557 30%, #4a3a12 50%, #2e2557 70%, #4a1d3a 100%);
+    background-size: 300% 100%; color: #fbcfe8; }
+  .calapp .bday-cake { display: inline-block; transform-origin: 50% 90%; animation: cal-bday-mece 1.8s ease-in-out infinite; margin-right: 3px; }
+  .calapp .agenda-item.bday { border-left: 3px solid #ec4899; }
+  .calapp .agenda-item.bday .ai-title { color: #be185d; }
+  :root[data-ds-tema="oscuro"] .calapp .agenda-item.bday .ai-title { color: #f9a8d4; }
+  @keyframes cal-bday-brillo { to { background-position: -300% 0; } }
+  @keyframes cal-bday-mece { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(9deg) translateY(-1px); } }
+  .calapp .bday-card { position: relative; overflow: hidden; text-align: center; padding: 30px 24px 26px; }
+  .calapp .bday-card h2 { margin: 10px 0 6px; font-size: 22px; }
+  .calapp .bday-cerrar { position: absolute; top: 10px; right: 10px; z-index: 2; }
+  .calapp .bday-grande { font-size: 64px; line-height: 1; display: inline-block; animation: cal-bday-salta 1.4s cubic-bezier(.3, 1.6, .5, 1) infinite; }
+  @keyframes cal-bday-salta { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-12px) scale(1.06); } 60% { transform: translateY(0) scale(.97); } }
+  .calapp .bday-fecha { color: var(--text-2); margin: 0; }
+  .calapp .bday-msg { margin: 12px 0 0; }
+  .calapp .cal-confeti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+  .calapp .cal-confeti i { position: absolute; top: -14px; width: 8px; height: 12px; border-radius: 2px; opacity: .95;
+    animation: cal-confeti-cae var(--d) cubic-bezier(.25, .6, .6, 1) var(--t) forwards; }
+  @keyframes cal-confeti-cae { to { transform: translate(var(--x), var(--h)) rotate(var(--r)); opacity: .2; } }
+  .calapp .bday-banner { position: fixed; top: calc(var(--ds-nav-h, 85px) + 72px); left: 50%; transform: translateX(-50%); z-index: 80; overflow: hidden;
+    display: flex; gap: 12px; align-items: center; text-align: left; padding: 14px 22px; border-radius: 16px; border: 0; cursor: pointer;
+    color: #fff; background: linear-gradient(120deg, #db2777, #7c3aed, #f59e0b); background-size: 200% 100%; box-shadow: var(--shadow-lg);
+    animation: cal-bday-entra .5s cubic-bezier(.2, 1.4, .4, 1), cal-bday-brillo 6s linear infinite; font-size: 14px; max-width: calc(100vw - 32px); }
+  .calapp .bday-banner .bday-cake { font-size: 30px; }
+  .calapp .bday-banner.sale { transition: opacity .6s, transform .6s; opacity: 0; transform: translate(-50%, -20px); }
+  @keyframes cal-bday-entra { from { opacity: 0; transform: translate(-50%, -24px) scale(.95); } }
+  @media (prefers-reduced-motion: reduce) {
+    .calapp .chip.bday, .calapp .bday-cake, .calapp .bday-grande, .calapp .bday-banner { animation: none; }
+  }
   .calapp .cal-mas { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 </style>
 <div class="calapp" id="calapp">
@@ -68,6 +104,7 @@
         <label class="switch"><input type="checkbox" id="f-holidays" checked /><span></span>Festivos de Colombia</label>
         <label class="switch"><input type="checkbox" id="f-mine" /><span></span>Solo mis eventos y asignaciones</label>
         <label class="switch"><input type="checkbox" id="f-done" checked /><span></span>Mostrar completados</label>
+        <label class="switch"><input type="checkbox" id="f-bdays" checked /><span></span>Cumpleaños 🎂</label>
       </section>
 
       <section class="panel">

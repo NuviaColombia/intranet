@@ -1130,7 +1130,10 @@
 
 /* Columnas de hora (START, RTD, Inicio diseño, Start hold, Re-initiated, Fin...): ajustadas al ancho de la hora, sin espacio muerto */
 table.ds-tabla td:has(> input[type=time]) { width: 1%; white-space: nowrap; }
-table.ds-tabla input[type=time] { width: 8.2em; min-width: 0; padding-left: 4px; padding-right: 4px; }
+table.ds-tabla input[type=time] { width: 8.2em; min-width: 7.6em; padding-left: 4px; padding-right: 4px; }
+/* Centro y horas siempre completos (Rosember, 19-oct-2026: se cortaban «Dall…» y «--:--»). Si no caben todas las
+   columnas, la tabla se desplaza a lo ancho dentro de su panel en vez de encogerlas. */
+table.ds-tabla select[data-campo="centro"] { min-width: 9.8em; }
 
 /* Aprobaciones lentas */
 .dl-pend { display:inline-block; background:#fee2e2; color:#991b1b; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }

@@ -138,7 +138,7 @@ const absDaysLabel = (a) => {
 
 // ════════════════════════ Estado ════════════════════════
 
-const prefs = storage.get('dsCal.prefs', { showHolidays: true, onlyMine: false, showDone: true, hiddenTags: [], showAbsences: true, absenceTeam: '' });
+const prefs = storage.get('dsCal.prefs', { showHolidays: true, onlyMine: false, showDone: true, hiddenTags: [], showAbsences: true, absenceTeam: '', showBirthdays: true });
 const savePrefs = () => storage.set('dsCal.prefs', prefs);
 
 const state = {
@@ -269,6 +269,72 @@ async function deleteEstimate(id) {
   }
 }
 
+// ════════════════════════ Cumpleaños (salen de People) ════════════════════════
+
+const BDAY_COLORES = ['#ec4899', '#f59e0b', '#8b5cf6', '#10b981', '#3b82f6', '#ef4444', '#eab308', '#14b8a6'];
+const sinAnimacion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Lluvia de confeti dentro de `host` (se borra sola). */
+function confeti(host, n = 46) {
+  if (!host || sinAnimacion()) return;
+  const capa = document.createElement('div');
+  capa.className = 'cal-confeti';
+  const alto = host.getBoundingClientRect().height || 300;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('i');
+    p.style.left = Math.random() * 100 + '%';
+    p.style.background = BDAY_COLORES[i % BDAY_COLORES.length];
+    p.style.setProperty('--x', (Math.random() * 120 - 60).toFixed(0) + 'px');
+    p.style.setProperty('--h', (alto + 40).toFixed(0) + 'px');
+    p.style.setProperty('--r', (Math.random() * 720 - 360).toFixed(0) + 'deg');
+    p.style.setProperty('--d', (1.6 + Math.random() * 1.6).toFixed(2) + 's');
+    p.style.setProperty('--t', (Math.random() * 0.6).toFixed(2) + 's');
+    if (i % 3 === 0) p.style.borderRadius = '50%';
+    capa.append(p);
+  }
+  host.append(capa);
+  setTimeout(() => capa.remove(), 4200);
+}
+
+/** Tarjeta de felicitación (no es un evento editable). */
+function openBirthday(ev, occ) {
+  const b = ev.birthday;
+  const hoy = occ === state.today;
+  const dias = diffDays(state.today, occ);
+  const cuando = hoy ? '¡Es hoy!' : dias > 0 ? (dias === 1 ? 'Es mañana' : `Faltan ${dias} días`) : (dias === -1 ? 'Fue ayer' : `Fue hace ${-dias} días`);
+  const el = openModal(
+    `<div class="bday-card">
+       <button type="button" class="icon-btn bday-cerrar" data-close aria-label="Cerrar">✕</button>
+       <div class="bday-grande" aria-hidden="true">🎂</div>
+       <h2>${hoy ? `¡Feliz cumpleaños, ${esc(b.first || b.name)}!` : esc(ev.title)}</h2>
+       <p class="bday-fecha">${cap(fmt(occ, { weekday: 'long', day: 'numeric', month: 'long' }))} · ${cuando}</p>
+       ${hoy ? '<p class="bday-msg">Hoy es un buen día para dejarle un saludo 🎉</p>' : ''}
+     </div>`,
+    { size: 'sm' },
+  );
+  el.addEventListener('click', (e) => e.target.closest('[data-close]') && closeModal());
+  if (hoy) confeti(el.querySelector('.bday-card'), 60);
+}
+
+/** Al entrar el día de un cumpleaños: aviso con confeti (una vez al día en cada PC). */
+function celebrarHoy() {
+  const hoy = state.events.filter((e) => e.birthday && e.start_date === state.today);
+  if (!hoy.length || prefs.showBirthdays === false) return;
+  const clave = 'dsCal.cumple:' + state.today;
+  try { if (localStorage.getItem(clave)) return; localStorage.setItem(clave, '1'); } catch {}
+  const nombres = hoy.map((e) => e.birthday.first || e.birthday.name);
+  const lista = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
+  const ban = document.createElement('button');
+  ban.type = 'button';
+  ban.className = 'bday-banner';
+  ban.innerHTML = `<span class="bday-cake" aria-hidden="true">🎂</span><span><b>¡Hoy cumple${nombres.length > 1 ? 'n' : ''} años ${esc(lista)}!</b><br><span class="tiny">Toca para felicitar 🎉</span></span>`;
+  ban.onclick = () => { ban.remove(); openBirthday(hoy[0], state.today); };
+  $('#calapp').append(ban);
+  confeti(ban, 34);
+  setTimeout(() => ban.classList.add('sale'), 7500);
+  setTimeout(() => ban.remove(), 8200);
+}
+
 // ════════════════════════ Recurrencia ════════════════════════
 
 function nthOccurrence(start, n, rule) {
@@ -318,6 +384,10 @@ function expand(ev, from, to) {
 
 function passesFilters(ev) {
   const me = state.me.id;
+  if (ev.birthday) {   // cumpleaños: solo los oculta su interruptor, «solo mis eventos» y el filtro de persona
+    const uid = ev.birthday.user_id;
+    return prefs.showBirthdays !== false && (!prefs.onlyMine || uid === me) && (!state.personFocus || uid === state.personFocus);
+  }
   if (!prefs.showDone && ev.status === 'done') return false;
   if (prefs.onlyMine && ev.created_by !== me && !ev.assignee_ids.includes(me)) return false;
   if (state.personFocus && ev.created_by !== state.personFocus && !ev.assignee_ids.includes(state.personFocus)) return false;
@@ -592,6 +662,7 @@ function renderSidebar() {
   $('#f-holidays').checked = prefs.showHolidays;
   $('#f-mine').checked = prefs.onlyMine;
   $('#f-done').checked = prefs.showDone;
+  $('#f-bdays').checked = prefs.showBirthdays !== false;
 
   // Tareas asignadas
   const tasks = state.tasks;
@@ -671,6 +742,11 @@ function isPast(ev, end) {
 
 function chipHtml(occ, day) {
   const ev = occ.ev;
+  if (ev.birthday) {
+    const hoy = occ.start === state.today;
+    return `<button class="chip bday ${hoy ? 'bday-hoy' : ''} ${isPast(ev, occ.end) ? 'past' : ''}" data-ev="${ev.id}" data-occ="${occ.start}" title="${esc(ev.title)}">
+      <span class="bday-cake" aria-hidden="true">🎂</span><span class="c-title">${esc(ev.birthday.name)}</span></button>`;
+  }
   const cls = ['chip'];
   if (isPast(ev, occ.end)) cls.push('past');
   if (ev.status === 'done') cls.push('done');
@@ -851,6 +927,11 @@ function renderAgenda() {
           .map((o) => {
             const ev = o.ev;
             const time = ev.all_day ? (o.start !== o.end ? `Día ${diffDays(o.start, d) + 1}/${diffDays(o.start, o.end) + 1}` : 'Todo el día') : `${timeLong(ev.start_time)}`;
+            if (ev.birthday) {
+              return `<button class="agenda-item bday ${isPast(ev, o.end) ? 'past' : ''}" data-ev="${ev.id}" data-occ="${o.start}">
+                <span class="ai-time"><span class="bday-cake" aria-hidden="true">🎂</span></span>
+                <span><div class="ai-title">${esc(ev.title)}</div><div class="ai-sub">${o.start === state.today ? '¡Es hoy! Felicítalo 🎉' : 'Cumpleaños'}</div></span><span></span></button>`;
+            }
             return `<button class="agenda-item ${ev.status === 'done' ? 'done' : ''} ${isPast(ev, o.end) ? 'past' : ''}" style="--c:${esc(eventColor(ev))}" data-ev="${ev.id}" data-occ="${o.start}">
               <span class="ai-time">${time}</span>
               <span><div class="ai-title">${ev.priority === 'high' ? '❗ ' : ''}${ev.visibility === 'private' ? '🔒 ' : ''}${esc(ev.title)}</div>
@@ -902,7 +983,7 @@ function renderTeam() {
   }
 
   const cols = `grid-template-columns: var(--tl-name) repeat(${days.length}, minmax(28px, 1fr)) 64px`;
-  const dayCls = (d) => [isWeekend(d) && 'weekend', hol.has(d) && 'holiday', d === state.today && 'today'].filter(Boolean).join(' ');
+  const dayCls = (d) => [isWeekend(d) && 'weekend', hol.has(d) && 'holiday', d === state.today && 'today', d < state.today && 'past'].filter(Boolean).join(' ');
   const bg = (p) => days.map((d, i) => `<div class="tl-cell ${dayCls(d)}${p && canEstimate(p.user_id) ? ' puede-estimar' : ''}" style="grid-column:${i + 2}"${p && canEstimate(p.user_id) ? ` data-est-person="${p.user_id}" data-est-date="${d}" title="Doble clic para poner vacaciones estimadas"` : ''}></div>`).join('');
 
   const head = `<div class="tl-row tl-head" style="${cols}"><div class="tl-name">Persona</div>
@@ -949,7 +1030,7 @@ function renderTeam() {
         if (!a.start_time && a.status === 'approved') total += businessDays(s, e);
         const m = absMeta(a);
         const span = diffDays(s, e) + 1;
-        return `<button class="tl-bar ${a.status !== 'approved' ? 'pending' : ''} ${a.status === 'estimated' ? 'estimated' : ''} ${a.start_date < from ? 'cut-l' : ''} ${a.end_date > to ? 'cut-r' : ''}"
+        return `<button class="tl-bar ${a.end_date < state.today ? 'past' : ''} ${a.status !== 'approved' ? 'pending' : ''} ${a.status === 'estimated' ? 'estimated' : ''} ${a.start_date < from ? 'cut-l' : ''} ${a.end_date > to ? 'cut-r' : ''}"
           style="grid-column:${diffDays(from, s) + 2} / span ${span};--c:${m.color}" data-abs-id="${a.id}"
           title="${esc(`${m.label}${absStatusLabel(a)} · ${absRangeLabel(a)} · ${absDaysLabel(a)}`)}">
           <span>${m.icon}</span>${span >= 3 ? `<span class="c-title">${m.label}${a.status === 'estimated' ? ' · estimada' : a.status === 'pending' ? ' · pendiente' : ''}</span>` : ''}</button>`;
@@ -1126,6 +1207,7 @@ function toast(message, type = '', action) {
 
 async function openEventById(id, occ) {
   let ev = state.events.find((e) => e.id === Number(id)) || state.tasks.find((e) => e.id === Number(id));
+  if (ev && ev.birthday) return openBirthday(ev, occ || ev.start_date);
   try {
     if (!ev) ev = await api.get(`/design/api/calendario/events/${id}`);
     openEventModal(ev, { occurrence: occ || ev.start_date });
@@ -1919,6 +2001,12 @@ function setupEvents() {
     renderAbsencePanel();
     renderMain();
   };
+  $('#f-bdays').onchange = (e) => {
+    prefs.showBirthdays = e.target.checked;
+    savePrefs();
+    renderMain();
+    renderMini();
+  };
   $('#f-done').onchange = (e) => {
     prefs.showDone = e.target.checked;
     savePrefs();
@@ -2166,6 +2254,7 @@ async function boot(me) {
   try {
     await Promise.all([loadUsers(), loadTags(), loadTasks(), loadAbsenceMeta()]);
     await refresh();
+    celebrarHoy();
     connectStream();
   } catch (e) {
     handleError(e);

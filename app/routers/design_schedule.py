@@ -1104,6 +1104,9 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     dia["creaProducto"] = None if sd.gestiona_equipo(user, team) else sd.producto_que_crea(user, team)  # p. ej. Maxilar Print
     dia["copiasPendientes"] = sd.copias_pendientes_dia(db, team, _fecha(fecha))  # N2: QC desmarcado en Face, esperando decisión
     import time as _t
+    col = _colores_equipo(db, team.id)
+    dia["colores"] = col[0] if col else None             # colores de diseñadores y centros del equipo (del manager)
+    dia["puedeColores"] = bool(gest)
     dia["ahoraMs"] = int(_t.time() * 1000)  # hora del servidor: el descanso se marca con la hora de Colombia, no la del computador
     return dia
 
@@ -1112,7 +1115,50 @@ def _huella_extra(db: Session, user: Empleado, team: DesignTeam, fecha: date):
     """Lo del día que depende de la persona y no son órdenes: el permiso para editar un día cerrado y las ayudas recibidas."""
     permiso = sperm.permiso_para(db, user, fecha) if sd.dia_cerrado(fecha) else None
     ayudas = tuple(a["id"] for a in say.ayudas_del_equipo(db, team.id, fecha))
-    return (permiso.isoformat() if permiso else "", ayudas) if (permiso or ayudas) else None
+    col = _colores_equipo(db, team.id)
+    colores = col[1] if col else ""   # cambian los colores del equipo: las pantallas abiertas se repintan solas
+    return (permiso.isoformat() if permiso else "", ayudas, colores) if (permiso or ayudas or colores) else None
+
+
+def _colores_equipo(db: Session, team_id: int):
+    """(datos, huella) de los colores de diseñadores y centros del equipo, o None si el manager no ha puesto."""
+    from ..models_design import DesignTeamColores
+    def leer():
+        c = db.get(DesignTeamColores, team_id)
+        if not c:
+            return None
+        try:
+            datos = json.loads(c.datos or "{}")
+        except ValueError:
+            datos = {}
+        return ({"d": datos.get("d") or {}, "c": datos.get("c") or {}, "p": datos.get("p") or {}}, c.actualizado_en.isoformat() if c.actualizado_en else "1")
+    return sd.memo_sesion(db, ("colores", team_id), leer)
+
+
+class ColoresIn(BaseModel):
+    d: dict[str, str] = {}   # diseñadores (por id)
+    c: dict[str, str] = {}   # centros
+    p: dict[str, str] = {}   # productos (N2)
+
+
+@router.post("/design/api/teams/{team_id}/colores")
+def api_colores_equipo(team_id: int, payload: ColoresIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                       db: Session = Depends(get_db)):
+    """Guarda los colores del equipo (manager, admin o quien está a cargo). Los ven todos los que abren ese Schedule."""
+    from ..models_design import DesignTeamColores
+    team = db.get(DesignTeam, team_id)
+    if not team or not sd.gestiona_equipo(user, team):
+        raise HTTPException(403, "Solo el manager del equipo puede cambiar sus colores.")
+    validos = {"rojo", "naranja", "amarillo", "lima", "verde", "turquesa", "celeste", "azul", "morado", "rosado", "cafe", "gris"}
+    limpio = lambda m: {str(k)[:150]: v for k, v in list(m.items())[:400] if v in validos}   # noqa: E731
+    datos = {"d": limpio(payload.d), "c": limpio(payload.c), "p": limpio(payload.p)}
+    c = db.get(DesignTeamColores, team_id) or DesignTeamColores(team_id=team_id)
+    c.datos, c.actualizado_por, c.actualizado_en = json.dumps(datos, ensure_ascii=False), user.nombre_completo, datetime.utcnow()
+    db.add(c)
+    db.commit()
+    from .. import services_design_vivo as sv
+    sv.publicar_dia(team.id, "*", {d.empleado_id for d in team.designers})   # sus diseñadores también se repintan
+    return {"ok": True}
 
 
 @router.get("/design/api/dia/version")

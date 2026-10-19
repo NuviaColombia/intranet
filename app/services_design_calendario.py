@@ -185,6 +185,38 @@ def _consulta(db: Session, p: dict):
     return q.filter(f) if f is not None else q
 
 
+# ---------- Cumpleaños (Rosember, 19-oct-2026): salen solos de People (fecha de nacimiento), sin la edad ----------
+
+def _fecha_en(anio: int, nac: date) -> date:
+    try:
+        return date(anio, nac.month, nac.day)
+    except ValueError:   # 29 de febrero en un año que no es bisiesto
+        return date(anio, 2, 28)
+
+
+def cumpleanos(db: Session, desde: date, hasta: date) -> list[dict]:
+    """Cumpleaños de las personas activas de Nuvia Design entre `desde` y `hasta`, como eventos de solo lectura
+    (id negativo: no se abren como evento normal; la pantalla muestra una tarjeta de felicitación)."""
+    from .models import EMPRESA_DESIGN
+    gente = sd.memo_sesion(db, "cal_cumples", lambda: db.query(Empleado.id, Empleado.nombres, Empleado.apellidos, Empleado.fecha_nacimiento)
+                           .filter(Empleado.activo == 1, Empleado.fecha_nacimiento.isnot(None), Empleado.empresa == EMPRESA_DESIGN).all())
+    out = []
+    for eid, nombres, apellidos, nac in gente:
+        nombre = f"{nombres or ''} {apellidos or ''}".strip()
+        for anio in range(desde.year, hasta.year + 1):
+            dia = _fecha_en(anio, nac)
+            if not (desde <= dia <= hasta):
+                continue
+            iso = dia.isoformat()
+            out.append({"id": -(eid * 10000 + anio), "title": f"Cumpleaños de {nombre}", "description": "", "location": "",
+                        "start_date": iso, "end_date": iso, "start_time": None, "end_time": None, "all_day": True,
+                        "recurrence": "none", "recurrence_until": None, "exdates": [], "status": "pending", "priority": "normal",
+                        "visibility": "public", "color": "#ec4899", "created_by": 0, "created_at": _sql_dt(None), "updated_at": _sql_dt(None),
+                        "tag_ids": [], "assignee_ids": [], "comment_count": 0, "team_id": None, "team_name": "", "can_edit": False,
+                        "birthday": {"user_id": eid, "name": nombre, "first": (nombres or nombre).split()[0] if (nombres or nombre) else ""}})
+    return out
+
+
 def eventos(db: Session, user: Empleado, desde: date, hasta: date) -> list[dict]:
     p = perfil(db, user)
     q = _consulta(db, p).filter(DesignCalEvento.fecha_inicio <= hasta).filter(or_(
@@ -192,7 +224,7 @@ def eventos(db: Session, user: Empleado, desde: date, hasta: date) -> list[dict]
         and_(DesignCalEvento.repeticion != "none",
              or_(DesignCalEvento.repetir_hasta.is_(None), DesignCalEvento.repetir_hasta >= desde - timedelta(days=400)))))
     filas = q.order_by(DesignCalEvento.fecha_inicio, DesignCalEvento.todo_el_dia.desc(), DesignCalEvento.hora_inicio).all()
-    return serializar(db, p, filas)
+    return serializar(db, p, filas) + cumpleanos(db, desde, hasta)
 
 
 def buscar(db: Session, user: Empleado, texto: str) -> list[dict]:
