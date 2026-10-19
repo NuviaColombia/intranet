@@ -785,6 +785,12 @@
       </select>
       <label style="font-size:12.5px;display:flex;gap:5px;align-items:center;margin:0"><input type="checkbox" id="simSoloDesign" checked style="width:auto;margin:0"> Solo con acceso a Design</label>
       <span id="simCuenta" class="sim-sub"></span>
+      {% if user.rol in ('admin', 'superadmin') %}
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <a class="btn mini" href="/design/diagnostico/acceso" title="Revisa por qué alguien no entra a Design o no ve un Schedule (empresa, módulo, rol de People y rol de Design)">🔍 Diagnóstico de acceso</a>
+        <a class="btn mini gris" href="/design/diagnostico/rendimiento" title="Demora de la base de datos, pantallas conectadas en vivo, memoria y CPU del servidor">Rendimiento</a>
+      </span>
+      {% endif %}
     </div>
     <div class="aud-scroll" style="max-height:520px;overflow:auto;padding:0">
     <table class="sim-tabla">
@@ -809,7 +815,7 @@
         </td>
         <td class="sim-sub">{% if not p.design %}<span class="sim-no">Sin acceso a Design</span>{% elif p.lugar %}{% for l in p.lugar %}{{ l }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}Sin equipo{% endif %}</td>
         <td>{% if p.id != user.id %}<form method="post" action="/design/simulacion/iniciar"><input type="hidden" name="empleado_id" value="{{ p.id }}">
-          <button class="btn mini"{% if p.rol == 'superadmin' and not p.puedeAdmin %} disabled title="Un admin no puede simular a un superadmin"{% elif not p.design %} title="No tiene Design: verás la intranet como esta persona (solo lectura)"{% endif %}>Simular</button></form>{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
+          <button class="btn mini"{% if p.rol == 'superadmin' and not p.puedeAdmin %} disabled title="Un admin no puede simular a un superadmin"{% elif not p.design %} title="No tiene Design: verás la intranet como esta persona (solo lectura)"{% endif %}>Simular</button></form>{% if user.rol in ('admin', 'superadmin') %} <a class="btn mini gris" href="/design/diagnostico/acceso?id={{ p.id }}" title="Por qué entra o no a Design y qué Schedules ve" aria-label="Diagnóstico de acceso de {{ p.nombre }}">Diagnóstico</a>{% endif %}{% else %}<span class="sim-sub">Eres tú</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </table>
