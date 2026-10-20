@@ -37,8 +37,11 @@
   .cp-estado.si { background:#dcfce7; color:var(--verde); }
   .cp-estado.no { background:#e5e7eb; color:var(--gris); }
   .cp-guardado { font-size:11px; color:var(--verde); margin-left:6px; }
-  .cp-areas-multi { min-width:160px; }
-  .cp-areas-ayuda { font-size:10px; color:var(--gris); margin-top:2px; }
+  .cp-area-opciones { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; margin-top:8px; padding:10px;
+                      border:1px solid #E2E8F0; border-radius:8px; background:#F8FAFC; min-width:220px; font-size:12px; }
+  .cp-area-opciones label { display:flex; gap:6px; align-items:center; white-space:nowrap; font-weight:500; }
+  .cp-area-opciones input { width:auto; min-height:0; margin:0; }
+  .cp-area-opciones-nueva { margin-top:4px; }
   .cp-vacio { text-align:center; color:var(--gris); padding:18px !important; }
   .cp-panel .btn:disabled { opacity:.45; cursor:not-allowed; }
 </style>
@@ -157,14 +160,13 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
           {% endfor %}
         </select>
       </div>
-      <div style="min-width:180px">
-        <label>Área(s) asignada(s)</label>
-        <select name="area_custodia" multiple size="4" class="cp-areas-multi">
+      <div style="min-width:220px">
+        <label>Área(s) asignada(s) (máx. 2)</label>
+        <div class="cp-area-opciones cp-area-opciones-nueva">
           {% for a in areas_activas %}
-          <option value="{{ a }}">{{ a|nombre_propio }}</option>
+          <label><input type="checkbox" name="area_custodia" value="{{ a }}" class="cp-area-check"> {{ a|nombre_propio }}</label>
           {% endfor %}
-        </select>
-        <div class="cp-areas-ayuda">Ctrl/Cmd + clic para elegir hasta 2</div>
+        </div>
       </div>
       <div><button class="btn mini">Dar acceso</button></div>
     </form>
@@ -181,13 +183,19 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
       <td>
         <form id="f-man-{{ m.id }}" method="post" action="/inventario/parametros/managers/{{ m.id }}"></form>
         {% set mis_areas = m.areas_custodia %}
-        <select name="area_custodia" form="f-man-{{ m.id }}" multiple size="3" class="cp-areas-multi"
-                title="Hasta 2 áreas; la primera (según el orden de la pestaña Áreas) es la de salida por defecto">
-          {% for a in areas_activas %}
-          <option value="{{ a }}" {{ 'selected' if a in mis_areas }}>{{ a|nombre_propio }}</option>
-          {% endfor %}
-        </select>
-        <div class="cp-areas-ayuda">Ctrl/Cmd + clic para elegir hasta 2</div>
+        <details class="sc-editor cp-area-editor">
+          <summary title="Cambiar área(s) asignada(s); la primera (según el orden de la pestaña Áreas) es la de salida por defecto">
+            {% if mis_areas %}{% for a in mis_areas %}<span class="sc-chip">{{ a|nombre_propio }}</span>{% endfor %}
+            {% else %}<span class="sc-chip" style="background:#F3F4F6;color:#6B7280">Sin asignar</span>{% endif %}
+            <span class="sc-lapiz">✏️</span>
+          </summary>
+          <div class="cp-area-opciones">
+            {% for a in areas_activas %}
+            <label><input type="checkbox" name="area_custodia" value="{{ a }}" form="f-man-{{ m.id }}"
+                          class="cp-area-check" {{ 'checked' if a in mis_areas }}> {{ a|nombre_propio }}</label>
+            {% endfor %}
+          </div>
+        </details>
       </td>
       <td>{{ celda_secciones(m, "custodia", secciones_cfg.custodia, "/inventario/parametros?tab=managers") }}</td>
       <td class="cp-acciones">
@@ -216,25 +224,34 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
       });
     });
   }
-  // Máximo 2 áreas elegidas (el resto no se desmarca solo, se avisa con el límite nativo del navegador no basta).
-  document.querySelectorAll('select.cp-areas-multi').forEach(function(sel) {
-    sel.addEventListener('change', function() {
-      var elegidas = Array.prototype.filter.call(sel.options, function(o) { return o.selected; });
-      elegidas.slice(2).forEach(function(o) { o.selected = false; });
+  // Máximo 2 áreas elegidas: al marcar una tercera, se desmarca la última de la lista.
+  document.querySelectorAll('.cp-area-opciones').forEach(function(grupo) {
+    grupo.addEventListener('change', function() {
+      var marcadas = grupo.querySelectorAll('.cp-area-check:checked');
+      if (marcadas.length > 2) marcadas[marcadas.length - 1].checked = false;
     });
   });
-  // Guardar sin recargar la página.
+  // Guardar sin recargar la página: actualiza los chips del resumen y cierra el editor.
   tabla.querySelectorAll('form[id^="f-man-"]').forEach(function(form) {
     form.addEventListener('submit', function(ev) {
       ev.preventDefault();
-      var estado = form.closest('tr').querySelector('.cp-guardado');
+      var fila = form.closest('tr'), estado = fila.querySelector('.cp-guardado'), det = fila.querySelector('details.cp-area-editor');
       fetch(form.action, {method: 'POST', body: new FormData(form), credentials: 'same-origin',
                            headers: {'X-Requested-With': 'fetch'}})
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(d) {
-          if (!estado) return;
-          estado.textContent = d.ok ? '✓ Guardado' : 'No se pudo guardar';
-          setTimeout(function() { estado.textContent = ''; }, 2500);
+          if (estado) {
+            estado.textContent = d.ok ? '✓ Guardado' : 'No se pudo guardar';
+            setTimeout(function() { estado.textContent = ''; }, 2500);
+          }
+          if (d.ok && det) {
+            var resumen = det.querySelector('summary'), lapiz = '<span class="sc-lapiz">✏️</span>';
+            var capitalizar = function(s) { return s.toLowerCase().replace(/(^|\s)\S/g, function(c) { return c.toUpperCase(); }); };
+            resumen.innerHTML = (d.areas && d.areas.length
+              ? d.areas.map(function(a) { return '<span class="sc-chip">' + capitalizar(a) + '</span>'; }).join('')
+              : '<span class="sc-chip" style="background:#F3F4F6;color:#6B7280">Sin asignar</span>') + lapiz;
+            det.open = false;
+          }
         })
         .catch(function() { form.submit(); });  // si falla el fetch, el envío normal (con recarga) sigue funcionando
     });
@@ -354,57 +371,6 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
 {% include "consumo_parametros.html" %}
 {% include "conteo_parametros.html" %}
 
-{# ---------- Cambio de custodia: Stock por descripción ---------- #}
-<div class="cp-panel" id="panel-saldos">
-  <h3 style="margin:0 0 6px; font-size:15px; color:#1A365D;">📦 Stock por descripción</h3>
-  <div class="cp-ayuda" style="max-width:900px">
-    A los discos de <b>Stock</b> de cada área asígnales su <b>descripción</b> (la misma del Resumen general, ej. NDZ-B1-A10-N).
-    Desde ahí el sistema lleva el inventario por descripción: lo que llega al Stock toma las descripciones del Resumen general del traslado,
-    y al sacar discos del Stock se elige de qué descripción salen. Se ve en Cambio de custodia › Dashboard.
-  </div>
-  {% if stock_inventario %}
-  <table class="cp-tabla" style="max-width:900px; margin:10px 0;">
-    <tr><th>Área</th><th style="text-align:right">Stock total</th><th>Con descripción</th><th style="text-align:right">Sin descripción</th></tr>
-    {% for a in stock_inventario %}
-    <tr><td>{{ a.area|nombre_propio }}</td><td style="text-align:right"><b>{{ '%g'|format(a.total) }}</b></td>
-      <td style="font-size:12px">{% for d in a.descripciones %}<span class="sc-chip" style="background:#E0E7FF;color:#3730A3;border-radius:10px;padding:1px 8px;margin:1px;display:inline-block">{{ d.descripcion }} · {{ '%g'|format(d.cantidad) }}</span>{% else %}<span style="color:#9ca3af">—</span>{% endfor %}</td>
-      <td style="text-align:right; {{ 'color:#92400e; font-weight:700' if a.sinDescripcion > 0 }}">{{ '%g'|format(a.sinDescripcion) }}</td></tr>
-    {% endfor %}
-  </table>
-  <form method="post" action="/inventario/parametros/custodia/stock-descripciones" style="max-width:900px"
-        onsubmit="return confirm('¿Asignar estas descripciones al Stock de ' + document.getElementById('stock-area').value + '?');">
-    <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:6px;">
-      <div><label style="display:block; font-size:12px; font-weight:700;">Área</label>
-        <select name="area" id="stock-area" required style="width:auto">
-          <option value="">Seleccionar...</option>
-          {% for a in stock_inventario if a.sinDescripcion > 0 %}
-          <option value="{{ a.area }}" {{ 'selected' if stock_area == a.area }}>{{ a.area|nombre_propio }} — {{ '%g'|format(a.sinDescripcion) }} sin descripción</option>
-          {% endfor %}
-        </select></div>
-      <div id="stock-libre" style="font-size:12px; color:#475569;"></div>
-    </div>
-    <textarea name="texto" id="stock-texto" rows="6" style="width:100%; font-family:Consolas,monospace; font-size:13px;"
-              placeholder="DESCRIPCIÓN&#9;CANTIDAD&#10;NDZ-B1-A10-N&#9;3&#10;NDZ-B1-C5-N&#9;2,5">{{ stock_texto }}</textarea>
-    <div style="margin-top:8px;"><button class="btn mini">📦 Asignar descripciones</button></div>
-  </form>
-  {% if stock_iniciales %}
-  <details style="margin-top:10px; max-width:900px;"><summary style="cursor:pointer; font-size:13px;">Ver asignaciones iniciales ({{ stock_iniciales|length }})</summary>
-    <table class="cp-tabla" style="margin-top:6px;">
-      <tr><th>Área</th><th>Descripción</th><th style="text-align:right">Cantidad</th><th>Asignado por</th><th></th></tr>
-      {% for m in stock_iniciales %}
-      <tr><td>{{ m.area|nombre_propio }}</td><td>{{ m.descripcion }}</td><td style="text-align:right">{{ '%g'|format(m.cantidad) }}</td>
-        <td style="font-size:12px">{{ (m.creado_por.nombre_completo if m.creado_por else '')|nombre_propio }}</td>
-        <td><form class="inline" method="post" action="/inventario/parametros/custodia/stock-descripciones/{{ m.id }}/quitar"
-                  onsubmit="return confirm('¿Quitar esta asignación? Esos discos vuelven a quedar sin descripción.')">
-          <button class="btn gris mini">Quitar</button></form></td></tr>
-      {% endfor %}
-    </table>
-  </details>
-  {% endif %}
-  {% else %}
-  <div class="cp-vacio" style="max-width:900px">Ninguna área tiene discos de Stock en este momento.</div>
-  {% endif %}
-</div>
 <script>
 (function() {
   // Recuerda la pestaña abierta: después de guardar, la página se recarga y vuelve a la misma.

@@ -118,12 +118,6 @@ def parametros_antes(request: Request, user: Empleado = Depends(require_admin_pr
     return RedirectResponse("/inventario/parametros", status_code=303)
 
 
-def _stock_iniciales(db: Session) -> list:
-    from ..models_custodia import CustodiaStockDescripcion
-    return (db.query(CustodiaStockDescripcion).filter(CustodiaStockDescripcion.tipo == "INICIAL")
-            .order_by(CustodiaStockDescripcion.area, CustodiaStockDescripcion.descripcion).all())
-
-
 @router.get("/inventario/parametros")
 def parametros(request: Request, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     # Accesos por submódulo: {empleado_id: {slugs}}
@@ -173,7 +167,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
         "materiales": db.query(ConteoMaterial).order_by(ConteoMaterial.activo.desc(), ConteoMaterial.orden).all(),
         "bodegas": db.query(ConteoBodega).order_by(ConteoBodega.activo.desc(), ConteoBodega.orden).all(),
         "director": sct.director_produccion(db), "testigos": sct.testigos(db),
-        "areas_material": sct.areas_de_material(db), "workdrive": sct.estado_workdrive(db),
+        "areas_material": sct.areas_de_material(db),
     }
     administradores = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.rol.in_(["admin", "superadmin"]))
                        .order_by(Empleado.nombres, Empleado.apellidos).all())
@@ -189,12 +183,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
                                        "secciones_cfg": secciones_cfg, "administradores": administradores,
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
-                                       "stock_inventario": sc.inventario_stock(db),
-                                       "stock_iniciales": _stock_iniciales(db),
-                                       "stock_area": request.query_params.get("stock_area", ""),
-                                       "stock_texto": request.query_params.get("stock_texto", ""),
-                                       "conteo_panel": {"saldos": len(_stock_iniciales(db)),
-                                                        "managers": len(managers), "areas": len(areas), "discos": len(discos),
+                                       "conteo_panel": {"managers": len(managers), "areas": len(areas), "discos": len(discos),
                                                         "motivos": len(motivos),
                                                         "c_accesos": len(consumo["accesos"]),
                                                         "c_tecnicos": len([t for t in consumo["tecnicos"] if t.activo]),
