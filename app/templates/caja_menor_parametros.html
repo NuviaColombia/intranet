@@ -68,6 +68,14 @@
       <div style="width:70px"><label>Ícono</label><input name="icono" value="💵"></div>
       <div style="flex:2;min-width:180px"><label>Nombre</label><input name="nombre" required placeholder="Ej: Compras"></div>
       <div style="width:90px"><label>Prefijo</label><input name="prefijo" required placeholder="COMP" style="text-transform:uppercase"></div>
+      {% if user.rol == 'superadmin' %}
+      <div style="width:180px"><label>Empresa</label>
+        <select name="empresa">
+          <option value="Nuvia Smiles Colombia SAS">Nuvia Smiles</option>
+          <option value="Nuvia Design Colombia SAS">Nuvia Design</option>
+        </select>
+      </div>
+      {% endif %}
       <div style="width:130px"><label>Ciudad</label><input name="ciudad" value="Galapa"></div>
       <div style="width:130px"><label>Fondo ($)</label><input name="fondo" type="number" min="0" value="1000000"></div>
       <div style="width:110px"><label>Consec. inicial</label><input name="consecutivo_inicial" type="number" min="1" value="1"></div>
@@ -76,11 +84,12 @@
     </form>
   </details>
   <table class="cmp-tabla">
-    <tr><th>Caja</th><th>Prefijo</th><th>Fondo</th><th>Responsable</th><th>Acceso</th><th>Autorizan</th><th>Supervisan</th><th>Estado</th><th></th></tr>
+    <tr><th>Caja</th><th>Prefijo</th>{% if user.rol == 'superadmin' %}<th>Empresa</th>{% endif %}<th>Fondo</th><th>Responsable</th><th>Acceso</th><th>Autorizan</th><th>Supervisan</th><th>Estado</th><th></th></tr>
     {% for c in cajas %}
     <tr class="{{ '' if c.activo else 'inactivo' }}">
       <td>{{ c.icono }} <b>{{ c.nombre|nombre_propio }}</b></td>
       <td>{{ c.prefijo }}</td>
+      {% if user.rol == 'superadmin' %}<td><small>{{ 'Smiles' if 'Smiles' in c.empresa else 'Design' if 'Design' in c.empresa else c.empresa }}</small></td>{% endif %}
       <td>$ {{ '{:,.0f}'.format(c.fondo).replace(',', '.') }}</td>
       <td>{{ (c.responsable|nombre_propio) if c.responsable else '—' }}</td>
       <td>{{ miembros.accesos[c.id]|length }}</td><td>{{ miembros.autorizan[c.id]|length }}</td><td>{{ miembros.supervisan[c.id]|length }}</td>

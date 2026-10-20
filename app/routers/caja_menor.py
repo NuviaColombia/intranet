@@ -25,7 +25,7 @@ MODULO = "caja_menor"
 
 def _caja(db: Session, user: Empleado, caja_id: int) -> CajaMenor:
     caja = db.get(CajaMenor, caja_id)
-    if not caja or (not caja.activo and not sc.es_admin(user)):
+    if not caja or (not caja.activo and not sc.es_admin(user, caja)):
         raise HTTPException(404, "Caja no encontrada.")
     if not sc.puede_usar_caja(db, user, caja):
         raise HTTPException(403, "No tienes acceso a esta caja.")
@@ -37,7 +37,7 @@ def _caja(db: Session, user: Empleado, caja_id: int) -> CajaMenor:
 def _caja_o_firmas(db: Session, user: Empleado, caja_id: int) -> tuple[CajaMenor, bool]:
     """(caja, solo_firmas): quien no tiene acceso pero autoriza en la caja entra solo a ver y firmar."""
     caja = db.get(CajaMenor, caja_id)
-    if not caja or (not caja.activo and not sc.es_admin(user)):
+    if not caja or (not caja.activo and not sc.es_admin(user, caja)):
         raise HTTPException(404, "Caja no encontrada.")
     if sc.es_firmante_de_caja(db, user, caja):
         return caja, True  # firmante: consulta y firma
@@ -56,6 +56,13 @@ def _solo_lo_suyo(db: Session, user: Empleado, caja: CajaMenor, solo_firmas: boo
 def _solo_admin(user: Empleado):
     if not sc.es_admin(user):
         raise HTTPException(403, "Requiere rol de administrador.")
+
+
+def _solo_admin_de(user: Empleado, caja: CajaMenor):
+    """Para acciones sobre UNA caja en Parámetros: superadmin, o admin de la misma empresa de la caja --
+    antes cualquier admin administraba cualquier caja de cualquier empresa."""
+    if not sc.es_admin(user, caja):
+        raise HTTPException(403, "Requiere ser administrador de la empresa de esta caja (o superadmin).")
 
 
 # ---------------- Páginas ----------------
@@ -86,7 +93,11 @@ def pagina_firmas(user: Empleado = Depends(require_modulo(MODULO)), db: Session 
 def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     _solo_admin(user)
     sc.asegurar_cajas_iniciales(db)
-    cajas = db.query(CajaMenor).order_by(CajaMenor.orden, CajaMenor.nombre).all()
+    q_cajas = db.query(CajaMenor)
+    if user.rol != "superadmin":
+        # Un admin solo administra las cajas de su propia empresa (antes veía y administraba todas).
+        q_cajas = q_cajas.filter(CajaMenor.empresa == user.empresa)
+    cajas = q_cajas.order_by(CajaMenor.orden, CajaMenor.nombre).all()
     accesos = db.query(CajaAcceso).all()
     por_empleado: dict[int, set[int]] = {}
     for a in accesos:
@@ -98,7 +109,8 @@ def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)
     supervisa_por_empleado: dict[int, set[int]] = {}
     for a in db.query(CajaSupervisor).all():
         supervisa_por_empleado.setdefault(a.empleado_id, set()).add(a.caja_id)
-    # Los administradores siguen entrando a todas las cajas; se relacionan aquí para poder ser responsables.
+    # Los administradores entran a las cajas de su propia empresa (un superadmin, a todas); se relacionan
+    # aquí para poder ser responsables.
     # Quien solo autoriza tiene el módulo (para firmar) pero no aparece en Accesos hasta que se le den cajas.
     relacionados = {e.id for e in activos if e.id in por_empleado
                     or (MODULO in e.modulos_lista and e.id not in autoriza_por_empleado and e.id not in supervisa_por_empleado)}
@@ -127,12 +139,12 @@ def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)
 
 def _responsable_es_admin(db: Session, caja) -> bool:
     r = sc.responsable_de_caja(db, caja)
-    return bool(r and sc.es_admin(r))
+    return bool(r and sc.es_admin(r, caja))
 
 
 def _recibo_para_recibido(db: Session, user: Empleado, recibo_id: int) -> CajaRecibo:
     r = db.get(CajaRecibo, recibo_id)
-    if not r or not (r.recibido_por_id == user.id or sc.es_admin(user)):
+    if not r or not (r.recibido_por_id == user.id or sc.es_admin(user, r.caja)):
         raise HTTPException(404, "Este recibo no está a tu nombre.")
     return r
 
@@ -192,8 +204,8 @@ def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require
         "user": user, "es_caja": True, "caja": caja,
         # Los administradores pueden autorizar sus propios recibos y ser responsable y supervisor a la vez
         "autorizadores": [n for n in sc.autorizadores_de_caja(db, caja)
-                          if sc.es_admin(user) or n != user.nombre_completo.strip().upper()],
-        "solo_yo_autorizo": not sc.es_admin(user) and sc.autorizadores_de_caja(db, caja) == [user.nombre_completo.strip().upper()],
+                          if sc.es_admin(user, caja) or n != user.nombre_completo.strip().upper()],
+        "solo_yo_autorizo": not sc.es_admin(user, caja) and sc.autorizadores_de_caja(db, caja) == [user.nombre_completo.strip().upper()],
         "supervisores": [n for n in sc.supervisores_de_caja(db, caja)
                          if n != (caja.responsable or "").strip().upper() or _responsable_es_admin(db, caja)],
         "solo_firmas": solo_firmas, "puede_consultar": sc.es_firmante_de_caja(db, user, caja),
@@ -673,12 +685,14 @@ def _texto(v: str) -> str:
 def crear_caja(user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db),
                nombre: str = Form(...), prefijo: str = Form(...), ciudad: str = Form("GALAPA"),
                fondo: float = Form(1000000), responsable: str = Form(""), consecutivo_inicial: int = Form(1),
-               fm_siguiente: int = Form(1), icono: str = Form("💵")):
+               fm_siguiente: int = Form(1), icono: str = Form("💵"), empresa: str = Form("")):
     _solo_admin(user)
     if db.query(CajaMenor).filter(CajaMenor.nombre == _texto(nombre)).first():
         return RedirectResponse("/caja-menor/parametros?msg=Ya existe una caja con ese nombre.", status_code=303)
-    db.add(CajaMenor(nombre=_texto(nombre), prefijo=_texto(prefijo)[:10], ciudad=_texto(ciudad), fondo=fondo,
-                     responsable=_texto(responsable), consecutivo_inicial=max(consecutivo_inicial, 1),
+    # Un admin normal solo crea cajas de su propia empresa; solo superadmin puede elegir otra.
+    empresa_final = empresa.strip() if user.rol == "superadmin" and empresa.strip() else user.empresa
+    db.add(CajaMenor(nombre=_texto(nombre), prefijo=_texto(prefijo)[:10], empresa=empresa_final, ciudad=_texto(ciudad),
+                     fondo=fondo, responsable=_texto(responsable), consecutivo_inicial=max(consecutivo_inicial, 1),
                      fm_siguiente=max(fm_siguiente, 1), icono=(icono or "💵")[:4],
                      orden=db.query(CajaMenor).count() + 1))
     db.commit()
@@ -693,6 +707,7 @@ def editar_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
     _solo_admin(user)
     caja = db.get(CajaMenor, caja_id)
     if caja:
+        _solo_admin_de(user, caja)
         # El nombre es único: si ya lo usa otra caja se avisa (antes daba error 500).
         if db.query(CajaMenor).filter(CajaMenor.nombre == _texto(nombre), CajaMenor.id != caja.id).first():
             return RedirectResponse(f"/caja-menor/parametros?msg=Ya existe otra caja con ese nombre.&tab=caja{caja_id}-datos",
@@ -723,6 +738,7 @@ def toggle_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), 
     _solo_admin(user)
     caja = db.get(CajaMenor, caja_id)
     if caja:
+        _solo_admin_de(user, caja)
         caja.activo = 0 if caja.activo else 1
         db.commit()
     return RedirectResponse("/caja-menor/parametros", status_code=303)
@@ -760,6 +776,25 @@ def _dar_modulo(empleado: Empleado) -> None:
         empleado.modulos = ",".join(empleado.modulos_lista + [MODULO])
 
 
+def _reemplazar_cajas(db: Session, modelo, user: Empleado, empleado_id: int, elegidas: set[int]) -> set[int]:
+    """Reemplaza las filas de `modelo` (CajaAcceso/CajaAutorizador/CajaSupervisor) para `empleado_id`, pero
+    solo dentro de las cajas que `user` administra (su empresa, o todas si es superadmin) -- las de otra
+    empresa, asignadas por otro admin, no se tocan. Devuelve el subconjunto de `elegidas` realmente guardado
+    (antes, cualquier admin reemplazaba las cajas de cualquier empresa sin distinción)."""
+    if user.rol == "superadmin":
+        guardadas = elegidas
+        q = db.query(modelo).filter(modelo.empleado_id == empleado_id)
+    else:
+        ids_propias = {c.id for c in db.query(CajaMenor.id).filter(CajaMenor.empresa == user.empresa)}
+        guardadas = elegidas & ids_propias
+        q = db.query(modelo).filter(modelo.empleado_id == empleado_id, modelo.caja_id.in_(ids_propias or {0}))
+    q.delete(synchronize_session=False)
+    for caja_id in guardadas:
+        db.add(modelo(caja_id=caja_id, empleado_id=empleado_id))
+    db.commit()
+    return guardadas
+
+
 @router.post("/caja-menor/parametros/accesos/agregar")
 async def agregar_acceso(request: Request, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     """Da el módulo Caja menor a una persona y le asigna sus cajas, sin pasar por People."""
@@ -775,22 +810,22 @@ async def agregar_acceso(request: Request, user: Empleado = Depends(require_modu
     if choque:
         return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=accesos", status_code=303)
     _dar_modulo(empleado)
-    db.query(CajaAcceso).filter(CajaAcceso.empleado_id == empleado.id).delete()
-    for caja_id in elegidas:
-        db.add(CajaAcceso(caja_id=caja_id, empleado_id=empleado.id))
-    db.commit()
+    guardadas = _reemplazar_cajas(db, CajaAcceso, user, empleado.id, elegidas)
+    if not guardadas:
+        return RedirectResponse("/caja-menor/parametros?msg=Ninguna de las cajas elegidas es de tu empresa.&tab=accesos",
+                                status_code=303)
     return RedirectResponse(f"/caja-menor/parametros?msg=Acceso dado a {nombre_propio(empleado.nombre_completo)}.", status_code=303)
 
 
 @router.post("/caja-menor/parametros/accesos/{empleado_id}/quitar")
 def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
-    """Quita el módulo Caja menor y todas sus cajas a esa persona (los recibos que hizo se conservan)."""
+    """Quita el módulo Caja menor y las cajas de tu empresa a esa persona (conserva accesos de otra empresa,
+    si los tiene; los recibos que hizo se conservan)."""
     _solo_admin(user)
     empleado = db.get(Empleado, empleado_id)
     if empleado:
-        empleado.modulos = ",".join(m for m in empleado.modulos_lista if m != MODULO)
-        db.query(CajaAcceso).filter(CajaAcceso.empleado_id == empleado_id).delete()
-        db.commit()
+        _reemplazar_cajas(db, CajaAcceso, user, empleado_id, set())
+        _quitar_modulo_si_no_usa(db, empleado_id)
     return RedirectResponse("/caja-menor/parametros?msg=Acceso quitado.", status_code=303)
 
 
@@ -803,10 +838,7 @@ async def guardar_accesos(empleado_id: int, request: Request, user: Empleado = D
     choque = _conflicto(db, empleado_id, elegidas, "acceso")
     if choque:
         return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=accesos", status_code=303)
-    db.query(CajaAcceso).filter(CajaAcceso.empleado_id == empleado_id).delete()
-    for caja_id in elegidas:
-        db.add(CajaAcceso(caja_id=caja_id, empleado_id=empleado_id))
-    db.commit()
+    _reemplazar_cajas(db, CajaAcceso, user, empleado_id, elegidas)
     return RedirectResponse("/caja-menor/parametros?msg=Accesos guardados.", status_code=303)
 
 
@@ -823,6 +855,7 @@ async def agregar_persona_caja(caja_id: int, rol: str, request: Request, user: E
     volver = f"/caja-menor/parametros?tab=caja{caja_id}-{rol}"
     if not modelo or not caja:
         raise HTTPException(404, "No encontrado.")
+    _solo_admin_de(user, caja)
     form = await request.form()
     empleado = db.get(Empleado, int(form.get("empleado_id") or 0))
     if not empleado or not empleado.activo:
@@ -846,6 +879,7 @@ def quitar_persona_caja(caja_id: int, rol: str, empleado_id: int, user: Empleado
     volver = f"/caja-menor/parametros?tab=caja{caja_id}-{rol}"
     if not modelo or not caja:
         raise HTTPException(404, "No encontrado.")
+    _solo_admin_de(user, caja)
     if rol == "accesos" and caja.responsable_id == empleado_id:
         return RedirectResponse(f"{volver}&msg=Es el responsable de la caja: elige primero otro responsable en la pestaña Datos.",
                                 status_code=303)
@@ -853,13 +887,6 @@ def quitar_persona_caja(caja_id: int, rol: str, empleado_id: int, user: Empleado
     db.commit()
     _quitar_modulo_si_no_usa(db, empleado_id)
     return RedirectResponse(f"{volver}&msg=Quitado. Los documentos que ya registró o firmó se conservan.", status_code=303)
-
-
-def _guardar_autorizaciones(db: Session, empleado_id: int, cajas: set[int]) -> None:
-    db.query(CajaAutorizador).filter(CajaAutorizador.empleado_id == empleado_id).delete()
-    for caja_id in cajas:
-        db.add(CajaAutorizador(caja_id=caja_id, empleado_id=empleado_id))
-    db.commit()
 
 
 @router.post("/caja-menor/parametros/autorizadores/agregar")
@@ -878,7 +905,10 @@ async def agregar_autorizador(request: Request, user: Empleado = Depends(require
     if choque:
         return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=autorizan", status_code=303)
     _dar_modulo(empleado)
-    _guardar_autorizaciones(db, empleado.id, elegidas)
+    guardadas = _reemplazar_cajas(db, CajaAutorizador, user, empleado.id, elegidas)
+    if not guardadas:
+        return RedirectResponse("/caja-menor/parametros?msg=Ninguna de las cajas elegidas es de tu empresa.&tab=autorizan",
+                                status_code=303)
     return RedirectResponse(f"/caja-menor/parametros?msg={nombre_propio(empleado.nombre_completo)} ya puede autorizar recibos.&tab=autorizan",
                             status_code=303)
 
@@ -886,7 +916,7 @@ async def agregar_autorizador(request: Request, user: Empleado = Depends(require
 @router.post("/caja-menor/parametros/autorizadores/{empleado_id}/quitar")
 def quitar_autorizador(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     _solo_admin(user)
-    _guardar_autorizaciones(db, empleado_id, set())
+    _reemplazar_cajas(db, CajaAutorizador, user, empleado_id, set())
     _quitar_modulo_si_no_usa(db, empleado_id)
     return RedirectResponse("/caja-menor/parametros?msg=Ya no autoriza recibos (los recibos que firmó conservan su nombre).&tab=autorizan",
                             status_code=303)
@@ -901,7 +931,7 @@ async def guardar_autorizador(empleado_id: int, request: Request, user: Empleado
     choque = _conflicto(db, empleado_id, elegidas, "firma")
     if choque:
         return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=autorizan", status_code=303)
-    _guardar_autorizaciones(db, empleado_id, elegidas)
+    _reemplazar_cajas(db, CajaAutorizador, user, empleado_id, elegidas)
     return RedirectResponse("/caja-menor/parametros?msg=Autorizaciones guardadas.&tab=autorizan", status_code=303)
 
 
@@ -914,13 +944,6 @@ def _quitar_modulo_si_no_usa(db: Session, empleado_id: int) -> None:
         if db.query(modelo).filter(modelo.empleado_id == empleado_id).first():
             return
     empleado.modulos = ",".join(m for m in empleado.modulos_lista if m != MODULO)
-    db.commit()
-
-
-def _guardar_supervisiones(db: Session, empleado_id: int, cajas: set[int]) -> None:
-    db.query(CajaSupervisor).filter(CajaSupervisor.empleado_id == empleado_id).delete()
-    for caja_id in cajas:
-        db.add(CajaSupervisor(caja_id=caja_id, empleado_id=empleado_id))
     db.commit()
 
 
@@ -940,7 +963,10 @@ async def agregar_supervisor(request: Request, user: Empleado = Depends(require_
     if choque:
         return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=supervisan", status_code=303)
     _dar_modulo(empleado)
-    _guardar_supervisiones(db, empleado.id, elegidas)
+    guardadas = _reemplazar_cajas(db, CajaSupervisor, user, empleado.id, elegidas)
+    if not guardadas:
+        return RedirectResponse("/caja-menor/parametros?msg=Ninguna de las cajas elegidas es de tu empresa.&tab=supervisan",
+                                status_code=303)
     return RedirectResponse(f"/caja-menor/parametros?msg={nombre_propio(empleado.nombre_completo)} ya puede supervisar los FM.&tab=supervisan",
                             status_code=303)
 
@@ -948,7 +974,7 @@ async def agregar_supervisor(request: Request, user: Empleado = Depends(require_
 @router.post("/caja-menor/parametros/supervisores/{empleado_id}/quitar")
 def quitar_supervisor(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     _solo_admin(user)
-    _guardar_supervisiones(db, empleado_id, set())
+    _reemplazar_cajas(db, CajaSupervisor, user, empleado_id, set())
     _quitar_modulo_si_no_usa(db, empleado_id)
     return RedirectResponse("/caja-menor/parametros?msg=Ya no supervisa FMs (los FM que firmó conservan su nombre).&tab=supervisan",
                             status_code=303)
@@ -963,7 +989,7 @@ async def guardar_supervisor(empleado_id: int, request: Request, user: Empleado 
     choque = _conflicto(db, empleado_id, elegidas, "firma")
     if choque:
         return RedirectResponse(f"/caja-menor/parametros?msg={choque}&tab=supervisan", status_code=303)
-    _guardar_supervisiones(db, empleado_id, elegidas)
+    _reemplazar_cajas(db, CajaSupervisor, user, empleado_id, elegidas)
     return RedirectResponse("/caja-menor/parametros?msg=Supervisiones guardadas.&tab=supervisan", status_code=303)
 
 
