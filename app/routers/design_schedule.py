@@ -1349,6 +1349,7 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         if falta:
             raise HTTPException(400, sd.msg_faltan_aprobar(falta))
     o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla, datos)
+    _push_caso_a_support(db, user, o, None)
     return sd.serializar_orden(o)
 
 
@@ -1538,6 +1539,28 @@ def _push_llego_a_n2(db: Session, o: DesignOrden, aviso: dict, user: Empleado) -
         logging.getLogger("design.face_n2").exception("Face → N2: no se pudo enviar el aviso push")
 
 
+def _push_caso_a_support(db: Session, user: Empleado, o: DesignOrden, designer_antes: int | None) -> None:
+    """Un equipo de N3 le asigna un caso a una persona de Support («🛟 Support Designer»): aviso push fijo (queda en
+    pantalla hasta que lo cierre con la X) con la orden y el equipo (Rosember, 20-oct-2026). Si falla, la orden ya quedó."""
+    try:
+        if not o.designer_id or o.designer_id == designer_antes or o.designer_id == user.id:
+            return
+        team = o.team or db.get(DesignTeam, o.team_id)
+        if not team or team.area.nombre != sd.AREA_N3:
+            return
+        from .. import services_design_support as ss
+        if o.designer_id not in ss.ids_support(db, sd.ahora_colombia().date()):
+            return
+        cuerpo = " · ".join(x for x in ((o.orden or "").strip(), (o.paciente or "").strip(), (o.centro or "").strip(),
+                                        (o.producto or "").strip()) if x)
+        spush.enviar_en_segundo_plano([o.designer_id], "🛟 Te asignaron un caso de N3",
+                                      f"{cuerpo}\nEquipo: {team.nombre} · lo asignó {user.nombre_completo}.",
+                                      url=f"/design?area_id={team.area_id}&team_id={team.id}",
+                                      etiqueta=f"support-caso-{o.id}", fijo=True)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("design.support").exception("Support Designer: no se pudo enviar el aviso push")
+
+
 def _con_copia_n2(db: Session, user: Empleado, o: DesignOrden, qc_antes: bool, datos: dict) -> dict:
     """Face: al marcar el QC de una orden, su número, paciente, centro y producto pasan a N2 (al día de hoy)
     (copiar_face_a_n2). Si después se desmarca, las copias quedan pendientes de decisión del manager de N2."""
@@ -1679,7 +1702,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         falta = sd.faltan_para_aprobar(team.area.nombre, orden_existente.tabla, valores)
         if falta:
             raise HTTPException(400, sd.msg_faltan_aprobar(falta))
+    designer_antes = orden_existente.designer_id
     o = sd.actualizar_orden(db, orden_id, datos)
+    _push_caso_a_support(db, user, o, designer_antes)
     return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
 
 
