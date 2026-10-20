@@ -74,7 +74,8 @@ class ErrorDev(Exception):
 def tiene_acceso(user: Empleado | None) -> bool:
     if not user or not getattr(user, "activo", 1):
         return False
-    return sd.es_admin(user) or (user.email or "").strip().lower() in DEV_ESPECIALES
+    from .invitados import es_invitado   # invitados (Parameters › Invitados): lo ven, sin poder cambiar nada
+    return sd.es_admin(user) or (user.email or "").strip().lower() in DEV_ESPECIALES or es_invitado(user)
 
 
 def _iso(dt: datetime | None) -> str:
