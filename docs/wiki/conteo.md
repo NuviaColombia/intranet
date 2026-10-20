@@ -45,11 +45,8 @@ anula una firma, el PDF se borra y se vuelve a generar cuando se vuelva a firmar
   "Anular firmas" (vuelve a `DEVUELTO`, antes de firmar en firme) y "anular reporte" (borra todo,
   después de firmado) son dos acciones distintas, solo para Director o admin -- no se usan para
   lo mismo.
-- ⚠️ **Posible gap de company-scoping (encontrado al escribir esta página, no corregido
-  todavía)**: `services_conteo.py` tiene su propio `es_admin()` que usa
-  `user.rol in ("admin", "superadmin") or es_admin_produccion(user)` -- **sin** el chequeo de
-  `user.empresa == EMPRESA_PRODUCCION` que sí tiene `acceso_produccion.es_admin()`. Esta función
-  propia se usa para casi todo adentro del módulo (anular, editar, ver pendientes, cargar
-  contable...). Si algún día un admin de otra empresa llega a pasar el candado de entrada del
-  submódulo, este `es_admin()` interno le daría más permisos de los que debería tener. Vale la
-  pena revisarlo con el mismo criterio que ya se aplicó en SST y Custodia.
+- **Company-scoping ya se corrigió aquí**: `services_conteo.es_admin()` tenía su propia copia
+  (`rol in (admin, superadmin) or es_admin_produccion(user)`) sin el chequeo de empresa que sí
+  tenía `acceso_produccion.es_admin()`. Ahora simplemente reusa ese -- si necesitas tocar el
+  acceso de Conteo, no le vuelvas a poner una copia propia; que siga delegando en
+  `acceso_produccion`.

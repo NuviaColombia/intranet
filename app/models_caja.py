@@ -12,6 +12,7 @@ class CajaMenor(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100), unique=True)          # ej. CONTABILIDAD
     prefijo: Mapped[str] = mapped_column(String(10))                       # ej. CONT
+    empresa: Mapped[str] = mapped_column(String(100), default="")          # a quién pertenece la caja
     ciudad: Mapped[str] = mapped_column(String(100), default="GALAPA")
     fondo: Mapped[float] = mapped_column(Float, default=1000000)           # fondo permanente
     responsable: Mapped[str] = mapped_column(String(150), default="")      # nombre del responsable (para mostrar)
@@ -24,7 +25,8 @@ class CajaMenor(Base):
 
 
 class CajaAcceso(Base):
-    """Qué empleados pueden usar cada caja (los administradores entran a todas)."""
+    """Qué empleados pueden usar cada caja (los administradores entran a las de su propia empresa; un
+    superadmin, a todas)."""
     __tablename__ = "caja_menor_accesos"
     __table_args__ = (UniqueConstraint("caja_id", "empleado_id", name="uq_caja_acceso"),)
 

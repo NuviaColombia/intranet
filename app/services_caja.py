@@ -16,8 +16,10 @@ DENOMINACIONES = MONEDAS + BILLETES
 
 # Cajas con las que arranca el módulo (mismos prefijos y consecutivos que la app anterior).
 CAJAS_INICIALES = [
-    {"nombre": "CONTABILIDAD", "prefijo": "CONT", "consecutivo_inicial": 92, "fm_siguiente": 28, "icono": "📒"},
-    {"nombre": "MANTENIMIENTO", "prefijo": "MANT", "consecutivo_inicial": 25, "fm_siguiente": 2, "icono": "🔧"},
+    {"nombre": "CONTABILIDAD", "prefijo": "CONT", "consecutivo_inicial": 92, "fm_siguiente": 28, "icono": "📒",
+     "empresa": "Nuvia Smiles Colombia SAS"},
+    {"nombre": "MANTENIMIENTO", "prefijo": "MANT", "consecutivo_inicial": 25, "fm_siguiente": 2, "icono": "🔧",
+     "empresa": "Nuvia Smiles Colombia SAS"},
 ]
 
 
@@ -98,15 +100,28 @@ def asegurar_cajas_iniciales(db: Session) -> None:
         db.commit()
 
 
-def es_admin(user: Empleado) -> bool:
-    return user.rol in ("admin", "superadmin")
+def es_admin(user: Empleado, caja: CajaMenor | None = None) -> bool:
+    """Sin `caja`: ¿es administrador de la intranet? (para decisiones que no dependen de una caja
+    en particular, como si puede ser elaborador y supervisor del mismo FM a la vez).
+    Con `caja`: superadmin administra cualquiera; un admin normal solo las de su propia empresa --
+    antes esto no se revisaba y cualquier admin entraba y operaba todas las cajas."""
+    if user.rol not in ("admin", "superadmin"):
+        return False
+    if user.rol == "superadmin" or caja is None:
+        return True
+    return user.empresa == caja.empresa
 
 
 def cajas_de_usuario(db: Session, user: Empleado, incluir_inactivas: bool = False) -> list[CajaMenor]:
     q = db.query(CajaMenor)
     if not incluir_inactivas:
         q = q.filter(CajaMenor.activo == 1)
-    if not es_admin(user):
+    if user.rol == "superadmin":
+        pass
+    elif user.rol == "admin":
+        ids_propias = {a.caja_id for a in db.query(CajaAcceso).filter(CajaAcceso.empleado_id == user.id)}
+        q = q.filter((CajaMenor.empresa == user.empresa) | CajaMenor.id.in_(ids_propias or [0]))
+    else:
         ids = [a.caja_id for a in db.query(CajaAcceso).filter(CajaAcceso.empleado_id == user.id)]
         q = q.filter(CajaMenor.id.in_(ids or [0]))
     return q.order_by(CajaMenor.orden, CajaMenor.nombre).all()
@@ -166,8 +181,8 @@ def responsable_de_caja(db: Session, caja: CajaMenor) -> Empleado | None:
 
 def es_firmante_de_caja(db: Session, user: Empleado, caja: CajaMenor) -> bool:
     """Quien está en Autorizan o Supervisan de la caja: solo consulta y firma (no crea, edita ni anula).
-    Los administradores conservan su acceso completo."""
-    if es_admin(user):
+    Los administradores de la empresa de la caja (o superadmin) conservan su acceso completo."""
+    if es_admin(user, caja):
         return False
     return caja.id in ids_cajas_que_autoriza(db, user) or caja.id in ids_cajas_que_supervisa(db, user)
 
@@ -194,7 +209,7 @@ def hoy_colombia() -> date:
 
 
 def puede_usar_caja(db: Session, user: Empleado, caja: CajaMenor) -> bool:
-    if es_admin(user):
+    if es_admin(user, caja):
         return True
     return db.query(CajaAcceso).filter(CajaAcceso.caja_id == caja.id, CajaAcceso.empleado_id == user.id).first() is not None
 
@@ -255,11 +270,12 @@ def agregar_adjunto(db: Session, user: Empleado, r: CajaRecibo, nombre: str, tip
 
 
 def puede_quitar_adjunto(user: Empleado, a: CajaAdjunto) -> bool:
-    """Quien lo subió o un administrador, mientras el recibo esté activo y sin firmar (lo firmado conserva sus soportes)."""
+    """Quien lo subió o un administrador (de la empresa de la caja), mientras el recibo esté activo y
+    sin firmar (lo firmado conserva sus soportes)."""
     r = a.recibo
     if r.estado != "ACTIVO" or r.firmado_en:
-        return es_admin(user) and r.estado != "LEGALIZADO"
-    return es_admin(user) or a.creado_por_id == user.id
+        return es_admin(user, r.caja) and r.estado != "LEGALIZADO"
+    return es_admin(user, r.caja) or a.creado_por_id == user.id
 
 
 def quitar_adjunto(db: Session, user: Empleado, a: CajaAdjunto) -> str | None:
@@ -293,8 +309,8 @@ def _resolver_autoriza(db: Session, caja: CajaMenor, datos: dict, actual: CajaRe
     Devuelve (empleado que autoriza o None, mensaje de error o None)."""
     elegido = str(datos.get("autorizado_por") or "").strip().upper()
     creador = db.get(Empleado, creador_id) if creador_id else None
-    if creador and es_admin(creador):
-        creador_id = None  # los administradores pueden autorizar sus propios recibos
+    if creador and es_admin(creador, caja):
+        creador_id = None  # los administradores (de la empresa de la caja) pueden autorizar sus propios recibos
     filas = (db.query(Empleado).join(CajaAutorizador, CajaAutorizador.empleado_id == Empleado.id)
              .filter(CajaAutorizador.caja_id == caja.id, Empleado.activo == 1).all())
     for e in filas:
@@ -503,7 +519,7 @@ def legalizar(db: Session, caja: CajaMenor, user: Empleado, recibo_ids: list[int
     if not responsable_emp:
         return ("La caja no tiene responsable. Un administrador debe asignarlo en Parámetros › Cajas: "
                 "es quien firma el «Elaborado por» del FM.")
-    if supervisor and supervisor.id == responsable_emp.id and not es_admin(responsable_emp):  # admin: puede ser ambos
+    if supervisor and supervisor.id == responsable_emp.id and not es_admin(responsable_emp, caja):  # admin: puede ser ambos
         return "Quien supervisa el FM debe ser una persona distinta al responsable de la caja (Elaborado por)."
     recibos = db.query(CajaRecibo).filter(CajaRecibo.id.in_(recibo_ids), CajaRecibo.caja_id == caja.id).all()
     if len(recibos) != len(set(recibo_ids)):

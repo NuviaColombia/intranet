@@ -23,11 +23,11 @@ Gotchas · Quién aprueba cambios sensibles (si aplica).
 - [design.md](design.md) -- Design Schedule (mapa general; el detalle de Openings sigue en
   `CLAUDE.md`, es la nota que más se ha roto y conviene dejarla donde toda sesión la lee primero)
 
-## Hallazgos pendientes de revisar (encontrados escribiendo estas páginas, no corregidos)
+## Historial de hallazgos de company-scoping
 
-Dos módulos más tienen el mismo tipo de bug de "company-scoping" que ya se corrigió en SST y
-Custodia -- un admin/superadmin entra sin revisar su empresa. Quedó anotado en la página de cada
-uno para no perderlo, pero **nadie lo ha arreglado todavía**:
-- Caja Menor (`services_caja.es_admin`) -- ver el gotcha en [caja_menor.md](caja_menor.md).
-- Conteo inventario mensual (`services_conteo.es_admin`, uno propio distinto al de
-  `acceso_produccion`) -- ver el gotcha en [conteo.md](conteo.md).
+El mismo tipo de bug ("un admin/superadmin entra sin revisar su empresa") ya apareció y se
+corrigió **cuatro veces**: SST, Custodia/Producción, Conteo y Caja Menor. Si vas a escribir
+código nuevo que decida "¿es administrador?", parte de `acceso_produccion.es_admin` (Producción)
+o `sst.es_admin_sst` (SST) como ejemplo, no de un `rol in (admin, superadmin)` suelto -- ese es
+exactamente el patrón que ya falló cuatro veces. El detalle de cada corrección sigue en la página
+de su módulo ([caja_menor.md](caja_menor.md), [conteo.md](conteo.md), [custodia.md](custodia.md)).
