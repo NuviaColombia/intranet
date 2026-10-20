@@ -2052,9 +2052,16 @@ def _es_cancelada(estado: str) -> bool:
     return "cancel" in e or "skip" in e
 
 
+def _fin_hold(s_hold: str, f_hold: str, fin: str) -> str:
+    """Hasta dónde va el Hold abierto: el Re-initiated; si no hay (pasó de Hold directo a Approved, p. ej. el lunes después
+    de un Hold del viernes), hasta el Fin. Antes no se descontaba y el total sumaba todo el fin de semana (20-oct-2026)."""
+    return f_hold or (fin if s_hold else "")
+
+
 def _hold_min(o: DesignOrden) -> float:
-    """Tiempo en Hold de la orden: Hold acumulado más el Hold con inicio y fin (S. Hold → F. Hold / Re-initiated)."""
-    return (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
+    """Tiempo en Hold de la orden: Hold acumulado más el Hold con inicio y fin (S. Hold → F. Hold / Re-initiated o el Fin)."""
+    fh = _fin_hold(o.s_hold, o.f_hold, o.hora_fin)
+    return (o.hold_minutos or 0) + (_entre(o.s_hold, fh) if o.s_hold and fh else 0)
 
 
 DASH_RANGO_MAX_DIAS = 366   # A8 (13-oct-2026): el Dashboard se mira por área y por periodo de hasta un año; no hay "Todo"
@@ -2419,8 +2426,12 @@ def face_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
         if not s_hold:
             return {"s_hold": ahora}
     elif estado_nuevo == "Approved":
+        cambios = {}
+        if s_hold and not f_hold:
+            cambios["f_hold"] = ahora   # de Hold directo a Approved: el Hold termina ahora (no cuenta como diseño)
         if not actual.get("hora_fin"):
-            return {"hora_fin": ahora}
+            cambios["hora_fin"] = ahora
+        return cambios
     return {}
 
 
@@ -2460,7 +2471,8 @@ def material_minutos(o: DesignOrden) -> tuple[float, float, float]:
     def etapa(ini, fin, s, f, previos):
         if not ini or not fin:
             return 0
-        return max(0, _entre(ini, fin) - (previos or 0) - (_entre(s, f) if s and f else 0))
+        fh = _fin_hold(s, f, fin)
+        return max(0, _entre(ini, fin) - (previos or 0) - (_entre(s, fh) if s and fh else 0))
     b = etapa(o.hora_inicio, o.hora_fin, o.s_hold, o.f_hold, o.hold_minutos)
     z = etapa(o.z_hora_inicio, o.z_hora_fin, o.z_s_hold, o.z_f_hold, o.z_hold_minutos)
     return b, z, b + z
@@ -2491,11 +2503,12 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     if formato == FORMATO_N2:
         if not o.hora_inicio or not o.hora_fin:
             return 0
-        return _menos_hold(o, _entre(o.hora_inicio, o.hora_fin), (o.hold_minutos or 0) + _entre(o.s_hold, o.f_hold))
+        return _menos_hold(o, _entre(o.hora_inicio, o.hora_fin), (o.hold_minutos or 0) + _entre(o.s_hold, _fin_hold(o.s_hold, o.f_hold, o.hora_fin)))
     if horas_por_estado(formato, o.fecha, o.tabla):
         if not o.hora_inicio or not o.hora_fin:
             return 0
-        hold = (o.hold_minutos or 0) + (_entre(o.s_hold, o.f_hold) if o.s_hold and o.f_hold else 0)
+        fh = _fin_hold(o.s_hold, o.f_hold, o.hora_fin)
+        hold = (o.hold_minutos or 0) + (_entre(o.s_hold, fh) if o.s_hold and fh else 0)
         return _menos_hold(o, _entre(o.hora_inicio, o.hora_fin), hold)
     if not o.hora_inicio_diseno or not o.hora_fin:
         return 0

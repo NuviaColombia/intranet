@@ -486,7 +486,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsEntre(a, b) { var x = dsMinDe(a), y = dsMinDe(b); if (x === null || y === null) return null; var d = y - x; return d < 0 ? d + 1440 : d; }
   function dsFmtMin(m) { if (m === null || m === undefined || isNaN(m)) return ''; m = Math.max(0, Math.round(m)); return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
   // N2: T. Hold = Hold anteriores del caso (holdMinutos) + F.Hold − S.Hold (como el servidor)
-  function dsTHoldMin(f) { return (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0); }
+  // Un Hold sin Re-initiated (pasó de Hold directo a Approved) termina en el Fin: igual que _fin_hold en services_design.py
+  function dsFinHold(s, fh, fin) { return fh || (s ? fin : ''); }
+  function dsTHoldMin(f) { var fh = dsFinHold(f.sHold, f.fHold, f.horaFin); return (parseFloat(f.holdMinutos) || 0) + (f.sHold && fh ? (dsEntre(f.sHold, fh) || 0) : 0); }
   function dsTHoldTxt(f) { return dsTHoldMin(f) || (f.sHold && f.fHold) ? dsFmtMin(dsTHoldMin(f)) : ''; }
   // Fin − Inicio − Hold; si el caso pasó varias noches en Hold se suman los días que falten, sin pasar de los que lleva
   // desde que se creó (misma regla que _menos_hold en services_design.py; orden 242472, 19-oct-2026)
@@ -502,7 +504,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : dsMenosHold(f, t, dsTHoldMin(f)); }
     if (dsFaceNuevo(formato) || (tabla === 'nightguard' && dsNgNuevo(formato, f))) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
       var tf = dsEntre(f.horaInicio, f.horaFin); if (tf === null) return null;
-      var hold = (parseFloat(f.holdMinutos) || 0) + (f.sHold && f.fHold ? (dsEntre(f.sHold, f.fHold) || 0) : 0);
+      var fhh = dsFinHold(f.sHold, f.fHold, f.horaFin);
+      var hold = (parseFloat(f.holdMinutos) || 0) + (f.sHold && fhh ? (dsEntre(f.sHold, fhh) || 0) : 0);
       return dsMenosHold(f, tf, hold);
     }
     var d = dsEntre(f.horaInicioDiseno, f.horaFin);
@@ -598,6 +601,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsQcFinal(f) { return f.tabla === 'material' ? !!f.zQc : !!f.qc; }
   function dsMinEtapa(ini, fin, s, fh, previos) {
     var t = dsEntre(ini, fin); if (t === null) return null;
+    fh = dsFinHold(s, fh, fin);
     return Math.max(0, t - (parseFloat(previos) || 0) - (s && fh ? (dsEntre(s, fh) || 0) : 0));
   }
   // Minutos de Bite, de Zirconia y total (misma fórmula que material_minutos en services_design.py)

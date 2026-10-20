@@ -34,3 +34,26 @@ class TotalConHold(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HoldSinReiniciar(unittest.TestCase):
+    """Viernes en Hold → lunes pasa directo a Approved sin Initiated (20-oct-2026): el Hold termina en el Fin."""
+    def orden(self, **k):
+        base = dict(tabla="principal", fecha=date(2026, 10, 19), fecha_creada=date(2026, 10, 16), hora_inicio="14:00",
+                    hora_inicio_diseno="", hora_fin="10:00", s_hold="16:00", f_hold="", hold_minutos=0)
+        base.update(k)
+        return SimpleNamespace(**base)
+
+    def test_cuenta_solo_el_diseno(self):
+        for formato in (sd.FORMATO_DUAL, sd.FORMATO_SINGLE, sd.FORMATO_N2):
+            self.assertEqual(sd.duracion_orden_min(self.orden(), formato), 120)   # solo las 2 h del viernes
+
+    def test_con_reinicio_no_cambia(self):
+        self.assertEqual(sd.duracion_orden_min(self.orden(f_hold="08:00"), sd.FORMATO_DUAL), 240)
+
+    def test_approved_desde_hold_cierra_el_hold(self):
+        from unittest import mock
+        with mock.patch.object(sd, "ahora_colombia", return_value=sd.datetime(2026, 10, 19, 10, 0)):
+            c = sd.face_horas_por_estado({"hora_inicio": "14:00", "s_hold": "16:00", "f_hold": ""}, "Approved")
+        self.assertEqual(c, {"f_hold": "10:00", "hora_fin": "10:00"})
+
