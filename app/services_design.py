@@ -1633,27 +1633,41 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     if solo_empleado_id is not None:
         salida["prestadas"] = [o for o in ordenes_prestadas(db, solo_empleado_id, fecha) if o["teamId"] != team.id]
     elif team.area.formato != FORMATO_SUPPORT:
-        salida["prestadosEquipo"] = prestados_por_disenador(db, [d.empleado_id for d in designers], fecha)
+        salida["prestadosEquipo"], salida["prestadosTipo"] = prestados_por_disenador(db, [d.empleado_id for d in designers], fecha,
+                                                                                     por_tipo=True)
     return salida
 
 
-def prestados_por_disenador(db: Session, ids: list[int], fecha: date) -> dict:
+def tipo_produccion(tabla: str, producto: str) -> str:
+    """N3 › Producción del día (20-oct-2026): «sx» cirugías (y Material Change), «tc» los TC y «ng» los Nightguards
+    (la tabla Nightguards / TC). Igual que dsTipoProduccion en static/design/schedule.js."""
+    if tabla != "nightguard":
+        return "sx"
+    return "tc" if re.search(r"\btc\b", producto or "", re.I) else "ng"
+
+
+def prestados_por_disenador(db: Session, ids: list[int], fecha: date, por_tipo: bool = False):
     """Casos del día que cada diseñador hizo prestado en equipos a los que no pertenece (sin canceladas): cuentan en su
-    producción (Rosember, 19-oct-2026). {empleado_id: casos}. Lo usa la ventana «Producción del día» del manager."""
+    producción (Rosember, 19-oct-2026). {empleado_id: casos}; con por_tipo, además {empleado_id: {sx, tc, ng}}.
+    Lo usa la ventana «Producción del día» del manager."""
     if not ids:
-        return {}
+        return ({}, {}) if por_tipo else {}
     miembro = {}
     for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.empleado_id.in_(ids)):
         miembro.setdefault(eid, set()).add(tid)
     support = {i for (i,) in _equipos_support_ids(db).all()}
     out: dict = {}
-    for eid, tid, estado in (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado)
-                             .filter(DesignOrden.designer_id.in_(ids), DesignOrden.fecha == fecha,
-                                     DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]))):
+    tipos: dict = {}
+    for eid, tid, estado, tabla, producto in (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado,
+                                                       DesignOrden.tabla, DesignOrden.producto)
+                                              .filter(DesignOrden.designer_id.in_(ids), DesignOrden.fecha == fecha,
+                                                      DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]))):
         if tid in miembro.get(eid, set()) or tid in support or _es_cancelada(estado):
             continue
         out[eid] = out.get(eid, 0) + 1
-    return out
+        t = tipos.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0})
+        t[tipo_produccion(tabla, producto)] += 1
+    return (out, tipos) if por_tipo else out
 
 
 def _manager_elegible(team: DesignTeam, ya: set) -> dict | None:

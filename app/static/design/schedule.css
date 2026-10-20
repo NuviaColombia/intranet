@@ -1201,3 +1201,6 @@ table.ds-tabla select[data-campo="designerId"] { field-sizing: content; min-widt
 
 /* Tiempos libres: permiso por horas aprobado en People (aviso; no es ausencia) */
 .ds-tl-permh { color: #1d4ed8; font-weight: 700; font-size: 10.5px; white-space: nowrap; }
+
+/* Producción del día (N3): Sx · Tc · Ng; los ceros en gris */
+.ds-prod-pop td.n.cero { color: #9ca3af; }
