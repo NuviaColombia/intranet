@@ -183,6 +183,7 @@
   </div>
   {% endif %}
   <a href="/">{{ 'Modules' if es_design else 'Módulos' }}</a>{# Design en inglés (Rosember, 19-oct-2026); los demás módulos siguen igual #}
+  {% if ve_wiki(user) %}<a href="https://github.com/NuviaColombia/intranet/blob/main/docs/wiki/README.md" target="_blank" rel="noopener">📖 Wiki</a>{% endif %}{# solo Oscar, Carlos y Rosember (main_templates.ve_wiki) #}
   {% if es_design and ve_mural(user) %}<a href="/design/mural">Mural</a>{% endif %}
   {% if es_design and ve_development(user) %}<a href="/design/development">Development</a>{% endif %}{# solo admins + Luis Felipe y Paul (services_design_dev) #}
   {% set ds_extras %}{% if es_design %}
