@@ -1770,10 +1770,13 @@ window.addEventListener('unhandledrejection', function(ev) {
       var lista = dsElegibles();
       var html = '<select data-campo="designerId"' + al + ' data-previo="' + dsEsc(val || '') + '"><option value="">—</option>';
       lista.forEach(function(d) {
-        html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + '>' + dsEsc(d.nombre) + (d.esManager ? ' (manager)' : '') + (d.esAyuda ? ' (ayuda)' : '') + '</option>';
+        // primer nombre y primer apellido (el completo, al pasar el cursor): la columna ocupa menos (19-oct-2026)
+        html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + ' title="' + dsEsc(d.nombre) + '">' + dsEsc(d.corto || d.nombre) +
+                (d.esManager ? ' (manager)' : '') + (d.esAyuda ? ' (ayuda)' : '') + '</option>';
       });
       if (val && !lista.some(function(d) { return d.id === val; })) {
-        html += '<option value="' + dsEsc(val) + '" selected>' + dsEsc((f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : ' (prestado)')) + '</option>';
+        html += '<option value="' + dsEsc(val) + '" selected title="' + dsEsc(f.designerNombre || '') + '">' +
+                dsEsc((f.designerCorto || f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : ' (prestado)')) + '</option>';
       }
       if (DS.diaData && !DS.diaData.designersCaso && !dsSoloPropias()) html += '<option value="__otro">Others (prestado)…</option>';
       if (f.id && f.tabla === 'principal' && dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado()) {
@@ -2174,7 +2177,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         };
         // La ausencia funciona igual que antes (mismo selector y valores); solo cambió de lugar.
         card.innerHTML =
-          '<div class="ds-tl-head"><span class="ds-tl-nombre" title="' + dsEsc(d.nombre) + '">' + dsEsc(d.nombre) + '</span>' +
+          '<div class="ds-tl-head"><span class="ds-tl-nombre" title="' + dsEsc(d.nombre) + '">' + dsEsc(d.corto || d.nombre) + '</span>' +
             '<span class="ds-tl-aus">' +
               (b.ausenciaAutomatica ? '<span title="Tomado automáticamente de un permiso aprobado en People" style="color:#16a34a">🔒 People</span>' : '') +
               '<select data-campo="tipoAusencia" title="Ausencia" aria-label="Ausencia"><option value="">—</option>' +

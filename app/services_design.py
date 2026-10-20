@@ -77,6 +77,15 @@ def equipos_de_area(db: Session, area_id: int) -> list[DesignTeam]:
             .order_by(DesignTeam.orden).all())
 
 
+def nombre_corto(e) -> str:
+    """Primer nombre y primer apellido («Ana María Restrepo Gómez» → «Ana Restrepo»): la columna Diseñador del Schedule
+    (Rosember, 19-oct-2026). Si no hay apellidos separados, el nombre completo."""
+    if not e:
+        return ""
+    n, a = (getattr(e, "nombres", "") or "").split(), (getattr(e, "apellidos", "") or "").split()
+    return " ".join(x for x in (n[0] if n else "", a[0] if a else "") if x) or (getattr(e, "nombre_completo", "") or "")
+
+
 def es_admin(user: Empleado) -> bool:
     return user.rol in ("admin", "superadmin")
 
@@ -1474,6 +1483,7 @@ def serializar_orden(o: DesignOrden) -> dict:
         "id": o.id, "tabla": o.tabla, "orden": o.orden, "paciente": o.paciente,
         "centro": o.centro, "producto": o.producto,
         "designerId": o.designer_id, "designerNombre": o.designer.nombre_completo if o.designer else "",
+        "designerCorto": nombre_corto(o.designer),
         "designerPrestado": o.designer_prestado, "designerInhabilitado": _designer_inhabilitado(o),
         "horaInicio": o.hora_inicio, "horaInicioDiseno": o.hora_inicio_diseno, "horaFin": o.hora_fin,
         "holdMinutos": o.hold_minutos, "esferas": o.esferas, "critico": o.critico,
@@ -1553,7 +1563,8 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         "principal": principal, "nightguard": nightguard, "material": material,
         "breaks": breaks_out,
         # un diseñador cuyo empleado ya no existe se omite (antes hacía fallar la carga del día de su equipo)
-        "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in designers if d.empleado],
+        "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo, "corto": nombre_corto(d.empleado)}
+                      for d in designers if d.empleado],
         "cerrado": dia_cerrado(fecha), "qcEditable": qc_editable(fecha),
         "qcEditableHasta": qc_editable_hasta(fecha).isoformat(),
         "soloPropias": solo_empleado_id is not None,
@@ -1596,7 +1607,7 @@ def _manager_elegible(team: DesignTeam, ya: set) -> dict | None:
     m = team.manager
     if not m or not m.activo or m.id in ya:
         return None
-    return {"id": m.id, "nombre": m.nombre_completo, "esManager": True}
+    return {"id": m.id, "nombre": m.nombre_completo, "corto": nombre_corto(m), "esManager": True}
 
 
 def managers_de_todos_los_equipos(db: Session) -> list[dict]:
@@ -1605,7 +1616,8 @@ def managers_de_todos_los_equipos(db: Session) -> list[dict]:
                    .filter(DesignTeam.activo == 1)}
     filas = (db.query(Empleado.id, Empleado.nombres, Empleado.apellidos).join(DesignTeam, DesignTeam.manager_id == Empleado.id)
              .filter(DesignTeam.activo == 1, Empleado.activo == 1).distinct().all())
-    out = [{"id": i, "nombre": f"{n or ''} {a or ''}".strip(), "esManager": True} for i, n, a in filas if i not in disenadores]
+    out = [{"id": i, "nombre": f"{n or ''} {a or ''}".strip(), "corto": nombre_corto(type("E", (), {"nombres": n, "apellidos": a})),
+            "esManager": True} for i, n, a in filas if i not in disenadores]
     return sorted(out, key=lambda d: d["nombre"].lower())
 
 
@@ -1614,7 +1626,8 @@ def disenadores_de_todos_los_equipos(db: Session) -> list[dict]:
              .join(DesignTeamDesigner, DesignTeamDesigner.empleado_id == Empleado.id)
              .join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
              .filter(DesignTeam.activo == 1, Empleado.activo == 1).distinct().all())
-    out = [{"id": i, "nombre": f"{n or ''} {a or ''}".strip()} for i, n, a in filas]
+    out = [{"id": i, "nombre": f"{n or ''} {a or ''}".strip(), "corto": nombre_corto(type("E", (), {"nombres": n, "apellidos": a}))}
+           for i, n, a in filas]
     return sorted(out, key=lambda d: d["nombre"].lower())
 
 

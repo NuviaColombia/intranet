@@ -1194,3 +1194,7 @@ table.ds-tabla td.ds-falta-aprobar { animation: dsFaltaAprobar .45s steps(2, sta
 .ds-tl-card input[type=time] { height: 28px; font-size: 11.5px; padding: 0 1px; }
 .ds-tl-card input[type=checkbox] { width: 14px; height: 14px; }
 .ds-prod-pop .ds-prod-prest { font-size: 11px; color: #1d4ed8; font-weight: 600; white-space: nowrap; }
+
+/* Paciente completo, como Centro (Rosember, 19-oct-2026): la celda crece con el nombre en vez de cortarlo */
+table.ds-tabla input[data-campo="paciente"] { field-sizing: content; min-width: 7em; }
+table.ds-tabla select[data-campo="designerId"] { field-sizing: content; min-width: 7.5em; }

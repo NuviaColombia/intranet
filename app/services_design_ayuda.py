@@ -338,7 +338,8 @@ def ayudas_del_equipo(db: Session, team_id: int, fecha: date) -> list[dict]:
     def calcular():
         filas = (db.query(DesignAyudaSolicitud).options(joinedload(DesignAyudaSolicitud.elegido))
                  .filter(DesignAyudaSolicitud.team_id == team_id, DesignAyudaSolicitud.fecha == fecha, DesignAyudaSolicitud.estado == "atendida").all())
-        return [{"id": s.elegido_id, "nombre": s.elegido.nombre_completo, "esAyuda": True} for s in filas if s.elegido]
+        return [{"id": s.elegido_id, "nombre": s.elegido.nombre_completo, "corto": sd.nombre_corto(s.elegido), "esAyuda": True}
+                for s in filas if s.elegido]
     return [dict(x) for x in sd.memo_sesion(db, ("ayudas", team_id, fecha), calcular)]   # el día y su huella la piden 2 veces
 
 
