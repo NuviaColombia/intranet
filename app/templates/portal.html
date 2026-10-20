@@ -4,15 +4,87 @@
 {% set v = version or '1' %}
 <link rel="stylesheet" href="/static/portal_inicio/inicio.css?v={{ v }}">
 {% if editor %}<link rel="stylesheet" href="/static/portal_inicio/editor.css?v={{ v }}">{% endif %}
-<div id="nviPagina" class="nvi-raiz"></div>
-{% if not modo_editar %}
-  {% if not pagina %}
-  {% if editor %}
-  <p style="margin:0 0 18px"><a class="nvi-b1" style="display:inline-block;text-decoration:none;padding:10px 18px" href="/?editar=1">✎ Crear la página principal</a></p>
-  {% endif %}
-  {% endif %}
-  {% if editor %}<a class="nvi-editar-flotante" href="/?editar=1" title="Editar la página principal (solo superadmins)">✎ Editar página</a>{% endif %}
-{% endif %}
+<style>
+  /* El portal usa todo el ancho disponible: barra lateral de módulos + contenido editable al lado. */
+  main:has(.portal-shell) { max-width:1600px; padding:0 16px; }
+  .portal-shell { display:flex; align-items:flex-start; gap:18px; margin-top:18px; }
+  .portal-sidebar { flex:none; width:220px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08);
+    padding:10px; position:sticky; top:18px; transition:width .15s; }
+  .portal-sidebar.colapsada { width:56px; }
+  .portal-sidebar-toggle { display:flex; align-items:center; justify-content:flex-end; margin-bottom:6px; }
+  .portal-sidebar.colapsada .portal-sidebar-toggle { justify-content:center; }
+  .portal-sidebar-toggle button { border:none; background:transparent; color:var(--gris); font-size:18px; line-height:1;
+    cursor:pointer; padding:6px; border-radius:6px; }
+  .portal-sidebar-toggle button:hover { background:var(--fondo); }
+  .portal-modulo { display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:8px; text-decoration:none;
+    color:#111827; white-space:nowrap; overflow:hidden; }
+  .portal-modulo:hover { background:var(--fondo); }
+  .portal-modulo.disabled { opacity:.5; cursor:not-allowed; }
+  .portal-modulo-icono { flex:none; font-size:22px; width:26px; text-align:center; }
+  .portal-modulo-icono img { height:1.3em; width:auto; display:block; margin:0 auto; }
+  .portal-modulo-texto { min-width:0; overflow:hidden; }
+  .portal-modulo-nombre { font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; }
+  .portal-modulo-desc { font-size:11.5px; color:var(--gris); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .portal-sidebar.colapsada .portal-modulo-texto { display:none; }
+  .portal-sidebar.colapsada .portal-modulo { justify-content:center; }
+  .portal-main { flex:1; min-width:0; }
+  @media (max-width:760px) {
+    .portal-sidebar { width:56px; position:static; }
+    .portal-sidebar .portal-modulo-texto { display:none; }
+    .portal-sidebar .portal-modulo { justify-content:center; }
+    .portal-sidebar-toggle { display:none; }   /* en celular siempre va en íconos: no hay espacio para expandirla */
+  }
+</style>
+{% set modulos = [
+  ('people', user.tiene_modulo('people'), '/panel', '🗓️', 'People', 'Permisos, horas extra y certificaciones'),
+  ('custodia', user.tiene_modulo('custodia'), '/inventario', '🏭', 'Producción', resumen_submodulos_produccion()),
+  ('design_schedule', user.tiene_modulo('design_schedule'), '/design/inicio', '', 'Design', 'Schedule, seguimiento, calendario y herramientas del equipo'),
+  ('caja_menor', user.tiene_modulo('caja_menor'), '/caja-menor', '💵', 'Caja menor Nuvia', 'Recibos, legalización (FM) y arqueos'),
+  ('compras', false, '', '🛒', 'Compras', 'Próximamente'),
+  ('sst', puede_sst(user), '/sst', '🦺', 'SST', 'Inventario de EPP'),
+] %}
+<div class="portal-shell">
+  <nav class="portal-sidebar" id="portalSidebar" aria-label="Módulos">
+    <div class="portal-sidebar-toggle">
+      <button type="button" id="portalSidebarToggle" title="Mostrar/ocultar nombres" aria-label="Mostrar/ocultar nombres">☰</button>
+    </div>
+    {% for slug, accesible, href, icono, nombre, desc in modulos %}
+    {% if accesible %}
+    <a class="portal-modulo" href="{{ href }}" title="{{ nombre }}">
+      <span class="portal-modulo-icono">{% if slug == 'design_schedule' %}<img src="/static/logos/design-modulo.png" alt="">{% else %}{{ icono }}{% endif %}</span>
+      <span class="portal-modulo-texto"><span class="portal-modulo-nombre">{{ nombre }}</span><span class="portal-modulo-desc">{{ desc }}</span></span>
+    </a>
+    {% else %}
+    <div class="portal-modulo disabled" title="{{ 'Próximamente' if slug == 'compras' else 'Sin acceso' }} · {{ nombre }}">
+      <span class="portal-modulo-icono">{% if slug == 'design_schedule' %}<img src="/static/logos/design-modulo.png" alt="">{% else %}{{ icono }}{% endif %}</span>
+      <span class="portal-modulo-texto"><span class="portal-modulo-nombre">{{ nombre }}</span><span class="portal-modulo-desc">{{ 'Próximamente' if slug == 'compras' else 'Sin acceso' }}</span></span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </nav>
+  <div class="portal-main">
+    {% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+    <div id="nviPagina" class="nvi-raiz"></div>
+    {% if not modo_editar %}
+      {% if not pagina and editor %}
+      <p style="margin:0 0 18px"><a class="nvi-b1" style="display:inline-block;text-decoration:none;padding:10px 18px" href="/?editar=1">✎ Crear la página principal</a></p>
+      {% endif %}
+      {% if editor %}<a class="nvi-editar-flotante" href="/?editar=1" title="Editar la página principal (solo superadmins)">✎ Editar página</a>{% endif %}
+    {% endif %}
+  </div>
+</div>
+<script>
+(function() {
+  var bar = document.getElementById('portalSidebar'), btn = document.getElementById('portalSidebarToggle');
+  var colapsada = false;
+  try { colapsada = localStorage.getItem('portalSidebarColapsada') === '1'; } catch (e) {}
+  if (colapsada) bar.classList.add('colapsada');
+  btn.onclick = function() {
+    bar.classList.toggle('colapsada');
+    try { localStorage.setItem('portalSidebarColapsada', bar.classList.contains('colapsada') ? '1' : '0'); } catch (e) {}
+  };
+})();
+</script>
 <script src="/static/portal_inicio/render.js?v={{ v }}"></script>
 <script src="/static/portal_inicio/fx.js?v={{ v }}"></script>
 <script src="/static/portal_inicio/carrusel.js?v={{ v }}"></script>
@@ -33,85 +105,9 @@
   {% endif %}
 })();
 </script>
-{% if not modo_editar %}
-<h1 id="modulos">Solicitudes Nuvia</h1>
-<p style="color:var(--gris)">Elige un módulo para continuar</p>
-{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
-<div class="modulos">
-  {% if user.tiene_modulo('people') %}
-  <a class="modulo" href="/panel">
-    <span class="modulo-icono">🗓️</span>
-    <span class="modulo-nombre">People</span>
-    <span class="modulo-desc">Permisos, horas extra y certificaciones</span>
-  </a>
-  {% else %}
-  <div class="modulo disabled" title="Sin acceso">
-    <span class="modulo-icono">🗓️</span>
-    <span class="modulo-nombre">People</span>
-    <span class="modulo-desc">Sin acceso</span>
-  </div>
-  {% endif %}
-  {% if user.tiene_modulo('custodia') %}
-  <a class="modulo" href="/inventario">
-    <span class="modulo-icono">🏭</span>
-    <span class="modulo-nombre">Producción</span>
-    <span class="modulo-desc">{{ resumen_submodulos_produccion() }}</span>
-  </a>
-  {% else %}
-  <div class="modulo disabled" title="Sin acceso">
-    <span class="modulo-icono">🏭</span>
-    <span class="modulo-nombre">Producción</span>
-    <span class="modulo-desc">Sin acceso</span>
-  </div>
-  {% endif %}
-  {% if user.tiene_modulo('design_schedule') %}
-  <a class="modulo" href="/design/inicio">
-    <span class="modulo-icono"><img src="/static/logos/design-modulo.png" alt="" style="height:1.1em;width:auto;display:block"></span>
-    <span class="modulo-nombre">Design</span>
-    <span class="modulo-desc">Schedule de producción, seguimiento, calendario y herramientas del equipo</span>
-  </a>
-  {% else %}
-  <div class="modulo disabled" title="Sin acceso">
-    <span class="modulo-icono"><img src="/static/logos/design-modulo.png" alt="" style="height:1.1em;width:auto;display:block"></span>
-    <span class="modulo-nombre">Design</span>
-    <span class="modulo-desc">Sin acceso</span>
-  </div>
-  {% endif %}
-  {% if user.tiene_modulo('caja_menor') %}
-  <a class="modulo" href="/caja-menor">
-    <span class="modulo-icono">💵</span>
-    <span class="modulo-nombre">Caja menor Nuvia</span>
-    <span class="modulo-desc">Recibos, legalización (FM) y arqueos</span>
-  </a>
-  {% else %}
-  <div class="modulo disabled" title="Sin acceso">
-    <span class="modulo-icono">💵</span>
-    <span class="modulo-nombre">Caja menor Nuvia</span>
-    <span class="modulo-desc">Sin acceso</span>
-  </div>
-  {% endif %}
-  <div class="modulo disabled" title="Próximamente">
-    <span class="modulo-icono">🛒</span>
-    <span class="modulo-nombre">Compras</span>
-    <span class="modulo-desc">Próximamente</span>
-  </div>
-  {% if puede_sst(user) %}
-  <a class="modulo" href="/sst">
-    <span class="modulo-icono">🦺</span>
-    <span class="modulo-nombre">SST</span>
-    <span class="modulo-desc">Inventario de EPP</span>
-  </a>
-  {% else %}
-  <div class="modulo disabled" title="Sin acceso">
-    <span class="modulo-icono">🦺</span>
-    <span class="modulo-nombre">SST</span>
-    <span class="modulo-desc">Sin acceso</span>
-  </div>
-  {% endif %}
-</div>
-{% if user.tiene_modulo('design_schedule') %}
+{% if not modo_editar and user.tiene_modulo('design_schedule') %}
 <script>
-// ESC en Módulos lleva al Schedule de Design: cada persona a su propio equipo y los admins a la vista de todas las áreas
+// ESC lleva al Schedule de Design: cada persona a su propio equipo y los admins a la vista de todas las áreas
 // (Design decide el destino según su rol dentro de Design).
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape' || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
@@ -120,6 +116,5 @@ document.addEventListener('keydown', function(e) {
   location.href = '/design?esc=1';
 });
 </script>
-{% endif %}
 {% endif %}
 {% endblock %}
