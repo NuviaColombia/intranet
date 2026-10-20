@@ -16,7 +16,18 @@ Gotchas · Quién aprueba cambios sensibles (si aplica).
 
 - [sst.md](sst.md) -- Control de inventario de EPP (Nuvia Smiles)
 - [custodia.md](custodia.md) -- Cambio de custodia y Producción (Nuvia Smiles)
+- [consumo.md](consumo.md) -- Seguimiento de consumo (Nuvia Smiles, mismo acceso que Custodia)
+- [conteo.md](conteo.md) -- Conteo inventario mensual (Nuvia Smiles)
+- [caja_menor.md](caja_menor.md) -- Caja Menor Nuvia
+- [permisos.md](permisos.md) -- Permisos / Vacaciones (People, ambas empresas)
+- [design.md](design.md) -- Design Schedule (mapa general; el detalle de Openings sigue en
+  `CLAUDE.md`, es la nota que más se ha roto y conviene dejarla donde toda sesión la lee primero)
 
-Para el módulo Design, la nota equivalente ya vive en `CLAUDE.md` (la regla de Openings) porque
-es la que más veces se ha roto; cuando este formato de wiki se extienda a Design, esa nota se
-debería mover aquí y dejar solo un enlace en `CLAUDE.md`.
+## Hallazgos pendientes de revisar (encontrados escribiendo estas páginas, no corregidos)
+
+Dos módulos más tienen el mismo tipo de bug de "company-scoping" que ya se corrigió en SST y
+Custodia -- un admin/superadmin entra sin revisar su empresa. Quedó anotado en la página de cada
+uno para no perderlo, pero **nadie lo ha arreglado todavía**:
+- Caja Menor (`services_caja.es_admin`) -- ver el gotcha en [caja_menor.md](caja_menor.md).
+- Conteo inventario mensual (`services_conteo.es_admin`, uno propio distinto al de
+  `acceso_produccion`) -- ver el gotcha en [conteo.md](conteo.md).
