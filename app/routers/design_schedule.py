@@ -1011,10 +1011,18 @@ def _verificar_equipo(db: Session, user: Empleado, team_id: int) -> DesignTeam:
     return team
 
 
+def _es_support(db: Session, user: Empleado) -> bool:
+    from .. import services_design_support as ss
+    return user.id in ss.ids_support(db, sd.ahora_colombia().date())
+
+
 def _verificar_equipo_ver(db: Session, user: Empleado, team_id: int) -> DesignTeam:
-    """Para VER un día: igual que _verificar_equipo, pero el Schedule de Training lo ve todo el mundo."""
+    """Para VER un día: igual que _verificar_equipo, pero el Schedule de Training lo ve todo el mundo, y las personas de
+    Support ven el de cualquier equipo (ahí trabajan los casos que les asignan con «Support Designer»; 20-oct-2026)."""
     team = db.get(DesignTeam, team_id)
     if team and sd.es_training(team):
+        return team
+    if team and team.area.formato != sd.FORMATO_SUPPORT and _es_support(db, user):
         return team
     return _verificar_equipo(db, user, team_id)
 
@@ -1035,7 +1043,9 @@ def _areas_json(db: Session) -> list[dict]:
 def api_teams(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                     db: Session = Depends(get_db)):
     ids_designer = sd.equipos_como_designer(db, user)
-    equipos = [t for t in sd.equipos_de_area(db, area_id) if sd.puede_ver_equipo(user, t, ids_designer)]
+    support = _es_support(db, user)   # Support ve todos los equipos (solo sus casos asignados en cada uno)
+    equipos = [t for t in sd.equipos_de_area(db, area_id)
+               if sd.puede_ver_equipo(user, t, ids_designer) or (support and t.area.formato != sd.FORMATO_SUPPORT)]
 
     def designers(t):
         ds = t.designers if (sd.gestiona_equipo(user, t) or sd.es_training(t)) else [d for d in t.designers if d.empleado_id == user.id]
@@ -1083,6 +1093,9 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     miembro = team.id in sd.equipos_como_designer(db, user)
     dia = sd.datos_dia(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
     dia["miId"] = user.id
+    if team.area.nombre == sd.AREA_N3:   # «🛟 Support Designer» en la columna Diseñador (y la etiqueta «(Support)»)
+        from .. import services_design_support as ss
+        dia["supportIds"] = sorted(ss.ids_support(db, sd.ahora_colombia().date()))
     dia["ayudas"] = say.ayudas_del_equipo(db, team.id, _fecha(fecha))   # diseñadores enviados como ayuda a este equipo hoy
     dia["puedeAyuda"] = say.puede_pedir_en_orden(db, user, team.id, _fecha(fecha))   # «Pedir ayuda…» al final de la lista de Diseñador
     # Permiso para editar días cerrados (Parámetros › Equipos): ese día se abre solo para esta persona

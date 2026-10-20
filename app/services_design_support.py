@@ -152,6 +152,7 @@ def agregar_cobertura(db: Session, turno: int, empleado_id: int, desde: date, ha
     db.add(DesignSupportCobertura(turno=turno, empleado_id=empleado_id, desde=desde, hasta=hasta, asignado_por=por))
     db.commit()
     _COB_CACHE["v"] = None
+    _IDS_CACHE["v"] = None
     return None
 
 
@@ -162,6 +163,7 @@ def quitar_cobertura(db: Session, cobertura_id: int) -> bool:
     db.delete(x)
     db.commit()
     _COB_CACHE["v"] = None
+    _IDS_CACHE["v"] = None
     return True
 
 
@@ -200,6 +202,73 @@ def estado(db: Session, hoy: date) -> dict:
             "cubierto": {"id": cub["empleadoId"], "nombre": cub["nombre"], "hasta": cub["hasta"]} if cub else None,
         })
     return out
+
+
+# ---------- Support Designer (Rosember, 20-oct-2026) ----------
+# En los Schedules de N3 la columna Diseñador tiene «🛟 Support Designer»: asigna el caso a quien está de turno en Support
+# en ese momento (o a quien cubre ese turno). Las personas de Support pueden abrir el Schedule de cualquier equipo para
+# trabajar ahí sus casos asignados (como un diseñador prestado).
+_IDS_CACHE: dict = {"t": 0.0, "dia": None, "v": None}
+
+
+def _min(h: str) -> int | None:
+    try:
+        a, b = [int(x) for x in (h or "").split(":")[:2]]
+        return a * 60 + b
+    except ValueError:
+        return None
+
+
+def turno_activo(c: DesignSupportConfig, minuto: int) -> int:
+    """El turno que corre a esta hora; si ninguno, el próximo en empezar hoy; si no, el 1."""
+    activos, proximos = [], []
+    for n in (1, 2):
+        ini, fin = (_min(c.turno1_inicio), _min(c.turno1_fin)) if n == 1 else (_min(c.turno2_inicio), _min(c.turno2_fin))
+        if ini is None or fin is None:
+            continue
+        dentro = ini <= minuto < fin if ini < fin else (minuto >= ini or minuto < fin)   # un turno puede pasar la medianoche
+        if dentro:
+            activos.append((ini, n))
+        elif ini > minuto:
+            proximos.append((ini, n))
+    if activos:
+        return max(activos)[1]   # si se cruzan, el que empezó de último (el que acaba de entrar)
+    return min(proximos)[1] if proximos else 1
+
+
+def en_turno(db: Session, ahora: datetime) -> dict | None:
+    """Quién atiende Support en este momento: {id, nombre, turno, turnoNombre, cubre} (cubre = nombre de a quién reemplaza)."""
+    c = config(db)
+    if not listo(c):
+        return None
+    hoy = ahora.date()
+    n = turno_activo(c, ahora.hour * 60 + ahora.minute)
+    titular = turnos_en(c, hoy).get(n)
+    cob = (db.query(DesignSupportCobertura).filter(DesignSupportCobertura.turno == n, DesignSupportCobertura.desde <= hoy,
+                                                   DesignSupportCobertura.hasta >= hoy).first())
+    pid = cob.empleado_id if cob else titular
+    e = db.get(Empleado, pid) if pid else None
+    if not e:
+        return None
+    t = db.get(Empleado, titular) if titular else None
+    return {"id": e.id, "nombre": e.nombre_completo, "turno": n, "turnoNombre": _turno(c, n)["nombre"],
+            "cubre": (t.nombre_completo if (cob and t) else "")}
+
+
+def ids_support(db: Session, hoy: date) -> set[int]:
+    """Personas de Support hoy: las dos de la rotación, quien cubre un turno y los miembros de equipos de Support. 20 s."""
+    import time as _t
+    c = _IDS_CACHE
+    if c["v"] is not None and c["dia"] == hoy and _t.monotonic() - c["t"] < 20:
+        return c["v"]
+    from .models_design import DesignArea, DesignTeam, DesignTeamDesigner
+    cfg = config(db)
+    v = {i for i in (cfg.persona_a_id, cfg.persona_b_id) if i} | empleados_cubriendo(db, hoy)
+    v |= {i for (i,) in (db.query(DesignTeamDesigner.empleado_id).join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+                         .join(DesignArea, DesignArea.id == DesignTeam.area_id)
+                         .filter(DesignArea.formato == "support", DesignTeam.activo == 1))}
+    c["t"], c["dia"], c["v"] = _t.monotonic(), hoy, v
+    return v
 
 
 def _dias_txt(dias: list[int]) -> str:

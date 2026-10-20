@@ -1631,7 +1631,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         # En Support el 'Diseñador' es el del caso: se elige entre todos los diseñadores de Design (y al final los managers).
         salida["designersCaso"] = disenadores_de_todos_los_equipos(db) + managers_de_todos_los_equipos(db)
     if solo_empleado_id is not None:
-        salida["prestadas"] = ordenes_prestadas(db, solo_empleado_id, fecha)
+        salida["prestadas"] = [o for o in ordenes_prestadas(db, solo_empleado_id, fecha) if o["teamId"] != team.id]
     elif team.area.formato != FORMATO_SUPPORT:
         salida["prestadosEquipo"] = prestados_por_disenador(db, [d.empleado_id for d in designers], fecha)
     return salida

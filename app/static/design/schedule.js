@@ -1042,6 +1042,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         if (input.dataset.campo === 'designerId' && input.value === '__otro') { dsElegirPrestado(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__training') { dsMoverATraining(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__ayuda') { dsPedirAyuda(tr, input); return; }
+        if (input.dataset.campo === 'designerId' && input.value === '__support') { dsAsignarSupport(tr, tabla, input); return; }
         if (input.dataset.campo === 'orden' && DS.areaFormato === 'support' && tabla !== 'prestadas' && input.value.trim()) {
           dsAutocompletarSupport(tr, tabla, input); return;
         }
@@ -1071,6 +1072,21 @@ window.addEventListener('unhandledrejection', function(ev) {
     var id = parseInt(tr.dataset.id);
     if (!id) { dsToast('Guarda primero la orden (número y centro) para pedir ayuda.'); return; }
     if (window.DSAyuda) window.DSAyuda.solicitar(id);
+  }
+  // «🛟 Support Designer»: el servidor dice quién está de turno en Support ahora (o quién cubre ese turno)
+  function dsAsignarSupport(tr, tabla, sel) {
+    sel.value = sel.dataset.previo || '';
+    api('/design/api/support/en-turno').then(function(d) {
+      if (!tr.isConnected) return;
+      var v = String(d.id);
+      if (!sel.querySelector('option[value="' + v + '"]')) {
+        var opt = document.createElement('option'); opt.value = v; opt.text = (d.corto || d.nombre) + ' (Support)'; opt.title = d.nombre;
+        sel.insertBefore(opt, sel.querySelector('option[value^="__"]'));
+      }
+      sel.value = v;
+      dsGuardarFila(tr, tabla);
+      dsToast('Asignado a ' + d.nombre + ' · Support de turno (' + d.turnoNombre + ')' + (d.cubre ? ', cubriendo a ' + d.cubre : '') + '.');
+    }).catch(function(e) { alert('No se pudo asignar a Support: ' + e.message); });
   }
   function dsElegirPrestado(tr, tabla, sel) {
     sel.value = sel.dataset.previo || ''; // mientras se elige, la celda conserva lo que tenía
@@ -1775,12 +1791,17 @@ window.addEventListener('unhandledrejection', function(ev) {
                 (d.esManager ? ' (manager)' : '') + (d.esAyuda ? ' (ayuda)' : '') + '</option>';
       });
       if (val && !lista.some(function(d) { return d.id === val; })) {
+        var esSup = DS.diaData && (DS.diaData.supportIds || []).indexOf(val) >= 0;
         html += '<option value="' + dsEsc(val) + '" selected title="' + dsEsc(f.designerNombre || '') + '">' +
-                dsEsc((f.designerCorto || f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : ' (prestado)')) + '</option>';
+                dsEsc((f.designerCorto || f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : esSup ? ' (Support)' : ' (prestado)')) + '</option>';
       }
       if (DS.diaData && !DS.diaData.designersCaso && !dsSoloPropias()) html += '<option value="__otro">Others (prestado)…</option>';
       if (f.id && f.tabla === 'principal' && dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado()) {
         html += dsOpcionTraining(f);   // pasa el caso al Schedule de Training (se habilita con orden, paciente y centro)
+      }
+      // N3: asignar el caso a quien está de turno en Support (o a quien lo cubre) (20-oct-2026)
+      if (dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado() && DS.diaData && DS.diaData.supportIds) {
+        html += '<option value="__support">🛟 Support Designer</option>';
       }
       // Pedir ayuda (19-oct-2026): al final de la lista, en las órdenes ya guardadas de hoy del aprobador de un equipo de N3
       html += DS_OPCION_COLORES;   // colores de cada diseñador (preferencia de este PC); «Pedir ayuda…» sigue siendo la última

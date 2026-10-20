@@ -49,6 +49,16 @@ def api_probar_cliq(user: Empleado = Depends(require_admin), db: Session = Depen
     return {"ok": ok, "detalle": detalle}
 
 
+@router.get("/design/api/support/en-turno")
+def api_support_en_turno(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """«🛟 Support Designer» (Schedules de N3): quién atiende Support en este momento (o quien cubre ese turno)."""
+    d = ss.en_turno(db, sd.ahora_colombia())
+    if not d:
+        raise HTTPException(404, "Support Time no está configurado (Parameters › Support Time): no se sabe quién está de turno.")
+    e = db.get(Empleado, d["id"])
+    return {**d, "corto": sd.nombre_corto(e)}
+
+
 class CoberturaIn(BaseModel):
     turno: int
     empleadoId: int
