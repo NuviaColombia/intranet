@@ -3,7 +3,7 @@ accesos al módulo (con el área asignada de cada persona) y, de Cambio de custo
 producción, catálogo de discos y motivos. Solo administradores."""
 from fastapi import APIRouter, Request, Depends, Form
 from ..concurrencia import RutaGeneral
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
@@ -212,8 +212,6 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
                                        "resumen": resumen, "por_empleado": por_empleado,
                                        "areas_activas": sc.areas_disponibles(db),
                                        "es_custodia": True, "msg": request.query_params.get("msg"),
-                                       "cargo_coincide": {m.id: sc.cargo_coincide_con_area(m.cargo, m.area_custodia)
-                                                          for m in managers},
                                        "custodia_pendientes": len(sc.pendientes_entrada(db))})
 
 
@@ -269,12 +267,14 @@ def agregar_manager(user: Empleado = Depends(require_admin_produccion), db: Sess
 
 
 @router.post("/inventario/parametros/managers/{empleado_id}")
-def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin_produccion),
+def actualizar_manager(empleado_id: int, request: Request, user: Empleado = Depends(require_admin_produccion),
                              db: Session = Depends(get_db), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
     emp = db.get(Empleado, empleado_id)
     if emp:
         emp.area_custodia = _areas_asignadas(area_custodia, area_custodia_2)
         db.commit()
+    if request.headers.get("x-requested-with") == "fetch":  # guardado en línea desde la tabla, sin recargar
+        return JSONResponse({"ok": bool(emp), "areas": emp.areas_custodia if emp else []})
     return RedirectResponse("/inventario/parametros?msg=Área(s) asignada(s) actualizada(s).", status_code=303)
 
 

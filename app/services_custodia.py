@@ -493,22 +493,6 @@ def cargo_people(emp) -> str:
     return (emp.cargo or "").strip() if emp else ""
 
 
-def _sin_tildes(texto: str) -> str:
-    import unicodedata
-    return "".join(c for c in unicodedata.normalize("NFD", texto or "") if unicodedata.category(c) != "Mn").upper()
-
-
-def cargo_coincide_con_area(cargo: str, area: str) -> bool:
-    """True si el cargo de People menciona el área asignada (ej. "MANAGER GLAZE" y "GLAZE",
-    "DIRECTOR DE PRODUCCION" y "DIR PRODUCCIÓN"). Sin área asignada no hay nada que comparar."""
-    if not area:
-        return True
-    if "," in area:  # varias áreas asignadas: basta con que el cargo mencione una
-        return any(cargo_coincide_con_area(cargo, a) for a in area.split(",") if a.strip())
-    import re
-    cargo_n = _sin_tildes(cargo)
-    palabras = [p for p in re.split(r"[^A-Z0-9]+", _sin_tildes(area)) if len(p) >= 2 and p not in ("DE", "DEL", "LA")]
-    return any(p in cargo_n for p in palabras)
 
 
 def _nombre_firma(emp) -> str:

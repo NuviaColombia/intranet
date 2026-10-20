@@ -36,7 +36,8 @@
   .cp-estado { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; }
   .cp-estado.si { background:#dcfce7; color:var(--verde); }
   .cp-estado.no { background:#e5e7eb; color:var(--gris); }
-  .cp-aviso-cargo { font-size:11px; color:var(--ambar); margin-top:2px; }
+  .cp-toggle-segunda { font-size:11px; }
+  .cp-guardado { font-size:11px; color:var(--verde); margin-left:6px; }
   .cp-vacio { text-align:center; color:var(--gris); padding:18px !important; }
   .cp-panel .btn:disabled { opacity:.45; cursor:not-allowed; }
 </style>
@@ -74,9 +75,11 @@
     (elígelo en la lista <b>Submódulo</b> › pestaña 👤 Accesos), y ahí mismo, en la columna <b>Secciones</b>, eliges qué pestañas puede usar cada persona.
     Los administradores entran a todos.</div></div>
   <div class="cp-ayuda" style="max-width:900px; margin:8px 0 12px; padding:10px 12px; background:#EEF2FF; border-radius:8px;">
-    🔐 <b>Quién puede entrar a Parámetros</b>: los <b>administradores de Producción</b> (pestaña 🛡️, solo a Producción) y los <b>administradores</b> de la intranet
-    (rol Administrador o Superadministrador en People › Empleados, a Producción y a Caja menor):
+    🔐 <b>Quién puede entrar a Parámetros</b>:
+    los <b>administradores</b> de la intranet (rol Administrador o Superadministrador en People › Empleados, a Producción y a Caja menor):
     {% for a in administradores %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ' (superadmin)' if a.rol == 'superadmin' }}{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
+    Y los <b>administradores de Producción</b> (pestaña 🛡️, solo a Producción):
+    {% for a in admins_produccion %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
   </div>
   <table class="cp-tabla">
     <tr><th>Persona</th><th>Cargo</th>{% for s in submodulos_produccion %}<th style="text-align:center">{{ s.icono }} {{ s.nombre }}</th>{% endfor %}</tr>
@@ -174,13 +177,15 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
       <div><button class="btn mini">Dar acceso</button></div>
     </form>
   </details>
-  <table class="cp-tabla">
+  {% if managers|length > 5 %}
+  <input type="search" id="buscar-manager" placeholder="Buscar por nombre o cargo…" style="width:100%; max-width:320px; margin-bottom:8px">
+  {% endif %}
+  <table class="cp-tabla" id="tabla-managers">
     <tr><th>Persona</th><th>Cargo</th><th>Área asignada</th><th>Secciones</th><th></th></tr>
     {% for m in managers %}
-    <tr>
+    <tr data-buscar="{{ (m.nombre_completo ~ ' ' ~ m.cargo)|lower }}">
       <td>{{ m.nombre_completo|nombre_propio }}</td>
-      <td>{{ m.cargo }}
-        {% if not cargo_coincide[m.id] %}<div class="cp-aviso-cargo" title="El cargo viene de People; la firma y los avisos usan el área asignada.">⚠️ No coincide con el área asignada ({{ m.areas_custodia|map('nombre_propio')|join(' y ') }})</div>{% endif %}</td>
+      <td>{{ m.cargo }}</td>
       <td>
         <form id="f-man-{{ m.id }}" method="post" action="/inventario/parametros/managers/{{ m.id }}"></form>
         {% set mis_areas = m.areas_custodia %}
@@ -190,16 +195,21 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
           <option value="{{ a }}" {{ 'selected' if mis_areas and mis_areas[0] == a }}>{{ a|nombre_propio }}</option>
           {% endfor %}
         </select>
-        <select name="area_custodia_2" form="f-man-{{ m.id }}" title="Segunda área (opcional, máximo 2)" style="margin-top:4px">
-          <option value="">-- Segunda área (opcional) --</option>
-          {% for a in areas_activas %}
-          <option value="{{ a }}" {{ 'selected' if mis_areas|length > 1 and mis_areas[1] == a }}>{{ a|nombre_propio }}</option>
-          {% endfor %}
-        </select>
+        <span class="cp-segunda-wrap">
+          <a href="#" class="cp-toggle-segunda" style="{{ 'display:none' if mis_areas|length > 1 }}">+ segunda área</a>
+          <select name="area_custodia_2" form="f-man-{{ m.id }}" title="Segunda área (opcional, máximo 2)"
+                  class="cp-segunda" style="margin-top:4px; {{ 'display:none' if mis_areas|length <= 1 }}">
+            <option value="">-- Segunda área (opcional) --</option>
+            {% for a in areas_activas %}
+            <option value="{{ a }}" {{ 'selected' if mis_areas|length > 1 and mis_areas[1] == a }}>{{ a|nombre_propio }}</option>
+            {% endfor %}
+          </select>
+        </span>
       </td>
       <td>{{ celda_secciones(m, "custodia", secciones_cfg.custodia, "/inventario/parametros?tab=managers") }}</td>
       <td class="cp-acciones">
         <button class="btn mini" form="f-man-{{ m.id }}">Guardar</button>
+        <span class="cp-guardado"></span>
         <form class="inline" method="post" action="/inventario/parametros/managers/{{ m.id }}/quitar"
               data-nombre="{{ m.nombre_completo|nombre_propio }}"
               onsubmit="return confirm('¿Quitar el acceso a Cambio de custodia de ' + this.dataset.nombre + '?')">
@@ -211,6 +221,44 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
     {% endfor %}
   </table>
 </div>
+<script>
+(function() {
+  var tabla = document.getElementById('panel-managers');
+  var buscar = document.getElementById('buscar-manager');
+  if (buscar) {
+    buscar.addEventListener('input', function() {
+      var q = buscar.value.trim().toLowerCase();
+      document.querySelectorAll('#tabla-managers tr[data-buscar]').forEach(function(tr) {
+        tr.style.display = (!q || tr.dataset.buscar.indexOf(q) >= 0) ? '' : 'none';
+      });
+    });
+  }
+  // Segunda área: oculta por defecto si no hay una asignada; "+ segunda área" la muestra.
+  tabla.querySelectorAll('.cp-toggle-segunda').forEach(function(a) {
+    a.addEventListener('click', function(ev) {
+      ev.preventDefault();
+      a.style.display = 'none';
+      a.parentElement.querySelector('.cp-segunda').style.display = '';
+    });
+  });
+  // Guardar sin recargar la página.
+  tabla.querySelectorAll('form[id^="f-man-"]').forEach(function(form) {
+    form.addEventListener('submit', function(ev) {
+      ev.preventDefault();
+      var estado = form.closest('tr').querySelector('.cp-guardado');
+      fetch(form.action, {method: 'POST', body: new FormData(form), credentials: 'same-origin',
+                           headers: {'X-Requested-With': 'fetch'}})
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(d) {
+          if (!estado) return;
+          estado.textContent = d.ok ? '✓ Guardado' : 'No se pudo guardar';
+          setTimeout(function() { estado.textContent = ''; }, 2500);
+        })
+        .catch(function() { form.submit(); });  // si falla el fetch, el envío normal (con recarga) sigue funcionando
+    });
+  });
+})();
+</script>
 
 {# ---------- Áreas de producción ---------- #}
 <div class="cp-panel" id="panel-areas">
