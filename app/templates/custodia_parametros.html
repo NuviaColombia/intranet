@@ -36,8 +36,9 @@
   .cp-estado { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; }
   .cp-estado.si { background:#dcfce7; color:var(--verde); }
   .cp-estado.no { background:#e5e7eb; color:var(--gris); }
-  .cp-toggle-segunda { font-size:11px; }
   .cp-guardado { font-size:11px; color:var(--verde); margin-left:6px; }
+  .cp-areas-multi { min-width:160px; }
+  .cp-areas-ayuda { font-size:10px; color:var(--gris); margin-top:2px; }
   .cp-vacio { text-align:center; color:var(--gris); padding:18px !important; }
   .cp-panel .btn:disabled { opacity:.45; cursor:not-allowed; }
 </style>
@@ -157,22 +158,13 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
         </select>
       </div>
       <div style="min-width:180px">
-        <label>Área asignada</label>
-        <select name="area_custodia">
-          <option value="">-- Sin asignar --</option>
+        <label>Área(s) asignada(s)</label>
+        <select name="area_custodia" multiple size="4" class="cp-areas-multi">
           {% for a in areas_activas %}
           <option value="{{ a }}">{{ a|nombre_propio }}</option>
           {% endfor %}
         </select>
-      </div>
-      <div style="min-width:180px">
-        <label>Segunda área (opcional)</label>
-        <select name="area_custodia_2">
-          <option value="">-- Ninguna --</option>
-          {% for a in areas_activas %}
-          <option value="{{ a }}">{{ a|nombre_propio }}</option>
-          {% endfor %}
-        </select>
+        <div class="cp-areas-ayuda">Ctrl/Cmd + clic para elegir hasta 2</div>
       </div>
       <div><button class="btn mini">Dar acceso</button></div>
     </form>
@@ -189,22 +181,13 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
       <td>
         <form id="f-man-{{ m.id }}" method="post" action="/inventario/parametros/managers/{{ m.id }}"></form>
         {% set mis_areas = m.areas_custodia %}
-        <select name="area_custodia" form="f-man-{{ m.id }}" title="Área principal (área de salida por defecto)">
-          <option value="">-- Sin asignar --</option>
+        <select name="area_custodia" form="f-man-{{ m.id }}" multiple size="3" class="cp-areas-multi"
+                title="Hasta 2 áreas; la primera (según el orden de la pestaña Áreas) es la de salida por defecto">
           {% for a in areas_activas %}
-          <option value="{{ a }}" {{ 'selected' if mis_areas and mis_areas[0] == a }}>{{ a|nombre_propio }}</option>
+          <option value="{{ a }}" {{ 'selected' if a in mis_areas }}>{{ a|nombre_propio }}</option>
           {% endfor %}
         </select>
-        <span class="cp-segunda-wrap">
-          <a href="#" class="cp-toggle-segunda" style="{{ 'display:none' if mis_areas|length > 1 }}">+ segunda área</a>
-          <select name="area_custodia_2" form="f-man-{{ m.id }}" title="Segunda área (opcional, máximo 2)"
-                  class="cp-segunda" style="margin-top:4px; {{ 'display:none' if mis_areas|length <= 1 }}">
-            <option value="">-- Segunda área (opcional) --</option>
-            {% for a in areas_activas %}
-            <option value="{{ a }}" {{ 'selected' if mis_areas|length > 1 and mis_areas[1] == a }}>{{ a|nombre_propio }}</option>
-            {% endfor %}
-          </select>
-        </span>
+        <div class="cp-areas-ayuda">Ctrl/Cmd + clic para elegir hasta 2</div>
       </td>
       <td>{{ celda_secciones(m, "custodia", secciones_cfg.custodia, "/inventario/parametros?tab=managers") }}</td>
       <td class="cp-acciones">
@@ -233,12 +216,11 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
       });
     });
   }
-  // Segunda área: oculta por defecto si no hay una asignada; "+ segunda área" la muestra.
-  tabla.querySelectorAll('.cp-toggle-segunda').forEach(function(a) {
-    a.addEventListener('click', function(ev) {
-      ev.preventDefault();
-      a.style.display = 'none';
-      a.parentElement.querySelector('.cp-segunda').style.display = '';
+  // Máximo 2 áreas elegidas (el resto no se desmarca solo, se avisa con el límite nativo del navegador no basta).
+  document.querySelectorAll('select.cp-areas-multi').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var elegidas = Array.prototype.filter.call(sel.options, function(o) { return o.selected; });
+      elegidas.slice(2).forEach(function(o) { o.selected = false; });
     });
   });
   // Guardar sin recargar la página.
@@ -372,35 +354,9 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
 {% include "consumo_parametros.html" %}
 {% include "conteo_parametros.html" %}
 
-{# ---------- Cambio de custodia: saldos iniciales ---------- #}
+{# ---------- Cambio de custodia: Stock por descripción ---------- #}
 <div class="cp-panel" id="panel-saldos">
-  <div class="cp-ayuda" style="max-width:900px">
-    Carga el <b>inventario inicial</b>: en qué área está cada orden y con qué cantidad de discos. Copia de tu Excel las tres columnas
-    <b>No ORDEN · CANTIDAD · ÁREA</b> y pégalas aquí (una orden por fila; sirve con o sin la fila de títulos, y con coma decimal).
-    Las áreas deben existir en la pestaña 🏭 Áreas. Cada orden queda recibida en su área y se puede seguir trasladando normalmente.
-  </div>
-  {% if saldos_cargados %}
-  <div style="margin:12px 0; padding:12px 14px; border-radius:8px; background:#dcfce7; color:#14532d; font-size:13px; max-width:900px;">
-    ✅ Ya hay saldos iniciales cargados: <b>{{ saldos_existentes|length }}</b> orden(es) en {{ saldos_cargados }} carga(s). Míralos en Cambio de custodia › Estado órdenes.<br>
-    Si quedaron órdenes por fuera, pégalas aquí abajo y cárgalas como <b>saldos adicionales</b>: no se repiten las que ya están
-    (misma orden en la misma área).
-  </div>
-  {% endif %}
-  <form method="post" action="/inventario/parametros/custodia/saldos" style="max-width:900px"
-        onsubmit="return confirm('¿Cargar ' + (window.saldosFilas || 0) + ' órdenes como saldo inicial con fecha de corte ' + document.getElementById('saldos-fecha').value.split('-').reverse().join('/') + '?');">
-    <textarea name="texto" id="saldos-texto" rows="10" style="width:100%; font-family:Consolas,monospace; font-size:13px;"
-              placeholder="No ORDEN&#9;CANTIDAD&#9;AREA&#10;510&#9;1&#9;DAMAGE&#10;85&#9;0,5&#9;GLAZE">{{ texto_saldos }}</textarea>
-    <div id="saldos-vista" style="margin:10px 0; font-size:13px;"></div>
-    <div style="display:flex; align-items:end; gap:12px; flex-wrap:wrap;">
-      <div><label style="display:block; font-size:12px; font-weight:700;">Fecha de corte</label>
-        <input type="date" name="fecha_corte" id="saldos-fecha" required style="width:auto" value="{{ fecha_corte_anterior or '' }}"
-               title="Los saldos quedan registrados en esta fecha (00:00): los traslados de ese día o posteriores se suman después."></div>
-      <button class="btn mini" id="saldos-boton" disabled>📥 {{ 'Cargar saldos adicionales' if saldos_cargados else 'Cargar saldos iniciales' }}</button>
-    </div>
-  </form>
-
-  {# ---------- Stock por descripción (inventario inicial del Stock) ---------- #}
-  <h3 style="margin:28px 0 6px; font-size:15px; color:#1A365D;">📦 Stock por descripción</h3>
+  <h3 style="margin:0 0 6px; font-size:15px; color:#1A365D;">📦 Stock por descripción</h3>
   <div class="cp-ayuda" style="max-width:900px">
     A los discos de <b>Stock</b> de cada área asígnales su <b>descripción</b> (la misma del Resumen general, ej. NDZ-B1-A10-N).
     Desde ahí el sistema lleva el inventario por descripción: lo que llega al Stock toma las descripciones del Resumen general del traslado,
@@ -449,47 +405,6 @@ document.querySelectorAll('.buscar-persona-adm').forEach(function(inp) {
   <div class="cp-vacio" style="max-width:900px">Ninguna área tiene discos de Stock en este momento.</div>
   {% endif %}
 </div>
-<script>
-(function() {
-  var ta = document.getElementById('saldos-texto');
-  if (!ta) return;
-  var AREAS = {{ areas_config|tojson }};
-  var YA_CARGADOS = {{ saldos_existentes|tojson }};  // "orden|ÁREA" que ya tienen saldo inicial
-  function leer(texto) {
-    var filas = [], errores = [];
-    texto.split(/\r?\n/).forEach(function(linea, i) {
-      if (!linea.trim()) return;
-      var p = linea.indexOf('\t') >= 0 ? linea.split('\t') : (linea.indexOf(';') >= 0 ? linea.split(';') : linea.trim().split(/\s+/));
-      p = p.map(function(x) { return x.trim(); }).filter(function(x) { return x !== ''; });
-      if (p.length < 3) { errores.push('Fila ' + (i + 1) + ': faltan datos'); return; }
-      var orden = p[0].toUpperCase(), txt = p[1], area = p.slice(2).join(' ').toUpperCase();
-      var cant = parseFloat(txt.indexOf(',') >= 0 ? txt.replace(/\./g, '').replace(',', '.') : txt);
-      if (isNaN(cant)) { if (!filas.length) return; errores.push('Fila ' + (i + 1) + ': cantidad «' + txt + '» no es un número'); return; }
-      if (AREAS.indexOf(area) < 0) { errores.push('Fila ' + (i + 1) + ': el área «' + area + '» no existe'); return; }
-      if (YA_CARGADOS.indexOf(orden + '|' + area) >= 0) { errores.push('Fila ' + (i + 1) + ': la orden ' + orden + ' ya tiene saldo inicial en ' + area); return; }
-      if (filas.some(function(f) { return f.orden === orden && f.area === area; })) { errores.push('Fila ' + (i + 1) + ': la orden ' + orden + ' está repetida en ' + area); return; }
-      filas.push({orden: orden, cant: cant, area: area});
-    });
-    return {filas: filas, errores: errores};
-  }
-  function pintar() {
-    var r = leer(ta.value), porArea = {}, total = 0;
-    r.filas.forEach(function(f) { porArea[f.area] = (porArea[f.area] || 0) + f.cant; total += f.cant; });
-    window.saldosFilas = r.filas.length;
-    var html = r.filas.length ? '<table class="cp-tabla" style="max-width:520px"><tr><th>Área</th><th style="text-align:right">Órdenes</th><th style="text-align:right">Discos</th></tr>' +
-      Object.keys(porArea).map(function(a) {
-        var n = r.filas.filter(function(f) { return f.area === a; }).length;
-        return '<tr><td>' + a + '</td><td style="text-align:right">' + n + '</td><td style="text-align:right">' + porArea[a].toLocaleString('es-CO') + '</td></tr>';
-      }).join('') + '<tr><td><b>Total</b></td><td style="text-align:right"><b>' + r.filas.length + '</b></td><td style="text-align:right"><b>' +
-      total.toLocaleString('es-CO') + '</b></td></tr></table>' : '';
-    if (r.errores.length) html += '<div class="aviso error" style="margin-top:8px">' + r.errores.slice(0, 8).join('<br>') + '</div>';
-    document.getElementById('saldos-vista').innerHTML = html;
-    document.getElementById('saldos-boton').disabled = !r.filas.length || r.errores.length > 0;
-  }
-  ta.addEventListener('input', pintar); pintar();
-})();
-</script>
-
 <script>
 (function() {
   // Recuerda la pestaña abierta: después de guardar, la página se recarga y vuelve a la misma.

@@ -189,16 +189,11 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
                                        "secciones_cfg": secciones_cfg, "administradores": administradores,
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
-                                       "saldos_cargados": sc.saldos_ya_cargados(db),
                                        "stock_inventario": sc.inventario_stock(db),
                                        "stock_iniciales": _stock_iniciales(db),
                                        "stock_area": request.query_params.get("stock_area", ""),
                                        "stock_texto": request.query_params.get("stock_texto", ""),
-                                       "saldos_existentes": sorted(f"{o}|{a}" for o, a in sc.saldos_existentes(db)),
-                                       "fecha_corte_anterior": (sc.ultima_fecha_corte(db) or "") and sc.ultima_fecha_corte(db).isoformat(),
-                                       "areas_config": [a.nombre for a in areas if a.activo],
-                                       "texto_saldos": request.query_params.get("texto", ""),
-                                       "conteo_panel": {"saldos": sc.saldos_ya_cargados(db),
+                                       "conteo_panel": {"saldos": len(_stock_iniciales(db)),
                                                         "managers": len(managers), "areas": len(areas), "discos": len(discos),
                                                         "motivos": len(motivos),
                                                         "c_accesos": len(consumo["accesos"]),
@@ -251,7 +246,7 @@ def quitar_admin_produccion(empleado_id: int, user: Empleado = Depends(require_a
 
 @router.post("/inventario/parametros/managers")
 def agregar_manager(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
-                          empleado_id: int = Form(...), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
+                          empleado_id: int = Form(...), area_custodia: list[str] = Form([])):
     emp = db.get(Empleado, empleado_id)
     if emp and emp.empresa == NUVIA_SMILES:
         modulos = set(emp.modulos_lista)
@@ -261,17 +256,17 @@ def agregar_manager(user: Empleado = Depends(require_admin_produccion), db: Sess
             db.add(ProduccionAcceso(empleado_id=emp.id, submodulo="custodia"))
         if emp.rol == "empleado":
             emp.rol = "aprobador"
-        emp.area_custodia = _areas_asignadas(area_custodia, area_custodia_2)
+        emp.area_custodia = _areas_asignadas(*area_custodia)
         db.commit()
     return RedirectResponse("/inventario/parametros?msg=Acceso a Cambio de custodia dado.", status_code=303)
 
 
 @router.post("/inventario/parametros/managers/{empleado_id}")
 def actualizar_manager(empleado_id: int, request: Request, user: Empleado = Depends(require_admin_produccion),
-                             db: Session = Depends(get_db), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
+                             db: Session = Depends(get_db), area_custodia: list[str] = Form([])):
     emp = db.get(Empleado, empleado_id)
     if emp:
-        emp.area_custodia = _areas_asignadas(area_custodia, area_custodia_2)
+        emp.area_custodia = _areas_asignadas(*area_custodia)
         db.commit()
     if request.headers.get("x-requested-with") == "fetch":  # guardado en línea desde la tabla, sin recargar
         return JSONResponse({"ok": bool(emp), "areas": emp.areas_custodia if emp else []})
