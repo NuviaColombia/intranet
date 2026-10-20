@@ -50,7 +50,8 @@ async def dato_invalido(request: Request, exc: ValueError):
 async def cabeceras_seguridad(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
+    if "X-Frame-Options" not in response.headers:   # solo el Pizarrón (/design/pizarron/app) pide SAMEORIGIN
+        response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     # La intranet no debe aparecer en buscadores (cubre también PDF, descargas y páginas sin base.html).

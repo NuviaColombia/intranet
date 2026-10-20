@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titulo %}Pizarrón{% endblock %}
+{% block contenido %}
+{# Training › Pizarrón (19-oct-2026): la barra de la intranet arriba y el pizarrón debajo, ocupando el resto de la
+   pantalla. Esc vuelve a la página anterior (lo maneja el script que va dentro del pizarrón; aquí, si el foco está
+   en la barra). Ver routers/design_pizarron.py. #}
+<style>
+  html, body { overflow: hidden; }
+  .pz-marco { margin: -24px -16px 0; }
+  .pz-marco iframe { display: block; width: 100%; border: 0; background: #1e2128; }
+</style>
+<div class="pz-marco">
+  <iframe id="pzFrame" title="Pizarrón" src="/design/pizarron/app{{ ('?' ~ consulta) if consulta }}"
+          allow="fullscreen; camera; microphone; display-capture; clipboard-read; clipboard-write; autoplay"
+          allowfullscreen></iframe>
+</div>
+<script>
+(function () {
+  var f = document.getElementById('pzFrame');
+  function alto() { f.style.height = Math.max(300, window.innerHeight - f.getBoundingClientRect().top) + 'px'; }
+  alto(); window.addEventListener('resize', alto);
+  f.addEventListener('load', function () { alto(); try { f.contentWindow.focus(); } catch (e) {} });
+  // Volver: a la página de la intranet de donde llegó; si llegó directo, a Training
+  window.nvVolverPizarron = function () {
+    var ref = '';
+    try { var u = new URL(document.referrer); if (u.origin === location.origin && u.pathname.indexOf('/design/pizarron') !== 0) ref = u.href; } catch (e) {}
+    if (ref && history.length > 1) history.back(); else location.href = ref || '/design/training';
+  };
+  // Esc con el foco en la barra (fuera del pizarrón): lo mismo que dentro, el pizarrón decide si hay algo abierto
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+    if (document.querySelector('.nav-drop-menu.open')) return;
+    var w = f.contentWindow;
+    if (w && w.nvVolver) w.nvVolver(); else window.nvVolverPizarron();
+  });
+})();
+</script>
+{% endblock %}
