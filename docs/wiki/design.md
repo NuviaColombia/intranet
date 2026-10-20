@@ -21,13 +21,20 @@ está dónde buscar y qué no romper sin pensarlo.
   `design_pizarron.py`, `design_reunion.py` -- funciones más puntuales (pedir ayuda entre
   aprobadores N3, calendario, cumpleaños, seguimiento de proyectos, pizarra digital, videollamada).
 
-**Tres excepciones por persona (no por rol) que vale la pena conocer antes de buscar un patrón de
-roles que no existe:**
+## Acceso: excepciones por persona (no por rol)
+
+Antes de buscar un patrón de roles que no existe:
 - **Mural**: los editores siempre lo ven; el resto, solo cuando hay algo publicado.
-- **Development**: admins, más dos personas puntuales (Luis Felipe Blaschke y Paul Andion, a
-  pedido de Rosember).
+- **Development**: admins, Luis Felipe Blaschke y Paul Andion (`DEV_ESPECIALES`) y los invitados,
+  estos en solo lectura (Rosember, 19–20-oct-2026).
 - **Calendario en People**: Pamela Manzur y Nicol Ardila (de People, no de Design) ven el
   Calendario de Design en su propio menú -- una excepción cruzada entre empresas, no un rol.
+- **Support** (las dos personas de la rotación de Support Time, quien cubre un turno ese día y los
+  miembros de equipos de Support; `services_design_support.ids_support`): abren el Schedule de
+  cualquier equipo y ahí ven y trabajan solo los casos asignados a ellos, como un prestado
+  (`es_orden_prestada_a`). No crean ni borran órdenes de ese equipo (20-oct-2026).
+- **Diseñador prestado**: edita la orden de otro equipo que tiene asignada; al pasar el caso al día
+  siguiente (`trasladar_holds`) vuelve sin diseñador.
 
 **Invitados de solo lectura** (`app/invitados.py`, Parameters › Invitados): entran con Zoho, dentro
 de Design se tratan como admin para ver todo, y `auth.get_current_user` rechaza cualquier petición
@@ -38,6 +45,42 @@ que no sea de lectura en toda la plataforma (salvo su push y su modo oscuro). Su
 persona por completo; fuera de Design, todo queda en solo lectura. Regla de seguridad: un
 superadmin puede simular a cualquiera; un admin normal solo a alguien de su propia empresa, y
 **nunca** a un superadmin.
+
+## Reglas de negocio del Schedule
+
+- **Approved en N3 › Cirugías** exige Orden, Paciente, Centro, Producto, Diseñador, START, RTD,
+  Inicio diseño y Crítico; si hay Start hold, también Re-initiated. QC es opcional. Lo valida el
+  servidor (`faltan_para_aprobar`) y la pantalla hace parpadear lo que falta (`DS_APROBAR_N3`).
+  No aplica a los casos de Removable Denture (Rosember, 19-oct-2026).
+- **Crítico** (N3) es de selección múltiple: se guarda como «A; B»; N/A va sola.
+- **Total de la orden** = Fin − Inicio − Hold, con horas sin fecha. Dos correcciones que no se
+  deben deshacer: varias noches en Hold suman los días perdidos (`_menos_hold`), y un Hold sin
+  Re-initiated termina en el Fin (`_fin_hold`; antes un Hold del viernes aprobado el lunes contaba
+  el fin de semana). Fórmula idéntica en `duracion_orden_min` y `dsDuracionMin`.
+- **Descansos seguidos**: si al marcar un descanso el otro sigue corriendo, el nuevo empieza cuando
+  termina aquel (19-oct-2026).
+- **Contadores**: «Canceladas» cuenta toda orden con datos en Canceled, aunque no tenga diseñador;
+  los demás contadores solo cuentan órdenes completas (centro, producto y diseñador).
+- **Producción del día**: los casos hechos como prestado suman al diseñador
+  (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`). En
+  Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
+- **Support Designer** (N3): asigna el caso a quien atiende Support en ese momento: el turno que
+  corre según la rotación o, si ese turno tiene cobertura activa, quien lo reemplaza
+  (`services_design_support.en_turno`).
+
+## Base de datos (cambios recientes, autorizados por Rosember)
+
+- 19-oct-2026: `design_cumple_vistos`, `design_dev_*` (Development), `design_ordenes.critico`
+  pasa a 300 caracteres (solo en PostgreSQL).
+- 20-oct-2026: `design_dev_apoyos`, `design_invitados`, columna `design_ordenes.arco`. Área y
+  equipo «Removable Denture» creados solos por `rd_una_vez`.
+
+## Integraciones
+
+- **Push fijo** (se queda hasta que lo cierren): Face → N2 al llegar una orden aprobada, y a la
+  persona de Support cuando un equipo de N3 le asigna un caso (`_push_caso_a_support`).
+- **Cliq**: el bot «Anuncios Design» avisa el cambio de turno de Support; necesita
+  `DESIGN_CLIQ_WEBHOOK_TOKEN` (o `DESIGN_CLIQ_REFRESH_TOKEN`) en Render.
 
 ## Gotchas
 

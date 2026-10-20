@@ -4,10 +4,30 @@ Páginas cortas por módulo: qué hace, dónde vive, cómo fluyen los datos y qu
 idea es no tener que releer el código fuente completo cada vez que una sesión nueva (mía o de
 Rosember/Carlos) necesita tocar un módulo que no construyó.
 
-**Cuándo actualizarla**: al terminar un cambio que no sea obvio con solo leer el código --
-una regla de negocio, un gotcha de seguridad ya corregido una vez, una decisión de diseño que
-costó una investigación larga. No hace falta documentar cada función; sí vale la pena documentar
-lo que, si se te olvida, puede volver a romperse.
+## Regla: qué se registra
+
+Obligatorio (ver `CLAUDE.md`): si un cambio entra en alguna de estas categorías, se anota en la
+página de su módulo **en el mismo commit**, en una o dos líneas, con la fecha y quién lo pidió.
+
+1. **Acceso**: quién entra o ve algo, sobre todo las excepciones por persona (correos o nombres
+   en el código), roles nuevos, invitados y lo que alguien puede hacer en un equipo que no es el
+   suyo.
+2. **Reglas de negocio**: validaciones que bloquean algo (p. ej. qué se exige para un estado),
+   automatismos (qué llena o mueve el sistema solo) y fórmulas de lo que se calcula (totales,
+   contadores, producción).
+3. **Base de datos**: tablas o columnas nuevas, migraciones al arrancar y datos que se crean solos
+   (siembras «una vez»). Incluye quién lo autorizó.
+4. **De dónde sale cada dato**: si un dato se lee de otro módulo (p. ej. ausencias de People) o
+   de otra tabla, y qué funciones deben usarse para leerlo.
+5. **Integraciones**: avisos push, Cliq, correo, servicios externos y variables de entorno que
+   necesitan (sin escribir nunca su valor).
+6. **Errores corregidos que pueden volver**: la causa en una línea y qué no hacer para que no
+   reaparezca.
+7. **Lo que requiere aprobación** antes de tocarse, y de quién.
+
+No se registra: cambios visuales (colores, textos, anchos), arreglos obvios al leer el código ni
+el paso a paso de una función. Si dudas, regístralo: una línea de más cuesta menos que repetir una
+investigación.
 
 **Formato de cada página**: Qué es · Archivos clave · Modelo de acceso / flujo de datos ·
 Gotchas · Quién aprueba cambios sensibles (si aplica).

@@ -3,8 +3,12 @@
 ## Wiki del proyecto
 
 [`docs/wiki/`](docs/wiki/README.md) tiene páginas cortas por módulo (qué hace, dónde vive, modelo
-de acceso, gotchas). Revísala antes de tocar un módulo que no conozcas a fondo, y agrega o
-actualiza su página si descubres algo que costó investigar o que ya se rompió una vez.
+de acceso, gotchas). Revísala antes de tocar un módulo que no conozcas a fondo.
+
+**Regla (Rosember, 20-oct-2026): todo cambio que caiga en la lista «Qué se registra» del
+[README de la wiki](docs/wiki/README.md#regla-qué-se-registra) se anota en la página de su módulo
+en el MISMO commit del cambio.** No es opcional ni para después: si el commit cambia quién entra,
+una regla de negocio, la base de datos o una integración, la wiki va en ese commit.
 
 ## ⚠️ Design Schedule: origen de los datos del equipo de diseño (validar con Rosember)
 
