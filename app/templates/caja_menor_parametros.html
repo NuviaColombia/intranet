@@ -139,12 +139,13 @@
   <div class="cmp-ayuda">Esta lista sale de <b>People › Empleados</b> (se actualiza sola si alguien pasa a ser admin o superadmin) y es
     independiente de las cajas: ser admin o superadmin ya no da acceso automático a Caja menor -- hay que autorizarlo aquí
     (Parámetros en sí lo puede abrir cualquier admin/superadmin, para que siempre haya quien autorice).</div>
-  <table class="cmp-tabla" style="max-width:700px">
-    <tr><th>Administrador</th><th>Cargo</th><th>Entra a Caja menor</th><th></th></tr>
+  <table class="cmp-tabla" style="max-width:760px">
+    <tr><th>Administrador</th><th>Cargo</th><th>Rol</th><th>Entra a Caja menor</th><th></th></tr>
     {% for a in administradores %}
     <tr>
-      <td>{{ a.nombre_completo|nombre_propio }}{{ ' (superadmin)' if a.rol == 'superadmin' }}</td>
+      <td>{{ a.nombre_completo|nombre_propio }}</td>
       <td>{{ a.cargo }}</td>
+      <td><span class="cmp-rol {{ 'responsable' if a.rol == 'superadmin' else 'opera' }}">{{ 'Superadmin' if a.rol == 'superadmin' else 'Admin' }}</span></td>
       <td>
         {% if 'caja_menor' in a.modulos_lista %}<span class="cmp-estado si">Autorizado</span>
         {% else %}<span class="cmp-estado no">No autorizado</span>{% endif %}
@@ -157,7 +158,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="4" style="text-align:center; color:var(--gris); padding:18px;">No hay administradores en People.</td></tr>
+    <tr><td colspan="5" style="text-align:center; color:var(--gris); padding:18px;">No hay administradores en People.</td></tr>
     {% endfor %}
   </table>
 </div>
