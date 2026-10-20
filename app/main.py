@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from pathlib import Path
 from sqlalchemy import inspect, text
+from sqlalchemy.exc import ProgrammingError, OperationalError
 from . import config
 from .database import engine, SessionLocal
 from .services_design import faq_sembrar as sd_faq_sembrar, protocolos_migrar_areas as sd_protocolos_migrar_areas
@@ -250,7 +251,16 @@ CANVAS_TEMPLATES = [
 
 @app.on_event("startup")
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except (ProgrammingError, OperationalError) as e:
+        # create_all() revisa qué tablas existen y LUEGO las crea, en dos pasos separados -- si Render arranca dos
+        # instancias nuevas casi al mismo tiempo (autoscaling min=1/max=2), las dos pueden ver "no existe" y las dos
+        # intentan crear la misma tabla nueva; la que pierde la carrera recibe "already exists" y antes tumbaba el
+        # arranque entero (pasó el 20-oct-2026 con las tablas de portal_inicio_*). La otra instancia ya la creó
+        # igual, así que no es un error real -- solo lo es si el mensaje es otro.
+        if "already exists" not in str(e.orig).lower():
+            raise
     columnas_auditoria = {c["name"] for c in inspect(engine).get_columns("auditoria")}
     if "empleado_id" not in columnas_auditoria:
         with engine.begin() as conn:
