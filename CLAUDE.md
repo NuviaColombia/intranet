@@ -1,5 +1,11 @@
 # Intranet NuviaColombia: notas para quien modifique el código
 
+## Wiki del proyecto
+
+[`docs/wiki/`](docs/wiki/README.md) tiene páginas cortas por módulo (qué hace, dónde vive, modelo
+de acceso, gotchas). Revísala antes de tocar un módulo que no conozcas a fondo, y agrega o
+actualiza su página si descubres algo que costó investigar o que ya se rompió una vez.
+
 ## ⚠️ Design Schedule: origen de los datos del equipo de diseño (validar con Rosember)
 
 En el módulo Design hay dos fuentes oficiales de datos de las que dependen otras partes:
