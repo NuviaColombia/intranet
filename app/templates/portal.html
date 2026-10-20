@@ -8,7 +8,7 @@
   /* El portal usa todo el ancho disponible: barra lateral de módulos + contenido editable al lado. */
   main:has(.portal-shell) { max-width:1600px; padding:0 16px; }
   .portal-shell { display:flex; align-items:flex-start; gap:18px; margin-top:18px; }
-  .portal-sidebar { flex:none; width:220px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08);
+  .portal-sidebar { flex:none; width:250px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08);
     padding:10px; position:sticky; top:18px; transition:width .15s; }
   .portal-sidebar.colapsada { width:56px; }
   .portal-sidebar-toggle { display:flex; align-items:center; justify-content:flex-end; margin-bottom:6px; }
@@ -17,13 +17,13 @@
     cursor:pointer; padding:6px; border-radius:6px; }
   .portal-sidebar-toggle button:hover { background:var(--fondo); }
   .portal-modulo { display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:8px; text-decoration:none;
-    color:#111827; white-space:nowrap; overflow:hidden; }
+    color:#111827; overflow:hidden; }
   .portal-modulo:hover { background:var(--fondo); }
   .portal-modulo.disabled { opacity:.5; cursor:not-allowed; }
-  .portal-modulo-icono { flex:none; font-size:22px; width:26px; text-align:center; }
-  .portal-modulo-icono img { height:1.3em; width:auto; display:block; margin:0 auto; }
-  .portal-modulo-texto { min-width:0; overflow:hidden; }
-  .portal-modulo-nombre { font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; }
+  .portal-modulo-icono { flex:none; font-size:22px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; }
+  .portal-modulo-icono img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .portal-modulo-texto { min-width:0; overflow:hidden; display:flex; flex-direction:column; gap:1px; }
+  .portal-modulo-nombre { font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .portal-modulo-desc { font-size:11.5px; color:var(--gris); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .portal-sidebar.colapsada .portal-modulo-texto { display:none; }
   .portal-sidebar.colapsada .portal-modulo { justify-content:center; }
