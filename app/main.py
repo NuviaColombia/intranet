@@ -422,6 +422,8 @@ def init_db():
         conn.execute(text("UPDATE custodia_areas SET es_inventario = 1 WHERE nombre = 'EMPAQUE'"))
     db = SessionLocal()
     try:
+        from .invitados import asegurar_invitados
+        asegurar_invitados(db)   # invitados de solo lectura (app/invitados.py): su fila para poder entrar con Zoho
         if db.query(TipoPermiso).count() == 0:
             for nombre, dias, permite_horas, requiere_soporte in TIPOS_INICIALES:
                 db.add(TipoPermiso(nombre=nombre, dias_anuales=dias, permite_horas=permite_horas,

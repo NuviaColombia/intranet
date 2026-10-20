@@ -29,6 +29,11 @@ roles que no existe:**
 - **Calendario en People**: Pamela Manzur y Nicol Ardila (de People, no de Design) ven el
   Calendario de Design en su propio menú -- una excepción cruzada entre empresas, no un rol.
 
+**Invitados de solo lectura** (`app/invitados.py`, Parameters › Invitados): entran con Zoho, dentro
+de Design se tratan como admin para ver todo, y `auth.get_current_user` rechaza cualquier petición
+que no sea de lectura en toda la plataforma (salvo su push y su modo oscuro). Su fila en
+`empleados` lleva el cargo «Invitado (solo lectura)»; no se puede volver invitado a un empleado.
+
 **Simulación**: un admin puede "simular" ser otra persona. Dentro de Design actúa como esa
 persona por completo; fuera de Design, todo queda en solo lectura. Regla de seguridad: un
 superadmin puede simular a cualquiera; un admin normal solo a alguien de su propia empresa, y

@@ -1383,3 +1383,16 @@ class DesignDevApoyo(Base):
     ref_id: Mapped[int] = mapped_column(Integer, index=True)
     empleado_id: Mapped[int] = mapped_column(Integer)
     nombre: Mapped[str] = mapped_column(String(150), default="")
+
+
+class DesignInvitado(Base):
+    """Invitados de solo lectura (Parameters › Invitados, 20-oct-2026): entran con Zoho, ven todo Design y no cambian nada.
+    Su fila en `empleados` (cargo «Invitado (solo lectura)») la crea app/invitados.agregar."""
+    __tablename__ = "design_invitados"
+
+    email: Mapped[str] = mapped_column(String(150), primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(150), default="")
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    empleado_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    creado_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

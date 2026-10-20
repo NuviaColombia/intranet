@@ -95,7 +95,10 @@ def personas(db: Session) -> list[dict]:
     """Personas activas de Nuvia Design, para los desplegables de responsable."""
     filas = (db.query(Empleado.id, Empleado.nombres, Empleado.apellidos)
              .filter(Empleado.activo == 1, Empleado.empresa == EMPRESA_DESIGN).all())
-    out = [{"id": str(i), "name": " ".join(w.capitalize() for w in f"{n or ''} {a or ''}".split())} for i, n, a in filas]
+    from .invitados import CARGO_INVITADO
+    invitados = {i for (i,) in db.query(Empleado.id).filter(Empleado.cargo == CARGO_INVITADO)}
+    out = [{"id": str(i), "name": " ".join(w.capitalize() for w in f"{n or ''} {a or ''}".split())} for i, n, a in filas
+           if i not in invitados]
     return sorted(out, key=lambda p: sd._normalizar_texto(p["name"]))
 
 

@@ -142,6 +142,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Emplead
     if acceso_inhabilitado(db, user.id, user.rol):   # inhabilitado desde Design › Parámetros › Equipos (p. ej. renunció)
         request.session.clear()
         raise HTTPException(status_code=307, headers={"Location": "/login?error=bloqueado"})
+    from .invitados import es_invitado, peticion_permitida, MSG_SOLO_LECTURA
+    if es_invitado(user) and not peticion_permitida(request.method, request.url.path):
+        raise HTTPException(403, MSG_SOLO_LECTURA)   # invitado: en toda la plataforma solo puede ver (app/invitados.py)
     return _simulado_fuera_de_design(request, db, user) or user
 
 

@@ -52,6 +52,12 @@ def _aplicar_rol_design(db: Session, e: Empleado | None) -> Empleado | None:
     if e is None or e.rol == "superadmin" or getattr(e, "_rol_design_ok", False):
         return e
     from sqlalchemy.orm.attributes import set_committed_value
+    from ..invitados import es_invitado
+    if es_invitado(e):   # invitado: ve Design como un admin; no puede cambiar nada (lo frena auth.get_current_user)
+        e._rol_people = e.rol
+        set_committed_value(e, "rol", "admin")
+        e._rol_design_ok = True
+        return e
     from ..models_design import DesignRolUsuario
     r = db.get(DesignRolUsuario, e.id)
     if r and r.rol in ROLES_DESIGN and r.rol != e.rol:
@@ -332,6 +338,7 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
                                        "support_time": ss.estado(db, sd.ahora_colombia().date()),
                                        "cliq": {"configurado": sc.configurado(), "canal": sc.canal_support(), "bot": sc.bot()},
                                        "sim_personas": _personas_simulacion(db, user), "sim_abrir": request.query_params.get("sim") == "1",
+                                       "invitados": _inv_listar(db), "inv_abrir": request.query_params.get("inv") == "1",
                                        "msg": request.query_params.get("msg")})
 
 
@@ -964,6 +971,30 @@ def toggle_ausencia(aus_id: int, user: Empleado = Depends(require_admin), db: Se
 
 # ---------- Parámetros: festivos de la empresa (las órdenes en Hold no pasan a estos días) ----------
 
+# ---------- Parámetros › Invitados (solo lectura; app/invitados.py) ----------
+
+def _inv_listar(db: Session) -> list[dict]:
+    from .. import invitados as inv
+    return inv.listar(db)
+
+
+@router.post("/design/parametros/invitados")
+def crear_invitado(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
+                   email: str = Form(...), nombre: str = Form("")):
+    from .. import invitados as inv
+    err = inv.agregar(db, email, nombre, user.nombre_completo)
+    msg = err or f"{email.strip().lower()} ya puede entrar como invitado (solo lectura) con su cuenta de Zoho."
+    return RedirectResponse(f"/design/parametros?inv=1&msg={quote(msg)}", status_code=303)
+
+
+@router.post("/design/parametros/invitados/quitar")
+def quitar_invitado(user: Empleado = Depends(require_admin), db: Session = Depends(get_db), email: str = Form(...)):
+    from .. import invitados as inv
+    ok = inv.quitar(db, email)
+    msg = f"{email} ya no tiene acceso." if ok else "Ese invitado no existe."
+    return RedirectResponse(f"/design/parametros?inv=1&msg={quote(msg)}", status_code=303)
+
+
 @router.post("/design/parametros/festivos")
 def crear_festivo(user: Empleado = Depends(require_admin), db: Session = Depends(get_db),
                   fecha: str = Form(...), nombre: str = Form("")):
@@ -1093,6 +1124,9 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     miembro = team.id in sd.equipos_como_designer(db, user)
     dia = sd.datos_dia(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
     dia["miId"] = user.id
+    from ..invitados import es_invitado
+    if es_invitado(user):   # invitado: todo se ve, nada se edita
+        dia["soloLectura"] = True
     if team.area.nombre == sd.AREA_N3:   # «🛟 Support Designer» en la columna Diseñador (y la etiqueta «(Support)»)
         from .. import services_design_support as ss
         dia["supportIds"] = sorted(ss.ids_support(db, sd.ahora_colombia().date()))

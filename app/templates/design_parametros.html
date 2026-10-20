@@ -739,6 +739,53 @@
   </div>
 </div>
 
+<div class="tarjeta aud-tarjeta" id="invTarjeta">
+  <div class="aud-fila">
+    <div class="aud-titulo">
+      <h2>Invitados</h2>
+      <span class="aud-sub">{{ invitados|selectattr('activo')|list|length }} con acceso · entran con su cuenta de Zoho y ven todo Design, sin poder cambiar nada</span>
+      <span class="aud-info" tabindex="0" role="img" aria-label="Cómo funciona"
+            title="Escribe el correo de Zoho de la persona y su nombre. Queda registrada como invitada: ve todos los Schedules, el Dashboard, Seguimiento, Calendario y el resto de Design, pero cualquier cambio se rechaza en toda la plataforma. Quitar el acceso la deja inactiva (no puede entrar); no se borra nada. No se puede volver invitado a alguien que ya es empleado.">i</span>
+    </div>
+    <label class="aud-switch">
+      <input type="checkbox" id="invSwitch" role="switch" aria-controls="invContenido"{{ ' checked' if inv_abrir }}>
+      <span class="aud-slider" aria-hidden="true"></span>
+      <span>Revisar</span>
+    </label>
+  </div>
+  <div id="invContenido"{{ '' if inv_abrir else ' hidden' }} style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px">
+    <form method="post" action="/design/parametros/invitados" class="eq-crear">
+      <div class="eq-m" style="flex:3"><label for="invEmail">Correo de Zoho</label>
+        <input type="email" name="email" id="invEmail" required maxlength="150" placeholder="persona@nuviasmiles.com"></div>
+      <div class="eq-m" style="flex:3"><label for="invNombre">Nombre</label>
+        <input name="nombre" id="invNombre" required maxlength="150" placeholder="Nombre y apellido"></div>
+      <div><button class="btn">Dar acceso</button></div>
+    </form>
+    {% if invitados %}
+    <table style="margin-top:6px"><thead><tr><th>Nombre</th><th>Correo</th><th>Estado</th><th>Agregado</th><th></th></tr></thead><tbody>
+      {% for i in invitados %}
+      <tr{{ ' style="opacity:.55"' if not i.activo }}>
+        <td>{{ i.nombre }}</td><td>{{ i.email }}</td>
+        <td>{{ '👁 Solo lectura' if i.activo else 'Sin acceso' }}</td>
+        <td>{{ i.creadoEn }}{{ ' · ' ~ i.creadoPor if i.creadoPor }}</td>
+        <td>{% if i.activo %}<form method="post" action="/design/parametros/invitados/quitar" style="margin:0"
+              onsubmit="return confirm('¿Quitar el acceso de {{ i.email }}?')"><input type="hidden" name="email" value="{{ i.email }}">
+              <button class="btn mini rojo">Quitar acceso</button></form>
+            {% else %}<form method="post" action="/design/parametros/invitados" style="margin:0"><input type="hidden" name="email" value="{{ i.email }}">
+              <input type="hidden" name="nombre" value="{{ i.nombre }}"><button class="btn mini gris">Volver a dar acceso</button></form>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody></table>
+    {% else %}<p class="cat-sin">Todavía no hay invitados.</p>{% endif %}
+  </div>
+</div>
+<script>
+  (function () {
+    var s = document.getElementById('invSwitch'), c = document.getElementById('invContenido');
+    if (s && c) s.addEventListener('change', function () { c.hidden = !s.checked; });
+  })();
+</script>
+
 <div class="tarjeta aud-tarjeta" id="formatosTarjeta">
   <div class="aud-fila">
     <div class="aud-titulo">

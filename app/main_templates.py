@@ -69,6 +69,14 @@ def _ve_development(user) -> bool:
 templates.env.globals["ve_development"] = _ve_development
 
 
+def _es_invitado(user) -> bool:
+    from .invitados import es_invitado
+    return es_invitado(user)
+
+
+templates.env.globals["es_invitado"] = _es_invitado
+
+
 def _ve_calendario_people(user) -> bool:
     """People: Pamela Manzur y Nicol Ardila tienen el Calendario de Design en su menú (Rosember, 19-oct-2026)."""
     from .services_design_calendario import es_people_calendario
