@@ -2298,14 +2298,14 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsProduccionDia(dia) {
     var cuenta = {}, nombres = {}, orden = [], tipos = {};
     var tipoDe = function(k) { return tipos[k] || (tipos[k] = {sx: 0, tc: 0, ng: 0}); };
-    (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.nombre; orden.push(k); tipoDe(k); });
+    (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.corto || d.nombre; orden.push(k); tipoDe(k); });   // primer nombre y primer apellido
     var prest = {};
     var tablaDe = function(f, lista) { return f.tabla || lista; };
     [['principal', dia.principal], ['nightguard', dia.nightguard], ['material', dia.material], ['', dia.soloPropias ? dia.prestadas : []]]
       .forEach(function(par) { (par[1] || []).forEach(function(f) {
       var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
       if (!k || String(f.estado || '').trim().toLowerCase() === 'canceled') return;  // las canceladas no cuentan
-      if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
+      if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerCorto || f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
       cuenta[k]++;
       tipoDe(k)[dsTipoProduccion(tablaDe(f, par[0]), f.producto)]++;
       if (f.equipo && dia.soloPropias) prest[k] = (prest[k] || 0) + 1;   // vista del diseñador: los suyos en otros equipos
