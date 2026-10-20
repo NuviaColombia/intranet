@@ -836,32 +836,67 @@ def ausencias_disponibles(db: Session) -> list[str]:
             .order_by(DesignAusenciaTipo.orden).all()]
 
 
-# Solo se auto-rellenan los tipos de permiso de People que corresponden a un día completo
-# fuera de la oficina (no citas/diligencias por horas). Mapea el nombre del tipo en People
-# al nombre equivalente del catálogo de ausencias de Design Schedule.
+# Ausencia automática desde People (validado con Rosember el 20-oct-2026): todo permiso de DÍA COMPLETO aprobado en
+# People que cubre el día pone la ausencia en Tiempos libres, cualquiera que sea su tipo. El tipo de People se busca en
+# el catálogo de ausencias de Design por nombre (sin tildes ni mayúsculas), luego por los equivalentes de abajo y por
+# palabras clave; si no se parece a ninguno queda como «Permiso personal». Los permisos POR HORAS no son ausencia: se
+# muestran como aviso en la tarjeta y cuentan como pausa en Seguimiento mientras duran.
 MAPEO_PERMISO_A_AUSENCIA_DESIGN = {
     "Vacaciones": "Vacaciones",
     "Calamidad doméstica": "Calamidad doméstica",
     "Licencia de luto": "Licencia por luto",
     "Permiso personal": "Permiso personal",
 }
+_CLAVES_AUSENCIA = (("vacacion", "Vacaciones"), ("luto", "Licencia por luto"), ("paternidad", "Licencia por paternidad"),
+                    ("maternidad", "Licencia por paternidad"), ("calamidad", "Calamidad doméstica"), ("incapacidad", "Incapacidad"),
+                    ("enfermedad", "Incapacidad"), ("cumple", "Cumpleaños"), ("grado", "Grado"), ("suspension", "Suspensión"),
+                    ("festivo", "Festivo compensatorio"), ("compensatorio", "Descanso compensatorio"),
+                    ("no remunerad", "No remunerada"), ("remunerad", "Remunerada"))
+
+
+def ausencia_design_de(nombre_tipo: str, es_vacaciones: bool, catalogo: list[str]) -> str:
+    """Nombre del catálogo de ausencias de Design para un tipo de permiso de People."""
+    por_norma = {_normalizar_texto(c): c for c in catalogo}
+    if es_vacaciones and "vacaciones" in por_norma:
+        return por_norma["vacaciones"]
+    for candidato in (nombre_tipo, MAPEO_PERMISO_A_AUSENCIA_DESIGN.get(nombre_tipo, "")):
+        if candidato and _normalizar_texto(candidato) in por_norma:
+            return por_norma[_normalizar_texto(candidato)]
+    t = _normalizar_texto(nombre_tipo)
+    for clave, destino in _CLAVES_AUSENCIA:
+        if clave in t and _normalizar_texto(destino) in por_norma:
+            return por_norma[_normalizar_texto(destino)]
+    return por_norma.get("permiso personal") or (catalogo[0] if catalogo else nombre_tipo)
 
 
 def _permisos_aprobados_del_dia(db: Session, empleado_ids: list[int], fecha: date) -> dict[int, str]:
     """{empleado_id: nombre_ausencia_design} para permisos de día completo aprobados en People que cubren `fecha`."""
     if not empleado_ids:
         return {}
-    filas = (db.query(Solicitud.empleado_id, TipoPermiso.nombre)
+    filas = (db.query(Solicitud.empleado_id, TipoPermiso.nombre, TipoPermiso.es_vacaciones)
             .join(TipoPermiso, Solicitud.tipo_id == TipoPermiso.id)
             .filter(Solicitud.empleado_id.in_(empleado_ids), Solicitud.estado == "aprobada",
                     Solicitud.fecha_inicio <= fecha, Solicitud.fecha_fin >= fecha,
                     Solicitud.hora_inicio.is_(None), Solicitud.hora_fin.is_(None)).all())
-    resultado = {}
-    for empleado_id, nombre_tipo in filas:
-        ausencia = MAPEO_PERMISO_A_AUSENCIA_DESIGN.get(nombre_tipo)
-        if ausencia:
-            resultado[empleado_id] = ausencia
-    return resultado
+    if not filas:
+        return {}
+    catalogo = memo_sesion(db, ("ausencias_catalogo",), lambda: ausencias_disponibles(db))
+    return {empleado_id: ausencia_design_de(nombre_tipo, bool(es_vac), catalogo) for empleado_id, nombre_tipo, es_vac in filas}
+
+
+def permisos_por_horas_del_dia(db: Session, empleado_ids: list[int], fecha: date) -> dict[int, list[dict]]:
+    """{empleado_id: [{tipo, desde, hasta}]} permisos por horas aprobados en People para `fecha` (no son ausencia)."""
+    if not empleado_ids:
+        return {}
+    out: dict[int, list[dict]] = {}
+    for eid, tipo, hi, hf in (db.query(Solicitud.empleado_id, TipoPermiso.nombre, Solicitud.hora_inicio, Solicitud.hora_fin)
+                              .join(TipoPermiso, Solicitud.tipo_id == TipoPermiso.id)
+                              .filter(Solicitud.empleado_id.in_(empleado_ids), Solicitud.estado == "aprobada",
+                                      Solicitud.fecha_inicio <= fecha, Solicitud.fecha_fin >= fecha,
+                                      Solicitud.hora_inicio.isnot(None))
+                              .order_by(Solicitud.hora_inicio)):
+        out.setdefault(eid, []).append({"tipo": tipo, "desde": hi.strftime("%H:%M"), "hasta": hf.strftime("%H:%M") if hf else ""})
+    return out
 
 
 def filtro_orden_completa():
@@ -1131,6 +1166,8 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
     ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.team))
                .filter(DesignOrden.fecha == hoy, DesignOrden.designer_id.in_(ids)).all()) if ids else []
     pausas = db.query(DesignBreak).filter(DesignBreak.fecha == hoy, DesignBreak.empleado_id.in_(ids)).all() if ids else []
+    permisos_people = _permisos_aprobados_del_dia(db, ids, hoy)
+    horas_people = permisos_por_horas_del_dia(db, ids, hoy)
     por_persona: dict[int, list] = {}
     for o in ordenes:
         por_persona.setdefault(o.designer_id, []).append(o)
@@ -1154,7 +1191,13 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
                   "porHacer": [{"orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": (o.estado or "").strip()} for o in por_hacer[:6]],
                   "enHold": [{"orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": (o.estado or "").strip()} for o in en_hold[:6]],
                   "actual": None, "pausa": None, "ausencia": ""})
-        # ausencia y pausas (break / almuerzo) registradas en su Schedule hoy
+        # ausencia y pausas (break / almuerzo) registradas en su Schedule hoy; y lo aprobado en People
+        if permisos_people.get(pid):
+            x["ausencia"] = permisos_people[pid]
+        for p in horas_people.get(pid, []):
+            i, f = _seg_hora(p["desde"]), _seg_hora(p["hasta"])
+            if i is not None and (f is None or f > i) and i <= minuto < (f if f is not None else i + 60):
+                x["pausa"] = {"tipo": "Permiso (" + p["tipo"] + ")", "desde": p["desde"], "hasta": p["hasta"]}
         for b in (b for b in pausas if b.empleado_id == pid):
             if (b.tipo_ausencia or "").strip():
                 x["ausencia"] = b.tipo_ausencia.strip()
@@ -1283,6 +1326,7 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
                .order_by(DesignArea.orden, DesignTeam.orden, DesignTeam.nombre).all())
     ordenes = db.query(DesignOrden).filter(DesignOrden.fecha == hoy, DesignOrden.team_id.in_([t.id for t in equipos])).all() if equipos else []
     ausentes = {b.empleado_id for b in db.query(DesignBreak).filter(DesignBreak.fecha == hoy, func.coalesce(DesignBreak.tipo_ausencia, "") != "")}
+    ausentes |= set(_permisos_aprobados_del_dia(db, [d.empleado_id for t in equipos for d in t.designers], hoy))   # y lo de People
     mgr = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_([t.manager_id for t in equipos if t.manager_id]))} if equipos else {}
     out = []
     for t in equipos:
@@ -1541,6 +1585,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     designers = qd.order_by(DesignTeamDesigner.orden).all()
 
     permisos = _permisos_aprobados_del_dia(db, [d.empleado_id for d in designers], fecha)
+    por_horas = permisos_por_horas_del_dia(db, [d.empleado_id for d in designers], fecha)
     breaks_out = []
     vistos = set()
     for b in breaks:
@@ -1558,6 +1603,14 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
             "almuerzoInicio": "", "almuerzoFin": "", "break1Inicio": "", "break1Fin": "",
             "break2Inicio": "", "break2Fin": "", "ausenciaAutomatica": True,
         })
+        vistos.add(empleado_id)
+    for empleado_id, lista in por_horas.items():   # permisos por horas aprobados en People: aviso en la tarjeta
+        b = next((x for x in breaks_out if x["empleadoId"] == empleado_id), None)
+        if b is None:
+            b = {"id": None, "empleadoId": empleado_id, "tipoAusencia": "", "almuerzoInicio": "", "almuerzoFin": "",
+                 "break1Inicio": "", "break1Fin": "", "break2Inicio": "", "break2Fin": ""}
+            breaks_out.append(b)
+        b["permisosHoras"] = lista
 
     salida = {
         "principal": principal, "nightguard": nightguard, "material": material,

@@ -1198,3 +1198,6 @@ table.ds-tabla td.ds-falta-aprobar { animation: dsFaltaAprobar .45s steps(2, sta
 /* Paciente completo, como Centro (Rosember, 19-oct-2026): la celda crece con el nombre en vez de cortarlo */
 table.ds-tabla input[data-campo="paciente"] { field-sizing: content; min-width: 7em; }
 table.ds-tabla select[data-campo="designerId"] { field-sizing: content; min-width: 7.5em; }
+
+/* Tiempos libres: permiso por horas aprobado en People (aviso; no es ausencia) */
+.ds-tl-permh { color: #1d4ed8; font-weight: 700; font-size: 10.5px; white-space: nowrap; }

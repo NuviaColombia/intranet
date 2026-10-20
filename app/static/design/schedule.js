@@ -2179,7 +2179,9 @@ window.addEventListener('unhandledrejection', function(ev) {
         card.innerHTML =
           '<div class="ds-tl-head"><span class="ds-tl-nombre" title="' + dsEsc(d.nombre) + '">' + dsEsc(d.corto || d.nombre) + '</span>' +
             '<span class="ds-tl-aus">' +
-              (b.ausenciaAutomatica ? '<span title="Tomado automáticamente de un permiso aprobado en People" style="color:#16a34a">🔒 People</span>' : '') +
+              (b.ausenciaAutomatica ? '<span title="Tomado automáticamente de un permiso aprobado en People" style="color:#16a34a">🔒</span>' : '') +
+              ((b.permisosHoras || []).length ? '<span class="ds-tl-permh" title="' + dsEsc(b.permisosHoras.map(function(p) { return p.tipo + ' ' + p.desde + '–' + p.hasta; }).join('\n')) +
+                ' (aprobado en People)">🕑 ' + dsEsc(b.permisosHoras[0].desde + '–' + b.permisosHoras[0].hasta) + (b.permisosHoras.length > 1 ? ' +' + (b.permisosHoras.length - 1) : '') + '</span>' : '') +
               '<select data-campo="tipoAusencia" title="Ausencia" aria-label="Ausencia"><option value="">—</option>' +
                 tipos.map(function(t) { return '<option value="' + dsEsc(t) + '"' + (t === b.tipoAusencia ? ' selected' : '') + '>' + dsEsc(t) + '</option>'; }).join('') +
               '</select></span></div>' +

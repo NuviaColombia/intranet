@@ -44,6 +44,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   - `app/services_design_origenes.py` (docstring del módulo completo).
   - `app/services_design_pa_excel.py` -- un comentario marca qué hojas del Excel de Pre-Approved
     "Rosember confirmó que están bien" (no las "arregles" sin preguntar).
+- **Ausencias desde People (Tiempos libres)**: no se guardan en `design_breaks`; se calculan al
+  vuelo con los permisos aprobados de People (`services_design._permisos_aprobados_del_dia`, que
+  traduce cualquier tipo de permiso al catálogo de ausencias de Design con
+  `ausencia_design_de`). Todo lo que necesite saber si alguien está ausente (Schedule, Seguimiento,
+  Producción, Solicitar ayuda) debe usar esa función, no solo `DesignBreak.tipo_ausencia`. Los
+  permisos por horas (`permisos_por_horas_del_dia`) no son ausencia: son aviso y pausa.
 - Si necesitas el detalle de un submódulo específico (Schedule, Dashboard, Pre-Approved, Office,
   Training...), conviene que esa investigación se convierta en su propia página aquí -- esta
   página es deliberadamente superficial para que siga siendo útil sin volverse obsoleta.
