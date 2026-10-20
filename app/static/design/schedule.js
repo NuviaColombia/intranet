@@ -1494,7 +1494,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // esas listas. Desde el 19-oct-2026 los colores son DEL EQUIPO (base de datos, /design/api/teams/{id}/colores): los pone
   // el manager y los ven sus diseñadores y quien abra ese Schedule. Lo que cada manager tenía en su navegador se sube
   // solo la primera vez (dsColoresSubirLocales); el navegador queda como respaldo si el servidor aún no tiene colores.
-  var DS_OPCION_COLORES = '<option value="__colores">🎨 Colores…</option>';
+  var DS_OPCION_COLORES = '<option value="__colores">Colores…</option>';   // solo texto (Rosember, 20-oct-2026)
   // Qué casillas se pueden pintar: d = diseñador (por id), c = centro, p = producto (solo N2), e = estado (Rosember, 19-oct-2026)
   var DS_COLOR_TIPO = {designerId: 'd', centro: 'c', producto: 'p', estado: 'e'};
   var DS_COLOR_NOMBRE = {d: ['diseñadores', 'diseñador'], c: ['centros', 'centro'], p: ['productos', 'producto'], e: ['estados', 'estado']};
@@ -1833,7 +1833,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       }
       // N3: asignar el caso a quien está de turno en Support (o a quien lo cubre) (20-oct-2026)
       if (dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado() && DS.diaData && DS.diaData.supportIds) {
-        html += '<option value="__support">🛟 Support Designer</option>';
+        html += '<option value="__support">Support Designer</option>';
       }
       // Pedir ayuda (19-oct-2026): al final de la lista, en las órdenes ya guardadas de hoy del aprobador de un equipo de N3
       html += DS_OPCION_COLORES;   // colores de cada diseñador (preferencia de este PC); «Pedir ayuda…» sigue siendo la última
