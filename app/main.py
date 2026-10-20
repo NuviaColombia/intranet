@@ -376,20 +376,10 @@ def init_db():
             conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_decidido_por_id INTEGER REFERENCES empleados(id)"))
             conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_decidido_en TIMESTAMP"))
             conn.execute(text("ALTER TABLE solicitudes ADD COLUMN soporte_comentario TEXT DEFAULT ''"))
-    # Caja menor: cada caja ahora pertenece a una empresa (antes un admin de cualquier empresa entraba a
-    # todas). A las cajas que ya existen se les asigna la empresa de su responsable -- es el dato real que
-    # ya tenían, no una suposición.
-    columnas_caja = {c["name"] for c in inspect(engine).get_columns("caja_menor_cajas")}
-    if "empresa" not in columnas_caja:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE caja_menor_cajas ADD COLUMN empresa VARCHAR(100) DEFAULT ''"))
-            conn.execute(text("""
-                UPDATE caja_menor_cajas SET empresa = (
-                    SELECT e.empresa FROM empleados e WHERE e.id = caja_menor_cajas.responsable_id
-                ) WHERE responsable_id IS NOT NULL
-            """))
-            conn.execute(text(
-                "UPDATE caja_menor_cajas SET empresa = 'Nuvia Smiles Colombia SAS' WHERE empresa = '' OR empresa IS NULL"))
+    # Caja menor: la migración de caja_menor_cajas.empresa vive en cargar_datos_iniciales()
+    # (app/routers/caja_menor.py) -- ese evento de arranque corre antes que este y ya hace una
+    # consulta ORM sobre CajaMenor (que ahora incluye `empresa`); si esa columna se agregara aquí,
+    # esa consulta fallaría cada vez que esta función corra después de ese evento.
     # Cambio de custodia: índices para consultas con volumen alto (por fecha, estado, área y detalle
     # de cada traslado). IF NOT EXISTS: no hace nada si ya existen; no modifica datos.
     with engine.begin() as conn:
