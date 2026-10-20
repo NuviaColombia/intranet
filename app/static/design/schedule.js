@@ -435,12 +435,11 @@ window.addEventListener('unhandledrejection', function(ev) {
       {k:'producto', l:'Producto', t:'ro'}, {k:'manager', l:'Manager', t:'ro'},
       {k:'arco', l:'Arch', t:'select', opciones:['', 'Upper', 'Lower', 'Both']},
       {k:'etapa', l:'Etapa', t:'select', opciones:['', 'Bite design', 'Denture design']},
-      {k:'horaInicio', l:'Inicio', t:'time', g:'b'}, {k:'sHold', l:'S.Hold', t:'time', g:'b'},
-      {k:'fHold', l:'F.Hold', t:'time', g:'b', sinTHold: true, extra: [{k:'bTHold', l:'T. Hold'}]},
-      {k:'horaFin', l:'Fin', t:'time', g:'b', extra: [{k:'bTotal', l:'Total'}]},
-      {k:'zHoraInicio', l:'Inicio', t:'time', g:'z'}, {k:'zSHold', l:'S.Hold', t:'time', g:'z'},
-      {k:'zFHold', l:'F.Hold', t:'time', g:'z', extra: [{k:'zTHold', l:'T. Hold'}]},
-      {k:'zHoraFin', l:'Fin', t:'time', g:'z', extra: [{k:'zTotal', l:'Total'}]},
+      // Tiempos como en el Excel (Rosember, 20-oct-2026): BITE DESIGN (START · FINISH) · DENTURE DESIGN (START · FINISH · TOTAL)
+      // · TOTAL (TIME = Bite + Denture). Los Hold siguen contando por dentro (los llena el estado), pero no se muestran.
+      {k:'horaInicio', l:'START', t:'time', g:'b'}, {k:'horaFin', l:'FINISH', t:'time', g:'b'},
+      {k:'zHoraInicio', l:'START', t:'time', g:'z'}, {k:'zHoraFin', l:'FINISH', t:'time', g:'z', extra: [{k:'zTotal', l:'TOTAL'}]},
+      {k:'rdTime', l:'TIME', t:'calc', g:'t'},
       {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
     ],
     n2: { principal: [
@@ -616,6 +615,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (k === 'bTotal') return dsFmtMin(dsMaterialMin(f).b);
     if (k === 'zTotal') return dsFmtMin(dsMaterialMin(f).z);
     if (k === 'artTotal') return dsFmtMin(dsArtMin(f));
+    if (k === 'rdTime') return dsFmtMin(dsMaterialMin(f).t);   // Removable Denture: Bite + Denture
     return '';
   }
   // Tablas del Schedule y su contenedor (Material Change primero, como en pantalla)
@@ -623,12 +623,12 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_CONT = {material: 'dsTablaMaterial', principal: 'dsTablaPrincipal', nightguard: 'dsTablaNightguard'};
   function dsSelTablas(sufijo) { return DS_TABLAS.map(function(t) { return '#' + DS_CONT[t] + (sufijo ? ' ' + sufijo : ''); }).join(', '); }
   // Fila de encabezado con los bloques Bite design / Zirconia design (solo tablas con columnas agrupadas)
-  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', a: 'Articulation', d: 'Design'};
+  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', a: 'Articulation', d: 'Design', t: 'TOTAL'};
   function dsAnchoCol(c) { return 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0); }
   function dsFilaGrupos(spec, alFinal) {
     if (!spec.some(function(c) { return c.g; })) return '';
     var html = '<tr class="ds-tr-grupos">', run = null;
-    var nombreG = function(g) { return g === 'z' && dsEsRD() ? 'Denture design' : DS_GRUPOS[g]; };
+    var nombreG = function(g) { return !dsEsRD() ? DS_GRUPOS[g] : ({b: 'BITE DESIGN', z: 'DENTURE DESIGN'}[g] || DS_GRUPOS[g]); };
     var cerrar = function() { if (run) html += '<th colspan="' + run.n + '" class="' + (run.g ? 'ds-gh ds-g-' + run.g : 'ds-gh-vacio') + '">' + (run.g ? nombreG(run.g) : '') + '</th>'; };
     spec.forEach(function(c) {
       var g = c.g || '';
@@ -946,6 +946,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
     spec.forEach(function(c, i) {
       var g = c.g ? 'ds-g-' + c.g + (c.g !== (spec[i - 1] || {}).g ? ' ds-g-ini' : '') : '';
+      if (c.t === 'calc') { html += '<td data-col="' + i + '" class="ds-calc ' + g + '" data-calc="' + c.k + '">' + dsCalcTxt(c.k, f) + '</td>'; return; }
       html += '<td data-col="' + i + '"' + (g ? ' class="' + g + '"' : '') + '>' + dsCeldaInput(c, f) + '</td>';
       if (c.k === 'fHold' && !c.sinTHold) html += '<td class="ds-thold">' + dsTHoldTxt(f) + '</td>';
       (c.extra || []).forEach(function(x) { html += '<td class="ds-calc ds-g-' + c.g + '" data-calc="' + x.k + '">' + dsCalcTxt(x.k, f) + '</td>'; });
@@ -1616,7 +1617,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var cont = document.getElementById(DS_CONT[tabla]);
     var filas = dsFilasOrdenadas(tabla);
     var s = DS.sort[tabla];
-    var html = '<table class="ds-tabla' + (tabla === 'material' ? ' ds-tabla-material' : '') + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
+    var html = '<table class="ds-tabla' + (tabla === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '') + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
     spec.forEach(function(c) {
       if (DS_SORTABLES[c.k]) {
         var on = s && s.k === c.k;
@@ -1625,7 +1626,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       } else html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>';
       html += dsEncabezadoExtra(c);
     });
-    html += '<th>' + (tabla === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
+    html += '<th class="ds-th-total">' + (tabla === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
     filas.forEach(function(f) { html += dsFilaHtml(spec, f, tabla); });
     if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaHtml(spec, {}, tabla);
     html += '</tbody></table>';

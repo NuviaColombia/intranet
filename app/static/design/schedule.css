@@ -1207,3 +1207,5 @@ table.ds-tabla select[data-campo="designerId"] { field-sizing: content; min-widt
 
 /* Removable Denture: la columna Arch se lee completa (Upper / Lower / Both) */
 table.ds-tabla select[data-campo="arco"] { field-sizing: content; min-width: 5.6em; }
+/* Removable Denture: TIME reemplaza a «Total general» */
+table.ds-tabla-rd th.ds-th-total, table.ds-tabla-rd td.ds-total { display: none; }
