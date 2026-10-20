@@ -54,27 +54,26 @@ nav .ds-nav-extras .ds-push-pop { left:auto; right:-70px; transform:none; }
 /* Canvas: las hojas se quedan blancas, con los colores que se les pusieron (como el papel en Office) */
 :root[data-ds-tema="oscuro"] :is(.cv-canvas, .cv-thumb) { background:#fff; color:#111827; color-scheme:light; }
 
-/* ---------- Estados con la MISMA tonalidad que en modo claro (pedido por Rosember el 12-oct-2026) ----------
-   Hold / Dr authorization, Ready to design / Changes, Html, Approved y Canceled conservan su color claro; dentro de esas
-   filas (o solo en la celda de Estado si el suiche de colores está apagado) el texto y las listas van oscuros. */
-table.ds-tabla tr.ds-fila-hold { --ds-est:#edbfab; }
-table.ds-tabla tr.ds-fila-ready { --ds-est:#fef3c7; }
-table.ds-tabla tr.ds-fila-html { --ds-est:#f5c9d7; }
-table.ds-tabla tr.ds-fila-aprobada { --ds-est:#d6f5b8; }
-table.ds-tabla tr.ds-fila-cancelada { --ds-est:#f3f4f6; }
+/* ---------- Estados en modo oscuro: fondo oscuro teñido y texto claro del mismo tono, como los encabezados Articulation /
+   Design (pedido por Rosember el 20-oct-2026; antes, 12-oct, conservaban el color claro). Si el suiche de colores está
+   apagado, solo la celda de Estado. ---------- */
+table.ds-tabla tr.ds-fila-hold { --ds-est:#3d2519; --ds-est-t:#f6c7b1; }
+table.ds-tabla tr.ds-fila-ready { --ds-est:#3a3214; --ds-est-t:#fbe3a0; }
+table.ds-tabla tr.ds-fila-html { --ds-est:#3b1b27; --ds-est-t:#f7c3d4; }
+table.ds-tabla tr.ds-fila-aprobada { --ds-est:#1f3418; --ds-est-t:#c6eea6; }
+table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td,
 :root[data-ds-tema="oscuro"] body.ds-color-solo-estado table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td:has([data-campo="estado"]) {
-  background:var(--ds-est) !important; color:#111827; }
+  background:var(--ds-est) !important; color:var(--ds-est-t); }
 :root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td :is(input, select, span, b),
 :root[data-ds-tema="oscuro"] body.ds-color-solo-estado table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td:has([data-campo="estado"]) :is(input, select) {
-  background:transparent !important; color:#111827 !important; -webkit-text-fill-color:#111827 !important; color-scheme:light; }
-:root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr.ds-fila-cancelada td :is(input, select) { color:#4b5563 !important; -webkit-text-fill-color:#4b5563 !important; }
-:root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td :is(.ds-btn-ojo, .ds-thold, .ds-total) { color:#374151 !important; }
-:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-hold { background:#edbfab; color:#111827; }
-:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-ready { background:#fef3c7; color:#111827; }
-:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-html { background:#f5c9d7; color:#111827; }
-:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-aprobada { background:#d6f5b8; color:#111827; }
-:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-cancelada { background:#f3f4f6; color:#4b5563; }
+  background:transparent !important; color:var(--ds-est-t) !important; -webkit-text-fill-color:var(--ds-est-t) !important; color-scheme:dark; }
+:root[data-ds-tema="oscuro"] body:not(.ds-color-solo-estado) table.ds-tabla tr:is(.ds-fila-hold, .ds-fila-ready, .ds-fila-html, .ds-fila-aprobada, .ds-fila-cancelada) td :is(.ds-btn-ojo, .ds-thold, .ds-total) { color:var(--ds-est-t) !important; opacity:.85; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-hold { background:#3d2519; color:#f6c7b1; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-ready { background:#3a3214; color:#fbe3a0; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-html { background:#3b1b27; color:#f7c3d4; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-aprobada { background:#1f3418; color:#c6eea6; }
+:root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-cancelada { background:#1a2130; color:#a3acbb; }
 
 /* ---------- Desempeño: las celdas de nivel con los mismos colores que en modo claro (pedido por Rosember el 12-oct-2026) ---------- */
 :root[data-ds-tema="oscuro"] .pf-nivel-ALTO { background:#e6f6ea !important; }
