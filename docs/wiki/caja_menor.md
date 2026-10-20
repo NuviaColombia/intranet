@@ -21,25 +21,6 @@ Adentro, el detalle fino sí es por tabla propia: `CajaAcceso` (quién puede usa
 `CajaAutorizador` (quién firma "Aprobado por"), `CajaSupervisor` (quién da el visto bueno del FM)
 -- todas por persona, asignadas en Parámetros.
 
-**(2026-10-20) Ni admin ni superadmin entran automático a Caja menor.** A diferencia del resto de
-módulos, `Empleado.tiene_modulo()` (`app/models.py`) tiene una excepción explícita para
-`"caja_menor"`: ser `admin` o `superadmin` ya **no** basta -- solo entra quien tiene el permiso
-`caja_menor` en `Empleado.modulos`, ya sea porque opera/autoriza/supervisa una caja (como
-cualquier empleado), o porque otro admin/superadmin con acceso lo autorizó explícitamente desde
-Parámetros › Quién tiene acceso › "Administradores autorizados a entrar a Caja menor"
-(`/caja-menor/parametros/admins/{id}/toggle`).
-
-Para que esto no bloquee a todo el mundo (incluido quien tendría que autorizar), **Parámetros en
-sí no depende de ese permiso**: usa `require_admin_caja_menor()` (nuevo, en
-`app/routers/caja_menor.py`), que solo exige `rol in (admin, superadmin)` -- separado por completo
-de `require_modulo(MODULO)`, que sigue gateando el resto de la app (la página de entrada, las
-cajas, los recibos). Las ~15 rutas de Parámetros (cajas, accesos, autorizadores, supervisores,
-este toggle) usan `require_admin_caja_menor`; todo lo demás sigue usando `require_modulo(MODULO)`.
-Si agregas una ruta nueva bajo `/caja-menor/parametros/`, usa `require_admin_caja_menor`, no
-`require_modulo(MODULO)` -- si no, un admin recién creado no podría ni entrar a autorizarse a sí
-mismo. Pedido de Carlos: por defecto nadie nuevo (ni admin ni superadmin) debe poder entrar al
-módulo hasta que alguien ya autorizado lo permita.
-
 A diferencia de SST/Custodia/Consumo/Conteo, Caja Menor **no es de una sola empresa**: cada
 `CajaMenor` tiene su propio campo `empresa` (hoy: Contabilidad y Mantenimiento son de Nuvia
 Smiles, Design es de Nuvia Design). `services_caja.es_admin(user, caja=None)` refleja eso:

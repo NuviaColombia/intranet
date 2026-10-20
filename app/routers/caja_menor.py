@@ -58,15 +58,6 @@ def _solo_admin(user: Empleado):
         raise HTTPException(403, "Requiere rol de administrador.")
 
 
-def require_admin_caja_menor(user: Empleado = Depends(get_current_user)) -> Empleado:
-    """Parámetros de Caja menor: cualquier administrador de la intranet (rol admin o superadmin),
-    sin exigir primero el módulo caja_menor -- si no, nadie podría entrar a autorizar a nadie
-    (desde que un admin/superadmin ya no entra automático al módulo, ver Empleado.tiene_modulo)."""
-    if user.rol not in ("admin", "superadmin"):
-        raise HTTPException(403, "Requiere rol de administrador.")
-    return user
-
-
 def _solo_admin_de(user: Empleado, caja: CajaMenor):
     """Para acciones sobre UNA caja en Parámetros: superadmin, o admin de la misma empresa de la caja --
     antes cualquier admin administraba cualquier caja de cualquier empresa."""
@@ -99,7 +90,7 @@ def pagina_firmas(user: Empleado = Depends(require_modulo(MODULO)), db: Session 
 
 
 @router.get("/caja-menor/parametros")
-def parametros(request: Request, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+def parametros(request: Request, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     _solo_admin(user)
     sc.asegurar_cajas_iniciales(db)
     q_cajas = db.query(CajaMenor)
@@ -691,7 +682,7 @@ def _texto(v: str) -> str:
 
 
 @router.post("/caja-menor/parametros/cajas")
-def crear_caja(user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db),
+def crear_caja(user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db),
                nombre: str = Form(...), prefijo: str = Form(...), ciudad: str = Form("GALAPA"),
                fondo: float = Form(1000000), responsable: str = Form(""), consecutivo_inicial: int = Form(1),
                fm_siguiente: int = Form(1), icono: str = Form("💵"), empresa: str = Form("")):
@@ -709,7 +700,7 @@ def crear_caja(user: Empleado = Depends(require_admin_caja_menor), db: Session =
 
 
 @router.post("/caja-menor/parametros/cajas/{caja_id}")
-def editar_caja(caja_id: int, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db),
+def editar_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db),
                 nombre: str = Form(...), prefijo: str = Form(...), ciudad: str = Form(""), fondo: float = Form(0),
                 responsable: str = Form(""), consecutivo_inicial: int = Form(1), fm_siguiente: int = Form(1),
                 icono: str = Form("💵")):
@@ -743,7 +734,7 @@ def editar_caja(caja_id: int, user: Empleado = Depends(require_admin_caja_menor)
 
 
 @router.post("/caja-menor/parametros/cajas/{caja_id}/toggle")
-def toggle_caja(caja_id: int, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+def toggle_caja(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     _solo_admin(user)
     caja = db.get(CajaMenor, caja_id)
     if caja:
@@ -805,7 +796,7 @@ def _reemplazar_cajas(db: Session, modelo, user: Empleado, empleado_id: int, ele
 
 
 @router.post("/caja-menor/parametros/accesos/agregar")
-async def agregar_acceso(request: Request, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+async def agregar_acceso(request: Request, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     """Da el módulo Caja menor a una persona y le asigna sus cajas, sin pasar por People."""
     _solo_admin(user)
     form = await request.form()
@@ -826,34 +817,8 @@ async def agregar_acceso(request: Request, user: Empleado = Depends(require_admi
     return RedirectResponse(f"/caja-menor/parametros?msg=Acceso dado a {nombre_propio(empleado.nombre_completo)}.", status_code=303)
 
 
-@router.post("/caja-menor/parametros/admins/{empleado_id}/toggle")
-def toggle_admin(empleado_id: int, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
-    """Ni admin ni superadmin entran automático a Caja menor (ver Empleado.tiene_modulo): aquí se le
-    autoriza esa entrada a uno de ellos, o se le quita."""
-    _solo_admin(user)
-    empleado = db.get(Empleado, empleado_id)
-    if not empleado or empleado.rol not in ("admin", "superadmin"):
-        return RedirectResponse("/caja-menor/parametros?tab=resumen&msg=No se guardó: elige un administrador o superadmin.",
-                                status_code=303)
-    nombre = nombre_propio(empleado.nombre_completo)
-    if MODULO in empleado.modulos_lista:
-        tiene_acceso_real = any(db.query(m).filter(m.empleado_id == empleado_id).first()
-                                for m in (CajaAcceso, CajaAutorizador, CajaSupervisor))
-        if tiene_acceso_real:
-            return RedirectResponse(f"/caja-menor/parametros?tab=resumen&msg=No se quitó: {nombre} tiene acceso real a una caja "
-                                    "(quítaselo ahí primero, en Accesos/Autorizan/Supervisan).", status_code=303)
-        empleado.modulos = ",".join(m for m in empleado.modulos_lista if m != MODULO)
-        db.commit()
-        msg = f"{nombre} ya no entra a Caja menor como administrador."
-    else:
-        _dar_modulo(empleado)
-        db.commit()
-        msg = f"{nombre} ahora entra a Caja menor como administrador."
-    return RedirectResponse(f"/caja-menor/parametros?tab=resumen&msg={msg}", status_code=303)
-
-
 @router.post("/caja-menor/parametros/accesos/{empleado_id}/quitar")
-def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     """Quita el módulo Caja menor y las cajas de tu empresa a esa persona (conserva accesos de otra empresa,
     si los tiene; los recibos que hizo se conservan)."""
     _solo_admin(user)
@@ -865,7 +830,7 @@ def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_admin_caja_
 
 
 @router.post("/caja-menor/parametros/accesos/{empleado_id}")
-async def guardar_accesos(empleado_id: int, request: Request, user: Empleado = Depends(require_admin_caja_menor),
+async def guardar_accesos(empleado_id: int, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                           db: Session = Depends(get_db)):
     _solo_admin(user)
     form = await request.form()
@@ -882,7 +847,7 @@ NOMBRE_ROL = {"accesos": "acceso", "autorizan": "quién autoriza", "supervisan":
 
 
 @router.post("/caja-menor/parametros/cajas/{caja_id}/personas/{rol}/agregar")
-async def agregar_persona_caja(caja_id: int, rol: str, request: Request, user: Empleado = Depends(require_admin_caja_menor),
+async def agregar_persona_caja(caja_id: int, rol: str, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                                db: Session = Depends(get_db)):
     """Da a una persona un papel en UNA caja: operar (accesos), autorizar recibos o supervisar FM."""
     _solo_admin(user)
@@ -907,7 +872,7 @@ async def agregar_persona_caja(caja_id: int, rol: str, request: Request, user: E
 
 
 @router.post("/caja-menor/parametros/cajas/{caja_id}/personas/{rol}/{empleado_id}/quitar")
-def quitar_persona_caja(caja_id: int, rol: str, empleado_id: int, user: Empleado = Depends(require_admin_caja_menor),
+def quitar_persona_caja(caja_id: int, rol: str, empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)),
                         db: Session = Depends(get_db)):
     _solo_admin(user)
     modelo, caja = ROLES_CAJA.get(rol), db.get(CajaMenor, caja_id)
@@ -925,7 +890,7 @@ def quitar_persona_caja(caja_id: int, rol: str, empleado_id: int, user: Empleado
 
 
 @router.post("/caja-menor/parametros/autorizadores/agregar")
-async def agregar_autorizador(request: Request, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+async def agregar_autorizador(request: Request, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     """Agrega a alguien de People como autorizador ("Aprobado por") de los recibos de las cajas marcadas."""
     _solo_admin(user)
     form = await request.form()
@@ -949,7 +914,7 @@ async def agregar_autorizador(request: Request, user: Empleado = Depends(require
 
 
 @router.post("/caja-menor/parametros/autorizadores/{empleado_id}/quitar")
-def quitar_autorizador(empleado_id: int, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+def quitar_autorizador(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     _solo_admin(user)
     _reemplazar_cajas(db, CajaAutorizador, user, empleado_id, set())
     _quitar_modulo_si_no_usa(db, empleado_id)
@@ -958,7 +923,7 @@ def quitar_autorizador(empleado_id: int, user: Empleado = Depends(require_admin_
 
 
 @router.post("/caja-menor/parametros/autorizadores/{empleado_id}")
-async def guardar_autorizador(empleado_id: int, request: Request, user: Empleado = Depends(require_admin_caja_menor),
+async def guardar_autorizador(empleado_id: int, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                               db: Session = Depends(get_db)):
     _solo_admin(user)
     form = await request.form()
@@ -983,7 +948,7 @@ def _quitar_modulo_si_no_usa(db: Session, empleado_id: int) -> None:
 
 
 @router.post("/caja-menor/parametros/supervisores/agregar")
-async def agregar_supervisor(request: Request, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+async def agregar_supervisor(request: Request, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     """Agrega a alguien de People como supervisor ("Supervisado por") de los FM de las cajas marcadas."""
     _solo_admin(user)
     form = await request.form()
@@ -1007,7 +972,7 @@ async def agregar_supervisor(request: Request, user: Empleado = Depends(require_
 
 
 @router.post("/caja-menor/parametros/supervisores/{empleado_id}/quitar")
-def quitar_supervisor(empleado_id: int, user: Empleado = Depends(require_admin_caja_menor), db: Session = Depends(get_db)):
+def quitar_supervisor(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     _solo_admin(user)
     _reemplazar_cajas(db, CajaSupervisor, user, empleado_id, set())
     _quitar_modulo_si_no_usa(db, empleado_id)
@@ -1016,7 +981,7 @@ def quitar_supervisor(empleado_id: int, user: Empleado = Depends(require_admin_c
 
 
 @router.post("/caja-menor/parametros/supervisores/{empleado_id}")
-async def guardar_supervisor(empleado_id: int, request: Request, user: Empleado = Depends(require_admin_caja_menor),
+async def guardar_supervisor(empleado_id: int, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                              db: Session = Depends(get_db)):
     _solo_admin(user)
     form = await request.form()
