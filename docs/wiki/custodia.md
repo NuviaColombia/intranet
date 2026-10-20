@@ -24,12 +24,15 @@ Un manager normal necesita, además, que le hayan dado el permiso "custodia" de 
 (`Empleado.modulos`) **y** una fila en `produccion_accesos` para el submódulo específico
 (Custodia o Consumo), asignada en Producción › Parámetros.
 
-Quién puede **firmar** un traslado es un chequeo aparte, en `services_custodia.py`:
-- `puede_firmar_recibido(user, traslado)` -- admin de Producción (los 3 caminos de arriba), o
-  el traslado llega a una de las áreas que tiene asignadas el usuario (`Empleado.area_custodia`,
-  hasta 2 áreas separadas por coma -- ver `Empleado.areas_custodia`/`tiene_area`).
+Quién puede **firmar** un traslado es un chequeo aparte, en `services_custodia.py`, y **no**
+sigue el modelo de administrador de arriba: firmar certifica que el material llegó físicamente
+a esa persona, así que solo cuenta la asignación de área en Parámetros, sin importar el rol.
+- `puede_firmar_recibido(user, traslado)` -- únicamente si el traslado llega a una de las áreas
+  que tiene asignadas el usuario (`Empleado.area_custodia`, hasta 2 áreas separadas por coma --
+  ver `Empleado.areas_custodia`/`tiene_area`). Ni admin, ni superadmin, ni `ProduccionAdmin`
+  firman por fuera de su área asignada.
 - `puede_firmar_dir(user)` -- lo mismo, pero para la firma obligatoria de DIR PRODUCCIÓN en las
-  salidas de QC FINAL.
+  salidas de QC FINAL (requiere tener asignada el área DIR PRODUCCIÓN).
 - `puede_firmar_algo(user, t)` -- combina las dos anteriores (para la bandeja de "Mis
   aprobaciones").
 
@@ -44,9 +47,21 @@ integraciones.
   `acceso_produccion.py` originalmente daba acceso de administrador a *cualquier* admin del
   sistema sin revisar la empresa, y un admin de Nuvia Design terminó viendo y pudiendo firmar
   traslados de Nuvia Smiles (vía la bandeja unificada `/mis-aprobaciones`). El fix quedó en
-  `es_admin()`/`puede_firmar_recibido()`/`puede_firmar_dir()`: cualquier bypass de "administrador"
-  nuevo que agregues aquí debe seguir ese mismo patrón (superadmin, o admin+empresa, o
+  `es_admin()`: cualquier bypass de "administrador" nuevo que agregues en Producción (fuera de
+  firmar, ver el punto siguiente) debe seguir ese mismo patrón (superadmin, o admin+empresa, o
   `ProduccionAdmin` explícito -- nunca `rol in (admin, superadmin)` a secas).
+- **(2026-10-20) Un admin firmó un recibido por error, en el lugar del manager del área.**
+  Pasó por la bandeja unificada `/mis-aprobaciones`: antes, cualquier admin veía ahí *todos* los
+  traslados pendientes (con el bypass de "administrador" que describe el punto anterior) mezclados
+  con permisos y horas extra, con un solo botón "Confirmar recibido" y ningún aviso de que no era
+  su área. El fix fue más de fondo que un aviso: `puede_firmar_recibido()`/`puede_firmar_dir()` ya
+  **no** tienen ningún bypass de administrador -- solo firma quien tiene esa área asignada en
+  Parámetros (`Empleado.area_custodia`), sea admin, superadmin o no. Como consecuencia,
+  `/mis-aprobaciones` deja de mostrarle el traslado a un admin que no tenga esa área, porque
+  `resumen_pendientes()` ya filtra con `puede_firmar_recibido()`. Si alguna vez parece que hace
+  falta un "firmar por emergencia" para cuando el manager no está disponible, que sea una función
+  nueva y explícita (con su propio registro de quién y por qué) -- no un bypass silencioso como el
+  anterior.
 - **No le agregues un prefijo al consecutivo de Custodia.** Si se necesita un formato tipo
   "CC-0001" para un documento nuevo, créalo como una propiedad aparte -- no toques `id` ni la
   forma en que ya se imprime/envía/exporta.

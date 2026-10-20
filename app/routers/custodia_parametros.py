@@ -3,7 +3,7 @@ accesos al módulo (con el área asignada de cada persona) y, de Cambio de custo
 producción, catálogo de discos y motivos. Solo administradores."""
 from fastapi import APIRouter, Request, Depends, Form
 from ..concurrencia import RutaGeneral
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Empleado
@@ -118,12 +118,6 @@ def parametros_antes(request: Request, user: Empleado = Depends(require_admin_pr
     return RedirectResponse("/inventario/parametros", status_code=303)
 
 
-def _stock_iniciales(db: Session) -> list:
-    from ..models_custodia import CustodiaStockDescripcion
-    return (db.query(CustodiaStockDescripcion).filter(CustodiaStockDescripcion.tipo == "INICIAL")
-            .order_by(CustodiaStockDescripcion.area, CustodiaStockDescripcion.descripcion).all())
-
-
 @router.get("/inventario/parametros")
 def parametros(request: Request, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
     # Accesos por submódulo: {empleado_id: {slugs}}
@@ -173,7 +167,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
         "materiales": db.query(ConteoMaterial).order_by(ConteoMaterial.activo.desc(), ConteoMaterial.orden).all(),
         "bodegas": db.query(ConteoBodega).order_by(ConteoBodega.activo.desc(), ConteoBodega.orden).all(),
         "director": sct.director_produccion(db), "testigos": sct.testigos(db),
-        "areas_material": sct.areas_de_material(db), "workdrive": sct.estado_workdrive(db),
+        "areas_material": sct.areas_de_material(db),
     }
     administradores = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.rol.in_(["admin", "superadmin"]))
                        .order_by(Empleado.nombres, Empleado.apellidos).all())
@@ -189,17 +183,7 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
                                        "secciones_cfg": secciones_cfg, "administradores": administradores,
                                        "tecnicos_ids": tecnicos_ids,
                                        "areas": areas, "motivos": motivos, "discos": discos,
-                                       "saldos_cargados": sc.saldos_ya_cargados(db),
-                                       "stock_inventario": sc.inventario_stock(db),
-                                       "stock_iniciales": _stock_iniciales(db),
-                                       "stock_area": request.query_params.get("stock_area", ""),
-                                       "stock_texto": request.query_params.get("stock_texto", ""),
-                                       "saldos_existentes": sorted(f"{o}|{a}" for o, a in sc.saldos_existentes(db)),
-                                       "fecha_corte_anterior": (sc.ultima_fecha_corte(db) or "") and sc.ultima_fecha_corte(db).isoformat(),
-                                       "areas_config": [a.nombre for a in areas if a.activo],
-                                       "texto_saldos": request.query_params.get("texto", ""),
-                                       "conteo_panel": {"saldos": sc.saldos_ya_cargados(db),
-                                                        "managers": len(managers), "areas": len(areas), "discos": len(discos),
+                                       "conteo_panel": {"managers": len(managers), "areas": len(areas), "discos": len(discos),
                                                         "motivos": len(motivos),
                                                         "c_accesos": len(consumo["accesos"]),
                                                         "c_tecnicos": len([t for t in consumo["tecnicos"] if t.activo]),
@@ -212,8 +196,6 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
                                        "resumen": resumen, "por_empleado": por_empleado,
                                        "areas_activas": sc.areas_disponibles(db),
                                        "es_custodia": True, "msg": request.query_params.get("msg"),
-                                       "cargo_coincide": {m.id: sc.cargo_coincide_con_area(m.cargo, m.area_custodia)
-                                                          for m in managers},
                                        "custodia_pendientes": len(sc.pendientes_entrada(db))})
 
 
@@ -253,7 +235,7 @@ def quitar_admin_produccion(empleado_id: int, user: Empleado = Depends(require_a
 
 @router.post("/inventario/parametros/managers")
 def agregar_manager(user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db),
-                          empleado_id: int = Form(...), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
+                          empleado_id: int = Form(...), area_custodia: list[str] = Form([])):
     emp = db.get(Empleado, empleado_id)
     if emp and emp.empresa == NUVIA_SMILES:
         modulos = set(emp.modulos_lista)
@@ -263,18 +245,20 @@ def agregar_manager(user: Empleado = Depends(require_admin_produccion), db: Sess
             db.add(ProduccionAcceso(empleado_id=emp.id, submodulo="custodia"))
         if emp.rol == "empleado":
             emp.rol = "aprobador"
-        emp.area_custodia = _areas_asignadas(area_custodia, area_custodia_2)
+        emp.area_custodia = _areas_asignadas(*area_custodia)
         db.commit()
     return RedirectResponse("/inventario/parametros?msg=Acceso a Cambio de custodia dado.", status_code=303)
 
 
 @router.post("/inventario/parametros/managers/{empleado_id}")
-def actualizar_manager(empleado_id: int, user: Empleado = Depends(require_admin_produccion),
-                             db: Session = Depends(get_db), area_custodia: str = Form(""), area_custodia_2: str = Form("")):
+def actualizar_manager(empleado_id: int, request: Request, user: Empleado = Depends(require_admin_produccion),
+                             db: Session = Depends(get_db), area_custodia: list[str] = Form([])):
     emp = db.get(Empleado, empleado_id)
     if emp:
-        emp.area_custodia = _areas_asignadas(area_custodia, area_custodia_2)
+        emp.area_custodia = _areas_asignadas(*area_custodia)
         db.commit()
+    if request.headers.get("x-requested-with") == "fetch":  # guardado en línea desde la tabla, sin recargar
+        return JSONResponse({"ok": bool(emp), "areas": emp.areas_custodia if emp else []})
     return RedirectResponse("/inventario/parametros?msg=Área(s) asignada(s) actualizada(s).", status_code=303)
 
 

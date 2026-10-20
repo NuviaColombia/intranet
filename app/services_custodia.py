@@ -6,7 +6,6 @@ from .models import Empleado
 from .models_custodia import (CustodiaTraslado, CustodiaOrdenLinea, CustodiaResumen, CustodiaDiscos, CustodiaOP,
                               CustodiaFactorDisco, CustodiaArea, CustodiaMotivo)
 from .formato import nombre_propio
-from .acceso_produccion import EMPRESA_PRODUCCION, es_admin_produccion
 
 # Legado: valores de prueba/migración que nunca fueron áreas de producción reales,
 # no administrables desde Parámetros (a diferencia de CustodiaArea.es_inventario).
@@ -401,10 +400,9 @@ def crear_traslado(db: Session, user: Empleado, cabecera: dict, lineas: list[dic
 
 
 def puede_firmar_recibido(user: Empleado, traslado: CustodiaTraslado) -> bool:
-    """Firma "recibido": un administrador de Nuvia Smiles (o superadmin), o un manager cuya área
-    asignada en Parámetros sea el área de entrada del traslado (quien recibe el material)."""
-    if user.rol == "superadmin" or (user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION) or es_admin_produccion(user):
-        return True
+    """Firma "recibido": solo quien tiene asignada en Parámetros el área de entrada del traslado
+    (quien recibe el material). Ni admins ni superadmin firman por fuera de su área asignada --
+    la firma certifica que el material llegó físicamente a esa persona, no un permiso general."""
     return user.tiene_area(traslado.area_entrada)  # cualquiera de sus áreas asignadas (máx. 2)
 
 
@@ -414,8 +412,7 @@ def confirmar_entrada(db: Session, traslado: CustodiaTraslado, user: Empleado) -
     if traslado.confirmado_entrada:
         return "Este traslado ya fue confirmado."
     if not puede_firmar_recibido(user, traslado):
-        return (f"Solo un manager del área {nombre_propio(traslado.area_entrada)} (o un administrador) "
-                "puede firmar el recibido de este traslado.")
+        return f"Solo un manager del área {nombre_propio(traslado.area_entrada)} puede firmar el recibido de este traslado."
     traslado.confirmado_entrada = True
     traslado.confirmado_por_id = user.id
     traslado.confirmado_en = datetime.utcnow()
@@ -424,10 +421,9 @@ def confirmar_entrada(db: Session, traslado: CustodiaTraslado, user: Empleado) -
 
 
 def puede_firmar_dir(user: Empleado) -> bool:
-    """Firma DIR PRODUCCIÓN (salidas de QC FINAL): un administrador de Nuvia Smiles (o superadmin)
-    o quien tenga asignada el área DIR PRODUCCIÓN."""
-    if user.rol == "superadmin" or (user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION) or es_admin_produccion(user):
-        return True
+    """Firma DIR PRODUCCIÓN (salidas de QC FINAL): solo quien tiene asignada el área DIR
+    PRODUCCIÓN en Parámetros. Ni admins ni superadmin firman sin esa asignación (ver
+    puede_firmar_recibido)."""
     return AREA_ORIGEN in user.areas_custodia
 
 
@@ -439,7 +435,7 @@ def firmar_dir(db: Session, traslado: CustodiaTraslado, user: Empleado) -> str |
     if traslado.dir_firmado_en:
         return "DIR Producción ya firmó este traslado."
     if not puede_firmar_dir(user):
-        return "Solo quien tiene asignada el área DIR Producción (o un administrador) puede firmar este traslado."
+        return "Solo quien tiene asignada el área DIR Producción puede firmar este traslado."
     traslado.dir_firmado_por_id, traslado.dir_firmado_en = user.id, datetime.utcnow()
     db.commit()
     return None
@@ -497,22 +493,6 @@ def cargo_people(emp) -> str:
     return (emp.cargo or "").strip() if emp else ""
 
 
-def _sin_tildes(texto: str) -> str:
-    import unicodedata
-    return "".join(c for c in unicodedata.normalize("NFD", texto or "") if unicodedata.category(c) != "Mn").upper()
-
-
-def cargo_coincide_con_area(cargo: str, area: str) -> bool:
-    """True si el cargo de People menciona el área asignada (ej. "MANAGER GLAZE" y "GLAZE",
-    "DIRECTOR DE PRODUCCION" y "DIR PRODUCCIÓN"). Sin área asignada no hay nada que comparar."""
-    if not area:
-        return True
-    if "," in area:  # varias áreas asignadas: basta con que el cargo mencione una
-        return any(cargo_coincide_con_area(cargo, a) for a in area.split(",") if a.strip())
-    import re
-    cargo_n = _sin_tildes(cargo)
-    palabras = [p for p in re.split(r"[^A-Z0-9]+", _sin_tildes(area)) if len(p) >= 2 and p not in ("DE", "DEL", "LA")]
-    return any(p in cargo_n for p in palabras)
 
 
 def _nombre_firma(emp) -> str:
