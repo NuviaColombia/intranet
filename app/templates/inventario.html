@@ -2,22 +2,17 @@
 {% block titulo %}Producción{% endblock %}
 {% block contenido %}
 <style>
-  .param-discreto { font-size:12px; font-weight:600; color:var(--gris); text-decoration:none; padding:4px 10px;
-                    border:1px solid #e5e7eb; border-radius:999px; background:#fff; }
-  .param-discreto:hover { color:#111827; border-color:#cbd5e1; }
   {# Tarjetas más chicas y ajustadas, solo en esta página (no afecta a los demás módulos) #}
-  .modulos-compacto { grid-template-columns:repeat(auto-fill, minmax(150px, 170px)); gap:12px; }
-  .modulos-compacto .modulo { padding:14px 12px; gap:4px; }
-  .modulos-compacto .modulo-icono { font-size:24px; }
-  .modulos-compacto .modulo-nombre { font-size:13px; }
+  .modulos-compacto { grid-template-columns:repeat(auto-fill, minmax(160px, 190px)); gap:14px; }
+  .modulos-compacto .modulo { padding:20px 14px; gap:6px; }
+  .modulos-compacto .modulo-icono { font-size:30px; }
+  .modulos-compacto .modulo-nombre { font-size:14px; }
   .modulos-compacto .modulo-desc { font-size:11px; }
+  .modulo-parametros { background:#EEF2FF; border:1px solid #C7D2FE; }
+  .modulo-parametros:hover { border-color:#A5B4FC; }
+  .modulo-parametros .modulo-nombre { color:#3730A3; }
 </style>
-<div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-  <h1 style="margin:0;">Producción</h1>
-  {% if user.rol in ('admin', 'superadmin') or es_admin_produccion(user) %}
-  <a href="/inventario/parametros" class="param-discreto" title="Parámetros de todos los submódulos de Producción">⚙️ Parámetros</a>
-  {% endif %}
-</div>
+<h1 style="margin:0;">Producción</h1>
 <p style="color:var(--gris)">Elige un submódulo para continuar</p>
 {% if sin_acceso_sub %}<div class="aviso">No tienes acceso a ese submódulo. Pide a un administrador que te lo asigne en Producción › Parámetros.</div>{% endif %}
 <div class="modulos modulos-compacto">
@@ -37,5 +32,12 @@
   </div>
   {% endif %}
   {% endfor %}
+  {% if user.rol in ('admin', 'superadmin') or es_admin_produccion(user) %}
+  <a class="modulo modulo-parametros" href="/inventario/parametros" title="Parámetros de todos los submódulos de Producción">
+    <span class="modulo-icono">⚙️</span>
+    <span class="modulo-nombre">Parámetros</span>
+    <span class="modulo-desc">Administración</span>
+  </a>
+  {% endif %}
 </div>
 {% endblock %}
