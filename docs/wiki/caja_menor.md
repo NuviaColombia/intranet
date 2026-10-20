@@ -21,6 +21,19 @@ Adentro, el detalle fino sí es por tabla propia: `CajaAcceso` (quién puede usa
 `CajaAutorizador` (quién firma "Aprobado por"), `CajaSupervisor` (quién da el visto bueno del FM)
 -- todas por persona, asignadas en Parámetros.
 
+A diferencia de SST/Custodia/Consumo/Conteo, Caja Menor **no es de una sola empresa**: cada
+`CajaMenor` tiene su propio campo `empresa` (hoy: Contabilidad y Mantenimiento son de Nuvia
+Smiles, Design es de Nuvia Design). `services_caja.es_admin(user, caja=None)` refleja eso:
+- sin `caja` -- el chequeo de rol de siempre (para decisiones que no dependen de una caja en
+  particular, como si alguien puede ser elaborador y supervisor del mismo FM a la vez).
+- con `caja` -- superadmin administra cualquiera; un admin normal solo las de su propia empresa.
+
+Los formularios de Parámetros que asignan acceso/autorización/supervisión a una persona pueden
+marcar varias cajas de una vez (`form.getlist("cajas")`); `_reemplazar_cajas()`
+(`routers/caja_menor.py`) filtra esa selección a las cajas que el admin administra y **no borra**
+las asignaciones de otra empresa que ya tuviera esa persona (asignadas antes por otro admin) --
+si tocas esos formularios, no vuelvas a un `delete()` + `insert()` sin ese filtro.
+
 **Adjuntos**: igual que en Permisos (soporte documental), se guardan como BLOB en la propia fila
 (`CajaAdjunto.datos`, columna `deferred`) -- no van a Zoho WorkDrive. Límite 5 MB,
 JPG/PNG/WEBP/PDF.
@@ -31,15 +44,11 @@ tiene su propio contador (`caja.fm_siguiente`).
 
 ## Gotchas
 
-- ⚠️ **Company-scoping -- el mismo bug que ya se corrigió en SST y Custodia, aquí sigue sin
-  corregir** (encontrado al escribir esta página): `services_caja.es_admin()` es
-  `user.rol in ("admin", "superadmin")`, **sin revisar la empresa**, y con eso cualquier
-  admin/superadmin ve y opera **todas** las cajas de **todas** las empresas. Ni `CajaMenor` ni
-  `CajaAcceso` tienen columna `empresa`, y el permiso genérico `caja_menor` tampoco distingue
-  empresa (a diferencia de `design_schedule`, que sí tiene su propio candado de empresa). Si un
-  admin de Nuvia Design existe, hoy vería las cajas de Nuvia Smiles también. Vale la pena
-  confirmar con el negocio qué empresa(s) deberían usar Caja Menor y aplicar el mismo patrón de
-  `es_admin_sst`/`acceso_produccion.es_admin` si corresponde.
+- **Company-scoping ya se corrigió aquí** (era el mismo bug de SST/Custodia: cualquier
+  admin/superadmin veía y operaba todas las cajas de todas las empresas, sin revisar la empresa
+  de cada una). La migración que agregó `CajaMenor.empresa` le asignó a cada caja existente la
+  empresa de su responsable actual -- si alguna vez cambias de responsable a alguien de otra
+  empresa, revisa si la caja también debería cambiar de empresa.
 - Un recibo ya firmado (o con "recibido" ya firmado) no se edita -- hay que anularlo y crear uno
   nuevo. Un FM no se puede anular si ya fue marcado como reembolsado; anular un FM devuelve sus
   recibos a "activo" para volver a legalizarlos.
