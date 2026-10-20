@@ -57,9 +57,10 @@ class Empleado(Base):
     def tiene_modulo(self, modulo: str) -> bool:
         if modulo == "design_schedule" and self.rol != "superadmin" and (self.empresa or "") != EMPRESA_DESIGN:
             return False   # Design solo para la empresa Nuvia Design (13-oct-2026); el superadmin entra siempre
-        if modulo == "caja_menor" and self.rol == "admin" and modulo not in self.modulos_lista:
-            return False   # Caja menor (20-oct-2026): un admin ya no entra automático, necesita autorización
-                            # explícita en Parámetros › Quién tiene acceso; el superadmin entra siempre
+        if modulo == "caja_menor" and self.rol in ("admin", "superadmin") and modulo not in self.modulos_lista:
+            return False   # Caja menor (20-oct-2026): ni admin ni superadmin entran automático, necesitan
+                            # autorización explícita en Parámetros › Quién tiene acceso (Parámetros en sí
+                            # sigue abierto a cualquier admin/superadmin -- ver require_admin_caja_menor)
         return self.rol in ("admin", "superadmin") or modulo in self.modulos_lista
 
     @property
