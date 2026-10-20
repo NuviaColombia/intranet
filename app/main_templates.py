@@ -77,6 +77,17 @@ def _ve_calendario_people(user) -> bool:
 
 templates.env.globals["ve_calendario_people"] = _ve_calendario_people
 
+# Enlace a la wiki del proyecto (docs/wiki/ en GitHub): solo quienes tocan el código -- Oscar, Carlos y
+# Rosember -- no es relevante para el resto de la plataforma (Oscar, 20-oct-2026).
+WIKI_EMAILS = {"oscaralmanza@nuvia.app", "carlos.baldovino@nuvia.app", "rosember@nuviasmiles.com"}
+
+
+def _ve_wiki(user) -> bool:
+    return bool(user) and user.email.lower() in WIKI_EMAILS
+
+
+templates.env.globals["ve_wiki"] = _ve_wiki
+
 
 def _version_oscuro() -> str:
     """Versión de las hojas del modo oscuro (cambia con su contenido: el navegador no usa una copia vieja)."""
