@@ -945,6 +945,7 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsFilaHtml(spec, f, tabla) {
     var nueva = !f.id;
+    DS.tablaFila = tabla === 'prestadas' ? f.tabla : tabla;   // la lista de Diseñador depende de la tabla (Removable Denture)
     // fila en blanco de quien solo crea órdenes de un producto: el producto ya viene puesto
     if (nueva && tabla === 'principal' && dsSoloPropias() && DS.diaData && DS.diaData.creaProducto) f = Object.assign({producto: DS.diaData.creaProducto}, f);
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
@@ -1822,6 +1823,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var lista = dsElegibles();
       var html = '<select data-campo="designerId"' + al + ' data-previo="' + dsEsc(val || '') + '"><option value="">—</option>';
       lista.forEach(function(d) {
+        if (d.esRD && DS.tablaFila !== 'nightguard' && d.id !== val) return;   // Nestor (Removable Denture): solo en Nightguards / TC
         // primer nombre y primer apellido (el completo, al pasar el cursor): la columna ocupa menos (19-oct-2026)
         html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + ' title="' + dsEsc(d.nombre) + '">' + dsEsc(d.corto || d.nombre) +
                 (d.esManager ? ' (manager)' : '') + (d.esAyuda ? ' (ayuda)' : '') + (d.esRD ? ' (Removable Denture)' : '') + '</option>';

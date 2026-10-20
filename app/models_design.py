@@ -1397,3 +1397,16 @@ class DesignInvitado(Base):
     empleado_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     creado_por: Mapped[str] = mapped_column(String(150), default="")
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+
+class DesignCopiaRD(Base):
+    """Removable Denture (20-oct-2026): copia de una orden de N3 / N6 cuyo producto dice «Removable». La original la sigue
+    trabajando su equipo; Nestor diseña la removable en la copia (estado y horas propios). Orden, paciente, centro y
+    producto se copian siempre de la original (services_design.sincronizar_copia_rd)."""
+    __tablename__ = "design_copias_rd"
+
+    rd_orden_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    origen_orden_id: Mapped[int] = mapped_column(Integer, index=True)
+    origen_team_id: Mapped[int] = mapped_column(Integer)
+    creada_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

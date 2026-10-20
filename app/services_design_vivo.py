@@ -28,7 +28,7 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session, joinedload
 from .models_design import (DesignOrden, DesignBreak, DesignPreApprovedSheet, DesignPreApprovedCentro, DesignPreApprovedDoctor,
                             DesignPreApprovedFila, DesignPreApprovedCelda, DesignPreApprovedFoto, DesignInicioPagina, DesignInicioMuro, DesignInicioReaccion,
-                            DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila, DesignCopiaFace, DesignDelegacion,
+                            DesignOpeningsHoja, DesignOpeningsColumna, DesignOpeningsFila, DesignCopiaFace, DesignCopiaRD, DesignDelegacion,
                             DesignPermisoEdicion, DesignTeam, DesignTeamDesigner, DesignCatalogo, DesignAusenciaTipo, DesignFestivo,
                             DesignArea, DesignCambioDigital, DesignCalEvento, DesignCalVacacionEstimada)
 from .models import Solicitud
@@ -317,6 +317,13 @@ def _anotar(session: Session, obj, borrado: bool) -> None:
         otros.add(("inicio", 0, "pub"))
     elif isinstance(obj, (DesignInicioMuro, DesignInicioReaccion)):
         otros.add(("inicio", 0, "muro"))
+    elif isinstance(obj, DesignCopiaRD):
+        # copia de Removable Denture nueva o quitada: su tabla lleva manager y equipo de origen, que la orden sola no trae
+        c = session.get(DesignOrden, obj.rd_orden_id)
+        if c is not None:
+            _grupo(info, c.team_id, _fecha(c.fecha))["refrescar"] = True
+        else:
+            otros.add(("dia", 0, ""))
     elif isinstance(obj, DesignCopiaFace):
         # Copia Face → N2 pendiente de decisión (o decidida): la pantalla del manager de N2 no se enteraba
         n2 = session.get(DesignOrden, obj.n2_orden_id)

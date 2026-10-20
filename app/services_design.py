@@ -36,9 +36,10 @@ log = logging.getLogger(__name__)
 # Orden de presentación de las áreas en toda la UI de Design Schedule. Se aplica en código
 # (no en la columna `orden` de la BD); áreas que no estén aquí van al final por su `orden`.
 ORDEN_AREAS_UI = ["Face Design", "N2 Demodenture", "N3 Prosthetic", "N6 Material Changes", "Removable Denture", "Training", "Support"]
-# Removable Denture (Rosember, 20-oct-2026): un solo equipo («Schedule Removable Denture», diseñador Nestor Rojas). No se
-# crean órdenes ahí: los equipos de N3 y N6 le asignan el caso a Nestor como diseñador prestado y la MISMA orden aparece
-# en su Schedule con sus columnas (Manager, Arch, Bite design, Denture design). Ver rd_una_vez y es_orden_rd.
+# Removable Denture (Rosember, 20-oct-2026): un solo equipo («Schedule Removable Denture», diseñador Nestor Rojas). Toda
+# orden de N3 / N6 cuyo producto dice «Removable» tiene una COPIA ahí (la removable la diseña Nestor; la original la
+# trabaja su equipo). Ver rd_una_vez, sincronizar_copia_rd y DesignCopiaRD. En Nightguards / TC también se le puede
+# asignar a Nestor un caso como prestado (le aparece en «Prestadas a otros equipos").
 AREA_RD = "Removable Denture"
 EQUIPO_RD = "Schedule Removable Denture"
 ETAPA_DENTURE = "Denture design"
@@ -126,12 +127,104 @@ def ids_rd(db: Session) -> set[int]:
         .join(DesignArea, DesignArea.id == DesignTeam.area_id).filter(DesignArea.nombre == AREA_RD, DesignTeam.activo == 1))}))
 
 
-def es_orden_rd(db: Session, designer_id: int | None, team_id: int) -> bool:
-    """La orden es de otro equipo y está asignada a un diseñador de Removable Denture (aparece en su Schedule)."""
-    if not designer_id or designer_id not in ids_rd(db):
-        return False
-    t = db.get(DesignTeam, team_id)
-    return bool(t and t.area and t.area.nombre != AREA_RD and t.area.formato != FORMATO_SUPPORT)
+def es_producto_rd(producto: str | None) -> bool:
+    return "removable" in (producto or "").lower()
+
+
+def _equipo_rd(db: Session) -> DesignTeam | None:
+    return (db.query(DesignTeam).join(DesignArea, DesignArea.id == DesignTeam.area_id)
+            .filter(DesignArea.nombre == AREA_RD, DesignTeam.activo == 1).order_by(DesignTeam.orden, DesignTeam.id).first())
+
+
+def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = False, origen_id: int | None = None) -> None:
+    """Después de crear, editar o borrar una orden de N3 / N6: crea, actualiza o quita su copia en Removable Denture.
+    - Producto con «Removable» y sin copia → copia ese mismo día, de Nestor, en Bite design · Ready to design.
+    - Con copia → orden, paciente, centro y producto iguales a los de la original.
+    - Si ya no dice «Removable» o la borraron → la copia se borra si Nestor no la ha empezado (sigue en Ready to design y
+      sin horas); si ya la empezó, se queda."""
+    from .models_design import DesignCopiaRD
+    oid = origen_id or (o.id if o else None)
+    if not oid:
+        return
+    try:
+        if o is not None and not borrada:
+            t = o.team or db.get(DesignTeam, o.team_id)
+            if not t or not t.area or t.area.nombre not in (AREA_N3, AREA_N6):
+                return
+        regs = db.query(DesignCopiaRD).filter(DesignCopiaRD.origen_orden_id == oid).all()
+        quiere = (o is not None and not borrada and es_producto_rd(o.producto))
+        if quiere and not regs:
+            team_rd = _equipo_rd(db)
+            designer = (db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team_rd.id)
+                        .order_by(DesignTeamDesigner.orden, DesignTeamDesigner.id).first()) if team_rd else None
+            if not team_rd:
+                return
+            sig = (db.query(func.max(DesignOrden.orden_visual)).filter(DesignOrden.team_id == team_rd.id, DesignOrden.fecha == o.fecha,
+                                                                        DesignOrden.tabla == TABLA_MATERIAL).scalar() or 0) + 1
+            c = DesignOrden(team_id=team_rd.id, fecha=o.fecha, fecha_creada=o.fecha, tabla=TABLA_MATERIAL, orden_visual=sig,
+                            orden=(o.orden or "").strip().upper(), paciente=o.paciente or "", centro=o.centro or "",
+                            producto=o.producto or "", designer_id=designer[0] if designer else None, estado=ESTADO_READY,
+                            etapa=ETAPA_BITE, origen_equipo=t.nombre, creado_por_id=o.creado_por_id)
+            db.add(c)
+            db.flush()
+            db.add(DesignCopiaRD(rd_orden_id=c.id, origen_orden_id=o.id, origen_team_id=o.team_id))
+            db.commit()
+            return
+        for r in regs:
+            c = db.get(DesignOrden, r.rd_orden_id)
+            if c is None:   # la borraron en Removable Denture: el vínculo queda para no volver a crearla
+                if not quiere:
+                    db.delete(r)
+                continue
+            if quiere:
+                c.orden, c.paciente = (o.orden or "").strip().upper(), o.paciente or ""
+                c.centro, c.producto = o.centro or "", o.producto or ""
+                r.origen_team_id = o.team_id
+            else:
+                sin_empezar = _normalizar_texto(c.estado or "") in ("", _normalizar_texto(ESTADO_READY)) and not (c.hora_inicio or "").strip()
+                if sin_empezar:
+                    db.delete(c)
+                    db.delete(r)
+        db.commit()
+    except Exception:  # noqa: BLE001  la orden original ya quedó guardada; la copia nunca debe hacerla fallar
+        db.rollback()
+        import logging
+        logging.getLogger("design.rd").exception("Removable Denture: no se pudo sincronizar la copia de la orden %s", oid)
+
+
+_rd_copias = {"ok": False}
+
+
+def rd_copias_una_vez(db: Session) -> None:
+    """Al cambiar al modelo de copias: las órdenes de hoy en adelante con «Removable» en el producto reciben su copia."""
+    if _rd_copias["ok"]:
+        return
+    _rd_copias["ok"] = True
+    try:
+        hoy = ahora_colombia().date()
+        ordenes = (db.query(DesignOrden).join(DesignTeam, DesignTeam.id == DesignOrden.team_id)
+                   .join(DesignArea, DesignArea.id == DesignTeam.area_id)
+                   .filter(DesignArea.nombre.in_([AREA_N3, AREA_N6]), DesignOrden.fecha >= hoy,
+                           func.lower(DesignOrden.producto).like("%removable%")).all())
+        for o in ordenes:
+            sincronizar_copia_rd(db, o)
+    except Exception:  # noqa: BLE001
+        db.rollback()
+
+
+def copias_rd_info(db: Session, ids: list[int]) -> dict:
+    """{id de la copia: (equipo de origen, manager de origen, id del equipo)} para la tabla de Removable Denture."""
+    from .models_design import DesignCopiaRD
+    if not ids:
+        return {}
+    regs = db.query(DesignCopiaRD).filter(DesignCopiaRD.rd_orden_id.in_(ids)).all()
+    teams = {t.id: t for t in db.query(DesignTeam).options(joinedload(DesignTeam.manager))
+             .filter(DesignTeam.id.in_([r.origen_team_id for r in regs] or [-1]))}
+    out = {}
+    for r in regs:
+        t = teams.get(r.origen_team_id)
+        out[r.rd_orden_id] = (t.nombre if t else "", nombre_corto(t.manager) if t and t.manager else "", r.origen_team_id)
+    return out
 
 
 def rd_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
@@ -1636,6 +1729,8 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     """Horario del equipo en `fecha`. Con `solo_empleado_id` (vista de un diseñador) solo van sus órdenes
     y sus tiempos libres."""
     trasladar_holds(db)
+    if team.area.nombre == AREA_RD:
+        rd_copias_una_vez(db)
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
          .filter(DesignOrden.team_id == team.id, DesignOrden.fecha == fecha))
     qb = db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha)
@@ -1659,15 +1754,11 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]
     material = [serializar_orden(o) for o in ordenes if o.tabla == TABLA_MATERIAL]
     es_rd = team.area.nombre == AREA_RD
-    if es_rd:   # Removable Denture: la misma orden de N3 / N6, con el equipo y el manager de donde viene
-        ids = [solo_empleado_id] if solo_empleado_id is not None else [d.empleado_id for d in qd.all()]
-        casos = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team).joinedload(DesignTeam.manager))
-                 .filter(DesignOrden.fecha == fecha, DesignOrden.designer_id.in_(ids or [-1]), DesignOrden.team_id != team.id,
-                         DesignOrden.team_id.notin_(_equipos_support_ids(db)))
-                 .order_by(DesignOrden.team_id, DesignOrden.orden_visual, DesignOrden.id).all())
+    if es_rd:   # Removable Denture: sus copias, con el equipo y el manager de donde viene cada una
         principal, nightguard = [], []
-        material = [{**serializar_orden(o), "equipo": o.team.nombre, "teamOrigen": o.team_id,
-                     "manager": nombre_corto(o.team.manager) if o.team.manager else ""} for o in casos]
+        info = copias_rd_info(db, [m["id"] for m in material])
+        material = [{**m, "equipo": info.get(m["id"], ("",))[0] or m.get("origenEquipo", ""),
+                     "manager": info.get(m["id"], ("", ""))[1], "teamOrigen": info.get(m["id"], ("", "", None))[2]} for m in material]
     # Diseñadores con su empleado en una sola consulta (team.designers haría una consulta por diseñador).
     designers = qd.order_by(DesignTeamDesigner.orden).all()
 
@@ -1717,9 +1808,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     if team.area.formato == FORMATO_SUPPORT:
         # En Support el 'Diseñador' es el del caso: se elige entre todos los diseñadores de Design (y al final los managers).
         salida["designersCaso"] = disenadores_de_todos_los_equipos(db) + managers_de_todos_los_equipos(db)
-    if es_rd:
-        salida["prestadas"] = []   # en Removable Denture sus casos ya están en la tabla
-    elif solo_empleado_id is not None:
+    if solo_empleado_id is not None:
         salida["prestadas"] = [o for o in ordenes_prestadas(db, solo_empleado_id, fecha) if o["teamId"] != team.id]
     elif team.area.formato != FORMATO_SUPPORT:
         salida["prestadosEquipo"], salida["prestadosTipo"] = prestados_por_disenador(db, [d.empleado_id for d in designers], fecha,
@@ -2016,10 +2105,7 @@ def version_dia(db: Session, team: DesignTeam, fecha: date, empleado_id: int | N
     # Solo las columnas de la huella (la pantalla la pide cada 5 s por pestaña abierta: tiene que ser liviana).
     q = (db.query(DesignOrden.id, DesignOrden.team_id, DesignOrden.tabla, DesignOrden.orden_visual, DesignOrden.actualizado_en)
          .filter(DesignOrden.fecha == fecha))
-    if team.area and team.area.nombre == AREA_RD and not solo_propias:
-        q = q.filter(DesignOrden.designer_id.in_(list(ids_rd(db)) or [-1]))
-    else:
-        q = q.filter(DesignOrden.designer_id == empleado_id) if (solo_propias and empleado_id) else q.filter(DesignOrden.team_id == team.id)
+    q = q.filter(DesignOrden.designer_id == empleado_id) if (solo_propias and empleado_id) else q.filter(DesignOrden.team_id == team.id)
     partes = [(o.id, o.team_id, o.tabla, o.orden_visual, o.actualizado_en.isoformat() if o.actualizado_en else "")
               for o in q.order_by(DesignOrden.id).all()]
     qb = (db.query(DesignBreak.id, DesignBreak.empleado_id, DesignBreak.tipo_ausencia, DesignBreak.almuerzo_inicio, DesignBreak.almuerzo_fin,
@@ -2609,10 +2695,6 @@ def autocompletar_support(db: Session, orden: str) -> dict | None:
 def equipos_prestables(db: Session, team: DesignTeam) -> list[dict]:
     """Otros equipos activos de la misma área, con sus diseñadores, para elegir un diseñador prestado."""
     teams = [t for t in equipos_de_area(db, team.area_id) if t.id != team.id]
-    if team.area and team.area.nombre in (AREA_N3, AREA_N6):   # Removable Denture recibe casos de N3 y N6
-        rd = db.query(DesignArea).filter(DesignArea.nombre == AREA_RD).first()
-        if rd:
-            teams += equipos_de_area(db, rd.id)
     return [{"id": t.id, "nombre": t.nombre,
              "designers": sorted(({"id": d.empleado_id, "nombre": d.empleado.nombre_completo} for d in t.designers if d.empleado),
                                  key=lambda x: x["nombre"].lower()),

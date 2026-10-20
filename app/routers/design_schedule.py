@@ -1158,7 +1158,7 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
                                  for tid in {f.get("teamOrigen") for f in dia.get("material", []) if f.get("teamOrigen")}
                                  for c in [_colores_equipo(db, tid)]}
     elif team.area.nombre in (sd.AREA_N3, sd.AREA_N6) and (gest or es_tr):
-        # al final de la columna Diseñador: los de Removable Denture (Nestor Rojas), además de «Others (prestado)»
+        # al final de la columna Diseñador de Nightguards / TC: los de Removable Denture (Nestor Rojas)
         dia["designersRD"] = [{"id": e.id, "nombre": e.nombre_completo, "corto": sd.nombre_corto(e), "esRD": True}
                               for e in db.query(Empleado).filter(Empleado.id.in_(list(sd.ids_rd(db)) or [-1]), Empleado.activo == 1)]
     dia["puedeColores"] = bool(gest)
@@ -1393,6 +1393,7 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
             raise HTTPException(400, sd.msg_faltan_aprobar(falta))
     o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla, datos)
     _push_caso_a_support(db, user, o, None)
+    sd.sincronizar_copia_rd(db, o)
     return sd.serializar_orden(o)
 
 
@@ -1469,6 +1470,8 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
     except Exception:
         db.rollback()
         raise
+    for o in nuevas:
+        sd.sincronizar_copia_rd(db, o)
     return [sd.serializar_orden(o) for o in nuevas]
 
 
@@ -1722,7 +1725,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         viejo = datos.pop("hora_inicio_diseno")
         if viejo:
             datos["hora_inicio"] = viejo
-    rd = sd.es_orden_rd(db, datos.get("designer_id", orden_existente.designer_id), orden_existente.team_id)
+    rd = team.area.nombre == sd.AREA_RD   # copia de Removable Denture: Bite design → Denture design
     if rd and sd._normalizar_texto(datos.get("etapa", orden_existente.etapa) or "") not in (
             sd._normalizar_texto(sd.ETAPA_BITE), sd._normalizar_texto(sd.ETAPA_DENTURE)):
         datos["etapa"] = sd.ETAPA_BITE   # llegó a Removable Denture: empieza en Bite design
@@ -1757,6 +1760,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     designer_antes = orden_existente.designer_id
     o = sd.actualizar_orden(db, orden_id, datos)
     _push_caso_a_support(db, user, o, designer_antes)
+    sd.sincronizar_copia_rd(db, o)   # producto con «Removable»: su copia en Removable Denture
     return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
 
 
@@ -1771,6 +1775,7 @@ def api_eliminar_orden(orden_id: int, user: Empleado = Depends(require_modulo("d
     if sperm.dia_cerrado_para(db, user, orden_existente.fecha):
         raise HTTPException(403, DIA_CERRADO)
     sd.eliminar_orden(db, orden_id)
+    sd.sincronizar_copia_rd(db, None, borrada=True, origen_id=orden_id)
     return {"mensaje": "Eliminada."}
 
 

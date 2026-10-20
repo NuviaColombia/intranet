@@ -27,5 +27,69 @@ class EtapasRD(unittest.TestCase):
         self.assertEqual(sd.rd_horas_por_estado({"etapa": ""}, "Initiated"), {"hora_inicio": "09:30", "etapa": "Bite design"})
 
 
+class CopiasRD(unittest.TestCase):
+    """sincronizar_copia_rd: toda orden de N3 / N6 con «Removable» en el producto tiene su copia en Removable Denture."""
+
+    def setUp(self):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from sqlalchemy.pool import StaticPool
+        from app import models_design as md
+        from app.database import Base
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        self.db, self.md = sessionmaker(bind=eng)(), md
+        e = models.Empleado(nombres="Nestor", apellidos="Rojas", email="n@x.com", rol="empleado", activo=True,
+                            empresa=models.EMPRESA_DESIGN, cargo="Diseñador", area="x", identificacion="1")
+        a3, ard = md.DesignArea(nombre=sd.AREA_N3, formato="dual"), md.DesignArea(nombre=sd.AREA_RD, formato="dual")
+        self.db.add_all([e, a3, ard]); self.db.flush()
+        self.t3 = md.DesignTeam(area_id=a3.id, nombre="Schedule Ana")
+        self.trd = md.DesignTeam(area_id=ard.id, nombre=sd.EQUIPO_RD)
+        self.db.add_all([self.t3, self.trd]); self.db.flush()
+        self.db.add(md.DesignTeamDesigner(team_id=self.trd.id, empleado_id=e.id)); self.db.commit()
+        self.nestor = e.id
+
+    def orden(self, producto):
+        o = self.md.DesignOrden(team_id=self.t3.id, fecha=sd.date(2026, 10, 20), tabla="principal", orden="a1",
+                                paciente="Pepe", centro="C1", producto=producto)
+        self.db.add(o); self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        return o
+
+    def copias(self):
+        return self.db.query(self.md.DesignOrden).filter(self.md.DesignOrden.team_id == self.trd.id).all()
+
+    def test_crea_y_actualiza(self):
+        self.orden("Implant Bar")
+        self.assertEqual(self.copias(), [])
+        o = self.orden("Removable denture")
+        (c,) = self.copias()
+        self.assertEqual((c.orden, c.designer_id, c.etapa, c.estado, c.tabla), ("A1", self.nestor, "Bite design", "Ready to design", "material"))
+        o.paciente = "Juan"; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual(self.copias()[0].paciente, "Juan")
+        self.assertEqual(len(self.copias()), 1)
+
+    def test_quitar_producto_borra_si_no_empezo(self):
+        o = self.orden("Removable denture")
+        o.producto = "Implant Bar"; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual(self.copias(), [])
+
+    def test_si_ya_empezo_se_queda(self):
+        o = self.orden("Removable denture")
+        c = self.copias()[0]; c.estado, c.hora_inicio = "Initiated", "08:00"; self.db.commit()
+        oid = o.id
+        self.db.delete(o); self.db.commit()
+        sd.sincronizar_copia_rd(self.db, None, borrada=True, origen_id=oid)
+        self.assertEqual(len(self.copias()), 1)
+
+    def test_borrada_en_rd_no_vuelve(self):
+        o = self.orden("Removable denture")
+        self.db.delete(self.copias()[0]); self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual(self.copias(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

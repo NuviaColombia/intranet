@@ -73,7 +73,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
 - 19-oct-2026: `design_cumple_vistos`, `design_dev_*` (Development), `design_ordenes.critico`
   pasa a 300 caracteres (solo en PostgreSQL).
 - 20-oct-2026: `design_dev_apoyos`, `design_invitados`, columna `design_ordenes.arco`. Área y
-  equipo «Removable Denture» creados solos por `rd_una_vez`.
+  equipo «Removable Denture» creados solos por `rd_una_vez`. Tabla `design_copias_rd` (copia de
+  Removable Denture ↔ orden original); la primera vez que se abre Removable Denture, las órdenes de
+  hoy en adelante con «Removable» reciben su copia (`rd_copias_una_vez`).
 
 ## Integraciones
 
@@ -93,11 +95,17 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   - `app/services_design_pa_excel.py` -- un comentario marca qué hojas del Excel de Pre-Approved
     "Rosember confirmó que están bien" (no las "arregles" sin preguntar).
 - **Removable Denture** (área con un solo equipo, «Schedule Removable Denture», diseñador Nestor
-  Rojas): no tiene órdenes propias. Los equipos de N3 y N6 le asignan el caso a Nestor como
-  prestado y la MISMA orden aparece en su Schedule (`datos_dia` arma la tabla «material» con los
-  casos de sus diseñadores en otros equipos). Bite design usa las horas de siempre y Denture design
-  las `z_*`, llenadas por estado (`rd_horas_por_estado`); a esos casos no se les aplica la regla de
-  Approved de N3. El área y el equipo los crea `rd_una_vez`.
+  Rojas). Desde el 20-oct-2026 (Rosember) toda orden de N3 / N6 cuyo producto dice «Removable»
+  tiene una COPIA en ese equipo: la original la trabaja su equipo y Nestor diseña la removable en la
+  copia (estado y horas propios). `sincronizar_copia_rd` corre al crear, editar, crear en lote y
+  borrar: crea la copia (Nestor, Bite design, Ready to design), le copia orden/paciente/centro/
+  producto, y si quitan «Removable» o borran la original, la copia se borra solo si Nestor no la ha
+  empezado. Si Nestor borra su copia, el vínculo queda y no se vuelve a crear. Manager y equipo de
+  origen salen de `design_copias_rd` (`copias_rd_info`). Bite design usa las horas de siempre y
+  Denture design las `z_*`, llenadas por estado (`rd_horas_por_estado`); no aplica la regla de
+  Approved de N3. En la lista de Diseñador, «Nestor Rojas (Removable Denture)» solo sale en
+  Nightguards / TC (ahí sí se le presta el caso). Antes la orden se le prestaba a Nestor y era la
+  misma; ya no.
 - **Ausencias desde People (Tiempos libres)**: no se guardan en `design_breaks`; se calculan al
   vuelo con los permisos aprobados de People (`services_design._permisos_aprobados_del_dia`, que
   traduce cualquier tipo de permiso al catálogo de ausencias de Design con
