@@ -105,7 +105,7 @@ class DesignOrden(Base):
     hold_minutos: Mapped[float] = mapped_column(Float, default=0)
 
     esferas: Mapped[str] = mapped_column(String(20), default="")    # N3
-    critico: Mapped[str] = mapped_column(String(50), default="")    # N3
+    critico: Mapped[str] = mapped_column(String(300), default="")   # N3 (varios ítems separados por «; »)
 
     s_hold: Mapped[str] = mapped_column(String(10), default="")     # N2
     f_hold: Mapped[str] = mapped_column(String(10), default="")     # N2

@@ -1155,3 +1155,42 @@ table.ds-tabla select[data-campo="centro"] { min-width: 9.8em; }
 @keyframes ayLatir { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
 @media (prefers-reduced-motion:reduce) { .ay-pildora { animation:none; } }
 .ay-lista { display:flex; flex-direction:column; gap:4px; width:100%; }
+
+/* Horas con la misma letra del resto del Schedule (Rosember, 19-oct-2026): el navegador usaba su letra de ancho fijo y
+   cada hora ocupaba casi el doble. El reloj del campo queda pequeño, al lado. */
+table.ds-tabla input, table.ds-tabla select, .ds-tl-card input, .ds-tl-card select { font-family: inherit; }
+table.ds-tabla input[type=time], .ds-tl-card input[type=time] { font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+table.ds-tabla input[type=time] { width: 6.9em; min-width: 6.5em; padding-left: 2px; padding-right: 2px; }
+table.ds-tabla input[type=time]::-webkit-calendar-picker-indicator,
+.ds-tl-card input[type=time]::-webkit-calendar-picker-indicator { width: 11px; height: 11px; margin-left: 1px; padding: 0; opacity: .55; cursor: pointer; }
+table.ds-tabla input[type=time]::-webkit-datetime-edit, .ds-tl-card input[type=time]::-webkit-datetime-edit { padding: 0; }
+
+/* Crítico (N3): selección múltiple */
+table.ds-tabla button.ds-multi { width: 100%; min-width: 6.5em; max-width: 12em; height: 26px; border: 0; background: transparent; font: inherit; font-size: 12px;
+  color: inherit; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 14px 0 4px; position: relative; }
+table.ds-tabla button.ds-multi::after { content: "▾"; position: absolute; right: 3px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #6b7280; }
+.ds-multi-pop { position: fixed; z-index: 1000; background: #fff; border: 1px solid #d8dde3; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.18);
+  padding: 8px; min-width: 210px; font-size: 12.5px; }
+.ds-multi-pop .ds-multi-tit { font-weight: 700; color: #374151; font-size: 11.5px; padding: 2px 6px 6px; }
+.ds-multi-pop label { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 6px; cursor: pointer; color: #111827; font-size: 12.5px; font-weight: 500; margin: 0; }
+.ds-multi-pop label:hover { background: #f3f4f6; }
+.ds-multi-pop input[type=checkbox] { width: 15px; height: 15px; margin: 0; padding: 0; }
+.ds-multi-pop .ds-multi-acc { display: flex; justify-content: flex-end; padding-top: 6px; border-top: 1px solid #eef0f3; margin-top: 4px; }
+
+/* N3 › Cirugías: al intentar Approved con celdas vacías, esas celdas parpadean en rojo */
+table.ds-tabla td.ds-falta-aprobar { animation: dsFaltaAprobar .45s steps(2, start) 10; box-shadow: inset 0 0 0 2px #dc2626; }
+@keyframes dsFaltaAprobar { 0% { background: #fecaca; } 100% { background: #fff; } }
+@media (prefers-reduced-motion: reduce) { table.ds-tabla td.ds-falta-aprobar { animation: none; background: #fecaca; } }
+
+/* Tiempos libres: las tarjetas de los diseñadores (hasta 6) en una sola fila */
+.ds-tl-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 1300px) { .ds-tl-grid { grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); } }
+.ds-tl-card { padding: 8px 8px 9px; min-width: 0; }
+.ds-tl-head { gap: 4px; margin-bottom: 6px; min-height: 26px; }
+.ds-tl-nombre { font-size: 12px; min-width: 0; }
+.ds-tl-card .ds-tl-aus select { max-width: 86px; height: 26px; font-size: 11px; padding: 0 2px; }
+.ds-tl-fila { grid-template-columns: 50px 14px minmax(0,1fr) 5px minmax(0,1fr); gap: 3px; margin-top: 4px; }
+.ds-tl-fila > span.ds-tl-lbl { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-tl-card input[type=time] { height: 28px; font-size: 11.5px; padding: 0 1px; }
+.ds-tl-card input[type=checkbox] { width: 14px; height: 14px; }
+.ds-prod-pop .ds-prod-prest { font-size: 11px; color: #1d4ed8; font-weight: 600; white-space: nowrap; }

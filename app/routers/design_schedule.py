@@ -1331,6 +1331,10 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         datos.update(sd.horas_de_estado(payload.tabla, datos, datos["estado"]))
     if sd.orden_repetida(db, payload.teamId, _fecha(payload.fecha), datos["orden"]):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
+    if datos.get("estado") == "Approved":
+        falta = sd.faltan_para_aprobar(t_face.area.nombre, payload.tabla, datos)
+        if falta:
+            raise HTTPException(400, sd.msg_faltan_aprobar(falta))
     o = sd.crear_orden(db, user, payload.teamId, _fecha(payload.fecha), payload.tabla, datos)
     return sd.serializar_orden(o)
 
@@ -1656,6 +1660,12 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             datos.pop(c, None)
         datos["designer_id"] = orden_existente.designer_id
         datos["designer_prestado"] = orden_existente.designer_prestado
+    if datos.get("estado") == "Approved" and (orden_existente.estado or "") != "Approved":
+        # N3 › Cirugías: no se aprueba con columnas vacías (Crítico, START, RTD…); la pantalla avisa antes y hace parpadear
+        valores = {c: (datos[c] if c in datos else getattr(orden_existente, c, None)) for c in sd.CAMPOS_ORDEN}
+        falta = sd.faltan_para_aprobar(team.area.nombre, orden_existente.tabla, valores)
+        if falta:
+            raise HTTPException(400, sd.msg_faltan_aprobar(falta))
     o = sd.actualizar_orden(db, orden_id, datos)
     return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
 

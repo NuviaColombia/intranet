@@ -330,6 +330,32 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
 # N6: los productos que empiezan por "N6" van primero y debajo los demás (los de N3), en su orden (pedido por Rosember
 # el 7-oct-2026). Se aplica al mostrar la lista, así también los productos que se agreguen después quedan en su lugar.
 AREA_N6 = "N6 Material Changes"
+AREA_N3 = "N3 Prosthetic"
+# N3 › Cirugías (Rosember, 19-oct-2026): para poner Approved la fila debe estar completa. «Fin» no se exige (lo llena
+# Approved); «Inicio diseño» lo llena Initiated. Start hold y Re-initiated van en pareja. Notas y QC son opcionales.
+# Igual que DS_APROBAR_N3 en static/design/schedule.js.
+APROBAR_N3 = (("orden", "Orden"), ("paciente", "Paciente"), ("centro", "Centro"), ("producto", "Producto"),
+              ("designer", "Diseñador"), ("art_start", "START"), ("art_rtd", "RTD"), ("hora_inicio", "Inicio diseño"),
+              ("critico", "Crítico"))
+
+
+def faltan_para_aprobar(area_nombre: str, tabla: str, valores: dict) -> list[str]:
+    """Columnas vacías que impiden poner Approved (vacío si se puede). `valores` con claves de columna de DesignOrden."""
+    if area_nombre != AREA_N3 or tabla != "principal":
+        return []
+    lleno = lambda c: bool(str(valores.get(c) or "").strip())
+    falta = []
+    for c, nombre in APROBAR_N3:
+        ok = (valores.get("designer_id") or lleno("designer_prestado")) if c == "designer" else lleno(c)
+        if not ok:
+            falta.append(nombre)
+    if lleno("s_hold") and not lleno("f_hold"):
+        falta.append("Re-initiated (hay Start hold)")
+    return falta
+
+
+def msg_faltan_aprobar(falta: list[str]) -> str:
+    return "Para poner Approved hay que llenar: " + ", ".join(falta) + "."
 
 
 def _orden_productos_n6(db: Session, area_id: int, tipo: str, vals: list[str]) -> list[str]:
@@ -1542,7 +1568,28 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         salida["designersCaso"] = disenadores_de_todos_los_equipos(db) + managers_de_todos_los_equipos(db)
     if solo_empleado_id is not None:
         salida["prestadas"] = ordenes_prestadas(db, solo_empleado_id, fecha)
+    elif team.area.formato != FORMATO_SUPPORT:
+        salida["prestadosEquipo"] = prestados_por_disenador(db, [d.empleado_id for d in designers], fecha)
     return salida
+
+
+def prestados_por_disenador(db: Session, ids: list[int], fecha: date) -> dict:
+    """Casos del día que cada diseñador hizo prestado en equipos a los que no pertenece (sin canceladas): cuentan en su
+    producción (Rosember, 19-oct-2026). {empleado_id: casos}. Lo usa la ventana «Producción del día» del manager."""
+    if not ids:
+        return {}
+    miembro = {}
+    for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.empleado_id.in_(ids)):
+        miembro.setdefault(eid, set()).add(tid)
+    support = {i for (i,) in _equipos_support_ids(db).all()}
+    out: dict = {}
+    for eid, tid, estado in (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado)
+                             .filter(DesignOrden.designer_id.in_(ids), DesignOrden.fecha == fecha,
+                                     DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]))):
+        if tid in miembro.get(eid, set()) or tid in support or _es_cancelada(estado):
+            continue
+        out[eid] = out.get(eid, 0) + 1
+    return out
 
 
 def _manager_elegible(team: DesignTeam, ya: set) -> dict | None:

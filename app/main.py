@@ -311,6 +311,13 @@ def init_db():
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))
+    # Crítico de N3 con selección múltiple (19-oct-2026, autorizado por Rosember): la columna pasa de 50 a 300 caracteres.
+    # Solo amplía el tamaño; los valores no cambian. SQLite no limita el largo, así que allí no hace falta.
+    if engine.dialect.name == "postgresql":
+        col_critico = next((c for c in inspect(engine).get_columns("design_ordenes") if c["name"] == "critico"), None)
+        if col_critico is not None and (getattr(col_critico["type"], "length", None) or 0) < 300:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE design_ordenes ALTER COLUMN critico TYPE VARCHAR(300)"))
     # Design Schedule · Solicitar ayuda desde la lista de Diseñador (19-oct-2026): la solicitud queda ligada a la orden.
     columnas_ayuda = {c["name"] for c in inspect(engine).get_columns("design_ayuda_solicitudes")}
     for col, tipo in (("orden_id", "INTEGER"), ("asignada", "BOOLEAN")):

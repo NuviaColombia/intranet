@@ -355,8 +355,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         {k:'designerId', l:'Diseñador', t:'designer'},
         {k:'horaInicio', l:'Inicio', t:'time'}, {k:'horaInicioDiseno', l:'Inicio diseño', t:'time'},
         {k:'holdMinutos', l:'Hold (min)', t:'number'}, {k:'horaFin', l:'Fin', t:'time'},
-        {k:'esferas', l:'Esferas', t:'select', opciones:['','Yes','No','N/A']},
-        {k:'critico', l:'Crítico', t:'select', opciones:['','N/A','Inaccurate tissue','Min Thickness','Implant moved','Implant angled','Implant close','Tissue smooth >15']},
+        {k:'critico', l:'Crítico', t:'multi', opciones:['','N/A','Inaccurate tissue','Min Thickness','Implant moved','Implant angled','Implant close','Tissue smooth >15']},
         {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
         {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
       ],
@@ -395,8 +394,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         {k:'designerId', l:'Diseñador', t:'designer'},
         {k:'horaInicio', l:'Inicio diseño', t:'time'}, {k:'sHold', l:'Start hold', t:'time'}, {k:'fHold', l:'Re-initiated', t:'time', sinTHold: true},
         {k:'horaFin', l:'Fin', t:'time'},
-        {k:'esferas', l:'Esferas', t:'select', opciones:['','Yes','No','N/A']},
-        {k:'critico', l:'Crítico', t:'select', opciones:['','N/A','Inaccurate tissue','Min Thickness','Implant moved','Implant angled','Implant close','Tissue smooth >15']},
+        {k:'critico', l:'Crítico', t:'multi', opciones:['','N/A','Inaccurate tissue','Min Thickness','Implant moved','Implant angled','Implant close','Tissue smooth >15']},
         {k:'estado', l:'Estado', t:'catalogo', cat:'estado'},
         {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
       ],
@@ -645,6 +643,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!tr || tr.dataset.id === 'nuevo') return;
     f = f || (DS.diaData[tabla] || []).find(function(x) { return x.id === parseInt(tr.dataset.id); });
     if (!f) return;
+    dsMarcarFaltaAprobar(tr);   // N3: celdas que faltan para Approved (parpadean unos segundos)
     tr.classList.toggle('ds-fila-cancelada', f.estado === 'Canceled');
     var est = String(f.estado || '').trim().toLowerCase();
     // 19-oct-2026: "Dr authorization" (Material Change) se ve como Approved (color y chip), no como Hold; en lo demás sigue contando como Hold
@@ -1035,6 +1034,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       input.addEventListener(ev, function() {
         if (ev === 'blur' && dsSinCambio(tr, tabla, input)) return; // no cambió (p. ej. pasar con Tab)
         if (input.value === '__colores') { dsAbrirColores(tr, tabla, input); return; }
+        if (input.dataset.campo === 'estado' && input.value === 'Approved' && !dsPuedeAprobar(tr, tabla, input)) {
+          if (DS_COLOR_TIPO.estado) dsPintarCelda(input);
+          return;
+        }
         if (DS_COLOR_TIPO[input.dataset.campo]) dsPintarCelda(input);
         if (input.dataset.campo === 'designerId' && input.value === '__otro') { dsElegirPrestado(tr, tabla, input); return; }
         if (input.dataset.campo === 'designerId' && input.value === '__training') { dsMoverATraining(tr, tabla, input); return; }
@@ -1748,6 +1751,11 @@ window.addEventListener('unhandledrejection', function(ev) {
       return '<input type="checkbox" data-campo="' + c.k + '"' + al + ' ' + (val ? 'checked' : '') +
              (bloq ? ' disabled title="Solo los aprobadores marcan el QC"' : '') + '>';
     }
+    if (c.t === 'multi') {   // Crítico (19-oct-2026): varios ítems, guardados como «A; B»
+      return '<input type="hidden" data-campo="' + c.k + '" value="' + dsEsc(val || '') + '">' +
+             '<button type="button" class="ds-multi" data-opciones="' + dsEsc(JSON.stringify(c.opciones.filter(Boolean))) + '"' + al +
+             ' title="' + dsEsc(dsMultiItems(val).join('\n') || 'Elegir uno o varios') + '">' + dsEsc(dsMultiTxt(val)) + '</button>';
+    }
     if (c.t === 'select') {
       var html = '<select data-campo="' + c.k + '"' + al + '>';
       c.opciones.forEach(function(o) { html += '<option value="' + dsEsc(o) + '"' + (o === val ? ' selected' : '') + '>' + (o ? dsEsc(o) : '—') + '</option>'; });
@@ -1788,6 +1796,84 @@ window.addEventListener('unhandledrejection', function(ev) {
     // Ayuda del día (Seguimiento › Solicitar ayuda): el diseñador que otro aprobador envió a este equipo
     (DS.diaData.ayudas || []).forEach(function(a) { if (!base.some(function(d) { return d.id === a.id; })) base.push(a); });
     return base;
+  }
+
+  // ---------- Selección múltiple (Crítico de N3) ----------
+  function dsMultiItems(v) { return String(v || '').split(/\s*;\s*/).filter(Boolean); }
+  function dsMultiTxt(v) { var it = dsMultiItems(v); return !it.length ? '—' : it[0] + (it.length > 1 ? ' +' + (it.length - 1) : ''); }
+  function dsMultiPintar(btn, v) { btn.textContent = dsMultiTxt(v); btn.title = dsMultiItems(v).join('\n') || 'Elegir uno o varios'; }
+  function dsCerrarMulti() { var p = document.getElementById('dsMultiPop'); if (p && p._cerrar) p._cerrar(); }
+  function dsAbrirMulti(btn, hid) {
+    dsCerrarMulti();
+    var ops = JSON.parse(btn.dataset.opciones || '[]'), inicial = hid.value, sel = dsMultiItems(inicial);
+    var pop = document.createElement('div'); pop.className = 'ds-multi-pop'; pop.id = 'dsMultiPop';
+    pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Crítico: elige uno o varios');
+    pop.innerHTML = '<div class="ds-multi-tit">Crítico · uno o varios</div>' + ops.map(function(o, i) {
+      return '<label><input type="checkbox" value="' + dsEsc(o) + '"' + (sel.indexOf(o) >= 0 ? ' checked' : '') + '> ' + dsEsc(o) + '</label>';
+    }).join('') + '<div class="ds-multi-acc"><button type="button" class="btn mini">Listo</button></div>';
+    document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect();
+    pop.style.top = Math.min(r.bottom + 4, window.innerHeight - pop.offsetHeight - 8) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+    var cajas = pop.querySelectorAll('input[type=checkbox]');
+    pop.addEventListener('change', function(e) {   // N/A va sola: elegirla quita las demás y al revés
+      var x = e.target;
+      if (x.checked) cajas.forEach(function(c) { if (c !== x && (x.value === 'N/A' || c.value === 'N/A')) c.checked = false; });
+      var v = Array.prototype.filter.call(cajas, function(c) { return c.checked; }).map(function(c) { return c.value; }).join('; ');
+      hid.value = v; dsMultiPintar(btn, v);
+    });
+    var fuera = function(e) { if (!pop.contains(e.target) && e.target !== btn) cerrar(); };
+    var tecla = function(e) { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
+    function cerrar() {
+      document.removeEventListener('mousedown', fuera, true); document.removeEventListener('keydown', tecla, true);
+      pop.remove();
+      if (hid.value !== inicial) hid.dispatchEvent(new Event('blur'));   // guarda como cualquier celda
+      if (btn.isConnected) btn.focus();
+    }
+    pop._cerrar = cerrar;
+    pop.querySelector('.ds-multi-acc button').onclick = cerrar;
+    document.addEventListener('mousedown', fuera, true); document.addEventListener('keydown', tecla, true);
+    if (cajas[0]) cajas[0].focus();
+  }
+  document.addEventListener('click', function(e) {
+    var b = e.target.closest && e.target.closest('button.ds-multi'); if (!b) return;
+    var hid = b.parentNode.querySelector('[data-campo]');
+    if (!hid || hid.disabled || dsDiaCerrado()) return;
+    dsAbrirMulti(b, hid);
+  });
+
+  // ---------- N3 › Cirugías: para poner Approved la fila debe estar completa (igual que APROBAR_N3 en services_design.py) ----------
+  var DS_APROBAR_N3 = [['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['producto', 'Producto'], ['designerId', 'Diseñador'],
+                       ['artStart', 'START'], ['artRtd', 'RTD'], ['horaInicio', 'Inicio diseño'], ['critico', 'Crítico']];
+  function dsPuedeAprobar(tr, tabla, sel) {
+    var f = (DS.diaData && DS.diaData[tabla] || []).find(function(x) { return x.id === parseInt(tr.dataset.id); }) || {};
+    var area = tabla === 'prestadas' ? f.area : dsAreaNombre(), tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
+    if (area !== 'N3 Prosthetic' || tablaReal !== 'principal' || f.estado === 'Approved') return true;
+    var datos = dsFilaDesdeForm(tr);
+    var val = function(k) { return k === 'designerId' ? (datos.designerId || f.designerPrestado || '') : (datos[k] !== undefined ? datos[k] : f[k]); };
+    var falta = DS_APROBAR_N3.filter(function(p) { return !String(val(p[0]) || '').trim(); });
+    if (String(val('sHold') || '').trim() && !String(val('fHold') || '').trim()) falta.push(['fHold', 'Re-initiated (hay Start hold)']);
+    if (!falta.length) return true;
+    sel.value = f.estado || '';
+    // parpadean las celdas que faltan (5 s); se guarda aparte porque la fila puede volver a dibujarse mientras tanto
+    DS.faltaAprobar = {id: tr.dataset.id, campos: falta.map(function(p) { return p[0]; }), hasta: Date.now() + 5000};
+    dsMarcarFaltaAprobar(tr);
+    clearTimeout(DS.tFaltaAprobar);
+    DS.tFaltaAprobar = setTimeout(function() {
+      document.querySelectorAll('td.ds-falta-aprobar').forEach(function(td) { td.classList.remove('ds-falta-aprobar'); });
+      DS.faltaAprobar = null;
+    }, 5000);
+    dsToast('Para poner Approved falta llenar: ' + falta.map(function(p) { return p[1]; }).join(', ') + '.');
+    return false;
+  }
+
+  function dsMarcarFaltaAprobar(tr) {
+    var fa = DS.faltaAprobar;
+    if (!fa || fa.id !== tr.dataset.id || Date.now() > fa.hasta) return;
+    fa.campos.forEach(function(k) {
+      var el = tr.querySelector('[data-campo="' + k + '"]'), td = el && el.closest('td');
+      if (td && !td.classList.contains('ds-falta-aprobar')) td.classList.add('ds-falta-aprobar');
+    });
   }
 
   function dsEsc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -1902,6 +1988,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (el.tagName === 'SELECT' && v && !el.querySelector('option[value="' + CSS.escape(v) + '"]')) return;
       if (el.value !== v) { el.value = v; el._alEnfocar = v; if (el.dataset.valorActual !== undefined) el.dataset.valorActual = v; }
     });
+    tr.querySelectorAll('button.ds-multi').forEach(function(b) { var h = b.parentNode.querySelector('[data-campo]'); if (h) dsMultiPintar(b, h.value); });
   }
 
   function dsTrasGuardar(tabla, tr, o) {
@@ -2032,6 +2119,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsRenderKpis(dia) {
     dsPintarProduccion();  // la ventana de Producción (si está abierta) sigue los cambios
     var filas = dia.principal.concat(dia.nightguard || [], dia.material || []);
+    // Vista del diseñador: también cuentan los casos que hizo prestado en otros equipos (19-oct-2026)
+    if (dia.soloPropias) filas = filas.concat(dia.prestadas || []);
     var todas = filas.filter(dsOrdenCompleta), conDatos = filas.filter(dsOrdenConDatos);
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
     DS_KPIS.forEach(function(k) {
@@ -2077,7 +2166,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         var card = document.createElement('div'); card.className = 'ds-tl-card'; card.dataset.empleadoId = d.id;
         card.dataset.fecha = dia._fecha || dsFechaISO(dsFechaSeleccionada()); card.dataset.team = dia._team || DS.teamId;   // su día y su equipo
         var fila = function(lbl, ini, fin, conCheck) {
-          return '<div class="ds-tl-fila"><span class="ds-tl-lbl">' + lbl + '</span>' +
+          return '<div class="ds-tl-fila"><span class="ds-tl-lbl" title="' + lbl + '">' + lbl.replace('Descanso', 'Desc.') + '</span>' +
             (conCheck ? '<input type="checkbox" data-descanso="' + conCheck + '" title="Registrar descanso de ' + DS_DESCANSO_MIN + ' min desde ahora" aria-label="Registrar ' + lbl + ' de ' + dsEsc(d.nombre) + '">' : '<span></span>') +
             '<input type="time" data-campo="' + ini + '" aria-label="' + lbl + ' de ' + dsEsc(d.nombre) + ': inicio" value="' + dsEsc(b[ini] || '') + '">' +
             '<span class="ds-tl-guion">-</span>' +
@@ -2181,13 +2270,20 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsProduccionDia(dia) {
     var cuenta = {}, nombres = {}, orden = [];
     (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.nombre; orden.push(k); });
-    (dia.principal || []).concat(dia.nightguard || [], dia.material || []).forEach(function(f) {
+    var prest = {};
+    (dia.principal || []).concat(dia.nightguard || [], dia.material || [], dia.soloPropias ? (dia.prestadas || []) : []).forEach(function(f) {
       var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
       if (!k || String(f.estado || '').trim().toLowerCase() === 'canceled') return;  // las canceladas no cuentan
       if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
       cuenta[k]++;
+      if (f.equipo && dia.soloPropias) prest[k] = (prest[k] || 0) + 1;   // vista del diseñador: los suyos en otros equipos
     });
-    return orden.map(function(k) { return {nombre: nombres[k], casos: cuenta[k]}; });
+    // Manager: los casos que sus diseñadores hicieron prestados en otros equipos también son de su producción
+    Object.keys(dia.prestadosEquipo || {}).forEach(function(id) {
+      var k = 'd' + id; if (!(k in cuenta)) return;
+      cuenta[k] += dia.prestadosEquipo[id]; prest[k] = (prest[k] || 0) + dia.prestadosEquipo[id];
+    });
+    return orden.map(function(k) { return {nombre: nombres[k], casos: cuenta[k], prestados: prest[k] || 0}; });
   }
   function dsPintarProduccion() {
     var pop = document.getElementById('dsProdPop'); if (!pop || !DS.diaData) return;
@@ -2196,7 +2292,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     pop.innerHTML = '<h4>Producción del día</h4><div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
       ' · casos asignados a cada diseñador (sin canceladas)</div>' +
       (filas.length ? '<table><thead><tr><th>Diseñador</th><th class="n">Casos</th></tr></thead><tbody>' +
-        filas.map(function(x) { return '<tr' + (x.casos ? '' : ' class="cero"') + '><td>' + dsEsc(x.nombre) + '</td><td class="n">' + x.casos + '</td></tr>'; }).join('') +
+        filas.map(function(x) { return '<tr' + (x.casos ? '' : ' class="cero"') + '><td>' + dsEsc(x.nombre) +
+          (x.prestados ? ' <span class="ds-prod-prest" title="Casos que hizo prestado en otros equipos (ya están sumados)">(' + x.prestados + ' prestado' + (x.prestados > 1 ? 's' : '') + ')</span>' : '') +
+          '</td><td class="n">' + x.casos + '</td></tr>'; }).join('') +
         '<tr class="total"><td>Total</td><td class="n">' + total + '</td></tr></tbody></table>'
        : '<p class="ds-prest-vacio">Este equipo no tiene diseñadores.</p>');
   }
@@ -2799,6 +2897,15 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (v === '') return c.t === 'number' ? 0 : '';
     if (c.t === 'number') { var n = parseFloat(v.replace(',', '.')); return isNaN(n) ? undefined : n; }
     if (c.t === 'time') { var h = dsNormHora(v); return h === null ? undefined : h; }
+    if (c.t === 'multi') {
+      var out = [];
+      for (var i = 0, it = v.split(/\s*[;,]\s*/).filter(Boolean); i < it.length; i++) {
+        var m = c.opciones.find(function(o) { return o && o.toLowerCase() === it[i].toLowerCase(); });
+        if (!m) return undefined;
+        if (out.indexOf(m) < 0) out.push(m);
+      }
+      return out.indexOf('N/A') >= 0 && out.length > 1 ? undefined : out.join('; ');
+    }
     if (el.tagName === 'SELECT') {
       var low = v.toLowerCase();
       var opt = Array.prototype.find.call(el.options, function(o) { return o.value && (o.value.toLowerCase() === low || o.text.toLowerCase() === low); });
