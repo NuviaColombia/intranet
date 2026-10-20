@@ -5,6 +5,12 @@
   .cm-param-link { font-size:12px; font-weight:600; color:var(--gris); text-decoration:none; padding:4px 10px;
                    border:1px solid #e5e7eb; border-radius:999px; background:#fff; }
   .cm-param-link:hover { color:#111827; border-color:#cbd5e1; }
+  {# Tarjetas más chicas y ajustadas, solo en esta página (no afecta a los demás módulos) #}
+  .modulos-compacto { grid-template-columns:repeat(auto-fill, minmax(150px, 170px)); gap:12px; }
+  .modulos-compacto .modulo { padding:14px 12px; gap:4px; }
+  .modulos-compacto .modulo-icono { font-size:24px; }
+  .modulos-compacto .modulo-nombre { font-size:13px; }
+  .modulos-compacto .modulo-desc { font-size:11px; }
 </style>
 <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
   <h1 style="margin:0;">Caja menor Nuvia</h1>
@@ -13,7 +19,7 @@
   {% endif %}
 </div>
 <p style="color:var(--gris)">Elige la caja con la que vas a trabajar</p>
-<div class="modulos">
+<div class="modulos modulos-compacto">
   {% for c in cajas %}
   <a class="modulo" href="/caja-menor/{{ c.id }}{{ '?tab=firmas' if pendientes.get(c.id) else '' }}">
     <span class="modulo-icono">{{ c.icono }}</span>
