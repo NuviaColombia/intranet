@@ -1,7 +1,40 @@
 {% extends "base.html" %}
 {% block titulo %}Inicio{% endblock %}
 {% block contenido %}
-<h1>Solicitudes Nuvia</h1>
+{% set v = version or '1' %}
+<link rel="stylesheet" href="/static/portal_inicio/inicio.css?v={{ v }}">
+{% if editor %}<link rel="stylesheet" href="/static/portal_inicio/editor.css?v={{ v }}">{% endif %}
+<div id="nviPagina" class="nvi-raiz"></div>
+{% if not modo_editar %}
+  {% if not pagina %}
+  {% if editor %}
+  <p style="margin:0 0 18px"><a class="nvi-b1" style="display:inline-block;text-decoration:none;padding:10px 18px" href="/?editar=1">✎ Crear la página principal</a></p>
+  {% endif %}
+  {% endif %}
+  {% if editor %}<a class="nvi-editar-flotante" href="/?editar=1" title="Editar la página principal (solo superadmins)">✎ Editar página</a>{% endif %}
+{% endif %}
+<script src="/static/portal_inicio/render.js?v={{ v }}"></script>
+<script src="/static/portal_inicio/fx.js?v={{ v }}"></script>
+<script src="/static/portal_inicio/carrusel.js?v={{ v }}"></script>
+{% if editor %}
+<script src="/static/portal_inicio/plantillas.js?v={{ v }}"></script>
+<script src="/static/portal_inicio/video.js?v={{ v }}"></script>
+<script src="/static/portal_inicio/editor.js?v={{ v }}"></script>
+{% endif %}
+<script>
+(function() {
+  {% if modo_editar %}
+  NVI.ed.iniciar();
+  {% else %}
+  var pag = {{ pagina | tojson }};
+  if (pag) NVI.render(pag, document.getElementById('nviPagina'), {modo: 'ver'});
+  if (pag && pag.tema && pag.tema.alAbrir) NVI.celebrarAlAbrir(pag.tema.alAbrir);   // celebración una vez por sesión
+  NVI.vivoVer(document.getElementById('nviPagina'), {{ vivo | tojson }});  // se actualiza sola al publicar o con el muro
+  {% endif %}
+})();
+</script>
+{% if not modo_editar %}
+<h1 id="modulos">Solicitudes Nuvia</h1>
 <p style="color:var(--gris)">Elige un módulo para continuar</p>
 {% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
 <div class="modulos">
@@ -87,5 +120,6 @@ document.addEventListener('keydown', function(e) {
   location.href = '/design?esc=1';
 });
 </script>
+{% endif %}
 {% endif %}
 {% endblock %}
