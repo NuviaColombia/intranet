@@ -113,6 +113,34 @@
     🔐 <b>Quién puede entrar a Parámetros</b>: solo los <b>administradores</b> de la intranet (rol Administrador o Superadministrador en People › Empleados):
     {% for a in administradores %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ' (superadmin)' if a.rol == 'superadmin' }}{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
   </div>
+  <h3 style="margin:18px 0 6px; font-size:14px; color:#1A365D;">🔑 Administradores autorizados a entrar a Caja menor</h3>
+  <div class="cmp-ayuda">Esta lista sale de <b>People › Empleados</b> (se actualiza sola si alguien pasa a ser admin o superadmin) y es
+    independiente de las cajas: un <b>admin</b> (no superadmin) ya no entra automático a Caja menor -- hay que autorizarlo aquí.
+    El <b>superadmin</b> siempre entra.</div>
+  <table class="cmp-tabla" style="max-width:700px; margin-bottom:22px;">
+    <tr><th>Administrador</th><th>Cargo</th><th>Entra a Caja menor</th><th></th></tr>
+    {% for a in administradores %}
+    <tr>
+      <td>{{ a.nombre_completo|nombre_propio }}</td>
+      <td>{{ a.cargo }}</td>
+      <td>
+        {% if a.rol == 'superadmin' %}<span class="cmp-estado si">Siempre (superadmin)</span>
+        {% elif 'caja_menor' in a.modulos_lista %}<span class="cmp-estado si">Autorizado</span>
+        {% else %}<span class="cmp-estado no">No autorizado</span>{% endif %}
+      </td>
+      <td class="cmp-acciones">
+        {% if a.rol != 'superadmin' %}
+        <form class="inline" method="post" action="/caja-menor/parametros/admins/{{ a.id }}/toggle">
+          <button class="btn {{ 'gris' if 'caja_menor' in a.modulos_lista else '' }} mini">
+            {{ 'Quitar acceso' if 'caja_menor' in a.modulos_lista else 'Autorizar' }}</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="text-align:center; color:var(--gris); padding:18px;">No hay administradores en People.</td></tr>
+    {% endfor %}
+  </table>
   <table class="cmp-tabla">
     <tr><th>Persona</th><th>Cargo</th>{% for c in cajas %}<th style="text-align:center">{{ c.icono }} {{ c.nombre|nombre_propio }}</th>{% endfor %}<th>Secciones</th></tr>
     {% for e in resumen %}

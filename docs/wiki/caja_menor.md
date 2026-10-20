@@ -21,6 +21,15 @@ Adentro, el detalle fino sí es por tabla propia: `CajaAcceso` (quién puede usa
 `CajaAutorizador` (quién firma "Aprobado por"), `CajaSupervisor` (quién da el visto bueno del FM)
 -- todas por persona, asignadas en Parámetros.
 
+**(2026-10-20) Un admin ya NO entra automático a Caja menor.** A diferencia del resto de
+módulos, `Empleado.tiene_modulo()` (`app/models.py`) tiene una excepción explícita para
+`"caja_menor"`: un `admin` (no superadmin) solo entra si tiene el permiso `caja_menor` en
+`Empleado.modulos` -- ya sea porque opera/autoriza/supervisa una caja (como cualquier empleado), o
+porque un admin con acceso real lo autorizó explícitamente desde Parámetros › Quién tiene acceso ›
+"Administradores autorizados a entrar a Caja menor" (`/caja-menor/parametros/admins/{id}/toggle`).
+El **superadmin siempre entra**, sin excepción (si no, nadie podría autorizar a nadie). Pedido de
+Carlos: por defecto ningún admin nuevo debe poder entrar hasta que él o un superadmin lo autorice.
+
 A diferencia de SST/Custodia/Consumo/Conteo, Caja Menor **no es de una sola empresa**: cada
 `CajaMenor` tiene su propio campo `empresa` (hoy: Contabilidad y Mantenimiento son de Nuvia
 Smiles, Design es de Nuvia Design). `services_caja.es_admin(user, caja=None)` refleja eso:

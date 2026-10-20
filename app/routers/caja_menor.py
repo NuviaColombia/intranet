@@ -817,6 +817,32 @@ async def agregar_acceso(request: Request, user: Empleado = Depends(require_modu
     return RedirectResponse(f"/caja-menor/parametros?msg=Acceso dado a {nombre_propio(empleado.nombre_completo)}.", status_code=303)
 
 
+@router.post("/caja-menor/parametros/admins/{empleado_id}/toggle")
+def toggle_admin(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    """Un admin (no superadmin) ya no entra automático a Caja menor (ver Empleado.tiene_modulo): aquí se le
+    autoriza esa entrada, o se le quita. El superadmin siempre entra, no aplica aquí."""
+    _solo_admin(user)
+    empleado = db.get(Empleado, empleado_id)
+    if not empleado or empleado.rol != "admin":
+        return RedirectResponse("/caja-menor/parametros?tab=resumen&msg=No se guardó: elige un administrador (no superadmin).",
+                                status_code=303)
+    nombre = nombre_propio(empleado.nombre_completo)
+    if MODULO in empleado.modulos_lista:
+        tiene_acceso_real = any(db.query(m).filter(m.empleado_id == empleado_id).first()
+                                for m in (CajaAcceso, CajaAutorizador, CajaSupervisor))
+        if tiene_acceso_real:
+            return RedirectResponse(f"/caja-menor/parametros?tab=resumen&msg=No se quitó: {nombre} tiene acceso real a una caja "
+                                    "(quítaselo ahí primero, en Accesos/Autorizan/Supervisan).", status_code=303)
+        empleado.modulos = ",".join(m for m in empleado.modulos_lista if m != MODULO)
+        db.commit()
+        msg = f"{nombre} ya no entra a Caja menor como administrador."
+    else:
+        _dar_modulo(empleado)
+        db.commit()
+        msg = f"{nombre} ahora entra a Caja menor como administrador."
+    return RedirectResponse(f"/caja-menor/parametros?tab=resumen&msg={msg}", status_code=303)
+
+
 @router.post("/caja-menor/parametros/accesos/{empleado_id}/quitar")
 def quitar_acceso(empleado_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     """Quita el módulo Caja menor y las cajas de tu empresa a esa persona (conserva accesos de otra empresa,
