@@ -1039,6 +1039,17 @@ def cargar_datos_iniciales() -> None:
                 conn.execute(text(f"ALTER TABLE caja_menor_fms ADD COLUMN {nombre} {tipo}"))
         if "responsable_id" not in columnas_cajas:
             conn.execute(text("ALTER TABLE caja_menor_cajas ADD COLUMN responsable_id INTEGER REFERENCES empleados(id)"))
+        if "empresa" not in columnas_cajas:
+            # Cada caja ahora pertenece a una empresa (antes un admin de cualquier empresa entraba a todas):
+            # a las que ya existen se les asigna la de su responsable -- el dato real que ya tenían.
+            conn.execute(text("ALTER TABLE caja_menor_cajas ADD COLUMN empresa VARCHAR(100) DEFAULT ''"))
+            conn.execute(text("""
+                UPDATE caja_menor_cajas SET empresa = (
+                    SELECT e.empresa FROM empleados e WHERE e.id = caja_menor_cajas.responsable_id
+                ) WHERE responsable_id IS NOT NULL
+            """))
+            conn.execute(text(
+                "UPDATE caja_menor_cajas SET empresa = 'Nuvia Smiles Colombia SAS' WHERE empresa = '' OR empresa IS NULL"))
     # Responsable guardado antes solo como nombre: se enlaza con la persona de People
     db = SessionLocal()
     try:
