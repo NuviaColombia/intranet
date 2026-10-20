@@ -1153,6 +1153,14 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     import time as _t
     col = _colores_equipo(db, team.id)
     dia["colores"] = col[0] if col else None             # colores de diseñadores y centros del equipo (del manager)
+    if team.area.nombre == sd.AREA_RD:   # Removable Denture: cada caso con los colores de su equipo de origen (20-oct-2026)
+        dia["coloresEquipos"] = {str(tid): (c[0] if c else None)
+                                 for tid in {f.get("teamOrigen") for f in dia.get("material", []) if f.get("teamOrigen")}
+                                 for c in [_colores_equipo(db, tid)]}
+    elif team.area.nombre in (sd.AREA_N3, sd.AREA_N6) and (gest or es_tr):
+        # al final de la columna Diseñador: los de Removable Denture (Nestor Rojas), además de «Others (prestado)»
+        dia["designersRD"] = [{"id": e.id, "nombre": e.nombre_completo, "corto": sd.nombre_corto(e), "esRD": True}
+                              for e in db.query(Empleado).filter(Empleado.id.in_(list(sd.ids_rd(db)) or [-1]), Empleado.activo == 1)]
     dia["puedeColores"] = bool(gest)
     dia["ahoraMs"] = int(_t.time() * 1000)  # hora del servidor: el descanso se marca con la hora de Colombia, no la del computador
     return dia

@@ -1209,3 +1209,11 @@ table.ds-tabla select[data-campo="designerId"] { field-sizing: content; min-widt
 table.ds-tabla select[data-campo="arco"] { field-sizing: content; min-width: 5.6em; }
 /* Removable Denture: TIME reemplaza a «Total general» */
 table.ds-tabla-rd th.ds-th-total, table.ds-tabla-rd td.ds-total { display: none; }
+
+/* Removable Denture: anchos como en N3 (cada columna a su contenido; Notas toma el espacio que sobra) */
+table.ds-tabla-rd > thead > tr:last-child > th, table.ds-tabla-rd > tbody > tr > td { width: 1%; white-space: nowrap; }
+table.ds-tabla-rd > thead > tr:last-child > th:nth-last-child(3), table.ds-tabla-rd > tbody > tr > td:nth-last-child(3) { width: auto; }
+table.ds-tabla-rd input[data-campo="notas"] { min-width: 12em; }
+table.ds-tabla-rd select[data-campo="etapa"] { min-width: 0; field-sizing: content; }
+table.ds-tabla-rd select[data-campo="estado"] { min-width: 0; field-sizing: content; }
+table.ds-tabla-rd input[type=time] { min-width: 6.5em; width: 6.9em; }

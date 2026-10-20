@@ -1540,8 +1540,13 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsColorRgb(k) { var c = DS_COLORES.find(function(x) { return x.k === k; }); return c ? c.c : null; }
   // Pinta una casilla según su valor (diseñador por id, centro por nombre). Fondo suave + borde a la izquierda: se lee en claro y oscuro.
+  function dsColoresDeFila(el) {   // Removable Denture: los colores del equipo de origen de esa fila
+    var tr = el.closest('tr'), f = tr && (DS.diaData.material || []).find(function(o) { return String(o.id) === tr.dataset.id; });
+    return dsColoresCopia(f && (DS.diaData.coloresEquipos || {})[String(f.teamOrigen)]);
+  }
   function dsPintarCelda(sel, colores) {
     if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaPrincipal, #dsTablaNightguard')) return;   // las prestadas son de otro equipo
+    if (dsEsRD()) colores = dsColoresDeFila(sel);
     var x = colores || dsColoresLeer(), campo = sel.dataset.campo, tipo = DS_COLOR_TIPO[campo];
     if (tipo === 'p' && !dsColoresProductos()) return;
     var v = campo === 'designerId' ? sel.value : (sel.value || sel.dataset.valorActual || '');
@@ -1553,6 +1558,11 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsPintarColores(scope) {
     var x = dsColoresLeer();
     (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"], select[data-campo="producto"], select[data-campo="estado"]').forEach(function(s) { dsPintarCelda(s, x); });
+    if (dsEsRD()) (scope || document).querySelectorAll('#dsTablaMaterial span.ds-ro[data-ro="centro"]').forEach(function(sp) {
+      var rgb = dsColorRgb((dsColoresDeFila(sp).c || {})[sp.textContent.trim()]), td = sp.closest('td');
+      if (rgb) td.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else td.style.removeProperty('background-color');
+      td.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
+    });
   }
   // La lista vuelve a lo que tenía (la opción «Colores…» nunca se guarda en la orden) y se abre la ventana de colores.
   function dsAbrirColores(tr, tabla, sel) {
@@ -1780,7 +1790,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsCeldaInput(c, f) {
     var val = f[c.k], al = ' aria-label="' + dsEsc(c.l || c.k) + '"';
-    if (c.t === 'ro') return '<span class="ds-ro">' + dsEsc(val || '') + '</span>';
+    if (c.t === 'ro') return '<span class="ds-ro" data-ro="' + c.k + '">' + dsEsc(val || '') + '</span>';
     if (c.t === 'text') return '<input type="text" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
     if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || 0) + '">';
     if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
@@ -1810,7 +1820,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       lista.forEach(function(d) {
         // primer nombre y primer apellido (el completo, al pasar el cursor): la columna ocupa menos (19-oct-2026)
         html += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + ' title="' + dsEsc(d.nombre) + '">' + dsEsc(d.corto || d.nombre) +
-                (d.esManager ? ' (manager)' : '') + (d.esAyuda ? ' (ayuda)' : '') + '</option>';
+                (d.esManager ? ' (manager)' : '') + (d.esAyuda ? ' (ayuda)' : '') + (d.esRD ? ' (Removable Denture)' : '') + '</option>';
       });
       if (val && !lista.some(function(d) { return d.id === val; })) {
         var esSup = DS.diaData && (DS.diaData.supportIds || []).indexOf(val) >= 0;
@@ -1841,6 +1851,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     var base = (DS.diaData.designers || []).concat(DS.diaData.manager ? [DS.diaData.manager] : []);
     // Ayuda del día (Seguimiento › Solicitar ayuda): el diseñador que otro aprobador envió a este equipo
     (DS.diaData.ayudas || []).forEach(function(a) { if (!base.some(function(d) { return d.id === a.id; })) base.push(a); });
+    // Removable Denture (Nestor Rojas): al final, para pasarle el caso sin ir a «Others (prestado)» (20-oct-2026)
+    (DS.diaData.designersRD || []).forEach(function(a) { if (!base.some(function(d) { return d.id === a.id; })) base.push(a); });
     return base;
   }
 
