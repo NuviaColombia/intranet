@@ -322,8 +322,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     document.querySelectorAll('#dsAreaTabs .ds-tab').forEach(function(b, i) {
       b.classList.toggle('activo', DS.areas[i].id === area.id);
     });
-    document.getElementById('dsPanelNightguard').style.display = (area.formato === 'dual') ? '' : 'none';
-    document.getElementById('dsPanelMaterial').style.display = (area.nombre === DS_AREA_MATERIAL) ? '' : 'none';
+    var rd = area.nombre === DS_AREA_RD;
+    document.getElementById('dsPanelNightguard').style.display = (area.formato === 'dual' && !rd) ? '' : 'none';
+    document.getElementById('dsPanelMaterial').style.display = (area.nombre === DS_AREA_MATERIAL || rd) ? '' : 'none';
+    document.getElementById('dsPanelPrincipal').style.display = rd ? 'none' : '';
+    document.getElementById('dsTituloMaterial').innerText = rd ? 'Removable Denture' : 'Material Change';
     // N6: «Cirugías/Dummy» (Rosember, 19-oct-2026)
     document.getElementById('dsTituloPrincipal').innerText = area.nombre === DS_AREA_MATERIAL ? 'Cirugías/Dummy' : (area.formato === 'dual') ? 'Cirugías' : 'Órdenes';
     document.getElementById('dsSinEquipo').style.display = 'none';
@@ -425,6 +428,21 @@ window.addEventListener('unhandledrejection', function(ev) {
       // sin Esferas: en N6 ya no se usa (Rosember, 19-oct-2026)
       {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'notas', l:'Notas', t:'text'},
     ],
+    // Removable Denture (Rosember, 20-oct-2026): la orden llega de N3 / N6 (Nestor como diseñador prestado); aquí se ve con
+    // el manager de donde viene, el arco y sus dos etapas (Bite design · Denture design), que se llenan con el estado.
+    rd: [
+      {k:'orden', l:'Orden', t:'ro'}, {k:'paciente', l:'Paciente', t:'ro'}, {k:'centro', l:'Centro', t:'ro'},
+      {k:'producto', l:'Producto', t:'ro'}, {k:'manager', l:'Manager', t:'ro'},
+      {k:'arco', l:'Arch', t:'select', opciones:['', 'Upper', 'Lower', 'Both']},
+      {k:'etapa', l:'Etapa', t:'select', opciones:['', 'Bite design', 'Denture design']},
+      {k:'horaInicio', l:'Inicio', t:'time', g:'b'}, {k:'sHold', l:'S.Hold', t:'time', g:'b'},
+      {k:'fHold', l:'F.Hold', t:'time', g:'b', sinTHold: true, extra: [{k:'bTHold', l:'T. Hold'}]},
+      {k:'horaFin', l:'Fin', t:'time', g:'b', extra: [{k:'bTotal', l:'Total'}]},
+      {k:'zHoraInicio', l:'Inicio', t:'time', g:'z'}, {k:'zSHold', l:'S.Hold', t:'time', g:'z'},
+      {k:'zFHold', l:'F.Hold', t:'time', g:'z', extra: [{k:'zTHold', l:'T. Hold'}]},
+      {k:'zHoraFin', l:'Fin', t:'time', g:'z', extra: [{k:'zTotal', l:'Total'}]},
+      {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+    ],
     n2: { principal: [
       {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
       {k:'centro', l:'Centro', t:'catalogo', cat:'centro'}, {k:'producto', l:'Producto', t:'catalogo', cat:'producto'},
@@ -511,7 +529,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     return (formato === 'single' && f >= DS_FACE_NUEVO_DESDE) || (formato === 'dual' && f >= DS_DUAL_NUEVO_DESDE);
   }
   function dsSpec(tabla, formato, areaNombre) {
-    if (tabla === 'material') return COLSPEC.material;
+    if (tabla === 'material') return (areaNombre || dsAreaNombre()) === DS_AREA_RD ? COLSPEC.rd : COLSPEC.material;
     var area = areaNombre || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre;
     var fm = formato || DS.areaFormato;
     var base = !dsFaceNuevo(fm) ? COLSPEC[fm] : (fm === 'dual' ? {principal: COLSPEC.dualNuevo.principal, nightguard: dsNgNuevo(fm) ? COLSPEC.dualNuevo.nightguard : COLSPEC.dual.nightguard} : COLSPEC.faceNuevo);
@@ -563,6 +581,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Panel arriba de Cirugías con sus propios productos (no salen en Cirugías) y estados ("Dr authorization" = Hold,
   // "Changes" = Ready to design). Bite design usa las horas y el QC de siempre; Zirconia design, las columnas z*.
   var DS_AREA_MATERIAL = 'N6 Material Changes';
+  var DS_AREA_RD = 'Removable Denture';   // Schedule Removable Denture (20-oct-2026): ver COLSPEC.rd
+  function dsEsRD() { return dsAreaNombre() === DS_AREA_RD; }
   var DS_AREA_TRAINING = 'Training';   // Schedule de entrenamiento: igual al de N3; los casos llegan desde N3 con la opción "Training" del diseñador
   function dsNorm(v) { return String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' '); }
   var DS_PRODUCTOS_MATERIAL = ['N6 - Material Change Full Mouth 24Z', 'N6 - Material Change Single 24Z',
@@ -572,7 +592,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_ESTADOS_SOLO_MATERIAL = ['dr authorization', 'changes'];
   function dsEsHold(estado) { var e = dsNorm(estado); return e === 'hold' || e === 'dr authorization'; }
   function dsEsReady(estado) { var e = dsNorm(estado); return e === 'ready to design' || e === 'changes'; }
-  function dsEsZirconia(f) { return dsNorm(f && f.etapa) === 'zirconia design'; }
+  function dsEsZirconia(f) { var e = dsNorm(f && f.etapa); return e === 'zirconia design' || e === 'denture design'; }   // 2.ª etapa (Material Change / Removable Denture)
   function dsEsCampoQc(k) { return k === 'qc' || k === 'zQc'; }
   function dsCampoReporte(chk) { return chk && chk.dataset.campo === 'zQc' ? 'zQcReporte' : 'qcReporte'; }
   // QC que cierra la orden (Material Change: el de Zirconia)
@@ -608,7 +628,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsFilaGrupos(spec, alFinal) {
     if (!spec.some(function(c) { return c.g; })) return '';
     var html = '<tr class="ds-tr-grupos">', run = null;
-    var cerrar = function() { if (run) html += '<th colspan="' + run.n + '" class="' + (run.g ? 'ds-gh ds-g-' + run.g : 'ds-gh-vacio') + '">' + (run.g ? DS_GRUPOS[run.g] : '') + '</th>'; };
+    var nombreG = function(g) { return g === 'z' && dsEsRD() ? 'Denture design' : DS_GRUPOS[g]; };
+    var cerrar = function() { if (run) html += '<th colspan="' + run.n + '" class="' + (run.g ? 'ds-gh ds-g-' + run.g : 'ds-gh-vacio') + '">' + (run.g ? nombreG(run.g) : '') + '</th>'; };
     spec.forEach(function(c) {
       var g = c.g || '';
       if (run && run.g === g) run.n += dsAnchoCol(c); else { cerrar(); run = {g: g, n: dsAnchoCol(c)}; }
@@ -1873,6 +1894,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var f = (DS.diaData && DS.diaData[tabla] || []).find(function(x) { return x.id === parseInt(tr.dataset.id); }) || {};
     var area = tabla === 'prestadas' ? f.area : dsAreaNombre(), tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
     if (area !== 'N3 Prosthetic' || tablaReal !== 'principal' || f.estado === 'Approved') return true;
+    if (['bite design', 'denture design'].indexOf(dsNorm(f.etapa)) >= 0) return true;   // caso de Removable Denture
     var datos = dsFilaDesdeForm(tr);
     var val = function(k) { return k === 'designerId' ? (datos.designerId || f.designerPrestado || '') : (datos[k] !== undefined ? datos[k] : f[k]); };
     var falta = DS_APROBAR_N3.filter(function(p) { return !String(val(p[0]) || '').trim(); });
@@ -1986,7 +2008,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (o.copiaN2) dsAvisoN2(o.copiaN2);   // Face: al marcar el QC → copia a N2 (en el día de hoy)
       if (o.copiaN2Pendiente) dsToast('Se desmarcó el QC: ' + o.copiaN2Pendiente + ' orden(es) copiada(s) a N2 esperan la decisión de su manager.');
       var i = filas.findIndex(function(x) { return x.id === id; });
-      if (i >= 0) filas[i] = tabla === 'prestadas' ? Object.assign({}, filas[i], o) : o; // prestadas conserva equipo/formato
+      if (i >= 0) filas[i] = (tabla === 'prestadas' || dsEsRD()) ? Object.assign({}, filas[i], o) : o; // prestadas / RD conservan equipo y manager
       if (tabla === 'prestadas' && i >= 0) o = filas[i];
       if (antes && !dsMismaOrden(antes, o)) {
         dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [{id: id, antes: antes, despues: dsClon(o),
@@ -2107,7 +2129,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsAplicarCierre() {
     var candado = document.getElementById('dsCandado');
     var cerrado = dsDiaCerrado();
-    document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = dsPuedeCrearVarias() ? '' : 'none'; });
+    document.querySelectorAll('.ds-btn-add').forEach(function(b) { b.style.display = dsPuedeCrearVarias() && !dsEsRD() ? '' : 'none'; });
     if (!cerrado) {
       var perm = DS.diaData && DS.diaData.permisoEdicionHasta;
       if (!perm) { candado.textContent = '🔒'; candado.style.display = 'none'; return; }
@@ -2319,8 +2341,30 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     return orden.map(function(k) { return {nombre: nombres[k], casos: cuenta[k], prestados: prest[k] || 0, tipos: tipoDe(k)}; });
   }
+  function dsProduccionRD(dia) {
+    var por = {}, orden = [];
+    (dia.material || []).forEach(function(f) {
+      if (dsNorm(f.estado) === 'canceled') return;
+      var m = f.manager || f.equipo || 'Sin manager';
+      if (!por[m]) { por[m] = {nombre: m, casos: 0, rem: 0}; orden.push(m); }
+      por[m].casos++;
+      if (dsNorm(f.estado) === 'approved' && dsEsZirconia(f)) por[m].rem += dsNorm(f.arco) === 'both' ? 2 : 1;
+    });
+    return orden.sort(function(a, b) { return a.localeCompare(b, 'es'); }).map(function(m) { return por[m]; });
+  }
   function dsPintarProduccion() {
     var pop = document.getElementById('dsProdPop'); if (!pop || !DS.diaData) return;
+    if (dsEsRD()) {
+      var fr = dsProduccionRD(DS.diaData), fd = dsFechaSeleccionada();
+      var tc = fr.reduce(function(a, x) { return a + x.casos; }, 0), tr = fr.reduce(function(a, x) { return a + x.rem; }, 0);
+      pop.innerHTML = '<h4>Producción del día</h4><div class="sub">' + dsEsc(NOMBRES_DIAS[(fd.getDay() + 6) % 7] || '') + ' ' + fd.getDate() +
+        ' · por manager (sin canceladas) · REM = arcos aprobados (Both cuenta 2)</div>' +
+        (fr.length ? '<table><thead><tr><th>Manager</th><th class="n">Casos</th><th class="n" title="Arcos aprobados: Upper o Lower = 1, Both = 2">REM</th></tr></thead><tbody>' +
+          fr.map(function(x) { return '<tr><td>' + dsEsc(x.nombre) + '</td><td class="n">' + x.casos + '</td><td class="n' + (x.rem ? '' : ' cero') + '">' + x.rem + '</td></tr>'; }).join('') +
+          '<tr class="total"><td>Total</td><td class="n">' + tc + '</td><td class="n">' + tr + '</td></tr></tbody></table>'
+         : '<p class="ds-prest-vacio">Todavía no hay casos este día.</p>');
+      return;
+    }
     var filas = dsProduccionDia(DS.diaData), total = filas.reduce(function(a, x) { return a + x.casos; }, 0);
     var f = dsFechaSeleccionada();
     var porTipo = dsAreaNombre() === 'N3 Prosthetic';   // N3: Sx · Tc · Ng en vez de una sola columna
@@ -2489,7 +2533,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsRenderACargo(dia);
     dsRenderCopias(dia);
     dsPintarProduccion();
-    if (dsAreaNombre() === DS_AREA_MATERIAL) dsRenderTabla('material');
+    if (dsAreaNombre() === DS_AREA_MATERIAL || dsEsRD()) dsRenderTabla('material');
     dsRenderTabla('principal');
     if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
     dsRenderPrestadas();

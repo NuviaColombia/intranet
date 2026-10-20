@@ -68,14 +68,14 @@ window.dsPdfjs = function() {
 
     <div class="ds-panel" id="dsPanelMaterial" style="display:none">
       <div class="ds-panel-h">
-        <h3>Material Change</h3>
+        <h3 id="dsTituloMaterial">Material Change</h3>
         <span class="ds-panel-acc"><label class="ds-auto-oc" title="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><span class="sw"></span></label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_material" style="display:none" onclick="dsVerOcultas()"></button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('material', event)">+ Agregar orden</button></span>
       </div>
       <div id="dsTablaMaterial"></div>
     </div>
 
-    <div class="ds-panel">
+    <div class="ds-panel" id="dsPanelPrincipal">
       <div class="ds-panel-h">
         <div class="ds-panel-titulo">
           <h3 id="dsTituloPrincipal">Órdenes</h3>

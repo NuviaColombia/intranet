@@ -106,6 +106,7 @@ class DesignOrden(Base):
 
     esferas: Mapped[str] = mapped_column(String(20), default="")    # N3
     critico: Mapped[str] = mapped_column(String(300), default="")   # N3 (varios ítems separados por «; »)
+    arco: Mapped[str] = mapped_column(String(10), default="")       # Removable Denture: Upper | Lower | Both
 
     s_hold: Mapped[str] = mapped_column(String(10), default="")     # N2
     f_hold: Mapped[str] = mapped_column(String(10), default="")     # N2

@@ -1281,6 +1281,7 @@ class OrdenIn(BaseModel):
     holdMinutos: float = 0
     esferas: str = ""
     critico: str = ""
+    arco: str = Field("", max_length=10)
     sHold: str = ""
     fHold: str = ""
     etapa: str = ""
@@ -1313,7 +1314,7 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
         "designer_id": payload.designerId, "designer_prestado": payload.designerPrestado.strip(),
         "hora_inicio": payload.horaInicio, "hora_inicio_diseno": payload.horaInicioDiseno,
         "hora_fin": payload.horaFin, "hold_minutos": payload.holdMinutos,
-        "esferas": payload.esferas, "critico": payload.critico,
+        "esferas": payload.esferas, "critico": payload.critico, "arco": payload.arco,
         "s_hold": payload.sHold, "f_hold": payload.fHold,
         "etapa": payload.etapa, "solicitado_por": payload.solicitadoPor, "situacion": payload.situacion,
         "solucion": payload.solucion, "clasificacion": payload.clasificacion, "soporte": payload.soporte,
@@ -1329,7 +1330,7 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
 CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "producto": "producto",
                  "designerId": "designer_id", "designerPrestado": "designer_prestado", "horaInicio": "hora_inicio",
                  "horaInicioDiseno": "hora_inicio_diseno", "horaFin": "hora_fin", "holdMinutos": "hold_minutos",
-                 "esferas": "esferas", "critico": "critico", "sHold": "s_hold", "fHold": "f_hold", "etapa": "etapa",
+                 "esferas": "esferas", "critico": "critico", "arco": "arco", "sHold": "s_hold", "fHold": "f_hold", "etapa": "etapa",
                  "solicitadoPor": "solicitado_por", "situacion": "situacion", "solucion": "solucion",
                  "clasificacion": "clasificacion", "soporte": "soporte", "estado": "estado", "qc": "qc",
                  "qcReporte": "qc_reporte", "notas": "notas",
@@ -1713,7 +1714,16 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         viejo = datos.pop("hora_inicio_diseno")
         if viejo:
             datos["hora_inicio"] = viejo
-    if ("estado" in datos and datos["estado"] != (orden_existente.estado or "")
+    rd = sd.es_orden_rd(db, datos.get("designer_id", orden_existente.designer_id), orden_existente.team_id)
+    if rd and sd._normalizar_texto(datos.get("etapa", orden_existente.etapa) or "") not in (
+            sd._normalizar_texto(sd.ETAPA_BITE), sd._normalizar_texto(sd.ETAPA_DENTURE)):
+        datos["etapa"] = sd.ETAPA_BITE   # llegó a Removable Denture: empieza en Bite design
+    if rd and "estado" in datos and datos["estado"] != (orden_existente.estado or ""):
+        actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos",
+                                                                           "etapa", "z_hora_inicio", "z_s_hold", "z_f_hold",
+                                                                           "z_hora_fin", "z_hold_minutos")}
+        datos.update(sd.rd_horas_por_estado(actual, datos["estado"]))
+    elif ("estado" in datos and datos["estado"] != (orden_existente.estado or "")
             and sd.horas_por_estado(team.area.formato, orden_existente.fecha, orden_existente.tabla)):
         # Face: el estado llena solo las horas (Initiated → Inicio diseño / Re-initiated, Hold → Start hold, Approved → Fin)
         actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos",
@@ -1730,7 +1740,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             datos.pop(c, None)
         datos["designer_id"] = orden_existente.designer_id
         datos["designer_prestado"] = orden_existente.designer_prestado
-    if datos.get("estado") == "Approved" and (orden_existente.estado or "") != "Approved":
+    if datos.get("estado") == "Approved" and (orden_existente.estado or "") != "Approved" and not rd:
         # N3 › Cirugías: no se aprueba con columnas vacías (Crítico, START, RTD…); la pantalla avisa antes y hace parpadear
         valores = {c: (datos[c] if c in datos else getattr(orden_existente, c, None)) for c in sd.CAMPOS_ORDEN}
         falta = sd.faltan_para_aprobar(team.area.nombre, orden_existente.tabla, valores)

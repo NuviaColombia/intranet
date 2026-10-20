@@ -49,6 +49,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   - `app/services_design_origenes.py` (docstring del módulo completo).
   - `app/services_design_pa_excel.py` -- un comentario marca qué hojas del Excel de Pre-Approved
     "Rosember confirmó que están bien" (no las "arregles" sin preguntar).
+- **Removable Denture** (área con un solo equipo, «Schedule Removable Denture», diseñador Nestor
+  Rojas): no tiene órdenes propias. Los equipos de N3 y N6 le asignan el caso a Nestor como
+  prestado y la MISMA orden aparece en su Schedule (`datos_dia` arma la tabla «material» con los
+  casos de sus diseñadores en otros equipos). Bite design usa las horas de siempre y Denture design
+  las `z_*`, llenadas por estado (`rd_horas_por_estado`); a esos casos no se les aplica la regla de
+  Approved de N3. El área y el equipo los crea `rd_una_vez`.
 - **Ausencias desde People (Tiempos libres)**: no se guardan en `design_breaks`; se calculan al
   vuelo con los permisos aprobados de People (`services_design._permisos_aprobados_del_dia`, que
   traduce cualquier tipo de permiso al catálogo de ausencias de Design con

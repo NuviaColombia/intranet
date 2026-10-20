@@ -1204,3 +1204,6 @@ table.ds-tabla select[data-campo="designerId"] { field-sizing: content; min-widt
 
 /* Producción del día (N3): Sx · Tc · Ng; los ceros en gris */
 .ds-prod-pop td.n.cero { color: #9ca3af; }
+
+/* Removable Denture: la columna Arch se lee completa (Upper / Lower / Both) */
+table.ds-tabla select[data-campo="arco"] { field-sizing: content; min-width: 5.6em; }
