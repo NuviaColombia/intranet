@@ -1729,6 +1729,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if rd and sd._normalizar_texto(datos.get("etapa", orden_existente.etapa) or "") not in (
             sd._normalizar_texto(sd.ETAPA_BITE), sd._normalizar_texto(sd.ETAPA_DENTURE)):
         datos["etapa"] = sd.ETAPA_BITE   # llegó a Removable Denture: empieza en Bite design
+    if (rd and "estado" in datos and sd._normalizar_texto(datos["estado"] or "") not in
+            ("", sd._normalizar_texto(sd.ESTADO_ORDER_ENTERED), sd._normalizar_texto(sd.ESTADO_READY), "pickup received")):
+        datos["etapa"] = sd.ETAPA_DENTURE   # Bite design lo hace N3 / N6 (sus horas vienen de la original): Nestor inicia Denture design
     if rd and "estado" in datos and datos["estado"] != (orden_existente.estado or ""):
         actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos",
                                                                            "etapa", "z_hora_inicio", "z_s_hold", "z_f_hold",

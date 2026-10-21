@@ -127,6 +127,26 @@ def ids_rd(db: Session) -> set[int]:
         .join(DesignArea, DesignArea.id == DesignTeam.area_id).filter(DesignArea.nombre == AREA_RD, DesignTeam.activo == 1))}))
 
 
+ESTADO_ORDER_ENTERED = "Order Entered"
+_HORAS_BITE = ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")
+
+
+def _bite_desde_original(c: DesignOrden, o: DesignOrden) -> None:
+    """Removable Denture (Rosember, 20-oct-2026): las horas de Bite design son las de la orden original (Inicio diseño, Hold,
+    Fin de N3 / N6). Mientras Nestor no empiece Denture design: sin Fin en la original → Bite design · Order Entered;
+    con Fin → Denture design · Ready to design."""
+    for k in _HORAS_BITE:
+        setattr(c, k, getattr(o, k) or (0 if k == "hold_minutos" else ""))
+    empezada = bool((c.z_hora_inicio or "").strip()) or _normalizar_texto(c.estado or "") not in (
+        "", _normalizar_texto(ESTADO_ORDER_ENTERED), _normalizar_texto(ESTADO_READY))
+    if empezada:
+        return
+    if (o.hora_fin or "").strip():
+        c.etapa, c.estado = ETAPA_DENTURE, ESTADO_READY
+    else:
+        c.etapa, c.estado = ETAPA_BITE, ESTADO_ORDER_ENTERED
+
+
 def es_producto_rd(producto: str | None) -> bool:
     return "removable" in (producto or "").lower()
 
@@ -138,8 +158,9 @@ def _equipo_rd(db: Session) -> DesignTeam | None:
 
 def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = False, origen_id: int | None = None) -> None:
     """Después de crear, editar o borrar una orden de N3 / N6: crea, actualiza o quita su copia en Removable Denture.
-    - Producto con «Removable» y sin copia → copia ese mismo día, de Nestor, en Bite design · Ready to design.
-    - Con copia → orden, paciente, centro y producto iguales a los de la original.
+    - Producto con «Removable» y sin copia → copia ese mismo día, de Nestor, en Bite design · Order Entered.
+    - Con copia → orden, paciente, centro, producto y horas de Bite design iguales a los de la original
+      (_bite_desde_original: al poner el Fin en la original, la copia pasa a Denture design · Ready to design).
     - Si ya no dice «Removable» o la borraron → la copia se borra si Nestor no la ha empezado (sigue en Ready to design y
       sin horas); si ya la empezó, se queda."""
     from .models_design import DesignCopiaRD
@@ -163,8 +184,9 @@ def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = Fal
                                                                         DesignOrden.tabla == TABLA_MATERIAL).scalar() or 0) + 1
             c = DesignOrden(team_id=team_rd.id, fecha=o.fecha, fecha_creada=o.fecha, tabla=TABLA_MATERIAL, orden_visual=sig,
                             orden=(o.orden or "").strip().upper(), paciente=o.paciente or "", centro=o.centro or "",
-                            producto=o.producto or "", designer_id=designer[0] if designer else None, estado=ESTADO_READY,
+                            producto=o.producto or "", designer_id=designer[0] if designer else None, estado=ESTADO_ORDER_ENTERED,
                             etapa=ETAPA_BITE, origen_equipo=t.nombre, creado_por_id=o.creado_por_id)
+            _bite_desde_original(c, o)
             db.add(c)
             db.flush()
             db.add(DesignCopiaRD(rd_orden_id=c.id, origen_orden_id=o.id, origen_team_id=o.team_id))
@@ -180,9 +202,11 @@ def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = Fal
                 c.fecha = o.fecha   # siempre el mismo día que la original
                 c.orden, c.paciente = (o.orden or "").strip().upper(), o.paciente or ""
                 c.centro, c.producto = o.centro or "", o.producto or ""
+                _bite_desde_original(c, o)
                 r.origen_team_id = o.team_id
             else:
-                sin_empezar = _normalizar_texto(c.estado or "") in ("", _normalizar_texto(ESTADO_READY)) and not (c.hora_inicio or "").strip()
+                sin_empezar = (_normalizar_texto(c.estado or "") in ("", _normalizar_texto(ESTADO_READY), _normalizar_texto(ESTADO_ORDER_ENTERED))
+                               and not (c.z_hora_inicio or "").strip())
                 if sin_empezar:
                     db.delete(c)
                     db.delete(r)

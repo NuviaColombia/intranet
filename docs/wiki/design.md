@@ -100,12 +100,14 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Rojas). Desde el 20-oct-2026 (Rosember) toda orden de N3 / N6 cuyo producto dice «Removable»
   tiene una COPIA en ese equipo: la original la trabaja su equipo y Nestor diseña la removable en la
   copia (estado y horas propios). `sincronizar_copia_rd` corre al crear, editar, crear en lote y
-  borrar: crea la copia (Nestor, Bite design, Ready to design), le copia orden/paciente/centro/
-  producto, y si quitan «Removable» o borran la original, la copia se borra solo si Nestor no la ha
-  empezado. Si Nestor borra su copia, el vínculo queda y no se vuelve a crear. Manager y equipo de
-  origen salen de `design_copias_rd` (`copias_rd_info`). Bite design usa las horas de siempre y
-  Denture design las `z_*`, llenadas por estado (`rd_horas_por_estado`); no aplica la regla de
-  Approved de N3. En la lista de Diseñador, «Nestor Rojas (Removable Denture)» solo sale en
+  borrar: crea la copia (Nestor, Bite design, Order Entered), le copia orden/paciente/centro/
+  producto y las horas de Bite design, que son las de la original (Inicio diseño, Hold, Fin de N3 /
+  N6; `_bite_desde_original`). Al ponerse el Fin en la original, la copia pasa a Denture design ·
+  Ready to design; cuando Nestor cambia el estado (Initiated…) trabaja Denture design (horas `z_*`).
+  Esto lo pidió Rosember el 20-oct-2026. Si quitan «Removable» o borran la original, la copia se
+  borra solo si Nestor no la ha empezado. Si Nestor borra su copia, el vínculo queda y no se vuelve a crear. Manager y equipo de
+  origen salen de `design_copias_rd` (`copias_rd_info`). Denture design se llena por estado
+  (`rd_horas_por_estado`); no aplica la regla de Approved de N3. En la lista de Diseñador, «Nestor Rojas (Removable Denture)» solo sale en
   Nightguards / TC (ahí sí se le presta el caso). Antes la orden se le prestaba a Nestor y era la
   misma; ya no. La copia va SIEMPRE el mismo día que la original: `trasladar_holds` no mueve las
   copias (seguían en Ready to design y se corrían un día aunque la original no) y al final llama a

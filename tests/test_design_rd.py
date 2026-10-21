@@ -64,11 +64,26 @@ class CopiasRD(unittest.TestCase):
         self.assertEqual(self.copias(), [])
         o = self.orden("Removable denture")
         (c,) = self.copias()
-        self.assertEqual((c.orden, c.designer_id, c.etapa, c.estado, c.tabla), ("A1", self.nestor, "Bite design", "Ready to design", "material"))
+        self.assertEqual((c.orden, c.designer_id, c.etapa, c.estado, c.tabla), ("A1", self.nestor, "Bite design", "Order Entered", "material"))
         o.paciente = "Juan"; self.db.commit()
         sd.sincronizar_copia_rd(self.db, o)
         self.assertEqual(self.copias()[0].paciente, "Juan")
         self.assertEqual(len(self.copias()), 1)
+
+    def test_bite_lo_manda_la_original(self):
+        o = self.orden("Removable denture")
+        o.hora_inicio, o.s_hold, o.f_hold = "08:00", "08:30", "08:40"; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        c = self.copias()[0]
+        self.assertEqual((c.hora_inicio, c.s_hold, c.f_hold, c.estado), ("08:00", "08:30", "08:40", "Order Entered"))
+        o.hora_fin, o.estado = "09:00", "Approved"; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        c = self.copias()[0]
+        self.assertEqual((c.hora_fin, c.etapa, c.estado), ("09:00", "Denture design", "Ready to design"))
+        c.estado, c.z_hora_inicio = "Initiated", "09:10"; self.db.commit()   # Nestor ya empezó: la original no le cambia el estado
+        o.hora_fin = ""; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual(self.copias()[0].estado, "Initiated")
 
     def test_quitar_producto_borra_si_no_empezo(self):
         o = self.orden("Removable denture")
