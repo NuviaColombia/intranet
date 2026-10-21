@@ -1705,6 +1705,10 @@ def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | 
     if not orden.team or not orden.team.area or orden.team.area.nombre != "Face Design":
         return None
     dia = ahora_colombia().date()
+    if orden.fecha != dia:
+        # 21-oct-2026 (Rosember): solo la hoja de hoy pasa a N2. Al llenar o corregir semanas viejas de Face no se crean
+        # casos nuevos en N2 (antes cualquier QC marcado copiaba el caso al día de hoy).
+        return None
     numero = (orden.orden or "").strip().upper()
     if not numero or not (orden.centro or "").strip():
         return {"ok": False, "motivo": "La orden no tiene número o centro: no se copió a N2."}
@@ -1734,6 +1738,43 @@ def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | 
     db.add(DesignCopiaFace(n2_orden_id=nueva.id, face_orden_id=orden.id, estado="activa", face_equipo=orden.team.nombre))
     db.commit()
     return {"ok": True, "ya": False, "equipo": equipo.nombre, "manager": mgr, "equipoId": equipo.id, "n2OrdenId": nueva.id}
+
+
+_face_n2_viejas = {"ok": False}
+
+
+def face_n2_viejas_una_vez(db: Session) -> int:
+    """Una vez (21-oct-2026, Rosember): quita de N2 las copias del 21-oct que llegaron desde hojas viejas de Face (antes
+    de la regla «solo la hoja de hoy»), si N2 no las ha empezado: siguen en Ready to design (o sin estado) y sin horas.
+    Las que N2 ya trabajó se quedan. Devuelve cuántas quitó."""
+    from .models_design import DesignConexionRegla, DesignCopiaFace
+    if _face_n2_viejas["ok"]:
+        return 0
+    _face_n2_viejas["ok"] = True
+    marca, dia = "face_n2_hojas_viejas_2026_10_21", date(2026, 10, 21)
+    try:
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            return 0
+        Face = aliased(DesignOrden)
+        filas = (db.query(DesignCopiaFace, DesignOrden).join(DesignOrden, DesignOrden.id == DesignCopiaFace.n2_orden_id)
+                 .join(Face, Face.id == DesignCopiaFace.face_orden_id)
+                 .filter(DesignOrden.fecha == dia, Face.fecha < dia).all())
+        quitadas = 0
+        for reg, o in filas:
+            sin_empezar = (_normalizar_texto(o.estado or "") in ("", _normalizar_texto(ESTADO_READY))
+                           and not any((getattr(o, c) or "").strip() for c in ("hora_inicio", "s_hold", "hora_fin")))
+            if sin_empezar:
+                db.delete(o)
+                db.delete(reg)
+                quitadas += 1
+        db.add(DesignConexionRegla(tipo="sistema", clave=marca, valor=str(quitadas), creado_por="Sistema"))
+        db.commit()
+        log.info("Face → N2: se quitaron %s copias de hojas viejas de Face", quitadas)
+        return quitadas
+    except Exception:  # noqa: BLE001
+        db.rollback()
+        log.exception("Face → N2: no se pudieron quitar las copias de hojas viejas")
+        return 0
 
 
 def copia_face_desmarcada(db: Session, orden: DesignOrden) -> int:
@@ -1830,6 +1871,8 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     trasladar_holds(db)
     if team.area.nombre == AREA_RD:
         rd_copias_una_vez(db)
+    if team.area.nombre == "N2 Demodenture":
+        face_n2_viejas_una_vez(db)
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
          .filter(DesignOrden.team_id == team.id, DesignOrden.fecha == fecha))
     qb = db.query(DesignBreak).filter(DesignBreak.team_id == team.id, DesignBreak.fecha == fecha)

@@ -105,6 +105,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
 
 ## Integraciones
 
+- **Face → N2 solo con la hoja de hoy** (Rosember, 21-oct-2026): al marcar el QC en Face, el caso pasa a N2 solo si
+  la orden de Face es del día de hoy (`copiar_face_a_n2`). Llenar o corregir semanas viejas de Face no crea casos
+  en N2. Ese día se quitaron una vez las copias del 21-oct que venían de hojas viejas y N2 no había empezado
+  (`face_n2_viejas_una_vez`). Antes (14-oct) cualquier QC copiaba el caso al día de hoy.
 - **Push fijo** (se queda hasta que lo cierren): Face → N2 al llegar una orden aprobada, y a la
   persona de Support cuando un equipo de N3 le asigna un caso (`_push_caso_a_support`).
 - **Push de Removable Denture** (Rosember, 21-oct-2026): a Nestor cuando le llega una copia nueva
