@@ -90,6 +90,16 @@ class CopiasRD(unittest.TestCase):
         sd.sincronizar_copia_rd(self.db, o)
         self.assertEqual(self.copias(), [])
 
+    def test_traslado_no_separa_copia_y_original(self):
+        o = self.orden("Removable denture")
+        o.estado = "Initiated"; self.db.commit()   # la original se trabaja; la copia sigue en Ready to design
+        sd._traslado_hecho_hasta = None
+        sd.trasladar_holds(self.db, ahora=sd.datetime(2026, 10, 21, 6, 0))
+        self.assertEqual(self.copias()[0].fecha, sd.date(2026, 10, 20))
+        c = self.copias()[0]; c.fecha = sd.date(2026, 10, 21); self.db.commit()   # una copia que ya quedó corrida
+        self.assertEqual(sd.alinear_copias_rd(self.db), 1)
+        self.assertEqual(self.copias()[0].fecha, sd.date(2026, 10, 20))
+
 
 if __name__ == "__main__":
     unittest.main()

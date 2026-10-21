@@ -52,6 +52,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Inicio diseño y Crítico; si hay Start hold, también Re-initiated. QC es opcional. Lo valida el
   servidor (`faltan_para_aprobar`) y la pantalla hace parpadear lo que falta (`DS_APROBAR_N3`).
   No aplica a los casos de Removable Denture (Rosember, 19-oct-2026).
+- **Bite ready** (Nightguards / TC) registra el tiempo como Hold: llena Start hold y al volver a
+  Initiated, Re-initiated (`horas_de_estado`; Rosember, 20-oct-2026).
 - **Crítico** (N3) es de selección múltiple: se guarda como «A; B»; N/A va sola.
 - **Total de la orden** = Fin − Inicio − Hold, con horas sin fecha. Dos correcciones que no se
   deben deshacer: varias noches en Hold suman los días perdidos (`_menos_hold`), y un Hold sin
@@ -105,7 +107,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Denture design las `z_*`, llenadas por estado (`rd_horas_por_estado`); no aplica la regla de
   Approved de N3. En la lista de Diseñador, «Nestor Rojas (Removable Denture)» solo sale en
   Nightguards / TC (ahí sí se le presta el caso). Antes la orden se le prestaba a Nestor y era la
-  misma; ya no.
+  misma; ya no. La copia va SIEMPRE el mismo día que la original: `trasladar_holds` no mueve las
+  copias (seguían en Ready to design y se corrían un día aunque la original no) y al final llama a
+  `alinear_copias_rd`, que las pone en la fecha de su original (corregido el 20-oct-2026).
 - **Ausencias desde People (Tiempos libres)**: no se guardan en `design_breaks`; se calculan al
   vuelo con los permisos aprobados de People (`services_design._permisos_aprobados_del_dia`, que
   traduce cualquier tipo de permiso al catálogo de ausencias de Design con

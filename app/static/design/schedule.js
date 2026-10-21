@@ -1459,10 +1459,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (c.t !== 'catalogo') return;
       dsCatalogo(c.cat).then(function(valores) {
         // Nightguards / TC: sus productos (TC, Nightguard y los de DS_PRODUCTOS_SOLO_NG) y, al final, los de Material Change
-        // (pedido por Rosember el 12-oct-2026)
+        // (pedido por Rosember el 12-oct-2026). Esos tres son de N6: en N3 ya no salen (Rosember, 20-oct-2026)
         if (c.k === 'producto' && tabla === 'nightguard') {
           valores = valores.filter(function(v) { return (dsEsProductoNG(v) || dsEsProductoSoloNG(v)) && !dsEsProductoMaterial(v); })
-            .concat(DS_PRODUCTOS_MATERIAL.map(function(m) { return valores.find(function(v) { return dsNorm(v) === m; }); }).filter(Boolean));
+            .concat(dsAreaNombre() === DS_AREA_MATERIAL ? DS_PRODUCTOS_MATERIAL.map(function(m) { return valores.find(function(v) { return dsNorm(v) === m; }); }).filter(Boolean) : []);
         }
         // Material Change: solo sus productos, y esos productos ya no se eligen en Cirugías
         if (c.k === 'producto' && tabla === 'material') valores = valores.filter(dsEsProductoMaterial);

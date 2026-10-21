@@ -5,7 +5,7 @@ import re
 import unicodedata
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
-from sqlalchemy.orm import Session, joinedload, defer
+from sqlalchemy.orm import Session, joinedload, defer, aliased
 from sqlalchemy import func, and_, or_, text, event
 from .models import EMPRESA_DESIGN, Empleado, Solicitud, TipoPermiso
 from .models_design import FORMATO_N2, FORMATO_SUPPORT, FORMATO_SINGLE, FORMATO_DUAL
@@ -177,6 +177,7 @@ def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = Fal
                     db.delete(r)
                 continue
             if quiere:
+                c.fecha = o.fecha   # siempre el mismo día que la original
                 c.orden, c.paciente = (o.orden or "").strip().upper(), o.paciente or ""
                 c.centro, c.producto = o.centro or "", o.producto or ""
                 r.origen_team_id = o.team_id
@@ -192,6 +193,23 @@ def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = Fal
         logging.getLogger("design.rd").exception("Removable Denture: no se pudo sincronizar la copia de la orden %s", oid)
 
 
+def alinear_copias_rd(db: Session) -> int:
+    """Pone cada copia de Removable Denture en el mismo día que su orden original (20-oct-2026: el paso de Ready / Hold al
+    día siguiente movía la copia, que sigue en Ready to design, aunque la original no se moviera)."""
+    from .models_design import DesignCopiaRD
+    Orig = aliased(DesignOrden)
+    filas = (db.query(DesignOrden, Orig.fecha).join(DesignCopiaRD, DesignCopiaRD.rd_orden_id == DesignOrden.id)
+             .join(Orig, Orig.id == DesignCopiaRD.origen_orden_id).filter(DesignOrden.fecha != Orig.fecha).all())
+    for c, fecha in filas:
+        sig = (db.query(func.max(DesignOrden.orden_visual)).filter(DesignOrden.team_id == c.team_id, DesignOrden.fecha == fecha,
+                                                                    DesignOrden.tabla == c.tabla).scalar() or 0) + 1
+        c.fecha, c.orden_visual = fecha, sig
+        db.flush()
+    if filas:
+        db.commit()
+    return len(filas)
+
+
 _rd_copias = {"ok": False}
 
 
@@ -201,6 +219,7 @@ def rd_copias_una_vez(db: Session) -> None:
         return
     _rd_copias["ok"] = True
     try:
+        alinear_copias_rd(db)
         hoy = ahora_colombia().date()
         ordenes = (db.query(DesignOrden).join(DesignTeam, DesignTeam.id == DesignOrden.team_id)
                    .join(DesignArea, DesignArea.id == DesignTeam.area_id)
@@ -728,6 +747,8 @@ def horas_de_estado(tabla: str, actual: dict, estado_nuevo: str) -> dict:
     """Horas que llena el estado: Material Change por etapa; las demás tablas, igual que Face."""
     if tabla == TABLA_MATERIAL:
         return material_horas_por_estado(actual, estado_nuevo)
+    if tabla == "nightguard" and _normalizar_texto(estado_nuevo) == _normalizar_texto(ESTADO_BITE_READY):
+        estado_nuevo = ESTADO_HOLD   # Nightguards / TC: Bite ready registra el tiempo como Hold (Rosember, 20-oct-2026)
     return face_horas_por_estado(actual, estado_nuevo)
 
 
@@ -1206,6 +1227,9 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                         func.lower(DesignOrden.estado).in_([ESTADO_DR_AUT.lower(), ESTADO_CHANGES.lower()]),
                         DesignOrden.fecha >= TRASLADO_MATERIAL_DESDE, DesignOrden.fecha <= cerrado_hasta)
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    # las copias de Removable Denture no se pasan solas: van el mismo día que su original (alinear_copias_rd, abajo)
+    equipos_rd = {t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.nombre == AREA_RD)}
+    ordenes = [o for o in ordenes if o.team_id not in equipos_rd]
     ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
     libres = festivos(db) if ordenes else set()
     miembros: dict[int, set[int]] = {}  # team_id -> diseñadores del equipo (para reconocer al prestado)
@@ -1235,6 +1259,7 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
         o.orden_visual = (max_visual or 0) + 1  # queda al final de las órdenes de ese día
         db.flush()
     db.commit()
+    alinear_copias_rd(db)
     _traslado_hecho_hasta = cerrado_hasta
     return len(ordenes)
 
