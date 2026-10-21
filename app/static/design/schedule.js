@@ -670,6 +670,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!f) return;
     dsMarcarFaltaAprobar(tr);   // N3: celdas que faltan para Approved (parpadean unos segundos)
     dsAjustarOpcionHold(tr, f);
+    dsAjustarOpcionBite(tr, f);
     tr.classList.toggle('ds-fila-cancelada', f.estado === 'Canceled');
     var est = String(f.estado || '').trim().toLowerCase();
     // 19-oct-2026: "Dr authorization" (Material Change) se ve como Approved (color y chip), no como Hold; en lo demás sigue contando como Hold
@@ -1062,6 +1063,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       input.addEventListener(ev, function() {
         if (ev === 'blur' && dsSinCambio(tr, tabla, input)) return; // no cambió (p. ej. pasar con Tab)
         if (input.value === '__colores') { dsAbrirColores(tr, tabla, input); return; }
+        if (input.value === '__bitefinish') { dsBiteFinish(tr, tabla, input); return; }
         if (input.dataset.campo === 'estado' && input.value === 'Approved' && !dsPuedeAprobar(tr, tabla, input)) {
           if (DS_COLOR_TIPO.estado) dsPintarCelda(input);
           return;
@@ -1465,6 +1467,36 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (dsEsHoldEstado(o.value) && o.value !== sel.value) { o.hidden = !ok; o.disabled = !ok; o.title = ok ? '' : 'Primero inicia la orden (Initiated)'; }
     });
   }
+  // «Bite Finish» (Rosember, 21-oct-2026): en las órdenes de N3 / N6 con copia en Removable Denture, al final de la lista de
+  // estados (arriba de «Colores…»). No es un estado: pone el FINISH de Bite design en Removable, la deja en Ready to design
+  // y avisa a Nestor (api_bite_finish). La orden de N3 se queda en el estado que tenía.
+  function dsAjustarOpcionBite(tr, f) {
+    var sel = tr && tr.querySelector('select[data-campo="estado"]');
+    if (!sel) return;
+    var vieja = sel.querySelector('option[value="__bitefinish"]');
+    if (vieja) vieja.remove();
+    if (!f || !f.rdBite) return;
+    var o = document.createElement('option');
+    o.value = '__bitefinish';
+    o.text = f.rdBite === 'hecho' ? 'Bite Finish ✓' : 'Bite Finish';
+    o.disabled = f.rdBite === 'hecho';
+    o.title = f.rdBite === 'hecho' ? 'El Bite design ya se marcó como terminado en Removable Denture' : 'Termina el Bite design en Removable Denture y avisa a Nestor';
+    sel.insertBefore(o, sel.querySelector('option[value="__colores"]'));
+  }
+  function dsBiteFinish(tr, tabla, sel) {
+    var f = (DS.diaData && DS.diaData[tabla] || []).find(function(o) { return String(o.id) === tr.dataset.id; });
+    sel.value = f && f.estado != null ? f.estado : (sel.dataset.valorActual || '');
+    if (DS_COLOR_TIPO.estado) dsPintarCelda(sel);
+    if (!f || !confirm('¿Marcar el FINISH de Bite design ahora? La orden pasa a Ready to design en Removable Denture y le llega el aviso a Nestor.')) return;
+    fetch('/design/api/ordenes/' + f.id + '/bite-finish', {method: 'POST', credentials: 'same-origin'})
+      .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, d: d}; }); })
+      .then(function(x) {
+        if (!x.ok) { dsToast(x.d.detail || 'No se pudo marcar el Bite Finish.'); return; }
+        f.rdBite = 'hecho';
+        dsAjustarOpcionBite(tr, f);
+        dsToast('✔ Bite Finish ' + x.d.finish + ': Removable Denture quedó en Ready to design y se avisó a Nestor.');
+      }).catch(function() { dsToast('No se pudo marcar el Bite Finish.'); });
+  }
   function dsFilaEsNG(sel, tabla) {
     if (tabla === 'nightguard') return true;
     var tr = sel.closest('tr'), p = tr && tr.querySelector('[data-campo="producto"]');
@@ -1508,6 +1540,7 @@ window.addEventListener('unhandledrejection', function(ev) {
             var trH = sel.closest('tr'), idH = trH ? parseInt(trH.dataset.id, 10) : NaN;
             var fH = isNaN(idH) ? null : (DS.diaData && (DS.diaData[tabla] || []).find(function(x) { return x.id === idH; }));
             dsAjustarOpcionHold(trH, fH || {estado: actual});
+            dsAjustarOpcionBite(trH, fH);
           }
           if (conColor) dsPintarCelda(sel);
         });
@@ -2048,7 +2081,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (o.copiaN2) dsAvisoN2(o.copiaN2);   // Face: al marcar el QC → copia a N2 (en el día de hoy)
       if (o.copiaN2Pendiente) dsToast('Se desmarcó el QC: ' + o.copiaN2Pendiente + ' orden(es) copiada(s) a N2 esperan la decisión de su manager.');
       var i = filas.findIndex(function(x) { return x.id === id; });
-      if (i >= 0) filas[i] = (tabla === 'prestadas' || dsEsRD()) ? Object.assign({}, filas[i], o) : o; // prestadas / RD conservan equipo y manager
+      if (i >= 0) filas[i] = (tabla === 'prestadas' || dsEsRD()) ? Object.assign({}, filas[i], o) : dsConservarExtras(filas[i], o); // prestadas / RD conservan equipo y manager
       if (tabla === 'prestadas' && i >= 0) o = filas[i];
       if (antes && !dsMismaOrden(antes, o)) {
         dsHistPush({tipo: 'ordenes', tabla: tabla, ediciones: [{id: id, antes: antes, despues: dsClon(o),
@@ -2676,6 +2709,17 @@ window.addEventListener('unhandledrejection', function(ev) {
   // el día al servidor (auditoría 19-oct-2026: antes cada guardado hacía que todos los compañeros pidieran el día completo).
   // Un diseñador recibe solo las suyas; si una orden deja de ser suya (la reasignaron), se quita de su pantalla.
   var dsParches = [];
+  // Datos que arma /dia y que el aviso en vivo o la respuesta de un guardado no repiten: se conservan de la fila anterior
+  // («Bite Finish» de Removable Denture; equipo, manager y equipo de origen en la tabla de Removable). 21-oct-2026.
+  var DS_EXTRAS_FILA = ['rdBite', 'manager', 'equipo', 'teamOrigen'];
+  function dsConservarExtras(antes, o) {
+    if (!antes) return o;
+    var faltan = DS_EXTRAS_FILA.filter(function(k) { return o[k] === undefined && antes[k] !== undefined; });
+    if (!faltan.length) return o;
+    var n = Object.assign({}, o);
+    faltan.forEach(function(k) { n[k] = antes[k]; });
+    return n;
+  }
   function dsParchar(a) {
     if (!DS.diaData || a.fecha !== dsFechaISO(dsFechaSeleccionada())) return;   // no es el día que se está viendo
     if (a.team !== DS.teamId) {
@@ -2703,6 +2747,9 @@ window.addEventListener('unhandledrejection', function(ev) {
       var quitar = function(id) { tablas.forEach(function(t) { dia[t] = dia[t].filter(function(f) { return f.id !== id; }); }); };
       (a.x || []).forEach(quitar);
       (a.o || []).forEach(function(o) {
+        var antes = null;
+        tablas.forEach(function(t) { antes = antes || dia[t].find(function(f) { return f.id === o.id; }) || null; });
+        o = dsConservarExtras(antes, o);
         quitar(o.id);
         if (tablas.indexOf(o.tabla) < 0 || (solo && o.designerId !== yo)) return;
         dia[o.tabla].push(o);

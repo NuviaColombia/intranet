@@ -131,19 +131,77 @@ _HORAS_BITE = ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")
 
 
 def _bite_desde_original(c: DesignOrden, o: DesignOrden) -> None:
-    """Removable Denture (Rosember, 20-oct-2026): las horas de Bite design son las de la orden original (Inicio diseño, Hold,
-    Fin de N3 / N6). Mientras Nestor no empiece Denture design: sin Fin en la original → Bite design · Order Entered;
-    con Fin → Denture design · Ready to design."""
-    for k in _HORAS_BITE:
-        setattr(c, k, getattr(o, k) or (0 if k == "hold_minutos" else ""))
-    empezada = bool((c.z_hora_inicio or "").strip()) or _normalizar_texto(c.estado or "") not in (
-        "", _normalizar_texto(ESTADO_ORDER_ENTERED), _normalizar_texto(ESTADO_READY))
-    if empezada:
+    """Removable Denture: el START de Bite design (y sus Hold) son los de la orden original de N3 / N6. El FINISH ya no
+    sale del Fin de la original (ese es el Fin de todo el caso): lo pone «Bite Finish» en la lista de estados de N3
+    (bite_finish_rd; Rosember, 21-oct-2026). Cuando el Bite ya terminó, la original deja de cambiar estas horas."""
+    if (c.hora_fin or "").strip() or _normalizar_texto(c.etapa or "") == _normalizar_texto(ETAPA_DENTURE):
         return
-    if (o.hora_fin or "").strip():
-        c.etapa, c.estado = ETAPA_DENTURE, ESTADO_READY
-    else:
+    for k in ("hora_inicio", "s_hold", "f_hold", "hold_minutos"):
+        setattr(c, k, getattr(o, k) or (0 if k == "hold_minutos" else ""))
+    if _normalizar_texto(c.estado or "") in ("", _normalizar_texto(ESTADO_READY)) and not (c.z_hora_inicio or "").strip():
         c.etapa, c.estado = ETAPA_BITE, ESTADO_ORDER_ENTERED
+
+
+BITE_FINISH = "Bite Finish"
+
+
+def copia_rd_de(db: Session, origen_id: int) -> DesignOrden | None:
+    from .models_design import DesignCopiaRD
+    r = db.query(DesignCopiaRD).filter(DesignCopiaRD.origen_orden_id == origen_id).first()
+    return db.get(DesignOrden, r.rd_orden_id) if r else None
+
+
+def estado_bite_rd(db: Session, origen_ids: list[int]) -> dict[int, str]:
+    """{orden de N3 / N6: 'pendiente' | 'hecho'} para las que tienen copia en Removable Denture (la opción «Bite Finish»)."""
+    from .models_design import DesignCopiaRD
+    if not origen_ids:
+        return {}
+    regs = db.query(DesignCopiaRD).filter(DesignCopiaRD.origen_orden_id.in_(origen_ids)).all()
+    copias = {c.id: c for c in db.query(DesignOrden).filter(DesignOrden.id.in_([r.rd_orden_id for r in regs] or [-1]))}
+    out = {}
+    for r in regs:
+        c = copias.get(r.rd_orden_id)
+        if c is not None:
+            hecho = (c.hora_fin or "").strip() or _normalizar_texto(c.etapa or "") == _normalizar_texto(ETAPA_DENTURE)
+            out[r.origen_orden_id] = "hecho" if hecho else "pendiente"
+    return out
+
+
+def bite_finish_rd(db: Session, o: DesignOrden, user: Empleado) -> dict:
+    """«Bite Finish» en la orden de N3 / N6 (Rosember, 21-oct-2026): la orden original no cambia de estado; en su copia de
+    Removable Denture se pone el FINISH de Bite design (ahora), pasa a Denture design · Ready to design y se avisa a Nestor."""
+    c = copia_rd_de(db, o.id)
+    if c is None:
+        raise ValueError("Esta orden no tiene copia en Removable Denture (su producto no dice «Removable»).")
+    if (c.hora_fin or "").strip() or _normalizar_texto(c.etapa or "") == _normalizar_texto(ETAPA_DENTURE):
+        raise ValueError(f"El Bite design de esta orden ya estaba terminado ({(c.hora_fin or '').strip() or 'Denture design'}).")
+    if not (o.hora_inicio or "").strip():
+        raise ValueError("Primero inicia la orden (Initiated): el START de Bite design sale de ahí.")
+    ahora = ahora_colombia().strftime("%H:%M")
+    for k in ("hora_inicio", "s_hold", "f_hold", "hold_minutos"):
+        setattr(c, k, getattr(o, k) or (0 if k == "hold_minutos" else ""))
+    if (c.s_hold or "").strip() and not (c.f_hold or "").strip():
+        c.f_hold = ahora   # estaba en Hold: el Hold termina con el Bite
+    c.hora_fin, c.etapa, c.estado = ahora, ETAPA_DENTURE, ESTADO_READY
+    db.commit()
+    _push_bite_finish(db, c, user)
+    return {"finish": ahora, "copiaId": c.id}
+
+
+def _push_bite_finish(db: Session, c: DesignOrden, user: Empleado) -> None:
+    try:
+        from . import services_design_push as spush
+        if not c.designer_id:
+            return
+        team_rd = db.get(DesignTeam, c.team_id)
+        cuerpo = " · ".join(x for x in ((c.orden or "").strip(), (c.centro or "").strip(), (c.producto or "").strip()) if x)
+        spush.enviar_en_segundo_plano([c.designer_id], "🦷 Bite design terminado",
+                                      f"{cuerpo}\nYa puedes empezar el Denture design (marcó el Bite Finish {user.nombre_completo}).",
+                                      url=f"/design?area_id={team_rd.area_id}&team_id={team_rd.id}" if team_rd else "/design",
+                                      etiqueta=f"rd-bite-{c.id}")
+    except Exception:  # noqa: BLE001
+        import logging
+        logging.getLogger("design.rd").exception("Removable Denture: no se pudo avisar el Bite Finish")
 
 
 def es_producto_rd(producto: str | None) -> bool:
@@ -1910,6 +1968,11 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
             db.commit()
     breaks = qb.all()
     principal = [serializar_orden(o) for o in ordenes if o.tabla == "principal"]
+    if team.area.nombre in (AREA_N3, AREA_N6) and principal:   # «Bite Finish» para las que tienen copia en Removable Denture
+        rdb = estado_bite_rd(db, [p["id"] for p in principal])
+        for p in principal:
+            if p["id"] in rdb:
+                p["rdBite"] = rdb[p["id"]]
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]
     material = [serializar_orden(o) for o in ordenes if o.tabla == TABLA_MATERIAL]
     es_rd = team.area.nombre == AREA_RD

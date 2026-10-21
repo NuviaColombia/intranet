@@ -1678,6 +1678,27 @@ def diagnostico_rendimiento(request: Request, user: Empleado = Depends(require_a
     return templates.TemplateResponse(request, "design_diag_rendimiento.html", {"user": user, "es_design": True, "d": srend.medir(db)})
 
 
+@router.post("/design/api/ordenes/{orden_id}/bite-finish")
+def api_bite_finish(orden_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """«Bite Finish» (lista de estados de N3 / N6): pone el FINISH de Bite design en la copia de Removable Denture, la deja en
+    Ready to design y avisa a Nestor. La orden de N3 no cambia de estado (Rosember, 21-oct-2026). Mismos permisos que editarla."""
+    o = db.get(DesignOrden, orden_id)
+    if not o:
+        raise HTTPException(404, "Orden no encontrada.")
+    team = db.get(DesignTeam, o.team_id)
+    if not sd.gestiona_equipo(user, team):
+        propia = o.designer_id == user.id and (team.id in sd.equipos_como_designer(db, user) or sd.es_orden_prestada_a(db, o, user))
+        if not propia:
+            raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
+    if sperm.dia_cerrado_para(db, user, o.fecha):
+        raise HTTPException(403, DIA_CERRADO)
+    try:
+        return sd.bite_finish_rd(db, o, user)
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(400, str(e))
+
+
 @router.post("/design/api/ordenes/{orden_id}")
 def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                user: Empleado = Depends(require_modulo("design_schedule")),
@@ -1769,7 +1790,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if rd and (o.estado or "") == "Approved" and estado_antes != "Approved":
         sd.push_rd_aprobada(db, o, user)   # Removable Denture aprobada: aviso al manager del equipo de N3 / N6 de origen
     sd.sincronizar_copia_rd(db, o)   # producto con «Removable»: su copia en Removable Denture
-    return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
+    res = sd.serializar_orden(o)
+    rdb = sd.estado_bite_rd(db, [o.id]) if (team.area and team.area.nombre in (sd.AREA_N3, sd.AREA_N6)) else {}
+    if o.id in rdb:
+        res["rdBite"] = rdb[o.id]   # «Bite Finish» disponible en la lista de estados
+    return _con_copia_n2(db, user, o, qc_antes, res)
 
 
 @router.post("/design/api/ordenes/{orden_id}/eliminar")

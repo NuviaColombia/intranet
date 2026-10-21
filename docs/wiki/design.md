@@ -164,7 +164,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   producto y las horas de Bite design, que son las de la original (Inicio diseño, Hold, Fin de N3 /
   N6; `_bite_desde_original`). Al ponerse el Fin en la original, la copia pasa a Denture design ·
   Ready to design; cuando Nestor cambia el estado (Initiated…) trabaja Denture design (horas `z_*`).
-  Esto lo pidió Rosember el 20-oct-2026. Si quitan «Removable» o borran la original, la copia se
+  Esto lo pidió Rosember el 20-oct-2026. **Cambio 21-oct-2026:** el FINISH de Bite design ya no sale del Fin de la
+  original (es el Fin de todo el caso de N3): lo pone la opción **«Bite Finish»** de la lista de estados de N3 / N6
+  (solo en órdenes con copia, arriba de «Colores…»; `api_bite_finish` → `bite_finish_rd`). La orden de N3 no cambia de
+  estado; la copia queda en Denture design · Ready to design y Nestor recibe un push. Después del Bite Finish la
+  original ya no toca las horas de Bite de la copia. La marca `rdBite` ('pendiente' / 'hecho') viene en `/dia` y en la
+  respuesta al guardar; el cliente la conserva en los parches en vivo (`dsConservarExtras`). Si quitan «Removable» o borran la original, la copia se
   borra solo si Nestor no la ha empezado. Si Nestor borra su copia, el vínculo queda y no se vuelve a crear. Manager y equipo de
   origen salen de `design_copias_rd` (`copias_rd_info`). Denture design se llena por estado
   (`rd_horas_por_estado`); no aplica la regla de Approved de N3. En la lista de Diseñador, «Nestor Rojas (Removable Denture)» solo sale en

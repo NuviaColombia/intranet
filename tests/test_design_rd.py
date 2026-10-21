@@ -70,20 +70,30 @@ class CopiasRD(unittest.TestCase):
         self.assertEqual(self.copias()[0].paciente, "Juan")
         self.assertEqual(len(self.copias()), 1)
 
-    def test_bite_lo_manda_la_original(self):
+    def test_bite_start_de_la_original_y_finish_con_bite_finish(self):
+        from app import services_design_push as spush
         o = self.orden("Removable denture")
+        with self.assertRaises(ValueError):   # sin Initiated en N3 no hay START de Bite
+            sd.bite_finish_rd(self.db, o, self.db.get(models.Empleado, self.nestor))
         o.hora_inicio, o.s_hold, o.f_hold = "08:00", "08:30", "08:40"; self.db.commit()
         sd.sincronizar_copia_rd(self.db, o)
         c = self.copias()[0]
-        self.assertEqual((c.hora_inicio, c.s_hold, c.f_hold, c.estado), ("08:00", "08:30", "08:40", "Order Entered"))
-        o.hora_fin, o.estado = "09:00", "Approved"; self.db.commit()
+        self.assertEqual((c.hora_inicio, c.s_hold, c.f_hold, c.hora_fin, c.estado), ("08:00", "08:30", "08:40", "", "Order Entered"))
+        self.assertEqual(sd.estado_bite_rd(self.db, [o.id]), {o.id: "pendiente"})
+        o.hora_fin, o.estado = "11:00", "Approved"; self.db.commit()   # el Fin de N3 es el de todo el caso: no termina el Bite
         sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual((self.copias()[0].hora_fin, self.copias()[0].estado), ("", "Order Entered"))
+        with mock.patch.object(spush, "enviar_en_segundo_plano") as push,                 mock.patch.object(sd, "ahora_colombia", return_value=sd.datetime(2026, 10, 21, 9, 15, tzinfo=sd.ZONA_COLOMBIA)):
+            r = sd.bite_finish_rd(self.db, o, self.db.get(models.Empleado, self.nestor))
         c = self.copias()[0]
-        self.assertEqual((c.hora_fin, c.etapa, c.estado), ("09:00", "Denture design", "Ready to design"))
-        c.estado, c.z_hora_inicio = "Initiated", "09:10"; self.db.commit()   # Nestor ya empezó: la original no le cambia el estado
-        o.hora_fin = ""; self.db.commit()
-        sd.sincronizar_copia_rd(self.db, o)
-        self.assertEqual(self.copias()[0].estado, "Initiated")
+        self.assertEqual((r["finish"], c.hora_fin, c.etapa, c.estado), ("09:15", "09:15", "Denture design", "Ready to design"))
+        self.assertEqual(push.call_args[0][0], [self.nestor])
+        self.assertEqual(sd.estado_bite_rd(self.db, [o.id]), {o.id: "hecho"})
+        with self.assertRaises(ValueError):   # dos veces no
+            sd.bite_finish_rd(self.db, o, self.db.get(models.Empleado, self.nestor))
+        o.hora_inicio = "07:00"; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)   # ya terminado: la original ya no le cambia las horas de Bite
+        self.assertEqual(self.copias()[0].hora_inicio, "08:00")
 
     def test_push_a_nestor_al_asignarle(self):
         from app import services_design_push as spush
