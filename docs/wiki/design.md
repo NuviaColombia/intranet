@@ -61,6 +61,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   No aplica a los casos de Removable Denture (Rosember, 19-oct-2026).
 - **Bite ready** (Nightguards / TC) registra el tiempo como Hold: llena Start hold y al volver a
   Initiated, Re-initiated (`horas_de_estado`; Rosember, 20-oct-2026).
+- **Formato de horas por fecha**: desde el 21-oct-2026 todo octubre usa el formato actual (Rosember: los
+  días 1–8 salían con el formato viejo mientras los aprobadores los llenan). Fechas de corte en
+  `FACE_/DUAL_/NG_/N2_NUEVO_DESDE` (services_design.py) y `DS_*_NUEVO_DESDE` / `dsHorasPorEstado` (schedule.js),
+  todas en 2026-10-01; deben ir iguales en los dos lados. Las órdenes del 1 al 4 de octubre con el formato viejo
+  se convirtieron una vez (marcas `*_formato_nuevo_oct1`, Inicio diseño → `hora_inicio`).
 - **Crítico** (N3) es de selección múltiple: se guarda como «A; B»; N/A va sola.
 - **Total de la orden** = Fin − Inicio − Hold, con horas sin fecha. Dos correcciones que no se
   deben deshacer: varias noches en Hold suman los días perdidos (`_menos_hold`), y un Hold sin

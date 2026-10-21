@@ -516,9 +516,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   // Columnas de la tabla. "Crítico" (Critical Cases) solo existe en N3 Prosthetic, como en la herramienta original.
-  var DS_FACE_NUEVO_DESDE = '2026-10-05';
-  var DS_DUAL_NUEVO_DESDE = '2026-10-05';
-  var DS_NG_NUEVO_DESDE = '2026-10-06';  // Nightguards / TC de N3 y N6 con el mismo formato (horas_por_estado en services_design.py)
+  var DS_FACE_NUEVO_DESDE = '2026-10-01';   // 21-oct-2026: todo octubre con el formato actual (antes 5-oct; igual en services_design.py)
+  var DS_DUAL_NUEVO_DESDE = '2026-10-01';
+  var DS_NG_NUEVO_DESDE = '2026-10-01';  // Nightguards / TC de N3 y N6 con el mismo formato (horas_por_estado en services_design.py)
   // f: orden (para la tabla de prestadas usa su propia fecha); si no, el día abierto
   function dsNgNuevo(formato, f) {
     var d = f && f.fecha ? String(f.fecha).slice(0, 10) : dsFechaISO(dsFechaSeleccionada());
@@ -1700,7 +1700,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     scope.querySelectorAll('[data-campo="etapa"]').forEach(function(el) { el.disabled = true; el.title = 'La etapa cambia sola al aprobar Bite design'; });
   }
   function dsHorasPorEstado(formato, tabla, fechaISO) {
-    if (formato === 'n2') return fechaISO >= '2026-10-09';
+    if (formato === 'n2') return fechaISO >= '2026-10-01';   // 21-oct-2026: todo octubre (antes 9-oct; N2_NUEVO_DESDE)
     if (formato === 'dual') return tabla === 'nightguard' ? fechaISO >= DS_NG_NUEVO_DESDE : fechaISO >= DS_DUAL_NUEVO_DESDE;
     if (formato === 'single') return fechaISO >= DS_FACE_NUEVO_DESDE;
     return false;

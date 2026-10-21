@@ -2547,20 +2547,21 @@ def _entre(inicio: str, fin: str) -> float:
 # Face Design desde el 5-oct-2026 (pedido por Rosember): Inicio diseño · Start hold · Re-initiated · Fin.
 # Total = Fin − Inicio diseño − tiempo en Hold. El tiempo en Hold es Re-initiated − Start hold más los Hold anteriores
 # del mismo caso (se acumulan en hold_minutos). Las horas se llenan solas con el estado (ver face_horas_por_estado).
-FACE_NUEVO_DESDE = date(2026, 10, 5)
+# 21-oct-2026 (Rosember): todo octubre con el formato actual (los aprobadores están llenando los días vacíos). Antes: 5-oct.
+FACE_NUEVO_DESDE = date(2026, 10, 1)
 # N3 y N6 (tabla Cirugías) con el mismo formato desde el 5-oct-2026 (Nightguards / TC sigue con Inicio y Fin).
-DUAL_NUEVO_DESDE = date(2026, 10, 5)
+DUAL_NUEVO_DESDE = date(2026, 10, 1)   # antes: 5-oct
 
 
 # Nightguards / TC de N3 y N6 con el mismo formato desde el 6-oct-2026 (pedido por Rosember). Los campos son los mismos
 # (Inicio → hora_inicio, Fin → hora_fin), así que las órdenes de antes no se convierten.
-NG_NUEVO_DESDE = date(2026, 10, 6)
+NG_NUEVO_DESDE = date(2026, 10, 1)   # antes: 6-oct (21-oct-2026: todo octubre)
 
 
 # N2 Demodenture con las horas llenadas por el estado como N3 (pedido por Rosember el 9-oct-2026): Initiated → Inicio
 # (y Re-initiated si venía de Hold), Hold → S.Hold, Approved → Fin. Varios Hold en el mismo caso se acumulan en
 # hold_minutos y T. Hold es el total. Conserva sus columnas Inicio · S.Hold · F.Hold · T. Hold · Fin.
-N2_NUEVO_DESDE = date(2026, 10, 9)
+N2_NUEVO_DESDE = date(2026, 10, 1)   # antes: 9-oct (21-oct-2026: todo octubre)
 
 
 def horas_por_estado(formato: str, fecha: date, tabla: str) -> bool:
@@ -2616,8 +2617,11 @@ def face_convertir_una_vez(db: Session) -> None:
     if _face_convertido["ok"]:
         return
     # (marca, formato, desde): Face primero; N3/N6 (Cirugías) se agregó después con su propia marca
+    # 21-oct-2026: la fecha de corte pasó al 1-oct; las marcas «_oct1» convierten también las órdenes del 1 al 4 de octubre
     for marca, formato, desde in (("face_formato_nuevo", FORMATO_SINGLE, FACE_NUEVO_DESDE),
-                                  ("dual_formato_nuevo", FORMATO_DUAL, DUAL_NUEVO_DESDE)):
+                                  ("dual_formato_nuevo", FORMATO_DUAL, DUAL_NUEVO_DESDE),
+                                  ("face_formato_nuevo_oct1", FORMATO_SINGLE, FACE_NUEVO_DESDE),
+                                  ("dual_formato_nuevo_oct1", FORMATO_DUAL, DUAL_NUEVO_DESDE)):
         if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
             continue
         try:
