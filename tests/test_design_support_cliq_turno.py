@@ -43,7 +43,7 @@ class AvisoTurno(unittest.TestCase):
         self.assertIsNone(sc.avisar_turno_si_corresponde(self.db, datetime(2026, 10, 20, 21, 3)))
         (canal, texto), = self.enviados
         self.assertEqual(canal, "supportnuviacolombiacom")
-        self.assertIn("*Diego Andres Sampayo Fontalvo* — Nocturno", texto)
+        self.assertIn("{@d@x.com} — Nocturno", texto)   # @mención por correo
         self.assertTrue(texto.endswith("🕘 9:00 pm – 7:00 am  (Colombia Time)"))
         self.assertTrue(texto.startswith("🛟 *Support Designer en turno*"))
 

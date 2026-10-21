@@ -88,7 +88,7 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   `DESIGN_CLIQ_WEBHOOK_TOKEN` (o `DESIGN_CLIQ_REFRESH_TOKEN`) en Render.
 - **Cliq · Support en turno** (Rosember, 20-oct-2026): al empezar cada turno (solo los días del turno y
   sin festivos), el bot publica en los grupos de Parámetros › Support Time quién atiende Support («Support
-  Designer en turno»), su turno y horario. Lo revisa un hilo cada minuto (`arrancar_avisos_turno`, arranca
+  Designer en turno»), con @mención por su correo de Zoho (`{@correo}`), su turno y horario. Lo revisa un hilo cada minuto (`arrancar_avisos_turno`, arranca
   con la app); la marca `support_en_turno_<fecha>_<turno>` en `design_conexion_reglas` evita repetirlo
   aunque haya dos instancias. Si el servidor estaba caído, avisa solo dentro de 30 min. El bot debe
   ser participante de cada grupo. `DESIGN_SIN_AVISOS_TURNO` lo apaga.

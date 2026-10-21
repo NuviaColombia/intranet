@@ -144,17 +144,28 @@ def canales_turno(texto: str | None) -> list[str]:
     return out
 
 
-def aviso_en_turno(st: dict, n: int) -> str | None:
-    """Texto del aviso para el turno `n` (st = services_design_support.estado)."""
+def mencion(nombre: str, correo: str | None) -> str:
+    """@mención de Cliq por correo de Zoho (Rosember, 20-oct-2026); sin correo, el nombre en negrita."""
+    return f"{{@{correo.strip()}}}" if correo and "@" in correo else f"*{nombre}*"
+
+
+def correos_support(db: Session, st: dict) -> dict[int, str]:
+    from .models import Empleado
+    ids = {p["id"] for p in st.get("personas") or []} | {p["cubierto"]["id"] for p in st.get("personas") or [] if p.get("cubierto")}
+    return {e.id: e.email for e in db.query(Empleado).filter(Empleado.id.in_(ids or [-1]))}
+
+
+def aviso_en_turno(st: dict, n: int, correos: dict[int, str] | None = None) -> str | None:
+    """Texto del aviso para el turno `n` (st = services_design_support.estado; correos = {id: email} para la @mención)."""
     p = next((x for x in st.get("personas") or [] if x["turnoActual"]["n"] == n), None)
     if not p:
         return None
-    t = p["turnoActual"]
+    t, correos = p["turnoActual"], correos or {}
     if p.get("cubierto"):
-        h = p["cubierto"]["hasta"]
-        quien = f"*{p['cubierto']['nombre']}* — {t['nombre']} (cubre a {p['nombre']} hasta el {h[8:10]}/{h[5:7]})"
+        h, cub = p["cubierto"]["hasta"], p["cubierto"]
+        quien = f"{mencion(cub['nombre'], correos.get(cub['id']))} — {t['nombre']} (cubre a {p['nombre']} hasta el {h[8:10]}/{h[5:7]})"
     else:
-        quien = f"*{p['nombre']}* — {t['nombre']}"
+        quien = f"{mencion(p['nombre'], correos.get(p['id']))} — {t['nombre']}"
     # Rosember, 20-oct-2026: título «Support Designer en turno»; sin los días ni la línea del próximo cambio
     return "\n".join(["🛟 *Support Designer en turno*", quien, f"🕘 {t['horaTxt']}  (Colombia Time)"])
 
@@ -162,7 +173,10 @@ def aviso_en_turno(st: dict, n: int) -> str | None:
 def texto_en_turno(db: Session, ahora) -> str | None:
     from . import services_design_support as ss
     d = ss.en_turno(db, ahora)
-    return aviso_en_turno(ss.estado(db, ahora.date()), d["turno"]) if d else None
+    if not d:
+        return None
+    st = ss.estado(db, ahora.date())
+    return aviso_en_turno(st, d["turno"], correos_support(db, st))
 
 
 def enviar_a_grupos(canales: list[str], texto: str) -> list[dict]:
@@ -202,7 +216,8 @@ def avisar_turno_si_corresponde(db: Session, ahora) -> int | None:
         except IntegrityError:
             db.rollback()
             return None
-        texto = aviso_en_turno(ss.estado(db, hoy), n)
+        st = ss.estado(db, hoy)
+        texto = aviso_en_turno(st, n, correos_support(db, st))
         if texto:
             for r in enviar_a_grupos(canales, texto):
                 log.info("Support en turno → %s: %s", r["canal"], r["detalle"])
