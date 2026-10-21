@@ -440,7 +440,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       {k:'horaInicio', l:'START', t:'time', g:'b'}, {k:'horaFin', l:'FINISH', t:'time', g:'b'},
       {k:'zHoraInicio', l:'START', t:'time', g:'z'}, {k:'zHoraFin', l:'FINISH', t:'time', g:'z', extra: [{k:'zTotal', l:'TOTAL'}]},
       {k:'rdTime', l:'TIME', t:'calc', g:'t'},
-      {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'qc', l:'QC', t:'checkbox'}, {k:'notas', l:'Notas', t:'text'},
+      // Sin columna QC por ahora (Rosember, 21-oct-2026)
+      {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'notas', l:'Notas', t:'text'},
     ],
     n2: { principal: [
       {k:'orden', l:'Orden', t:'text'}, {k:'paciente', l:'Paciente', t:'text'},
