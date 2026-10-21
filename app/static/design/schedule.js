@@ -2390,10 +2390,11 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsRangoTxt(a) { return a.desde === a.hasta ? 'el ' + dsACargoFecha(a.desde) : 'del ' + dsACargoFecha(a.desde) + ' al ' + dsACargoFecha(a.hasta); }
   // ---------- Producción del día: casos asignados a cada diseñador en el día elegido (para repartir los casos) ----------
   // N3 (20-oct-2026): la producción se separa en Sx (cirugías), Tc y Ng (Nightguards). Igual que tipo_produccion (servidor).
-  function dsTipoProduccion(tabla, producto) { return tabla !== 'nightguard' ? 'sx' : (/\btc\b/i.test(producto || '') ? 'tc' : 'ng'); }
+  // Tipo de cada caso en «Producción del día»: sx = tabla principal (Cirugías en N3, Dummy en N6), mc = Material Change, tc, ng
+  function dsTipoProduccion(tabla, producto) { return tabla === 'material' ? 'mc' : tabla !== 'nightguard' ? 'sx' : (/\btc\b/i.test(producto || '') ? 'tc' : 'ng'); }
   function dsProduccionDia(dia) {
     var cuenta = {}, nombres = {}, orden = [], tipos = {};
-    var tipoDe = function(k) { return tipos[k] || (tipos[k] = {sx: 0, tc: 0, ng: 0}); };
+    var tipoDe = function(k) { return tipos[k] || (tipos[k] = {sx: 0, tc: 0, ng: 0, mc: 0}); };
     (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.corto || d.nombre; orden.push(k); tipoDe(k); });   // primer nombre y primer apellido
     var prest = {};
     var tablaDe = function(f, lista) { return f.tabla || lista; };
@@ -2411,7 +2412,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var k = 'd' + id; if (!(k in cuenta)) return;
       cuenta[k] += dia.prestadosEquipo[id]; prest[k] = (prest[k] || 0) + dia.prestadosEquipo[id];
       var pt = (dia.prestadosTipo || {})[id] || {};
-      ['sx', 'tc', 'ng'].forEach(function(t) { tipoDe(k)[t] += pt[t] || 0; });
+      ['sx', 'tc', 'ng', 'mc'].forEach(function(t) { tipoDe(k)[t] += pt[t] || 0; });
     });
     return orden.map(function(k) { return {nombre: nombres[k], casos: cuenta[k], prestados: prest[k] || 0, tipos: tipoDe(k)}; });
   }
@@ -2441,13 +2442,17 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     var filas = dsProduccionDia(DS.diaData), total = filas.reduce(function(a, x) { return a + x.casos; }, 0);
     var f = dsFechaSeleccionada();
-    var porTipo = dsAreaNombre() === 'N3 Prosthetic';   // N3: Sx · Tc · Ng en vez de una sola columna
-    var TIPOS = [['sx', 'Sx', 'Cirugías'], ['tc', 'Tc', 'TC'], ['ng', 'Ng', 'Nightguards']];
-    var suma = function(t) { return filas.reduce(function(a, x) { return a + x.tipos[t]; }, 0); };
+    // N3: Sx · Tc · Ng; N6 (21-oct-2026): Mc (Material Change) · D (Dummy) · Ng · Tc. Cada columna suma sus tipos.
+    var area = dsAreaNombre(), porTipo = area === 'N3 Prosthetic' || area === DS_AREA_MATERIAL;
+    var TIPOS = area === DS_AREA_MATERIAL
+      ? [[['mc'], 'Mc', 'Material Change'], [['sx'], 'D', 'Dummy'], [['ng'], 'Ng', 'Nightguards'], [['tc'], 'Tc', 'TC']]
+      : [[['sx', 'mc'], 'Sx', 'Cirugías'], [['tc'], 'Tc', 'TC'], [['ng'], 'Ng', 'Nightguards']];
+    var val = function(x, t) { return t[0].reduce(function(a, k) { return a + (x.tipos[k] || 0); }, 0); };
+    var suma = function(t) { return filas.reduce(function(a, x) { return a + val(x, t); }, 0); };
     var cab = porTipo ? TIPOS.map(function(t) { return '<th class="n" title="' + t[2] + '">' + t[1] + '</th>'; }).join('') : '<th class="n">Casos</th>';
-    var celdas = function(x) { return porTipo ? TIPOS.map(function(t) { return '<td class="n' + (x.tipos[t[0]] ? '' : ' cero') + '">' + x.tipos[t[0]] + '</td>'; }).join('')
+    var celdas = function(x) { return porTipo ? TIPOS.map(function(t) { var v = val(x, t); return '<td class="n' + (v ? '' : ' cero') + '">' + v + '</td>'; }).join('')
                                               : '<td class="n">' + x.casos + '</td>'; };
-    var totales = porTipo ? TIPOS.map(function(t) { return '<td class="n">' + suma(t[0]) + '</td>'; }).join('') : '<td class="n">' + total + '</td>';
+    var totales = porTipo ? TIPOS.map(function(t) { return '<td class="n">' + suma(t) + '</td>'; }).join('') : '<td class="n">' + total + '</td>';
     pop.innerHTML = '<h4>Producción del día</h4><div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
       ' · casos asignados a cada diseñador (sin canceladas)</div>' +
       (filas.length ? '<table><thead><tr><th>Diseñador</th>' + cab + '</tr></thead><tbody>' +

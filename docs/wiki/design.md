@@ -82,7 +82,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
 - **Contadores**: «Canceladas» cuenta toda orden con datos en Canceled, aunque no tenga diseñador;
   los demás contadores solo cuentan órdenes completas (centro, producto y diseñador).
 - **Producción del día**: los casos hechos como prestado suman al diseñador
-  (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`). En
+  (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
+  Change), D (Dummy, la tabla principal), Ng y Tc. En
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Reporte mensual** (Dashboard › Reportes, Rosember, 21-oct-2026; `services_design_reportes`): para la
   Directora de producción, ES/EN, se descarga con Imprimir › PDF. Solo lo que tiene problemas: centros con

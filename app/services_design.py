@@ -2039,8 +2039,11 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
 
 
 def tipo_produccion(tabla: str, producto: str) -> str:
-    """N3 › Producción del día (20-oct-2026): «sx» cirugías (y Material Change), «tc» los TC y «ng» los Nightguards
-    (la tabla Nightguards / TC). Igual que dsTipoProduccion en static/design/schedule.js."""
+    """Producción del día por tipo: «sx» la tabla principal (Cirugías en N3, Dummy en N6), «mc» Material Change (N6;
+    21-oct-2026), «tc» los TC y «ng» los Nightguards (la tabla Nightguards / TC). Igual que dsTipoProduccion en
+    static/design/schedule.js. N3 muestra Sx · Tc · Ng; N6, Mc · D · Ng · Tc."""
+    if tabla == TABLA_MATERIAL:
+        return "mc"
     if tabla != "nightguard":
         return "sx"
     return "tc" if re.search(r"\btc\b", producto or "", re.I) else "ng"
@@ -2065,7 +2068,7 @@ def prestados_por_disenador(db: Session, ids: list[int], fecha: date, por_tipo: 
         if tid in miembro.get(eid, set()) or tid in support or _es_cancelada(estado):
             continue
         out[eid] = out.get(eid, 0) + 1
-        t = tipos.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0})
+        t = tipos.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0, "mc": 0})
         t[tipo_produccion(tabla, producto)] += 1
     return (out, tipos) if por_tipo else out
 
