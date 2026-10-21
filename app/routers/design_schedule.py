@@ -1760,9 +1760,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         falta = sd.faltan_para_aprobar(team.area.nombre, orden_existente.tabla, valores)
         if falta:
             raise HTTPException(400, sd.msg_faltan_aprobar(falta))
-    designer_antes = orden_existente.designer_id
+    designer_antes, estado_antes = orden_existente.designer_id, orden_existente.estado or ""
     o = sd.actualizar_orden(db, orden_id, datos)
     _push_caso_a_support(db, user, o, designer_antes)
+    if rd and (o.estado or "") == "Approved" and estado_antes != "Approved":
+        sd.push_rd_aprobada(db, o, user)   # Removable Denture aprobada: aviso al manager del equipo de N3 / N6 de origen
     sd.sincronizar_copia_rd(db, o)   # producto con «Removable»: su copia en Removable Denture
     return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
 

@@ -156,7 +156,8 @@ def _equipo_rd(db: Session) -> DesignTeam | None:
             .filter(DesignArea.nombre == AREA_RD, DesignTeam.activo == 1).order_by(DesignTeam.orden, DesignTeam.id).first())
 
 
-def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = False, origen_id: int | None = None) -> None:
+def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = False, origen_id: int | None = None,
+                         avisar: bool = True) -> None:
     """Después de crear, editar o borrar una orden de N3 / N6: crea, actualiza o quita su copia en Removable Denture.
     - Producto con «Removable» y sin copia → copia ese mismo día, de Nestor, en Bite design · Order Entered.
     - Con copia → orden, paciente, centro, producto y horas de Bite design iguales a los de la original
@@ -191,6 +192,8 @@ def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = Fal
             db.flush()
             db.add(DesignCopiaRD(rd_orden_id=c.id, origen_orden_id=o.id, origen_team_id=o.team_id))
             db.commit()
+            if avisar and c.designer_id:
+                _push_copia_rd(c, t, team_rd)
             return
         for r in regs:
             c = db.get(DesignOrden, r.rd_orden_id)
@@ -234,6 +237,38 @@ def alinear_copias_rd(db: Session) -> int:
     return len(filas)
 
 
+def _push_copia_rd(c: DesignOrden, origen: DesignTeam, team_rd: DesignTeam) -> None:
+    """Aviso push al diseñador de Removable Denture (Nestor) cuando le llega un caso nuevo (Rosember, 21-oct-2026)."""
+    try:
+        from . import services_design_push as spush
+        cuerpo = " · ".join(x for x in ((c.orden or "").strip(), (c.centro or "").strip(), (c.producto or "").strip()) if x)
+        spush.enviar_en_segundo_plano([c.designer_id], "🦷 Nuevo caso de Removable Denture",
+                                      f"{cuerpo}\nViene de {origen.nombre}. Queda en Order Entered hasta que terminen el Bite design.",
+                                      url=f"/design?area_id={team_rd.area_id}&team_id={team_rd.id}", etiqueta=f"rd-copia-{c.id}")
+    except Exception:  # noqa: BLE001  la copia ya quedó; el aviso nunca debe hacerla fallar
+        import logging
+        logging.getLogger("design.rd").exception("Removable Denture: no se pudo enviar el aviso push")
+
+
+def push_rd_aprobada(db: Session, c: DesignOrden, user: Empleado) -> None:
+    """Nestor aprueba la removable (la copia): aviso push al manager del equipo de N3 / N6 de donde viene la orden
+    (Rosember, 21-oct-2026). Si falla, la aprobación ya quedó."""
+    try:
+        from .models_design import DesignCopiaRD
+        from . import services_design_push as spush
+        r = db.get(DesignCopiaRD, c.id)
+        origen = db.get(DesignTeam, r.origen_team_id) if r else None
+        if not origen or not origen.manager_id or origen.manager_id == user.id:
+            return
+        cuerpo = " · ".join(x for x in ((c.orden or "").strip(), (c.centro or "").strip(), (c.producto or "").strip()) if x)
+        spush.enviar_en_segundo_plano([origen.manager_id], "✅ Removable Denture aprobada",
+                                      f"{cuerpo}\n{user.nombre_completo} aprobó el Denture design.",
+                                      url=f"/design?area_id={origen.area_id}&team_id={origen.id}", etiqueta=f"rd-aprobada-{c.id}")
+    except Exception:  # noqa: BLE001
+        import logging
+        logging.getLogger("design.rd").exception("Removable Denture: no se pudo avisar la aprobación")
+
+
 _rd_copias = {"ok": False}
 
 
@@ -250,7 +285,7 @@ def rd_copias_una_vez(db: Session) -> None:
                    .filter(DesignArea.nombre.in_([AREA_N3, AREA_N6]), DesignOrden.fecha >= hoy,
                            func.lower(DesignOrden.producto).like("%removable%")).all())
         for o in ordenes:
-            sincronizar_copia_rd(db, o)
+            sincronizar_copia_rd(db, o, avisar=False)   # órdenes de antes: sin aviso push (serían muchos a la vez)
     except Exception:  # noqa: BLE001
         db.rollback()
 

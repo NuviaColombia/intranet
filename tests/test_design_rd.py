@@ -85,6 +85,21 @@ class CopiasRD(unittest.TestCase):
         sd.sincronizar_copia_rd(self.db, o)
         self.assertEqual(self.copias()[0].estado, "Initiated")
 
+    def test_push_a_nestor_al_asignarle(self):
+        from app import services_design_push as spush
+        with mock.patch.object(spush, "enviar_en_segundo_plano") as push:
+            o = self.orden("Removable denture")
+            self.assertEqual(push.call_count, 1)
+            self.assertEqual(push.call_args[0][0], [self.nestor])
+            self.assertIn("A1", push.call_args[0][2])
+            o.paciente = "Otro"; self.db.commit()
+            sd.sincronizar_copia_rd(self.db, o)   # actualizar la copia no avisa otra vez
+            self.assertEqual(push.call_count, 1)
+            o2 = self.md.DesignOrden(team_id=self.t3.id, fecha=sd.date(2026, 10, 20), tabla="principal", orden="b2", producto="Removable")
+            self.db.add(o2); self.db.commit()
+            sd.sincronizar_copia_rd(self.db, o2, avisar=False)   # la pasada de órdenes viejas no avisa
+            self.assertEqual(push.call_count, 1)
+
     def test_quitar_producto_borra_si_no_empezo(self):
         o = self.orden("Removable denture")
         o.producto = "Implant Bar"; self.db.commit()
