@@ -10,7 +10,7 @@ from sqlalchemy import event
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.attributes import get_history
 
-from .models_design import DesignOrden, DesignTeam
+from .models_design import DesignArea, DesignOrden, DesignTeam
 
 UMBRAL_MIN = 90   # 1 h 30 min (pedido por Rosember el 19-oct-2026; antes 30 min)
 RANGO_MAX_DIAS = 215   # un semestre completo: jun–dic son 214 días y ene–jun 181 (igual que Cambios digitales)
@@ -57,7 +57,9 @@ def lentas(db: Session, desde: date, hasta: date, area_id: int | None = None, te
     también salían las que ya tenían el QC marcado tarde). Ordenadas de la más larga a la más corta."""
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team).joinedload(DesignTeam.manager))
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
-         .filter(DesignOrden.aprobada_en.isnot(None), DesignOrden.qc_en.is_(None), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta))
+         .join(DesignArea, DesignArea.id == DesignTeam.area_id)
+         .filter(DesignOrden.aprobada_en.isnot(None), DesignOrden.qc_en.is_(None), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta,
+                 DesignArea.nombre != "Removable Denture"))   # Removable no lleva QC (Rosember, 21-oct-2026)
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:

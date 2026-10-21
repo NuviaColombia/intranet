@@ -2643,7 +2643,7 @@ def dashboard_query(db: Session, area_id: int | None = None, team_id: int | None
             qc_reportes.append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
                                 "equipo": f.team.nombre, "producto": f.producto, "estado": f.estado,
                                 "qcReporte": hallazgo, "designerNombre": nombre_d})
-        if aprobada and not f.qc:
+        if aprobada and not f.qc and not (f.team.area and f.team.area.nombre == AREA_RD):   # Removable Denture no lleva QC (21-oct-2026)
             sin_qc.append({"ordenId": f.id, "orden": f.orden, "paciente": f.paciente, "fecha": f.fecha.isoformat(),
                            "equipo": f.team.nombre, "producto": f.producto, "estado": f.estado, "designerNombre": nombre_d})
 

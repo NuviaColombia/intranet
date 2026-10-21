@@ -89,6 +89,7 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Dashboard › Aprobaciones** (Rosember, 21-oct-2026): solo órdenes aprobadas que siguen sin QC pasada 1 h 30 min
   (`services_design_aprobacion.lentas`); al marcar el QC salen de la lista.
+  Removable Denture no sale ahí ni en «Aprobadas sin QC» del Resumen: no lleva QC (21-oct-2026).
 - **Dashboard › Ayudas** (21-oct-2026): «Enviada a» y la tabla por aprobador salen de `design_ayuda_ofertas` (a quién le
   llegó cada solicitud); respuesta promedio = atendida_en − creada_en de las que ese aprobador atendió.
   Los admins pueden eliminar una solicitud (p. ej. de prueba) con sus envíos; la orden no cambia (`eliminar_solicitud`).
