@@ -127,8 +127,8 @@ def avisar_cambio_si_corresponde(db: Session, hoy: date) -> bool:
 
 
 # ---------- Aviso: Support en turno (al empezar cada turno, en los grupos de Parámetros › Support Time) ----------
-# Pedido por Rosember el 20-oct-2026: los grupos deben saber qué Support está en turno ahora. Mismo contenido que la
-# tarjeta de Inicio (nombre, turno, horario y días, próximo cambio). Solo los días del turno (Parámetros › Support Time)
+# Pedido por Rosember el 20-oct-2026: los grupos deben saber qué Support está en turno ahora. Nombre, turno y horario
+# (como la tarjeta de Inicio, sin días ni próximo cambio). Solo los días del turno (Parámetros › Support Time)
 # que no son festivos. Lo revisa un hilo cada minuto (arrancar_avisos_turno); la marca en design_conexion_reglas evita
 # repetirlo aunque Render tenga dos instancias.
 VENTANA_TURNO_MIN = 30   # si el servidor estaba reiniciando a la hora exacta, avisa dentro de esta media hora
@@ -149,17 +149,14 @@ def aviso_en_turno(st: dict, n: int) -> str | None:
     p = next((x for x in st.get("personas") or [] if x["turnoActual"]["n"] == n), None)
     if not p:
         return None
-    t, sig = p["turnoActual"], p["turnoSiguiente"]
-    dias = f" · {st['diasTxt']}" if st.get("diasTxt") else ""
+    t = p["turnoActual"]
     if p.get("cubierto"):
         h = p["cubierto"]["hasta"]
         quien = f"*{p['cubierto']['nombre']}* — {t['nombre']} (cubre a {p['nombre']} hasta el {h[8:10]}/{h[5:7]})"
     else:
         quien = f"*{p['nombre']}* — {t['nombre']}"
-    lineas = ["🛟 *Support en turno ahora*", quien, f"🕘 {t['horaTxt']}{dias}"]
-    if sig and sig["n"] != t["n"] and p.get("cambiaElTxt"):
-        lineas.append(f"El {p['cambiaElTxt']} pasa a turno {sig['nombre'].lower()} ({sig['horaTxt']})")
-    return "\n".join(lineas)
+    # Rosember, 20-oct-2026: título «Support Designer en turno»; sin los días ni la línea del próximo cambio
+    return "\n".join(["🛟 *Support Designer en turno*", quien, f"🕘 {t['horaTxt']}"])
 
 
 def texto_en_turno(db: Session, ahora) -> str | None:

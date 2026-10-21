@@ -44,8 +44,8 @@ class AvisoTurno(unittest.TestCase):
         (canal, texto), = self.enviados
         self.assertEqual(canal, "supportnuviacolombiacom")
         self.assertIn("*Diego Andres Sampayo Fontalvo* — Nocturno", texto)
-        self.assertIn("9:00 pm – 7:00 am · Lun a Vie", texto)
-        self.assertIn("pasa a turno diurno", texto)
+        self.assertTrue(texto.endswith("9:00 pm – 7:00 am"))
+        self.assertTrue(texto.startswith("🛟 *Support Designer en turno*"))
 
     def test_fin_de_semana_y_festivo_no(self):
         self.assertIsNone(sc.avisar_turno_si_corresponde(self.db, datetime(2026, 10, 24, 7, 5)))   # sábado
