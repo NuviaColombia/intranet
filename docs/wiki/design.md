@@ -126,6 +126,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   misma; ya no. La copia va SIEMPRE el mismo día que la original: `trasladar_holds` no mueve las
   copias (seguían en Ready to design y se corrían un día aunque la original no) y al final llama a
   `alinear_copias_rd`, que las pone en la fecha de su original (corregido el 20-oct-2026).
+- **`Empleado.activo` es entero (1/0), no booleano**: filtra con `== 1`. Con `== True` funciona en
+  SQLite (pruebas) pero PostgreSQL falla; así se cayó el Centro de avisos al publicarlo (20-oct-2026).
 - **Ausencias desde People (Tiempos libres)**: no se guardan en `design_breaks`; se calculan al
   vuelo con los permisos aprobados de People (`services_design._permisos_aprobados_del_dia`, que
   traduce cualquier tipo de permiso al catálogo de ausencias de Design con
