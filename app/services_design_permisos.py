@@ -96,3 +96,35 @@ def quitar(db: Session, permiso_id: int) -> bool:
     db.commit()
     _invalidar()
     return True
+
+
+# ---------- Una vez: octubre abierto para los aprobadores (Rosember, 21-oct-2026) ----------
+# El Schedule apenas se está implementando: cada aprobador puede llenar lo que falta en los días de octubre de sus propios
+# Schedules (los que ya maneja). Del 1 al 31 de octubre, vigente hasta el 31 de octubre a las 11:59 pm. Se crea sin las
+# validaciones de Parámetros (que no dejan abrir días futuros) para que los días que se vayan cerrando también queden abiertos.
+
+def octubre_aprobadores_una_vez(db: Session) -> int:
+    from sqlalchemy.exc import IntegrityError
+    from .models import EMPRESA_DESIGN
+    from .models_design import DesignConexionRegla
+    marca = "permiso_octubre_aprobadores_2026"
+    if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+        return 0
+    try:
+        db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        return 0
+    aprobadores = db.query(Empleado).filter(Empleado.rol == "aprobador", Empleado.activo == 1, Empleado.empresa == EMPRESA_DESIGN).all()
+    for e in aprobadores:
+        db.add(DesignPermisoEdicion(empleado_id=e.id, desde=date(2026, 10, 1), hasta=date(2026, 10, 31),
+                                    vence_en=datetime(2026, 10, 31, 23, 59), motivo="Octubre: llenar los días vacíos del Schedule",
+                                    creado_por="Rosember Bravo (permiso especial de octubre)"))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return 0
+    _invalidar()
+    return len(aprobadores)

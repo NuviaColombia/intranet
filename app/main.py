@@ -674,3 +674,18 @@ def init_db():
         db.commit()
     finally:
         db.close()
+
+
+@app.on_event("startup")
+def design_permiso_octubre():
+    # Design · una vez: los aprobadores pueden llenar los días de octubre de sus Schedules (Rosember, 21-oct-2026).
+    # Va después de init_db (las tablas ya existen).
+    from .database import SessionLocal
+    from . import services_design_permisos
+    db = SessionLocal()
+    try:
+        services_design_permisos.octubre_aprobadores_una_vez(db)
+    except Exception:  # noqa: BLE001  nunca debe impedir el arranque
+        db.rollback()
+    finally:
+        db.close()

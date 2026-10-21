@@ -34,6 +34,11 @@ Antes de buscar un patrón de roles que no existe:
   miembros de equipos de Support; `services_design_support.ids_support`): abren el Schedule de
   cualquier equipo y ahí ven y trabajan solo los casos asignados a ellos, como un prestado
   (`es_orden_prestada_a`). No crean ni borran órdenes de ese equipo (20-oct-2026).
+- **Octubre 2026 abierto para los aprobadores** (Rosember, 21-oct-2026): cada aprobador activo de Design
+  tiene un permiso de edición del 1 al 31 de octubre en sus propios Schedules, vigente hasta el 31-oct
+  11:59 pm, para llenar los días vacíos mientras se implementa el Schedule. Lo crea una vez
+  `services_design_permisos.octubre_aprobadores_una_vez` (marca `permiso_octubre_aprobadores_2026`); se ve y se
+  puede quitar por persona en Parámetros › Equipos.
 - **Diseñador prestado**: edita la orden de otro equipo que tiene asignada; al pasar el caso al día
   siguiente (`trasladar_holds`) vuelve sin diseñador.
 
