@@ -1077,14 +1077,15 @@ function contarVarios() {
   var r = recibosEnRango(), n = r.lista.length;
   vResumen.innerHTML = !vDesde.value || !vHasta.value ? 'Escribe el rango.' :
     '<b>' + n + '</b> recibo' + (n === 1 ? '' : 's') + ' para imprimir' + (r.anulados ? ' · ' + r.anulados + ' anulado' + (r.anulados === 1 ? '' : 's') + ' omitido' + (r.anulados === 1 ? '' : 's') : '') +
-    (n ? ' · ' + Math.ceil(n / 2) + ' hoja' + (Math.ceil(n / 2) === 1 ? '' : 's') : '');
+    (n ? ' · ' + n + ' hoja' + (n === 1 ? '' : 's') : '');
   btnVarios.disabled = !n;
 }
 function imprimirVarios() {
   var r = recibosEnRango();
   if (!r.lista.length) return alert('No hay recibos (sin anular) en ese rango.');
-  var cuerpo = r.lista.map(function(x, i) { return '<div class="rc-bloque' + (i % 2 === 1 && i < r.lista.length - 1 ? ' salto' : '') + '">' + htmlRecibo(x) + '</div>'; }).join('');
-  imprimirHtml(cuerpo, CSS_RECIBO + ".rc{height:118mm} .rc-bloque{page-break-inside:avoid;break-inside:avoid} .rc-bloque.salto{page-break-after:always;break-after:page}");
+  // Un recibo por hoja: salto de página después de cada uno, menos el último.
+  var cuerpo = r.lista.map(function(x, i) { return '<div class="rc-bloque' + (i < r.lista.length - 1 ? ' salto' : '') + '">' + htmlRecibo(x) + '</div>'; }).join('');
+  imprimirHtml(cuerpo, CSS_RECIBO + ".rc-bloque{page-break-inside:avoid;break-inside:avoid} .rc-bloque.salto{page-break-after:always;break-after:page}");
 }
 
 // Formato del FM: mismo estilo que el recibo (una sola fuente, tamaños uniformes, columnas fijas)
