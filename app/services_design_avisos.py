@@ -22,6 +22,7 @@ import time
 from datetime import date, datetime, timedelta
 
 import httpx
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -226,7 +227,7 @@ def guardar_grupo(db: Session, datos: dict, por: str) -> DesignCliqGrupo:
     g = db.get(DesignCliqGrupo, int(datos["id"])) if datos.get("id") else None
     if datos.get("id") and not g:
         raise ValueError("Ese grupo ya no existe.")
-    if (db.query(DesignCliqGrupo).filter(DesignCliqGrupo.nombre.ilike(nombre)).filter(DesignCliqGrupo.id != (g.id if g else -1)).first()):
+    if (db.query(DesignCliqGrupo).filter(func.lower(DesignCliqGrupo.nombre) == nombre.lower()).filter(DesignCliqGrupo.id != (g.id if g else -1)).first()):
         raise ValueError(f"Ya hay un grupo llamado «{nombre}».")
     destinos, vistos = [], set()
     for d in datos.get("destinos") or []:
