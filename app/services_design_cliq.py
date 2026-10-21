@@ -156,7 +156,7 @@ def aviso_en_turno(st: dict, n: int) -> str | None:
     else:
         quien = f"*{p['nombre']}* — {t['nombre']}"
     # Rosember, 20-oct-2026: título «Support Designer en turno»; sin los días ni la línea del próximo cambio
-    return "\n".join(["🛟 *Support Designer en turno*", quien, f"🕘 {t['horaTxt']}"])
+    return "\n".join(["🛟 *Support Designer en turno*", quien, f"🕘 {t['horaTxt']}  (Colombia Time)"])
 
 
 def texto_en_turno(db: Session, ahora) -> str | None:
