@@ -1480,3 +1480,18 @@ class DesignCliqEnvio(Base):
     origen: Mapped[str] = mapped_column(String(20), default="auto")   # auto | manual | prueba | reintento
     por: Mapped[str] = mapped_column(String(150), default="Sistema")
     en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class DesignReporte(Base):
+    """Dashboard › Reportes (Rosember, 21-oct-2026): reportes en PDF subidos a mano (p. ej. el de fallas de dicom2stl).
+    Los reportes mensuales de la plataforma no se guardan: se arman al abrirlos (services_design_reportes)."""
+    __tablename__ = "design_reportes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(200), default="")
+    mes: Mapped[str] = mapped_column(String(7), index=True)   # 2026-10
+    nombre_archivo: Mapped[str] = mapped_column(String(200), default="")
+    tam: Mapped[int] = mapped_column(Integer, default=0)
+    datos: Mapped[bytes] = mapped_column(LargeBinary)
+    subido_por: Mapped[str] = mapped_column(String(150), default="")
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

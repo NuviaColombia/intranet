@@ -26,6 +26,7 @@ está dónde buscar y qué no romper sin pensarlo.
 Antes de buscar un patrón de roles que no existe:
 - **Mural**: los editores siempre lo ven; el resto, solo cuando hay algo publicado.
 - **Centro de avisos** (`/design/avisos`): solo admins de Design (20-oct-2026).
+- **Dashboard › Reportes** (`/design/reportes/mensual`, subir PDF): solo admins de Design (21-oct-2026).
 - **Development**: admins, Luis Felipe Blaschke y Paul Andion (`DEV_ESPECIALES`) y los invitados,
   estos en solo lectura (Rosember, 19–20-oct-2026).
 - **Calendario en People**: Pamela Manzur y Nicol Ardila (de People, no de Design) ven el
@@ -72,6 +73,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
 - **Producción del día**: los casos hechos como prestado suman al diseñador
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`). En
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
+- **Reporte mensual** (Dashboard › Reportes, Rosember, 21-oct-2026; `services_design_reportes`): para la
+  Directora de producción, ES/EN, se descarga con Imprimir › PDF. Solo lo que tiene problemas: centros con
+  cirugías de N3 cuya articulación pasó de 2 h (`dashboard_articulacion`) y cambios adicionales (Cambios
+  digitales) por diseñador. El diseñador sale de cruzar el número de orden del cambio con el Schedule (la
+  orden más reciente hasta la fecha del cambio; sin copias de Removable Denture ni Support). No se guarda:
+  se arma al abrirlo.
 - **Support Designer** (N3): asigna el caso a quien atiende Support en ese momento: el turno que
   corre según la rotación o, si ese turno tiene cobertura activa, quien lo reemplaza
   (`services_design_support.en_turno`).
@@ -87,6 +94,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Tabla `design_copias_rd` (copia de
   Removable Denture ↔ orden original); la primera vez que se abre Removable Denture, las órdenes de
   hoy en adelante con «Removable» reciben su copia (`rd_copias_una_vez`).
+
+- 21-oct-2026: tabla `design_reportes` (PDF subidos a mano en Dashboard › Reportes; hasta 15 MB cada uno,
+  ocupan espacio de la base de Supabase).
 
 ## Integraciones
 

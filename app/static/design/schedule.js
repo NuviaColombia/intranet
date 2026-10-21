@@ -3806,6 +3806,7 @@ function dpVista(v) {
   document.getElementById('ddVistaCambios').hidden = v !== 'cambios';
   var vl = document.getElementById('ddVistaLentas'); if (vl) { vl.hidden = v !== 'lentas'; if (v === 'lentas') dlIniciar(); }
   var vy = document.getElementById('ddVistaAyudas'); if (vy) { vy.hidden = v !== 'ayudas'; if (v === 'ayudas' && window.dyIniciar) window.dyIniciar(); }
+  var vr = document.getElementById('ddVistaReportes'); if (vr) { vr.hidden = v !== 'reportes'; if (v === 'reportes' && window.drIniciar) window.drIniciar(); }
   if (v === 'cambios') { dcSemestreInicial(); dcCargar(true); }
   if (v === 'productos') dpCargar();
   if (v === 'articulacion') daCargar();

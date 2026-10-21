@@ -3473,6 +3473,10 @@ router.include_router(_reunion_router)
 from .design_cumple import router as _cumple_router  # noqa: E402
 router.include_router(_cumple_router)
 
+# ---------- Dashboard › Reportes (admins): rutas en routers/design_reportes.py ----------
+from .design_reportes import router as _reportes_router  # noqa: E402
+router.include_router(_reportes_router)
+
 # ---------- Centro de avisos (Cliq; admins): rutas en routers/design_avisos.py ----------
 from .design_avisos import router as _avisos_router  # noqa: E402
 router.include_router(_avisos_router)

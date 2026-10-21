@@ -1,0 +1,202 @@
+<!doctype html>
+{# Dashboard › Reportes · reporte mensual (Rosember, 21-oct-2026). Mismo formato del reporte «Input Failures by Center» de dicom2stl.
+   Página propia, en papel blanco, para verla y descargarla como PDF (Imprimir › Guardar como PDF). Datos: services_design_reportes. #}
+<html lang="{{ r.lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t.titulo }} · {{ r.mesTxt|capitalize }}</title>
+<style>
+  :root { --tinta:#1f1f1f; --gris:#6b6b6b; --muted:#8a8a8a; --borde:#e4e4e1; --fondo:#fafaf8; --azul:#2a78d6; --naranja:#eb6834; --rojo:#d64545; }
+  * { box-sizing:border-box; }
+  html { background:#eceae6; }
+  body { margin:0; font-family:"Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color:var(--tinta); font-size:13px; line-height:1.45; }
+  .barra { position:sticky; top:0; z-index:5; display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 16px; background:#1b2333; color:#fff; }
+  .barra a, .barra button, .barra select { font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; border:1px solid #3a465c; background:#26314a; color:#fff; text-decoration:none; cursor:pointer; }
+  .barra .prim { background:#2a78d6; border-color:#2a78d6; }
+  .barra .on { background:#fff; color:#1b2333; }
+  .barra .esp { flex:1; }
+  .hoja { max-width:880px; margin:18px auto; background:#fff; padding:36px 40px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  h1 { font-size:24px; margin:0 0 4px; }
+  h2 { font-size:16px; margin:26px 0 4px; break-after:avoid; page-break-after:avoid; }
+  h2 + .nota { break-after:avoid; page-break-after:avoid; }
+  .sub, .nota { color:var(--gris); margin:0 0 12px; }
+  .kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:18px 0 6px; }
+  .kpi { border:1px solid var(--borde); border-radius:10px; padding:12px 14px; }
+  .kpi .l { color:var(--gris); font-size:12px; min-height:32px; }
+  .kpi .v { font-size:26px; font-weight:700; line-height:1.15; }
+  .kpi .v small { font-size:18px; color:var(--muted); font-weight:600; }
+  .kpi .s { color:var(--muted); font-size:11.5px; }
+  .hall { border:1px solid var(--borde); border-left:4px solid #c9c9c4; border-radius:8px; padding:10px 14px; margin:8px 0; background:var(--fondo); page-break-inside:avoid; }
+  .hall.fuerte { border-left-color:var(--rojo); }
+  .hall .a { color:var(--gris); margin-top:4px; }
+  .caja { border:1px solid var(--borde); border-radius:10px; padding:14px 16px; background:var(--fondo); margin:8px 0; page-break-inside:avoid; }
+  .barras { display:grid; grid-template-columns:max-content 1fr; gap:6px 12px; align-items:center; }
+  .barras .n { text-align:right; white-space:nowrap; }
+  .pista { display:flex; align-items:center; gap:8px; min-width:0; }
+  .bar { height:14px; border-radius:0 4px 4px 0; display:flex; gap:2px; min-width:4px; }
+  .bar i { display:block; height:100%; }
+  .bar i:last-child { border-radius:0 4px 4px 0; }
+  .eje { border-left:1px solid #b9b9b4; }
+  .lbl { white-space:nowrap; font-size:12.5px; }
+  .lbl span { color:var(--muted); }
+  .leyenda { display:flex; gap:16px; margin-bottom:10px; font-size:12.5px; }
+  .leyenda b { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:5px; }
+  .tend { display:flex; align-items:flex-end; gap:18px; height:170px; padding:18px 6px 0; border-bottom:1px solid #b9b9b4; }
+  .tend > div { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .tend .col { width:24px; background:var(--azul); border-radius:4px 4px 0 0; min-height:2px; }
+  .tend .p { font-size:12px; margin-bottom:4px; }
+  .tend-x { display:flex; gap:18px; padding:4px 6px 0; }
+  .tend-x span { flex:1; text-align:center; color:var(--muted); font-size:11.5px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; color:var(--gris); font-weight:600; padding:6px 8px; border-bottom:1.5px solid #c9c9c4; }
+  td { padding:6px 8px; border-bottom:1px solid var(--borde); vertical-align:top; }
+  tr { page-break-inside:avoid; }
+  td.num, th.num { text-align:right; white-space:nowrap; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px; color:#fff; }
+  .tag.LAB { background:var(--naranja); } .tag.DOC { background:var(--azul); }
+  .vacio { color:var(--gris); font-style:italic; }
+  ul.metodo { padding-left:18px; } ul.metodo li { margin:4px 0; }
+  .pie { color:var(--muted); font-size:11.5px; margin-top:22px; border-top:1px solid var(--borde); padding-top:8px; }
+  @media (max-width:760px) { .hoja { padding:20px 16px; margin:0; } .kpis { grid-template-columns:1fr 1fr; } .tablas { overflow-x:auto; } }
+  @page { size:letter; margin:14mm; }
+  @media print {
+    html, body { background:#fff; }
+    .barra { display:none; }
+    .hoja { box-shadow:none; margin:0; padding:0; max-width:none; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+{% set a = r.art %}{% set c = r.cam %}
+<div class="barra">
+  <a href="/design?panel=dashboard">← {{ t.volver }}</a>
+  <label>{{ t.mes }} <select id="mes" onchange="location.search='?mes='+this.value+'&lang={{ r.lang }}'">
+    {% for m in meses %}<option value="{{ m }}"{{ ' selected' if m == r.mes }}>{{ mesesTxt[r.lang][m[5:]|int - 1]|capitalize }} {{ m[:4] }}</option>{% endfor %}
+  </select></label>
+  <a href="?mes={{ r.mes }}&lang=es" class="{{ 'on' if r.lang == 'es' }}">ES</a>
+  <a href="?mes={{ r.mes }}&lang=en" class="{{ 'on' if r.lang == 'en' }}">EN</a>
+  <span class="esp"></span>
+  <button type="button" class="prim" onclick="window.print()">{{ t.descargar }}</button>
+</div>
+
+<div class="hoja">
+  <h1>{{ t.titulo }} · {{ r.mesTxt|capitalize }}</h1>
+  <p class="sub">{{ t.sub }} · {{ t.del }} {{ r.ini }} {{ t.al }} {{ r.fin }} · {{ a.medidos }} {{ t.medidas }}, {{ c.total }} {{ t.cambiosN }}. {{ t.soloProblemas }}</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="l">{{ t.kMedidas }}</div><div class="v">{{ a.medidos }}</div><div class="s">{{ t.kMedidasS }}</div></div>
+    <div class="kpi"><div class="l">{{ t.kTarde }} {{ r.durLim }}</div><div class="v">{{ a.pasadas }}</div><div class="s">{{ a.pct }} % {{ t.kTardeS }}</div></div>
+    <div class="kpi"><div class="l">{{ t.kCentros }}</div><div class="v">{{ a.centros|length }} <small>{{ t.kDe }} {{ a.centrosTotal }}</small></div><div class="s">{{ t.kCentrosS }}</div></div>
+    <div class="kpi"><div class="l">{{ t.kCambios }}</div><div class="v">{{ c.total }}</div><div class="s">LAB {{ c.LAB }} · DOC {{ c.DOC }}</div></div>
+  </div>
+
+  <h2>{{ t.hallazgos }}</h2>
+  <p class="nota">{{ t.hallazgosS }}</p>
+  {% for h in r.hallazgos %}
+  <div class="hall{{ ' fuerte' if h.fuerte }}"><div>{{ h.t|safe }}</div>{% if h.a %}<div class="a">→ {{ h.a }}</div>{% endif %}</div>
+  {% endfor %}
+
+  <h2>{{ t.centrosT }}</h2>
+  <p class="nota">{{ t.centrosS }}</p>
+  {% if a.centros %}
+  {% set maxc = a.centros|map(attribute='casos')|max %}
+  <div class="caja">
+    <div class="barras">
+      {% for x in a.centros %}
+      <div class="n">{{ x.centro }}</div>
+      <div class="pista eje" title="{{ x.centro }}: {{ x.pasadas }} {{ t.kDe }} {{ x.casos }} · {{ t.prom }} {{ x.promTxt }}">
+        <div class="bar" style="width:{{ (x.pasadas / maxc * 100)|round(1) }}%"><i style="width:100%;background:var(--azul)"></i></div>
+        <span class="lbl">{{ x.pasadas }} {{ t.kDe }} {{ x.casos }} <span>· {{ t.prom }} {{ x.promTxt }}</span></span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="caja tablas"><table>
+    <thead><tr><th>{{ t.tabCentro }}</th><th>{{ t.tabManager }}</th><th class="num">{{ t.tabCirugias }}</th><th class="num">{{ t.tabTarde }}</th>
+      <th class="num">{{ t.tabPct }}</th><th class="num">{{ t.tabProm }}</th><th class="num">{{ t.tabMax }}</th></tr></thead>
+    <tbody>{% for x in a.centros %}<tr><td><b>{{ x.centro }}</b></td><td>{{ x.managers }}</td><td class="num">{{ x.casos }}</td>
+      <td class="num"><b>{{ x.pasadas }}</b></td><td class="num">{{ x.pct }} %</td><td class="num">{{ x.promTxt }}</td><td class="num">{{ x.maxTxt }}</td></tr>{% endfor %}
+      <tr><td><b>Total</b></td><td></td><td class="num"><b>{{ a.centros|sum(attribute='casos') }}</b></td><td class="num"><b>{{ a.pasadas }}</b></td><td></td><td></td><td></td></tr></tbody>
+  </table></div>
+  {% else %}<p class="vacio">{{ t.sinCentros }}</p>{% endif %}
+
+  {% if a.tendencia %}
+  <h2>{{ t.tendT }}</h2>
+  <p class="nota">{{ t.tendS }}</p>
+  {% set maxp = [a.tendencia|map(attribute='pct')|max, 1]|max %}
+  <div class="caja">
+    <div class="tend">{% for s in a.tendencia %}<div title="{{ s.txt }}: {{ s.pasadas }} / {{ s.casos }}"><span class="p">{{ s.pct }} %</span><span class="col" style="height:{{ (s.pct / maxp * 80)|round(1) }}%"></span></div>{% endfor %}</div>
+    <div class="tend-x">{% for s in a.tendencia %}<span>{{ s.txt }}</span>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  <h2>{{ t.camT }}</h2>
+  <p class="nota">{{ t.camS }}</p>
+  {% if c.disenadores %}
+  {% set maxd = c.disenadores|map(attribute='cambios')|max %}
+  <div class="caja">
+    <div class="leyenda"><span><b style="background:var(--naranja)"></b>LAB</span><span><b style="background:var(--azul)"></b>DOC</span></div>
+    <div class="barras">
+      {% for x in c.disenadores %}
+      <div class="n">{{ x.nombre }}</div>
+      <div class="pista eje" title="{{ x.nombre }}: {{ x.cambios }} {{ t.cambios }} · LAB {{ x.LAB }} · DOC {{ x.DOC }}">
+        <div class="bar" style="width:{{ (x.cambios / maxd * 100)|round(1) }}%">
+          {% if x.LAB %}<i style="width:{{ (x.LAB / x.cambios * 100)|round(1) }}%;background:var(--naranja)"></i>{% endif %}
+          {% if x.DOC %}<i style="width:{{ (x.DOC / x.cambios * 100)|round(1) }}%;background:var(--azul)"></i>{% endif %}
+          {% if x.cambios - x.LAB - x.DOC > 0 %}<i style="width:{{ ((x.cambios - x.LAB - x.DOC) / x.cambios * 100)|round(1) }}%;background:#b9b9b4"></i>{% endif %}
+        </div>
+        <span class="lbl">{{ x.cambios }} {{ t.cambios }} <span>· {{ x.casosConCambio }} {{ t.casos }}</span></span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="caja tablas"><table>
+    <thead><tr><th>{{ t.tabDis }}</th><th>{{ t.tabManager }}</th><th class="num">{{ t.tabCambios }}</th><th class="num">LAB</th><th class="num">DOC</th>
+      <th class="num">{{ t.tabCasosC }}</th><th class="num">{{ t.tabCasosM }}</th><th class="num">%</th><th>{{ t.tabTipos }}</th></tr></thead>
+    <tbody>{% for x in c.disenadores %}<tr><td><b>{{ x.nombre }}</b></td><td>{{ x.manager }}</td><td class="num"><b>{{ x.cambios }}</b></td>
+      <td class="num">{{ x.LAB or '·' }}</td><td class="num">{{ x.DOC or '·' }}</td><td class="num">{{ x.casosConCambio }}</td><td class="num">{{ x.casosMes or '·' }}</td>
+      <td class="num">{{ (x.pct ~ ' %') if x.pct is not none else '·' }}</td><td>{% for k, v in x.tipos %}{{ k }} ({{ v }}){{ ', ' if not loop.last }}{% endfor %}</td></tr>{% endfor %}
+      {% if c.sinCruce %}<tr><td class="vacio">{{ t.sinDis }}</td><td></td><td class="num">{{ c.sinCruce }}</td><td colspan="6"></td></tr>{% endif %}</tbody>
+  </table></div>
+  {% else %}<p class="vacio">{{ t.sinCambios }}</p>{% endif %}
+
+  {% if c.tipos %}
+  <div class="caja tablas"><table>
+    <thead><tr><th>{{ t.tiposT }}</th><th class="num">{{ t.tabCant }}</th></tr></thead>
+    <tbody>{% for k, v in c.tipos %}<tr><td>{{ k }}</td><td class="num">{{ v }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+
+  <h2>{{ t.origenT }}</h2>
+  <div class="caja tablas"><table>
+    <thead><tr><th>{{ t.tabOrigen }}</th><th>{{ t.tabQue }}</th><th>{{ t.tabRevisar }}</th></tr></thead>
+    <tbody><tr><td><span class="tag LAB">LAB</span></td><td>{{ t.labQue }}</td><td>{{ t.labRev }}</td></tr>
+      <tr><td><span class="tag DOC">DOC</span></td><td>{{ t.docQue }}</td><td>{{ t.docRev }}</td></tr></tbody>
+  </table></div>
+
+  {% if a.casos %}
+  <h2>{{ t.casosT }}</h2>
+  <p class="nota">{{ t.casosS }}</p>
+  <div class="caja tablas"><table>
+    <thead><tr><th>{{ t.tabFecha }}</th><th>{{ t.tabOrden }}</th><th>{{ t.tabCentro }}</th><th>START</th><th>RTD</th><th class="num">{{ t.tabTiempo }}</th></tr></thead>
+    <tbody>{% for x in a.casos %}<tr><td>{{ x.fechaTxt }}</td><td>{{ x.orden }}</td><td>{{ x.centro }}</td><td>{{ x.start }}</td><td>{{ x.rtd }}</td><td class="num"><b>{{ x.dur }}</b></td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+
+  {% if c.filas %}
+  <h2>{{ t.filasT }}</h2>
+  <div class="caja tablas"><table>
+    <thead><tr><th>{{ t.tabFecha }}</th><th>{{ t.tabOrden }}</th><th>{{ t.tabCentro }}</th><th>{{ t.tabDis }}</th><th>{{ t.tabTipo }}</th><th>{{ t.tabOrigen }}</th><th>{{ t.tabDetalle }}</th></tr></thead>
+    <tbody>{% for x in c.filas %}<tr><td>{{ x.fechaTxt }}</td><td>{{ x.orden }}</td><td>{{ x.centro }}</td><td>{{ x.designer or '—' }}</td><td>{{ x.tipo }}</td>
+      <td>{% if x.origen %}<span class="tag {{ x.origen }}">{{ x.origen }}</span>{% endif %}</td><td>{{ x.detalle }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+
+  <h2>{{ t.metodoT }}</h2>
+  <ul class="metodo"><li>{{ t.m1|safe }}</li><li>{{ t.m2|safe }}</li>{% if c.sinCruce %}<li>{{ t.m3|safe }}</li>{% endif %}<li>{{ t.m4|safe }}</li></ul>
+  <div class="pie">{{ t.generado }} {{ r.generado }} (Colombia) · Nuvia Design Colombia</div>
+</div>
+</body>
+</html>

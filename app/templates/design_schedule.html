@@ -334,7 +334,7 @@ window.dsPdfjs = function() {
 </div></div>
 {% if ver_dashboard %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
-<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button><button type="button" class="dd-vista" data-dv="ayudas" role="tab" aria-selected="false">🤝 Ayudas</button>{% endif %}</div>
+<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button><button type="button" class="dd-vista" data-dv="ayudas" role="tab" aria-selected="false">🤝 Ayudas</button><button type="button" class="dd-vista" data-dv="reportes" role="tab" aria-selected="false">📑 Reportes</button>{% endif %}</div>
 <div id="ddVistaResumen">
 
 <div class="dd-search">
@@ -439,6 +439,24 @@ window.dsPdfjs = function() {
   <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="dpTabla"></table></div></div>
 </div>
 {% if user.rol in ('admin', 'superadmin') %}
+<div id="ddVistaReportes" hidden>{# Dashboard › Reportes (Rosember, 21-oct-2026): routers/design_reportes.py y static/design/reportes.js #}
+<p class="dd-p-nota">Reportes para la Directora de producción. El <b>reporte mensual</b> se arma con los datos de la plataforma (solo lo que tiene problemas: centros que pasan de 2 horas de articulación y cambios adicionales por diseñador) y se descarga como PDF. Abajo puedes subir reportes en PDF de otros programas.</p>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Reporte mensual</h3></div>
+  <div class="dd-filtros">
+    <div><label for="drMes">Mes</label><select id="drMes"></select></div>
+    <div><label for="drLang">Idioma</label><select id="drLang"><option value="es">Español</option><option value="en">English</option></select></div>
+    <div style="align-self:flex-end"><button type="button" class="btn" id="drAbrir">Abrir reporte</button></div>
+  </div></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Reportes subidos</h3><span style="font-size:12px;color:#4b5563">PDF de hasta 15 MB</span></div>
+  <div class="dd-filtros">
+    <div><label for="drTitulo">Título</label><input type="text" id="drTitulo" maxlength="200" placeholder="Ej. Input failures by center" style="width:240px"></div>
+    <div><label for="drMesSub">Mes</label><select id="drMesSub"></select></div>
+    <div><label for="drArchivo">Archivo PDF</label><input type="file" id="drArchivo" accept="application/pdf,.pdf"></div>
+    <div style="align-self:flex-end"><button type="button" class="btn" id="drSubir">Subir</button></div>
+  </div>
+  <div id="drRes" class="dd-p-nota" style="margin:4px 0 8px"></div>
+  <div class="dp-tabla-w"><table class="dd-tabla" id="drTabla"></table></div></div>
+</div>
 <div id="ddVistaLentas" hidden>
 <p class="dd-p-nota">Órdenes en las que el manager tardó <b>más de 1 hora y 30 minutos en aprobar</b>: desde que la orden quedó en Approved hasta que se marcó el QC. También salen las que siguen sin QC pasada 1 hora y 30 minutos. Solo cuentan las órdenes desde el 13 de octubre de 2026 (antes no se guardaba la hora).</p>
 <div class="dd-kpis" id="dlKpis"></div>
@@ -623,5 +641,5 @@ window.DS_CFG = {userId: {{ user.id }}, esAprobador: {{ 'true' if user.rol in ('
                  esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
 </script>
 <script src="/static/design/schedule.min.js?v={{ dsv }}"></script>   <!-- generado por scripts/minificar_design.py desde schedule.js -->
-{% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script><script src="/static/design/ayuda.js?v={{ dsv }}"></script>{% endif %}
+{% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script><script src="/static/design/ayuda.js?v={{ dsv }}"></script>{% endif %}{% if user.rol in ('admin', 'superadmin') %}<script src="/static/design/reportes.js?v={{ dsv }}"></script>{% endif %}
 {% endblock %}
