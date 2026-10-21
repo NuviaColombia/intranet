@@ -3939,14 +3939,16 @@ function dpCargar() {
   var anio = anioSel.value || hoy.getFullYear(), area = document.getElementById('dpArea').value, team = document.getElementById('dpTeam').value;
   var u = '/design/api/dashboard/productos?anio=' + anio + (team ? '&team_id=' + team : area ? '&area_id=' + area : ''), t = ++DP.tok;
   document.getElementById('dpTabla').style.opacity = '.5';
+  if (DD_MOV) document.getElementById('dpTop').style.opacity = '0';   // sin «flash» de las barras viejas antes de animar las nuevas
   ddApi(u).then(function(d) {
     if (t !== DP.tok) return;
+    document.getElementById('dpTop').style.opacity = '';
     DP.datos = d; DP.animar = true;
     var actual = String(d.anio);
     anioSel.innerHTML = d.anios.map(function(a) { return '<option' + (String(a) === actual ? ' selected' : '') + '>' + a + '</option>'; }).join('');
     dpPintar();
   }).catch(function(e) { document.getElementById('dpTabla').innerHTML = '<tbody><tr><td>No se pudo cargar: ' + ddEsc(e.message) + '</td></tr></tbody>'; })
-    .then(function() { document.getElementById('dpTabla').style.opacity = ''; });
+    .then(function() { document.getElementById('dpTabla').style.opacity = ''; if (t === DP.tok) document.getElementById('dpTop').style.opacity = ''; });
 }
 function dpFiltrados() {
   var q = dpNorm(document.getElementById('dpBuscar').value.trim());
@@ -3970,6 +3972,7 @@ function dpPintar() {
   // los productos del mes, en barras
   document.getElementById('dpTopTit').textContent = 'Productos de ' + DP_MESES_L[mes] + ' ' + DP.datos.anio;
   var top = conMes.slice().sort(function(a, b) { return b.meses[mes] - a.meses[mes]; }), max = top.length ? top[0].meses[mes] : 1;
+  document.getElementById('dpTop').classList.remove('dd-anim');   // redibujar (p. ej. al buscar) no vuelve a animar; ddAnimar la enciende
   document.getElementById('dpTop').innerHTML = top.length ? top.slice(0, 15).map(function(p) {
     return '<div class="dp-barra"><span class="n" title="' + ddEsc(p.producto) + '">' + ddEsc(p.producto) + '</span><span class="b"><i style="width:' + Math.max(2, p.meses[mes] * 100 / max) + '%"></i></span><b>' + p.meses[mes] + '</b></div>';
   }).join('') + (top.length > 15 ? '<div class="dp-mas">y ' + (top.length - 15) + ' productos más en la tabla</div>' : '')
@@ -4071,9 +4074,10 @@ function daCargar() {
   var area = document.getElementById('daArea').value, team = document.getElementById('daTeam').value, t = ++DA.tok;
   var u = '/design/api/dashboard/articulacion?desde=' + ds.value + '&hasta=' + hs.value + (team ? '&team_id=' + team : area ? '&area_id=' + area : '');
   document.getElementById('daCentros').style.opacity = '.5';
-  ddApi(u).then(function(d) { if (t !== DA.tok) return; DA.datos = d; DA.tope = DA_TOPE; DA.animar = true; daPintar(); })
+  if (DD_MOV) document.getElementById('daTop').style.opacity = '0';   // sin «flash» de las barras viejas antes de animar las nuevas
+  ddApi(u).then(function(d) { if (t !== DA.tok) return; document.getElementById('daTop').style.opacity = ''; DA.datos = d; DA.tope = DA_TOPE; DA.animar = true; daPintar(); })
     .catch(function(e) { document.getElementById('daCentros').innerHTML = '<tbody><tr><td>No se pudo cargar: ' + ddEsc(e.message) + '</td></tr></tbody>'; })
-    .then(function() { document.getElementById('daCentros').style.opacity = ''; });
+    .then(function() { document.getElementById('daCentros').style.opacity = ''; if (t === DA.tok) document.getElementById('daTop').style.opacity = ''; });
 }
 function daFiltrar() {
   var q = dpNorm(document.getElementById('daBuscar').value.trim()), d = DA.datos;
@@ -4099,6 +4103,7 @@ function daPintar() {
   var animar = DA.animar; DA.animar = false;
   var top = f.centros.filter(function(c) { return c.casos && c.promedio; }).slice().sort(function(x, y) { return y.promedio - x.promedio; }).slice(0, 15);
   var topMax = top.length ? top[0].promedio : 1;
+  document.getElementById('daTop').classList.remove('dd-anim');   // redibujar (p. ej. al buscar) no vuelve a animar; ddAnimar la enciende
   document.getElementById('daTop').innerHTML = top.length ? top.map(function(c) {
     return '<div class="da-barra" title="' + ddEsc(c.centro) + ': promedio ' + daFmt(c.promedio) + ', el más largo ' + daFmt(c.max) + '"><span class="n">' + ddEsc(c.centro) + '</span>' +
       '<span class="b"><i style="width:' + Math.max(2, c.promedio * 100 / topMax) + '%"></i></span>' +
