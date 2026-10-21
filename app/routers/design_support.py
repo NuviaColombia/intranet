@@ -63,10 +63,16 @@ def api_cliq_canales(payload: CanalesIn, user: Empleado = Depends(require_admin)
     return {"canales": canales}
 
 
+class ProbarTurnoIn(BaseModel):
+    canal: str = ""
+
+
 @router.post("/design/api/support-time/probar-turno")
-def api_probar_turno(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    """Admins: publica ahora mismo el aviso «Support en turno» en los grupos guardados y devuelve qué respondió cada uno."""
-    canales = sc.canales_turno(ss.config(db).cliq_canales)
+def api_probar_turno(payload: ProbarTurnoIn | None = None, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: publica ahora mismo el aviso «Support en turno» en los grupos guardados (o solo en `canal`, el botón Probar
+    de cada grupo) y devuelve qué respondió cada uno."""
+    solo = sc.canales_turno((payload.canal if payload else "")[:120])
+    canales = solo[:1] or sc.canales_turno(ss.config(db).cliq_canales)
     if not canales:
         raise HTTPException(400, "Primero agrega y guarda al menos un grupo.")
     texto = sc.texto_en_turno(db, sd.ahora_colombia())

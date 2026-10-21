@@ -682,11 +682,12 @@
       <span id="stProbarRes" class="aud-sub" style="margin-left:8px"></span>
       <h3 style="margin-top:16px">Support en turno</h3>
       <div class="aud-sub" style="margin-bottom:8px">Al empezar cada turno (solo los días marcados arriba y que no son festivos), el bot avisa en estos grupos quién atiende Support, su turno y horario.
-        Escribe el <b>Unique Name</b> de cada grupo, uno por línea. El bot debe estar agregado como participante de cada grupo en Cliq.</div>
-      <textarea id="stCanales" rows="4" style="width:100%;max-width:420px;font-family:inherit" placeholder="ejemplo: n3prosthetic">{{ cliq.canalesTurno or cliq.canal }}</textarea>
+        Escribe el <b>Unique Name</b> de cada grupo. El bot debe estar agregado como participante de cada grupo en Cliq.</div>
+      <div id="stCanales" style="display:flex;flex-direction:column;gap:6px;max-width:520px"></div>
       <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn gris" id="stAgregarCanal">+ Agregar grupo</button>
         <button type="button" class="btn" id="stGuardarCanales">Guardar grupos</button>
-        <button type="button" class="btn gris" id="stProbarTurno">Publicar el aviso ahora</button>
+        <button type="button" class="btn gris" id="stProbarTurno">Publicar el aviso ahora en todos</button>
         <span id="stCanalesRes" class="aud-sub"></span>
       </div>
     </div>
@@ -1495,8 +1496,51 @@
       }).catch(function() { res.style.color = '#b91c1c'; res.textContent = '✘ No se pudo enviar.'; }).then(function() { pb.disabled = false; });
     });
     // Support en turno: grupos donde avisa el bot al empezar cada turno
+    // Cada grupo en su fila: se edita el nombre, se prueba solo o se elimina (Rosember, 20-oct-2026)
     var gc = document.getElementById('stGuardarCanales'), pt = document.getElementById('stProbarTurno'),
-        ta = document.getElementById('stCanales'), cr = document.getElementById('stCanalesRes');
+        lista = document.getElementById('stCanales'), cr = document.getElementById('stCanalesRes'),
+        ag = document.getElementById('stAgregarCanal');
+    var guardados = {{ (cliq.canalesTurno or '')|tojson }}.split('\n').filter(Boolean);
+    function nombres() {
+      return [].map.call(lista.querySelectorAll('input'), function(i) { return i.value.trim().replace(/^#+/, '').trim(); }).filter(Boolean);
+    }
+    function marcarCambios() {
+      var cambio = nombres().join('\n') !== guardados.join('\n');
+      gc.classList.toggle('st-pendiente', cambio);
+      gc.textContent = cambio ? 'Guardar grupos (hay cambios)' : 'Guardar grupos';
+    }
+    function fila(valor) {
+      var f = document.createElement('div');
+      f.style.cssText = 'display:flex;gap:6px;align-items:center';
+      f.innerHTML = '<span class="aud-sub" style="font-weight:600">#</span>' +
+        '<input type="text" maxlength="120" placeholder="Unique Name, ej. supportnuviacolombiacom" style="flex:1;min-width:0">' +
+        '<button type="button" class="btn gris" data-a="probar" title="Publicar el aviso ahora solo en este grupo">Probar</button>' +
+        '<button type="button" class="btn gris" data-a="quitar" title="Eliminar este grupo" style="color:#b91c1c">Eliminar</button>';
+      var inp = f.querySelector('input');
+      inp.value = valor || '';
+      inp.addEventListener('input', marcarCambios);
+      f.querySelector('[data-a="quitar"]').addEventListener('click', function() {
+        var n = inp.value.trim();
+        if (n && guardados.indexOf(n.replace(/^#+/, '')) >= 0 && !confirm('¿Eliminar el grupo «' + n + '»? El bot dejará de avisar ahí.')) return;
+        f.remove();
+        if (!lista.children.length) fila('');
+        guardar(gc, n ? '✔ Grupo eliminado.' : null);
+      });
+      f.querySelector('[data-a="probar"]').addEventListener('click', function(ev) {
+        var n = inp.value.trim().replace(/^#+/, '');
+        if (!n) return;
+        publicar(ev.currentTarget, {canal: n});
+      });
+      lista.appendChild(f);
+      return inp;
+    }
+    function pintar(arr) {
+      lista.innerHTML = '';
+      (arr.length ? arr : ['']).forEach(function(n) { fila(n); });
+      marcarCambios();
+    }
+    pintar(guardados.length ? guardados : ['{{ cliq.canal }}']);
+    if (ag) ag.addEventListener('click', function() { fila('').focus(); marcarCambios(); });
     function llamar(boton, url, cuerpo, listo) {
       boton.disabled = true; cr.style.color = ''; cr.textContent = 'Un momento…';
       fetch(url, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cuerpo || {})})
@@ -1505,20 +1549,22 @@
         .catch(function(e) { cr.style.color = '#b91c1c'; cr.textContent = '✘ ' + e.message; })
         .then(function() { boton.disabled = false; });
     }
-    if (gc) gc.addEventListener('click', function() {
-      llamar(gc, '/design/api/support-time/cliq-canales', {canales: ta.value}, function(d) {
-        ta.value = d.canales.join('\n'); cr.style.color = '#047857';
-        cr.textContent = d.canales.length ? '✔ Guardado: ' + d.canales.length + (d.canales.length === 1 ? ' grupo.' : ' grupos.') : '✔ Guardado: sin grupos, no se avisará.';
+    function guardar(boton, msg) {
+      llamar(boton, '/design/api/support-time/cliq-canales', {canales: nombres().join('\n')}, function(d) {
+        guardados = d.canales; pintar(d.canales); cr.style.color = '#047857';
+        cr.textContent = msg || (d.canales.length ? '✔ Guardado: ' + d.canales.length + (d.canales.length === 1 ? ' grupo.' : ' grupos.') : '✔ Guardado: sin grupos, no se avisará.');
       });
-    });
-    if (pt) pt.addEventListener('click', function() {
-      llamar(pt, '/design/api/support-time/probar-turno', null, function(d) {
+    }
+    if (gc) gc.addEventListener('click', function() { guardar(gc); });
+    if (pt) pt.addEventListener('click', function() { publicar(pt, null); });
+    function publicar(boton, cuerpo) {
+      llamar(boton, '/design/api/support-time/probar-turno', cuerpo, function(d) {
         var mal = d.resultados.filter(function(r) { return !r.ok; });
         cr.style.color = mal.length ? '#b91c1c' : '#047857';
         cr.textContent = mal.length ? '✘ ' + mal.map(function(r) { return r.canal + ': ' + r.detalle; }).join(' · ')
                                     : '✔ Publicado en ' + d.resultados.map(function(r) { return r.canal; }).join(', ') + '.';
       });
-    });
+    }
   })();
 
   // ---------- Simulación: interruptor, filtros y rol solo de Design ----------
