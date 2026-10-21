@@ -173,7 +173,9 @@
       t.innerHTML = '<thead><tr><th>Fecha</th><th>Hora</th><th>Solicitó</th><th>Orden</th><th>Equipo</th><th>Estado</th><th title="Aprobadores a los que les llegó la solicitud">Enviada a</th><th>Libres</th><th>Sugerido</th><th>Enviado</th><th>Lo envió</th><th>¿Siguió?</th><th>Respuesta</th></tr></thead><tbody>' +
         (r.items.length ? r.items.map(function(x) {
           return '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.hora) + '</td><td class="dd-izq">' + esc(x.solicitante) + '</td><td>' + esc(x.orden || '—') + '</td><td>' + esc(x.equipo) + '</td><td>' + (ESTADOS[x.estado] || esc(x.estado)) + '</td>' +
-            '<td class="dd-izq"><b>' + ((x.enviadaA || []).length || x.aprobadores) + ' aprob.</b>' + ((x.enviadaA || []).length ? '<div style="font-size:11.5px;color:#4b5563;line-height:1.35">' + x.enviadaA.map(esc).join('<br>') + '</div>' : '') + '</td>' +
+            // los nombres van en el tooltip del número (Rosember, 21-oct-2026)
+            '<td><b' + ((x.enviadaA || []).length ? ' title="' + esc(x.enviadaA.join('\n')) + '" style="cursor:help;text-decoration:underline dotted"' : '') + '>' +
+              ((x.enviadaA || []).length || x.aprobadores) + ' aprob.</b></td>' +
             '<td>' + x.libres + '</td><td>' + esc(x.sugerido || '—') + '</td><td>' + esc(x.elegido || '—') + '</td><td>' + esc(x.elegidoPor || '—') + '</td>' +
             '<td>' + (x.siguio == null ? '—' : x.siguio ? '<b style="color:#15803d">✔ Sí</b>' : '<b style="color:#b91c1c">✘ No</b>') + '</td><td>' + (x.respuestaMin == null ? '—' : x.respuestaMin + ' min') + '</td></tr>';
         }).join('') : '<tr><td colspan="13" style="color:#4b5563">No hay solicitudes en este periodo.</td></tr>') + '</tbody>';
