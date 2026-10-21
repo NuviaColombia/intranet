@@ -262,13 +262,13 @@
     var lista = c._destinos, ul = c.querySelector('.av-dests');
     c.querySelector('.av-dest-cant').textContent = lista.length;
     c.querySelector('.av-dest-res').textContent = resumenDest(lista);
+    // etiquetas compactas, una al lado de la otra (Rosember, 20-oct-2026: «que se vayan agrupando para ahorrar espacio»)
     ul.innerHTML = lista.length ? lista.map(function(d, i) {
-      var persona = d.tipo === 'persona';
-      return '<li class="av-dest-item' + (d.nuevo ? ' nuevo' : '') + '"><span class="av-dest-ico" title="' + (persona ? 'Persona (mensaje directo del bot)' : 'Canal de Cliq') + '">' + (persona ? '@' : '#') + '</span>' +
-        '<span class="av-dest-txt">' + (persona ? '<b>' + esc(nombrePersona(d.valor)) + '</b> <span class="av-gris">' + esc(d.valor) + '</span>' : '<b>' + esc(d.valor) + '</b>') +
-        (d.nuevo ? ' <span class="av-dest-nuevo">sin guardar</span>' : '') + '</span>' +
-        '<button type="button" class="av-btn" data-a="probar" data-i="' + i + '" title="El bot envía un mensaje de prueba solo aquí">Probar</button>' +
-        '<button type="button" class="av-x" data-a="quitar" data-i="' + i + '" title="Quitar de este grupo" aria-label="Quitar">✕</button></li>';
+      var persona = d.tipo === 'persona', nombre = persona ? nombrePersona(d.valor) : d.valor;
+      return '<li class="av-dest-item' + (d.nuevo ? ' nuevo' : '') + '" title="' + esc(persona ? 'Persona: ' + d.valor : 'Canal de Cliq: ' + d.valor) + '">' +
+        '<span class="av-dest-ico">' + (persona ? '@' : '#') + '</span><span class="av-dest-txt">' + esc(nombre) + '</span>' +
+        '<button type="button" class="av-dest-b" data-a="probar" data-i="' + i + '" title="Enviar un mensaje de prueba solo aquí" aria-label="Probar ' + esc(nombre) + '">✉</button>' +
+        '<button type="button" class="av-dest-b quitar" data-a="quitar" data-i="' + i + '" title="Quitar de este grupo" aria-label="Quitar ' + esc(nombre) + '">✕</button></li>';
     }).join('') : '<li class="av-dest-vacio">Todavía no hay destinos. Agrega un canal o una persona abajo.</li>';
     var b = c.querySelector('[data-a="guardar"]'), sucio = c.classList.contains('sucio');
     b.disabled = !sucio;
