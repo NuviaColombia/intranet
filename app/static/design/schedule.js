@@ -3931,7 +3931,7 @@ function dpVista(v) {
   var vr = document.getElementById('ddVistaReportes'); if (vr) { vr.hidden = v !== 'reportes'; if (v === 'reportes' && window.drIniciar) window.drIniciar(); }
   if (v === 'cambios') { var pc = document.getElementById('dcPlegable'); if (pc) pc.open = false; dcSemestreInicial(); dcCargar(true); }   // la tabla abre cerrada
   if (v === 'productos') dpCargar();
-  if (v === 'articulacion') daCargar();
+  if (v === 'articulacion') daAbrir();
 }
 function dpCargar() {
   var hoy = new Date(), anioSel = document.getElementById('dpAnio'), mesSel = document.getElementById('dpMes');
@@ -4020,7 +4020,26 @@ function dpDescargar() {
 })();
 
 // ---------- Dashboard › Articulación: casos de N3 › Cirugías que pasan de 2 h entre START y RTD (pedido por Rosember el 13-oct-2026) ----------
-var DA = {datos: null, orden: 'pasadas', dir: -1, tok: 0};
+var DA = {datos: null, orden: 'pasadas', dir: -1, tok: 0, tope: 50};
+var DA_TOPE = 50;   // casos que se muestran de a poco («Mostrar más»), para que la página no se ponga pesada
+// Cada vez que se entra a la pestaña: el mes en curso y las tablas cerradas (Rosember, 21-oct-2026)
+function daAbrir() {
+  var hoy = new Date();
+  document.getElementById('daDesde').value = daISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  document.getElementById('daHasta').value = daISO(hoy);
+  ['daPlegCentros', 'daPlegCasos'].forEach(function(id) { var d = document.getElementById(id); if (d) d.open = false; });
+  var sel = document.getElementById('daTeam');
+  if (sel.options.length <= 1 && document.getElementById('daArea').value) { daEquipos().then(daCargar); return; }
+  daCargar();
+}
+function daEquipos() {
+  var sel = document.getElementById('daTeam'), areaId = document.getElementById('daArea').value; sel.innerHTML = '<option value="">-- Todos --</option>';
+  if (!areaId) return Promise.resolve();
+  return ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
+    teams.filter(function(t) { return !DD_PROPIOS || DD_PROPIOS.indexOf(t.id) >= 0; })
+         .forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
+  });
+}
 function daFmt(m) { return m === null || m === undefined ? '' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
 function daISO(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function daCargar() {
@@ -4030,7 +4049,7 @@ function daCargar() {
   var area = document.getElementById('daArea').value, team = document.getElementById('daTeam').value, t = ++DA.tok;
   var u = '/design/api/dashboard/articulacion?desde=' + ds.value + '&hasta=' + hs.value + (team ? '&team_id=' + team : area ? '&area_id=' + area : '');
   document.getElementById('daCentros').style.opacity = '.5';
-  ddApi(u).then(function(d) { if (t !== DA.tok) return; DA.datos = d; daPintar(); })
+  ddApi(u).then(function(d) { if (t !== DA.tok) return; DA.datos = d; DA.tope = DA_TOPE; daPintar(); })
     .catch(function(e) { document.getElementById('daCentros').innerHTML = '<tbody><tr><td>No se pudo cargar: ' + ddEsc(e.message) + '</td></tr></tbody>'; })
     .then(function() { document.getElementById('daCentros').style.opacity = ''; });
 }
@@ -4064,22 +4083,27 @@ function daPintar() {
   }).join('') : '<p class="dd-p-nota">No hay casos con START y RTD en este periodo.</p>';
   var flecha = function(k) { return DA.orden === k ? (DA.dir === 1 ? ' ▲' : ' ▼') : ''; };
   var th = function(k, t, izq) { return '<th' + (izq ? ' class="dd-izq"' : '') + ' data-o="' + k + '">' + t + flecha(k) + '</th>'; };
-  var h = '<thead><tr>' + th('centro', 'Centro', true) + th('casos', 'Casos medidos') + th('pasadas', 'Pasaron de 2 h') + th('pct', '% que pasó') + th('promedio', 'Promedio') + th('max', 'El más largo') + '</tr></thead><tbody>';
-  h += f.centros.length ? f.centros.map(function(c) {
-    return '<tr><td class="dd-izq"><b>' + ddEsc(c.centro) + '</b></td><td>' + c.casos + '</td><td>' + (c.pasadas ? '<b style="color:#b91c1c">' + c.pasadas + '</b>' : '<span class="dp-cero">·</span>') +
+  var conPasadas = f.centros.filter(function(c) { return c.pasadas > 0; });   // la tabla solo muestra los que pasaron de 2 h
+  document.getElementById('daCentrosSub').textContent = conPasadas.length + ' centro' + (conPasadas.length === 1 ? '' : 's') + ' · de más a menos casos pasados · clic en un título para ordenar';
+  var h = '<thead><tr>' + th('centro', 'Centro') + th('casos', 'Casos medidos') + th('pasadas', 'Pasaron de 2 h') + th('pct', '% que pasó') + th('promedio', 'Promedio') + th('max', 'El más largo') + '</tr></thead><tbody>';
+  h += conPasadas.length ? conPasadas.map(function(c) {
+    return '<tr><td><b>' + ddEsc(c.centro) + '</b></td><td>' + c.casos + '</td><td>' + (c.pasadas ? '<b style="color:#b91c1c">' + c.pasadas + '</b>' : '<span class="dp-cero">·</span>') +
       '</td><td>' + c.pct + '%</td><td>' + daFmt(c.promedio) + '</td><td>' + daFmt(c.max) + '</td></tr>';
-  }).join('') : '<tr><td colspan="6" style="color:#4b5563">No hay casos con START y RTD en este rango' + (q ? ' para "' + ddEsc(q) + '"' : '') + '.</td></tr>';
+  }).join('') : '<tr><td colspan="6" style="color:#4b5563">Ningún centro pasó de 2 horas en este rango' + (q ? ' para "' + ddEsc(q) + '"' : '') + '.</td></tr>';
   var tb = document.getElementById('daCentros'); tb.innerHTML = h + '</tbody>';
   tb.querySelectorAll('thead th[data-o]').forEach(function(x) {
     x.style.cursor = 'pointer';
     x.onclick = function() { var k = x.dataset.o; DA.dir = DA.orden === k ? -DA.dir : (k === 'centro' ? 1 : -1); DA.orden = k; daPintar(); };
   });
   document.getElementById('daCasosSub').textContent = f.casos.length + ' caso' + (f.casos.length === 1 ? '' : 's') + ' · de más a menos tiempo';
-  document.getElementById('daCasos').innerHTML = '<thead><tr><th>Fecha</th><th>Orden</th><th>Paciente</th><th class="dd-izq">Centro</th><th>Equipo</th><th>Diseñador</th><th>START</th><th>RTD</th><th>Tiempo</th></tr></thead><tbody>' +
-    (f.casos.length ? f.casos.map(function(c) {
-      return '<tr><td>' + ddEsc(c.fecha) + '</td><td>' + ddEsc(c.orden) + '</td><td>' + ddEsc(c.paciente) + '</td><td class="dd-izq">' + ddEsc(c.centro) + '</td><td>' + ddEsc(c.equipo) +
+  document.getElementById('daCasos').innerHTML = '<thead><tr><th>Fecha</th><th>Orden</th><th>Paciente</th><th>Centro</th><th>Equipo</th><th>Diseñador</th><th>START</th><th>RTD</th><th>Tiempo</th></tr></thead><tbody>' +
+    (f.casos.length ? f.casos.slice(0, DA.tope).map(function(c) {
+      return '<tr><td>' + ddEsc(c.fecha) + '</td><td>' + ddEsc(c.orden) + '</td><td>' + ddEsc(c.paciente) + '</td><td>' + ddEsc(c.centro) + '</td><td>' + ddEsc(c.equipo) +
         '</td><td>' + ddEsc(c.designer) + '</td><td>' + ddEsc(c.start) + '</td><td>' + ddEsc(c.rtd) + '</td><td><b>' + daFmt(c.min) + '</b></td></tr>';
     }).join('') : '<tr><td colspan="9" style="color:#4b5563">Ningún caso pasó de 2 horas en este rango.</td></tr>') + '</tbody>';
+  var resto = f.casos.length - Math.min(DA.tope, f.casos.length), mas = document.getElementById('daCasosMas');
+  mas.innerHTML = resto > 0 ? '<button type="button" class="btn gris mini" id="daVerMas">Mostrar más (' + resto + ' restantes)</button>' : '';
+  var vm = document.getElementById('daVerMas'); if (vm) vm.onclick = function() { DA.tope += DA_TOPE; daPintar(); };
 }
 function daDescargar() {
   if (!DA.datos) return;
@@ -4095,16 +4119,9 @@ function daDescargar() {
 (function() {
   var el = function(id) { return document.getElementById(id); };
   if (!el('ddVistaArticulacion')) return;
-  el('daArea').addEventListener('change', function() {
-    var sel = el('daTeam'), areaId = el('daArea').value; sel.innerHTML = '<option value="">-- Todos --</option>';
-    if (!areaId) { daCargar(); return; }
-    ddApi('/design/api/teams?area_id=' + areaId).then(function(teams) {
-      teams.filter(function(t) { return !DD_PROPIOS || DD_PROPIOS.indexOf(t.id) >= 0; })
-           .forEach(function(t) { var o = document.createElement('option'); o.value = t.id; o.text = t.nombre; sel.appendChild(o); });
-    }).then(daCargar);
-  });
+  el('daArea').addEventListener('change', function() { daEquipos().then(daCargar); });
   ['daTeam', 'daDesde', 'daHasta'].forEach(function(id) { el(id).addEventListener('change', daCargar); });
-  var tb = null; el('daBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(daPintar, 200); });
+  var tb = null; el('daBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(function() { DA.tope = DA_TOPE; daPintar(); }, 200); });
   el('daDescargar').addEventListener('click', daDescargar);
 })();
 
@@ -4524,7 +4541,7 @@ function dlDescargar() {
 })();
 
 window.DS_PANELS.dashboard = function() {
-  if (!document.getElementById('ddVistaArticulacion').hidden) { daCargar(); return; }
+  if (!document.getElementById('ddVistaArticulacion').hidden) { daAbrir(); return; }
   if (!document.getElementById('ddVistaProductos').hidden) { dpCargar(); return; }
   if (!document.getElementById('ddVistaCambios').hidden) { dcSemestreInicial(); dcCargar(true); return; }
   var vl2 = document.getElementById('ddVistaLentas'); if (vl2 && !vl2.hidden) { dlIniciar(); return; }

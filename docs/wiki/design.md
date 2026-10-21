@@ -87,6 +87,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
   Change), D (Dummy, la tabla principal), Ng y Tc. En
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
+- **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
+  pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
+  2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.
 - **Dashboard › Aprobaciones** (Rosember, 21-oct-2026): solo órdenes aprobadas que siguen sin QC pasada 1 h 30 min
   (`services_design_aprobacion.lentas`); al marcar el QC salen de la lista.
   Removable Denture no sale ahí ni en «Aprobadas sin QC» del Resumen: no lleva QC (21-oct-2026).

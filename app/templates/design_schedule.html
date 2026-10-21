@@ -459,7 +459,8 @@
 <div id="ddVistaArticulacion" hidden>
 <p class="dd-p-nota">Tiempo que tardó el articulador en entregar cada caso de N3 › Cirugías (RTD − START). Lo normal son <b>2 horas</b>: aquí se cuentan los casos que pasaron de ese tiempo, por centro, para hacerles seguimiento. Solo cuentan las órdenes completas con START y RTD (sin canceladas ni skipped).</p>
 <div class="dd-filtros">
-  <div><label for="daArea">Área</label><select id="daArea"><option value="">{{ '-- Todas --' if dash_teams is none else '-- Mis áreas --' }}</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
+  {# Articulación solo existe en N3 › Cirugías: el filtro solo ofrece N3 (Rosember, 21-oct-2026) #}
+  <div><label for="daArea">Área</label><select id="daArea">{% for a in areas if a.nombre == 'N3 Prosthetic' %}<option value="{{ a.id }}" selected>{{ a.nombre }}</option>{% endfor %}</select></div>
   <div><label for="daTeam">Equipo</label><select id="daTeam"><option value="">-- Todos --</option></select></div>
   <div><label for="daDesde">Desde</label><input type="date" id="daDesde"></div>
   <div><label for="daHasta">Hasta</label><input type="date" id="daHasta"></div>
@@ -468,10 +469,12 @@
 </div>
 <div class="dd-kpis" id="daKpis"></div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Centros que más tardan en entregar</h3><span style="font-size:12px;color:#4b5563">Tiempo promedio de articulación por centro (más largo arriba)</span></div><div id="daTop"></div></div>
-<div class="dd-panel"><div class="dd-panel-cab"><h3>Centros que más pasan de 2 horas</h3><span style="font-size:12px;color:#4b5563">De más a menos casos pasados · clic en un título para ordenar</span></div>
-  <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="daCentros"></table></div></div>
-<div class="dd-panel"><div class="dd-panel-cab"><h3>Casos que pasaron de 2 horas</h3><span style="font-size:12px;color:#4b5563" id="daCasosSub"></span></div>
-  <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="daCasos"></table></div></div>
+{# Las dos tablas en desplegables que abren cerrados; solo los centros que pasaron de 2 h (Rosember, 21-oct-2026) #}
+<details class="dd-panel dl-plegable" id="daPlegCentros"><summary class="dd-panel-cab"><h3>Centros que más pasan de 2 horas (Centros)</h3><span style="font-size:12px;color:#4b5563" id="daCentrosSub">De más a menos casos pasados · clic en un título para ordenar</span></summary>
+  <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="daCentros"></table></div></details>
+<details class="dd-panel dl-plegable" id="daPlegCasos"><summary class="dd-panel-cab"><h3>Casos que pasaron de 2 horas (Casos)</h3><span style="font-size:12px;color:#4b5563" id="daCasosSub"></span></summary>
+  <div class="dp-tabla-w"><table class="dd-tabla dp-tabla" id="daCasos"></table></div>
+  <div id="daCasosMas" style="margin-top:8px"></div></details>
 </div>
 </div></div></div>
 {% endif %}
