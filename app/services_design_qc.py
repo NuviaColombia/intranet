@@ -197,6 +197,23 @@ def agregar_titulo(db: Session, area_id: int, titulo: str, tabla: str = "") -> N
     db.commit()
 
 
+def renombrar_titulo(db: Session, area_id: int, titulo: str, nuevo: str) -> int:
+    """Corrige el nombre de un título del área (Rosember, 21-oct-2026; p. ej. una palabra mal escrita). Cambia todas sus
+    filas; los reportes de QC ya guardados conservan el texto con el que se guardaron. Devuelve cuántas filas cambió."""
+    titulo, nuevo = _limpio(titulo, "título"), _limpio(nuevo, "título")
+    if nuevo == titulo:
+        return 0
+    if any(k.lower() == nuevo.lower() and k.lower() != titulo.lower() for k in _titulos(db, area_id)):
+        raise ValueError("Ya hay otro título con ese nombre.")
+    filas = db.query(DesignQcCatalogo).filter(DesignQcCatalogo.area_id == area_id, DesignQcCatalogo.titulo == titulo).all()
+    if not filas:
+        raise KeyError(titulo)
+    for r in filas:
+        r.titulo = nuevo
+    db.commit()
+    return len(filas)
+
+
 def agregar_hallazgo(db: Session, area_id: int, titulo: str, texto: str) -> dict:
     titulo, texto = _limpio(titulo, "título"), _limpio(texto, "hallazgo")
     existentes = [t for t in _titulos(db, area_id).values() if t["titulo"].lower() == titulo.lower()]

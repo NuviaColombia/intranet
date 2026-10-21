@@ -28,6 +28,8 @@ Antes de buscar un patrón de roles que no existe:
 - **Centro de avisos** (`/design/avisos`): solo admins de Design (20-oct-2026).
 - **Corregir el texto de un hallazgo de QC** (Dashboard › Resumen › Reportes de QC, «Editar»): solo admins, también en
   días cerrados (`api_qc_hallazgo_editar`; Rosember, 21-oct-2026). Se puede deshacer desde el aviso.
+- **Renombrar un título de la lista de hallazgos de QC** (✎ en la ventana del QC): solo admins, cambia el título
+  para toda el área (`renombrar_titulo`); los reportes ya guardados conservan su texto (21-oct-2026).
 - **Dashboard › Reportes** (`/design/reportes/mensual`, subir PDF): solo admins de Design (21-oct-2026).
 - **Development**: admins, Luis Felipe Blaschke y Paul Andion (`DEV_ESPECIALES`) y los invitados,
   estos en solo lectura (Rosember, 19–20-oct-2026).

@@ -1312,6 +1312,21 @@ window.addEventListener('unhandledrejection', function(ev) {
         var d = el('details', 'ds-qc-tit'); d.open = !!abiertos[t.titulo]; d.dataset.titulo = t.titulo;
         d.addEventListener('toggle', function() { abiertos[t.titulo] = d.open; });
         var sm = el('summary'); sm.appendChild(el('span', 'ds-qc-tit-n', t.titulo));
+        if (puedeBorrar) {   // admins: corregir el nombre del título (Rosember, 21-oct-2026)
+          var lap = el('button', 'ds-qc-x ds-qc-ren', '✎'); lap.type = 'button'; lap.title = 'Editar el nombre de este título';
+          lap.onclick = function(e) {
+            e.preventDefault(); e.stopPropagation();
+            var campo = campoAgregar('', 'Nombre del título…', function(v) {
+              if (v === t.titulo) { pintar(); return; }
+              abiertos[v] = abiertos[t.titulo];
+              llamar('/design/api/qc-catalogo/titulo/renombrar', {areaId: DS.areaId, titulo: t.titulo, nuevo: v, tabla: tabla});
+            });
+            campo.querySelector('input').value = t.titulo;
+            campo.querySelector('.btn').textContent = 'Guardar';
+            d.replaceWith(campo);
+          };
+          sm.appendChild(lap);
+        }
         var n = cuentaTitulo(t); if (n) sm.appendChild(el('span', 'ds-qc-cnt', String(n)));
         d.appendChild(sm);
         var cuerpo = el('div', 'ds-qc-items');

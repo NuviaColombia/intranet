@@ -1508,6 +1508,25 @@ def api_qc_titulo(payload: QcTituloIn, user: Empleado = Depends(require_modulo("
     return {"titulos": sq.catalogo(db, payload.areaId, payload.tabla, payload.producto)}
 
 
+class QcRenombrarIn(QcTituloIn):
+    nuevo: str = Field(max_length=300)
+
+
+@router.post("/design/api/qc-catalogo/titulo/renombrar")
+def api_qc_titulo_renombrar(payload: QcRenombrarIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                            db: Session = Depends(get_db)):
+    """Solo admins: corregir el nombre de un título de la lista de hallazgos de QC (Rosember, 21-oct-2026)."""
+    if not sq.puede_borrar(user):
+        raise HTTPException(403, "Solo los admins editan los títulos de la lista.")
+    try:
+        sq.renombrar_titulo(db, payload.areaId, payload.titulo, payload.nuevo)
+    except KeyError:
+        raise HTTPException(404, "El título no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"titulos": sq.catalogo(db, payload.areaId, payload.tabla, payload.producto)}
+
+
 @router.post("/design/api/qc-catalogo/hallazgo")
 def api_qc_hallazgo(payload: QcHallazgoIn, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     if not sq.puede_agregar(user):
