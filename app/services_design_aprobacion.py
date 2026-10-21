@@ -53,11 +53,11 @@ def _min(a: datetime, b: datetime) -> int:
 
 def lentas(db: Session, desde: date, hasta: date, area_id: int | None = None, team_id: int | None = None,
            umbral: int = UMBRAL_MIN) -> dict:
-    """Órdenes en las que el manager tardó más de `umbral` minutos en aprobar (QC marcado) o que siguen sin QC pasado ese
-    tiempo. Ordenadas de la más larga a la más corta."""
+    """Órdenes aprobadas que siguen sin QC pasados `umbral` minutos (Rosember, 21-oct-2026: solo las pendientes; antes
+    también salían las que ya tenían el QC marcado tarde). Ordenadas de la más larga a la más corta."""
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team).joinedload(DesignTeam.manager))
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
-         .filter(DesignOrden.aprobada_en.isnot(None), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta))
+         .filter(DesignOrden.aprobada_en.isnot(None), DesignOrden.qc_en.is_(None), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:
@@ -79,6 +79,7 @@ def lentas(db: Session, desde: date, hasta: date, area_id: int | None = None, te
     items.sort(key=lambda x: -x["minutos"])
     cerradas = [x["minutos"] for x in items if not x["pendiente"]]
     kpis = {"total": len(items), "pendientes": sum(1 for x in items if x["pendiente"]),
+            "managers": len({x["manager"] for x in items if x["manager"]}),
             "promedio": round(sum(x["minutos"] for x in items) / len(items)) if items else 0,
             "maxima": items[0]["minutos"] if items else 0, "cerradas": len(cerradas)}
     return {"umbral": umbral, "items": items[:2000], "total": len(items), "kpis": kpis}

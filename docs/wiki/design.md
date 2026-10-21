@@ -87,6 +87,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
   Change), D (Dummy, la tabla principal), Ng y Tc. En
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
+- **Dashboard › Aprobaciones** (Rosember, 21-oct-2026): solo órdenes aprobadas que siguen sin QC pasada 1 h 30 min
+  (`services_design_aprobacion.lentas`); al marcar el QC salen de la lista.
+- **Dashboard › Ayudas** (21-oct-2026): «Enviada a» y la tabla por aprobador salen de `design_ayuda_ofertas` (a quién le
+  llegó cada solicitud); respuesta promedio = atendida_en − creada_en de las que ese aprobador atendió.
 - **Reporte mensual** (Dashboard › Reportes, Rosember, 21-oct-2026; `services_design_reportes`): para la
   Directora de producción, ES/EN, se descarga con Imprimir › PDF. Solo lo que tiene problemas: centros con
   cirugías de N3 cuya articulación pasó de 2 h (`dashboard_articulacion`) y cambios adicionales (Cambios

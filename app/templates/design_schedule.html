@@ -394,20 +394,20 @@
   <div class="dd-filtros">
     <div><label for="drMes">Mes</label><select id="drMes"></select></div>
     <div><label for="drLang">Idioma</label><select id="drLang"><option value="es">Español</option><option value="en">English</option></select></div>
-    <div style="align-self:flex-end"><button type="button" class="btn" id="drAbrir">Abrir reporte</button></div>
+    <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drAbrir">Abrir reporte</button></div>
   </div></div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Reportes subidos</h3><span style="font-size:12px;color:#4b5563">PDF de hasta 15 MB</span></div>
   <div class="dd-filtros">
     <div><label for="drTitulo">Título</label><input type="text" id="drTitulo" maxlength="200" placeholder="Ej. Input failures by center" style="width:240px"></div>
     <div><label for="drMesSub">Mes</label><select id="drMesSub"></select></div>
     <div><label for="drArchivo">Archivo PDF</label><input type="file" id="drArchivo" accept="application/pdf,.pdf"></div>
-    <div style="align-self:flex-end"><button type="button" class="btn" id="drSubir">Subir</button></div>
+    <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drSubir">Subir</button></div>
   </div>
   <div id="drRes" class="dd-p-nota" style="margin:4px 0 8px"></div>
   <div class="dp-tabla-w"><table class="dd-tabla" id="drTabla"></table></div></div>
 </div>
 <div id="ddVistaLentas" hidden>
-<p class="dd-p-nota">Órdenes en las que el manager tardó <b>más de 1 hora y 30 minutos en aprobar</b>: desde que la orden quedó en Approved hasta que se marcó el QC. También salen las que siguen sin QC pasada 1 hora y 30 minutos. Solo cuentan las órdenes desde el 13 de octubre de 2026 (antes no se guardaba la hora).</p>
+<p class="dd-p-nota">Órdenes aprobadas que <b>siguen sin QC</b> pasada 1 hora y 30 minutos desde que quedaron en Approved. En cuanto el manager marca el QC, la orden sale de esta lista. Solo cuentan las órdenes desde el 13 de octubre de 2026 (antes no se guardaba la hora).</p>
 <div class="dd-kpis" id="dlKpis"></div>
 <div class="dd-filtros">
   <div><label for="dlArea">Área</label><select id="dlArea"><option value="">-- Todas --</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>

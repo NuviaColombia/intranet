@@ -4421,7 +4421,7 @@ function dcImportarArchivo(file) {
 // Órdenes en las que el manager tardó más de 1 h 30 min entre Approved y marcar el QC (o siguen sin QC pasado ese tiempo).
 var DL = {items: [], orden: 'minutos', dir: 'desc', tope: 50, tok: 0};
 var DL_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['equipo', 'Equipo'], ['manager', 'Manager'],
-               ['disenador', 'Diseñador'], ['aprobadaEn', 'Aprobada'], ['qcEn', 'QC marcado'], ['minutos', 'Tiempo'], ['pendiente', 'Estado']];
+               ['disenador', 'Diseñador'], ['aprobadaEn', 'Aprobada'], ['minutos', 'Sin QC desde hace']];   // solo las que siguen sin QC (21-oct-2026)
 function dlHora(iso) {
   return iso ? new Date(iso).toLocaleString('es-CO', {timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true}) : '—';
 }
@@ -4464,8 +4464,8 @@ function dlCargar() {
 }
 function dlKpis(k) {
   document.getElementById('dlKpis').innerHTML =
-    '<div class="dd-kpi alerta"><b>' + k.total + '</b><span>órdenes con más de 1 h 30 min</span></div>' +
-    '<div class="dd-kpi"><b>' + k.pendientes + '</b><span>siguen sin QC</span></div>' +
+    '<div class="dd-kpi alerta"><b>' + k.total + '</b><span>aprobadas sin QC hace más de 1 h 30 min</span></div>' +
+    '<div class="dd-kpi"><b>' + (k.managers || 0) + '</b><span>managers con QC pendiente</span></div>' +
     '<div class="dd-kpi"><b>' + (k.total ? daFmt(k.promedio) : '—') + '</b><span>espera promedio</span></div>' +
     '<div class="dd-kpi"><b>' + (k.total ? daFmt(k.maxima) : '—') + '</b><span>la espera más larga</span></div>';
 }
@@ -4486,10 +4486,9 @@ function dlPintar() {
   }).join('') + '</tr></thead>';
   var filas = l.slice(0, DL.tope).map(function(x) {
     return '<tr><td>' + dcEsc(x.fecha.split('-').reverse().join('/')) + '</td><td>' + dcEsc(x.orden) + '</td><td>' + dcEsc(x.paciente) + '</td><td>' + dcEsc(x.centro) + '</td><td>' + dcEsc(x.equipo) +
-      '</td><td>' + dcEsc(x.manager) + '</td><td>' + dcEsc(x.disenador) + '</td><td>' + dlHora(x.aprobadaEn) + '</td><td>' + dlHora(x.qcEn) + '</td><td><b>' + daFmt(x.minutos) + '</b></td>' +
-      '<td>' + (x.pendiente ? '<span class="dl-pend">Sin QC aún</span>' : '<span class="dl-ok">QC marcado</span>') + '</td></tr>';
+      '</td><td>' + dcEsc(x.manager) + '</td><td>' + dcEsc(x.disenador) + '</td><td>' + dlHora(x.aprobadaEn) + '</td><td><b class="dl-pend">' + daFmt(x.minutos) + '</b></td></tr>';
   }).join('');
-  t.innerHTML = cab + '<tbody>' + (filas || '<tr><td colspan="11" style="color:#4b5563">No hay órdenes con más de 1 h 30 min en este periodo.</td></tr>') + '</tbody>';
+  t.innerHTML = cab + '<tbody>' + (filas || '<tr><td colspan="9" style="color:#4b5563">No hay órdenes aprobadas sin QC por más de 1 h 30 min en este periodo.</td></tr>') + '</tbody>';
   document.getElementById('dlCuenta').textContent = 'Mostrando ' + Math.min(DL.tope, l.length) + ' de ' + l.length;
   var mas = document.getElementById('dlMas');
   mas.innerHTML = l.length > DL.tope ? '<button type="button" class="btn gris mini" id="dlVerMas">Mostrar más (' + (l.length - DL.tope) + ' restantes)</button>' : '';
@@ -4500,8 +4499,8 @@ function dlPintar() {
 }
 function dlDescargar() {
   var l = dlFiltradas(), sep = ';', q = function(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
-  var csv = [['Fecha', 'Orden', 'Paciente', 'Centro', 'Equipo', 'Manager', 'Diseñador', 'Aprobada', 'QC marcado', 'Minutos', 'Estado'].map(q).join(sep)].concat(l.map(function(x) {
-    return [x.fecha, x.orden, x.paciente, x.centro, x.equipo, x.manager, x.disenador, dlHora(x.aprobadaEn), dlHora(x.qcEn), x.minutos, x.pendiente ? 'Sin QC aún' : 'QC marcado'].map(q).join(sep); }));
+  var csv = [['Fecha', 'Orden', 'Paciente', 'Centro', 'Equipo', 'Manager', 'Diseñador', 'Aprobada', 'Minutos sin QC'].map(q).join(sep)].concat(l.map(function(x) {
+    return [x.fecha, x.orden, x.paciente, x.centro, x.equipo, x.manager, x.disenador, dlHora(x.aprobadaEn), x.minutos].map(q).join(sep); }));
   var b = new Blob(['\ufeff' + csv.join('\r\n')], {type: 'text/csv;charset=utf-8'}), a = document.createElement('a');
   a.href = URL.createObjectURL(b); a.download = 'Aprobaciones ' + document.getElementById('dlDesde').value + ' a ' + document.getElementById('dlHasta').value + '.csv';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(function() { URL.revokeObjectURL(a.href); }, 2000);

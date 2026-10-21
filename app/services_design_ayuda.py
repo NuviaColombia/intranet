@@ -355,7 +355,18 @@ def reporte(db: Session, desde: date, hasta: date) -> dict:
     ords_r = {o.id: o for o in db.query(DesignOrden).filter(DesignOrden.id.in_([s.orden_id for s in todas if s.orden_id] or [0]))}
     nombres = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_(
         {i for (i,) in db.query(DesignAyudaSolicitud.sugerido_id).filter(DesignAyudaSolicitud.sugerido_id.isnot(None)).distinct()} or {0}))}
+    # A quién le llegó cada solicitud (Rosember, 21-oct-2026: ver el tiempo de reacción de cada aprobador, no solo quién atendió)
+    ofertas: dict[int, list] = {}
+    for of in (db.query(DesignAyudaOferta).options(joinedload(DesignAyudaOferta.aprobador))
+               .filter(DesignAyudaOferta.solicitud_id.in_([s.id for s in todas] or [0]))):
+        ofertas.setdefault(of.solicitud_id, []).append(of)
     for s in todas:
+        recibieron = ofertas.get(s.id, [])
+        for of in recibieron:
+            if of.aprobador:
+                a = por_aprobador.setdefault(of.aprobador_id, {"nombre": of.aprobador.nombre_completo, "recibidas": 0, "atendidas": 0,
+                                                               "siguio": 0, "minutos": []})
+                a["recibidas"] += 1
         col = lambda dt: dt.replace(tzinfo=None) - timedelta(hours=5) if dt else None   # UTC guardado → hora de Colombia
         filas.append({"id": s.id, "fecha": s.fecha.isoformat(), "hora": col(s.creada_en).strftime("%H:%M"),
                       "solicitante": s.solicitante.nombre_completo if s.solicitante else "", "equipo": s.team.nombre if s.team else "",
@@ -363,15 +374,23 @@ def reporte(db: Session, desde: date, hasta: date) -> dict:
                       "estado": s.estado, "aprobadores": s.n_aprobadores, "libres": s.n_libres,
                       "sugerido": nombres.get(s.sugerido_id, ""), "elegido": s.elegido.nombre_completo if s.elegido else "",
                       "elegidoPor": s.elegido_por.nombre_completo if s.elegido_por else "", "siguio": s.siguio_sugerencia,
-                      "respuestaMin": round((s.atendida_en - s.creada_en).total_seconds() / 60, 1) if s.atendida_en else None})
+                      "respuestaMin": round((s.atendida_en - s.creada_en).total_seconds() / 60, 1) if s.atendida_en else None,
+                      "enviadaA": sorted(of.aprobador.nombre_completo for of in recibieron if of.aprobador)})
         if s.estado == "atendida" and s.elegido_por:
-            a = por_aprobador.setdefault(s.elegido_por_id, {"nombre": s.elegido_por.nombre_completo, "atendidas": 0, "siguio": 0})
+            a = por_aprobador.setdefault(s.elegido_por_id, {"nombre": s.elegido_por.nombre_completo, "recibidas": 0, "atendidas": 0,
+                                                            "siguio": 0, "minutos": []})
             a["atendidas"] += 1
             a["siguio"] += bool(s.siguio_sugerencia)
+            if s.atendida_en:
+                a["minutos"].append((s.atendida_en - s.creada_en).total_seconds() / 60)
     atendidas = [f for f in filas if f["estado"] == "atendida"]
     kpis = {"total": len(filas), "atendidas": len(atendidas), "sinDisponibles": sum(1 for f in filas if f["estado"] == "sin_disponibles"),
             "sinRespuesta": sum(1 for f in filas if f["estado"] in ("vencida", "cancelada")),
             "siguieron": sum(1 for f in atendidas if f["siguio"]), "noSiguieron": sum(1 for f in atendidas if f["siguio"] is False),
             "pctSiguieron": round(100 * sum(1 for f in atendidas if f["siguio"]) / len(atendidas)) if atendidas else None}
-    resumen = sorted(({**a, "pct": round(100 * a["siguio"] / a["atendidas"])} for a in por_aprobador.values()), key=lambda a: (-a["atendidas"], a["nombre"]))
+    resumen = sorted(({"nombre": a["nombre"], "recibidas": max(a["recibidas"], a["atendidas"]), "atendidas": a["atendidas"], "siguio": a["siguio"],
+                       "pct": round(100 * a["siguio"] / a["atendidas"]) if a["atendidas"] else None,
+                       "pctAtendio": round(100 * a["atendidas"] / max(a["recibidas"], a["atendidas"])) if (a["recibidas"] or a["atendidas"]) else None,
+                       "respuestaProm": round(sum(a["minutos"]) / len(a["minutos"]), 1) if a["minutos"] else None}
+                      for a in por_aprobador.values()), key=lambda a: (-a["atendidas"], -a["recibidas"], a["nombre"]))
     return {"kpis": kpis, "porAprobador": resumen, "items": filas}

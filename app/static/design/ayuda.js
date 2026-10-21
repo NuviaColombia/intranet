@@ -162,16 +162,21 @@
       document.getElementById('dyKpis').innerHTML = dyKpi(k.total, 'solicitudes') + dyKpi(k.atendidas, 'atendidas') +
         dyKpi(k.pctSiguieron == null ? '—' : k.pctSiguieron + '%', 'siguieron la sugerencia', k.pctSiguieron != null && k.pctSiguieron < 50 ? 'alerta' : '') +
         dyKpi(k.noSiguieron, 'no la siguieron') + dyKpi(k.sinDisponibles, 'sin diseñadores disponibles', k.sinDisponibles ? 'alerta' : '') + dyKpi(k.sinRespuesta, 'sin respuesta o canceladas');
-      a.innerHTML = '<thead><tr><th class="dd-izq">Aprobador</th><th>Envíos</th><th>Siguió la sugerencia</th><th>%</th></tr></thead><tbody>' +
+      // Por aprobador (21-oct-2026): cuántas solicitudes le llegaron, cuántas atendió y en cuánto tiempo (reacción de cada equipo)
+      a.innerHTML = '<thead><tr><th class="dd-izq">Aprobador</th><th title="Solicitudes que le llegaron">Le llegaron</th><th title="Solicitudes que atendió enviando un diseñador">Atendió</th><th>%</th>' +
+        '<th title="Tiempo promedio desde que llegó la solicitud hasta que envió al diseñador">Respuesta promedio</th><th>Siguió la sugerencia</th></tr></thead><tbody>' +
         (r.porAprobador.length ? r.porAprobador.map(function(x) {
-          return '<tr><td class="dd-izq"><b>' + esc(x.nombre) + '</b></td><td>' + x.atendidas + '</td><td>' + x.siguio + ' de ' + x.atendidas + '</td><td><b>' + x.pct + '%</b></td></tr>';
-        }).join('') : '<tr><td colspan="4" style="color:#4b5563">Todavía no hay envíos en este periodo.</td></tr>') + '</tbody>';
-      t.innerHTML = '<thead><tr><th>Fecha</th><th>Hora</th><th>Solicitó</th><th>Orden</th><th>Equipo</th><th>Estado</th><th>Libres</th><th>Sugerido</th><th>Enviado</th><th>Lo envió</th><th>¿Siguió?</th><th>Respuesta</th></tr></thead><tbody>' +
+          return '<tr><td class="dd-izq"><b>' + esc(x.nombre) + '</b></td><td>' + x.recibidas + '</td><td>' + x.atendidas + '</td><td>' + (x.pctAtendio == null ? '—' : x.pctAtendio + '%') + '</td>' +
+            '<td>' + (x.respuestaProm == null ? '—' : '<b>' + x.respuestaProm + ' min</b>') + '</td>' +
+            '<td>' + (x.atendidas ? x.siguio + ' de ' + x.atendidas + ' (' + x.pct + '%)' : '—') + '</td></tr>';
+        }).join('') : '<tr><td colspan="6" style="color:#4b5563">Todavía no hay solicitudes en este periodo.</td></tr>') + '</tbody>';
+      t.innerHTML = '<thead><tr><th>Fecha</th><th>Hora</th><th>Solicitó</th><th>Orden</th><th>Equipo</th><th>Estado</th><th title="Aprobadores a los que les llegó la solicitud">Enviada a</th><th>Libres</th><th>Sugerido</th><th>Enviado</th><th>Lo envió</th><th>¿Siguió?</th><th>Respuesta</th></tr></thead><tbody>' +
         (r.items.length ? r.items.map(function(x) {
           return '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.hora) + '</td><td class="dd-izq">' + esc(x.solicitante) + '</td><td>' + esc(x.orden || '—') + '</td><td>' + esc(x.equipo) + '</td><td>' + (ESTADOS[x.estado] || esc(x.estado)) + '</td>' +
-            '<td>' + x.libres + ' (' + x.aprobadores + ' aprob.)</td><td>' + esc(x.sugerido || '—') + '</td><td>' + esc(x.elegido || '—') + '</td><td>' + esc(x.elegidoPor || '—') + '</td>' +
+            '<td class="dd-izq"><b>' + ((x.enviadaA || []).length || x.aprobadores) + ' aprob.</b>' + ((x.enviadaA || []).length ? '<div style="font-size:11.5px;color:#4b5563;line-height:1.35">' + x.enviadaA.map(esc).join('<br>') + '</div>' : '') + '</td>' +
+            '<td>' + x.libres + '</td><td>' + esc(x.sugerido || '—') + '</td><td>' + esc(x.elegido || '—') + '</td><td>' + esc(x.elegidoPor || '—') + '</td>' +
             '<td>' + (x.siguio == null ? '—' : x.siguio ? '<b style="color:#15803d">✔ Sí</b>' : '<b style="color:#b91c1c">✘ No</b>') + '</td><td>' + (x.respuestaMin == null ? '—' : x.respuestaMin + ' min') + '</td></tr>';
-        }).join('') : '<tr><td colspan="12" style="color:#4b5563">No hay solicitudes en este periodo.</td></tr>') + '</tbody>';
+        }).join('') : '<tr><td colspan="13" style="color:#4b5563">No hay solicitudes en este periodo.</td></tr>') + '</tbody>';
     }).catch(function(e) { t.innerHTML = '<tbody><tr><td style="color:#b91c1c">No se pudo cargar: ' + esc(e.message) + '</td></tr></tbody>'; })
       .then(function() { t.style.opacity = ''; });
   }
