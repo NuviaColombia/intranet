@@ -13,7 +13,26 @@ from ..models import Empleado
 from ..models_design import DesignCliqMensaje
 from .design_schedule import _RutaDesign, require_admin
 
-router = APIRouter(route_class=_RutaDesign)
+class _RutaAvisos(_RutaDesign):
+    """Si algo falla sin control, la pantalla (solo admins) muestra la causa en vez de «error 500» y queda en el log."""
+
+    def get_route_handler(self):
+        original = super().get_route_handler()
+
+        async def manejar(request):
+            try:
+                return await original(request)
+            except HTTPException:
+                raise
+            except Exception as e:  # noqa: BLE001
+                import logging
+                from fastapi.responses import JSONResponse
+                logging.getLogger("design.avisos").exception("Centro de avisos: %s %s", request.method, request.url.path)
+                return JSONResponse({"detail": f"Error del servidor ({type(e).__name__}): {e}"[:500]}, status_code=500)
+        return manejar
+
+
+router = APIRouter(route_class=_RutaAvisos)
 _ESTATICOS = Path(__file__).resolve().parent.parent / "static" / "design" / "avisos"
 AVISOS_V = str(int(max((_ESTATICOS / f).stat().st_mtime for f in ("avisos.js", "avisos.css"))))
 
