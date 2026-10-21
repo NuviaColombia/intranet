@@ -243,6 +243,8 @@
   });
 
   // ---------- Grupos ----------
+  // 20-oct-2026 (Rosember: «¿cómo veo cuántos hay agregados?»): cada grupo muestra la lista de destinos con su número;
+  // abajo, una sola fila para agregar. «Guardar cambios» solo se activa cuando hay algo sin guardar.
   function pintarGrupos() {
     var el = $('avGrupos');
     if (el.querySelector('.av-card.sucio')) return;   // hay un grupo con cambios sin guardar: no se pierde lo escrito
@@ -250,45 +252,74 @@
     el.innerHTML = '';
     D.grupos.forEach(function(g) { el.appendChild(tarjetaGrupo(g)); });
   }
-  function filaDestino(d) {
-    var f = document.createElement('div');
-    f.className = 'av-dest';
-    f.innerHTML = '<select data-c="tipo" aria-label="Tipo"><option value="canal">Canal #</option><option value="persona">Persona @</option></select>' +
-      '<input type="text" data-c="valor" maxlength="200">' +
-      '<span class="av-dest-nombre"></span>' +
-      '<button type="button" class="av-btn" data-a="probar" title="El bot envía un mensaje de prueba solo aquí">Probar</button>' +
-      '<button type="button" class="av-x" data-a="quitar" title="Quitar de este grupo" aria-label="Quitar">✕</button>';
-    var sel = f.querySelector('select'), inp = f.querySelector('input');
-    sel.value = d.tipo || 'canal';
-    inp.value = d.valor || '';
-    function ajustar() {
-      var p = sel.value === 'persona';
-      inp.placeholder = p ? 'correo de Zoho de la persona' : 'Unique Name del canal, ej. supportnuviacolombiacom';
-      if (p) inp.setAttribute('list', 'avPersonas'); else inp.removeAttribute('list');
-      f.querySelector('.av-dest-nombre').textContent = p && inp.value ? nombrePersona(inp.value) : '';
-    }
-    sel.addEventListener('change', ajustar);
-    inp.addEventListener('input', ajustar);
-    ajustar();
-    return f;
+  function resumenDest(lista) {
+    var c = lista.filter(function(d) { return d.tipo !== 'persona'; }).length, p = lista.length - c, partes = [];
+    if (c) partes.push(c + (c === 1 ? ' canal' : ' canales'));
+    if (p) partes.push(p + (p === 1 ? ' persona' : ' personas'));
+    return partes.join(' · ');
   }
+  function pintarDests(c) {
+    var lista = c._destinos, ul = c.querySelector('.av-dests');
+    c.querySelector('.av-dest-cant').textContent = lista.length;
+    c.querySelector('.av-dest-res').textContent = resumenDest(lista);
+    ul.innerHTML = lista.length ? lista.map(function(d, i) {
+      var persona = d.tipo === 'persona';
+      return '<li class="av-dest-item' + (d.nuevo ? ' nuevo' : '') + '"><span class="av-dest-ico" title="' + (persona ? 'Persona (mensaje directo del bot)' : 'Canal de Cliq') + '">' + (persona ? '@' : '#') + '</span>' +
+        '<span class="av-dest-txt">' + (persona ? '<b>' + esc(nombrePersona(d.valor)) + '</b> <span class="av-gris">' + esc(d.valor) + '</span>' : '<b>' + esc(d.valor) + '</b>') +
+        (d.nuevo ? ' <span class="av-dest-nuevo">sin guardar</span>' : '') + '</span>' +
+        '<button type="button" class="av-btn" data-a="probar" data-i="' + i + '" title="El bot envía un mensaje de prueba solo aquí">Probar</button>' +
+        '<button type="button" class="av-x" data-a="quitar" data-i="' + i + '" title="Quitar de este grupo" aria-label="Quitar">✕</button></li>';
+    }).join('') : '<li class="av-dest-vacio">Todavía no hay destinos. Agrega un canal o una persona abajo.</li>';
+    var b = c.querySelector('[data-a="guardar"]'), sucio = c.classList.contains('sucio');
+    b.disabled = !sucio;
+    b.textContent = sucio ? 'Guardar cambios' : 'Guardado ✓';
+  }
+  function marcarSucio(c) { c.classList.add('sucio'); pintarDests(c); }
   function tarjetaGrupo(g) {
     var c = document.createElement('article');
-    c.className = 'av-card';
+    c.className = 'av-card av-grupo';
     c.dataset.id = g.id || '';
+    c._destinos = (g.destinos || []).map(function(d) { return {tipo: d.tipo, valor: d.valor}; });
     c.innerHTML = '<div class="av-card-cab"><input type="text" class="av-titulo-inp" data-c="nombre" maxlength="120" placeholder="Nombre del grupo, ej. Managers N3" aria-label="Nombre del grupo"></div>' +
       '<div class="av-linea av-gris">' + (g.usos && g.usos.length ? 'Lo usan: ' + g.usos.map(esc).join(', ') : 'Ningún mensaje lo usa todavía') + '</div>' +
-      '<div class="av-dests"></div>' +
+      '<div class="av-dest-tit">Destinos <span class="av-cant av-dest-cant"></span> <span class="av-gris av-dest-res"></span></div>' +
+      '<ul class="av-dests"></ul>' +
+      '<div class="av-agregar"><select data-c="tipo" aria-label="Tipo de destino"><option value="canal">Canal #</option><option value="persona">Persona @</option></select>' +
+        '<input type="text" data-c="nuevo" maxlength="200" aria-label="Canal o correo">' +
+        '<button type="button" class="av-btn" data-a="agregar">Agregar</button></div>' +
       '<div class="av-card-pie"><span class="av-acc">' +
-        '<button type="button" class="av-btn" data-a="canal">+ Canal</button><button type="button" class="av-btn" data-a="persona">+ Persona</button></span>' +
-        '<span class="av-acc"><span class="av-sucio">Cambios sin guardar</span>' +
-        (g.id ? '<button type="button" class="av-btn peligro" data-a="eliminar">Eliminar grupo</button>' : '<button type="button" class="av-btn" data-a="cancelar">Cancelar</button>') +
-        '<button type="button" class="av-btn prim" data-a="guardar">Guardar</button></span></div>';
+        (g.id ? '<button type="button" class="av-btn peligro" data-a="eliminar">Eliminar grupo</button>' : '<button type="button" class="av-btn" data-a="cancelar">Cancelar</button>') + '</span>' +
+        '<span class="av-acc"><span class="av-sucio">Cambios sin guardar</span><button type="button" class="av-btn prim" data-a="guardar">Guardar cambios</button></span></div>';
     c.querySelector('[data-c="nombre"]').value = g.nombre || '';
-    var lista = c.querySelector('.av-dests');
-    (g.destinos.length ? g.destinos : [{tipo: 'canal', valor: ''}]).forEach(function(d) { lista.appendChild(filaDestino(d)); });
+    var sel = c.querySelector('[data-c="tipo"]'), inp = c.querySelector('[data-c="nuevo"]');
+    function ajustar() {
+      var p = sel.value === 'persona';
+      inp.placeholder = p ? 'Correo de Zoho de la persona' : 'Unique Name del canal, ej. supportnuviacolombiacom';
+      if (p) inp.setAttribute('list', 'avPersonas'); else inp.removeAttribute('list');
+    }
+    sel.addEventListener('change', ajustar);
+    inp.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); if (agregar(c) && c._destinos.some(function(x) { return x.nuevo; })) guardarGrupo(c, null); }
+    });
+    ajustar();
     if (!g.id) c.classList.add('sucio');
+    pintarDests(c);
     return c;
+  }
+  function agregar(c, callado) {
+    var sel = c.querySelector('[data-c="tipo"]'), inp = c.querySelector('[data-c="nuevo"]');
+    var tipo = sel.value, valor = inp.value.trim().replace(/^[#@]+/, '').trim();
+    if (!valor) { if (!callado) { aviso('Escribe el canal o el correo.', true); inp.focus(); } return true; }
+    if (tipo === 'persona' && valor.indexOf('@') < 0) { aviso('Para una persona escribe su correo de Zoho.', true); inp.focus(); return false; }
+    if (tipo === 'canal' && /\s/.test(valor)) { aviso('El Unique Name del canal no lleva espacios.', true); inp.focus(); return false; }
+    if (c._destinos.some(function(d) { return d.tipo === tipo && d.valor.toLowerCase() === valor.toLowerCase(); })) {
+      aviso('Ya está en este grupo.', true); inp.select(); return false;
+    }
+    c._destinos.push({tipo: tipo, valor: valor, nuevo: true});
+    inp.value = '';
+    marcarSucio(c);
+    inp.focus();
+    return true;
   }
   $('avNuevoGrp').addEventListener('click', function() {
     var el = $('avGrupos');
@@ -297,23 +328,24 @@
     el.insertBefore(c, el.firstChild);
     c.querySelector('[data-c="nombre"]').focus();
   });
-  $('avGrupos').addEventListener('input', function(ev) { var c = ev.target.closest('.av-card'); if (c) c.classList.add('sucio'); });
-  $('avGrupos').addEventListener('change', function(ev) { var c = ev.target.closest('.av-card'); if (c) c.classList.add('sucio'); });
+  $('avGrupos').addEventListener('input', function(ev) {
+    var c = ev.target.closest('.av-card');
+    if (c && ev.target.dataset.c === 'nombre') marcarSucio(c);
+  });
   $('avGrupos').addEventListener('click', function(ev) {
     var b = ev.target.closest('[data-a]'), c = ev.target.closest('.av-card');
     if (!b || !c) return;
     var a = b.dataset.a, id = c.dataset.id ? +c.dataset.id : null;
-    if (a === 'canal' || a === 'persona') {
-      var f = filaDestino({tipo: a, valor: ''});
-      c.querySelector('.av-dests').appendChild(f); c.classList.add('sucio'); f.querySelector('input').focus();
-    } else if (a === 'quitar') {
-      b.closest('.av-dest').remove(); c.classList.add('sucio');
+    if (a === 'agregar') { if (agregar(c) && c._destinos.some(function(x) { return x.nuevo; })) guardarGrupo(c, b); }
+    else if (a === 'quitar') {
+      var q = c._destinos[+b.dataset.i];
+      if (q && !q.nuevo && !confirm('¿Quitar ' + destinoTxt(q.tipo, q.valor) + ' de este grupo?')) return;
+      c._destinos.splice(+b.dataset.i, 1); marcarSucio(c); guardarGrupo(c, b);
     } else if (a === 'probar') {
-      var fila = b.closest('.av-dest'), tipo = fila.querySelector('select').value, valor = fila.querySelector('input').value.trim();
-      if (!valor) return aviso('Escribe primero el canal o el correo.', true);
+      var d = c._destinos[+b.dataset.i];
       b.disabled = true;
-      api('/design/api/avisos/probar-destino', {tipo: tipo, valor: valor}).then(function(r) {
-        aviso(r.ok ? '✔ Llegó a ' + destinoTxt(tipo, valor.replace(/^[#@]+/, '')) : '✘ ' + destinoTxt(tipo, valor) + ': ' + r.detalle, !r.ok);
+      api('/design/api/avisos/probar-destino', {tipo: d.tipo, valor: d.valor}).then(function(r) {
+        aviso(r.ok ? '✔ Llegó a ' + destinoTxt(d.tipo, d.valor) : '✘ ' + destinoTxt(d.tipo, d.valor) + ': ' + r.detalle, !r.ok);
       }).catch(function(e) { aviso(e.message, true); }).then(function() { b.disabled = false; });
     } else if (a === 'cancelar') {
       c.remove(); if (!$('avGrupos').children.length) pintarGrupos();
@@ -322,21 +354,33 @@
       var uso = g && g.usos.length ? '\nLo usan: ' + g.usos.join(', ') + '. Esos mensajes dejarán de enviarse a este grupo.' : '';
       if (!confirm('¿Eliminar el grupo «' + (g ? g.nombre : '') + '»?' + uso)) return;
       api('/design/api/avisos/grupos/' + id + '/eliminar', {}).then(function(d) { c.remove(); cargar(d); aviso('✔ Grupo eliminado.'); }).catch(function(e) { aviso(e.message, true); });
-    } else if (a === 'guardar') {
-      var destinos = [].map.call(c.querySelectorAll('.av-dest'), function(f) { return {tipo: f.querySelector('select').value, valor: f.querySelector('input').value}; })
-        .filter(function(d) { return d.valor.trim(); });
-      b.disabled = true;
-      api('/design/api/avisos/grupos', {id: id, nombre: c.querySelector('[data-c="nombre"]').value, destinos: destinos}).then(function(d) {
-        c.classList.remove('sucio');
-        if ($('avGrupos').querySelector('.av-card.sucio')) {   // otro grupo tiene cambios: este se queda como está, ya guardado
-          var nom = c.querySelector('[data-c="nombre"]').value.trim().toLowerCase();
-          var g2 = d.grupos.find(function(x) { return x.nombre.toLowerCase() === nom; });
-          if (g2) c.dataset.id = g2.id;
-        } else if (!id) c.remove();   // el nuevo vuelve a salir, ya guardado, al repintar
-        cargar(d); aviso('✔ Grupo guardado.');
-      }).catch(function(e) { aviso(e.message, true); }).then(function() { b.disabled = false; });
-    }
+    } else if (a === 'guardar') guardarGrupo(c, b);
   });
+
+  // Guarda el grupo: con «Guardar cambios» y también solo, al agregar o quitar un destino (Rosember, 20-oct-2026)
+  function guardarGrupo(c, b) {
+    var id = c.dataset.id ? +c.dataset.id : null;
+    if (!c.querySelector('[data-c="nombre"]').value.trim()) {
+      aviso('Escribe primero el nombre del grupo; se guarda con él.', true);
+      c.querySelector('[data-c="nombre"]').focus();
+      return;
+    }
+    if (!agregar(c, true)) return;   // lo que quedó escrito en «Agregar» también se guarda
+    c.querySelector('[data-a="guardar"]').disabled = true;
+    var destinos = c._destinos.map(function(d) { return {tipo: d.tipo, valor: d.valor}; });
+    api('/design/api/avisos/grupos', {id: id, nombre: c.querySelector('[data-c="nombre"]').value, destinos: destinos}).then(function(d) {
+      c.classList.remove('sucio');
+      if ($('avGrupos').querySelector('.av-card.sucio')) {   // otro grupo tiene cambios: este se queda como está, ya guardado
+        var nom = c.querySelector('[data-c="nombre"]').value.trim().toLowerCase();
+        var g2 = d.grupos.find(function(x) { return x.nombre.toLowerCase() === nom; });
+        if (g2) c.dataset.id = g2.id;
+        c._destinos.forEach(function(x) { delete x.nuevo; });
+        pintarDests(c);
+      } else if (!id) c.remove();   // el nuevo vuelve a salir, ya guardado, al repintar
+      cargar(d);
+      aviso('✔ Grupo guardado: ' + (destinos.length ? resumenDest(destinos) : 'sin destinos') + '.');
+    }).catch(function(e) { aviso(e.message, true); pintarDests(c); });
+  }
 
   // ---------- Historial ----------
   function cargarHistorial() {
