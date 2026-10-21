@@ -3771,8 +3771,9 @@ function ddPintarResultado(data) {
 
     document.getElementById('ddQcReportes').innerHTML = ddFilas('qcReportes', data.qcReportes, function(r) {
       return '<tr><td>' + ddEsc(r.orden) + '</td><td>' + ddEsc(r.paciente) + '</td><td>' + r.fecha + '</td><td>' + ddEsc(r.equipo) + '</td><td>' + ddEsc(r.producto) + '</td>' +
-             '<td>' + ddEsc(r.designerNombre) + '</td><td class="dd-izq" style="white-space:pre-wrap">' + ddEsc(r.qcReporte) + '</td>' +
-             (DD_ADMIN ? '<td><button type="button" class="btn rojo mini" title="Borrar este hallazgo (el QC sigue marcado, queda sin hallazgos)" onclick="ddQcBorrar([' + r.ordenId + '])">Borrar</button></td>' : '') + '</tr>';
+             '<td>' + ddEsc(r.designerNombre) + '</td><td class="dd-izq" style="white-space:pre-wrap" data-qc-texto="' + r.ordenId + '">' + ddEsc(r.qcReporte) + '</td>' +
+             (DD_ADMIN ? '<td style="white-space:nowrap"><button type="button" class="btn gris mini" title="Corregir el texto del hallazgo" onclick="ddQcEditar(' + r.ordenId + ')">Editar</button> ' +
+                         '<button type="button" class="btn rojo mini" title="Borrar este hallazgo (el QC sigue marcado, queda sin hallazgos)" onclick="ddQcBorrar([' + r.ordenId + '])">Borrar</button></td>' : '') + '</tr>';
     }, 8, 'Sin hallazgos de QC.');
     var bt = document.getElementById('ddQcBorrarTodo');
     if (bt) { bt.style.display = data.qcReportes.length > 1 ? '' : 'none'; bt.textContent = 'Borrar los ' + data.qcReportes.length + ' hallazgos filtrados'; }
@@ -3802,6 +3803,38 @@ function ddQcBorrar(ids) {
         .catch(function(e) { alert('No se pudo deshacer: ' + e.message); });
     });
   }).catch(function(e) { alert('No se pudo borrar: ' + e.message); });
+}
+// Admins: corregir el texto de un hallazgo de QC ahí mismo (Rosember, 21-oct-2026). Se guarda en la orden y se puede deshacer.
+function ddQcEditar(ordenId) {
+  var r = DD_ULTIMO && DD_ULTIMO.qcReportes.find(function(x) { return x.ordenId === ordenId; });
+  var td = document.querySelector('[data-qc-texto="' + ordenId + '"]');
+  if (!r || !td || td.querySelector('textarea')) return;
+  td.innerHTML = '<textarea rows="4" style="width:100%;min-width:260px;font:inherit;padding:6px;box-sizing:border-box"></textarea>' +
+    '<div style="margin-top:4px;display:flex;gap:6px"><button type="button" class="btn mini">Guardar</button><button type="button" class="btn gris mini">Cancelar</button></div>';
+  var ta = td.querySelector('textarea'), bs = td.querySelectorAll('button');
+  ta.value = r.qcReporte || '';
+  ta.focus();
+  var cancelar = function() { td.textContent = r.qcReporte || ''; };
+  var guardar = function() {
+    var nuevo = ta.value.trim();
+    if (nuevo === (r.qcReporte || '').trim()) { cancelar(); return; }
+    bs[0].disabled = true;
+    window.dsPostJSON('/design/api/dashboard/qc-hallazgos/editar', {id: ordenId, texto: nuevo}).then(function(d) {
+      r.qcReporte = d.texto;
+      td.textContent = d.texto;
+      var restaurar = {}; restaurar[ordenId] = d.antes;
+      ddAvisoDeshacer('Hallazgo de QC de la orden ' + r.orden + ' corregido.', function() {
+        window.dsPostJSON('/design/api/dashboard/qc-hallazgos/borrar', {ids: [], restaurar: restaurar}).then(function() { ddCargar(); dsToast('Se volvió al texto anterior.'); })
+          .catch(function(e) { alert('No se pudo deshacer: ' + e.message); });
+      });
+    }).catch(function(e) { bs[0].disabled = false; alert('No se pudo guardar: ' + e.message); });
+  };
+  bs[0].onclick = guardar;
+  bs[1].onclick = cancelar;
+  ta.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape') cancelar();
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) guardar();
+  });
 }
 function ddAvisoDeshacer(texto, deshacer) {
   var v = document.getElementById('ddAviso'); if (v) v.remove();

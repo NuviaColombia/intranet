@@ -2083,6 +2083,28 @@ def api_qc_hallazgos_borrar(payload: QcHallazgosIn, user: Empleado = Depends(req
     return {"borrados": borrados}
 
 
+class QcEditarIn(BaseModel):
+    id: int
+    texto: str = Field("", max_length=4000)
+
+
+@router.post("/design/api/dashboard/qc-hallazgos/editar")
+def api_qc_hallazgo_editar(payload: QcEditarIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Solo admins (Rosember, 21-oct-2026): corregir el texto de un hallazgo de QC (p. ej. una palabra mal escrita). Se
+    guarda en la orden, así se ve corregido en el Schedule, el Dashboard y los reportes. Devuelve el texto anterior para
+    poder deshacer (con /qc-hallazgos/borrar y «restaurar»). Sirve también en días cerrados (corrección del admin)."""
+    o = db.get(DesignOrden, payload.id)
+    if o is None:
+        raise HTTPException(404, "Orden no encontrada.")
+    texto = payload.texto.strip()
+    if not texto:
+        raise HTTPException(400, "El hallazgo no puede quedar vacío. Para quitarlo usa «Borrar».")
+    antes = o.qc_reporte or ""
+    o.qc_reporte = texto
+    db.commit()
+    return {"antes": antes, "texto": texto}
+
+
 @router.get("/design/api/buscar")
 def api_buscar(q: str, user: Empleado = Depends(require_modulo("design_schedule")),
                      db: Session = Depends(get_db)):
