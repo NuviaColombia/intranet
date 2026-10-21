@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (563 reglas) ---- */
+/* ---- static\design\schedule.css (564 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -598,6 +598,7 @@
 :root[data-ds-tema="oscuro"] .dc-x:hover { background:#252c33; color:#ced7ee; }
 :root[data-ds-tema="oscuro"] .dcd-tabla th, :root[data-ds-tema="oscuro"] .dcd-tabla td { border-bottom:1px solid #323943; }
 :root[data-ds-tema="oscuro"] .dcd-auto { color:#ced7ee; }
+:root[data-ds-tema="oscuro"] details.dl-plegable > summary::before { color:#bbc1cc; }
 :root[data-ds-tema="oscuro"] .dl-pend { background:#371212; color:#ed9797; }
 :root[data-ds-tema="oscuro"] .dl-ok { background:#153821; color:#b9eece; }
 :root[data-ds-tema="oscuro"] .ay-estado { background:#0f1e32; color:#9fb3ea; border:1px solid #233b5a; }

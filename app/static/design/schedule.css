@@ -1021,9 +1021,18 @@
 /* Barra de filtros del Dashboard: todos los controles con la misma altura y alineados en la misma línea */
 .dd-filtros input, .dd-filtros select { height:34px; box-sizing:border-box; }
 /* Dashboard › Reportes: los botones a la misma altura y nivel que los campos de su fila (Rosember, 21-oct-2026) */
-#ddVistaReportes .dd-filtros .btn { height:34px; box-sizing:border-box; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center; }
-#ddVistaReportes .dd-filtros input, #ddVistaReportes .dd-filtros select { margin:0; }
+/* Todas las filas de filtros del Dashboard (21-oct-2026): campos y botones a la misma altura y nivel. Los campos traían el
+   margen inferior del estilo general y quedaban más abajo que los botones de su fila. */
+.dd-filtros input, .dd-filtros select { margin:0; }
+.dd-filtros .btn { height:34px; box-sizing:border-box; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center; margin:0; }
+.dd-filtros div[style*="flex-direction:row"] { height:34px; }
 #ddVistaReportes .dd-filtros input[type=file] { height:34px; padding:4px 6px; }
+/* Aprobaciones: la tabla en un desplegable */
+details.dl-plegable > summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px; }
+details.dl-plegable > summary::-webkit-details-marker { display:none; }
+details.dl-plegable > summary::before { content:"▸"; font-size:14px; color:#4b5563; transition:transform .15s; }
+details.dl-plegable[open] > summary::before { transform:rotate(90deg); }
+details.dl-plegable:not([open]) > summary { margin-bottom:0; }
 .dd-filtros:not(.dd-filtros-x) { gap:8px; }
 .dd-rapidos button, .dd-filtros .btn { height:34px; box-sizing:border-box; padding:0 8px; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap; }
 .dd-filtros > div > label { min-height:14px; line-height:14px; }

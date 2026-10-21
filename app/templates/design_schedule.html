@@ -418,9 +418,10 @@
   <div><label for="dlBuscar">Buscar</label><input type="search" id="dlBuscar" placeholder="Orden, paciente, manager…" style="width:200px"></div>
   <div><label>&nbsp;</label><button type="button" class="btn gris" id="dlCsv">Descargar Excel</button></div>
 </div>
-<div class="dd-panel"><div class="dd-panel-cab"><h3>Aprobaciones</h3><span style="font-size:12px;color:#4b5563" id="dlCuenta"></span></div>
+{# Desplegable que se abre cerrado cada vez que se entra a la pestaña (Rosember, 21-oct-2026) #}
+<details class="dd-panel dl-plegable" id="dlPlegable"><summary class="dd-panel-cab"><h3>Aprobaciones</h3><span style="font-size:12px;color:#4b5563" id="dlCuenta"></span></summary>
   <div class="dp-tabla-w"><table class="dd-tabla dc-tabla" id="dlTabla"></table></div>
-  <div id="dlMas" style="margin-top:8px"></div></div>
+  <div id="dlMas" style="margin-top:8px"></div></details>
 </div>
 {% endif %}
 {% if user.rol in ('admin', 'superadmin') %}

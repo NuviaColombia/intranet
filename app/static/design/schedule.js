@@ -4420,13 +4420,14 @@ function dcImportarArchivo(file) {
 // ---------- Dashboard › Aprobaciones (solo admin, 13-oct-2026): órdenes que tardaron más de 1 h 30 min en aprobarse ----------
 // Órdenes en las que el manager tardó más de 1 h 30 min entre Approved y marcar el QC (o siguen sin QC pasado ese tiempo).
 var DL = {items: [], orden: 'minutos', dir: 'desc', tope: 50, tok: 0};
-var DL_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['equipo', 'Equipo'], ['manager', 'Manager'],
+var DL_COLS = [['fecha', 'Fecha'], ['orden', 'Orden'], ['paciente', 'Paciente'], ['centro', 'Centro'], ['manager', 'Manager'],   // sin Equipo (21-oct-2026)
                ['disenador', 'Diseñador'], ['aprobadaEn', 'Aprobada'], ['minutos', 'Sin QC desde hace']];   // solo las que siguen sin QC (21-oct-2026)
 function dlHora(iso) {
   return iso ? new Date(iso).toLocaleString('es-CO', {timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true}) : '—';
 }
 // Por defecto, el semestre de hoy (jun–dic o ene–jun), igual que Cambios digitales; las flechas pasan de semestre.
 function dlIniciar() {
+  var pl = document.getElementById('dlPlegable'); if (pl) pl.open = false;   // se abre cerrada (Rosember, 21-oct-2026)
   var d = document.getElementById('dlDesde'), h = document.getElementById('dlHasta');
   if (!d.value || !h.value) {
     var hoy = new Date(), s = dcSemestreDe(hoy.getFullYear(), hoy.getMonth() >= 5 ? 1 : 0);
@@ -4485,10 +4486,10 @@ function dlPintar() {
     return '<th data-o="' + c[0] + '" style="cursor:pointer">' + c[1] + fl + '</th>';
   }).join('') + '</tr></thead>';
   var filas = l.slice(0, DL.tope).map(function(x) {
-    return '<tr><td>' + dcEsc(x.fecha.split('-').reverse().join('/')) + '</td><td>' + dcEsc(x.orden) + '</td><td>' + dcEsc(x.paciente) + '</td><td>' + dcEsc(x.centro) + '</td><td>' + dcEsc(x.equipo) +
+    return '<tr><td>' + dcEsc(x.fecha.split('-').reverse().join('/')) + '</td><td>' + dcEsc(x.orden) + '</td><td>' + dcEsc(x.paciente) + '</td><td>' + dcEsc(x.centro) +
       '</td><td>' + dcEsc(x.manager) + '</td><td>' + dcEsc(x.disenador) + '</td><td>' + dlHora(x.aprobadaEn) + '</td><td><b class="dl-pend">' + daFmt(x.minutos) + '</b></td></tr>';
   }).join('');
-  t.innerHTML = cab + '<tbody>' + (filas || '<tr><td colspan="9" style="color:#4b5563">No hay órdenes aprobadas sin QC por más de 1 h 30 min en este periodo.</td></tr>') + '</tbody>';
+  t.innerHTML = cab + '<tbody>' + (filas || '<tr><td colspan="8" style="color:#4b5563">No hay órdenes aprobadas sin QC por más de 1 h 30 min en este periodo.</td></tr>') + '</tbody>';
   document.getElementById('dlCuenta').textContent = 'Mostrando ' + Math.min(DL.tope, l.length) + ' de ' + l.length;
   var mas = document.getElementById('dlMas');
   mas.innerHTML = l.length > DL.tope ? '<button type="button" class="btn gris mini" id="dlVerMas">Mostrar más (' + (l.length - DL.tope) + ' restantes)</button>' : '';
