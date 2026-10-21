@@ -197,7 +197,7 @@ def todo(db: Session) -> dict:
     ultimos = {}
     for e in db.query(DesignCliqEnvio).order_by(DesignCliqEnvio.en.desc()).limit(500):
         ultimos.setdefault(e.mensaje_id, e)
-    personas = (db.query(Empleado).filter(Empleado.activo == True, Empleado.empresa == EMPRESA_DESIGN)  # noqa: E712
+    personas = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.empresa == EMPRESA_DESIGN)
                 .order_by(Empleado.nombres, Empleado.apellidos).all())
     bots = sorted({sc.bot()} | {m.bot for m in mensajes if m.bot})
     return {"conexion": {"configurado": sc.configurado(), "bot": sc.bot()}, "bots": bots,
