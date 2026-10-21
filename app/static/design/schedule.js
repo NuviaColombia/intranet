@@ -3929,7 +3929,7 @@ function dpVista(v) {
   var vl = document.getElementById('ddVistaLentas'); if (vl) { vl.hidden = v !== 'lentas'; if (v === 'lentas') dlIniciar(); }
   var vy = document.getElementById('ddVistaAyudas'); if (vy) { vy.hidden = v !== 'ayudas'; if (v === 'ayudas' && window.dyIniciar) window.dyIniciar(); }
   var vr = document.getElementById('ddVistaReportes'); if (vr) { vr.hidden = v !== 'reportes'; if (v === 'reportes' && window.drIniciar) window.drIniciar(); }
-  if (v === 'cambios') { dcSemestreInicial(); dcCargar(true); }
+  if (v === 'cambios') { var pc = document.getElementById('dcPlegable'); if (pc) pc.open = false; dcSemestreInicial(); dcCargar(true); }   // la tabla abre cerrada
   if (v === 'productos') dpCargar();
   if (v === 'articulacion') daCargar();
 }
@@ -4410,7 +4410,7 @@ function dcImportarArchivo(file) {
   var tb = null;
   el('dcBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(function() { dcCargar(true); }, 250); });
   ['dcOrigen', 'dcTipo', 'dcCentro', 'dcDesde', 'dcHasta'].forEach(function(id) { el(id).addEventListener('change', function() { dcCargar(true); }); });
-  el('dcAgregar').addEventListener('click', dcdAbrir);   // mismo formulario guiado que en Producción (orden → datos del Schedule)
+  el('dcAgregar').addEventListener('click', function() { el('dcPlegable').open = true; dcdAbrir(); });   // al agregar se abre la tabla para ver el cambio nuevo   // mismo formulario guiado que en Producción (orden → datos del Schedule)
   el('dcImportar').addEventListener('click', function() { el('dcArchivo').click(); });
   el('dcArchivo').addEventListener('change', function() { if (this.files[0]) dcImportarArchivo(this.files[0]); this.value = ''; });
   el('dcCsv').addEventListener('click', function() { window.location = '/design/api/cambios-digitales/csv?' + dcUrl(); });
