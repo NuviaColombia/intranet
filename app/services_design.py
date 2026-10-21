@@ -1316,6 +1316,8 @@ def festivos(db: Session) -> set[date]:
 
 def festivos_invalidar() -> None:
     _FESTIVOS_CACHE["v"] = None
+    from . import services_design_avisos
+    services_design_avisos.invalidar()   # el Centro de avisos no envía en festivos: recarga su plan
 
 
 def siguiente_dia_habil(fecha: date, no_laborables: set[date] = frozenset()) -> date:

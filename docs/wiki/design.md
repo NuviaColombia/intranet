@@ -152,6 +152,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   21-oct-2026: el hilo no puede morir (antes, un `rollback` fallido tras un error lo detenía para siempre
   sin aviso); si un envío automático falla antes de llegar a Cliq, se quita su marca y se reintenta el
   minuto siguiente. La página muestra si el envío automático está corriendo y su último error.
+  **Plan en memoria** (Rosember, 21-oct-2026: «no quiero que haga las consultas tan seguido»): cada minuto el revisor
+  compara la hora con un plan en memoria (`_cargar_plan` / `_pendientes`) y **no consulta la base** salvo cuando toca un
+  envío, cuando alguien edita un mensaje, grupo, Support Time o festivos (`invalidar()`), cada 30 min o al cambiar el
+  día, y para reintentos solo si hubo un 429. Lo ya enviado se recuerda en `_HECHOS`. Probado en tiempo real: sale en
+  el minuto programado y después hace 0 consultas. Si se agrega un disparador nuevo, va en `_pendientes` (sin base).
   **Límite de Cliq** (21-oct-2026: varios canales seguidos daban «429 request_limit_exceeded»): 2 s de
   pausa entre destinos, un reintento a los 20 s y, si sigue el 429, el revisor lo reintenta solo (hasta 4
   veces en una hora). «Enviar ahora» con más de 3 destinos se envía en segundo plano (míralo en Historial).

@@ -107,6 +107,7 @@ def sembrar(db: Session) -> None:
             db.add(DesignCliqMensaje(nombre="Cambio de turno de Support", texto=TEXTO_CAMBIO, disparador="cambio_support",
                                      prog_hora="07:00", grupos=str(g.id), sistema=SIS_CAMBIO, orden=2, actualizado_por="Sistema"))
             db.commit()
+            invalidar()
         _sembrado["ok"] = True
     except IntegrityError:   # la otra instancia ya los creó
         db.rollback()
@@ -260,6 +261,7 @@ def guardar_grupo(db: Session, datos: dict, por: str) -> DesignCliqGrupo:
     for i, (tipo, valor) in enumerate(destinos):
         db.add(DesignCliqDestino(grupo_id=g.id, tipo=tipo, valor=valor, orden=i))
     db.commit()
+    invalidar()
     return g
 
 
@@ -273,6 +275,7 @@ def eliminar_grupo(db: Session, grupo_id: int) -> None:
     db.query(DesignCliqDestino).filter(DesignCliqDestino.grupo_id == grupo_id).delete()
     db.delete(g)
     db.commit()
+    invalidar()
 
 
 def guardar_mensaje(db: Session, datos: dict, por: str) -> DesignCliqMensaje:
@@ -317,6 +320,7 @@ def guardar_mensaje(db: Session, datos: dict, por: str) -> DesignCliqMensaje:
     m.grupos = ",".join(str(g) for g in dict.fromkeys(grupos))
     m.actualizado_por, m.actualizado_en = por, datetime.utcnow()
     db.commit()
+    invalidar()
     return m
 
 
@@ -325,6 +329,7 @@ def activar(db: Session, mensaje_id: int, activo: bool, por: str) -> DesignCliqM
     if m:
         m.activo, m.actualizado_por, m.actualizado_en = activo, por, datetime.utcnow()
         db.commit()
+        invalidar()
     return m
 
 
@@ -336,6 +341,7 @@ def eliminar_mensaje(db: Session, mensaje_id: int) -> str | None:
         return "Este aviso lo usa la plataforma desde antes: puedes pausarlo, pero no eliminarlo."
     db.delete(m)
     db.commit()
+    invalidar()
     return None
 
 
@@ -350,6 +356,7 @@ def duplicar(db: Session, mensaje_id: int, por: str) -> DesignCliqMensaje | None
                           actualizado_en=datetime.utcnow())
     db.add(c)
     db.commit()
+    invalidar()
     return c
 
 
@@ -396,6 +403,8 @@ def enviar(db: Session, m: DesignCliqMensaje, ahora: datetime, origen: str = "ma
                 ok, det = _enviar_uno(cliente, tipo, destino, texto, m.bot)
             _envio(db, m, grupo, tipo, destino, m.bot, texto, ok, det, origen, por)
             db.commit()   # el historial se va llenando mientras envía
+            if not ok and es_limite(det):
+                _REINTENTOS["pendientes"] = True   # el revisor lo reintenta en los minutos siguientes
             out.append({"grupo": grupo, "tipo": tipo, "destino": destino, "ok": ok, "detalle": det})
     return out
 
@@ -428,6 +437,9 @@ def reintentar_limite(db: Session) -> int:
         if len(intentos) > REINTENTOS_MAX or ult.en > ahora - timedelta(minutes=2):
             continue
         pendientes.append(ult)
+    # ¿queda algo por reintentar después de esta vuelta? (lo que espera sus 2 minutos también cuenta)
+    _REINTENTOS["pendientes"] = any(not i[-1].ok and es_limite(i[-1].detalle) and i[-1].origen != "prueba" and len(i) <= REINTENTOS_MAX
+                                    for i in por_clave.values())
     hechos = 0
     with httpx.Client(timeout=12) as cliente:
         for e in pendientes[:10]:
@@ -493,50 +505,112 @@ def _festivo(db: Session, d: date) -> bool:
     return d in sd.festivos(db)
 
 
-def revisar(db: Session, ahora: datetime) -> list[str]:
-    """Envía lo que toca en este minuto. Devuelve las claves de lo enviado (para las pruebas)."""
+# ---------- Plan en memoria (Rosember, 21-oct-2026: «no quiero que haga las consultas tan seguido») ----------
+# El revisor despierta cada minuto pero NO consulta la base: compara la hora con un plan en memoria (mensajes activos,
+# horarios de Support Time y festivos). Solo va a la base cuando: (1) llega la hora de un envío, (2) alguien editó un
+# mensaje, un grupo o Support Time (invalidar() recarga el plan), (3) pasaron RECARGA_PLAN_S (por seguridad) o cambió el
+# día, y (4) hay envíos rechazados por el límite de Cliq pendientes de reintento. Lo ya enviado se recuerda en memoria para
+# no volver a consultar su marca durante la ventana de envío.
+RECARGA_PLAN_S = 1800
+_PLAN: dict = {"gen": -1, "dia": None, "t": 0.0, "mensajes": [], "cfg": None, "festivos": set()}
+_GEN = {"v": 0}
+_HECHOS: set = set()               # claves de envío que ya se hicieron (o ya estaban marcadas) en este servidor
+_REINTENTOS = {"pendientes": True}  # al arrancar revisa una vez por si quedaron reintentos de antes
+
+
+def invalidar() -> None:
+    """Algo que cambia cuándo o a quién se envía (mensajes, grupos, Support Time, festivos): el plan se recarga."""
+    _GEN["v"] += 1
+
+
+def reiniciar_plan() -> None:
+    """Pruebas: vuelve al estado de recién arrancado."""
+    _PLAN.update(gen=-1, dia=None, t=0.0, mensajes=[], cfg=None, festivos=set())
+    _HECHOS.clear()
+    _REINTENTOS["pendientes"] = True
+
+
+def _cargar_plan(db: Session, hoy: date) -> dict:
+    """Recarga el plan solo si hace falta (edición, otro día o RECARGA_PLAN_S); si no, devuelve el de memoria."""
+    from types import SimpleNamespace
+    from . import services_design as sd
     from . import services_design_support as ss
-    if not sc.configurado():
-        return []
+    vigente = (_PLAN["gen"] == _GEN["v"] and _PLAN["dia"] == hoy and time.monotonic() - _PLAN["t"] < RECARGA_PLAN_S)
+    if vigente:
+        return _PLAN
     sembrar(db)
-    hoy, enviados = ahora.date(), []
     c = ss.config(db)
+    cfg = SimpleNamespace(**{k: getattr(c, k) for k in ("turno1_inicio", "turno2_inicio", "dias", "semanas", "ref_fecha",
+                                                        "persona_a_id", "persona_b_id", "ref_turno1")})
+    mensajes = [{"id": m.id, "sistema": m.sistema, "disparador": m.disparador, "prog_tipo": m.prog_tipo, "prog_fecha": m.prog_fecha,
+                 "prog_hora": m.prog_hora, "prog_dias": m.prog_dias, "saltar_festivos": bool(m.saltar_festivos), "grupos": m.grupos}
+                for m in db.query(DesignCliqMensaje).filter(DesignCliqMensaje.activo == True).all()  # noqa: E712
+                if _ids(m.grupos)]
+    db.rollback()   # suelta la conexión: entre envíos el revisor no tiene nada abierto
+    _PLAN.update(gen=_GEN["v"], dia=hoy, t=time.monotonic(), mensajes=mensajes, cfg=cfg, festivos=set(sd.festivos(db)))
+    db.rollback()
+    return _PLAN
+
+
+def _pendientes(plan: dict, ahora: datetime) -> list[tuple[int, str, int | None]]:
+    """(mensaje, clave de envío, turno) de lo que toca en este minuto, calculado SOLO con el plan (sin base de datos)."""
+    from . import services_design_support as ss
+    hoy, c, out = ahora.date(), plan["cfg"], []
     dias_support = {int(x) for x in (c.dias or "").split(",") if x.strip().isdigit()}
-    for m in db.query(DesignCliqMensaje).filter(DesignCliqMensaje.activo == True).all():  # noqa: E712
-        if not _ids(m.grupos):
-            continue
+    festivo = hoy in plan["festivos"]
+    for m in plan["mensajes"]:
         clave, turno = None, None
-        if m.disparador == "turno_support" and ss.listo(c):
+        if m["disparador"] == "turno_support" and ss.listo(c):
             for n in (1, 2):
                 if _en_ventana(ahora, c.turno1_inicio if n == 1 else c.turno2_inicio):
-                    if hoy.weekday() in dias_support and not (m.saltar_festivos and _festivo(db, hoy)):
-                        clave = (f"support_en_turno_{hoy.isoformat()}_{n}" if m.sistema == SIS_TURNO
-                                 else f"cliq_msg_{m.id}_{hoy.isoformat()}_t{n}")
+                    if hoy.weekday() in dias_support and not (m["saltar_festivos"] and festivo):
+                        clave = (f"support_en_turno_{hoy.isoformat()}_{n}" if m["sistema"] == SIS_TURNO
+                                 else f"cliq_msg_{m['id']}_{hoy.isoformat()}_t{n}")
                         turno = n
                     break
-        elif m.disparador == "cambio_support" and ss.listo(c):
+        elif m["disparador"] == "cambio_support" and ss.listo(c):
             ult = ss.proximo_cambio(c, hoy) - timedelta(days=7 * max(1, c.semanas))   # el cambio más reciente
-            if ult == hoy and _en_ventana(ahora, m.prog_hora or "07:00"):
-                clave = f"support_cambio_{hoy.isoformat()}" if m.sistema == SIS_CAMBIO else f"cliq_msg_{m.id}_{hoy.isoformat()}"
-        elif m.disparador == "programado" and _en_ventana(ahora, m.prog_hora):
-            if m.prog_tipo == "semanal":
-                dias = {int(x) for x in (m.prog_dias or "").split(",") if x.strip().isdigit()}
-                if hoy.weekday() in dias and not (m.saltar_festivos and _festivo(db, hoy)):
-                    clave = f"cliq_msg_{m.id}_{hoy.isoformat()}_{m.prog_hora}"
-            elif m.prog_fecha == hoy:
-                clave = f"cliq_msg_{m.id}_{hoy.isoformat()}_{m.prog_hora}"
-        if clave and _marcar(db, clave):
-            try:
-                res = enviar(db, m, ahora, "auto", "Sistema", turno)
-            except Exception:
-                # 21-oct-2026: si el envío se cae antes de llegar a Cliq, se quita la marca para reintentar el minuto siguiente
-                db.rollback()
-                db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).delete()
-                db.commit()
-                raise
-            log.info("Centro de avisos · %s → %s", m.nombre, ", ".join(f"{r['destino']}: {r['detalle']}" for r in res))
-            enviados.append(clave)
-    reintentar_limite(db)
+            if ult == hoy and _en_ventana(ahora, m["prog_hora"] or "07:00"):
+                clave = f"support_cambio_{hoy.isoformat()}" if m["sistema"] == SIS_CAMBIO else f"cliq_msg_{m['id']}_{hoy.isoformat()}"
+        elif m["disparador"] == "programado" and _en_ventana(ahora, m["prog_hora"]):
+            if m["prog_tipo"] == "semanal":
+                dias = {int(x) for x in (m["prog_dias"] or "").split(",") if x.strip().isdigit()}
+                if hoy.weekday() in dias and not (m["saltar_festivos"] and festivo):
+                    clave = f"cliq_msg_{m['id']}_{hoy.isoformat()}_{m['prog_hora']}"
+            elif m["prog_fecha"] == hoy:
+                clave = f"cliq_msg_{m['id']}_{hoy.isoformat()}_{m['prog_hora']}"
+        if clave and clave not in _HECHOS:
+            out.append((m["id"], clave, turno))
+    return out
+
+
+def revisar(db: Session, ahora: datetime) -> list[str]:
+    """Envía lo que toca en este minuto. Devuelve las claves de lo enviado (para las pruebas). Sin nada que enviar ni
+    reintentos pendientes, no consulta la base (el plan está en memoria)."""
+    if not sc.configurado():
+        return []
+    plan = _cargar_plan(db, ahora.date())
+    enviados = []
+    for mid, clave, turno in _pendientes(plan, ahora):
+        _HECHOS.add(clave)
+        if not _marcar(db, clave):
+            continue   # ya estaba enviado (otra instancia o antes de reiniciar)
+        m = db.get(DesignCliqMensaje, mid)
+        if m is None or not m.activo:
+            continue
+        try:
+            res = enviar(db, m, ahora, "auto", "Sistema", turno)
+        except Exception:
+            # 21-oct-2026: si el envío se cae antes de llegar a Cliq, se quita la marca para reintentar el minuto siguiente
+            _HECHOS.discard(clave)
+            db.rollback()
+            db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).delete()
+            db.commit()
+            raise
+        log.info("Centro de avisos · %s → %s", m.nombre, ", ".join(f"{r['destino']}: {r['detalle']}" for r in res))
+        enviados.append(clave)
+    if _REINTENTOS["pendientes"]:
+        reintentar_limite(db)
     return enviados
 
 

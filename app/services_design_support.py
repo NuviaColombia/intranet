@@ -65,6 +65,8 @@ def guardar_config(db: Session, datos: dict, por: str) -> str | None:
     c.ref_turno1 = "b" if datos.get("ref_turno1") == "b" else "a"
     c.actualizado_por, c.actualizado_en = por, datetime.utcnow()
     db.commit()
+    from . import services_design_avisos
+    services_design_avisos.invalidar()   # cambian los horarios de los turnos: el Centro de avisos recarga su plan
     return None
 
 

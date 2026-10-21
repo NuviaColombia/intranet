@@ -23,6 +23,10 @@ class Centro(unittest.TestCase):
         Base.metadata.create_all(eng)
         self.db = sessionmaker(bind=eng)()
         sa._sembrado["ok"] = False
+        sa.reiniciar_plan()
+        self.consultas = [0]
+        from sqlalchemy import event
+        event.listen(eng, "before_cursor_execute", lambda *a, **k: self.consultas.__setitem__(0, self.consultas[0] + 1))
         a = models.Empleado(nombres="Diego Andres", apellidos="Sampayo Fontalvo", email="d@x.com", rol="empleado", activo=True,
                             empresa=models.EMPRESA_DESIGN, cargo="Support", area="x", identificacion="1")
         b = models.Empleado(nombres="Ana", apellidos="Uno", email="a@x.com", rol="empleado", activo=True,
@@ -86,6 +90,28 @@ class Centro(unittest.TestCase):
             self.assertEqual(sa.reintentar_limite(self.db), 0)   # ya salió: no se repite
         h = sa.historial(self.db)
         self.assertEqual((h[0]["destino"], h[0]["ok"], h[0]["origen"]), ("dos", True, "reintento"))
+
+    def test_sin_nada_que_enviar_no_consulta_la_base(self):
+        sa.revisar(self.db, datetime(2026, 10, 20, 10, 0))            # primera vez: carga el plan
+        antes = self.consultas[0]
+        for minuto in range(1, 50):                                     # 10:01 … 10:49, nada programado
+            self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 20, 10, minuto)), [])
+        self.assertEqual(self.consultas[0], antes, "el revisor consultó la base sin tener nada que enviar")
+
+    def test_editar_un_mensaje_recarga_el_plan_y_sale_a_su_hora(self):
+        sa.revisar(self.db, datetime(2026, 10, 20, 8, 0))
+        g = self.db.query(md.DesignCliqGrupo).first()
+        m = sa.guardar_mensaje(self.db, {"nombre": "Reunión", "texto": "Hola", "disparador": "programado", "progTipo": "una",
+                                         "progFecha": "2026-10-20", "progHora": "09:30", "grupos": [g.id]}, "Yo")
+        for x in self.db.query(md.DesignCliqMensaje).filter(md.DesignCliqMensaje.sistema.isnot(None)):
+            sa.activar(self.db, x.id, False, "Yo")
+        self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 20, 9, 29)), [])
+        self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 20, 9, 30)), [f"cliq_msg_{m.id}_2026-10-20_09:30"])
+        antes = self.consultas[0]
+        self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 20, 9, 31)), [])   # ya salió: no vuelve a preguntar
+        self.assertEqual(self.consultas[0], antes)
+        sa.reiniciar_plan()   # como si Render reiniciara: no se repite (la marca está en la base)
+        self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 20, 9, 35)), [])
 
     def test_fin_de_semana_festivo_y_pausado_no(self):
         self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 24, 7, 5)), [])   # sábado
