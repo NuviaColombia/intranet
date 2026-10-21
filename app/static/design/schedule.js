@@ -669,6 +669,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     f = f || (DS.diaData[tabla] || []).find(function(x) { return x.id === parseInt(tr.dataset.id); });
     if (!f) return;
     dsMarcarFaltaAprobar(tr);   // N3: celdas que faltan para Approved (parpadean unos segundos)
+    dsAjustarOpcionHold(tr, f);
     tr.classList.toggle('ds-fila-cancelada', f.estado === 'Canceled');
     var est = String(f.estado || '').trim().toLowerCase();
     // 19-oct-2026: "Dr authorization" (Material Change) se ve como Approved (color y chip), no como Hold; en lo demás sigue contando como Hold
@@ -1449,6 +1450,21 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Estados que solo aplican a TC y Nightguards: se ofrecen en la tabla de Nightguards/TC y en filas con ese producto
   // (pedido por Rosember el 12-oct-2026; ver estado_changes_ready_una_vez en services_design.py).
   var DS_ESTADOS_SOLO_NG = ['changes ready'];
+  // Hold solo después de iniciar (Rosember, 21-oct-2026; el servidor también lo valida: orden_iniciada en services_design.py).
+  // Material Change y Removable Denture miran la etapa en curso (Zirconia / Denture usan zHoraInicio).
+  function dsHoldPermitido(f) {
+    if (!f || dsEsHoldEstado(f.estado)) return true;
+    return !!String((dsEsZirconia(f) ? f.zHoraInicio : f.horaInicio) || '').trim();
+  }
+  function dsEsHoldEstado(e) { return dsNorm(e) === 'hold'; }
+  function dsAjustarOpcionHold(tr, f) {
+    var sel = tr && tr.querySelector('select[data-campo="estado"]');
+    if (!sel) return;
+    var ok = dsHoldPermitido(f);
+    [].forEach.call(sel.options, function(o) {
+      if (dsEsHoldEstado(o.value) && o.value !== sel.value) { o.hidden = !ok; o.disabled = !ok; o.title = ok ? '' : 'Primero inicia la orden (Initiated)'; }
+    });
+  }
   function dsFilaEsNG(sel, tabla) {
     if (tabla === 'nightguard') return true;
     var tr = sel.closest('tr'), p = tr && tr.querySelector('[data-campo="producto"]');
@@ -1488,6 +1504,11 @@ window.addEventListener('unhandledrejection', function(ev) {
             sel.insertAdjacentHTML('beforeend', DS_OPCION_COLORES);
           }
           if (actual) sel.value = actual;
+          if (c.k === 'estado') {   // Hold solo después de iniciar
+            var trH = sel.closest('tr'), idH = trH ? parseInt(trH.dataset.id, 10) : NaN;
+            var fH = isNaN(idH) ? null : (DS.diaData && (DS.diaData[tabla] || []).find(function(x) { return x.id === idH; }));
+            dsAjustarOpcionHold(trH, fH || {estado: actual});
+          }
           if (conColor) dsPintarCelda(sel);
         });
       });

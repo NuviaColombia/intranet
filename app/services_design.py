@@ -789,6 +789,24 @@ def es_etapa_zirconia(etapa: str | None) -> bool:
     return _normalizar_texto(etapa or "") == _normalizar_texto(ETAPA_ZIRCONIA)
 
 
+HOLD_SIN_INICIO = "Primero inicia la orden (Initiated): Hold solo se puede poner después de iniciar."
+
+
+def es_hold(estado: str | None) -> bool:
+    return _normalizar_texto(estado or "") == _normalizar_texto(ESTADO_HOLD)
+
+
+def orden_iniciada(actual: dict, tabla: str, por_etapas: bool = False) -> bool:
+    """¿La etapa en curso ya tiene Inicio? Hold solo se permite después de iniciar (Rosember, 21-oct-2026: casos puestos en
+    Hold antes de empezar dejaban el Start hold antes del Inicio y el Total salía mal). Material Change y Removable
+    Denture miran la etapa activa (Zirconia / Denture usan las columnas z_)."""
+    etapa = _normalizar_texto(actual.get("etapa") or "")
+    segunda = etapa in (_normalizar_texto(ETAPA_ZIRCONIA), _normalizar_texto(ETAPA_DENTURE))
+    if (tabla == TABLA_MATERIAL or por_etapas) and segunda:
+        return bool((actual.get("z_hora_inicio") or "").strip())
+    return bool((actual.get("hora_inicio") or "").strip())
+
+
 def material_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
     """Como face_horas_por_estado, pero en la etapa activa de la orden (Bite: columnas de siempre; Zirconia: z_*).
     "Dr authorization" cuenta como Hold. Aprobar Bite llena su Fin y deja la orden en Zirconia design, Ready to design."""

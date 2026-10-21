@@ -66,6 +66,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   `FACE_/DUAL_/NG_/N2_NUEVO_DESDE` (services_design.py) y `DS_*_NUEVO_DESDE` / `dsHorasPorEstado` (schedule.js),
   todas en 2026-10-01; deben ir iguales en los dos lados. Las órdenes del 1 al 4 de octubre con el formato viejo
   se convirtieron una vez (marcas `*_formato_nuevo_oct1`, Inicio diseño → `hora_inicio`).
+- **Hold solo después de iniciar** (Rosember, 21-oct-2026): no se puede poner Hold (ni crear una orden en Hold) si la
+  etapa en curso no tiene Inicio (`orden_iniciada`; Material Change y Removable miran Zirconia/Denture con `z_`). Lo
+  valida el servidor (`HOLD_SIN_INICIO`) y la pantalla oculta la opción (`dsAjustarOpcionHold`). Motivo: casos puestos
+  en Hold antes de empezar dejaban el Start hold antes del Inicio y el Total salía mal (orden 243897).
 - **Crítico** (N3) es de selección múltiple: se guarda como «A; B»; N/A va sola.
 - **Total de la orden** = Fin − Inicio − Hold, con horas sin fecha. Dos correcciones que no se
   deben deshacer: varias noches en Hold suman los días perdidos (`_menos_hold`), y un Hold sin

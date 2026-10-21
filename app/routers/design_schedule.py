@@ -1372,6 +1372,8 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
             payload.designerId = user.id
     if sperm.dia_cerrado_para(db, user, _fecha(payload.fecha)):
         raise HTTPException(403, DIA_CERRADO)
+    if sd.es_hold(payload.estado) and not (payload.horaInicio or "").strip():
+        raise HTTPException(400, sd.HOLD_SIN_INICIO)   # una orden nueva no puede empezar en Hold (Rosember, 21-oct-2026)
     _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
     datos = _datos_desde_in(payload)
     t_face = db.get(DesignTeam, payload.teamId)
@@ -1453,6 +1455,8 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
         raise HTTPException(400, f"Hay filas con datos inválidos: {str(e)[:200]}")
     vistos: dict[str, int] = {}
     for datos in validadas:  # número repetido (máximo 5 por día): contra el día y dentro del mismo lote
+        if sd.es_hold(datos.estado) and not (datos.horaInicio or "").strip():
+            raise HTTPException(400, f"{datos.orden.strip() or 'Una fila'}: {sd.HOLD_SIN_INICIO}")
         n = datos.orden.strip().upper()
         if n and sd.orden_repetida(db, payload.teamId, fecha, n, mas=vistos.get(n, 0)):
             raise HTTPException(400, _msg_repetida(n))
@@ -1721,6 +1725,10 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         if viejo:
             datos["hora_inicio"] = viejo
     rd = team.area.nombre == sd.AREA_RD   # copia de Removable Denture: Bite design → Denture design
+    if ("estado" in datos and sd.es_hold(datos["estado"]) and not sd.es_hold(orden_existente.estado)
+            and not sd.orden_iniciada({c: datos.get(c, getattr(orden_existente, c)) for c in ("etapa", "hora_inicio", "z_hora_inicio")},
+                                      orden_existente.tabla, rd)):
+        raise HTTPException(400, sd.HOLD_SIN_INICIO)   # Hold solo después de iniciar (Rosember, 21-oct-2026)
     if rd and sd._normalizar_texto(datos.get("etapa", orden_existente.etapa) or "") not in (
             sd._normalizar_texto(sd.ETAPA_BITE), sd._normalizar_texto(sd.ETAPA_DENTURE)):
         datos["etapa"] = sd.ETAPA_BITE   # llegó a Removable Denture: empieza en Bite design
