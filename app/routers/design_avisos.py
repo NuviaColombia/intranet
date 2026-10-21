@@ -161,9 +161,27 @@ def api_enviar(mensaje_id: int, payload: EnviarIn, user: Empleado = Depends(requ
     else:
         if not sa._ids(m.grupos):
             raise HTTPException(400, "Este mensaje no tiene grupos: elige a dónde se envía.")
-        res = sa.enviar(db, m, _ahora(), "manual", user.nombre_completo)
-        if not res:
+        n = sa.objetivos_de(db, m)
+        if not n:
             raise HTTPException(400, "Los grupos de este mensaje no tienen canales ni personas.")
+        if n > 3:
+            # Muchos destinos: con la pausa por el límite de Cliq tarda; se envía en segundo plano (21-oct-2026)
+            import threading
+            from ..database import SessionLocal
+            mid, por, ahora = m.id, user.nombre_completo, _ahora()
+
+            def _fondo():
+                s2 = SessionLocal()
+                try:
+                    sa.enviar(s2, s2.get(DesignCliqMensaje, mid), ahora, "manual", por)
+                except Exception:  # noqa: BLE001
+                    import logging
+                    logging.getLogger("design.avisos").exception("Centro de avisos: envío manual en segundo plano")
+                finally:
+                    s2.close()
+            threading.Thread(target=_fondo, daemon=True).start()
+            return {"resultados": [], "enCurso": n}
+        res = sa.enviar(db, m, _ahora(), "manual", user.nombre_completo)
     return {"resultados": res}
 
 

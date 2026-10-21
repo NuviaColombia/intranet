@@ -118,7 +118,11 @@
     else if (b.dataset.a === 'enviar') {
       if (!confirm('¿Enviar «' + m.nombre + '» ahora a sus grupos?')) return;
       b.disabled = true;
-      api('/design/api/avisos/mensajes/' + m.id + '/enviar', {prueba: false}).then(function(d) { resultados(d.resultados); recargar(); })
+      api('/design/api/avisos/mensajes/' + m.id + '/enviar', {prueba: false}).then(function(d) {
+        if (d.enCurso) aviso('Enviando a ' + d.enCurso + ' destinos, con una pausa entre cada uno (límite de Cliq). Míralo en Historial.');
+        else resultados(d.resultados);
+        recargar();
+      })
         .catch(function(e) { aviso(e.message, true); }).then(function() { b.disabled = false; });
     } else if (b.dataset.a === 'duplicar') {
       api('/design/api/avisos/mensajes/' + m.id + '/duplicar', {}).then(function(d) {

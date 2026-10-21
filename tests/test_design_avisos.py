@@ -34,6 +34,8 @@ class Centro(unittest.TestCase):
                                            semanas=4, cliq_canales="supportnuviacolombiacom"))
         self.db.commit()
         self.enviados = []
+        for k in ("PAUSA_S", "ESPERA_429_S"):   # sin esperas reales en las pruebas
+            p = mock.patch.object(sa, k, 0); p.start(); self.addCleanup(p.stop)
         for p in (mock.patch.object(sc, "configurado", return_value=True),
                   mock.patch.object(sc, "enviar_canal", side_effect=lambda k, t, c=None, b=None: self.enviados.append(("canal", k, t)) or (True, "Enviado.")),
                   mock.patch.object(sc, "enviar_persona", side_effect=lambda k, t, c=None, b=None: self.enviados.append(("persona", k, t)) or (True, "Enviado.")),
@@ -64,6 +66,26 @@ class Centro(unittest.TestCase):
                 sa.revisar(self.db, datetime(2026, 10, 21, 7, 0))
         self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 21, 7, 1)), ["support_en_turno_2026-10-21_1"])
         self.assertIn("— Diurno", self.enviados[0][2])
+
+    def test_limite_de_cliq_reintenta(self):
+        sa.todo(self.db)
+        g = self.db.query(md.DesignCliqGrupo).filter_by(nombre="Support").one()
+        sa.guardar_grupo(self.db, {"id": g.id, "nombre": "Support", "destinos": [{"tipo": "canal", "valor": "uno"}, {"tipo": "canal", "valor": "dos"}]}, "Yo")
+        respuestas = {"dos": [(False, "Cliq respondió 429: request_limit_exceeded")] * 2 + [(True, "Enviado.")]}
+
+        def canal(k, t, c=None, b=None):
+            self.enviados.append(("canal", k, t))
+            return respuestas[k].pop(0) if respuestas.get(k) else (True, "Enviado.")
+        with mock.patch.object(sc, "enviar_canal", side_effect=canal):
+            sa.revisar(self.db, datetime(2026, 10, 21, 7, 0))
+            self.assertEqual([k for _, k, _ in self.enviados], ["uno", "dos", "dos"])   # 429 → espera y reintenta una vez
+            ult = self.db.query(md.DesignCliqEnvio).filter_by(destino="dos").one()
+            self.assertFalse(ult.ok)
+            ult.en = ult.en - sa.timedelta(minutes=3); self.db.commit()   # pasaron unos minutos
+            self.assertEqual(sa.reintentar_limite(self.db), 1)
+            self.assertEqual(sa.reintentar_limite(self.db), 0)   # ya salió: no se repite
+        h = sa.historial(self.db)
+        self.assertEqual((h[0]["destino"], h[0]["ok"], h[0]["origen"]), ("dos", True, "reintento"))
 
     def test_fin_de_semana_festivo_y_pausado_no(self):
         self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 24, 7, 5)), [])   # sábado

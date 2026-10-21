@@ -32,6 +32,11 @@ from .models_design import DesignCliqDestino, DesignCliqEnvio, DesignCliqGrupo, 
 
 log = logging.getLogger("design.avisos")
 VENTANA_MIN = 30
+# Límite de Cliq (21-oct-2026: «429 request_limit_exceeded» al enviar a varios canales seguidos): pausa entre destinos,
+# un reintento tras ESPERA_429_S y, si sigue fallando, el revisor lo reintenta solo (REINTENTOS_MAX veces en una hora).
+PAUSA_S = 2.0
+ESPERA_429_S = 20
+REINTENTOS_MAX = 4
 DISPARADORES = {
     "turno_support": "Al empezar cada turno de Support",
     "cambio_support": "El día del cambio de turno de Support",
@@ -366,7 +371,7 @@ def _enviar_uno(cliente, tipo: str, destino: str, texto: str, bot: str) -> tuple
 
 
 def enviar(db: Session, m: DesignCliqMensaje, ahora: datetime, origen: str = "manual", por: str = "Sistema",
-           turno: int | None = None, solo: tuple[str, str] | None = None) -> list[dict]:
+           turno: int | None = None, solo: tuple[str, str] | None = None, esperar_limite: bool = True) -> list[dict]:
     """Envía el mensaje a sus grupos (o solo a `solo` = (tipo, destino)) y lo deja en el historial."""
     texto = armar(m.texto, valores(db, ahora, turno))
     if solo:
@@ -382,12 +387,60 @@ def enviar(db: Session, m: DesignCliqMensaje, ahora: datetime, origen: str = "ma
                 objetivos.append((grupos[d.grupo_id].nombre, d.tipo, d.valor))
     out = []
     with httpx.Client(timeout=12) as cliente:
-        for grupo, tipo, destino in objetivos:
+        for i, (grupo, tipo, destino) in enumerate(objetivos):
+            if i:
+                time.sleep(PAUSA_S)
             ok, det = _enviar_uno(cliente, tipo, destino, texto, m.bot)
+            if not ok and es_limite(det) and esperar_limite:
+                time.sleep(ESPERA_429_S)
+                ok, det = _enviar_uno(cliente, tipo, destino, texto, m.bot)
             _envio(db, m, grupo, tipo, destino, m.bot, texto, ok, det, origen, por)
+            db.commit()   # el historial se va llenando mientras envía
             out.append({"grupo": grupo, "tipo": tipo, "destino": destino, "ok": ok, "detalle": det})
-    db.commit()
     return out
+
+
+def es_limite(detalle: str | None) -> bool:
+    d = detalle or ""
+    return d.startswith("Cliq respondió 429") or "request_limit_exceeded" in d or "throttle" in d.lower()
+
+
+def objetivos_de(db: Session, m: DesignCliqMensaje) -> int:
+    grupos = _ids(m.grupos)
+    dest = db.query(DesignCliqDestino).filter(DesignCliqDestino.grupo_id.in_(grupos or [-1])).all()
+    return len({(d.tipo, d.valor.lower()) for d in dest})
+
+
+def reintentar_limite(db: Session) -> int:
+    """Envíos que Cliq rechazó por límite (429) en la última hora y que no han salido después: se reintentan solos,
+    con pausa, hasta REINTENTOS_MAX veces cada uno. Devuelve cuántos reintentó."""
+    ahora = datetime.utcnow()
+    filas = (db.query(DesignCliqEnvio).filter(DesignCliqEnvio.en >= ahora - timedelta(hours=1))
+             .order_by(DesignCliqEnvio.en, DesignCliqEnvio.id).all())
+    por_clave: dict = {}
+    for e in filas:
+        por_clave.setdefault((e.mensaje_id, e.tipo, e.destino.lower(), e.texto), []).append(e)
+    pendientes = []
+    for intentos in por_clave.values():
+        ult = intentos[-1]
+        if ult.ok or not es_limite(ult.detalle) or ult.origen == "prueba":
+            continue
+        if len(intentos) > REINTENTOS_MAX or ult.en > ahora - timedelta(minutes=2):
+            continue
+        pendientes.append(ult)
+    hechos = 0
+    with httpx.Client(timeout=12) as cliente:
+        for e in pendientes[:10]:
+            if hechos:
+                time.sleep(PAUSA_S)
+            ok, det = _enviar_uno(cliente, e.tipo, e.destino, e.texto, e.bot if e.bot != sc.bot() else "")
+            m = db.get(DesignCliqMensaje, e.mensaje_id) if e.mensaje_id else None
+            n = _envio(db, m, e.grupo_nombre, e.tipo, e.destino, e.bot, e.texto, ok, det, "reintento", "Sistema (reintento automático)")
+            if not m:
+                n.mensaje_nombre = e.mensaje_nombre
+            db.commit()
+            hechos += 1
+    return hechos
 
 
 def probar_destino(db: Session, tipo: str, destino: str, por: str) -> dict:
@@ -483,6 +536,7 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
                 raise
             log.info("Centro de avisos · %s → %s", m.nombre, ", ".join(f"{r['destino']}: {r['detalle']}" for r in res))
             enviados.append(clave)
+    reintentar_limite(db)
     return enviados
 
 
