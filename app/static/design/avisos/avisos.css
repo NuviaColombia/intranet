@@ -13,6 +13,9 @@
 .av-conexion { font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:999px; background:var(--av-suave); border:1px solid var(--av-borde); }
 .av-conexion.ok { color:var(--av-ok); } .av-conexion.mal { color:var(--av-mal); background:var(--av-mal-suave); }
 
+.av-revisor { font-size:12.5px; margin:-6px 0 12px; color:var(--av-gris); }
+.av-revisor:empty { display:none; }
+.av-revisor.mal { color:var(--av-mal); font-weight:600; }
 .av-tabs { display:flex; gap:4px; border-bottom:1px solid var(--av-borde); margin-bottom:14px; overflow-x:auto; }
 .av-tab { background:none; border:0; border-bottom:2px solid transparent; padding:9px 14px; font:inherit; font-weight:600; color:var(--av-gris); cursor:pointer; white-space:nowrap; }
 .av-tab.on { color:var(--av-prim); border-bottom-color:var(--av-prim); }

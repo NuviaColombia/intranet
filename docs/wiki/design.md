@@ -99,6 +99,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   servidor estaba caído, sale dentro de 30 min. Los dos avisos de antes («Support Designer en turno» y
   «Cambio de turno de Support») quedaron como mensajes «de la plataforma»: se pausan, no se borran, y
   usan las mismas marcas de antes. `DESIGN_SIN_AVISOS_TURNO` apaga el hilo.
+  21-oct-2026: el hilo no puede morir (antes, un `rollback` fallido tras un error lo detenía para siempre
+  sin aviso); si un envío automático falla antes de llegar a Cliq, se quita su marca y se reintenta el
+  minuto siguiente. La página muestra si el envío automático está corriendo y su último error.
 
 ## Gotchas
 

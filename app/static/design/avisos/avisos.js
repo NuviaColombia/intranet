@@ -56,6 +56,16 @@
     var c = $('avConexion');
     c.className = 'av-conexion ' + (d.conexion.configurado ? 'ok' : 'mal');
     c.textContent = d.conexion.configurado ? 'Conectado a Cliq · bot ' + d.conexion.bot : 'Sin conexión: falta el token de Cliq en Render';
+    // Envío automático (21-oct-2026): si el revisor de este servidor no ha corrido hace rato, se avisa aquí
+    var rv = d.revisor || {}, el = $('avRevisor'), ahora = Date.now();
+    var hace = function(iso) { var m = Math.round((ahora - new Date(iso).getTime()) / 60000); return m < 1 ? 'hace menos de 1 min' : 'hace ' + m + ' min'; };
+    var viejo = rv.ultima ? (ahora - new Date(rv.ultima).getTime()) > 3 * 60000 : (rv.desde && (ahora - new Date(rv.desde).getTime()) > 3 * 60000);
+    var mal = !rv.activo || viejo;
+    el.className = 'av-revisor ' + (mal ? 'mal' : 'ok');
+    el.textContent = !rv.activo ? '⚠ El envío automático no está corriendo en el servidor: los mensajes programados no saldrán.'
+      : mal ? '⚠ El envío automático no revisa desde ' + (rv.ultima ? cuando(rv.ultima) : 'que arrancó el servidor') + '.'
+      : 'Envío automático activo · revisó ' + (rv.ultima ? hace(rv.ultima) : 'por arrancar') + (rv.desde ? ' · servidor encendido desde ' + cuando(rv.desde) : '');
+    if (rv.error) el.textContent += ' · Último error (' + cuando(rv.errorEn) + '): ' + rv.error;
     $('avCantMsg').textContent = d.mensajes.length;
     $('avCantGrp').textContent = d.grupos.length;
     pintarMensajes();

@@ -201,7 +201,10 @@ def todo(db: Session) -> dict:
     personas = (db.query(Empleado).filter(Empleado.activo == 1, Empleado.empresa == EMPRESA_DESIGN)
                 .order_by(Empleado.nombres, Empleado.apellidos).all())
     bots = sorted({sc.bot()} | {m.bot for m in mensajes if m.bot})
-    return {"conexion": {"configurado": sc.configurado(), "bot": sc.bot()}, "bots": bots,
+    iso = lambda d: d.isoformat() + "Z" if d else None
+    revisor = {"activo": _hilo["t"] is not None and _hilo["t"].is_alive(), "desde": iso(ESTADO["desde"]), "ultima": iso(ESTADO["ultima"]),
+               "error": ESTADO["error"], "errorEn": iso(ESTADO["error_en"])}
+    return {"conexion": {"configurado": sc.configurado(), "bot": sc.bot()}, "bots": bots, "revisor": revisor,
             "grupos": [_grupo_dict(g, [d for d in destinos if d.grupo_id == g.id], usos[g.id]) for g in grupos],
             "mensajes": [_mensaje_dict(m, ultimos.get(m.id)) for m in mensajes],
             "disparadores": [{"k": k, "l": v} for k, v in DISPARADORES.items()],
@@ -470,13 +473,22 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
             elif m.prog_fecha == hoy:
                 clave = f"cliq_msg_{m.id}_{hoy.isoformat()}_{m.prog_hora}"
         if clave and _marcar(db, clave):
-            res = enviar(db, m, ahora, "auto", "Sistema", turno)
+            try:
+                res = enviar(db, m, ahora, "auto", "Sistema", turno)
+            except Exception:
+                # 21-oct-2026: si el envío se cae antes de llegar a Cliq, se quita la marca para reintentar el minuto siguiente
+                db.rollback()
+                db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).delete()
+                db.commit()
+                raise
             log.info("Centro de avisos · %s → %s", m.nombre, ", ".join(f"{r['destino']}: {r['detalle']}" for r in res))
             enviados.append(clave)
     return enviados
 
 
 _hilo = {"t": None}
+# Estado del revisor automático de este servidor (se ve en la página): última revisión y último error (21-oct-2026)
+ESTADO = {"desde": None, "ultima": None, "error": "", "error_en": None}
 
 
 def arrancar() -> None:
@@ -487,15 +499,24 @@ def arrancar() -> None:
     def _bucle():
         from . import services_design as sd
         from .database import SessionLocal
+        ESTADO["desde"] = datetime.utcnow()
         while True:
             time.sleep(60)
-            db = SessionLocal()
-            try:
-                revisar(db, sd.ahora_colombia().replace(tzinfo=None))
-            except Exception:  # noqa: BLE001  un fallo nunca debe detener el hilo
-                db.rollback()
-                log.exception("Centro de avisos: no se pudo revisar")
-            finally:
-                db.close()
+            try:   # 21-oct-2026: nada aquí puede matar el hilo (antes un rollback fallido lo detenía para siempre)
+                db = SessionLocal()
+                try:
+                    revisar(db, sd.ahora_colombia().replace(tzinfo=None))
+                    ESTADO["ultima"] = datetime.utcnow()
+                except Exception as e:  # noqa: BLE001
+                    ESTADO["error"], ESTADO["error_en"] = f"{type(e).__name__}: {e}"[:300], datetime.utcnow()
+                    log.exception("Centro de avisos: no se pudo revisar")
+                    try:
+                        db.rollback()
+                    except Exception:  # noqa: BLE001
+                        pass
+                finally:
+                    db.close()
+            except Exception:  # noqa: BLE001
+                log.exception("Centro de avisos: fallo del revisor")
     _hilo["t"] = threading.Thread(target=_bucle, daemon=True, name="design-avisos")
     _hilo["t"].start()

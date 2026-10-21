@@ -58,6 +58,13 @@ class Centro(unittest.TestCase):
         h = sa.historial(self.db)
         self.assertEqual((h[0]["destino"], h[0]["ok"], h[0]["origen"]), ("supportnuviacolombiacom", True, "auto"))
 
+    def test_si_el_envio_se_cae_reintenta_el_minuto_siguiente(self):
+        with mock.patch.object(sa, "enviar", side_effect=RuntimeError("caída")):
+            with self.assertRaises(RuntimeError):
+                sa.revisar(self.db, datetime(2026, 10, 21, 7, 0))
+        self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 21, 7, 1)), ["support_en_turno_2026-10-21_1"])
+        self.assertIn("— Diurno", self.enviados[0][2])
+
     def test_fin_de_semana_festivo_y_pausado_no(self):
         self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 24, 7, 5)), [])   # sábado
         self.assertEqual(sa.revisar(self.db, datetime(2026, 10, 22, 7, 5)), [])   # festivo
