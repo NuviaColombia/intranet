@@ -164,6 +164,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   `ausencia_design_de`). Todo lo que necesite saber si alguien está ausente (Schedule, Seguimiento,
   Producción, Solicitar ayuda) debe usar esa función, no solo `DesignBreak.tipo_ausencia`. Los
   permisos por horas (`permisos_por_horas_del_dia`) no son ausencia: son aviso y pausa.
+  Cuentan los permisos **aprobados y los «pendiente de soporte»** (`ESTADOS_AUSENCIA_PEOPLE`; 21-oct-2026:
+  las licencias ya aprobadas por el jefe que esperan que People valide el documento salían libres).
+- **Seguimiento sin Support** (Rosember, 21-oct-2026): no salen los equipos de Support ni las dos personas de
+  Support Time, aunque trabajen casos de N3; quien solo cubre un turno sí sale.
 - Si necesitas el detalle de un submódulo específico (Schedule, Dashboard, Pre-Approved, Office,
   Training...), conviene que esa investigación se convierta en su propia página aquí -- esta
   página es deliberadamente superficial para que siga siendo útil sin volverse obsoleta.

@@ -1119,13 +1119,18 @@ def ausencia_design_de(nombre_tipo: str, es_vacaciones: bool, catalogo: list[str
     return por_norma.get("permiso personal") or (catalogo[0] if catalogo else nombre_tipo)
 
 
+# Estados de People que cuentan como ausencia: aprobada y «pendiente de soporte» (21-oct-2026, Rosember: las licencias
+# ya aprobadas por el jefe quedan esperando que People valide el documento, y mientras tanto salían libres en Seguimiento).
+ESTADOS_AUSENCIA_PEOPLE = ("aprobada", "pendiente_soporte")
+
+
 def _permisos_aprobados_del_dia(db: Session, empleado_ids: list[int], fecha: date) -> dict[int, str]:
     """{empleado_id: nombre_ausencia_design} para permisos de día completo aprobados en People que cubren `fecha`."""
     if not empleado_ids:
         return {}
     filas = (db.query(Solicitud.empleado_id, TipoPermiso.nombre, TipoPermiso.es_vacaciones)
             .join(TipoPermiso, Solicitud.tipo_id == TipoPermiso.id)
-            .filter(Solicitud.empleado_id.in_(empleado_ids), Solicitud.estado == "aprobada",
+            .filter(Solicitud.empleado_id.in_(empleado_ids), Solicitud.estado.in_(ESTADOS_AUSENCIA_PEOPLE),
                     Solicitud.fecha_inicio <= fecha, Solicitud.fecha_fin >= fecha,
                     Solicitud.hora_inicio.is_(None), Solicitud.hora_fin.is_(None)).all())
     if not filas:
@@ -1141,7 +1146,7 @@ def permisos_por_horas_del_dia(db: Session, empleado_ids: list[int], fecha: date
     out: dict[int, list[dict]] = {}
     for eid, tipo, hi, hf in (db.query(Solicitud.empleado_id, TipoPermiso.nombre, Solicitud.hora_inicio, Solicitud.hora_fin)
                               .join(TipoPermiso, Solicitud.tipo_id == TipoPermiso.id)
-                              .filter(Solicitud.empleado_id.in_(empleado_ids), Solicitud.estado == "aprobada",
+                              .filter(Solicitud.empleado_id.in_(empleado_ids), Solicitud.estado.in_(ESTADOS_AUSENCIA_PEOPLE),
                                       Solicitud.fecha_inicio <= fecha, Solicitud.fecha_fin >= fecha,
                                       Solicitud.hora_inicio.isnot(None))
                               .order_by(Solicitud.hora_inicio)):
@@ -1374,8 +1379,16 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
     trasladar_holds(db)
     ahora = ahora or ahora_colombia()
     hoy, minuto = ahora.date(), ahora.hour * 60 + ahora.minute
-    equipos = (db.query(DesignTeam).join(DesignArea).filter(DesignTeam.activo == 1, DesignArea.activo == 1)
+    equipos = (db.query(DesignTeam).join(DesignArea).filter(DesignTeam.activo == 1, DesignArea.activo == 1,
+                                                            DesignArea.formato != FORMATO_SUPPORT)
                .options(joinedload(DesignTeam.area), joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado)).all())
+    # Support no sale en Seguimiento (Rosember, 21-oct-2026): ni sus equipos ni las dos personas de Support Time,
+    # aunque trabajen casos de N3 como «Support Designer». Quien solo cubre un turno sí sale (es de su equipo).
+    from . import services_design_support as _ss
+    _cfg = _ss.config(db)
+    sin_support = {i for i in (_cfg.persona_a_id, _cfg.persona_b_id) if i} | {
+        i for (i,) in db.query(DesignTeamDesigner.empleado_id).join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+        .join(DesignArea, DesignArea.id == DesignTeam.area_id).filter(DesignArea.formato == FORMATO_SUPPORT, DesignTeam.activo == 1)}
     personas: dict[int, dict] = {}
     for t in equipos:
         for d in t.designers:
@@ -1416,6 +1429,8 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
                 x["equipos"].append(t.nombre); x["teamIds"].append(t.id)
                 if t.area.nombre not in x["areas"]:
                     x["areas"].append(t.area.nombre)
+    for i in sin_support:
+        personas.pop(i, None)
     ids = list(personas)
     ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.team))
                .filter(DesignOrden.fecha == hoy, DesignOrden.designer_id.in_(ids)).all()) if ids else []
