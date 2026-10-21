@@ -91,6 +91,7 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`services_design_aprobacion.lentas`); al marcar el QC salen de la lista.
 - **Dashboard › Ayudas** (21-oct-2026): «Enviada a» y la tabla por aprobador salen de `design_ayuda_ofertas` (a quién le
   llegó cada solicitud); respuesta promedio = atendida_en − creada_en de las que ese aprobador atendió.
+  Los admins pueden eliminar una solicitud (p. ej. de prueba) con sus envíos; la orden no cambia (`eliminar_solicitud`).
 - **Reporte mensual** (Dashboard › Reportes, Rosember, 21-oct-2026; `services_design_reportes`): para la
   Directora de producción, ES/EN, se descarga con Imprimir › PDF. Solo lo que tiene problemas: centros con
   cirugías de N3 cuya articulación pasó de 2 h (`dashboard_articulacion`) y cambios adicionales (Cambios

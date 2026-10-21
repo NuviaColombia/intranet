@@ -394,3 +394,14 @@ def reporte(db: Session, desde: date, hasta: date) -> dict:
                        "respuestaProm": round(sum(a["minutos"]) / len(a["minutos"]), 1) if a["minutos"] else None}
                       for a in por_aprobador.values()), key=lambda a: (-a["atendidas"], -a["recibidas"], a["nombre"]))
     return {"kpis": kpis, "porAprobador": resumen, "items": filas}
+
+
+def eliminar_solicitud(db: Session, solicitud_id: int) -> bool:
+    """Borra una solicitud y sus envíos a los aprobadores (Dashboard › Ayudas, solo admins). No toca la orden."""
+    s = db.get(DesignAyudaSolicitud, solicitud_id)
+    if s is None:
+        return False
+    db.query(DesignAyudaOferta).filter(DesignAyudaOferta.solicitud_id == solicitud_id).delete()
+    db.delete(s)
+    db.commit()
+    return True

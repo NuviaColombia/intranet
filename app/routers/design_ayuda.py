@@ -65,3 +65,12 @@ def api_dashboard_ayudas(desde: str = Query(..., max_length=10), hasta: str = Qu
     if h < d or (h - d).days > 400:
         raise HTTPException(400, "Revisa el periodo (desde, hasta).")
     return say.reporte(db, d, h)
+
+
+@router.post("/design/api/dashboard/ayudas/{solicitud_id}/eliminar")
+def api_eliminar_ayuda(solicitud_id: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Solo admins (Rosember, 21-oct-2026): borrar una solicitud de ayuda (p. ej. una de prueba) y a quién se le envió.
+    La orden y el diseñador que se le haya asignado no cambian."""
+    if not say.eliminar_solicitud(db, solicitud_id):
+        raise HTTPException(404, "Esa solicitud ya no existe.")
+    return {"ok": True}
