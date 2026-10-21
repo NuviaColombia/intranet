@@ -423,7 +423,7 @@
     return pg.render({canvasContext: x, viewport: v2}).promise.then(function() { return c.toDataURL('image/jpeg', 0.85); });
   }
   // Recorre las operaciones de dibujo para ubicar las imágenes (con su matriz de transformación).
-  // conAlfa: las imágenes con transparencia salen en PNG (logos); si no, JPEG. También la usa Protocols (protocolo.js).
+  // conAlfa: las imágenes con transparencia salen en PNG (logos); si no, JPEG.
   function extraerImagenes(pdfjs, pg, ops, vp, conAlfa) {
     var O = pdfjs.OPS, pila = [], ctm = [1, 0, 0, 1, 0, 0], res = [];
     res.vinetas = [];  // viñetas dibujadas (puntos o cuadritos rellenos pequeños)

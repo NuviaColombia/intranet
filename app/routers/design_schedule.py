@@ -3,13 +3,11 @@ import json
 from urllib.parse import quote
 import logging
 import os
-import re
 from datetime import date, datetime
 from typing import Literal
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, Query, UploadFile, File
 from ..concurrencia import clase_con_cupo
-from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import RedirectResponse, Response, StreamingResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -31,7 +29,6 @@ from .. import services_design_qc as sq
 from .. import services_design_produccion as sprod  # Seguimiento › N3/N2 Producción
 from .. import services_design_pa_excel as spx
 from .. import services_design_openings_historial as soh  # historial de Openings (también instala el registro)
-from .. import services_design_protocolos_edicion as spe  # Protocols: editar en Nuvia Office y publicar  # Pre-Approved N3 desde el Excel (12-oct-2026)
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
 
 
@@ -247,8 +244,6 @@ def pagina(request: Request, user: Empleado = Depends(require_modulo("design_sch
               "misEquipos": sd.mis_equipos(db, user),  # empleados y aprobadores entran directo a su schedule
               "comments": sd.comments_permitidos(db, user),
               "miPreapproved": sd.preapproved_hoja_de(db, user)}  # Pre-Approved abre la hoja de su equipo
-    pr_areas = sd.pr_areas_permitidas(db, user)  # Protocols: su área y la pareja (None = todas)
-    inicio["prAreas"] = sorted(pr_areas) if pr_areas is not None else None
     inicio["miEquipo"] = ({"areaId": inicio["misEquipos"][0]["areaId"], "teamId": inicio["misEquipos"][0]["teamId"]}
                           if inicio["misEquipos"] else None)
     # `areas` también llena el filtro de Área del Dashboard (desde que Design es una sola página salía vacío).
@@ -2882,8 +2877,8 @@ def api_papelera_listar(user: Empleado = Depends(require_admin), db: Session = D
             "eliminado_en": t.eliminado_en.strftime("%d/%m/%Y %H:%M")} for t in sd.trash_listar(db)]
 
 
-# Lo que solo los admins editan (Protocolos, Openings) tampoco lo restaura un aprobador desde la Papelera.
-PAPELERA_SOLO_ADMIN = ("protocol", "openings-fila", "openings-col")
+# Lo que solo los admins editan (Openings) tampoco lo restaura un aprobador desde la Papelera.
+PAPELERA_SOLO_ADMIN = ("openings-fila", "openings-col")
 
 
 @router.post("/design/api/papelera/{trash_id}/restaurar")
@@ -2931,7 +2926,7 @@ def api_favoritos_activos(user: Empleado = Depends(require_modulo("design_schedu
                                 db: Session = Depends(get_db)):
     activos = sd.favoritos_activos(db, user.id)
     return {"teams": list(activos["teams"]), "preapproved": list(activos["preapproved"]),
-           "protocolos": list(activos["protocolos"]), "cmtTemplates": list(activos["cmtTemplates"])}
+           "cmtTemplates": list(activos["cmtTemplates"])}
 
 
 @router.post("/design/api/favoritos/team/{team_id}/toggle")
@@ -2950,13 +2945,6 @@ def api_favorito_toggle_preapproved(sheet_id: int, user: Empleado = Depends(requ
     return {"favorito": sd.favorito_toggle_preapproved(db, user.id, sheet_id)}
 
 
-@router.post("/design/api/favoritos/protocolo/{protocolo_id}/toggle")
-def api_favorito_toggle_protocolo(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
-                                        db: Session = Depends(get_db)):
-    _exigir_para_marcar(db, user, "protocolos", protocolo_id, sd.DesignProtocolo, "Protocolo no encontrado.")
-    return {"favorito": sd.favorito_toggle_protocolo(db, user.id, protocolo_id)}
-
-
 def _exigir_para_marcar(db: Session, user: Empleado, clave: str, obj_id: int, modelo, msg: str) -> None:
     """Al marcar un favorito el elemento debe existir (antes: error 500 por la llave foránea en Postgres).
     Quitar un favorito siempre se puede, aunque el elemento ya no exista."""
@@ -2964,348 +2952,7 @@ def _exigir_para_marcar(db: Session, user: Empleado, clave: str, obj_id: int, mo
         raise HTTPException(404, msg)
 
 
-# ---------- Protocols ----------
-
-@router.get("/design/protocols")
-def pagina_protocols(request: Request, user: Empleado = Depends(require_modulo("design_schedule"))):
-    return _redirigir_a_panel(request, "protocols")
-
-
-# Protocolos: solo los admins suben, editan o eliminan (1-oct-2026); el resto los consulta.
-PROTOCOLOS_ROLES_EDITAN = ("admin", "superadmin")
-
-
-def _pr_editor(user: Empleado) -> None:
-    if user.rol not in PROTOCOLOS_ROLES_EDITAN:
-        raise HTTPException(403, "Solo los administradores pueden subir o editar protocolos.")
-
-
-def _pr_area_permitida(db: Session, user: Empleado, area_id: int) -> None:
-    """Cada equipo ve los protocolos de su área y de su pareja (N2↔Face, N3↔N6); ver sd.pr_areas_permitidas."""
-    permitidas = sd.pr_areas_permitidas(db, user)
-    if permitidas is not None and area_id not in permitidas:
-        raise HTTPException(403, "No tienes acceso a los protocolos de esa área.")
-
-
-def _pr_protocolo_permitido(db: Session, user: Empleado, protocolo_id: int) -> None:
-    if not sd.pr_puede_ver(db, protocolo_id, sd.pr_areas_permitidas(db, user)):
-        raise HTTPException(403, "No tienes acceso a este protocolo.")
-
-
-@router.get("/design/api/protocolos")
-def api_protocolos_listar(area_id: int = 0, user: Empleado = Depends(require_modulo("design_schedule")),
-                                db: Session = Depends(get_db)):
-    _pr_area_permitida(db, user, area_id)
-    return {"protocolos": sd.protocolos_listar(db, area_id or None), "puedeEditar": user.rol in PROTOCOLOS_ROLES_EDITAN}
-
-
-@router.get("/design/api/protocolos/buscar")
-def api_protocolos_buscar(q: str = "", area_id: int = 0, protocolo_id: int = 0, solo: str = "",
-                                user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    _pr_area_permitida(db, user, area_id)
-    ids = [int(x) for x in solo.split(",") if x.strip().isdigit()]
-    return sd.protocolos_buscar(db, area_id or None, q, protocolo_id or None, protocolo_ids=ids or None)
-
-
-@router.get("/design/api/protocolos/espacio")
-def api_protocolos_espacio(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    _pr_editor(user)
-    return sd.pr_espacio(db)
-
-
-@router.get("/design/api/protocolos/{protocolo_id}")
-def api_protocolo_detalle(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
-                                db: Session = Depends(get_db)):
-    p = sd.protocolo_detalle(db, protocolo_id)
-    if not p:
-        raise HTTPException(404, "No encontrado.")
-    _pr_protocolo_permitido(db, user, protocolo_id)
-    d = sd.pr_resumen(db, p)
-    d["contenido"] = p.contenido
-    return d
-
-
-@router.get("/design/api/protocolos/{protocolo_id}/pdf")
-def api_protocolo_pdf(protocolo_id: int, request: Request, user: Empleado = Depends(require_modulo("design_schedule")),
-                            db: Session = Depends(get_db)):
-    """Sirve el PDF por rangos (el visor pide solo las partes que necesita) o completo en streaming,
-    leyendo de la base de datos de a 1 MB para no cargar archivos grandes en memoria."""
-    a = sd.pr_archivo_info(db, protocolo_id)
-    if not a:
-        raise HTTPException(404, "Este protocolo no tiene PDF.")
-    _pr_protocolo_permitido(db, user, protocolo_id)
-    archivo_id, total = a.id, int(a.tamano or 0)
-    nombre = (a.nombre or "protocolo.pdf").replace('"', "").encode("ascii", "ignore").decode() or "protocolo.pdf"
-    base = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=86400", "ETag": f'"pr{archivo_id}-{total}"',
-            "Content-Disposition": f'inline; filename="{nombre}"'}
-    rango = request.headers.get("range", "")
-    m = re.match(r"bytes=(\d*)-(\d*)$", rango.strip())
-    if m and total:
-        ini = int(m.group(1)) if m.group(1) else max(0, total - int(m.group(2) or 0))
-        fin = min(int(m.group(2)), total - 1) if (m.group(1) and m.group(2)) else total - 1
-        fin = min(fin, ini + 2 * 1024 * 1024 - 1)  # el cliente pide el resto en otra petición (RFC 9110)
-        if ini >= total or fin < ini:
-            return Response(status_code=416, headers={"Content-Range": f"bytes */{total}"})
-        datos = sd.pr_archivo_trozo(db, archivo_id, ini, fin - ini + 1)
-        return Response(content=datos, status_code=206, media_type="application/pdf",
-                        headers={**base, "Content-Range": f"bytes {ini}-{fin}/{total}", "Content-Length": str(len(datos))})
-
-    def trozos():
-        from ..database import SessionLocal
-        s2 = SessionLocal()
-        try:
-            pos = 0
-            while pos < total:
-                d = sd.pr_archivo_trozo(s2, archivo_id, pos, 1024 * 1024)
-                if not d:
-                    break
-                yield d
-                pos += len(d)
-        finally:
-            s2.close()
-    return StreamingResponse(trozos(), media_type="application/pdf", headers={**base, "Content-Length": str(total)})
-
-
-# Miniatura de la primera diapositiva: la tarjeta muestra esta imagen en vez de abrir el PDF (que es lento).
-PR_MINI_TIPOS = ("image/jpeg", "image/png", "image/webp")
-
-
-@router.get("/design/api/protocolos/{protocolo_id}/miniatura")
-def api_protocolo_miniatura(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
-                            db: Session = Depends(get_db)):
-    a = sd.pr_archivo_info(db, protocolo_id)
-    m = sd.pr_miniatura(db, a.id) if a else None
-    if not m:
-        raise HTTPException(404, "Sin miniatura.")
-    _pr_protocolo_permitido(db, user, protocolo_id)
-    return Response(content=m.datos, media_type=m.tipo,
-                    headers={"Cache-Control": "private, max-age=604800", "ETag": f'"mini{a.id}"'})
-
-
-@router.post("/design/api/protocolos/{protocolo_id}/miniatura")
-async def api_protocolo_miniatura_guardar(protocolo_id: int, request: Request,
-                                          user: Empleado = Depends(require_modulo("design_schedule")),
-                                          db: Session = Depends(get_db)):
-    tipo = (request.headers.get("content-type") or "").split(";")[0].strip()
-    if tipo not in PR_MINI_TIPOS:
-        raise HTTPException(400, "Formato de imagen no válido.")
-    datos = await request.body()
-    if not datos or len(datos) > 400 * 1024:
-        raise HTTPException(400, "La miniatura debe pesar menos de 400 KB.")
-    a = sd.pr_archivo_info(db, protocolo_id)
-    if not a:
-        raise HTTPException(404, "Este protocolo no tiene PDF.")
-    _pr_protocolo_permitido(db, user, protocolo_id)
-    # La primera que llega queda; solo quien edita protocolos puede reemplazarla.
-    guardada = sd.pr_miniatura_guardar(db, a.id, tipo, datos, reemplazar=user.rol in PROTOCOLOS_ROLES_EDITAN)
-    return {"ok": True, "guardada": guardada}
-
-
-class PdfNuevoIn(BaseModel):
-    nombre: str = ""
-    tamano: int
-
-
-@router.post("/design/api/protocolos/subida")
-def api_protocolo_subida_iniciar(payload: PdfNuevoIn, user: Empleado = Depends(require_modulo("design_schedule")),
-                                       db: Session = Depends(get_db)):
-    _pr_editor(user)
-    if payload.tamano <= 0 or payload.tamano > sd.PR_MAX_BYTES:
-        raise HTTPException(413, f"El PDF debe pesar menos de {sd.PR_MAX_BYTES // (1024 * 1024)} MB.")
-    a = sd.pr_subida_iniciar(db, payload.nombre, payload.tamano)
-    return {"archivoId": a.id, "parte": sd.PR_PARTE_MAX - 1024 * 1024}
-
-
-@router.post("/design/api/protocolos/subida/{archivo_id}/parte")
-async def api_protocolo_subida_parte(archivo_id: int, offset: int, request: Request,
-                                     user: Empleado = Depends(require_modulo("design_schedule")),
-                                     db: Session = Depends(get_db)):
-    _pr_editor(user)
-    if int(request.headers.get("content-length") or 0) > sd.PR_PARTE_MAX:
-        raise HTTPException(413, "Parte del archivo inválida.")
-    datos = await request.body()
-    if not datos or len(datos) > sd.PR_PARTE_MAX:
-        raise HTTPException(413, "Parte del archivo inválida.")
-    try:
-        largo = await run_in_threadpool(sd.pr_subida_parte, db, archivo_id, offset, datos)
-    except ValueError as e:
-        raise HTTPException(409, str(e))
-    if largo is None:
-        raise HTTPException(404, "La subida no existe o ya terminó.")
-    return {"recibido": largo}
-
-
-class PdfFinalizarIn(BaseModel):
-    titulo: str = ""
-    areas: list[int] = []
-    version: str = "v1.0"
-    paginas: list[str] = []
-
-
-@router.post("/design/api/protocolos/subida/{archivo_id}/finalizar")
-def api_protocolo_subida_finalizar(archivo_id: int, payload: PdfFinalizarIn,
-                                         user: Empleado = Depends(require_modulo("design_schedule")),
-                                         db: Session = Depends(get_db)):
-    _pr_editor(user)
-    if not payload.areas:
-        raise HTTPException(400, "Elige al menos un área.")
-    try:
-        p = sd.pr_subida_finalizar(db, archivo_id, payload.titulo, payload.areas, payload.paginas,
-                                   payload.version, user.nombre_completo)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    return {"id": p.id}
-
-
-class ProtocoloEditIn(BaseModel):
-    titulo: str | None = None
-    areas: list[int] | None = None
-    version: str | None = None
-
-
-@router.post("/design/api/protocolos/{protocolo_id}")
-def api_protocolo_actualizar(protocolo_id: int, payload: ProtocoloEditIn,
-                                   user: Empleado = Depends(require_modulo("design_schedule")),
-                                   db: Session = Depends(get_db)):
-    _pr_editor(user)
-    if payload.areas is not None and not payload.areas:
-        raise HTTPException(400, "Elige al menos un área.")
-    if not sd.protocolo_actualizar(db, protocolo_id, payload.titulo, payload.areas, payload.version):
-        raise HTTPException(404, "No encontrado.")
-    return {"mensaje": "Actualizado."}
-
-
-class ProtocoloIn(BaseModel):
-    areaId: int | None = None
-    areas: list[int] | None = None
-    titulo: str
-    descripcion: str = ""
-    contenido: str = ""
-    version: str = "v1.0"
-
-
-@router.post("/design/api/protocolos")
-def api_protocolo_crear(payload: ProtocoloIn, user: Empleado = Depends(require_modulo("design_schedule")),
-                              db: Session = Depends(get_db)):
-    _pr_editor(user)
-    p = sd.protocolo_crear(db, payload.areaId, payload.titulo, payload.descripcion, payload.contenido,
-                           payload.version, user.nombre_completo, payload.areas)
-    return {"id": p.id}
-
-
-# ---------- Protocols: editar en Nuvia Office, publicar versión nueva e historial ----------
-
-class PrBorradorIn(BaseModel):
-    contenido: str
-    reemplazar: bool = False
-
-
-@router.get("/design/api/protocolos/{protocolo_id}/borrador")
-def api_pr_borrador(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    _pr_editor(user)
-    try:
-        return spe.estado_borrador(db, protocolo_id, user)
-    except KeyError:
-        raise HTTPException(404, "El protocolo no existe.")
-
-
-@router.post("/design/api/protocolos/{protocolo_id}/borrador")
-def api_pr_borrador_crear(protocolo_id: int, payload: PrBorradorIn, user: Empleado = Depends(require_modulo("design_schedule")),
-                          db: Session = Depends(get_db)):
-    _pr_editor(user)
-    try:
-        doc = spe.crear_borrador(db, protocolo_id, user, payload.contenido, payload.reemplazar)
-    except KeyError:
-        raise HTTPException(404, "El protocolo no existe.")
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    return {"docId": doc.id}
-
-
-class PrPublicarIn(BaseModel):
-    archivoId: int
-    paginas: list[str] = []
-    version: str = Field("", max_length=20)
-    nota: str = Field("", max_length=500)
-
-
-@router.post("/design/api/protocolos/{protocolo_id}/publicar")
-def api_pr_publicar(protocolo_id: int, payload: PrPublicarIn, user: Empleado = Depends(require_modulo("design_schedule")),
-                    db: Session = Depends(get_db)):
-    _pr_editor(user)
-    try:
-        p = spe.publicar(db, protocolo_id, payload.archivoId, payload.paginas, payload.version, payload.nota, user.nombre_completo)
-    except KeyError:
-        raise HTTPException(404, "El protocolo no existe.")
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    return sd.pr_resumen(db, p)
-
-
-@router.get("/design/api/protocolos/{protocolo_id}/versiones")
-def api_pr_versiones(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    _pr_protocolo_permitido(db, user, protocolo_id)
-    return {"versiones": spe.versiones(db, protocolo_id), "puedeEditar": user.rol in PROTOCOLOS_ROLES_EDITAN}
-
-
-@router.get("/design/api/protocolos/versiones/{version_id}/pdf")
-def api_pr_version_pdf(version_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    v, a = spe.version_archivo(db, version_id)
-    if not v or not a:
-        raise HTTPException(404, "Esa versión ya no está disponible.")
-    _pr_protocolo_permitido(db, user, v.protocolo_id)
-    nombre = re.sub(r"[^A-Za-z0-9 ._-]", "", (a.nombre or "protocolo.pdf").rsplit(".", 1)[0])[:120] or "protocolo"
-    total = int(a.tamano or 0)
-
-    def trozos():
-        from ..database import SessionLocal
-        s2 = SessionLocal()
-        try:
-            pos = 0
-            while pos < total:
-                d = sd.pr_archivo_trozo(s2, a.id, pos, 1024 * 1024)
-                if not d:
-                    break
-                yield d
-                pos += len(d)
-        finally:
-            s2.close()
-    return StreamingResponse(trozos(), media_type="application/pdf",
-                             headers={"Content-Length": str(total), "Cache-Control": "private, max-age=86400",
-                                      "Content-Disposition": f'inline; filename="{nombre} {v.version}.pdf"'})
-
-
-@router.post("/design/api/protocolos/versiones/{version_id}/eliminar")
-def api_pr_version_eliminar(version_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    _pr_editor(user)
-    try:
-        spe.borrar_version(db, version_id)
-    except KeyError:
-        raise HTTPException(404, "La versión no existe.")
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    return {"ok": True}
-
-
-@router.post("/design/api/protocolos/versiones/{version_id}/restaurar")
-def api_pr_version_restaurar(version_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    _pr_editor(user)
-    try:
-        p = spe.restaurar_version(db, version_id, user.nombre_completo)
-    except KeyError:
-        raise HTTPException(404, "La versión no existe.")
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    return sd.pr_resumen(db, p)
-
-
-@router.post("/design/api/protocolos/{protocolo_id}/eliminar")
-def api_protocolo_eliminar(protocolo_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
-                                 db: Session = Depends(get_db)):
-    _pr_editor(user)
-    if not sd.protocolo_eliminar(db, protocolo_id, user.nombre_completo):
-        raise HTTPException(404, "No encontrado.")
-    return {"mensaje": "Enviado a la Papelera."}
+# Protocols (biblioteca de SOPs, PDF, versiones y edición en Nuvia Office) se retiró el 21-oct-2026 (Rosember).
 
 
 # ---------- Canvas ----------

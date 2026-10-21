@@ -153,10 +153,9 @@ export function pasoEditable(p, ctx) {
           ctx, { agregar: 'Pregunta', min: 1, max: 6, clsItem: 'tr-el-preg-w' }));
     case 'enlace': {
       const lecc = ctx.lecciones();
-      return caja('', h('div', { class: 'tr-enlace' }, h('div', { class: 'tr-enlace-ico' }, p.lecc ? '📚' : '📋'),
+      return caja('', h('div', { class: 'tr-enlace' }, h('div', { class: 'tr-enlace-ico' }, '📚'),
         h('div', { class: 'tr-enlace-txt' }, campoDe(p, 'titulo', c, { tag: 'h3', ph: 'Título' }), campoDe(p, 'texto', c, { multi: true, ph: 'Texto' }),
-          h('div', { class: 'tr-el-fila' }, h('span', null, 'Lleva a: '), sel([['', '— un protocolo de Protocols —'], ...lecc], p.lecc || '', (v) => { if (v) { p.lecc = v; delete p.protocolo; } else { delete p.lecc; p.protocolo = p.protocolo || ''; } est(); }, { titulo: 'Destino del enlace' }),
-            !p.lecc ? h('span', null, ' Buscar: ', campoSimple(p, 'protocolo', c, { ph: 'nombre del protocolo' })) : null))));
+          h('div', { class: 'tr-el-fila' }, h('span', null, 'Lleva a: '), sel([['', '— elige una lección —'], ...lecc], p.lecc || '', (v) => { p.lecc = v; delete p.protocolo; est(); }, { titulo: 'Destino del enlace' })))));
     }
     case 'lider':
       return caja('', h('div', { class: 'tr-el-fila' }, h('span', null, 'Área: '), sel([['face', 'Face Design'], ['n2', 'N2 Demodenture'], ['n3', 'N3 Prosthetic'], ['n6', 'N6 Material Changes'], ['support', 'Support'], ['todas', 'Todas las áreas']], p.area, (v) => { p.area = v; est(); })),

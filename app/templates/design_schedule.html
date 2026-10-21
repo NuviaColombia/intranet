@@ -2,23 +2,6 @@
 {% block titulo %}Design Schedule{% endblock %}
 {% block contenido %}
 {% include "_design_simulacion.html" %}
-<script>
-// pdf.js pesa ~300 KB: antes se descargaba y ejecutaba en cada visita (bloqueaba la carga ~200 ms, y hasta
-// ~2.6 s en frío) aunque nunca se abriera Protocols. Ahora se carga la primera vez que se necesita.
-window.dsPdfjs = function() {
-  if (!window._dsPdfjsProm) window._dsPdfjsProm = new Promise(function(ok, falla) {
-    var sc = document.createElement('script');
-    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    sc.onload = function() {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      ok(window.pdfjsLib);
-    };
-    sc.onerror = function() { window._dsPdfjsProm = null; falla(new Error('No se pudo cargar el lector de PDF. Revisa la conexión.')); };
-    document.head.appendChild(sc);
-  });
-  return window._dsPdfjsProm;
-};
-</script>
 <link rel="stylesheet" href="/static/design/schedule.css?v={{ dsv }}">
 
 <div id="ds-app">
@@ -297,41 +280,7 @@ window.dsPdfjs = function() {
 <div class="cv-area-tabs" id="cvAreaTabs"></div>
 <div id="canvasHome"></div>
 <div id="canvasEditor" style="display:none"></div></div></div>
-<div class="ds-overlay" id="ov-protocols"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Protocols — Design Schedule</h1>
-
-<div class="pr-top">
-  <div class="pr-tabs" id="prAreaTabs"></div>
-  <div class="pr-top-der" id="prHerr" style="display:none">
-    <button type="button" class="faq-gbtn" onclick="prSubirAbrir()" title="Subir uno o varios PDF (diapositivas de Zoho Show)">⬆ Subir protocolos (PDF)</button>
-  </div>
-</div>
-<div class="pr-buscar-wrap"><span class="pr-buscar-ico">🔎</span>
-  <input type="search" class="pr-buscar" id="prSearch" placeholder="Busca una palabra en los protocolos (ej. tissue)..." autocomplete="off">
-</div>
-<div class="pr-solo" id="prSolo" style="display:none"></div>
-<div class="pr-cuenta" id="prCuenta"></div>
-<div class="pr-panel"><div id="prGrid"></div></div>
-<input type="file" id="prFileInput" accept="application/pdf,.pdf" multiple style="display:none">
-
-<div class="pr-visor-bg" id="prVisor" role="dialog" aria-modal="true" aria-labelledby="prVisorTitulo">
-  <div class="pr-visor-bar">
-    <span class="t" id="prVisorTitulo"></span>
-    <span class="n" id="prVisorPos"></span>
-    <button type="button" id="prVisorAnt" title="Diapositiva anterior (←)" aria-label="Diapositiva anterior">‹</button>
-    <button type="button" id="prVisorSig" title="Diapositiva siguiente (→)" aria-label="Diapositiva siguiente">›</button>
-    <span class="n" id="prVisorCoinc"></span>
-    <span class="sp"></span>
-    <button type="button" id="prVisorMenos" title="Alejar" aria-label="Alejar">−</button>
-    <button type="button" id="prVisorMas" title="Acercar" aria-label="Acercar">+</button>
-    <a id="prVisorDescargar" target="_blank" rel="noopener" title="Abrir o descargar el PDF">⬇ PDF</a>
-    <button type="button" id="prVisorCerrar" title="Cerrar (Esc)" aria-label="Cerrar visor">✕</button>
-  </div>
-  <div class="pr-visor-body">
-    <div class="pr-visor-lista" id="prVisorLista"></div>
-    <div class="pr-visor-stage" id="prVisorStage"></div>
-  </div>
-</div>
-</div></div>
+{# Protocols (panel ov-protocols) se retiró el 21-oct-2026 (Rosember). #}
 {% if ver_dashboard %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1 id="ddTitulo">Dashboard</h1>
 <div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="resumen" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button><button type="button" class="dd-vista" data-dv="ayudas" role="tab" aria-selected="false">🤝 Ayudas</button><button type="button" class="dd-vista" data-dv="reportes" role="tab" aria-selected="false">📑 Reportes</button>{% endif %}</div>
@@ -560,7 +509,7 @@ window.dsPdfjs = function() {
   <h1 style="margin:0">Papelera — Design Schedule</h1>
   {% if user.rol in ('admin', 'superadmin') %}<button type="button" class="btn gris" id="trVaciarBtn">Vaciar historial</button>{% endif %}
 </div>
-<p style="color:#4b5563;font-size:13px;margin-top:-8px">Registro de borrados en Pre-Approved (hojas, centros, doctores, criterios), Protocols y Canvas. Se puede restaurar mientras el destino siga existiendo. Lo que entra a la Papelera se borra solo a los 15 días.</p>
+<p style="color:#4b5563;font-size:13px;margin-top:-8px">Registro de borrados en Pre-Approved (hojas, centros, doctores, criterios) y Canvas. Se puede restaurar mientras el destino siga existiendo. Lo que entra a la Papelera se borra solo a los 15 días.</p>
 <div class="tr-list" id="trList"></div></div></div>
 {% endif %}
 

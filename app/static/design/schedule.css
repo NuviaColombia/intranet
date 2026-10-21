@@ -721,89 +721,6 @@
   .cv-frame-btn:hover{ background:rgba(20,28,38,.92); }
 
 
-  /* Protocols: PDF completos (diapositivas de Zoho Show) buscables por página y filtrados por área */
-  #ov-protocols .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
-  #ov-protocols .ds-overlay-inner > h1 { padding-right:56px; }
-  .pr-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
-  .pr-tabs { display:flex; gap:6px; flex-wrap:wrap; }
-  .pr-tab { padding:7px 14px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:12.5px; }
-  .pr-tab.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
-  .pr-top-der { margin-left:auto; display:flex; gap:6px; }
-  .pr-buscar-wrap { position:relative; margin-bottom:6px; }
-  .pr-buscar-wrap input.pr-buscar { width:100%; box-sizing:border-box; margin:0; padding:12px 14px 12px 40px; border:1px solid #d8dde3; border-radius:10px; font-size:15px; background:#fff; }
-  .pr-buscar-wrap input.pr-buscar:focus { outline:none; border-color:#1d4ed8; box-shadow:0 0 0 3px #dbeafe; }
-  .pr-buscar-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:16px; color:#4b5563; pointer-events:none; }
-  .pr-cuenta { font-size:12.5px; color:#4b5563; margin:0 0 12px 2px; min-height:16px; }
-  .pr-panel { background:#f4f6fa; border:1px solid #d8dde3; border-radius:10px; padding:14px; }
-  .pr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }
-  .pr-card { background:#fff; border:1px solid #e2e6ef; border-radius:10px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
-  .pr-card:hover { border-color:#1d4ed8; box-shadow:0 4px 14px rgba(29,78,216,.12); }
-  .pr-thumb { position:relative; background:#eef1f6; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .pr-thumb canvas { width:100%; height:100%; object-fit:contain; display:block; }
-  .pr-thumb .pr-cargando { font-size:12px; color:#9ca3af; }
-  .pr-thumb .pr-texto-ico { font-size:34px; opacity:.5; }
-  .pr-card-body { padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; }
-  .pr-titulo { font-size:13.5px; font-weight:700; color:#111827; }
-  .pr-sub { font-size:11.5px; color:#4b5563; }
-  .pr-chips { display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; }
-  .pr-chip { font-size:10.5px; font-weight:700; color:#1d4ed8; background:#eef2fb; border-radius:999px; padding:2px 8px; }
-  .pr-chip.general { color:#4b5563; background:#f1f3f6; }
-  .pr-frag { font-size:12px; color:#374151; line-height:1.4; }
-  .pr-frag mark, .pr-visor-lista mark { background:#fde68a; color:inherit; border-radius:2px; padding:0 1px; }
-  .pr-acc { position:absolute; top:6px; right:6px; display:flex; gap:4px; opacity:0; transition:opacity .12s; }
-  .pr-card:hover .pr-acc { opacity:1; }
-  .pr-acc button { border:none; background:rgba(255,255,255,.95); border-radius:6px; padding:3px 7px; cursor:pointer; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.15); width:auto; margin:0; }
-  .pr-grupo { margin-bottom:18px; }
-  .pr-grupo-h { display:flex; align-items:baseline; gap:8px; margin:0 0 8px 2px; }
-  .pr-grupo-h b { font-size:13px; color:#1d4ed8; text-transform:uppercase; }
-  .pr-grupo-h span { font-size:12px; color:#4b5563; }
-  .pr-star { position:absolute; top:6px; left:6px; z-index:2; border:none; background:rgba(255,255,255,.95); border-radius:50%; width:30px; height:30px;
-             font-size:17px; line-height:1; cursor:pointer; color:#9ca3af; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0; margin:0; }
-  .pr-star:hover { color:#f59e0b; }
-  .pr-star.on { color:#f59e0b; }
-  .pr-card.marcado { border-color:#f59e0b; box-shadow:0 0 0 2px #fde68a; }
-  .pr-solo { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 10px 2px; font-size:12.5px; color:#92400e; }
-  .pr-solo .c { background:#fef3c7; border:1px solid #fcd34d; border-radius:999px; padding:3px 6px 3px 10px; display:inline-flex; align-items:center; gap:4px; font-weight:600; }
-  .pr-solo .c button, .pr-solo .quitar { border:none; background:none; cursor:pointer; color:#92400e; font-size:12px; padding:0 3px; width:auto; margin:0; }
-  .pr-solo .quitar { text-decoration:underline; }
-  .pr-espacio { font-size:12px; border-radius:8px; padding:8px 10px; margin:0 0 10px; background:#f4f6fa; color:#374151; }
-  .pr-espacio.alerta { background:#fef2f2; color:#991b1b; }
-  .pr-pag { position:absolute; left:8px; bottom:8px; background:rgba(17,24,39,.8); color:#fff; font-size:11px; font-weight:700; border-radius:6px; padding:2px 7px; }
-  .pr-empty { color:#4b5563; padding:40px; text-align:center; font-size:14px; }
-  /* Visor */
-  .pr-visor-bg { display:none; position:fixed; inset:0; top:var(--ds-nav-h, 0px); z-index:340; background:rgba(17,24,39,.72); }
-  .pr-visor-bg.open { display:flex; flex-direction:column; }
-  .pr-visor-bar { display:flex; align-items:center; gap:10px; padding:10px 18px; background:#111827; color:#fff; flex-wrap:wrap; }
-  .pr-visor-bar .t { font-weight:700; font-size:14px; }
-  .pr-visor-bar .n { font-size:12.5px; color:#d1d5db; }
-  .pr-visor-bar button, .pr-visor-bar a { background:#1f2937; color:#fff; border:1px solid #374151; border-radius:7px; padding:5px 11px; cursor:pointer; font-size:12.5px; text-decoration:none; width:auto; margin:0; }
-  .pr-visor-bar button:hover, .pr-visor-bar a:hover { background:#374151; }
-  .pr-visor-bar button:disabled { opacity:.4; cursor:default; }
-  .pr-visor-bar .sp { flex:1; }
-  .pr-visor-body { flex:1; display:flex; min-height:0; }
-  .pr-visor-lista { width:250px; background:#fff; overflow-y:auto; padding:10px; box-sizing:border-box; border-right:1px solid #e5e7eb; }
-  .pr-visor-lista .h { font-size:11px; font-weight:700; color:#4b5563; text-transform:uppercase; margin:2px 2px 8px; }
-  .pr-visor-lista button { display:block; width:100%; text-align:left; border:1px solid #e2e6ef; background:#fff; border-radius:8px; padding:7px 9px; margin:0 0 6px; cursor:pointer; font-size:12px; color:#374151; }
-  .pr-visor-lista button.activo { border-color:#1d4ed8; background:#eff6ff; }
-  .pr-visor-lista button b { color:#1d4ed8; }
-  .pr-visor-stage { flex:1; overflow:auto; display:flex; align-items:center; justify-content:center; padding:18px; }
-  .pr-visor-stage canvas { background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.4); border-radius:4px; max-width:none; }
-  .pr-visor-texto { background:#fff; border-radius:8px; padding:20px 24px; max-width:900px; width:100%; white-space:pre-wrap; font-size:14px; color:#111827; max-height:100%; overflow:auto; box-sizing:border-box; }
-  /* Subir / editar */
-  .pr-form-lista { max-height:260px; overflow:auto; margin:6px 0 10px; }
-  .pr-form-fila { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
-  .pr-form-fila input[type=text] { flex:1; margin:0; padding:6px 8px; font-size:13px; }
-  .pr-form-fila .tam { font-size:11px; color:#4b5563; white-space:nowrap; }
-  .pr-form-fila .est { font-size:11.5px; min-width:120px; text-align:right; }
-  .pr-areas-sel { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
-  .pr-areas-sel label { display:flex; align-items:center; gap:5px; border:1px solid #d8dde3; border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer; font-weight:600; }
-  .pr-areas-sel label:has(input:checked) { border-color:#1d4ed8; background:#eff6ff; color:#1d4ed8; }
-  .pr-areas-sel input { width:auto; margin:0; }
-  .pr-lbl { display:block; font-size:12px; font-weight:600; color:#374151; margin:0 0 4px; }
-
-
-
-
   .tr-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
   .tr-list { display:flex; flex-direction:column; gap:10px; }
   .tr-item { display:flex; align-items:flex-start; gap:12px; background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:12px 14px; }
@@ -1026,24 +943,6 @@
   .sg-prod-acc { display:flex; justify-content:flex-end; margin:0 0 10px; }
   .sg-prod-card header { align-items:flex-start; }
   .sg-prod-txt { font-family:inherit; font-size:13.5px; line-height:1.5; white-space:pre-wrap; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; margin:8px 0 0; color:#111827; }
-
-  /* Protocols: editar en Nuvia Office e historial de versiones */
-  .pr-ver-h { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0 6px; }
-  .pr-versiones { max-height:220px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:10px; }
-  .pr-ver { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-bottom:1px solid #f1f5f9; font-size:13px; }
-  .pr-ver:last-child { border-bottom:0; }
-  .pr-ver.vigente { background:#f0fdf4; }
-  .pr-ver-tag { background:#16a34a; color:#fff; font-size:10.5px; padding:1px 6px; border-radius:9px; vertical-align:1px; }
-  .pr-ver-sub, .pr-ver-vacio { color:#4b5563; font-size:12px; }
-  .pr-ver-vacio { display:block; padding:10px; }
-  .pr-ver-nota { color:#111827; font-size:12px; margin-top:2px; white-space:pre-wrap; }
-  .pr-ver-acc { display:flex; gap:6px; align-items:flex-start; flex-shrink:0; }
-  .pr-ed-txt { font-size:13px; color:#374151; line-height:1.5; margin:8px 0 12px; }
-  .pr-ed-ops { display:grid; gap:8px; margin:6px 0 12px; }
-  .pr-ed-op { text-align:left; border:1px solid #d1d5db; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; display:grid; gap:3px; font:inherit; color:#111827; }
-  .pr-ed-op:hover, .pr-ed-op:focus-visible { border-color:#1d4ed8; background:#eff6ff; }
-  .pr-ed-op span { font-size:12.5px; color:#4b5563; }
-  .pr-ed-nuevo summary { cursor:pointer; font-size:13px; color:#1d4ed8; margin-bottom:6px; }
 
   /* Dashboard › Productos */
   .dd-vistas { display:inline-flex; gap:4px; background:#f1f5f9; border-radius:10px; padding:4px; margin:-6px 0 12px; }

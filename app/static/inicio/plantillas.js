@@ -16,7 +16,7 @@
   var FOTO = function(t) { return PH(t || 'Foto del equipo', A, I); };
   var ACCESOS = [
     {icono: '📅', titulo: 'Design Schedule', texto: 'Las órdenes del día de tu equipo.', enlace: '/design', textoEnlace: 'Abrir'},
-    {icono: '📋', titulo: 'Protocols', texto: 'Protocolos de cada área, siempre al día.', enlace: '/design?panel=protocols', textoEnlace: 'Ver protocolos'},
+    {icono: '🎨', titulo: 'Canvas', texto: 'Hojas de trabajo con fotos y anotaciones.', enlace: '/design?panel=canvas', textoEnlace: 'Abrir'},
     {icono: '✅', titulo: 'Pre-Approved', texto: 'Cambios pre-aprobados por doctor.', enlace: '/design?panel=preapproved', textoEnlace: 'Consultar'},
     {icono: '💬', titulo: 'Comments', texto: 'Genera los comentarios de cada caso.', enlace: '/design?panel=comments', textoEnlace: 'Ir'}];
   var accesos = function(estilo, cols, estiloCaja) { return b('tarjetas', {estilo: estilo || 'sombra', columnas: cols || 4, items: NVI.clon(ACCESOS)}, estiloCaja); };
@@ -50,7 +50,7 @@
       secciones: [
         sec({fondoTipo: 'degradado', fondo: N, fondo2: I, angulo: 120, colorTexto: B, padArriba: 96, padAbajo: 96, forma: 'ola', alinearV: 'center'},
           [col(7, [b('texto', {html: '<p style="font-weight:600;letter-spacing:.12em;color:' + A + '">NUVIA DESIGN COLOMBIA</p>', tamano: 13}, {margenAbajo: 6}), T('Bienvenido al equipo de Design', 'h1'), P(P1, {tamano: 18}),
-            b('botones', {tamano: 'l', items: [{texto: 'Abrir Design Schedule', url: '/design', estilo: 'blanco'}, {texto: 'Ver protocolos', url: '/design?panel=protocols', estilo: 'borde'}]})]),
+            b('botones', {tamano: 'l', items: [{texto: 'Abrir Design Schedule', url: '/design', estilo: 'blanco'}]})]),
            col(5, [b('imagen', {src: FOTO(), radio: 24, sombra: true}, {animacion: 'zoom'})])]),
         sec({padArriba: 30, padAbajo: 40}, [col(12, [T('Accesos rápidos', 'h2', {alinear: 'center'}), P('<p>Todo lo que usas a diario, a un clic.</p>', {alinear: 'center', color: I}), accesos('sombra', 4)])]),
         sec({fondoTipo: 'color', fondo: B, padArriba: 50, padAbajo: 50}, [col(12, [b('cifras', {color: A}, {animacion: 'subir'})])]),
@@ -63,7 +63,7 @@
         sec({padArriba: 28, padAbajo: 10, ancho: 'ancho'}, [col(12, [CARRUSEL({alto: 440, radio: 18})])]),
         sec({padArriba: 34, padAbajo: 60, ancho: 'ancho'}, [col(8, [b('muro', {titulo: 'Últimas noticias', estilo: 'lista', cantidad: 8})]),
           col(4, [T('Esta semana', 'h3'), b('cuenta', {titulo: 'Capacitación de nuevos productos', color: I}, {fondo: AS, relleno: 18, radio: 14, margenAbajo: 20}),
-            T('Enlaces útiles', 'h3'), b('botones', {items: [{texto: 'Design Schedule', url: '/design', estilo: 'enlace'}, {texto: 'Protocols', url: '/design?panel=protocols', estilo: 'enlace'}, {texto: 'Comments', url: '/design?panel=comments', estilo: 'enlace'}]}),
+            T('Enlaces útiles', 'h3'), b('botones', {items: [{texto: 'Design Schedule', url: '/design', estilo: 'enlace'}, {texto: 'Comments', url: '/design?panel=comments', estilo: 'enlace'}]}),
             b('cita', {texto: 'La calidad nunca es un accidente; es el resultado del esfuerzo inteligente.', autor: 'John Ruskin', cargo: '', estilo: 'linea'}, {margenAbajo: 0})])])]}; }},
     {id: 'video', nombre: 'Bienvenida con video', descripcion: 'Texto y video lado a lado, beneficios en tarjetas, testimonio y preguntas frecuentes.', crear: function() { return {
       tema: TEMA({fuenteTitulos: 'DM Sans', fuenteTexto: 'DM Sans', radio: 18}),
@@ -87,7 +87,7 @@
       tema: TEMA({fuenteTitulos: 'Inter', fuenteTexto: 'Inter', radio: 10}),
       secciones: [
         sec({ancho: 'estrecho', padArriba: 110, padAbajo: 40}, [col(12, [T('Design', 'h1', {alinear: 'center', tamano: 64, peso: '800'}), P('<p>Un solo lugar para empezar el día.</p>', {alinear: 'center', tamano: 20, color: I}),
-          b('botones', {alinear: 'center', items: [{texto: 'Schedule', url: '/design', estilo: 'solido'}, {texto: 'Protocols', url: '/design?panel=protocols', estilo: 'suave'}, {texto: 'Comments', url: '/design?panel=comments', estilo: 'suave'}]})])]),
+          b('botones', {alinear: 'center', items: [{texto: 'Schedule', url: '/design', estilo: 'solido'}, {texto: 'Comments', url: '/design?panel=comments', estilo: 'suave'}]})])]),
         sec({ancho: 'estrecho', padArriba: 10, padAbajo: 10}, [col(12, [b('separador', {ancho: 30, color: A})])]),
         sec({ancho: 'estrecho', padArriba: 30, padAbajo: 90}, [col(12, [b('muro', {titulo: 'Novedades', estilo: 'lista', cantidad: 5})])])]}; }},
     {id: 'oscuro', nombre: 'Moderno oscuro', descripcion: 'Azul noche con acentos en azul claro, tarjetas de vidrio, cifras y una página incrustada.', crear: function() { return {
@@ -106,7 +106,7 @@
         libre({fondoTipo: 'degradado', fondo: AS, fondo2: IS, angulo: 135, alto: 560, padArriba: 30, padAbajo: 30}, [
           el(4, 70, 48, 0, T('HOLA, EQUIPO DE DESIGN', 'h1', {tamano: 64, peso: '700', color: N}), 2),
           el(4, 250, 40, 0, P('<p>Arrastra, cambia el tamaño y acomoda cada elemento donde quieras. En celulares se acomodan uno debajo del otro.</p>', {tamano: 18}), 2),
-          el(4, 370, 40, 0, b('botones', {tamano: 'l', items: [{texto: 'Empezar el día', url: '/design', estilo: 'solido'}, {texto: 'Protocols', url: '/design?panel=protocols', estilo: 'borde'}]}), 2),
+          el(4, 370, 40, 0, b('botones', {tamano: 'l', items: [{texto: 'Empezar el día', url: '/design', estilo: 'solido'}, {texto: 'Pre-Approved', url: '/design?panel=preapproved', estilo: 'borde'}]}), 2),
           el(56, 40, 40, 460, b('imagen', {src: FOTO('Tu foto'), alto: 460, radio: 28, sombra: true}), 1),
           el(48, 380, 18, 0, b('cifras', {items: [{numero: 5, prefijo: '', sufijo: '', etiqueta: 'Áreas'}], color: A}, {fondo: B, relleno: 14, radio: 18, sombra: true}), 3)]),
         sec({padArriba: 60, padAbajo: 70}, [col(12, [accesos('color', 4)])])]}; }},
@@ -119,7 +119,7 @@
           [col(7, [b('texto', {html: '<p style="font-weight:700;letter-spacing:.14em">NUVIA DESIGN COLOMBIA</p>', tamano: 13}, an('aparecer', 0, {margenAbajo: 6})),
             T('Creamos sonrisas con tecnología y equipo', 'h1', {tamano: 54}, an('subir', 150)),
             P(P1, {tamano: 18}, an('subir', 350)),
-            b('botones', {tamano: 'l', items: [{texto: 'Empezar el día', url: '/design', estilo: 'blanco'}, {texto: 'Protocols', url: '/design?panel=protocols', estilo: 'borde'}]}, an('subir', 550))]),
+            b('botones', {tamano: 'l', items: [{texto: 'Empezar el día', url: '/design', estilo: 'blanco'}, {texto: 'Pre-Approved', url: '/design?panel=preapproved', estilo: 'borde'}]}, an('subir', 550))]),
            col(5, [b('imagen', {src: FOTO(), radio: 28, sombra: true}, an('flotar', 300))])]),
         sec({padArriba: 40, padAbajo: 50}, [col(12, [T('Tus herramientas', 'h2', {alinear: 'center'}, an('aparecer')), P('<p>Entra directo a lo que usas cada día.</p>', {alinear: 'center', color: I}, an('aparecer', 150))])]
 ),

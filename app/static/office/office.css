@@ -388,11 +388,6 @@ svg.nv-ic.p { width: 16px; height: 16px; }
 .nv-pl-acc button.rojo:hover { background:#fde7e9; border-color:#a4262c; }
 .nv-plantilla.ancha .nv-pl-acc { justify-content:center; }
 
-/* Borrador de un protocolo de Design (protocolo.js) */
-.nvp-banda-protocolo { background: #eef2ff; color: #1e1b4b; border-bottom-color: #c7d2fe; flex-wrap: wrap; }
-.nvp-banda-protocolo span { flex: 1; min-width: 240px; }
-.nvp-banda-protocolo .nv-btn { text-decoration: none; }
-
 /* Modo oscuro de Design (data-ds-tema en <html>): los grises de Office pasan a oscuros. El "papel" (página de Word,
    diapositiva, miniaturas) se queda como se diseñó. El resto sale de oscuro_office.css (generado). */
 :root[data-ds-tema="oscuro"] {

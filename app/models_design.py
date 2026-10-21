@@ -228,7 +228,7 @@ class DesignFaq(Base):
 class DesignComentarioTemplate(Base):
     """Plantilla de nota del generador de comentarios N3: las 11 fijas del formato
     original (es_fija=1, no editables/borrables) más las que agregue el equipo.
-    Compartida por todo el equipo (como Protocols); favorito es por empleado."""
+    Compartida por todo el equipo; favorito es por empleado."""
     __tablename__ = "design_comentario_templates"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -332,7 +332,7 @@ class DesignPreApprovedFoto(Base):
 
 # ---------------------------------------------------------------------------
 # Papelera: registro de borrados en paneles estructurales (Pre-Approved, y lo
-# que se sume después: Protocols, Canvas), con snapshot suficiente para
+# que se sume después: Canvas, Comments…), con snapshot suficiente para
 # restaurar. No cubre acciones del día a día (crear/borrar órdenes).
 # ---------------------------------------------------------------------------
 
@@ -531,84 +531,17 @@ class DesignFavorito(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empleado_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
-    tipo: Mapped[str] = mapped_column(String(20))  # "team" | "preapproved" | "protocolo" | "cmt_template"
+    tipo: Mapped[str] = mapped_column(String(20))  # "team" | "preapproved" | "cmt_template"
     team_id: Mapped[int] = mapped_column(ForeignKey("design_teams.id"), nullable=True)
     preapproved_sheet_id: Mapped[int] = mapped_column(ForeignKey("design_preapproved_sheets.id"), nullable=True)
-    protocolo_id: Mapped[int] = mapped_column(ForeignKey("design_protocolos.id"), nullable=True)
+    # Protocols se retiró el 21-oct-2026 (Rosember): la columna queda (ya existe en la base) pero sin llave foránea y sin uso.
+    protocolo_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cmt_template_id: Mapped[int] = mapped_column(ForeignKey("design_comentario_templates.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-# ---------------------------------------------------------------------------
-# Protocols: biblioteca de SOPs en tarjetas, buscable por texto/área. Se
-# cargan a mano o extrayendo el texto de un PDF (pdf.js, en el navegador —
-# el archivo no se sube al servidor, igual que en la herramienta original).
-# ---------------------------------------------------------------------------
-
-class DesignProtocolo(Base):
-    __tablename__ = "design_protocolos"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"), nullable=True)
-    titulo: Mapped[str] = mapped_column(String(255))
-    descripcion: Mapped[str] = mapped_column(String(500), default="")
-    contenido: Mapped[str] = mapped_column(Text, default="")
-    version: Mapped[str] = mapped_column(String(20), default="v1.0")
-    orden: Mapped[int] = mapped_column(Integer, default=0)
-    creado_por: Mapped[str] = mapped_column(String(150), default="")
-    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-    area = relationship("DesignArea")
-
-
-class DesignProtocoloArea(Base):
-    """Áreas en las que se ve un protocolo (uno puede compartirse entre varias).
-    Un protocolo sin filas aquí es "General" y se ve en todas las áreas."""
-    __tablename__ = "design_protocolo_areas"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    protocolo_id: Mapped[int] = mapped_column(ForeignKey("design_protocolos.id"), index=True)
-    area_id: Mapped[int] = mapped_column(ForeignKey("design_areas.id"))
-
-
-class DesignProtocoloArchivo(Base):
-    """PDF original del protocolo (diapositivas de Zoho Show). protocolo_id queda en NULL
-    mientras el protocolo está en la Papelera, para poder restaurarlo con su archivo."""
-    __tablename__ = "design_protocolo_archivos"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    protocolo_id: Mapped[int | None] = mapped_column(ForeignKey("design_protocolos.id"), nullable=True, index=True)
-    nombre: Mapped[str] = mapped_column(String(255), default="")
-    tamano: Mapped[int] = mapped_column(Integer, default=0)
-    paginas: Mapped[int] = mapped_column(Integer, default=0)
-    datos: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)  # no se carga salvo que se pida
-    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class DesignProtocoloVersion(Base):
-    """Historial de versiones publicadas de un protocolo (Publicar desde Nuvia Office, 12-oct-2026). Cada fila apunta al
-    PDF de esa versión; el PDF de la versión vigente es el que tiene protocolo_id = el protocolo (DesignProtocoloArchivo)
-    y los de versiones anteriores quedan con protocolo_id NULL pero no se borran mientras estén aquí."""
-    __tablename__ = "design_protocolo_versiones"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    protocolo_id: Mapped[int] = mapped_column(Integer, index=True)  # sin llave foránea: sobrevive a la Papelera
-    version: Mapped[str] = mapped_column(String(20), default="")
-    archivo_id: Mapped[int] = mapped_column(Integer)
-    paginas: Mapped[str] = mapped_column(Text, default="[]", deferred=True)  # textos de cada página (JSON), para el buscador
-    nota: Mapped[str] = mapped_column(String(500), default="")
-    publicado_por: Mapped[str] = mapped_column(String(150), default="")
-    publicado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class DesignProtocoloBorrador(Base):
-    """Borrador editable de un protocolo: una presentación de Nuvia Office (un borrador por protocolo)."""
-    __tablename__ = "design_protocolo_borradores"
-
-    protocolo_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    doc_id: Mapped[int] = mapped_column(Integer, index=True)
-    creado_por: Mapped[str] = mapped_column(String(150), default="")
-    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+# Protocols (DesignProtocolo, sus áreas, archivos PDF, versiones, borradores, miniaturas y páginas) se retiró el
+# 21-oct-2026 (Rosember): las tablas design_protocolo* se borran al arrancar (ver main.design_retirar_protocolos).
 
 
 class DesignInicioPagina(Base):
@@ -843,30 +776,6 @@ class DesignFotoPerfil(Base):
     origen: Mapped[str] = mapped_column(String(300), default="")
     error: Mapped[str] = mapped_column(Text, default="")
     actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class DesignProtocoloMiniatura(Base):
-    """Imagen pequeña de la primera diapositiva de un PDF de Protocols, para las tarjetas (así no se abre el
-    PDF para cada tarjeta). La genera el navegador la primera vez que alguien ve el protocolo.
-    Va por archivo_id (sin llave foránea: se borra junto con el archivo)."""
-    __tablename__ = "design_protocolo_miniaturas"
-
-    archivo_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    tipo: Mapped[str] = mapped_column(String(30), default="image/jpeg")
-    datos: Mapped[bytes] = mapped_column(LargeBinary)
-    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class DesignProtocoloPagina(Base):
-    """Texto de cada diapositiva/página del PDF, para el buscador. texto_norm es el mismo
-    texto en minúsculas y sin tildes (misma longitud, para ubicar la coincidencia)."""
-    __tablename__ = "design_protocolo_paginas"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    protocolo_id: Mapped[int] = mapped_column(ForeignKey("design_protocolos.id"), index=True)
-    pagina: Mapped[int] = mapped_column(Integer)
-    texto: Mapped[str] = mapped_column(Text, default="")
-    texto_norm: Mapped[str] = mapped_column(Text, default="")
 
 
 # ---------------------------------------------------------------------------

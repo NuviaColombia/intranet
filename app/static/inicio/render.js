@@ -20,6 +20,9 @@
     if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(u)) return u;
     return 'https://' + u;
   };
+  // Protocols se retiró el 21-oct-2026 (Rosember): los botones y tarjetas guardados que llevaban ahí ya no se muestran
+  // (en el editor siguen visibles para poder quitarlos).
+  NVI.aProtocols = function(u) { return /[?&]panel=protocols(&|#|$)/.test(String(u || '')); };
   // HTML del texto enriquecido: solo etiquetas y estilos seguros
   var ETIQ = {P: 1, BR: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, S: 1, A: 1, UL: 1, OL: 1, LI: 1, SPAN: 1, DIV: 1, H2: 1, H3: 1, H4: 1, BLOCKQUOTE: 1, SUB: 1, SUP: 1};
   var ESTILOS = ['color', 'background-color', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'text-align', 'font-family'];
@@ -144,7 +147,7 @@
       {tipo: 'select', k: 'tamano', l: 'Tamaño', ops: [['s', 'Pequeño'], ['m', 'Mediano'], ['l', 'Grande']]}, ALINEAR],
     r: function(p, ctx) {
       var w = h('div', 'nvi-botones nvi-t-' + (p.tamano || 'm')); w.style.justifyContent = {left: 'flex-start', center: 'center', right: 'flex-end'}[p.alinear] || 'flex-start';
-      (p.items || []).forEach(function(b) { var a = h('a', 'nvi-btn nvi-btn-' + (b.estilo || 'solido'), NVI.esc(b.texto || 'Botón')); if (ctx.modo !== 'editar') { a.href = NVI.url(b.url) || '#'; if (b.nueva) { a.target = '_blank'; a.rel = 'noopener'; } } w.appendChild(a); });
+      (p.items || []).forEach(function(b) { if (ctx.modo !== 'editar' && NVI.aProtocols(b.url)) return; var a = h('a', 'nvi-btn nvi-btn-' + (b.estilo || 'solido'), NVI.esc(b.texto || 'Botón')); if (ctx.modo !== 'editar') { a.href = NVI.url(b.url) || '#'; if (b.nueva) { a.target = '_blank'; a.rel = 'noopener'; } } w.appendChild(a); });
       return w;
     }};
   D.video = {n: 'Video', ic: '▶', g: 'Medios',
@@ -220,7 +223,7 @@
     }};
   D.tarjetas = {n: 'Tarjetas', ic: '▤', g: 'Diseño',
     d: function() { return {items: [{icono: '📅', imagen: '', titulo: 'Design Schedule', texto: 'Organiza y sigue las órdenes del día.', enlace: '/design', textoEnlace: 'Abrir'},
-      {icono: '📋', imagen: '', titulo: 'Protocols', texto: 'Consulta los protocolos de cada área.', enlace: '/design?panel=protocols', textoEnlace: 'Ver'},
+      {icono: '✅', imagen: '', titulo: 'Pre-Approved', texto: 'Cambios pre-aprobados por doctor.', enlace: '/design?panel=preapproved', textoEnlace: 'Consultar'},
       {icono: '💬', imagen: '', titulo: 'Comments', texto: 'Genera los comentarios de cada caso.', enlace: '/design?panel=comments', textoEnlace: 'Ir'}], columnas: 3, estilo: 'sombra', alinear: 'left', colorIcono: ''}; },
     campos: [{tipo: 'lista', k: 'items', l: 'Tarjetas', titulo: 'titulo', nuevo: {icono: '⭐', imagen: '', titulo: 'Nueva tarjeta', texto: '', enlace: '', textoEnlace: ''},
       campos: [{tipo: 'texto', k: 'icono', l: 'Ícono (emoji)'}, {tipo: 'medio', k: 'imagen', l: 'O una imagen', acepta: 'imagen', encuadre: true}, {tipo: 'texto', k: 'titulo', l: 'Título'}, {tipo: 'area', k: 'texto', l: 'Texto'},
@@ -229,6 +232,7 @@
     r: function(p, ctx) {
       var w = h('div', 'nvi-tarjetas nvi-tj-' + (p.estilo || 'sombra')); w.style.gridTemplateColumns = 'repeat(' + (p.columnas || 3) + ', 1fr)';
       (p.items || []).forEach(function(it, i) {
+        if (ctx.modo !== 'editar' && NVI.aProtocols(it.enlace)) return;
         var c = h(it.enlace && ctx.modo !== 'editar' ? 'a' : 'div', 'nvi-tarjeta'); c.style.textAlign = p.alinear;
         if (it.enlace && ctx.modo !== 'editar') { c.href = NVI.url(it.enlace); if (!/^\//.test(c.getAttribute('href'))) { c.target = '_blank'; c.rel = 'noopener'; } }
         if (it.imagen) { var mc = h('div', 'nvi-tj-marco'), im = h('img', 'nvi-tj-img'); im.src = NVI.src(it.imagen); im.alt = ''; im.loading = 'lazy'; NVI.aplicarEnc(im, it.imagenEnc); mc.setAttribute('data-enc', 'items.' + i + '.imagen'); mc.appendChild(im); c.appendChild(mc); } else if (it.icono) c.appendChild(h('div', 'nvi-tj-ico', NVI.esc(it.icono)));
@@ -274,7 +278,7 @@
       return w;
     }};
   D.acordeon = {n: 'Preguntas (acordeón)', ic: '☰', g: 'Diseño',
-    d: function() { return {items: [{titulo: '¿Cómo inicio mi día en el Schedule?', texto: 'Abre Design Schedule, elige tu equipo y revisa las órdenes asignadas.'}, {titulo: '¿Dónde encuentro los protocolos?', texto: 'En Herramientas › Protocols, filtrados por tu área.'}], abrirPrimero: true}; },
+    d: function() { return {items: [{titulo: '¿Cómo inicio mi día en el Schedule?', texto: 'Abre Design Schedule, elige tu equipo y revisa las órdenes asignadas.'}, {titulo: '¿Dónde consulto los cambios pre-aprobados?', texto: 'En Herramientas › Pre-Approved, en la hoja de tu equipo.'}], abrirPrimero: true}; },
     campos: [{tipo: 'lista', k: 'items', l: 'Preguntas', titulo: 'titulo', nuevo: {titulo: 'Nueva pregunta', texto: ''}, campos: [{tipo: 'texto', k: 'titulo', l: 'Pregunta'}, {tipo: 'area', k: 'texto', l: 'Respuesta'}]},
       {tipo: 'check', k: 'abrirPrimero', l: 'Primera abierta'}],
     r: function(p) {

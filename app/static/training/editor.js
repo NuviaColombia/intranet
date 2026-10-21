@@ -29,7 +29,7 @@ const NOMBRE_TIPO = {
   checklist: ['☑', 'Lista de verificación', 'Puntos que la persona marca.'],
   resumen: ['✨', 'Resumen', 'Lo esencial de la lección en viñetas.'],
   quiz: ['🧠', 'Quiz', 'Preguntas para comprobar lo aprendido (aprobar con 70%).'],
-  enlace: ['🔗', 'Enlace', 'A un protocolo oficial o a otra lección.'],
+  enlace: ['🔗', 'Enlace', 'A otra lección de la biblioteca.'],
   lider: ['👤', 'Manager del área', 'Tarjeta del manager del área.'],
   modelo3d: ['🧩', 'Modelo 3D', 'Espacio para un modelo 3D (GLB, STL, OBJ o PLY).'],
   visor: ['🖥', 'Visor de caso', 'Visor HTML de un caso (pestañas RX y Changes).'],
@@ -52,7 +52,7 @@ function pasoNuevo(tipo) {
     case 'checklist': return { t: 'checklist', titulo: T('Antes de enviar', 'Before sending'), items: [T('Primer punto', 'First item'), T('Segundo punto', 'Second item')] };
     case 'resumen': return { t: 'resumen', titulo: T('Lo esencial', 'Key takeaways'), puntos: [T('Primera idea', 'First idea'), T('Segunda idea', 'Second idea')] };
     case 'quiz': return { t: 'quiz', preguntas: [1, 2].map(() => ({ tipo: 'una', enunciado: T('¿Pregunta?', 'Question?'), explicacion: T('Por qué esta es la respuesta.', 'Why this is the answer.'), opciones: [T('Correcta', 'Correct'), T('Opción', 'Option'), T('Opción', 'Option')].map((x, i) => ({ texto: x, ok: i === 0 })) })) };
-    case 'enlace': return { t: 'enlace', titulo: T('Protocolo oficial', 'Official protocol'), texto: T('Para el detalle, revisa el protocolo.', 'For details, check the protocol.'), protocolo: '' };
+    case 'enlace': return { t: 'enlace', titulo: T('Para profundizar', 'Go deeper'), texto: T('El detalle está en esta lección.', 'The details are in this lesson.'), lecc: '' };
     case 'lider': return { t: 'lider', area: 'face' };
     case 'modelo3d': return { t: 'modelo3d', slot: slotNuevo(), titulo: T('Modelo 3D', '3D model'), descripcion: T('Qué mirar en el modelo.', 'What to look at in the model.'), pendiente: T('Aquí irá el modelo.', 'The model will go here.') };
     case 'visor': return { t: 'visor', slot: slotNuevo(), pestana: 'rx', titulo: T('Visor de un caso', 'Case viewer'), descripcion: T('Qué mirar en el caso.', 'What to look at in the case.'), pendiente: T('Aquí irá el visor del caso.', 'The case viewer will go here.') };

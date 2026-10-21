@@ -35,7 +35,7 @@ nav .ds-nav-extras .ds-push-pop { left:auto; right:-70px; transform:none; }
 :root[data-ds-tema="oscuro"] hr { border-color:#334155; }
 :root[data-ds-tema="oscuro"] ::-webkit-scrollbar-thumb { background:#334155; }
 :root[data-ds-tema="oscuro"] ::-webkit-scrollbar-track { background:#0f172a; }
-/* imágenes y lienzos (fotos, miniaturas, PDF de protocolos): sin cambios; solo un marco tenue */
+/* imágenes y lienzos (fotos, miniaturas, PDF): sin cambios; solo un marco tenue */
 :root[data-ds-tema="oscuro"] canvas { background-color:transparent; }
 
 /* ---------- Campana (los estilos están en push.js) ---------- */

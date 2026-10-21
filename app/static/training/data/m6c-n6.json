@@ -567,18 +567,6 @@
           }
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo Zirconia Composite N6 con todos los detalles del flujo.",
-            "en": "Open the Zirconia Composite N6 protocol with all the workflow details."
-          },
-          "protocolo": "Zirconia composite"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -921,18 +909,6 @@
             "es": "Aquí irá el modelo de una barra de titanio con su TC sobre la pestaña.",
             "en": "The model of a titanium bar with its TC over the tab will go here."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo Zirconia over Ti-Bar N6.",
-            "en": "Open the Zirconia over Ti-Bar N6 protocol."
-          },
-          "protocolo": "Zirconia over ti bar"
         },
         {
           "t": "resumen",
@@ -1310,18 +1286,6 @@
           }
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo Screw Retained N6.",
-            "en": "Open the Screw Retained N6 protocol."
-          },
-          "protocolo": "Screw Retained"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -1605,18 +1569,6 @@
             "es": "Aquí irá el modelo de un Dummy acrílico sobre su tissue.",
             "en": "The model of an acrylic Dummy over its tissue will go here."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo Dummy N6.",
-            "en": "Open the Dummy N6 protocol."
-          },
-          "protocolo": "Dummy"
         },
         {
           "t": "resumen",

@@ -238,18 +238,6 @@
           }
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo Face Design (Blender) para ver las figuras y los pasos exactos.",
-            "en": "Open the Face Design (Blender) protocol to see figures and exact steps."
-          },
-          "protocolo": "Face Design"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -529,18 +517,6 @@
             "es": "El protocolo no aclara si un teléfono u otra cámara distinta a una cámara fotográfica es válida, ni da la lista completa de las 9 fotos en el texto. Confirmar con el manager.",
             "en": "The protocol does not clarify whether a phone or other non-camera device is valid, nor does the text give the full list of the 9 photos. Confirm with the manager."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo de fotografía para ver los ejemplos de foto correcta e incorrecta.",
-            "en": "Open the photography protocol to see correct and incorrect photo examples."
-          },
-          "protocolo": "Photography"
         },
         {
           "t": "resumen",
@@ -831,18 +807,6 @@
           }
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo IOS Scans para ver los esquemas por tipo de paciente.",
-            "en": "Open the IOS Scans protocol to see the diagrams by patient type."
-          },
-          "protocolo": "IOS Scans"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -1105,18 +1069,6 @@
             "es": "Confirmar con el manager. Si el nombre del CT no coincide con el paciente, no sigas y verifica.",
             "en": "Confirm with the manager. If the CT name does not match the patient, do not continue and verify."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo Maxillar Print con las figuras de los cortes.",
-            "en": "Open the Maxillar Print protocol with the cut figures."
-          },
-          "protocolo": "Maxillar Print"
         },
         {
           "t": "resumen",
@@ -1477,30 +1429,6 @@
             "es": "Confirmar con el manager.",
             "en": "Confirm with the manager."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial (Full Mouth)",
-            "en": "Official protocol (Full Mouth)"
-          },
-          "texto": {
-            "es": "Abre el protocolo Traveling Demodenture Full Mouth.",
-            "en": "Open the Traveling Demodenture Full Mouth protocol."
-          },
-          "protocolo": "Traveling Demodenture"
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial (Single G-CAM)",
-            "en": "Official protocol (Single G-CAM)"
-          },
-          "texto": {
-            "es": "Abre el protocolo Single G-CAM.",
-            "en": "Open the Single G-CAM protocol."
-          },
-          "protocolo": "Single G-CAM"
         },
         {
           "t": "resumen",
@@ -1881,18 +1809,6 @@
             "es": "Dudas: la descripción de la relación molar de Clase 2 se escribe igual que la de Clase 1 (revisar la imagen original antes de enseñarla); no está claro cuál criterio (0.95 o 0.85 mm) corresponde a cuál comprobación; y no se aclara en qué programa (exocad o Meshmixer) se hace cada paso. Confirmar con el manager.",
             "en": "Doubts: the Class 2 molar relation description is written the same as Class 1 (check the original image before teaching it); it is unclear which criterion (0.95 or 0.85 mm) belongs to which check; and it is not clear in which program (exocad or Meshmixer) each step is done. Confirm with the manager."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo de oclusión con los esquemas de clases 1, 2 y 3.",
-            "en": "Open the occlusion protocol with the class 1, 2 and 3 diagrams."
-          },
-          "protocolo": "Occlusion"
         },
         {
           "t": "resumen",

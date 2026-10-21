@@ -611,18 +611,6 @@
           }
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Lee el protocolo completo de Full Mouth en la página Protocols.",
-            "en": "Read the full Full Mouth protocol on the Protocols page."
-          },
-          "protocolo": "Full Mouth"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -1256,18 +1244,6 @@
           ]
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Revisa las medidas y las figuras en el protocolo Full Mouth.",
-            "en": "Review the measurements and figures in the Full Mouth protocol."
-          },
-          "protocolo": "Full Mouth"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -1569,18 +1545,6 @@
             "es": "Confirmar con el manager: cuántas subcarpetas lleva To mill (el español dice 4, el inglés dice tres adicionales) y la altura de access holes de la guía (16-17 vs 18-19 mm).",
             "en": "Confirm with the manager: how many subfolders To mill has (Spanish says 4, English says three additional) and the guide access hole height (16-17 vs 18-19 mm)."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Consulta el protocolo de Single arch 24z.",
-            "en": "Consult the Single arch 24z protocol."
-          },
-          "protocolo": "Single"
         },
         {
           "t": "resumen",
@@ -1964,18 +1928,6 @@
           }
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo de barra custom y TC.",
-            "en": "Open the custom bar and TC protocol."
-          },
-          "protocolo": "custom bar"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -2307,18 +2259,6 @@
             "es": "Confirmar con el manager: cuántos implantes mínimos se aceptan en el pickup (3 con pterigoides, o con prótesis previa) y el color del círculo de «moved» (rojo o azul según el protocolo).",
             "en": "Confirm with the manager: how many minimum implants are accepted in the pickup (3 with pterygoids, or with prior prosthesis) and the circle color for 'moved' (red or blue depending on the protocol)."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo ICAM con sus reglas de skip.",
-            "en": "Open the ICAM protocol with its skip rules."
-          },
-          "protocolo": "ICAM"
         },
         {
           "t": "resumen",
@@ -2692,18 +2632,6 @@
             "es": "Confirmar con el manager: cuándo usar el offset 0.01 o 0.03 mm (depende del centro) y la fecha de versión del protocolo, que figura con formato dudoso.",
             "en": "Confirm with the manager: when to use the 0.01 or 0.03 mm offset (depends on the center) and the protocol version date, which has a dubious format."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Lee el protocolo de Nightguard.",
-            "en": "Read the Nightguard protocol."
-          },
-          "protocolo": "Nightguard"
         },
         {
           "t": "resumen",
@@ -3102,18 +3030,6 @@
           }
         },
         {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Consulta el protocolo de Removable denture.",
-            "en": "Consult the Removable denture protocol."
-          },
-          "protocolo": "Removable"
-        },
-        {
           "t": "resumen",
           "titulo": {
             "es": "Ideas clave",
@@ -3423,18 +3339,6 @@
             "es": "Cuándo avisar: agendar sin validación, no grabar, no notificar en el canal o no etiquetar a Manager y Regional son errores típicos. Confirmar con el manager: «Click group» y «Cliq» aparecen mezclados en el protocolo.",
             "en": "When to notify: scheduling without validation, not recording, not notifying in the channel or not tagging Manager and Regional are typical errors. Confirm with the manager: 'Click group' and 'Cliq' appear mixed in the protocol."
           }
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial",
-            "en": "Official protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo de reuniones N3/N6.",
-            "en": "Open the N3/N6 meetings protocol."
-          },
-          "protocolo": "Meetings"
         },
         {
           "t": "resumen",

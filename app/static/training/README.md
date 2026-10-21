@@ -34,7 +34,7 @@ midline, cant...) se dejan en inglés en ambos idiomas. Tipos de paso: `texto`, 
   paciente; `cant` + canino izquierdo apically; `plano` + molares apically; `rotacion` + molares a la derecha; `labio` + facially;
   `tamano` índice 0..5 = A, AW, B, BW, C, CW; `grado` 5 o 10. `"modo": "fijo"` = antagonista fijo (Single 24z) y activa el indicador
   Contacto / Interferencia / Sin ocluir (`vdo + incisal ≈ 0` es contacto).
-- **Enlaces a protocolos** (`enlace`): abren `/design?panel=protocols&q=<texto>` con esa búsqueda hecha.
+- **Enlaces** (`enlace`): llevan a otra lección de la biblioteca (`lecc`). Los enlaces a Protocols se retiraron el 21-oct-2026.
 
 ## Editor (admins): editar y publicar sin tocar código
 Botón **Editar contenido** arriba a la derecha (solo admins). Funciona como el editor de la página de Inicio:

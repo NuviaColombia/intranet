@@ -64,10 +64,21 @@ def _cargar(txt: str):
         return None
 
 
+def _sin_enlaces_a_protocols(d: dict) -> dict:
+    """Protocols se retiró el 21-oct-2026 (Rosember): los pasos «enlace» que llevaban a su búsqueda (sin lección)
+    no se muestran, aunque sigan en un módulo publicado desde el editor."""
+    lecciones = d.get("lecciones")
+    if not isinstance(lecciones, list):
+        return d
+    return {**d, "lecciones": [{**l, "pasos": [p for p in (l.get("pasos") or [])
+                                               if not (isinstance(p, dict) and p.get("t") == "enlace" and not p.get("lecc"))]}
+                               if isinstance(l, dict) else l for l in lecciones]}
+
+
 def _combinar(modulos_por_id: dict) -> dict:
     modulos, por_termino = [], {}
     for d in modulos_por_id.values():
-        d = dict(d)
+        d = _sin_enlaces_a_protocols(dict(d))
         for g in d.pop("glosario", []) or []:
             if not g.get("id"):
                 continue

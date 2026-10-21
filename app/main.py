@@ -9,7 +9,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from . import config
 from .database import engine, SessionLocal
-from .services_design import faq_sembrar as sd_faq_sembrar, protocolos_migrar_areas as sd_protocolos_migrar_areas
+from .services_design import faq_sembrar as sd_faq_sembrar
 from .models import Base, TipoPermiso, Empleado, Empresa, Area, Configuracion
 from .models_custodia import CustodiaArea, CustodiaMotivo
 from .models_sst import SstItem, SstIngreso, SstAcceso
@@ -311,7 +311,8 @@ def init_db():
     columnas_design_favoritos = {c["name"] for c in inspect(engine).get_columns("design_favoritos")}
     if "protocolo_id" not in columnas_design_favoritos:
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE design_favoritos ADD COLUMN protocolo_id INTEGER REFERENCES design_protocolos(id)"))
+            # Sin llave foránea: Protocols se retiró el 21-oct-2026 y design_protocolos ya no existe.
+            conn.execute(text("ALTER TABLE design_favoritos ADD COLUMN protocolo_id INTEGER"))
     if "cmt_template_id" not in columnas_design_favoritos:
         with engine.begin() as conn:
             conn.execute(text(
@@ -601,8 +602,6 @@ def init_db():
         for i, (nombre, texto) in enumerate(CMT_TEMPLATES_FIJAS, start=1):
             if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre).first():
                 db.add(DesignComentarioTemplate(nombre=nombre, texto=texto, es_fija=1, orden=i))
-        # Protocols: un protocolo puede verse en varias áreas; los existentes pasan su área a la tabla nueva.
-        sd_protocolos_migrar_areas(db)
         # Comments N2 / Face: las 4 hojas del formato original (solo si aún no hay hojas).
         db.flush()
         sd_faq_sembrar(db, Path(__file__).resolve().parent / "seed_data" / "design_faq_n2.json")
@@ -689,3 +688,61 @@ def design_permiso_octubre():
         db.rollback()
     finally:
         db.close()
+
+
+# Tablas de Protocols, de hijas a madre (design_protocolo_areas/archivos/paginas apuntan a design_protocolos).
+TABLAS_PROTOCOLOS = ("design_protocolo_miniaturas", "design_protocolo_paginas", "design_protocolo_versiones",
+                     "design_protocolo_borradores", "design_protocolo_archivos", "design_protocolo_areas",
+                     "design_protocolos")
+
+
+def retirar_protocolos(eng) -> bool:
+    """Borra todos los datos de Protocols (PDF, versiones, borradores, miniaturas, páginas, áreas) y sus tablas.
+    Rosember lo autorizó el 21-oct-2026 (irreversible). Una sola vez: queda la marca sistema/protocolos_eliminados_2026_10_21.
+    Devuelve True si hizo la limpieza en esta llamada."""
+    from sqlalchemy.orm import Session
+    from .models_design import DesignConexionRegla, DesignFavorito
+    db = Session(bind=eng)
+    try:
+        marca = {"tipo": "sistema", "clave": "protocolos_eliminados_2026_10_21"}
+        if db.query(DesignConexionRegla).filter_by(**marca).first():
+            return False
+        db.rollback()  # suelta la lectura antes de escribir por otra conexión (SQLite)
+        existentes = set(inspect(eng).get_table_names())
+        cascade = " CASCADE" if eng.dialect.name == "postgresql" else ""
+        with eng.begin() as conn:
+            if "design_trash" in existentes:  # protocolos en la Papelera
+                conn.execute(text("DELETE FROM design_trash WHERE modulo = 'protocol'"))
+            if "design_favoritos" in existentes and "protocolo_id" in {c["name"] for c in inspect(eng).get_columns("design_favoritos")}:
+                conn.execute(text("DELETE FROM design_favoritos WHERE protocolo_id IS NOT NULL OR tipo = 'protocolo'"))
+            if "design_protocolo_borradores" in existentes:  # los borradores eran presentaciones de Nuvia Office
+                docs = "SELECT doc_id FROM design_protocolo_borradores"
+                conn.execute(text(f"DELETE FROM design_office_compartidos WHERE doc_id IN ({docs})"))
+                conn.execute(text(f"DELETE FROM design_office_docs WHERE id IN ({docs})"))
+            if eng.dialect.name == "sqlite" and "design_favoritos" in existentes:
+                # SQLite no tiene CASCADE: la llave foránea de favoritos a design_protocolos haría fallar cada favorito
+                # nuevo cuando esa tabla ya no exista. Se rehace la tabla sin ella (mismas columnas y filas).
+                ddl = conn.execute(text("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'design_favoritos'")).scalar() or ""
+                if "design_protocolos" in ddl:
+                    cols = ", ".join(c["name"] for c in inspect(eng).get_columns("design_favoritos"))
+                    conn.execute(text("ALTER TABLE design_favoritos RENAME TO design_favoritos_viejo"))
+                    DesignFavorito.__table__.create(conn)
+                    conn.execute(text(f"INSERT INTO design_favoritos ({cols}) SELECT {cols} FROM design_favoritos_viejo"))
+                    conn.execute(text("DROP TABLE design_favoritos_viejo"))
+            for tabla in TABLAS_PROTOCOLOS:
+                conn.execute(text(f"DROP TABLE IF EXISTS {tabla}{cascade}"))
+        db.add(DesignConexionRegla(**marca, creado_por="Sistema", valor="Protocols retirado (Rosember, 21-oct-2026)"))
+        db.commit()
+        return True
+    finally:
+        db.close()
+
+
+@app.on_event("startup")
+def design_retirar_protocolos():
+    # Design · una vez: Protocols se retiró el 21-oct-2026 (Rosember); se borran sus datos y tablas. Va después de init_db.
+    try:
+        retirar_protocolos(engine)
+    except Exception:  # noqa: BLE001  nunca debe impedir el arranque
+        import logging
+        logging.getLogger(__name__).exception("Design: no se pudieron retirar las tablas de Protocols")

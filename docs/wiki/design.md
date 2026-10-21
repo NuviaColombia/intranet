@@ -7,7 +7,7 @@ está dónde buscar y qué no romper sin pensarlo.
 
 **Submódulos y su router de entrada**
 - `app/routers/design_schedule.py` -- el núcleo: Schedule (N2/N3/N6/Face), Dashboard,
-  Pre-Approved N3/N2, Protocols, Canvas, QC, simulación. El archivo más grande (3000+ líneas);
+  Pre-Approved N3/N2, Canvas, QC, simulación. El archivo más grande (3000+ líneas);
   casi todos los demás routers de Design comparten su `router`.
 - `app/routers/design_inicio.py` -- página de inicio de Design (noticias + mural).
 - `app/routers/design_mural.py` -- avisos fijados en una pared.
@@ -102,6 +102,14 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
 
 - 21-oct-2026: tabla `design_reportes` (PDF subidos a mano en Dashboard › Reportes; hasta 15 MB cada uno,
   ocupan espacio de la base de Supabase).
+- 21-oct-2026: **Protocols se retiró por completo** (Design y Nuvia Office), autorizado por Rosember. Al arrancar,
+  `main.retirar_protocolos` (una sola vez, marca `sistema/protocolos_eliminados_2026_10_21` en `design_conexion_reglas`)
+  borra los protocolos de la Papelera (`design_trash.modulo = 'protocol'`), los favoritos de protocolos, las
+  presentaciones de Nuvia Office que eran borradores de un protocolo, y elimina las tablas `design_protocolos`,
+  `design_protocolo_areas`, `design_protocolo_archivos` (PDF), `design_protocolo_versiones`,
+  `design_protocolo_borradores`, `design_protocolo_miniaturas` y `design_protocolo_paginas`. Irreversible.
+  La columna `design_favoritos.protocolo_id` queda sin uso y sin llave foránea. Training ya no tiene enlaces a
+  Protocols (los pasos «enlace» sin lección se omiten) e Inicio oculta los botones y tarjetas que llevaban ahí.
 
 ## Integraciones
 

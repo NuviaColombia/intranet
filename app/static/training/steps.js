@@ -223,12 +223,9 @@ function enlace(p) {
       h('div', { class: 'tr-enlace-txt' }, T('h3', null, p.titulo), md(p.texto, { maxTerminos: 2 })),
       h('a', { class: 'tr-btn tr-btn-primario', href: '#/l/' + p.lecc }, ui('abrirLeccion') + ' →'))) };
   }
-  const buscar = p.protocolo;
-  const url = '/design?panel=protocols&q=' + encodeURIComponent(buscar);
-  const copiar = h('button', { type: 'button', class: 'tr-btn tr-btn-chico', onclick: async () => { try { await navigator.clipboard.writeText(buscar); toast(ui('copiado')); } catch (e) { /* sin portapapeles */ } } }, '⧉');
-  return { el: h('div', { class: 'tr-paso' }, h('div', { class: 'tr-enlace' }, h('div', { class: 'tr-enlace-ico' }, '📋'),
-    h('div', { class: 'tr-enlace-txt' }, T('h3', null, p.titulo), md(p.texto, { maxTerminos: 2 }), h('div', { class: 'tr-enlace-busca' }, ui('buscaEn') + ': ', h('code', null, buscar), copiar)),
-    h('a', { class: 'tr-btn tr-btn-primario', href: url, target: '_blank', rel: 'noopener' }, ui('protocoloOficial') + ' ↗'))) };
+  // Sin lección: antes era un enlace a la búsqueda de Protocols (se retiró el 21-oct-2026); queda solo el texto.
+  return { el: h('div', { class: 'tr-paso' }, h('div', { class: 'tr-enlace' }, h('div', { class: 'tr-enlace-ico' }, '📚'),
+    h('div', { class: 'tr-enlace-txt' }, T('h3', null, p.titulo), md(p.texto, { maxTerminos: 2 })))) };
 }
 
 function lider(p) {

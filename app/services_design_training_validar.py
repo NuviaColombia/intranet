@@ -195,8 +195,8 @@ class _V:
         elif t == "enlace":
             T(p.get("titulo"), r + ".titulo")
             T(p.get("texto"), r + ".texto")
-            if not (p.get("protocolo") or "").strip() and not (p.get("lecc") or "").strip():
-                self.e(r, "falta 'protocolo' (texto a buscar en Protocols) o 'lecc' (id de una lección de la biblioteca)")
+            if not (p.get("lecc") or "").strip():  # los enlaces a Protocols se retiraron el 21-oct-2026
+                self.e(r, "falta 'lecc' (id de una lección de la biblioteca)")
         elif t == "resumen":
             T(p.get("titulo"), r + ".titulo")
             for i, x in enumerate(p.get("puntos") or []):

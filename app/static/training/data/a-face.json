@@ -590,18 +590,6 @@
         {
           "t": "enlace",
           "titulo": {
-            "es": "Protocolo oficial de fotografía",
-            "en": "Official photography protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo para ver ejemplos de foto correcta e incorrecta.",
-            "en": "Open the protocol to see examples of correct and incorrect photos."
-          },
-          "protocolo": "Photography"
-        },
-        {
-          "t": "enlace",
-          "titulo": {
             "es": "Más detalle sobre escaneos IOS",
             "en": "More on IOS scans"
           },
@@ -924,18 +912,6 @@
               "fuente": "Protocol Maxillar Print V.14-11-2025"
             }
           ]
-        },
-        {
-          "t": "enlace",
-          "titulo": {
-            "es": "Protocolo oficial de Maxillar Print",
-            "en": "Official Maxillar Print protocol"
-          },
-          "texto": {
-            "es": "Abre el protocolo con las figuras de los cortes.",
-            "en": "Open the protocol with the cut figures."
-          },
-          "protocolo": "Maxillar Print"
         },
         {
           "t": "resumen",
