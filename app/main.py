@@ -250,6 +250,13 @@ CANVAS_TEMPLATES = [
 
 
 @app.on_event("startup")
+def design_avisos_support():
+    # Design · Support Time: el bot de Cliq avisa en los grupos quién queda en Support al empezar cada turno (20-oct-2026)
+    from . import services_design_cliq
+    services_design_cliq.arrancar_avisos_turno()
+
+
+@app.on_event("startup")
 def init_db():
     try:
         Base.metadata.create_all(bind=engine)
@@ -321,6 +328,10 @@ def init_db():
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))
+    # Support Time · grupos de Cliq del aviso «Support en turno» (20-oct-2026, autorizado por Rosember). Solo agrega la columna.
+    if "cliq_canales" not in {c["name"] for c in inspect(engine).get_columns("design_support_config")}:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_support_config ADD COLUMN cliq_canales TEXT DEFAULT ''"))
     # Crítico de N3 con selección múltiple (19-oct-2026, autorizado por Rosember): la columna pasa de 50 a 300 caracteres.
     # Solo amplía el tamaño; los valores no cambian. SQLite no limita el largo, así que allí no hace falta.
     if engine.dialect.name == "postgresql":

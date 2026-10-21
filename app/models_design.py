@@ -724,6 +724,8 @@ class DesignSupportConfig(Base):
     ref_fecha: Mapped[date | None] = mapped_column(Date, nullable=True)
     ref_turno1: Mapped[str] = mapped_column(String(1), default="a")
     semanas: Mapped[int] = mapped_column(Integer, default=4)
+    # Grupos de Cliq (Unique Name, uno por línea) donde el bot avisa quién queda en Support al empezar cada turno (20-oct-2026)
+    cliq_canales: Mapped[str] = mapped_column(Text, default="")
     actualizado_por: Mapped[str] = mapped_column(String(150), default="")
     actualizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

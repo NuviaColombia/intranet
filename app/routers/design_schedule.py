@@ -336,7 +336,8 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
                                        "festivos": festivos, "hoy": sd.ahora_colombia().date(),
                                        "support_time": ss.estado(db, sd.ahora_colombia().date()),
-                                       "cliq": {"configurado": sc.configurado(), "canal": sc.canal_support(), "bot": sc.bot()},
+                                       "cliq": {"configurado": sc.configurado(), "canal": sc.canal_support(), "bot": sc.bot(),
+                                                "canalesTurno": "\n".join(sc.canales_turno(ss.config(db).cliq_canales))},
                                        "sim_personas": _personas_simulacion(db, user), "sim_abrir": request.query_params.get("sim") == "1",
                                        "invitados": _inv_listar(db), "inv_abrir": request.query_params.get("inv") == "1",
                                        "msg": request.query_params.get("msg")})

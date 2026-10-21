@@ -75,7 +75,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
 - 19-oct-2026: `design_cumple_vistos`, `design_dev_*` (Development), `design_ordenes.critico`
   pasa a 300 caracteres (solo en PostgreSQL).
 - 20-oct-2026: `design_dev_apoyos`, `design_invitados`, columna `design_ordenes.arco`. Área y
-  equipo «Removable Denture» creados solos por `rd_una_vez`. Tabla `design_copias_rd` (copia de
+  equipo «Removable Denture» creados solos por `rd_una_vez`. Columna
+  `design_support_config.cliq_canales` (grupos de Cliq del aviso «Support en turno»). Tabla `design_copias_rd` (copia de
   Removable Denture ↔ orden original); la primera vez que se abre Removable Denture, las órdenes de
   hoy en adelante con «Removable» reciben su copia (`rd_copias_una_vez`).
 
@@ -85,6 +86,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   persona de Support cuando un equipo de N3 le asigna un caso (`_push_caso_a_support`).
 - **Cliq**: el bot «Anuncios Design» avisa el cambio de turno de Support; necesita
   `DESIGN_CLIQ_WEBHOOK_TOKEN` (o `DESIGN_CLIQ_REFRESH_TOKEN`) en Render.
+- **Cliq · Support en turno** (Rosember, 20-oct-2026): al empezar cada turno (solo los días del turno y
+  sin festivos), el bot publica en los grupos de Parámetros › Support Time quién atiende Support, su
+  turno, horario y próximo cambio. Lo revisa un hilo cada minuto (`arrancar_avisos_turno`, arranca
+  con la app); la marca `support_en_turno_<fecha>_<turno>` en `design_conexion_reglas` evita repetirlo
+  aunque haya dos instancias. Si el servidor estaba caído, avisa solo dentro de 30 min. El bot debe
+  ser participante de cada grupo. `DESIGN_SIN_AVISOS_TURNO` lo apaga.
 
 ## Gotchas
 

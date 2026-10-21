@@ -124,3 +124,115 @@ def avisar_cambio_si_corresponde(db: Session, hoy: date) -> bool:
         log.info("Aviso de cambio de turno de Support → %s: %s", "ok" if ok else "falló", detalle)
     threading.Thread(target=_enviar, daemon=True).start()   # no demora la página que lo disparó
     return True
+
+
+# ---------- Aviso: Support en turno (al empezar cada turno, en los grupos de Parámetros › Support Time) ----------
+# Pedido por Rosember el 20-oct-2026: los grupos deben saber qué Support está en turno ahora. Mismo contenido que la
+# tarjeta de Inicio (nombre, turno, horario y días, próximo cambio). Solo los días del turno (Parámetros › Support Time)
+# que no son festivos. Lo revisa un hilo cada minuto (arrancar_avisos_turno); la marca en design_conexion_reglas evita
+# repetirlo aunque Render tenga dos instancias.
+VENTANA_TURNO_MIN = 30   # si el servidor estaba reiniciando a la hora exacta, avisa dentro de esta media hora
+
+
+def canales_turno(texto: str | None) -> list[str]:
+    vistos, out = set(), []
+    for x in (texto or "").replace(",", "\n").splitlines():
+        x = x.strip().lstrip("#").strip()
+        if x and x.lower() not in vistos:
+            vistos.add(x.lower())
+            out.append(x)
+    return out
+
+
+def aviso_en_turno(st: dict, n: int) -> str | None:
+    """Texto del aviso para el turno `n` (st = services_design_support.estado)."""
+    p = next((x for x in st.get("personas") or [] if x["turnoActual"]["n"] == n), None)
+    if not p:
+        return None
+    t, sig = p["turnoActual"], p["turnoSiguiente"]
+    dias = f" · {st['diasTxt']}" if st.get("diasTxt") else ""
+    if p.get("cubierto"):
+        h = p["cubierto"]["hasta"]
+        quien = f"*{p['cubierto']['nombre']}* — {t['nombre']} (cubre a {p['nombre']} hasta el {h[8:10]}/{h[5:7]})"
+    else:
+        quien = f"*{p['nombre']}* — {t['nombre']}"
+    lineas = ["🛟 *Support en turno ahora*", quien, f"🕘 {t['horaTxt']}{dias}"]
+    if sig and sig["n"] != t["n"] and p.get("cambiaElTxt"):
+        lineas.append(f"El {p['cambiaElTxt']} pasa a turno {sig['nombre'].lower()} ({sig['horaTxt']})")
+    return "\n".join(lineas)
+
+
+def texto_en_turno(db: Session, ahora) -> str | None:
+    from . import services_design_support as ss
+    d = ss.en_turno(db, ahora)
+    return aviso_en_turno(ss.estado(db, ahora.date()), d["turno"]) if d else None
+
+
+def enviar_a_grupos(canales: list[str], texto: str) -> list[dict]:
+    out = []
+    with httpx.Client(timeout=12) as cliente:
+        for k in canales:
+            ok, det = enviar_canal(k, texto, cliente)
+            out.append({"canal": k, "ok": ok, "detalle": det})
+    return out
+
+
+def avisar_turno_si_corresponde(db: Session, ahora) -> int | None:
+    """Si acaba de empezar un turno de Support (hace menos de VENTANA_TURNO_MIN) y no se ha avisado, lo publica en los
+    grupos. Devuelve el turno avisado, o None."""
+    from . import services_design as sd
+    from . import services_design_support as ss
+    from .models_design import DesignConexionRegla
+    c = ss.config(db)
+    canales = canales_turno(c.cliq_canales)
+    if not (canales and configurado() and ss.listo(c)):
+        return None
+    minuto = ahora.hour * 60 + ahora.minute
+    for n in (1, 2):
+        ini = ss._min(c.turno1_inicio if n == 1 else c.turno2_inicio)
+        if ini is None or not 0 <= minuto - ini < VENTANA_TURNO_MIN:
+            continue
+        hoy = ahora.date()
+        dias = {int(x) for x in (c.dias or "").split(",") if x.strip().isdigit()}
+        if hoy.weekday() not in dias or hoy in sd.festivos(db):
+            return None
+        clave = f"support_en_turno_{hoy.isoformat()}_{n}"
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).first():
+            return None
+        try:
+            db.add(DesignConexionRegla(tipo="sistema", clave=clave, creado_por="Sistema"))
+            db.commit()   # la marca primero: la otra instancia de Render (si hay) ya no lo repite
+        except IntegrityError:
+            db.rollback()
+            return None
+        texto = aviso_en_turno(ss.estado(db, hoy), n)
+        if texto:
+            for r in enviar_a_grupos(canales, texto):
+                log.info("Support en turno → %s: %s", r["canal"], r["detalle"])
+        return n
+    return None
+
+
+_hilo_turno = {"t": None}
+
+
+def arrancar_avisos_turno() -> None:
+    """Hilo que cada minuto revisa si empezó un turno de Support (no hay tareas programadas en el servidor)."""
+    if _hilo_turno["t"] is not None or os.getenv("DESIGN_SIN_AVISOS_TURNO"):
+        return
+
+    def _bucle():
+        from . import services_design as sd
+        from .database import SessionLocal
+        while True:
+            time.sleep(60)
+            db = SessionLocal()
+            try:
+                avisar_turno_si_corresponde(db, sd.ahora_colombia())
+            except Exception:  # noqa: BLE001  un fallo nunca debe detener el hilo
+                db.rollback()
+                log.exception("Support en turno: no se pudo revisar el aviso")
+            finally:
+                db.close()
+    _hilo_turno["t"] = threading.Thread(target=_bucle, daemon=True, name="design-support-turno")
+    _hilo_turno["t"].start()

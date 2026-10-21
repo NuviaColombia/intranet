@@ -680,6 +680,15 @@
         {% if cliq.configurado %}<span style="color:#047857;font-weight:600">Conexión configurada.</span>{% else %}<span style="color:#b91c1c;font-weight:600">Falta el token de Cliq en Render (DESIGN_CLIQ_WEBHOOK_TOKEN o DESIGN_CLIQ_REFRESH_TOKEN).</span>{% endif %}</div>
       <button type="button" class="btn gris" id="stProbarCliq">Enviar mensaje de prueba</button>
       <span id="stProbarRes" class="aud-sub" style="margin-left:8px"></span>
+      <h3 style="margin-top:16px">Support en turno</h3>
+      <div class="aud-sub" style="margin-bottom:8px">Al empezar cada turno (solo los días marcados arriba y que no son festivos), el bot avisa en estos grupos quién atiende Support, su turno, horario y próximo cambio.
+        Escribe el <b>Unique Name</b> de cada grupo, uno por línea. El bot debe estar agregado como participante de cada grupo en Cliq.</div>
+      <textarea id="stCanales" rows="4" style="width:100%;max-width:420px;font-family:inherit" placeholder="ejemplo: n3prosthetic">{{ cliq.canalesTurno or cliq.canal }}</textarea>
+      <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn" id="stGuardarCanales">Guardar grupos</button>
+        <button type="button" class="btn gris" id="stProbarTurno">Publicar el aviso ahora</button>
+        <span id="stCanalesRes" class="aud-sub"></span>
+      </div>
     </div>
     <div class="st-caja" style="margin-top:14px" id="pushCaja">
       <h3>Notificaciones push</h3>
@@ -1484,6 +1493,31 @@
       fetch('/design/api/support-time/probar-cliq', {method: 'POST', credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(d) {
         res.style.color = d.ok ? '#047857' : '#b91c1c'; res.textContent = (d.ok ? '✔ ' : '✘ ') + d.detalle;
       }).catch(function() { res.style.color = '#b91c1c'; res.textContent = '✘ No se pudo enviar.'; }).then(function() { pb.disabled = false; });
+    });
+    // Support en turno: grupos donde avisa el bot al empezar cada turno
+    var gc = document.getElementById('stGuardarCanales'), pt = document.getElementById('stProbarTurno'),
+        ta = document.getElementById('stCanales'), cr = document.getElementById('stCanalesRes');
+    function llamar(boton, url, cuerpo, listo) {
+      boton.disabled = true; cr.style.color = ''; cr.textContent = 'Un momento…';
+      fetch(url, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cuerpo || {})})
+        .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, d: d}; }); })
+        .then(function(x) { if (!x.ok) throw new Error(x.d.detail || 'No se pudo.'); listo(x.d); })
+        .catch(function(e) { cr.style.color = '#b91c1c'; cr.textContent = '✘ ' + e.message; })
+        .then(function() { boton.disabled = false; });
+    }
+    if (gc) gc.addEventListener('click', function() {
+      llamar(gc, '/design/api/support-time/cliq-canales', {canales: ta.value}, function(d) {
+        ta.value = d.canales.join('\n'); cr.style.color = '#047857';
+        cr.textContent = d.canales.length ? '✔ Guardado: ' + d.canales.length + (d.canales.length === 1 ? ' grupo.' : ' grupos.') : '✔ Guardado: sin grupos, no se avisará.';
+      });
+    });
+    if (pt) pt.addEventListener('click', function() {
+      llamar(pt, '/design/api/support-time/probar-turno', null, function(d) {
+        var mal = d.resultados.filter(function(r) { return !r.ok; });
+        cr.style.color = mal.length ? '#b91c1c' : '#047857';
+        cr.textContent = mal.length ? '✘ ' + mal.map(function(r) { return r.canal + ': ' + r.detalle; }).join(' · ')
+                                    : '✔ Publicado en ' + d.resultados.map(function(r) { return r.canal; }).join(', ') + '.';
+      });
     });
   })();
 

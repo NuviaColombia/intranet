@@ -49,6 +49,32 @@ def api_probar_cliq(user: Empleado = Depends(require_admin), db: Session = Depen
     return {"ok": ok, "detalle": detalle}
 
 
+class CanalesIn(BaseModel):
+    canales: str = ""
+
+
+@router.post("/design/api/support-time/cliq-canales")
+def api_cliq_canales(payload: CanalesIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: grupos de Cliq (Unique Name, uno por línea) donde el bot avisa el Support en turno al empezar cada turno."""
+    c = ss.config(db)
+    canales = sc.canales_turno(payload.canales[:4000])
+    c.cliq_canales = "\n".join(canales)
+    db.commit()
+    return {"canales": canales}
+
+
+@router.post("/design/api/support-time/probar-turno")
+def api_probar_turno(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: publica ahora mismo el aviso «Support en turno» en los grupos guardados y devuelve qué respondió cada uno."""
+    canales = sc.canales_turno(ss.config(db).cliq_canales)
+    if not canales:
+        raise HTTPException(400, "Primero agrega y guarda al menos un grupo.")
+    texto = sc.texto_en_turno(db, sd.ahora_colombia())
+    if not texto:
+        raise HTTPException(400, "Support Time no está configurado: no se sabe quién está en turno.")
+    return {"resultados": sc.enviar_a_grupos(canales, texto), "texto": texto}
+
+
 @router.get("/design/api/support/en-turno")
 def api_support_en_turno(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """«🛟 Support Designer» (Schedules de N3): quién atiende Support en este momento (o quien cubre ese turno)."""
