@@ -25,6 +25,7 @@ está dónde buscar y qué no romper sin pensarlo.
 
 Antes de buscar un patrón de roles que no existe:
 - **Mural**: los editores siempre lo ven; el resto, solo cuando hay algo publicado.
+- **Centro de avisos** (`/design/avisos`): solo admins de Design (20-oct-2026).
 - **Development**: admins, Luis Felipe Blaschke y Paul Andion (`DEV_ESPECIALES`) y los invitados,
   estos en solo lectura (Rosember, 19–20-oct-2026).
 - **Calendario en People**: Pamela Manzur y Nicol Ardila (de People, no de Design) ven el
@@ -76,7 +77,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   pasa a 300 caracteres (solo en PostgreSQL).
 - 20-oct-2026: `design_dev_apoyos`, `design_invitados`, columna `design_ordenes.arco`. Área y
   equipo «Removable Denture» creados solos por `rd_una_vez`. Columna
-  `design_support_config.cliq_canales` (grupos de Cliq del aviso «Support en turno»). Tabla `design_copias_rd` (copia de
+  `design_support_config.cliq_canales` (solo para sembrar el grupo «Support» del Centro de avisos). Tablas
+  `design_cliq_grupos`, `design_cliq_destinos`, `design_cliq_mensajes`, `design_cliq_envios` (Centro de avisos).
+  Tabla `design_copias_rd` (copia de
   Removable Denture ↔ orden original); la primera vez que se abre Removable Denture, las órdenes de
   hoy en adelante con «Removable» reciben su copia (`rd_copias_una_vez`).
 
@@ -86,12 +89,16 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   persona de Support cuando un equipo de N3 le asigna un caso (`_push_caso_a_support`).
 - **Cliq**: el bot «Anuncios Design» avisa el cambio de turno de Support; necesita
   `DESIGN_CLIQ_WEBHOOK_TOKEN` (o `DESIGN_CLIQ_REFRESH_TOKEN`) en Render.
-- **Cliq · Support en turno** (Rosember, 20-oct-2026): al empezar cada turno (solo los días del turno y
-  sin festivos), el bot publica en los grupos de Parámetros › Support Time quién atiende Support («Support
-  Designer en turno»), con @mención por su correo de Zoho (`{@correo}`), su turno y horario. Lo revisa un hilo cada minuto (`arrancar_avisos_turno`, arranca
-  con la app); la marca `support_en_turno_<fecha>_<turno>` en `design_conexion_reglas` evita repetirlo
-  aunque haya dos instancias. Si el servidor estaba caído, avisa solo dentro de 30 min. El bot debe
-  ser participante de cada grupo. `DESIGN_SIN_AVISOS_TURNO` lo apaga.
+- **Centro de avisos (Cliq)** (`/design/avisos`, menú Management; solo admins de Design; Rosember,
+  20-oct-2026): todo lo que envía el bot. Grupos (canales por Unique Name y personas por correo, mensaje
+  directo del bot), mensajes con variables (`{persona}` = @mención por correo `{@correo}`, `{turno}`,
+  `{horario}`, `{fecha}`…) y su momento (inicio de cada turno de Support, día del cambio de turno,
+  programado una vez o cada semana, o a mano), bot por mensaje (vacío = `DESIGN_CLIQ_BOT`) e historial
+  con reintento. Un hilo revisa cada minuto (`services_design_avisos.arrancar`, arranca con la app); cada
+  envío automático deja una marca en `design_conexion_reglas`, así no se repite con dos instancias. Si el
+  servidor estaba caído, sale dentro de 30 min. Los dos avisos de antes («Support Designer en turno» y
+  «Cambio de turno de Support») quedaron como mensajes «de la plataforma»: se pausan, no se borran, y
+  usan las mismas marcas de antes. `DESIGN_SIN_AVISOS_TURNO` apaga el hilo.
 
 ## Gotchas
 

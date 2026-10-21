@@ -336,8 +336,7 @@ def parametros(request: Request, user: Empleado = Depends(require_design_manager
                                        "ausencias": ausencias, "catalogos": catalogos, "es_design": True,
                                        "festivos": festivos, "hoy": sd.ahora_colombia().date(),
                                        "support_time": ss.estado(db, sd.ahora_colombia().date()),
-                                       "cliq": {"configurado": sc.configurado(), "canal": sc.canal_support(), "bot": sc.bot(),
-                                                "canalesTurno": "\n".join(sc.canales_turno(ss.config(db).cliq_canales))},
+                                       "cliq": {"configurado": sc.configurado(), "canal": sc.canal_support(), "bot": sc.bot()},
                                        "sim_personas": _personas_simulacion(db, user), "sim_abrir": request.query_params.get("sim") == "1",
                                        "invitados": _inv_listar(db), "inv_abrir": request.query_params.get("inv") == "1",
                                        "msg": request.query_params.get("msg")})
@@ -3473,6 +3472,10 @@ router.include_router(_reunion_router)
 # ---------- Cumpleaños (anuncio del día + Parameters › Formatos Canva): rutas en routers/design_cumple.py ----------
 from .design_cumple import router as _cumple_router  # noqa: E402
 router.include_router(_cumple_router)
+
+# ---------- Centro de avisos (Cliq; admins): rutas en routers/design_avisos.py ----------
+from .design_avisos import router as _avisos_router  # noqa: E402
+router.include_router(_avisos_router)
 
 # ---------- Development (proyectos y protocolos; admins + Luis Felipe y Paul): rutas en routers/design_dev.py ----------
 from .design_dev import router as _dev_router  # noqa: E402

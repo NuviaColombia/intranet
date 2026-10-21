@@ -251,9 +251,9 @@ CANVAS_TEMPLATES = [
 
 @app.on_event("startup")
 def design_avisos_support():
-    # Design · Support Time: el bot de Cliq avisa en los grupos quién queda en Support al empezar cada turno (20-oct-2026)
-    from . import services_design_cliq
-    services_design_cliq.arrancar_avisos_turno()
+    # Design · Centro de avisos (Cliq): un hilo revisa cada minuto qué mensajes del bot tocan (20-oct-2026)
+    from . import services_design_avisos
+    services_design_avisos.arrancar()
 
 
 @app.on_event("startup")

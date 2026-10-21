@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block titulo %}Centro de avisos{% endblock %}
+{% block contenido %}
+{# Centro de avisos (Cliq) · Rosember, 20-oct-2026: qué envía el bot, a dónde y qué ha enviado. Lógica en static/design/avisos/avisos.js #}
+<link rel="stylesheet" href="/static/design/avisos/avisos.css?v={{ avisos_v }}">
+<div id="avRaiz" class="av-raiz">
+  <div class="av-cab">
+    <div>
+      <h1>Centro de avisos</h1>
+      <p>Lo que envía el bot de Cliq, a dónde y cuándo. Los cambios se aplican en el próximo envío.</p>
+    </div>
+    <span class="av-conexion" id="avConexion">Revisando la conexión…</span>
+  </div>
+
+  <div class="av-tabs" role="tablist">
+    <button type="button" class="av-tab on" role="tab" aria-selected="true" data-tab="mensajes">Mensajes <span class="av-cant" id="avCantMsg"></span></button>
+    <button type="button" class="av-tab" role="tab" aria-selected="false" data-tab="grupos">Grupos <span class="av-cant" id="avCantGrp"></span></button>
+    <button type="button" class="av-tab" role="tab" aria-selected="false" data-tab="historial">Historial</button>
+  </div>
+
+  <section class="av-panel" data-panel="mensajes">
+    <div class="av-barra">
+      <span class="av-ayuda">Cada mensaje dice <b>qué</b> se envía, <b>cuándo</b> y <b>a qué grupos</b>.</span>
+      <button type="button" class="av-btn prim" id="avNuevoMsg">+ Nuevo mensaje</button>
+    </div>
+    <div class="av-lista" id="avMensajes"></div>
+  </section>
+
+  <section class="av-panel" data-panel="grupos" hidden>
+    <div class="av-barra">
+      <span class="av-ayuda">Un grupo reúne canales de Cliq (por su <b>Unique Name</b>) y personas (mensaje directo del bot). El bot debe ser participante de cada canal.</span>
+      <button type="button" class="av-btn prim" id="avNuevoGrp">+ Nuevo grupo</button>
+    </div>
+    <div class="av-lista" id="avGrupos"></div>
+  </section>
+
+  <section class="av-panel" data-panel="historial" hidden>
+    <div class="av-barra">
+      <label class="av-ayuda">Mensaje <select id="avHistFiltro"><option value="">Todos</option></select></label>
+      <button type="button" class="av-btn" id="avHistRecargar">Actualizar</button>
+    </div>
+    <div class="av-tabla-caja"><table class="av-tabla" id="avHist">
+      <thead><tr><th>Fecha</th><th>Mensaje</th><th>Destino</th><th>Resultado</th><th>Cómo</th><th></th></tr></thead>
+      <tbody></tbody></table></div>
+  </section>
+</div>
+
+<div class="av-modal" id="avModal" hidden role="dialog" aria-modal="true" aria-labelledby="avModalTit">
+  <div class="av-modal-caja">
+    <div class="av-modal-cab"><h2 id="avModalTit">Mensaje</h2><button type="button" class="av-x" id="avCerrar" aria-label="Cerrar">✕</button></div>
+    <div class="av-editor">
+      <div class="av-form">
+        <label class="av-campo">Nombre<input type="text" id="avNombre" maxlength="120" placeholder="Ej. Recordatorio de reunión"></label>
+        <div class="av-campo">Texto
+          <textarea id="avTexto" rows="6" placeholder="Escribe el mensaje. *Así* sale en negrita."></textarea>
+          <div class="av-vars" id="avVars"></div>
+        </div>
+        <div class="av-campo">Cuándo se envía
+          <div class="av-seg" id="avDisp"></div>
+          <div class="av-nota" id="avDispNota" hidden></div>
+          <div class="av-prog" id="avProg" hidden>
+            <div class="av-seg av-seg-sm" id="avProgTipo">
+              <button type="button" data-v="una">Una vez</button><button type="button" data-v="semanal">Cada semana</button>
+            </div>
+            <div class="av-fila">
+              <label class="av-campo" id="avFechaCampo">Fecha<input type="date" id="avFecha"></label>
+              <label class="av-campo">Hora (Colombia)<input type="time" id="avHora"></label>
+            </div>
+            <div class="av-dias" id="avDias"></div>
+          </div>
+          <div class="av-fila" id="avHoraCambio" hidden><label class="av-campo">Hora (Colombia)<input type="time" id="avHora2"></label></div>
+          <label class="av-check" id="avFestivosCampo"><input type="checkbox" id="avFestivos"> No enviar en festivos</label>
+        </div>
+        <div class="av-campo">A dónde
+          <div class="av-grupos-sel" id="avGruposSel"></div>
+        </div>
+        <details class="av-avanzado"><summary>Opciones avanzadas</summary>
+          <label class="av-campo">Bot que lo envía (Unique Name)
+            <input type="text" id="avBot" list="avBots" maxlength="100"></label>
+          <datalist id="avBots"></datalist>
+          <div class="av-nota">Vacío = el bot por defecto. Otro bot debe existir en Cliq y estar en los canales.</div>
+        </details>
+      </div>
+      <div class="av-vista">
+        <div class="av-vista-tit">Así se verá en Cliq <span>(con los datos de este momento)</span></div>
+        <div class="av-burbuja"><div class="av-burbuja-bot" id="avVistaBot"></div><div id="avVista" class="av-vista-txt"></div></div>
+      </div>
+    </div>
+    <div class="av-modal-pie">
+      <span class="av-res" id="avModalRes"></span>
+      <button type="button" class="av-btn" id="avPrueba" title="El bot te lo envía a ti por mensaje directo; no llega a los grupos">Enviarme una prueba</button>
+      <button type="button" class="av-btn prim" id="avGuardar">Guardar</button>
+    </div>
+  </div>
+</div>
+<script src="/static/design/avisos/avisos.js?v={{ avisos_v }}"></script>
+{% endblock %}

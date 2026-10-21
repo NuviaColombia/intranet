@@ -160,6 +160,7 @@
       <a href="/design?panel=seguimiento">👀 Seguimiento</a>
       <a href="/design/calendario">📅 Calendario</a>
       {% if user.rol in ('admin', 'superadmin') %}<a href="/design?panel=papelera">🗑️ Papelera</a>{% endif %}
+      {% if user.rol in ('admin', 'superadmin') %}<a href="/design/avisos">📣 Centro de avisos</a>{% endif %}{# lo que envía el bot de Cliq (routers/design_avisos.py) #}
     </div>
   </div>
   {% endif %}

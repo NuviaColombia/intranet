@@ -1,0 +1,379 @@
+// Centro de avisos (Cliq) · Rosember, 20-oct-2026. Mensajes (qué, cuándo, a dónde), Grupos (canales y personas) e
+// Historial (qué se envió y qué respondió Cliq). Servidor: routers/design_avisos.py y services_design_avisos.py.
+(function() {
+  'use strict';
+  var D = null, editando = null, vistaT = null;
+  var dl = document.createElement('datalist'); dl.id = 'avPersonas'; document.body.appendChild(dl);   // correos para «+ Persona»
+  var DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  var ORIGEN = {auto: 'Automático', manual: 'Enviado a mano', prueba: 'Prueba', reintento: 'Reintento'};
+  var $ = function(id) { return document.getElementById(id); };
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function(c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]; }); }
+
+  function api(url, cuerpo) {
+    var op = {credentials: 'same-origin'};
+    if (cuerpo !== undefined) op = {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cuerpo || {})};
+    return fetch(url, op).then(function(r) {
+      return r.json().catch(function() { return {}; }).then(function(d) {
+        if (!r.ok) throw new Error(d.detail || 'No se pudo (error ' + r.status + ').');
+        return d;
+      });
+    });
+  }
+  function aviso(txt, mal) {
+    var t = document.createElement('div');
+    t.className = 'av-toast' + (mal ? ' mal' : '');
+    t.textContent = txt;
+    document.body.appendChild(t);
+    setTimeout(function() { t.classList.add('fuera'); }, 3200);
+    setTimeout(function() { t.remove(); }, 3800);
+  }
+  function cuando(iso) {
+    try { return new Date(iso).toLocaleString('es-CO', {timeZone: 'America/Bogota', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'}); }
+    catch (e) { return iso; }
+  }
+  function nombrePersona(email) {
+    var p = (D.personas || []).find(function(x) { return x.email.toLowerCase() === String(email).toLowerCase(); });
+    return p ? p.nombre : email;
+  }
+  // Formato de Cliq: *negrita*, _cursiva_, {@correo} = @mención
+  function cliqHtml(t, vars) {
+    var h = esc(t);
+    if (vars) h = h.replace(/\{(\w+)\}/g, function(m, k) { return D.variables.some(function(v) { return v.k === k; }) ? '<span class="av-v" title="Se llena al enviar">' + k + '</span>' : m; });
+    return h.replace(/\{@([^}\s]+)\}/g, function(_, e) { return '<span class="av-mencion">@' + esc(nombrePersona(e)) + '</span>'; })
+      .replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/(^|\s)_([^_\n]+)_/g, '$1<i>$2</i>').replace(/\n/g, '<br>');
+  }
+  function resultados(res) {
+    var mal = res.filter(function(r) { return !r.ok; });
+    if (!res.length) return aviso('No había a quién enviarlo.', true);
+    if (mal.length) aviso('✘ ' + mal.map(function(r) { return destinoTxt(r.tipo, r.destino) + ': ' + r.detalle; }).join(' · '), true);
+    else aviso('✔ Enviado a ' + res.map(function(r) { return destinoTxt(r.tipo, r.destino); }).join(', '));
+  }
+  function destinoTxt(tipo, valor) { return tipo === 'persona' ? '@' + nombrePersona(valor) : '#' + valor; }
+
+  // ---------- Carga ----------
+  function cargar(d) {
+    D = d;
+    var c = $('avConexion');
+    c.className = 'av-conexion ' + (d.conexion.configurado ? 'ok' : 'mal');
+    c.textContent = d.conexion.configurado ? 'Conectado a Cliq · bot ' + d.conexion.bot : 'Sin conexión: falta el token de Cliq en Render';
+    $('avCantMsg').textContent = d.mensajes.length;
+    $('avCantGrp').textContent = d.grupos.length;
+    pintarMensajes();
+    pintarGrupos();
+    var f = $('avHistFiltro'), v = f.value;
+    f.innerHTML = '<option value="">Todos</option>' + d.mensajes.map(function(m) { return '<option value="' + m.id + '">' + esc(m.nombre) + '</option>'; }).join('');
+    f.value = v;
+    $('avBots').innerHTML = d.bots.map(function(b) { return '<option value="' + esc(b) + '">'; }).join('');
+    $('avPersonas').innerHTML = d.personas.map(function(p) { return '<option value="' + esc(p.email) + '">' + esc(p.nombre) + '</option>'; }).join('');
+  }
+  function recargar() { return api('/design/api/avisos').then(cargar).catch(function(e) { aviso(e.message, true); }); }
+
+  // ---------- Pestañas ----------
+  document.querySelectorAll('.av-tab').forEach(function(b) {
+    b.addEventListener('click', function() { abrirTab(b.dataset.tab); });
+  });
+  function abrirTab(t) {
+    document.querySelectorAll('.av-tab').forEach(function(b) { var on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    document.querySelectorAll('.av-panel').forEach(function(p) { p.hidden = p.dataset.panel !== t; });
+    if (t === 'historial') cargarHistorial();
+    try { localStorage.setItem('avTab', t); } catch (e) { /* sin almacenamiento */ }
+  }
+
+  // ---------- Mensajes ----------
+  function pintarMensajes() {
+    var el = $('avMensajes');
+    if (!D.mensajes.length) { el.innerHTML = '<div class="av-vacio">Todavía no hay mensajes. Crea el primero con <b>+ Nuevo mensaje</b>.</div>'; return; }
+    el.innerHTML = D.mensajes.map(function(m) {
+      var grupos = m.grupos.map(function(id) { return D.grupos.find(function(g) { return g.id === id; }); }).filter(Boolean);
+      var ult = m.ultimo ? '<span class="' + (m.ultimo.ok ? 'av-ok' : 'av-mal') + '">' + (m.ultimo.ok ? '✔' : '✘') + ' Último envío: ' + esc(cuando(m.ultimo.en)) + '</span>' : '<span class="av-gris">Aún no se ha enviado</span>';
+      return '<article class="av-card' + (m.activo ? '' : ' pausado') + '" data-id="' + m.id + '">' +
+        '<div class="av-card-cab"><h3>' + esc(m.nombre) + (m.sistema ? ' <span class="av-tag" title="La plataforma ya lo enviaba antes del Centro: se puede pausar y editar, no eliminar">De la plataforma</span>' : '') + '</h3>' +
+        '<label class="av-sw" title="' + (m.activo ? 'Activo: se envía solo' : 'Pausado: no se envía solo') + '"><input type="checkbox" data-a="activo"' + (m.activo ? ' checked' : '') + '><span></span>' + (m.activo ? 'Activo' : 'Pausado') + '</label></div>' +
+        '<div class="av-linea">🕘 ' + esc(m.descripcion) + '</div>' +
+        '<div class="av-linea">📍 ' + (grupos.length ? grupos.map(function(g) { return '<span class="av-chip">' + esc(g.nombre) + '</span>'; }).join(' ') : '<span class="av-mal">Sin grupos: no se envía a nadie</span>') + '</div>' +
+        '<div class="av-muestra">' + cliqHtml(m.texto, true) + '</div>' +
+        '<div class="av-card-pie">' + ult + '<span class="av-acc">' +
+          '<button type="button" class="av-btn" data-a="editar">Editar</button>' +
+          '<button type="button" class="av-btn" data-a="enviar" title="Enviar ya a sus grupos">Enviar ahora</button>' +
+          '<button type="button" class="av-btn" data-a="duplicar">Duplicar</button>' +
+          (m.sistema ? '' : '<button type="button" class="av-btn peligro" data-a="eliminar">Eliminar</button>') +
+        '</span></div></article>';
+    }).join('');
+  }
+  $('avMensajes').addEventListener('click', function(ev) {
+    var b = ev.target.closest('[data-a]'), card = ev.target.closest('.av-card');
+    if (!b || !card || b.tagName === 'INPUT') return;
+    var m = D.mensajes.find(function(x) { return x.id === +card.dataset.id; });
+    if (b.dataset.a === 'editar') abrirEditor(m);
+    else if (b.dataset.a === 'enviar') {
+      if (!confirm('¿Enviar «' + m.nombre + '» ahora a sus grupos?')) return;
+      b.disabled = true;
+      api('/design/api/avisos/mensajes/' + m.id + '/enviar', {prueba: false}).then(function(d) { resultados(d.resultados); recargar(); })
+        .catch(function(e) { aviso(e.message, true); }).then(function() { b.disabled = false; });
+    } else if (b.dataset.a === 'duplicar') {
+      api('/design/api/avisos/mensajes/' + m.id + '/duplicar', {}).then(function(d) {
+        cargar(d); aviso('✔ Copia creada (en pausa). Edítala y actívala.');
+        abrirEditor(D.mensajes.find(function(x) { return x.id === d.guardado; }));
+      }).catch(function(e) { aviso(e.message, true); });
+    } else if (b.dataset.a === 'eliminar') {
+      if (!confirm('¿Eliminar el mensaje «' + m.nombre + '»? El historial se conserva.')) return;
+      api('/design/api/avisos/mensajes/' + m.id + '/eliminar', {}).then(function(d) { cargar(d); aviso('✔ Mensaje eliminado.'); }).catch(function(e) { aviso(e.message, true); });
+    }
+  });
+  $('avMensajes').addEventListener('change', function(ev) {
+    if (ev.target.dataset.a !== 'activo') return;
+    var id = +ev.target.closest('.av-card').dataset.id;
+    api('/design/api/avisos/mensajes/' + id + '/activo', {activo: ev.target.checked}).then(function(d) { cargar(d); aviso(ev.target.checked ? '✔ Activado.' : '✔ En pausa: no se enviará solo.'); })
+      .catch(function(e) { aviso(e.message, true); recargar(); });
+  });
+
+  // ---------- Editor de mensaje ----------
+  var DISP_TXT = {turno_support: 'Al empezar cada turno de Support', cambio_support: 'El día del cambio de turno', programado: 'Programado', manual: 'Solo a mano'};
+  function abrirEditor(m) {
+    editando = m ? JSON.parse(JSON.stringify(m)) : {id: null, nombre: '', activo: true, bot: '', texto: '', disparador: 'manual', progTipo: 'una',
+                                                   progFecha: '', progHora: '08:00', progDias: [0, 1, 2, 3, 4], saltarFestivos: true, grupos: [], sistema: ''};
+    $('avModalTit').textContent = m ? 'Editar mensaje' : 'Nuevo mensaje';
+    $('avNombre').value = editando.nombre;
+    $('avTexto').value = editando.texto;
+    $('avBot').value = editando.bot;
+    $('avBot').placeholder = D.conexion.bot;
+    $('avFecha').value = editando.progFecha;
+    $('avHora').value = editando.progHora;
+    $('avHora2').value = editando.progHora || '07:00';
+    $('avFestivos').checked = editando.saltarFestivos;
+    $('avVars').innerHTML = '<span class="av-gris">Insertar:</span> ' + D.variables.map(function(v) {
+      return '<button type="button" class="av-var" data-v="' + v.k + '" title="' + esc(v.l) + '">{' + v.k + '}</button>';
+    }).join('');
+    pintarDisp();
+    pintarGruposSel();
+    $('avModalRes').textContent = '';
+    $('avModal').hidden = false;
+    document.body.classList.add('av-con-modal');
+    vistaPrevia();
+    setTimeout(function() { $(m ? 'avTexto' : 'avNombre').focus(); }, 30);
+  }
+  function cerrarEditor() { $('avModal').hidden = true; document.body.classList.remove('av-con-modal'); editando = null; }
+  $('avCerrar').addEventListener('click', cerrarEditor);
+  $('avModal').addEventListener('click', function(ev) { if (ev.target === $('avModal')) cerrarEditor(); });
+  document.addEventListener('keydown', function(ev) { if (ev.key === 'Escape' && editando) cerrarEditor(); });
+  $('avNuevoMsg').addEventListener('click', function() { abrirEditor(null); });
+
+  function pintarDisp() {
+    var e = editando, el = $('avDisp');
+    var opciones = e.sistema ? [e.disparador] : Object.keys(DISP_TXT);
+    el.innerHTML = opciones.map(function(k) { return '<button type="button" data-v="' + k + '" class="' + (k === e.disparador ? 'on' : '') + '">' + DISP_TXT[k] + '</button>'; }).join('');
+    var nota = $('avDispNota');
+    nota.hidden = !e.sistema && e.disparador !== 'turno_support' && e.disparador !== 'cambio_support';
+    nota.textContent = e.disparador === 'turno_support' ? 'Sale a la hora de inicio de cada turno (Parámetros › Support Time), solo los días de Support.'
+      : e.disparador === 'cambio_support' ? 'Sale el día en que las dos personas de Support intercambian turno, a la hora que elijas.' : '';
+    $('avProg').hidden = e.disparador !== 'programado';
+    $('avHoraCambio').hidden = e.disparador !== 'cambio_support';
+    $('avFestivosCampo').hidden = !(e.disparador === 'turno_support' || (e.disparador === 'programado' && e.progTipo === 'semanal'));
+    document.querySelectorAll('#avProgTipo button').forEach(function(b) { b.classList.toggle('on', b.dataset.v === e.progTipo); });
+    $('avFechaCampo').hidden = e.progTipo !== 'una';
+    $('avDias').hidden = e.progTipo !== 'semanal';
+    $('avDias').innerHTML = DIAS.map(function(d, i) {
+      return '<button type="button" data-d="' + i + '" class="' + (e.progDias.indexOf(i) >= 0 ? 'on' : '') + '">' + d + '</button>';
+    }).join('');
+  }
+  $('avDisp').addEventListener('click', function(ev) { var b = ev.target.closest('button'); if (!b) return; editando.disparador = b.dataset.v; pintarDisp(); });
+  $('avProgTipo').addEventListener('click', function(ev) { var b = ev.target.closest('button'); if (!b) return; editando.progTipo = b.dataset.v; pintarDisp(); });
+  $('avDias').addEventListener('click', function(ev) {
+    var b = ev.target.closest('button'); if (!b) return;
+    var d = +b.dataset.d, i = editando.progDias.indexOf(d);
+    if (i >= 0) editando.progDias.splice(i, 1); else editando.progDias.push(d);
+    pintarDisp();
+  });
+  function pintarGruposSel() {
+    var el = $('avGruposSel');
+    if (!D.grupos.length) { el.innerHTML = '<span class="av-mal">No hay grupos.</span> <button type="button" class="av-link" data-ir="grupos">Crear un grupo</button>'; return; }
+    el.innerHTML = D.grupos.map(function(g) {
+      var n = g.destinos.length;
+      return '<label class="av-check"><input type="checkbox" value="' + g.id + '"' + (editando.grupos.indexOf(g.id) >= 0 ? ' checked' : '') + '> ' + esc(g.nombre) +
+        ' <span class="av-gris">(' + n + (n === 1 ? ' destino' : ' destinos') + ')</span></label>';
+    }).join('') + '<button type="button" class="av-link" data-ir="grupos">Administrar grupos</button>';
+  }
+  $('avGruposSel').addEventListener('click', function(ev) {
+    if (ev.target.dataset.ir) { cerrarEditor(); abrirTab('grupos'); }
+  });
+  $('avVars').addEventListener('click', function(ev) {
+    var b = ev.target.closest('.av-var'); if (!b) return;
+    var ta = $('avTexto'), ins = '{' + b.dataset.v + '}', a = ta.selectionStart, z = ta.selectionEnd;
+    ta.value = ta.value.slice(0, a) + ins + ta.value.slice(z);
+    ta.focus(); ta.selectionStart = ta.selectionEnd = a + ins.length;
+    vistaPrevia();
+  });
+  $('avTexto').addEventListener('input', function() { clearTimeout(vistaT); vistaT = setTimeout(vistaPrevia, 350); });
+  function vistaPrevia() {
+    var texto = $('avTexto').value;
+    $('avVistaBot').textContent = ($('avBot').value.trim() || D.conexion.bot);
+    if (!texto.trim()) { $('avVista').innerHTML = '<span class="av-gris">Escribe el texto para ver cómo queda.</span>'; return; }
+    api('/design/api/avisos/vista-previa', {texto: texto}).then(function(d) { if (editando) $('avVista').innerHTML = cliqHtml(d.texto); })
+      .catch(function() { $('avVista').innerHTML = cliqHtml(texto); });
+  }
+  $('avBot').addEventListener('input', vistaPrevia);
+  function datosEditor() {
+    var e = editando;
+    return {id: e.id, nombre: $('avNombre').value, activo: e.activo, bot: $('avBot').value, texto: $('avTexto').value, disparador: e.disparador,
+            progTipo: e.progTipo, progFecha: $('avFecha').value, progHora: e.disparador === 'cambio_support' ? $('avHora2').value : $('avHora').value,
+            progDias: e.progDias, saltarFestivos: $('avFestivos').checked,
+            grupos: [].map.call($('avGruposSel').querySelectorAll('input:checked'), function(i) { return +i.value; })};
+  }
+  function guardarEditor() {
+    var b = $('avGuardar'); b.disabled = true;
+    return api('/design/api/avisos/mensajes', datosEditor()).then(function(d) {
+      cargar(d);
+      editando.id = d.guardado;
+      return d.guardado;
+    }).finally(function() { b.disabled = false; });
+  }
+  $('avGuardar').addEventListener('click', function() {
+    guardarEditor().then(function() { cerrarEditor(); aviso('✔ Mensaje guardado.'); }).catch(function(e) { $('avModalRes').textContent = '✘ ' + e.message; });
+  });
+  $('avPrueba').addEventListener('click', function() {
+    var b = $('avPrueba'); $('avModalRes').textContent = 'Guardando y enviando…';
+    guardarEditor().then(function(id) {
+      b.disabled = true;
+      return api('/design/api/avisos/mensajes/' + id + '/enviar', {prueba: true});
+    }).then(function(d) {
+      var r = d.resultados[0] || {};
+      $('avModalRes').textContent = r.ok ? '✔ Te llegó por mensaje directo del bot. Ya quedó guardado.' : '✘ ' + (r.detalle || 'No se pudo.');
+      recargar();
+    }).catch(function(e) { $('avModalRes').textContent = '✘ ' + e.message; }).then(function() { b.disabled = false; });
+  });
+
+  // ---------- Grupos ----------
+  function pintarGrupos() {
+    var el = $('avGrupos');
+    if (el.querySelector('.av-card.sucio')) return;   // hay un grupo con cambios sin guardar: no se pierde lo escrito
+    if (!D.grupos.length) { el.innerHTML = '<div class="av-vacio">Todavía no hay grupos. Crea uno con <b>+ Nuevo grupo</b>.</div>'; return; }
+    el.innerHTML = '';
+    D.grupos.forEach(function(g) { el.appendChild(tarjetaGrupo(g)); });
+  }
+  function filaDestino(d) {
+    var f = document.createElement('div');
+    f.className = 'av-dest';
+    f.innerHTML = '<select data-c="tipo" aria-label="Tipo"><option value="canal">Canal #</option><option value="persona">Persona @</option></select>' +
+      '<input type="text" data-c="valor" maxlength="200">' +
+      '<span class="av-dest-nombre"></span>' +
+      '<button type="button" class="av-btn" data-a="probar" title="El bot envía un mensaje de prueba solo aquí">Probar</button>' +
+      '<button type="button" class="av-x" data-a="quitar" title="Quitar de este grupo" aria-label="Quitar">✕</button>';
+    var sel = f.querySelector('select'), inp = f.querySelector('input');
+    sel.value = d.tipo || 'canal';
+    inp.value = d.valor || '';
+    function ajustar() {
+      var p = sel.value === 'persona';
+      inp.placeholder = p ? 'correo de Zoho de la persona' : 'Unique Name del canal, ej. supportnuviacolombiacom';
+      if (p) inp.setAttribute('list', 'avPersonas'); else inp.removeAttribute('list');
+      f.querySelector('.av-dest-nombre').textContent = p && inp.value ? nombrePersona(inp.value) : '';
+    }
+    sel.addEventListener('change', ajustar);
+    inp.addEventListener('input', ajustar);
+    ajustar();
+    return f;
+  }
+  function tarjetaGrupo(g) {
+    var c = document.createElement('article');
+    c.className = 'av-card';
+    c.dataset.id = g.id || '';
+    c.innerHTML = '<div class="av-card-cab"><input type="text" class="av-titulo-inp" data-c="nombre" maxlength="120" placeholder="Nombre del grupo, ej. Managers N3" aria-label="Nombre del grupo"></div>' +
+      '<div class="av-linea av-gris">' + (g.usos && g.usos.length ? 'Lo usan: ' + g.usos.map(esc).join(', ') : 'Ningún mensaje lo usa todavía') + '</div>' +
+      '<div class="av-dests"></div>' +
+      '<div class="av-card-pie"><span class="av-acc">' +
+        '<button type="button" class="av-btn" data-a="canal">+ Canal</button><button type="button" class="av-btn" data-a="persona">+ Persona</button></span>' +
+        '<span class="av-acc"><span class="av-sucio">Cambios sin guardar</span>' +
+        (g.id ? '<button type="button" class="av-btn peligro" data-a="eliminar">Eliminar grupo</button>' : '<button type="button" class="av-btn" data-a="cancelar">Cancelar</button>') +
+        '<button type="button" class="av-btn prim" data-a="guardar">Guardar</button></span></div>';
+    c.querySelector('[data-c="nombre"]').value = g.nombre || '';
+    var lista = c.querySelector('.av-dests');
+    (g.destinos.length ? g.destinos : [{tipo: 'canal', valor: ''}]).forEach(function(d) { lista.appendChild(filaDestino(d)); });
+    if (!g.id) c.classList.add('sucio');
+    return c;
+  }
+  $('avNuevoGrp').addEventListener('click', function() {
+    var el = $('avGrupos');
+    if (el.querySelector('.av-vacio')) el.innerHTML = '';
+    var c = tarjetaGrupo({id: null, nombre: '', destinos: [], usos: []});
+    el.insertBefore(c, el.firstChild);
+    c.querySelector('[data-c="nombre"]').focus();
+  });
+  $('avGrupos').addEventListener('input', function(ev) { var c = ev.target.closest('.av-card'); if (c) c.classList.add('sucio'); });
+  $('avGrupos').addEventListener('change', function(ev) { var c = ev.target.closest('.av-card'); if (c) c.classList.add('sucio'); });
+  $('avGrupos').addEventListener('click', function(ev) {
+    var b = ev.target.closest('[data-a]'), c = ev.target.closest('.av-card');
+    if (!b || !c) return;
+    var a = b.dataset.a, id = c.dataset.id ? +c.dataset.id : null;
+    if (a === 'canal' || a === 'persona') {
+      var f = filaDestino({tipo: a, valor: ''});
+      c.querySelector('.av-dests').appendChild(f); c.classList.add('sucio'); f.querySelector('input').focus();
+    } else if (a === 'quitar') {
+      b.closest('.av-dest').remove(); c.classList.add('sucio');
+    } else if (a === 'probar') {
+      var fila = b.closest('.av-dest'), tipo = fila.querySelector('select').value, valor = fila.querySelector('input').value.trim();
+      if (!valor) return aviso('Escribe primero el canal o el correo.', true);
+      b.disabled = true;
+      api('/design/api/avisos/probar-destino', {tipo: tipo, valor: valor}).then(function(r) {
+        aviso(r.ok ? '✔ Llegó a ' + destinoTxt(tipo, valor.replace(/^[#@]+/, '')) : '✘ ' + destinoTxt(tipo, valor) + ': ' + r.detalle, !r.ok);
+      }).catch(function(e) { aviso(e.message, true); }).then(function() { b.disabled = false; });
+    } else if (a === 'cancelar') {
+      c.remove(); if (!$('avGrupos').children.length) pintarGrupos();
+    } else if (a === 'eliminar') {
+      var g = D.grupos.find(function(x) { return x.id === id; });
+      var uso = g && g.usos.length ? '\nLo usan: ' + g.usos.join(', ') + '. Esos mensajes dejarán de enviarse a este grupo.' : '';
+      if (!confirm('¿Eliminar el grupo «' + (g ? g.nombre : '') + '»?' + uso)) return;
+      api('/design/api/avisos/grupos/' + id + '/eliminar', {}).then(function(d) { c.remove(); cargar(d); aviso('✔ Grupo eliminado.'); }).catch(function(e) { aviso(e.message, true); });
+    } else if (a === 'guardar') {
+      var destinos = [].map.call(c.querySelectorAll('.av-dest'), function(f) { return {tipo: f.querySelector('select').value, valor: f.querySelector('input').value}; })
+        .filter(function(d) { return d.valor.trim(); });
+      b.disabled = true;
+      api('/design/api/avisos/grupos', {id: id, nombre: c.querySelector('[data-c="nombre"]').value, destinos: destinos}).then(function(d) {
+        c.classList.remove('sucio');
+        if ($('avGrupos').querySelector('.av-card.sucio')) {   // otro grupo tiene cambios: este se queda como está, ya guardado
+          var nom = c.querySelector('[data-c="nombre"]').value.trim().toLowerCase();
+          var g2 = d.grupos.find(function(x) { return x.nombre.toLowerCase() === nom; });
+          if (g2) c.dataset.id = g2.id;
+        } else if (!id) c.remove();   // el nuevo vuelve a salir, ya guardado, al repintar
+        cargar(d); aviso('✔ Grupo guardado.');
+      }).catch(function(e) { aviso(e.message, true); }).then(function() { b.disabled = false; });
+    }
+  });
+
+  // ---------- Historial ----------
+  function cargarHistorial() {
+    var f = $('avHistFiltro').value, tb = $('avHist').querySelector('tbody');
+    tb.innerHTML = '<tr><td colspan="6" class="av-gris">Cargando…</td></tr>';
+    api('/design/api/avisos/historial' + (f ? '?mensaje_id=' + f : '')).then(function(filas) {
+      if (!filas.length) { tb.innerHTML = '<tr><td colspan="6" class="av-gris">Todavía no hay envíos.</td></tr>'; return; }
+      tb.innerHTML = filas.map(function(e) {
+        return '<tr class="' + (e.ok ? '' : 'mal') + '"><td>' + esc(cuando(e.en)) + '</td><td>' + esc(e.mensaje) + '</td>' +
+          '<td>' + esc(destinoTxt(e.tipo, e.destino)) + (e.grupo ? '<div class="av-gris">' + esc(e.grupo) + '</div>' : '') + '</td>' +
+          '<td>' + (e.ok ? '<span class="av-ok">✔ Enviado</span>' : '<span class="av-mal">✘ ' + esc(e.detalle) + '</span>') + '</td>' +
+          '<td>' + esc(ORIGEN[e.origen] || e.origen) + '<div class="av-gris">' + esc(e.por) + '</div></td>' +
+          '<td class="av-td-acc"><button type="button" class="av-btn" data-ver="' + e.id + '">Ver texto</button>' +
+          (e.ok ? '' : '<button type="button" class="av-btn" data-reintentar="' + e.id + '">Reintentar</button>') + '</td></tr>' +
+          '<tr class="av-hist-txt" data-txt="' + e.id + '" hidden><td colspan="6"><div class="av-muestra">' + cliqHtml(e.texto) + '</div></td></tr>';
+      }).join('');
+    }).catch(function(e) { tb.innerHTML = '<tr><td colspan="6" class="av-mal">' + esc(e.message) + '</td></tr>'; });
+  }
+  $('avHistFiltro').addEventListener('change', cargarHistorial);
+  $('avHistRecargar').addEventListener('click', cargarHistorial);
+  $('avHist').addEventListener('click', function(ev) {
+    var v = ev.target.dataset.ver, r = ev.target.dataset.reintentar;
+    if (v) { var t = $('avHist').querySelector('[data-txt="' + v + '"]'); t.hidden = !t.hidden; ev.target.textContent = t.hidden ? 'Ver texto' : 'Ocultar'; }
+    if (r) {
+      ev.target.disabled = true;
+      api('/design/api/avisos/historial/' + r + '/reintentar', {}).then(function(x) { aviso(x.ok ? '✔ Enviado.' : '✘ ' + x.detalle, !x.ok); cargarHistorial(); })
+        .catch(function(e) { aviso(e.message, true); ev.target.disabled = false; });
+    }
+  });
+
+  window.addEventListener('beforeunload', function(ev) {
+    if (document.querySelector('#avGrupos .av-card.sucio')) { ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  recargar().then(function() {
+    var t = null;
+    try { t = localStorage.getItem('avTab'); } catch (e) { /* sin almacenamiento */ }
+    if (t && t !== 'mensajes') abrirTab(t);
+  });
+})();

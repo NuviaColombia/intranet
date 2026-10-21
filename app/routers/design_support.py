@@ -23,11 +23,7 @@ def _puede_cubrir(user: Empleado) -> bool:
 @router.get("/design/api/support-time")
 def api_support_time(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """Quién está en cada turno hoy, su horario, el próximo cambio y las coberturas (para la página de Inicio y el Schedule)."""
-    hoy = sd.ahora_colombia().date()
-    try:
-        sc.avisar_cambio_si_corresponde(db, hoy)   # el día del cambio de turno avisa una sola vez en Cliq
-    except Exception:  # noqa: BLE001  un fallo de Cliq no debe afectar la página
-        pass
+    hoy = sd.ahora_colombia().date()   # el aviso del cambio de turno lo envía el Centro de avisos (services_design_avisos)
     return {**ss.estado(db, hoy), "puedeCubrir": _puede_cubrir(user)}
 
 
@@ -47,38 +43,6 @@ def api_probar_cliq(user: Empleado = Depends(require_admin), db: Session = Depen
     """Admins: manda un mensaje de prueba al canal de Support con el bot "Anuncios Design" y devuelve lo que respondió Cliq."""
     ok, detalle = sc.enviar_canal(sc.canal_support(), "✅ Mensaje de prueba de la plataforma (Anuncios Design). Si lo ves, la conexión con Cliq funciona.")
     return {"ok": ok, "detalle": detalle}
-
-
-class CanalesIn(BaseModel):
-    canales: str = ""
-
-
-@router.post("/design/api/support-time/cliq-canales")
-def api_cliq_canales(payload: CanalesIn, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    """Admins: grupos de Cliq (Unique Name, uno por línea) donde el bot avisa el Support en turno al empezar cada turno."""
-    c = ss.config(db)
-    canales = sc.canales_turno(payload.canales[:4000])
-    c.cliq_canales = "\n".join(canales)
-    db.commit()
-    return {"canales": canales}
-
-
-class ProbarTurnoIn(BaseModel):
-    canal: str = ""
-
-
-@router.post("/design/api/support-time/probar-turno")
-def api_probar_turno(payload: ProbarTurnoIn | None = None, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    """Admins: publica ahora mismo el aviso «Support en turno» en los grupos guardados (o solo en `canal`, el botón Probar
-    de cada grupo) y devuelve qué respondió cada uno."""
-    solo = sc.canales_turno((payload.canal if payload else "")[:120])
-    canales = solo[:1] or sc.canales_turno(ss.config(db).cliq_canales)
-    if not canales:
-        raise HTTPException(400, "Primero agrega y guarda al menos un grupo.")
-    texto = sc.texto_en_turno(db, sd.ahora_colombia())
-    if not texto:
-        raise HTTPException(400, "Support Time no está configurado: no se sabe quién está en turno.")
-    return {"resultados": sc.enviar_a_grupos(canales, texto), "texto": texto}
 
 
 @router.get("/design/api/support/en-turno")

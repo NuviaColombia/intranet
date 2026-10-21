@@ -1412,3 +1412,71 @@ class DesignCopiaRD(Base):
     origen_orden_id: Mapped[int] = mapped_column(Integer, index=True)
     origen_team_id: Mapped[int] = mapped_column(Integer)
     creada_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ---------- Centro de avisos (Cliq) · Rosember, 20-oct-2026 ----------
+# Qué envía el bot, a dónde y qué ha enviado. Lo administran los admins de Design (/design/avisos). Ver services_design_avisos.
+
+class DesignCliqGrupo(Base):
+    """Un grupo de destinos con nombre (p. ej. «Managers N3»): canales de Cliq y personas (mensaje directo del bot)."""
+    __tablename__ = "design_cliq_grupos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(120))
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+
+
+class DesignCliqDestino(Base):
+    """Un destino del grupo: tipo «canal» (Unique Name del canal) o «persona» (correo de Zoho)."""
+    __tablename__ = "design_cliq_destinos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    grupo_id: Mapped[int] = mapped_column(ForeignKey("design_cliq_grupos.id"), index=True)
+    tipo: Mapped[str] = mapped_column(String(10), default="canal")
+    valor: Mapped[str] = mapped_column(String(200))
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class DesignCliqMensaje(Base):
+    """Un mensaje del bot: texto con variables, cuándo se envía y a qué grupos.
+    disparador: «turno_support» (al empezar cada turno), «cambio_support» (el día de la rotación, a prog_hora),
+    «programado» (prog_tipo «una» = prog_fecha + prog_hora; «semanal» = prog_dias + prog_hora) o «manual».
+    `sistema` marca los que la plataforma ya enviaba antes del Centro (no se borran, solo se pausan)."""
+    __tablename__ = "design_cliq_mensajes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(120))
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    bot: Mapped[str] = mapped_column(String(100), default="")   # vacío = el bot por defecto (DESIGN_CLIQ_BOT)
+    texto: Mapped[str] = mapped_column(Text, default="")
+    disparador: Mapped[str] = mapped_column(String(20), default="manual")
+    prog_tipo: Mapped[str] = mapped_column(String(10), default="una")
+    prog_fecha: Mapped[date | None] = mapped_column(Date, nullable=True)
+    prog_hora: Mapped[str] = mapped_column(String(5), default="")
+    prog_dias: Mapped[str] = mapped_column(String(20), default="")
+    saltar_festivos: Mapped[bool] = mapped_column(Boolean, default=True)
+    grupos: Mapped[str] = mapped_column(String(400), default="")   # ids de DesignCliqGrupo separados por coma
+    sistema: Mapped[str | None] = mapped_column(String(40), nullable=True, unique=True)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    actualizado_por: Mapped[str] = mapped_column(String(150), default="")
+    actualizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class DesignCliqEnvio(Base):
+    """Historial: una fila por destino de cada envío (también los fallidos, con lo que respondió Cliq)."""
+    __tablename__ = "design_cliq_envios"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    mensaje_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    mensaje_nombre: Mapped[str] = mapped_column(String(120), default="")
+    grupo_nombre: Mapped[str] = mapped_column(String(120), default="")
+    tipo: Mapped[str] = mapped_column(String(10), default="canal")
+    destino: Mapped[str] = mapped_column(String(200), default="")
+    bot: Mapped[str] = mapped_column(String(100), default="")
+    texto: Mapped[str] = mapped_column(Text, default="")
+    ok: Mapped[bool] = mapped_column(Boolean, default=False)
+    detalle: Mapped[str] = mapped_column(String(400), default="")
+    origen: Mapped[str] = mapped_column(String(20), default="auto")   # auto | manual | prueba | reintento
+    por: Mapped[str] = mapped_column(String(150), default="Sistema")
+    en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
