@@ -3941,7 +3941,7 @@ function dpCargar() {
   document.getElementById('dpTabla').style.opacity = '.5';
   ddApi(u).then(function(d) {
     if (t !== DP.tok) return;
-    DP.datos = d;
+    DP.datos = d; DP.animar = true;
     var actual = String(d.anio);
     anioSel.innerHTML = d.anios.map(function(a) { return '<option' + (String(a) === actual ? ' selected' : '') + '>' + a + '</option>'; }).join('');
     dpPintar();
@@ -3974,6 +3974,7 @@ function dpPintar() {
     return '<div class="dp-barra"><span class="n" title="' + ddEsc(p.producto) + '">' + ddEsc(p.producto) + '</span><span class="b"><i style="width:' + Math.max(2, p.meses[mes] * 100 / max) + '%"></i></span><b>' + p.meses[mes] + '</b></div>';
   }).join('') + (top.length > 15 ? '<div class="dp-mas">y ' + (top.length - 15) + ' productos más en la tabla</div>' : '')
     : '<p style="color:#4b5563;font-size:13px;margin:6px 0">No hay órdenes en ' + DP_MESES_L[mes] + (q ? ' con "' + ddEsc(q) + '"' : '') + '.</p>';
+  if (DP.animar) { DP.animar = false; ddAnimar(document.getElementById('dpTop'), document.getElementById('dpKpis')); }
   // tabla producto × mes
   var flecha = function(k) { return DP.orden === k ? (DP.dir === 1 ? ' ▲' : ' ▼') : ''; };
   var h = '<thead><tr><th class="dd-izq" data-o="producto">Producto' + flecha('producto') + '</th>' +
@@ -4014,13 +4015,34 @@ function dpDescargar() {
   });
   el('dpTeam').addEventListener('change', dpCargar);
   el('dpAnio').addEventListener('change', dpCargar);
-  el('dpMes').addEventListener('change', dpPintar);
+  el('dpMes').addEventListener('change', function() { DP.animar = true; dpPintar(); });
   var tb = null; el('dpBuscar').addEventListener('input', function() { clearTimeout(tb); tb = setTimeout(dpPintar, 200); });
   el('dpDescargar').addEventListener('click', dpDescargar);
 })();
 
 // ---------- Dashboard › Articulación: casos de N3 › Cirugías que pasan de 2 h entre START y RTD (pedido por Rosember el 13-oct-2026) ----------
-var DA = {datos: null, orden: 'pasadas', dir: -1, tok: 0, tope: 50};
+var DA = {datos: null, orden: 'pasadas', dir: -1, tok: 0, tope: 50, animar: false};
+// Movimiento en las gráficas de Productos y Articulación (Rosember, 21-oct-2026): las barras crecen en cascada, las filas
+// entran deslizándose y los números de arriba cuentan hasta su valor. Solo al cargar datos o cambiar el mes (no al escribir
+// en el buscador). Quien pide menos movimiento en su sistema no lo ve.
+var DD_MOV = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+function ddAnimar(cont, kpis) {
+  if (!DD_MOV) return;
+  if (cont) {
+    cont.querySelectorAll('.dp-barra, .da-barra').forEach(function(r, i) { r.style.setProperty('--i', Math.min(i, 20)); });
+    cont.classList.remove('dd-anim'); void cont.offsetWidth; cont.classList.add('dd-anim');
+  }
+  if (kpis) kpis.querySelectorAll('.dd-kpi b').forEach(function(b) {
+    var m = /^(\d+)(%?)$/.exec(b.textContent.trim()), fin = m ? +m[1] : 0;
+    if (!fin) return;
+    var t0 = performance.now(), dur = 800;
+    (function paso(t) {
+      var p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      b.textContent = Math.round(fin * e) + m[2];
+      if (p < 1) requestAnimationFrame(paso);
+    })(t0);
+  });
+}
 var DA_TOPE = 50;   // casos que se muestran de a poco («Mostrar más»), para que la página no se ponga pesada
 // Cada vez que se entra a la pestaña: el mes en curso y las tablas cerradas (Rosember, 21-oct-2026)
 function daAbrir() {
@@ -4049,7 +4071,7 @@ function daCargar() {
   var area = document.getElementById('daArea').value, team = document.getElementById('daTeam').value, t = ++DA.tok;
   var u = '/design/api/dashboard/articulacion?desde=' + ds.value + '&hasta=' + hs.value + (team ? '&team_id=' + team : area ? '&area_id=' + area : '');
   document.getElementById('daCentros').style.opacity = '.5';
-  ddApi(u).then(function(d) { if (t !== DA.tok) return; DA.datos = d; DA.tope = DA_TOPE; daPintar(); })
+  ddApi(u).then(function(d) { if (t !== DA.tok) return; DA.datos = d; DA.tope = DA_TOPE; DA.animar = true; daPintar(); })
     .catch(function(e) { document.getElementById('daCentros').innerHTML = '<tbody><tr><td>No se pudo cargar: ' + ddEsc(e.message) + '</td></tr></tbody>'; })
     .then(function() { document.getElementById('daCentros').style.opacity = ''; });
 }
@@ -4074,6 +4096,7 @@ function daPintar() {
     '<div class="dd-kpi"><b>' + pas + '</b>pasaron de ' + (d.limiteMin / 60) + ' horas</div>' +
     '<div class="dd-kpi"><b>' + (med ? Math.round(pas * 100 / med) : 0) + '%</b>de los casos medidos</div>' +
     '<div class="dd-kpi"><b>' + (med ? daFmt(prom) : '—') + '</b>tiempo promedio de articulación</div>';
+  var animar = DA.animar; DA.animar = false;
   var top = f.centros.filter(function(c) { return c.casos && c.promedio; }).slice().sort(function(x, y) { return y.promedio - x.promedio; }).slice(0, 15);
   var topMax = top.length ? top[0].promedio : 1;
   document.getElementById('daTop').innerHTML = top.length ? top.map(function(c) {
@@ -4081,6 +4104,7 @@ function daPintar() {
       '<span class="b"><i style="width:' + Math.max(2, c.promedio * 100 / topMax) + '%"></i></span>' +
       '<b>' + daFmt(c.promedio) + ' <small>· ' + c.casos + ' casos</small></b></div>';
   }).join('') : '<p class="dd-p-nota">No hay casos con START y RTD en este periodo.</p>';
+  if (animar) ddAnimar(document.getElementById('daTop'), document.getElementById('daKpis'));
   var flecha = function(k) { return DA.orden === k ? (DA.dir === 1 ? ' ▲' : ' ▼') : ''; };
   var th = function(k, t, izq) { return '<th' + (izq ? ' class="dd-izq"' : '') + ' data-o="' + k + '">' + t + flecha(k) + '</th>'; };
   var conPasadas = f.centros.filter(function(c) { return c.pasadas > 0; });   // la tabla solo muestra los que pasaron de 2 h

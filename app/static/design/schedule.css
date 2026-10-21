@@ -1027,6 +1027,16 @@
 .dd-filtros .btn { height:34px; box-sizing:border-box; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center; margin:0; }
 .dd-filtros div[style*="flex-direction:row"] { height:34px; }
 #ddVistaReportes .dd-filtros input[type=file] { height:34px; padding:4px 6px; }
+/* Productos y Articulación: barras que crecen en cascada y filas que entran (Rosember, 21-oct-2026) */
+@keyframes ddCrecer { from { width:0; } }
+@keyframes ddEntrar { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:none; } }
+.dd-anim .dp-barra, .dd-anim .da-barra { animation:ddEntrar .5s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i, 0) * 45ms); }
+.dd-anim .dp-barra .b i, .dd-anim .da-barra .b i { animation:ddCrecer 1s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i, 0) * 45ms + 150ms); }
+.dp-barra, .da-barra { border-radius:6px; transition:background .15s; }
+.dp-barra:hover, .da-barra:hover { background:rgba(29, 78, 216, .07); }
+.dp-barra .b i, .da-barra .b i { transition:filter .15s; }
+.dp-barra:hover .b i, .da-barra:hover .b i { filter:brightness(1.25) saturate(1.2); }
+@media (prefers-reduced-motion: reduce) { .dd-anim .dp-barra, .dd-anim .da-barra, .dd-anim .dp-barra .b i, .dd-anim .da-barra .b i { animation:none !important; } }
 /* Aprobaciones: la tabla en un desplegable */
 details.dl-plegable > summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px; }
 details.dl-plegable > summary::-webkit-details-marker { display:none; }
