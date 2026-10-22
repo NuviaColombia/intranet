@@ -34,12 +34,15 @@ def _version_estaticos() -> str:
 def portal(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
     error = request.query_params.get("error")
     editor = si.es_editor(user)
+    from .. import services_caja as sc
     return templates.TemplateResponse(request, "portal.html",
                                       {"user": user, "es_portal": True,
                                        "error": MENSAJES_ERROR.get(error),
                                        "pagina": si.publicada(db), "editor": editor, "vivo": si.vivo(db),
                                        "modo_editar": editor and request.query_params.get("editar") == "1",
-                                       "version": _version_estaticos()})
+                                       "version": _version_estaticos(),
+                                       # No requiere el módulo Caja menor: cualquiera a quien le paguen puede firmar.
+                                       "recibos_pendientes": sc.recibos_pendientes_de_recibido(db, user)})
 
 
 # ---------- Borrador, publicar e historial (superadmins) ----------
