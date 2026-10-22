@@ -2,7 +2,7 @@
 hoja de Google de la app anterior (Apps Script)."""
 import json
 from datetime import datetime, date, timedelta
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from .models import Empleado
@@ -754,24 +754,36 @@ def notificar_anticipo_pendiente(anticipo_id: int, recordatorio: bool = False) -
 def buscar_personas(db: Session, caja: CajaMenor, texto: str) -> list[dict]:
     """Para autocompletar identificación/nombre en Nuevo recibo y Anticipos: colaboradores activos de
     People (cualquier empresa, igual que colaborador_por_identificacion) y terceros ya registrados antes
-    en esta caja. People tiene prioridad si la misma identificación aparece en las dos fuentes."""
+    en esta caja. People tiene prioridad si la misma identificación aparece en las dos fuentes.
+
+    Busca por palabra: cada palabra escrita debe aparecer en algún lado del nombre completo (primer
+    nombre, segundo nombre, primer apellido o segundo apellido), no solo si el texto completo es
+    exactamente lo que empieza el nombre -- así "Carlos Baldovino" encuentra a "Carlos Andrés Barreto
+    Baldovino" aunque esas dos palabras no estén seguidas."""
     q = (texto or "").strip()
     if len(q) < 2:
         return []
     patron = f"%{q}%"
+    palabras = [p for p in q.split() if p]
+
+    def _coincide_por_palabras(*campos):
+        """Cada palabra escrita debe aparecer en alguno de los campos (nombre O apellido), en cualquier
+        orden -- no en un solo campo concatenado."""
+        return and_(*(or_(*(campo.ilike(f"%{p}%") for campo in campos)) for p in palabras))
+
     resultados: dict[str, dict] = {}
     for ident, nombre in (db.query(CajaRecibo.identificacion, CajaRecibo.pagado_a)
                           .filter(CajaRecibo.caja_id == caja.id, CajaRecibo.identificacion != "",
-                                 or_(CajaRecibo.pagado_a.ilike(patron), CajaRecibo.identificacion.ilike(patron)))
+                                 or_(_coincide_por_palabras(CajaRecibo.pagado_a), CajaRecibo.identificacion.ilike(patron)))
                           .distinct().limit(20).all()):
         resultados[ident] = {"identificacion": ident, "nombre": nombre, "origen": "historial"}
     for ident, nombre in (db.query(CajaAnticipo.identificacion, CajaAnticipo.nombre)
                           .filter(CajaAnticipo.caja_id == caja.id, CajaAnticipo.identificacion != "",
-                                 or_(CajaAnticipo.nombre.ilike(patron), CajaAnticipo.identificacion.ilike(patron)))
+                                 or_(_coincide_por_palabras(CajaAnticipo.nombre), CajaAnticipo.identificacion.ilike(patron)))
                           .distinct().limit(20).all()):
         resultados.setdefault(ident, {"identificacion": ident, "nombre": nombre, "origen": "historial"})
     for e in (db.query(Empleado).filter(Empleado.activo == 1,
-             or_(Empleado.nombres.ilike(patron), Empleado.apellidos.ilike(patron), Empleado.identificacion.ilike(patron)))
+             or_(_coincide_por_palabras(Empleado.nombres, Empleado.apellidos), Empleado.identificacion.ilike(patron)))
              .limit(20).all()):
         resultados[e.identificacion] = {"identificacion": e.identificacion, "nombre": e.nombre_completo, "origen": "people"}
     return sorted(resultados.values(), key=lambda r: (r["origen"] != "people", r["nombre"]))[:15]
