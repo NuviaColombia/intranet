@@ -75,12 +75,15 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-aprobada { background:#1f3418; color:#c6eea6; }
 :root[data-ds-tema="oscuro"] .ds-tq-chip.ds-fila-cancelada { background:#1a2130; color:#a3acbb; }
 
-/* ---------- Desempeño: las celdas de nivel con los mismos colores que en modo claro (pedido por Rosember el 12-oct-2026) ---------- */
-:root[data-ds-tema="oscuro"] .pf-nivel-ALTO { background:#e6f6ea !important; }
-:root[data-ds-tema="oscuro"] .pf-nivel-SOBRESALIENTE { background:#e3f0fb !important; }
-:root[data-ds-tema="oscuro"] .pf-nivel-MEDIO { background:#fff8e1 !important; }
-:root[data-ds-tema="oscuro"] .pf-nivel-BAJO { background:#fdecea !important; }
-:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] { color:#111827 !important; }
+/* ---------- Desempeño: las celdas de nivel con fondo oscuro teñido y texto claro del mismo tono, como los estados del
+   Schedule (pedido por Rosember el 21-oct-2026; antes, 12-oct, conservaban el color claro) ---------- */
+.pf-nivel-ALTO { --pf-niv:#1f3418; --pf-niv-t:#c6eea6; }
+.pf-nivel-SOBRESALIENTE { --pf-niv:#172a46; --pf-niv-t:#bcd7f7; }
+.pf-nivel-MEDIO { --pf-niv:#3a3214; --pf-niv-t:#fbe3a0; }
+.pf-nivel-BAJO { --pf-niv:#3d1f1f; --pf-niv-t:#f8c4c0; }
+:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] { background:var(--pf-niv) !important; color:var(--pf-niv-t) !important; }
 :root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(select, input, textarea) {
-  background:#fff !important; color:#111827 !important; -webkit-text-fill-color:#111827 !important; border-color:#d1d5db !important; color-scheme:light; }
-:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(span, b) { color:#111827 !important; }
+  background:transparent !important; color:var(--pf-niv-t) !important; -webkit-text-fill-color:var(--pf-niv-t) !important;
+  border-color:color-mix(in srgb, var(--pf-niv-t) 35%, transparent) !important; color-scheme:dark; }
+:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(select, input, textarea) option { background:#1f2937; color:#e5e7eb; -webkit-text-fill-color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(span, b) { color:var(--pf-niv-t) !important; }
