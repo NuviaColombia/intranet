@@ -71,7 +71,7 @@
     {% else %}
     {% set firmas_txt = '✍️ Firmas' ~ ((' <span class="badge-alertas" id="badgeFirmas">' ~ caja_por_firmar ~ '</span>') if caja_por_firmar else '') %}
     {{ pestanas([[('recibo', 'Nuevo recibo'), ('consulta', 'Consulta')], [('legalizar', 'Legalizar'), ('fms', 'Historial FM')],
-                 [('arqueo', 'Arqueo rápido')], [('firmas', firmas_txt)]],
+                 [('arqueo', 'Arqueo rápido'), ('anticipos', '💸 Anticipos')], [('firmas', firmas_txt)]],
                 'caja-tab', '/caja-menor/' ~ caja.id, sec_permitidas, (sec_permitidas[0] if sec_permitidas else 'recibo')) }}
     {% endif %}
   </div>

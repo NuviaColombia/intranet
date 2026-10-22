@@ -64,6 +64,17 @@ había ninguna forma de que encontrara su recibo pendiente -- terminaba intentan
 tenga uno (`services_caja.recibos_pendientes_de_recibido`), con enlace directo a `/caja-menor/recibido/{id}`
 -- ese aviso es independiente de `tiene_modulo`, se ve tenga o no acceso al módulo.
 
+**(2026-10-22) Anticipos: registro simple, aparte de los recibos.** Carlos entrega dinero antes de la
+compra (anticipo) y el colaborador vuelve después con la factura electrónica y el gasto de transporte.
+`CajaAnticipo` (`app/models_caja.py`) es a propósito un registro **suelto**, sin relación con
+`CajaRecibo` ni `CajaFM`: solo identificación, nombre, valor, fecha, concepto y un estado
+PENDIENTE/LEGALIZADO que se marca a mano (`services_caja.toggle_anticipo`). Nueva pestaña "💸 Anticipos"
+en la caja (`app/templates/caja_menor.html`, slug `anticipos` en `SECCIONES["caja"]` de
+`acceso_secciones.py` y en el `pestanas()` de `base.html`) -- igual que las demás pestañas, respeta
+Secciones por persona y el mismo `_caja()` (no opera quien es firmante de la caja). Si en el futuro hace
+falta más control (vincular el anticipo a un recibo/factura real, alertar anticipos viejos sin legalizar,
+etc.), es una ampliación de este modelo, no justifica rehacerlo.
+
 **Adjuntos**: igual que en Permisos (soporte documental), se guardan como BLOB en la propia fila
 (`CajaAdjunto.datos`, columna `deferred`) -- no van a Zoho WorkDrive. Límite 5 MB,
 JPG/PNG/WEBP/PDF.

@@ -198,6 +198,30 @@ class CajaArqueo(Base):
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
 
 
+class CajaAnticipo(Base):
+    """Registro simple de anticipos: plata que se entrega antes de la compra, para llevar control de a
+    quién y cuánto, hasta que esa persona legalice con la factura (se marca a mano, no está ligado a
+    CajaRecibo ni a CajaFM -- si algún día hace falta más detalle, ver docs/wiki/caja_menor.md)."""
+    __tablename__ = "caja_menor_anticipos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    caja_id: Mapped[int] = mapped_column(ForeignKey("caja_menor_cajas.id"), index=True)
+    identificacion: Mapped[str] = mapped_column(String(50), default="")
+    nombre: Mapped[str] = mapped_column(String(200), default="")
+    valor: Mapped[float] = mapped_column(Float, default=0)
+    fecha: Mapped[date] = mapped_column(Date)
+    concepto: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(20), default="PENDIENTE")   # PENDIENTE | LEGALIZADO
+    legalizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    legalizado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    caja = relationship("CajaMenor")
+    legalizado_por = relationship("Empleado", foreign_keys=[legalizado_por_id])
+    creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
+
+
 class CajaObservacion(Base):
     """Observación de quien debe firmar (recibo o FM): pide una corrección antes de firmar.
     Queda atendida cuando el responsable corrige el documento o cuando el firmante firma."""

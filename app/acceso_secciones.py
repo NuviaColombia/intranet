@@ -20,7 +20,7 @@ SECCIONES = {
                 ("sinregistro", "Sin registro")],
     "conteo": [("nuevo", "Conteo del mes"), ("validacion", "Pendientes por validar"), ("reportes", "Consulta (firmados)")],
     "caja": [("recibo", "Nuevo recibo"), ("consulta", "Consulta"), ("legalizar", "Legalizar"), ("fms", "Historial FM"),
-             ("arqueo", "Arqueo rápido"), ("firmas", "Firmas")],
+             ("arqueo", "Arqueo rápido"), ("anticipos", "Anticipos"), ("firmas", "Firmas")],
 }
 NOMBRE_MODULO = {"custodia": "Cambio de custodia", "consumo": "Seguimiento de consumo", "caja": "Caja menor",
                  "conteo": "Conteo inventario mensual"}

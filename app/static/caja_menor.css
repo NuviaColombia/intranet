@@ -74,7 +74,7 @@
 #caja-app .badge.activo, #caja-app .badge.cuadrado, #caja-app .badge.vigente { background: #D1FAE5; color: #065F46; }
 #caja-app .badge.anulado, #caja-app .badge.faltante { background: #FEE2E2; color: #991B1B; }
 #caja-app .badge.legalizado { background: #E0E7FF; color: #3730A3; }
-#caja-app .badge.sobrante { background: #FEF3C7; color: #92400E; }
+#caja-app .badge.sobrante, #caja-app .badge.pendiente { background: #FEF3C7; color: #92400E; }
 
 /* Tarjetas de resumen y estado del arqueo */
 #caja-app .cm-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
