@@ -2428,6 +2428,44 @@ def dashboard_tendencia(db: Session, user: Empleado, area_id: int | None, team_i
             "hoy": tramos.index(clave(hoy)) if clave(hoy) in tramos and hoy.weekday() < 5 else None}
 
 
+def dashboard_qc_disenadores(db: Session, user: Empleado, desde: date, hasta: date) -> dict:
+    """Dashboard › Resumen › Reportes de QC por diseñador (Rosember, 21-oct-2026): cuántos reportes de QC (hallazgo
+    escrito al marcar el QC) tuvo cada diseñador en el periodo, de más a menos; quien no tiene ninguno no sale. Todas las
+    áreas en una sola lista (un aprobador, solo sus equipos). En N6 el QC de Zirconia cuenta como otro reporte. Sin
+    canceladas ni skipped. El diseñador prestado cuenta con su nombre (se junta con el mismo nombre escrito igual)."""
+    q = (db.query(DesignOrden).join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
+         .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta,
+                 or_(and_(DesignOrden.qc.is_(True), func.coalesce(DesignOrden.qc_reporte, "") != ""),
+                     and_(DesignOrden.z_qc.is_(True), func.coalesce(DesignOrden.z_qc_reporte, "") != ""))))
+    if not es_admin(user):
+        q = q.filter(DesignTeam.id.in_(equipos_dash_ids(db, user)))
+    por: dict[str, dict] = {}
+    for f in q.all():
+        if _es_cancelada(f.estado):
+            continue
+        hallazgos = [h for h in (((f.qc_reporte or "").strip() if f.qc else ""),
+                                 ((f.z_qc_reporte or "").strip() if f.z_qc else "")) if h]
+        if not hallazgos:
+            continue
+        nombre = f.designer.nombre_completo if f.designer else (f.designer_prestado or "").strip() or "Sin asignar"
+        d = por.setdefault(_normalizar_texto(nombre), {"nombre": nombre, "designerId": f.designer_id, "reportes": 0,
+                                                       "equipos": [], "lista": []})
+        d["designerId"] = d["designerId"] or f.designer_id
+        if f.team.nombre not in d["equipos"]:
+            d["equipos"].append(f.team.nombre)
+        for h in hallazgos:
+            d["reportes"] += 1
+            d["lista"].append({"orden": f.orden, "fecha": f.fecha.isoformat(), "hallazgo": h})
+    ids = [d["designerId"] for d in por.values() if d["designerId"]]
+    con_foto = {r[0] for r in db.query(DesignFotoPerfil.empleado_id).filter(DesignFotoPerfil.empleado_id.in_(ids),
+                                                                           DesignFotoPerfil.datos.isnot(None))} if ids else set()
+    filas = sorted(por.values(), key=lambda x: (-x["reportes"], x["nombre"].lower()))
+    for d in filas:
+        d["foto"] = f"/design/api/foto/{d['designerId']}" if d["designerId"] in con_foto else ""
+        d["lista"].sort(key=lambda x: x["fecha"], reverse=True)
+    return {"desde": desde.isoformat(), "hasta": hasta.isoformat(), "total": sum(d["reportes"] for d in filas), "disenadores": filas}
+
+
 def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | None = None, team_id: int | None = None) -> dict:
     """Dashboard › Productos (pedido por Rosember el 12-oct-2026): cuántas órdenes de cada producto hay en cada mes del
     año. Cuentan las órdenes completas (centro, producto y diseñador) que no están canceladas ni skipped, por su fecha

@@ -2050,6 +2050,15 @@ def api_dashboard_tendencia(desde: str, hasta: str, area_id: int | None = None, 
     return sd.dashboard_tendencia(db, user, area_id, team_id, fd, fh)
 
 
+@router.get("/design/api/dashboard/qc-disenadores")
+def api_dashboard_qc_disenadores(desde: str, hasta: str, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Resumen › Reportes de QC por diseñador en el periodo (de más a menos; sin los que no tienen)."""
+    fd, fh = _fecha(desde), _fecha(hasta)
+    if fh < fd or (fh - fd).days >= sd.DASH_RANGO_MAX_DIAS:
+        raise HTTPException(400, "El periodo debe ser de un año o menos.")
+    return sd.dashboard_qc_disenadores(db, user, fd, fh)
+
+
 @router.get("/design/api/dashboard/productos")
 def api_dashboard_productos(anio: int = 0, area_id: int | None = None, team_id: int | None = None,
                             user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):

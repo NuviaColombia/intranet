@@ -95,6 +95,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Las pestañas del Dashboard quedan en la misma fila del título.
   Regla (Rosember, 21-oct-2026): la «Tendencia por equipo» (Resumen y Filtros) cuenta solo órdenes completas en estado
   **Approved**; el resto de Filtros (KPIs, Producción por diseñador, filtro Estado) sigue igual.
+  Resumen › «Reportes de QC por diseñador» (Rosember, 21-oct-2026): barras de más a menos en el mes en curso, solo quien
+  tiene ≥ 1; todas las áreas juntas (aprobador: solo sus equipos). Cuenta QC marcado con hallazgo escrito; en N6 el QC de
+  Zirconia es otro reporte; sin canceladas/skipped (`dashboard_qc_disenadores`, `/design/api/dashboard/qc-disenadores`).
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.

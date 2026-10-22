@@ -982,6 +982,16 @@
 
 /* Tendencia por equipo (interactiva) y barras de Articulación */
 .dd-tend { position: relative; }
+/* Resumen › Reportes de QC por diseñador (21-oct-2026) */
+#dgQc { margin-top: 14px; }
+#dgQcBarras.dg-qc-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+@media (max-width: 1000px) { #dgQcBarras.dg-qc-dos { grid-template-columns: 1fr; } }
+.da-barra.dg-qc-barra { grid-template-columns: minmax(200px, 30%) 1fr 34px; cursor: default; }
+.dg-qc-barra .n small { color: #64748b; font-size: 11.5px; margin-left: 4px; }
+.da-barra.dg-qc-barra .b i { background: #dc2626; border-radius: 4px; }
+.dg-qc-cara { display: inline-flex; vertical-align: middle; width: 22px; height: 22px; border-radius: 50%; overflow: hidden; margin-right: 7px;
+  background: #fee2e2; color: #991b1b; font-style: normal; font-size: 9.5px; font-weight: 700; align-items: center; justify-content: center; }
+.dg-qc-cara img { width: 100%; height: 100%; object-fit: cover; }
 /* Dashboard › Resumen: dos gráficas por fila, entrada animada y la cara del aprobador en el día de hoy (21-oct-2026) */
 .dg-rejilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .dg-rejilla > .dd-panel { margin: 0; min-width: 0; }

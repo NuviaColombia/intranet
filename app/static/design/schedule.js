@@ -3602,10 +3602,42 @@ function ddPintarTendencia(d, body, box) {
 // Pestaña Resumen (Rosember, 21-oct-2026): una «Tendencia por equipo» por área (Face, N2, N3, N6), siempre en el mes en
 // curso. Cada gráfica tiene su propio estado (qué equipos están ocultos). El servidor ya limita a los equipos del aprobador.
 var DG = {tok: 0};
+// Reportes de QC por diseñador del mes en curso (21-oct-2026): barras horizontales de más a menos, solo quien tiene ≥ 1.
+// Pasa el mouse sobre una barra para ver sus hallazgos.
+function dgQcCargar(desde, hasta, mes, t) {
+  var box = document.getElementById('dgQc'), cont = document.getElementById('dgQcBarras');
+  if (!box) return;
+  if (DD_MOV) cont.style.opacity = '0';
+  ddApi('/design/api/dashboard/qc-disenadores?desde=' + desde + '&hasta=' + hasta).then(function(d) {
+    if (t !== DG.tok) return;
+    cont.style.opacity = '';
+    var filas = d.disenadores;
+    box.hidden = false;
+    document.getElementById('dgQcSub').textContent = 'Mes en curso · ' + mes + ' · ' + d.total + ' reporte' + (d.total === 1 ? '' : 's') +
+      ' · ' + filas.length + ' diseñador' + (filas.length === 1 ? '' : 'es');
+    if (!filas.length) { cont.innerHTML = '<p class="dd-p-nota">Nadie tiene reportes de QC en el mes en curso.</p>'; return; }
+    var max = filas[0].reportes;
+    cont.className = filas.length > 10 ? 'dg-qc-dos' : '';
+    cont.innerHTML = filas.map(function(f) {
+      var ini = f.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(function(p) { return p[0]; }).join('').toUpperCase();
+      var cara = f.foto ? '<img src="' + f.foto + '" alt="">' : '<span>' + ddEsc(ini) + '</span>';
+      var tip = f.nombre + ' (' + f.equipos.join(', ') + '): ' + f.reportes + ' reporte' + (f.reportes === 1 ? '' : 's') + '\n' +
+        f.lista.slice(0, 10).map(function(h) { return '• ' + h.orden + ' (' + h.fecha.slice(8, 10) + '/' + h.fecha.slice(5, 7) + '): ' + h.hallazgo; }).join('\n') +
+        (f.lista.length > 10 ? '\n… y ' + (f.lista.length - 10) + ' más' : '');
+      return '<div class="da-barra dg-qc-barra" title="' + ddEsc(tip).replace(/"/g, '&quot;') + '"><span class="n"><i class="dg-qc-cara">' + cara + '</i>' + ddEsc(f.nombre) +
+        ' <small>' + ddEsc(f.equipos.join(', ')) + '</small></span><span class="b"><i style="width:' + Math.max(3, f.reportes * 100 / max) + '%"></i></span><b>' + f.reportes + '</b></div>';
+    }).join('');
+    ddAnimar(cont, null);
+  }).catch(function(e) {
+    if (t !== DG.tok) return;
+    cont.style.opacity = ''; box.hidden = false; cont.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; cont.firstChild.textContent = 'No se pudo cargar: ' + e.message;
+  });
+}
 function dgCargar() {
   var hoy = new Date(), desde = daISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), hasta = daISO(hoy), t = ++DG.tok;
   var mes = hoy.toLocaleDateString('es-CO', {month: 'long', year: 'numeric'});
   var paneles = document.querySelectorAll('#dgGraficas .dg-area'), pend = paneles.length, alguna = false;
+  dgQcCargar(desde, hasta, mes, t);
   var fin = function() { if (--pend === 0 && t === DG.tok) document.getElementById('dgVacio').hidden = alguna; };
   if (!pend) { document.getElementById('dgVacio').hidden = false; return; }
   paneles.forEach(function(p) {
