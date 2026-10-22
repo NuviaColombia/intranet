@@ -1382,6 +1382,8 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
     _verificar_tabla(t_face, payload.tabla)
     if payload.tabla == sd.TABLA_MATERIAL and not datos.get("etapa"):
         datos["etapa"] = sd.ETAPA_BITE
+    if datos.get("estado"):   # N3: una cirugía creada en Pickup received ya marca el START de la articulación
+        datos.update(sd.articulacion_por_estado(t_face.area.nombre, payload.tabla, datos, datos["estado"]))
     if datos.get("estado") and sd.horas_por_estado(t_face.area.formato, _fecha(payload.fecha), payload.tabla):
         datos.update(sd.horas_de_estado(payload.tabla, datos, datos["estado"]))
     if sd.orden_repetida(db, payload.teamId, _fecha(payload.fecha), datos["orden"]):
@@ -1767,6 +1769,12 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         if viejo:
             datos["hora_inicio"] = viejo
     rd = team.area.nombre == sd.AREA_RD   # copia de Removable Denture: Bite design → Denture design
+    if "estado" in datos and sd.pickup_salta(team.area.nombre, orden_existente.tabla, orden_existente.estado, datos["estado"]):
+        raise HTTPException(400, sd.PICKUP_SALTO)   # N3: de Pickup received primero a Ready to design (Rosember, 21-oct-2026)
+    if "estado" in datos and datos["estado"] != (orden_existente.estado or ""):
+        datos.update(sd.articulacion_por_estado(team.area.nombre, orden_existente.tabla,
+                                                {c: datos.get(c, getattr(orden_existente, c)) for c in ("art_start", "art_rtd")},
+                                                datos["estado"]))
     if ("estado" in datos and sd.es_hold(datos["estado"]) and not sd.es_hold(orden_existente.estado)
             and not sd.orden_iniciada({c: datos.get(c, getattr(orden_existente, c)) for c in ("etapa", "hora_inicio", "z_hora_inicio")},
                                       orden_existente.tabla, rd)):

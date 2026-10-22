@@ -2877,6 +2877,39 @@ def es_face_nuevo(formato: str, fecha: date) -> bool:
             (formato == FORMATO_DUAL and fecha >= DUAL_NUEVO_DESDE))
 
 
+# N3 › Cirugías: el estado marca la articulación (Rosember, 21-oct-2026). «Pickup received» llena START y «Ready to design»
+# llena RTD (solo si están vacías; se pueden corregir a mano). De Pickup received no se puede saltar a Initiated (ni a
+# otro estado de diseño): primero Ready to design, que cierra la articulación.
+ESTADO_PICKUP = "Pickup received"
+PICKUP_SIGUIENTES = {"pickup received", "ready to design", "order entered"}
+PICKUP_SALTO = "Primero marca Ready to design: así queda el RTD de la articulación. Después ya puedes iniciar (Initiated)."
+
+
+def _es_cirugia_n3(area_nombre: str, tabla: str) -> bool:
+    return area_nombre == AREA_N3 and tabla == "principal"
+
+
+def articulacion_por_estado(area_nombre: str, tabla: str, actual: dict, estado_nuevo: str) -> dict:
+    """START / RTD que llena el estado en una cirugía de N3. `actual` = valores de la orden ya combinados (art_start, art_rtd)."""
+    if not _es_cirugia_n3(area_nombre, tabla):
+        return {}
+    e = _normalizar_texto(estado_nuevo or "")
+    ahora = ahora_colombia().strftime("%H:%M")
+    if e == _normalizar_texto(ESTADO_PICKUP) and not (actual.get("art_start") or "").strip():
+        return {"art_start": ahora}
+    if e == _normalizar_texto(ESTADO_READY) and (actual.get("art_start") or "").strip() and not (actual.get("art_rtd") or "").strip():
+        return {"art_rtd": ahora}
+    return {}
+
+
+def pickup_salta(area_nombre: str, tabla: str, estado_antes: str, estado_nuevo: str) -> bool:
+    """¿Pasa de Pickup received a un estado de diseño sin Ready to design? (cancelar o skip sí se puede)."""
+    if not _es_cirugia_n3(area_nombre, tabla) or _normalizar_texto(estado_antes or "") != _normalizar_texto(ESTADO_PICKUP):
+        return False
+    nuevo = _normalizar_texto(estado_nuevo or "")
+    return bool(nuevo) and nuevo not in PICKUP_SIGUIENTES and not _es_cancelada(estado_nuevo)
+
+
 def face_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
     """Horas que el estado llena solas en Face (hora de Colombia). `actual` = valores de la orden ya combinados con lo
     que se está guardando (claves de columna). Solo llena horas vacías; un Hold nuevo después de un Re-initiated

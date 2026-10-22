@@ -87,6 +87,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
   Change), D (Dummy, la tabla principal), Ng y Tc. En
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
+- **N3 › Cirugías: el estado marca la articulación** (Rosember, 21-oct-2026): «Pickup received» llena START y «Ready to
+  design» llena RTD (hora Colombia, solo si están vacías; se pueden corregir a mano; RTD solo si hay START). De Pickup
+  received no se puede pasar a Initiated ni a otro estado de diseño: primero Ready to design (Order Entered, Canceled y
+  Skipped sí). En pantalla esas opciones se ocultan (`dsAjustarOpcionPickup`) y el servidor lo valida (`pickup_salta`,
+  `articulacion_por_estado`). Solo N3 Prosthetic, tabla Cirugías (no Nightguards/TC, no Training ni N6).
 - **Dashboard › Resumen y Filtros** (Rosember, 21-oct-2026): la pestaña que se llamaba «Resumen» ahora es «Filtros» (igual
   que antes). La nueva «Resumen», primera de la fila, es solo informativa: una «Tendencia por equipo» por área (Face, N2,
   N3, N6) en el mes en curso (`dgCargar`); un aprobador ve solo sus áreas y equipos (lo limita `dashboard_tendencia`).

@@ -671,6 +671,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!f) return;
     dsMarcarFaltaAprobar(tr);   // N3: celdas que faltan para Approved (parpadean unos segundos)
     dsAjustarOpcionHold(tr, f);
+    dsAjustarOpcionPickup(tr, f);
     dsAjustarOpcionBite(tr, f);
     tr.classList.toggle('ds-fila-cancelada', f.estado === 'Canceled');
     var est = String(f.estado || '').trim().toLowerCase();
@@ -1483,6 +1484,19 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (dsEsHoldEstado(o.value) && o.value !== sel.value) { o.hidden = !ok; o.disabled = !ok; o.title = ok ? '' : 'Primero inicia la orden (Initiated)'; }
     });
   }
+  // N3 › Cirugías (Rosember, 21-oct-2026): de «Pickup received» solo se pasa a «Ready to design» (que marca el RTD de la
+  // articulación); los estados de diseño se ocultan hasta entonces. El servidor también lo valida (pickup_salta).
+  var DS_PICKUP_SIGUE = ['pickup received', 'ready to design', 'order entered', 'canceled', 'cancelled', 'skipped', 'skip'];
+  function dsAjustarOpcionPickup(tr, f) {
+    var sel = tr && tr.querySelector('select[data-campo="estado"]');
+    if (!sel) return;
+    var bloquear = !!f && dsNorm(f.estado) === 'pickup received' && dsAreaNombre() === 'N3 Prosthetic' && !!tr.closest('#dsTablaPrincipal');
+    [].forEach.call(sel.options, function(o) {
+      var libre = !o.value || o.value.charAt(0) === '_' || DS_PICKUP_SIGUE.indexOf(dsNorm(o.value)) >= 0;
+      if (bloquear && !libre) { o.hidden = true; o.disabled = true; o.title = 'Primero marca Ready to design'; o.dataset.pk = '1'; }
+      else if (o.dataset.pk) { o.hidden = false; o.disabled = false; o.title = ''; delete o.dataset.pk; }
+    });
+  }
   // «Bite Finish» (Rosember, 21-oct-2026): en las órdenes de N3 / N6 con copia en Removable Denture, al final de la lista de
   // estados (arriba de «Colores…»). No es un estado: pone el FINISH de Bite design en Removable, la deja en Ready to design
   // y avisa a Nestor (api_bite_finish). La orden de N3 se queda en el estado que tenía.
@@ -1556,6 +1570,7 @@ window.addEventListener('unhandledrejection', function(ev) {
             var trH = sel.closest('tr'), idH = trH ? parseInt(trH.dataset.id, 10) : NaN;
             var fH = isNaN(idH) ? null : (DS.diaData && (DS.diaData[tabla] || []).find(function(x) { return x.id === idH; }));
             dsAjustarOpcionHold(trH, fH || {estado: actual});
+            dsAjustarOpcionPickup(trH, fH || {estado: actual});
             dsAjustarOpcionBite(trH, fH);
           }
           if (conColor) dsPintarCelda(sel);
