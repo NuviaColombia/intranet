@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (581 reglas) ---- */
+/* ---- static\design\schedule.css (588 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -449,6 +449,13 @@
 :root[data-ds-tema="oscuro"] .pf-vista button { border:1px solid #323b4b; background:#131925; }
 :root[data-ds-tema="oscuro"] .pf-vista button.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
 :root[data-ds-tema="oscuro"] .pf-nivel-ALTO { background:#1c2f21; }
+:root[data-ds-tema="oscuro"] .pf-sel-aviso { background:#433a15; color:#f5bb98; }
+:root[data-ds-tema="oscuro"] .pf-sel-card { border:1px solid #323b4b; background:#131925; }
+:root[data-ds-tema="oscuro"] .pf-sel-card h4 { color:#7a98ed; }
+:root[data-ds-tema="oscuro"] .pf-sel-pts { background:#1d4ed8; color:#fff; }
+:root[data-ds-tema="oscuro"] .pf-sel-sub { color:#bbc1cc; }
+:root[data-ds-tema="oscuro"] .pf-sel-falta { color:#aab2bf; }
+:root[data-ds-tema="oscuro"] .pf-sel-card details summary, :root[data-ds-tema="oscuro"] .pf-sel-no summary { color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .pf-nivel-SOBRESALIENTE { background:#162634; }
 :root[data-ds-tema="oscuro"] .pf-nivel-MEDIO { background:#382f10; }
 :root[data-ds-tema="oscuro"] .pf-nivel-BAJO { background:#321613; }

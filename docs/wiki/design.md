@@ -87,6 +87,15 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
   Change), D (Dummy, la tabla principal), Ng y Tc. En
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
+- **Desempeño › Selección asistida** (Rosember, 21-oct-2026; solo admin, botón «🏆 Selección asistida» en Desempeño):
+  propone Manager del mes (aprobadores de Face/N2/N3/N6), Empleado del mes N2/Face, N3/N6, otro de N3/N6 y MVP (mejor
+  puntaje global; puede coincidir con un ganador). Analiza por defecto el mes anterior (selector para otros meses; el en
+  curso sale como prueba). No guarda nada. Puntaje 0-100 = percentiles dentro del área, ponderados:
+  diseñador — productividad (aprobadas por día disponible, descuenta ausencias) 30, calidad QC (hallazgos/caso,
+  suavizado) 25, cambios digitales 15, evaluación del líder en Desempeño 20, eficiencia (tiempo vs mediana del producto
+  en su área) 10; manager — productividad del equipo 30, cambios 20, QC a tiempo (mediana Approved→QC) 20, cobertura de
+  QC 10, reparto parejo 10, hoja DESIGN MANAGERS 10. Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
+  indicadores sin dato reparten su peso. Código: `services_design_seleccion.py`, `/design/api/perf/seleccion-asistida`.
 - **Desempeño en modo oscuro** (Rosember, 21-oct-2026): las celdas de nivel (ALTO, SOBRESALIENTE, MEDIO, BAJO) usan
   fondo oscuro teñido y texto claro del mismo tono, como los estados del Schedule (antes conservaban el color claro).
   Reglas en `static/design/oscuro.css` (`--pf-niv` / `--pf-niv-t`); el modo claro no cambia.

@@ -503,7 +503,10 @@
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
 <div class="ds-overlay" id="ov-perf"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><h1>Desempeño<span id="pfTituloHoja"></span></h1>
 <p style="color:#4b5563;font-size:13px;margin-top:-8px">Solo aprobadores y administradores. Evaluaciones mensuales por equipo y selección de empleado del mes.</p>
-<div class="ds-area-row"><div class="pf-tabs" id="pfSheetTabs"></div></div>
+<div class="ds-area-row"><div class="pf-tabs" id="pfSheetTabs"></div>
+{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="btn mini pf-sel-btn" id="pfSelBtn" title="Analiza las estadísticas del mes y propone a los empleados del mes">🏆 Selección asistida</button>{% endif %}</div>
+{# Selección asistida (Rosember, 21-oct-2026; solo admin): propone ganadores del mes con las estadísticas de la plataforma #}
+<div class="pf-panel pf-sel" id="pfSel" hidden></div>
 <p id="pfSinHoja" class="ds-sin-equipo" style="min-height:260px">Selecciona un área y un equipo para ver su evaluación.</p>
 <div class="pf-panel" id="pfPanel" style="display:none"></div></div></div>
 {% endif %}

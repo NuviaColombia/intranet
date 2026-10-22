@@ -27,6 +27,7 @@ from .. import services_design_support as ss
 from .. import services_design_cliq as sc
 from .. import services_design_qc as sq
 from .. import services_design_produccion as sprod  # Seguimiento › N3/N2 Producción
+from .. import services_design_seleccion as ssel     # Desempeño › Selección asistida (solo admin)
 from .. import services_design_pa_excel as spx
 from .. import services_design_openings_historial as soh  # historial de Openings (también instala el registro)
 from .. import services_design_origenes as so  # ⚠️ Openings / Equipos = origen de datos de Design: validar con Rosember
@@ -2809,6 +2810,18 @@ def api_pac_intercambiar_centro(payload: PACIntercambiarCentroIn,
 @router.get("/design/perf")
 def pagina_perf(request: Request, user: Empleado = Depends(require_design_manager)):
     return _redirigir_a_panel(request, "perf")
+
+
+@router.get("/design/api/perf/seleccion-asistida")
+def api_perf_seleccion_asistida(anio: int | None = None, mes: int | None = None, user: Empleado = Depends(require_admin),
+                                db: Session = Depends(get_db)):
+    """Desempeño › Selección asistida (Rosember, 21-oct-2026): propuesta de ganadores del mes con los datos de la
+    plataforma. Por defecto, el mes anterior (el que ya cerró). No guarda nada."""
+    if not anio or not mes:
+        anio, mes = ssel.mes_anterior()
+    if not (1 <= mes <= 12) or not (2024 <= anio <= 2100):
+        raise HTTPException(400, "Mes inválido.")
+    return ssel.analizar(db, anio, mes)
 
 
 @router.get("/design/api/perf/sheets")

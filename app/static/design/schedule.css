@@ -807,6 +807,24 @@
   .pf-vista button:first-child { border-radius:6px 0 0 6px; } .pf-vista button:last-child { border-radius:0 6px 6px 0; border-left:0; }
   .pf-vista button.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   .pf-nivel-ALTO { background:#e6f6ea; }
+  /* Desempeño › Selección asistida (21-oct-2026) */
+  .ds-area-row .pf-sel-btn { margin-left:auto; }
+  .pf-sel { margin-bottom:14px; }
+  .pf-sel-cab { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+  .pf-sel-cab h3 { margin:0; }
+  .pf-sel-cab select { width:auto; margin:0 0 0 6px; }
+  .pf-sel-aviso { background:#fef3c7; color:#92400e; padding:6px 10px; border-radius:8px; font-size:13px; }
+  .pf-sel-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; margin:10px 0; }
+  .pf-sel-card { border:1px solid #d8dde3; border-radius:12px; padding:12px 14px; background:#fff; }
+  .pf-sel-card h4 { margin:0 0 6px; font-size:13px; color:#1d4ed8; text-transform:none; }
+  .pf-sel-gan { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:16px; }
+  .pf-sel-pts { background:#1d4ed8; color:#fff; border-radius:999px; padding:2px 10px; font-size:13px; font-weight:700; }
+  .pf-sel-sub { color:#4b5563; font-size:12px; margin:2px 0 6px; }
+  .pf-sel-pq { margin:4px 0; padding-left:4px; list-style:none; font-size:12.5px; line-height:1.45; }
+  .pf-sel-falta { color:#64748b; font-size:11.5px; margin:4px 0; }
+  .pf-sel-card details summary, .pf-sel-no summary { cursor:pointer; font-size:12.5px; color:#1d4ed8; }
+  .pf-sel-card ol { margin:4px 0 0; padding-left:22px; font-size:12.5px; }
+  .pf-sel-no ul { font-size:12.5px; }
   .pf-nivel-SOBRESALIENTE { background:#e3f0fb; }
   .pf-nivel-MEDIO { background:#fff8e1; }
   .pf-nivel-BAJO { background:#fdecea; }
