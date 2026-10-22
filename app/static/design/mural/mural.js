@@ -101,8 +101,17 @@
     post('/design/api/mural/' + a.id, {publicado: v}).then(function() { aviso(v ? 'Aviso publicado: ya lo ve todo Design.' : 'Aviso oculto.'); cargar(); })
       .catch(function(e) { alert(e.message); });
   }
+  var PEDIDO = (function() { try { return +new URLSearchParams(location.search).get('aviso') || 0; } catch (e) { return 0; } })();
   function cargar() {
-    return api('/design/api/mural').then(function(d) { M = d; pintar(); })
+    return api('/design/api/mural').then(function(d) {
+      M = d; pintar();
+      if (PEDIDO) {   // llegó desde un push: abre ese aviso en grande
+        var i = M.items.findIndex(function(x) { return x.id === PEDIDO; });
+        PEDIDO = 0;
+        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+        if (i >= 0) abrirVisor(i, document.querySelectorAll('.mu-papel')[i]);
+      }
+    })
       .catch(function(e) { pared.textContent = ''; aviso('⚠️ ' + e.message); });
   }
 
@@ -161,6 +170,16 @@
       if (!confirm('¿Publicar ' + M.borradores + ' aviso(s)? Los verán todas las personas con acceso a Design.')) return;
       post('/design/api/mural/publicar').then(function(d) { aviso(d.mensaje); cargar(); }).catch(function(e) { alert(e.message); });
     });
+    // Push de los avisos «Nuevo» (22-oct-2026): primero una prueba solo a quien administra; luego a todo Design.
+    // Al publicar, el push a todos sale solo (servidor).
+    var pushar = function(prueba) {
+      var nuevos = M.items.filter(function(x) { return x.nuevo; }).length;
+      if (!nuevos) { alert('No hay avisos con la cinta «Nuevo».'); return; }
+      if (!prueba && !confirm('¿Enviar ' + nuevos + ' push (uno por aviso «Nuevo») a todas las personas con acceso a Design?\nCada uno se queda en pantalla hasta que lo cierren.')) return;
+      post('/design/api/mural/push', {prueba: prueba}).then(function(d) { aviso(d.mensaje); }).catch(function(e) { alert(e.message); });
+    };
+    document.getElementById('muPushPrueba').addEventListener('click', function() { pushar(true); });
+    document.getElementById('muPushTodos').addEventListener('click', function() { pushar(false); });
     var ed = document.getElementById('muEditar');
     ed.addEventListener('click', function() {
       var on = raiz.classList.toggle('editando');

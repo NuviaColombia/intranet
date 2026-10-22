@@ -89,6 +89,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Inicio › podio de diseñadores de N3** (Rosember, 22-oct-2026): solo cuentan las Cirugías (tabla principal); los
   Nightguards y TC ya no suman (`PODIO_SOLO_CIRUGIAS` en services_design_inicio.py). Las demás áreas no cambian.
+- **Mural › push al publicar** (Rosember, 22-oct-2026): cada aviso que se publica (uno o «Publicar» de varios) manda un
+  push fijo (se queda hasta cerrarlo) a todas las personas activas con acceso a Design, menos a quien lo publica; uno por
+  aviso (etiqueta `mural-{id}`, no se reemplazan) y al tocarlo abre el Mural en ese aviso (`?aviso=id`). Quien administra
+  el Mural tiene «🔔 Push de prueba» (solo a sí mismo) y «📣 Avisar a todos» para los avisos con la cinta «Nuevo»
+  (`avisar_nuevos`, `POST /design/api/mural/push`). Solo llega a quien activó las notificaciones (🔔) en su navegador.
 - **N6 › Producción del día: TC** (Rosember, 22-oct-2026): en la tabla Nightguards / TC, el producto «N6 - Full Mouth Zirk -
   Over Ti-Bar (8mm or less)» cuenta como Tc (antes caía en Ng porque su nombre no dice «TC»). Lista `PRODUCTOS_TC`
   (servidor, `tipo_produccion`) y `DS_PRODUCTOS_TC` (schedule.js, `dsTipoProduccion`): para otro producto, agregarlo en las dos.

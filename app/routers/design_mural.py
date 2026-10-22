@@ -73,19 +73,37 @@ class EditarIn(BaseModel):
 @router.post("/design/api/mural/{aviso_id:int}")
 def api_editar(aviso_id: int, body: EditarIn, user: Empleado = Depends(_editor), db: Session = Depends(get_db)):
     try:
-        return smu.editar(db, aviso_id, body.titulo, body.publicado)
+        return smu.editar(db, aviso_id, body.titulo, body.publicado, quien=user)
     except LookupError as e:
         raise HTTPException(404, str(e))
 
 
 @router.post("/design/api/mural/publicar")
 def api_publicar(user: Empleado = Depends(_editor), db: Session = Depends(get_db)):
-    n = smu.publicar_borradores(db)
+    n = smu.publicar_borradores(db, quien=user)
     return {"publicados": n, "mensaje": f"{n} aviso(s) publicado(s)." if n else "No había borradores por publicar."}
 
 
 class OrdenIn(BaseModel):
     ids: list[int]
+
+
+class PushIn(BaseModel):
+    prueba: bool = True
+
+
+@router.post("/design/api/mural/push")
+def api_push(body: PushIn, user: Empleado = Depends(_editor), db: Session = Depends(get_db)):
+    """Push de los avisos «Nuevo» (22-oct-2026): prueba = solo a quien administra el Mural; si no, a todo Design."""
+    r = smu.avisar_nuevos(db, user, body.prueba)
+    if not r["avisos"]:
+        return {**r, "mensaje": "No hay avisos con la cinta «Nuevo» para avisar."}
+    if body.prueba:
+        msg = (f"Te envié {r['avisos']} push de prueba." if r["enviados"] else
+               "No te llegó ningún push: activa las notificaciones (🔔) en este navegador y vuelve a probar.")
+    else:
+        msg = f"{r['avisos']} aviso(s) enviados a {r['personas']} persona(s) con acceso a Design ({r['enviados']} notificaciones entregadas)."
+    return {**r, "mensaje": msg}
 
 
 @router.post("/design/api/mural/orden")

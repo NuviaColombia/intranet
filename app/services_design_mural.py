@@ -182,26 +182,74 @@ def _aviso(db: Session, aviso_id: int) -> DesignMuralAviso:
     return a
 
 
-def editar(db: Session, aviso_id: int, titulo: str | None = None, publicado: bool | None = None) -> dict:
+# ---------- Push al publicar (Rosember, 22-oct-2026) ----------
+# Cada aviso que se publica manda un push a todas las personas con acceso a Design (menos a quien lo publica): uno por
+# aviso, que se queda en pantalla hasta que lo cierren (fijo). Al tocarlo abre el Mural en ese aviso.
+
+def destinatarios(db: Session) -> list[int]:
+    return [e.id for e in db.query(Empleado).filter(Empleado.activo == 1) if e.tiene_modulo("design_schedule")]
+
+
+def _push(db: Session, avisos: list[DesignMuralAviso], ids: list[int], segundo_plano: bool) -> dict:
+    from . import services_design_push as sp
+    total = {"avisos": 0, "enviados": 0, "fallidos": 0, "sinSuscripcion": 0, "personas": len(set(ids))}
+    for a in avisos:
+        args = (ids, "📌 Nuevo en el Mural", f"{a.titulo} · tócalo para verlo", f"/design/mural?aviso={a.id}", f"mural-{a.id}")
+        total["avisos"] += 1
+        if segundo_plano:
+            sp.enviar_en_segundo_plano(*args, fijo=True)
+            continue
+        r = sp.enviar(db, *args, fijo=True)
+        for k in ("enviados", "fallidos"):
+            total[k] += r[k]
+        total["sinSuscripcion"] = r["sinSuscripcion"]
+    return total
+
+
+def avisar_publicados(db: Session, avisos: list[DesignMuralAviso], quien: Empleado | None) -> None:
+    if not avisos:
+        return
+    ids = [i for i in destinatarios(db) if not quien or i != quien.id]
+    _push(db, avisos, ids, segundo_plano=True)
+
+
+def avisar_nuevos(db: Session, user: Empleado, prueba: bool) -> dict:
+    """Push de los avisos publicados que aún tienen la cinta «Nuevo»: prueba = solo a quien lo pide; si no, a todo Design."""
+    ahora = datetime.utcnow()
+    avisos = [a for a in db.query(DesignMuralAviso).filter(DesignMuralAviso.eliminado.is_(False), DesignMuralAviso.publicado.is_(True))
+              if a.publicado_en and ahora - a.publicado_en < timedelta(days=DIAS_NUEVO)]
+    avisos.sort(key=lambda a: a.publicado_en)
+    ids = [user.id] if prueba else [i for i in destinatarios(db) if i != user.id]
+    return _push(db, avisos, ids, segundo_plano=False)
+
+
+def editar(db: Session, aviso_id: int, titulo: str | None = None, publicado: bool | None = None, quien: Empleado | None = None) -> dict:
     a = _aviso(db, aviso_id)
+    nuevo_publicado = False
     if titulo is not None:
         a.titulo = titulo.strip()[:200] or a.titulo
     if publicado is not None and bool(publicado) != bool(a.publicado):
         a.publicado = bool(publicado)
         a.publicado_en = (_fecha_fija(a.semilla) or datetime.utcnow()) if publicado else None
+        nuevo_publicado = bool(publicado)
     db.commit()
     _invalidar()
+    if nuevo_publicado:
+        avisar_publicados(db, [a], quien)
     return _json(a, datetime.utcnow())
 
 
-def publicar_borradores(db: Session) -> int:
+def publicar_borradores(db: Session, quien: Empleado | None = None) -> int:
     ahora = datetime.utcnow()
     n = 0
+    nuevos = []
     for a in db.query(DesignMuralAviso).filter(DesignMuralAviso.eliminado.is_(False), DesignMuralAviso.publicado.is_(False)):
         a.publicado, a.publicado_en = True, _fecha_fija(a.semilla) or ahora
+        nuevos.append(a)
         n += 1
     db.commit()
     _invalidar()
+    avisar_publicados(db, nuevos, quien)
     return n
 
 
