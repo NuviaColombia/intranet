@@ -6,6 +6,21 @@
   <meta name="robots" content="noindex, nofollow">
   <title>{% block titulo %}Nuvia{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css?v=17">
+  {# Barra superior: foto, nombre y cargo. Va en el <head> (22-oct-2026): antes estaba después de la barra y al recargar
+     la foto salía grande un instante, antes de que llegara su tamaño. #}
+  <style>
+    nav .ds-yo-perfil { margin-left:auto; display:flex; align-items:center; }
+    nav .ds-yo-perfil .ds-yo { margin-left:0; cursor:pointer; }
+    nav .ds-yo { margin-left:auto; display:flex; align-items:center; gap:10px; color:#e5e7eb; }
+    nav .ds-yo-foto { position:relative; width:38px; height:38px; border-radius:50%; overflow:hidden; background:#2563eb; color:#fff; font-weight:700;
+      font-size:14px; display:grid; place-items:center; flex:none; border:2px solid rgba(255,255,255,.25); }
+    nav .ds-yo-foto img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; background:#fff; }
+    nav .ds-yo-txt { display:flex; flex-direction:column; line-height:1.2; max-width:220px; }
+    nav .ds-yo-txt b { font-size:13.5px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    nav .ds-yo-txt small { font-size:11.5px; color:#9ca3af; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    nav .ds-yo-salir { font-size:12.5px; color:#9ca3af; margin-left:4px; }
+    nav .ds-yo-salir:hover { color:#fff; }
+  </style>
 {% if es_design %}<link rel="stylesheet" href="/static/design/oscuro_auto.css?v={{ ds_estaticos_v }}"><link rel="stylesheet" href="/static/design/oscuro.css?v={{ ds_estaticos_v }}">{% endif %}
 {% if es_design %}<link rel="manifest" href="/design/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="/static/design/push-icono.png">{% endif %}
 </head>
@@ -214,7 +229,7 @@
   {# Todos los módulos: foto de Zoho (o iniciales), primer nombre y primer apellido, y el cargo debajo #}
   {% set primeros = (user.nombres or '').split()[:1] + (user.apellidos or '').split()[:1] %}
   {% set yo %}
-    <span class="ds-yo-foto"><img src="/mi-foto" alt="" onerror="this.remove()"><span>{{ primeros|map('first')|join('')|upper }}</span></span>
+    <span class="ds-yo-foto"><img src="/mi-foto" alt="" width="38" height="38" onerror="this.remove()"><span>{{ primeros|map('first')|join('')|upper }}</span></span>
     <span class="ds-yo-txt"><b title="{{ user.nombre_completo|nombre_propio }}">{{ primeros|join(' ')|nombre_propio }}</b>{% if user.cargo %}<small>{{ user.cargo|nombre_propio(true) }}</small>{% endif %}</span>
   {% endset %}
   {% if en_inventario %}
@@ -237,19 +252,6 @@
   {% else %}
   <span class="ds-yo">{{ yo }}{{ ds_extras }}<a href="/logout" class="ds-yo-salir">Salir</a></span>
   {% endif %}
-  <style>
-    nav .ds-yo-perfil { margin-left:auto; display:flex; align-items:center; }
-    nav .ds-yo-perfil .ds-yo { margin-left:0; cursor:pointer; }
-    nav .ds-yo { margin-left:auto; display:flex; align-items:center; gap:10px; color:#e5e7eb; }
-    nav .ds-yo-foto { position:relative; width:38px; height:38px; border-radius:50%; overflow:hidden; background:#2563eb; color:#fff; font-weight:700;
-      font-size:14px; display:grid; place-items:center; flex:none; border:2px solid rgba(255,255,255,.25); }
-    nav .ds-yo-foto img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; background:#fff; }
-    nav .ds-yo-txt { display:flex; flex-direction:column; line-height:1.2; max-width:220px; }
-    nav .ds-yo-txt b { font-size:13.5px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    nav .ds-yo-txt small { font-size:11.5px; color:#9ca3af; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    nav .ds-yo-salir { font-size:12.5px; color:#9ca3af; margin-left:4px; }
-    nav .ds-yo-salir:hover { color:#fff; }
-  </style>
 </nav>
 {% endif %}
 {% if user and es_invitado(user) %}<div role="status" style="background:#fef3c7;color:#78350f;border-bottom:1px solid #fcd34d;padding:6px 16px;font-size:13px;font-weight:600;text-align:center">👁 Modo invitado: puedes ver todo, pero no hacer cambios.</div>{% endif %}
