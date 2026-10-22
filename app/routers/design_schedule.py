@@ -1383,6 +1383,9 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
     _verificar_tabla(t_face, payload.tabla)
     if payload.tabla == sd.TABLA_MATERIAL and not datos.get("etapa"):
         datos["etapa"] = sd.ETAPA_BITE
+    oe = sd.estado_al_escribir_orden(t_face.area.nombre, datos.get("orden"), datos.get("estado"))
+    if oe:   # N3: con número de orden y sin estado → Order Entered (22-oct-2026)
+        datos["estado"] = oe
     if datos.get("estado"):   # N3: una cirugía creada en Pickup received ya marca el START de la articulación
         datos.update(sd.articulacion_por_estado(t_face.area.nombre, payload.tabla, datos, datos["estado"]))
     if datos.get("estado") and sd.horas_por_estado(t_face.area.formato, _fecha(payload.fecha), payload.tabla):
@@ -1770,6 +1773,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         if viejo:
             datos["hora_inicio"] = viejo
     rd = team.area.nombre == sd.AREA_RD   # copia de Removable Denture: Bite design → Denture design
+    oe = sd.estado_al_escribir_orden(team.area.nombre, datos.get("orden", orden_existente.orden), datos.get("estado", orden_existente.estado))
+    if oe:   # N3: con número de orden y sin estado → Order Entered (22-oct-2026)
+        datos["estado"] = oe
     if "estado" in datos and sd.pickup_salta(team.area.nombre, orden_existente.tabla, orden_existente.estado, datos["estado"]):
         raise HTTPException(400, sd.PICKUP_SALTO)   # N3: de Pickup received primero a Ready to design (Rosember, 21-oct-2026)
     if "estado" in datos and datos["estado"] != (orden_existente.estado or ""):

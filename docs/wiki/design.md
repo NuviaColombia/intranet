@@ -136,6 +136,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
 - **Desempeño en modo oscuro** (Rosember, 21-oct-2026): las celdas de nivel (ALTO, SOBRESALIENTE, MEDIO, BAJO) usan
   fondo oscuro teñido y texto claro del mismo tono, como los estados del Schedule (antes conservaban el color claro).
   Reglas en `static/design/oscuro.css` (`--pf-niv` / `--pf-niv-t`); el modo claro no cambia.
+- **N3 › Order Entered al escribir la orden** (Rosember, 22-oct-2026): en los Schedules de N3 (todas sus tablas), al
+  escribir el número de orden en una fila sin estado, el estado queda en «Order Entered» (pantalla: dsGuardarFila;
+  servidor: `estado_al_escribir_orden` al crear y al editar). Si la fila ya tiene estado no se toca. Solo N3.
 - **N3 › Cirugías: el estado marca la articulación** (Rosember, 21-oct-2026): «Pickup received» llena START y «Ready to
   design» llena RTD (hora Colombia, solo si están vacías; se pueden corregir a mano; RTD solo si hay START). De Pickup
   received no se puede pasar a Initiated ni a otro estado de diseño: primero Ready to design (Order Entered, Canceled y

@@ -30,5 +30,14 @@ class PickupN3(unittest.TestCase):
         self.assertFalse(s("N3 Prosthetic", "nightguard", "Pickup received", "Initiated"))
 
 
+    def test_order_entered_al_escribir_la_orden(self):
+        f = sd.estado_al_escribir_orden
+        self.assertEqual(f("N3 Prosthetic", "244100", ""), "Order Entered")
+        self.assertEqual(f("N3 Prosthetic", "244100", None), "Order Entered")
+        self.assertIsNone(f("N3 Prosthetic", "244100", "Ready to design"))   # ya tiene estado: no se toca
+        self.assertIsNone(f("N3 Prosthetic", "  ", ""))                       # sin número de orden
+        self.assertIsNone(f("N2 Demodenture", "244100", ""))                  # solo N3
+
+
 if __name__ == "__main__":
     unittest.main()

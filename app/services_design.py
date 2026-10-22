@@ -2993,6 +2993,14 @@ PICKUP_SIGUIENTES = {"pickup received", "ready to design", "order entered"}
 PICKUP_SALTO = "Primero marca Ready to design: así queda el RTD de la articulación. Después ya puedes iniciar (Initiated)."
 
 
+def estado_al_escribir_orden(area_nombre: str, orden: str, estado: str) -> str | None:
+    """N3 (Rosember, 22-oct-2026): al escribir el número de orden, una fila sin estado queda en «Order Entered».
+    Devuelve el estado que hay que poner, o None si no aplica. Igual que dsEstadoAlEscribirOrden en schedule.js."""
+    if area_nombre == AREA_N3 and (orden or "").strip() and not (estado or "").strip():
+        return ESTADO_ORDER_ENTERED
+    return None
+
+
 def _es_cirugia_n3(area_nombre: str, tabla: str) -> bool:
     return area_nombre == AREA_N3 and tabla == "principal"
 

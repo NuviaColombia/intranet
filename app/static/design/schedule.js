@@ -2098,6 +2098,15 @@ window.addEventListener('unhandledrejection', function(ev) {
       inpOrden.value = existente ? (existente.orden || '') : ''; inpOrden._alEnfocar = inpOrden.value;
       return;
     }
+    // N3 (Rosember, 22-oct-2026): al escribir el número de orden, una fila sin estado queda en «Order Entered»
+    // (el servidor hace lo mismo: estado_al_escribir_orden)
+    if (tabla !== 'prestadas' && dsAreaNombre() === 'N3 Prosthetic' && String(datos.orden || '').trim() && !String(datos.estado || '').trim()) {
+      var selE = tr.querySelector('select[data-campo="estado"]');
+      if (selE && [].some.call(selE.options, function(o) { return o.value === 'Order Entered'; })) {
+        selE.value = 'Order Entered'; datos.estado = 'Order Entered';
+        if (typeof dsPintarCelda === 'function') dsPintarCelda(selE);
+      }
+    }
     if (tr.dataset.id === 'nuevo') {
       if (tr._qcReporte !== undefined) datos[tr._qcCampoRep || 'qcReporte'] = tr._qcReporte;
       if (!dsTieneDatos(datos)) return;
