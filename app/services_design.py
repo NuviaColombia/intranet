@@ -2383,7 +2383,7 @@ DASH_RANGO_MAX_DIAS = 366   # A8 (13-oct-2026): el Dashboard se mira por área y
 def dashboard_tendencia(db: Session, user: Empleado, area_id: int | None, team_id: int | None, desde: date, hasta: date) -> dict:
     """Gráfica comparativa por equipos (A8, 13-oct-2026): casos completos de cada equipo en cada tramo del periodo.
     Tramos de días si el periodo es de un mes o menos; si no, semanas (desde el lunes). Solo cuentan las órdenes
-    completas y no canceladas, igual que el resto del Dashboard. Un aprobador ve solo los equipos que maneja."""
+    completas en estado Approved (21-oct-2026). Un aprobador ve solo los equipos que maneja."""
     q = (db.query(DesignOrden.team_id, DesignOrden.fecha, DesignOrden.estado, DesignTeam.nombre)
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
          .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta))
@@ -2405,7 +2405,8 @@ def dashboard_tendencia(db: Session, user: Empleado, area_id: int | None, team_i
                      if (desde + timedelta(days=i)).weekday() < 5})
     equipos: dict[int, dict] = {}
     for tid, fecha, estado, nombre in q.all():
-        if _es_cancelada(estado) or fecha.weekday() >= 5:
+        # Solo cuentan las órdenes en Approved (Rosember, 21-oct-2026), en Resumen y en Filtros
+        if (estado or "").strip().lower() != "approved" or fecha.weekday() >= 5:
             continue
         e = equipos.setdefault(tid, {"id": tid, "nombre": nombre, "valores": {}})
         k = clave(fecha)

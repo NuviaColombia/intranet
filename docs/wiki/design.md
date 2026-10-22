@@ -93,6 +93,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Ajuste del mismo día: dos gráficas por fila, entrada animada y, en el día de hoy, la cara del aprobador (manager) de
   cada equipo en vez del círculo (iniciales si no tiene foto; `dashboard_tendencia` devuelve `aprobador`, `foto` y `hoy`).
   Las pestañas del Dashboard quedan en la misma fila del título.
+  Regla (Rosember, 21-oct-2026): la «Tendencia por equipo» (Resumen y Filtros) cuenta solo órdenes completas en estado
+  **Approved**; el resto de Filtros (KPIs, Producción por diseñador, filtro Estado) sigue igual.
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.
