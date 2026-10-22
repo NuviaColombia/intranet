@@ -3643,7 +3643,9 @@ function dgRepCargar(t) {
       return '<tr><td class="dd-izq"><b>' + ddEsc(f.nombre) + '</b></td>' + f.valores.map(function(v, i) { return celda(v, i, d.equidad[i]); }).join('') +
         celda(f.total, n, d.equidad[n]).replace('<td', '<td style="font-weight:700"') + '</tr>';
     }).join('');
-    if (d.prestados) h += '<tr class="dg-rep-prest"><td class="dd-izq">Prestados</td>' + d.prestados.valores.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '<td>' + d.prestados.total + '</td></tr>';
+    if (d.prestados) h += '<tr class="dg-rep-prest" title="' + ddEsc('Hechos por personas que no son del equipo:
+' + d.prestados.quienes.map(function(q) { return '• ' + q.nombre + ': ' + q.casos; }).join('
+')).replace(/"/g, '&quot;') + '"><td class="dd-izq">Prestados <span class="dg-rep-i">ⓘ</span></td>' + d.prestados.valores.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '<td>' + d.prestados.total + '</td></tr>';
     h += '</tbody><tfoot><tr><th class="dd-izq">Total</th>' + d.totales.map(function(v) { return '<th>' + v + '</th>'; }).join('') + '</tr>' +
       '<tr><th class="dd-izq">Equidad</th>' + d.equidad.map(function(e) { return '<th>' + eqHtml(e) + '</th>'; }).join('') + '</tr></tfoot>';
     tabla.innerHTML = d.filas.length ? h : '<tbody><tr><td class="dd-p-nota">Este equipo no tiene casos en el mes en curso.</td></tr></tbody>';

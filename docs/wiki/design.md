@@ -105,6 +105,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   diseñadores son los miembros del equipo (los prestados salen aparte y no cuentan). Celda ▲/▼ si está 50 % por encima o
   por debajo del promedio; fila Equidad = coeficiente de variación (≤ 25 % Pareja, ≤ 50 % Algo desigual, más Desigual).
   Máx. 10 productos, el resto en «Otros» (`dashboard_reparto`, `/design/api/dashboard/reparto`).
+  Corrección: el manager del equipo cuenta como miembro (no como prestado) y en Support no hay prestados, igual que en
+  Filtros; la fila Prestados dice al pasar el mouse quién fue cada uno y de qué equipo viene.
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.

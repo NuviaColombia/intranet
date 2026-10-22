@@ -2491,6 +2491,11 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     if team_id not in {e["id"] for e in equipos}:
         team_id = max(equipos, key=lambda e: e["casos"])["id"]
     miembros = {eid for (eid,) in db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team_id)}
+    equipo = db.get(DesignTeam, team_id)
+    if equipo.manager_id:
+        miembros.add(equipo.manager_id)   # el manager que diseña casos cuenta como del equipo (igual que en Filtros)
+    es_support = equipo.area.formato == FORMATO_SUPPORT   # en Support el diseñador es el del caso: no hay prestados
+    quienes: dict[str, int] = {}
     ordenes = (db.query(DesignOrden).filter(DesignOrden.team_id == team_id, filtro_orden_completa(),
                                             DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta).all())
     nombres_p: dict[str, str] = {}
@@ -2503,10 +2508,16 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         kp = re.sub(r"\s+", " ", _normalizar_texto(o.producto or "")).strip()
         nombres_p.setdefault(kp, re.sub(r"\s+", " ", (o.producto or "").strip()))
         por_prod[kp] = por_prod.get(kp, 0) + 1
-        prestado = bool((o.designer_prestado or "").strip()) or not o.designer_id or o.designer_id not in miembros
+        prestado = not es_support and (bool((o.designer_prestado or "").strip()) or not o.designer_id or o.designer_id not in miembros)
+        if prestado:   # quién fue, para verlo al pasar el mouse por la fila de Prestados
+            nom = o.designer.nombre_completo if o.designer else ((o.designer_prestado or "").strip() or "Sin asignar")
+            if o.designer and o.designer_id not in miembros:
+                otros_eq = [td.team.nombre for td in db.query(DesignTeamDesigner).filter(DesignTeamDesigner.empleado_id == o.designer_id)]
+                nom += f" ({', '.join(otros_eq)})" if otros_eq else " (sin equipo)"
+            quienes[nom] = quienes.get(nom, 0) + 1
         kd = "prestados" if prestado else str(o.designer_id)
         if kd not in datos_d:
-            datos_d[kd] = {"nombre": "Prestados" if prestado else o.designer.nombre_completo, "designerId": None if prestado else o.designer_id}
+            datos_d[kd] = {"nombre": "Prestados" if prestado else (o.designer.nombre_completo if o.designer else "Sin asignar"), "designerId": None if prestado else o.designer_id}
         celdas.setdefault(kd, {})
         celdas[kd][kp] = celdas[kd].get(kp, 0) + 1
     orden_p = sorted(por_prod, key=lambda k: (-por_prod[k], nombres_p[k].lower()))
@@ -2520,6 +2531,8 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         return {"nombre": datos_d[kd]["nombre"], "designerId": datos_d[kd]["designerId"], "valores": vals, "total": sum(vals)}
     filas = sorted((fila(kd) for kd in datos_d if kd != "prestados"), key=lambda f: (-f["total"], f["nombre"].lower()))
     prestados = fila("prestados") if "prestados" in datos_d else None
+    if prestados:
+        prestados["quienes"] = [{"nombre": k, "casos": v} for k, v in sorted(quienes.items(), key=lambda x: (-x[1], x[0].lower()))]
 
     def equidad(vals):
         if len(vals) < 2 or not sum(vals):

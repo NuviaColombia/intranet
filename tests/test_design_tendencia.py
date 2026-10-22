@@ -86,6 +86,11 @@ class Tendencia(unittest.TestCase):
         self.assertEqual([(f["nombre"], f["valores"], f["total"]) for f in d["filas"]], [("Beto X", [6, 4], 10), ("Caro X", [2, 4], 6)])
         self.assertEqual((d["prestados"]["valores"], d["totales"]), ([2, 0], [10, 8, 18]))
         self.assertEqual([e["nivel"] for e in d["equidad"]], ["algo", "pareja", "pareja"])
+        self.assertEqual(d["prestados"]["quienes"], [{"nombre": "Dani X (sin equipo)", "casos": 2}])
+        t.manager_id = dani.id; db.commit()   # el manager que diseña cuenta como del equipo, no como prestado
+        d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertIsNone(d["prestados"])
+        self.assertIn("Dani X", [f["nombre"] for f in d["filas"]])
 
 
 if __name__ == "__main__":
