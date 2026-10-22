@@ -153,5 +153,29 @@ class Seleccion(unittest.TestCase):
         self.assertGreater(comp["N3 Prosthetic"], comp["Face Design"])
 
 
+    def test_configuracion_de_porcentajes(self):
+        admin = self.emp("Admin", "admin")
+        self.assertEqual(ssel.pesos(self.db), (ssel.PESOS_DISENADOR, ssel.PESOS_MANAGER))   # sin guardar: los de fábrica
+        with self.assertRaises(ValueError):   # no suma 100
+            ssel.guardar_pesos(self.db, {"disenador": {"productividad": 50, "evaluacion": 10, "destacado": 10, "eficiencia": 10},
+                                         "manager": ssel.PESOS_MANAGER}, admin)
+        with self.assertRaises(ValueError):   # fuera de rango
+            ssel.guardar_pesos(self.db, {"disenador": {"productividad": 120, "evaluacion": -20, "destacado": 0, "eficiencia": 0},
+                                         "manager": ssel.PESOS_MANAGER}, admin)
+        nuevos = {"productividad": 60, "evaluacion": 40, "destacado": 0, "eficiencia": 0}
+        c = ssel.guardar_pesos(self.db, {"disenador": nuevos, "manager": ssel.PESOS_MANAGER}, admin)
+        self.assertEqual(c["disenador"], nuevos)
+        self.assertEqual(ssel.pesos(self.db)[0], nuevos)
+        # el análisis usa lo guardado y un criterio en 0 % no sale como «sin dato»
+        m = self.emp("Lia", "aprobador"); a1, a2 = self.emp("Ana"), self.emp("Abel")
+        t = self.equipo("N3 Prosthetic", "Eq", m, [a1, a2])
+        self.casos(t, a1, 40); self.casos(t, a2, 20, inicio=500)
+        r = ssel.analizar(self.db, 2026, 10)
+        self.assertEqual(r["pesos"]["disenador"], nuevos)
+        g = next(c for c in r["categorias"] if c["clave"] == "n3n6")["candidatos"][0]
+        self.assertNotIn("Destacado por su manager", g["faltan"])
+        self.assertNotIn("Eficiencia", g["faltan"])
+
+
 if __name__ == "__main__":
     unittest.main()

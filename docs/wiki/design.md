@@ -131,7 +131,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   volumen. «Productividad» pasa a ser carga: cada caso aprobado vale los minutos estándar de su producto (mediana real
   del tiempo de diseño en los últimos 90 días, ≥ 5 casos; si no, la del área; si no, mediana general × FACTOR_AREA
   Face 1 / N2 1,5 / N3 2,5 / N6 2,5). Managers: la carga se compara entre todos (ya no por área). MVP: también entre
-  todas las áreas. Empleado del mes de cada área: dentro de su área. La pantalla muestra los minutos por caso de cada área. Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
+  todas las áreas. Empleado del mes de cada área: dentro de su área. La pantalla muestra los minutos por caso de cada área.
+  Configuración (Rosember, 22-oct-2026): botón «⚙️ Configuración» junto a «Analizar» para que el admin cambie los
+  porcentajes de diseñadores y de managers (enteros 0-100, cada grupo suma 100; 0 % = no cuenta; «Restablecer los de
+  fábrica»). Se guarda en design_conexion_reglas (tipo sistema, clave `seleccion_asistida_pesos`); sin guardar se usan
+  PESOS_DISENADOR / PESOS_MANAGER. Rutas GET/POST `/design/api/perf/seleccion-asistida/config` (solo admin). Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
   indicadores sin dato reparten su peso. Código: `services_design_seleccion.py`, `/design/api/perf/seleccion-asistida`.
 - **Desempeño en modo oscuro** (Rosember, 21-oct-2026): las celdas de nivel (ALTO, SOBRESALIENTE, MEDIO, BAJO) usan
   fondo oscuro teñido y texto claro del mismo tono, como los estados del Schedule (antes conservaban el color claro).

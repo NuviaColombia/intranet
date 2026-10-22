@@ -68,6 +68,60 @@ PESOS_MANAGER = {
     "qcCobertura": 10,     # % de aprobadas con QC marcado
     "equidad": 10,         # qué tan parejo reparte los productos (equidad del Reparto; menos es mejor)
 }
+# Configuración (Rosember, 22-oct-2026): el admin ajusta los porcentajes en Desempeño › Selección asistida › ⚙️.
+# Se guarda en design_conexion_reglas (tipo «sistema», clave CONFIG_CLAVE) como JSON {"disenador": {...}, "manager": {...}}.
+# Lo que no esté guardado usa los pesos de fábrica de arriba. Cada grupo debe sumar 100.
+CONFIG_CLAVE = "seleccion_asistida_pesos"
+
+
+def pesos(db: Session) -> tuple[dict, dict]:
+    from .models_design import DesignConexionRegla
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == CONFIG_CLAVE).first()
+    guardado = {}
+    if r:
+        try:
+            guardado = json.loads(r.valor or "{}")
+        except ValueError:
+            guardado = {}
+    def mezclar(base, g):
+        return {k: int((g or {}).get(k, v)) for k, v in base.items()}
+    return mezclar(PESOS_DISENADOR, guardado.get("disenador")), mezclar(PESOS_MANAGER, guardado.get("manager"))
+
+
+def configuracion(db: Session) -> dict:
+    pd, pm = pesos(db)
+    return {"disenador": pd, "manager": pm, "fabrica": {"disenador": PESOS_DISENADOR, "manager": PESOS_MANAGER}, "nombres": NOMBRES}
+
+
+def guardar_pesos(db: Session, datos: dict, quien: Empleado) -> dict:
+    """Valida (enteros de 0 a 100, cada grupo suma 100) y guarda. datos = {"disenador": {...}, "manager": {...}}."""
+    from .models_design import DesignConexionRegla
+    limpio = {}
+    for grupo, base in (("disenador", PESOS_DISENADOR), ("manager", PESOS_MANAGER)):
+        g = datos.get(grupo) or {}
+        vals = {}
+        for k in base:
+            try:
+                v = int(round(float(g.get(k, base[k]))))
+            except (TypeError, ValueError):
+                raise ValueError(f"{NOMBRES[k]}: escribe un número de 0 a 100.")
+            if not 0 <= v <= 100:
+                raise ValueError(f"{NOMBRES[k]}: debe estar entre 0 y 100.")
+            vals[k] = v
+        if sum(vals.values()) != 100:
+            nombre = "diseñadores" if grupo == "disenador" else "managers"
+            raise ValueError(f"Los porcentajes de {nombre} suman {sum(vals.values())} %: deben sumar 100 %.")
+        limpio[grupo] = vals
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == CONFIG_CLAVE).first()
+    if not r:
+        r = DesignConexionRegla(tipo="sistema", clave=CONFIG_CLAVE)
+        db.add(r)
+    r.valor = json.dumps(limpio)
+    r.creado_por = (quien.nombre_completo or "")[:150]
+    db.commit()
+    return configuracion(db)
+
+
 NOMBRES = {"productividad": "Carga de trabajo", "calidad": "Calidad (QC)", "destacado": "Destacado por su manager", "evaluacion": "Evaluación del líder",
            "eficiencia": "Eficiencia", "qcOportuno": "QC a tiempo", "qcCobertura": "Cobertura de QC", "equidad": "Reparto parejo"}
 
@@ -111,8 +165,8 @@ def _suavizada(eventos: float, base: float, tasa_grupo: float) -> float:
 
 
 def _puntaje(percentiles: dict, pesos: dict) -> tuple[float, list[str]]:
-    disponibles = {k: p for k, p in pesos.items() if percentiles.get(k) is not None}
-    faltan = [k for k in pesos if k not in disponibles]
+    disponibles = {k: p for k, p in pesos.items() if p and percentiles.get(k) is not None}
+    faltan = [k for k, p in pesos.items() if p and k not in disponibles]
     total = sum(disponibles.values())
     if not total:
         return 0.0, faltan
@@ -121,7 +175,7 @@ def _puntaje(percentiles: dict, pesos: dict) -> tuple[float, list[str]]:
 
 def _por_que(percentiles: dict, metricas: dict, pesos: dict) -> dict:
     """Fortalezas (percentil ≥ 70, de más peso a menos) y puntos a mejorar (percentil ≤ 30)."""
-    orden = sorted((k for k in pesos if percentiles.get(k) is not None), key=lambda k: (-percentiles[k], -pesos[k]))
+    orden = sorted((k for k in pesos if pesos[k] and percentiles.get(k) is not None), key=lambda k: (-percentiles[k], -pesos[k]))
     fuertes = [f"{NOMBRES[k]}: {metricas[k]['texto']} ({'el mejor de su área' if percentiles[k] >= 99.5 else f'percentil {percentiles[k]:.0f} de su área'})"
                for k in orden if percentiles[k] >= 70]
     debiles = [f"{NOMBRES[k]}: {metricas[k]['texto']}" for k in orden if percentiles[k] <= 30]
@@ -241,6 +295,7 @@ def _ordenes(db: Session, ini: date, fin: date, team_ids: list[int]) -> list[Des
 
 
 def analizar(db: Session, anio: int, mes: int) -> dict:
+    PD, PM = pesos(db)   # porcentajes configurados en «⚙️ Configuración» (si no, los de fábrica)
     ini, fin = periodo(anio, mes)
     equipos = _equipos(db)
     area_de_equipo = {t.id: t.area.nombre for t in equipos}
@@ -337,7 +392,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         pct["evaluacion"] = {f["id"]: f["evaluacionRel"] for f in grupo}
         pct["destacado"] = {f["id"]: (None if f["destacado"] is None else (100.0 if f["destacado"] else 0.0)) for f in grupo}
         for f in grupo:
-            p = {k: pct[k].get(f["id"]) for k in PESOS_DISENADOR}
+            p = {k: pct[k].get(f["id"]) for k in PD}
             met = {
                 "productividad": {"texto": f"{f['aprobadas']} aprobadas en {f['dias']} días ≈ {f['cargaDia'] / 60:.1f} h de trabajo estándar por día"},
                 "evaluacion": {"texto": f"{f['evaluacion']:.0f} % en la hoja de su líder" if f["evaluacion"] is not None else "sin calificar"},
@@ -345,9 +400,9 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
                 "eficiencia": {"texto": (f"{f['eficiencia']:.2f}× la mediana del producto" if f["eficiencia"] else "sin tiempos válidos")},
             }
             f["percentiles"] = p
-            f["puntaje"], f["faltan"] = _puntaje(p, PESOS_DISENADOR)
+            f["puntaje"], f["faltan"] = _puntaje(p, PD)
             f["faltan"] = [NOMBRES[k] for k in f["faltan"]]
-            f["porQue"] = _por_que(p, met, PESOS_DISENADOR)
+            f["porQue"] = _por_que(p, met, PD)
             f["metricas"] = met
     filas.sort(key=lambda f: (-f["puntaje"], -f["aprobadas"], f["nombre"].lower()))
 
@@ -395,14 +450,14 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         lista_m.append(m)
     # La carga de trabajo ya pesa la complejidad de cada producto: se compara entre TODOS los managers (antes, por área;
     # así un área con un solo manager, como N6, ya no queda siempre en la mitad).
-    pct_m: dict[str, dict] = {k: {} for k in PESOS_MANAGER}
+    pct_m: dict[str, dict] = {k: {} for k in PM}
     pct_m["productividad"] = _percentiles({m["id"]: m["porDia"] for m in lista_m}, True)
     pct_m["qcOportuno"] = _percentiles({m["id"]: m["qcMediana"] for m in lista_m}, False)
     pct_m["qcCobertura"] = _percentiles({m["id"]: m["qcPct"] for m in lista_m}, True)
     pct_m["equidad"] = _percentiles({m["id"]: m["equidadCv"] for m in lista_m}, False)
     pct_m["evaluacion"] = _percentiles({m["id"]: m["evaluacion"] for m in lista_m}, True)
     for m in lista_m:
-        p = {k: pct_m[k].get(m["id"]) for k in PESOS_MANAGER}
+        p = {k: pct_m[k].get(m["id"]) for k in PM}
         met = {
             "productividad": {"texto": (f"{m['aprobadas']} aprobadas del equipo ≈ {m['carga'] / 60:.0f} h de trabajo estándar "
                                         f"({m['porDia'] / 60:.1f} h por diseñador-día)") if m["porDia"] else f"{m['aprobadas']} aprobadas"},
@@ -412,9 +467,9 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             "evaluacion": {"texto": f"{m['evaluacion']:.0f} %" if m["evaluacion"] is not None else "sin calificar"},
         }
         m["percentiles"] = p
-        m["puntaje"], faltan = _puntaje(p, PESOS_MANAGER)
+        m["puntaje"], faltan = _puntaje(p, PM)
         m["faltan"] = [NOMBRES[k] for k in faltan]
-        m["porQue"] = _por_que(p, met, PESOS_MANAGER)
+        m["porQue"] = _por_que(p, met, PM)
     lista_m.sort(key=lambda m: (-m["puntaje"], -m["aprobadas"], m["nombre"].lower()))
 
     # Nadie se repite (Rosember, 22-oct-2026): se eligen en orden N2/Face, N3/N6, otro de N3/N6 y MVP, cada uno entre
@@ -435,9 +490,9 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     for f in filas:
         p = dict(f["percentiles"], productividad=pct_global.get(f["id"]))
         g = dict(f, percentiles=p)
-        g["puntaje"], faltan = _puntaje(p, PESOS_DISENADOR)
+        g["puntaje"], faltan = _puntaje(p, PD)
         g["faltan"] = [NOMBRES[k] for k in faltan]
-        g["porQue"] = _por_que(p, f["metricas"], PESOS_DISENADOR)
+        g["porQue"] = _por_que(p, f["metricas"], PD)
         filas_mvp.append(g)
     filas_mvp.sort(key=lambda f: (-f["puntaje"], -f["cargaDia"], f["nombre"].lower()))
     c_mvp = elegir(filas_mvp)
@@ -457,7 +512,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             {"clave": "mvp", "titulo": "MVP", "candidatos": lista(c_mvp), "tipo": "disenador"},
         ],
         "noCompiten": sorted(no_compiten, key=lambda f: (f["area"], f["nombre"].lower())),
-        "pesos": {"disenador": PESOS_DISENADOR, "manager": PESOS_MANAGER}, "nombres": NOMBRES,
+        "pesos": {"disenador": PD, "manager": PM}, "nombres": NOMBRES,
         "reglas": {"minAprobadas": MIN_APROBADAS, "minFraccionDias": MIN_FRACCION_DIAS},
         "complejidad": [{"area": a, "minutos": round(sum(v) / len(v))} for a in AREAS for v in [carga_area.get(a)] if v],
     }

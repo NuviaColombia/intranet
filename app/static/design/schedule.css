@@ -830,6 +830,18 @@
   .pf-sel-card details summary, .pf-sel-no summary { cursor:pointer; font-size:12.5px; color:#1d4ed8; }
   .pf-sel-card ol { margin:4px 0 0; padding-left:22px; font-size:12.5px; }
   .pf-sel-no ul { font-size:12.5px; }
+  /* Selección asistida › Configuración de porcentajes (22-oct-2026) */
+  .pf-sel-cfg { border:1px solid #d8dde3; border-radius:12px; padding:12px 14px; margin:4px 0 12px; background:#f8fafc; }
+  .pf-sel-cfg-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; }
+  .pf-sel-cfg-g { border:1px solid #e2e8f0; border-radius:10px; padding:8px 12px 10px; margin:0; background:#fff; }
+  .pf-sel-cfg-g legend { font-weight:700; font-size:13px; padding:0 4px; }
+  .pf-sel-cfg-g label { display:flex; align-items:center; gap:6px; justify-content:space-between; font-size:13px; margin:5px 0; }
+  .pf-sel-cfg-g label span { flex:1; }
+  .pf-sel-cfg-g input { width:70px; margin:0; text-align:right; }
+  .pf-sel-suma { font-weight:600; color:#166534; }
+  .pf-sel-suma.mal { color:#b91c1c; }
+  .pf-sel-cfg-acc { display:flex; gap:8px; flex-wrap:wrap; }
+  .pf-sel-ok { color:#166534; font-size:13px; margin:6px 0 0; }
   .pf-nivel-SOBRESALIENTE { background:#e3f0fb; }
   .pf-nivel-MEDIO { background:#fff8e1; }
   .pf-nivel-BAJO { background:#fdecea; }

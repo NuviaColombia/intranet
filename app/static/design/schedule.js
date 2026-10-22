@@ -8264,8 +8264,62 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var ops = pfSelOpciones();
     box.innerHTML = '<div class="pf-sel-cab"><h3>🏆 Selección asistida</h3>' +
       '<label>Mes <select id="pfSelMes">' + ops.map(function(o, i) { return '<option value="' + o.anio + '-' + o.mes + '"' + (i === 1 ? ' selected' : '') + '>' + o.l + '</option>'; }).join('') + '</select></label>' +
-      '<button type="button" class="btn mini" id="pfSelIr">Analizar</button></div><div id="pfSelRes"><p class="dd-p-nota">Elige el mes y presiona «Analizar».</p></div>';
+      '<button type="button" class="btn mini" id="pfSelIr">Analizar</button>' +
+      '<button type="button" class="btn mini gris" id="pfSelCfgBtn" aria-expanded="false">⚙️ Configuración</button></div>' +
+      '<div id="pfSelCfg" class="pf-sel-cfg" hidden></div>' +
+      '<div id="pfSelRes"><p class="dd-p-nota">Elige el mes y presiona «Analizar».</p></div>';
     document.getElementById('pfSelIr').onclick = pfSelAnalizar;
+    document.getElementById('pfSelCfgBtn').onclick = pfSelConfig;
+  }
+  // Configuración de porcentajes (Rosember, 22-oct-2026): dos grupos (diseñadores y managers), cada uno suma 100 %.
+  // Un criterio en 0 % no cuenta. «Restablecer» vuelve a los de fábrica (sin guardar hasta que se presione Guardar).
+  function pfSelConfig() {
+    var box = document.getElementById('pfSelCfg'), btn = document.getElementById('pfSelCfgBtn');
+    if (!box.hidden) { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); return; }
+    box.hidden = false; btn.setAttribute('aria-expanded', 'true');
+    box.innerHTML = '<p class="dd-p-nota">Cargando…</p>';
+    api('/design/api/perf/seleccion-asistida/config').then(function(c) { pfSelCfgPintar(box, c); })
+      .catch(function(e) { box.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; box.firstChild.textContent = e.message; });
+  }
+  function pfSelCfgPintar(box, c) {
+    var e = function(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function(x) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[x]; }); };
+    var grupo = function(g, titulo, vals) {
+      return '<fieldset class="pf-sel-cfg-g" data-g="' + g + '"><legend>' + titulo + ' · <span class="pf-sel-suma"></span></legend>' +
+        Object.keys(vals).map(function(k) {
+          return '<label><span>' + e(c.nombres[k]) + '</span><input type="number" min="0" max="100" step="1" data-k="' + k + '" value="' + vals[k] + '"> %</label>';
+        }).join('') + '</fieldset>';
+    };
+    box.innerHTML = '<div class="pf-sel-cfg-grid">' + grupo('disenador', 'Diseñadores', c.disenador) + grupo('manager', 'Managers', c.manager) + '</div>' +
+      '<p class="dd-p-nota">Cada grupo debe sumar 100 %. Un criterio en 0 % no se tiene en cuenta. Los cambios aplican al próximo «Analizar».</p>' +
+      '<div class="pf-sel-cfg-acc"><button type="button" class="btn mini" data-a="guardar">Guardar</button>' +
+      '<button type="button" class="btn mini gris" data-a="fabrica">Restablecer los de fábrica</button></div>';
+    var sumar = function() {
+      var ok = true;
+      box.querySelectorAll('fieldset').forEach(function(f) {
+        var t = 0; f.querySelectorAll('input').forEach(function(i) { t += +i.value || 0; });
+        var s = f.querySelector('.pf-sel-suma'); s.textContent = 'suma ' + t + ' %'; s.classList.toggle('mal', t !== 100);
+        if (t !== 100) ok = false;
+      });
+      box.querySelector('[data-a="guardar"]').disabled = !ok;
+    };
+    box.addEventListener('input', sumar);
+    box.querySelector('[data-a="fabrica"]').onclick = function() {
+      ['disenador', 'manager'].forEach(function(g) {
+        box.querySelectorAll('fieldset[data-g="' + g + '"] input').forEach(function(i) { i.value = c.fabrica[g][i.dataset.k]; });
+      });
+      sumar();
+    };
+    box.querySelector('[data-a="guardar"]').onclick = function() {
+      var datos = {};
+      box.querySelectorAll('fieldset').forEach(function(f) {
+        var g = datos[f.dataset.g] = {}; f.querySelectorAll('input').forEach(function(i) { g[i.dataset.k] = +i.value || 0; });
+      });
+      var b = this; b.disabled = true; b.textContent = 'Guardando…';
+      window.dsFetchJSON('/design/api/perf/seleccion-asistida/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datos)})
+        .then(function(c2) { pfSelCfgPintar(box, c2); var p = document.createElement('p'); p.className = 'pf-sel-ok'; p.textContent = '✔ Porcentajes guardados.'; box.appendChild(p); })
+        .catch(function(er) { b.disabled = false; b.textContent = 'Guardar'; alert(er.message); });
+    };
+    sumar();
   }
   function pfSelAnalizar() {
     var v = document.getElementById('pfSelMes').value.split('-'), res = document.getElementById('pfSelRes');

@@ -2836,6 +2836,21 @@ def api_perf_seleccion_asistida(anio: int | None = None, mes: int | None = None,
     return ssel.analizar(db, anio, mes)
 
 
+@router.get("/design/api/perf/seleccion-asistida/config")
+def api_sel_config(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Porcentajes de la Selección asistida (los guardados y los de fábrica)."""
+    return ssel.configuracion(db)
+
+
+@router.post("/design/api/perf/seleccion-asistida/config")
+def api_sel_config_guardar(datos: dict, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Guarda los porcentajes (cada grupo debe sumar 100)."""
+    try:
+        return ssel.guardar_pesos(db, datos, user)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.get("/design/api/perf/sheets")
 def api_perf_sheets(user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     hojas = [s for s in sd.perf_sheets(db) if sd.perf_sheet_visible(user, s)]
