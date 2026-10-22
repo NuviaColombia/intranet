@@ -128,6 +128,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   trabaja» ni permiso), a su manager le llega un push para asignárselo: a las 3 p. m. por el siguiente día hábil y a las
   7 a. m. por hoy; solo días hábiles; un push por manager con la lista (`_recordar_horarios`). En Marcas de hoy y en
   Seguimiento sale «📅 Sin horario». Usa la misma casilla «Enviar avisos push».
+  Permisos de la plataforma (Rosember, 22-oct-2026): además de los de GeoVictoria, no se avisa (ni «sin horario») a quien
+  tiene un permiso de día completo en People (aprobado o pendiente de soporte) o una ausencia en Tiempos libres; con un
+  permiso por horas de People que cubre la hora de la marca, el aviso espera a que termine el permiso + la tolerancia
+  (`_permisos_plataforma`, `faltas`). Se revisa con cada consulta de marcas (cada 5 min).
 - **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
   registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
   el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la

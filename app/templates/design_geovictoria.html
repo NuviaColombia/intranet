@@ -214,7 +214,7 @@
         '<td>' + celda(f.regresoAlm, 'almuerzo', f) + '</td><td>' + celda(f.salida, 'salida', f) + '</td>' +
         '<td>' + (f.atrasoMin ? '<span class="gv-h tarde">' + String(Math.floor(f.atrasoMin / 60)).padStart(2, '0') + ':' + String(f.atrasoMin % 60).padStart(2, '0') + '</span>' : '<span class="gv-h espera">00:00</span>') + '</td>' +
         '<td>' + (f.trabajado ? '<span class="gv-h ' + (f.enCurso ? 'curso' : 'ok') + '">' + esc(f.trabajado) + '</span>' : '<span class="gv-h espera">—</span>') + '</td>' +
-        '<td><span class="gv-est ' + e[0] + '">' + esc(e[1]) + '</span></td></tr>';
+        '<td><span class="gv-est ' + e[0] + '">' + esc(e[1]) + '</span>' + ((f.permisosHoras || []).length ? '<div class="gv-nota" title="Permiso por horas: mientras dure no se avisa">🕓 ' + esc(f.permisosHoras.join(', ')) + '</div>' : '') + '</td></tr>';
     }).join('') || '<tr><td colspan="9" style="text-align:center;color:#64748b">Nadie con este filtro.</td></tr>';
   }
   $('gvRes').addEventListener('click', function (ev) { var b = ev.target.closest('[data-f]'); if (b) { LIBRO.filtro = b.dataset.f; pintarLibro(); } });

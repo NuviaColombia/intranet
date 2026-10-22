@@ -142,5 +142,36 @@ class Avisos(unittest.TestCase):
         self.assertEqual([k for k in g.revisar(self.db, datetime(2026, 10, 24, 7, 15)) if k.startswith("horario-hoy")], [])
 
 
+    def _reiniciar(self):
+        g._hoy.update(fecha=None, t=0.0, datos={}); g._enviados.update(fecha=None, claves=set())
+        self.db.query(md.DesignConexionRegla).filter(md.DesignConexionRegla.clave.like("gv_avisos_%")).delete(synchronize_session=False)
+        self.db.commit(); self.envios.clear()
+
+    def test_permisos_de_la_plataforma_no_avisan(self):
+        from datetime import time as _t
+        self.configurar()
+        vac = models.TipoPermiso(nombre="Vacaciones", es_vacaciones=1); cita = models.TipoPermiso(nombre="Cita médica")
+        self.db.add_all([vac, cita]); self.db.commit()
+        # 1) vacaciones aprobadas en People (día completo): nada, ni entrada ni «sin horario»
+        s1 = models.Solicitud(empleado_id=self.ana.id, tipo_id=vac.id, fecha_inicio=DIA, fecha_fin=DIA, dias=1, estado="aprobada")
+        self.db.add(s1); self.db.commit()
+        self.assertEqual([k for k in g.revisar(self.db, datetime(2026, 10, 22, 7, 30)) if "|entrada" in k], [])
+        self.assertEqual(self.envios, [])
+        self.assertIn("Vacaciones", g.para_seguimiento(self.ana.id, datetime(2026, 10, 22, 7, 30), 10)["permisos"])
+        self.db.delete(s1); self.db.commit(); self._reiniciar()
+        # 2) ausencia marcada en Tiempos libres del Schedule
+        t = self.db.query(md.DesignTeam).first()
+        b = md.DesignBreak(team_id=t.id, empleado_id=self.ana.id, fecha=DIA, tipo_ausencia="Calamidad doméstica")
+        self.db.add(b); self.db.commit()
+        self.assertEqual([k for k in g.revisar(self.db, datetime(2026, 10, 22, 7, 30)) if "|entrada" in k], [])
+        self.db.delete(b); self.db.commit(); self._reiniciar()
+        # 3) permiso por horas de 7:00 a 9:00: no se avisa mientras dura; a las 9:10 sin marca, sí
+        self.db.add(models.Solicitud(empleado_id=self.ana.id, tipo_id=cita.id, fecha_inicio=DIA, fecha_fin=DIA, dias=0.25,
+                                     hora_inicio=_t(7, 0), hora_fin=_t(9, 0), estado="aprobada")); self.db.commit()
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 8, 0)), [])
+        g._hoy["t"] = 0
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 9, 10)), [f"{self.ana.id}|entrada"])
+
+
 if __name__ == "__main__":
     unittest.main()

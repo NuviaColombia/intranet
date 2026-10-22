@@ -217,20 +217,53 @@ def leer_dia(u: dict, dia: date) -> dict | None:
 
 
 def faltas(info: dict, ahora: datetime, tol: int) -> list[dict]:
-    """Marcas que debieron hacerse y no están (con `tol` minutos de margen). Sin turno o con permiso: nada."""
+    """Marcas que debieron hacerse y no están (con `tol` minutos de margen). Sin turno o con permiso de día completo
+    (de GeoVictoria, de People o de Tiempos libres): nada. Con un permiso por horas que cubre la hora de la marca, se
+    espera hasta que termine el permiso (y la tolerancia) antes de avisar."""
     if not info or not info["turno"] or info["permisos"]:
         return []
     t, m, out = info["turno"], info["marcas"], []
     margen = timedelta(minutes=tol)
-    if not m["entrada"] and ahora >= t["inicio"] + margen and ahora < t["fin"]:
+
+    def vence(esperada: datetime) -> datetime:
+        limite = esperada + margen
+        for ini, fin, _tipo in info.get("permisosHoras") or []:
+            if ini <= limite and fin >= esperada:   # el permiso cubre la hora de la marca: se corre hasta que termine
+                limite = max(limite, fin + margen)
+        return limite
+    if not m["entrada"] and ahora >= vence(t["inicio"]) and ahora < t["fin"]:
         out.append({"tipo": "entrada", "hora": _hm(t["inicio"])})
     if m["salidaAlm"] and not m["regresoAlm"]:
-        vence = t["almuerzoFijoFin"] or (m["salidaAlm"] + timedelta(minutes=t["almuerzoMin"] or 60))
-        if ahora >= vence + margen and not m["salida"]:
-            out.append({"tipo": "almuerzo", "hora": _hm(vence)})
-    if m["entrada"] and not m["salida"] and ahora >= t["fin"] + margen:
+        fin_alm = t["almuerzoFijoFin"] or (m["salidaAlm"] + timedelta(minutes=t["almuerzoMin"] or 60))
+        if ahora >= vence(fin_alm) and not m["salida"]:
+            out.append({"tipo": "almuerzo", "hora": _hm(fin_alm)})
+    if m["entrada"] and not m["salida"] and ahora >= vence(t["fin"]):
         out.append({"tipo": "salida", "hora": _hm(t["fin"])})
     return out
+
+
+def _permisos_plataforma(db: Session, ids: list[int], dia: date) -> tuple[dict[int, str], dict[int, list]]:
+    """Permisos que no están en GeoVictoria pero sí en la plataforma (Rosember, 22-oct-2026): de día completo (People
+    aprobados o pendientes de soporte, y ausencias de Tiempos libres) y por horas (People)."""
+    from . import services_design as sd
+    from .models_design import DesignBreak
+    from sqlalchemy import func
+    if not ids:
+        return {}, {}
+    dia_completo = dict(sd._permisos_aprobados_del_dia(db, ids, dia))
+    for eid, tipo in (db.query(DesignBreak.empleado_id, DesignBreak.tipo_ausencia)
+                      .filter(DesignBreak.empleado_id.in_(ids), DesignBreak.fecha == dia, func.coalesce(DesignBreak.tipo_ausencia, "") != "")):
+        dia_completo.setdefault(eid, tipo.strip())
+    horas: dict[int, list] = {}
+    for eid, lista in sd.permisos_por_horas_del_dia(db, ids, dia).items():
+        for p in lista:
+            try:
+                ini = datetime.combine(dia, datetime.strptime(p["desde"], "%H:%M").time())
+                fin = datetime.combine(dia, datetime.strptime(p["hasta"], "%H:%M").time()) if p.get("hasta") else ini + timedelta(hours=1)
+            except ValueError:
+                continue
+            horas.setdefault(eid, []).append((ini, fin, p.get("tipo") or "Permiso"))
+    return dia_completo, horas
 
 
 def _consultar(db: Session, dia: date) -> dict:
@@ -251,6 +284,13 @@ def _consultar(db: Session, dia: date) -> dict:
     for eid in pares:   # no vino en el libro de ese día: no tiene horario asignado
         datos.setdefault(eid, {"turno": None, "permisos": [], "atrasoMin": 0, "sinHorario": True,
                                "marcas": {"entrada": None, "salidaAlm": None, "regresoAlm": None, "salida": None}})
+    # permisos de la plataforma: con uno de día completo no se avisa nada (ni «sin horario»); por horas, se espera
+    dia_completo, horas = _permisos_plataforma(db, list(datos), dia)
+    for eid, info in datos.items():
+        if eid in dia_completo and dia_completo[eid] not in info["permisos"]:
+            info["permisos"] = info["permisos"] + [dia_completo[eid]]
+            info["sinHorario"] = False
+        info["permisosHoras"] = horas.get(eid, [])
     return datos
 
 
@@ -280,7 +320,8 @@ def para_seguimiento(empleado_id: int, ahora: datetime, tol: int | None = None) 
     t, m = info["turno"], info["marcas"]
     return {"turno": f"{_hm(t['inicio'])} – {_hm(t['fin'])}" if t else "", "permisos": info["permisos"], "atrasoMin": info["atrasoMin"],
             "entrada": _hm(m["entrada"]), "salidaAlm": _hm(m["salidaAlm"]), "regresoAlm": _hm(m["regresoAlm"]), "salida": _hm(m["salida"]),
-            "faltas": faltas(info, ahora, TOLERANCIA if tol is None else tol), "sinHorario": bool(info.get("sinHorario"))}
+            "faltas": faltas(info, ahora, TOLERANCIA if tol is None else tol), "sinHorario": bool(info.get("sinHorario")),
+            "permisosHoras": [f"{tp} {_hm(a)}–{_hm(b)}" for a, b, tp in info.get("permisosHoras") or []]}
 
 
 # ---------- avisos (push) ----------
