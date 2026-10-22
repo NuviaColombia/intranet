@@ -89,6 +89,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Inicio › podio de diseñadores de N3** (Rosember, 22-oct-2026): solo cuentan las Cirugías (tabla principal); los
   Nightguards y TC ya no suman (`PODIO_SOLO_CIRUGIAS` en services_design_inicio.py). Las demás áreas no cambian.
+- **Comments › Training ve la pestaña de N3** (Rosember, 22-oct-2026): `COMMENTS_AREAS["n3"]` incluye el área Training.
+- **Push › clic en el aviso** (22-oct-2026): si la intranet estaba abierta en una página no controlada por el service
+  worker, `navigate()` fallaba y el clic no llevaba a ningún lado. Ahora sw.js usa una pestaña de Design (navigate; si no
+  puede, le manda el mensaje `nvAbrir` y push.js cambia de página) y, si no hay pestaña de Design, abre una nueva.
 - **Mural › push al publicar** (Rosember, 22-oct-2026): cada aviso que se publica (uno o «Publicar» de varios) manda un
   push fijo (se queda hasta cerrarlo) a todas las personas activas con acceso a Design, menos a quien lo publica; uno por
   aviso (etiqueta `mural-{id}`, no se reemplazan) y al tocarlo abre el Mural en ese aviso (`?aviso=id`). Quien administra

@@ -6,6 +6,11 @@
   var nav = document.querySelector('nav a[href="/design"]');
   if (!nav) return;
   var soportado = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  // El service worker pide abrir la página del aviso cuando no puede navegar esta pestaña él mismo (22-oct-2026)
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function(ev) {
+    var d = ev.data || {};
+    if (d.tipo === 'nvAbrir' && typeof d.url === 'string' && d.url.indexOf(location.origin + '/') === 0) location.href = d.url;
+  });
   var esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var instalada = window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   var reg = null, sub = null, ocupado = false;

@@ -20,14 +20,23 @@ self.addEventListener('push', function(e) {
   e.waitUntil(self.registration.showNotification(d.titulo || 'Nuvia Design', opciones));
 });
 
+// Al tocar el aviso se abre su página (p. ej. el Mural en ese aviso). 22-oct-2026: antes, si la intranet estaba abierta en
+// otra página (fuera de /design/ o cargada antes del service worker), navigate() fallaba y no pasaba nada. Ahora: se usa
+// una pestaña de la intranet ya abierta (navigate; si no se puede, se le pide a la página que cambie sola con un mensaje);
+// si no hay ninguna, se abre una nueva.
 self.addEventListener('notificationclick', function(e) {
   e.notification.close();
-  var url = (e.notification.data && e.notification.data.url) || '/design/inicio';
+  var url = new URL((e.notification.data && e.notification.data.url) || '/design/inicio', self.location.origin).href;
   e.waitUntil(self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(function(lista) {
-    for (var i = 0; i < lista.length; i++) {   // si la intranet ya está abierta, la usa
-      var c = lista[i];
-      if (c.url.indexOf(self.location.origin) === 0 && 'focus' in c) { c.navigate(url); return c.focus(); }
-    }
-    return self.clients.openWindow(url);
+    var deDesign = function(c) { try { return new URL(c.url).pathname.indexOf('/design') === 0; } catch (err) { return false; } };
+    var propias = lista.filter(function(c) { return c.url.indexOf(self.location.origin) === 0; });
+    propias.sort(function(a, b) { return deDesign(b) - deDesign(a); });   // primero una pestaña de Design
+    var c = propias[0];
+    if (!c || !deDesign(c)) return self.clients.openWindow(url);   // fuera de Design: pestaña nueva
+    var enfocar = function(x) { return x && 'focus' in x ? x.focus() : null; };
+    var porMensaje = function() { c.postMessage({tipo: 'nvAbrir', url: url}); return enfocar(c); };
+    if (!('navigate' in c)) return porMensaje();
+    return c.navigate(url).then(function(n) { return n ? enfocar(n) : porMensaje(); }, porMensaje)
+      .catch(function() { return self.clients.openWindow(url); });
   }));
 });

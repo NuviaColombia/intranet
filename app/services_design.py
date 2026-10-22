@@ -501,8 +501,9 @@ def quitar_delegacion(db: Session, team: DesignTeam) -> bool:
     return bool(d)
 
 
-# Comments: cada pestaña es de unas áreas. Support y los admins ven las dos (1-oct-2026).
-COMMENTS_AREAS = {"n3": {"N3 Prosthetic", "N6 Material Changes"}, "faq": {"N2 Demodenture", "Face Design"}}
+# Comments: cada pestaña es de unas áreas. Support y los admins ven las dos (1-oct-2026). Training ve la de N3
+# (Rosember, 22-oct-2026): su Schedule es igual al de N3 y sus casos llegan de N3.
+COMMENTS_AREAS = {"n3": {"N3 Prosthetic", "N6 Material Changes", AREA_TRAINING}, "faq": {"N2 Demodenture", "Face Design"}}
 
 
 def comments_permitidos(db: Session, user: Empleado) -> dict:
