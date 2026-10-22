@@ -103,5 +103,36 @@ class Seleccion(unittest.TestCase):
         self.assertIsNone(ssel._indice_mes(["Oct 2025"], 2026, 10))
 
 
+    def test_lider_generoso_no_favorece_y_destacado_suma(self):
+        """El líder A califica ALTO a todos; el líder B distingue (SOBRESALIENTE / MEDIO). Con la evaluación relativa a cada
+        líder, los dos de A quedan en la mitad y el mejor de B arriba. Y el destacado de su manager en Selección suma."""
+        import json as _json
+        self.emp("Admin", "admin")
+        la, lb = self.emp("Lia", "aprobador"), self.emp("Leo", "aprobador")
+        a1, a2, b1, b2 = self.emp("Ana"), self.emp("Abel"), self.emp("Bea"), self.emp("Bruno")
+        ta = self.equipo("N3 Prosthetic", "Eq Lia", la, [a1, a2])
+        tb = self.equipo("N3 Prosthetic", "Eq Leo", lb, [b1, b2])
+        for t, e in ((ta, a1), (ta, a2), (tb, b1), (tb, b2)):
+            self.casos(t, e, 30)
+        crit = md.DesignPerfCriterio(nombre="Calidad", orden=1); self.db.add(crit); self.db.commit()
+        for nombre, notas in (("N3 Lia", {"Ana X": "ALTO", "Abel X": "ALTO"}), ("N3 Leo", {"Bea X": "SOBRESALIENTE", "Bruno X": "MEDIO"})):
+            h = md.DesignPerfSheet(nombre=nombre, tipo="eval", meses=_json.dumps(["Sep 2026", "Oct 2026"]), orden=1); self.db.add(h); self.db.commit()
+            for k, (persona, nivel) in enumerate(notas.items()):
+                f = md.DesignPerfEmpleado(sheet_id=h.id, nombre=persona, orden=k); self.db.add(f); self.db.commit()
+                self.db.add(md.DesignPerfCelda(empleado_id=f.id, criterio_id=crit.id, mes_indice=1, nivel=nivel))
+        sel = md.DesignPerfSheet(nombre="SELECCION 2026", tipo="seleccion", meses=_json.dumps(["Sep 2026", "Oct 2026"]), orden=9)
+        self.db.add(sel); self.db.commit()
+        fila = md.DesignPerfSeleccionFila(sheet_id=sel.id, evaluador="Leo", orden=1); self.db.add(fila); self.db.commit()
+        self.db.add(md.DesignPerfSeleccionCelda(fila_id=fila.id, mes_indice=1, persona="Bruno X", puntaje="9"))
+        self.db.commit()
+        r = ssel.analizar(self.db, 2026, 10)
+        todos = {x["nombre"]: x for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
+        self.assertEqual((todos["Ana X"]["percentiles"]["evaluacion"], todos["Abel X"]["percentiles"]["evaluacion"]), (50.0, 50.0))
+        self.assertEqual((todos["Bea X"]["percentiles"]["evaluacion"], todos["Bruno X"]["percentiles"]["evaluacion"]), (100.0, 0.0))
+        self.assertEqual(todos["Bruno X"]["percentiles"]["destacado"], 100.0)
+        self.assertEqual(todos["Ana X"]["percentiles"]["destacado"], 0.0)
+        self.assertNotIn("cambios", todos["Ana X"]["percentiles"])
+
+
 if __name__ == "__main__":
     unittest.main()

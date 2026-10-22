@@ -96,7 +96,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   en su área) 10; manager — productividad del equipo 30, cambios 20, QC a tiempo (mediana Approved→QC) 20, cobertura de
   QC 10, reparto parejo 10, hoja DESIGN MANAGERS 10. Regla (Rosember, 22-oct-2026): un diseñador con cualquier hallazgo
   de QC en el mes queda descartado de una vez (el peso de Calidad pasó a los demás: productividad 40, evaluación 27,
-  cambios 20, eficiencia 13). Nadie se repite: ni ganadores ni nombres en «Siguientes». Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
+  cambios 20, eficiencia 13). Nadie se repite: ni ganadores ni nombres en «Siguientes».
+  Imparcialidad (Rosember, 22-oct-2026): los cambios digitales ya no cuentan (no son culpa del diseñador ni del equipo).
+  Diseñadores = productividad 45, evaluación del líder 25 (percentil SOLO entre los calificados por el mismo líder, para
+  quitar el sesgo de líderes que califican más alto), destacado por su manager en la hoja de Selección 15 (sí = 100,
+  no = 0; si nadie destacó ese mes no cuenta), eficiencia 15. Managers = hoja DESIGN MANAGERS 40, productividad 25,
+  QC a tiempo 15, cobertura de QC 10, reparto parejo 10. Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
   indicadores sin dato reparten su peso. Código: `services_design_seleccion.py`, `/design/api/perf/seleccion-asistida`.
 - **Desempeño en modo oscuro** (Rosember, 21-oct-2026): las celdas de nivel (ALTO, SOBRESALIENTE, MEDIO, BAJO) usan
   fondo oscuro teñido y texto claro del mismo tono, como los estados del Schedule (antes conservaban el color claro).

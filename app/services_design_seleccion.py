@@ -27,8 +27,8 @@ from sqlalchemy.orm import Session
 
 from . import services_design as sd
 from .models import Empleado
-from .models_design import (DesignArea, DesignInhabilitado, DesignOrden, DesignPerfCelda, DesignPerfEmpleado, DesignPerfSheet,
-                            DesignTeam, DesignTeamDesigner)
+from .models_design import (DesignArea, DesignInhabilitado, DesignOrden, DesignPerfCelda, DesignPerfEmpleado, DesignPerfSeleccionCelda,
+                            DesignPerfSeleccionFila, DesignPerfSheet, DesignTeam, DesignTeamDesigner)
 
 AREAS = ["Face Design", "N2 Demodenture", "N3 Prosthetic", "N6 Material Changes"]
 GRUPO_N2_FACE = ("Face Design", "N2 Demodenture")
@@ -39,23 +39,27 @@ MIN_FRACCION_DIAS = 0.5     # al menos la mitad de los días hábiles disponible
 SUAVIZADO = 10              # «casos virtuales» con la tasa del área (bayes empírico)
 
 # Pesos (suman 100). Se pueden ajustar con Rosember.
-# Calidad de QC ya no pondera (Rosember, 22-oct-2026): quien tiene un hallazgo de QC en el mes queda descartado de una vez.
-# Su 25 % se repartió en proporción entre los demás criterios.
+# Pesos (22-oct-2026, Rosember: «lo más imparcial posible»).
+# - Quien tiene un hallazgo de QC en el mes queda descartado de una vez (la calidad no pondera: es requisito).
+# - Cambios digitales no cuentan: no son culpa del diseñador ni del equipo.
+# - 60 % datos objetivos y 40 % opinión de los líderes. La calificación de la hoja de cada equipo se compara SOLO contra los
+#   compañeros calificados por el mismo líder (un líder «generoso» no favorece a su gente), y ser el destacado del mes de
+#   su manager en la hoja de Selección suma aparte.
 PESOS_DISENADOR = {
-    "productividad": 40,   # casos aprobados por día disponible (descuenta vacaciones, incapacidad, luto, etc.)
-    "evaluacion": 27,      # calificación del líder en Desempeño para ese mes
-    "cambios": 20,         # % de sus casos con cambios digitales (DOC / LAB) (menos es mejor)
-    "eficiencia": 13,      # tiempo de diseño contra la mediana del mismo producto en su área (menos tiempo es mejor)
+    "productividad": 45,   # casos aprobados por día disponible (descuenta vacaciones, incapacidad, luto, etc.)
+    "evaluacion": 25,      # calificación de su líder en Desempeño ese mes, relativa a los demás del mismo líder
+    "destacado": 15,       # su manager lo destacó ese mes en la hoja de Selección
+    "eficiencia": 15,      # tiempo de diseño contra la mediana del mismo producto en su área (menos tiempo es mejor)
 }
+# Managers: más peso a la hoja DESIGN MANAGERS (Rosember, 22-oct-2026), donde se califica a los managers.
 PESOS_MANAGER = {
-    "productividad": 30,   # casos aprobados del equipo por día disponible de sus diseñadores
-    "cambios": 20,         # % de casos del equipo con cambios digitales (menos es mejor)
-    "qcOportuno": 20,      # minutos (mediana) entre Approved y el QC marcado (menos es mejor)
+    "evaluacion": 40,      # hoja DESIGN MANAGERS de Desempeño para ese mes
+    "productividad": 25,   # casos aprobados del equipo por día disponible de sus diseñadores
+    "qcOportuno": 15,      # minutos (mediana) entre Approved y el QC marcado (menos es mejor)
     "qcCobertura": 10,     # % de aprobadas con QC marcado
-    "equidad": 10,         # qué tan parejo reparte los productos (CV del reparto; menos es mejor)
-    "evaluacion": 10,      # hoja DESIGN MANAGERS de Desempeño para ese mes
+    "equidad": 10,         # qué tan parejo reparte los productos (equidad del Reparto; menos es mejor)
 }
-NOMBRES = {"productividad": "Productividad", "calidad": "Calidad (QC)", "cambios": "Cambios digitales", "evaluacion": "Evaluación del líder",
+NOMBRES = {"productividad": "Productividad", "calidad": "Calidad (QC)", "destacado": "Destacado por su manager", "evaluacion": "Evaluación del líder",
            "eficiencia": "Eficiencia", "qcOportuno": "QC a tiempo", "qcCobertura": "Cobertura de QC", "equidad": "Reparto parejo"}
 
 _MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -137,17 +141,19 @@ def _indice_mes(etiquetas: list[str], anio: int, mes: int) -> int | None:
     return elegido
 
 
-def _evaluaciones(db: Session, empleados: list[Empleado], anio: int, mes: int, hoja_general: bool) -> dict[int, float]:
-    """{empleado_id: % de la calificación del mes (0-100)} desde las hojas de Desempeño (eval). Solo cuenta si el mes
-    tiene al menos un criterio calificado. hoja_general=True lee la hoja DESIGN MANAGERS; si no, las de los equipos."""
+def _evaluaciones(db: Session, empleados: list[Empleado], anio: int, mes: int, hoja_general: bool) -> dict[int, dict]:
+    """{empleado_id: {"pct": % de la calificación del mes (0-100), "rel": percentil entre los de la misma hoja}} desde las
+    hojas de Desempeño (eval). Solo cuenta si el mes tiene al menos un criterio calificado. hoja_general=True lee la hoja
+    DESIGN MANAGERS; si no, las de los equipos. «rel» quita el sesgo de cada líder (unos califican más alto que otros)."""
     criterios = [c.id for c in sd.perf_criterios(db)]
-    out: dict[int, float] = {}
+    out: dict[int, dict] = {}
     for h in db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "eval"):
         if sd._es_hoja_general(h.nombre) != hoja_general:
             continue
         i = _indice_mes(json.loads(h.meses or "[]"), anio, mes)
         if i is None:
             continue
+        hoja: dict[int, float] = {}
         for fila in db.query(DesignPerfEmpleado).filter(DesignPerfEmpleado.sheet_id == h.id):
             e = sd._buscar_empleado_por_nombre(fila.nombre, empleados)
             if not e:
@@ -157,8 +163,31 @@ def _evaluaciones(db: Session, empleados: list[Empleado], anio: int, mes: int, h
             if not any((v.get("nivel") or "") for v in celdas.values()):
                 continue
             tot, _ = sd.perf_totales(celdas, criterios, 1)
-            out[e.id] = round(tot[0] * 100, 1)
+            hoja[e.id] = round(tot[0] * 100, 1)
+        rel = _percentiles(hoja, True)
+        for eid, v in hoja.items():
+            out[eid] = {"pct": v, "rel": rel[eid]}
     return out
+
+
+def _destacados(db: Session, empleados: list[Empleado], anio: int, mes: int) -> set[int] | None:
+    """Personas que su manager destacó ese mes en la hoja de Selección (cada evaluador escribe 1 nombre por mes).
+    None si ese mes nadie ha destacado a nadie todavía (el criterio no cuenta y su peso se reparte)."""
+    out: set[int] = set()
+    hay = False
+    for h in db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "seleccion"):
+        i = _indice_mes(json.loads(h.meses or "[]"), anio, mes)
+        if i is None:
+            continue
+        for c in (db.query(DesignPerfSeleccionCelda).join(DesignPerfSeleccionFila, DesignPerfSeleccionFila.id == DesignPerfSeleccionCelda.fila_id)
+                  .filter(DesignPerfSeleccionFila.sheet_id == h.id, DesignPerfSeleccionCelda.mes_indice == i)):
+            if not (c.persona or "").strip():
+                continue
+            hay = True
+            e = sd._buscar_empleado_por_nombre(c.persona, empleados)
+            if e:
+                out.add(e.id)
+    return out if hay else None
 
 
 # ---------- datos del mes ----------
@@ -172,16 +201,6 @@ def _ordenes(db: Session, ini: date, fin: date, team_ids: list[int]) -> list[Des
     return [o for o in db.query(DesignOrden).filter(sd.filtro_orden_completa(), DesignOrden.fecha >= ini, DesignOrden.fecha <= fin,
                                                     DesignOrden.team_id.in_(team_ids or [-1]))
             if not sd._es_cancelada(o.estado)]
-
-
-def _cambios_por_designer(db: Session, ini: date, fin: date) -> dict[int, dict]:
-    from . import services_design_reportes as rep
-    c = rep._cambios(db, ini, fin)
-    ids = {}
-    # _cambios no devuelve el id en la lista: se rearma por nombre contra las órdenes
-    for x in c["disenadores"]:
-        ids[sd._normalizar_texto(x["nombre"])] = x
-    return ids
 
 
 def analizar(db: Session, anio: int, mes: int) -> dict:
@@ -210,8 +229,6 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             dur[o.id] = m
             muestras.setdefault((area_de_equipo[o.team_id], sd._normalizar_texto(o.producto)), []).append(m)
     mediana = {k: median(v) for k, v in muestras.items() if len(v) >= 3}
-
-    cambios = _cambios_por_designer(db, ini, fin)
 
     # ---------------- Diseñadores ----------------
     empleados_ids = {e for tid, s in miembros.items() for e in s} - managers - inhabilitados
@@ -243,14 +260,15 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             x["esperado"] += mediana[k]
             x["real"] += dur[o.id]
     ev_dis = _evaluaciones(db, list(empleados.values()), anio, mes, hoja_general=False)
+    destacados = _destacados(db, list(empleados.values()), anio, mes)
     filas, no_compiten = [], []
     for eid, e in empleados.items():
         x = datos[eid]
         dias = max(0, dias_hab - len(ausencias.get(eid, {})))
-        cam = cambios.get(sd._normalizar_texto(e.nombre_completo))
         fila = {"id": eid, "nombre": e.nombre_completo, "area": area_de[eid], "aprobadas": x["aprobadas"], "hallazgos": x["hallazgos"],
                 "dias": dias, "habiles": dias_hab, "ausencias": sd._resumen_ausencias(ausencias.get(eid, {})),
-                "casosConCambio": cam["casosConCambio"] if cam else 0, "evaluacion": ev_dis.get(eid),
+                "evaluacion": (ev_dis.get(eid) or {}).get("pct"), "evaluacionRel": (ev_dis.get(eid) or {}).get("rel"),
+                "destacado": None if destacados is None else (eid in destacados),
                 "eficiencia": round(x["esperado"] / x["real"], 2) if x["real"] else None}
         motivo = None
         if not area_de[eid]:
@@ -267,23 +285,20 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         grupo = [f for f in filas if f["area"] == area]
         if not grupo:
             continue
-        tasa_qc = sum(f["hallazgos"] for f in grupo) / max(1, sum(f["aprobadas"] for f in grupo))
-        tasa_cam = sum(f["casosConCambio"] for f in grupo) / max(1, sum(f["aprobadas"] for f in grupo))
         val = {
             "productividad": {f["id"]: f["aprobadas"] / f["dias"] for f in grupo},
-            "calidad": {f["id"]: _suavizada(f["hallazgos"], f["aprobadas"], tasa_qc) for f in grupo},
-            "cambios": {f["id"]: _suavizada(f["casosConCambio"], f["aprobadas"], tasa_cam) for f in grupo},
-            "evaluacion": {f["id"]: f["evaluacion"] for f in grupo},
             "eficiencia": {f["id"]: f["eficiencia"] for f in grupo},
         }
-        pct = {k: _percentiles(v, mayor_es_mejor=k not in ("calidad", "cambios")) for k, v in val.items()}
+        pct = {k: _percentiles(v, mayor_es_mejor=True) for k, v in val.items()}
+        # la evaluación ya viene relativa a su líder; el destacado vale 100 (sí) o 0 (no)
+        pct["evaluacion"] = {f["id"]: f["evaluacionRel"] for f in grupo}
+        pct["destacado"] = {f["id"]: (None if f["destacado"] is None else (100.0 if f["destacado"] else 0.0)) for f in grupo}
         for f in grupo:
             p = {k: pct[k].get(f["id"]) for k in PESOS_DISENADOR}
             met = {
                 "productividad": {"texto": f"{f['aprobadas']} aprobadas en {f['dias']} días ({f['aprobadas'] / f['dias']:.1f}/día)"},
-                "calidad": {"texto": f"{f['hallazgos']} hallazgos en {f['aprobadas']} casos ({f['hallazgos'] * 100 / f['aprobadas']:.1f} %)"},
-                "cambios": {"texto": f"{f['casosConCambio']} casos con cambios ({f['casosConCambio'] * 100 / f['aprobadas']:.1f} %)"},
-                "evaluacion": {"texto": f"{f['evaluacion']:.0f} %" if f["evaluacion"] is not None else "sin calificar"},
+                "evaluacion": {"texto": f"{f['evaluacion']:.0f} % en la hoja de su líder" if f["evaluacion"] is not None else "sin calificar"},
+                "destacado": {"texto": "su manager lo destacó este mes" if f["destacado"] else "no fue el destacado de su manager"},
                 "eficiencia": {"texto": (f"{f['eficiencia']:.2f}× la mediana del producto" if f["eficiencia"] else "sin tiempos válidos")},
             }
             f["percentiles"] = p
@@ -303,7 +318,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         if not t.manager_id or t.manager_id in inhabilitados:
             continue
         m = mans.setdefault(t.manager_id, {"id": t.manager_id, "nombre": t.manager.nombre_completo if t.manager else "", "areas": set(),
-                                           "equipos": [], "aprobadas": 0, "diasDis": 0, "conCambio": 0, "conQc": 0, "minQc": [], "cv": []})
+                                           "equipos": [], "aprobadas": 0, "diasDis": 0, "conQc": 0, "minQc": [], "cv": []})
         m["areas"].add(t.area.nombre)
         m["equipos"].append(t.nombre)
         miembros_t = (miembros.get(t.id, set()) - {t.manager_id})
@@ -320,15 +335,6 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             r = sd.dashboard_reparto(db, admin, ini, fin, t.id)
             if r.get("teamId") == t.id and r["equidad"] and r["equidad"][-1]:
                 m["cv"].append(r["equidad"][-1]["cv"])
-    # casos con cambios digitales de los diseñadores de cada manager (el diseñador se busca por nombre; va a sus equipos)
-    todos = {sd._normalizar_texto(e.nombre_completo): e.id
-             for e in db.query(Empleado).filter(Empleado.id.in_(list({e for s in miembros.values() for e in s}) or [-1]))}
-    for clave, x in cambios.items():
-        eid = todos.get(clave)
-        for t in equipos:
-            if eid and eid in miembros.get(t.id, set()) and t.manager_id in mans and eid != t.manager_id:
-                mans[t.manager_id]["conCambio"] += x["casosConCambio"]
-                break
     lista_m = []
     for m in mans.values():
         if not m["aprobadas"]:
@@ -338,16 +344,14 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         m["porDia"] = round(m["aprobadas"] / m["diasDis"], 2) if m["diasDis"] else None
         m["qcMediana"] = round(median(m["minQc"])) if m["minQc"] else None
         m["qcPct"] = round(m["conQc"] * 100 / m["aprobadas"], 1)
-        m["cambioPct"] = round(m["conCambio"] * 100 / m["aprobadas"], 1)
         m["equidadCv"] = round(sum(m["cv"]) / len(m["cv"])) if m["cv"] else None
-        m["evaluacion"] = ev_man.get(m["id"])
+        m["evaluacion"] = (ev_man.get(m["id"]) or {}).get("pct")
         del m["minQc"], m["cv"]
         lista_m.append(m)
     # productividad se compara dentro del área (los productos cambian); lo demás entre todos los managers
     pct_m: dict[str, dict] = {k: {} for k in PESOS_MANAGER}
     for area in {m["areas"][0] for m in lista_m}:
         pct_m["productividad"].update(_percentiles({m["id"]: m["porDia"] for m in lista_m if m["areas"][0] == area}, True))
-    pct_m["cambios"] = _percentiles({m["id"]: m["cambioPct"] for m in lista_m}, False)
     pct_m["qcOportuno"] = _percentiles({m["id"]: m["qcMediana"] for m in lista_m}, False)
     pct_m["qcCobertura"] = _percentiles({m["id"]: m["qcPct"] for m in lista_m}, True)
     pct_m["equidad"] = _percentiles({m["id"]: m["equidadCv"] for m in lista_m}, False)
@@ -356,7 +360,6 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         p = {k: pct_m[k].get(m["id"]) for k in PESOS_MANAGER}
         met = {
             "productividad": {"texto": f"{m['aprobadas']} aprobadas del equipo ({m['porDia']}/día por diseñador)" if m["porDia"] else f"{m['aprobadas']} aprobadas"},
-            "cambios": {"texto": f"{m['cambioPct']} % de casos con cambios"},
             "qcOportuno": {"texto": f"QC en {m['qcMediana']} min (mediana)" if m["qcMediana"] is not None else "sin datos"},
             "qcCobertura": {"texto": f"{m['qcPct']} % de aprobadas con QC"},
             "equidad": {"texto": f"reparto con {m['equidadCv']} % de variación" if m["equidadCv"] is not None else "sin datos"},
