@@ -685,6 +685,16 @@ def necesita_aviso_recibido(r: CajaRecibo) -> bool:
     return bool(r.recibido_por_id and not r.recibido_en and r.estado != "ANULADO")
 
 
+def recibos_pendientes_de_recibido(db: Session, user: Empleado) -> list[CajaRecibo]:
+    """Recibos donde `user` es quien recibió el dinero y todavía no firma -- para avisarle en el portal (Inicio),
+    porque firmar no requiere el módulo de Caja menor y por eso no aparece en ningún otro lado si no usa el
+    enlace de Cliq (ver docs/wiki/caja_menor.md)."""
+    return (db.query(CajaRecibo).options(joinedload(CajaRecibo.caja))
+            .filter(CajaRecibo.recibido_por_id == user.id, CajaRecibo.recibido_en.is_(None),
+                   CajaRecibo.estado != "ANULADO")
+            .order_by(CajaRecibo.creado_en.desc()).all())
+
+
 def token_recibido(r: CajaRecibo) -> str:
     """Enlace personal para firmar el recibido sin iniciar sesión: depende del recibo y de quien recibe."""
     import hashlib

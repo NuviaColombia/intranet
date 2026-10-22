@@ -53,6 +53,17 @@ marcar varias cajas de una vez (`form.getlist("cajas")`); `_reemplazar_cajas()`
 las asignaciones de otra empresa que ya tuviera esa persona (asignadas antes por otro admin) --
 si tocas esos formularios, no vuelvas a un `delete()` + `insert()` sin ese filtro.
 
+**(2026-10-22) Firma de "recibido" sin el módulo: dos rutas, y un aviso en el portal.** Quien recibe el
+dinero no necesita el módulo `caja_menor` para firmar -- hay dos caminos, ambos sin ese permiso:
+`/caja-menor/firmar-recibido/{id}/{token}` (sin iniciar sesión, el que manda el bot de Cliq, token HMAC)
+y `/caja-menor/recibido/{id}` (con sesión iniciada, para quien no usó el enlace de Cliq). El problema real
+reportado: si la persona no hace clic en el botón de Cliq y en cambio entra a la intranet por su cuenta, no
+había ninguna forma de que encontrara su recibo pendiente -- terminaba intentando entrar a "Caja menor"
+(que si pide el módulo) y se topaba con "No tienes acceso a ese módulo". El portal (`/`,
+`app/routers/portal.py`) ahora muestra un aviso con el o los recibos pendientes de cualquier usuario que
+tenga uno (`services_caja.recibos_pendientes_de_recibido`), con enlace directo a `/caja-menor/recibido/{id}`
+-- ese aviso es independiente de `tiene_modulo`, se ve tenga o no acceso al módulo.
+
 **Adjuntos**: igual que en Permisos (soporte documental), se guardan como BLOB en la propia fila
 (`CajaAdjunto.datos`, columna `deferred`) -- no van a Zoho WorkDrive. Límite 5 MB,
 JPG/PNG/WEBP/PDF.

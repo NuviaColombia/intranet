@@ -66,6 +66,17 @@
   </nav>
   <div class="portal-main">
     {% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+    {% if recibos_pendientes %}
+    <div class="aviso" style="background:#FEF3C7;color:#78350F;">
+      <b>🧾 Tienes {{ recibos_pendientes|length }} recibo{{ 's' if recibos_pendientes|length != 1 else '' }} de Caja menor pendiente{{ 's' if recibos_pendientes|length != 1 else '' }} de firmar que recibiste:</b>
+      <div style="margin-top:6px; display:flex; flex-direction:column; gap:3px;">
+        {% for r in recibos_pendientes %}
+        <a href="/caja-menor/recibido/{{ r.id }}" style="color:#78350F; text-decoration:underline;">
+          {{ r.caja.prefijo }}-{{ '%04d'|format(r.consecutivo) }} · $ {{ '{:,.0f}'.format(r.valor).replace(',', '.') }} · {{ r.concepto }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <div id="nviPagina" class="nvi-raiz"></div>
     {% if not modo_editar %}
       {% if not pagina and editor %}
