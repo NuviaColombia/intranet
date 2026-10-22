@@ -2040,6 +2040,11 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     return salida
 
 
+# Productos de la tabla Nightguards / TC que cuentan como Tc aunque su nombre no diga «TC» (Rosember, 22-oct-2026).
+# Se comparan sin mayúsculas, tildes ni espacios de más. Igual que DS_PRODUCTOS_TC en static/design/schedule.js.
+PRODUCTOS_TC = ["N6 - Full Mouth Zirk - Over Ti-Bar (8mm or less)"]
+
+
 def tipo_produccion(tabla: str, producto: str) -> str:
     """Producción del día por tipo: «sx» la tabla principal (Cirugías en N3, Dummy en N6), «mc» Material Change (N6;
     21-oct-2026), «tc» los TC y «ng» los Nightguards (la tabla Nightguards / TC). Igual que dsTipoProduccion en
@@ -2048,7 +2053,10 @@ def tipo_produccion(tabla: str, producto: str) -> str:
         return "mc"
     if tabla != "nightguard":
         return "sx"
-    return "tc" if re.search(r"\btc\b", producto or "", re.I) else "ng"
+    p = re.sub(r"\s+", " ", _normalizar_texto(producto or "")).strip()
+    if re.search(r"\btc\b", p) or p in {re.sub(r"\s+", " ", _normalizar_texto(x)).strip() for x in PRODUCTOS_TC}:
+        return "tc"
+    return "ng"
 
 
 def prestados_por_disenador(db: Session, ids: list[int], fecha: date, por_tipo: bool = False):

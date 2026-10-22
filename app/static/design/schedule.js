@@ -2421,7 +2421,14 @@ window.addEventListener('unhandledrejection', function(ev) {
   // ---------- Producción del día: casos asignados a cada diseñador en el día elegido (para repartir los casos) ----------
   // N3 (20-oct-2026): la producción se separa en Sx (cirugías), Tc y Ng (Nightguards). Igual que tipo_produccion (servidor).
   // Tipo de cada caso en «Producción del día»: sx = tabla principal (Cirugías en N3, Dummy en N6), mc = Material Change, tc, ng
-  function dsTipoProduccion(tabla, producto) { return tabla === 'material' ? 'mc' : tabla !== 'nightguard' ? 'sx' : (/\btc\b/i.test(producto || '') ? 'tc' : 'ng'); }
+  // Productos de Nightguards / TC que cuentan como Tc aunque no digan «TC» (Rosember, 22-oct-2026; PRODUCTOS_TC en el servidor)
+  var DS_PRODUCTOS_TC = ['n6 - full mouth zirk - over ti-bar (8mm or less)'];
+  function dsTipoProduccion(tabla, producto) {
+    if (tabla === 'material') return 'mc';
+    if (tabla !== 'nightguard') return 'sx';
+    var p = dsNorm(producto);
+    return /\btc\b/i.test(p) || DS_PRODUCTOS_TC.indexOf(p) >= 0 ? 'tc' : 'ng';
+  }
   function dsProduccionDia(dia) {
     var cuenta = {}, nombres = {}, orden = [], tipos = {};
     var tipoDe = function(k) { return tipos[k] || (tipos[k] = {sx: 0, tc: 0, ng: 0, mc: 0}); };

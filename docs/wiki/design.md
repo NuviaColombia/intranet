@@ -89,6 +89,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Inicio › podio de diseñadores de N3** (Rosember, 22-oct-2026): solo cuentan las Cirugías (tabla principal); los
   Nightguards y TC ya no suman (`PODIO_SOLO_CIRUGIAS` en services_design_inicio.py). Las demás áreas no cambian.
+- **N6 › Producción del día: TC** (Rosember, 22-oct-2026): en la tabla Nightguards / TC, el producto «N6 - Full Mouth Zirk -
+  Over Ti-Bar (8mm or less)» cuenta como Tc (antes caía en Ng porque su nombre no dice «TC»). Lista `PRODUCTOS_TC`
+  (servidor, `tipo_produccion`) y `DS_PRODUCTOS_TC` (schedule.js, `dsTipoProduccion`): para otro producto, agregarlo en las dos.
 - **Cumpleaños › subir la foto a mano** (Rosember, 22-oct-2026): en Formatos Canva › Cumpleaños (solo admin) cada persona
   sin foto tiene «📷 Subir foto» y las que tienen, «📷 Cambiar foto». La imagen se recorta cuadrada al centro y se reduce
   a 800 px en el navegador; se guarda en `design_fotos_perfil` con origen «manual · quién · fecha» y queda como su foto
