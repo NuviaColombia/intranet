@@ -107,6 +107,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Máx. 10 productos, el resto en «Otros» (`dashboard_reparto`, `/design/api/dashboard/reparto`).
   Corrección: el manager del equipo cuenta como miembro (no como prestado) y en Support no hay prestados, igual que en
   Filtros; la fila Prestados dice al pasar el mouse quién fue cada uno y de qué equipo viene.
+  Casos chicos: si entre el que más y el que menos hay ≤ 1 caso es «Pareja» (1 contra 0 no es desigual); con menos de 2
+  casos por diseñador dice «Pocos casos»; ▲/▼ solo si se separa 2 casos o más del promedio.
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.

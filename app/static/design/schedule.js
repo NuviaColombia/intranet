@@ -3606,7 +3606,7 @@ var DG = {tok: 0};
 // Pasa el mouse sobre una barra para ver sus hallazgos.
 // Reparto de productos por equipo (21-oct-2026): tabla diseñador × producto del mes, con la equidad de cada producto
 var DG_REP = {team: null, desde: '', hasta: '', mes: ''};
-var DG_EQ = {pareja: ['Pareja', 'dg-eq-ok'], algo: ['Algo desigual', 'dg-eq-medio'], desigual: ['Desigual', 'dg-eq-mal']};
+var DG_EQ = {pareja: ['Pareja', 'dg-eq-ok'], algo: ['Algo desigual', 'dg-eq-medio'], desigual: ['Desigual', 'dg-eq-mal'], pocos: ['Pocos casos', 'dg-eq-pocos']};
 function dgRepCargar(t) {
   var box = document.getElementById('dgRep'), tabla = document.getElementById('dgRepTabla'), sel = document.getElementById('dgRepTeam');
   if (!box) return;
@@ -3634,7 +3634,9 @@ function dgRepCargar(t) {
     };
     var celda = function(v, i, e) {
       if (!e || !e.promedio) return '<td>' + (v || '<span class="dg-rep-0">0</span>') + '</td>';
-      var r = v / e.promedio, cl = r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : '');
+      // ▲/▼ solo si se separa 2 casos o más del promedio y el producto no es «pareja» ni de «pocos casos» (1 contra 0 no se marca)
+      var marca = e.nivel !== 'pareja' && e.nivel !== 'pocos' && Math.abs(v - e.promedio) >= 2;
+      var r = v / e.promedio, cl = !marca ? '' : (r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : ''));
       var flecha = cl === 'dg-rep-alto' ? ' ▲' : (cl === 'dg-rep-bajo' ? ' ▼' : '');
       return '<td class="' + cl + '" title="Promedio del equipo: ' + e.promedio + '">' + (v || '0') + flecha + '</td>';
     };

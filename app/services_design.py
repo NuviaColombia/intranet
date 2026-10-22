@@ -2539,8 +2539,15 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
             return None
         media = sum(vals) / len(vals)
         cv = (sum((v - media) ** 2 for v in vals) / len(vals)) ** 0.5 / media
-        return {"cv": round(cv * 100), "nivel": "pareja" if cv <= 0.25 else ("algo" if cv <= 0.5 else "desigual"),
-                "promedio": round(media, 1)}
+        # Con pocos casos el % exagera (1 contra 0 daría «desigual»). Si entre el que más y el que menos hay 1 caso o
+        # menos, no se podía repartir mejor: es pareja. Si hay menos de 2 casos por diseñador, no se juzga.
+        if max(vals) - min(vals) <= 1:
+            nivel = "pareja"
+        elif sum(vals) < 2 * len(vals):
+            nivel = "pocos"
+        else:
+            nivel = "pareja" if cv <= 0.25 else ("algo" if cv <= 0.5 else "desigual")
+        return {"cv": round(cv * 100), "nivel": nivel, "promedio": round(media, 1), "dif": max(vals) - min(vals)}
     n = len(productos)
     equidades = [equidad([f["valores"][i] for f in filas]) for i in range(n)] + [equidad([f["total"] for f in filas])]
     totales = [sum(f["valores"][i] for f in filas) + (prestados["valores"][i] if prestados else 0) for i in range(n)]

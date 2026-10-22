@@ -86,6 +86,17 @@ class Tendencia(unittest.TestCase):
         self.assertEqual([(f["nombre"], f["valores"], f["total"]) for f in d["filas"]], [("Beto X", [6, 4], 10), ("Caro X", [2, 4], 6)])
         self.assertEqual((d["prestados"]["valores"], d["totales"]), ([2, 0], [10, 8, 18]))
         self.assertEqual([e["nivel"] for e in d["equidad"]], ["algo", "pareja", "pareja"])
+        eq = sd.dashboard_reparto  # casos chicos: 1 contra 0 es pareja; 3 contra 0 con 2 diseñadores son pocos casos
+        db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 7), tabla="principal", orden="Z1", centro="C", producto="Zeta",
+                              designer_id=beto.id, estado="Started", orden_visual=200)); db.commit()
+        d = eq(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertEqual(d["equidad"][d["productos"].index("Zeta")]["nivel"], "pareja")
+        for i in range(2):
+            db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 7), tabla="principal", orden=f"Z{i + 2}", centro="C", producto="Zeta",
+                                  designer_id=beto.id, estado="Started", orden_visual=201 + i))
+        db.commit()
+        d = eq(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertEqual(d["equidad"][d["productos"].index("Zeta")]["nivel"], "pocos")
         self.assertEqual(d["prestados"]["quienes"], [{"nombre": "Dani X (sin equipo)", "casos": 2}])
         t.manager_id = dani.id; db.commit()   # el manager que diseña cuenta como del equipo, no como prestado
         d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))

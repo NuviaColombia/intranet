@@ -999,6 +999,7 @@
 .dg-eq-ok { background: #dcfce7; color: #166534; }
 .dg-eq-medio { background: #fef3c7; color: #92400e; }
 .dg-eq-mal { background: #fee2e2; color: #991b1b; }
+.dg-eq-pocos { background: #f1f5f9; color: #475569; }
 .dd-clic .dd-zona { cursor: pointer; }
 /* Resumen › Reportes de QC por diseñador (21-oct-2026) */
 #dgQc { margin-top: 14px; }
