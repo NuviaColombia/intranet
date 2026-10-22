@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (597 reglas) ---- */
+/* ---- static\design\schedule.css (599 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -462,7 +462,9 @@
 :root[data-ds-tema="oscuro"] .pf-sel-card details summary, :root[data-ds-tema="oscuro"] .pf-sel-no summary { color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .pf-sel-cfg { border:1px solid #323b4b; background:#181f26; }
 :root[data-ds-tema="oscuro"] .pf-sel-cfg-g { border:1px solid #323943; background:#131925; }
-:root[data-ds-tema="oscuro"] .pf-sel-ay { color:#7a98ed; }
+:root[data-ds-tema="oscuro"] .pf-sel-ay { color:#7a98ed; outline:none; }
+:root[data-ds-tema="oscuro"] .pf-sel-tip { background:#0f172a; color:#f8fafc; box-shadow:0 8px 24px rgba(0,0,0,.25); }
+:root[data-ds-tema="oscuro"] .pf-sel-tip::after { border:6px solid transparent; border-bottom-color:#0f172a; }
 :root[data-ds-tema="oscuro"] .pf-sel-suma { color:#b0eec7; }
 :root[data-ds-tema="oscuro"] .pf-sel-suma.mal { color:#ed8888; }
 :root[data-ds-tema="oscuro"] .pf-sel-ok { color:#b0eec7; }

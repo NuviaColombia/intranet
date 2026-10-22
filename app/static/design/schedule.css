@@ -837,8 +837,12 @@
   .pf-sel-cfg-g legend { font-weight:700; font-size:13px; padding:0 4px; }
   .pf-sel-cfg-g label { display:flex; align-items:center; gap:6px; justify-content:space-between; font-size:13px; margin:5px 0; }
   .pf-sel-cfg-g label span { flex:1; }
-  .pf-sel-cfg-g label { cursor:help; }
-  .pf-sel-ay { font-style:normal; color:#1d4ed8; font-size:12px; margin-left:2px; }
+  .pf-sel-ay { position:relative; font-style:normal; color:#1d4ed8; font-size:12px; margin-left:2px; cursor:pointer; outline:none; }
+  .pf-sel-tip { display:none; position:absolute; left:50%; top:calc(100% + 8px); transform:translateX(-50%); z-index:50; width:280px; max-width:70vw;
+    background:#0f172a; color:#f8fafc; font-weight:400; font-size:12.5px; line-height:1.45; text-align:left; padding:8px 10px; border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25); white-space:normal; pointer-events:none; }
+  .pf-sel-tip::after { content:""; position:absolute; bottom:100%; left:50%; margin-left:-6px; border:6px solid transparent; border-bottom-color:#0f172a; }
+  .pf-sel-ay:hover .pf-sel-tip, .pf-sel-ay:focus .pf-sel-tip { display:block; }
   .pf-sel-cfg-g input { width:70px; margin:0; text-align:right; }
   .pf-sel-suma { font-weight:600; color:#166534; }
   .pf-sel-suma.mal { color:#b91c1c; }

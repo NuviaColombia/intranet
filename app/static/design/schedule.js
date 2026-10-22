@@ -8287,7 +8287,8 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       return '<fieldset class="pf-sel-cfg-g" data-g="' + g + '"><legend>' + titulo + ' · <span class="pf-sel-suma"></span></legend>' +
         Object.keys(vals).map(function(k) {
           var ay = (c.ayuda && c.ayuda[g] && c.ayuda[g][k]) || '';   // qué representa el criterio (tooltip)
-          return '<label title="' + e(ay) + '"><span>' + e(c.nombres[k]) + (ay ? ' <i class="pf-sel-ay" tabindex="0" aria-label="' + e(ay) + '">ⓘ</i>' : '') +
+          // burbuja propia (22-oct-2026): el title del navegador tardaba o no salía; esta aparece al pasar el mouse o al tocar
+          return '<label><span>' + e(c.nombres[k]) + (ay ? ' <i class="pf-sel-ay" tabindex="0" role="note" aria-label="' + e(ay) + '">ⓘ<b class="pf-sel-tip">' + e(ay) + '</b></i>' : '') +
             '</span><input type="number" min="0" max="100" step="1" data-k="' + k + '" value="' + vals[k] + '"> %</label>';
         }).join('') + '</fieldset>';
     };
