@@ -122,9 +122,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   marcó la entrada, el regreso del almuerzo (60/90 min libres o fin del almuerzo fijo) o la salida; uno por tipo y
   persona al día (claves guardadas en `gv_avisos_AAAA-MM-DD`, se borran a los 7 días). Sin turno o con permiso en
   GeoVictoria no se avisa. Pendiente: fases 4-6 (ausencias automáticas, reporte de horas, puntualidad en Selección).
-  «🧪 Probar con una persona» (22-oct-2026): elige a alguien que cruzó, trae al momento sus marcas de hoy y envía un aviso
-  push de prueba del tipo elegido, «Solo a mí» (los textos de la persona y del manager) o «A la persona y su manager»
-  (marcado 🧪 prueba) (`probar_persona`, `POST /design/api/geovictoria/prueba`).
+  La página carga sola el cruce y las marcas al abrirse; «Conexión» y «Cruce por cédula» son desplegables que abren
+  cerrados con su resumen (Rosember, 22-oct-2026; se quitó «Probar con una persona»).
   Horario sin asignar (Rosember, 22-oct-2026): si un diseñador no tiene turno en GeoVictoria ese día (ni descanso «No
   trabaja» ni permiso), a su manager le llega un push para asignárselo: a las 3 p. m. por el siguiente día hábil y a las
   7 a. m. por hoy; solo días hábiles; un push por manager con la lista (`_recordar_horarios`). En Marcas de hoy y en

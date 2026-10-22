@@ -48,26 +48,6 @@ def api_cruce(forzar: int = 0, user: Empleado = Depends(require_admin), db: Sess
     return {"cruzados": len(c["pares"]), "sinGeoVictoria": c["sinGeoVictoria"], "sinPlataforma": c["sinPlataforma"]}
 
 
-@router.get("/design/api/geovictoria/personas")
-def api_personas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    try:
-        return sgv.personas(db)
-    except Exception as e:  # noqa: BLE001
-        raise HTTPException(400, f"No se pudo consultar GeoVictoria: {e}")
-
-
-@router.post("/design/api/geovictoria/prueba")
-def api_prueba(datos: dict, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    """Prueba con una persona: sus marcas de hoy al momento y un aviso push de prueba (a mí o a ella y su manager)."""
-    try:
-        return sgv.probar_persona(db, int(datos.get("empleadoId") or 0), datos.get("tipo") or "", datos.get("destino") or "yo", user,
-                                  sd.ahora_colombia().replace(tzinfo=None))
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    except Exception as e:  # noqa: BLE001
-        raise HTTPException(400, f"No se pudo probar: {e}")
-
-
 @router.get("/design/api/geovictoria/hoy")
 def api_hoy(forzar: int = 0, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     """Las marcas de hoy de todo Design y lo que falta marcar (para revisar antes de activar los avisos)."""

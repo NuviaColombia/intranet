@@ -7,6 +7,14 @@
   .gv { max-width:none; margin:0 auto; padding:0 8px; }
   .gv-dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(460px, 1fr)); gap:14px; align-items:start; }
   .gv-dos > .gv-card { margin-bottom:0; }
+  /* Conexión y Cruce plegables (22-oct-2026): abren cerrados y el resumen queda a la vista */
+  .gv-pleg > summary { list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .gv-pleg > summary::-webkit-details-marker { display:none; }
+  .gv-pleg > summary h2 { margin:0; }
+  .gv-pleg > summary::before { content:"▸"; color:#64748b; font-size:13px; }
+  .gv-pleg[open] > summary::before { content:"▾"; }
+  .gv-pleg[open] > summary { margin-bottom:8px; }
+  .gv-pleg-sub { color:#475569; font-size:12.5px; }
   .gv-dos + .gv-card { margin-top:14px; }
   /* Marcas de hoy al estilo del libro de asistencia de GeoVictoria */
   .gv-res { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
@@ -61,8 +69,8 @@
   <p class="gv-sub">Marcas de asistencia de Nuvia Design. Las personas se cruzan por cédula. Las marcas se traen cada 5 minutos.</p>
 
   <div class="gv-dos">
-  <div class="gv-card">
-    <h2>🔑 Conexión</h2>
+  <details class="gv-card gv-pleg" id="gvConexion">
+    <summary><h2>🔑 Conexión</h2><span class="gv-pleg-sub" id="gvConexSub"></span></summary>
     <div class="gv-grid">
       <label>Clave API <input type="text" id="gvKey" autocomplete="off"></label>
       <label>Secreto <input type="password" id="gvSecret" autocomplete="new-password" placeholder="Escribe para cambiarlo"></label>
@@ -76,30 +84,18 @@
       <span class="gv-msg" id="gvMsg"></span>
     </div>
     <p class="gv-nota" id="gvEstado"></p>
-  </div>
+  </details>
 
-  <div class="gv-card">
-    <h2>👥 Cruce por cédula</h2>
+  <details class="gv-card gv-pleg" id="gvCruceBox">
+    <summary><h2>👥 Cruce por cédula</h2><span class="gv-pleg-sub" id="gvCruceSub"></span></summary>
     <p class="gv-nota" id="gvCruceRes">Cargando…</p>
     <div class="gv-acc"><button type="button" class="btn mini gris" id="gvCruce">↻ Actualizar cruce</button></div>
     <div class="gv-cols" id="gvCruceListas" hidden>
       <div><b>De Design que no están en GeoVictoria</b><ul id="gvSinGv"></ul></div>
       <div><b>De GeoVictoria que no están en la plataforma</b><ul id="gvSinPl"></ul></div>
     </div>
-  </div>
+  </details>
 
-  {# Pruebas con una persona (22-oct-2026) #}
-  <div class="gv-card">
-    <h2>🧪 Probar con una persona</h2>
-    <p class="gv-nota">Trae al momento sus marcas de hoy y envía un aviso push de prueba. «Solo a mí» te envía los dos textos (el de la persona y el de su manager); «A la persona y su manager» les llega de verdad, marcado como prueba.</p>
-    <div class="gv-grid">
-      <label>Persona <select id="gvPPersona"><option value="">Cargando…</option></select></label>
-      <label>Aviso <select id="gvPTipo"><option value="entrada">No marcó entrada</option><option value="almuerzo">No marcó regreso del almuerzo</option><option value="salida">No marcó salida</option></select></label>
-      <label>Enviar a <select id="gvPDestino"><option value="yo">Solo a mí</option><option value="real">A la persona y su manager</option></select></label>
-    </div>
-    <div class="gv-acc"><button type="button" class="btn mini" id="gvPIr">Probar</button><span class="gv-msg" id="gvPMsg"></span></div>
-    <div id="gvPRes" class="gv-nota" style="margin-top:8px"></div>
-  </div>
   </div>
 
   <div class="gv-card">
@@ -126,6 +122,8 @@
   var msg = function (el, t, ok) { el.textContent = t; el.className = 'gv-msg ' + (ok ? 'ok' : 'mal'); };
   var fecha = function (iso) { return iso ? new Date(iso).toLocaleString('es-CO') : '—'; };
   function pintarConfig(c) {
+    $('gvConexSub').textContent = c.key && c.tieneSecreto ? (c.avisos ? '✔ Conectado · avisos push activos' : '✔ Conectado · avisos push apagados') : 'Sin configurar';
+    if (!(c.key && c.tieneSecreto)) $('gvConexion').open = true;   // la primera vez se abre para escribir las credenciales
     $('gvKey').value = c.key || ''; $('gvTol').value = c.tolerancia; $('gvAvisos').checked = !!c.avisos;
     $('gvSecret').placeholder = c.tieneSecreto ? '•••••••• (guardado; escribe para cambiarlo)' : 'Secreto de la API';
     var e = c.estado || {};
@@ -148,6 +146,7 @@
   function cargarCruce(forzar) {
     $('gvCruceRes').textContent = 'Revisando…';
     return pedir('/design/api/geovictoria/cruce?forzar=' + (forzar ? 1 : 0)).then(function (c) {
+      $('gvCruceSub').textContent = c.cruzados + ' cruzadas · ' + c.sinGeoVictoria.length + ' de Design sin GeoVictoria';
       $('gvCruceRes').textContent = c.cruzados + ' personas de Design cruzadas por cédula · ' + c.sinGeoVictoria.length + ' de Design sin GeoVictoria · ' + c.sinPlataforma.length + ' de GeoVictoria sin la plataforma.';
       $('gvSinGv').innerHTML = c.sinGeoVictoria.map(function (x) { return '<li>' + esc(x.nombre) + '</li>'; }).join('') || '<li>Ninguno</li>';
       $('gvSinPl').innerHTML = c.sinPlataforma.map(function (x) { return '<li>' + esc(x.nombre) + ' <small>' + esc(x.identificador) + '</small></li>'; }).join('') || '<li>Ninguno</li>';
@@ -156,28 +155,6 @@
   }
   $('gvCruce').onclick = function () { cargarCruce(true); };
   var NOM = {entrada: 'Entrada', almuerzo: 'Regreso del almuerzo', salida: 'Salida'};
-  pedir('/design/api/geovictoria/personas').then(function (l) {
-    $('gvPPersona').innerHTML = '<option value="">— Elige una persona —</option>' + l.map(function (p) { return '<option value="' + p.id + '">' + esc(p.nombre) + '</option>'; }).join('');
-  }).catch(function (e) { $('gvPPersona').innerHTML = '<option value="">' + esc(e.message) + '</option>'; });
-  $('gvPIr').onclick = function () {
-    var id = +$('gvPPersona').value, dest = $('gvPDestino').value;
-    if (!id) { msg($('gvPMsg'), 'Elige una persona.', false); return; }
-    if (dest === 'real' && !confirm('Se enviará un aviso de prueba a la persona y a su manager. ¿Continuar?')) return;
-    msg($('gvPMsg'), 'Probando…', true); $('gvPRes').innerHTML = '';
-    pedir('/design/api/geovictoria/prueba', {empleadoId: id, tipo: $('gvPTipo').value, destino: dest}).then(function (r) {
-      var m = r.marcas, en = r.envio;
-      var txt = en.yo ? (en.yo.enviados ? '✔ Te envié los 2 avisos de prueba.' : '✘ No te llegó: activa la campana 🔔 en este navegador.')
-        : '✔ Persona: ' + (en.persona.enviados ? 'enviado' : 'no tiene notificaciones activas') + ' · Managers (' + (r.managers.join(', ') || 'ninguno') + '): ' +
-          (en.managers.enviados ? en.managers.enviados + ' enviado(s)' : 'no tienen notificaciones activas');
-      msg($('gvPMsg'), txt, !!((en.yo && en.yo.enviados) || (en.persona && (en.persona.enviados || en.managers.enviados))));
-      $('gvPRes').innerHTML = '<b>' + esc(r.persona) + '</b> · manager: ' + esc(r.managers.join(', ') || '—') + '<br>' + (m ?
-        'Turno ' + esc(m.turno || '—') + ' · Entrada ' + esc(m.entrada || '—') + (m.atrasoMin ? ' (+' + m.atrasoMin + ' min)' : '') +
-        ' · Almuerzo ' + esc(m.salidaAlm || '—') + ' – ' + esc(m.regresoAlm || '—') + ' · Salida ' + esc(m.salida || '—') +
-        (m.permisos.length ? ' · Permiso: ' + esc(m.permisos.join(', ')) : '') +
-        (m.faltas.length ? '<br>Hoy le falta: ' + m.faltas.map(function (x) { return '<span class="gv-falta">' + NOM[x.tipo] + ' (' + esc(x.hora) + ')</span>'; }).join('') : '<br>Hoy no le falta ninguna marca.')
-        : 'Hoy no tiene turno ni marcas en GeoVictoria.');
-    }).catch(function (e) { msg($('gvPMsg'), e.message, false); });
-  };
   // ---- Marcas de hoy: cuadrícula estilo libro de asistencia de GeoVictoria ----
   var LIBRO = {filas: [], filtro: ''};
   function estadoDe(f) {
