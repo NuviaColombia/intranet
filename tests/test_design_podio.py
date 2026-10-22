@@ -45,10 +45,16 @@ class Podio(unittest.TestCase):
         self.assertEqual(podio["N2 Demodenture"], [("Dani X", 6), ("Caro X", 4)])
 
 
-    def test_corte_del_mediodia(self):
-        self.assertEqual(si.corte_ranking(datetime(2026, 10, 22, 11, 59)), datetime(2026, 10, 21, 12, 0))
+    def test_corte_cada_4_horas(self):
+        self.assertEqual(si.corte_ranking(datetime(2026, 10, 22, 11, 59)), datetime(2026, 10, 22, 8, 0))
         self.assertEqual(si.corte_ranking(datetime(2026, 10, 22, 12, 0)), datetime(2026, 10, 22, 12, 0))
-        self.assertEqual(si.corte_ranking(datetime(2026, 11, 1, 8, 0)), datetime(2026, 10, 31, 12, 0))   # el 1 en la mañana: octubre
+        self.assertEqual(si.corte_ranking(datetime(2026, 10, 22, 23, 30)), datetime(2026, 10, 22, 20, 0))
+        self.assertEqual(si.corte_ranking(datetime(2026, 11, 1, 2, 0)), datetime(2026, 11, 1, 0, 0))
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db = sessionmaker(bind=eng)()
+        self.assertEqual(si.ranking_mes(db, datetime(2026, 11, 1, 2, 0), forzar=True)["mes"], "octubre de 2026")    # 12 a. m. del 1: octubre completo
+        self.assertEqual(si.ranking_mes(db, datetime(2026, 11, 1, 4, 30), forzar=True)["mes"], "noviembre de 2026")
         corte = datetime(2026, 10, 22, 12, 0)
         self.assertTrue(si._aprobada_antes(datetime(2026, 10, 22, 16, 59), corte))    # 11:59 am Colombia
         self.assertFalse(si._aprobada_antes(datetime(2026, 10, 22, 17, 1), corte))    # 12:01 pm Colombia: al día siguiente
@@ -61,10 +67,10 @@ class Podio(unittest.TestCase):
         a = si.ranking_mes(db, datetime(2026, 10, 22, 12, 30), forzar=True)
         b = si.ranking_disenadores_mes(db, datetime(2026, 10, 22, 12, 30), forzar=True)
         self.assertEqual((a["actualizado"], b["actualizado"]), ("22/10 12:00", "22/10 12:00"))
-        # en la tarde no se recalcula: mismo objeto en memoria hasta el corte de mañana
-        self.assertIs(si.ranking_mes(db, datetime(2026, 10, 22, 17, 0)), a)
-        self.assertIs(si.ranking_disenadores_mes(db, datetime(2026, 10, 23, 11, 0)), b)
-        self.assertIsNot(si.ranking_mes(db, datetime(2026, 10, 23, 12, 5)), a)
+        # dentro del mismo bloque de 4 horas no se recalcula; en el siguiente corte sí
+        self.assertIs(si.ranking_mes(db, datetime(2026, 10, 22, 15, 59)), a)
+        self.assertIs(si.ranking_disenadores_mes(db, datetime(2026, 10, 22, 13, 0)), b)
+        self.assertIsNot(si.ranking_mes(db, datetime(2026, 10, 22, 16, 5)), a)
 
 
 if __name__ == "__main__":

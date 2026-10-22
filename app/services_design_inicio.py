@@ -426,18 +426,24 @@ def salir_editor(user: Empleado) -> None:
 RANKING_AREAS = [("N2 Demodenture", "N2", 3), ("N3 Prosthetic", "N3", 3), ("Face Design", "Face Design", 3), ("N6 Material Changes", "N6", 1)]
 _MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 _ranking_cache: dict = {}
-# Los dos rankings de Inicio (equipos/managers y diseñadores) se actualizan juntos, una vez al día a las 12:00 m. hora
+# Los dos rankings de Inicio (equipos/managers y diseñadores) se actualizan juntos, en el mismo corte (ver abajo), hora
 # Colombia (Rosember, 22-oct-2026; antes cada hora). Cuentan los casos aprobados hasta ese corte: una orden aprobada
 # después de las 12 (aprobada_en, en UTC) espera al día siguiente. Así, aunque el servidor se reinicie en la tarde, el
 # resultado es el mismo. El 1 del mes, antes de las 12, se sigue viendo el mes anterior completo hasta su último corte.
-HORA_CORTE_RANKING = 12
+# 22-oct-2026 (Rosember): ya no una vez al día sino cada 4 horas, en cortes fijos: 12 a. m., 4 a. m., 8 a. m., 12 m.,
+# 4 p. m. y 8 p. m. (hora Colombia). El corte de las 12 a. m. del día 1 todavía muestra el mes anterior completo.
+HORAS_ENTRE_CORTES = 4
 
 
 def corte_ranking(ahora: datetime) -> datetime:
-    """El último corte de las 12:00 (hora Colombia) hasta `ahora`."""
+    """El último corte (cada 4 horas desde la medianoche, hora Colombia) hasta `ahora`."""
+    return ahora.replace(hour=ahora.hour - ahora.hour % HORAS_ENTRE_CORTES, minute=0, second=0, microsecond=0)
+
+
+def _hasta_corte(corte: datetime):
+    """Último momento que cuenta en ese corte: el de medianoche cierra el día anterior (y el 1 del mes, el mes anterior)."""
     from datetime import timedelta
-    hoy = ahora.replace(hour=HORA_CORTE_RANKING, minute=0, second=0, microsecond=0)
-    return hoy if ahora >= hoy else hoy - timedelta(days=1)
+    return corte - timedelta(seconds=1)
 
 
 def _aprobada_antes(aprobada_en, corte: datetime) -> bool:
@@ -453,8 +459,8 @@ def _nombre_corto(e) -> str:
 
 
 def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False) -> dict:
-    """Equipos con más casos aprobados en el mes, por área. Se actualiza una vez al día, en el corte de las 12:00
-    (corte_ranking), igual que el de diseñadores."""
+    """Equipos con más casos aprobados en el mes, por área. Se actualiza cada 4 horas (corte_ranking), igual que el de
+    diseñadores."""
     import time
     from collections import Counter
     from datetime import date
@@ -465,9 +471,10 @@ def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False
     c = _ranking_cache.get("r")
     if not forzar and c and c["clave"] == clave:
         return c["datos"]
-    ini = date(corte.year, corte.month, 1)
+    ref = _hasta_corte(corte)
+    ini = date(ref.year, ref.month, 1)
     filas = db.query(DesignOrden.team_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.aprobada_en).filter(
-        DesignOrden.fecha >= ini, DesignOrden.fecha <= corte.date(), filtro_orden_completa()).all()
+        DesignOrden.fecha >= ini, DesignOrden.fecha <= ref.date(), filtro_orden_completa()).all()
     cuenta = Counter(f.team_id for f in filas
                      if (f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower()
                      and _aprobada_antes(f.aprobada_en, corte))
@@ -487,7 +494,7 @@ def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False
         else:
             equipos = equipos[:puestos]
         areas.append({"area": nombre_area, "etiqueta": etiqueta, "modo": "podio" if puestos > 1 else "ganador", "equipos": equipos})
-    datos = {"mes": f"{_MESES[corte.month - 1]} de {corte.year}", "actualizado": corte.strftime("%d/%m %H:%M"), "areas": areas}
+    datos = {"mes": f"{_MESES[ref.month - 1]} de {ref.year}", "actualizado": corte.strftime("%d/%m %H:%M"), "areas": areas}
     _ranking_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
     return datos
 
@@ -523,8 +530,8 @@ _podio_cache: dict = {}
 
 
 def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: bool = False) -> dict:
-    """Los 3 diseñadores con más casos aprobados del mes en cada área. Se actualiza una vez al día, en el corte de las
-    12:00 (corte_ranking), igual que el de equipos."""
+    """Los 3 diseñadores con más casos aprobados del mes en cada área. Se actualiza cada 4 horas (corte_ranking), igual
+    que el de equipos."""
     import time
     from collections import Counter
     from datetime import date
@@ -535,7 +542,8 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
     c = _podio_cache.get("r")
     if not forzar and c and c["clave"] == clave:
         return c["datos"]
-    ini = date(corte.year, corte.month, 1)
+    ref = _hasta_corte(corte)
+    ini = date(ref.year, ref.month, 1)
     equipos = {t.id: t for t in db.query(DesignTeam).all()}
     miembros: dict[int, set[int]] = {}
     for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).all():
@@ -546,7 +554,7 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
     areas_solo_cir = {a.id for a in db.query(DesignArea).filter(DesignArea.nombre.in_(PODIO_SOLO_CIRUGIAS))}
     filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.tabla,
                      DesignOrden.aprobada_en).filter(
-        DesignOrden.fecha >= ini, DesignOrden.fecha <= corte.date(), DesignOrden.designer_id.isnot(None), filtro_orden_completa()).all()
+        DesignOrden.fecha >= ini, DesignOrden.fecha <= ref.date(), DesignOrden.designer_id.isnot(None), filtro_orden_completa()).all()
     cuenta: dict[int, Counter] = {}   # area_id -> {designer_id: casos}
     for f in filas:
         t = equipos.get(f.team_id)
@@ -570,6 +578,6 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
         for x in lista:   # empates: mismo puesto
             x["puesto"] = 1 + sum(1 for y in lista if y["casos"] > x["casos"])
         areas.append({"area": nombre_area, "etiqueta": etiqueta, "podio": [x for x in lista if x["puesto"] <= 3][:3]})
-    datos = {"mes": f"{_MESES[corte.month - 1]} de {corte.year}", "actualizado": corte.strftime("%d/%m %H:%M"), "areas": areas}
+    datos = {"mes": f"{_MESES[ref.month - 1]} de {ref.year}", "actualizado": corte.strftime("%d/%m %H:%M"), "areas": areas}
     _podio_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
     return datos

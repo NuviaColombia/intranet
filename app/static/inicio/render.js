@@ -245,8 +245,8 @@
   D.cifras = {n: 'Cifras', ic: '#', g: 'Diseño',
     d: function() { return {fuente: '', items: [{numero: 120, prefijo: '', sufijo: '+', etiqueta: 'Casos diarios'}, {numero: 5, prefijo: '', sufijo: '', etiqueta: 'Áreas'}, {numero: 98, prefijo: '', sufijo: '%', etiqueta: 'Aprobados con QC'}], color: '', animar: true}; },
     campos: [{tipo: 'select', k: 'fuente', l: 'Qué mostrar', ops: [['', 'Números escritos a mano'], ['ranking', '🏆 Equipos con más casos aprobados del mes'], ['rankingDisenadores', '🏅 Diseñadores con más casos aprobados del mes (lista por área)']]},
-      {tipo: 'nota', l: 'N2 y N3: podio de 3. Face Design y N6: el equipo ganador. Cuenta los casos Approved del mes (Cirugías y Nightguards); no cuenta cancelados ni productos de cambios (Changes). Se actualiza una vez al día a las 12:00 m. (junto con el de diseñadores) y empieza de cero cada mes.', si: ['fuente', ['ranking']]},
-      {tipo: 'nota', l: 'Los 3 primeros de cada área (N2, N3, Face Design y N6), en lista con su foto y sus casos. Mismas reglas que el ranking de equipos, contadas por diseñador. Solo cuentan los casos de un diseñador en su propio equipo (el prestado no suma). En N3 solo cuentan las Cirugías. Se actualiza una vez al día a las 12:00 m. (junto con el de equipos) y empieza de cero cada mes.', si: ['fuente', ['rankingDisenadores']]},
+      {tipo: 'nota', l: 'N2 y N3: podio de 3. Face Design y N6: el equipo ganador. Cuenta los casos Approved del mes (Cirugías y Nightguards); no cuenta cancelados ni productos de cambios (Changes). Se actualiza cada 4 horas: 12 a. m., 4 a. m., 8 a. m., 12 m., 4 p. m. y 8 p. m. (junto con el de diseñadores) y empieza de cero cada mes.', si: ['fuente', ['ranking']]},
+      {tipo: 'nota', l: 'Los 3 primeros de cada área (N2, N3, Face Design y N6), en lista con su foto y sus casos. Mismas reglas que el ranking de equipos, contadas por diseñador. Solo cuentan los casos de un diseñador en su propio equipo (el prestado no suma). En N3 solo cuentan las Cirugías. Se actualiza cada 4 horas: 12 a. m., 4 a. m., 8 a. m., 12 m., 4 p. m. y 8 p. m. (junto con el de equipos) y empieza de cero cada mes.', si: ['fuente', ['rankingDisenadores']]},
       {tipo: 'texto', k: 'tituloRanking', l: 'Título (opcional)', si: ['fuente', ['ranking', 'rankingDisenadores']]},
       {tipo: 'lista', k: 'items', l: 'Cifras', si: ['fuente', ['']], titulo: 'etiqueta', nuevo: {numero: 0, prefijo: '', sufijo: '', etiqueta: 'Nueva cifra'},
       campos: [{tipo: 'numero', k: 'numero', l: 'Número'}, {tipo: 'texto', k: 'prefijo', l: 'Antes del número (ej. $)'}, {tipo: 'texto', k: 'sufijo', l: 'Después (ej. %, +)'}, {tipo: 'texto', k: 'etiqueta', l: 'Etiqueta'}]},
@@ -471,6 +471,29 @@
     var io = new IntersectionObserver(function(es) { if (!es[0].isIntersecting) return; io.disconnect(); var t0 = performance.now(); (function paso(t) { var k = Math.min(1, (t - t0) / 1300); el.textContent = Math.round(fin * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); })(t0); });
     io.observe(el);
   }
+  // Pie de los rankings (22-oct-2026): cada 4 horas en cortes fijos (12 a. m., 4, 8, 12 m., 4 p. m., 8 p. m., hora
+  // Colombia) y un temporizador con lo que falta para el siguiente; al llegar, se vuelve a pedir el ranking.
+  NVI.proximoCorte = function() {
+    var col = new Date(Date.now() - 5 * 3600e3);   // hora Colombia (UTC − 5, sin horario de verano)
+    var base = Date.UTC(col.getUTCFullYear(), col.getUTCMonth(), col.getUTCDate());
+    var sig = base + (Math.floor(col.getUTCHours() / 4) + 1) * 4 * 3600e3;
+    return sig - col.getTime();   // milisegundos
+  };
+  NVI.pieRanking = function(pie, d, recargar) {
+    clearInterval(pie._t);
+    var poner = function() {
+      if (!pie.isConnected) { clearInterval(pie._t); return; }
+      var ms = NVI.proximoCorte(), min = Math.max(0, Math.ceil(ms / 60000)), hh = Math.floor(min / 60), mm = min % 60;
+      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · último corte: ' + (d.actualizado || '') +
+        ' · próxima actualización en ' + (hh ? hh + ' h ' : '') + mm + ' min (se actualiza cada 4 horas)';
+      if (ms < 30000 && !pie._recargando) {   // llegó el corte: unos segundos después se pide el ranking nuevo
+        pie._recargando = true;
+        setTimeout(function() { pie._recargando = false; recargar(); }, 45000);
+      }
+    };
+    poner();
+    pie._t = setInterval(poner, 30000);
+  };
   NVI.rankingEquipos = function(p, ctx) {
     var w = h('div', 'nvi-rk'), animar = p.animar !== false && ctx.modo !== 'editar';
     if (p.tituloRanking) w.appendChild(h('div', 'nvi-rk-tit', NVI.esc(p.tituloRanking)));
@@ -506,7 +529,7 @@
         }
         fila.appendChild(c);
       });
-      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza una vez al día a las 12:00 m. (último corte: ' + (d.actualizado || '') + ')';
+      NVI.pieRanking(pie, d, function() { NVI.cargarRanking(true).then(function(x) { rank.bloques.forEach(function(b) { b.pintar(x); }); }); });
     };
     rank.bloques.push({w: w, pintar: pintar});
     NVI.cargarRanking().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo más tarde.</div>'; });
@@ -554,7 +577,7 @@
         });
         c.appendChild(lista); fila.appendChild(c);
       });
-      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza una vez al día a las 12:00 m. (último corte: ' + (d.actualizado || '') + ')';
+      NVI.pieRanking(pie, d, function() { NVI.cargarPodio(true).then(function(x) { podioRank.bloques.forEach(function(b) { b.pintar(x); }); }); });
     };
     podioRank.bloques.push({w: w, pintar: pintar});
     NVI.cargarPodio().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo más tarde.</div>'; });

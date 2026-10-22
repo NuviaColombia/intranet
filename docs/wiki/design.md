@@ -110,6 +110,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   actualizan juntos una vez al día, a las 12:00 m. hora Colombia (antes cada hora, cada uno por su lado). Cuentan los
   casos aprobados hasta ese corte (`corte_ranking`; una orden con aprobada_en después de las 12 espera al día siguiente),
   así un reinicio del servidor no cambia el resultado. El pie dice «último corte: dd/mm 12:00».
+  Cambio (Rosember, 22-oct-2026): ya no una vez al día sino cada 4 horas, cortes fijos 12 a. m., 4, 8, 12 m., 4 p. m. y
+  8 p. m. (`HORAS_ENTRE_CORTES`); el corte de medianoche del día 1 todavía muestra el mes anterior completo.
 - **Desempeño › Selección asistida** (Rosember, 21-oct-2026; solo admin, botón «🏆 Selección asistida» en Desempeño):
   propone Manager del mes (aprobadores de Face/N2/N3/N6), Empleado del mes N2/Face, N3/N6, otro de N3/N6 y MVP (mejor
   puntaje global entre quienes no ganaron otra categoría: nadie se repite, Rosember 22-oct-2026). Analiza por defecto el mes anterior (selector para otros meses; el en
