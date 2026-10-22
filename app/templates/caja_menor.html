@@ -34,8 +34,11 @@
           <td class="cm-etq">Fecha</td><td class="cm-val"><input type="date" id="rFecha" required></td>
         </tr>
         <tr>
-          <td class="cm-etq">No. identificación</td><td class="cm-val cm-mayus"><input type="text" id="rIdentificacion" placeholder="Ej. 1140886208" required></td>
-          <td class="cm-etq">Pagado a</td><td class="cm-val cm-mayus"><input type="text" id="rPagadoA" placeholder="Nombre de quien recibe" required></td>
+          <td class="cm-etq">No. identificación</td><td class="cm-val cm-mayus"><input type="text" id="rIdentificacion" placeholder="Ej. 1140886208" required
+              oninput="buscarPorIdentificacion(this, rPagadoA)"></td>
+          <td class="cm-etq">Pagado a</td><td class="cm-val cm-mayus"><input type="text" id="rPagadoA" list="dlNombreRecibo" placeholder="Nombre de quien recibe" required
+              oninput="buscarPorNombre(this, rIdentificacion, 'dlNombreRecibo')" onchange="elegirSugerencia(this, rIdentificacion, 'dlNombreRecibo')">
+              <datalist id="dlNombreRecibo"></datalist></td>
         </tr>
         <tr>
           <td class="cm-etq">Valor ($)</td><td class="cm-val"><input type="number" id="rValor" min="1" step="0.01" placeholder="15000" oninput="actualizarLetras()" required></td>
@@ -211,6 +214,39 @@
       </table></div>
     </div>
   </div>
+
+  <!-- ============ ANTICIPOS ============ -->
+  <div id="sec-anticipos" class="cm-seccion">
+    <div class="cm-barra">
+      <div><h2 class="cm-titulo">💸 Anticipos</h2>
+        <p class="cm-sub" style="margin:0;">Control de a quién le entregaste dinero antes de la compra. Márcalo como
+          <b>Legalizado</b> cuando esa persona te traiga la factura electrónica y el gasto de transporte.</p></div>
+    </div>
+    <details style="margin-bottom:4px;">
+      <summary style="cursor:pointer; display:inline-block;"><span class="btn gris mini">＋ Registrar anticipo</span></summary>
+      <form id="formAnticipo" onsubmit="guardarAnticipo(event)" class="cm-filtros" style="margin-top:8px;">
+        <input type="text" id="tIdentificacion" placeholder="No. identificación (opcional)" style="min-width:160px;"
+               oninput="buscarPorIdentificacion(this, tNombre)">
+        <input type="text" id="tNombre" list="dlNombreAnticipo" placeholder="A quién (nombre)" required
+               style="text-transform:uppercase; min-width:200px;" oninput="buscarPorNombre(this, tIdentificacion, 'dlNombreAnticipo')"
+               onchange="elegirSugerencia(this, tIdentificacion, 'dlNombreAnticipo')">
+        <datalist id="dlNombreAnticipo"></datalist>
+        <input type="number" id="tValor" min="1" step="0.01" placeholder="Valor $" required style="min-width:120px;">
+        <input type="date" id="tFecha" required>
+        <input type="text" id="tConcepto" placeholder="Concepto" style="text-transform:uppercase; min-width:220px;">
+        <button type="submit" class="btn verde mini">💾 Registrar</button>
+      </form>
+    </details>
+    <div class="cm-filtros" style="margin-top:14px;">
+      <label>Estado:</label>
+      <select id="tEstado" onchange="filtrarAnticipos()"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="LEGALIZADO">Legalizado</option></select>
+      <input type="text" id="tTexto" placeholder="Nombre, identificación, concepto…" oninput="filtrarAnticipos()">
+    </div>
+    <div class="cm-tabla-wrap"><table class="cm-tabla">
+      <thead><tr><th>Fecha</th><th>A quién</th><th>No. identificación</th><th>Concepto</th><th>Valor</th><th>Firma</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody id="bodyAnticipos"><tr><td colspan="8" class="cm-vacio">Cargando…</td></tr></tbody>
+    </table></div>
+  </div>
  </div>
 
  <!-- Ventana: soportes (documentos y fotos) de un recibo, para revisarlos antes de firmar -->
@@ -235,35 +271,6 @@
       <button type="button" class="btn gris" onclick="cerrarAnulacion()">Cancelar</button>
       <button type="button" class="btn rojo" id="btnConfirmarAnular" onclick="confirmarAnulacion()">🚫 Anular</button>
     </div>
-  </div>
-
-  <!-- ============ ANTICIPOS ============ -->
-  <div id="sec-anticipos" class="cm-seccion">
-    <div class="cm-barra">
-      <div><h2 class="cm-titulo">💸 Anticipos</h2>
-        <p class="cm-sub" style="margin:0;">Control de a quién le entregaste dinero antes de la compra. Márcalo como
-          <b>Legalizado</b> cuando esa persona te traiga la factura electrónica y el gasto de transporte.</p></div>
-    </div>
-    <details style="margin-bottom:4px;">
-      <summary style="cursor:pointer; display:inline-block;"><span class="btn gris mini">＋ Registrar anticipo</span></summary>
-      <form id="formAnticipo" onsubmit="guardarAnticipo(event)" class="cm-filtros" style="margin-top:8px;">
-        <input type="text" id="tIdentificacion" placeholder="No. identificación (opcional)" style="min-width:160px;">
-        <input type="text" id="tNombre" placeholder="A quién (nombre)" required style="text-transform:uppercase; min-width:200px;">
-        <input type="number" id="tValor" min="1" step="0.01" placeholder="Valor $" required style="min-width:120px;">
-        <input type="date" id="tFecha" required>
-        <input type="text" id="tConcepto" placeholder="Concepto" style="text-transform:uppercase; min-width:220px;">
-        <button type="submit" class="btn verde mini">💾 Registrar</button>
-      </form>
-    </details>
-    <div class="cm-filtros" style="margin-top:14px;">
-      <label>Estado:</label>
-      <select id="tEstado" onchange="filtrarAnticipos()"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="LEGALIZADO">Legalizado</option></select>
-      <input type="text" id="tTexto" placeholder="Nombre, identificación, concepto…" oninput="filtrarAnticipos()">
-    </div>
-    <div class="cm-tabla-wrap"><table class="cm-tabla">
-      <thead><tr><th>Fecha</th><th>A quién</th><th>No. identificación</th><th>Concepto</th><th>Valor</th><th>Estado</th><th>Acción</th></tr></thead>
-      <tbody id="bodyAnticipos"><tr><td colspan="7" class="cm-vacio">Cargando…</td></tr></tbody>
-    </table></div>
   </div>
  </div>
 </div>
@@ -972,6 +979,41 @@ function filtrarArqueos() {
   }).join('');
 }
 
+// ---------------- autocompletar identificación/nombre (People + historial de esta caja) ----------------
+var _mapaPersonas = {}, _debouncePersona = null;
+function _etiquetaPersona(p) { return nombrePropio(p.nombre) + ' — ' + p.identificacion; }
+function buscarPorIdentificacion(campoIdent, campoNombre) {
+  var ident = campoIdent.value.trim();
+  if (ident.length < 5 || campoNombre.value.trim()) return;  // ya tiene nombre: no lo pisa
+  clearTimeout(_debouncePersona);
+  _debouncePersona = setTimeout(function() {
+    api(API + '/buscar-persona?q=' + encodeURIComponent(ident)).then(function(res) {
+      var exacto = res.data.find(function(p) { return p.identificacion === ident; });
+      if (exacto && !campoNombre.value.trim()) campoNombre.value = exacto.nombre;
+    }).catch(function() {});
+  }, 400);
+}
+function buscarPorNombre(campoNombre, datalistId) {
+  var texto = campoNombre.value.trim();
+  if (texto.length < 2) return;
+  clearTimeout(_debouncePersona);
+  _debouncePersona = setTimeout(function() {
+    api(API + '/buscar-persona?q=' + encodeURIComponent(texto)).then(function(res) {
+      var dl = document.getElementById(datalistId);
+      dl.innerHTML = '';
+      res.data.forEach(function(p) {
+        var etiqueta = _etiquetaPersona(p);
+        _mapaPersonas[etiqueta] = p;
+        var opt = document.createElement('option'); opt.value = etiqueta; dl.appendChild(opt);
+      });
+    }).catch(function() {});
+  }, 300);
+}
+function elegirSugerencia(campoNombre, campoIdent, datalistId) {
+  var p = _mapaPersonas[campoNombre.value];
+  if (p) { campoNombre.value = p.nombre; campoIdent.value = p.identificacion; }
+}
+
 // ---------------- anticipos ----------------
 function guardarAnticipo(ev) {
   ev.preventDefault();
@@ -993,16 +1035,18 @@ function filtrarAnticipos() {
     return !q || [a.nombre, a.identificacion, a.concepto].join(' ').toUpperCase().indexOf(q) !== -1;
   });
   var tb = document.getElementById('bodyAnticipos');
-  if (!filas.length) { tb.innerHTML = '<tr><td colspan="7" class="cm-vacio">No hay anticipos con esos filtros.</td></tr>'; return; }
+  if (!filas.length) { tb.innerHTML = '<tr><td colspan="8" class="cm-vacio">No hay anticipos con esos filtros.</td></tr>'; return; }
   tb.innerHTML = filas.map(function(a) {
+    var firma = !a.empleadoId ? '<span style="color:#9ca3af">—</span>' : (a.firmadoEn ? badge('firmado') : badge('pendiente'));
+    var accion = a.estado === 'PENDIENTE' ? '<button class="btn mini" onclick="legalizarAnticipo(' + a.id + ')">✅ Marcar legalizado</button>'
+                                          : '<span style="color:#9ca3af">—</span>';
     return '<tr><td>' + esc(a.fecha) + '</td><td class="izq">' + esc(nombrePropio(a.nombre)) + '</td><td>' + esc(a.identificacion) + '</td>' +
-      '<td class="izq">' + esc(nombrePropio(a.concepto)) + '</td><td class="der">' + pesos(a.valor) + '</td><td>' + badge(a.estado) + '</td>' +
-      '<td><button class="btn mini" onclick="toggleAnticipo(' + a.id + ')">' +
-      (a.estado === 'PENDIENTE' ? '✅ Marcar legalizado' : '↩️ Volver a pendiente') + '</button></td></tr>';
+      '<td class="izq">' + esc(nombrePropio(a.concepto)) + '</td><td class="der">' + pesos(a.valor) + '</td><td>' + firma + '</td>' +
+      '<td>' + badge(a.estado) + '</td><td>' + accion + '</td></tr>';
   }).join('');
 }
-function toggleAnticipo(id) {
-  post(API + '/anticipos/' + id + '/toggle', {}).then(function() { cargarAnticipos(); }).catch(function(e) { alert(e.message); });
+function legalizarAnticipo(id) {
+  post(API + '/anticipos/' + id + '/legalizar', {}).then(function() { cargarAnticipos(); }).catch(function(e) { alert(e.message); });
 }
 
 // ---------------- anular (recibo o FM) ----------------

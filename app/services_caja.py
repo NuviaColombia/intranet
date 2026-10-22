@@ -2,7 +2,7 @@
 hoja de Google de la app anterior (Apps Script)."""
 import json
 from datetime import datetime, date, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from .models import Empleado
@@ -628,7 +628,9 @@ def serializar_anticipo(a: CajaAnticipo) -> dict:
             "fecha": a.fecha.isoformat() if a.fecha else "", "concepto": a.concepto, "estado": a.estado,
             "legalizadoEn": hora_colombia(a.legalizado_en) if a.legalizado_en else "",
             "legalizadoPor": nombre_propio(a.legalizado_por.nombre_completo) if a.legalizado_por else "",
-            "creadoPor": nombre_propio(a.creado_por.nombre_completo) if a.creado_por else ""}
+            "creadoPor": nombre_propio(a.creado_por.nombre_completo) if a.creado_por else "",
+            "empleadoId": a.empleado_id, "firmadoEn": hora_colombia(a.firmado_en) if a.firmado_en else "",
+            "firmadoEmail": a.firmado_email or ""}
 
 
 def anticipos_de_caja(db: Session, caja: CajaMenor) -> list[CajaAnticipo]:
@@ -652,22 +654,127 @@ def crear_anticipo(db: Session, caja: CajaMenor, user: Empleado, datos: dict) ->
         fecha = date.fromisoformat(str(datos.get("fecha") or ""))
     except ValueError:
         return "Elige la fecha del anticipo."
+    colaborador = colaborador_por_identificacion(db, identificacion) if identificacion else None
     a = CajaAnticipo(caja_id=caja.id, identificacion=identificacion, nombre=nombre, valor=valor, fecha=fecha,
-                     concepto=concepto, creado_por_id=user.id)
+                     concepto=concepto, creado_por_id=user.id, empleado_id=colaborador.id if colaborador else None)
     db.add(a)
     db.commit()
     db.refresh(a)
     return a
 
 
-def toggle_anticipo(db: Session, a: CajaAnticipo, user: Empleado) -> None:
-    """Marca el anticipo como legalizado (llegó la factura y el gasto de transporte), o lo vuelve a pendiente
-    si se marcó por error."""
-    if a.estado == "PENDIENTE":
-        a.estado, a.legalizado_en, a.legalizado_por_id = "LEGALIZADO", datetime.utcnow(), user.id
-    else:
-        a.estado, a.legalizado_en, a.legalizado_por_id = "PENDIENTE", None, None
+def legalizar_anticipo(db: Session, a: CajaAnticipo, user: Empleado) -> str | None:
+    """Marca el anticipo como legalizado (llegó la factura y el gasto de transporte). No se puede deshacer
+    (pedido explícito: una vez legalizado, queda así)."""
+    if a.estado == "LEGALIZADO":
+        return "Este anticipo ya está legalizado."
+    a.estado, a.legalizado_en, a.legalizado_por_id = "LEGALIZADO", datetime.utcnow(), user.id
     db.commit()
+    return None
+
+
+def necesita_aviso_anticipo(a: CajaAnticipo) -> bool:
+    return bool(a.empleado_id and not a.firmado_en)
+
+
+def anticipos_pendientes_de_firma(db: Session, user: Empleado) -> list[CajaAnticipo]:
+    """Anticipos donde `user` es quien recibió el dinero y todavía no firma que lo recibió -- para
+    avisarle en el portal, igual que recibos_pendientes_de_recibido (ver docs/wiki/caja_menor.md)."""
+    return (db.query(CajaAnticipo).options(joinedload(CajaAnticipo.caja))
+            .filter(CajaAnticipo.empleado_id == user.id, CajaAnticipo.firmado_en.is_(None))
+            .order_by(CajaAnticipo.creado_en.desc()).all())
+
+
+def token_anticipo(a: CajaAnticipo) -> str:
+    """Enlace personal para firmar que recibió el anticipo sin iniciar sesión (igual que token_recibido)."""
+    import hashlib
+    import hmac
+    from . import config
+    return hmac.new(config.SECRET_KEY.encode(), f"caja-anticipo:{a.id}:{a.empleado_id}".encode(), hashlib.sha256).hexdigest()[:40]
+
+
+def token_anticipo_valido(a: CajaAnticipo, token: str) -> bool:
+    import hmac
+    return bool(a.empleado_id) and hmac.compare_digest(token_anticipo(a), str(token or ""))
+
+
+def enlace_firma_anticipo(a: CajaAnticipo) -> str:
+    from . import config
+    return f"{config.BASE_URL}/caja-menor/firmar-anticipo/{a.id}/{token_anticipo(a)}"
+
+
+def firmar_anticipo(db: Session, a: CajaAnticipo, user: Empleado) -> str | None:
+    """Firma de quien recibió el anticipo, con sesión iniciada (igual que firmar_recibido)."""
+    if a.empleado_id != user.id:
+        return "Este anticipo no está a tu nombre."
+    if a.firmado_en:
+        return "Ya firmaste que recibiste este anticipo."
+    a.firmado_email, a.firmado_en, a.firmado_via = user.email, datetime.utcnow(), "intranet"
+    db.commit()
+    return None
+
+
+def firmar_anticipo_enlace(db: Session, a: CajaAnticipo, ip: str = "") -> str | None:
+    """Firma desde el enlace personal de Cliq, sin iniciar sesión (igual que firmar_recibido_enlace)."""
+    if a.firmado_en:
+        return "Ya firmaste que recibiste este anticipo."
+    quien = a.empleado
+    if not quien or not quien.activo:
+        return "Este anticipo ya no está a nombre de un colaborador activo."
+    a.firmado_email, a.firmado_en, a.firmado_via = quien.email, datetime.utcnow(), "cliq"
+    db.commit()
+    print(f"[Caja menor] Anticipo firmado por enlace de Cliq: anticipo #{a.id} · {quien.email} · IP {ip}")
+    return None
+
+
+def notificar_anticipo_pendiente(anticipo_id: int, recordatorio: bool = False) -> None:
+    """Aviso por Cliq (bot) al colaborador que recibió el anticipo, con el botón para firmar sin iniciar sesión."""
+    from . import config
+    from .database import SessionLocal
+    from .zoho_cliq import boton_enlace
+    db = SessionLocal()
+    try:
+        a = db.get(CajaAnticipo, anticipo_id)
+        if not a or not necesita_aviso_anticipo(a):
+            return
+        quien = db.get(Empleado, a.empleado_id)
+        if not quien:
+            return
+        valor = f"$ {a.valor:,.0f}".replace(",", ".")
+        texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}💸 *Anticipo de caja menor pendiente de firma*\n"
+                 f"{valor} · Caja {nombre_propio(a.caja.nombre)}\nConcepto: {a.concepto}\n"
+                 f"Toca *✍️ Firmar anticipo*: confirmas que recibiste el dinero (no necesitas entrar a la intranet).")
+        _avisar([quien.email], texto, [boton_enlace("✍️ Firmar anticipo", enlace_firma_anticipo(a))])
+    except Exception as ex:  # un aviso fallido nunca debe afectar el registro
+        print(f"[Caja menor] Error enviando aviso del anticipo #{anticipo_id}: {ex}")
+    finally:
+        db.close()
+
+
+def buscar_personas(db: Session, caja: CajaMenor, texto: str) -> list[dict]:
+    """Para autocompletar identificación/nombre en Nuevo recibo y Anticipos: colaboradores activos de
+    People (cualquier empresa, igual que colaborador_por_identificacion) y terceros ya registrados antes
+    en esta caja. People tiene prioridad si la misma identificación aparece en las dos fuentes."""
+    q = (texto or "").strip()
+    if len(q) < 2:
+        return []
+    patron = f"%{q}%"
+    resultados: dict[str, dict] = {}
+    for ident, nombre in (db.query(CajaRecibo.identificacion, CajaRecibo.pagado_a)
+                          .filter(CajaRecibo.caja_id == caja.id, CajaRecibo.identificacion != "",
+                                 or_(CajaRecibo.pagado_a.ilike(patron), CajaRecibo.identificacion.ilike(patron)))
+                          .distinct().limit(20).all()):
+        resultados[ident] = {"identificacion": ident, "nombre": nombre, "origen": "historial"}
+    for ident, nombre in (db.query(CajaAnticipo.identificacion, CajaAnticipo.nombre)
+                          .filter(CajaAnticipo.caja_id == caja.id, CajaAnticipo.identificacion != "",
+                                 or_(CajaAnticipo.nombre.ilike(patron), CajaAnticipo.identificacion.ilike(patron)))
+                          .distinct().limit(20).all()):
+        resultados.setdefault(ident, {"identificacion": ident, "nombre": nombre, "origen": "historial"})
+    for e in (db.query(Empleado).filter(Empleado.activo == 1,
+             or_(Empleado.nombres.ilike(patron), Empleado.apellidos.ilike(patron), Empleado.identificacion.ilike(patron)))
+             .limit(20).all()):
+        resultados[e.identificacion] = {"identificacion": e.identificacion, "nombre": e.nombre_completo, "origen": "people"}
+    return sorted(resultados.values(), key=lambda r: (r["origen"] != "people", r["nombre"]))[:15]
 
 
 # ---------------- Importación desde la hoja de Google (app anterior) ----------------

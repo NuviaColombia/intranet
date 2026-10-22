@@ -211,15 +211,22 @@ class CajaAnticipo(Base):
     valor: Mapped[float] = mapped_column(Float, default=0)
     fecha: Mapped[date] = mapped_column(Date)
     concepto: Mapped[str] = mapped_column(Text, default="")
-    estado: Mapped[str] = mapped_column(String(20), default="PENDIENTE")   # PENDIENTE | LEGALIZADO
+    estado: Mapped[str] = mapped_column(String(20), default="PENDIENTE")   # PENDIENTE | LEGALIZADO (no vuelve atrás)
     legalizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     legalizado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Firma de quien recibió el anticipo (igual que CajaRecibo.recibido_*): solo si la identificación es
+    # de un colaborador activo de People -- a un tercero externo no se le puede pedir firma electrónica.
+    empleado_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
+    firmado_email: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    firmado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    firmado_via: Mapped[str | None] = mapped_column(String(20), nullable=True)   # "intranet" o "cliq"
 
     caja = relationship("CajaMenor")
     legalizado_por = relationship("Empleado", foreign_keys=[legalizado_por_id])
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
+    empleado = relationship("Empleado", foreign_keys=[empleado_id])
 
 
 class CajaObservacion(Base):
