@@ -134,5 +134,24 @@ class Seleccion(unittest.TestCase):
         self.assertNotIn("cambios", todos["Ana X"]["percentiles"])
 
 
+    def test_carga_compensa_la_complejidad_entre_areas(self):
+        """Face hace el doble de casos que N3, pero los de N3 valen más minutos estándar: el manager de N3 no queda abajo
+        solo por tener menos volumen (sin tiempos registrados se usa el factor de respaldo de cada área)."""
+        self.emp("Admin", "admin")
+        mf, mn = self.emp("Fabi", "aprobador"), self.emp("Nico", "aprobador")
+        f1, f2, n1, n2 = self.emp("Fer"), self.emp("Flor"), self.emp("Nadia"), self.emp("Noel")
+        tf = self.equipo("Face Design", "Eq Fabi", mf, [f1, f2])
+        tn = self.equipo("N3 Prosthetic", "Eq Nico", mn, [n1, n2])
+        for e in (f1, f2):
+            self.casos(tf, e, 40)
+        for e in (n1, n2):
+            self.casos(tn, e, 20)
+        r = ssel.analizar(self.db, 2026, 10)
+        man = {m["nombre"]: m for m in next(c for c in r["categorias"] if c["clave"] == "manager")["candidatos"]}
+        self.assertGreater(man["Nico X"]["percentiles"]["productividad"], man["Fabi X"]["percentiles"]["productividad"])
+        comp = {c["area"]: c["minutos"] for c in r["complejidad"]}
+        self.assertGreater(comp["N3 Prosthetic"], comp["Face Design"])
+
+
 if __name__ == "__main__":
     unittest.main()

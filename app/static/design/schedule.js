@@ -8245,6 +8245,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         '</div>';
     }).join('') + '</div>';
     h += '<p class="dd-p-nota">Pesos de diseñadores: ' + e(pesos('disenador')) + '.<br>Pesos de managers: ' + e(pesos('manager')) + '.</p>';
+    // Carga de trabajo: cada caso vale los minutos estándar de su producto (mediana real), así se comparan áreas con
+    // casos fáciles y muchos (Face) contra áreas con casos complejos y menos (N3 / N6)
+    if (d.complejidad && d.complejidad.length) h += '<p class="dd-p-nota">Carga de trabajo por caso este mes (minutos estándar promedio): ' +
+      d.complejidad.map(function(c) { return e(c.area) + ' ' + c.minutos + ' min'; }).join(' · ') + '. Un caso de un área compleja vale más que uno de un área de casos más rápidos.</p>';
     if (d.noCompiten.length) h += '<details class="pf-sel-no"><summary>No compiten este mes (' + d.noCompiten.length + ')</summary><ul>' +
       d.noCompiten.map(function(x) { return '<li>' + e(x.nombre) + ' <small>' + e(x.area) + '</small>: ' + e(x.motivo) + '</li>'; }).join('') + '</ul></details>';
     res.innerHTML = h;

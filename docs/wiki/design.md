@@ -101,7 +101,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Diseñadores = productividad 45, evaluación del líder 25 (percentil SOLO entre los calificados por el mismo líder, para
   quitar el sesgo de líderes que califican más alto), destacado por su manager en la hoja de Selección 15 (sí = 100,
   no = 0; si nadie destacó ese mes no cuenta), eficiencia 15. Managers = hoja DESIGN MANAGERS 40, productividad 25,
-  QC a tiempo 15, cobertura de QC 10, reparto parejo 10. Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
+  QC a tiempo 15, cobertura de QC 10, reparto parejo 10.
+  Carga de trabajo (Rosember, 22-oct-2026): Face = más casos y más fáciles (IA), N2 medio, N3/N6 complejos y con menos
+  volumen. «Productividad» pasa a ser carga: cada caso aprobado vale los minutos estándar de su producto (mediana real
+  del tiempo de diseño en los últimos 90 días, ≥ 5 casos; si no, la del área; si no, mediana general × FACTOR_AREA
+  Face 1 / N2 1,5 / N3 2,5 / N6 2,5). Managers: la carga se compara entre todos (ya no por área). MVP: también entre
+  todas las áreas. Empleado del mes de cada área: dentro de su área. La pantalla muestra los minutos por caso de cada área. Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
   indicadores sin dato reparten su peso. Código: `services_design_seleccion.py`, `/design/api/perf/seleccion-asistida`.
 - **Desempeño en modo oscuro** (Rosember, 21-oct-2026): las celdas de nivel (ALTO, SOBRESALIENTE, MEDIO, BAJO) usan
   fondo oscuro teñido y texto claro del mismo tono, como los estados del Schedule (antes conservaban el color claro).

@@ -35,6 +35,15 @@ GRUPO_N2_FACE = ("Face Design", "N2 Demodenture")
 GRUPO_N3_N6 = ("N3 Prosthetic", "N6 Material Changes")
 
 MIN_APROBADAS = 10          # casos aprobados mínimos para competir como diseñador
+
+# Carga de trabajo (Rosember, 22-oct-2026): Face hace más casos pero más fáciles (asistidos con IA), N2 está en un nivel
+# medio y N3 / N6 son más complejos (más pasos, más oportunidades de fallar), así que su volumen siempre es menor.
+# Para compararlos, cada caso aprobado vale los «minutos estándar» de su producto: la mediana real del tiempo de diseño de
+# ese producto en los últimos DIAS_COMPLEJIDAD días (mínimo MIN_MUESTRAS casos). Si un producto tiene pocos datos, se usa
+# la mediana de su área; si el área tampoco tiene, la mediana general por el factor del área (respaldo).
+DIAS_COMPLEJIDAD = 90
+MIN_MUESTRAS = 5
+FACTOR_AREA = {"Face Design": 1.0, "N2 Demodenture": 1.5, "N3 Prosthetic": 2.5, "N6 Material Changes": 2.5}
 MIN_FRACCION_DIAS = 0.5     # al menos la mitad de los días hábiles disponibles
 SUAVIZADO = 10              # «casos virtuales» con la tasa del área (bayes empírico)
 
@@ -46,7 +55,7 @@ SUAVIZADO = 10              # «casos virtuales» con la tasa del área (bayes e
 #   compañeros calificados por el mismo líder (un líder «generoso» no favorece a su gente), y ser el destacado del mes de
 #   su manager en la hoja de Selección suma aparte.
 PESOS_DISENADOR = {
-    "productividad": 45,   # casos aprobados por día disponible (descuenta vacaciones, incapacidad, luto, etc.)
+    "productividad": 45,   # carga de trabajo aprobada por día disponible (descuenta vacaciones, incapacidad, luto, etc.)
     "evaluacion": 25,      # calificación de su líder en Desempeño ese mes, relativa a los demás del mismo líder
     "destacado": 15,       # su manager lo destacó ese mes en la hoja de Selección
     "eficiencia": 15,      # tiempo de diseño contra la mediana del mismo producto en su área (menos tiempo es mejor)
@@ -54,12 +63,12 @@ PESOS_DISENADOR = {
 # Managers: más peso a la hoja DESIGN MANAGERS (Rosember, 22-oct-2026), donde se califica a los managers.
 PESOS_MANAGER = {
     "evaluacion": 40,      # hoja DESIGN MANAGERS de Desempeño para ese mes
-    "productividad": 25,   # casos aprobados del equipo por día disponible de sus diseñadores
+    "productividad": 25,   # carga de trabajo aprobada del equipo por día disponible de sus diseñadores (comparable entre áreas)
     "qcOportuno": 15,      # minutos (mediana) entre Approved y el QC marcado (menos es mejor)
     "qcCobertura": 10,     # % de aprobadas con QC marcado
     "equidad": 10,         # qué tan parejo reparte los productos (equidad del Reparto; menos es mejor)
 }
-NOMBRES = {"productividad": "Productividad", "calidad": "Calidad (QC)", "destacado": "Destacado por su manager", "evaluacion": "Evaluación del líder",
+NOMBRES = {"productividad": "Carga de trabajo", "calidad": "Calidad (QC)", "destacado": "Destacado por su manager", "evaluacion": "Evaluación del líder",
            "eficiencia": "Eficiencia", "qcOportuno": "QC a tiempo", "qcCobertura": "Cobertura de QC", "equidad": "Reparto parejo"}
 
 _MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -190,6 +199,34 @@ def _destacados(db: Session, empleados: list[Empleado], anio: int, mes: int) -> 
     return out if hay else None
 
 
+# ---------- complejidad de los productos ----------
+
+def _minutos_estandar(db: Session, fin: date, equipos: list[DesignTeam]):
+    """Función (área, producto) → minutos estándar de un caso, y el promedio por área. Ver FACTOR_AREA."""
+    area_de = {t.id: t.area.nombre for t in equipos}
+    formato = {t.id: t.area.formato for t in equipos}
+    por_prod: dict[tuple, list[float]] = {}
+    por_area: dict[str, list[float]] = {}
+    for o in db.query(DesignOrden).filter(sd.filtro_orden_completa(), DesignOrden.team_id.in_(list(area_de) or [-1]),
+                                          DesignOrden.fecha > fin - timedelta(days=DIAS_COMPLEJIDAD), DesignOrden.fecha <= fin):
+        if not sd._es_aprobada(o.estado):
+            continue
+        m = sd.duracion_orden_min(o, formato[o.team_id])
+        if 5 <= m <= 600:
+            a = area_de[o.team_id]
+            por_prod.setdefault((a, sd._normalizar_texto(o.producto)), []).append(m)
+            por_area.setdefault(a, []).append(m)
+    med_prod = {k: median(v) for k, v in por_prod.items() if len(v) >= MIN_MUESTRAS}
+    med_area = {k: median(v) for k, v in por_area.items() if len(v) >= MIN_MUESTRAS}
+    todos = [m for v in por_area.values() for m in v]
+    general = median(todos) if todos else 30.0
+    base = general / (sum(FACTOR_AREA.values()) / len(FACTOR_AREA))
+
+    def minutos(area: str, producto: str) -> float:
+        return med_prod.get((area, sd._normalizar_texto(producto))) or med_area.get(area) or base * FACTOR_AREA.get(area, 1.0)
+    return minutos
+
+
 # ---------- datos del mes ----------
 
 def _equipos(db: Session) -> list[DesignTeam]:
@@ -229,6 +266,11 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             dur[o.id] = m
             muestras.setdefault((area_de_equipo[o.team_id], sd._normalizar_texto(o.producto)), []).append(m)
     mediana = {k: median(v) for k, v in muestras.items() if len(v) >= 3}
+    minutos = _minutos_estandar(db, fin, equipos)
+    carga_area: dict[str, list[float]] = {}   # minutos estándar de los casos del mes, por área (para mostrar la diferencia)
+    for o in ordenes:
+        if sd._es_aprobada(o.estado):
+            carga_area.setdefault(area_de_equipo[o.team_id], []).append(minutos(area_de_equipo[o.team_id], o.producto))
 
     # ---------------- Diseñadores ----------------
     empleados_ids = {e for tid, s in miembros.items() for e in s} - managers - inhabilitados
@@ -245,7 +287,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         else:   # sin casos: su área es la de su equipo
             tid = next((t for t, s in miembros.items() if eid in s), None)
             area_de[eid] = area_de_equipo.get(tid, "")
-    datos: dict[int, dict] = {eid: {"aprobadas": 0, "hallazgos": 0, "esperado": 0.0, "real": 0.0} for eid in empleados}
+    datos: dict[int, dict] = {eid: {"aprobadas": 0, "hallazgos": 0, "esperado": 0.0, "real": 0.0, "carga": 0.0} for eid in empleados}
     for o in ordenes:
         x = datos.get(o.designer_id)
         if x is None:
@@ -255,6 +297,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         if not sd._es_aprobada(o.estado):
             continue
         x["aprobadas"] += 1
+        x["carga"] += minutos(area_de_equipo[o.team_id], o.producto)
         k = (area_de_equipo[o.team_id], sd._normalizar_texto(o.producto))
         if o.id in dur and k in mediana:
             x["esperado"] += mediana[k]
@@ -266,7 +309,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         x = datos[eid]
         dias = max(0, dias_hab - len(ausencias.get(eid, {})))
         fila = {"id": eid, "nombre": e.nombre_completo, "area": area_de[eid], "aprobadas": x["aprobadas"], "hallazgos": x["hallazgos"],
-                "dias": dias, "habiles": dias_hab, "ausencias": sd._resumen_ausencias(ausencias.get(eid, {})),
+                "dias": dias, "habiles": dias_hab, "cargaDia": round(x["carga"] / dias, 1) if dias else 0, "ausencias": sd._resumen_ausencias(ausencias.get(eid, {})),
                 "evaluacion": (ev_dis.get(eid) or {}).get("pct"), "evaluacionRel": (ev_dis.get(eid) or {}).get("rel"),
                 "destacado": None if destacados is None else (eid in destacados),
                 "eficiencia": round(x["esperado"] / x["real"], 2) if x["real"] else None}
@@ -286,7 +329,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         if not grupo:
             continue
         val = {
-            "productividad": {f["id"]: f["aprobadas"] / f["dias"] for f in grupo},
+            "productividad": {f["id"]: f["cargaDia"] for f in grupo},
             "eficiencia": {f["id"]: f["eficiencia"] for f in grupo},
         }
         pct = {k: _percentiles(v, mayor_es_mejor=True) for k, v in val.items()}
@@ -296,7 +339,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         for f in grupo:
             p = {k: pct[k].get(f["id"]) for k in PESOS_DISENADOR}
             met = {
-                "productividad": {"texto": f"{f['aprobadas']} aprobadas en {f['dias']} días ({f['aprobadas'] / f['dias']:.1f}/día)"},
+                "productividad": {"texto": f"{f['aprobadas']} aprobadas en {f['dias']} días ≈ {f['cargaDia'] / 60:.1f} h de trabajo estándar por día"},
                 "evaluacion": {"texto": f"{f['evaluacion']:.0f} % en la hoja de su líder" if f["evaluacion"] is not None else "sin calificar"},
                 "destacado": {"texto": "su manager lo destacó este mes" if f["destacado"] else "no fue el destacado de su manager"},
                 "eficiencia": {"texto": (f"{f['eficiencia']:.2f}× la mediana del producto" if f["eficiencia"] else "sin tiempos válidos")},
@@ -305,6 +348,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             f["puntaje"], f["faltan"] = _puntaje(p, PESOS_DISENADOR)
             f["faltan"] = [NOMBRES[k] for k in f["faltan"]]
             f["porQue"] = _por_que(p, met, PESOS_DISENADOR)
+            f["metricas"] = met
     filas.sort(key=lambda f: (-f["puntaje"], -f["aprobadas"], f["nombre"].lower()))
 
     def top(areas, n):
@@ -318,7 +362,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         if not t.manager_id or t.manager_id in inhabilitados:
             continue
         m = mans.setdefault(t.manager_id, {"id": t.manager_id, "nombre": t.manager.nombre_completo if t.manager else "", "areas": set(),
-                                           "equipos": [], "aprobadas": 0, "diasDis": 0, "conQc": 0, "minQc": [], "cv": []})
+                                           "equipos": [], "aprobadas": 0, "carga": 0.0, "diasDis": 0, "conQc": 0, "minQc": [], "cv": []})
         m["areas"].add(t.area.nombre)
         m["equipos"].append(t.nombre)
         miembros_t = (miembros.get(t.id, set()) - {t.manager_id})
@@ -327,6 +371,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             if o.team_id != t.id or not sd._es_aprobada(o.estado) or o.designer_id == t.manager_id:
                 continue
             m["aprobadas"] += 1
+            m["carga"] += minutos(t.area.nombre, o.producto)
             if o.z_qc if o.tabla == sd.TABLA_MATERIAL else o.qc:   # en N6 el QC final es el de Zirconia
                 m["conQc"] += 1
             if o.aprobada_en and o.qc_en and o.qc_en >= o.aprobada_en:
@@ -341,17 +386,17 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             continue
         m["area"] = sorted(m["areas"])[0] if len(m["areas"]) == 1 else " / ".join(sorted(m["areas"]))
         m["areas"] = sorted(m["areas"])
-        m["porDia"] = round(m["aprobadas"] / m["diasDis"], 2) if m["diasDis"] else None
+        m["porDia"] = round(m["carga"] / m["diasDis"], 1) if m["diasDis"] else None   # minutos estándar por diseñador-día
         m["qcMediana"] = round(median(m["minQc"])) if m["minQc"] else None
         m["qcPct"] = round(m["conQc"] * 100 / m["aprobadas"], 1)
         m["equidadCv"] = round(sum(m["cv"]) / len(m["cv"])) if m["cv"] else None
         m["evaluacion"] = (ev_man.get(m["id"]) or {}).get("pct")
         del m["minQc"], m["cv"]
         lista_m.append(m)
-    # productividad se compara dentro del área (los productos cambian); lo demás entre todos los managers
+    # La carga de trabajo ya pesa la complejidad de cada producto: se compara entre TODOS los managers (antes, por área;
+    # así un área con un solo manager, como N6, ya no queda siempre en la mitad).
     pct_m: dict[str, dict] = {k: {} for k in PESOS_MANAGER}
-    for area in {m["areas"][0] for m in lista_m}:
-        pct_m["productividad"].update(_percentiles({m["id"]: m["porDia"] for m in lista_m if m["areas"][0] == area}, True))
+    pct_m["productividad"] = _percentiles({m["id"]: m["porDia"] for m in lista_m}, True)
     pct_m["qcOportuno"] = _percentiles({m["id"]: m["qcMediana"] for m in lista_m}, False)
     pct_m["qcCobertura"] = _percentiles({m["id"]: m["qcPct"] for m in lista_m}, True)
     pct_m["equidad"] = _percentiles({m["id"]: m["equidadCv"] for m in lista_m}, False)
@@ -359,7 +404,8 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     for m in lista_m:
         p = {k: pct_m[k].get(m["id"]) for k in PESOS_MANAGER}
         met = {
-            "productividad": {"texto": f"{m['aprobadas']} aprobadas del equipo ({m['porDia']}/día por diseñador)" if m["porDia"] else f"{m['aprobadas']} aprobadas"},
+            "productividad": {"texto": (f"{m['aprobadas']} aprobadas del equipo ≈ {m['carga'] / 60:.0f} h de trabajo estándar "
+                                        f"({m['porDia'] / 60:.1f} h por diseñador-día)") if m["porDia"] else f"{m['aprobadas']} aprobadas"},
             "qcOportuno": {"texto": f"QC en {m['qcMediana']} min (mediana)" if m["qcMediana"] is not None else "sin datos"},
             "qcCobertura": {"texto": f"{m['qcPct']} % de aprobadas con QC"},
             "equidad": {"texto": f"reparto con {m['equidadCv']} % de variación" if m["equidadCv"] is not None else "sin datos"},
@@ -383,7 +429,18 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     c_n2face = elegir(top(GRUPO_N2_FACE, 99))
     c_n3n6 = elegir(top(GRUPO_N3_N6, 99))
     c_n3n6b = elegir(top(GRUPO_N3_N6, 99))
-    c_mvp = elegir(filas)
+    # MVP: compite contra todas las áreas, así que su carga de trabajo se compara entre todos (no dentro del área)
+    pct_global = _percentiles({f["id"]: f["cargaDia"] for f in filas}, True)
+    filas_mvp = []
+    for f in filas:
+        p = dict(f["percentiles"], productividad=pct_global.get(f["id"]))
+        g = dict(f, percentiles=p)
+        g["puntaje"], faltan = _puntaje(p, PESOS_DISENADOR)
+        g["faltan"] = [NOMBRES[k] for k in faltan]
+        g["porQue"] = _por_que(p, f["metricas"], PESOS_DISENADOR)
+        filas_mvp.append(g)
+    filas_mvp.sort(key=lambda f: (-f["puntaje"], -f["cargaDia"], f["nombre"].lower()))
+    c_mvp = elegir(filas_mvp)
     ids_g = {g["id"] for g in ganadores}
 
     def lista(cands):   # el ganador de la categoría y los siguientes que no ganaron nada
@@ -402,4 +459,5 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         "noCompiten": sorted(no_compiten, key=lambda f: (f["area"], f["nombre"].lower())),
         "pesos": {"disenador": PESOS_DISENADOR, "manager": PESOS_MANAGER}, "nombres": NOMBRES,
         "reglas": {"minAprobadas": MIN_APROBADAS, "minFraccionDias": MIN_FRACCION_DIAS},
+        "complejidad": [{"area": a, "minutos": round(sum(v) / len(v))} for a in AREAS for v in [carga_area.get(a)] if v],
     }
