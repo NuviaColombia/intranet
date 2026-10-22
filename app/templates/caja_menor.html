@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Caja menor{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/caja_menor.css?v=12">
+<link rel="stylesheet" href="/static/caja_menor.css?v=13">
 {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 <div id="caja-app" data-caja="{{ caja.id }}">
  <div class="cm-main">
@@ -36,9 +36,8 @@
         <tr>
           <td class="cm-etq">No. identificación</td><td class="cm-val cm-mayus"><input type="text" id="rIdentificacion" placeholder="Ej. 1140886208" required
               oninput="buscarPorIdentificacion(this, rPagadoA)"></td>
-          <td class="cm-etq">Pagado a</td><td class="cm-val cm-mayus"><input type="text" id="rPagadoA" list="dlNombreRecibo" placeholder="Nombre de quien recibe" required
-              oninput="buscarPorNombre(this, rIdentificacion, 'dlNombreRecibo')" onchange="elegirSugerencia(this, rIdentificacion, 'dlNombreRecibo')">
-              <datalist id="dlNombreRecibo"></datalist></td>
+          <td class="cm-etq">Pagado a</td><td class="cm-val cm-mayus" style="position:relative;"><input type="text" id="rPagadoA" autocomplete="off" placeholder="Nombre de quien recibe" required
+              oninput="buscarPorNombre(this, rIdentificacion)"></td>
         </tr>
         <tr>
           <td class="cm-etq">Valor ($)</td><td class="cm-val"><input type="number" id="rValor" min="1" step="0.01" placeholder="15000" oninput="actualizarLetras()" required></td>
@@ -227,10 +226,10 @@
       <form id="formAnticipo" onsubmit="guardarAnticipo(event)" class="cm-filtros" style="margin-top:8px;">
         <input type="text" id="tIdentificacion" placeholder="No. identificación (opcional)" style="min-width:160px;"
                oninput="buscarPorIdentificacion(this, tNombre)">
-        <input type="text" id="tNombre" list="dlNombreAnticipo" placeholder="A quién (nombre)" required
-               style="text-transform:uppercase; min-width:200px;" oninput="buscarPorNombre(this, tIdentificacion, 'dlNombreAnticipo')"
-               onchange="elegirSugerencia(this, tIdentificacion, 'dlNombreAnticipo')">
-        <datalist id="dlNombreAnticipo"></datalist>
+        <span style="position:relative; display:inline-block;">
+          <input type="text" id="tNombre" autocomplete="off" placeholder="A quién (nombre)" required
+                 style="text-transform:uppercase; min-width:200px;" oninput="buscarPorNombre(this, tIdentificacion)">
+        </span>
         <input type="number" id="tValor" min="1" step="0.01" placeholder="Valor $" required style="min-width:120px;">
         <input type="date" id="tFecha" required>
         <input type="text" id="tConcepto" placeholder="Concepto" style="text-transform:uppercase; min-width:220px;">
@@ -980,8 +979,8 @@ function filtrarArqueos() {
 }
 
 // ---------------- autocompletar identificación/nombre (People + historial de esta caja) ----------------
-var _mapaPersonas = {}, _debouncePersona = null;
-function _etiquetaPersona(p) { return nombrePropio(p.nombre) + ' — ' + p.identificacion; }
+// Lista propia (no <datalist>: su comportamiento varía mucho entre navegadores y no siempre aparece).
+var _debouncePersona = null;
 function buscarPorIdentificacion(campoIdent, campoNombre) {
   var ident = campoIdent.value.trim();
   if (ident.length < 5 || campoNombre.value.trim()) return;  // ya tiene nombre: no lo pisa
@@ -993,26 +992,43 @@ function buscarPorIdentificacion(campoIdent, campoNombre) {
     }).catch(function() {});
   }, 400);
 }
-function buscarPorNombre(campoNombre, datalistId) {
-  var texto = campoNombre.value.trim();
-  if (texto.length < 2) return;
+function _cajaSugerencias(campoNombre) {
+  var id = 'sug_' + campoNombre.id, div = document.getElementById(id);
+  if (!div) {
+    div = document.createElement('div');
+    div.id = id;
+    div.className = 'cm-sugerencias';
+    campoNombre.parentElement.appendChild(div);
+  }
+  return div;
+}
+function buscarPorNombre(campoNombre, campoIdent) {
+  var texto = campoNombre.value.trim(), div = _cajaSugerencias(campoNombre);
+  if (texto.length < 2) { div.style.display = 'none'; return; }
   clearTimeout(_debouncePersona);
   _debouncePersona = setTimeout(function() {
     api(API + '/buscar-persona?q=' + encodeURIComponent(texto)).then(function(res) {
-      var dl = document.getElementById(datalistId);
-      dl.innerHTML = '';
-      res.data.forEach(function(p) {
-        var etiqueta = _etiquetaPersona(p);
-        _mapaPersonas[etiqueta] = p;
-        var opt = document.createElement('option'); opt.value = etiqueta; dl.appendChild(opt);
+      if (!res.data.length) { div.style.display = 'none'; return; }
+      div.innerHTML = res.data.map(function(p) {
+        return '<div class="cm-sugerencia" data-ident="' + esc(p.identificacion) + '" data-nombre="' + esc(p.nombre) + '">' +
+          esc(nombrePropio(p.nombre)) + ' <small>' + esc(p.identificacion) + '</small></div>';
+      }).join('');
+      Array.prototype.forEach.call(div.children, function(fila) {
+        fila.onclick = function() {
+          campoNombre.value = fila.dataset.nombre;
+          campoIdent.value = fila.dataset.ident;
+          div.style.display = 'none';
+        };
       });
+      div.style.display = 'block';
     }).catch(function() {});
   }, 300);
 }
-function elegirSugerencia(campoNombre, campoIdent, datalistId) {
-  var p = _mapaPersonas[campoNombre.value];
-  if (p) { campoNombre.value = p.nombre; campoIdent.value = p.identificacion; }
-}
+document.addEventListener('click', function(ev) {
+  document.querySelectorAll('.cm-sugerencias').forEach(function(div) {
+    if (div.style.display !== 'none' && !div.contains(ev.target) && ev.target.id !== div.id.slice(4)) div.style.display = 'none';
+  });
+});
 
 // ---------------- anticipos ----------------
 function guardarAnticipo(ev) {

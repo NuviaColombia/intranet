@@ -97,6 +97,11 @@ rehacerlo.
   contra un solo campo a la vez y se perdía esas combinaciones. Se usa igual en "Nuevo recibo" y en
   "Anticipos" (mismos campos). Es
   solo una ayuda de UI -- no impide escribir un nombre o identificación que no esté en ninguna lista.
+  **(2026-10-22) Lista de sugerencias propia, no `<datalist>`**: el `<datalist>` nativo del navegador
+  resultó poco confiable (su filtrado y cuándo se muestra varían entre navegadores, y Carlos reportó
+  que no le aparecía nada). Ahora es un `<div class="cm-sugerencias">` armado y mostrado por JS
+  (`buscarPorNombre`/`_cajaSugerencias` en `caja_menor.html`), con clic para elegir -- si se toca este
+  autocompletar de nuevo, no volver al `<datalist>`.
 - **Migración de columnas nuevas**: `empleado_id`, `firmado_email`, `firmado_en`, `firmado_via` se
   agregan con `ALTER TABLE` en el `on_event("startup")` de `caja_menor.py` (igual que las demás
   columnas del módulo) -- la tabla ya existía en producción antes de este cambio, así que
