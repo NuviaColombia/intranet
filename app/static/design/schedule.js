@@ -252,6 +252,30 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
   }
 
+  // Muestra la orden encontrada en la búsqueda (Rosember, 22-oct-2026: «te lleva pero no la muestra»). Espera a que la
+  // fila exista (la tabla se termina de pintar después), abre el panel plegado donde esté, la deja en el centro y la marca
+  // con un borde ámbar que parpadea (se ve también en filas de color: Approved, Hold…). Se quita sola o con un clic.
+  function dsMostrarResaltada(id, intento) {
+    var tr = document.querySelector('#dsVistaEquipo tr[data-id="' + id + '"]');
+    if (!tr) {
+      if (intento < 20) setTimeout(function() { dsMostrarResaltada(id, intento + 1); }, 150);
+      else dsToast('La orden no está en este día del Schedule (pudo pasar a otro día).');
+      return;
+    }
+    for (var p = tr.parentElement; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) p.open = true;
+      if (p.hidden && p.id !== 'dsVistaEquipo') p.hidden = false;
+    }
+    document.querySelectorAll('tr.ds-resaltada').forEach(function(x) { x.classList.remove('ds-resaltada'); });
+    tr.classList.add('ds-resaltada');
+    var suave = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var ir = function() { tr.scrollIntoView({block: 'center', behavior: suave ? 'smooth' : 'auto'}); };
+    ir(); setTimeout(ir, 350);   // por si algo arriba terminó de cargar y la movió
+    var quitar = function() { tr.classList.remove('ds-resaltada'); document.removeEventListener('click', quitar, true); };
+    setTimeout(function() { document.addEventListener('click', quitar, true); }, 400);
+    setTimeout(quitar, 10000);
+  }
+
   // ---------- Búsqueda de orden o paciente (arriba, para todos; cada quien ve lo que su rol le permite) ----------
   window.dsIrACaso = function(x) {
     var area = DS.areas.find(function(a) { return a.id === x.abrirAreaId; });
@@ -2859,14 +2883,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       document.body.classList.remove('ds-cargando-dia');
       dsAplicarDia(dia, soloOrdenes);
       dsVivoUlt = Date.now();   // recién traído del servidor: la revisión de seguridad (90 s) cuenta desde aquí
-      if (DS.resaltar) { // viene de la búsqueda: marca la orden encontrada
-        var trR = document.querySelector('#dsVistaEquipo tr[data-id="' + DS.resaltar + '"]');
-        DS.resaltar = null;
-        if (trR) {
-          trR.classList.add('ds-resaltada'); trR.scrollIntoView({block: 'center'});
-          setTimeout(function() { trR.classList.remove('ds-resaltada'); }, 3000);
-        }
-      }
+      if (DS.resaltar) { var idR = DS.resaltar; DS.resaltar = null; dsMostrarResaltada(idR, 0); }   // viene de la búsqueda
     }).catch(function(e) {
       if (DS.diaUrl !== url) return;
       document.body.classList.remove('ds-cargando-dia');
