@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (602 reglas) ---- */
+/* ---- static\design\schedule.css (606 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -471,6 +471,10 @@
 :root[data-ds-tema="oscuro"] .pf-sel-suma { color:#b0eec7; }
 :root[data-ds-tema="oscuro"] .pf-sel-suma.mal { color:#ed8888; }
 :root[data-ds-tema="oscuro"] .pf-sel-ok { color:#b0eec7; }
+:root[data-ds-tema="oscuro"] .pf-sel-eleg-res { color:#bbc0cb; }
+:root[data-ds-tema="oscuro"] .pf-sel-eleg-res.ok { color:#b0eec7; }
+:root[data-ds-tema="oscuro"] .pf-sel-eleg-mini { border:1px solid #222d57; background:#0f1733; color:#7a98ed; }
+:root[data-ds-tema="oscuro"] .pf-sel-eleg-form { background:#181f26; border:1px solid #323943; }
 :root[data-ds-tema="oscuro"] .pf-nivel-SOBRESALIENTE { background:#162634; }
 :root[data-ds-tema="oscuro"] .pf-nivel-MEDIO { background:#382f10; }
 :root[data-ds-tema="oscuro"] .pf-nivel-BAJO { background:#321613; }

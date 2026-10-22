@@ -112,6 +112,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   así un reinicio del servidor no cambia el resultado. El pie dice «último corte: dd/mm 12:00».
   Cambio (Rosember, 22-oct-2026): ya no una vez al día sino cada 4 horas, cortes fijos 12 a. m., 4, 8, 12 m., 4 p. m. y
   8 p. m. (`HORAS_ENTRE_CORTES`); el corte de medianoche del día 1 todavía muestra el mes anterior completo.
+- **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
+  registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
+  el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la
+  segunda fila de N3/N6, Manager → fila manager/líder); se puede cambiar antes de registrar y pide confirmar si la celda
+  ya tenía a alguien (`destinos`, `GET /design/api/perf/seleccion-asistida/destinos`; guarda con `/design/api/perf/ganadores/{id}`).
 - **Desempeño › Empleado del mes: categoría editable** (Rosember, 22-oct-2026): en la hoja de Selección el admin
   corrige el texto de cada categoría (vista anual y de un mes); los ganadores ya registrados se quedan
   (`perf_renombrar_categoria`, `POST /design/api/perf/ganadores/{id}/categoria`).

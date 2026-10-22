@@ -852,6 +852,14 @@
   .pf-sel-suma.mal { color:#b91c1c; }
   .pf-sel-cfg-acc { display:flex; gap:8px; flex-wrap:wrap; }
   .pf-sel-ok { color:#166534; font-size:13px; margin:6px 0 0; }
+  /* Selección asistida › Elegir (22-oct-2026) */
+  .pf-sel-elegir { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0 4px; }
+  .pf-sel-eleg-res { font-size:12.5px; color:#475569; }
+  .pf-sel-eleg-res.ok { color:#166534; font-weight:600; }
+  .pf-sel-eleg-mini { border:1px solid #c7d2fe; background:#eef2ff; color:#1d4ed8; border-radius:6px; font:inherit; font-size:11.5px; padding:0 6px; cursor:pointer; }
+  .pf-sel-eleg-form { display:flex; flex-direction:column; gap:6px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px; margin:4px 0 6px; font-size:12.5px; }
+  .pf-sel-eleg-form select { margin:0; width:100%; }
+  .pf-sel-eleg-form .btn { align-self:flex-start; }
   .pf-nivel-SOBRESALIENTE { background:#e3f0fb; }
   .pf-nivel-MEDIO { background:#fff8e1; }
   .pf-nivel-BAJO { background:#fdecea; }

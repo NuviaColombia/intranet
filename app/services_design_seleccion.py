@@ -113,6 +113,24 @@ AYUDA = {
 }
 
 
+def destinos(db: Session, anio: int, mes: int) -> dict:
+    """Dónde se registra lo que se elige en la Selección asistida (Rosember, 22-oct-2026): las categorías de «Empleado del
+    mes» de la hoja de Selección que tiene la columna de ese mes, con lo que ya tienen anotado."""
+    from .models_design import DesignPerfGanador
+    hojas = db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "seleccion").order_by(DesignPerfSheet.orden, DesignPerfSheet.id).all()
+    for h in sorted(hojas, key=lambda h: str(anio) not in (h.nombre or "")):   # primero la hoja con el año en el nombre
+        etiquetas = json.loads(h.meses or "[]")
+        i = _indice_mes(etiquetas, anio, mes)
+        if i is None:
+            continue
+        cats = []
+        for g in db.query(DesignPerfGanador).filter(DesignPerfGanador.sheet_id == h.id).order_by(DesignPerfGanador.orden, DesignPerfGanador.id):
+            v = json.loads(g.ganadores_mes or "[]")
+            cats.append({"id": g.id, "categoria": g.categoria, "actual": v[i] if i < len(v) else ""})
+        return {"sheetId": h.id, "hoja": h.nombre, "mesIndice": i, "etiqueta": etiquetas[i], "categorias": cats}
+    return {"sheetId": None, "hoja": "", "mesIndice": None, "etiqueta": "", "categorias": []}
+
+
 def configuracion(db: Session) -> dict:
     pd, pm = pesos(db)
     return {"disenador": pd, "manager": pm, "fabrica": {"disenador": PESOS_DISENADOR, "manager": PESOS_MANAGER}, "nombres": NOMBRES,

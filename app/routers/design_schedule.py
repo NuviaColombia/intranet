@@ -2836,6 +2836,12 @@ def api_perf_seleccion_asistida(anio: int | None = None, mes: int | None = None,
     return ssel.analizar(db, anio, mes)
 
 
+@router.get("/design/api/perf/seleccion-asistida/destinos")
+def api_sel_destinos(anio: int, mes: int, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Categorías de «Empleado del mes» donde se registra lo elegido (para ese mes). Guardar usa /design/api/perf/ganadores/{id}."""
+    return ssel.destinos(db, anio, mes)
+
+
 @router.get("/design/api/perf/seleccion-asistida/config")
 def api_sel_config(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     """Porcentajes de la Selección asistida (los guardados y los de fábrica)."""

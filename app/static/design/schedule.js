@@ -8349,7 +8349,9 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   function pfSelAnalizar() {
     var v = document.getElementById('pfSelMes').value.split('-'), res = document.getElementById('pfSelRes');
     res.innerHTML = '<p class="dd-p-nota">Analizando las estadísticas del mes…</p>';
-    api('/design/api/perf/seleccion-asistida?anio=' + v[0] + '&mes=' + v[1]).then(function(d) { pfSelPintar(d, res); })
+    Promise.all([api('/design/api/perf/seleccion-asistida?anio=' + v[0] + '&mes=' + v[1]),
+                 api('/design/api/perf/seleccion-asistida/destinos?anio=' + v[0] + '&mes=' + v[1]).catch(function() { return {categorias: []}; })])
+      .then(function(r) { r[0].destinos = r[1]; pfSelPintar(r[0], res); })
       .catch(function(e) { res.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; res.firstChild.textContent = 'No se pudo analizar: ' + e.message; });
   }
   function pfSelPintar(d, res) {
@@ -8362,12 +8364,15 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       var g = c.candidatos[0];
       if (!g) return '<div class="pf-sel-card"><h4>' + e(c.titulo) + '</h4><p class="dd-p-nota">Sin candidatos con datos suficientes.</p></div>';
       var extra = c.tipo === 'manager' ? e(g.area) + ' · ' + e(g.equipos.join(', ')) : e(g.area);
-      return '<div class="pf-sel-card"><h4>' + e(c.titulo) + '</h4><div class="pf-sel-gan"><b>' + e(g.nombre) + '</b><span class="pf-sel-pts">' + g.puntaje + '</span></div>' +
+      return '<div class="pf-sel-card" data-clave="' + c.clave + '"><h4>' + e(c.titulo) + '</h4><div class="pf-sel-gan"><b>' + e(g.nombre) + '</b><span class="pf-sel-pts">' + g.puntaje + '</span></div>' +
         '<div class="pf-sel-sub">' + extra + '</div>' +
         (g.porQue.fuertes.length ? '<ul class="pf-sel-pq">' + g.porQue.fuertes.map(function(x) { return '<li>✅ ' + e(x) + '</li>'; }).join('') + '</ul>' : '') +
         (g.porQue.mejorar.length ? '<ul class="pf-sel-pq">' + g.porQue.mejorar.map(function(x) { return '<li>⚠️ ' + e(x) + '</li>'; }).join('') + '</ul>' : '') +
         (g.faltan.length ? '<p class="pf-sel-falta">Sin dato de: ' + e(g.faltan.join(', ')) + ' (su peso se repartió)</p>' : '') +
-        (c.candidatos.length > 1 ? '<details><summary>Siguientes</summary><ol start="' + ((c.posicion || 1) + 1) + '">' + c.candidatos.slice(1).map(function(x) { return '<li>' + e(x.nombre) + ' <small>' + e(x.area) + '</small> — <b>' + x.puntaje + '</b></li>'; }).join('') + '</ol></details>' : '') +
+        '<div class="pf-sel-elegir"><button type="button" class="btn mini" data-elegir="0">✔ Elegir a ' + e(g.nombre.split(' ')[0]) + '</button><span class="pf-sel-eleg-res"></span></div>' +
+        (c.candidatos.length > 1 ? '<details><summary>Siguientes</summary><ol start="' + ((c.posicion || 1) + 1) + '">' + c.candidatos.slice(1).map(function(x, j) {
+          return '<li>' + e(x.nombre) + ' <small>' + e(x.area) + '</small> — <b>' + x.puntaje + '</b> <button type="button" class="pf-sel-eleg-mini" data-elegir="' + (j + 1) + '">Elegir</button></li>';
+        }).join('') + '</ol></details>' : '') +
         '</div>';
     }).join('') + '</div>';
     h += '<p class="dd-p-nota">Pesos de diseñadores: ' + e(pesos('disenador')) + '.<br>Pesos de managers: ' + e(pesos('manager')) + '.</p>';
@@ -8378,6 +8383,45 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (d.noCompiten.length) h += '<details class="pf-sel-no"><summary>No compiten este mes (' + d.noCompiten.length + ')</summary><ul>' +
       d.noCompiten.map(function(x) { return '<li>' + e(x.nombre) + ' <small>' + e(x.area) + '</small>: ' + e(x.motivo) + '</li>'; }).join('') + '</ul></details>';
     res.innerHTML = h;
+    res.onclick = function(ev) { var b = ev.target.closest('[data-elegir]'); if (b) pfSelElegir(d, b); };
+  }
+  // Elegir (Rosember, 22-oct-2026): lo elegido se registra en la tabla «Empleado del mes» de la hoja de Selección, en la
+  // columna del mes analizado. Se propone la categoría que corresponde (MVP → la fila MVP, etc.) y se puede cambiar.
+  function pfSelSugerida(clave, persona, cats, usados) {
+    var n = function(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+    var con = function(pal) { return cats.filter(function(c) { return pal.some(function(p) { return n(c.categoria).indexOf(p) >= 0; }); }); };
+    var lista = clave === 'mvp' ? con(['mvp']) : clave === 'manager' ? con(['manager', 'lider', 'líder'])
+      : clave === 'n2face' ? (n(persona.area).indexOf('face') >= 0 ? con(['face']) : con(['n2'])).concat(con(['n2', 'face']))
+      : con(['n3', 'n6']);
+    if (clave === 'n3n6b') lista = lista.slice(1).concat(lista.slice(0, 1));   // el «otro» va en la segunda fila de N3/N6
+    var libre = lista.filter(function(c) { return usados.indexOf(c.id) < 0; });
+    return (libre[0] || lista[0] || cats[0] || {}).id;
+  }
+  function pfSelElegir(d, b) {
+    var card = b.closest('.pf-sel-card'), clave = card.dataset.clave, cat = d.categorias.find(function(c) { return c.clave === clave; });
+    var persona = cat.candidatos[+b.dataset.elegir], des = d.destinos || {categorias: []};
+    var e = function(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); };
+    var out = card.querySelector('.pf-sel-eleg-res');
+    if (!des.categorias.length) { out.textContent = 'No hay una hoja de Selección con la columna de ese mes.'; return; }
+    d._usados = d._usados || [];
+    var sug = pfSelSugerida(clave, persona, des.categorias, d._usados);
+    var viejo = card.querySelector('.pf-sel-eleg-form'); if (viejo) viejo.remove();
+    var f = document.createElement('div'); f.className = 'pf-sel-eleg-form';
+    f.innerHTML = '<label>Registrar a <b>' + e(persona.nombre) + '</b> en ' + e(des.hoja) + ' · ' + e(des.etiqueta) + ':</label>' +
+      '<select>' + des.categorias.map(function(c) { return '<option value="' + c.id + '"' + (c.id === sug ? ' selected' : '') + '>' + e(c.categoria) + (c.actual ? ' (hoy: ' + e(c.actual) + ')' : '') + '</option>'; }).join('') + '</select>' +
+      '<button type="button" class="btn mini">Registrar</button><button type="button" class="btn mini gris">Cancelar</button>';
+    card.querySelector('.pf-sel-elegir').after(f);
+    f.querySelector('.gris').onclick = function() { f.remove(); };
+    f.querySelector('.btn:not(.gris)').onclick = function() {
+      var id = +f.querySelector('select').value, c = des.categorias.find(function(x) { return x.id === id; });
+      if (c.actual && c.actual !== persona.nombre && !confirm('«' + c.categoria + '» ya tiene a ' + c.actual + ' en ' + des.etiqueta + '. ¿Reemplazarlo por ' + persona.nombre + '?')) return;
+      var bt = this; bt.disabled = true;
+      window.dsFetchJSON('/design/api/perf/ganadores/' + id, {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mesIndice: des.mesIndice, nombre: persona.nombre})}).then(function() {
+        c.actual = persona.nombre; if (d._usados.indexOf(id) < 0) d._usados.push(id);
+        f.remove(); out.textContent = '✔ Registrado en «' + c.categoria + '» (' + des.etiqueta + ')'; out.classList.add('ok');
+      }).catch(function(er) { bt.disabled = false; alert(er.message); });
+    };
   }
   var pfSelBtn = document.getElementById('pfSelBtn');
   if (pfSelBtn) pfSelBtn.addEventListener('click', pfSelAbrir);
