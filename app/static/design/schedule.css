@@ -1203,6 +1203,9 @@ table.ds-tabla td.ds-falta-aprobar { animation: dsFaltaAprobar .45s steps(2, sta
 
 /* Paciente completo, como Centro (Rosember, 19-oct-2026): la celda crece con el nombre en vez de cortarlo */
 table.ds-tabla input[data-campo="paciente"] { field-sizing: content; min-width: 7em; }
+/* Número de orden completo (Rosember, 22-oct-2026): la columna era tan angosta que solo se veía el primer carácter
+   (el botón de Comments ocupa la derecha). Crece con el número y nunca baja de lo que ocupa uno de ~8 caracteres. */
+table.ds-tabla input[data-campo="orden"] { field-sizing: content; min-width: 8.5em; }
 table.ds-tabla select[data-campo="designerId"] { field-sizing: content; min-width: 7.5em; }
 
 /* Tiempos libres: permiso por horas aprobado en People (aviso; no es ausencia) */

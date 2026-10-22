@@ -271,9 +271,17 @@ window.addEventListener('unhandledrejection', function(ev) {
     var suave = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     var ir = function() { tr.scrollIntoView({block: 'center', behavior: suave ? 'smooth' : 'auto'}); };
     ir(); setTimeout(ir, 350);   // por si algo arriba terminó de cargar y la movió
-    var quitar = function() { tr.classList.remove('ds-resaltada'); document.removeEventListener('click', quitar, true); };
+    // La tabla puede volver a pintarse (en vivo, colores…) y la fila nueva no traería la marca: se repone mientras dure
+    var sel = '#dsVistaEquipo tr[data-id="' + id + '"]', hasta = Date.now() + 10000, vigila = null;
+    var quitar = function() {
+      clearInterval(vigila); document.removeEventListener('click', quitar, true);
+      document.querySelectorAll('tr.ds-resaltada').forEach(function(x) { x.classList.remove('ds-resaltada'); });
+    };
+    vigila = setInterval(function() {
+      if (Date.now() > hasta) { quitar(); return; }
+      var t = document.querySelector(sel); if (t && !t.classList.contains('ds-resaltada')) t.classList.add('ds-resaltada');
+    }, 200);
     setTimeout(function() { document.addEventListener('click', quitar, true); }, 400);
-    setTimeout(quitar, 10000);
   }
 
   // ---------- Búsqueda de orden o paciente (arriba, para todos; cada quien ve lo que su rol le permite) ----------
