@@ -75,10 +75,30 @@ def api_hoy(forzar: int = 0, user: Empleado = Depends(require_admin), db: Sessio
     sgv.hoy(db, ahora, forzar=bool(forzar))
     nombres = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_(list(sgv._hoy["datos"]) or [-1]))}
     tol = sgv.config(db)["tolerancia"]
+    # equipo y área de cada persona (para filtrar como en GeoVictoria) y horas trabajadas hasta ahora
+    from ..models_design import DesignArea, DesignTeam, DesignTeamDesigner
+    eq: dict[int, dict] = {}
+    for eid, tnom, anom in (db.query(DesignTeamDesigner.empleado_id, DesignTeam.nombre, DesignArea.nombre)
+                            .join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id).join(DesignArea, DesignArea.id == DesignTeam.area_id)
+                            .filter(DesignTeam.activo == 1, DesignTeamDesigner.empleado_id.in_(list(nombres) or [-1]))):
+        x = eq.setdefault(eid, {"equipos": [], "areas": []})
+        if tnom not in x["equipos"]:
+            x["equipos"].append(tnom)
+        if anom not in x["areas"]:
+            x["areas"].append(anom)
     filas = []
-    for eid in sgv._hoy["datos"]:
+    for eid, info in sgv._hoy["datos"].items():
         x = sgv.para_seguimiento(eid, ahora, tol)
-        if x:
-            filas.append({"nombre": nombres.get(eid, ""), **x})
+        if not x:
+            continue
+        m = info["marcas"]
+        trab = None
+        if m["entrada"]:
+            fin = m["salida"] or min(ahora, info["turno"]["fin"]) if info["turno"] else (m["salida"] or ahora)
+            alm = ((m["regresoAlm"] or (ahora if not m["salida"] else m["salidaAlm"])) - m["salidaAlm"]) if m["salidaAlm"] else None
+            mins = int(((fin - m["entrada"]).total_seconds() - (alm.total_seconds() if alm else 0)) // 60)
+            trab = f"{max(0, mins) // 60:02d}:{max(0, mins) % 60:02d}"
+        filas.append({"id": eid, "nombre": nombres.get(eid, ""), **eq.get(eid, {"equipos": [], "areas": []}), "trabajado": trab,
+                      "enCurso": bool(m["entrada"] and not m["salida"]), **x})
     filas.sort(key=lambda f: (not f["faltas"], f["nombre"].lower()))
     return {"filas": filas, "error": sgv._hoy["error"], "tolerancia": tol}

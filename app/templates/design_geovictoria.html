@@ -3,7 +3,37 @@
 {% block contenido %}
 {# GeoVictoria (Rosember, 22-oct-2026): credenciales, cruce por cédula, marcas de hoy y avisos push. Ver services_design_geovictoria. #}
 <style>
-  .gv { max-width:1100px; margin:0 auto; }
+  /* Ancho completo (22-oct-2026): arriba Conexión y Probar lado a lado; Cruce y Marcas de hoy a todo el ancho */
+  .gv { max-width:none; margin:0 auto; padding:0 8px; }
+  .gv-dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(460px, 1fr)); gap:14px; align-items:start; }
+  .gv-dos > .gv-card { margin-bottom:0; }
+  .gv-dos + .gv-card { margin-top:14px; }
+  /* Marcas de hoy al estilo del libro de asistencia de GeoVictoria */
+  .gv-res { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+  .gv-res button { border:1px solid #cbd5e1; background:#fff; border-radius:999px; padding:4px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
+  .gv-res button b { margin-left:4px; }
+  .gv-res button.on { background:#0f2b46; color:#fff; border-color:#0f2b46; }
+  .gv-filtros { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .gv-filtros input, .gv-filtros select { margin:0; width:auto; min-width:200px; }
+  .gv-libro-w { overflow:auto; max-height:70vh; border:1px solid #d6dde6; border-radius:10px; margin-top:8px; }
+  .gv-libro { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; }
+  .gv-libro th { position:sticky; top:0; z-index:1; background:#0f2b46; color:#fff; font-weight:600; text-align:center; padding:8px 6px; white-space:nowrap; border-right:1px solid #22466b; }
+  .gv-libro th:first-child, .gv-libro td:first-child { text-align:left; position:sticky; left:0; }
+  .gv-libro th:first-child { z-index:2; }
+  .gv-libro td { padding:6px; text-align:center; border-bottom:1px solid #e5eaf0; border-right:1px solid #eef2f6; white-space:nowrap; background:#fff; }
+  .gv-libro tr:nth-child(even) td { background:#f7f9fc; }
+  .gv-libro tr:hover td { background:#eaf3ff; }
+  .gv-libro td.gv-nom { font-weight:600; }
+  .gv-libro td.gv-nom small { display:block; font-weight:400; color:#64748b; font-size:11px; }
+  .gv-h { display:inline-block; min-width:52px; padding:2px 6px; border-radius:4px; font-variant-numeric:tabular-nums; }
+  .gv-h.ok { background:#e3f5e9; color:#14632f; }
+  .gv-h.tarde { background:#fff1d6; color:#8a4b00; }
+  .gv-h.falta { background:#fde2e2; color:#a11c1c; font-weight:600; }
+  .gv-h.espera { color:#94a3b8; }
+  .gv-h.curso { background:#e6efff; color:#1d4ed8; }
+  .gv-est { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11.5px; font-weight:600; }
+  .gv-est.ok { background:#e3f5e9; color:#14632f; } .gv-est.tarde { background:#fff1d6; color:#8a4b00; }
+  .gv-est.falta { background:#fde2e2; color:#a11c1c; } .gv-est.perm { background:#e0e7ff; color:#3730a3; } .gv-est.curso { background:#e6efff; color:#1d4ed8; }
   .gv-sub { color:#475569; font-size:13px; margin:2px 0 14px; }
   .gv-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 16px; margin-bottom:14px; }
   .gv-card h2 { margin:0 0 8px; font-size:16px; }
@@ -22,6 +52,7 @@
   .gv-perm { display:inline-block; background:#e0e7ff; color:#3730a3; border-radius:999px; padding:1px 8px; font-size:12px; }
   .gv-tarde { color:#92400e; font-weight:600; }
   .gv-cols { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px; }
+  .gv-cols[hidden], .gv-libro-w[hidden] { display:none; }
   .gv-cols ul { margin:4px 0 0; padding-left:18px; font-size:13px; max-height:260px; overflow:auto; }
 </style>
 <div class="gv">
@@ -29,6 +60,7 @@
   <h1>GeoVictoria</h1>
   <p class="gv-sub">Marcas de asistencia de Nuvia Design. Las personas se cruzan por cédula. Las marcas se traen cada 5 minutos.</p>
 
+  <div class="gv-dos">
   <div class="gv-card">
     <h2>🔑 Conexión</h2>
     <div class="gv-grid">
@@ -68,12 +100,19 @@
     <div class="gv-acc"><button type="button" class="btn mini" id="gvPIr">Probar</button><span class="gv-msg" id="gvPMsg"></span></div>
     <div id="gvPRes" class="gv-nota" style="margin-top:8px"></div>
   </div>
+  </div>
 
   <div class="gv-card">
     <h2>🕒 Marcas de hoy</h2>
-    <p class="gv-nota">Para revisar antes de activar los avisos: primero quienes tienen una marca pendiente.</p>
-    <div class="gv-acc"><button type="button" class="btn mini gris" id="gvHoy">Traer marcas de hoy</button><span class="gv-msg" id="gvHoyMsg"></span></div>
-    <div style="overflow:auto"><table class="gv-tabla" id="gvTabla" hidden><thead><tr><th>Persona</th><th>Turno</th><th>Entrada</th><th>Almuerzo</th><th>Salida</th><th>Pendiente</th></tr></thead><tbody></tbody></table></div>
+    <p class="gv-nota">Como el libro de asistencia de GeoVictoria: una fila por persona con su turno y sus marcas. Verde = a tiempo, naranja = tarde, rojo = falta la marca, gris = todavía no toca.</p>
+    <div class="gv-filtros">
+      <button type="button" class="btn mini gris" id="gvHoy">Traer marcas de hoy</button>
+      <input type="search" id="gvBuscar" placeholder="Buscar persona o equipo…">
+      <select id="gvArea"><option value="">Todas las áreas</option></select>
+      <span class="gv-msg" id="gvHoyMsg"></span>
+    </div>
+    <div class="gv-res" id="gvRes"></div>
+    <div class="gv-libro-w" id="gvLibroW" hidden><table class="gv-libro" id="gvTabla"><thead><tr><th>Persona</th><th>Turno</th><th>Entrada</th><th>Salida colación</th><th>Entrada colación</th><th>Salida</th><th>Atraso</th><th>Hrs. trabajadas</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
   </div>
 </div>
 <script>
@@ -137,18 +176,56 @@
         : 'Hoy no tiene turno ni marcas en GeoVictoria.');
     }).catch(function (e) { msg($('gvPMsg'), e.message, false); });
   };
+  // ---- Marcas de hoy: cuadrícula estilo libro de asistencia de GeoVictoria ----
+  var LIBRO = {filas: [], filtro: ''};
+  function estadoDe(f) {
+    if (f.permisos.length) return ['perm', f.permisos.join(', ')];
+    if (f.faltas.length) return ['falta', f.faltas.map(function (x) { return 'Falta ' + NOM[x.tipo].toLowerCase(); }).join(' · ')];
+    if (!f.entrada) return ['espera', 'Aún no llega'];
+    if (f.enCurso) return [f.atrasoMin ? 'tarde' : 'curso', f.atrasoMin ? 'Llegó tarde · trabajando' : 'Trabajando'];
+    return [f.atrasoMin ? 'tarde' : 'ok', f.atrasoMin ? 'Llegó tarde' : 'Completo'];
+  }
+  function celda(hora, tipo, f) {
+    var falta = f.faltas.some(function (x) { return x.tipo === tipo; });
+    if (hora) return '<span class="gv-h ' + (tipo === 'entrada' && f.atrasoMin ? 'tarde' : 'ok') + '">' + esc(hora) + '</span>';
+    if (falta) return '<span class="gv-h falta">Sin marca</span>';
+    return '<span class="gv-h espera">—</span>';
+  }
+  function pintarLibro() {
+    var q = $('gvBuscar').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), area = $('gvArea').value;
+    var base = LIBRO.filas.filter(function (f) {
+      var t = (f.nombre + ' ' + f.equipos.join(' ')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return (!q || t.indexOf(q) >= 0) && (!area || f.areas.indexOf(area) >= 0);
+    });
+    var cuenta = {todos: base.length, falta: 0, tarde: 0, perm: 0, espera: 0, ok: 0};
+    base.forEach(function (f) { var e = estadoDe(f)[0]; if (e === 'curso') e = 'ok'; cuenta[e] = (cuenta[e] || 0) + 1; });
+    var chips = [['', 'Todos', cuenta.todos], ['falta', '🔴 Falta marca', cuenta.falta], ['tarde', '🟠 Tarde', cuenta.tarde],
+                 ['ok', '🟢 A tiempo', cuenta.ok], ['espera', '⚪ Aún no llega', cuenta.espera], ['perm', '🟣 Permiso', cuenta.perm]];
+    $('gvRes').innerHTML = chips.map(function (c) { return '<button type="button" data-f="' + c[0] + '"' + (LIBRO.filtro === c[0] ? ' class="on"' : '') + '>' + c[1] + '<b>' + c[2] + '</b></button>'; }).join('');
+    var filas = base.filter(function (f) { if (!LIBRO.filtro) return true; var e = estadoDe(f)[0]; return (e === 'curso' ? 'ok' : e) === LIBRO.filtro; });
+    $('gvTabla').querySelector('tbody').innerHTML = filas.map(function (f) {
+      var e = estadoDe(f);
+      return '<tr><td class="gv-nom">' + esc(f.nombre) + '<small>' + esc(f.equipos.join(', ')) + '</small></td>' +
+        '<td>' + esc(f.turno || 'Sin turno') + '</td>' +
+        '<td>' + celda(f.entrada, 'entrada', f) + '</td><td>' + celda(f.salidaAlm, '', f) + '</td>' +
+        '<td>' + celda(f.regresoAlm, 'almuerzo', f) + '</td><td>' + celda(f.salida, 'salida', f) + '</td>' +
+        '<td>' + (f.atrasoMin ? '<span class="gv-h tarde">' + String(Math.floor(f.atrasoMin / 60)).padStart(2, '0') + ':' + String(f.atrasoMin % 60).padStart(2, '0') + '</span>' : '<span class="gv-h espera">00:00</span>') + '</td>' +
+        '<td>' + (f.trabajado ? '<span class="gv-h ' + (f.enCurso ? 'curso' : 'ok') + '">' + esc(f.trabajado) + '</span>' : '<span class="gv-h espera">—</span>') + '</td>' +
+        '<td><span class="gv-est ' + e[0] + '">' + esc(e[1]) + '</span></td></tr>';
+    }).join('') || '<tr><td colspan="9" style="text-align:center;color:#64748b">Nadie con este filtro.</td></tr>';
+  }
+  $('gvRes').addEventListener('click', function (ev) { var b = ev.target.closest('[data-f]'); if (b) { LIBRO.filtro = b.dataset.f; pintarLibro(); } });
+  $('gvBuscar').addEventListener('input', pintarLibro);
+  $('gvArea').addEventListener('change', pintarLibro);
   $('gvHoy').onclick = function () {
     msg($('gvHoyMsg'), 'Trayendo marcas…', true);
     pedir('/design/api/geovictoria/hoy?forzar=1').then(function (d) {
       if (d.error) msg($('gvHoyMsg'), d.error, false); else msg($('gvHoyMsg'), d.filas.length + ' personas con turno o marcas hoy · tolerancia ' + d.tolerancia + ' min', true);
-      $('gvTabla').hidden = false;
-      $('gvTabla').querySelector('tbody').innerHTML = d.filas.map(function (f) {
-        return '<tr><td>' + esc(f.nombre) + '</td><td>' + esc(f.turno || 'Sin turno') + '</td>' +
-          '<td>' + esc(f.entrada || '—') + (f.atrasoMin ? ' <span class="gv-tarde">(+' + f.atrasoMin + ' min)</span>' : '') + '</td>' +
-          '<td>' + esc(f.salidaAlm || '—') + ' – ' + esc(f.regresoAlm || '—') + '</td><td>' + esc(f.salida || '—') + '</td>' +
-          '<td>' + (f.permisos.length ? '<span class="gv-perm">' + esc(f.permisos.join(', ')) + '</span>' : '') +
-          f.faltas.map(function (x) { return '<span class="gv-falta">' + NOM[x.tipo] + ' (' + esc(x.hora) + ')</span>'; }).join('') + '</td></tr>';
-      }).join('');
+      LIBRO.filas = d.filas;
+      var areas = []; d.filas.forEach(function (f) { f.areas.forEach(function (a) { if (areas.indexOf(a) < 0) areas.push(a); }); });
+      $('gvArea').innerHTML = '<option value="">Todas las áreas</option>' + areas.sort().map(function (a) { return '<option>' + esc(a) + '</option>'; }).join('');
+      $('gvLibroW').hidden = false;
+      pintarLibro();
     }).catch(function (e) { msg($('gvHoyMsg'), e.message, false); });
   };
 })();
