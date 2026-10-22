@@ -69,6 +69,8 @@ class Seleccion(unittest.TestCase):
         self.assertEqual({x["nombre"] for x in r["noCompiten"]}, {"Poco X"})
         self.assertTrue(all(x["area"] in ("N3 Prosthetic", "N6 Material Changes") for x in cat["n3n6"]["candidatos"]))
         self.assertEqual([m["nombre"] for m in cat["manager"]["candidatos"]][:3].__len__(), 3)
+        ganadores = [cat[k]["candidatos"][0]["id"] for k in ("n2face", "n3n6", "n3n6b", "mvp")]
+        self.assertEqual(len(set(ganadores)), 4)   # nadie se repite
         g = cat["n3n6"]["candidatos"][0]
         self.assertTrue(g["porQue"]["fuertes"])
         self.assertIn("Evaluación del líder", g["faltan"])   # no hay hojas de Desempeño: el peso se reparte

@@ -4,7 +4,7 @@ Propone los ganadores del mes con los datos que ya tiene la plataforma, para que
   - Manager del mes (entre los aprobadores de Face, N2, N3 y N6),
   - Empleado del mes de N2 / Face,
   - Empleado del mes de N3 / N6 y un segundo de N3 / N6,
-  - MVP (el mejor puntaje de todas las áreas; puede coincidir con un ganador de área).
+  - MVP (el mejor puntaje de todas las áreas entre quienes no ganaron otra categoría: nadie se repite).
 
 Método (puntaje 0-100 por persona):
   1. Cada indicador se convierte en percentil DENTRO DE SU ÁREA (los productos de N2, Face, N3 y N6 son distintos: no
@@ -364,7 +364,9 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         m["porQue"] = _por_que(p, met, PESOS_MANAGER)
     lista_m.sort(key=lambda m: (-m["puntaje"], -m["aprobadas"], m["nombre"].lower()))
 
-    mvp = filas[:5]
+    # Nadie gana dos categorías (Rosember, 22-oct-2026): el MVP es el mejor puntaje global que no ganó N2/Face ni N3/N6
+    ganadores = {x["id"] for x in (n2_face[:1] + n3_n6[:2])}
+    mvp = [f for f in filas if f["id"] not in ganadores][:5]
     return {
         "anio": anio, "mes": mes, "desde": ini.isoformat(), "hasta": fin.isoformat(), "habiles": dias_hab,
         "enCurso": fin.month == mes and (fin + timedelta(days=1)).month == mes,   # el mes aún no termina

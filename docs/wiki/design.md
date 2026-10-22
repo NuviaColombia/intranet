@@ -89,7 +89,7 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Desempeño › Selección asistida** (Rosember, 21-oct-2026; solo admin, botón «🏆 Selección asistida» en Desempeño):
   propone Manager del mes (aprobadores de Face/N2/N3/N6), Empleado del mes N2/Face, N3/N6, otro de N3/N6 y MVP (mejor
-  puntaje global; puede coincidir con un ganador). Analiza por defecto el mes anterior (selector para otros meses; el en
+  puntaje global entre quienes no ganaron otra categoría: nadie se repite, Rosember 22-oct-2026). Analiza por defecto el mes anterior (selector para otros meses; el en
   curso sale como prueba). No guarda nada. Puntaje 0-100 = percentiles dentro del área, ponderados:
   diseñador — productividad (aprobadas por día disponible, descuenta ausencias) 30, calidad QC (hallazgos/caso,
   suavizado) 25, cambios digitales 15, evaluación del líder en Desempeño 20, eficiencia (tiempo vs mediana del producto
