@@ -60,5 +60,33 @@ class Tendencia(unittest.TestCase):
         self.assertEqual(d["total"], 5)
 
 
+    def test_reparto_por_equipo(self):
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db = sessionmaker(bind=eng)()
+        ps = [models.Empleado(nombres=n, apellidos="X", email=f"{n}@x.com", rol="admin" if n == "Ana" else "empleado", activo=True,
+                              empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion=n) for n in ("Ana", "Beto", "Caro", "Dani")]
+        db.add_all(ps); db.commit()
+        ana, beto, caro, dani = ps
+        area = md.DesignArea(nombre="N3 Prosthetic", formato="n3"); db.add(area); db.commit()
+        t = md.DesignTeam(area_id=area.id, nombre="Eq", orden=1, activo=1); db.add(t); db.commit()
+        for e in (beto, caro):
+            db.add(md.DesignTeamDesigner(team_id=t.id, empleado_id=e.id))
+        casos = [(beto, "Ng")] * 4 + [(caro, "Ng")] * 4 + [(beto, "TC")] * 6 + [(caro, "TC")] * 1 + [(dani, "TC")] * 2 + [(beto, "ng ")] * 0
+        casos += [(caro, "TC")]
+        for i, (e, p) in enumerate(casos):
+            db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla="principal", orden=f"O{i}", centro="C", producto=p,
+                                  designer_id=e.id, estado="Started", orden_visual=i))
+        db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla="principal", orden="C", centro="C", producto="Ng",
+                              designer_id=beto.id, estado="Canceled", orden_visual=99))
+        db.commit()
+        d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertEqual(d["teamId"], t.id)
+        self.assertEqual(d["productos"], ["TC", "Ng"])
+        self.assertEqual([(f["nombre"], f["valores"], f["total"]) for f in d["filas"]], [("Beto X", [6, 4], 10), ("Caro X", [2, 4], 6)])
+        self.assertEqual((d["prestados"]["valores"], d["totales"]), ([2, 0], [10, 8, 18]))
+        self.assertEqual([e["nivel"] for e in d["equidad"]], ["algo", "pareja", "pareja"])
+
+
 if __name__ == "__main__":
     unittest.main()

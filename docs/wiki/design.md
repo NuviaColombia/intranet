@@ -100,6 +100,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Zirconia es otro reporte; sin canceladas/skipped (`dashboard_qc_disenadores`, `/design/api/dashboard/qc-disenadores`).
   Ajuste: solo salen quienes tienen **5 reportes o más** (`DG_QC_MIN`), barras en azul y clic en una barra abre la lista
   de sus errores (fecha, orden, paciente, producto, hallazgo).
+  Resumen › «Reparto de productos por equipo» (Rosember, 21-oct-2026, primera propuesta): tabla diseñador × producto del
+  mes en curso con selector de equipo (aprobador: solo los suyos). Cuenta órdenes completas sin canceladas/skipped; los
+  diseñadores son los miembros del equipo (los prestados salen aparte y no cuentan). Celda ▲/▼ si está 50 % por encima o
+  por debajo del promedio; fila Equidad = coeficiente de variación (≤ 25 % Pareja, ≤ 50 % Algo desigual, más Desigual).
+  Máx. 10 productos, el resto en «Otros» (`dashboard_reparto`, `/design/api/dashboard/reparto`).
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.

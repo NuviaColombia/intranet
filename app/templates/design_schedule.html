@@ -295,6 +295,14 @@
 </div>
 <p class="dd-p-nota" id="dgVacio" hidden>No tienes equipos con casos en el mes en curso.</p>
 {# Reportes de QC por diseñador del mes en curso, de más a menos (Rosember, 21-oct-2026) #}
+{# Reparto de productos: ¿se reparten parejo entre los diseñadores de cada equipo? (Rosember, 21-oct-2026) #}
+<div class="dd-panel" id="dgRep" hidden><div class="dd-panel-cab"><h3>Reparto de productos por equipo</h3>
+  <span class="dg-rep-filtro"><label for="dgRepTeam">Equipo</label> <select id="dgRepTeam"></select></span></div>
+  <p class="dd-p-nota" id="dgRepSub" style="margin:0 0 8px"></p>
+  <div class="dp-tabla-w"><table class="dd-tabla dg-rep-tabla" id="dgRepTabla"></table></div>
+  <p class="dd-p-nota dg-rep-ley"><span class="dg-rep-alto">▲ muy por encima</span> o <span class="dg-rep-bajo">▼ muy por debajo</span> del promedio del equipo en ese producto (50 % o más de diferencia).
+  Equidad: qué tanto se separan los diseñadores del promedio (<b>Pareja</b> ≤ 25 %, <b>Algo desigual</b> ≤ 50 %, <b>Desigual</b> más). Los prestados no cuentan.</p>
+</div>
 <div class="dd-panel" id="dgQc" hidden><div class="dd-panel-cab"><h3>Reportes de QC por diseñador</h3><span style="font-size:12px;color:#4b5563" id="dgQcSub"></span></div><div id="dgQcBarras"></div></div>
 </div>
 <div id="ddVistaResumen" hidden>

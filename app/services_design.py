@@ -2467,6 +2467,74 @@ def dashboard_qc_disenadores(db: Session, user: Empleado, desde: date, hasta: da
     return {"desde": desde.isoformat(), "hasta": hasta.isoformat(), "total": sum(d["reportes"] for d in filas), "disenadores": filas}
 
 
+REPARTO_MAX_PRODUCTOS = 10   # columnas de producto en la tabla; el resto se junta en «Otros»
+
+
+def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, team_id: int | None = None) -> dict:
+    """Dashboard › Resumen › Reparto de productos (Rosember, 21-oct-2026): para ver si en un equipo los productos se
+    reparten parejo entre sus diseñadores. Tabla diseñador × producto con los casos del periodo (órdenes completas, sin
+    canceladas ni skipped). Por producto, la equidad = coeficiente de variación entre los diseñadores del equipo que
+    tuvieron casos (≤ 25 % pareja, ≤ 50 % algo desigual, más desigual). Los prestados salen aparte y no cuentan para
+    la equidad. Sin team_id se muestra el equipo con más casos. Un aprobador solo ve sus equipos."""
+    q = (db.query(DesignOrden.team_id, DesignTeam.nombre, DesignArea.nombre, func.count(DesignOrden.id))
+         .join(DesignTeam, DesignOrden.team_id == DesignTeam.id).join(DesignArea, DesignTeam.area_id == DesignArea.id)
+         .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta, DesignArea.nombre != AREA_RD)
+         .group_by(DesignOrden.team_id, DesignTeam.nombre, DesignArea.nombre))
+    if not es_admin(user):
+        q = q.filter(DesignTeam.id.in_(equipos_dash_ids(db, user)))
+    equipos = sorted(({"id": tid, "nombre": nom, "area": area, "casos": n} for tid, nom, area, n in q.all()),
+                     key=lambda e: (e["area"].lower(), e["nombre"].lower()))
+    vacio = {"desde": desde.isoformat(), "hasta": hasta.isoformat(), "equipos": equipos, "teamId": None,
+             "productos": [], "filas": [], "prestados": None, "totales": [], "equidad": []}
+    if not equipos:
+        return vacio
+    if team_id not in {e["id"] for e in equipos}:
+        team_id = max(equipos, key=lambda e: e["casos"])["id"]
+    miembros = {eid for (eid,) in db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team_id)}
+    ordenes = (db.query(DesignOrden).filter(DesignOrden.team_id == team_id, filtro_orden_completa(),
+                                            DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta).all())
+    nombres_p: dict[str, str] = {}
+    por_prod: dict[str, int] = {}
+    celdas: dict[str, dict[str, int]] = {}
+    datos_d: dict[str, dict] = {}
+    for o in ordenes:
+        if _es_cancelada(o.estado):
+            continue
+        kp = re.sub(r"\s+", " ", _normalizar_texto(o.producto or "")).strip()
+        nombres_p.setdefault(kp, re.sub(r"\s+", " ", (o.producto or "").strip()))
+        por_prod[kp] = por_prod.get(kp, 0) + 1
+        prestado = bool((o.designer_prestado or "").strip()) or not o.designer_id or o.designer_id not in miembros
+        kd = "prestados" if prestado else str(o.designer_id)
+        if kd not in datos_d:
+            datos_d[kd] = {"nombre": "Prestados" if prestado else o.designer.nombre_completo, "designerId": None if prestado else o.designer_id}
+        celdas.setdefault(kd, {})
+        celdas[kd][kp] = celdas[kd].get(kp, 0) + 1
+    orden_p = sorted(por_prod, key=lambda k: (-por_prod[k], nombres_p[k].lower()))
+    cols = orden_p[:REPARTO_MAX_PRODUCTOS]
+    otros = orden_p[REPARTO_MAX_PRODUCTOS:]
+    productos = [nombres_p[k] for k in cols] + (["Otros"] if otros else [])
+
+    def fila(kd):
+        c = celdas.get(kd, {})
+        vals = [c.get(k, 0) for k in cols] + ([sum(c.get(k, 0) for k in otros)] if otros else [])
+        return {"nombre": datos_d[kd]["nombre"], "designerId": datos_d[kd]["designerId"], "valores": vals, "total": sum(vals)}
+    filas = sorted((fila(kd) for kd in datos_d if kd != "prestados"), key=lambda f: (-f["total"], f["nombre"].lower()))
+    prestados = fila("prestados") if "prestados" in datos_d else None
+
+    def equidad(vals):
+        if len(vals) < 2 or not sum(vals):
+            return None
+        media = sum(vals) / len(vals)
+        cv = (sum((v - media) ** 2 for v in vals) / len(vals)) ** 0.5 / media
+        return {"cv": round(cv * 100), "nivel": "pareja" if cv <= 0.25 else ("algo" if cv <= 0.5 else "desigual"),
+                "promedio": round(media, 1)}
+    n = len(productos)
+    equidades = [equidad([f["valores"][i] for f in filas]) for i in range(n)] + [equidad([f["total"] for f in filas])]
+    totales = [sum(f["valores"][i] for f in filas) + (prestados["valores"][i] if prestados else 0) for i in range(n)]
+    return {**vacio, "teamId": team_id, "productos": productos, "filas": filas, "prestados": prestados,
+            "totales": totales + [sum(totales)], "equidad": equidades}
+
+
 def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | None = None, team_id: int | None = None) -> dict:
     """Dashboard › Productos (pedido por Rosember el 12-oct-2026): cuántas órdenes de cada producto hay en cada mes del
     año. Cuentan las órdenes completas (centro, producto y diseñador) que no están canceladas ni skipped, por su fecha

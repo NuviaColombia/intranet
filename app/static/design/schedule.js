@@ -3604,6 +3604,54 @@ function ddPintarTendencia(d, body, box) {
 var DG = {tok: 0};
 // Reportes de QC por diseñador del mes en curso (21-oct-2026): barras horizontales de más a menos, solo quien tiene ≥ 1.
 // Pasa el mouse sobre una barra para ver sus hallazgos.
+// Reparto de productos por equipo (21-oct-2026): tabla diseñador × producto del mes, con la equidad de cada producto
+var DG_REP = {team: null, desde: '', hasta: '', mes: ''};
+var DG_EQ = {pareja: ['Pareja', 'dg-eq-ok'], algo: ['Algo desigual', 'dg-eq-medio'], desigual: ['Desigual', 'dg-eq-mal']};
+function dgRepCargar(t) {
+  var box = document.getElementById('dgRep'), tabla = document.getElementById('dgRepTabla'), sel = document.getElementById('dgRepTeam');
+  if (!box) return;
+  var u = '/design/api/dashboard/reparto?desde=' + DG_REP.desde + '&hasta=' + DG_REP.hasta + (DG_REP.team ? '&team_id=' + DG_REP.team : '');
+  if (DD_MOV) tabla.style.opacity = '.4';
+  ddApi(u).then(function(d) {
+    if (t !== DG.tok) return;
+    tabla.style.opacity = '';
+    if (!d.equipos.length) { box.hidden = true; return; }
+    box.hidden = false;
+    var grupos = {};
+    d.equipos.forEach(function(e) { (grupos[e.area] = grupos[e.area] || []).push(e); });
+    sel.innerHTML = Object.keys(grupos).map(function(a) {
+      return '<optgroup label="' + ddEsc(a) + '">' + grupos[a].map(function(e) {
+        return '<option value="' + e.id + '"' + (e.id === d.teamId ? ' selected' : '') + '>' + ddEsc(e.nombre) + ' (' + e.casos + ')</option>';
+      }).join('') + '</optgroup>';
+    }).join('');
+    DG_REP.team = d.teamId;
+    var n = d.productos.length, total = d.totales[n] || 0;
+    document.getElementById('dgRepSub').textContent = 'Mes en curso · ' + DG_REP.mes + ' · ' + total + ' casos · ' + d.filas.length + ' diseñador' + (d.filas.length === 1 ? '' : 'es') + ' con casos';
+    var eqHtml = function(e) {
+      if (!e) return '<span class="dd-p-nota">—</span>';
+      var x = DG_EQ[e.nivel];
+      return '<span class="dg-eq ' + x[1] + '" title="Se separan ' + e.cv + ' % del promedio (' + e.promedio + ' por diseñador)">' + x[0] + '</span>';
+    };
+    var celda = function(v, i, e) {
+      if (!e || !e.promedio) return '<td>' + (v || '<span class="dg-rep-0">0</span>') + '</td>';
+      var r = v / e.promedio, cl = r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : '');
+      var flecha = cl === 'dg-rep-alto' ? ' ▲' : (cl === 'dg-rep-bajo' ? ' ▼' : '');
+      return '<td class="' + cl + '" title="Promedio del equipo: ' + e.promedio + '">' + (v || '0') + flecha + '</td>';
+    };
+    var h = '<thead><tr><th class="dd-izq">Diseñador</th>' + d.productos.map(function(p) { return '<th>' + ddEsc(p) + '</th>'; }).join('') + '<th>Total</th></tr></thead><tbody>';
+    h += d.filas.map(function(f) {
+      return '<tr><td class="dd-izq"><b>' + ddEsc(f.nombre) + '</b></td>' + f.valores.map(function(v, i) { return celda(v, i, d.equidad[i]); }).join('') +
+        celda(f.total, n, d.equidad[n]).replace('<td', '<td style="font-weight:700"') + '</tr>';
+    }).join('');
+    if (d.prestados) h += '<tr class="dg-rep-prest"><td class="dd-izq">Prestados</td>' + d.prestados.valores.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '<td>' + d.prestados.total + '</td></tr>';
+    h += '</tbody><tfoot><tr><th class="dd-izq">Total</th>' + d.totales.map(function(v) { return '<th>' + v + '</th>'; }).join('') + '</tr>' +
+      '<tr><th class="dd-izq">Equidad</th>' + d.equidad.map(function(e) { return '<th>' + eqHtml(e) + '</th>'; }).join('') + '</tr></tfoot>';
+    tabla.innerHTML = d.filas.length ? h : '<tbody><tr><td class="dd-p-nota">Este equipo no tiene casos en el mes en curso.</td></tr></tbody>';
+  }).catch(function(e) {
+    if (t !== DG.tok) return;
+    tabla.style.opacity = ''; box.hidden = false; tabla.innerHTML = '<tbody><tr><td style="color:#b91c1c"></td></tr></tbody>'; tabla.querySelector('td').textContent = 'No se pudo cargar: ' + e.message;
+  });
+}
 var DG_QC_MIN = 5;   // solo salen quienes tienen 5 reportes o más en el mes (Rosember, 21-oct-2026)
 function dgQcCargar(desde, hasta, mes, t) {
   var box = document.getElementById('dgQc'), cont = document.getElementById('dgQcBarras');
@@ -3651,6 +3699,9 @@ function dgCargar() {
   var mes = hoy.toLocaleDateString('es-CO', {month: 'long', year: 'numeric'});
   var paneles = document.querySelectorAll('#dgGraficas .dg-area'), pend = paneles.length, alguna = false;
   dgQcCargar(desde, hasta, mes, t);
+  DG_REP.desde = desde; DG_REP.hasta = hasta; DG_REP.mes = mes; dgRepCargar(t);
+  var selRep = document.getElementById('dgRepTeam');
+  if (selRep && !selRep.dataset.listo) { selRep.dataset.listo = '1'; selRep.addEventListener('change', function() { DG_REP.team = +selRep.value; dgRepCargar(DG.tok); }); }
   var fin = function() { if (--pend === 0 && t === DG.tok) document.getElementById('dgVacio').hidden = alguna; };
   if (!pend) { document.getElementById('dgVacio').hidden = false; return; }
   paneles.forEach(function(p) {
