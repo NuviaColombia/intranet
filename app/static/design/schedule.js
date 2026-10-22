@@ -3604,6 +3604,7 @@ function ddPintarTendencia(d, body, box) {
 var DG = {tok: 0};
 // Reportes de QC por diseñador del mes en curso (21-oct-2026): barras horizontales de más a menos, solo quien tiene ≥ 1.
 // Pasa el mouse sobre una barra para ver sus hallazgos.
+var DG_QC_MIN = 5;   // solo salen quienes tienen 5 reportes o más en el mes (Rosember, 21-oct-2026)
 function dgQcCargar(desde, hasta, mes, t) {
   var box = document.getElementById('dgQc'), cont = document.getElementById('dgQcBarras');
   if (!box) return;
@@ -3611,22 +3612,34 @@ function dgQcCargar(desde, hasta, mes, t) {
   ddApi('/design/api/dashboard/qc-disenadores?desde=' + desde + '&hasta=' + hasta).then(function(d) {
     if (t !== DG.tok) return;
     cont.style.opacity = '';
-    var filas = d.disenadores;
+    var filas = d.disenadores.filter(function(f) { return f.reportes >= DG_QC_MIN; });
     box.hidden = false;
-    document.getElementById('dgQcSub').textContent = 'Mes en curso · ' + mes + ' · ' + d.total + ' reporte' + (d.total === 1 ? '' : 's') +
-      ' · ' + filas.length + ' diseñador' + (filas.length === 1 ? '' : 'es');
-    if (!filas.length) { cont.innerHTML = '<p class="dd-p-nota">Nadie tiene reportes de QC en el mes en curso.</p>'; return; }
+    document.getElementById('dgQcSub').textContent = 'Mes en curso · ' + mes + ' · ' + DG_QC_MIN + ' reportes o más · ' + filas.length + ' diseñador' +
+      (filas.length === 1 ? '' : 'es') + (filas.length ? ' · clic en una barra para ver sus errores' : '');
+    if (!filas.length) { cont.innerHTML = '<p class="dd-p-nota">Nadie tiene ' + DG_QC_MIN + ' o más reportes de QC en el mes en curso.</p>'; return; }
     var max = filas[0].reportes;
     cont.className = filas.length > 10 ? 'dg-qc-dos' : '';
     cont.innerHTML = filas.map(function(f) {
       var ini = f.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(function(p) { return p[0]; }).join('').toUpperCase();
       var cara = f.foto ? '<img src="' + f.foto + '" alt="">' : '<span>' + ddEsc(ini) + '</span>';
-      var tip = f.nombre + ' (' + f.equipos.join(', ') + '): ' + f.reportes + ' reporte' + (f.reportes === 1 ? '' : 's') + '\n' +
-        f.lista.slice(0, 10).map(function(h) { return '• ' + h.orden + ' (' + h.fecha.slice(8, 10) + '/' + h.fecha.slice(5, 7) + '): ' + h.hallazgo; }).join('\n') +
-        (f.lista.length > 10 ? '\n… y ' + (f.lista.length - 10) + ' más' : '');
-      return '<div class="da-barra dg-qc-barra" title="' + ddEsc(tip).replace(/"/g, '&quot;') + '"><span class="n"><i class="dg-qc-cara">' + cara + '</i>' + ddEsc(f.nombre) +
-        ' <small>' + ddEsc(f.equipos.join(', ')) + '</small></span><span class="b"><i style="width:' + Math.max(3, f.reportes * 100 / max) + '%"></i></span><b>' + f.reportes + '</b></div>';
+      // clic en la barra: abre/cierra la lista de errores (hallazgos de QC) del diseñador en el mes
+      var det = '<table class="dd-tabla dg-qc-tabla"><thead><tr><th>Fecha</th><th>Orden</th><th>Paciente</th><th>Producto</th><th class="dd-izq">Error (hallazgo de QC)</th></tr></thead><tbody>' +
+        f.lista.map(function(h) {
+          return '<tr><td>' + h.fecha.slice(8, 10) + '/' + h.fecha.slice(5, 7) + '</td><td>' + ddEsc(h.orden) + '</td><td>' + ddEsc(h.paciente) + '</td><td>' + ddEsc(h.producto) +
+            '</td><td class="dd-izq">' + ddEsc(h.hallazgo) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+      return '<div class="dg-qc-item"><div class="da-barra dg-qc-barra" role="button" tabindex="0" aria-expanded="false"><span class="n"><i class="dg-qc-cara">' + cara + '</i>' + ddEsc(f.nombre) +
+        ' <small>' + ddEsc(f.equipos.join(', ')) + '</small></span><span class="b"><i style="width:' + Math.max(3, f.reportes * 100 / max) + '%"></i></span><b>' + f.reportes + '</b></div>' +
+        '<div class="dg-qc-det" hidden>' + det + '</div></div>';
     }).join('');
+    cont.querySelectorAll('.dg-qc-barra').forEach(function(b) {
+      var abrir = function() {
+        var det = b.nextElementSibling, ab = det.hidden;
+        det.hidden = !ab; b.setAttribute('aria-expanded', ab); b.classList.toggle('on', ab);
+      };
+      b.addEventListener('click', abrir);
+      b.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
+    });
     ddAnimar(cont, null);
   }).catch(function(e) {
     if (t !== DG.tok) return;

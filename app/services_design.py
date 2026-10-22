@@ -2455,7 +2455,8 @@ def dashboard_qc_disenadores(db: Session, user: Empleado, desde: date, hasta: da
             d["equipos"].append(f.team.nombre)
         for h in hallazgos:
             d["reportes"] += 1
-            d["lista"].append({"orden": f.orden, "fecha": f.fecha.isoformat(), "hallazgo": h})
+            d["lista"].append({"orden": f.orden, "fecha": f.fecha.isoformat(), "hallazgo": h, "paciente": f.paciente or "",
+                               "producto": f.producto or "", "equipo": f.team.nombre})
     ids = [d["designerId"] for d in por.values() if d["designerId"]]
     con_foto = {r[0] for r in db.query(DesignFotoPerfil.empleado_id).filter(DesignFotoPerfil.empleado_id.in_(ids),
                                                                            DesignFotoPerfil.datos.isnot(None))} if ids else set()
