@@ -365,6 +365,62 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
     return nuevos
 
 
+# ---------- pruebas con una persona (Rosember, 22-oct-2026) ----------
+
+def personas(db: Session) -> list[dict]:
+    """Personas de Design que cruzaron con GeoVictoria (para elegir a quién probar)."""
+    pares = cruce(db)["pares"]
+    return sorted(({"id": e.id, "nombre": e.nombre_completo} for e in db.query(Empleado).filter(Empleado.id.in_(list(pares) or [-1]))),
+                  key=lambda x: x["nombre"].lower())
+
+
+def probar_persona(db: Session, empleado_id: int, tipo: str, destino: str, quien: Empleado, ahora: datetime) -> dict:
+    """Trae al momento las marcas de hoy de esa persona y envía un aviso de prueba del tipo elegido.
+    destino «yo»: solo a quien prueba (con el texto que le llegaría a la persona y el que le llegaría al manager);
+    destino «real»: a la persona y a su manager, como un aviso de verdad (marcado como prueba)."""
+    from . import services_design_push as sp
+    if tipo not in TEXTOS:
+        raise ValueError("Tipo de aviso inválido.")
+    pares = cruce(db)["pares"]
+    if empleado_id not in pares:
+        raise ValueError("Esa persona no cruzó con GeoVictoria (revisa su cédula).")
+    e = db.get(Empleado, empleado_id)
+    r = _post(config(db), "/AttendanceBook", {"StartDate": ahora.strftime("%Y%m%d000000"), "EndDate": ahora.strftime("%Y%m%d235959"),
+                                              "UserIds": pares[empleado_id]})
+    u = next(iter((r or {}).get("Users") or []), None)
+    info = leer_dia(u, ahora.date()) if u else None
+    t = info["turno"] if info else None
+    hora = {"entrada": _hm(t["inicio"]) if t else "", "salida": _hm(t["fin"]) if t else ""}.get(tipo, "")
+    if tipo == "almuerzo" and info:
+        m = info["marcas"]
+        vence = (t and t["almuerzoFijoFin"]) or (m["salidaAlm"] + timedelta(minutes=(t or {}).get("almuerzoMin") or 60) if m["salidaAlm"] else None)
+        hora = _hm(vence)
+    hora = hora or ahora.strftime("%H:%M")
+    tp, cp, tm, cm = TEXTOS[tipo]
+    corto = " ".join((e.nombres or "").split()[:1] + (e.apellidos or "").split()[:1]) or e.nombre_completo
+    mans = sorted(_managers_de(db, empleado_id))
+    res = {"persona": e.nombre_completo, "marcas": para_seguimiento_info(info, ahora, config(db)["tolerancia"]) if info else None,
+           "managers": [x.nombre_completo for x in db.query(Empleado).filter(Empleado.id.in_(mans or [-1]))]}
+    if destino == "real":
+        a = sp.enviar(db, [empleado_id], "🧪 " + tp, cp.format(hora=hora) + " (prueba)", "/design/inicio", f"gv-prueba-{tipo}", fijo=True)
+        b = sp.enviar(db, mans, "🧪 " + tm.format(nombre=corto), cm.format(hora=hora) + " (prueba)", "/design?panel=seguimiento",
+                      f"gv-prueba-{empleado_id}-{tipo}", fijo=True) if mans else {"enviados": 0, "sinSuscripcion": 0}
+        res["envio"] = {"persona": a, "managers": b}
+    else:
+        a = sp.enviar(db, [quien.id], "🧪 " + tp, f"(lo que le llegaría a {corto}) " + cp.format(hora=hora), "/design/inicio", f"gv-prueba-{tipo}-p", fijo=True)
+        b = sp.enviar(db, [quien.id], "🧪 " + tm.format(nombre=corto), "(lo que le llegaría a su manager) " + cm.format(hora=hora),
+                      "/design?panel=seguimiento", f"gv-prueba-{tipo}-m", fijo=True)
+        res["envio"] = {"yo": {"enviados": a["enviados"] + b["enviados"], "sinSuscripcion": a["sinSuscripcion"]}}
+    return res
+
+
+def para_seguimiento_info(info: dict, ahora: datetime, tol: int) -> dict:
+    t, m = info["turno"], info["marcas"]
+    return {"turno": f"{_hm(t['inicio'])} – {_hm(t['fin'])}" if t else "", "permisos": info["permisos"], "atrasoMin": info["atrasoMin"],
+            "entrada": _hm(m["entrada"]), "salidaAlm": _hm(m["salidaAlm"]), "regresoAlm": _hm(m["regresoAlm"]), "salida": _hm(m["salida"]),
+            "faltas": faltas(info, ahora, tol)}
+
+
 _hilo = {"t": None}
 
 

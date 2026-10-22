@@ -122,6 +122,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   marcó la entrada, el regreso del almuerzo (60/90 min libres o fin del almuerzo fijo) o la salida; uno por tipo y
   persona al día (claves guardadas en `gv_avisos_AAAA-MM-DD`, se borran a los 7 días). Sin turno o con permiso en
   GeoVictoria no se avisa. Pendiente: fases 4-6 (ausencias automáticas, reporte de horas, puntualidad en Selección).
+  «🧪 Probar con una persona» (22-oct-2026): elige a alguien que cruzó, trae al momento sus marcas de hoy y envía un aviso
+  push de prueba del tipo elegido, «Solo a mí» (los textos de la persona y del manager) o «A la persona y su manager»
+  (marcado 🧪 prueba) (`probar_persona`, `POST /design/api/geovictoria/prueba`).
 - **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
   registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
   el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la

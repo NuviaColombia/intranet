@@ -56,6 +56,19 @@
     </div>
   </div>
 
+  {# Pruebas con una persona (22-oct-2026) #}
+  <div class="gv-card">
+    <h2>🧪 Probar con una persona</h2>
+    <p class="gv-nota">Trae al momento sus marcas de hoy y envía un aviso push de prueba. «Solo a mí» te envía los dos textos (el de la persona y el de su manager); «A la persona y su manager» les llega de verdad, marcado como prueba.</p>
+    <div class="gv-grid">
+      <label>Persona <select id="gvPPersona"><option value="">Cargando…</option></select></label>
+      <label>Aviso <select id="gvPTipo"><option value="entrada">No marcó entrada</option><option value="almuerzo">No marcó regreso del almuerzo</option><option value="salida">No marcó salida</option></select></label>
+      <label>Enviar a <select id="gvPDestino"><option value="yo">Solo a mí</option><option value="real">A la persona y su manager</option></select></label>
+    </div>
+    <div class="gv-acc"><button type="button" class="btn mini" id="gvPIr">Probar</button><span class="gv-msg" id="gvPMsg"></span></div>
+    <div id="gvPRes" class="gv-nota" style="margin-top:8px"></div>
+  </div>
+
   <div class="gv-card">
     <h2>🕒 Marcas de hoy</h2>
     <p class="gv-nota">Para revisar antes de activar los avisos: primero quienes tienen una marca pendiente.</p>
@@ -102,6 +115,28 @@
     }).catch(function (e) { $('gvCruceRes').textContent = e.message; });
   };
   var NOM = {entrada: 'Entrada', almuerzo: 'Regreso del almuerzo', salida: 'Salida'};
+  pedir('/design/api/geovictoria/personas').then(function (l) {
+    $('gvPPersona').innerHTML = '<option value="">— Elige una persona —</option>' + l.map(function (p) { return '<option value="' + p.id + '">' + esc(p.nombre) + '</option>'; }).join('');
+  }).catch(function (e) { $('gvPPersona').innerHTML = '<option value="">' + esc(e.message) + '</option>'; });
+  $('gvPIr').onclick = function () {
+    var id = +$('gvPPersona').value, dest = $('gvPDestino').value;
+    if (!id) { msg($('gvPMsg'), 'Elige una persona.', false); return; }
+    if (dest === 'real' && !confirm('Se enviará un aviso de prueba a la persona y a su manager. ¿Continuar?')) return;
+    msg($('gvPMsg'), 'Probando…', true); $('gvPRes').innerHTML = '';
+    pedir('/design/api/geovictoria/prueba', {empleadoId: id, tipo: $('gvPTipo').value, destino: dest}).then(function (r) {
+      var m = r.marcas, en = r.envio;
+      var txt = en.yo ? (en.yo.enviados ? '✔ Te envié los 2 avisos de prueba.' : '✘ No te llegó: activa la campana 🔔 en este navegador.')
+        : '✔ Persona: ' + (en.persona.enviados ? 'enviado' : 'no tiene notificaciones activas') + ' · Managers (' + (r.managers.join(', ') || 'ninguno') + '): ' +
+          (en.managers.enviados ? en.managers.enviados + ' enviado(s)' : 'no tienen notificaciones activas');
+      msg($('gvPMsg'), txt, !!((en.yo && en.yo.enviados) || (en.persona && (en.persona.enviados || en.managers.enviados))));
+      $('gvPRes').innerHTML = '<b>' + esc(r.persona) + '</b> · manager: ' + esc(r.managers.join(', ') || '—') + '<br>' + (m ?
+        'Turno ' + esc(m.turno || '—') + ' · Entrada ' + esc(m.entrada || '—') + (m.atrasoMin ? ' (+' + m.atrasoMin + ' min)' : '') +
+        ' · Almuerzo ' + esc(m.salidaAlm || '—') + ' – ' + esc(m.regresoAlm || '—') + ' · Salida ' + esc(m.salida || '—') +
+        (m.permisos.length ? ' · Permiso: ' + esc(m.permisos.join(', ')) : '') +
+        (m.faltas.length ? '<br>Hoy le falta: ' + m.faltas.map(function (x) { return '<span class="gv-falta">' + NOM[x.tipo] + ' (' + esc(x.hora) + ')</span>'; }).join('') : '<br>Hoy no le falta ninguna marca.')
+        : 'Hoy no tiene turno ni marcas en GeoVictoria.');
+    }).catch(function (e) { msg($('gvPMsg'), e.message, false); });
+  };
   $('gvHoy').onclick = function () {
     msg($('gvHoyMsg'), 'Trayendo marcas…', true);
     pedir('/design/api/geovictoria/hoy?forzar=1').then(function (d) {

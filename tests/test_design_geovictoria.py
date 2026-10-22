@@ -62,7 +62,10 @@ class Avisos(unittest.TestCase):
         self.db.add(md.DesignTeamDesigner(team_id=t.id, empleado_id=self.ana.id)); self.db.commit()
         g._hoy.update(fecha=None, t=0.0, datos={}); g._enviados.update(fecha=None, claves=set()); g._usuarios.update(t=0.0, lista=[])
         self.envios = []
-        for p in (mock.patch.object(sp, "enviar", side_effect=lambda db, ids, *a, **k: self.envios.append((sorted(ids), a[0], k.get("fijo")))),
+        def _env(db, ids, *a, **k):
+            self.envios.append((sorted(ids), a[0], k.get("fijo")))
+            return {"enviados": len(ids), "fallidos": 0, "borrados": 0, "sinSuscripcion": 0}
+        for p in (mock.patch.object(sp, "enviar", side_effect=_env),
                   mock.patch.object(g, "_post", side_effect=self._api)):
             p.start(); self.addCleanup(p.stop)
         self.marcas = []
@@ -106,6 +109,21 @@ class Avisos(unittest.TestCase):
         self.assertTrue(p["tieneSecreto"])
         g.guardar(self.db, {"key": "k", "secret": "", "avisos": True, "tolerancia": 15}, self.luis)   # vacío conserva
         self.assertEqual(g.config(self.db)["secret"], "s")
+
+
+    def test_prueba_con_una_persona(self):
+        self.configurar(avisos=False)
+        self.assertEqual([x["nombre"] for x in g.personas(self.db)], ["Ana X"])
+        r = g.probar_persona(self.db, self.ana.id, "entrada", "yo", self.luis, datetime(2026, 10, 22, 7, 30))
+        self.assertEqual([e[0] for e in self.envios], [[self.luis.id], [self.luis.id]])   # «solo a mí»: los dos textos a quien prueba
+        self.assertTrue(all(e[1].startswith("🧪") for e in self.envios))
+        self.assertEqual(r["marcas"]["faltas"][0]["tipo"], "entrada")
+        self.assertEqual(r["managers"], ["Luis X"])
+        self.envios.clear()
+        g.probar_persona(self.db, self.ana.id, "salida", "real", self.ana, datetime(2026, 10, 22, 16, 30))
+        self.assertEqual([e[0] for e in self.envios], [[self.ana.id], [self.luis.id]])   # de verdad: la persona y su manager
+        with self.assertRaises(ValueError):
+            g.probar_persona(self.db, self.luis.id, "entrada", "yo", self.luis, datetime(2026, 10, 22, 7, 30))   # no cruzó
 
 
 if __name__ == "__main__":
