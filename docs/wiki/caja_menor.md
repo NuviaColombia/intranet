@@ -90,7 +90,12 @@ rehacerlo.
 - **Autocompletar identificación/nombre** (`services_caja.buscar_personas`,
   `GET /caja-menor/api/{caja_id}/buscar-persona`): busca por nombre o identificación en Empleados
   activos (cualquier empresa) y en el historial de recibos/anticipos de esta caja; People tiene
-  prioridad sobre el historial. Se usa igual en "Nuevo recibo" y en "Anticipos" (mismos campos). Es
+  prioridad sobre el historial. **(2026-10-22) Búsqueda por palabra, no por texto contiguo**: cada
+  palabra escrita debe aparecer en `nombres` O en `apellidos` (cualquiera de las dos, en cualquier
+  orden) -- así "Carlos Baldovino" encuentra a "Carlos Andrés Barreto Baldovino" aunque esas dos
+  palabras no estén seguidas (primer nombre + segundo apellido). Antes comparaba el texto completo
+  contra un solo campo a la vez y se perdía esas combinaciones. Se usa igual en "Nuevo recibo" y en
+  "Anticipos" (mismos campos). Es
   solo una ayuda de UI -- no impide escribir un nombre o identificación que no esté en ninguna lista.
 - **Migración de columnas nuevas**: `empleado_id`, `firmado_email`, `firmado_en`, `firmado_via` se
   agregan con `ALTER TABLE` en el `on_event("startup")` de `caja_menor.py` (igual que las demás
