@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from .models import Empleado
 from .models_caja import (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo,
-                          CajaObservacion, CajaAdjunto)
+                          CajaObservacion, CajaAdjunto, CajaAnticipo)
 from .formato import nombre_propio
 
 MONEDAS = [50, 100, 200, 500, 1000]
@@ -619,6 +619,55 @@ def crear_arqueo(db: Session, caja: CajaMenor, user: Empleado, responsable: str,
         except IntegrityError:
             db.rollback()
     return "No se pudo asignar el consecutivo del arqueo. Intenta de nuevo."
+
+
+# ---------------- Anticipos (registro simple, no ligado a recibos ni FM) ----------------
+
+def serializar_anticipo(a: CajaAnticipo) -> dict:
+    return {"id": a.id, "identificacion": a.identificacion, "nombre": a.nombre, "valor": a.valor,
+            "fecha": a.fecha.isoformat() if a.fecha else "", "concepto": a.concepto, "estado": a.estado,
+            "legalizadoEn": hora_colombia(a.legalizado_en) if a.legalizado_en else "",
+            "legalizadoPor": nombre_propio(a.legalizado_por.nombre_completo) if a.legalizado_por else "",
+            "creadoPor": nombre_propio(a.creado_por.nombre_completo) if a.creado_por else ""}
+
+
+def anticipos_de_caja(db: Session, caja: CajaMenor) -> list[CajaAnticipo]:
+    return (db.query(CajaAnticipo).filter(CajaAnticipo.caja_id == caja.id)
+            .order_by(CajaAnticipo.estado.desc(), CajaAnticipo.fecha.desc()).all())  # PENDIENTE antes que LEGALIZADO
+
+
+def crear_anticipo(db: Session, caja: CajaMenor, user: Empleado, datos: dict) -> CajaAnticipo | str:
+    identificacion = str(datos.get("identificacion") or "").strip()
+    nombre = str(datos.get("nombre") or "").strip().upper()
+    concepto = str(datos.get("concepto") or "").strip()
+    try:
+        valor = float(datos.get("valor") or 0)
+    except (TypeError, ValueError):
+        return "El valor no es un número."
+    if not nombre:
+        return "Escribe a quién le diste el anticipo."
+    if valor <= 0:
+        return "El valor debe ser mayor que cero."
+    try:
+        fecha = date.fromisoformat(str(datos.get("fecha") or ""))
+    except ValueError:
+        return "Elige la fecha del anticipo."
+    a = CajaAnticipo(caja_id=caja.id, identificacion=identificacion, nombre=nombre, valor=valor, fecha=fecha,
+                     concepto=concepto, creado_por_id=user.id)
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    return a
+
+
+def toggle_anticipo(db: Session, a: CajaAnticipo, user: Empleado) -> None:
+    """Marca el anticipo como legalizado (llegó la factura y el gasto de transporte), o lo vuelve a pendiente
+    si se marcó por error."""
+    if a.estado == "PENDIENTE":
+        a.estado, a.legalizado_en, a.legalizado_por_id = "LEGALIZADO", datetime.utcnow(), user.id
+    else:
+        a.estado, a.legalizado_en, a.legalizado_por_id = "PENDIENTE", None, None
+    db.commit()
 
 
 # ---------------- Importación desde la hoja de Google (app anterior) ----------------

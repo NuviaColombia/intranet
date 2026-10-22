@@ -13,7 +13,7 @@ from ..formato import nombre_propio
 from ..database import SessionLocal, get_db
 from ..models import Empleado
 from ..models_caja import (CajaMenor, CajaAcceso, CajaAutorizador, CajaSupervisor, CajaRecibo, CajaFM, CajaArqueo,
-                           CajaObservacion, CajaAdjunto)
+                           CajaObservacion, CajaAdjunto, CajaAnticipo)
 from ..auth import require_modulo, get_current_user
 from ..main_templates import templates
 from .. import services_caja as sc
@@ -682,6 +682,46 @@ def api_crear_arqueo(caja_id: int, payload: ArqueoIn, user: Empleado = Depends(r
     if isinstance(a, str):
         raise HTTPException(400, a)
     return {"mensaje": f"✅ Arqueo ARQ-{a.consecutivo:04d} guardado.", "arqueo": sc.serializar_arqueo(a)}
+
+
+# ---------------- API: anticipos (registro simple de a quién se le dio plata antes de comprar) ----------------
+
+class AnticipoIn(BaseModel):
+    identificacion: str = ""
+    nombre: str = ""
+    valor: float = 0
+    fecha: str = ""
+    concepto: str = ""
+
+
+@router.get("/caja-menor/api/{caja_id}/anticipos")
+def api_anticipos(caja_id: int, user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'anticipos')
+    return {"data": [sc.serializar_anticipo(a) for a in sc.anticipos_de_caja(db, caja)]}
+
+
+@router.post("/caja-menor/api/{caja_id}/anticipos")
+def api_crear_anticipo(caja_id: int, payload: AnticipoIn, user: Empleado = Depends(require_modulo(MODULO)),
+                       db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'anticipos')
+    a = sc.crear_anticipo(db, caja, user, payload.model_dump())
+    if isinstance(a, str):
+        raise HTTPException(400, a)
+    return {"mensaje": "✅ Anticipo registrado.", "anticipo": sc.serializar_anticipo(a)}
+
+
+@router.post("/caja-menor/api/{caja_id}/anticipos/{anticipo_id}/toggle")
+def api_toggle_anticipo(caja_id: int, anticipo_id: int, user: Empleado = Depends(require_modulo(MODULO)),
+                        db: Session = Depends(get_db)):
+    caja = _caja(db, user, caja_id)
+    acs.exigir(db, user, "caja", 'anticipos')
+    a = db.get(CajaAnticipo, anticipo_id)
+    if not a or a.caja_id != caja.id:
+        raise HTTPException(404, "Anticipo no encontrado.")
+    sc.toggle_anticipo(db, a, user)
+    return {"mensaje": "✅ Actualizado.", "anticipo": sc.serializar_anticipo(a)}
 
 
 # ---------------- Parámetros (solo administradores) ----------------
