@@ -238,7 +238,7 @@ def medio(medio_id: int, request: Request, user: Empleado = Depends(require_modu
 
 @router.get("/design/api/inicio/ranking")
 def api_ranking(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    """Equipos con más casos aprobados del mes (para el bloque Cifras). Se recalcula como máximo cada hora."""
+    """Equipos con más casos aprobados del mes (para el bloque Cifras). Se actualiza una vez al día, a las 12:00."""
     return si.ranking_mes(db)
 
 
@@ -251,7 +251,7 @@ def api_fotos_nombres(n: list[str] = Query(default=[], max_length=60), user: Emp
 
 @router.get("/design/api/inicio/ranking-disenadores")
 def api_ranking_disenadores(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    """Podio de diseñadores con más casos aprobados del mes, por área (bloque Cifras). Se recalcula como máximo cada hora."""
+    """Podio de diseñadores con más casos aprobados del mes, por área (bloque Cifras). Se actualiza una vez al día, a las 12:00."""
     return si.ranking_disenadores_mes(db)
 
 

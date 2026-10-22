@@ -89,6 +89,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Inicio › podio de diseñadores de N3** (Rosember, 22-oct-2026): solo cuentan las Cirugías (tabla principal); los
   Nightguards y TC ya no suman (`PODIO_SOLO_CIRUGIAS` en services_design_inicio.py). Las demás áreas no cambian.
+- **Inicio › rankings sincronizados al mediodía** (Rosember, 22-oct-2026): el de equipos/managers y el de diseñadores se
+  actualizan juntos una vez al día, a las 12:00 m. hora Colombia (antes cada hora, cada uno por su lado). Cuentan los
+  casos aprobados hasta ese corte (`corte_ranking`; una orden con aprobada_en después de las 12 espera al día siguiente),
+  así un reinicio del servidor no cambia el resultado. El pie dice «último corte: dd/mm 12:00».
 - **Desempeño › Selección asistida** (Rosember, 21-oct-2026; solo admin, botón «🏆 Selección asistida» en Desempeño):
   propone Manager del mes (aprobadores de Face/N2/N3/N6), Empleado del mes N2/Face, N3/N6, otro de N3/N6 y MVP (mejor
   puntaje global entre quienes no ganaron otra categoría: nadie se repite, Rosember 22-oct-2026). Analiza por defecto el mes anterior (selector para otros meses; el en

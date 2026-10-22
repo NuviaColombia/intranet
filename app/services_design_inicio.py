@@ -426,6 +426,24 @@ def salir_editor(user: Empleado) -> None:
 RANKING_AREAS = [("N2 Demodenture", "N2", 3), ("N3 Prosthetic", "N3", 3), ("Face Design", "Face Design", 3), ("N6 Material Changes", "N6", 1)]
 _MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 _ranking_cache: dict = {}
+# Los dos rankings de Inicio (equipos/managers y diseñadores) se actualizan juntos, una vez al día a las 12:00 m. hora
+# Colombia (Rosember, 22-oct-2026; antes cada hora). Cuentan los casos aprobados hasta ese corte: una orden aprobada
+# después de las 12 (aprobada_en, en UTC) espera al día siguiente. Así, aunque el servidor se reinicie en la tarde, el
+# resultado es el mismo. El 1 del mes, antes de las 12, se sigue viendo el mes anterior completo hasta su último corte.
+HORA_CORTE_RANKING = 12
+
+
+def corte_ranking(ahora: datetime) -> datetime:
+    """El último corte de las 12:00 (hora Colombia) hasta `ahora`."""
+    from datetime import timedelta
+    hoy = ahora.replace(hour=HORA_CORTE_RANKING, minute=0, second=0, microsecond=0)
+    return hoy if ahora >= hoy else hoy - timedelta(days=1)
+
+
+def _aprobada_antes(aprobada_en, corte: datetime) -> bool:
+    """¿La orden ya estaba aprobada al corte? aprobada_en está en UTC (Colombia = UTC − 5); las órdenes viejas no la tienen."""
+    from datetime import timedelta
+    return aprobada_en is None or aprobada_en <= corte.replace(tzinfo=None) + timedelta(hours=5)
 
 
 def _nombre_corto(e) -> str:
@@ -435,24 +453,24 @@ def _nombre_corto(e) -> str:
 
 
 def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False) -> dict:
-    """Equipos con más casos aprobados en el mes, por área. Se recalcula como máximo cada hora
-    (y siempre que cambia el mes: el ranking empieza de cero)."""
+    """Equipos con más casos aprobados en el mes, por área. Se actualiza una vez al día, en el corte de las 12:00
+    (corte_ranking), igual que el de diseñadores."""
     import time
     from collections import Counter
     from datetime import date
     from .services_design import ahora_colombia, filtro_orden_completa
     from .models_design import DesignOrden, DesignTeam, DesignArea
-    ahora = ahora or ahora_colombia()
-    clave = (ahora.year, ahora.month)
+    corte = corte_ranking(ahora or ahora_colombia())
+    clave = corte
     c = _ranking_cache.get("r")
-    if not forzar and c and c["clave"] == clave and time.time() - c["t"] < 3600:
+    if not forzar and c and c["clave"] == clave:
         return c["datos"]
-    ini = date(ahora.year, ahora.month, 1)
-    fin = date(ahora.year + (ahora.month == 12), ahora.month % 12 + 1, 1)
-    filas = db.query(DesignOrden.team_id, DesignOrden.estado, DesignOrden.producto).filter(
-        DesignOrden.fecha >= ini, DesignOrden.fecha < fin, filtro_orden_completa()).all()
+    ini = date(corte.year, corte.month, 1)
+    filas = db.query(DesignOrden.team_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.aprobada_en).filter(
+        DesignOrden.fecha >= ini, DesignOrden.fecha <= corte.date(), filtro_orden_completa()).all()
     cuenta = Counter(f.team_id for f in filas
-                     if (f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower())
+                     if (f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower()
+                     and _aprobada_antes(f.aprobada_en, corte))
     areas = []
     for nombre_area, etiqueta, puestos in RANKING_AREAS:
         area = db.query(DesignArea).filter(DesignArea.nombre == nombre_area).first()
@@ -469,7 +487,7 @@ def ranking_mes(db: Session, ahora: datetime | None = None, forzar: bool = False
         else:
             equipos = equipos[:puestos]
         areas.append({"area": nombre_area, "etiqueta": etiqueta, "modo": "podio" if puestos > 1 else "ganador", "equipos": equipos})
-    datos = {"mes": f"{_MESES[ahora.month - 1]} de {ahora.year}", "actualizado": ahora.strftime("%H:%M"), "areas": areas}
+    datos = {"mes": f"{_MESES[corte.month - 1]} de {corte.year}", "actualizado": corte.strftime("%d/%m %H:%M"), "areas": areas}
     _ranking_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
     return datos
 
@@ -505,19 +523,19 @@ _podio_cache: dict = {}
 
 
 def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: bool = False) -> dict:
-    """Los 3 diseñadores con más casos aprobados del mes en cada área. Se recalcula como máximo cada hora."""
+    """Los 3 diseñadores con más casos aprobados del mes en cada área. Se actualiza una vez al día, en el corte de las
+    12:00 (corte_ranking), igual que el de equipos."""
     import time
     from collections import Counter
     from datetime import date
     from .services_design import ahora_colombia, filtro_orden_completa
     from .models_design import DesignOrden, DesignTeam, DesignArea, DesignTeamDesigner
-    ahora = ahora or ahora_colombia()
-    clave = (ahora.year, ahora.month)
+    corte = corte_ranking(ahora or ahora_colombia())
+    clave = corte
     c = _podio_cache.get("r")
-    if not forzar and c and c["clave"] == clave and time.time() - c["t"] < 3600:
+    if not forzar and c and c["clave"] == clave:
         return c["datos"]
-    ini = date(ahora.year, ahora.month, 1)
-    fin = date(ahora.year + (ahora.month == 12), ahora.month % 12 + 1, 1)
+    ini = date(corte.year, corte.month, 1)
     equipos = {t.id: t for t in db.query(DesignTeam).all()}
     miembros: dict[int, set[int]] = {}
     for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).all():
@@ -526,8 +544,9 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
         if t.manager_id:
             miembros.setdefault(t.id, set()).add(t.manager_id)
     areas_solo_cir = {a.id for a in db.query(DesignArea).filter(DesignArea.nombre.in_(PODIO_SOLO_CIRUGIAS))}
-    filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.tabla).filter(
-        DesignOrden.fecha >= ini, DesignOrden.fecha < fin, DesignOrden.designer_id.isnot(None), filtro_orden_completa()).all()
+    filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.tabla,
+                     DesignOrden.aprobada_en).filter(
+        DesignOrden.fecha >= ini, DesignOrden.fecha <= corte.date(), DesignOrden.designer_id.isnot(None), filtro_orden_completa()).all()
     cuenta: dict[int, Counter] = {}   # area_id -> {designer_id: casos}
     for f in filas:
         t = equipos.get(f.team_id)
@@ -535,7 +554,8 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
             continue
         if t.area_id in areas_solo_cir and f.tabla != "principal":
             continue   # N3: Nightguards / TC no cuentan en el podio
-        if (f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower():
+        if ((f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower()
+                and _aprobada_antes(f.aprobada_en, corte)):
             cuenta.setdefault(t.area_id, Counter())[f.designer_id] += 1
     areas = []
     for nombre_area, etiqueta in PODIO_AREAS:
@@ -550,6 +570,6 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
         for x in lista:   # empates: mismo puesto
             x["puesto"] = 1 + sum(1 for y in lista if y["casos"] > x["casos"])
         areas.append({"area": nombre_area, "etiqueta": etiqueta, "podio": [x for x in lista if x["puesto"] <= 3][:3]})
-    datos = {"mes": f"{_MESES[ahora.month - 1]} de {ahora.year}", "actualizado": ahora.strftime("%H:%M"), "areas": areas}
+    datos = {"mes": f"{_MESES[corte.month - 1]} de {corte.year}", "actualizado": corte.strftime("%d/%m %H:%M"), "areas": areas}
     _podio_cache["r"] = {"clave": clave, "t": time.time(), "datos": datos}
     return datos

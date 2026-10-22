@@ -245,8 +245,8 @@
   D.cifras = {n: 'Cifras', ic: '#', g: 'Diseño',
     d: function() { return {fuente: '', items: [{numero: 120, prefijo: '', sufijo: '+', etiqueta: 'Casos diarios'}, {numero: 5, prefijo: '', sufijo: '', etiqueta: 'Áreas'}, {numero: 98, prefijo: '', sufijo: '%', etiqueta: 'Aprobados con QC'}], color: '', animar: true}; },
     campos: [{tipo: 'select', k: 'fuente', l: 'Qué mostrar', ops: [['', 'Números escritos a mano'], ['ranking', '🏆 Equipos con más casos aprobados del mes'], ['rankingDisenadores', '🏅 Diseñadores con más casos aprobados del mes (lista por área)']]},
-      {tipo: 'nota', l: 'N2 y N3: podio de 3. Face Design y N6: el equipo ganador. Cuenta los casos Approved del mes (Cirugías y Nightguards); no cuenta cancelados ni productos de cambios (Changes). Se actualiza cada hora y empieza de cero cada mes.', si: ['fuente', ['ranking']]},
-      {tipo: 'nota', l: 'Los 3 primeros de cada área (N2, N3, Face Design y N6), en lista con su foto y sus casos. Mismas reglas que el ranking de equipos, contadas por diseñador. Solo cuentan los casos de un diseñador en su propio equipo (el prestado no suma). Se actualiza cada hora y empieza de cero cada mes.', si: ['fuente', ['rankingDisenadores']]},
+      {tipo: 'nota', l: 'N2 y N3: podio de 3. Face Design y N6: el equipo ganador. Cuenta los casos Approved del mes (Cirugías y Nightguards); no cuenta cancelados ni productos de cambios (Changes). Se actualiza una vez al día a las 12:00 m. (junto con el de diseñadores) y empieza de cero cada mes.', si: ['fuente', ['ranking']]},
+      {tipo: 'nota', l: 'Los 3 primeros de cada área (N2, N3, Face Design y N6), en lista con su foto y sus casos. Mismas reglas que el ranking de equipos, contadas por diseñador. Solo cuentan los casos de un diseñador en su propio equipo (el prestado no suma). En N3 solo cuentan las Cirugías. Se actualiza una vez al día a las 12:00 m. (junto con el de equipos) y empieza de cero cada mes.', si: ['fuente', ['rankingDisenadores']]},
       {tipo: 'texto', k: 'tituloRanking', l: 'Título (opcional)', si: ['fuente', ['ranking', 'rankingDisenadores']]},
       {tipo: 'lista', k: 'items', l: 'Cifras', si: ['fuente', ['']], titulo: 'etiqueta', nuevo: {numero: 0, prefijo: '', sufijo: '', etiqueta: 'Nueva cifra'},
       campos: [{tipo: 'numero', k: 'numero', l: 'Número'}, {tipo: 'texto', k: 'prefijo', l: 'Antes del número (ej. $)'}, {tipo: 'texto', k: 'sufijo', l: 'Después (ej. %, +)'}, {tipo: 'texto', k: 'etiqueta', l: 'Etiqueta'}]},
@@ -506,10 +506,10 @@
         }
         fila.appendChild(c);
       });
-      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza cada hora (última: ' + (d.actualizado || '') + ')';
+      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza una vez al día a las 12:00 m. (último corte: ' + (d.actualizado || '') + ')';
     };
     rank.bloques.push({w: w, pintar: pintar});
-    NVI.cargarRanking().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo en la próxima hora.</div>'; });
+    NVI.cargarRanking().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo más tarde.</div>'; });
     return w;
   };
 
@@ -554,10 +554,10 @@
         });
         c.appendChild(lista); fila.appendChild(c);
       });
-      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza cada hora (última: ' + (d.actualizado || '') + ')';
+      pie.textContent = 'Casos aprobados en ' + (d.mes || 'el mes') + ' · se actualiza una vez al día a las 12:00 m. (último corte: ' + (d.actualizado || '') + ')';
     };
     podioRank.bloques.push({w: w, pintar: pintar});
-    NVI.cargarPodio().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo en la próxima hora.</div>'; });
+    NVI.cargarPodio().then(pintar).catch(function() { fila.innerHTML = '<div class="nvi-rk-cargando">No se pudo cargar el ranking. Se intentará de nuevo más tarde.</div>'; });
     return w;
   };
 

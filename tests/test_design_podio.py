@@ -36,10 +36,35 @@ class Podio(unittest.TestCase):
                 db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla=tabla, orden=f"O{i}", centro="C", producto="P",
                                       designer_id=e.id, estado="Approved", orden_visual=i))
         db.commit()
+        for o in db.query(md.DesignOrden):   # todas aprobadas el 6 de octubre a las 9 am (14:00 UTC)
+            o.aprobada_en = datetime(2026, 10, 6, 14, 0)
+        db.commit()
         r = si.ranking_disenadores_mes(db, datetime(2026, 10, 22, 10, 0), forzar=True)
         podio = {a["area"]: [(x["nombre"], x["casos"]) for x in a["podio"]] for a in r["areas"]}
         self.assertEqual(podio["N3 Prosthetic"], [("Ana X", 5), ("Beto X", 3)])
         self.assertEqual(podio["N2 Demodenture"], [("Dani X", 6), ("Caro X", 4)])
+
+
+    def test_corte_del_mediodia(self):
+        self.assertEqual(si.corte_ranking(datetime(2026, 10, 22, 11, 59)), datetime(2026, 10, 21, 12, 0))
+        self.assertEqual(si.corte_ranking(datetime(2026, 10, 22, 12, 0)), datetime(2026, 10, 22, 12, 0))
+        self.assertEqual(si.corte_ranking(datetime(2026, 11, 1, 8, 0)), datetime(2026, 10, 31, 12, 0))   # el 1 en la mañana: octubre
+        corte = datetime(2026, 10, 22, 12, 0)
+        self.assertTrue(si._aprobada_antes(datetime(2026, 10, 22, 16, 59), corte))    # 11:59 am Colombia
+        self.assertFalse(si._aprobada_antes(datetime(2026, 10, 22, 17, 1), corte))    # 12:01 pm Colombia: al día siguiente
+        self.assertTrue(si._aprobada_antes(None, corte))
+
+    def test_los_dos_rankings_con_el_mismo_corte_y_sin_recalcular(self):
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db = sessionmaker(bind=eng)()
+        a = si.ranking_mes(db, datetime(2026, 10, 22, 12, 30), forzar=True)
+        b = si.ranking_disenadores_mes(db, datetime(2026, 10, 22, 12, 30), forzar=True)
+        self.assertEqual((a["actualizado"], b["actualizado"]), ("22/10 12:00", "22/10 12:00"))
+        # en la tarde no se recalcula: mismo objeto en memoria hasta el corte de mañana
+        self.assertIs(si.ranking_mes(db, datetime(2026, 10, 22, 17, 0)), a)
+        self.assertIs(si.ranking_disenadores_mes(db, datetime(2026, 10, 23, 11, 0)), b)
+        self.assertIsNot(si.ranking_mes(db, datetime(2026, 10, 23, 12, 5)), a)
 
 
 if __name__ == "__main__":
