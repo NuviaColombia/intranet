@@ -259,6 +259,21 @@
   // ---------- Grupos ----------
   // 20-oct-2026 (Rosember: «¿cómo veo cuántos hay agregados?»): cada grupo muestra la lista de destinos con su número;
   // abajo, una sola fila para agregar. «Guardar cambios» solo se activa cuando hay algo sin guardar.
+  // Mostrar / ocultar cada grupo (Rosember, 22-oct-2026). Los grupos guardados salen ocultos (solo nombre y cuántos
+  // destinos tienen); uno nuevo sale abierto. Se recuerda en este navegador cuáles dejó abiertos.
+  var GRP_ABIERTOS = (function() { try { return JSON.parse(localStorage.getItem('avGruposAbiertos') || '[]'); } catch (e) { return []; } })();
+  function grpRecordar(id, abierto) {
+    if (!id) return;
+    GRP_ABIERTOS = GRP_ABIERTOS.filter(function(x) { return x !== id; });
+    if (abierto) GRP_ABIERTOS.push(id);
+    try { localStorage.setItem('avGruposAbiertos', JSON.stringify(GRP_ABIERTOS)); } catch (e) {}
+  }
+  function grpAbrir(c, abierto) {
+    c.classList.toggle('cerrado', !abierto);
+    var b = c.querySelector('[data-a="plegar"]');
+    b.textContent = abierto ? '▾ Ocultar' : '▸ Mostrar';
+    b.setAttribute('aria-expanded', abierto);
+  }
   function pintarGrupos() {
     var el = $('avGrupos');
     if (el.querySelector('.av-card.sucio')) return;   // hay un grupo con cambios sin guardar: no se pierde lo escrito
@@ -274,7 +289,7 @@
   }
   function pintarDests(c) {
     var lista = c._destinos, ul = c.querySelector('.av-dests');
-    c.querySelector('.av-dest-cant').textContent = lista.length;
+    c.querySelectorAll('.av-dest-cant').forEach(function(x) { x.textContent = lista.length; });
     c.querySelector('.av-dest-res').textContent = resumenDest(lista);
     // etiquetas compactas, una al lado de la otra (Rosember, 20-oct-2026: «que se vayan agrupando para ahorrar espacio»)
     ul.innerHTML = lista.length ? lista.map(function(d, i) {
@@ -294,7 +309,9 @@
     c.className = 'av-card av-grupo';
     c.dataset.id = g.id || '';
     c._destinos = (g.destinos || []).map(function(d) { return {tipo: d.tipo, valor: d.valor}; });
-    c.innerHTML = '<div class="av-card-cab"><input type="text" class="av-titulo-inp" data-c="nombre" maxlength="120" placeholder="Nombre del grupo, ej. Managers N3" aria-label="Nombre del grupo"></div>' +
+    c.innerHTML = '<div class="av-card-cab"><input type="text" class="av-titulo-inp" data-c="nombre" maxlength="120" placeholder="Nombre del grupo, ej. Managers N3" aria-label="Nombre del grupo">' +
+      '<span class="av-cant av-dest-cant av-cab-cant" title="Destinos del grupo"></span>' +
+      '<button type="button" class="av-btn av-plegar" data-a="plegar" aria-expanded="true">▾ Ocultar</button></div>' +
       '<div class="av-linea av-gris">' + (g.usos && g.usos.length ? 'Lo usan: ' + g.usos.map(esc).join(', ') : 'Ningún mensaje lo usa todavía') + '</div>' +
       '<div class="av-dest-tit">Destinos <span class="av-cant av-dest-cant"></span> <span class="av-gris av-dest-res"></span></div>' +
       '<ul class="av-dests"></ul>' +
@@ -318,6 +335,7 @@
     ajustar();
     if (!g.id) c.classList.add('sucio');
     pintarDests(c);
+    grpAbrir(c, !g.id || GRP_ABIERTOS.indexOf(g.id) >= 0);
     return c;
   }
   function agregar(c, callado) {
@@ -350,6 +368,7 @@
     var b = ev.target.closest('[data-a]'), c = ev.target.closest('.av-card');
     if (!b || !c) return;
     var a = b.dataset.a, id = c.dataset.id ? +c.dataset.id : null;
+    if (a === 'plegar') { var ab = c.classList.contains('cerrado'); grpAbrir(c, ab); grpRecordar(id, ab); return; }
     if (a === 'agregar') { if (agregar(c) && c._destinos.some(function(x) { return x.nuevo; })) guardarGrupo(c, b); }
     else if (a === 'quitar') {
       var q = c._destinos[+b.dataset.i];

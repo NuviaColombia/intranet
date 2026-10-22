@@ -62,6 +62,14 @@
 .av-sw input:checked + span::after { left:16px; }
 .av-sw input:focus-visible + span { outline:2px solid var(--av-prim); outline-offset:2px; }
 
+/* Grupos: mostrar / ocultar (22-oct-2026). Cerrado: solo el nombre, cuántos destinos tiene y el botón */
+.av-grupo .av-card-cab { align-items:center; }
+.av-cab-cant { flex:none; }
+.av-plegar { flex:none; white-space:nowrap; }
+.av-grupo.cerrado > :not(.av-card-cab) { display:none; }
+.av-grupo.cerrado { align-self:start; }
+.av-grupo.cerrado .av-titulo-inp { background:transparent; }
+.av-grupo:not(.cerrado) .av-cab-cant { display:none; }
 .av-titulo-inp { width:100%; font:inherit; font-size:15px; font-weight:700; padding:6px 8px; border:1px solid transparent; border-radius:8px; background:var(--av-suave); color:var(--av-texto); }
 .av-titulo-inp:focus { border-color:var(--av-prim); outline:none; background:var(--av-fondo); }
 .av-dest-tit { font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
