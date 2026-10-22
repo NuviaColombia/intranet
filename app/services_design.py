@@ -4454,6 +4454,20 @@ def perf_detalle_seleccion(db: Session, sheet_id: int) -> dict | None:
     }
 
 
+def perf_renombrar_categoria(db: Session, ganador_id: int, categoria: str) -> str:
+    """Empleado del mes › Categoría (Rosember, 22-oct-2026): el admin corrige el texto de la categoría. Solo cambia el
+    nombre de la fila; los ganadores ya registrados se quedan."""
+    g = db.get(DesignPerfGanador, ganador_id)
+    if not g:
+        raise LookupError("Esa categoría ya no existe.")
+    nuevo = re.sub(r"\s+", " ", categoria or "").strip()[:150]
+    if not nuevo:
+        raise ValueError("La categoría no puede quedar vacía.")
+    g.categoria = nuevo
+    db.commit()
+    return nuevo
+
+
 def perf_guardar_ganador_mes(db: Session, ganador_id: int, mes_indice: int, nombre: str) -> None:
     g = db.get(DesignPerfGanador, ganador_id)
     if not g or not 0 <= mes_indice < PERF_MAX_MESES:

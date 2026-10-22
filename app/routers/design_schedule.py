@@ -2953,6 +2953,24 @@ def api_perf_guardar_ganador(ganador_id: int, payload: PerfGanadorMesIn, user: E
     return {"mensaje": "Guardado."}
 
 
+class PerfCategoriaIn(BaseModel):
+    categoria: str = ""
+
+
+@router.post("/design/api/perf/ganadores/{ganador_id}/categoria")
+def api_perf_renombrar_categoria(ganador_id: int, payload: PerfCategoriaIn, user: Empleado = Depends(require_design_manager),
+                                 db: Session = Depends(get_db)):
+    """Empleado del mes: el admin edita el texto de la categoría (22-oct-2026)."""
+    if not sd.es_admin(user):
+        raise HTTPException(403, "El empleado del mes lo registra un administrador.")
+    try:
+        return {"categoria": sd.perf_renombrar_categoria(db, ganador_id, payload.categoria)}
+    except LookupError as e:
+        raise HTTPException(404, str(e))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 class PerfCeldaSeleccionIn(BaseModel):
     mesIndice: int = Field(ge=0, lt=60)
     persona: str = ""

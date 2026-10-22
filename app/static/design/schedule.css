@@ -812,6 +812,10 @@
   .pf-vista button:first-child { border-radius:6px 0 0 6px; } .pf-vista button:last-child { border-radius:0 6px 6px 0; border-left:0; }
   .pf-vista button.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   .pf-nivel-ALTO { background:#e6f6ea; }
+  /* Empleado del mes: categoría editable (22-oct-2026) */
+  .pf-cat { width:100%; font:inherit; font-weight:600; border:1px solid transparent; border-radius:6px; padding:3px 6px; background:transparent; color:inherit; }
+  .pf-cat:hover { border-color:#cbd5e1; }
+  .pf-cat:focus { border-color:#1d4ed8; outline:none; background:#fff; }
   /* Desempeño › Selección asistida (21-oct-2026) */
   .ds-area-row .pf-sel-btn { margin-left:auto; }
   .pf-sel { margin-bottom:14px; }

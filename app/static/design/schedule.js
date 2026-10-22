@@ -8093,7 +8093,9 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     g += '</tr></thead><tbody>';
     if (d.verGanadores === false) g = '';
     else d.ganadores.forEach(function(w, wi) {
-      g += '<tr><td class="pf-nombre">' + esc(w.categoria) + '</td>';
+      // Categoría editable por el admin (Rosember, 22-oct-2026)
+      g += '<tr><td class="pf-nombre">' + (d.ganadoresEditables === false ? esc(w.categoria)
+        : '<input class="pf-cat" data-cat="' + wi + '" maxlength="150" value="' + esc(w.categoria) + '" aria-label="Categoría" title="Escribe para cambiar el nombre de la categoría">') + '</td>';
       vis.forEach(function(i) {
         g += '<td class="pf-lideres-in"><input class="pf-mini" data-gan="' + wi + '" data-mes="' + i + '" value="' + esc(w.ganadoresMes[i] || '') + '"' +
              (d.ganadoresEditables === false ? ' disabled title="Lo registra un administrador"' : '') +
@@ -8127,6 +8129,14 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     pfAjustarNotas(cont);
     cont.addEventListener('focusout', function(e) {
       var el = e.target;
+      if (el.dataset.cat !== undefined) {   // nombre de la categoría
+        var wc = d.ganadores[+el.dataset.cat], txt = el.value.replace(/\s+/g, ' ').trim();
+        if (!txt) { el.value = wc.categoria; return; }
+        if (txt === wc.categoria) return;
+        postJSON('/design/api/perf/ganadores/' + wc.id + '/categoria', {categoria: txt})
+          .then(function(r) { wc.categoria = el.value = r.categoria; }).catch(pfFallo(cargarSeleccion));
+        return;
+      }
       if (el.dataset.gan !== undefined) {
         var w = d.ganadores[+el.dataset.gan], i = +el.dataset.mes;
         if ((w.ganadoresMes[i] || '') === el.value) return;
@@ -8159,7 +8169,19 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var bodyGan = document.createElement('tbody');
     d.ganadores.forEach(function(g) {
       var tr = document.createElement('tr');
-      var tdCat = document.createElement('td'); tdCat.className = 'pf-nombre'; tdCat.innerText = g.categoria;
+      var tdCat = document.createElement('td'); tdCat.className = 'pf-nombre';
+      if (d.ganadoresEditables === false) tdCat.innerText = g.categoria;
+      else {   // categoría editable por el admin (22-oct-2026)
+        var ic = document.createElement('input'); ic.className = 'pf-cat'; ic.maxLength = 150; ic.value = g.categoria; ic.setAttribute('aria-label', 'Categoría');
+        ic.addEventListener('blur', function() {
+          var txt = ic.value.replace(/\s+/g, ' ').trim();
+          if (!txt) { ic.value = g.categoria; return; }
+          if (txt === g.categoria) return;
+          postJSON('/design/api/perf/ganadores/' + g.id + '/categoria', {categoria: txt})
+            .then(function(r) { g.categoria = ic.value = r.categoria; }).catch(pfFallo(cargarSeleccion));
+        });
+        tdCat.appendChild(ic);
+      }
       tr.appendChild(tdCat);
       d.meses.forEach(function(m, i) {
         var td = document.createElement('td');
