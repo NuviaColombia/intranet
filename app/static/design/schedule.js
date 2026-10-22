@@ -3722,25 +3722,44 @@ function ddDibujarTendencia(body, st) {
     '<line class="dd-guia" x1="0" x2="0" y1="' + PT + '" y2="' + (PT + ih) + '" stroke="#334155" stroke-dasharray="4 3" opacity="0"/>' +
     lineas + caras + '<g class="dd-puntos"></g>' + zonas + '</svg>';
 
+  // Resumen (21-oct-2026): en la leyenda solo el primer nombre del equipo (sin «Eq»/«Equipo»); el nombre completo en el título
+  var palabras = function(nm) { return nm.split(/\s+/).filter(function(w) { return w && !/^(eq\.?|equipo|team)$/i.test(w); }); };
+  var primeros = {};
+  lista.forEach(function(x) { var w = (palabras(x.s.nombre)[0] || '').toLowerCase(); primeros[w] = (primeros[w] || 0) + 1; });
+  var corto = function(nm) {   // si dos equipos empiezan igual, se agrega la segunda palabra para distinguirlos
+    if (!st.chica) return nm;
+    var p = palabras(nm);
+    if (!p.length) return nm;
+    return primeros[p[0].toLowerCase()] > 1 ? p.slice(0, 2).join(' ') : p[0];
+  };
   var leyenda = lista.map(function(x) {
     var oculto = !!st.ocultos[x.s.nombre];
-    return '<button type="button" class="dd-leg' + (oculto ? ' off' : '') + '" data-nombre="' + ddEsc(x.s.nombre).replace(/"/g, '&quot;') + '" aria-pressed="' + (!oculto) + '">' +
-      '<i style="background:' + x.c + '"></i>' + ddEsc(x.s.nombre) + ' <b>' + x.s.total + '</b></button>';
+    return '<button type="button" class="dd-leg' + (oculto ? ' off' : '') + '" data-nombre="' + ddEsc(x.s.nombre).replace(/"/g, '&quot;') + '" aria-pressed="' + (!oculto) + '" title="' + ddEsc(x.s.nombre).replace(/"/g, '&quot;') + '">' +
+      '<i style="background:' + x.c + '"></i>' + ddEsc(corto(x.s.nombre)) + ' <b>' + x.s.total + '</b></button>';
   }).join('');
   var resumen = activos.reduce(function(s, a) { return s + a.s.total; }, 0);
   body.innerHTML = '<div class="dd-tend-cab"><span><b>' + resumen + '</b> casos en ' + n + ' ' + (d.tramos[0] && d.tramos[0].indexOf('Sem') === 0 ? 'semanas' : 'días laborables') + '</span>' +
-    (st.chica ? '' : '<span class="dd-p-nota">Pasa el mouse para ver el detalle · clic en un equipo para mostrar u ocultar su línea</span>') + '</div>' +
+    (st.chica ? '<span class="dd-p-nota">Clic en un día para ver el detalle</span>' : '<span class="dd-p-nota">Pasa el mouse para ver el detalle · clic en un equipo para mostrar u ocultar su línea</span>') + '</div>' +
     '<div class="dd-tend' + (animar ? ' dd-tend-anim' : '') + '">' + svg + '<div class="dd-tip" hidden></div></div>' +
     '<div class="dd-leyenda">' + leyenda + '</div>';
 
   var tip = body.querySelector('.dd-tip'), guia = body.querySelector('.dd-guia'), puntos = body.querySelector('.dd-puntos');
   var svgEl = body.querySelector('svg');
+  // En Resumen el detalle de un día sale al hacer clic (no al pasar el mouse); otro clic en el mismo día o fuera lo cierra.
+  // Los equipos van de mayor a menor, como se ven en la gráfica (21-oct-2026).
+  var diaAbierto = -1;
+  var cerrar = function() { diaAbierto = -1; guia.setAttribute('opacity', 0); puntos.innerHTML = ''; tip.hidden = true; };
   body.querySelectorAll('.dd-zona').forEach(function(z) {
-    z.addEventListener('mouseenter', function() {
+    z.addEventListener(st.chica ? 'click' : 'mouseenter', function(ev) {
       var i = +z.dataset.i;
+      if (st.chica) {
+        ev.stopPropagation();
+        if (diaAbierto === i) { cerrar(); return; }
+        diaAbierto = i;
+      }
       guia.setAttribute('x1', x(i)); guia.setAttribute('x2', x(i)); guia.setAttribute('opacity', 1);
       puntos.innerHTML = activos.map(function(a) { return '<circle cx="' + x(i) + '" cy="' + y(a.s.valores[i]) + '" r="6" fill="' + a.c + '" stroke="#fff" stroke-width="2"/>'; }).join('');
-      var filas = activos.map(function(a) {
+      var filas = activos.slice().sort(function(p, q) { return q.s.valores[i] - p.s.valores[i]; }).map(function(a) {
         return '<div class="dd-tip-f"><span><i style="background:' + a.c + '"></i>' + ddEsc(a.s.nombre) + '</span><b>' + a.s.valores[i] + '</b></div>';
       }).join('') || '<div>Sin equipos seleccionados</div>';
       tip.innerHTML = '<div class="dd-tip-t">' + ddEsc(d.tramos[i]) + '</div>' + filas;
@@ -3749,7 +3768,12 @@ function ddDibujarTendencia(body, st) {
       tip.style.left = Math.min(Math.max(pct, 12), 70) + '%';
     });
   });
-  svgEl.addEventListener('mouseleave', function() { guia.setAttribute('opacity', 0); puntos.innerHTML = ''; tip.hidden = true; });
+  if (st.chica) {
+    if (st.fuera) document.removeEventListener('click', st.fuera);
+    st.fuera = function(ev) { if (!body.isConnected) { document.removeEventListener('click', st.fuera); return; } if (!svgEl.contains(ev.target)) cerrar(); };
+    document.addEventListener('click', st.fuera);
+    svgEl.classList.add('dd-clic');
+  } else svgEl.addEventListener('mouseleave', cerrar);
   body.querySelectorAll('.dd-leg').forEach(function(b) {
     b.addEventListener('click', function() { var nm = b.dataset.nombre; st.ocultos[nm] = !st.ocultos[nm]; ddDibujarTendencia(body, st); });
   });

@@ -982,6 +982,7 @@
 
 /* Tendencia por equipo (interactiva) y barras de Articulación */
 .dd-tend { position: relative; }
+.dd-clic .dd-zona { cursor: pointer; }
 /* Resumen › Reportes de QC por diseñador (21-oct-2026) */
 #dgQc { margin-top: 14px; }
 #dgQcBarras.dg-qc-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
