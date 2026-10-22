@@ -88,9 +88,35 @@ def pesos(db: Session) -> tuple[dict, dict]:
     return mezclar(PESOS_DISENADOR, guardado.get("disenador")), mezclar(PESOS_MANAGER, guardado.get("manager"))
 
 
+# Qué representa cada criterio (tooltip en la configuración; Rosember, 22-oct-2026)
+AYUDA = {
+    "disenador": {
+        "productividad": "Cuánto trabajo aprobó por cada día que estuvo disponible (sin vacaciones, incapacidad, luto, etc.). "
+                         "Cada caso vale los minutos estándar de su producto, así un caso complejo pesa más que uno fácil. "
+                         "Se compara con los demás de su área.",
+        "evaluacion": "La calificación de su líder en la hoja de Desempeño de su equipo ese mes, comparada solo con sus "
+                      "compañeros del mismo líder (un líder que califica alto a todos no favorece a su gente).",
+        "destacado": "Si su manager lo eligió como la persona destacada del mes en la hoja de Selección (sí = 100, no = 0). "
+                     "Si ese mes nadie ha llenado la hoja, no cuenta.",
+        "eficiencia": "Qué tan rápido diseña: su tiempo de diseño frente a la mediana del mismo producto en su área. "
+                      "Pesa poco porque los tiempos se escriben a mano.",
+    },
+    "manager": {
+        "evaluacion": "La calificación del manager en la hoja DESIGN MANAGERS de Desempeño ese mes.",
+        "productividad": "Cuánto trabajo aprobó su equipo por cada día disponible de sus diseñadores, con los minutos "
+                         "estándar de cada producto (compensa áreas con casos más complejos). No cuentan los casos del manager.",
+        "qcOportuno": "Qué tan rápido marca el QC: mediana de minutos entre que la orden pasa a Approved y se marca el QC.",
+        "qcCobertura": "Qué porcentaje de las órdenes aprobadas de su equipo tiene el QC marcado.",
+        "equidad": "Qué tan parejo reparte los productos entre sus diseñadores, según la tabla Reparto de productos "
+                   "(descuenta las ausencias de cada uno).",
+    },
+}
+
+
 def configuracion(db: Session) -> dict:
     pd, pm = pesos(db)
-    return {"disenador": pd, "manager": pm, "fabrica": {"disenador": PESOS_DISENADOR, "manager": PESOS_MANAGER}, "nombres": NOMBRES}
+    return {"disenador": pd, "manager": pm, "fabrica": {"disenador": PESOS_DISENADOR, "manager": PESOS_MANAGER}, "nombres": NOMBRES,
+            "ayuda": AYUDA}
 
 
 def guardar_pesos(db: Session, datos: dict, quien: Empleado) -> dict:

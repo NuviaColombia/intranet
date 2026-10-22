@@ -8286,7 +8286,9 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var grupo = function(g, titulo, vals) {
       return '<fieldset class="pf-sel-cfg-g" data-g="' + g + '"><legend>' + titulo + ' · <span class="pf-sel-suma"></span></legend>' +
         Object.keys(vals).map(function(k) {
-          return '<label><span>' + e(c.nombres[k]) + '</span><input type="number" min="0" max="100" step="1" data-k="' + k + '" value="' + vals[k] + '"> %</label>';
+          var ay = (c.ayuda && c.ayuda[g] && c.ayuda[g][k]) || '';   // qué representa el criterio (tooltip)
+          return '<label title="' + e(ay) + '"><span>' + e(c.nombres[k]) + (ay ? ' <i class="pf-sel-ay" tabindex="0" aria-label="' + e(ay) + '">ⓘ</i>' : '') +
+            '</span><input type="number" min="0" max="100" step="1" data-k="' + k + '" value="' + vals[k] + '"> %</label>';
         }).join('') + '</fieldset>';
     };
     box.innerHTML = '<div class="pf-sel-cfg-grid">' + grupo('disenador', 'Diseñadores', c.disenador) + grupo('manager', 'Managers', c.manager) + '</div>' +
