@@ -1463,6 +1463,11 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
     # Support no sale en Seguimiento (Rosember, 21-oct-2026): ni sus equipos ni las dos personas de Support Time,
     # aunque trabajen casos de N3 como «Support Designer». Quien solo cubre un turno sí sale (es de su equipo).
     from . import services_design_support as _ss
+    from . import services_design_geovictoria as _gv
+    try:
+        _gv_tol = _gv.config(db)["tolerancia"]
+    except Exception:  # noqa: BLE001
+        _gv_tol = _gv.TOLERANCIA
     _cfg = _ss.config(db)
     sin_support = {i for i in (_cfg.persona_a_id, _cfg.persona_b_id) if i} | {
         i for (i,) in db.query(DesignTeamDesigner.empleado_id).join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
@@ -1563,6 +1568,8 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
             desde = next((h for h in ((o.f_hold or "").strip(), (o.hora_inicio_diseno or "").strip(), (o.hora_inicio or "").strip()) if h), "")
             x["actual"] = {"orden": o.orden, "paciente": o.paciente, "producto": o.producto, "estado": (o.estado or "").strip(),
                            "desde": desde, "equipo": o.team.nombre if o.team else "", "otrosTrabajando": len(trabajando) - 1}
+        # GeoVictoria (22-oct-2026): marcas de hoy (entrada, almuerzo, salida) y lo que falta marcar; solo desde memoria
+        x["marcas"] = _gv.para_seguimiento(pid, ahora.replace(tzinfo=None), _gv_tol)
         if x["ausencia"] and not trabajando:
             x["grupo"] = "ausente"
         elif x["pausa"]:

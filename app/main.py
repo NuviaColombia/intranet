@@ -254,6 +254,9 @@ def design_avisos_support():
     # Design · Centro de avisos (Cliq): un hilo revisa cada minuto qué mensajes del bot tocan (20-oct-2026)
     from . import services_design_avisos
     services_design_avisos.arrancar()
+    # GeoVictoria (22-oct-2026): marcas de asistencia cada 5 min y avisos push si alguien no marca
+    from . import services_design_geovictoria
+    services_design_geovictoria.arrancar()
 
 
 @app.on_event("startup")

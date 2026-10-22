@@ -112,6 +112,16 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   así un reinicio del servidor no cambia el resultado. El pie dice «último corte: dd/mm 12:00».
   Cambio (Rosember, 22-oct-2026): ya no una vez al día sino cada 4 horas, cortes fijos 12 a. m., 4, 8, 12 m., 4 p. m. y
   8 p. m. (`HORAS_ENTRE_CORTES`); el corte de medianoche del día 1 todavía muestra el mes anterior completo.
+- **GeoVictoria (integración, fases 1-3)** (Rosember, 22-oct-2026): API de asistencia (https://customerapi.geovictoria.com/api/v1,
+  login JWT con clave/secreto). Credenciales: Parámetros › GeoVictoria (solo admin; las escribe un admin, se guardan en
+  design_conexion_reglas tipo sistema clave `geovictoria`; el secreto no vuelve a la pantalla). Solo Nuvia Design; cruce
+  por cédula (Empleado.identificacion ↔ Identifier, solo dígitos). Un hilo (`services_design_geovictoria.arrancar`, en el
+  startup) trae cada 5 min el AttendanceBook de hoy (lotes de 40) a memoria; Seguimiento lee esa memoria y muestra
+  entrada (con atraso), almuerzo, salida, permisos y lo que falta marcar. Avisos **push** (no Cliq), activables en la
+  página: a la persona y a su manager (y a quien está a cargo hoy) cuando, con 10 min de tolerancia (configurable), no
+  marcó la entrada, el regreso del almuerzo (60/90 min libres o fin del almuerzo fijo) o la salida; uno por tipo y
+  persona al día (claves guardadas en `gv_avisos_AAAA-MM-DD`, se borran a los 7 días). Sin turno o con permiso en
+  GeoVictoria no se avisa. Pendiente: fases 4-6 (ausencias automáticas, reporte de horas, puntualidad en Selección).
 - **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
   registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
   el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la

@@ -88,7 +88,7 @@
       var sep = '';
       if (x.grupo !== previo) { previo = x.grupo; sep = '<tr class="sg-sep sg-' + x.grupo + '"><td colspan="5">' + GRUPOS[x.grupo].ico + ' ' + GRUPOS[x.grupo].rot + ' <span>' + esc(GRUPOS[x.grupo].desc) + '</span></td></tr>'; }
       return sep + '<tr class="sg-fila sg-' + x.grupo + '">' +
-        '<td><div class="sg-persona"><span class="sg-av" data-id="' + x.id + '">' + esc(iniciales(x.nombre)) + '</span><b>' + esc(x.nombre) + '</b>' + (x.manager ? ' <span class="sg-mgr">Manager</span>' : '') + '</div></td>' +
+        '<td><div class="sg-persona"><span class="sg-av" data-id="' + x.id + '">' + esc(iniciales(x.nombre)) + '</span><b>' + esc(x.nombre) + '</b>' + (x.manager ? ' <span class="sg-mgr">Manager</span>' : '') + '</div>' + marcas(x) + '</td>' +
         '<td class="sg-eq">' + esc(x.equipos.join(', ')) + '<div class="sg-sub">' + esc(x.areas.join(', ')) + '</div></td>' +
         '<td><span class="sg-estado sg-' + x.grupo + '">' + GRUPOS[x.grupo].ico + ' ' + GRUPOS[x.grupo].rot + '</span></td>' +
         '<td class="sg-que">' + queHace(x) + '</td>' +
@@ -101,6 +101,20 @@
   }
 
   function avatar(x) { return '<span class="sg-av" data-id="' + x.id + '">' + esc(iniciales(x.nombre)) + '</span>'; }
+  // GeoVictoria (22-oct-2026): marcas de hoy debajo del nombre y, en rojo, lo que falta marcar
+  var GV_FALTA = {entrada: 'No ha marcado entrada', almuerzo: 'No ha marcado el regreso del almuerzo', salida: 'No ha marcado salida'};
+  function marcas(x) {
+    var m = x.marcas;
+    if (!m) return '';
+    var partes = [];
+    if (m.entrada) partes.push('Entrada ' + esc(m.entrada) + (m.atrasoMin ? ' <span class="sg-gv-tarde" title="Llegó tarde">+' + m.atrasoMin + ' min</span>' : ''));
+    if (m.salidaAlm) partes.push('Almuerzo ' + esc(m.salidaAlm) + '–' + esc(m.regresoAlm || '…'));
+    if (m.salida) partes.push('Salida ' + esc(m.salida));
+    var h = '<div class="sg-gv" title="GeoVictoria' + (m.turno ? ' · turno ' + esc(m.turno) : '') + '">🕒 ' + (partes.join(' · ') || (m.turno ? 'Turno ' + esc(m.turno) : 'Sin marcas')) + '</div>';
+    if (m.permisos && m.permisos.length) h += '<div class="sg-gv-perm">' + esc(m.permisos.join(', ')) + '</div>';
+    (m.faltas || []).forEach(function(f) { h += '<div class="sg-gv-falta">⚠️ ' + GV_FALTA[f.tipo] + ' (' + esc(f.hora) + ')</div>'; });
+    return h;
+  }
   function fotos(raiz) {
     raiz.querySelectorAll('.sg-av[data-id]').forEach(function(av) {
       var im = new Image(); im.alt = ''; im.onload = function() { av.textContent = ''; av.appendChild(im); }; im.src = '/design/api/foto/' + av.dataset.id;
@@ -118,7 +132,7 @@
           return '<article class="sg-card sg-' + x.grupo + '">' +
             '<div class="sg-card-cab">' + avatar(x) + '<div><b>' + esc(x.nombre) + '</b>' + (x.manager ? ' <span class="sg-mgr">Manager</span>' : '') + '<div class="sg-sub">' + esc(x.equipos.join(', ')) + ' · ' + esc(x.areas.join(', ')) + '</div></div>' +
             '<span class="sg-hechos" title="Casos terminados hoy">✔ ' + (x.terminadosHoy || 0) + '</span></div>' +
-            '<div class="sg-card-que">' + queHace(x) + '</div></article>';
+            '<div class="sg-card-que">' + queHace(x) + '</div>' + (x.marcas ? '<div class="sg-card-gv">' + marcas(x) + '</div>' : '') + '</article>';
         }).join('') : '<div class="sg-col-vacia">Nadie</div>') + '</section>';
     }).join('');
     fotos(tablero);

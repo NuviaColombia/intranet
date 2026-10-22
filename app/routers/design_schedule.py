@@ -3265,6 +3265,10 @@ router.include_router(_ayuda_router)
 from .design_mural import router as _mural_router  # noqa: E402
 router.include_router(_mural_router)
 
+# ---------- GeoVictoria (marcas de asistencia, 22-oct-2026): rutas en routers/design_geovictoria.py ----------
+from .design_geovictoria import router as _gv_router  # noqa: E402
+router.include_router(_gv_router)
+
 # ---------- Notificaciones push (Web Push): rutas en routers/design_push.py ----------
 from .design_push import router as _push_router  # noqa: E402
 router.include_router(_push_router)

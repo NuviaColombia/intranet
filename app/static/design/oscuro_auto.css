@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (606 reglas) ---- */
+/* ---- static\design\schedule.css (611 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -587,6 +587,11 @@
 :root[data-ds-tema="oscuro"] .pa-foto-bg { background:rgba(15,23,42,.82); }
 :root[data-ds-tema="oscuro"] .pa-foto-bg img { box-shadow:0 10px 40px rgba(0,0,0,.5); background:#131925; }
 :root[data-ds-tema="oscuro"] .pa-foto-cerrar { background:#131925; }
+:root[data-ds-tema="oscuro"] .sg-gv { color:#bbc0cb; }
+:root[data-ds-tema="oscuro"] .sg-gv-tarde { color:#f5bb98; }
+:root[data-ds-tema="oscuro"] .sg-gv-perm { color:#9b96e0; }
+:root[data-ds-tema="oscuro"] .sg-gv-falta { color:#ed8888; }
+:root[data-ds-tema="oscuro"] .sg-card-gv { border-top:1px dashed #323943; }
 :root[data-ds-tema="oscuro"] .sg-prod-txt { background:#181f26; border:1px solid #2f3747; color:#d1d9eb; }
 :root[data-ds-tema="oscuro"] .dd-vistas { background:#1a2229; }
 :root[data-ds-tema="oscuro"] .dd-vista { border:none; background:none; color:#c5cad3; }
