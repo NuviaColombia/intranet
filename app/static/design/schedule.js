@@ -8420,6 +8420,8 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         body: JSON.stringify({mesIndice: des.mesIndice, nombre: persona.nombre})}).then(function() {
         c.actual = persona.nombre; if (d._usados.indexOf(id) < 0) d._usados.push(id);
         f.remove(); out.textContent = '✔ Registrado en «' + c.categoria + '» (' + des.etiqueta + ')'; out.classList.add('ok');
+        // si la hoja de Selección está abierta abajo, se actualiza sola (Rosember, 22-oct-2026: había que recargar)
+        if (PF.sheetId === des.sheetId) cargarSeleccion();
       }).catch(function(er) { bt.disabled = false; alert(er.message); });
     };
   }
