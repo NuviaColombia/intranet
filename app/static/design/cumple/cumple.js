@@ -4,7 +4,7 @@
    Lo usan Parameters › Formatos Canva › Cumpleaños (vista y descarga) y el anuncio animado del día (anunciar).
 
    DSCumple.dibujar(canvas, {foto, nombre, cargo})  → Promise (1080 × 1350, como Instagram)
-   DSCumple.anunciar(personas, {alCerrar})          → anuncio a pantalla completa (carrusel si son varias)        */
+   DSCumple.anunciar(personas, {alCerrar})          → anuncio a pantalla completa (si son varias, todas a la vez)  */
 (function () {
   'use strict';
   if (window.DSCumple) return;
@@ -80,6 +80,10 @@
       '.cu-pieza.antes{transform:translateX(-62%) scale(.72) rotateY(28deg);opacity:.35;filter:blur(2px) brightness(.6)}',
       '.cu-pieza.despues{transform:translateX(62%) scale(.72) rotateY(-28deg);opacity:.35;filter:blur(2px) brightness(.6)}',
       '.cu-pieza.oculta{opacity:0;transform:scale(.6);pointer-events:none}',
+      // Varias personas (Rosember, 22-oct-2026): todas a la vez, en una cuadrícula que se ajusta al espacio
+      '.cu-escena.cu-varias{width:auto;aspect-ratio:auto;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:var(--cu-gap);max-width:96vw}',
+      '.cu-varias .cu-pieza{position:relative;inset:auto;width:var(--cu-w);aspect-ratio:4/5;animation:cuAparece 1.1s cubic-bezier(.2,1.25,.35,1) both;animation-delay:calc(var(--i) * .22s)}',
+      '.cu-varias .cu-pieza canvas{border-radius:clamp(8px,1.4vw,18px)}',
       '.cu-cerrar{position:absolute;top:14px;right:16px;z-index:3;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;font-size:22px;color:#fff;',
       ' background:rgba(255,255,255,.14);backdrop-filter:blur(4px);transition:background .2s,transform .2s}',
       '.cu-cerrar:hover,.cu-cerrar:focus-visible{background:rgba(255,255,255,.28);transform:rotate(90deg);outline:none}',
@@ -138,36 +142,38 @@
     capa.innerHTML = '<div class="cu-rayos"></div><div class="cu-foco"></div>' +
       '<div class="cu-cab">' + (op.titulo || ('🎉 ' + (n === 1 ? '¡Hoy celebramos a alguien especial!' : '¡Hoy celebramos a ' + n + ' personas!') + ' 🎉')) + '</div>' +
       '<button type="button" class="cu-cerrar" aria-label="Cerrar (Esc)" title="Cerrar (Esc)">✕</button>' +
-      '<div class="cu-escena"></div>' +
-      (n > 1 ? '<button type="button" class="cu-flecha cu-ant" aria-label="Anterior">‹</button><button type="button" class="cu-flecha cu-sig" aria-label="Siguiente">›</button><div class="cu-puntos"></div>' : '') +
+      '<div class="cu-escena' + (n > 1 ? ' cu-varias' : '') + '"></div>' +
       '<div class="cu-ayuda">Esc o ✕ para cerrar</div>';
     document.body.appendChild(capa);
-    var escena = capa.querySelector('.cu-escena'), puntos = capa.querySelector('.cu-puntos');
+    var escena = capa.querySelector('.cu-escena');
     var piezasEl = personas.map(function (p, i) {
-      var d = document.createElement('div'); d.className = 'cu-pieza oculta';
+      var d = document.createElement('div'); d.className = n > 1 ? 'cu-pieza' : 'cu-pieza activa';
+      d.style.setProperty('--i', i);
       var cv = document.createElement('canvas'); cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', '¡Feliz cumpleaños, ' + p.nombre + '! ' + (p.cargo || ''));
       d.appendChild(cv); escena.appendChild(d);
-      dibujar(cv, p).catch(function () { d.remove(); });
-      if (puntos) {
-        var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', p.nombre);
-        b.onclick = function () { ir(i, true); }; puntos.appendChild(b);
-      }
+      dibujar(cv, p).catch(function () { d.remove(); medir(); });
       return d;
     });
-    var actual = -1, temporizador = null;
-    function ir(i, manual) {
-      i = (i + n) % n;
-      piezasEl.forEach(function (el, k) {
-        el.className = 'cu-pieza ' + (k === i ? 'activa' : n > 1 && k === (i - 1 + n) % n ? 'antes' : n > 1 && k === (i + 1) % n ? 'despues' : 'oculta');
-      });
-      if (puntos) Array.prototype.forEach.call(puntos.children, function (b, k) { b.classList.toggle('on', k === i); });
-      if (i !== actual) fiesta(capa);
-      actual = i;
-      clearInterval(temporizador);
-      if (n > 1) temporizador = setInterval(function () { ir(actual + 1); }, manual ? 9000 : 6500);   // el carrusel avanza solo
+    // Varias: se prueba cada número de columnas y se queda el que deja las piezas más grandes sin salirse de la pantalla
+    function medir() {
+      if (n < 2) return;
+      var vivas = piezasEl.filter(function (el) { return el.isConnected; }).length || 1;
+      var W = innerWidth * 0.94, H = innerHeight - Math.max(130, innerHeight * 0.16), gap = Math.max(10, Math.min(24, innerWidth * 0.015)), mejor = 0;
+      for (var cols = 1; cols <= vivas; cols++) {
+        var filas = Math.ceil(vivas / cols);
+        var ancho = Math.min((W - gap * (cols - 1)) / cols, ((H - gap * (filas - 1)) / filas) * 0.8, 520);
+        if (ancho > mejor) mejor = ancho;
+      }
+      escena.style.setProperty('--cu-w', Math.floor(mejor) + 'px');
+      escena.style.setProperty('--cu-gap', Math.round(gap) + 'px');
     }
+    medir();
+    addEventListener('resize', medir);
+    fiesta(capa);
+    var temporizador = n > 1 ? setInterval(function () { fiesta(capa); }, 7000) : null;   // más confeti mientras sigue abierto
     function cerrar() {
       clearInterval(temporizador);
+      removeEventListener('resize', medir);
       document.removeEventListener('keydown', teclas, true);
       capa.classList.add('sale');
       setTimeout(function () { capa.remove(); }, 450);
@@ -175,15 +181,10 @@
     }
     function teclas(e) {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
-      else if (n > 1 && e.key === 'ArrowRight') ir(actual + 1, true);
-      else if (n > 1 && e.key === 'ArrowLeft') ir(actual - 1, true);
     }
     capa.querySelector('.cu-cerrar').onclick = cerrar;
-    if (n > 1) { capa.querySelector('.cu-ant').onclick = function () { ir(actual - 1, true); }; capa.querySelector('.cu-sig').onclick = function () { ir(actual + 1, true); }; }
-    escena.addEventListener('click', function (e) { var el = e.target.closest('.cu-pieza'); if (el && (el.classList.contains('antes') || el.classList.contains('despues'))) ir(piezasEl.indexOf(el), true); });
     document.addEventListener('keydown', teclas, true);
     capa.querySelector('.cu-cerrar').focus();
-    ir(0);
     return {cerrar: cerrar};
   }
 

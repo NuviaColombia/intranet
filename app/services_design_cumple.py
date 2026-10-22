@@ -3,7 +3,8 @@
 - Quién: personas activas de Nuvia Design con fecha de nacimiento (las mismas del Calendario). Nombre en la pieza:
   primer nombre + primer apellido; cargo: el de People. Sin foto de perfil NO hay anuncio (se avisa en Formatos Canva).
 - Anuncio: la primera vez que cada persona entra a la plataforma ese día (cualquier módulo), a pantalla completa y
-  animado; si cumplen varias, carrusel. Se cierra con Esc o con la X. «Ya lo vio» se guarda en la base (DesignCumpleVisto).
+  animado; si cumplen varias, todas a la vez en una cuadrícula que se ajusta a la pantalla (22-oct-2026; antes carrusel).
+  Se cierra con Esc o con la X. «Ya lo vio» se guarda en la base (DesignCumpleVisto).
 - La pieza se dibuja en el navegador (static/design/cumple/cumple.js) sobre el fondo de la plantilla original.
 """
 import time
