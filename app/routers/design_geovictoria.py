@@ -40,9 +40,9 @@ def api_probar(user: Empleado = Depends(require_admin), db: Session = Depends(ge
 
 
 @router.get("/design/api/geovictoria/cruce")
-def api_cruce(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def api_cruce(forzar: int = 0, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     try:
-        c = sgv.cruce(db, forzar=True)
+        c = sgv.cruce(db, forzar=bool(forzar))   # sin forzar usa la lista de usuarios en memoria (se renueva cada hora)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(400, f"No se pudo consultar GeoVictoria: {e}")
     return {"cruzados": len(c["pares"]), "sinGeoVictoria": c["sinGeoVictoria"], "sinPlataforma": c["sinPlataforma"]}

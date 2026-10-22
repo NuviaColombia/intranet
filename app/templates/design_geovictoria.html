@@ -80,8 +80,8 @@
 
   <div class="gv-card">
     <h2>👥 Cruce por cédula</h2>
-    <p class="gv-nota" id="gvCruceRes">Presiona «Revisar cruce».</p>
-    <div class="gv-acc"><button type="button" class="btn mini gris" id="gvCruce">Revisar cruce</button></div>
+    <p class="gv-nota" id="gvCruceRes">Cargando…</p>
+    <div class="gv-acc"><button type="button" class="btn mini gris" id="gvCruce">↻ Actualizar cruce</button></div>
     <div class="gv-cols" id="gvCruceListas" hidden>
       <div><b>De Design que no están en GeoVictoria</b><ul id="gvSinGv"></ul></div>
       <div><b>De GeoVictoria que no están en la plataforma</b><ul id="gvSinPl"></ul></div>
@@ -106,7 +106,7 @@
     <h2>🕒 Marcas de hoy</h2>
     <p class="gv-nota">Como el libro de asistencia de GeoVictoria: una fila por persona con su turno y sus marcas. Verde = a tiempo, naranja = tarde, rojo = falta la marca, gris = todavía no toca. «Sin horario» = nadie le asignó turno: a su manager le llega un recordatorio (a las 3 p. m. por el día siguiente y a las 7 a. m. por hoy).</p>
     <div class="gv-filtros">
-      <button type="button" class="btn mini gris" id="gvHoy">Traer marcas de hoy</button>
+      <button type="button" class="btn mini gris" id="gvHoy">↻ Traer lo más nuevo</button>
       <input type="search" id="gvBuscar" placeholder="Buscar persona o equipo…">
       <select id="gvArea"><option value="">Todas las áreas</option></select>
       <span class="gv-msg" id="gvHoyMsg"></span>
@@ -144,15 +144,17 @@
     pedir('/design/api/geovictoria/probar', {}).then(function (r) { msg($('gvMsg'), '✔ Conectado: ' + r.usuarios + ' usuarios (' + r.habilitados + ' habilitados).', true); })
       .catch(function (e) { msg($('gvMsg'), e.message, false); });
   };
-  $('gvCruce').onclick = function () {
+  // Al abrir la página se cargan solos el cruce y las marcas de hoy (22-oct-2026); los botones traen lo más nuevo al momento
+  function cargarCruce(forzar) {
     $('gvCruceRes').textContent = 'Revisando…';
-    pedir('/design/api/geovictoria/cruce').then(function (c) {
+    return pedir('/design/api/geovictoria/cruce?forzar=' + (forzar ? 1 : 0)).then(function (c) {
       $('gvCruceRes').textContent = c.cruzados + ' personas de Design cruzadas por cédula · ' + c.sinGeoVictoria.length + ' de Design sin GeoVictoria · ' + c.sinPlataforma.length + ' de GeoVictoria sin la plataforma.';
       $('gvSinGv').innerHTML = c.sinGeoVictoria.map(function (x) { return '<li>' + esc(x.nombre) + '</li>'; }).join('') || '<li>Ninguno</li>';
       $('gvSinPl').innerHTML = c.sinPlataforma.map(function (x) { return '<li>' + esc(x.nombre) + ' <small>' + esc(x.identificador) + '</small></li>'; }).join('') || '<li>Ninguno</li>';
       $('gvCruceListas').hidden = false;
     }).catch(function (e) { $('gvCruceRes').textContent = e.message; });
-  };
+  }
+  $('gvCruce').onclick = function () { cargarCruce(true); };
   var NOM = {entrada: 'Entrada', almuerzo: 'Regreso del almuerzo', salida: 'Salida'};
   pedir('/design/api/geovictoria/personas').then(function (l) {
     $('gvPPersona').innerHTML = '<option value="">— Elige una persona —</option>' + l.map(function (p) { return '<option value="' + p.id + '">' + esc(p.nombre) + '</option>'; }).join('');
@@ -218,9 +220,9 @@
   $('gvRes').addEventListener('click', function (ev) { var b = ev.target.closest('[data-f]'); if (b) { LIBRO.filtro = b.dataset.f; pintarLibro(); } });
   $('gvBuscar').addEventListener('input', pintarLibro);
   $('gvArea').addEventListener('change', pintarLibro);
-  $('gvHoy').onclick = function () {
+  function cargarHoy(forzar) {
     msg($('gvHoyMsg'), 'Trayendo marcas…', true);
-    pedir('/design/api/geovictoria/hoy?forzar=1').then(function (d) {
+    return pedir('/design/api/geovictoria/hoy?forzar=' + (forzar ? 1 : 0)).then(function (d) {
       if (d.error) msg($('gvHoyMsg'), d.error, false); else msg($('gvHoyMsg'), d.filas.length + ' personas con turno o marcas hoy · tolerancia ' + d.tolerancia + ' min', true);
       LIBRO.filas = d.filas;
       var areas = []; d.filas.forEach(function (f) { f.areas.forEach(function (a) { if (areas.indexOf(a) < 0) areas.push(a); }); });
@@ -228,7 +230,12 @@
       $('gvLibroW').hidden = false;
       pintarLibro();
     }).catch(function (e) { msg($('gvHoyMsg'), e.message, false); });
-  };
+  }
+  $('gvHoy').onclick = function () { cargarHoy(true); };
+  pedir('/design/api/geovictoria/config').then(function (c) {
+    if (!c.key || !c.tieneSecreto) { $('gvCruceRes').textContent = 'Guarda primero la clave y el secreto.'; return; }
+    cargarCruce(false); cargarHoy(false);
+  });
 })();
 </script>
 {% endblock %}
