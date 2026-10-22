@@ -110,8 +110,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   diseñadores son los miembros del equipo (los prestados salen aparte y no cuentan). Celda ▲/▼ si está 50 % por encima o
   por debajo del promedio; fila Equidad = coeficiente de variación (≤ 25 % Pareja, ≤ 50 % Algo desigual, más Desigual).
   Máx. 10 productos, el resto en «Otros» (`dashboard_reparto`, `/design/api/dashboard/reparto`).
-  Corrección: el manager del equipo cuenta como miembro (no como prestado) y en Support no hay prestados, igual que en
-  Filtros; la fila Prestados dice al pasar el mouse quién fue cada uno y de qué equipo viene.
+  Corrección: el aprobador (manager) del equipo NO cuenta (Rosember: hace casos ocasionales; ni fila, ni prestado, ni
+  total) y en Support no hay prestados; la fila Prestados dice al pasar el mouse quién fue cada uno y de qué equipo viene.
   Casos chicos: si entre el que más y el que menos hay ≤ 1 caso es «Pareja» (1 contra 0 no es desigual); con menos de 2
   casos por diseñador dice «Pocos casos»; ▲/▼ solo si se separa 2 casos o más del promedio.
   N6 Material Change: cada producto se divide en «· Bite design» (siempre) y «· Zirconia design» (si la orden ya llegó a

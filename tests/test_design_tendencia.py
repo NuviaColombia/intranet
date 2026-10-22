@@ -98,10 +98,11 @@ class Tendencia(unittest.TestCase):
         d = eq(db, ana, date(2026, 10, 1), date(2026, 10, 21))
         self.assertEqual(d["equidad"][d["productos"].index("Zeta")]["nivel"], "pocos")
         self.assertEqual(d["prestados"]["quienes"], [{"nombre": "Dani X (sin equipo)", "casos": 2}])
-        t.manager_id = dani.id; db.commit()   # el manager que diseña cuenta como del equipo, no como prestado
+        t.manager_id = dani.id; db.commit()   # el aprobador no cuenta: ni fila, ni prestado, ni total
         d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
         self.assertIsNone(d["prestados"])
-        self.assertIn("Dani X", [f["nombre"] for f in d["filas"]])
+        self.assertNotIn("Dani X", [f["nombre"] for f in d["filas"]])
+        self.assertEqual(d["casos"], sum(f["total"] for f in d["filas"]))
 
 
     def test_reparto_n6_divide_bite_y_zirconia(self):
@@ -112,7 +113,8 @@ class Tendencia(unittest.TestCase):
                               empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion="1")
         db.add(ana); db.commit()
         area = md.DesignArea(nombre=sd.AREA_N6, formato="n6"); db.add(area); db.commit()
-        t = md.DesignTeam(area_id=area.id, nombre="Eq", orden=1, activo=1, manager_id=ana.id); db.add(t); db.commit()
+        t = md.DesignTeam(area_id=area.id, nombre="Eq", orden=1, activo=1); db.add(t); db.commit()
+        db.add(md.DesignTeamDesigner(team_id=t.id, empleado_id=ana.id))
         for i, etapa in enumerate([sd.ETAPA_BITE, sd.ETAPA_ZIRCONIA, sd.ETAPA_ZIRCONIA]):
             db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla=sd.TABLA_MATERIAL, orden=f"M{i}", centro="C",
                                   producto="N6 - Material Change Single 24Z", designer_id=ana.id, estado="Started", etapa=etapa, orden_visual=i))

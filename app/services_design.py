@@ -2492,8 +2492,9 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         team_id = max(equipos, key=lambda e: e["casos"])["id"]
     miembros = {eid for (eid,) in db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team_id)}
     equipo = db.get(DesignTeam, team_id)
-    if equipo.manager_id:
-        miembros.add(equipo.manager_id)   # el manager que diseña casos cuenta como del equipo (igual que en Filtros)
+    # El aprobador (manager) no cuenta en el reparto (Rosember, 21-oct-2026): hace casos ocasionales; sus casos no salen
+    # ni como fila ni como prestados ni en los totales.
+    miembros.discard(equipo.manager_id)
     es_support = equipo.area.formato == FORMATO_SUPPORT   # en Support el diseñador es el del caso: no hay prestados
     quienes: dict[str, int] = {}
     n_ordenes = 0   # órdenes reales (en N6 una orden suma en Bite y en Zirconia, pero es un solo caso)
@@ -2504,7 +2505,7 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     celdas: dict[str, dict[str, int]] = {}
     datos_d: dict[str, dict] = {}
     for o in ordenes:
-        if _es_cancelada(o.estado):
+        if _es_cancelada(o.estado) or (equipo.manager_id and o.designer_id == equipo.manager_id):
             continue
         n_ordenes += 1
         kp0 = re.sub(r"\s+", " ", _normalizar_texto(o.producto or "")).strip()
