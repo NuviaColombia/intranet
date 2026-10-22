@@ -498,6 +498,8 @@ def fotos_por_nombre(db: Session, nombres: list[str]) -> dict:
 # Mismas reglas que el ranking de equipos (Approved del mes, Cirugías y Nightguards, orden completa, sin productos de
 # cambios), contadas por diseñador. Solo cuentan los casos de un diseñador en su propio equipo: el prestado a otro equipo
 # no suma allí. Podio de 3 por área (N2, N3, Face y N6); Support no tiene podio.
+# N3 (Rosember, 22-oct-2026): solo cuentan las Cirugías (tabla principal); Nightguards y TC no suman en su podio.
+PODIO_SOLO_CIRUGIAS = {"N3 Prosthetic"}
 PODIO_AREAS = [("N2 Demodenture", "N2"), ("N3 Prosthetic", "N3"), ("Face Design", "Face Design"), ("N6 Material Changes", "N6")]
 _podio_cache: dict = {}
 
@@ -523,13 +525,16 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
     for t in equipos.values():
         if t.manager_id:
             miembros.setdefault(t.id, set()).add(t.manager_id)
-    filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.estado, DesignOrden.producto).filter(
+    areas_solo_cir = {a.id for a in db.query(DesignArea).filter(DesignArea.nombre.in_(PODIO_SOLO_CIRUGIAS))}
+    filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.tabla).filter(
         DesignOrden.fecha >= ini, DesignOrden.fecha < fin, DesignOrden.designer_id.isnot(None), filtro_orden_completa()).all()
     cuenta: dict[int, Counter] = {}   # area_id -> {designer_id: casos}
     for f in filas:
         t = equipos.get(f.team_id)
         if not t or f.designer_id not in miembros.get(t.id, set()):
             continue
+        if t.area_id in areas_solo_cir and f.tabla != "principal":
+            continue   # N3: Nightguards / TC no cuentan en el podio
         if (f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower():
             cuenta.setdefault(t.area_id, Counter())[f.designer_id] += 1
     areas = []

@@ -87,6 +87,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
   Change), D (Dummy, la tabla principal), Ng y Tc. En
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
+- **Inicio › podio de diseñadores de N3** (Rosember, 22-oct-2026): solo cuentan las Cirugías (tabla principal); los
+  Nightguards y TC ya no suman (`PODIO_SOLO_CIRUGIAS` en services_design_inicio.py). Las demás áreas no cambian.
 - **Desempeño › Selección asistida** (Rosember, 21-oct-2026; solo admin, botón «🏆 Selección asistida» en Desempeño):
   propone Manager del mes (aprobadores de Face/N2/N3/N6), Empleado del mes N2/Face, N3/N6, otro de N3/N6 y MVP (mejor
   puntaje global entre quienes no ganaron otra categoría: nadie se repite, Rosember 22-oct-2026). Analiza por defecto el mes anterior (selector para otros meses; el en
