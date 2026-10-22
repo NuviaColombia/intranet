@@ -2496,6 +2496,7 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         miembros.add(equipo.manager_id)   # el manager que diseña casos cuenta como del equipo (igual que en Filtros)
     es_support = equipo.area.formato == FORMATO_SUPPORT   # en Support el diseñador es el del caso: no hay prestados
     quienes: dict[str, int] = {}
+    n_ordenes = 0   # órdenes reales (en N6 una orden suma en Bite y en Zirconia, pero es un solo caso)
     ordenes = (db.query(DesignOrden).filter(DesignOrden.team_id == team_id, filtro_orden_completa(),
                                             DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta).all())
     nombres_p: dict[str, str] = {}
@@ -2505,9 +2506,17 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     for o in ordenes:
         if _es_cancelada(o.estado):
             continue
-        kp = re.sub(r"\s+", " ", _normalizar_texto(o.producto or "")).strip()
-        nombres_p.setdefault(kp, re.sub(r"\s+", " ", (o.producto or "").strip()))
-        por_prod[kp] = por_prod.get(kp, 0) + 1
+        n_ordenes += 1
+        kp0 = re.sub(r"\s+", " ", _normalizar_texto(o.producto or "")).strip()
+        np0 = re.sub(r"\s+", " ", (o.producto or "").strip())
+        # N6 Material Change (21-oct-2026): cada producto se divide en sus dos etapas. Bite design cuenta siempre; Zirconia
+        # design solo cuando la orden ya llegó a esa etapa.
+        if o.tabla == TABLA_MATERIAL:
+            etapas = [(kp0 + "|bite", np0 + " · " + ETAPA_BITE)]
+            if es_etapa_zirconia(o.etapa):
+                etapas.append((kp0 + "|zir", np0 + " · " + ETAPA_ZIRCONIA))
+        else:
+            etapas = [(kp0, np0)]
         prestado = not es_support and (bool((o.designer_prestado or "").strip()) or not o.designer_id or o.designer_id not in miembros)
         if prestado:   # quién fue, para verlo al pasar el mouse por la fila de Prestados
             nom = o.designer.nombre_completo if o.designer else ((o.designer_prestado or "").strip() or "Sin asignar")
@@ -2519,8 +2528,15 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         if kd not in datos_d:
             datos_d[kd] = {"nombre": "Prestados" if prestado else (o.designer.nombre_completo if o.designer else "Sin asignar"), "designerId": None if prestado else o.designer_id}
         celdas.setdefault(kd, {})
-        celdas[kd][kp] = celdas[kd].get(kp, 0) + 1
-    orden_p = sorted(por_prod, key=lambda k: (-por_prod[k], nombres_p[k].lower()))
+        for kp, np_ in etapas:
+            nombres_p.setdefault(kp, np_)
+            por_prod[kp] = por_prod.get(kp, 0) + 1
+            celdas[kd][kp] = celdas[kd].get(kp, 0) + 1
+    base = lambda k: k.split("|")[0]   # las dos etapas de N6 de un mismo producto quedan juntas (Bite y luego Zirconia)
+    por_base: dict[str, int] = {}
+    for k, v in por_prod.items():
+        por_base[base(k)] = por_base.get(base(k), 0) + v
+    orden_p = sorted(por_prod, key=lambda k: (-por_base[base(k)], base(k), k.endswith("|zir")))
     cols = orden_p[:REPARTO_MAX_PRODUCTOS]
     otros = orden_p[REPARTO_MAX_PRODUCTOS:]
     productos = [nombres_p[k] for k in cols] + (["Otros"] if otros else [])
@@ -2552,7 +2568,7 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     equidades = [equidad([f["valores"][i] for f in filas]) for i in range(n)] + [equidad([f["total"] for f in filas])]
     totales = [sum(f["valores"][i] for f in filas) + (prestados["valores"][i] if prestados else 0) for i in range(n)]
     return {**vacio, "teamId": team_id, "productos": productos, "filas": filas, "prestados": prestados,
-            "totales": totales + [sum(totales)], "equidad": equidades}
+            "totales": totales + [sum(totales)], "equidad": equidades, "casos": n_ordenes}
 
 
 def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | None = None, team_id: int | None = None) -> dict:

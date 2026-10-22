@@ -988,6 +988,7 @@
 .dg-rep-filtro select { margin: 0; width: auto; min-width: 220px; max-width: 340px; }
 .dg-rep-ley { margin: 8px 0 0; line-height: 1.7; }
 .dg-rep-tabla td, .dg-rep-tabla th { text-align: center; white-space: nowrap; }
+.dg-rep-tabla thead th { white-space: normal; min-width: 80px; max-width: 170px; line-height: 1.25; vertical-align: bottom; }
 .dg-rep-tabla tfoot th { background: #f8fafc; }
 .dg-rep-alto { background: #fef3c7; color: #92400e; font-weight: 600; }
 .dg-rep-bajo { background: #e0e7ff; color: #3730a3; font-weight: 600; }

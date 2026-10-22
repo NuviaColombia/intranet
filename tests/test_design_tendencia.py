@@ -104,5 +104,25 @@ class Tendencia(unittest.TestCase):
         self.assertIn("Dani X", [f["nombre"] for f in d["filas"]])
 
 
+    def test_reparto_n6_divide_bite_y_zirconia(self):
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db = sessionmaker(bind=eng)()
+        ana = models.Empleado(nombres="Ana", apellidos="X", email="a@x.com", rol="admin", activo=True,
+                              empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion="1")
+        db.add(ana); db.commit()
+        area = md.DesignArea(nombre=sd.AREA_N6, formato="n6"); db.add(area); db.commit()
+        t = md.DesignTeam(area_id=area.id, nombre="Eq", orden=1, activo=1, manager_id=ana.id); db.add(t); db.commit()
+        for i, etapa in enumerate([sd.ETAPA_BITE, sd.ETAPA_ZIRCONIA, sd.ETAPA_ZIRCONIA]):
+            db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla=sd.TABLA_MATERIAL, orden=f"M{i}", centro="C",
+                                  producto="N6 - Material Change Single 24Z", designer_id=ana.id, estado="Started", etapa=etapa, orden_visual=i))
+        db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla="principal", orden="P", centro="C", producto="Ng",
+                              designer_id=ana.id, estado="Started", orden_visual=9))
+        db.commit()
+        d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertEqual(dict(zip(d["productos"], d["filas"][0]["valores"])),
+                         {"N6 - Material Change Single 24Z · Bite design": 3, "N6 - Material Change Single 24Z · Zirconia design": 2, "Ng": 1})
+
+
 if __name__ == "__main__":
     unittest.main()

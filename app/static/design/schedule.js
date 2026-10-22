@@ -3626,7 +3626,7 @@ function dgRepCargar(t) {
     }).join('');
     DG_REP.team = d.teamId;
     var n = d.productos.length, total = d.totales[n] || 0;
-    document.getElementById('dgRepSub').textContent = 'Mes en curso · ' + DG_REP.mes + ' · ' + total + ' casos · ' + d.filas.length + ' diseñador' + (d.filas.length === 1 ? '' : 'es') + ' con casos';
+    document.getElementById('dgRepSub').textContent = 'Mes en curso · ' + DG_REP.mes + ' · ' + (d.casos != null ? d.casos : total) + ' casos · ' + d.filas.length + ' diseñador' + (d.filas.length === 1 ? '' : 'es') + ' con casos';
     var eqHtml = function(e) {
       if (!e) return '<span class="dd-p-nota">—</span>';
       var x = DG_EQ[e.nivel];
@@ -3650,7 +3650,7 @@ function dgRepCargar(t) {
 ')).replace(/"/g, '&quot;') + '"><td class="dd-izq">Prestados <span class="dg-rep-i">ⓘ</span></td>' + d.prestados.valores.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '<td>' + d.prestados.total + '</td></tr>';
     h += '</tbody><tfoot><tr><th class="dd-izq">Total</th>' + d.totales.map(function(v) { return '<th>' + v + '</th>'; }).join('') + '</tr>' +
       '<tr><th class="dd-izq">Equidad</th>' + d.equidad.map(function(e) { return '<th>' + eqHtml(e) + '</th>'; }).join('') + '</tr></tfoot>';
-    tabla.innerHTML = d.filas.length ? h : '<tbody><tr><td class="dd-p-nota">Este equipo no tiene casos en el mes en curso.</td></tr></tbody>';
+    tabla.innerHTML = d.filas.length || d.prestados ? h : '<tbody><tr><td class="dd-p-nota">Este equipo no tiene casos en el mes en curso.</td></tr></tbody>';
   }).catch(function(e) {
     if (t !== DG.tok) return;
     tabla.style.opacity = ''; box.hidden = false; tabla.innerHTML = '<tbody><tr><td style="color:#b91c1c"></td></tr></tbody>'; tabla.querySelector('td').textContent = 'No se pudo cargar: ' + e.message;
