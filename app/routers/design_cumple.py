@@ -3,7 +3,7 @@ Parameters › Formatos Canva › Cumpleaños (piezas generadas, descarga y prue
 Se incluye desde routers/design_schedule.py."""
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from .. import services_design as sd
@@ -11,7 +11,7 @@ from .. import services_design_cumple as scu
 from ..auth import get_current_user
 from ..database import get_db
 from ..main_templates import templates
-from ..models import Empleado
+from ..models import EMPRESA_DESIGN, Empleado
 from ..models_design import DesignFotoPerfil
 from .design_schedule import require_admin
 
@@ -38,6 +38,24 @@ def api_foto(empleado_id: int, request: Request, user: Empleado = Depends(get_cu
     if not f or not f.datos:
         raise HTTPException(404, "Sin foto.")
     return sd.respuesta_foto(request, f.datos, f.tipo)
+
+
+@router.post("/cumple/api/foto/{empleado_id}")
+async def api_subir_foto(empleado_id: int, archivo: UploadFile = File(...), user: Empleado = Depends(require_admin),
+                         db: Session = Depends(get_db)):
+    """Formatos Canva › Cumpleaños (Rosember, 22-oct-2026): un admin sube a mano la foto de quien no tiene foto de
+    perfil (o la cambia). Queda como su foto de perfil de Design y el inicio de sesión con Zoho no la reemplaza."""
+    e = db.get(Empleado, empleado_id)
+    if not e or e.empresa != EMPRESA_DESIGN or not e.activo:
+        raise HTTPException(404, "Esa persona no está en Nuvia Design.")
+    datos = await archivo.read(sd.FOTO_MAX_BYTES + 1)
+    tipo = (archivo.content_type or "").lower()
+    if tipo not in ("image/jpeg", "image/png", "image/webp"):
+        raise HTTPException(400, "La foto debe ser JPG, PNG o WEBP.")
+    if not 200 < len(datos) <= sd.FOTO_MAX_BYTES:
+        raise HTTPException(400, "La foto debe pesar menos de 2 MB.")
+    scu.guardar_foto_manual(db, e, datos, tipo, user)
+    return {"ok": True}
 
 
 @router.get("/cumple/api/prueba")

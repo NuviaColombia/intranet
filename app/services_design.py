@@ -3274,6 +3274,9 @@ async def foto_design_al_iniciar(client, access_token: str, info: dict, email: s
             except Exception as e:  # noqa: BLE001
                 notas.append(f"{u.split('?')[0]} → {type(e).__name__}")
         reg = db.get(DesignFotoPerfil, user.id) or DesignFotoPerfil(empleado_id=user.id)
+        if foto and (reg.origen or "").startswith("manual") and reg.datos:
+            foto = None   # la subió un admin a mano (Formatos Canva › Cumpleaños, 22-oct-2026): Zoho no la reemplaza
+            notas.append("se conserva la foto subida a mano")
         if foto:
             reg.datos, reg.tipo, reg.origen, reg.error = foto[0], foto[1], foto[2], ""
         else:  # se conserva la foto anterior, si había

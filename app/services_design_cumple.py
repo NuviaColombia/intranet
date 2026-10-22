@@ -68,6 +68,22 @@ def de_hoy(db: Session, hoy: date | None = None) -> list[dict]:
     return lista
 
 
+ORIGEN_MANUAL = "manual"   # DesignFotoPerfil.origen de las fotos que sube un admin (el login con Zoho no las reemplaza)
+
+
+def guardar_foto_manual(db: Session, empleado: Empleado, datos: bytes, tipo: str, por: Empleado) -> None:
+    """Foto subida a mano en Formatos Canva › Cumpleaños (Rosember, 22-oct-2026). Se guarda como su foto de perfil."""
+    from datetime import datetime
+    reg = db.get(DesignFotoPerfil, empleado.id) or DesignFotoPerfil(empleado_id=empleado.id)
+    reg.datos, reg.tipo = datos, tipo
+    reg.origen = f"{ORIGEN_MANUAL} · {por.nombre_completo} · {sd.ahora_colombia():%d/%m/%Y}"[:300]
+    reg.error = ""
+    reg.actualizado_en = datetime.utcnow()
+    db.add(reg)
+    db.commit()
+    _CACHE.clear()   # el anuncio de hoy la incluye de una vez
+
+
 _VISTOS: set = set()   # (empleado_id, fecha) ya confirmados: no se vuelve a consultar la base en cada página
 
 

@@ -89,6 +89,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Removable Denture va por manager, y REM = arcos aprobados con Both = 2.
 - **Inicio › podio de diseñadores de N3** (Rosember, 22-oct-2026): solo cuentan las Cirugías (tabla principal); los
   Nightguards y TC ya no suman (`PODIO_SOLO_CIRUGIAS` en services_design_inicio.py). Las demás áreas no cambian.
+- **Cumpleaños › subir la foto a mano** (Rosember, 22-oct-2026): en Formatos Canva › Cumpleaños (solo admin) cada persona
+  sin foto tiene «📷 Subir foto» y las que tienen, «📷 Cambiar foto». La imagen se recorta cuadrada al centro y se reduce
+  a 800 px en el navegador; se guarda en `design_fotos_perfil` con origen «manual · quién · fecha» y queda como su foto
+  de perfil de Design. El inicio de sesión con Zoho ya no reemplaza una foto manual (`foto_design_al_iniciar`).
+  Endpoint `POST /cumple/api/foto/{empleado_id}` (JPG/PNG/WEBP, máx. 2 MB).
 - **Inicio › rankings sincronizados al mediodía** (Rosember, 22-oct-2026): el de equipos/managers y el de diseñadores se
   actualizan juntos una vez al día, a las 12:00 m. hora Colombia (antes cada hora, cada uno por su lado). Cuentan los
   casos aprobados hasta ese corte (`corte_ranking`; una orden con aprobada_en después de las 12 espera al día siguiente),

@@ -37,11 +37,13 @@
       {% if p.tieneFoto %}
       <canvas data-foto="{{ p.foto }}" data-nombre="{{ p.nombre }}" data-cargo="{{ p.cargo }}" role="img" aria-label="Pieza de cumpleaños de {{ p.nombre }}"></canvas>
       {% else %}
-      <div class="fc-sinfoto"><b>📷 Sin foto de perfil</b>No se anunciará hasta que tenga foto (se toma de su cuenta al iniciar sesión).</div>
+      <div class="fc-sinfoto"><b>📷 Sin foto de perfil</b>No se anunciará hasta que tenga foto (se toma de su cuenta al iniciar sesión, o súbela aquí).
+        <button type="button" class="btn mini" data-subir="{{ p.id }}" data-quien="{{ p.nombre }}">📷 Subir foto</button></div>
       {% endif %}
       <div class="fc-nom">{{ p.nombre }}</div>
       <div class="fc-det">{{ p.fecha[8:10] }} de {{ MESES[p.fecha[5:7]|int - 1] }}{{ ' · ¡hoy!' if p.fecha == hoy }} · {{ p.cargo or 'sin cargo en People' }}</div>
-      {% if p.tieneFoto %}<div class="fc-acc"><button type="button" class="btn mini gris" data-descargar="{{ p.nombre }}">⬇ Descargar PNG</button></div>{% endif %}
+      {% if p.tieneFoto %}<div class="fc-acc"><button type="button" class="btn mini gris" data-descargar="{{ p.nombre }}">⬇ Descargar PNG</button>
+        <button type="button" class="btn mini gris" data-subir="{{ p.id }}" data-quien="{{ p.nombre }}" title="Reemplaza su foto de perfil por una que subas">📷 Cambiar foto</button></div>{% endif %}
     </div>
     {% endfor %}
   </div>
@@ -52,7 +54,32 @@
   document.querySelectorAll('.fc-card canvas').forEach(function (cv) {
     DSCumple.dibujar(cv, {foto: cv.dataset.foto, nombre: cv.dataset.nombre, cargo: cv.dataset.cargo}).catch(function () { cv.replaceWith(Object.assign(document.createElement('div'), {className: 'fc-sinfoto', textContent: 'No se pudo cargar la foto'})); });
   });
+  // Subir la foto a mano (Rosember, 22-oct-2026): se recorta cuadrada al centro y se reduce a 800 px antes de enviarla
+  var archivo = Object.assign(document.createElement('input'), {type: 'file', accept: 'image/jpeg,image/png,image/webp'}), destino = null;
+  archivo.onchange = function () {
+    var f = archivo.files[0]; archivo.value = '';
+    if (!f || !destino) return;
+    var img = new Image(), url = URL.createObjectURL(f);
+    img.onload = function () {
+      var lado = Math.min(img.naturalWidth, img.naturalHeight), t = Math.min(800, lado), cv = document.createElement('canvas');
+      cv.width = cv.height = t;
+      cv.getContext('2d').drawImage(img, (img.naturalWidth - lado) / 2, (img.naturalHeight - lado) / 2, lado, lado, 0, 0, t, t);
+      URL.revokeObjectURL(url);
+      cv.toBlob(function (blob) {
+        var fd = new FormData(); fd.append('archivo', blob, 'foto.jpg');
+        destino.disabled = true; destino.textContent = 'Subiendo…';
+        fetch('/cumple/api/foto/' + destino.dataset.subir, {method: 'POST', credentials: 'same-origin', body: fd})
+          .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.detail || r.status); }); })
+          .then(function () { location.reload(); })
+          .catch(function (e) { alert('No se pudo subir la foto: ' + e.message); destino.disabled = false; destino.textContent = '📷 Subir foto'; });
+      }, 'image/jpeg', 0.9);
+    };
+    img.onerror = function () { alert('Ese archivo no es una imagen válida.'); };
+    img.src = url;
+  };
   document.addEventListener('click', function (e) {
+    var s = e.target.closest('[data-subir]');
+    if (s) { destino = s; archivo.click(); return; }
     var b = e.target.closest('[data-descargar]');
     if (!b) return;
     var cv = b.closest('.fc-card').querySelector('canvas');
