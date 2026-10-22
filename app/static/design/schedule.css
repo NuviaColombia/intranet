@@ -996,6 +996,9 @@
 .dg-rep-0 { color: #94a3b8; }
 .dg-rep-prest td { color: #64748b; font-style: italic; }
 .dg-rep-prest { cursor: help; }
+.dg-rep-dias-aus { color: #92400e; cursor: help; }
+.dg-rep-aus { color: #94a3b8; }
+.dg-rep-aus-t { color: #94a3b8; font-weight: 400; font-size: 11px; }
 .dg-eq { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
 .dg-eq-ok { background: #dcfce7; color: #166534; }
 .dg-eq-medio { background: #fef3c7; color: #92400e; }

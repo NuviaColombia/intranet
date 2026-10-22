@@ -3645,26 +3645,33 @@ function dgRepCargar(t) {
     var eqHtml = function(e) {
       if (!e) return '<span class="dd-p-nota">—</span>';
       var x = DG_EQ[e.nivel];
-      return '<span class="dg-eq ' + x[1] + '" title="Se separan ' + e.cv + ' % del promedio (' + e.promedio + ' por diseñador)">' + x[0] + '</span>';
+      return '<span class="dg-eq ' + x[1] + '" title="Los casos por día disponible se separan ' + e.cv + ' % entre diseñadores (' + e.porDia + ' por día en el equipo)">' + x[0] + '</span>';
     };
-    var celda = function(v, i, e) {
-      if (!e || !e.promedio) return '<td>' + (v || '<span class="dg-rep-0">0</span>') + '</td>';
-      // ▲/▼ solo si se separa 2 casos o más del promedio y el producto no es «pareja» ni de «pocos casos» (1 contra 0 no se marca)
-      var marca = e.nivel !== 'pareja' && e.nivel !== 'pocos' && Math.abs(v - e.promedio) >= 2;
-      var r = v / e.promedio, cl = !marca ? '' : (r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : ''));
+    // Cada celda se compara con lo que le correspondía a ese diseñador según sus días disponibles (descontando
+    // vacaciones, calamidades, incapacidades… de Tiempos libres y de People). Ausente todo el periodo: no se marca.
+    var celda = function(v, i, e, f) {
+      var esp = f.esperado ? f.esperado[i] : 0;
+      if (!e || !f.dias) return '<td' + (f.dias ? '' : ' class="dg-rep-aus"') + '>' + (v || '<span class="dg-rep-0">0</span>') + '</td>';
+      // ▲/▼ solo si se separa 2 casos o más de lo que le correspondía y el producto no es «pareja» ni de «pocos casos»
+      var marca = e.nivel !== 'pareja' && e.nivel !== 'pocos' && Math.abs(v - esp) >= 2;
+      var r = esp ? v / esp : 9, cl = !marca ? '' : (r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : ''));
       var flecha = cl === 'dg-rep-alto' ? ' ▲' : (cl === 'dg-rep-bajo' ? ' ▼' : '');
-      return '<td class="' + cl + '" title="Promedio del equipo: ' + e.promedio + '">' + (v || '0') + flecha + '</td>';
+      return '<td class="' + cl + '" title="Le correspondían ≈ ' + esp + ' (según sus ' + f.dias + ' días disponibles)">' + (v || '0') + flecha + '</td>';
     };
-    var h = '<thead><tr><th class="dd-izq">Diseñador</th>' + d.productos.map(function(p) { return '<th>' + ddEsc(p) + '</th>'; }).join('') + '<th>Total</th></tr></thead><tbody>';
+    var diasCelda = function(f) {
+      var t = f.ausencias.map(function(a) { return a.tipo + ': ' + a.dias + ' día' + (a.dias === 1 ? '' : 's'); }).join('\n');
+      return '<td class="' + (f.dias ? (f.ausencias.length ? 'dg-rep-dias-aus' : '') : 'dg-rep-aus') + '"' + (t ? ' title="' + ddEsc(t).replace(/"/g, '&quot;') + '"' : '') + '>' +
+        f.dias + ' / ' + d.habiles + (f.ausencias.length ? ' <span class="dg-rep-i">ⓘ</span>' : '') + '</td>';
+    };
+    var h = '<thead><tr><th class="dd-izq">Diseñador</th><th title="Días disponibles / días hábiles del mes hasta hoy">Días</th>' + d.productos.map(function(p) { return '<th>' + ddEsc(p) + '</th>'; }).join('') + '<th>Total</th></tr></thead><tbody>';
     h += d.filas.map(function(f) {
-      return '<tr><td class="dd-izq"><b>' + ddEsc(f.nombre) + '</b></td>' + f.valores.map(function(v, i) { return celda(v, i, d.equidad[i]); }).join('') +
-        celda(f.total, n, d.equidad[n]).replace('<td', '<td style="font-weight:700"') + '</tr>';
+      return '<tr><td class="dd-izq"><b>' + ddEsc(f.nombre) + '</b>' + (f.dias ? '' : ' <small class="dg-rep-aus-t">ausente todo el periodo</small>') + '</td>' + diasCelda(f) +
+        f.valores.map(function(v, i) { return celda(v, i, d.equidad[i], f); }).join('') +
+        celda(f.total, n, d.equidad[n], f).replace('<td', '<td style="font-weight:700"') + '</tr>';
     }).join('');
-    if (d.prestados) h += '<tr class="dg-rep-prest" title="' + ddEsc('Hechos por personas que no son del equipo:
-' + d.prestados.quienes.map(function(q) { return '• ' + q.nombre + ': ' + q.casos; }).join('
-')).replace(/"/g, '&quot;') + '"><td class="dd-izq">Prestados <span class="dg-rep-i">ⓘ</span></td>' + d.prestados.valores.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '<td>' + d.prestados.total + '</td></tr>';
-    h += '</tbody><tfoot><tr><th class="dd-izq">Total</th>' + d.totales.map(function(v) { return '<th>' + v + '</th>'; }).join('') + '</tr>' +
-      '<tr><th class="dd-izq">Equidad</th>' + d.equidad.map(function(e) { return '<th>' + eqHtml(e) + '</th>'; }).join('') + '</tr></tfoot>';
+    if (d.prestados) h += '<tr class="dg-rep-prest" title="' + ddEsc('Hechos por personas que no son del equipo:\n' + d.prestados.quienes.map(function(q) { return '• ' + q.nombre + ': ' + q.casos; }).join('\n')).replace(/"/g, '&quot;') + '"><td class="dd-izq">Prestados <span class="dg-rep-i">ⓘ</span></td><td></td>' + d.prestados.valores.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '<td>' + d.prestados.total + '</td></tr>';
+    h += '</tbody><tfoot><tr><th class="dd-izq">Total</th><th></th>' + d.totales.map(function(v) { return '<th>' + v + '</th>'; }).join('') + '</tr>' +
+      '<tr><th class="dd-izq">Equidad</th><th></th>' + d.equidad.map(function(e) { return '<th>' + eqHtml(e) + '</th>'; }).join('') + '</tr></tfoot>';
     tabla.innerHTML = d.filas.length || d.prestados ? h : '<tbody><tr><td class="dd-p-nota">Este equipo no tiene casos en el mes en curso.</td></tr></tbody>';
   }).catch(function(e) {
     if (t !== DG.tok) return;

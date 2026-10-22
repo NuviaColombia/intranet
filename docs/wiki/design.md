@@ -119,6 +119,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   casos por diseñador dice «Pocos casos»; ▲/▼ solo si se separa 2 casos o más del promedio.
   N6 Material Change: cada producto se divide en «· Bite design» (siempre) y «· Zirconia design» (si la orden ya llegó a
   esa etapa), juntos en la tabla; el subtítulo cuenta órdenes reales. La tabla va debajo de Reportes de QC.
+  Ausencias (Rosember, 21-oct-2026): columna «Días» = días disponibles / días hábiles del mes hasta hoy (lunes a viernes
+  sin festivos, menos ausencias de día completo de Tiempos libres y de permisos de People aprobados o pendientes de
+  soporte; no los por horas). A cada diseñador le corresponde una parte de cada producto según sus días; ▲/▼ y la
+  equidad comparan contra eso (casos por día disponible, CV ponderado). Ahora salen todos los miembros activos del
+  equipo aunque tengan 0 casos; quien estuvo ausente todo el periodo sale en gris y no cuenta (`_reparto_dias`).
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.

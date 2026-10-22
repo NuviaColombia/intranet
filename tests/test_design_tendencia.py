@@ -126,5 +126,42 @@ class Tendencia(unittest.TestCase):
                          {"N6 - Material Change Single 24Z · Bite design": 3, "N6 - Material Change Single 24Z · Zirconia design": 2, "Ng": 1})
 
 
+    def test_reparto_descuenta_ausencias(self):
+        """Caro estuvo 10 de 15 días hábiles de vacaciones (People) y 1 día con calamidad (Tiempos libres): con 4 días
+        disponibles le corresponde mucho menos que a Beto, y su reparto es parejo aunque tenga menos casos."""
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db = sessionmaker(bind=eng)()
+        ps = [models.Empleado(nombres=n, apellidos="X", email=f"{n}@x.com", rol="admin" if n == "Ana" else "empleado", activo=True,
+                              empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion=n) for n in ("Ana", "Beto", "Caro", "Eva")]
+        db.add_all(ps); db.commit()
+        ana, beto, caro, eva = ps
+        area = md.DesignArea(nombre="N3 Prosthetic", formato="n3"); db.add(area); db.commit()
+        t = md.DesignTeam(area_id=area.id, nombre="Eq", orden=1, activo=1); db.add(t); db.commit()
+        for e in (beto, caro, eva):
+            db.add(md.DesignTeamDesigner(team_id=t.id, empleado_id=e.id))
+        vac = models.TipoPermiso(nombre="Vacaciones", es_vacaciones=1); db.add(vac); db.commit()
+        db.add(models.Solicitud(empleado_id=caro.id, tipo_id=vac.id, fecha_inicio=date(2026, 10, 1), fecha_fin=date(2026, 10, 14),
+                                dias=10, estado="aprobada"))
+        db.add(models.Solicitud(empleado_id=eva.id, tipo_id=vac.id, fecha_inicio=date(2026, 9, 20), fecha_fin=date(2026, 10, 30),
+                                dias=30, estado="aprobada"))   # todo el periodo: no cuenta
+        db.add(md.DesignBreak(team_id=t.id, empleado_id=caro.id, fecha=date(2026, 10, 15), tipo_ausencia="Calamidad doméstica"))
+        db.add(md.DesignAusenciaTipo(nombre="Vacaciones", orden=1))
+        i = 0
+        for e, n in ((beto, 14), (caro, 4)):
+            for _ in range(n):
+                i += 1
+                db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 16), tabla="principal", orden=f"O{i}", centro="C",
+                                      producto="Ng", designer_id=e.id, estado="Started", orden_visual=i))
+        db.commit()
+        d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertEqual(d["habiles"], 15)
+        f = {x["nombre"]: x for x in d["filas"]}
+        self.assertEqual((f["Beto X"]["dias"], f["Caro X"]["dias"], f["Eva X"]["dias"]), (15, 4, 0))
+        self.assertEqual(f["Caro X"]["ausencias"], [{"tipo": "Vacaciones", "dias": 10}, {"tipo": "Calamidad doméstica", "dias": 1}])
+        self.assertEqual(f["Caro X"]["esperado"][0], round(18 * 4 / 19, 1))
+        self.assertEqual(d["equidad"][0]["nivel"], "pareja")   # sin descontar ausencias habría sido 14 contra 4 (y 0): desigual
+
+
 if __name__ == "__main__":
     unittest.main()
