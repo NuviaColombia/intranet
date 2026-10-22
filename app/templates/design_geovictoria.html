@@ -28,6 +28,10 @@
   .gv-libro th { position:sticky; top:0; z-index:1; background:#0f2b46; color:#fff; font-weight:600; text-align:center; padding:8px 6px; white-space:nowrap; border-right:1px solid #22466b; }
   .gv-libro th:first-child, .gv-libro td:first-child { text-align:left; position:sticky; left:0; }
   .gv-libro th:first-child { z-index:2; }
+  .gv-libro th[data-o] { cursor:pointer; user-select:none; }
+  .gv-libro th[data-o]::after { content:attr(data-dir); margin-left:5px; font-size:10px; opacity:.55; }
+  .gv-libro th.orden { background:#1d4ed8; }
+  .gv-libro th.orden::after { opacity:1; }
   .gv-libro td { padding:6px; text-align:center; border-bottom:1px solid #e5eaf0; border-right:1px solid #eef2f6; white-space:nowrap; background:#fff; }
   .gv-libro tr:nth-child(even) td { background:#f7f9fc; }
   .gv-libro tr:hover td { background:#eaf3ff; }
@@ -108,7 +112,7 @@
       <span class="gv-msg" id="gvHoyMsg"></span>
     </div>
     <div class="gv-res" id="gvRes"></div>
-    <div class="gv-libro-w" id="gvLibroW" hidden><table class="gv-libro" id="gvTabla"><thead><tr><th>Persona</th><th>Turno</th><th>Entrada</th><th>Salida colación</th><th>Entrada colación</th><th>Salida</th><th>Atraso</th><th>Hrs. trabajadas</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+    <div class="gv-libro-w" id="gvLibroW" hidden><table class="gv-libro" id="gvTabla"><thead><tr><th data-o="nombre">Persona</th><th data-o="turno">Turno</th><th data-o="entrada">Entrada</th><th data-o="salidaAlm">Salida colación</th><th data-o="regresoAlm">Entrada colación</th><th data-o="salida">Salida</th><th data-o="atrasoMin">Atraso</th><th data-o="trabajado">Hrs. trabajadas</th><th data-o="estado">Estado</th></tr></thead><tbody></tbody></table></div>
   </div>
 </div>
 <script>
@@ -156,7 +160,16 @@
   $('gvCruce').onclick = function () { cargarCruce(true); };
   var NOM = {entrada: 'Entrada', almuerzo: 'Regreso del almuerzo', salida: 'Salida'};
   // ---- Marcas de hoy: cuadrícula estilo libro de asistencia de GeoVictoria ----
-  var LIBRO = {filas: [], filtro: ''};
+  var LIBRO = {filas: [], filtro: '', orden: '', dir: 1};
+  // Ordenar por cualquier columna (22-oct-2026): clic en el título; otro clic invierte. Lo vacío siempre va al final.
+  var RANGO = {falta: 0, horario: 1, tarde: 2, espera: 3, curso: 4, ok: 5, perm: 6};
+  function valorOrden(f, k) {
+    if (k === 'nombre') return f.nombre.toLowerCase();
+    if (k === 'turno') return f.turno || '';
+    if (k === 'atrasoMin') return f.atrasoMin || 0;
+    if (k === 'estado') return RANGO[estadoDe(f)[0]];
+    return f[k] || '';
+  }
   function estadoDe(f) {
     if (f.permisos.length) return ['perm', f.permisos.join(', ')];
     if (f.sinHorario) return ['horario', 'Sin horario asignado'];
@@ -183,6 +196,16 @@
                  ['ok', '🟢 A tiempo', cuenta.ok], ['espera', '⚪ Aún no llega', cuenta.espera], ['perm', '🟣 Permiso', cuenta.perm]];
     $('gvRes').innerHTML = chips.map(function (c) { return '<button type="button" data-f="' + c[0] + '"' + (LIBRO.filtro === c[0] ? ' class="on"' : '') + '>' + c[1] + '<b>' + c[2] + '</b></button>'; }).join('');
     var filas = base.filter(function (f) { if (!LIBRO.filtro) return true; var e = estadoDe(f)[0]; return (e === 'curso' ? 'ok' : e) === LIBRO.filtro; });
+    if (LIBRO.orden) filas = filas.slice().sort(function (a, b) {
+      var x = valorOrden(a, LIBRO.orden), y = valorOrden(b, LIBRO.orden);
+      if (x === '' && y !== '') return 1;
+      if (y === '' && x !== '') return -1;
+      return (x < y ? -1 : x > y ? 1 : a.nombre.localeCompare(b.nombre, 'es')) * LIBRO.dir;
+    });
+    $('gvTabla').querySelectorAll('th[data-o]').forEach(function (th) {
+      th.classList.toggle('orden', th.dataset.o === LIBRO.orden);
+      th.dataset.dir = th.dataset.o === LIBRO.orden ? (LIBRO.dir > 0 ? '▲' : '▼') : '↕';
+    });
     $('gvTabla').querySelector('tbody').innerHTML = filas.map(function (f) {
       var e = estadoDe(f);
       return '<tr><td class="gv-nom">' + esc(f.nombre) + '<small>' + esc(f.equipos.join(', ')) + '</small></td>' +
@@ -195,6 +218,11 @@
     }).join('') || '<tr><td colspan="9" style="text-align:center;color:#64748b">Nadie con este filtro.</td></tr>';
   }
   $('gvRes').addEventListener('click', function (ev) { var b = ev.target.closest('[data-f]'); if (b) { LIBRO.filtro = b.dataset.f; pintarLibro(); } });
+  $('gvTabla').querySelector('thead').addEventListener('click', function (ev) {
+    var th = ev.target.closest('th[data-o]'); if (!th) return;
+    if (LIBRO.orden === th.dataset.o) LIBRO.dir = -LIBRO.dir; else { LIBRO.orden = th.dataset.o; LIBRO.dir = 1; }
+    pintarLibro();
+  });
   $('gvBuscar').addEventListener('input', pintarLibro);
   $('gvArea').addEventListener('change', pintarLibro);
   function cargarHoy(forzar) {
