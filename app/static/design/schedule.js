@@ -3615,7 +3615,8 @@ function dgCargar() {
       if (t !== DG.tok) return;
       if (!d.series.length) { p.hidden = true; return; }   // sin equipos (o sin casos) de esta área para esta persona
       p.hidden = false; alguna = true;
-      ddDibujarTendencia(body, {d: d, ocultos: {}});
+      if (DD_MOV) { p.classList.remove('dg-entra'); void p.offsetWidth; p.classList.add('dg-entra'); }
+      ddDibujarTendencia(body, {d: d, ocultos: {}, chica: true, caras: true, animar: true});
     }).catch(function(e) {
       if (t !== DG.tok) return;
       p.hidden = false; body.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; body.firstChild.textContent = 'No se pudo cargar: ' + e.message;
@@ -3624,6 +3625,7 @@ function dgCargar() {
 }
 // Gráfica de casos por equipo: pasa el mouse para ver el detalle de cada día o semana; haz clic en un equipo para
 // mostrar u ocultar su línea. Sábados y domingos no se cuentan (ya vienen fuera desde el servidor).
+var DDT_CARA = 0;
 function ddDibujarTendencia(body, st) {
   st = st || DDT;   // Filtros usa DDT; cada gráfica de Resumen trae su propio estado
   var d = st.d;
@@ -3632,7 +3634,9 @@ function ddDibujarTendencia(body, st) {
   }
   var lista = d.series.map(function(s, k) { return {s: s, c: DDT_COL[k % DDT_COL.length]}; });
   var activos = lista.filter(function(x) { return !st.ocultos[x.s.nombre]; });
-  var W = 900, H = 340, PL = 48, PR = 18, PT = 16, PB = 58, n = d.tramos.length;
+  // Resumen (21-oct-2026): gráficas más chicas, dos por fila; la cara del aprobador en el día de hoy y entrada animada
+  var W = st.chica ? 560 : 900, H = st.chica ? 300 : 340, PL = 40, PR = st.caras ? 26 : 18, PT = st.caras ? 24 : 16, PB = 46, n = d.tramos.length;
+  var animar = st.animar && DD_MOV; st.animar = false;
   var max = 1;
   activos.forEach(function(x) { x.s.valores.forEach(function(v) { if (v > max) max = v; }); });
   var techo = ddTecho(max / 4) * 4, iw = W - PL - PR, ih = H - PT - PB;   // 4 tramos de un paso «redondo»: las guías caen en enteros (21-oct-2026)
@@ -3646,15 +3650,36 @@ function ddDibujarTendencia(body, st) {
     rejilla += '<line x1="' + PL + '" x2="' + (W - PR) + '" y1="' + yy + '" y2="' + yy + '" stroke="#e2e8f0"/>' +
                '<text x="' + (PL - 8) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="11" fill="#64748b">' + Math.round(val) + '</text>';
   }
-  var paso = Math.max(1, Math.ceil(n / 12));
+  var paso = Math.max(1, Math.ceil(n / (st.chica ? 8 : 12)));
   var etiquetas = d.tramos.map(function(t, i) {
     return i % paso ? '' : '<text x="' + x(i) + '" y="' + (H - PB + 18) + '" text-anchor="middle" font-size="11" fill="#475569">' + ddEsc(t) + '</text>';
   }).join('');
-  var lineas = activos.map(function(a) {
+  var hoy = st.caras && d.hoy != null ? d.hoy : -1, repetidos = {};
+  var lineas = activos.map(function(a, k) {
     var pts = a.s.valores.map(function(v, i) { return x(i) + ',' + y(v); }).join(' ');
-    return '<polyline fill="none" stroke="' + a.c + '" stroke-width="2.4" stroke-linejoin="round" points="' + pts + '"/>' +
-      a.s.valores.map(function(v, i) { return '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3.4" fill="#fff" stroke="' + a.c + '" stroke-width="2"/>'; }).join('');
+    var demora = 'style="--i:' + k + '"';
+    return '<polyline class="dd-linea" ' + demora + ' pathLength="1" fill="none" stroke="' + a.c + '" stroke-width="2.4" stroke-linejoin="round" points="' + pts + '"/>' +
+      a.s.valores.map(function(v, i) {
+        if (i === hoy) return '';
+        return '<circle class="dd-pto" style="--i:' + k + ';--p:' + (n <= 1 ? 0 : i / (n - 1)) + '" cx="' + x(i) + '" cy="' + y(v) + '" r="3.4" fill="#fff" stroke="' + a.c + '" stroke-width="2"/>';
+      }).join('');
   }).join('');
+  // Hoy: en vez del círculo, la cara del aprobador del equipo (o sus iniciales si no tiene foto). Si dos equipos van
+  // igual, las caras se corren un poco para que se vean las dos.
+  var caras = hoy < 0 ? '' : activos.map(function(a, k) {
+    var v = a.s.valores[hoy], rep = repetidos[v] = (repetidos[v] || 0) + 1;
+    var cx = x(hoy) - (rep - 1) * 14, cy = y(v), r = 12, id = 'ddCara' + (++DDT_CARA);
+    var nom = a.s.aprobador || a.s.nombre;
+    var ini = nom.split(/\s+/).filter(Boolean).slice(0, 2).map(function(p) { return p[0]; }).join('').toUpperCase();
+    var dentro = a.s.foto
+      ? '<clipPath id="' + id + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
+        '<image href="' + a.s.foto + '" x="' + (cx - r) + '" y="' + (cy - r) + '" width="' + (2 * r) + '" height="' + (2 * r) + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#' + id + ')"/>'
+      : '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + a.c + '"/>' +
+        '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">' + ddEsc(ini) + '</text>';
+    return '<g class="dd-cara" style="--i:' + k + ';transform-origin:' + cx + 'px ' + cy + 'px"><title>' + ddEsc(nom + ' · ' + a.s.nombre + ' · hoy: ' + v) + '</title>' +
+      '<circle class="dd-cara-halo" cx="' + cx + '" cy="' + cy + '" r="' + (r + 3) + '" fill="none" stroke="' + a.c + '" stroke-width="2"/>' +
+      dentro + '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#fff" stroke-width="2"/></g>';
+  }).reverse().join('');   // la del equipo con más casos queda encima
   var zonas = d.tramos.map(function(t, i) {
     return '<rect class="dd-zona" data-i="' + i + '" x="' + (x(i) - anchoZona / 2) + '" y="' + PT + '" width="' + anchoZona + '" height="' + ih + '" fill="transparent"/>';
   }).join('');
@@ -3663,7 +3688,7 @@ function ddDibujarTendencia(body, st) {
     '<line x1="' + PL + '" x2="' + (W - PR) + '" y1="' + (PT + ih) + '" y2="' + (PT + ih) + '" stroke="#94a3b8"/>' +
     etiquetas +
     '<line class="dd-guia" x1="0" x2="0" y1="' + PT + '" y2="' + (PT + ih) + '" stroke="#334155" stroke-dasharray="4 3" opacity="0"/>' +
-    lineas + '<g class="dd-puntos"></g>' + zonas + '</svg>';
+    lineas + caras + '<g class="dd-puntos"></g>' + zonas + '</svg>';
 
   var leyenda = lista.map(function(x) {
     var oculto = !!st.ocultos[x.s.nombre];
@@ -3672,8 +3697,8 @@ function ddDibujarTendencia(body, st) {
   }).join('');
   var resumen = activos.reduce(function(s, a) { return s + a.s.total; }, 0);
   body.innerHTML = '<div class="dd-tend-cab"><span><b>' + resumen + '</b> casos en ' + n + ' ' + (d.tramos[0] && d.tramos[0].indexOf('Sem') === 0 ? 'semanas' : 'días laborables') + '</span>' +
-    '<span class="dd-p-nota">Pasa el mouse para ver el detalle · clic en un equipo para mostrar u ocultar su línea</span></div>' +
-    '<div class="dd-tend">' + svg + '<div class="dd-tip" hidden></div></div>' +
+    (st.chica ? '' : '<span class="dd-p-nota">Pasa el mouse para ver el detalle · clic en un equipo para mostrar u ocultar su línea</span>') + '</div>' +
+    '<div class="dd-tend' + (animar ? ' dd-tend-anim' : '') + '">' + svg + '<div class="dd-tip" hidden></div></div>' +
     '<div class="dd-leyenda">' + leyenda + '</div>';
 
   var tip = body.querySelector('.dd-tip'), guia = body.querySelector('.dd-guia'), puntos = body.querySelector('.dd-puntos');

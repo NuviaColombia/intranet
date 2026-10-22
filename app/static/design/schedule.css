@@ -946,6 +946,10 @@
 
   /* Dashboard › Productos */
   .dd-vistas { display:inline-flex; gap:4px; background:#f1f5f9; border-radius:10px; padding:4px; margin:-6px 0 12px; }
+  /* Título y pestañas en una sola fila; si no caben, las pestañas bajan (21-oct-2026). Deja libre la X de cerrar. */
+  .dd-cabecera { display:flex; align-items:center; flex-wrap:wrap; gap:8px 18px; margin:0 56px 14px 0; }
+  .dd-cabecera h1 { margin:0; }
+  .dd-cabecera .dd-vistas { margin:0; flex-wrap:wrap; }
   .dd-vista { border:none; background:none; padding:7px 14px; border-radius:7px; font:inherit; font-size:13.5px; cursor:pointer; color:#374151; }
   .dd-vista.on { background:#fff; color:#111827; font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.12); }
   .dd-p-nota { font-size:13px; color:#4b5563; margin:0 0 10px; }
@@ -978,6 +982,25 @@
 
 /* Tendencia por equipo (interactiva) y barras de Articulación */
 .dd-tend { position: relative; }
+/* Dashboard › Resumen: dos gráficas por fila, entrada animada y la cara del aprobador en el día de hoy (21-oct-2026) */
+.dg-rejilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.dg-rejilla > .dd-panel { margin: 0; min-width: 0; }
+@media (max-width: 1000px) { .dg-rejilla { grid-template-columns: 1fr; } }
+@keyframes dgEntra { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+.dg-entra { animation: dgEntra .5s cubic-bezier(.2,.8,.2,1) both; }
+.dg-rejilla > .dg-entra:nth-child(2) { animation-delay: .08s; }
+.dg-rejilla > .dg-entra:nth-child(3) { animation-delay: .16s; }
+.dg-rejilla > .dg-entra:nth-child(4) { animation-delay: .24s; }
+@keyframes ddTrazo { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes ddAparece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ddCaraPop { 0% { opacity: 0; transform: scale(0); } 70% { opacity: 1; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes ddHalo { 0%, 100% { opacity: .9; stroke-width: 2; } 50% { opacity: .25; stroke-width: 5; } }
+.dd-tend-anim .dd-linea { stroke-dasharray: 1; animation: ddTrazo 1.3s cubic-bezier(.4,0,.2,1) both; animation-delay: calc(var(--i, 0) * 120ms + 200ms); }
+.dd-tend-anim .dd-pto { animation: ddAparece .3s ease-out both; animation-delay: calc(var(--i, 0) * 120ms + 200ms + var(--p, 0) * 1.2s); }
+.dd-tend-anim .dd-cara { animation: ddCaraPop .55s cubic-bezier(.3,1.4,.5,1) both; animation-delay: calc(var(--i, 0) * 120ms + 1.45s); }
+.dd-cara { transform-box: view-box; }
+.dd-cara-halo { animation: ddHalo 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .dg-entra, .dd-tend-anim .dd-linea, .dd-tend-anim .dd-pto, .dd-tend-anim .dd-cara, .dd-cara-halo { animation: none !important; } }
 .dd-tend-cab { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; font-size: 13px; color: #334155; }
 .dd-tip { position: absolute; top: 4px; min-width: 170px; background: #0f172a; color: #fff; border-radius: 8px; padding: 8px 10px; font-size: 12px; pointer-events: none; box-shadow: 0 6px 18px rgba(15,23,42,.25); transform: translateX(0); z-index: 2; }
 .dd-tip-t { font-weight: 700; margin-bottom: 4px; }

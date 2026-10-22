@@ -2410,11 +2410,21 @@ def dashboard_tendencia(db: Session, user: Empleado, area_id: int | None, team_i
         e = equipos.setdefault(tid, {"id": tid, "nombre": nombre, "valores": {}})
         k = clave(fecha)
         e["valores"][k] = e["valores"].get(k, 0) + 1
+    # El aprobador (manager) de cada equipo y si tiene foto: Resumen pone su cara en el día de hoy (21-oct-2026)
+    mans = {t.id: t.manager for t in db.query(DesignTeam).filter(DesignTeam.id.in_(list(equipos)))} if equipos else {}
+    mids = [m.id for m in mans.values() if m]
+    con_foto = {r[0] for r in db.query(DesignFotoPerfil.empleado_id).filter(DesignFotoPerfil.empleado_id.in_(mids),
+                                                                           DesignFotoPerfil.datos.isnot(None))} if mids else set()
     series = []
     for e in sorted(equipos.values(), key=lambda x: (-sum(x["valores"].values()), x["nombre"].lower())):
+        m = mans.get(e["id"])
         series.append({"id": e["id"], "nombre": e["nombre"], "total": sum(e["valores"].values()),
-                       "valores": [e["valores"].get(t, 0) for t in tramos]})
-    return {"desde": desde.isoformat(), "hasta": hasta.isoformat(), "tramos": [etiqueta(t) for t in tramos], "series": series}
+                       "valores": [e["valores"].get(t, 0) for t in tramos],
+                       "aprobador": m.nombre_completo if m else "",
+                       "foto": f"/design/api/foto/{m.id}" if m and m.id in con_foto else ""})
+    hoy = date.today()
+    return {"desde": desde.isoformat(), "hasta": hasta.isoformat(), "tramos": [etiqueta(t) for t in tramos], "series": series,
+            "hoy": tramos.index(clave(hoy)) if clave(hoy) in tramos and hoy.weekday() < 5 else None}
 
 
 def dashboard_productos(db: Session, user: Empleado, anio: int, area_id: int | None = None, team_id: int | None = None) -> dict:
