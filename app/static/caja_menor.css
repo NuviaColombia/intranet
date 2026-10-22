@@ -165,3 +165,12 @@
 /* Imprimir varios recibos */
 .cm-varios { border: 1px solid #93C5FD; background: #EFF6FF; border-radius: 10px; padding: 10px 14px; margin: 0 0 10px; }
 
+/* Sugerencias de nombre (autocompletar identificación/nombre): lista propia, no <datalist> del navegador */
+#caja-app .cm-sugerencias { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 2px;
+  background: #fff; border: 1px solid #CBD5E1; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  max-height: 220px; overflow-y: auto; text-transform: none; }
+#caja-app .cm-sugerencia { padding: 8px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #F1F5F9; }
+#caja-app .cm-sugerencia:last-child { border-bottom: none; }
+#caja-app .cm-sugerencia:hover { background: #F0F9FF; }
+#caja-app .cm-sugerencia small { color: #64748B; margin-left: 6px; }
+
