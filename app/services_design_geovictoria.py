@@ -174,6 +174,7 @@ def leer_dia(u: dict, dia: date) -> dict | None:
     if not it:
         return None
     turno = None
+    descanso = any(s.get("Type") == "NotWorking" for s in it.get("Shifts") or [])
     for s in it.get("Shifts") or []:
         if s.get("Type") == "NotWorking" or (s.get("Status") or "").lower() == "disabled":
             continue
@@ -211,7 +212,8 @@ def leer_dia(u: dict, dia: date) -> dict | None:
     atraso = 0
     if turno and marcas["entrada"] and marcas["entrada"] > turno["inicio"]:
         atraso = int((marcas["entrada"] - turno["inicio"]).total_seconds() // 60)
-    return {"turno": turno, "permisos": permisos, "marcas": marcas, "atrasoMin": atraso}
+    return {"turno": turno, "permisos": permisos, "marcas": marcas, "atrasoMin": atraso,
+            "sinHorario": not turno and not descanso and not permisos}   # nadie le asignó turno ese día
 
 
 def faltas(info: dict, ahora: datetime, tol: int) -> list[dict]:
@@ -246,6 +248,9 @@ def _consultar(db: Session, dia: date) -> dict:
                 info = leer_dia(u, dia)
                 if info:
                     datos[eid] = info
+    for eid in pares:   # no vino en el libro de ese día: no tiene horario asignado
+        datos.setdefault(eid, {"turno": None, "permisos": [], "atrasoMin": 0, "sinHorario": True,
+                               "marcas": {"entrada": None, "salidaAlm": None, "regresoAlm": None, "salida": None}})
     return datos
 
 
@@ -275,7 +280,7 @@ def para_seguimiento(empleado_id: int, ahora: datetime, tol: int | None = None) 
     t, m = info["turno"], info["marcas"]
     return {"turno": f"{_hm(t['inicio'])} – {_hm(t['fin'])}" if t else "", "permisos": info["permisos"], "atrasoMin": info["atrasoMin"],
             "entrada": _hm(m["entrada"]), "salidaAlm": _hm(m["salidaAlm"]), "regresoAlm": _hm(m["regresoAlm"]), "salida": _hm(m["salida"]),
-            "faltas": faltas(info, ahora, TOLERANCIA if tol is None else tol)}
+            "faltas": faltas(info, ahora, TOLERANCIA if tol is None else tol), "sinHorario": bool(info.get("sinHorario"))}
 
 
 # ---------- avisos (push) ----------
@@ -359,9 +364,71 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
                 sp.enviar(db, list(mans), tm.format(nombre=corto), cm.format(hora=f["hora"]), "/design?panel=seguimiento", f"gv-{eid}-{f['tipo']}", fijo=True)
             enviados.add(k)
             nuevos.append(k)
+    nuevos += _recordar_horarios(db, ahora, datos, enviados)
     if nuevos:
         _guardar_enviados(db, ahora.date())
-        ESTADO["avisos"] += len(nuevos)
+    nuevos = [k for k in nuevos if not k.endswith("|*")]   # las marcas «ya se revisó hoy» no son avisos
+    ESTADO["avisos"] += len(nuevos)
+    return nuevos
+
+
+# ---------- horario sin asignar (Rosember, 22-oct-2026) ----------
+# Si un diseñador no tiene turno en GeoVictoria (ni descanso ni permiso), a su manager le llega un push para que se lo
+# asigne: a las HORA_MANANA revisa el día siguiente hábil (para que alcance a corregirlo) y a las HORA_HOY revisa hoy.
+# Solo días hábiles (sin sábados, domingos ni festivos). Un solo push por manager con la lista de su gente.
+HORA_HOY = 7
+HORA_MANANA = 15
+_manana = {"fecha": None, "t": 0.0, "datos": {}}
+
+
+def _habil(db: Session, d: date) -> bool:
+    from . import services_design as sd
+    return d.weekday() < 5 and d not in sd.festivos(db)
+
+
+def _siguiente_habil(db: Session, d: date) -> date:
+    d += timedelta(days=1)
+    while not _habil(db, d):
+        d += timedelta(days=1)
+    return d
+
+
+def _recordar_horarios(db: Session, ahora: datetime, datos_hoy: dict, enviados: set) -> list[str]:
+    from . import services_design_push as sp
+    pendientes = []
+    if ahora.hour >= HORA_HOY and _habil(db, ahora.date()):
+        pendientes.append(("hoy", ahora.date(), datos_hoy))
+    if ahora.hour >= HORA_MANANA:
+        dia = _siguiente_habil(db, ahora.date())
+        if f"horario-manana|{dia.isoformat()}|*" not in enviados:
+            if _manana["fecha"] != dia or time.time() - _manana["t"] > REFRESCO_S:
+                _manana.update(fecha=dia, t=time.time(), datos=_consultar(db, dia))
+            pendientes.append(("manana", dia, _manana["datos"]))
+    nuevos = []
+    for cual, dia, datos in pendientes:
+        marca = f"horario-{cual}|{dia.isoformat()}|*"
+        if marca in enviados:
+            continue
+        sin = [eid for eid, info in datos.items() if info.get("sinHorario")]
+        por_manager: dict[int, list[str]] = {}
+        nombres = {e.id: e for e in db.query(Empleado).filter(Empleado.id.in_(sin or [-1]))}
+        for eid in sin:
+            e = nombres.get(eid)
+            if not e:
+                continue
+            corto = " ".join((e.nombres or "").split()[:1] + (e.apellidos or "").split()[:1]) or e.nombre_completo
+            for m in _managers_de(db, eid):
+                por_manager.setdefault(m, []).append(corto)
+        dia_txt = "hoy" if cual == "hoy" else dia.strftime("%d/%m")
+        for m, gente in por_manager.items():
+            lista = ", ".join(sorted(gente)[:6]) + (f" y {len(gente) - 6} más" if len(gente) > 6 else "")
+            titulo = "📅 Falta asignar horario" if cual == "hoy" else "📅 Asigna el horario de " + dia_txt
+            cuerpo = (f"Hoy no tienen horario en GeoVictoria: {lista}." if cual == "hoy"
+                      else f"El {dia_txt} no tienen horario en GeoVictoria: {lista}. Asígnalo antes de que empiece el día.")
+            sp.enviar(db, [m], titulo, cuerpo, "/design?panel=seguimiento", f"gv-horario-{cual}", fijo=True)
+            nuevos.append(f"horario-{cual}|{dia.isoformat()}|{m}")
+        enviados.add(marca)   # se revisa una vez por día (aunque nadie falte)
+        nuevos.append(marca)
     return nuevos
 
 
@@ -418,7 +485,7 @@ def para_seguimiento_info(info: dict, ahora: datetime, tol: int) -> dict:
     t, m = info["turno"], info["marcas"]
     return {"turno": f"{_hm(t['inicio'])} – {_hm(t['fin'])}" if t else "", "permisos": info["permisos"], "atrasoMin": info["atrasoMin"],
             "entrada": _hm(m["entrada"]), "salidaAlm": _hm(m["salidaAlm"]), "regresoAlm": _hm(m["regresoAlm"]), "salida": _hm(m["salida"]),
-            "faltas": faltas(info, ahora, tol)}
+            "faltas": faltas(info, ahora, tol), "sinHorario": bool(info.get("sinHorario"))}
 
 
 _hilo = {"t": None}

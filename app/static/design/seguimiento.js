@@ -112,6 +112,7 @@
     if (m.salida) partes.push('Salida ' + esc(m.salida));
     var h = '<div class="sg-gv" title="GeoVictoria' + (m.turno ? ' · turno ' + esc(m.turno) : '') + '">🕒 ' + (partes.join(' · ') || (m.turno ? 'Turno ' + esc(m.turno) : 'Sin marcas')) + '</div>';
     if (m.permisos && m.permisos.length) h += '<div class="sg-gv-perm">' + esc(m.permisos.join(', ')) + '</div>';
+    if (m.sinHorario) h += '<div class="sg-gv-falta">📅 Sin horario asignado en GeoVictoria</div>';
     (m.faltas || []).forEach(function(f) { h += '<div class="sg-gv-falta">⚠️ ' + GV_FALTA[f.tipo] + ' (' + esc(f.hora) + ')</div>'; });
     return h;
   }

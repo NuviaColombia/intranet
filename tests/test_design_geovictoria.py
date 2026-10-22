@@ -126,5 +126,36 @@ class Avisos(unittest.TestCase):
             g.probar_persona(self.db, self.luis.id, "entrada", "yo", self.luis, datetime(2026, 10, 22, 7, 30))   # no cruzó
 
 
+    def test_horario_sin_asignar_recuerda_al_manager(self):
+        from app import services_design as sd
+        p = mock.patch.object(sd, "festivos", return_value=set()); p.start(); self.addCleanup(p.stop)
+        self.configurar()
+        self.sin_turno = True
+        def api(c, ruta, cuerpo):
+            if ruta == "/User/List":
+                return [{"Identifier": "1234567", "Enabled": "1", "Name": "Ana", "LastName": "X"}]
+            dia = cuerpo["StartDate"][:8]
+            shifts = [] if self.sin_turno else [{"Type": "NotWorking", "Begins": dia + "000000", "Ends": dia + "235900"}]
+            return {"Users": [{"Identifier": "1234567", "PlannedInterval": [{"Date": dia + "000000", "Shifts": shifts, "TimeOffs": [], "Punches": []}]}]}
+        g._post.side_effect = api
+        # jueves 22 a las 7:15: hoy no tiene horario → un push a su manager
+        nuevos = g.revisar(self.db, datetime(2026, 10, 22, 7, 15))
+        self.assertEqual(nuevos, [f"horario-hoy|2026-10-22|{self.luis.id}"])
+        self.assertEqual(self.envios[-1][0], [self.luis.id])
+        self.assertIn("horario", self.envios[-1][1].lower())
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 8, 0)), [])   # una sola vez al día
+        # a las 3 p. m. se revisa el día siguiente hábil (viernes 23)
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 15, 5)), [f"horario-manana|2026-10-23|{self.luis.id}"])
+        # descanso («No trabaja») no es «sin horario»
+        self.sin_turno = False
+        g._hoy.update(fecha=None, t=0.0); g._enviados.update(fecha=None, claves=set())
+        self.db.query(md.DesignConexionRegla).filter(md.DesignConexionRegla.clave.like("gv_avisos_%")).delete(synchronize_session=False); self.db.commit()
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 7, 15)), [])
+        # sábado: no se revisa
+        self.sin_turno = True
+        g._hoy.update(fecha=None, t=0.0)
+        self.assertEqual([k for k in g.revisar(self.db, datetime(2026, 10, 24, 7, 15)) if k.startswith("horario-hoy")], [])
+
+
 if __name__ == "__main__":
     unittest.main()

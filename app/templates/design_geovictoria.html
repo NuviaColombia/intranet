@@ -33,7 +33,7 @@
   .gv-h.curso { background:#e6efff; color:#1d4ed8; }
   .gv-est { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11.5px; font-weight:600; }
   .gv-est.ok { background:#e3f5e9; color:#14632f; } .gv-est.tarde { background:#fff1d6; color:#8a4b00; }
-  .gv-est.falta { background:#fde2e2; color:#a11c1c; } .gv-est.perm { background:#e0e7ff; color:#3730a3; } .gv-est.curso { background:#e6efff; color:#1d4ed8; }
+  .gv-est.falta { background:#fde2e2; color:#a11c1c; } .gv-est.horario { background:#fef3c7; color:#92400e; } .gv-est.perm { background:#e0e7ff; color:#3730a3; } .gv-est.curso { background:#e6efff; color:#1d4ed8; }
   .gv-sub { color:#475569; font-size:13px; margin:2px 0 14px; }
   .gv-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 16px; margin-bottom:14px; }
   .gv-card h2 { margin:0 0 8px; font-size:16px; }
@@ -104,7 +104,7 @@
 
   <div class="gv-card">
     <h2>🕒 Marcas de hoy</h2>
-    <p class="gv-nota">Como el libro de asistencia de GeoVictoria: una fila por persona con su turno y sus marcas. Verde = a tiempo, naranja = tarde, rojo = falta la marca, gris = todavía no toca.</p>
+    <p class="gv-nota">Como el libro de asistencia de GeoVictoria: una fila por persona con su turno y sus marcas. Verde = a tiempo, naranja = tarde, rojo = falta la marca, gris = todavía no toca. «Sin horario» = nadie le asignó turno: a su manager le llega un recordatorio (a las 3 p. m. por el día siguiente y a las 7 a. m. por hoy).</p>
     <div class="gv-filtros">
       <button type="button" class="btn mini gris" id="gvHoy">Traer marcas de hoy</button>
       <input type="search" id="gvBuscar" placeholder="Buscar persona o equipo…">
@@ -180,6 +180,7 @@
   var LIBRO = {filas: [], filtro: ''};
   function estadoDe(f) {
     if (f.permisos.length) return ['perm', f.permisos.join(', ')];
+    if (f.sinHorario) return ['horario', 'Sin horario asignado'];
     if (f.faltas.length) return ['falta', f.faltas.map(function (x) { return 'Falta ' + NOM[x.tipo].toLowerCase(); }).join(' · ')];
     if (!f.entrada) return ['espera', 'Aún no llega'];
     if (f.enCurso) return [f.atrasoMin ? 'tarde' : 'curso', f.atrasoMin ? 'Llegó tarde · trabajando' : 'Trabajando'];
@@ -199,14 +200,14 @@
     });
     var cuenta = {todos: base.length, falta: 0, tarde: 0, perm: 0, espera: 0, ok: 0};
     base.forEach(function (f) { var e = estadoDe(f)[0]; if (e === 'curso') e = 'ok'; cuenta[e] = (cuenta[e] || 0) + 1; });
-    var chips = [['', 'Todos', cuenta.todos], ['falta', '🔴 Falta marca', cuenta.falta], ['tarde', '🟠 Tarde', cuenta.tarde],
+    var chips = [['', 'Todos', cuenta.todos], ['falta', '🔴 Falta marca', cuenta.falta], ['horario', '📅 Sin horario', cuenta.horario || 0], ['tarde', '🟠 Tarde', cuenta.tarde],
                  ['ok', '🟢 A tiempo', cuenta.ok], ['espera', '⚪ Aún no llega', cuenta.espera], ['perm', '🟣 Permiso', cuenta.perm]];
     $('gvRes').innerHTML = chips.map(function (c) { return '<button type="button" data-f="' + c[0] + '"' + (LIBRO.filtro === c[0] ? ' class="on"' : '') + '>' + c[1] + '<b>' + c[2] + '</b></button>'; }).join('');
     var filas = base.filter(function (f) { if (!LIBRO.filtro) return true; var e = estadoDe(f)[0]; return (e === 'curso' ? 'ok' : e) === LIBRO.filtro; });
     $('gvTabla').querySelector('tbody').innerHTML = filas.map(function (f) {
       var e = estadoDe(f);
       return '<tr><td class="gv-nom">' + esc(f.nombre) + '<small>' + esc(f.equipos.join(', ')) + '</small></td>' +
-        '<td>' + esc(f.turno || 'Sin turno') + '</td>' +
+        '<td>' + (f.turno ? esc(f.turno) : (f.sinHorario ? '<span class="gv-h falta">Sin horario</span>' : 'Descanso')) + '</td>' +
         '<td>' + celda(f.entrada, 'entrada', f) + '</td><td>' + celda(f.salidaAlm, '', f) + '</td>' +
         '<td>' + celda(f.regresoAlm, 'almuerzo', f) + '</td><td>' + celda(f.salida, 'salida', f) + '</td>' +
         '<td>' + (f.atrasoMin ? '<span class="gv-h tarde">' + String(Math.floor(f.atrasoMin / 60)).padStart(2, '0') + ':' + String(f.atrasoMin % 60).padStart(2, '0') + '</span>' : '<span class="gv-h espera">00:00</span>') + '</td>' +

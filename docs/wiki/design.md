@@ -125,6 +125,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   «🧪 Probar con una persona» (22-oct-2026): elige a alguien que cruzó, trae al momento sus marcas de hoy y envía un aviso
   push de prueba del tipo elegido, «Solo a mí» (los textos de la persona y del manager) o «A la persona y su manager»
   (marcado 🧪 prueba) (`probar_persona`, `POST /design/api/geovictoria/prueba`).
+  Horario sin asignar (Rosember, 22-oct-2026): si un diseñador no tiene turno en GeoVictoria ese día (ni descanso «No
+  trabaja» ni permiso), a su manager le llega un push para asignárselo: a las 3 p. m. por el siguiente día hábil y a las
+  7 a. m. por hoy; solo días hábiles; un push por manager con la lista (`_recordar_horarios`). En Marcas de hoy y en
+  Seguimiento sale «📅 Sin horario». Usa la misma casilla «Enviar avisos push».
 - **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
   registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
   el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la
