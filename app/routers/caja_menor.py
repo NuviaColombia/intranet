@@ -205,6 +205,60 @@ def firmar_por_enlace(recibo_id: int, token: str, request: Request, db: Session 
     return RedirectResponse(f"/caja-menor/firmar-recibido/{r.id}/{token}?msg={quote(msg)}", status_code=303)
 
 
+# ---- Firma de quien recibió un anticipo: igual patrón que recibido (con sesión, y enlace sin sesión) ----
+def _anticipo_para_firma(db: Session, user: Empleado, anticipo_id: int) -> CajaAnticipo:
+    a = db.get(CajaAnticipo, anticipo_id)
+    if not a or not (a.empleado_id == user.id or sc.es_admin(user, a.caja)):
+        raise HTTPException(404, "Este anticipo no está a tu nombre.")
+    return a
+
+
+@router.get("/caja-menor/anticipo/{anticipo_id}")
+def pagina_anticipo(anticipo_id: int, request: Request, user: Empleado = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    """Resumen del anticipo para que el colaborador firme que lo recibió (no necesita el módulo de caja)."""
+    a = _anticipo_para_firma(db, user, anticipo_id)
+    return templates.TemplateResponse(request, "caja_anticipo.html", {
+        "user": user, "es_portal": True, "a": sc.serializar_anticipo(a),
+        "caja_nombre": nombre_propio(a.caja.nombre), "msg": request.query_params.get("msg", "")})
+
+
+@router.post("/caja-menor/anticipo/{anticipo_id}/firmar")
+def firmar_anticipo(anticipo_id: int, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    a = _anticipo_para_firma(db, user, anticipo_id)
+    error = sc.firmar_anticipo(db, a, user)
+    msg = error or "✅ Listo: firmaste que recibiste el anticipo. Gracias."
+    return RedirectResponse(f"/caja-menor/anticipo/{a.id}?msg={quote(msg)}", status_code=303)
+
+
+def _anticipo_por_enlace(db: Session, anticipo_id: int, token: str) -> CajaAnticipo:
+    a = db.get(CajaAnticipo, anticipo_id)
+    if not a or not sc.token_anticipo_valido(a, token):
+        raise HTTPException(404, "Este enlace no es válido o ya no corresponde a este anticipo.")
+    return a
+
+
+@router.get("/caja-menor/firmar-anticipo/{anticipo_id}/{token}")
+def pagina_firma_anticipo_enlace(anticipo_id: int, token: str, request: Request, db: Session = Depends(get_db)):
+    """Detalle del anticipo y botón para firmarlo. No requiere iniciar sesión: el enlace es personal y firmado."""
+    a = _anticipo_por_enlace(db, anticipo_id, token)
+    return templates.TemplateResponse(request, "caja_anticipo_enlace.html", {
+        "a": sc.serializar_anticipo(a), "token": token, "msg": request.query_params.get("msg", ""),
+        "caja_nombre": nombre_propio(a.caja.nombre),
+        "quien": nombre_propio(a.empleado.nombre_completo) if a.empleado else "",
+        "correo": a.empleado.email if a.empleado else "", "logo": "/static/logos/nuvia-smiles.png"})
+
+
+@router.post("/caja-menor/firmar-anticipo/{anticipo_id}/{token}")
+def firmar_anticipo_por_enlace(anticipo_id: int, token: str, request: Request, db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    a = _anticipo_por_enlace(db, anticipo_id, token)
+    msg = sc.firmar_anticipo_enlace(db, a, request.client.host if request.client else "")
+    msg = msg or "✅ Listo: firmaste que recibiste el anticipo. Gracias."
+    return RedirectResponse(f"/caja-menor/firmar-anticipo/{a.id}/{token}?msg={quote(msg)}", status_code=303)
+
+
 @router.get("/caja-menor/{caja_id}")
 def pagina_caja(caja_id: int, request: Request, user: Empleado = Depends(require_modulo(MODULO)),
                 db: Session = Depends(get_db)):
@@ -702,26 +756,39 @@ def api_anticipos(caja_id: int, user: Empleado = Depends(require_modulo(MODULO))
 
 
 @router.post("/caja-menor/api/{caja_id}/anticipos")
-def api_crear_anticipo(caja_id: int, payload: AnticipoIn, user: Empleado = Depends(require_modulo(MODULO)),
-                       db: Session = Depends(get_db)):
+def api_crear_anticipo(caja_id: int, payload: AnticipoIn, tareas: BackgroundTasks,
+                       user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
     acs.exigir(db, user, "caja", 'anticipos')
     a = sc.crear_anticipo(db, caja, user, payload.model_dump())
     if isinstance(a, str):
         raise HTTPException(400, a)
+    if sc.necesita_aviso_anticipo(a):  # el No. identificación es de un colaborador: firma desde Cliq
+        tareas.add_task(sc.notificar_anticipo_pendiente, a.id)
     return {"mensaje": "✅ Anticipo registrado.", "anticipo": sc.serializar_anticipo(a)}
 
 
-@router.post("/caja-menor/api/{caja_id}/anticipos/{anticipo_id}/toggle")
-def api_toggle_anticipo(caja_id: int, anticipo_id: int, user: Empleado = Depends(require_modulo(MODULO)),
-                        db: Session = Depends(get_db)):
+@router.post("/caja-menor/api/{caja_id}/anticipos/{anticipo_id}/legalizar")
+def api_legalizar_anticipo(caja_id: int, anticipo_id: int, user: Empleado = Depends(require_modulo(MODULO)),
+                           db: Session = Depends(get_db)):
     caja = _caja(db, user, caja_id)
     acs.exigir(db, user, "caja", 'anticipos')
     a = db.get(CajaAnticipo, anticipo_id)
     if not a or a.caja_id != caja.id:
         raise HTTPException(404, "Anticipo no encontrado.")
-    sc.toggle_anticipo(db, a, user)
-    return {"mensaje": "✅ Actualizado.", "anticipo": sc.serializar_anticipo(a)}
+    error = sc.legalizar_anticipo(db, a, user)
+    if error:
+        raise HTTPException(400, error)
+    return {"mensaje": "✅ Anticipo legalizado.", "anticipo": sc.serializar_anticipo(a)}
+
+
+@router.get("/caja-menor/api/{caja_id}/buscar-persona")
+def api_buscar_persona(caja_id: int, q: str = "", user: Empleado = Depends(require_modulo(MODULO)),
+                       db: Session = Depends(get_db)):
+    """Autocompletar identificación/nombre en Nuevo recibo y Anticipos: colaboradores de People y
+    terceros ya registrados antes en esta caja."""
+    caja = _caja(db, user, caja_id)
+    return {"data": sc.buscar_personas(db, caja, q)}
 
 
 # ---------------- Parámetros (solo administradores) ----------------
@@ -1125,6 +1192,14 @@ def cargar_datos_iniciales() -> None:
             """))
             conn.execute(text(
                 "UPDATE caja_menor_cajas SET empresa = 'Nuvia Smiles Colombia SAS' WHERE empresa = '' OR empresa IS NULL"))
+    if inspect(engine).has_table("caja_menor_anticipos"):  # si no existe, el create_all general la crea ya completa
+        columnas_anticipos = {c["name"] for c in inspect(engine).get_columns("caja_menor_anticipos")}
+        nuevas_anticipos = {"empleado_id": "INTEGER REFERENCES empleados(id)", "firmado_email": "VARCHAR(150)",
+                            "firmado_en": "TIMESTAMP", "firmado_via": "VARCHAR(20)"}
+        with engine.begin() as conn:
+            for nombre, tipo in nuevas_anticipos.items():
+                if nombre not in columnas_anticipos:
+                    conn.execute(text(f"ALTER TABLE caja_menor_anticipos ADD COLUMN {nombre} {tipo}"))
     # Responsable guardado antes solo como nombre: se enlaza con la persona de People
     db = SessionLocal()
     try:

@@ -64,16 +64,38 @@ había ninguna forma de que encontrara su recibo pendiente -- terminaba intentan
 tenga uno (`services_caja.recibos_pendientes_de_recibido`), con enlace directo a `/caja-menor/recibido/{id}`
 -- ese aviso es independiente de `tiene_modulo`, se ve tenga o no acceso al módulo.
 
-**(2026-10-22) Anticipos: registro simple, aparte de los recibos.** Carlos entrega dinero antes de la
-compra (anticipo) y el colaborador vuelve después con la factura electrónica y el gasto de transporte.
-`CajaAnticipo` (`app/models_caja.py`) es a propósito un registro **suelto**, sin relación con
-`CajaRecibo` ni `CajaFM`: solo identificación, nombre, valor, fecha, concepto y un estado
-PENDIENTE/LEGALIZADO que se marca a mano (`services_caja.toggle_anticipo`). Nueva pestaña "💸 Anticipos"
-en la caja (`app/templates/caja_menor.html`, slug `anticipos` en `SECCIONES["caja"]` de
-`acceso_secciones.py` y en el `pestanas()` de `base.html`) -- igual que las demás pestañas, respeta
-Secciones por persona y el mismo `_caja()` (no opera quien es firmante de la caja). Si en el futuro hace
-falta más control (vincular el anticipo a un recibo/factura real, alertar anticipos viejos sin legalizar,
-etc.), es una ampliación de este modelo, no justifica rehacerlo.
+**(2026-10-22) Anticipos: registro simple, aparte de los recibos, ahora con firma.** Carlos entrega
+dinero antes de la compra (anticipo) y el colaborador vuelve después con la factura electrónica y el
+gasto de transporte. `CajaAnticipo` (`app/models_caja.py`) es a propósito un registro **suelto**, sin
+relación con `CajaRecibo` ni `CajaFM`: identificación, nombre, valor, fecha, concepto y un estado
+PENDIENTE/LEGALIZADO. Nueva pestaña "💸 Anticipos" en la caja (`app/templates/caja_menor.html`, slug
+`anticipos` en `SECCIONES["caja"]` de `acceso_secciones.py` y en el `pestanas()` de `base.html`) --
+igual que las demás pestañas, respeta Secciones por persona y el mismo `_caja()` (no opera quien es
+firmante de la caja). Si en el futuro hace falta más control (vincular el anticipo a un recibo/factura
+real, alertar anticipos viejos sin legalizar, etc.), es una ampliación de este modelo, no justifica
+rehacerlo.
+
+- **Legalizar no se puede deshacer** (`services_caja.legalizar_anticipo`): a diferencia de la primera
+  versión (que tenía un toggle PENDIENTE↔LEGALIZADO), ahora es de un solo sentido -- pedido explícito
+  de Carlos. Si alguien legaliza por error, no hay botón para corregirlo (habría que hacerlo
+  directamente en la base de datos).
+- **Firma de quien recibió el anticipo**: mismo patrón que `CajaRecibo.recibido_*` -- si la
+  identificación coincide con un colaborador activo de People (`colaborador_por_identificacion`,
+  reutilizada de recibos), `crear_anticipo` le asigna `empleado_id` automáticamente, y puede firmar por
+  dos caminos sin el módulo `caja_menor`: `/caja-menor/anticipo/{id}` (con sesión) o
+  `/caja-menor/firmar-anticipo/{id}/{token}` (enlace de Cliq, sin sesión -- mismo HMAC que
+  `token_recibido`). Aparece en el aviso del portal junto con los recibos pendientes
+  (`anticipos_pendientes_de_firma`). A un tercero sin cuenta en People no se le pide firma (no tiene
+  `empleado_id`), solo se marca Legalizado a mano.
+- **Autocompletar identificación/nombre** (`services_caja.buscar_personas`,
+  `GET /caja-menor/api/{caja_id}/buscar-persona`): busca por nombre o identificación en Empleados
+  activos (cualquier empresa) y en el historial de recibos/anticipos de esta caja; People tiene
+  prioridad sobre el historial. Se usa igual en "Nuevo recibo" y en "Anticipos" (mismos campos). Es
+  solo una ayuda de UI -- no impide escribir un nombre o identificación que no esté en ninguna lista.
+- **Migración de columnas nuevas**: `empleado_id`, `firmado_email`, `firmado_en`, `firmado_via` se
+  agregan con `ALTER TABLE` en el `on_event("startup")` de `caja_menor.py` (igual que las demás
+  columnas del módulo) -- la tabla ya existía en producción antes de este cambio, así que
+  `Base.metadata.create_all()` no la toca.
 
 **Adjuntos**: igual que en Permisos (soporte documental), se guardan como BLOB en la propia fila
 (`CajaAdjunto.datos`, columna `deferred`) -- no van a Zoho WorkDrive. Límite 5 MB,

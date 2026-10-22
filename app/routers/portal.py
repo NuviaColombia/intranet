@@ -41,8 +41,10 @@ def portal(request: Request, user: Empleado = Depends(get_current_user), db: Ses
                                        "pagina": si.publicada(db), "editor": editor, "vivo": si.vivo(db),
                                        "modo_editar": editor and request.query_params.get("editar") == "1",
                                        "version": _version_estaticos(),
-                                       # No requiere el módulo Caja menor: cualquiera a quien le paguen puede firmar.
-                                       "recibos_pendientes": sc.recibos_pendientes_de_recibido(db, user)})
+                                       # No requiere el módulo Caja menor: cualquiera a quien le paguen (o le den un
+                                       # anticipo) puede firmar.
+                                       "recibos_pendientes": sc.recibos_pendientes_de_recibido(db, user),
+                                       "anticipos_pendientes": sc.anticipos_pendientes_de_firma(db, user)})
 
 
 # ---------- Borrador, publicar e historial (superadmins) ----------

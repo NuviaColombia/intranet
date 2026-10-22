@@ -77,6 +77,17 @@
       </div>
     </div>
     {% endif %}
+    {% if anticipos_pendientes %}
+    <div class="aviso" style="background:#FEF3C7;color:#78350F;">
+      <b>💸 Tienes {{ anticipos_pendientes|length }} anticipo{{ 's' if anticipos_pendientes|length != 1 else '' }} de Caja menor pendiente{{ 's' if anticipos_pendientes|length != 1 else '' }} de firmar que recibiste:</b>
+      <div style="margin-top:6px; display:flex; flex-direction:column; gap:3px;">
+        {% for a in anticipos_pendientes %}
+        <a href="/caja-menor/anticipo/{{ a.id }}" style="color:#78350F; text-decoration:underline;">
+          $ {{ '{:,.0f}'.format(a.valor).replace(',', '.') }} · {{ a.concepto }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <div id="nviPagina" class="nvi-raiz"></div>
     {% if not modo_editar %}
       {% if not pagina and editor %}
