@@ -211,31 +211,6 @@
       </table></div>
     </div>
   </div>
- </div>
-
- <!-- Ventana: soportes (documentos y fotos) de un recibo, para revisarlos antes de firmar -->
- <div id="modalSoportes" class="cm-modal" onclick="if (event.target === this) cerrarSoportes()">
-  <div class="cm-modal-caja" style="max-width:900px; max-height:90vh; overflow:auto;">
-    <h3 id="soportesTitulo" style="color:#1A365D">📎 Soportes</h3>
-    <p id="soportesSub" style="font-size:13px; color:var(--text-muted); margin:0 0 10px;"></p>
-    <div id="soportesCuerpo"></div>
-    <div class="cm-acciones" style="margin-top:16px;"><button type="button" class="btn gris" onclick="cerrarSoportes()">Cerrar</button></div>
-  </div>
- </div>
-
- <!-- Ventana: anular con motivo -->
- <div id="modalAnular" class="cm-modal">
-  <div class="cm-modal-caja">
-    <h3 id="anularTitulo">🚫 Anular</h3>
-    <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px;" id="anularTexto">Esta acción es irreversible. Queda registrado quién anuló, cuándo y por qué.</p>
-    <label style="font-size:13px; font-weight:700;" id="anularEtiqueta">Motivo de la anulación (obligatorio)</label>
-    <textarea id="anularMotivo" rows="4" maxlength="500" placeholder="Ej: El valor se registró mal; se reemplaza por el recibo CONT-0120."></textarea>
-    <div id="anularError" class="cm-error"></div>
-    <div class="cm-acciones" style="margin-top:16px;">
-      <button type="button" class="btn gris" onclick="cerrarAnulacion()">Cancelar</button>
-      <button type="button" class="btn rojo" id="btnConfirmarAnular" onclick="confirmarAnulacion()">🚫 Anular</button>
-    </div>
-  </div>
 
   <!-- ============ ANTICIPOS ============ -->
   <div id="sec-anticipos" class="cm-seccion">
@@ -264,6 +239,31 @@
       <thead><tr><th>Fecha</th><th>A quién</th><th>No. identificación</th><th>Concepto</th><th>Valor</th><th>Estado</th><th>Acción</th></tr></thead>
       <tbody id="bodyAnticipos"><tr><td colspan="7" class="cm-vacio">Cargando…</td></tr></tbody>
     </table></div>
+  </div>
+ </div>
+
+ <!-- Ventana: soportes (documentos y fotos) de un recibo, para revisarlos antes de firmar -->
+ <div id="modalSoportes" class="cm-modal" onclick="if (event.target === this) cerrarSoportes()">
+  <div class="cm-modal-caja" style="max-width:900px; max-height:90vh; overflow:auto;">
+    <h3 id="soportesTitulo" style="color:#1A365D">📎 Soportes</h3>
+    <p id="soportesSub" style="font-size:13px; color:var(--text-muted); margin:0 0 10px;"></p>
+    <div id="soportesCuerpo"></div>
+    <div class="cm-acciones" style="margin-top:16px;"><button type="button" class="btn gris" onclick="cerrarSoportes()">Cerrar</button></div>
+  </div>
+ </div>
+
+ <!-- Ventana: anular con motivo -->
+ <div id="modalAnular" class="cm-modal">
+  <div class="cm-modal-caja">
+    <h3 id="anularTitulo">🚫 Anular</h3>
+    <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px;" id="anularTexto">Esta acción es irreversible. Queda registrado quién anuló, cuándo y por qué.</p>
+    <label style="font-size:13px; font-weight:700;" id="anularEtiqueta">Motivo de la anulación (obligatorio)</label>
+    <textarea id="anularMotivo" rows="4" maxlength="500" placeholder="Ej: El valor se registró mal; se reemplaza por el recibo CONT-0120."></textarea>
+    <div id="anularError" class="cm-error"></div>
+    <div class="cm-acciones" style="margin-top:16px;">
+      <button type="button" class="btn gris" onclick="cerrarAnulacion()">Cancelar</button>
+      <button type="button" class="btn rojo" id="btnConfirmarAnular" onclick="confirmarAnulacion()">🚫 Anular</button>
+    </div>
   </div>
  </div>
 </div>
