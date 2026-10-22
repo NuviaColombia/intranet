@@ -53,25 +53,29 @@ class Seleccion(unittest.TestCase):
         t3 = self.equipo("N3 Prosthetic", "Eq Luisa", luisa, [a, b, poco])
         t6 = self.equipo("N6 Material Changes", "Eq Paula", paula, [c, d])
         tf = self.equipo("Face Design", "Eq Sofi", sofi, [f1, f2])
-        self.casos(t3, a, 60, hallazgos=1)    # mucho y casi sin hallazgos
+        self.casos(t3, a, 60)                 # mucho y sin hallazgos
         self.casos(t3, b, 40, hallazgos=8)
         self.casos(t3, poco, 4)               # no llega al mínimo de casos
         self.casos(t6, c, 30, hallazgos=0)
         self.casos(t6, d, 30, hallazgos=6)
         self.casos(tf, f1, 25, hallazgos=0)
-        self.casos(tf, f2, 50, hallazgos=1)
+        self.casos(tf, f2, 50)
         r = ssel.analizar(self.db, 2026, 10)
         cat = {x["clave"]: x for x in r["categorias"]}
         self.assertEqual(r["habiles"], 22)
         self.assertEqual(cat["n3n6"]["candidatos"][0]["nombre"], "Ana X")
         self.assertIn(cat["n3n6b"]["candidatos"][0]["nombre"], ("Caro X",))
         self.assertEqual(cat["n2face"]["candidatos"][0]["nombre"], "Gina X")
-        self.assertEqual({x["nombre"] for x in r["noCompiten"]}, {"Poco X"})
+        self.assertEqual({x["nombre"] for x in r["noCompiten"]}, {"Poco X", "Beto X", "Dani X"})   # con hallazgos de QC: fuera
+        self.assertIn("hallazgos de QC", next(x for x in r["noCompiten"] if x["nombre"] == "Beto X")["motivo"])
         self.assertTrue(all(x["area"] in ("N3 Prosthetic", "N6 Material Changes") for x in cat["n3n6"]["candidatos"]))
         self.assertEqual([m["nombre"] for m in cat["manager"]["candidatos"]][:3].__len__(), 3)
         ganadores = [cat[k]["candidatos"][0]["id"] for k in ("n2face", "n3n6", "n3n6b", "mvp")]
         self.assertEqual(len(set(ganadores)), 4)   # nadie se repite
-        g = cat["n3n6"]["candidatos"][0]
+        self.assertEqual(cat["mvp"]["candidatos"][0]["nombre"], "Fede X")
+        todos = [f["id"] for k in ("n2face", "n3n6", "n3n6b", "mvp") for f in cat[k]["candidatos"]]
+        self.assertEqual(len(todos), len(set(todos)))   # ni en «Siguientes» se repite un nombre
+        g = cat["n2face"]["candidatos"][0]
         self.assertTrue(g["porQue"]["fuertes"])
         self.assertIn("Evaluación del líder", g["faltan"])   # no hay hojas de Desempeño: el peso se reparte
 
@@ -86,8 +90,7 @@ class Seleccion(unittest.TestCase):
         self.casos(t, a, 44)          # 22 días: 2 por día
         self.casos(t, b, 33)          # 15 días disponibles: 2,2 por día → más productivo aunque hizo menos
         r = ssel.analizar(self.db, 2026, 10)
-        n3 = next(x for x in r["categorias"] if x["clave"] == "n3n6")["candidatos"]
-        p = {x["nombre"]: x["percentiles"]["productividad"] for x in n3}
+        p = {x["nombre"]: x["percentiles"]["productividad"] for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
         self.assertGreater(p["Beto X"], p["Ana X"])
 
     def test_mes_anterior_y_suavizado(self):

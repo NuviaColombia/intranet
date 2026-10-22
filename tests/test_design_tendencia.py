@@ -1,6 +1,6 @@
 """Dashboard › Tendencia por equipo (21-oct-2026): solo cuentan las órdenes completas en estado Approved."""
 import unittest
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -147,11 +147,14 @@ class Tendencia(unittest.TestCase):
                                 dias=30, estado="aprobada"))   # todo el periodo: no cuenta
         db.add(md.DesignBreak(team_id=t.id, empleado_id=caro.id, fecha=date(2026, 10, 15), tipo_ausencia="Calamidad doméstica"))
         db.add(md.DesignAusenciaTipo(nombre="Vacaciones", orden=1))
+        # Beto hace 1 caso cada día hábil; Caro solo está el 16, 19, 20 y 21 y ese día también hace 1
         i = 0
-        for e, n in ((beto, 14), (caro, 4)):
-            for _ in range(n):
+        dias = [date(2026, 10, 1) + timedelta(days=k) for k in range(21) if (date(2026, 10, 1) + timedelta(days=k)).weekday() < 5]
+        presentes_caro = {date(2026, 10, 16), date(2026, 10, 19), date(2026, 10, 20), date(2026, 10, 21)}
+        for f in dias:
+            for e in ([beto, caro] if f in presentes_caro else [beto]):
                 i += 1
-                db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 16), tabla="principal", orden=f"O{i}", centro="C",
+                db.add(md.DesignOrden(team_id=t.id, fecha=f, tabla="principal", orden=f"O{i}", centro="C",
                                       producto="Ng", designer_id=e.id, estado="Started", orden_visual=i))
         db.commit()
         d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
@@ -159,8 +162,34 @@ class Tendencia(unittest.TestCase):
         f = {x["nombre"]: x for x in d["filas"]}
         self.assertEqual((f["Beto X"]["dias"], f["Caro X"]["dias"], f["Eva X"]["dias"]), (15, 4, 0))
         self.assertEqual(f["Caro X"]["ausencias"], [{"tipo": "Vacaciones", "dias": 10}, {"tipo": "Calamidad doméstica", "dias": 1}])
-        self.assertEqual(f["Caro X"]["esperado"][0], round(18 * 4 / 19, 1))
+        # lo que le correspondía, día a día: los 11 días sin Caro todo es de Beto; los 4 días con los dos, mitad y mitad
+        self.assertEqual((f["Beto X"]["esperado"][0], f["Caro X"]["esperado"][0]), (15.0, 4.0))
         self.assertEqual(d["equidad"][0]["nivel"], "pareja")   # sin descontar ausencias habría sido 14 contra 4 (y 0): desigual
+
+
+    def test_reparto_face_sin_maria_jose_ni_maxilar(self):
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db = sessionmaker(bind=eng)()
+        ps = [models.Empleado(nombres=n, apellidos=a, email=f"{n}@x.com", rol="admin" if n == "Ana" else "empleado", activo=True,
+                              empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion=n)
+              for n, a in (("Ana", "X"), ("Maria Jose", "Lemus Diaz"), ("Beto", "X"), ("Caro", "X"))]
+        db.add_all(ps); db.commit()
+        ana, mj, beto, caro = ps
+        area = md.DesignArea(nombre="Face Design", formato="single"); db.add(area); db.commit()
+        t = md.DesignTeam(area_id=area.id, nombre="Face Juliana", orden=1, activo=1); db.add(t); db.commit()
+        for e in (mj, beto, caro):
+            db.add(md.DesignTeamDesigner(team_id=t.id, empleado_id=e.id))
+        casos = [(mj, "Maxilar Print")] * 6 + [(mj, "Crown")] * 2 + [(beto, "Maxilar Print")] * 3 + [(beto, "Crown")] * 4 + [(caro, "Crown")] * 4
+        for i, (e, prod) in enumerate(casos):
+            db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla="principal", orden=f"F{i}", centro="C", producto=prod,
+                                  designer_id=e.id, estado="Started", orden_visual=i))
+        db.commit()
+        d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertEqual(d["productos"], ["Crown"])
+        self.assertEqual(sorted(f["nombre"] for f in d["filas"]), ["Beto X", "Caro X"])
+        self.assertIsNone(d["prestados"])
+        self.assertEqual(d["casos"], 8)
 
 
 if __name__ == "__main__":

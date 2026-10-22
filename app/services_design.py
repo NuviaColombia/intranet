@@ -2468,17 +2468,23 @@ def dashboard_qc_disenadores(db: Session, user: Empleado, desde: date, hasta: da
 
 
 REPARTO_MAX_PRODUCTOS = 10   # columnas de producto en la tabla; el resto se junta en «Otros»
+# Quién y qué no cuenta en el reparto, por área (Rosember, 22-oct-2026). María José Lemus hace solo Maxilar Print en los
+# equipos de Face (CREAN_PRODUCTO): ni ella ni ese producto son parte del reparto de los diseñadores.
+REPARTO_EXCLUIR = [
+    {"area": "Face Design", "personas": ["maria jose lemus"], "productos": ["Maxilar Print"]},
+]
 
 
 def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, team_id: int | None = None) -> dict:
     """Dashboard › Resumen › Reparto de productos (Rosember, 21-oct-2026): para ver si en un equipo los productos se
     reparten parejo entre sus diseñadores. Tabla diseñador × producto con los casos del periodo (órdenes completas, sin
     canceladas ni skipped). Los prestados salen aparte y no cuentan para la equidad. Sin team_id se muestra el equipo
-    con más casos. Un aprobador solo ve sus equipos.
-    Ausencias (Rosember, 21-oct-2026): a cada diseñador le corresponde una parte de cada producto según sus días
-    disponibles (días hábiles del periodo menos sus ausencias de día completo: Tiempos libres del Schedule y permisos de
-    People). La equidad compara los casos por día disponible (coeficiente de variación ponderado: ≤ 25 % pareja, ≤ 50 %
-    algo desigual, más desigual); quien estuvo ausente todo el periodo no cuenta."""
+    con más casos. Un aprobador solo ve sus equipos. Personas y productos de REPARTO_EXCLUIR no cuentan.
+    Presencia día a día (Rosember, 22-oct-2026): los casos de cada día se reparten, en lo que «le correspondía», entre
+    los diseñadores del equipo que estaban ese día (sin vacaciones, incapacidad, luto, calamidad… de día completo, de
+    Tiempos libres o de People). Así, cuando alguien falta, a los presentes les corresponde más y no salen «por encima»,
+    y quien faltó no sale «por debajo». La equidad compara lo que hizo cada uno contra lo que le correspondía
+    (variación ponderada: ≤ 25 % pareja, ≤ 50 % algo desigual, más desigual); quien faltó todo el periodo no cuenta."""
     q = (db.query(DesignOrden.team_id, DesignTeam.nombre, DesignArea.nombre, func.count(DesignOrden.id))
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id).join(DesignArea, DesignTeam.area_id == DesignArea.id)
          .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta, DesignArea.nombre != AREA_RD)
@@ -2498,6 +2504,12 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     # El aprobador (manager) no cuenta en el reparto (Rosember, 21-oct-2026): hace casos ocasionales; sus casos no salen
     # ni como fila ni como prestados ni en los totales.
     miembros.discard(equipo.manager_id)
+    excl = [r for r in REPARTO_EXCLUIR if r["area"] == equipo.area.nombre]
+    excl_personas = [set(p.split()) for r in excl for p in r["personas"]]
+    excl_productos = {_normalizar_texto(p) for r in excl for p in r["productos"]}
+    excluida = lambda nombre: any(p <= set(_normalizar_texto(nombre or "").split()) for p in excl_personas)
+    if excl_personas:
+        miembros = {e.id for e in db.query(Empleado).filter(Empleado.id.in_(miembros or [-1])) if not excluida(e.nombre_completo)}
     es_support = equipo.area.formato == FORMATO_SUPPORT   # en Support el diseñador es el del caso: no hay prestados
     quienes: dict[str, int] = {}
     n_ordenes = 0   # órdenes reales (en N6 una orden suma en Bite y en Zirconia, pero es un solo caso)
@@ -2507,8 +2519,13 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     por_prod: dict[str, int] = {}
     celdas: dict[str, dict[str, int]] = {}
     datos_d: dict[str, dict] = {}
+    del_dia: dict[date, dict[str, int]] = {}   # casos del equipo (sin prestados) por día y producto: base de lo que le correspondía a cada uno
     for o in ordenes:
         if _es_cancelada(o.estado) or (equipo.manager_id and o.designer_id == equipo.manager_id):
+            continue
+        if _normalizar_texto(o.producto or "") in excl_productos:
+            continue
+        if excl_personas and excluida(o.designer.nombre_completo if o.designer else o.designer_prestado):
             continue
         n_ordenes += 1
         kp0 = re.sub(r"\s+", " ", _normalizar_texto(o.producto or "")).strip()
@@ -2536,6 +2553,9 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
             nombres_p.setdefault(kp, np_)
             por_prod[kp] = por_prod.get(kp, 0) + 1
             celdas[kd][kp] = celdas[kd].get(kp, 0) + 1
+            if not prestado:
+                dd = del_dia.setdefault(o.fecha, {})
+                dd[kp] = dd.get(kp, 0) + 1
     base = lambda k: k.split("|")[0]   # las dos etapas de N6 de un mismo producto quedan juntas (Bite y luego Zirconia)
     por_base: dict[str, int] = {}
     for k, v in por_prod.items():
@@ -2544,12 +2564,28 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     cols = orden_p[:REPARTO_MAX_PRODUCTOS]
     otros = orden_p[REPARTO_MAX_PRODUCTOS:]
     productos = [nombres_p[k] for k in cols] + (["Otros"] if otros else [])
+    col_de = {k: i for i, k in enumerate(cols)}
+    col_de.update({k: len(cols) for k in otros})
+    n = len(productos)
 
     # Los miembros activos del equipo salen aunque no tengan casos: si estuvieron disponibles y no recibieron, es desigual
     for e in db.query(Empleado).filter(Empleado.id.in_(miembros or [-1]), Empleado.activo == 1):
         if str(e.id) not in datos_d:
             datos_d[str(e.id)] = {"nombre": e.nombre_completo, "designerId": e.id}
     habiles, ausencias = _reparto_dias(db, [d["designerId"] for d in datos_d.values() if d["designerId"]], desde, hasta)
+    claves = [kd for kd in datos_d if kd != "prestados"]
+    presente = lambda kd, f: f not in ausencias.get(datos_d[kd]["designerId"], {})
+
+    # Lo que le correspondía a cada uno: cada caso del día se reparte entre los presentes de ese día
+    esperado = {kd: [0.0] * (n + 1) for kd in claves}
+    for f, prods in del_dia.items():
+        hoy = [kd for kd in claves if presente(kd, f)]
+        if not hoy:
+            continue
+        for kp, c in prods.items():
+            for kd in hoy:
+                esperado[kd][col_de[kp]] += c / len(hoy)
+                esperado[kd][n] += c / len(hoy)
 
     def fila(kd):
         c = celdas.get(kd, {})
@@ -2557,41 +2593,39 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         out = {"nombre": datos_d[kd]["nombre"], "designerId": datos_d[kd]["designerId"], "valores": vals, "total": sum(vals)}
         if kd != "prestados":
             aus = ausencias.get(datos_d[kd]["designerId"], {})
-            out.update({"dias": max(0, len(habiles) - len(aus)), "ausencias": _resumen_ausencias(aus)})
+            out.update({"dias": sum(1 for f in habiles if f not in aus), "ausencias": _resumen_ausencias(aus),
+                        "esperado": [round(x, 1) for x in esperado[kd]]})
         return out
-    filas = sorted((fila(kd) for kd in datos_d if kd != "prestados"), key=lambda f: (-f["total"], f["nombre"].lower()))
+    filas = sorted((fila(kd) for kd in claves), key=lambda f: (-f["total"], f["nombre"].lower()))
     prestados = fila("prestados") if "prestados" in datos_d else None
     if prestados:
         prestados["quienes"] = [{"nombre": k, "casos": v} for k, v in sorted(quienes.items(), key=lambda x: (-x[1], x[0].lower()))]
 
-    disponibles = [f for f in filas if f["dias"] > 0]   # quien estuvo ausente todo el periodo no entra en la equidad
-    dias_tot = sum(f["dias"] for f in disponibles)
+    disponibles = [f for f in filas if f["dias"] > 0]   # quien faltó todo el periodo no entra en la equidad
 
-    def equidad(i, total=False):
-        vals = [(f["total"] if total else f["valores"][i], f["dias"]) for f in disponibles]
-        suma = sum(v for v, _ in vals)
-        for f in filas:   # lo que le correspondía a cada uno según sus días disponibles
-            f.setdefault("esperado", []).append(round(suma * f["dias"] / dias_tot, 1) if dias_tot else 0)
-        if len(vals) < 2 or not suma:
+    def equidad(i):
+        pares = [(f["total"] if i == n else f["valores"][i], esperado[str(f["designerId"])][i]) for f in disponibles]
+        pares = [(v, e) for v, e in pares if e > 0 or v > 0]
+        suma_e = sum(e for _, e in pares)
+        suma_v = sum(v for v, _ in pares)
+        if len(pares) < 2 or not suma_v or not suma_e:
             return None
-        tasa = suma / dias_tot
-        cv = round((sum(d * (v / d - tasa) ** 2 for v, d in vals) / dias_tot) ** 0.5 / tasa, 4)   # sin ruido de decimales en los límites
-        desvio = max(abs(v - suma * d / dias_tot) for v, d in vals)
+        # variación de «lo que hizo ÷ lo que le correspondía», ponderada por lo que le correspondía
+        cv = round((sum(e * (v / e - 1) ** 2 for v, e in pares if e > 0) / suma_e) ** 0.5, 4)
+        desvio = max(abs(v - e) for v, e in pares)
         # Con pocos casos el % exagera (1 contra 0 daría «desigual»): si cada uno quedó a menos de 1 caso de lo que le
         # correspondía, no se podía repartir mejor y es pareja. Con menos de 2 casos por diseñador no se juzga.
         if desvio < 1:
             nivel = "pareja"
-        elif suma < 2 * len(vals):
+        elif suma_v < 2 * len(pares):
             nivel = "pocos"
         else:
             nivel = "pareja" if cv <= 0.25 else ("algo" if cv <= 0.5 else "desigual")
-        return {"cv": round(cv * 100), "nivel": nivel, "promedio": round(suma / len(vals), 1), "porDia": round(tasa, 2)}
-    n = len(productos)
-    equidades = [equidad(i) for i in range(n)] + [equidad(n, total=True)]
+        return {"cv": round(cv * 100), "nivel": nivel, "promedio": round(suma_v / len(pares), 1)}
+    equidades = [equidad(i) for i in range(n + 1)]
     totales = [sum(f["valores"][i] for f in filas) + (prestados["valores"][i] if prestados else 0) for i in range(n)]
     return {**vacio, "teamId": team_id, "productos": productos, "filas": filas, "prestados": prestados,
             "totales": totales + [sum(totales)], "equidad": equidades, "casos": n_ordenes, "habiles": len(habiles)}
-
 
 def _reparto_dias(db: Session, empleado_ids: list[int], desde: date, hasta: date) -> tuple[list[date], dict[int, dict[date, str]]]:
     """Días hábiles del periodo (lunes a viernes sin festivos) y, por diseñador, sus días de ausencia de día completo

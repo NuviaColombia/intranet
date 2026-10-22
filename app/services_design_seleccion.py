@@ -39,12 +39,13 @@ MIN_FRACCION_DIAS = 0.5     # al menos la mitad de los días hábiles disponible
 SUAVIZADO = 10              # «casos virtuales» con la tasa del área (bayes empírico)
 
 # Pesos (suman 100). Se pueden ajustar con Rosember.
+# Calidad de QC ya no pondera (Rosember, 22-oct-2026): quien tiene un hallazgo de QC en el mes queda descartado de una vez.
+# Su 25 % se repartió en proporción entre los demás criterios.
 PESOS_DISENADOR = {
-    "productividad": 30,   # casos aprobados por día disponible (descuenta vacaciones, calamidades, etc.)
-    "calidad": 25,         # hallazgos de QC por caso aprobado (menos es mejor)
-    "cambios": 15,         # % de sus casos con cambios digitales (DOC / LAB) (menos es mejor)
-    "evaluacion": 20,      # calificación del líder en Desempeño para ese mes
-    "eficiencia": 10,      # tiempo de diseño contra la mediana del mismo producto en su área (menos tiempo es mejor)
+    "productividad": 40,   # casos aprobados por día disponible (descuenta vacaciones, incapacidad, luto, etc.)
+    "evaluacion": 27,      # calificación del líder en Desempeño para ese mes
+    "cambios": 20,         # % de sus casos con cambios digitales (DOC / LAB) (menos es mejor)
+    "eficiencia": 13,      # tiempo de diseño contra la mediana del mismo producto en su área (menos tiempo es mejor)
 }
 PESOS_MANAGER = {
     "productividad": 30,   # casos aprobados del equipo por día disponible de sus diseñadores
@@ -230,10 +231,13 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     datos: dict[int, dict] = {eid: {"aprobadas": 0, "hallazgos": 0, "esperado": 0.0, "real": 0.0} for eid in empleados}
     for o in ordenes:
         x = datos.get(o.designer_id)
-        if x is None or not sd._es_aprobada(o.estado):
+        if x is None:
+            continue
+        # hallazgos de QC en cualquiera de sus casos del mes (no solo los Approved): descartan
+        x["hallazgos"] += int(bool(o.qc and (o.qc_reporte or "").strip())) + int(bool(o.z_qc and (o.z_qc_reporte or "").strip()))
+        if not sd._es_aprobada(o.estado):
             continue
         x["aprobadas"] += 1
-        x["hallazgos"] += int(bool(o.qc and (o.qc_reporte or "").strip())) + int(bool(o.z_qc and (o.z_qc_reporte or "").strip()))
         k = (area_de_equipo[o.team_id], sd._normalizar_texto(o.producto))
         if o.id in dur and k in mediana:
             x["esperado"] += mediana[k]
@@ -253,6 +257,8 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             motivo = "sin área"
         elif dias < MIN_FRACCION_DIAS * dias_hab:
             motivo = f"solo {dias} de {dias_hab} días disponibles"
+        elif x["hallazgos"]:
+            motivo = f"tiene {x['hallazgos']} hallazgo{'s' if x['hallazgos'] != 1 else ''} de QC en el mes"
         elif x["aprobadas"] < MIN_APROBADAS:
             motivo = f"{x['aprobadas']} casos aprobados (mínimo {MIN_APROBADAS})"
         (no_compiten if motivo else filas).append({**fila, "motivo": motivo} if motivo else fila)
@@ -288,8 +294,6 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
 
     def top(areas, n):
         return [f for f in filas if f["area"] in areas][:n]
-    n2_face = top(GRUPO_N2_FACE, 5)
-    n3_n6 = top(GRUPO_N3_N6, 6)
 
     # ---------------- Managers ----------------
     ev_man = _evaluaciones(db, list(db.query(Empleado).filter(Empleado.id.in_(list(managers) or [-1]))), anio, mes, hoja_general=True)
@@ -364,18 +368,33 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         m["porQue"] = _por_que(p, met, PESOS_MANAGER)
     lista_m.sort(key=lambda m: (-m["puntaje"], -m["aprobadas"], m["nombre"].lower()))
 
-    # Nadie gana dos categorías (Rosember, 22-oct-2026): el MVP es el mejor puntaje global que no ganó N2/Face ni N3/N6
-    ganadores = {x["id"] for x in (n2_face[:1] + n3_n6[:2])}
-    mvp = [f for f in filas if f["id"] not in ganadores][:5]
+    # Nadie se repite (Rosember, 22-oct-2026): se eligen en orden N2/Face, N3/N6, otro de N3/N6 y MVP, cada uno entre
+    # quienes no ganaron antes; y en «Siguientes» de cada categoría tampoco sale quien ganó otra.
+    ganadores: list[dict] = []
+
+    def elegir(candidatos):
+        libres = [f for f in candidatos if f["id"] not in {g["id"] for g in ganadores}]
+        if libres:
+            ganadores.append(libres[0])
+        return libres
+    c_n2face = elegir(top(GRUPO_N2_FACE, 99))
+    c_n3n6 = elegir(top(GRUPO_N3_N6, 99))
+    c_n3n6b = elegir(top(GRUPO_N3_N6, 99))
+    c_mvp = elegir(filas)
+    ids_g = {g["id"] for g in ganadores}
+
+    def lista(cands):   # el ganador de la categoría y los siguientes que no ganaron nada
+        return ([cands[0]] if cands else []) + [f for f in cands[1:] if f["id"] not in ids_g][:4]
+
     return {
         "anio": anio, "mes": mes, "desde": ini.isoformat(), "hasta": fin.isoformat(), "habiles": dias_hab,
         "enCurso": fin.month == mes and (fin + timedelta(days=1)).month == mes,   # el mes aún no termina
         "categorias": [
             {"clave": "manager", "titulo": "Manager del mes", "candidatos": lista_m[:5], "tipo": "manager"},
-            {"clave": "n2face", "titulo": "Empleado del mes · N2 / Face", "candidatos": n2_face, "tipo": "disenador"},
-            {"clave": "n3n6", "titulo": "Empleado del mes · N3 / N6", "candidatos": n3_n6[:5], "tipo": "disenador"},
-            {"clave": "n3n6b", "titulo": "Otro de N3 / N6", "candidatos": n3_n6[1:6], "tipo": "disenador", "posicion": 2},
-            {"clave": "mvp", "titulo": "MVP", "candidatos": mvp, "tipo": "disenador"},
+            {"clave": "n2face", "titulo": "Empleado del mes · N2 / Face", "candidatos": lista(c_n2face), "tipo": "disenador"},
+            {"clave": "n3n6", "titulo": "Empleado del mes · N3 / N6", "candidatos": lista(c_n3n6), "tipo": "disenador"},
+            {"clave": "n3n6b", "titulo": "Otro de N3 / N6", "candidatos": lista(c_n3n6b), "tipo": "disenador", "posicion": 2},
+            {"clave": "mvp", "titulo": "MVP", "candidatos": lista(c_mvp), "tipo": "disenador"},
         ],
         "noCompiten": sorted(no_compiten, key=lambda f: (f["area"], f["nombre"].lower())),
         "pesos": {"disenador": PESOS_DISENADOR, "manager": PESOS_MANAGER}, "nombres": NOMBRES,

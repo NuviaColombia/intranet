@@ -3645,9 +3645,10 @@ function dgRepCargar(t) {
     var eqHtml = function(e) {
       if (!e) return '<span class="dd-p-nota">—</span>';
       var x = DG_EQ[e.nivel];
-      return '<span class="dg-eq ' + x[1] + '" title="Los casos por día disponible se separan ' + e.cv + ' % entre diseñadores (' + e.porDia + ' por día en el equipo)">' + x[0] + '</span>';
+      return '<span class="dg-eq ' + x[1] + '" title="Lo que hizo cada uno se separa en promedio ' + e.cv + ' % de lo que le correspondía según los días en que estuvo">' + x[0] + '</span>';
     };
-    // Cada celda se compara con lo que le correspondía a ese diseñador según sus días disponibles (descontando
+    // Cada celda se compara con lo que le correspondía a ese diseñador: los casos de cada día se reparten entre quienes
+    // estaban ese día (sin vacaciones, incapacidad, luto, calamidad… de Tiempos libres y People; 22-oct-2026). Antes:
     // vacaciones, calamidades, incapacidades… de Tiempos libres y de People). Ausente todo el periodo: no se marca.
     var celda = function(v, i, e, f) {
       var esp = f.esperado ? f.esperado[i] : 0;
@@ -3656,7 +3657,7 @@ function dgRepCargar(t) {
       var marca = e.nivel !== 'pareja' && e.nivel !== 'pocos' && Math.abs(v - esp) >= 2;
       var r = esp ? v / esp : 9, cl = !marca ? '' : (r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : ''));
       var flecha = cl === 'dg-rep-alto' ? ' ▲' : (cl === 'dg-rep-bajo' ? ' ▼' : '');
-      return '<td class="' + cl + '" title="Le correspondían ≈ ' + esp + ' (según sus ' + f.dias + ' días disponibles)">' + (v || '0') + flecha + '</td>';
+      return '<td class="' + cl + '" title="Le correspondían ≈ ' + esp + ' (los casos de los ' + f.dias + ' días en que estuvo, repartidos entre los presentes)">' + (v || '0') + flecha + '</td>';
     };
     var diasCelda = function(f) {
       var t = f.ausencias.map(function(a) { return a.tipo + ': ' + a.dias + ' día' + (a.dias === 1 ? '' : 's'); }).join('\n');

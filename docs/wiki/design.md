@@ -94,7 +94,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   diseñador — productividad (aprobadas por día disponible, descuenta ausencias) 30, calidad QC (hallazgos/caso,
   suavizado) 25, cambios digitales 15, evaluación del líder en Desempeño 20, eficiencia (tiempo vs mediana del producto
   en su área) 10; manager — productividad del equipo 30, cambios 20, QC a tiempo (mediana Approved→QC) 20, cobertura de
-  QC 10, reparto parejo 10, hoja DESIGN MANAGERS 10. Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
+  QC 10, reparto parejo 10, hoja DESIGN MANAGERS 10. Regla (Rosember, 22-oct-2026): un diseñador con cualquier hallazgo
+  de QC en el mes queda descartado de una vez (el peso de Calidad pasó a los demás: productividad 40, evaluación 27,
+  cambios 20, eficiencia 13). Nadie se repite: ni ganadores ni nombres en «Siguientes». Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
   indicadores sin dato reparten su peso. Código: `services_design_seleccion.py`, `/design/api/perf/seleccion-asistida`.
 - **Desempeño en modo oscuro** (Rosember, 21-oct-2026): las celdas de nivel (ALTO, SOBRESALIENTE, MEDIO, BAJO) usan
   fondo oscuro teñido y texto claro del mismo tono, como los estados del Schedule (antes conservaban el color claro).
@@ -133,6 +135,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   soporte; no los por horas). A cada diseñador le corresponde una parte de cada producto según sus días; ▲/▼ y la
   equidad comparan contra eso (casos por día disponible, CV ponderado). Ahora salen todos los miembros activos del
   equipo aunque tengan 0 casos; quien estuvo ausente todo el periodo sale en gris y no cuenta (`_reparto_dias`).
+  Presencia día a día (Rosember, 22-oct-2026): lo que le correspondía a cada uno = los casos de cada día repartidos entre
+  los diseñadores presentes ese día (no por días totales), así quien falta (incapacidad, luto, vacaciones…) no sale por
+  debajo y los presentes no salen por encima; equidad = variación de «hizo ÷ le correspondía» ponderada.
+  `REPARTO_EXCLUIR`: en Face no cuentan María José Lemus ni el producto Maxilar Print.
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.
