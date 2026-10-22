@@ -3599,19 +3599,43 @@ function ddPintarTendencia(d, body, box) {
   DDT.d = d;
   ddDibujarTendencia(body);
 }
+// Pestaña Resumen (Rosember, 21-oct-2026): una «Tendencia por equipo» por área (Face, N2, N3, N6), siempre en el mes en
+// curso. Cada gráfica tiene su propio estado (qué equipos están ocultos). El servidor ya limita a los equipos del aprobador.
+var DG = {tok: 0};
+function dgCargar() {
+  var hoy = new Date(), desde = daISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), hasta = daISO(hoy), t = ++DG.tok;
+  var mes = hoy.toLocaleDateString('es-CO', {month: 'long', year: 'numeric'});
+  var paneles = document.querySelectorAll('#dgGraficas .dg-area'), pend = paneles.length, alguna = false;
+  var fin = function() { if (--pend === 0 && t === DG.tok) document.getElementById('dgVacio').hidden = alguna; };
+  if (!pend) { document.getElementById('dgVacio').hidden = false; return; }
+  paneles.forEach(function(p) {
+    var body = p.querySelector('.dg-cuerpo');
+    p.querySelector('.dg-mes').textContent = 'Mes en curso · ' + mes;
+    ddApi('/design/api/dashboard/tendencia?desde=' + desde + '&hasta=' + hasta + '&area_id=' + p.dataset.area).then(function(d) {
+      if (t !== DG.tok) return;
+      if (!d.series.length) { p.hidden = true; return; }   // sin equipos (o sin casos) de esta área para esta persona
+      p.hidden = false; alguna = true;
+      ddDibujarTendencia(body, {d: d, ocultos: {}});
+    }).catch(function(e) {
+      if (t !== DG.tok) return;
+      p.hidden = false; body.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; body.firstChild.textContent = 'No se pudo cargar: ' + e.message;
+    }).then(fin);
+  });
+}
 // Gráfica de casos por equipo: pasa el mouse para ver el detalle de cada día o semana; haz clic en un equipo para
 // mostrar u ocultar su línea. Sábados y domingos no se cuentan (ya vienen fuera desde el servidor).
-function ddDibujarTendencia(body) {
-  var d = DDT.d;
+function ddDibujarTendencia(body, st) {
+  st = st || DDT;   // Filtros usa DDT; cada gráfica de Resumen trae su propio estado
+  var d = st.d;
   if (!d.series.length || !d.tramos.length) {
     body.innerHTML = '<p class="dd-p-nota">No hay casos completos en este periodo.</p>'; return;
   }
   var lista = d.series.map(function(s, k) { return {s: s, c: DDT_COL[k % DDT_COL.length]}; });
-  var activos = lista.filter(function(x) { return !DDT.ocultos[x.s.nombre]; });
+  var activos = lista.filter(function(x) { return !st.ocultos[x.s.nombre]; });
   var W = 900, H = 340, PL = 48, PR = 18, PT = 16, PB = 58, n = d.tramos.length;
   var max = 1;
   activos.forEach(function(x) { x.s.valores.forEach(function(v) { if (v > max) max = v; }); });
-  var techo = ddTecho(max), iw = W - PL - PR, ih = H - PT - PB;
+  var techo = ddTecho(max / 4) * 4, iw = W - PL - PR, ih = H - PT - PB;   // 4 tramos de un paso «redondo»: las guías caen en enteros (21-oct-2026)
   var x = function(i) { return PL + (n <= 1 ? iw / 2 : i * iw / (n - 1)); };
   var y = function(v) { return PT + ih - v * ih / techo; };
   var anchoZona = n <= 1 ? iw : iw / (n - 1);
@@ -3642,7 +3666,7 @@ function ddDibujarTendencia(body) {
     lineas + '<g class="dd-puntos"></g>' + zonas + '</svg>';
 
   var leyenda = lista.map(function(x) {
-    var oculto = !!DDT.ocultos[x.s.nombre];
+    var oculto = !!st.ocultos[x.s.nombre];
     return '<button type="button" class="dd-leg' + (oculto ? ' off' : '') + '" data-nombre="' + ddEsc(x.s.nombre).replace(/"/g, '&quot;') + '" aria-pressed="' + (!oculto) + '">' +
       '<i style="background:' + x.c + '"></i>' + ddEsc(x.s.nombre) + ' <b>' + x.s.total + '</b></button>';
   }).join('');
@@ -3670,7 +3694,7 @@ function ddDibujarTendencia(body) {
   });
   svgEl.addEventListener('mouseleave', function() { guia.setAttribute('opacity', 0); puntos.innerHTML = ''; tip.hidden = true; });
   body.querySelectorAll('.dd-leg').forEach(function(b) {
-    b.addEventListener('click', function() { var nm = b.dataset.nombre; DDT.ocultos[nm] = !DDT.ocultos[nm]; ddDibujarTendencia(body); });
+    b.addEventListener('click', function() { var nm = b.dataset.nombre; st.ocultos[nm] = !st.ocultos[nm]; ddDibujarTendencia(body, st); });
   });
 }
 // Filtros actuales del Dashboard (área o equipo, diseñador, producto, estado, QC y periodo Desde–Hasta)
@@ -3922,6 +3946,7 @@ var DP_MESES_L = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio'
 function dpNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 function dpVista(v) {
   document.querySelectorAll('.dd-vista').forEach(function(b) { var on = b.dataset.dv === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  document.getElementById('ddVistaGeneral').hidden = v !== 'general';
   document.getElementById('ddVistaResumen').hidden = v !== 'resumen';
   document.getElementById('ddVistaProductos').hidden = v !== 'productos';
   document.getElementById('ddVistaArticulacion').hidden = v !== 'articulacion';
@@ -3932,6 +3957,8 @@ function dpVista(v) {
   if (v === 'cambios') { var pc = document.getElementById('dcPlegable'); if (pc) pc.open = false; dcSemestreInicial(); dcCargar(true); }   // la tabla abre cerrada
   if (v === 'productos') dpCargar();
   if (v === 'articulacion') daAbrir();
+  if (v === 'general') dgCargar();
+  if (v === 'resumen' && !ddCargar.listo) ddAbrirFiltros();   // Filtros se arma la primera vez que se abre
 }
 function dpCargar() {
   var hoy = new Date(), anioSel = document.getElementById('dpAnio'), mesSel = document.getElementById('dpMes');
@@ -4570,10 +4597,14 @@ function dlDescargar() {
 })();
 
 window.DS_PANELS.dashboard = function() {
+  if (!document.getElementById('ddVistaGeneral').hidden) { dgCargar(); return; }
   if (!document.getElementById('ddVistaArticulacion').hidden) { daAbrir(); return; }
   if (!document.getElementById('ddVistaProductos').hidden) { dpCargar(); return; }
   if (!document.getElementById('ddVistaCambios').hidden) { dcSemestreInicial(); dcCargar(true); return; }
   var vl2 = document.getElementById('ddVistaLentas'); if (vl2 && !vl2.hidden) { dlIniciar(); return; }
+  ddAbrirFiltros();
+};
+function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que siempre
   if (!ddCargar.listo) {
     ddCargar.listo = true;
     if (!document.getElementById('ddDesde').value && !document.getElementById('ddHasta').value) {
