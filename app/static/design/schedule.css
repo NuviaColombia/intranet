@@ -1014,6 +1014,7 @@
 .dg-rep-0 { color: #94a3b8; }
 .dg-rep-prest td { color: #64748b; font-style: italic; }
 .dg-rep-prest { cursor: help; }
+.dg-rep-ch-t { margin: 16px 0 4px; font-size: 14px; color: #1d4ed8; }
 .dg-rep-dias-aus { color: #92400e; cursor: help; }
 .dg-rep-aus { color: #94a3b8; }
 .dg-rep-aus-t { color: #94a3b8; font-weight: 400; font-size: 11px; }

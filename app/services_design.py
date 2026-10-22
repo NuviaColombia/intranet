@@ -2478,12 +2478,13 @@ def dashboard_qc_disenadores(db: Session, user: Empleado, desde: date, hasta: da
 REPARTO_MAX_PRODUCTOS = 10   # columnas de producto en la tabla; el resto se junta en «Otros»
 # Quién y qué no cuenta en el reparto, por área (Rosember, 22-oct-2026). María José Lemus hace solo Maxilar Print en los
 # equipos de Face (CREAN_PRODUCTO): ni ella ni ese producto son parte del reparto de los diseñadores.
+REPARTO_CHANGES_APARTE = {"N2 Demodenture"}   # áreas cuyo reparto muestra los Changes aparte (Rosember, 22-oct-2026)
 REPARTO_EXCLUIR = [
     {"area": "Face Design", "personas": ["maria jose lemus"], "productos": ["Maxilar Print"]},
 ]
 
 
-def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, team_id: int | None = None) -> dict:
+def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, team_id: int | None = None, seccion: str = "") -> dict:
     """Dashboard › Resumen › Reparto de productos (Rosember, 21-oct-2026): para ver si en un equipo los productos se
     reparten parejo entre sus diseñadores. Tabla diseñador × producto con los casos del periodo (órdenes completas, sin
     canceladas ni skipped). Los prestados salen aparte y no cuentan para la equidad. Sin team_id se muestra el equipo
@@ -2516,6 +2517,8 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     excl_personas = [set(p.split()) for r in excl for p in r["personas"]]
     excl_productos = {_normalizar_texto(p) for r in excl for p in r["productos"]}
     excluida = lambda nombre: any(p <= set(_normalizar_texto(nombre or "").split()) for p in excl_personas)
+    # N2 (Rosember, 22-oct-2026): los Changes van en un apartado propio (seccion="changes"); la tabla principal no los trae
+    changes_aparte = equipo.area.nombre in REPARTO_CHANGES_APARTE
     if excl_personas:
         miembros = {e.id for e in db.query(Empleado).filter(Empleado.id.in_(miembros or [-1])) if not excluida(e.nombre_completo)}
     es_support = equipo.area.formato == FORMATO_SUPPORT   # en Support el diseñador es el del caso: no hay prestados
@@ -2532,6 +2535,8 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         if _es_cancelada(o.estado) or (equipo.manager_id and o.designer_id == equipo.manager_id):
             continue
         if _normalizar_texto(o.producto or "") in excl_productos:
+            continue
+        if changes_aparte and ("change" in _normalizar_texto(o.producto or "")) != (seccion == "changes"):
             continue
         if excl_personas and excluida(o.designer.nombre_completo if o.designer else o.designer_prestado):
             continue

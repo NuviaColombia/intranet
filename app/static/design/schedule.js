@@ -3647,8 +3647,18 @@ function dgRepCargar(t) {
       }).join('') + '</optgroup>';
     }).join('');
     DG_REP.team = d.teamId;
+    dgRepPintar(d, tabla, document.getElementById('dgRepSub'));
+    var bch = document.getElementById('dgRepCh');   // N2: apartado de Changes
+    if (bch) { bch.hidden = !d.changes; if (d.changes) dgRepPintar(d.changes, document.getElementById('dgRepChTabla'), document.getElementById('dgRepChSub'), 'changes'); }
+  }).catch(function(e) {
+    if (t !== DG.tok) return;
+    tabla.style.opacity = ''; box.hidden = false; tabla.innerHTML = '<tbody><tr><td style="color:#b91c1c"></td></tr></tbody>'; tabla.querySelector('td').textContent = 'No se pudo cargar: ' + e.message;
+  });
+}
+// Una tabla de Reparto (la principal o la de Changes de N2) con su subtítulo
+function dgRepPintar(d, tabla, sub, que) {
     var n = d.productos.length, total = d.totales[n] || 0;
-    document.getElementById('dgRepSub').textContent = 'Mes en curso · ' + DG_REP.mes + ' · ' + (d.casos != null ? d.casos : total) + ' casos · ' + d.filas.length + ' diseñador' + (d.filas.length === 1 ? '' : 'es') + ' con casos';
+    sub.textContent = 'Mes en curso · ' + DG_REP.mes + ' · ' + (d.casos != null ? d.casos : total) + ' casos · ' + d.filas.length + ' diseñador' + (d.filas.length === 1 ? '' : 'es') + ' con casos';
     var eqHtml = function(e) {
       if (!e) return '<span class="dd-p-nota">—</span>';
       var x = DG_EQ[e.nivel];
@@ -3680,11 +3690,7 @@ function dgRepCargar(t) {
     if (d.prestados) h += '<tr class="dg-rep-prest" title="' + ddEsc('Hechos por personas que no son del equipo:\n' + d.prestados.quienes.map(function(q) { return '• ' + q.nombre + ': ' + q.casos; }).join('\n')).replace(/"/g, '&quot;') + '"><td class="dd-izq">Prestados <span class="dg-rep-i">ⓘ</span></td><td></td>' + d.prestados.valores.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '<td>' + d.prestados.total + '</td></tr>';
     h += '</tbody><tfoot><tr><th class="dd-izq">Total</th><th></th>' + d.totales.map(function(v) { return '<th>' + v + '</th>'; }).join('') + '</tr>' +
       '<tr><th class="dd-izq">Equidad</th><th></th>' + d.equidad.map(function(e) { return '<th>' + eqHtml(e) + '</th>'; }).join('') + '</tr></tfoot>';
-    tabla.innerHTML = d.filas.length || d.prestados ? h : '<tbody><tr><td class="dd-p-nota">Este equipo no tiene casos en el mes en curso.</td></tr></tbody>';
-  }).catch(function(e) {
-    if (t !== DG.tok) return;
-    tabla.style.opacity = ''; box.hidden = false; tabla.innerHTML = '<tbody><tr><td style="color:#b91c1c"></td></tr></tbody>'; tabla.querySelector('td').textContent = 'No se pudo cargar: ' + e.message;
-  });
+    tabla.innerHTML = d.productos.length && (d.filas.length || d.prestados) ? h : '<tbody><tr><td class="dd-p-nota">' + (que === 'changes' ? 'Este equipo no tiene Changes' : 'Este equipo no tiene casos') + ' en el mes en curso.</td></tr></tbody>';
 }
 var DG_QC_MIN = 5;   // solo salen quienes tienen 5 reportes o más en el mes (Rosember, 21-oct-2026)
 function dgQcCargar(desde, hasta, mes, t) {

@@ -163,6 +163,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   los diseñadores presentes ese día (no por días totales), así quien falta (incapacidad, luto, vacaciones…) no sale por
   debajo y los presentes no salen por encima; equidad = variación de «hizo ÷ le correspondía» ponderada.
   `REPARTO_EXCLUIR`: en Face no cuentan María José Lemus ni el producto Maxilar Print.
+  N2 (Rosember, 22-oct-2026): los Changes (productos con «change» en el nombre) salen en un apartado propio «🔁 Changes»
+  debajo de la tabla, con el mismo cálculo; la tabla principal ya no los trae (`REPARTO_CHANGES_APARTE`, seccion="changes").
 - **Dashboard › Articulación** (Rosember, 21-oct-2026): el filtro de área solo ofrece N3; cada vez que se abre la
   pestaña el periodo vuelve al mes en curso (`daAbrir`). La tabla «(Centros)» solo muestra centros con casos de más de
   2 h; la de «(Casos)» muestra de a 50 con «Mostrar más». Las dos en desplegables que abren cerrados.

@@ -192,5 +192,29 @@ class Tendencia(unittest.TestCase):
         self.assertEqual(d["casos"], 8)
 
 
+    def test_reparto_n2_changes_aparte(self):
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db = sessionmaker(bind=eng)()
+        ps = [models.Empleado(nombres=n, apellidos="X", email=f"{n}@x.com", rol="admin" if n == "Ana" else "empleado", activo=True,
+                              empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion=n) for n in ("Ana", "Beto", "Caro")]
+        db.add_all(ps); db.commit()
+        ana, beto, caro = ps
+        area = md.DesignArea(nombre="N2 Demodenture", formato="n2"); db.add(area); db.commit()
+        t = md.DesignTeam(area_id=area.id, nombre="Eq N2", orden=1, activo=1); db.add(t); db.commit()
+        for e in (beto, caro):
+            db.add(md.DesignTeamDesigner(team_id=t.id, empleado_id=e.id))
+        casos = [(beto, "N2 - Upper Denture")] * 3 + [(caro, "N2 - Upper Denture")] * 3 + [(beto, "N2 - Change Teeth")] * 4 + [(caro, "N2 - Change Teeth")] * 1
+        for i, (e, prod) in enumerate(casos):
+            db.add(md.DesignOrden(team_id=t.id, fecha=date(2026, 10, 6), tabla="principal", orden=f"N{i}", centro="C", producto=prod,
+                                  designer_id=e.id, estado="Started", orden_visual=i))
+        db.commit()
+        d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
+        self.assertEqual((d["productos"], d["casos"]), (["N2 - Upper Denture"], 6))
+        ch = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21), t.id, seccion="changes")
+        self.assertEqual((ch["productos"], ch["casos"]), (["N2 - Change Teeth"], 5))
+        self.assertEqual({f["nombre"]: f["total"] for f in ch["filas"]}, {"Beto X": 4, "Caro X": 1})
+
+
 if __name__ == "__main__":
     unittest.main()

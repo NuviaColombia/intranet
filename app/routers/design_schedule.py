@@ -2075,7 +2075,13 @@ def api_dashboard_reparto(desde: str, hasta: str, team_id: int | None = None, us
     fd, fh = _fecha(desde), _fecha(hasta)
     if fh < fd or (fh - fd).days >= sd.DASH_RANGO_MAX_DIAS:
         raise HTTPException(400, "El periodo debe ser de un año o menos.")
-    return sd.dashboard_reparto(db, user, fd, fh, team_id)
+    r = sd.dashboard_reparto(db, user, fd, fh, team_id)
+    eq = next((e for e in r["equipos"] if e["id"] == r["teamId"]), None)
+    if eq and eq["area"] in sd.REPARTO_CHANGES_APARTE:   # N2: apartado de Changes (22-oct-2026)
+        ch = sd.dashboard_reparto(db, user, fd, fh, r["teamId"], seccion="changes")
+        ch.pop("equipos", None)
+        r["changes"] = ch
+    return r
 
 
 @router.get("/design/api/dashboard/productos")
