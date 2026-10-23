@@ -128,9 +128,11 @@ class Seleccion(unittest.TestCase):
         r = ssel.analizar(self.db, 2026, 10)
         todos = {x["nombre"]: x for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
         self.assertEqual((todos["Ana X"]["percentiles"]["evaluacion"], todos["Abel X"]["percentiles"]["evaluacion"]), (50.0, 50.0))
-        self.assertEqual((todos["Bea X"]["percentiles"]["evaluacion"], todos["Bruno X"]["percentiles"]["evaluacion"]), (100.0, 0.0))
-        self.assertEqual(todos["Bruno X"]["percentiles"]["destacado"], 100.0)
-        self.assertEqual(todos["Ana X"]["percentiles"]["destacado"], 0.0)
+        # posición entre los 4 del área por lo que cada uno está sobre / bajo el promedio de su líder
+        self.assertEqual((todos["Bea X"]["percentiles"]["evaluacion"], todos["Bruno X"]["percentiles"]["evaluacion"]), (87.5, 12.5))
+        self.assertEqual(todos["Bruno X"]["percentiles"]["destacado"], 75.0)   # el mejor de 2 (no vale lo mismo que el mejor de 12)
+        self.assertEqual(todos["Bea X"]["percentiles"]["destacado"], 25.0)
+        self.assertIsNone(todos["Ana X"]["percentiles"]["destacado"])        # Lia no llenó Selección: no la deja en 0
         self.assertNotIn("cambios", todos["Ana X"]["percentiles"])
 
 
@@ -204,6 +206,27 @@ class Seleccion(unittest.TestCase):
         self.assertIn("a tiempo los 20 días", " ".join(todos["Ana X"]["porQue"]["fuertes"]))
         man = next(c for c in r["categorias"] if c["clave"] == "manager")["candidatos"][0]
         self.assertEqual(man["puntualidad"], {"dias": 20, "tarde": 2, "minutos": 20})
+
+
+    def test_sin_ventaja_por_tamano_de_area(self):
+        """Auditoría 22-oct-2026: el mejor de un grupo grande queda más arriba que el mejor de uno pequeño, y un área con
+        un solo competidor (N6) se compara con su categoría (N3 + N6) en vez de quedar fija en 50."""
+        g5 = ssel._percentiles({i: i for i in range(5)}, True)
+        g25 = ssel._percentiles({i: i for i in range(25)}, True)
+        self.assertLess(g5[4], g25[24])
+        self.assertEqual(ssel._percentiles({1: 3}, True), {1: 50.0})
+        self.emp("Admin", "admin")
+        m3, m6 = self.emp("Lia", "aprobador"), self.emp("Leo", "aprobador")
+        n3 = [self.emp(f"N3p{i}") for i in range(4)]
+        n6 = self.emp("Nico")
+        t3 = self.equipo("N3 Prosthetic", "Eq3", m3, n3)
+        t6 = self.equipo("N6 Material Changes", "Eq6", m6, [n6])
+        for k, e in enumerate(n3):
+            self.casos(t3, e, 12 + k, inicio=100 * k)
+        self.casos(t6, n6, 40, inicio=900)
+        r = ssel.analizar(self.db, 2026, 10)
+        todos = {x["nombre"]: x for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
+        self.assertGreater(todos["Nico X"]["percentiles"]["productividad"], 50.0)
 
 
 if __name__ == "__main__":

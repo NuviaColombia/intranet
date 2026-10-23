@@ -14,6 +14,18 @@ Método (puntaje 0-100 por persona):
   3. Puntaje = promedio ponderado de los percentiles disponibles; si a alguien le falta un indicador (p. ej. no tiene
      calificación de Desempeño ese mes), los pesos se reparten entre los que sí tiene y queda anotado.
   4. Para competir: al menos la mitad de los días hábiles disponibles y un mínimo de casos aprobados.
+
+Sin desventaja por tamaño de área ni de equipo (auditoría de Rosember, 22-oct-2026). Antes, con todos igual de buenos,
+el área más pequeña ganaba mucho más de lo que le tocaba (Face ≈ 60 % de «N2 / Face» siendo un tercio de la gente):
+  - El percentil es la posición real dentro del grupo ((puesto − ½) / n): el mejor de 25 queda más arriba que el mejor
+    de 5 (antes los dos valían 100). Un grupo de 1 queda en 50.
+  - Destacado: vale la posición «mejor de su equipo» ((n − ½) / n) y los demás del equipo, el promedio del resto; así ser
+    el destacado de 3 no pesa igual que serlo de 12. Si su manager no llenó ese mes, el criterio no cuenta para su gente
+    (antes quedaban en 0 frente a los de los managers que sí llenaron).
+  - Evaluación: cuánto está sobre o bajo el promedio de su líder (quita al líder generoso o estricto) y se compara en el
+    área; antes, el percentil dentro de la hoja del líder (con 2 calificados: 0 o 100).
+  - Puntualidad no depende del área: se compara entre todos los diseñadores.
+  - Un área con menos de MIN_GRUPO_AREA competidores compara carga y eficiencia con su categoría (N2 + Face o N3 + N6).
 """
 from __future__ import annotations
 
@@ -46,6 +58,7 @@ MIN_MUESTRAS = 5
 FACTOR_AREA = {"Face Design": 1.0, "N2 Demodenture": 1.5, "N3 Prosthetic": 2.5, "N6 Material Changes": 2.5}
 MIN_FRACCION_DIAS = 0.5     # al menos la mitad de los días hábiles disponibles
 SUAVIZADO = 10              # «casos virtuales» con la tasa del área (bayes empírico)
+MIN_GRUPO_AREA = 4          # menos competidores en un área: carga y eficiencia se comparan con toda su categoría
 
 # Pesos (suman 100). Se pueden ajustar con Rosember.
 # Pesos (22-oct-2026, Rosember: «lo más imparcial posible»).
@@ -201,19 +214,18 @@ def mes_anterior(hoy: date | None = None) -> tuple[int, int]:
 # ---------- utilidades estadísticas ----------
 
 def _percentiles(valores: dict, mayor_es_mejor: bool) -> dict:
-    """{clave: percentil 0-100} dentro del grupo; empates comparten percentil. Un grupo de 1 queda en 50."""
+    """{clave: percentil 0-100} dentro del grupo: (puesto − ½) / n, así el mejor de un grupo grande queda más arriba que el
+    mejor de uno pequeño (no hay ventaja por ser pocos). Empates comparten percentil. Un grupo de 1 queda en 50."""
     claves = [k for k, v in valores.items() if v is not None]
     n = len(claves)
     if not n:
         return {}
-    if n == 1:
-        return {claves[0]: 50.0}
     out = {}
     for k in claves:
         v = valores[k]
         peores = sum(1 for j in claves if (valores[j] < v if mayor_es_mejor else valores[j] > v))
         iguales = sum(1 for j in claves if valores[j] == v) - 1
-        out[k] = round((peores + iguales / 2) * 100 / (n - 1), 1)
+        out[k] = round((peores + iguales / 2 + 0.5) * 100 / n, 1)
     return out
 
 
@@ -262,7 +274,7 @@ def _indice_mes(etiquetas: list[str], anio: int, mes: int) -> int | None:
 
 
 def _evaluaciones(db: Session, empleados: list[Empleado], anio: int, mes: int, hoja_general: bool) -> dict[int, dict]:
-    """{empleado_id: {"pct": % de la calificación del mes (0-100), "rel": percentil entre los de la misma hoja}} desde las
+    """{empleado_id: {"pct": % de la calificación del mes (0-100), "dev": puntos sobre o bajo el promedio de la misma hoja}} desde las
     hojas de Desempeño (eval). Solo cuenta si el mes tiene al menos un criterio calificado. hoja_general=True lee la hoja
     DESIGN MANAGERS; si no, las de los equipos. «rel» quita el sesgo de cada líder (unos califican más alto que otros)."""
     criterios = [c.id for c in sd.perf_criterios(db)]
@@ -284,15 +296,17 @@ def _evaluaciones(db: Session, empleados: list[Empleado], anio: int, mes: int, h
                 continue
             tot, _ = sd.perf_totales(celdas, criterios, 1)
             hoja[e.id] = round(tot[0] * 100, 1)
-        rel = _percentiles(hoja, True)
+        media = sum(hoja.values()) / len(hoja) if hoja else 0
         for eid, v in hoja.items():
-            out[eid] = {"pct": v, "rel": rel[eid]}
+            out[eid] = {"pct": v, "dev": round(v - media, 2)}
     return out
 
 
-def _destacados(db: Session, empleados: list[Empleado], anio: int, mes: int) -> set[int] | None:
+def _destacados(db: Session, empleados: list[Empleado], anio: int, mes: int, evaluadores: list[Empleado] | None = None,
+                llenaron: set[int] | None = None) -> set[int] | None:
     """Personas que su manager destacó ese mes en la hoja de Selección (cada evaluador escribe 1 nombre por mes).
-    None si ese mes nadie ha destacado a nadie todavía (el criterio no cuenta y su peso se reparte)."""
+    None si ese mes nadie ha destacado a nadie todavía (el criterio no cuenta y su peso se reparte). En `llenaron` (si se
+    pasa) quedan los evaluadores (de `evaluadores`) que ya escribieron a alguien ese mes."""
     out: set[int] = set()
     hay = False
     for h in db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "seleccion"):
@@ -307,6 +321,10 @@ def _destacados(db: Session, empleados: list[Empleado], anio: int, mes: int) -> 
             e = sd._buscar_empleado_por_nombre(c.persona, empleados)
             if e:
                 out.add(e.id)
+            if llenaron is not None and evaluadores:
+                ev = sd._buscar_empleado_por_nombre(c.fila.evaluador or "", evaluadores)
+                if ev:
+                    llenaron.add(ev.id)
     return out if hay else None
 
 
@@ -471,16 +489,33 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             x["real"] += dur[o.id]
     ev_dis = _evaluaciones(db, list(empleados.values()), anio, mes, hoja_general=False)
     punt = _puntualidad(db, ini, fin)   # GeoVictoria; vacío si no está configurado (el criterio no cuenta)
-    destacados = _destacados(db, list(empleados.values()), anio, mes)
+    llenaron: set[int] = set()
+    destacados = _destacados(db, list(empleados.values()), anio, mes,
+                             list(db.query(Empleado).filter(Empleado.id.in_(list(managers) or [-1]))), llenaron)
+    # equipos (con su manager) de cada diseñador, para saber si su manager llenó y de cuántos fue el destacado
+    equipos_de: dict[int, list[DesignTeam]] = {}
+    for t in equipos:
+        for eid in miembros.get(t.id, set()):
+            equipos_de.setdefault(eid, []).append(t)
+    tam_equipo = {t.id: len((miembros.get(t.id, set()) - {t.manager_id}) & set(empleados)) for t in equipos}
+
+    def valor_destacado(eid: int) -> float | None:
+        if destacados is None:
+            return None
+        suyos = [t for t in equipos_de.get(eid, []) if not llenaron or t.manager_id in llenaron]
+        if not suyos:
+            return None   # su manager no ha llenado ese mes: no cuenta (no queda en 0)
+        n = max(1, max(tam_equipo.get(t.id, 1) for t in suyos))
+        return round(((n - 0.5) / n if eid in destacados else (n - 1) / 2 / n) * 100, 1)
     filas, no_compiten = [], []
     for eid, e in empleados.items():
         x = datos[eid]
         dias = max(0, dias_hab - len(ausencias.get(eid, {})))
         fila = {"id": eid, "nombre": e.nombre_completo, "area": area_de[eid], "aprobadas": x["aprobadas"], "hallazgos": x["hallazgos"],
                 "dias": dias, "habiles": dias_hab, "cargaDia": round(x["carga"] / dias, 1) if dias else 0, "ausencias": sd._resumen_ausencias(ausencias.get(eid, {})),
-                "evaluacion": (ev_dis.get(eid) or {}).get("pct"), "evaluacionRel": (ev_dis.get(eid) or {}).get("rel"),
+                "evaluacion": (ev_dis.get(eid) or {}).get("pct"), "evaluacionDev": (ev_dis.get(eid) or {}).get("dev"),
                 "puntualidad": punt.get(eid),
-                "destacado": None if destacados is None else (eid in destacados),
+                "destacado": None if destacados is None else (eid in destacados), "destacadoValor": valor_destacado(eid),
                 "eficiencia": round(x["esperado"] / x["real"], 2) if x["real"] else None}
         motivo = None
         if not area_de[eid]:
@@ -493,19 +528,21 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             motivo = f"{x['aprobadas']} casos aprobados (mínimo {MIN_APROBADAS})"
         (no_compiten if motivo else filas).append({**fila, "motivo": motivo} if motivo else fila)
 
+    pct_punt = _percentiles({f["id"]: _valor_punt(f["puntualidad"]) for f in filas}, True)   # no depende del área: todos
     for area in AREAS:
         grupo = [f for f in filas if f["area"] == area]
         if not grupo:
             continue
-        val = {
-            "productividad": {f["id"]: f["cargaDia"] for f in grupo},
-            "eficiencia": {f["id"]: f["eficiencia"] for f in grupo},
-            "puntualidad": {f["id"]: _valor_punt(f["puntualidad"]) for f in grupo},
+        cat = GRUPO_N2_FACE if area in GRUPO_N2_FACE else GRUPO_N3_N6
+        base = grupo if len(grupo) >= MIN_GRUPO_AREA else [f for f in filas if f["area"] in cat]   # área muy pequeña
+        pct = {
+            "productividad": _percentiles({f["id"]: f["cargaDia"] for f in base}, True),
+            "eficiencia": _percentiles({f["id"]: f["eficiencia"] for f in base}, True),
+            "puntualidad": pct_punt,
+            # evaluación: puntos sobre o bajo el promedio de su líder, comparados en el área (quita al líder generoso)
+            "evaluacion": _percentiles({f["id"]: f["evaluacionDev"] for f in grupo}, True),
+            "destacado": {f["id"]: f["destacadoValor"] for f in grupo},
         }
-        pct = {k: _percentiles(v, mayor_es_mejor=True) for k, v in val.items()}
-        # la evaluación ya viene relativa a su líder; el destacado vale 100 (sí) o 0 (no)
-        pct["evaluacion"] = {f["id"]: f["evaluacionRel"] for f in grupo}
-        pct["destacado"] = {f["id"]: (None if f["destacado"] is None else (100.0 if f["destacado"] else 0.0)) for f in grupo}
         for f in grupo:
             p = {k: pct[k].get(f["id"]) for k in PD}
             met = {
@@ -604,18 +641,11 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     c_n2face = elegir(top(GRUPO_N2_FACE, 99))
     c_n3n6 = elegir(top(GRUPO_N3_N6, 99))
     c_n3n6b = elegir(top(GRUPO_N3_N6, 99))
-    # MVP: compite contra todas las áreas, así que su carga de trabajo se compara entre todos (no dentro del área)
-    pct_global = _percentiles({f["id"]: f["cargaDia"] for f in filas}, True)
-    filas_mvp = []
-    for f in filas:
-        p = dict(f["percentiles"], productividad=pct_global.get(f["id"]))
-        g = dict(f, percentiles=p)
-        g["puntaje"], faltan = _puntaje(p, PD)
-        g["faltan"] = [NOMBRES[k] for k in faltan]
-        g["porQue"] = _por_que(p, f["metricas"], PD)
-        filas_mvp.append(g)
-    filas_mvp.sort(key=lambda f: (-f["puntaje"], -f["cargaDia"], f["nombre"].lower()))
-    c_mvp = elegir(filas_mvp)
+    # MVP (auditoría 22-oct-2026): compite contra todas las áreas con el mismo puntaje de su categoría, porque cada
+    # criterio ya es la posición de la persona dentro de su área (o entre todos, la puntualidad). Antes la carga se
+    # comparaba en minutos estándar entre todos: un mes con pocas órdenes en un área bajaba a toda esa área y dependía
+    # de los tiempos escritos a mano; en la simulación (todos igual de buenos) Face ganaba el MVP el doble de lo que le tocaba.
+    c_mvp = elegir(list(filas))
     ids_g = {g["id"] for g in ganadores}
 
     def lista(cands):   # el ganador de la categoría y los siguientes que no ganaron nada

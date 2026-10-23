@@ -147,6 +147,13 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   People o Tiempos libres) es inconsistencia no tener marcas o tener un número impar (1 o 3: falta una); solo entrada y
   salida (sin almuerzo) está bien. Cada manager recibe un push «⚠️ Hay inconsistencias en tu GeoVictoria» con su gente y
   los días (`inconsistencias`, `avisar_inconsistencias`). Requiere «Avisos» activo.
+- **Selección asistida sin desventaja por área** (auditoría de Rosember, 22-oct-2026): simulado con todos igual de buenos,
+  el área más pequeña ganaba de más (Face ≈ 60 % de «N2 / Face» siendo ~⅓ de la gente; MVP el doble de lo justo). Cambios:
+  percentil = (puesto − ½) / n (el mejor de 25 queda sobre el mejor de 5); destacado vale (n − ½) / n del equipo y el
+  resto (n − 1) / 2n, y no cuenta para la gente de un manager que no llenó Selección ese mes (antes 0); evaluación =
+  puntos sobre / bajo el promedio de su líder, comparados en el área; puntualidad entre todos; área con menos de
+  `MIN_GRUPO_AREA` (4) compara carga y eficiencia con su categoría; MVP usa el mismo puntaje (posición en el área), ya no la
+  carga en minutos estándar entre todas las áreas. Con esto cada área gana en proporción a su gente.
 - **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
   registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
   el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la
