@@ -140,6 +140,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   atraso y minutos); solo quienes llegaron tarde ≥ 1 vez; KPIs, gráfica de quienes más llegan tarde, por equipo, por día de
   la semana y detalle; mismo estilo del reporte mensual, imprimible como PDF (`/design/reportes/geovictoria?mes=`). Los
   meses cerrados se guardan el día 1 (design_conexion_reglas `gv_reporte_AAAA-MM`); el mes en curso se calcula al abrirlo.
+  No salen Rosember Jhoan Bravo Marentes ni Leidy Rodríguez (`EXCLUIDOS_REPORTE`); los meses guardados con otra
+  `REPORTE_VERSION` se recalculan.
   Inconsistencias de marcación (Rosember, 22-oct-2026): cada viernes desde las 3 p. m. (una vez; marca
   `inconsist|fecha|*`) se revisa el mes en curso del día 1 hasta ayer. En días con turno y sin permiso (GeoVictoria,
   People o Tiempos libres) es inconsistencia no tener marcas o tener un número impar (1 o 3: falta una); solo entrada y

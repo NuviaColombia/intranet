@@ -238,5 +238,16 @@ class Avisos(unittest.TestCase):
         self.assertEqual([e[0] for e in push], [[self.luis.id]])
 
 
+    def test_reporte_excluye_a_rosember_y_leidy(self):
+        self.configurar(avisos=False)
+        self.ana.nombres, self.ana.apellidos = "Leidy Johana", "Rodríguez"
+        self.db.commit()
+        g._post.side_effect = lambda c, ruta, cuerpo: ([{"Identifier": "1234567", "Enabled": "1"}] if ruta == "/User/List" else
+                                                       [{"Identifier": "1234567", "SpecialDays": [{"Date": "20260905000000", "HasDelay": "True", "Delay": "00:12"}]}])
+        self.assertEqual(g.reporte_mes(self.db, "2026-09", datetime(2026, 10, 22, 9, 0))["personas"], [])
+        self.assertTrue(g._excluido_reporte("Rosember Jhoan Bravo Marentes"))
+        self.assertFalse(g._excluido_reporte("Leidy Gómez"))
+
+
 if __name__ == "__main__":
     unittest.main()

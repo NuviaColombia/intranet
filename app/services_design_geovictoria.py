@@ -543,6 +543,20 @@ def almuerzo_a_tiempos_libres(db: Session, dia: date, datos: dict) -> int:
 # Solo salen quienes llegaron tarde al menos una vez. Los meses cerrados quedan guardados (clave REPORTE_CLAVE + mes) el
 # día 1; el mes en curso se calcula al abrirlo (en memoria 30 min).
 REPORTE_CLAVE = "gv_reporte_"
+REPORTE_VERSION = 2   # sube cuando cambia lo que entra al reporte: los meses guardados con otra versión se recalculan
+# No salen en el reporte de llegadas tarde (Rosember, 22-oct-2026). Se comparan las palabras del nombre sin tildes.
+EXCLUIDOS_REPORTE = ("rosember jhoan bravo marentes", "leidy rodriguez")
+
+
+def _palabras(nombre: str) -> set[str]:
+    import unicodedata
+    t = unicodedata.normalize("NFKD", nombre or "").encode("ascii", "ignore").decode().lower()
+    return set(t.split())
+
+
+def _excluido_reporte(nombre: str) -> bool:
+    p = _palabras(nombre)
+    return len(p) >= 2 and any(_palabras(x) <= p or p <= _palabras(x) for x in EXCLUIDOS_REPORTE)
 _reporte_cache: dict = {}
 
 
@@ -576,7 +590,7 @@ def calcular_reporte(db: Session, ini: date, fin: date) -> dict:
     por_dia_semana = [0] * 7
     for f in filas:
         eid = por_id.get(_norm_id(f.get("Identifier")))
-        if not eid or eid not in emps:
+        if not eid or eid not in emps or _excluido_reporte(emps[eid].nombre_completo):
             continue
         dias = []
         for d in f.get("SpecialDays") or []:
@@ -608,7 +622,7 @@ def calcular_reporte(db: Session, ini: date, fin: date) -> dict:
             "equipos": sorted(equipos.values(), key=lambda e: (-e["veces"], e["equipo"].lower())),
             "total": total, "minutos": sum(p["minutos"] for p in personas), "cruzadas": len(pares),
             "masDe15": sum(1 for p in personas for d in p["dias"] if d["min"] > 15),
-            "porDiaSemana": por_dia_semana[:5] + por_dia_semana[5:], "generado": datetime.utcnow().isoformat() + "Z"}
+            "porDiaSemana": por_dia_semana[:5] + por_dia_semana[5:], "generado": datetime.utcnow().isoformat() + "Z", "version": REPORTE_VERSION}
 
 
 def reporte_mes(db: Session, mes: str, ahora: datetime) -> dict:
@@ -623,7 +637,9 @@ def reporte_mes(db: Session, mes: str, ahora: datetime) -> dict:
         r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).first()
         if r:
             try:
-                return {**json.loads(r.valor), "cerrado": True}
+                guardado = json.loads(r.valor)
+                if guardado.get("version") == REPORTE_VERSION:
+                    return {**guardado, "cerrado": True}
             except ValueError:
                 pass
         datos = calcular_reporte(db, ini, fin)
