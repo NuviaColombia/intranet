@@ -10,8 +10,10 @@
      con huecos vacíos a los lados; aquí debe quedar siempre pegado a la izquierda. */
   main:has(.portal-shell) { max-width:none; margin:24px 16px; padding:0; }
   .portal-shell { display:flex; align-items:flex-start; gap:18px; margin-top:18px; }
+  /* La barra es un <nav>: la regla global «nav» es una fila con salto de línea y gap de 18 px. Aquí va en columna fija
+     para que al colapsar no se reacomode (antes saltaba de 130 px a 440 px de alto durante la transición). */
   .portal-sidebar { flex:none; width:250px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08);
-    padding:10px; position:sticky; top:18px; transition:width .15s; }
+    padding:10px; position:sticky; top:18px; transition:width .15s; display:flex; flex-direction:column; flex-wrap:nowrap; gap:4px; }
   .portal-sidebar.colapsada { width:56px; }
   .portal-sidebar-toggle { display:flex; align-items:center; justify-content:flex-end; margin-bottom:6px; }
   .portal-sidebar.colapsada .portal-sidebar-toggle { justify-content:center; }
