@@ -55,18 +55,20 @@ SUAVIZADO = 10              # «casos virtuales» con la tasa del área (bayes e
 #   compañeros calificados por el mismo líder (un líder «generoso» no favorece a su gente), y ser el destacado del mes de
 #   su manager en la hoja de Selección suma aparte.
 PESOS_DISENADOR = {
-    "productividad": 45,   # carga de trabajo aprobada por día disponible (descuenta vacaciones, incapacidad, luto, etc.)
+    "productividad": 40,   # carga de trabajo aprobada por día disponible (descuenta vacaciones, incapacidad, luto, etc.)
     "evaluacion": 25,      # calificación de su líder en Desempeño ese mes, relativa a los demás del mismo líder
     "destacado": 15,       # su manager lo destacó ese mes en la hoja de Selección
-    "eficiencia": 15,      # tiempo de diseño contra la mediana del mismo producto en su área (menos tiempo es mejor)
+    "eficiencia": 10,      # tiempo de diseño contra la mediana del mismo producto en su área (menos tiempo es mejor)
+    "puntualidad": 10,     # GeoVictoria (22-oct-2026): % de días trabajados en que llegó a tiempo (y minutos de atraso)
 }
 # Managers: más peso a la hoja DESIGN MANAGERS (Rosember, 22-oct-2026), donde se califica a los managers.
 PESOS_MANAGER = {
-    "evaluacion": 40,      # hoja DESIGN MANAGERS de Desempeño para ese mes
+    "evaluacion": 35,      # hoja DESIGN MANAGERS de Desempeño para ese mes
     "productividad": 25,   # carga de trabajo aprobada del equipo por día disponible de sus diseñadores (comparable entre áreas)
     "qcOportuno": 15,      # minutos (mediana) entre Approved y el QC marcado (menos es mejor)
     "qcCobertura": 10,     # % de aprobadas con QC marcado
-    "equidad": 10,         # qué tan parejo reparte los productos (equidad del Reparto; menos es mejor)
+    "equidad": 5,          # qué tan parejo reparte los productos (equidad del Reparto; menos es mejor)
+    "puntualidad": 10,     # GeoVictoria (22-oct-2026): % de días trabajados en que el manager llegó a tiempo
 }
 # Configuración (Rosember, 22-oct-2026): el admin ajusta los porcentajes en Desempeño › Selección asistida › ⚙️.
 # Se guarda en design_conexion_reglas (tipo «sistema», clave CONFIG_CLAVE) como JSON {"disenador": {...}, "manager": {...}}.
@@ -84,7 +86,15 @@ def pesos(db: Session) -> tuple[dict, dict]:
         except ValueError:
             guardado = {}
     def mezclar(base, g):
-        return {k: int((g or {}).get(k, v)) for k, v in base.items()}
+        if not g:
+            return dict(base)
+        out = {k: int(g.get(k, v)) for k, v in base.items()}
+        nuevos = [k for k in base if k not in g]
+        if nuevos and sum(out.values()) != 100:   # un criterio nuevo (p. ej. puntualidad): se le descuenta al de más peso
+            mayor = max((k for k in base if k in g), key=lambda k: out[k], default=None)
+            if mayor:
+                out[mayor] = max(0, out[mayor] - (sum(out.values()) - 100))
+        return out
     return mezclar(PESOS_DISENADOR, guardado.get("disenador")), mezclar(PESOS_MANAGER, guardado.get("manager"))
 
 
@@ -100,6 +110,8 @@ AYUDA = {
                      "Si ese mes nadie ha llenado la hoja, no cuenta.",
         "eficiencia": "Qué tan rápido diseña: su tiempo de diseño frente a la mediana del mismo producto en su área. "
                       "Pesa poco porque los tiempos se escriben a mano.",
+        "puntualidad": "De GeoVictoria: en cuántos de los días que trabajó llegó a tiempo (llegadas perfectas) y cuántos "
+                       "minutos sumó de atraso. Se compara con los demás de su área.",
     },
     "manager": {
         "evaluacion": "La calificación del manager en la hoja DESIGN MANAGERS de Desempeño ese mes.",
@@ -109,6 +121,7 @@ AYUDA = {
         "qcCobertura": "Qué porcentaje de las órdenes aprobadas de su equipo tiene el QC marcado.",
         "equidad": "Qué tan parejo reparte los productos entre sus diseñadores, según la tabla Reparto de productos "
                    "(descuenta las ausencias de cada uno).",
+        "puntualidad": "De GeoVictoria: en cuántos de los días que trabajó el manager llegó a tiempo y cuántos minutos sumó de atraso.",
     },
 }
 
@@ -166,7 +179,7 @@ def guardar_pesos(db: Session, datos: dict, quien: Empleado) -> dict:
     return configuracion(db)
 
 
-NOMBRES = {"productividad": "Carga de trabajo", "calidad": "Calidad (QC)", "destacado": "Destacado por su manager", "evaluacion": "Evaluación del líder",
+NOMBRES = {"puntualidad": "Puntualidad (GeoVictoria)", "productividad": "Carga de trabajo", "calidad": "Calidad (QC)", "destacado": "Destacado por su manager", "evaluacion": "Evaluación del líder",
            "eficiencia": "Eficiencia", "qcOportuno": "QC a tiempo", "qcCobertura": "Cobertura de QC", "equidad": "Reparto parejo"}
 
 _MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -338,6 +351,61 @@ def _ordenes(db: Session, ini: date, fin: date, team_ids: list[int]) -> list[Des
             if not sd._es_cancelada(o.estado)]
 
 
+# ---------- puntualidad desde GeoVictoria (Rosember, 22-oct-2026) ----------
+
+def _puntualidad(db: Session, ini: date, fin: date, ids: list[int] | None = None) -> dict[int, dict]:
+    """{empleado_id: {"dias": días trabajados, "tarde": días con atraso, "minutos": minutos de atraso}} del periodo.
+    Vacío si GeoVictoria no está configurado o no responde (el criterio no cuenta y su peso se reparte)."""
+    from . import services_design_geovictoria as gv
+    try:
+        c = gv.config(db)
+        if not c["key"] or not c["secret"]:
+            return {}
+        pares = gv.cruce(db)["pares"]
+        if ids is not None:
+            pares = {k: v for k, v in pares.items() if k in ids}
+        por_id = {gv._norm_id(v): k for k, v in pares.items()}
+        out: dict[int, dict] = {}
+        lista = list(pares.values())
+        cuerpo = lambda lote: {"StartDate": ini.strftime("%Y%m%d000000"), "EndDate": fin.strftime("%Y%m%d235959"), "UserIds": ",".join(lote)}
+        for k in range(0, len(lista), gv.LOTE):
+            lote = lista[k:k + gv.LOTE]
+            ext = gv._post(c, "/Consolidated/Extended", {**cuerpo(lote), "IncludeAll": 0})
+            for u in ext if isinstance(ext, list) else (ext or {}).get("Response") or []:
+                eid = por_id.get(gv._norm_id(u.get("Identifier")))
+                if eid:
+                    out.setdefault(eid, {"dias": 0, "tarde": 0, "minutos": 0})["dias"] = int(((u.get("PaidDays") or {}).get("WorkedDays")) or 0)
+            col = gv._post(c, "/AttendanceBook/GetConsolidatedColombia", cuerpo(lote))
+            for u in col if isinstance(col, list) else (col or {}).get("Response") or []:
+                eid = por_id.get(gv._norm_id(u.get("Identifier")))
+                if not eid:
+                    continue
+                x = out.setdefault(eid, {"dias": 0, "tarde": 0, "minutos": 0})
+                for d in u.get("SpecialDays") or []:
+                    m = gv._min(d.get("Delay")) if str(d.get("HasDelay")) == "True" else 0
+                    if m > 0:
+                        x["tarde"] += 1
+                        x["minutos"] += m
+        return {k: v for k, v in out.items() if v["dias"]}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _valor_punt(p: dict | None) -> float | None:
+    """% de días a tiempo; a igual %, gana quien sumó menos minutos de atraso."""
+    if not p or not p["dias"]:
+        return None
+    return round((p["dias"] - min(p["tarde"], p["dias"])) * 100 / p["dias"], 2) - p["minutos"] / 100000
+
+
+def _texto_punt(p: dict | None) -> str:
+    if not p or not p["dias"]:
+        return "sin datos de GeoVictoria"
+    if not p["tarde"]:
+        return f"llegó a tiempo los {p['dias']} días que trabajó"
+    return f"{p['dias'] - p['tarde']} de {p['dias']} días a tiempo ({p['tarde']} tarde, {p['minutos']} min)"
+
+
 def analizar(db: Session, anio: int, mes: int) -> dict:
     PD, PM = pesos(db)   # porcentajes configurados en «⚙️ Configuración» (si no, los de fábrica)
     ini, fin = periodo(anio, mes)
@@ -402,6 +470,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             x["esperado"] += mediana[k]
             x["real"] += dur[o.id]
     ev_dis = _evaluaciones(db, list(empleados.values()), anio, mes, hoja_general=False)
+    punt = _puntualidad(db, ini, fin)   # GeoVictoria; vacío si no está configurado (el criterio no cuenta)
     destacados = _destacados(db, list(empleados.values()), anio, mes)
     filas, no_compiten = [], []
     for eid, e in empleados.items():
@@ -410,6 +479,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         fila = {"id": eid, "nombre": e.nombre_completo, "area": area_de[eid], "aprobadas": x["aprobadas"], "hallazgos": x["hallazgos"],
                 "dias": dias, "habiles": dias_hab, "cargaDia": round(x["carga"] / dias, 1) if dias else 0, "ausencias": sd._resumen_ausencias(ausencias.get(eid, {})),
                 "evaluacion": (ev_dis.get(eid) or {}).get("pct"), "evaluacionRel": (ev_dis.get(eid) or {}).get("rel"),
+                "puntualidad": punt.get(eid),
                 "destacado": None if destacados is None else (eid in destacados),
                 "eficiencia": round(x["esperado"] / x["real"], 2) if x["real"] else None}
         motivo = None
@@ -430,6 +500,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         val = {
             "productividad": {f["id"]: f["cargaDia"] for f in grupo},
             "eficiencia": {f["id"]: f["eficiencia"] for f in grupo},
+            "puntualidad": {f["id"]: _valor_punt(f["puntualidad"]) for f in grupo},
         }
         pct = {k: _percentiles(v, mayor_es_mejor=True) for k, v in val.items()}
         # la evaluación ya viene relativa a su líder; el destacado vale 100 (sí) o 0 (no)
@@ -442,6 +513,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
                 "evaluacion": {"texto": f"{f['evaluacion']:.0f} % en la hoja de su líder" if f["evaluacion"] is not None else "sin calificar"},
                 "destacado": {"texto": "su manager lo destacó este mes" if f["destacado"] else "no fue el destacado de su manager"},
                 "eficiencia": {"texto": (f"{f['eficiencia']:.2f}× la mediana del producto" if f["eficiencia"] else "sin tiempos válidos")},
+                "puntualidad": {"texto": _texto_punt(f["puntualidad"])},
             }
             f["percentiles"] = p
             f["puntaje"], f["faltan"] = _puntaje(p, PD)
@@ -455,6 +527,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
 
     # ---------------- Managers ----------------
     ev_man = _evaluaciones(db, list(db.query(Empleado).filter(Empleado.id.in_(list(managers) or [-1]))), anio, mes, hoja_general=True)
+    punt_m = punt if all(m in punt for m in managers) else {**punt, **_puntualidad(db, ini, fin, ids=list(managers))}
     admin = db.query(Empleado).filter(Empleado.rol.in_(["admin", "superadmin"])).first()
     mans: dict[int, dict] = {}
     for t in equipos:
@@ -490,6 +563,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         m["qcPct"] = round(m["conQc"] * 100 / m["aprobadas"], 1)
         m["equidadCv"] = round(sum(m["cv"]) / len(m["cv"])) if m["cv"] else None
         m["evaluacion"] = (ev_man.get(m["id"]) or {}).get("pct")
+        m["puntualidad"] = punt_m.get(m["id"])
         del m["minQc"], m["cv"]
         lista_m.append(m)
     # La carga de trabajo ya pesa la complejidad de cada producto: se compara entre TODOS los managers (antes, por área;
@@ -500,6 +574,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     pct_m["qcCobertura"] = _percentiles({m["id"]: m["qcPct"] for m in lista_m}, True)
     pct_m["equidad"] = _percentiles({m["id"]: m["equidadCv"] for m in lista_m}, False)
     pct_m["evaluacion"] = _percentiles({m["id"]: m["evaluacion"] for m in lista_m}, True)
+    pct_m["puntualidad"] = _percentiles({m["id"]: _valor_punt(m["puntualidad"]) for m in lista_m}, True)
     for m in lista_m:
         p = {k: pct_m[k].get(m["id"]) for k in PM}
         met = {
@@ -509,6 +584,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             "qcCobertura": {"texto": f"{m['qcPct']} % de aprobadas con QC"},
             "equidad": {"texto": f"reparto con {m['equidadCv']} % de variación" if m["equidadCv"] is not None else "sin datos"},
             "evaluacion": {"texto": f"{m['evaluacion']:.0f} %" if m["evaluacion"] is not None else "sin calificar"},
+            "puntualidad": {"texto": _texto_punt(m["puntualidad"])},
         }
         m["percentiles"] = p
         m["puntaje"], faltan = _puntaje(p, PM)

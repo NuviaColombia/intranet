@@ -157,12 +157,12 @@ class Seleccion(unittest.TestCase):
         admin = self.emp("Admin", "admin")
         self.assertEqual(ssel.pesos(self.db), (ssel.PESOS_DISENADOR, ssel.PESOS_MANAGER))   # sin guardar: los de fábrica
         with self.assertRaises(ValueError):   # no suma 100
-            ssel.guardar_pesos(self.db, {"disenador": {"productividad": 50, "evaluacion": 10, "destacado": 10, "eficiencia": 10},
+            ssel.guardar_pesos(self.db, {"disenador": {"productividad": 50, "evaluacion": 10, "destacado": 10, "eficiencia": 10, "puntualidad": 0},
                                          "manager": ssel.PESOS_MANAGER}, admin)
         with self.assertRaises(ValueError):   # fuera de rango
-            ssel.guardar_pesos(self.db, {"disenador": {"productividad": 120, "evaluacion": -20, "destacado": 0, "eficiencia": 0},
+            ssel.guardar_pesos(self.db, {"disenador": {"productividad": 120, "evaluacion": -20, "destacado": 0, "eficiencia": 0, "puntualidad": 0},
                                          "manager": ssel.PESOS_MANAGER}, admin)
-        nuevos = {"productividad": 60, "evaluacion": 40, "destacado": 0, "eficiencia": 0}
+        nuevos = {"productividad": 60, "evaluacion": 40, "destacado": 0, "eficiencia": 0, "puntualidad": 0}
         c = ssel.guardar_pesos(self.db, {"disenador": nuevos, "manager": ssel.PESOS_MANAGER}, admin)
         self.assertEqual(c["disenador"], nuevos)
         self.assertEqual(ssel.pesos(self.db)[0], nuevos)
@@ -175,6 +175,35 @@ class Seleccion(unittest.TestCase):
         g = next(c for c in r["categorias"] if c["clave"] == "n3n6")["candidatos"][0]
         self.assertNotIn("Destacado por su manager", g["faltan"])
         self.assertNotIn("Eficiencia", g["faltan"])
+
+
+    def test_puntualidad_de_geovictoria(self):
+        from app import services_design_geovictoria as gv
+        admin = self.emp("Admin", "admin")
+        m = self.emp("Lia", "aprobador")
+        a1, a2 = self.emp("Ana"), self.emp("Abel")
+        for e, ced in ((a1, "11"), (a2, "22"), (m, "33")):
+            e.identificacion = ced
+        self.db.commit()
+        t = self.equipo("N3 Prosthetic", "Eq", m, [a1, a2])
+        self.casos(t, a1, 30); self.casos(t, a2, 30, inicio=500)
+        gv.guardar(self.db, {"key": "k", "secret": "s", "avisos": False, "tolerancia": 10}, admin)
+        gv._usuarios.update(t=0.0, lista=[])
+        def api(c, ruta, cuerpo):
+            if ruta == "/User/List":
+                return [{"Identifier": x, "Enabled": "1"} for x in ("11", "22", "33")]
+            if ruta == "/Consolidated/Extended":
+                return [{"Identifier": x, "PaidDays": {"WorkedDays": 20}} for x in cuerpo["UserIds"].split(",")]
+            tarde = {"11": 0, "22": 5, "33": 2}
+            return [{"Identifier": x, "SpecialDays": [{"Date": f"202610{d + 1:02d}000000", "HasDelay": "True", "Delay": "00:10"} for d in range(tarde[x])]}
+                    for x in cuerpo["UserIds"].split(",")]
+        with mock.patch.object(gv, "_post", side_effect=api):
+            r = ssel.analizar(self.db, 2026, 10)
+        todos = {x["nombre"]: x for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
+        self.assertGreater(todos["Ana X"]["percentiles"]["puntualidad"], todos["Abel X"]["percentiles"]["puntualidad"])
+        self.assertIn("a tiempo los 20 días", " ".join(todos["Ana X"]["porQue"]["fuertes"]))
+        man = next(c for c in r["categorias"] if c["clave"] == "manager")["candidatos"][0]
+        self.assertEqual(man["puntualidad"], {"dias": 20, "tarde": 2, "minutos": 20})
 
 
 if __name__ == "__main__":

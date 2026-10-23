@@ -171,7 +171,13 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   Configuración (Rosember, 22-oct-2026): botón «⚙️ Configuración» junto a «Analizar» para que el admin cambie los
   porcentajes de diseñadores y de managers (enteros 0-100, cada grupo suma 100; 0 % = no cuenta; «Restablecer los de
   fábrica»). Se guarda en design_conexion_reglas (tipo sistema, clave `seleccion_asistida_pesos`); sin guardar se usan
-  PESOS_DISENADOR / PESOS_MANAGER. Rutas GET/POST `/design/api/perf/seleccion-asistida/config` (solo admin). Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
+  PESOS_DISENADOR / PESOS_MANAGER. Rutas GET/POST `/design/api/perf/seleccion-asistida/config` (solo admin).
+  Puntualidad (GeoVictoria, Rosember 22-oct-2026): criterio nuevo para diseñadores y managers = % de días trabajados
+  (Consolidated/Extended › WorkedDays) en que llegó a tiempo (GetConsolidatedColombia › días con atraso), desempate por
+  minutos de atraso; diseñadores contra su área, managers contra todos. Pesos de fábrica: diseñadores carga 40 ·
+  evaluación 25 · destacado 15 · eficiencia 10 · puntualidad 10; managers evaluación 35 · carga 25 · QC a tiempo 15 ·
+  cobertura 10 · reparto 5 · puntualidad 10. Si había pesos guardados sin este criterio, entra con 10 % y se le descuenta
+  al de más peso. Sin GeoVictoria configurado el criterio no cuenta (`_puntualidad`). Compiten con ≥ 50 % de días disponibles y ≥ 10 aprobadas;
   indicadores sin dato reparten su peso. Código: `services_design_seleccion.py`, `/design/api/perf/seleccion-asistida`.
 - **Desempeño en modo oscuro** (Rosember, 21-oct-2026): las celdas de nivel (ALTO, SOBRESALIENTE, MEDIO, BAJO) usan
   fondo oscuro teñido y texto claro del mismo tono, como los estados del Schedule (antes conservaban el color claro).
