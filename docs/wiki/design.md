@@ -83,6 +83,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   termina aquel (19-oct-2026).
 - **Contadores**: «Canceladas» cuenta toda orden con datos en Canceled, aunque no tenga diseñador;
   los demás contadores solo cuentan órdenes completas (centro, producto y diseñador).
+- **Botón Producción para todo el equipo** (Rosember, 23-oct-2026): el botón «Producción» de la barra del Schedule (con un
+  equipo abierto, fuera de Support) lo ven aprobadores, admins y diseñadores; antes solo los gestores (`DS_GESTION`). Solo
+  cambia quién ve el botón: el dato sale de lo que el Schedule ya carga (`dsPintarProduccion`). El panel de Seguimiento
+  sigue solo para gestores.
 - **Producción del día**: los casos hechos como prestado suman al diseñador
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
   Change), D (Dummy, la tabla principal), Ng y Tc. En
