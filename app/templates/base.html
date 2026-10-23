@@ -161,6 +161,7 @@
       <a href="/design?panel=comments">💬 Comments</a>
       <a href="/design?panel=preapproved">✅ Pre-Approved</a>
       <a href="/design?panel=canvas">🎨 Canvas</a>
+      <a href="/design?panel=produccion">🧾 N3/N2 Producción</a>{# todo el equipo la ve (23-oct-2026) #}
       {% if user.rol in ('aprobador', 'admin', 'superadmin') %}<a href="/design/office">📝 Nuvia Office</a>{% endif %}
       {% if user.rol not in ('aprobador', 'admin', 'superadmin') %}<a href="/design/calendario">📅 Calendario</a>{% endif %}{# trabajadores: Gestión no les aparece #}
     </div>

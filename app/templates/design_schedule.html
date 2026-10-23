@@ -519,10 +519,10 @@
 <p id="pfSinHoja" class="ds-sin-equipo" style="min-height:260px">Selecciona un área y un equipo para ver su evaluación.</p>
 <div class="pf-panel" id="pfPanel" style="display:none"></div></div></div>
 {% endif %}
-{% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+{# 23-oct-2026: el overlay existe para todo el equipo; a quien no es gestor el JS le deja solo N3/N2 Producción #}
 <div class="ds-overlay" id="ov-seguimiento"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button>
 <div class="sg-cab"><h1>Seguimiento <span class="sg-vivo">● en vivo</span></h1><span class="sg-hora" id="sgHora"></span></div>
-<p style="color:#4b5563;font-size:13px;margin-top:-8px">Qué está haciendo cada diseñador ahora. Arriba los libres (sin casos por hacer y fuera de break o almuerzo, primero el que lleva más tiempo libre); abajo los ocupados. Se actualiza cada 20 segundos.</p>
+<p id="sgDescripcion" style="color:#4b5563;font-size:13px;margin-top:-8px">Qué está haciendo cada diseñador ahora. Arriba los libres (sin casos por hacer y fuera de break o almuerzo, primero el que lleva más tiempo libre); abajo los ocupados. Se actualiza cada 20 segundos.</p>
 <div class="sg-vistas" role="tablist"><button type="button" class="sg-vista on" data-vista="disenadores" role="tab">👤 Diseñadores</button><button type="button" class="sg-vista" data-vista="equipos" role="tab">📋 Casos por equipo</button><button type="button" class="sg-vista" data-vista="produccion" role="tab">🧾 N3/N2 Producción</button></div>
 <div class="sg-filtros"><select id="sgArea" class="sg-sel" aria-label="Área"></select><input id="sgBuscar" class="sg-sel" type="search" placeholder="Buscar diseñador o equipo…" aria-label="Buscar diseñador o equipo"><label class="sg-fin" id="sgFechaW" hidden>Día <input type="date" id="sgFecha"></label><label class="sg-fin" id="sgFinW" hidden>Fin de la jornada <input type="time" id="sgFin" value="17:00"></label><span class="sg-modo" id="sgModoW" role="group" aria-label="Forma de ver"><button type="button" data-modo="tablero" class="on" title="Una columna por estado">▦ Tablero</button><button type="button" data-modo="lista" title="Tabla">☰ Lista</button></span><button type="button" class="btn gris" id="sgRefrescar">↻ Actualizar</button></div>
 <div id="sgAyudaEstado" class="ay-estado" role="status" hidden></div>
@@ -542,7 +542,6 @@
 <div class="sg-eq-grid" id="sgProd"></div>
 </div>
 </div></div>
-{% endif %}
 {% if user.rol in ('admin', 'superadmin') %}{# Papelera: solo admins #}
 <div class="ds-overlay" id="ov-papelera"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button><div class="tr-toolbar">
   <h1 style="margin:0">Papelera — Design Schedule</h1>
@@ -629,5 +628,5 @@ window.DS_CFG = {userId: {{ user.id }}, esAprobador: {{ 'true' if user.rol in ('
                  esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
 </script>
 <script src="/static/design/schedule.min.js?v={{ dsv }}"></script>   <!-- generado por scripts/minificar_design.py desde schedule.js -->
-{% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script><script src="/static/design/ayuda.js?v={{ dsv }}"></script>{% endif %}{% if user.rol in ('admin', 'superadmin') %}<script src="/static/design/reportes.js?v={{ dsv }}"></script>{% endif %}
+<script src="/static/design/seguimiento.js?v={{ dsv }}"></script>{% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/ayuda.js?v={{ dsv }}"></script>{% endif %}{% if user.rol in ('admin', 'superadmin') %}<script src="/static/design/reportes.js?v={{ dsv }}"></script>{% endif %}
 {% endblock %}

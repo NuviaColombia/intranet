@@ -117,6 +117,15 @@ def require_admin(request: Request, user: Empleado = Depends(get_current_user), 
     return u
 
 
+def require_design_user(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
+    """Cualquier integrante del Schedule (23-oct-2026): para lo que todo el equipo puede ver, como N3/N2 Producción."""
+    u = _usuario_efectivo(request, user, db)
+    if not u.tiene_modulo("design_schedule"):
+        _sin_acceso_simulando(request, u)
+        raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
+    return u
+
+
 def require_design_manager(request: Request, user: Empleado = Depends(get_current_user), db: Session = Depends(get_db)) -> Empleado:
     """Dashboard: aprobadores y admins (igual que app.auth.require_design_manager)."""
     u = _usuario_efectivo(request, user, db)
@@ -3025,8 +3034,9 @@ def api_preferencia_tema(payload: TemaIn, user: Empleado = Depends(require_modul
 
 
 @router.get("/design/api/seguimiento/produccion")
-def api_seguimiento_produccion(fecha: str = "", user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
-    """N3/N2 Producción: el reporte diario de cada equipo (diseñadores en turno y casos nuevos por centro)."""
+def api_seguimiento_produccion(fecha: str = "", user: Empleado = Depends(require_design_user), db: Session = Depends(get_db)):
+    """N3/N2 Producción: el reporte diario de cada equipo (diseñadores en turno y casos nuevos por centro). Lo ve todo el
+    equipo del Schedule (23-oct-2026); solo tiene conteos por equipo y centro, sin datos de pacientes."""
     return {"fecha": (_fecha(fecha) if fecha else sd.ahora_colombia().date()).isoformat(),
             "equipos": sprod.produccion(db, _fecha(fecha) if fecha else sd.ahora_colombia().date())}
 

@@ -365,6 +365,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   permisos por horas (`permisos_por_horas_del_dia`) no son ausencia: son aviso y pausa.
   Cuentan los permisos **aprobados y los «pendiente de soporte»** (`ESTADOS_AUSENCIA_PEOPLE`; 21-oct-2026:
   las licencias ya aprobadas por el jefe que esperan que People valide el documento salían libres).
+- **N3/N2 Producción para todo el equipo** (Rosember, 23-oct-2026): cualquier integrante del Schedule la ve en Tools ›
+  «🧾 N3/N2 Producción» (`?panel=produccion`), que abre el panel de Seguimiento solo en esa pestaña. El resto de Seguimiento
+  sigue siendo de aprobadores y admins (`DS_GESTION`). Endpoint `/design/api/seguimiento/produccion` con `require_design_user`
+  (antes `require_design_manager`). Solo muestra conteos por equipo y centro, sin datos de pacientes.
 - **Seguimiento sin Support** (Rosember, 21-oct-2026): no salen los equipos de Support ni las dos personas de
   Support Time, aunque trabajen casos de N3; quien solo cubre un turno sí sale.
 - Si necesitas el detalle de un submódulo específico (Schedule, Dashboard, Pre-Approved, Office,
