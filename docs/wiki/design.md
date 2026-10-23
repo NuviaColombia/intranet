@@ -140,6 +140,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   atraso y minutos); solo quienes llegaron tarde ≥ 1 vez; KPIs, gráfica de quienes más llegan tarde, por equipo, por día de
   la semana y detalle; mismo estilo del reporte mensual, imprimible como PDF (`/design/reportes/geovictoria?mes=`). Los
   meses cerrados se guardan el día 1 (design_conexion_reglas `gv_reporte_AAAA-MM`); el mes en curso se calcula al abrirlo.
+  Inconsistencias de marcación (Rosember, 22-oct-2026): cada viernes desde las 3 p. m. (una vez; marca
+  `inconsist|fecha|*`) se revisa el mes en curso del día 1 hasta ayer. En días con turno y sin permiso (GeoVictoria,
+  People o Tiempos libres) es inconsistencia no tener marcas o tener un número impar (1 o 3: falta una); solo entrada y
+  salida (sin almuerzo) está bien. Cada manager recibe un push «⚠️ Hay inconsistencias en tu GeoVictoria» con su gente y
+  los días (`inconsistencias`, `avisar_inconsistencias`). Requiere «Avisos» activo.
 - **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
   registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
   el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la

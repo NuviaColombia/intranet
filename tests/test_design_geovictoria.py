@@ -209,5 +209,34 @@ class Avisos(unittest.TestCase):
         self.assertEqual(g.reporte_mes(self.db, "2026-09", datetime(2026, 10, 22, 9, 0))["total"], 2)   # sale de lo guardado
 
 
+    def test_inconsistencias_del_mes_los_viernes(self):
+        self.configurar()
+        def dia(d, n, turno=True, permiso=False):
+            f = f"202610{d:02d}"
+            return {"Date": f + "000000", "Shifts": [{"Type": "FixedShift" if turno else "NotWorking", "Status": "enabled"}],
+                    "TimeOffs": [{"TimeOffTypeDescription": "Vacaciones"}] if permiso else [],
+                    "Punches": [{"Date": f + "07%02d00" % i} for i in range(n)]}
+        def api(c, ruta, cuerpo):
+            if ruta == "/User/List":
+                return [{"Identifier": "1234567", "Enabled": "1"}]
+            return {"Users": [{"Identifier": "1234567", "Weeks": [{"Intervals": [
+                dia(1, 4), dia(2, 2),            # completo / sin almuerzo: bien
+                dia(5, 3), dia(6, 0), dia(7, 1),  # falta una marca, sin marcas, solo entrada
+                dia(8, 0, turno=False), dia(9, 0, permiso=True)]}]}]}
+        g._post.side_effect = api
+        r = g.inconsistencias(self.db, date(2026, 10, 1), date(2026, 10, 22))
+        self.assertEqual([(x["fecha"][-2:], x["tipo"]) for x in r[self.ana.id]],
+                         [("05", "incompleto"), ("06", "sin_marcas"), ("07", "incompleto")])
+        with mock.patch.object(g, "avisar_inconsistencias", wraps=g.avisar_inconsistencias) as av:
+            g.revisar(self.db, datetime(2026, 10, 22, 15, 0))          # jueves: no
+            g._hoy["t"] = 0; g.revisar(self.db, datetime(2026, 10, 23, 14, 59))   # viernes antes de las 3: no
+            self.assertEqual(av.call_count, 0)
+            g._hoy["t"] = 0; g.revisar(self.db, datetime(2026, 10, 23, 15, 0))
+            g._hoy["t"] = 0; g.revisar(self.db, datetime(2026, 10, 23, 16, 0))    # una sola vez por viernes
+            self.assertEqual(av.call_count, 1)
+        push = [e for e in self.envios if "inconsistencias" in e[1]]
+        self.assertEqual([e[0] for e in push], [[self.luis.id]])
+
+
 if __name__ == "__main__":
     unittest.main()

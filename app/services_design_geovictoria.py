@@ -390,6 +390,12 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
         guardar_reporte_mes_anterior(db, ahora)
     if not c["avisos"]:
         return []
+    enviados_pre = _cargar_enviados(db, ahora.date())
+    if ahora.weekday() == VIERNES and ahora.hour >= HORA_INCONSISTENCIAS and f"inconsist|{ahora.date().isoformat()}|*" not in enviados_pre:
+        n = avisar_inconsistencias(db, ahora, enviados_pre)
+        enviados_pre.add(f"inconsist|{ahora.date().isoformat()}|*")
+        _guardar_enviados(db, ahora.date())
+        ESTADO["avisos"] += n
     enviados = _cargar_enviados(db, ahora.date())
     nuevos = []
     nombres = None
@@ -643,6 +649,83 @@ def guardar_reporte_mes_anterior(db: Session, ahora: datetime) -> None:
         reporte_mes(db, mes, ahora)
     except Exception as e:  # noqa: BLE001
         log.warning("GeoVictoria: no se pudo guardar el reporte de %s: %s", mes, e)
+
+
+# ---------- inconsistencias de marcación, cada viernes (Rosember, 22-oct-2026) ----------
+# Los viernes a las HORA_INCONSISTENCIAS se revisa el mes en curso (del 1 hasta ayer): en cada día con turno, sin permiso
+# (GeoVictoria, People o Tiempos libres), es inconsistencia no tener ninguna marca o tener un número impar (1 o 3: falta
+# una). No marcar el almuerzo (solo entrada y salida) no es problema. A cada manager le llega un push con su gente.
+VIERNES = 4
+HORA_INCONSISTENCIAS = 15
+
+
+def inconsistencias(db: Session, ini: date, fin: date) -> dict[int, list[dict]]:
+    """{empleado_id: [{"fecha", "tipo": "sin_marcas" | "incompleto", "marcas": n}]} entre ini y fin (incluidos)."""
+    if fin < ini:
+        return {}
+    c = config(db)
+    pares = cruce(db)["pares"]
+    por_id = {_norm_id(v): eid for eid, v in pares.items()}
+    crudo: dict[int, dict[date, dict]] = {}
+    ids = list(pares.values())
+    for k in range(0, len(ids), LOTE):
+        r = _post(c, "/AttendanceBook", {"StartDate": ini.strftime("%Y%m%d000000"), "EndDate": fin.strftime("%Y%m%d235959"),
+                                         "UserIds": ",".join(ids[k:k + LOTE])})
+        for u in (r or {}).get("Users", []) or []:
+            eid = por_id.get(_norm_id(u.get("Identifier")))
+            if not eid:
+                continue
+            ints = [i for w in u.get("Weeks", []) or [] for i in w.get("Intervals", []) or []] or (u.get("PlannedInterval") or [])
+            for it in ints:
+                d = _dt(it.get("Date"))
+                if not d or not ini <= d.date() <= fin:
+                    continue
+                turno = any(sh.get("Type") != "NotWorking" and (sh.get("Status") or "").lower() != "disabled" for sh in it.get("Shifts") or [])
+                crudo.setdefault(eid, {})[d.date()] = {"turno": turno, "permiso": bool(it.get("TimeOffs")), "marcas": len(it.get("Punches") or [])}
+    out: dict[int, list[dict]] = {}
+    dias = {}
+    for x in crudo.values():
+        dias.update({d: True for d in x})
+    perm_dia: dict[date, dict] = {d: _permisos_plataforma(db, list(crudo), d)[0] for d in dias}
+    for eid, por_dia in crudo.items():
+        for d, x in sorted(por_dia.items()):
+            if not x["turno"] or x["permiso"] or eid in perm_dia.get(d, {}):
+                continue
+            if x["marcas"] == 0:
+                out.setdefault(eid, []).append({"fecha": d.isoformat(), "tipo": "sin_marcas", "marcas": 0})
+            elif x["marcas"] % 2 == 1:
+                out.setdefault(eid, []).append({"fecha": d.isoformat(), "tipo": "incompleto", "marcas": x["marcas"]})
+    return out
+
+
+def avisar_inconsistencias(db: Session, ahora: datetime, enviados: set) -> int:
+    from . import services_design_push as sp
+    ini, fin = ahora.date().replace(day=1), ahora.date() - timedelta(days=1)
+    malos = inconsistencias(db, ini, fin)
+    if not malos:
+        return 0
+    nombres = {e.id: e for e in db.query(Empleado).filter(Empleado.id.in_(list(malos)))}
+    por_manager: dict[int, list[tuple[str, int]]] = {}
+    for eid, lista in malos.items():
+        e = nombres.get(eid)
+        if not e:
+            continue
+        corto = " ".join((e.nombres or "").split()[:1] + (e.apellidos or "").split()[:1]) or e.nombre_completo
+        for m in _managers_de(db, eid):
+            por_manager.setdefault(m, []).append((corto, len(lista)))
+    n = 0
+    for m, gente in por_manager.items():
+        clave = f"inconsist|{ahora.date().isoformat()}|{m}"
+        if clave in enviados:
+            continue
+        gente.sort(key=lambda x: (-x[1], x[0]))
+        lista = ", ".join(f"{nom} ({k} día{'s' if k != 1 else ''})" for nom, k in gente[:6]) + (f" y {len(gente) - 6} más" if len(gente) > 6 else "")
+        sp.enviar(db, [m], "⚠️ Hay inconsistencias en tu GeoVictoria",
+                  f"Este mes hay marcas incompletas o días sin marcar: {lista}. Por favor verifica.", "/design?panel=seguimiento",
+                  "gv-inconsistencias", fijo=True)
+        enviados.add(clave)
+        n += 1
+    return n
 
 
 _hilo = {"t": None}
