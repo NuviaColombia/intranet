@@ -132,6 +132,14 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   tiene un permiso de día completo en People (aprobado o pendiente de soporte) o una ausencia en Tiempos libres; con un
   permiso por horas de People que cubre la hora de la marca, el aviso espera a que termine el permiso + la tolerancia
   (`_permisos_plataforma`, `faltas`). Se revisa con cada consulta de marcas (cada 5 min).
+  Almuerzo → Tiempos libres (Rosember, 22-oct-2026; casilla en la página, encendida por defecto): la marca de salida a
+  colación llena el Almuerzo de Tiempos libres en el/los equipo(s) de la persona: inicio = salida; fin = regreso, máximo
+  60 min («si se pasa, se anota 1 hora»); sin regreso aún, inicio + 60. No pisa un almuerzo escrito a mano
+  (`almuerzo_a_tiempos_libres`); avisa en vivo al Schedule.
+  Reporte mensual de llegadas tarde (Dashboard › Reportes › «Reportes GeoVictoria»): GetConsolidatedColombia (días con
+  atraso y minutos); solo quienes llegaron tarde ≥ 1 vez; KPIs, gráfica de quienes más llegan tarde, por equipo, por día de
+  la semana y detalle; mismo estilo del reporte mensual, imprimible como PDF (`/design/reportes/geovictoria?mes=`). Los
+  meses cerrados se guardan el día 1 (design_conexion_reglas `gv_reporte_AAAA-MM`); el mes en curso se calcula al abrirlo.
 - **Selección asistida › Elegir** (Rosember, 22-oct-2026): cada ganador (y cada «Siguiente») tiene «✔ Elegir»; lo
   registra en la tabla «Empleado del mes» de la hoja de Selección que tiene la columna de ese mes (prefiere la que tiene
   el año en el nombre), en la categoría que corresponde (MVP → fila MVP, N2/Face según el área, el «otro» de N3/N6 en la

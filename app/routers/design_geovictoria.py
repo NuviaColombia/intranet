@@ -18,6 +18,24 @@ def pagina(request: Request, user: Empleado = Depends(require_admin)):
     return templates.TemplateResponse(request, "design_geovictoria.html", {"user": user, "es_design": True})
 
 
+@router.get("/design/reportes/geovictoria")
+def pagina_reporte(request: Request, mes: str = "", user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Dashboard › Reportes › Reportes GeoVictoria: quienes llegaron tarde en el mes (imprimible como PDF)."""
+    from .. import services_design_reportes as sr
+    meses = sr.meses_disponibles()
+    mes = mes if mes in meses else meses[1] if len(meses) > 1 else meses[0]   # por defecto el mes que ya cerró
+    ahora = sd.ahora_colombia().replace(tzinfo=None)
+    error = ""
+    try:
+        r = sgv.reporte_mes(db, mes, ahora)
+    except Exception as e:  # noqa: BLE001
+        r, error = None, f"No se pudo consultar GeoVictoria: {e}"
+    return templates.TemplateResponse(request, "design_reporte_geovictoria.html", {
+        "user": user, "r": r, "mes": mes, "meses": meses, "error": error,
+        "mesTxt": sr.MESES["es"][int(mes[5:]) - 1] + " " + mes[:4], "generado": ahora.strftime("%d/%m/%Y %H:%M"),
+        "MESES": sr.MESES["es"]})
+
+
 @router.get("/design/api/geovictoria/config")
 def api_config(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return sgv.publico(db)

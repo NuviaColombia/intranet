@@ -173,5 +173,41 @@ class Avisos(unittest.TestCase):
         self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 9, 10)), [f"{self.ana.id}|entrada"])
 
 
+    def test_almuerzo_pasa_a_tiempos_libres(self):
+        self.configurar(avisos=False)
+        t = self.db.query(md.DesignTeam).first()
+        self.marcas = [("e", "070000"), ("sa", "120500")]
+        g.revisar(self.db, datetime(2026, 10, 22, 12, 30))   # aún no regresa: se anota 1 hora
+        b = self.db.query(md.DesignBreak).filter_by(team_id=t.id, empleado_id=self.ana.id, fecha=DIA).one()
+        self.assertEqual((b.almuerzo_inicio, b.almuerzo_fin), ("12:05", "13:05"))
+        self.marcas = [("e", "070000"), ("sa", "120500"), ("ra", "125000")]   # regresó antes de la hora
+        g._hoy["t"] = 0; g.revisar(self.db, datetime(2026, 10, 22, 13, 0)); self.db.refresh(b)
+        self.assertEqual(b.almuerzo_fin, "12:50")
+        self.marcas = [("e", "070000"), ("sa", "120500"), ("ra", "133000")]   # se pasó: queda 1 hora
+        g._hoy["t"] = 0; g.revisar(self.db, datetime(2026, 10, 22, 13, 40)); self.db.refresh(b)
+        self.assertEqual(b.almuerzo_fin, "13:05")
+        b.almuerzo_inicio, b.almuerzo_fin = "11:00", "11:45"; self.db.commit()   # lo cambió alguien a mano: se respeta
+        g._hoy["t"] = 0; g.revisar(self.db, datetime(2026, 10, 22, 14, 0)); self.db.refresh(b)
+        self.assertEqual((b.almuerzo_inicio, b.almuerzo_fin), ("11:00", "11:45"))
+
+    def test_reporte_de_llegadas_tarde(self):
+        self.configurar(avisos=False)
+        def api(c, ruta, cuerpo):
+            if ruta == "/User/List":
+                return [{"Identifier": "1234567", "Enabled": "1", "Name": "Ana", "LastName": "X"}]
+            return [{"Identifier": "1234567", "SpecialDays": [
+                {"Date": "20261005000000", "Absent": "False", "HasDelay": "True", "Delay": "00:12"},
+                {"Date": "20261007000000", "Absent": "False", "HasDelay": "True", "Delay": "00:20"},
+                {"Date": "20261008000000", "Absent": "False", "HasDelay": "False", "Delay": "00:00"}]}]
+        g._post.side_effect = api
+        r = g.reporte_mes(self.db, "2026-09", datetime(2026, 10, 22, 9, 0))   # mes cerrado: se guarda
+        self.assertTrue(r["cerrado"])
+        self.assertEqual([(p["nombre"], p["veces"], p["minutos"], p["max"]) for p in r["personas"]], [("Ana X", 2, 32, 20)])
+        self.assertEqual(r["masDe15"], 1)
+        self.assertEqual(r["equipos"][0]["manager"], "Luis X")
+        g._post.side_effect = lambda *a: (_ for _ in ()).throw(RuntimeError("no debería consultar"))
+        self.assertEqual(g.reporte_mes(self.db, "2026-09", datetime(2026, 10, 22, 9, 0))["total"], 2)   # sale de lo guardado
+
+
 if __name__ == "__main__":
     unittest.main()

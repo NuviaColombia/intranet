@@ -80,6 +80,8 @@
       <label>Secreto <input type="password" id="gvSecret" autocomplete="new-password" placeholder="Escribe para cambiarlo"></label>
       <label>Tolerancia para avisar (minutos) <input type="number" id="gvTol" min="0" max="120" step="1"></label>
     </div>
+    <label class="gv-chk"><input type="checkbox" id="gvAlmuerzo">
+      Pasar la marca de almuerzo de GeoVictoria a Tiempos libres del Schedule (si se pasa de 1 hora, se anota 1 hora)</label>
     <label class="gv-chk"><input type="checkbox" id="gvAvisos">
       Enviar avisos push a la persona y a su manager cuando no marque la entrada, el regreso del almuerzo o la salida</label>
     <div class="gv-acc">
@@ -128,7 +130,7 @@
   function pintarConfig(c) {
     $('gvConexSub').textContent = c.key && c.tieneSecreto ? (c.avisos ? '✔ Conectado · avisos push activos' : '✔ Conectado · avisos push apagados') : 'Sin configurar';
     if (!(c.key && c.tieneSecreto)) $('gvConexion').open = true;   // la primera vez se abre para escribir las credenciales
-    $('gvKey').value = c.key || ''; $('gvTol').value = c.tolerancia; $('gvAvisos').checked = !!c.avisos;
+    $('gvKey').value = c.key || ''; $('gvTol').value = c.tolerancia; $('gvAvisos').checked = !!c.avisos; $('gvAlmuerzo').checked = c.almuerzo !== false;
     $('gvSecret').placeholder = c.tieneSecreto ? '•••••••• (guardado; escribe para cambiarlo)' : 'Secreto de la API';
     var e = c.estado || {};
     $('gvEstado').textContent = 'Revisor: ' + (e.desde ? 'corriendo desde ' + fecha(e.desde) : 'no ha arrancado') + ' · última revisión ' + fecha(e.ultima) +
@@ -137,7 +139,7 @@
   }
   pedir('/design/api/geovictoria/config').then(pintarConfig);
   $('gvGuardar').onclick = function () {
-    pedir('/design/api/geovictoria/config', {key: $('gvKey').value, secret: $('gvSecret').value, tolerancia: +$('gvTol').value, avisos: $('gvAvisos').checked})
+    pedir('/design/api/geovictoria/config', {key: $('gvKey').value, secret: $('gvSecret').value, tolerancia: +$('gvTol').value, avisos: $('gvAvisos').checked, almuerzo: $('gvAlmuerzo').checked})
       .then(function (c) { $('gvSecret').value = ''; pintarConfig(c); msg($('gvMsg'), '✔ Guardado.', true); })
       .catch(function (e) { msg($('gvMsg'), e.message, false); });
   };

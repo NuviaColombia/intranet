@@ -57,13 +57,13 @@ def config(db: Session) -> dict:
     except ValueError:
         c = {}
     return {"key": c.get("key", ""), "secret": c.get("secret", ""), "avisos": bool(c.get("avisos", False)),
-            "tolerancia": int(c.get("tolerancia", TOLERANCIA))}
+            "tolerancia": int(c.get("tolerancia", TOLERANCIA)), "almuerzo": bool(c.get("almuerzo", True))}
 
 
 def publico(db: Session) -> dict:
     """Lo que ve la pantalla: el secreto nunca sale."""
     c = config(db)
-    return {"key": c["key"], "tieneSecreto": bool(c["secret"]), "avisos": c["avisos"], "tolerancia": c["tolerancia"],
+    return {"key": c["key"], "tieneSecreto": bool(c["secret"]), "avisos": c["avisos"], "tolerancia": c["tolerancia"], "almuerzo": c["almuerzo"],
             "estado": {k: (v.isoformat() + "Z" if isinstance(v, datetime) else v) for k, v in ESTADO.items()},
             "ultimaConsulta": (_hoy["consultado"].isoformat() + "Z") if _hoy["consultado"] else None, "errorConsulta": _hoy["error"]}
 
@@ -81,7 +81,8 @@ def guardar(db: Session, datos: dict, quien: Empleado) -> dict:
     if not 0 <= tol <= 120:
         raise ValueError("La tolerancia debe estar entre 0 y 120 minutos.")
     r = _fila(db) or DesignConexionRegla(tipo="sistema", clave=CLAVE)
-    r.valor = json.dumps({"key": key, "secret": secret, "avisos": bool(datos.get("avisos")), "tolerancia": tol})
+    r.valor = json.dumps({"key": key, "secret": secret, "avisos": bool(datos.get("avisos")), "tolerancia": tol,
+                          "almuerzo": bool(datos.get("almuerzo", c["almuerzo"]))})
     r.creado_por = (quien.nombre_completo or "")[:150]
     db.add(r)
     db.commit()
@@ -382,6 +383,11 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
     if not c["key"] or not c["secret"]:
         return []
     datos = hoy(db, ahora)
+    if c["almuerzo"] and _hoy["t"] != _alm["t"]:   # cada vez que llegan marcas nuevas
+        _alm["t"] = _hoy["t"]
+        almuerzo_a_tiempos_libres(db, ahora.date(), datos)
+    if ahora.day == 1 and ahora.hour >= 6:
+        guardar_reporte_mes_anterior(db, ahora)
     if not c["avisos"]:
         return []
     enviados = _cargar_enviados(db, ahora.date())
@@ -478,6 +484,165 @@ def para_seguimiento_info(info: dict, ahora: datetime, tol: int) -> dict:
     return {"turno": f"{_hm(t['inicio'])} – {_hm(t['fin'])}" if t else "", "permisos": info["permisos"], "atrasoMin": info["atrasoMin"],
             "entrada": _hm(m["entrada"]), "salidaAlm": _hm(m["salidaAlm"]), "regresoAlm": _hm(m["regresoAlm"]), "salida": _hm(m["salida"]),
             "faltas": faltas(info, ahora, tol), "sinHorario": bool(info.get("sinHorario"))}
+
+
+# ---------- almuerzo → Tiempos libres (Rosember, 22-oct-2026) ----------
+# La marca de salida a colación de GeoVictoria llena el Almuerzo de Tiempos libres del Schedule: inicio = hora en que
+# salió; fin = hora en que regresó, pero nunca más de ALMUERZO_MAX minutos («si se pasa no importa, marca una hora»). Si
+# aún no ha regresado, va inicio + ALMUERZO_MAX. No pisa un almuerzo escrito a mano (solo el que puso GeoVictoria).
+ALMUERZO_MAX = 60
+_alm = {"t": None}
+
+
+def almuerzo_a_tiempos_libres(db: Session, dia: date, datos: dict) -> int:
+    from . import services_design as sd
+    from .models_design import DesignBreak
+    cambios = 0
+    equipos: dict[int, list[int]] = {}
+    for tid, eid in (db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id)
+                     .join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+                     .filter(DesignTeam.activo == 1, DesignTeamDesigner.empleado_id.in_(list(datos) or [-1]))):
+        equipos.setdefault(eid, []).append(tid)
+    tocados = set()
+    for eid, info in datos.items():
+        m = info.get("marcas") or {}
+        if not m.get("salidaAlm"):
+            continue
+        ini = m["salidaAlm"]
+        tope = ini + timedelta(minutes=ALMUERZO_MAX)
+        fin = min(m["regresoAlm"], tope) if m.get("regresoAlm") else tope
+        hi, hf = _hm(ini), _hm(fin)
+        for tid in equipos.get(eid, []):
+            b = db.query(DesignBreak).filter(DesignBreak.team_id == tid, DesignBreak.empleado_id == eid, DesignBreak.fecha == dia).first()
+            actual = (b.almuerzo_inicio or "").strip() if b else ""
+            if actual and actual != hi:
+                continue   # lo escribió alguien a mano: se respeta
+            if b and actual == hi and (b.almuerzo_fin or "").strip() == hf:
+                continue
+            sd.guardar_break(db, tid, eid, dia, {"almuerzo_inicio": hi, "almuerzo_fin": hf})
+            tocados.add((tid, eid))
+            cambios += 1
+    if tocados:
+        try:
+            from . import services_design_vivo as sv
+            for tid in {t for t, _ in tocados}:
+                sv.publicar_dia(tid, dia.isoformat(), uids=[e for t, e in tocados if t == tid])
+        except Exception:  # noqa: BLE001
+            pass
+    return cambios
+
+
+# ---------- reporte mensual de llegadas tarde (Rosember, 22-oct-2026) ----------
+# Dashboard › Reportes › Reportes GeoVictoria. Sale de GetConsolidatedColombia (días con atraso y minutos por persona).
+# Solo salen quienes llegaron tarde al menos una vez. Los meses cerrados quedan guardados (clave REPORTE_CLAVE + mes) el
+# día 1; el mes en curso se calcula al abrirlo (en memoria 30 min).
+REPORTE_CLAVE = "gv_reporte_"
+_reporte_cache: dict = {}
+
+
+def _min(hhmm: str) -> int:
+    try:
+        h, m = str(hhmm or "0:0").split(":")[:2]
+        return int(h) * 60 + int(m)
+    except ValueError:
+        return 0
+
+
+def calcular_reporte(db: Session, ini: date, fin: date) -> dict:
+    from .models_design import DesignArea
+    c = config(db)
+    pares = cruce(db)["pares"]
+    por_id = {_norm_id(v): eid for eid, v in pares.items()}
+    filas = []
+    ids = list(pares.values())
+    for k in range(0, len(ids), LOTE):
+        r = _post(c, "/AttendanceBook/GetConsolidatedColombia", {"StartDate": ini.strftime("%Y%m%d000000"),
+                                                                 "EndDate": fin.strftime("%Y%m%d235959"), "UserIds": ",".join(ids[k:k + LOTE])})
+        filas += r if isinstance(r, list) else (r or {}).get("Response") or []
+    emps = {e.id: e for e in db.query(Empleado).filter(Empleado.id.in_(list(pares) or [-1]))}
+    eq: dict[int, tuple] = {}
+    for eid, tnom, anom, man in (db.query(DesignTeamDesigner.empleado_id, DesignTeam.nombre, DesignArea.nombre, DesignTeam.manager_id)
+                                 .join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id).join(DesignArea, DesignArea.id == DesignTeam.area_id)
+                                 .filter(DesignTeam.activo == 1)):
+        eq.setdefault(eid, (tnom, anom, man))
+    mans = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_([v[2] for v in eq.values() if v[2]] or [-1]))}
+    personas = []
+    por_dia_semana = [0] * 7
+    for f in filas:
+        eid = por_id.get(_norm_id(f.get("Identifier")))
+        if not eid or eid not in emps:
+            continue
+        dias = []
+        for d in f.get("SpecialDays") or []:
+            if str(d.get("HasDelay")) != "True":
+                continue
+            m = _min(d.get("Delay"))
+            if m <= 0:
+                continue
+            fd = _dt(d.get("Date"))
+            if not fd:
+                continue
+            dias.append({"fecha": fd.date().isoformat(), "min": m})
+            por_dia_semana[fd.weekday()] += 1
+        if not dias:
+            continue
+        tnom, anom, man = eq.get(eid, ("", "", None))
+        tot = sum(x["min"] for x in dias)
+        personas.append({"id": eid, "nombre": emps[eid].nombre_completo, "equipo": tnom, "area": anom, "manager": mans.get(man, ""),
+                         "veces": len(dias), "minutos": tot, "promedio": round(tot / len(dias)), "max": max(x["min"] for x in dias),
+                         "dias": sorted(dias, key=lambda x: x["fecha"])})
+    personas.sort(key=lambda p: (-p["veces"], -p["minutos"], p["nombre"].lower()))
+    equipos: dict[str, dict] = {}
+    for p in personas:
+        e = equipos.setdefault(p["equipo"] or "Sin equipo", {"equipo": p["equipo"] or "Sin equipo", "area": p["area"], "manager": p["manager"],
+                                                          "personas": 0, "veces": 0, "minutos": 0})
+        e["personas"] += 1; e["veces"] += p["veces"]; e["minutos"] += p["minutos"]
+    total = sum(p["veces"] for p in personas)
+    return {"desde": ini.isoformat(), "hasta": fin.isoformat(), "personas": personas,
+            "equipos": sorted(equipos.values(), key=lambda e: (-e["veces"], e["equipo"].lower())),
+            "total": total, "minutos": sum(p["minutos"] for p in personas), "cruzadas": len(pares),
+            "masDe15": sum(1 for p in personas for d in p["dias"] if d["min"] > 15),
+            "porDiaSemana": por_dia_semana[:5] + por_dia_semana[5:], "generado": datetime.utcnow().isoformat() + "Z"}
+
+
+def reporte_mes(db: Session, mes: str, ahora: datetime) -> dict:
+    """Reporte de llegadas tarde de un mes ('2026-10'). Cerrado: el guardado (o se calcula y se guarda). En curso: al día."""
+    from calendar import monthrange
+    a, m = int(mes[:4]), int(mes[5:7])
+    ini = date(a, m, 1)
+    fin = date(a, m, monthrange(a, m)[1])
+    cerrado = fin < ahora.date()
+    clave = REPORTE_CLAVE + mes
+    if cerrado:
+        r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).first()
+        if r:
+            try:
+                return {**json.loads(r.valor), "cerrado": True}
+            except ValueError:
+                pass
+        datos = calcular_reporte(db, ini, fin)
+        r = r or DesignConexionRegla(tipo="sistema", clave=clave, creado_por="GeoVictoria")
+        r.valor = json.dumps(datos, ensure_ascii=False)
+        db.add(r); db.commit()
+        return {**datos, "cerrado": True}
+    c = _reporte_cache.get(mes)
+    if c and time.time() - c[0] < 1800:
+        return c[1]
+    datos = {**calcular_reporte(db, ini, min(fin, ahora.date())), "cerrado": False}
+    _reporte_cache[mes] = (time.time(), datos)
+    return datos
+
+
+def guardar_reporte_mes_anterior(db: Session, ahora: datetime) -> None:
+    """El día 1 deja guardado el reporte del mes que acaba de cerrar (una sola vez)."""
+    prev = ahora.date().replace(day=1) - timedelta(days=1)
+    mes = prev.strftime("%Y-%m")
+    if db.query(DesignConexionRegla.id).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == REPORTE_CLAVE + mes).first():
+        return
+    try:
+        reporte_mes(db, mes, ahora)
+    except Exception as e:  # noqa: BLE001
+        log.warning("GeoVictoria: no se pudo guardar el reporte de %s: %s", mes, e)
 
 
 _hilo = {"t": None}

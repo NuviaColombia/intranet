@@ -25,12 +25,17 @@
     fetch('/design/api/reportes', {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(d) {
       var ops = d.meses.map(function(m) { return '<option value="' + m + '">' + mesTxt(m) + '</option>'; }).join('');
       if (!$('drMes').options.length) { $('drMes').innerHTML = ops; $('drMesSub').innerHTML = ops; }
+      var gv = $('drGvMes');   // Reportes GeoVictoria: por defecto el mes que ya cerró
+      if (gv && !gv.options.length) { gv.innerHTML = ops; if (gv.options.length > 1) gv.selectedIndex = 1; }
       pintar(d.subidos);
     }).catch(function() { res('No se pudieron cargar los reportes.', true); });
   }
   function iniciar() {
     if (listo) { cargar(); return; }
     listo = true;
+    if ($('drGvAbrir')) $('drGvAbrir').addEventListener('click', function() {
+      window.open('/design/reportes/geovictoria?mes=' + $('drGvMes').value, '_blank', 'noopener');
+    });
     $('drAbrir').addEventListener('click', function() {
       window.open('/design/reportes/mensual?mes=' + $('drMes').value + '&lang=' + $('drLang').value, '_blank', 'noopener');
     });
