@@ -8360,10 +8360,18 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var h = (d.enCurso ? '<p class="pf-sel-aviso">⚠️ El mes aún no termina: es una prueba con los datos hasta hoy (' + e(d.hasta) + ').</p>' : '') +
       '<p class="dd-p-nota">Periodo ' + e(d.desde) + ' a ' + e(d.hasta) + ' · ' + d.habiles + ' días hábiles. Puntaje 0-100: cada indicador se compara con el resto de su área (percentil) y se pondera. ' +
       'Compiten quienes tuvieron al menos ' + Math.round(d.reglas.minFraccionDias * 100) + ' % de días disponibles y ' + d.reglas.minAprobadas + ' casos aprobados.</p>';
+    // Postulados (22-oct-2026): cada manager postula a su empleado del mes en la hoja de Selección; si ya hay, solo ellos compiten
+    var po = d.postulados || {};
+    h += po.activo
+      ? '<details class="pf-sel-no"><summary>🏅 Compiten los ' + po.total + ' postulados de los managers este mes (su puntaje es su posición frente a toda su área)</summary><ul>' +
+        po.lista.map(function(x) { return '<li>' + e(x.nombre) + ' <small>' + e(x.area) + '</small>' + (x.por ? ' — postulado por ' + e(x.por) : '') + '</li>'; }).join('') + '</ul></details>'
+      : '<p class="pf-sel-aviso">Aún no hay postulados este mes en la hoja de Selección: se muestran todos los diseñadores (prueba).</p>';
+    h += '<p class="dd-p-nota">' + (po.managersCalificados ? 'Manager del mes: compiten los ' + po.managersCalificados + ' managers calificados este mes en DESIGN MANAGERS.'
+      : 'Manager del mes: aún no hay calificaciones en DESIGN MANAGERS este mes, se muestran todos los managers.') + '</p>';
     h += '<div class="pf-sel-grid">' + d.categorias.map(function(c) {
       var g = c.candidatos[0];
       if (!g) return '<div class="pf-sel-card"><h4>' + e(c.titulo) + '</h4><p class="dd-p-nota">Sin candidatos con datos suficientes.</p></div>';
-      var extra = c.tipo === 'manager' ? e(g.area) + ' · ' + e(g.equipos.join(', ')) : e(g.area);
+      var extra = c.tipo === 'manager' ? e(g.area) + ' · ' + e(g.equipos.join(', ')) : e(g.area) + (g.postuladoPor ? ' · postulado por ' + e(g.postuladoPor) : '');
       return '<div class="pf-sel-card" data-clave="' + c.clave + '"><h4>' + e(c.titulo) + '</h4><div class="pf-sel-gan"><b>' + e(g.nombre) + '</b><span class="pf-sel-pts">' + g.puntaje + '</span></div>' +
         '<div class="pf-sel-sub">' + extra + '</div>' +
         (g.porQue.fuertes.length ? '<ul class="pf-sel-pq">' + g.porQue.fuertes.map(function(x) { return '<li>✅ ' + e(x) + '</li>'; }).join('') + '</ul>' : '') +

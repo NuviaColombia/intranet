@@ -633,6 +633,12 @@ def arrancar() -> None:
             try:   # 21-oct-2026: nada aquí puede matar el hilo (antes un rollback fallido lo detenía para siempre)
                 db = SessionLocal()
                 try:
+                    try:   # 22-oct-2026: último día hábil del mes, recordar postular (no depende de Cliq)
+                        from . import services_design_seleccion as ssel
+                        ssel.recordar_postulados(db, sd.ahora_colombia().replace(tzinfo=None))
+                    except Exception:  # noqa: BLE001
+                        log.exception("Selección asistida: no se pudo enviar el recordatorio de postular")
+                        db.rollback()
                     revisar(db, sd.ahora_colombia().replace(tzinfo=None))
                     ESTADO["ultima"] = datetime.utcnow()
                 except Exception as e:  # noqa: BLE001

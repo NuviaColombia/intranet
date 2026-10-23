@@ -147,6 +147,13 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   People o Tiempos libres) es inconsistencia no tener marcas o tener un número impar (1 o 3: falta una); solo entrada y
   salida (sin almuerzo) está bien. Cada manager recibe un push «⚠️ Hay inconsistencias en tu GeoVictoria» con su gente y
   los días (`inconsistencias`, `avisar_inconsistencias`). Requiere «Avisos» activo.
+- **Selección asistida con postulados** (Rosember, 22-oct-2026): cada manager postula a su empleado del mes en la hoja de
+  Selección. Si el mes ya tiene postulados, solo ellos compiten en N2 / Face, N3 / N6 y MVP; su puntaje es su posición
+  frente a toda su área y «Destacado» no cuenta. Manager del mes: solo los calificados ese mes en DESIGN MANAGERS. Sin
+  postulados o sin calificaciones se muestran todos (prueba) y la pantalla lo avisa. Recordatorio: el último día hábil
+  del mes (sin festivos) a las 9 a. m., push «🏆 No olvides postular a tu empleado del mes» a cada manager de Face, N2, N3
+  y N6 que aún no ha postulado (`recordar_postulados`, desde el hilo del Centro de avisos; una vez, clave
+  `seleccion_recordatorio_AAAA-MM`).
 - **Selección asistida sin desventaja por área** (auditoría de Rosember, 22-oct-2026): simulado con todos igual de buenos,
   el área más pequeña ganaba de más (Face ≈ 60 % de «N2 / Face» siendo ~⅓ de la gente; MVP el doble de lo justo). Cambios:
   percentil = (puesto − ½) / n (el mejor de 25 queda sobre el mejor de 5); destacado vale (n − ½) / n del equipo y el

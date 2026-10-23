@@ -125,14 +125,23 @@ class Seleccion(unittest.TestCase):
         fila = md.DesignPerfSeleccionFila(sheet_id=sel.id, evaluador="Leo", orden=1); self.db.add(fila); self.db.commit()
         self.db.add(md.DesignPerfSeleccionCelda(fila_id=fila.id, mes_indice=1, persona="Bruno X", puntaje="9"))
         self.db.commit()
+        # Postulados (22-oct-2026): Leo postuló a Bruno, así que solo Bruno compite y «Destacado» no cuenta
         r = ssel.analizar(self.db, 2026, 10)
         todos = {x["nombre"]: x for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
+        self.assertEqual(set(todos), {"Bruno X"})
+        self.assertIsNone(todos["Bruno X"]["percentiles"]["destacado"])
+        self.assertEqual(todos["Bruno X"]["postuladoPor"], "Leo")
+        self.assertEqual(todos["Bruno X"]["percentiles"]["evaluacion"], 12.5)   # su posición frente a TODA el área
+        self.assertTrue(r["postulados"]["activo"])
+        # sin postulados (mes de prueba) compiten todos y el destacado no cuenta para quien no tiene a nadie destacado
+        self.db.query(md.DesignPerfSeleccionCelda).update({"persona": ""}); self.db.commit()
+        r = ssel.analizar(self.db, 2026, 10)
+        todos = {x["nombre"]: x for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
+        self.assertFalse(r["postulados"]["activo"])
         self.assertEqual((todos["Ana X"]["percentiles"]["evaluacion"], todos["Abel X"]["percentiles"]["evaluacion"]), (50.0, 50.0))
         # posición entre los 4 del área por lo que cada uno está sobre / bajo el promedio de su líder
         self.assertEqual((todos["Bea X"]["percentiles"]["evaluacion"], todos["Bruno X"]["percentiles"]["evaluacion"]), (87.5, 12.5))
-        self.assertEqual(todos["Bruno X"]["percentiles"]["destacado"], 75.0)   # el mejor de 2 (no vale lo mismo que el mejor de 12)
-        self.assertEqual(todos["Bea X"]["percentiles"]["destacado"], 25.0)
-        self.assertIsNone(todos["Ana X"]["percentiles"]["destacado"])        # Lia no llenó Selección: no la deja en 0
+        self.assertIsNone(todos["Ana X"]["percentiles"]["destacado"])
         self.assertNotIn("cambios", todos["Ana X"]["percentiles"])
 
 
@@ -227,6 +236,31 @@ class Seleccion(unittest.TestCase):
         r = ssel.analizar(self.db, 2026, 10)
         todos = {x["nombre"]: x for c in r["categorias"] if c["tipo"] == "disenador" for x in c["candidatos"]}
         self.assertGreater(todos["Nico X"]["percentiles"]["productividad"], 50.0)
+
+
+    def test_recordatorio_de_postular_el_ultimo_dia_habil(self):
+        import json as _json
+        from app import services_design as sd, services_design_push as sp
+        envios = []
+        for p in (mock.patch.object(sd, "festivos", return_value={date(2026, 10, 30)}),
+                  mock.patch.object(sp, "enviar", side_effect=lambda db, ids, *a, **k: envios.append((sorted(ids), a[0])))):
+            p.start(); self.addCleanup(p.stop)
+        la, lb = self.emp("Lia", "aprobador"), self.emp("Leo", "aprobador")
+        self.equipo("N3 Prosthetic", "Eq Lia", la, [self.emp("Ana")])
+        self.equipo("Face Design", "Eq Leo", lb, [self.emp("Bea")])
+        sel = md.DesignPerfSheet(nombre="SELECCION 2026", tipo="seleccion", meses=_json.dumps(["Sep 2026", "Oct 2026"]), orden=9)
+        self.db.add(sel); self.db.commit()
+        fila = md.DesignPerfSeleccionFila(sheet_id=sel.id, evaluador="Leo", orden=1); self.db.add(fila); self.db.commit()
+        self.db.add(md.DesignPerfSeleccionCelda(fila_id=fila.id, mes_indice=1, persona="Bea X")); self.db.commit()
+        ssel._recordatorio["hecho"] = None
+        self.assertEqual(ssel.recordar_postulados(self.db, datetime(2026, 10, 28, 10, 0)), [])   # no es el último hábil
+        ssel._recordatorio["hecho"] = None
+        self.assertEqual(ssel.recordar_postulados(self.db, datetime(2026, 10, 29, 8, 59)), [])   # antes de las 9
+        self.assertEqual(ssel.recordar_postulados(self.db, datetime(2026, 10, 29, 9, 0)), [la.id])   # 30 es festivo: 29 es el último
+        self.assertEqual(envios[0][0], [la.id])                                                    # Leo ya postuló
+        ssel._recordatorio["hecho"] = None
+        self.assertEqual(ssel.recordar_postulados(self.db, datetime(2026, 10, 29, 15, 0)), [])   # una sola vez (queda en la base)
+        self.assertEqual(len(envios), 1)
 
 
 if __name__ == "__main__":

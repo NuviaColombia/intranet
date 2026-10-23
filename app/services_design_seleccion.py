@@ -26,6 +26,13 @@ el área más pequeña ganaba mucho más de lo que le tocaba (Face ≈ 60 % de �
     área; antes, el percentil dentro de la hoja del líder (con 2 calificados: 0 o 100).
   - Puntualidad no depende del área: se compara entre todos los diseñadores.
   - Un área con menos de MIN_GRUPO_AREA competidores compara carga y eficiencia con su categoría (N2 + Face o N3 + N6).
+
+Postulados (Rosember, 22-oct-2026): en la vida real cada manager postula a un diseñador del mes en la hoja de Selección
+(Desempeño). Si ese mes ya hay postulados, solo ellos compiten por N2 / Face, N3 / N6 y MVP; su puntaje sigue siendo su
+posición frente a TODOS los de su área (así la estadística no depende de cuántos postulados haya) y «Destacado» no cuenta
+(todos lo son). Manager del mes: compiten los managers calificados ese mes en la hoja DESIGN MANAGERS. Sin postulados (o
+sin calificaciones de managers) se muestran todos, como prueba. El último día hábil del mes, a las HORA_RECORDATORIO, a
+cada manager que aún no ha postulado le llega un push para que no lo olvide (`recordar_postulados`).
 """
 from __future__ import annotations
 
@@ -303,7 +310,7 @@ def _evaluaciones(db: Session, empleados: list[Empleado], anio: int, mes: int, h
 
 
 def _destacados(db: Session, empleados: list[Empleado], anio: int, mes: int, evaluadores: list[Empleado] | None = None,
-                llenaron: set[int] | None = None) -> set[int] | None:
+                llenaron: set[int] | None = None, por: dict[int, str] | None = None) -> set[int] | None:
     """Personas que su manager destacó ese mes en la hoja de Selección (cada evaluador escribe 1 nombre por mes).
     None si ese mes nadie ha destacado a nadie todavía (el criterio no cuenta y su peso se reparte). En `llenaron` (si se
     pasa) quedan los evaluadores (de `evaluadores`) que ya escribieron a alguien ese mes."""
@@ -325,6 +332,8 @@ def _destacados(db: Session, empleados: list[Empleado], anio: int, mes: int, eva
                 ev = sd._buscar_empleado_por_nombre(c.fila.evaluador or "", evaluadores)
                 if ev:
                     llenaron.add(ev.id)
+            if e and por is not None:
+                por[e.id] = (c.fila.evaluador or "").strip()
     return out if hay else None
 
 
@@ -490,8 +499,11 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     ev_dis = _evaluaciones(db, list(empleados.values()), anio, mes, hoja_general=False)
     punt = _puntualidad(db, ini, fin)   # GeoVictoria; vacío si no está configurado (el criterio no cuenta)
     llenaron: set[int] = set()
+    postulado_por: dict[int, str] = {}
     destacados = _destacados(db, list(empleados.values()), anio, mes,
-                             list(db.query(Empleado).filter(Empleado.id.in_(list(managers) or [-1]))), llenaron)
+                             list(db.query(Empleado).filter(Empleado.id.in_(list(managers) or [-1]))), llenaron, postulado_por)
+    # Postulados: si ya hay, solo ellos compiten (las estadísticas se siguen calculando contra toda su área)
+    postulados = set(destacados or set()) & set(empleados)
     # equipos (con su manager) de cada diseñador, para saber si su manager llenó y de cuántos fue el destacado
     equipos_de: dict[int, list[DesignTeam]] = {}
     for t in equipos:
@@ -515,7 +527,9 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
                 "dias": dias, "habiles": dias_hab, "cargaDia": round(x["carga"] / dias, 1) if dias else 0, "ausencias": sd._resumen_ausencias(ausencias.get(eid, {})),
                 "evaluacion": (ev_dis.get(eid) or {}).get("pct"), "evaluacionDev": (ev_dis.get(eid) or {}).get("dev"),
                 "puntualidad": punt.get(eid),
-                "destacado": None if destacados is None else (eid in destacados), "destacadoValor": valor_destacado(eid),
+                "destacado": None if destacados is None else (eid in destacados),
+                "destacadoValor": None if postulados else valor_destacado(eid),   # con postulados todos lo son: no cuenta
+                "postuladoPor": postulado_por.get(eid, ""),
                 "eficiencia": round(x["esperado"] / x["real"], 2) if x["real"] else None}
         motivo = None
         if not area_de[eid]:
@@ -526,7 +540,11 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             motivo = f"tiene {x['hallazgos']} hallazgo{'s' if x['hallazgos'] != 1 else ''} de QC en el mes"
         elif x["aprobadas"] < MIN_APROBADAS:
             motivo = f"{x['aprobadas']} casos aprobados (mínimo {MIN_APROBADAS})"
-        (no_compiten if motivo else filas).append({**fila, "motivo": motivo} if motivo else fila)
+        if motivo:
+            if not postulados or eid in postulados:
+                no_compiten.append({**fila, "motivo": motivo})
+        else:
+            filas.append(fila)
 
     pct_punt = _percentiles({f["id"]: _valor_punt(f["puntualidad"]) for f in filas}, True)   # no depende del área: todos
     for area in AREAS:
@@ -559,8 +577,10 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
             f["metricas"] = met
     filas.sort(key=lambda f: (-f["puntaje"], -f["aprobadas"], f["nombre"].lower()))
 
+    candidatas = [f for f in filas if not postulados or f["id"] in postulados]
+
     def top(areas, n):
-        return [f for f in filas if f["area"] in areas][:n]
+        return [f for f in candidatas if f["area"] in areas][:n]
 
     # ---------------- Managers ----------------
     ev_man = _evaluaciones(db, list(db.query(Empleado).filter(Empleado.id.in_(list(managers) or [-1]))), anio, mes, hoja_general=True)
@@ -628,6 +648,8 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         m["faltan"] = [NOMBRES[k] for k in faltan]
         m["porQue"] = _por_que(p, met, PM)
     lista_m.sort(key=lambda m: (-m["puntaje"], -m["aprobadas"], m["nombre"].lower()))
+    calificados = [m for m in lista_m if m["evaluacion"] is not None]
+    cand_m = calificados or lista_m   # compiten los calificados en DESIGN MANAGERS ese mes (sin ninguno: todos)
 
     # Nadie se repite (Rosember, 22-oct-2026): se eligen en orden N2/Face, N3/N6, otro de N3/N6 y MVP, cada uno entre
     # quienes no ganaron antes; y en «Siguientes» de cada categoría tampoco sale quien ganó otra.
@@ -645,7 +667,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
     # criterio ya es la posición de la persona dentro de su área (o entre todos, la puntualidad). Antes la carga se
     # comparaba en minutos estándar entre todos: un mes con pocas órdenes en un área bajaba a toda esa área y dependía
     # de los tiempos escritos a mano; en la simulación (todos igual de buenos) Face ganaba el MVP el doble de lo que le tocaba.
-    c_mvp = elegir(list(filas))
+    c_mvp = elegir(list(candidatas))
     ids_g = {g["id"] for g in ganadores}
 
     def lista(cands):   # el ganador de la categoría y los siguientes que no ganaron nada
@@ -655,14 +677,69 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         "anio": anio, "mes": mes, "desde": ini.isoformat(), "hasta": fin.isoformat(), "habiles": dias_hab,
         "enCurso": fin.month == mes and (fin + timedelta(days=1)).month == mes,   # el mes aún no termina
         "categorias": [
-            {"clave": "manager", "titulo": "Manager del mes", "candidatos": lista_m[:5], "tipo": "manager"},
+            {"clave": "manager", "titulo": "Manager del mes", "candidatos": cand_m[:5], "tipo": "manager"},
             {"clave": "n2face", "titulo": "Empleado del mes · N2 / Face", "candidatos": lista(c_n2face), "tipo": "disenador"},
             {"clave": "n3n6", "titulo": "Empleado del mes · N3 / N6", "candidatos": lista(c_n3n6), "tipo": "disenador"},
             {"clave": "n3n6b", "titulo": "Otro de N3 / N6", "candidatos": lista(c_n3n6b), "tipo": "disenador", "posicion": 2},
             {"clave": "mvp", "titulo": "MVP", "candidatos": lista(c_mvp), "tipo": "disenador"},
         ],
         "noCompiten": sorted(no_compiten, key=lambda f: (f["area"], f["nombre"].lower())),
+        "postulados": {"activo": bool(postulados), "total": len(postulados),
+                       "lista": sorted(({"nombre": empleados[i].nombre_completo, "por": postulado_por.get(i, ""), "area": area_de.get(i, "")}
+                                        for i in postulados), key=lambda x: (x["area"], x["nombre"].lower())),
+                       "managersCalificados": len(calificados)},
         "pesos": {"disenador": PD, "manager": PM}, "nombres": NOMBRES,
         "reglas": {"minAprobadas": MIN_APROBADAS, "minFraccionDias": MIN_FRACCION_DIAS},
         "complejidad": [{"area": a, "minutos": round(sum(v) / len(v))} for a in AREAS for v in [carga_area.get(a)] if v],
     }
+
+
+# ---------- recordatorio de postular (Rosember, 22-oct-2026) ----------
+HORA_RECORDATORIO = 9
+RECORDATORIO_CLAVE = "seleccion_recordatorio_"
+_recordatorio = {"hecho": None}
+
+
+def _ultimo_habil(db: Session, d: date) -> bool:
+    """¿d es el último día hábil (lunes a viernes, sin festivos) de su mes?"""
+    fest = sd.festivos(db)
+    habil = lambda x: x.weekday() < 5 and x not in fest
+    if not habil(d):
+        return False
+    x = d + timedelta(days=1)
+    while x.month == d.month:
+        if habil(x):
+            return False
+        x += timedelta(days=1)
+    return True
+
+
+def recordar_postulados(db: Session, ahora) -> list[int]:
+    """El último día hábil del mes, desde las HORA_RECORDATORIO, una sola vez: push a cada manager (Face, N2, N3, N6) que
+    aún no ha postulado a su empleado del mes en la hoja de Selección. Devuelve a quiénes se envió."""
+    from . import services_design_push as sp
+    from .models_design import DesignConexionRegla
+    hoy = ahora.date()
+    if _recordatorio["hecho"] == hoy or ahora.hour < HORA_RECORDATORIO:
+        return []
+    if not _ultimo_habil(db, hoy):
+        _recordatorio["hecho"] = hoy
+        return []
+    clave = RECORDATORIO_CLAVE + hoy.strftime("%Y-%m")
+    if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).first():
+        _recordatorio["hecho"] = hoy
+        return []
+    managers = {t.manager_id for t in _equipos(db) if t.manager_id}
+    inhabilitados = {r.empleado_id for r in db.query(DesignInhabilitado).filter(DesignInhabilitado.activo == 1)}
+    evaluadores = list(db.query(Empleado).filter(Empleado.id.in_(list(managers - inhabilitados) or [-1]), Empleado.activo == 1))
+    llenaron: set[int] = set()
+    _destacados(db, [], hoy.year, hoy.month, evaluadores, llenaron)
+    ids = sorted(e.id for e in evaluadores if e.id not in llenaron)
+    db.add(DesignConexionRegla(tipo="sistema", clave=clave, valor=json.dumps(ids), creado_por="Selección asistida"))
+    db.commit()
+    _recordatorio["hecho"] = hoy
+    if ids:
+        sp.enviar(db, ids, "🏆 No olvides postular a tu empleado del mes",
+                  "Hoy es el último día hábil del mes: escribe en Desempeño › Selección a quién postulas este mes.",
+                  "/design?panel=perf", "seleccion-postular", fijo=True)
+    return ids
