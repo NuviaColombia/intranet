@@ -8443,10 +8443,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
 
   var DS_PANELES_GESTION = ['dashboard', 'perf', 'papelera', 'seguimiento'];
   function dsAbrirPanel(id) {
-    // N3/N2 Producción (23-oct-2026): lo ve todo el equipo; es la pestaña de Seguimiento abierta en su vista de producción
-    var soloProduccion = id === 'produccion';
-    if (soloProduccion) { window.DS_VISTA_INICIAL = 'produccion'; id = 'seguimiento'; }
-    if (!soloProduccion && DS_PANELES_GESTION.indexOf(id) >= 0 && !window.DS_GESTION) {
+    if (DS_PANELES_GESTION.indexOf(id) >= 0 && !window.DS_GESTION) {
       // un enlace ?panel=dashboard|perf|papelera no abre nada para un empleado
       try { var u = new URL(location.href); u.searchParams.delete('panel'); history.replaceState(null, '', u); } catch (e) {}
       return;

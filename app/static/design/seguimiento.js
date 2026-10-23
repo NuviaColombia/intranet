@@ -6,16 +6,6 @@
   window.DS_PANELS = window.DS_PANELS || {};
   var panel = document.getElementById('ov-seguimiento');
   if (!panel) return;
-  // 23-oct-2026: todo el equipo del Schedule entra aquí, pero solo los gestores ven el resto del Seguimiento; a los demás
-  // se les muestra únicamente N3/N2 Producción (el reporte de producción que sí puede ver todo el equipo).
-  var GESTION = !!window.DS_GESTION;
-  if (!GESTION) {
-    panel.querySelectorAll('.sg-vista').forEach(function(b) { b.hidden = b.dataset.vista !== 'produccion'; });
-    var descripcion = document.getElementById('sgDescripcion');
-    if (descripcion) descripcion.hidden = true;
-    var titulo = panel.querySelector('h1');
-    if (titulo && titulo.firstChild) titulo.firstChild.textContent = 'N3/N2 Producción ';
-  }
   var lista = document.getElementById('sgLista'), resumen = document.getElementById('sgResumen'), hora = document.getElementById('sgHora');
   var selArea = document.getElementById('sgArea'), buscar = document.getElementById('sgBuscar');
   var datos = null, timer = null, filtroGrupo = '', vista = 'disenadores', filtroSem = '', modo = 'tablero';
@@ -245,11 +235,6 @@
   function cargar() {
     clearTimeout(timer);
     if (!panel.classList.contains('open')) return;
-    if (window.DS_VISTA_INICIAL) {   // ?panel=produccion (o el enlace de Tools): abre directo esa vista
-      var v0 = window.DS_VISTA_INICIAL; window.DS_VISTA_INICIAL = null;
-      cambiarVista(v0); if (!GESTION || v0 === 'produccion') return;
-    }
-    if (!GESTION) { cambiarVista('produccion'); return; }   // sin gestión: solo el reporte de producción (no pide el resto)
     fetch('/design/api/seguimiento?fin=' + encodeURIComponent(finInput.value || '17:00'), {credentials: 'same-origin'})
       .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function(d) {
