@@ -87,3 +87,26 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
   border-color:color-mix(in srgb, var(--pf-niv-t) 35%, transparent) !important; color-scheme:dark; }
 :root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(select, input, textarea) option { background:#1f2937; color:#e5e7eb; -webkit-text-fill-color:#e5e7eb; }
 :root[data-ds-tema="oscuro"] [class*="pf-nivel-"] :is(span, b) { color:var(--pf-niv-t) !important; }
+
+/* ---------- Parameters › GeoVictoria en modo oscuro (22-oct-2026): sus estilos van en la página, el generador no los ve ---------- */
+:root[data-ds-tema="oscuro"] .gv-sub, :root[data-ds-tema="oscuro"] .gv-nota, :root[data-ds-tema="oscuro"] .gv-pleg-sub { color:#94a3b8; }
+:root[data-ds-tema="oscuro"] .gv-card { background:#111827; border-color:#2b3446; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] .gv-pleg > summary::before { color:#94a3b8; }
+:root[data-ds-tema="oscuro"] .gv-msg.ok { color:#86efac; } :root[data-ds-tema="oscuro"] .gv-msg.mal { color:#fca5a5; }
+:root[data-ds-tema="oscuro"] .gv-res button { background:#0f172a; border-color:#334155; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] .gv-res button.on { background:#2563eb; border-color:#2563eb; color:#fff; }
+:root[data-ds-tema="oscuro"] .gv-libro-w { border-color:#2b3446; }
+:root[data-ds-tema="oscuro"] .gv-libro th { background:#0b2540; border-right-color:#163a5f; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] .gv-libro th.orden { background:#1d4ed8; }
+:root[data-ds-tema="oscuro"] .gv-libro td { background:#111827; border-bottom-color:#1f2937; border-right-color:#1a2333; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] .gv-libro tr:nth-child(even) td { background:#0f1726; }
+:root[data-ds-tema="oscuro"] .gv-libro tr:hover td { background:#16233a; }
+:root[data-ds-tema="oscuro"] .gv-libro td.gv-nom small { color:#94a3b8; }
+:root[data-ds-tema="oscuro"] .gv-h.ok, :root[data-ds-tema="oscuro"] .gv-est.ok { background:#14321f; color:#86efac; }
+:root[data-ds-tema="oscuro"] .gv-h.tarde, :root[data-ds-tema="oscuro"] .gv-est.tarde { background:#3a2a10; color:#fcd34d; }
+:root[data-ds-tema="oscuro"] .gv-h.falta, :root[data-ds-tema="oscuro"] .gv-est.falta { background:#3b1717; color:#fca5a5; }
+:root[data-ds-tema="oscuro"] .gv-h.curso, :root[data-ds-tema="oscuro"] .gv-est.curso { background:#14254a; color:#93c5fd; }
+:root[data-ds-tema="oscuro"] .gv-h.espera { color:#64748b; }
+:root[data-ds-tema="oscuro"] .gv-est.perm { background:#24234a; color:#c4b5fd; }
+:root[data-ds-tema="oscuro"] .gv-est.horario { background:#3a2a10; color:#fcd34d; }
+:root[data-ds-tema="oscuro"] .gv-cols ul, :root[data-ds-tema="oscuro"] .gv-chk { color:#e5e7eb; }
