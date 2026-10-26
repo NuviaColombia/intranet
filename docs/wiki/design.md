@@ -47,6 +47,11 @@ Antes de buscar un patrón de roles que no existe:
 - **Buscador en la ventana del QC** (Rosember, 26-oct-2026): con «Con hallazgos» aparece «🔍 Buscar hallazgo…»; deja solo
   los hallazgos que coinciden (sin importar tildes; si coincide el título, todos los suyos) y abre sus títulos. Lo marcado
   se conserva al buscar.
+- **Saludo en el título del Schedule** (Rosember, 26-oct-2026): en vez de «Design Schedule (equipo)», los aprobadores ven
+  «Hola <primer nombre>, aquí está tu equipo en movimiento.» y los diseñadores «Hola <primer nombre>, tu trabajo es
+  espectacular. ¡Gracias!». Quien está a cargo HOY del equipo (Dejar a cargo, `aCargo.esYo` + `activa`) ve el de
+  aprobador con su nombre. Los admins ven el título de siempre. La pestaña del navegador sigue «Design Schedule (equipo)»
+  para todos (`data-pestana` del h1). El primer nombre es la primera palabra de `nombres`.
 - **Buscar orden o paciente con el logo** (Rosember, 26-oct-2026): en el Schedule el buscador es un círculo con el logo
   (día: círculo del azul de la barra y logo blanco; oscuro: círculo blanco y logo azul de la barra, en `oscuro.css`).
   Al tocarlo se alarga en la barra de búsqueda, como Google; se recoge con Esc o al salir sin nada escrito. Abierta, el

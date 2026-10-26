@@ -6,7 +6,9 @@
 
 <div id="ds-app">
   <div class="ds-cabecera">
-    <h1 style="margin:0">Design Schedule<span id="dsTituloEquipo"></span></h1>
+    {# Saludo con el primer nombre (Rosember, 26-oct-2026): aprobadores y diseñadores; los admins ven el título de siempre #}
+    {% set ds_primer_nombre = ((user.nombres or user.nombre_completo or '').split() or [''])[0] | capitalize %}
+    <h1 style="margin:0" data-pestana="Design Schedule">{% if user.rol in ('admin', 'superadmin') %}Design Schedule{% elif user.rol == 'aprobador' %}Hola {{ ds_primer_nombre }}, aquí está tu equipo en movimiento.{% else %}Hola {{ ds_primer_nombre }}, tu trabajo es espectacular. ¡Gracias!{% endif %}<span id="dsTituloEquipo"></span></h1>
     <div class="ds-cabecera-der">
       <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsProdBtn" title="Casos asignados a cada diseñador en el día elegido" aria-haspopup="dialog">Producción</button>
       {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digital</button>{% endif %}
@@ -631,7 +633,7 @@ document.addEventListener('keydown', function(e) {
 <script>
 // Datos de la persona para el código del Schedule (static/design/schedule.js)
 window.DS_CFG = {userId: {{ user.id }}, esAprobador: {{ 'true' if user.rol in ('aprobador', 'admin', 'superadmin') else 'false' }},
-                 esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
+                 esAdmin: {{ 'true' if user.rol in ('admin', 'superadmin') else 'false' }}, rol: {{ user.rol | tojson }}, primerNombre: {{ ds_primer_nombre | tojson }}, dashTeams: {{ dash_teams | tojson }}, dashInicial: {{ dash_inicial | tojson }}, dashNombre: {{ (user.nombre_completo if dash_teams is not none else '') | tojson }}};
 </script>
 <script src="/static/design/schedule.min.js?v={{ dsv }}"></script>   <!-- generado por scripts/minificar_design.py desde schedule.js -->
 {% if user.rol in ('aprobador', 'admin', 'superadmin') %}<script src="/static/design/seguimiento.js?v={{ dsv }}"></script><script src="/static/design/ayuda.js?v={{ dsv }}"></script>{% endif %}{% if user.rol in ('admin', 'superadmin') %}<script src="/static/design/reportes.js?v={{ dsv }}"></script>{% endif %}

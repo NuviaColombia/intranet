@@ -375,9 +375,18 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsActualizarTitulo() {
-    var t = DS.teams.find(function(x) { return x.id === DS.teamId; });
+    var t = (DS.teams || []).find(function(x) { return x.id === DS.teamId; });
     var chk = document.getElementById('dsTodasAreasChk');
-    document.getElementById('dsTituloEquipo').innerText = (t && !(chk && chk.checked)) ? ' (' + t.nombre + ')' : '';
+    var sp = document.getElementById('dsTituloEquipo'), h1 = sp.parentNode, equipo = (t && !(chk && chk.checked)) ? ' (' + t.nombre + ')' : '';
+    // La pestaña sigue diciendo «Design Schedule (equipo)» para todos
+    h1.dataset.pestana = 'Design Schedule' + equipo;
+    if (DS_CFG.esAdmin) { sp.innerText = equipo; }
+    else {
+      // Saludo con el primer nombre (Rosember, 26-oct-2026); quien está a cargo hoy ve el de aprobador
+      var gestiona = DS_CFG.rol === 'aprobador' || DS.aCargoHoy;
+      h1.firstChild.textContent = 'Hola ' + DS_CFG.primerNombre + (gestiona ? ', aquí está tu equipo en movimiento.' : ', tu trabajo es espectacular. ¡Gracias!');
+    }
+    if (window.dsActualizarPestana) window.dsActualizarPestana();
   }
 
   function dsSeleccionarEquipo(teamId) {
@@ -2671,9 +2680,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     document.addEventListener('keydown', teclas, true);
   }
   function dsRenderACargo(dia) {
+    var a = dia && dia.aCargo, hoy = !!(a && a.esYo && a.activa);
+    if (DS.aCargoHoy !== hoy) { DS.aCargoHoy = hoy; dsActualizarTitulo(); }
     var cont = document.getElementById('dsACargo'); if (!cont) return;
     if (DS.areaFormato === 'support') { dsRenderACargoSupport(cont); return; }
-    var a = dia && dia.aCargo;
     cont.innerHTML = '';
     cont.hidden = !(dia && (dia.puedeDelegar || (a && a.esYo)));
     if (cont.hidden) return;
@@ -8935,9 +8945,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       if (n.nodeType === 3) base += n.textContent; else if (n.tagName === 'SPAN') det += n.textContent;
     });
     base = base.split(' — ')[0].trim();
-    var titulo = (base + ' ' + det.trim()).trim();
+    var titulo = panel ? (base + ' ' + det.trim()).trim() : (h1.dataset.pestana || (base + ' ' + det.trim()).trim());   // el Schedule muestra un saludo
     if (titulo && document.title !== titulo) document.title = titulo;
   }
+  window.dsActualizarPestana = dsActualizarPestana;
   try {
     var dsObsTitulo = new MutationObserver(dsActualizarPestana);
     document.querySelectorAll('h1 > span[id]').forEach(function(sp) { dsObsTitulo.observe(sp, {childList: true, characterData: true, subtree: true}); });
