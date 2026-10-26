@@ -120,6 +120,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   pestaña y las órdenes lentas (aprobadas sin QC pasada 1 h 30 min) pero solo de sus equipos (los que maneja o tiene a
   cargo: `_equipos_visibles` → `lentas(equipos=)`); los admins ven todo. Pedir por la API un equipo ajeno no devuelve nada.
   Ayudas y Reportes siguen siendo solo de admins.
+- **Correcciones de Desempeño de N2 Daniel** (Rosember, 28-oct-2026): en `CORRECCIONES_ACORDADAS`, quitar «Shirliana
+  Rodriguez» (queda en la Papelera) y la de la duplicada de Aylin (`unir_duplicado`, pendiente de su nombre completo). Se
+  aplican desde Parámetros (vista previa primero). `unir_duplicado` conserva la fila con más calificaciones, pasa las demás
+  a la Papelera y completa los meses vacíos con las calificaciones de la otra.
 - **Hoja de Desempeño «N3 Zulys»** (Rosember, 28-oct-2026): creación única (`perf_hoja_zulys_una_vez`, marca
   `perf_hoja_n3_zulys_2026_10_28`) que busca en la base a la manager de un equipo activo de N3 llamada Zulys (Zuly, Zully…) y
   arma la hoja con los 12 meses de 2026, una fila por cada diseñador de su equipo (sin ella ni inactivos) y la asocia a ella

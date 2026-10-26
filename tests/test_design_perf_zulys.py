@@ -90,5 +90,30 @@ class HojaZulys(unittest.TestCase):
         self.assertEqual(len(self.hojas()), 1)
 
 
+class CorreccionesDaniel(unittest.TestCase):
+    def setUp(self):
+        eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        self.db = sessionmaker(bind=eng)()
+
+    def test_quitar_shirliana_y_unir_duplicados_conservan_lo_calificado(self):
+        h = md.DesignPerfSheet(nombre="N2 Daniel", tipo="eval", meses="[]", orden=1); self.db.add(h); self.db.commit()
+        crit = md.DesignPerfCriterio(nombre="Calidad", orden=1); self.db.add(crit); self.db.commit()
+        shir = md.DesignPerfEmpleado(sheet_id=h.id, nombre="Shirliana Rodriguez", orden=1); self.db.add(shir)
+        pocas = md.DesignPerfEmpleado(sheet_id=h.id, nombre="Aylin Ejemplo", orden=2)
+        llena = md.DesignPerfEmpleado(sheet_id=h.id, nombre="Aylin Ejemplo", orden=3)
+        self.db.add_all([pocas, llena]); self.db.commit()
+        self.db.add(md.DesignPerfCelda(empleado_id=llena.id, criterio_id=crit.id, mes_indice=0, nivel="ALTO")); self.db.commit()
+        sd._correccion(self.db, {"op": "eliminar_fila", "hoja": "N2 Daniel", "nombre": "Shirliana Rodriguez", "motivo": "x"}, True, "Rosember")
+        dup = {"op": "unir_duplicado", "hoja": "N2 Daniel", "nombre": "Aylin Ejemplo"}
+        vista = sd._correccion(self.db, dup, False, "Rosember")
+        self.assertEqual(vista["estado"], "pendiente")
+        sd._correccion(self.db, dup, True, "Rosember")
+        nombres = [e.nombre for e in self.db.query(md.DesignPerfEmpleado).filter_by(sheet_id=h.id).all()]
+        self.assertEqual(nombres, ["Aylin Ejemplo"])
+        queda = self.db.query(md.DesignPerfEmpleado).filter_by(sheet_id=h.id).one()
+        self.assertEqual(queda.id, llena.id)   # la que tenía calificaciones
+
+
 if __name__ == "__main__":
     unittest.main()

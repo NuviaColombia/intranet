@@ -5773,6 +5773,7 @@ CORRECCIONES_ACORDADAS = [
     {"op": "eliminar_fila", "hoja": "N3 Paula", "nombre": "JULIAN MORILLO", "motivo": "Julián Murillo ya no trabaja en Nuvia"},
     {"op": "eliminar_fila", "hoja": "N2 Heiner", "nombre": "GELIDER GARCÍA", "motivo": "Gleider García es manager de su equipo"},
     {"op": "unir_duplicado", "hoja": "N2 Daniel", "nombre": "Gabriel Jinete"},
+    {"op": "eliminar_fila", "hoja": "N2 Daniel", "nombre": "Shirliana Rodriguez", "motivo": "pedido de Rosember (28-oct-2026)"},
     {"op": "agregar_a_equipo", "area": "N6 Material Changes", "manager": "Marlene Aguirre", "persona": "Juan Camilo Lopez Arboleda"},
     {"op": "agregar_a_equipo", "area": "N2 Demodenture", "manager": "Heiner Cañon", "persona": "Andres Julian Sierra Castañeda"},
     {"op": "crear_equipo", "area": "N3 Prosthetic", "manager": "Mauricio Foliaco", "desde_hoja": "N3 Mauricio"},
