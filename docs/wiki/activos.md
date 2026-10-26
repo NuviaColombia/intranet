@@ -20,6 +20,8 @@ original.
   por Oscar el 26-oct-2026, botón "📅 Programar mantenimiento (varios)" en Mantenimientos) y jornadas de
   mantenimiento por grupo (con recurrencia automática).
 - `app/services_activos_consultas.py` -- todos los listados/fichas/dashboard (solo lectura).
+- `app/services_activos_cache.py` -- caché en memoria de corta duración para `listar_grupos`/
+  `obtener_estado_mantenimiento` (ver "Caché del dashboard" más abajo).
 - `app/services_activos_excel.py` -- exportar el inventario e importar/comparar un Excel.
 - `app/routers/activos.py` -- `/activos` (aterrizaje), `/activos/design` y toda su API bajo
   `/activos/design/api/...`.
@@ -90,6 +92,33 @@ Activos comparte la misma base Postgres que el resto de la plataforma, así que 
 `ActivosAuditoria` -- un registro simple de quién hizo qué y cuándo, sin botón de restaurar. La
 recuperación ante un desastre real queda a nivel de los respaldos de la base de datos (Supabase),
 no por módulo.
+
+## Caché del dashboard (26-oct-2026)
+
+Aun después de quitar los N+1 (ver Gotchas), el módulo seguía sintiéndose lento: Render
+(`solicitudes-nuvia`) corre en Virginia y la base en Supabase usa el pooler de `us-east-2`
+(Ohio) -- cada consulta cruza de región, así que el costo no es solo "cuántas consultas" sino
+también la latencia de red por cada una. `listar_grupos` y `obtener_estado_mantenimiento`
+(`services_activos_consultas.py`) son las más pesadas y las que más se repiten (se llaman en casi
+cualquier acción del módulo), así que se cachean en memoria por `TTL_SEGUNDOS` (20s,
+`services_activos_cache.py`) en vez de recalcularse desde cero cada vez.
+
+- **No es una caché por usuario ni por filtro** -- ambas funciones no reciben parámetros, así que
+  una sola entrada por nombre de función alcanza.
+- **Se invalida sola al escribir**: `auditar()` (`services_activos.py`) se llama en **toda**
+  escritura del módulo (equipos, mantenimientos, grupos, solicitudes...) y ahí mismo se invalida
+  la caché completa -- no hay que acordarse de invalidarla a mano en cada función nueva que
+  escriba, siempre que llame a `auditar()` como ya es la convención.
+- **El TTL de 20s es la red de seguridad real, no la invalidación**: Render tiene autoscaling
+  activado para este servicio (hasta 2 instancias) -- si llegan a correr dos a la vez, una
+  escritura en una instancia NO invalida la caché en memoria de la otra. Por eso el TTL se
+  mantiene corto a propósito; si algún día esto migra a una caché compartida (Redis, etc.) se
+  podría alargar.
+- Si agregas una consulta nueva igual de pesada (se llama seguido, no depende de parámetros),
+  envuélvela con `cacheado("una_clave", lambda: ...)` como se hizo aquí -- pero si la función SÍ
+  depende de parámetros (`busqueda`, `estado`, etc.), no la caches así tal cual: la clave tendría
+  que incluir esos parámetros, y el riesgo de servir resultados cruzados entre búsquedas distintas
+  no vale la pena para algo que no es tan pesado como estas dos.
 
 ## Gotchas
 

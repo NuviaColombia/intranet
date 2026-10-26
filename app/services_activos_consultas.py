@@ -13,6 +13,7 @@ from .models import Empleado
 from .models_activos import (ActivosArea, ActivosPerfil, ActivosEquipo, ActivosDongle, ActivosHistorialAsignacion,
                              ActivosMantenimiento, ActivosJornadaMantenimiento, ActivosActaEntrega)
 from .services_activos_mantenimiento import estado_jornada, _equipos_del_grupo, mapa_grupo_por_empleado
+from .services_activos_cache import cacheado
 
 DIAS_AVISO_SOLICITUD = 7
 DIAS_ALERTA_MANTENIMIENTO = 30
@@ -429,6 +430,12 @@ def obtener_mantenimiento(db: Session, id_mantenimiento: int) -> dict:
 # ---------- Grupos y jornadas ----------
 
 def listar_grupos(db: Session) -> list[dict]:
+    """Cacheada unos segundos (ver services_activos_cache.py): se llama en casi cada acción del
+    módulo (dashboard, Grupos, cambiar de pestaña...) y es la consulta más pesada de todas."""
+    return cacheado("grupos", lambda: _listar_grupos_sin_cache(db))
+
+
+def _listar_grupos_sin_cache(db: Session) -> list[dict]:
     lideres = db.query(ActivosPerfil).filter(ActivosPerfil.empleado_id.in_(
         db.query(ActivosPerfil.id_lider_id).filter(ActivosPerfil.id_lider_id.isnot(None), ActivosPerfil.retirado.is_(False)).distinct()
     )).all()
@@ -570,6 +577,12 @@ def _equipos_en_mantenimiento_con_dias(db: Session) -> list[dict]:
 
 
 def obtener_estado_mantenimiento(db: Session) -> dict:
+    """Cacheada unos segundos (ver services_activos_cache.py): alimenta el panel de Resumen y el
+    dashboard de Mantenimiento, y se recarga después de casi cualquier acción del módulo."""
+    return cacheado("estado_mantenimiento", lambda: _obtener_estado_mantenimiento_sin_cache(db))
+
+
+def _obtener_estado_mantenimiento_sin_cache(db: Session) -> dict:
     jornadas = listar_jornadas(db)
     hoy = date.today()
     grupos = listar_grupos(db)
