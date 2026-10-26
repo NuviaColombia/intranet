@@ -295,6 +295,32 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsElegirEquipo(area, teams, x.abrirTeamId, new Date(+p[0], +p[1] - 1, +p[2])); // una sola carga, ya en la fecha del caso
     }).catch(function(e) { dsToast('⚠️ ' + e.message); });
   };
+  // Pestaña lateral «Acciones» (Rosember, 26-oct-2026): Producción, Cambios digital y Dejar a cargo. Se abre al pasar el
+  // mouse o al tocarla; se cierra al salir, con Esc, al hacer clic afuera o al usar una acción. Sin acciones visibles, no se ve.
+  (function() {
+    var lat = document.getElementById('dsLateral'), pes = document.getElementById('dsLatPestana'), panel = document.getElementById('dsLatPanel');
+    if (!lat) return;
+    var fijo = false, timer = null;
+    function abrir(f) { clearTimeout(timer); if (f) fijo = true; lat.classList.add('abierto'); pes.setAttribute('aria-expanded', 'true'); }
+    function cerrar() { clearTimeout(timer); fijo = false; lat.classList.remove('abierto'); pes.setAttribute('aria-expanded', 'false'); }
+    function hayAcciones() {
+      return Array.prototype.some.call(panel.children, function(el) { return !el.hidden && !el.classList.contains('ds-fuera'); });
+    }
+    function revisar() {
+      var v = hayAcciones(); lat.hidden = !v; if (!v) cerrar();
+      var app = document.getElementById('ds-app'); if (app) app.classList.toggle('ds-con-lateral', v);   // la pestaña no tapa el contenido
+    }
+    pes.addEventListener('click', function() { if (lat.classList.contains('abierto') && fijo) cerrar(); else abrir(true); });
+    if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+      lat.addEventListener('mouseenter', function() { abrir(false); });
+      lat.addEventListener('mouseleave', function() { if (!fijo) timer = setTimeout(cerrar, 250); });
+    }
+    panel.addEventListener('click', function(e) { if (e.target.closest('button')) setTimeout(cerrar, 0); });
+    document.addEventListener('mousedown', function(e) { if (!lat.contains(e.target)) cerrar(); });
+    lat.addEventListener('keydown', function(e) { if (e.key === 'Escape' && lat.classList.contains('abierto')) { e.stopPropagation(); cerrar(); pes.focus(); } });
+    try { new MutationObserver(revisar).observe(panel, {subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden']}); } catch (e) {}
+    revisar();
+  })();
   (function() {
     var inp = document.getElementById('dsBuscarInput'), res = document.getElementById('dsBuscarRes');
     if (!inp) return;

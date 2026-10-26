@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (661 reglas) ---- */
+/* ---- static\design\schedule.css (664 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -115,6 +115,9 @@
 :root[data-ds-tema="oscuro"] .ds-auto-oc .sw::after { background:#131925; box-shadow:0 1px 2px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-auto-oc input:checked + .sw { background:#1d4ed8; }
 :root[data-ds-tema="oscuro"] .ds-auto-oc input:focus-visible + .sw { outline:2px solid #284565; }
+:root[data-ds-tema="oscuro"] .ds-lat-pestana { background:#111827; color:#fff; box-shadow:0 2px 10px rgba(17,24,39,.25); }
+:root[data-ds-tema="oscuro"] .ds-lat-pestana:focus-visible { outline:2px solid #2e4c71; }
+:root[data-ds-tema="oscuro"] .ds-lat-panel { background:#131925; border:1px solid #2f3747; box-shadow:-6px 6px 24px rgba(17,24,39,.16); }
 :root[data-ds-tema="oscuro"] .ds-prod-pop { background:#131925; border:1px solid #323b4b; box-shadow:0 10px 28px rgba(0,0,0,.18); }
 :root[data-ds-tema="oscuro"] .ds-prod-pop .sub { color:#abb2c0; }
 :root[data-ds-tema="oscuro"] .ds-prod-pop th, :root[data-ds-tema="oscuro"] .ds-prod-pop td { border-bottom:1px solid #30363f; }

@@ -9,10 +9,16 @@
     {# Saludo con el primer nombre (Rosember, 26-oct-2026): aprobadores y diseñadores; los admins ven el título de siempre #}
     {% set ds_primer_nombre = ((user.nombres or user.nombre_completo or '').split() or [''])[0] | capitalize %}
     <h1 style="margin:0" data-pestana="Design Schedule">{% if user.rol in ('admin', 'superadmin') %}Design Schedule{% elif user.rol == 'aprobador' %}Hola {{ ds_primer_nombre }}, aquí está tu equipo en movimiento.{% else %}Hola {{ ds_primer_nombre }}, tu trabajo es espectacular. ¡Gracias!{% endif %}<span id="dsTituloEquipo"></span></h1>
+    {# Pestaña lateral «Acciones» (Rosember, 26-oct-2026): Producción, Cambios digital y Dejar a cargo salen de la cabecera #}
+    <div class="ds-lateral" id="dsLateral" hidden>
+      <button type="button" class="ds-lat-pestana" id="dsLatPestana" aria-expanded="false" aria-controls="dsLatPanel" title="Producción, Cambios digital y Dejar a cargo">Acciones</button>
+      <div class="ds-lat-panel" id="dsLatPanel" role="group" aria-label="Acciones del Schedule">
+        <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsProdBtn" title="Casos asignados a cada diseñador en el día elegido" aria-haspopup="dialog">Producción</button>
+        {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digital</button>{% endif %}
+        <div id="dsACargo" class="ds-acargo" hidden></div>
+      </div>
+    </div>
     <div class="ds-cabecera-der">
-      <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsProdBtn" title="Casos asignados a cada diseñador en el día elegido" aria-haspopup="dialog">Producción</button>
-      {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digital</button>{% endif %}
-      <div id="dsACargo" class="ds-acargo" hidden></div>
       <div class="ds-buscar" role="search">
         <div class="ds-buscar-caja">
           <button type="button" class="ds-buscar-logo" id="dsBuscarLogo" title="Buscar orden o paciente" aria-label="Buscar orden o paciente"
