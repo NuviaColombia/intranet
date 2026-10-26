@@ -28,6 +28,11 @@ Antes de buscar un patrón de roles que no existe:
 - **Centro de avisos** (`/design/avisos`): solo admins de Design (20-oct-2026).
 - **Corregir el texto de un hallazgo de QC** (Dashboard › Resumen › Reportes de QC, «Editar»): solo admins, también en
   días cerrados (`api_qc_hallazgo_editar`; Rosember, 21-oct-2026). Se puede deshacer desde el aviso.
+- **Nueva lista de hallazgos de QC de N3** (Rosember, 26-oct-2026): 4 títulos (Diseño, Evidencias, Comentarios /reportes,
+  To mill) con 31 hallazgos, iguales en Cirugías y Nightguards / TC y para cualquier producto. Reemplazó toda la lista
+  anterior de N3 (la del 9-oct y lo que agregaron los aprobadores): esas filas quedan con `activo = 0` y los reportes
+  de QC ya guardados no cambian. Se aplica una sola vez (`REEMPLAZOS` en services_design_qc.py, marca
+  `qc_n3_lista_26oct`); lo que se agregue después se conserva. N6 sigue con su lista.
 - **Renombrar un título de la lista de hallazgos de QC** (✎ en la ventana del QC): solo admins, cambia el título
   para toda el área (`renombrar_titulo`); los reportes ya guardados conservan su texto (21-oct-2026).
 - **Dashboard › Reportes** (`/design/reportes/mensual`, subir PDF): solo admins de Design (21-oct-2026).

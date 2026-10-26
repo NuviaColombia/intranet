@@ -83,6 +83,50 @@ CARGAS = [
     ]),
 ]
 
+# Listas que REEMPLAZAN la de un área (una sola vez, con su marca): todo lo que había en el área sale de la lista
+# (activo = 0; los reportes de QC ya guardados no cambian) y queda solo esta, en todas las tablas y para cualquier producto.
+# N3 (Rosember, 26-oct-2026): la lista reorganizada en 4 títulos. Los hallazgos que había (la lista del 9-oct-2026 y los
+# que agregaron los aprobadores) se revisaron con Rosember y cada uno quedó reemplazado por uno de estos.
+REEMPLAZOS = [
+    ("qc_n3_lista_26oct", "N3 Prosthetic", [
+        ("Diseño", [
+            "Cambios incorrectos/no realizados (cambios que no sigan el RX ni los comentarios del doctor)",
+            "Morfología incorrecta (size, degree, shape)",
+            "Scans mal alineados (plato, VDO, oclusión, tissues, stumps, antagonista)",
+            "Diseño mal alineado (waxups y barras mal alineados después de hacer los cambios)",
+            "Micron/Icam (mal alineado, se omitieron los implantes incorrectos)",
+            "Correcciones de diseño en productos finales (falta o exceso de material, TC mal diseñado, parámetros incorrectos)",
+            "Diseño incompleto (TC, barras, guias, screw retained)",
+            "No se cambió el producto (shorten dental arch, remake con workflow de N3)"]),
+        ("Evidencias", [
+            "Evidencias de ICAM/Micron (No se subieron/se subieron incorrectas)",
+            "Evidencias de plataforma y RX (No se subieron/se subieron incorrectas)",
+            "Evidencias de angulación de implantes (No se subieron/se subieron incorrectas)",
+            "Evidencias de barras vs tissues (No se subieron/se subieron incorrectas)",
+            "Evidencias de reducción de tissue (No se subieron/se subieron incorrectas)",
+            "HTML Bite (No se subió/se subió incorrecto)",
+            "Evidencias de medidas nightguard (No se subieron/se subieron incorrectas)",
+            "Evidencias de diseño de nightguard (No se subieron/se subieron incorrectas)",
+            "Evidencias de oclusión de TC (No se subieron/se subieron incorrectas)",
+            "Evidencia de pesos de recortes (No se subió/se subió incorrecta)",
+            "HTML TC vs Antagonista (No se subió/se subió incorrecto)"]),
+        ("Comentarios /reportes", [
+            "No se dejaron comentarios, se dejaron los de otro paciente",
+            "VDO diferente al utilizado en el diseño",
+            "Morfología (size, degree, shape) diferente a la utilizada en el diseño",
+            "Bar Adapt diferente al aplicado en el diseño",
+            "Implantes omitidos/movidos diferente a los aplicados en el diseño",
+            "Comentarios adicionales (no se dejaron, se dejaron incompletos o eran incorrectos)",
+            "Final prosthetic design mal diligenciado (no coincide con los cambios y morfología usada)",
+            "Reporte de medidas (No se subieron/se subieron incorrectas)"]),
+        ("To mill", [
+            "No se subió a la plataforma",
+            "Se subió incompleto a la plataforma",
+            "Se subieron archivos incorrectos en la carpeta a la plataforma o de otro paciente",
+            "La carpeta del TC tenía el nombre incorrecto"]),
+    ]),
+]
+
 
 def _clave_texto(t: str) -> str:
     import unicodedata
@@ -118,6 +162,26 @@ def _cargar_listas(db: Session) -> None:
             db.rollback()  # otro proceso la cargó al mismo tiempo
 
 
+def _reemplazar_listas(db: Session) -> None:
+    for marca, nombre_area, titulos in REEMPLAZOS:
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            continue
+        area = db.query(DesignArea).filter(DesignArea.nombre == nombre_area).first()
+        if not area:
+            continue
+        try:
+            db.query(DesignQcCatalogo).filter(DesignQcCatalogo.area_id == area.id).update({DesignQcCatalogo.activo: 0})
+            n = 0
+            for titulo, items in titulos:
+                for texto in items:
+                    n += 1
+                    db.add(DesignQcCatalogo(area_id=area.id, titulo=titulo, hallazgo=texto, tabla="", producto_clave="", orden=n))
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        except Exception:
+            db.rollback()  # otro proceso la cargó al mismo tiempo
+
+
 def puede_agregar(user: Empleado) -> bool:
     return user.rol in ("aprobador", "admin", "superadmin")
 
@@ -145,6 +209,7 @@ def _sembrar(db: Session) -> None:
         except Exception:
             db.rollback()  # otro proceso la cargó al mismo tiempo
     _cargar_listas(db)
+    _reemplazar_listas(db)
 
 
 def _producto_es(clave: str, producto: str) -> bool:
