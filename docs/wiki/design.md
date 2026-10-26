@@ -47,6 +47,10 @@ Antes de buscar un patrón de roles que no existe:
 - **Buscador en la ventana del QC** (Rosember, 26-oct-2026): con «Con hallazgos» aparece «🔍 Buscar hallazgo…»; deja solo
   los hallazgos que coinciden (sin importar tildes; si coincide el título, todos los suyos) y abre sus títulos. Lo marcado
   se conserva al buscar.
+- **Buscar orden o paciente con el logo** (Rosember, 26-oct-2026): en el Schedule el buscador es un círculo con el logo
+  (día: círculo del azul de la barra y logo blanco; oscuro: círculo blanco y logo azul de la barra, en `oscuro.css`).
+  Al tocarlo se alarga en la barra de búsqueda, como Google; se recoge con Esc o al salir sin nada escrito. El logo es
+  `static/design/logo_buscar.png` (blanco con transparencia), usado como máscara CSS para pintarlo de cualquier color.
 - **Dashboard › Filtros › Reportes de QC: filtro ▾** (Rosember, 26-oct-2026): en el encabezado «Hallazgo de QC», ordenar
   A → Z / Z → A y elegir qué hallazgos ver (cada reporte se parte en «Título › hallazgo», con cuántas órdenes lo tienen,
   buscador y «Seleccionar todos»). La tabla, «Borrar los hallazgos filtrados» y la descarga usan solo lo visible

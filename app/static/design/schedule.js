@@ -298,8 +298,16 @@ window.addEventListener('unhandledrejection', function(ev) {
   (function() {
     var inp = document.getElementById('dsBuscarInput'), res = document.getElementById('dsBuscarRes');
     if (!inp) return;
-    var timer = null, tok = 0;
+    var timer = null, tok = 0, caja = inp.closest('.ds-buscar'), logo = document.getElementById('dsBuscarLogo');
     function cerrar() { res.hidden = true; res.innerHTML = ''; }
+    // Como Google: el logo se alarga en la barra; se recoge al salir sin nada escrito
+    function abrir() { caja.classList.add('abierto'); logo.setAttribute('aria-expanded', 'true'); inp.tabIndex = 0; inp.focus(); }
+    function recoger() {
+      if (inp.value.trim()) return;
+      caja.classList.remove('abierto'); logo.setAttribute('aria-expanded', 'false'); inp.tabIndex = -1; cerrar();
+    }
+    logo.addEventListener('click', function() { if (caja.classList.contains('abierto') && !inp.value.trim()) { recoger(); logo.focus(); } else abrir(); });
+    caja.addEventListener('focusout', function(e) { if (!caja.contains(e.relatedTarget)) setTimeout(function() { if (!caja.contains(document.activeElement)) recoger(); }, 0); });
     function aviso(txt) { var d = document.createElement('div'); d.className = 'ds-buscar-vacio'; d.textContent = txt; res.appendChild(d); }
     function fechaLarga(iso) {
       var p = String(iso).split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
@@ -318,7 +326,7 @@ window.addEventListener('unhandledrejection', function(ev) {
           b.querySelector('b').textContent = x.orden || '—';
           b.querySelector('.ds-bi-top span').textContent = x.paciente || '(sin paciente)';
           b.querySelector('.ds-bi-sub').textContent = x.area + ' › ' + x.equipo + ' › ' + fechaLarga(x.fecha) + (x.estado ? ' · ' + x.estado : '');
-          b.onclick = function() { cerrar(); inp.value = ''; dsIrACaso(x); };
+          b.onclick = function() { cerrar(); inp.value = ''; recoger(); dsIrACaso(x); };
           res.appendChild(b);
         });
         if (r.length >= 50) aviso('Se muestran los 50 más recientes; escribe más para afinar.');
@@ -332,7 +340,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     inp.addEventListener('focus', function() { if (inp.value.trim().length >= 2 && res.hidden) buscar(); });
     inp.addEventListener('keydown', function(e) {
       var primero = res.querySelector('.ds-buscar-item');
-      if (e.key === 'Escape') { inp.value = ''; cerrar(); }
+      if (e.key === 'Escape') { inp.value = ''; recoger(); logo.focus(); }
       else if (e.key === 'Enter') { e.preventDefault(); if (primero) primero.click(); }
       else if (e.key === 'ArrowDown' && primero) { e.preventDefault(); primero.focus(); }
     });
@@ -342,7 +350,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       else if (e.key === 'ArrowUp') { e.preventDefault(); (items[i - 1] || inp).focus(); }
       else if (e.key === 'Escape') { e.preventDefault(); cerrar(); inp.focus(); }
     });
-    document.addEventListener('mousedown', function(e) { if (!e.target.closest('.ds-buscar')) cerrar(); });
+    document.addEventListener('mousedown', function(e) { if (!e.target.closest('.ds-buscar')) { cerrar(); recoger(); } });
   })();
 
   function dsElegirEquipo(area, teams, teamId, fecha) {

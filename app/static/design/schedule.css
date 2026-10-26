@@ -200,9 +200,20 @@
   @media (prefers-reduced-motion: reduce) { table.ds-tabla tr.ds-resaltada td { animation:none; box-shadow:inset 0 3px 0 #f59e0b, inset 0 -3px 0 #f59e0b; } }
   /* Búsqueda de orden o paciente */
   .ds-cabecera { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:-9px 0 15px; flex-wrap:wrap; }
-  .ds-buscar { position:relative; width:340px; max-width:100%; height:34px; display:flex; align-items:center; }
-  .ds-buscar input { margin:0; }
-  .ds-buscar input { width:100%; box-sizing:border-box; height:34px; padding:0 10px; border:1px solid #d8dde3; border-radius:8px; font-size:13px; }
+  /* Como el buscador de Google (26-oct-2026): el logo en un círculo; al tocarlo se alarga y se abre la búsqueda */
+  .ds-buscar { position:relative; width:34px; max-width:100%; height:34px; display:flex; align-items:center; border-radius:17px; background:#111827;
+    transition:width .45s cubic-bezier(.4,0,.2,1), background-color .3s, box-shadow .3s; }
+  .ds-buscar.abierto { width:340px; background:#fff; box-shadow:0 1px 6px rgba(32,33,36,.28); }
+  .ds-buscar.abierto:focus-within { box-shadow:0 1px 8px rgba(32,33,36,.38); }
+  .ds-buscar-logo { flex:none; width:34px; height:34px; margin:0; padding:0; border:0; border-radius:50%; background:#111827; cursor:pointer;
+    display:grid; place-items:center; transition:transform .2s; }
+  .ds-buscar:not(.abierto) .ds-buscar-logo:hover { transform:scale(1.08); }
+  .ds-buscar-logo:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+  .ds-buscar-ico { width:20px; height:20px; background:#fff; -webkit-mask:url(logo_buscar.png) center/contain no-repeat; mask:url(logo_buscar.png) center/contain no-repeat; }
+  .ds-buscar input { flex:1; min-width:0; width:0; margin:0; box-sizing:border-box; height:34px; padding:0; border:0; background:transparent; font-size:13px;
+    outline:none; opacity:0; pointer-events:none; transition:opacity .15s; }
+  .ds-buscar.abierto input { padding:0 14px 0 10px; opacity:1; pointer-events:auto; transition:opacity .25s .2s; }
+  @media (prefers-reduced-motion: reduce) { .ds-buscar, .ds-buscar input, .ds-buscar.abierto input, .ds-buscar-logo { transition:none; } }
   /* Misma altura que «Producción» y «Cambios digital» (28-oct-2026): la fila de arriba queda alineada */
   #dsACargo .btn { height:34px; padding:0 12px; font-size:13px; margin:0; box-sizing:border-box; display:inline-flex; align-items:center; }
   .ds-buscar-res { position:absolute; right:0; top:calc(100% + 4px); width:420px; max-width:92vw; max-height:420px; overflow:auto; background:#fff;
