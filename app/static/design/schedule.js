@@ -3745,13 +3745,15 @@ function ddCargarTendencia() {
 var DDT = {d: null, ocultos: {}};
 // El violeta (#7c3aed) se cambió por un verde azulado (28-oct-2026): el lila de Zullys es exclusivo y no debe parecerse a otro equipo.
 var DDT_COL = ['#1d4ed8', '#dc2626', '#16a34a', '#d97706', '#0d9488', '#0891b2', '#db2777', '#65a30d', '#334155', '#ea580c'];
-// Colores fijos por nombre (equipo o aprobador), en todas las gráficas del Dashboard: Zullys siempre en lila (Rosember, 28-oct-2026)
-var DDT_FIJOS = [{quien: 'zully', color: '#a78bfa'}];
+// Colores fijos por nombre (equipo o aprobador), en todas las gráficas del Dashboard: Zulys siempre en lila (Rosember, 28-oct-2026;
+// se escribe «Zulys», se acepta también «Zully»)
+var DDT_FIJOS = [{quien: ['zuly', 'zully'], color: '#a78bfa'}];
 function ddTColores(series) {
   var norm = function(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
   var k = 0;   // los demás siguen la paleta en su orden, sin contar a quienes tienen color fijo
   return series.map(function(s) {
-    var fijo = DDT_FIJOS.find(function(f) { return norm(s.nombre + ' ' + (s.aprobador || '')).indexOf(f.quien) >= 0; });
+    var texto = norm(s.nombre + ' ' + (s.aprobador || ''));
+    var fijo = DDT_FIJOS.find(function(f) { return f.quien.some(function(q) { return texto.indexOf(q) >= 0; }); });
     return fijo ? fijo.color : DDT_COL[k++ % DDT_COL.length];
   });
 }

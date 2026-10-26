@@ -116,9 +116,9 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`preapproved_agregar_doctor(centro_id=)`, POST `/preapproved/sheets/{id}/doctores?centro_id=`). Cada centro es un grupo de
   doctores consecutivos; el `orden` de los doctores se renumera seguido y las celdas siguen a su doctor (van por doctor_id).
   Sin centro elegido va al último, como antes. No toca Openings ni `services_design_origenes.py`.
-- **Zullys en lila en las gráficas del Dashboard** (Rosember, 28-oct-2026): las líneas de equipos se coloreaban por su
+- **Zulys en lila en las gráficas del Dashboard** (Rosember, 28-oct-2026): las líneas de equipos se coloreaban por su
   posición (`DDT_COL`); ahora hay colores fijos por nombre (`DDT_FIJOS`, `ddTColores`): el equipo o aprobador que contenga
-  «zully» sale siempre en lila (#a78bfa), sin importar su posición; los demás siguen la paleta en su orden. El violeta de la
+  «zuly» o «zully» (se escribe Zulys) sale siempre en lila (#a78bfa), sin importar su posición; los demás siguen la paleta en su orden. El violeta de la
   paleta pasó a verde azulado para que no se parezca al lila. Se aplica a todas las gráficas de tendencia (Resumen y Filtros).
 - **Esc = acceso directo al Schedule** (Rosember, 27-oct-2026): en toda pantalla de Design, Esc lleva al Schedule
   (`static/design/esc.js`, cargado desde base.html y en las páginas que no usan la barra común: Office y los dos reportes
