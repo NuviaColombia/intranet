@@ -4861,27 +4861,18 @@ def canvas_serializar(d: DesignCanvasDoc) -> dict:
 
 
 # Cada persona tiene sus propias hojas de Canvas por área (desde el 9-oct-2026): nadie edita las de otra.
-# Las hojas compartidas de antes (empleado_id NULL) se dejan como estaban, sin listarse. Los managers ven las hojas
-# de los diseñadores de sus equipos y los admins las de todos (solo verlas: editar es del dueño).
+# Las hojas compartidas de antes (empleado_id NULL) se dejan como estaban, sin listarse.
+# Desde el 26-oct-2026 (Rosember) el Canvas se trabaja en el navegador de cada persona y aquí queda solo su respaldo
+# privado: nadie más las ve (se quitó «Ver hojas de» para managers y admins).
 
 def canvas_personas_visibles(db: Session, user: Empleado, area_id: int) -> list[dict]:
-    """Personas del área cuyas hojas de Canvas puede ver `user` además de las suyas."""
-    q = (db.query(DesignTeam).options(joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado))
-         .filter(DesignTeam.area_id == area_id, DesignTeam.activo == 1))
-    if not es_admin(user):
-        q = q.filter(DesignTeam.manager_id == user.id)
-    vistos: dict[int, str] = {}
-    for t in q.all():
-        for d in t.designers:
-            if d.empleado_id != user.id:
-                vistos.setdefault(d.empleado_id, d.empleado.nombre_completo)
-    return sorted(({"id": i, "nombre": n} for i, n in vistos.items()), key=lambda x: x["nombre"])
+    """Personas cuyas hojas de Canvas puede ver `user` además de las suyas: ninguna desde el 26-oct-2026."""
+    return []
 
 
 def canvas_puede_ver(db: Session, user: Empleado, dueno_id: int | None, area_id: int) -> bool:
-    if dueno_id is None:
-        return False
-    return dueno_id == user.id or any(p["id"] == dueno_id for p in canvas_personas_visibles(db, user, area_id))
+    """Solo el dueño ve sus hojas (26-oct-2026)."""
+    return dueno_id is not None and dueno_id == user.id
 
 
 def _canvas_sembrar(db: Session, area_id: int, empleado_id: int) -> None:

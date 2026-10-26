@@ -6289,6 +6289,53 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   function Date_nowSafe() { try { return Date.now(); } catch (e) { return 0; } }
 
   var CV = { areas: [], areaId: null, verDe: null, personas: [] }; // verDe: id de la persona cuyas hojas ve un manager/admin (solo vista)
+
+  // Canvas en el navegador (Rosember, 26-oct-2026): cada persona trabaja su Canvas en SU navegador (IndexedDB, por
+  // persona y área) y el servidor guarda una copia de respaldo privada (solo el dueño puede guardar en ella). La primera
+  // vez (o si se borraron los datos del navegador) se copian al navegador las hojas del respaldo.
+  var CV_IDB = null, cvLocalTimers = {};
+  function cvIdb() {
+    if (CV_IDB) return CV_IDB;
+    CV_IDB = new Promise(function(ok, mal) {
+      try {
+        var rq = indexedDB.open('ds-canvas', 1);
+        rq.onupgradeneeded = function() { rq.result.createObjectStore('hojas'); };
+        rq.onsuccess = function() { ok(rq.result); };
+        rq.onerror = function() { mal(rq.error); };
+      } catch (e) { mal(e); }
+    });
+    CV_IDB.catch(function() { CV_IDB = null; });
+    return CV_IDB;
+  }
+  function cvClaveLocal(areaId) { return ((window.DS_CFG && window.DS_CFG.userId) || 0) + ':' + areaId; }
+  function cvLocalLeer(areaId) {
+    return cvIdb().then(function(db) {
+      return new Promise(function(ok) {
+        var rq = db.transaction('hojas').objectStore('hojas').get(cvClaveLocal(areaId));
+        rq.onsuccess = function() { try { var v = JSON.parse(rq.result || 'null'); ok(Array.isArray(v) ? v : null); } catch (e) { ok(null); } };
+        rq.onerror = function() { ok(null); };
+      });
+    }).catch(function() { return null; });
+  }
+  function cvLocalGuardar() {
+    var areaId = CV.areaId, docs = CANVAS.docs;   // la lista de esta área (si cambia de área, se guarda la anterior)
+    if (!areaId) return;
+    clearTimeout(cvLocalTimers[areaId]);
+    cvLocalTimers[areaId] = setTimeout(function() {
+      delete cvLocalTimers[areaId];
+      var texto; try { texto = JSON.stringify(docs); } catch (e) { return; }
+      cvIdb().then(function(db) { db.transaction('hojas', 'readwrite').objectStore('hojas').put(texto, cvClaveLocal(areaId)); }).catch(function() {});
+    }, 250);
+  }
+  // Agrega las hojas del respaldo que no están en el navegador (al deshacer un borrado o si el borrado falló)
+  function cvTraerDelServidor(areaId) {
+    return api('/design/api/canvas/docs?area_id=' + areaId).then(function(docs) {
+      if (areaId !== CV.areaId) return;
+      var hay = {}; CANVAS.docs.forEach(function(d) { hay[d.id] = 1; });
+      docs.forEach(function(d) { if (!hay[d.id]) CANVAS.docs.push(cvFromServer(d)); });
+      cvLocalGuardar();
+    });
+  }
   var CANVAS = { docs: [], activeId: null, view: "home", selFrame: null, scale: 1, railCollapsed: false };
   var cvSaveTimers = {}, cvGuardando = {};
 
@@ -6309,11 +6356,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     });
   }
   function cvSeleccionarArea(areaId) {
-    CV.areaId = areaId; CV.verDe = null; CV.personas = [];
-    // Managers y admins: personas cuyas hojas pueden ver (solo vista). Si falla, queda solo "Mis hojas".
-    api('/design/api/canvas/personas?area_id=' + areaId).then(function(ps) {
-      if (areaId === CV.areaId) { CV.personas = ps || []; if (CANVAS.view === "home") cvRender(); }
-    }, function() {});
+    CV.areaId = areaId; CV.verDe = null; CV.personas = [];   // 26-oct-2026: cada quien ve solo sus hojas (sin «Ver hojas de»)
     document.querySelectorAll('#cvAreaTabs .cv-area-tab').forEach(function(b, i) { b.classList.toggle('activo', CV.areas[i].id === areaId); });
     CANVAS.view = "home"; CANVAS.activeId = null; CANVAS.selFrame = null; CANVAS.selEl = null;
     cvLoadPrefs();
@@ -6347,9 +6390,17 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
              w: Number(d.w) || 1080, h: Number(d.h) || 1080, frames: (d.frames || []).map(cvSanear), elements: (d.elements || []).map(cvSanear), updated: Date_nowSafe() };
   }
   function cvLoadDocs(areaId) {
-    return api('/design/api/canvas/docs?area_id=' + areaId + (CV.verDe ? '&ver_de=' + CV.verDe : '')).then(function(docs) {
+    return cvLocalLeer(areaId).then(function(local) {
       if (areaId !== CV.areaId) throw {viejo: true}; // el usuario ya cambió de área
-      CANVAS.docs = docs.map(cvFromServer);
+      if (local) {   // lo que hay en el navegador de esta persona
+        CANVAS.docs = local.map(function(d) { d.frames = (d.frames || []).map(cvSanear); d.elements = (d.elements || []).map(cvSanear); return d; });
+        return;
+      }
+      return api('/design/api/canvas/docs?area_id=' + areaId).then(function(docs) {   // primera vez: copia del respaldo
+        if (areaId !== CV.areaId) throw {viejo: true};
+        CANVAS.docs = docs.map(cvFromServer);
+        cvLocalGuardar();
+      });
     });
   }
   function cvLoadPrefs() {
@@ -6362,6 +6413,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   function cvSave(docId) {
     docId = docId || CANVAS.activeId;
     if (!docId) return;
+    cvLocalGuardar();   // primero en el navegador; abajo, el respaldo en el servidor
     cvRailRefreshActive();
     clearTimeout(cvSaveTimers[docId]);
     var docRef = CANVAS.docs.find(function(d) { return d.id === docId; }); // si cambia de área antes de guardar, no se pierde
@@ -6405,6 +6457,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     postJSON('/design/api/canvas/docs', { areaId: CV.areaId, nombre: "Hoja personalizada", titulo: "Título", templateId: "", frames: [] })
       .then(function(r) {
         CANVAS.docs.unshift(cvFromServer({ id: r.id, nombre: "Hoja personalizada", titulo: "Título", tituloColor: "#d10a11", w: 1080, h: 1080, frames: [], elements: [] }));
+        cvLocalGuardar();
         CANVAS.activeId = r.id; CANVAS.view = "editor"; CANVAS.selFrame = null;
         cvRender();
       });
@@ -6417,12 +6470,13 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (!confirm('¿Eliminar la hoja "' + nombre + '"? Podrás deshacerlo en el aviso que aparece abajo.')) return false;
     var areaId = CV.areaId;
     CANVAS.docs.splice(idx, 1);
+    cvLocalGuardar();
     if (CANVAS.activeId === id) { CANVAS.view = "home"; CANVAS.activeId = null; }
     cvRender();
     fetch('/design/api/canvas/docs/' + id + '/eliminar', {method: 'POST'})
       .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo eliminar.'); return d; }); })
       .then(function(r) { cvAvisoDeshacer(nombre, r.papeleraId, areaId); })
-      .catch(function(e) { alert(e.message); cvLoadDocs(areaId).then(cvRender); });
+      .catch(function(e) { alert(e.message); cvTraerDelServidor(areaId).then(cvRender); });
     return true;
   }
   var cvAvisoTimer = null;
@@ -6445,20 +6499,21 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'No se pudo restaurar.'); return d; }); })
         .then(function() {
           cvAviso('<span>✅ Hoja restaurada</span>', false);
-          if (CV.areaId === areaId) cvLoadDocs(areaId).then(cvRender);
+          if (CV.areaId === areaId) cvTraerDelServidor(areaId).then(cvRender);
         })
         .catch(function(e) { cvAviso('<span></span>', false).querySelector('span').textContent = '⚠️ ' + e.message; });
     };
   }
   function cvDuplicateDoc(id) {
     postJSON('/design/api/canvas/docs/' + id + '/duplicar').then(function(r) {
-      CANVAS.docs.unshift(cvFromServer(r)); cvRender();
+      CANVAS.docs.unshift(cvFromServer(r)); cvLocalGuardar(); cvRender();
     });
   }
   function cvRenameDoc(id) {
     var d = CANVAS.docs.find(function(x) { return x.id === id; }); if (!d) return;
     var n = (prompt("Nuevo nombre:", d.name) || "").trim(); if (!n) return;
     d.name = n; d.updated = Date_nowSafe();
+    cvLocalGuardar();
     postJSON('/design/api/canvas/docs/' + id + '/renombrar', { nombre: n }).then(cvRender);
   }
 
@@ -6748,6 +6803,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (fi < 0 || ti < 0 || fi === ti) return;
     var moved = docs.splice(fi, 1)[0];
     docs.splice(fi < ti ? ti - 1 : ti, 0, moved);
+    cvLocalGuardar();
     cvRenderEditor();
     postJSON('/design/api/canvas/docs/' + fromId + '/mover', { targetId: parseInt(toId) });
   }

@@ -83,6 +83,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   termina aquel (19-oct-2026).
 - **Contadores**: «Canceladas» cuenta toda orden con datos en Canceled, aunque no tenga diseñador;
   los demás contadores solo cuentan órdenes completas (centro, producto y diseñador).
+- **Canvas propio en el navegador** (Rosember, 26-oct-2026): cada persona trabaja su Canvas en SU navegador (IndexedDB
+  `ds-canvas`, clave `<empleado_id>:<area_id>`) y el servidor guarda un respaldo privado (solo el dueño ve y guarda,
+  `canvas_puede_ver`). La primera vez, o si se borran los datos del navegador, se copian al navegador las hojas del
+  respaldo; desde ahí el navegador manda. Se quitó «Ver hojas de» para managers y admins (`canvas_personas_visibles`
+  devuelve []). Ojo: quien use dos computadores tiene una copia distinta en cada uno y el respaldo queda con lo último
+  que se guardó. Pruebas: `tests/test_design_canvas.py`.
 - **Botón Producción para todo el equipo** (Rosember, 23-oct-2026): el botón «Producción» de la barra del Schedule (con un
   equipo abierto, fuera de Support) lo ven aprobadores, admins y diseñadores; antes solo los gestores (`DS_GESTION`). Solo
   cambia quién ve el botón: el dato sale de lo que el Schedule ya carga (`dsPintarProduccion`). El panel de Seguimiento
