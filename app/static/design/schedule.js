@@ -2659,7 +2659,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsModalCobertura(st) {
     var hoy = dsFechaISO(new Date());
-    var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg ds-fondo-50';   // fondo al 50 % (Rosember, 26-oct-2026)
     var quien = function(n) { var p = (st.personas || []).find(function(x) { return x.turnoActual.n === n; }); return p ? p.nombre : ''; };
     var turnosOps = (st.turnos || []).map(function(t) { return '<option value="' + t.n + '">' + dsEsc(t.nombre) + ' · ' + dsEsc(t.horaTxt) + (quien(t.n) ? ' (hoy: ' + dsEsc(quien(t.n)) + ')' : '') + '</option>'; }).join('');
     var lista = (st.coberturas || []).map(function(c) {
@@ -2730,7 +2730,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsModalACargo(dia) {
     var a = dia.aCargo, hoy = dsFechaISO(new Date()), lista = (a && a.lista) || [], cambio = false;
     var url = '/design/api/teams/' + DS.teamId + '/delegacion';
-    var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg ds-fondo-50';   // fondo al 50 % (Rosember, 26-oct-2026)
     var delEquipo = (dia.designers || []).filter(function(d) { return !d.esManager; });
     // «Otra persona…» (Rosember, 26-oct-2026): a veces queda a cargo alguien de otro equipo de la misma área
     var ops = delEquipo.map(function(d) { return '<option value="' + d.id + '">' + dsEsc(d.nombre) + '</option>'; }).join('') +
@@ -4822,6 +4822,7 @@ function dcdAbrir() {
     }).catch(function(e) { f.querySelector('[data-m=si]').disabled = false; alert(e.message); });
   }, 'Guardar');
   function v(id) { return (document.getElementById('dcd_' + id) || {value: ''}).value.trim(); }
+  ov.classList.add('ds-fondo-50');   // fondo al 50 % (Rosember, 26-oct-2026)
   var guardar = ov.querySelector('[data-m=si]');
   // Tipos de cambio: los que ya existen + "Agregar tipo de cambio…" para escribir uno nuevo
   var selTipo = document.getElementById('dcd_tipo'), wNuevo = document.getElementById('dcd_tipo_nuevo_w');

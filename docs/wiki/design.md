@@ -53,7 +53,8 @@ Antes de buscar un patrón de roles que no existe:
   `hidden`); si ninguno aplica, no se ve nada. Quien está a cargo sale como pestaña verde con texto corto («A cargo: Luisa ·
   hasta el 28 oct»; el detalle en el tooltip) y al tocarla abre la ventana de cambiar; programado, en gris. Producción se
   abre a la izquierda de su pestaña. `#ds-app` deja 30px a la derecha para que las pestañas no tapen el contenido. En oscuro
-  son blancas con texto del azul de la barra.
+  son blancas con texto del azul de la barra. Las ventanas de «Cambios digital» y «Dejar a cargo» (también la de Support)
+  oscurecen el fondo al 50 % (clase `ds-fondo-50`); las demás ventanas del Schedule siguen al 35 %.
 - **Saludo en el título del Schedule** (Rosember, 26-oct-2026): en vez de «Design Schedule (equipo)», los aprobadores ven
   «Hola <primer nombre>, aquí está tu equipo en movimiento.» y los diseñadores «Hola <primer nombre>, tu trabajo es
   espectacular. ¡Gracias!». Quien está a cargo HOY del equipo (Dejar a cargo, `aCargo.esYo` + `activa`) ve el de
