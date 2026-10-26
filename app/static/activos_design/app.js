@@ -269,8 +269,6 @@ function regresarModal(){const anterior=pilaModal.pop(),resto=pilaModal;closeMod
 $('modal-cancelar').addEventListener('click',regresarModal);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modal').classList.contains('show'))closeModal()});
 // Guía desplegable dentro de una ventana: pasos cortos de qué hacer.
 function guia(titulo,pasos){return `<div class="field full"><details class="guia"><summary>${esc(titulo)}</summary><ol>${pasos.map(p=>`<li>${p}</li>`).join('')}</ol></details></div>`}
-// Lista de casillas con «Marcar todos»; con `placeholder` agrega un buscador para listas largas.
-function checkList(name,items,placeholder=''){return `<div class="field full"><div class="toolbar" style="margin:0">${placeholder?`<input class="search" data-filtro-lista="${name}" placeholder="${esc(placeholder)}" aria-label="${esc(placeholder)}">`:''}<button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="1">Marcar todos</button><button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="0">Ninguno</button></div><div class="check-list" id="lista-${name}">${items}</div></div>`}
 $('modal-form').addEventListener('submit',async e=>{e.preventDefault();if(!modalSubmit)return;const button=$('modal-guardar');button.disabled=true;try{await modalSubmit(new FormData(e.currentTarget));if(button.textContent==='Cerrar')closeModal();else regresarModal()}catch(error){notify(error.message,true)}finally{button.disabled=false}});
 function values(form){return Object.fromEntries(form.entries())}
 function equipmentFields(data={},includeTag=true){const fields=[];if(includeTag)fields.push(field('asset_tag','Asset Tag', 'text',data.asset_tag||'',true));fields.push(field('tipo_equipo','Tipo','text',data.tipo_equipo||'Laptop',true,[{value:'Laptop',label:'Laptop'},{value:'Mini PC',label:'Mini PC'}]));fields.push(field('marca','Marca','text',data.marca||'',true));fields.push(field('modelo','Modelo','text',data.modelo_referencia||'',true));fields.push(field('serial_number','Serial','text',data.serial_number||'',true));fields.push(field('sistema_operativo','Sistema operativo','text',data.sistema_operativo||''));fields.push(field('procesador','Procesador','text',data.procesador||''));fields.push(field('memoria_ram','Memoria RAM','text',data.memoria_ram||''));fields.push(field('almacenamiento','Almacenamiento','text',data.almacenamiento||''));fields.push(field('observaciones','Observaciones','textarea',data.observaciones||'',false,null,true));return fields}
@@ -337,7 +335,7 @@ async function loadRespaldos(){const rows=await api('/activos/design/api/respald
 function confirmRestore(id,label){openModal(`Restaurar operación #${id}`,[`<div class="field full"><p class="hint">La base completa volverá al estado previo a «${esc(label)}» (operación #${esc(id)}). Se perderán los cambios hechos después de ese momento. Antes de restaurar se guarda una copia del estado actual, por lo que esta acción también se puede deshacer.</p></div>`],'Restaurar',async()=>{const result=await api(`/activos/design/api/respaldos/${encodeURIComponent(id)}/restaurar`,{method:'POST'});notify(result.mensaje);areasCache=null;await Promise.all([loadRespaldos(),loadSummary()])})}
 $('tabla-respaldos').addEventListener('click',event=>{const button=event.target.closest('button[data-action="restore"]');if(button)confirmRestore(button.dataset.id,button.dataset.label)});
 $('recargar-respaldos').addEventListener('click',()=>loadRespaldos().catch(error=>notify(error.message,true)));
-$('modal-fields').addEventListener('click',async event=>{const button=event.target.closest('button[data-action]');if(!button)return;const action=button.dataset.action;try{if(action==='user-actas')await showUserActas(button.dataset.id,button.dataset.name);else if(action==='user-assets')await showUserAssets(button.dataset.id);else if(action==='marcar-todos')$('modal-fields').querySelectorAll(`input[name="${button.dataset.campo}"]`).forEach(box=>{if(!box.closest('label')?.hidden)box.checked=button.dataset.valor==='1'});else runAction(action,button.dataset.id||button.dataset.tag)}catch(error){notify(error.message,true)}});
+$('modal-fields').addEventListener('click',async event=>{const button=event.target.closest('button[data-action]');if(!button)return;const action=button.dataset.action;try{if(action==='user-actas')await showUserActas(button.dataset.id,button.dataset.name);else if(action==='user-assets')await showUserAssets(button.dataset.id);else if(action==='marcar-todos')$('modal-fields').querySelectorAll(`input[name="${button.dataset.campo}"]`).forEach(box=>{if(!box.closest('label')?.hidden)box.checked=button.dataset.valor==='1'});else if(action==='marcar-grupo')button.closest('[data-grupo-bloque]')?.querySelectorAll('input[type=checkbox]').forEach(box=>{if(!box.closest('label')?.hidden)box.checked=button.dataset.valor==='1'});else runAction(action,button.dataset.id||button.dataset.tag)}catch(error){notify(error.message,true)}});
 
 // ---------------------------------------------------------------------------
 // Grupos de trabajo y jornadas de mantenimiento
@@ -386,6 +384,18 @@ function reportarNovedadUI(tag){
 // Lista de casillas con «Marcar todos»; con `placeholder` agrega un buscador para listas largas.
 function checkList(name,items,placeholder=''){return `<div class="field full"><div class="toolbar" style="margin:0">${placeholder?`<input class="search" data-filtro-lista="${name}" placeholder="${esc(placeholder)}" aria-label="${esc(placeholder)}">`:''}<button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="1">Marcar todos</button><button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="0">Ninguno</button></div><div class="check-list" id="lista-${name}">${items}</div></div>`}
 $('modal-fields').addEventListener('input',event=>{const filtro=event.target.closest('[data-filtro-lista]');if(!filtro)return;const term=filtro.value.trim().toLowerCase();$(`lista-${filtro.dataset.filtroLista}`).querySelectorAll('label').forEach(label=>{label.hidden=Boolean(term)&&!label.textContent.toLowerCase().includes(term)})});
+// Como checkList, pero organizada por grupo de trabajo (bloques con encabezado y «Marcar grupo» /
+// «Ninguno» propios) -- para listas largas de equipos sueltos de varios grupos a la vez.
+// `grupos`: [{titulo, items: [{valor, html}]}].
+function checkListGrupos(name,grupos,placeholder=''){
+ const bloques=grupos.map((g,i)=>{
+  const idg=`${name}-${i}`;
+  const labels=g.items.map(it=>`<label><input type="checkbox" name="${name}" value="${esc(it.valor)}"> <span>${it.html}</span></label>`).join('');
+  return `<div class="check-list-grupo" data-grupo-bloque="${idg}"><div class="check-list-grupo-header"><b>${esc(g.titulo)}</b><span>(${g.items.length})</span><span class="check-list-grupo-acciones"><button type="button" class="link-button" data-action="marcar-grupo" data-grupo="${idg}" data-valor="1">Marcar grupo</button><button type="button" class="link-button" data-action="marcar-grupo" data-grupo="${idg}" data-valor="0">Ninguno</button></span></div>${labels}</div>`
+ }).join('');
+ return `<div class="field full"><div class="toolbar" style="margin:0">${placeholder?`<input class="search" data-filtro-lista-grupos="${name}" placeholder="${esc(placeholder)}" aria-label="${esc(placeholder)}">`:''}<button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="1">Marcar todos</button><button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="0">Ninguno</button></div><div class="check-list" id="lista-${name}">${bloques}</div></div>`
+}
+$('modal-fields').addEventListener('input',event=>{const filtro=event.target.closest('[data-filtro-lista-grupos]');if(!filtro)return;const term=filtro.value.trim().toLowerCase();const lista=$(`lista-${filtro.dataset.filtroListaGrupos}`);lista.querySelectorAll('label').forEach(label=>{label.hidden=Boolean(term)&&!label.textContent.toLowerCase().includes(term)});lista.querySelectorAll('[data-grupo-bloque]').forEach(bloque=>{bloque.hidden=Boolean(term)&&![...bloque.querySelectorAll('label')].some(l=>!l.hidden)})});
 // ---------------------------------------------------------------------------
 // Personajes pixel art estilo chibi (20x30) para los grupos de trabajo. Se dibujan con figuras
 // simples sobre una cuadrícula de letras (cada letra es un color, '.' es transparente) y el
@@ -740,14 +750,22 @@ async function refrescarMantenimiento(){const tareas=[loadEstado()];if($('manten
 async function programarLoteUI(){
  const equipos=await api('/activos/design/api/equipos');
  if(!equipos.length)throw new Error('No hay equipos registrados todavía.');
- const items=equipos.map(e=>`<label><input type="checkbox" name="asset_tags" value="${esc(e.asset_tag)}"> <span><b>${esc(e.asset_tag)}</b> · ${esc(e.usuario||'Sin usuario')}${e.marca||e.modelo?` · ${esc([e.marca,e.modelo].filter(Boolean).join(' '))}`:''}</span></label>`).join('');
+ // Organizados por grupo de trabajo (pedido por Oscar, 26-oct-2026): más fácil de ubicar que una
+ // lista plana de ~180 equipos, y "Marcar grupo" selecciona todos los de un grupo de una vez.
+ const porGrupo=new Map();
+ for(const e of equipos){
+  const clave=e.id_lider_grupo!=null?String(e.id_lider_grupo):'sin-grupo';
+  if(!porGrupo.has(clave))porGrupo.set(clave,{titulo:e.grupo||'Sin grupo asignado',items:[]});
+  porGrupo.get(clave).items.push({valor:e.asset_tag,html:`<b>${esc(e.asset_tag)}</b> · ${esc(e.usuario||'Sin usuario')}${e.marca||e.modelo?` · ${esc([e.marca,e.modelo].filter(Boolean).join(' '))}`:''}`});
+ }
+ const grupos=[...porGrupo.values()].sort((a,b)=>(a.titulo==='Sin grupo asignado')-(b.titulo==='Sin grupo asignado')||a.titulo.localeCompare(b.titulo));
  const fields=[
-  guia('¿Cómo funciona?',['Marca los equipos que quieras de la lista.','Se crea un servicio PROGRAMADO por cada equipo marcado, con la misma fecha, tipo y responsable.','A diferencia de «Programar por grupo», no quedan agrupados en una solicitud ni se reprograman solos -- cada uno se completa o edita por separado desde la pestaña «Lista».']),
+  guia('¿Cómo funciona?',['Los equipos están organizados por grupo de trabajo. Marca equipos sueltos, o usa «Marcar grupo» para seleccionar todos los de un grupo de una vez.','Se crea un servicio PROGRAMADO por cada equipo marcado, con la misma fecha, tipo y responsable.','A diferencia de «Programar por grupo», no quedan agrupados en una solicitud ni se reprograman solos -- cada uno se completa o edita por separado desde la pestaña «Lista».']),
   field('tipo_mantenimiento','Tipo','text','PREVENTIVO',true,[{value:'PREVENTIVO',label:'Preventivo (en sitio)'},{value:'CORRECTIVO',label:'Correctivo'}]),
   field('fecha_programada','Fecha programada','date',fechaLocalISO(new Date()),true),
   field('responsable','Responsable técnico','text','',true),
   field('descripcion_falla','Descripción (opcional)','textarea','',false,null,true),
-  checkList('asset_tags',items,'Buscar por Asset Tag, usuario, marca o modelo')
+  checkListGrupos('asset_tags',grupos,'Buscar por Asset Tag, usuario, marca o modelo')
  ];
  openModal(`Programar mantenimiento para varios equipos (${equipos.length} en total)`,fields,'Programar',async form=>{
   const data=values(form),asset_tags=form.getAll('asset_tags');

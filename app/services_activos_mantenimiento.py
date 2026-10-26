@@ -199,6 +199,16 @@ def _equipos_del_grupo(db: Session, id_lider: int) -> list[str]:
     return sorted(e for (e,) in equipos)
 
 
+def mapa_grupo_por_empleado(db: Session) -> dict[int, int | None]:
+    """Para cada empleado con perfil activo, a qué grupo (id del líder) pertenecen sus equipos --
+    misma regla que `_equipos_del_grupo`, pero para todos a la vez en 1 consulta en vez de una por
+    líder. Si la persona misma lidera un grupo (alguien le reporta), sus equipos cuentan en SU propio
+    grupo; si no, cuentan en el grupo de quien ella reporta (su `id_lider_id`), si tiene uno."""
+    perfiles = db.query(ActivosPerfil.empleado_id, ActivosPerfil.id_lider_id).filter(ActivosPerfil.retirado.is_(False)).all()
+    lideres_con_integrantes = {idl for (_, idl) in perfiles if idl is not None}
+    return {emp_id: (emp_id if emp_id in lideres_con_integrantes else id_lider) for emp_id, id_lider in perfiles}
+
+
 def _con_pendientes(db: Session, asset_tags: list[str], tipo: str) -> dict[str, int]:
     if not asset_tags:
         return {}
