@@ -102,6 +102,10 @@ que no sea de lectura en toda la plataforma (salvo su push y su modo oscuro). Su
 persona por completo; fuera de Design, todo queda en solo lectura. Regla de seguridad: un
 superadmin puede simular a cualquiera; un admin normal solo a alguien de su propia empresa, y
 **nunca** a un superadmin.
+El aviso amarillo «Modo simulación» tiene «Ocultar aviso» (Rosember, 26-oct-2026) para ver la página tal cual la ve esa
+persona. Oculto, queda solo un punto ámbar casi transparente en la esquina inferior izquierda que lo vuelve a mostrar. El
+estado se guarda en `sessionStorage` (`ds_sim_oculto`): dura mientras esté abierta esa pestaña del navegador
+(`_design_simulacion.html`).
 
 ## Reglas de negocio del Schedule
 

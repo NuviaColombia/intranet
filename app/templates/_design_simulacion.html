@@ -6,13 +6,29 @@
                background:#fef3c7; color:#78350f; border:1px solid #f59e0b; border-radius:8px; padding:8px 14px; margin:0 0 12px; font-size:13px; }
   .sim-acc { display:flex; gap:6px; }
   .sim-acc form { display:inline; margin:0; }
+  /* Ocultar el aviso (Rosember, 26-oct-2026): para ver la página tal cual la ve esa persona. Queda solo un punto casi
+     invisible en la esquina inferior izquierda que lo vuelve a mostrar. Dura mientras esté abierta la pestaña del navegador. */
+  html.sim-oculto .sim-aviso { display:none; }
+  .sim-punto { display:none; position:fixed; left:6px; bottom:6px; z-index:2000; width:10px; height:10px; padding:0; border:0; border-radius:50%;
+               background:#f59e0b; opacity:.3; cursor:pointer; transition:opacity .15s, transform .15s; }
+  html.sim-oculto .sim-punto { display:block; }
+  .sim-punto:hover, .sim-punto:focus-visible { opacity:1; transform:scale(1.6); outline:none; }
 </style>
+<script>try { if (sessionStorage.getItem('ds_sim_oculto') === '1') document.documentElement.classList.add('sim-oculto'); } catch (e) {}</script>
 <div class="sim-aviso" role="status">
   <span><b>Modo simulación:</b> estás viendo Design como <b>{{ user.nombre_completo }}</b> ({{ user.rol or 'empleado' }}).
     Lo que guardes queda a su nombre.</span>
   <span class="sim-acc">
+    <button type="button" class="btn mini gris" onclick="dsSimOcultar(true)" title="Ver la página tal cual la ve esta persona. Para volver a mostrar el aviso, toca el punto ámbar de la esquina inferior izquierda.">Ocultar aviso</button>
     <form method="post" action="/design/simulacion/salir"><button class="btn mini gris">Cambiar persona</button></form>
     <form method="post" action="/design/simulacion/salir"><button class="btn mini">Salir de la simulación</button></form>
   </span>
 </div>
+<button type="button" class="sim-punto" onclick="dsSimOcultar(false)" title="Mostrar el aviso de simulación ({{ user.nombre_completo }})" aria-label="Mostrar el aviso de simulación"></button>
+<script>
+function dsSimOcultar(si) {
+  document.documentElement.classList.toggle('sim-oculto', si);
+  try { if (si) sessionStorage.setItem('ds_sim_oculto', '1'); else sessionStorage.removeItem('ds_sim_oculto'); } catch (e) {}
+}
+</script>
 {% endif %}
