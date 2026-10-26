@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_activos import (ActivosArea, ActivosPerfil, ActivosEquipo, ActivosDongle,
                              ActivosHistorialAsignacion, ActivosAuditoria)
+from .services_activos_cache import invalidar as _invalidar_cache_dashboard
 
 EMOJIS_SALUD = ("OPTIMO", "NOVEDADES", "EN_MANTENIMIENTO", "SIN_REVISION")
 
@@ -39,6 +40,7 @@ def _obligatorio(valor: str | None, mensaje: str) -> str:
 
 def auditar(db: Session, actor: Empleado | None, accion: str, descripcion: str) -> None:
     db.add(ActivosAuditoria(accion=accion, descripcion=descripcion, empleado_id=actor.id if actor else None))
+    _invalidar_cache_dashboard()  # toda escritura del módulo pasa por aquí -- ver services_activos_cache.py
 
 
 # ---------- Helpers de estado activo ----------
