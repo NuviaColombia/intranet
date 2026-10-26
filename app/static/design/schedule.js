@@ -6843,8 +6843,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
           '<div class="cv-thumb-wrap" data-open="' + d.id + '" tabindex="0" role="button" title="Abrir hoja para editar">' + cvSheetThumb(d, 300) + '</div>' +
           '<button class="cv-board-name" data-open="' + d.id + '">' + esc(d.name || d.title || "Hoja") + '</button>' +
           '<div class="cv-board-sub">' + d.frames.length + ' marco' + (d.frames.length === 1 ? "" : "s") + (filled ? (" · " + filled + " con foto") : "") + '</div>' +
-          '<button class="cv-mini-btn" data-dl="' + d.id + '" title="Descargar esta hoja (imagen PNG)">⬇ Descargar</button>' +
-          '<button class="cv-mini-btn" data-share="' + d.id + '" title="Compartir una copia de esta hoja (solo el formato, sin fotos)">⇪ Compartir</button>' +
+          '<div class="cv-sheet-acts">' +
+            '<button class="cv-mini-btn" data-dl="' + d.id + '" title="Descargar esta hoja (imagen PNG)">⬇ Descargar</button>' +
+            '<button class="cv-mini-btn" data-share="' + d.id + '" title="Compartir una copia de esta hoja (solo el formato, sin fotos)">⇪ Compartir</button>' +
+          '</div>' +
         '</div>';
       }).join('');
       home.innerHTML = cvHomeHeader() + '<div class="cv-board">' + tiles + addCard + '</div>';
