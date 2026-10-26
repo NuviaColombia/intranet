@@ -700,11 +700,13 @@ def design_permiso_octubre():
 def design_perf_meses_2026():
     # Design · una vez: los títulos de mes de la hoja de Desempeño «N6 Marlene» pasan de 2025 a 2026 (Rosember, 28-oct-2026).
     # Va aquí además de al abrir Desempeño porque la Selección asistida lee esa hoja sin pasar por la pantalla.
+    # También aquí: crea la hoja de Desempeño de la aprobadora Zulys (N3) y su equipo, una sola vez (28-oct-2026).
     from .database import SessionLocal
     from . import services_design
     db = SessionLocal()
     try:
         services_design.perf_meses_2026_una_vez(db)
+        services_design.perf_hoja_zulys_una_vez(db)
     except Exception:  # noqa: BLE001  nunca debe impedir el arranque
         db.rollback()
     finally:

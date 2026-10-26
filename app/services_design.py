@@ -4462,7 +4462,69 @@ def perf_criterios(db: Session) -> list[DesignPerfCriterio]:
 def perf_sheets(db: Session) -> list[DesignPerfSheet]:
     perf_quitar_una_vez(db)
     perf_meses_2026_una_vez(db)
+    perf_hoja_zulys_una_vez(db)
     return db.query(DesignPerfSheet).order_by(DesignPerfSheet.orden).all()
+
+
+# Hoja de Desempeño para la aprobadora Zulys (N3) y su equipo (Rosember, 28-oct-2026). Se crea una sola vez, buscando en la
+# base a la manager de un equipo activo de N3 cuyo nombre sea Zulys (o Zuly, Zully…): la hoja se llama «N3 Zulys» (como «N3
+# Paula»), con los 12 meses de 2026, una fila por cada diseñador de su equipo (sin ella) y asociada a ella, para que la vea y
+# califique solo la suya como las demás aprobadoras. Si todavía no está registrada como manager de un equipo de N3 con ese
+# nombre, no hace nada ni marca, y lo intenta en el próximo arranque. Si ya existe una hoja con ese nombre, solo la asocia.
+PERF_HOJA_ZULYS = {"marca": "perf_hoja_n3_zulys_2026_10_28", "nombre": "N3 Zulys", "area": "N3 Prosthetic", "anio": 2026}
+_perf_hoja_zulys = {"ok": False}
+_MESES_ES = ("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+
+
+def perf_hoja_zulys_una_vez(db: Session) -> None:
+    from .models_design import DesignConexionRegla
+    if _perf_hoja_zulys["ok"]:
+        return
+    cfg = PERF_HOJA_ZULYS
+    try:
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == cfg["marca"]).first():
+            _perf_hoja_zulys["ok"] = True
+            return
+        area = db.query(DesignArea).filter(DesignArea.nombre == cfg["area"]).first()
+        if not area:
+            return
+        equipos = (db.query(DesignTeam).options(joinedload(DesignTeam.manager),
+                                                joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado))
+                   .filter(DesignTeam.area_id == area.id, DesignTeam.activo == 1, DesignTeam.manager_id.isnot(None)).all())
+        suyos = [t for t in equipos if t.manager and getattr(t.manager, "activo", 1)
+                 and re.search(r"\bzul+[iy]s?\b", _normalizar_texto(t.manager.nombre_completo))]
+        managers = {t.manager_id for t in suyos}
+        if len(managers) != 1:   # ninguna todavía, o más de una persona con ese nombre: no se adivina
+            if len(managers) > 1:
+                log.warning("Design: hay más de un manager de N3 que parece Zulys; no se crea la hoja automáticamente")
+            return
+        manager = suyos[0].manager
+        hoja = next((h for h in db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "eval").all()
+                     if _normalizar_texto(h.nombre) == _normalizar_texto(cfg["nombre"])), None)
+        creada = hoja is None
+        if creada:
+            gente = {}
+            for t in suyos:
+                for d in t.designers:
+                    e = d.empleado
+                    if e and getattr(e, "activo", 1) and e.id != manager.id:
+                        gente[e.id] = e
+            orden = (db.query(func.max(DesignPerfSheet.orden)).scalar() or 0) + 1
+            hoja = DesignPerfSheet(nombre=cfg["nombre"], tipo="eval", orden=orden,
+                                   meses=json.dumps([f"{m} {cfg['anio']}" for m in _MESES_ES], ensure_ascii=False))
+            db.add(hoja)
+            db.flush()
+            for i, e in enumerate(sorted(gente.values(), key=lambda x: _normalizar_texto(x.nombre_completo)), start=1):
+                db.add(DesignPerfEmpleado(sheet_id=hoja.id, nombre=e.nombre_completo, orden=i, totales_mes=json.dumps([0.0] * 12)))
+        db.add(DesignConexionRegla(tipo="sistema", clave=cfg["marca"], creado_por="Sistema",
+                                   valor=json.dumps({"hoja": hoja.nombre, "manager": manager.nombre_completo, "creada": creada}, ensure_ascii=False)))
+        db.commit()
+        _guardar_regla(db, "hoja_manager", hoja.nombre,
+                       json.dumps({"area": cfg["area"], "manager": manager.nombre_completo, "managerId": manager.id}, ensure_ascii=False), "Sistema")
+        _perf_hoja_zulys["ok"] = True
+    except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
+        db.rollback()
 
 
 # Desempeño › N6 Marlene (Rosember, 28-oct-2026): los títulos de los meses de esa hoja decían 2025 y debían decir 2026

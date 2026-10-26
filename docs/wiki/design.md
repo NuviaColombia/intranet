@@ -120,6 +120,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   pestaña y las órdenes lentas (aprobadas sin QC pasada 1 h 30 min) pero solo de sus equipos (los que maneja o tiene a
   cargo: `_equipos_visibles` → `lentas(equipos=)`); los admins ven todo. Pedir por la API un equipo ajeno no devuelve nada.
   Ayudas y Reportes siguen siendo solo de admins.
+- **Hoja de Desempeño «N3 Zulys»** (Rosember, 28-oct-2026): creación única (`perf_hoja_zulys_una_vez`, marca
+  `perf_hoja_n3_zulys_2026_10_28`) que busca en la base a la manager de un equipo activo de N3 llamada Zulys (Zuly, Zully…) y
+  arma la hoja con los 12 meses de 2026, una fila por cada diseñador de su equipo (sin ella ni inactivos) y la asocia a ella
+  (regla `hoja_manager`, como «N3 Paula»), así ve y califica solo la suya. Corre al arrancar y al abrir Desempeño. Si todavía
+  no hay una manager de N3 con ese nombre, no hace nada ni marca y lo intenta después; si hay dos personas con ese nombre,
+  no adivina. Si alguien borra la hoja, no reaparece. Para sumar un diseñador nuevo del equipo después: agregarlo en la hoja.
 - **Quien está a cargo no está disponible** (Rosember, 28-oct-2026): una persona a quien se deja «a cargo» de un equipo hoy
   (`delegaciones_activas`) queda como un aprobador: en Seguimiento no sale si no tiene casos propios hoy (si los tiene, sale con
   lo que hace), no cuenta como diseñador en turno en la capacidad de «Casos por equipo» (salvo que tenga casos hoy) y no se
