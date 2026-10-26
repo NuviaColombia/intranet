@@ -1637,7 +1637,31 @@ def api_orden_a_training(orden_id: int, user: Empleado = Depends(require_modulo(
         raise HTTPException(403, str(ex))
     except ValueError as ex:
         raise HTTPException(400, str(ex))
+    _push_llego_a_training(db, o, destino, user)
     return {"ok": True, "equipo": destino.nombre}
+
+
+def _push_llego_a_training(db: Session, o: DesignOrden, destino: DesignTeam, user: Empleado) -> None:
+    """Aviso push (fijo hasta que lo cierren) a la manager de Training, y a quien esté a cargo hoy de ese equipo, cuando
+    un manager de N3 le pasa un caso: llega sin diseñador para que ella lo asigne (Rosember, 26-oct-2026). Si falla, el
+    caso ya quedó en Training."""
+    try:
+        ids = {destino.manager_id}
+        dg = sd.delegacion_de(db, destino)
+        if dg and dg["activa"]:
+            ids.add(dg["empleadoId"])
+        ids -= {None, user.id}
+        if not ids:
+            return
+        cuerpo = " · ".join(x for x in ((o.orden or "").strip(), (o.paciente or "").strip(), (o.centro or "").strip(),
+                                        (o.producto or "").strip()) if x)
+        dia = "hoy" if o.fecha == sd.ahora_colombia().date() else f"el {o.fecha.day}/{o.fecha.month:02d}"
+        spush.enviar_en_segundo_plano(sorted(ids), "🎓 Nuevo caso para Training",
+                                      f"{cuerpo}\nLo pasó {o.origen_equipo or user.nombre_completo} ({dia}). Asígnalo a un diseñador de Training.",
+                                      url=f"/design?area_id={destino.area_id}&team_id={destino.id}",
+                                      etiqueta=f"training-{o.id}", fijo=True)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("design.training").exception("Training: no se pudo enviar el aviso push")
 
 
 def _push_llego_a_n2(db: Session, o: DesignOrden, aviso: dict, user: Empleado) -> None:

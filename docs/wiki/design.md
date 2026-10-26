@@ -333,6 +333,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`face_n2_viejas_una_vez`). Antes (14-oct) cualquier QC copiaba el caso al día de hoy.
 - **Push fijo** (se queda hasta que lo cierren): Face → N2 al llegar una orden aprobada, y a la
   persona de Support cuando un equipo de N3 le asigna un caso (`_push_caso_a_support`).
+- **Push al pasar un caso a Training** (Rosember, 26-oct-2026): cuando un manager de N3 › Cirugías elige «Training» en
+  Diseñador (`mover_a_training`), a la manager del equipo de Training (Estefanía) y a quien esté a cargo hoy de ese
+  equipo les llega «🎓 Nuevo caso para Training» (fijo, con orden, paciente, centro, producto, quién lo pasó y el día)
+  para que lo asigne (`_push_llego_a_training` en routers/design_schedule.py). No le llega a quien lo pasa.
 - **Push de Removable Denture** (Rosember, 21-oct-2026): a Nestor cuando le llega una copia nueva
   (`_push_copia_rd`; la pasada de órdenes viejas no avisa) y al manager del equipo de N3 / N6 de origen cuando
   Nestor aprueba la copia (`push_rd_aprobada`; desde el 26-oct-2026 también al diseñador de la orden original,
