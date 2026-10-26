@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block titulo %}Mantenimiento de equipos{% endblock %}
+{% block contenido %}
+<h1 style="margin:0;">Mantenimiento de equipos</h1>
+<p style="color:var(--gris)">Pide mantenimiento para los equipos de tu grupo y revisa el estado de tus solicitudes</p>
+
+<div id="aviso"></div>
+
+<div class="tarjeta">
+  <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;">
+    <button type="button" class="btn gris" id="tabSolicitarBtn" onclick="mostrarTab('solicitar')">📝 Solicitar mantenimiento</button>
+    <button type="button" class="btn gris" id="tabAprobacionesBtn" onclick="mostrarTab('aprobaciones')">✅ {{ 'Aprobaciones' if puede_aprobar else 'Mis solicitudes' }}</button>
+  </div>
+
+  <div id="panelSolicitar">
+    <form id="formSolicitud" onsubmit="return enviarSolicitud(event)">
+      <label for="equipoSelect">Equipo</label>
+      <select id="equipoSelect" required></select>
+      <label for="descripcionTxt">¿Qué le pasa al equipo? / qué mantenimiento necesita</label>
+      <textarea id="descripcionTxt" rows="4" required></textarea>
+      <button type="submit" class="btn">Enviar solicitud</button>
+    </form>
+  </div>
+
+  <div id="panelAprobaciones" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Equipo</th>
+          <th>Descripción</th>
+          <th>Estado</th>
+          <th>Solicitado por</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaSolicitudes"></tbody>
+    </table>
+    <p id="sinSolicitudes" style="color:var(--gris);display:none;">No hay solicitudes para mostrar.</p>
+  </div>
+</div>
+
+<script>
+var PUEDE_APROBAR = {{ 'true' if puede_aprobar else 'false' }};
+var ESTADOS_TXT = {SOLICITADO: 'Solicitado', ACEPTADO: 'Esperando mantenimiento', REALIZADO: 'Mantenimiento realizado',
+                   CONFIRMADO: 'Confirmado', RECHAZADO: 'Rechazado'};
+
+function avisar(msg, tipo) {
+  document.getElementById('aviso').innerHTML = '<div class="aviso ' + (tipo || 'ok') + '">' + msg + '</div>';
+  setTimeout(function() { document.getElementById('aviso').innerHTML = ''; }, 6000);
+}
+
+function mostrarTab(tab) {
+  document.getElementById('panelSolicitar').style.display = tab === 'solicitar' ? '' : 'none';
+  document.getElementById('panelAprobaciones').style.display = tab === 'aprobaciones' ? '' : 'none';
+  document.getElementById('tabSolicitarBtn').className = 'btn ' + (tab === 'solicitar' ? '' : 'gris');
+  document.getElementById('tabAprobacionesBtn').className = 'btn ' + (tab === 'aprobaciones' ? '' : 'gris');
+  if (tab === 'aprobaciones') cargarSolicitudes();
+  var url = new URL(window.location);
+  url.searchParams.set('tab', tab);
+  window.history.replaceState({}, '', url);
+}
+
+function cargarEquipos() {
+  fetch('/activos/mantenimiento/api/equipos', {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(equipos) {
+    var sel = document.getElementById('equipoSelect');
+    sel.innerHTML = '<option value="">Selecciona un equipo...</option>' + equipos.map(function(e) {
+      var usuario = e.usuario ? ' - ' + e.usuario : '';
+      return '<option value="' + e.asset_tag + '">' + e.asset_tag + ' (' + e.tipo_equipo + ' ' + (e.marca || '') + ' ' + (e.modelo || '') + ')' + usuario + '</option>';
+    }).join('');
+  });
+}
+
+function enviarSolicitud(ev) {
+  ev.preventDefault();
+  var asset_tag = document.getElementById('equipoSelect').value;
+  var descripcion = document.getElementById('descripcionTxt').value;
+  fetch('/activos/mantenimiento/api/solicitudes', {
+    method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({asset_tag: asset_tag, descripcion: descripcion})
+  }).then(function(r) { return r.json().then(function(d) { return {ok: r.ok, d: d}; }); }).then(function(res) {
+    if (!res.ok) { avisar(res.d.detail || 'No se pudo enviar la solicitud.', 'error'); return; }
+    avisar(res.d.mensaje, 'ok');
+    document.getElementById('formSolicitud').reset();
+  });
+  return false;
+}
+
+function accionSolicitud(id, accion, body) {
+  fetch('/activos/mantenimiento/api/solicitudes/' + id + '/' + accion, {
+    method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body || {})
+  }).then(function(r) { return r.json().then(function(d) { return {ok: r.ok, d: d}; }); }).then(function(res) {
+    avisar(res.d.detail || res.d.mensaje, res.ok ? 'ok' : 'error');
+    if (res.ok) cargarSolicitudes();
+  });
+}
+
+function marcarRealizado(id) {
+  var notas = prompt('Notas del mantenimiento realizado (opcional):') || '';
+  accionSolicitud(id, 'realizado', {notas: notas});
+}
+
+function rechazar(id) {
+  var motivo = prompt('Motivo del rechazo:');
+  if (!motivo) return;
+  accionSolicitud(id, 'rechazar', {motivo: motivo});
+}
+
+function cargarSolicitudes() {
+  fetch('/activos/mantenimiento/api/solicitudes', {credentials: 'same-origin'}).then(function(r) { return r.json(); }).then(function(solicitudes) {
+    var tbody = document.getElementById('tablaSolicitudes');
+    document.getElementById('sinSolicitudes').style.display = solicitudes.length ? 'none' : '';
+    tbody.innerHTML = solicitudes.map(function(s) {
+      var botones = '';
+      if (s.puede_aceptar) botones += '<button class="btn mini" onclick="accionSolicitud(' + s.id + ', \'aceptar\')">Aceptar</button> ';
+      if (s.puede_rechazar) botones += '<button class="btn mini rojo" onclick="rechazar(' + s.id + ')">Rechazar</button> ';
+      if (s.puede_marcar_realizado) botones += '<button class="btn mini verde" onclick="marcarRealizado(' + s.id + ')">Mantenimiento realizado</button> ';
+      if (s.puede_confirmar) botones += '<button class="btn mini verde" onclick="accionSolicitud(' + s.id + ', \'confirmar\')">Confirmar</button> ';
+      var detalle = s.motivo_rechazo ? '<br><small style="color:var(--rojo)">Motivo: ' + s.motivo_rechazo + '</small>' : '';
+      detalle += s.notas_realizado ? '<br><small style="color:var(--gris)">Notas: ' + s.notas_realizado + '</small>' : '';
+      return '<tr><td>' + s.asset_tag + '</td><td>' + s.descripcion + detalle + '</td>' +
+             '<td><span class="badge">' + (ESTADOS_TXT[s.estado] || s.estado) + '</span></td>' +
+             '<td>' + (s.solicitado_por || '') + '</td><td>' + botones + '</td></tr>';
+    }).join('');
+  });
+}
+
+cargarEquipos();
+var tabInicial = new URLSearchParams(window.location.search).get('tab') || '{{ "aprobaciones" if puede_aprobar else "solicitar" }}';
+mostrarTab(tabInicial === 'aprobaciones' ? 'aprobaciones' : 'solicitar');
+</script>
+{% endblock %}
