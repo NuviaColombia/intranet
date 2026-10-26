@@ -4463,6 +4463,7 @@ def perf_sheets(db: Session) -> list[DesignPerfSheet]:
     perf_quitar_una_vez(db)
     perf_meses_2026_una_vez(db)
     perf_hoja_zulys_una_vez(db)
+    perf_hoja_leonardo_una_vez(db)
     return db.query(DesignPerfSheet).order_by(DesignPerfSheet.orden).all()
 
 
@@ -4471,19 +4472,31 @@ def perf_sheets(db: Session) -> list[DesignPerfSheet]:
 # Paula»), con los 12 meses de 2026, una fila por cada diseñador de su equipo (sin ella) y asociada a ella, para que la vea y
 # califique solo la suya como las demás aprobadoras. Si todavía no está registrada como manager de un equipo de N3 con ese
 # nombre, no hace nada ni marca, y lo intenta en el próximo arranque. Si ya existe una hoja con ese nombre, solo la asocia.
-PERF_HOJA_ZULYS = {"marca": "perf_hoja_n3_zulys_2026_10_28", "nombre": "N3 Zulys", "area": "N3 Prosthetic", "anio": 2026}
+PERF_HOJA_ZULYS = {"marca": "perf_hoja_n3_zulys_2026_10_28", "nombre": "N3 Zulys", "area": "N3 Prosthetic", "anio": 2026,
+                   "patron": r"\bzul+[iy]s?\b"}
+# Igual para el aprobador Leonardo (N3) y su equipo (Rosember, 26-oct-2026): hoja «N3 Leonardo».
+PERF_HOJA_LEONARDO = {"marca": "perf_hoja_n3_leonardo_2026_10_26", "nombre": "N3 Leonardo", "area": "N3 Prosthetic", "anio": 2026,
+                      "patron": r"\bleonardo\b"}
 _perf_hoja_zulys = {"ok": False}
+_perf_hoja_leonardo = {"ok": False}
 _MESES_ES = ("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
 
 
 def perf_hoja_zulys_una_vez(db: Session) -> None:
+    _perf_hoja_aprobador_una_vez(db, PERF_HOJA_ZULYS, _perf_hoja_zulys)
+
+
+def perf_hoja_leonardo_una_vez(db: Session) -> None:
+    _perf_hoja_aprobador_una_vez(db, PERF_HOJA_LEONARDO, _perf_hoja_leonardo)
+
+
+def _perf_hoja_aprobador_una_vez(db: Session, cfg: dict, estado: dict) -> None:
     from .models_design import DesignConexionRegla
-    if _perf_hoja_zulys["ok"]:
+    if estado["ok"]:
         return
-    cfg = PERF_HOJA_ZULYS
     try:
         if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == cfg["marca"]).first():
-            _perf_hoja_zulys["ok"] = True
+            estado["ok"] = True
             return
         area = db.query(DesignArea).filter(DesignArea.nombre == cfg["area"]).first()
         if not area:
@@ -4492,11 +4505,12 @@ def perf_hoja_zulys_una_vez(db: Session) -> None:
                                                 joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado))
                    .filter(DesignTeam.area_id == area.id, DesignTeam.activo == 1, DesignTeam.manager_id.isnot(None)).all())
         suyos = [t for t in equipos if t.manager and getattr(t.manager, "activo", 1)
-                 and re.search(r"\bzul+[iy]s?\b", _normalizar_texto(t.manager.nombre_completo))]
+                 and re.search(cfg["patron"], _normalizar_texto(t.manager.nombre_completo))]
         managers = {t.manager_id for t in suyos}
         if len(managers) != 1:   # ninguna todavía, o más de una persona con ese nombre: no se adivina
             if len(managers) > 1:
-                log.warning("Design: hay más de un manager de N3 que parece Zulys; no se crea la hoja automáticamente")
+                log.warning("Design: hay más de un manager de %s que coincide con %s; no se crea la hoja automáticamente",
+                            cfg["area"], cfg["nombre"])
             return
         manager = suyos[0].manager
         hoja = next((h for h in db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "eval").all()
@@ -4521,10 +4535,67 @@ def perf_hoja_zulys_una_vez(db: Session) -> None:
         db.commit()
         _guardar_regla(db, "hoja_manager", hoja.nombre,
                        json.dumps({"area": cfg["area"], "manager": manager.nombre_completo, "managerId": manager.id}, ensure_ascii=False), "Sistema")
-        _perf_hoja_zulys["ok"] = True
+        estado["ok"] = True
     except Exception:
         log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
         db.rollback()
+
+
+# ---------- Desempeño: personas de una hoja (Rosember, 26-oct-2026) ----------
+# Aprobadores (en la hoja de su equipo) y admins (en cualquier hoja de evaluación) agregan nuevas contrataciones, corrigen el
+# nombre y quitan a quien ya no está. Quitar deja la fila con sus calificaciones en la Papelera (se puede restaurar 15 días).
+# El aprobador no se toca a sí mismo ni a nadie en DESIGN MANAGERS (esa hoja es de los admins).
+
+def perf_puede_gestionar_hoja(user: Empleado, sheet: DesignPerfSheet) -> bool:
+    if sheet.tipo != "eval":
+        return False
+    if es_admin(user):
+        return True
+    return not _es_hoja_general(sheet.nombre) and perf_sheet_visible(user, sheet)
+
+
+def _perf_nombre_limpio(nombre: str) -> str:
+    return re.sub(r"\s+", " ", nombre or "").strip()
+
+
+def _perf_nombre_repetido(sheet: DesignPerfSheet, nombre: str, salvo_id: int | None = None) -> bool:
+    n = _normalizar_texto(nombre)
+    return any(_normalizar_texto(e.nombre) == n and e.id != salvo_id for e in sheet.empleados)
+
+
+def perf_agregar_persona(db: Session, sheet: DesignPerfSheet, nombre: str) -> tuple[DesignPerfEmpleado | None, str | None]:
+    nombre = _perf_nombre_limpio(nombre)
+    if not nombre:
+        return None, "Escribe el nombre de la persona."
+    if len(nombre) > 150:
+        return None, "El nombre es demasiado largo."
+    if _perf_nombre_repetido(sheet, nombre):
+        return None, f"{nombre} ya está en esta hoja."
+    n_meses = len(json.loads(sheet.meses or "[]")) or 12
+    orden = max((e.orden or 0 for e in sheet.empleados), default=0) + 1
+    e = DesignPerfEmpleado(sheet_id=sheet.id, nombre=nombre, orden=orden, totales_mes=json.dumps([0.0] * n_meses))
+    db.add(e)
+    db.commit()
+    return e, None
+
+
+def perf_renombrar_persona(db: Session, emp: DesignPerfEmpleado, nombre: str) -> str | None:
+    nombre = _perf_nombre_limpio(nombre)
+    if not nombre:
+        return "Escribe el nombre de la persona."
+    if len(nombre) > 150:
+        return "El nombre es demasiado largo."
+    if _perf_nombre_repetido(emp.sheet, nombre, salvo_id=emp.id):
+        return f"{nombre} ya está en esta hoja."
+    emp.nombre = nombre
+    db.commit()
+    return None
+
+
+def perf_quitar_persona(db: Session, emp: DesignPerfEmpleado, por: str) -> None:
+    _trash_registrar(db, "perf-emp", f"Desempeño {emp.sheet.nombre}: {emp.nombre}", _snapshot_fila(emp), por)
+    db.delete(emp)
+    db.commit()
 
 
 # Desempeño › N6 Marlene (Rosember, 28-oct-2026): los títulos de los meses de esa hoja decían 2025 y debían decir 2026

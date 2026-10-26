@@ -8342,6 +8342,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       vista.appendChild(b);
     });
     toolbar.appendChild(vista);
+    if (d.puedeGestionar) toolbar.appendChild(pfBotonAgregar());
     if (pfVista() === 'mes') {
       var label = document.createElement('span'); label.innerText = 'Mes:'; toolbar.appendChild(label);
       toolbar.appendChild(selectMeses(d.meses, alCambiar));
@@ -8355,6 +8356,72 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       }
     }
     return toolbar;
+  }
+  // ---------- Personas de la hoja (Rosember, 26-oct-2026): aprobadores (su hoja) y admins agregan, renombran y quitan ----------
+  function pfBotonAgregar() {
+    var w = document.createElement('span'); w.className = 'pf-agregar';
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn mini'; b.innerText = '+ Agregar persona';
+    b.title = 'Agregar una nueva contratación a esta hoja';
+    b.onclick = function() {
+      w.innerHTML = '';
+      var inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 150; inp.placeholder = 'Nombre completo';
+      inp.setAttribute('aria-label', 'Nombre de la persona nueva');
+      var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn mini'; ok.innerText = 'Agregar';
+      var no = document.createElement('button'); no.type = 'button'; no.className = 'btn gris mini'; no.innerText = 'Cancelar';
+      var guardar = function() {
+        if (!inp.value.trim()) { inp.focus(); return; }
+        ok.disabled = true;
+        postJSON('/design/api/perf/sheets/' + PF.sheetId + '/personas', {nombre: inp.value}).then(function(r) {
+          window.dsToast('✅ ' + r.nombre + ' quedó en la hoja.'); cargarEval();
+        }, function(e) { ok.disabled = false; window.dsToast('⚠️ ' + e.message); inp.focus(); });
+      };
+      ok.onclick = guardar; no.onclick = function() { w.replaceWith(pfBotonAgregar()); };
+      inp.onkeydown = function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); guardar(); }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); no.onclick(); }
+      };
+      w.appendChild(inp); w.appendChild(ok); w.appendChild(no); inp.focus();
+    };
+    w.appendChild(b);
+    return w;
+  }
+  function pfNombreHtml(emp, ei, d) {
+    var h = '<span class="pf-p-nombre">' + esc(emp.nombre) + '</span>';
+    if (d.puedeGestionar && emp.editable !== false) {
+      h += '<span class="pf-p-acc"><button type="button" data-p-ren="' + ei + '" title="Corregir el nombre" aria-label="Corregir el nombre de ' + esc(emp.nombre) + '">✎</button>' +
+           '<button type="button" data-p-del="' + ei + '" title="Quitar de la hoja (queda en la Papelera)" aria-label="Quitar a ' + esc(emp.nombre) + ' de la hoja">🗑</button></span>';
+    }
+    return h;
+  }
+  function pfManejarPersona(e, d, repintar) {
+    var ren = e.target.closest('[data-p-ren]'), del = e.target.closest('[data-p-del]');
+    if (del) {
+      var emp = d.empleados[+del.dataset.pDel];
+      if (!confirm('¿Quitar a ' + emp.nombre + ' de esta hoja de desempeño?\n\nSus calificaciones quedan en la Papelera 15 días por si hay que restaurarla.')) return;
+      postJSON('/design/api/perf/empleados/' + emp.id + '/quitar', {}).then(function() {
+        window.dsToast('🗑 ' + emp.nombre + ' salió de la hoja (está en la Papelera).'); cargarEval();
+      }, function(x) { window.dsToast('⚠️ ' + x.message); });
+      return;
+    }
+    if (!ren) return;
+    var p = d.empleados[+ren.dataset.pRen], caja = ren.closest('.pf-emp-h, .pf-nombre'), nom = caja.querySelector('.pf-p-nombre');
+    var inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 150; inp.value = p.nombre; inp.className = 'pf-p-input';
+    inp.setAttribute('aria-label', 'Nombre de ' + p.nombre);
+    nom.replaceWith(inp); caja.querySelector('.pf-p-acc').hidden = true; inp.focus(); inp.select();
+    var listo = false;
+    var guardar = function() {
+      if (listo) return; listo = true;
+      var v = inp.value.trim();
+      if (!v || v === p.nombre) { repintar(); return; }
+      postJSON('/design/api/perf/empleados/' + p.id + '/nombre', {nombre: v}).then(function(r) {
+        p.nombre = r.nombre; window.dsToast('✅ Nombre actualizado.'); repintar();
+      }, function(x) { window.dsToast('⚠️ ' + x.message); repintar(); });
+    };
+    inp.onkeydown = function(ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); guardar(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); listo = true; repintar(); }
+    };
+    inp.onblur = guardar;
   }
   function pfEncMes(nombre, i) {
     return '<span>' + esc(nombre) + '</span> <button type="button" class="pf-ocultar" data-ocultar="' + i + '" title="Ocultar este mes" aria-label="Ocultar ' + esc(nombre) + '">🚫</button>';
@@ -8419,10 +8486,11 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       h += '<td></td></tr><tr class="pf-fila-notas"><td colspan="2">Notas</td><td colspan="' + (vis.length * 2 + 1) + '">' +
            '<textarea data-nota="' + ei + '"' + (ro ? ' disabled' : '') + ' aria-label="Notas de ' + esc(emp.nombre) + '">' + esc(emp.nota || '') + '</textarea></td></tr></tbody>';
       html += '<div class="pf-emp' + (ro ? ' pf-solo-lectura' : '') + '"' + (ro ? ' title="Solo lectura: no puedes calificarte a ti mismo ni a personas de otros equipos."' : '') + '>' +
-              '<h4 class="pf-emp-h">' + esc(emp.nombre) + '</h4><div class="pf-anual-wrap"><table class="pf-tabla pf-anual"><colgroup>' + cols + '</colgroup>' + h + '</table></div></div>';
+              '<h4 class="pf-emp-h">' + pfNombreHtml(emp, ei, d) + '</h4><div class="pf-anual-wrap"><table class="pf-tabla pf-anual"><colgroup>' + cols + '</colgroup>' + h + '</table></div></div>';
     });
     var cont = document.createElement('div'); cont.innerHTML = html || '<p style="color:#4b5563">Esta hoja no tiene personas.</p>';
     panel.appendChild(cont);
+    cont.addEventListener('click', function(e) { pfManejarPersona(e, d, function() { renderEval(d); }); });
     cont.addEventListener('change', function(e) {
       var sel = e.target.closest('select[data-emp]'); if (!sel) return;
       var emp = d.empleados[+sel.dataset.emp], cid = +sel.dataset.crit, mes = +sel.dataset.mes, nivel = sel.value, pct = PF_PCT[nivel] || 0;
@@ -8455,9 +8523,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     tabla.innerHTML = head;
 
     var tbody = document.createElement('tbody');
-    d.empleados.forEach(function(emp) {
+    tabla.addEventListener('click', function(e) { pfManejarPersona(e, d, function() { renderEval(d); }); });
+    d.empleados.forEach(function(emp, ei) {
       var tr = document.createElement('tr');
-      var tdNombre = document.createElement('td'); tdNombre.className = 'pf-nombre'; tdNombre.innerText = emp.nombre;
+      var tdNombre = document.createElement('td'); tdNombre.className = 'pf-nombre'; tdNombre.innerHTML = pfNombreHtml(emp, ei, d);
       tr.appendChild(tdNombre);
       var tdMes = document.createElement('td'); tdMes.className = 'pf-total';
       var tdTotal = document.createElement('td'); tdTotal.className = 'pf-total';

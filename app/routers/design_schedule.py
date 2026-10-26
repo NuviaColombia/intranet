@@ -2971,7 +2971,51 @@ def api_perf_detalle_eval(sheet_id: int, user: Empleado = Depends(require_design
         detalle["empleados"] = [e for e in detalle["empleados"] if sd._es_la_persona(e["nombre"], user)]
     for e in detalle["empleados"]:
         e["editable"] = sd.perf_puede_calificar(user, db.get(DesignPerfEmpleado, e["id"]))
+    detalle["puedeGestionar"] = sd.perf_puede_gestionar_hoja(user, sheet)   # agregar, renombrar y quitar personas
     return detalle
+
+
+# ---------- Personas de una hoja: agregar, renombrar y quitar (Rosember, 26-oct-2026) ----------
+class PerfPersonaIn(BaseModel):
+    nombre: str = Field(max_length=200)
+
+
+def _perf_persona_gestionable(db: Session, user: Empleado, empleado_id: int) -> DesignPerfEmpleado:
+    emp = db.get(DesignPerfEmpleado, empleado_id)
+    if not emp:
+        raise HTTPException(404, "Persona no encontrada.")
+    if not (sd.perf_puede_gestionar_hoja(user, emp.sheet) and sd.perf_puede_calificar(user, emp)):
+        raise HTTPException(403, "Solo puedes cambiar a las personas de la hoja de tu equipo (nunca a ti mismo).")
+    return emp
+
+
+@router.post("/design/api/perf/sheets/{sheet_id}/personas")
+def api_perf_agregar_persona(sheet_id: int, payload: PerfPersonaIn, user: Empleado = Depends(require_design_manager),
+                             db: Session = Depends(get_db)):
+    sheet = _perf_sheet(db, user, sheet_id)
+    if not sd.perf_puede_gestionar_hoja(user, sheet):
+        raise HTTPException(403, "Solo puedes agregar personas a la hoja de tu equipo.")
+    emp, err = sd.perf_agregar_persona(db, sheet, payload.nombre)
+    if err:
+        raise HTTPException(400, err)
+    return {"ok": True, "id": emp.id, "nombre": emp.nombre}
+
+
+@router.post("/design/api/perf/empleados/{empleado_id}/nombre")
+def api_perf_renombrar_persona(empleado_id: int, payload: PerfPersonaIn, user: Empleado = Depends(require_design_manager),
+                               db: Session = Depends(get_db)):
+    emp = _perf_persona_gestionable(db, user, empleado_id)
+    err = sd.perf_renombrar_persona(db, emp, payload.nombre)
+    if err:
+        raise HTTPException(400, err)
+    return {"ok": True, "nombre": emp.nombre}
+
+
+@router.post("/design/api/perf/empleados/{empleado_id}/quitar")
+def api_perf_quitar_persona(empleado_id: int, user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    emp = _perf_persona_gestionable(db, user, empleado_id)
+    sd.perf_quitar_persona(db, emp, user.nombre_completo)
+    return {"ok": True}
 
 
 def _perf_empleado_calificable(db: Session, user: Empleado, empleado_id: int) -> None:

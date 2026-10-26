@@ -141,6 +141,16 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (regla `hoja_manager`, como «N3 Paula»), así ve y califica solo la suya. Corre al arrancar y al abrir Desempeño. Si todavía
   no hay una manager de N3 con ese nombre, no hace nada ni marca y lo intenta después; si hay dos personas con ese nombre,
   no adivina. Si alguien borra la hoja, no reaparece. Para sumar un diseñador nuevo del equipo después: agregarlo en la hoja.
+- **Hoja de Desempeño «N3 Leonardo»** (Rosember, 26-oct-2026): igual que la de Zulys, para el aprobador Leonardo de N3 y su
+  equipo (`perf_hoja_leonardo_una_vez`, marca `perf_hoja_n3_leonardo_2026_10_26`, busca «leonardo» en el nombre del manager).
+  Ambas usan `_perf_hoja_aprobador_una_vez(db, cfg, estado)`; para otro aprobador basta otra configuración igual.
+- **Personas de una hoja de Desempeño** (Rosember, 26-oct-2026): en las hojas de evaluación, «+ Agregar persona» (nuevas
+  contrataciones), ✎ corregir el nombre y 🗑 quitar (p. ej. si alguien sale de la empresa), en «Año completo» y «Un mes».
+  Puede el aprobador en la hoja de su equipo (nunca su propia fila ni DESIGN MANAGERS) y el admin en cualquier hoja de
+  evaluación (`perf_puede_gestionar_hoja`). Rutas: POST `/design/api/perf/sheets/{id}/personas`,
+  `/design/api/perf/empleados/{id}/nombre` y `/design/api/perf/empleados/{id}/quitar`. Quitar deja la fila con sus
+  calificaciones en la Papelera (módulo `perf-emp`, 15 días, se puede restaurar). No se permiten dos filas con el mismo
+  nombre en una hoja. Renombrar no cambia nombres ya escritos en la hoja de Selección ni en Empleado del mes.
 - **Quien está a cargo no está disponible** (Rosember, 28-oct-2026): una persona a quien se deja «a cargo» de un equipo hoy
   (`delegaciones_activas`) queda como un aprobador: en Seguimiento no sale si no tiene casos propios hoy (si los tiene, sale con
   lo que hace), no cuenta como diseñador en turno en la capacidad de «Casos por equipo» (salvo que tenga casos hoy) y no se

@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (656 reglas) ---- */
+/* ---- static\design\schedule.css (661 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -490,6 +490,11 @@
 :root[data-ds-tema="oscuro"] table.pf-tabla td.pf-nombre { background:#131925; }
 :root[data-ds-tema="oscuro"] .pf-pct { border:1px solid #303848; background:rgba(255,255,255,0.08); color:#c5cad3; }
 :root[data-ds-tema="oscuro"] .pf-emp-h { color:#c9d5ef; }
+:root[data-ds-tema="oscuro"] .pf-p-acc button { background:none; color:#c5cad3; }
+:root[data-ds-tema="oscuro"] .pf-p-acc button:hover { background:#1c2536; }
+:root[data-ds-tema="oscuro"] .pf-p-acc button[data-p-del]:hover { background:#371212; }
+:root[data-ds-tema="oscuro"] .pf-p-input { border:1px solid #284565; }
+:root[data-ds-tema="oscuro"] .pf-agregar input { border:1px solid #323b4b; }
 :root[data-ds-tema="oscuro"] .pf-emp.pf-solo-lectura .pf-emp-h::after { color:#abb2c0; }
 :root[data-ds-tema="oscuro"] table.pf-anual td.pf-num { color:#abb2c0; }
 :root[data-ds-tema="oscuro"] table.pf-anual tr.pf-fila-total td { background:#1d2125; }

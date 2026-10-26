@@ -872,6 +872,15 @@
      meses en columnas (Resultado + Score). table-layout fijo para que los anchos ajustables se respeten. */
   .pf-emp { margin-bottom:22px; }
   .pf-emp-h { font-weight:700; font-size:14px; color:#0f1b33; margin:0 0 6px; }
+  /* Personas de la hoja: corregir nombre, quitar y agregar (26-oct-2026) */
+  .pf-p-acc { display:inline-flex; gap:2px; margin-left:8px; vertical-align:middle; opacity:.55; transition:opacity .15s; }
+  .pf-emp-h:hover .pf-p-acc, .pf-nombre:hover .pf-p-acc, .pf-p-acc:focus-within { opacity:1; }
+  .pf-p-acc button { background:none; border:0; border-radius:6px; padding:2px 6px; cursor:pointer; font-size:13px; line-height:1.2; color:#374151; }
+  .pf-p-acc button:hover { background:#e5e7eb; }
+  .pf-p-acc button[data-p-del]:hover { background:#fee2e2; }
+  .pf-p-input { font:inherit; font-size:14px; padding:3px 8px; border:1px solid #93c5fd; border-radius:6px; min-width:240px; margin:0; }
+  .pf-agregar { display:inline-flex; gap:6px; align-items:center; }
+  .pf-agregar input { margin:0; height:30px; padding:0 8px; border:1px solid #d8dde3; border-radius:6px; min-width:220px; font-size:13px; }
   .pf-emp.pf-solo-lectura .pf-emp-h::after { content:"  · solo lectura"; font-weight:500; color:#6b7280; font-size:12px; }
   .pf-anual-wrap { overflow-x:auto; }
   table.pf-anual { table-layout:fixed; width:max-content; }

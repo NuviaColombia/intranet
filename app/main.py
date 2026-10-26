@@ -707,6 +707,7 @@ def design_perf_meses_2026():
     try:
         services_design.perf_meses_2026_una_vez(db)
         services_design.perf_hoja_zulys_una_vez(db)
+        services_design.perf_hoja_leonardo_una_vez(db)   # y la del aprobador Leonardo (N3), 26-oct-2026
     except Exception:  # noqa: BLE001  nunca debe impedir el arranque
         db.rollback()
     finally:
