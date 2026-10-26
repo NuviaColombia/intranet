@@ -1251,6 +1251,13 @@ def api_delegacion_guardar(team_id: int, payload: DelegacionIn, user: Empleado =
     return {"ok": True, "aCargo": sd.delegacion_de(db, team)}
 
 
+@router.get("/design/api/teams/{team_id}/delegacion/candidatos")
+def api_delegacion_candidatos(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+                              db: Session = Depends(get_db)):
+    """«Otra persona…» en Dejar a cargo (26-oct-2026): personas de la misma área que no son de este equipo."""
+    return sd.candidatos_delegacion(db, _equipo_delegable(db, user, team_id))
+
+
 @router.post("/design/api/teams/{team_id}/delegacion/quitar")
 def api_delegacion_quitar(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     sd.quitar_delegacion(db, _equipo_delegable(db, user, team_id))

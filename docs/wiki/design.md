@@ -33,6 +33,10 @@ Antes de buscar un patrón de roles que no existe:
   anterior de N3 (la del 9-oct y lo que agregaron los aprobadores): esas filas quedan con `activo = 0` y los reportes
   de QC ya guardados no cambian. Se aplica una sola vez (`REEMPLAZOS` en services_design_qc.py, marca
   `qc_n3_lista_26oct`); lo que se agregue después se conserva. N6 sigue con su lista.
+- **Dejar a cargo › «Otra persona…»** (Rosember, 26-oct-2026): al final de la lista de diseñadores del equipo; abre un
+  buscador con las personas activas de la MISMA área (diseñadores de otros equipos y sus managers) que no son del equipo
+  (`candidatos_delegacion`, GET `/design/api/teams/{id}/delegacion/candidatos`). `guardar_delegacion` acepta al equipo
+  o a esos candidatos; nunca a alguien de otra área. Quien queda a cargo gestiona el Schedule (`gestiona_equipo`).
 - **Eliminar títulos y editar hallazgos de la lista de QC** (Rosember, 26-oct-2026; todas las áreas, solo admins): 🗑
   junto al título lo quita con todos sus hallazgos (`eliminar_titulo`, POST `/qc-catalogo/titulo/eliminar`, declarada
   antes de `/qc-catalogo/{item_id}/eliminar`) y ✎ junto a cada hallazgo corrige su texto (`editar_hallazgo`, POST

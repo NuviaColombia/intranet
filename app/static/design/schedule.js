@@ -2670,12 +2670,18 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsModalACargo(dia) {
     var a = dia.aCargo, hoy = dsFechaISO(new Date());
     var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
-    var ops = (dia.designers || []).filter(function(d) { return !d.esManager; }).map(function(d) {
+    var delEquipo = (dia.designers || []).filter(function(d) { return !d.esManager; });
+    var ops = delEquipo.map(function(d) {
       return '<option value="' + d.id + '"' + (a && a.empleadoId === d.id ? ' selected' : '') + '>' + dsEsc(d.nombre) + '</option>'; }).join('');
+    // «Otra persona…» (Rosember, 26-oct-2026): a veces queda a cargo alguien de otro equipo de la misma área
+    if (a && !delEquipo.some(function(d) { return d.id === a.empleadoId; })) ops += '<option value="' + a.empleadoId + '" selected>' + dsEsc(a.nombre) + '</option>';
+    ops += '<option value="otra">Otra persona…</option>';
     bg.innerHTML = '<div class="ds-qc ds-acargo-form" role="dialog" aria-modal="true" aria-labelledby="dsACargoTit" style="width:420px">' +
       '<h4 id="dsACargoTit">Dejar a cargo del equipo</h4>' +
-      '<div class="ds-qc-sub">Mientras no estás, el diseñador elegido puede asignar y editar los casos de todo el equipo en este Schedule, igual que tú. Solo uno a la vez; se apaga solo al terminar las fechas.</div>' +
-      (ops ? '<label for="dsACargoQuien">Diseñador</label><select id="dsACargoQuien">' + ops + '</select>' +
+      '<div class="ds-qc-sub">Mientras no estás, la persona elegida puede asignar y editar los casos de todo el equipo en este Schedule, igual que tú. Solo una a la vez; se apaga solo al terminar las fechas.</div>' +
+      (ops ? '<label for="dsACargoQuien">Persona</label><select id="dsACargoQuien">' + ops + '</select>' +
+             '<div id="dsACargoOtraW" hidden style="margin-top:6px"><input type="search" id="dsACargoBuscar" placeholder="Busca por nombre o equipo…" style="width:100%;box-sizing:border-box;margin-bottom:4px">' +
+             '<select id="dsACargoOtra" size="6" aria-label="Personas de la misma área" style="width:100%"></select></div>' +
              '<div class="ds-acargo-fechas"><div><label for="dsACargoDesde">Desde</label><input type="date" id="dsACargoDesde" min="' + hoy + '" value="' + (a ? (a.desde < hoy ? hoy : a.desde) : hoy) + '"></div>' +
              '<div><label for="dsACargoHasta">Hasta</label><input type="date" id="dsACargoHasta" min="' + hoy + '" value="' + (a ? a.hasta : hoy) + '"></div></div>'
            : '<p class="ds-prest-vacio">Este equipo no tiene diseñadores asignados.</p>') +
@@ -2692,12 +2698,34 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (b.dataset.ac === 'cancelar') { cerrar(); return; }
       if (b.dataset.ac === 'quitar') { postJSON(url + '/quitar', {}).then(function() { listo('Se quitó la autorización.'); }, falla); return; }
       var sel = document.getElementById('dsACargoQuien'), de = document.getElementById('dsACargoDesde').value, ha = document.getElementById('dsACargoHasta').value;
+      var quien = sel.value === 'otra' ? document.getElementById('dsACargoOtra') : sel;
+      if (!quien.value) { alert('Elige a la persona que queda a cargo.'); return; }
       if (!de || !ha) { alert('Elige las fechas.'); return; }
       if (ha < de) { alert('La fecha final no puede ser antes de la inicial.'); return; }
-      postJSON(url, {empleadoId: parseInt(sel.value, 10), desde: de, hasta: ha}).then(function() {
-        listo(sel.options[sel.selectedIndex].text + ' queda a cargo ' + dsRangoTxt({desde: de, hasta: ha}) + '.');
+      var opt = quien.options[quien.selectedIndex];
+      postJSON(url, {empleadoId: parseInt(quien.value, 10), desde: de, hasta: ha}).then(function() {
+        listo((opt.dataset.nombre || opt.text) + ' queda a cargo ' + dsRangoTxt({desde: de, hasta: ha}) + '.');
       }, falla);
     });
+    // «Otra persona…»: buscador con las personas de la misma área que no son del equipo
+    var selQuien = document.getElementById('dsACargoQuien'), otraW = document.getElementById('dsACargoOtraW'), candidatos = null;
+    var norm = function(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); };
+    var pintarOtras = function() {
+      var q = norm(document.getElementById('dsACargoBuscar').value), lista = document.getElementById('dsACargoOtra');
+      var filas = (candidatos || []).filter(function(c) { return !q || norm(c.nombre + ' ' + c.equipo).indexOf(q) >= 0; });
+      lista.innerHTML = filas.length ? filas.map(function(c) {
+        return '<option value="' + c.id + '" data-nombre="' + dsEsc(c.nombre) + '">' + dsEsc(c.nombre) + ' — ' + dsEsc(c.equipo) + '</option>'; }).join('')
+        : '<option value="" disabled>' + (candidatos ? 'No hay nadie con ese nombre en el área.' : 'Cargando…') + '</option>';
+    };
+    if (selQuien) selQuien.addEventListener('change', function() {
+      otraW.hidden = selQuien.value !== 'otra';
+      if (otraW.hidden) return;
+      pintarOtras();
+      document.getElementById('dsACargoBuscar').focus();
+      if (!candidatos) window.dsFetchJSON(url + '/candidatos').then(function(c) { candidatos = c || []; pintarOtras(); },
+                                                                     function(e) { candidatos = []; pintarOtras(); alert('No se pudo cargar la lista: ' + e.message); });
+    });
+    if (otraW) document.getElementById('dsACargoBuscar').addEventListener('input', pintarOtras);
     bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
     document.addEventListener('keydown', teclas, true);
     (bg.querySelector('select') || bg.querySelector('[data-ac]')).focus();

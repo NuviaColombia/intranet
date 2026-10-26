@@ -472,11 +472,31 @@ def delegacion_de(db: Session, team: DesignTeam) -> dict | None:
             "asignadoPor": d.asignado_por or ""}
 
 
+def candidatos_delegacion(db: Session, team: DesignTeam) -> list[dict]:
+    """«Otra persona…» en Dejar a cargo (Rosember, 26-oct-2026): a veces queda a cargo alguien de otro equipo. Personas
+    activas de la MISMA área (diseñadores y managers de sus equipos activos) que no son de este equipo ni su manager."""
+    del_equipo = {d.empleado_id for d in team.designers} | {team.manager_id}
+    equipos = (db.query(DesignTeam).options(joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado),
+                                            joinedload(DesignTeam.manager))
+               .filter(DesignTeam.area_id == team.area_id, DesignTeam.activo == 1, DesignTeam.id != team.id)
+               .order_by(DesignTeam.orden, DesignTeam.nombre).all())
+    out: dict[int, dict] = {}
+    for t in equipos:
+        gente = ([(t.manager, "manager")] if t.manager else []) + [(d.empleado, "") for d in t.designers if d.empleado]
+        for e, rol in gente:
+            if e.id in del_equipo or e.id in out or not e.activo:
+                continue
+            out[e.id] = {"id": e.id, "nombre": e.nombre_completo, "equipo": t.nombre + (" (manager)" if rol else "")}
+    return sorted(out.values(), key=lambda x: _normalizar_texto(x["nombre"]))
+
+
 def guardar_delegacion(db: Session, team: DesignTeam, empleado_id: int, desde: date, hasta: date, por: str) -> str | None:
-    """Deja a un diseñador del equipo a cargo entre `desde` y `hasta` (reemplaza la anterior). Devuelve el error."""
+    """Deja a alguien a cargo del equipo entre `desde` y `hasta` (reemplaza la anterior): un diseñador del equipo o, con
+    «Otra persona…», alguien de la misma área (candidatos_delegacion). Devuelve el error."""
     from .models_design import DesignDelegacion
-    if not any(d.empleado_id == empleado_id for d in team.designers):
-        return "Solo puedes dejar a cargo a un diseñador de este equipo."
+    if (not any(d.empleado_id == empleado_id for d in team.designers)
+            and not any(c["id"] == empleado_id for c in candidatos_delegacion(db, team))):
+        return "Solo puedes dejar a cargo a alguien del equipo o de la misma área."
     if empleado_id == team.manager_id:
         return "El manager ya tiene el permiso."
     if hasta < desde:
