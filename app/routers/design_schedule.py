@@ -3297,6 +3297,27 @@ def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depen
     return {"mensaje": "Movida."}
 
 
+@router.get("/design/api/canvas/destinatarios")
+def api_canvas_destinatarios(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Con quién se puede compartir una hoja: las personas de la misma área (26-oct-2026)."""
+    return sd.canvas_destinatarios(db, user, area_id)
+
+
+class CanvasCompartirIn(BaseModel):
+    destino: str   # "area" o el id de la persona
+
+
+@router.post("/design/api/canvas/docs/{doc_id}/compartir")
+def api_canvas_compartir(doc_id: int, payload: CanvasCompartirIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                         db: Session = Depends(get_db)):
+    """Envía una copia de la hoja (solo el formato, sin fotos) a una persona del área o a todo el área."""
+    try:
+        ids = sd.canvas_compartir(db, doc_id, user, payload.destino)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True, "enviadas": len(ids)}
+
+
 @router.post("/design/api/canvas/docs/{doc_id}/eliminar")
 def api_canvas_eliminar(doc_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
                               db: Session = Depends(get_db)):

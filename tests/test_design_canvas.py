@@ -36,5 +36,41 @@ class CanvasPrivado(unittest.TestCase):
         self.assertIsNotNone(sd.canvas_guardar_doc(self.db, self.hoja.id, {"nombre": "Sigue siendo mía"}, self.ana))
 
 
+    def test_compartir_copia_solo_el_formato(self):
+        import json
+        from unittest import mock
+        from app import services_design_push as spush
+        foto = {"src": "data:image/png;base64,AAAA"}
+        sd.canvas_guardar_doc(self.db, self.hoja.id, {"titulo": "Formato David",
+                                                      "frames": [{"id": "f1", "x": 0, "y": 0, "w": 10, "h": 10, "img": foto}],
+                                                      "elements": [{"id": "t1", "type": "text", "text": "Nota"}, {"id": "i1", "img": foto}]}, self.ana)
+        with mock.patch.object(spush, "enviar_en_segundo_plano") as env:
+            self.assertEqual(sd.canvas_compartir(self.db, self.hoja.id, self.ana, str(self.beto.id)), [self.beto.id])
+        self.assertEqual(env.call_args[0][0], [self.beto.id])
+        copias = self.db.query(md.DesignCanvasDoc).filter_by(empleado_id=self.beto.id).all()
+        copia = next(c for c in copias if c.titulo == "Formato David")
+        self.assertIn("(de Ana X)", copia.nombre)
+        self.assertIsNone(json.loads(copia.frames)[0]["img"])                         # sin fotos
+        self.assertEqual([e["id"] for e in json.loads(copia.elements)], ["t1"])       # sin anotaciones con imagen
+        self.assertGreater(len(copias), 1)                                             # recibió también sus hojas base
+        self.assertIsNotNone(json.loads(self.db.get(md.DesignCanvasDoc, self.hoja.id).frames)[0]["img"])   # la original sigue igual
+
+    def test_compartir_con_el_area_y_no_con_otra_area(self):
+        from unittest import mock
+        from app import services_design_push as spush
+        otra = md.DesignArea(nombre="N2 Demodenture", formato="n2"); self.db.add(otra); self.db.commit()
+        ext = models.Empleado(nombres="Ext", apellidos="X", email="ext@x.com", rol="empleado", activo=True,
+                              empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion="ext")
+        self.db.add(ext); self.db.commit()
+        t2 = md.DesignTeam(area_id=otra.id, nombre="N2", manager_id=None, orden=1, activo=1); self.db.add(t2); self.db.commit()
+        self.db.add(md.DesignTeamDesigner(team_id=t2.id, empleado_id=ext.id)); self.db.commit()
+        with mock.patch.object(spush, "enviar_en_segundo_plano"):
+            self.assertEqual(sorted(sd.canvas_compartir(self.db, self.hoja.id, self.ana, "area")), sorted([self.beto.id, self.lia.id]))
+            with self.assertRaises(ValueError):
+                sd.canvas_compartir(self.db, self.hoja.id, self.ana, str(ext.id))       # otra área
+            with self.assertRaises(ValueError):
+                sd.canvas_compartir(self.db, self.hoja.id, self.beto, "area")           # la hoja no es suya
+
+
 if __name__ == "__main__":
     unittest.main()

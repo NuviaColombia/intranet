@@ -6574,6 +6574,8 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       if (areaId !== CV.areaId) throw {viejo: true}; // el usuario ya cambió de área
       if (local) {   // lo que hay en el navegador de esta persona
         CANVAS.docs = local.map(function(d) { d.frames = (d.frames || []).map(cvSanear); d.elements = (d.elements || []).map(cvSanear); return d; });
+        // Hojas compartidas (26-oct-2026): llegan al respaldo del servidor; las que no están en el navegador se agregan
+        cvTraerDelServidor(areaId).then(function() { if (areaId === CV.areaId && CANVAS.view === "home") cvRender(); }, function() {});
         return;
       }
       return api('/design/api/canvas/docs?area_id=' + areaId).then(function(docs) {   // primera vez: copia del respaldo
@@ -6689,6 +6691,58 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       CANVAS.docs.unshift(cvFromServer(r)); cvLocalGuardar(); cvRender();
     });
   }
+  // Compartir una copia de la hoja (Rosember, 26-oct-2026): con todos los del área o con una persona. Va solo el formato.
+  function cvCompartir(id) {
+    var d = CANVAS.docs.find(function(x) { return x.id === id; }); if (!d) return;
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
+    bg.innerHTML = '<div class="ds-qc" role="dialog" aria-modal="true" aria-labelledby="cvShTit" style="width:440px">' +
+      '<h4 id="cvShTit"></h4><div class="ds-qc-sub">Se envía una copia con el formato de la hoja (título, marcos y anotaciones). ' +
+      'Los marcos van vacíos: las fotos no se comparten. A quien la recibe le llega un aviso y la ve en su Canvas.</div>' +
+      '<label style="display:flex;gap:6px;align-items:center;margin:8px 0"><input type="radio" name="cvShA" value="area" checked> Todos los de mi área <span id="cvShN" style="color:#6b7280"></span></label>' +
+      '<label style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="radio" name="cvShA" value="uno"> Una persona</label>' +
+      '<div id="cvShUnoW" hidden><input type="search" id="cvShBuscar" placeholder="Busca por nombre o equipo…" style="width:100%;box-sizing:border-box;margin:4px 0">' +
+      '<select id="cvShLista" size="7" style="width:100%"></select></div>' +
+      '<div class="ds-qc-err" id="cvShErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-sh="no">Cancelar</button><button type="button" class="btn" data-sh="si">Compartir</button></div></div>';
+    document.body.appendChild(bg);
+    bg.querySelector('#cvShTit').textContent = 'Compartir «' + (d.name || d.title || 'Hoja') + '»';
+    var err = bg.querySelector('#cvShErr'), lista = bg.querySelector('#cvShLista'), buscar = bg.querySelector('#cvShBuscar'), gente = [];
+    var norm = function(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+    var pintar = function() {
+      var q = norm(buscar.value), filas = gente.filter(function(p) { return !q || norm(p.nombre + ' ' + p.equipo).indexOf(q) >= 0; });
+      lista.innerHTML = filas.length ? filas.map(function(p) { return '<option value="' + p.id + '">' + esc(p.nombre) + ' — ' + esc(p.equipo) + '</option>'; }).join('')
+        : '<option value="" disabled>' + (gente.length ? 'No hay nadie con ese nombre.' : 'No hay más personas en tu área.') + '</option>';
+    };
+    api('/design/api/canvas/destinatarios?area_id=' + CV.areaId).then(function(ps) {
+      gente = ps || []; pintar();
+      bg.querySelector('#cvShN').textContent = '(' + gente.length + ' persona' + (gente.length === 1 ? '' : 's') + ')';
+    }, function(e) { err.textContent = 'No se pudo cargar la lista: ' + e.message; });
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
+    var teclas = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
+    document.addEventListener('keydown', teclas, true);
+    bg.addEventListener('change', function(e) {
+      if (e.target.name === 'cvShA') { bg.querySelector('#cvShUnoW').hidden = e.target.value !== 'uno'; if (e.target.value === 'uno') buscar.focus(); }
+    });
+    buscar.addEventListener('input', pintar);
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    bg.addEventListener('click', function(e) {
+      var b = e.target.closest('[data-sh]'); if (!b) return;
+      if (b.dataset.sh === 'no') { cerrar(); return; }
+      var modo = bg.querySelector('input[name="cvShA"]:checked').value, destino = modo === 'area' ? 'area' : lista.value;
+      err.textContent = '';
+      if (!destino) { err.textContent = 'Elige a la persona.'; return; }
+      if (modo === 'area' && !confirm('¿Compartir una copia de esta hoja con las ' + gente.length + ' personas de tu área?')) return;
+      b.disabled = true;
+      // primero se guarda lo último de la hoja en el respaldo, para que la copia salga al día
+      var cuerpo = {nombre: d.name, titulo: d.title, tituloColor: d.titleColor, w: d.w, h: d.h, frames: d.frames, elements: d.elements};
+      postJSON('/design/api/canvas/docs/' + d.id, cuerpo)
+        .then(function() { return postJSON('/design/api/canvas/docs/' + d.id + '/compartir', {destino: String(destino)}); })
+        .then(function(r) {
+          cerrar();
+          cvAviso('<span>✅ Hoja compartida con ' + (r.enviadas === 1 ? (modo === 'area' ? '1 persona' : esc(lista.options[lista.selectedIndex].text.split(' — ')[0])) : r.enviadas + ' personas') + '</span>', false);
+        }, function(x) { b.disabled = false; err.textContent = x.message; });
+    });
+  }
   function cvRenameDoc(id) {
     var d = CANVAS.docs.find(function(x) { return x.id === id; }); if (!d) return;
     var n = (prompt("Nuevo nombre:", d.name) || "").trim(); if (!n) return;
@@ -6790,6 +6844,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
           '<button class="cv-board-name" data-open="' + d.id + '">' + esc(d.name || d.title || "Hoja") + '</button>' +
           '<div class="cv-board-sub">' + d.frames.length + ' marco' + (d.frames.length === 1 ? "" : "s") + (filled ? (" · " + filled + " con foto") : "") + '</div>' +
           '<button class="cv-mini-btn" data-dl="' + d.id + '" title="Descargar esta hoja (imagen PNG)">⬇ Descargar</button>' +
+          '<button class="cv-mini-btn" data-share="' + d.id + '" title="Compartir una copia de esta hoja (solo el formato, sin fotos)">⇪ Compartir</button>' +
         '</div>';
       }).join('');
       home.innerHTML = cvHomeHeader() + '<div class="cv-board">' + tiles + addCard + '</div>';
@@ -6804,6 +6859,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         '</button>' +
         '<div class="cv-sheet-acts">' +
           '<button class="cv-mini-btn" data-dl="' + d.id + '" title="Descargar esta hoja (imagen PNG)">⬇</button>' +
+          '<button class="cv-mini-btn" data-share="' + d.id + '" title="Compartir una copia (solo el formato, sin fotos)">⇪</button>' +
           (CV.verDe ? '' : '<button class="cv-mini-btn" data-dup="' + d.id + '" title="Duplicar">⧉</button>' +
           '<button class="cv-mini-btn" data-ren="' + d.id + '" title="Renombrar">✎</button>' +
           '<button class="cv-mini-btn cv-danger" data-del="' + d.id + '" title="Eliminar">🗑️</button>') +
@@ -6855,6 +6911,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
          (CANVAS.expert ? '<button class="cv-mini-btn" id="cvPdfBtn" title="Exportar esta hoja a PDF">📄 PDF</button>' +
            '<button class="cv-mini-btn" id="cvPdfAllBtn" title="Exportar TODAS las hojas del área a un solo PDF">📚 Todas</button>' : '') +
          '<button class="cv-primary-btn" id="cvExportBtn" title="Exportar como PNG">PNG</button>' +
+         '<button class="cv-mini-btn" id="cvShareBtn" title="Compartir una copia de esta hoja con alguien de tu área (solo el formato, sin fotos)">⇪ Compartir</button>' +
          (CANVAS.expert ? '<button class="cv-mini-btn" id="cvCopyBtn" title="Copiar como imagen">📋 Copiar</button>' : '') +
          '<span class="cv-tool-sep"></span>' +
          (CANVAS.expert ? '<button class="cv-mini-btn" data-ellock title="Bloquear/desbloquear la selección">🔒 Bloquear</button>' : '') +
@@ -6945,6 +7002,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       return '<div class="cv-rail-item' + (active ? ' active' : '') + '" data-railid="' + d.id + '" draggable="true" title="Arrastra para reordenar">' +
         '<div class="cv-rail-acts">' +
           '<button data-dup="' + d.id + '" title="Duplicar hoja">⧉</button>' +
+          '<button data-share="' + d.id + '" title="Compartir una copia (solo el formato, sin fotos)">⇪</button>' +
           '<button data-ren="' + d.id + '" title="Renombrar hoja">✎</button>' +
           '<button class="cv-danger" data-cvraildel="' + d.id + '" title="Eliminar hoja">🗑️</button>' +
         '</div>' +
@@ -7783,6 +7841,8 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var open = t.closest("[data-open]"); if (open) { cvOpenDoc(parseInt(open.dataset.open)); return; }
     var ren = t.closest("[data-ren]"); if (ren) { cvRenameDoc(parseInt(ren.dataset.ren)); return; }
     var dup = t.closest("[data-dup]"); if (dup) { cvDuplicateDoc(parseInt(dup.dataset.dup)); return; }
+    var sh = t.closest("[data-share]"); if (sh) { e.stopPropagation(); cvCompartir(parseInt(sh.dataset.share)); return; }
+    if (t.closest("#cvShareBtn")) { var d9 = cvActiveDoc(); if (d9) cvCompartir(d9.id); return; }
     var del = t.closest("[data-del]"); if (del) { cvDeleteDoc(parseInt(del.dataset.del)); return; }
     var csz = t.closest('[data-cvsize="apply"]'); if (csz) { var d0 = cvActiveDoc(); var wi = document.getElementById("cvSizeW"), hi = document.getElementById("cvSizeH"); if (d0 && wi && hi) cvApplySize(d0, wi.value, hi.value); return; }
     if (t.closest("#cvBackBtn")) { cvBackHome(); return; }

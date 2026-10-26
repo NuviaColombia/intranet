@@ -5164,6 +5164,63 @@ def canvas_eliminar_doc(db: Session, doc_id: int, user: Empleado) -> int | None:
     return t.id
 
 
+# ---------- Compartir una hoja de Canvas (Rosember, 26-oct-2026) ----------
+# Una persona envía una COPIA de su hoja a alguien de su misma área, o a todos los del área. Va solo el formato:
+# título, marcos (vacíos) y anotaciones; nada de fotos de pacientes (los marcos quedan sin imagen y las anotaciones con
+# imagen no se copian). La copia queda en el respaldo de quien la recibe y su Canvas la trae al abrirse; le llega un push.
+
+def canvas_destinatarios(db: Session, user: Empleado, area_id: int) -> list[dict]:
+    """Personas activas del área (diseñadores y managers de sus equipos activos), sin contar a `user`."""
+    equipos = (db.query(DesignTeam).options(joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado),
+                                            joinedload(DesignTeam.manager))
+               .filter(DesignTeam.area_id == area_id, DesignTeam.activo == 1).order_by(DesignTeam.orden, DesignTeam.nombre).all())
+    out: dict[int, dict] = {}
+    for t in equipos:
+        for e in ([t.manager] if t.manager else []) + [d.empleado for d in t.designers if d.empleado]:
+            if e.id != user.id and e.id not in out and e.activo:
+                out[e.id] = {"id": e.id, "nombre": e.nombre_completo, "equipo": t.nombre}
+    return sorted(out.values(), key=lambda x: _normalizar_texto(x["nombre"]))
+
+
+def canvas_compartir(db: Session, doc_id: int, user: Empleado, destino) -> list[int]:
+    """Copia la hoja (solo el formato) a `destino`: "area" = todos los del área, o el id de una persona del área.
+    Devuelve a quiénes se copió. ValueError si no se puede."""
+    d = canvas_doc_propio(db, doc_id, user)
+    if not d:
+        raise ValueError("Esa hoja no existe o no es tuya.")
+    posibles = {p["id"] for p in canvas_destinatarios(db, user, d.area_id)}
+    if destino == "area":
+        ids = sorted(posibles)
+    else:
+        try:
+            ids = [int(destino)]
+        except (TypeError, ValueError):
+            raise ValueError("Elige a quién compartir la hoja.")
+        if ids[0] not in posibles:
+            raise ValueError("Solo puedes compartir con personas de tu misma área.")
+    if not ids:
+        raise ValueError("No hay más personas en tu área.")
+    frames = [dict(f, img=None) for f in json.loads(d.frames or "[]") if isinstance(f, dict)]
+    elementos = [e for e in json.loads(d.elements or "[]") if isinstance(e, dict) and not e.get("img")]
+    corto = " ".join(user.nombre_completo.split()[:2])
+    for eid in ids:
+        if not db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id, DesignCanvasDoc.empleado_id == eid).count():
+            _canvas_sembrar(db, d.area_id, eid)   # primera vez en el área: recibe también sus hojas base
+        orden = db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id, DesignCanvasDoc.empleado_id == eid).count() + 1
+        db.add(DesignCanvasDoc(area_id=d.area_id, empleado_id=eid, nombre=f"{d.nombre} (de {corto})"[:150], template_id=d.template_id,
+                               titulo=d.titulo, titulo_color=d.titulo_color, w=d.w, h=d.h, orden=orden, creado_por=user.nombre_completo,
+                               frames=json.dumps(frames, ensure_ascii=False), elements=json.dumps(elementos, ensure_ascii=False)))
+    db.commit()
+    try:
+        from . import services_design_push as spush
+        spush.enviar_en_segundo_plano(ids, f"🎨 {corto} te compartió una hoja de Canvas",
+                                      f"«{d.nombre}» ya está en tu Canvas (solo el formato, sin fotos).",
+                                      url="/design?panel=canvas", etiqueta=f"canvas-compartida-{d.id}")
+    except Exception:  # noqa: BLE001  la copia ya quedó
+        log.exception("Canvas: no se pudo enviar el aviso de hoja compartida")
+    return ids
+
+
 CANVAS_DESHACER_MINUTOS = 10
 
 
