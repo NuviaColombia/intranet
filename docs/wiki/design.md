@@ -49,7 +49,9 @@ Antes de buscar un patrón de roles que no existe:
   se conserva al buscar.
 - **Buscar orden o paciente con el logo** (Rosember, 26-oct-2026): en el Schedule el buscador es un círculo con el logo
   (día: círculo del azul de la barra y logo blanco; oscuro: círculo blanco y logo azul de la barra, en `oscuro.css`).
-  Al tocarlo se alarga en la barra de búsqueda, como Google; se recoge con Esc o al salir sin nada escrito. El logo es
+  Al tocarlo se alarga en la barra de búsqueda, como Google; se recoge con Esc o al salir sin nada escrito. Abierta, el
+  contorno alumbra en azul claro. La barra (`.ds-buscar-caja`) se despliega por encima de los botones vecinos: el círculo
+  ocupa siempre 34px y el foco usa `preventScroll`, así la página no salta al abrir. El logo es
   `static/design/logo_buscar.png` (blanco con transparencia), usado como máscara CSS para pintarlo de cualquier color.
 - **Dashboard › Filtros › Reportes de QC: filtro ▾** (Rosember, 26-oct-2026): en el encabezado «Hallazgo de QC», ordenar
   A → Z / Z → A y elegir qué hallazgos ver (cada reporte se parte en «Título › hallazgo», con cuántas órdenes lo tienen,

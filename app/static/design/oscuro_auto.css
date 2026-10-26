@@ -149,9 +149,9 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-resaltada td { box-shadow:inset 0 3px 0 #f59e0b, inset 0 -3px 0 #f59e0b; }
 }
-:root[data-ds-tema="oscuro"] .ds-buscar { background:#111827; }
-:root[data-ds-tema="oscuro"] .ds-buscar.abierto { background:#131925; box-shadow:0 1px 6px rgba(32,33,36,.28); }
-:root[data-ds-tema="oscuro"] .ds-buscar.abierto:focus-within { box-shadow:0 1px 8px rgba(32,33,36,.38); }
+:root[data-ds-tema="oscuro"] .ds-buscar-caja { background:#131925; }
+:root[data-ds-tema="oscuro"] .ds-buscar.abierto .ds-buscar-caja { box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 0 0 4px rgba(0,0,0,.45), 0 2px 14px rgba(59,130,246,.22); }
+:root[data-ds-tema="oscuro"] .ds-buscar.abierto .ds-buscar-caja:focus-within { box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 0 0 4px rgba(0,0,0,.45), 0 2px 18px rgba(59,130,246,.3); }
 :root[data-ds-tema="oscuro"] .ds-buscar-logo { background:#111827; }
 :root[data-ds-tema="oscuro"] .ds-buscar-logo:focus-visible { outline:2px solid #2563eb; }
 :root[data-ds-tema="oscuro"] .ds-buscar-ico { background:#131925; }

@@ -112,8 +112,9 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] .gv-cols ul, :root[data-ds-tema="oscuro"] .gv-chk { color:#e5e7eb; }
 
 /* Buscador del Schedule con el logo (26-oct-2026): en oscuro, círculo blanco y logo del azul de la barra */
-:root[data-ds-tema="oscuro"] .ds-buscar, :root[data-ds-tema="oscuro"] .ds-buscar-logo { background:#fff; }
+:root[data-ds-tema="oscuro"] .ds-buscar-logo { background:#fff; }
 :root[data-ds-tema="oscuro"] .ds-buscar-ico { background:#0f172a; }
-:root[data-ds-tema="oscuro"] .ds-buscar.abierto { background:#0f172a; box-shadow:0 0 0 1px #334155, 0 2px 10px rgba(0,0,0,.45); }
-:root[data-ds-tema="oscuro"] .ds-buscar.abierto:focus-within { box-shadow:0 0 0 1px #60a5fa, 0 2px 12px rgba(0,0,0,.5); }
+:root[data-ds-tema="oscuro"] .ds-buscar-caja { background:#0f172a; }
+:root[data-ds-tema="oscuro"] .ds-buscar.abierto .ds-buscar-caja { box-shadow:0 0 0 1px #3b82f6, 0 0 0 4px rgba(96,165,250,.18), 0 0 16px rgba(96,165,250,.3); }
+:root[data-ds-tema="oscuro"] .ds-buscar.abierto .ds-buscar-caja:focus-within { box-shadow:0 0 0 1px #60a5fa, 0 0 0 4px rgba(96,165,250,.26), 0 0 20px rgba(96,165,250,.4); }
 :root[data-ds-tema="oscuro"] .ds-buscar input { background:transparent; border:0; color:#e5e7eb; }

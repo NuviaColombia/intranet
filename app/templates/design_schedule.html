@@ -12,10 +12,12 @@
       {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digital</button>{% endif %}
       <div id="dsACargo" class="ds-acargo" hidden></div>
       <div class="ds-buscar" role="search">
-        <button type="button" class="ds-buscar-logo" id="dsBuscarLogo" title="Buscar orden o paciente" aria-label="Buscar orden o paciente"
-                aria-expanded="false" aria-controls="dsBuscarInput"><span class="ds-buscar-ico" aria-hidden="true"></span></button>
-        <input tabindex="-1" type="search" id="dsBuscarInput" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente"
-               autocomplete="off" aria-controls="dsBuscarRes">
+        <div class="ds-buscar-caja">
+          <button type="button" class="ds-buscar-logo" id="dsBuscarLogo" title="Buscar orden o paciente" aria-label="Buscar orden o paciente"
+                  aria-expanded="false" aria-controls="dsBuscarInput"><span class="ds-buscar-ico" aria-hidden="true"></span></button>
+          <input tabindex="-1" type="search" id="dsBuscarInput" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente"
+                 autocomplete="off" aria-controls="dsBuscarRes">
+        </div>
         <div id="dsBuscarRes" class="ds-buscar-res" hidden></div>
       </div>
     </div>

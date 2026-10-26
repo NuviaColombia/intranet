@@ -301,7 +301,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var timer = null, tok = 0, caja = inp.closest('.ds-buscar'), logo = document.getElementById('dsBuscarLogo');
     function cerrar() { res.hidden = true; res.innerHTML = ''; }
     // Como Google: el logo se alarga en la barra; se recoge al salir sin nada escrito
-    function abrir() { caja.classList.add('abierto'); logo.setAttribute('aria-expanded', 'true'); inp.tabIndex = 0; inp.focus(); }
+    function abrir() { caja.classList.add('abierto'); logo.setAttribute('aria-expanded', 'true'); inp.tabIndex = 0; inp.focus({preventScroll: true}); }
     function recoger() {
       if (inp.value.trim()) return;
       caja.classList.remove('abierto'); logo.setAttribute('aria-expanded', 'false'); inp.tabIndex = -1; cerrar();
