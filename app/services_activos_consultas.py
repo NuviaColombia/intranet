@@ -74,6 +74,32 @@ def salud_equipo(db: Session, asset_tag: str, estado: str) -> str:
     return "OPTIMO" if algun_servicio else "SIN_REVISION"
 
 
+def _salud_equipos_lote(db: Session, equipos: dict[str, ActivosEquipo]) -> dict[str, str]:
+    """Misma regla que `salud_equipo`, pero para muchos equipos en 2 consultas en vez de hasta 2 por
+    equipo -- `listar_grupos` la necesita para TODOS los equipos de TODOS los grupos en cada carga
+    del dashboard de Mantenimiento, y equipo por equipo era muy lento contra Postgres en producción
+    (hasta ~3 ida y vuelta por equipo)."""
+    tags = list(equipos.keys())
+    if not tags:
+        return {}
+    con_correctivo_abierto = {t for (t,) in db.query(ActivosMantenimiento.asset_tag).filter(
+        ActivosMantenimiento.asset_tag.in_(tags), ActivosMantenimiento.tipo_mantenimiento == "CORRECTIVO",
+        ActivosMantenimiento.estado_mantenimiento.in_(("PROGRAMADO", "EN_PROCESO"))).distinct().all()}
+    con_servicio_completado = {t for (t,) in db.query(ActivosMantenimiento.asset_tag).filter(
+        ActivosMantenimiento.asset_tag.in_(tags), ActivosMantenimiento.estado_mantenimiento == "COMPLETADO").distinct().all()}
+    out = {}
+    for tag, e in equipos.items():
+        if e.estado == "MANTENIMIENTO":
+            out[tag] = "EN_MANTENIMIENTO"
+        elif tag in con_correctivo_abierto:
+            out[tag] = "NOVEDADES"
+        elif tag in con_servicio_completado:
+            out[tag] = "OPTIMO"
+        else:
+            out[tag] = "SIN_REVISION"
+    return out
+
+
 def _requiere_exocad(db: Session, id_area_id: int | None) -> bool:
     if id_area_id is None:
         return False
@@ -402,6 +428,10 @@ def listar_grupos(db: Session) -> list[dict]:
     lideres = db.query(ActivosPerfil).filter(ActivosPerfil.empleado_id.in_(
         db.query(ActivosPerfil.id_lider_id).filter(ActivosPerfil.id_lider_id.isnot(None), ActivosPerfil.retirado.is_(False)).distinct()
     )).all()
+    equipos_por_lider = {lp.empleado_id: _equipos_del_grupo(db, lp.empleado_id) for lp in lideres}
+    todos_los_tags = sorted({t for tags in equipos_por_lider.values() for t in tags})
+    equipos_obj = {e.asset_tag: e for e in db.query(ActivosEquipo).filter(ActivosEquipo.asset_tag.in_(todos_los_tags or [""])).all()}
+    saludes_por_tag = _salud_equipos_lote(db, equipos_obj)
     out = []
     for lp in lideres:
         emp = db.get(Empleado, lp.empleado_id)
@@ -410,10 +440,10 @@ def listar_grupos(db: Session) -> list[dict]:
         a, d = _area_y_padre(db, lp.id_area_id)
         integrantes = db.query(func.count(ActivosPerfil.empleado_id)).filter(
             ActivosPerfil.id_lider_id == lp.empleado_id, ActivosPerfil.retirado.is_(False)).scalar() or 0
-        equipos = _equipos_del_grupo(db, lp.empleado_id)
+        equipos = equipos_por_lider[lp.empleado_id]
         ultima = db.query(func.max(ActivosJornadaMantenimiento.fecha_programada)).filter(
             ActivosJornadaMantenimiento.id_lider_id == lp.empleado_id).scalar()
-        saludes = [salud_equipo(db, tag, db.get(ActivosEquipo, tag).estado) for tag in equipos]
+        saludes = [saludes_por_tag[tag] for tag in equipos]
         if "EN_MANTENIMIENTO" in saludes:
             salud = "EN_MANTENIMIENTO"
         elif "NOVEDADES" in saludes:
@@ -481,23 +511,45 @@ def obtener_jornada(db: Session, id_jornada: int) -> dict:
     return fila
 
 
+def _equipos_en_mantenimiento_con_dias(db: Session) -> list[dict]:
+    """Equipos en MANTENIMIENTO hace más de DIAS_ALERTA_MANTENIMIENTO, con cuántos días llevan (desde
+    el último registro de historial que los movió a ese estado)."""
+    en_mantenimiento = db.query(ActivosEquipo).filter(ActivosEquipo.estado == "MANTENIMIENTO", ActivosEquipo.retirado.is_(False)).all()
+    if not en_mantenimiento:
+        return []
+    tags = [e.asset_tag for e in en_mantenimiento]
+    ultimas = dict(db.query(ActivosHistorialAsignacion.asset_tag, func.max(ActivosHistorialAsignacion.fecha_inicio)).filter(
+        ActivosHistorialAsignacion.tipo_activo == "EQUIPO", ActivosHistorialAsignacion.asset_tag.in_(tags)
+    ).group_by(ActivosHistorialAsignacion.asset_tag).all())
+    ahora = datetime.utcnow()
+    out = []
+    for e in en_mantenimiento:
+        desde = ultimas.get(e.asset_tag)
+        dias = (ahora - desde).days if desde else 0
+        if dias >= DIAS_ALERTA_MANTENIMIENTO:
+            out.append({"asset_tag": e.asset_tag, "tipo_equipo": e.tipo_equipo, "marca": e.marca, "modelo": e.modelo_referencia, "dias": dias})
+    out.sort(key=lambda x: x["dias"], reverse=True)
+    return out
+
+
 def obtener_estado_mantenimiento(db: Session) -> dict:
     jornadas = listar_jornadas(db)
     hoy = date.today()
     grupos = listar_grupos(db)
-    grupos_sin_programar = sum(1 for g in grupos if g["equipos"] > 0 and not any(
-        j["id_lider"] == g["id_lider"] and j["estado"] in ("ABIERTA", "VENCIDA") for j in jornadas))
+    grupos_sin_programar = [g for g in grupos if g["equipos"] > 0 and not any(
+        j["id_lider"] == g["id_lider"] and j["estado"] in ("ABIERTA", "VENCIDA") for j in jornadas)]
     abiertas = [j for j in jornadas if j["estado"] == "ABIERTA"]
     vencidas = [j for j in jornadas if j["estado"] == "VENCIDA"]
     proximas = [j for j in abiertas if 0 <= (j["fecha_programada"] - hoy).days <= DIAS_AVISO_SOLICITUD]
     completados_mes = db.query(func.count(ActivosMantenimiento.id_mantenimiento)).filter(
         ActivosMantenimiento.estado_mantenimiento == "COMPLETADO", ActivosMantenimiento.fecha_realizada >= hoy.replace(day=1)).scalar() or 0
-    novedades = db.query(func.count(ActivosMantenimiento.id_mantenimiento)).filter(
-        ActivosMantenimiento.tipo_mantenimiento == "CORRECTIVO",
-        ActivosMantenimiento.estado_mantenimiento.in_(("PROGRAMADO", "EN_PROCESO"))).scalar() or 0
-    equipos_en_mantenimiento = db.query(func.count(ActivosEquipo.asset_tag)).filter(ActivosEquipo.estado == "MANTENIMIENTO").scalar() or 0
-    mantenimientos_vencidos = db.query(func.count(ActivosMantenimiento.id_mantenimiento)).filter(
-        ActivosMantenimiento.estado_mantenimiento.in_(("PROGRAMADO", "EN_PROCESO")), ActivosMantenimiento.fecha_programada < hoy).scalar() or 0
+    equipos_retirados = {t for (t,) in db.query(ActivosEquipo.asset_tag).filter(ActivosEquipo.retirado.is_(True)).all()}
+    todos_los_mantenimientos = listar_mantenimientos(db)
+    novedades = [m for m in todos_los_mantenimientos if m["tipo_mantenimiento"] == "CORRECTIVO"
+                and m["estado_mantenimiento"] in ("PROGRAMADO", "EN_PROCESO") and m["asset_tag"] not in equipos_retirados]
+    mantenimientos_vencidos = [m for m in todos_los_mantenimientos if m["id_jornada"] is None and m["estado_mantenimiento"] == "PROGRAMADO"
+                               and m["fecha_programada"] < hoy and m["asset_tag"] not in equipos_retirados]
+    equipos_en_mantenimiento = _equipos_en_mantenimiento_con_dias(db)
     saludes = [g["salud"] for g in grupos]
     salud = "EN_MANTENIMIENTO" if "EN_MANTENIMIENTO" in saludes else ("NOVEDADES" if "NOVEDADES" in saludes else "OPTIMO")
     return {"salud": salud, "completados_mes": completados_mes, "jornadas_abiertas": abiertas, "jornadas_proximas": proximas,
