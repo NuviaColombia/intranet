@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_activos import (ActivosArea, ActivosPerfil, ActivosEquipo, ActivosDongle, ActivosHistorialAsignacion,
                              ActivosMantenimiento, ActivosJornadaMantenimiento, ActivosActaEntrega)
-from .services_activos_mantenimiento import _conteo_servicios, estado_jornada, _equipos_del_grupo, mapa_grupo_por_empleado
+from .services_activos_mantenimiento import estado_jornada, _equipos_del_grupo, mapa_grupo_por_empleado
 
 DIAS_AVISO_SOLICITUD = 7
 DIAS_ALERTA_MANTENIMIENTO = 30
@@ -432,21 +432,38 @@ def listar_grupos(db: Session) -> list[dict]:
     lideres = db.query(ActivosPerfil).filter(ActivosPerfil.empleado_id.in_(
         db.query(ActivosPerfil.id_lider_id).filter(ActivosPerfil.id_lider_id.isnot(None), ActivosPerfil.retirado.is_(False)).distinct()
     )).all()
-    equipos_por_lider = {lp.empleado_id: _equipos_del_grupo(db, lp.empleado_id) for lp in lideres}
+    ids_lideres = [lp.empleado_id for lp in lideres]
+
+    # Equipos de cada grupo: 1 consulta para todos los líderes en vez de 3 por líder (antes llamaba
+    # _equipos_del_grupo líder por líder, que recalculaba lo mismo cada vez).
+    mapa_grupo = mapa_grupo_por_empleado(db)
+    equipos_por_lider: dict[int, list[str]] = {idl: [] for idl in ids_lideres}
+    for tag, empleado_id in db.query(ActivosEquipo.asset_tag, ActivosEquipo.empleado_id).filter(ActivosEquipo.retirado.is_(False)).all():
+        id_lider_grupo = mapa_grupo.get(empleado_id) if empleado_id else None
+        if id_lider_grupo in equipos_por_lider:
+            equipos_por_lider[id_lider_grupo].append(tag)
+    for tags in equipos_por_lider.values():
+        tags.sort()
+
     todos_los_tags = sorted({t for tags in equipos_por_lider.values() for t in tags})
     equipos_obj = {e.asset_tag: e for e in db.query(ActivosEquipo).filter(ActivosEquipo.asset_tag.in_(todos_los_tags or [""])).all()}
     saludes_por_tag = _salud_equipos_lote(db, equipos_obj)
+
+    # Integrantes y última jornada de TODOS los líderes en 1 consulta cada una, en vez de 1 por líder.
+    integrantes_por_lider = dict(db.query(ActivosPerfil.id_lider_id, func.count(ActivosPerfil.empleado_id)).filter(
+        ActivosPerfil.id_lider_id.in_(ids_lideres or [0]), ActivosPerfil.retirado.is_(False)).group_by(ActivosPerfil.id_lider_id).all())
+    ultima_por_lider = dict(db.query(ActivosJornadaMantenimiento.id_lider_id, func.max(ActivosJornadaMantenimiento.fecha_programada)).filter(
+        ActivosJornadaMantenimiento.id_lider_id.in_(ids_lideres or [0])).group_by(ActivosJornadaMantenimiento.id_lider_id).all())
+
     out = []
     for lp in lideres:
         emp = db.get(Empleado, lp.empleado_id)
         if not emp:
             continue
         a, d = _area_y_padre(db, lp.id_area_id)
-        integrantes = db.query(func.count(ActivosPerfil.empleado_id)).filter(
-            ActivosPerfil.id_lider_id == lp.empleado_id, ActivosPerfil.retirado.is_(False)).scalar() or 0
+        integrantes = integrantes_por_lider.get(lp.empleado_id, 0)
         equipos = equipos_por_lider[lp.empleado_id]
-        ultima = db.query(func.max(ActivosJornadaMantenimiento.fecha_programada)).filter(
-            ActivosJornadaMantenimiento.id_lider_id == lp.empleado_id).scalar()
+        ultima = ultima_por_lider.get(lp.empleado_id)
         saludes = [saludes_por_tag[tag] for tag in equipos]
         if "EN_MANTENIMIENTO" in saludes:
             salud = "EN_MANTENIMIENTO"
@@ -473,24 +490,40 @@ def obtener_grupo(db: Session, id_lider: int) -> dict:
     novedades = db.query(ActivosMantenimiento).filter(
         ActivosMantenimiento.asset_tag.in_(equipos or [""]), ActivosMantenimiento.tipo_mantenimiento == "CORRECTIVO",
         ActivosMantenimiento.estado_mantenimiento.in_(("PROGRAMADO", "EN_PROCESO"))).all()
+    equipos_obj = {e.asset_tag: e for e in db.query(ActivosEquipo).filter(ActivosEquipo.asset_tag.in_(equipos or [""])).all()}
+    saludes_por_tag = _salud_equipos_lote(db, equipos_obj)
     return {"lider": emp.nombre_completo, "id_lider": id_lider,
            "integrantes": [{"id_usuario": p.empleado_id, "nombre_completo": empleados_i[p.empleado_id].nombre_completo}
                            for p in integrantes_p if p.empleado_id in empleados_i],
-           "equipos": [{"asset_tag": t, "salud": salud_equipo(db, t, db.get(ActivosEquipo, t).estado)} for t in equipos],
+           "equipos": [{"asset_tag": t, "salud": saludes_por_tag[t]} for t in equipos],
            "novedades": [{"asset_tag": n.asset_tag, "descripcion_falla": n.descripcion_falla} for n in novedades]}
 
 
 def listar_jornadas(db: Session, estado: str | None = None) -> list[dict]:
     jornadas = db.query(ActivosJornadaMantenimiento).order_by(ActivosJornadaMantenimiento.fecha_programada.desc()).all()
     empleados = {e.id: e for e in db.query(Empleado).filter(Empleado.id.in_([j.id_lider_id for j in jornadas] or [0])).all()}
+    ids_jornadas = [j.id_jornada for j in jornadas]
+
+    # Conteo de servicios y "siguiente jornada" de TODAS las jornadas en 1 consulta cada uno, en vez
+    # de 2 por jornada (antes era _conteo_servicios + un query de "siguiente" por cada una, y N crece
+    # sin límite con el tiempo).
+    conteos: dict[int, dict[str, int]] = {}
+    for idj, est, cant in db.query(ActivosMantenimiento.id_jornada, ActivosMantenimiento.estado_mantenimiento,
+                                   func.count(ActivosMantenimiento.id_mantenimiento)).filter(
+            ActivosMantenimiento.id_jornada.in_(ids_jornadas or [0])).group_by(
+            ActivosMantenimiento.id_jornada, ActivosMantenimiento.estado_mantenimiento).all():
+        conteos.setdefault(idj, {})[est] = cant
+    siguientes = {j.id_jornada_origen: j for j in db.query(ActivosJornadaMantenimiento).filter(
+        ActivosJornadaMantenimiento.id_jornada_origen.in_(ids_jornadas or [0])).all()}
+
     out = []
     for j in jornadas:
-        conteo = _conteo_servicios(db, j.id_jornada)
+        conteo = conteos.get(j.id_jornada, {})
         total = sum(conteo.values())
         completados = conteo.get("COMPLETADO", 0)
         cancelados = conteo.get("CANCELADO", 0)
         pendientes = total - completados - cancelados
-        siguiente = db.query(ActivosJornadaMantenimiento).filter(ActivosJornadaMantenimiento.id_jornada_origen == j.id_jornada).first()
+        siguiente = siguientes.get(j.id_jornada)
         fila = {"id_jornada": j.id_jornada, "id_lider": j.id_lider_id,
                "lider": empleados[j.id_lider_id].nombre_completo if j.id_lider_id in empleados else None,
                "tipo_mantenimiento": j.tipo_mantenimiento, "fecha_programada": j.fecha_programada, "responsable": j.responsable,
