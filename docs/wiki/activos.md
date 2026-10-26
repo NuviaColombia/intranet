@@ -93,6 +93,23 @@ no por módulo.
 
 ## Gotchas
 
+- **`GET /activos/design/api/mantenimientos/estado` (el dashboard de Mantenimiento/Resumen,
+  `obtener_estado_mantenimiento` en `services_activos_consultas.py`) tiene que devolver LISTAS en
+  `novedades`, `mantenimientos_vencidos`, `equipos_en_mantenimiento` y `grupos_sin_programar`, no
+  conteos.** `app/static/activos_design/app.js` (`loadEstado()`) itera cada uno para armar las
+  alertas del panel (`for (const m of d.mantenimientos_vencidos)...`) -- un `func.count(...)` ahí
+  rompe el frontend con `"X is not iterable"` (bug real, encontrado el 26-oct-2026: se migró como
+  conteo por error). Si tocas esa función, cada uno de esos 4 campos debe seguir siendo una lista de
+  objetos con los campos que `app.js` lee (`asset_tag`, `usuario`, `dias`, `lider`, etc.).
+- **`listar_grupos` calcula la salud de un equipo por equipo si no tienes cuidado, y eso es lento de
+  verdad contra Postgres (Supabase) en producción**: `salud_equipo()` hace hasta 2 consultas por
+  equipo, y antes del 26-oct-2026 se llamaba así, una vez por cada equipo de cada grupo -- con ~180
+  equipos reales eso eran cientos de ida y vuelta a la base por cada carga del dashboard de
+  Mantenimiento (se llama en casi cada acción, ver `loadEstado()`/`refrescarMantenimiento()` en
+  app.js). Se reemplazó por `_salud_equipos_lote()`, que calcula la salud de TODOS los equipos de
+  TODOS los grupos en 2 consultas. Si agregas un campo nuevo a `listar_grupos` que necesite datos por
+  equipo, calcúlalo en lote (un `IN (...)` sobre todos los asset_tags) en vez de un query por equipo
+  dentro del loop de grupos.
 - **`SessionLocal` de esta plataforma usa `autoflush=False`** (ver `app/database.py`). Las
   funciones de `services_activos_mantenimiento.py` hacen varios `UPDATE` con `setattr(obj, campo,
   valor)` y después **consultas SQL crudas** sobre la misma tabla (`_conteo_servicios`, usado para
