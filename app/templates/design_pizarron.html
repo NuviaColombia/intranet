@@ -20,12 +20,8 @@
   function alto() { f.style.height = Math.max(300, window.innerHeight - f.getBoundingClientRect().top) + 'px'; }
   alto(); window.addEventListener('resize', alto);
   f.addEventListener('load', function () { alto(); try { f.contentWindow.focus(); } catch (e) {} });
-  // Volver: a la página de la intranet de donde llegó; si llegó directo, a Training
-  window.nvVolverPizarron = function () {
-    var ref = '';
-    try { var u = new URL(document.referrer); if (u.origin === location.origin && u.pathname.indexOf('/design/pizarron') !== 0) ref = u.href; } catch (e) {}
-    if (ref && history.length > 1) history.back(); else location.href = ref || '/design/training';
-  };
+  // Volver: al Schedule (27-oct-2026: Esc es el acceso directo al Schedule en todo Design; antes volvía a la página anterior)
+  window.nvVolverPizarron = function () { location.href = '/design'; };
   // Esc con el foco en la barra (fuera del pizarrón): lo mismo que dentro, el pizarrón decide si hay algo abierto
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' || e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;

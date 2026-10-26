@@ -307,7 +307,7 @@
   if (sub) { try { new MutationObserver(actualizar).observe(sub, {subtree: true, attributes: true, attributeFilter: ['class']}); } catch (e) {} }
 })();
 </script>
-{% if es_design %}<script src="/static/design/vivo.js?v={{ ds_estaticos_v }}" defer></script><script src="/static/design/asignaciones.js?v={{ ds_estaticos_v }}" defer></script><script src="/static/design/push.js?v={{ ds_estaticos_v }}" defer></script>{% endif %}
+{% if es_design %}<script src="/static/design/vivo.js?v={{ ds_estaticos_v }}" defer></script><script src="/static/design/asignaciones.js?v={{ ds_estaticos_v }}" defer></script><script src="/static/design/push.js?v={{ ds_estaticos_v }}" defer></script><script src="/static/design/esc.js?v={{ ds_estaticos_v }}" defer></script>{# Esc = ir al Schedule #}{% endif %}
 {% if user and cumple_pendiente(user) %}<script src="/static/design/cumple/cumple.js?v={{ cumple_v }}"></script>
 <script>
 /* Cumpleaños del día (services_design_cumple): solo la primera vez que esta persona entra hoy; se cierra con Esc o con la X. */

@@ -102,7 +102,7 @@ def _version_oscuro() -> str:
     import hashlib
     from pathlib import Path
     h = hashlib.md5()
-    for n in ("oscuro_auto.css", "oscuro.css", "push.js", "vivo.js", "asignaciones.js"):
+    for n in ("oscuro_auto.css", "oscuro.css", "push.js", "vivo.js", "asignaciones.js", "esc.js"):
         try:
             h.update((Path(__file__).resolve().parent / "static" / "design" / n).read_bytes())
         except OSError:

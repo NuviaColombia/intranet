@@ -275,7 +275,7 @@ def _version_estaticos() -> str:
         h = hashlib.md5()
         # 21-oct-2026: también los scripts que se cargan con la misma marca (?v=), si no un cambio solo en ellos tardaba
         # hasta un día en llegar al navegador
-        for n in ("schedule.js", "schedule.min.js", "schedule.css", "seguimiento.js", "ayuda.js", "reportes.js", "asignaciones.js", "push.js"):
+        for n in ("schedule.js", "schedule.min.js", "schedule.css", "seguimiento.js", "ayuda.js", "reportes.js", "asignaciones.js", "push.js", "esc.js"):
             try:
                 h.update((base / n).read_bytes())
             except OSError:

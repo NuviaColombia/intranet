@@ -5,7 +5,8 @@ plataforma según la fase 0 de su «Plan de integración de Pizarrón a platafor
   (static/design/pizarron/vendor, mismas versiones, verificadas con las huellas SRI de cdnjs).
 - /design/pizarron es una página de la intranet con la barra de arriba; el pizarrón va dentro en un iframe
   (/design/pizarron/app, la única ruta que se deja enmarcar, y solo por la misma intranet). Esc vuelve a la página
-  anterior cuando no hay nada abierto en el pizarrón (Rosember, 19-oct-2026); lo agrega ESC_JS al servir el archivo.
+  anterior cuando no hay nada abierto en el pizarrón (Rosember, 19-oct-2026); desde el 27-oct-2026 va siempre al Schedule
+  (Esc es el acceso directo al Schedule en todo Design). Lo agrega ESC_JS al servir el archivo.
   El archivo del pizarrón no se toca, así que una versión nueva de Luis se monta reemplazando el archivo y cambiando
   las direcciones de cdnjs por las de vendor.
 - Política de seguridad (CSP) solo para esta página.
@@ -69,7 +70,7 @@ ESC_JS = """
     if (r && !confirm('Estás en una reunión en vivo. ¿Salir del Pizarrón? Saldrás de la reunión.')) return;
     if (r) try { window.DSReunion.salir(true); } catch (e) {}
     await guardarPendiente();
-    if (window.parent.nvVolverPizarron) window.parent.nvVolverPizarron(); else window.top.location.href = '/design/training';
+    if (window.parent.nvVolverPizarron) window.parent.nvVolverPizarron(); else window.top.location.href = '/design';
   }
   // En captura: se decide antes de que el pizarrón cierre lo que tenga abierto con el mismo Esc
   window.addEventListener('keydown', function (e) {

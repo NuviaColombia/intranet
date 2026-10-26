@@ -66,6 +66,8 @@
 window.NV = window.NV || {};
 NV.usuario = {id: {{ user.id }}, nombre: {{ user.nombre_completo | tojson }}, email: {{ user.email | tojson }}, adminPlantillas: {{ 'true' if admin_plantillas else 'false' }}};
 </script>
+{# Esc = ir al Schedule (27-oct-2026): Office es una página aparte (no usa la barra común), así que carga el script aquí #}
+<script src="/static/design/esc.js?v={{ ds_estaticos_v }}" defer></script>
 <script src="/static/office/iconos.js?v={{ v }}"></script>
 <script src="/static/office/nucleo.js?v={{ v }}"></script>
 <script src="/static/office/fechas.js?v={{ v }}"></script>

@@ -116,6 +116,15 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`preapproved_agregar_doctor(centro_id=)`, POST `/preapproved/sheets/{id}/doctores?centro_id=`). Cada centro es un grupo de
   doctores consecutivos; el `orden` de los doctores se renumera seguido y las celdas siguen a su doctor (van por doctor_id).
   Sin centro elegido va al último, como antes. No toca Openings ni `services_design_origenes.py`.
+- **Esc = acceso directo al Schedule** (Rosember, 27-oct-2026): en toda pantalla de Design, Esc lleva al Schedule
+  (`static/design/esc.js`, cargado desde base.html y en las páginas que no usan la barra común: Office y los dos reportes
+  imprimibles). No pisa los Esc de varios niveles: espera lo que pasó DESPUÉS de que los demás atendieron la tecla y solo
+  navega si nadie la usó (evento cancelado, cambió la pantalla, la dirección o el foco, hay una ventana abierta). Así se
+  conservan: Canvas (hoja → principal de Canvas → Schedule), Training (lección → módulo), ventanas y menús que se cierran,
+  el menú de la barra (solo lo cierra) y los paneles del Schedule. Escribiendo en un campo, la primera Esc solo sale del
+  campo y la segunda va al Schedule. El Pizarrón conserva su Esc (cierra menús y paneles, guarda lo pendiente, confirma si
+  hay reunión) y ahora vuelve siempre al Schedule (antes, a la página anterior). En el Schedule no hace falta: ya cierra
+  sus paneles. `ds_estaticos_v` incluye esc.js para que el navegador no use una copia vieja.
 - **Canvas › «🧹 Limpiar todo»** (Rosember, 27-oct-2026): solo en la vista Tablero (junto a «Vista»), con cuántas fotos hay.
   Quita las fotos de los marcos de TODAS las hojas del área (como «🧹 Limpiar» de una hoja, pero en todas); el formato, los
   marcos y las anotaciones se quedan. Pide confirmación y deja «Deshacer» unos segundos (`cvLimpiarTodo`). Se guarda en el
