@@ -52,14 +52,17 @@ def _min(a: datetime, b: datetime) -> int:
 
 
 def lentas(db: Session, desde: date, hasta: date, area_id: int | None = None, team_id: int | None = None,
-           umbral: int = UMBRAL_MIN) -> dict:
+           umbral: int = UMBRAL_MIN, equipos: set[int] | None = None) -> dict:
     """Órdenes aprobadas que siguen sin QC pasados `umbral` minutos (Rosember, 21-oct-2026: solo las pendientes; antes
-    también salían las que ya tenían el QC marcado tarde). Ordenadas de la más larga a la más corta."""
+    también salían las que ya tenían el QC marcado tarde). Ordenadas de la más larga a la más corta.
+    `equipos` (28-oct-2026): None = todos los equipos (admins); si no, solo esos (un aprobador ve únicamente los suyos)."""
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.designer), joinedload(DesignOrden.team).joinedload(DesignTeam.manager))
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
          .join(DesignArea, DesignArea.id == DesignTeam.area_id)
          .filter(DesignOrden.aprobada_en.isnot(None), DesignOrden.qc_en.is_(None), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta,
                  DesignArea.nombre != "Removable Denture"))   # Removable no lleva QC (Rosember, 21-oct-2026)
+    if equipos is not None:
+        q = q.filter(DesignOrden.team_id.in_(list(equipos) or [-1]))
     if team_id:
         q = q.filter(DesignOrden.team_id == team_id)
     elif area_id:

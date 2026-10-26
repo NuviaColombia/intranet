@@ -2123,12 +2123,13 @@ def api_cambios_csv(q: str = Query("", max_length=200), desde: str = "", hasta: 
 
 @router.get("/design/api/dashboard/aprobaciones-lentas")
 def api_aprobaciones_lentas(desde: str, hasta: str, area_id: int | None = None, team_id: int | None = None,
-                            user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    """Solo admin: órdenes en las que el manager tardó más de 1 h 30 min entre Approved y marcar el QC (o siguen sin QC)."""
+                            user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
+    """Órdenes en las que el manager tardó más de 1 h 30 min entre Approved y marcar el QC (o siguen sin QC). Los admins ven
+    todo; desde el 28-oct-2026 un aprobador también, pero solo de sus equipos (los que maneja o tiene a cargo)."""
     fd, fh = _fecha(desde), _fecha(hasta)
     if fh < fd or (fh - fd).days >= sap.RANGO_MAX_DIAS:
         raise HTTPException(400, f"El periodo debe ser de {sap.RANGO_MAX_DIAS} días o menos.")
-    return sap.lentas(db, fd, fh, area_id, team_id)
+    return sap.lentas(db, fd, fh, area_id, team_id, equipos=_equipos_visibles(db, user))
 
 
 @router.get("/design/api/dashboard/tendencia")

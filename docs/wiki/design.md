@@ -116,6 +116,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`preapproved_agregar_doctor(centro_id=)`, POST `/preapproved/sheets/{id}/doctores?centro_id=`). Cada centro es un grupo de
   doctores consecutivos; el `orden` de los doctores se renumera seguido y las celdas siguen a su doctor (van por doctor_id).
   Sin centro elegido va al último, como antes. No toca Openings ni `services_design_origenes.py`.
+- **Dashboard › Aprobaciones también para aprobadores** (Rosember, 28-oct-2026): antes solo admins. Un aprobador ve la
+  pestaña y las órdenes lentas (aprobadas sin QC pasada 1 h 30 min) pero solo de sus equipos (los que maneja o tiene a
+  cargo: `_equipos_visibles` → `lentas(equipos=)`); los admins ven todo. Pedir por la API un equipo ajeno no devuelve nada.
+  Ayudas y Reportes siguen siendo solo de admins.
 - **Zulys en lila en las gráficas del Dashboard** (Rosember, 28-oct-2026): las líneas de equipos se coloreaban por su
   posición (`DDT_COL`); ahora hay colores fijos por nombre (`DDT_FIJOS`, `ddTColores`): el equipo o aprobador que contenga
   «zuly» o «zully» (se escribe Zulys) sale siempre en lila (#a78bfa), sin importar su posición; los demás siguen la paleta en su orden. El violeta de la

@@ -284,7 +284,7 @@
 {% if ver_dashboard %}
 <div class="ds-overlay" id="ov-dashboard"><div class="ds-overlay-inner"><button type="button" class="ds-overlay-close" title="Cerrar" aria-label="Cerrar panel">&#10005;</button>{# Título y pestañas en la misma fila para ganar espacio (Rosember, 21-oct-2026) #}
 <div class="dd-cabecera"><h1 id="ddTitulo">Dashboard</h1>
-<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="general" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="resumen" role="tab" aria-selected="false">🔎 Filtros</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button><button type="button" class="dd-vista" data-dv="ayudas" role="tab" aria-selected="false">🤝 Ayudas</button><button type="button" class="dd-vista" data-dv="reportes" role="tab" aria-selected="false">📑 Reportes</button>{% endif %}</div></div>
+<div class="dd-vistas" role="tablist"><button type="button" class="dd-vista on" data-dv="general" role="tab" aria-selected="true">📊 Resumen</button><button type="button" class="dd-vista" data-dv="resumen" role="tab" aria-selected="false">🔎 Filtros</button><button type="button" class="dd-vista" data-dv="productos" role="tab" aria-selected="false">📦 Productos</button><button type="button" class="dd-vista" data-dv="articulacion" role="tab" aria-selected="false">⏱️ Articulación</button><button type="button" class="dd-vista" data-dv="cambios" role="tab" aria-selected="false">🗂️ Cambios digitales</button><button type="button" class="dd-vista" data-dv="lentas" role="tab" aria-selected="false">⏳ Aprobaciones</button>{% if user.rol in ('admin', 'superadmin') %}<button type="button" class="dd-vista" data-dv="ayudas" role="tab" aria-selected="false">🤝 Ayudas</button><button type="button" class="dd-vista" data-dv="reportes" role="tab" aria-selected="false">📑 Reportes</button>{% endif %}</div></div>
 {# Resumen (Rosember, 21-oct-2026): solo datos informativos. Una «Tendencia por equipo» por área, siempre en el mes en curso.
    La pestaña que antes se llamaba Resumen ahora es «Filtros» y funciona igual. Un aprobador ve solo sus áreas y equipos. #}
 <div id="ddVistaGeneral">
@@ -437,11 +437,12 @@
   <div id="drRes" class="dd-p-nota" style="margin:4px 0 8px"></div>
   <div class="dp-tabla-w"><table class="dd-tabla" id="drTabla"></table></div></div>
 </div>
+{% endif %}{# desde aquí, Aprobaciones también la ven los aprobadores (28-oct-2026; solo lo de sus equipos) #}
 <div id="ddVistaLentas" hidden>
 <p class="dd-p-nota">Órdenes aprobadas que <b>siguen sin QC</b> pasada 1 hora y 30 minutos desde que quedaron en Approved. En cuanto el manager marca el QC, la orden sale de esta lista. Solo cuentan las órdenes desde el 13 de octubre de 2026 (antes no se guardaba la hora).</p>
 <div class="dd-kpis" id="dlKpis"></div>
 <div class="dd-filtros">
-  <div><label for="dlArea">Área</label><select id="dlArea"><option value="">-- Todas --</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
+  <div><label for="dlArea">Área</label><select id="dlArea"><option value="">{{ '-- Todas --' if dash_teams is none else '-- Mis áreas --' }}</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
   <div><label for="dlTeam">Equipo</label><select id="dlTeam"><option value="">-- Todos --</option></select></div>
   <div><label for="dlDesde">Desde</label><input type="date" id="dlDesde"></div>
   <div><label for="dlHasta">Hasta</label><input type="date" id="dlHasta"></div>
@@ -454,7 +455,6 @@
   <div class="dp-tabla-w"><table class="dd-tabla dc-tabla" id="dlTabla"></table></div>
   <div id="dlMas" style="margin-top:8px"></div></details>
 </div>
-{% endif %}
 {% if user.rol in ('admin', 'superadmin') %}
 <div id="ddVistaAyudas" hidden>
 <p class="dd-p-nota">Solicitudes de ayuda entre aprobadores de N3: a quién le llegaron, qué diseñador sugería el sistema (el que menos casos lleva en el mes), cuál eligió el aprobador y si siguió la sugerencia. «Sin disponibles» son las veces que nadie tenía un diseñador libre.</p>
