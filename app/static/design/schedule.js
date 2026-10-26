@@ -6107,8 +6107,15 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var r1 = document.createElement('tr'); r1.className = 'pa-r-centros';
     var esq = document.createElement('th'); esq.className = 'pa-fija'; r1.appendChild(esq);
     var usados = 0;
+    // «+ Doctor» (27-oct-2026): el centro que se toca (su nombre, un doctor o una celda de sus columnas) queda elegido y el
+    // doctor nuevo se agrega ahí. centroDe[doctorId] = centro al que pertenece cada columna (los centros agrupan columnas seguidas).
+    var centroDe = {}, k0 = 0;
+    d.centros.forEach(function(c) { for (var j = 0; j < Math.max(1, c.span); j++) { var dd = d.doctores[k0++]; if (dd) centroDe[dd.id] = c.id; } });
+    if (PA.centroSel && !d.centros.some(function(c) { return c.id === PA.centroSel; })) PA.centroSel = null;   // otra hoja o centro borrado
     d.centros.forEach(function(c) {
       var th = document.createElement('th'); th.colSpan = Math.max(1, c.span); th.dataset.centro = c.id;
+      if (c.id === PA.centroSel) th.classList.add('pa-centro-sel');
+      th.addEventListener('mousedown', function() { paElegirCentro(c.id); });
       var h = document.createElement('div'); h.className = 'pa-th';
       var t = document.createElement('span'); t.className = 'pa-txt'; h.appendChild(t);
       paEditable(t, c.nombre, function(v) {
@@ -6134,6 +6141,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var ths = [chg];
     d.doctores.forEach(function(doc) {
       var th = document.createElement('th'); th.dataset.doctor = doc.id;
+      if (centroDe[doc.id]) th.addEventListener('mousedown', function() { paElegirCentro(centroDe[doc.id]); });
       var h = document.createElement('div'); h.className = 'pa-th';
       var t = document.createElement('span'); t.className = 'pa-txt'; h.appendChild(t);
       paEditable(t, doc.nombre, function(v) {
@@ -6180,6 +6188,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       d.doctores.forEach(function(doc) {
         var td = document.createElement('td'), val = fila.valores[String(doc.id)] || '';
         td.dataset.fila = fila.id; td.dataset.doc = doc.id;
+        if (centroDe[doc.id]) td.addEventListener('mousedown', function() { paElegirCentro(centroDe[doc.id]); });
         if (paEsAsk(val)) td.className = 'pa-ask';
         var c = document.createElement('div'); c.className = 'pa-txt'; td.appendChild(c);
         paEditable(c, val, function(v) {
@@ -6193,6 +6202,21 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       tbody.appendChild(tr);
     });
     tabla.appendChild(tbody);
+    paEtiquetaDoctor();
+  }
+  // Centro elegido para «+ Doctor»: se marca en el encabezado y el botón dice en cuál se agrega
+  function paElegirCentro(id) {
+    if (PA.centroSel === id) return;
+    PA.centroSel = id;
+    document.querySelectorAll('#paTabla th[data-centro]').forEach(function(th) { th.classList.toggle('pa-centro-sel', th.dataset.centro === String(id)); });
+    paEtiquetaDoctor();
+  }
+  function paEtiquetaDoctor() {
+    var b = document.getElementById('paBtnDoctor'); if (!b) return;
+    var c = PA.centroSel && PA.detalle && PA.detalle.centros.find(function(x) { return x.id === PA.centroSel; });
+    var nombre = c ? (c.nombre || '').trim() : '';
+    b.textContent = c ? '+ Doctor en ' + (nombre.length > 18 ? nombre.slice(0, 17) + '…' : nombre || 'este centro') : '+ Doctor';
+    b.classList.toggle('pa-btn-centro', !!c);
   }
 
   // Buscar: busca doctores y centros en todas las hojas del ÁREA ABIERTA (cada área funciona por separado). Resalta los de la hoja abierta y lleva
@@ -6265,8 +6289,17 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       .catch(paError);
   };
   window.paAgregarDoctor = function() {
-    paPost('/design/api/preapproved/sheets/' + PA.sheetId + '/doctores')
-      .then(function() { cargarDetalle(); setTimeout(function() { var sc = document.getElementById('paScroll'); sc.scrollTo({left: sc.scrollWidth, behavior: 'smooth'}); }, 300); })
+    var c = PA.centroSel && PA.detalle && PA.detalle.centros.find(function(x) { return x.id === PA.centroSel; });
+    paPost('/design/api/preapproved/sheets/' + PA.sheetId + '/doctores' + (c ? '?centro_id=' + c.id : ''))
+      .then(function(r) {
+        return Promise.resolve(cargarDetalle()).then(function() {
+          var sc = document.getElementById('paScroll'), th = r && document.querySelector('#paTabla th[data-doctor="' + r.id + '"]');
+          if (c && th) {   // en un centro: se lleva a la vista la columna nueva y se marca un momento
+            sc.scrollBy({left: th.getBoundingClientRect().left - sc.getBoundingClientRect().left - 260, behavior: 'smooth'});
+            th.classList.add('pa-nuevo'); setTimeout(function() { th.classList.remove('pa-nuevo'); }, 2500);
+          } else setTimeout(function() { sc.scrollTo({left: sc.scrollWidth, behavior: 'smooth'}); }, 300);
+        });
+      })
       .catch(paError);
   };
   window.paAgregarFila = function() { paPost('/design/api/preapproved/sheets/' + PA.sheetId + '/filas').then(cargarDetalle).catch(paError); };

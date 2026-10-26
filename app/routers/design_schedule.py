@@ -2680,13 +2680,17 @@ def api_eliminar_centro(centro_id: int, user: Empleado = Depends(require_modulo(
 
 
 @router.post("/design/api/preapproved/sheets/{sheet_id}/doctores")
-def api_agregar_doctor(sheet_id: int, user: Empleado = Depends(require_modulo("design_schedule")),
+def api_agregar_doctor(sheet_id: int, centro_id: int | None = None, user: Empleado = Depends(require_modulo("design_schedule")),
                              db: Session = Depends(get_db)):
+    """Agrega un doctor. Con `centro_id` queda dentro de ese centro (al final de sus columnas); sin él, en el último."""
     _pa_editor(user)
     _pa_de(db, user, sd.DesignPreApprovedSheet, sheet_id)
     if not db.get(sd.DesignPreApprovedSheet, sheet_id):
         raise HTTPException(404, "Hoja no encontrada.")
-    d = sd.preapproved_agregar_doctor(db, sheet_id)
+    try:
+        d = sd.preapproved_agregar_doctor(db, sheet_id, centro_id=centro_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     return {"id": d.id}
 
 

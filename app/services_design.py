@@ -3996,17 +3996,30 @@ def preapproved_eliminar_centro(db: Session, centro_id: int, eliminado_por: str 
     return True
 
 
-def preapproved_agregar_doctor(db: Session, sheet_id: int, nombre: str = "") -> DesignPreApprovedDoctor:
-    """Agrega el doctor al final, dentro del último centro (o crea uno sin nombre si no hay)."""
-    orden = (db.query(func.max(DesignPreApprovedDoctor.orden))
-             .filter(DesignPreApprovedDoctor.sheet_id == sheet_id).scalar() or 0) + 1
-    d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=nombre or "Dr. ", orden=orden)
-    db.add(d)
+def preapproved_agregar_doctor(db: Session, sheet_id: int, nombre: str = "", centro_id: int | None = None) -> DesignPreApprovedDoctor:
+    """Agrega el doctor dentro de un centro: el elegido (`centro_id`, 27-oct-2026: queda al final de las columnas de ese
+    centro y los doctores de los centros siguientes se corren) o, sin centro elegido, al final de la hoja en el último
+    centro (o crea uno sin nombre si no hay). Cada centro es un grupo de doctores consecutivos (su `span`)."""
     centros = _pac_centros_ordenados(db, sheet_id)
-    if centros:
-        centros[-1].span += 1
+    elegido = next((c for c in centros if c.id == centro_id), None) if centro_id else None
+    if centro_id and not elegido:
+        raise ValueError("Ese centro no está en esta hoja.")
+    doctores = _pac_doctores_ordenados(db, sheet_id)
+    d = DesignPreApprovedDoctor(sheet_id=sheet_id, nombre=nombre or "Dr. ", orden=0)
+    if elegido:
+        # posición: justo después de la última columna de ese centro (las columnas de cada centro son consecutivas)
+        pos = min(len(doctores), sum(max(1, c.span) for c in centros[:centros.index(elegido)]) + max(1, elegido.span))
+        doctores.insert(pos, d)
+        elegido.span = max(1, elegido.span) + 1
     else:
-        db.add(DesignPreApprovedCentro(sheet_id=sheet_id, nombre="", span=1, orden=1))
+        doctores.append(d)
+        if centros:
+            centros[-1].span += 1
+        else:
+            db.add(DesignPreApprovedCentro(sheet_id=sheet_id, nombre="", span=1, orden=1))
+    db.add(d)
+    for i, x in enumerate(doctores, start=1):   # orden seguido: las celdas van por doctor_id, no cambian
+        x.orden = i
     db.commit()
     db.refresh(d)
     return d

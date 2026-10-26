@@ -110,6 +110,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   termina aquel (19-oct-2026).
 - **Contadores**: «Canceladas» cuenta toda orden con datos en Canceled, aunque no tenga diseñador;
   los demás contadores solo cuentan órdenes completas (centro, producto y diseñador).
+- **Pre-Approved › «+ Doctor» en el centro elegido** (Rosember, 27-oct-2026): al tocar un centro (su nombre, un doctor o una
+  celda de sus columnas) queda elegido (encabezado resaltado) y el botón dice «+ Doctor en FREMONT»; el doctor nuevo queda al
+  final de las columnas de ese centro, los doctores de los centros siguientes se corren y su `span` sube 1
+  (`preapproved_agregar_doctor(centro_id=)`, POST `/preapproved/sheets/{id}/doctores?centro_id=`). Cada centro es un grupo de
+  doctores consecutivos; el `orden` de los doctores se renumera seguido y las celdas siguen a su doctor (van por doctor_id).
+  Sin centro elegido va al último, como antes. No toca Openings ni `services_design_origenes.py`.
 - **Compartir una hoja de Canvas** (Rosember, 26-oct-2026): «⇪ Compartir» en el tablero, la cuadrícula, el panel de hojas y
   la barra del editor. Envía una COPIA a todos los de la misma área o a una persona del área (`canvas_destinatarios`:
   diseñadores y managers de los equipos activos del área). Va solo el formato: los marcos sin foto y sin las anotaciones

@@ -579,6 +579,10 @@
   /* Todo el texto de la tabla va centrado (a lo ancho y a lo alto) */
   table.pa-t th, table.pa-t td { border-bottom:1px solid #e2e6ef; border-right:1px solid #eef1f6; padding:7px 9px; text-align:center; vertical-align:middle; position:relative; overflow-wrap:anywhere; }
   table.pa-t tr.pa-r-centros th { background:#eef2fb; color:#1d4ed8; font-size:11px; text-transform:uppercase; font-weight:700; }
+  /* Centro elegido para «+ Doctor» (27-oct-2026) y doctor recién agregado */
+  table.pa-t tr.pa-r-centros th.pa-centro-sel { background:#dbeafe; box-shadow:inset 0 -3px 0 #1d4ed8; }
+  table.pa-t th.pa-nuevo { background:#fef9c3 !important; transition:background .6s; }
+  .faq-gbtn.pa-btn-centro { border-color:#1d4ed8; color:#1d4ed8; background:#eff6ff; }
   table.pa-t tr.pa-r-doctores th { background:#fff; color:#111827; font-size:11.5px; font-weight:700; border-bottom:2px solid #d8dde3; }
   table.pa-t .pa-fija { position:sticky; left:0; z-index:2; background:#f8fafc; }
   table.pa-t thead .pa-fija { z-index:3; }
