@@ -132,6 +132,20 @@ no por módulo.
   TODOS los grupos en 2 consultas. Si agregas un campo nuevo a `listar_grupos` que necesite datos por
   equipo, calcúlalo en lote (un `IN (...)` sobre todos los asset_tags) en vez de un query por equipo
   dentro del loop de grupos.
+- **Segunda pasada de optimización (26-oct-2026, pedida por Oscar tras seguir viendo lentitud
+  después del fix anterior)**: `listar_grupos` todavía llamaba `_equipos_del_grupo` (3 consultas) +
+  un conteo de integrantes + la última jornada, **una vez por cada líder** -- con ~18 líderes, ~57
+  consultas más, redundantes con `mapa_grupo_por_empleado()` (que ya existía para "Programar
+  mantenimiento (varios)"). Se reemplazó por: `mapa_grupo_por_empleado()` + 1 consulta de equipos
+  activos para repartir por grupo, y 2 consultas `GROUP BY id_lider_id` (integrantes y última
+  jornada) para todos los líderes a la vez. De paso, `listar_jornadas` tenía el mismo patrón
+  (`_conteo_servicios` + "siguiente jornada" una vez por jornada, y las jornadas solo crecen con el
+  tiempo) -- también se batchearon en 2 consultas `GROUP BY`/`IN (...)`. Y `obtener_grupo` (ficha de
+  un grupo) tenía la misma salud-por-equipo de antes; se cambió a `_salud_equipos_lote()` igual que
+  `listar_grupos`. Entre las dos pasadas, `obtener_estado_mantenimiento` pasó de ~94 a ~19 consultas
+  con 5 grupos/200 equipos de prueba. **Regla general para este archivo**: si estás por escribir un
+  `for lider in lideres: db.query(...)` o `for jornada in jornadas: db.query(...)`, casi seguro se
+  puede convertir en una sola consulta con `GROUP BY` o `IN (...)` antes del loop.
 - **`SessionLocal` de esta plataforma usa `autoflush=False`** (ver `app/database.py`). Las
   funciones de `services_activos_mantenimiento.py` hacen varios `UPDATE` con `setattr(obj, campo,
   valor)` y después **consultas SQL crudas** sobre la misma tabla (`_conteo_servicios`, usado para
