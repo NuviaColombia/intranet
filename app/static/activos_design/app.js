@@ -269,6 +269,8 @@ function regresarModal(){const anterior=pilaModal.pop(),resto=pilaModal;closeMod
 $('modal-cancelar').addEventListener('click',regresarModal);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modal').classList.contains('show'))closeModal()});
 // Guía desplegable dentro de una ventana: pasos cortos de qué hacer.
 function guia(titulo,pasos){return `<div class="field full"><details class="guia"><summary>${esc(titulo)}</summary><ol>${pasos.map(p=>`<li>${p}</li>`).join('')}</ol></details></div>`}
+// Lista de casillas con «Marcar todos»; con `placeholder` agrega un buscador para listas largas.
+function checkList(name,items,placeholder=''){return `<div class="field full"><div class="toolbar" style="margin:0">${placeholder?`<input class="search" data-filtro-lista="${name}" placeholder="${esc(placeholder)}" aria-label="${esc(placeholder)}">`:''}<button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="1">Marcar todos</button><button type="button" class="secondary" data-action="marcar-todos" data-campo="${name}" data-valor="0">Ninguno</button></div><div class="check-list" id="lista-${name}">${items}</div></div>`}
 $('modal-form').addEventListener('submit',async e=>{e.preventDefault();if(!modalSubmit)return;const button=$('modal-guardar');button.disabled=true;try{await modalSubmit(new FormData(e.currentTarget));if(button.textContent==='Cerrar')closeModal();else regresarModal()}catch(error){notify(error.message,true)}finally{button.disabled=false}});
 function values(form){return Object.fromEntries(form.entries())}
 function equipmentFields(data={},includeTag=true){const fields=[];if(includeTag)fields.push(field('asset_tag','Asset Tag', 'text',data.asset_tag||'',true));fields.push(field('tipo_equipo','Tipo','text',data.tipo_equipo||'Laptop',true,[{value:'Laptop',label:'Laptop'},{value:'Mini PC',label:'Mini PC'}]));fields.push(field('marca','Marca','text',data.marca||'',true));fields.push(field('modelo','Modelo','text',data.modelo_referencia||'',true));fields.push(field('serial_number','Serial','text',data.serial_number||'',true));fields.push(field('sistema_operativo','Sistema operativo','text',data.sistema_operativo||''));fields.push(field('procesador','Procesador','text',data.procesador||''));fields.push(field('memoria_ram','Memoria RAM','text',data.memoria_ram||''));fields.push(field('almacenamiento','Almacenamiento','text',data.almacenamiento||''));fields.push(field('observaciones','Observaciones','textarea',data.observaciones||'',false,null,true));return fields}
@@ -733,20 +735,21 @@ async function showJornada(id){
 }
 async function refrescarMantenimiento(){const tareas=[loadEstado()];if($('mantenimientos').classList.contains('active'))tareas.push(loadMantenimientos());if($('grupos').classList.contains('active'))tareas.push(loadGrupos());await Promise.all(tareas)}
 // Programar el mismo servicio para varios equipos sueltos (no tienen que ser del mismo grupo de
-// trabajo): usa los equipos que ya están cargados en la tabla de Equipos (con los filtros que
-// tengas puestos), y los que marques quedan como mantenimientos sueltos, no una "solicitud".
+// trabajo): trae todos los equipos activos (no hace falta haber entrado antes a «Equipos»), y los
+// que marques quedan como mantenimientos sueltos, no una "solicitud".
 async function programarLoteUI(){
- if(!equiposRows.length)throw new Error('No hay equipos para elegir. Ajusta los filtros de Equipos o recarga la pantalla.');
- const items=equiposRows.map(e=>`<label><input type="checkbox" name="asset_tags" value="${esc(e.asset_tag)}"> <span><b>${esc(e.asset_tag)}</b> · ${esc(e.usuario||'Sin usuario')}${e.marca||e.modelo?` · ${esc([e.marca,e.modelo].filter(Boolean).join(' '))}`:''}</span></label>`).join('');
+ const equipos=await api('/activos/design/api/equipos');
+ if(!equipos.length)throw new Error('No hay equipos registrados todavía.');
+ const items=equipos.map(e=>`<label><input type="checkbox" name="asset_tags" value="${esc(e.asset_tag)}"> <span><b>${esc(e.asset_tag)}</b> · ${esc(e.usuario||'Sin usuario')}${e.marca||e.modelo?` · ${esc([e.marca,e.modelo].filter(Boolean).join(' '))}`:''}</span></label>`).join('');
  const fields=[
-  guia('¿Cómo funciona?',['Marca los equipos que quieras de la lista (son los que ves ahora en «Equipos», con los filtros que tengas puestos).','Se crea un servicio PROGRAMADO por cada equipo marcado, con la misma fecha, tipo y responsable.','A diferencia de «Programar por grupo», no quedan agrupados en una solicitud ni se reprograman solos -- cada uno se completa o edita por separado desde la pestaña «Lista».']),
+  guia('¿Cómo funciona?',['Marca los equipos que quieras de la lista.','Se crea un servicio PROGRAMADO por cada equipo marcado, con la misma fecha, tipo y responsable.','A diferencia de «Programar por grupo», no quedan agrupados en una solicitud ni se reprograman solos -- cada uno se completa o edita por separado desde la pestaña «Lista».']),
   field('tipo_mantenimiento','Tipo','text','PREVENTIVO',true,[{value:'PREVENTIVO',label:'Preventivo (en sitio)'},{value:'CORRECTIVO',label:'Correctivo'}]),
   field('fecha_programada','Fecha programada','date',fechaLocalISO(new Date()),true),
   field('responsable','Responsable técnico','text','',true),
   field('descripcion_falla','Descripción (opcional)','textarea','',false,null,true),
   checkList('asset_tags',items,'Buscar por Asset Tag, usuario, marca o modelo')
  ];
- openModal(`Programar mantenimiento para varios equipos (${equiposRows.length} en la lista)`,fields,'Programar',async form=>{
+ openModal(`Programar mantenimiento para varios equipos (${equipos.length} en total)`,fields,'Programar',async form=>{
   const data=values(form),asset_tags=form.getAll('asset_tags');
   if(!asset_tags.length)throw new Error('Marca al menos un equipo.');
   const result=await api('/activos/design/api/mantenimientos/lote',{method:'POST',body:JSON.stringify({asset_tags,tipo_mantenimiento:data.tipo_mantenimiento,fecha_programada:data.fecha_programada,responsable:data.responsable,descripcion_falla:data.descripcion_falla||null})});
