@@ -18,6 +18,9 @@ class Delegacion(unittest.TestCase):
         eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
         self.db = sessionmaker(bind=eng)()
+        # la caché de delegaciones es global: sin limpiarla, otras pruebas (GeoVictoria) verían las de aquí
+        sd._DELEG_CACHE["v"] = None
+        self.addCleanup(lambda: sd._DELEG_CACHE.update(v=None))
         mk = lambda n, rol="empleado": models.Empleado(nombres=n, apellidos="X", email=f"{n}@x.com", rol=rol, activo=True,
                                                        empresa=models.EMPRESA_DESIGN, cargo="x", area="x", identificacion=n)
         self.lia, self.leo, self.ivan = mk("Lia", "aprobador"), mk("Leo", "aprobador"), mk("Ivan", "aprobador")
