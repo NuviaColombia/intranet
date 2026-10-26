@@ -4456,7 +4456,43 @@ def perf_criterios(db: Session) -> list[DesignPerfCriterio]:
 
 def perf_sheets(db: Session) -> list[DesignPerfSheet]:
     perf_quitar_una_vez(db)
+    perf_meses_2026_una_vez(db)
     return db.query(DesignPerfSheet).order_by(DesignPerfSheet.orden).all()
+
+
+# Desempeño › N6 Marlene (Rosember, 28-oct-2026): los títulos de los meses de esa hoja decían 2025 y debían decir 2026
+# (p. ej. «Oct 2025» → «Oct 2026»). Solo se cambia el año de los títulos de ESA hoja; las calificaciones van por la posición
+# del mes y no se tocan. Una sola vez (marca en design_conexion_reglas); si la hoja todavía no existe, no marca y espera.
+PERF_MESES_2026 = {"marca": "perf_meses_n6_marlene_a_2026_2026_10_28", "hoja": "N6 Marlene"}
+_perf_meses_2026 = {"ok": False}
+
+
+def perf_meses_2026_una_vez(db: Session) -> None:
+    from .models_design import DesignConexionRegla
+    if _perf_meses_2026["ok"]:
+        return
+    try:
+        if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == PERF_MESES_2026["marca"]).first():
+            _perf_meses_2026["ok"] = True
+            return
+        hojas = [h for h in db.query(DesignPerfSheet).filter(DesignPerfSheet.tipo == "eval").all()
+                 if _normalizar_texto(h.nombre) == _normalizar_texto(PERF_MESES_2026["hoja"])]
+        if not hojas:
+            return
+        cambios = []
+        for hoja in hojas:   # normalmente es una sola
+            antes = json.loads(hoja.meses or "[]")
+            despues = [re.sub(r"\b2025\b", "2026", x) if isinstance(x, str) else x for x in antes]
+            if despues != antes:
+                hoja.meses = json.dumps(despues, ensure_ascii=False)
+            cambios.append({"hoja": hoja.nombre, "id": hoja.id, "antes": antes, "despues": despues})
+        db.add(DesignConexionRegla(tipo="sistema", clave=PERF_MESES_2026["marca"], creado_por="Sistema",
+                                   valor=json.dumps(cambios, ensure_ascii=False)))
+        db.commit()
+        _perf_meses_2026["ok"] = True
+    except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
+        db.rollback()
 
 
 # Filas de Desempeño que se quitan una sola vez (pedido por Rosember). Cada una: el área cuyas hojas se revisan,

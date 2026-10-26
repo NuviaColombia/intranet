@@ -120,6 +120,11 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   pestaña y las órdenes lentas (aprobadas sin QC pasada 1 h 30 min) pero solo de sus equipos (los que maneja o tiene a
   cargo: `_equipos_visibles` → `lentas(equipos=)`); los admins ven todo. Pedir por la API un equipo ajeno no devuelve nada.
   Ayudas y Reportes siguen siendo solo de admins.
+- **Desempeño › N6 Marlene: meses de 2025 a 2026** (Rosember, 28-oct-2026): los títulos de mes de esa hoja decían 2025.
+  Corrección única (`perf_meses_2026_una_vez`, marca `perf_meses_n6_marlene_a_2026_2026_10_28` en design_conexion_reglas, que
+  guarda cómo estaban): cambia el año de los títulos de la hoja «N6 Marlene» (y solo de ella); las calificaciones van por la
+  posición del mes y no se tocan. Corre al arrancar el servidor y al abrir Desempeño. Efecto: la Selección asistida, que busca
+  el mes por etiqueta y año, ahora encuentra los meses de 2026 de esa hoja.
 - **Solicitar ayuda también en N2 y Face** (Rosember, 28-oct-2026): mismas condiciones que en N3 (ver
   `services_design_ayuda.py`). La opción «🤝 Pedir ayuda…» sale al manager del equipo (o a quien está a cargo hoy), en su
   Schedule, hoy y en una orden guardada. Cada área pide SOLO a los otros equipos de su misma área (N3 a N3, N2 a N2, Face a

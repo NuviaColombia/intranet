@@ -696,6 +696,21 @@ def design_permiso_octubre():
         db.close()
 
 
+@app.on_event("startup")
+def design_perf_meses_2026():
+    # Design · una vez: los títulos de mes de la hoja de Desempeño «N6 Marlene» pasan de 2025 a 2026 (Rosember, 28-oct-2026).
+    # Va aquí además de al abrir Desempeño porque la Selección asistida lee esa hoja sin pasar por la pantalla.
+    from .database import SessionLocal
+    from . import services_design
+    db = SessionLocal()
+    try:
+        services_design.perf_meses_2026_una_vez(db)
+    except Exception:  # noqa: BLE001  nunca debe impedir el arranque
+        db.rollback()
+    finally:
+        db.close()
+
+
 # Tablas de Protocols, de hijas a madre (design_protocolo_areas/archivos/paginas apuntan a design_protocolos).
 TABLAS_PROTOCOLOS = ("design_protocolo_miniaturas", "design_protocolo_paginas", "design_protocolo_versiones",
                      "design_protocolo_borradores", "design_protocolo_archivos", "design_protocolo_areas",
