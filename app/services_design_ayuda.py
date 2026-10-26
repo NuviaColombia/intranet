@@ -1,10 +1,12 @@
-"""Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3.
+"""Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3. Desde el
+28-oct-2026 también en N2 Demodenture y Face Design, con las mismas condiciones: cada área pide a los otros equipos de SU
+MISMA área (no se mezclan N3, N2 y Face).
 
 Flujo:
 1. El aprobador elige «🤝 Pedir ayuda…» al final de la lista de Diseñador de una orden de hoy (`solicitar`). Puede tener
    una solicitud abierta por orden.
-2. Se buscan los diseñadores LIBRES de los otros equipos de N3 (`libres_n3`). Si no hay ninguno, no sale ninguna
-   notificación y se le dice al solicitante que contacte al manager General.
+2. Se buscan los diseñadores LIBRES de los otros equipos de la misma área (`libres_n3`: el nombre quedó de cuando solo era
+   N3). Si no hay ninguno, no sale ninguna notificación y se le dice al solicitante que contacte al manager General.
 3. Cada aprobador con diseñadores libres recibe una notificación (push fijo + aviso en pantalla) con SUS libres; el
    sistema sugiere al que menos casos lleva en el mes (`ofrecer`).
 4. El primero que elige cierra la solicitud (`elegir`): el diseñador queda puesto como Diseñador de esa orden (funciona como
@@ -31,6 +33,7 @@ from .models_design import (DesignArea, DesignAyudaOferta, DesignAyudaSolicitud,
 log = logging.getLogger(__name__)
 
 AREA_N3 = "N3 Prosthetic"
+AREAS_AYUDA = (AREA_N3, "N2 Demodenture", "Face Design")   # las áreas donde se puede pedir ayuda (N2 y Face desde el 28-oct-2026)
 VENCE_MIN = 15
 MSG_SIN_DISPONIBLES = "No hay diseñadores disponibles en este momento. Contacta al manager General."
 # Estados de un caso que significan "lo está trabajando ahora"
@@ -45,19 +48,24 @@ def _ahora_col() -> datetime:
     return sd.ahora_colombia().replace(tzinfo=None)
 
 
-def _equipos_n3(db: Session) -> list[DesignTeam]:
-    return (db.query(DesignTeam).join(DesignArea, DesignTeam.area_id == DesignArea.id)
-            .options(joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado), joinedload(DesignTeam.manager))
-            .filter(DesignArea.nombre == AREA_N3, DesignTeam.activo == 1, DesignArea.activo == 1).order_by(DesignTeam.orden).all())
+def _equipos_ayuda(db: Session, area_id: int | None = None) -> list[DesignTeam]:
+    """Equipos activos de las áreas donde se pide ayuda (N3, N2 y Face), o solo los de `area_id`."""
+    q = (db.query(DesignTeam).join(DesignArea, DesignTeam.area_id == DesignArea.id)
+         .options(joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado), joinedload(DesignTeam.manager), joinedload(DesignTeam.area))
+         .filter(DesignArea.nombre.in_(AREAS_AYUDA), DesignTeam.activo == 1, DesignArea.activo == 1))
+    if area_id:
+        q = q.filter(DesignTeam.area_id == area_id)
+    return q.order_by(DesignTeam.orden).all()
 
 
-def equipo_de_solicitante(db: Session, user: Empleado) -> DesignTeam | None:
-    """El equipo de N3 que maneja `user` hoy (como manager o como diseñador a cargo). None si no maneja ninguno."""
+def equipo_de_solicitante(db: Session, user: Empleado, team_id: int | None = None) -> DesignTeam | None:
+    """El equipo (de N3, N2 o Face) que maneja `user` hoy (como manager o como diseñador a cargo). Con `team_id`, ese equipo
+    si es de los que maneja; si no, el primero. None si no maneja ninguno."""
     cargo = {tid for tid, eid in sd.delegaciones_activas(db).items() if eid == user.id}
-    for t in _equipos_n3(db):
-        if t.manager_id == user.id or t.id in cargo:
-            return t
-    return None
+    propios = [t for t in _equipos_ayuda(db) if t.manager_id == user.id or t.id in cargo]
+    if team_id:
+        return next((t for t in propios if t.id == team_id), None)
+    return propios[0] if propios else None
 
 
 # ---------- Quién está libre ----------
@@ -101,10 +109,10 @@ def _casos_del_mes(db: Session, ids: list[int], hoy: date) -> dict[int, int]:
     return cuenta
 
 
-def libres_n3(db: Session, ahora: datetime | None = None, excluir_equipo_id: int | None = None) -> list[dict]:
-    """Diseñadores libres de los equipos de N3 (sin contar a los managers). Cada uno: {id, nombre, equipoId, equipo,
-    aprobadorId, casos (del mes), libreDesde (min del día; -1 si no ha terminado nada)}. Ordenados para sugerir:
-    menos casos en el mes primero; si empatan, el que lleva más tiempo libre."""
+def libres_n3(db: Session, ahora: datetime | None = None, excluir_equipo_id: int | None = None, area_id: int | None = None) -> list[dict]:
+    """Diseñadores libres de los equipos de `area_id` (N3, N2 o Face; sin contar a los managers). Cada uno: {id, nombre,
+    equipoId, equipo, aprobadorId, casos (del mes), libreDesde (min del día; -1 si no ha terminado nada)}. Ordenados para
+    sugerir: menos casos en el mes primero; si empatan, el que lleva más tiempo libre. Sin `area_id`, de las tres áreas."""
     ahora = ahora or sd.ahora_colombia()
     hoy, minuto = ahora.date(), ahora.hour * 60 + ahora.minute
     from . import services_design_accesos as sacc
@@ -112,7 +120,7 @@ def libres_n3(db: Session, ahora: datetime | None = None, excluir_equipo_id: int
     ya_ayudando = {a for (a,) in db.query(DesignAyudaSolicitud.elegido_id)
                    .filter(DesignAyudaSolicitud.fecha == hoy, DesignAyudaSolicitud.estado == "atendida").all() if a}
     candidatos: dict[int, dict] = {}
-    for t in _equipos_n3(db):
+    for t in _equipos_ayuda(db, area_id):
         if excluir_equipo_id and t.id == excluir_equipo_id:
             continue
         for d in t.designers:
@@ -183,25 +191,28 @@ def _datos_orden(o: DesignOrden | None) -> dict:
 
 
 def puede_pedir_en_orden(db: Session, user: Empleado, team_id: int, fecha: date) -> bool:
-    """¿Se muestra «Pedir ayuda» en la lista de Diseñador de este equipo y día? Solo al aprobador de ese equipo de N3, hoy."""
+    """¿Se muestra «Pedir ayuda» en la lista de Diseñador de este equipo y día? Solo al aprobador de ese equipo de N3, N2 o
+    Face (o a quien está a cargo hoy), hoy."""
     if fecha != _hoy():
         return False
-    t = equipo_de_solicitante(db, user)
-    return bool(t and t.id == team_id)
+    return equipo_de_solicitante(db, user, team_id) is not None
 
 
 def solicitar(db: Session, user: Empleado, orden_id: int) -> dict:
     """Crea la solicitud de ayuda para una orden de hoy. Devuelve {ok, estado, mensaje, ...}."""
     _vencer_las_vencidas(db)
-    team = equipo_de_solicitante(db, user)
-    if not team:
-        raise PermissionError("Solo un aprobador de un equipo de N3 puede solicitar ayuda.")
-    hoy = _hoy()
     o = db.get(DesignOrden, orden_id)
+    team = equipo_de_solicitante(db, user, o.team_id if o else None)
+    if not team:
+        if o and equipo_de_solicitante(db, user):
+            raise PermissionError("Solo puedes pedir ayuda para órdenes de tu equipo.")
+        raise PermissionError("Solo un aprobador de un equipo de N3, N2 o Face puede solicitar ayuda.")
+    hoy = _hoy()
     if not o or o.team_id != team.id:
         raise PermissionError("Solo puedes pedir ayuda para órdenes de tu equipo.")
     if o.tabla not in ("principal", "nightguard"):
-        raise ValueError("La ayuda se pide para órdenes de Cirugías o de Nightguards / TC.")
+        raise ValueError("La ayuda se pide para órdenes de Cirugías o de Nightguards / TC." if team.area.nombre == AREA_N3
+                         else "La ayuda se pide para órdenes de la tabla principal de tu Schedule.")
     if o.fecha != hoy:
         raise ValueError("La ayuda solo se pide para órdenes de hoy.")
     if not (o.orden or "").strip() or not (o.centro or "").strip():
@@ -210,7 +221,7 @@ def solicitar(db: Session, user: Empleado, orden_id: int) -> dict:
     if abierta:
         return {"ok": True, "ya": True, "id": abierta.id, "estado": "abierta",
                 "mensaje": "Ya pediste ayuda para esta orden: espera a que un aprobador responda o cancela la solicitud."}
-    libres = libres_n3(db, excluir_equipo_id=team.id)
+    libres = libres_n3(db, excluir_equipo_id=team.id, area_id=team.area_id)   # solo los otros equipos de su misma área
     # los managers a quienes les toca decidir: los de los equipos que tienen libres (menos el propio solicitante)
     por_aprobador: dict[int, list] = {}
     for x in libres:
@@ -256,7 +267,8 @@ def cancelar(db: Session, user: Empleado, solicitud_id: int) -> dict:
 def _libres_vigentes(db: Session, oferta: DesignAyudaOferta) -> list[dict]:
     """Los diseñadores de la oferta que siguen libres ahora (la situación cambia mientras tanto)."""
     ofrecidos = json.loads(oferta.libres or "[]")
-    aun = {x["id"] for x in libres_n3(db)}
+    sol = db.get(DesignAyudaSolicitud, oferta.solicitud_id)
+    aun = {x["id"] for x in libres_n3(db, area_id=sol.area_id if sol else None)}
     return [x for x in ofrecidos if x["id"] in aun]
 
 
@@ -345,11 +357,15 @@ def ayudas_del_equipo(db: Session, team_id: int, fecha: date) -> list[dict]:
 
 # ---------- Reporte (Dashboard › Ayudas) ----------
 
-def reporte(db: Session, desde: date, hasta: date) -> dict:
+def reporte(db: Session, desde: date, hasta: date, area_id: int | None = None) -> dict:
+    """Dashboard › Ayudas. `area_id` (28-oct-2026): solo las solicitudes de esa área (N3, N2 o Face); sin él, todas."""
     _vencer_las_vencidas(db)
     q = (db.query(DesignAyudaSolicitud).options(joinedload(DesignAyudaSolicitud.solicitante), joinedload(DesignAyudaSolicitud.elegido),
                                                 joinedload(DesignAyudaSolicitud.elegido_por), joinedload(DesignAyudaSolicitud.team))
          .filter(DesignAyudaSolicitud.fecha >= desde, DesignAyudaSolicitud.fecha <= hasta).order_by(DesignAyudaSolicitud.creada_en.desc()))
+    if area_id:
+        q = q.filter(DesignAyudaSolicitud.area_id == area_id)
+    nombres_area = {a.id: a.nombre for a in db.query(DesignArea)}
     filas, por_aprobador = [], {}
     todas = q.all()
     ords_r = {o.id: o for o in db.query(DesignOrden).filter(DesignOrden.id.in_([s.orden_id for s in todas if s.orden_id] or [0]))}
@@ -370,6 +386,7 @@ def reporte(db: Session, desde: date, hasta: date) -> dict:
         col = lambda dt: dt.replace(tzinfo=None) - timedelta(hours=5) if dt else None   # UTC guardado → hora de Colombia
         filas.append({"id": s.id, "fecha": s.fecha.isoformat(), "hora": col(s.creada_en).strftime("%H:%M"),
                       "solicitante": s.solicitante.nombre_completo if s.solicitante else "", "equipo": s.team.nombre if s.team else "",
+                      "area": nombres_area.get(s.area_id, ""),
                       "orden": (ords_r[s.orden_id].orden or "").strip() if s.orden_id in ords_r else "", "producto": (ords_r[s.orden_id].producto or "").strip() if s.orden_id in ords_r else "",
                       "estado": s.estado, "aprobadores": s.n_aprobadores, "libres": s.n_libres,
                       "sugerido": nombres.get(s.sugerido_id, ""), "elegido": s.elegido.nombre_completo if s.elegido else "",

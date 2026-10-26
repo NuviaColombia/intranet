@@ -120,6 +120,13 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   pestaña y las órdenes lentas (aprobadas sin QC pasada 1 h 30 min) pero solo de sus equipos (los que maneja o tiene a
   cargo: `_equipos_visibles` → `lentas(equipos=)`); los admins ven todo. Pedir por la API un equipo ajeno no devuelve nada.
   Ayudas y Reportes siguen siendo solo de admins.
+- **Solicitar ayuda también en N2 y Face** (Rosember, 28-oct-2026): mismas condiciones que en N3 (ver
+  `services_design_ayuda.py`). La opción «🤝 Pedir ayuda…» sale al manager del equipo (o a quien está a cargo hoy), en su
+  Schedule, hoy y en una orden guardada. Cada área pide SOLO a los otros equipos de su misma área (N3 a N3, N2 a N2, Face a
+  Face; no se mezclan): `AREAS_AYUDA`, `_equipos_ayuda`, `libres_n3(area_id=)`. «Libre» = igual que N3 (sin la regla de
+  articulación, que solo existe en N3). Sin libres, el mismo mensaje («Contacta al manager General»). Dashboard › Ayudas
+  (solo admins) trae el área de cada solicitud y un filtro por área (`reporte(area_id=)`, `?area_id=`). Un manager de varias
+  áreas pide desde el equipo cuyo Schedule tiene abierto (`equipo_de_solicitante(team_id=)`).
 - **Zulys en lila en las gráficas del Dashboard** (Rosember, 28-oct-2026): las líneas de equipos se coloreaban por su
   posición (`DDT_COL`); ahora hay colores fijos por nombre (`DDT_FIJOS`, `ddTColores`): el equipo o aprobador que contenga
   «zuly» o «zully» (se escribe Zulys) sale siempre en lila (#a78bfa), sin importar su posición; los demás siguen la paleta en su orden. El violeta de la

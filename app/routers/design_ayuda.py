@@ -1,4 +1,5 @@
-"""Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3.
+"""Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3 (desde el
+28-oct-2026 también en N2 y Face, cada área con la suya).
 La lógica está en services_design_ayuda. Se incluye desde routers/design_schedule.py (mismo router)."""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -58,13 +59,14 @@ def api_ayuda_elegir(solicitud_id: int, payload: ElegirIn, user: Empleado = Depe
 
 
 @router.get("/design/api/dashboard/ayudas")
-def api_dashboard_ayudas(desde: str = Query(..., max_length=10), hasta: str = Query(..., max_length=10),
+def api_dashboard_ayudas(desde: str = Query(..., max_length=10), hasta: str = Query(..., max_length=10), area_id: int | None = Query(None),
                          user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
-    """Dashboard › Ayudas (solo admins): solicitudes de ayuda y si los aprobadores siguen la sugerencia del sistema."""
+    """Dashboard › Ayudas (solo admins): solicitudes de ayuda y si los aprobadores siguen la sugerencia del sistema. Con
+    `area_id`, solo las de esa área (N3, N2 o Face)."""
     d, h = _fecha(desde), _fecha(hasta)
     if h < d or (h - d).days > 400:
         raise HTTPException(400, "Revisa el periodo (desde, hasta).")
-    return say.reporte(db, d, h)
+    return say.reporte(db, d, h, area_id)
 
 
 @router.post("/design/api/dashboard/ayudas/{solicitud_id}/eliminar")

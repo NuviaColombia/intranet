@@ -1,4 +1,5 @@
-/* Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3.
+/* Solicitar ayuda (19-oct-2026): un aprobador de N3 pide un diseñador libre a los demás aprobadores de N3 (N2 y Face desde el
+   28-oct-2026, cada área con la suya).
    Aquí vive todo lo de pantalla:
    - «🤝 Pedir ayuda…» (opción al final de la lista de Diseñador del Schedule, ver schedule.js) y el estado de mis solicitudes en Seguimiento;
    - el aviso con la selección de diseñadores libres para el aprobador que debe responder (llega también por push);
@@ -156,7 +157,9 @@
   function dyCargar() {
     var mio = ++DY.tok, t = document.getElementById('dyTabla'), a = document.getElementById('dyAprobadores');
     t.style.opacity = '.5';
-    api('/design/api/dashboard/ayudas?desde=' + document.getElementById('dyDesde').value + '&hasta=' + document.getElementById('dyHasta').value).then(function(r) {
+    var area = document.getElementById('dyArea') ? document.getElementById('dyArea').value : '';
+    api('/design/api/dashboard/ayudas?desde=' + document.getElementById('dyDesde').value + '&hasta=' + document.getElementById('dyHasta').value +
+        (area ? '&area_id=' + encodeURIComponent(area) : '')).then(function(r) {
       if (mio !== DY.tok) return;
       var k = r.kpis;
       document.getElementById('dyKpis').innerHTML = dyKpi(k.total, 'solicitudes') + dyKpi(k.atendidas, 'atendidas') +
@@ -170,16 +173,16 @@
             '<td>' + (x.respuestaProm == null ? '—' : '<b>' + x.respuestaProm + ' min</b>') + '</td>' +
             '<td>' + (x.atendidas ? x.siguio + ' de ' + x.atendidas + ' (' + x.pct + '%)' : '—') + '</td></tr>';
         }).join('') : '<tr><td colspan="6" style="color:#4b5563">Todavía no hay solicitudes en este periodo.</td></tr>') + '</tbody>';
-      t.innerHTML = '<thead><tr><th>Fecha</th><th>Hora</th><th>Solicitó</th><th>Orden</th><th>Equipo</th><th>Estado</th><th title="Aprobadores a los que les llegó la solicitud">Enviada a</th><th>Libres</th><th>Sugerido</th><th>Enviado</th><th>Lo envió</th><th>¿Siguió?</th><th>Respuesta</th><th></th></tr></thead><tbody>' +
+      t.innerHTML = '<thead><tr><th>Fecha</th><th>Hora</th><th>Solicitó</th><th>Orden</th><th>Área</th><th>Equipo</th><th>Estado</th><th title="Aprobadores a los que les llegó la solicitud">Enviada a</th><th>Libres</th><th>Sugerido</th><th>Enviado</th><th>Lo envió</th><th>¿Siguió?</th><th>Respuesta</th><th></th></tr></thead><tbody>' +
         (r.items.length ? r.items.map(function(x) {
-          return '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.hora) + '</td><td class="dd-izq">' + esc(x.solicitante) + '</td><td>' + esc(x.orden || '—') + '</td><td>' + esc(x.equipo) + '</td><td>' + (ESTADOS[x.estado] || esc(x.estado)) + '</td>' +
+          return '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.hora) + '</td><td class="dd-izq">' + esc(x.solicitante) + '</td><td>' + esc(x.orden || '—') + '</td><td>' + esc(x.area || '—') + '</td><td>' + esc(x.equipo) + '</td><td>' + (ESTADOS[x.estado] || esc(x.estado)) + '</td>' +
             // los nombres van en el tooltip del número (Rosember, 21-oct-2026)
             '<td><b' + ((x.enviadaA || []).length ? ' title="' + esc(x.enviadaA.join('\n')) + '" style="cursor:help;text-decoration:underline dotted"' : '') + '>' +
               ((x.enviadaA || []).length || x.aprobadores) + ' aprob.</b></td>' +
             '<td>' + x.libres + '</td><td>' + esc(x.sugerido || '—') + '</td><td>' + esc(x.elegido || '—') + '</td><td>' + esc(x.elegidoPor || '—') + '</td>' +
             '<td>' + (x.siguio == null ? '—' : x.siguio ? '<b style="color:#15803d">✔ Sí</b>' : '<b style="color:#b91c1c">✘ No</b>') + '</td><td>' + (x.respuestaMin == null ? '—' : x.respuestaMin + ' min') + '</td>' +
             '<td><button type="button" class="btn rojo mini" data-borrar-ayuda="' + x.id + '" data-quien="' + esc(x.solicitante) + '" title="Borrar esta solicitud (p. ej. una de prueba)">Eliminar</button></td></tr>';
-        }).join('') : '<tr><td colspan="14" style="color:#4b5563">No hay solicitudes en este periodo.</td></tr>') + '</tbody>';
+        }).join('') : '<tr><td colspan="15" style="color:#4b5563">No hay solicitudes en este periodo.</td></tr>') + '</tbody>';
     }).catch(function(e) { t.innerHTML = '<tbody><tr><td style="color:#b91c1c">No se pudo cargar: ' + esc(e.message) + '</td></tr></tbody>'; })
       .then(function() { t.style.opacity = ''; });
   }
@@ -193,6 +196,7 @@
       .then(function() { dyCargar(); })
       .catch(function(e) { b.disabled = false; alert('No se pudo eliminar: ' + e.message); });
   });
+  document.addEventListener('change', function(ev) { if (ev.target && ev.target.id === 'dyArea') dyCargar(); });
   window.dyIniciar = dyIniciar;
 
   // ---------- Arranque ----------

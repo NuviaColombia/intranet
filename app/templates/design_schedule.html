@@ -457,11 +457,12 @@
 </div>
 {% if user.rol in ('admin', 'superadmin') %}
 <div id="ddVistaAyudas" hidden>
-<p class="dd-p-nota">Solicitudes de ayuda entre aprobadores de N3: a quién le llegaron, qué diseñador sugería el sistema (el que menos casos lleva en el mes), cuál eligió el aprobador y si siguió la sugerencia. «Sin disponibles» son las veces que nadie tenía un diseñador libre.</p>
+<p class="dd-p-nota">Solicitudes de ayuda entre aprobadores de una misma área (N3, N2 y Face): a quién le llegaron, qué diseñador sugería el sistema (el que menos casos lleva en el mes), cuál eligió el aprobador y si siguió la sugerencia. «Sin disponibles» son las veces que nadie tenía un diseñador libre.</p>
 <div class="dd-kpis" id="dyKpis"></div>
 <div class="dd-filtros">
   <div><label for="dyDesde">Desde</label><input type="date" id="dyDesde"></div>
   <div><label for="dyHasta">Hasta</label><input type="date" id="dyHasta"></div>
+  <div><label for="dyArea">Área</label><select id="dyArea"><option value="">-- Todas --</option>{% for a in areas if a.nombre in ('N3 Prosthetic', 'N2 Demodenture', 'Face Design') %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
 </div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Por aprobador</h3><span style="font-size:12px;color:#4b5563">Quién envía diseñadores y qué tanto sigue la sugerencia</span></div>
   <div class="dp-tabla-w"><table class="dd-tabla" id="dyAprobadores"></table></div></div>
