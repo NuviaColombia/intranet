@@ -1046,6 +1046,7 @@ _prosthetic_scan = {"ok": False}
 # Si ya existe, se reactiva y pasa al final. Para agregar otro, se suma una fila con una marca nueva.
 PRODUCTOS_AL_FINAL = [
     (["Face Design"], "Maxilar Print", "producto_maxilar_print_face_2026_10_12"),  # pedido por Rosember el 12-oct-2026
+    (None, "Training", "producto_training_todas_2026_10_26"),   # producto fantasma (ver PRODUCTO_FANTASMA); None = todas las áreas
 ]
 _productos_al_final = {"ok": False}
 
@@ -1107,7 +1108,7 @@ def productos_al_final_una_vez(db: Session) -> None:
         for areas, producto, marca in PRODUCTOS_AL_FINAL:
             if marca in hechas:
                 continue
-            for area in db.query(DesignArea).filter(DesignArea.nombre.in_(areas)).all():
+            for area in (db.query(DesignArea).all() if areas is None else db.query(DesignArea).filter(DesignArea.nombre.in_(areas)).all()):
                 productos = db.query(DesignCatalogo).filter(DesignCatalogo.area_id == area.id, DesignCatalogo.tipo == "producto").all()
                 ult = max([c.orden or 0 for c in productos] or [0]) + 1
                 c = next((x for x in productos if _normalizar_texto(x.valor) == _normalizar_texto(producto)), None)
@@ -1331,12 +1332,28 @@ def permisos_por_horas_del_dia(db: Session, empleado_ids: list[int], fecha: date
     return out
 
 
+# Producto «Training» (Rosember, 26-oct-2026): está en todas las áreas solo para practicar; es un producto fantasma.
+# La orden se ve y se edita en el Schedule, pero no cuenta en ninguna parte: contadores, Dashboard, Producción,
+# N3/N2 Producción, Seguimiento, rankings, Reparto, Selección asistida, reportes de QC ni casos asignados. Tampoco pasa
+# de Face a N2. El frontend usa el mismo criterio en dsEsFantasma().
+PRODUCTO_FANTASMA = "Training"
+
+
+def es_producto_fantasma(producto: str | None) -> bool:
+    return _normalizar_texto(producto or "") == _normalizar_texto(PRODUCTO_FANTASMA)
+
+
+def filtro_no_fantasma():
+    return func.lower(func.trim(func.coalesce(DesignOrden.producto, ""))) != PRODUCTO_FANTASMA.lower()
+
+
 def filtro_orden_completa():
     """Una orden solo cuenta (contadores, Dashboard, vista de todas las áreas) si tiene centro, producto y
-    diseñador. Las filas a medio llenar siguen guardadas y visibles en el horario del equipo.
-    El frontend usa el mismo criterio en dsOrdenCompleta()."""
+    diseñador, y si el producto no es el fantasma «Training». Las filas a medio llenar y las de práctica siguen
+    guardadas y visibles en el horario del equipo. El frontend usa el mismo criterio en dsOrdenCompleta() y dsEsFantasma()."""
     return and_(func.coalesce(DesignOrden.centro, "") != "", func.coalesce(DesignOrden.producto, "") != "",
-                or_(DesignOrden.designer_id.isnot(None), func.coalesce(DesignOrden.designer_prestado, "") != ""))
+                or_(DesignOrden.designer_id.isnot(None), func.coalesce(DesignOrden.designer_prestado, "") != ""),
+                filtro_no_fantasma())
 
 
 # ---------- Cierre diario del horario (hora Colombia) ----------
@@ -1518,7 +1535,7 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
     desde = ultimo_dia_cerrado() + timedelta(days=1)
     estados = [e.lower() for e in ESTADOS_ASIGNADOS]
     q = (db.query(DesignOrden).options(joinedload(DesignOrden.team))
-         .filter(DesignOrden.fecha >= desde, func.lower(func.trim(DesignOrden.estado)).in_(estados)))
+         .filter(DesignOrden.fecha >= desde, func.lower(func.trim(DesignOrden.estado)).in_(estados), filtro_no_fantasma()))
     nombre = _normalizar_texto(user.nombre_completo)
     # el diseñador prestado se guarda por nombre: se reconoce comparando el nombre completo
     ordenes = [o for o in q.filter(or_(DesignOrden.designer_id == user.id, func.coalesce(DesignOrden.designer_prestado, "") != "")).all()
@@ -1617,7 +1634,7 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
         personas.pop(i, None)
     ids = list(personas)
     ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.team))
-               .filter(DesignOrden.fecha == hoy, DesignOrden.designer_id.in_(ids)).all()) if ids else []
+               .filter(DesignOrden.fecha == hoy, DesignOrden.designer_id.in_(ids), filtro_no_fantasma()).all()) if ids else []
     pausas = db.query(DesignBreak).filter(DesignBreak.fecha == hoy, DesignBreak.empleado_id.in_(ids)).all() if ids else []
     permisos_people = _permisos_aprobados_del_dia(db, ids, hoy)
     horas_people = permisos_por_horas_del_dia(db, ids, hoy)
@@ -1779,7 +1796,8 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
     equipos = (db.query(DesignTeam).join(DesignArea).filter(DesignTeam.activo == 1, DesignArea.activo == 1, DesignArea.formato != FORMATO_SUPPORT)
                .options(joinedload(DesignTeam.area), joinedload(DesignTeam.designers).joinedload(DesignTeamDesigner.empleado))
                .order_by(DesignArea.orden, DesignTeam.orden, DesignTeam.nombre).all())
-    ordenes = db.query(DesignOrden).filter(DesignOrden.fecha == hoy, DesignOrden.team_id.in_([t.id for t in equipos])).all() if equipos else []
+    ordenes = db.query(DesignOrden).filter(DesignOrden.fecha == hoy, DesignOrden.team_id.in_([t.id for t in equipos]),
+                                           filtro_no_fantasma()).all() if equipos else []
     ausentes = {b.empleado_id for b in db.query(DesignBreak).filter(DesignBreak.fecha == hoy, func.coalesce(DesignBreak.tipo_ausencia, "") != "")}
     ausentes |= set(_permisos_aprobados_del_dia(db, [d.empleado_id for t in equipos for d in t.designers], hoy))   # y lo de People
     mgr = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_([t.manager_id for t in equipos if t.manager_id]))} if equipos else {}
@@ -1889,6 +1907,8 @@ def copiar_face_a_n2(db: Session, orden: DesignOrden, user: Empleado) -> dict | 
     copiaba las órdenes de mañana). No se copia dos veces (si ya existe esa orden en ese equipo y día, solo avisa).
     Devuelve None si no aplica; si no se pudo, {ok: False, motivo}."""
     if not orden.team or not orden.team.area or orden.team.area.nombre != "Face Design":
+        return None
+    if es_producto_fantasma(orden.producto):   # producto «Training»: es de práctica, no pasa a N2
         return None
     dia = ahora_colombia().date()
     if orden.fecha != dia:
@@ -2182,7 +2202,7 @@ def prestados_por_disenador(db: Session, ids: list[int], fecha: date, por_tipo: 
     tipos: dict = {}
     for eid, tid, estado, tabla, producto in (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado,
                                                        DesignOrden.tabla, DesignOrden.producto)
-                                              .filter(DesignOrden.designer_id.in_(ids), DesignOrden.fecha == fecha,
+                                              .filter(DesignOrden.designer_id.in_(ids), DesignOrden.fecha == fecha, filtro_no_fantasma(),
                                                       DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]))):
         if tid in miembro.get(eid, set()) or tid in support or _es_cancelada(estado):
             continue

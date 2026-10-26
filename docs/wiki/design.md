@@ -333,6 +333,12 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`face_n2_viejas_una_vez`). Antes (14-oct) cualquier QC copiaba el caso al día de hoy.
 - **Push fijo** (se queda hasta que lo cierren): Face → N2 al llegar una orden aprobada, y a la
   persona de Support cuando un equipo de N3 le asigna un caso (`_push_caso_a_support`).
+- **Producto fantasma «Training»** (Rosember, 26-oct-2026): está en el catálogo de productos de TODAS las áreas, al final
+  (`PRODUCTOS_AL_FINAL` con áreas None, marca `producto_training_todas_2026_10_26`); es solo para practicar. La orden se
+  ve y se edita en el Schedule, pero no cuenta en ninguna parte: `filtro_orden_completa` lo excluye (contadores,
+  Dashboard, vista de todas las áreas, Reparto, Inicio, Reportes, Selección asistida, reportes de QC), y además
+  `filtro_no_fantasma` en Seguimiento, casos asignados y prestados; N3/N2 Producción y la copia Face → N2 usan
+  `es_producto_fantasma`. En la pantalla, `dsEsFantasma` lo saca de los contadores y del botón Producción.
 - **Push al pasar un caso a Training** (Rosember, 26-oct-2026): cuando un manager de N3 › Cirugías elige «Training» en
   Diseñador (`mover_a_training`), a la manager del equipo de Training (Estefanía) y a quien esté a cargo hoy de ese
   equipo les llega «🎓 Nuevo caso para Training» (fijo, con orden, paciente, centro, producto, quién lo pasó y el día)

@@ -953,6 +953,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Una orden "completa" (centro + producto + diseñador) es la única que cuentan los contadores;
   // mismo criterio que filtro_orden_completa() en services_design.py.
   function dsOrdenCompleta(f) { return !!(f.centro && f.producto && (f.designerId || f.designerPrestado)); }
+  // Producto «Training» (26-oct-2026): fantasma, solo para practicar; se ve en el Schedule pero no cuenta (= es_producto_fantasma)
+  function dsEsFantasma(f) { return String((f && f.producto) || '').trim().toLowerCase() === 'training'; }
   // ¿La fila está totalmente en blanco? (p. ej. las que crea "+ Agregar orden"): entonces ya hay dónde escribir.
   var DS_CAMPOS_DATO = ['orden', 'paciente', 'centro', 'producto', 'designerId', 'designerPrestado', 'estado'];
   function dsFrenaFilaNueva(f) { return !DS_CAMPOS_DATO.some(function(k) { return f[k] && String(f[k]).trim(); }); }
@@ -2352,6 +2354,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var filas = dia.principal.concat(dia.nightguard || [], dia.material || []);
     // Vista del diseñador: también cuentan los casos que hizo prestado en otros equipos (19-oct-2026)
     if (dia.soloPropias) filas = filas.concat(dia.prestadas || []);
+    filas = filas.filter(function(f) { return !dsEsFantasma(f); });   // producto «Training»: no cuenta
     var todas = filas.filter(dsOrdenCompleta), conDatos = filas.filter(dsOrdenConDatos);
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
     DS_KPIS.forEach(function(k) {
@@ -2519,7 +2522,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     [['principal', dia.principal], ['nightguard', dia.nightguard], ['material', dia.material], ['', dia.soloPropias ? dia.prestadas : []]]
       .forEach(function(par) { (par[1] || []).forEach(function(f) {
       var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
-      if (!k || String(f.estado || '').trim().toLowerCase() === 'canceled') return;  // las canceladas no cuentan
+      if (!k || String(f.estado || '').trim().toLowerCase() === 'canceled' || dsEsFantasma(f)) return;  // canceladas y «Training» no cuentan
       if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerCorto || f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
       cuenta[k]++;
       tipoDe(k)[dsTipoProduccion(tablaDe(f, par[0]), f.producto)]++;
@@ -2537,7 +2540,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsProduccionRD(dia) {
     var por = {}, orden = [];
     (dia.material || []).forEach(function(f) {
-      if (dsNorm(f.estado) === 'canceled') return;
+      if (dsNorm(f.estado) === 'canceled' || dsEsFantasma(f)) return;
       var m = f.manager || f.equipo || 'Sin manager';
       if (!por[m]) { por[m] = {nombre: m, casos: 0, rem: 0}; orden.push(m); }
       por[m].casos++;

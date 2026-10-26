@@ -59,6 +59,7 @@ def produccion(db: Session, fecha: date) -> list[dict]:
                 por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
             del_equipo = [o for o in ordenes if o.team_id == t.id and ((o.centro or "").strip() or (o.orden or "").strip()
                                                                         or (o.paciente or "").strip() or (o.producto or "").strip())]
+            del_equipo = [o for o in del_equipo if not sd.es_producto_fantasma(o.producto)]   # «Training»: de práctica
             canceladas = sum(1 for o in del_equipo if sd._es_cancelada(o.estado))
             nuevas = [o for o in del_equipo if not sd._es_cancelada(o.estado)]
             conteo: dict[str, int] = {}
