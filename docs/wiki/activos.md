@@ -93,6 +93,14 @@ no por módulo.
 
 ## Gotchas
 
+- **`app/static/activos_design/app.js`/`app.css` se sirven con `Cache-Control: public, max-age=86400`
+  y, hasta el 26-oct-2026, sin parámetro de versión** (`<script src="/static/activos_design/app.js">`
+  a secas) -- después de cada deploy, el navegador (y Cloudflare) podían seguir sirviendo la copia
+  vieja hasta 24h, así que un fix recién desplegado parecía "seguir sin funcionar". Se agregó
+  `?v={{ activos_estaticos_v }}` (hash del contenido de esos dos archivos, calculado una vez al
+  arrancar en `main_templates.py`, mismo patrón que `ds_estaticos_v` de Design) a los dos tags en
+  `activos_design.html`. Si agregas otro archivo estático propio de Activos, inclúyelo en
+  `_version_activos()` para que también invalide la caché al cambiar.
 - **`checkList(name, items, placeholder)` es una función de `app/static/activos_design/app.js`
   (define la lista de casillas con buscador y «Marcar todos»/«Ninguno» de los modales de
   programación masiva) que se quedó SIN DEFINIR al portar el frontend original -- se usaba en

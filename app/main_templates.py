@@ -111,6 +111,24 @@ def _version_oscuro() -> str:
 
 
 templates.env.globals["ds_estaticos_v"] = _version_oscuro()
+
+
+def _version_activos() -> str:
+    """Versión de app.js/app.css de Activos › Design (cambia con su contenido: sin esto, el navegador
+    y Cloudflare podían servir una copia vieja del JS hasta 24h después de cada deploy -- ver
+    Cache-Control en el estático -- y un fix no se veía reflejado aunque ya estuviera en producción)."""
+    import hashlib
+    from pathlib import Path
+    h = hashlib.md5()
+    for n in ("app.js", "app.css"):
+        try:
+            h.update((Path(__file__).resolve().parent / "static" / "activos_design" / n).read_bytes())
+        except OSError:
+            pass
+    return h.hexdigest()[:10]
+
+
+templates.env.globals["activos_estaticos_v"] = _version_activos()
 templates.env.globals["puede_sst"] = puede_sst
 
 
