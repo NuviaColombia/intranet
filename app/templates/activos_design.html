@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Activos · Design{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/activos_design/app.css">
+<link rel="stylesheet" href="/static/activos_design/app.css?v={{ activos_estaticos_v }}">
 <style>
   /* Esta pantalla arma su propio layout (barra lateral + contenido) -- igual que Design Schedule,
      ocupa todo el ancho sin el margen/máximo normales de "main". */
@@ -124,5 +124,5 @@
 </div>
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-box"><h2 id="modal-title"></h2><form id="modal-form"><div id="modal-fields" class="form-grid"></div><div class="modal-actions"><button type="button" class="secondary" id="modal-cancelar">Cancelar</button><button type="submit" class="primary" id="modal-guardar">Guardar</button></div></form></div></div>
 <div class="toast" id="toast" role="status"></div>
-<script src="/static/activos_design/app.js" defer></script>
+<script src="/static/activos_design/app.js?v={{ activos_estaticos_v }}" defer></script>
 {% endblock %}
