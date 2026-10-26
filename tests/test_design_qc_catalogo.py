@@ -45,5 +45,19 @@ class CatalogoN3(unittest.TestCase):
         self.assertIn("Hallazgo agregado por un aprobador", dict(self.titulos(self.n3))["To mill"])
 
 
+    def test_eliminar_titulo_y_editar_hallazgo(self):
+        self.titulos(self.n3)
+        self.assertEqual(sq.eliminar_titulo(self.db, self.n3.id, "To mill"), 4)
+        self.assertNotIn("To mill", dict(self.titulos(self.n3)))
+        with self.assertRaises(KeyError):
+            sq.eliminar_titulo(self.db, self.n3.id, "To mill")   # ya no está
+        item = sq.catalogo(self.db, self.n3.id)[0]["items"][0]
+        sq.editar_hallazgo(self.db, item["id"], "Cambios incorrectos")
+        self.assertEqual(dict(self.titulos(self.n3))["Diseño"][0], "Cambios incorrectos")
+        otro = sq.catalogo(self.db, self.n3.id)[0]["items"][1]
+        with self.assertRaises(ValueError):
+            sq.editar_hallazgo(self.db, otro["id"], "cambios incorrectos")   # repetido en el mismo título
+
+
 if __name__ == "__main__":
     unittest.main()

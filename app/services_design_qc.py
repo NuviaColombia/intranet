@@ -279,6 +279,36 @@ def renombrar_titulo(db: Session, area_id: int, titulo: str, nuevo: str) -> int:
     return len(filas)
 
 
+def eliminar_titulo(db: Session, area_id: int, titulo: str) -> int:
+    """Quita un título y todos sus hallazgos de la lista del área (Rosember, 26-oct-2026). Los reportes de QC ya guardados
+    no cambian. Devuelve cuántas filas quitó."""
+    titulo = _limpio(titulo, "título")
+    filas = db.query(DesignQcCatalogo).filter(DesignQcCatalogo.area_id == area_id, DesignQcCatalogo.titulo == titulo,
+                                              DesignQcCatalogo.activo == 1).all()
+    if not filas:
+        raise KeyError(titulo)
+    for r in filas:
+        r.activo = 0
+    db.commit()
+    return len(filas)
+
+
+def editar_hallazgo(db: Session, item_id: int, texto: str) -> dict:
+    """Corrige el texto de un hallazgo (Rosember, 26-oct-2026). Los reportes ya guardados conservan el texto con el que se
+    guardaron."""
+    texto = _limpio(texto, "hallazgo")
+    r = db.get(DesignQcCatalogo, item_id)
+    if not r or not r.activo or not r.hallazgo:
+        raise KeyError(item_id)
+    if texto != r.hallazgo and db.query(DesignQcCatalogo).filter(
+            DesignQcCatalogo.area_id == r.area_id, DesignQcCatalogo.titulo == r.titulo, DesignQcCatalogo.activo == 1,
+            DesignQcCatalogo.id != r.id, func.lower(DesignQcCatalogo.hallazgo) == texto.lower()).first():
+        raise ValueError("Ese hallazgo ya está en el título.")
+    r.hallazgo = texto
+    db.commit()
+    return {"id": r.id, "texto": r.hallazgo}
+
+
 def agregar_hallazgo(db: Session, area_id: int, titulo: str, texto: str) -> dict:
     titulo, texto = _limpio(titulo, "título"), _limpio(texto, "hallazgo")
     existentes = [t for t in _titulos(db, area_id).values() if t["titulo"].lower() == titulo.lower()]

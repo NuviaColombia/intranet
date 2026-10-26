@@ -1359,6 +1359,17 @@ window.addEventListener('unhandledrejection', function(ev) {
             d.replaceWith(campo);
           };
           sm.appendChild(lap);
+          // admins: eliminar el título con sus hallazgos (Rosember, 26-oct-2026)
+          var bt = el('button', 'ds-qc-x ds-qc-ren', '🗑'); bt.type = 'button';
+          bt.title = 'Eliminar este título y sus hallazgos de la lista (los reportes ya guardados no cambian)';
+          bt.onclick = function(e) {
+            e.preventDefault(); e.stopPropagation();
+            if (!confirm('¿Eliminar el título "' + t.titulo + '"' + (t.items.length ? ' y sus ' + t.items.length + ' hallazgos' : '') +
+                         ' de la lista? Los reportes de QC ya guardados no cambian.')) return;
+            t.items.forEach(function(it) { delete sel[it.texto]; });
+            llamar('/design/api/qc-catalogo/titulo/eliminar', {areaId: DS.areaId, titulo: t.titulo, tabla: tabla});
+          };
+          sm.appendChild(bt);
         }
         var n = cuentaTitulo(t); if (n) sm.appendChild(el('span', 'ds-qc-cnt', String(n)));
         d.appendChild(sm);
@@ -1384,6 +1395,22 @@ window.addEventListener('unhandledrejection', function(ev) {
             mensaje('');
           };
           if (puedeBorrar) {
+            // admins: corregir el texto del hallazgo (Rosember, 26-oct-2026)
+            var ed = el('button', 'ds-qc-x ds-qc-ren', '✎'); ed.type = 'button';
+            ed.title = 'Editar el texto de este hallazgo (los reportes ya guardados no cambian)';
+            ed.onclick = function(e) {
+              e.preventDefault(); e.stopPropagation();
+              var campo = campoAgregar('', 'Texto del hallazgo…', function(v) {
+                if (v === it.texto) { pintar(); return; }
+                if (sel[it.texto]) { sel[v] = sel[it.texto]; delete sel[it.texto]; }
+                abiertos[t.titulo] = true;
+                llamar('/design/api/qc-catalogo/' + it.id + '/editar', {texto: v});
+              });
+              campo.querySelector('input').value = it.texto;
+              campo.querySelector('.btn').textContent = 'Guardar';
+              fila.replaceWith(campo);
+            };
+            fila.appendChild(ed);
             var x = el('button', 'ds-qc-x', '🗑'); x.type = 'button'; x.title = 'Quitar este hallazgo de la lista (los reportes ya guardados no cambian)';
             x.onclick = function(e) {
               e.preventDefault();

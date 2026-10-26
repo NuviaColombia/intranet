@@ -33,6 +33,10 @@ Antes de buscar un patrón de roles que no existe:
   anterior de N3 (la del 9-oct y lo que agregaron los aprobadores): esas filas quedan con `activo = 0` y los reportes
   de QC ya guardados no cambian. Se aplica una sola vez (`REEMPLAZOS` en services_design_qc.py, marca
   `qc_n3_lista_26oct`); lo que se agregue después se conserva. N6 sigue con su lista.
+- **Eliminar títulos y editar hallazgos de la lista de QC** (Rosember, 26-oct-2026; todas las áreas, solo admins): 🗑
+  junto al título lo quita con todos sus hallazgos (`eliminar_titulo`, POST `/qc-catalogo/titulo/eliminar`, declarada
+  antes de `/qc-catalogo/{item_id}/eliminar`) y ✎ junto a cada hallazgo corrige su texto (`editar_hallazgo`, POST
+  `/qc-catalogo/{item_id}/editar`; no deja repetir un texto en el mismo título). Los reportes de QC ya guardados no cambian.
 - **Renombrar un título de la lista de hallazgos de QC** (✎ en la ventana del QC): solo admins, cambia el título
   para toda el área (`renombrar_titulo`); los reportes ya guardados conservan su texto (21-oct-2026).
 - **Dashboard › Reportes** (`/design/reportes/mensual`, subir PDF): solo admins de Design (21-oct-2026).

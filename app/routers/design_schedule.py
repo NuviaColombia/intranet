@@ -1535,6 +1535,42 @@ def api_qc_titulo_renombrar(payload: QcRenombrarIn, user: Empleado = Depends(req
     return {"titulos": sq.catalogo(db, payload.areaId, payload.tabla, payload.producto)}
 
 
+# Va antes de /qc-catalogo/{item_id}/eliminar: si no, «titulo» se tomaría como item_id.
+@router.post("/design/api/qc-catalogo/titulo/eliminar")
+def api_qc_titulo_eliminar(payload: QcTituloIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                           db: Session = Depends(get_db)):
+    """Solo admins: quitar un título y sus hallazgos de la lista de QC (Rosember, 26-oct-2026). Los reportes ya guardados
+    no cambian."""
+    if not sq.puede_borrar(user):
+        raise HTTPException(403, "Solo los admins eliminan títulos de la lista.")
+    try:
+        sq.eliminar_titulo(db, payload.areaId, payload.titulo)
+    except KeyError:
+        raise HTTPException(404, "El título no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"titulos": sq.catalogo(db, payload.areaId, payload.tabla, payload.producto)}
+
+
+class QcEditarIn(BaseModel):
+    texto: str = Field(max_length=300)
+
+
+@router.post("/design/api/qc-catalogo/{item_id}/editar")
+def api_qc_editar(item_id: int, payload: QcEditarIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                  db: Session = Depends(get_db)):
+    """Solo admins: corregir el texto de un hallazgo de la lista (Rosember, 26-oct-2026). Los reportes ya guardados
+    conservan el texto con el que se guardaron."""
+    if not sq.puede_borrar(user):
+        raise HTTPException(403, "Solo los admins editan hallazgos de la lista.")
+    try:
+        return sq.editar_hallazgo(db, item_id, payload.texto)
+    except KeyError:
+        raise HTTPException(404, "El hallazgo no existe.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.post("/design/api/qc-catalogo/hallazgo")
 def api_qc_hallazgo(payload: QcHallazgoIn, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     if not sq.puede_agregar(user):
