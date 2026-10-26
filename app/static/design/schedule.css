@@ -270,6 +270,43 @@
   .ds-qc-x:hover { opacity:1; }
   .ds-qc-mas { align-self:flex-start; border:1px dashed #93c5fd; background:#fff; color:#1d4ed8; border-radius:6px; padding:4px 10px; font-size:12.5px; cursor:pointer; margin-top:4px; }
   .ds-qc-nuevo { margin:8px 12px 10px; }
+  /* Ventana «Compartir hoja» del Canvas (27-oct-2026) */
+  .cv-sh { width:480px; padding:20px 22px 18px; }
+  .cv-sh-cab { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+  .cv-sh-ico { flex:none; width:40px; height:40px; border-radius:12px; background:#eff6ff; color:#1d4ed8; font-size:20px; display:flex; align-items:center; justify-content:center; }
+  .cv-sh h4 { margin:0; font-size:16px; color:#111827; }
+  .cv-sh-hoja { color:#6b7280; font-size:12.5px; margin-top:1px; }
+  .cv-sh-nota { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:9px 12px; color:#4b5563; font-size:12.5px; line-height:1.45; margin-bottom:14px; }
+  .cv-sh-nota b { color:#111827; font-weight:600; }
+  .cv-sh-opts { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .cv-sh-opt { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; background:#fff; border:1.5px solid #d1d5db; border-radius:12px; padding:12px 14px; cursor:pointer; font:inherit; color:#111827; transition:border-color .12s, background .12s, box-shadow .12s; }
+  .cv-sh-opt:hover { border-color:#93c5fd; background:#f8fbff; }
+  .cv-sh-opt.on { border-color:#1d4ed8; background:#eff6ff; box-shadow:0 0 0 3px rgba(29,78,216,.12); }
+  .cv-sh-opt.on::after { content:"✓"; position:absolute; top:10px; right:12px; width:18px; height:18px; border-radius:50%; background:#1d4ed8; color:#fff; font-size:11px; line-height:18px; text-align:center; }
+  .cv-sh-opt-i { font-size:20px; margin-bottom:2px; }
+  .cv-sh-opt b { font-size:13.5px; font-weight:600; }
+  .cv-sh-opt small { color:#6b7280; font-size:12px; }
+  .cv-sh-uno { margin-bottom:6px; }
+  .cv-sh-busca { display:flex; align-items:center; gap:8px; border:1.5px solid #d1d5db; border-radius:10px; padding:0 10px; background:#fff; }
+  .cv-sh-busca:focus-within { border-color:#1d4ed8; box-shadow:0 0 0 3px rgba(29,78,216,.12); }
+  .cv-sh-busca > span { flex:none; font-size:13px; line-height:1; opacity:.7; }
+  .cv-sh-busca input { flex:1; min-width:0; width:auto; height:36px; margin:0; border:none !important; outline:none; box-shadow:none !important; padding:0; font-size:13px; background:transparent; }
+  .cv-sh-lista { margin-top:8px; max-height:230px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:10px; padding:4px; }
+  .cv-sh-per { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; border-radius:8px; padding:7px 8px; cursor:pointer; font:inherit; color:#111827; }
+  .cv-sh-per:hover { background:#f3f4f6; }
+  .cv-sh-per.on { background:#eff6ff; }
+  .cv-sh-av { flex:none; width:32px; height:32px; border-radius:50%; background:#dbeafe; color:#1d4ed8; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; text-transform:uppercase; }
+  .cv-sh-per.on .cv-sh-av { background:#1d4ed8; color:#fff; }
+  .cv-sh-per-t { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .cv-sh-per-t b { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cv-sh-per-t small { color:#6b7280; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cv-sh-ck { flex:none; color:#1d4ed8; font-weight:700; visibility:hidden; }
+  .cv-sh-per.on .cv-sh-ck { visibility:visible; }
+  .cv-sh-vacio { color:#6b7280; padding:16px 10px; text-align:center; font-size:12.5px; }
+  .cv-sh-err { color:#b91c1c; font-size:12.5px; min-height:16px; margin-top:6px; }
+  .cv-sh-btns { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+  .cv-sh-btns .btn { padding:8px 16px; font-size:13px; }
+  .cv-sh-btns .btn:disabled { opacity:.5; cursor:not-allowed; }
   .ds-qc-buscar { width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:8px; }
   .ds-qc-vacio { color:#6b7280; padding:10px 12px; font-size:12.5px; }
   .ds-qc-add { display:flex; gap:6px; align-items:center; margin-top:4px; }

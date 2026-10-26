@@ -6692,56 +6692,106 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     });
   }
   // Compartir una copia de la hoja (Rosember, 26-oct-2026): con todos los del área o con una persona. Va solo el formato.
+  // Ventana rehecha el 27-oct-2026: dos tarjetas para elegir y, para «Una persona», una lista con buscador, iniciales y equipo.
   function cvCompartir(id) {
     var d = CANVAS.docs.find(function(x) { return x.id === id; }); if (!d) return;
     var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
-    bg.innerHTML = '<div class="ds-qc" role="dialog" aria-modal="true" aria-labelledby="cvShTit" style="width:440px">' +
-      '<h4 id="cvShTit"></h4><div class="ds-qc-sub">Se envía una copia con el formato de la hoja (título, marcos y anotaciones). ' +
-      'Los marcos van vacíos: las fotos no se comparten. A quien la recibe le llega un aviso y la ve en su Canvas.</div>' +
-      '<label style="display:flex;gap:6px;align-items:center;margin:8px 0"><input type="radio" name="cvShA" value="area" checked> Todos los de mi área <span id="cvShN" style="color:#6b7280"></span></label>' +
-      '<label style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="radio" name="cvShA" value="uno"> Una persona</label>' +
-      '<div id="cvShUnoW" hidden><input type="search" id="cvShBuscar" placeholder="Busca por nombre o equipo…" style="width:100%;box-sizing:border-box;margin:4px 0">' +
-      '<select id="cvShLista" size="7" style="width:100%"></select></div>' +
-      '<div class="ds-qc-err" id="cvShErr"></div>' +
-      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-sh="no">Cancelar</button><button type="button" class="btn" data-sh="si">Compartir</button></div></div>';
+    bg.innerHTML = '<div class="ds-qc cv-sh" role="dialog" aria-modal="true" aria-labelledby="cvShTit">' +
+      '<div class="cv-sh-cab"><span class="cv-sh-ico" aria-hidden="true">⇪</span><div><h4 id="cvShTit">Compartir hoja</h4><div class="cv-sh-hoja" id="cvShHoja"></div></div></div>' +
+      '<div class="cv-sh-nota">Se envía una <b>copia con el formato</b>: título, marcos y anotaciones. <b>Las fotos no se comparten</b>: los marcos llegan vacíos.</div>' +
+      '<div class="cv-sh-opts" role="radiogroup" aria-label="Con quién compartir">' +
+        '<button type="button" class="cv-sh-opt on" role="radio" aria-checked="true" data-modo="area"><span class="cv-sh-opt-i">👥</span><b>Todo mi área</b><small id="cvShN">…</small></button>' +
+        '<button type="button" class="cv-sh-opt" role="radio" aria-checked="false" data-modo="uno"><span class="cv-sh-opt-i">👤</span><b>Una persona</b><small>Elige a quién</small></button>' +
+      '</div>' +
+      '<div class="cv-sh-uno" id="cvShUnoW" hidden>' +
+        '<div class="cv-sh-busca"><span aria-hidden="true">🔍</span><input type="search" id="cvShBuscar" placeholder="Buscar por nombre o equipo…" autocomplete="off" aria-label="Buscar persona"></div>' +
+        '<div class="cv-sh-lista" id="cvShLista" role="listbox" aria-label="Personas de tu área"></div>' +
+      '</div>' +
+      '<div class="cv-sh-err" id="cvShErr" role="alert"></div>' +
+      '<div class="cv-sh-btns"><button type="button" class="btn gris" data-sh="no">Cancelar</button><button type="button" class="btn" data-sh="si" id="cvShOk">Compartir</button></div></div>';
     document.body.appendChild(bg);
-    bg.querySelector('#cvShTit').textContent = 'Compartir «' + (d.name || d.title || 'Hoja') + '»';
-    var err = bg.querySelector('#cvShErr'), lista = bg.querySelector('#cvShLista'), buscar = bg.querySelector('#cvShBuscar'), gente = [];
+    bg.querySelector('#cvShHoja').textContent = d.name || d.title || 'Hoja';
+    var err = bg.querySelector('#cvShErr'), lista = bg.querySelector('#cvShLista'), buscar = bg.querySelector('#cvShBuscar'),
+        ok = bg.querySelector('#cvShOk'), unoW = bg.querySelector('#cvShUnoW');
+    var gente = [], modo = 'area', elegido = null;
     var norm = function(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+    var iniciales = function(n) { var p = String(n || '').trim().split(/\s+/); return ((p[0] || '')[0] || '') + ((p[1] || '')[0] || ''); };
+    var primero = function(n) { return String(n || '').trim().split(/\s+/)[0] || ''; };
+    var visibles = function() {
+      var q = norm(buscar.value.trim());
+      return gente.filter(function(p) { return !q || norm(p.nombre + ' ' + p.equipo).indexOf(q) >= 0; });
+    };
+    var pintarBoton = function() {
+      var n = gente.length;
+      if (modo === 'area') { ok.textContent = 'Compartir con ' + n + ' persona' + (n === 1 ? '' : 's'); ok.disabled = !n; }
+      else { ok.textContent = elegido ? 'Compartir con ' + primero(elegido.nombre) : 'Compartir'; ok.disabled = !elegido; }
+    };
     var pintar = function() {
-      var q = norm(buscar.value), filas = gente.filter(function(p) { return !q || norm(p.nombre + ' ' + p.equipo).indexOf(q) >= 0; });
-      lista.innerHTML = filas.length ? filas.map(function(p) { return '<option value="' + p.id + '">' + esc(p.nombre) + ' — ' + esc(p.equipo) + '</option>'; }).join('')
-        : '<option value="" disabled>' + (gente.length ? 'No hay nadie con ese nombre.' : 'No hay más personas en tu área.') + '</option>';
+      var vis = visibles();
+      lista.innerHTML = vis.length ? vis.map(function(p) {
+        return '<button type="button" class="cv-sh-per' + (elegido && elegido.id === p.id ? ' on' : '') + '" role="option" aria-selected="' + (elegido && elegido.id === p.id) + '" data-id="' + p.id + '">' +
+          '<span class="cv-sh-av">' + esc(iniciales(p.nombre)) + '</span>' +
+          '<span class="cv-sh-per-t"><b>' + esc(p.nombre) + '</b><small>' + esc(p.equipo) + '</small></span><span class="cv-sh-ck" aria-hidden="true">✓</span></button>';
+      }).join('') : '<div class="cv-sh-vacio">' + (gente.length ? 'Nadie coincide con «' + esc(buscar.value.trim()) + '».' : 'No hay más personas en tu área.') + '</div>';
+      pintarBoton();
+    };
+    var poner = function(m) {
+      modo = m; err.textContent = '';
+      bg.querySelectorAll('.cv-sh-opt').forEach(function(b) { var on = b.dataset.modo === m; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+      unoW.hidden = m !== 'uno';
+      if (m === 'uno') { pintar(); buscar.focus(); } else pintarBoton();
     };
     api('/design/api/canvas/destinatarios?area_id=' + CV.areaId).then(function(ps) {
-      gente = ps || []; pintar();
-      bg.querySelector('#cvShN').textContent = '(' + gente.length + ' persona' + (gente.length === 1 ? '' : 's') + ')';
+      gente = ps || [];
+      bg.querySelector('#cvShN').textContent = gente.length + ' persona' + (gente.length === 1 ? '' : 's');
+      pintar();
     }, function(e) { err.textContent = 'No se pudo cargar la lista: ' + e.message; });
     var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
-    var teclas = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
-    document.addEventListener('keydown', teclas, true);
-    bg.addEventListener('change', function(e) {
-      if (e.target.name === 'cvShA') { bg.querySelector('#cvShUnoW').hidden = e.target.value !== 'uno'; if (e.target.value === 'uno') buscar.focus(); }
-    });
-    buscar.addEventListener('input', pintar);
-    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
-    bg.addEventListener('click', function(e) {
-      var b = e.target.closest('[data-sh]'); if (!b) return;
-      if (b.dataset.sh === 'no') { cerrar(); return; }
-      var modo = bg.querySelector('input[name="cvShA"]:checked').value, destino = modo === 'area' ? 'area' : lista.value;
-      err.textContent = '';
-      if (!destino) { err.textContent = 'Elige a la persona.'; return; }
+    var enviar = function() {
+      if (ok.disabled) return;
+      var destino = modo === 'area' ? 'area' : String(elegido.id);
       if (modo === 'area' && !confirm('¿Compartir una copia de esta hoja con las ' + gente.length + ' personas de tu área?')) return;
-      b.disabled = true;
+      ok.disabled = true; err.textContent = '';
       // primero se guarda lo último de la hoja en el respaldo, para que la copia salga al día
       var cuerpo = {nombre: d.name, titulo: d.title, tituloColor: d.titleColor, w: d.w, h: d.h, frames: d.frames, elements: d.elements};
       postJSON('/design/api/canvas/docs/' + d.id, cuerpo)
-        .then(function() { return postJSON('/design/api/canvas/docs/' + d.id + '/compartir', {destino: String(destino)}); })
+        .then(function() { return postJSON('/design/api/canvas/docs/' + d.id + '/compartir', {destino: destino}); })
         .then(function(r) {
           cerrar();
-          cvAviso('<span>✅ Hoja compartida con ' + (r.enviadas === 1 ? (modo === 'area' ? '1 persona' : esc(lista.options[lista.selectedIndex].text.split(' — ')[0])) : r.enviadas + ' personas') + '</span>', false);
-        }, function(x) { b.disabled = false; err.textContent = x.message; });
+          cvAviso('<span>✅ Hoja compartida con ' + (r.enviadas === 1 ? (modo === 'area' ? '1 persona' : esc(elegido.nombre)) : r.enviadas + ' personas') + '</span>', false);
+        }, function(x) { pintarBoton(); err.textContent = x.message; });
+    };
+    var teclas = function(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); return; }
+      if (modo !== 'uno') { if (e.key === 'Enter' && !e.target.closest('button')) { e.preventDefault(); enviar(); } return; }
+      var vis = visibles(), i = elegido ? vis.findIndex(function(p) { return p.id === elegido.id; }) : -1;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!vis.length) return;
+        elegido = vis[Math.max(0, Math.min(vis.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))];
+        pintar();
+        var sel = lista.querySelector('.cv-sh-per.on'); if (sel && sel.scrollIntoView) sel.scrollIntoView({block: 'nearest'});
+      } else if (e.key === 'Enter' && e.target === buscar) {
+        e.preventDefault();
+        if (!elegido && vis.length === 1) { elegido = vis[0]; pintar(); }
+        enviar();
+      }
+    };
+    document.addEventListener('keydown', teclas, true);
+    buscar.addEventListener('input', function() {
+      if (elegido && !visibles().some(function(p) { return p.id === elegido.id; })) elegido = null;
+      pintar();
     });
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    bg.addEventListener('click', function(e) {
+      var o = e.target.closest('.cv-sh-opt'); if (o) { poner(o.dataset.modo); return; }
+      var pe = e.target.closest('.cv-sh-per');
+      if (pe) { elegido = gente.find(function(p) { return String(p.id) === pe.dataset.id; }) || null; err.textContent = ''; pintar(); return; }
+      var b = e.target.closest('[data-sh]'); if (!b) return;
+      if (b.dataset.sh === 'no') cerrar(); else enviar();
+    });
+    bg.addEventListener('dblclick', function(e) { if (e.target.closest('.cv-sh-per')) enviar(); });
+    pintarBoton();
   }
   function cvRenameDoc(id) {
     var d = CANVAS.docs.find(function(x) { return x.id === id; }); if (!d) return;

@@ -116,6 +116,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   con imagen (`canvas_compartir`). La copia queda en el respaldo de quien la recibe, con «(de Nombre)» en el nombre, y
   le llega un push; su Canvas la trae al abrirse (`cvTraerDelServidor` agrega las hojas del respaldo que no están en el
   navegador). Si nunca había abierto el Canvas de esa área, recibe también sus hojas base.
+  Ventana (27-oct-2026): dos tarjetas («Todo mi área» con cuántas personas / «Una persona») y, para una persona, una lista con
+  buscador, iniciales y equipo; el botón dice a quién se envía (`cvCompartir`). Teclado: ↓/↑ eligen, Enter envía, Esc cierra.
 - **Canvas propio en el navegador** (Rosember, 26-oct-2026): cada persona trabaja su Canvas en SU navegador (IndexedDB
   `ds-canvas`, clave `<empleado_id>:<area_id>`) y el servidor guarda un respaldo privado (solo el dueño ve y guarda,
   `canvas_puede_ver`). La primera vez, o si se borran los datos del navegador, se copian al navegador las hojas del
