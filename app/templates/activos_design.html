@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block titulo %}Activos · Design{% endblock %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/activos_design/app.css">
+<style>
+  /* Esta pantalla arma su propio layout (barra lateral + contenido) -- igual que Design Schedule,
+     ocupa todo el ancho sin el margen/máximo normales de "main". */
+  main:has(.activos-app) { padding:0 !important; max-width:none !important; margin:0 !important; }
+</style>
+<div class="activos-app">
+<aside class="sidebar">
+ <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.5 7.8 7.5 4.3 7.5-4.3M12 12.1V21"/></svg></span> Inventario Activos</div>
+ <nav class="nav">
+  <button class="active" data-view="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 6-7"/><path d="M16 6h4v4"/></svg><span>Resumen</span></button>
+  <button data-view="equipos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg><span>Equipos</span><span class="nav-count" id="nav-equipos">—</span></button>
+  <button data-view="dongles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7V4h6v3"/><rect x="7" y="7" width="10" height="13" rx="2"/><path d="M10 11h4m-4 3h4m-3 6v2m2-2v2"/></svg><span>Dongles</span><span class="nav-count" id="nav-dongles">—</span></button>
+  <button data-view="usuarios"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1.5a6.5 6.5 0 0 1 13 0V20z"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4m2 3.3a5.3 5.3 0 0 1 3.5 5V20h-3"/></svg><span>Usuarios</span></button>
+  <button data-view="grupos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="6" r="3"/><circle cx="5" cy="17" r="2.5"/><circle cx="12" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/><path d="M12 9v5.5M5 14.5V13h14v1.5"/></svg><span>Grupos de trabajo</span></button>
+  <button data-view="retirados"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5m-11 4h6m-6 3h6m-6 3h3"/></svg><span>Retirados</span></button>
+  <button data-view="mantenimientos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 4h3m3 0h3m-9 4h3"/><path d="m16 16 2 2 3-4"/></svg><span>Mantenimientos</span></button>
+  <button data-view="areas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span>Áreas</span></button>
+  <button data-view="excel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13l-3-3m3 3-3 3M20 17H7l3 3m-3-3 3-3"/><path d="M4 7v4m16 2v4"/></svg><span>Excel</span></button>
+  <button data-view="respaldos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 3"/></svg><span>Auditoría</span></button>
+ </nav>
+ <div class="sidebar-footer">Activos · Design</div>
+</aside>
+<main class="content">
+ <header class="topbar"><div><div class="eyebrow">Centro de control</div><h1 id="title">Resumen del inventario</h1></div>
+  <div class="topbar-busqueda" id="topbar-busqueda">
+   <label class="search-wrap" data-vista="equipos" hidden><input id="buscar-equipos" class="search" placeholder="Buscar Asset Tag, serial, modelo o usuario" aria-label="Buscar equipos"><button class="clear-search" type="button" data-clear-search="buscar-equipos" aria-label="Limpiar búsqueda" hidden>×</button></label>
+   <label class="search-wrap" data-vista="dongles" hidden><input id="buscar-dongles" class="search" placeholder="Buscar número, serial, módulo o equipo" aria-label="Buscar dongles"><button class="clear-search" type="button" data-clear-search="buscar-dongles" aria-label="Limpiar búsqueda" hidden>×</button></label>
+   <label class="search-wrap" data-vista="usuarios" hidden><input id="buscar-usuarios" class="search" placeholder="Buscar usuario, JumpCloud o área" aria-label="Buscar usuarios"><button class="clear-search" type="button" data-clear-search="buscar-usuarios" aria-label="Limpiar búsqueda" hidden>×</button></label>
+   <label class="search-wrap" data-vista="grupos" hidden><input id="buscar-grupos" class="search" placeholder="Buscar líder, cargo o área" aria-label="Buscar grupos"><button class="clear-search" type="button" data-clear-search="buscar-grupos" aria-label="Limpiar búsqueda" hidden>×</button></label>
+   <label class="search-wrap" data-vista="retirados" hidden><input id="buscar-retirados" class="search" placeholder="Buscar activo retirado, serial o motivo" aria-label="Buscar retirados"><button class="clear-search" type="button" data-clear-search="buscar-retirados" aria-label="Limpiar búsqueda" hidden>×</button></label>
+   <label class="search-wrap" data-vista="areas" hidden><input id="buscar-areas" class="search" placeholder="Buscar área o departamento" aria-label="Buscar áreas"><button class="clear-search" type="button" data-clear-search="buscar-areas" aria-label="Limpiar búsqueda" hidden>×</button></label>
+  </div>
+  <div class="user"><span>{{ user.nombre_completo }}</span><span class="avatar">{{ (user.nombres[:1] ~ user.apellidos[:1])|upper }}</span></div></header>
+ <section class="view active" id="dashboard">
+  <div class="cards">
+   <div class="card"><div class="card-label">Equipos registrados</div><div class="card-value" id="metric-equipos">—</div><div class="card-note">Activos en inventario</div></div>
+   <button class="card metric-card" type="button" data-equipment-state="EN USO"><div class="card-label">Equipos en uso</div><div class="card-value" id="metric-uso">—</div><div class="card-note">Ver equipos asignados <span aria-hidden="true">→</span></div></button>
+   <button class="card metric-card" type="button" data-equipment-state="STOCK"><div class="card-label">Equipos en stock</div><div class="card-value" id="metric-stock">—</div><div class="card-note">Ver equipos disponibles <span aria-hidden="true">→</span></div></button>
+   <div class="card"><div class="card-label">Dongles registrados</div><div class="card-value" id="metric-dongles">—</div><div class="card-note"><span id="metric-disponibles">—</span> disponibles</div></div>
+   <button class="card metric-card" type="button" data-equipment-state="MANTENIMIENTO"><div class="card-label">Equipos en mantenimiento</div><div class="card-value" id="metric-mantenimiento">—</div><div class="card-note">Ver equipos en mantenimiento <span aria-hidden="true">→</span></div></button>
+  </div>
+  <div class="grid">
+   <div class="panel"><div class="panel-header"><h2>Distribución de equipos</h2></div>
+    <button class="distribution-link" type="button" data-equipment-state="EN USO"><span class="stat-row"><span>En uso</span><strong id="stat-uso">—</strong></span><span class="bar"><span id="bar-uso"></span></span></button>
+    <button class="distribution-link" type="button" data-equipment-state="STOCK"><span class="stat-row"><span>En stock</span><strong id="stat-stock">—</strong></span><span class="bar"><span id="bar-stock" style="background:#78a5ff"></span></span></button>
+    <button class="distribution-link" type="button" data-equipment-state="MANTENIMIENTO"><span class="stat-row"><span>Mantenimiento</span><strong id="stat-mantenimiento">—</strong></span><span class="bar"><span id="bar-mantenimiento" style="background:#f0a83b"></span></span></button>
+   </div>
+   <div class="panel"><div class="panel-header"><h2>Mantenimiento a la fecha</h2><button class="secondary" type="button" data-view-link="mantenimientos">Ver mantenimientos</button></div><div id="estado-mantenimiento"><p class="hint">Cargando…</p></div></div>
+  </div>
+ </section>
+ <section class="view" id="equipos">
+  <div class="panel"><div class="panel-header"><h2>Equipos registrados</h2><div class="actions"><button class="secondary" id="recargar-equipos">Actualizar</button><button class="secondary" id="exportar-equipos">⬇ Exportar a Excel</button><button class="primary" id="nuevo-equipo">+ Registrar equipo</button></div></div><div class="table-wrap"><table><thead><tr><th>Asset Tag</th><th>Tipo</th><th>Marca / modelo</th><th>Serial</th><th>Usuario</th><th>Área</th><th>Dongle</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tabla-equipos"></tbody></table></div><div class="pagination" id="equipos-paginacion" hidden></div></div>
+  <button type="button" class="fab" data-panel="filtros-equipos" aria-haspopup="dialog" aria-expanded="false" title="Filtrar equipos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg><span>Filtrar</span><span class="fab-contador" hidden></span></button>
+  <div class="filtro-panel" id="filtros-equipos" role="dialog" aria-label="Filtros de equipos" hidden></div>
+ </section>
+ <section class="view" id="dongles">
+  <div class="panel"><div class="panel-header"><h2>Dongles ExoCAD</h2><div class="actions"><button class="secondary" id="recargar-dongles">Actualizar</button><button class="primary" id="nuevo-dongle">+ Registrar dongle</button></div></div><div class="alert-list dongles-avisos" id="dongles-avisos"></div><div class="table-wrap"><table><thead><tr><th>Número</th><th>Serial físico</th><th>Versión</th><th>Módulos</th><th>Equipo asignado</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tabla-dongles"></tbody></table></div></div>
+  <button type="button" class="fab" data-panel="filtros-dongles" aria-haspopup="dialog" aria-expanded="false" title="Filtrar dongles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg><span>Filtrar</span><span class="fab-contador" hidden></span></button>
+  <div class="filtro-panel" id="filtros-dongles" role="dialog" aria-label="Filtros de dongles" hidden></div>
+ </section>
+ <section class="view" id="usuarios">
+  <div class="panel"><div class="panel-header"><h2>Usuarios activos</h2><button class="primary" id="nuevo-usuario">+ Registrar usuario</button></div><div class="table-wrap"><table><thead><tr><th>Usuario</th><th>JumpCloud</th><th>Cargo</th><th>Área</th><th>Departamento</th><th>Grupo (líder)</th><th>Equipos asignados</th><th>Acciones</th></tr></thead><tbody id="tabla-usuarios"></tbody></table></div></div>
+  <button type="button" class="fab" data-panel="filtros-usuarios" aria-haspopup="dialog" aria-expanded="false" title="Filtrar usuarios"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg><span>Filtrar</span><span class="fab-contador" hidden></span></button>
+  <div class="filtro-panel" id="filtros-usuarios" role="dialog" aria-label="Filtros de usuarios" hidden></div>
+ </section>
+ <section class="view" id="grupos">
+  <div class="panel"><div class="panel-header"><div><h2>Grupos de trabajo</h2><p class="hint">Un grupo es un líder y las personas a su cargo. Al programar un mantenimiento para el grupo se incluyen los equipos del líder y de sus integrantes.</p></div><button class="primary" id="nuevo-grupo">+ Crear grupo</button></div><div class="table-wrap"><table><thead id="orden-grupos"><tr><th><button type="button" class="th-orden" data-orden="lider">Líder</button></th><th><button type="button" class="th-orden" data-orden="cargo">Cargo</button></th><th><button type="button" class="th-orden" data-orden="integrantes">Integrantes</button></th><th><button type="button" class="th-orden" data-orden="equipos">Equipos</button></th><th><button type="button" class="th-orden" data-orden="ultima_jornada">Último mantenimiento</button></th><th><button type="button" class="th-orden" data-orden="estado">Estado equipos</button></th><th>Acciones</th></tr></thead><tbody id="tabla-grupos"></tbody></table></div></div>
+  <button type="button" class="fab" data-panel="filtros-grupos" aria-haspopup="dialog" aria-expanded="false" title="Filtrar grupos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg><span>Filtrar</span><span class="fab-contador" hidden></span></button>
+  <div class="filtro-panel" id="filtros-grupos" role="dialog" aria-label="Filtros de grupos" hidden></div>
+ </section>
+ <section class="view" id="retirados">
+  <div class="panel"><div class="panel-header"><div><h2>Retirados</h2><p class="hint">Equipos dados de baja y personas que ya no están en la empresa. Su historial se conserva.</p></div></div>
+   <div class="maintenance-tabs" role="tablist" aria-label="Tipo de retirado"><button type="button" class="maintenance-tab active" data-ret-tab="equipos" role="tab" aria-selected="true">Equipos <span class="tab-conteo" id="ret-conteo-equipos"></span></button><button type="button" class="maintenance-tab" data-ret-tab="usuarios" role="tab" aria-selected="false">Usuarios <span class="tab-conteo" id="ret-conteo-usuarios"></span></button></div>
+   <div class="table-wrap" id="ret-equipos"><table><thead><tr><th>Asset Tag</th><th>Tipo</th><th>Marca / modelo</th><th>Serial</th><th>Fecha de retiro</th><th>Motivo</th></tr></thead><tbody id="tabla-retirados"></tbody></table></div>
+   <div class="table-wrap" id="ret-usuarios" hidden><table><thead><tr><th>Usuario</th><th>Cargo</th><th>Área / departamento</th><th>Fecha de retiro</th><th>Motivo</th><th></th></tr></thead><tbody id="tabla-usuarios-retirados"></tbody></table></div>
+  </div>
+  <button type="button" class="fab" data-panel="filtros-retirados" aria-haspopup="dialog" aria-expanded="false" title="Filtrar retirados"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg><span>Filtrar</span><span class="fab-contador" hidden></span></button>
+  <div class="filtro-panel" id="filtros-retirados" role="dialog" aria-label="Filtros de retirados" hidden></div>
+ </section>
+ <section class="view" id="mantenimientos">
+  <div class="cards maintenance-metrics">
+   <div class="card"><div class="card-label">Grupos por programar</div><div class="card-value" id="metric-mant-grupos">—</div><div class="card-note">Sin solicitud pendiente</div></div>
+   <div class="card"><div class="card-label">Solicitudes en curso</div><div class="card-value" id="metric-mant-jornadas">—</div><div class="card-note" id="metric-mant-vencidas">—</div></div>
+   <div class="card"><div class="card-label">Novedades abiertas</div><div class="card-value" id="metric-mant-novedades">—</div><div class="card-note">Correctivos por resolver</div></div>
+   <div class="card"><div class="card-label">Completados este mes</div><div class="card-value" id="metric-mant-mes">—</div><div class="card-note">Servicios terminados</div></div>
+  </div>
+  <div class="panel">
+   <div class="panel-header maintenance-header"><div><h2>Registro de servicios técnicos</h2><p class="hint">Programa una solicitud de mantenimiento por grupo de trabajo o registra un servicio individual.</p></div><div class="actions"><button class="primary" id="nueva-jornada">+ Programar por grupo</button><button class="secondary" id="nuevo-mantenimiento">+ Servicio individual</button></div></div>
+   <div class="maintenance-tabs" role="tablist" aria-label="Vista de mantenimientos"><button type="button" class="maintenance-tab active" data-maint-tab="jornadas" role="tab" aria-selected="true">Solicitudes por grupo</button><button type="button" class="maintenance-tab" data-maint-tab="lista" role="tab" aria-selected="false">Lista</button><button type="button" class="maintenance-tab" data-maint-tab="calendario" role="tab" aria-selected="false">Calendario</button></div>
+   <div id="mant-jornadas" class="maintenance-pane active" role="tabpanel">
+    <div id="grupos-por-programar"></div>
+    <div class="toolbar"><select id="jornadas-filtro-estado" aria-label="Filtrar solicitudes por estado"><option value="">Todas las solicitudes</option><option value="ABIERTA">Abiertas</option><option value="VENCIDA">Vencidas</option><option value="CERRADA">Cerradas</option><option value="ANULADA">Anuladas</option></select></div>
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Grupo (líder)</th><th>Tipo</th><th>Frecuencia</th><th>Responsable</th><th>Avance</th><th>Estado</th><th></th></tr></thead><tbody id="tabla-jornadas"></tbody></table></div>
+   </div>
+   <div id="mant-lista" class="maintenance-pane" role="tabpanel" hidden>
+    <div class="toolbar maintenance-toolbar"><input id="mant-filtro-equipo" placeholder="Buscar Asset Tag" aria-label="Buscar por equipo"><select id="mant-filtro-estado"><option value="">Todos los estados</option><option>PROGRAMADO</option><option>EN_PROCESO</option><option>COMPLETADO</option><option>CANCELADO</option></select><label class="date-filter">Desde <input id="mant-fecha-desde" type="date"></label><label class="date-filter">Hasta <input id="mant-fecha-hasta" type="date"></label><button class="secondary" id="mant-limpiar-filtros">Limpiar filtros</button></div>
+    <div class="table-wrap"><table class="maintenance-table"><thead><tr><th>Equipo</th><th>Usuario</th><th>Programado</th><th>Detalle</th><th>Realizado</th><th>Estado</th><th></th></tr></thead><tbody id="tabla-mantenimientos"></tbody></table></div>
+   </div>
+   <div id="mant-calendario" class="maintenance-pane" role="tabpanel" hidden>
+    <div class="calendar-toolbar"><button class="secondary" id="calendario-anterior" aria-label="Mes anterior">←</button><h3 id="calendario-titulo"></h3><button class="secondary" id="calendario-siguiente" aria-label="Mes siguiente">→</button><button class="secondary" id="calendario-hoy">Hoy</button></div>
+    <div class="calendar-weekdays" aria-hidden="true"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
+    <div id="calendario-dias" class="calendar-grid" aria-label="Calendario mensual de mantenimientos"></div>
+   </div>
+  </div>
+ </section>
+ <section class="view" id="areas">
+  <div class="panel"><div class="panel-header"><div><h2>Áreas y departamentos</h2><p class="hint">Un área principal agrupa departamentos. Los usuarios se ubican en un departamento o en un área independiente.</p></div><button class="primary" id="nueva-area">+ Registrar área</button></div><div class="table-wrap"><table><thead><tr><th>Área principal</th><th>Departamento</th><th>Software de diseño</th><th>Requiere ExoCAD</th><th>Usuarios activos</th><th>Acciones</th></tr></thead><tbody id="tabla-areas"></tbody></table></div></div>
+ </section>
+ <section class="view" id="respaldos">
+  <div class="panel"><div class="panel-header"><div><h2>Auditoría</h2><p class="hint">Registro de quién hizo cada cambio y cuándo. La recuperación ante un error grave se hace a nivel de los respaldos de la base de datos, no desde aquí.</p></div><button class="secondary" id="recargar-respaldos">Actualizar</button></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Fecha</th><th>Operación</th><th>Detalle</th><th>Quién</th></tr></thead><tbody id="tabla-respaldos"></tbody></table></div></div>
+ </section>
+ <section class="view" id="excel">
+  <div class="panel export-panel"><div class="panel-header"><div><h2>Inventario completo</h2><p class="hint">Esta plataforma es la fuente oficial del inventario. Descarga un libro con equipos, usuarios, dongles, mantenimientos y retirados para compartir o archivar.</p></div><button class="primary" id="exportar-inventario">⬇ Descargar inventario completo</button></div></div>
+  <div class="panel"><div class="panel-header"><div><h2>Comparación con Excel</h2><p class="hint">Selecciona el libro de inventario actualizado (.xlsx). Los cambios solo se aplican después de seleccionarlos.</p></div><div class="actions"><input type="file" id="archivo-excel" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Libro Excel a comparar"><button class="primary" id="comparar-excel">Comparar libro</button></div></div>
+   <div id="resumen-excel" class="excel-summary"></div><div class="table-wrap"><table><thead><tr><th class="checkbox-cell">Aplicar</th><th>Tipo</th><th>Identificador</th><th>Campo</th><th>Actual</th><th>Excel</th><th>Acción</th></tr></thead><tbody id="tabla-excel"><tr><td colspan="7" class="empty">Inicia una comparación para ver diferencias.</td></tr></tbody></table></div>
+   <div class="modal-actions"><button class="primary" id="sincronizar-excel" disabled>Aplicar seleccionados</button></div>
+  </div>
+ </section>
+</main>
+</div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-box"><h2 id="modal-title"></h2><form id="modal-form"><div id="modal-fields" class="form-grid"></div><div class="modal-actions"><button type="button" class="secondary" id="modal-cancelar">Cancelar</button><button type="submit" class="primary" id="modal-guardar">Guardar</button></div></form></div></div>
+<div class="toast" id="toast" role="status"></div>
+<script src="/static/activos_design/app.js" defer></script>
+{% endblock %}

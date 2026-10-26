@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Activos{% endblock %}
+{% block contenido %}
+<h1 style="margin:0;">Activos</h1>
+<p style="color:var(--gris)">Elige una empresa para continuar</p>
+<div class="modulos">
+  <a class="modulo" href="/activos/design">
+    <span class="modulo-icono">🖥️</span>
+    <span class="modulo-nombre">Design</span>
+    <span class="modulo-desc">Inventario de hardware de TI: equipos, dongles ExoCAD y mantenimientos</span>
+  </a>
+  <div class="modulo disabled" title="Próximamente">
+    <span class="modulo-icono">🖥️</span>
+    <span class="modulo-nombre">Smiles</span>
+    <span class="modulo-desc">Próximamente</span>
+  </div>
+</div>
+{% endblock %}

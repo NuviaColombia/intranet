@@ -42,6 +42,8 @@ Gotchas · Quién aprueba cambios sensibles (si aplica).
 - [permisos.md](permisos.md) -- Permisos / Vacaciones (People, ambas empresas)
 - [design.md](design.md) -- Design Schedule (mapa general; el detalle de Openings sigue en
   `CLAUDE.md`, es la nota que más se ha roto y conviene dejarla donde toda sesión la lee primero)
+- [activos.md](activos.md) -- Activos: inventario de hardware de TI (Design), migrado desde un
+  proyecto aparte
 
 ## Historial de hallazgos de company-scoping
 
