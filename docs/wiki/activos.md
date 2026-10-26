@@ -17,7 +17,7 @@ original.
 - `app/services_activos.py` -- equipos, perfiles (usuarios), dongles, áreas, grupos de trabajo.
 - `app/services_activos_mantenimiento.py` -- mantenimientos individuales, programación en lote
   para equipos sueltos (`programar_mantenimiento_lote`, sin pasar por un grupo de trabajo -- pedido
-  por Oscar el 26-oct-2026, botón "📅 Programar mantenimiento (varios)" en Equipos) y jornadas de
+  por Oscar el 26-oct-2026, botón "📅 Programar mantenimiento (varios)" en Mantenimientos) y jornadas de
   mantenimiento por grupo (con recurrencia automática).
 - `app/services_activos_consultas.py` -- todos los listados/fichas/dashboard (solo lectura).
 - `app/services_activos_excel.py` -- exportar el inventario e importar/comparar un Excel.
@@ -93,6 +93,14 @@ no por módulo.
 
 ## Gotchas
 
+- **`checkList(name, items, placeholder)` es una función de `app/static/activos_design/app.js`
+  (define la lista de casillas con buscador y «Marcar todos»/«Ninguno» de los modales de
+  programación masiva) que se quedó SIN DEFINIR al portar el frontend original -- se usaba en
+  "Programar por grupo" y en "Programar mantenimiento (varios)" pero nunca se copió la función (solo
+  su listener de filtro, `$('modal-fields').addEventListener('input', ...)`). El botón no hacía nada
+  visible porque el `ReferenceError: checkList is not defined` quedaba dentro de una promesa
+  rechazada (bug real, encontrado el 26-oct-2026). Si agregas un modal nuevo que necesite una lista
+  larga de casillas, usa `checkList` -- ya está definida junto a `guia()`.
 - **`GET /activos/design/api/mantenimientos/estado` (el dashboard de Mantenimiento/Resumen,
   `obtener_estado_mantenimiento` en `services_activos_consultas.py`) tiene que devolver LISTAS en
   `novedades`, `mantenimientos_vencidos`, `equipos_en_mantenimiento` y `grupos_sin_programar`, no
