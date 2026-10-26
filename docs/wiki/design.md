@@ -335,7 +335,8 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   persona de Support cuando un equipo de N3 le asigna un caso (`_push_caso_a_support`).
 - **Push de Removable Denture** (Rosember, 21-oct-2026): a Nestor cuando le llega una copia nueva
   (`_push_copia_rd`; la pasada de órdenes viejas no avisa) y al manager del equipo de N3 / N6 de origen cuando
-  Nestor aprueba la copia (`push_rd_aprobada`). Validado: el Fin de Bite design en N3 o N6 pasa la copia en vivo
+  Nestor aprueba la copia (`push_rd_aprobada`; desde el 26-oct-2026 también al diseñador de la orden original,
+  nunca a quien aprueba). Validado: el Fin de Bite design en N3 o N6 pasa la copia en vivo
   a Ready to design · Denture design.
 - **Cliq**: el bot «Anuncios Design» avisa el cambio de turno de Support; necesita
   `DESIGN_CLIQ_WEBHOOK_TOKEN` (o `DESIGN_CLIQ_REFRESH_TOKEN`) en Render.

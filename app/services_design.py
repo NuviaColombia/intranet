@@ -309,16 +309,20 @@ def _push_copia_rd(c: DesignOrden, origen: DesignTeam, team_rd: DesignTeam) -> N
 
 def push_rd_aprobada(db: Session, c: DesignOrden, user: Empleado) -> None:
     """Nestor aprueba la removable (la copia): aviso push al manager del equipo de N3 / N6 de donde viene la orden
-    (Rosember, 21-oct-2026). Si falla, la aprobación ya quedó."""
+    (Rosember, 21-oct-2026) y al diseñador de esa orden (26-oct-2026). Si falla, la aprobación ya quedó."""
     try:
         from .models_design import DesignCopiaRD
         from . import services_design_push as spush
         r = db.get(DesignCopiaRD, c.id)
         origen = db.get(DesignTeam, r.origen_team_id) if r else None
-        if not origen or not origen.manager_id or origen.manager_id == user.id:
+        if not origen:
+            return
+        original = db.get(DesignOrden, r.origen_orden_id)
+        ids = {origen.manager_id, original.designer_id if original else None} - {None, user.id}
+        if not ids:
             return
         cuerpo = " · ".join(x for x in ((c.orden or "").strip(), (c.centro or "").strip(), (c.producto or "").strip()) if x)
-        spush.enviar_en_segundo_plano([origen.manager_id], "✅ Removable Denture aprobada",
+        spush.enviar_en_segundo_plano(sorted(ids), "✅ Removable Denture aprobada",
                                       f"{cuerpo}\n{user.nombre_completo} aprobó el Denture design.",
                                       url=f"/design?area_id={origen.area_id}&team_id={origen.id}", etiqueta=f"rd-aprobada-{c.id}")
     except Exception:  # noqa: BLE001
