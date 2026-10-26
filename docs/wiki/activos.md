@@ -15,7 +15,9 @@ original.
 - `app/models_activos.py` -- esquema completo (equipos, dongles, historial de asignaciones,
   mantenimientos, jornadas de mantenimiento, actas, auditoría, áreas, perfiles).
 - `app/services_activos.py` -- equipos, perfiles (usuarios), dongles, áreas, grupos de trabajo.
-- `app/services_activos_mantenimiento.py` -- mantenimientos individuales y jornadas de
+- `app/services_activos_mantenimiento.py` -- mantenimientos individuales, programación en lote
+  para equipos sueltos (`programar_mantenimiento_lote`, sin pasar por un grupo de trabajo -- pedido
+  por Oscar el 26-oct-2026, botón "📅 Programar mantenimiento (varios)" en Equipos) y jornadas de
   mantenimiento por grupo (con recurrencia automática).
 - `app/services_activos_consultas.py` -- todos los listados/fichas/dashboard (solo lectura).
 - `app/services_activos_excel.py` -- exportar el inventario e importar/comparar un Excel.
@@ -72,7 +74,12 @@ no por módulo.
   exacta: el proyecto original la calculaba con un `CASE` de SQL (`_SALUD`) cuyo detalle exacto no
   se migró. Si el equipo de TI dice que no coincide con lo que esperaban ver, ese es el punto a
   ajustar.
-- **Migración de datos reales pendiente**: esta entrega se construyó y probó con datos de prueba.
-  Los datos reales (184 equipos, 154 personas, firmas digitales) siguen en el SQLite original y
-  quedaron fuera a propósito -- es información personal real, hay que migrarla aparte y con
-  cuidado (ver `CONTEXTO_IA.md` del proyecto original, sección 8, si todavía existe esa carpeta).
+- **Datos reales migrados (Oscar, 26-oct-2026)**: 18 áreas, 149 perfiles, 184 equipos, 68 dongles,
+  273 periodos de historial, 6 jornadas y 15 mantenimientos (0 actas -- el original nunca guardó
+  ninguna). El script de migración unió los "usuarios" del inventario con `Empleado` por nombre; 5
+  de 154 quedaron sin vincular (4 personas retiradas que nunca existieron en Empleados + una cuenta
+  de prueba "Training 6") -- sus equipos/historial migraron igual pero sin custodio. Si uno de esos
+  4 aparece después en People, hay que vincular su historial a mano (no hay script para eso, se
+  haría con un UPDATE puntual). El script no quedó en el repo (era de un solo uso, corrido a mano
+  contra producción); si hace falta repetir el patrón, está documentado en la conversación de esa
+  fecha.

@@ -74,6 +74,39 @@ def registrar_mantenimiento(db: Session, actor: Empleado, datos: dict) -> Activo
     return m
 
 
+def programar_mantenimiento_lote(db: Session, actor: Empleado, asset_tags: list[str], tipo_mantenimiento: str,
+                                 fecha_programada, responsable: str, descripcion_falla: str | None = None) -> list[ActivosMantenimiento]:
+    """Programa el mismo servicio (tipo, fecha, responsable) para varios equipos sueltos a la vez,
+    sin pasar por un grupo de trabajo -- a diferencia de `programar_jornada`, aquí los equipos no
+    tienen que pertenecer al mismo líder; se eligen uno por uno en la pantalla de Equipos. No queda
+    asociado a ninguna `ActivosJornadaMantenimiento` (id_jornada=None), así que no participa de la
+    recurrencia automática."""
+    asset_tags = sorted(set(_obligatorio(t, "Selecciona al menos un equipo.") for t in (asset_tags or [])))
+    if not asset_tags:
+        raise ValueError("Selecciona al menos un equipo.")
+    if tipo_mantenimiento not in TIPOS_MANTENIMIENTO:
+        raise ValueError("El tipo de mantenimiento debe ser PREVENTIVO o CORRECTIVO.")
+    responsable = _obligatorio(responsable, "El responsable es obligatorio.")
+    if not fecha_programada:
+        raise ValueError("La fecha programada es obligatoria.")
+    descripcion = _texto(descripcion_falla) or f"Mantenimiento {tipo_mantenimiento.lower()} programado en lote"
+    for tag in asset_tags:
+        _equipo_activo(db, tag)
+    _validar_sin_pendientes(db, asset_tags, tipo_mantenimiento)
+    creados = []
+    for tag in asset_tags:
+        m = ActivosMantenimiento(asset_tag=tag, tipo_mantenimiento=tipo_mantenimiento, estado_mantenimiento="PROGRAMADO",
+                                 fecha_programada=fecha_programada, descripcion_falla=descripcion, acciones_realizadas="",
+                                 responsable=responsable)
+        db.add(m)
+        creados.append(m)
+    auditar(db, actor, "Programar mantenimiento en lote", f"{len(asset_tags)} equipo(s): {', '.join(asset_tags)}.")
+    db.commit()
+    for m in creados:
+        db.refresh(m)
+    return creados
+
+
 def _aplicar_cambios_mantenimiento(db: Session, id_mantenimiento: int, cambios: dict, devolver_stock: bool) -> ActivosMantenimiento:
     m = db.get(ActivosMantenimiento, id_mantenimiento)
     if not m:

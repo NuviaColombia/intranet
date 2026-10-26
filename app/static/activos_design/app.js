@@ -732,6 +732,27 @@ async function showJornada(id){
  document.querySelector('.modal-box').classList.add('acta-modal');volverModal=()=>showJornada(id)
 }
 async function refrescarMantenimiento(){const tareas=[loadEstado()];if($('mantenimientos').classList.contains('active'))tareas.push(loadMantenimientos());if($('grupos').classList.contains('active'))tareas.push(loadGrupos());await Promise.all(tareas)}
+// Programar el mismo servicio para varios equipos sueltos (no tienen que ser del mismo grupo de
+// trabajo): usa los equipos que ya están cargados en la tabla de Equipos (con los filtros que
+// tengas puestos), y los que marques quedan como mantenimientos sueltos, no una "solicitud".
+async function programarLoteUI(){
+ if(!equiposRows.length)throw new Error('No hay equipos para elegir. Ajusta los filtros de Equipos o recarga la pantalla.');
+ const items=equiposRows.map(e=>`<label><input type="checkbox" name="asset_tags" value="${esc(e.asset_tag)}"> <span><b>${esc(e.asset_tag)}</b> · ${esc(e.usuario||'Sin usuario')}${e.marca||e.modelo?` · ${esc([e.marca,e.modelo].filter(Boolean).join(' '))}`:''}</span></label>`).join('');
+ const fields=[
+  guia('¿Cómo funciona?',['Marca los equipos que quieras de la lista (son los que ves ahora en «Equipos», con los filtros que tengas puestos).','Se crea un servicio PROGRAMADO por cada equipo marcado, con la misma fecha, tipo y responsable.','A diferencia de «Programar por grupo», no quedan agrupados en una solicitud ni se reprograman solos -- cada uno se completa o edita por separado desde la pestaña «Lista».']),
+  field('tipo_mantenimiento','Tipo','text','PREVENTIVO',true,[{value:'PREVENTIVO',label:'Preventivo (en sitio)'},{value:'CORRECTIVO',label:'Correctivo'}]),
+  field('fecha_programada','Fecha programada','date',fechaLocalISO(new Date()),true),
+  field('responsable','Responsable técnico','text','',true),
+  field('descripcion_falla','Descripción (opcional)','textarea','',false,null,true),
+  checkList('asset_tags',items,'Buscar por Asset Tag, usuario, marca o modelo')
+ ];
+ openModal(`Programar mantenimiento para varios equipos (${equiposRows.length} en la lista)`,fields,'Programar',async form=>{
+  const data=values(form),asset_tags=form.getAll('asset_tags');
+  if(!asset_tags.length)throw new Error('Marca al menos un equipo.');
+  const result=await api('/activos/design/api/mantenimientos/lote',{method:'POST',body:JSON.stringify({asset_tags,tipo_mantenimiento:data.tipo_mantenimiento,fecha_programada:data.fecha_programada,responsable:data.responsable,descripcion_falla:data.descripcion_falla||null})});
+  notify(result.mensaje);switchView('mantenimientos');verPestanaMantenimiento('lista')})
+}
+$('programar-lote').addEventListener('click',()=>programarLoteUI().catch(error=>notify(error.message,true)));
 $('nuevo-grupo').addEventListener('click',()=>editGrupoUI(null).catch(error=>notify(error.message,true)));
 $('nueva-jornada').addEventListener('click',()=>programarJornadaUI(null).catch(error=>notify(error.message,true)));
 $('buscar-grupos').addEventListener('input',renderGrupos);

@@ -239,6 +239,14 @@ class CompletarEntrada(BaseModel):
     fecha_realizada: date | None = None
 
 
+class MantenimientoLoteEntrada(BaseModel):
+    asset_tags: list[str] = Field(min_length=1, max_length=500)
+    tipo_mantenimiento: str
+    fecha_programada: date
+    responsable: str
+    descripcion_falla: str | None = None
+
+
 @router.get("/activos/design/api/mantenimientos")
 def api_mantenimientos(estado: str = "", fecha_desde: date | None = None, fecha_hasta: date | None = None, asset_tag: str = "",
                        user: Empleado = Depends(require_activos), db: Session = Depends(get_db)):
@@ -249,6 +257,15 @@ def api_mantenimientos(estado: str = "", fecha_desde: date | None = None, fecha_
 def api_mantenimientos_completar(payload: CompletarEntrada, user: Empleado = Depends(require_activos), db: Session = Depends(get_db)):
     r = _manejar(sm.completar_mantenimientos, db, user, payload.ids, payload.acciones_realizadas, payload.fecha_realizada)
     return {"mensaje": f"{r['completados']} mantenimiento(s) completado(s).", **r}
+
+
+@router.post("/activos/design/api/mantenimientos/lote", status_code=201)
+def api_mantenimientos_lote(payload: MantenimientoLoteEntrada, user: Empleado = Depends(require_activos), db: Session = Depends(get_db)):
+    """Programa el mismo servicio (tipo, fecha, responsable) para varios equipos sueltos a la vez,
+    sin necesidad de que pertenezcan al mismo grupo de trabajo (a diferencia de /jornadas)."""
+    creados = _manejar(sm.programar_mantenimiento_lote, db, user, payload.asset_tags, payload.tipo_mantenimiento,
+                       payload.fecha_programada, payload.responsable, payload.descripcion_falla)
+    return {"mensaje": f"{len(creados)} mantenimiento(s) programado(s).", "ids": [m.id_mantenimiento for m in creados]}
 
 
 @router.get("/activos/design/api/mantenimientos/{id_mantenimiento}")
