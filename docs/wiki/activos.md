@@ -26,10 +26,52 @@ original.
 - `app/templates/activos_design.html` + `app/static/activos_design/{app.js,app.css}` -- el
   frontend original portado (mismo HTML/CSS/JS, con las rutas de API reapuntadas y el login HTTP
   Basic quitado -- la sesión del portal ya resuelve quién entra).
+- `app/services_activos_solicitudes.py` + `app/routers/activos_mantenimiento.py` +
+  `app/templates/activos_mantenimiento.html` -- flujo aparte de solicitud/aprobación de
+  mantenimiento para managers de equipo (ver sección propia más abajo).
 
 **Modelo de acceso**: como cualquier otro módulo (`require_modulo("activos")` +
 `user.tiene_modulo('activos')`) -- el checkbox "Activos" se asigna por persona desde
 Empleados/Parámetros (People), igual que Caja Menor o SST. No hay una tabla de permisos propia.
+Esto aplica a la app completa (`/activos`, `/activos/design`); `/activos/mantenimiento` tiene su
+**propio** modelo de acceso, más abierto (ver abajo).
+
+**Bandera `es_activos` en la barra superior**: las tres páginas de Activos pasan `es_activos: True`
+al contexto de `base.html`, para que no se muestren los enlaces de People (Panel, Mis solicitudes,
+Empleados, Parámetros...) -- al construir el módulo originalmente no se agregó esta bandera (a
+diferencia de Custodia/Caja/SST) y esos enlaces aparecían por error encima del inventario. Si agregas
+una página nueva bajo `/activos/...`, acuérdate de pasar `es_activos: True`.
+
+## Solicitud/aprobación de mantenimiento para managers de equipo (`/activos/mantenimiento`)
+
+Pedido por Oscar el 26-oct-2026: los **managers de equipo** (cualquiera que ya figure como
+`id_lider_id` de un grupo en `ActivosPerfil`, sin asignarles nada aparte en People) necesitan poder
+pedir mantenimiento para los equipos de su propio grupo **sin ver el resto del inventario** (ni
+Equipos, ni Dongles, ni Usuarios, ni Auditoría). Flujo de 4 pasos:
+
+1. El manager **solicita** mantenimiento para un equipo de su grupo (`crear_solicitud`).
+2. El aprobador **acepta** (`aceptar_solicitud`) -- hoy, solo **Yostyn Guerrero Pitalúa**
+   (`yostynguerrero@nuviasmiles.com`, empleado id 5) + cualquier `superadmin` como respaldo
+   (`APROBADORES_MANTENIMIENTO` en `services_activos_solicitudes.py`; es una persona haciendo su
+   trabajo, no un rol genérico -- si cambia quién hace mantenimiento, hay que tocar ese set a mano).
+   Esto crea un `ActivosMantenimiento` real (vía `registrar_mantenimiento`, `CORRECTIVO`/`EN_PROCESO`)
+   y el equipo pasa a `MANTENIMIENTO` -- mismo mecanismo que usa el resto de la app, no uno nuevo.
+3. El aprobador hace el trabajo y marca **realizado** (`marcar_realizado`, vía
+   `actualizar_mantenimiento(..., devolver_stock=False)` -- el equipo se queda en `MANTENIMIENTO`).
+4. El **manager confirma** (`confirmar_solicitud`) que quedó bien -- el equipo vuelve a **EN USO con
+   el mismo dueño que tenía antes de la solicitud** (vía `asignar_equipo`, guardado como
+   `empleado_original_id` al crear la solicitud; si no tenía dueño, vuelve a `STOCK`).
+
+**Por qué una página y un router aparte** (`/activos/mantenimiento`, no un endpoint más de
+`routers/activos.py`): retrofitear permisos por endpoint en la SPA grande (~45 endpoints bajo un
+solo `require_modulo("activos")`) habría sido invasivo y fácil de dejar un hueco. En cambio,
+`require_activos_manager` (en `routers/activos_mantenimiento.py`) deja pasar a quien **ya** tiene el
+módulo completo **o** a quien es líder de un grupo (`es_manager_equipos`) -- un manager
+técnicamente no puede llamar ningún otro endpoint de Activos, no es solo que la UI se lo oculte.
+
+No se duplica ninguna regla de negocio de equipos/mantenimientos: cada paso llama a las funciones ya
+existentes y probadas (`registrar_mantenimiento`, `actualizar_mantenimiento`, `asignar_equipo`,
+`actualizar_estado_equipo`).
 
 **Decisión clave de la migración: los "usuarios" del inventario se unificaron con `Empleado`.**
 `ActivosPerfil` es una extensión 1:1 de `Empleado` (FK `empleado_id`), no una tabla de personas

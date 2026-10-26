@@ -207,3 +207,37 @@ class ActivosAuditoria(Base):
     descripcion: Mapped[str] = mapped_column(Text)
     empleado_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     fecha: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ActivosSolicitudMantenimiento(Base):
+    """Un manager de equipo (líder de grupo) pide mantenimiento para un equipo de su grupo; un
+    aprobador (hoy, Yostin) la acepta y hace el trabajo; el propio manager confirma al final que
+    quedó bien. No es el mismo flujo que "Servicio individual"/"Programar por grupo" (pensado para
+    quien ya tiene acceso completo a Activos) -- ver docs/wiki/activos.md.
+
+    Cada transición reutiliza las funciones ya existentes de mantenimientos/equipos (ver
+    services_activos_solicitudes.py); `id_mantenimiento` es el servicio técnico real que se crea al
+    aceptar, para que quede en el mismo historial que el resto de mantenimientos."""
+    __tablename__ = "activos_solicitudes_mantenimiento"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    asset_tag: Mapped[str] = mapped_column(ForeignKey("activos_equipos.asset_tag", ondelete="RESTRICT"))
+    solicitado_por_id: Mapped[int] = mapped_column(ForeignKey("empleados.id"))
+    empleado_original_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    descripcion: Mapped[str] = mapped_column(Text)
+    estado: Mapped[str] = mapped_column(String(20), default="SOLICITADO")
+    id_mantenimiento: Mapped[int | None] = mapped_column(ForeignKey("activos_mantenimientos.id_mantenimiento"), nullable=True)
+    fecha_solicitud: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    aceptado_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    fecha_aceptado: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    notas_realizado: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fecha_realizado: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    fecha_confirmado: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    motivo_rechazo: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("estado IN ('SOLICITADO','ACEPTADO','REALIZADO','CONFIRMADO','RECHAZADO')",
+                        name="ck_activos_solicitud_estado"),
+        Index("ix_activos_solicitud_asset_tag", "asset_tag"),
+        Index("ix_activos_solicitud_solicitante", "solicitado_por_id"),
+    )

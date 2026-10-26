@@ -36,12 +36,12 @@ def _manejar(fn, *args, **kwargs):
 
 @router.get("/activos")
 def pagina_activos(request: Request, user: Empleado = Depends(require_activos)):
-    return templates.TemplateResponse(request, "activos.html", {"user": user, "es_portal": True})
+    return templates.TemplateResponse(request, "activos.html", {"user": user, "es_portal": True, "es_activos": True})
 
 
 @router.get("/activos/design")
 def pagina_activos_design(request: Request, user: Empleado = Depends(require_activos)):
-    return templates.TemplateResponse(request, "activos_design.html", {"user": user})
+    return templates.TemplateResponse(request, "activos_design.html", {"user": user, "es_activos": True})
 
 
 # ---------- Resumen ----------
