@@ -270,6 +270,8 @@
   .ds-qc-x:hover { opacity:1; }
   .ds-qc-mas { align-self:flex-start; border:1px dashed #93c5fd; background:#fff; color:#1d4ed8; border-radius:6px; padding:4px 10px; font-size:12.5px; cursor:pointer; margin-top:4px; }
   .ds-qc-nuevo { margin:8px 12px 10px; }
+  .ds-qc-buscar { width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:8px; }
+  .ds-qc-vacio { color:#6b7280; padding:10px 12px; font-size:12.5px; }
   .ds-qc-add { display:flex; gap:6px; align-items:center; margin-top:4px; }
   .ds-qc-add input { flex:1; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12.5px; }
   .ds-qc-btns .btn { padding:6px 14px; font-size:13px; }
@@ -361,6 +363,25 @@
   table.dd-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
   table.dd-tabla th, table.dd-tabla td { border:1px solid #e2e6ea; padding:6px 8px; text-align:center; }
   table.dd-tabla th { background:#f4f6f8; }
+  /* Filtro ▾ en el encabezado «Hallazgo de QC» (26-oct-2026) */
+  .dd-th-fil { border:1px solid #cbd5e1; background:#fff; color:#374151; border-radius:5px; padding:0 6px; font-size:11px; line-height:18px; cursor:pointer; margin-left:4px; }
+  .dd-th-fil.on { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+  .dd-fil-pop { position:absolute; z-index:1200; width:340px; max-width:calc(100vw - 16px); background:#fff; border:1px solid #d1d5db; border-radius:10px; box-shadow:0 10px 30px rgba(15,23,42,.18); padding:8px; font-size:12.5px; }
+  .dd-fil-pop > button { display:block; width:100%; text-align:left; border:none; background:none; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:12.5px; color:#111827; }
+  .dd-fil-pop > button:hover { background:#f1f5f9; }
+  .dd-fil-pop hr { border:none; border-top:1px solid #e5e7eb; margin:6px 0; }
+  .dd-fil-pop input[type=search] { width:100%; box-sizing:border-box; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12.5px; margin-bottom:6px; }
+  .dd-fil-pop label { display:flex; gap:6px; align-items:flex-start; padding:3px 4px; cursor:pointer; text-align:left; }
+  .dd-fil-pop label small { margin-left:auto; color:#6b7280; flex:none; }
+  .dd-fil-pop { text-align:left; }
+  .dd-fil-pop input[type=checkbox] { width:auto; min-width:0; flex:none; margin:2px 0 0; }
+  .dd-fil-pop label span { flex:1; text-align:left; }
+  .dd-fil-pop label { color:#111827; font-weight:400; font-size:12.5px; }
+  .dd-fil-pop label.dd-fil-todos { font-weight:600; }
+  .dd-fil-todos { border-bottom:1px solid #e5e7eb; margin-bottom:4px; font-weight:600; }
+  .dd-fil-lista { max-height:260px; overflow-y:auto; }
+  .dd-fil-vacio { color:#6b7280; margin:6px 4px; }
+  .dd-fil-pie { display:flex; justify-content:flex-end; gap:6px; margin-top:8px; }
   .dd-prod { border:1px solid #e2e6ea; border-radius:8px; margin-bottom:10px; background:#fff; }
   .dd-prod > summary { cursor:pointer; padding:9px 12px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-weight:600; }
   .dd-prod-meta { font-weight:400; font-size:12.5px; color:#4b5563; }

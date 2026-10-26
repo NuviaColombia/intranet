@@ -386,7 +386,7 @@
 <div class="dd-panel">
   <div class="dd-panel-cab"><h3>Reportes de QC</h3><span style="font-size:12px;color:#4b5563">Hallazgo que escribe el aprobador al marcar el QC
     {% if dash_teams is none %}<button type="button" class="btn rojo mini" id="ddQcBorrarTodo" onclick="ddQcBorrar(null)" style="margin-left:10px;display:none">Borrar los hallazgos filtrados</button>{% endif %}</span></div>
-  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Diseñador</th><th class="dd-izq">Hallazgo de QC</th>{% if dash_teams is none %}<th></th>{% endif %}</tr></thead>
+  <table class="dd-tabla"><thead><tr><th>Orden</th><th>Paciente</th><th>Fecha</th><th>Equipo</th><th>Producto</th><th>Diseñador</th><th class="dd-izq">Hallazgo de QC <button type="button" class="dd-th-fil" id="ddQcFiltroBtn" onclick="ddQcAbrirFiltro(this)" title="Ordenar y elegir qué hallazgos ver" aria-haspopup="dialog">▾</button></th>{% if dash_teams is none %}<th></th>{% endif %}</tr></thead>
     <tbody id="ddQcReportes"></tbody></table>
 </div>
 

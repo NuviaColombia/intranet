@@ -44,6 +44,13 @@ Antes de buscar un patrón de roles que no existe:
   buscador con las personas activas de la MISMA área (diseñadores de otros equipos y sus managers) que no son del equipo
   (`candidatos_delegacion`, GET `/design/api/teams/{id}/delegacion/candidatos`). `guardar_delegacion` acepta al equipo
   o a esos candidatos; nunca a alguien de otra área. Quien queda a cargo gestiona el Schedule (`gestiona_equipo`).
+- **Buscador en la ventana del QC** (Rosember, 26-oct-2026): con «Con hallazgos» aparece «🔍 Buscar hallazgo…»; deja solo
+  los hallazgos que coinciden (sin importar tildes; si coincide el título, todos los suyos) y abre sus títulos. Lo marcado
+  se conserva al buscar.
+- **Dashboard › Filtros › Reportes de QC: filtro ▾** (Rosember, 26-oct-2026): en el encabezado «Hallazgo de QC», ordenar
+  A → Z / Z → A y elegir qué hallazgos ver (cada reporte se parte en «Título › hallazgo», con cuántas órdenes lo tienen,
+  buscador y «Seleccionar todos»). La tabla, «Borrar los hallazgos filtrados» y la descarga usan solo lo visible
+  (`ddQcFiltrados`).
 - **Eliminar títulos y editar hallazgos de la lista de QC** (Rosember, 26-oct-2026; todas las áreas, solo admins): 🗑
   junto al título lo quita con todos sus hallazgos (`eliminar_titulo`, POST `/qc-catalogo/titulo/eliminar`, declarada
   antes de `/qc-catalogo/{item_id}/eliminar`) y ✎ junto a cada hallazgo corrige su texto (`editar_hallazgo`, POST
