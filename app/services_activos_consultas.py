@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_activos import (ActivosArea, ActivosPerfil, ActivosEquipo, ActivosDongle, ActivosHistorialAsignacion,
                              ActivosMantenimiento, ActivosJornadaMantenimiento, ActivosActaEntrega)
-from .services_activos_mantenimiento import _conteo_servicios, estado_jornada, _equipos_del_grupo
+from .services_activos_mantenimiento import _conteo_servicios, estado_jornada, _equipos_del_grupo, mapa_grupo_por_empleado
 
 DIAS_AVISO_SOLICITUD = 7
 DIAS_ALERTA_MANTENIMIENTO = 30
@@ -139,6 +139,8 @@ def listar_equipos(db: Session, busqueda: str = "", area: str | None = None, dep
     empleados = {e.id: e for e in db.query(Empleado).filter(Empleado.id.in_(empleado_ids or [0])).all()}
     perfiles = {p.empleado_id: p for p in db.query(ActivosPerfil).filter(ActivosPerfil.empleado_id.in_(empleado_ids or [0])).all()}
     dongles_por_equipo = {d.asset_tag_asignado: d for d in db.query(ActivosDongle).filter(ActivosDongle.asset_tag_asignado.isnot(None)).all()}
+    mapa_grupo = mapa_grupo_por_empleado(db)
+    lideres_grupo = {e.id: e for e in db.query(Empleado).filter(Empleado.id.in_(set(mapa_grupo.values()) - {None} or [0])).all()}
     out = []
     for e in equipos:
         emp = empleados.get(e.empleado_id) if e.empleado_id else None
@@ -146,11 +148,13 @@ def listar_equipos(db: Session, busqueda: str = "", area: str | None = None, dep
         a, d = _area_y_padre(db, perfil.id_area_id if perfil else None)
         dongle_obj = dongles_por_equipo.get(e.asset_tag)
         requiere = _requiere_exocad(db, perfil.id_area_id if perfil else None)
+        id_lider_grupo = mapa_grupo.get(e.empleado_id) if e.empleado_id else None
         fila = {"asset_tag": e.asset_tag, "tipo_equipo": e.tipo_equipo, "marca": e.marca, "modelo": e.modelo_referencia,
                "serial_number": e.serial_number, "sistema_operativo": e.sistema_operativo, "estado": e.estado,
                "usuario": emp.nombre_completo if emp else None, "area": a, "departamento": d,
                "dongle": dongle_obj.numero_dongle if dongle_obj else None,
-               "situacion_dongle": situacion_dongle(e, dongle_obj is not None, requiere)}
+               "situacion_dongle": situacion_dongle(e, dongle_obj is not None, requiere),
+               "id_lider_grupo": id_lider_grupo, "grupo": lideres_grupo[id_lider_grupo].nombre_completo if id_lider_grupo in lideres_grupo else None}
         if busqueda:
             texto = " ".join(str(v) for v in (fila["asset_tag"], fila["serial_number"], fila["usuario"], fila["modelo"], fila["marca"]) if v).lower()
             if busqueda.lower() not in texto:

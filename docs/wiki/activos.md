@@ -101,14 +101,20 @@ no por módulo.
   arrancar en `main_templates.py`, mismo patrón que `ds_estaticos_v` de Design) a los dos tags en
   `activos_design.html`. Si agregas otro archivo estático propio de Activos, inclúyelo en
   `_version_activos()` para que también invalide la caché al cambiar.
-- **`checkList(name, items, placeholder)` es una función de `app/static/activos_design/app.js`
-  (define la lista de casillas con buscador y «Marcar todos»/«Ninguno» de los modales de
-  programación masiva) que se quedó SIN DEFINIR al portar el frontend original -- se usaba en
-  "Programar por grupo" y en "Programar mantenimiento (varios)" pero nunca se copió la función (solo
-  su listener de filtro, `$('modal-fields').addEventListener('input', ...)`). El botón no hacía nada
-  visible porque el `ReferenceError: checkList is not defined` quedaba dentro de una promesa
-  rechazada (bug real, encontrado el 26-oct-2026). Si agregas un modal nuevo que necesite una lista
-  larga de casillas, usa `checkList` -- ya está definida junto a `guia()`.
+- **`checkList(name, items, placeholder)` (define la lista de casillas con buscador y «Marcar
+  todos»/«Ninguno») SÍ estaba bien portada desde el inicio** -- un diagnóstico apresurado el
+  26-oct-2026 concluyó lo contrario y le agregó una segunda definición duplicada (idéntica) más
+  arriba en el archivo; se quitó esa duplicada de nuevo. El motivo real de que "Programar
+  mantenimiento (varios)" no hiciera nada era la caché de 24h sin versión del punto anterior: el
+  botón (agregado en un deploy posterior) no existía todavía en la copia de `app.js` que el navegador
+  tenía cacheada. Si algo "no hace nada" después de un deploy reciente, sospecha primero de la caché
+  del estático antes de tocar el código.
+  `checkListGrupos(name, grupos, placeholder)` (variante con encabezado por grupo de trabajo y
+  «Marcar grupo»/«Ninguno» por grupo, usada en "Programar mantenimiento (varios)" desde el
+  26-oct-2026) está justo al lado -- reutilízala para cualquier checklist nuevo que agrupe equipos
+  por grupo de trabajo; el grupo de cada equipo sale de `id_lider_grupo`/`grupo` en la respuesta de
+  `GET /activos/design/api/equipos` (`mapa_grupo_por_empleado()` en `services_activos_mantenimiento.py`
+  -- misma regla de partición que `_equipos_del_grupo`, calculada en lote para todos los equipos).
 - **`GET /activos/design/api/mantenimientos/estado` (el dashboard de Mantenimiento/Resumen,
   `obtener_estado_mantenimiento` en `services_activos_consultas.py`) tiene que devolver LISTAS en
   `novedades`, `mantenimientos_vencidos`, `equipos_en_mantenimiento` y `grupos_sin_programar`, no
