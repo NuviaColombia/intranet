@@ -1642,11 +1642,14 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
     for o in ordenes:
         por_persona.setdefault(o.designer_id, []).append(o)
     # Managers y aprobadores salen solo si tienen casos hoy: "libre / sin casos" no aplica para ellos (12-oct-2026)
+    # Quien está a cargo de un equipo hoy (Dejar a cargo) queda igual que un aprobador (Rosember, 28-oct-2026): no puede estar
+    # disponible, así que sin casos propios no sale; con casos sale con lo que está haciendo.
+    a_cargo = set(delegaciones_activas(db).values())
     roles = {e.id: e.rol for e in db.query(_E.id, _E.rol).filter(_E.id.in_(ids))} if ids else {}
     out = []
     for pid, x in personas.items():
         mias = sorted(por_persona.get(pid, []), key=lambda o: (o.orden_visual or 0, o.id))
-        if not mias and (x["manager"] or roles.get(pid) in ("aprobador", "admin", "superadmin")):
+        if not mias and (x["manager"] or pid in a_cargo or roles.get(pid) in ("aprobador", "admin", "superadmin")):
             continue
         est = lambda o: (o.estado or "").strip().lower()
         trabajando = [o for o in mias if est(o) in SEG_TRABAJANDO]
@@ -1801,6 +1804,8 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
     ausentes = {b.empleado_id for b in db.query(DesignBreak).filter(DesignBreak.fecha == hoy, func.coalesce(DesignBreak.tipo_ausencia, "") != "")}
     ausentes |= set(_permisos_aprobados_del_dia(db, [d.empleado_id for t in equipos for d in t.designers], hoy))   # y lo de People
     mgr = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_([t.manager_id for t in equipos if t.manager_id]))} if equipos else {}
+    a_cargo = set(delegaciones_activas(db).values())   # quien está a cargo hoy no cuenta como diseñador en turno (28-oct-2026)
+    con_casos_hoy = {o.designer_id for o in ordenes if o.designer_id}
     out = []
     for t in equipos:
         mias = [o for o in ordenes if o.team_id == t.id and ((o.orden or "").strip() or (o.producto or "").strip() or (o.paciente or "").strip())]
@@ -1823,7 +1828,7 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
             m_e = db.get(Empleado, t.manager_id)
             if m_e and getattr(m_e, "activo", 1):
                 propios.append(m_e)
-        en_turno = [e for e in propios if e.id not in ausentes]
+        en_turno = [e for e in propios if e.id not in ausentes and (e.id not in a_cargo or e.id in con_casos_hoy)]
         prestados = sorted({(o.designer_prestado or "").strip() for o in mias if (o.designer_prestado or "").strip()})
         de_otros = sorted({o.designer_id for o in mias if o.designer_id and o.designer_id not in {e.id for e in propios}})
         capacidad = (len(en_turno) + len(prestados) + len(de_otros)) * restante

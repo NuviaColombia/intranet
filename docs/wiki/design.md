@@ -120,6 +120,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   pestaña y las órdenes lentas (aprobadas sin QC pasada 1 h 30 min) pero solo de sus equipos (los que maneja o tiene a
   cargo: `_equipos_visibles` → `lentas(equipos=)`); los admins ven todo. Pedir por la API un equipo ajeno no devuelve nada.
   Ayudas y Reportes siguen siendo solo de admins.
+- **Quien está a cargo no está disponible** (Rosember, 28-oct-2026): una persona a quien se deja «a cargo» de un equipo hoy
+  (`delegaciones_activas`) queda como un aprobador: en Seguimiento no sale si no tiene casos propios hoy (si los tiene, sale con
+  lo que hace), no cuenta como diseñador en turno en la capacidad de «Casos por equipo» (salvo que tenga casos hoy) y no se
+  ofrece como libre en «Pedir ayuda» (N3, N2 y Face). Aplica aunque cubra un equipo distinto al suyo y solo durante sus fechas.
 - **Desempeño › N6 Marlene: meses de 2025 a 2026** (Rosember, 28-oct-2026): los títulos de mes de esa hoja decían 2025.
   Corrección única (`perf_meses_2026_una_vez`, marca `perf_meses_n6_marlene_a_2026_2026_10_28` en design_conexion_reglas, que
   guarda cómo estaban): cambia el año de los títulos de la hoja «N6 Marlene» (y solo de ella); las calificaciones van por la

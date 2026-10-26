@@ -16,7 +16,8 @@ Flujo:
 Libre (reglas de Rosember, 19-oct-2026): sin casos, o solo con casos sin iniciar (también Nightguard / TC sin iniciar) o en
 Hold, o con una cirugía iniciada que todavía NO tiene tiempos de articulación (esperando al articulador). Ocupado: tiene un
 caso iniciado trabajándose, o una cirugía iniciada que ya tiene tiempo en START o RTD de articulación. No cuenta como
-libre quien está en break, almuerzo, ausente, inhabilitado, o ya fue elegido como ayuda hoy.
+libre quien está en break, almuerzo, ausente, inhabilitado, a cargo de un equipo hoy («Dejar a cargo»: queda como un
+aprobador, 28-oct-2026), o ya fue elegido como ayuda hoy.
 """
 import json
 import logging
@@ -117,6 +118,7 @@ def libres_n3(db: Session, ahora: datetime | None = None, excluir_equipo_id: int
     hoy, minuto = ahora.date(), ahora.hour * 60 + ahora.minute
     from . import services_design_accesos as sacc
     inhab = sacc.ids_inhabilitados(db)
+    a_cargo = set(sd.delegaciones_activas(db).values())   # quien está a cargo de un equipo hoy no está disponible (28-oct-2026)
     ya_ayudando = {a for (a,) in db.query(DesignAyudaSolicitud.elegido_id)
                    .filter(DesignAyudaSolicitud.fecha == hoy, DesignAyudaSolicitud.estado == "atendida").all() if a}
     candidatos: dict[int, dict] = {}
@@ -126,7 +128,7 @@ def libres_n3(db: Session, ahora: datetime | None = None, excluir_equipo_id: int
         for d in t.designers:
             e = d.empleado
             if (not e or not getattr(e, "activo", 1) or e.id in inhab or e.id in ya_ayudando or e.id == t.manager_id
-                    or e.id in candidatos):
+                    or e.id in a_cargo or e.id in candidatos):
                 continue
             candidatos[e.id] = {"id": e.id, "nombre": e.nombre_completo, "equipoId": t.id, "equipo": t.nombre, "aprobadorId": t.manager_id}
     if not candidatos:
