@@ -47,11 +47,13 @@ Antes de buscar un patrón de roles que no existe:
 - **Buscador en la ventana del QC** (Rosember, 26-oct-2026): con «Con hallazgos» aparece «🔍 Buscar hallazgo…»; deja solo
   los hallazgos que coinciden (sin importar tildes; si coincide el título, todos los suyos) y abre sus títulos. Lo marcado
   se conserva al buscar.
-- **Pestaña lateral «Acciones»** (Rosember, 26-oct-2026): «Producción», «Cambios digital» y «Dejar a cargo» salieron de la
-  cabecera del Schedule a una pestaña en el borde derecho (`#dsLateral`). Se despliega al pasar el mouse o al tocarla (tocada
-  queda abierta); se recoge al salir, con Esc, al hacer clic afuera o al usar una acción. Cada botón sigue con sus reglas de
-  siempre (`ds-fuera` / `hidden`); si ninguno aplica, la pestaña no se ve. Con la pestaña visible, `#ds-app` deja 30px a la
-  derecha para que no tape el contenido. En oscuro la pestaña es blanca con texto del azul de la barra.
+- **Pestañas sueltas en el borde derecho** (Rosember, 26-oct-2026): «Producción», «Cambios digital» y «Dejar a cargo»
+  salieron de la cabecera del Schedule y son pestañas verticales sueltas pegadas al borde derecho (`#dsLateral`), cada una
+  a un clic (se probó un panel «Acciones» desplegable y no gustó). Cada botón sigue con sus reglas de siempre (`ds-fuera` /
+  `hidden`); si ninguno aplica, no se ve nada. Quien está a cargo sale como pestaña verde con texto corto («A cargo: Luisa ·
+  hasta el 28 oct»; el detalle en el tooltip) y al tocarla abre la ventana de cambiar; programado, en gris. Producción se
+  abre a la izquierda de su pestaña. `#ds-app` deja 30px a la derecha para que las pestañas no tapen el contenido. En oscuro
+  son blancas con texto del azul de la barra.
 - **Saludo en el título del Schedule** (Rosember, 26-oct-2026): en vez de «Design Schedule (equipo)», los aprobadores ven
   «Hola <primer nombre>, aquí está tu equipo en movimiento.» y los diseñadores «Hola <primer nombre>, tu trabajo es
   espectacular. ¡Gracias!». Quien está a cargo HOY del equipo (Dejar a cargo, `aCargo.esYo` + `activa`) ve el de

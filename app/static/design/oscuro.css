@@ -118,6 +118,10 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] .ds-buscar.abierto .ds-buscar-caja { box-shadow:0 0 0 1px #3b82f6, 0 0 0 4px rgba(96,165,250,.18), 0 0 16px rgba(96,165,250,.3); }
 :root[data-ds-tema="oscuro"] .ds-buscar.abierto .ds-buscar-caja:focus-within { box-shadow:0 0 0 1px #60a5fa, 0 0 0 4px rgba(96,165,250,.26), 0 0 20px rgba(96,165,250,.4); }
 :root[data-ds-tema="oscuro"] .ds-buscar input { background:transparent; border:0; color:#e5e7eb; }
-/* Pestaña lateral «Acciones» (26-oct-2026): en oscuro, como el logo del buscador: blanca con texto del azul de la barra */
-:root[data-ds-tema="oscuro"] .ds-lat-pestana { background:#fff; color:#0f172a; box-shadow:0 2px 12px rgba(0,0,0,.5); }
-:root[data-ds-tema="oscuro"] .ds-lat-panel { background:#111827; border-color:#334155; box-shadow:-6px 6px 24px rgba(0,0,0,.5); }
+/* Pestañas sueltas del borde derecho (26-oct-2026): en oscuro, como el logo del buscador: blancas con texto del azul de la barra */
+:root[data-ds-tema="oscuro"] .ds-lat-panel .ds-prod-btn, :root[data-ds-tema="oscuro"] .ds-lat-panel .ds-acargo .btn {
+  background:#fff; color:#0f172a; border:0; box-shadow:0 2px 12px rgba(0,0,0,.5); }
+:root[data-ds-tema="oscuro"] .ds-lat-panel .ds-prod-btn:hover, :root[data-ds-tema="oscuro"] .ds-lat-panel .ds-acargo .btn:hover { background:#dbeafe; }
+:root[data-ds-tema="oscuro"] .ds-lat-panel .ds-acargo-chip.yo, :root[data-ds-tema="oscuro"] .ds-lat-panel button.ds-acargo-chip:not(.prog) {
+  background:#a7f3d0; color:#064e3b; border:0; }
+:root[data-ds-tema="oscuro"] .ds-lat-panel .ds-acargo-chip.prog { background:#cbd5e1; color:#0f172a; border:0; }

@@ -295,29 +295,18 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsElegirEquipo(area, teams, x.abrirTeamId, new Date(+p[0], +p[1] - 1, +p[2])); // una sola carga, ya en la fecha del caso
     }).catch(function(e) { dsToast('⚠️ ' + e.message); });
   };
-  // Pestaña lateral «Acciones» (Rosember, 26-oct-2026): Producción, Cambios digital y Dejar a cargo. Se abre al pasar el
-  // mouse o al tocarla; se cierra al salir, con Esc, al hacer clic afuera o al usar una acción. Sin acciones visibles, no se ve.
+  // Pestañas sueltas en el borde derecho (Rosember, 26-oct-2026): Producción, Cambios digital y Dejar a cargo, cada una
+  // a un clic. Sin ninguna visible, el grupo no se ve y el Schedule no reserva el margen de la derecha.
   (function() {
-    var lat = document.getElementById('dsLateral'), pes = document.getElementById('dsLatPestana'), panel = document.getElementById('dsLatPanel');
+    var lat = document.getElementById('dsLateral'), panel = document.getElementById('dsLatPanel');
     if (!lat) return;
-    var fijo = false, timer = null;
-    function abrir(f) { clearTimeout(timer); if (f) fijo = true; lat.classList.add('abierto'); pes.setAttribute('aria-expanded', 'true'); }
-    function cerrar() { clearTimeout(timer); fijo = false; lat.classList.remove('abierto'); pes.setAttribute('aria-expanded', 'false'); }
     function hayAcciones() {
       return Array.prototype.some.call(panel.children, function(el) { return !el.hidden && !el.classList.contains('ds-fuera'); });
     }
     function revisar() {
-      var v = hayAcciones(); lat.hidden = !v; if (!v) cerrar();
-      var app = document.getElementById('ds-app'); if (app) app.classList.toggle('ds-con-lateral', v);   // la pestaña no tapa el contenido
+      var v = hayAcciones(); lat.hidden = !v;
+      var app = document.getElementById('ds-app'); if (app) app.classList.toggle('ds-con-lateral', v);   // las pestañas no tapan el contenido
     }
-    pes.addEventListener('click', function() { if (lat.classList.contains('abierto') && fijo) cerrar(); else abrir(true); });
-    if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
-      lat.addEventListener('mouseenter', function() { abrir(false); });
-      lat.addEventListener('mouseleave', function() { if (!fijo) timer = setTimeout(cerrar, 250); });
-    }
-    panel.addEventListener('click', function(e) { if (e.target.closest('button')) setTimeout(cerrar, 0); });
-    document.addEventListener('mousedown', function(e) { if (!lat.contains(e.target)) cerrar(); });
-    lat.addEventListener('keydown', function(e) { if (e.key === 'Escape' && lat.classList.contains('abierto')) { e.stopPropagation(); cerrar(); pes.focus(); } });
     try { new MutationObserver(revisar).observe(panel, {subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden']}); } catch (e) {}
     revisar();
   })();
@@ -2637,7 +2626,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     var pop = document.createElement('div'); pop.className = 'ds-prod-pop'; pop.id = 'dsProdPop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Producción del día');
     document.body.appendChild(pop); dsPintarProduccion();
     var r = this.getBoundingClientRect();
-    pop.style.top = (r.bottom + 6) + 'px'; pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.right - pop.offsetWidth)) + 'px';
+    if (this.closest('.ds-lateral')) {   // pestaña del borde derecho: se abre a su izquierda
+      pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top)) + 'px'; pop.style.left = Math.max(8, r.left - pop.offsetWidth - 8) + 'px';
+    } else {
+      pop.style.top = (r.bottom + 6) + 'px'; pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.right - pop.offsetWidth)) + 'px';
+    }
     document.addEventListener('mousedown', dsProdFuera, true); document.addEventListener('keydown', dsProdEsc, true);
   });
   // ---------- Support: "Dejar a cargo" = cubrir el turno de una persona de Support (Support Time) ----------
@@ -2650,8 +2643,9 @@ window.addEventListener('unhandledrejection', function(ev) {
       cobs.forEach(function(c) {
         var tn = (st.turnos[c.turno - 1] || {}).nombre || ('turno ' + c.turno);
         var chip = document.createElement('span'); chip.className = 'ds-acargo-chip' + (c.activa ? '' : ' prog');
-        chip.textContent = (c.activa ? 'Cubre el turno ' : 'Programado: cubre el turno ') + tn.toLowerCase() + ': ' + c.nombre + ' · ' + dsFechaIsoCorta(c.desde) + ' al ' + dsFechaIsoCorta(c.hasta);
-        chip.title = 'Lo dejó: ' + (c.asignadoPor || '—');
+        var largo = (c.activa ? 'Cubre el turno ' : 'Programado: cubre el turno ') + tn.toLowerCase() + ': ' + c.nombre + ' · ' + dsFechaIsoCorta(c.desde) + ' al ' + dsFechaIsoCorta(c.hasta);
+        chip.textContent = (c.activa ? 'Cubre ' : 'Prog.: ') + tn.toLowerCase() + ': ' + String(c.nombre || '').split(' ')[0];   // corto: es una pestaña
+        chip.title = largo + '\nLo dejó: ' + (c.asignadoPor || '—');
         cont.appendChild(chip);
       });
       if (st.puedeCubrir) {
@@ -2715,17 +2709,19 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (cont.hidden) return;
     if (a && a.esYo) {
       cont.innerHTML = '<span class="ds-acargo-chip yo" title="Mientras tanto puedes asignar y editar los casos de todo el equipo, como el manager.">' +
-        (a.activa ? 'Estás a cargo del equipo hasta el ' + dsACargoFecha(a.hasta) : 'Estarás a cargo del equipo ' + dsRangoTxt(a)) + '</span>';
+        (a.activa ? 'A cargo hasta el ' + dsACargoFecha(a.hasta) : 'A cargo ' + dsRangoTxt(a)) + '</span>';
       return;
     }
     if (a) {
       // Varias asignaciones (Rosember, 26-oct-2026): se muestra la de hoy (o la próxima) y cuántas más hay programadas
       var mas = (a.lista || []).length - 1;
       var detalle = (a.lista || []).map(function(x) { return x.nombre + ': ' + dsRangoTxt(x); }).join('\n');
-      cont.innerHTML = '<span class="ds-acargo-chip' + (a.activa ? '' : ' prog') + '" title="' + dsEsc(detalle + '\nAutorizó: ' + (a.asignadoPor || '—')) + '">' +
-        (a.activa ? 'A cargo: ' + dsEsc(a.nombre) + ' · hasta el ' + dsACargoFecha(a.hasta) : 'Programado: ' + dsEsc(a.nombre) + ' · ' + dsRangoTxt(a)) +
-        (mas > 0 ? ' · +' + mas + ' programada' + (mas > 1 ? 's' : '') : '') +
-        '<button type="button" id="dsACargoEditar" aria-label="Ver o cambiar quién queda a cargo">Cambiar</button></span>';
+      // Pestaña del borde derecho: texto corto (primer nombre); el detalle va en el título. Toda la pestaña abre «Cambiar».
+      var corto = String(a.nombre || '').split(' ')[0];
+      cont.innerHTML = '<button type="button" id="dsACargoEditar" class="ds-acargo-chip' + (a.activa ? '' : ' prog') + '" title="' +
+        dsEsc(detalle + '\nAutorizó: ' + (a.asignadoPor || '—') + '\n\nClic para ver o cambiar') + '" aria-label="Ver o cambiar quién queda a cargo">' +
+        (a.activa ? 'A cargo: ' + dsEsc(corto) + ' · hasta el ' + dsACargoFecha(a.hasta) : 'Programado: ' + dsEsc(corto)) +
+        (mas > 0 ? ' · +' + mas : '') + '</button>';
     } else {
       cont.innerHTML = '<button type="button" class="btn gris" id="dsACargoEditar" title="Autoriza a alguien a asignar casos en este Schedule mientras no estás">Dejar a cargo</button>';
     }
