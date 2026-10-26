@@ -657,6 +657,8 @@
   .cv-mini-frame{ position:absolute; background:linear-gradient(#dcecfb,#eef6ff); border:1px solid #cfe0f0; border-radius:2px; }
   .cv-home-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 2px 14px; }
   .cv-home-head .cv-h{ margin:0; }
+  .cv-home-head .cv-limpiar-todo{ margin-left:auto; }   /* «Limpiar todo» queda pegado al selector de vista, a la derecha */
+  .cv-limpiar-todo:disabled{ opacity:.45; cursor:not-allowed; }
   .cv-view-wrap{ position:relative; }
   .cv-view-menu{ display:none; position:absolute; right:0; top:calc(100% + 6px); z-index:50; background:#fff; border:1px solid #d8dde3; border-radius:11px; box-shadow:0 16px 36px -14px rgba(24,21,69,.45); padding:6px; min-width:224px; }
   .cv-view-wrap.open .cv-view-menu{ display:block; }

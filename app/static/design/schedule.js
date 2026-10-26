@@ -6724,6 +6724,38 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       CANVAS.docs.unshift(cvFromServer(r)); cvLocalGuardar(); cvRender();
     });
   }
+  // Limpiar todo (Rosember, 27-oct-2026): en la vista Tablero quita las fotos de los marcos de TODAS las hojas del área para
+  // reutilizarlas (como «🧹 Limpiar» de una hoja, pero en todas). Se queda el formato, los marcos y las anotaciones. Pide
+  // confirmación y deja «Deshacer» unos segundos, porque no se puede recuperar una foto quitada.
+  function cvLimpiarTodo() {
+    var conFotos = CANVAS.docs.filter(function(d) { return d.frames.some(function(f) { return f.img; }); });
+    var total = conFotos.reduce(function(n, d) { return n + d.frames.filter(function(f) { return f.img; }).length; }, 0);
+    if (!total) { cvAviso('<span>No hay fotos para quitar.</span>', false); return; }
+    if (!confirm('¿Quitar las ' + total + ' foto' + (total === 1 ? '' : 's') + ' de ' + conFotos.length + ' hoja' + (conFotos.length === 1 ? '' : 's') +
+                 '?\n\nLas hojas conservan su formato, sus marcos y sus anotaciones. Podrás deshacerlo en el aviso que aparece abajo.')) return;
+    var areaId = CV.areaId;
+    var respaldo = conFotos.map(function(d) { return {id: d.id, frames: JSON.stringify(d.frames)}; });
+    conFotos.forEach(function(d) {
+      d.frames.forEach(function(f) { f.img = null; });
+      d.updated = Date_nowSafe(); cvSave(d.id);
+    });
+    cvRender();
+    var v = cvAviso('<span>🧹 Se quitaron ' + total + ' foto' + (total === 1 ? '' : 's') + ' de ' + conFotos.length + ' hoja' + (conFotos.length === 1 ? '' : 's') +
+                    '</span><button type="button" class="cv-aviso-btn">Deshacer</button><button type="button" class="cv-aviso-x" title="Cerrar">✕</button>', true);
+    v.querySelector('.cv-aviso-x').onclick = function() { v.classList.remove('open'); };
+    var btn = v.querySelector('.cv-aviso-btn');
+    btn.onclick = function() {
+      btn.disabled = true;
+      if (CV.areaId !== areaId) { cvAviso('<span>Cambiaste de área: ya no se puede deshacer.</span>', false); return; }
+      respaldo.forEach(function(r) {
+        var d = CANVAS.docs.find(function(x) { return x.id === r.id; });
+        if (!d) return;
+        d.frames = JSON.parse(r.frames); d.updated = Date_nowSafe(); cvSave(d.id);
+      });
+      cvRender(); cvAviso('<span>✅ Fotos restauradas</span>', false);
+    };
+  }
+
   // Compartir una copia de la hoja (Rosember, 26-oct-2026): con todos los del área o con una persona. Va solo el formato.
   // Ventana rehecha el 27-oct-2026: dos tarjetas para elegir y, para «Una persona», una lista con buscador, iniciales y equipo.
   function cvCompartir(id) {
@@ -6910,7 +6942,13 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         CV.personas.map(function(p) { return '<option value="' + p.id + '"' + (CV.verDe === p.id ? ' selected' : '') + '>' + esc(p.nombre) + '</option>'; }).join('') +
         '</select></label>';
     }
-    return '<div class="cv-home-head"><h3 class="cv-h">Hojas de trabajo</h3>' + verDe +
+    // Limpiar todo (27-oct-2026): solo en la vista Tablero; quita las fotos de todas las hojas del área
+    var fotos = CANVAS.docs.reduce(function(n, d) { return n + d.frames.filter(function(f) { return f.img; }).length; }, 0);
+    var limpiar = cur === 'board' && !CV.verDe
+      ? '<button class="cv-mini-btn cv-limpiar-todo" data-clearall' + (fotos ? '' : ' disabled') + ' title="' +
+        (fotos ? 'Quitar las ' + fotos + ' foto' + (fotos === 1 ? '' : 's') + ' de todas las hojas (el formato y las anotaciones se quedan)' : 'No hay fotos en las hojas') + '">🧹 Limpiar todo' + (fotos ? ' (' + fotos + ')' : '') + '</button>'
+      : '';
+    return '<div class="cv-home-head"><h3 class="cv-h">Hojas de trabajo</h3>' + verDe + limpiar +
       '<div class="cv-view-wrap" id="cvViewWrap">' +
         '<button class="cv-mini-btn" data-cvviewtoggle>' + (CV_VIEW_ICON[cur] || '') + ' Vista: ' + esc(curLabel) + ' ▾</button>' +
         '<div class="cv-view-menu"><div class="cv-view-menu-h">Vista de la galería</div>' + items + '</div>' +
@@ -7920,6 +7958,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (t.closest("[data-cvviewtoggle]")) { e.stopPropagation(); var w = document.getElementById("cvViewWrap"); if (w) w.classList.toggle("open"); return; }
     var vpick = t.closest("[data-cvview]"); if (vpick) { cvSetView(vpick.dataset.cvview, false); return; }
     var bframe = t.closest("[data-bframe]"); if (bframe) { e.stopPropagation(); cvBoardFrameClick(bframe.dataset.bdoc, bframe.dataset.bframe); return; }
+    if (t.closest("[data-clearall]")) { cvLimpiarTodo(); return; }
     var dl = t.closest("[data-dl]"); if (dl) { e.stopPropagation(); cvExportPNG(parseInt(dl.dataset.dl)); return; }   // descargar una hoja desde el tablero o la cuadrícula
     if (CV.verDe && t.closest("[data-newsheet], [data-open], [data-ren], [data-dup], [data-del]")) return; // solo vista
     if (t.closest("[data-newsheet]")) { cvNewCustomSheet(); return; }

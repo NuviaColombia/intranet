@@ -116,6 +116,10 @@ superadmin puede simular a cualquiera; un admin normal solo a alguien de su prop
   (`preapproved_agregar_doctor(centro_id=)`, POST `/preapproved/sheets/{id}/doctores?centro_id=`). Cada centro es un grupo de
   doctores consecutivos; el `orden` de los doctores se renumera seguido y las celdas siguen a su doctor (van por doctor_id).
   Sin centro elegido va al último, como antes. No toca Openings ni `services_design_origenes.py`.
+- **Canvas › «🧹 Limpiar todo»** (Rosember, 27-oct-2026): solo en la vista Tablero (junto a «Vista»), con cuántas fotos hay.
+  Quita las fotos de los marcos de TODAS las hojas del área (como «🧹 Limpiar» de una hoja, pero en todas); el formato, los
+  marcos y las anotaciones se quedan. Pide confirmación y deja «Deshacer» unos segundos (`cvLimpiarTodo`). Se guarda en el
+  navegador y en el respaldo del servidor como cualquier cambio de la hoja.
 - **Compartir una hoja de Canvas** (Rosember, 26-oct-2026): «⇪ Compartir» en el tablero, la cuadrícula, el panel de hojas y
   la barra del editor. Envía una COPIA a todos los de la misma área o a una persona del área (`canvas_destinatarios`:
   diseñadores y managers de los equipos activos del área). Va solo el formato: los marcos sin foto y sin las anotaciones
