@@ -441,16 +441,83 @@ def gestiona_equipo(user: Empleado, team: DesignTeam) -> bool:
 _DELEG_CACHE = {"t": 0.0, "dia": None, "v": None}
 
 
+# Varias asignaciones por equipo (Rosember, 26-oct-2026): si el manager sale una semana, cada día puede quedar a cargo una
+# persona distinta (una por día, sin cruces). La lista de cada equipo se guarda en design_conexion_reglas (tipo «sistema»,
+# clave DELEG_CLAVE + team_id), sin cambiar la estructura de la base. design_delegaciones sigue con una fila por equipo como
+# espejo de la asignación de hoy (o la próxima): así el Schedule en vivo se entera de los cambios. Un equipo que todavía no
+# tiene lista usa esa fila (lo de antes de este cambio).
+DELEG_CLAVE = "delegaciones_equipo_"
+
+
+def _deleg_entrada(d) -> dict:
+    return {"id": "fila", "e": d.empleado_id, "d": d.desde.isoformat(), "h": d.hasta.isoformat(), "por": d.asignado_por or ""}
+
+
+def _deleg_listas(db: Session) -> dict[int, list[dict]]:
+    """{team_id: [entradas]} de todos los equipos: la lista guardada o, si no hay, la fila de design_delegaciones."""
+    from .models_design import DesignConexionRegla, DesignDelegacion
+    out: dict[int, list[dict]] = {}
+    for r in db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema",
+                                                  DesignConexionRegla.clave.like(DELEG_CLAVE + "%")):
+        try:
+            out[int(r.clave[len(DELEG_CLAVE):])] = json.loads(r.valor or "[]")
+        except (ValueError, TypeError):
+            continue
+    for d in db.query(DesignDelegacion).all():
+        out.setdefault(d.team_id, [_deleg_entrada(d)])
+    return out
+
+
+def _deleg_lista(db: Session, team_id: int) -> list[dict]:
+    from .models_design import DesignConexionRegla, DesignDelegacion
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema",
+                                             DesignConexionRegla.clave == DELEG_CLAVE + str(team_id)).first()
+    if r:
+        try:
+            return json.loads(r.valor or "[]")
+        except ValueError:
+            return []
+    d = db.get(DesignDelegacion, team_id)
+    return [_deleg_entrada(d)] if d else []
+
+
+def _deleg_guardar(db: Session, team_id: int, lista: list[dict]) -> None:
+    """Guarda la lista (sin las vencidas, en orden) y actualiza el espejo en design_delegaciones."""
+    from .models_design import DesignConexionRegla, DesignDelegacion
+    hoy = ahora_colombia().date().isoformat()
+    lista = sorted((x for x in lista if x["h"] >= hoy), key=lambda x: x["d"])
+    clave = DELEG_CLAVE + str(team_id)
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).first()
+    if not r:
+        r = DesignConexionRegla(tipo="sistema", clave=clave, creado_por="Dejar a cargo")
+        db.add(r)
+    r.valor = json.dumps(lista, ensure_ascii=False)
+    espejo = next((x for x in lista if x["d"] <= hoy), lista[0] if lista else None)
+    d = db.get(DesignDelegacion, team_id)
+    if espejo:
+        d = d or DesignDelegacion(team_id=team_id)
+        d.empleado_id, d.desde, d.hasta = espejo["e"], date.fromisoformat(espejo["d"]), date.fromisoformat(espejo["h"])
+        d.asignado_por, d.asignado_en = espejo.get("por", ""), datetime.utcnow()
+        db.add(d)
+    elif d:
+        db.delete(d)
+    db.commit()
+    _DELEG_CACHE["v"] = None
+
+
 def delegaciones_activas(db: Session) -> dict[int, int]:
-    """{team_id: empleado_id} de los diseñadores a cargo hoy (fecha de Colombia). Se guarda 20 s."""
+    """{team_id: empleado_id} de quien está a cargo hoy (fecha de Colombia). Se guarda 20 s."""
     import time as _t
-    from .models_design import DesignDelegacion
     hoy = ahora_colombia().date()
     c = _DELEG_CACHE
     if c["v"] is not None and c["dia"] == hoy and _t.monotonic() - c["t"] < 20:
         return c["v"]
-    v = {d.team_id: d.empleado_id for d in db.query(DesignDelegacion)
-         .filter(DesignDelegacion.desde <= hoy, DesignDelegacion.hasta >= hoy).all()}
+    h = hoy.isoformat()
+    v = {}
+    for tid, lista in _deleg_listas(db).items():
+        x = next((x for x in lista if x["d"] <= h <= x["h"]), None)
+        if x:
+            v[tid] = x["e"]
     c["t"], c["dia"], c["v"] = _t.monotonic(), hoy, v
     return v
 
@@ -461,15 +528,16 @@ def puede_delegar(user: Empleado, team: DesignTeam) -> bool:
 
 
 def delegacion_de(db: Session, team: DesignTeam) -> dict | None:
-    """La autorización vigente o programada del equipo (las vencidas no cuentan)."""
-    from .models_design import DesignDelegacion
-    d = db.get(DesignDelegacion, team.id)
-    hoy = ahora_colombia().date()
-    if not d or d.hasta < hoy:
+    """La asignación de hoy (o la próxima programada) con la lista de todas las que siguen (las vencidas no cuentan)."""
+    hoy = ahora_colombia().date().isoformat()
+    vig = sorted((x for x in _deleg_lista(db, team.id) if x["h"] >= hoy), key=lambda x: x["d"])
+    if not vig:
         return None
-    return {"empleadoId": d.empleado_id, "nombre": d.empleado.nombre_completo if d.empleado else "",
-            "desde": d.desde.isoformat(), "hasta": d.hasta.isoformat(), "activa": d.desde <= hoy,
-            "asignadoPor": d.asignado_por or ""}
+    nombres = {e.id: e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_({x["e"] for x in vig}))}
+    lista = [{"id": x["id"], "empleadoId": x["e"], "nombre": nombres.get(x["e"], ""), "desde": x["d"], "hasta": x["h"],
+              "activa": x["d"] <= hoy, "asignadoPor": x.get("por", "")} for x in vig]
+    actual = next((x for x in lista if x["activa"]), lista[0])
+    return dict(actual, lista=lista)
 
 
 def candidatos_delegacion(db: Session, team: DesignTeam) -> list[dict]:
@@ -491,9 +559,10 @@ def candidatos_delegacion(db: Session, team: DesignTeam) -> list[dict]:
 
 
 def guardar_delegacion(db: Session, team: DesignTeam, empleado_id: int, desde: date, hasta: date, por: str) -> str | None:
-    """Deja a alguien a cargo del equipo entre `desde` y `hasta` (reemplaza la anterior): un diseñador del equipo o, con
-    «Otra persona…», alguien de la misma área (candidatos_delegacion). Devuelve el error."""
-    from .models_design import DesignDelegacion
+    """Agrega una asignación: alguien queda a cargo del equipo entre `desde` y `hasta`. Puede ser un diseñador del equipo
+    o, con «Otra persona…», alguien de la misma área (candidatos_delegacion). Cada día solo una persona: no deja cruzar
+    fechas con otra asignación. Devuelve el error."""
+    import uuid
     if (not any(d.empleado_id == empleado_id for d in team.designers)
             and not any(c["id"] == empleado_id for c in candidatos_delegacion(db, team))):
         return "Solo puedes dejar a cargo a alguien del equipo o de la misma área."
@@ -503,22 +572,30 @@ def guardar_delegacion(db: Session, team: DesignTeam, empleado_id: int, desde: d
         return "La fecha final no puede ser antes de la inicial."
     if hasta < ahora_colombia().date():
         return "La fecha final ya pasó."
-    d = db.get(DesignDelegacion, team.id) or DesignDelegacion(team_id=team.id)
-    d.empleado_id, d.desde, d.hasta, d.asignado_por, d.asignado_en = empleado_id, desde, hasta, por, datetime.utcnow()
-    db.add(d)
-    db.commit()
-    _DELEG_CACHE["v"] = None
+    d, h = desde.isoformat(), hasta.isoformat()
+    hoy = ahora_colombia().date().isoformat()
+    lista = [x for x in _deleg_lista(db, team.id) if x["h"] >= hoy]
+    cruce = next((x for x in lista if not (h < x["d"] or d > x["h"])), None)
+    if cruce:
+        e = db.get(Empleado, cruce["e"])
+        meses = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+        corta = lambda iso: f"{int(iso[8:10])} {meses[int(iso[5:7]) - 1]}"
+        rango = corta(cruce["d"]) if cruce["d"] == cruce["h"] else f"{corta(cruce['d'])} al {corta(cruce['h'])}"
+        return (f"Esas fechas se cruzan con {e.nombre_completo if e else 'otra persona'} ({rango}). "
+                "Cada día solo puede quedar una persona a cargo.")
+    lista.append({"id": uuid.uuid4().hex[:8], "e": empleado_id, "d": d, "h": h, "por": por})
+    _deleg_guardar(db, team.id, lista)
     return None
 
 
-def quitar_delegacion(db: Session, team: DesignTeam) -> bool:
-    from .models_design import DesignDelegacion
-    d = db.get(DesignDelegacion, team.id)
-    if d:
-        db.delete(d)
-        db.commit()
-    _DELEG_CACHE["v"] = None
-    return bool(d)
+def quitar_delegacion(db: Session, team: DesignTeam, entrada_id: str = "") -> bool:
+    """Quita una asignación (por su id) o, sin id, todas las del equipo."""
+    lista = _deleg_lista(db, team.id)
+    nueva = [x for x in lista if entrada_id and x["id"] != entrada_id]
+    if len(nueva) == len(lista):
+        return False
+    _deleg_guardar(db, team.id, nueva)
+    return True
 
 
 # Comments: cada pestaña es de unas áreas. Support y los admins ven las dos (1-oct-2026). Training ve la de N3

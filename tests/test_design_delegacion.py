@@ -55,5 +55,38 @@ class Delegacion(unittest.TestCase):
         self.assertIn("misma área", err)
 
 
+    def test_varias_asignaciones_una_persona_por_dia(self):
+        from datetime import datetime
+        from unittest import mock
+        d0, d1, d2 = self.hoy, self.hoy + timedelta(days=1), self.hoy + timedelta(days=2)
+        self.assertIsNone(sd.guardar_delegacion(self.db, self.t1, self.ana.id, d0, d0, "Lia X"))
+        self.assertIsNone(sd.guardar_delegacion(self.db, self.t1, self.beto.id, d1, d2, "Lia X"))
+        err = sd.guardar_delegacion(self.db, self.t1, self.leo.id, d2, d2, "Lia X")
+        self.assertIn("se cruzan con Beto X", err)                       # cada día solo una persona
+        dg = sd.delegacion_de(self.db, self.t1)
+        self.assertEqual((dg["nombre"], dg["activa"], len(dg["lista"])), ("Ana X", True, 2))
+        self.assertEqual(sd.delegaciones_activas(self.db), {self.t1.id: self.ana.id})
+        manana = datetime.combine(d1, datetime.min.time()).replace(hour=9)
+        with mock.patch.object(sd, "ahora_colombia", return_value=manana):
+            sd._DELEG_CACHE["v"] = None
+            self.assertEqual(sd.delegaciones_activas(self.db), {self.t1.id: self.beto.id})   # al otro día, Beto
+        sd._DELEG_CACHE["v"] = None
+        self.assertTrue(sd.quitar_delegacion(self.db, self.t1, dg["lista"][0]["id"]))   # se quita la de Ana
+        self.assertEqual(sd.delegaciones_activas(self.db), {})
+        dg = sd.delegacion_de(self.db, self.t1)
+        self.assertEqual((dg["nombre"], dg["activa"]), ("Beto X", False))   # queda la de Beto, programada
+        espejo = self.db.get(md.DesignDelegacion, self.t1.id)
+        self.assertEqual(espejo.empleado_id, self.beto.id)                    # el espejo sigue a la próxima
+
+    def test_lo_de_antes_sigue_funcionando(self):
+        self.db.add(md.DesignDelegacion(team_id=self.t1.id, empleado_id=self.ana.id, desde=self.hoy, hasta=self.hoy,
+                                        asignado_por="Lia X"))
+        self.db.commit()
+        self.assertEqual(sd.delegaciones_activas(self.db), {self.t1.id: self.ana.id})
+        self.assertIsNone(sd.guardar_delegacion(self.db, self.t1, self.beto.id, self.hoy + timedelta(days=1),
+                                                self.hoy + timedelta(days=1), "Lia X"))
+        self.assertEqual([x["nombre"] for x in sd.delegacion_de(self.db, self.t1)["lista"]], ["Ana X", "Beto X"])
+
+
 if __name__ == "__main__":
     unittest.main()

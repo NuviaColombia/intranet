@@ -2659,76 +2659,104 @@ window.addEventListener('unhandledrejection', function(ev) {
       return;
     }
     if (a) {
-      cont.innerHTML = '<span class="ds-acargo-chip' + (a.activa ? '' : ' prog') + '" title="' + dsEsc('Autorizó: ' + (a.asignadoPor || '—')) + '">' +
+      // Varias asignaciones (Rosember, 26-oct-2026): se muestra la de hoy (o la próxima) y cuántas más hay programadas
+      var mas = (a.lista || []).length - 1;
+      var detalle = (a.lista || []).map(function(x) { return x.nombre + ': ' + dsRangoTxt(x); }).join('\n');
+      cont.innerHTML = '<span class="ds-acargo-chip' + (a.activa ? '' : ' prog') + '" title="' + dsEsc(detalle + '\nAutorizó: ' + (a.asignadoPor || '—')) + '">' +
         (a.activa ? 'A cargo: ' + dsEsc(a.nombre) + ' · hasta el ' + dsACargoFecha(a.hasta) : 'Programado: ' + dsEsc(a.nombre) + ' · ' + dsRangoTxt(a)) +
-        '<button type="button" id="dsACargoEditar" aria-label="Cambiar quién queda a cargo">Cambiar</button></span>';
+        (mas > 0 ? ' · +' + mas + ' programada' + (mas > 1 ? 's' : '') : '') +
+        '<button type="button" id="dsACargoEditar" aria-label="Ver o cambiar quién queda a cargo">Cambiar</button></span>';
     } else {
-      cont.innerHTML = '<button type="button" class="btn gris" id="dsACargoEditar" title="Autoriza a un diseñador del equipo a asignar casos en este Schedule mientras no estás">Dejar a cargo</button>';
+      cont.innerHTML = '<button type="button" class="btn gris" id="dsACargoEditar" title="Autoriza a alguien a asignar casos en este Schedule mientras no estás">Dejar a cargo</button>';
     }
     document.getElementById('dsACargoEditar').onclick = function() { dsModalACargo(dia); };
   }
   function dsModalACargo(dia) {
-    var a = dia.aCargo, hoy = dsFechaISO(new Date());
+    var a = dia.aCargo, hoy = dsFechaISO(new Date()), lista = (a && a.lista) || [], cambio = false;
+    var url = '/design/api/teams/' + DS.teamId + '/delegacion';
     var bg = document.createElement('div'); bg.className = 'ds-qc-bg';
     var delEquipo = (dia.designers || []).filter(function(d) { return !d.esManager; });
-    var ops = delEquipo.map(function(d) {
-      return '<option value="' + d.id + '"' + (a && a.empleadoId === d.id ? ' selected' : '') + '>' + dsEsc(d.nombre) + '</option>'; }).join('');
     // «Otra persona…» (Rosember, 26-oct-2026): a veces queda a cargo alguien de otro equipo de la misma área
-    if (a && !delEquipo.some(function(d) { return d.id === a.empleadoId; })) ops += '<option value="' + a.empleadoId + '" selected>' + dsEsc(a.nombre) + '</option>';
-    ops += '<option value="otra">Otra persona…</option>';
-    bg.innerHTML = '<div class="ds-qc ds-acargo-form" role="dialog" aria-modal="true" aria-labelledby="dsACargoTit" style="width:420px">' +
+    var ops = delEquipo.map(function(d) { return '<option value="' + d.id + '">' + dsEsc(d.nombre) + '</option>'; }).join('') +
+              '<option value="otra">Otra persona…</option>';
+    // Al agregar varias seguidas (una persona por día), las fechas proponen el día siguiente a la última asignación
+    var sigDia = function() {
+      var u = lista.reduce(function(m, x) { return x.hasta > m ? x.hasta : m; }, '');
+      if (!u || u < hoy) return hoy;
+      var d = new Date(u + 'T12:00:00'); d.setDate(d.getDate() + 1); return dsFechaISO(d);
+    };
+    bg.innerHTML = '<div class="ds-qc ds-acargo-form" role="dialog" aria-modal="true" aria-labelledby="dsACargoTit" style="width:460px">' +
       '<h4 id="dsACargoTit">Dejar a cargo del equipo</h4>' +
-      '<div class="ds-qc-sub">Mientras no estás, la persona elegida puede asignar y editar los casos de todo el equipo en este Schedule, igual que tú. Solo una a la vez; se apaga solo al terminar las fechas.</div>' +
-      (ops ? '<label for="dsACargoQuien">Persona</label><select id="dsACargoQuien">' + ops + '</select>' +
-             '<div id="dsACargoOtraW" hidden style="margin-top:6px"><input type="search" id="dsACargoBuscar" placeholder="Busca por nombre o equipo…" style="width:100%;box-sizing:border-box;margin-bottom:4px">' +
-             '<select id="dsACargoOtra" size="6" aria-label="Personas de la misma área" style="width:100%"></select></div>' +
-             '<div class="ds-acargo-fechas"><div><label for="dsACargoDesde">Desde</label><input type="date" id="dsACargoDesde" min="' + hoy + '" value="' + (a ? (a.desde < hoy ? hoy : a.desde) : hoy) + '"></div>' +
-             '<div><label for="dsACargoHasta">Hasta</label><input type="date" id="dsACargoHasta" min="' + hoy + '" value="' + (a ? a.hasta : hoy) + '"></div></div>'
-           : '<p class="ds-prest-vacio">Este equipo no tiene diseñadores asignados.</p>') +
-      '<div class="ds-qc-btns">' + (a ? '<button type="button" class="btn rojo" data-ac="quitar">Quitar autorización</button>' : '') +
-      '<button type="button" class="btn gris" data-ac="cancelar">Cancelar</button>' + (ops ? '<button type="button" class="btn" data-ac="guardar">Guardar</button>' : '') + '</div></div>';
+      '<div class="ds-qc-sub">Mientras no estás, quien quede a cargo puede asignar y editar los casos de todo el equipo en este Schedule, igual que tú. ' +
+      'Puedes programar varias asignaciones (por ejemplo, una persona distinta cada día); cada día solo una persona. Se apagan solas al terminar sus fechas.</div>' +
+      '<div class="ds-acargo-lista" id="dsACargoLista"></div>' +
+      '<div class="ds-qc-sub" style="margin:12px 0 4px;font-weight:600">Agregar una asignación</div>' +
+      '<label for="dsACargoQuien">Persona</label><select id="dsACargoQuien">' + ops + '</select>' +
+      '<div id="dsACargoOtraW" hidden style="margin-top:6px"><input type="search" id="dsACargoBuscar" placeholder="Busca por nombre o equipo…" style="width:100%;box-sizing:border-box;margin-bottom:4px">' +
+      '<select id="dsACargoOtra" size="6" aria-label="Personas de la misma área" style="width:100%"></select></div>' +
+      '<div class="ds-acargo-fechas"><div><label for="dsACargoDesde">Desde</label><input type="date" id="dsACargoDesde" min="' + hoy + '"></div>' +
+      '<div><label for="dsACargoHasta">Hasta</label><input type="date" id="dsACargoHasta" min="' + hoy + '"></div></div>' +
+      '<div class="ds-qc-err" id="dsACargoErr"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-ac="cerrar">Cerrar</button>' +
+      '<button type="button" class="btn" data-ac="agregar">Agregar</button></div></div>';
     document.body.appendChild(bg);
+    var err = document.getElementById('dsACargoErr'), inDesde = document.getElementById('dsACargoDesde'), inHasta = document.getElementById('dsACargoHasta');
+    var ponerFechas = function() { inDesde.value = inHasta.value = sigDia(); };
+    var pintarLista = function() {
+      document.getElementById('dsACargoLista').innerHTML = lista.length ? lista.map(function(x) {
+        return '<div class="ds-cob-fila"><span>' + dsEsc(x.nombre) + ' · ' + dsRangoTxt(x) + (x.activa ? ' <b>(hoy)</b>' : '') + '</span>' +
+               '<button type="button" class="btn rojo mini" data-quitar="' + dsEsc(x.id) + '">Quitar</button></div>'; }).join('')
+        : '<p class="ds-prest-vacio">Nadie queda a cargo por ahora.</p>';
+    };
+    pintarLista(); ponerFechas();
+    inDesde.addEventListener('change', function() { if (!inHasta.value || inHasta.value < inDesde.value) inHasta.value = inDesde.value; });
     var teclas = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); } };
-    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
-    var listo = function(msg) { cerrar(); dsToast(msg); dsCargarDia(); };
-    var falla = function(e) { alert('No se pudo guardar: ' + e.message); };
-    var url = '/design/api/teams/' + DS.teamId + '/delegacion';
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); if (cambio) dsCargarDia(); };
+    var nuevaLista = function(r) { lista = (r && r.aCargo && r.aCargo.lista) || []; cambio = true; pintarLista(); };
     bg.addEventListener('click', function(e) {
+      var q = e.target.closest('[data-quitar]');
+      if (q) {
+        err.textContent = '';
+        postJSON(url + '/quitar?entrada=' + encodeURIComponent(q.dataset.quitar), {}).then(function(r) { nuevaLista(r); ponerFechas(); },
+                                                                                          function(x) { err.textContent = x.message; });
+        return;
+      }
       var b = e.target.closest('[data-ac]'); if (!b) return;
-      if (b.dataset.ac === 'cancelar') { cerrar(); return; }
-      if (b.dataset.ac === 'quitar') { postJSON(url + '/quitar', {}).then(function() { listo('Se quitó la autorización.'); }, falla); return; }
-      var sel = document.getElementById('dsACargoQuien'), de = document.getElementById('dsACargoDesde').value, ha = document.getElementById('dsACargoHasta').value;
+      if (b.dataset.ac === 'cerrar') { cerrar(); return; }
+      var sel = document.getElementById('dsACargoQuien'), de = inDesde.value, ha = inHasta.value;
       var quien = sel.value === 'otra' ? document.getElementById('dsACargoOtra') : sel;
-      if (!quien.value) { alert('Elige a la persona que queda a cargo.'); return; }
-      if (!de || !ha) { alert('Elige las fechas.'); return; }
-      if (ha < de) { alert('La fecha final no puede ser antes de la inicial.'); return; }
+      err.textContent = '';
+      if (!quien.value) { err.textContent = 'Elige a la persona que queda a cargo.'; return; }
+      if (!de || !ha) { err.textContent = 'Elige las fechas.'; return; }
+      if (ha < de) { err.textContent = 'La fecha final no puede ser antes de la inicial.'; return; }
       var opt = quien.options[quien.selectedIndex];
-      postJSON(url, {empleadoId: parseInt(quien.value, 10), desde: de, hasta: ha}).then(function() {
-        listo((opt.dataset.nombre || opt.text) + ' queda a cargo ' + dsRangoTxt({desde: de, hasta: ha}) + '.');
-      }, falla);
+      postJSON(url, {empleadoId: parseInt(quien.value, 10), desde: de, hasta: ha}).then(function(r) {
+        nuevaLista(r); ponerFechas();
+        dsToast((opt.dataset.nombre || opt.text) + ' queda a cargo ' + dsRangoTxt({desde: de, hasta: ha}) + '.');
+      }, function(x) { err.textContent = x.message; });
     });
     // «Otra persona…»: buscador con las personas de la misma área que no son del equipo
     var selQuien = document.getElementById('dsACargoQuien'), otraW = document.getElementById('dsACargoOtraW'), candidatos = null;
-    var norm = function(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); };
+    var norm = function(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); };
     var pintarOtras = function() {
-      var q = norm(document.getElementById('dsACargoBuscar').value), lista = document.getElementById('dsACargoOtra');
+      var q = norm(document.getElementById('dsACargoBuscar').value), sl = document.getElementById('dsACargoOtra');
       var filas = (candidatos || []).filter(function(c) { return !q || norm(c.nombre + ' ' + c.equipo).indexOf(q) >= 0; });
-      lista.innerHTML = filas.length ? filas.map(function(c) {
+      sl.innerHTML = filas.length ? filas.map(function(c) {
         return '<option value="' + c.id + '" data-nombre="' + dsEsc(c.nombre) + '">' + dsEsc(c.nombre) + ' — ' + dsEsc(c.equipo) + '</option>'; }).join('')
         : '<option value="" disabled>' + (candidatos ? 'No hay nadie con ese nombre en el área.' : 'Cargando…') + '</option>';
     };
-    if (selQuien) selQuien.addEventListener('change', function() {
+    selQuien.addEventListener('change', function() {
       otraW.hidden = selQuien.value !== 'otra';
       if (otraW.hidden) return;
       pintarOtras();
       document.getElementById('dsACargoBuscar').focus();
       if (!candidatos) window.dsFetchJSON(url + '/candidatos').then(function(c) { candidatos = c || []; pintarOtras(); },
-                                                                     function(e) { candidatos = []; pintarOtras(); alert('No se pudo cargar la lista: ' + e.message); });
+                                                                     function(x) { candidatos = []; pintarOtras(); err.textContent = 'No se pudo cargar la lista: ' + x.message; });
     });
-    if (otraW) document.getElementById('dsACargoBuscar').addEventListener('input', pintarOtras);
+    document.getElementById('dsACargoBuscar').addEventListener('input', pintarOtras);
     bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
     document.addEventListener('keydown', teclas, true);
-    (bg.querySelector('select') || bg.querySelector('[data-ac]')).focus();
+    selQuien.focus();
   }
 
   function dsAplicarDia(dia, soloOrdenes) {

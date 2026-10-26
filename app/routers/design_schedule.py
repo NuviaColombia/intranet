@@ -1142,7 +1142,11 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     # Diseñador a cargo: el manager lo ve y lo cambia; el que está a cargo ve hasta cuándo.
     dg = sd.delegacion_de(db, team)
     dia["puedeDelegar"] = sd.puede_delegar(user, team) and team.area.formato != sd.FORMATO_SUPPORT
-    dia["aCargo"] = dict(dg, esYo=dg["empleadoId"] == user.id) if dg and (dia["puedeDelegar"] or dg["empleadoId"] == user.id) else None
+    if dg and dia["puedeDelegar"]:
+        dia["aCargo"] = dict(dg, esYo=dg["empleadoId"] == user.id)
+    else:   # quien queda a cargo ve su propia asignación (hoy o la próxima), aunque antes haya otra persona
+        mia = next((x for x in (dg or {}).get("lista", []) if x["empleadoId"] == user.id), None)
+        dia["aCargo"] = dict(mia, esYo=True) if mia else None
     dia["version"] = sd.version_dia(db, team, _fecha(fecha), user.id, solo_propias=not (gest or es_tr),
                                     extra=_huella_extra(db, user, team, _fecha(fecha)))  # huella para el Schedule en vivo
     dia["puedeQc"] = sd.puede_qc(user, team)  # el QC lo marcan aprobadores, admins y el diseñador a cargo
@@ -1259,9 +1263,16 @@ def api_delegacion_candidatos(team_id: int, user: Empleado = Depends(require_mod
 
 
 @router.post("/design/api/teams/{team_id}/delegacion/quitar")
-def api_delegacion_quitar(team_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
-    sd.quitar_delegacion(db, _equipo_delegable(db, user, team_id))
-    return {"ok": True}
+def api_delegacion_quitar(team_id: int, entrada: str = "", user: Empleado = Depends(require_modulo("design_schedule")),
+                          db: Session = Depends(get_db)):
+    """Quita una asignación (`entrada` = su id) o, sin `entrada`, todas las del equipo."""
+    team = _equipo_delegable(db, user, team_id)
+    if entrada:
+        sd.quitar_delegacion(db, team, entrada)
+    else:
+        for x in (sd.delegacion_de(db, team) or {}).get("lista", []):
+            sd.quitar_delegacion(db, team, x["id"])
+    return {"ok": True, "aCargo": sd.delegacion_de(db, team)}
 
 
 @router.get("/design/api/todas-areas/version")

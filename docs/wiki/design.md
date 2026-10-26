@@ -33,6 +33,13 @@ Antes de buscar un patrón de roles que no existe:
   anterior de N3 (la del 9-oct y lo que agregaron los aprobadores): esas filas quedan con `activo = 0` y los reportes
   de QC ya guardados no cambian. Se aplica una sola vez (`REEMPLAZOS` en services_design_qc.py, marca
   `qc_n3_lista_26oct`); lo que se agregue después se conserva. N6 sigue con su lista.
+- **Dejar a cargo › varias asignaciones** (Rosember, 26-oct-2026): un equipo puede tener varias asignaciones por fechas
+  (p. ej. una persona distinta cada día de las vacaciones del manager); cada día solo una persona (no deja cruzar fechas).
+  Sin cambiar la estructura de la base: la lista de cada equipo va en design_conexion_reglas (tipo «sistema», clave
+  `delegaciones_equipo_<team_id>`, JSON con id, empleado, desde, hasta, quién autorizó) y design_delegaciones queda como
+  espejo de la de hoy o la próxima (para el Schedule en vivo). Un equipo sin lista usa esa fila (lo de antes). La ventana
+  muestra la lista con «Quitar» y «Agregar una asignación», que propone el día siguiente a la última; la etiqueta del
+  Schedule dice «+N programadas». `delegaciones_activas` calcula quién está a cargo hoy desde las listas.
 - **Dejar a cargo › «Otra persona…»** (Rosember, 26-oct-2026): al final de la lista de diseñadores del equipo; abre un
   buscador con las personas activas de la MISMA área (diseñadores de otros equipos y sus managers) que no son del equipo
   (`candidatos_delegacion`, GET `/design/api/teams/{id}/delegacion/candidatos`). `guardar_delegacion` acepta al equipo
