@@ -3743,7 +3743,18 @@ function ddCargarTendencia() {
   ddApi(u).then(function(d) { ddPintarTendencia(d, body, box); }).catch(function(e) { box.hidden = false; body.innerHTML = '<p class="dd-p-nota" style="color:#b91c1c"></p>'; body.firstChild.textContent = 'No se pudo cargar la tendencia: ' + e.message; });
 }
 var DDT = {d: null, ocultos: {}};
-var DDT_COL = ['#1d4ed8', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#334155', '#ea580c'];
+// El violeta (#7c3aed) se cambió por un verde azulado (28-oct-2026): el lila de Zullys es exclusivo y no debe parecerse a otro equipo.
+var DDT_COL = ['#1d4ed8', '#dc2626', '#16a34a', '#d97706', '#0d9488', '#0891b2', '#db2777', '#65a30d', '#334155', '#ea580c'];
+// Colores fijos por nombre (equipo o aprobador), en todas las gráficas del Dashboard: Zullys siempre en lila (Rosember, 28-oct-2026)
+var DDT_FIJOS = [{quien: 'zully', color: '#a78bfa'}];
+function ddTColores(series) {
+  var norm = function(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  var k = 0;   // los demás siguen la paleta en su orden, sin contar a quienes tienen color fijo
+  return series.map(function(s) {
+    var fijo = DDT_FIJOS.find(function(f) { return norm(s.nombre + ' ' + (s.aprobador || '')).indexOf(f.quien) >= 0; });
+    return fijo ? fijo.color : DDT_COL[k++ % DDT_COL.length];
+  });
+}
 // Techo "redondo" para el eje Y (1, 2, 5, 10, 20, 50, ...)
 function ddTecho(max) {
   var pasos = [1, 2, 5], m = 1;
@@ -3901,7 +3912,8 @@ function ddDibujarTendencia(body, st) {
   if (!d.series.length || !d.tramos.length) {
     body.innerHTML = '<p class="dd-p-nota">No hay casos completos en este periodo.</p>'; return;
   }
-  var lista = d.series.map(function(s, k) { return {s: s, c: DDT_COL[k % DDT_COL.length]}; });
+  var colores = ddTColores(d.series);
+  var lista = d.series.map(function(s, k) { return {s: s, c: colores[k]}; });
   var activos = lista.filter(function(x) { return !st.ocultos[x.s.nombre]; });
   // Resumen (21-oct-2026): gráficas más chicas, dos por fila; la cara del aprobador en el día de hoy y entrada animada
   var W = st.chica ? 560 : 900, H = st.chica ? 300 : 340, PL = 40, PR = st.caras ? 26 : 18, PT = st.caras ? 24 : 16, PB = 46, n = d.tramos.length;
