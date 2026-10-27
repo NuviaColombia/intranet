@@ -3018,7 +3018,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var pt = (dia.prestadosTipo || {})[id] || {};
       ['sx', 'tc', 'ng', 'mc'].forEach(function(t) { tipoDe(k)[t] += pt[t] || 0; });
     });
-    return orden.map(function(k) { return {nombre: nombres[k], casos: cuenta[k], prestados: prest[k] || 0, tipos: tipoDe(k)}; });
+    return orden.map(function(k) { return {id: k.charAt(0) === 'd' ? parseInt(k.slice(1), 10) : null, nombre: nombres[k], casos: cuenta[k], prestados: prest[k] || 0, tipos: tipoDe(k)}; });
   }
   function dsProduccionRD(dia) {
     var por = {}, orden = [];
@@ -3030,6 +3030,20 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (dsNorm(f.estado) === 'approved' && dsEsZirconia(f)) por[m].rem += dsNorm(f.arco) === 'both' ? 2 : 1;
     });
     return orden.sort(function(a, b) { return a.localeCompare(b, 'es'); }).map(function(m) { return por[m]; });
+  }
+  // Acumulado del mes (Rosember, 27-oct-2026): junto a cada número del día se ve lo que lleva la persona en el mes. El servidor da
+  // lo de los días ANTERIORES del mes y la pantalla le suma el día elegido, así se mueve en vivo con cada cambio.
+  var DS_PROD_MES = {clave: '', datos: null, pidiendo: ''};
+  function dsProdMesPedir() {
+    if (!DS.teamId) return;
+    var clave = DS.teamId + '|' + dsFechaISO(dsFechaSeleccionada());
+    if (DS_PROD_MES.clave === clave || DS_PROD_MES.pidiendo === clave) return;
+    DS_PROD_MES.pidiendo = clave;
+    window.dsFetchJSON('/design/api/produccion-mes?team_id=' + DS.teamId + '&fecha=' + dsFechaISO(dsFechaSeleccionada())).then(function(d) {
+      if (DS_PROD_MES.pidiendo !== clave) return;
+      DS_PROD_MES = {clave: clave, datos: d || {}, pidiendo: ''};
+      dsPintarProduccion();
+    }).catch(function() { if (DS_PROD_MES.pidiendo === clave) DS_PROD_MES.pidiendo = ''; });
   }
   function dsPintarProduccion() {
     var pop = document.getElementById('dsProdPop'); if (!pop || !DS.diaData) return;
@@ -3047,6 +3061,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     var filas = dsProduccionDia(DS.diaData), total = filas.reduce(function(a, x) { return a + x.casos; }, 0);
     var f = dsFechaSeleccionada();
+    dsProdMesPedir();
+    var mesOk = DS_PROD_MES.clave === DS.teamId + '|' + dsFechaISO(f), prev = (mesOk && DS_PROD_MES.datos) || {};
+    // mes = lo de los días anteriores + lo del día elegido (si no hay datos del mes todavía, no se muestra)
+    var mesDe = function(x, t) { var p = (x.id != null && prev[x.id]) || {}; return t.reduce(function(a, k) { return a + (p[k] || 0) + (x.tipos[k] || 0); }, 0); };
+    var mesTxt = function(v, cero) { return mesOk ? ' <span class="mes' + (cero ? ' cero' : '') + '" title="Lleva en el mes">' + v + '</span>' : ''; };
     // N3: Sx · Tc · Ng; N6 (21-oct-2026): Mc (Material Change) · D (Dummy) · Ng · Tc. Cada columna suma sus tipos.
     var area = dsAreaNombre(), porTipo = area === 'N3 Prosthetic' || area === DS_AREA_MATERIAL;
     var TIPOS = area === DS_AREA_MATERIAL
@@ -3055,11 +3074,13 @@ window.addEventListener('unhandledrejection', function(ev) {
     var val = function(x, t) { return t[0].reduce(function(a, k) { return a + (x.tipos[k] || 0); }, 0); };
     var suma = function(t) { return filas.reduce(function(a, x) { return a + val(x, t); }, 0); };
     var cab = porTipo ? TIPOS.map(function(t) { return '<th class="n" title="' + t[2] + '">' + t[1] + '</th>'; }).join('') : '<th class="n">Casos</th>';
-    var celdas = function(x) { return porTipo ? TIPOS.map(function(t) { var v = val(x, t); return '<td class="n' + (v ? '' : ' cero') + '">' + v + '</td>'; }).join('')
-                                              : '<td class="n">' + x.casos + '</td>'; };
-    var totales = porTipo ? TIPOS.map(function(t) { return '<td class="n">' + suma(t) + '</td>'; }).join('') : '<td class="n">' + total + '</td>';
+    var celdas = function(x) { return porTipo ? TIPOS.map(function(t) { var v = val(x, t), m = mesDe(x, t[0]); return '<td class="n' + (v ? '' : ' cero') + '">' + v + mesTxt(m, !m) + '</td>'; }).join('')
+                                              : '<td class="n">' + x.casos + mesTxt(mesDe(x, ['sx', 'tc', 'ng', 'mc']), false) + '</td>'; };
+    var sumaMes = function(t) { return filas.reduce(function(a, x) { return a + mesDe(x, t); }, 0); };
+    var totales = porTipo ? TIPOS.map(function(t) { return '<td class="n">' + suma(t) + mesTxt(sumaMes(t[0]), false) + '</td>'; }).join('')
+                          : '<td class="n">' + total + mesTxt(sumaMes(['sx', 'tc', 'ng', 'mc']), false) + '</td>';
     cuerpo.innerHTML = '<div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
-      ' · casos asignados a cada diseñador (sin canceladas)</div>' +
+      ' · casos asignados a cada diseñador (sin canceladas)' + (mesOk ? ' · <span class="mes">en gris, lo que lleva del mes</span>' : '') + '</div>' +
       (filas.length ? '<table><thead><tr><th>Diseñador</th>' + cab + '</tr></thead><tbody>' +
         filas.map(function(x) { return '<tr' + (x.casos ? '' : ' class="cero"') + '><td>' + dsEsc(x.nombre) +
           (x.prestados ? ' <span class="ds-prod-prest" title="Casos que hizo prestado en otros equipos (ya están sumados)">(' + x.prestados + ' prestado' + (x.prestados > 1 ? 's' : '') + ')</span>' : '') +

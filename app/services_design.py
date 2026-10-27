@@ -2233,6 +2233,34 @@ def prestados_por_disenador(db: Session, ids: list[int], fecha: date, por_tipo: 
     return (out, tipos) if por_tipo else out
 
 
+def produccion_mes_previa(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int | None = None) -> dict:
+    """Producción acumulada del mes ANTES de `fecha` (del día 1 al día anterior), por persona y tipo: {empleado_id: {sx, tc, ng, mc}}.
+    Mismas reglas que la ventana «Producción del día» (27-oct-2026): sin canceladas ni «Training»; cuentan las órdenes del
+    equipo y las que sus diseñadores hicieron prestados en otros equipos (no Support). El día elegido lo suma la pantalla
+    con lo que ya tiene, así el acumulado se mueve en vivo sin volver a pedirlo."""
+    if fecha.day == 1:
+        return {}
+    ids = [i for (i,) in db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team.id)]
+    miembro: dict = {}
+    for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.empleado_id.in_(ids or [-1])):
+        miembro.setdefault(eid, set()).add(tid)
+    support = {i for (i,) in _equipos_support_ids(db).all()}
+    q = (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado, DesignOrden.tabla, DesignOrden.producto)
+         .filter(DesignOrden.fecha >= fecha.replace(day=1), DesignOrden.fecha < fecha, DesignOrden.designer_id.isnot(None),
+                 filtro_no_fantasma(), DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]),
+                 or_(DesignOrden.team_id == team.id, DesignOrden.designer_id.in_(ids or [-1]))))
+    if solo_empleado_id is not None:
+        q = q.filter(DesignOrden.designer_id == solo_empleado_id)
+    out: dict = {}
+    for eid, tid, estado, tabla, producto in q:
+        if _es_cancelada(estado):
+            continue
+        if tid != team.id and (tid in miembro.get(eid, set()) or tid in support):
+            continue
+        out.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0, "mc": 0})[tipo_produccion(tabla, producto)] += 1
+    return out
+
+
 def _manager_elegible(team: DesignTeam, ya: set) -> dict | None:
     m = team.manager
     if not m or not m.activo or m.id in ya:

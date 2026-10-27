@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (719 reglas) ---- */
+/* ---- static\design\schedule.css (721 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -152,6 +152,8 @@
 :root[data-ds-tema="oscuro"] .ds-dock-tab button { border:none; background:transparent; color:#cbd5e1; }
 :root[data-ds-tema="oscuro"] .ds-dock-tab button:hover { background:rgba(255,255,255,0.08); color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-fw-prod .ds-fw-cuerpo { background:#131925; }
+:root[data-ds-tema="oscuro"] .ds-fw-prod .mes { color:#abb2c0; border-left:1px solid #343d4e; }
+:root[data-ds-tema="oscuro"] .ds-fw-prod .mes.cero { color:#9ca3af; }
 :root[data-ds-tema="oscuro"] .ds-fw-prod .sub { color:#abb2c0; }
 :root[data-ds-tema="oscuro"] .ds-fw-prod th, :root[data-ds-tema="oscuro"] .ds-fw-prod td { border-bottom:1px solid #30363f; }
 :root[data-ds-tema="oscuro"] .ds-fw-prod th { color:#bbc1cc; background:#181f26; }

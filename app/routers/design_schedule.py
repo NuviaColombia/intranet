@@ -1219,6 +1219,15 @@ def api_colores_equipo(team_id: int, payload: ColoresIn, user: Empleado = Depend
     return {"ok": True}
 
 
+@router.get("/design/api/produccion-mes")
+def api_produccion_mes(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
+                       db: Session = Depends(get_db)):
+    """Lo que lleva cada persona en el mes antes de `fecha` (la ventana «Producción del día» le suma el día elegido)."""
+    team = _verificar_equipo_ver(db, user, team_id)
+    gest, es_tr = sd.gestiona_equipo(user, team), sd.es_training(team)
+    return sd.produccion_mes_previa(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
+
+
 @router.get("/design/api/dia/version")
 def api_dia_version(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("design_schedule")),
                     db: Session = Depends(get_db)):
