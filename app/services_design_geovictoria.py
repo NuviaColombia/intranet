@@ -298,9 +298,12 @@ def _permisos_plataforma(db: Session, ids: list[int], dia: date) -> tuple[dict[i
     return dia_completo, horas
 
 
-def _consultar(db: Session, dia: date) -> dict:
+def _consultar(db: Session, dia: date, solo: set | None = None) -> dict:
+    """Marcas de `dia` de las personas cruzadas por cédula (o solo de las de `solo`, para la verificación antes de avisar)."""
     c = config(db)
     pares = cruce(db)["pares"]
+    if solo is not None:
+        pares = {eid: v for eid, v in pares.items() if eid in solo}
     por_id = {_norm_id(v): eid for eid, v in pares.items()}
     datos = {}
     ids = list(pares.values())
@@ -430,6 +433,29 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
     enviados = _cargar_enviados(db, ahora.date())
     nuevos = []
     nombres = None
+    # Avisos falsos de «no ha marcado» (Rosember, 27-oct-2026): las marcas en memoria pueden tener hasta 5 min y, si la
+    # última consulta falló, son las de antes. Por eso: con la última consulta fallida no se avisa (se reintenta en el
+    # siguiente ciclo) y, antes de enviar, se vuelven a pedir a GeoVictoria las marcas SOLO de quienes tienen un aviso
+    # pendiente; el aviso sale únicamente si la marca sigue faltando.
+    pend = {eid for eid, info in datos.items()
+            if any(f"{eid}|{f['tipo']}" not in enviados for f in faltas(info, ahora, c["tolerancia"]))}
+    if pend:
+        frescos = None
+        if not _hoy.get("error"):
+            try:
+                frescos = _consultar(db, ahora.date(), solo=pend)
+            except Exception as e:  # noqa: BLE001
+                log.warning("GeoVictoria: no se pudo verificar antes de avisar: %s", e)
+        if frescos is None:
+            ESTADO["sinVerificar"] = ESTADO.get("sinVerificar", 0) + 1
+            datos = {}   # sin datos frescos no se avisa: mejor un aviso tarde que uno falso
+        else:
+            with _lock:
+                if _hoy.get("fecha") == ahora.date():
+                    _hoy["datos"].update(frescos)   # Seguimiento también ve lo más nuevo
+            datos = {eid: frescos[eid] for eid in pend if eid in frescos}
+    else:
+        datos = {}
     for eid, info in datos.items():
         for f in faltas(info, ahora, c["tolerancia"]):
             k = f"{eid}|{f['tipo']}"
@@ -448,7 +474,7 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
                 sp.enviar(db, list(mans), tm.format(nombre=corto), cm.format(hora=f["hora"]), "/design?panel=seguimiento", f"gv-{eid}-{f['tipo']}", fijo=True)
             enviados.add(k)
             nuevos.append(k)
-    nuevos += _recordar_horarios(db, ahora, datos, enviados)
+    nuevos += _recordar_horarios(db, ahora, _hoy.get("datos") or {}, enviados)
     if nuevos:
         _guardar_enviados(db, ahora.date())
     nuevos = [k for k in nuevos if not k.endswith("|*")]   # las marcas «ya se revisó hoy» no son avisos

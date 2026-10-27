@@ -148,6 +148,26 @@ class Avisos(unittest.TestCase):
         self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 7, 25)), [])   # quedó guardado en la base
         self.assertEqual(len(self.envios), 2)
 
+    def test_no_avisa_si_marco_despues_de_la_ultima_consulta(self):
+        """27-oct-2026: las marcas en memoria pueden tener hasta 5 min; antes de avisar se vuelven a pedir."""
+        self.configurar()
+        self.marcas = []
+        g.hoy(self.db, datetime(2026, 10, 22, 7, 5))          # consulta de las 7:05: todavía sin entrada
+        self.marcas = [("e", "065800")]                       # en GeoVictoria ya aparece la entrada de las 6:58
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 7, 12)), [])
+        self.assertEqual(self.envios, [])
+        self.assertEqual(g._hm(g._hoy["datos"][self.ana.id]["marcas"]["entrada"]), "06:58")   # Seguimiento ve la marca
+
+    def test_si_la_ultima_consulta_fallo_no_avisa_con_datos_viejos(self):
+        self.configurar()
+        self.marcas = []
+        g.hoy(self.db, datetime(2026, 10, 22, 7, 5))
+        g._hoy["error"] = "ReadTimeout"                       # la consulta siguiente falló: lo de memoria es viejo
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 7, 15)), [])
+        self.assertEqual(self.envios, [])
+        g._hoy["error"] = ""; g._hoy["t"] = 0                 # vuelve a consultar bien y la entrada sigue faltando: avisa
+        self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 7, 16)), [f"{self.ana.id}|entrada"])
+
     def test_sin_avisos_activos_no_envia_pero_trae_marcas(self):
         self.configurar(avisos=False)
         self.assertEqual(g.revisar(self.db, datetime(2026, 10, 22, 7, 15)), [])
