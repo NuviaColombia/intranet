@@ -82,7 +82,6 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsActualizarSemanaCtrl() {
     var chk = document.getElementById('dsTodasAreasChk');
-    document.getElementById('dsSemanaCtrl').style.display = (DS.teamId || (chk && chk.checked)) ? '' : 'none';
     var hb = document.getElementById('dsHistorialBtn'); if (hb) hb.classList.toggle('ds-fuera', !(DS.teamId || (chk && chk.checked)));
     var dl = document.getElementById('dsLatDias'); if (dl) dl.classList.toggle('ds-fuera', !(DS.teamId || (chk && chk.checked)));
     if (!(DS.teamId || (chk && chk.checked))) dsCalCerrar();
@@ -108,36 +107,54 @@ window.addEventListener('unhandledrejection', function(ev) {
   var NOMBRES_DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
 
   function dsRenderDias() {
-    var fin = new Date(DS.lunes); fin.setDate(fin.getDate() + 4);
-    document.getElementById('dsRangoSemana').innerText = dsRangoCorto(DS.lunes, fin);
     dsPintarDiasLat(function(idx) { DS.diaSel = idx; dsRenderDias(); dsCargarDia(); });
     dsCalSincronizar();
   }
 
-  // Días de la semana en la barra lateral (Rosember, 26-oct-2026): «L 26», «M 27»… en una sola línea; con la barra abierta, el
-  // nombre completo («Lunes 26 oct»). Sirven para la vista del equipo y para la de todas las áreas (`alElegir` cambia según la
-  // vista). El día de hoy lleva un punto verde y el elegido va resaltado.
+  // Semana y días en la barra lateral (Rosember, 26-oct-2026): arriba la flecha de semana anterior, luego el rango («26–30») y los
+  // días como «L 26», «M 27»… en una sola línea, y abajo la flecha de semana siguiente. Con la barra abierta cada uno muestra su
+  // texto («Semana anterior», «Semana 26 - 30 oct», «Lunes 26 oct»). Sirven para la vista del equipo y para la de todas las áreas
+  // (`alElegir` cambia según la vista). El día de hoy lleva un punto verde y el elegido va resaltado.
   var DS_LETRAS_DIAS = ['L', 'M', 'M', 'J', 'V'];
+  var DS_SVG_LAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
   function dsPintarDiasLat(alElegir) {
     var cont = document.getElementById('dsLatDias'); if (!cont) return;
-    var hoyISO = dsFechaISO(new Date()), teniaFoco = cont.contains(document.activeElement);
+    var hoyISO = dsFechaISO(new Date());
+    var foco = cont.contains(document.activeElement) ? (document.activeElement.dataset.nav || '') : null;   // para devolver el foco
+    var fin = new Date(DS.lunes); fin.setDate(fin.getDate() + 4);
+    var rango = dsRangoCorto(DS.lunes, fin);
     cont.innerHTML = '';
+    function item(clase, nav, orden, chip, texto, titulo) {
+      var b = document.createElement(clase.indexOf('ds-lat-rango') >= 0 ? 'span' : 'button');
+      if (b.tagName === 'BUTTON') b.type = 'button';
+      b.className = 'ds-it ' + clase; b.dataset.nav = nav;
+      b.style.setProperty('--i', orden);   // la cascada de los nombres sigue a las acciones
+      b.title = titulo; if (b.tagName === 'BUTTON') b.setAttribute('aria-label', titulo);
+      b.innerHTML = '<span class="ds-it-ico"></span><span class="ds-it-txt"></span>';
+      if (chip.charAt(0) === '<') b.firstChild.innerHTML = chip; else b.firstChild.textContent = chip;
+      b.lastChild.textContent = texto;
+      cont.appendChild(b);
+      return b;
+    }
+    item('ds-lat-sem', 'ant', 4, DS_SVG_LAT + '<polyline points="6 15 12 9 18 15"/></svg>', 'Semana anterior', 'Semana anterior').onclick = function() { window.dsCambiarSemana(-7); };
+    var cap = item('ds-lat-rango', 'rango', 4.6, DS.lunes.getDate() + '–' + fin.getDate(), 'Semana ' + rango, 'Semana ' + rango);
+    cap.setAttribute('aria-label', cap.title);
     for (var i = 0; i < 5; i++) {
       var d = new Date(DS.lunes); d.setDate(d.getDate() + i);
       var mes = d.toLocaleDateString('es-CO', {month: 'short'}).replace('.', '');
       var largo = d.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
-      var btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'ds-it ds-lat-dia' + (i === DS.diaSel ? ' activo' : '') + (dsFechaISO(d) === hoyISO ? ' hoy' : '');
-      btn.style.setProperty('--i', 4 + i);   // la cascada de los nombres sigue a las acciones
-      btn.title = largo.charAt(0).toUpperCase() + largo.slice(1) + (dsFechaISO(d) === hoyISO ? ' (hoy)' : '');
-      btn.setAttribute('aria-label', btn.title); btn.setAttribute('aria-pressed', i === DS.diaSel ? 'true' : 'false');
-      btn.innerHTML = '<span class="ds-it-ico"></span><span class="ds-it-txt"></span>';
-      btn.firstChild.textContent = DS_LETRAS_DIAS[i] + ' ' + d.getDate();
-      btn.lastChild.textContent = NOMBRES_DIAS[i] + ' ' + d.getDate() + ' ' + mes;
+      var esHoy = dsFechaISO(d) === hoyISO;
+      var btn = item('ds-lat-dia' + (i === DS.diaSel ? ' activo' : '') + (esHoy ? ' hoy' : ''), 'd' + i, 5.2 + i * 0.6,
+                     DS_LETRAS_DIAS[i] + ' ' + d.getDate(), NOMBRES_DIAS[i] + ' ' + d.getDate() + ' ' + mes,
+                     largo.charAt(0).toUpperCase() + largo.slice(1) + (esHoy ? ' (hoy)' : ''));
+      btn.setAttribute('aria-pressed', i === DS.diaSel ? 'true' : 'false');
       btn.onclick = (function(idx) { return function() { alElegir(idx); }; })(i);
-      cont.appendChild(btn);
     }
-    if (teniaFoco) { var act = cont.querySelector('.activo'); if (act) act.focus({preventScroll: true}); }   // el teclado no pierde el lugar
+    item('ds-lat-sem', 'sig', 8.2, DS_SVG_LAT + '<polyline points="6 9 12 15 18 9"/></svg>', 'Semana siguiente', 'Semana siguiente').onclick = function() { window.dsCambiarSemana(7); };
+    if (foco !== null) {   // al repintar se pierde el foco: vuelve al mismo botón (o al día elegido)
+      var f = (foco && cont.querySelector('[data-nav="' + foco + '"]')) || cont.querySelector('.activo');
+      if (f && f.focus) f.focus({preventScroll: true});
+    }
   }
 
   function dsFechaSeleccionada() {
@@ -225,14 +242,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (b) b.addEventListener('click', function() { dsCalAbrir(b); });
   })();
 
-  // Empleados y aprobadores: sin la fila de áreas; la semana pasa al final de la fila de contadores y, si tienen
-  // más de un equipo, un selector "Mi equipo" en la misma fila.
+  // Empleados y aprobadores: sin la fila de áreas y, si tienen más de un equipo, un selector "Mi equipo" junto a los contadores.
   (function dsSoloMio() {
     if (!window.DS_SOLO_MIO) return;
     var cont = document.getElementById('dsVistaNormal');
     if (cont && cont.parentNode) cont.parentNode.classList.add('ds-solo-mio');
-    var fila = document.querySelector('.ds-fila-kpis'), sem = document.getElementById('dsSemanaCtrl');
-    if (fila && sem) fila.appendChild(sem);
     var sin = document.querySelector('#dsSinEquipo span:last-child');
     if (sin) sin.textContent = 'No tienes un equipo asignado en Design. Pídele a un administrador que te agregue en Parámetros › Equipos.';
     var mios = (window.DS_INICIO && window.DS_INICIO.misEquipos) || [], sel = document.getElementById('dsMisEquipos');
@@ -399,7 +413,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       // al repintar los días el botón enfocado desaparece y el foco se pierde: con el mouse encima no se cierra
       setTimeout(function() { if (!fijo && !lat.contains(document.activeElement) && !lat.matches(':hover')) cerrar(); }, 0);
     });
-    panel.addEventListener('click', function(e) { if (e.target.closest('button') && !e.target.closest('.ds-lat-dia')) setTimeout(cerrar, 0); });   // los días no la cierran
+    panel.addEventListener('click', function(e) { if (e.target.closest('button') && !e.target.closest('.ds-lat-dia, .ds-lat-sem')) setTimeout(cerrar, 0); });   // los días y las flechas de semana no la cierran
     document.addEventListener('mousedown', function(e) { if (!lat.contains(e.target) && lat.classList.contains('abierto')) cerrar(); });
     lat.addEventListener('keydown', function(e) { if (e.key === 'Escape' && lat.classList.contains('abierto')) { e.stopPropagation(); cerrar(); muesca.focus(); } });
     function revisar() {
@@ -3595,8 +3609,6 @@ window.addEventListener('unhandledrejection', function(ev) {
   // ---------- Vista "Todas las áreas" (solo aprobadores/admins) ----------
   // Usa la misma semana/día que la vista de equipo (DS.lunes / DS.diaSel), manejada desde la fila de áreas.
   function dsRenderDiasTodas() {
-    var fin = new Date(DS.lunes); fin.setDate(fin.getDate() + 4);
-    document.getElementById('dsRangoSemana').innerText = dsRangoCorto(DS.lunes, fin);
     dsCalSincronizar();
     dsPintarDiasLat(function(idx) { DS.diaSel = idx; dsRenderDiasTodas(); dsCargarTodasAreas(); });
   }

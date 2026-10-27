@@ -21,10 +21,7 @@
   /* Una sola línea: si falta espacio, son los botones de área los que bajan de línea; semana e interruptor quedan a la derecha */
   .ds-area-row { display:flex; align-items:center; gap:16px; margin-bottom:14px; }
   .ds-area-row > .ds-tabs, .ds-area-row > .pa-tabs { margin-bottom:0; flex:1 1 auto; min-width:0; }
-  .ds-area-row > .ds-semana { margin-bottom:0; flex:none; gap:8px; }
   .ds-area-row > .ds-todas-chk { flex:none; }
-  .ds-area-row .ds-semana select { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; }
-  .ds-area-row .ds-flecha { height:34px; min-width:34px; padding:0 10px; font-size:16px; line-height:1; }
   .ds-area-row .ds-todas-chk { display:flex; align-items:center; cursor:pointer; }
   /* Checkbox con apariencia de interruptor (switch) */
   .ds-area-row .ds-todas-chk input { appearance:none; -webkit-appearance:none; position:relative; width:38px; height:22px; margin:0; padding:0; border:none; box-sizing:border-box;
@@ -48,7 +45,6 @@
   /* Mismo ícono que el módulo People en el portal (🗓️), ~3x la altura del texto */
   .ds-sin-equipo-icono { font-size:44px; line-height:1; }
   .ds-drop-vacio { padding:8px 12px; color:#4b5563; font-size:12px; white-space:nowrap; }
-  .ds-semana { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .ds-kpis { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
   .ds-fila-kpis { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
   .ds-fila-kpis > .ds-kpis { margin-bottom:0; }
@@ -56,10 +52,7 @@
   #ds-app.ds-solo-mio > .ds-area-row { display:none; }
   .ds-solo-mio .ds-fila-kpis { align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; }
   .ds-solo-mio .ds-fila-kpis > .ds-kpis { flex:0 1 auto; margin-right:auto; }
-  .ds-solo-mio #dsSemanaCtrl > * { order:1; } .ds-solo-mio #dsSemanaCtrl > .ds-flecha:last-of-type { order:2; }  /* ← mes semana → */
-  .ds-fila-kpis > .ds-semana { margin-bottom:0; flex:none; gap:8px; }
-  .ds-fila-kpis .ds-semana select, .ds-fila-kpis .ds-mis-equipos { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; }
-  .ds-fila-kpis .ds-flecha { height:34px; min-width:34px; padding:0 10px; font-size:16px; line-height:1; }
+  .ds-fila-kpis .ds-mis-equipos { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; }
   .ds-fila-kpis .ds-mis-equipos { flex:none; max-width:260px; }
   /* Diseñador a cargo del equipo */
   .ds-acargo { flex:none; display:flex; align-items:center; gap:6px; font-size:12.5px; }
@@ -133,7 +126,7 @@
   .ds-prod-btn { height:34px; padding:0 12px; font-size:13px; margin:0; flex:none; }
   .ds-prod-btn.ds-fuera { display:none; }
   /* Pestañas sueltas en el borde derecho (26-oct-2026): Producción, Cambios digital y Dejar a cargo, cada una a un clic */
-  .ds-lateral { position:fixed; right:0; top:calc(var(--ds-nav-h, 0px) + 140px); z-index:250; }
+  .ds-lateral { position:fixed; right:0; top:calc(var(--ds-nav-h, 0px) + 100px); z-index:250; }
   .ds-lateral[hidden] { display:none; }
   #ds-app.ds-con-lateral { padding-right:50px; }
   /* Barra lateral (Rosember, 26-oct-2026; inspirada en «Sidebar Navigation Animation» de Halal Lab en Dribbble): en reposo una
@@ -159,6 +152,18 @@
   #dsLateral #dsLatPanel .ds-it-txt { overflow:hidden; text-overflow:ellipsis; opacity:0; transform:translateX(10px); transition:opacity .15s, transform .2s; }
   #dsLateral.abierto #dsLatPanel .ds-it-txt { opacity:1; transform:none;
     transition:opacity .3s calc(.1s + var(--i) * .05s), transform .35s cubic-bezier(.2,.8,.2,1) calc(.1s + var(--i) * .05s); }
+  /* Semana en la barra (26-oct-2026): flecha de semana anterior arriba, rango, los días y la flecha de semana siguiente abajo.
+     Si la pantalla es baja, la barra se desplaza por dentro (sin barra de desplazamiento visible) y los botones se compactan. */
+  #dsLateral #dsLatPanel { max-height:calc(100vh - var(--ds-nav-h, 0px) - 124px); overflow-x:hidden; overflow-y:auto; scrollbar-width:none; }
+  #dsLateral #dsLatPanel::-webkit-scrollbar { display:none; }
+  @media (max-height:760px) { #dsLateral #dsLatPanel .ds-it { height:32px; } #dsLateral #dsLatPanel .ds-lat-rango { height:22px; } }
+  #dsLateral #dsLatPanel .ds-lat-sem { padding:0 2px; }
+  #dsLateral #dsLatPanel .ds-lat-sem .ds-it-ico { width:30px; }
+  #dsLateral #dsLatPanel .ds-lat-sem .ds-it-ico svg { width:17px; height:17px; }
+  #dsLateral #dsLatPanel .ds-lat-rango { padding:0 2px; height:26px; color:#94a3b8; }
+  #dsLateral #dsLatPanel .ds-lat-rango:hover { background:transparent; color:#94a3b8; }
+  #dsLateral #dsLatPanel .ds-lat-rango .ds-it-ico { width:30px; height:auto; font-size:10.5px; font-weight:700; letter-spacing:-.2px; white-space:nowrap; }
+  #dsLateral #dsLatPanel .ds-lat-rango .ds-it-txt { font-size:12px; font-weight:600; }
   /* Días de la semana en la barra (26-oct-2026): «L 26» en una sola línea; con la barra abierta, «Lunes 26 oct» */
   #dsLateral #dsLatPanel #dsLatDias { display:flex; flex-direction:column; gap:4px; margin-top:4px; padding-top:8px; border-top:1px solid rgba(255,255,255,.16); }
   #dsLateral #dsLatPanel #dsLatDias.ds-fuera, #dsLateral #dsLatPanel #dsLatDias[hidden] { display:none; }

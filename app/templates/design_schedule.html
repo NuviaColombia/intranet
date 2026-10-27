@@ -68,12 +68,7 @@
   </div>
   <div class="ds-area-row">
     <div id="dsAreaTabs" class="ds-tabs"></div>
-    <!-- Semana: aplica al equipo elegido y a la vista de todas las áreas; oculta mientras no haya ninguno de los dos -->
-    <div class="ds-semana" id="dsSemanaCtrl" style="display:none">
-      <button type="button" class="btn gris ds-flecha" onclick="dsCambiarSemana(-7)" title="Semana anterior" aria-label="Semana anterior">&larr;</button>
-      <span id="dsRangoSemana" style="font-weight:700"></span>
-      <button type="button" class="btn gris ds-flecha" onclick="dsCambiarSemana(7)" title="Semana siguiente" aria-label="Semana siguiente">&rarr;</button>
-    </div>
+    <!-- La semana (flechas y rango) y los días están en la barra lateral (#dsLatDias, 26-oct-2026) -->
     {% if user.rol in ('admin', 'superadmin') %}
     <label class="ds-todas-chk" title="Ver el horario de todas las áreas">
       <input type="checkbox" id="dsTodasAreasChk" role="switch" aria-label="Ver el horario de todas las áreas">
