@@ -3017,7 +3017,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     [['principal', dia.principal], ['nightguard', dia.nightguard], ['material', dia.material], ['', dia.soloPropias ? dia.prestadas : []]]
       .forEach(function(par) { (par[1] || []).forEach(function(f) {
       var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
-      if (!k || String(f.estado || '').trim().toLowerCase() === 'canceled' || dsEsFantasma(f)) return;  // canceladas y «Training» no cuentan
+      var est = String(f.estado || '').toLowerCase();
+      // canceladas, skipped y «Training» no cuentan (como _es_cancelada en el servidor: el número del mes y el Reparto, 27-oct-2026)
+      if (!k || est.indexOf('cancel') >= 0 || est.indexOf('skip') >= 0 || dsEsFantasma(f)) return;
       if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerCorto || f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
       cuenta[k]++;
       tipoDe(k)[dsTipoProduccion(tablaDe(f, par[0]), f.producto)]++;
@@ -3092,7 +3094,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var totales = porTipo ? TIPOS.map(function(t) { return '<td class="n">' + suma(t) + mesTxt(sumaMes(t[0]), false) + '</td>'; }).join('')
                           : '<td class="n">' + total + mesTxt(sumaMes(['sx', 'tc', 'ng', 'mc']), false) + '</td>';
     cuerpo.innerHTML = '<div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
-      ' · casos asignados a cada diseñador (sin canceladas)' + (mesOk ? ' · <span class="mes">en gris, lo que lleva del mes</span>' : '') + '</div>' +
+      ' · casos asignados a cada diseñador (sin canceladas ni skipped)' + (mesOk ? ' · <span class="mes">en gris, lo que lleva del mes</span>' : '') + '</div>' +
       (filas.length ? '<table><thead><tr><th>Diseñador</th>' + cab + '</tr></thead><tbody>' +
         filas.map(function(x) { return '<tr' + (x.casos ? '' : ' class="cero"') + '><td>' + dsEsc(x.nombre) +
           (x.prestados ? ' <span class="ds-prod-prest" title="Casos que hizo prestado en otros equipos (ya están sumados)">(' + x.prestados + ' prestado' + (x.prestados > 1 ? 's' : '') + ')</span>' : '') +

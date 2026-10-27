@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block titulo %}Diagnóstico de producción{% endblock %}
+{% block contenido %}
+<style>
+  .dpd { max-width:1080px; margin:0 auto; }
+  .dpd form { display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin:6px 0 18px; }
+  .dpd form label { display:flex; flex-direction:column; font-size:12px; color:#475569; gap:3px; }
+  .dpd-caja { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:14px; }
+  .dpd table { border-collapse:collapse; width:100%; font-size:13px; }
+  .dpd th { text-align:left; font-size:12px; color:#475569; padding:6px 8px; border-bottom:1px solid #e2e8f0; }
+  .dpd td { padding:6px 8px; border-top:1px solid #f1f5f9; vertical-align:top; }
+  .dpd td.n, .dpd th.n { text-align:right; white-space:nowrap; }
+  .dpd .dif { font-weight:700; }
+  .dpd .mot { margin:0; padding-left:16px; color:#334155; }
+  .dpd details summary { cursor:pointer; color:#111827; font-size:12px; margin-top:4px; }
+  .dpd details table { font-size:12px; margin-top:4px; }
+  .dpd-sub { color:#475569; font-size:13px; }
+  .dpd-otro { color:#64748b; font-size:11.5px; }
+</style>
+<div class="dpd">
+  <p style="margin:0 0 4px"><a href="/design/parametros?sim=1">‹ Parámetros</a></p>
+  <h1>Diagnóstico de producción</h1>
+  <p class="dpd-sub">Compara, persona por persona, el número del mes de <b>Producción del día</b> con <b>Dashboard › Reparto de productos</b>,
+    y dice por qué cada caso cuenta en uno y no en el otro. No cambia nada.</p>
+  <form method="get">
+    <label>Equipo
+      <select name="team_id" required>
+        <option value="">Elige un equipo…</option>
+        {% set ns = namespace(area='') %}
+        {% for e in equipos %}
+          {% if e.area != ns.area %}{% if ns.area %}</optgroup>{% endif %}<optgroup label="{{ e.area }}">{% set ns.area = e.area %}{% endif %}
+          <option value="{{ e.id }}"{% if e.id == team_id %} selected{% endif %}>{{ e.nombre }}{{ ' · ' ~ e.manager if e.manager }}</option>
+        {% endfor %}{% if ns.area %}</optgroup>{% endif %}
+      </select></label>
+    <label>Desde <input type="date" name="desde" value="{{ desde }}"></label>
+    <label>Hasta <input type="date" name="hasta" value="{{ hasta }}"></label>
+    <button class="btn">Comparar</button>
+  </form>
+  {% if d %}
+  <div class="dpd-caja">
+    <h3 style="margin:0 0 6px">{{ d.equipo }} ({{ d.area }}{{ ' · ' ~ d.manager if d.manager }}) · {{ d.desde.strftime('%d/%m/%Y') }} – {{ d.hasta.strftime('%d/%m/%Y') }}</h3>
+    <p class="dpd-sub" style="margin:0 0 10px">Producción: <b>{{ d.totalProd }}</b> · Reparto: <b>{{ d.totalRep }}</b>
+      (incluye {{ d.prestados }} en la fila «Prestados»: casos de este equipo que hizo alguien de afuera).</p>
+    <table>
+      <thead><tr><th>Persona</th><th class="n">Producción</th><th class="n">Reparto</th><th class="n">Diferencia</th><th>Por qué</th></tr></thead>
+      <tbody>
+      {% for f in d.filas %}
+        <tr>
+          <td><b>{{ f.nombre }}</b>{% if f.manager %} <span class="dpd-otro">(manager)</span>{% elif not f.miembro %} <span class="dpd-otro">(de otro equipo)</span>{% endif %}</td>
+          <td class="n">{{ f.prod }}</td><td class="n">{{ f.rep }}</td><td class="n dif">{{ '%+d' % f.dif if f.dif else '0' }}</td>
+          <td>
+            {% if f.motivos %}<ul class="mot">{% for m, n in f.motivos %}<li>{{ n }} · {{ m }}</li>{% endfor %}</ul>
+            <details><summary>Ver las órdenes</summary><table>
+              {% for x in f.ejemplos %}<tr><td>{{ x.fecha.strftime('%d/%m') }}</td><td>{{ x.orden }}</td><td>{{ x.producto }}</td><td>{{ x.motivo }}</td></tr>{% endfor %}
+            </table></details>
+            {% else %}<span class="dpd-otro">Cuentan igual</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif team_id %}<p style="color:#b91c1c">Ese equipo no existe.</p>{% endif %}
+</div>
+{% endblock %}

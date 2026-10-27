@@ -1773,6 +1773,20 @@ def diagnostico_orden(request: Request, orden: str = Query("", max_length=50), u
     return templates.TemplateResponse(request, "design_diag_orden.html", {"user": user, "es_design": True, "d": d})
 
 
+@router.get("/design/diagnostico/produccion")
+def diagnostico_produccion(request: Request, team_id: int | None = None, desde: str = "", hasta: str = "",
+                           user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: por qué «Producción del día» (número del mes) y Dashboard › Reparto de productos dan números distintos."""
+    from .. import services_design_prod_diag as spd
+    hoy = sd.ahora_colombia().date()
+    fd = _fecha(desde) if desde else hoy.replace(day=1)
+    fh = _fecha(hasta) if hasta else hoy
+    d = spd.diagnosticar(db, team_id, fd, fh) if team_id else None
+    return templates.TemplateResponse(request, "design_diag_produccion.html", {
+        "user": user, "es_design": True, "d": d, "equipos": spd.equipos(db), "team_id": team_id,
+        "desde": fd.isoformat(), "hasta": fh.isoformat()})
+
+
 @router.get("/design/diagnostico/acceso")
 def diagnostico_acceso(request: Request, persona: str = Query("", max_length=80), id: int | None = None,
                        user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
