@@ -88,10 +88,6 @@
       <label class="ds-tema-sw"><input type="checkbox" id="dsTemaChk" role="switch" aria-label="Modo oscuro" onchange="dsTema(this.checked ? 'oscuro' : 'claro')"{% if tema_design(user) == 'oscuro' %} checked{% endif %}>
         <span class="ds-tema-pista" aria-hidden="true"><span class="ds-tema-perilla"></span></span></label>
     </div>
-    <div class="ds-cfg-fila">
-      <span class="ds-cfg-txt"><b>Notificaciones de este navegador</b><small>Avisos push (campana): activarlos o desactivarlos en este navegador.</small></span>
-      <span id="dsCfgPush" class="ds-cfg-push"></span>
-    </div>
     {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
     <div class="ds-cfg-fila">
       <span class="ds-cfg-txt"><b>Avisos de apoyo</b><small>Recibir una notificación cuando alguien de tu equipo pida apoyo, con su nota.</small></span>

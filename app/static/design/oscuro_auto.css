@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (714 reglas) ---- */
+/* ---- static\design\schedule.css (712 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -774,8 +774,6 @@
 :root[data-ds-tema="oscuro"] .ds-cfg-fila { border-top:1px solid #2e3640; }
 :root[data-ds-tema="oscuro"] .ds-cfg-txt b { color:#d1d9eb; }
 :root[data-ds-tema="oscuro"] .ds-cfg-txt small { color:#aab2bf; }
-:root[data-ds-tema="oscuro"] .ds-cfg-push .ds-push-btn { color:#d1d9eb; background:#1a2229; }
-:root[data-ds-tema="oscuro"] .ds-cfg-push .ds-push-btn:hover { background:#21272f; }
 
 /* ---- static\inicio\inicio.css (156 reglas) ---- */
 :root[data-ds-tema="oscuro"] .nvi-pagina { background:var(--nvi-fondo); color:var(--nvi-texto); }

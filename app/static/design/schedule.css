@@ -22,6 +22,8 @@
   .ds-area-row { display:flex; align-items:center; gap:16px; margin-bottom:14px; }
   .ds-area-row > .ds-tabs, .ds-area-row > .pa-tabs { margin-bottom:0; flex:1 1 auto; min-width:0; }
   .ds-area-row > .ds-todas-chk { flex:none; }
+  /* El interruptor de «todas las áreas» queda en la misma columna que el buscador y la barra lateral (centro a 23 px del borde, 27-oct-2026) */
+  #ds-app.ds-con-lateral > .ds-area-row > .ds-todas-chk { margin-right:-62px; }
   .ds-area-row .ds-todas-chk { display:flex; align-items:center; cursor:pointer; }
   /* Checkbox con apariencia de interruptor (switch) */
   .ds-area-row .ds-todas-chk input { appearance:none; -webkit-appearance:none; position:relative; width:38px; height:22px; margin:0; padding:0; border:none; box-sizing:border-box;
@@ -1504,9 +1506,3 @@ table.ds-tabla-rd input[type=time] { min-width: 6.5em; width: 6.9em; }
 .ds-cfg-txt b { display:block; font-size:13px; color:#111827; }
 .ds-cfg-txt small { display:block; font-size:11.5px; color:#64748b; margin-top:2px; line-height:1.35; }
 .ds-cfg-fila .ds-auto-oc { flex:none; margin:0; }
-/* Campana de notificaciones dentro de Configuración (27-oct-2026) */
-.ds-cfg-push { display:inline-flex; align-items:center; flex:none; }
-.ds-cfg-push .ds-push { margin:0; }
-.ds-cfg-push .ds-push-btn { color:#111827; opacity:1; font-size:18px; background:#f1f5f9; border-radius:10px; padding:6px 9px; }
-.ds-cfg-push .ds-push-btn:hover { background:#e2e8f0; }
-.ds-cfg-push .ds-push-pop { left:auto; right:0; transform:none; }
