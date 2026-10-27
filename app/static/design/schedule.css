@@ -218,6 +218,24 @@
   .ds-cal-pie { display:flex; justify-content:flex-end; margin-top:10px; }
   @media (prefers-reduced-motion: reduce) { .ds-cal-pop { animation:none; } .ds-cal-dia, .ds-cal-dia:hover { transition:none; transform:none; } }
   /* Producción del día: ventana flotante con el estilo de las de Pre-Approved (.ds-fw) */
+  /* Pestañas ancladas en el borde inferior de la barra superior (estilo Chrome) */
+  html.ds-con-dock body > nav { padding-bottom:40px; }
+  #dsDock { position:absolute; left:24px; right:70px; bottom:0; height:0; display:flex; align-items:flex-end; gap:2px; overflow:visible; pointer-events:none; }
+  html.ds-con-dock #dsDock { height:32px; }
+  #dsDock.ds-dock-zona { height:32px; pointer-events:none; }
+  #dsDock.ds-dock-zona::after { content:'Suelta aquí para anclar como pestaña'; flex:1; min-width:220px; height:28px; margin-bottom:2px; border:2px dashed rgba(255,255,255,.7);
+    border-radius:8px; background:rgba(255,255,255,.12); color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center; }
+  html:not(.ds-con-dock) #dsDock.ds-dock-zona { bottom:-34px; }
+  html:not(.ds-con-dock) #dsDock.ds-dock-zona::after { background:#111827; border-color:#111827; box-shadow:0 6px 18px rgba(0,0,0,.25); }
+  .ds-dock-tab { pointer-events:auto; position:relative; display:flex; align-items:center; gap:6px; height:32px; max-width:230px; min-width:120px; padding:0 8px 0 14px;
+    background:#e5e7eb; color:#111827; border-radius:9px 9px 0 0; font-size:12.5px; font-weight:600; cursor:pointer; user-select:none; }
+  .ds-dock-tab:hover { background:#fff; }
+  .ds-dock-tab.arrastrando { background:#fff; box-shadow:0 4px 14px rgba(0,0,0,.3); cursor:grabbing; z-index:1; }
+  .ds-dock-tab:focus-visible { outline:2px solid #60a5fa; outline-offset:-2px; }
+  .ds-dock-tab span { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .ds-dock-tab button { flex:none; width:20px; height:20px; border:none; border-radius:50%; background:transparent; color:#4b5563; font-size:11px; line-height:20px; padding:0; cursor:pointer; }
+  .ds-dock-tab button:hover { background:#d1d5db; color:#111827; }
+  .ds-fw.ds-fw-anclada { display:none !important; }
   .ds-fw.ds-fw-prod { width:380px; height:auto; max-height:75vh; min-width:300px; }
   .ds-fw-prod .ds-fw-cuerpo { padding:12px 14px; background:#fff; }
   .ds-fw-prod .sub { font-size:12px; color:#6b7280; margin-bottom:8px; }

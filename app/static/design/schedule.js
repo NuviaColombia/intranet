@@ -1061,11 +1061,147 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   // Ventanas flotantes (una por centro): mover, minimizar, cerrar; se actualizan solas.
   var DS_FW = {}, DS_FW_Z = 9000, DS_FW_N = 0;
-  function dsPaVentana(centro) {
+
+  // Pestañas ancladas (Rosember, 27-oct-2026), al estilo de las pestañas de Chrome: una ventana flotante que se suelta
+  // cerca de la barra superior queda como pestaña en el borde inferior de la barra (la ventana se oculta pero sigue
+  // actualizándose). Clic en la pestaña = se despega en su último lugar; arrastrarla hacia abajo = se despega bajo el
+  // mouse y se sigue moviendo; arrastrarla de lado = cambia el orden. Las ancladas se recuerdan en este navegador.
+  var DS_FWREG = {}, DS_DOCK = [], DS_DOCK_KEY = 'dsDockV1', DS_DOCK_RESTAURADO = false;
+  function dsFwRegistrar(el, info) { info.el = el; el.dataset.fwId = info.id; DS_FWREG[info.id] = info; }
+  function dsFwQuitar(id) {   // la ventana se cerró: sale del registro y de las pestañas
+    delete DS_FWREG[id];
+    var i = DS_DOCK.indexOf(id); if (i >= 0) { DS_DOCK.splice(i, 1); dsDockPintar(); dsDockGuardar(); }
+  }
+  function dsDockBarra() {
+    var b = document.getElementById('dsDock'); if (b) return b;
+    var nav = document.querySelector('body > nav'); if (!nav) return null;
+    b = document.createElement('div'); b.id = 'dsDock'; b.setAttribute('role', 'tablist'); b.setAttribute('aria-label', 'Ventanas ancladas');
+    nav.appendChild(b); return b;
+  }
+  function dsDockCerca(y) { var nav = document.querySelector('body > nav'); return !!nav && y < nav.getBoundingClientRect().bottom + 40; }
+  function dsDockGuardar() {
+    try { localStorage.setItem(DS_DOCK_KEY, JSON.stringify(DS_DOCK.map(function(id) { return DS_FWREG[id] && DS_FWREG[id].guardar; }).filter(Boolean))); } catch (e) {}
+  }
+  function dsDockPintar() {
+    var b = dsDockBarra(); if (!b) return;
+    b.innerHTML = '';
+    DS_DOCK.forEach(function(id) {
+      var info = DS_FWREG[id]; if (!info) return;
+      var t = document.createElement('div'); t.className = 'ds-dock-tab'; t.setAttribute('role', 'tab'); t.tabIndex = 0; t.dataset.id = id;
+      t.title = info.titulo + ' · clic para despegar';
+      t.innerHTML = '<span></span><button type="button" title="Cerrar" aria-label="Cerrar">✕</button>';
+      t.querySelector('span').textContent = info.titulo;
+      t.querySelector('button').onclick = function(e) { e.stopPropagation(); info.cerrar(); };
+      t.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dsDockDespegar(id); } });
+      t.addEventListener('mousedown', function(e) { if (e.button === 0 && !e.target.closest('button')) dsDockTabArrastre(t, id, e); });
+      b.appendChild(t);
+    });
+    document.documentElement.classList.toggle('ds-con-dock', DS_DOCK.length > 0);
+  }
+  function dsDockAnclar(id) {
+    var info = DS_FWREG[id]; if (!info) return;
+    info.pos = {left: info.el.style.left, top: info.el.style.top};
+    info.el.classList.add('ds-fw-anclada');
+    if (DS_DOCK.indexOf(id) < 0) DS_DOCK.push(id);
+    dsDockPintar(); dsDockGuardar();
+  }
+  // ev: si viene, la ventana aparece bajo el mouse y se sigue arrastrando (pestaña sacada hacia abajo)
+  function dsDockDespegar(id, ev) {
+    var info = DS_FWREG[id]; if (!info) return;
+    var i = DS_DOCK.indexOf(id); if (i >= 0) DS_DOCK.splice(i, 1);
+    var el = info.el;
+    el.classList.remove('ds-fw-anclada', 'min');
+    var m = el.querySelector('[data-fw="min"]'); if (m) { m.title = 'Minimizar'; m.textContent = '—'; }
+    el.style.zIndex = ++DS_FW_Z;
+    if (info.alMostrar) info.alMostrar();
+    if (ev) {
+      el.style.left = Math.max(0, ev.clientX - 60) + 'px'; el.style.top = Math.max(0, ev.clientY - 14) + 'px';
+    } else if (info.pos && info.pos.left) {
+      el.style.left = info.pos.left; el.style.top = info.pos.top;
+    } else if (info.posInicial) info.posInicial();
+    var r = el.getBoundingClientRect();   // que no quede por fuera de la pantalla
+    if (r.left > window.innerWidth - 80) el.style.left = Math.max(8, window.innerWidth - 8 - r.width) + 'px';
+    if (r.top > window.innerHeight - 36) el.style.top = Math.max(8, window.innerHeight - 8 - r.height) + 'px';
+    dsDockPintar(); dsDockGuardar();
+    if (ev) dsFwArrastrar(el, ev, 60, 14);
+  }
+  // Mover una ventana desde su cabecera; al soltarla cerca de la barra superior se ancla.
+  function dsFwArrastrar(el, e, dx, dy) {
+    var r = el.getBoundingClientRect();
+    if (dx == null) { dx = e.clientX - r.left; dy = e.clientY - r.top; }
+    var b = dsDockBarra();
+    var mover = function(ev) {
+      el.style.left = Math.max(-r.width + 80, Math.min(window.innerWidth - 80, ev.clientX - dx)) + 'px';
+      el.style.top = Math.max(0, Math.min(window.innerHeight - 36, ev.clientY - dy)) + 'px';
+      if (b) b.classList.toggle('ds-dock-zona', dsDockCerca(ev.clientY));
+    };
+    var soltar = function(ev) {
+      document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar);
+      if (b) b.classList.remove('ds-dock-zona');
+      if (el.dataset.fwId && dsDockCerca(ev.clientY)) dsDockAnclar(el.dataset.fwId);
+    };
+    document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
+  }
+  function dsFwCabecera(el) {   // arrastre, doble clic y — comunes de todas las ventanas flotantes
+    var cab = el.querySelector('.ds-fw-cab');
+    el.addEventListener('mousedown', function() { el.style.zIndex = ++DS_FW_Z; });
+    cab.addEventListener('mousedown', function(e) {
+      if (e.button !== 0 || e.target.closest('button')) return;
+      e.preventDefault(); dsFwArrastrar(el, e);
+    });
+    cab.addEventListener('dblclick', function(e) { if (!e.target.closest('button')) el.classList.toggle('min'); });
+    el.querySelector('[data-fw="min"]').onclick = function() { el.classList.toggle('min'); this.title = el.classList.contains('min') ? 'Restaurar' : 'Minimizar'; this.textContent = el.classList.contains('min') ? '▢' : '—'; };
+  }
+  // Arrastre de una pestaña: de lado reordena; hacia abajo la despega; sin moverse es un clic (despega).
+  function dsDockTabArrastre(t, id, e) {
+    e.preventDefault();
+    var x0 = e.clientX, y0 = e.clientY, movio = false, b = t.parentNode;
+    var mover = function(ev) {
+      if (!movio && Math.abs(ev.clientX - x0) < 5 && Math.abs(ev.clientY - y0) < 5) return;
+      movio = true; t.classList.add('arrastrando');
+      if (ev.clientY > b.getBoundingClientRect().bottom + 24) { fin(); dsDockDespegar(id, ev); return; }
+      var otras = Array.prototype.filter.call(b.children, function(o) { return o !== t; });
+      for (var i = 0; i < otras.length; i++) {
+        var r = otras[i].getBoundingClientRect();
+        if (ev.clientX < r.left + r.width / 2) { if (t.nextSibling !== otras[i]) b.insertBefore(t, otras[i]); return; }
+      }
+      if (b.lastChild !== t) b.appendChild(t);
+    };
+    var fin = function() {
+      document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar);
+      t.classList.remove('arrastrando');
+    };
+    var soltar = function() {
+      fin();
+      if (!movio) { dsDockDespegar(id); return; }
+      DS_DOCK = Array.prototype.map.call(b.children, function(o) { return o.dataset.id; });
+      dsDockGuardar();
+    };
+    document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
+  }
+  // Al cargar el Schedule (una vez, con el día ya pintado) se vuelven a abrir ancladas las que estaban en pestañas.
+  function dsDockRestaurar() {
+    if (DS_DOCK_RESTAURADO) return; DS_DOCK_RESTAURADO = true;
+    var lista; try { lista = JSON.parse(localStorage.getItem(DS_DOCK_KEY) || '[]'); } catch (e) { lista = []; }
+    if (!Array.isArray(lista)) return;
+    lista.forEach(function(g) {
+      if (!g || !g.t) return;
+      if (g.t === 'prod') {
+        var pb = document.getElementById('dsProdBtn');
+        if (pb && !pb.classList.contains('ds-fuera')) dsAbrirProduccion(true);
+      } else if (g.t === 'pa' && g.centro && g.area) dsPaVentana(g.centro, {area: g.area, team: g.team || '', anclada: true});
+    });
+    dsDockGuardar();   // se olvidan las que ya no aplican
+  }
+  function dsPaVentana(centro, op) {
+    op = op || {};
     dsPaMiniQuitar();
-    var area = DS.areaId, team = DS.teamId || '', clave = area + '|' + team + '|' + centro.toLowerCase();
+    var area = op.area || DS.areaId, team = op.area ? (op.team || '') : (DS.teamId || ''), clave = area + '|' + team + '|' + centro.toLowerCase();
     var w = DS_FW[clave];
-    if (w && w.el.isConnected) { w.el.classList.remove('min'); w.el.style.zIndex = ++DS_FW_Z; return; }
+    if (w && w.el.isConnected) {
+      if (w.el.classList.contains('ds-fw-anclada')) { if (!op.anclada) dsDockDespegar('pa|' + clave); return; }
+      w.el.classList.remove('min'); w.el.style.zIndex = ++DS_FW_Z; return;
+    }
     var el = document.createElement('div'); el.className = 'ds-fw'; el.style.zIndex = ++DS_FW_Z; el.setAttribute('role', 'dialog');
     var n = DS_FW_N++ % 6;
     el.style.left = Math.max(8, Math.min(window.innerWidth - 640, 140 + n * 28)) + 'px'; el.style.top = (110 + n * 28) + 'px';
@@ -1075,22 +1211,12 @@ window.addEventListener('unhandledrejection', function(ev) {
     el.setAttribute('aria-label', 'Pre-Approved ' + centro);
     document.body.appendChild(el);
     w = DS_FW[clave] = {el: el, centro: centro, area: area, v: null, doctor: '', datos: null, manual: false};
-    var cab = el.querySelector('.ds-fw-cab');
-    el.addEventListener('mousedown', function() { el.style.zIndex = ++DS_FW_Z; });
-    cab.addEventListener('mousedown', function(e) {
-      if (e.target.closest('button')) return;
-      e.preventDefault();
-      var r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
-      var mover = function(ev) {
-        el.style.left = Math.max(-r.width + 80, Math.min(window.innerWidth - 80, ev.clientX - dx)) + 'px';
-        el.style.top = Math.max(0, Math.min(window.innerHeight - 36, ev.clientY - dy)) + 'px';
-      };
-      var soltar = function() { document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar); };
-      document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
-    });
-    cab.addEventListener('dblclick', function(e) { if (!e.target.closest('button')) el.classList.toggle('min'); });
-    el.querySelector('[data-fw="min"]').onclick = function() { el.classList.toggle('min'); this.title = el.classList.contains('min') ? 'Restaurar' : 'Minimizar'; this.textContent = el.classList.contains('min') ? '▢' : '—'; };
-    el.querySelector('[data-fw="cerrar"]').onclick = function() { clearInterval(w.timer); el.remove(); delete DS_FW[clave]; };
+    dsFwCabecera(el);
+    var cerrar = function() { clearInterval(w.timer); el.remove(); delete DS_FW[clave]; dsFwQuitar('pa|' + clave); };
+    el.querySelector('[data-fw="cerrar"]').onclick = cerrar;
+    dsFwRegistrar(el, {id: 'pa|' + clave, titulo: 'Pre-Approved · ' + centro, cerrar: cerrar, guardar: {t: 'pa', centro: centro, area: area, team: team},
+      alMostrar: function() { if (w.ajustePendiente) { w.ajustePendiente = false; ajustarTamano(); } }});
+    if (op.anclada) { el.classList.add('ds-fw-anclada'); DS_DOCK.push('pa|' + clave); dsDockPintar(); }
     var pintar = function() {
       return window.dsFetchJSON('/design/api/preapproved/centro?area_id=' + area + '&team_id=' + team + '&centro=' + encodeURIComponent(centro)).then(function(d) {
         var hora = new Date().toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
@@ -1123,6 +1249,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     };
     // Tamaño según el texto: ancho para que las columnas no queden apretadas y alto hasta donde quepa en la pantalla
     var ajustarTamano = function() {
+      if (el.classList.contains('ds-fw-anclada')) { w.ajustePendiente = true; return; }   // oculta: se mide al despegarla
       if (el.classList.contains('min')) return;
       var maxW = window.innerWidth - 24, maxH = window.innerHeight - 24;
       el.style.width = maxW + 'px'; el.style.height = 'auto';
@@ -2603,6 +2730,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     {uno: 'Cancelada', varios: 'Canceladas', cuenta: dsEsCancelada, conDatos: true},
   ];
   function dsRenderKpis(dia) {
+    dsDockRestaurar();     // pestañas ancladas de la visita anterior (una sola vez)
     dsPintarProduccion();  // la ventana de Producción (si está abierta) sigue los cambios
     var filas = dia.principal.concat(dia.nightguard || [], dia.material || []);
     // Vista del diseñador: también cuentan los casos que hizo prestado en otros equipos (19-oct-2026)
@@ -2918,36 +3046,32 @@ window.addEventListener('unhandledrejection', function(ev) {
   // hacer clic afuera ni con Esc.
   function dsCerrarProduccion() {
     var pop = document.getElementById('dsProdPop'); if (pop) pop.remove();
+    dsFwQuitar('prod');
   }
-  document.getElementById('dsProdBtn').addEventListener('click', function() {
+  function dsAbrirProduccion(anclada) {
     var ya = document.getElementById('dsProdPop');
-    if (ya) { ya.classList.remove('min'); ya.style.zIndex = ++DS_FW_Z; var m = ya.querySelector('[data-fw="min"]'); if (m) { m.title = 'Minimizar'; m.textContent = '—'; } return; }
+    if (ya) {
+      if (ya.classList.contains('ds-fw-anclada')) { if (!anclada) dsDockDespegar('prod'); return; }
+      ya.classList.remove('min'); ya.style.zIndex = ++DS_FW_Z; var m = ya.querySelector('[data-fw="min"]'); if (m) { m.title = 'Minimizar'; m.textContent = '—'; } return;
+    }
     var el = document.createElement('div'); el.className = 'ds-fw ds-fw-prod'; el.id = 'dsProdPop'; el.style.zIndex = ++DS_FW_Z;
     el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Producción del día');
     el.innerHTML = '<div class="ds-fw-cab"><b>Producción del día</b><small></small><button type="button" data-fw="min" title="Minimizar">—</button><button type="button" data-fw="cerrar" title="Cerrar">✕</button></div>' +
       '<div class="ds-fw-cuerpo"></div>';
+    var posInicial = function() {   // se abre junto a la barra lateral y se puede mover
+      var r = document.getElementById('dsProdBtn').getBoundingClientRect();
+      el.style.left = Math.max(8, window.innerWidth - 46 - el.offsetWidth - 10) + 'px';
+      el.style.top = Math.max(8, Math.min(window.innerHeight - el.offsetHeight - 8, r.top)) + 'px';
+    };
+    dsFwRegistrar(el, {id: 'prod', titulo: 'Producción del día', cerrar: dsCerrarProduccion, guardar: {t: 'prod'}, posInicial: posInicial});
+    if (anclada) el.classList.add('ds-fw-anclada');
     document.body.appendChild(el);
     dsPintarProduccion();
-    var r = this.getBoundingClientRect();   // se abre junto a la barra lateral y se puede mover
-    el.style.left = Math.max(8, window.innerWidth - 46 - el.offsetWidth - 10) + 'px';
-    el.style.top = Math.max(8, Math.min(window.innerHeight - el.offsetHeight - 8, r.top)) + 'px';
-    var cab = el.querySelector('.ds-fw-cab');
-    el.addEventListener('mousedown', function() { el.style.zIndex = ++DS_FW_Z; });
-    cab.addEventListener('mousedown', function(e) {
-      if (e.target.closest('button')) return;
-      e.preventDefault();
-      var rr = el.getBoundingClientRect(), dx = e.clientX - rr.left, dy = e.clientY - rr.top;
-      var mover = function(ev) {
-        el.style.left = Math.max(-rr.width + 80, Math.min(window.innerWidth - 80, ev.clientX - dx)) + 'px';
-        el.style.top = Math.max(0, Math.min(window.innerHeight - 36, ev.clientY - dy)) + 'px';
-      };
-      var soltar = function() { document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar); };
-      document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
-    });
-    cab.addEventListener('dblclick', function(e) { if (!e.target.closest('button')) el.classList.toggle('min'); });
-    el.querySelector('[data-fw="min"]').onclick = function() { el.classList.toggle('min'); this.title = el.classList.contains('min') ? 'Restaurar' : 'Minimizar'; this.textContent = el.classList.contains('min') ? '▢' : '—'; };
+    if (anclada) { DS_DOCK.push('prod'); dsDockPintar(); } else posInicial();
+    dsFwCabecera(el);
     el.querySelector('[data-fw="cerrar"]').onclick = dsCerrarProduccion;
-  });
+  }
+  document.getElementById('dsProdBtn').addEventListener('click', function() { dsAbrirProduccion(false); });
   // ---------- Support: "Dejar a cargo" = cubrir el turno de una persona de Support (Support Time) ----------
   function dsFechaIsoCorta(iso) { var p = iso.split('-'); return parseInt(p[2], 10) + ' ' + DS_MESES_C[parseInt(p[1], 10) - 1]; }
   function dsRenderACargoSupport(cont) {
