@@ -58,7 +58,7 @@ class ActivosEquipo(Base):
 
     asset_tag: Mapped[str] = mapped_column(String(40), primary_key=True)
     serial_number: Mapped[str] = mapped_column(String(100), unique=True)
-    tipo_equipo: Mapped[str] = mapped_column(String(20))         # Laptop | Mini PC
+    tipo_equipo: Mapped[str] = mapped_column(String(20))         # Laptop | Mini PC | Maquinaria | Equipos de oficina | Otros
     marca: Mapped[str | None] = mapped_column(String(80), nullable=True)
     modelo_referencia: Mapped[str | None] = mapped_column(String(120), nullable=True)
     sistema_operativo: Mapped[str | None] = mapped_column(String(80), nullable=True)
@@ -73,9 +73,13 @@ class ActivosEquipo(Base):
     procesador: Mapped[str | None] = mapped_column(String(120), nullable=True)
     memoria_ram: Mapped[str | None] = mapped_column(String(40), nullable=True)
     almacenamiento: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Si no aplica, el equipo siempre queda en situación de dongle "NO_APLICA" sin importar el área de
+    # su dueño (pedido por Oscar el 27-oct-2026, junto con los tipos Maquinaria/Equipos de oficina/Otros
+    # -- esos tipos normalmente no necesitan licencia ExoCAD).
+    aplica_dongle: Mapped[bool] = mapped_column(Boolean, default=True)
 
     __table_args__ = (
-        CheckConstraint("tipo_equipo IN ('Laptop','Mini PC')", name="ck_activos_equipo_tipo"),
+        CheckConstraint("tipo_equipo IN ('Laptop','Mini PC','Maquinaria','Equipos de oficina','Otros')", name="ck_activos_equipo_tipo"),
         CheckConstraint("estado IN ('EN USO','STOCK','MANTENIMIENTO')", name="ck_activos_equipo_estado"),
         Index("ix_activos_equipos_retirado", "retirado", "asset_tag"),
     )

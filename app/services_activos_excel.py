@@ -126,6 +126,6 @@ def sincronizar_cambios(db: Session, actor: Empleado, cambios: list[dict]) -> in
                              cambios_equipo.get("modelo_referencia", e.modelo_referencia) or e.modelo_referencia,
                              cambios_equipo.get("serial_number", e.serial_number) or e.serial_number,
                              cambios_equipo.get("sistema_operativo", e.sistema_operativo),
-                             e.observaciones, e.procesador, e.memoria_ram, e.almacenamiento)
+                             e.observaciones, e.procesador, e.memoria_ram, e.almacenamiento, e.aplica_dongle)
         aplicados += 1
     return aplicados
