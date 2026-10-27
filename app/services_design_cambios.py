@@ -25,6 +25,19 @@ def _sin_acentos(t: str) -> str:
     return "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
 
 
+def clave_tipo(t: str) -> str:
+    """Clave para reconocer el mismo tipo de cambio escrito distinto (mayúsculas, acentos, espacios de más: «Occlusal ant»,
+    «Occlusal Ant », «occlusal  ant»). Rosember, 28-oct-2026."""
+    return re.sub(r"\s+", " ", _sin_acentos(t or "")).strip()
+
+
+def clave_doctor(n: str) -> str:
+    """Clave para reconocer al mismo doctor escrito distinto: sin título (Dr., Dra.), tildes, mayúsculas ni signos."""
+    t = re.sub(r"[^a-z0-9 ]", " ", _sin_acentos(n or ""))
+    t = re.sub(r"^(?:(?:dr|dra|doctor|doctora)\s+)+", "", t.strip())
+    return re.sub(r"\s+", " ", t).strip()
+
+
 def _texto(v, campo: str) -> str:
     if v is None:
         return ""
@@ -90,7 +103,10 @@ def listar(db: Session, q: str = "", desde: date | None = None, hasta: date | No
     if origen in ORIGENES:
         query = query.filter(DesignCambioDigital.origen == origen)
     if tipo:
-        query = query.filter(DesignCambioDigital.tipo_cambio == tipo)
+        k = clave_tipo(tipo)   # incluye las variantes del mismo tipo (mayúsculas, espacios…)
+        variantes = [t for (t,) in db.query(DesignCambioDigital.tipo_cambio).filter(DesignCambioDigital.tipo_cambio != "").distinct()
+                     if clave_tipo(t) == k]
+        query = query.filter(DesignCambioDigital.tipo_cambio.in_(variantes or [tipo]))
     if centro:
         query = query.filter(DesignCambioDigital.centro == centro)
     if q.strip():
@@ -106,7 +122,13 @@ def listar(db: Session, q: str = "", desde: date | None = None, hasta: date | No
     kpis = {"total": base.count(), "doc": base.filter(DesignCambioDigital.origen == "DOC").count(),
             "lab": base.filter(DesignCambioDigital.origen == "LAB").count(),
             "centros": db.query(func.count(func.distinct(DesignCambioDigital.centro))).filter(DesignCambioDigital.centro != "").scalar() or 0}
-    tipos = [t for (t,) in db.query(DesignCambioDigital.tipo_cambio).filter(DesignCambioDigital.tipo_cambio != "").distinct().order_by(DesignCambioDigital.tipo_cambio)]
+    # Tipos de cambio sin repetidos (28-oct-2026): «Occlusal ant» escrito de varias formas sale una sola vez, con la grafía más usada
+    usados: dict[str, dict[str, int]] = {}
+    for t, n in (db.query(DesignCambioDigital.tipo_cambio, func.count(DesignCambioDigital.id))
+                 .filter(DesignCambioDigital.tipo_cambio != "").group_by(DesignCambioDigital.tipo_cambio)):
+        if clave_tipo(t):
+            usados.setdefault(clave_tipo(t), {})[t] = n
+    tipos = sorted((max(v.items(), key=lambda kv: (kv[1], kv[0] == kv[0].strip()))[0].strip() for v in usados.values()), key=clave_tipo)
     centros = [c for (c,) in db.query(DesignCambioDigital.centro).filter(DesignCambioDigital.centro != "").distinct().order_by(DesignCambioDigital.centro)]
     return {"total": total, "items": [_fila_a_dict(r) for r in filas], "kpis": kpis, "tipos": tipos, "centros": centros}
 
@@ -147,7 +169,7 @@ def doctores_de_centro(db: Session, centro: str) -> list[str]:
     k = _clave_centro(centro)
     if not k:
         return []
-    nombres, vistos = [], set()
+    nombres, vistos = [], set()   # vistos: clave sin título, tildes ni mayúsculas (28-oct-2026: «Dr. Smith» = «Dr Smith»)
     for h in db.query(DesignPreApprovedSheet).all():
         docs, i = h.doctores, 0
         for c in h.centros:
@@ -158,8 +180,8 @@ def doctores_de_centro(db: Session, centro: str) -> list[str]:
                 continue
             for d in grupo:
                 n = " ".join((d.nombre or "").split())
-                if n and n.lower() not in vistos:
-                    vistos.add(n.lower())
+                if n and (clave_doctor(n) or n.lower()) not in vistos:
+                    vistos.add(clave_doctor(n) or n.lower())
                     nombres.append(n)
     return nombres
 
