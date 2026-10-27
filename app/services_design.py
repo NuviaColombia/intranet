@@ -2091,7 +2091,8 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
           .filter(DesignTeamDesigner.team_id == team.id))
     if solo_empleado_id is not None:
         q = q.filter(DesignOrden.designer_id == solo_empleado_id)
-        qb = qb.filter(DesignBreak.empleado_id == solo_empleado_id)
+        # El diseñador ve sus tiempos libres y los de su manager (solo lectura, 26-oct-2026)
+        qb = qb.filter(DesignBreak.empleado_id.in_([solo_empleado_id] + ([team.manager_id] if team.manager_id else [])))
         qd = qd.filter(DesignTeamDesigner.empleado_id == solo_empleado_id)
     ordenes = q.order_by(DesignOrden.orden_visual, DesignOrden.id).all()
     if es_face_nuevo(team.area.formato, fecha):
@@ -2161,8 +2162,12 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     }
     # ⚠️ ORIGEN DE DATOS DE DESIGN — validar con Rosember antes de cambiar (ver app/services_design_origenes.py y CLAUDE.md).
     salida["centros"] = centros_de_equipo(db, team)  # desplegable Centro: los centros de Openings de su manager
-    # El manager a veces diseña casos: va al final de la columna Diseñador (no en Tiempos libres, que usa "designers").
+    # El manager a veces diseña casos: va al final de la columna Diseñador y también tiene su tarjeta en Tiempos libres (26-oct-2026).
     salida["manager"] = _manager_elegible(team, {d.empleado_id for d in designers}) if solo_empleado_id is None else None
+    if solo_empleado_id is not None and team.manager and team.manager.activo:
+        # Tiempos libres del manager para un diseñador: se ven pero no se editan (lo guarda solo un manager o admin)
+        salida["managerTL"] = {"id": team.manager.id, "nombre": team.manager.nombre_completo, "corto": nombre_corto(team.manager),
+                               "esManager": True, "soloLectura": True}
     if team.area.formato == FORMATO_SUPPORT:
         # En Support el 'Diseñador' es el del caso: se elige entre todos los diseñadores de Design (y al final los managers).
         salida["designersCaso"] = disenadores_de_todos_los_equipos(db) + managers_de_todos_los_equipos(db)

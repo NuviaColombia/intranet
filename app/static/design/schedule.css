@@ -491,7 +491,18 @@
   @media (prefers-reduced-motion: reduce) { .btn.ds-btn-add, .btn.ds-btn-add .ds-mas { transition:none; } .btn.ds-btn-add:hover .ds-mas { transform:none; } }
   #ds-app input[type=checkbox] { accent-color:#111827; }
   /* Tiempos libres: una tarjeta por diseñador, en cuadrícula que llena el ancho */
-  .ds-tl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }
+  .ds-tl-viewport { position:relative; overflow:hidden; }
+  .ds-tl-grid { display:flex; gap:8px; transition:transform .5s cubic-bezier(.4,0,.2,1); will-change:transform; }
+  .ds-tl-grid > .ds-tl-card { flex:0 0 var(--tlw, 196px); min-width:0; box-sizing:border-box; }
+  .ds-tl-card.ds-tl-mgr { border-color:#111827; box-shadow:inset 3px 0 0 #111827; }
+  .ds-tl-card.ds-tl-ajeno { opacity:.92; }
+  .ds-tl-card.ds-tl-ajeno input:disabled, .ds-tl-card.ds-tl-ajeno select:disabled { cursor:default; }
+  .ds-tl-flecha { position:absolute; top:50%; transform:translateY(-50%); z-index:2; width:28px; height:28px; padding:0; border-radius:50%; border:1px solid #d8dde3;
+    background:#fff; color:#111827; font-size:17px; line-height:1; cursor:pointer; opacity:0; transition:opacity .2s; box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  .ds-tl-flecha.ant { left:4px; } .ds-tl-flecha.sig { right:4px; }
+  .ds-tl-viewport.rota:hover .ds-tl-flecha, .ds-tl-viewport.rota:focus-within .ds-tl-flecha { opacity:1; }
+  .ds-tl-flecha:focus-visible { outline:2px solid #60a5fa; outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce) { .ds-tl-grid { transition:none; } }
   .ds-tl-card { background:#f5f7fb; border:1px solid #e2e6ef; border-radius:10px; padding:12px 14px; }
   .ds-tl-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; min-height:30px; }
   .ds-tl-nombre { font-size:13px; font-weight:700; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1431,9 +1442,7 @@ table.ds-tabla td.ds-falta-aprobar { animation: dsFaltaAprobar .45s steps(2, sta
 @keyframes dsFaltaAprobar { 0% { background: #fecaca; } 100% { background: #fff; } }
 @media (prefers-reduced-motion: reduce) { table.ds-tabla td.ds-falta-aprobar { animation: none; background: #fecaca; } }
 
-/* Tiempos libres: las tarjetas de los diseñadores (hasta 6) en una sola fila */
-.ds-tl-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-@media (max-width: 1300px) { .ds-tl-grid { grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); } }
+/* Tiempos libres: las tarjetas en una fila (carrusel si no caben, ver dsCarruselTL) */
 .ds-tl-card { padding: 8px 8px 9px; min-width: 0; }
 .ds-tl-head { gap: 4px; margin-bottom: 6px; min-height: 26px; }
 .ds-tl-nombre { font-size: 12px; min-width: 0; }

@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (704 reglas) ---- */
+/* ---- static\design\schedule.css (707 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -285,6 +285,9 @@
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add .ds-mas { fill:none; stroke:currentColor; }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { background:#1f2a44; box-shadow:0 0 0 4px rgba(17,24,39,.12); }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add:focus-visible { outline:2px solid #2e4c71; }
+:root[data-ds-tema="oscuro"] .ds-tl-card.ds-tl-mgr { border-color:#111827; box-shadow:inset 3px 0 0 #111827; }
+:root[data-ds-tema="oscuro"] .ds-tl-flecha { border:1px solid #323b4b; background:#131925; color:#d1d9eb; box-shadow:0 2px 8px rgba(0,0,0,.12); }
+:root[data-ds-tema="oscuro"] .ds-tl-flecha:focus-visible { outline:2px solid #2e4c71; }
 :root[data-ds-tema="oscuro"] .ds-tl-card { background:#181d27; border:1px solid #333843; }
 :root[data-ds-tema="oscuro"] .ds-tl-nombre { color:#d1d9eb; }
 :root[data-ds-tema="oscuro"] .ds-tl-fila > span.ds-tl-lbl { color:#bbc1cc; }

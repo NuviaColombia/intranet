@@ -2591,7 +2591,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsAusenciasPromesa.then(function(tipos) {
       if (DS.diaData !== dia) return; // cambió de día/equipo mientras cargaba
       var grid = document.createElement('div'); grid.className = 'ds-tl-grid';
-      dia.designers.forEach(function(d) {
+      // El manager también tiene su tarjeta (26-oct-2026): va al final, después de los diseñadores
+      var tl = dia.designers.concat(dia.manager ? [dia.manager] : [], dia.managerTL ? [dia.managerTL] : []);
+      tl.forEach(function(d) {
         var b = dia.breaks.find(function(x) { return x.empleadoId === d.id; }) || {};
         var card = document.createElement('div'); card.className = 'ds-tl-card'; card.dataset.empleadoId = d.id;
         card.dataset.fecha = dia._fecha || dsFechaISO(dsFechaSeleccionada()); card.dataset.team = dia._team || DS.teamId;   // su día y su equipo
@@ -2615,12 +2617,70 @@ window.addEventListener('unhandledrejection', function(ev) {
           fila('Almuerzo', 'almuerzoInicio', 'almuerzoFin', null) +
           fila('Descanso 1', 'break1Inicio', 'break1Fin', 'break1') +
           fila('Descanso 2', 'break2Inicio', 'break2Fin', 'break2');
+        if (d.esManager) card.classList.add('ds-tl-mgr');
+        if (d.soloLectura) {   // tiempos libres del manager vistos por un diseñador: solo se miran
+          card.classList.add('ds-tl-ajeno');
+          card.querySelectorAll('input, select').forEach(function(el) { el.disabled = true; });
+          card.title = 'Tiempos libres de tu manager: solo lectura';
+          card._guardado = {}; grid.appendChild(card); return;
+        }
         dsConectarTarjeta(card);
         card._guardado = dsDatosBreak(card); // estado inicial, para deshacer
         grid.appendChild(card);
       });
-      cont.replaceChildren(grid); // se cambia de una sola vez: el panel nunca queda vacío
+      // Una sola fila que se recorta; si no caben todas en la pantalla, rota sola (carrusel). Ver dsCarruselTL.
+      var vp = document.createElement('div'); vp.className = 'ds-tl-viewport';
+      vp.appendChild(grid);
+      var viejoVp = cont.querySelector('.ds-tl-viewport'); if (viejoVp && viejoVp._ro) viejoVp._ro.disconnect();
+      cont.replaceChildren(vp); // se cambia de una sola vez: el panel nunca queda vacío
+      if (window.ResizeObserver) { vp._ro = new ResizeObserver(function() { dsCarruselTL(vp); }); vp._ro.observe(vp); }
+      dsCarruselTL(vp);
     });
+  }
+
+  // Carrusel de Tiempos libres (Rosember, 26-oct-2026): las tarjetas van en una fila. Si caben todas en el ancho, se reparten;
+  // si no, se muestran las que caben y el carrusel avanza una tarjeta cada pocos segundos (vuelve al principio al llegar al final).
+  // Se pausa con el mouse encima o con el foco dentro, y las flechas ‹ › lo mueven a mano.
+  var DS_TL_GAP = 8, DS_TL_MIN = 196, DS_TL_PAUSA_MS = 4500;
+  function dsCarruselTL(vp) {
+    var g = vp.querySelector('.ds-tl-grid'); if (!g || !vp.isConnected) return;
+    var n = g.children.length, vw = vp.clientWidth;
+    if (!vw || !n) return;   // oculto (otra pestaña): se acomoda cuando se vea
+    var por = Math.max(1, Math.floor((vw + DS_TL_GAP) / (DS_TL_MIN + DS_TL_GAP)));
+    var rota = n > por;
+    var cw = Math.floor(rota ? (vw - DS_TL_GAP * (por - 1)) / por : Math.min(340, (vw - DS_TL_GAP * (n - 1)) / n));
+    g.style.setProperty('--tlw', cw + 'px');
+    var st = vp._tl || (vp._tl = {idx: 0, t: null, pausa: false});
+    st.paso = cw + DS_TL_GAP; st.max = Math.max(0, n - por);
+    st.idx = Math.min(st.idx, st.max);
+    vp.classList.toggle('rota', rota);
+    g.style.transform = 'translateX(' + (-st.idx * st.paso) + 'px)';
+    if (rota && !vp._flechas) {
+      vp._flechas = true;
+      [['ant', '‹', 'Tarjetas anteriores', -1], ['sig', '›', 'Tarjetas siguientes', 1]].forEach(function(f) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'ds-tl-flecha ' + f[0];
+        b.textContent = f[1]; b.title = f[2]; b.setAttribute('aria-label', f[2]);
+        b.onclick = function() { dsTLMover(vp, f[3]); };
+        vp.appendChild(b);
+      });
+      vp.addEventListener('mouseenter', function() { vp._tl.pausa = true; });
+      vp.addEventListener('mouseleave', function() { vp._tl.pausa = false; });
+      vp.addEventListener('focusin', function() { vp._tl.pausa = true; });
+      vp.addEventListener('focusout', function() { vp._tl.pausa = false; });
+    }
+    if (!rota && st.t) { clearInterval(st.t); st.t = null; }
+    var reducido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (rota && !st.t && !reducido) {
+      st.t = setInterval(function() {
+        if (!vp.isConnected) { clearInterval(st.t); return; }
+        if (!st.pausa) dsTLMover(vp, 1);
+      }, DS_TL_PAUSA_MS);
+    }
+  }
+  function dsTLMover(vp, d) {
+    var st = vp._tl, g = vp.querySelector('.ds-tl-grid'); if (!st || !g) return;
+    st.idx = st.idx + d > st.max ? 0 : (st.idx + d < 0 ? st.max : st.idx + d);
+    g.style.transform = 'translateX(' + (-st.idx * st.paso) + 'px)';
   }
 
   // Checkbox del descanso: marcado = hay hora de inicio. Al marcarlo registra ahora + 15 min.
