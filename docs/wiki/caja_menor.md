@@ -1,5 +1,20 @@
 # Caja Menor Nuvia
 
+**(2026-10-27) Ahora vive dentro del módulo "Contabilidad" (pedido de Oscar).** El portal (`/`)
+ya no muestra una tarjeta "Caja menor Nuvia" directa: muestra **Contabilidad**
+(`app/templates/portal.html`), que lleva a `/contabilidad` (`app/routers/contabilidad.py`,
+`templates/contabilidad.html` -- mismo patrón de aterrizaje que `/activos`). Ahí hay dos tarjetas:
+"Caja menor Nuvia" (funciona igual que siempre, sin ningún cambio de lógica) y **"Pagos"**
+(deshabilitada, "Próximamente" -- sin alcance definido todavía). **No se creó un permiso nuevo**:
+`/contabilidad` usa `require_modulo("caja_menor")`, el mismo de siempre -- quien ya tenía acceso a
+Caja menor ve Contabilidad, y cuando Pagos tenga funcionalidad real, por ahora debe seguir
+gateada por ese mismo permiso (confirmado con Oscar: "los mismos de caja menor, y agrega a Dayana
+Mendoza" -- a Dayana le falta que un admin le marque la casilla "Caja menor Nuvia" en
+Empleados › editar, no se tocó la base de datos de producción directamente para esto). Las
+rutas de `/caja-menor/*` no cambiaron: siguen en el mismo router, con el mismo permiso y el mismo
+comportamiento; solo cambió qué hay delante en la navegación. El breadcrumb de la barra superior
+(`base.html`) ahora es "🧮 Contabilidad › 💵 Caja menor Nuvia[ › caja][ › Parámetros]".
+
 **Qué es**: manejo de cajas de caja menor (ej. CONTABILIDAD, MANTENIMIENTO). Reemplaza una app
 anterior en Google Apps Script. Alguien con acceso a una caja crea un **recibo**; un
 "Autorizado por" (no puede ser quien lo creó) lo firma; si el beneficiario es un empleado activo,
