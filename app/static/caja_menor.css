@@ -111,6 +111,11 @@
 #caja-app .cm-firma-estado.firmado { background: #D1FAE5; color: #065F46; }
 #caja-app .cm-firma-estado.observado { background: #FFEDD5; color: #9A3412; }
 #caja-app .cm-firma-estado.fallido { background: #FEE2E2; color: #991B1B; }
+#caja-app .cm-hilo-obs { margin-bottom: 6px; display: flex; flex-direction: column; gap: 6px; }
+#caja-app .cm-obs-msg { padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+#caja-app .cm-obs-msg.preg { background: #FFEDD5; color: #9A3412; }
+#caja-app .cm-obs-msg.resp { background: #DBEAFE; color: #1E40AF; margin-left: 16px; }
+#caja-app .cm-obs-msg small { font-weight: 500; opacity: .8; }
 #caja-app tr.cm-bloqueado td { color: #9CA3AF; }
 
 /* Celular: quien firma suele abrir el enlace de Cliq desde el teléfono */
