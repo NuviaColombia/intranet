@@ -178,3 +178,6 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 /* Interruptor «todas las áreas» activado (27-oct-2026): en oscuro, blanco con el óvalo oscuro, como los demás interruptores */
 :root[data-ds-tema="oscuro"] .ds-area-row .ds-todas-chk input:checked { background:#fff; }
 :root[data-ds-tema="oscuro"] .ds-area-row .ds-todas-chk input:checked::before { background:#0f172a; }
+/* Ventanas flotantes (Producción y Pre-Approved) en oscuro: cabecera del azul de la barra superior (27-oct-2026) */
+:root[data-ds-tema="oscuro"] .ds-fw-cab { background:#0f172a; color:#fff; }
+:root[data-ds-tema="oscuro"] .ds-fw { border-color:#334155; }

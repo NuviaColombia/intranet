@@ -159,8 +159,8 @@
 :root[data-ds-tema="oscuro"] .ds-pa-mini { background:#131925; border:1px solid #222d57; box-shadow:0 10px 28px rgba(0,0,0,.22); }
 :root[data-ds-tema="oscuro"] .ds-pa-mini .ds-pa-mini-tit { color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .ds-pa-mini .ds-pa-mini-pie { color:#bbc1cc; background:linear-gradient(transparent, #131925 55%); }
-:root[data-ds-tema="oscuro"] .ds-fw { background:#131925; border:1px solid #284565; box-shadow:0 14px 40px rgba(0,0,0,.28); }
-:root[data-ds-tema="oscuro"] .ds-fw-cab { background:#1d4ed8; color:#fff; }
+:root[data-ds-tema="oscuro"] .ds-fw { background:#131925; border:1px solid #111827; box-shadow:0 14px 40px rgba(0,0,0,.28); }
+:root[data-ds-tema="oscuro"] .ds-fw-cab { background:#111827; color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-fw-cab button { border:none; background:rgba(255,255,255,0.08); color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-fw-cab button:hover { background:rgba(255,255,255,0.08); }
 :root[data-ds-tema="oscuro"] .ds-fw-cuerpo { background:#1a1e27; }

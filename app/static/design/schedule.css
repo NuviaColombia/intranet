@@ -248,11 +248,11 @@
   .ds-pa-mini table.pa-t th, .ds-pa-mini table.pa-t td { padding:3px 4px; }
   .ds-pa-mini .ds-pa-mini-pie { position:absolute; left:0; right:0; bottom:0; padding:12px 8px 6px; font-size:10.5px; color:#4b5563; text-align:center;
     background:linear-gradient(transparent, #fff 55%); }
-  .ds-fw { position:fixed; z-index:9000; width:620px; height:420px; min-width:280px; min-height:44px; background:#fff; border:1px solid #93c5fd;
+  .ds-fw { position:fixed; z-index:9000; width:620px; height:420px; min-width:280px; min-height:44px; background:#fff; border:1px solid #111827;
     border-radius:10px; box-shadow:0 14px 40px rgba(0,0,0,.28); display:flex; flex-direction:column; resize:both; overflow:hidden; }
   .ds-fw.min { height:auto !important; min-height:0; resize:none; }
   .ds-fw.min .ds-fw-cuerpo { display:none; }
-  .ds-fw-cab { display:flex; align-items:center; gap:8px; padding:7px 8px 7px 12px; background:#1d4ed8; color:#fff; cursor:move; user-select:none; flex:0 0 auto; }
+  .ds-fw-cab { display:flex; align-items:center; gap:8px; padding:7px 8px 7px 12px; background:#111827;   /* azul de la barra superior (27-oct-2026) */ color:#fff; cursor:move; user-select:none; flex:0 0 auto; }
   .ds-fw-cab b { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ds-fw-cab small { font-size:11px; opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
   .ds-fw-cab button { border:none; background:rgba(255,255,255,.16); color:#fff; width:26px; height:24px; border-radius:5px; cursor:pointer; font-size:13px; flex:0 0 auto; }
