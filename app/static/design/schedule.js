@@ -4339,10 +4339,13 @@ function dgRepPintar(d, tabla, sub, que) {
     // vacaciones, calamidades, incapacidades… de Tiempos libres y de People). Ausente todo el periodo: no se marca.
     var celda = function(v, i, e, f) {
       var esp = f.esperado ? f.esperado[i] : 0;
-      if (!e || !f.dias) return '<td' + (f.dias ? '' : ' class="dg-rep-aus"') + '>' + (v || '<span class="dg-rep-0">0</span>') + '</td>';
+      // el manager no entra en la equidad (27-oct-2026): su fila se muestra sin marcas
+      if (!e || !f.dias || f.manager) return '<td' + (f.dias || f.manager ? '' : ' class="dg-rep-aus"') + '>' + (v || '<span class="dg-rep-0">0</span>') + '</td>';
+      // lo prestado en otros equipos se suma a la celda pero no a la equidad: la marca compara sin eso
+      var ve = f.valoresEq ? (i < f.valoresEq.length ? f.valoresEq[i] : f.valoresEq.reduce(function(a, b) { return a + b; }, 0)) : v;
       // ▲/▼ solo si se separa 2 casos o más de lo que le correspondía y el producto no es «pareja» ni de «pocos casos»
-      var marca = e.nivel !== 'pareja' && e.nivel !== 'pocos' && Math.abs(v - esp) >= 2;
-      var r = esp ? v / esp : 9, cl = !marca ? '' : (r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : ''));
+      var marca = e.nivel !== 'pareja' && e.nivel !== 'pocos' && Math.abs(ve - esp) >= 2;
+      var r = esp ? ve / esp : 9, cl = !marca ? '' : (r >= 1.5 ? 'dg-rep-alto' : (r <= 0.5 ? 'dg-rep-bajo' : ''));
       var flecha = cl === 'dg-rep-alto' ? ' ▲' : (cl === 'dg-rep-bajo' ? ' ▼' : '');
       return '<td class="' + cl + '" title="Le correspondían ≈ ' + esp + ' (los casos de los ' + f.dias + ' días en que estuvo, repartidos entre los presentes)">' + (v || '0') + flecha + '</td>';
     };
@@ -4353,7 +4356,9 @@ function dgRepPintar(d, tabla, sub, que) {
     };
     var h = '<thead><tr><th class="dd-izq">Diseñador</th><th title="Días disponibles / días hábiles del mes hasta hoy">Días</th>' + d.productos.map(function(p) { return '<th>' + ddEsc(p) + '</th>'; }).join('') + '<th>Total</th></tr></thead><tbody>';
     h += d.filas.map(function(f) {
-      return '<tr><td class="dd-izq"><b>' + ddEsc(f.nombre) + '</b>' + (f.dias ? '' : ' <small class="dg-rep-aus-t">ausente todo el periodo</small>') + '</td>' + diasCelda(f) +
+      return '<tr><td class="dd-izq"><b>' + ddEsc(f.nombre) + '</b>' + (f.manager ? ' <small class="dg-rep-aus-t" title="Sus casos cuentan en el total, no en la equidad">(manager)</small>' : '') +
+        (f.fuera ? ' <small class="dg-rep-aus-t" title="Casos que hizo prestado en otros equipos: están sumados en su fila (como en Producción del día) pero no cuentan para la equidad">(+' + f.fuera + ' en otros equipos)</small>' : '') +
+        (f.dias || f.manager ? '' : ' <small class="dg-rep-aus-t">ausente todo el periodo</small>') + '</td>' + diasCelda(f) +
         f.valores.map(function(v, i) { return celda(v, i, d.equidad[i], f); }).join('') +
         celda(f.total, n, d.equidad[n], f).replace('<td', '<td style="font-weight:700"') + '</tr>';
     }).join('');

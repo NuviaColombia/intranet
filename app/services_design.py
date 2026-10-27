@@ -2663,6 +2663,13 @@ REPARTO_EXCLUIR = [
 ]
 
 
+def _filtro_reparto():
+    """Órdenes que cuentan en el Reparto: las mismas de «Producción del día» (Rosember, 27-oct-2026): con diseñador y sin
+    «Training», aunque falte el centro o el producto (antes solo las completas, y el número no cuadraba)."""
+    return and_(or_(DesignOrden.designer_id.isnot(None), func.coalesce(DesignOrden.designer_prestado, "") != ""),
+                DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]), filtro_no_fantasma())
+
+
 def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, team_id: int | None = None, seccion: str = "") -> dict:
     """Dashboard › Resumen › Reparto de productos (Rosember, 21-oct-2026): para ver si en un equipo los productos se
     reparten parejo entre sus diseñadores. Tabla diseñador × producto con los casos del periodo (órdenes completas, sin
@@ -2672,10 +2679,13 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     los diseñadores del equipo que estaban ese día (sin vacaciones, incapacidad, luto, calamidad… de día completo, de
     Tiempos libres o de People). Así, cuando alguien falta, a los presentes les corresponde más y no salen «por encima»,
     y quien faltó no sale «por debajo». La equidad compara lo que hizo cada uno contra lo que le correspondía
-    (variación ponderada: ≤ 25 % pareja, ≤ 50 % algo desigual, más desigual); quien faltó todo el periodo no cuenta."""
+    (variación ponderada: ≤ 25 % pareja, ≤ 50 % algo desigual, más desigual); quien faltó todo el periodo no cuenta.
+    Igual que «Producción del día» (Rosember, 27-oct-2026): cuentan también las filas a medio llenar, el manager sale en su
+    propia fila y a cada diseñador se le suma lo que hizo prestado en otros equipos; el manager y esos casos prestados NO
+    entran en la equidad (se mide solo con lo que el equipo repartió entre sus diseñadores)."""
     q = (db.query(DesignOrden.team_id, DesignTeam.nombre, DesignArea.nombre, func.count(DesignOrden.id))
          .join(DesignTeam, DesignOrden.team_id == DesignTeam.id).join(DesignArea, DesignTeam.area_id == DesignArea.id)
-         .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta, DesignArea.nombre != AREA_RD)
+         .filter(_filtro_reparto(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta, DesignArea.nombre != AREA_RD)
          .group_by(DesignOrden.team_id, DesignTeam.nombre, DesignArea.nombre))
     if not es_admin(user):
         q = q.filter(DesignTeam.id.in_(equipos_dash_ids(db, user)))
@@ -2689,9 +2699,10 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         team_id = max(equipos, key=lambda e: e["casos"])["id"]
     miembros = {eid for (eid,) in db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team_id)}
     equipo = db.get(DesignTeam, team_id)
-    # El aprobador (manager) no cuenta en el reparto (Rosember, 21-oct-2026): hace casos ocasionales; sus casos no salen
-    # ni como fila ni como prestados ni en los totales.
-    miembros.discard(equipo.manager_id)
+    # El aprobador (manager) hace casos ocasionales: desde el 27-oct-2026 salen en su propia fila (como en Producción del
+    # día), pero no cuentan para la equidad.
+    mgr_id = equipo.manager_id
+    miembros.discard(mgr_id)
     excl = [r for r in REPARTO_EXCLUIR if r["area"] == equipo.area.nombre]
     excl_personas = [set(p.split()) for r in excl for p in r["personas"]]
     excl_productos = {_normalizar_texto(p) for r in excl for p in r["productos"]}
@@ -2703,16 +2714,30 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     es_support = equipo.area.formato == FORMATO_SUPPORT   # en Support el diseñador es el del caso: no hay prestados
     quienes: dict[str, int] = {}
     n_ordenes = 0   # órdenes reales (en N6 una orden suma en Bite y en Zirconia, pero es un solo caso)
-    ordenes = (db.query(DesignOrden).filter(DesignOrden.team_id == team_id, filtro_orden_completa(),
+    ordenes = (db.query(DesignOrden).filter(DesignOrden.team_id == team_id, _filtro_reparto(),
                                             DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta).all())
+    # Lo que los diseñadores del equipo hicieron prestados en otros equipos (no Support): se suma a su fila, fuera de la equidad
+    socio: dict[int, set] = {}
+    for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.empleado_id.in_(miembros or [-1])):
+        socio.setdefault(eid, set()).add(tid)
+    sup_ids = {i for (i,) in _equipos_support_ids(db).all()}
+    fuera_ids = set()
+    if not es_support and miembros:
+        de_fuera = (db.query(DesignOrden).filter(DesignOrden.designer_id.in_(miembros), DesignOrden.team_id != team_id, _filtro_reparto(),
+                                                 DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta).all())
+        de_fuera = [o for o in de_fuera if o.team_id not in socio.get(o.designer_id, set()) and o.team_id not in sup_ids]
+        fuera_ids = {o.id for o in de_fuera}
+        ordenes = ordenes + de_fuera
+    fuera_celdas: dict[str, dict[str, int]] = {}   # de celdas, lo que fue prestado afuera (no entra en la equidad)
     nombres_p: dict[str, str] = {}
     por_prod: dict[str, int] = {}
     celdas: dict[str, dict[str, int]] = {}
     datos_d: dict[str, dict] = {}
     del_dia: dict[date, dict[str, int]] = {}   # casos del equipo (sin prestados) por día y producto: base de lo que le correspondía a cada uno
     for o in ordenes:
-        if _es_cancelada(o.estado) or (equipo.manager_id and o.designer_id == equipo.manager_id):
+        if _es_cancelada(o.estado):
             continue
+        es_mgr = bool(mgr_id) and o.designer_id == mgr_id and o.id not in fuera_ids
         if _normalizar_texto(o.producto or "") in excl_productos:
             continue
         if changes_aparte and ("change" in _normalizar_texto(o.producto or "")) != (seccion == "changes"):
@@ -2721,7 +2746,7 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
             continue
         n_ordenes += 1
         kp0 = re.sub(r"\s+", " ", _normalizar_texto(o.producto or "")).strip()
-        np0 = re.sub(r"\s+", " ", (o.producto or "").strip())
+        np0 = re.sub(r"\s+", " ", (o.producto or "").strip()) or "(sin producto)"
         # N6 Material Change (21-oct-2026): cada producto se divide en sus dos etapas. Bite design cuenta siempre; Zirconia
         # design solo cuando la orden ya llegó a esa etapa.
         if o.tabla == TABLA_MATERIAL:
@@ -2730,7 +2755,8 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
                 etapas.append((kp0 + "|zir", np0 + " · " + ETAPA_ZIRCONIA))
         else:
             etapas = [(kp0, np0)]
-        prestado = not es_support and (bool((o.designer_prestado or "").strip()) or not o.designer_id or o.designer_id not in miembros)
+        prestado = not es_mgr and o.id not in fuera_ids and not es_support and (
+            bool((o.designer_prestado or "").strip()) or not o.designer_id or o.designer_id not in miembros)
         if prestado:   # quién fue, para verlo al pasar el mouse por la fila de Prestados
             nom = o.designer.nombre_completo if o.designer else ((o.designer_prestado or "").strip() or "Sin asignar")
             if o.designer and o.designer_id not in miembros:
@@ -2739,13 +2765,17 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
             quienes[nom] = quienes.get(nom, 0) + 1
         kd = "prestados" if prestado else str(o.designer_id)
         if kd not in datos_d:
-            datos_d[kd] = {"nombre": "Prestados" if prestado else (o.designer.nombre_completo if o.designer else "Sin asignar"), "designerId": None if prestado else o.designer_id}
+            datos_d[kd] = {"nombre": "Prestados" if prestado else (o.designer.nombre_completo if o.designer else "Sin asignar"),
+                           "designerId": None if prestado else o.designer_id, "manager": es_mgr}
         celdas.setdefault(kd, {})
         for kp, np_ in etapas:
             nombres_p.setdefault(kp, np_)
             por_prod[kp] = por_prod.get(kp, 0) + 1
             celdas[kd][kp] = celdas[kd].get(kp, 0) + 1
-            if not prestado:
+            if o.id in fuera_ids:
+                fc = fuera_celdas.setdefault(kd, {})
+                fc[kp] = fc.get(kp, 0) + 1
+            elif not prestado and not es_mgr:   # base de «lo que le correspondía»: solo lo que el equipo repartió
                 dd = del_dia.setdefault(o.fecha, {})
                 dd[kp] = dd.get(kp, 0) + 1
     base = lambda k: k.split("|")[0]   # las dos etapas de N6 de un mismo producto quedan juntas (Bite y luego Zirconia)
@@ -2766,12 +2796,13 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
             datos_d[str(e.id)] = {"nombre": e.nombre_completo, "designerId": e.id}
     habiles, ausencias = _reparto_dias(db, [d["designerId"] for d in datos_d.values() if d["designerId"]], desde, hasta)
     claves = [kd for kd in datos_d if kd != "prestados"]
+    reparten = [kd for kd in claves if not datos_d[kd].get("manager")]   # el manager no entra en lo que le correspondía
     presente = lambda kd, f: f not in ausencias.get(datos_d[kd]["designerId"], {})
 
     # Lo que le correspondía a cada uno: cada caso del día se reparte entre los presentes de ese día
     esperado = {kd: [0.0] * (n + 1) for kd in claves}
     for f, prods in del_dia.items():
-        hoy = [kd for kd in claves if presente(kd, f)]
+        hoy = [kd for kd in reparten if presente(kd, f)]
         if not hoy:
             continue
         for kp, c in prods.items():
@@ -2782,7 +2813,11 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     def fila(kd):
         c = celdas.get(kd, {})
         vals = [c.get(k, 0) for k in cols] + ([sum(c.get(k, 0) for k in otros)] if otros else [])
-        out = {"nombre": datos_d[kd]["nombre"], "designerId": datos_d[kd]["designerId"], "valores": vals, "total": sum(vals)}
+        fc = fuera_celdas.get(kd, {})
+        fuera = [fc.get(k, 0) for k in cols] + ([sum(fc.get(k, 0) for k in otros)] if otros else [])
+        out = {"nombre": datos_d[kd]["nombre"], "designerId": datos_d[kd]["designerId"], "valores": vals, "total": sum(vals),
+               "manager": bool(datos_d[kd].get("manager")), "fuera": sum(fuera),
+               "valoresEq": [v - x for v, x in zip(vals, fuera)]}   # sin lo prestado afuera: con esto se mide la equidad
         if kd != "prestados":
             aus = ausencias.get(datos_d[kd]["designerId"], {})
             out.update({"dias": sum(1 for f in habiles if f not in aus), "ausencias": _resumen_ausencias(aus),
@@ -2793,10 +2828,10 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
     if prestados:
         prestados["quienes"] = [{"nombre": k, "casos": v} for k, v in sorted(quienes.items(), key=lambda x: (-x[1], x[0].lower()))]
 
-    disponibles = [f for f in filas if f["dias"] > 0]   # quien faltó todo el periodo no entra en la equidad
+    disponibles = [f for f in filas if f["dias"] > 0 and not f["manager"]]   # ni quien faltó todo el periodo ni el manager
 
     def equidad(i):
-        pares = [(f["total"] if i == n else f["valores"][i], esperado[str(f["designerId"])][i]) for f in disponibles]
+        pares = [(sum(f["valoresEq"]) if i == n else f["valoresEq"][i], esperado[str(f["designerId"])][i]) for f in disponibles]
         pares = [(v, e) for v, e in pares if e > 0 or v > 0]
         suma_e = sum(e for _, e in pares)
         suma_v = sum(v for v, _ in pares)

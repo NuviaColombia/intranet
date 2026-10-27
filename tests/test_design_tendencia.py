@@ -98,11 +98,16 @@ class Tendencia(unittest.TestCase):
         d = eq(db, ana, date(2026, 10, 1), date(2026, 10, 21))
         self.assertEqual(d["equidad"][d["productos"].index("Zeta")]["nivel"], "pocos")
         self.assertEqual(d["prestados"]["quienes"], [{"nombre": "Dani X (sin equipo)", "casos": 2}])
-        t.manager_id = dani.id; db.commit()   # el aprobador no cuenta: ni fila, ni prestado, ni total
+        # 27-oct-2026: el aprobador sale en su propia fila (como en Producción del día), no como prestado, y no entra en la equidad
+        eq_antes = d["equidad"]
+        t.manager_id = dani.id; db.commit()
         d = sd.dashboard_reparto(db, ana, date(2026, 10, 1), date(2026, 10, 21))
         self.assertIsNone(d["prestados"])
-        self.assertNotIn("Dani X", [f["nombre"] for f in d["filas"]])
+        dani_f = next(f for f in d["filas"] if f["nombre"] == "Dani X")
+        self.assertTrue(dani_f["manager"])
+        self.assertEqual(dani_f["total"], 2)
         self.assertEqual(d["casos"], sum(f["total"] for f in d["filas"]))
+        self.assertEqual([e["nivel"] if e else None for e in d["equidad"]], [e["nivel"] if e else None for e in eq_antes])
 
 
     def test_reparto_n6_divide_bite_y_zirconia(self):

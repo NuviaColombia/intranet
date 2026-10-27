@@ -1781,7 +1781,7 @@ def diagnostico_produccion(request: Request, team_id: int | None = None, desde: 
     hoy = sd.ahora_colombia().date()
     fd = _fecha(desde) if desde else hoy.replace(day=1)
     fh = _fecha(hasta) if hasta else hoy
-    d = spd.diagnosticar(db, team_id, fd, fh) if team_id else None
+    d = spd.diagnosticar(db, team_id, fd, fh, user) if team_id else None
     return templates.TemplateResponse(request, "design_diag_produccion.html", {
         "user": user, "es_design": True, "d": d, "equipos": spd.equipos(db), "team_id": team_id,
         "desde": fd.isoformat(), "hasta": fh.isoformat()})
