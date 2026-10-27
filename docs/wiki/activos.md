@@ -129,11 +129,19 @@ vez de recalcularse desde cero cada vez.
   `models_activos.py`). Cada equipo tiene además una casilla `aplica_dongle` (default `True`): si se
   desmarca, `situacion_dongle()` siempre devuelve `"NO_APLICA"` para ese equipo, sin importar si el
   área de quien lo tiene exige ExoCAD -- pensado para maquinaria/oficina, que nunca van a necesitar
-  licencia. **Migración del CHECK constraint**: como el nombre de la restricción es explícito
-  (`ck_activos_equipo_tipo`), en Postgres se puede hacer `DROP CONSTRAINT`/`ADD CONSTRAINT` de forma
-  segura en cada arranque (`init_db()` en `app/main.py`) -- pero SQLite no soporta alterar un CHECK
-  existente, así que en una base local que ya tenía `activos_equipos` de antes, ese CHECK se queda
-  con los tipos viejos para siempre. Si en desarrollo local te rechaza un tipo nuevo, borra
+  licencia. **Migración del CHECK constraint**: el primer intento (27-oct-2026) hacía
+  `DROP CONSTRAINT`/`ADD CONSTRAINT` en **cada arranque**, sin condición -- tumbó el deploy en
+  producción (`update_failed`, el proceso salía con exit code 3 apenas arrancaba) probablemente por
+  el lock de `ALTER TABLE` chocando con la instancia vieja todavía sirviendo tráfico durante el
+  rolling deploy. Se corrigió para que sea **idempotente** (primero mira `pg_get_constraintdef` en
+  `pg_constraint` y solo toca la restricción si de verdad le falta "Otros") y **no fatal** (si el
+  `ALTER` falla, solo imprime un aviso -- la columna `aplica_dongle`, que es lo crítico, ya quedó
+  agregada antes de eso -- y el próximo arranque reintenta). `init_db()` en `app/main.py` es el
+  lugar; cualquier `ALTER TABLE`/`ADD CONSTRAINT` nuevo sobre una tabla con tráfico en vivo debería
+  seguir este mismo patrón (condición de "¿hace falta?" + no tumbar el arranque si falla), no solo
+  el de "ADD COLUMN si no existe" que usa el resto de esta función. SQLite tampoco soporta alterar un
+  CHECK existente, así que en una base local que ya tenía `activos_equipos` de antes, ese CHECK se
+  queda con los tipos viejos para siempre -- si te rechaza un tipo nuevo en desarrollo local, borra
   `permisos.db` (no es dato compartido) para que se recree con el esquema actual.
 - **"Programar mantenimiento (varios)" organiza los equipos en bloques `<details>` por grupo de
   trabajo, colapsables (pedido por Oscar, 27-oct-2026)** -- `checkListGrupos()` en app.js. Abiertos

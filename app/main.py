@@ -447,10 +447,20 @@ def init_db():
         with engine.begin() as conn:
             conn.execute(text(f"ALTER TABLE activos_equipos ADD COLUMN aplica_dongle BOOLEAN DEFAULT {'TRUE' if engine.dialect.name == 'postgresql' else '1'}"))
     if engine.dialect.name == "postgresql":
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE activos_equipos DROP CONSTRAINT IF EXISTS ck_activos_equipo_tipo"))
-            conn.execute(text("ALTER TABLE activos_equipos ADD CONSTRAINT ck_activos_equipo_tipo "
-                              "CHECK (tipo_equipo IN ('Laptop','Mini PC','Maquinaria','Equipos de oficina','Otros'))"))
+        with engine.connect() as conn:
+            definicion_tipo = conn.execute(text(
+                "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+                "WHERE conname = 'ck_activos_equipo_tipo' AND conrelid = 'activos_equipos'::regclass")).scalar()
+        if definicion_tipo and "Otros" not in definicion_tipo:
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE activos_equipos DROP CONSTRAINT IF EXISTS ck_activos_equipo_tipo"))
+                    conn.execute(text("ALTER TABLE activos_equipos ADD CONSTRAINT ck_activos_equipo_tipo "
+                                      "CHECK (tipo_equipo IN ('Laptop','Mini PC','Maquinaria','Equipos de oficina','Otros'))"))
+            except (ProgrammingError, OperationalError) as e:
+                # No debe tumbar el arranque entero por esto -- la columna aplica_dongle (arriba) ya
+                # quedó agregada, que es lo crítico; el próximo arranque reintenta ampliar el CHECK.
+                print(f"Aviso: no se pudo ampliar ck_activos_equipo_tipo todavía ({e}).")
     db = SessionLocal()
     try:
         from .invitados import asegurar_invitados
