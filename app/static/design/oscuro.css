@@ -130,3 +130,9 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] #dsLateral .ds-lat-muesca:hover, :root[data-ds-tema="oscuro"] #dsLateral.fijo .ds-lat-muesca { color:#1d4ed8; }
 /* Cambios digital y Dejar a cargo (26-oct-2026): fondo detrás de la ventana al 50 % también en oscuro */
 :root[data-ds-tema="oscuro"] .ds-fondo-50.ds-fondo-50 { background:rgba(0,0,0,.5); }
+/* «+ Agregar orden», casillas e interruptor de colores (26-oct-2026): en oscuro, como el logo y la barra lateral: blancos con el azul de la barra */
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add { background:#fff; color:#0f172a; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { background:#dbeafe; }
+:root[data-ds-tema="oscuro"] #ds-app input[type=checkbox] { accent-color:#fff; }
+:root[data-ds-tema="oscuro"] .ds-auto-oc input:checked + .sw { background:#fff; }
+:root[data-ds-tema="oscuro"] .ds-auto-oc input:checked + .sw::after { background:#0f172a; }

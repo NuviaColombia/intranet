@@ -61,6 +61,9 @@ Antes de buscar un patrón de roles que no existe:
   Los selectores llevan `#dsLateral #dsLatPanel` para ganarle a `.btn.gris` y a `#dsACargo .btn`. Las ventanas de
   «Cambios digital» y «Dejar a cargo» (también la de Support) oscurecen el fondo al 50 % (clase `ds-fondo-50`); las
   demás ventanas del Schedule siguen al 35 %.
+- **Azul de la barra superior en el Schedule** (Rosember, 26-oct-2026): «+ Agregar orden», el interruptor «Colores de los
+  estados» encendido y las casillas del Schedule (`#ds-app input[type=checkbox]`, p. ej. QC y descansos) usan el azul de la
+  barra (#111827) en vez del azul general de los botones. En oscuro van blancos con el azul de la barra, como el logo.
 - **Saludo en el título del Schedule** (Rosember, 26-oct-2026): en vez de «Design Schedule (equipo)», los aprobadores ven
   «Hola <primer nombre>, aquí está tu equipo en movimiento.» y los diseñadores «Hola <primer nombre>, tu trabajo es
   espectacular. ¡Gracias!». Quien está a cargo HOY del equipo (Dejar a cargo, `aCargo.esYo` + `activa`) ve el de

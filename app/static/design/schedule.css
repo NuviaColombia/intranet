@@ -127,7 +127,7 @@
   .ds-auto-oc input { position:absolute; opacity:0; width:1px; height:1px; }
   .ds-auto-oc .sw { width:34px; height:19px; border-radius:10px; background:#cbd5e1; position:relative; transition:background .15s; flex:none; }
   .ds-auto-oc .sw::after { content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3); transition:left .15s; }
-  .ds-auto-oc input:checked + .sw { background:#1d4ed8; }
+  .ds-auto-oc input:checked + .sw { background:#111827; }   /* azul de la barra superior (Rosember, 26-oct-2026) */
   .ds-auto-oc input:checked + .sw::after { left:17px; }
   .ds-auto-oc input:focus-visible + .sw { outline:2px solid #93c5fd; outline-offset:2px; }
   /* Producción del día (junto a Dejar a cargo) */
@@ -420,6 +420,10 @@
   .ds-panel-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   .ds-panel-h h3 { margin:0; }
   .ds-btn-add { padding:3px 10px; font-size:12px; line-height:1.4; border-radius:6px; }
+  /* «+ Agregar orden» y las casillas del Schedule con el azul de la barra superior (Rosember, 26-oct-2026) */
+  .btn.ds-btn-add { background:#111827; color:#fff; }
+  .btn.ds-btn-add:hover { background:#1f2a44; }
+  #ds-app input[type=checkbox] { accent-color:#111827; }
   /* Tiempos libres: una tarjeta por diseñador, en cuadrícula que llena el ancho */
   .ds-tl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }
   .ds-tl-card { background:#f5f7fb; border:1px solid #e2e6ef; border-radius:10px; padding:12px 14px; }

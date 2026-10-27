@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (675 reglas) ---- */
+/* ---- static\design\schedule.css (677 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -113,7 +113,7 @@
 :root[data-ds-tema="oscuro"] .ds-auto-oc { color:#c5cad3; }
 :root[data-ds-tema="oscuro"] .ds-auto-oc .sw { background:#252c33; }
 :root[data-ds-tema="oscuro"] .ds-auto-oc .sw::after { background:#131925; box-shadow:0 1px 2px rgba(0,0,0,.3); }
-:root[data-ds-tema="oscuro"] .ds-auto-oc input:checked + .sw { background:#1d4ed8; }
+:root[data-ds-tema="oscuro"] .ds-auto-oc input:checked + .sw { background:#111827; }
 :root[data-ds-tema="oscuro"] .ds-auto-oc input:focus-visible + .sw { outline:2px solid #284565; }
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel { background:#111827; box-shadow:-4px 6px 22px rgba(17,24,39,.28); }
 :root[data-ds-tema="oscuro"] #dsLateral.abierto #dsLatPanel { box-shadow:-8px 10px 32px rgba(17,24,39,.34); }
@@ -258,6 +258,8 @@
 :root[data-ds-tema="oscuro"] .ds-btn-ojo:hover { color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .ds-btn-x { background:#2c384e; color:#fff; border:none; }
 :root[data-ds-tema="oscuro"] .ds-btn-x:hover { background:#4b5563; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add { background:#111827; color:#fff; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { background:#1f2a44; }
 :root[data-ds-tema="oscuro"] .ds-tl-card { background:#181d27; border:1px solid #333843; }
 :root[data-ds-tema="oscuro"] .ds-tl-nombre { color:#d1d9eb; }
 :root[data-ds-tema="oscuro"] .ds-tl-fila > span.ds-tl-lbl { color:#bbc1cc; }
