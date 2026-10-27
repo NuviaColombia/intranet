@@ -65,7 +65,7 @@
 :root[data-ds-tema="oscuro"] .ds-tab.activo { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
 :root[data-ds-tema="oscuro"] .ds-area-row .ds-todas-chk input { border:none; background:#21293a; }
 :root[data-ds-tema="oscuro"] .ds-area-row .ds-todas-chk input::before { background:#131925; box-shadow:0 1px 3px rgba(0,0,0,.3); }
-:root[data-ds-tema="oscuro"] .ds-area-row .ds-todas-chk input:checked { background:#1d4ed8; }
+:root[data-ds-tema="oscuro"] .ds-area-row .ds-todas-chk input:checked { background:#111827; }
 :root[data-ds-tema="oscuro"] .ds-area-row .ds-todas-chk input:focus-visible { outline:2px solid #284565; }
 :root[data-ds-tema="oscuro"] .ds-drop-menu { background:#131925; border:1px solid #323b4b; box-shadow:0 6px 18px rgba(0,0,0,.12); }
 :root[data-ds-tema="oscuro"] .ds-drop-item { border:none; background:none; color:#d1d9eb; }

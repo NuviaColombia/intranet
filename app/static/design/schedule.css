@@ -30,7 +30,7 @@
                                      border-radius:11px; background:#cbd2da; cursor:pointer; transition:background .2s; flex:none; }
   .ds-area-row .ds-todas-chk input::before { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
                                              background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .2s; }
-  .ds-area-row .ds-todas-chk input:checked { background:#1d4ed8; }
+  .ds-area-row .ds-todas-chk input:checked { background:#111827; }   /* azul de la barra superior (27-oct-2026) */
   .ds-area-row .ds-todas-chk input:checked::before { transform:translateX(16px); }
   .ds-area-row .ds-todas-chk input:focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
   .ds-drop { position:relative; display:inline-block; }
