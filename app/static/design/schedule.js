@@ -111,12 +111,12 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsCalSincronizar();
   }
 
-  // Semana y días en la barra lateral (Rosember, 26-oct-2026): arriba la flecha de semana anterior, luego el rango («26–30») y los
-  // días como «L 26», «M 27»… en una sola línea, y abajo la flecha de semana siguiente. Con la barra abierta cada uno muestra su
-  // texto («Semana anterior», «Semana 26 - 30 oct», «Lunes 26 oct»). Sirven para la vista del equipo y para la de todas las áreas
-  // (`alElegir` cambia según la vista). El día de hoy lleva un punto verde y el elegido va resaltado.
+  // Semana y días en la barra lateral (Rosember, 26-oct-2026): una sola fila con la flecha de semana anterior, los días como
+  // «L 26», «M 27»… y la flecha de semana siguiente, y encima el rango de la semana. Con la barra abierta se ve la fila completa;
+  // cerrada (46px) solo queda el día elegido. Sirven para la vista del equipo y para la de todas las áreas (`alElegir` cambia
+  // según la vista). El día de hoy lleva un punto verde y el elegido va resaltado.
   var DS_LETRAS_DIAS = ['L', 'M', 'M', 'J', 'V'];
-  var DS_SVG_LAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var DS_SVG_LAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
   function dsPintarDiasLat(alElegir) {
     var cont = document.getElementById('dsLatDias'); if (!cont) return;
     var hoyISO = dsFechaISO(new Date());
@@ -124,33 +124,31 @@ window.addEventListener('unhandledrejection', function(ev) {
     var fin = new Date(DS.lunes); fin.setDate(fin.getDate() + 4);
     var rango = dsRangoCorto(DS.lunes, fin);
     cont.innerHTML = '';
-    function item(clase, nav, orden, chip, texto, titulo) {
-      var b = document.createElement(clase.indexOf('ds-lat-rango') >= 0 ? 'span' : 'button');
-      if (b.tagName === 'BUTTON') b.type = 'button';
-      b.className = 'ds-it ' + clase; b.dataset.nav = nav;
-      b.style.setProperty('--i', orden);   // la cascada de los nombres sigue a las acciones
-      b.title = titulo; if (b.tagName === 'BUTTON') b.setAttribute('aria-label', titulo);
-      b.innerHTML = '<span class="ds-it-ico"></span><span class="ds-it-txt"></span>';
-      if (chip.charAt(0) === '<') b.firstChild.innerHTML = chip; else b.firstChild.textContent = chip;
-      b.lastChild.textContent = texto;
-      cont.appendChild(b);
+    var cap = document.createElement('span');   // encima de la fila: «26–30» (cerrada) / «Semana 26 - 30 de oct» (abierta)
+    cap.className = 'ds-it ds-lat-rango'; cap.dataset.nav = 'rango'; cap.title = 'Semana ' + rango;
+    cap.innerHTML = '<span class="ds-it-ico"></span><span class="ds-it-txt"></span>';
+    cap.firstChild.textContent = DS.lunes.getDate() + '–' + fin.getDate(); cap.lastChild.textContent = 'Semana ' + rango;
+    cont.appendChild(cap);
+    var fila = document.createElement('div'); fila.className = 'ds-lat-fila'; fila.setAttribute('role', 'group'); fila.setAttribute('aria-label', 'Semana y días');
+    cont.appendChild(fila);
+    function boton(clase, nav, contenido, titulo, html) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = clase; b.dataset.nav = nav;
+      b.title = titulo; b.setAttribute('aria-label', titulo);
+      if (html) b.innerHTML = contenido; else b.textContent = contenido;
+      fila.appendChild(b);
       return b;
     }
-    item('ds-lat-sem', 'ant', 4, DS_SVG_LAT + '<polyline points="6 15 12 9 18 15"/></svg>', 'Semana anterior', 'Semana anterior').onclick = function() { window.dsCambiarSemana(-7); };
-    var cap = item('ds-lat-rango', 'rango', 4.6, DS.lunes.getDate() + '–' + fin.getDate(), 'Semana ' + rango, 'Semana ' + rango);
-    cap.setAttribute('aria-label', cap.title);
+    boton('ds-lat-sem', 'ant', DS_SVG_LAT + '<polyline points="15 6 9 12 15 18"/></svg>', 'Semana anterior', true).onclick = function() { window.dsCambiarSemana(-7); };
     for (var i = 0; i < 5; i++) {
       var d = new Date(DS.lunes); d.setDate(d.getDate() + i);
-      var mes = d.toLocaleDateString('es-CO', {month: 'short'}).replace('.', '');
       var largo = d.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
       var esHoy = dsFechaISO(d) === hoyISO;
-      var btn = item('ds-lat-dia' + (i === DS.diaSel ? ' activo' : '') + (esHoy ? ' hoy' : ''), 'd' + i, 5.2 + i * 0.6,
-                     DS_LETRAS_DIAS[i] + ' ' + d.getDate(), NOMBRES_DIAS[i] + ' ' + d.getDate() + ' ' + mes,
-                     largo.charAt(0).toUpperCase() + largo.slice(1) + (esHoy ? ' (hoy)' : ''));
+      var btn = boton('ds-lat-dia' + (i === DS.diaSel ? ' activo' : '') + (esHoy ? ' hoy' : ''), 'd' + i, DS_LETRAS_DIAS[i] + ' ' + d.getDate(),
+                      largo.charAt(0).toUpperCase() + largo.slice(1) + (esHoy ? ' (hoy)' : ''), false);
       btn.setAttribute('aria-pressed', i === DS.diaSel ? 'true' : 'false');
       btn.onclick = (function(idx) { return function() { alElegir(idx); }; })(i);
     }
-    item('ds-lat-sem', 'sig', 8.2, DS_SVG_LAT + '<polyline points="6 9 12 15 18 9"/></svg>', 'Semana siguiente', 'Semana siguiente').onclick = function() { window.dsCambiarSemana(7); };
+    boton('ds-lat-sem', 'sig', DS_SVG_LAT + '<polyline points="9 6 15 12 9 18"/></svg>', 'Semana siguiente', true).onclick = function() { window.dsCambiarSemana(7); };
     if (foco !== null) {   // al repintar se pierde el foco: vuelve al mismo botón (o al día elegido)
       var f = (foco && cont.querySelector('[data-nav="' + foco + '"]')) || cont.querySelector('.activo');
       if (f && f.focus) f.focus({preventScroll: true});

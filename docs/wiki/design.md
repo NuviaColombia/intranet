@@ -91,16 +91,17 @@ Antes de buscar un patrón de roles que no existe:
   `aria-label` (`dsOjoBtn`, clases `.mostrando` y `.pulso`; la onda solo corre cuando cambia el estado, no en cada refresco
   en vivo). «+ Agregar orden» quedó como un círculo solo con el signo más (tooltip «Agregar orden»), que gira 90° al pasar
   el mouse; sigue preguntando cuántas órdenes agregar.
-- **Semana y días en la barra lateral** (Rosember, 26-oct-2026): las pestañas «Lunes 26, Martes 27…» y, después, las flechas ← →
-  con el rango de la semana salieron de la pantalla y ahora son `#dsLatDias` dentro de la barra lateral, debajo de las acciones
-  y de una línea divisoria: flecha ⌃ «Semana anterior» arriba, el rango («26–30»), los días «L 26», «M 27», «M 28», «J 29»,
-  «V 30» en una sola línea (46px) y flecha ⌄ «Semana siguiente» abajo; con la barra abierta, los textos completos («Semana 26 - 30
-  de oct», «Lunes 26 oct»). El día elegido va resaltado con una barra azul y hoy lleva un punto verde. Elegir un día o cambiar de
+- **Semana y días en la barra lateral** (Rosember, 26-oct-2026): las pestañas «Lunes 26, Martes 27…» y las flechas ← → con el
+  rango de la semana salieron de la pantalla y ahora son `#dsLatDias` dentro de la barra lateral, debajo de las acciones y de una
+  línea divisoria: el rango encima («26–30» cerrada / «Semana 26 - 30 de oct» abierta) y, en UNA SOLA FILA, `[‹] [L 26] [M 27]
+  [M 28] [J 29] [V 30] [›]`. Cerrada (46px) solo se ve el día elegido (los demás botones se pliegan a ancho 0); al abrir la barra
+  aparece la fila completa. Se probó antes una columna vertical (flecha arriba, días en lista, flecha abajo) y no gustó
+  («separado»). El día elegido va resaltado (fondo y raya inferior azul) y hoy lleva un punto verde. Elegir un día o cambiar de
   semana no cierra la barra (se suelen recorrer varios seguidos); `dsPintarDiasLat` sirve a la vista del equipo y a la de todas las
   áreas (cambia el `alElegir`; las flechas llaman a `dsCambiarSemana`). Se ven cuando hay un equipo abierto o la vista de todas las
   áreas, igual que Historial. Al repintar los botones el foco vuelve al mismo botón (`data-nav`) y ya no cierra la barra con el
-  mouse encima. En pantallas bajas (`max-height`) los botones se compactan y la barra se desplaza por dentro sin barra visible
-  (`max-height` del panel). Se quitaron `#dsSemanaCtrl`, `#dsRangoSemana` y sus reglas CSS.
+  mouse encima. En pantallas bajas la barra se desplaza por dentro sin barra visible (`max-height` del panel). Se quitaron
+  `#dsSemanaCtrl`, `#dsRangoSemana` y sus reglas CSS.
 - **Historial: calendario de días de producción** (Rosember, 26-oct-2026): botón «Historial» en la barra lateral (visible
   cuando hay un equipo abierto o la vista de todas las áreas, igual que las flechas de semana). Abre a la izquierda de la
   barra un calendario del mes con solo los días de lunes a viernes (los del Schedule); con ‹ › se cambia de mes, «Hoy» vuelve

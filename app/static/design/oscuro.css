@@ -157,9 +157,10 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 /* Esqueleto de carga (26-oct-2026) en oscuro */
 :root[data-ds-tema="oscuro"] .ds-esq-panel { background:#131925; border-color:#323b4b; }
 :root[data-ds-tema="oscuro"] .ds-esq-fila i, :root[data-ds-tema="oscuro"] .ds-esq-panel i { background:linear-gradient(90deg, #1b2333 25%, #243046 50%, #1b2333 75%); background-size:200% 100%; }
-/* Días de la semana en la barra lateral (26-oct-2026) en oscuro: la barra es blanca */
+/* Semana y días en la barra lateral (26-oct-2026) en oscuro: la barra es blanca */
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel #dsLatDias { border-top-color:#e2e8f0; }
-:root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-dia.activo { background:#dbeafe; color:#0f172a; box-shadow:inset 3px 0 0 #1d4ed8; }
-:root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-dia.hoy .ds-it-ico::after { background:#10b981; }
-/* Semana en la barra lateral (26-oct-2026) en oscuro: la barra es blanca */
+:root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-fila button { color:#334155; }
+:root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-fila button:hover, :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-fila button:focus-visible { background:#dbeafe; color:#0f172a; }
+:root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-fila .ds-lat-dia.activo { background:#dbeafe; color:#0f172a; box-shadow:inset 0 -3px 0 #1d4ed8; }
+:root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-fila .ds-lat-dia.hoy::after { background:#10b981; }
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-rango, :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-lat-rango:hover { color:#64748b; }
