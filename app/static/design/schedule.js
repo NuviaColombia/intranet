@@ -1136,7 +1136,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsDockDespegar(id, ev) {
     var info = DS_FWREG[id]; if (!info) return;
     var i = DS_DOCK.indexOf(id); if (i >= 0) DS_DOCK.splice(i, 1);
-    info.x = null;
+    info.xPrev = info.x; info.x = null;   // recuerda dónde estaba la pestaña para volver ahí
     var el = info.el;
     el.classList.remove('ds-fw-anclada', 'min');
     var m = el.querySelector('[data-fw="min"]'); if (m) { m.title = 'Minimizar'; m.textContent = '—'; }
@@ -1157,8 +1157,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsFwArrastrar(el, e, dx, dy) {
     var r = el.getBoundingClientRect();
     if (dx == null) { dx = e.clientX - r.left; dy = e.clientY - r.top; }
-    var b = dsDockBarra();
+    var b = dsDockBarra(), x0 = e.clientX, y0 = e.clientY, movio = false;
     var mover = function(ev) {
+      if (!movio && Math.abs(ev.clientX - x0) < 4 && Math.abs(ev.clientY - y0) < 4) return;   // un clic no mueve ni ancla
+      movio = true;
       el.style.left = Math.max(-r.width + 80, Math.min(window.innerWidth - 80, ev.clientX - dx)) + 'px';
       el.style.top = Math.max(0, Math.min(window.innerHeight - 36, ev.clientY - dy)) + 'px';
       if (b) b.classList.toggle('ds-dock-zona', dsDockCerca(ev.clientY));
@@ -1166,7 +1168,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var soltar = function(ev) {
       document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar);
       if (b) b.classList.remove('ds-dock-zona');
-      if (el.dataset.fwId && dsDockCerca(ev.clientY)) dsDockAnclar(el.dataset.fwId, ev.clientX - 40);
+      if (movio && el.dataset.fwId && dsDockCerca(ev.clientY)) dsDockAnclar(el.dataset.fwId, ev.clientX - 40);
     };
     document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
   }
@@ -1177,8 +1179,16 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (e.button !== 0 || e.target.closest('button')) return;
       e.preventDefault(); dsFwArrastrar(el, e);
     });
-    cab.addEventListener('dblclick', function(e) { if (!e.target.closest('button')) el.classList.toggle('min'); });
-    el.querySelector('[data-fw="min"]').onclick = function() { el.classList.toggle('min'); this.title = el.classList.contains('min') ? 'Restaurar' : 'Minimizar'; this.textContent = el.classList.contains('min') ? '▢' : '—'; };
+    // Minimizar una ventana que está sobre la zona de anclaje la vuelve a anclar sola, en el lugar donde estaba su pestaña.
+    var alternar = function() {
+      var id = el.dataset.fwId, info = DS_FWREG[id], r = el.getBoundingClientRect();
+      if (info && !el.classList.contains('min') && dsDockCerca(r.top + 14)) { dsDockAnclar(id, info.xPrev != null ? info.xPrev : r.left); return; }
+      el.classList.toggle('min');
+      var b = el.querySelector('[data-fw="min"]');
+      b.title = el.classList.contains('min') ? 'Restaurar' : 'Minimizar'; b.textContent = el.classList.contains('min') ? '▢' : '—';
+    };
+    cab.addEventListener('dblclick', function(e) { if (!e.target.closest('button')) alternar(); });
+    el.querySelector('[data-fw="min"]').onclick = alternar;
   }
   // Arrastre de una pestaña: de lado se mueve libre por la fila; hacia abajo la despega; sin moverse es un clic (despega).
   function dsDockTabArrastre(t, id, e) {
