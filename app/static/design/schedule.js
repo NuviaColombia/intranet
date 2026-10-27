@@ -2567,6 +2567,9 @@ window.addEventListener('unhandledrejection', function(ev) {
         if (typeof dsPintarCelda === 'function') dsPintarCelda(selE);
       }
     }
+    // La opción Hold sigue al estado elegido de inmediato, sin esperar al servidor (28-oct-2026: en producción el guardado
+    // tarda y, al poner Meeting en una orden nueva, Hold no aparecía en la lista hasta que llegaba la respuesta)
+    dsAjustarOpcionHold(tr, Object.assign({}, existente || {}, datos));
     if (tr.dataset.id === 'nuevo') {
       if (tr._qcReporte !== undefined) datos[tr._qcCampoRep || 'qcReporte'] = tr._qcReporte;
       if (!dsTieneDatos(datos)) return;
@@ -2609,7 +2612,12 @@ window.addEventListener('unhandledrejection', function(ev) {
       });
     } else envio = datos;
     if (local) Object.assign(local, datos); // refleja el cambio de inmediato (orden A→Z, contadores)
-    dsSeguir(postJSON('/design/api/ordenes/' + id, envio)).then(function(o) {
+    // Los cambios de una misma orden se guardan uno tras otro (28-oct-2026): Meeting → Hold seguidos llegaban al servidor en
+    // desorden y el Hold se rechazaba («Primero inicia la orden»)
+    DS.colaOrden = DS.colaOrden || {};
+    var envioP = (DS.colaOrden[id] || Promise.resolve()).catch(function() {}).then(function() { return postJSON('/design/api/ordenes/' + id, envio); });
+    DS.colaOrden[id] = envioP;
+    dsSeguir(envioP).then(function(o) {
       if (o.copiaN2) dsAvisoN2(o.copiaN2);   // Face: al marcar el QC → copia a N2 (en el día de hoy)
       if (o.copiaN2Pendiente) dsToast('Se desmarcó el QC: ' + o.copiaN2Pendiente + ' orden(es) copiada(s) a N2 esperan la decisión de su manager.');
       var i = filas.findIndex(function(x) { return x.id === id; });
