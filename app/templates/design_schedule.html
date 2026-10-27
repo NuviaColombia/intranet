@@ -5,6 +5,35 @@
 <link rel="stylesheet" href="/static/design/schedule.css?v={{ dsv }}">
 
 <div id="ds-app">
+  {# Carga más rápida y pareja (Rosember, 26-oct-2026). Este script corre apenas llega el HTML, ANTES de bajar y ejecutar schedule.min.js
+     (468 KB): lanza en paralelo las tres peticiones que antes iban una tras otra después del JavaScript (equipos, día y catálogos del
+     equipo propio o del enlace) y schedule.js las recoge en dsFetchJSON. Mientras llega el día se ve un esqueleto y todo aparece junto;
+     lo secundario (casos asignados, estado de ayuda) espera al día con dsDespues. Con ?precarga=0 todo funciona como antes. #}
+  <script>
+  (function() {
+    var P = new URLSearchParams(location.search), mio = {{ ds_inicio.miEquipo | tojson }}, esperan = [], tid, aid;
+    if (P.get('team_id')) { tid = parseInt(P.get('team_id'), 10); aid = parseInt(P.get('area_id'), 10); }   // enlace directo
+    else if (mio) { tid = mio.teamId; aid = mio.areaId; }                                                    // empleados y aprobadores: su equipo
+    var usar = P.get('precarga') !== '0' && tid > 0 && aid > 0;
+    window.dsDiaListo = !usar;
+    window.dsDespues = function(f) { if (window.dsDiaListo) f(); else esperan.push(f); };
+    window.dsSoltar = function() {
+      window.dsDiaListo = true;
+      var app = document.getElementById('ds-app'); if (app) app.classList.remove('ds-inicial');
+      esperan.splice(0).forEach(function(f) { try { f(); } catch (e) {} });
+    };
+    if (!usar) return;
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2); else if (d.getDay() === 0) d.setDate(d.getDate() + 1);   // igual que dsIrAHoy
+    var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    window.DS_PRE = {};
+    ['/design/api/teams?area_id=' + aid, '/design/api/dia?team_id=' + tid + '&fecha=' + iso, '/design/api/catalogos?area_id=' + aid].forEach(function(u) {
+      var p = fetch(u); p.catch(function() {}); window.DS_PRE[u] = {t: Date.now(), p: p};
+    });
+    document.getElementById('ds-app').classList.add('ds-inicial');
+    setTimeout(window.dsSoltar, 6000);   // por si el día falla o tarda: nunca queda la pantalla vacía
+  })();
+  </script>
   <div class="ds-cabecera">
     {# Saludo con el primer nombre (Rosember, 26-oct-2026): aprobadores y diseñadores; los admins ven el título de siempre #}
     {% set ds_primer_nombre = ((user.nombres or user.nombre_completo or '').split() or [''])[0] | capitalize %}
@@ -51,6 +80,10 @@
     {% endif %}
   </div>
 
+  <div class="ds-esqueleto" aria-hidden="true">
+    <div class="ds-esq-fila"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="ds-esq-panel"><i class="t"></i><i></i><i></i><i></i><i></i></div>
+  </div>
   <div id="dsVistaNormal">
     <div id="dsSinEquipo" class="ds-sin-equipo">
       <span class="ds-sin-equipo-icono" aria-hidden="true">🗓️</span>

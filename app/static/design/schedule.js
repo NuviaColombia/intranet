@@ -5,7 +5,11 @@
 // Revisa el código de respuesta (antes varios paneles trataban un error 4xx/5xx como éxito) y da un
 // mensaje claro si el servidor devuelve HTML (sesión vencida, error del proxy) en vez de JSON.
 window.dsFetchJSON = function(url, opts) {
-  return fetch(url, opts || {}).catch(function() {
+  // Peticiones lanzadas por la página antes de bajar este código (ver el script del inicio de design_schedule.html): se usan una
+  // sola vez y solo si son recientes; si no, la petición se hace normal.
+  var pre = !opts && window.DS_PRE && window.DS_PRE[url];
+  if (pre) delete window.DS_PRE[url];
+  return ((pre && Date.now() - pre.t < 15000) ? pre.p : fetch(url, opts || {})).catch(function() {
     var e = new Error('Se perdió la conexión con el servidor. Intenta de nuevo.'); e.ds = true; throw e;
   }).then(function(r) {
     return r.text().then(function(t) {
@@ -253,6 +257,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         if (chkTodas && !chkTodas.checked && !(area && teamId) && window.DS_CFG && window.DS_CFG.esAdmin) { chkTodas.checked = true; dsMostrarVista(true); }
       }
     }).catch(function(e) {
+      if (window.dsSoltar) window.dsSoltar();
       var cont = document.getElementById('dsAreaTabs');
       cont.innerHTML = '<span class="ds-err-carga">No se pudieron cargar las áreas. <button type="button" class="btn mini">Reintentar</button></span>';
       cont.querySelector('button').onclick = dsCargarAreas;
@@ -276,7 +281,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsIrAEquipo(area, teamId) {
     api('/design/api/teams?area_id=' + area.id).then(function(teams) {
       if (teams.some(function(t) { return t.id === teamId; })) dsElegirEquipo(area, teams, teamId);
-    });
+      else if (window.dsSoltar) window.dsSoltar();   // no hay día que esperar: se muestra la pantalla
+    }).catch(function(e) { if (window.dsSoltar) window.dsSoltar(); throw e; });
   }
 
   // Muestra la orden encontrada en la búsqueda (Rosember, 22-oct-2026: «te lleva pero no la muestra»). Espera a que la
@@ -2500,7 +2506,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     // Los números se cuentan al ingresar al Schedule, como en la página principal (de 0 al valor en 1,3 s, frenando al final).
     // Si hay un redibujado mientras cuenta (cambio en vivo), sigue contando hacia el valor nuevo sin reiniciar.
     var DUR = 1300, ahora = performance.now();
-    if (DS.kpiContar) { DS.kpiContar = false; DS.kpiT0 = ahora; }
+    // en la carga inicial el contenido todavía está oculto (.ds-inicial): la cuenta arranca cuando ya se ve
+    if (DS.kpiContar) { DS.kpiContar = false; var app = document.getElementById('ds-app'); DS.kpiT0 = ahora + (app && app.classList.contains('ds-inicial') ? 250 : 0); }
     var reducido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var contando = !reducido && DS.kpiT0 && ahora - DS.kpiT0 < DUR;
     DS_KPIS.forEach(function(k) {
@@ -3160,10 +3167,12 @@ window.addEventListener('unhandledrejection', function(ev) {
       dia._fecha = fechaPedida; dia._team = teamPedido;
       document.body.classList.remove('ds-cargando-dia');
       dsAplicarDia(dia, soloOrdenes);
+      if (window.dsSoltar) window.dsSoltar();   // primer día listo: se muestra todo junto y arrancan las cargas secundarias
       dsVivoUlt = Date.now();   // recién traído del servidor: la revisión de seguridad (90 s) cuenta desde aquí
       if (DS.resaltar) { var idR = DS.resaltar; DS.resaltar = null; dsMostrarResaltada(idR, 0); }   // viene de la búsqueda
     }).catch(function(e) {
       if (DS.diaUrl !== url) return;
+      if (window.dsSoltar) window.dsSoltar();
       document.body.classList.remove('ds-cargando-dia');
       DS.diaData = null;
       dsRenderACargo(null);

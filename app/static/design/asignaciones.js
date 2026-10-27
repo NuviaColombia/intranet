@@ -83,7 +83,7 @@
       .then(function() { pidiendo = false; });
   }
 
-  cargar();
+  (window.dsDespues || function(f) { f(); })(cargar);   // en el Schedule espera a que llegue el día (carga más pareja, 26-oct-2026)
   // Con la conexión en vivo (vivo.js) solo se cuenta al llegar un aviso de MIS casos (y cada 5 min por seguridad);
   // sin ella, cada 45 s como antes.
   var ultCarga = Date.now();

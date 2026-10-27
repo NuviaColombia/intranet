@@ -154,3 +154,6 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas.mostrando, :root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas.mostrando:hover { color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-oc-n { background:#fff; color:#0f172a; }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { box-shadow:0 0 0 4px rgba(255,255,255,.14); }
+/* Esqueleto de carga (26-oct-2026) en oscuro */
+:root[data-ds-tema="oscuro"] .ds-esq-panel { background:#131925; border-color:#323b4b; }
+:root[data-ds-tema="oscuro"] .ds-esq-fila i, :root[data-ds-tema="oscuro"] .ds-esq-panel i { background:linear-gradient(90deg, #1b2333 25%, #243046 50%, #1b2333 75%); background-size:200% 100%; }

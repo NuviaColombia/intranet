@@ -3,6 +3,7 @@
 semanas las dos personas intercambian turno, sin tener que registrar cada cambio.
 Ejemplo: referencia 12-oct, 4 semanas → el 12-oct cambian, el 9-nov cambian otra vez, el 7-dic otra vez..."""
 from datetime import date, datetime, timedelta
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_design import DesignSupportConfig, DesignSupportCobertura
@@ -14,10 +15,16 @@ _COB_CACHE: dict = {"t": 0.0, "dia": None, "v": None}
 def config(db: Session) -> DesignSupportConfig:
     c = db.get(DesignSupportConfig, 1)
     if not c:
-        c = DesignSupportConfig(id=1)
-        db.add(c)
-        db.commit()
-        db.refresh(c)
+        # Dos peticiones a la vez pueden intentar crearla (el Schedule pide varias cosas en paralelo al abrir): la que llega
+        # segunda encuentra la fila ya creada y la usa en vez de fallar (26-oct-2026).
+        try:
+            c = DesignSupportConfig(id=1)
+            db.add(c)
+            db.commit()
+            db.refresh(c)
+        except IntegrityError:
+            db.rollback()
+            c = db.get(DesignSupportConfig, 1)
     return c
 
 

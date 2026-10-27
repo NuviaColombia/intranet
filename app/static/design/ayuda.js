@@ -211,7 +211,8 @@
     engancharSeguimiento();
     var d = document.getElementById('dyDesde'), h = document.getElementById('dyHasta');
     if (d && h) { d.onchange = h.onchange = dyCargar; }
-    cargar();
+    cargadoEn = Date.now();   // así el aviso de la conexión en vivo no la pide dos veces
+    (window.dsDespues || function(f) { f(); })(cargar);   // en el Schedule espera a que llegue el día (26-oct-2026)
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
 })();

@@ -65,6 +65,25 @@ Antes de buscar un patrón de roles que no existe:
 - **Azul de la barra superior en el Schedule** (Rosember, 26-oct-2026): «+ Agregar orden», el interruptor «Colores de los
   estados» encendido y las casillas del Schedule (`#ds-app input[type=checkbox]`, p. ej. QC y descansos) usan el azul de la
   barra (#111827) en vez del azul general de los botones. En oscuro van blancos con el azul de la barra, como el logo.
+- **Carga del Schedule más rápida y pareja** (Rosember, 26-oct-2026): antes, al recargar, aparecían primero la barra y los
+  controles y mucho después contadores y tablas, porque las peticiones iban en cadena y solo empezaban cuando se
+  descargaba y ejecutaba schedule.min.js (468 KB): HTML → JavaScript → `teams` → `dia` → `catalogos`. Ahora:
+  1. Un script al inicio de `design_schedule.html` (dentro de `#ds-app`) lanza en paralelo, apenas llega el HTML, `teams`,
+     `dia` y `catalogos` del equipo propio (empleados y aprobadores: `miEquipo`) o del enlace (`?area_id=&team_id=`); el «hoy»
+     se calcula igual que `dsIrAHoy`. `dsFetchJSON` las recoge una sola vez si tienen menos de 15 s (`window.DS_PRE`). Las
+     direcciones deben ser idénticas a las de schedule.js (lo vigila `tests/test_design_carga.py`).
+  2. Lo secundario (casos asignados de la barra, estado de ayuda) espera al primer día con `window.dsDespues`
+     (asignaciones.js, ayuda.js); `dsSoltar()` lo libera al llegar el día, si falla, si el equipo del enlace no existe o a
+     los 6 s como respaldo. La conexión en vivo (vivo.js) no se pospone.
+  3. Mientras llega el día hay un esqueleto gris (con 0,25 s de retraso para que una carga rápida no lo muestre) y barra,
+     contadores y tablas aparecen juntos con un fundido (`.ds-inicial`); los contadores empiezan a contar ya visibles.
+  Los admins (sin equipo propio) no cambian. Con `?precarga=0` todo funciona como antes (útil para comparar o desactivar).
+  Medido en local con 12 ms por consulta: el contenido pasó de ~1055 ms a ~980 ms y, sobre todo, todo aparece junto (antes
+  la barra a los ~570 ms y el contenido a los ~1055 ms); en producción el ahorro es mayor porque también se evita esperar la
+  descarga del JavaScript y dos vueltas al servidor. `services_design_support.config` ya no falla si dos peticiones crean la
+  fila a la vez. Pendiente (fuera de Design, `main.py`): archivos estáticos con `?v=` podrían ir con caché largo (`immutable`);
+  hoy `max-age=1 día` y tras cada versión se bajan ~740 KB de CSS/JS. El ritmo real de la base se ve en
+  `/design/diagnostico/rendimiento`.
 - **«Mostrar ocultas» como ojo y «Agregar orden» como signo más** (Rosember, 26-oct-2026): en las tablas del Schedule
   «Mostrar ocultas (N)» es un ojo (inspirado en «Hide» de Chad Urbanick en Dribbble): con las órdenes ocultas el ojo está
   tachado y gris; al tocarlo parpadea, la raya se borra y lanza una onda circular, y se oscurece (blanco en modo oscuro);

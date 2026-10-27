@@ -1454,3 +1454,18 @@ table.ds-tabla-rd input[data-campo="notas"] { min-width: 12em; }
 table.ds-tabla-rd select[data-campo="etapa"] { min-width: 0; field-sizing: content; }
 table.ds-tabla-rd select[data-campo="estado"] { min-width: 0; field-sizing: content; }
 table.ds-tabla-rd input[type=time] { min-width: 6.5em; width: 6.9em; }
+
+/* Carga pareja (26-oct-2026): mientras llega el primer día se ve un esqueleto y luego todo aparece junto con un fundido */
+.ds-esqueleto { display:none; }
+#ds-app.ds-inicial .ds-esqueleto { display:block; animation:dsFundir .3s .25s both; }   /* con retraso: una carga rápida no lo muestra */
+#ds-app.ds-inicial #dsVistaNormal, #ds-app.ds-inicial #dsLateral { display:none; }
+#dsVistaNormal, #dsLateral { animation:dsFundir .35s ease both; }
+@keyframes dsFundir { from { opacity:0; } to { opacity:1; } }
+.ds-esq-fila { display:flex; gap:12px; margin:0 0 14px; flex-wrap:wrap; }
+.ds-esq-fila i { display:block; width:110px; height:58px; border-radius:10px; }
+.ds-esq-panel { padding:16px; border-radius:12px; margin-bottom:18px; background:#fff; border:1px solid var(--borde,#d8dde3); }
+.ds-esq-panel i { display:block; height:26px; border-radius:6px; margin-top:10px; }
+.ds-esq-panel i.t { width:160px; height:16px; margin:0 0 14px; }
+.ds-esq-fila i, .ds-esq-panel i { background:linear-gradient(90deg, #e9edf2 25%, #f4f6f9 50%, #e9edf2 75%); background-size:200% 100%; animation:dsEsqBrillo 1.3s linear infinite; }
+@keyframes dsEsqBrillo { from { background-position:200% 0; } to { background-position:-200% 0; } }
+@media (prefers-reduced-motion: reduce) { .ds-esq-fila i, .ds-esq-panel i, #dsVistaNormal, #dsLateral, #ds-app.ds-inicial .ds-esqueleto { animation:none; } }
