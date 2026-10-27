@@ -204,3 +204,10 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 
 /* Canvas › Tablero: raya de dónde queda la hoja al arrastrarla */
 :root[data-ds-tema="oscuro"] .cv-board-card.cv-bdrop-antes::before, :root[data-ds-tema="oscuro"] .cv-board-card.cv-bdrop-despues::before { background:#f3f4f6; }
+
+/* Panel unificado de contadores: fondo oscuro de la plataforma, no blanco (28-oct-2026) */
+:root[data-ds-tema="oscuro"] .ds-kpi-panel { --kp-fondo:#131925; --kp-linea:#2f3747; --kp-tinta:#e5e7eb; --kp-muted:#9aa4b8; --kp-pista:#1e293b;
+  background:var(--kp-fondo); border-color:var(--kp-linea); color:var(--kp-tinta); box-shadow:0 1px 2px rgba(0,0,0,.35); }
+:root[data-ds-tema="oscuro"] .ds-kpi-panel:hover { box-shadow:0 10px 26px -16px rgba(0,0,0,.7); }
+:root[data-ds-tema="oscuro"] .kp-meta { background:rgba(16,185,129,.12); border-color:rgba(16,185,129,.3); color:var(--kp-muted); }
+:root[data-ds-tema="oscuro"] .kp-meta b { color:#34d399; }

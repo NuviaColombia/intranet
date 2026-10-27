@@ -2775,28 +2775,100 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dia.soloPropias) filas = filas.concat(dia.prestadas || []);
     filas = filas.filter(function(f) { return !dsEsFantasma(f); });   // producto «Training»: no cuenta
     var todas = filas.filter(dsOrdenCompleta), conDatos = filas.filter(dsOrdenConDatos);
-    var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
-    // Los números se cuentan al ingresar al Schedule, como en la página principal (de 0 al valor en 1,3 s, frenando al final).
-    // Si hay un redibujado mientras cuenta (cambio en vivo), sigue contando hacia el valor nuevo sin reiniciar.
-    var DUR = 1300, ahora = performance.now();
-    // en la carga inicial el contenido todavía está oculto (.ds-inicial): la cuenta arranca cuando ya se ve
-    if (DS.kpiContar) { DS.kpiContar = false; var app = document.getElementById('ds-app'); DS.kpiT0 = ahora + (app && app.classList.contains('ds-inicial') ? 250 : 0); }
-    var reducido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var contando = !reducido && DS.kpiT0 && ahora - DS.kpiT0 < DUR;
-    DS_KPIS.forEach(function(k) {
-      var n = (k.conDatos ? conDatos : todas).filter(k.cuenta).length;
-      var el = document.createElement('div'); el.className = 'ds-kpi';
-      el.innerHTML = '<b>' + (contando && n ? 0 : n) + '</b>' + (n === 1 ? k.uno : k.varios);
-      cont.appendChild(el);
-      if (contando && n) {
-        var b = el.firstChild, t0 = DS.kpiT0;
-        (function paso(t) {
-          var p = Math.min(1, Math.max(0, (t - t0) / DUR));
-          b.textContent = Math.round(n * (1 - Math.pow(1 - p, 3)));
-          if (p < 1 && b.isConnected) requestAnimationFrame(paso); else b.textContent = n;
-        })(performance.now());
+    // Los 5 números se calculan igual que siempre (DS_KPIS); el panel solo los dibuja.
+    var n = DS_KPIS.map(function(k) { return (k.conDatos ? conDatos : todas).filter(k.cuenta).length; });
+    // «Otros estados» (solo para completar la barra): órdenes completas que no cuentan en En proceso, En espera, Aprobadas
+    // ni Canceladas (Order Entered, Pickup received, Ready to design, Meeting, aprobadas sin QC…). Se cuenta con las mismas
+    // condiciones, no con una resta: los contadores se solapan (p. ej. Canceladas incluye filas incompletas).
+    var otros = todas.filter(function(f) { return !DS_KPIS.slice(1).some(function(k) { return k.cuenta(f); }); }).length;
+    dsPanelResumen({total: n[0], proc: n[1], wait: n[2], ok: n[3], x: n[4], otros: otros});
+  }
+
+  // ---------- Panel unificado de contadores (Rosember, 28-oct-2026) ----------
+  // Reemplaza las 5 tarjetas. Un panel con el total, el % de aprobadas, una barra apilada y la leyenda; los números cuentan
+  // hasta su valor y la barra crece. Al cambiar los datos se animan desde el valor anterior. Solo dibuja: no calcula nada.
+  var DS_PANEL = [
+    {k: 'proc', etq: ['En proceso', 'En proceso'], c: '#3b82f6'},
+    {k: 'wait', etq: ['En espera', 'En espera'], c: '#f59e0b'},
+    {k: 'ok', etq: ['Aprobada', 'Aprobadas'], c: '#10b981'},
+    {k: 'x', etq: ['Cancelada', 'Canceladas'], c: '#ef4444'},
+    {k: 'otros', etq: ['Otros estados', 'Otros estados'], c: '#94a3b8',
+     ayuda: 'Órdenes completas en otros estados: Order Entered, Pickup received, Ready to design, Meeting, aprobadas sin QC…'},
+  ];
+  function dsPanelContar(el, de, a, retraso, reducido) {
+    var id = el._kc = (el._kc || 0) + 1;
+    if (reducido || de === a) { el.textContent = a; return; }
+    el.textContent = de;
+    var t0 = performance.now() + retraso;
+    (function paso(t) {
+      if (el._kc !== id) return;
+      var p = Math.min(1, Math.max(0, (t - t0) / 1000));
+      el.textContent = Math.round(de + (a - de) * (1 - Math.pow(1 - p, 3)));
+      if (p < 1 && el.isConnected) requestAnimationFrame(paso); else el.textContent = a;
+    })(performance.now());
+  }
+  function dsPanelMontar(cont) {
+    cont.innerHTML = '<section class="ds-kpi-panel" aria-label="Resumen de órdenes">' +
+      '<div class="kp-tot"><div class="kp-cap"></div><div class="kp-big"><span class="kp-num" data-n="total">0</span><small class="kp-pal"></small></div>' +
+      '<span class="kp-meta"><b>0%</b> aprobadas</span></div>' +
+      '<div class="kp-der"><div class="kp-stack"></div><div class="kp-legend">' + DS_PANEL.map(function(e) {
+        return '<div class="kp-li" data-k="' + e.k + '" style="--c:' + e.c + '"' + (e.ayuda ? ' title="' + e.ayuda + '"' : '') + '><span class="kp-dot"></span>' +
+          '<div><div class="kp-l"></div><div class="kp-v"><b data-n="' + e.k + '">0</b><span>0%</span></div></div></div>';
+      }).join('') + '</div></div></section>';
+    var p = cont.firstChild;
+    var foco = function(k) {
+      p.classList.toggle('focus', !!k);
+      p.querySelectorAll('[data-k]').forEach(function(x) { x.classList.toggle('on', !!k && x.dataset.k === k); });
+    };
+    p.addEventListener('mouseover', function(e) { var t = e.target.closest('[data-k]'); foco(t ? t.dataset.k : null); });
+    p.addEventListener('mouseleave', function() { foco(null); });
+  }
+  function dsPanelResumen(v) {
+    var cont = document.getElementById('dsKpis'); if (!cont) return;
+    var p = cont.firstElementChild;
+    if (!p || !p.classList.contains('ds-kpi-panel')) { dsPanelMontar(cont); p = cont.firstElementChild; DS.kpiPrev = null; }
+    var reducido = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    // Al ingresar al Schedule el panel entra y los números cuentan desde 0; en la carga inicial el contenido todavía está
+    // oculto (.ds-inicial): se espera a que ya se vea
+    var entra = !!DS.kpiContar, espera = 0;
+    if (entra) {
+      DS.kpiContar = false; DS.kpiPrev = null;
+      var app = document.getElementById('ds-app'); espera = app && app.classList.contains('ds-inicial') ? 250 : 0;
+      p.classList.remove('kp-entra'); void p.offsetWidth; p.style.animationDelay = espera + 'ms'; p.classList.add('kp-entra');
+    }
+    var ant = DS.kpiPrev || {total: 0, proc: 0, wait: 0, ok: 0, x: 0, otros: 0};
+    var pct = function(x) { return v.total ? Math.round(x / v.total * 100) : 0; };
+    p.querySelector('.kp-cap').textContent = 'Resumen de órdenes' + (dsAreaNombre() ? ' · ' + dsAreaNombre() : '');
+    p.querySelector('.kp-pal').textContent = v.total === 1 ? 'orden' : 'órdenes';
+    p.querySelector('.kp-meta b').textContent = pct(v.ok) + '%';
+    var i = 0;
+    p.querySelectorAll('[data-n]').forEach(function(el) { var k = el.dataset.n; dsPanelContar(el, ant[k], v[k], espera + i * 70, reducido); i++; });
+    DS_PANEL.forEach(function(e) {
+      var li = p.querySelector('.kp-li[data-k="' + e.k + '"]');
+      li.querySelector('.kp-l').textContent = e.etq[v[e.k] === 1 ? 0 : 1];
+      li.querySelector('.kp-v span').textContent = pct(v[e.k]) + '%';
+    });
+    // Barra apilada: un segmento por estado con valor > 0; crece (y se encoge) con la transición de flex-grow
+    var stack = p.querySelector('.kp-stack');
+    DS_PANEL.forEach(function(e, idx) {
+      var val = v[e.k], seg = stack.querySelector('.kp-seg[data-k="' + e.k + '"]');
+      var nombre = e.etq[val === 1 ? 0 : 1];
+      if (val > 0) {
+        if (!seg) {
+          seg = document.createElement('div'); seg.className = 'kp-seg'; seg.dataset.k = e.k; seg.style.setProperty('--c', e.c); seg.style.flexGrow = 0;
+          var despues = null;   // se inserta en el orden de los estados
+          DS_PANEL.slice(idx + 1).some(function(o) { despues = stack.querySelector('.kp-seg[data-k="' + o.k + '"]'); return !!despues; });
+          stack.insertBefore(seg, despues);
+        }
+        seg.dataset.v = val; seg.title = nombre + ': ' + val;
+        seg.style.transitionDelay = (reducido ? 0 : (entra ? espera / 1000 + .2 + idx * .12 : 0)) + 's';
+        requestAnimationFrame(function() { requestAnimationFrame(function() { if (seg.dataset.v === String(val)) seg.style.flexGrow = val; }); });
+      } else if (seg) {
+        seg.dataset.v = 0; seg.style.transitionDelay = '0s'; seg.style.flexGrow = 0;
+        setTimeout(function() { if (seg.dataset.v === '0') seg.remove(); }, reducido ? 0 : 1200);
       }
     });
+    DS.kpiPrev = {total: v.total, proc: v.proc, wait: v.wait, ok: v.ok, x: v.x, otros: v.otros};
   }
 
   var DS_DESCANSO_MIN = 15; // duración de cada descanso registrado con el checkbox

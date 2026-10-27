@@ -47,14 +47,13 @@
   /* Mismo ícono que el módulo People en el portal (🗓️), ~3x la altura del texto */
   .ds-sin-equipo-icono { font-size:44px; line-height:1; }
   .ds-drop-vacio { padding:8px 12px; color:#4b5563; font-size:12px; white-space:nowrap; }
-  .ds-kpis { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
-  .ds-fila-kpis { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
+  .ds-kpis { display:block; width:100%; }
+  /* «Mi equipo» (si lo hay) arriba del panel de contadores, a la derecha; el panel ocupa todo el ancho (28-oct-2026) */
+  .ds-fila-kpis { display:flex; flex-direction:column; align-items:stretch; gap:8px; margin:16px 0; }
   .ds-fila-kpis > .ds-kpis { margin-bottom:0; }
   /* Empleados y aprobadores: sin fila de áreas; la semana (y su equipo, si tiene varios) va al final de los contadores */
   #ds-app.ds-solo-mio > .ds-area-row { display:none; }
-  .ds-solo-mio .ds-fila-kpis { align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; }
-  .ds-solo-mio .ds-fila-kpis > .ds-kpis { flex:0 1 auto; margin-right:auto; }
-  .ds-fila-kpis .ds-mis-equipos { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; }
+  .ds-fila-kpis .ds-mis-equipos { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; align-self:flex-end; order:-1; }
   .ds-fila-kpis .ds-mis-equipos { flex:none; max-width:260px; }
   /* Diseñador a cargo del equipo */
   .ds-acargo { flex:none; display:flex; align-items:center; gap:6px; font-size:12.5px; }
@@ -69,8 +68,35 @@
   .ds-acargo-form label { display:block; font-size:12.5px; font-weight:600; margin:10px 0 4px; }
   .ds-acargo-form select, .ds-acargo-form input { width:100%; margin:0; }
   .ds-acargo-fechas { display:flex; gap:10px; } .ds-acargo-fechas > div { flex:1; }
-  .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
-  .ds-kpi b { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+  /* Panel unificado de contadores (28-oct-2026). Los colores van en variables: el modo oscuro las cambia en oscuro.css */
+  .ds-kpi-panel { --kp-fondo:#fff; --kp-linea:#e5e7eb; --kp-tinta:#111827; --kp-muted:#6b7280; --kp-pista:#f1f3f6; --kp-claro:#fff;
+    position:relative; overflow:hidden; border-radius:20px; padding:16px 20px; display:grid; grid-template-columns:auto 1fr; gap:28px; align-items:center;
+    background:var(--kp-fondo); border:1px solid var(--kp-linea); color:var(--kp-tinta); box-shadow:0 1px 2px rgba(15,23,42,.04); transition:box-shadow .3s; }
+  .ds-kpi-panel.kp-entra { animation:kpEntra .6s cubic-bezier(.2,.8,.2,1) backwards; }
+  .ds-kpi-panel:hover { box-shadow:0 10px 26px -16px rgba(15,23,42,.3); }
+  @keyframes kpEntra { from { opacity:0; transform:translateY(12px); } }
+  .kp-tot { padding-right:28px; border-right:1px solid var(--kp-linea); }
+  .kp-cap { font-size:12px; color:var(--kp-muted); font-weight:500; white-space:nowrap; }
+  .kp-big { display:flex; align-items:baseline; gap:8px; margin-top:4px; }
+  .kp-num { font-size:40px; font-weight:800; line-height:1; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+  .kp-big small { font-size:13px; color:var(--kp-muted); }
+  .kp-meta { display:inline-block; margin-top:8px; font-size:11.5px; color:var(--kp-muted); background:#ecfdf5; border:1px solid #d1fae5; padding:2px 9px; border-radius:99px; }
+  .kp-meta b { color:#059669; }
+  .kp-stack { display:flex; gap:4px; height:12px; border-radius:99px; overflow:hidden; background:var(--kp-pista); }
+  .kp-seg { flex:0 1 0; min-width:0; background:linear-gradient(180deg, color-mix(in srgb, var(--c) 65%, var(--kp-claro)), var(--c));
+    transition:flex-grow 1.1s cubic-bezier(.2,.8,.2,1), opacity .2s; cursor:pointer; }
+  .kp-legend { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; margin-top:10px; }
+  .kp-li { display:flex; gap:9px; align-items:flex-start; padding:7px 9px; border-radius:11px; cursor:pointer; border:1px solid transparent; transition:background .2s, opacity .2s, border-color .2s; }
+  .kp-li:hover { background:color-mix(in srgb, var(--c) 8%, var(--kp-fondo)); border-color:color-mix(in srgb, var(--c) 22%, var(--kp-fondo)); }
+  .kp-dot { width:9px; height:9px; border-radius:3px; background:var(--c); margin-top:4px; flex:none; box-shadow:0 0 8px var(--c); }
+  .kp-l { font-size:12.5px; color:var(--kp-muted); font-weight:500; white-space:nowrap; }
+  .kp-v { margin-top:1px; }
+  .kp-v b { font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .kp-v span { font-size:11.5px; color:var(--kp-muted); margin-left:4px; }
+  .ds-kpi-panel.focus .kp-seg:not(.on), .ds-kpi-panel.focus .kp-li:not(.on) { opacity:.3; }
+  .ds-kpi-panel.focus .kp-li.on { background:color-mix(in srgb, var(--c) 8%, var(--kp-fondo)); border-color:color-mix(in srgb, var(--c) 22%, var(--kp-fondo)); }
+  @media (max-width:900px) { .ds-kpi-panel { grid-template-columns:1fr; } .kp-tot { border-right:0 none transparent; padding-right:0; } .kp-legend { grid-template-columns:repeat(3, minmax(0,1fr)); } }
+  @media (prefers-reduced-motion: reduce) { .ds-kpi-panel, .kp-seg, .kp-li { animation:none !important; transition:none !important; } }
   /* Saludo del título: las palabras entran una tras otra al ingresar al Schedule (26-oct-2026) */
   .ds-saludo .ds-pal { display:inline-block; animation:dsPalabra .65s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(.1s + var(--i, 0) * .09s); }
   @keyframes dsPalabra { from { opacity:0; transform:translateY(16px); filter:blur(5px); } to { opacity:1; transform:none; filter:blur(0); } }
