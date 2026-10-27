@@ -54,7 +54,7 @@ def mostrar_dongles(area: str | None, departamento: str | None) -> bool:
 
 
 def situacion_dongle(equipo: ActivosEquipo, tiene_dongle: bool, requiere_exocad: bool) -> str:
-    if equipo.empleado_id is None:
+    if not equipo.aplica_dongle or equipo.empleado_id is None:
         return "NO_APLICA"
     if tiene_dongle:
         return "TIENE"
@@ -159,7 +159,7 @@ def listar_equipos(db: Session, busqueda: str = "", area: str | None = None, dep
         fila = {"asset_tag": e.asset_tag, "tipo_equipo": e.tipo_equipo, "marca": e.marca, "modelo": e.modelo_referencia,
                "serial_number": e.serial_number, "sistema_operativo": e.sistema_operativo, "estado": e.estado,
                "usuario": emp.nombre_completo if emp else None, "area": a, "departamento": d,
-               "dongle": dongle_obj.numero_dongle if dongle_obj else None,
+               "dongle": dongle_obj.numero_dongle if dongle_obj else None, "aplica_dongle": e.aplica_dongle,
                "situacion_dongle": situacion_dongle(e, dongle_obj is not None, requiere),
                "id_lider_grupo": id_lider_grupo, "grupo": lideres_grupo[id_lider_grupo].nombre_completo if id_lider_grupo in lideres_grupo else None}
         if busqueda:
@@ -235,6 +235,7 @@ def obtener_ficha_equipo(db: Session, asset_tag: str) -> dict:
                   "serial_number": e.serial_number, "sistema_operativo": e.sistema_operativo, "estado": e.estado,
                   "retirado": e.retirado, "usuario": emp.nombre_completo if emp else None, "area": a, "departamento": d,
                   "procesador": e.procesador, "memoria_ram": e.memoria_ram, "almacenamiento": e.almacenamiento,
+                  "aplica_dongle": e.aplica_dongle,
                   "salud": salud_equipo(db, asset_tag, e.estado), "integrantes_a_cargo": integrantes_a_cargo},
         "dongle": {"numero_dongle": dongle.numero_dongle, "version_exocad_compatible": dongle.version_exocad_compatible} if dongle else None,
         "historial": listar_historial_equipo(db, asset_tag),

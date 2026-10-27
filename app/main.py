@@ -438,6 +438,19 @@ def init_db():
     # llega ahí se considera completada, y debe seguir apareciendo en Ubicación actual/Historial.
     with engine.begin() as conn:
         conn.execute(text("UPDATE custodia_areas SET es_inventario = 1 WHERE nombre = 'EMPAQUE'"))
+    # Activos: tipos de equipo nuevos (Maquinaria, Equipos de oficina, Otros) y la casilla "aplica
+    # dongle" por equipo (pedido por Oscar, 27-oct-2026). En SQLite (dev local) la restricción CHECK
+    # queda fija desde que se crea la tabla -- si tu base local ya tenía activos_equipos de antes,
+    # bórrala (no es dato compartido) para que se recree con los tipos nuevos.
+    columnas_activos_equipos = {c["name"] for c in inspect(engine).get_columns("activos_equipos")}
+    if "aplica_dongle" not in columnas_activos_equipos:
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE activos_equipos ADD COLUMN aplica_dongle BOOLEAN DEFAULT {'TRUE' if engine.dialect.name == 'postgresql' else '1'}"))
+    if engine.dialect.name == "postgresql":
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE activos_equipos DROP CONSTRAINT IF EXISTS ck_activos_equipo_tipo"))
+            conn.execute(text("ALTER TABLE activos_equipos ADD CONSTRAINT ck_activos_equipo_tipo "
+                              "CHECK (tipo_equipo IN ('Laptop','Mini PC','Maquinaria','Equipos de oficina','Otros'))"))
     db = SessionLocal()
     try:
         from .invitados import asegurar_invitados

@@ -101,20 +101,21 @@ def _mover_dongle(db: Session, id_dongle: int, asset_tag: str | None, motivo: st
 
 # ---------- Equipos ----------
 
-TIPOS_EQUIPO = {"Laptop", "Mini PC"}
+TIPOS_EQUIPO = {"Laptop", "Mini PC", "Maquinaria", "Equipos de oficina", "Otros"}
 
 
 def _validar_datos_equipo(tipo_equipo, marca, modelo, serial_number) -> tuple[str, str, str, str]:
     tipo = _obligatorio(tipo_equipo, "El tipo de equipo es obligatorio.")
     if tipo not in TIPOS_EQUIPO:
-        raise ValueError("El tipo debe ser Laptop o Mini PC.")
+        raise ValueError(f"El tipo debe ser uno de: {', '.join(sorted(TIPOS_EQUIPO))}.")
     return tipo, _obligatorio(marca, "La marca es obligatoria."), _obligatorio(modelo, "El modelo es obligatorio."), \
         _obligatorio(serial_number, "El serial es obligatorio.")
 
 
 def registrar_equipo(db: Session, actor: Empleado, asset_tag: str, tipo_equipo: str, marca: str, modelo: str,
                      serial_number: str, sistema_operativo: str | None = None, observaciones: str | None = None,
-                     procesador: str | None = None, memoria_ram: str | None = None, almacenamiento: str | None = None) -> ActivosEquipo:
+                     procesador: str | None = None, memoria_ram: str | None = None, almacenamiento: str | None = None,
+                     aplica_dongle: bool = True) -> ActivosEquipo:
     tag = _obligatorio(asset_tag, "El Asset Tag es obligatorio.")
     tipo, marca, modelo, serial = _validar_datos_equipo(tipo_equipo, marca, modelo, serial_number)
     if db.get(ActivosEquipo, tag):
@@ -123,7 +124,8 @@ def registrar_equipo(db: Session, actor: Empleado, asset_tag: str, tipo_equipo: 
         raise Conflicto(f"El serial {serial} ya pertenece a otro equipo.")
     e = ActivosEquipo(asset_tag=tag, tipo_equipo=tipo, marca=marca, modelo_referencia=modelo, serial_number=serial,
                       sistema_operativo=_texto(sistema_operativo), observaciones=_texto(observaciones),
-                      procesador=_texto(procesador), memoria_ram=_texto(memoria_ram), almacenamiento=_texto(almacenamiento))
+                      procesador=_texto(procesador), memoria_ram=_texto(memoria_ram), almacenamiento=_texto(almacenamiento),
+                      aplica_dongle=bool(aplica_dongle))
     db.add(e)
     auditar(db, actor, "Alta de equipo", f"Se registró el equipo {tag} ({marca} {modelo}).")
     db.commit()
@@ -137,7 +139,8 @@ def obtener_equipo(db: Session, asset_tag: str) -> ActivosEquipo:
 
 def actualizar_equipo(db: Session, actor: Empleado, asset_tag: str, tipo_equipo: str, marca: str, modelo: str,
                       serial_number: str, sistema_operativo: str | None, observaciones: str | None,
-                      procesador: str | None = None, memoria_ram: str | None = None, almacenamiento: str | None = None) -> ActivosEquipo:
+                      procesador: str | None = None, memoria_ram: str | None = None, almacenamiento: str | None = None,
+                      aplica_dongle: bool = True) -> ActivosEquipo:
     e = _equipo_activo(db, asset_tag)
     tipo, marca, modelo, serial = _validar_datos_equipo(tipo_equipo, marca, modelo, serial_number)
     if db.query(ActivosEquipo.asset_tag).filter(ActivosEquipo.serial_number == serial, ActivosEquipo.asset_tag != asset_tag).first():
@@ -145,6 +148,7 @@ def actualizar_equipo(db: Session, actor: Empleado, asset_tag: str, tipo_equipo:
     e.tipo_equipo, e.marca, e.modelo_referencia, e.serial_number = tipo, marca, modelo, serial
     e.sistema_operativo, e.observaciones = _texto(sistema_operativo), _texto(observaciones)
     e.procesador, e.memoria_ram, e.almacenamiento = _texto(procesador), _texto(memoria_ram), _texto(almacenamiento)
+    e.aplica_dongle = bool(aplica_dongle)
     auditar(db, actor, "Edición de equipo", f"Se editaron los datos del equipo {asset_tag}.")
     db.commit()
     return e

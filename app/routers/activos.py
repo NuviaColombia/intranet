@@ -69,6 +69,7 @@ class EquipoEntrada(BaseModel):
     procesador: str | None = None
     memoria_ram: str | None = None
     almacenamiento: str | None = None
+    aplica_dongle: bool = True
 
     model_config = {"populate_by_name": True}
 
@@ -111,7 +112,7 @@ def api_equipos_exportar(busqueda: str = "", area: str = "", departamento: str =
 def api_equipo_registrar(payload: EquipoEntrada, user: Empleado = Depends(require_activos), db: Session = Depends(get_db)):
     e = _manejar(sa.registrar_equipo, db, user, payload.asset_tag, payload.tipo_equipo, payload.marca, payload.modelo,
                 payload.serial_number, payload.sistema_operativo, payload.observaciones, payload.procesador,
-                payload.memoria_ram, payload.almacenamiento)
+                payload.memoria_ram, payload.almacenamiento, payload.aplica_dongle)
     return {"mensaje": "Equipo registrado correctamente.", "asset_tag": e.asset_tag}
 
 
@@ -144,7 +145,7 @@ def api_equipo_actualizar(asset_tag: str, payload: EquipoEntrada, user: Empleado
         raise HTTPException(400, "El Asset Tag no coincide.")
     _manejar(sa.actualizar_equipo, db, user, asset_tag, payload.tipo_equipo, payload.marca, payload.modelo,
             payload.serial_number, payload.sistema_operativo, payload.observaciones, payload.procesador,
-            payload.memoria_ram, payload.almacenamiento)
+            payload.memoria_ram, payload.almacenamiento, payload.aplica_dongle)
     return {"mensaje": "Equipo actualizado.", "asset_tag": asset_tag}
 
 
