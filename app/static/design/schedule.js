@@ -303,7 +303,25 @@ window.addEventListener('unhandledrejection', function(ev) {
     function hayAcciones() {
       return Array.prototype.some.call(panel.children, function(el) { return !el.hidden && !el.classList.contains('ds-fuera'); });
     }
+    // Cada acción es una pestaña con el texto dos veces: vertical (en reposo) y horizontal (al pasar el mouse, la masa se
+    // estira hasta --w, el ancho del texto horizontal). «Dejar a cargo» se vuelve a dibujar con cada día: se arma de nuevo.
+    function pestanizar() {
+      panel.querySelectorAll('.ds-prod-btn, #dsACargo > .btn, #dsACargo > .ds-acargo-chip').forEach(function(el) {
+        if (el.querySelector('.ds-tab-v')) return;
+        var txt = el.textContent.trim();
+        el.classList.add('ds-tab');
+        el.innerHTML = '<span class="ds-tab-v"></span><span class="ds-tab-h" aria-hidden="true"></span>';
+        el.firstChild.textContent = txt; el.lastChild.textContent = txt;
+      });
+    }
+    function medir(e) {
+      var t = e.target.closest && e.target.closest('.ds-tab'); if (!t) return;
+      var h = t.querySelector('.ds-tab-h'); if (h) t.style.setProperty('--w', (h.offsetWidth + 30) + 'px');
+    }
+    panel.addEventListener('mouseover', medir);
+    panel.addEventListener('focusin', medir);
     function revisar() {
+      pestanizar();
       var v = hayAcciones(); lat.hidden = !v;
       var app = document.getElementById('ds-app'); if (app) app.classList.toggle('ds-con-lateral', v);   // las pestañas no tapan el contenido
     }
