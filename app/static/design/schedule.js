@@ -1077,9 +1077,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var b = document.getElementById('dsDock'); if (b) return b;
     var nav = document.querySelector('body > nav'); if (!nav) return null;
     b = document.createElement('div'); b.id = 'dsDock'; b.setAttribute('role', 'tablist'); b.setAttribute('aria-label', 'Ventanas ancladas');
-    nav.appendChild(b);
-    var esp = document.createElement('div'); esp.id = 'dsDockEsp'; nav.after(esp);   // reserva el alto de las pestañas bajo la barra
-    return b;
+    nav.appendChild(b); return b;
   }
   function dsDockCerca(y) { var nav = document.querySelector('body > nav'); return !!nav && y < nav.getBoundingClientRect().bottom + 40; }
   function dsDockGuardar() {
