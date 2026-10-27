@@ -323,6 +323,13 @@ estado se guarda en `sessionStorage` (`ds_sim_oculto`): dura mientras esté abie
   tiene salida a colación; con almuerzo fijo no se marca), **sin equipo** (no está como diseñador en un equipo activo: no tiene
   tarjeta; los managers tampoco) y **apagado** (casilla desactivada). El motivo completo está en el tooltip de cada celda.
   Primero revisar ahí cuando alguien diga que «no se coloca la hora del geo».
+  Almuerzo fuera de la hora puesta en GeoVictoria (Rosember, 26-oct-2026; `_almuerzo_sin_tipo`): con almuerzo fijo, quien
+  almuerza a otra hora llega con marcas SIN tipo de turno (`SinAsignar`); antes no se reconocían como almuerzo y la primera
+  «Salida» suelta se tomaba como la salida del día. Ahora, si no hay marcas de almuerzo con tipo y entre las sueltas hay una
+  Salida seguida de un Ingreso a mitad del día (con una llegada antes y una pausa de 10 min a 2 h 30 min), esa pareja es el
+  almuerzo (se elige la pausa más larga). Solo con la pareja completa: una salida suelta sin regreso sigue siendo la salida
+  del día. Para revisar un caso, pasar el mouse por el nombre en «Marcas de hoy»: muestra las marcas tal como las manda
+  GeoVictoria (hora, Ingreso/Salida y tipo de turno).
   Reporte mensual de llegadas tarde (Dashboard › Reportes › «Reportes GeoVictoria»): GetConsolidatedColombia (días con
   atraso y minutos); solo quienes llegaron tarde ≥ 1 vez; KPIs, gráfica de quienes más llegan tarde, por equipo, por día de
   la semana y detalle; mismo estilo del reporte mensual, imprimible como PDF (`/design/reportes/geovictoria?mes=`). Los

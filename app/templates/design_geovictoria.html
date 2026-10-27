@@ -217,7 +217,7 @@
     });
     $('gvTabla').querySelector('tbody').innerHTML = filas.map(function (f) {
       var e = estadoDe(f);
-      return '<tr><td class="gv-nom">' + esc(f.nombre) + '<small>' + esc(f.equipos.join(', ')) + '</small></td>' +
+      return '<tr><td class="gv-nom" title="' + esc('Marcas tal como las manda GeoVictoria:\n' + ((f.crudas || []).join('\n') || '(ninguna)')) + '">' + esc(f.nombre) + '<small>' + esc(f.equipos.join(', ')) + '</small></td>' +
         '<td>' + (f.turno ? esc(f.turno) : (f.sinHorario ? '<span class="gv-h falta">Sin horario</span>' : 'Descanso')) + '</td>' +
         '<td>' + celda(f.entrada, 'entrada', f) + '</td><td>' + celda(f.salidaAlm, '', f) + '</td>' +
         '<td>' + celda(f.regresoAlm, 'almuerzo', f) + '</td><td>' + celda(f.salida, 'salida', f) + '</td>' +

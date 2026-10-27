@@ -167,6 +167,34 @@ def _hm(d: datetime | None) -> str:
     return d.strftime("%H:%M") if d else ""
 
 
+ALMUERZO_SIN_TIPO_MIN, ALMUERZO_SIN_TIPO_MAX = 10, 150   # minutos entre la salida y el regreso para tomarlo como almuerzo
+
+
+def _almuerzo_sin_tipo(marcas: dict, sueltas: list) -> list:
+    """Almuerzo fuera de la hora que GeoVictoria tiene puesta (26-oct-2026): con un turno de almuerzo fijo, la salida y el regreso
+    que se hacen a otra hora llegan SIN tipo de turno y antes no se reconocían como almuerzo (y la primera «Salida» suelta se
+    tomaba como la salida del día). Si no hay marcas de almuerzo con tipo y entre las sueltas hay una Salida seguida de un Ingreso
+    a mitad del día (algo antes, y entre 10 min y 2 h 30 min de pausa), esa pareja es el almuerzo. Solo con la pareja completa:
+    una salida suelta sin regreso sigue siendo la salida del día. Devuelve las sueltas que quedan para entrada y salida."""
+    if marcas["salidaAlm"] or marcas["regresoAlm"]:
+        return sueltas
+    mejor = None
+    for i in range(len(sueltas) - 1):
+        (t1, d1), (t2, d2) = sueltas[i], sueltas[i + 1]
+        if t1 != "Salida" or t2 != "Ingreso":
+            continue
+        if not (marcas["entrada"] or i > 0):   # tiene que haber llegado antes
+            continue
+        pausa = (d2 - d1).total_seconds() / 60
+        if ALMUERZO_SIN_TIPO_MIN <= pausa <= ALMUERZO_SIN_TIPO_MAX and (mejor is None or pausa > mejor[0]):
+            mejor = (pausa, i, d1, d2)
+    if not mejor:
+        return sueltas
+    _, i, d1, d2 = mejor
+    marcas["salidaAlm"], marcas["regresoAlm"] = d1, d2
+    return sueltas[:i] + sueltas[i + 2:]
+
+
 def leer_dia(u: dict, dia: date) -> dict | None:
     """Del libro de asistencia de una persona, lo de `dia`: turno, permisos y marcas (entrada, almuerzo, salida)."""
     pref = dia.strftime("%Y%m%d")
@@ -196,15 +224,18 @@ def leer_dia(u: dict, dia: date) -> dict | None:
     permisos = [(t.get("TimeOffTypeDescription") or t.get("Description") or "Permiso").strip() for t in it.get("TimeOffs") or []]
     marcas = {"entrada": None, "salidaAlm": None, "regresoAlm": None, "salida": None}
     sueltas = []
+    crudas = []
     for p in sorted(it.get("Punches") or [], key=lambda p: str(p.get("Date"))):
         d, t = _dt(p.get("Date")), p.get("ShiftPunchType") or ""
         if not d:
             continue
+        crudas.append(f"{_hm(d)} {p.get('Type') or '?'} · {t or 'sin tipo'}")   # tal como las manda GeoVictoria (tooltip de la página)
         k = {"Entrada": "entrada", "SalidaColacion": "salidaAlm", "EntradaColacion": "regresoAlm", "Salida": "salida"}.get(t)
         if k and not marcas[k]:
             marcas[k] = d
         elif not k:
             sueltas.append((p.get("Type"), d))
+    sueltas = _almuerzo_sin_tipo(marcas, sueltas)
     for tipo, d in sueltas:   # marcas «SinAsignar»: Ingreso cuenta como entrada y Salida como salida si faltan
         if tipo == "Ingreso" and not marcas["entrada"]:
             marcas["entrada"] = d
@@ -213,7 +244,7 @@ def leer_dia(u: dict, dia: date) -> dict | None:
     atraso = 0
     if turno and marcas["entrada"] and marcas["entrada"] > turno["inicio"]:
         atraso = int((marcas["entrada"] - turno["inicio"]).total_seconds() // 60)
-    return {"turno": turno, "permisos": permisos, "marcas": marcas, "atrasoMin": atraso,
+    return {"turno": turno, "permisos": permisos, "marcas": marcas, "atrasoMin": atraso, "crudas": crudas,
             "sinHorario": not turno and not descanso and not permisos}   # nadie le asignó turno ese día
 
 
@@ -321,7 +352,7 @@ def para_seguimiento(empleado_id: int, ahora: datetime, tol: int | None = None) 
     t, m = info["turno"], info["marcas"]
     return {"turno": f"{_hm(t['inicio'])} – {_hm(t['fin'])}" if t else "", "permisos": info["permisos"], "atrasoMin": info["atrasoMin"],
             "entrada": _hm(m["entrada"]), "salidaAlm": _hm(m["salidaAlm"]), "regresoAlm": _hm(m["regresoAlm"]), "salida": _hm(m["salida"]),
-            "faltas": faltas(info, ahora, TOLERANCIA if tol is None else tol), "sinHorario": bool(info.get("sinHorario")),
+            "faltas": faltas(info, ahora, TOLERANCIA if tol is None else tol), "sinHorario": bool(info.get("sinHorario")), "crudas": info.get("crudas") or [],
             "permisosHoras": [f"{tp} {_hm(a)}–{_hm(b)}" for a, b, tp in info.get("permisosHoras") or []]}
 
 

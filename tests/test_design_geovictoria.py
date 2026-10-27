@@ -48,6 +48,58 @@ class Lectura(unittest.TestCase):
         self.assertEqual(f(usuario("1", []), 16, 30), [])                  # el turno ya terminó y nunca llegó: no es «salida»
 
 
+def sin_tipo(u, *horas):
+    """Las marcas de esas horas llegan SIN tipo de turno (como pasa con el almuerzo fuera de la hora fija de GeoVictoria)."""
+    for p in u["PlannedInterval"][0]["Punches"]:
+        if p["Date"][8:14] in horas:
+            p["ShiftPunchType"] = "SinAsignar"
+    return u
+
+
+class AlmuerzoFueraDeLaHoraPuesta(unittest.TestCase):
+    """26-oct-2026: con almuerzo fijo en GeoVictoria, quien almuerza a otra hora llega con marcas sin tipo; ahora la pareja
+    salida + regreso a mitad del día se reconoce como almuerzo."""
+
+    def marcas(self, u):
+        m = g.leer_dia(u, DIA)["marcas"]
+        return {k: g._hm(v) for k, v in m.items()}
+
+    def test_pareja_sin_tipo_es_el_almuerzo(self):
+        u = sin_tipo(usuario("1", [("e", "070000"), ("sa", "114000"), ("ra", "123500"), ("s", "160000")], almuerzo_fijo=True), "114000", "123500")
+        self.assertEqual(self.marcas(u), {"entrada": "07:00", "salidaAlm": "11:40", "regresoAlm": "12:35", "salida": "16:00"})
+
+    def test_todo_sin_tipo_tambien(self):
+        u = sin_tipo(usuario("1", [("e", "070000"), ("sa", "114000"), ("ra", "123500"), ("s", "160000")], almuerzo_fijo=True),
+                     "070000", "114000", "123500", "160000")
+        self.assertEqual(self.marcas(u), {"entrada": "07:00", "salidaAlm": "11:40", "regresoAlm": "12:35", "salida": "16:00"})
+
+    def test_antes_la_salida_del_almuerzo_se_tomaba_como_salida_del_dia(self):
+        # sin la pareja completa (aún no regresa) todo queda como antes: la salida suelta cuenta como salida
+        u = sin_tipo(usuario("1", [("e", "070000"), ("sa", "114000")], almuerzo_fijo=True), "114000")
+        self.assertEqual(self.marcas(u), {"entrada": "07:00", "salidaAlm": "", "regresoAlm": "", "salida": "11:40"})
+
+    def test_dos_marcas_sin_tipo_son_entrada_y_salida(self):
+        u = sin_tipo(usuario("1", [("e", "070000"), ("s", "160000")]), "070000", "160000")
+        self.assertEqual(self.marcas(u), {"entrada": "07:00", "salidaAlm": "", "regresoAlm": "", "salida": "16:00"})
+
+    def test_una_pausa_muy_larga_o_muy_corta_no_es_almuerzo(self):
+        larga = sin_tipo(usuario("1", [("e", "070000"), ("sa", "110000"), ("ra", "140000"), ("s", "160000")]), "110000", "140000")   # 3 h
+        self.assertEqual(self.marcas(larga)["salidaAlm"], "")
+        corta = sin_tipo(usuario("1", [("e", "070000"), ("sa", "110000"), ("ra", "110500"), ("s", "160000")]), "110000", "110500")   # 5 min
+        self.assertEqual(self.marcas(corta)["salidaAlm"], "")
+
+    def test_si_ya_hay_marcas_de_almuerzo_con_tipo_no_se_toca(self):
+        u = usuario("1", [("e", "070000"), ("sa", "120000"), ("ra", "130000"), ("s", "160000")])
+        self.assertEqual(self.marcas(u), {"entrada": "07:00", "salidaAlm": "12:00", "regresoAlm": "13:00", "salida": "16:00"})
+
+    def test_el_almuerzo_inferido_llega_al_schedule_y_a_las_marcas_crudas(self):
+        u = sin_tipo(usuario("1", [("e", "070000"), ("sa", "114000"), ("ra", "123500"), ("s", "160000")], almuerzo_fijo=True), "114000", "123500")
+        info = g.leer_dia(u, DIA)
+        self.assertEqual(g._almuerzo_esperado(info["marcas"]), ("11:40", "12:35"))
+        self.assertIn("11:40 Salida · SinAsignar", info["crudas"])
+        self.assertEqual(g.faltas(info, datetime(2026, 10, 22, 14, 0), 10), [])    # ya regresó: no hay aviso de almuerzo
+
+
 class Avisos(unittest.TestCase):
     def setUp(self):
         eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
