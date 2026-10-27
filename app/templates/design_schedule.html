@@ -83,6 +83,11 @@
       <span class="ds-cfg-txt"><b>Colores de los estados</b><small>Encendido: el color cubre toda la fila. Apagado: solo la columna Estado.</small></span>
       <label class="ds-auto-oc"><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados"><span class="sw"></span></label>
     </div>
+    <div class="ds-cfg-fila">
+      <span class="ds-cfg-txt"><b>Modo oscuro</b><small>Cambia la apariencia de Design para ti. Se guarda para tu usuario.</small></span>
+      <label class="ds-tema-sw"><input type="checkbox" id="dsTemaChk" role="switch" aria-label="Modo oscuro" onchange="dsTema(this.checked ? 'oscuro' : 'claro')"{% if tema_design(user) == 'oscuro' %} checked{% endif %}>
+        <span class="ds-tema-pista" aria-hidden="true"><span class="ds-tema-perilla"></span></span></label>
+    </div>
     {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
     <div class="ds-cfg-fila">
       <span class="ds-cfg-txt"><b>Avisos de apoyo</b><small>Recibir una notificación cuando alguien de tu equipo pida apoyo, con su nota.</small></span>
