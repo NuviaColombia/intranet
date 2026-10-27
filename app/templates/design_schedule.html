@@ -51,6 +51,7 @@
         {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digital</button>{% endif %}
         <div id="dsACargo" class="ds-acargo" hidden></div>
         <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsHistorialBtn" title="Ir a cualquier día de producción" aria-haspopup="dialog">Historial</button>
+        <div id="dsLatDias" class="ds-lat-dias ds-fuera" role="group" aria-label="Días de la semana"></div>
       </div>
     </div>
     <div class="ds-cabecera-der">
@@ -91,11 +92,10 @@
     </div>
     <div id="dsVistaEquipo" style="display:none">
 
-    <!-- Contadores a la izquierda y días de la semana al final de la fila, justo debajo del rango de semana -->
+    <!-- Contadores a la izquierda; los días de la semana están en la barra lateral (#dsLatDias, 26-oct-2026) -->
     <div class="ds-fila-kpis">
       <div id="dsKpis" class="ds-kpis"></div>
       {% if user.rol not in ('admin', 'superadmin') %}<select id="dsMisEquipos" class="ds-mis-equipos" aria-label="Mi equipo" hidden></select>{% endif %}
-      <div id="dsDiaTabs" class="ds-tabs"></div>
     </div>
 
     <div class="ds-panel" id="dsPanelMaterial" style="display:none">
@@ -143,7 +143,6 @@
   </div>
 
   <div id="dsVistaTodasAreas" style="display:none">
-    <div class="ds-fila-kpis"><div></div><div id="dsDiaTabsTodas" class="ds-tabs"></div></div>
     <div class="ds-tq-filtros" id="dsTodasFiltros">
       <input type="search" data-tf="q" placeholder="Buscar orden o paciente…" aria-label="Buscar orden o paciente">
       <select data-tf="centro" aria-label="Filtrar por centro"><option value="">Centro: todos</option></select>
