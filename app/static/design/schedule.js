@@ -7569,7 +7569,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
          '<span class="cv-ed-name" id="cvDocName" contenteditable spellcheck="false" title="Clic para renombrar">' + esc(doc.name) + '</span>' +
          '<span class="cv-tool-sep"></span>' +
          (CANVAS.expert ? '<button class="cv-mini-btn" id="cvPdfBtn" title="Exportar esta hoja a PDF">📄 PDF</button>' +
-           '<button class="cv-mini-btn" id="cvPdfAllBtn" title="Exportar TODAS las hojas del área a un solo PDF">📚 Todas</button>' : '') +
+           '<button class="cv-mini-btn" id="cvPdfAllBtn" title="Descargar varias hojas, cada una en su PNG (eliges cuáles)">📚 Todas</button>' : '') +
          '<button class="cv-primary-btn" id="cvExportBtn" title="Exportar como PNG">PNG</button>' +
          '<button class="cv-mini-btn" id="cvShareBtn" title="Compartir una copia de esta hoja con alguien de tu área (solo el formato, sin fotos)">⇪ Compartir</button>' +
          (CANVAS.expert ? '<button class="cv-mini-btn" id="cvCopyBtn" title="Copiar como imagen">📋 Copiar</button>' : '') +
@@ -7870,6 +7870,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     ctx.fillText(doc.title || "", EW / 2, 118);
     return cv;
   }
+  async function cvSheetPngBlob(doc) {
+    var cv = await cvSheetToCanvas(doc);
+    return new Promise(function(res) { cv.toBlob(res, "image/png"); });
+  }
   async function cvExportPNG(id) {
     var doc = CANVAS.docs.find(function(d) { return d.id === id; }) || cvActiveDoc(); if (!doc) return;
     var cv = await cvSheetToCanvas(doc);
@@ -7938,6 +7942,74 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var a = document.createElement("a"), url = URL.createObjectURL(pdf);
     a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+  }
+
+  // «📚 Todas» (Rosember, 27-oct-2026): en vez de un solo PDF con todas las hojas, una ventana en el centro para elegir
+  // cuáles descargar (marcar todas o una por una); cada hoja baja en su propio PNG.
+  function cvElegirPngs() {
+    if (document.getElementById("cvPngBg")) return;
+    var docs = CANVAS.docs.slice();
+    var bg = document.createElement("div"); bg.className = "ds-qc-bg ds-fondo-50"; bg.id = "cvPngBg";
+    bg.innerHTML = '<div class="cv-png-pop" role="dialog" aria-modal="true" aria-labelledby="cvPngTit">' +
+      '<div class="cv-png-cab"><h3 id="cvPngTit">Descargar hojas en PNG</h3><button type="button" class="cv-png-x" data-cvpng-cerrar title="Cerrar" aria-label="Cerrar">✕</button></div>' +
+      '<p class="cv-png-sub">Cada hoja se guarda en su propio archivo PNG.' + (window.showDirectoryPicker ? ' Si eliges varias, te pide la carpeta donde guardarlas.' : '') + '</p>' +
+      '<label class="cv-png-todas"><input type="checkbox" data-cvpng-todas> Marcar todas <span class="cv-png-cuenta"></span></label>' +
+      '<div class="cv-png-lista">' + docs.map(function(d, i) {
+        return '<label class="cv-png-item"><input type="checkbox" data-cvpng-i="' + i + '"><span class="cv-png-n">' + (i + 1) + '</span>' +
+          '<span class="cv-png-nom"><b>' + esc(d.name || "Hoja " + (i + 1)) + '</b>' + (d.title ? '<small>' + esc(d.title) + '</small>' : '') + '</span></label>';
+      }).join("") + '</div>' +
+      '<div class="cv-png-pie"><span class="cv-png-estado" aria-live="polite"></span>' +
+      '<button type="button" class="cv-mini-btn" data-cvpng-cerrar>Cancelar</button><button type="button" class="cv-primary-btn" data-cvpng-bajar disabled>Descargar</button></div></div>';
+    document.body.appendChild(bg);
+    var pop = bg.firstChild, todas = pop.querySelector("[data-cvpng-todas]"), bajar = pop.querySelector("[data-cvpng-bajar]");
+    var marcas = Array.prototype.slice.call(pop.querySelectorAll("[data-cvpng-i]")), ocupado = false;
+    var contar = function() {
+      var n = marcas.filter(function(c) { return c.checked; }).length;
+      todas.checked = n === marcas.length; todas.indeterminate = n > 0 && n < marcas.length;
+      pop.querySelector(".cv-png-cuenta").textContent = "(" + n + " de " + marcas.length + ")";
+      bajar.disabled = !n || ocupado; bajar.textContent = n ? "Descargar " + n + " PNG" : "Descargar";
+      pop.querySelector(".cv-png-estado").textContent = ocupado ? pop.querySelector(".cv-png-estado").textContent : "";
+    };
+    var cerrar = function() { bg.remove(); document.removeEventListener("keydown", teclas, true); };
+    // mientras está abierta, las teclas no llegan al Canvas (← → cambian de hoja, Supr borra)
+    var teclas = function(e) { e.stopPropagation(); if (e.key === "Escape" && !ocupado) cerrar(); };
+    document.addEventListener("keydown", teclas, true);
+    todas.addEventListener("change", function() { marcas.forEach(function(c) { c.checked = todas.checked; }); contar(); });
+    marcas.forEach(function(c) { c.addEventListener("change", contar); });
+    bg.addEventListener("mousedown", function(e) { if (e.target === bg && !ocupado) cerrar(); });
+    pop.addEventListener("click", function(e) { if (e.target.closest("[data-cvpng-cerrar]") && !ocupado) cerrar(); });
+    bajar.addEventListener("click", async function() {
+      var elegidas = marcas.filter(function(c) { return c.checked; }).map(function(c) { return docs[+c.dataset.cvpngI]; });
+      var estado = pop.querySelector(".cv-png-estado");
+      // Varias hojas: el navegador bloquea (o pregunta) las descargas seguidas, así que se pide una carpeta una vez y se
+      // guardan todas ahí. Si el navegador no lo permite, se descargan una por una.
+      var carpeta = null;
+      if (elegidas.length > 1 && window.showDirectoryPicker) {
+        try { carpeta = await window.showDirectoryPicker({id: "canvas-png", mode: "readwrite"}); }
+        catch (err) { if (err && err.name === "AbortError") { estado.textContent = "Elige una carpeta para guardar las hojas."; return; } }
+      }
+      ocupado = true; contar();
+      try {
+        var usados = {};
+        for (var i = 0; i < elegidas.length; i++) {
+          estado.textContent = "Guardando " + (i + 1) + " de " + elegidas.length + "…";
+          if (carpeta) {
+            // con el número de la hoja: varias hojas se llaman igual (Upper, Lower…)
+            var nom = (docs.indexOf(elegidas[i]) + 1) + " - " + (cvSheetFileName(elegidas[i]) || "hoja"), n = usados[nom] = (usados[nom] || 0) + 1;
+            var fh = await carpeta.getFileHandle(nom + (n > 1 ? " (" + n + ")" : "") + ".png", {create: true});
+            var w = await fh.createWritable(); await w.write(await cvSheetPngBlob(elegidas[i])); await w.close();
+          } else {
+            await cvExportPNG(elegidas[i].id);
+            await new Promise(function(r) { setTimeout(r, 400); });
+          }
+        }
+        cerrar();
+        if (carpeta) dsToast(elegidas.length + " hojas guardadas en la carpeta «" + carpeta.name + "».");
+      } catch (err) {
+        ocupado = false; contar(); estado.textContent = "No se pudo guardar una hoja. Intenta de nuevo.";
+      }
+    });
+    contar(); todas.focus();
   }
 
   /* ---------- Anotaciones: modelo/geometría ---------- */
@@ -8510,7 +8582,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (t.closest("#cvExportBtn")) { var d1 = cvActiveDoc(); if (d1) cvExportPNG(d1.id); return; }
     if (t.closest("#cvCopyBtn")) { cvCopySheet(t.closest("#cvCopyBtn")); return; }
     if (t.closest("#cvPdfBtn")) { var d2 = cvActiveDoc(); if (d2) cvExportPDF([d2], cvSheetFileName(d2) + ".pdf"); return; }
-    if (t.closest("#cvPdfAllBtn")) { if (CANVAS.docs.length) cvExportPDF(CANVAS.docs, "Canvas - todas las hojas.pdf"); return; }
+    if (t.closest("#cvPdfAllBtn")) { if (CANVAS.docs.length) cvElegirPngs(); return; }
     if (t.closest("#cvClearPhotos")) { var doc3 = cvActiveDoc(); if (doc3 && doc3.frames.some(function(f) { return f.img; })) { cvRecord(); doc3.frames.forEach(function(f) { f.img = null; }); doc3.updated = Date_nowSafe(); cvSave(); cvRenderEditor(); } return; }
     if (t.closest("#cvPrevBtn")) { cvNavDoc(-1); return; }
     if (t.closest("#cvNextBtn")) { cvNavDoc(1); return; }
