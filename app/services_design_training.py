@@ -33,8 +33,12 @@ def es_admin(user: Empleado) -> bool:
     return user.rol in ("admin", "superadmin")
 
 
+# De los admins, solo Rosember ve Training y Pizarrón (menú y páginas) mientras se arma (Rosember, 27-oct-2026).
+ADMINS_CON_ACCESO = {"rosember@nuviasmiles.com"}
+
+
 def puede_ver(user: Empleado) -> bool:
-    return ABIERTO_A_TODOS or es_admin(user)
+    return ABIERTO_A_TODOS or (es_admin(user) and (user.email or "").strip().lower() in ADMINS_CON_ACCESO)
 
 
 # ---------- Contenido ----------

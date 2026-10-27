@@ -41,7 +41,8 @@ class Dev(unittest.TestCase):
 
     def test_acceso(self):
         u = lambda email, rol="empleado": SimpleNamespace(email=email, rol=rol, activo=1)
-        self.assertTrue(sdv.tiene_acceso(u("x@y.com", "admin")))
+        self.assertFalse(sdv.tiene_acceso(u("x@y.com", "admin")))           # de los admins, solo Rosember (27-oct-2026)
+        self.assertTrue(sdv.tiene_acceso(u("Rosember@nuviasmiles.com", "admin")))
         self.assertTrue(sdv.tiene_acceso(u("Paul.Andion@nuviasmiles.com")))
         self.assertTrue(sdv.tiene_acceso(u("luisblaschke@nuviasmiles.com")))
         self.assertFalse(sdv.tiene_acceso(u("otra@nuviasmiles.com")))
@@ -147,3 +148,14 @@ class Dev(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SoloRosemberEntreAdmins(unittest.TestCase):
+    """27-oct-2026: de los admins, solo Rosember ve Training (Plataforma y Pizarrón) y Development."""
+
+    def test_training(self):
+        from app import services_design_training as st
+        u = lambda email, rol: SimpleNamespace(email=email, rol=rol, activo=1)
+        self.assertTrue(st.puede_ver(u("rosember@nuviasmiles.com", "admin")))
+        self.assertFalse(st.puede_ver(u("otro.admin@nuviasmiles.com", "admin")))
+        self.assertFalse(st.puede_ver(u("rosember@nuviasmiles.com", "empleado")))

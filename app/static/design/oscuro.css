@@ -201,3 +201,6 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] .cv-png-n { background:#f3f4f6; color:#0f172a; }
 :root[data-ds-tema="oscuro"] .cv-png-x { color:#cbd5e1; }
 :root[data-ds-tema="oscuro"] .cv-png-x:hover { background:#1e293b; }
+
+/* Canvas › Tablero: raya de dónde queda la hoja al arrastrarla */
+:root[data-ds-tema="oscuro"] .cv-board-card.cv-bdrop-antes::before, :root[data-ds-tema="oscuro"] .cv-board-card.cv-bdrop-despues::before { background:#f3f4f6; }

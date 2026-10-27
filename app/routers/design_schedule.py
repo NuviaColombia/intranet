@@ -3276,9 +3276,18 @@ def pagina_canvas(request: Request, user: Empleado = Depends(require_modulo("des
     return _redirigir_a_panel(request, "canvas")
 
 
+@router.get("/design/api/canvas/areas")
+def api_canvas_areas(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    """Áreas del Canvas que ve la persona (las de sus equipos; admins y Support, todas)."""
+    permitidas = sd.canvas_areas_permitidas(db, user)
+    return {"todas": permitidas is None, "ids": sorted(permitidas or [])}
+
+
 @router.get("/design/api/canvas/docs")
 def api_canvas_docs(area_id: int, ver_de: int | None = None, user: Empleado = Depends(require_modulo("design_schedule")),
                           db: Session = Depends(get_db)):
+    if not sd.canvas_area_permitida(db, user, area_id):
+        raise HTTPException(403, "Esa área no es de tu equipo.")
     docs = sd.canvas_docs(db, area_id, user, ver_de)
     if docs is None:
         raise HTTPException(403, "No puedes ver las hojas de esa persona.")
@@ -3312,6 +3321,8 @@ class CanvasCrearIn(BaseModel):
 @router.post("/design/api/canvas/docs")
 def api_canvas_crear(payload: CanvasCrearIn, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
+    if not sd.canvas_area_permitida(db, user, payload.areaId):
+        raise HTTPException(403, "Esa área no es de tu equipo.")
     d = sd.canvas_crear_doc(db, payload.areaId, payload.nombre, payload.templateId, payload.titulo,
                             payload.frames, user)
     return sd.canvas_serializar(d)
@@ -3356,12 +3367,13 @@ def api_canvas_duplicar(doc_id: int, user: Empleado = Depends(require_modulo("de
 
 class CanvasMoverIn(BaseModel):
     targetId: int
+    despues: bool = False   # Tablero: soltada en el lado derecho de la otra hoja
 
 
 @router.post("/design/api/canvas/docs/{doc_id}/mover")
 def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depends(require_modulo("design_schedule")),
                            db: Session = Depends(get_db)):
-    if not sd.canvas_mover_doc(db, doc_id, payload.targetId, user):
+    if not sd.canvas_mover_doc(db, doc_id, payload.targetId, user, payload.despues):
         raise HTTPException(400, "No se pudo mover.")
     return {"mensaje": "Movida."}
 
@@ -3369,6 +3381,8 @@ def api_canvas_mover(doc_id: int, payload: CanvasMoverIn, user: Empleado = Depen
 @router.get("/design/api/canvas/destinatarios")
 def api_canvas_destinatarios(area_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """Con quién se puede compartir una hoja: las personas de la misma área (26-oct-2026)."""
+    if not sd.canvas_area_permitida(db, user, area_id):
+        raise HTTPException(403, "Esa área no es de tu equipo.")
     return sd.canvas_destinatarios(db, user, area_id)
 
 

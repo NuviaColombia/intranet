@@ -5263,6 +5263,24 @@ def canvas_personas_visibles(db: Session, user: Empleado, area_id: int) -> list[
     return []
 
 
+def canvas_areas_permitidas(db: Session, user: Empleado) -> set[int] | None:
+    """Áreas del Canvas que ve `user` (Rosember, 27-oct-2026): solo las de sus equipos (diseñador o manager), así N3 no ve
+    N2 ni Face. Los admins y las personas de Support ven todas (None = todas)."""
+    if es_admin(user):
+        return None
+    ids = equipos_como_designer(db, user)
+    teams = (db.query(DesignTeam).options(joinedload(DesignTeam.area))
+             .filter(DesignTeam.activo == 1, or_(DesignTeam.manager_id == user.id, DesignTeam.id.in_(ids or [-1]))).all())
+    if any(t.area and t.area.formato == FORMATO_SUPPORT for t in teams):
+        return None
+    return {t.area_id for t in teams}
+
+
+def canvas_area_permitida(db: Session, user: Empleado, area_id: int) -> bool:
+    permitidas = canvas_areas_permitidas(db, user)
+    return permitidas is None or area_id in permitidas
+
+
 def canvas_puede_ver(db: Session, user: Empleado, dueno_id: int | None, area_id: int) -> bool:
     """Solo el dueño ve sus hojas (26-oct-2026)."""
     return dueno_id is not None and dueno_id == user.id
@@ -5406,7 +5424,8 @@ def canvas_duplicar_doc(db: Session, doc_id: int, user: Empleado) -> DesignCanva
     return copia
 
 
-def canvas_mover_doc(db: Session, doc_id: int, target_id: int, user: Empleado) -> bool:
+def canvas_mover_doc(db: Session, doc_id: int, target_id: int, user: Empleado, despues: bool = False) -> bool:
+    """Pone la hoja antes de `target_id` (o después, con `despues`: arrastrada al lado derecho de otra en el Tablero)."""
     d = canvas_doc_propio(db, doc_id, user)
     t = canvas_doc_propio(db, target_id, user)
     if not d or not t or d.area_id != t.area_id:
@@ -5414,7 +5433,7 @@ def canvas_mover_doc(db: Session, doc_id: int, target_id: int, user: Empleado) -
     docs = (db.query(DesignCanvasDoc).filter(DesignCanvasDoc.area_id == d.area_id, DesignCanvasDoc.empleado_id == user.id)
            .order_by(DesignCanvasDoc.orden).all())
     docs = [x for x in docs if x.id != d.id]
-    idx = next((i for i, x in enumerate(docs) if x.id == t.id), len(docs))
+    idx = next((i + (1 if despues else 0) for i, x in enumerate(docs) if x.id == t.id), len(docs))
     docs.insert(idx, d)
     for i, x in enumerate(docs, start=1):
         x.orden = i

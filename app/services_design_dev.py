@@ -25,6 +25,7 @@ from .models_design import (DesignDevApoyo, DesignDevEvento, DesignDevEvidencia,
                             DesignDevRiesgo)
 
 DEV_ESPECIALES = {"luisblaschke@nuviasmiles.com", "paul.andion@nuviasmiles.com"}
+ADMINS_CON_ACCESO = {"rosember@nuviasmiles.com"}   # de los admins, solo Rosember ve Development (27-oct-2026)
 
 ESTADOS = {"propuesta": "Propuesta", "aprobado": "Aprobado", "desarrollo": "En desarrollo", "qa": "En pruebas (QA)",
            "lanzado": "Lanzado", "pausado": "Pausado"}
@@ -75,7 +76,9 @@ def tiene_acceso(user: Empleado | None) -> bool:
     if not user or not getattr(user, "activo", 1):
         return False
     from .invitados import es_invitado   # invitados (Parameters › Invitados): lo ven, sin poder cambiar nada
-    return sd.es_admin(user) or (user.email or "").strip().lower() in DEV_ESPECIALES or es_invitado(user)
+    email = (user.email or "").strip().lower()
+    # De los admins, solo Rosember (27-oct-2026); siguen Luis Felipe, Paul y los invitados
+    return (sd.es_admin(user) and email in ADMINS_CON_ACCESO) or email in DEV_ESPECIALES or es_invitado(user)
 
 
 def _iso(dt: datetime | None) -> str:

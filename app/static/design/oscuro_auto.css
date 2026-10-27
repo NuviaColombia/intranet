@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (738 reglas) ---- */
+/* ---- static\design\schedule.css (739 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -487,6 +487,7 @@
 :root[data-ds-tema="oscuro"] .cv-view-def { background:none; border:none; color:#bbc1cc; }
 :root[data-ds-tema="oscuro"] .cv-view-def:hover { background:#1d2125; }
 :root[data-ds-tema="oscuro"] .cv-view-def.on { color:#f4d37a; }
+:root[data-ds-tema="oscuro"] .cv-board-card.cv-bdrop-antes::before, :root[data-ds-tema="oscuro"] .cv-board-card.cv-bdrop-despues::before { background:#111827; }
 :root[data-ds-tema="oscuro"] .cv-board-name { background:none; border:none; color:#d1d9eb; }
 :root[data-ds-tema="oscuro"] .cv-board-name:hover { color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .cv-board-sub { color:#bbc1cc; }

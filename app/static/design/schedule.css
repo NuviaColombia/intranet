@@ -870,6 +870,13 @@
   .cv-view-def.on{ color:#e6a700; }
   .cv-board{ display:flex; flex-wrap:wrap; gap:22px; align-items:flex-start; padding-bottom:24px; }
   .cv-board-card{ display:flex; flex-direction:column; align-items:center; gap:6px; width:300px; }
+  /* Tablero: arrastrar hojas para cambiar el orden (27-oct-2026) */
+  .cv-board-card[draggable="true"]{ cursor:grab; position:relative; }
+  .cv-board-card.cv-bdragging{ opacity:.4; }
+  .cv-board-card.cv-bdrop-antes::before, .cv-board-card.cv-bdrop-despues::before{ content:''; position:absolute; top:0; bottom:0; width:4px;
+    border-radius:2px; background:#111827; pointer-events:none; }
+  .cv-board-card.cv-bdrop-antes::before{ left:-11px; }
+  .cv-board-card.cv-bdrop-despues::before{ right:-11px; }
   .cv-thumb-wrap{ display:inline-block; cursor:pointer; }
   .cv-thumb{ position:relative; background:#fff; border:1px solid #e2e6ea; border-radius:9px; box-shadow:0 10px 26px -14px rgba(24,21,69,.4); overflow:hidden; transition:box-shadow .15s; }
   .cv-thumb-wrap:hover .cv-thumb{ box-shadow:0 16px 32px -12px rgba(24,21,69,.55); }

@@ -69,6 +69,15 @@ def _ve_development(user) -> bool:
 templates.env.globals["ve_development"] = _ve_development
 
 
+def _ve_training(user) -> bool:
+    """Menú Training (Plataforma y Pizarrón): de los admins, solo Rosember (27-oct-2026)."""
+    from .services_design_training import puede_ver
+    return bool(user) and puede_ver(user)
+
+
+templates.env.globals["ve_training"] = _ve_training
+
+
 def _es_invitado(user) -> bool:
     from .invitados import es_invitado
     return es_invitado(user)

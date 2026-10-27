@@ -197,7 +197,7 @@
   <a href="/mis-aprobaciones">Aprobaciones{% if resumen.total %} <span class="badge-alertas">{{ resumen.total }}</span>{% endif %}</a>
   {% endif %}
   {% endif %}
-  {% if es_design and user.rol in ('admin', 'superadmin') %}
+  {% if es_design and ve_training(user) %}{# de los admins, solo Rosember (services_design_training.puede_ver) #}
   <div class="nav-drop">
     <button type="button" class="nav-drop-btn">Training ▾</button>
     <div class="nav-drop-menu">
@@ -209,7 +209,7 @@
   {% if not es_design %}<a href="/">Módulos</a>{% endif %}{# en Design no hay «Modules»: el logo ya lleva a la misma página (Rosember, 27-oct-2026) #}
   {% if ve_wiki(user) %}<a href="https://github.com/NuviaColombia/intranet/blob/main/docs/wiki/README.md" target="_blank" rel="noopener">Wiki</a>{% endif %}{# solo Oscar, Carlos y Rosember (main_templates.ve_wiki) #}
   {% if es_design and ve_mural(user) %}<a href="/design/mural">Mural</a>{% endif %}
-  {% if es_design and ve_development(user) %}<a href="/design/development">Development</a>{% endif %}{# solo admins + Luis Felipe y Paul (services_design_dev) #}
+  {% if es_design and ve_development(user) %}<a href="/design/development">Development</a>{% endif %}{# Rosember (de los admins), Luis Felipe, Paul e invitados (services_design_dev) #}
   {% set ds_extras %}{% if es_design %}
   {# Design: campana de notificaciones (la pone static/design/push.js aquí). El modo oscuro está en Configuración del Schedule (27-oct-2026) #}
   <span class="ds-nav-extras" id="dsNavExtras"{% if user.rol in ('admin', 'superadmin') %} data-admin="1"{% endif %}>

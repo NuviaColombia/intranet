@@ -7092,9 +7092,16 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   // ---------- Áreas ----------
   function cvCargarAreas() {
     CANVAS.homeMode = "board"; // Canvas siempre abre en vista Tablero (se puede cambiar en el momento)
-    window.dsAreas().then(function(areas) {
+    // Cada equipo ve solo sus áreas (Rosember, 27-oct-2026): N3 no ve N2 ni Face; admins y Support, todas
+    Promise.all([window.dsAreas(), api('/design/api/canvas/areas')]).then(function(r) {
+      var permiso = r[1] || {todas: true};
+      var areas = r[0].filter(function(a) { return permiso.todas || (permiso.ids || []).indexOf(a.id) >= 0; });
       CV.areas = areas;
       var cont = document.getElementById('cvAreaTabs'); cont.innerHTML = '';
+      if (!areas.length) {
+        document.getElementById("canvasHome").innerHTML = '<div class="cv-empty" style="padding:30px">No perteneces a ningún equipo de Design, así que no hay hojas de Canvas para ti. Pídele a tu manager que te agregue a su equipo.</div>';
+        return;
+      }
       areas.forEach(function(a) {
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'cv-area-tab' + (a.id === CV.areaId ? ' activo' : '');
@@ -7500,7 +7507,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (CANVAS.homeMode === "board") {
       var tiles = CANVAS.docs.map(function(d) {
         var filled = d.frames.filter(function(f) { return f.img; }).length;
-        return '<div class="cv-board-card">' +
+        return '<div class="cv-board-card" draggable="true" data-bcard="' + d.id + '" title="Arrastra para cambiar el orden">' +
           '<div class="cv-thumb-wrap" data-open="' + d.id + '" tabindex="0" role="button" title="Abrir hoja para editar">' + cvSheetThumb(d, 300) + '</div>' +
           '<button class="cv-board-name" data-open="' + d.id + '">' + esc(d.name || d.title || "Hoja") + '</button>' +
           '<div class="cv-board-sub">' + d.frames.length + ' marco' + (d.frames.length === 1 ? "" : "s") + (filled ? (" · " + filled + " con foto") : "") + '</div>' +
@@ -7511,6 +7518,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         '</div>';
       }).join('');
       home.innerHTML = cvHomeHeader() + '<div class="cv-board">' + tiles + addCard + '</div>';
+      cvBindBoardDrag(home.querySelector(".cv-board"));
       return;
     }
     var cards = CANVAS.docs.map(function(d) {
@@ -7697,16 +7705,47 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       item.addEventListener("drop", function(e) { e.preventDefault(); item.classList.remove("cv-rail-drop"); if (dragId != null && item.dataset.railid !== dragId) cvReorderDocs(dragId, item.dataset.railid); });
     });
   }
-  function cvReorderDocs(fromId, toId) {
+  // despues: la hoja queda a la derecha de la otra (Tablero); sin él, antes (barra de hojas del editor)
+  function cvReorderDocs(fromId, toId, despues) {
     var docs = CANVAS.docs;
     var fi = docs.findIndex(function(d) { return String(d.id) === String(fromId); });
-    var ti = docs.findIndex(function(d) { return String(d.id) === String(toId); });
-    if (fi < 0 || ti < 0 || fi === ti) return;
+    if (fi < 0 || String(fromId) === String(toId)) return;
     var moved = docs.splice(fi, 1)[0];
-    docs.splice(fi < ti ? ti - 1 : ti, 0, moved);
+    var ti = docs.findIndex(function(d) { return String(d.id) === String(toId); });
+    if (ti < 0) { docs.splice(fi, 0, moved); return; }
+    docs.splice(ti + (despues ? 1 : 0), 0, moved);
     cvLocalGuardar();
-    cvRenderEditor();
-    postJSON('/design/api/canvas/docs/' + fromId + '/mover', { targetId: parseInt(toId) });
+    if (CANVAS.view === "editor") cvRenderEditor(); else cvRenderHome();
+    postJSON('/design/api/canvas/docs/' + fromId + '/mover', { targetId: parseInt(toId), despues: !!despues });
+  }
+  // Tablero (Rosember, 27-oct-2026): las hojas se arrastran para cambiar su orden. Una raya marca dónde va a quedar
+  // (a la izquierda o a la derecha de la hoja que está debajo del mouse). Soltar fotos sobre los marcos sigue igual.
+  function cvBindBoardDrag(board) {
+    if (!board) return;
+    var dragId = null;
+    var limpiar = function() { board.querySelectorAll(".cv-bdrop-antes, .cv-bdrop-despues").forEach(function(x) { x.classList.remove("cv-bdrop-antes", "cv-bdrop-despues"); }); };
+    board.querySelectorAll("[data-bcard]").forEach(function(card) {
+      card.addEventListener("dragstart", function(e) {
+        dragId = card.dataset.bcard; card.classList.add("cv-bdragging");
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", "hoja " + dragId); } catch (err) {} }
+      });
+      card.addEventListener("dragend", function() { card.classList.remove("cv-bdragging"); limpiar(); dragId = null; });
+      card.addEventListener("dragover", function(e) {
+        if (dragId == null) return;              // una foto desde el escritorio: la maneja el marco
+        e.preventDefault(); e.stopPropagation();
+        limpiar();
+        if (card.dataset.bcard === dragId) return;
+        var r = card.getBoundingClientRect();
+        card.classList.add(e.clientX > r.left + r.width / 2 ? "cv-bdrop-despues" : "cv-bdrop-antes");
+      });
+      card.addEventListener("drop", function(e) {
+        if (dragId == null) return;
+        e.preventDefault(); e.stopPropagation();
+        var despues = card.classList.contains("cv-bdrop-despues"), desde = dragId;
+        limpiar();
+        if (card.dataset.bcard !== desde) cvReorderDocs(desde, card.dataset.bcard, despues);
+      });
+    });
   }
   function cvRailDelete(id) {
     var idx = CANVAS.docs.findIndex(function(d) { return String(d.id) === String(id); }); if (idx < 0) return;
