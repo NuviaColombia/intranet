@@ -7485,7 +7485,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       ? '<button class="cv-mini-btn cv-limpiar-todo" data-clearall' + (fotos ? '' : ' disabled') + ' title="' +
         (fotos ? 'Quitar las ' + fotos + ' foto' + (fotos === 1 ? '' : 's') + ' de todas las hojas (el formato y las anotaciones se quedan)' : 'No hay fotos en las hojas') + '">🧹 Limpiar todo' + (fotos ? ' (' + fotos + ')' : '') + '</button>'
       : '';
-    return '<div class="cv-home-head"><h3 class="cv-h">Hojas de trabajo</h3>' + verDe + limpiar +
+    // Descargar todo (27-oct-2026): abre la misma ventana que «📚 Todas» del editor para elegir qué hojas bajar en PNG
+    var descargar = cur === 'board' ? '<button class="cv-mini-btn cv-descargar-todo" data-cvdescargar' + (CANVAS.docs.length ? '' : ' disabled') +
+      ' title="Elegir qué hojas descargar, cada una en PNG">⬇️ Descargar todo</button>' : '';
+    return '<div class="cv-home-head"><h3 class="cv-h">Hojas de trabajo</h3>' + verDe + limpiar + descargar +
       '<div class="cv-view-wrap" id="cvViewWrap">' +
         '<button class="cv-mini-btn" data-cvviewtoggle>' + (CV_VIEW_ICON[cur] || '') + ' Vista: ' + esc(curLabel) + ' ▾</button>' +
         '<div class="cv-view-menu"><div class="cv-view-menu-h">Vista de la galería</div>' + items + '</div>' +
@@ -7944,42 +7947,62 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
   }
 
-  // «📚 Todas» (Rosember, 27-oct-2026): en vez de un solo PDF con todas las hojas, una ventana en el centro para elegir
-  // cuáles descargar (marcar todas o una por una); cada hoja baja en su propio PNG.
+  // «📚 Todas» (editor, modo experto) y «Descargar todo» (vista Tablero) (Rosember, 27-oct-2026): ventana en el centro con la
+  // miniatura de cada hoja; clic en la hoja la marca o desmarca (sin casillas), «Marcar todas» marca todas. Cada hoja se
+  // guarda en su propio PNG.
   function cvElegirPngs() {
-    if (document.getElementById("cvPngBg")) return;
-    var docs = CANVAS.docs.slice();
+    if (document.getElementById("cvPngBg") || !CANVAS.docs.length) return;
+    var docs = CANVAS.docs.slice(), elegida = docs.map(function() { return false; }), ocupado = false;
     var bg = document.createElement("div"); bg.className = "ds-qc-bg ds-fondo-50"; bg.id = "cvPngBg";
     bg.innerHTML = '<div class="cv-png-pop" role="dialog" aria-modal="true" aria-labelledby="cvPngTit">' +
       '<div class="cv-png-cab"><h3 id="cvPngTit">Descargar hojas en PNG</h3><button type="button" class="cv-png-x" data-cvpng-cerrar title="Cerrar" aria-label="Cerrar">✕</button></div>' +
-      '<p class="cv-png-sub">Cada hoja se guarda en su propio archivo PNG.' + (window.showDirectoryPicker ? ' Si eliges varias, te pide la carpeta donde guardarlas.' : '') + '</p>' +
-      '<label class="cv-png-todas"><input type="checkbox" data-cvpng-todas> Marcar todas <span class="cv-png-cuenta"></span></label>' +
-      '<div class="cv-png-lista">' + docs.map(function(d, i) {
-        return '<label class="cv-png-item"><input type="checkbox" data-cvpng-i="' + i + '"><span class="cv-png-n">' + (i + 1) + '</span>' +
-          '<span class="cv-png-nom"><b>' + esc(d.name || "Hoja " + (i + 1)) + '</b>' + (d.title ? '<small>' + esc(d.title) + '</small>' : '') + '</span></label>';
+      '<p class="cv-png-sub">Haz clic en las hojas que quieres descargar. Cada una se guarda en su propio PNG' +
+        (window.showDirectoryPicker ? '; si eliges varias, te pide la carpeta donde guardarlas.' : '.') + '</p>' +
+      '<div class="cv-png-barra"><button type="button" class="cv-mini-btn" data-cvpng-todas></button><span class="cv-png-cuenta"></span></div>' +
+      '<div class="cv-png-grid">' + docs.map(function(d, i) {
+        var W = cvDocW(d), H = cvDocH(d);
+        return '<button type="button" class="cv-png-card" data-cvpng-i="' + i + '" aria-pressed="false" title="' + esc(d.name || "Hoja " + (i + 1)) + '">' +
+          '<span class="cv-png-img" style="aspect-ratio:' + W + ' / ' + H + '"><span class="cv-png-cargando">Cargando…</span></span>' +
+          '<span class="cv-png-check" aria-hidden="true">✓</span>' +
+          '<span class="cv-png-pie-card"><span class="cv-png-n">' + (i + 1) + '</span><span class="cv-png-nom"><b>' + esc(d.name || "Hoja " + (i + 1)) + '</b>' +
+          (d.title ? '<small>' + esc(d.title) + '</small>' : '') + '</span></span></button>';
       }).join("") + '</div>' +
       '<div class="cv-png-pie"><span class="cv-png-estado" aria-live="polite"></span>' +
       '<button type="button" class="cv-mini-btn" data-cvpng-cerrar>Cancelar</button><button type="button" class="cv-primary-btn" data-cvpng-bajar disabled>Descargar</button></div></div>';
     document.body.appendChild(bg);
     var pop = bg.firstChild, todas = pop.querySelector("[data-cvpng-todas]"), bajar = pop.querySelector("[data-cvpng-bajar]");
-    var marcas = Array.prototype.slice.call(pop.querySelectorAll("[data-cvpng-i]")), ocupado = false;
+    var tarjetas = Array.prototype.slice.call(pop.querySelectorAll("[data-cvpng-i]"));
     var contar = function() {
-      var n = marcas.filter(function(c) { return c.checked; }).length;
-      todas.checked = n === marcas.length; todas.indeterminate = n > 0 && n < marcas.length;
-      pop.querySelector(".cv-png-cuenta").textContent = "(" + n + " de " + marcas.length + ")";
+      var n = elegida.filter(Boolean).length;
+      tarjetas.forEach(function(t, i) { t.classList.toggle("on", elegida[i]); t.setAttribute("aria-pressed", elegida[i] ? "true" : "false"); });
+      todas.textContent = n === docs.length ? "Desmarcar todas" : "Marcar todas";
+      pop.querySelector(".cv-png-cuenta").textContent = n + " de " + docs.length + " elegidas";
       bajar.disabled = !n || ocupado; bajar.textContent = n ? "Descargar " + n + " PNG" : "Descargar";
-      pop.querySelector(".cv-png-estado").textContent = ocupado ? pop.querySelector(".cv-png-estado").textContent : "";
+      if (!ocupado) pop.querySelector(".cv-png-estado").textContent = "";
     };
-    var cerrar = function() { bg.remove(); document.removeEventListener("keydown", teclas, true); };
-    // mientras está abierta, las teclas no llegan al Canvas (← → cambian de hoja, Supr borra)
+    var cerrar = function() { abierta = false; bg.remove(); document.removeEventListener("keydown", teclas, true); };
+    // mientras está abierta, las teclas no llegan al Canvas (← → cambian de hoja, Supr borra); Enter/Espacio sí marcan la hoja
     var teclas = function(e) { e.stopPropagation(); if (e.key === "Escape" && !ocupado) cerrar(); };
     document.addEventListener("keydown", teclas, true);
-    todas.addEventListener("change", function() { marcas.forEach(function(c) { c.checked = todas.checked; }); contar(); });
-    marcas.forEach(function(c) { c.addEventListener("change", contar); });
+    todas.addEventListener("click", function() { var t = elegida.filter(Boolean).length !== docs.length; elegida = elegida.map(function() { return t; }); contar(); });
+    tarjetas.forEach(function(t, i) { t.addEventListener("click", function() { if (ocupado) return; elegida[i] = !elegida[i]; contar(); }); });
     bg.addEventListener("mousedown", function(e) { if (e.target === bg && !ocupado) cerrar(); });
     pop.addEventListener("click", function(e) { if (e.target.closest("[data-cvpng-cerrar]") && !ocupado) cerrar(); });
+    // Miniaturas: la hoja tal como se descarga (fotos, anotaciones y título), una tras otra para no trabar la pantalla
+    var abierta = true;
+    (async function() {
+      for (var i = 0; i < docs.length && abierta; i++) {
+        try {
+          var cv = await cvSheetToCanvas(docs[i]), k = 320 / Math.max(cv.width, cv.height);
+          var mini = document.createElement("canvas"); mini.width = Math.round(cv.width * k); mini.height = Math.round(cv.height * k);
+          mini.getContext("2d").drawImage(cv, 0, 0, mini.width, mini.height);
+          var caja = tarjetas[i].querySelector(".cv-png-img");
+          caja.innerHTML = '<img alt="" src="' + mini.toDataURL("image/png") + '">';
+        } catch (e) { tarjetas[i].querySelector(".cv-png-cargando").textContent = "Sin vista previa"; }
+      }
+    })();
     bajar.addEventListener("click", async function() {
-      var elegidas = marcas.filter(function(c) { return c.checked; }).map(function(c) { return docs[+c.dataset.cvpngI]; });
+      var elegidas = docs.filter(function(d, i) { return elegida[i]; });
       var estado = pop.querySelector(".cv-png-estado");
       // Varias hojas: el navegador bloquea (o pregunta) las descargas seguidas, así que se pide una carpeta una vez y se
       // guardan todas ahí. Si el navegador no lo permite, se descargan una por una.
@@ -8568,6 +8591,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var vpick = t.closest("[data-cvview]"); if (vpick) { cvSetView(vpick.dataset.cvview, false); return; }
     var bframe = t.closest("[data-bframe]"); if (bframe) { e.stopPropagation(); cvBoardFrameClick(bframe.dataset.bdoc, bframe.dataset.bframe); return; }
     if (t.closest("[data-clearall]")) { cvLimpiarTodo(); return; }
+    if (t.closest("[data-cvdescargar]")) { cvElegirPngs(); return; }
     var dl = t.closest("[data-dl]"); if (dl) { e.stopPropagation(); cvExportPNG(parseInt(dl.dataset.dl)); return; }   // descargar una hoja desde el tablero o la cuadrícula
     if (CV.verDe && t.closest("[data-newsheet], [data-open], [data-ren], [data-dup], [data-del]")) return; // solo vista
     if (t.closest("[data-newsheet]")) { cvNewCustomSheet(); return; }

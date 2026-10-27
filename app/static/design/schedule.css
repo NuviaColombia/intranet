@@ -357,27 +357,40 @@
   .ds-pop input { width:100%; margin:0 0 10px; height:32px; padding:0 8px; box-sizing:border-box; }
   .ds-pop-btns { display:flex; justify-content:flex-end; gap:8px; }
   .ds-pop-btns .btn { padding:4px 12px; font-size:12px; }
-  /* Canvas › «📚 Todas»: elegir qué hojas descargar en PNG */
-  .cv-png-pop { width:440px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); display:flex; flex-direction:column; box-sizing:border-box;
+  /* Canvas › «📚 Todas» / «Descargar todo»: elegir qué hojas descargar en PNG (clic en la miniatura) */
+  .cv-png-pop { width:820px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); display:flex; flex-direction:column; box-sizing:border-box;
     padding:16px 18px; background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 24px 60px rgba(17,24,39,.3); }
   .cv-png-cab { display:flex; align-items:center; gap:8px; }
   .cv-png-cab h3 { margin:0; flex:1; font-size:16px; color:#111827; }
   .cv-png-x { width:28px; height:28px; border:none; border-radius:50%; background:transparent; color:#4b5563; cursor:pointer; font-size:13px; }
   .cv-png-x:hover { background:#f3f4f6; color:#111827; }
   .cv-png-sub { margin:4px 0 10px; font-size:12.5px; color:#4b5563; }
-  .cv-png-todas { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid #e5e7eb; font-weight:600; font-size:13px; cursor:pointer; }
-  .cv-png-cuenta { color:#6b7280; font-weight:400; }
-  .cv-png-lista { overflow-y:auto; flex:1; min-height:0; margin:4px 0 10px; }
-  .cv-png-item { display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:8px; cursor:pointer; font-size:13px; }
-  .cv-png-item:hover { background:#f3f4f6; }
+  .cv-png-barra { display:flex; align-items:center; gap:10px; padding-bottom:10px; border-bottom:1px solid #e5e7eb; }
+  .cv-png-cuenta { color:#4b5563; font-size:12.5px; }
+  .cv-png-grid { overflow-y:auto; flex:1; min-height:0; margin:10px 0; padding:4px; display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:14px; align-content:start; }
+  .cv-png-card { position:relative; display:flex; flex-direction:column; gap:6px; padding:8px; border:2px solid #e5e7eb; border-radius:12px; background:#fff;
+    cursor:pointer; text-align:left; font:inherit; color:#111827; transition:border-color .12s, box-shadow .12s, transform .12s; }
+  .cv-png-card:hover { border-color:#9ca3af; transform:translateY(-1px); }
+  .cv-png-card:focus-visible { outline:3px solid #60a5fa; outline-offset:2px; }
+  .cv-png-card.on { border-color:#111827; box-shadow:0 0 0 2px #111827; }
+  .cv-png-img { display:flex; align-items:center; justify-content:center; width:100%; background:#f3f4f6; border-radius:6px; overflow:hidden; }
+  .cv-png-img img { width:100%; height:100%; object-fit:contain; display:block; }
+  .cv-png-card:not(.on) .cv-png-img img { opacity:.72; }
+  .cv-png-cargando { font-size:11.5px; color:#6b7280; }
+  .cv-png-check { position:absolute; top:4px; right:4px; width:26px; height:26px; border-radius:50%; background:#111827; color:#fff; font-size:14px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.25); opacity:0; transform:scale(.6); transition:opacity .12s, transform .12s; }
+  .cv-png-card.on .cv-png-check { opacity:1; transform:scale(1); }
+  .cv-png-pie-card { display:flex; align-items:center; gap:8px; min-width:0; }
   .cv-png-n { flex:none; width:22px; height:22px; border-radius:6px; background:#111827; color:#fff; font-size:11px; font-weight:700;
     display:flex; align-items:center; justify-content:center; }
-  .cv-png-nom { display:flex; flex-direction:column; min-width:0; }
+  .cv-png-nom { display:flex; flex-direction:column; min-width:0; font-size:12.5px; }
   .cv-png-nom b, .cv-png-nom small { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-  .cv-png-nom small { color:#6b7280; font-size:11.5px; }
-  .cv-png-todas input, .cv-png-item input { width:16px; height:16px; accent-color:#111827; flex:none; }
+  .cv-png-nom small { color:#6b7280; font-size:11px; }
   .cv-png-pie { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
   .cv-png-estado { flex:1; font-size:12px; color:#4b5563; }
+  @media (prefers-reduced-motion: reduce) { .cv-png-card, .cv-png-check { transition:none; } .cv-png-card:hover { transform:none; } }
+  .cv-home-head .cv-descargar-todo { margin-left:auto; }
+  .cv-home-head .cv-limpiar-todo + .cv-descargar-todo { margin-left:0; }   /* junto a «Limpiar todo» */
   .ds-qc-bg { position:fixed; inset:0; z-index:325; background:rgba(17,24,39,.35); display:flex; align-items:center; justify-content:center; }
   /* Cambios digital y Dejar a cargo (Rosember, 26-oct-2026): el fondo detrás de la ventana al 50 % */
   .ds-fondo-50.ds-fondo-50 { background:rgba(17,24,39,.5); }

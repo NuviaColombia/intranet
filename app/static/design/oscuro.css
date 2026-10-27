@@ -190,11 +190,14 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 /* Canvas › elegir hojas para descargar en PNG */
 :root[data-ds-tema="oscuro"] .cv-png-pop { background:#111827; border-color:#334155; }
 :root[data-ds-tema="oscuro"] .cv-png-cab h3 { color:#f3f4f6; }
-:root[data-ds-tema="oscuro"] .cv-png-sub, :root[data-ds-tema="oscuro"] .cv-png-estado { color:#cbd5e1; }
-:root[data-ds-tema="oscuro"] .cv-png-todas { border-color:#334155; color:#e5e7eb; }
-:root[data-ds-tema="oscuro"] .cv-png-item { color:#e5e7eb; }
-:root[data-ds-tema="oscuro"] .cv-png-item:hover, :root[data-ds-tema="oscuro"] .cv-png-x:hover { background:#1e293b; }
-:root[data-ds-tema="oscuro"] .cv-png-nom small, :root[data-ds-tema="oscuro"] .cv-png-cuenta { color:#94a3b8; }
+:root[data-ds-tema="oscuro"] .cv-png-sub, :root[data-ds-tema="oscuro"] .cv-png-estado, :root[data-ds-tema="oscuro"] .cv-png-cuenta { color:#cbd5e1; }
+:root[data-ds-tema="oscuro"] .cv-png-barra { border-color:#334155; }
+:root[data-ds-tema="oscuro"] .cv-png-card { background:#0f172a; border-color:#334155; color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] .cv-png-card:hover { border-color:#64748b; }
+:root[data-ds-tema="oscuro"] .cv-png-card.on { border-color:#f3f4f6; box-shadow:0 0 0 2px #f3f4f6; }
+:root[data-ds-tema="oscuro"] .cv-png-check { background:#f3f4f6; color:#0f172a; }
+:root[data-ds-tema="oscuro"] .cv-png-img { background:#1e293b; }
+:root[data-ds-tema="oscuro"] .cv-png-nom small, :root[data-ds-tema="oscuro"] .cv-png-cargando { color:#94a3b8; }
 :root[data-ds-tema="oscuro"] .cv-png-n { background:#f3f4f6; color:#0f172a; }
 :root[data-ds-tema="oscuro"] .cv-png-x { color:#cbd5e1; }
-:root[data-ds-tema="oscuro"] .cv-png-todas input, :root[data-ds-tema="oscuro"] .cv-png-item input { accent-color:#f3f4f6; }
+:root[data-ds-tema="oscuro"] .cv-png-x:hover { background:#1e293b; }
