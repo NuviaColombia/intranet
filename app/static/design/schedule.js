@@ -295,35 +295,60 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsElegirEquipo(area, teams, x.abrirTeamId, new Date(+p[0], +p[1] - 1, +p[2])); // una sola carga, ya en la fecha del caso
     }).catch(function(e) { dsToast('⚠️ ' + e.message); });
   };
-  // Pestañas sueltas en el borde derecho (Rosember, 26-oct-2026): Producción, Cambios digital y Dejar a cargo, cada una
-  // a un clic. Sin ninguna visible, el grupo no se ve y el Schedule no reserva el margen de la derecha.
+  // Barra lateral derecha (Rosember, 26-oct-2026; inspirada en «Sidebar Navigation Animation» de Halal Lab): Producción,
+  // Cambios digital y Dejar a cargo, cada una con su icono. En reposo solo iconos; al pasar el mouse (o con el foco del
+  // teclado) se ensancha y los nombres entran en cascada; la muesca de la flecha la deja fija abierta o la cierra. Se
+  // recoge al salir el mouse (si no está fija), con Esc, al hacer clic afuera o al usar una acción. Sin acciones visibles,
+  // no se ve y el Schedule no reserva el margen de la derecha.
   (function() {
-    var lat = document.getElementById('dsLateral'), panel = document.getElementById('dsLatPanel');
+    var lat = document.getElementById('dsLateral'), panel = document.getElementById('dsLatPanel'), muesca = document.getElementById('dsLatMuesca');
     if (!lat) return;
+    var SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+    var ICONOS = {
+      prod: SVG + '<path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg>',                       // gráfica de barras
+      cambio: SVG + '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>', // intercambio
+      cargo: SVG + '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg>'   // persona con visto
+    };
+    var fijo = false, timer = null;
     function hayAcciones() {
       return Array.prototype.some.call(panel.children, function(el) { return !el.hidden && !el.classList.contains('ds-fuera'); });
     }
-    // Cada acción es una pestaña con el texto dos veces: vertical (en reposo) y horizontal (al pasar el mouse, la masa se
-    // estira hasta --w, el ancho del texto horizontal). «Dejar a cargo» se vuelve a dibujar con cada día: se arma de nuevo.
-    function pestanizar() {
+    // Cada acción: icono + nombre. «Dejar a cargo» se vuelve a dibujar con cada día: se arma de nuevo.
+    function armar() {
+      var i = 0;
       panel.querySelectorAll('.ds-prod-btn, #dsACargo > .btn, #dsACargo > .ds-acargo-chip').forEach(function(el) {
-        if (el.querySelector('.ds-tab-v')) return;
-        var txt = el.textContent.trim();
-        el.classList.add('ds-tab');
-        el.innerHTML = '<span class="ds-tab-v"></span><span class="ds-tab-h" aria-hidden="true"></span>';
-        el.firstChild.textContent = txt; el.lastChild.textContent = txt;
+        if (!el.querySelector('.ds-it-ico')) {
+          var txt = el.textContent.trim(), ico = el.id === 'dsProdBtn' ? 'prod' : el.id === 'dsCambioDigBtn' ? 'cambio' : 'cargo';
+          el.classList.add('ds-it');
+          if (!el.title) el.title = txt;
+          el.innerHTML = '<span class="ds-it-ico">' + ICONOS[ico] + '</span><span class="ds-it-txt"></span>';
+          el.lastChild.textContent = txt;
+        }
+        if (!el.hidden && !el.classList.contains('ds-fuera')) { if (el.style.getPropertyValue('--i') !== String(i)) el.style.setProperty('--i', i); i++; }
       });
     }
-    function medir(e) {
-      var t = e.target.closest && e.target.closest('.ds-tab'); if (!t) return;
-      var h = t.querySelector('.ds-tab-h'); if (h) t.style.setProperty('--w', (h.offsetWidth + 30) + 'px');
+    function abrir() { clearTimeout(timer); lat.classList.add('abierto'); muesca.setAttribute('aria-expanded', 'true'); }
+    function cerrar() {
+      clearTimeout(timer); fijo = false; lat.classList.remove('abierto', 'fijo'); muesca.setAttribute('aria-expanded', 'false');
+      muesca.title = 'Mostrar los nombres (deja la barra abierta)';
     }
-    panel.addEventListener('mouseover', medir);
-    panel.addEventListener('focusin', medir);
+    muesca.addEventListener('click', function() {
+      if (fijo) { cerrar(); return; }
+      fijo = true; lat.classList.add('fijo'); muesca.title = 'Cerrar la barra'; abrir();
+    });
+    if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+      lat.addEventListener('mouseenter', function() { clearTimeout(timer); timer = setTimeout(abrir, 60); });
+      lat.addEventListener('mouseleave', function() { clearTimeout(timer); if (!fijo) timer = setTimeout(cerrar, 220); });
+    }
+    lat.addEventListener('focusin', abrir);
+    lat.addEventListener('focusout', function(e) { if (!fijo && !lat.contains(e.relatedTarget)) cerrar(); });
+    panel.addEventListener('click', function(e) { if (e.target.closest('button')) setTimeout(cerrar, 0); });
+    document.addEventListener('mousedown', function(e) { if (!lat.contains(e.target) && lat.classList.contains('abierto')) cerrar(); });
+    lat.addEventListener('keydown', function(e) { if (e.key === 'Escape' && lat.classList.contains('abierto')) { e.stopPropagation(); cerrar(); muesca.focus(); } });
     function revisar() {
-      pestanizar();
-      var v = hayAcciones(); lat.hidden = !v;
-      var app = document.getElementById('ds-app'); if (app) app.classList.toggle('ds-con-lateral', v);   // las pestañas no tapan el contenido
+      armar();
+      var v = hayAcciones(); lat.hidden = !v; if (!v) cerrar();
+      var app = document.getElementById('ds-app'); if (app) app.classList.toggle('ds-con-lateral', v);   // la barra no tapa el contenido
     }
     try { new MutationObserver(revisar).observe(panel, {subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden']}); } catch (e) {}
     revisar();
@@ -2644,8 +2669,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     var pop = document.createElement('div'); pop.className = 'ds-prod-pop'; pop.id = 'dsProdPop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Producción del día');
     document.body.appendChild(pop); dsPintarProduccion();
     var r = this.getBoundingClientRect();
-    if (this.closest('.ds-lateral')) {   // pestaña del borde derecho: se abre a su izquierda
-      pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top)) + 'px'; pop.style.left = Math.max(8, r.left - pop.offsetWidth - 8) + 'px';
+    if (this.closest('.ds-lateral')) {   // barra del borde derecho: se abre a su izquierda (la barra se recoge al tocarla)
+      pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top)) + 'px'; pop.style.left = Math.max(8, window.innerWidth - 46 - pop.offsetWidth - 10) + 'px';
     } else {
       pop.style.top = (r.bottom + 6) + 'px'; pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.right - pop.offsetWidth)) + 'px';
     }

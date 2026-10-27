@@ -136,38 +136,45 @@
   /* Pestañas sueltas en el borde derecho (26-oct-2026): Producción, Cambios digital y Dejar a cargo, cada una a un clic */
   .ds-lateral { position:fixed; right:0; top:calc(var(--ds-nav-h, 0px) + 140px); z-index:250; }
   .ds-lateral[hidden] { display:none; }
-  #ds-app.ds-con-lateral { padding-right:30px; }
-  .ds-lat-panel, .ds-lat-panel .ds-acargo { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-  /* Cada pestaña (.ds-tab, la arma schedule.js): el botón es transparente; el color es una «masa» (::before) que al pasar el
-     mouse se estira hacia la izquierda con rebote y un aplastón, y el texto pasa de vertical a horizontal (Rosember, 26-oct-2026).
-     Los selectores llevan #dsLatPanel para ganarle a .btn / .btn.gris (también a sus versiones del modo oscuro). */
-  #dsLatPanel .ds-tab { --tab-bg:#111827; --tab-fg:#fff; --w:160px; position:relative; display:block; width:29px; height:auto; margin:0; padding:0;
-    border:0; border-radius:0; background:transparent; color:var(--tab-fg); font:inherit; font-size:12.5px; font-weight:600; letter-spacing:.03em;
-    line-height:1.2; cursor:pointer; overflow:visible; box-shadow:none; }
-  #dsLatPanel span.ds-tab { cursor:default; }
-  #dsLatPanel #dsACargo .ds-tab { height:auto; padding:0; display:block; font-size:12.5px; }   /* le gana a «#dsACargo .btn» (alto fijo de la cabecera) */
-  #dsLatPanel .ds-tab::before { content:""; position:absolute; right:0; top:50%; width:100%; height:100%; transform:translateY(-50%);
-    background:var(--tab-bg); border-radius:10px 0 0 10px; box-shadow:0 2px 10px rgba(17,24,39,.22);
-    transition:width .55s cubic-bezier(.34,1.56,.64,1), height .45s cubic-bezier(.34,1.56,.64,1), border-radius .45s ease; }
-  #dsLatPanel .ds-tab-v { position:relative; display:block; writing-mode:vertical-rl; transform:rotate(180deg); max-height:230px; overflow:hidden;
-    text-overflow:ellipsis; white-space:nowrap; padding:14px 7px; transition:opacity .15s; }
-  #dsLatPanel .ds-tab-h { position:absolute; right:14px; top:50%; transform:translate(12px, -50%); white-space:nowrap; opacity:0; pointer-events:none;
-    font-size:13px; transition:opacity .2s, transform .45s cubic-bezier(.34,1.56,.64,1); }
-  #dsLatPanel .ds-tab:hover, #dsLatPanel .ds-tab:focus-visible { z-index:1; outline:none; }
-  #dsLatPanel .ds-tab:hover::before, #dsLatPanel .ds-tab:focus-visible::before { width:var(--w); height:40px; border-radius:20px 0 0 20px;
-    animation:dsMasa .6s ease-out; }
-  #dsLatPanel .ds-tab:focus-visible::before { box-shadow:0 0 0 2px #60a5fa, 0 4px 16px rgba(17,24,39,.3); }
-  #dsLatPanel .ds-tab:hover .ds-tab-v, #dsLatPanel .ds-tab:focus-visible .ds-tab-v { opacity:0; }
-  #dsLatPanel .ds-tab:hover .ds-tab-h, #dsLatPanel .ds-tab:focus-visible .ds-tab-h { opacity:1; transform:translate(0, -50%); transition-delay:.12s, 0s; }
-  /* Aplastón de masa: se estira, se aplasta y se asienta */
-  @keyframes dsMasa { 0% { transform:translateY(-50%) scale(1, 1); } 35% { transform:translateY(-50%) scale(1.04, .82); }
-    60% { transform:translateY(-50%) scale(.98, 1.08); } 80% { transform:translateY(-50%) scale(1.01, .97); } 100% { transform:translateY(-50%) scale(1, 1); } }
-  /* Quién está a cargo: verde (hoy) o gris (programado), para distinguirla de las acciones */
-  #dsLatPanel .ds-acargo-chip.yo.ds-tab, #dsLatPanel button.ds-acargo-chip.ds-tab:not(.prog) { --tab-bg:#047857; }
-  #dsLatPanel .ds-acargo-chip.prog.ds-tab { --tab-bg:#475569; }
+  #ds-app.ds-con-lateral { padding-right:50px; }
+  /* Barra lateral (Rosember, 26-oct-2026; inspirada en «Sidebar Navigation Animation» de Halal Lab en Dribbble): en reposo una
+     barra angosta con iconos; al pasar el mouse (o con la muesca, que la deja fija) se ensancha y los nombres entran en cascada.
+     Todo lleva #dsLateral #dsLatPanel para ganarle a .btn, .btn.gris y «#dsACargo .btn» (y a sus versiones del modo oscuro). */
+  #dsLateral #dsLatPanel { position:relative; display:flex; flex-direction:column; gap:4px; width:46px; box-sizing:border-box; padding:8px 6px;
+    background:#111827; border-radius:14px 0 0 14px; box-shadow:-4px 6px 22px rgba(17,24,39,.28); overflow:hidden;
+    transition:width .38s cubic-bezier(.4,0,.2,1), box-shadow .3s; }
+  #dsLateral.abierto #dsLatPanel { width:240px; box-shadow:-8px 10px 32px rgba(17,24,39,.34); }
+  #dsLateral #dsLatPanel #dsACargo { display:flex; flex-direction:column; gap:4px; }
+  #dsLateral #dsLatPanel #dsACargo[hidden], #dsLateral #dsLatPanel #dsACargo.ds-fuera,
+  #dsLateral #dsLatPanel .ds-it[hidden], #dsLateral #dsLatPanel .ds-it.ds-fuera { display:none; }
+  #dsLateral #dsLatPanel .ds-it { --i:0; position:relative; display:flex; align-items:center; gap:12px; width:100%; height:38px; margin:0; padding:0 7px 0 6px;
+    box-sizing:border-box; border:0; border-radius:10px; background:transparent; color:#cbd5e1; font:inherit; font-size:13px; font-weight:600;
+    text-align:left; white-space:nowrap; cursor:pointer; box-shadow:none; transition:background-color .2s, color .2s; }
+  #dsLateral #dsLatPanel span.ds-it { cursor:default; }
+  #dsLateral #dsLatPanel .ds-it:hover, #dsLateral #dsLatPanel .ds-it:focus-visible { background:rgba(96,165,250,.16); color:#fff; outline:none; }
+  #dsLateral #dsLatPanel .ds-it:focus-visible { box-shadow:inset 0 0 0 2px #60a5fa; }
+  #dsLateral #dsLatPanel .ds-it-ico { flex:none; position:relative; display:grid; place-items:center; width:22px; height:22px; transition:color .2s, transform .2s; }
+  #dsLateral #dsLatPanel .ds-it-ico svg { width:19px; height:19px; }
+  #dsLateral #dsLatPanel .ds-it:hover .ds-it-ico { color:#93c5fd; transform:scale(1.08); }
+  /* Los nombres entran uno tras otro (--i lo pone schedule.js) y salen todos juntos */
+  #dsLateral #dsLatPanel .ds-it-txt { overflow:hidden; text-overflow:ellipsis; opacity:0; transform:translateX(10px); transition:opacity .15s, transform .2s; }
+  #dsLateral.abierto #dsLatPanel .ds-it-txt { opacity:1; transform:none;
+    transition:opacity .3s calc(.1s + var(--i) * .05s), transform .35s cubic-bezier(.2,.8,.2,1) calc(.1s + var(--i) * .05s); }
+  /* Quien está a cargo: punto verde (hoy) o gris (programado) sobre el icono */
+  #dsLateral #dsLatPanel .ds-acargo-chip .ds-it-ico::after { content:""; position:absolute; right:-2px; top:-1px; width:8px; height:8px; border-radius:50%;
+    background:#34d399; box-shadow:0 0 0 2px #111827; }
+  #dsLateral #dsLatPanel .ds-acargo-chip.prog .ds-it-ico::after { background:#94a3b8; }
+  #dsLateral #dsLatPanel .ds-acargo-chip:not(.prog) .ds-it-ico { color:#6ee7b7; }
+  /* Muesca con flecha en el borde izquierdo: fija la barra abierta o la cierra */
+  #dsLateral .ds-lat-muesca { position:absolute; left:-15px; top:12px; z-index:1; display:grid; place-items:center; width:16px; height:30px; margin:0; padding:0;
+    border:0; border-radius:8px 0 0 8px; background:#111827; color:#cbd5e1; cursor:pointer; box-shadow:-3px 2px 8px rgba(17,24,39,.2); }
+  #dsLateral .ds-lat-muesca:hover { color:#fff; }
+  #dsLateral .ds-lat-muesca:focus-visible { outline:2px solid #60a5fa; outline-offset:1px; }
+  #dsLateral .ds-lat-muesca svg { width:13px; height:13px; transition:transform .38s cubic-bezier(.4,0,.2,1); }
+  #dsLateral.abierto .ds-lat-muesca svg { transform:rotate(180deg); }
+  #dsLateral.fijo .ds-lat-muesca { color:#93c5fd; }
   @media (prefers-reduced-motion: reduce) {
-    #dsLatPanel .ds-tab::before, #dsLatPanel .ds-tab-h, #dsLatPanel .ds-tab-v { transition:none; }
-    #dsLatPanel .ds-tab:hover::before, #dsLatPanel .ds-tab:focus-visible::before { animation:none; } }
+    #dsLateral #dsLatPanel, #dsLateral #dsLatPanel .ds-it-txt, #dsLateral.abierto #dsLatPanel .ds-it-txt, #dsLateral .ds-lat-muesca svg { transition:none; } }
   .ds-prod-pop { position:fixed; z-index:330; width:320px; max-height:70vh; overflow:auto; background:#fff; border:1px solid #d8dde3; border-radius:10px;
     box-shadow:0 10px 28px rgba(0,0,0,.18); padding:12px 14px; }
   .ds-prod-pop h4 { margin:0 0 2px; font-size:14px; }

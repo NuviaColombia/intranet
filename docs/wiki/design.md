@@ -47,17 +47,20 @@ Antes de buscar un patrón de roles que no existe:
 - **Buscador en la ventana del QC** (Rosember, 26-oct-2026): con «Con hallazgos» aparece «🔍 Buscar hallazgo…»; deja solo
   los hallazgos que coinciden (sin importar tildes; si coincide el título, todos los suyos) y abre sus títulos. Lo marcado
   se conserva al buscar.
-- **Pestañas sueltas en el borde derecho** (Rosember, 26-oct-2026): «Producción», «Cambios digital» y «Dejar a cargo»
-  salieron de la cabecera del Schedule y son pestañas verticales sueltas pegadas al borde derecho (`#dsLateral`), cada una
-  a un clic (se probó un panel «Acciones» desplegable y no gustó). Cada botón sigue con sus reglas de siempre (`ds-fuera` /
-  `hidden`); si ninguno aplica, no se ve nada. Quien está a cargo sale como pestaña verde con texto corto («A cargo: Luisa ·
-  hasta el 28 oct»; el detalle en el tooltip) y al tocarla abre la ventana de cambiar; programado, en gris. Producción se
-  abre a la izquierda de su pestaña. `#ds-app` deja 30px a la derecha para que las pestañas no tapen el contenido. En oscuro
-  son blancas con texto del azul de la barra. Al pasar el mouse (o con el foco del teclado), la pestaña se estira hacia la
-  izquierda como una masa (rebote + aplastón, `@keyframes dsMasa`) y el texto se lee en horizontal; al quitarlo vuelve a su
-  forma. schedule.js arma cada pestaña (`.ds-tab` con `.ds-tab-v` vertical y `.ds-tab-h` horizontal) y mide el ancho en
-  `--w`; el color va en `--tab-bg` / `--tab-fg`. Los selectores llevan `#dsLatPanel` para ganarle a `.btn.gris`. Las ventanas de «Cambios digital» y «Dejar a cargo» (también la de Support)
-  oscurecen el fondo al 50 % (clase `ds-fondo-50`); las demás ventanas del Schedule siguen al 35 %.
+- **Barra lateral derecha** (Rosember, 26-oct-2026; inspirada en «Sidebar Navigation Animation» de Halal Lab en Dribbble):
+  «Producción», «Cambios digital» y «Dejar a cargo» salieron de la cabecera del Schedule a una barra en el borde derecho
+  (`#dsLateral`), cada una con su icono (gráfica, flechas de intercambio, persona con visto; SVG en schedule.js). En reposo
+  es una barra angosta solo con iconos; al pasar el mouse (o con el foco del teclado) se ensancha a 240px y los nombres
+  entran en cascada (`--i`); la opción bajo el mouse se marca con una píldora azul claro. La muesca con flecha la deja fija
+  abierta o la cierra. Se recoge al salir el mouse (si no está fija), con Esc, al hacer clic afuera o al usar una acción.
+  Antes se probaron un panel «Acciones», pestañas verticales sueltas y pestañas que se estiraban como masa; no gustaron
+  (leer en vertical cansa y pasar de una a otra no se veía natural). Cada botón sigue con sus reglas de siempre
+  (`ds-fuera` / `hidden`); si ninguno aplica, no se ve. Quien está a cargo: punto verde en el icono (gris si es
+  programado) y texto corto («A cargo: Luisa · hasta el 28 oct»; el detalle en el tooltip). Producción se abre a la
+  izquierda de la barra. `#ds-app` deja 50px a la derecha. En oscuro la barra es blanca con iconos del azul de la barra.
+  Los selectores llevan `#dsLateral #dsLatPanel` para ganarle a `.btn.gris` y a `#dsACargo .btn`. Las ventanas de
+  «Cambios digital» y «Dejar a cargo» (también la de Support) oscurecen el fondo al 50 % (clase `ds-fondo-50`); las
+  demás ventanas del Schedule siguen al 35 %.
 - **Saludo en el título del Schedule** (Rosember, 26-oct-2026): en vez de «Design Schedule (equipo)», los aprobadores ven
   «Hola <primer nombre>, aquí está tu equipo en movimiento.» y los diseñadores «Hola <primer nombre>, tu trabajo es
   espectacular. ¡Gracias!». Quien está a cargo HOY del equipo (Dejar a cargo, `aCargo.esYo` + `activa`) ve el de
