@@ -88,7 +88,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     // "Dejar a cargo" está junto al buscador: solo se ve con un equipo abierto (no en todas las áreas)
     document.getElementById('dsACargo').classList.toggle('ds-fuera', !DS.teamId || !!(chk && chk.checked));
     // "Producción" (aprobadores, admins y diseñadores, 23-oct-2026): con un equipo abierto; no se usa en Support
-    document.getElementById('dsProdBtn').classList.toggle('ds-fuera', !DS.teamId || !!(chk && chk.checked) || DS.areaFormato === 'support');
+    var sinProd = !DS.teamId || !!(chk && chk.checked) || DS.areaFormato === 'support';
+    document.getElementById('dsProdBtn').classList.toggle('ds-fuera', sinProd);
+    if (sinProd) dsCerrarProduccion();   // su ventana no tendría datos que mostrar
   }
 
   function dsLunesDe(d) {
@@ -2878,10 +2880,11 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsPintarProduccion() {
     var pop = document.getElementById('dsProdPop'); if (!pop || !DS.diaData) return;
+    var cuerpo = pop.querySelector('.ds-fw-cuerpo');
     if (dsEsRD()) {
       var fr = dsProduccionRD(DS.diaData), fd = dsFechaSeleccionada();
       var tc = fr.reduce(function(a, x) { return a + x.casos; }, 0), tr = fr.reduce(function(a, x) { return a + x.rem; }, 0);
-      pop.innerHTML = '<h4>Producción del día</h4><div class="sub">' + dsEsc(NOMBRES_DIAS[(fd.getDay() + 6) % 7] || '') + ' ' + fd.getDate() +
+      cuerpo.innerHTML = '<div class="sub">' + dsEsc(NOMBRES_DIAS[(fd.getDay() + 6) % 7] || '') + ' ' + fd.getDate() +
         ' · por manager (sin canceladas) · REM = arcos aprobados (Both cuenta 2)</div>' +
         (fr.length ? '<table><thead><tr><th>Manager</th><th class="n">Casos</th><th class="n" title="Arcos aprobados: Upper o Lower = 1, Both = 2">REM</th></tr></thead><tbody>' +
           fr.map(function(x) { return '<tr><td>' + dsEsc(x.nombre) + '</td><td class="n">' + x.casos + '</td><td class="n' + (x.rem ? '' : ' cero') + '">' + x.rem + '</td></tr>'; }).join('') +
@@ -2902,7 +2905,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var celdas = function(x) { return porTipo ? TIPOS.map(function(t) { var v = val(x, t); return '<td class="n' + (v ? '' : ' cero') + '">' + v + '</td>'; }).join('')
                                               : '<td class="n">' + x.casos + '</td>'; };
     var totales = porTipo ? TIPOS.map(function(t) { return '<td class="n">' + suma(t) + '</td>'; }).join('') : '<td class="n">' + total + '</td>';
-    pop.innerHTML = '<h4>Producción del día</h4><div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
+    cuerpo.innerHTML = '<div class="sub">' + dsEsc(NOMBRES_DIAS[(f.getDay() + 6) % 7] || '') + ' ' + f.getDate() + ' de ' + dsEsc(f.toLocaleDateString('es-CO', {month: 'long'})) +
       ' · casos asignados a cada diseñador (sin canceladas)</div>' +
       (filas.length ? '<table><thead><tr><th>Diseñador</th>' + cab + '</tr></thead><tbody>' +
         filas.map(function(x) { return '<tr' + (x.casos ? '' : ' class="cero"') + '><td>' + dsEsc(x.nombre) +
@@ -2911,23 +2914,40 @@ window.addEventListener('unhandledrejection', function(ev) {
         '<tr class="total"><td>Total' + (porTipo ? ' · ' + total : '') + '</td>' + totales + '</tr></tbody></table>'
        : '<p class="ds-prest-vacio">Este equipo no tiene diseñadores.</p>');
   }
+  // Producción del día como ventana flotante (Rosember, 27-oct-2026), igual que las de Pre-Approved: se mueve desde la cabecera,
+  // se minimiza (— / doble clic), se cierra (✕) y se sigue actualizando sola al cambiar de día o de equipo. No se cierra al
+  // hacer clic afuera ni con Esc.
   function dsCerrarProduccion() {
     var pop = document.getElementById('dsProdPop'); if (pop) pop.remove();
-    document.removeEventListener('mousedown', dsProdFuera, true); document.removeEventListener('keydown', dsProdEsc, true);
   }
-  function dsProdFuera(e) { var pop = document.getElementById('dsProdPop'); if (pop && !pop.contains(e.target) && e.target.id !== 'dsProdBtn') dsCerrarProduccion(); }
-  function dsProdEsc(e) { if (e.key === 'Escape') dsCerrarProduccion(); }
   document.getElementById('dsProdBtn').addEventListener('click', function() {
-    if (document.getElementById('dsProdPop')) { dsCerrarProduccion(); return; }
-    var pop = document.createElement('div'); pop.className = 'ds-prod-pop'; pop.id = 'dsProdPop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Producción del día');
-    document.body.appendChild(pop); dsPintarProduccion();
-    var r = this.getBoundingClientRect();
-    if (this.closest('.ds-lateral')) {   // barra del borde derecho: se abre a su izquierda (la barra se recoge al tocarla)
-      pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top)) + 'px'; pop.style.left = Math.max(8, window.innerWidth - 46 - pop.offsetWidth - 10) + 'px';
-    } else {
-      pop.style.top = (r.bottom + 6) + 'px'; pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.right - pop.offsetWidth)) + 'px';
-    }
-    document.addEventListener('mousedown', dsProdFuera, true); document.addEventListener('keydown', dsProdEsc, true);
+    var ya = document.getElementById('dsProdPop');
+    if (ya) { ya.classList.remove('min'); ya.style.zIndex = ++DS_FW_Z; var m = ya.querySelector('[data-fw="min"]'); if (m) { m.title = 'Minimizar'; m.textContent = '—'; } return; }
+    var el = document.createElement('div'); el.className = 'ds-fw ds-fw-prod'; el.id = 'dsProdPop'; el.style.zIndex = ++DS_FW_Z;
+    el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Producción del día');
+    el.innerHTML = '<div class="ds-fw-cab"><b>Producción del día</b><small></small><button type="button" data-fw="min" title="Minimizar">—</button><button type="button" data-fw="cerrar" title="Cerrar">✕</button></div>' +
+      '<div class="ds-fw-cuerpo"></div>';
+    document.body.appendChild(el);
+    dsPintarProduccion();
+    var r = this.getBoundingClientRect();   // se abre junto a la barra lateral y se puede mover
+    el.style.left = Math.max(8, window.innerWidth - 46 - el.offsetWidth - 10) + 'px';
+    el.style.top = Math.max(8, Math.min(window.innerHeight - el.offsetHeight - 8, r.top)) + 'px';
+    var cab = el.querySelector('.ds-fw-cab');
+    el.addEventListener('mousedown', function() { el.style.zIndex = ++DS_FW_Z; });
+    cab.addEventListener('mousedown', function(e) {
+      if (e.target.closest('button')) return;
+      e.preventDefault();
+      var rr = el.getBoundingClientRect(), dx = e.clientX - rr.left, dy = e.clientY - rr.top;
+      var mover = function(ev) {
+        el.style.left = Math.max(-rr.width + 80, Math.min(window.innerWidth - 80, ev.clientX - dx)) + 'px';
+        el.style.top = Math.max(0, Math.min(window.innerHeight - 36, ev.clientY - dy)) + 'px';
+      };
+      var soltar = function() { document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar); };
+      document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
+    });
+    cab.addEventListener('dblclick', function(e) { if (!e.target.closest('button')) el.classList.toggle('min'); });
+    el.querySelector('[data-fw="min"]').onclick = function() { el.classList.toggle('min'); this.title = el.classList.contains('min') ? 'Restaurar' : 'Minimizar'; this.textContent = el.classList.contains('min') ? '▢' : '—'; };
+    el.querySelector('[data-fw="cerrar"]').onclick = dsCerrarProduccion;
   });
   // ---------- Support: "Dejar a cargo" = cubrir el turno de una persona de Support (Support Time) ----------
   function dsFechaIsoCorta(iso) { var p = iso.split('-'); return parseInt(p[2], 10) + ' ' + DS_MESES_C[parseInt(p[1], 10) - 1]; }
