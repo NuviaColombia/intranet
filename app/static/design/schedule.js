@@ -8439,7 +8439,9 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   }
   function cvAnnoMouseDown(e) {
     if (CANVAS.view !== "editor") return;
-    if (CANVAS._toolGroup) { CANVAS._toolGroup = null; cvRenderTools(); }
+    // Un clic afuera cierra el menú de Formas / Líneas; adentro NO (28-oct-2026): al cerrarlo en el mousedown el menú se
+    // redibujaba antes del clic y no se podía elegir Círculo, Rectángulo ni las líneas en modo experto.
+    if (CANVAS._toolGroup && !e.target.closest(".cv-toolgroup")) { CANVAS._toolGroup = null; cvRenderTools(); }
     var fmv = e.target.closest("[data-fmove]"); if (fmv) { cvFrameMoveStart(e, fmv.dataset.fmove); return; }
     var frs = e.target.closest("[data-fresize]"); if (frs) { cvFrameResizeStart(e, frs.dataset.fresize); return; }
     var h = e.target.closest(".cv-handle"); if (h) { cvResizeStart(e, h); return; }
