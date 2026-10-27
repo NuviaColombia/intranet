@@ -60,3 +60,18 @@ class AvisoTraining(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NightguardATraining(AvisoTraining):
+    """27-oct-2026: también los Nightguards / TC pasan a Training (conservan su tabla)."""
+
+    def test_nightguard_pasa_a_training_y_conserva_su_tabla(self):
+        self.o.tabla = "nightguard"; self.db.commit()
+        destino = sd.mover_a_training(self.db, self.o, self.lia)
+        self.assertEqual(destino.id, self.ttr.id)
+        self.assertEqual((self.o.team_id, self.o.tabla, self.o.designer_id), (self.ttr.id, "nightguard", None))
+
+    def test_material_change_sigue_sin_pasar(self):
+        self.o.tabla = "material"; self.db.commit()
+        with self.assertRaises(ValueError):
+            sd.mover_a_training(self.db, self.o, self.lia)

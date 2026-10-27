@@ -1884,8 +1884,8 @@ def mover_a_training(db: Session, o: DesignOrden, user: Empleado) -> DesignTeam:
     team = db.get(DesignTeam, o.team_id)
     if not gestiona_equipo(user, team):
         raise PermissionError("Solo el manager del equipo o un administrador puede pasar casos a Training.")
-    if not team.area or team.area.nombre != "N3 Prosthetic" or o.tabla != "principal":
-        raise ValueError("Solo se pasan a Training los casos de N3 › Cirugías.")
+    if not team.area or team.area.nombre != "N3 Prosthetic" or o.tabla not in ("principal", "nightguard"):
+        raise ValueError("Solo se pasan a Training los casos de N3 › Cirugías y Nightguards / TC.")
     faltan = [n for n, v in (("el número de orden", o.orden), ("el nombre del paciente", o.paciente), ("el centro", o.centro)) if not (v or "").strip()]
     if faltan:
         raise ValueError("Falta " + ", ".join(faltan) + " para pasar el caso a Training.")

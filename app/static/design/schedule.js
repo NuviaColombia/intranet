@@ -2245,7 +2245,7 @@ window.addEventListener('unhandledrejection', function(ev) {
                 dsEsc((f.designerCorto || f.designerNombre || 'Diseñador') + (f.designerInhabilitado ? ' (ya no está)' : esSup ? ' (Support)' : ' (prestado)')) + '</option>';
       }
       if (DS.diaData && !DS.diaData.designersCaso && !dsSoloPropias()) html += '<option value="__otro">Others (prestado)…</option>';
-      if (f.id && f.tabla === 'principal' && dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado()) {
+      if (f.id && (f.tabla === 'principal' || f.tabla === 'nightguard') && dsAreaNombre() === 'N3 Prosthetic' && !dsSoloPropias() && !dsDiaCerrado()) {   // Cirugías y Nightguards (27-oct-2026)
         html += dsOpcionTraining(f);   // pasa el caso al Schedule de Training (se habilita con orden, paciente y centro)
       }
       // N3: asignar el caso a quien está de turno en Support (o a quien lo cubre) (20-oct-2026)
