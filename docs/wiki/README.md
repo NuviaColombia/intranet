@@ -38,8 +38,8 @@ Gotchas · Quién aprueba cambios sensibles (si aplica).
 - [custodia.md](custodia.md) -- Cambio de custodia y Producción (Nuvia Smiles)
 - [consumo.md](consumo.md) -- Seguimiento de consumo (Nuvia Smiles, mismo acceso que Custodia)
 - [conteo.md](conteo.md) -- Conteo inventario mensual (Nuvia Smiles)
-- [caja_menor.md](caja_menor.md) -- Caja Menor Nuvia (desde 27-oct-2026 vive dentro del módulo
-  "Contabilidad" del portal, junto a "Pagos", que todavía no tiene funcionalidad)
+- [caja_menor.md](caja_menor.md) -- Caja Menor Nuvia y Pagos (ambas viven dentro del módulo
+  "Contabilidad" del portal desde 27-oct-2026)
 - [permisos.md](permisos.md) -- Permisos / Vacaciones (People, ambas empresas)
 - [design.md](design.md) -- Design Schedule (mapa general; el detalle de Openings sigue en
   `CLAUDE.md`, es la nota que más se ha roto y conviene dejarla donde toda sesión la lee primero)

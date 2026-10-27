@@ -15,7 +15,40 @@ rutas de `/caja-menor/*` no cambiaron: siguen en el mismo router, con el mismo p
 comportamiento; solo cambió qué hay delante en la navegación. El breadcrumb de la barra superior
 (`base.html`) ahora es "🧮 Contabilidad › 💵 Caja menor Nuvia[ › caja][ › Parámetros]".
 
-**Qué es**: manejo de cajas de caja menor (ej. CONTABILIDAD, MANTENIMIENTO). Reemplaza una app
+**(2026-10-27) Pagos ya tiene funcionalidad real: dos herramientas que corrían como archivos HTML
+sueltos de Oscar.** `/pagos` (`app/routers/pagos.py`, `templates/pagos.html`, mismo permiso
+`require_modulo("caja_menor")`, sin tabla ni endpoint propio) sirve dos herramientas que antes eran
+archivos `.html` independientes que Oscar abría localmente (carpeta `Datos` de su equipo):
+
+- **"Pagos programados → PDF"**: lee el archivo plano del banco (formato Davivienda, líneas
+  `RC`/`TR`) o una tabla pegada de Excel, arma un lote por empresa y genera un PDF con jsPDF para
+  repartir los pagos. Mantiene un directorio de beneficiarios (NIT → nombre/cuenta) e historial de
+  lotes cargados.
+- **"Separador de comprobantes"**: toma el PDF consolidado que entrega el banco con todos los
+  comprobantes de un lote, separa cada página por NIT (usando pdf.js para leer el texto y pdf-lib
+  para recortar páginas) y las entrega en un ZIP (JSZip), nombrando cada archivo con la empresa que
+  reconoce de su propia base de NIT→nombre. Esa base y el historial de ZIP quedan protegidos por un
+  PIN que cada quien crea en su propio navegador la primera vez que los desbloquea.
+
+**Todo corre en el navegador, nada se guarda en el servidor.** Ambas herramientas son exactamente
+el mismo código JS que ya traían (parseo, generación de PDF, separación de PDF, ZIP) -- solo se les
+cambió la piel (CSS) para que se vean como el resto de la plataforma (mismos tokens de color que
+`caja_menor.css`, ver `app/static/pagos.css`) y se quitó el CDN de Tailwind del Separador. El
+directorio de beneficiarios y el historial de "Pagos programados" usan `localStorage`; la base de
+NIT→nombre y el historial de ZIP del Separador usan `IndexedDB`. **Son datos por navegador, no
+compartidos entre personas ni dispositivos** -- si alguien cambia de computador o de navegador,
+no ve lo que cargó la otra persona. Si en el futuro se pide que esto sea compartido entre todos los
+que usan Pagos, hay que migrar esa parte a tablas propias con sus propios endpoints (como
+`CajaAcceso` en Caja menor), no es un ajuste menor.
+
+Los dos `<script>` de `pagos.html` están aislados a propósito: el de "Pagos programados" va envuelto
+en un IIFE (no expone nada al scope global) porque los dos archivos originales declaraban variables
+con el mismo nombre (`esc`, entre otras) y chocarían si convivieran sueltos en la misma página; el
+del Separador se dejó en scope global porque su HTML usa `onclick="..."` inline (mismo patrón que
+`caja_menor.html`) que necesita encontrar esas funciones como globales. Si tocas cualquiera de los
+dos, respeta ese aislamiento.
+
+**Qué es** (Caja menor Nuvia): manejo de cajas de caja menor (ej. CONTABILIDAD, MANTENIMIENTO). Reemplaza una app
 anterior en Google Apps Script. Alguien con acceso a una caja crea un **recibo**; un
 "Autorizado por" (no puede ser quien lo creó) lo firma; si el beneficiario es un empleado activo,
 se le pide su **firma de recibido** por Cliq (en la app o por un enlace sin login). Varios
