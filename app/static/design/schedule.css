@@ -436,7 +436,27 @@
   table.ds-tabla tr.ds-oculta { display:none; }
   table.ds-tabla tr.ds-oculta-ver td { opacity:.5; background:#f8fafc; }
   .ds-panel-acc { display:inline-flex; gap:8px; align-items:center; }
-  .ds-btn-ocultas { padding:4px 10px; font-size:12.5px; margin:0; }
+  /* «Mostrar ocultas»: un ojo que se cierra con parpadeo, dibuja la raya y lanza una onda (26-oct-2026; inspirado en «Hide» de Chad Urbanick) */
+  .btn.ds-btn-ocultas { position:relative; display:inline-grid; place-items:center; width:32px; height:32px; margin:0; padding:0; border:0; border-radius:50%;
+    background:transparent; color:#6b7280; cursor:pointer; transition:background-color .2s, color .35s; }
+  .btn.ds-btn-ocultas:hover { background:rgba(17,24,39,.08); color:#374151; }
+  .btn.ds-btn-ocultas.mostrando, .btn.ds-btn-ocultas.mostrando:hover { color:#111827; }
+  .btn.ds-btn-ocultas:focus-visible { outline:2px solid #60a5fa; outline-offset:1px; }
+  .ds-ojo-svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
+  .ds-ojo-svg .ojo-g { transform-origin:12px 12px; }
+  .ds-ojo-svg .ojo-pup { transform-origin:12px 12px; transition:transform .35s cubic-bezier(.34,1.56,.64,1); transform:scale(.8); }
+  .mostrando .ds-ojo-svg .ojo-pup { transform:scale(1.15); }
+  .ds-ojo-svg .ojo-raya { stroke-dasharray:1; stroke-dashoffset:0; transition:stroke-dashoffset .4s ease; }
+  .mostrando .ds-ojo-svg .ojo-raya { stroke-dashoffset:1; }
+  .pulso .ds-ojo-svg .ojo-g { animation:dsOjoParpadeo .5s ease; }
+  @keyframes dsOjoParpadeo { 0% { transform:scaleY(1); } 38% { transform:scaleY(.12); } 100% { transform:scaleY(1); } }
+  .btn.ds-btn-ocultas::after { content:""; position:absolute; inset:0; border-radius:50%; background:currentColor; opacity:0; transform:scale(.4); pointer-events:none; }
+  .btn.ds-btn-ocultas.pulso::after { animation:dsOjoOnda .6s ease-out; }
+  @keyframes dsOjoOnda { 0% { opacity:.24; transform:scale(.4); } 100% { opacity:0; transform:scale(1.55); } }
+  .ds-oc-n { position:absolute; top:-3px; right:-5px; min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px; background:#111827; color:#fff;
+    font-size:10px; font-weight:700; line-height:16px; text-align:center; font-variant-numeric:tabular-nums; pointer-events:none; }
+  .ds-oc-n[hidden] { display:none; }
+  @media (prefers-reduced-motion: reduce) { .ds-ojo-svg .ojo-pup, .ds-ojo-svg .ojo-raya { transition:none; } .pulso .ds-ojo-svg .ojo-g, .btn.ds-btn-ocultas.pulso::after { animation:none; } }
   .ds-btn-ojo { border:0; background:none; cursor:pointer; font-size:13px; padding:0 3px; color:#64748b; line-height:1; }
   .ds-btn-ojo:hover { color:#1d4ed8; }
   .ds-btn-x { background:#9ca3af; color:#fff; border:none; border-radius:4px; width:18px; height:18px; padding:0;
@@ -444,10 +464,16 @@
   .ds-btn-x:hover { background:#4b5563; }
   .ds-panel-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   .ds-panel-h h3 { margin:0; }
-  .ds-btn-add { padding:3px 10px; font-size:12px; line-height:1.4; border-radius:6px; }
   /* «+ Agregar orden» y las casillas del Schedule con el azul de la barra superior (Rosember, 26-oct-2026) */
-  .btn.ds-btn-add { background:#111827; color:#fff; }
-  .btn.ds-btn-add:hover { background:#1f2a44; }
+  /* «Agregar orden»: solo el signo más, en un círculo; al pasar el mouse el más gira (26-oct-2026) */
+  .btn.ds-btn-add { display:inline-grid; place-items:center; width:30px; height:30px; padding:0; margin:0; border-radius:50%; background:#111827; color:#fff; line-height:1;
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1), background-color .2s, box-shadow .25s; }
+  .btn.ds-btn-add .ds-mas { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.8; stroke-linecap:round; transition:transform .4s cubic-bezier(.34,1.56,.64,1); }
+  .btn.ds-btn-add:hover { background:#1f2a44; box-shadow:0 0 0 4px rgba(17,24,39,.12); }
+  .btn.ds-btn-add:hover .ds-mas { transform:rotate(90deg); }
+  .btn.ds-btn-add:active { transform:scale(.88); }
+  .btn.ds-btn-add:focus-visible { outline:2px solid #60a5fa; outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce) { .btn.ds-btn-add, .btn.ds-btn-add .ds-mas { transition:none; } .btn.ds-btn-add:hover .ds-mas { transform:none; } }
   #ds-app input[type=checkbox] { accent-color:#111827; }
   /* Tiempos libres: una tarjeta por diseñador, en cuadrícula que llena el ancho */
   .ds-tl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }

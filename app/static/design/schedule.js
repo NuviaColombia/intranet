@@ -1150,6 +1150,26 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsBtnOjo(id) {
     return '<button type="button" class="ds-btn-ojo" data-ojo="' + id + '" title="Ocultar esta fila" aria-label="Ocultar o mostrar esta fila" onclick="dsOjoFila(' + id + ')">👁</button>';
   }
+  // «Mostrar ocultas» es un ojo (Rosember, 26-oct-2026; inspirado en «Hide» de Chad Urbanick en Dribbble): con las órdenes ocultas
+  // el ojo está tachado y apagado; al tocarlo parpadea, la raya se borra y lanza una onda; al volver a ocultarlas, al revés.
+  // El número de órdenes ocultas va en una insignia. La animación es solo CSS (clases .mostrando y .pulso).
+  var DS_OJO_SVG = '<svg class="ds-ojo-svg" viewBox="0 0 24 24" aria-hidden="true"><g class="ojo-g"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/>' +
+    '<circle class="ojo-pup" cx="12" cy="12" r="3"/></g><path class="ojo-raya" pathLength="1" d="M4 20L20 4"/></svg><span class="ds-oc-n"></span>';
+  function dsOjoBtn(btn, ver, n) {
+    if (!btn.querySelector('.ds-ojo-svg')) btn.innerHTML = DS_OJO_SVG;
+    var antes = btn.classList.contains('mostrando');
+    btn.classList.toggle('mostrando', !!ver);
+    if (btn.dataset.listo && antes !== !!ver) {   // onda y parpadeo solo cuando de verdad cambia (no en cada refresco en vivo)
+      btn.classList.remove('pulso'); void btn.offsetWidth; btn.classList.add('pulso');
+      clearTimeout(btn._pulso); btn._pulso = setTimeout(function() { btn.classList.remove('pulso'); }, 700);
+    }
+    btn.dataset.listo = '1';
+    var num = btn.querySelector('.ds-oc-n'); num.textContent = n; num.hidden = !n;
+    btn.setAttribute('aria-pressed', ver ? 'true' : 'false');
+    btn.setAttribute('aria-label', ver ? 'Volver a ocultar las órdenes ocultas (' + n + ')' : 'Mostrar las órdenes ocultas (' + n + ')');
+    btn.title = ver ? 'Ocultar (' + n + '): vuelve a ocultar las órdenes con QC, las canceladas y las que ocultaste'
+                    : 'Mostrar ocultas (' + n + '): muestra las órdenes con QC, las canceladas y las que ocultaste (atenuadas)';
+  }
   function dsAplicarOcultas(tabla) {
     var btn = document.getElementById('dsOcultas_' + tabla);
     var sw = btn && btn.parentNode.querySelector('.ds-auto-oc');
@@ -1178,8 +1198,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     if (btn) {
       btn.style.display = !n && !DS.verOcultas ? 'none' : '';  // (.btn pisa el atributo hidden)
-      btn.textContent = DS.verOcultas ? 'Ocultar (' + n + ')' : 'Mostrar ocultas (' + n + ')';
-      btn.title = DS.verOcultas ? 'Vuelve a ocultar las órdenes con QC, las canceladas y las que ocultaste' : 'Muestra las órdenes con QC, las canceladas y las que ocultaste (atenuadas)';
+      dsOjoBtn(btn, DS.verOcultas, n);
     }
     if (cambio && DS.sel) { DS.sel = null; dsPintarSel(); }  // cambiaron las filas visibles: la selección ya no aplica
   }

@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (687 reglas) ---- */
+/* ---- static\design\schedule.css (696 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -264,12 +264,21 @@
 :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-th-sort .ds-sort-ind { color:#9ca3af; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-th-sort.on .ds-sort-ind { color:#7a98ed; }
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-oculta-ver td { background:#181f26; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas { background:transparent; color:#abb2c0; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas:hover { background:rgba(17,24,39,.08); color:#c5cad3; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas.mostrando, :root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas.mostrando:hover { color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas:focus-visible { outline:2px solid #2e4c71; }
+:root[data-ds-tema="oscuro"] .ds-ojo-svg { fill:none; stroke:currentColor; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas::after { background:currentColor; }
+:root[data-ds-tema="oscuro"] .ds-oc-n { background:#111827; color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-btn-ojo { background:none; color:#aab2bf; }
 :root[data-ds-tema="oscuro"] .ds-btn-ojo:hover { color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .ds-btn-x { background:#2c384e; color:#fff; border:none; }
 :root[data-ds-tema="oscuro"] .ds-btn-x:hover { background:#4b5563; }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add { background:#111827; color:#fff; }
-:root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { background:#1f2a44; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add .ds-mas { fill:none; stroke:currentColor; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { background:#1f2a44; box-shadow:0 0 0 4px rgba(17,24,39,.12); }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add:focus-visible { outline:2px solid #2e4c71; }
 :root[data-ds-tema="oscuro"] .ds-tl-card { background:#181d27; border:1px solid #333843; }
 :root[data-ds-tema="oscuro"] .ds-tl-nombre { color:#d1d9eb; }
 :root[data-ds-tema="oscuro"] .ds-tl-fila > span.ds-tl-lbl { color:#bbc1cc; }

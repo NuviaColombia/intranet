@@ -65,6 +65,13 @@ Antes de buscar un patrón de roles que no existe:
 - **Azul de la barra superior en el Schedule** (Rosember, 26-oct-2026): «+ Agregar orden», el interruptor «Colores de los
   estados» encendido y las casillas del Schedule (`#ds-app input[type=checkbox]`, p. ej. QC y descansos) usan el azul de la
   barra (#111827) en vez del azul general de los botones. En oscuro van blancos con el azul de la barra, como el logo.
+- **«Mostrar ocultas» como ojo y «Agregar orden» como signo más** (Rosember, 26-oct-2026): en las tablas del Schedule
+  «Mostrar ocultas (N)» es un ojo (inspirado en «Hide» de Chad Urbanick en Dribbble): con las órdenes ocultas el ojo está
+  tachado y gris; al tocarlo parpadea, la raya se borra y lanza una onda circular, y se oscurece (blanco en modo oscuro);
+  al volver a ocultarlas, al revés. El número de ocultas va en una insignia; el texto completo está en el tooltip y en
+  `aria-label` (`dsOjoBtn`, clases `.mostrando` y `.pulso`; la onda solo corre cuando cambia el estado, no en cada refresco
+  en vivo). «+ Agregar orden» quedó como un círculo solo con el signo más (tooltip «Agregar orden»), que gira 90° al pasar
+  el mouse; sigue preguntando cuántas órdenes agregar.
 - **Historial: calendario de días de producción** (Rosember, 26-oct-2026): botón «Historial» en la barra lateral (visible
   cuando hay un equipo abierto o la vista de todas las áreas, igual que las flechas de semana). Abre a la izquierda de la
   barra un calendario del mes con solo los días de lunes a viernes (los del Schedule); con ‹ › se cambia de mes, «Hoy» vuelve

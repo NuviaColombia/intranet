@@ -148,3 +148,9 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] .ds-cal-dia:hover { background:#1e293b; }
 :root[data-ds-tema="oscuro"] .ds-cal-dia.hoy { box-shadow:inset 0 0 0 2px #e5e7eb; }
 :root[data-ds-tema="oscuro"] .ds-cal-dia.sel, :root[data-ds-tema="oscuro"] .ds-cal-dia.sel:hover { background:#fff; color:#0f172a; }
+/* «Mostrar ocultas» (ojo) y «Agregar orden» (más) en oscuro (26-oct-2026) */
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas { background:transparent; color:#94a3b8; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas:hover { background:rgba(255,255,255,.1); color:#e2e8f0; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas.mostrando, :root[data-ds-tema="oscuro"] .btn.ds-btn-ocultas.mostrando:hover { color:#fff; }
+:root[data-ds-tema="oscuro"] .ds-oc-n { background:#fff; color:#0f172a; }
+:root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { box-shadow:0 0 0 4px rgba(255,255,255,.14); }
