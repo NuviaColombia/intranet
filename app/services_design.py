@@ -3336,7 +3336,7 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
         return material_minutos(o)[2]
     if o.tabla == "nightguard" and not horas_por_estado(formato, o.fecha, o.tabla):
         return _entre(o.hora_inicio, o.hora_fin)
-    if o.diseno_min is not None and horas_por_estado(formato, o.fecha, o.tabla):
+    if getattr(o, "diseno_min", None) is not None and horas_por_estado(formato, o.fecha, o.tabla):
         return o.diseno_min if (o.hora_fin or "").strip() else 0   # medido con hora real: no depende de las horas sin fecha
     if formato == FORMATO_N2:
         if not o.hora_inicio or not o.hora_fin:
