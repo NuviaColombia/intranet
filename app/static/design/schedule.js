@@ -1957,8 +1957,22 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (rgb) sel.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else sel.style.removeProperty('background-color');
     sel.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
   }
+  // Tarjetas de Tiempos libres: el borde y un fondo suave con el color del diseñador (como en las casillas de la tabla).
+  // El manager conserva su borde oscuro (ds-tl-mgr) y no se pinta.
+  function dsPintarTarjetaTL(card, d) {
+    if (!card || (d && d.esManager)) return;
+    var rgb = dsColorRgb((dsColoresLeer().d || {})[String(d.id)]);
+    card.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
+    card.style.background = rgb ? 'rgba(' + rgb + ',.10)' : '';
+  }
+  function dsPintarTarjetasTL() {
+    document.querySelectorAll('#dsBreaks .ds-tl-card').forEach(function(card) {
+      dsPintarTarjetaTL(card, {id: +card.dataset.empleadoId, esManager: card.classList.contains('ds-tl-mgr')});
+    });
+  }
   function dsPintarColores(scope) {
     var x = dsColoresLeer();
+    dsPintarTarjetasTL();
     (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"], select[data-campo="producto"], select[data-campo="estado"]').forEach(function(s) { dsPintarCelda(s, x); });
     if (dsEsRD()) (scope || document).querySelectorAll('#dsTablaMaterial span.ds-ro[data-ro="centro"]').forEach(function(sp) {
       var rgb = dsColorRgb((dsColoresDeFila(sp).c || {})[sp.textContent.trim()]), td = sp.closest('td');
@@ -2675,6 +2689,7 @@ window.addEventListener('unhandledrejection', function(ev) {
           fila('Descanso 1', 'break1Inicio', 'break1Fin', 'break1') +
           fila('Descanso 2', 'break2Inicio', 'break2Fin', 'break2');
         if (d.esManager) card.classList.add('ds-tl-mgr');
+        dsPintarTarjetaTL(card, d);   // color que tiene asignado el diseñador en el Schedule
         if (d.soloLectura) {   // tiempos libres del manager vistos por un diseñador: solo se miran
           card.classList.add('ds-tl-ajeno');
           card.querySelectorAll('input, select').forEach(function(el) { el.disabled = true; });

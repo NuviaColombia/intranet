@@ -12,8 +12,8 @@
   --primary: #4f46e5;
   --primary-2: #6366f1;
   --primary-soft: #eef0ff;
-  --holiday: #dc2626;
-  --holiday-soft: #fef1f1;
+  --holiday: #16a34a;
+  --holiday-soft: #effaf3;
   --today: #4f46e5;
   --weekend: #fafbfd;
   --success: #16a34a;
@@ -41,8 +41,8 @@
   --primary: #818cf8;
   --primary-2: #6366f1;
   --primary-soft: #23264a;
-  --holiday: #f87171;
-  --holiday-soft: #2b1619;
+  --holiday: #4ade80;
+  --holiday-soft: #0f2a1b;
   --today: #818cf8;
   --weekend: #121520;
   --shadow: 0 4px 16px rgb(0 0 0 / 0.35);
@@ -81,6 +81,9 @@
 .calapp .btn:active { transform: translateY(1px); }
 .calapp .btn-primary { background: var(--primary-2); border-color: transparent; color: #fff; box-shadow: 0 2px 8px rgb(79 70 229 / .3); }
 .calapp .btn-primary:hover { background: #4338ca; }
+/* «Nuevo evento» con el azul de la barra superior de Design (26-oct-2026) */
+.calapp .btn-primary.btn-create { background: #111827; box-shadow: 0 2px 8px rgb(17 24 39 / .25); }
+.calapp .btn-primary.btn-create:hover { background: #1f2a44; }
 .calapp .btn-danger { color: var(--danger); }
 .calapp .btn-danger:hover { background: var(--holiday-soft); }
 .calapp .btn-ghost { background: transparent; }
@@ -115,8 +118,10 @@
 .calapp .switch input { position: absolute; opacity: 0; pointer-events: none; }
 .calapp .switch span { flex: none; width: 32px; height: 18px; border-radius: 99px; background: var(--surface-3); position: relative; transition: background .2s; }
 .calapp .switch span::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform .2s; }
-.calapp .switch input:checked + span { background: var(--primary-2); }
+.calapp .switch input:checked + span { background: #111827; }   /* azul de la barra superior (26-oct-2026) */
 .calapp .switch input:checked + span::after { transform: translateX(14px); }
+/* Festivos de la empresa: en rojo (los de Colombia van en verde por defecto) */
+.calapp .holiday.empresa, .calapp .holiday-list li.empresa { --holiday: #dc2626; --holiday-soft: #fef1f1; }
 .calapp .switch input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
 .calapp .badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--primary-soft); color: var(--primary); font-size: 11px; font-weight: 700; }
 .calapp .auth {
@@ -524,3 +529,13 @@
 .calapp .tl-name .avatar { display: none; }
 .calapp .team-toolbar .tiny { display: none; }
 }
+
+/* Modo oscuro (26-oct-2026): botón de nuevo evento e interruptores en blanco con el azul de la barra; festivos de la empresa en rojo */
+:root[data-ds-tema="oscuro"] .calapp .btn-primary.btn-create { background: #fff; color: #0f172a; box-shadow: 0 2px 8px rgb(0 0 0 / .4); }
+:root[data-ds-tema="oscuro"] .calapp .btn-primary.btn-create:hover { background: #dbeafe; }
+:root[data-ds-tema="oscuro"] .calapp .switch input:checked + span { background: #fff; }
+:root[data-ds-tema="oscuro"] .calapp .switch input:checked + span::after { background: #0f172a; }
+:root[data-ds-tema="oscuro"] .calapp .holiday.empresa, :root[data-ds-tema="oscuro"] .calapp .holiday-list li.empresa { --holiday: #f87171; --holiday-soft: #2b1619; }
+
+/* Días que ya pasaron (26-oct-2026): una X pequeña y discreta en la esquina, sin ruido visual */
+.calapp .day.pasado::after { content: '✕'; position: absolute; top: 3px; right: 5px; font-size: 9px; line-height: 1; font-weight: 600; color: var(--text-3); opacity: .45; pointer-events: none; }

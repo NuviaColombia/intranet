@@ -8,6 +8,8 @@ import { getColombianHolidays as festivosColombia, holidaysInRange as festivosCo
 // Festivos = los oficiales de Colombia + los de la empresa (Parámetros › Festivos), Rosember 19-oct-2026.
 // Mismos nombres que las funciones de holidays.js: todo el calendario (mes, semana, año, Equipo, días hábiles) los usa.
 const FESTIVOS_EMPRESA = new Map();   // 'AAAA-MM-DD' -> nombre
+// Clase del día festivo: verde para los de Colombia y rojo para los de la empresa (Parámetros › Festivos).
+const holClass = (h) => (h ? 'holiday' + (h.empresa ? ' empresa' : '') : '');
 function holidaysInRange(from, to) {
   const m = festivosColombiaRango(from, to);
   for (const [d, name] of FESTIVOS_EMPRESA) if (d >= from && d <= to && !m.has(d)) m.set(d, { date: d, name, empresa: true });
@@ -621,7 +623,7 @@ function miniMonthHtml(monthIso, { header = true, highlight = null, compact = fa
     const h = hol.get(d);
     const cls = [
       d.slice(0, 7) !== month && 'out',
-      h && 'holiday',
+      h && holClass(h),
       d === state.today && 'today',
       byDay.has(d) && 'has-events',
       highlight && d >= highlight.from && d <= highlight.to && 'in-range',
@@ -734,7 +736,7 @@ function renderSidebar() {
   const next = list.find((h) => h.date >= state.today);
   $('#holiday-list').innerHTML = !list.length ? '<li class="empty">No hay festivos este mes</li>' : list
     .map(
-      (h) => `<li data-goto-month="${h.date}" class="${h.date < state.today ? 'past' : ''} ${h === next ? 'next' : ''}"
+      (h) => `<li data-goto-month="${h.date}" class="${h.date < state.today ? 'past' : ''} ${h === next ? 'next' : ''} ${h.empresa ? 'empresa' : ''}"
         title="${h.empresa ? 'Festivo de la empresa (Parámetros › Festivos)' : h.moved ? `Trasladado desde el ${fmt(h.originalDate, { day: 'numeric', month: 'long' })} (Ley Emiliani)` : 'Festivo fijo'}">
         <span class="h-date">${fmt(h.date, { day: '2-digit', month: 'short' })}</span>
         <span>${esc(h.name)}${h.moved ? ' <span class="h-moved">↪ lunes</span>' : ''}</span></li>`,
@@ -811,7 +813,7 @@ function renderMonth() {
     const d = addDays(from, i);
     const h = hol.get(d);
     const items = byDay.get(d) || [];
-    const cls = ['day', d.slice(0, 7) !== month && 'out', isWeekend(d) && 'weekend', h && 'holiday', d === state.today && 'today']
+    const cls = ['day', d.slice(0, 7) !== month && 'out', isWeekend(d) && 'weekend', h && holClass(h), d === state.today && 'today', d < state.today && 'pasado']
       .filter(Boolean)
       .join(' ');
     const shown = items.length > cap ? items.slice(0, cap - 1) : items;
@@ -872,7 +874,7 @@ function renderWeek() {
   const head = days
     .map((d, i) => {
       const h = hol.get(d);
-      return `<div class="wh ${d === state.today ? 'today' : ''} ${h ? 'holiday' : ''}" data-goto-month="${d}" title="${esc(h?.name || '')}">
+      return `<div class="wh ${d === state.today ? 'today' : ''} ${h ? holClass(h) : ''}" data-goto-month="${d}" title="${esc(h?.name || '')}">
         <div class="dname">${DOW[i]}</div><div class="dnum">${Number(d.slice(8))}</div>
         ${h ? `<div class="hname">${esc(h.name)}</div>` : ''}</div>`;
     })
@@ -881,7 +883,7 @@ function renderWeek() {
   const allday = days
     .map((d) => {
       const items = (byDay.get(d) || []).filter((o) => !isTimed(o));
-      return `<div class="ad ${hol.has(d) ? 'holiday' : ''}" data-date="${d}" data-drop="allday">${(absDay.get(d) || []).map(absChip).join('')}${items.map((o) => chipHtml(o, d)).join('')}</div>`;
+      return `<div class="ad ${hol.has(d) ? holClass(hol.get(d)) : ''}" data-date="${d}" data-drop="allday">${(absDay.get(d) || []).map(absChip).join('')}${items.map((o) => chipHtml(o, d)).join('')}</div>`;
     })
     .join('');
 
@@ -907,7 +909,7 @@ function renderWeek() {
         })
         .join('');
       const now = d === state.today ? `<div class="now-line" style="top:${(toMin(fromMin(new Date().getHours() * 60 + new Date().getMinutes())) / 60) * hourH}px"></div>` : '';
-      return `<div class="wcol ${isWeekend(d) ? 'weekend' : ''} ${hol.has(d) ? 'holiday' : ''}" data-date="${d}" data-drop="timed" style="height:${24 * hourH}px">${evs}${now}</div>`;
+      return `<div class="wcol ${isWeekend(d) ? 'weekend' : ''} ${hol.has(d) ? holClass(hol.get(d)) : ''}" data-date="${d}" data-drop="timed" style="height:${24 * hourH}px">${evs}${now}</div>`;
     })
     .join('');
 
@@ -940,11 +942,11 @@ function renderAgenda() {
     const h = hol.get(d);
     const outs = absDay.get(d) || [];
     if (!items.length && !h && !outs.length) continue;
-    html += `<div class="agenda-day ${d === state.today ? 'today' : ''} ${h ? 'holiday' : ''}">
+    html += `<div class="agenda-day ${d === state.today ? 'today' : ''} ${h ? holClass(h) : ''}">
       <div class="agenda-date" data-week="${d}"><div class="ad-num">${Number(d.slice(8))}</div>
         <div class="ad-label">${cap(fmt(d, { weekday: 'long' }))}<br>${fmt(d, { month: 'short', year: 'numeric' })}</div></div>
       <div class="agenda-items">
-        ${h ? `<div class="agenda-holiday">🇨🇴 Festivo: ${esc(h.name)}${h.moved ? ' · trasladado desde el ' + fmt(h.originalDate, { day: 'numeric', month: 'long' }) : ''}</div>` : ''}
+        ${h ? `<div class="agenda-holiday">${h.empresa ? '🏢 Festivo de la empresa' : '🇨🇴 Festivo'}: ${esc(h.name)}${h.moved ? ' · trasladado desde el ' + fmt(h.originalDate, { day: 'numeric', month: 'long' }) : ''}</div>` : ''}
         ${outs.length ? `<div class="agenda-out"><span class="muted">Fuera:</span> ${outs.map(absChip).join('')}</div>` : ''}
         ${items
           .map((o) => {
@@ -1006,7 +1008,7 @@ function renderTeam() {
   }
 
   const cols = `grid-template-columns: var(--tl-name) repeat(${days.length}, minmax(28px, 1fr)) 64px`;
-  const dayCls = (d) => [isWeekend(d) && 'weekend', hol.has(d) && 'holiday', d === state.today && 'today', d < state.today && 'past'].filter(Boolean).join(' ');
+  const dayCls = (d) => [isWeekend(d) && 'weekend', hol.has(d) && holClass(hol.get(d)), d === state.today && 'today', d < state.today && 'past'].filter(Boolean).join(' ');
   const bg = (p) => days.map((d, i) => `<div class="tl-cell ${dayCls(d)}${p && canEstimate(p.user_id) ? ' puede-estimar' : ''}" style="grid-column:${i + 2}"${p && canEstimate(p.user_id) ? ` data-est-person="${p.user_id}" data-est-date="${d}" title="Doble clic para poner vacaciones estimadas"` : ''}></div>`).join('');
 
   const head = `<div class="tl-row tl-head" style="${cols}"><div class="tl-name">Persona</div>
@@ -1072,7 +1074,7 @@ function renderTeam() {
     <div class="team-toolbar">${legend}
       <span class="legend-item"><span class="legend-sw pending" style="--c:#10b981"></span>Pendiente en People</span>
       <span class="legend-item"><span class="legend-sw estimated"></span>Estimada (no aprobada)</span>
-      <span class="legend-item"><span class="legend-sw" style="--c:var(--holiday)"></span>Festivo</span>
+      <span class="legend-item"><span class="legend-sw" style="--c:#16a34a"></span>Festivo de Colombia</span><span class="legend-item"><span class="legend-sw" style="--c:#dc2626"></span>Festivo de la empresa</span>
       <span class="spacer"></span>${canCreate() ? '<button class="btn" data-estimate>＋ Vacaciones estimadas</button>' : ''}
       <span class="tiny muted">🔒 Aprobadas y pendientes: People (intranet). Las estimadas las pone el aprobador.</span></div>
     <div class="timeline">${head}${outRow}${body}</div></div>`;
@@ -2253,7 +2255,7 @@ function showDayPopover(anchor, date) {
   showPopover(
     anchor,
     `<h4>${cap(fmt(date, { weekday: 'long', day: 'numeric', month: 'long' }))}<button class="link-btn" data-create="${date}">＋ Crear</button></h4>
-     ${h ? `<div class="agenda-holiday" style="margin-bottom:8px">🇨🇴 ${esc(h.name)}</div>` : ''}
+     ${h ? `<div class="agenda-holiday" style="margin-bottom:8px">${h.empresa ? '🏢' : '🇨🇴'} ${esc(h.name)}</div>` : ''}
      <div class="day-events">${items.map((o) => chipHtml(o, date)).join('')}</div>`,
   );
   $$('#popover [draggable]').forEach((x) => x.removeAttribute('draggable'));
