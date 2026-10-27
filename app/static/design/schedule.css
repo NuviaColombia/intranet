@@ -129,6 +129,8 @@
   .ds-lateral { position:fixed; right:0; top:calc(var(--ds-nav-h, 0px) + 100px); z-index:250; }
   .ds-lateral[hidden] { display:none; }
   #ds-app.ds-con-lateral { padding-right:50px; }
+  /* El buscador (logo) queda en la misma columna que la barra lateral (46 px, centro a 23 px del borde): 6 px de margen al borde */
+  #ds-app.ds-con-lateral .ds-cabecera-der { margin-right:-60px; }
   /* Barra lateral (Rosember, 26-oct-2026; inspirada en «Sidebar Navigation Animation» de Halal Lab en Dribbble): en reposo una
      barra angosta con iconos; al pasar el mouse (o con la muesca, que la deja fija) se ensancha y los nombres entran en cascada.
      Todo lleva #dsLateral #dsLatPanel para ganarle a .btn, .btn.gris y «#dsACargo .btn» (y a sus versiones del modo oscuro). */
