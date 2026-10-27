@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Contabilidad{% endblock %}
+{% block contenido %}
+<h1 style="margin:0;">Contabilidad</h1>
+<p style="color:var(--gris)">Elige una sección para continuar</p>
+<div class="modulos">
+  <a class="modulo" href="/caja-menor">
+    <span class="modulo-icono">💵</span>
+    <span class="modulo-nombre">Caja menor Nuvia</span>
+    <span class="modulo-desc">Recibos, legalización (FM) y arqueos</span>
+  </a>
+  <div class="modulo disabled" title="Próximamente">
+    <span class="modulo-icono">💳</span>
+    <span class="modulo-nombre">Pagos</span>
+    <span class="modulo-desc">Próximamente</span>
+  </div>
+</div>
+{% endblock %}

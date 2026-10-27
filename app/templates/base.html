@@ -86,12 +86,12 @@
   <span class="nav-ruta"><a href="/inventario">🏭 Producción</a></span>
   {% endif %}
   {% if es_caja_entrada %}
-  <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a></span>
+  <span class="nav-ruta"><a href="/contabilidad">🧮 Contabilidad</a> › <a href="/caja-menor">💵 Caja menor Nuvia</a></span>
   {% endif %}
   {% if es_caja %}
   {# Caja menor Nuvia: mismo diseño de barra que Producción (ver .nav-inventario en style.css) #}
   {% if caja %}
-  <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/{{ caja.id }}">{{ caja.nombre|nombre_propio }}</a></span>
+  <span class="nav-ruta"><a href="/contabilidad">🧮 Contabilidad</a> › <a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/{{ caja.id }}">{{ caja.nombre|nombre_propio }}</a></span>
   <div class="nav-sub">
     {% if solo_firmas %}
     {% if puede_consultar %}
@@ -108,7 +108,7 @@
     {% endif %}
   </div>
   {% else %}
-  <span class="nav-ruta"><a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/parametros">Parámetros</a></span>
+  <span class="nav-ruta"><a href="/contabilidad">🧮 Contabilidad</a> › <a href="/caja-menor">💵 Caja menor Nuvia</a> › <a href="/caja-menor/parametros">Parámetros</a></span>
   <div class="nav-sub"><a href="/caja-menor/parametros" class="activo">⚙️ Parámetros</a></div>
   {% endif %}
   {% endif %}
@@ -304,8 +304,11 @@
     if (!enlaces.length) return;
     var ultimo = limpio(enlaces[enlaces.length - 1]);
     var base = (PARAM.test(ultimo) && enlaces.length > 1) ? 'Parámetros (' + limpio(enlaces[enlaces.length - 2]) + ')' : ultimo;
-    // Una caja de Caja menor: "Caja Contabilidad" (el nombre de la caja solo, suelto, no dice qué es)
-    if (enlaces.length > 1 && !PARAM.test(ultimo) && /caja menor/i.test(limpio(enlaces[0])) && !/caja/i.test(ultimo)) base = 'Caja ' + ultimo;
+    // Una caja de Caja menor: "Caja Contabilidad" (el nombre de la caja solo, suelto, no dice qué es).
+    // Busca "caja menor" en cualquier enlace previo al último (no solo el primero: desde que existe el
+    // módulo Contabilidad, la ruta es "Contabilidad › Caja menor Nuvia › {caja}", 3 niveles).
+    var esRutaCaja = Array.prototype.slice.call(enlaces, 0, -1).some(function(e) { return /caja menor/i.test(limpio(e)); });
+    if (enlaces.length > 1 && !PARAM.test(ultimo) && esRutaCaja && !/caja/i.test(ultimo)) base = 'Caja ' + ultimo;
     var activa = document.querySelector('nav .nav-sub a.activo');
     var pestana = activa ? limpio(activa) : '';
     var titulo = (pestana && !PARAM.test(pestana) && pestana.toLowerCase() !== ultimo.toLowerCase()) ? base + ' (' + pestana + ')' : base;
