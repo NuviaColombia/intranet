@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block titulo %}Nuvia{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css?v=17">
+  <link rel="stylesheet" href="/static/style.css?v=18">
   {# Barra superior: foto, nombre y cargo. Va en el <head> (22-oct-2026): antes estaba después de la barra y al recargar
      la foto salía grande un instante, antes de que llegara su tamaño. #}
   <style>
@@ -26,7 +26,15 @@
     nav .ds-yo-salir:active { transform:translateY(1px); box-shadow:inset 2px 2px 5px rgba(0,0,0,.18); }
     nav .ds-yo-salir:focus-visible { outline:2px solid #60a5fa; outline-offset:2px; }
   </style>
-{% if es_design %}<link rel="stylesheet" href="/static/design/oscuro_auto.css?v={{ ds_estaticos_v }}"><link rel="stylesheet" href="/static/design/oscuro.css?v={{ ds_estaticos_v }}">{% endif %}
+{% if es_design %}<style>
+  /* Acento de Design (Rosember, 27-oct-2026): el azul de la barra en lugar del azul de selección; en modo oscuro, blanco con
+     letra azul de la barra. Solo en Design: fuera de aquí .btn sigue con su color de siempre. */
+  :root { --ds-acento:#111827; --ds-acento-t:#ffffff; --ds-acento-hover:#374151; --ds-acento-suave:#f3f4f6; --btn-fondo:#111827; --btn-texto:#ffffff; }
+  :root[data-ds-tema="oscuro"] { --ds-acento:#f3f4f6; --ds-acento-t:#0f172a; --ds-acento-hover:#e5e7eb; --ds-acento-suave:rgba(255,255,255,.08);
+    --btn-fondo:#f3f4f6; --btn-texto:#0f172a; }
+  nav .ds-yo-foto { background:#fff; color:#111827; }
+</style>
+{% endif %}{% if es_design %}<link rel="stylesheet" href="/static/design/oscuro_auto.css?v={{ ds_estaticos_v }}"><link rel="stylesheet" href="/static/design/oscuro.css?v={{ ds_estaticos_v }}">{% endif %}
 {% if es_design %}<link rel="manifest" href="/design/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="/static/design/push-icono.png">{% endif %}
 </head>
 <body>

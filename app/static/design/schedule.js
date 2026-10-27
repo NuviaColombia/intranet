@@ -4818,7 +4818,7 @@ function ddQcEditar(ordenId) {
 function ddAvisoDeshacer(texto, deshacer) {
   var v = document.getElementById('ddAviso'); if (v) v.remove();
   v = document.createElement('div'); v.id = 'ddAviso'; v.className = 'ds-toast'; v.style.display = '';
-  v.innerHTML = '<span></span> <button type="button" style="margin-left:10px;background:#fff;color:#1d4ed8;border:none;border-radius:5px;padding:3px 10px;cursor:pointer;font-weight:600">Deshacer</button>';
+  v.innerHTML = '<span></span> <button type="button" style="margin-left:10px;background:#fff;color:#111827;border:none;border-radius:5px;padding:3px 10px;cursor:pointer;font-weight:600">Deshacer</button>';
   v.querySelector('span').textContent = texto;
   v.querySelector('button').onclick = function() { v.remove(); deshacer(); };
   document.body.appendChild(v);

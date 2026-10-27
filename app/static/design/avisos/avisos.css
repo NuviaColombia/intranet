@@ -1,8 +1,8 @@
 /* Centro de avisos (Cliq) · Rosember, 20-oct-2026 (templates/design_avisos.html, avisos.js). Modo oscuro al final. */
 .av-raiz, .av-modal {
   --av-fondo:#ffffff; --av-suave:#f8fafc; --av-borde:#e2e8f0; --av-texto:#0f172a; --av-gris:#64748b;
-  --av-prim:#1d4ed8; --av-prim-t:#ffffff; --av-prim-suave:#eff6ff; --av-ok:#047857; --av-mal:#b91c1c; --av-mal-suave:#fef2f2;
-  --av-chip:#e0e7ff; --av-chip-t:#3730a3; --av-burbuja:#f1f5f9; --av-mencion:#1d4ed8;
+  --av-prim:#111827; --av-prim-t:#ffffff; --av-prim-suave:#f3f4f6; --av-ok:#047857; --av-mal:#b91c1c; --av-mal-suave:#fef2f2;
+  --av-chip:#e0e7ff; --av-chip-t:#3730a3; --av-burbuja:#f1f5f9; --av-mencion:#111827;
 }
 .av-raiz { max-width:1180px; margin:0 auto; color:var(--av-texto); }
 .av-raiz input[type="checkbox"], .av-modal input[type="checkbox"] { width:auto; margin:0; flex:none; }

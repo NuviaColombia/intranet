@@ -23,7 +23,7 @@
     'border-radius:14px;box-shadow:0 18px 40px -12px rgba(0,0,0,.45);padding:14px 16px;font-size:13.5px;line-height:1.45;text-align:left}' +
     '.ds-push-pop h4{margin:0 0 6px;font-size:15px;color:#111827}.ds-push-pop p{margin:0 0 10px;color:#4b5563}' +
     '.ds-push-pop .acc{display:flex;gap:8px;flex-wrap:wrap}.ds-push-pop button.b{border:0;border-radius:9px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}' +
-    '.ds-push-pop .b1{background:#1d4ed8;color:#fff}.ds-push-pop .b1:hover{background:#1e40af}.ds-push-pop .b2{background:#f1f5f9;color:#1f2937}.ds-push-pop .b2:hover{background:#e2e8f0}' +
+    '.ds-push-pop .b1{background:#111827;color:#fff}.ds-push-pop .b1:hover{background:#374151}.ds-push-pop .b2{background:#f1f5f9;color:#1f2937}.ds-push-pop .b2:hover{background:#e2e8f0}' +
     '.ds-push-pop .ok{color:#047857;font-weight:700}.ds-push-pop .mal{color:#b91c1c}.ds-push-pop .res{margin-top:8px;font-size:12.5px}';
   document.head.appendChild(css);
 
@@ -133,9 +133,9 @@
     if (invitacion || leer(NO_AHORA, true)) return;
     var c = document.createElement('style');
     c.textContent = '.ds-push-inv{position:fixed;right:18px;bottom:18px;z-index:10050;width:330px;max-width:calc(100vw - 32px);background:#fff;color:#1f2937;border-radius:14px;' +
-      'box-shadow:0 18px 44px -12px rgba(0,0,0,.45);padding:14px 16px;font-size:13.5px;line-height:1.45;border-top:4px solid #1d4ed8;animation:dsPushIn .35s ease}' +
+      'box-shadow:0 18px 44px -12px rgba(0,0,0,.45);padding:14px 16px;font-size:13.5px;line-height:1.45;border-top:4px solid #111827;animation:dsPushIn .35s ease}' +
       '.ds-push-inv h4{margin:0 0 4px;font-size:15px}.ds-push-inv p{margin:0 0 10px;color:#4b5563}.ds-push-inv .acc{display:flex;gap:8px}' +
-      '.ds-push-inv button{border:0;border-radius:9px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}.ds-push-inv .si{background:#1d4ed8;color:#fff}.ds-push-inv .no{background:#f1f5f9;color:#1f2937}' +
+      '.ds-push-inv button{border:0;border-radius:9px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}.ds-push-inv .si{background:#111827;color:#fff}.ds-push-inv .no{background:#f1f5f9;color:#1f2937}' +
       '@keyframes dsPushIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.ds-push-inv{animation:none}}';
     document.head.appendChild(c);
     invitacion = document.createElement('div'); invitacion.className = 'ds-push-inv'; invitacion.setAttribute('role', 'dialog'); invitacion.setAttribute('aria-label', 'Activar notificaciones');

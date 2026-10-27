@@ -79,8 +79,8 @@ td { padding:8px; border-bottom:1px solid #f0f0f0; vertical-align:top; }
 .badge.aprobada { background:#dcfce7; color:var(--verde); }
 .badge.rechazada { background:#fee2e2; color:var(--rojo); }
 .badge.cancelada { background:#e5e7eb; color:var(--gris); }
-.btn { display:inline-block; padding:8px 16px; border-radius:7px; border:none; cursor:pointer; font-size:14px; text-decoration:none; background:var(--azul); color:#fff; }
-.btn.verde { background:var(--verde); } .btn.rojo { background:var(--rojo); }
+.btn { display:inline-block; padding:8px 16px; border-radius:7px; border:none; cursor:pointer; font-size:14px; text-decoration:none; background:var(--btn-fondo, var(--azul)); color:var(--btn-texto, #fff); }
+.btn.verde { background:var(--verde); color:#fff; } .btn.rojo { background:var(--rojo); color:#fff; }
 .btn.gris { background:#e5e7eb; color:#111827; } .btn.mini { padding:4px 10px; font-size:12px; }
 form.inline { display:inline; }
 input, select, textarea { padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; width:100%; margin:4px 0 12px; }
