@@ -32,8 +32,11 @@
   var pop = document.createElement('div'); pop.className = 'ds-push-pop'; pop.hidden = true; pop.setAttribute('role', 'dialog');
   pop.style.display = 'none';
   caja.appendChild(btn); caja.appendChild(pop);
-  var extras = document.getElementById('dsNavExtras');  // junto al modo oscuro, antes de la foto (base.html)
-  if (extras) extras.insertBefore(caja, extras.firstChild); else nav.parentNode.insertBefore(caja, nav.nextSibling);
+  // En el Schedule la campana vive en Configuración de la barra lateral (27-oct-2026); en el resto de Design sigue en la barra superior.
+  var destino = document.getElementById('dsCfgPush');
+  var extras = document.getElementById('dsNavExtras');  // antes de la foto (base.html)
+  if (destino) destino.appendChild(caja);
+  else if (extras) extras.insertBefore(caja, extras.firstChild); else nav.parentNode.insertBefore(caja, nav.nextSibling);
 
   function b64aBytes(s) {
     var p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/'));

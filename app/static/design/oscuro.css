@@ -175,3 +175,6 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 /* Botón Salir con icono (27-oct-2026) en oscuro: cuadro oscuro con sombra, icono claro */
 :root[data-ds-tema="oscuro"] nav .ds-yo-salir { background:#1e293b; color:#e5e7eb; box-shadow:4px 4px 10px rgba(0,0,0,.5), -2px -2px 6px rgba(148,163,184,.06); }
 :root[data-ds-tema="oscuro"] nav .ds-yo-salir:hover { background:#334155; color:#fff; box-shadow:6px 6px 14px rgba(0,0,0,.55), -2px -2px 6px rgba(148,163,184,.1); }
+/* Campana dentro de Configuración (27-oct-2026) en oscuro */
+:root[data-ds-tema="oscuro"] .ds-cfg-push .ds-push-btn { color:#e5e7eb; background:#1e293b; }
+:root[data-ds-tema="oscuro"] .ds-cfg-push .ds-push-btn:hover { background:#334155; }
