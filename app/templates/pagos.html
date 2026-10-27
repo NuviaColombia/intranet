@@ -1,0 +1,1036 @@
+{% extends "base.html" %}
+{% block titulo %}Pagos{% endblock %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/pagos.css?v=1">
+<div id="pagos-app">
+
+  <div class="pg-tool-tabs">
+    <button type="button" id="pg-tt-pdf" class="activo">💳 Pagos programados → PDF</button>
+    <button type="button" id="pg-tt-sep">📎 Separador de comprobantes</button>
+  </div>
+
+  <!-- ============ HERRAMIENTA 1: Pagos programados -> PDF ============ -->
+  <div id="pg-tool-pdf" class="pg-herramienta activa">
+  <div class="pg-main">
+    <div class="pg-barra">
+      <div><h2 class="pg-titulo">Pagos programados → PDF</h2>
+        <p class="pg-sub" style="margin:0">Sube el archivo plano del banco de cada empresa y descarga su hoja de pagos.</p></div>
+    </div>
+    <div class="pg-sub-tabs">
+      <button type="button" id="t1" class="activo">Generar PDF</button>
+      <button type="button" id="t2">Base de datos</button>
+      <button type="button" id="t3">Historial</button>
+    </div>
+    <div id="v-gen">
+      <label class="pg-drop" id="drop"><input id="file" type="file" accept=".csv,.txt,.tsv" multiple hidden>
+        <b>1. Toca aquí y elige el archivo plano</b><span>Davivienda (.csv / .txt), uno por empresa · luego revisa y pulsa “Descargar PDF”</span></label>
+      <details class="pg-detalle"><summary>O pega los datos copiados desde Excel</summary>
+        <textarea id="paste" class="pg-pega" placeholder="Pega aquí las filas (con o sin encabezado)…"></textarea>
+        <button type="button" class="btn gris" id="usePaste" style="margin-top:8px">Usar datos pegados</button></details>
+      <div id="out"></div>
+      <p class="pg-muted" style="margin-top:24px">Los nombres de beneficiarios y empresas se recuerdan en este navegador; los nuevos se piden una sola vez. Todo se procesa en tu navegador.</p>
+    </div>
+    <div id="v-db" hidden>
+      <div class="pg-card"><b>Beneficiarios registrados</b> <span id="dbcount" class="pg-muted"></span>
+        <div id="dbstatus" class="pg-muted" style="margin:2px 0 8px"></div>
+        <input id="q" placeholder="Buscar por nombre o NIT…"><div id="dblist" style="max-height:360px;overflow:auto"></div></div>
+      <div class="pg-card"><b id="ftitle">Agregar beneficiario</b>
+        <input id="fnit" inputmode="numeric" placeholder="NIT o cédula (solo números)" style="margin-top:8px">
+        <input id="fname" placeholder="Nombre del beneficiario">
+        <input id="facct" inputmode="numeric" placeholder="Cuenta (con ceros iniciales)">
+        <button type="button" class="btn" id="fsave">Guardar</button> <button type="button" class="btn gris" id="fcancel" hidden>Cancelar</button><div class="pg-err" id="ferr"></div></div>
+      <div class="pg-card"><b>Agregar muchos beneficiarios a la vez</b>
+        <p class="pg-muted" style="margin:6px 0 4px">Prepara un archivo Excel (o CSV) con estos títulos en la primera fila, una fila por beneficiario:</p>
+        <div class="pg-tabla-wrap"><table class="pg-tabla"><tr><th>NIT</th><th>NOMBRE</th><th>CUENTA</th></tr>
+          <tr><td>900123456</td><td>EJEMPLO PROVEEDOR SAS</td><td>0123456789</td></tr>
+          <tr><td>8648956</td><td>JUAN PEREZ GOMEZ</td><td>08386989932</td></tr></table></div>
+        <ul class="pg-how">
+          <li><b>NIT:</b> NIT o cédula, solo números (sin puntos ni guiones).</li>
+          <li><b>NOMBRE:</b> nombre o razón social tal como quieres que salga en el PDF.</li>
+          <li><b>CUENTA:</b> número de cuenta de destino. En Excel formatea esa columna como <b>Texto</b> para no perder los ceros del inicio.</li>
+          <li>Formatos: <b>.xlsx, .xls, .csv, .txt</b>. También sirve la tabla de 13 columnas con nombres.</li>
+          <li>También sirve el <b>reporte de terceros</b> (Número de documento tercero, Nombre personalizado, Bancos, Número de cuenta): si un NIT trae varias cuentas, se guardan todas.</li>
+          <li>Si el NIT ya existe, se actualiza el nombre y se agregan las cuentas nuevas.</li>
+        </ul>
+        <input type="file" id="impf" accept=".xlsx,.xls,.csv,.txt,.tsv" hidden>
+        <details class="pg-detalle"><summary>O pega aquí las filas copiadas de Excel</summary><textarea id="impt" class="pg-pega" placeholder="Copia las filas de Excel (con los títulos) y pégalas aquí"></textarea><button type="button" class="btn gris" id="impt-btn" style="margin-top:8px">Importar lo pegado</button></details>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="pick">Subir archivo para importar</button><button type="button" class="btn gris" id="tpl">Descargar plantilla Excel</button><button type="button" class="btn gris" id="exp">Exportar lista (CSV)</button></div>
+        <div class="pg-ok" id="impmsg" style="margin:8px 0 0"></div></div>
+    </div>
+    <div id="v-his" hidden>
+      <div class="pg-card"><b>Historial de pagos cargados</b>
+        <div id="hstatus" class="pg-muted" style="margin:2px 0 10px">Cada archivo que cargas se guarda aquí con su fecha de pago.</div>
+        <div class="pg-chips"><button type="button" class="btn gris mini" id="hm">Este mes</button><button type="button" class="btn gris mini" id="hp">Mes anterior</button><button type="button" class="btn gris mini" id="ha">Todo</button></div>
+        <div style="display:flex;gap:8px"><div style="flex:1"><label class="pg-muted">Fecha de pago desde</label><input type="date" id="hd"></div>
+          <div style="flex:1"><label class="pg-muted">hasta</label><input type="date" id="hh"></div></div>
+        <select id="he"><option value="">Todas las empresas</option></select>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b id="hsum" style="font-size:14px;color:var(--brand-main)"></b><button type="button" class="btn gris mini" id="hx">Exportar CSV</button></div></div>
+      <div class="pg-card" id="hlist" style="padding-top:8px;padding-bottom:8px"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============ HERRAMIENTA 2: Separador de comprobantes ============ -->
+  <div id="pg-tool-sep" class="pg-herramienta">
+  <div class="pg-main">
+    <div class="pg-barra">
+      <div><h2 class="pg-titulo">Separador de comprobantes</h2>
+        <p class="pg-sub" style="margin:0">Sube el PDF consolidado de pagos y descarga un ZIP con cada comprobante separado y nombrado.</p></div>
+    </div>
+    <div class="pg-sub-tabs">
+      <button type="button" class="tab-btn active" onclick="switchTabSep('procesador', this)">Procesador de PDFs</button>
+      <button type="button" class="tab-btn" onclick="switchTabSep('basedatos', this)">Base de Datos (Empresas)</button>
+      <button type="button" class="tab-btn" onclick="switchTabSep('historial', this)">Historial de ZIP</button>
+    </div>
+
+    <div id="procesador" class="tab-content active">
+      <div class="pg-grid2">
+        <div>
+          <h3 style="margin:0 0 10px;font-size:14px;font-weight:800;color:var(--text-dark);border-bottom:1px solid var(--border-soft);padding-bottom:8px">1. Configuración de Lote</h3>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px">Empresa</label>
+          <select id="tagInput">
+            <option value="Smiles">NUVIA SMILES</option>
+            <option value="Design">NUVIA DESIGN</option>
+          </select>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin:8px 0 4px">Modalidad de Fecha</label>
+          <select id="dateMode" onchange="toggleManualDate()">
+            <option value="auto">Automático (Detectar del PDF: ej. "16 de Octubre")</option>
+            <option value="manual">Manual (Definir una fecha fija para todos)</option>
+          </select>
+          <input type="text" id="manualDateInput" style="display:none" placeholder="Ej: 23 de Octubre">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin:10px 0 4px">Estado de la Base de Datos</label>
+          <div id="dbSummary" class="pg-mono-box" style="height:140px">Cargando registros...</div>
+        </div>
+        <div>
+          <h3 style="margin:0 0 10px;font-size:14px;font-weight:800;color:var(--text-dark);border-bottom:1px solid var(--border-soft);padding-bottom:8px">2. Cargar Archivo</h3>
+          <div id="dropzone" class="pg-dropzone">
+            <input type="file" id="pdfFileInput" accept="application/pdf">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            <p class="pg-muted" style="font-weight:600;text-align:center;margin:0" id="fileLabel">Arrastra el PDF consolidado aquí<br>o haz clic para buscarlo</p>
+          </div>
+          <button type="button" id="processBtn" class="btn pg-btn-block" style="margin-top:12px" disabled>Procesar y Descargar ZIP</button>
+          <div id="progressContainer" style="display:none;flex-direction:column;gap:6px;margin-top:10px">
+            <div class="pg-progress-track"><div id="progressBar" class="pg-progress-bar" style="width:0%"></div></div>
+            <p id="progressText" class="pg-progress-txt">Iniciando...</p>
+          </div>
+          <div id="logArea" class="pg-log" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="basedatos" class="tab-content">
+      <h3 style="margin:0 0 10px;font-size:14px;font-weight:800;color:var(--text-dark);border-bottom:1px solid var(--border-soft);padding-bottom:8px">Administrador de Terceros / Empresas</h3>
+      <div id="dbLocked">
+        <p class="pg-muted" style="margin-bottom:10px">La base de datos está protegida. Puedes consultar un tercero, pero para modificarla necesitas el PIN.</p>
+        <p id="dbLockedSummary" style="font-weight:700;color:var(--brand-main);margin-bottom:10px;font-size:13px"></p>
+        <input id="dbSearch" oninput="renderDbSearch()" type="text" placeholder="Buscar por NIT o nombre...">
+        <div id="dbSearchResults" class="pg-mono-box" style="height:220px"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px"><button type="button" onclick="unlockDatabase()" class="btn">Desbloquear para editar</button></div>
+      </div>
+      <div id="dbEditor" style="display:none">
+        <p class="pg-muted" style="margin-bottom:10px">Una línea por tercero: NIT/Cédula y nombre (pegado desde Excel o texto). Al pulsar "Guardar Cambios" la base queda guardada en este navegador. El NIT puede estar con o sin dígito de verificación. Al salir de esta pestaña se vuelve a bloquear.</p>
+        <textarea id="dbInput" class="pg-pega" style="height:360px" placeholder="901066332 NOMBRE DE LA EMPRESA SAS&#10;1045747464 NOMBRE DE LA PERSONA"></textarea>
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-top:14px">
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <button type="button" onclick="lockDatabase()" class="btn gris mini">Bloquear</button>
+            <button type="button" onclick="changePin()" class="btn gris mini">Cambiar PIN</button>
+            <button type="button" onclick="restoreBackup()" class="btn gris mini">Cargar versión anterior</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <button type="button" onclick="clearDatabase()" class="btn rojo mini">Vaciar base</button>
+            <button type="button" onclick="saveDatabase()" class="btn verde">Guardar Cambios</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="historial" class="tab-content">
+      <h3 style="margin:0 0 10px;font-size:14px;font-weight:800;color:var(--text-dark);border-bottom:1px solid var(--border-soft);padding-bottom:8px">Historial de ZIP generados</h3>
+      <div id="histLocked">
+        <p class="pg-muted" style="margin-bottom:14px">El historial está protegido. Necesitas el PIN para ver y descargar los ZIP generados.</p>
+        <button type="button" onclick="unlockHistory()" class="btn">Desbloquear historial</button>
+      </div>
+      <div id="histBody" style="display:none">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
+          <p class="pg-muted">Cada ZIP que generas queda guardado aquí, separado por empresa, y puedes volver a descargarlo cuando quieras. Se guarda en este navegador. Al salir de esta pestaña se vuelve a bloquear.</p>
+          <button type="button" onclick="lockHistory()" class="btn gris mini">Bloquear</button>
+        </div>
+        <div id="histTabs" class="pg-chips"></div>
+        <div id="histContent" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  var btns = [document.getElementById('pg-tt-pdf'), document.getElementById('pg-tt-sep')];
+  var paneles = [document.getElementById('pg-tool-pdf'), document.getElementById('pg-tool-sep')];
+  btns.forEach(function(b, i) {
+    b.onclick = function() {
+      btns.forEach(function(x, j) { x.classList.toggle('activo', j === i); });
+      paneles.forEach(function(x, j) { x.classList.toggle('activa', j === i); });
+    };
+  });
+})();
+</script>
+
+<!-- ============ Script herramienta 1 (aislado: no comparte variables con el separador) ============ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function() {
+const $=s=>document.querySelector(s), out=$("#out");
+const money=v=>"$ "+v.toFixed(2).replace(".",",").replace(/\B(?=(\d{3})+(?!\d))/g,".");
+const money0=v=>"$ "+Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
+const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase();
+const BANCOS={DAVIVIENDA:"#E1262D",BANCOLOMBIA:"#F2B705",BOGOTA:"#1F4E9C",BBVA:"#0B7BB5",AVVILLAS:"#D6001C",OCCIDENTE:"#0056A4",POPULAR:"#00A859",ITAU:"#EC7000",SCOTIABANK:"#E2231A",COLPATRIA:"#E2231A",AGRARIO:"#00843D","CAJA SOCIAL":"#0057B8"};
+const bankColor=b=>{b=norm(b);for(const k in BANCOS)if(b.includes(k))return BANCOS[k];return"#8795A1"};
+const cap=t=>t.toLowerCase().split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+const bankName=b=>cap(b).replace(/\s+S\.a\.?$/i,"").replace("Bbva","BBVA").replace(" De "," de ").replace("Bogota","Bogotá");
+const docShort=t=>{t=t.toLowerCase();return t==="nit"?"NIT":t.startsWith("c")&&t.includes("dula")?"C.C.":"Doc."};
+
+const BANK={1:"BANCO DE BOGOTA",2:"BANCO POPULAR",7:"BANCOLOMBIA",12:"BANCO GNB SUDAMERIS",13:"BBVA COLOMBIA",14:"ITAÚ",19:"SCOTIABANK COLPATRIA",23:"BANCO DE OCCIDENTE",32:"BANCO CAJA SOCIAL",40:"BANCO AGRARIO",51:"BANCO DAVIVIENDA S.A.",52:"BANCO AV VILLAS"};
+const TIPO_DOC={1:"Cedula de ciudadania",2:"NIT"};
+let DIR={},MAE={},BEN={},EMP={},DB=null,editing=null,pendDel=null;
+const esc=t=>String(t).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const lsGet=()=>{try{return JSON.parse(localStorage.getItem("pagosDir"))||{}}catch(e){return{}}};
+const lsPut=(k,key,val)=>{try{const o=lsGet();o[k]=o[k]||{};if(val===null)delete o[k][key];else o[k][key]=val;localStorage.setItem("pagosDir",JSON.stringify(o))}catch(e){}};
+const dirAll=()=>DIR, empAll=()=>EMP;
+async function saveBen(nit,n,c,cs){const old=DIR[nit]||{};cs=cs||[...new Set([...(old.cs||[]),c])];DIR[nit]={n,c,cs};if(DB){try{await DB.doc("beneficiarios/"+nit).set({nit,nombre:n,cuenta:c,cuentas:cs})}catch(e){}}else lsPut("dir",nit,{n,c,cs});renderDB()}
+function rebuildDIR(){const o={};for(const k in MAE)o[k]={n:MAE[k].n,c:MAE[k].c,cs:MAE[k].cs||[]};for(const k in BEN){const b=BEN[k];if(b.deleted){delete o[k];continue}const m=o[k];o[k]={n:b.n,c:b.c,cs:[...new Set([...(m?m.cs:[]),...(b.cs||[]),...(b.c?[b.c]:[])])]}}DIR=o}
+async function delBen(nit){delete DIR[nit];if(DB){try{if(MAE[nit])await DB.doc("beneficiarios/"+nit).set({nit,deleted:true});else await DB.doc("beneficiarios/"+nit).delete()}catch(e){}}else lsPut("dir",nit,null);renderDB()}
+async function saveEmp(nit,n){EMP[nit]=n;if(DB){try{await DB.doc("empresas/"+nit).set({nit,nombre:n})}catch(e){}}else lsPut("emp",nit,n)}
+async function dlFile(fname,data,mime){
+  let dl=null;try{dl=window.claude?await window.claude.use("downloads"):null}catch(_){}
+  if(dl)return dl.save({filename:fname,data});
+  const u=URL.createObjectURL(new Blob([data],{type:mime})),a=document.createElement("a");a.href=u;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+}
+const renderDB=(()=>{let t;return()=>{clearTimeout(t);t=setTimeout(renderDBNow,120)}})();
+function renderDBNow(){
+  const L=$("#dblist");if(!L)return;
+  const q=norm($("#q").value||""), all=Object.entries(DIR).map(([k,v])=>({nit:k,n:v.n||"",c:v.c||"",k:(v.cs||[]).length})).sort((a,b)=>a.n.localeCompare(b.n));
+  const f=all.filter(r=>!q||norm(r.n).includes(q)||r.nit.includes(q));
+  $("#dbcount").textContent=`· ${all.length}`;
+  L.innerHTML=f.length?f.map(r=>`<div class="pg-row"><div><b>${esc(r.n)}</b><br><small>NIT/CC ${esc(r.nit)} · Cuenta ${esc(r.c)}${r.k>1?` · +${r.k-1} más`:""}</small></div><div style="white-space:nowrap"><button type="button" class="btn gris mini" data-a="e" data-k="${esc(r.nit)}">Editar</button><button type="button" class="btn gris mini" data-a="d" data-k="${esc(r.nit)}">${pendDel===r.nit?"¿Seguro? Eliminar":"Eliminar"}</button></div></div>`).join(""):`<div class="pg-muted" style="padding:10px 0">No hay beneficiarios${q?" con esa búsqueda":" todavía"}.</div>`;
+}
+async function initDB(){
+  let d=null;try{d=window.claude?await window.claude.use("db"):null}catch(e){}
+  if(d){
+    DB=d;
+    DB.collection("beneficiarios").onSnapshot(sn=>{BEN={};sn.docs.forEach(x=>{const v=x.data()||{};BEN[x.id]=v.deleted?{deleted:true}:{n:v.nombre,c:v.cuenta,cs:v.cuentas||[]}});rebuildDIR();renderDB()},()=>{});
+    DB.collection("maestro").onSnapshot(sn=>{MAE={};sn.docs.forEach(x=>Object.assign(MAE,(x.data()||{}).items||{}));rebuildDIR();renderDB()},()=>{});
+    DB.collection("historial").onSnapshot(sn=>{HIST={};sn.docs.forEach(x=>{HIST[x.id]=x.data()});renderHist()},()=>{});
+    DB.collection("empresas").onSnapshot(sn=>{EMP={};sn.docs.forEach(x=>{EMP[x.id]=(x.data()||{}).nombre})},()=>{});
+    $("#dbstatus").textContent="Base compartida: se guarda en la nube y la ven todos los que abran esta app.";
+  }else{
+    const o=lsGet();DIR=o.dir||{};EMP=o.emp||{};HIST=o.hist||{};
+    $("#dbstatus").textContent="Modo local: se guarda solo en este navegador.";
+  }
+  renderDB();renderHist();
+}
+function resetForm(){editing=null;$("#fnit").value="";$("#fname").value="";$("#facct").value="";$("#fnit").readOnly=false;$("#ftitle").textContent="Agregar beneficiario";$("#fcancel").hidden=true;$("#ferr").textContent=""}
+$("#q").oninput=renderDB;
+$("#dblist").onclick=async e=>{
+  const b=e.target.closest("button");if(!b)return;const k=b.dataset.k;
+  if(b.dataset.a==="e"){const r=DIR[k];editing=k;$("#fnit").value=k;$("#fnit").readOnly=true;$("#fname").value=r.n;$("#facct").value=r.c;$("#ftitle").textContent="Editar beneficiario";$("#fcancel").hidden=false;$("#fname").focus();if($("#fname").scrollIntoView)$("#fname").scrollIntoView({block:"center"})}
+  else if(pendDel===k){pendDel=null;await delBen(k)}else{pendDel=k;renderDB()}
+};
+$("#fcancel").onclick=resetForm;
+$("#fsave").onclick=async()=>{
+  const nit=z($("#fnit").value.replace(/\D/g,"")), n=$("#fname").value.trim().toUpperCase(), c=$("#facct").value.replace(/\D/g,"");
+  if(nit==="0"||!n||!c){$("#ferr").textContent="Completa el NIT/cédula, el nombre y la cuenta.";return}
+  await saveBen(nit,n,c);resetForm();
+};
+function parseBen(table){
+  const T=table.map(r=>r.map(c=>String(c==null?"":c).trim())).filter(r=>r.some(c=>c));
+  if(!T.length)return[];
+  const isD=c=>/^\d{1,2}\/\d{1,2}\/\d{4}/.test(c||"");
+  const big=T.filter(r=>r.length>=13&&isD(r[0]));
+  if(big.length)return big.map(r=>({nit:r[4],nombre:r[3],cuenta:r[7]}));
+  const h=T[0].map(norm), find=(...k)=>h.findIndex(x=>k.some(y=>x.includes(y)));
+  let iN=find("NIT","CEDULA","IDENTIF","DOCUMENTO"),iM=find("NOMBRE","BENEFICIARIO","RAZON"),iC=find("NUMERO DE CUENTA"),st=1;if(iC<0)iC=find("CUENTA");
+  if(iN<0||iM<0||iC<0){iN=0;iM=1;iC=2;st=/\d/.test(T[0][0])?0:1}
+  return T.slice(st).map(r=>({nit:r[iN]||"",nombre:r[iM]||"",cuenta:r[iC]||""}));
+}
+async function fileToTable(f){
+  if(/\.xlsx?$/i.test(f.name)){
+    if(!window.XLSX)throw new Error("No se pudo cargar el lector de Excel. Guarda el archivo como CSV e inténtalo de nuevo.");
+    const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:""});
+  }
+  const L=(await f.text()).replace(/^﻿/,"").split(/\r?\n/).filter(l=>l.trim());
+  const d=L[0].includes("\t")?"\t":L[0].includes(";")?";":",";
+  return L.map(l=>l.split(d));
+}
+
+const textToTable=t=>{const L=t.replace(/^﻿/,"").split(/\r?\n/).filter(l=>l.trim());if(!L.length)return[];const d=L[0].includes("\t")?"\t":L[0].includes(";")?";":",";return L.map(l=>l.split(d))};
+async function importRows(rows,m){
+  const g=new Map();let ok=0;
+  for(const r of rows){
+    const nit=z(String(r.nit).replace(/\D/g,"")),c=String(r.cuenta).replace(/\D/g,""),n=String(r.nombre).trim().toUpperCase();
+    if(nit==="0"||!c)continue;ok++;
+    const e=g.get(nit)||{n:"",cs:[]};
+    if(n&&!/^\d+$/.test(n))e.n=n;
+    if(!e.cs.includes(c))e.cs.push(c);
+    g.set(nit,e);
+  }
+  let k=0,sinN=0;
+  for(const [nit,e] of g){
+    const old=DIR[nit]||{},nm=e.n||old.n||"";
+    if(!nm){sinN++;continue}
+    await saveBen(nit,nm,e.cs[e.cs.length-1],[...new Set([...(old.cs||[]),...(old.c?[old.c]:[]),...e.cs])]);
+    if(++k%25===0)m.textContent=`Importando… ${k} de ${g.size}`;
+  }
+  return{k,sinN,om:rows.length-ok};
+}
+async function runImport(rows,m){
+  const r=await importRows(rows,m);
+  if(!r.k){m.className="pg-err";m.textContent="No encontré filas válidas. Revisa que la primera fila tenga los títulos.";return}
+  m.className="pg-ok";m.textContent=`✓ ${r.k} beneficiarios importados o actualizados`+(r.sinN?` · ${r.sinN} sin nombre válido (omitidos)`:"")+(r.om>0?` · ${r.om} fila(s) incompletas omitidas`:"");
+}
+$("#pick").onclick=()=>$("#impf").click();
+$("#impf").onchange=async e=>{
+  const f=e.target.files[0],m=$("#impmsg");if(!f)return;
+  m.className="pg-ok";m.textContent="Leyendo archivo…";
+  try{await runImport(parseBen(await fileToTable(f)),m)}catch(err){m.className="pg-err";m.textContent="No se pudo leer el archivo: "+(err.message||err)}
+  e.target.value="";
+};
+$("#impt-btn").onclick=async()=>{
+  const m=$("#impmsg"),t=$("#impt").value;m.className="pg-ok";
+  if(!t.trim()){m.className="pg-err";m.textContent="Pega primero las filas copiadas de Excel.";return}
+  m.textContent="Leyendo datos…";
+  try{await runImport(parseBen(textToTable(t)),m);$("#impt").value=""}catch(err){m.className="pg-err";m.textContent="No se pudo importar: "+(err.message||err)}
+};
+$("#tpl").onclick=async()=>{
+  try{
+    if(window.XLSX){
+      const ws=XLSX.utils.aoa_to_sheet([["NIT","NOMBRE","CUENTA"],["900123456","EJEMPLO PROVEEDOR SAS","0123456789"],["8648956","JUAN PEREZ GOMEZ","08386989932"]]);
+      ws["!cols"]=[{wch:16},{wch:44},{wch:22}];
+      const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Beneficiarios");
+      await dlFile("plantilla_beneficiarios.xlsx",XLSX.write(wb,{bookType:"xlsx",type:"array"}),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }else await dlFile("plantilla_beneficiarios.csv","NIT;NOMBRE;CUENTA\n900123456;EJEMPLO PROVEEDOR SAS;0123456789\n8648956;JUAN PEREZ GOMEZ;08386989932\n","text/csv");
+  }catch(e){}
+};
+$("#exp").onclick=()=>dlFile("beneficiarios.csv","NIT;NOMBRE;CUENTA\n"+Object.entries(DIR).map(([k,v])=>`${k};${v.n};${v.c}`).join("\n"),"text/csv");
+let HIST={},pendH=null,OPEN=new Set();
+const isoD=f=>{const m=String(f).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:""};
+const dmy=i=>i.split("-").reverse().join("/");
+const slug=t=>t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"manual";
+const isoLocal=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+async function saveLote(id,emp,rows,orig){
+  const iso=isoD(rows[0].fecha);if(!iso)return;
+  const o={empresa:emp,orig:orig||"",fecha:iso,total:Math.round(rows.reduce((a,r)=>a+r.valor,0)*100)/100,n:rows.length,cargado:(HIST[id]&&HIST[id].cargado)||new Date().toISOString(),pagos:rows.map(r=>({...r}))};
+  HIST[id]=o;
+  if(DB){try{await DB.doc("historial/"+id).set(o)}catch(e){}}else lsPut("hist",id,o);
+  renderHist();
+}
+async function delLote(id){delete HIST[id];if(DB){try{await DB.doc("historial/"+id).delete()}catch(e){}}else lsPut("hist",id,null);renderHist()}
+function histF(){const d=$("#hd").value,h=$("#hh").value,e=$("#he").value;
+  return Object.entries(HIST).map(([id,v])=>({id,...v})).filter(v=>(!d||v.fecha>=d)&&(!h||v.fecha<=h)&&(!e||v.empresa===e)).sort((a,b)=>b.fecha.localeCompare(a.fecha)||String(b.cargado).localeCompare(String(a.cargado)))}
+function renderHist(){
+  const L=$("#hlist");if(!L)return;
+  const cur=$("#he").value,emps=[...new Set(Object.values(HIST).map(v=>v.empresa))].sort();
+  $("#he").innerHTML='<option value="">Todas las empresas</option>'+emps.map(e=>`<option${e===cur?" selected":""}>${esc(e)}</option>`).join("");
+  const F=histF(),tot=F.reduce((a,v)=>a+v.total,0),np=F.reduce((a,v)=>a+v.n,0);
+  $("#hsum").textContent=F.length?`${F.length} cargue(s) · ${np} pagos · ${money(tot)}`:"";
+  L.innerHTML=F.length?F.map(v=>`<details class="pg-lote" data-id="${esc(v.id)}"${OPEN.has(v.id)?" open":""}><summary><span><b>${esc(v.empresa)}</b><br><small>Pago: ${dmy(v.fecha)} · ${v.n} pagos · cargado ${new Date(v.cargado).toLocaleDateString("es-CO")}</small></span><b style="white-space:nowrap">${money(v.total)}</b></summary>
+${v.pagos.map(p=>`<div class="pg-row"><span>${esc(p.nombre||"NIT "+p.nit)}<br><small>${esc(bankName(p.banco))} · ${esc(p.cuenta)}</small></span><b style="white-space:nowrap">${money(p.valor)}</b></div>`).join("")}
+<div style="margin-top:10px"><button type="button" class="btn mini" data-a="pdf" data-k="${esc(v.id)}">Descargar PDF</button> <button type="button" class="btn gris mini" data-a="del" data-k="${esc(v.id)}">${pendH===v.id?"¿Seguro? Eliminar":"Eliminar"}</button></div></details>`).join(""):`<div class="pg-muted" style="padding:12px 0">${Object.keys(HIST).length?"No hay cargues en ese rango de fechas.":"Todavía no hay cargues. Sube un archivo en “Generar PDF” y quedará guardado aquí."}</div>`;
+}
+$("#hlist").addEventListener("toggle",e=>{const d=e.target;if(d.dataset&&d.dataset.id){d.open?OPEN.add(d.dataset.id):OPEN.delete(d.dataset.id)}},true);
+$("#hlist").onclick=async e=>{
+  const b=e.target.closest("button");if(!b)return;const k=b.dataset.k,v=HIST[k];if(!v)return;
+  if(b.dataset.a==="pdf"){try{await dlFile(`pagos_${slug(v.empresa)}_${v.fecha}.pdf`,buildPDF(v.empresa,v.pagos),"application/pdf")}catch(err){}}
+  else if(pendH===k){pendH=null;await delLote(k)}else{pendH=k;renderHist()}
+};
+["hd","hh"].forEach(i=>$("#"+i).oninput=renderHist);$("#he").onchange=renderHist;
+const setR=(a,b)=>{$("#hd").value=a;$("#hh").value=b;renderHist()};
+$("#hm").onclick=()=>{const n=new Date();setR(isoLocal(new Date(n.getFullYear(),n.getMonth(),1)),isoLocal(new Date(n.getFullYear(),n.getMonth()+1,0)))};
+$("#hp").onclick=()=>{const n=new Date();setR(isoLocal(new Date(n.getFullYear(),n.getMonth()-1,1)),isoLocal(new Date(n.getFullYear(),n.getMonth(),0)))};
+$("#ha").onclick=()=>{$("#he").value="";setR("","")};
+$("#hx").onclick=()=>{const q=t=>String(t).replace(/;/g,",");
+  const L=["EMPRESA;FECHA_PAGO;N;NIT;NOMBRE;BANCO;CUENTA;VALOR"];
+  histF().forEach(v=>v.pagos.forEach(p=>L.push([v.empresa,dmy(v.fecha),p.n,p.nit,p.nombre,p.banco,p.cuenta,p.valor.toFixed(2)].map(q).join(";"))));
+  dlFile("historial_pagos.csv","﻿"+L.join("\n"),"text/csv")};
+const tab=n=>{["gen","db","his"].forEach((k,i)=>$("#v-"+k).hidden=n!==i+1);[1,2,3].forEach(i=>$("#t"+i).classList.toggle("activo",n===i))};
+$("#t1").onclick=()=>tab(1);$("#t2").onclick=()=>tab(2);$("#t3").onclick=()=>tab(3);
+const z=t=>t.replace(/^0+/,"")||"0";
+function parsePlano(text){
+  const L=text.replace(/^﻿/,"").split(/\r?\n/).filter(l=>l.trim());
+  const rc=L.find(l=>l.startsWith("RC"));
+  if(!rc||rc.length<82)return null;
+  const f=rc.slice(74,82), fecha=`${f.slice(6,8)}/${f.slice(4,6)}/${f.slice(0,4)}`, dir=dirAll(), rows=[];
+  for(const l of L){
+    if(!l.startsWith("TR")||l.length<84)continue;
+    const nit=z(l.slice(2,18)), cta=z(l.slice(18,50)), code=z(l.slice(52,58)), e=dir[nit];
+    rows.push({fecha,rev:"",n:String(rows.length+1),nombre:e?e.n:"",nit,tipoDoc:TIPO_DOC[l[83]]||"Documento",cuenta:(e&&[e.c,...(e.cs||[])].find(x=>z(x)===cta))||cta,codCta:l.slice(50,52),banco:BANK[code]||("BANCO CÓD. "+code),codBanco:code,valor:parseInt(l.slice(58,76),10)/100});
+  }
+  return{orig:z(rc.slice(2,18)),fecha,rows,totalArchivo:parseInt(rc.slice(50,68),10)/100};
+}
+function parse(text){
+  const lines=text.replace(/^﻿/,"").split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length)return[];
+  const d=lines[0].includes("\t")?"\t":";";
+  const rows=[];
+  for(const l of lines){
+    const r=l.split(d).map(c=>c.trim());
+    if(r.length<13||!/^\d{1,2}\/\d{1,2}\/\d{4}/.test(r[0]))continue;
+    const valor=parseFloat(r[12].replace(/[^\d,.-]/g,"").replace(/\./g,"").replace(",","."));
+    if(isNaN(valor))continue;
+    rows.push({fecha:r[0],rev:r[1],n:r[2],nombre:r[3],nit:r[4],tipoDoc:r[5],cuenta:r[7],codCta:r[9],banco:r[10],codBanco:r[11],valor});
+  }
+  return rows;
+}
+
+function buildPDF(emp,rows){
+  const {jsPDF}=window.jspdf, W=792,H=612,M=30;
+  const d=new jsPDF({orientation:"landscape",unit:"pt",format:"letter"});
+  const total=rows.reduce((a,r)=>a+r.valor,0), fecha=rows[0].fecha, rev=rows[0].rev;
+  const fill=c=>d.setFillColor(c), ink=c=>d.setTextColor(c);
+  const T=(s,x,y,size,bold,color,align)=>{d.setFont("helvetica",bold?"bold":"normal");d.setFontSize(size);ink(color);d.text(String(s),x,y,{align:align||"left"})};
+  const PER=15, chunks=[];
+  for(let i=0;i<rows.length;i+=PER)chunks.push(rows.slice(i,i+PER));
+  const cxN=M+40,cxB=330,cxC=478,cxV=W-M-8;
+  chunks.forEach((ch,pi)=>{
+    if(pi)d.addPage();
+    fill("#1A365D");d.rect(0,0,W,84,"F");fill("#102C52");d.circle(W-60,10,90,"F");fill("#FFFFFF");d.rect(0,84,W,H-84,"F");fill("#10B981");d.rect(0,80,W,4,"F");
+    T("PAGOS PROGRAMADOS",M,28,8,1,"#10B981");
+    T(emp,M,58,28,1,"#FFFFFF");
+    T(`Lote realizado el ${fecha}`+(rev?`   ·   Revisión ${rev}`:""),M,73,9,0,"#A9BCD0");
+    T("TOTAL A PAGAR",W-M,28,8,0,"#A9BCD0","right");
+    T(money(total),W-M,58,26,1,"#FFFFFF","right");
+    T(`${rows.length} pagos programados`,W-M,73,9,1,"#10B981","right");
+    const ty=118;
+    T("BENEFICIARIO",cxN,ty,7,1,"#475569");T("BANCO",cxB,ty,7,1,"#475569");T("CUENTA DESTINO",cxC,ty,7,1,"#475569");T("VALOR",cxV,ty,7,1,"#475569","right");
+    d.setDrawColor("#E2E8F0");d.setLineWidth(.8);d.line(M,ty+6,W-M,ty+6);
+    const rh=Math.min(36,(H-ty-16-40)/ch.length), top=ty+10;
+    ch.forEach((p,i)=>{
+      const y0=top+i*rh, m=y0+rh/2;
+      if((pi*PER+i)%2===0){fill("#F0F4F8");d.roundedRect(M-4,y0+1,W-2*M+8,rh-3,6,6,"F")}
+      fill("#E6F6F4");d.circle(M+12,m,10,"F");T(p.n,M+12,m+3,8.5,1,"#13A89E","center");
+      let s=9.5;d.setFont("helvetica","bold");d.setFontSize(s);
+      while(d.getTextWidth(p.nombre)>cxB-cxN-14&&s>5.5){s-=.25;d.setFontSize(s)}
+      T(p.nombre,cxN,m-1.5,s,1,"#0F172A");
+      T(`${docShort(p.tipoDoc)} ${p.nit}`,cxN,m+8,7,0,"#475569");
+      fill(bankColor(p.banco));d.roundedRect(cxB,m-11,4,22,2,2,"F");
+      T(bankName(p.banco),cxB+10,m-1.5,8.5,1,"#0F172A");
+      T(`Cód. banco ${p.codBanco}`,cxB+10,m+8,7,0,"#475569");
+      T(p.cuenta,cxC,m-1.5,9,0,"#0F172A");
+      T(`Cuenta de ${p.codCta.toUpperCase()==="CA"?"ahorros":"corriente"}`,cxC,m+8,7,0,"#475569");
+      T(money(p.valor),cxV,m+3,11,1,"#1A365D","right");
+    });
+    d.setDrawColor("#10B981");d.setLineWidth(1.2);d.line(M,H-38,W-M,H-38);
+    T(`${emp}  ·  Pagos programados ${fecha}${rev?`  ·  Revisión ${rev}`:""}  ·  Pág. ${pi+1}/${chunks.length}`,M,H-26,7.5,0,"#475569");
+    T(`Total: ${money(total)}`,W-M,H-26,9,1,"#1A365D","right");
+  });
+  return d.output("arraybuffer");
+}
+
+function addCard(name,rows,meta){
+  meta=meta||{};
+  const total=rows.reduce((a,r)=>a+r.valor,0), c=document.createElement("div"), miss=rows.filter(r=>!r.nombre);
+  const lid=(meta.orig||slug(name))+"_"+isoD(rows[0].fecha)+"_"+Math.round(total*100);
+  c.className="pg-card";
+  const preview=rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-soft)"><span>${esc(r.nombre||"(falta el nombre)")}<br><small class="pg-muted">${esc(bankName(r.banco))} · ${esc(r.cuenta)}</small></span><b style="white-space:nowrap">${money(r.valor)}</b></div>`).join("");
+  const warn=meta.totalArchivo!=null&&Math.abs(meta.totalArchivo-total)>0.005?`<div class="pg-err">Ojo: la suma de los pagos (${money(total)}) no coincide con el total del archivo (${money(meta.totalArchivo)}).</div>`:"";
+  c.innerHTML=`<input class="pg-emp" value="${name.replace(/"/g,"&quot;")}" aria-label="Nombre de la empresa">
+  <div class="pg-kpis"><div>Pagos<b>${rows.length}</b></div><div>Total a pagar<b>${money(total)}</b></div><div>Fecha<b>${rows[0].fecha}</b></div></div>${warn}
+  <div style="max-height:280px;overflow:auto;margin:8px 0 12px;font-size:13px">${preview}</div>
+  ${miss.length?`<div class="pg-muted" style="margin:6px 0 10px">Estos beneficiarios no están en la lista. Escribe su nombre (se recordará la próxima vez):</div>`+miss.map((r,i)=>`<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap"><span class="pg-muted" style="min-width:170px">${docShort(r.tipoDoc)} ${r.nit} · ${money0(r.valor)}</span><input class="nm" data-i="${i}" placeholder="Nombre del beneficiario" style="flex:1;min-width:180px;font-size:14px;font-weight:400"></div>`).join(""):""}
+  <button type="button" class="btn">Descargar PDF</button><span class="pg-ok" hidden></span><div class="pg-err" id="e"></div>
+  <div class="pg-muted" style="margin-top:10px">Se guarda en el Historial con fecha de pago ${rows[0].fecha}.</div>`;
+  const inp=c.querySelector(".pg-emp"),btn=c.querySelector("button"),ok=c.querySelector(".pg-ok"),err=c.querySelector("#e");
+  btn.onclick=async()=>{
+    err.textContent="";ok.hidden=true;
+    try{
+      const emp=inp.value.trim()||"Empresa";
+      c.querySelectorAll(".nm").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v){r.nombre=v;saveBen(r.nit,v,r.cuenta)}else if(!r.nombre)r.nombre="NIT "+r.nit});
+      if(meta.orig)saveEmp(meta.orig,emp);
+      saveLote(lid,emp,rows,meta.orig);
+      const buf=buildPDF(emp,rows);
+      const fname=`pagos_${emp.toLowerCase().replace(/[^a-z0-9áéíóúñ]+/gi,"_")}.pdf`;
+      let dl=null;try{dl=window.claude?await window.claude.use("downloads"):null}catch(_){}
+      if(dl){await dl.save({filename:fname,data:buf})}
+      else{const u=URL.createObjectURL(new Blob([buf],{type:"application/pdf"})),a=document.createElement("a");a.href=u;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+      ok.textContent="✓ PDF guardado";ok.hidden=false;
+    }catch(e){if(!e||e.code!=="declined")err.textContent="No se pudo generar el PDF: "+((e&&e.message)||e)}
+  };
+  out.prepend(c);
+  saveLote(lid,name,rows,meta.orig);
+}
+const prettyName=f=>f.replace(/\.[^.]+$/,"").replace(/^pagos[_\s-]*/i,"").replace(/[_-]+/g," ").trim().replace(/\b\p{L}/gu,c=>c.toUpperCase())||"Empresa";
+function showErr(m){const e=document.createElement("div");e.className="pg-err";e.textContent=m;out.prepend(e)}
+function handleText(fname,text){
+  if(/^\s*﻿?RC/.test(text)){
+    const p=parsePlano(text);
+    if(!p||!p.rows.length)return showErr(`No encontré pagos válidos en “${fname}”.`);
+    const tail=fname.replace(/\.[^.]+$/,"").split(/[_\s]+/).filter(Boolean).pop()||"Empresa";
+    return addCard(empAll()[p.orig]||tail,p.rows,{orig:p.orig,totalArchivo:p.totalArchivo});
+  }
+  const rows=parse(text);
+  if(!rows.length)return showErr(`No encontré pagos válidos en “${fname}”. Debe ser el archivo plano del banco (líneas RC/TR) o la tabla de 13 columnas.`);
+  addCard(prettyName(fname),rows);
+}
+async function handleFiles(fs){for(const f of fs)handleText(f.name,await f.text())}
+$("#file").onchange=e=>handleFiles(e.target.files);
+const drop=$("#drop");
+["dragover","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();if(ev==="drop")handleFiles(e.dataTransfer.files)}));
+initDB();
+$("#usePaste").onclick=()=>handleText("Empresa.txt",$("#paste").value);
+})();
+</script>
+
+<!-- ============ Script herramienta 2: Separador de comprobantes ============ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const PG_SEP_ROOT = document.getElementById('pagos-app');
+let companyDB = {};
+const DB_KEY = 'separador_comprobantes_db_v1';
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'pg-toast';
+  t.textContent = msg;
+  PG_SEP_ROOT.appendChild(t);
+  setTimeout(() => t.remove(), 4500);
+}
+window.alert = toast;
+
+let dbUnlocked = false, lastSavedText = '';
+const PIN_KEY = 'separador_comprobantes_pin_v1';
+const DB_BAK_KEY = 'separador_comprobantes_db_bak_v1';
+
+(function initSeparador() {
+  let saved = null;
+  try { saved = localStorage.getItem(DB_KEY); } catch (e) {}
+  lastSavedText = saved || '';
+  document.getElementById('dbInput').value = lastSavedText;
+  parseDatabase();
+})();
+
+function switchTabSep(tabId, btn) {
+  if (tabId !== 'basedatos' && dbUnlocked) lockDatabase();
+  if (tabId !== 'historial' && histUnlocked) lockHistory();
+  PG_SEP_ROOT.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  PG_SEP_ROOT.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+  if (tabId === 'historial') { if (histUnlocked) renderHistory(); else unlockHistory(); }
+}
+
+function toggleManualDate() {
+  const manual = document.getElementById('dateMode').value === 'manual';
+  document.getElementById('manualDateInput').style.display = manual ? 'block' : 'none';
+}
+
+function parseText(text) {
+  const db = {};
+  text.split('\n').forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    const match = line.match(/(?:\d+\s+)?(\d{6,})\s+(.+)/) || line.match(/(.+?)\s+(\d{6,})/);
+    if (!match) return;
+    let nit, name;
+    if (/^\d+$/.test(match[1])) { nit = match[1]; name = match[2]; }
+    else { name = match[1]; nit = match[2]; }
+    db[nit] = name.replace(/^\d+\s*/, '').trim();
+  });
+  return db;
+}
+
+function parseDatabase() {
+  companyDB = parseText(document.getElementById('dbInput').value);
+  const count = Object.keys(companyDB).length;
+  const summary = document.getElementById('dbSummary');
+  if (count === 0) {
+    summary.innerHTML = 'Base de datos sin registros. Puedes cargarla en la pestaña "Base de Datos (Empresas)".';
+  } else {
+    summary.innerHTML = `Base de datos cargada: <strong>${count} registros activos</strong>.`;
+  }
+  renderDbSearch();
+}
+
+// ---------- Protección de la base de datos ----------
+async function hashPin(pin) {
+  const data = new TextEncoder().encode('nuvia|' + pin);
+  if (window.crypto && crypto.subtle) {
+    const h = await crypto.subtle.digest('SHA-256', data);
+    return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  let h = 5381;
+  for (const b of data) h = ((h << 5) + h + b) >>> 0;
+  return 'f' + h;
+}
+
+function getStoredPin() { try { return localStorage.getItem(PIN_KEY); } catch (e) { return null; } }
+
+function modal(titulo, etiquetas, opt = {}) {
+  const { tipo = 'password', validar = null, aceptar = 'Aceptar', nota = '' } = opt;
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'pg-modal-fondo';
+    ov.innerHTML = `<div class="pg-modal">
+      <h3>${esc(titulo)}</h3>
+      ${nota ? `<p>${esc(nota)}</p>` : ''}
+      ${etiquetas.map(l => `<label>${esc(l)}</label><input type="${tipo}" autocomplete="off">`).join('')}
+      <p class="pg-modal-err" data-err></p>
+      <div class="pg-modal-acciones">
+        <button type="button" data-c class="btn gris mini">Cancelar</button>
+        <button type="button" data-ok class="btn mini">${esc(aceptar)}</button>
+      </div></div>`;
+    PG_SEP_ROOT.appendChild(ov);
+    const inputs = [...ov.querySelectorAll('input')];
+    (inputs[0] || ov.querySelector('[data-ok]')).focus();
+    const close = v => { ov.remove(); resolve(v); };
+    const ok = async () => {
+      const vals = inputs.map(i => i.value);
+      const err = validar ? await validar(vals) : '';
+      if (err) { ov.querySelector('[data-err]').textContent = err; return; }
+      close(vals);
+    };
+    ov.querySelector('[data-ok]').onclick = ok;
+    ov.querySelector('[data-c]').onclick = () => close(null);
+    ov.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') close(null); });
+  });
+}
+
+async function confirmar(titulo, mensaje, aceptar = 'Aceptar') {
+  return (await modal(titulo, [], { aceptar, nota: mensaje })) !== null;
+}
+
+function setDbLocked(locked) {
+  dbUnlocked = !locked;
+  document.getElementById('dbLocked').style.display = locked ? 'block' : 'none';
+  document.getElementById('dbEditor').style.display = locked ? 'none' : 'block';
+  if (locked) renderDbSearch();
+}
+
+// Pide el PIN (o lo crea la primera vez). Devuelve true si se concede el acceso.
+async function pedirAcceso(tituloPedir) {
+  const stored = getStoredPin();
+  if (!stored) {
+    const v = await modal('Crear PIN de protección', ['Nuevo PIN (mínimo 4 caracteres)', 'Repite el PIN'], {
+      aceptar: 'Crear PIN',
+      nota: 'Este PIN protege la base de datos y el historial de ZIP.',
+      validar: vals => vals[0].length < 4 ? 'El PIN debe tener al menos 4 caracteres.' : (vals[0] !== vals[1] ? 'Los PIN no coinciden.' : '')
+    });
+    if (!v) return false;
+    try { localStorage.setItem(PIN_KEY, await hashPin(v[0])); }
+    catch (e) { alert('No se pudo guardar el PIN en este navegador.'); return false; }
+    return true;
+  }
+  const v = await modal(tituloPedir, ['PIN'], {
+    aceptar: 'Desbloquear',
+    validar: async vals => (await hashPin(vals[0])) === stored ? '' : 'PIN incorrecto.'
+  });
+  return !!v;
+}
+
+async function unlockDatabase() {
+  if (await pedirAcceso('Desbloquear base de datos')) setDbLocked(false);
+}
+
+let histUnlocked = false;
+function setHistLocked(locked) {
+  histUnlocked = !locked;
+  document.getElementById('histLocked').style.display = locked ? 'block' : 'none';
+  document.getElementById('histBody').style.display = locked ? 'none' : 'block';
+  if (locked) {
+    document.getElementById('histContent').innerHTML = '';
+    document.getElementById('histTabs').innerHTML = '';
+  }
+}
+async function unlockHistory() {
+  if (await pedirAcceso('Desbloquear historial de ZIP')) { setHistLocked(false); renderHistory(); }
+}
+function lockHistory() { setHistLocked(true); }
+
+function lockDatabase() {
+  document.getElementById('dbInput').value = lastSavedText; // descarta cambios sin guardar
+  parseDatabase();
+  setDbLocked(true);
+}
+
+async function changePin() {
+  if (!dbUnlocked) return;
+  const stored = getStoredPin();
+  const v = await modal('Cambiar PIN', ['PIN actual', 'Nuevo PIN (mínimo 4 caracteres)', 'Repite el nuevo PIN'], {
+    aceptar: 'Cambiar PIN',
+    validar: async vals => {
+      if ((await hashPin(vals[0])) !== stored) return 'El PIN actual es incorrecto.';
+      if (vals[1].length < 4) return 'El nuevo PIN debe tener al menos 4 caracteres.';
+      return vals[1] !== vals[2] ? 'Los PIN nuevos no coinciden.' : '';
+    }
+  });
+  if (!v) return;
+  try { localStorage.setItem(PIN_KEY, await hashPin(v[1])); alert('PIN actualizado.'); }
+  catch (e) { alert('No se pudo guardar el nuevo PIN.'); }
+}
+
+function renderDbSearch() {
+  const q = (document.getElementById('dbSearch').value || '').trim().toLowerCase();
+  const total = Object.keys(companyDB).length;
+  document.getElementById('dbLockedSummary').textContent = total ? `${total} terceros registrados` : 'La base está sin registros';
+  const box = document.getElementById('dbSearchResults');
+  if (!q) { box.innerHTML = 'Escribe un NIT o un nombre para consultar.'; return; }
+  const res = Object.entries(companyDB).filter(([n, nm]) => n.includes(q) || nm.toLowerCase().includes(q));
+  box.innerHTML = res.length
+    ? res.slice(0, 100).map(([n, nm]) => `${esc(n)} ➔ ${esc(nm)}`).join('<br>') + (res.length > 100 ? `<br>... y ${res.length - 100} más` : '')
+    : 'Sin resultados.';
+}
+
+async function saveDatabase() {
+  if (!dbUnlocked) return;
+  const text = document.getElementById('dbInput').value;
+  const nuevo = parseText(text);
+  const prevCount = Object.keys(companyDB).length, newCount = Object.keys(nuevo).length;
+  if (newCount === 0) { alert('La base quedaría vacía. Para vaciarla usa el botón "Vaciar base".'); return; }
+  if (prevCount > 0 && newCount < prevCount * 0.5 &&
+      !(await confirmar('Guardar cambios', `La base pasaría de ${prevCount} a ${newCount} registros. ¿Seguro que quieres guardar este cambio?`, 'Guardar'))) return;
+  let ok = true;
+  try {
+    if (lastSavedText) localStorage.setItem(DB_BAK_KEY, lastSavedText); // respaldo de la versión anterior
+    localStorage.setItem(DB_KEY, text);
+  } catch (e) { ok = false; }
+  lastSavedText = text;
+  parseDatabase();
+  alert(ok ? '¡Base de datos actualizada y guardada en este navegador!'
+           : 'Base actualizada solo para esta sesión (el navegador no permitió guardarla).');
+  switchTabSep('procesador', PG_SEP_ROOT.querySelector('.tab-btn'));
+}
+
+async function clearDatabase() {
+  if (!dbUnlocked) return;
+  const v = await modal('Vaciar base de datos', ['Escribe VACIAR para confirmar'], {
+    tipo: 'text', aceptar: 'Vaciar',
+    nota: 'Se borrarán todos los terceros. Antes se guarda una copia que podrás cargar con "Cargar versión anterior".',
+    validar: vals => vals[0].trim() === 'VACIAR' ? '' : 'Debes escribir VACIAR.'
+  });
+  if (!v) return;
+  try {
+    if (lastSavedText) localStorage.setItem(DB_BAK_KEY, lastSavedText);
+    localStorage.removeItem(DB_KEY);
+  } catch (e) {}
+  lastSavedText = '';
+  document.getElementById('dbInput').value = '';
+  parseDatabase();
+}
+
+async function restoreBackup() {
+  if (!dbUnlocked) return;
+  let bak = null;
+  try { bak = localStorage.getItem(DB_BAK_KEY); } catch (e) {}
+  if (!bak) { alert('No hay una versión anterior guardada.'); return; }
+  if (!(await confirmar('Cargar versión anterior', 'Se cargará la versión anterior en el editor. Para aplicarla debes pulsar "Guardar Cambios".', 'Cargar'))) return;
+  document.getElementById('dbInput').value = bak;
+}
+
+// Busca la empresa tolerando NIT con o sin dígito de verificación (DV)
+function findCompany(candidates) {
+  for (const c of candidates) if (companyDB[c]) return { name: companyDB[c], approx: false };
+  const keys = Object.keys(companyDB);
+  for (const c of candidates) {
+    const withDv = keys.filter(k => k.length === c.length + 1 && k.startsWith(c));
+    if (withDv.length === 1) return { name: companyDB[withDv[0]], approx: true };
+    if (c.length > 6 && companyDB[c.slice(0, -1)]) return { name: companyDB[c.slice(0, -1)], approx: true };
+  }
+  return null;
+}
+
+const dropzoneSep = document.getElementById('dropzone');
+const fileInputSep = document.getElementById('pdfFileInput');
+const fileLabelSep = document.getElementById('fileLabel');
+const processBtnSep = document.getElementById('processBtn');
+let selectedFile = null;
+
+const isPdf = f => f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+
+dropzoneSep.addEventListener('dragover', e => { e.preventDefault(); dropzoneSep.style.background = '#E7EDF5'; });
+dropzoneSep.addEventListener('dragleave', e => { e.preventDefault(); dropzoneSep.style.background = ''; });
+dropzoneSep.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzoneSep.style.background = '';
+  if (e.dataTransfer.files.length) { fileInputSep.files = e.dataTransfer.files; handleFileSelect(); }
+});
+fileInputSep.addEventListener('change', handleFileSelect);
+
+function handleFileSelect() {
+  if (!fileInputSep.files.length) return;
+  const file = fileInputSep.files[0];
+  if (!isPdf(file)) {
+    alert('El archivo seleccionado no es un PDF. Por favor elige un archivo .pdf');
+    fileInputSep.value = '';
+    selectedFile = null;
+    processBtnSep.disabled = true;
+    fileLabelSep.innerHTML = 'Arrastra el PDF consolidado aquí<br>o haz clic para buscarlo';
+    return;
+  }
+  selectedFile = file;
+  fileLabelSep.innerHTML = `<strong>Archivo seleccionado:</strong><br><span style="color:var(--brand-main)">${file.name}</span>`;
+  processBtnSep.disabled = false;
+}
+
+function formatSpanishDate(dateStr) {
+  if (!dateStr) return 'Fecha_Desconocida';
+  const p = dateStr.split('/');
+  if (p.length !== 3) return dateStr.replace(/\//g, '-');
+  const months = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
+  return `${parseInt(p[0], 10)} de ${months[p[1]] || p[1]}`;
+}
+
+function logMsg(msg) {
+  const el = document.getElementById('logArea');
+  el.innerHTML += `&gt; ${msg}<br>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+processBtnSep.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  const tag = document.getElementById('tagInput').value.trim() || 'Etiqueta';
+  const dateMode = document.getElementById('dateMode').value;
+  const manualDate = document.getElementById('manualDateInput').value.trim();
+
+  if (dateMode === 'manual' && manualDate === '') {
+    alert('Elegiste fecha manual pero el campo está vacío. Escribe la fecha (ej: 23 de Octubre) o cambia a modo automático.');
+    document.getElementById('manualDateInput').focus();
+    return;
+  }
+
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const logArea = document.getElementById('logArea');
+
+  progressContainer.style.display = 'flex';
+  logArea.style.display = 'block';
+  processBtnSep.disabled = true;
+  logArea.innerHTML = '';
+  progressBar.style.width = '0%';
+
+  try {
+    logMsg('Leyendo archivo PDF original...');
+    const buffer = await selectedFile.arrayBuffer();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    const pdfDocument = await pdfjsLib.getDocument({ data: new Uint8Array(buffer.slice(0)) }).promise;
+    const totalPages = pdfDocument.numPages;
+    const pdfLibDoc = await PDFLib.PDFDocument.load(buffer, { ignoreEncryption: true });
+    const zip = new JSZip();
+    const nitTracker = {};
+    const sinNit = [], sinEmpresa = [], archivos = [];
+
+    logMsg(`PDF cargado con éxito. Total de páginas detectadas: ${totalPages}`);
+
+    for (let i = 0; i < totalPages; i++) {
+      progressBar.style.width = `${Math.round(((i + 1) / totalPages) * 100)}%`;
+      progressText.innerText = `Procesando página ${i + 1} de ${totalPages}...`;
+
+      const page = await pdfDocument.getPage(i + 1);
+      const textContent = await page.getTextContent();
+      const textStr = textContent.items.map(it => it.str).join(' ');
+
+      // NIT: tolera puntos (900.123.456) y DV opcional (-7)
+      const nitText = textStr.replace(/(\d)\.(?=\d)/g, '$1');
+      const nitMatch = nitText.match(/Nit Destino[^\d]*(\d{5,})(?:\s*-\s*(\d)(?!\d))?/i);
+      let nit = 'NIT_NO_ENCONTRADO';
+      let candidates = [];
+      if (nitMatch) {
+        nit = nitMatch[1];
+        candidates = [nit];
+        if (nitMatch[2]) candidates.push(nit + nitMatch[2]);
+      }
+
+      // Fecha
+      let dateToUse = 'Fecha_Desconocida';
+      if (dateMode === 'manual') {
+        dateToUse = manualDate;
+      } else {
+        const dm = textStr.match(/Fecha del Pago[^\d]*(\d{2}\/\d{2}\/\d{4})/i);
+        if (dm) dateToUse = formatSpanishDate(dm[1]);
+      }
+
+      // Empresa
+      const found = candidates.length ? findCompany(candidates) : null;
+      const companyName = found ? found.name : 'EMPRESA_DESCONOCIDA';
+      if (!nitMatch) sinNit.push(i + 1);
+      else if (!found) sinEmpresa.push(`${i + 1} (NIT ${nit})`);
+
+      // Nombre: Pago [Empresa] [NIT] [Etiqueta] [Fecha]
+      const baseName = `Pago ${companyName} ${nit} ${tag} ${dateToUse}`.replace(/[<>:"/\\|?*]/g, '-');
+      nitTracker[nit] = nitTracker[nit] === undefined ? 0 : nitTracker[nit] + 1;
+      const suffix = nitTracker[nit] > 0 ? ` (${nitTracker[nit]})` : '';
+      const finalFilename = `${baseName}${suffix}.pdf`;
+
+      logMsg(`Pág ${i + 1}: ${finalFilename}${found && found.approx ? ' [coincidencia aproximada por DV, verifica]' : ''}`);
+
+      const newPdf = await PDFLib.PDFDocument.create();
+      const [copied] = await newPdf.copyPages(pdfLibDoc, [i]);
+      newPdf.addPage(copied);
+      zip.file(finalFilename, await newPdf.save());
+      archivos.push(finalFilename);
+    }
+
+    if (sinNit.length) logMsg(`ATENCIÓN: ${sinNit.length} página(s) sin NIT detectado: ${sinNit.join(', ')}`);
+    if (sinEmpresa.length) logMsg(`ATENCIÓN: ${sinEmpresa.length} página(s) con NIT fuera de la base: ${sinEmpresa.join('; ')}`);
+
+    progressBar.style.width = '100%';
+    progressText.innerText = 'Empaquetando archivo ZIP...';
+    logMsg('Generando paquete comprimido...');
+
+    const zipContent = await zip.generateAsync({ type: 'blob' });
+    const empresa = EMPRESA_POR_TAG[tag] || tag;
+    const zipFilename = `Pagos_${tag}_${stamp()}.zip`;
+
+    // Guardar primero en el historial (así no se pierde aunque falle la descarga)
+    try {
+      await idbPut({
+        id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+        empresa, etiqueta: tag, nombre: zipFilename,
+        fecha: new Date().toISOString(),
+        paginas: totalPages, tamano: zipContent.size, archivos,
+        sinNit: sinNit.length, sinEmpresa: sinEmpresa.length,
+        blob: zipContent
+      });
+      logMsg(`Guardado en el historial de ${empresa}.`);
+    } catch (e) {
+      logMsg(`AVISO: no se pudo guardar en el historial (${e.message || e}).`);
+    }
+
+    descargarBlob(zipContent, zipFilename);
+    progressText.innerText = '¡Proceso terminado con éxito!';
+    logMsg(`Descarga iniciada: ${zipFilename}`);
+  } catch (error) {
+    console.error(error);
+    logMsg(`ERROR: ${error.message}`);
+    progressText.innerText = 'Ocurrió un error al procesar el archivo.';
+  } finally {
+    processBtnSep.disabled = false;
+  }
+});
+
+// ================= Historial de ZIP (IndexedDB) =================
+const EMPRESAS = ['NUVIA SMILES', 'NUVIA DESIGN'];
+const EMPRESA_POR_TAG = { Smiles: 'NUVIA SMILES', Design: 'NUVIA DESIGN' };
+const IDB_NAME = 'separador_comprobantes', IDB_STORE = 'zips';
+let histEmpresa = 'NUVIA SMILES';
+
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => {
+      if (!r.result.objectStoreNames.contains(IDB_STORE)) r.result.createObjectStore(IDB_STORE, { keyPath: 'id' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbRun(mode, fn) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, mode);
+    const req = fn(tx.objectStore(IDB_STORE));
+    tx.oncomplete = () => { db.close(); res(req ? req.result : undefined); };
+    tx.onerror = tx.onabort = () => { db.close(); rej(tx.error); };
+  });
+}
+const idbPut = item => idbRun('readwrite', st => st.put(item));
+const idbAll = () => idbRun('readonly', st => st.getAll());
+const idbGet = id => idbRun('readonly', st => st.get(id));
+const idbDelete = id => idbRun('readwrite', st => st.delete(id));
+
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+
+function stamp() {
+  const d = new Date(), z = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`;
+}
+
+// Descarga sin FileSaver: no navega ni deja la página en blanco
+function descargarBlob(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 10000);
+}
+
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtSize = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+
+async function renderHistory() {
+  const tabs = document.getElementById('histTabs');
+  const cont = document.getElementById('histContent');
+  let items = [], fallo = false;
+  try { items = await idbAll(); } catch (e) { fallo = true; }
+
+  tabs.innerHTML = EMPRESAS.map(emp => {
+    const n = items.filter(i => i.empresa === emp).length;
+    const act = emp === histEmpresa;
+    return `<button type="button" data-emp="${emp}" class="${act ? 'activo' : ''}">${emp} (${n})</button>`;
+  }).join('');
+
+  if (fallo) {
+    cont.innerHTML = '<p class="pg-muted">No se pudo acceder al historial en este navegador.</p>';
+    return;
+  }
+  const lista = items.filter(i => i.empresa === histEmpresa).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  if (!lista.length) {
+    cont.innerHTML = `<p class="pg-muted">Aún no hay ZIP generados para ${histEmpresa}.</p>`;
+    return;
+  }
+  cont.innerHTML = lista.map(i => {
+    const avisos = [];
+    if (i.sinNit) avisos.push(`${i.sinNit} sin NIT`);
+    if (i.sinEmpresa) avisos.push(`${i.sinEmpresa} NIT fuera de la base`);
+    return `<div class="pg-card" style="margin-top:0">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div>
+          <div style="font-weight:700;font-size:13px;word-break:break-all">${esc(i.nombre)}</div>
+          <div class="pg-muted">${new Date(i.fecha).toLocaleString('es-CO')} · ${i.paginas} comprobantes · ${fmtSize(i.tamano)}${avisos.length ? ' · <span style="color:var(--warning)">' + avisos.join(', ') + '</span>' : ''}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" data-act="dl" data-id="${esc(i.id)}" class="btn mini">Descargar</button>
+          <button type="button" data-act="del" data-id="${esc(i.id)}" class="btn rojo mini">Eliminar</button>
+        </div>
+      </div>
+      <details class="pg-detalle" style="margin:8px 0 0"><summary class="pg-link">Ver ${i.archivos.length} archivos</summary>
+        <ul style="font-size:12px;color:var(--text-muted);margin:6px 0 0;padding-left:18px">${i.archivos.map(a => `<li>${esc(a)}</li>`).join('')}</ul>
+      </details>
+    </div>`;
+  }).join('') + `<div style="display:flex;justify-content:flex-end"><button type="button" data-act="clear" class="pg-link-danger">Vaciar historial de ${histEmpresa}</button></div>`;
+}
+
+document.getElementById('historial').addEventListener('click', async e => {
+  const t = e.target.closest('[data-emp],[data-act]');
+  if (!t) return;
+  if (t.dataset.emp) { histEmpresa = t.dataset.emp; return renderHistory(); }
+  try {
+    if (t.dataset.act === 'dl') {
+      const item = await idbGet(t.dataset.id);
+      if (item) descargarBlob(item.blob, item.nombre);
+    } else if (t.dataset.act === 'del') {
+      if (await confirmar('Eliminar ZIP', '¿Eliminar este ZIP del historial? Esta acción no se puede deshacer.', 'Eliminar')) { await idbDelete(t.dataset.id); renderHistory(); }
+    } else if (t.dataset.act === 'clear') {
+      if (await confirmar('Vaciar historial', `Se eliminarán todos los ZIP de ${histEmpresa}. Esta acción no se puede deshacer.`, 'Eliminar todo')) {
+        const all = await idbAll();
+        for (const i of all.filter(x => x.empresa === histEmpresa)) await idbDelete(i.id);
+        renderHistory();
+      }
+    }
+  } catch (err) { alert('No se pudo completar la acción: ' + (err.message || err)); }
+});
+
+// Un error inesperado se muestra en la bitácora en vez de dejar la app en blanco
+window.addEventListener('error', e => { try { logMsg('ERROR: ' + e.message); } catch (_) {} });
+window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e.reason && e.reason.message || e.reason)); } catch (_) {} });
+</script>
+{% endblock %}
