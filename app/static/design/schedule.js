@@ -174,11 +174,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     DS.lunes = dsLunesDe(f); DS.diaSel = (f.getDay() + 6) % 7;
     dsRefrescarSemana();
   }
+  // Historial: ventana centrada con el fondo oscurecido, como «Dejar a cargo» (27-oct-2026). Se cierra con la X, Esc o un clic en el fondo.
   function dsCalCerrar() {
-    var p = document.getElementById('dsCalPop'); if (p) p.remove();
-    document.removeEventListener('mousedown', dsCalFuera, true); document.removeEventListener('keydown', dsCalEsc, true);
+    var bg = document.getElementById('dsCalBg'); if (bg) bg.remove();
+    document.removeEventListener('keydown', dsCalEsc, true);
   }
-  function dsCalFuera(e) { var p = document.getElementById('dsCalPop'); if (p && !p.contains(e.target) && !e.target.closest('#dsHistorialBtn')) dsCalCerrar(); }
   function dsCalEsc(e) {
     if (e.key !== 'Escape') return;
     e.stopPropagation(); dsCalCerrar();
@@ -207,11 +207,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsCalAbrir(btn) {
     if (document.getElementById('dsCalPop')) { dsCalCerrar(); return; }
     var f = dsFechaSeleccionada(); DS_CAL.y = f.getFullYear(); DS_CAL.m = f.getMonth(); DS_CAL.sel = dsFechaISO(f);
-    var pop = document.createElement('div'); pop.className = 'ds-cal-pop'; pop.id = 'dsCalPop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Historial: elegir un día');
-    document.body.appendChild(pop); dsCalPintar(true);
-    var r = btn.getBoundingClientRect();   // se abre a la izquierda de la barra lateral
-    pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top)) + 'px';
-    pop.style.left = Math.max(8, window.innerWidth - 46 - pop.offsetWidth - 10) + 'px';
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg ds-fondo-50'; bg.id = 'dsCalBg';
+    var pop = document.createElement('div'); pop.className = 'ds-cal-pop'; pop.id = 'dsCalPop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-modal', 'true'); pop.setAttribute('aria-label', 'Historial: elegir un día');
+    bg.appendChild(pop); document.body.appendChild(bg); dsCalPintar(true);
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) dsCalCerrar(); });
     pop.addEventListener('click', function(e) {
       var nav = e.target.closest('[data-cal-mes]'), dia = e.target.closest('[data-cal-dia]');
       if (nav) {
@@ -228,7 +227,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (i < 0 || !paso) return;
       e.preventDefault(); var d = dias[Math.max(0, Math.min(dias.length - 1, i + paso))]; if (d) d.focus();
     });
-    document.addEventListener('mousedown', dsCalFuera, true); document.addEventListener('keydown', dsCalEsc, true);
+    document.addEventListener('keydown', dsCalEsc, true);
   }
   // Si cambia el día por otro camino (flechas de semana, buscador, «Hoy»), el calendario abierto lo sigue
   function dsCalSincronizar() {
