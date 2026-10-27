@@ -1884,6 +1884,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                                 {c: datos.get(c, getattr(orden_existente, c)) for c in ("art_start", "art_rtd")},
                                                 datos["estado"]))
     if ("estado" in datos and sd.es_hold(datos["estado"]) and not sd.es_hold(orden_existente.estado)
+            and not sd.es_meeting(orden_existente.estado)   # de Meeting sí se pasa a Hold (N2, Rosember 27-oct-2026)
             and not sd.orden_iniciada({c: datos.get(c, getattr(orden_existente, c)) for c in ("etapa", "hora_inicio", "z_hora_inicio")},
                                       orden_existente.tabla, rd)):
         raise HTTPException(400, sd.HOLD_SIN_INICIO)   # Hold solo después de iniciar (Rosember, 21-oct-2026)
@@ -1906,6 +1907,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                                                            "etapa", "z_hora_inicio", "z_s_hold", "z_f_hold",
                                                                            "z_hora_fin", "z_hold_minutos")}
         auto_horas = sd.horas_de_estado(orden_existente.tabla, actual, datos["estado"])
+        if sd.es_meeting(orden_existente.estado) and sd.es_hold(datos["estado"]) and not (actual.get("hora_inicio") or "").strip():
+            auto_horas.pop("s_hold", None)   # de Meeting (N2) sin Inicio: no hay Start hold; el Inicio llega con Initiated (27-oct-2026)
         datos.update(auto_horas)
     if solo_propia:  # un diseñador edita horas, estado, notas, esferas y crítico (y en N3/N6 orden, paciente y producto)
         bloqueados = campos_solo_manager(team)

@@ -967,6 +967,11 @@ def es_hold(estado: str | None) -> bool:
     return _normalizar_texto(estado or "") == _normalizar_texto(ESTADO_HOLD)
 
 
+def es_meeting(estado: str | None) -> bool:
+    """N2 «Meeting»: puede pasar a Hold aunque la orden no se haya iniciado (Rosember, 27-oct-2026)."""
+    return _normalizar_texto(estado or "") == "meeting"
+
+
 def orden_iniciada(actual: dict, tabla: str, por_etapas: bool = False) -> bool:
     """¿La etapa en curso ya tiene Inicio? Hold solo se permite después de iniciar (Rosember, 21-oct-2026: casos puestos en
     Hold antes de empezar dejaban el Start hold antes del Inicio y el Total salía mal). Material Change y Removable

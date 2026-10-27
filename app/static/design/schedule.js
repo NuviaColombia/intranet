@@ -1950,7 +1950,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Hold solo después de iniciar (Rosember, 21-oct-2026; el servidor también lo valida: orden_iniciada en services_design.py).
   // Material Change y Removable Denture miran la etapa en curso (Zirconia / Denture usan zHoraInicio).
   function dsHoldPermitido(f) {
-    if (!f || dsEsHoldEstado(f.estado)) return true;
+    if (!f || dsEsHoldEstado(f.estado) || dsNorm(f.estado) === 'meeting') return true;   // de Meeting (N2) sí se pasa a Hold (27-oct-2026)
     return !!String((dsEsZirconia(f) ? f.zHoraInicio : f.horaInicio) || '').trim();
   }
   function dsEsHoldEstado(e) { return dsNorm(e) === 'hold'; }
