@@ -15,8 +15,8 @@ nav .ds-nav-extras .ds-push-pop { left:auto; right:-70px; transform:none; }
 .ds-tema-pista::after { content:'🌙'; position:absolute; right:5px; top:50%; transform:translateY(-50%); font-size:11px; opacity:.55; }
 .ds-tema-perilla { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#f9fafb; box-shadow:0 1px 3px rgba(0,0,0,.4);
   transition:transform .2s; z-index:1; }
-.ds-tema-sw input:checked + .ds-tema-pista { background:#4338ca; }
-.ds-tema-sw input:checked + .ds-tema-pista .ds-tema-perilla { transform:translateX(22px); }
+.ds-tema-sw input:checked + .ds-tema-pista { background:#fff; border-color:#e5e7eb; }   /* modo oscuro activo: riel blanco (27-oct-2026) */
+.ds-tema-sw input:checked + .ds-tema-pista .ds-tema-perilla { transform:translateX(22px); background:#0f172a; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 .ds-tema-sw input:focus-visible + .ds-tema-pista { outline:2px solid #93c5fd; outline-offset:2px; }
 @media (prefers-reduced-motion: reduce) { .ds-tema-pista, .ds-tema-perilla { transition:none; } }
 
