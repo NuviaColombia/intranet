@@ -79,6 +79,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsActualizarSemanaCtrl() {
     var chk = document.getElementById('dsTodasAreasChk');
     document.getElementById('dsSemanaCtrl').style.display = (DS.teamId || (chk && chk.checked)) ? '' : 'none';
+    var hb = document.getElementById('dsHistorialBtn'); if (hb) hb.classList.toggle('ds-fuera', !(DS.teamId || (chk && chk.checked)));
+    if (!(DS.teamId || (chk && chk.checked))) dsCalCerrar();
     // "Dejar a cargo" está junto al buscador: solo se ve con un equipo abierto (no en todas las áreas)
     document.getElementById('dsACargo').classList.toggle('ds-fuera', !DS.teamId || !!(chk && chk.checked));
     // "Producción" (aprobadores, admins y diseñadores, 23-oct-2026): con un equipo abierto; no se usa en Support
@@ -112,68 +114,93 @@ window.addEventListener('unhandledrejection', function(ev) {
       btn.onclick = (function(idx) { return function() { DS.diaSel = idx; dsRenderDias(); dsCargarDia(); }; })(i);
       cont.appendChild(btn);
     }
-    dsSincronizarFiltrosFecha();
+    dsCalSincronizar();
   }
 
   function dsFechaSeleccionada() {
     var d = new Date(DS.lunes); d.setDate(d.getDate() + DS.diaSel); return d;
   }
 
-  // ---------- Filtros de Mes / Semana ----------
+  // ---------- Historial: calendario para ir a cualquier día de producción (Rosember, 26-oct-2026) ----------
+  // Reemplaza los selectores de Mes y de Semana. Se abre desde la barra lateral (botón «Historial»); solo se eligen días de
+  // lunes a viernes, que son los del Schedule. Cambia la semana compartida (DS.lunes) y el día (DS.diaSel), igual que las flechas.
   function dsMesLabel(anio, mes) {
     var d = new Date(anio, mes, 1);
     var l = d.toLocaleDateString('es-CO', {month:'long', year:'numeric'});
     return l.charAt(0).toUpperCase() + l.slice(1);
   }
-  function dsSemanasDelMes(anio, mes) {
-    var primerDia = new Date(anio, mes, 1);
-    var ultimoDia = new Date(anio, mes + 1, 0);
-    var lunes = dsLunesDe(primerDia);
-    var out = [];
-    while (lunes <= ultimoDia) {
-      out.push(new Date(lunes));
-      lunes = new Date(lunes); lunes.setDate(lunes.getDate() + 7);
-    }
-    return out;
-  }
-  function dsPoblarFiltroMes() {
-    var sel = document.getElementById('dsMesFiltro');
-    var hoy = new Date(); var opciones = [];
-    for (var offset = -6; offset <= 6; offset++) opciones.push(new Date(hoy.getFullYear(), hoy.getMonth() + offset, 1));
-    sel.innerHTML = opciones.map(function(d) {
-      var val = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      return '<option value="' + val + '">' + dsMesLabel(d.getFullYear(), d.getMonth()) + '</option>';
-    }).join('');
-  }
-  function dsPoblarFiltroSemana() {
-    var sel = document.getElementById('dsSemanaFiltro');
-    var mesVal = document.getElementById('dsMesFiltro').value; if (!mesVal) return;
-    var partes = mesVal.split('-'); var anio = parseInt(partes[0]), mes = parseInt(partes[1]) - 1;
-    var semanas = dsSemanasDelMes(anio, mes);
-    sel.innerHTML = semanas.map(function(lunes, i) {
-      var fin = new Date(lunes); fin.setDate(fin.getDate() + 4);
-      return '<option value="' + dsFechaISO(lunes) + '">Semana ' + (i + 1) + ': ' + dsFechaCorta(lunes) + ' — ' + dsFechaCorta(fin) + '</option>';
-    }).join('');
-  }
-  function dsSincronizarFiltrosFecha() {
-    var mesSel = document.getElementById('dsMesFiltro'); if (!mesSel) return;
-    var mesVal = DS.lunes.getFullYear() + '-' + String(DS.lunes.getMonth() + 1).padStart(2, '0');
-    if (!mesSel.querySelector('option[value="' + mesVal + '"]')) {
-      var opt = document.createElement('option'); opt.value = mesVal;
-      opt.text = dsMesLabel(DS.lunes.getFullYear(), DS.lunes.getMonth());
-      mesSel.appendChild(opt);
-    }
-    mesSel.value = mesVal;
-    dsPoblarFiltroSemana();
-    var semSel = document.getElementById('dsSemanaFiltro');
-    var semVal = dsFechaISO(DS.lunes);
-    if (semSel.querySelector('option[value="' + semVal + '"]')) semSel.value = semVal;
-  }
-  function dsAplicarSemanaFiltro() {
-    var val = document.getElementById('dsSemanaFiltro').value; if (!val) return;
-    DS.lunes = new Date(val + 'T00:00:00'); DS.diaSel = 0;
+  var DS_CAL = {y: 0, m: 0, sel: ''};
+  function dsIrAFecha(f) {
+    DS.lunes = dsLunesDe(f); DS.diaSel = (f.getDay() + 6) % 7;
     dsRefrescarSemana();
   }
+  function dsCalCerrar() {
+    var p = document.getElementById('dsCalPop'); if (p) p.remove();
+    document.removeEventListener('mousedown', dsCalFuera, true); document.removeEventListener('keydown', dsCalEsc, true);
+  }
+  function dsCalFuera(e) { var p = document.getElementById('dsCalPop'); if (p && !p.contains(e.target) && !e.target.closest('#dsHistorialBtn')) dsCalCerrar(); }
+  function dsCalEsc(e) {
+    if (e.key !== 'Escape') return;
+    e.stopPropagation(); dsCalCerrar();
+    var b = document.getElementById('dsHistorialBtn'); if (b && b.focus) b.focus({preventScroll: true});
+  }
+  function dsCalPintar(enfocar) {
+    var pop = document.getElementById('dsCalPop'); if (!pop) return;
+    var y = DS_CAL.y, m = DS_CAL.m, sel = dsFechaISO(dsFechaSeleccionada()), hoy = dsFechaISO(new Date());
+    var ultimo = new Date(y, m + 1, 0).getDate(), h = '';
+    h += '<div class="ds-cal-cab"><button type="button" class="ds-cal-nav" data-cal-mes="-1" aria-label="Mes anterior">‹</button>' +
+         '<b aria-live="polite">' + dsMesLabel(y, m) + '</b><button type="button" class="ds-cal-nav" data-cal-mes="1" aria-label="Mes siguiente">›</button></div>';
+    h += '<div class="ds-cal-sem" aria-hidden="true">' + ['L', 'M', 'M', 'J', 'V'].map(function(d) { return '<span>' + d + '</span>'; }).join('') + '</div><div class="ds-cal-dias">';
+    var primero = true;
+    for (var dia = 1; dia <= ultimo; dia++) {
+      var f = new Date(y, m, dia), dow = (f.getDay() + 6) % 7;   // 0 = lunes … 6 = domingo
+      if (dow > 4) continue;                                     // sin fines de semana: el Schedule es de lunes a viernes
+      if (primero) { for (var v = 0; v < dow; v++) h += '<span class="ds-cal-vacio"></span>'; primero = false; }
+      var iso = dsFechaISO(f);
+      h += '<button type="button" class="ds-cal-dia' + (iso === sel ? ' sel' : '') + (iso === hoy ? ' hoy' : '') + '" data-cal-dia="' + iso + '" aria-pressed="' + (iso === sel) + '" ' +
+           'aria-label="' + f.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'}) + '">' + dia + '</button>';
+    }
+    h += '</div><div class="ds-cal-pie"><button type="button" class="btn mini gris" data-cal-hoy>Hoy</button></div>';
+    pop.innerHTML = h;
+    if (enfocar) { var b = pop.querySelector('.ds-cal-dia.sel') || pop.querySelector('.ds-cal-dia'); if (b) b.focus({preventScroll: true}); }
+  }
+  function dsCalAbrir(btn) {
+    if (document.getElementById('dsCalPop')) { dsCalCerrar(); return; }
+    var f = dsFechaSeleccionada(); DS_CAL.y = f.getFullYear(); DS_CAL.m = f.getMonth(); DS_CAL.sel = dsFechaISO(f);
+    var pop = document.createElement('div'); pop.className = 'ds-cal-pop'; pop.id = 'dsCalPop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Historial: elegir un día');
+    document.body.appendChild(pop); dsCalPintar(true);
+    var r = btn.getBoundingClientRect();   // se abre a la izquierda de la barra lateral
+    pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top)) + 'px';
+    pop.style.left = Math.max(8, window.innerWidth - 46 - pop.offsetWidth - 10) + 'px';
+    pop.addEventListener('click', function(e) {
+      var nav = e.target.closest('[data-cal-mes]'), dia = e.target.closest('[data-cal-dia]');
+      if (nav) {
+        var d = new Date(DS_CAL.y, DS_CAL.m + parseInt(nav.dataset.calMes, 10), 1); DS_CAL.y = d.getFullYear(); DS_CAL.m = d.getMonth();
+        dsCalPintar(false); return;
+      }
+      if (dia) { var p = dia.dataset.calDia.split('-'); dsCalCerrar(); dsIrAFecha(new Date(+p[0], +p[1] - 1, +p[2])); return; }
+      if (e.target.closest('[data-cal-hoy]')) { dsCalCerrar(); dsIrAHoy(); dsRefrescarSemana(); }
+    });
+    // Flechas del teclado entre los días (← → de a uno, ↑ ↓ de a una semana)
+    pop.addEventListener('keydown', function(e) {
+      var dias = Array.prototype.slice.call(pop.querySelectorAll('.ds-cal-dia')), i = dias.indexOf(document.activeElement);
+      var paso = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -5, ArrowDown: 5}[e.key];
+      if (i < 0 || !paso) return;
+      e.preventDefault(); var d = dias[Math.max(0, Math.min(dias.length - 1, i + paso))]; if (d) d.focus();
+    });
+    document.addEventListener('mousedown', dsCalFuera, true); document.addEventListener('keydown', dsCalEsc, true);
+  }
+  // Si cambia el día por otro camino (flechas de semana, buscador, «Hoy»), el calendario abierto lo sigue
+  function dsCalSincronizar() {
+    var pop = document.getElementById('dsCalPop'); if (!pop) return;
+    var f = dsFechaSeleccionada(), iso = dsFechaISO(f);
+    if (iso !== DS_CAL.sel) { DS_CAL.sel = iso; DS_CAL.y = f.getFullYear(); DS_CAL.m = f.getMonth(); }
+    dsCalPintar(false);
+  }
+  (function() {
+    var b = document.getElementById('dsHistorialBtn');
+    if (b) b.addEventListener('click', function() { dsCalAbrir(b); });
+  })();
 
   // Empleados y aprobadores: sin la fila de áreas; la semana pasa al final de la fila de contadores y, si tienen
   // más de un equipo, un selector "Mi equipo" en la misma fila.
@@ -307,6 +334,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var ICONOS = {
       prod: SVG + '<path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg>',                       // gráfica de barras
       cambio: SVG + '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>', // intercambio
+      hist: SVG + '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',                                   // calendario
       cargo: SVG + '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg>'   // persona con visto
     };
     var fijo = false, timer = null;
@@ -318,7 +346,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var i = 0;
       panel.querySelectorAll('.ds-prod-btn, #dsACargo > .btn, #dsACargo > .ds-acargo-chip').forEach(function(el) {
         if (!el.querySelector('.ds-it-ico')) {
-          var txt = el.textContent.trim(), ico = el.id === 'dsProdBtn' ? 'prod' : el.id === 'dsCambioDigBtn' ? 'cambio' : 'cargo';
+          var txt = el.textContent.trim(), ico = el.id === 'dsProdBtn' ? 'prod' : el.id === 'dsCambioDigBtn' ? 'cambio' : el.id === 'dsHistorialBtn' ? 'hist' : 'cargo';
           el.classList.add('ds-it');
           if (!el.title) el.title = txt;
           el.innerHTML = '<span class="ds-it-ico">' + ICONOS[ico] + '</span><span class="ds-it-txt"></span>';
@@ -442,10 +470,28 @@ window.addEventListener('unhandledrejection', function(ev) {
     else {
       // Saludo con el primer nombre (Rosember, 26-oct-2026); quien está a cargo hoy ve el de aprobador
       var gestiona = DS_CFG.rol === 'aprobador' || DS.aCargoHoy;
-      h1.firstChild.textContent = 'Hola ' + DS_CFG.primerNombre + (gestiona ? ', aquí está tu equipo en movimiento.' : ', tu trabajo es espectacular. ¡Gracias!');
+      dsSaludoPoner('Hola ' + DS_CFG.primerNombre + (gestiona ? ', aquí está tu equipo en movimiento.' : ', tu trabajo es espectacular. ¡Gracias!'));
     }
     if (window.dsActualizarPestana) window.dsActualizarPestana();
   }
+  // El saludo entra palabra por palabra. Si el texto no cambió no se toca (así no se repite la animación); con «repetir»
+  // se vuelve a armar aunque sea igual (al volver al Schedule desde un panel).
+  function dsSaludoPoner(txt, repetir) {
+    var s = document.getElementById('dsSaludo'); if (!s || (s.dataset.txt === txt && !repetir)) return;
+    s.dataset.txt = txt; s.innerHTML = '';
+    txt.split(' ').forEach(function(p, i) {
+      var w = document.createElement('span'); w.className = 'ds-pal'; w.style.setProperty('--i', i); w.textContent = p;
+      s.appendChild(w); s.appendChild(document.createTextNode(' '));
+    });
+  }
+  // Al ingresar al Schedule (cargar la página o volver a él desde un panel) el saludo entra y los contadores se cuentan
+  DS.kpiContar = true;
+  function dsEntrada() {
+    var s = document.getElementById('dsSaludo'); if (s) dsSaludoPoner(s.dataset.txt || '', true);
+    DS.kpiContar = true;
+    if (DS.diaData) dsRenderKpis(DS.diaData);
+  }
+  window.dsEntrada = dsEntrada;
 
   function dsSeleccionarEquipo(teamId) {
     DS.teamId = teamId;
@@ -2432,11 +2478,25 @@ window.addEventListener('unhandledrejection', function(ev) {
     filas = filas.filter(function(f) { return !dsEsFantasma(f); });   // producto «Training»: no cuenta
     var todas = filas.filter(dsOrdenCompleta), conDatos = filas.filter(dsOrdenConDatos);
     var cont = document.getElementById('dsKpis'); cont.innerHTML = '';
+    // Los números se cuentan al ingresar al Schedule, como en la página principal (de 0 al valor en 1,3 s, frenando al final).
+    // Si hay un redibujado mientras cuenta (cambio en vivo), sigue contando hacia el valor nuevo sin reiniciar.
+    var DUR = 1300, ahora = performance.now();
+    if (DS.kpiContar) { DS.kpiContar = false; DS.kpiT0 = ahora; }
+    var reducido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var contando = !reducido && DS.kpiT0 && ahora - DS.kpiT0 < DUR;
     DS_KPIS.forEach(function(k) {
       var n = (k.conDatos ? conDatos : todas).filter(k.cuenta).length;
       var el = document.createElement('div'); el.className = 'ds-kpi';
-      el.innerHTML = '<b>' + n + '</b>' + (n === 1 ? k.uno : k.varios);
+      el.innerHTML = '<b>' + (contando && n ? 0 : n) + '</b>' + (n === 1 ? k.uno : k.varios);
       cont.appendChild(el);
+      if (contando && n) {
+        var b = el.firstChild, t0 = DS.kpiT0;
+        (function paso(t) {
+          var p = Math.min(1, Math.max(0, (t - t0) / DUR));
+          b.textContent = Math.round(n * (1 - Math.pow(1 - p, 3)));
+          if (p < 1 && b.isConnected) requestAnimationFrame(paso); else b.textContent = n;
+        })(performance.now());
+      }
     });
   }
 
@@ -3486,7 +3546,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsRenderDiasTodas() {
     var fin = new Date(DS.lunes); fin.setDate(fin.getDate() + 4);
     document.getElementById('dsRangoSemana').innerText = dsRangoCorto(DS.lunes, fin);
-    dsSincronizarFiltrosFecha();
+    dsCalSincronizar();
     var cont = document.getElementById('dsDiaTabsTodas'); cont.innerHTML = '';
     for (var i = 0; i < 5; i++) {
       var d = new Date(DS.lunes); d.setDate(d.getDate() + i);
@@ -3664,15 +3724,6 @@ window.addEventListener('unhandledrejection', function(ev) {
   if (todasAreasChk) {
     todasAreasChk.addEventListener('change', function() { dsMostrarVista(this.checked); });
   }
-
-  // ---------- Wiring filtros de fecha ----------
-  document.getElementById('dsMesFiltro').addEventListener('change', function() {
-    dsPoblarFiltroSemana();
-    document.getElementById('dsSemanaFiltro').selectedIndex = 0;
-    dsAplicarSemanaFiltro();
-  });
-  document.getElementById('dsSemanaFiltro').addEventListener('change', dsAplicarSemanaFiltro);
-  dsPoblarFiltroMes();
 
   dsRenderDias();
   dsCargarAreas();
@@ -9056,6 +9107,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   }
   var dsFocoPrevio = null;
   function dsCerrarPaneles() {
+    var habiaPanel = !!document.querySelector('.ds-overlay.open');
     if (window.cvCloseAdjust) window.cvCloseAdjust();
     document.querySelectorAll('.ds-overlay.open').forEach(function(p) { p.classList.remove('open'); });
     document.body.classList.remove('ds-locked');
@@ -9067,6 +9119,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       history.replaceState(null, '', url);
     } catch (e) {}
     dsActualizarPestana();
+    if (habiaPanel && window.dsEntrada) window.dsEntrada();   // volver al Schedule cuenta como ingresar: saludo y contadores
   }
   // Nombre de la pestaña del navegador según dónde está el usuario: "Pre-Approved (N2 Daniel)",
   // "Comments", "Design Schedule (Team X)"... Toma el título del panel abierto (sin "— Design Schedule")

@@ -60,7 +60,6 @@
   #ds-app.ds-solo-mio > .ds-area-row { display:none; }
   .ds-solo-mio .ds-fila-kpis { align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; }
   .ds-solo-mio .ds-fila-kpis > .ds-kpis { flex:0 1 auto; margin-right:auto; }
-  .ds-solo-mio #dsRangoSemana { display:none; }  /* el selector de semana ya muestra las fechas */
   .ds-solo-mio #dsSemanaCtrl > * { order:1; } .ds-solo-mio #dsSemanaCtrl > .ds-flecha:last-of-type { order:2; }  /* ← mes semana → */
   .ds-fila-kpis > .ds-semana { margin-bottom:0; flex:none; gap:8px; }
   .ds-fila-kpis .ds-semana select, .ds-fila-kpis .ds-mis-equipos { margin:0; width:auto; height:34px; padding:0 8px; font-size:13px; }
@@ -80,7 +79,11 @@
   .ds-acargo-form select, .ds-acargo-form input { width:100%; margin:0; }
   .ds-acargo-fechas { display:flex; gap:10px; } .ds-acargo-fechas > div { flex:1; }
   .ds-kpi { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:10px; padding:10px 16px; min-width:110px; }
-  .ds-kpi b { display:block; font-size:20px; }
+  .ds-kpi b { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+  /* Saludo del título: las palabras entran una tras otra al ingresar al Schedule (26-oct-2026) */
+  .ds-saludo .ds-pal { display:inline-block; animation:dsPalabra .65s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(.1s + var(--i, 0) * .09s); }
+  @keyframes dsPalabra { from { opacity:0; transform:translateY(16px); filter:blur(5px); } to { opacity:1; transform:none; filter:blur(0); } }
+  @media (prefers-reduced-motion: reduce) { .ds-saludo .ds-pal { animation:none; } }
   .ds-panel-titulo { display:flex; align-items:center; gap:6px; }
   /* Selección de celdas tipo Excel (copiar/pegar/Supr en bloque) */
   table.ds-tabla td.ds-sel { background:#dbeafe !important; }
@@ -167,14 +170,36 @@
   #dsLateral #dsLatPanel .ds-acargo-chip:not(.prog) .ds-it-ico { color:#6ee7b7; }
   /* Muesca con flecha en el borde izquierdo: fija la barra abierta o la cierra */
   #dsLateral .ds-lat-muesca { position:absolute; left:-15px; top:12px; z-index:1; display:grid; place-items:center; width:16px; height:30px; margin:0; padding:0;
-    border:0; border-radius:8px 0 0 8px; background:#111827; color:#cbd5e1; cursor:pointer; box-shadow:-3px 2px 8px rgba(17,24,39,.2); }
+    border:0; border-radius:8px 0 0 8px; background:#111827; color:#cbd5e1; cursor:pointer; box-shadow:-3px 2px 8px rgba(17,24,39,.2);
+    opacity:0; transform:translateX(14px) scale(.85); pointer-events:none; transition:opacity .2s, transform .35s cubic-bezier(.34,1.56,.64,1), color .2s; }
+  /* La flecha solo aparece (saliendo de detrás de la barra) cuando el mouse está sobre la barra, o con el foco, o si quedó fija */
+  #dsLateral:hover .ds-lat-muesca, #dsLateral:focus-within .ds-lat-muesca, #dsLateral.abierto .ds-lat-muesca, #dsLateral.fijo .ds-lat-muesca {
+    opacity:1; transform:none; pointer-events:auto; }
   #dsLateral .ds-lat-muesca:hover { color:#fff; }
   #dsLateral .ds-lat-muesca:focus-visible { outline:2px solid #60a5fa; outline-offset:1px; }
   #dsLateral .ds-lat-muesca svg { width:13px; height:13px; transition:transform .38s cubic-bezier(.4,0,.2,1); }
   #dsLateral.abierto .ds-lat-muesca svg { transform:rotate(180deg); }
   #dsLateral.fijo .ds-lat-muesca { color:#93c5fd; }
   @media (prefers-reduced-motion: reduce) {
-    #dsLateral #dsLatPanel, #dsLateral #dsLatPanel .ds-it-txt, #dsLateral.abierto #dsLatPanel .ds-it-txt, #dsLateral .ds-lat-muesca svg { transition:none; } }
+    #dsLateral #dsLatPanel, #dsLateral #dsLatPanel .ds-it-txt, #dsLateral.abierto #dsLatPanel .ds-it-txt, #dsLateral .ds-lat-muesca, #dsLateral .ds-lat-muesca svg { transition:none; } }
+  /* Historial: calendario de días de producción (lunes a viernes) que se abre a la izquierda de la barra lateral (26-oct-2026) */
+  .ds-cal-pop { position:fixed; z-index:330; width:290px; box-sizing:border-box; padding:14px; background:#fff; border:1px solid #e5e7eb; border-radius:16px;
+    box-shadow:0 14px 40px rgba(17,24,39,.22); animation:dsCalEntra .28s cubic-bezier(.2,.8,.2,1) both; transform-origin:right center; }
+  @keyframes dsCalEntra { from { opacity:0; transform:translateX(14px) scale(.96); } to { opacity:1; transform:none; } }
+  .ds-cal-cab { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .ds-cal-cab b { font-size:14px; color:#111827; }
+  .ds-cal-nav { width:30px; height:30px; margin:0; padding:0; border:0; border-radius:50%; background:#f1f5f9; color:#111827; font-size:18px; line-height:1; cursor:pointer; transition:background .15s; }
+  .ds-cal-nav:hover { background:#e2e8f0; }
+  .ds-cal-sem, .ds-cal-dias { display:grid; grid-template-columns:repeat(5, 1fr); gap:4px; }
+  .ds-cal-sem span { text-align:center; font-size:11px; font-weight:700; color:#64748b; padding:2px 0 6px; }
+  .ds-cal-dia { height:40px; margin:0; padding:0; border:0; border-radius:10px; background:transparent; color:#111827; font:inherit; font-size:13.5px; cursor:pointer;
+    font-variant-numeric:tabular-nums; transition:background .15s, color .15s, transform .15s; }
+  .ds-cal-dia:hover { background:#eef2f7; transform:scale(1.06); }
+  .ds-cal-dia.hoy { box-shadow:inset 0 0 0 2px #111827; }
+  .ds-cal-dia.sel, .ds-cal-dia.sel:hover { background:#111827; color:#fff; font-weight:700; }
+  .ds-cal-nav:focus-visible, .ds-cal-dia:focus-visible { outline:2px solid #60a5fa; outline-offset:1px; }
+  .ds-cal-pie { display:flex; justify-content:flex-end; margin-top:10px; }
+  @media (prefers-reduced-motion: reduce) { .ds-cal-pop { animation:none; } .ds-cal-dia, .ds-cal-dia:hover { transition:none; transform:none; } }
   .ds-prod-pop { position:fixed; z-index:330; width:320px; max-height:70vh; overflow:auto; background:#fff; border:1px solid #d8dde3; border-radius:10px;
     box-shadow:0 10px 28px rgba(0,0,0,.18); padding:12px 14px; }
   .ds-prod-pop h4 { margin:0 0 2px; font-size:14px; }
@@ -382,7 +407,7 @@
   table.ds-tabla input:disabled, table.ds-tabla select:disabled { color:#374151; opacity:1; cursor:default; -webkit-text-fill-color:#374151; }
   .ds-tl-card input:disabled, .ds-tl-card select:disabled { background:#f4f6f8; cursor:default; }
   .ds-panel { background:#fff; border:1px solid var(--borde,#d8dde3); border-radius:12px; padding:16px; margin-bottom:18px; overflow-x:auto; }
-  .ds-panel h3 { margin:0 0 10px; font-size:14px; color:#1d4ed8; }
+  .ds-panel h3 { margin:0 0 10px; font-size:14px; color:#111827; }   /* azul de la barra superior (Rosember, 26-oct-2026): Cirugías, Nightguards / TC, Tiempos libres… */
   table.ds-tabla { width:100%; border-collapse:collapse; font-size:12.5px; }
   table.ds-tabla th, table.ds-tabla td { border:1px solid #e2e6ea; padding:3px 6px; text-align:center; vertical-align:middle; height:32px; }
   table.ds-tabla th { background:#f4f6f8; font-size:11px; }

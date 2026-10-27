@@ -136,3 +136,15 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] #ds-app input[type=checkbox] { accent-color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-auto-oc input:checked + .sw { background:#fff; }
 :root[data-ds-tema="oscuro"] .ds-auto-oc input:checked + .sw::after { background:#0f172a; }
+/* Títulos de los paneles del Schedule (26-oct-2026): en oscuro, blancos como el resto de lo que va del azul de la barra */
+:root[data-ds-tema="oscuro"] .ds-panel h3 { color:#f1f5f9; }
+/* Historial (26-oct-2026): calendario en oscuro; el día elegido va blanco con el azul de la barra, como el resto */
+:root[data-ds-tema="oscuro"] .ds-cal-pop { background:#131925; border-color:#334155; box-shadow:0 14px 40px rgba(0,0,0,.55); }
+:root[data-ds-tema="oscuro"] .ds-cal-cab b { color:#f1f5f9; }
+:root[data-ds-tema="oscuro"] .ds-cal-nav { background:#1e293b; color:#f1f5f9; }
+:root[data-ds-tema="oscuro"] .ds-cal-nav:hover { background:#334155; }
+:root[data-ds-tema="oscuro"] .ds-cal-sem span { color:#94a3b8; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia { color:#e5e7eb; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia:hover { background:#1e293b; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia.hoy { box-shadow:inset 0 0 0 2px #e5e7eb; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia.sel, :root[data-ds-tema="oscuro"] .ds-cal-dia.sel:hover { background:#fff; color:#0f172a; }

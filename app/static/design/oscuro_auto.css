@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (677 reglas) ---- */
+/* ---- static\design\schedule.css (687 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -128,6 +128,16 @@
 :root[data-ds-tema="oscuro"] #dsLateral .ds-lat-muesca:hover { color:#fff; }
 :root[data-ds-tema="oscuro"] #dsLateral .ds-lat-muesca:focus-visible { outline:2px solid #2e4c71; }
 :root[data-ds-tema="oscuro"] #dsLateral.fijo .ds-lat-muesca { color:#93c5fd; }
+:root[data-ds-tema="oscuro"] .ds-cal-pop { background:#131925; border:1px solid #2f3747; box-shadow:0 14px 40px rgba(17,24,39,.22); }
+:root[data-ds-tema="oscuro"] .ds-cal-cab b { color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .ds-cal-nav { background:#1a2229; color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .ds-cal-nav:hover { background:#21272f; }
+:root[data-ds-tema="oscuro"] .ds-cal-sem span { color:#aab2bf; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia { background:transparent; color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia:hover { background:#1c222a; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia.hoy { box-shadow:inset 0 0 0 2px #111827; }
+:root[data-ds-tema="oscuro"] .ds-cal-dia.sel, :root[data-ds-tema="oscuro"] .ds-cal-dia.sel:hover { background:#111827; color:#fff; }
+:root[data-ds-tema="oscuro"] .ds-cal-nav:focus-visible, :root[data-ds-tema="oscuro"] .ds-cal-dia:focus-visible { outline:2px solid #2e4c71; }
 :root[data-ds-tema="oscuro"] .ds-prod-pop { background:#131925; border:1px solid #323b4b; box-shadow:0 10px 28px rgba(0,0,0,.18); }
 :root[data-ds-tema="oscuro"] .ds-prod-pop .sub { color:#abb2c0; }
 :root[data-ds-tema="oscuro"] .ds-prod-pop th, :root[data-ds-tema="oscuro"] .ds-prod-pop td { border-bottom:1px solid #30363f; }
@@ -241,7 +251,7 @@
 :root[data-ds-tema="oscuro"] table.ds-tabla input:disabled, :root[data-ds-tema="oscuro"] table.ds-tabla select:disabled { color:#c5cad3; -webkit-text-fill-color:#c5cad3; }
 :root[data-ds-tema="oscuro"] .ds-tl-card input:disabled, :root[data-ds-tema="oscuro"] .ds-tl-card select:disabled { background:#1d2125; }
 :root[data-ds-tema="oscuro"] .ds-panel { background:#131925; border:1px solid var(--borde,#323b4b); }
-:root[data-ds-tema="oscuro"] .ds-panel h3 { color:#7a98ed; }
+:root[data-ds-tema="oscuro"] .ds-panel h3 { color:#d1d9eb; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th, :root[data-ds-tema="oscuro"] table.ds-tabla td { border:1px solid #303848; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th { background:#1d2125; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th, :root[data-ds-tema="oscuro"] table.dd-tabla th, :root[data-ds-tema="oscuro"] table.pf-tabla th { color:#c5cad3; }

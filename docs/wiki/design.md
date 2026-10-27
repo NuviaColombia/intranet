@@ -48,11 +48,12 @@ Antes de buscar un patrón de roles que no existe:
   los hallazgos que coinciden (sin importar tildes; si coincide el título, todos los suyos) y abre sus títulos. Lo marcado
   se conserva al buscar.
 - **Barra lateral derecha** (Rosember, 26-oct-2026; inspirada en «Sidebar Navigation Animation» de Halal Lab en Dribbble):
-  «Producción», «Cambios digital» y «Dejar a cargo» salieron de la cabecera del Schedule a una barra en el borde derecho
-  (`#dsLateral`), cada una con su icono (gráfica, flechas de intercambio, persona con visto; SVG en schedule.js). En reposo
+  «Producción», «Cambios digital», «Dejar a cargo» e «Historial» (ver abajo) están en una barra en el borde derecho
+  (`#dsLateral`), cada una con su icono (gráfica, flechas de intercambio, persona con visto, calendario; SVG en schedule.js). En reposo
   es una barra angosta solo con iconos; al pasar el mouse (o con el foco del teclado) se ensancha a 240px y los nombres
   entran en cascada (`--i`); la opción bajo el mouse se marca con una píldora azul claro. La muesca con flecha la deja fija
-  abierta o la cierra. Se recoge al salir el mouse (si no está fija), con Esc, al hacer clic afuera o al usar una acción.
+  abierta o la cierra; la flecha está oculta y solo sale (animada, desde detrás de la barra) cuando el mouse está sobre la
+  barra, con el foco o si quedó fija. Se recoge al salir el mouse (si no está fija), con Esc, al hacer clic afuera o al usar una acción.
   Antes se probaron un panel «Acciones», pestañas verticales sueltas y pestañas que se estiraban como masa; no gustaron
   (leer en vertical cansa y pasar de una a otra no se veía natural). Cada botón sigue con sus reglas de siempre
   (`ds-fuera` / `hidden`); si ninguno aplica, no se ve. Quien está a cargo: punto verde en el icono (gris si es
@@ -64,6 +65,20 @@ Antes de buscar un patrón de roles que no existe:
 - **Azul de la barra superior en el Schedule** (Rosember, 26-oct-2026): «+ Agregar orden», el interruptor «Colores de los
   estados» encendido y las casillas del Schedule (`#ds-app input[type=checkbox]`, p. ej. QC y descansos) usan el azul de la
   barra (#111827) en vez del azul general de los botones. En oscuro van blancos con el azul de la barra, como el logo.
+- **Historial: calendario de días de producción** (Rosember, 26-oct-2026): botón «Historial» en la barra lateral (visible
+  cuando hay un equipo abierto o la vista de todas las áreas, igual que las flechas de semana). Abre a la izquierda de la
+  barra un calendario del mes con solo los días de lunes a viernes (los del Schedule); con ‹ › se cambia de mes, «Hoy» vuelve
+  a hoy y las flechas del teclado se mueven entre los días. Elegir un día fija la semana compartida (`DS.lunes`) y el día
+  (`DS.diaSel`) con `dsIrAFecha` y refresca igual que las flechas. Reemplaza a los selectores «Mes» y «Semana», que se
+  quitaron (junto con su código); quedan las flechas ← → de semana, el rango «26 - 30 de oct» (ahora visible también para
+  aprobadores y diseñadores) y las pestañas de los días. El día elegido va en el azul de la barra (blanco en oscuro).
+- **Entrada animada al Schedule** (Rosember, 26-oct-2026): al ingresar (cargar la página o volver desde un panel con la X,
+  Esc o el menú; `dsEntrada`) el saludo entra palabra por palabra (`.ds-pal`, `dsSaludoPoner`) y los contadores
+  (Órdenes, En proceso, En espera, Aprobadas, Canceladas) cuentan de 0 al valor en 1,3 s frenando al final, como los de la
+  página principal (`dsRenderKpis`). Los cambios en vivo no repiten la animación; si llegan mientras cuenta, siguen hacia el
+  valor nuevo. Con «reducir movimiento» no hay animación. Los admins ven su título sin animar.
+- **Títulos de los paneles del Schedule** (Rosember, 26-oct-2026): Cirugías, Nightguards / TC, Material Change, Tiempos
+  libres… (`.ds-panel h3`) van en el azul de la barra superior (#111827); en oscuro, casi blancos.
 - **Saludo en el título del Schedule** (Rosember, 26-oct-2026): en vez de «Design Schedule (equipo)», los aprobadores ven
   «Hola <primer nombre>, aquí está tu equipo en movimiento.» y los diseñadores «Hola <primer nombre>, tu trabajo es
   espectacular. ¡Gracias!». Quien está a cargo HOY del equipo (Dejar a cargo, `aCargo.esYo` + `activa`) ve el de
