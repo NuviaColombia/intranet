@@ -499,6 +499,23 @@ def api_observar_recibo(caja_id: int, recibo_id: int, payload: TextoIn, tareas: 
             "recibo": sc.serializar_recibo(r)}
 
 
+@router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/responder")
+def api_responder_recibo(caja_id: int, recibo_id: int, payload: TextoIn, tareas: BackgroundTasks,
+                         user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    """El responsable justifica/responde la observación sin editar el recibo; se vuelve a avisar por Cliq
+    a quien debe firmar, con la respuesta incluida."""
+    caja = _caja(db, user, caja_id)
+    r = db.get(CajaRecibo, recibo_id)
+    if not r or r.caja_id != caja.id:
+        raise HTTPException(404, "Recibo no encontrado.")
+    error = sc.responder_observacion_recibo(db, r, user, payload.texto)
+    if error:
+        raise HTTPException(400, error)
+    tareas.add_task(sc.notificar_firma_pendiente, r.id)
+    return {"mensaje": "💬 Respuesta enviada. Se le avisó por Cliq a quien debe firmar.",
+            "recibo": sc.serializar_recibo(r)}
+
+
 @router.post("/caja-menor/api/{caja_id}/recibos/{recibo_id}/firmar")
 def api_firmar_recibo(caja_id: int, recibo_id: int, tareas: BackgroundTasks,
                       user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
@@ -640,6 +657,22 @@ def api_observar_fm(caja_id: int, fm_id: int, payload: TextoIn, tareas: Backgrou
         raise HTTPException(400, error)
     tareas.add_task(sc.notificar_observacion, fm_id=fm.id)
     return {"mensaje": "📝 Observación enviada. Se le avisó por Cliq al responsable para que corrija el FM.",
+            "fm": sc.serializar_fm(fm, con_recibos=True)}
+
+
+@router.post("/caja-menor/api/{caja_id}/fms/{fm_id}/responder")
+def api_responder_fm(caja_id: int, fm_id: int, payload: TextoIn, tareas: BackgroundTasks,
+                     user: Empleado = Depends(require_modulo(MODULO)), db: Session = Depends(get_db)):
+    """Igual que api_responder_recibo, para el visto bueno del FM."""
+    caja = _caja(db, user, caja_id)
+    fm = db.get(CajaFM, fm_id)
+    if not fm or fm.caja_id != caja.id:
+        raise HTTPException(404, "FM no encontrado.")
+    error = sc.responder_observacion_fm(db, fm, user, payload.texto)
+    if error:
+        raise HTTPException(400, error)
+    tareas.add_task(sc.notificar_supervision_pendiente, fm.id)
+    return {"mensaje": "💬 Respuesta enviada. Se le avisó por Cliq a quien debe dar el visto bueno.",
             "fm": sc.serializar_fm(fm, con_recibos=True)}
 
 
@@ -1200,6 +1233,11 @@ def cargar_datos_iniciales() -> None:
             for nombre, tipo in nuevas_anticipos.items():
                 if nombre not in columnas_anticipos:
                     conn.execute(text(f"ALTER TABLE caja_menor_anticipos ADD COLUMN {nombre} {tipo}"))
+    if inspect(engine).has_table("caja_menor_observaciones"):
+        columnas_obs = {c["name"] for c in inspect(engine).get_columns("caja_menor_observaciones")}
+        if "es_respuesta" not in columnas_obs:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE caja_menor_observaciones ADD COLUMN es_respuesta INTEGER DEFAULT 0"))
     # Responsable guardado antes solo como nombre: se enlaza con la persona de People
     db = SessionLocal()
     try:

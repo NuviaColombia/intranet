@@ -190,8 +190,10 @@ def es_firmante_de_caja(db: Session, user: Empleado, caja: CajaMenor) -> bool:
 def _serializar_observaciones(obs) -> tuple[list[dict], dict | None]:
     lista = [{"id": o.id, "texto": o.texto, "autor": nombre_propio(o.autor.nombre_completo) if o.autor else "",
               "creadoEn": hora_colombia(o.creado_en), "atendidaEn": hora_colombia(o.atendida_en),
-              "atendidaPor": nombre_propio(o.atendida_por.nombre_completo) if o.atendida_por else ""} for o in obs]
-    pendiente = next((o for o in reversed(lista) if not o["atendidaEn"]), None)
+              "atendidaPor": nombre_propio(o.atendida_por.nombre_completo) if o.atendida_por else "",
+              "esRespuesta": bool(o.es_respuesta)} for o in obs]
+    # Pendiente = la última pregunta (no respuesta) sin atender -- una respuesta nunca "bloquea" nada.
+    pendiente = next((o for o in reversed(lista) if not o["atendidaEn"] and not o["esRespuesta"]), None)
     return lista, pendiente
 
 
@@ -951,9 +953,13 @@ def notificar_firma_pendiente(recibo_id: int, recordatorio: bool = False) -> Non
         quien = db.get(Empleado, r.autorizado_por_id)
         valor = f"$ {r.valor:,.0f}".replace(",", ".")
         creador = nombre_propio(r.creado_por.nombre_completo) if r.creado_por else (r.creado_por_texto or "—")
-        corregida = next((o for o in reversed(r.observaciones or []) if o.atendida_en and (not r.aviso_en or o.atendida_en > r.aviso_en)), None)
+        respuesta = next((o for o in reversed(r.observaciones or []) if o.es_respuesta and (not r.aviso_en or o.creado_en > r.aviso_en)), None)
+        corregida = next((o for o in reversed(r.observaciones or []) if o.atendida_en and not o.es_respuesta
+                          and (not r.aviso_en or o.atendida_en > r.aviso_en)), None)
+        aviso_obs = (f"💬 Respuesta a tu observación:\n«{respuesta.texto}»\n" if respuesta
+                    else (f"✏️ Se corrigió según tu observación: «{corregida.texto}»\n" if corregida else ""))
         texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}✍️ *Recibo de caja menor pendiente de tu firma*\n"
-                 f"{'✏️ Se corrigió según tu observación: «' + corregida.texto + '»' + chr(10) if corregida else ''}"
+                 f"{aviso_obs}"
                  f"{r.caja.prefijo}-{r.consecutivo:04d} · {valor} · Caja {nombre_propio(r.caja.nombre)}\n"
                  f"Pagado a: {nombre_propio(r.pagado_a)}\n"
                  f"Concepto: {r.concepto}\n"
@@ -1073,6 +1079,41 @@ def observar_fm(db: Session, fm: CajaFM, user: Empleado, texto: str) -> str | No
     return None
 
 
+def responder_observacion_recibo(db: Session, r: CajaRecibo, user: Empleado, texto: str) -> str | None:
+    """El responsable justifica/responde la observación sin necesidad de editar los datos del recibo: queda
+    en el mismo hilo (CajaObservacion.es_respuesta) y se le vuelve a avisar por Cliq a quien debe firmar."""
+    pendiente = next((o for o in reversed(r.observaciones) if not o.atendida_en and not o.es_respuesta), None)
+    if not pendiente:
+        return "Este recibo no tiene ninguna observación pendiente de responder."
+    if r.estado == "ANULADO" or r.firmado_en:
+        return "El recibo ya no está pendiente de tu firma."
+    texto = (texto or "").strip()
+    if len(texto) < 5:
+        return "Escribe la respuesta (mínimo 5 caracteres)."
+    pendiente.atendida_en, pendiente.atendida_por_id = datetime.utcnow(), user.id
+    db.add(CajaObservacion(recibo_id=r.id, autor_id=user.id, texto=texto[:1000], es_respuesta=1))
+    db.commit()
+    db.refresh(r)
+    return None
+
+
+def responder_observacion_fm(db: Session, fm: CajaFM, user: Empleado, texto: str) -> str | None:
+    """Igual que responder_observacion_recibo, para el visto bueno del FM."""
+    pendiente = next((o for o in reversed(fm.observaciones) if not o.atendida_en and not o.es_respuesta), None)
+    if not pendiente:
+        return "Este FM no tiene ninguna observación pendiente de responder."
+    if fm.estado != "VIGENTE" or fm.supervisado_en:
+        return "El FM ya no está pendiente de tu visto bueno."
+    texto = (texto or "").strip()
+    if len(texto) < 5:
+        return "Escribe la respuesta (mínimo 5 caracteres)."
+    pendiente.atendida_en, pendiente.atendida_por_id = datetime.utcnow(), user.id
+    db.add(CajaObservacion(fm_id=fm.id, autor_id=user.id, texto=texto[:1000], es_respuesta=1))
+    db.commit()
+    db.refresh(fm)
+    return None
+
+
 def corregir_fm(db: Session, fm: CajaFM, user: Empleado, desglose: dict, ajuste: float) -> str | None:
     """El responsable corrige el conteo y el ajuste del FM (antes del visto bueno). Su firma queda renovada.
     Si hay que cambiar los recibos del FM, se anula y se legaliza de nuevo."""
@@ -1180,9 +1221,13 @@ def notificar_supervision_pendiente(fm_id: int, recordatorio: bool = False) -> N
             return
         quien = db.get(Empleado, fm.supervisado_por_id)
         creador = nombre_propio(fm.creado_por.nombre_completo) if fm.creado_por else "—"
-        corregida = next((o for o in reversed(fm.observaciones or []) if o.atendida_en and (not fm.aviso_en or o.atendida_en > fm.aviso_en)), None)
+        respuesta = next((o for o in reversed(fm.observaciones or []) if o.es_respuesta and (not fm.aviso_en or o.creado_en > fm.aviso_en)), None)
+        corregida = next((o for o in reversed(fm.observaciones or []) if o.atendida_en and not o.es_respuesta
+                          and (not fm.aviso_en or o.atendida_en > fm.aviso_en)), None)
+        aviso_obs = (f"💬 Respuesta a tu observación:\n«{respuesta.texto}»\n" if respuesta
+                    else (f"✏️ Se corrigió según tu observación: «{corregida.texto}»\n" if corregida else ""))
         texto = (f"{'🔔 *Recordatorio* · ' if recordatorio else ''}📋 *Formato de reembolso (FM) pendiente de tu visto bueno*\n"
-                 f"{'✏️ Se corrigió según tu observación: «' + corregida.texto + '»' + chr(10) if corregida else ''}"
+                 f"{aviso_obs}"
                  f"{_texto_fm(fm)}\nResponsable: {nombre_propio(fm.responsable) or '—'}\nLegalizado por: {creador}\n"
                  f"Revísalo y fírmalo en: {config.BASE_URL}/caja-menor/{fm.caja_id}?tab=firmas")
         fm.aviso_ok = 1 if _avisar([quien.email if quien else ""], texto) else 0

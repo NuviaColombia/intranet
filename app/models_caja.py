@@ -230,8 +230,11 @@ class CajaAnticipo(Base):
 
 
 class CajaObservacion(Base):
-    """Observación de quien debe firmar (recibo o FM): pide una corrección antes de firmar.
-    Queda atendida cuando el responsable corrige el documento o cuando el firmante firma."""
+    """Observación de quien debe firmar (recibo o FM): pide una corrección antes de firmar. Queda atendida
+    cuando el responsable corrige el documento, responde (es_respuesta=1, fila nueva en el mismo hilo) o
+    cuando el firmante firma. El hilo completo (todas las filas de un recibo/FM) ya se sirve ordenado por
+    id -- es_respuesta solo distingue qué fila es una pregunta (bloquea la firma) de cuál es una respuesta
+    (informativa, nunca queda "pendiente")."""
     __tablename__ = "caja_menor_observaciones"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -242,6 +245,7 @@ class CajaObservacion(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     atendida_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     atendida_por_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    es_respuesta: Mapped[int] = mapped_column(Integer, default=0)
 
     autor = relationship("Empleado", foreign_keys=[autor_id])
     atendida_por = relationship("Empleado", foreign_keys=[atendida_por_id])

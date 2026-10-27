@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Caja menor{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/caja_menor.css?v=13">
+<link rel="stylesheet" href="/static/caja_menor.css?v=14">
 {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 <div id="caja-app" data-caja="{{ caja.id }}">
  <div class="cm-main">
@@ -527,6 +527,16 @@ function buscarColaborador() {
 }
 document.getElementById('rIdentificacion').addEventListener('input', buscarColaborador);
 
+// Hilo completo de observaciones/respuestas de un recibo o FM (pregunta de quien firma, respuesta de quien registró).
+function pintarHiloObservaciones(obs) {
+  if (!obs || !obs.length) return '';
+  return '<div class="cm-hilo-obs">' + obs.map(function(o) {
+    return '<div class="cm-obs-msg ' + (o.esRespuesta ? 'resp' : 'preg') + '">' +
+      (o.esRespuesta ? '💬' : '📝') + ' <b>' + esc(o.autor) + '</b> <small>' + esc(o.creadoEn) + '</small><br>«' + esc(o.texto) + '»' +
+      (!o.esRespuesta && o.atendidaEn ? '<br><small style="color:#15803d">✓ respondida/corregida el ' + esc(o.atendidaEn) + '</small>' : '') +
+      '</div>';
+  }).join('') + '</div>';
+}
 function pintarFirma(r) {
   pintarRecibido(r);
   var el = document.getElementById('rFirmaEstado');
@@ -541,9 +551,10 @@ function pintarFirma(r) {
   var ob = r.observacionPendiente;
   if (ob) {
     el.className = 'cm-firma-estado observado';
-    el.innerHTML = '📝 <b>' + esc(ob.autor) + '</b> no firmó y dejó una observación (' + esc(ob.creadoEn) + '):<br>«' + esc(ob.texto) + '»<br>' +
-      (SOLO_FIRMAS ? 'Espera a que el responsable lo corrija; te llegará un aviso para firmar.'
-                   : '<b>Pulsa Editar para corregirlo</b>; al guardar se le avisa por Cliq para que lo firme.');
+    el.innerHTML = pintarHiloObservaciones(r.observaciones) +
+      (SOLO_FIRMAS ? 'Espera a que el responsable lo corrija o responda; te llegará un aviso para firmar.'
+                   : 'Puedes <b>editarlo</b> para corregirlo, o <button type="button" class="btn gris mini" onclick="abrirRespuesta(\'recibo\',' +
+                     r.id + ',\'' + esc(r.noRecibo) + '\')">💬 Responder</button> sin cambiar los datos. En los dos casos se le avisa por Cliq para que firme.');
     return;
   }
   var reenviar = SOLO_FIRMAS ? '' : ' <button type="button" class="btn gris mini" onclick="reenviarAvisoRecibo(' + r.id + ')">🔔 Reenviar aviso</button>';
@@ -705,11 +716,12 @@ function panelFM(fm, modo) {
             SUPERVISORES.map(function(n) { return '<option value="' + esc(n) + '">' + esc(nombrePropio(n)) + '</option>'; }).join('') + '</select>'
           : '<input readonly value="Sin supervisores: agrégalos en Parámetros › Supervisan (FM)">')) + '</td></tr></table>' +
     ((lectura || corrigiendo) && fm.observacionPendiente
-      ? '<div class="cm-firma-estado observado" style="margin:-6px 0 8px">📝 <b>' + esc(fm.observacionPendiente.autor) + '</b> no dio el visto bueno y dejó una observación (' +
-        esc(fm.observacionPendiente.creadoEn) + '):<br>«' + esc(fm.observacionPendiente.texto) + '»<br>' +
+      ? '<div class="cm-firma-estado observado" style="margin:-6px 0 8px">' + pintarHiloObservaciones(fm.observaciones) +
         (corrigiendo ? 'Corrige el conteo o el ajuste y guarda; si el problema está en los recibos, anula el FM y legalízalo de nuevo.'
-                     : (fm.elaboradoPorId === USUARIO_ID && !SOLO_FIRMAS ? '<b>Pulsa ✏️ Corregir FM</b>; al guardar se le avisa por Cliq para que dé el visto bueno.'
-                                                                         : 'Esperando la corrección del responsable.')) + '</div>' : '') +
+                     : (fm.elaboradoPorId === USUARIO_ID && !SOLO_FIRMAS
+                         ? 'Puedes <b>✏️ Corregir FM</b>, o <button type="button" class="btn gris mini" onclick="abrirRespuesta(\'fm\',' + fm.id + ',\'' +
+                           esc(fm.fm) + '\')">💬 Responder</button> sin cambiar nada. En los dos casos se le avisa por Cliq.'
+                         : 'Esperando la corrección o respuesta del responsable.')) + '</div>' : '') +
     (lectura && fm.elaboradoPorId && fm.estado === 'VIGENTE'
       ? '<div class="cm-firma-estado ' + (fm.elaboradoEn ? 'firmado' : 'pendiente') + '" style="margin:-6px 0 8px">' +
         (fm.elaboradoEn ? '✅ Elaborado: firmado por <b>' + esc(fm.elaboracionEmail) + '</b> el ' + esc(fm.elaboradoEn)
@@ -1078,6 +1090,18 @@ function abrirObservacion(clase, id, numero) {
   document.getElementById('modalAnular').style.display = 'flex';
   setTimeout(function() { document.getElementById('anularMotivo').focus(); }, 50);
 }
+function abrirRespuesta(clase, id, numero) {
+  anulando = {resp: true, clase: clase, id: id};
+  document.getElementById('anularTitulo').innerText = '💬 Responder · ' + numero;
+  document.getElementById('anularTexto').innerText = 'Explica o justifica la observación, sin cambiar los datos del documento. ' +
+    'El bot le avisa por Cliq a quien debe firmar, con tu respuesta incluida, para que decida si firma.';
+  document.getElementById('anularEtiqueta').innerText = 'Respuesta (obligatoria)';
+  document.getElementById('anularMotivo').placeholder = 'Ej: Esa diligencia la hizo Juan Pérez, del área de legal, el 24 de octubre.';
+  document.getElementById('btnConfirmarAnular').className = 'btn'; document.getElementById('btnConfirmarAnular').innerText = '💬 Enviar respuesta';
+  document.getElementById('anularMotivo').value = ''; document.getElementById('anularError').style.display = 'none';
+  document.getElementById('modalAnular').style.display = 'flex';
+  setTimeout(function() { document.getElementById('anularMotivo').focus(); }, 50);
+}
 function abrirAnulacion(tipo) {
   anulando = tipo;
   document.getElementById('anularEtiqueta').innerText = 'Motivo de la anulación (obligatorio)';
@@ -1095,8 +1119,9 @@ function cerrarAnulacion() { document.getElementById('modalAnular').style.displa
 function confirmarAnulacion() {
   var motivo = document.getElementById('anularMotivo').value.trim(), err = document.getElementById('anularError');
   if (motivo.length < 5) { err.innerText = 'Escribe el texto (mínimo 5 caracteres).'; err.style.display = 'block'; return; }
-  if (anulando && anulando.obs) {
-    var u = API + (anulando.clase === 'fm' ? '/fms/' : '/recibos/') + anulando.id + '/observar';
+  if (anulando && (anulando.obs || anulando.resp)) {
+    var accion = anulando.resp ? '/responder' : '/observar';
+    var u = API + (anulando.clase === 'fm' ? '/fms/' : '/recibos/') + anulando.id + accion;
     return post(u, {texto: motivo}).then(function(res) {
       cerrarAnulacion(); alert(res.mensaje);
       if (document.getElementById('sec-firmas').classList.contains('activa')) cargarFirmas();

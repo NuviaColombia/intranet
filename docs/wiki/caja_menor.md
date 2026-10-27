@@ -107,6 +107,24 @@ rehacerlo.
   columnas del módulo) -- la tabla ya existía en producción antes de este cambio, así que
   `Base.metadata.create_all()` no la toca.
 
+**(2026-10-27) Responder una observación, sin tener que corregir el recibo/FM.** Antes, la única
+forma de "atender" una observación (de quien firma o da el visto bueno) era editar los datos del
+recibo/FM -- si el responsable solo quería justificar por qué está bien así, no había dónde
+decirlo. `CajaObservacion` ahora tiene `es_respuesta` (`app/models_caja.py`): todas las filas de un
+recibo/FM ya se servían como un solo hilo ordenado por `id` (relationship con `lazy="selectin"`),
+`es_respuesta` solo distingue cuál fila es una pregunta (bloquea la firma mientras no se atiende) de
+cuál es una respuesta (informativa, nunca queda pendiente). Nuevos endpoints
+`POST /caja-menor/api/{caja_id}/recibos/{id}/responder` y `.../fms/{id}/responder`
+(`services_caja.responder_observacion_recibo`/`_fm`) cierran la observación pendiente más reciente y
+agregan la respuesta al mismo hilo; `editar_recibo`/`corregir_fm` (la otra forma de atenderla) no
+cambiaron. El aviso de Cliq a quien debe firmar/dar visto bueno (`notificar_firma_pendiente`,
+`notificar_supervision_pendiente`) ahora detecta si lo nuevo desde el último aviso es una respuesta
+o una corrección de datos, y muestra el texto correspondiente ("💬 Respuesta a tu observación" vs.
+"✏️ Se corrigió"). En la UI (`caja_menor.html`), el hilo completo se pinta como burbujas de chat
+(`pintarHiloObservaciones`) con un botón "💬 Responder" para quien elaboró el recibo/FM (reutiliza el
+modal de anular, `abrirRespuesta`/`confirmarAnulacion`). Columna `es_respuesta` migrada con
+`ALTER TABLE` igual que las demás.
+
 **Adjuntos**: igual que en Permisos (soporte documental), se guardan como BLOB en la propia fila
 (`CajaAdjunto.datos`, columna `deferred`) -- no van a Zoho WorkDrive. Límite 5 MB,
 JPG/PNG/WEBP/PDF.
