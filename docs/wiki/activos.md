@@ -98,10 +98,11 @@ no por módulo.
 Aun después de quitar los N+1 (ver Gotchas), el módulo seguía sintiéndose lento: Render
 (`solicitudes-nuvia`) corre en Virginia y la base en Supabase usa el pooler de `us-east-2`
 (Ohio) -- cada consulta cruza de región, así que el costo no es solo "cuántas consultas" sino
-también la latencia de red por cada una. `listar_grupos` y `obtener_estado_mantenimiento`
-(`services_activos_consultas.py`) son las más pesadas y las que más se repiten (se llaman en casi
-cualquier acción del módulo), así que se cachean en memoria por `TTL_SEGUNDOS` (20s,
-`services_activos_cache.py`) en vez de recalcularse desde cero cada vez.
+también la latencia de red por cada una. `listar_grupos`, `obtener_estado_mantenimiento` y
+`obtener_resumen` (`services_activos_consultas.py`) son las más pesadas y las que más se repiten (se
+llaman en casi cualquier acción del módulo -- `obtener_resumen` además se pide de nuevo en cada carga
+de Dongles), así que se cachean en memoria por `TTL_SEGUNDOS` (20s, `services_activos_cache.py`) en
+vez de recalcularse desde cero cada vez.
 
 - **No es una caché por usuario ni por filtro** -- ambas funciones no reciben parámetros, así que
   una sola entrada por nombre de función alcanza.
@@ -121,6 +122,34 @@ cualquier acción del módulo), así que se cachean en memoria por `TTL_SEGUNDOS
   no vale la pena para algo que no es tan pesado como estas dos.
 
 ## Gotchas
+
+- **"Programar mantenimiento (varios)" organiza los equipos en bloques `<details>` por grupo de
+  trabajo, colapsables (pedido por Oscar, 27-oct-2026)** -- `checkListGrupos()` en app.js. Abiertos
+  por defecto; al buscar, los grupos con resultados se abren solos (`bloque.open = true`) para que el
+  buscador no filtre contenido invisible dentro de un `<details>` cerrado. Los botones "Marcar
+  grupo"/"Ninguno" van dentro del `<summary>`, así que su clic hace `event.preventDefault()` para no
+  colapsar/expandir el grupo sin querer al usarlos.
+- **No hay imágenes pesadas ni `setInterval`/polling en Activos › Design** (revisado el 27-oct-2026
+  buscando más causas de lentitud): la única `<img>` es la firma archivada de un acta, con
+  `loading="lazy"` y solo se pide al abrir esa ficha puntual; los "personajes" de los grupos
+  (`dibujarPersonaje()`/`pixelPersonaje()`) son figuras dibujadas con `<div>`s de colores, no
+  imágenes, cacheadas por firma (`pjCache`) y solo se usan en la ventana de un grupo, no en las
+  tablas. `app.js` (140 KB) y `app.css` (36 KB) no están minificados (a diferencia de
+  `schedule.min.js` de Design) -- se decidió NO montar ese pipeline aquí todavía: Cloudflare ya
+  comprime ambos archivos en la respuesta, así que la ganancia de minificar encima de eso es menor,
+  y mantenerlo al día añade un paso manual (`scripts/minificar_design.py --check` es el precedente)
+  cada vez que se edite `app.js`. Si el tamaño de archivo llega a ser el cuello de botella real
+  (hoy no lo es: la lentitud reportada era del backend), ese es el camino a seguir.
+- **Bug encontrado de paso, no corregido (27-oct-2026): el conteo `dongles_sin_requerir` de
+  `obtener_resumen` siempre da 0.** La condición que lo arma
+  (`situacion_dongle == "SIN_REQUERIR" and f.get("dongle")`) es imposible: `situacion_dongle()`
+  solo devuelve `"SIN_REQUERIR"` cuando el equipo NO tiene dongle, así que `f.get("dongle")` nunca es
+  verdadero en esa rama. Si alguna vez hay que mostrar de verdad "equipos con un dongle que no
+  necesitan", hay que agregarle a `situacion_dongle()` un caso nuevo para "tiene dongle pero no lo
+  requiere" (hoy esa combinación cae en `"TIENE"` sin distinguirla) -- no se tocó porque es un cambio
+  de regla de negocio, no de rendimiento, y hay que confirmar primero con el equipo de TI qué deberían
+  ver ahí.
+- **`app/static/activos_design/app.js`/`app.css` se sirven con `Cache-Control: public, max-age=86400`
 
 - **`app/static/activos_design/app.js`/`app.css` se sirven con `Cache-Control: public, max-age=86400`
   y, hasta el 26-oct-2026, sin parámetro de versión** (`<script src="/static/activos_design/app.js">`

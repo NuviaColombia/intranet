@@ -111,6 +111,12 @@ def _requiere_exocad(db: Session, id_area_id: int | None) -> bool:
 # ---------- Resumen / dashboard ----------
 
 def obtener_resumen(db: Session) -> dict:
+    """Cacheada unos segundos (ver services_activos_cache.py): se pide en el Resumen y de nuevo en
+    cada carga de Dongles."""
+    return cacheado("resumen", lambda: _obtener_resumen_sin_cache(db))
+
+
+def _obtener_resumen_sin_cache(db: Session) -> dict:
     activos = ActivosEquipo.retirado.is_(False)
     equipos = db.query(func.count(ActivosEquipo.asset_tag)).filter(activos).scalar() or 0
     en_uso = db.query(func.count(ActivosEquipo.asset_tag)).filter(activos, ActivosEquipo.estado == "EN USO").scalar() or 0
