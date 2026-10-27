@@ -2072,6 +2072,7 @@ def serializar_orden(o: DesignOrden) -> dict:
         "zHoldMinutos": o.z_hold_minutos or 0, "zHoraFin": o.z_hora_fin or "", "zQc": bool(o.z_qc),
         "zQcReporte": o.z_qc_reporte or "",
         "ordenVisual": o.orden_visual,
+        "disenoMin": o.diseno_min,   # tiempo de diseño con hora real (si lo tiene); no se muestra, solo alimenta el Total
         # días que lleva desde que se creó (para el Total de un caso que pasó varias noches en Hold: dsMenosHold)
         "diasDesdeCreada": (o.fecha - o.fecha_creada).days if (o.fecha_creada and o.fecha) else 0,
     }
@@ -3203,6 +3204,44 @@ def pickup_salta(area_nombre: str, tabla: str, estado_antes: str, estado_nuevo: 
     return bool(nuevo) and nuevo not in PICKUP_SIGUIENTES and not _es_cancelada(estado_nuevo)
 
 
+_HORAS_MANUALES = ("hora_inicio", "hora_fin", "s_hold", "f_hold", "hold_minutos")
+
+
+def cambio_manual_horas(o: DesignOrden, datos: dict, auto: set) -> bool:
+    """¿Alguien corrigió a mano una hora? Solo cuentan los campos de hora que llegan, cambian y no los llenó el estado (`auto`)."""
+    for c in _HORAS_MANUALES:
+        if c in datos and c not in auto:
+            a, b = getattr(o, c), datos[c]
+            if (float(a or 0) != float(b or 0)) if c == "hold_minutos" else ((a or "").strip() != (b or "").strip()):
+                return True
+    return False
+
+
+def seguir_diseno(o: DesignOrden, estado_antes: str, manual: bool, primera: bool, ahora: datetime | None = None) -> None:
+    """Tiempo de diseño con fecha y hora reales (orden 244834, 27-oct-2026). Initiated abre un tramo, Hold (y Bite ready en
+    Nightguards) y Approved lo cierran y lo suman en diseno_min; el tiempo en Hold nunca entra. Solo empieza a medirse en
+    el primer Initiated (`primera`: la orden no tenía Inicio diseño); una orden que ya venía iniciada, o a la que alguien
+    corrige las horas a mano (`manual`), vuelve a calcular su Total con las horas visibles."""
+    ahora = ahora or datetime.utcnow()
+    if manual:
+        o.diseno_min = o.diseno_desde = None
+        return
+    if (o.estado or "") == (estado_antes or ""):
+        return
+    e = _normalizar_texto(o.estado or "")
+    if e == _normalizar_texto("Initiated"):
+        if o.diseno_min is None:
+            if primera:
+                o.diseno_min, o.diseno_desde = 0.0, ahora
+        elif o.diseno_desde is None:
+            o.diseno_desde = ahora   # vuelve de Hold: abre otro tramo
+    elif (e == _normalizar_texto(ESTADO_HOLD) or e == _normalizar_texto("Approved")
+          or (o.tabla == "nightguard" and e == _normalizar_texto(ESTADO_BITE_READY))):
+        if o.diseno_min is not None and o.diseno_desde is not None:
+            o.diseno_min += max(0.0, (ahora - o.diseno_desde).total_seconds() / 60)
+            o.diseno_desde = None
+
+
 def face_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
     """Horas que el estado llena solas en Face (hora de Colombia). `actual` = valores de la orden ya combinados con lo
     que se está guardando (claves de columna). Solo llena horas vacías; un Hold nuevo después de un Re-initiated
@@ -3297,6 +3336,8 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
         return material_minutos(o)[2]
     if o.tabla == "nightguard" and not horas_por_estado(formato, o.fecha, o.tabla):
         return _entre(o.hora_inicio, o.hora_fin)
+    if o.diseno_min is not None and horas_por_estado(formato, o.fecha, o.tabla):
+        return o.diseno_min if (o.hora_fin or "").strip() else 0   # medido con hora real: no depende de las horas sin fecha
     if formato == FORMATO_N2:
         if not o.hora_inicio or not o.hora_fin:
             return 0

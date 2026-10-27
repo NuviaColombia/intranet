@@ -754,6 +754,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (formato === 'support') return null;
     if (tabla === 'material') return dsMaterialMin(f).t;
     if (tabla === 'nightguard' && !dsNgNuevo(formato, f)) return dsEntre(f.horaInicio, f.horaFin);
+    // Medido con hora real (disenoMin, 27-oct-2026): no depende de las horas sin fecha; igual que duracion_orden_min en el servidor
+    if (f.disenoMin !== null && f.disenoMin !== undefined) return f.horaFin ? f.disenoMin : null;
     if (formato === 'n2') { var t = dsEntre(f.horaInicio, f.horaFin); return t === null ? null : dsMenosHold(f, t, dsTHoldMin(f)); }
     if (dsFaceNuevo(formato) || (tabla === 'nightguard' && dsNgNuevo(formato, f))) {  // Face: Fin − Inicio diseño − tiempo en Hold (este Hold + los anteriores del caso)
       var tf = dsEntre(f.horaInicio, f.horaFin); if (tf === null) return null;

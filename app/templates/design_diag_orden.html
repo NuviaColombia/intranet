@@ -29,6 +29,7 @@
         <tr><td>Creada para el día</td><td>{{ f.fechaCreada.strftime('%d/%m/%Y') if f.fechaCreada else '—' }} (está el {{ f.fecha.strftime('%d/%m/%Y') }})</td></tr>
         <tr><td>Inicio · Start hold · Re-initiated · Fin</td><td>{{ f.inicio or '—' }} · {{ f.sHold or '—' }} · {{ f.fHold or '—' }} · {{ f.fin or '—' }}</td></tr>
         <tr><td>Fin − Inicio</td><td>{{ f.finMenosInicio }}</td></tr>
+        {% if f.disenoReal %}<tr><td>Tiempo de diseño con hora real</td><td>{{ f.disenoReal }}{% if f.tramoAbierto %} (tramo abierto){% endif %}</td></tr>{% endif %}
         <tr><td>Hold anteriores (acumulado)</td><td>{{ f.holdAnteriores }}</td></tr>
         <tr><td>Hold actual (Re-initiated − Start hold)</td><td>{{ f.holdActual }}</td></tr>
         <tr><td>Hold total</td><td>{{ f.holdTotal }}</td></tr>

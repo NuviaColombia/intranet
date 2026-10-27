@@ -143,6 +143,12 @@ class DesignOrden(Base):
     # Se anotan solas (services_design_aprobacion); las órdenes anteriores no las tienen.
     aprobada_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     qc_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Tiempo de diseño con hora real (27-oct-2026, autorizado por Rosember; orden 244834): las horas del horario se guardan sin
+    # fecha y un Hold de varios días se medía mal. Desde el primer «Initiated» se suman los tramos reales en Initiated: minutos
+    # ya cerrados y desde cuándo corre el tramo abierto (UTC). Sin valor = orden anterior o con horas corregidas a mano:
+    # su Total sigue saliendo de las horas visibles. No se muestran en el Schedule.
+    diseno_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    diseno_desde: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     orden_visual: Mapped[int] = mapped_column(Integer, default=0)
     # Día para el que se creó la orden; no cambia cuando pasa al día siguiente (Hold, Ready to design). Así N3/N2

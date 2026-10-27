@@ -1879,6 +1879,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if (rd and "estado" in datos and sd._normalizar_texto(datos["estado"] or "") not in
             ("", sd._normalizar_texto(sd.ESTADO_ORDER_ENTERED), sd._normalizar_texto(sd.ESTADO_READY), "pickup received")):
         datos["etapa"] = sd.ETAPA_DENTURE   # Bite design lo hace N3 / N6 (sus horas vienen de la original): Nestor inicia Denture design
+    auto_horas: dict = {}   # horas que llenó el estado (el resto de cambios de hora son correcciones a mano)
     if rd and "estado" in datos and datos["estado"] != (orden_existente.estado or ""):
         actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos",
                                                                            "etapa", "z_hora_inicio", "z_s_hold", "z_f_hold",
@@ -1890,7 +1891,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos",
                                                                            "etapa", "z_hora_inicio", "z_s_hold", "z_f_hold",
                                                                            "z_hora_fin", "z_hold_minutos")}
-        datos.update(sd.horas_de_estado(orden_existente.tabla, actual, datos["estado"]))
+        auto_horas = sd.horas_de_estado(orden_existente.tabla, actual, datos["estado"])
+        datos.update(auto_horas)
     if solo_propia:  # un diseñador edita horas, estado, notas, esferas y crítico (y en N3/N6 orden, paciente y producto)
         bloqueados = campos_solo_manager(team)
         prod = sd.producto_que_crea(user, team)
@@ -1908,7 +1910,16 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         if falta:
             raise HTTPException(400, sd.msg_faltan_aprobar(falta))
     designer_antes, estado_antes = orden_existente.designer_id, orden_existente.estado or ""
+    # Tiempo de diseño con hora real (orden 244834): se decide con los datos de antes de guardar
+    sigue = (not rd and orden_existente.tabla != sd.TABLA_MATERIAL
+             and sd.horas_por_estado(team.area.formato, orden_existente.fecha, orden_existente.tabla))
+    manual = sigue and sd.cambio_manual_horas(orden_existente, datos, set(auto_horas))
+    primera = not (orden_existente.hora_inicio or "").strip()
     o = sd.actualizar_orden(db, orden_id, datos)
+    if sigue:
+        sd.seguir_diseno(o, estado_antes, manual, primera)
+        db.commit()
+        db.refresh(o)
     _push_caso_a_support(db, user, o, designer_antes)
     if rd and (o.estado or "") == "Approved" and estado_antes != "Approved":
         sd.push_rd_aprobada(db, o, user)   # Removable Denture aprobada: aviso al manager del equipo de N3 / N6 de origen

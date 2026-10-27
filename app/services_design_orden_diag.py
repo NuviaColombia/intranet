@@ -40,12 +40,16 @@ def diagnosticar(db: Session, numero: str) -> dict:
                              "sin fecha: si pasó más de una noche en Hold, «Fin − Inicio» pierde días enteros mientras cada Hold sí los cuenta.")
             if o.s_hold and not dias and sd._entre(inicio, o.s_hold) > tf:
                 notas.append("El Start hold quedó antes del Inicio diseño: el caso se puso en Hold antes de empezar a diseñarlo.")
+        if o.diseno_min is not None:
+            notas.append("Esta orden se mide con hora real: el Total es la suma de los tramos en Initiated (" + _fmt(o.diseno_min) +
+                         "), sin contar el Hold.")
         out.append({
             "id": o.id, "equipo": o.team.nombre if o.team else "", "area": o.team.area.nombre if o.team and o.team.area else "",
             "manager": o.team.manager.nombre_completo if o.team and o.team.manager else "", "fecha": o.fecha, "fechaCreada": o.fecha_creada,
             "tabla": o.tabla, "estado": o.estado, "disenador": o.designer.nombre_completo if o.designer else (o.designer_prestado or ""),
             "paciente": o.paciente, "centro": o.centro, "producto": o.producto,
             "inicio": inicio or "", "sHold": o.s_hold or "", "fHold": o.f_hold or "", "fin": o.hora_fin or "",
+            "disenoReal": _fmt(o.diseno_min) if o.diseno_min is not None else "", "tramoAbierto": bool(o.diseno_desde),
             "holdAnteriores": _fmt(o.hold_minutos), "holdActual": _fmt(hold_actual), "holdTotal": _fmt(hold),
             "finMenosInicio": _fmt(tf) if tf is not None else "—", "total": _fmt(total),
             "aprobadaEn": o.aprobada_en, "creadaEn": o.creado_en, "actualizadaEn": o.actualizado_en, "notas": notas,
