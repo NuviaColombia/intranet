@@ -114,7 +114,7 @@
       <span class="gv-msg" id="gvHoyMsg"></span>
     </div>
     <div class="gv-res" id="gvRes"></div>
-    <div class="gv-libro-w" id="gvLibroW" hidden><table class="gv-libro" id="gvTabla"><thead><tr><th data-o="nombre">Persona</th><th data-o="turno">Turno</th><th data-o="entrada">Entrada</th><th data-o="salidaAlm">Salida colación</th><th data-o="regresoAlm">Entrada colación</th><th data-o="salida">Salida</th><th data-o="atrasoMin">Atraso</th><th data-o="trabajado">Hrs. trabajadas</th><th data-o="estado">Estado</th></tr></thead><tbody></tbody></table></div>
+    <div class="gv-libro-w" id="gvLibroW" hidden><table class="gv-libro" id="gvTabla"><thead><tr><th data-o="nombre">Persona</th><th data-o="turno">Turno</th><th data-o="entrada">Entrada</th><th data-o="salidaAlm">Salida colación</th><th data-o="regresoAlm">Entrada colación</th><th data-o="salida">Salida</th><th data-o="atrasoMin">Atraso</th><th data-o="trabajado">Hrs. trabajadas</th><th data-o="almSch" title="¿La hora del almuerzo de GeoVictoria llegó a Tiempos libres del Schedule? Pasa el mouse por cada fila para ver el motivo.">Almuerzo en el Schedule</th><th data-o="estado">Estado</th></tr></thead><tbody></tbody></table></div>
   </div>
 </div>
 <script>
@@ -170,6 +170,7 @@
     if (k === 'turno') return f.turno || '';
     if (k === 'atrasoMin') return f.atrasoMin || 0;
     if (k === 'estado') return RANGO[estadoDe(f)[0]];
+    if (k === 'almSch') return f.almuerzoSchedule ? f.almuerzoSchedule.codigo : '';
     return f[k] || '';
   }
   function estadoDe(f) {
@@ -185,6 +186,12 @@
     if (hora) return '<span class="gv-h ' + (tipo === 'entrada' && f.atrasoMin ? 'tarde' : 'ok') + '">' + esc(hora) + '</span>';
     if (falta) return '<span class="gv-h falta">Sin marca</span>';
     return '<span class="gv-h espera">—</span>';
+  }
+  // Almuerzo en el Schedule (26-oct-2026): si la hora de GeoVictoria llegó a Tiempos libres y, si no, por qué
+  var CLASE_ALM = {ok: 'ok', pendiente: 'curso', a_mano: 'tarde', sin_marca: 'espera', sin_equipo: 'falta', apagado: 'falta'};
+  function celdaAlmuerzo(a) {
+    if (!a) return '<span class="gv-h espera">—</span>';
+    return '<span class="gv-h ' + (CLASE_ALM[a.codigo] || 'espera') + '" title="' + esc(a.texto) + '">' + esc(a.corto) + '</span>';
   }
   function pintarLibro() {
     var q = $('gvBuscar').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), area = $('gvArea').value;
@@ -216,8 +223,9 @@
         '<td>' + celda(f.regresoAlm, 'almuerzo', f) + '</td><td>' + celda(f.salida, 'salida', f) + '</td>' +
         '<td>' + (f.atrasoMin ? '<span class="gv-h tarde">' + String(Math.floor(f.atrasoMin / 60)).padStart(2, '0') + ':' + String(f.atrasoMin % 60).padStart(2, '0') + '</span>' : '<span class="gv-h espera">00:00</span>') + '</td>' +
         '<td>' + (f.trabajado ? '<span class="gv-h ' + (f.enCurso ? 'curso' : 'ok') + '">' + esc(f.trabajado) + '</span>' : '<span class="gv-h espera">—</span>') + '</td>' +
+        '<td>' + celdaAlmuerzo(f.almuerzoSchedule) + '</td>' +
         '<td><span class="gv-est ' + e[0] + '">' + esc(e[1]) + '</span>' + ((f.permisosHoras || []).length ? '<div class="gv-nota" title="Permiso por horas: mientras dure no se avisa">🕓 ' + esc(f.permisosHoras.join(', ')) + '</div>' : '') + '</td></tr>';
-    }).join('') || '<tr><td colspan="9" style="text-align:center;color:#64748b">Nadie con este filtro.</td></tr>';
+    }).join('') || '<tr><td colspan="10" style="text-align:center;color:#64748b">Nadie con este filtro.</td></tr>';
   }
   $('gvRes').addEventListener('click', function (ev) { var b = ev.target.closest('[data-f]'); if (b) { LIBRO.filtro = b.dataset.f; pintarLibro(); } });
   $('gvTabla').querySelector('thead').addEventListener('click', function (ev) {

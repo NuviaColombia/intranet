@@ -190,6 +190,36 @@ class Avisos(unittest.TestCase):
         g._hoy["t"] = 0; g.revisar(self.db, datetime(2026, 10, 22, 14, 0)); self.db.refresh(b)
         self.assertEqual((b.almuerzo_inicio, b.almuerzo_fin), ("11:00", "11:45"))
 
+    def test_estado_almuerzo_explica_por_que_no_llego(self):
+        """Columna «Almuerzo en el Schedule» (26-oct-2026): ok / pendiente / a mano / sin marca / sin equipo / apagado."""
+        self.configurar(avisos=False)
+        ahora = datetime(2026, 10, 22, 12, 30)
+        estado = lambda activo=True: g.estado_almuerzo(self.db, DIA, g._hoy["datos"], activo)[self.ana.id]
+        self.marcas = [("e", "070000")]
+        g.hoy(self.db, ahora, forzar=True)
+        self.assertEqual(estado()["codigo"], "sin_marca")                       # no ha salido a almorzar
+        self.marcas = [("e", "070000"), ("sa", "120500")]
+        g.hoy(self.db, ahora, forzar=True)
+        self.assertEqual(estado()["codigo"], "pendiente")                       # marcó, pero aún no se pasa
+        self.assertEqual(estado(activo=False)["codigo"], "apagado")             # casilla apagada
+        g.revisar(self.db, ahora)
+        e = estado()
+        self.assertEqual((e["codigo"], e["corto"]), ("ok", "12:05 – 13:05"))
+        t = self.db.query(md.DesignTeam).first()
+        b = self.db.query(md.DesignBreak).filter_by(team_id=t.id, empleado_id=self.ana.id, fecha=DIA).one()
+        b.almuerzo_inicio, b.almuerzo_fin = "11:00", "11:45"; self.db.commit()   # escrito a mano antes: no se pisa
+        e = estado()
+        self.assertEqual((e["codigo"], e["corto"]), ("a_mano", "A mano 11:00"))
+        self.assertIn("12:05", e["texto"])
+        # sin equipo: Luis es manager, no está como diseñador en ningún equipo
+        datos = {self.luis.id: {"marcas": {"salidaAlm": datetime(2026, 10, 22, 12, 0), "regresoAlm": None}, "turno": None}}
+        self.assertEqual(g.estado_almuerzo(self.db, DIA, datos, True)[self.luis.id]["codigo"], "sin_equipo")
+        # almuerzo fijo: no marca la salida a colación y el texto lo dice
+        datos = {self.ana.id: {"marcas": {"salidaAlm": None, "regresoAlm": None}, "turno": {"almuerzoFijoFin": datetime(2026, 10, 22, 14, 0)}}}
+        e = g.estado_almuerzo(self.db, DIA, datos, True)[self.ana.id]
+        self.assertEqual(e["codigo"], "sin_marca")
+        self.assertIn("fijo", e["texto"])
+
     def test_reporte_de_llegadas_tarde(self):
         self.configurar(avisos=False)
         def api(c, ruta, cuerpo):

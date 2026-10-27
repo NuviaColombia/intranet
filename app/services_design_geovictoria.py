@@ -500,6 +500,54 @@ ALMUERZO_MAX = 60
 _alm = {"t": None}
 
 
+def _almuerzo_esperado(m: dict) -> tuple[str, str] | None:
+    """(inicio, fin) que va en Tiempos libres según las marcas de GeoVictoria, o None si aún no hay salida a colación."""
+    if not m.get("salidaAlm"):
+        return None
+    ini = m["salidaAlm"]
+    tope = ini + timedelta(minutes=ALMUERZO_MAX)
+    fin = min(m["regresoAlm"], tope) if m.get("regresoAlm") else tope
+    return _hm(ini), _hm(fin)
+
+
+def estado_almuerzo(db: Session, dia: date, datos: dict, activo: bool) -> dict[int, dict]:
+    """Por persona: ¿la hora del almuerzo de GeoVictoria llegó a Tiempos libres y, si no, por qué? (columna «Almuerzo en el
+    Schedule» de Parámetros › GeoVictoria, 26-oct-2026). {codigo, corto, texto}; códigos: ok, pendiente, a_mano, sin_marca,
+    sin_equipo, apagado. Usa las mismas reglas que `almuerzo_a_tiempos_libres`."""
+    from .models_design import DesignBreak
+    ids = list(datos) or [-1]
+    equipos: dict[int, list[int]] = {}
+    for tid, eid in (db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id)
+                     .join(DesignTeam, DesignTeam.id == DesignTeamDesigner.team_id)
+                     .filter(DesignTeam.activo == 1, DesignTeamDesigner.empleado_id.in_(ids))):
+        equipos.setdefault(eid, []).append(tid)
+    breaks = {(b.team_id, b.empleado_id): b for b in db.query(DesignBreak).filter(DesignBreak.fecha == dia, DesignBreak.empleado_id.in_(ids))}
+    out: dict[int, dict] = {}
+    for eid, info in datos.items():
+        esp = _almuerzo_esperado(info.get("marcas") or {})
+        if not equipos.get(eid):
+            out[eid] = {"codigo": "sin_equipo", "corto": "Sin equipo", "texto": "No está en ningún equipo activo del Schedule: no tiene tarjeta de Tiempos libres donde ponerlo."}
+        elif not esp:
+            fijo = bool((info.get("turno") or {}).get("almuerzoFijoFin"))
+            out[eid] = {"codigo": "sin_marca", "corto": "—",
+                        "texto": ("Su turno tiene almuerzo fijo y no marca la salida a colación: no hay hora que pasar." if fijo
+                                  else "GeoVictoria no tiene su marca de salida a colación (todavía).")}
+        elif not activo:
+            out[eid] = {"codigo": "apagado", "corto": "Apagado", "texto": "La casilla «Pasar la marca de almuerzo…» está apagada: no se pasa nada al Schedule."}
+        else:
+            hi, hf = esp
+            filas = [breaks.get((tid, eid)) for tid in equipos[eid]]
+            a_mano = next((b for b in filas if b and (b.almuerzo_inicio or "").strip() and (b.almuerzo_inicio or "").strip() != hi), None)
+            if a_mano:
+                out[eid] = {"codigo": "a_mano", "corto": f"A mano {a_mano.almuerzo_inicio}",
+                            "texto": f"En Tiempos libres ya hay un almuerzo escrito a mano ({a_mano.almuerzo_inicio}); no se cambia. GeoVictoria marcó {hi}."}
+            elif all(b and (b.almuerzo_inicio or "").strip() == hi and (b.almuerzo_fin or "").strip() == hf for b in filas):
+                out[eid] = {"codigo": "ok", "corto": f"{hi} – {hf}", "texto": f"En Tiempos libres: {hi} – {hf}."}
+            else:
+                out[eid] = {"codigo": "pendiente", "corto": "Pendiente", "texto": f"Se pasa en la próxima consulta (cada 5 min): {hi} – {hf}."}
+    return out
+
+
 def almuerzo_a_tiempos_libres(db: Session, dia: date, datos: dict) -> int:
     from . import services_design as sd
     from .models_design import DesignBreak
@@ -514,10 +562,7 @@ def almuerzo_a_tiempos_libres(db: Session, dia: date, datos: dict) -> int:
         m = info.get("marcas") or {}
         if not m.get("salidaAlm"):
             continue
-        ini = m["salidaAlm"]
-        tope = ini + timedelta(minutes=ALMUERZO_MAX)
-        fin = min(m["regresoAlm"], tope) if m.get("regresoAlm") else tope
-        hi, hf = _hm(ini), _hm(fin)
+        hi, hf = _almuerzo_esperado(m)
         for tid in equipos.get(eid, []):
             b = db.query(DesignBreak).filter(DesignBreak.team_id == tid, DesignBreak.empleado_id == eid, DesignBreak.fecha == dia).first()
             actual = (b.almuerzo_inicio or "").strip() if b else ""

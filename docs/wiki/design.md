@@ -317,6 +317,12 @@ estado se guarda en `sessionStorage` (`ds_sim_oculto`): dura mientras esté abie
   colación llena el Almuerzo de Tiempos libres en el/los equipo(s) de la persona: inicio = salida; fin = regreso, máximo
   60 min («si se pasa, se anota 1 hora»); sin regreso aún, inicio + 60. No pisa un almuerzo escrito a mano
   (`almuerzo_a_tiempos_libres`); avisa en vivo al Schedule.
+  Columna «Almuerzo en el Schedule» (Rosember, 26-oct-2026; Parámetros › GeoVictoria › Marcas de hoy, `estado_almuerzo`): por
+  persona dice si la hora llegó a Tiempos libres o por qué no: **ok** (12:05 – 13:05), **pendiente** (marcó y se pasa en la
+  próxima consulta, cada 5 min), **a mano** (ya hay un almuerzo escrito distinto; no se pisa), **sin marca** (GeoVictoria no
+  tiene salida a colación; con almuerzo fijo no se marca), **sin equipo** (no está como diseñador en un equipo activo: no tiene
+  tarjeta; los managers tampoco) y **apagado** (casilla desactivada). El motivo completo está en el tooltip de cada celda.
+  Primero revisar ahí cuando alguien diga que «no se coloca la hora del geo».
   Reporte mensual de llegadas tarde (Dashboard › Reportes › «Reportes GeoVictoria»): GetConsolidatedColombia (días con
   atraso y minutos); solo quienes llegaron tarde ≥ 1 vez; KPIs, gráfica de quienes más llegan tarde, por equipo, por día de
   la semana y detalle; mismo estilo del reporte mensual, imprimible como PDF (`/design/reportes/geovictoria?mes=`). Los

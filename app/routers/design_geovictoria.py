@@ -84,6 +84,7 @@ def api_hoy(forzar: int = 0, user: Empleado = Depends(require_admin), db: Sessio
             x["equipos"].append(tnom)
         if anom not in x["areas"]:
             x["areas"].append(anom)
+    almuerzos = sgv.estado_almuerzo(db, ahora.date(), sgv._hoy["datos"], sgv.config(db)["almuerzo"])   # ¿llegó al Schedule?
     filas = []
     for eid, info in sgv._hoy["datos"].items():
         x = sgv.para_seguimiento(eid, ahora, tol)
@@ -97,6 +98,6 @@ def api_hoy(forzar: int = 0, user: Empleado = Depends(require_admin), db: Sessio
             mins = int(((fin - m["entrada"]).total_seconds() - (alm.total_seconds() if alm else 0)) // 60)
             trab = f"{max(0, mins) // 60:02d}:{max(0, mins) % 60:02d}"
         filas.append({"id": eid, "nombre": nombres.get(eid, ""), **eq.get(eid, {"equipos": [], "areas": []}), "trabajado": trab,
-                      "enCurso": bool(m["entrada"] and not m["salida"]), **x})
+                      "enCurso": bool(m["entrada"] and not m["salida"]), "almuerzoSchedule": almuerzos.get(eid), **x})
     filas.sort(key=lambda f: (not f["faltas"], f["nombre"].lower()))
     return {"filas": filas, "error": sgv._hoy["error"], "tolerancia": tol}
