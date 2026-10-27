@@ -1063,9 +1063,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_FW = {}, DS_FW_Z = 9000, DS_FW_N = 0;
 
   // Pestañas ancladas (Rosember, 27-oct-2026), al estilo de las pestañas de Chrome: una ventana flotante que se suelta
-  // cerca de la barra superior queda como pestaña en el borde inferior de la barra (la ventana se oculta pero sigue
+  // cerca de la barra superior queda como pestaña azul colgando debajo de la barra (la ventana se oculta pero sigue
   // actualizándose). Clic en la pestaña = se despega en su último lugar; arrastrarla hacia abajo = se despega bajo el
-  // mouse y se sigue moviendo; arrastrarla de lado = cambia el orden. Las ancladas se recuerdan en este navegador.
+  // mouse y se sigue moviendo; arrastrarla de lado = se deja donde se quiera en la fila (las demás se corren solo si se
+  // tocan). Las ancladas y su lugar se recuerdan en este navegador.
   var DS_FWREG = {}, DS_DOCK = [], DS_DOCK_KEY = 'dsDockV1', DS_DOCK_RESTAURADO = false;
   function dsFwRegistrar(el, info) { info.el = el; el.dataset.fwId = info.id; DS_FWREG[info.id] = info; }
   function dsFwQuitar(id) {   // la ventana se cerró: sale del registro y de las pestañas
@@ -1076,17 +1077,42 @@ window.addEventListener('unhandledrejection', function(ev) {
     var b = document.getElementById('dsDock'); if (b) return b;
     var nav = document.querySelector('body > nav'); if (!nav) return null;
     b = document.createElement('div'); b.id = 'dsDock'; b.setAttribute('role', 'tablist'); b.setAttribute('aria-label', 'Ventanas ancladas');
-    nav.appendChild(b); return b;
+    nav.appendChild(b);
+    var esp = document.createElement('div'); esp.id = 'dsDockEsp'; nav.after(esp);   // reserva el alto de las pestañas bajo la barra
+    return b;
   }
   function dsDockCerca(y) { var nav = document.querySelector('body > nav'); return !!nav && y < nav.getBoundingClientRect().bottom + 40; }
   function dsDockGuardar() {
-    try { localStorage.setItem(DS_DOCK_KEY, JSON.stringify(DS_DOCK.map(function(id) { return DS_FWREG[id] && DS_FWREG[id].guardar; }).filter(Boolean))); } catch (e) {}
+    try {
+      localStorage.setItem(DS_DOCK_KEY, JSON.stringify(DS_DOCK.map(function(id) {
+        var info = DS_FWREG[id]; if (!info || !info.guardar) return null;
+        var g = {}; for (var k in info.guardar) g[k] = info.guardar[k];
+        g.x = Math.round(info.x || 0); return g;
+      }).filter(Boolean)));
+    } catch (e) {}
+  }
+  // Cada pestaña queda en su x; si dos se tocan (o una se sale de la fila) se corren lo justo para que no se monten.
+  function dsDockAcomodar() {
+    var b = document.getElementById('dsDock'); if (!b) return;
+    var ancho = b.clientWidth, sep = 4, ini = 8;
+    var ts = Array.prototype.map.call(b.children, function(t) { return {t: t, info: DS_FWREG[t.dataset.id], w: t.offsetWidth}; })
+      .filter(function(o) { return o.info; });
+    ts.sort(function(a, c) { return a.info.x - c.info.x; });
+    var lim = ini;
+    ts.forEach(function(o) { o.info.x = Math.max(o.info.x, lim); lim = o.info.x + o.w + sep; });
+    lim = ancho - 8;
+    for (var i = ts.length - 1; i >= 0; i--) { ts[i].info.x = Math.max(ini, Math.min(ts[i].info.x, lim - ts[i].w)); lim = ts[i].info.x - sep; }
+    ts.forEach(function(o) { o.t.style.left = o.info.x + 'px'; });
+    DS_DOCK = ts.map(function(o) { return o.t.dataset.id; });
   }
   function dsDockPintar() {
     var b = dsDockBarra(); if (!b) return;
     b.innerHTML = '';
+    var der = 8;   // una pestaña nueva sin lugar elegido va a la derecha de las demás
+    DS_DOCK.forEach(function(id) { var info = DS_FWREG[id]; if (info && info.x != null) der = Math.max(der, info.x + 200); });
     DS_DOCK.forEach(function(id) {
       var info = DS_FWREG[id]; if (!info) return;
+      if (info.x == null) { info.x = der; der += 200; }
       var t = document.createElement('div'); t.className = 'ds-dock-tab'; t.setAttribute('role', 'tab'); t.tabIndex = 0; t.dataset.id = id;
       t.title = info.titulo + ' · clic para despegar';
       t.innerHTML = '<span></span><button type="button" title="Cerrar" aria-label="Cerrar">✕</button>';
@@ -1094,13 +1120,16 @@ window.addEventListener('unhandledrejection', function(ev) {
       t.querySelector('button').onclick = function(e) { e.stopPropagation(); info.cerrar(); };
       t.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dsDockDespegar(id); } });
       t.addEventListener('mousedown', function(e) { if (e.button === 0 && !e.target.closest('button')) dsDockTabArrastre(t, id, e); });
+      t.style.left = info.x + 'px';
       b.appendChild(t);
     });
     document.documentElement.classList.toggle('ds-con-dock', DS_DOCK.length > 0);
+    dsDockAcomodar();
   }
-  function dsDockAnclar(id) {
+  function dsDockAnclar(id, x) {   // x: donde se soltó la ventana (la pestaña queda ahí)
     var info = DS_FWREG[id]; if (!info) return;
     info.pos = {left: info.el.style.left, top: info.el.style.top};
+    info.x = x != null ? Math.max(8, x) : null;
     info.el.classList.add('ds-fw-anclada');
     if (DS_DOCK.indexOf(id) < 0) DS_DOCK.push(id);
     dsDockPintar(); dsDockGuardar();
@@ -1109,6 +1138,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsDockDespegar(id, ev) {
     var info = DS_FWREG[id]; if (!info) return;
     var i = DS_DOCK.indexOf(id); if (i >= 0) DS_DOCK.splice(i, 1);
+    info.x = null;
     var el = info.el;
     el.classList.remove('ds-fw-anclada', 'min');
     var m = el.querySelector('[data-fw="min"]'); if (m) { m.title = 'Minimizar'; m.textContent = '—'; }
@@ -1138,7 +1168,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var soltar = function(ev) {
       document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar);
       if (b) b.classList.remove('ds-dock-zona');
-      if (el.dataset.fwId && dsDockCerca(ev.clientY)) dsDockAnclar(el.dataset.fwId);
+      if (el.dataset.fwId && dsDockCerca(ev.clientY)) dsDockAnclar(el.dataset.fwId, ev.clientX - 40);
     };
     document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
   }
@@ -1152,20 +1182,16 @@ window.addEventListener('unhandledrejection', function(ev) {
     cab.addEventListener('dblclick', function(e) { if (!e.target.closest('button')) el.classList.toggle('min'); });
     el.querySelector('[data-fw="min"]').onclick = function() { el.classList.toggle('min'); this.title = el.classList.contains('min') ? 'Restaurar' : 'Minimizar'; this.textContent = el.classList.contains('min') ? '▢' : '—'; };
   }
-  // Arrastre de una pestaña: de lado reordena; hacia abajo la despega; sin moverse es un clic (despega).
+  // Arrastre de una pestaña: de lado se mueve libre por la fila; hacia abajo la despega; sin moverse es un clic (despega).
   function dsDockTabArrastre(t, id, e) {
     e.preventDefault();
-    var x0 = e.clientX, y0 = e.clientY, movio = false, b = t.parentNode;
+    var info = DS_FWREG[id], x0 = e.clientX, y0 = e.clientY, movio = false, b = t.parentNode, l0 = info.x;
     var mover = function(ev) {
       if (!movio && Math.abs(ev.clientX - x0) < 5 && Math.abs(ev.clientY - y0) < 5) return;
       movio = true; t.classList.add('arrastrando');
       if (ev.clientY > b.getBoundingClientRect().bottom + 24) { fin(); dsDockDespegar(id, ev); return; }
-      var otras = Array.prototype.filter.call(b.children, function(o) { return o !== t; });
-      for (var i = 0; i < otras.length; i++) {
-        var r = otras[i].getBoundingClientRect();
-        if (ev.clientX < r.left + r.width / 2) { if (t.nextSibling !== otras[i]) b.insertBefore(t, otras[i]); return; }
-      }
-      if (b.lastChild !== t) b.appendChild(t);
+      info.x = Math.max(8, Math.min(b.clientWidth - 8 - t.offsetWidth, l0 + ev.clientX - x0));
+      t.style.left = info.x + 'px';
     };
     var fin = function() {
       document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar);
@@ -1174,8 +1200,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var soltar = function() {
       fin();
       if (!movio) { dsDockDespegar(id); return; }
-      DS_DOCK = Array.prototype.map.call(b.children, function(o) { return o.dataset.id; });
-      dsDockGuardar();
+      dsDockAcomodar(); dsDockGuardar();
     };
     document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
   }
@@ -1190,7 +1215,10 @@ window.addEventListener('unhandledrejection', function(ev) {
         var pb = document.getElementById('dsProdBtn');
         if (pb && !pb.classList.contains('ds-fuera')) dsAbrirProduccion(true);
       } else if (g.t === 'pa' && g.centro && g.area) dsPaVentana(g.centro, {area: g.area, team: g.team || '', anclada: true});
+      var id = g.t === 'prod' ? 'prod' : 'pa|' + g.area + '|' + (g.team || '') + '|' + String(g.centro || '').toLowerCase();
+      if (DS_FWREG[id] && typeof g.x === 'number') DS_FWREG[id].x = g.x;
     });
+    dsDockPintar();
     dsDockGuardar();   // se olvidan las que ya no aplican
   }
   function dsPaVentana(centro, op) {

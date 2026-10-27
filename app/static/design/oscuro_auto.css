@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (720 reglas) ---- */
+/* ---- static\design\schedule.css (719 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -144,14 +144,13 @@
 :root[data-ds-tema="oscuro"] .ds-cal-dia.hoy { box-shadow:inset 0 0 0 2px #111827; }
 :root[data-ds-tema="oscuro"] .ds-cal-dia.sel, :root[data-ds-tema="oscuro"] .ds-cal-dia.sel:hover { background:#111827; color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-cal-nav:focus-visible, :root[data-ds-tema="oscuro"] .ds-cal-dia:focus-visible { outline:2px solid #2e4c71; }
-:root[data-ds-tema="oscuro"] #dsDock.ds-dock-zona::after { border:2px dashed rgba(41,48,61,0.7); background:rgba(255,255,255,0.08); color:#fff; }
-:root[data-ds-tema="oscuro"]:not(.ds-con-dock) #dsDock.ds-dock-zona::after { background:#111827; border-color:#111827; box-shadow:0 6px 18px rgba(0,0,0,.25); }
-:root[data-ds-tema="oscuro"] .ds-dock-tab { background:#1c2536; color:#d1d9eb; }
-:root[data-ds-tema="oscuro"] .ds-dock-tab:hover { background:#131925; }
-:root[data-ds-tema="oscuro"] .ds-dock-tab.arrastrando { background:#131925; box-shadow:0 4px 14px rgba(0,0,0,.3); }
+:root[data-ds-tema="oscuro"] #dsDock.ds-dock-zona::after { border:2px dashed #111827; background:rgba(17,24,39,.08); color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .ds-dock-tab { background:#111827; color:#fff; box-shadow:0 4px 10px rgba(0,0,0,.18); }
+:root[data-ds-tema="oscuro"] .ds-dock-tab:hover { background:#1f2937; }
+:root[data-ds-tema="oscuro"] .ds-dock-tab.arrastrando { background:#1f2937; box-shadow:0 8px 20px rgba(0,0,0,.35); }
 :root[data-ds-tema="oscuro"] .ds-dock-tab:focus-visible { outline:2px solid #2e4c71; }
-:root[data-ds-tema="oscuro"] .ds-dock-tab button { border:none; background:transparent; color:#bbc1cc; }
-:root[data-ds-tema="oscuro"] .ds-dock-tab button:hover { background:#202839; color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .ds-dock-tab button { border:none; background:transparent; color:#cbd5e1; }
+:root[data-ds-tema="oscuro"] .ds-dock-tab button:hover { background:rgba(255,255,255,0.08); color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-fw-prod .ds-fw-cuerpo { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-fw-prod .sub { color:#abb2c0; }
 :root[data-ds-tema="oscuro"] .ds-fw-prod th, :root[data-ds-tema="oscuro"] .ds-fw-prod td { border-bottom:1px solid #30363f; }

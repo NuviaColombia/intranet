@@ -182,9 +182,7 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 :root[data-ds-tema="oscuro"] .ds-fw-cab { background:#0f172a; color:#fff; }
 :root[data-ds-tema="oscuro"] .ds-fw { border-color:#334155; }
 
-/* Pestañas ancladas en la barra superior */
-:root[data-ds-tema="oscuro"] .ds-dock-tab { background:#1e293b; color:#e5e7eb; }
-:root[data-ds-tema="oscuro"] .ds-dock-tab:hover, :root[data-ds-tema="oscuro"] .ds-dock-tab.arrastrando { background:#334155; }
-:root[data-ds-tema="oscuro"] .ds-dock-tab button { color:#cbd5e1; }
-:root[data-ds-tema="oscuro"] .ds-dock-tab button:hover { background:#475569; color:#fff; }
-:root[data-ds-tema="oscuro"]:not(.ds-con-dock) #dsDock.ds-dock-zona::after { background:#0f172a; border-color:#0f172a; }
+/* Pestañas ancladas: el azul de la barra oscura */
+:root[data-ds-tema="oscuro"] .ds-dock-tab { background:#0f172a; color:#fff; box-shadow:0 4px 12px rgba(0,0,0,.5); }
+:root[data-ds-tema="oscuro"] .ds-dock-tab:hover, :root[data-ds-tema="oscuro"] .ds-dock-tab.arrastrando { background:#1e293b; }
+:root[data-ds-tema="oscuro"] #dsDock.ds-dock-zona::after { border-color:#cbd5e1; color:#e5e7eb; background:rgba(255,255,255,.06); }
