@@ -219,7 +219,7 @@
   @media (prefers-reduced-motion: reduce) { .ds-cal-pop { animation:none; } .ds-cal-dia, .ds-cal-dia:hover { transition:none; transform:none; } }
   /* Producción del día: ventana flotante con el estilo de las de Pre-Approved (.ds-fw) */
   /* Pestañas ancladas: cuelgan debajo de la barra superior, en su mismo azul, encima del contenido (no lo empujan) y se dejan en cualquier punto de la fila */
-  #dsDock { position:absolute; left:0; right:0; top:100%; height:32px; pointer-events:none; }
+  #dsDock { position:fixed; left:0; right:0; top:var(--ds-nav-h, 85px); height:32px; pointer-events:none; }   /* fija: dentro de la barra, al sobresalir, el navegador la pintaba de su color */
   #dsDock.ds-dock-zona::after { content:'Suelta aquí para anclar como pestaña'; position:absolute; left:8px; right:8px; top:3px; height:26px;
     border:2px dashed #111827; border-radius:0 0 10px 10px; background:rgba(17,24,39,.08); color:#111827; font-size:12px; font-weight:600;
     display:flex; align-items:center; justify-content:center; }
