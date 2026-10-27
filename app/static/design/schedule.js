@@ -1957,17 +1957,17 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (rgb) sel.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else sel.style.removeProperty('background-color');
     sel.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
   }
-  // Tarjetas de Tiempos libres: el borde y un fondo suave con el color del diseñador (como en las casillas de la tabla).
-  // El manager conserva su borde oscuro (ds-tl-mgr) y no se pinta.
+  // Tarjetas de Tiempos libres: el borde y un fondo suave con el color asignado en el Schedule (diseñadores y managers).
+  // Sin color, el manager conserva su borde oscuro de siempre (ds-tl-mgr).
   function dsPintarTarjetaTL(card, d) {
-    if (!card || (d && d.esManager)) return;
+    if (!card) return;
     var rgb = dsColorRgb((dsColoresLeer().d || {})[String(d.id)]);
     card.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
     card.style.background = rgb ? 'rgba(' + rgb + ',.10)' : '';
   }
   function dsPintarTarjetasTL() {
     document.querySelectorAll('#dsBreaks .ds-tl-card').forEach(function(card) {
-      dsPintarTarjetaTL(card, {id: +card.dataset.empleadoId, esManager: card.classList.contains('ds-tl-mgr')});
+      dsPintarTarjetaTL(card, {id: +card.dataset.empleadoId});
     });
   }
   function dsPintarColores(scope) {
