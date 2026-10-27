@@ -70,6 +70,37 @@ class CopiasRD(unittest.TestCase):
         self.assertEqual(self.copias()[0].paciente, "Juan")
         self.assertEqual(len(self.copias()), 1)
 
+    def test_cancelar_la_original_quita_la_copia(self):
+        """26-oct-2026: una orden cancelada no debe seguir en Removable Denture."""
+        o = self.orden("Removable denture")
+        self.assertEqual(len(self.copias()), 1)
+        o.estado = "Canceled"; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual(self.copias(), [])
+        self.assertEqual(self.db.query(self.md.DesignCopiaRD).count(), 0)
+
+    def test_cancelada_no_crea_copia(self):
+        o = self.md.DesignOrden(team_id=self.t3.id, fecha=sd.date(2026, 10, 20), tabla="principal", orden="a2", paciente="P",
+                                centro="C1", producto="Removable denture", estado="Canceled")
+        self.db.add(o); self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual(self.copias(), [])
+
+    def test_si_nestor_ya_empezo_la_copia_cancelada_se_queda(self):
+        o = self.orden("Removable denture")
+        (c,) = self.copias()
+        c.z_hora_inicio = "08:00"; self.db.commit()
+        o.estado = "Canceled"; self.db.commit()
+        sd.sincronizar_copia_rd(self.db, o)
+        self.assertEqual(len(self.copias()), 1)
+
+    def test_barrido_quita_copias_de_ordenes_ya_canceladas(self):
+        o = self.orden("Removable denture")
+        o.estado = "Canceled"; self.db.commit()          # cancelada antes del cambio: su copia sigue
+        sd._rd_copias["ok"] = False
+        sd.rd_copias_una_vez(self.db)
+        self.assertEqual(self.copias(), [])
+
     def test_bite_start_de_la_original_y_finish_con_bite_finish(self):
         from app import services_design_push as spush
         o = self.orden("Removable denture")

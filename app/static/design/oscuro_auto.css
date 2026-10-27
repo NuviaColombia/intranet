@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (707 reglas) ---- */
+/* ---- static\design\schedule.css (712 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:#1d4ed8; }
@@ -769,6 +769,11 @@
 :root[data-ds-tema="oscuro"] .ds-prod-pop td.n.cero { color:#9ca3af; }
 :root[data-ds-tema="oscuro"] .ds-esq-panel { background:#131925; border:1px solid var(--borde,#323b4b); }
 :root[data-ds-tema="oscuro"] .ds-esq-fila i, :root[data-ds-tema="oscuro"] .ds-esq-panel i { background:linear-gradient(90deg, #20252b 25%, #1b2026 50%, #20252b 75%); }
+:root[data-ds-tema="oscuro"] .ds-cfg-pop { background:#131925; border:1px solid #2f3747; box-shadow:0 14px 40px rgba(17,24,39,.22); }
+:root[data-ds-tema="oscuro"] .ds-cfg-pop h4 { color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .ds-cfg-fila { border-top:1px solid #2e3640; }
+:root[data-ds-tema="oscuro"] .ds-cfg-txt b { color:#d1d9eb; }
+:root[data-ds-tema="oscuro"] .ds-cfg-txt small { color:#aab2bf; }
 
 /* ---- static\inicio\inicio.css (156 reglas) ---- */
 :root[data-ds-tema="oscuro"] .nvi-pagina { background:var(--nvi-fondo); color:var(--nvi-texto); }

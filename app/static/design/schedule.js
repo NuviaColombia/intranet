@@ -372,6 +372,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       prod: SVG + '<path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg>',                       // gráfica de barras
       cambio: SVG + '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>', // intercambio
       hist: SVG + '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',                                   // calendario
+      cfg: SVG + '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',   // controles
       cargo: SVG + '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg>'   // persona con visto
     };
     var fijo = false, timer = null;
@@ -383,7 +384,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var i = 0;
       panel.querySelectorAll('.ds-prod-btn, #dsACargo > .btn, #dsACargo > .ds-acargo-chip').forEach(function(el) {
         if (!el.querySelector('.ds-it-ico')) {
-          var txt = el.textContent.trim(), ico = el.id === 'dsProdBtn' ? 'prod' : el.id === 'dsCambioDigBtn' ? 'cambio' : el.id === 'dsHistorialBtn' ? 'hist' : 'cargo';
+          var txt = el.textContent.trim(), ico = el.id === 'dsProdBtn' ? 'prod' : el.id === 'dsCambioDigBtn' ? 'cambio' : el.id === 'dsHistorialBtn' ? 'hist' : el.id === 'dsConfigBtn' ? 'cfg' : 'cargo';
           el.classList.add('ds-it');
           if (!el.title) el.title = txt;
           el.innerHTML = '<span class="ds-it-ico">' + ICONOS[ico] + '</span><span class="ds-it-txt"></span>';
@@ -422,6 +423,62 @@ window.addEventListener('unhandledrejection', function(ev) {
     try { new MutationObserver(revisar).observe(panel, {subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden']}); } catch (e) {}
     revisar();
   })();
+  // ---------- Configuración del Schedule (Rosember, 26-oct-2026) ----------
+  // Botón debajo de «Historial»: abre una ventana con los ajustes de personalización. Hoy: colores de los estados (antes el
+  // interruptor de cada tabla) y, para managers y admins, los avisos de apoyo.
+  (function() {
+    var btn = document.getElementById('dsConfigBtn'), pop = document.getElementById('dsCfgPop'); if (!btn || !pop) return;
+    // el interruptor de colores muestra lo que está guardado en este navegador
+    document.querySelectorAll('.ds-auto-oc-chk').forEach(function(c) { c.checked = dsColoresFila(); });
+    function cerrar() {
+      pop.hidden = true; btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('mousedown', fuera, true); document.removeEventListener('keydown', esc, true);
+    }
+    function fuera(e) { if (!pop.contains(e.target) && !e.target.closest('#dsConfigBtn')) cerrar(); }
+    function esc(e) { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); btn.focus({preventScroll: true}); } }
+    function abrir() {
+      pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+      var r = btn.getBoundingClientRect();
+      pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top)) + 'px';
+      pop.style.left = Math.max(8, window.innerWidth - 46 - pop.offsetWidth - 10) + 'px';
+      document.addEventListener('mousedown', fuera, true); document.addEventListener('keydown', esc, true);
+    }
+    btn.addEventListener('click', function() { if (pop.hidden) abrir(); else cerrar(); });
+    var ap = document.getElementById('dsCfgApoyo');
+    if (ap) {
+      api('/design/api/preferencias/apoyo').then(function(d) { ap.checked = !!d.activo; }).catch(function() {});
+      ap.addEventListener('change', function() {
+        postJSON('/design/api/preferencias/apoyo', {activo: ap.checked}).then(function(d) { ap.checked = !!d.activo; })
+          .catch(function(e) { ap.checked = !ap.checked; dsToast('⚠️ ' + e.message); });
+      });
+    }
+  })();
+
+  // ---------- Necesito apoyo (Rosember, 26-oct-2026) ----------
+  // Botón en la fila de cada tabla (solo para el diseñador). Escribe una nota y se avisa por push a su manager o a quien
+  // esté a cargo hoy; esa persona recibe la nota en la notificación.
+  document.addEventListener('click', function(e) {
+    var b = e.target.closest && e.target.closest('.ds-btn-apoyo');
+    if (b) dsPedirApoyo(b.dataset.tabla || '');
+  });
+  function dsPedirApoyo(tabla) {
+    if (!DS.teamId) return;
+    var seccion = {principal: 'Cirugías', nightguard: 'Nightguards / TC', material: dsEsRD() ? 'Removable Denture' : 'Material Change'}[tabla] || 'Schedule';
+    var html = '<h3>Pedir apoyo</h3><p class="dd-p-nota" style="margin:0 0 8px">Se le envía una notificación a tu manager (o a quien esté a cargo hoy) con tu nota. Sección: ' + dsEsc(seccion) + '.</p>' +
+      '<textarea id="apoyo_nota" rows="3" maxlength="500" placeholder="Qué necesitas, por ejemplo: un caso que no alcanzo a sacar hoy" style="width:100%"></textarea>' +
+      '<p id="apoyo_aviso" class="dd-p-nota" style="min-height:18px;margin:6px 0 0;color:#b91c1c"></p>';
+    dcModal(html, function(f) {
+      var nota = (document.getElementById('apoyo_nota').value || '').trim();
+      var aviso = document.getElementById('apoyo_aviso');
+      if (!nota) { aviso.textContent = 'Escribe la nota.'; f.querySelector('[data-m=si]').disabled = false; return; }
+      window.dsPostJSON('/design/api/teams/' + DS.teamId + '/apoyo', {tabla: tabla, nota: nota}).then(function(r) {
+        f.remove();
+        dsToast(r.avisados.length ? '🙋 Aviso enviado a ' + r.avisados.join(', ') : 'Listo: no hay a quién avisar (o apagó los avisos de apoyo).');
+      }, function(e) { f.querySelector('[data-m=si]').disabled = false; aviso.textContent = e.message; });
+    }, 'Enviar');
+    setTimeout(function() { var t = document.getElementById('apoyo_nota'); if (t) t.focus(); }, 30);
+  }
+
   (function() {
     var inp = document.getElementById('dsBuscarInput'), res = document.getElementById('dsBuscarRes');
     if (!inp) return;
@@ -3050,6 +3107,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     DS.diaData = dia;
     DS.diaVersion = dia.version || null;  // huella del día (Schedule en vivo)
     DS.diaVersionClave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
+    document.querySelectorAll('.ds-btn-apoyo').forEach(function(b) { b.style.display = dia.soloPropias ? '' : 'none'; });   // solo el diseñador pide apoyo
     dsRenderACargo(dia);
     dsRenderCopias(dia);
     dsPintarProduccion();

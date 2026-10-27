@@ -51,6 +51,7 @@
         {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digital</button>{% endif %}
         <div id="dsACargo" class="ds-acargo" hidden></div>
         <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsHistorialBtn" title="Ir a cualquier día de producción" aria-haspopup="dialog">Historial</button>
+        <button type="button" class="btn gris ds-prod-btn" id="dsConfigBtn" title="Configuración del Schedule: colores de los estados y avisos" aria-haspopup="dialog" aria-expanded="false">Configuración</button>
         <div id="dsLatDias" class="ds-lat-dias ds-fuera" role="group" aria-label="Días de la semana"></div>
       </div>
     </div>
@@ -76,6 +77,19 @@
     {% endif %}
   </div>
 
+  <div class="ds-cfg-pop" id="dsCfgPop" role="dialog" aria-label="Configuración del Schedule" hidden>
+    <h4>Configuración</h4>
+    <div class="ds-cfg-fila">
+      <span class="ds-cfg-txt"><b>Colores de los estados</b><small>Encendido: el color cubre toda la fila. Apagado: solo la columna Estado.</small></span>
+      <label class="ds-auto-oc"><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados"><span class="sw"></span></label>
+    </div>
+    {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+    <div class="ds-cfg-fila">
+      <span class="ds-cfg-txt"><b>Avisos de apoyo</b><small>Recibir una notificación cuando alguien de tu equipo pida apoyo, con su nota.</small></span>
+      <label class="ds-auto-oc"><input type="checkbox" id="dsCfgApoyo" role="switch" aria-label="Avisos de apoyo"><span class="sw"></span></label>
+    </div>
+    {% endif %}
+  </div>
   <div class="ds-esqueleto" aria-hidden="true">
     <div class="ds-esq-fila"><i></i><i></i><i></i><i></i><i></i></div>
     <div class="ds-esq-panel"><i class="t"></i><i></i><i></i><i></i><i></i></div>
@@ -96,7 +110,8 @@
     <div class="ds-panel" id="dsPanelMaterial" style="display:none">
       <div class="ds-panel-h">
         <h3 id="dsTituloMaterial">Material Change</h3>
-        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><span class="sw"></span></label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_material" style="display:none" onclick="dsVerOcultas()"></button>
+        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_material" style="display:none" onclick="dsVerOcultas()"></button>
+        <button type="button" class="btn gris ds-btn-apoyo" data-tabla="material" style="display:none" title="Pedir apoyo: se avisa a tu manager (o a quien esté a cargo) con tu nota" aria-label="Necesito apoyo">🙋 Necesito apoyo</button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('material', event)" title="Agregar orden" aria-label="Agregar orden"><svg class="ds-mas" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button></span>
       </div>
       <div id="dsTablaMaterial"></div>
@@ -108,7 +123,8 @@
           <h3 id="dsTituloPrincipal">Órdenes</h3>
           <span id="dsCandado" class="ds-candado" style="display:none" tabindex="0">🔒</span>
         </div>
-        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><span class="sw"></span></label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
+        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_principal" style="display:none" onclick="dsVerOcultas()"></button>
+        <button type="button" class="btn gris ds-btn-apoyo" data-tabla="principal" style="display:none" title="Pedir apoyo: se avisa a tu manager (o a quien esté a cargo) con tu nota" aria-label="Necesito apoyo">🙋 Necesito apoyo</button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('principal', event)" title="Agregar orden" aria-label="Agregar orden"><svg class="ds-mas" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button></span>
       </div>
       <div id="dsCopiasPend"></div>
@@ -118,7 +134,8 @@
     <div class="ds-panel" id="dsPanelNightguard" style="display:none">
       <div class="ds-panel-h">
         <h3>Nightguards / TC</h3>
-        <span class="ds-panel-acc"><label class="ds-auto-oc" title="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><input type="checkbox" class="ds-auto-oc-chk" role="switch" aria-label="Colores de los estados: encendido = en toda la fila; apagado = solo en la columna Estado."><span class="sw"></span></label><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_nightguard" style="display:none" onclick="dsVerOcultas()"></button>
+        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_nightguard" style="display:none" onclick="dsVerOcultas()"></button>
+        <button type="button" class="btn gris ds-btn-apoyo" data-tabla="nightguard" style="display:none" title="Pedir apoyo: se avisa a tu manager (o a quien esté a cargo) con tu nota" aria-label="Necesito apoyo">🙋 Necesito apoyo</button>
         <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('nightguard', event)" title="Agregar orden" aria-label="Agregar orden"><svg class="ds-mas" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button></span>
       </div>
       <div id="dsTablaNightguard"></div>

@@ -204,6 +204,10 @@ def _push_bite_finish(db: Session, c: DesignOrden, user: Empleado) -> None:
         logging.getLogger("design.rd").exception("Removable Denture: no se pudo avisar el Bite Finish")
 
 
+def es_cancelada(estado: str | None) -> bool:
+    return _normalizar_texto(estado or "") == "canceled"
+
+
 def es_producto_rd(producto: str | None) -> bool:
     return "removable" in (producto or "").lower()
 
@@ -231,7 +235,8 @@ def sincronizar_copia_rd(db: Session, o: DesignOrden | None, borrada: bool = Fal
             if not t or not t.area or t.area.nombre not in (AREA_N3, AREA_N6):
                 return
         regs = db.query(DesignCopiaRD).filter(DesignCopiaRD.origen_orden_id == oid).all()
-        quiere = (o is not None and not borrada and es_producto_rd(o.producto))
+        # Una orden CANCELADA no tiene copia (26-oct-2026): si la original se cancela, su copia se quita (si Nestor no la empezó)
+        quiere = (o is not None and not borrada and es_producto_rd(o.producto) and not es_cancelada(o.estado))
         if quiere and not regs:
             team_rd = _equipo_rd(db)
             designer = (db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team_rd.id)
@@ -338,6 +343,7 @@ def rd_copias_una_vez(db: Session) -> None:
     if _rd_copias["ok"]:
         return
     _rd_copias["ok"] = True
+    from .models_design import DesignCopiaRD
     try:
         alinear_copias_rd(db)
         hoy = ahora_colombia().date()
@@ -347,6 +353,11 @@ def rd_copias_una_vez(db: Session) -> None:
                            func.lower(DesignOrden.producto).like("%removable%")).all())
         for o in ordenes:
             sincronizar_copia_rd(db, o, avisar=False)   # órdenes de antes: sin aviso push (serían muchos a la vez)
+        # Copias de órdenes que ya estaban canceladas (26-oct-2026): se quitan si Nestor no las empezó
+        for r in db.query(DesignCopiaRD).all():
+            orig = db.get(DesignOrden, r.origen_orden_id)
+            if orig is not None and es_cancelada(orig.estado):
+                sincronizar_copia_rd(db, orig, avisar=False)
     except Exception:  # noqa: BLE001
         db.rollback()
 
@@ -6532,3 +6543,51 @@ def centros_de_equipo(db: Session, team: DesignTeam) -> list[str] | None:
             vistos.add(_normalizar_texto(c))
             out.append(c)
     return out
+
+
+# ---------- Pedir apoyo y avisos de apoyo (Rosember, 26-oct-2026) ----------
+# Un diseñador pide apoyo con una nota: le llega push a su manager (o a quien esté a cargo hoy del equipo) con la nota.
+# Cada manager/a cargo puede apagar esos avisos en Configuración del Schedule; se guarda en design_conexion_reglas
+# (tipo «preferencia», clave «apoyo_<id>»). Sin registro, están encendidos.
+APOYO_TABLAS = {"principal": "Cirugías", "nightguard": "Nightguards / TC", "material": "Material Change"}
+
+
+def apoyo_activo(db: Session, empleado_id: int) -> bool:
+    from .models_design import DesignConexionRegla
+    r = (db.query(DesignConexionRegla)
+         .filter(DesignConexionRegla.tipo == "preferencia", DesignConexionRegla.clave == f"apoyo_{empleado_id}").first())
+    return not (r and r.valor == "0")
+
+
+def guardar_apoyo_activo(db: Session, empleado_id: int, activo: bool, por: str) -> None:
+    from .models_design import DesignConexionRegla
+    clave = f"apoyo_{empleado_id}"
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "preferencia", DesignConexionRegla.clave == clave).first()
+    if not r:
+        r = DesignConexionRegla(tipo="preferencia", clave=clave, creado_por=por)
+        db.add(r)
+    r.valor = "1" if activo else "0"
+    db.commit()
+
+
+def avisar_apoyo(db: Session, team: DesignTeam, user: Empleado, tabla: str, nota: str) -> list[str]:
+    """Push con la nota a quien debe ayudar: el manager del equipo y, si hay alguien a cargo hoy, esa persona.
+    Devuelve los nombres a quienes se les envió (los que apagaron el aviso no cuentan)."""
+    from . import services_design_push as spush
+    dest = set()
+    if team.manager_id and team.manager and team.manager.activo:
+        dest.add(team.manager_id)
+    a_cargo = delegaciones_activas(db).get(team.id)
+    if a_cargo:
+        dest.add(a_cargo)
+    dest.discard(user.id)
+    ids = sorted(i for i in dest if apoyo_activo(db, i))
+    if not ids:
+        return []
+    seccion = APOYO_TABLAS.get(tabla, tabla or "Schedule")
+    spush.enviar_en_segundo_plano(ids, f"🙋 {user.nombre_completo} necesita apoyo",
+                                  f"{seccion} · {team.nombre}\n{nota[:300]}",
+                                  url=f"/design?area_id={team.area_id}&team_id={team.id}",
+                                  etiqueta=f"apoyo-{team.id}-{user.id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}", fijo=True)
+    return [e.nombre_completo for e in db.query(Empleado).filter(Empleado.id.in_(ids)).all()]
+

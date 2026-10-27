@@ -167,3 +167,8 @@ table.ds-tabla tr.ds-fila-cancelada { --ds-est:#1a2130; --ds-est-t:#a3acbb; }
 /* Carrusel de Tiempos libres (26-oct-2026) en oscuro */
 :root[data-ds-tema="oscuro"] .ds-tl-flecha { background:#131925; color:#e5e7eb; border-color:#323b4b; box-shadow:0 2px 8px rgba(0,0,0,.4); }
 :root[data-ds-tema="oscuro"] .ds-tl-card.ds-tl-mgr { border-color:#e5e7eb; box-shadow:inset 3px 0 0 #e5e7eb; }
+/* Configuración y Pedir apoyo (26-oct-2026) en oscuro */
+:root[data-ds-tema="oscuro"] .ds-cfg-pop { background:#131925; border-color:#334155; box-shadow:0 14px 40px rgba(0,0,0,.55); }
+:root[data-ds-tema="oscuro"] .ds-cfg-pop h4, :root[data-ds-tema="oscuro"] .ds-cfg-txt b { color:#f1f5f9; }
+:root[data-ds-tema="oscuro"] .ds-cfg-txt small { color:#94a3b8; }
+:root[data-ds-tema="oscuro"] .ds-cfg-fila { border-top-color:#1e293b; }

@@ -3452,3 +3452,33 @@ router.include_router(_avisos_router)
 # ---------- Development (proyectos y protocolos; admins + Luis Felipe y Paul): rutas en routers/design_dev.py ----------
 from .design_dev import router as _dev_router  # noqa: E402
 router.include_router(_dev_router)
+
+
+class ApoyoIn(BaseModel):
+    tabla: str = Field("", max_length=30)
+    nota: str = Field(..., min_length=1, max_length=500)
+
+
+@router.post("/design/api/teams/{team_id}/apoyo")
+def api_pedir_apoyo(team_id: int, payload: ApoyoIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                    db: Session = Depends(get_db)):
+    """Un diseñador del equipo pide apoyo: push con la nota a su manager (o a quien esté a cargo hoy)."""
+    team = _verificar_equipo(db, user, team_id)
+    if team.id not in sd.equipos_como_designer(db, user):
+        raise HTTPException(403, "Solo los diseñadores del equipo pueden pedir apoyo.")
+    nota = payload.nota.strip()
+    if not nota:
+        raise HTTPException(400, "Escribe la nota.")
+    return {"ok": True, "avisados": sd.avisar_apoyo(db, team, user, payload.tabla, nota)}
+
+
+@router.get("/design/api/preferencias/apoyo")
+def api_pref_apoyo(user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    return {"activo": sd.apoyo_activo(db, user.id)}
+
+
+@router.post("/design/api/preferencias/apoyo")
+def api_pref_apoyo_guardar(datos: dict, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    sd.guardar_apoyo_activo(db, user.id, bool(datos.get("activo")), user.nombre_completo)
+    return {"activo": sd.apoyo_activo(db, user.id)}
+
