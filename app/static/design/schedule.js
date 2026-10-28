@@ -2937,6 +2937,20 @@ window.addEventListener('unhandledrejection', function(ev) {
     {uno: 'Aprobada', varios: 'Aprobadas', cuenta: function(f) { return f.estado === 'Approved' && dsQcFinal(f); }},
     {uno: 'Cancelada', varios: 'Canceladas', cuenta: dsEsCancelada, conDatos: true},
   ];
+  // N6 con un estado por etapa (Rosember, 28-oct-2026): en Material Change y Over Ti-bar, cada etapa que tiene diseñador cuenta
+  // como 1 con su propio estado y su propio QC (una etapa sin diseñador es de otro departamento y no cuenta). Una orden sin
+  // ninguna etapa asignada cuenta como una sola, con el estado de Bite design, para que no desaparezca (p. ej. las canceladas).
+  var DS_ETAPAS_KPI = [['estado', 'qc', 'designerId'], ['zEstado', 'zQc', 'zDesignerId'], ['xEstado', 'xQc', 'xDesignerId'], ['nEstado', 'nQc', 'nDesignerId']];
+  function dsUnidadesKpi(f, dia) {
+    var sep = dsTablaBase(f.tabla) === 'material' && (f.area ? f.area === DS_AREA_MATERIAL && String(f.fecha || '').slice(0, 10) >= DS_N6_SEPARADO_DESDE : !!dia.n6Separado);
+    if (!sep) return [f];
+    var yo = dia.soloPropias ? dia.miId : null;
+    var etapas = DS_ETAPAS_KPI.map(function(e, i) {
+      return Object.assign({}, f, {tabla: 'etapa', estado: f[e[0]] || '', qc: !!f[e[1]], designerId: f[e[2]] || null, designerPrestado: i === 0 ? f.designerPrestado : ''});
+    });
+    var conDis = etapas.filter(function(u) { return yo ? u.designerId === yo : (u.designerId || u.designerPrestado); });
+    return conDis.length ? conDis : (yo ? [] : [etapas[0]]);
+  }
   function dsRenderKpis(dia) {
     dsDockRestaurar();     // pestañas ancladas de la visita anterior (una sola vez)
     dsPintarProduccion();  // la ventana de Producción (si está abierta) sigue los cambios
@@ -2944,6 +2958,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     // Vista del diseñador: también cuentan los casos que hizo prestado en otros equipos (19-oct-2026)
     if (dia.soloPropias) filas = filas.concat(dia.prestadas || []);
     filas = filas.filter(function(f) { return !dsEsFantasma(f); });   // producto «Training»: no cuenta
+    filas = filas.reduce(function(a, f) { return a.concat(dsUnidadesKpi(f, dia)); }, []);
     var todas = filas.filter(dsOrdenCompleta), conDatos = filas.filter(dsOrdenConDatos);
     // Los 5 números se calculan igual que siempre (DS_KPIS); el panel solo los dibuja.
     var n = DS_KPIS.map(function(k) { return (k.conDatos ? conDatos : todas).filter(k.cuenta).length; });
