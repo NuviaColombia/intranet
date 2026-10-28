@@ -1934,6 +1934,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                                 {c: datos.get(c, getattr(orden_existente, c)) for c in ("art_start", "art_rtd")},
                                                 datos["estado"]))
     sep = sd.n6_por_etapas(team.area.nombre, orden_existente.fecha, orden_existente.tabla)   # N6: un estado por etapa (28-oct-2026)
+    if sep and solo_propia:   # N6: un diseñador solo cambia el estado de la etapa en la que está asignado (Rosember, 28-oct-2026)
+        for p, col in sd.ETAPAS_N6:
+            if (col in datos and (datos[col] or "") != (getattr(orden_existente, col) or "")
+                    and getattr(orden_existente, p + "designer_id") != user.id):
+                raise HTTPException(403, "Solo puedes cambiar el estado de la etapa en la que estás asignado.")
     if sep:
         for p, col in sd.ETAPAS_N6:   # Hold solo después de iniciar, en cada etapa
             if (col in datos and sd.es_hold(datos[col]) and not sd.es_hold(getattr(orden_existente, col))

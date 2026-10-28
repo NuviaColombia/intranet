@@ -2373,6 +2373,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dsSoloPropias()) {
       // Vista del diseñador: edita sus órdenes pero no las reasigna.
       dsBloquearCamposManager(cont);
+      dsBloquearEstadosAjenos(cont, DS.diaData[tabla]);
       dsBloquearHoras(cont, DS.areaFormato, tabla, dsFechaISO(dsFechaSeleccionada()));
       dsAjustarCreaProducto(cont);
       if (dsTablaBase(tabla) === 'material') dsBloquearEtapa(cont);
@@ -2444,6 +2445,21 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
   }
 
+  // N6 con un estado por etapa (28-oct-2026): el diseñador solo cambia el estado de la etapa en la que está asignado
+  var DS_DISENADOR_ETAPA = {estado: 'designerId', zEstado: 'zDesignerId', xEstado: 'xDesignerId', nEstado: 'nDesignerId'};
+  function dsBloquearEstadosAjenos(cont, lista) {
+    var yo = DS.diaData && DS.diaData.miId;
+    cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
+      if (!tr.querySelector('select[data-campo="nEstado"]')) return;
+      var f = (lista || []).find(function(x) { return String(x.id) === tr.dataset.id; });
+      Object.keys(DS_DISENADOR_ETAPA).forEach(function(campo) {
+        var el = tr.querySelector('select[data-campo="' + campo + '"]');
+        if (!el || el.disabled || (f && f[DS_DISENADOR_ETAPA[campo]] === yo)) return;
+        el.disabled = true; el.title = 'Solo quien está asignado en esta etapa cambia su estado';
+      });
+    });
+  }
+
   // Órdenes de otros equipos asignadas a este diseñador como prestado (solo en la vista del diseñador).
   function dsRenderPrestadas() {
     var panel = document.getElementById('dsPanelPrestadas'), cont = document.getElementById('dsTablaPrestadas');
@@ -2474,7 +2490,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     grupos.forEach(function(g) {   // órdenes prestadas: cada tabla con la regla del área de su equipo
       var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]');
-      if (tb) dsBloquearCamposManager(tb, g.area);
+      if (tb) { dsBloquearCamposManager(tb, g.area); dsBloquearEstadosAjenos(tb, g.filas); }
       if (tb && dsTablaBase(g.tabla) === 'material') dsBloquearEtapa(tb);
     });
     grupos.forEach(function(g) {
