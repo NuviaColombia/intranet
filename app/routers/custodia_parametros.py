@@ -1,7 +1,7 @@
 """Parámetros del módulo Producción (/inventario/parametros), para todos sus submódulos:
 accesos al módulo (con el área asignada de cada persona) y, de Cambio de custodia, áreas de
 producción, catálogo de discos y motivos. Solo administradores."""
-from fastapi import APIRouter, Request, Depends, Form
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from ..concurrencia import RutaGeneral
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -174,6 +174,8 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
     return templates.TemplateResponse(request, "custodia_parametros.html",
                                       {"user": user, "managers": managers, "candidatos": candidatos, "consumo": consumo,
                                        "inv_conteo": inv_conteo,
+                                       "n_admins_autorizados": len([a for a in administradores
+                                                                    if a.rol == "superadmin" or MODULO_PRODUCCION in a.modulos_lista]),
                                        "admins_produccion": (db.query(Empleado).join(ProduccionAdmin, ProduccionAdmin.empleado_id == Empleado.id)
                                                              .order_by(Empleado.nombres, Empleado.apellidos).all()),
                                        "puede_asignar_admins": user.rol in ("admin", "superadmin"),
@@ -229,6 +231,38 @@ def quitar_admin_produccion(empleado_id: int, user: Empleado = Depends(require_a
             emp.modulos = ",".join(m for m in emp.modulos_lista if m != MODULO_PRODUCCION)
         db.commit()
     return RedirectResponse("/inventario/parametros?tab=admins&msg=" + quote("Administrador de Producción quitado."), status_code=303)
+
+
+@router.post("/inventario/parametros/admins-entrada/{empleado_id}/toggle")
+def toggle_admin_entrada(empleado_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
+    """Un admin normal no entra automático a Producción (ver Empleado.tiene_modulo): aquí se le autoriza
+    esa entrada, o se le quita -- mismo patrón que Caja menor. El superadmin entra siempre y no pasa
+    por aquí (ver Empleado.tiene_modulo)."""
+    from urllib.parse import quote
+    if user.rol not in ("admin", "superadmin"):
+        raise HTTPException(403, "Requiere rol de administrador.")
+    emp = db.get(Empleado, empleado_id)
+    if not emp or emp.rol != "admin":
+        return RedirectResponse("/inventario/parametros?tab=entrada&msg=" +
+                                quote("No se guardó: elige un administrador (el superadmin ya entra siempre)."),
+                                status_code=303)
+    nombre = nombre_propio(emp.nombre_completo)
+    if MODULO_PRODUCCION in emp.modulos_lista:
+        tiene_acceso_real = (db.query(ProduccionAcceso.id).filter(ProduccionAcceso.empleado_id == emp.id).first() is not None
+                             or db.get(ProduccionAdmin, emp.id) is not None)
+        if tiene_acceso_real:
+            return RedirectResponse("/inventario/parametros?tab=entrada&msg=" +
+                                    quote(f"No se quitó: {nombre} tiene acceso real a Producción "
+                                          "(quítaselo primero en Quién tiene acceso o en Administradores de Producción)."),
+                                    status_code=303)
+        emp.modulos = ",".join(m for m in emp.modulos_lista if m != MODULO_PRODUCCION)
+        db.commit()
+        msg = f"{nombre} ya no entra a Producción como administrador."
+    else:
+        emp.modulos = ",".join(emp.modulos_lista + [MODULO_PRODUCCION])
+        db.commit()
+        msg = f"{nombre} ahora entra a Producción como administrador."
+    return RedirectResponse("/inventario/parametros?tab=entrada&msg=" + quote(msg), status_code=303)
 
 
 # ---------- Managers ----------

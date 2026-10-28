@@ -66,6 +66,13 @@ class Empleado(Base):
                             # (28-oct-2026, pedido de Oscar: el superadmin queda exento de esta regla -- entra
                             # siempre a toda la plataforma, sin excepción -- por eso aquí ya no se incluye
                             # "superadmin" junto a "admin"; antes sí estaba sujeto a la misma restricción.)
+        if modulo == "custodia" and self.rol == "admin" and modulo not in self.modulos_lista:
+            return False   # Producción (28-oct-2026, mismo patrón que Caja menor, ya con el ajuste de Oscar):
+                            # un admin normal no entra automático, necesita autorización explícita -- o bien
+                            # marcando la casilla "Producción" de Empleados › editar, o bien desde Producción ›
+                            # Parámetros › pestaña 🔐 Autorizados a entrar (Parámetros en sí sigue abierto a
+                            # cualquier admin/superadmin -- ver require_admin_produccion). El superadmin queda
+                            # exento, igual que en Caja menor: entra siempre, sin autorización explícita.
         return self.rol in ("admin", "superadmin") or modulo in self.modulos_lista
 
     @property

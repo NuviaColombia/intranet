@@ -36,6 +36,9 @@
   .cp-estado { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; }
   .cp-estado.si { background:#dcfce7; color:var(--verde); }
   .cp-estado.no { background:#e5e7eb; color:var(--gris); }
+  .cp-rol { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; background:#e5e7eb; color:#374151; }
+  .cp-rol.responsable { background:#dbeafe; color:var(--azul); }
+  .cp-rol.opera { background:#e0e7ff; color:#3730a3; }
   .cp-guardado { font-size:11px; color:var(--verde); margin-left:6px; }
   .cp-area-opciones { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; margin-top:8px; padding:10px;
                       border:1px solid #E2E8F0; border-radius:8px; background:#F8FAFC; min-width:220px; font-size:12px; }
@@ -65,6 +68,7 @@
 </div>
 <div class="cp-tabs">
   <button type="button" class="cp-tab" data-grupo="general" data-panel="resumen">👥 Quién tiene acceso <span class="cp-num">{{ resumen|length }}</span></button>
+  <button type="button" class="cp-tab" data-grupo="general" data-panel="entrada">🔐 Autorizados a entrar <span class="cp-num">{{ n_admins_autorizados }}</span></button>
   <button type="button" class="cp-tab" data-grupo="general" data-panel="admins">🛡️ Administradores de Producción <span class="cp-num">{{ admins_produccion|length }}</span></button>
   {% for s in submodulos_produccion %}{% set i_sub = loop.index %}
   {% for panel, titulo in s.parametros %}
@@ -77,13 +81,20 @@
 <div class="cp-panel" id="panel-resumen">
   <div class="cp-barra"><div class="cp-ayuda">Quién entra a cada submódulo de <b>Producción</b>. El acceso se da o se quita dentro de cada submódulo
     (elígelo en la lista <b>Submódulo</b> › pestaña 👤 Accesos), y ahí mismo, en la columna <b>Secciones</b>, eliges qué pestañas puede usar cada persona.
-    Los administradores entran a todos.</div></div>
+    Los administradores entran a todos: el superadmin siempre, y un admin normal una vez que tenga permiso para entrar al
+    módulo (pestaña 🔐 Autorizados a entrar).</div></div>
   <div class="cp-ayuda" style="max-width:900px; margin:8px 0 12px; padding:10px 12px; background:#EEF2FF; border-radius:8px;">
-    🔐 <b>Quién puede entrar a Parámetros</b>:
+    🔐 <b>Quién puede entrar a Parámetros</b> (esto no cambia con la pestaña 🔐 Autorizados a entrar -- ver más abajo):
     los <b>administradores</b> de la intranet (rol Administrador o Superadministrador en People › Empleados, a Producción y a Caja menor):
     {% for a in administradores %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ' (superadmin)' if a.rol == 'superadmin' }}{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
     Y los <b>administradores de Producción</b> (pestaña 🛡️, solo a Producción):
     {% for a in admins_produccion %}<b>{{ a.nombre_completo|nombre_propio }}</b>{{ ', ' if not loop.last else '.' }}{% else %}ninguno.{% endfor %}
+  </div>
+  <div class="cp-ayuda" style="max-width:900px; margin:0 0 12px; padding:10px 12px; background:#FFF7ED; border-radius:8px;">
+    ⚠️ Poder abrir estos Parámetros <b>no es lo mismo</b> que poder entrar a Producción a trabajar. Desde el 28-oct-2026 (mismo
+    cambio que ya tiene Caja menor), ser <b>admin</b> de la intranet ya <b>no</b> da acceso automático a Custodia, Consumo ni
+    Conteo -- hay que autorizarlo en la pestaña 🔐 <b>Autorizados a entrar</b>. El <b>superadmin</b> sí entra siempre, sin
+    autorización explícita.
   </div>
   <table class="cp-tabla">
     <tr><th>Persona</th><th>Cargo</th>{% for s in submodulos_produccion %}<th style="text-align:center">{{ s.icono }} {{ s.nombre }}</th>{% endfor %}</tr>
@@ -92,6 +103,41 @@
       {% for s in submodulos_produccion %}<td style="text-align:center">{% if s.slug in por_empleado.get(e.id, []) %}<span class="cp-estado si">Sí</span>{% else %}<span style="color:#d1d5db">—</span>{% endif %}</td>{% endfor %}</tr>
     {% else %}
     <tr><td colspan="{{ 2 + submodulos_produccion|length }}" class="cp-vacio">Todavía nadie tiene acceso a los submódulos de Producción.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{# ---------- General: administradores autorizados a entrar (mismo patrón que Caja menor) ---------- #}
+<div class="cp-panel" id="panel-entrada">
+  <div class="cp-ayuda" style="max-width:900px">Esta lista sale de <b>People › Empleados</b> (se actualiza sola si alguien pasa a ser
+    admin o superadmin) y es independiente de los submódulos: ser <b>admin</b> normal ya no da acceso automático a Producción --
+    hay que autorizarlo aquí (Parámetros en sí lo puede abrir cualquier admin/superadmin, para que siempre haya quien autorice).
+    El <b>superadmin</b> entra siempre, sin importar esta lista -- autorizarlo o quitarle el acceso aquí no tiene ningún efecto
+    para él. Autorizar aquí solo abre la puerta del módulo; para operar o firmar algo adentro, la persona igual necesita que la
+    agreguen como manager (pestaña 👥 Quién tiene acceso) o como administrador de Producción (pestaña 🛡️).</div>
+  <table class="cp-tabla" style="max-width:760px">
+    <tr><th>Administrador</th><th>Cargo</th><th>Rol</th><th>Entra a Producción</th><th></th></tr>
+    {% for a in administradores %}
+    <tr>
+      <td>{{ a.nombre_completo|nombre_propio }}</td>
+      <td>{{ a.cargo }}</td>
+      <td><span class="cp-rol {{ 'responsable' if a.rol == 'superadmin' else 'opera' }}">{{ 'Superadmin' if a.rol == 'superadmin' else 'Admin' }}</span></td>
+      <td>
+        {% if a.rol == 'superadmin' %}<span class="cp-estado si">Siempre</span>
+        {% elif 'custodia' in a.modulos_lista %}<span class="cp-estado si">Autorizado</span>
+        {% else %}<span class="cp-estado no">No autorizado</span>{% endif %}
+      </td>
+      <td class="cp-acciones">
+        {% if a.rol != 'superadmin' %}
+        <form class="inline" method="post" action="/inventario/parametros/admins-entrada/{{ a.id }}/toggle">
+          <button class="btn {{ 'gris' if 'custodia' in a.modulos_lista else '' }} mini">
+            {{ 'Quitar acceso' if 'custodia' in a.modulos_lista else 'Autorizar' }}</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="cp-vacio">No hay administradores en People.</td></tr>
     {% endfor %}
   </table>
 </div>

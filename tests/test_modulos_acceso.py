@@ -30,6 +30,25 @@ class CajaMenorContabilidad(unittest.TestCase):
         self.assertTrue(_empleado(rol="empleado", modulos="caja_menor").tiene_modulo("caja_menor"))
 
 
+class Produccion(unittest.TestCase):
+    """(28-oct-2026) Mismo patrón que Caja menor/Contabilidad, llevado a Producción (pedido de
+    Carlos): un admin normal ya no entra automático; el superadmin sí, igual que en Caja menor."""
+    def test_superadmin_entra_siempre(self):
+        self.assertTrue(_empleado(rol="superadmin").tiene_modulo("custodia"))
+
+    def test_admin_sin_permiso_explicito_no_entra(self):
+        self.assertFalse(_empleado(rol="admin").tiene_modulo("custodia"))
+
+    def test_admin_con_casilla_marcada_si_entra(self):
+        self.assertTrue(_empleado(rol="admin", modulos="custodia").tiene_modulo("custodia"))
+
+    def test_empleado_sin_permiso_no_entra(self):
+        self.assertFalse(_empleado(rol="empleado").tiene_modulo("custodia"))
+
+    def test_empleado_con_permiso_si_entra(self):
+        self.assertTrue(_empleado(rol="empleado", modulos="custodia").tiene_modulo("custodia"))
+
+
 class DesignSchedule(unittest.TestCase):
     """No se toca con este cambio -- se deja como control para que un futuro ajuste de tiene_modulo
     no rompa esta otra excepción por accidente."""
