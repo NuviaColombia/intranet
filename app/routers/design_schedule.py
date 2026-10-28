@@ -1335,6 +1335,21 @@ class OrdenIn(BaseModel):
     zHoraFin: str = ""
     zQc: bool = False
     zQcReporte: str = ""
+    # N6 desde el 29-oct-2026: etapas «Zirconia» (x, Over Ti-bar) y «Nightguard design» (n)
+    xHoraInicio: str = ""
+    xSHold: str = ""
+    xFHold: str = ""
+    xHoldMinutos: float = 0
+    xHoraFin: str = ""
+    xQc: bool = False
+    xQcReporte: str = ""
+    nHoraInicio: str = ""
+    nSHold: str = ""
+    nFHold: str = ""
+    nHoldMinutos: float = 0
+    nHoraFin: str = ""
+    nQc: bool = False
+    nQcReporte: str = ""
     # N3 · Cirugías: tiempo de articulación
     artStart: str = ""
     artRtd: str = ""
@@ -1355,6 +1370,12 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
         "z_hora_inicio": payload.zHoraInicio, "z_s_hold": payload.zSHold, "z_f_hold": payload.zFHold,
         "z_hold_minutos": payload.zHoldMinutos, "z_hora_fin": payload.zHoraFin, "z_qc": payload.zQc,
         "z_qc_reporte": payload.zQcReporte, "art_start": payload.artStart, "art_rtd": payload.artRtd,
+        "x_hora_inicio": payload.xHoraInicio, "x_s_hold": payload.xSHold, "x_f_hold": payload.xFHold,
+        "x_hold_minutos": payload.xHoldMinutos, "x_hora_fin": payload.xHoraFin, "x_qc": payload.xQc,
+        "x_qc_reporte": payload.xQcReporte,
+        "n_hora_inicio": payload.nHoraInicio, "n_s_hold": payload.nSHold, "n_f_hold": payload.nFHold,
+        "n_hold_minutos": payload.nHoldMinutos, "n_hora_fin": payload.nHoraFin, "n_qc": payload.nQc,
+        "n_qc_reporte": payload.nQcReporte,
     }
 
 
@@ -1369,6 +1390,10 @@ CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "
                  "qcReporte": "qc_reporte", "notas": "notas",
                  "zHoraInicio": "z_hora_inicio", "zSHold": "z_s_hold", "zFHold": "z_f_hold", "zHoldMinutos": "z_hold_minutos",
                  "zHoraFin": "z_hora_fin", "zQc": "z_qc", "zQcReporte": "z_qc_reporte",
+                 "xHoraInicio": "x_hora_inicio", "xSHold": "x_s_hold", "xFHold": "x_f_hold", "xHoldMinutos": "x_hold_minutos",
+                 "xHoraFin": "x_hora_fin", "xQc": "x_qc", "xQcReporte": "x_qc_reporte",
+                 "nHoraInicio": "n_hora_inicio", "nSHold": "n_s_hold", "nFHold": "n_f_hold", "nHoldMinutos": "n_hold_minutos",
+                 "nHoraFin": "n_hora_fin", "nQc": "n_qc", "nQcReporte": "n_qc_reporte",
                  "artStart": "art_start", "artRtd": "art_rtd"}
 
 DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
@@ -1382,7 +1407,8 @@ def _verificar_qc(user: Empleado, team: DesignTeam, payload: "OrdenIn", existent
     cambia = any(  # QC de Bite (o de la orden) y QC de Zirconia (Material Change)
         (chk in payload.model_fields_set and bool(getattr(payload, chk)) != bool(getattr(existente, col_chk) if existente else False)) or
         (rep in payload.model_fields_set and (getattr(payload, rep) or "") != ((getattr(existente, col_rep) if existente else "") or ""))
-        for chk, col_chk, rep, col_rep in (("qc", "qc", "qcReporte", "qc_reporte"), ("zQc", "z_qc", "zQcReporte", "z_qc_reporte")))
+        for chk, col_chk, rep, col_rep in (("qc", "qc", "qcReporte", "qc_reporte"), ("zQc", "z_qc", "zQcReporte", "z_qc_reporte"),
+                                         ("xQc", "x_qc", "xQcReporte", "x_qc_reporte"), ("nQc", "n_qc", "nQcReporte", "n_qc_reporte")))
     if cambia:
         raise HTTPException(403, SOLO_QC)
 
@@ -1514,7 +1540,9 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
 
 # Horas que un diseñador no cambia a mano cuando el estado las llena solas (services_design.horas_por_estado).
 CAMPOS_HORAS = ("hora_inicio", "hora_inicio_diseno", "hora_fin", "s_hold", "f_hold", "hold_minutos",
-                "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin")
+                "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin",
+                "x_hora_inicio", "x_s_hold", "x_f_hold", "x_hold_minutos", "x_hora_fin",
+                "n_hora_inicio", "n_s_hold", "n_f_hold", "n_hold_minutos", "n_hora_fin")
 
 # ---------- Catálogo de hallazgos de QC (títulos y hallazgos preestablecidos por área) ----------
 
@@ -1854,7 +1882,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             raise HTTPException(403, DIA_CERRADO)
         # solo lo que llegó: si no se envió el checkbox (no cambió), no se desmarca
         qc = {c: v for k, c, v in (("qc", "qc", payload.qc), ("qcReporte", "qc_reporte", payload.qcReporte),
-                                    ("zQc", "z_qc", payload.zQc), ("zQcReporte", "z_qc_reporte", payload.zQcReporte))
+                                    ("zQc", "z_qc", payload.zQc), ("zQcReporte", "z_qc_reporte", payload.zQcReporte),
+                                    ("xQc", "x_qc", payload.xQc), ("xQcReporte", "x_qc_reporte", payload.xQcReporte),
+                                    ("nQc", "n_qc", payload.nQc), ("nQcReporte", "n_qc_reporte", payload.nQcReporte))
               if k in payload.model_fields_set}
         o = sd.actualizar_orden(db, orden_id, qc) if qc else orden_existente
         return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))

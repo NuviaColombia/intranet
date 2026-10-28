@@ -336,7 +336,16 @@ def init_db():
                       ("art_start", "VARCHAR(10) DEFAULT ''"), ("art_rtd", "VARCHAR(10) DEFAULT ''"),
                       ("origen_equipo", "VARCHAR(150) DEFAULT ''"), ("arco", "VARCHAR(10) DEFAULT ''"),
                       ("aprobada_en", "TIMESTAMP"), ("qc_en", "TIMESTAMP"),
-                      ("diseno_min", "FLOAT"), ("diseno_desde", "TIMESTAMP")):
+                      ("diseno_min", "FLOAT"), ("diseno_desde", "TIMESTAMP"),
+                      # N6: etapas «Zirconia» (x_) y «Nightguard design» (n_) (28-oct-2026, autorizado por Rosember)
+                      ("x_hora_inicio", "VARCHAR(10) DEFAULT ''"), ("x_s_hold", "VARCHAR(10) DEFAULT ''"),
+                      ("x_f_hold", "VARCHAR(10) DEFAULT ''"), ("x_hold_minutos", "FLOAT DEFAULT 0"),
+                      ("x_hora_fin", "VARCHAR(10) DEFAULT ''"), ("x_qc", "BOOLEAN DEFAULT FALSE"),
+                      ("x_qc_reporte", "TEXT DEFAULT ''"),
+                      ("n_hora_inicio", "VARCHAR(10) DEFAULT ''"), ("n_s_hold", "VARCHAR(10) DEFAULT ''"),
+                      ("n_f_hold", "VARCHAR(10) DEFAULT ''"), ("n_hold_minutos", "FLOAT DEFAULT 0"),
+                      ("n_hora_fin", "VARCHAR(10) DEFAULT ''"), ("n_qc", "BOOLEAN DEFAULT FALSE"),
+                      ("n_qc_reporte", "TEXT DEFAULT ''")):
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))

@@ -1276,6 +1276,8 @@
   table.ds-tabla tr.ds-tr-grupos th.ds-gh-vacio { background:transparent; border-top-color:transparent; border-left-color:transparent; border-right-color:transparent; }
   table.ds-tabla th.ds-g-b { background:#e0ecff; color:#1e3a8a; }
   table.ds-tabla th.ds-g-z { background:#e6f6ef; color:#14532d; }
+  table.ds-tabla th.ds-g-x { background:#fef3c7; color:#78350f; }   /* N6: «Zirconia» de Over Ti-bar */
+  table.ds-tabla th.ds-g-n { background:#fce7f3; color:#831843; }   /* N6: «Nightguard design» */
   table.ds-tabla th.ds-g-a { background:#ede9fe; color:#4c1d95; }
   table.ds-tabla .ds-ro { font-size:13px; color:#475569; white-space:nowrap; }
   table.ds-tabla th.ds-g-d { background:#d9f2ee; color:#0f4f49; }

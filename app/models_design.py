@@ -132,6 +132,22 @@ class DesignOrden(Base):
     z_hora_fin: Mapped[str] = mapped_column(String(10), default="")
     z_qc: Mapped[bool] = mapped_column(Boolean, default=False)
     z_qc_reporte: Mapped[str] = mapped_column(Text, default="")
+    # N6 desde el 29-oct-2026 (Rosember, 28-oct-2026): más etapas en la misma fila, con las mismas horas, QC y total.
+    # x_ = «Zirconia» (la segunda de Over Ti-bar) y n_ = «Nightguard design» (Material Change y Over Ti-bar).
+    x_hora_inicio: Mapped[str] = mapped_column(String(10), default="")
+    x_s_hold: Mapped[str] = mapped_column(String(10), default="")
+    x_f_hold: Mapped[str] = mapped_column(String(10), default="")
+    x_hold_minutos: Mapped[float] = mapped_column(Float, default=0)
+    x_hora_fin: Mapped[str] = mapped_column(String(10), default="")
+    x_qc: Mapped[bool] = mapped_column(Boolean, default=False)
+    x_qc_reporte: Mapped[str] = mapped_column(Text, default="")
+    n_hora_inicio: Mapped[str] = mapped_column(String(10), default="")
+    n_s_hold: Mapped[str] = mapped_column(String(10), default="")
+    n_f_hold: Mapped[str] = mapped_column(String(10), default="")
+    n_hold_minutos: Mapped[float] = mapped_column(Float, default=0)
+    n_hora_fin: Mapped[str] = mapped_column(String(10), default="")
+    n_qc: Mapped[bool] = mapped_column(Boolean, default=False)
+    n_qc_reporte: Mapped[str] = mapped_column(Text, default="")
 
     # N3 · Cirugías (pedido por Rosember el 13-oct-2026): tiempo de articulación. Las dos horas se escriben a mano; el
     # total (RTD − START) se calcula en pantalla. Pasadas las 2 h se cuenta en el Dashboard › Articulación.

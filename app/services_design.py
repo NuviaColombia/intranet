@@ -26,6 +26,8 @@ CAMPOS_ORDEN = [
     "etapa", "solicitado_por", "situacion", "solucion", "clasificacion", "soporte",
     "estado", "qc", "qc_reporte", "notas",
     "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin", "z_qc", "z_qc_reporte",
+    "x_hora_inicio", "x_s_hold", "x_f_hold", "x_hold_minutos", "x_hora_fin", "x_qc", "x_qc_reporte",
+    "n_hora_inicio", "n_s_hold", "n_f_hold", "n_hold_minutos", "n_hora_fin", "n_qc", "n_qc_reporte",
     "art_start", "art_rtd",
 ]
 
@@ -2180,6 +2182,12 @@ def serializar_orden(o: DesignOrden) -> dict:
         "zHoraInicio": o.z_hora_inicio or "", "zSHold": o.z_s_hold or "", "zFHold": o.z_f_hold or "",
         "zHoldMinutos": o.z_hold_minutos or 0, "zHoraFin": o.z_hora_fin or "", "zQc": bool(o.z_qc),
         "zQcReporte": o.z_qc_reporte or "",
+        "xHoraInicio": o.x_hora_inicio or "", "xSHold": o.x_s_hold or "", "xFHold": o.x_f_hold or "",
+        "xHoldMinutos": o.x_hold_minutos or 0, "xHoraFin": o.x_hora_fin or "", "xQc": bool(o.x_qc),
+        "xQcReporte": o.x_qc_reporte or "",
+        "nHoraInicio": o.n_hora_inicio or "", "nSHold": o.n_s_hold or "", "nFHold": o.n_f_hold or "",
+        "nHoldMinutos": o.n_hold_minutos or 0, "nHoraFin": o.n_hora_fin or "", "nQc": bool(o.n_qc),
+        "nQcReporte": o.n_qc_reporte or "",
         "ordenVisual": o.orden_visual,
         "disenoMin": o.diseno_min,   # tiempo de diseño con hora real (si lo tiene); no se muestra, solo alimenta el Total
         # días que lleva desde que se creó (para el Total de un caso que pasó varias noches en Hold: dsMenosHold)
@@ -2762,7 +2770,9 @@ def dashboard_qc_disenadores(db: Session, user: Empleado, desde: date, hasta: da
     q = (db.query(DesignOrden).join(DesignTeam, DesignOrden.team_id == DesignTeam.id)
          .filter(filtro_orden_completa(), DesignOrden.fecha >= desde, DesignOrden.fecha <= hasta,
                  or_(and_(DesignOrden.qc.is_(True), func.coalesce(DesignOrden.qc_reporte, "") != ""),
-                     and_(DesignOrden.z_qc.is_(True), func.coalesce(DesignOrden.z_qc_reporte, "") != ""))))
+                     and_(DesignOrden.z_qc.is_(True), func.coalesce(DesignOrden.z_qc_reporte, "") != ""),
+                     and_(DesignOrden.x_qc.is_(True), func.coalesce(DesignOrden.x_qc_reporte, "") != ""),
+                     and_(DesignOrden.n_qc.is_(True), func.coalesce(DesignOrden.n_qc_reporte, "") != ""))))
     if not es_admin(user):
         q = q.filter(DesignTeam.id.in_(equipos_dash_ids(db, user)))
     por: dict[str, dict] = {}
@@ -2770,7 +2780,9 @@ def dashboard_qc_disenadores(db: Session, user: Empleado, desde: date, hasta: da
         if _es_cancelada(f.estado):
             continue
         hallazgos = [h for h in (((f.qc_reporte or "").strip() if f.qc else ""),
-                                 ((f.z_qc_reporte or "").strip() if f.z_qc else "")) if h]
+                                 ((f.z_qc_reporte or "").strip() if f.z_qc else ""),
+                                 ((f.x_qc_reporte or "").strip() if f.x_qc else ""),
+                                 ((f.n_qc_reporte or "").strip() if f.n_qc else "")) if h]
         if not hallazgos:
             continue
         nombre = f.designer.nombre_completo if f.designer else (f.designer_prestado or "").strip() or "Sin asignar"
@@ -3477,7 +3489,8 @@ def face_convertir_una_vez(db: Session) -> None:
 
 
 def material_minutos(o: DesignOrden) -> tuple[float, float, float]:
-    """Material Change: (Bite, Zirconia, total) en minutos; una etapa sin Inicio o sin Fin cuenta 0."""
+    """Material Change: (Bite, Zirconia, total) en minutos; una etapa sin Inicio o sin Fin cuenta 0. El total suma también
+    las etapas «Zirconia» (x_, Over Ti-bar) y «Nightguard design» (n_) de N6 desde el 29-oct-2026."""
     def etapa(ini, fin, s, f, previos):
         if not ini or not fin:
             return 0
@@ -3485,7 +3498,9 @@ def material_minutos(o: DesignOrden) -> tuple[float, float, float]:
         return max(0, _entre(ini, fin) - (previos or 0) - (_entre(s, fh) if s and fh else 0))
     b = etapa(o.hora_inicio, o.hora_fin, o.s_hold, o.f_hold, o.hold_minutos)
     z = etapa(o.z_hora_inicio, o.z_hora_fin, o.z_s_hold, o.z_f_hold, o.z_hold_minutos)
-    return b, z, b + z
+    otras = sum(etapa(getattr(o, p + "hora_inicio", ""), getattr(o, p + "hora_fin", ""), getattr(o, p + "s_hold", ""),
+                      getattr(o, p + "f_hold", ""), getattr(o, p + "hold_minutos", 0)) for p in ("x_", "n_"))
+    return b, z, b + z + otras
 
 
 def _menos_hold(o: DesignOrden, fin_menos_inicio: float, hold: float) -> float:

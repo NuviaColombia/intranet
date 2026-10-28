@@ -487,7 +487,8 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
         if x is None:
             continue
         # hallazgos de QC en cualquiera de sus casos del mes (no solo los Approved): descartan
-        x["hallazgos"] += int(bool(o.qc and (o.qc_reporte or "").strip())) + int(bool(o.z_qc and (o.z_qc_reporte or "").strip()))
+        x["hallazgos"] += (int(bool(o.qc and (o.qc_reporte or "").strip())) + int(bool(o.z_qc and (o.z_qc_reporte or "").strip()))
+                           + int(bool(o.x_qc and (o.x_qc_reporte or "").strip())) + int(bool(o.n_qc and (o.n_qc_reporte or "").strip())))
         if not sd._es_aprobada(o.estado):
             continue
         x["aprobadas"] += 1

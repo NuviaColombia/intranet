@@ -685,6 +685,21 @@ window.addEventListener('unhandledrejection', function(ev) {
       // sin Esferas: en N6 ya no se usa (Rosember, 19-oct-2026)
       {k:'estado', l:'Estado', t:'catalogo', cat:'estado'}, {k:'notas', l:'Notas', t:'text'},
     ],
+    // N6 desde el 29-oct-2026 (Rosember, 28-oct-2026): sin la columna Etapa (se ve por las horas marcadas) y con más etapas,
+    // cada una con sus horas, QC y total: Material Change agrega «Nightguard design»; Over Ti-bar, «Zirconia» y «Nightguard design».
+    // Se arman en dsSpecN6 a partir de COLSPEC.material.
+    etapasN6: {
+      x: [
+        {k:'xHoraInicio', l:'Inicio', t:'time', g:'x'}, {k:'xSHold', l:'S.Hold', t:'time', g:'x'},
+        {k:'xFHold', l:'F.Hold', t:'time', g:'x', extra: [{k:'xTHold', l:'T. Hold'}]},
+        {k:'xHoraFin', l:'Fin', t:'time', g:'x'}, {k:'xQc', l:'QC', t:'checkbox', g:'x', extra: [{k:'xTotal', l:'Total'}]}
+      ],
+      n: [
+        {k:'nHoraInicio', l:'Inicio', t:'time', g:'n'}, {k:'nSHold', l:'S.Hold', t:'time', g:'n'},
+        {k:'nFHold', l:'F.Hold', t:'time', g:'n', extra: [{k:'nTHold', l:'T. Hold'}]},
+        {k:'nHoraFin', l:'Fin', t:'time', g:'n'}, {k:'nQc', l:'QC', t:'checkbox', g:'n', extra: [{k:'nTotal', l:'Total'}]}
+      ]
+    },
     // Removable Denture (Rosember, 20-oct-2026): la orden llega de N3 / N6 (Nestor como diseñador prestado); aquí se ve con
     // el manager de donde viene, el arco y sus dos etapas (Bite design · Denture design), que se llenan con el estado.
     rd: [
@@ -791,9 +806,17 @@ window.addEventListener('unhandledrejection', function(ev) {
     var f = dsFechaISO(dsFechaSeleccionada());
     return (formato === 'single' && f >= DS_FACE_NUEVO_DESDE) || (formato === 'dual' && f >= DS_DUAL_NUEVO_DESDE);
   }
+  // N6 desde el 29-oct-2026: Material Change y Over Ti-bar sin Etapa y con sus etapas nuevas antes de Estado
+  function dsSpecN6(tablaOrig) {
+    var extra = tablaOrig === 'tibar' ? COLSPEC.etapasN6.x.concat(COLSPEC.etapasN6.n) : COLSPEC.etapasN6.n;
+    var base = COLSPEC.material.filter(function(c) { return c.k !== 'etapa'; }), i = base.findIndex(function(c) { return c.k === 'estado'; });
+    return base.slice(0, i).concat(extra, base.slice(i));
+  }
   function dsSpec(tabla, formato, areaNombre) {
+    var tablaOrig = tabla;
     tabla = dsTablaBase(tabla);   // Over Ti-bar con las columnas de Material Change; Dummy, con las de Cirugías
-    if (tabla === 'material') return (areaNombre || dsAreaNombre()) === DS_AREA_RD ? COLSPEC.rd : COLSPEC.material;
+    if (tabla === 'material') return (areaNombre || dsAreaNombre()) === DS_AREA_RD ? COLSPEC.rd
+      : (areaNombre || dsAreaNombre()) === DS_AREA_MATERIAL && dsN6Separado() ? dsSpecN6(tablaOrig) : COLSPEC.material;
     var area = areaNombre || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre;
     var fm = formato || DS.areaFormato;
     var base = !dsFaceNuevo(fm) ? COLSPEC[fm] : (fm === 'dual' ? {principal: COLSPEC.dualNuevo.principal, nightguard: dsNgNuevo(fm) ? COLSPEC.dualNuevo.nightguard : COLSPEC.dual.nightguard} : COLSPEC.faceNuevo);
@@ -857,8 +880,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsEsHold(estado) { var e = dsNorm(estado); return e === 'hold' || e === 'dr authorization'; }
   function dsEsReady(estado) { var e = dsNorm(estado); return e === 'ready to design' || e === 'changes'; }
   function dsEsZirconia(f) { var e = dsNorm(f && f.etapa); return e === 'zirconia design' || e === 'denture design'; }   // 2.ª etapa (Material Change / Removable Denture)
-  function dsEsCampoQc(k) { return k === 'qc' || k === 'zQc'; }
-  function dsCampoReporte(chk) { return chk && chk.dataset.campo === 'zQc' ? 'zQcReporte' : 'qcReporte'; }
+  var DS_CAMPOS_QC = ['qc', 'zQc', 'xQc', 'nQc'];   // QC de cada etapa (x = «Zirconia» de Over Ti-bar, n = «Nightguard design»)
+  function dsEsCampoQc(k) { return DS_CAMPOS_QC.indexOf(k) >= 0; }
+  function dsCampoReporte(chk) { return chk && dsEsCampoQc(chk.dataset.campo) ? chk.dataset.campo + 'Reporte' : 'qcReporte'; }
   // QC que cierra la orden (Material Change: el de Zirconia)
   function dsQcFinal(f) { return dsTablaBase(f.tabla) === 'material' ? !!f.zQc : !!f.qc; }
   function dsMinEtapa(ini, fin, s, fh, previos) {
@@ -870,7 +894,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsMaterialMin(f) {
     var b = dsMinEtapa(f.horaInicio, f.horaFin, f.sHold, f.fHold, f.holdMinutos);
     var z = dsMinEtapa(f.zHoraInicio, f.zHoraFin, f.zSHold, f.zFHold, f.zHoldMinutos);
-    return {b: b, z: z, t: b === null && z === null ? null : (b || 0) + (z || 0)};
+    var x = dsMinEtapa(f.xHoraInicio, f.xHoraFin, f.xSHold, f.xFHold, f.xHoldMinutos);   // N6: «Zirconia» de Over Ti-bar
+    var n = dsMinEtapa(f.nHoraInicio, f.nHoraFin, f.nSHold, f.nFHold, f.nHoldMinutos);   // N6: «Nightguard design»
+    var todas = [b, z, x, n].filter(function(v) { return v !== null; });
+    return {b: b, z: z, x: x, n: n, t: todas.length ? todas.reduce(function(a, v) { return a + v; }, 0) : null};
   }
   // N3 · Cirugías: tiempo de articulación = RTD − START (minutos; si cruza la medianoche se suma un día, como las demás horas)
   var DS_ART_LIMITE_MIN = 120;  // lo normal son 2 h; pasadas se cuenta en Dashboard › Articulación (art_min en services_design.py)
@@ -880,6 +907,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (k === 'zTHold') return dsTHoldTxt({holdMinutos: f.zHoldMinutos, sHold: f.zSHold, fHold: f.zFHold});
     if (k === 'bTotal') return dsFmtMin(dsMaterialMin(f).b);
     if (k === 'zTotal') return dsFmtMin(dsMaterialMin(f).z);
+    if (k === 'xTHold') return dsTHoldTxt({holdMinutos: f.xHoldMinutos, sHold: f.xSHold, fHold: f.xFHold});
+    if (k === 'nTHold') return dsTHoldTxt({holdMinutos: f.nHoldMinutos, sHold: f.nSHold, fHold: f.nFHold});
+    if (k === 'xTotal') return dsFmtMin(dsMaterialMin(f).x);
+    if (k === 'nTotal') return dsFmtMin(dsMaterialMin(f).n);
     if (k === 'artTotal') return dsFmtMin(dsArtMin(f));
     if (k === 'rdTime') return dsFmtMin(dsMaterialMin(f).t);   // Removable Denture: Bite + Denture
     return '';
@@ -918,7 +949,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsSelTablas(sufijo) { return DS_TABLAS.map(function(t) { return '#' + DS_CONT[t] + (sufijo ? ' ' + sufijo : ''); }).join(', '); }
   // Fila de encabezado con los bloques Bite design / Zirconia design (solo tablas con columnas agrupadas)
-  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', a: 'Articulation', d: 'Design', t: 'TOTAL'};
+  var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', x: 'Zirconia', n: 'Nightguard design', a: 'Articulation', d: 'Design', t: 'TOTAL'};
   function dsAnchoCol(c) { return 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0); }
   function dsFilaGrupos(spec, alFinal) {
     if (!spec.some(function(c) { return c.g; })) return '';
@@ -989,7 +1020,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (miss) el.title = 'Falta esta hora y la orden ya está aprobada'; else el.removeAttribute('title');
     });
     // QC (Material Change: uno por etapa)
-    [['qc', 'qcReporte', esMat ? biteHecha : aprobada], ['zQc', 'zQcReporte', zHecha]].forEach(function(q) {
+    [['qc', 'qcReporte', esMat ? biteHecha : aprobada], ['zQc', 'zQcReporte', zHecha], ['xQc', 'xQcReporte', false], ['nQc', 'nQcReporte', false]].forEach(function(q) {
       var qc = tr.querySelector('[data-campo="' + q[0] + '"]'), td = qc && qc.closest('td');
       if (!td) return;
       var pend = q[2] && !f[q[0]], etapaTxt = esMat ? (q[0] === 'zQc' ? 'Zirconia aprobada' : 'Bite aprobado') : 'Orden aprobada';
@@ -2338,7 +2369,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Las horas las llena el estado (Initiated, Hold, Approved): el diseñador no las escribe a mano. Solo donde el estado ya
   // las llena (mismas fechas que horas_por_estado en services_design.py); antes de esas fechas siguen editables.
   var DS_HORAS_CAMPOS = ['horaInicio', 'horaInicioDiseno', 'horaFin', 'sHold', 'fHold', 'holdMinutos',
-                         'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin'];
+                         'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin',
+                         'xHoraInicio', 'xSHold', 'xFHold', 'xHoldMinutos', 'xHoraFin', 'nHoraInicio', 'nSHold', 'nFHold', 'nHoldMinutos', 'nHoraFin'];
   // Material Change: la etapa cambia sola al aprobar Bite; corregirla es del manager (igual en el servidor)
   function dsBloquearEtapa(scope) {
     scope.querySelectorAll('[data-campo="etapa"]').forEach(function(el) { el.disabled = true; el.title = 'La etapa cambia sola al aprobar Bite design'; });
@@ -2665,7 +2697,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       DS_CAMPOS.forEach(function(k) { if (datos[k] === undefined && local[k] !== undefined && local[k] !== null) datos[k] = local[k]; });
       datos.designerPrestado = local.designerPrestado || '';
       datos.qcReporte = local.qcReporte || '';
-      if (local.zQcReporte !== undefined) datos.zQcReporte = local.zQcReporte || '';
+      ['zQcReporte', 'xQcReporte', 'nQcReporte'].forEach(function(k) { if (local[k] !== undefined) datos[k] = local[k] || ''; });
       if (tr._qcReporte !== undefined) datos[tr._qcCampoRep || 'qcReporte'] = tr._qcReporte;
     }
     delete tr._qcReporte; delete tr._qcCampoRep;
@@ -3716,7 +3748,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_CAMPOS = ['orden', 'paciente', 'centro', 'producto', 'designerId', 'designerPrestado', 'horaInicio',
                    'horaInicioDiseno', 'horaFin', 'holdMinutos', 'esferas', 'critico', 'sHold', 'fHold', 'etapa',
                    'solicitadoPor', 'situacion', 'solucion', 'clasificacion', 'soporte', 'estado', 'qc', 'qcReporte', 'notas',
-                   'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin', 'zQc', 'zQcReporte', 'artStart', 'artRtd'];
+                   'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin', 'zQc', 'zQcReporte', 'artStart', 'artRtd',
+                   'xHoraInicio', 'xSHold', 'xFHold', 'xHoldMinutos', 'xHoraFin', 'xQc', 'xQcReporte',
+                   'nHoraInicio', 'nSHold', 'nFHold', 'nHoldMinutos', 'nHoraFin', 'nQc', 'nQcReporte'];
   function dsClon(o) { return JSON.parse(JSON.stringify(o)); }
   function dsMismaOrden(a, b) { return DS_CAMPOS.every(function(k) { return (a[k] == null ? '' : a[k]) === (b[k] == null ? '' : b[k]); }); }
   function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
