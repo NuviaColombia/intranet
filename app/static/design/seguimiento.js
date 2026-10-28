@@ -263,6 +263,7 @@
       clearTimeout(tProd); tProd = setTimeout(cargarProd, 400 + Math.random() * 1200); return;
     }
     if (!panel.classList.contains('open') || (a.t !== 'dia' && a.t !== 'reconectado')) return;
+    if (a.t === 'dia' && a.fecha && a.fecha !== hoyISO()) return;   // Seguimiento es solo de hoy: un cambio de otro día no lo afecta
     clearTimeout(tVivo);
     tVivo = setTimeout(function() { ultVivo = Date.now(); cargar(); }, Math.max(300, 5000 - (Date.now() - ultVivo)));
   });

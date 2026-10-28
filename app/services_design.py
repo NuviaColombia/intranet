@@ -1587,7 +1587,7 @@ def _seg_hora(hhmm: str) -> int | None:
         return None
 
 
-def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "17:00") -> dict:
+def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "17:00", con_equipos: bool = True) -> dict:
     from .models import Empleado as _E
     trasladar_holds(db)
     ahora = ahora or ahora_colombia()
@@ -1730,7 +1730,7 @@ def seguimiento(db: Session, ahora: datetime | None = None, fin_jornada: str = "
     resumen = {g: sum(1 for x in out if x["grupo"] == g) for g in SEG_GRUPOS}
     return {"fecha": hoy.isoformat(), "hora": ahora.strftime("%H:%M:%S"), "resumen": resumen, "disenadores": out,
             "areas": sorted({a for x in out for a in x["areas"]}),
-            "equipos": seguimiento_equipos(db, fin_jornada, ahora, out), "finJornada": fin_jornada}
+            "equipos": seguimiento_equipos(db, fin_jornada, ahora, out) if con_equipos else None, "finJornada": fin_jornada}
 
 
 def areas_de_gestion(db: Session, user: Empleado) -> set[str] | None:
@@ -1739,23 +1739,30 @@ def areas_de_gestion(db: Session, user: Empleado) -> set[str] | None:
     if es_admin(user):
         return None
     cargo = {tid for tid, eid in delegaciones_activas(db).items() if eid == user.id}
-    teams = db.query(DesignTeam).options(joinedload(DesignTeam.area)).filter(DesignTeam.activo == 1).all()
-    return {t.area.nombre for t in teams if t.area and (t.manager_id == user.id or t.id in cargo)}
+    filas = db.query(DesignTeam.id, DesignTeam.manager_id, DesignArea.nombre).join(DesignArea, DesignArea.id == DesignTeam.area_id).filter(DesignTeam.activo == 1)
+    return {area for tid, mid, area in filas if mid == user.id or tid in cargo}   # solo 3 columnas (corre en cada petición)
 
 
-_SEG_CACHE = {"k": None, "t": 0.0, "v": None}
+_SEG_CACHE = {"t": 0.0, "v": None, "eq": {}}
 SEG_CACHE_S = 4   # segundos que se comparte el cálculo entre quienes tienen Seguimiento abierto
 
 
 def seguimiento_compartido(db: Session, fin_jornada: str = "17:00") -> dict:
     """El cálculo de Seguimiento es el mismo para todos (después se recorta por área), así que se hace una vez cada
     SEG_CACHE_S segundos y se comparte: con 18 aprobadores mirándolo, cada uno recalculaba toda la plataforma (12 consultas
-    y ~140 KB) con cada cambio (auditoría 19-oct-2026). Devuelve una copia superficial: quien la recorta no daña la compartida."""
+    y ~140 KB) con cada cambio (auditoría 19-oct-2026). Devuelve una copia superficial: quien la recorta no daña la compartida.
+    28-oct-2026: el fin de jornada es de cada persona (sgFinJornada) y solo cambia «Casos por equipo»; antes era parte de la
+    clave del caché y dos managers con horas distintas lo recalculaban todo en cada petición. Ahora la parte común se calcula
+    una vez y «Casos por equipo» se guarda aparte por cada fin de jornada."""
     import time as _t
     c = _SEG_CACHE
-    if c["v"] is None or c["k"] != fin_jornada or _t.monotonic() - c["t"] >= SEG_CACHE_S:
-        c["v"], c["k"], c["t"] = seguimiento(db, fin_jornada=fin_jornada), fin_jornada, _t.monotonic()
-    return dict(c["v"])
+    if c["v"] is None or _t.monotonic() - c["t"] >= SEG_CACHE_S:
+        c["v"], c["t"], c["eq"] = seguimiento(db, fin_jornada=fin_jornada, con_equipos=False), _t.monotonic(), {}
+    if fin_jornada not in c["eq"]:
+        c["eq"][fin_jornada] = seguimiento_equipos(db, fin_jornada, personas=c["v"]["disenadores"])
+    d = dict(c["v"])
+    d["equipos"], d["finJornada"] = c["eq"][fin_jornada], fin_jornada
+    return d
 
 
 def seguimiento_visible(db: Session, user: Empleado, fin_jornada: str = "17:00") -> dict:
@@ -1786,7 +1793,7 @@ def _promedios_producto(db: Session) -> dict:
     """{(area_id, producto normalizado): minutos promedio, (area_id, None): promedio del área}, últimos 30 días."""
     import time as _t
     c = _promedios_cache
-    if c["v"] is not None and _t.monotonic() - c["t"] < 600:
+    if c["v"] is not None and _t.monotonic() - c["t"] < 1800:   # promedio de 30 días: cada 30 min basta (antes 10)
         return c["v"]
     desde = ahora_colombia().date() - timedelta(days=30)
     # 28-oct-2026: antes cargaba de golpe las órdenes de 30 días de todas las áreas (con equipo y área unidos a cada una):
