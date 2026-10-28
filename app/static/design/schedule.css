@@ -1287,7 +1287,8 @@
   table.ds-tabla-material th, table.ds-tabla-material td { padding:3px 3px; }
   table.ds-tabla-material select[data-campo="producto"] { min-width:190px; }
   table.ds-tabla-material select[data-campo="estado"] { min-width:125px; }
-  table.ds-tabla-material select[data-campo="designerId"] { min-width:120px; }
+  table.ds-tabla-material select[data-campo="designerId"], table.ds-tabla-material select[data-campo="zDesignerId"],
+  table.ds-tabla-material select[data-campo="xDesignerId"], table.ds-tabla-material select[data-campo="nDesignerId"] { min-width:120px; }
   table.ds-tabla-material select[data-campo="etapa"] { min-width:118px; }
   table.ds-tabla-material input[data-campo="orden"] { min-width:70px; }
   table.ds-tabla-material input[data-campo="notas"] { min-width:140px; }

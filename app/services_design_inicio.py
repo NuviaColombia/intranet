@@ -535,7 +535,7 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
     import time
     from collections import Counter
     from datetime import date
-    from .services_design import ahora_colombia, filtro_orden_completa
+    from .services_design import ahora_colombia, filtro_orden_completa, disenadores_de_orden
     from .models_design import DesignOrden, DesignTeam, DesignArea, DesignTeamDesigner
     corte = corte_ranking(ahora or ahora_colombia())
     clave = corte
@@ -552,19 +552,22 @@ def ranking_disenadores_mes(db: Session, ahora: datetime | None = None, forzar: 
         if t.manager_id:
             miembros.setdefault(t.id, set()).add(t.manager_id)
     areas_solo_cir = {a.id for a in db.query(DesignArea).filter(DesignArea.nombre.in_(PODIO_SOLO_CIRUGIAS))}
-    filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.tabla,
+    filas = db.query(DesignOrden.team_id, DesignOrden.designer_id, DesignOrden.z_designer_id, DesignOrden.x_designer_id,
+                     DesignOrden.n_designer_id, DesignOrden.estado, DesignOrden.producto, DesignOrden.tabla,
                      DesignOrden.aprobada_en).filter(
         DesignOrden.fecha >= ini, DesignOrden.fecha <= ref.date(), DesignOrden.designer_id.isnot(None), filtro_orden_completa()).all()
     cuenta: dict[int, Counter] = {}   # area_id -> {designer_id: casos}
     for f in filas:
         t = equipos.get(f.team_id)
-        if not t or f.designer_id not in miembros.get(t.id, set()):
+        if not t:
             continue
         if t.area_id in areas_solo_cir and f.tabla != "principal":
             continue   # N3: Nightguards / TC no cuentan en el podio
         if ((f.estado or "").strip().lower() == "approved" and "change" not in (f.producto or "").lower()
                 and _aprobada_antes(f.aprobada_en, corte)):
-            cuenta.setdefault(t.area_id, Counter())[f.designer_id] += 1
+            for eid in disenadores_de_orden(f):   # N6 (28-oct-2026): cada persona por la etapa que hizo
+                if eid in miembros.get(t.id, set()):
+                    cuenta.setdefault(t.area_id, Counter())[eid] += 1
     areas = []
     for nombre_area, etiqueta in PODIO_AREAS:
         area = db.query(DesignArea).filter(DesignArea.nombre == nombre_area).first()

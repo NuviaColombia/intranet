@@ -27,6 +27,13 @@ class N6CuatroTablas(unittest.TestCase):
         p = sd.PRODUCTOS_N6_TABLA
         self.assertEqual((len(p["material"]), len(p["tibar"]), len(p["dummy"]), len(p["principal"])), (6, 1, 3, 15))
 
+    def test_disenador_de_cada_etapa(self):
+        from types import SimpleNamespace as O
+        o = O(tabla="tibar", designer_id=1, z_designer_id=None, x_designer_id=2, n_designer_id=1)
+        self.assertEqual(sd.disenadores_de_orden(o), [1, 2, 1])   # un caso por cada etapa en la que está
+        o = O(tabla="dummy", designer_id=1, z_designer_id=5, x_designer_id=None, n_designer_id=None)
+        self.assertEqual(sd.disenadores_de_orden(o), [1])   # Dummy y Cirugías tienen un solo Diseñador
+
     def test_produccion_como_hoy(self):
         self.assertEqual(sd.tipo_produccion("tibar", ""), "mc")
         self.assertEqual(sd.tipo_produccion("dummy", ""), "sx")

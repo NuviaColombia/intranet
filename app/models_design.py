@@ -148,6 +148,10 @@ class DesignOrden(Base):
     n_hora_fin: Mapped[str] = mapped_column(String(10), default="")
     n_qc: Mapped[bool] = mapped_column(Boolean, default=False)
     n_qc_reporte: Mapped[str] = mapped_column(Text, default="")
+    # Diseñador de cada etapa (Rosember, 28-oct-2026): Bite design usa designer_id; las demás, estos (vacío = sin asignar).
+    z_designer_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    x_designer_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    n_designer_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
 
     # N3 · Cirugías (pedido por Rosember el 13-oct-2026): tiempo de articulación. Las dos horas se escriben a mano; el
     # total (RTD − START) se calcula en pantalla. Pasadas las 2 h se cuenta en el Dashboard › Articulación.
@@ -177,6 +181,9 @@ class DesignOrden(Base):
 
     team = relationship("DesignTeam")
     designer = relationship("Empleado", foreign_keys=[designer_id])
+    z_designer = relationship("Empleado", foreign_keys=[z_designer_id])
+    x_designer = relationship("Empleado", foreign_keys=[x_designer_id])
+    n_designer = relationship("Empleado", foreign_keys=[n_designer_id])
     creado_por = relationship("Empleado", foreign_keys=[creado_por_id])
 
 

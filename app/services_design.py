@@ -28,6 +28,7 @@ CAMPOS_ORDEN = [
     "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin", "z_qc", "z_qc_reporte",
     "x_hora_inicio", "x_s_hold", "x_f_hold", "x_hold_minutos", "x_hora_fin", "x_qc", "x_qc_reporte",
     "n_hora_inicio", "n_s_hold", "n_f_hold", "n_hold_minutos", "n_hora_fin", "n_qc", "n_qc_reporte",
+    "z_designer_id", "x_designer_id", "n_designer_id",
     "art_start", "art_rtd",
 ]
 
@@ -997,6 +998,29 @@ def tabla_base(tabla: str | None) -> str:
 def es_tabla_etapas(tabla: str | None) -> bool:
     """Material Change y Over Ti-bar: dos etapas (Bite design y Zirconia design) en la misma fila."""
     return tabla_base(tabla) == TABLA_MATERIAL
+
+
+# Diseñador de cada etapa (Rosember, 28-oct-2026): en Material Change y Over Ti-bar cada etapa puede hacerla otra persona.
+# Bite design usa designer_id (el Diseñador de siempre); las demás, estas columnas. Cada persona ve la orden en su Schedule
+# y suma un caso por cada etapa en la que está (Producción y podio).
+CAMPOS_DISENADOR_ETAPA = ("z_designer_id", "x_designer_id", "n_designer_id")
+
+
+def disenadores_de_orden(o) -> list[int]:
+    """Quiénes hicieron la orden, uno por etapa (puede repetirse si una persona hizo dos etapas)."""
+    ids = [o.designer_id] if o.designer_id else []
+    if es_tabla_etapas(o.tabla):
+        ids += [getattr(o, c) for c in CAMPOS_DISENADOR_ETAPA if getattr(o, c, None)]
+    return ids
+
+
+def filtro_disenador(empleado_id: int):
+    """Órdenes en las que la persona está asignada en alguna etapa."""
+    return or_(DesignOrden.designer_id == empleado_id, *[getattr(DesignOrden, c) == empleado_id for c in CAMPOS_DISENADOR_ETAPA])
+
+
+def filtro_disenadores(ids: list[int]):
+    return or_(DesignOrden.designer_id.in_(ids), *[getattr(DesignOrden, c).in_(ids) for c in CAMPOS_DISENADOR_ETAPA])
 
 
 def n6_separado(area_nombre: str, fecha: date) -> bool:
@@ -2172,6 +2196,9 @@ def serializar_orden(o: DesignOrden) -> dict:
         "designerId": o.designer_id, "designerNombre": o.designer.nombre_completo if o.designer else "", "arco": o.arco or "",
         "designerCorto": nombre_corto(o.designer),
         "designerPrestado": o.designer_prestado, "designerInhabilitado": _designer_inhabilitado(o),
+        "zDesignerId": o.z_designer_id, "xDesignerId": o.x_designer_id, "nDesignerId": o.n_designer_id,
+        "zDesignerCorto": nombre_corto(o.z_designer), "xDesignerCorto": nombre_corto(o.x_designer),
+        "nDesignerCorto": nombre_corto(o.n_designer),
         "horaInicio": o.hora_inicio, "horaInicioDiseno": o.hora_inicio_diseno, "horaFin": o.hora_fin,
         "holdMinutos": o.hold_minutos, "esferas": o.esferas, "critico": o.critico,
         "sHold": o.s_hold, "fHold": o.f_hold,
@@ -2219,7 +2246,7 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
     qd = (db.query(DesignTeamDesigner).options(joinedload(DesignTeamDesigner.empleado))
           .filter(DesignTeamDesigner.team_id == team.id))
     if solo_empleado_id is not None:
-        q = q.filter(DesignOrden.designer_id == solo_empleado_id)
+        q = q.filter(filtro_disenador(solo_empleado_id))   # también donde está en otra etapa (N6)
         # El diseñador ve sus tiempos libres y los de su manager (solo lectura, 26-oct-2026)
         qb = qb.filter(DesignBreak.empleado_id.in_([solo_empleado_id] + ([team.manager_id] if team.manager_id else [])))
         qd = qd.filter(DesignTeamDesigner.empleado_id == solo_empleado_id)
@@ -2350,15 +2377,17 @@ def prestados_por_disenador(db: Session, ids: list[int], fecha: date, por_tipo: 
     support = {i for (i,) in _equipos_support_ids(db).all()}
     out: dict = {}
     tipos: dict = {}
-    for eid, tid, estado, tabla, producto in (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado,
-                                                       DesignOrden.tabla, DesignOrden.producto)
-                                              .filter(DesignOrden.designer_id.in_(ids), DesignOrden.fecha == fecha, filtro_no_fantasma(),
-                                                      DesignOrden.tabla.in_(TABLAS_HORARIO))):
-        if tid in miembro.get(eid, set()) or tid in support or _es_cancelada(estado):
+    for f in (db.query(DesignOrden.designer_id, DesignOrden.z_designer_id, DesignOrden.x_designer_id, DesignOrden.n_designer_id,
+                       DesignOrden.team_id, DesignOrden.estado, DesignOrden.tabla, DesignOrden.producto)
+              .filter(filtro_disenadores(ids), DesignOrden.fecha == fecha, filtro_no_fantasma(), DesignOrden.tabla.in_(TABLAS_HORARIO))):
+        if f.team_id in support or _es_cancelada(f.estado):
             continue
-        out[eid] = out.get(eid, 0) + 1
-        t = tipos.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0, "mc": 0})
-        t[tipo_produccion(tabla, producto)] += 1
+        for eid in disenadores_de_orden(f):   # N6: un caso por cada etapa en la que está
+            if eid not in ids or f.team_id in miembro.get(eid, set()):
+                continue
+            out[eid] = out.get(eid, 0) + 1
+            t = tipos.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0, "mc": 0})
+            t[tipo_produccion(f.tabla, f.producto)] += 1
     return (out, tipos) if por_tipo else out
 
 
@@ -2374,19 +2403,23 @@ def produccion_mes_previa(db: Session, team: DesignTeam, fecha: date, solo_emple
     for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.empleado_id.in_(ids or [-1])):
         miembro.setdefault(eid, set()).add(tid)
     support = {i for (i,) in _equipos_support_ids(db).all()}
-    q = (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado, DesignOrden.tabla, DesignOrden.producto)
-         .filter(DesignOrden.fecha >= fecha.replace(day=1), DesignOrden.fecha < fecha, DesignOrden.designer_id.isnot(None),
+    q = (db.query(DesignOrden.designer_id, DesignOrden.z_designer_id, DesignOrden.x_designer_id, DesignOrden.n_designer_id,
+                  DesignOrden.team_id, DesignOrden.estado, DesignOrden.tabla, DesignOrden.producto)
+         .filter(DesignOrden.fecha >= fecha.replace(day=1), DesignOrden.fecha < fecha,
                  filtro_no_fantasma(), DesignOrden.tabla.in_(TABLAS_HORARIO),
-                 or_(DesignOrden.team_id == team.id, DesignOrden.designer_id.in_(ids or [-1]))))
+                 or_(DesignOrden.team_id == team.id, filtro_disenadores(ids or [-1]))))
     if solo_empleado_id is not None:
-        q = q.filter(DesignOrden.designer_id == solo_empleado_id)
+        q = q.filter(filtro_disenador(solo_empleado_id))
     out: dict = {}
-    for eid, tid, estado, tabla, producto in q:
-        if _es_cancelada(estado):
+    for f in q:
+        if _es_cancelada(f.estado):
             continue
-        if tid != team.id and (tid in miembro.get(eid, set()) or tid in support):
-            continue
-        out.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0, "mc": 0})[tipo_produccion(tabla, producto)] += 1
+        for eid in disenadores_de_orden(f):   # N6: un caso por cada etapa en la que está
+            if solo_empleado_id is not None and eid != solo_empleado_id:
+                continue
+            if f.team_id != team.id and (eid not in ids or f.team_id in miembro.get(eid, set()) or f.team_id in support):
+                continue
+            out.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0, "mc": 0})[tipo_produccion(f.tabla, f.producto)] += 1
     return out
 
 
@@ -2446,7 +2479,7 @@ def _equipos_support_ids(db: Session):
 def es_orden_prestada_a(db: Session, o: DesignOrden, user: Empleado) -> bool:
     """La orden es de otro equipo pero está asignada a `user` como diseñador prestado. No aplica a Support,
     donde la columna Diseñador es la del caso y no quien lo atiende."""
-    return (o.designer_id == user.id and o.team.area.formato != FORMATO_SUPPORT
+    return (user.id in disenadores_de_orden(o) and o.team.area.formato != FORMATO_SUPPORT
             and o.team_id not in equipos_como_designer(db, user) and o.team.manager_id != user.id)
 
 
@@ -2455,7 +2488,7 @@ def ordenes_prestadas(db: Session, empleado_id: int, fecha: date) -> list[dict]:
     propios = db.query(DesignTeamDesigner.team_id).filter(DesignTeamDesigner.empleado_id == empleado_id)
     filas = (db.query(DesignOrden).options(joinedload(DesignOrden.designer),
                                            joinedload(DesignOrden.team).joinedload(DesignTeam.area))
-             .filter(DesignOrden.designer_id == empleado_id, DesignOrden.fecha == fecha,
+             .filter(filtro_disenador(empleado_id), DesignOrden.fecha == fecha,
                      DesignOrden.team_id.notin_(propios), DesignOrden.team_id.notin_(_equipos_support_ids(db)))
              .order_by(DesignOrden.team_id, DesignOrden.orden_visual, DesignOrden.id).all())
     return [{**serializar_orden(o), "equipo": o.team.nombre, "teamId": o.team_id,
@@ -2481,7 +2514,7 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
                    .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
         # En los equipos donde solo es diseñador, únicamente sus órdenes.
         abiertos = {t.id for t in teams if es_training(t)}   # Training: todos ven todos sus casos
-        ordenes = [o for o in ordenes if o.team_id in gestionados or o.team_id in abiertos or o.designer_id == user.id]
+        ordenes = [o for o in ordenes if o.team_id in gestionados or o.team_id in abiertos or user.id in disenadores_de_orden(o)]
     por_team: dict[int, list[DesignOrden]] = {}
     for o in ordenes:
         por_team.setdefault(o.team_id, []).append(o)

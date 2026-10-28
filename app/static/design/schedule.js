@@ -690,11 +690,13 @@ window.addEventListener('unhandledrejection', function(ev) {
     // Se arman en dsSpecN6 a partir de COLSPEC.material.
     etapasN6: {
       x: [
+        {k:'xDesignerId', l:'Diseñador', t:'designerEtapa', g:'x'},
         {k:'xHoraInicio', l:'Inicio', t:'time', g:'x'}, {k:'xSHold', l:'S.Hold', t:'time', g:'x'},
         {k:'xFHold', l:'F.Hold', t:'time', g:'x', extra: [{k:'xTHold', l:'T. Hold'}]},
         {k:'xHoraFin', l:'Fin', t:'time', g:'x'}, {k:'xQc', l:'QC', t:'checkbox', g:'x', extra: [{k:'xTotal', l:'Total'}]}
       ],
       n: [
+        {k:'nDesignerId', l:'Diseñador', t:'designerEtapa', g:'n'},
         {k:'nHoraInicio', l:'Inicio', t:'time', g:'n'}, {k:'nSHold', l:'S.Hold', t:'time', g:'n'},
         {k:'nFHold', l:'F.Hold', t:'time', g:'n', extra: [{k:'nTHold', l:'T. Hold'}]},
         {k:'nHoraFin', l:'Fin', t:'time', g:'n'}, {k:'nQc', l:'QC', t:'checkbox', g:'n', extra: [{k:'nTotal', l:'Total'}]}
@@ -809,7 +811,15 @@ window.addEventListener('unhandledrejection', function(ev) {
   // N6 desde el 29-oct-2026: Material Change y Over Ti-bar sin Etapa y con sus etapas nuevas antes de Estado
   function dsSpecN6(tablaOrig) {
     var extra = tablaOrig === 'tibar' ? COLSPEC.etapasN6.x.concat(COLSPEC.etapasN6.n) : COLSPEC.etapasN6.n;
-    var base = COLSPEC.material.filter(function(c) { return c.k !== 'etapa'; }), i = base.findIndex(function(c) { return c.k === 'estado'; });
+    // Diseñador de cada etapa (Rosember, 28-oct-2026): el de siempre pasa a Bite design y Zirconia design tiene el suyo
+    var base = [];
+    COLSPEC.material.forEach(function(c) {
+      if (c.k === 'etapa' || c.k === 'designerId') return;
+      if (c.k === 'horaInicio') base.push({k:'designerId', l:'Diseñador', t:'designer', g:'b'});
+      if (c.k === 'zHoraInicio') base.push({k:'zDesignerId', l:'Diseñador', t:'designerEtapa', g:'z'});
+      base.push(c);
+    });
+    var i = base.findIndex(function(c) { return c.k === 'estado'; });
     return base.slice(0, i).concat(extra, base.slice(i));
   }
   function dsSpec(tabla, formato, areaNombre) {
@@ -2135,7 +2145,14 @@ window.addEventListener('unhandledrejection', function(ev) {
   // solo la primera vez (dsColoresSubirLocales); el navegador queda como respaldo si el servidor aún no tiene colores.
   var DS_OPCION_COLORES = '<option value="__colores">Colores…</option>';   // solo texto (Rosember, 20-oct-2026)
   // Qué casillas se pueden pintar: d = diseñador (por id), c = centro, p = producto (solo N2), e = estado (Rosember, 19-oct-2026)
-  var DS_COLOR_TIPO = {designerId: 'd', centro: 'c', producto: 'p', estado: 'e'};
+  var DS_COLOR_TIPO = {designerId: 'd', zDesignerId: 'd', xDesignerId: 'd', nDesignerId: 'd', centro: 'c', producto: 'p', estado: 'e'};
+  // Diseñador de la orden (Bite design) y de las otras etapas de N6 (Zirconia design, Zirconia y Nightguard design)
+  var DS_CAMPOS_DISENADOR = ['designerId', 'zDesignerId', 'xDesignerId', 'nDesignerId'];
+  function dsDisenadoresDe(f) {
+    var ids = [f.designerId];
+    if (dsTablaBase(f.tabla) === 'material') ids = ids.concat([f.zDesignerId, f.xDesignerId, f.nDesignerId]);
+    return ids.filter(function(x) { return !!x; });
+  }
   var DS_COLOR_NOMBRE = {d: ['diseñadores', 'diseñador'], c: ['centros', 'centro'], p: ['productos', 'producto'], e: ['estados', 'estado']};
   function dsColoresProductos() { return dsAreaNombre() === 'N2 Demodenture'; }
   function dsColoresVacio(x) { return ['d', 'c', 'p', 'e'].every(function(k) { return !Object.keys(x[k] || {}).length; }); }
@@ -2188,7 +2205,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dsEsRD()) colores = dsColoresDeFila(sel);
     var x = colores || dsColoresLeer(), campo = sel.dataset.campo, tipo = DS_COLOR_TIPO[campo];
     if (tipo === 'p' && !dsColoresProductos()) return;
-    var v = campo === 'designerId' ? sel.value : (sel.value || sel.dataset.valorActual || '');
+    var v = tipo === 'd' ? sel.value : (sel.value || sel.dataset.valorActual || '');
     var rgb = dsColorRgb((x[tipo] || {})[v]);
     // 'important': en modo oscuro las filas con color de estado vuelven transparentes sus casillas (oscuro.css)
     if (rgb) sel.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else sel.style.removeProperty('background-color');
@@ -2210,7 +2227,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsPintarColores(scope) {
     var x = dsColoresLeer();
     dsPintarTarjetasTL();
-    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="centro"], select[data-campo="producto"], select[data-campo="estado"]').forEach(function(s) { dsPintarCelda(s, x); });
+    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="zDesignerId"], select[data-campo="xDesignerId"], select[data-campo="nDesignerId"], select[data-campo="centro"], select[data-campo="producto"], select[data-campo="estado"]').forEach(function(s) { dsPintarCelda(s, x); });
     if (dsEsRD()) (scope || document).querySelectorAll('#dsTablaMaterial span.ds-ro[data-ro="centro"]').forEach(function(sp) {
       var rgb = dsColorRgb((dsColoresDeFila(sp).c || {})[sp.textContent.trim()]), td = sp.closest('td');
       if (rgb) td.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else td.style.removeProperty('background-color');
@@ -2310,7 +2327,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     spec.forEach(function(c) {
       if (DS_SORTABLES[c.k]) {
         var on = s && s.k === c.k;
-        html += '<th class="ds-th-sort' + (on ? ' on' : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
+        html += '<th class="ds-th-sort' + (on ? ' on' : '') + (c.g ? ' ds-g-' + c.g : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
                 '<span class="ds-sort-ind">' + (on ? (s.dir === 1 ? '▲' : '▼') : '↕') + '</span></th>';
       } else html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>';
       html += dsEncabezadoExtra(c);
@@ -2357,7 +2374,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   // Vista del diseñador: solo edita horas, estado, notas y (N3/N6) esferas y crítico; el resto de la orden es del manager.
-  var DS_CAMPOS_MANAGER = ['orden', 'paciente', 'centro', 'producto', 'designerId'];
+  var DS_CAMPOS_MANAGER = ['orden', 'paciente', 'centro', 'producto', 'designerId', 'zDesignerId', 'xDesignerId', 'nDesignerId'];
   // En N3 y N6 el diseñador sí edita orden, paciente y producto (pedido por Rosember el 12-oct-2026); centro y diseñador
   // siguen siendo del manager. Igual que AREAS_DISENADOR_EDITA en routers/design_schedule.py.
   var DS_AREAS_DISENADOR_EDITA = ['N3 Prosthetic', 'N6 Material Changes', 'Training'];
@@ -2406,7 +2423,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     cont.querySelectorAll('[data-campo]').forEach(function(el) {
       if (campos.indexOf(el.dataset.campo) < 0) return;
       el.disabled = true;
-      el.title = el.dataset.campo === 'designerId' ? 'Solo el manager puede reasignar la orden' : 'Solo el manager puede editar este dato';
+      el.title = DS_CAMPOS_DISENADOR.indexOf(el.dataset.campo) >= 0 ? 'Solo el manager puede reasignar la orden' : 'Solo el manager puede editar este dato';
     });
   }
 
@@ -2493,6 +2510,18 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (c.t === 'catalogo') {
       return '<select data-campo="' + c.k + '"' + al + ' data-valor-actual="' + dsEsc(val || '') + '"><option value="">—</option>' +
              (val ? '<option value="' + dsEsc(val) + '" selected>' + dsEsc(val) + '</option>' : '') + '</select>';
+    }
+    if (c.t === 'designerEtapa') {   // N6: diseñador de Zirconia design, Zirconia o Nightguard design (28-oct-2026)
+      var pre = c.k.charAt(0), elegibles = dsElegibles().filter(function(d) { return !d.esRD; });
+      var hE = '<select data-campo="' + c.k + '"' + al + '><option value="">—</option>';
+      elegibles.forEach(function(d) {
+        hE += '<option value="' + d.id + '"' + (d.id === val ? ' selected' : '') + ' title="' + dsEsc(d.nombre) + '">' + dsEsc(d.corto || d.nombre) +
+              (d.esManager ? ' (manager)' : '') + '</option>';
+      });
+      if (val && !elegibles.some(function(d) { return d.id === val; })) {
+        hE += '<option value="' + dsEsc(val) + '" selected>' + dsEsc(f[pre + 'DesignerCorto'] || 'Diseñador') + '</option>';
+      }
+      return hE + '</select>';
     }
     if (c.t === 'designer') {
       // Support elige entre todos los diseñadores de Design; las demás áreas, entre los del equipo + "Others" (prestado).
@@ -2625,7 +2654,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var campo = input.dataset.campo;
       var valor;
       if (input.type === 'checkbox') valor = input.checked;
-      else if (campo === 'designerId') valor = input.value ? parseInt(input.value) : null;
+      else if (DS_CAMPOS_DISENADOR.indexOf(campo) >= 0) valor = input.value ? parseInt(input.value) : null;
       else if (campo === 'holdMinutos') valor = parseFloat(input.value) || 0;
       else valor = input.value;
       datos[campo] = valor;
@@ -3196,14 +3225,23 @@ window.addEventListener('unhandledrejection', function(ev) {
     var tablaDe = function(f, lista) { return f.tabla || lista; };
     [['principal', dia.principal], ['nightguard', dia.nightguard], ['material', dia.material], ['tibar', dia.tibar], ['dummy', dia.dummy], ['', dia.soloPropias ? dia.prestadas : []]]
       .forEach(function(par) { (par[1] || []).forEach(function(f) {
-      var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
+      var k0 = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
       var est = String(f.estado || '').toLowerCase();
       // canceladas, skipped y «Training» no cuentan (como _es_cancelada en el servidor: el número del mes y el Reparto, 27-oct-2026)
-      if (!k || est.indexOf('cancel') >= 0 || est.indexOf('skip') >= 0 || dsEsFantasma(f)) return;
-      if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = f.designerCorto || f.designerNombre || f.designerPrestado || 'Sin nombre'; orden.push(k); }
-      cuenta[k]++;
-      tipoDe(k)[dsTipoProduccion(tablaDe(f, par[0]), f.producto)]++;
-      if (f.equipo && dia.soloPropias) prest[k] = (prest[k] || 0) + 1;   // vista del diseñador: los suyos en otros equipos
+      if (est.indexOf('cancel') >= 0 || est.indexOf('skip') >= 0 || dsEsFantasma(f)) return;
+      // N6 (28-oct-2026): cada persona suma un caso por cada etapa en la que está (Bite design es el Diseñador de siempre)
+      var claves = (k0 ? [[k0, f.designerCorto || f.designerNombre || f.designerPrestado]] : []);
+      if (dsTablaBase(tablaDe(f, par[0])) === 'material') ['z', 'x', 'n'].forEach(function(p) {
+        if (f[p + 'DesignerId']) claves.push(['d' + f[p + 'DesignerId'], f[p + 'DesignerCorto']]);
+      });
+      claves.forEach(function(kn) {
+        var k = kn[0];
+        if (dia.soloPropias && !dia.soloEditaPropias && k !== 'd' + dia.miId) return;   // vista del diseñador: solo lo suyo
+        if (!(k in cuenta)) { cuenta[k] = 0; nombres[k] = kn[1] || 'Sin nombre'; orden.push(k); }
+        cuenta[k]++;
+        tipoDe(k)[dsTipoProduccion(tablaDe(f, par[0]), f.producto)]++;
+        if (f.equipo && dia.soloPropias) prest[k] = (prest[k] || 0) + 1;   // vista del diseñador: los suyos en otros equipos
+      });
     }); });
     // Manager: los casos que sus diseñadores hicieron prestados en otros equipos también son de su producción
     Object.keys(dia.prestadosEquipo || {}).forEach(function(id) {
@@ -3631,7 +3669,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (a.team !== DS.teamId) {
       // Orden de otro equipo que me prestaron (o a la que me enviaron como ayuda): se vuelve a pedir el día para el panel «Prestadas»
       var yo = DS.diaData.miId, mias = (DS.diaData.prestadas || []).map(function(p) { return p.id; });
-      var toca = (a.o || []).some(function(o) { return o.designerId === yo || mias.indexOf(o.id) >= 0; }) ||
+      var toca = (a.o || []).some(function(o) { return dsDisenadoresDe(o).indexOf(yo) >= 0 || mias.indexOf(o.id) >= 0; }) ||
                  (a.x || []).some(function(id) { return mias.indexOf(id) >= 0; });
       if (toca) { dsVivoPend = true; setTimeout(function() { dsVivoQuiza(false); }, 200); }
       return;
@@ -3657,7 +3695,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         tablas.forEach(function(t) { antes = antes || dia[t].find(function(f) { return f.id === o.id; }) || null; });
         o = dsConservarExtras(antes, o);
         quitar(o.id);
-        if (tablas.indexOf(o.tabla) < 0 || (solo && o.designerId !== yo)) return;
+        if (tablas.indexOf(o.tabla) < 0 || (solo && dsDisenadoresDe(o).indexOf(yo) < 0)) return;
         dia[o.tabla].push(o);
       });
     });
@@ -3750,7 +3788,7 @@ window.addEventListener('unhandledrejection', function(ev) {
                    'solicitadoPor', 'situacion', 'solucion', 'clasificacion', 'soporte', 'estado', 'qc', 'qcReporte', 'notas',
                    'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin', 'zQc', 'zQcReporte', 'artStart', 'artRtd',
                    'xHoraInicio', 'xSHold', 'xFHold', 'xHoldMinutos', 'xHoraFin', 'xQc', 'xQcReporte',
-                   'nHoraInicio', 'nSHold', 'nFHold', 'nHoldMinutos', 'nHoraFin', 'nQc', 'nQcReporte'];
+                   'nHoraInicio', 'nSHold', 'nFHold', 'nHoldMinutos', 'nHoraFin', 'nQc', 'nQcReporte', 'zDesignerId', 'xDesignerId', 'nDesignerId'];
   function dsClon(o) { return JSON.parse(JSON.stringify(o)); }
   function dsMismaOrden(a, b) { return DS_CAMPOS.every(function(k) { return (a[k] == null ? '' : a[k]) === (b[k] == null ? '' : b[k]); }); }
   function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }

@@ -1350,6 +1350,10 @@ class OrdenIn(BaseModel):
     nHoraFin: str = ""
     nQc: bool = False
     nQcReporte: str = ""
+    # N6: diseñador de cada etapa (Zirconia design, Zirconia y Nightguard design)
+    zDesignerId: int | None = None
+    xDesignerId: int | None = None
+    nDesignerId: int | None = None
     # N3 · Cirugías: tiempo de articulación
     artStart: str = ""
     artRtd: str = ""
@@ -1370,6 +1374,7 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
         "z_hora_inicio": payload.zHoraInicio, "z_s_hold": payload.zSHold, "z_f_hold": payload.zFHold,
         "z_hold_minutos": payload.zHoldMinutos, "z_hora_fin": payload.zHoraFin, "z_qc": payload.zQc,
         "z_qc_reporte": payload.zQcReporte, "art_start": payload.artStart, "art_rtd": payload.artRtd,
+        "z_designer_id": payload.zDesignerId, "x_designer_id": payload.xDesignerId, "n_designer_id": payload.nDesignerId,
         "x_hora_inicio": payload.xHoraInicio, "x_s_hold": payload.xSHold, "x_f_hold": payload.xFHold,
         "x_hold_minutos": payload.xHoldMinutos, "x_hora_fin": payload.xHoraFin, "x_qc": payload.xQc,
         "x_qc_reporte": payload.xQcReporte,
@@ -1394,7 +1399,8 @@ CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "
                  "xHoraFin": "x_hora_fin", "xQc": "x_qc", "xQcReporte": "x_qc_reporte",
                  "nHoraInicio": "n_hora_inicio", "nSHold": "n_s_hold", "nFHold": "n_f_hold", "nHoldMinutos": "n_hold_minutos",
                  "nHoraFin": "n_hora_fin", "nQc": "n_qc", "nQcReporte": "n_qc_reporte",
-                 "artStart": "art_start", "artRtd": "art_rtd"}
+                 "artStart": "art_start", "artRtd": "art_rtd",
+                 "zDesignerId": "z_designer_id", "xDesignerId": "x_designer_id", "nDesignerId": "n_designer_id"}
 
 DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
 SOLO_QC = "Solo los aprobadores (o el diseñador a cargo del equipo) marcan el QC."
@@ -1870,7 +1876,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     solo_propia = not sd.gestiona_equipo(user, team)
     if solo_propia:
         # Un diseñador edita sus órdenes: las de su equipo y las de otro equipo que se lo pidió prestado.
-        propia = orden_existente.designer_id == user.id and (
+        propia = user.id in sd.disenadores_de_orden(orden_existente) and (   # N6: también el de otra etapa
             team.id in sd.equipos_como_designer(db, user) or sd.es_orden_prestada_a(db, orden_existente, user))
         if not propia:
             raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
@@ -1952,6 +1958,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         for c in bloqueados:
             datos.pop(c, None)
         datos["designer_id"] = orden_existente.designer_id
+        for c in sd.CAMPOS_DISENADOR_ETAPA:   # el diseñador de cada etapa también lo asigna el manager
+            datos.pop(c, None)
         datos["designer_prestado"] = orden_existente.designer_prestado
     if datos.get("estado") == "Approved" and (orden_existente.estado or "") != "Approved" and not rd:
         # N3 › Cirugías: no se aprueba con columnas vacías (Crítico, START, RTD…); la pantalla avisa antes y hace parpadear

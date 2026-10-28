@@ -345,7 +345,10 @@ def init_db():
                       ("n_hora_inicio", "VARCHAR(10) DEFAULT ''"), ("n_s_hold", "VARCHAR(10) DEFAULT ''"),
                       ("n_f_hold", "VARCHAR(10) DEFAULT ''"), ("n_hold_minutos", "FLOAT DEFAULT 0"),
                       ("n_hora_fin", "VARCHAR(10) DEFAULT ''"), ("n_qc", "BOOLEAN DEFAULT FALSE"),
-                      ("n_qc_reporte", "TEXT DEFAULT ''")):
+                      ("n_qc_reporte", "TEXT DEFAULT ''"),
+                      # N6: diseñador de cada etapa (28-oct-2026, autorizado por Rosember)
+                      ("z_designer_id", "INTEGER REFERENCES empleados(id)"), ("x_designer_id", "INTEGER REFERENCES empleados(id)"),
+                      ("n_designer_id", "INTEGER REFERENCES empleados(id)")):
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))

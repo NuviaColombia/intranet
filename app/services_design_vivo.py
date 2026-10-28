@@ -294,7 +294,8 @@ def _anotar(session: Session, obj, borrado: bool) -> None:
     if isinstance(obj, DesignOrden):
         teams = [t for t in _valores(obj, "team_id") if t]
         fechas = [f for f in _valores(obj, "fecha") if f]
-        des = {int(i) for i in _valores(obj, "designer_id") if i}
+        # quien está en alguna etapa (N6: Zirconia design, Zirconia, Nightguard design) también recibe el cambio
+        des = {int(i) for a in ("designer_id", "z_designer_id", "x_designer_id", "n_designer_id") for i in _valores(obj, a) if i}
         for team in teams:
             for f in fechas:
                 g = _grupo(info, team, _fecha(f))
