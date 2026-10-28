@@ -5,7 +5,7 @@
 <style>
   /* Ancho completo (22-oct-2026): arriba Conexión y Probar lado a lado; Cruce y Marcas de hoy a todo el ancho */
   .gv { max-width:none; margin:0 auto; padding:0 8px; }
-  .gv-dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(460px, 1fr)); gap:14px; align-items:start; }
+  .gv-dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(460px, 100%), 1fr)); gap:14px; align-items:start; }
   .gv-dos > .gv-card { margin-bottom:0; }
   /* Conexión y Cruce plegables (22-oct-2026): abren cerrados y el resumen queda a la vista */
   .gv-pleg > summary { list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
@@ -49,7 +49,7 @@
   .gv-sub { color:#475569; font-size:13px; margin:2px 0 14px; }
   .gv-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 16px; margin-bottom:14px; }
   .gv-card h2 { margin:0 0 8px; font-size:16px; }
-  .gv-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px 14px; }
+  .gv-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap:10px 14px; }
   .gv-grid label { display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; }
   .gv-grid input { margin:0; }
   .gv-chk { display:flex; gap:8px; align-items:flex-start; margin-top:10px; font-size:13px; font-weight:400; }
