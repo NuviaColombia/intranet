@@ -178,13 +178,29 @@ Pedido de Carlos: antes el filtro "Estado" con "Todos" mostraba también los anu
 cargaba y pintaba todos los recibos de la caja sin límite. Ahora (`caja_menor.html`,
 `filtrarConsulta()`, solo filtrado en el navegador -- la API `/recibos` ya soportaba estos
 parámetros pero el cliente igual trae todo y filtra ahí):
-- "Todos" en el filtro Estado ahora significa "todos menos los anulados"; para verlos hay que
-  elegir "ANULADO" explícitamente en ese mismo select.
+- **Estado ahora son casillas independientes** (`.cEstadoChk`, una por ACTIVO/LEGALIZADO/ANULADO,
+  no un `<select>`), para poder marcar cualquier combinación de 1, 2 o 3 a la vez. Por defecto
+  ACTIVO y LEGALIZADO quedan marcadas y ANULADO desmarcada -- para ver los anulados hay que
+  marcar esa casilla explícitamente.
 - Nuevo filtro "Mostrar" (`#cLimite`): "Últimos 100" (por defecto) o "Todos", independiente del
   filtro de fecha que ya existía. El límite se aplica **después** de texto/estado/fecha, así que
   buscar un recibo viejo por número o texto lo sigue encontrando aunque esté fuera de los últimos
   100. Un aviso ("mostrando X de Y") aparece junto al título cuando el límite recorta la lista.
-- `limpiarConsulta()` vuelve a este estado por defecto (sin anulados, últimos 100).
+- `limpiarConsulta()` vuelve a este estado por defecto (ACTIVO + LEGALIZADO, últimos 100).
+
+**(2026-10-28) "Ver" un recibo abre una vista de documento, con imprimir/anular/editar ahí mismo.**
+Antes "👁️ Ver" (en Consulta y en Firmas) llevaba a la pestaña "Nuevo recibo" reusada como
+formulario de edición -- aunque fuera de solo consulta. Ahora abre `#modalVerRecibo`
+(`verRecibo`/`abrirVerRecibo` en `caja_menor.html`): un `<iframe>` con el mismo HTML/CSS del
+recibo impreso (`htmlRecibo()`/`CSS_RECIBO`, los mismos que usa `imprimirRecibo()`), así se ve
+igual a como queda en papel/PDF. Los tres botones de la ventana (Imprimir, Editar, Anular)
+reaparecen o se esconden con la misma regla que ya tenía el formulario (`mostrarRecibo()`):
+Anular y Editar solo si está ACTIVO (Editar además exige que no tenga firma ni recibido) y no es
+un firmante sin acceso (`SOLO_FIRMAS`); Imprimir se esconde solo si está ANULADO. "Editar" cierra
+la ventana y lleva al formulario de siempre (`habilitarEdicion()`); "Anular" reusa el modal de
+anulación existente (`abrirAnulacion('recibo')`, depende de `reciboActual`, que esta ventana ya
+deja asignado). `confirmarAnulacion()` ahora refresca la tabla de donde vino (Consulta o Firmas)
+en vez de asumir que siempre se anula desde el formulario de recibo.
 
 **Adjuntos**: igual que en Permisos (soporte documental), se guardan como BLOB en la propia fila
 (`CajaAdjunto.datos`, columna `deferred`) -- no van a Zoho WorkDrive. Límite 5 MB,

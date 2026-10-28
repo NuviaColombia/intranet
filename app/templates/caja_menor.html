@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Caja menor{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/caja_menor.css?v=14">
+<link rel="stylesheet" href="/static/caja_menor.css?v=15">
 {% set logo = logo_empresa('Nuvia Smiles Colombia SAS') %}
 <div id="caja-app" data-caja="{{ caja.id }}">
  <div class="cm-main">
@@ -105,7 +105,11 @@
     <div class="cm-filtros">
       <input type="text" id="cTexto" placeholder="No. recibo, pagado a, concepto, factura…" oninput="filtrarConsulta()">
       <label>Estado:</label>
-      <select id="cEstado" onchange="filtrarConsulta()"><option value="">Todos (sin anulados)</option><option>ACTIVO</option><option>LEGALIZADO</option><option>ANULADO</option></select>
+      <span class="cm-chk-grupo">
+        <label><input type="checkbox" class="cEstadoChk" value="ACTIVO" checked onchange="filtrarConsulta()"> Activo</label>
+        <label><input type="checkbox" class="cEstadoChk" value="LEGALIZADO" checked onchange="filtrarConsulta()"> Legalizado</label>
+        <label><input type="checkbox" class="cEstadoChk" value="ANULADO" onchange="filtrarConsulta()"> Anulado</label>
+      </span>
       <label>Mostrar:</label>
       <select id="cLimite" onchange="filtrarConsulta()"><option value="100">Últimos 100</option><option value="">Todos</option></select>
       <label>Desde:</label><input type="date" id="cDesde" onchange="filtrarConsulta()">
@@ -247,6 +251,22 @@
       <thead><tr><th>Fecha</th><th>A quién</th><th>No. identificación</th><th>Concepto</th><th>Valor</th><th>Firma</th><th>Estado</th><th>Acción</th></tr></thead>
       <tbody id="bodyAnticipos"><tr><td colspan="8" class="cm-vacio">Cargando…</td></tr></tbody>
     </table></div>
+  </div>
+ </div>
+
+ <!-- Ventana: ver un recibo en formato de documento (como queda impreso), con imprimir/anular/editar desde ahí -->
+ <div id="modalVerRecibo" class="cm-modal" onclick="if (event.target === this) cerrarVerRecibo()">
+  <div class="cm-modal-caja" style="max-width:650px; max-height:92vh; overflow:auto;">
+    <div class="cm-barra" style="margin:0 0 10px;">
+      <h3 id="verReciboTitulo" style="margin:0; color:#1A365D;">👁️ Recibo</h3>
+      <div class="cm-acciones" style="margin:0">
+        <button type="button" class="btn" id="btnVerImprimir" onclick="imprimirRecibo(reciboActual)">🖨️ Imprimir</button>
+        <button type="button" class="btn gris" id="btnVerEditar" onclick="editarDesdeVista()">✏️ Editar</button>
+        <button type="button" class="btn rojo" id="btnVerAnular" onclick="abrirAnulacion('recibo')">🚫 Anular</button>
+        <button type="button" class="btn gris" onclick="cerrarVerRecibo()">Cerrar</button>
+      </div>
+    </div>
+    <iframe id="verReciboMarco" title="Vista del recibo" style="width:100%; height:62vh; border:1px solid var(--border-medium); border-radius:8px; background:#F1F5F9;"></iframe>
   </div>
  </div>
 
@@ -633,9 +653,10 @@ function cargarConsulta() {
     .catch(function(e) { document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="10" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
 function filtrarConsulta() {
-  var q = cTexto.value.trim().toUpperCase(), est = cEstado.value, de = cDesde.value, ha = cHasta.value, lim = cLimite.value;
+  var q = cTexto.value.trim().toUpperCase(), de = cDesde.value, ha = cHasta.value, lim = cLimite.value;
+  var estados = Array.from(document.querySelectorAll('.cEstadoChk:checked')).map(function(c) { return c.value; });
   var filas = recibosConsulta.filter(function(r) {
-    if (est) { if (r.estado !== est) return false; } else if (r.estado === 'ANULADO') return false;  // "Todos" no incluye anulados
+    if (estados.indexOf(r.estado) === -1) return false;
     if (de && r.fecha < de) return false; if (ha && r.fecha > ha) return false;
     return !q || [r.noRecibo, r.pagadoA, r.concepto, r.factura, r.identificacion].join(' ').toUpperCase().indexOf(q) !== -1;
   });
@@ -652,8 +673,11 @@ function filtrarConsulta() {
       '</td><td><button class="btn mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
   }).join('');
 }
-function limpiarConsulta() { cTexto.value = ''; cEstado.value = ''; cLimite.value = '100'; cDesde.value = ''; cHasta.value = ''; filtrarConsulta(); }
-function verRecibo(consecutivo) { switchTab('recibo'); buscarRecibo(consecutivo); }
+function limpiarConsulta() {
+  cTexto.value = ''; cLimite.value = '100'; cDesde.value = ''; cHasta.value = '';
+  document.querySelectorAll('.cEstadoChk').forEach(function(c) { c.checked = c.value !== 'ANULADO'; });
+  filtrarConsulta();
+}
 
 // ---------------- legalizar y FM ----------------
 function cargarLegalizar() {
@@ -1137,7 +1161,11 @@ function confirmarAnulacion() {
   var url = anulando === 'fm' ? API + '/fms/' + fmActual.id + '/anular' : API + '/recibos/' + reciboActual.id + '/anular';
   post(url, {motivo: motivo}).then(function(res) {
     cerrarAnulacion(); alert(res.mensaje);
-    if (anulando === 'fm') verFM(fmActual.id); else mostrarRecibo(res.recibo);
+    if (anulando === 'fm') { verFM(fmActual.id); return; }
+    cerrarVerRecibo();
+    if (document.getElementById('sec-consulta').classList.contains('activa')) cargarConsulta();
+    else if (document.getElementById('sec-firmas').classList.contains('activa')) cargarFirmas();
+    else mostrarRecibo(res.recibo);
   }).catch(function(e) { err.innerText = e.message; err.style.display = 'block'; });
 }
 
@@ -1208,6 +1236,30 @@ function htmlRecibo(r) {
     '<div class="rc-pie"><span>Registrado por ' + esc(r.creadoPor) + (r.creadoEn ? ' · ' + esc(r.creadoEn) : '') + '</span><span>Nuvia Smiles Colombia S.A.S.</span></div>' +
     '</div><div class="rc-corte"></div>';
   return cuerpo;
+}
+
+// ---------------- ver un recibo (vista de documento, con imprimir/anular/editar desde ahí) ----------------
+function verRecibo(consecutivo) { api(API + '/recibos/' + consecutivo).then(abrirVerRecibo); }
+function abrirVerRecibo(r) {
+  reciboActual = r;
+  document.getElementById('verReciboTitulo').innerText = '👁️ Recibo ' + esc(r.noRecibo);
+  document.getElementById('btnVerImprimir').style.display = r.estado === 'ANULADO' ? 'none' : '';
+  document.getElementById('btnVerEditar').style.display = r.estado === 'ACTIVO' && !r.firmadoEn && !r.recibidoEn && !SOLO_FIRMAS ? '' : 'none';
+  document.getElementById('btnVerAnular').style.display = r.estado === 'ACTIVO' && !SOLO_FIRMAS ? '' : 'none';
+  var doc = document.getElementById('verReciboMarco').contentWindow.document;
+  doc.open();
+  doc.write('<html><head><style>' + CSS_RECIBO +
+    'html,body{background:#F1F5F9} .rc{width:190mm;max-width:92%;margin:14px auto;padding:14mm;background:#fff;box-shadow:0 1px 10px rgba(0,0,0,.15)}' +
+    '</style></head><body>' + htmlRecibo(r) + '</body></html>');
+  doc.close();
+  document.getElementById('modalVerRecibo').style.display = 'flex';
+}
+function cerrarVerRecibo() { document.getElementById('modalVerRecibo').style.display = 'none'; }
+function editarDesdeVista() {
+  var consecutivo = reciboActual.consecutivo;
+  cerrarVerRecibo();
+  switchTab('recibo');
+  api(API + '/recibos/' + consecutivo).then(function(r) { mostrarRecibo(r); habilitarEdicion(); });
 }
 
 // ---------------- imprimir varios (rango de consecutivos, sin anulados) ----------------
