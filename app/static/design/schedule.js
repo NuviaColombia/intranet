@@ -694,14 +694,14 @@ window.addEventListener('unhandledrejection', function(ev) {
         {k:'xHoraInicio', l:'Inicio', t:'time', g:'x'}, {k:'xSHold', l:'S.Hold', t:'time', g:'x'},
         {k:'xFHold', l:'F.Hold', t:'time', g:'x', extra: [{k:'xTHold', l:'T. Hold'}]},
         {k:'xHoraFin', l:'Fin', t:'time', g:'x'}, {k:'xQc', l:'QC', t:'checkbox', g:'x', extra: [{k:'xTotal', l:'Total'}]},
-        {k:'xEstado', l:'Estado', t:'catalogo', cat:'estado', g:'x'}
+        {k:'xEstado', l:'Estado', t:'catalogo', cat:'estado', g:'x', banda:true}
       ],
       n: [
         {k:'nDesignerId', l:'Diseñador', t:'designerEtapa', g:'n'},
         {k:'nHoraInicio', l:'Inicio', t:'time', g:'n'}, {k:'nSHold', l:'S.Hold', t:'time', g:'n'},
         {k:'nFHold', l:'F.Hold', t:'time', g:'n', extra: [{k:'nTHold', l:'T. Hold'}]},
         {k:'nHoraFin', l:'Fin', t:'time', g:'n'}, {k:'nQc', l:'QC', t:'checkbox', g:'n', extra: [{k:'nTotal', l:'Total'}]},
-        {k:'nEstado', l:'Estado', t:'catalogo', cat:'estado', g:'n'}
+        {k:'nEstado', l:'Estado', t:'catalogo', cat:'estado', g:'n', banda:true}
       ]
     },
     // Removable Denture (Rosember, 20-oct-2026): la orden llega de N3 / N6 (Nestor como diseñador prestado); aquí se ve con
@@ -821,8 +821,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (c.k === 'zHoraInicio') base.push({k:'zDesignerId', l:'Diseñador', t:'designerEtapa', g:'z'});
       base.push(c);
       // el Estado de cada etapa va al final de su grupo (Rosember, 28-oct-2026); el de Bite design es el de siempre
-      if (c.k === 'qc') base.push({k:'estado', l:'Estado', t:'catalogo', cat:'estado', g:'b'});
-      if (c.k === 'zQc') base.push({k:'zEstado', l:'Estado', t:'catalogo', cat:'estado', g:'z'});
+      if (c.k === 'qc') base.push({k:'estado', l:'Estado', t:'catalogo', cat:'estado', g:'b', banda:true});
+      if (c.k === 'zQc') base.push({k:'zEstado', l:'Estado', t:'catalogo', cat:'estado', g:'z', banda:true});
     });
     var i = base.findIndex(function(c) { return c.k === 'notas'; });
     return base.slice(0, i).concat(extra, base.slice(i));
@@ -965,7 +965,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsSelTablas(sufijo) { return DS_TABLAS.map(function(t) { return '#' + DS_CONT[t] + (sufijo ? ' ' + sufijo : ''); }).join(', '); }
   // Fila de encabezado con los bloques Bite design / Zirconia design (solo tablas con columnas agrupadas)
   var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', x: 'Zirconia', n: 'Nightguard design', a: 'Articulation', d: 'Design', t: 'TOTAL'};
-  function dsAnchoCol(c) { return 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0); }
+  function dsAnchoCol(c) { return c.banda ? 0 : 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0); }
   function dsFilaGrupos(spec, alFinal) {
     if (!spec.some(function(c) { return c.g; })) return '';
     var html = '<tr class="ds-tr-grupos">', run = null;
@@ -979,10 +979,44 @@ window.addEventListener('unhandledrejection', function(ev) {
     cerrar();
     return html + '</tr>';
   }
+  // N6 desde el 29-oct-2026 (Rosember, 28-oct-2026): el Estado de cada etapa va en una franja sobre la orden, con el nombre de la
+  // etapa a la izquierda y el estado a la derecha, sobre Fin · QC · Total. La franja (tr.ds-banda) va justo antes de la fila de
+  // la orden y sus listas se leen, guardan y bloquean como si fueran de esa fila.
+  function dsBandaDe(tr) { var b = tr && tr.previousElementSibling; return b && b.classList.contains('ds-banda') ? b : null; }
+  function dsInputsDe(tr) {
+    var b = dsBandaDe(tr), l = [].slice.call(tr.querySelectorAll('[data-campo]'));
+    return b ? l.concat([].slice.call(b.querySelectorAll('[data-campo]'))) : l;
+  }
+  function dsCampoDe(tr, selector) { var b = dsBandaDe(tr); return tr.querySelector(selector) || (b && b.querySelector(selector)) || null; }
+  function dsTrDeSel(sel) { var tr = sel.closest('tr'); return tr && tr.classList.contains('ds-banda') ? tr.nextElementSibling : tr; }
+  function dsSpecCols(tabla) { return dsSpec(tabla).filter(function(c) { return !c.banda; }); }   // columnas de la fila (sin las de la franja)
+  function dsBandaHtml(spec, f) {
+    var cols = [], estados = {};
+    spec.forEach(function(c) {
+      if (c.banda) { estados[c.g] = c; return; }
+      var n = 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0);
+      for (var j = 0; j < n; j++) cols.push(c.g || '');
+    });
+    cols.push('', '');   // Total y acciones
+    var html = '<tr class="ds-banda">', i = 0;
+    while (i < cols.length) {
+      var g = cols[i], j = i;
+      while (j < cols.length && cols[j] === g) j++;
+      if (g && estados[g]) {
+        var fin = Math.max(i, j - 3);   // el estado va sobre Fin, QC y Total: las 3 últimas columnas de la etapa
+        if (fin > i) html += '<td colspan="' + (fin - i) + '" class="ds-g-' + g + ' ds-g-ini ds-banda-t">' + dsEsc(DS_GRUPOS[g] || '') + '</td>';
+        html += '<td colspan="' + (j - fin) + '" class="ds-g-' + g + ' ds-banda-e">' + dsCeldaInput(estados[g], f) + '</td>';
+      } else html += '<td colspan="' + (j - i) + '" class="ds-banda-v"></td>';
+      i = j;
+    }
+    return html + '</tr>';
+  }
+  function dsFilaConBandaHtml(spec, f, tabla) { return (spec.some(function(c) { return c.banda; }) ? dsBandaHtml(spec, f) : '') + dsFilaHtml(spec, f, tabla); }
+
   // ¿Esta lista de estados es de una fila de Material Change?
   function dsFilaEsMaterial(sel, tabla) {
     if (dsTablaBase(tabla) === 'material') return true;
-    var tr = sel.closest('tr');
+    var tr = dsTrDeSel(sel);
     return !!(tr && tr._dsFila && tr._dsFila.f && dsTablaBase(tr._dsFila.f.tabla) === 'material');
   }
 
@@ -1024,7 +1058,7 @@ window.addEventListener('unhandledrejection', function(ev) {
             : ['horaInicio', 'horaInicioDiseno', 'horaFin'];
     // [campo, ¿ya debería tener hora?]. Material Change: Bite al pasar a Zirconia; Zirconia al aprobar la orden.
     var esMat = tablaReal === 'material', biteHecha = esMat && dsEsZirconia(f), zHecha = biteHecha && aprobada;
-    var sepEt = esMat && !!tr.querySelector('[data-campo="nEstado"]');   // N6 con un estado por etapa (28-oct-2026)
+    var sepEt = esMat && !!dsCampoDe(tr, '[data-campo="nEstado"]');   // N6 con un estado por etapa (28-oct-2026)
     var ETAPAS = [['estado', 'horaInicio', 'sHold', 'fHold', 'horaFin', 'qc', 'qcReporte'], ['zEstado', 'zHoraInicio', 'zSHold', 'zFHold', 'zHoraFin', 'zQc', 'zQcReporte'],
                   ['xEstado', 'xHoraInicio', 'xSHold', 'xFHold', 'xHoraFin', 'xQc', 'xQcReporte'], ['nEstado', 'nHoraInicio', 'nSHold', 'nFHold', 'nHoraFin', 'nQc', 'nQcReporte']];
     var reqs = sepEt ? ETAPAS.reduce(function(a, e) {   // cada etapa aprobada debe tener su Inicio y su Fin
@@ -1463,10 +1497,13 @@ window.addEventListener('unhandledrejection', function(ev) {
     // fila en blanco de quien solo crea órdenes de un producto: el producto ya viene puesto
     if (nueva && tabla === 'principal' && dsSoloPropias() && DS.diaData && DS.diaData.creaProducto) f = Object.assign({producto: DS.diaData.creaProducto}, f);
     var html = '<tr data-id="' + (nueva ? 'nuevo' : f.id) + '"' + (nueva ? ' class="ds-fila-nueva"' : '') + '>';
+    var ci = -1;   // columna de la fila (las de la franja no cuentan)
     spec.forEach(function(c, i) {
+      if (c.banda) return;
+      ci++;
       var g = c.g ? 'ds-g-' + c.g + (c.g !== (spec[i - 1] || {}).g ? ' ds-g-ini' : '') : '';
-      if (c.t === 'calc') { html += '<td data-col="' + i + '" class="ds-calc ' + g + '" data-calc="' + c.k + '">' + dsCalcTxt(c.k, f) + '</td>'; return; }
-      html += '<td data-col="' + i + '"' + (g ? ' class="' + g + '"' : '') + '>' + dsCeldaInput(c, f) + '</td>';
+      if (c.t === 'calc') { html += '<td data-col="' + ci + '" class="ds-calc ' + g + '" data-calc="' + c.k + '">' + dsCalcTxt(c.k, f) + '</td>'; return; }
+      html += '<td data-col="' + ci + '"' + (g ? ' class="' + g + '"' : '') + '>' + dsCeldaInput(c, f) + '</td>';
       if (c.k === 'fHold' && !c.sinTHold) html += '<td class="ds-thold">' + dsTHoldTxt(f) + '</td>';
       (c.extra || []).forEach(function(x) { html += '<td class="ds-calc ds-g-' + c.g + '" data-calc="' + x.k + '">' + dsCalcTxt(x.k, f) + '</td>'; });
     });
@@ -1547,6 +1584,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (tr.classList.contains('ds-oculta') !== (oc && !DS.verOcultas)) cambio = true;
       tr.classList.toggle('ds-oculta', oc && !DS.verOcultas);
       tr.classList.toggle('ds-oculta-ver', oc && DS.verOcultas);
+      var banda = dsBandaDe(tr);   // la franja del estado se oculta con su orden
+      if (banda) { banda.classList.toggle('ds-oculta', oc && !DS.verOcultas); banda.classList.toggle('ds-oculta-ver', oc && DS.verOcultas); }
       var ojo = tr.querySelector('[data-ojo]');
       if (ojo) ojo.style.display = dsDiaCerrado() ? 'none' : '';
       if (ojo) { ojo.title = oc ? 'Mostrar esta fila' : 'Ocultar esta fila'; ojo.textContent = oc ? '🙈' : '👁'; }
@@ -1580,7 +1619,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsConectarFila(tr, tabla) {
-    tr.querySelectorAll('[data-campo]').forEach(function(input) {
+    dsInputsDe(tr).forEach(function(input) {
       if (dsEsCampoQc(input.dataset.campo)) {
         // Marcar QC exige llenar el recuadro de hallazgos; desmarcar guarda de inmediato (el reporte se conserva).
         input.addEventListener('change', function() {
@@ -2050,8 +2089,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsEsHoldEstado(e) { return dsNorm(e) === 'hold'; }
   function dsAjustarOpcionHold(tr, f) {
-    var sels = tr ? tr.querySelectorAll('select[data-campo="estado"], select[data-campo="zEstado"], select[data-campo="xEstado"], select[data-campo="nEstado"]') : [], porEtapas = !!(tr && tr.querySelector('select[data-campo="nEstado"]'));
-    [].forEach.call(sels, function(sel) {
+    var sels = tr ? dsInputsDe(tr).filter(function(el) { return el.matches('select[data-campo="estado"], select[data-campo="zEstado"], select[data-campo="xEstado"], select[data-campo="nEstado"]'); }) : [], porEtapas = !!(tr && dsCampoDe(tr, 'select[data-campo="nEstado"]'));
+    sels.forEach(function(sel) {
       var ok = dsHoldPermitido(f, sel.dataset.campo, porEtapas);
       [].forEach.call(sel.options, function(o) {
         if (dsEsHoldEstado(o.value) && o.value !== sel.value) { o.hidden = !ok; o.disabled = !ok; o.title = ok ? '' : 'Primero inicia la orden (Initiated)'; }
@@ -2103,7 +2142,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsFilaEsNG(sel, tabla) {
     if (tabla === 'nightguard') return true;
-    var tr = sel.closest('tr'), p = tr && tr.querySelector('[data-campo="producto"]');
+    var tr = dsTrDeSel(sel), p = tr && tr.querySelector('[data-campo="producto"]');
     return !!p && dsEsProductoNG(p.dataset.valorActual || p.value || '');
   }
   function dsPoblarCatalogos(root, spec, tabla) {
@@ -2144,7 +2183,7 @@ window.addEventListener('unhandledrejection', function(ev) {
           }
           if (actual) sel.value = actual;
           if (c.cat === 'estado') {   // Hold solo después de iniciar (también en cada etapa de N6)
-            var trH = sel.closest('tr'), idH = trH ? parseInt(trH.dataset.id, 10) : NaN;
+            var trH = dsTrDeSel(sel), idH = trH ? parseInt(trH.dataset.id, 10) : NaN;
             var fH = isNaN(idH) ? null : (DS.diaData && (DS.diaData[tabla] || []).find(function(x) { return x.id === idH; }));
             dsAjustarOpcionHold(trH, fH || {estado: actual});
             if (c.k === 'estado') { dsAjustarOpcionPickup(trH, fH || {estado: actual}); dsAjustarOpcionBite(trH, fH); }
@@ -2342,6 +2381,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var s = DS.sort[tabla];
     var html = '<table class="ds-tabla' + (dsTablaBase(tabla) === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '') + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
     spec.forEach(function(c) {
+      if (c.banda) return;
       if (DS_SORTABLES[c.k]) {
         var on = s && s.k === c.k;
         html += '<th class="ds-th-sort' + (on ? ' on' : '') + (c.g ? ' ds-g-' + c.g : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
@@ -2350,12 +2390,12 @@ window.addEventListener('unhandledrejection', function(ev) {
       html += dsEncabezadoExtra(c);
     });
     html += '<th class="ds-th-total">' + (dsTablaBase(tabla) === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
-    filas.forEach(function(f) { html += dsFilaHtml(spec, f, tabla); });
-    if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaHtml(spec, {}, tabla);
+    filas.forEach(function(f) { html += dsFilaConBandaHtml(spec, f, tabla); });
+    if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaConBandaHtml(spec, {}, tabla);
     html += '</tbody></table>';
     DS.renderizando = true; // si la celda con foco desaparece, su "blur" no debe guardar
     try { cont.innerHTML = html; } finally { DS.renderizando = false; }
-    cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, tabla); dsMarcarFila(tr, tabla); });
+    cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) { dsConectarFila(tr, tabla); dsMarcarFila(tr, tabla); });
     if (tabla === 'principal') dsSubirTablaPrincipal();
     if (dsDiaCerrado()) {
       // Día cerrado: todo en solo lectura; el QC sigue editable hasta las 5:00 am de D+2.
@@ -2365,9 +2405,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     if (dsSoloLectura() || (DS.diaData && DS.diaData.soloEditaPropias)) {
       // Training: todos ven todos los casos; quien no es de ese equipo no edita nada y cada entrenado solo edita los suyos
-      cont.querySelectorAll('tbody tr').forEach(function(tr) {
+      cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
         var fila = (DS.diaData[tabla] || []).find(function(x) { return String(x.id) === tr.dataset.id; });
-        if (dsSoloLectura() || !fila || fila.designerId !== DS.diaData.miId) tr.querySelectorAll('[data-campo]').forEach(function(el) { el.disabled = true; });
+        if (dsSoloLectura() || !fila || fila.designerId !== DS.diaData.miId) dsInputsDe(tr).forEach(function(el) { el.disabled = true; });
       });
     }
     if (dsSoloPropias()) {
@@ -2450,10 +2490,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsBloquearEstadosAjenos(cont, lista) {
     var yo = DS.diaData && DS.diaData.miId;
     cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
-      if (!tr.querySelector('select[data-campo="nEstado"]')) return;
+      if (!dsCampoDe(tr, 'select[data-campo="nEstado"]')) return;
       var f = (lista || []).find(function(x) { return String(x.id) === tr.dataset.id; });
       Object.keys(DS_DISENADOR_ETAPA).forEach(function(campo) {
-        var el = tr.querySelector('select[data-campo="' + campo + '"]');
+        var el = dsCampoDe(tr, 'select[data-campo="' + campo + '"]');
         if (!el || el.disabled || (f && f[DS_DISENADOR_ETAPA[campo]] === yo)) return;
         el.disabled = true; el.title = 'Solo quien está asignado en esta etapa cambia su estado';
       });
@@ -2477,14 +2517,14 @@ window.addEventListener('unhandledrejection', function(ev) {
       var spec = dsSpec(g.tabla, g.formato, g.area);
       html += '<h4 class="ds-prest-h">' + dsEsc(g.equipo) + (g.tabla === 'nightguard' ? ' — Nightguards / TC' : g.tabla === 'material' ? ' — Material Change' : g.tabla === 'tibar' ? ' — Over Ti-bar' : g.tabla === 'dummy' ? ' — Dummy' : '') + '</h4>' +
               '<table class="ds-tabla" data-grupo="' + g.teamId + '-' + g.tabla + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
-      spec.forEach(function(c) { html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>' + dsEncabezadoExtra(c); });
+      spec.forEach(function(c) { if (!c.banda) html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>' + dsEncabezadoExtra(c); });
       html += '<th>' + (dsTablaBase(g.tabla) === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
-      g.filas.forEach(function(f) { html += dsFilaHtml(spec, f, 'prestadas'); });
+      g.filas.forEach(function(f) { html += dsFilaConBandaHtml(spec, f, 'prestadas'); });
       html += '</tbody></table>';
     });
     DS.renderizando = true;
     try { cont.innerHTML = html; } finally { DS.renderizando = false; }
-    cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, 'prestadas'); dsMarcarFila(tr, 'prestadas'); });
+    cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) { dsConectarFila(tr, 'prestadas'); dsMarcarFila(tr, 'prestadas'); });
     cont.querySelectorAll('[data-campo]').forEach(function(el) {
       if (dsDiaCerrado()) el.disabled = !(dsEsCampoQc(el.dataset.campo) && DS.diaData.qcEditable);
     });
@@ -2683,7 +2723,7 @@ window.addEventListener('unhandledrejection', function(ev) {
 
   function dsFilaDesdeForm(tr) {
     var datos = {teamId: DS.teamId, fecha: dsFechaISO(dsFechaSeleccionada())};
-    tr.querySelectorAll('[data-campo]').forEach(function(input) {
+    dsInputsDe(tr).forEach(function(input) {
       var campo = input.dataset.campo;
       var valor;
       if (input.type === 'checkbox') valor = input.checked;
@@ -2799,7 +2839,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // La respuesta del servidor trae la orden completa: si otra persona cambió otros campos de la misma orden,
   // se muestran ya (sin tocar la celda donde está el cursor).
   function dsPonerValores(tr, o) {
-    tr.querySelectorAll('[data-campo]').forEach(function(el) {
+    dsInputsDe(tr).forEach(function(el) {
       var k = el.dataset.campo;
       if (el === document.activeElement || !(k in o)) return;
       if (el.type === 'checkbox') { if (el.checked !== !!o[k]) el.checked = !!o[k]; return; }
@@ -2833,11 +2873,12 @@ window.addEventListener('unhandledrejection', function(ev) {
     var tbody = tr.parentNode;
     if (dsPuedeCrear() && !DS.diaData[tabla].some(dsFrenaFilaNueva) && !tbody.querySelector('tr[data-id="nuevo"]')) {
       var spec = dsSpec(tabla);
-      var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaHtml(spec, {}, tabla);
-      var nueva = tmp.firstChild;
+      var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaConBandaHtml(spec, {}, tabla);
+      var nueva = tmp.lastElementChild, banda = tmp.firstElementChild !== nueva ? tmp.firstElementChild : null;
+      if (banda) tbody.appendChild(banda);
       tbody.appendChild(nueva);
       dsConectarFila(nueva, tabla);
-      dsPoblarCatalogos(nueva, spec, tabla);
+      dsPoblarCatalogos(banda ? tbody : nueva, spec, tabla);
       dsAjustarCreaProducto(tbody);
     }
   }
@@ -3964,7 +4005,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     return cont ? DS_TABLAS.filter(function(t) { return DS_CONT[t] === cont.id; })[0] : null;
   }
   // Solo las filas visibles (las ocultas no entran en la selección, copiar ni pegar)
-  function dsFilasDom(tabla) { return Array.prototype.slice.call(document.querySelectorAll('#' + DS_CONT[tabla] + ' tbody tr:not(.ds-oculta)')); }
+  function dsFilasDom(tabla) { return Array.prototype.slice.call(document.querySelectorAll('#' + DS_CONT[tabla] + ' tbody tr[data-id]:not(.ds-oculta)')); }
   function dsCoord(td) { var tr = td.parentNode; return {r: dsFilasDom(dsTablaDe(td)).indexOf(tr), c: parseInt(td.dataset.col)}; }
   function dsPintarSel() {
     document.querySelectorAll('.ds-tabla td.ds-sel, .ds-tabla td.ds-sel-activa').forEach(function(td) { td.classList.remove('ds-sel', 'ds-sel-activa'); });
@@ -3983,7 +4024,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Celdas seleccionadas como [{tr, td, el, c, fila, col}] en orden de filas/columnas.
   function dsCeldasSel() {
     var s = DS.sel; if (!s) return [];
-    var spec = dsSpec(s.tabla), out = [];
+    var spec = dsSpecCols(s.tabla), out = [];
     dsFilasDom(s.tabla).forEach(function(tr, r) {
       if (r < Math.min(s.r1, s.r2) || r > Math.max(s.r1, s.r2)) return;
       for (var c = Math.min(s.c1, s.c2); c <= Math.max(s.c1, s.c2); c++) {
@@ -4143,7 +4184,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (unValor && celdasSel.length <= 1 && dsEsTexto(el) && el.closest(dsSelTablas('.ds-tabla'))) return;
     if (!(el && el.closest && el.closest(dsSelTablas('.ds-tabla'))) && celdasSel.length <= 1) return;
     e.preventDefault();
-    var s = DS.sel, tabla = s.tabla, spec = dsSpec(tabla);
+    var s = DS.sel, tabla = s.tabla, spec = dsSpecCols(tabla);
     var trs = dsFilasDom(tabla), r0 = Math.min(s.r1, s.r2), c0 = Math.min(s.c1, s.c2);
     var cambios = [], extras = [], omitidos = 0, bloqueados = 0, qcOmitidos = 0;
     var poner = function(tr, c, texto) {

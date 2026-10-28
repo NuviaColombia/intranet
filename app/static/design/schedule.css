@@ -1281,6 +1281,16 @@
   table.ds-tabla th.ds-g-x { background:#fef3c7; color:#78350f; }   /* N6: «Zirconia» de Over Ti-bar */
   table.ds-tabla th.ds-g-n { background:#fce7f3; color:#831843; }   /* N6: «Nightguard design» */
   table.ds-tabla th.ds-g-a { background:#ede9fe; color:#4c1d95; }
+  /* N6: franja del Estado de cada etapa sobre su orden (nombre de la etapa a la izquierda, estado a la derecha) */
+  table.ds-tabla tr.ds-banda td { padding:2px 3px; border-bottom:0; }
+  table.ds-tabla tr.ds-banda td.ds-banda-v { background:transparent; border-color:transparent; }
+  table.ds-tabla tr.ds-banda td.ds-banda-t { font-size:11px; font-weight:700; text-align:left; padding-left:8px; vertical-align:middle; }
+  table.ds-tabla tr.ds-banda td.ds-banda-e { text-align:right; }
+  table.ds-tabla tr.ds-banda td.ds-banda-e select { width:100%; min-width:125px; }
+  table.ds-tabla tr.ds-banda td.ds-g-b { background:#e0ecff; color:#1e3a8a; }
+  table.ds-tabla tr.ds-banda td.ds-g-z { background:#e6f6ef; color:#14532d; }
+  table.ds-tabla tr.ds-banda td.ds-g-x { background:#fef3c7; color:#78350f; }
+  table.ds-tabla tr.ds-banda td.ds-g-n { background:#fce7f3; color:#831843; }
   table.ds-tabla .ds-ro { font-size:13px; color:#475569; white-space:nowrap; }
   table.ds-tabla th.ds-g-d { background:#d9f2ee; color:#0f4f49; }
   table.ds-tabla td.ds-g-ini, table.ds-tabla th.ds-gh { border-left:2px solid #94a3b8; }
