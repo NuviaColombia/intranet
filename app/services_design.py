@@ -635,7 +635,8 @@ def comments_permitidos(db: Session, user: Empleado) -> dict:
 
 # Pre-Approved: cada quien ve su área; N6 ve también N3 y Face también N2 (no tienen hojas propias).
 # Support y los admins ven todas (1-oct-2026).
-PA_AREAS_VINCULADAS = {"N6 Material Changes": "N3 Prosthetic", "Face Design": "N2 Demodenture"}
+# Training (28-oct-2026, Rosember): es apoyo y diseña órdenes de cualquier centro de N3, así que ve todas las hojas de N3.
+PA_AREAS_VINCULADAS = {"N6 Material Changes": "N3 Prosthetic", "Face Design": "N2 Demodenture", AREA_TRAINING: "N3 Prosthetic"}
 
 
 def preapproved_areas_permitidas(db: Session, user: Empleado) -> set[int] | None:
