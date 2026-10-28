@@ -17,9 +17,21 @@ tarjetas) y `/pagos` ya NO usan esa regla.** Usan `require_modulo_o_admin("caja_
 `app/auth.py`): cualquier admin/superadmin las abre siempre, sin autorizarse, porque esas pantallas
 no hacen nada sensible por sí solas y Oscar necesita usar Pagos a diario sin depender de estar
 autorizado en Caja menor. La restricción real (autorización explícita) sigue aplicando solo a Caja
-menor en sí (`/caja-menor`, con `require_modulo("caja_menor")` normal). Quien entra a `/contabilidad`
-sin estar autorizado para Caja menor ve la tarjeta "Caja menor Nuvia", pero al hacer clic ahí sí lo
-bloquea -- eso es esperado.
+menor en sí (`/caja-menor`, con `require_modulo("caja_menor")` normal).
+
+**(2026-10-28) Las tarjetas que llevan a un sitio sin acceso real se ven en gris, no rebotan.**
+Pedido de Carlos tras ver la pantalla de bloqueo en una prueba: un admin/superadmin que entra a
+`/contabilidad` sin estar autorizado para Caja menor en sí ya no ve "Caja menor Nuvia" como un link
+que lo rebota al hacer clic -- la tarjeta sale deshabilitada (`class="modulo disabled"`, mismo
+patrón que ya usan `inventario.html` y `activos.html` para "Sin acceso"/"Próximamente"), controlada
+por `user.tiene_modulo('caja_menor')` en `contabilidad.html`. Lo mismo se corrigió en el portal de
+inicio (`portal.html`): la tarjeta "Contabilidad" de la barra lateral usaba la regla vieja
+(`user.tiene_modulo('caja_menor')`) para decidir si se veía habilitada, lo que la mostraba en gris
+para un admin/superadmin que en realidad **sí** puede entrar a `/contabilidad` (gracias a
+`require_modulo_o_admin`) -- ahora usa la misma condición que el permiso real:
+`user.rol in ('admin', 'superadmin') or user.tiene_modulo('caja_menor')`. Si en el futuro se agrega
+otra pantalla con el patrón de "puerta abierta, contenido restringido" (como `require_modulo_o_admin`),
+hay que replicar este mismo ajuste ahí para no repetir la inconsistencia.
 
 **(2026-10-28) En People › Empleados la casilla de este permiso ya dice "Contabilidad", no "Caja
 menor Nuvia".** Solo cambió la etiqueta en `MODULOS_DISPONIBLES` (`app/models.py`) -- el slug
