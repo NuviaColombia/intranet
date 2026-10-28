@@ -1043,6 +1043,72 @@ def horas_por_estado_etapas(actual: dict, nuevos: dict, anteriores: dict) -> dic
     return cambios
 
 
+# ---------- Notas de cada etapa (Rosember, 28-oct-2026) ----------
+# En Material Change y Over Ti-bar, cada etapa tiene sus propias notas (varias). El número junto al ícono es cuántas hay. No se muestra
+# quién escribió cada una, pero se guarda (u) para que cada quien borre solo las suyas; el manager y el admin borran cualquiera.
+ETAPAS_NOTAS = ("b", "z", "x", "n")
+NOTA_MAX_CARACTERES = 1000
+NOTAS_MAX_POR_ETAPA = 50
+
+
+def _notas_crudas(o) -> dict:
+    try:
+        d = json.loads(o.notas_etapas or "{}")
+    except ValueError:
+        d = {}
+    return {e: [n for n in (d.get(e) or []) if isinstance(n, dict) and (n.get("t") or "").strip()] for e in ETAPAS_NOTAS}
+
+
+def notas_etapas_n(o) -> dict:
+    """{etapa: cuántas notas} para pintar el número junto al ícono (solo las órdenes con notas)."""
+    if not (o.notas_etapas or "").strip():
+        return {}
+    return {e: len(l) for e, l in _notas_crudas(o).items() if l}
+
+
+def notas_etapas_vista(o, user, es_gestor: bool) -> dict:
+    """Las notas de la orden para mostrarlas: sin el autor; puedeBorrar = la escribió esta persona o es manager / admin."""
+    return {e: [{"id": n.get("id"), "t": n.get("t"), "f": n.get("f"), "puedeBorrar": bool(es_gestor or n.get("u") == user.id)} for n in l]
+            for e, l in _notas_crudas(o).items()}
+
+
+def validar_etapa_notas(o, etapa: str) -> None:
+    """Solo las órdenes de Material Change y Over Ti-bar de N6 desde el 29-oct-2026 tienen notas por etapa."""
+    if not (o.team and o.team.area and n6_por_etapas(o.team.area.nombre, o.fecha, o.tabla)):
+        raise ValueError("Las notas por etapa solo existen en Material Change y Over Ti-bar de N6.")
+    if etapa not in ETAPAS_NOTAS or (etapa == "x" and o.tabla != TABLA_TIBAR):
+        raise ValueError("Esa etapa no existe en esta tabla.")
+
+
+def agregar_nota_etapa(db: Session, o, user, etapa: str, texto: str) -> None:
+    import uuid
+    validar_etapa_notas(o, etapa)
+    texto = (texto or "").strip()
+    if not texto:
+        raise ValueError("Escribe la nota.")
+    if len(texto) > NOTA_MAX_CARACTERES:
+        raise ValueError(f"La nota puede tener hasta {NOTA_MAX_CARACTERES} caracteres.")
+    d = _notas_crudas(o)
+    if len(d[etapa]) >= NOTAS_MAX_POR_ETAPA:
+        raise ValueError(f"Cada etapa admite hasta {NOTAS_MAX_POR_ETAPA} notas.")
+    d[etapa].append({"id": uuid.uuid4().hex[:10], "t": texto, "f": datetime.utcnow().isoformat(timespec="seconds") + "Z", "u": user.id})
+    o.notas_etapas = json.dumps(d, ensure_ascii=False)
+    db.commit()
+
+
+def borrar_nota_etapa(db: Session, o, user, etapa: str, nota_id: str, es_gestor: bool) -> None:
+    validar_etapa_notas(o, etapa)
+    d = _notas_crudas(o)
+    nota = next((n for n in d[etapa] if n.get("id") == nota_id), None)
+    if nota is None:
+        raise ValueError("Esa nota ya no existe.")
+    if not (es_gestor or nota.get("u") == user.id):
+        raise PermissionError("Solo puedes borrar tus propias notas.")
+    d[etapa] = [n for n in d[etapa] if n.get("id") != nota_id]
+    o.notas_etapas = json.dumps(d, ensure_ascii=False)
+    db.commit()
+
+
 def n6_por_etapas(area_nombre: str, fecha: date, tabla: str) -> bool:
     """¿Esta orden es de N6, de Material Change u Over Ti-bar, en un día con las cuatro tablas?"""
     return n6_separado(area_nombre, fecha) and es_tabla_etapas(tabla)
@@ -2232,6 +2298,7 @@ def serializar_orden(o: DesignOrden) -> dict:
         "designerId": o.designer_id, "designerNombre": o.designer.nombre_completo if o.designer else "", "arco": o.arco or "",
         "designerCorto": nombre_corto(o.designer),
         "designerPrestado": o.designer_prestado, "designerInhabilitado": _designer_inhabilitado(o),
+        "notasN": notas_etapas_n(o),
         "zEstado": o.z_estado or "", "xEstado": o.x_estado or "", "nEstado": o.n_estado or "",
         "zDesignerId": o.z_designer_id, "xDesignerId": o.x_designer_id, "nDesignerId": o.n_designer_id,
         "zDesignerCorto": nombre_corto(o.z_designer), "xDesignerCorto": nombre_corto(o.x_designer),

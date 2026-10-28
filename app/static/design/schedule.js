@@ -816,16 +816,15 @@ window.addEventListener('unhandledrejection', function(ev) {
     // Diseñador de cada etapa (Rosember, 28-oct-2026): el de siempre pasa a Bite design y Zirconia design tiene el suyo
     var base = [];
     COLSPEC.material.forEach(function(c) {
-      if (c.k === 'etapa' || c.k === 'designerId' || c.k === 'estado') return;
+      if (c.k === 'etapa' || c.k === 'designerId' || c.k === 'estado' || c.k === 'notas') return;   // Notas: ahora son las de cada etapa
       if (c.k === 'horaInicio') base.push({k:'designerId', l:'Diseñador', t:'designer', g:'b'});
       if (c.k === 'zHoraInicio') base.push({k:'zDesignerId', l:'Diseñador', t:'designerEtapa', g:'z'});
-      base.push(c);
+      base.push(c.k === 'producto' ? Object.assign({}, c, {banda: true}) : c);   // el Producto va en la franja, sobre Orden · Paciente · Centro
       // el Estado de cada etapa va al final de su grupo (Rosember, 28-oct-2026); el de Bite design es el de siempre
       if (c.k === 'qc') base.push({k:'estado', l:'Estado', t:'catalogo', cat:'estado', g:'b', banda:true});
       if (c.k === 'zQc') base.push({k:'zEstado', l:'Estado', t:'catalogo', cat:'estado', g:'z', banda:true});
     });
-    var i = base.findIndex(function(c) { return c.k === 'notas'; });
-    return base.slice(0, i).concat(extra, base.slice(i));
+    return base.concat(extra);
   }
   function dsSpec(tabla, formato, areaNombre) {
     var tablaOrig = tabla;
@@ -997,10 +996,80 @@ window.addEventListener('unhandledrejection', function(ev) {
     return tr;
   }
   function dsSpecCols(tabla) { return dsSpec(tabla).filter(function(c) { return !c.banda; }); }   // columnas de la fila (sin las de la franja)
+  // Notas de cada etapa (Rosember, 28-oct-2026): un botón junto al Estado; el número es cuántas notas tiene esa etapa.
+  function dsBotonNotas(g, f) {
+    var n = (f.notasN || {})[g] || 0;
+    return '<button type="button" class="ds-notas-btn" data-notas="' + g + '" title="' + (n ? 'Notas de esta etapa (' + n + ')' : 'Notas de esta etapa') + '" aria-label="Notas de ' + dsEsc(DS_GRUPOS[g] || '') + '"' +
+           (f.id ? '' : ' disabled') + '>📝<span class="ds-notas-n"' + (n ? '' : ' hidden') + '>' + n + '</span></button>';
+  }
+  function dsPintarNotas(tr, f) {
+    var b = dsBandaDe(tr); if (!b) return;
+    b.querySelectorAll('[data-notas]').forEach(function(btn) {
+      var n = ((f && f.notasN) || {})[btn.dataset.notas] || 0, sp = btn.querySelector('.ds-notas-n');
+      sp.textContent = n; sp.hidden = !n; btn.disabled = !(f && f.id);
+      btn.title = n ? 'Notas de esta etapa (' + n + ')' : 'Notas de esta etapa';
+    });
+  }
+  function dsFechaNota(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    return d.toLocaleString('es-CO', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+  }
+  function dsAbrirNotas(tr, tabla, etapa) {
+    var id = parseInt(tr.dataset.id, 10);
+    if (!id) { dsToast('Guarda primero la orden (número y producto) para escribir notas.'); return; }
+    if (document.getElementById('dsNotasEt')) return;
+    var ord = (tr.querySelector('[data-campo="orden"]') || {}).value || '';
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'dsNotasEt';
+    bg.innerHTML = '<div class="ds-qc ds-notas-modal" role="dialog" aria-modal="true" aria-labelledby="dsNotasTit" style="width:520px">' +
+      '<h4 id="dsNotasTit">Notas · ' + dsEsc(DS_GRUPOS[etapa] || '') + '</h4><div class="ds-qc-sub">Orden ' + dsEsc(ord) + '</div>' +
+      '<div class="ds-notas-lista"><p class="ds-notas-vacio">Cargando…</p></div>' +
+      '<textarea class="ds-notas-txt" maxlength="1000" rows="3" placeholder="Escribe una nota…"></textarea>' +
+      '<div class="ds-qc-err"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-n="no">Cerrar</button><button type="button" class="btn" data-n="si">Agregar nota</button></div></div>';
+    document.body.appendChild(bg);
+    var lista = bg.querySelector('.ds-notas-lista'), txt = bg.querySelector('.ds-notas-txt'), err = bg.querySelector('.ds-qc-err'), btnSi = bg.querySelector('[data-n="si"]');
+    var url = '/design/api/ordenes/' + id + '/notas';
+    var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
+    var pintar = function(todas) {
+      var l = (todas || {})[etapa] || [];
+      lista.innerHTML = l.length ? l.map(function(x) {
+        return '<div class="ds-nota"><div class="ds-nota-f">' + dsEsc(dsFechaNota(x.f)) + '</div><div class="ds-nota-t">' + dsEsc(x.t) + '</div>' +
+               (x.puedeBorrar ? '<button type="button" class="ds-nota-x" data-id="' + dsEsc(x.id) + '" title="Borrar esta nota" aria-label="Borrar esta nota">×</button>' : '') + '</div>';
+      }).join('') : '<p class="ds-notas-vacio">Esta etapa todavía no tiene notas.</p>';
+      lista.scrollTop = lista.scrollHeight;
+      var cont = {}; Object.keys(todas || {}).forEach(function(k) { if ((todas[k] || []).length) cont[k] = todas[k].length; });
+      var f = (DS.diaData[tabla] || []).find(function(x) { return x.id === id; });
+      if (f) { f.notasN = cont; dsPintarNotas(tr, f); }
+    };
+    var enviar = function(cuerpo) {
+      btnSi.disabled = true; err.textContent = '';
+      return postJSON(url, Object.assign({etapa: etapa}, cuerpo)).then(function(r) {
+        if (!r || !r.notas) throw new Error((r && r.detail) || 'No se pudo guardar la nota.');
+        pintar(r.notas); btnSi.disabled = false; return r;
+      }).catch(function(e) { err.textContent = e.message || 'No se pudo guardar la nota.'; btnSi.disabled = false; });
+    };
+    var agregar = function() {
+      var t = txt.value.trim(); if (!t) { err.textContent = 'Escribe la nota.'; txt.focus(); return; }
+      enviar({accion: 'agregar', texto: t}).then(function(r) { if (r) { txt.value = ''; txt.focus(); } });
+    };
+    var teclas = function(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target === txt) { e.preventDefault(); e.stopPropagation(); agregar(); }
+    };
+    document.addEventListener('keydown', teclas, true);
+    btnSi.onclick = agregar;
+    bg.querySelector('[data-n="no"]').onclick = cerrar;
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cerrar(); });
+    lista.addEventListener('click', function(e) {
+      var x = e.target.closest('.ds-nota-x'); if (!x) return;
+      enviar({accion: 'borrar', id: x.dataset.id});
+    });
+    api(url).then(function(todas) { pintar(todas); txt.focus(); }).catch(function(e) { lista.innerHTML = '<p class="ds-notas-vacio">No se pudieron cargar las notas.</p>'; });
+  }
   function dsBandaHtml(spec, f) {
-    var cols = [], estados = {};
+    var cols = [], estados = {}, prod = null;
     spec.forEach(function(c) {
-      if (c.banda) { estados[c.g] = c; return; }
+      if (c.banda) { if (c.g) estados[c.g] = c; else prod = c; return; }
       var n = 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0);
       for (var j = 0; j < n; j++) cols.push(c.g || '');
     });
@@ -1012,7 +1081,9 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (g && estados[g]) {
         var fin = Math.max(i, j - 3);   // el estado va sobre Fin, QC y Total: las 3 últimas columnas de la etapa
         if (fin > i) html += '<td colspan="' + (fin - i) + '" class="ds-g-' + g + ' ds-g-ini ds-banda-t">' + dsEsc(DS_GRUPOS[g] || '') + '</td>';
-        html += '<td colspan="' + (j - fin) + '" class="ds-g-' + g + ' ds-banda-e">' + dsCeldaInput(estados[g], f) + '</td>';
+        html += '<td colspan="' + (j - fin) + '" class="ds-g-' + g + ' ds-banda-e"><span class="ds-banda-ee">' + dsBotonNotas(g, f) + dsCeldaInput(estados[g], f) + '</span></td>';
+      } else if (!g && i === 0 && prod) {   // el Producto, sobre Orden · Paciente · Centro
+        html += '<td colspan="' + (j - i) + '" class="ds-banda-p">' + dsCeldaInput(prod, f) + '</td>';
       } else html += '<td colspan="' + (j - i) + '" class="ds-banda-v"></td>';
       i = j;
     }
@@ -1644,6 +1715,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsConectarFila(tr, tabla) {
+    var bandaN = dsBandaDe(tr);
+    if (bandaN) bandaN.querySelectorAll('[data-notas]').forEach(function(b) { b.addEventListener('click', function() { dsAbrirNotas(tr, tabla, b.dataset.notas); }); });
     dsInputsDe(tr).forEach(function(input) {
       if (dsEsCampoQc(input.dataset.campo)) {
         // Marcar QC exige llenar el recuadro de hallazgos; desmarcar guarda de inmediato (el reporte se conserva).
@@ -1811,7 +1884,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsAbrirQc(tr, tabla, chk) {
     if (tabla === 'prestadas' || !DS.areaId) { dsAbrirQcLibre(tr, tabla, chk); return; }
     // El catálogo depende del área, de la tabla (Cirugías / Nightguards y TC) y del producto de la fila (NG o TC)
-    var prod = (tr.querySelector('[data-campo="producto"]') || {}).value || '';
+    var prod = (dsCampoDe(tr, '[data-campo="producto"]') || {}).value || '';
     var url = '/design/api/qc-catalogo?area_id=' + DS.areaId + '&tabla=' + encodeURIComponent(tabla) + '&producto=' + encodeURIComponent(prod);
     window.dsFetchJSON(url).then(function(cat) {
       if (cat && cat.titulos && cat.titulos.length) dsAbrirQcLista(tr, tabla, chk, cat, url); else dsAbrirQcLibre(tr, tabla, chk);
@@ -2167,7 +2240,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsFilaEsNG(sel, tabla) {
     if (tabla === 'nightguard') return true;
-    var tr = dsTrDeSel(sel), p = tr && tr.querySelector('[data-campo="producto"]');
+    var tr = dsTrDeSel(sel), p = tr && dsCampoDe(tr, '[data-campo="producto"]');
     return !!p && dsEsProductoNG(p.dataset.valorActual || p.value || '');
   }
   function dsPoblarCatalogos(root, spec, tabla) {
@@ -2281,6 +2354,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     var tr = el.closest('tr'), f = tr && (DS.diaData.material || []).find(function(o) { return String(o.id) === tr.dataset.id; });
     return dsColoresCopia(f && (DS.diaData.coloresEquipos || {})[String(f.teamOrigen)]);
   }
+  // Colores de siempre de cada estado (los de las filas: Hold, Ready / Changes, HTML, Approved / Dr authorization, Canceled)
+  var DS_COLOR_ESTADO = {'hold': '237,150,110', 'ready to design': '245,200,60', 'changes': '245,200,60', 'html': '230,110,150',
+                         'approved': '120,200,70', 'dr authorization': '120,200,70', 'canceled': '156,163,175'};
   function dsPintarCelda(sel, colores) {
     if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaTibar, #dsTablaDummy, #dsTablaPrincipal, #dsTablaNightguard')) return;   // las prestadas son de otro equipo
     if (dsEsRD()) colores = dsColoresDeFila(sel);
@@ -2288,6 +2364,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (tipo === 'p' && !dsColoresProductos()) return;
     var v = tipo === 'd' ? sel.value : (sel.value || sel.dataset.valorActual || '');
     var rgb = dsColorRgb((x[tipo] || {})[v]);
+    // Los estados de la franja (N6, un estado por etapa) conservan su color de siempre si el equipo no les puso otro
+    var defEst = !rgb && tipo === 'e' && sel.closest('tr.ds-banda') ? DS_COLOR_ESTADO[dsNorm(v)] : null;
+    if (defEst) rgb = defEst;
     // 'important': en modo oscuro las filas con color de estado vuelven transparentes sus casillas (oscuro.css)
     if (rgb) sel.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else sel.style.removeProperty('background-color');
     sel.style.boxShadow = rgb ? 'inset 4px 0 0 rgb(' + rgb + ')' : '';
@@ -2873,6 +2952,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsRenderKpis(DS.diaData); return;
     }
     dsPonerValores(tr, o);
+    dsPintarNotas(tr, o);
+    dsInputsDe(tr).forEach(function(el) { if (el.tagName === 'SELECT' && DS_COLOR_TIPO[el.dataset.campo]) dsPintarCelda(el); });   // el color de cada estado sigue a su valor
     if (tabla !== 'prestadas') setTimeout(function() { dsAplicarOcultas(tabla); }, 0);
     tr.querySelector('.ds-total').innerText = dsDuracionFila(o, tabla);
     var tdTHold = tr.querySelector('.ds-thold'); if (tdTHold) tdTHold.innerText = dsTHoldTxt(o);
@@ -2892,7 +2973,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var nueva = tmp.lastElementChild, conPrevias = tmp.children.length > 1;
       [].slice.call(tmp.children).forEach(function(r) { tbody.appendChild(r); });
       dsConectarFila(nueva, tabla);
-      dsPoblarCatalogos(conPrevias ? tbody : nueva, spec, tabla);
+      dsPoblarCatalogos(conPrevias ? document.getElementById(DS_CONT[tabla]) : nueva, spec, tabla);
       dsAjustarCreaProducto(tbody);
     }
   }

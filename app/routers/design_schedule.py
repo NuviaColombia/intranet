@@ -1854,6 +1854,54 @@ def diagnostico_rendimiento(request: Request, user: Empleado = Depends(require_a
     return templates.TemplateResponse(request, "design_diag_rendimiento.html", {"user": user, "es_design": True, "d": srend.medir(db)})
 
 
+# ---------- Notas de cada etapa (N6: Material Change y Over Ti-bar; Rosember, 28-oct-2026) ----------
+class NotaEtapaIn(BaseModel):
+    etapa: Literal["b", "z", "x", "n"]
+    accion: Literal["agregar", "borrar"] = "agregar"
+    texto: str = Field("", max_length=2000)
+    id: str = Field("", max_length=40)
+
+
+def _orden_para_notas(db: Session, user: Empleado, orden_id: int):
+    """La orden y si quien pregunta es manager / admin. Mismos permisos que editarla: manager, admin o un diseñador asignado."""
+    o = db.get(DesignOrden, orden_id)
+    if not o:
+        raise HTTPException(404, "Orden no encontrada.")
+    team = db.get(DesignTeam, o.team_id)
+    gestor = sd.gestiona_equipo(user, team)
+    if not gestor:
+        propia = user.id in sd.disenadores_de_orden(o) and (team.id in sd.equipos_como_designer(db, user) or sd.es_orden_prestada_a(db, o, user))
+        if not propia:
+            raise HTTPException(403, "Solo puedes ver y escribir notas en las órdenes que tienes asignadas.")
+    return o, gestor
+
+
+@router.get("/design/api/ordenes/{orden_id}/notas")
+def api_notas_etapas(orden_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
+    o, gestor = _orden_para_notas(db, user, orden_id)
+    return sd.notas_etapas_vista(o, user, gestor)
+
+
+@router.post("/design/api/ordenes/{orden_id}/notas")
+def api_notas_etapas_guardar(orden_id: int, payload: NotaEtapaIn, user: Empleado = Depends(require_modulo("design_schedule")),
+                             db: Session = Depends(get_db)):
+    o, gestor = _orden_para_notas(db, user, orden_id)
+    if sperm.dia_cerrado_para(db, user, o.fecha):
+        raise HTTPException(403, DIA_CERRADO)
+    try:
+        if payload.accion == "agregar":
+            sd.agregar_nota_etapa(db, o, user, payload.etapa, payload.texto)
+        else:
+            sd.borrar_nota_etapa(db, o, user, payload.etapa, payload.id, gestor)
+    except PermissionError as e:
+        db.rollback()
+        raise HTTPException(403, str(e))
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(400, str(e))
+    return {"notas": sd.notas_etapas_vista(o, user, gestor), "n": sd.notas_etapas_n(o)}
+
+
 @router.post("/design/api/ordenes/{orden_id}/bite-finish")
 def api_bite_finish(orden_id: int, user: Empleado = Depends(require_modulo("design_schedule")), db: Session = Depends(get_db)):
     """«Bite Finish» (lista de estados de N3 / N6): pone el FINISH de Bite design en la copia de Removable Denture, la deja en

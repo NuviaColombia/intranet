@@ -156,6 +156,9 @@ class DesignOrden(Base):
     z_estado: Mapped[str] = mapped_column(String(100), default="")
     x_estado: Mapped[str] = mapped_column(String(100), default="")
     n_estado: Mapped[str] = mapped_column(String(100), default="")
+    # Notas de cada etapa (Rosember, 28-oct-2026): JSON {"b": [{"id", "t", "f", "u"}], "z": [...], "x": [...], "n": [...]}
+    # (b = Bite design, z = Zirconia design, x = Zirconia, n = Nightguard design; t = texto, f = fecha UTC, u = quién la escribió, no se muestra).
+    notas_etapas: Mapped[str] = mapped_column(Text, default="")
 
     # N3 · Cirugías (pedido por Rosember el 13-oct-2026): tiempo de articulación. Las dos horas se escriben a mano; el
     # total (RTD − START) se calcula en pantalla. Pasadas las 2 h se cuenta en el Dashboard › Articulación.

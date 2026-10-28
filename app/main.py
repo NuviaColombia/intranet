@@ -351,7 +351,9 @@ def init_db():
                       ("n_designer_id", "INTEGER REFERENCES empleados(id)"),
                       # N6: estado de cada etapa (28-oct-2026, autorizado por Rosember)
                       ("z_estado", "VARCHAR(100) DEFAULT ''"), ("x_estado", "VARCHAR(100) DEFAULT ''"),
-                      ("n_estado", "VARCHAR(100) DEFAULT ''")):
+                      ("n_estado", "VARCHAR(100) DEFAULT ''"),
+                      # N6: notas de cada etapa (28-oct-2026, autorizado por Rosember)
+                      ("notas_etapas", "TEXT DEFAULT ''")):
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))

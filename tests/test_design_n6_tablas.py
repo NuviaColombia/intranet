@@ -42,6 +42,17 @@ class N6CuatroTablas(unittest.TestCase):
         self.assertEqual(list(r), ["z_s_hold"])   # «Dr authorization» cuenta como Hold
         self.assertEqual(sd.horas_por_estado_etapas(actual, {"estado": "Initiated"}, {"estado": "Initiated"}), {})   # sin cambio de estado
 
+    def test_notas_de_cada_etapa(self):
+        import json
+        from types import SimpleNamespace as O
+        o = O(notas_etapas=json.dumps({"b": [{"id": "1", "t": "uno", "f": "x", "u": 7}, {"id": "2", "t": "  ", "f": "x", "u": 7}], "n": [{"id": "3", "t": "tres", "f": "x", "u": 8}]}))
+        self.assertEqual(sd.notas_etapas_n(o), {"b": 1, "n": 1})   # las vacías no cuentan; las etapas sin notas no salen
+        self.assertEqual(sd.notas_etapas_n(O(notas_etapas="")), {})
+        self.assertEqual(sd.notas_etapas_n(O(notas_etapas="no es json")), {})
+        v = sd.notas_etapas_vista(o, O(id=7), False)
+        self.assertEqual([x["puedeBorrar"] for x in v["b"]], [True]) and self.assertNotIn("u", v["b"][0])   # sin autor; borra la suya
+        self.assertTrue(sd.notas_etapas_vista(o, O(id=99), True)["n"][0]["puedeBorrar"])   # el manager borra cualquiera
+
     def test_produccion_como_hoy(self):
         self.assertEqual(sd.tipo_produccion("tibar", ""), "mc")
         self.assertEqual(sd.tipo_produccion("dummy", ""), "sx")

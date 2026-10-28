@@ -1290,6 +1290,23 @@
   table.ds-tabla tr.ds-banda td.ds-banda-t { font-size:11px; font-weight:700; text-align:left; padding-left:8px; vertical-align:middle; }
   table.ds-tabla tr.ds-banda td.ds-banda-e { text-align:right; }
   table.ds-tabla tr.ds-banda td.ds-banda-e select { width:100%; min-width:125px; }
+  table.ds-tabla tr.ds-banda td.ds-banda-p { background:transparent; border-color:transparent; }
+  table.ds-tabla tr.ds-banda td.ds-banda-p select { width:100%; min-width:190px; }
+  .ds-banda-ee { display:flex; align-items:center; justify-content:flex-end; gap:6px; }
+  .ds-banda-ee select { flex:1 1 auto; width:auto !important; }
+  /* notas de cada etapa: botón con el número de notas y la ventanita para leerlas y escribirlas */
+  .ds-notas-btn { position:relative; flex:0 0 auto; border:1px solid #cbd5e1; background:#fff; border-radius:8px; padding:1px 7px; cursor:pointer; font-size:14px; line-height:1.5; }
+  .ds-notas-btn:hover:not(:disabled) { background:#f1f5f9; border-color:#94a3b8; }
+  .ds-notas-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .ds-notas-n { position:absolute; top:-8px; right:-8px; min-width:17px; height:17px; padding:0 4px; box-sizing:border-box; border-radius:999px; background:#ef4444; color:#fff; font-size:10px; font-weight:800; line-height:17px; text-align:center; }
+  .ds-notas-n[hidden] { display:none; }
+  .ds-notas-lista { max-height:260px; overflow:auto; margin:8px 0; display:flex; flex-direction:column; gap:6px; }
+  .ds-notas-vacio { margin:6px 0; color:#64748b; font-size:13px; }
+  .ds-nota { position:relative; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 28px 6px 10px; }
+  .ds-nota-f { font-size:11px; color:#64748b; margin-bottom:2px; }
+  .ds-nota-t { font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .ds-nota-x { position:absolute; top:4px; right:6px; border:0; background:transparent; color:#b91c1c; font-size:18px; line-height:1; cursor:pointer; }
+  .ds-notas-txt { width:100%; box-sizing:border-box; resize:vertical; }
   table.ds-tabla tr.ds-banda td.ds-g-b { background:#e0ecff; color:#1e3a8a; }
   table.ds-tabla tr.ds-banda td.ds-g-z { background:#e6f6ef; color:#14532d; }
   table.ds-tabla tr.ds-banda td.ds-g-x { background:#fef3c7; color:#78350f; }
