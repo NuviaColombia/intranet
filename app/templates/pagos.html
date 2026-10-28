@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% block titulo %}Pagos{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/pagos.css?v=1">
+<link rel="stylesheet" href="/static/pagos.css?v={{ pagos_estaticos_v }}">
 <div id="pagos-app">
-
-  <div class="pg-tool-tabs">
-    <button type="button" id="pg-tt-pdf" class="activo">💳 Pagos programados → PDF</button>
-    <button type="button" id="pg-tt-sep">📎 Separador de comprobantes</button>
-  </div>
+<div class="pg-shell">
+  <nav class="pg-sidebar">
+    <button type="button" id="pg-tt-pdf" class="activo"><span class="pg-sidebar-icono">💳</span><span>Pagos programados<br><small>→ PDF</small></span></button>
+    <button type="button" id="pg-tt-sep"><span class="pg-sidebar-icono">📎</span><span>Separador de<br>comprobantes</span></button>
+  </nav>
+  <div class="pg-content">
 
   <!-- ============ HERRAMIENTA 1: Pagos programados -> PDF ============ -->
   <div id="pg-tool-pdf" class="pg-herramienta activa">
@@ -162,6 +163,8 @@
   </div>
   </div>
 
+  </div>
+</div>
 </div>
 
 <script>

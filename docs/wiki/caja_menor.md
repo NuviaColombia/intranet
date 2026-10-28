@@ -67,6 +67,15 @@ del Separador se dejó en scope global porque su HTML usa `onclick="..."` inline
 `caja_menor.html`) que necesita encontrar esas funciones como globales. Si tocas cualquiera de los
 dos, respeta ese aislamiento.
 
+**(2026-10-28) Las herramientas de Pagos se eligen en una barra lateral izquierda** (`.pg-shell` /
+`.pg-sidebar` / `.pg-content` en `pagos.html`/`pagos.css`, pedido de Oscar -- antes eran pestañas
+arriba). Si agregas una herramienta nueva dentro de Pagos, es un botón más en `.pg-sidebar` (mismo
+patrón: un `id` propio, se agrega a los arrays `btns`/`paneles` del script del selector) y un bloque
+`.pg-herramienta` más. `pagos.css` ya tiene cache-busting por hash de contenido
+(`pagos_estaticos_v` en `main_templates.py`, mismo patrón que `activos_estaticos_v` -- ver el gotcha
+de Cache-Control en [activos.md](activos.md) sobre por qué hace falta esto y no un número de
+versión escrito a mano).
+
 **Qué es** (Caja menor Nuvia): manejo de cajas de caja menor (ej. CONTABILIDAD, MANTENIMIENTO). Reemplaza una app
 anterior en Google Apps Script. Alguien con acceso a una caja crea un **recibo**; un
 "Autorizado por" (no puede ser quien lo creó) lo firma; si el beneficiario es un empleado activo,
