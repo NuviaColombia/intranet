@@ -1,23 +1,34 @@
 # Caja Menor Nuvia
 
-**(2026-10-28) El superadmin ya entra siempre a Contabilidad -- Oscar anuló aquí la regla de Carlos
-del 20-oct-2026 para su propio rol.** Motivo: Oscar marcó a alguien como `admin`/`superadmin`
-esperando que así entrara a Contabilidad y no fue así (la regla de más abajo lo bloqueaba también a
-él). Pidió explícitamente anularla **solo para `superadmin`**, con el argumento de que el superadmin
-siempre debe poder entrar a toda la plataforma -- **un `admin` normal sigue sin entrar automático**,
-esa parte de la regla de Carlos no cambió. En `Empleado.tiene_modulo()` (`app/models.py`) el `if`
-que bloquea quedó limitado a `self.rol == "admin"` (antes incluía también `"superadmin"`). Mismo
-patrón que ya existe para `design_schedule` (el superadmin tampoco respeta ahí la restricción por
-empresa).
+**(2026-10-28) Vaivén de un mismo día sobre si el superadmin entra siempre -- terminó que NO, igual
+que antes.** Orden de lo que pasó: (1) Carlos ya tenía desde el 20-oct-2026 la regla de más abajo
+(ni admin ni superadmin entran automático). (2) Oscar marcó a alguien como `admin`/`superadmin`
+esperando que así entrara a Contabilidad y no fue así -- pidió que el superadmin quedara exento,
+con el argumento de que siempre debe poder entrar a toda la plataforma. (3) Carlos revirtió ese
+mismo día esa excepción: **no todo superadmin necesita Caja menor** (hay superadmin de People, por
+ejemplo, sin ninguna razón para entrar ahí) -- dejar el bypass por rol es justo el tipo de atajo
+que con el tiempo se vuelve un hueco de seguridad (alguien nuevo que suban a superadmin por algo
+que no tiene nada que ver con plata entraría de una sin que nadie lo decida). **El resultado final
+es el mismo `if` de siempre, sin cambios**: ni `admin` ni `superadmin` entran automático a Caja
+menor en sí -- ver la regla completa más abajo.
+
+Lo que **sí** quedó distinto tras esta conversación: **`/contabilidad` (la pantalla con las
+tarjetas) y `/pagos` ya NO usan esa regla.** Usan `require_modulo_o_admin("caja_menor")` (nuevo, en
+`app/auth.py`): cualquier admin/superadmin las abre siempre, sin autorizarse, porque esas pantallas
+no hacen nada sensible por sí solas y Oscar necesita usar Pagos a diario sin depender de estar
+autorizado en Caja menor. La restricción real (autorización explícita) sigue aplicando solo a Caja
+menor en sí (`/caja-menor`, con `require_modulo("caja_menor")` normal). Quien entra a `/contabilidad`
+sin estar autorizado para Caja menor ve la tarjeta "Caja menor Nuvia", pero al hacer clic ahí sí lo
+bloquea -- eso es esperado.
 
 **(2026-10-28) En People › Empleados la casilla de este permiso ya dice "Contabilidad", no "Caja
 menor Nuvia".** Solo cambió la etiqueta en `MODULOS_DISPONIBLES` (`app/models.py`) -- el slug
 interno sigue siendo `caja_menor` (mismo de siempre, sin migración de datos). Para darle acceso a un
-`admin` (no superadmin, que ya entra siempre -- ver arriba), la casilla "Contabilidad" de Empleados ›
-editar sí funciona sin importar el rol (marcarla agrega `caja_menor` a `Empleado.modulos`
-directamente, lo que cumple la condición `modulo in self.modulos_lista` de `tiene_modulo()` y evita
-la excepción); la otra vía sigue siendo Parámetros › Quién tiene acceso dentro de Caja menor Nuvia
-(`/caja-menor/parametros`).
+`admin` o `superadmin` (ninguno de los dos entra automático a Caja menor en sí -- ver arriba), la
+casilla "Contabilidad" de Empleados › editar sí funciona sin importar el rol (marcarla agrega
+`caja_menor` a `Empleado.modulos` directamente, lo que cumple la condición `modulo in
+self.modulos_lista` de `tiene_modulo()` y evita la excepción); la otra vía sigue siendo Parámetros ›
+Quién tiene acceso dentro de Caja menor Nuvia (`/caja-menor/parametros`).
 
 **(2026-10-27) Ahora vive dentro del módulo "Contabilidad" (pedido de Oscar), junto a Pagos.** El
 portal (`/`) ya no muestra una tarjeta "Caja menor Nuvia" directa: muestra **Contabilidad**
@@ -25,11 +36,13 @@ portal (`/`) ya no muestra una tarjeta "Caja menor Nuvia" directa: muestra **Con
 `templates/contabilidad.html` -- mismo patrón de aterrizaje que `/activos`). Ahí hay dos tarjetas:
 "Caja menor Nuvia" (esta página, funciona igual que siempre, sin ningún cambio de lógica) y
 **"Pagos"** (tres herramientas propias -- ver [pagos.md](pagos.md)). **No se creó un permiso
-nuevo**: tanto `/contabilidad` como `/pagos` usan `require_modulo("caja_menor")`, el mismo de
-siempre -- quien ya tenía acceso a Caja menor ve Contabilidad y Pagos. Las rutas de `/caja-menor/*`
-no cambiaron: siguen en el mismo router, con el mismo permiso y el mismo comportamiento; solo
-cambió qué hay delante en la navegación. El breadcrumb de la barra superior (`base.html`) ahora es
-"🧮 Contabilidad › 💵 Caja menor Nuvia[ › caja][ › Parámetros]".
+nuevo**: tanto `/contabilidad` como `/pagos` usan el mismo permiso de siempre, `caja_menor`
+(28-oct-2026: con `require_modulo_o_admin`, no el `require_modulo` normal -- ver la nota de más
+arriba sobre el vaivén de ese día) -- quien ya tenía acceso a Caja menor ve Contabilidad y Pagos, y
+cualquier admin/superadmin las ve aunque no esté autorizado para Caja menor en sí. Las rutas de
+`/caja-menor/*` no cambiaron: siguen en el mismo router, con el mismo permiso y el mismo
+comportamiento; solo cambió qué hay delante en la navegación. El breadcrumb de la barra superior
+(`base.html`) ahora es "🧮 Contabilidad › 💵 Caja menor Nuvia[ › caja][ › Parámetros]".
 
 **Qué es** (Caja menor Nuvia): manejo de cajas de caja menor (ej. CONTABILIDAD, MANTENIMIENTO). Reemplaza una app
 anterior en Google Apps Script. Alguien con acceso a una caja crea un **recibo**; un

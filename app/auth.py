@@ -168,6 +168,19 @@ def require_modulo(modulo: str):
     return checker
 
 
+def require_modulo_o_admin(modulo: str):
+    """Como require_modulo, pero cualquier admin/superadmin de la intranet entra siempre, aunque el
+    módulo tenga una excepción propia que les exija autorización explícita (ver Empleado.tiene_modulo:
+    "caja_menor", "custodia"). Pensada para una "puerta de entrada" que no hace nada sensible por sí
+    sola (28-oct-2026: /contabilidad y /pagos -- Oscar necesita abrir Pagos sin tener que autorizarse
+    para Caja menor; la restricción real sigue aplicando dentro de /caja-menor)."""
+    def checker(user: Empleado = Depends(get_current_user)) -> Empleado:
+        if user.rol not in ("admin", "superadmin") and not user.tiene_modulo(modulo):
+            raise HTTPException(status_code=307, headers={"Location": "/?error=sin_acceso"})
+        return user
+    return checker
+
+
 def require_design_manager(user: Empleado = Depends(get_current_user)) -> Empleado:
     """Dashboard y Papelera de Design Schedule: equivalente a 'Tools Managers' en la
     herramienta original (protegido por la clave maestra) -- aquí, aprobadores y admins."""

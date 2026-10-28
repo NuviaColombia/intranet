@@ -57,22 +57,24 @@ class Empleado(Base):
     def tiene_modulo(self, modulo: str) -> bool:
         if modulo == "design_schedule" and self.rol != "superadmin" and (self.empresa or "") != EMPRESA_DESIGN:
             return False   # Design solo para la empresa Nuvia Design (13-oct-2026); el superadmin entra siempre
-        if modulo == "caja_menor" and self.rol == "admin" and modulo not in self.modulos_lista:
-            return False   # Caja menor / Contabilidad (20-oct-2026): un admin normal no entra automático,
-                            # necesita autorización explícita -- o bien marcando la casilla "Contabilidad" de
-                            # Empleados › editar (28-oct-2026: antes decía "Caja menor Nuvia", ver MODULOS_DISPONIBLES),
-                            # o bien desde Parámetros › Quién tiene acceso (Parámetros en sí sigue abierto a
-                            # cualquier admin/superadmin -- ver require_admin_caja_menor).
-                            # (28-oct-2026, pedido de Oscar: el superadmin queda exento de esta regla -- entra
-                            # siempre a toda la plataforma, sin excepción -- por eso aquí ya no se incluye
-                            # "superadmin" junto a "admin"; antes sí estaba sujeto a la misma restricción.)
-        if modulo == "custodia" and self.rol == "admin" and modulo not in self.modulos_lista:
-            return False   # Producción (28-oct-2026, mismo patrón que Caja menor, ya con el ajuste de Oscar):
-                            # un admin normal no entra automático, necesita autorización explícita -- o bien
-                            # marcando la casilla "Producción" de Empleados › editar, o bien desde Producción ›
-                            # Parámetros › pestaña 🔐 Autorizados a entrar (Parámetros en sí sigue abierto a
-                            # cualquier admin/superadmin -- ver require_admin_produccion). El superadmin queda
-                            # exento, igual que en Caja menor: entra siempre, sin autorización explícita.
+        if modulo == "caja_menor" and self.rol in ("admin", "superadmin") and modulo not in self.modulos_lista:
+            return False   # Caja menor (20-oct-2026, ni admin ni superadmin entran automático -- necesitan
+                            # autorización explícita en Parámetros › Quién tiene acceso, o bien marcando la
+                            # casilla "Contabilidad" de Empleados › editar). Oscar pidió el 28-oct-2026 que el
+                            # superadmin quedara exento aquí; Carlos lo revirtió el mismo día: no todo superadmin
+                            # necesita Caja menor (hay superadmin de People sin ninguna razón para entrar ahí),
+                            # así que la excepción vuelve a aplicar también a "superadmin". Lo que SÍ sigue
+                            # abierto a cualquier admin/superadmin sin esta restricción es /contabilidad (la
+                            # pantalla con las tarjetas) y /pagos -- ver require_modulo_o_admin en app/auth.py;
+                            # solo Caja menor en sí (/caja-menor) exige la autorización.
+        if modulo == "custodia" and self.rol in ("admin", "superadmin") and modulo not in self.modulos_lista:
+            return False   # Producción (28-oct-2026, mismo patrón que Caja menor): ni admin ni superadmin
+                            # entran automático, necesitan autorización explícita -- o bien marcando la
+                            # casilla "Producción" de Empleados › editar, o bien desde Producción › Parámetros
+                            # › pestaña 🔐 Autorizados a entrar (Parámetros en sí sigue abierto a cualquier
+                            # admin/superadmin -- ver require_admin_produccion). Carlos pidió explícitamente
+                            # que el superadmin NO quede exento aquí (a diferencia de Caja menor en algún
+                            # momento): no todo superadmin necesita ver Producción.
         return self.rol in ("admin", "superadmin") or modulo in self.modulos_lista
 
     @property

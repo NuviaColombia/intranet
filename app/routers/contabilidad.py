@@ -2,13 +2,15 @@
 -- ver docs/wiki/caja_menor.md. Mismo patrón que /activos (templates/activos.html)."""
 from fastapi import APIRouter, Depends, Request
 from ..models import Empleado
-from ..auth import require_modulo
+from ..auth import require_modulo_o_admin
 from ..main_templates import templates
 
 router = APIRouter()
 # Reutiliza el mismo permiso que ya existe para Caja menor Nuvia -- Pagos (aún sin funcionalidad
 # propia) no tiene permiso separado; cuando lo tenga, ver "Contabilidad" en docs/wiki/caja_menor.md.
-require_contabilidad = require_modulo("caja_menor")
+# (28-oct-2026) Esta pantalla no hace nada sensible por sí sola -- cualquier admin/superadmin la ve
+# aunque no esté autorizado a entrar a Caja menor (ver require_modulo_o_admin).
+require_contabilidad = require_modulo_o_admin("caja_menor")
 
 
 @router.get("/contabilidad")

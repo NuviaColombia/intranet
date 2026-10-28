@@ -59,8 +59,7 @@ def es_admin(user: Empleado) -> bool:
     (Custodia, Consumo) es exclusivo de esa empresa, igual que SST. Además, los administradores de Producción.
     Esto decide los permisos DENTRO del módulo una vez que ya se entró -- la entrada en sí (¿puede
     siquiera abrir Producción?) la decide Empleado.tiene_modulo("custodia"), que desde el 28-oct-2026
-    ya no es automática para un admin normal (mismo patrón que Caja menor, ver esa excepción); el
-    superadmin entra siempre, sin excepción."""
+    ya no es automática para admin ni superadmin (mismo patrón que Caja menor, ver esa excepción)."""
     if user.rol == "superadmin":
         return True
     return (user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION) or es_admin_produccion(user)
