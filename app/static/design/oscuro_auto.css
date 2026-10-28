@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (756 reglas) ---- */
+/* ---- static\design\schedule.css (757 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -133,6 +133,7 @@
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel { background:#111827; box-shadow:-4px 6px 22px rgba(17,24,39,.28); }
 :root[data-ds-tema="oscuro"] #dsLateral.abierto #dsLatPanel { box-shadow:-8px 10px 32px rgba(17,24,39,.34); }
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-it { background:transparent; color:#cbd5e1; box-shadow:none; }
+:root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel #dsACargo > button:not(.ds-it), :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel #dsACargo > .ds-acargo-chip:not(.ds-it) { background:transparent; color:#cbd5e1; box-shadow:none; }
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-it:hover, :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-it:focus-visible { background:rgba(255,255,255,0.08); color:#fff; outline:none; }
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-it:focus-visible { box-shadow:inset 0 0 0 2px #60a5fa; }
 :root[data-ds-tema="oscuro"] #dsLateral #dsLatPanel .ds-it:hover .ds-it-ico { color:#93c5fd; }
