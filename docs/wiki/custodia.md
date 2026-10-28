@@ -20,18 +20,29 @@ consumo (otro submódulo con el mismo modelo de acceso).
    **sin ser administradora del resto de la intranet** (y sin chequeo de empresa -- la asignación
    explícita es la que importa aquí, no el rol general).
 
-**(2026-10-28) Pero entrar al módulo siquiera ya no es automático para admin ni superadmin -- mismo
-patrón que Caja menor.** Lo de arriba (`acceso_produccion.es_admin()`) decide los permisos
-**dentro** de Producción una vez que ya se entró; **entrar** es un chequeo previo y separado,
-`Empleado.tiene_modulo("custodia")` (`app/models.py`), que tiene la misma excepción que
-`"caja_menor"`: si el rol es admin o superadmin y `"custodia"` no está en `Empleado.modulos`, no
-entra -- hay que autorizarlo en Producción › Parámetros › pestaña 🔐 **Autorizados a entrar**
+**(2026-10-28) Entrar a la pantalla `/inventario` es libre para admin/superadmin; entrar a un
+submódulo en sí, no -- mismo patrón de "dos puertas" que Contabilidad/Caja menor.**
+`Empleado.tiene_modulo("custodia")` tiene una excepción, igual que `"caja_menor"`: si el rol es
+admin o superadmin y `"custodia"` no está en `Empleado.modulos`, no cuenta como autorizado. Pero
+`/inventario` en sí (`app/routers/inventario.py`) usa `require_modulo_o_admin("custodia")`
+(`app/auth.py`, el mismo helper que ya usan `/contabilidad` y `/pagos`): cualquier admin/superadmin
+la abre siempre. Lo que de verdad depende de la autorización es **qué tarjetas de submódulo se ven
+clicables ahí adentro** -- `inventario()` solo usa el atajo "ve todo" (`mis_submodulos = None`) si
+la persona tiene el permiso `"custodia"` **y** es admin de Producción (`es_admin()`); si no, ve las
+tarjetas de Custodia/Consumo/Conteo en gris ("Sin acceso"), aunque haya entrado sin problema a la
+pantalla. Las páginas de cada submódulo (`/custodia`, `/consumo`, `/conteo`) siguen con el
+`require_modulo` normal (sin el atajo de admin) por debajo de `require_submodulo`, así que escribir
+la URL a mano tampoco sirve de atajo. La tarjeta "Producción" del portal de inicio (`portal.html`)
+también se ajustó para que cualquier admin/superadmin la vea habilitada (antes, con la regla vieja,
+se veía en gris para alguien que en realidad ya puede entrar a `/inventario`).
+
+Se autoriza en Producción › Parámetros › pestaña 🔐 **Autorizados a entrar**
 (`/inventario/parametros/admins-entrada/{id}/toggle`, `app/routers/custodia_parametros.py`), que
-solo prende/apaga ese permiso de People (igual que el toggle de Caja menor). Carlos pidió
-explícitamente que esto incluya al superadmin: no todo superadmin necesita Producción. Autorizar
-ahí **no** da por sí solo acceso a nada dentro -- eso lo sigue decidiendo `es_admin()` sin cambios
-(una vez adentro, un admin de Nuvia Smiles o un superadmin sigue viendo y operando todos los
-submódulos automáticamente). Parámetros en sí sigue abierto a cualquier admin/superadmin de la
+solo prende/apaga el permiso `"custodia"` de People (igual que el toggle de Caja menor). Carlos
+pidió explícitamente que esto incluya al superadmin: no todo superadmin necesita Producción.
+Autorizar ahí **no** da por sí solo acceso a nada dentro -- eso lo sigue decidiendo `es_admin()` sin
+cambios (una vez autorizado, un admin de Nuvia Smiles o un superadmin sigue viendo y operando todos
+los submódulos automáticamente). Parámetros en sí sigue abierto a cualquier admin/superadmin de la
 intranet (`require_admin_produccion`), para que siempre haya quien pueda autorizar al resto.
 
 Un manager normal necesita, además, que le hayan dado el permiso "custodia" de People
