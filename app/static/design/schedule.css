@@ -1273,6 +1273,8 @@
 
   /* N6 · Material Change: bloques Bite design / Zirconia design */
   table.ds-tabla tr.ds-tr-grupos th { font-size:11px; font-weight:700; letter-spacing:.02em; }
+  /* Los títulos de etapa (Bite design, Zirconia design…) pegados a la izquierda de su bloque (Rosember, 28-oct-2026) */
+  table.ds-tabla-material tr.ds-tr-grupos th.ds-gh { text-align:left; padding-left:8px; }
   table.ds-tabla tr.ds-tr-grupos th.ds-gh-vacio { background:transparent; border-top-color:transparent; border-left-color:transparent; border-right-color:transparent; }
   table.ds-tabla th.ds-g-b { background:#e0ecff; color:#1e3a8a; }
   table.ds-tabla th.ds-g-z { background:#e6f6ef; color:#14532d; }
