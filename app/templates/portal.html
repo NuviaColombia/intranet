@@ -45,7 +45,7 @@
   ('people', user.tiene_modulo('people'), '/panel', '🗓️', 'People', 'Permisos, horas extra y certificaciones'),
   ('custodia', user.rol in ('admin', 'superadmin') or user.tiene_modulo('custodia'), '/inventario', '🏭', 'Producción', resumen_submodulos_produccion()),
   ('design_schedule', user.tiene_modulo('design_schedule'), '/design/inicio', '', 'Design', 'Schedule, seguimiento, calendario y herramientas del equipo'),
-  ('contabilidad', user.tiene_modulo('caja_menor'), '/contabilidad', '🧮', 'Contabilidad', 'Caja menor Nuvia y pagos'),
+  ('contabilidad', user.rol in ('admin', 'superadmin') or user.tiene_modulo('caja_menor'), '/contabilidad', '🧮', 'Contabilidad', 'Caja menor Nuvia y pagos'),
   ('compras', false, '', '🛒', 'Compras', 'Próximamente'),
   ('sst', puede_sst(user), '/sst', '🦺', 'SST', 'Inventario de EPP'),
   ('activos', user.tiene_modulo('activos'), '/activos', '🖥️', 'Activos', 'Inventario de hardware (Smiles / Design)'),
