@@ -83,6 +83,8 @@
           <div style="flex:1"><label class="pg-muted">hasta</label><input type="date" id="hh"></div></div>
         <select id="he"><option value="">Todas las empresas</option></select>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b id="hsum" style="font-size:14px;color:var(--brand-main)"></b><button type="button" class="btn gris mini" id="hx">Exportar CSV</button></div></div>
+      <div class="pg-card" id="hPreviewCard" hidden><b>Vista previa</b>
+        <iframe id="hPreviewFrame" style="width:100%;height:480px;border-radius:10px;border:1px solid var(--border-soft);margin-top:10px" title="Vista previa del PDF"></iframe></div>
       <div class="pg-card" id="hlist" style="padding-top:8px;padding-bottom:8px"></div>
     </div>
   </div>
@@ -419,7 +421,16 @@ $("#tpl").onclick=async()=>{
   }catch(e){}
 };
 $("#exp").onclick=()=>dlFile("beneficiarios.csv","NIT;NOMBRE;CUENTA\n"+Object.entries(DIR).map(([k,v])=>`${k};${v.n};${v.c}`).join("\n"),"text/csv");
-let HIST={},pendH=null,OPEN=new Set();
+let HIST={},pendH=null,OPEN=new Set(),OPEN_EMP=new Set(),hPreviewUrl=null;
+function hPreview(v){
+  try{
+    const buf=buildPDF(v.empresa,v.pagos);
+    if(hPreviewUrl)URL.revokeObjectURL(hPreviewUrl);
+    hPreviewUrl=URL.createObjectURL(new Blob([buf],{type:"application/pdf"}));
+    $("#hPreviewFrame").src=hPreviewUrl;
+    $("#hPreviewCard").hidden=false;
+  }catch(e){}
+}
 const isoD=f=>{const m=String(f).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:""};
 const dmy=i=>i.split("-").reverse().join("/");
 const slug=t=>t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"manual";
@@ -440,14 +451,26 @@ function renderHist(){
   $("#he").innerHTML='<option value="">Todas las empresas</option>'+emps.map(e=>`<option${e===cur?" selected":""}>${esc(e)}</option>`).join("");
   const F=histF(),tot=F.reduce((a,v)=>a+v.total,0),np=F.reduce((a,v)=>a+v.n,0);
   $("#hsum").textContent=F.length?`${F.length} cargue(s) · ${np} pagos · ${money(tot)}`:"";
-  L.innerHTML=F.length?F.map(v=>`<details class="pg-lote" data-id="${esc(v.id)}"${OPEN.has(v.id)?" open":""}><summary><span><b>${esc(v.empresa)}</b><br><small>Pago: ${dmy(v.fecha)} · ${v.n} pagos · cargado ${new Date(v.cargado).toLocaleDateString("es-CO")}</small></span><b style="white-space:nowrap">${money(v.total)}</b></summary>
+  if(!F.length){L.innerHTML=`<div class="pg-muted" style="padding:12px 0">${Object.keys(HIST).length?"No hay cargues en ese rango de fechas.":"Todavía no hay cargues. Sube un archivo en “Generar PDF” y quedará guardado aquí."}</div>`;return}
+  const grupos=new Map();
+  F.forEach(v=>{if(!grupos.has(v.empresa))grupos.set(v.empresa,[]);grupos.get(v.empresa).push(v)});
+  L.innerHTML=[...grupos.entries()].map(([emp,lotes])=>{
+    const subtotal=lotes.reduce((a,v)=>a+v.total,0);
+    const loteHtml=lotes.map(v=>`<details class="pg-lote" data-id="${esc(v.id)}"${OPEN.has(v.id)?" open":""}><summary><span><b>${dmy(v.fecha)}</b><br><small>${v.n} pagos · cargado ${new Date(v.cargado).toLocaleDateString("es-CO")}</small></span><b style="white-space:nowrap">${money(v.total)}</b></summary>
 ${v.pagos.map(p=>`<div class="pg-row"><span>${esc(p.nombre||"NIT "+p.nit)}<br><small>${esc(bankName(p.banco))} · ${esc(p.cuenta)}</small></span><b style="white-space:nowrap">${money(p.valor)}</b></div>`).join("")}
-<div style="margin-top:10px"><button type="button" class="btn mini" data-a="pdf" data-k="${esc(v.id)}">Descargar PDF</button> <button type="button" class="btn gris mini" data-a="del" data-k="${esc(v.id)}">${pendH===v.id?"¿Seguro? Eliminar":"Eliminar"}</button></div></details>`).join(""):`<div class="pg-muted" style="padding:12px 0">${Object.keys(HIST).length?"No hay cargues en ese rango de fechas.":"Todavía no hay cargues. Sube un archivo en “Generar PDF” y quedará guardado aquí."}</div>`;
+<div style="margin-top:10px"><button type="button" class="btn mini" data-a="prev" data-k="${esc(v.id)}">👁 Previsualizar</button> <button type="button" class="btn mini" data-a="pdf" data-k="${esc(v.id)}">Descargar PDF</button> <button type="button" class="btn gris mini" data-a="del" data-k="${esc(v.id)}">${pendH===v.id?"¿Seguro? Eliminar":"Eliminar"}</button></div></details>`).join("");
+    return `<details class="pg-lote-empresa" data-emp="${esc(emp)}"${OPEN_EMP.has(emp)?" open":""}><summary><span><b>${esc(emp)}</b><br><small>${lotes.length} cargue(s)</small></span><b style="white-space:nowrap">${money(subtotal)}</b></summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">${loteHtml}</div></details>`;
+  }).join("");
 }
-$("#hlist").addEventListener("toggle",e=>{const d=e.target;if(d.dataset&&d.dataset.id){d.open?OPEN.add(d.dataset.id):OPEN.delete(d.dataset.id)}},true);
+$("#hlist").addEventListener("toggle",e=>{
+  const d=e.target;
+  if(d.dataset&&d.dataset.id){d.open?OPEN.add(d.dataset.id):OPEN.delete(d.dataset.id)}
+  else if(d.dataset&&d.dataset.emp){d.open?OPEN_EMP.add(d.dataset.emp):OPEN_EMP.delete(d.dataset.emp)}
+},true);
 $("#hlist").onclick=async e=>{
   const b=e.target.closest("button");if(!b)return;const k=b.dataset.k,v=HIST[k];if(!v)return;
   if(b.dataset.a==="pdf"){try{await dlFile(`pagos_${slug(v.empresa)}_${v.fecha}.pdf`,buildPDF(v.empresa,v.pagos),"application/pdf")}catch(err){}}
+  else if(b.dataset.a==="prev"){hPreview(v)}
   else if(pendH===k){pendH=null;await delLote(k)}else{pendH=k;renderHist()}
 };
 ["hd","hh"].forEach(i=>$("#"+i).oninput=renderHist);$("#he").onchange=renderHist;
@@ -533,6 +556,10 @@ function buildPDF(emp,rows){
   return d.output("arraybuffer");
 }
 
+function clearOut(){
+  out.querySelectorAll("iframe[src^='blob:']").forEach(f=>{try{URL.revokeObjectURL(f.src)}catch(e){}});
+  out.innerHTML="";
+}
 function addCard(name,rows,meta){
   meta=meta||{};
   const total=rows.reduce((a,r)=>a+r.valor,0), c=document.createElement("div"), miss=rows.filter(r=>!r.nombre||!r.cuenta||!r.banco);
@@ -550,15 +577,32 @@ function addCard(name,rows,meta){
     ${!r.banco?`<input class="bk" data-i="${i}" placeholder="Banco" style="width:160px;font-size:14px;font-weight:400">`:""}
   </div>`).join(""):""}
   <button type="button" class="btn">Descargar PDF</button><span class="pg-ok" hidden></span><div class="pg-err" id="e"></div>
-  <div class="pg-muted" style="margin-top:10px">Se guarda en el Historial con fecha de pago ${rows[0].fecha}.</div>`;
-  const inp=c.querySelector(".pg-emp"),btn=c.querySelector("button"),ok=c.querySelector(".pg-ok"),err=c.querySelector("#e");
+  <div class="pg-muted" style="margin-top:10px">Se guarda en el Historial con fecha de pago ${rows[0].fecha}.</div>
+  <iframe class="pg-pdf-frame" style="width:100%;height:480px;border-radius:10px;border:1px solid var(--border-soft);margin-top:14px" title="Vista previa del PDF"></iframe>`;
+  const inp=c.querySelector(".pg-emp"),btn=c.querySelector("button"),ok=c.querySelector(".pg-ok"),err=c.querySelector("#e"),frame=c.querySelector(".pg-pdf-frame");
+  let previewUrl=null;
+  function actualizarPreview(){
+    try{
+      const buf=buildPDF(inp.value.trim()||"Empresa",rows);
+      if(previewUrl)URL.revokeObjectURL(previewUrl);
+      previewUrl=URL.createObjectURL(new Blob([buf],{type:"application/pdf"}));
+      frame.src=previewUrl;
+    }catch(e){}
+  }
+  const actualizarPreviewDebounced=(()=>{let t;return()=>{clearTimeout(t);t=setTimeout(actualizarPreview,150)}})();
+  function aplicarCambiosManual(){
+    c.querySelectorAll(".nm").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v)r.nombre=v;else if(!r.nombre)r.nombre="NIT "+r.nit});
+    c.querySelectorAll(".ct").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.replace(/\D/g,"");if(v)r.cuenta=v});
+    c.querySelectorAll(".bk").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v)r.banco=v});
+  }
+  inp.oninput=actualizarPreviewDebounced;
+  c.querySelectorAll(".nm,.ct,.bk").forEach(elx=>elx.oninput=()=>{aplicarCambiosManual();actualizarPreviewDebounced()});
+  actualizarPreview();
   btn.onclick=async()=>{
     err.textContent="";ok.hidden=true;
     try{
       const emp=inp.value.trim()||"Empresa";
-      c.querySelectorAll(".nm").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v)r.nombre=v;else if(!r.nombre)r.nombre="NIT "+r.nit});
-      c.querySelectorAll(".ct").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.replace(/\D/g,"");if(v)r.cuenta=v});
-      c.querySelectorAll(".bk").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v)r.banco=v});
+      aplicarCambiosManual();
       miss.forEach(r=>{if(r.nombre&&r.cuenta)saveBen(r.nit,r.nombre,r.cuenta)});
       if(meta.orig)saveEmp(meta.orig,emp);
       saveLote(lid,emp,rows,meta.orig);
@@ -586,12 +630,12 @@ function handleText(fname,text){
   if(!rows.length)return showErr(`No encontré pagos válidos en “${fname}”. Debe ser el archivo plano del banco (líneas RC/TR) o la tabla de 13 columnas.`);
   addCard(prettyName(fname),rows);
 }
-async function handleFiles(fs){for(const f of fs)handleText(f.name,await f.text())}
+async function handleFiles(fs){clearOut();for(const f of fs)handleText(f.name,await f.text())}
 $("#file").onchange=e=>handleFiles(e.target.files);
 const drop=$("#drop");
 ["dragover","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();if(ev==="drop")handleFiles(e.dataTransfer.files)}));
 initDB();
-$("#usePaste").onclick=()=>handleText("Empresa.txt",$("#paste").value);
+$("#usePaste").onclick=()=>{clearOut();handleText("Empresa.txt",$("#paste").value)};
 
 // ---------------- Traer desde Accounts Payable (28-oct-2026) ----------------
 const apTraerModal=$("#apTraerModal");
@@ -616,6 +660,7 @@ $("#apTraerEmpresa").onchange=apTraerCargar;
 $("#apTraerAgregar").onclick=()=>{
   const chks=[...apTraerModal.querySelectorAll(".apT-chk:checked")];
   if(!chks.length){$("#apTraerErr").textContent="Elige al menos un pago.";return}
+  clearOut();
   const porEmpresa={};
   chks.forEach(chk=>(porEmpresa[chk.dataset.empresa]=porEmpresa[chk.dataset.empresa]||[]).push(chk));
   const hoy=new Date(), fechaDMY=String(hoy.getDate()).padStart(2,"0")+"/"+String(hoy.getMonth()+1).padStart(2,"0")+"/"+hoy.getFullYear();
