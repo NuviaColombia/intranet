@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% block titulo %}Pagos{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/pagos.css?v=1">
+<link rel="stylesheet" href="/static/pagos.css?v={{ pagos_estaticos_v }}">
 <div id="pagos-app">
-
-  <div class="pg-tool-tabs">
-    <button type="button" id="pg-tt-pdf" class="activo">💳 Pagos programados → PDF</button>
-    <button type="button" id="pg-tt-sep">📎 Separador de comprobantes</button>
-  </div>
+<div class="pg-shell">
+  <nav class="pg-sidebar">
+    <button type="button" id="pg-tt-pdf" class="activo"><span class="pg-sidebar-icono">💳</span><span>Pagos programados<br><small>→ PDF</small></span></button>
+    <button type="button" id="pg-tt-sep"><span class="pg-sidebar-icono">📎</span><span>Separador de<br>comprobantes</span></button>
+    <button type="button" id="pg-tt-ap"><span class="pg-sidebar-icono">📋</span><span>Accounts<br>Payable</span></button>
+  </nav>
+  <div class="pg-content">
 
   <!-- ============ HERRAMIENTA 1: Pagos programados -> PDF ============ -->
   <div id="pg-tool-pdf" class="pg-herramienta activa">
@@ -27,7 +29,22 @@
       <details class="pg-detalle"><summary>O pega los datos copiados desde Excel</summary>
         <textarea id="paste" class="pg-pega" placeholder="Pega aquí las filas (con o sin encabezado)…"></textarea>
         <button type="button" class="btn gris" id="usePaste" style="margin-top:8px">Usar datos pegados</button></details>
+      <div style="margin:10px 0"><button type="button" class="btn gris" id="apTraerBtn">📥 Traer desde Accounts Payable</button></div>
       <div id="out"></div>
+
+      <div class="pg-modal-fondo" id="apTraerModal" style="display:none">
+        <div class="pg-modal" style="max-width:620px">
+          <h3>Traer desde Accounts Payable</h3>
+          <p>Elige los pagos ya <b>Aprobados</b> que quieres agregar a esta programación.</p>
+          <select id="apTraerEmpresa"><option value="">Todas las empresas</option><option value="Smiles">Nuvia Smiles</option><option value="Design">Nuvia Design</option></select>
+          <div id="apTraerLista" style="max-height:340px;overflow:auto;margin:10px 0"></div>
+          <div class="pg-modal-acciones">
+            <button type="button" class="btn gris mini" id="apTraerCancelar">Cancelar</button>
+            <button type="button" class="btn mini" id="apTraerAgregar">Agregar seleccionados</button>
+          </div>
+          <div class="pg-err" id="apTraerErr"></div>
+        </div>
+      </div>
       <p class="pg-muted" style="margin-top:24px">Los nombres de beneficiarios y empresas se recuerdan en este navegador; los nuevos se piden una sola vez. Todo se procesa en tu navegador.</p>
     </div>
     <div id="v-db" hidden>
@@ -162,16 +179,102 @@
   </div>
   </div>
 
+  <!-- ============ HERRAMIENTA 3: Accounts Payable ============ -->
+  <div id="pg-tool-ap" class="pg-herramienta">
+  <div class="pg-main">
+    <div class="pg-barra">
+      <div><h2 class="pg-titulo">Accounts Payable</h2>
+        <p class="pg-sub" style="margin:0">Cuentas por pagar de Smiles y Design: pendientes, aprobadas y pagadas.</p></div>
+      <button type="button" class="btn" id="apNuevoBtn">+ Nueva cuenta por pagar</button>
+    </div>
+
+    <div id="apPushBox" style="margin-bottom:14px"></div>
+
+    <div class="pg-sub-tabs">
+      <button type="button" id="ap-tab-cuentas" class="activo">📋 Cuentas</button>
+      <button type="button" id="ap-tab-reportes">📊 Reportes</button>
+    </div>
+
+    <div id="ap-sub-cuentas" class="pg-seccion activa">
+      <div id="apEstados" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button type="button" class="btn gris" data-estado="PENDIENTE">⏳ Pendientes <span data-n="PENDIENTE"></span></button>
+        <button type="button" class="btn verde" data-estado="APROBADO">✅ Aprobados <span data-n="APROBADO"></span></button>
+        <button type="button" class="btn gris" data-estado="PAGADO">💰 Pagados <span data-n="PAGADO"></span></button>
+        <button type="button" class="btn gris" data-estado="">📋 Todos <span data-n="TODOS"></span></button>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <select id="apEmpresa" style="width:auto;min-width:170px">
+          <option value="">Todas las empresas</option>
+          <option value="Smiles">Nuvia Smiles</option>
+          <option value="Design">Nuvia Design</option>
+        </select>
+        <input id="apBusqueda" placeholder="Buscar por proveedor, NIT o detalle…" style="flex:1;min-width:220px">
+      </div>
+
+      <div id="apForm" class="pg-card" hidden>
+        <b>Nueva cuenta por pagar</b>
+        <p class="pg-muted" style="margin:2px 0 10px">Queda como Pendiente y se avisa de inmediato a Leslie y Oscar.</p>
+        <div class="pg-grid2">
+          <div>
+            <select id="apfEmpresa"><option value="Smiles">Nuvia Smiles</option><option value="Design">Nuvia Design</option></select>
+            <input id="apfProveedor" placeholder="Nombre del proveedor *">
+            <input id="apfNit" placeholder="NIT o cédula">
+            <input id="apfCategoria" placeholder="Categoría">
+          </div>
+          <div>
+            <input id="apfValor" type="number" min="1" step="0.01" placeholder="Valor *">
+            <input id="apfVencimiento" type="date">
+            <input id="apfDocumento" placeholder="Documento / factura">
+            <textarea id="apfDetalle" class="pg-pega" style="height:60px" placeholder="Detalle del pago *"></textarea>
+          </div>
+        </div>
+        <textarea id="apfComentarios" class="pg-pega" style="height:50px" placeholder="Comentarios (opcional)"></textarea>
+        <div style="margin-top:8px"><button type="button" class="btn" id="apGuardarBtn">Registrar</button> <button type="button" class="btn gris" id="apCancelarBtn">Cancelar</button></div>
+        <div class="pg-err" id="apFormErr"></div>
+      </div>
+
+      <div id="apLista"></div>
+
+      {% if user.rol in ('admin', 'superadmin') %}
+      <details class="pg-detalle" style="margin-top:22px">
+        <summary>⚙️ Importar histórico desde Excel (admin)</summary>
+        <p class="pg-muted">Sube el archivo "ACCOUNTS PAYABLE.xlsx" (pestañas AP SMILES / AP DESIGN). Las filas que ya
+          existen (misma empresa, fecha, NIT, detalle y valor) no se vuelven a importar.</p>
+        <input type="file" id="apImportarInput" accept=".xlsx,.xlsm">
+        <div id="apImportarMsg" style="margin-top:6px"></div>
+      </details>
+      {% endif %}
+    </div>
+
+    <div id="ap-sub-reportes" class="pg-seccion">
+      <p class="pg-sub" style="margin:0 0 12px">Pagos realizados, mes a mes. Por defecto muestra todo el año <span id="arpAnioActual"></span>.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+        <div><label class="pg-muted">Fecha desde</label><input type="date" id="arpDesde"></div>
+        <div><label class="pg-muted">Fecha hasta</label><input type="date" id="arpHasta"></div>
+        <div style="flex:1;min-width:200px"><label class="pg-muted">Tercero (nombre o NIT)</label><input id="arpTercero" placeholder="Todos"></div>
+        <div><label class="pg-muted">Monto mínimo</label><input type="number" id="arpMontoMin" placeholder="0" style="width:140px"></div>
+        <div><label class="pg-muted">Monto máximo</label><input type="number" id="arpMontoMax" placeholder="Sin límite" style="width:140px"></div>
+        <button type="button" class="btn gris mini" id="arpLimpiar">Limpiar filtros</button>
+      </div>
+      <div id="arpLista"></div>
+    </div>
+  </div>
+  </div>
+
+  </div>
+</div>
 </div>
 
 <script>
 (function() {
-  var btns = [document.getElementById('pg-tt-pdf'), document.getElementById('pg-tt-sep')];
-  var paneles = [document.getElementById('pg-tool-pdf'), document.getElementById('pg-tool-sep')];
+  var btns = [document.getElementById('pg-tt-pdf'), document.getElementById('pg-tt-sep'), document.getElementById('pg-tt-ap')];
+  var paneles = [document.getElementById('pg-tool-pdf'), document.getElementById('pg-tool-sep'), document.getElementById('pg-tool-ap')];
   btns.forEach(function(b, i) {
     b.onclick = function() {
       btns.forEach(function(x, j) { x.classList.toggle('activo', j === i); });
       paneles.forEach(function(x, j) { x.classList.toggle('activa', j === i); });
+      if (paneles[i].id === 'pg-tool-ap' && window.apCargarInicial) window.apCargarInicial();
     };
   });
 })();
@@ -431,15 +534,20 @@ function buildPDF(emp,rows){
 
 function addCard(name,rows,meta){
   meta=meta||{};
-  const total=rows.reduce((a,r)=>a+r.valor,0), c=document.createElement("div"), miss=rows.filter(r=>!r.nombre);
+  const total=rows.reduce((a,r)=>a+r.valor,0), c=document.createElement("div"), miss=rows.filter(r=>!r.nombre||!r.cuenta||!r.banco);
   const lid=(meta.orig||slug(name))+"_"+isoD(rows[0].fecha)+"_"+Math.round(total*100);
   c.className="pg-card";
-  const preview=rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-soft)"><span>${esc(r.nombre||"(falta el nombre)")}<br><small class="pg-muted">${esc(bankName(r.banco))} · ${esc(r.cuenta)}</small></span><b style="white-space:nowrap">${money(r.valor)}</b></div>`).join("");
+  const preview=rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-soft)"><span>${esc(r.nombre||"(falta el nombre)")}<br><small class="pg-muted">${r.banco?esc(bankName(r.banco)):"(falta el banco)"} · ${r.cuenta?esc(r.cuenta):"(falta la cuenta)"}</small></span><b style="white-space:nowrap">${money(r.valor)}</b></div>`).join("");
   const warn=meta.totalArchivo!=null&&Math.abs(meta.totalArchivo-total)>0.005?`<div class="pg-err">Ojo: la suma de los pagos (${money(total)}) no coincide con el total del archivo (${money(meta.totalArchivo)}).</div>`:"";
   c.innerHTML=`<input class="pg-emp" value="${name.replace(/"/g,"&quot;")}" aria-label="Nombre de la empresa">
   <div class="pg-kpis"><div>Pagos<b>${rows.length}</b></div><div>Total a pagar<b>${money(total)}</b></div><div>Fecha<b>${rows[0].fecha}</b></div></div>${warn}
   <div style="max-height:280px;overflow:auto;margin:8px 0 12px;font-size:13px">${preview}</div>
-  ${miss.length?`<div class="pg-muted" style="margin:6px 0 10px">Estos beneficiarios no están en la lista. Escribe su nombre (se recordará la próxima vez):</div>`+miss.map((r,i)=>`<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap"><span class="pg-muted" style="min-width:170px">${docShort(r.tipoDoc)} ${r.nit} · ${money0(r.valor)}</span><input class="nm" data-i="${i}" placeholder="Nombre del beneficiario" style="flex:1;min-width:180px;font-size:14px;font-weight:400"></div>`).join(""):""}
+  ${miss.length?`<div class="pg-muted" style="margin:6px 0 10px">Completa lo que falte (se recuerda para la próxima vez):</div>`+miss.map((r,i)=>`<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap">
+    <span class="pg-muted" style="min-width:170px">${docShort(r.tipoDoc)} ${r.nit} · ${money0(r.valor)}</span>
+    ${!r.nombre?`<input class="nm" data-i="${i}" placeholder="Nombre del beneficiario" style="flex:1;min-width:180px;font-size:14px;font-weight:400">`:""}
+    ${!r.cuenta?`<input class="ct" data-i="${i}" placeholder="Número de cuenta" style="width:160px;font-size:14px;font-weight:400">`:""}
+    ${!r.banco?`<input class="bk" data-i="${i}" placeholder="Banco" style="width:160px;font-size:14px;font-weight:400">`:""}
+  </div>`).join(""):""}
   <button type="button" class="btn">Descargar PDF</button><span class="pg-ok" hidden></span><div class="pg-err" id="e"></div>
   <div class="pg-muted" style="margin-top:10px">Se guarda en el Historial con fecha de pago ${rows[0].fecha}.</div>`;
   const inp=c.querySelector(".pg-emp"),btn=c.querySelector("button"),ok=c.querySelector(".pg-ok"),err=c.querySelector("#e");
@@ -447,7 +555,10 @@ function addCard(name,rows,meta){
     err.textContent="";ok.hidden=true;
     try{
       const emp=inp.value.trim()||"Empresa";
-      c.querySelectorAll(".nm").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v){r.nombre=v;saveBen(r.nit,v,r.cuenta)}else if(!r.nombre)r.nombre="NIT "+r.nit});
+      c.querySelectorAll(".nm").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v)r.nombre=v;else if(!r.nombre)r.nombre="NIT "+r.nit});
+      c.querySelectorAll(".ct").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.replace(/\D/g,"");if(v)r.cuenta=v});
+      c.querySelectorAll(".bk").forEach(e=>{const r=miss[+e.dataset.i],v=e.value.trim();if(v)r.banco=v});
+      miss.forEach(r=>{if(r.nombre&&r.cuenta)saveBen(r.nit,r.nombre,r.cuenta)});
       if(meta.orig)saveEmp(meta.orig,emp);
       saveLote(lid,emp,rows,meta.orig);
       const buf=buildPDF(emp,rows);
@@ -480,6 +591,43 @@ const drop=$("#drop");
 ["dragover","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();if(ev==="drop")handleFiles(e.dataTransfer.files)}));
 initDB();
 $("#usePaste").onclick=()=>handleText("Empresa.txt",$("#paste").value);
+
+// ---------------- Traer desde Accounts Payable (28-oct-2026) ----------------
+const apTraerModal=$("#apTraerModal");
+function apTraerCargar(){
+  const empresa=$("#apTraerEmpresa").value, lista=$("#apTraerLista");
+  lista.innerHTML=`<p class="pg-muted">Cargando…</p>`;
+  fetch(`/pagos/api/ap?estado=APROBADO&empresa=${encodeURIComponent(empresa)}`,{credentials:"same-origin"})
+    .then(r=>r.json().then(d=>{if(!r.ok)throw new Error(d.detail||("Error "+r.status));return d}))
+    .then(d=>{
+      const filas=d.filas||[];
+      lista.innerHTML=filas.length?filas.map(f=>`<label style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-soft);cursor:pointer">
+        <input type="checkbox" class="apT-chk" data-id="${f.id}" data-nit="${esc(f.proveedorNit)}" data-nombre="${esc(f.proveedorNombre)}" data-valor="${f.valor}" data-empresa="${esc(f.empresa)}">
+        <span style="flex:1"><b>${esc(f.proveedorNombre)}</b> · ${f.empresa==="Smiles"?"Nuvia Smiles":"Nuvia Design"}<br><small class="pg-muted">${esc(f.detalle||"")}${f.proveedorNit?" · NIT "+esc(f.proveedorNit):""}</small></span>
+        <b style="white-space:nowrap">${money(f.valor)}</b>
+      </label>`).join(""):`<p class="pg-muted" style="padding:16px 0">No hay pagos Aprobados en Accounts Payable para traer.</p>`;
+    })
+    .catch(e=>{lista.innerHTML=`<p class="pg-err">No se pudo cargar: ${esc(e.message)}</p>`});
+}
+$("#apTraerBtn").onclick=()=>{apTraerModal.style.display="flex";$("#apTraerErr").textContent="";apTraerCargar()};
+$("#apTraerCancelar").onclick=()=>{apTraerModal.style.display="none"};
+$("#apTraerEmpresa").onchange=apTraerCargar;
+$("#apTraerAgregar").onclick=()=>{
+  const chks=[...apTraerModal.querySelectorAll(".apT-chk:checked")];
+  if(!chks.length){$("#apTraerErr").textContent="Elige al menos un pago.";return}
+  const porEmpresa={};
+  chks.forEach(chk=>(porEmpresa[chk.dataset.empresa]=porEmpresa[chk.dataset.empresa]||[]).push(chk));
+  const hoy=new Date(), fechaDMY=String(hoy.getDate()).padStart(2,"0")+"/"+String(hoy.getMonth()+1).padStart(2,"0")+"/"+hoy.getFullYear();
+  Object.keys(porEmpresa).forEach(emp=>{
+    const rows=porEmpresa[emp].map((chk,i)=>{
+      const nit=z((chk.dataset.nit||"").replace(/\D/g,"")||"0"), dirE=DIR[nit];
+      return {fecha:fechaDMY,rev:"",n:String(i+1),nombre:chk.dataset.nombre,nit,tipoDoc:"NIT",
+        cuenta:dirE?dirE.c:"",codCta:"",banco:"",codBanco:"",valor:parseFloat(chk.dataset.valor)};
+    });
+    addCard(emp==="Smiles"?"Nuvia Smiles":"Nuvia Design",rows);
+  });
+  apTraerModal.style.display="none";
+};
 })();
 </script>
 
@@ -1033,4 +1181,234 @@ document.getElementById('historial').addEventListener('click', async e => {
 window.addEventListener('error', e => { try { logMsg('ERROR: ' + e.message); } catch (_) {} });
 window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e.reason && e.reason.message || e.reason)); } catch (_) {} });
 </script>
+
+<!-- ============ Script herramienta 3: Accounts Payable (aislado, igual que las otras dos) ============ -->
+<script>
+(function() {
+  var $ = function(s) { return document.querySelector(s); };
+  var esc = function(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); };
+  var money = function(v) { return '$ ' + Math.round(v || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+  var EMPRESA_NOMBRE = {Smiles: 'Nuvia Smiles', Design: 'Nuvia Design'};
+  var ESTADO_LABEL = {PENDIENTE: 'Pendiente', APROBADO: 'Aprobado', PAGADO: 'Pagado'};
+  var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  var COLUMNAS = [
+    {key: 'fecha', label: 'Fecha'}, {key: 'empresa', label: 'Empresa'}, {key: 'proveedorNombre', label: 'Proveedor'},
+    {key: 'detalle', label: 'Detalle'}, {key: 'valor', label: 'Valor', der: true}, {key: 'estado', label: 'Estado'}, {key: 'fechaPago', label: 'Pago'},
+  ];
+  var estadoActivo = 'PENDIENTE', puedeAprobar = false, cargadoAlgunaVez = false, reporteCargado = false;
+  var sortCol = 'fecha', sortDir = -1, ultimasFilas = [];
+
+  function api(url, opts) {
+    return fetch(url, Object.assign({credentials: 'same-origin'}, opts || {})).then(function(r) {
+      return r.json().catch(function() { return {}; }).then(function(d) { if (!r.ok) throw new Error(d.detail || ('Error ' + r.status)); return d; });
+    });
+  }
+  function apiJSON(url, cuerpo) {
+    return api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cuerpo || {})});
+  }
+
+  function marcarBotonEstado() {
+    document.querySelectorAll('#apEstados [data-estado]').forEach(function(b) {
+      var activo = b.dataset.estado === estadoActivo;
+      b.style.boxShadow = activo ? '0 0 0 2px var(--brand-main) inset' : '';
+    });
+  }
+
+  function cargar() {
+    cargadoAlgunaVez = true;
+    var qs = new URLSearchParams({estado: estadoActivo, empresa: $('#apEmpresa').value, busqueda: $('#apBusqueda').value.trim()});
+    $('#apLista').innerHTML = '<p class="pg-muted">Cargando…</p>';
+    marcarBotonEstado();
+    api('/pagos/api/ap?' + qs.toString()).then(function(d) {
+      puedeAprobar = d.puedeAprobar;
+      Object.keys(d.resumen).forEach(function(k) {
+        document.querySelectorAll('[data-n="' + k + '"]').forEach(function(el) { el.textContent = '(' + d.resumen[k] + ')'; });
+      });
+      renderLista(d.filas);
+    }).catch(function(e) { $('#apLista').innerHTML = '<p class="pg-err">No se pudo cargar: ' + esc(e.message) + '</p>'; });
+  }
+
+  function ordenarFilas(filas) {
+    var copia = filas.slice();
+    copia.sort(function(a, b) {
+      if (sortCol === 'valor') return ((a.valor || 0) - (b.valor || 0)) * sortDir;
+      var va = a[sortCol] == null ? '' : String(a[sortCol]).toLowerCase(), vb = b[sortCol] == null ? '' : String(b[sortCol]).toLowerCase();
+      return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
+    });
+    return copia;
+  }
+
+  function renderLista(filas) {
+    ultimasFilas = filas;
+    if (!filas.length) { $('#apLista').innerHTML = '<p class="pg-muted" style="padding:20px 0">No hay cuentas por pagar en este filtro.</p>'; return; }
+    var filasHtml = ordenarFilas(filas).map(function(f) {
+      var estadoTxt = f.estado === 'OTRO' ? (f.estadoOriginal || 'Otro') : ESTADO_LABEL[f.estado];
+      var acciones = '';
+      if (f.estado === 'PENDIENTE' && puedeAprobar) {
+        acciones = '<button type="button" class="btn verde mini" data-a="aprobar" data-id="' + f.id + '">Aprobar</button> ' +
+          '<button type="button" class="btn rojo mini" data-a="rechazar" data-id="' + f.id + '">Rechazar</button>';
+      } else if (f.estado === 'APROBADO') {
+        acciones = '<button type="button" class="btn mini" data-a="pagar" data-id="' + f.id + '">Marcar pagado</button>';
+      }
+      return '<tr>' +
+        '<td>' + (f.fecha || '—') + '</td>' +
+        '<td>' + esc(EMPRESA_NOMBRE[f.empresa] || f.empresa) + '</td>' +
+        '<td><b>' + esc(f.proveedorNombre) + '</b>' + (f.proveedorNit ? '<br><small class="pg-muted">NIT ' + esc(f.proveedorNit) + '</small>' : '') + '</td>' +
+        '<td>' + esc(f.detalle) + '</td>' +
+        '<td style="text-align:right">' + money(f.valor) + '</td>' +
+        '<td><span class="pg-badge ' + f.estado.toLowerCase() + '">' + esc(estadoTxt) + '</span>' +
+          (f.aprobadoPor ? '<br><small class="pg-muted">' + esc(f.aprobadoPor) + '</small>' : '') + '</td>' +
+        '<td>' + (f.fechaPago || '—') + '</td>' +
+        '<td style="white-space:nowrap">' + acciones + '</td>' +
+      '</tr>';
+    }).join('');
+    var headerHtml = COLUMNAS.map(function(col) {
+      var flecha = sortCol === col.key ? (sortDir === 1 ? '▲' : '▼') : '↕';
+      return '<th data-col="' + col.key + '" style="cursor:pointer;user-select:none' + (col.der ? ';text-align:right' : '') + '" title="Ordenar por ' + col.label.toLowerCase() + '">' +
+        col.label + ' <span style="opacity:' + (sortCol === col.key ? '1' : '.4') + '">' + flecha + '</span></th>';
+    }).join('');
+    $('#apLista').innerHTML = '<div class="pg-tabla-wrap"><table class="pg-tabla"><tr>' + headerHtml + '<th></th></tr>' + filasHtml + '</table></div>';
+  }
+
+  document.querySelectorAll('#apEstados [data-estado]').forEach(function(b) {
+    b.onclick = function() { estadoActivo = b.dataset.estado; cargar(); };
+  });
+  $('#apEmpresa').onchange = cargar;
+  var buscarT;
+  $('#apBusqueda').oninput = function() { clearTimeout(buscarT); buscarT = setTimeout(cargar, 300); };
+  $('#apLista').addEventListener('click', function(e) {
+    var th = e.target.closest('th[data-col]');
+    if (th) {
+      var col = th.dataset.col;
+      if (sortCol === col) sortDir = -sortDir; else { sortCol = col; sortDir = (col === 'valor' || col === 'fecha' || col === 'fechaPago') ? -1 : 1; }
+      renderLista(ultimasFilas);
+      return;
+    }
+    var b = e.target.closest('button[data-a]'); if (!b) return;
+    var id = b.dataset.id, a = b.dataset.a, p;
+    if (a === 'aprobar') {
+      p = apiJSON('/pagos/api/ap/' + id + '/aprobar', {});
+    } else if (a === 'rechazar') {
+      var motivo = prompt('Motivo del rechazo (opcional):') || '';
+      p = apiJSON('/pagos/api/ap/' + id + '/rechazar', {motivo: motivo});
+    } else if (a === 'pagar') {
+      if (!confirm('¿Marcar esta cuenta como pagada?')) return;
+      p = apiJSON('/pagos/api/ap/' + id + '/pagar', {});
+    } else return;
+    b.disabled = true;
+    p.then(cargar).catch(function(err) { alert('No se pudo completar: ' + err.message); b.disabled = false; });
+  });
+
+  // ---- Nueva cuenta por pagar ----
+  $('#apNuevoBtn').onclick = function() { $('#apForm').hidden = !$('#apForm').hidden; };
+  $('#apCancelarBtn').onclick = function() { $('#apForm').hidden = true; $('#apFormErr').textContent = ''; };
+  $('#apGuardarBtn').onclick = function() {
+    var valor = parseFloat($('#apfValor').value);
+    var cuerpo = {
+      empresa: $('#apfEmpresa').value, proveedor_nombre: $('#apfProveedor').value.trim(), proveedor_nit: $('#apfNit').value.trim(),
+      categoria: $('#apfCategoria').value.trim(), detalle: $('#apfDetalle').value.trim(), documento: $('#apfDocumento').value.trim(),
+      valor: valor, fecha_vencimiento: $('#apfVencimiento').value || null, comentarios: $('#apfComentarios').value.trim(),
+    };
+    if (!cuerpo.proveedor_nombre || !cuerpo.detalle || !valor || valor <= 0) {
+      $('#apFormErr').textContent = 'Completa proveedor, detalle y un valor mayor a cero.'; return;
+    }
+    $('#apFormErr').textContent = '';
+    apiJSON('/pagos/api/ap', cuerpo).then(function() {
+      ['apfProveedor', 'apfNit', 'apfCategoria', 'apfValor', 'apfVencimiento', 'apfDocumento', 'apfDetalle', 'apfComentarios'].forEach(function(id) { $('#' + id).value = ''; });
+      $('#apForm').hidden = true;
+      estadoActivo = 'PENDIENTE';
+      cargar();
+    }).catch(function(e) { $('#apFormErr').textContent = e.message; });
+  };
+
+  // ---- Importar histórico (solo admin -- el bloque ni siquiera se renderiza para los demás) ----
+  var impInput = $('#apImportarInput');
+  if (impInput) {
+    impInput.onchange = function() {
+      var f = impInput.files[0]; if (!f) return;
+      var msg = $('#apImportarMsg'); msg.className = 'pg-ok'; msg.textContent = 'Leyendo e importando (puede tardar unos segundos)…';
+      var fd = new FormData(); fd.append('archivo', f);
+      fetch('/pagos/api/ap/importar', {method: 'POST', credentials: 'same-origin', body: fd}).then(function(r) {
+        return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'Error al importar'); return d; });
+      }).then(function(d) {
+        msg.className = 'pg-ok';
+        msg.textContent = '✓ ' + d.importadas + ' nuevas · ' + d.duplicadas + ' ya existían (omitidas) · ' + d.omitidas + ' filas vacías omitidas, de ' + d.leidas + ' leídas.';
+        if (cargadoAlgunaVez) cargar();
+      }).catch(function(e) { msg.className = 'pg-err'; msg.textContent = e.message; }).finally(function() { impInput.value = ''; });
+    };
+  }
+
+  window.apCargarInicial = function() { if (!cargadoAlgunaVez) cargar(); };
+
+  // ---- Sub-pestañas: Cuentas / Reportes ----
+  $('#ap-tab-cuentas').onclick = function() {
+    $('#ap-tab-cuentas').classList.add('activo'); $('#ap-tab-reportes').classList.remove('activo');
+    $('#ap-sub-cuentas').classList.add('activa'); $('#ap-sub-reportes').classList.remove('activa');
+  };
+  $('#ap-tab-reportes').onclick = function() {
+    $('#ap-tab-reportes').classList.add('activo'); $('#ap-tab-cuentas').classList.remove('activo');
+    $('#ap-sub-reportes').classList.add('activa'); $('#ap-sub-cuentas').classList.remove('activa');
+    if (!reporteCargado) { reporteCargado = true; cargarReporte(); }
+  };
+
+  // ---- Reportes: pagos realizados mes a mes, filtrables ----
+  function mesLabel(clave) { var p = clave.split('-'); return MESES[parseInt(p[1], 10) - 1] + ' ' + p[0]; }
+  function anioActualISO(mes) { var a = new Date().getFullYear(); return a + '-' + (mes === 'desde' ? '01-01' : '12-31'); }
+  function esFiltroDefault() {
+    return $('#arpDesde').value === anioActualISO('desde') && $('#arpHasta').value === anioActualISO('hasta') &&
+      !$('#arpTercero').value.trim() && !$('#arpMontoMin').value && !$('#arpMontoMax').value;
+  }
+  function completarMeses(meses) {
+    var anio = new Date().getFullYear(), porClave = {}, out = [];
+    meses.forEach(function(m) { porClave[m.mes] = m; });
+    for (var i = 1; i <= 12; i++) {
+      var clave = anio + '-' + String(i).padStart(2, '0');
+      out.push(porClave[clave] || {mes: clave, cantidad: 0, totalSmiles: 0, totalDesign: 0, total: 0});
+    }
+    return out;
+  }
+  function renderReporte(meses) {
+    if (!meses.length) { $('#arpLista').innerHTML = '<p class="pg-muted" style="padding:20px 0">No hay pagos realizados en este filtro.</p>'; return; }
+    var t = {cantidad: 0, totalSmiles: 0, totalDesign: 0, total: 0};
+    var filas = meses.map(function(m) {
+      t.cantidad += m.cantidad; t.totalSmiles += m.totalSmiles; t.totalDesign += m.totalDesign; t.total += m.total;
+      return '<tr><td>' + mesLabel(m.mes) + '</td><td style="text-align:right">' + money(m.totalSmiles) + '</td>' +
+        '<td style="text-align:right">' + money(m.totalDesign) + '</td><td style="text-align:right"><b>' + money(m.total) + '</b></td>' +
+        '<td style="text-align:right">' + m.cantidad + '</td></tr>';
+    }).join('');
+    var filaTotal = '<tr style="font-weight:800;background:var(--brand-light)"><td>Total</td><td style="text-align:right">' + money(t.totalSmiles) +
+      '</td><td style="text-align:right">' + money(t.totalDesign) + '</td><td style="text-align:right">' + money(t.total) +
+      '</td><td style="text-align:right">' + t.cantidad + '</td></tr>';
+    $('#arpLista').innerHTML = '<div class="pg-tabla-wrap"><table class="pg-tabla"><tr><th>Mes</th><th style="text-align:right">Nuvia Smiles</th>' +
+      '<th style="text-align:right">Nuvia Design</th><th style="text-align:right">Total</th><th style="text-align:right"># Pagos</th></tr>' + filas + filaTotal + '</table></div>';
+  }
+  function cargarReporte() {
+    var params = {};
+    if ($('#arpDesde').value) params.desde = $('#arpDesde').value;
+    if ($('#arpHasta').value) params.hasta = $('#arpHasta').value;
+    if ($('#arpTercero').value.trim()) params.tercero = $('#arpTercero').value.trim();
+    if ($('#arpMontoMin').value) params.montoMin = $('#arpMontoMin').value;
+    if ($('#arpMontoMax').value) params.montoMax = $('#arpMontoMax').value;
+    $('#arpLista').innerHTML = '<p class="pg-muted">Cargando…</p>';
+    api('/pagos/api/ap/reporte?' + new URLSearchParams(params).toString()).then(function(d) {
+      var meses = d.meses || [];
+      if (esFiltroDefault()) meses = completarMeses(meses);
+      renderReporte(meses);
+    }).catch(function(e) { $('#arpLista').innerHTML = '<p class="pg-err">No se pudo cargar: ' + esc(e.message) + '</p>'; });
+  }
+  $('#arpAnioActual').textContent = new Date().getFullYear();
+  $('#arpDesde').value = anioActualISO('desde'); $('#arpHasta').value = anioActualISO('hasta');
+  $('#arpDesde').onchange = cargarReporte; $('#arpHasta').onchange = cargarReporte;
+  var reporteT;
+  ['#arpTercero', '#arpMontoMin', '#arpMontoMax'].forEach(function(sel) {
+    $(sel).addEventListener('input', function() { clearTimeout(reporteT); reporteT = setTimeout(cargarReporte, 350); });
+  });
+  $('#arpLimpiar').onclick = function() {
+    $('#arpDesde').value = anioActualISO('desde'); $('#arpHasta').value = anioActualISO('hasta');
+    $('#arpTercero').value = ''; $('#arpMontoMin').value = ''; $('#arpMontoMax').value = '';
+    cargarReporte();
+  };
+})();
+</script>
+<script src="/static/pagos/push.js"></script>
 {% endblock %}
