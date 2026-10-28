@@ -1,14 +1,23 @@
 # Caja Menor Nuvia
 
+**(2026-10-28) El superadmin ya entra siempre a Contabilidad -- Oscar anuló aquí la regla de Carlos
+del 20-oct-2026 para su propio rol.** Motivo: Oscar marcó a alguien como `admin`/`superadmin`
+esperando que así entrara a Contabilidad y no fue así (la regla de más abajo lo bloqueaba también a
+él). Pidió explícitamente anularla **solo para `superadmin`**, con el argumento de que el superadmin
+siempre debe poder entrar a toda la plataforma -- **un `admin` normal sigue sin entrar automático**,
+esa parte de la regla de Carlos no cambió. En `Empleado.tiene_modulo()` (`app/models.py`) el `if`
+que bloquea quedó limitado a `self.rol == "admin"` (antes incluía también `"superadmin"`). Mismo
+patrón que ya existe para `design_schedule` (el superadmin tampoco respeta ahí la restricción por
+empresa).
+
 **(2026-10-28) En People › Empleados la casilla de este permiso ya dice "Contabilidad", no "Caja
 menor Nuvia".** Solo cambió la etiqueta en `MODULOS_DISPONIBLES` (`app/models.py`) -- el slug
-interno sigue siendo `caja_menor` (mismo de siempre, sin migración de datos). Motivo: Oscar marcó a
-alguien como `admin`/`superadmin` esperando que así entrara a Contabilidad y no fue así -- sigue
-vigente la regla del 20-oct-2026 de más abajo (ni admin ni superadmin entran automático a este
-módulo). Para darle acceso a alguien, la casilla "Contabilidad" de Empleados › editar sí funciona
-sin importar el rol (marcarla agrega `caja_menor` a `Empleado.modulos` directamente, lo que cumple
-la condición `modulo in self.modulos_lista` de `tiene_modulo()` y evita la excepción); la otra vía
-sigue siendo Parámetros › Quién tiene acceso dentro de Caja menor Nuvia (`/caja-menor/parametros`).
+interno sigue siendo `caja_menor` (mismo de siempre, sin migración de datos). Para darle acceso a un
+`admin` (no superadmin, que ya entra siempre -- ver arriba), la casilla "Contabilidad" de Empleados ›
+editar sí funciona sin importar el rol (marcarla agrega `caja_menor` a `Empleado.modulos`
+directamente, lo que cumple la condición `modulo in self.modulos_lista` de `tiene_modulo()` y evita
+la excepción); la otra vía sigue siendo Parámetros › Quién tiene acceso dentro de Caja menor Nuvia
+(`/caja-menor/parametros`).
 
 **(2026-10-27) Ahora vive dentro del módulo "Contabilidad" (pedido de Oscar).** El portal (`/`)
 ya no muestra una tarjeta "Caja menor Nuvia" directa: muestra **Contabilidad**
@@ -79,13 +88,15 @@ Adentro, el detalle fino sí es por tabla propia: `CajaAcceso` (quién puede usa
 `CajaAutorizador` (quién firma "Aprobado por"), `CajaSupervisor` (quién da el visto bueno del FM)
 -- todas por persona, asignadas en Parámetros.
 
-**(2026-10-20) Ni admin ni superadmin entran automático a Caja menor.** A diferencia del resto de
-módulos, `Empleado.tiene_modulo()` (`app/models.py`) tiene una excepción explícita para
-`"caja_menor"`: ser `admin` o `superadmin` ya **no** basta -- solo entra quien tiene el permiso
-`caja_menor` en `Empleado.modulos`, ya sea porque opera/autoriza/supervisa una caja (como
-cualquier empleado), o porque otro admin/superadmin con acceso lo autorizó explícitamente desde
-Parámetros › Quién tiene acceso › "Administradores autorizados a entrar a Caja menor"
-(`/caja-menor/parametros/admins/{id}/toggle`).
+**(2026-10-20, modificado 28-oct-2026) Un admin normal no entra automático a Caja menor; el
+superadmin sí.** A diferencia del resto de módulos, `Empleado.tiene_modulo()` (`app/models.py`)
+tiene una excepción explícita para `"caja_menor"`: ser `admin` ya **no** basta -- solo entra quien
+tiene el permiso `caja_menor` en `Empleado.modulos`, ya sea porque opera/autoriza/supervisa una caja
+(como cualquier empleado), o porque otro admin/superadmin con acceso lo autorizó explícitamente
+desde Parámetros › Quién tiene acceso › "Administradores autorizados a entrar a Caja menor"
+(`/caja-menor/parametros/admins/{id}/toggle`). **El superadmin queda exento de esta excepción desde
+el 28-oct-2026 (pedido de Oscar, ver la nota al principio de esta página): entra siempre**, sin
+necesitar ninguno de esos pasos.
 
 Para que esto no bloquee a todo el mundo (incluido quien tendría que autorizar), **Parámetros en
 sí no depende de ese permiso**: usa `require_admin_caja_menor()` (nuevo, en
@@ -95,8 +106,9 @@ cajas, los recibos). Las ~15 rutas de Parámetros (cajas, accesos, autorizadores
 este toggle) usan `require_admin_caja_menor`; todo lo demás sigue usando `require_modulo(MODULO)`.
 Si agregas una ruta nueva bajo `/caja-menor/parametros/`, usa `require_admin_caja_menor`, no
 `require_modulo(MODULO)` -- si no, un admin recién creado no podría ni entrar a autorizarse a sí
-mismo. Pedido de Carlos: por defecto nadie nuevo (ni admin ni superadmin) debe poder entrar al
-módulo hasta que alguien ya autorizado lo permita.
+mismo. Pedido original de Carlos: por defecto nadie nuevo (ni admin ni superadmin) debe poder
+entrar al módulo hasta que alguien ya autorizado lo permita -- **Oscar anuló esa parte para
+superadmin el 28-oct-2026** (ver nota al principio de la página); para `admin` sigue intacta.
 
 A diferencia de SST/Custodia/Consumo/Conteo, Caja Menor **no es de una sola empresa**: cada
 `CajaMenor` tiene su propio campo `empresa` (hoy: Contabilidad y Mantenimiento son de Nuvia
