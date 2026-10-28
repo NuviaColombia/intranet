@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (774 reglas) ---- */
+/* ---- static\design\schedule.css (776 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -725,6 +725,8 @@
 :root[data-ds-tema="oscuro"] .ds-notas-btn { border:1px solid #394149; background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-notas-btn:hover:not(:disabled) { background:#1a2229; border-color:#424d63; }
 :root[data-ds-tema="oscuro"] .ds-notas-n { background:#632020; color:#fff; }
+:root[data-ds-tema="oscuro"] .ds-notas-ico { fill:none; stroke:currentColor; color:#bbc0cb; }
+:root[data-ds-tema="oscuro"] .ds-notas-btn.tiene .ds-notas-ico { fill:#dbeafe; color:#7a98ed; }
 :root[data-ds-tema="oscuro"] .ds-notas-vacio { color:#aab2bf; }
 :root[data-ds-tema="oscuro"] .ds-nota { background:#181f26; border:1px solid #323943; }
 :root[data-ds-tema="oscuro"] .ds-nota-f { color:#aab2bf; }

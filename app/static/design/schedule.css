@@ -563,6 +563,16 @@
   .ds-btn-x:hover { background:#4b5563; }
   .ds-panel-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   .ds-panel-h h3 { margin:0; }
+  /* N6 (Rosember, 28-oct-2026): el botón + de cada sección va antes de su nombre (+ Material Change, + Over Ti-bar…), y el nombre queda
+     fijo al mover el deslizador horizontal: el deslizador pasa de la sección a su tabla */
+  #ds-app.ds-n6 .ds-panel { overflow-x:visible; }
+  #ds-app.ds-n6 .ds-panel > div[id^="dsTabla"] { overflow-x:auto; }
+  #ds-app.ds-n6 .ds-panel-h { justify-content:flex-start; }
+  #ds-app.ds-n6 .ds-panel-h .ds-panel-acc { display:contents; }
+  #ds-app.ds-n6 .ds-panel-h .ds-btn-add { order:-2; }
+  #ds-app.ds-n6 .ds-panel-h > h3, #ds-app.ds-n6 .ds-panel-h > .ds-panel-titulo { order:-1; }
+  #ds-app.ds-n6 .ds-panel-h::after { content:''; flex:1 1 auto; }
+  #ds-app.ds-n6 .ds-panel-h .ds-btn-ocultas, #ds-app.ds-n6 .ds-panel-h .ds-btn-apoyo { order:1; }
   /* Cirugías: la tabla sube una fila (la de Articulation / Design queda a la altura del título); el título y sus botones
      quedan por encima y se pueden usar (28-oct-2026). Lo decide dsSubirTablaPrincipal solo cuando cabe. */
   #dsPanelPrincipal.ds-grupos-arriba > #dsTablaPrincipal { margin-top:calc(-1 * var(--ds-subir, 0px)); }
@@ -1300,6 +1310,11 @@
   .ds-notas-btn:disabled { opacity:.45; cursor:not-allowed; }
   .ds-notas-n { position:absolute; top:-8px; right:-8px; min-width:17px; height:17px; padding:0 4px; box-sizing:border-box; border-radius:999px; background:#ef4444; color:#fff; font-size:10px; font-weight:800; line-height:17px; text-align:center; }
   .ds-notas-n[hidden] { display:none; }
+  .ds-notas-ico { display:block; width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; color:#475569; }
+  .ds-notas-btn.tiene .ds-notas-ico { fill:#dbeafe; color:#1d4ed8; }   /* con notas: la nube se rellena */
+  .ds-notas-n.salto { animation:dsNotaSalto .45s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes dsNotaSalto { 0% { transform:scale(.3); } 60% { transform:scale(1.35); } 100% { transform:scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .ds-notas-n.salto { animation:none; } }
   .ds-notas-lista { max-height:260px; overflow:auto; margin:8px 0; display:flex; flex-direction:column; gap:6px; }
   .ds-notas-vacio { margin:6px 0; color:#64748b; font-size:13px; }
   .ds-nota { position:relative; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 28px 6px 10px; }

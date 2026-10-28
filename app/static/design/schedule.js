@@ -553,6 +553,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       b.classList.toggle('activo', DS.areas[i].id === area.id);
     });
     var rd = area.nombre === DS_AREA_RD;
+    var appN6 = document.getElementById('ds-app'); if (appN6) appN6.classList.toggle('ds-n6', area.nombre === DS_AREA_MATERIAL);   // N6: el + va antes del nombre (28-oct-2026)
     document.getElementById('dsPanelNightguard').style.display = (area.formato === 'dual' && !rd) ? '' : 'none';
     document.getElementById('dsPanelMaterial').style.display = (area.nombre === DS_AREA_MATERIAL || rd) ? '' : 'none';
     document.getElementById('dsPanelPrincipal').style.display = rd ? 'none' : '';
@@ -952,6 +953,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   };
   Object.keys(DS_PRODUCTOS_N6).forEach(function(k) { DS_PRODUCTOS_N6[k] = DS_PRODUCTOS_N6[k].map(dsNorm); });
   function dsPanelesN6(dia) {
+    var appN6 = document.getElementById('ds-app'); if (appN6) appN6.classList.toggle('ds-n6', dsAreaNombre() === DS_AREA_MATERIAL);
     var sep = dsN6Separado();
     ['Tibar', 'Dummy'].forEach(function(t) {
       document.getElementById('dsPanel' + t).style.display = sep ? '' : 'none';
@@ -997,16 +999,18 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsSpecCols(tabla) { return dsSpec(tabla).filter(function(c) { return !c.banda; }); }   // columnas de la fila (sin las de la franja)
   // Notas de cada etapa (Rosember, 28-oct-2026): un botón junto al Estado; el número es cuántas notas tiene esa etapa.
+  var DS_ICONO_NOTAS = '<svg class="ds-notas-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-4.5 3.5V17H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>';   // nube de mensaje
   function dsBotonNotas(g, f) {
     var n = (f.notasN || {})[g] || 0;
-    return '<button type="button" class="ds-notas-btn" data-notas="' + g + '" title="' + (n ? 'Notas de esta etapa (' + n + ')' : 'Notas de esta etapa') + '" aria-label="Notas de ' + dsEsc(DS_GRUPOS[g] || '') + '"' +
-           (f.id ? '' : ' disabled') + '>📝<span class="ds-notas-n"' + (n ? '' : ' hidden') + '>' + n + '</span></button>';
+    return '<button type="button" class="ds-notas-btn' + (n ? ' tiene' : '') + '" data-notas="' + g + '" title="' + (n ? 'Notas de esta etapa (' + n + ')' : 'Notas de esta etapa') + '" aria-label="Notas de ' + dsEsc(DS_GRUPOS[g] || '') + '"' +
+           (f.id ? '' : ' disabled') + '>' + DS_ICONO_NOTAS + '<span class="ds-notas-n"' + (n ? '' : ' hidden') + '>' + n + '</span></button>';
   }
   function dsPintarNotas(tr, f) {
     var b = dsBandaDe(tr); if (!b) return;
     b.querySelectorAll('[data-notas]').forEach(function(btn) {
-      var n = ((f && f.notasN) || {})[btn.dataset.notas] || 0, sp = btn.querySelector('.ds-notas-n');
-      sp.textContent = n; sp.hidden = !n; btn.disabled = !(f && f.id);
+      var n = ((f && f.notasN) || {})[btn.dataset.notas] || 0, sp = btn.querySelector('.ds-notas-n'), antes = parseInt(sp.textContent, 10) || 0;
+      sp.textContent = n; sp.hidden = !n; btn.disabled = !(f && f.id); btn.classList.toggle('tiene', !!n);
+      if (n !== antes && n) { sp.classList.remove('salto'); void sp.offsetWidth; sp.classList.add('salto'); }   // el número da un saltito al cambiar
       btn.title = n ? 'Notas de esta etapa (' + n + ')' : 'Notas de esta etapa';
     });
   }
@@ -2460,6 +2464,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (!panel || !cont) return;
     var cab = panel.querySelector('.ds-panel-h'), avisos = document.getElementById('dsCopiasPend');
     panel.classList.remove('ds-grupos-arriba');
+    if (document.getElementById('ds-app').classList.contains('ds-n6')) return;   // N6: el + va antes del nombre y no se sube la tabla
     var g = cont.querySelector('table.ds-tabla tr.ds-tr-grupos'), ths = g ? g.querySelectorAll('th.ds-gh') : [];
     if (!ths.length || !cab || !panel.offsetParent || (avisos && avisos.offsetHeight)) return;
     var tit = panel.querySelector('.ds-panel-titulo') || cab.firstElementChild, acc = panel.querySelector('.ds-panel-acc');
