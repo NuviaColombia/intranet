@@ -8,6 +8,7 @@
     <button type="button" id="pg-tt-pdf" class="activo"><span class="pg-sidebar-icono">💳</span><span>Pagos programados<br><small>→ PDF</small></span></button>
     <button type="button" id="pg-tt-sep"><span class="pg-sidebar-icono">📎</span><span>Separador de<br>comprobantes</span></button>
     <button type="button" id="pg-tt-ap"><span class="pg-sidebar-icono">📋</span><span>Accounts<br>Payable</span></button>
+    <button type="button" id="pg-tt-rep"><span class="pg-sidebar-icono">📊</span><span>Reportes</span></button>
   </nav>
   <div class="pg-content">
 
@@ -190,12 +191,6 @@
 
     <div id="apPushBox" style="margin-bottom:14px"></div>
 
-    <div class="pg-sub-tabs">
-      <button type="button" id="ap-tab-cuentas" class="activo">📋 Cuentas</button>
-      <button type="button" id="ap-tab-reportes">📊 Reportes</button>
-    </div>
-
-    <div id="ap-sub-cuentas" class="pg-seccion activa">
       <div id="apEstados" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
         <button type="button" class="btn gris" data-estado="PENDIENTE">⏳ Pendientes <span data-n="PENDIENTE"></span></button>
         <button type="button" class="btn verde" data-estado="APROBADO">✅ Aprobados <span data-n="APROBADO"></span></button>
@@ -245,20 +240,25 @@
         <div id="apImportarMsg" style="margin-top:6px"></div>
       </details>
       {% endif %}
-    </div>
+  </div>
+  </div>
 
-    <div id="ap-sub-reportes" class="pg-seccion">
-      <p class="pg-sub" style="margin:0 0 12px">Pagos realizados, mes a mes. Por defecto muestra todo el año <span id="arpAnioActual"></span>.</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
-        <div><label class="pg-muted">Fecha desde</label><input type="date" id="arpDesde"></div>
-        <div><label class="pg-muted">Fecha hasta</label><input type="date" id="arpHasta"></div>
-        <div style="flex:1;min-width:200px"><label class="pg-muted">Tercero (nombre o NIT)</label><input id="arpTercero" placeholder="Todos"></div>
-        <div><label class="pg-muted">Monto mínimo</label><input type="number" id="arpMontoMin" placeholder="0" style="width:140px"></div>
-        <div><label class="pg-muted">Monto máximo</label><input type="number" id="arpMontoMax" placeholder="Sin límite" style="width:140px"></div>
-        <button type="button" class="btn gris mini" id="arpLimpiar">Limpiar filtros</button>
-      </div>
-      <div id="arpLista"></div>
+  <!-- ============ HERRAMIENTA 4: Reportes ============ -->
+  <div id="pg-tool-rep" class="pg-herramienta">
+  <div class="pg-main">
+    <div class="pg-barra">
+      <div><h2 class="pg-titulo">Reportes</h2>
+        <p class="pg-sub" style="margin:0">Pagos realizados, mes a mes. Por defecto muestra todo el año <span id="arpAnioActual"></span>.</p></div>
     </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+      <div><label class="pg-muted">Fecha desde</label><input type="date" id="arpDesde"></div>
+      <div><label class="pg-muted">Fecha hasta</label><input type="date" id="arpHasta"></div>
+      <div style="flex:1;min-width:200px"><label class="pg-muted">Tercero (nombre o NIT)</label><input id="arpTercero" placeholder="Todos"></div>
+      <div><label class="pg-muted">Monto mínimo</label><input type="number" id="arpMontoMin" placeholder="0" style="width:140px"></div>
+      <div><label class="pg-muted">Monto máximo</label><input type="number" id="arpMontoMax" placeholder="Sin límite" style="width:140px"></div>
+      <button type="button" class="btn gris mini" id="arpLimpiar">Limpiar filtros</button>
+    </div>
+    <div id="arpLista"></div>
   </div>
   </div>
 
@@ -268,13 +268,14 @@
 
 <script>
 (function() {
-  var btns = [document.getElementById('pg-tt-pdf'), document.getElementById('pg-tt-sep'), document.getElementById('pg-tt-ap')];
-  var paneles = [document.getElementById('pg-tool-pdf'), document.getElementById('pg-tool-sep'), document.getElementById('pg-tool-ap')];
+  var btns = [document.getElementById('pg-tt-pdf'), document.getElementById('pg-tt-sep'), document.getElementById('pg-tt-ap'), document.getElementById('pg-tt-rep')];
+  var paneles = [document.getElementById('pg-tool-pdf'), document.getElementById('pg-tool-sep'), document.getElementById('pg-tool-ap'), document.getElementById('pg-tool-rep')];
   btns.forEach(function(b, i) {
     b.onclick = function() {
       btns.forEach(function(x, j) { x.classList.toggle('activo', j === i); });
       paneles.forEach(function(x, j) { x.classList.toggle('activa', j === i); });
       if (paneles[i].id === 'pg-tool-ap' && window.apCargarInicial) window.apCargarInicial();
+      if (paneles[i].id === 'pg-tool-rep' && window.apCargarReporte) window.apCargarReporte();
     };
   });
 })();
@@ -1340,18 +1341,7 @@ window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e
 
   window.apCargarInicial = function() { if (!cargadoAlgunaVez) cargar(); };
 
-  // ---- Sub-pestañas: Cuentas / Reportes ----
-  $('#ap-tab-cuentas').onclick = function() {
-    $('#ap-tab-cuentas').classList.add('activo'); $('#ap-tab-reportes').classList.remove('activo');
-    $('#ap-sub-cuentas').classList.add('activa'); $('#ap-sub-reportes').classList.remove('activa');
-  };
-  $('#ap-tab-reportes').onclick = function() {
-    $('#ap-tab-reportes').classList.add('activo'); $('#ap-tab-cuentas').classList.remove('activo');
-    $('#ap-sub-reportes').classList.add('activa'); $('#ap-sub-cuentas').classList.remove('activa');
-    if (!reporteCargado) { reporteCargado = true; cargarReporte(); }
-  };
-
-  // ---- Reportes: pagos realizados mes a mes, filtrables ----
+  // ---- Reportes: pagos realizados mes a mes, filtrables (herramienta aparte, ver pg-tt-rep) ----
   function mesLabel(clave) { var p = clave.split('-'); return MESES[parseInt(p[1], 10) - 1] + ' ' + p[0]; }
   function anioActualISO(mes) { var a = new Date().getFullYear(); return a + '-' + (mes === 'desde' ? '01-01' : '12-31'); }
   function esFiltroDefault() {
@@ -1408,6 +1398,7 @@ window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e
     $('#arpTercero').value = ''; $('#arpMontoMin').value = ''; $('#arpMontoMax').value = '';
     cargarReporte();
   };
+  window.apCargarReporte = function() { if (!reporteCargado) { reporteCargado = true; cargarReporte(); } };
 })();
 </script>
 <script src="/static/pagos/push.js"></script>
