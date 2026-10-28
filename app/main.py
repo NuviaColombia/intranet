@@ -338,6 +338,10 @@ def init_db():
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))
+    # Comments N3: plantillas de cada diseñador (28-oct-2026, autorizado por Rosember). Solo agrega la columna; no toca datos.
+    if "empleado_id" not in {c["name"] for c in inspect(engine).get_columns("design_comentario_templates")}:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_comentario_templates ADD COLUMN empleado_id INTEGER REFERENCES empleados(id)"))
     # Support Time · grupos de Cliq del aviso «Support en turno» (20-oct-2026, autorizado por Rosember). Solo agrega la columna.
     if "cliq_canales" not in {c["name"] for c in inspect(engine).get_columns("design_support_config")}:
         with engine.begin() as conn:
@@ -632,7 +636,8 @@ def init_db():
         # ver sd.canvas_docs.)
         # Comments (N3): siembra las 11 plantillas de notas fijas del formato original.
         for i, (nombre, texto) in enumerate(CMT_TEMPLATES_FIJAS, start=1):
-            if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre).first():
+            if not db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.nombre == nombre,
+                                                         DesignComentarioTemplate.empleado_id.is_(None)).first():   # plantillas base
                 db.add(DesignComentarioTemplate(nombre=nombre, texto=texto, es_fija=1, orden=i))
         # Comments N2 / Face: las 4 hojas del formato original (solo si aún no hay hojas).
         db.flush()

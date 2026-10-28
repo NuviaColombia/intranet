@@ -244,6 +244,9 @@ class DesignComentarioTemplate(Base):
     orden: Mapped[int] = mapped_column(Integer, default=0)
     creado_por: Mapped[str] = mapped_column(String(150), default="")
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Dueño (28-oct-2026, autorizado por Rosember): cada diseñador tiene sus propias plantillas. NULL = plantillas base (las
+    # que había hasta ese día): no se listan, solo sirven para la copia que recibe cada persona la primera vez.
+    empleado_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
 
 
 class DesignPreApprovedSheet(Base):

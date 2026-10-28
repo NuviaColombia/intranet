@@ -2365,7 +2365,7 @@ def api_bar_adapt_agregar(payload: BarAdaptIn, user: Empleado = Depends(require_
 def api_cmt_templates_listar(user: Empleado = Depends(require_comments("n3")),
                                    db: Session = Depends(get_db)):
     return [{"id": t.id, "nombre": t.nombre, "texto": t.texto, "esFija": bool(t.es_fija)}
-           for t in sd.cmt_templates_listar(db)]
+           for t in sd.cmt_templates_listar(db, user.id)]
 
 
 class CmtTemplateIn(BaseModel):
@@ -2376,7 +2376,7 @@ class CmtTemplateIn(BaseModel):
 @router.post("/design/api/comentarios/templates")
 def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(require_comments("n3")),
                                  db: Session = Depends(get_db)):
-    t = sd.cmt_template_crear(db, payload.nombre, payload.texto, user.nombre_completo)
+    t = sd.cmt_template_crear(db, payload.nombre, payload.texto, user.nombre_completo, user.id)
     return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
 
 
@@ -2384,7 +2384,7 @@ def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(requ
 def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
                                   user: Empleado = Depends(require_comments("n3")),
                                   db: Session = Depends(get_db)):
-    t = sd.cmt_template_editar(db, template_id, payload.nombre, payload.texto)
+    t = sd.cmt_template_editar(db, template_id, payload.nombre, payload.texto, user.id)
     if not t:
         raise HTTPException(404, "No encontrada.")
     return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
@@ -2393,7 +2393,7 @@ def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
 @router.post("/design/api/comentarios/templates/{template_id}/eliminar")
 def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require_comments("n3")),
                                     db: Session = Depends(get_db)):
-    if not sd.cmt_template_eliminar(db, template_id, user.nombre_completo):
+    if not sd.cmt_template_eliminar(db, template_id, user.nombre_completo, user.id):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
 
@@ -2403,6 +2403,8 @@ def api_favorito_toggle_cmt_template(template_id: int,
                                            user: Empleado = Depends(require_modulo("design_schedule")),
                                            db: Session = Depends(get_db)):
     _exigir_para_marcar(db, user, "cmtTemplates", template_id, sd.DesignComentarioTemplate, "Plantilla no encontrada.")
+    if template_id not in sd.favoritos_activos(db, user.id)["cmtTemplates"] and not sd.cmt_template_propia(db, template_id, user.id):
+        raise HTTPException(404, "Plantilla no encontrada.")   # solo las propias
     return {"favorito": sd.favorito_toggle_cmt_template(db, user.id, template_id)}
 
 
