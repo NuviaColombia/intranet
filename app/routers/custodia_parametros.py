@@ -174,7 +174,8 @@ def parametros(request: Request, user: Empleado = Depends(require_admin_producci
     return templates.TemplateResponse(request, "custodia_parametros.html",
                                       {"user": user, "managers": managers, "candidatos": candidatos, "consumo": consumo,
                                        "inv_conteo": inv_conteo,
-                                       "n_admins_autorizados": len([a for a in administradores if MODULO_PRODUCCION in a.modulos_lista]),
+                                       "n_admins_autorizados": len([a for a in administradores
+                                                                    if a.rol == "superadmin" or MODULO_PRODUCCION in a.modulos_lista]),
                                        "admins_produccion": (db.query(Empleado).join(ProduccionAdmin, ProduccionAdmin.empleado_id == Empleado.id)
                                                              .order_by(Empleado.nombres, Empleado.apellidos).all()),
                                        "puede_asignar_admins": user.rol in ("admin", "superadmin"),
@@ -234,15 +235,17 @@ def quitar_admin_produccion(empleado_id: int, user: Empleado = Depends(require_a
 
 @router.post("/inventario/parametros/admins-entrada/{empleado_id}/toggle")
 def toggle_admin_entrada(empleado_id: int, user: Empleado = Depends(require_admin_produccion), db: Session = Depends(get_db)):
-    """Ni admin ni superadmin entran automático a Producción (ver Empleado.tiene_modulo): aquí se le
-    autoriza esa entrada a uno de ellos, o se le quita -- mismo patrón que Caja menor."""
+    """Un admin normal no entra automático a Producción (ver Empleado.tiene_modulo): aquí se le autoriza
+    esa entrada, o se le quita -- mismo patrón que Caja menor. El superadmin entra siempre y no pasa
+    por aquí (ver Empleado.tiene_modulo)."""
     from urllib.parse import quote
     if user.rol not in ("admin", "superadmin"):
         raise HTTPException(403, "Requiere rol de administrador.")
     emp = db.get(Empleado, empleado_id)
-    if not emp or emp.rol not in ("admin", "superadmin"):
+    if not emp or emp.rol != "admin":
         return RedirectResponse("/inventario/parametros?tab=entrada&msg=" +
-                                quote("No se guardó: elige un administrador o superadmin."), status_code=303)
+                                quote("No se guardó: elige un administrador (el superadmin ya entra siempre)."),
+                                status_code=303)
     nombre = nombre_propio(emp.nombre_completo)
     if MODULO_PRODUCCION in emp.modulos_lista:
         tiene_acceso_real = (db.query(ProduccionAcceso.id).filter(ProduccionAcceso.empleado_id == emp.id).first() is not None

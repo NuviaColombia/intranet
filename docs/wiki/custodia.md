@@ -20,19 +20,21 @@ consumo (otro submódulo con el mismo modelo de acceso).
    **sin ser administradora del resto de la intranet** (y sin chequeo de empresa -- la asignación
    explícita es la que importa aquí, no el rol general).
 
-**(2026-10-28) Pero entrar al módulo siquiera ya no es automático para admin/superadmin --
-mismo patrón que Caja menor.** Lo de arriba (`acceso_produccion.es_admin()`) decide los permisos
-**dentro** de Producción una vez que ya se entró; **entrar** es un chequeo previo y separado,
-`Empleado.tiene_modulo("custodia")` (`app/models.py`), que desde ahora tiene la misma excepción
-que ya tenía `"caja_menor"`: si el rol es admin o superadmin y `"custodia"` no está en
+**(2026-10-28) Pero entrar al módulo siquiera ya no es automático para un admin normal -- mismo
+patrón que Caja menor (y con el mismo ajuste de Oscar: el superadmin queda exento).** Lo de arriba
+(`acceso_produccion.es_admin()`) decide los permisos **dentro** de Producción una vez que ya se
+entró; **entrar** es un chequeo previo y separado, `Empleado.tiene_modulo("custodia")`
+(`app/models.py`), que desde ahora tiene la misma excepción que ya tiene `"caja_menor"`: si el rol
+es **admin** (no superadmin -- él siempre entra, igual que en Caja menor) y `"custodia"` no está en
 `Empleado.modulos`, no entra -- hay que autorizarlo en Producción › Parámetros › pestaña 🔐
 **Autorizados a entrar** (`/inventario/parametros/admins-entrada/{id}/toggle`,
 `app/routers/custodia_parametros.py`), que solo prende/apaga ese permiso de People (igual que el
-toggle de Caja menor). Autorizar ahí **no** da por sí solo acceso a nada dentro de Producción --
-eso lo sigue decidiendo `es_admin()` sin cambios (un admin de Nuvia Smiles o un superadmin, una
-vez adentro, sigue viendo y operando todos los submódulos automáticamente). Parámetros en sí
-sigue abierto a cualquier admin/superadmin de la intranet (`require_admin_produccion`), para que
-siempre haya quien pueda autorizar al resto.
+toggle de Caja menor); esa pestaña ni siquiera muestra el botón para un superadmin, porque no le
+hace nada. Autorizar ahí **no** da por sí solo acceso a nada dentro de Producción -- eso lo sigue
+decidiendo `es_admin()` sin cambios (un admin de Nuvia Smiles o un superadmin, una vez adentro,
+sigue viendo y operando todos los submódulos automáticamente). Parámetros en sí sigue abierto a
+cualquier admin/superadmin de la intranet (`require_admin_produccion`), para que siempre haya
+quien pueda autorizar al resto.
 
 Un manager normal necesita, además, que le hayan dado el permiso "custodia" de People
 (`Empleado.modulos`) **y** una fila en `produccion_accesos` para el submódulo específico
