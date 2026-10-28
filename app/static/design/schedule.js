@@ -469,7 +469,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   });
   function dsPedirApoyo(tabla) {
     if (!DS.teamId) return;
-    var seccion = {principal: 'Cirugías', nightguard: 'Nightguards / TC', material: dsEsRD() ? 'Removable Denture' : 'Material Change'}[tabla] || 'Schedule';
+    var seccion = {principal: 'Cirugías', nightguard: 'Nightguards / TC', material: dsEsRD() ? 'Removable Denture' : 'Material Change', tibar: 'Over Ti-bar', dummy: 'Dummy'}[tabla] || 'Schedule';
     var html = '<h3>Pedir apoyo</h3><p class="dd-p-nota" style="margin:0 0 8px">Se le envía una notificación a tu manager (o a quien esté a cargo hoy) con tu nota. Sección: ' + dsEsc(seccion) + '.</p>' +
       '<textarea id="apoyo_nota" rows="3" maxlength="500" placeholder="Qué necesitas, por ejemplo: un caso que no alcanzo a sacar hoy" style="width:100%"></textarea>' +
       '<p id="apoyo_aviso" class="dd-p-nota" style="min-height:18px;margin:6px 0 0;color:#b91c1c"></p>';
@@ -757,6 +757,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsDuracionMin(f, tabla, formato) {
     if (formato === 'support') return null;
+    tabla = dsTablaBase(tabla);   // Over Ti-bar como Material Change; Dummy como Cirugías
     if (tabla === 'material') return dsMaterialMin(f).t;
     if (tabla === 'nightguard' && !dsNgNuevo(formato, f)) return dsEntre(f.horaInicio, f.horaFin);
     // Medido con hora real (disenoMin, 27-oct-2026): no depende de las horas sin fecha; igual que duracion_orden_min en el servidor
@@ -791,6 +792,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     return (formato === 'single' && f >= DS_FACE_NUEVO_DESDE) || (formato === 'dual' && f >= DS_DUAL_NUEVO_DESDE);
   }
   function dsSpec(tabla, formato, areaNombre) {
+    tabla = dsTablaBase(tabla);   // Over Ti-bar con las columnas de Material Change; Dummy, con las de Cirugías
     if (tabla === 'material') return (areaNombre || dsAreaNombre()) === DS_AREA_RD ? COLSPEC.rd : COLSPEC.material;
     var area = areaNombre || (DS.areas.find(function(a) { return a.id === DS.areaId; }) || {}).nombre;
     var fm = formato || DS.areaFormato;
@@ -858,7 +860,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsEsCampoQc(k) { return k === 'qc' || k === 'zQc'; }
   function dsCampoReporte(chk) { return chk && chk.dataset.campo === 'zQc' ? 'zQcReporte' : 'qcReporte'; }
   // QC que cierra la orden (Material Change: el de Zirconia)
-  function dsQcFinal(f) { return f.tabla === 'material' ? !!f.zQc : !!f.qc; }
+  function dsQcFinal(f) { return dsTablaBase(f.tabla) === 'material' ? !!f.zQc : !!f.qc; }
   function dsMinEtapa(ini, fin, s, fh, previos) {
     var t = dsEntre(ini, fin); if (t === null) return null;
     fh = dsFinHold(s, fh, fin);
@@ -883,8 +885,37 @@ window.addEventListener('unhandledrejection', function(ev) {
     return '';
   }
   // Tablas del Schedule y su contenedor (Material Change primero, como en pantalla)
-  var DS_TABLAS = ['material', 'principal', 'nightguard'];
-  var DS_CONT = {material: 'dsTablaMaterial', principal: 'dsTablaPrincipal', nightguard: 'dsTablaNightguard'};
+  var DS_TABLAS = ['material', 'tibar', 'dummy', 'principal', 'nightguard'];
+  var DS_CONT = {material: 'dsTablaMaterial', tibar: 'dsTablaTibar', dummy: 'dsTablaDummy', principal: 'dsTablaPrincipal', nightguard: 'dsTablaNightguard'};
+  // ---------- N6 · cuatro tablas (Rosember, 28-oct-2026; ver TABLA_TIBAR en services_design.py) ----------
+  // Desde el 29-oct-2026: Material Change, Over Ti-bar, Dummy y Cirugías, cada una con sus productos. Over Ti-bar funciona
+  // como Material Change (Bite + Zirconia) y Dummy como Cirugías. Nightguards / TC sale solo si le quedó alguna orden.
+  var DS_N6_SEPARADO_DESDE = '2026-10-29';
+  var DS_TABLA_BASE = {tibar: 'material', dummy: 'principal'};
+  function dsTablaBase(t) { return DS_TABLA_BASE[t] || t; }
+  function dsN6Separado() { return dsAreaNombre() === DS_AREA_MATERIAL && dsFechaISO(dsFechaSeleccionada()) >= DS_N6_SEPARADO_DESDE; }
+  var DS_N6_24Z = ['N6 - Material Change Full Mouth 24Z', 'N6 - Material Change Single 24Z', 'N6 - Redo Material Change Full Mouth 24Z',
+    'N6 - Redo Material Change Single 24Z', 'N6 - Full Mouth 24Z Remake', 'N6 - Single 24Z Remake'];
+  var DS_PRODUCTOS_N6 = {   // igual que PRODUCTOS_N6_TABLA en services_design.py
+    material: DS_N6_24Z,
+    tibar: ['N6 - Full Mouth Zirk - Over Ti-Bar (8mm or less)'],
+    dummy: ['N6 - Dummy Set', 'N6 - Aesthetic Dummy', 'Screw Retained - Dummy'],
+    principal: DS_N6_24Z.concat(['N6 - Material Change Full Mouth G-CAM/TiBar', 'N6 - Material Change Single G-CAM/TiBar',
+      'N6 - Full Mouth G-CAM Remake', 'N6 - Single G-CAM Remake', 'N6 - Remake Removable Denture',
+      'N6 - Remake Removable Denture With Fixed Arch', 'N6 - Remake Removable Denture With Fixed Arch 24Z',
+      'N6 - Full Mouth G-CAM Ti Bar Remake', 'N6 - Single G-CAM Ti Bar Remake'])
+  };
+  Object.keys(DS_PRODUCTOS_N6).forEach(function(k) { DS_PRODUCTOS_N6[k] = DS_PRODUCTOS_N6[k].map(dsNorm); });
+  function dsPanelesN6(dia) {
+    var sep = dsN6Separado();
+    ['Tibar', 'Dummy'].forEach(function(t) {
+      document.getElementById('dsPanel' + t).style.display = sep ? '' : 'none';
+      if (!sep) document.getElementById('dsTabla' + t).innerHTML = '';
+    });
+    if (dsAreaNombre() !== DS_AREA_MATERIAL) return;
+    document.getElementById('dsPanelNightguard').style.display = !sep || (dia.nightguard || []).length ? '' : 'none';
+    document.getElementById('dsTituloPrincipal').innerText = sep ? 'Cirugías' : 'Cirugías/Dummy';
+  }
   function dsSelTablas(sufijo) { return DS_TABLAS.map(function(t) { return '#' + DS_CONT[t] + (sufijo ? ' ' + sufijo : ''); }).join(', '); }
   // Fila de encabezado con los bloques Bite design / Zirconia design (solo tablas con columnas agrupadas)
   var DS_GRUPOS = {b: 'Bite design', z: 'Zirconia design', a: 'Articulation', d: 'Design', t: 'TOTAL'};
@@ -904,9 +935,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   // ¿Esta lista de estados es de una fila de Material Change?
   function dsFilaEsMaterial(sel, tabla) {
-    if (tabla === 'material') return true;
+    if (dsTablaBase(tabla) === 'material') return true;
     var tr = sel.closest('tr');
-    return !!(tr && tr._dsFila && tr._dsFila.f && tr._dsFila.f.tabla === 'material');
+    return !!(tr && tr._dsFila && tr._dsFila.f && dsTablaBase(tr._dsFila.f.tabla) === 'material');
   }
 
   // ¿Ya hay otra orden con ese número hoy en este equipo? (el servidor valida también las que no se ven)
@@ -915,7 +946,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsOrdenRepetida(orden, idActual) {
     var n = String(orden || '').trim().toUpperCase();
     if (!n || !DS.diaData) return false;
-    return (DS.diaData.principal || []).concat(DS.diaData.nightguard || [], DS.diaData.material || []).filter(function(f) {
+    return (DS.diaData.principal || []).concat(DS.diaData.nightguard || [], DS.diaData.material || [], DS.diaData.tibar || [], DS.diaData.dummy || []).filter(function(f) {
       return String(f.id) !== String(idActual) && String(f.orden || '').trim().toUpperCase() === n;
     }).length >= DS_MAX_REPETIDAS;
   }
@@ -939,7 +970,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     tr.classList.toggle('ds-fila-ready', dsEsReady(f.estado));  // Material Change: también "Changes"
     tr.classList.toggle('ds-fila-html', est === 'html');
     tr.classList.toggle('ds-fila-aprobada', est === 'approved' || est === 'dr authorization');
-    var formato = tabla === 'prestadas' ? f.formato : DS.areaFormato, tablaReal = tabla === 'prestadas' ? f.tabla : tabla;
+    var formato = tabla === 'prestadas' ? f.formato : DS.areaFormato, tablaReal = dsTablaBase(tabla === 'prestadas' ? f.tabla : tabla);
     var aprobada = f.estado === 'Approved', falta = false;
     var ngNuevo = tablaReal === 'nightguard' && dsNgNuevo(formato, tabla === 'prestadas' ? f : null);
     var req = formato === 'support' ? [] : ((tablaReal === 'nightguard' && !ngNuevo) || formato === 'n2') ? ['horaInicio', 'horaFin']
@@ -981,7 +1012,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsAccesosFila(tr, tabla, f) {
     // 'prestadas': órdenes de otro equipo asignadas a esta persona (prestada o enviada como ayuda): también llevan sus
     // accesos, con el área de la orden y no la del equipo que se está viendo (Rosember, 19-oct-2026: Eliana no los tenía)
-    if (tabla !== 'principal' && tabla !== 'nightguard' && tabla !== 'material' && tabla !== 'prestadas') return;
+    var tb0 = dsTablaBase(tabla);
+    if (tb0 !== 'principal' && tb0 !== 'nightguard' && tb0 !== 'material' && tb0 !== 'prestadas') return;
     var areaOrden = tabla === 'prestadas' ? (f.area || '') : dsAreaNombre();
     var tdO = (tr.querySelector('[data-campo="orden"]') || {}).parentNode, tdC = (tr.querySelector('[data-campo="centro"]') || {}).parentNode;
     var perm = window.DS_INICIO && window.DS_INICIO.comments ? window.DS_INICIO.comments.n3 !== false : true;
@@ -1350,7 +1382,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsFrenaFilaNueva(f) { return !DS_CAMPOS_DATO.some(function(k) { return f[k] && String(f[k]).trim(); }); }
 
   var DS_SORTABLES = {centro: true, producto: true, designerId: true, estado: true};
-  DS.sort = {principal: null, nightguard: null, material: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
+  DS.sort = {principal: null, nightguard: null, material: null, tibar: null, dummy: null}; // {k, dir: 1 (A→Z) | -1 (Z→A)}
 
   function dsTextoOrden(f, k) {
     if (k !== 'designerId') return f[k] || '';
@@ -2021,13 +2053,16 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsCatalogo(c.cat).then(function(valores) {
         // Nightguards / TC: sus productos (TC, Nightguard y los de DS_PRODUCTOS_SOLO_NG) y, al final, los de Material Change
         // (pedido por Rosember el 12-oct-2026). Esos tres son de N6: en N3 ya no salen (Rosember, 20-oct-2026)
+        // N6 desde el 29-oct-2026: cada tabla solo con sus productos (en la vista del equipo; las prestadas no cambian)
+        var listaN6 = c.k === 'producto' && dsN6Separado() && root.id === DS_CONT[tabla] ? DS_PRODUCTOS_N6[tabla] : null;
+        if (listaN6) valores = listaN6.map(function(m) { return valores.find(function(v) { return dsNorm(v) === m; }); }).filter(Boolean);
         if (c.k === 'producto' && tabla === 'nightguard') {
           valores = valores.filter(function(v) { return (dsEsProductoNG(v) || dsEsProductoSoloNG(v)) && !dsEsProductoMaterial(v); })
             .concat(dsAreaNombre() === DS_AREA_MATERIAL ? DS_PRODUCTOS_MATERIAL.map(function(m) { return valores.find(function(v) { return dsNorm(v) === m; }); }).filter(Boolean) : []);
         }
         // Material Change: solo sus productos, y esos productos ya no se eligen en Cirugías
-        if (c.k === 'producto' && tabla === 'material') valores = valores.filter(dsEsProductoMaterial);
-        if (c.k === 'producto' && tabla === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL) valores = valores.filter(function(v) { return !dsEsProductoMaterial(v); });
+        if (c.k === 'producto' && tabla === 'material' && !listaN6) valores = valores.filter(dsEsProductoMaterial);
+        if (c.k === 'producto' && tabla === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL && !listaN6) valores = valores.filter(function(v) { return !dsEsProductoMaterial(v); });
         // Los productos solo de Nightguards / TC (Scan/Measurements) no se eligen en Cirugías de las áreas que tienen las dos tablas;
         // una orden que ya lo tenga lo sigue mostrando (la opción actual se conserva)
         if (c.k === 'producto' && tabla === 'principal' && DS.areaFormato === 'dual') valores = valores.filter(function(v) { return !dsEsProductoSoloNG(v); });
@@ -2036,7 +2071,7 @@ window.addEventListener('unhandledrejection', function(ev) {
           valores.forEach(function(v) {
             if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
             // «Changes» también en Cirugías/Dummy de N6 (Rosember, 19-oct-2026); «Dr authorization» sigue siendo solo de Material Change
-            var changesN6 = dsNorm(v) === 'changes' && tabla === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL;
+            var changesN6 = dsNorm(v) === 'changes' && dsTablaBase(tabla) === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL;
             if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_MATERIAL.indexOf(dsNorm(v)) >= 0 && !dsFilaEsMaterial(sel, tabla) && !changesN6) return;
             if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
@@ -2118,7 +2153,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     return dsColoresCopia(f && (DS.diaData.coloresEquipos || {})[String(f.teamOrigen)]);
   }
   function dsPintarCelda(sel, colores) {
-    if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaPrincipal, #dsTablaNightguard')) return;   // las prestadas son de otro equipo
+    if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaTibar, #dsTablaDummy, #dsTablaPrincipal, #dsTablaNightguard')) return;   // las prestadas son de otro equipo
     if (dsEsRD()) colores = dsColoresDeFila(sel);
     var x = colores || dsColoresLeer(), campo = sel.dataset.campo, tipo = DS_COLOR_TIPO[campo];
     if (tipo === 'p' && !dsColoresProductos()) return;
@@ -2240,7 +2275,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var cont = document.getElementById(DS_CONT[tabla]);
     var filas = dsFilasOrdenadas(tabla);
     var s = DS.sort[tabla];
-    var html = '<table class="ds-tabla' + (tabla === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '') + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
+    var html = '<table class="ds-tabla' + (dsTablaBase(tabla) === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '') + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
     spec.forEach(function(c) {
       if (DS_SORTABLES[c.k]) {
         var on = s && s.k === c.k;
@@ -2249,7 +2284,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       } else html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>';
       html += dsEncabezadoExtra(c);
     });
-    html += '<th class="ds-th-total">' + (tabla === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
+    html += '<th class="ds-th-total">' + (dsTablaBase(tabla) === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
     filas.forEach(function(f) { html += dsFilaHtml(spec, f, tabla); });
     if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaHtml(spec, {}, tabla);
     html += '</tbody></table>';
@@ -2275,7 +2310,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsBloquearCamposManager(cont);
       dsBloquearHoras(cont, DS.areaFormato, tabla, dsFechaISO(dsFechaSeleccionada()));
       dsAjustarCreaProducto(cont);
-      if (tabla === 'material') dsBloquearEtapa(cont);
+      if (dsTablaBase(tabla) === 'material') dsBloquearEtapa(cont);
     }
     cont.querySelectorAll('th[data-sort]').forEach(function(th) {
       th.addEventListener('click', function() {
@@ -2358,10 +2393,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     var html = '';
     grupos.forEach(function(g) {
       var spec = dsSpec(g.tabla, g.formato, g.area);
-      html += '<h4 class="ds-prest-h">' + dsEsc(g.equipo) + (g.tabla === 'nightguard' ? ' — Nightguards / TC' : g.tabla === 'material' ? ' — Material Change' : '') + '</h4>' +
+      html += '<h4 class="ds-prest-h">' + dsEsc(g.equipo) + (g.tabla === 'nightguard' ? ' — Nightguards / TC' : g.tabla === 'material' ? ' — Material Change' : g.tabla === 'tibar' ? ' — Over Ti-bar' : g.tabla === 'dummy' ? ' — Dummy' : '') + '</h4>' +
               '<table class="ds-tabla" data-grupo="' + g.teamId + '-' + g.tabla + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
       spec.forEach(function(c) { html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>' + dsEncabezadoExtra(c); });
-      html += '<th>' + (g.tabla === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
+      html += '<th>' + (dsTablaBase(g.tabla) === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
       g.filas.forEach(function(f) { html += dsFilaHtml(spec, f, 'prestadas'); });
       html += '</tbody></table>';
     });
@@ -2374,7 +2409,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     grupos.forEach(function(g) {   // órdenes prestadas: cada tabla con la regla del área de su equipo
       var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]');
       if (tb) dsBloquearCamposManager(tb, g.area);
-      if (tb && g.tabla === 'material') dsBloquearEtapa(tb);
+      if (tb && dsTablaBase(g.tabla) === 'material') dsBloquearEtapa(tb);
     });
     grupos.forEach(function(g) {
       var tb = cont.querySelector('table[data-grupo="' + g.teamId + '-' + g.tabla + '"]'), fch = String((g.filas[0] || {}).fecha || '').slice(0, 10) || dsFechaISO(dsFechaSeleccionada());
@@ -2811,7 +2846,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsRenderKpis(dia) {
     dsDockRestaurar();     // pestañas ancladas de la visita anterior (una sola vez)
     dsPintarProduccion();  // la ventana de Producción (si está abierta) sigue los cambios
-    var filas = dia.principal.concat(dia.nightguard || [], dia.material || []);
+    var filas = dia.principal.concat(dia.nightguard || [], dia.material || [], dia.tibar || [], dia.dummy || []);
     // Vista del diseñador: también cuentan los casos que hizo prestado en otros equipos (19-oct-2026)
     if (dia.soloPropias) filas = filas.concat(dia.prestadas || []);
     filas = filas.filter(function(f) { return !dsEsFantasma(f); });   // producto «Training»: no cuenta
@@ -3116,7 +3151,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Productos de Nightguards / TC que cuentan como Tc aunque no digan «TC» (Rosember, 22-oct-2026; PRODUCTOS_TC en el servidor)
   var DS_PRODUCTOS_TC = ['n6 - full mouth zirk - over ti-bar (8mm or less)'];
   function dsTipoProduccion(tabla, producto) {
-    if (tabla === 'material') return 'mc';
+    if (dsTablaBase(tabla) === 'material') return 'mc';   // Over Ti-bar como Mc por ahora (Rosember lo ajusta después)
     if (tabla !== 'nightguard') return 'sx';
     var p = dsNorm(producto);
     return /\btc\b/i.test(p) || DS_PRODUCTOS_TC.indexOf(p) >= 0 ? 'tc' : 'ng';
@@ -3127,7 +3162,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.corto || d.nombre; orden.push(k); tipoDe(k); });   // primer nombre y primer apellido
     var prest = {};
     var tablaDe = function(f, lista) { return f.tabla || lista; };
-    [['principal', dia.principal], ['nightguard', dia.nightguard], ['material', dia.material], ['', dia.soloPropias ? dia.prestadas : []]]
+    [['principal', dia.principal], ['nightguard', dia.nightguard], ['material', dia.material], ['tibar', dia.tibar], ['dummy', dia.dummy], ['', dia.soloPropias ? dia.prestadas : []]]
       .forEach(function(par) { (par[1] || []).forEach(function(f) {
       var k = f.designerId ? 'd' + f.designerId : (f.designerPrestado ? 'p' + f.designerPrestado : null);
       var est = String(f.estado || '').toLowerCase();
@@ -3443,7 +3478,9 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsRenderACargo(dia);
     dsRenderCopias(dia);
     dsPintarProduccion();
+    dsPanelesN6(dia);
     if (dsAreaNombre() === DS_AREA_MATERIAL || dsEsRD()) dsRenderTabla('material');
+    if (dsN6Separado()) { dsRenderTabla('tibar'); dsRenderTabla('dummy'); }
     dsRenderTabla('principal');
     if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
     dsRenderPrestadas();
@@ -3513,7 +3550,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // redibuja; si cambió, conserva el foco y el scroll y resalta un momento las filas que cambiaron.
   function dsAplicarVivo(dia, nuevaVersion) {
     var antes = {};
-    ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
+    ['material', 'tibar', 'dummy', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
       (DS.diaData[t] || []).forEach(function(f) { antes[f.id] = dsHuellaFila(f); });
     });
     var sinV = function(d) { var c = Object.assign({}, d); delete c.version; delete c._fecha; delete c._team; delete c.ahoraMs; return JSON.stringify(c); };
@@ -3534,7 +3571,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (el) el.focus({preventScroll: true});
     }
     window.scrollTo(0, y);
-    ['material', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
+    ['material', 'tibar', 'dummy', 'principal', 'nightguard', 'prestadas'].forEach(function(t) {
       (dia[t] || []).forEach(function(f) {
         if (antes[f.id] === dsHuellaFila(f)) return;
         var tr = document.querySelector('#dsVistaEquipo tr[data-id="' + f.id + '"]');
@@ -3575,7 +3612,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsAplicarParches() {
     if (!dsParches.length || !DS.diaData || dsOcupado()) return;
     var lista = dsParches.splice(0, dsParches.length);
-    var dia = Object.assign({}, DS.diaData), tablas = ['material', 'principal', 'nightguard'];
+    var dia = Object.assign({}, DS.diaData), tablas = ['material', 'tibar', 'dummy', 'principal', 'nightguard'];
     var solo = !!(DS.diaData.soloPropias && !DS.diaData.soloEditaPropias), yo = DS.diaData.miId;
     var clave = DS.teamId + ':' + dsFechaISO(dsFechaSeleccionada());
     tablas.forEach(function(t) { dia[t] = (DS.diaData[t] || []).slice(); });
@@ -3662,7 +3699,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       DS.diaData = null;
       dsRenderACargo(null);
       dsRenderPrestadas();
-      ['dsTablaMaterial', 'dsTablaPrincipal', 'dsTablaNightguard'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
+      ['dsTablaMaterial', 'dsTablaTibar', 'dsTablaDummy', 'dsTablaPrincipal', 'dsTablaNightguard'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
       var tl = document.getElementById('dsBreaks'); if (tl) tl.innerHTML = '<p style="color:#4b5563">Los tiempos libres se muestran cuando cargue el día.</p>';   // no quedan los del día anterior
       var cont = document.getElementById('dsTablaPrincipal');
       cont.innerHTML = '<p class="ds-err-carga">No se pudo cargar el día: <span></span> <button type="button" class="btn mini">Reintentar</button></p>';

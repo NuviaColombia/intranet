@@ -126,6 +126,27 @@
       <div id="dsTablaMaterial"></div>
     </div>
 
+    <!-- N6 desde el 29-oct-2026: Over Ti-bar (dos etapas, como Material Change) y Dummy (como Cirugías) -->
+    <div class="ds-panel" id="dsPanelTibar" style="display:none">
+      <div class="ds-panel-h">
+        <h3>Over Ti-bar</h3>
+        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_tibar" style="display:none" onclick="dsVerOcultas()"></button>
+        <button type="button" class="btn gris ds-btn-apoyo" data-tabla="tibar" style="display:none" title="Pedir apoyo: se avisa a tu manager (o a quien esté a cargo) con tu nota" aria-label="Necesito apoyo">🙋 Necesito apoyo</button>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('tibar', event)" title="Agregar orden" aria-label="Agregar orden"><svg class="ds-mas" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button></span>
+      </div>
+      <div id="dsTablaTibar"></div>
+    </div>
+
+    <div class="ds-panel" id="dsPanelDummy" style="display:none">
+      <div class="ds-panel-h">
+        <h3>Dummy</h3>
+        <span class="ds-panel-acc"><button type="button" class="btn gris ds-btn-ocultas" id="dsOcultas_dummy" style="display:none" onclick="dsVerOcultas()"></button>
+        <button type="button" class="btn gris ds-btn-apoyo" data-tabla="dummy" style="display:none" title="Pedir apoyo: se avisa a tu manager (o a quien esté a cargo) con tu nota" aria-label="Necesito apoyo">🙋 Necesito apoyo</button>
+        <button type="button" class="btn ds-btn-add" onclick="dsAgregarFila('dummy', event)" title="Agregar orden" aria-label="Agregar orden"><svg class="ds-mas" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button></span>
+      </div>
+      <div id="dsTablaDummy"></div>
+    </div>
+
     <div class="ds-panel" id="dsPanelPrincipal">
       <div class="ds-panel-h">
         <div class="ds-panel-titulo">

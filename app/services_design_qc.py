@@ -7,6 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from .models import Empleado
 from .models_design import DesignArea, DesignQcCatalogo, DesignConexionRegla
+from . import services_design as sd
 
 # Listas dadas por Rosember el 9-oct-2026. Cada una se carga una sola vez, la primera vez que se consulta
 # (nombre del área -> marca de "ya cargada" -> títulos). Cada título: (nombre, tabla, producto_clave, hallazgos).
@@ -235,6 +236,7 @@ def _titulos(db: Session, area_id: int) -> dict[str, dict]:
 
 def catalogo(db: Session, area_id: int, tabla: str = "", producto: str = "") -> list[dict]:
     """[{titulo, items: [{id, texto}]}] de lo que aplica a esa tabla y a ese producto, en el orden en que se crearon."""
+    tabla = sd.tabla_base(tabla)   # N6: Dummy usa los títulos de Cirugías y Over Ti-bar los de Material Change
     return [{"titulo": t["titulo"], "items": t["items"]} for t in _titulos(db, area_id).values()
             if (not t["tabla"] or t["tabla"] == tabla) and _producto_es(t["productoClave"], producto)]
 
@@ -257,6 +259,7 @@ def agregar_titulo(db: Session, area_id: int, titulo: str, tabla: str = "") -> N
     titulo = _limpio(titulo, "título")
     if any(k.lower() == titulo.lower() for k in _titulos(db, area_id)):
         raise ValueError("Ese título ya existe.")
+    tabla = sd.tabla_base(tabla)
     tabla = tabla if tabla in ("principal", "nightguard") else ""
     db.add(DesignQcCatalogo(area_id=area_id, titulo=titulo, hallazgo="", tabla=tabla, orden=_siguiente_orden(db, area_id)))
     db.commit()

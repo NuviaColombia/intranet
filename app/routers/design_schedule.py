@@ -1301,7 +1301,7 @@ def api_todas_areas(fecha: str, user: Empleado = Depends(require_modulo("design_
 class OrdenIn(BaseModel):
     teamId: int
     fecha: str
-    tabla: Literal["principal", "nightguard", "material"] = "principal"
+    tabla: Literal["principal", "nightguard", "material", "tibar", "dummy"] = "principal"
     orden: str = ""
     paciente: str = ""
     centro: str = ""
@@ -1407,8 +1407,8 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
     _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
     datos = _datos_desde_in(payload)
     t_face = db.get(DesignTeam, payload.teamId)
-    _verificar_tabla(t_face, payload.tabla)
-    if payload.tabla == sd.TABLA_MATERIAL and not datos.get("etapa"):
+    _verificar_tabla(t_face, payload.tabla, _fecha(payload.fecha))
+    if sd.es_tabla_etapas(payload.tabla) and not datos.get("etapa"):
         datos["etapa"] = sd.ETAPA_BITE
     oe = sd.estado_al_escribir_orden(t_face.area.nombre, datos.get("orden"), datos.get("estado"))
     if oe:   # N3: con número de orden y sin estado → Order Entered (22-oct-2026)
@@ -1429,10 +1429,13 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
     return sd.serializar_orden(o)
 
 
-def _verificar_tabla(team: DesignTeam, tabla: str) -> None:
-    """El panel Material Change existe solo en N6."""
-    if tabla == sd.TABLA_MATERIAL and not (team and team.area and team.area.nombre == sd.AREA_N6):
+def _verificar_tabla(team: DesignTeam, tabla: str, fecha=None) -> None:
+    """El panel Material Change existe solo en N6; Over Ti-bar y Dummy, solo en N6 desde el 29-oct-2026."""
+    es_n6 = bool(team and team.area and team.area.nombre == sd.AREA_N6)
+    if tabla == sd.TABLA_MATERIAL and not es_n6:
         raise HTTPException(400, "Material Change solo existe en el Schedule de N6.")
+    if tabla in (sd.TABLA_TIBAR, sd.TABLA_DUMMY) and not (es_n6 and fecha and fecha >= sd.N6_SEPARADO_DESDE):
+        raise HTTPException(400, "Over Ti-bar y Dummy existen en el Schedule de N6 desde el 29 de octubre.")
 
 
 def _msg_repetida(orden: str) -> str:
@@ -1462,7 +1465,7 @@ def api_support_autocompletar(team_id: int, orden: str, user: Empleado = Depends
 class LoteIn(BaseModel):
     teamId: int
     fecha: str
-    tabla: Literal["principal", "nightguard", "material"] = "principal"
+    tabla: Literal["principal", "nightguard", "material", "tibar", "dummy"] = "principal"
     filas: list[dict] = []  # cada fila con los mismos campos de OrdenIn (vacía = orden en blanco)
 
 
@@ -1480,7 +1483,7 @@ def api_crear_ordenes_lote(payload: LoteIn, user: Empleado = Depends(require_mod
     fecha = _fecha(payload.fecha)
     if sperm.dia_cerrado_para(db, user, fecha):
         raise HTTPException(403, DIA_CERRADO)
-    _verificar_tabla(db.get(DesignTeam, payload.teamId), payload.tabla)
+    _verificar_tabla(db.get(DesignTeam, payload.teamId), payload.tabla, _fecha(payload.fecha))
     if not 1 <= len(payload.filas) <= MAX_LOTE:
         raise HTTPException(400, f"Se pueden crear entre 1 y {MAX_LOTE} órdenes por vez.")
     try:
@@ -1865,9 +1868,9 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         # Si hay que corregir una hora, la cambia el manager.
         for c in CAMPOS_HORAS:
             datos.pop(c, None)
-    if solo_propia and orden_existente.tabla == sd.TABLA_MATERIAL:
+    if solo_propia and sd.es_tabla_etapas(orden_existente.tabla):
         datos.pop("etapa", None)  # la etapa cambia sola al aprobar Bite; corregirla a mano es del manager
-    if ("hora_inicio_diseno" in datos and orden_existente.tabla == "principal"
+    if ("hora_inicio_diseno" in datos and sd.tabla_base(orden_existente.tabla) == "principal"
             and sd.es_face_nuevo(team.area.formato, orden_existente.fecha)):
         # Página abierta desde antes del formato nuevo: su "Inicio diseño" llega en el campo viejo → va a Inicio diseño (hora_inicio)
         viejo = datos.pop("hora_inicio_diseno")
@@ -1928,7 +1931,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             raise HTTPException(400, sd.msg_faltan_aprobar(falta))
     designer_antes, estado_antes = orden_existente.designer_id, orden_existente.estado or ""
     # Tiempo de diseño con hora real (orden 244834): se decide con los datos de antes de guardar
-    sigue = (not rd and orden_existente.tabla != sd.TABLA_MATERIAL
+    sigue = (not rd and not sd.es_tabla_etapas(orden_existente.tabla)
              and sd.horas_por_estado(team.area.formato, orden_existente.fecha, orden_existente.tabla))
     manual = sigue and sd.cambio_manual_horas(orden_existente, datos, set(auto_horas))
     primera = not (orden_existente.hora_inicio or "").strip()

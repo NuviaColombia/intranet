@@ -746,6 +746,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     productos_n6_primeros_una_vez(db)
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
+    n6_separado_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
     prosthetic_scan_unico_n3_una_vez(db)
     productos_al_final_una_vez(db)
@@ -957,6 +958,92 @@ PRODUCTOS_MATERIAL = [
 ]
 _material_change = {"ok": False}
 
+# ---------- N6 · cuatro tablas (pedido por Rosember el 28-oct-2026) ----------
+# Desde el 29-oct-2026 el Schedule de N6 separa sus casos por flujo de trabajo, cada tabla con sus productos: Material Change,
+# Over Ti-bar (las mismas dos etapas de Material Change), Dummy y Cirugías (las dos como la Cirugías/Dummy de antes).
+# Nightguards / TC ya no se usa en N6 (sale solo si quedó alguna orden de antes). Los días anteriores no cambian.
+# Cada tabla nueva funciona como su tabla de origen (tabla_base): Over Ti-bar como Material Change y Dummy como Cirugías.
+TABLA_TIBAR = "tibar"
+TABLA_DUMMY = "dummy"
+N6_SEPARADO_DESDE = date(2026, 10, 29)
+TABLAS_HORARIO = ["principal", "nightguard", TABLA_MATERIAL, TABLA_TIBAR, TABLA_DUMMY]
+_TABLA_BASE = {TABLA_TIBAR: TABLA_MATERIAL, TABLA_DUMMY: "principal"}
+_PRODUCTOS_N6_24Z = [
+    "N6 - Material Change Full Mouth 24Z", "N6 - Material Change Single 24Z",
+    "N6 - Redo Material Change Full Mouth 24Z", "N6 - Redo Material Change Single 24Z",
+    "N6 - Full Mouth 24Z Remake", "N6 - Single 24Z Remake",
+]
+PRODUCTOS_N6_TABLA = {
+    TABLA_MATERIAL: _PRODUCTOS_N6_24Z,
+    TABLA_TIBAR: ["N6 - Full Mouth Zirk - Over Ti-Bar (8mm or less)"],
+    TABLA_DUMMY: ["N6 - Dummy Set", "N6 - Aesthetic Dummy", "Screw Retained - Dummy"],
+    "principal": _PRODUCTOS_N6_24Z + [
+        "N6 - Material Change Full Mouth G-CAM/TiBar", "N6 - Material Change Single G-CAM/TiBar",
+        "N6 - Full Mouth G-CAM Remake", "N6 - Single G-CAM Remake",
+        "N6 - Remake Removable Denture", "N6 - Remake Removable Denture With Fixed Arch",
+        "N6 - Remake Removable Denture With Fixed Arch 24Z",
+        "N6 - Full Mouth G-CAM Ti Bar Remake", "N6 - Single G-CAM Ti Bar Remake",
+    ],
+}
+_n6_separado = {"ok": False}
+
+
+def tabla_base(tabla: str | None) -> str:
+    return _TABLA_BASE.get(tabla or "", tabla or "")
+
+
+def es_tabla_etapas(tabla: str | None) -> bool:
+    """Material Change y Over Ti-bar: dos etapas (Bite design y Zirconia design) en la misma fila."""
+    return tabla_base(tabla) == TABLA_MATERIAL
+
+
+def n6_separado(area_nombre: str, fecha: date) -> bool:
+    return area_nombre == AREA_N6 and fecha >= N6_SEPARADO_DESDE
+
+
+def n6_tabla_de_producto(tabla: str, producto: str | None) -> str:
+    """Orden de N6 que llega a un día con las cuatro tablas (pasó sola de un día anterior): un Dummy que estaba en
+    Cirugías va a Dummy y un Over Ti-bar que estaba en Material Change va a Over Ti-bar (mismo flujo, así no cambia nada)."""
+    p = _normalizar_texto(producto or "")
+    for nueva, base in ((TABLA_DUMMY, "principal"), (TABLA_TIBAR, TABLA_MATERIAL)):
+        if tabla == base and p in {_normalizar_texto(x) for x in PRODUCTOS_N6_TABLA[nueva]}:
+            return nueva
+    return tabla
+
+
+def n6_separado_una_vez(db: Session) -> None:
+    """Una sola vez: N6 tiene todos los productos de PRODUCTOS_N6_TABLA (los que falten se agregan o se reactivan)."""
+    from .models_design import DesignConexionRegla
+    if _n6_separado["ok"]:
+        return
+    marca = "n6_cuatro_tablas_2026_10_28"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            n6 = db.query(DesignArea).filter(DesignArea.nombre == AREA_N6).first()
+            if not n6:
+                return
+            productos = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == n6.id, DesignCatalogo.tipo == "producto")
+                         .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+            por_nombre = {_normalizar_texto(c.valor): c for c in productos}
+            agregados = []
+            sig = max([c.orden or 0 for c in productos] or [0])
+            for nombre in dict.fromkeys(p for lista in PRODUCTOS_N6_TABLA.values() for p in lista):
+                c = por_nombre.get(_normalizar_texto(nombre))
+                if not c:
+                    sig += 1
+                    db.add(DesignCatalogo(area_id=n6.id, tipo="producto", valor=nombre, activo=1, orden=sig))
+                    agregados.append(nombre)
+                elif not c.activo:
+                    c.activo = 1
+                    agregados.append(nombre)
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema",
+                                       valor=json.dumps({"productos": agregados}, ensure_ascii=False)))
+            db.commit()
+        _n6_separado["ok"] = True
+    except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
+        db.rollback()
+
 
 def es_etapa_zirconia(etapa: str | None) -> bool:
     return _normalizar_texto(etapa or "") == _normalizar_texto(ETAPA_ZIRCONIA)
@@ -980,7 +1067,7 @@ def orden_iniciada(actual: dict, tabla: str, por_etapas: bool = False) -> bool:
     Denture miran la etapa activa (Zirconia / Denture usan las columnas z_)."""
     etapa = _normalizar_texto(actual.get("etapa") or "")
     segunda = etapa in (_normalizar_texto(ETAPA_ZIRCONIA), _normalizar_texto(ETAPA_DENTURE))
-    if (tabla == TABLA_MATERIAL or por_etapas) and segunda:
+    if (es_tabla_etapas(tabla) or por_etapas) and segunda:
         return bool((actual.get("z_hora_inicio") or "").strip())
     return bool((actual.get("hora_inicio") or "").strip())
 
@@ -998,8 +1085,8 @@ def material_horas_por_estado(actual: dict, estado_nuevo: str) -> dict:
 
 
 def horas_de_estado(tabla: str, actual: dict, estado_nuevo: str) -> dict:
-    """Horas que llena el estado: Material Change por etapa; las demás tablas, igual que Face."""
-    if tabla == TABLA_MATERIAL:
+    """Horas que llena el estado: Material Change y Over Ti-bar por etapa; las demás tablas, igual que Face."""
+    if es_tabla_etapas(tabla):
         return material_horas_por_estado(actual, estado_nuevo)
     if tabla == "nightguard" and _normalizar_texto(estado_nuevo) == _normalizar_texto(ESTADO_BITE_READY):
         estado_nuevo = ESTADO_HOLD   # Nightguards / TC: Bite ready registra el tiempo como Hold (Rosember, 20-oct-2026)
@@ -1246,6 +1333,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     productos_n6_primeros_una_vez(db)
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
+    n6_separado_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
     prosthetic_scan_unico_n3_una_vez(db)
     productos_al_final_una_vez(db)
@@ -1501,7 +1589,7 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
     # Material Change (N6): "Dr authorization" pasa como Hold y "Changes" como Ready to design
     ordenes += (db.query(DesignOrden)
-                .filter(DesignOrden.tabla == TABLA_MATERIAL,
+                .filter(DesignOrden.tabla.in_([TABLA_MATERIAL, TABLA_TIBAR]),
                         func.lower(DesignOrden.estado).in_([ESTADO_DR_AUT.lower(), ESTADO_CHANGES.lower()]),
                         DesignOrden.fecha >= TRASLADO_MATERIAL_DESDE, DesignOrden.fecha <= cerrado_hasta)
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
@@ -1510,6 +1598,7 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
     ordenes = [o for o in ordenes if o.team_id not in equipos_rd]
     ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
     libres = festivos(db) if ordenes else set()
+    equipos_n6 = {t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.nombre == AREA_N6)} if ordenes else set()
     miembros: dict[int, set[int]] = {}  # team_id -> diseñadores del equipo (para reconocer al prestado)
     if ordenes:
         equipos = {o.team_id for o in ordenes}
@@ -1535,6 +1624,8 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                               DesignOrden.tabla == o.tabla).scalar())
         o.fecha = destino
         o.orden_visual = (max_visual or 0) + 1  # queda al final de las órdenes de ese día
+        if o.team_id in equipos_n6 and destino >= N6_SEPARADO_DESDE:   # N6 con cuatro tablas (28-oct-2026)
+            o.tabla = n6_tabla_de_producto(o.tabla, o.producto)
         db.flush()
     db.commit()
     alinear_copias_rd(db)
@@ -1875,8 +1966,8 @@ def seguimiento_equipos(db: Session, fin_jornada: str = "17:00", ahora: datetime
             x = estado_de.get(e.id) or {}
             return {"id": e.id, "nombre": e.nombre_completo, "grupo": x.get("grupo", "libre"), "manager": e.id == t.manager_id}
         out.append({"teamId": t.id, "equipo": t.nombre, "area": t.area.nombre, "manager": mgr.get(t.manager_id, ""),
-                    "cirugias": sum(1 for o in mias if o.tabla == "principal"), "nightguards": sum(1 for o in mias if o.tabla == "nightguard"),
-                    "material": sum(1 for o in mias if o.tabla == TABLA_MATERIAL),
+                    "cirugias": sum(1 for o in mias if tabla_base(o.tabla) == "principal"), "nightguards": sum(1 for o in mias if o.tabla == "nightguard"),
+                    "material": sum(1 for o in mias if es_tabla_etapas(o.tabla)),
                     "total": len(mias), "hechos": len(hechos), "enProceso": len(trabajando), "porHacer": len(por_hacer) - len(holds), "enHold": len(holds), "sinDisenador": len(sin_disenador),
                     "disenadores": len(propios), "enTurno": [persona(e) for e in en_turno],
                     "ausentes": [e.nombre_completo for e in propios if e.id in ausentes], "prestados": prestados,
@@ -2125,6 +2216,14 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         qb = qb.filter(DesignBreak.empleado_id.in_([solo_empleado_id] + ([team.manager_id] if team.manager_id else [])))
         qd = qd.filter(DesignTeamDesigner.empleado_id == solo_empleado_id)
     ordenes = q.order_by(DesignOrden.orden_visual, DesignOrden.id).all()
+    if n6_separado(team.area.nombre, fecha):
+        # una orden que llegó a un día de N6 con cuatro tablas a su tabla de antes (Dummy en Cirugías, Over Ti-bar en
+        # Material Change) pasa a la suya; el flujo es el mismo, así que no cambia nada más
+        movidas = [o for o in ordenes if n6_tabla_de_producto(o.tabla, o.producto) != o.tabla]
+        for o in movidas:
+            o.tabla = n6_tabla_de_producto(o.tabla, o.producto)
+        if movidas:
+            db.commit()
     if es_face_nuevo(team.area.formato, fecha):
         # Formato nuevo: si una hora quedó en el campo viejo (página abierta desde antes del cambio), pasa a Inicio diseño
         sueltas = [o for o in ordenes if o.tabla == "principal" and not (o.hora_inicio or "").strip()
@@ -2135,13 +2234,15 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
             db.commit()
     breaks = qb.all()
     principal = [serializar_orden(o) for o in ordenes if o.tabla == "principal"]
-    if team.area.nombre in (AREA_N3, AREA_N6) and principal:   # «Bite Finish» para las que tienen copia en Removable Denture
-        rdb = estado_bite_rd(db, [p["id"] for p in principal])
-        for p in principal:
+    dummy = [serializar_orden(o) for o in ordenes if o.tabla == TABLA_DUMMY]
+    if team.area.nombre in (AREA_N3, AREA_N6) and (principal or dummy):   # «Bite Finish» para las que tienen copia en Removable Denture
+        rdb = estado_bite_rd(db, [p["id"] for p in principal + dummy])
+        for p in principal + dummy:
             if p["id"] in rdb:
                 p["rdBite"] = rdb[p["id"]]
     nightguard = [serializar_orden(o) for o in ordenes if o.tabla == "nightguard"]
     material = [serializar_orden(o) for o in ordenes if o.tabla == TABLA_MATERIAL]
+    tibar = [serializar_orden(o) for o in ordenes if o.tabla == TABLA_TIBAR]
     es_rd = team.area.nombre == AREA_RD
     if es_rd:   # Removable Denture: sus copias, con el equipo y el manager de donde viene cada una
         principal, nightguard = [], []
@@ -2180,7 +2281,8 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         b["permisosHoras"] = lista
 
     salida = {
-        "principal": principal, "nightguard": nightguard, "material": material,
+        "principal": principal, "nightguard": nightguard, "material": material, "tibar": tibar, "dummy": dummy,
+        "n6Separado": n6_separado(team.area.nombre, fecha),
         "breaks": breaks_out,
         # un diseñador cuyo empleado ya no existe se omite (antes hacía fallar la carga del día de su equipo)
         "designers": [{"id": d.empleado_id, "nombre": d.empleado.nombre_completo, "corto": nombre_corto(d.empleado)}
@@ -2218,7 +2320,7 @@ def tipo_produccion(tabla: str, producto: str) -> str:
     """Producción del día por tipo: «sx» la tabla principal (Cirugías en N3, Dummy en N6), «mc» Material Change (N6;
     21-oct-2026), «tc» los TC y «ng» los Nightguards (la tabla Nightguards / TC). Igual que dsTipoProduccion en
     static/design/schedule.js. N3 muestra Sx · Tc · Ng; N6, Mc · D · Ng · Tc."""
-    if tabla == TABLA_MATERIAL:
+    if es_tabla_etapas(tabla):   # Over Ti-bar cuenta como Material Change por ahora (Rosember lo ajusta después)
         return "mc"
     if tabla != "nightguard":
         return "sx"
@@ -2243,7 +2345,7 @@ def prestados_por_disenador(db: Session, ids: list[int], fecha: date, por_tipo: 
     for eid, tid, estado, tabla, producto in (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado,
                                                        DesignOrden.tabla, DesignOrden.producto)
                                               .filter(DesignOrden.designer_id.in_(ids), DesignOrden.fecha == fecha, filtro_no_fantasma(),
-                                                      DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]))):
+                                                      DesignOrden.tabla.in_(TABLAS_HORARIO))):
         if tid in miembro.get(eid, set()) or tid in support or _es_cancelada(estado):
             continue
         out[eid] = out.get(eid, 0) + 1
@@ -2266,7 +2368,7 @@ def produccion_mes_previa(db: Session, team: DesignTeam, fecha: date, solo_emple
     support = {i for (i,) in _equipos_support_ids(db).all()}
     q = (db.query(DesignOrden.designer_id, DesignOrden.team_id, DesignOrden.estado, DesignOrden.tabla, DesignOrden.producto)
          .filter(DesignOrden.fecha >= fecha.replace(day=1), DesignOrden.fecha < fecha, DesignOrden.designer_id.isnot(None),
-                 filtro_no_fantasma(), DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]),
+                 filtro_no_fantasma(), DesignOrden.tabla.in_(TABLAS_HORARIO),
                  or_(DesignOrden.team_id == team.id, DesignOrden.designer_id.in_(ids or [-1]))))
     if solo_empleado_id is not None:
         q = q.filter(DesignOrden.designer_id == solo_empleado_id)
@@ -2367,7 +2469,7 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
     if teams:
         ordenes = (db.query(DesignOrden).options(joinedload(DesignOrden.designer))
                    .filter(DesignOrden.team_id.in_([t.id for t in teams]), DesignOrden.fecha == fecha,
-                           DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]), filtro_orden_completa())
+                           DesignOrden.tabla.in_(TABLAS_HORARIO), filtro_orden_completa())
                    .order_by(DesignOrden.orden_visual, DesignOrden.id).all())
         # En los equipos donde solo es diseñador, únicamente sus órdenes.
         abiertos = {t.id for t in teams if es_training(t)}   # Training: todos ven todos sus casos
@@ -2377,11 +2479,10 @@ def resumen_todas_areas(db: Session, user: Empleado, fecha: date) -> list[dict]:
         por_team.setdefault(o.team_id, []).append(o)
 
     def ordenes_de(team_id: int) -> list[dict]:
-        # Mismo orden que la vista de equipo: Material Change (N6), Cirugías y Nightguards.
+        # Mismo orden que la vista de equipo: Material Change y Over Ti-bar (N6), Dummy (N6), Cirugías y Nightguards.
         lista = por_team.get(team_id, [])
-        return ([serializar_orden(o) for o in lista if o.tabla == TABLA_MATERIAL] +
-                [serializar_orden(o) for o in lista if o.tabla == "principal"] +
-                [serializar_orden(o) for o in lista if o.tabla == "nightguard"])
+        return [serializar_orden(o) for t in (TABLA_MATERIAL, TABLA_TIBAR, TABLA_DUMMY, "principal", "nightguard")
+                for o in lista if o.tabla == t]
 
     return [{"id": a.id, "nombre": a.nombre, "formato": a.formato,
              "teams": [{"id": t.id, "nombre": t.nombre, "ordenes": ordenes_de(t.id)}
@@ -2395,7 +2496,7 @@ def version_todas_areas(db: Session, fecha: date) -> str:
     import hashlib
     partes = [tuple(x) for x in (db.query(DesignOrden.id, DesignOrden.team_id, DesignOrden.tabla, DesignOrden.orden_visual,
                                           DesignOrden.actualizado_en, DesignOrden.designer_id)
-                                 .filter(DesignOrden.fecha == fecha, DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]))
+                                 .filter(DesignOrden.fecha == fecha, DesignOrden.tabla.in_(TABLAS_HORARIO))
                                  .order_by(DesignOrden.id).all())]
     partes += [tuple(x) for x in db.query(DesignTeam.id, DesignTeam.nombre, DesignTeam.activo, DesignTeam.area_id, DesignTeam.orden)
                .order_by(DesignTeam.id).all()]
@@ -2413,8 +2514,8 @@ def crear_orden(db: Session, user: Empleado, team_id: int, fecha: date, tabla: s
     for campo in CAMPOS_ORDEN:
         if campo in datos:
             setattr(o, campo, datos[campo])
-    if tabla == TABLA_MATERIAL and not (o.etapa or "").strip():
-        o.etapa = ETAPA_BITE  # Material Change empieza en Bite design
+    if es_tabla_etapas(tabla) and not (o.etapa or "").strip():
+        o.etapa = ETAPA_BITE  # Material Change y Over Ti-bar empiezan en Bite design
     db.add(o)
     if not guardar:
         db.flush()   # la siguiente orden del lote ve esta en su número de orden visual
@@ -2705,7 +2806,7 @@ def _filtro_reparto():
     """Órdenes que cuentan en el Reparto: las mismas de «Producción del día» (Rosember, 27-oct-2026): con diseñador y sin
     «Training», aunque falte el centro o el producto (antes solo las completas, y el número no cuadraba)."""
     return and_(or_(DesignOrden.designer_id.isnot(None), func.coalesce(DesignOrden.designer_prestado, "") != ""),
-                DesignOrden.tabla.in_(["principal", "nightguard", TABLA_MATERIAL]), filtro_no_fantasma())
+                DesignOrden.tabla.in_(TABLAS_HORARIO), filtro_no_fantasma())
 
 
 def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, team_id: int | None = None, seccion: str = "") -> dict:
@@ -2787,7 +2888,7 @@ def dashboard_reparto(db: Session, user: Empleado, desde: date, hasta: date, tea
         np0 = re.sub(r"\s+", " ", (o.producto or "").strip()) or "(sin producto)"
         # N6 Material Change (21-oct-2026): cada producto se divide en sus dos etapas. Bite design cuenta siempre; Zirconia
         # design solo cuando la orden ya llegó a esa etapa.
-        if o.tabla == TABLA_MATERIAL:
+        if es_tabla_etapas(o.tabla):
             etapas = [(kp0 + "|bite", np0 + " · " + ETAPA_BITE)]
             if es_etapa_zirconia(o.etapa):
                 etapas.append((kp0 + "|zir", np0 + " · " + ETAPA_ZIRCONIA))
@@ -3405,7 +3506,7 @@ def duracion_orden_min(o: DesignOrden, formato: str) -> float:
     - Nightguards / TC: Fin − Inicio.  - Support: no lleva horas."""
     if formato == FORMATO_SUPPORT:
         return 0
-    if o.tabla == TABLA_MATERIAL:  # Material Change: Bite + Zirconia, cada etapa Fin − Inicio − tiempo en Hold
+    if es_tabla_etapas(o.tabla):  # Material Change y Over Ti-bar: Bite + Zirconia, cada etapa Fin − Inicio − tiempo en Hold
         return material_minutos(o)[2]
     if o.tabla == "nightguard" and not horas_por_estado(formato, o.fecha, o.tabla):
         return _entre(o.hora_inicio, o.hora_fin)
@@ -6743,7 +6844,8 @@ def centros_de_equipo(db: Session, team: DesignTeam) -> list[str] | None:
 # Un diseñador pide apoyo con una nota: le llega push a su manager (o a quien esté a cargo hoy del equipo) con la nota.
 # Cada manager/a cargo puede apagar esos avisos en Configuración del Schedule; se guarda en design_conexion_reglas
 # (tipo «preferencia», clave «apoyo_<id>»). Sin registro, están encendidos.
-APOYO_TABLAS = {"principal": "Cirugías", "nightguard": "Nightguards / TC", "material": "Material Change"}
+APOYO_TABLAS = {"principal": "Cirugías", "nightguard": "Nightguards / TC", "material": "Material Change",
+                "tibar": "Over Ti-bar", "dummy": "Dummy"}
 
 
 def apoyo_activo(db: Session, empleado_id: int) -> bool:

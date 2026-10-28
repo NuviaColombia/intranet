@@ -18,7 +18,7 @@ from .models import Empleado
 from .models_design import DesignOrden, DesignTeam, DesignTeamDesigner
 from . import services_design as sd
 
-TABLAS = ["principal", "nightguard", sd.TABLA_MATERIAL]
+TABLAS = sd.TABLAS_HORARIO
 
 
 def _produccion(db: Session, team: DesignTeam, miembros: set, desde: date, hasta: date) -> list:
@@ -70,7 +70,7 @@ def diagnosticar(db: Session, team_id: int, desde: date, hasta: date, user: Empl
             anotar(eid, "Persona o producto excluido del Reparto (se dejó así a propósito)", o)
         elif not afuera and not es_support and eid not in miembros and eid != team.manager_id:
             anotar(eid, "Es de otro equipo: el Reparto lo cuenta en la fila «Prestados», no en su nombre", o)
-        elif o.tabla == sd.TABLA_MATERIAL and sd.es_etapa_zirconia(o.etapa):
+        elif sd.es_tabla_etapas(o.tabla) and sd.es_etapa_zirconia(o.etapa):
             anotar(eid, "Material Change en Zirconia: el Reparto la cuenta en Bite y en Zirconia", o, -1)
 
     # Reparto: lo mismo que muestra el Dashboard (y en N2, también su tabla de Changes)

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.attributes import get_history
 
 from .models_design import DesignArea, DesignOrden, DesignTeam
+from . import services_design as sd
 
 UMBRAL_MIN = 90   # 1 h 30 min (pedido por Rosember el 19-oct-2026; antes 30 min)
 RANGO_MAX_DIAS = 215   # un semestre completo: jun–dic son 214 días y ene–jun 181 (igual que Cambios digitales)
@@ -22,7 +23,7 @@ def _es_approved(estado: str) -> bool:
 
 def _qc_final(o: DesignOrden) -> bool:
     """El QC que cierra la orden: en Material Change es el de Zirconia (z_qc); en el resto, el de siempre."""
-    return bool(o.z_qc) if o.tabla == "material" else bool(o.qc)
+    return bool(o.z_qc) if sd.es_tabla_etapas(o.tabla) else bool(o.qc)
 
 
 @event.listens_for(Session, "before_flush")

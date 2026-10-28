@@ -601,7 +601,7 @@ def analizar(db: Session, anio: int, mes: int) -> dict:
                 continue
             m["aprobadas"] += 1
             m["carga"] += minutos(t.area.nombre, o.producto)
-            if o.z_qc if o.tabla == sd.TABLA_MATERIAL else o.qc:   # en N6 el QC final es el de Zirconia
+            if o.z_qc if sd.es_tabla_etapas(o.tabla) else o.qc:   # en N6 el QC final es el de Zirconia
                 m["conQc"] += 1
             if o.aprobada_en and o.qc_en and o.qc_en >= o.aprobada_en:
                 m["minQc"].append((o.qc_en - o.aprobada_en).total_seconds() / 60)
