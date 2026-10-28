@@ -8175,24 +8175,35 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         catch (err) { if (err && err.name === "AbortError") { estado.textContent = "Elige una carpeta para guardar las hojas."; return; } }
       }
       ocupado = true; contar();
-      try {
-        var usados = {};
-        for (var i = 0; i < elegidas.length; i++) {
-          estado.textContent = "Guardando " + (i + 1) + " de " + elegidas.length + "…";
+      // Una hoja que falla no detiene a las demás (28-oct-2026): se anota el motivo y se sigue con la siguiente
+      var usados = {}, fallos = [], guardadas = 0;
+      for (var i = 0; i < elegidas.length; i++) {
+        var nomHoja = (docs.indexOf(elegidas[i]) + 1) + " - " + (cvSheetFileName(elegidas[i]) || "hoja");
+        estado.textContent = "Guardando " + (i + 1) + " de " + elegidas.length + "…";
+        try {
           if (carpeta) {
             // con el número de la hoja: varias hojas se llaman igual (Upper, Lower…)
-            var nom = (docs.indexOf(elegidas[i]) + 1) + " - " + (cvSheetFileName(elegidas[i]) || "hoja"), n = usados[nom] = (usados[nom] || 0) + 1;
-            var fh = await carpeta.getFileHandle(nom + (n > 1 ? " (" + n + ")" : "") + ".png", {create: true});
-            var w = await fh.createWritable(); await w.write(await cvSheetPngBlob(elegidas[i])); await w.close();
+            var n = usados[nomHoja] = (usados[nomHoja] || 0) + 1;
+            var fh = await carpeta.getFileHandle(nomHoja + (n > 1 ? " (" + n + ")" : "") + ".png", {create: true});
+            var w = await fh.createWritable(); var png = await cvSheetPngBlob(elegidas[i]);
+            if (!png) throw new Error("no se pudo generar la imagen de la hoja");
+            await w.write(png); await w.close();
           } else {
             await cvExportPNG(elegidas[i].id);
             await new Promise(function(r) { setTimeout(r, 400); });
           }
+          guardadas++;
+        } catch (err) {
+          fallos.push(nomHoja + ": " + ((err && (err.name || err.message)) || "error desconocido") + (err && err.name && err.message ? " (" + err.message + ")" : ""));
+          console.error("Canvas › descarga PNG:", nomHoja, err);
         }
+      }
+      if (!fallos.length) {
         cerrar();
-        if (carpeta) dsToast(elegidas.length + " hojas guardadas en la carpeta «" + carpeta.name + "».");
-      } catch (err) {
-        ocupado = false; contar(); estado.textContent = "No se pudo guardar una hoja. Intenta de nuevo.";
+        if (carpeta) dsToast(guardadas + " hojas guardadas en la carpeta «" + carpeta.name + "».");
+      } else {
+        ocupado = false; contar();
+        estado.textContent = (guardadas ? guardadas + " guardada(s); " : "") + "no se pudo: " + fallos.join(" · ");
       }
     });
     contar(); todas.focus();
