@@ -1283,6 +1283,9 @@
   table.ds-tabla th.ds-g-a { background:#ede9fe; color:#4c1d95; }
   /* N6: franja del Estado de cada etapa sobre su orden (nombre de la etapa a la izquierda, estado a la derecha) */
   table.ds-tabla tr.ds-banda td { padding:2px 3px; border-bottom:0; }
+  /* cada orden de N6 lleva su encabezado: la franja, los nombres de columna y luego sus datos; una línea de aire entre órdenes */
+  table.ds-tabla tr.ds-banda td { border-top:6px solid transparent; background-clip:padding-box; }
+  table.ds-tabla tr.ds-tr-etiq th { background:#f4f6f8; }
   table.ds-tabla tr.ds-banda td.ds-banda-v { background:transparent; border-color:transparent; }
   table.ds-tabla tr.ds-banda td.ds-banda-t { font-size:11px; font-weight:700; text-align:left; padding-left:8px; vertical-align:middle; }
   table.ds-tabla tr.ds-banda td.ds-banda-e { text-align:right; }

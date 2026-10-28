@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (764 reglas) ---- */
+/* ---- static\design\schedule.css (766 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -718,6 +718,8 @@
 :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-g-x { background:#433a15; color:#f4c1a5; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-g-n { background:#331426; color:#eea2c0; }
 :root[data-ds-tema="oscuro"] table.ds-tabla th.ds-g-a { background:#181134; color:#ba9aeb; }
+:root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-banda td { border-top:6px solid transparent; }
+:root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-tr-etiq th { background:#1d2125; }
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-banda td.ds-banda-v { background:transparent; border-color:transparent; }
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-banda td.ds-g-b { background:#102039; color:#9fb3ea; }
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-banda td.ds-g-z { background:#1c2f27; color:#b9eece; }

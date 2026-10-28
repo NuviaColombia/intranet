@@ -982,13 +982,20 @@ window.addEventListener('unhandledrejection', function(ev) {
   // N6 desde el 29-oct-2026 (Rosember, 28-oct-2026): el Estado de cada etapa va en una franja sobre la orden, con el nombre de la
   // etapa a la izquierda y el estado a la derecha, sobre Fin · QC · Total. La franja (tr.ds-banda) va justo antes de la fila de
   // la orden y sus listas se leen, guardan y bloquean como si fueran de esa fila.
-  function dsBandaDe(tr) { var b = tr && tr.previousElementSibling; return b && b.classList.contains('ds-banda') ? b : null; }
+  // Cada orden lleva su propio encabezado (28-oct-2026): la franja con el nombre de la etapa y su Estado, los nombres de columna y
+  // la fila de datos. Las dos primeras son filas «previas» (tr.ds-pre) de la orden: se ocultan, conectan y guardan con ella.
+  function dsPreviasDe(tr) { var l = [], p = tr && tr.previousElementSibling; while (p && p.classList.contains('ds-pre')) { l.push(p); p = p.previousElementSibling; } return l; }
+  function dsBandaDe(tr) { return dsPreviasDe(tr).filter(function(r) { return r.classList.contains('ds-banda'); })[0] || null; }
   function dsInputsDe(tr) {
     var b = dsBandaDe(tr), l = [].slice.call(tr.querySelectorAll('[data-campo]'));
     return b ? l.concat([].slice.call(b.querySelectorAll('[data-campo]'))) : l;
   }
   function dsCampoDe(tr, selector) { var b = dsBandaDe(tr); return tr.querySelector(selector) || (b && b.querySelector(selector)) || null; }
-  function dsTrDeSel(sel) { var tr = sel.closest('tr'); return tr && tr.classList.contains('ds-banda') ? tr.nextElementSibling : tr; }
+  function dsTrDeSel(sel) {
+    var tr = sel.closest('tr');
+    while (tr && tr.classList.contains('ds-pre')) tr = tr.nextElementSibling;   // de la franja a la fila de su orden
+    return tr;
+  }
   function dsSpecCols(tabla) { return dsSpec(tabla).filter(function(c) { return !c.banda; }); }   // columnas de la fila (sin las de la franja)
   function dsBandaHtml(spec, f) {
     var cols = [], estados = {};
@@ -998,7 +1005,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       for (var j = 0; j < n; j++) cols.push(c.g || '');
     });
     cols.push('', '');   // Total y acciones
-    var html = '<tr class="ds-banda">', i = 0;
+    var html = '<tr class="ds-pre ds-banda">', i = 0;
     while (i < cols.length) {
       var g = cols[i], j = i;
       while (j < cols.length && cols[j] === g) j++;
@@ -1011,7 +1018,24 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     return html + '</tr>';
   }
-  function dsFilaConBandaHtml(spec, f, tabla) { return (spec.some(function(c) { return c.banda; }) ? dsBandaHtml(spec, f) : '') + dsFilaHtml(spec, f, tabla); }
+  // Fila con los nombres de columna (la de arriba de la tabla; en N6 se repite en cada orden)
+  function dsEtiquetasHtml(spec, tabla, clase, total) {
+    var s = DS.sort[tabla], html = '<tr' + (clase ? ' class="' + clase + '"' : '') + '>';
+    spec.forEach(function(c) {
+      if (c.banda) return;
+      if (DS_SORTABLES[c.k]) {
+        var on = s && s.k === c.k;
+        html += '<th class="ds-th-sort' + (on ? ' on' : '') + (c.g ? ' ds-g-' + c.g : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
+                '<span class="ds-sort-ind">' + (on ? (s.dir === 1 ? '▲' : '▼') : '↕') + '</span></th>';
+      } else html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>';
+      html += dsEncabezadoExtra(c);
+    });
+    return html + '<th class="ds-th-total">' + total + '</th><th></th></tr>';
+  }
+  function dsPorOrden(spec) { return spec.some(function(c) { return c.banda; }); }   // N6: cada orden con su encabezado
+  function dsFilaConBandaHtml(spec, f, tabla) {
+    return (dsPorOrden(spec) ? dsBandaHtml(spec, f) + dsEtiquetasHtml(spec, tabla, 'ds-pre ds-tr-etiq', 'Total general') : '') + dsFilaHtml(spec, f, tabla);
+  }
 
   // ¿Esta lista de estados es de una fila de Material Change?
   function dsFilaEsMaterial(sel, tabla) {
@@ -1584,8 +1608,9 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (tr.classList.contains('ds-oculta') !== (oc && !DS.verOcultas)) cambio = true;
       tr.classList.toggle('ds-oculta', oc && !DS.verOcultas);
       tr.classList.toggle('ds-oculta-ver', oc && DS.verOcultas);
-      var banda = dsBandaDe(tr);   // la franja del estado se oculta con su orden
-      if (banda) { banda.classList.toggle('ds-oculta', oc && !DS.verOcultas); banda.classList.toggle('ds-oculta-ver', oc && DS.verOcultas); }
+      dsPreviasDe(tr).forEach(function(r) {   // su encabezado (franja y nombres de columna) se oculta con ella
+        r.classList.toggle('ds-oculta', oc && !DS.verOcultas); r.classList.toggle('ds-oculta-ver', oc && DS.verOcultas);
+      });
       var ojo = tr.querySelector('[data-ojo]');
       if (ojo) ojo.style.display = dsDiaCerrado() ? 'none' : '';
       if (ojo) { ojo.title = oc ? 'Mostrar esta fila' : 'Ocultar esta fila'; ojo.textContent = oc ? '🙈' : '👁'; }
@@ -2379,17 +2404,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     var cont = document.getElementById(DS_CONT[tabla]);
     var filas = dsFilasOrdenadas(tabla);
     var s = DS.sort[tabla];
-    var html = '<table class="ds-tabla' + (dsTablaBase(tabla) === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '') + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
-    spec.forEach(function(c) {
-      if (c.banda) return;
-      if (DS_SORTABLES[c.k]) {
-        var on = s && s.k === c.k;
-        html += '<th class="ds-th-sort' + (on ? ' on' : '') + (c.g ? ' ds-g-' + c.g : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
-                '<span class="ds-sort-ind">' + (on ? (s.dir === 1 ? '▲' : '▼') : '↕') + '</span></th>';
-      } else html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>';
-      html += dsEncabezadoExtra(c);
-    });
-    html += '<th class="ds-th-total">' + (dsTablaBase(tabla) === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
+    var html = '<table class="ds-tabla' + (dsTablaBase(tabla) === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '') + '">' +
+      (dsPorOrden(spec) ? '<tbody>' : '<thead>' + dsFilaGrupos(spec, 2) + dsEtiquetasHtml(spec, tabla, '', dsTablaBase(tabla) === 'material' ? 'Total general' : 'Total') + '</thead><tbody>');
     filas.forEach(function(f) { html += dsFilaConBandaHtml(spec, f, tabla); });
     if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaConBandaHtml(spec, {}, tabla);
     html += '</tbody></table>';
@@ -2516,9 +2532,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     grupos.forEach(function(g) {
       var spec = dsSpec(g.tabla, g.formato, g.area);
       html += '<h4 class="ds-prest-h">' + dsEsc(g.equipo) + (g.tabla === 'nightguard' ? ' — Nightguards / TC' : g.tabla === 'material' ? ' — Material Change' : g.tabla === 'tibar' ? ' — Over Ti-bar' : g.tabla === 'dummy' ? ' — Dummy' : '') + '</h4>' +
-              '<table class="ds-tabla" data-grupo="' + g.teamId + '-' + g.tabla + '"><thead>' + dsFilaGrupos(spec, 2) + '<tr>';
-      spec.forEach(function(c) { if (!c.banda) html += '<th' + (c.g ? ' class="ds-g-' + c.g + '"' : '') + '>' + c.l + '</th>' + dsEncabezadoExtra(c); });
-      html += '<th>' + (dsTablaBase(g.tabla) === 'material' ? 'Total general' : 'Total') + '</th><th></th></tr></thead><tbody>';
+              '<table class="ds-tabla" data-grupo="' + g.teamId + '-' + g.tabla + '">' +
+              (dsPorOrden(spec) ? '<tbody>' : '<thead>' + dsFilaGrupos(spec, 2) + dsEtiquetasHtml(spec, 'prestadas', '', dsTablaBase(g.tabla) === 'material' ? 'Total general' : 'Total') + '</thead><tbody>');
       g.filas.forEach(function(f) { html += dsFilaConBandaHtml(spec, f, 'prestadas'); });
       html += '</tbody></table>';
     });
@@ -2874,11 +2889,10 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dsPuedeCrear() && !DS.diaData[tabla].some(dsFrenaFilaNueva) && !tbody.querySelector('tr[data-id="nuevo"]')) {
       var spec = dsSpec(tabla);
       var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaConBandaHtml(spec, {}, tabla);
-      var nueva = tmp.lastElementChild, banda = tmp.firstElementChild !== nueva ? tmp.firstElementChild : null;
-      if (banda) tbody.appendChild(banda);
-      tbody.appendChild(nueva);
+      var nueva = tmp.lastElementChild, conPrevias = tmp.children.length > 1;
+      [].slice.call(tmp.children).forEach(function(r) { tbody.appendChild(r); });
       dsConectarFila(nueva, tabla);
-      dsPoblarCatalogos(banda ? tbody : nueva, spec, tabla);
+      dsPoblarCatalogos(conPrevias ? tbody : nueva, spec, tabla);
       dsAjustarCreaProducto(tbody);
     }
   }
