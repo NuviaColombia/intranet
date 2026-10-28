@@ -45,6 +45,21 @@ la misma página; el del Separador se dejó en scope global porque su HTML usa `
 de Accounts Payable (ver abajo) también va en su propio IIFE. Si agregas una herramienta nueva,
 respeta ese aislamiento.
 
+**(2026-10-28) Botón "📥 Traer desde Accounts Payable" en la pestaña "Generar PDF".** Abre un
+modal (`#apTraerModal`, misma pinta que el PIN del Separador) que llama a `GET /pagos/api/ap?
+estado=APROBADO` y deja elegir con checkboxes cuáles pasar a la programación. Al confirmar, arma un
+`rows` por cada empresa seleccionada y llama a `addCard()` -- el mismo camino que ya usan un archivo
+plano o el texto pegado, así que el pago queda en el Historial y genera PDF exactamente igual.
+
+**Accounts Payable no tiene cuenta bancaria ni banco** (no es su función: ahí solo se aprueba
+*que* se pague, no *cómo*). Por eso `addCard()` ahora también marca como "falta" la cuenta y el
+banco, no solo el nombre (antes `miss=rows.filter(r=>!r.nombre)`, ahora también `!r.cuenta` y
+`!r.banco`) -- si tocas esa función, los tres campos faltantes se completan con inputs independientes
+(`.nm`/`.ct`/`.bk`) antes de poder descargar el PDF. Al traer de Accounts Payable, la cuenta se
+autocompleta si el NIT ya está en el directorio de beneficiarios (`DIR`) de esta misma herramienta;
+el banco **nunca** se autocompleta (el directorio de beneficiarios tampoco guarda el banco, solo la
+cuenta) -- quien arma el pago tiene que escribirlo a mano la primera vez.
+
 **(2026-10-28) Las tres herramientas se eligen en una barra lateral izquierda** (`.pg-shell` /
 `.pg-sidebar` / `.pg-content` en `pagos.html`/`pagos.css`, pedido de Oscar -- antes eran pestañas
 arriba). Para agregar una herramienta nueva: un botón más en `.pg-sidebar` con su propio `id` (se
