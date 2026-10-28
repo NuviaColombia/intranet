@@ -5833,7 +5833,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   function cmtGenEverythingOk(f){
     if(cmtNe(f.j4)&&cmtNe(f.b4)){
       return f.b4+" "+f.j4+" Everything is ok "+CMT_NL+CMT_NL+
-        "Scans ✅ "+CMT_NL+"Medidas ✅ "+CMT_NL+"Cantilever ✅ "+CMT_NL+"Access Hole ✅ "+CMT_NL+"Icam / Micron ✅";
+        "Scans ✅ "+CMT_NL+"Measurements ✅ "+CMT_NL+"Cantilever ✅ "+CMT_NL+"Access Hole ✅ "+CMT_NL+"Icam / Micron ✅";   // antes «Medidas» (28-oct-2026: todo en inglés)
     }
     return "";
   }
