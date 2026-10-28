@@ -559,6 +559,11 @@
   .ds-btn-x:hover { background:#4b5563; }
   .ds-panel-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   .ds-panel-h h3 { margin:0; }
+  /* Cirugías: la tabla sube una fila (la de Articulation / Design queda a la altura del título); el título y sus botones
+     quedan por encima y se pueden usar (28-oct-2026). Lo decide dsSubirTablaPrincipal solo cuando cabe. */
+  #dsPanelPrincipal.ds-grupos-arriba > #dsTablaPrincipal { margin-top:calc(-1 * var(--ds-subir, 0px)); }
+  #dsPanelPrincipal.ds-grupos-arriba > .ds-panel-h { position:relative; z-index:2; pointer-events:none; }
+  #dsPanelPrincipal.ds-grupos-arriba > .ds-panel-h > * { pointer-events:auto; }
   /* «+ Agregar orden» y las casillas del Schedule con el azul de la barra superior (Rosember, 26-oct-2026) */
   /* «Agregar orden»: solo el signo más, en un círculo; al pasar el mouse el más gira (26-oct-2026) */
   .btn.ds-btn-add { display:inline-grid; place-items:center; width:30px; height:30px; padding:0; margin:0; border-radius:50%; background:#111827; color:#fff; line-height:1;

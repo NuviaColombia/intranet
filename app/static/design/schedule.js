@@ -2204,6 +2204,32 @@ window.addEventListener('unhandledrejection', function(ev) {
     var fa = lista.querySelector('.ds-col-actual'); if (fa) fa.scrollIntoView({block: 'nearest'});
   }
 
+  // Cirugías (Rosember, 28-oct-2026): la tabla sube una fila para que la fila de grupos (Articulation / Design) quede a la
+  // altura del título «Cirugías», que no se mueve. Solo si cabe: si los grupos tocarían el título o los botones (pantallas
+  // angostas) o hay avisos entre el título y la tabla, queda como antes. Solo la tabla principal.
+  function dsSubirTablaPrincipal() {
+    var panel = document.getElementById('dsPanelPrincipal'), cont = document.getElementById('dsTablaPrincipal');
+    if (!panel || !cont) return;
+    var cab = panel.querySelector('.ds-panel-h'), avisos = document.getElementById('dsCopiasPend');
+    panel.classList.remove('ds-grupos-arriba');
+    var g = cont.querySelector('table.ds-tabla tr.ds-tr-grupos'), ths = g ? g.querySelectorAll('th.ds-gh') : [];
+    if (!ths.length || !cab || !panel.offsetParent || (avisos && avisos.offsetHeight)) return;
+    var tit = panel.querySelector('.ds-panel-titulo') || cab.firstElementChild, acc = panel.querySelector('.ds-panel-acc');
+    var izq = ths[0].getBoundingClientRect().left, der = ths[ths.length - 1].getBoundingClientRect().right;
+    if (izq < tit.getBoundingClientRect().right + 16 || (acc && acc.offsetWidth && der > acc.getBoundingClientRect().left - 16)) return;
+    var subir = cab.offsetHeight + (parseFloat(getComputedStyle(cab).marginBottom) || 0) + (g.getBoundingClientRect().top - cont.getBoundingClientRect().top);
+    panel.style.setProperty('--ds-subir', Math.round(subir) + 'px');
+    panel.classList.add('ds-grupos-arriba');
+  }
+  (function() {   // también al cambiar el ancho de la ventana, los botones del título (ocultas, apoyo) o los avisos
+    var t = null, otra = function() { clearTimeout(t); t = setTimeout(dsSubirTablaPrincipal, 60); };
+    window.addEventListener('resize', otra);
+    try {
+      var ro = new ResizeObserver(otra);
+      ['dsCopiasPend', 'dsTablaPrincipal'].forEach(function(id) { var e = document.getElementById(id); if (e) ro.observe(e); });
+      var acc = document.querySelector('#dsPanelPrincipal .ds-panel-acc'); if (acc) ro.observe(acc);
+    } catch (e) {}
+  })();
   function dsRenderTabla(tabla) {
     var spec = dsSpec(tabla);
     var cont = document.getElementById(DS_CONT[tabla]);
@@ -2225,6 +2251,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     DS.renderizando = true; // si la celda con foco desaparece, su "blur" no debe guardar
     try { cont.innerHTML = html; } finally { DS.renderizando = false; }
     cont.querySelectorAll('tbody tr').forEach(function(tr) { dsConectarFila(tr, tabla); dsMarcarFila(tr, tabla); });
+    if (tabla === 'principal') dsSubirTablaPrincipal();
     if (dsDiaCerrado()) {
       // Día cerrado: todo en solo lectura; el QC sigue editable hasta las 5:00 am de D+2.
       cont.querySelectorAll('[data-campo]').forEach(function(el) {
