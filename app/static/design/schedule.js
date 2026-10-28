@@ -8036,6 +8036,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     ctx.fillText(doc.title || "", EW / 2, 118);
     return cv;
   }
+  async function escribirPng(carpeta, nombre, png) {
+    var fh = await carpeta.getFileHandle(nombre + ".png", {create: true});
+    var w = await fh.createWritable(); await w.write(png); await w.close();
+  }
   async function cvSheetPngBlob(doc) {
     var cv = await cvSheetToCanvas(doc);
     return new Promise(function(res) { cv.toBlob(res, "image/png"); });
@@ -8184,10 +8188,16 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
           if (carpeta) {
             // con el número de la hoja: varias hojas se llaman igual (Upper, Lower…)
             var n = usados[nomHoja] = (usados[nomHoja] || 0) + 1;
-            var fh = await carpeta.getFileHandle(nomHoja + (n > 1 ? " (" + n + ")" : "") + ".png", {create: true});
-            var w = await fh.createWritable(); var png = await cvSheetPngBlob(elegidas[i]);
+            var png = await cvSheetPngBlob(elegidas[i]);
             if (!png) throw new Error("no se pudo generar la imagen de la hoja");
-            await w.write(png); await w.close();
+            // Si el archivo con ese nombre cambió en disco mientras se escribía (OneDrive, antivirus, un visor abierto), el
+            // navegador da InvalidStateError: se guarda con otro nombre y no se borra nada que ya exista.
+            var base = nomHoja + (n > 1 ? " (" + n + ")" : "");
+            try { await escribirPng(carpeta, base, png); }
+            catch (err1) {
+              if (!(err1 && (err1.name === "InvalidStateError" || err1.name === "NoModificationAllowedError"))) throw err1;
+              await escribirPng(carpeta, base + " - " + Date.now().toString(36).slice(-4), png);
+            }
           } else {
             await cvExportPNG(elegidas[i].id);
             await new Promise(function(r) { setTimeout(r, 400); });
