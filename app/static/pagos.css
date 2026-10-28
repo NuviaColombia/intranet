@@ -100,6 +100,13 @@
   color: var(--text-muted); font-weight: 600; cursor: pointer; }
 #pagos-app .pg-chips button.activo { background: var(--brand-main); color: #fff; border-color: var(--brand-main); }
 
+/* Accounts Payable: estado de cada cuenta por pagar */
+#pagos-app .pg-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+#pagos-app .pg-badge.pendiente { background: #FEF3C7; color: #92400E; }
+#pagos-app .pg-badge.aprobado { background: #D1FAE5; color: #065F46; }
+#pagos-app .pg-badge.pagado { background: var(--brand-light); color: var(--brand-main); }
+#pagos-app .pg-badge.otro { background: var(--border-soft); color: var(--text-muted); }
+
 #pagos-app .pg-err { color: var(--danger); font-size: 13px; margin-top: 6px; }
 #pagos-app .pg-ok { color: var(--success); font-size: 13px; margin-left: 10px; }
 #pagos-app .pg-muted { color: var(--text-muted); font-size: 12px; }
