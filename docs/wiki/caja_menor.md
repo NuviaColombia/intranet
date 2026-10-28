@@ -173,6 +173,19 @@ o una corrección de datos, y muestra el texto correspondiente ("💬 Respuesta 
 modal de anular, `abrirRespuesta`/`confirmarAnulacion`). Columna `es_respuesta` migrada con
 `ALTER TABLE` igual que las demás.
 
+**(2026-10-28) Consulta de recibos: los anulados no se ven por defecto, y hay un tope de 100.**
+Pedido de Carlos: antes el filtro "Estado" con "Todos" mostraba también los anulados, y la pestaña
+cargaba y pintaba todos los recibos de la caja sin límite. Ahora (`caja_menor.html`,
+`filtrarConsulta()`, solo filtrado en el navegador -- la API `/recibos` ya soportaba estos
+parámetros pero el cliente igual trae todo y filtra ahí):
+- "Todos" en el filtro Estado ahora significa "todos menos los anulados"; para verlos hay que
+  elegir "ANULADO" explícitamente en ese mismo select.
+- Nuevo filtro "Mostrar" (`#cLimite`): "Últimos 100" (por defecto) o "Todos", independiente del
+  filtro de fecha que ya existía. El límite se aplica **después** de texto/estado/fecha, así que
+  buscar un recibo viejo por número o texto lo sigue encontrando aunque esté fuera de los últimos
+  100. Un aviso ("mostrando X de Y") aparece junto al título cuando el límite recorta la lista.
+- `limpiarConsulta()` vuelve a este estado por defecto (sin anulados, últimos 100).
+
 **Adjuntos**: igual que en Permisos (soporte documental), se guardan como BLOB en la propia fila
 (`CajaAdjunto.datos`, columna `deferred`) -- no van a Zoho WorkDrive. Límite 5 MB,
 JPG/PNG/WEBP/PDF.

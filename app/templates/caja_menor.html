@@ -87,7 +87,7 @@
   <!-- ============ CONSULTA ============ -->
   <div id="sec-consulta" class="cm-seccion">
     <div class="cm-barra">
-      <div><h2 class="cm-titulo">🔍 Consulta de recibos</h2><p class="cm-sub" style="margin:0;">Todos los recibos de la caja, del más reciente al más antiguo.</p></div>
+      <div><h2 class="cm-titulo">🔍 Consulta de recibos</h2><p class="cm-sub" style="margin:0;">Todos los recibos de la caja, del más reciente al más antiguo. <span id="cResumen"></span></p></div>
       <div class="cm-acciones" style="margin:0">
         <button type="button" class="btn" onclick="abrirImprimirVarios()">🖨️ Imprimir varios</button>
         <a class="btn verde" href="/caja-menor/api/{{ caja.id }}/exportar">📥 Exportar Excel</a></div>
@@ -105,7 +105,9 @@
     <div class="cm-filtros">
       <input type="text" id="cTexto" placeholder="No. recibo, pagado a, concepto, factura…" oninput="filtrarConsulta()">
       <label>Estado:</label>
-      <select id="cEstado" onchange="filtrarConsulta()"><option value="">Todos</option><option>ACTIVO</option><option>LEGALIZADO</option><option>ANULADO</option></select>
+      <select id="cEstado" onchange="filtrarConsulta()"><option value="">Todos (sin anulados)</option><option>ACTIVO</option><option>LEGALIZADO</option><option>ANULADO</option></select>
+      <label>Mostrar:</label>
+      <select id="cLimite" onchange="filtrarConsulta()"><option value="100">Últimos 100</option><option value="">Todos</option></select>
       <label>Desde:</label><input type="date" id="cDesde" onchange="filtrarConsulta()">
       <label>Hasta:</label><input type="date" id="cHasta" onchange="filtrarConsulta()">
       <button type="button" class="btn gris mini" onclick="limpiarConsulta()">Limpiar</button>
@@ -631,11 +633,15 @@ function cargarConsulta() {
     .catch(function(e) { document.getElementById('bodyConsulta').innerHTML = '<tr><td colspan="10" class="cm-vacio">' + esc(e.message) + '</td></tr>'; });
 }
 function filtrarConsulta() {
-  var q = cTexto.value.trim().toUpperCase(), est = cEstado.value, de = cDesde.value, ha = cHasta.value;
+  var q = cTexto.value.trim().toUpperCase(), est = cEstado.value, de = cDesde.value, ha = cHasta.value, lim = cLimite.value;
   var filas = recibosConsulta.filter(function(r) {
-    if (est && r.estado !== est) return false; if (de && r.fecha < de) return false; if (ha && r.fecha > ha) return false;
+    if (est) { if (r.estado !== est) return false; } else if (r.estado === 'ANULADO') return false;  // "Todos" no incluye anulados
+    if (de && r.fecha < de) return false; if (ha && r.fecha > ha) return false;
     return !q || [r.noRecibo, r.pagadoA, r.concepto, r.factura, r.identificacion].join(' ').toUpperCase().indexOf(q) !== -1;
   });
+  var total = filas.length;
+  if (lim) filas = filas.slice(0, parseInt(lim, 10));  // recibosConsulta ya viene del más reciente al más antiguo
+  document.getElementById('cResumen').innerText = (filas.length < total) ? '(mostrando ' + filas.length + ' de ' + total + ')' : '';
   var tb = document.getElementById('bodyConsulta');
   if (!filas.length) { tb.innerHTML = '<tr><td colspan="10" class="cm-vacio">No hay recibos con esos filtros.</td></tr>'; return; }
   tb.innerHTML = filas.map(function(r) {
@@ -646,7 +652,7 @@ function filtrarConsulta() {
       '</td><td><button class="btn mini" onclick="verRecibo(' + r.consecutivo + ')">👁️ Ver</button></td></tr>';
   }).join('');
 }
-function limpiarConsulta() { cTexto.value = ''; cEstado.value = ''; cDesde.value = ''; cHasta.value = ''; filtrarConsulta(); }
+function limpiarConsulta() { cTexto.value = ''; cEstado.value = ''; cLimite.value = '100'; cDesde.value = ''; cHasta.value = ''; filtrarConsulta(); }
 function verRecibo(consecutivo) { switchTab('recibo'); buscarRecibo(consecutivo); }
 
 // ---------------- legalizar y FM ----------------
