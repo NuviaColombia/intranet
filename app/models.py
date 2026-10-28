@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 MODULOS_DISPONIBLES = [("people", "People"), ("compras", "Compras"), ("sst", "SST"), ("custodia", "Producción (Cambio de custodia)"),
-                       ("design_schedule", "Design Schedule"), ("caja_menor", "Caja menor Nuvia"), ("activos", "Activos")]
+                       ("design_schedule", "Design Schedule"), ("caja_menor", "Contabilidad"), ("activos", "Activos")]
 MODULOS_VALIDOS = {m for m, _ in MODULOS_DISPONIBLES}
 
 
@@ -58,9 +58,11 @@ class Empleado(Base):
         if modulo == "design_schedule" and self.rol != "superadmin" and (self.empresa or "") != EMPRESA_DESIGN:
             return False   # Design solo para la empresa Nuvia Design (13-oct-2026); el superadmin entra siempre
         if modulo == "caja_menor" and self.rol in ("admin", "superadmin") and modulo not in self.modulos_lista:
-            return False   # Caja menor (20-oct-2026): ni admin ni superadmin entran automático, necesitan
-                            # autorización explícita en Parámetros › Quién tiene acceso (Parámetros en sí
-                            # sigue abierto a cualquier admin/superadmin -- ver require_admin_caja_menor)
+            return False   # Caja menor / Contabilidad (20-oct-2026): ni admin ni superadmin entran automático,
+                            # necesitan autorización explícita -- o bien marcando la casilla "Contabilidad" de
+                            # Empleados › editar (28-oct-2026: antes decía "Caja menor Nuvia", ver MODULOS_DISPONIBLES),
+                            # o bien desde Parámetros › Quién tiene acceso (Parámetros en sí sigue abierto a
+                            # cualquier admin/superadmin -- ver require_admin_caja_menor)
         return self.rol in ("admin", "superadmin") or modulo in self.modulos_lista
 
     @property

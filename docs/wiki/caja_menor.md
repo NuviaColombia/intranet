@@ -1,5 +1,15 @@
 # Caja Menor Nuvia
 
+**(2026-10-28) En People › Empleados la casilla de este permiso ya dice "Contabilidad", no "Caja
+menor Nuvia".** Solo cambió la etiqueta en `MODULOS_DISPONIBLES` (`app/models.py`) -- el slug
+interno sigue siendo `caja_menor` (mismo de siempre, sin migración de datos). Motivo: Oscar marcó a
+alguien como `admin`/`superadmin` esperando que así entrara a Contabilidad y no fue así -- sigue
+vigente la regla del 20-oct-2026 de más abajo (ni admin ni superadmin entran automático a este
+módulo). Para darle acceso a alguien, la casilla "Contabilidad" de Empleados › editar sí funciona
+sin importar el rol (marcarla agrega `caja_menor` a `Empleado.modulos` directamente, lo que cumple
+la condición `modulo in self.modulos_lista` de `tiene_modulo()` y evita la excepción); la otra vía
+sigue siendo Parámetros › Quién tiene acceso dentro de Caja menor Nuvia (`/caja-menor/parametros`).
+
 **(2026-10-27) Ahora vive dentro del módulo "Contabilidad" (pedido de Oscar).** El portal (`/`)
 ya no muestra una tarjeta "Caja menor Nuvia" directa: muestra **Contabilidad**
 (`app/templates/portal.html`), que lleva a `/contabilidad` (`app/routers/contabilidad.py`,
