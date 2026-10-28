@@ -5517,8 +5517,11 @@ function dcModal(html, aceptar, etiqueta) {
   f.innerHTML = '<div class="eq-modal" role="dialog" aria-modal="true">' + html + '<div class="eq-modal-acc"><button type="button" class="btn gris" data-m="no">Cancelar</button>' +
     '<button type="button" class="btn" data-m="si">' + dcEsc(etiqueta) + '</button></div></div>';
   document.body.appendChild(f);
+  // Esc cierra el diálogo, como los demás paneles de Design (28-oct-2026)
+  var tecla = function(e) { if (e.key === 'Escape' && document.body.contains(f)) { e.stopPropagation(); f.remove(); document.removeEventListener('keydown', tecla, true); } };
+  document.addEventListener('keydown', tecla, true);
   f.addEventListener('click', function(e) {
-    if (e.target === f || e.target.dataset.m === 'no') f.remove();
+    if (e.target === f || e.target.dataset.m === 'no') { f.remove(); document.removeEventListener('keydown', tecla, true); }
     else if (e.target.dataset.m === 'si') { e.target.disabled = true; aceptar(f); }
   });
   return f;
