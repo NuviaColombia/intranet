@@ -76,6 +76,13 @@ def api_pagar(id: int, user: Empleado = Depends(require_pagos), db: Session = De
     return sa._fila(_manejar(sa.marcar_pagado, db, user, id))
 
 
+@router.get("/pagos/api/ap/reporte")
+def api_reporte(desde: date | None = None, hasta: date | None = None, tercero: str = "",
+                montoMin: float | None = None, montoMax: float | None = None,
+                user: Empleado = Depends(require_pagos), db: Session = Depends(get_db)):
+    return {"meses": sa.reporte_pagos(db, desde, hasta, tercero, montoMin, montoMax)}
+
+
 @router.post("/pagos/api/ap/importar")
 async def api_importar(archivo: UploadFile = File(...), user: Empleado = Depends(_require_admin_ap), db: Session = Depends(get_db)):
     if not archivo.filename.lower().endswith((".xlsx", ".xlsm")):

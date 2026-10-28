@@ -190,55 +190,75 @@
 
     <div id="apPushBox" style="margin-bottom:14px"></div>
 
-    <div id="apEstados" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-      <button type="button" class="btn gris" data-estado="PENDIENTE">⏳ Pendientes <span data-n="PENDIENTE"></span></button>
-      <button type="button" class="btn verde" data-estado="APROBADO">✅ Aprobados <span data-n="APROBADO"></span></button>
-      <button type="button" class="btn gris" data-estado="PAGADO">💰 Pagados <span data-n="PAGADO"></span></button>
-      <button type="button" class="btn gris" data-estado="">📋 Todos <span data-n="TODOS"></span></button>
+    <div class="pg-sub-tabs">
+      <button type="button" id="ap-tab-cuentas" class="activo">📋 Cuentas</button>
+      <button type="button" id="ap-tab-reportes">📊 Reportes</button>
     </div>
 
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-      <select id="apEmpresa" style="width:auto;min-width:170px">
-        <option value="">Todas las empresas</option>
-        <option value="Smiles">Nuvia Smiles</option>
-        <option value="Design">Nuvia Design</option>
-      </select>
-      <input id="apBusqueda" placeholder="Buscar por proveedor, NIT o detalle…" style="flex:1;min-width:220px">
-    </div>
-
-    <div id="apForm" class="pg-card" hidden>
-      <b>Nueva cuenta por pagar</b>
-      <p class="pg-muted" style="margin:2px 0 10px">Queda como Pendiente y se avisa de inmediato a Leslie y Oscar.</p>
-      <div class="pg-grid2">
-        <div>
-          <select id="apfEmpresa"><option value="Smiles">Nuvia Smiles</option><option value="Design">Nuvia Design</option></select>
-          <input id="apfProveedor" placeholder="Nombre del proveedor *">
-          <input id="apfNit" placeholder="NIT o cédula">
-          <input id="apfCategoria" placeholder="Categoría">
-        </div>
-        <div>
-          <input id="apfValor" type="number" min="1" step="0.01" placeholder="Valor *">
-          <input id="apfVencimiento" type="date">
-          <input id="apfDocumento" placeholder="Documento / factura">
-          <textarea id="apfDetalle" class="pg-pega" style="height:60px" placeholder="Detalle del pago *"></textarea>
-        </div>
+    <div id="ap-sub-cuentas" class="pg-seccion activa">
+      <div id="apEstados" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button type="button" class="btn gris" data-estado="PENDIENTE">⏳ Pendientes <span data-n="PENDIENTE"></span></button>
+        <button type="button" class="btn verde" data-estado="APROBADO">✅ Aprobados <span data-n="APROBADO"></span></button>
+        <button type="button" class="btn gris" data-estado="PAGADO">💰 Pagados <span data-n="PAGADO"></span></button>
+        <button type="button" class="btn gris" data-estado="">📋 Todos <span data-n="TODOS"></span></button>
       </div>
-      <textarea id="apfComentarios" class="pg-pega" style="height:50px" placeholder="Comentarios (opcional)"></textarea>
-      <div style="margin-top:8px"><button type="button" class="btn" id="apGuardarBtn">Registrar</button> <button type="button" class="btn gris" id="apCancelarBtn">Cancelar</button></div>
-      <div class="pg-err" id="apFormErr"></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <select id="apEmpresa" style="width:auto;min-width:170px">
+          <option value="">Todas las empresas</option>
+          <option value="Smiles">Nuvia Smiles</option>
+          <option value="Design">Nuvia Design</option>
+        </select>
+        <input id="apBusqueda" placeholder="Buscar por proveedor, NIT o detalle…" style="flex:1;min-width:220px">
+      </div>
+
+      <div id="apForm" class="pg-card" hidden>
+        <b>Nueva cuenta por pagar</b>
+        <p class="pg-muted" style="margin:2px 0 10px">Queda como Pendiente y se avisa de inmediato a Leslie y Oscar.</p>
+        <div class="pg-grid2">
+          <div>
+            <select id="apfEmpresa"><option value="Smiles">Nuvia Smiles</option><option value="Design">Nuvia Design</option></select>
+            <input id="apfProveedor" placeholder="Nombre del proveedor *">
+            <input id="apfNit" placeholder="NIT o cédula">
+            <input id="apfCategoria" placeholder="Categoría">
+          </div>
+          <div>
+            <input id="apfValor" type="number" min="1" step="0.01" placeholder="Valor *">
+            <input id="apfVencimiento" type="date">
+            <input id="apfDocumento" placeholder="Documento / factura">
+            <textarea id="apfDetalle" class="pg-pega" style="height:60px" placeholder="Detalle del pago *"></textarea>
+          </div>
+        </div>
+        <textarea id="apfComentarios" class="pg-pega" style="height:50px" placeholder="Comentarios (opcional)"></textarea>
+        <div style="margin-top:8px"><button type="button" class="btn" id="apGuardarBtn">Registrar</button> <button type="button" class="btn gris" id="apCancelarBtn">Cancelar</button></div>
+        <div class="pg-err" id="apFormErr"></div>
+      </div>
+
+      <div id="apLista"></div>
+
+      {% if user.rol in ('admin', 'superadmin') %}
+      <details class="pg-detalle" style="margin-top:22px">
+        <summary>⚙️ Importar histórico desde Excel (admin)</summary>
+        <p class="pg-muted">Sube el archivo "ACCOUNTS PAYABLE.xlsx" (pestañas AP SMILES / AP DESIGN). Las filas que ya
+          existen (misma empresa, fecha, NIT, detalle y valor) no se vuelven a importar.</p>
+        <input type="file" id="apImportarInput" accept=".xlsx,.xlsm">
+        <div id="apImportarMsg" style="margin-top:6px"></div>
+      </details>
+      {% endif %}
     </div>
 
-    <div id="apLista"></div>
-
-    {% if user.rol in ('admin', 'superadmin') %}
-    <details class="pg-detalle" style="margin-top:22px">
-      <summary>⚙️ Importar histórico desde Excel (admin)</summary>
-      <p class="pg-muted">Sube el archivo "ACCOUNTS PAYABLE.xlsx" (pestañas AP SMILES / AP DESIGN). Las filas que ya
-        existen (misma empresa, fecha, NIT, detalle y valor) no se vuelven a importar.</p>
-      <input type="file" id="apImportarInput" accept=".xlsx,.xlsm">
-      <div id="apImportarMsg" style="margin-top:6px"></div>
-    </details>
-    {% endif %}
+    <div id="ap-sub-reportes" class="pg-seccion">
+      <p class="pg-sub" style="margin:0 0 12px">Pagos realizados, mes a mes. Por defecto muestra todo el año <span id="arpAnioActual"></span>.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+        <div><label class="pg-muted">Fecha desde</label><input type="date" id="arpDesde"></div>
+        <div><label class="pg-muted">Fecha hasta</label><input type="date" id="arpHasta"></div>
+        <div style="flex:1;min-width:200px"><label class="pg-muted">Tercero (nombre o NIT)</label><input id="arpTercero" placeholder="Todos"></div>
+        <div><label class="pg-muted">Monto mínimo</label><input type="number" id="arpMontoMin" placeholder="0" style="width:140px"></div>
+        <div><label class="pg-muted">Monto máximo</label><input type="number" id="arpMontoMax" placeholder="Sin límite" style="width:140px"></div>
+        <button type="button" class="btn gris mini" id="arpLimpiar">Limpiar filtros</button>
+      </div>
+      <div id="arpLista"></div>
+    </div>
   </div>
   </div>
 
@@ -1170,7 +1190,13 @@ window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e
   var money = function(v) { return '$ ' + Math.round(v || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
   var EMPRESA_NOMBRE = {Smiles: 'Nuvia Smiles', Design: 'Nuvia Design'};
   var ESTADO_LABEL = {PENDIENTE: 'Pendiente', APROBADO: 'Aprobado', PAGADO: 'Pagado'};
-  var estadoActivo = 'PENDIENTE', puedeAprobar = false, cargadoAlgunaVez = false;
+  var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  var COLUMNAS = [
+    {key: 'fecha', label: 'Fecha'}, {key: 'empresa', label: 'Empresa'}, {key: 'proveedorNombre', label: 'Proveedor'},
+    {key: 'detalle', label: 'Detalle'}, {key: 'valor', label: 'Valor', der: true}, {key: 'estado', label: 'Estado'}, {key: 'fechaPago', label: 'Pago'},
+  ];
+  var estadoActivo = 'PENDIENTE', puedeAprobar = false, cargadoAlgunaVez = false, reporteCargado = false;
+  var sortCol = 'fecha', sortDir = -1, ultimasFilas = [];
 
   function api(url, opts) {
     return fetch(url, Object.assign({credentials: 'same-origin'}, opts || {})).then(function(r) {
@@ -1202,9 +1228,20 @@ window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e
     }).catch(function(e) { $('#apLista').innerHTML = '<p class="pg-err">No se pudo cargar: ' + esc(e.message) + '</p>'; });
   }
 
+  function ordenarFilas(filas) {
+    var copia = filas.slice();
+    copia.sort(function(a, b) {
+      if (sortCol === 'valor') return ((a.valor || 0) - (b.valor || 0)) * sortDir;
+      var va = a[sortCol] == null ? '' : String(a[sortCol]).toLowerCase(), vb = b[sortCol] == null ? '' : String(b[sortCol]).toLowerCase();
+      return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
+    });
+    return copia;
+  }
+
   function renderLista(filas) {
+    ultimasFilas = filas;
     if (!filas.length) { $('#apLista').innerHTML = '<p class="pg-muted" style="padding:20px 0">No hay cuentas por pagar en este filtro.</p>'; return; }
-    var filasHtml = filas.map(function(f) {
+    var filasHtml = ordenarFilas(filas).map(function(f) {
       var estadoTxt = f.estado === 'OTRO' ? (f.estadoOriginal || 'Otro') : ESTADO_LABEL[f.estado];
       var acciones = '';
       if (f.estado === 'PENDIENTE' && puedeAprobar) {
@@ -1225,8 +1262,12 @@ window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e
         '<td style="white-space:nowrap">' + acciones + '</td>' +
       '</tr>';
     }).join('');
-    $('#apLista').innerHTML = '<div class="pg-tabla-wrap"><table class="pg-tabla"><tr><th>Fecha</th><th>Empresa</th><th>Proveedor</th>' +
-      '<th>Detalle</th><th style="text-align:right">Valor</th><th>Estado</th><th>Pago</th><th></th></tr>' + filasHtml + '</table></div>';
+    var headerHtml = COLUMNAS.map(function(col) {
+      var flecha = sortCol === col.key ? (sortDir === 1 ? '▲' : '▼') : '↕';
+      return '<th data-col="' + col.key + '" style="cursor:pointer;user-select:none' + (col.der ? ';text-align:right' : '') + '" title="Ordenar por ' + col.label.toLowerCase() + '">' +
+        col.label + ' <span style="opacity:' + (sortCol === col.key ? '1' : '.4') + '">' + flecha + '</span></th>';
+    }).join('');
+    $('#apLista').innerHTML = '<div class="pg-tabla-wrap"><table class="pg-tabla"><tr>' + headerHtml + '<th></th></tr>' + filasHtml + '</table></div>';
   }
 
   document.querySelectorAll('#apEstados [data-estado]').forEach(function(b) {
@@ -1236,6 +1277,13 @@ window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e
   var buscarT;
   $('#apBusqueda').oninput = function() { clearTimeout(buscarT); buscarT = setTimeout(cargar, 300); };
   $('#apLista').addEventListener('click', function(e) {
+    var th = e.target.closest('th[data-col]');
+    if (th) {
+      var col = th.dataset.col;
+      if (sortCol === col) sortDir = -sortDir; else { sortCol = col; sortDir = (col === 'valor' || col === 'fecha' || col === 'fechaPago') ? -1 : 1; }
+      renderLista(ultimasFilas);
+      return;
+    }
     var b = e.target.closest('button[data-a]'); if (!b) return;
     var id = b.dataset.id, a = b.dataset.a, p;
     if (a === 'aprobar') {
@@ -1291,6 +1339,75 @@ window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e
   }
 
   window.apCargarInicial = function() { if (!cargadoAlgunaVez) cargar(); };
+
+  // ---- Sub-pestañas: Cuentas / Reportes ----
+  $('#ap-tab-cuentas').onclick = function() {
+    $('#ap-tab-cuentas').classList.add('activo'); $('#ap-tab-reportes').classList.remove('activo');
+    $('#ap-sub-cuentas').classList.add('activa'); $('#ap-sub-reportes').classList.remove('activa');
+  };
+  $('#ap-tab-reportes').onclick = function() {
+    $('#ap-tab-reportes').classList.add('activo'); $('#ap-tab-cuentas').classList.remove('activo');
+    $('#ap-sub-reportes').classList.add('activa'); $('#ap-sub-cuentas').classList.remove('activa');
+    if (!reporteCargado) { reporteCargado = true; cargarReporte(); }
+  };
+
+  // ---- Reportes: pagos realizados mes a mes, filtrables ----
+  function mesLabel(clave) { var p = clave.split('-'); return MESES[parseInt(p[1], 10) - 1] + ' ' + p[0]; }
+  function anioActualISO(mes) { var a = new Date().getFullYear(); return a + '-' + (mes === 'desde' ? '01-01' : '12-31'); }
+  function esFiltroDefault() {
+    return $('#arpDesde').value === anioActualISO('desde') && $('#arpHasta').value === anioActualISO('hasta') &&
+      !$('#arpTercero').value.trim() && !$('#arpMontoMin').value && !$('#arpMontoMax').value;
+  }
+  function completarMeses(meses) {
+    var anio = new Date().getFullYear(), porClave = {}, out = [];
+    meses.forEach(function(m) { porClave[m.mes] = m; });
+    for (var i = 1; i <= 12; i++) {
+      var clave = anio + '-' + String(i).padStart(2, '0');
+      out.push(porClave[clave] || {mes: clave, cantidad: 0, totalSmiles: 0, totalDesign: 0, total: 0});
+    }
+    return out;
+  }
+  function renderReporte(meses) {
+    if (!meses.length) { $('#arpLista').innerHTML = '<p class="pg-muted" style="padding:20px 0">No hay pagos realizados en este filtro.</p>'; return; }
+    var t = {cantidad: 0, totalSmiles: 0, totalDesign: 0, total: 0};
+    var filas = meses.map(function(m) {
+      t.cantidad += m.cantidad; t.totalSmiles += m.totalSmiles; t.totalDesign += m.totalDesign; t.total += m.total;
+      return '<tr><td>' + mesLabel(m.mes) + '</td><td style="text-align:right">' + money(m.totalSmiles) + '</td>' +
+        '<td style="text-align:right">' + money(m.totalDesign) + '</td><td style="text-align:right"><b>' + money(m.total) + '</b></td>' +
+        '<td style="text-align:right">' + m.cantidad + '</td></tr>';
+    }).join('');
+    var filaTotal = '<tr style="font-weight:800;background:var(--brand-light)"><td>Total</td><td style="text-align:right">' + money(t.totalSmiles) +
+      '</td><td style="text-align:right">' + money(t.totalDesign) + '</td><td style="text-align:right">' + money(t.total) +
+      '</td><td style="text-align:right">' + t.cantidad + '</td></tr>';
+    $('#arpLista').innerHTML = '<div class="pg-tabla-wrap"><table class="pg-tabla"><tr><th>Mes</th><th style="text-align:right">Nuvia Smiles</th>' +
+      '<th style="text-align:right">Nuvia Design</th><th style="text-align:right">Total</th><th style="text-align:right"># Pagos</th></tr>' + filas + filaTotal + '</table></div>';
+  }
+  function cargarReporte() {
+    var params = {};
+    if ($('#arpDesde').value) params.desde = $('#arpDesde').value;
+    if ($('#arpHasta').value) params.hasta = $('#arpHasta').value;
+    if ($('#arpTercero').value.trim()) params.tercero = $('#arpTercero').value.trim();
+    if ($('#arpMontoMin').value) params.montoMin = $('#arpMontoMin').value;
+    if ($('#arpMontoMax').value) params.montoMax = $('#arpMontoMax').value;
+    $('#arpLista').innerHTML = '<p class="pg-muted">Cargando…</p>';
+    api('/pagos/api/ap/reporte?' + new URLSearchParams(params).toString()).then(function(d) {
+      var meses = d.meses || [];
+      if (esFiltroDefault()) meses = completarMeses(meses);
+      renderReporte(meses);
+    }).catch(function(e) { $('#arpLista').innerHTML = '<p class="pg-err">No se pudo cargar: ' + esc(e.message) + '</p>'; });
+  }
+  $('#arpAnioActual').textContent = new Date().getFullYear();
+  $('#arpDesde').value = anioActualISO('desde'); $('#arpHasta').value = anioActualISO('hasta');
+  $('#arpDesde').onchange = cargarReporte; $('#arpHasta').onchange = cargarReporte;
+  var reporteT;
+  ['#arpTercero', '#arpMontoMin', '#arpMontoMax'].forEach(function(sel) {
+    $(sel).addEventListener('input', function() { clearTimeout(reporteT); reporteT = setTimeout(cargarReporte, 350); });
+  });
+  $('#arpLimpiar').onclick = function() {
+    $('#arpDesde').value = anioActualISO('desde'); $('#arpHasta').value = anioActualISO('hasta');
+    $('#arpTercero').value = ''; $('#arpMontoMin').value = ''; $('#arpMontoMax').value = '';
+    cargarReporte();
+  };
 })();
 </script>
 <script src="/static/pagos/push.js"></script>

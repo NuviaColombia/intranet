@@ -162,3 +162,30 @@ compra totalmente distinto, no cuentas por pagar.
   cuentan como "duplicadas" y no se repiten.
 - **El import nunca dispara avisos** (ni Cliq ni push) -- son miles de filas históricas, no pagos
   nuevos pendientes de aprobar.
+
+**(2026-10-28) Encabezados ordenables en la tabla de Cuentas.** Cada `<th>` tiene `data-col` con la
+clave de `_fila()` (`fecha`, `empresa`, `proveedorNombre`, `detalle`, `valor`, `estado`,
+`fechaPago`); un clic ordena por esa columna (alfabético para texto, numérico para `valor`), otro
+clic invierte el orden. Es 100% del lado del cliente (`ordenarFilas()` sobre `ultimasFilas`, el
+arreglo que ya trajo el último `GET /pagos/api/ap`) -- no pega al servidor de nuevo, así que no sirve
+para ordenar más allá de lo que ya está cargado en esa pantalla (el límite de 2000 filas de
+`listar()`).
+
+**(2026-10-28) Sub-pestaña "📊 Reportes" dentro de Accounts Payable** (`.pg-sub-tabs` igual que las
+otras dos herramientas, no una herramienta nueva en la barra lateral -- vive de los mismos datos).
+Muestra **pagos realizados** (estado Pagado, por `fecha_pago` -- nunca por la fecha de solicitud) en
+una tabla con una fila por mes: Nuvia Smiles, Nuvia Design, Total y # de pagos, más una fila de
+Total al final. Filtros: fecha desde/hasta, tercero (nombre o NIT) y monto mínimo/máximo --
+`GET /pagos/api/ap/reporte` (`reporte_pagos()` en `services_pagos_ap.py`). Carga perezosa, igual que
+"Cuentas": solo pide datos la primera vez que se abre esta sub-pestaña.
+
+- **La agregación mes a mes se hace en Python, no con funciones de fecha de SQL** (`strftime` de
+  SQLite no es lo mismo que `date_trunc` de Postgres) -- se trae la lista de pagos que cumple los
+  filtros y se agrupa con un diccionario por `"YYYY-MM"`. El volumen (miles de filas) no justifica
+  complicarlo con SQL específico de cada motor.
+- **"Estado default" rellena los 12 meses del año en curso con cero**, aunque no haya pagos ese mes
+  (para que se vea como un calendario completo, no una lista con huecos) -- es lógica del frontend
+  (`completarMeses()`/`esFiltroDefault()` en `pagos.html`), el backend siempre devuelve solo los
+  meses que sí tienen datos. En cuanto se toca cualquier filtro (fechas, tercero o monto), deja de
+  rellenar meses vacíos -- mostrar "Enero: $0" tendría sentido para "todo el año", no para un filtro
+  que el usuario armó a propósito.
