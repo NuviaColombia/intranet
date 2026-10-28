@@ -5697,7 +5697,8 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   };
 
   // ================= N3 Comments: réplica exacta de la fórmula del Excel =================
-  var CMT_FIELDS = ["b4","j4","b7","b11","d11","f11","h11","j11","l11","b15","f15","j15","b19","f19","j19","l22","l23","l24","l25","l26","l27","b30"];
+  // 28-oct-2026: + Shape (n11) en Design details; se quitó «Número de Attachment del archivo To mill» (l22), no se usaba
+  var CMT_FIELDS = ["b4","j4","b7","b11","d11","f11","h11","j11","l11","n11","b15","f15","j15","b19","f19","j19","l23","l24","l25","l26","l27","b30"];
   var CMT_PRODUCTS_DEFAULTS = ["N3 - Screw Retained","N6 - Dummy Set","N3 - Removable Denture",
     "N3 - Redo Removable Denture","N6 - Remake Removable Denture","N6 - Removable Denture","N6 - Single 24Z Remake"];
   var CMT_ARCH = ["A5","A10","AW5","AW10","B5","B10","BW5","BW10","C5","C10","CW5","CW10"];
@@ -5786,6 +5787,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if(cmtNe(f.b7)) s += "Product: "+f.b7+CMT_NL;
     if(cmtNe(f.b11) && !cmtRemovableLike(f.b7)) s += "Bar adapt: "+f.b11+CMT_NL;
     if(cmtNe(f.d11)) s += (cmtSi(f.f11)?"Size: Custom ":"Size: ")+f.d11+CMT_NL;
+    if(cmtNe(f.n11)) s += "Shape: "+f.n11+CMT_NL;
     if(cmtNz(f.h11)) s += "VDO: "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.h11)+CMT_NL;
     if(cmtNe(f.b15)||cmtNe(f.b19)){
       s += "Skipped implants: "+(cmtNe(f.b15)?"Upper: "+f.b15+" ":"")+(cmtNe(f.b19)?"Lower: "+f.b19:"")+CMT_NL;
@@ -5812,7 +5814,6 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if(l19n>=4 || (l19n===3&&(j19===4||j19===5)) || l15n>=4 || (l15n===3&&(j15===4||j15===5))){
       s += " The Master articulation will probably not be usable due to the number of moved implants and the case may be delivered in the digital articulation.";
     }
-    if(cmtNum(f.l22)>0) s += CMT_NL+CMT_NL+"FILES TO MILL ATTACHMENT #"+cmtDisp(f.l22);
     if(cmtNe(f.b30)||cmtNe(f.l23)||cmtNe(f.l24)||cmtNe(f.l25)||cmtSi(f.l26)||cmtSi(f.l27)){
       s += CMT_NL+CMT_NL;
       if(cmtNe(f.l23)) s += "We showed the occlusion to the Dr and it was approved, the HTML is under the attachment #"+cmtDisp(f.l23)+". ";
@@ -5923,7 +5924,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     {id: "b7", label: "Product"}, {id: "b11", label: "Bar adapt (Design details)"}, {id: "d11", label: "Arch size (Design details)"},
     {id: "f11", label: "TC Custom (Design details)"}, {id: "h11", label: "VDO lab (Design details)"},
     {id: "j11", label: "VDO Digital (Design details)"}, {id: "l11", label: "PC (Design details)"},
-    {id: "j15", label: "Total (Implants Upper)"}, {id: "j19", label: "Total (Implants Lower)"}];
+    {id: "n11", label: "Shape (Design details)"}, {id: "j15", label: "Total (Implants Upper)"}, {id: "j19", label: "Total (Implants Lower)"}];
   function cmtMarcarFaltantes() {
     var faltan = [];
     CMT_REQUIRED.forEach(function(c) {
