@@ -1109,6 +1109,16 @@ def borrar_nota_etapa(db: Session, o, user, etapa: str, nota_id: str, es_gestor:
     db.commit()
 
 
+# Estados que N6 ya no usa (Rosember, 28-oct-2026): desde el 29-oct-2026 no se ofrecen ni se pueden poner en ninguna sección de N6.
+# Los días anteriores y las órdenes que ya los tienen no cambian. Igual que DS_ESTADOS_QUITADOS_N6 en static/design/schedule.js.
+ESTADOS_QUITADOS_N6 = ("pickup received", "order entered", "bite ready")
+MSG_ESTADO_QUITADO_N6 = "Ese estado ya no existe en N6: Pickup received, Order Entered y Bite ready se quitaron."
+
+
+def es_estado_quitado_n6(estado: str | None) -> bool:
+    return _normalizar_texto(estado or "") in ESTADOS_QUITADOS_N6
+
+
 def n6_por_etapas(area_nombre: str, fecha: date, tabla: str) -> bool:
     """¿Esta orden es de N6, de Material Change u Over Ti-bar, en un día con las cuatro tablas?"""
     return n6_separado(area_nombre, fecha) and es_tabla_etapas(tabla)

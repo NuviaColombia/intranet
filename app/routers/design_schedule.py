@@ -1449,6 +1449,9 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
     datos = _datos_desde_in(payload)
     t_face = db.get(DesignTeam, payload.teamId)
     _verificar_tabla(t_face, payload.tabla, _fecha(payload.fecha))
+    if sd.n6_separado(t_face.area.nombre, _fecha(payload.fecha)) and any(
+            sd.es_estado_quitado_n6(e) for e in (payload.estado, payload.zEstado, payload.xEstado, payload.nEstado)):
+        raise HTTPException(400, sd.MSG_ESTADO_QUITADO_N6)
     if sd.es_tabla_etapas(payload.tabla) and not datos.get("etapa"):
         datos["etapa"] = sd.ETAPA_BITE
     oe = sd.estado_al_escribir_orden(t_face.area.nombre, datos.get("orden"), datos.get("estado"))
@@ -1982,6 +1985,10 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                                 {c: datos.get(c, getattr(orden_existente, c)) for c in ("art_start", "art_rtd")},
                                                 datos["estado"]))
     sep = sd.n6_por_etapas(team.area.nombre, orden_existente.fecha, orden_existente.tabla)   # N6: un estado por etapa (28-oct-2026)
+    if sd.n6_separado(team.area.nombre, orden_existente.fecha):   # N6 desde el 29-oct: esos estados ya no existen (solo si cambian)
+        for col in ("estado", "z_estado", "x_estado", "n_estado"):
+            if col in datos and (datos[col] or "") != (getattr(orden_existente, col) or "") and sd.es_estado_quitado_n6(datos[col]):
+                raise HTTPException(400, sd.MSG_ESTADO_QUITADO_N6)
     if sep and solo_propia:   # N6: un diseñador solo cambia el estado de la etapa en la que está asignado (Rosember, 28-oct-2026)
         for p, col in sd.ETAPAS_N6:
             if (col in datos and (datos[col] or "") != (getattr(orden_existente, col) or "")

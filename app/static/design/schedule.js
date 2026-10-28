@@ -940,6 +940,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_TABLA_BASE = {tibar: 'material', dummy: 'principal'};
   function dsTablaBase(t) { return DS_TABLA_BASE[t] || t; }
   function dsN6Separado() { return dsAreaNombre() === DS_AREA_MATERIAL && dsFechaISO(dsFechaSeleccionada()) >= DS_N6_SEPARADO_DESDE; }
+  // Estados que N6 ya no usa (Rosember, 28-oct-2026): desde el 29-oct-2026 no se ofrecen en ninguna sección de N6 (ESTADOS_QUITADOS_N6 en el servidor).
+  // Una orden que ya tiene uno lo sigue mostrando.
+  var DS_ESTADOS_QUITADOS_N6 = ['pickup received', 'order entered', 'bite ready'];
   var DS_N6_24Z = ['N6 - Material Change Full Mouth 24Z', 'N6 - Material Change Single 24Z', 'N6 - Redo Material Change Full Mouth 24Z',
     'N6 - Redo Material Change Single 24Z', 'N6 - Full Mouth 24Z Remake', 'N6 - Single 24Z Remake'];
   var DS_PRODUCTOS_N6 = {   // igual que PRODUCTOS_N6_TABLA en services_design.py
@@ -2269,6 +2272,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {
+            if (c.cat === 'estado' && v !== actual && dsN6Separado() && DS_ESTADOS_QUITADOS_N6.indexOf(dsNorm(v)) >= 0 && root.id === DS_CONT[tabla]) return;
             if (c.cat === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
             // «Changes» también en Cirugías/Dummy de N6 (Rosember, 19-oct-2026); «Dr authorization» sigue siendo solo de Material Change
             var changesN6 = dsNorm(v) === 'changes' && dsTablaBase(tabla) === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL;
