@@ -2279,6 +2279,26 @@ def produccion_mes_previa(db: Session, team: DesignTeam, fecha: date, solo_emple
     return out
 
 
+_PROD_MES_CACHE: dict = {}
+PROD_MES_CACHE_S = 60
+
+
+def produccion_mes_compartida(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int | None = None) -> dict:
+    """produccion_mes_previa, calculada una vez por equipo y fecha cada minuto y compartida por todo el equipo (28-oct-2026):
+    al abrir el Schedule, cada una de las ~8 personas de un equipo lo calculaba por separado. Son días ANTERIORES, que casi no
+    cambian; a quien solo ve lo suyo se le entrega solo su fila (la misma que le daba el cálculo filtrado)."""
+    import time as _t
+    ahora, k = _t.monotonic(), (team.id, fecha)
+    c = _PROD_MES_CACHE.get(k)
+    if not c or ahora - c[0] >= PROD_MES_CACHE_S:
+        if len(_PROD_MES_CACHE) > 300:
+            _PROD_MES_CACHE.clear()
+        c = _PROD_MES_CACHE[k] = (ahora, produccion_mes_previa(db, team, fecha))
+    if solo_empleado_id is None:
+        return c[1]
+    return {solo_empleado_id: c[1][solo_empleado_id]} if solo_empleado_id in c[1] else {}
+
+
 def _manager_elegible(team: DesignTeam, ya: set) -> dict | None:
     m = team.manager
     if not m or not m.activo or m.id in ya:

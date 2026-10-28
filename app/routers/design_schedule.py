@@ -1225,7 +1225,7 @@ def api_produccion_mes(team_id: int, fecha: str, user: Empleado = Depends(requir
     """Lo que lleva cada persona en el mes antes de `fecha` (la ventana «Producción del día» le suma el día elegido)."""
     team = _verificar_equipo_ver(db, user, team_id)
     gest, es_tr = sd.gestiona_equipo(user, team), sd.es_training(team)
-    return sd.produccion_mes_previa(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
+    return sd.produccion_mes_compartida(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
 
 
 @router.get("/design/api/dia/version")
@@ -3194,7 +3194,7 @@ def api_preferencia_tema(payload: TemaIn, user: Empleado = Depends(require_modul
 def api_seguimiento_produccion(fecha: str = "", user: Empleado = Depends(require_design_manager), db: Session = Depends(get_db)):
     """N3/N2 Producción: el reporte diario de cada equipo (diseñadores en turno y casos nuevos por centro)."""
     return {"fecha": (_fecha(fecha) if fecha else sd.ahora_colombia().date()).isoformat(),
-            "equipos": sprod.produccion(db, _fecha(fecha) if fecha else sd.ahora_colombia().date())}
+            "equipos": sprod.produccion_compartida(db, _fecha(fecha) if fecha else sd.ahora_colombia().date())}
 
 
 # ---------- Papelera ----------

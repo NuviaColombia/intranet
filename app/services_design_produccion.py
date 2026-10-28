@@ -81,3 +81,23 @@ def produccion(db: Session, fecha: date) -> list[dict]:
                         "disenadores": len(disenadores), "enTurno": en_turno, "ausencias": por_tipo, "centros": centros,
                         "total": total, "canceladas": canceladas, "unidad": unidad, "texto": texto})
     return out
+
+
+# 28-oct-2026: el reporte es el mismo para todos los managers (no depende de quién lo pide) y la vista se recarga con cada
+# cambio de cualquier orden de N3 o N2. Antes cada manager lo recalculaba por separado en cada aviso; ahora se calcula una
+# vez cada PROD_CACHE_S segundos por fecha y se comparte (como Seguimiento).
+_PROD_CACHE: dict = {}
+PROD_CACHE_S = 4
+
+
+def produccion_compartida(db: Session, fecha: date) -> list[dict]:
+    import time as _t
+    ahora = _t.monotonic()
+    c = _PROD_CACHE.get(fecha)
+    if c and ahora - c[0] < PROD_CACHE_S:
+        return c[1]
+    if len(_PROD_CACHE) > 20:   # fechas viejas que alguien consultó
+        _PROD_CACHE.clear()
+    v = produccion(db, fecha)
+    _PROD_CACHE[fecha] = (ahora, v)
+    return v
