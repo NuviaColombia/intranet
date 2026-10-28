@@ -63,6 +63,12 @@ class Empleado(Base):
                             # Empleados › editar (28-oct-2026: antes decía "Caja menor Nuvia", ver MODULOS_DISPONIBLES),
                             # o bien desde Parámetros › Quién tiene acceso (Parámetros en sí sigue abierto a
                             # cualquier admin/superadmin -- ver require_admin_caja_menor)
+        if modulo == "custodia" and self.rol in ("admin", "superadmin") and modulo not in self.modulos_lista:
+            return False   # Producción (28-oct-2026, mismo patrón que Caja menor): ni admin ni superadmin
+                            # entran automático, necesitan autorización explícita -- o bien marcando la
+                            # casilla "Producción" de Empleados › editar, o bien desde Producción ›
+                            # Parámetros › pestaña 🔐 Autorizados a entrar (Parámetros en sí sigue abierto
+                            # a cualquier admin/superadmin -- ver require_admin_produccion)
         return self.rol in ("admin", "superadmin") or modulo in self.modulos_lista
 
     @property

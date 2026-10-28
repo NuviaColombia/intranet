@@ -56,7 +56,10 @@ def es_admin_produccion(user: Empleado | None) -> bool:
 
 def es_admin(user: Empleado) -> bool:
     """Superadmin administra todo; un admin normal solo si es de Nuvia Smiles -- Producción
-    (Custodia, Consumo) es exclusivo de esa empresa, igual que SST. Además, los administradores de Producción."""
+    (Custodia, Consumo) es exclusivo de esa empresa, igual que SST. Además, los administradores de Producción.
+    Esto decide los permisos DENTRO del módulo una vez que ya se entró -- la entrada en sí (¿puede
+    siquiera abrir Producción?) la decide Empleado.tiene_modulo("custodia"), que desde el 28-oct-2026
+    ya no es automática para admin/superadmin (mismo patrón que Caja menor, ver esa excepción)."""
     if user.rol == "superadmin":
         return True
     return (user.rol == "admin" and user.empresa == EMPRESA_PRODUCCION) or es_admin_produccion(user)
