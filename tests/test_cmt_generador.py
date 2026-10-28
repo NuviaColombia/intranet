@@ -3,7 +3,8 @@
 Toma las funciones del generador directamente de static/design/schedule.js (entre `var CMT_FIELDS` y `var CMT_TEMPLATES`),
 las corre con node para cada caso de tests/cmt_casos.json y compara el texto exacto.
 
-Los textos esperados son los que daba el generador el 28-oct-2026 (aprobados por Rosember como el comportamiento actual).
+Los textos esperados son los que daba el generador el 28-oct-2026 (aprobados por Rosember como el comportamiento actual),
+con 4 correcciones aprobadas ese mismo día: punto tras el tamaño sin PC, sin «PC PC», sin «(Digitally )» vacío y VDO con punto decimal.
 Si cambias el texto A PROPÓSITO, revisa el resultado y vuelve a generarlos:
     python tests/test_cmt_generador.py --regenerar
 """

@@ -21,7 +21,7 @@
    "j15": "6",
    "j19": "6"
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 (PC PC 12). We used VDO at -1 (Digitally -0.8). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 (PC 12). We used VDO at -1 (Digitally -0.8). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -38,7 +38,7 @@
    "l11": "45",
    "n11": "Square"
   },
-  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: Custom B10\nShape: Square\nVDO: +1,5\n\nThis arch is Custom B10 (DDI-0045). We used VDO at +1,5 (Digitally +1.2). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: Custom B10\nShape: Square\nVDO: +1.5\n\nThis arch is Custom B10 (DDI-0045). We used VDO at +1.5 (Digitally +1.2). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Mike Holmes 245569 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -66,7 +66,7 @@
    "h11": "0",
    "n11": "Natural"
   },
-  "readyToMill": "Ready to mill: Lorrie Marshal 245500\nProduct: N3 - Removable Denture\nSize: C5\nShape: Natural\n\nThis arch is C5 We used VDO at 0. ",
+  "readyToMill": "Ready to mill: Lorrie Marshal 245500\nProduct: N3 - Removable Denture\nSize: C5\nShape: Natural\n\nThis arch is C5. We used VDO at 0. ",
   "everythingOk": "Lorrie Marshal 245500 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -79,7 +79,7 @@
    "h11": "-1",
    "j11": "-0.5"
   },
-  "readyToMill": "Ready to mill: Zulma Medrano 245474\nProduct: N3 - Screw Retained\nSize: A5\nVDO: -1\n\nThis arch is A5 We used VDO at -1 (Digitally -0.5). The screw retained implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Zulma Medrano 245474\nProduct: N3 - Screw Retained\nSize: A5\nVDO: -1\n\nThis arch is A5. We used VDO at -1 (Digitally -0.5). The screw retained implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Zulma Medrano 245474 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -91,7 +91,7 @@
    "d11": "AW5",
    "h11": "-1"
   },
-  "readyToMill": "Ready to mill: Vernon Simmons 245600\nProduct: N6 - Dummy Set\nSize: AW5\nVDO: -1\n\nThis arch is AW5 We used VDO at -1 (Digitally ). ",
+  "readyToMill": "Ready to mill: Vernon Simmons 245600\nProduct: N6 - Dummy Set\nSize: AW5\nVDO: -1\n\nThis arch is AW5. We used VDO at -1. ",
   "everythingOk": "Vernon Simmons 245600 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -106,7 +106,7 @@
    "b15": "#12",
    "j15": "6"
   },
-  "readyToMill": "Ready to mill: Joanne McElyea 245388\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #12 \n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implant #12 so that the rest would be in a better position. This arch has 1 implant moved.",
+  "readyToMill": "Ready to mill: Joanne McElyea 245388\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #12 \n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implant #12 so that the rest would be in a better position. This arch has 1 implant moved.",
   "everythingOk": "Joanne McElyea 245388 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -122,7 +122,7 @@
    "f15": "#15",
    "j15": "6"
   },
-  "readyToMill": "Ready to mill: Sharon Jespersen 245638\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #12, #14 \n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #12, #14 so that the rest would be in a better position but we still have the #15 implant moved. This arch has 3 implants moved. If removing the skipped implant from the master model the bar and the guide are not sitting well, you can remove the implant that looks moved.",
+  "readyToMill": "Ready to mill: Sharon Jespersen 245638\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #12, #14 \n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #12, #14 so that the rest would be in a better position but we still have the #15 implant moved. This arch has 3 implants moved. If removing the skipped implant from the master model the bar and the guide are not sitting well, you can remove the implant that looks moved.",
   "everythingOk": "Sharon Jespersen 245638 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -138,7 +138,7 @@
    "f15": "#11",
    "j15": "6"
   },
-  "readyToMill": "Ready to mill: Leilani Briseno 245599\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #12, #14, #15 \n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts. The Master articulation will probably not be usable due to the number of moved implants and the case may be delivered in the digital articulation.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #12, #14, #15 so that the rest would be in a better position but we still have the #11 implant moved. This arch has 4 implants moved. The Doctor approved to continue with 4 implants moved out of 6.",
+  "readyToMill": "Ready to mill: Leilani Briseno 245599\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #12, #14, #15 \n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts. The Master articulation will probably not be usable due to the number of moved implants and the case may be delivered in the digital articulation.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #12, #14, #15 so that the rest would be in a better position but we still have the #11 implant moved. This arch has 4 implants moved. The Doctor approved to continue with 4 implants moved out of 6.",
   "everythingOk": "Leilani Briseno 245599 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -153,7 +153,7 @@
    "b15": "#11, #13, #16",
    "j15": "6"
   },
-  "readyToMill": "Ready to mill: Christina Armstrong 245566\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #11, #13, #16 \n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #11, #13, #16 so that the rest would be in a better position. This arch has 3 implants moved. The doctor approved to continue with 3 skipped implants on the same side.",
+  "readyToMill": "Ready to mill: Christina Armstrong 245566\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\nSkipped implants: Upper: #11, #13, #16 \n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nUpper arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #11, #13, #16 so that the rest would be in a better position. This arch has 3 implants moved. The doctor approved to continue with 3 skipped implants on the same side.",
   "everythingOk": "Christina Armstrong 245566 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -168,7 +168,7 @@
    "f19": "#36",
    "j19": "5"
   },
-  "readyToMill": "Ready to mill: Gary Washington 243864\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nLower arch: We try to skip each implant to choose the best possible alignment, however when we skip implant #36 it negatively affected the other implants. If the bar and guide are not positioned correctly, you can remove the implant that appears to be moved. This arch has 1 implant moved.",
+  "readyToMill": "Ready to mill: Gary Washington 243864\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts.\n\nLower arch: We try to skip each implant to choose the best possible alignment, however when we skip implant #36 it negatively affected the other implants. If the bar and guide are not positioned correctly, you can remove the implant that appears to be moved. This arch has 1 implant moved.",
   "everythingOk": "Gary Washington 243864 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -184,7 +184,7 @@
    "f19": "#36",
    "j19": "4"
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Screw Retained\nSize: A5\nVDO: -1\nSkipped implants: Lower: #31, #33\n\nThis arch is A5 We used VDO at -1 (Digitally -1). The screw retained implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts. The Master articulation will probably not be usable due to the number of moved implants and the case may be delivered in the digital articulation.\n\nLower arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #31, #33 so that the rest would be in a better position but we still have the #36 implant moved. This arch has 3 implants moved. The Doctor approved to continue with 3 implants moved out of 4.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Screw Retained\nSize: A5\nVDO: -1\nSkipped implants: Lower: #31, #33\n\nThis arch is A5. We used VDO at -1 (Digitally -1). The screw retained implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process. The case took longer than estimated due to different alignment attempts. The Master articulation will probably not be usable due to the number of moved implants and the case may be delivered in the digital articulation.\n\nLower arch: We try to skip each implant to choose the best possible alignment. The best option was skipping implants #31, #33 so that the rest would be in a better position but we still have the #36 implant moved. This arch has 3 implants moved. The Doctor approved to continue with 3 implants moved out of 4.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -203,7 +203,7 @@
    "l27": "Si",
    "b30": "Nota libre del diseñador."
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.\n\nWe showed the occlusion to the Dr and it was approved, the HTML is under the attachment #3. As requested by the doctor, we made occlusal cant and midline changes digitally. Since the case was not rearticulated, the master articulation will be disabled. The Upper tissue was digitally extended because we did not have enough information to complete the design. This case has the same occlusion approved by the doctor in N2 and will be processed in 24Z. We notified the manager that the waxup overlapped the antagonist in some areas and approved to continue. Nota libre del diseñador.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.\n\nWe showed the occlusion to the Dr and it was approved, the HTML is under the attachment #3. As requested by the doctor, we made occlusal cant and midline changes digitally. Since the case was not rearticulated, the master articulation will be disabled. The Upper tissue was digitally extended because we did not have enough information to complete the design. This case has the same occlusion approved by the doctor in N2 and will be processed in 24Z. We notified the manager that the waxup overlapped the antagonist in some areas and approved to continue. Nota libre del diseñador.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -218,7 +218,7 @@
    "l24": "Midline",
    "l25": "Ambos"
   },
-  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.\n\nAs requested by the doctor, we made a midline change digitally. Since the case was not rearticulated, the master articulation will be disabled. The Upper and Lower tissue were digitally extended because we did not have enough information to complete the design. ",
+  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.\n\nAs requested by the doctor, we made a midline change digitally. Since the case was not rearticulated, the master articulation will be disabled. The Upper and Lower tissue were digitally extended because we did not have enough information to complete the design. ",
   "everythingOk": "Mike Holmes 245569 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -233,7 +233,7 @@
    "l24": "CANT",
    "l25": "Lower"
   },
-  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5 We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.\n\nAs requested by the doctor, we made an occlusal cant change digitally. Since the case was not rearticulated, the master articulation will be disabled. The Lower tissue was digitally extended because we did not have enough information to complete the design. ",
+  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nSize: A5\nVDO: -1\n\nThis arch is A5. We used VDO at -1 (Digitally -1). The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.\n\nAs requested by the doctor, we made an occlusal cant change digitally. Since the case was not rearticulated, the master articulation will be disabled. The Lower tissue was digitally extended because we did not have enough information to complete the design. ",
   "everythingOk": "Mike Holmes 245569 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -243,7 +243,79 @@
    "b7": "N3 - Full Mouth 24Z",
    "d11": "A5"
   },
-  "readyToMill": "Product: N3 - Full Mouth 24Z\nSize: A5\n\nThis arch is A5 We used VDO at . The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Product: N3 - Full Mouth 24Z\nSize: A5\n\nThis arch is A5. We used VDO at . The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": ""
+ },
+ {
+  "nombre": "detalle 1: sin PC el tamaño cierra con punto",
+  "campos": {
+   "b4": "Robin Rudloff",
+   "j4": "245508",
+   "b7": "N3 - Full Mouth 24Z",
+   "b11": "Ti-Bar",
+   "d11": "A5",
+   "f11": "No",
+   "n11": "Round",
+   "j15": "6",
+   "j19": "6",
+   "h11": "-1",
+   "j11": "-1"
+  },
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5. We used VDO at -1 (Digitally -1). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
+ },
+ {
+  "nombre": "detalle 2: «pc12» en minúscula y sin espacio no repite PC",
+  "campos": {
+   "b4": "Robin Rudloff",
+   "j4": "245508",
+   "b7": "N3 - Full Mouth 24Z",
+   "b11": "Ti-Bar",
+   "d11": "A5",
+   "f11": "No",
+   "n11": "Round",
+   "j15": "6",
+   "j19": "6",
+   "h11": "-1",
+   "j11": "-1",
+   "l11": "pc12"
+  },
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 (PC 12). We used VDO at -1 (Digitally -1). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
+ },
+ {
+  "nombre": "detalle 3: VDO sin digital no deja «(Digitally )»",
+  "campos": {
+   "b4": "Robin Rudloff",
+   "j4": "245508",
+   "b7": "N3 - Full Mouth 24Z",
+   "b11": "Ti-Bar",
+   "d11": "A5",
+   "f11": "No",
+   "n11": "Round",
+   "j15": "6",
+   "j19": "6",
+   "h11": "-1"
+  },
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5. We used VDO at -1. This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
+ },
+ {
+  "nombre": "detalle 4: comas en VDO y digital, signos ya escritos",
+  "campos": {
+   "b4": "Robin Rudloff",
+   "j4": "245508",
+   "b7": "N3 - Full Mouth 24Z",
+   "b11": "Ti-Bar",
+   "d11": "A5",
+   "f11": "No",
+   "n11": "Round",
+   "j15": "6",
+   "j19": "6",
+   "h11": "+0,5",
+   "j11": "-0,25"
+  },
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: +0.5\n\nThis arch is A5. We used VDO at +0.5 (Digitally -0.25). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  }
 ]

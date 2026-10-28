@@ -5716,6 +5716,8 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   function cmtIsNum(v){ var s=String(v==null?"":v).trim(); return s!=="" && /^[+-]?\d+([.,]\d+)?$/.test(s); }
   function cmtLen(v){ return String(v==null?"":v).trim().length; }
   function cmtDisp(v){ return String(v==null?"":v).trim(); }
+  // VDO con punto decimal y su propio signo: «1,5» → «+1.5», «+1.2» → «+1.2» (no «++1.2»)
+  function cmtVdo(v){ var s=cmtDisp(v).replace(",",".").replace(/^\+\s*/,""); return (cmtNum(s)>0?"+":"")+s; }
   function cmtEqi(a,b){ return String(a==null?"":a).trim().toLowerCase() === String(b).toLowerCase(); }
   function cmtSi(v){ return cmtEqi(v,"Si"); }
   function cmtFmt(n){ if(n===""||n==null) return ""; return String(Number(n)); }
@@ -5791,22 +5793,22 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if(cmtNe(f.b11) && !cmtRemovableLike(f.b7)) s += "Bar adapt: "+f.b11+CMT_NL;
     if(cmtNe(f.d11)) s += (cmtSi(f.f11)?"Size: Custom ":"Size: ")+f.d11+CMT_NL;
     if(cmtNe(f.n11)) s += "Shape: "+f.n11+CMT_NL;
-    if(cmtNz(f.h11)) s += "VDO: "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.h11)+CMT_NL;
+    if(cmtNz(f.h11)) s += "VDO: "+cmtVdo(f.h11)+CMT_NL;
     if(cmtNe(f.b15)||cmtNe(f.b19)){
       s += "Skipped implants: "+(cmtNe(f.b15)?"Upper: "+f.b15+" ":"")+(cmtNe(f.b19)?"Lower: "+f.b19:"")+CMT_NL;
     }
     if(cmtNe(f.b7)) s += CMT_NL;
-    if(cmtNe(f.d11)) s += "This arch is "+(cmtSi(f.f11)?"Custom ":"")+f.d11+" ";
+    if(cmtNe(f.d11)) s += "This arch is "+(cmtSi(f.f11)?"Custom ":"")+f.d11+(cmtNe(f.l11)?" ":". ");   // sin PC cierra con punto
     if(cmtNe(f.l11)){
       if(cmtIsNum(f.l11)){
         var n=cmtNum(f.l11);
         var pre = n>999?"(InTech #":(n>99?"(DDI-0":(n>9?"(DDI-00":"(DDI-000"));
         s += pre+cmtDisp(f.l11)+"). ";
-      } else { s += "(PC "+f.l11+"). "; }
+      } else { s += "(PC "+cmtDisp(f.l11).replace(/^PC\s*/i,"")+"). "; }   // si ya escribieron «PC 12» no sale «PC PC 12»
     }
     if(cmtNe(f.b7)){
-      s += "We used VDO at "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.h11)+
-           (cmtNz(f.h11)?" (Digitally "+(cmtNum(f.h11)>0?"+":"")+cmtDisp(f.j11)+")":"")+". ";
+      s += "We used VDO at "+cmtVdo(f.h11)+
+           (cmtNz(f.h11)&&cmtNe(f.j11)?" (Digitally "+cmtVdo(f.j11)+")":"")+". ";
     }
     if(cmtNe(f.b11) && !cmtRemovableLike(f.b7)) s += "This bar was adapted to "+f.b11+". ";
     if(cmtNe(f.b7) && !cmtA12Excluded(f)){
@@ -5974,32 +5976,66 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     document.getElementById("cmtOut1").value = cmtGenReadyToMill(f);
     document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
     cmtAutoGrow(document.getElementById("cmtOut1")); cmtAutoGrow(document.getElementById("cmtOut2")); cmtAutoGrow(document.getElementById("cmt_b30"));
-    cmtRenderPlantillas();
-    cmtGuardarBorrador(f);
+    var po = (f.b4 || '') + '\u0001' + (f.j4 || '');   // las plantillas solo usan paciente y orden ({PO})
+    if (po !== cmtPoPintado) cmtRenderPlantillas();
+    cmtGuardarLuego(f);
   }
+  // El texto se actualiza con cada tecla, pero el borrador y la orden se guardan cuando la persona hace una pausa
+  // de 250 ms (antes: dos escrituras completas por tecla). Antes de Limpiar, de cambiar de orden o de cerrar la
+  // página se guarda lo pendiente de inmediato, así no se pierde nada.
+  var cmtPendiente = null, cmtTimer = 0;
+  function cmtGuardarLuego(f) { cmtPendiente = f; clearTimeout(cmtTimer); cmtTimer = setTimeout(cmtGuardarAhora, 250); }
+  function cmtGuardarAhora() {
+    clearTimeout(cmtTimer); cmtTimer = 0;
+    var f = cmtPendiente; cmtPendiente = null;
+    if (f) cmtGuardarBorrador(f);
+  }
+  window.addEventListener('pagehide', cmtGuardarAhora);
+  window.addEventListener('beforeunload', cmtGuardarAhora);
+  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') cmtGuardarAhora(); });
   // Borrador: lo escrito en Comments N3 se guarda en este navegador (por persona) con cada cambio, así al
   // actualizar la página o cerrarla por error no se pierde. "Limpiar" lo vacía (y guarda el caso en el historial).
   var CMT_BORRADOR_KEY = 'cmtBorradorV1:' + window.DS_CFG.userId, cmtBorradorListo = false;
   // Trabajo por orden: cada número de orden guarda lo que se trabajó en Comments (en este navegador, de cada persona).
   // Así, si una cirugía queda en Hold y el diseñador abre otra orden (ej. una TC), al volver a la primera recupera todo.
-  // Se borra solo 2 días después del último cambio.
-  var CMT_ORDENES_KEY = 'cmtOrdenesV1:' + window.DS_CFG.userId, CMT_ORDEN_DIAS = 2;
+  // Se borra solo 2 días después del último cambio. Cada orden va en su propia clave (cmtOrdenV2:<persona>:<orden>),
+  // así guardar una orden escribe solo esa y no las hasta 300 que haya (antes todas iban juntas en cmtOrdenesV1).
+  var CMT_ORDEN_PREF = 'cmtOrdenV2:' + window.DS_CFG.userId + ':', CMT_ORDEN_DIAS = 2, CMT_ORDEN_MAX = 300;
   function cmtClaveOrden(o) { return String(o || '').trim().toUpperCase(); }
-  function cmtOrdenes() {
-    var m = {}; try { m = JSON.parse(localStorage.getItem(CMT_ORDENES_KEY) || '{}') || {}; } catch (e) {}
-    var lim = Date.now() - CMT_ORDEN_DIAS * 864e5, cambio = false;
-    Object.keys(m).forEach(function(k) { if (!m[k] || !(m[k].t > lim)) { delete m[k]; cambio = true; } });
-    if (cambio) try { localStorage.setItem(CMT_ORDENES_KEY, JSON.stringify(m)); } catch (e) {}
-    return m;
+  function cmtOrdenLeer(k) {
+    var o = null; try { o = JSON.parse(localStorage.getItem(CMT_ORDEN_PREF + k) || 'null'); } catch (e) {}
+    if (o && o.t > Date.now() - CMT_ORDEN_DIAS * 864e5) return o;
+    if (o) try { localStorage.removeItem(CMT_ORDEN_PREF + k); } catch (e) {}
+    return null;
   }
-  window.cmtTrabajoDeOrden = function(orden) { return cmtOrdenes()[cmtClaveOrden(orden)] || null; };
+  // Pasa lo guardado con el formato anterior (un solo mapa) a una clave por orden, borra las vencidas y deja máximo 300.
+  function cmtOrdenesOrdenar() {
+    try {
+      var viejaK = 'cmtOrdenesV1:' + window.DS_CFG.userId, vieja = localStorage.getItem(viejaK);
+      if (vieja) {
+        var m = JSON.parse(vieja) || {};
+        Object.keys(m).forEach(function(k) { if (m[k] && m[k].t && !localStorage.getItem(CMT_ORDEN_PREF + k)) localStorage.setItem(CMT_ORDEN_PREF + k, JSON.stringify(m[k])); });
+        localStorage.removeItem(viejaK);
+      }
+      var lim = Date.now() - CMT_ORDEN_DIAS * 864e5, vivas = [];
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var c = localStorage.key(i); if (!c || c.indexOf(CMT_ORDEN_PREF) !== 0) continue;
+        var o = null; try { o = JSON.parse(localStorage.getItem(c)); } catch (e) {}
+        if (!o || !(o.t > lim)) localStorage.removeItem(c); else vivas.push([c, o.t]);
+      }
+      if (vivas.length > CMT_ORDEN_MAX) vivas.sort(function(a, b) { return a[1] - b[1]; }).slice(0, vivas.length - CMT_ORDEN_MAX).forEach(function(x) { localStorage.removeItem(x[0]); });
+    } catch (e) {}
+  }
+  cmtOrdenesOrdenar();
+  window.cmtTrabajoDeOrden = function(orden) { var k = cmtClaveOrden(orden); return k ? cmtOrdenLeer(k) : null; };
   function cmtGuardarOrden(f) {
     var k = cmtClaveOrden(f.j4); if (!k || !CMT_FIELDS.some(function(x) { return cmtNe(f[x]); })) return;
-    var m = cmtOrdenes(), antes = m[k];
-    m[k] = {t: Date.now(), campos: f};
-    var claves = Object.keys(m); if (claves.length > 300) claves.sort(function(a, b) { return m[a].t - m[b].t; }).slice(0, claves.length - 300).forEach(function(x) { delete m[x]; });
-    try { localStorage.setItem(CMT_ORDENES_KEY, JSON.stringify(m)); } catch (e) {}
-    if (!antes && window.dsRefrescarAccesosCmt) window.dsRefrescarAccesosCmt();   // el 💬 de esa orden queda marcado
+    var antes = cmtOrdenLeer(k);
+    try { localStorage.setItem(CMT_ORDEN_PREF + k, JSON.stringify({t: Date.now(), campos: f})); } catch (e) {}
+    if (!antes) {
+      cmtOrdenesOrdenar();   // orden nueva: revisa el tope de 300 (solo aquí, no con cada tecla)
+      if (window.dsRefrescarAccesosCmt) window.dsRefrescarAccesosCmt();   // el 💬 de esa orden queda marcado
+    }
   }
   function cmtGuardarBorrador(f) {
     if (!cmtBorradorListo) return;
@@ -6040,8 +6076,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
            '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ', this)">Copiar</button></span></div>' +
            '<div class="cmt-tpl-text">' + cmtEscHtml(cmtTplText(tpl, f)) + '</div></div>';
   }
+  var cmtPoPintado = null;
   function cmtRenderPlantillas() {
     var f = cmtLeer();
+    cmtPoPintado = (f.b4 || '') + '\u0001' + (f.j4 || '');
     var favs = CMT_TPL.filter(function(t) { return t.id != null && CMT_FAVS[t.id]; });
     var resto = CMT_TPL.filter(function(t) { return favs.indexOf(t) < 0; });
     var html = favs.map(function(t) { return cmtTplHtml(t, f); }).join('');
@@ -6129,7 +6167,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var f = cmtLeer();
     var vaciar = function() {
       CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = ""; });
-      cmtRecalcular();
+      cmtRecalcular(); cmtGuardarAhora();   // el borrador se borra ya, no 250 ms después
     };
     // como el original: se guarda si hay cualquier dato (sin paciente queda como "(sin nombre)")
     if (!CMT_FIELDS.some(function(k) { return cmtNe(f[k]); })) { vaciar(); return; }
@@ -6236,8 +6274,9 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (!CMT_PERM.n3) return;
     var f = cmtLeer();
     if (cmtClaveOrden(f.j4) === cmtClaveOrden(o.orden)) return;   // ya está abierta esa orden
+    cmtGuardarAhora();
     cmtGuardarOrden(f);   // lo que había en el formulario queda guardado en su orden
-    var guardado = cmtOrdenes()[cmtClaveOrden(o.orden)];
+    var guardado = window.cmtTrabajoDeOrden(o.orden);
     CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) { el.value = ""; el.classList.remove('cmt-missing'); } });
     if (guardado && guardado.campos) {
       cmtCargarDesdeHistorial(guardado.campos);
