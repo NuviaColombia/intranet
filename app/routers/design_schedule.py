@@ -2293,7 +2293,7 @@ def api_buscar(q: str, user: Empleado = Depends(require_modulo("design_schedule"
 @router.get("/design/api/comentarios/historial")
 def api_historial_comentarios(user: Empleado = Depends(require_comments("n3")),
                                     db: Session = Depends(get_db)):
-    return sd.historial_comentarios(db)
+    return sd.historial_comentarios(db, user)
 
 
 class HistorialComentarioIn(BaseModel):
@@ -2313,7 +2313,7 @@ def api_guardar_historial(payload: HistorialComentarioIn,
 @router.post("/design/api/comentarios/historial/{historial_id}/eliminar")
 def api_eliminar_historial(historial_id: int, user: Empleado = Depends(require_comments("n3")),
                                  db: Session = Depends(get_db)):
-    if not sd.eliminar_historial_comentario(db, historial_id):
+    if not sd.eliminar_historial_comentario(db, user, historial_id):
         raise HTTPException(404, "No encontrado.")
     return {"mensaje": "Eliminado."}
 

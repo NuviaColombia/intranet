@@ -3529,12 +3529,13 @@ def equipos_prestables(db: Session, team: DesignTeam) -> list[dict]:
 
 # ---------- Comments N3: historial ----------
 
-def historial_comentarios(db: Session) -> list[dict]:
+# Cada persona ve y borra solo sus casos, también managers y admins (Rosember, 28-oct-2026; antes era uno para todos).
+def historial_comentarios(db: Session, user: Empleado) -> list[dict]:
     limite = datetime.utcnow() - timedelta(days=2)
     db.query(DesignComentarioHistorial).filter(DesignComentarioHistorial.creado_en < limite).delete()
     db.commit()
     filas = (db.query(DesignComentarioHistorial)
-            .filter(DesignComentarioHistorial.creado_en >= limite)
+            .filter(DesignComentarioHistorial.creado_en >= limite, DesignComentarioHistorial.creado_por_id == user.id)
             .order_by(DesignComentarioHistorial.creado_en.desc()).all())
     return [{"id": h.id, "paciente": h.paciente, "orden": h.orden, "campos": json.loads(h.campos),
             "creadoEn": h.creado_en.isoformat()} for h in filas]
@@ -3546,9 +3547,9 @@ def guardar_historial_comentario(db: Session, user: Empleado, paciente: str, ord
     db.commit()
 
 
-def eliminar_historial_comentario(db: Session, historial_id: int) -> bool:
+def eliminar_historial_comentario(db: Session, user: Empleado, historial_id: int) -> bool:
     h = db.get(DesignComentarioHistorial, historial_id)
-    if not h:
+    if not h or h.creado_por_id != user.id:
         return False
     db.delete(h)
     db.commit()
