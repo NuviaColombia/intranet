@@ -2402,7 +2402,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (c.t === 'ro') return '<span class="ds-ro" data-ro="' + c.k + '">' + dsEsc(val || '') + '</span>';
     if (c.t === 'text') return '<input type="text" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
     if (c.t === 'number') return '<input type="number" step="1" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || 0) + '">';
-    if (c.t === 'time') return '<input type="time" data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
+    if (c.t === 'time') return '<input type="time" class="ds-hora" required data-campo="' + c.k + '"' + al + ' value="' + dsEsc(val || '') + '">';
     if (c.t === 'checkbox') {
       var bloq = dsEsCampoQc(c.k) && DS.diaData && DS.diaData.puedeQc === false;  // el QC lo marcan aprobadores y el diseñador a cargo
       return '<input type="checkbox" data-campo="' + c.k + '"' + al + ' ' + (val ? 'checked' : '') +
@@ -2673,6 +2673,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (k === 'holdMinutos' && v === '0' && el.value === '') return;
       if (el.tagName === 'SELECT' && v && !el.querySelector('option[value="' + CSS.escape(v) + '"]')) return;
       if (el.value !== v) { el.value = v; el._alEnfocar = v; if (el.dataset.valorActual !== undefined) el.dataset.valorActual = v; }
+      if (el.classList.contains('ds-hora')) el.setAttribute('value', v);   // horas deshabilitadas: el «—» mira el atributo
     });
     tr.querySelectorAll('button.ds-multi').forEach(function(b) { var h = b.parentNode.querySelector('[data-campo]'); if (h) dsMultiPintar(b, h.value); });
   }
@@ -2945,9 +2946,9 @@ window.addEventListener('unhandledrejection', function(ev) {
         var fila = function(lbl, ini, fin, conCheck) {
           return '<div class="ds-tl-fila"><span class="ds-tl-lbl" title="' + lbl + '">' + lbl.replace('Descanso', 'Desc.') + '</span>' +
             (conCheck ? '<input type="checkbox" data-descanso="' + conCheck + '" title="Registrar descanso de ' + DS_DESCANSO_MIN + ' min desde ahora" aria-label="Registrar ' + lbl + ' de ' + dsEsc(d.nombre) + '">' : '<span></span>') +
-            '<input type="time" data-campo="' + ini + '" aria-label="' + lbl + ' de ' + dsEsc(d.nombre) + ': inicio" value="' + dsEsc(b[ini] || '') + '">' +
+            '<input type="time" class="ds-hora" required data-campo="' + ini + '" aria-label="' + lbl + ' de ' + dsEsc(d.nombre) + ': inicio" value="' + dsEsc(b[ini] || '') + '">' +
             '<span class="ds-tl-guion">-</span>' +
-            '<input type="time" data-campo="' + fin + '" aria-label="' + lbl + ' de ' + dsEsc(d.nombre) + ': fin" value="' + dsEsc(b[fin] || '') + '"></div>';
+            '<input type="time" class="ds-hora" required data-campo="' + fin + '" aria-label="' + lbl + ' de ' + dsEsc(d.nombre) + ': fin" value="' + dsEsc(b[fin] || '') + '"></div>';
         };
         // La ausencia funciona igual que antes (mismo selector y valores); solo cambió de lugar.
         card.innerHTML =
