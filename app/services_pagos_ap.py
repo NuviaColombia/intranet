@@ -72,6 +72,35 @@ def resumen_conteos(db: Session, empresa: str = "") -> dict:
     return {e: conteos.get(e, 0) for e in ESTADOS_AP} | {"TODOS": sum(conteos.values())}
 
 
+def reporte_pagos(db: Session, desde: date | None = None, hasta: date | None = None, tercero: str = "",
+                   monto_min: float | None = None, monto_max: float | None = None) -> list[dict]:
+    """Pagos REALIZADOS (estado Pagado) agrupados mes a mes por fecha_pago -- se agrupa en Python, no
+    con funciones de fecha de SQL, para no depender de si la base es SQLite (dev) o Postgres (prod)."""
+    q = db.query(CuentaPorPagar).filter(CuentaPorPagar.estado == ESTADO_PAGADO, CuentaPorPagar.fecha_pago.isnot(None))
+    if desde:
+        q = q.filter(CuentaPorPagar.fecha_pago >= desde)
+    if hasta:
+        q = q.filter(CuentaPorPagar.fecha_pago <= hasta)
+    if tercero:
+        like = f"%{tercero.strip()}%"
+        q = q.filter((CuentaPorPagar.proveedor_nombre.ilike(like)) | (CuentaPorPagar.proveedor_nit.ilike(like)))
+    if monto_min is not None:
+        q = q.filter(CuentaPorPagar.valor >= monto_min)
+    if monto_max is not None:
+        q = q.filter(CuentaPorPagar.valor <= monto_max)
+    meses: dict[str, dict] = {}
+    for c in q.all():
+        clave = c.fecha_pago.strftime("%Y-%m")
+        m = meses.setdefault(clave, {"mes": clave, "cantidad": 0, "totalSmiles": 0.0, "totalDesign": 0.0, "total": 0.0})
+        m["cantidad"] += 1
+        m["total"] += c.valor
+        if c.empresa == "Smiles":
+            m["totalSmiles"] += c.valor
+        elif c.empresa == "Design":
+            m["totalDesign"] += c.valor
+    return sorted(meses.values(), key=lambda m: m["mes"])
+
+
 # ---------------- Crear / aprobar / rechazar / pagar ----------------
 
 def crear(db: Session, actor: Empleado, empresa: str, proveedor_nombre: str, valor: float, proveedor_nit: str = "",

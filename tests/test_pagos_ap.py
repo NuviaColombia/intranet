@@ -111,6 +111,63 @@ class FlujoEstados(unittest.TestCase):
         self.assertEqual(c.estado, ESTADO_PENDIENTE)
 
 
+class ReportePagos(unittest.TestCase):
+    """reporte_pagos agrupa mes a mes solo lo PAGADO, por fecha_pago -- lo Pendiente/Aprobado no debe
+    aparecer aunque tenga valor."""
+
+    def setUp(self):
+        self.db = _db()
+
+    def _pagado(self, empresa, proveedor, nit, valor, fecha_pago):
+        c = CuentaPorPagar(empresa=empresa, proveedor_nombre=proveedor, proveedor_nit=nit, valor=valor,
+                           estado=ESTADO_PAGADO, fecha_pago=fecha_pago, fecha=fecha_pago)
+        self.db.add(c)
+        self.db.commit()
+        return c
+
+    def test_agrupa_por_mes_y_separa_por_empresa(self):
+        self._pagado("Smiles", "A", "1", 100000, date(2026, 1, 5))
+        self._pagado("Design", "B", "2", 50000, date(2026, 1, 20))
+        self._pagado("Smiles", "C", "3", 200000, date(2026, 2, 1))
+        meses = sa.reporte_pagos(self.db)
+        self.assertEqual([m["mes"] for m in meses], ["2026-01", "2026-02"])
+        enero = meses[0]
+        self.assertEqual(enero["cantidad"], 2)
+        self.assertEqual(enero["totalSmiles"], 100000)
+        self.assertEqual(enero["totalDesign"], 50000)
+        self.assertEqual(enero["total"], 150000)
+
+    def test_pendiente_y_aprobado_no_cuentan(self):
+        self._pagado("Smiles", "A", "1", 100000, date(2026, 1, 5))
+        c = CuentaPorPagar(empresa="Smiles", proveedor_nombre="B", valor=999999, estado=ESTADO_APROBADO)
+        self.db.add(c)
+        self.db.commit()
+        meses = sa.reporte_pagos(self.db)
+        self.assertEqual(len(meses), 1)
+        self.assertEqual(meses[0]["total"], 100000)
+
+    def test_filtro_de_fechas(self):
+        self._pagado("Smiles", "A", "1", 100, date(2025, 12, 31))
+        self._pagado("Smiles", "B", "2", 200, date(2026, 1, 1))
+        meses = sa.reporte_pagos(self.db, desde=date(2026, 1, 1), hasta=date(2026, 12, 31))
+        self.assertEqual([m["mes"] for m in meses], ["2026-01"])
+
+    def test_filtro_de_tercero_por_nombre_o_nit(self):
+        self._pagado("Smiles", "PROVEEDOR ACME", "900111", 100, date(2026, 1, 1))
+        self._pagado("Smiles", "OTRO PROVEEDOR", "900222", 200, date(2026, 1, 1))
+        self.assertEqual(sa.reporte_pagos(self.db, tercero="ACME")[0]["total"], 100)
+        self.assertEqual(sa.reporte_pagos(self.db, tercero="900222")[0]["total"], 200)
+
+    def test_filtro_de_monto(self):
+        self._pagado("Smiles", "A", "1", 50000, date(2026, 1, 1))
+        self._pagado("Smiles", "B", "2", 500000, date(2026, 1, 1))
+        self.assertEqual(sa.reporte_pagos(self.db, monto_min=100000)[0]["total"], 500000)
+        self.assertEqual(sa.reporte_pagos(self.db, monto_max=100000)[0]["total"], 50000)
+
+    def test_sin_pagos_devuelve_lista_vacia(self):
+        self.assertEqual(sa.reporte_pagos(self.db), [])
+
+
 class Clasificacion(unittest.TestCase):
     def test_paid_y_ap(self):
         self.assertEqual(sa._clasificar("Paid"), (ESTADO_PAGADO, ""))
