@@ -19,53 +19,17 @@ directamente, lo que cumple la condición `modulo in self.modulos_lista` de `tie
 la excepción); la otra vía sigue siendo Parámetros › Quién tiene acceso dentro de Caja menor Nuvia
 (`/caja-menor/parametros`).
 
-**(2026-10-27) Ahora vive dentro del módulo "Contabilidad" (pedido de Oscar).** El portal (`/`)
-ya no muestra una tarjeta "Caja menor Nuvia" directa: muestra **Contabilidad**
+**(2026-10-27) Ahora vive dentro del módulo "Contabilidad" (pedido de Oscar), junto a Pagos.** El
+portal (`/`) ya no muestra una tarjeta "Caja menor Nuvia" directa: muestra **Contabilidad**
 (`app/templates/portal.html`), que lleva a `/contabilidad` (`app/routers/contabilidad.py`,
 `templates/contabilidad.html` -- mismo patrón de aterrizaje que `/activos`). Ahí hay dos tarjetas:
-"Caja menor Nuvia" (funciona igual que siempre, sin ningún cambio de lógica) y **"Pagos"**
-(deshabilitada, "Próximamente" -- sin alcance definido todavía). **No se creó un permiso nuevo**:
-`/contabilidad` usa `require_modulo("caja_menor")`, el mismo de siempre -- quien ya tenía acceso a
-Caja menor ve Contabilidad, y cuando Pagos tenga funcionalidad real, por ahora debe seguir
-gateada por ese mismo permiso (confirmado con Oscar: "los mismos de caja menor, y agrega a Dayana
-Mendoza" -- a Dayana le falta que un admin le marque la casilla "Caja menor Nuvia" en
-Empleados › editar, no se tocó la base de datos de producción directamente para esto). Las
-rutas de `/caja-menor/*` no cambiaron: siguen en el mismo router, con el mismo permiso y el mismo
-comportamiento; solo cambió qué hay delante en la navegación. El breadcrumb de la barra superior
-(`base.html`) ahora es "🧮 Contabilidad › 💵 Caja menor Nuvia[ › caja][ › Parámetros]".
-
-**(2026-10-27) Pagos ya tiene funcionalidad real: dos herramientas que corrían como archivos HTML
-sueltos de Oscar.** `/pagos` (`app/routers/pagos.py`, `templates/pagos.html`, mismo permiso
-`require_modulo("caja_menor")`, sin tabla ni endpoint propio) sirve dos herramientas que antes eran
-archivos `.html` independientes que Oscar abría localmente (carpeta `Datos` de su equipo):
-
-- **"Pagos programados → PDF"**: lee el archivo plano del banco (formato Davivienda, líneas
-  `RC`/`TR`) o una tabla pegada de Excel, arma un lote por empresa y genera un PDF con jsPDF para
-  repartir los pagos. Mantiene un directorio de beneficiarios (NIT → nombre/cuenta) e historial de
-  lotes cargados.
-- **"Separador de comprobantes"**: toma el PDF consolidado que entrega el banco con todos los
-  comprobantes de un lote, separa cada página por NIT (usando pdf.js para leer el texto y pdf-lib
-  para recortar páginas) y las entrega en un ZIP (JSZip), nombrando cada archivo con la empresa que
-  reconoce de su propia base de NIT→nombre. Esa base y el historial de ZIP quedan protegidos por un
-  PIN que cada quien crea en su propio navegador la primera vez que los desbloquea.
-
-**Todo corre en el navegador, nada se guarda en el servidor.** Ambas herramientas son exactamente
-el mismo código JS que ya traían (parseo, generación de PDF, separación de PDF, ZIP) -- solo se les
-cambió la piel (CSS) para que se vean como el resto de la plataforma (mismos tokens de color que
-`caja_menor.css`, ver `app/static/pagos.css`) y se quitó el CDN de Tailwind del Separador. El
-directorio de beneficiarios y el historial de "Pagos programados" usan `localStorage`; la base de
-NIT→nombre y el historial de ZIP del Separador usan `IndexedDB`. **Son datos por navegador, no
-compartidos entre personas ni dispositivos** -- si alguien cambia de computador o de navegador,
-no ve lo que cargó la otra persona. Si en el futuro se pide que esto sea compartido entre todos los
-que usan Pagos, hay que migrar esa parte a tablas propias con sus propios endpoints (como
-`CajaAcceso` en Caja menor), no es un ajuste menor.
-
-Los dos `<script>` de `pagos.html` están aislados a propósito: el de "Pagos programados" va envuelto
-en un IIFE (no expone nada al scope global) porque los dos archivos originales declaraban variables
-con el mismo nombre (`esc`, entre otras) y chocarían si convivieran sueltos en la misma página; el
-del Separador se dejó en scope global porque su HTML usa `onclick="..."` inline (mismo patrón que
-`caja_menor.html`) que necesita encontrar esas funciones como globales. Si tocas cualquiera de los
-dos, respeta ese aislamiento.
+"Caja menor Nuvia" (esta página, funciona igual que siempre, sin ningún cambio de lógica) y
+**"Pagos"** (tres herramientas propias -- ver [pagos.md](pagos.md)). **No se creó un permiso
+nuevo**: tanto `/contabilidad` como `/pagos` usan `require_modulo("caja_menor")`, el mismo de
+siempre -- quien ya tenía acceso a Caja menor ve Contabilidad y Pagos. Las rutas de `/caja-menor/*`
+no cambiaron: siguen en el mismo router, con el mismo permiso y el mismo comportamiento; solo
+cambió qué hay delante en la navegación. El breadcrumb de la barra superior (`base.html`) ahora es
+"🧮 Contabilidad › 💵 Caja menor Nuvia[ › caja][ › Parámetros]".
 
 **Qué es** (Caja menor Nuvia): manejo de cajas de caja menor (ej. CONTABILIDAD, MANTENIMIENTO). Reemplaza una app
 anterior en Google Apps Script. Alguien con acceso a una caja crea un **recibo**; un

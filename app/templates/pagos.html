@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% block titulo %}Pagos{% endblock %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/pagos.css?v=1">
+<link rel="stylesheet" href="/static/pagos.css?v={{ pagos_estaticos_v }}">
 <div id="pagos-app">
-
-  <div class="pg-tool-tabs">
-    <button type="button" id="pg-tt-pdf" class="activo">💳 Pagos programados → PDF</button>
-    <button type="button" id="pg-tt-sep">📎 Separador de comprobantes</button>
-  </div>
+<div class="pg-shell">
+  <nav class="pg-sidebar">
+    <button type="button" id="pg-tt-pdf" class="activo"><span class="pg-sidebar-icono">💳</span><span>Pagos programados<br><small>→ PDF</small></span></button>
+    <button type="button" id="pg-tt-sep"><span class="pg-sidebar-icono">📎</span><span>Separador de<br>comprobantes</span></button>
+    <button type="button" id="pg-tt-ap"><span class="pg-sidebar-icono">📋</span><span>Accounts<br>Payable</span></button>
+  </nav>
+  <div class="pg-content">
 
   <!-- ============ HERRAMIENTA 1: Pagos programados -> PDF ============ -->
   <div id="pg-tool-pdf" class="pg-herramienta activa">
@@ -162,16 +164,82 @@
   </div>
   </div>
 
+  <!-- ============ HERRAMIENTA 3: Accounts Payable ============ -->
+  <div id="pg-tool-ap" class="pg-herramienta">
+  <div class="pg-main">
+    <div class="pg-barra">
+      <div><h2 class="pg-titulo">Accounts Payable</h2>
+        <p class="pg-sub" style="margin:0">Cuentas por pagar de Smiles y Design: pendientes, aprobadas y pagadas.</p></div>
+      <button type="button" class="btn" id="apNuevoBtn">+ Nueva cuenta por pagar</button>
+    </div>
+
+    <div id="apPushBox" style="margin-bottom:14px"></div>
+
+    <div id="apEstados" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button type="button" class="btn gris" data-estado="PENDIENTE">⏳ Pendientes <span data-n="PENDIENTE"></span></button>
+      <button type="button" class="btn verde" data-estado="APROBADO">✅ Aprobados <span data-n="APROBADO"></span></button>
+      <button type="button" class="btn gris" data-estado="PAGADO">💰 Pagados <span data-n="PAGADO"></span></button>
+      <button type="button" class="btn gris" data-estado="">📋 Todos <span data-n="TODOS"></span></button>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <select id="apEmpresa" style="width:auto;min-width:170px">
+        <option value="">Todas las empresas</option>
+        <option value="Smiles">Nuvia Smiles</option>
+        <option value="Design">Nuvia Design</option>
+      </select>
+      <input id="apBusqueda" placeholder="Buscar por proveedor, NIT o detalle…" style="flex:1;min-width:220px">
+    </div>
+
+    <div id="apForm" class="pg-card" hidden>
+      <b>Nueva cuenta por pagar</b>
+      <p class="pg-muted" style="margin:2px 0 10px">Queda como Pendiente y se avisa de inmediato a Leslie y Oscar.</p>
+      <div class="pg-grid2">
+        <div>
+          <select id="apfEmpresa"><option value="Smiles">Nuvia Smiles</option><option value="Design">Nuvia Design</option></select>
+          <input id="apfProveedor" placeholder="Nombre del proveedor *">
+          <input id="apfNit" placeholder="NIT o cédula">
+          <input id="apfCategoria" placeholder="Categoría">
+        </div>
+        <div>
+          <input id="apfValor" type="number" min="1" step="0.01" placeholder="Valor *">
+          <input id="apfVencimiento" type="date">
+          <input id="apfDocumento" placeholder="Documento / factura">
+          <textarea id="apfDetalle" class="pg-pega" style="height:60px" placeholder="Detalle del pago *"></textarea>
+        </div>
+      </div>
+      <textarea id="apfComentarios" class="pg-pega" style="height:50px" placeholder="Comentarios (opcional)"></textarea>
+      <div style="margin-top:8px"><button type="button" class="btn" id="apGuardarBtn">Registrar</button> <button type="button" class="btn gris" id="apCancelarBtn">Cancelar</button></div>
+      <div class="pg-err" id="apFormErr"></div>
+    </div>
+
+    <div id="apLista"></div>
+
+    {% if user.rol in ('admin', 'superadmin') %}
+    <details class="pg-detalle" style="margin-top:22px">
+      <summary>⚙️ Importar histórico desde Excel (admin)</summary>
+      <p class="pg-muted">Sube el archivo "ACCOUNTS PAYABLE.xlsx" (pestañas AP SMILES / AP DESIGN). Las filas que ya
+        existen (misma empresa, fecha, NIT, detalle y valor) no se vuelven a importar.</p>
+      <input type="file" id="apImportarInput" accept=".xlsx,.xlsm">
+      <div id="apImportarMsg" style="margin-top:6px"></div>
+    </details>
+    {% endif %}
+  </div>
+  </div>
+
+  </div>
+</div>
 </div>
 
 <script>
 (function() {
-  var btns = [document.getElementById('pg-tt-pdf'), document.getElementById('pg-tt-sep')];
-  var paneles = [document.getElementById('pg-tool-pdf'), document.getElementById('pg-tool-sep')];
+  var btns = [document.getElementById('pg-tt-pdf'), document.getElementById('pg-tt-sep'), document.getElementById('pg-tt-ap')];
+  var paneles = [document.getElementById('pg-tool-pdf'), document.getElementById('pg-tool-sep'), document.getElementById('pg-tool-ap')];
   btns.forEach(function(b, i) {
     b.onclick = function() {
       btns.forEach(function(x, j) { x.classList.toggle('activo', j === i); });
       paneles.forEach(function(x, j) { x.classList.toggle('activa', j === i); });
+      if (paneles[i].id === 'pg-tool-ap' && window.apCargarInicial) window.apCargarInicial();
     };
   });
 })();
@@ -1033,4 +1101,137 @@ document.getElementById('historial').addEventListener('click', async e => {
 window.addEventListener('error', e => { try { logMsg('ERROR: ' + e.message); } catch (_) {} });
 window.addEventListener('unhandledrejection', e => { try { logMsg('ERROR: ' + (e.reason && e.reason.message || e.reason)); } catch (_) {} });
 </script>
+
+<!-- ============ Script herramienta 3: Accounts Payable (aislado, igual que las otras dos) ============ -->
+<script>
+(function() {
+  var $ = function(s) { return document.querySelector(s); };
+  var esc = function(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); };
+  var money = function(v) { return '$ ' + Math.round(v || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+  var EMPRESA_NOMBRE = {Smiles: 'Nuvia Smiles', Design: 'Nuvia Design'};
+  var ESTADO_LABEL = {PENDIENTE: 'Pendiente', APROBADO: 'Aprobado', PAGADO: 'Pagado'};
+  var estadoActivo = 'PENDIENTE', puedeAprobar = false, cargadoAlgunaVez = false;
+
+  function api(url, opts) {
+    return fetch(url, Object.assign({credentials: 'same-origin'}, opts || {})).then(function(r) {
+      return r.json().catch(function() { return {}; }).then(function(d) { if (!r.ok) throw new Error(d.detail || ('Error ' + r.status)); return d; });
+    });
+  }
+  function apiJSON(url, cuerpo) {
+    return api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cuerpo || {})});
+  }
+
+  function marcarBotonEstado() {
+    document.querySelectorAll('#apEstados [data-estado]').forEach(function(b) {
+      var activo = b.dataset.estado === estadoActivo;
+      b.style.boxShadow = activo ? '0 0 0 2px var(--brand-main) inset' : '';
+    });
+  }
+
+  function cargar() {
+    cargadoAlgunaVez = true;
+    var qs = new URLSearchParams({estado: estadoActivo, empresa: $('#apEmpresa').value, busqueda: $('#apBusqueda').value.trim()});
+    $('#apLista').innerHTML = '<p class="pg-muted">Cargando…</p>';
+    marcarBotonEstado();
+    api('/pagos/api/ap?' + qs.toString()).then(function(d) {
+      puedeAprobar = d.puedeAprobar;
+      Object.keys(d.resumen).forEach(function(k) {
+        document.querySelectorAll('[data-n="' + k + '"]').forEach(function(el) { el.textContent = '(' + d.resumen[k] + ')'; });
+      });
+      renderLista(d.filas);
+    }).catch(function(e) { $('#apLista').innerHTML = '<p class="pg-err">No se pudo cargar: ' + esc(e.message) + '</p>'; });
+  }
+
+  function renderLista(filas) {
+    if (!filas.length) { $('#apLista').innerHTML = '<p class="pg-muted" style="padding:20px 0">No hay cuentas por pagar en este filtro.</p>'; return; }
+    var filasHtml = filas.map(function(f) {
+      var estadoTxt = f.estado === 'OTRO' ? (f.estadoOriginal || 'Otro') : ESTADO_LABEL[f.estado];
+      var acciones = '';
+      if (f.estado === 'PENDIENTE' && puedeAprobar) {
+        acciones = '<button type="button" class="btn verde mini" data-a="aprobar" data-id="' + f.id + '">Aprobar</button> ' +
+          '<button type="button" class="btn rojo mini" data-a="rechazar" data-id="' + f.id + '">Rechazar</button>';
+      } else if (f.estado === 'APROBADO') {
+        acciones = '<button type="button" class="btn mini" data-a="pagar" data-id="' + f.id + '">Marcar pagado</button>';
+      }
+      return '<tr>' +
+        '<td>' + (f.fecha || '—') + '</td>' +
+        '<td>' + esc(EMPRESA_NOMBRE[f.empresa] || f.empresa) + '</td>' +
+        '<td><b>' + esc(f.proveedorNombre) + '</b>' + (f.proveedorNit ? '<br><small class="pg-muted">NIT ' + esc(f.proveedorNit) + '</small>' : '') + '</td>' +
+        '<td>' + esc(f.detalle) + '</td>' +
+        '<td style="text-align:right">' + money(f.valor) + '</td>' +
+        '<td><span class="pg-badge ' + f.estado.toLowerCase() + '">' + esc(estadoTxt) + '</span>' +
+          (f.aprobadoPor ? '<br><small class="pg-muted">' + esc(f.aprobadoPor) + '</small>' : '') + '</td>' +
+        '<td>' + (f.fechaPago || '—') + '</td>' +
+        '<td style="white-space:nowrap">' + acciones + '</td>' +
+      '</tr>';
+    }).join('');
+    $('#apLista').innerHTML = '<div class="pg-tabla-wrap"><table class="pg-tabla"><tr><th>Fecha</th><th>Empresa</th><th>Proveedor</th>' +
+      '<th>Detalle</th><th style="text-align:right">Valor</th><th>Estado</th><th>Pago</th><th></th></tr>' + filasHtml + '</table></div>';
+  }
+
+  document.querySelectorAll('#apEstados [data-estado]').forEach(function(b) {
+    b.onclick = function() { estadoActivo = b.dataset.estado; cargar(); };
+  });
+  $('#apEmpresa').onchange = cargar;
+  var buscarT;
+  $('#apBusqueda').oninput = function() { clearTimeout(buscarT); buscarT = setTimeout(cargar, 300); };
+  $('#apLista').addEventListener('click', function(e) {
+    var b = e.target.closest('button[data-a]'); if (!b) return;
+    var id = b.dataset.id, a = b.dataset.a, p;
+    if (a === 'aprobar') {
+      p = apiJSON('/pagos/api/ap/' + id + '/aprobar', {});
+    } else if (a === 'rechazar') {
+      var motivo = prompt('Motivo del rechazo (opcional):') || '';
+      p = apiJSON('/pagos/api/ap/' + id + '/rechazar', {motivo: motivo});
+    } else if (a === 'pagar') {
+      if (!confirm('¿Marcar esta cuenta como pagada?')) return;
+      p = apiJSON('/pagos/api/ap/' + id + '/pagar', {});
+    } else return;
+    b.disabled = true;
+    p.then(cargar).catch(function(err) { alert('No se pudo completar: ' + err.message); b.disabled = false; });
+  });
+
+  // ---- Nueva cuenta por pagar ----
+  $('#apNuevoBtn').onclick = function() { $('#apForm').hidden = !$('#apForm').hidden; };
+  $('#apCancelarBtn').onclick = function() { $('#apForm').hidden = true; $('#apFormErr').textContent = ''; };
+  $('#apGuardarBtn').onclick = function() {
+    var valor = parseFloat($('#apfValor').value);
+    var cuerpo = {
+      empresa: $('#apfEmpresa').value, proveedor_nombre: $('#apfProveedor').value.trim(), proveedor_nit: $('#apfNit').value.trim(),
+      categoria: $('#apfCategoria').value.trim(), detalle: $('#apfDetalle').value.trim(), documento: $('#apfDocumento').value.trim(),
+      valor: valor, fecha_vencimiento: $('#apfVencimiento').value || null, comentarios: $('#apfComentarios').value.trim(),
+    };
+    if (!cuerpo.proveedor_nombre || !cuerpo.detalle || !valor || valor <= 0) {
+      $('#apFormErr').textContent = 'Completa proveedor, detalle y un valor mayor a cero.'; return;
+    }
+    $('#apFormErr').textContent = '';
+    apiJSON('/pagos/api/ap', cuerpo).then(function() {
+      ['apfProveedor', 'apfNit', 'apfCategoria', 'apfValor', 'apfVencimiento', 'apfDocumento', 'apfDetalle', 'apfComentarios'].forEach(function(id) { $('#' + id).value = ''; });
+      $('#apForm').hidden = true;
+      estadoActivo = 'PENDIENTE';
+      cargar();
+    }).catch(function(e) { $('#apFormErr').textContent = e.message; });
+  };
+
+  // ---- Importar histórico (solo admin -- el bloque ni siquiera se renderiza para los demás) ----
+  var impInput = $('#apImportarInput');
+  if (impInput) {
+    impInput.onchange = function() {
+      var f = impInput.files[0]; if (!f) return;
+      var msg = $('#apImportarMsg'); msg.className = 'pg-ok'; msg.textContent = 'Leyendo e importando (puede tardar unos segundos)…';
+      var fd = new FormData(); fd.append('archivo', f);
+      fetch('/pagos/api/ap/importar', {method: 'POST', credentials: 'same-origin', body: fd}).then(function(r) {
+        return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || 'Error al importar'); return d; });
+      }).then(function(d) {
+        msg.className = 'pg-ok';
+        msg.textContent = '✓ ' + d.importadas + ' nuevas · ' + d.duplicadas + ' ya existían (omitidas) · ' + d.omitidas + ' filas vacías omitidas, de ' + d.leidas + ' leídas.';
+        if (cargadoAlgunaVez) cargar();
+      }).catch(function(e) { msg.className = 'pg-err'; msg.textContent = e.message; }).finally(function() { impInput.value = ''; });
+    };
+  }
+
+  window.apCargarInicial = function() { if (!cargadoAlgunaVez) cargar(); };
+})();
+</script>
+<script src="/static/pagos/push.js"></script>
 {% endblock %}

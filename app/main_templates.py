@@ -147,6 +147,21 @@ def _version_activos() -> str:
 
 
 templates.env.globals["activos_estaticos_v"] = _version_activos()
+
+
+def _version_pagos() -> str:
+    """Versión de pagos.css (mismo motivo que _version_activos: evita servir una copia vieja tras un deploy)."""
+    import hashlib
+    from pathlib import Path
+    h = hashlib.md5()
+    try:
+        h.update((Path(__file__).resolve().parent / "static" / "pagos.css").read_bytes())
+    except OSError:
+        pass
+    return h.hexdigest()[:10]
+
+
+templates.env.globals["pagos_estaticos_v"] = _version_pagos()
 templates.env.globals["puede_sst"] = puede_sst
 
 
