@@ -1789,16 +1789,20 @@ def _promedios_producto(db: Session) -> dict:
     if c["v"] is not None and _t.monotonic() - c["t"] < 600:
         return c["v"]
     desde = ahora_colombia().date() - timedelta(days=30)
-    filas = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area))
-             .filter(DesignOrden.fecha >= desde, func.coalesce(DesignOrden.hora_fin, "") != "").all())
+    # 28-oct-2026: antes cargaba de golpe las órdenes de 30 días de todas las áreas (con equipo y área unidos a cada una):
+    # era el pico de memoria más alto de Design. Ahora se leen por tandas de 500 y el área sale de un diccionario de equipos.
+    area_de = {t: (a, f) for t, a, f in db.query(DesignTeam.id, DesignTeam.area_id, DesignArea.formato).join(DesignArea)}
+    filas = (db.query(DesignOrden).filter(DesignOrden.fecha >= desde, func.coalesce(DesignOrden.hora_fin, "") != "")
+             .yield_per(500))
     suma: dict = {}
     for o in filas:
-        if not o.team or _es_cancelada(o.estado):
+        ta = area_de.get(o.team_id)
+        if not ta or _es_cancelada(o.estado):
             continue
-        d = duracion_orden_min(o, o.team.area.formato)
+        d = duracion_orden_min(o, ta[1])
         if not 5 <= d <= 600:   # descarta horas mal registradas
             continue
-        for k in ((o.team.area_id, _normalizar_texto(o.producto)), (o.team.area_id, None)):
+        for k in ((ta[0], _normalizar_texto(o.producto)), (ta[0], None)):
             a = suma.setdefault(k, [0.0, 0]); a[0] += d; a[1] += 1
     v = {k: a[0] / a[1] for k, a in suma.items() if a[1]}
     c["t"], c["v"] = _t.monotonic(), v
